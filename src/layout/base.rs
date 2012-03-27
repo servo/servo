@@ -1,7 +1,8 @@
 import dom::rcu;
 import dom::rcu::methods;
-import util::{tree, geom};
-import geom::{size, rect, point, au};
+import gfx::geom;
+import gfx::geom::{size, rect, point, au};
+import util::{tree};
 
 enum box = @{
     tree: tree::fields<box>,
@@ -137,3 +138,4 @@ mod test {
                       geom::box(au(0), au(0), au(100), au(45))]; // n3
     }
 }
+

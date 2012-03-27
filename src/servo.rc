@@ -14,6 +14,7 @@ mod dom {
 }
 
 mod gfx {
+    mod geom;
     mod surface;
 }
 
@@ -33,5 +34,4 @@ mod widget {
 
 mod util {
     mod tree;
-    mod geom;
 }
