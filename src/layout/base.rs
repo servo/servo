@@ -15,7 +15,7 @@ enum node_data = {
 
     // Points to the primary box.  Note that there may be multiple
     // boxes per DOM node.
-    mut linfo: option<box>,
+    mut box: option<box>,
 };
 
 enum node_kind {
@@ -40,13 +40,19 @@ impl of tree::tree for node {
 fn new_node(+k: node_kind) -> node {
     rcu::handle(node_data({tree: tree::empty(),
                            kind: k,
-                           mut linfo: none}))
+                           mut box: none}))
 }
 
 fn new_box(n: node) -> box {
     box(@{tree: tree::empty(),
           node: n,
           mut bounds: geom::zero_rect_au()})
+}
+
+fn linked_box(n: node) -> box {
+    let b = new_box(n);
+    n.box = some(b);
+    ret b;
 }
 
 fn reflow_block(root: box, available_width: au) {
@@ -75,9 +81,10 @@ fn reflow_block(root: box, available_width: au) {
                         height: au(current_height)};
 }
 
-/*
 #[cfg(test)]
 mod test {
+
+    /*
     use sdl;
     import sdl::video;
 
@@ -91,28 +98,42 @@ mod test {
 
         video::free_surface(screen);
     }
-}
+    */
 
-#[test]
-fn do_layout() {
-    test::with_screen {|s|
-        let n0 = node(nk_img(size(au(22),au(44))));
-        let n1 = node(nk_img(size(au(22),au(44))));
-        let n2 = node(nk_img(size(au(22),au(44))));
-        let n3 = node(nk_div);
+    fn flat_bounds(root: box) -> [geom::rect<au>] {
+        let mut r = [];
+        for tree::each_child(root) {|c|
+            r += flat_bounds(c);
+        }
+        ret r + [root.bounds];
+    }
+
+    #[test]
+    fn do_layout() {
+        let n0 = new_node(nk_img(size(au(10),au(10))));
+        let n1 = new_node(nk_img(size(au(10),au(10))));
+        let n2 = new_node(nk_img(size(au(10),au(10))));
+        let n3 = new_node(nk_div);
 
         tree::add_child(n3, n0);
         tree::add_child(n3, n1);
         tree::add_child(n3, n2);
 
-        let b0 = box(n0);
-        let b1 = box(n1);
-        let b2 = box(n2);
-        let b3 = box(n3);
+        let b0 = linked_box(n0);
+        let b1 = linked_box(n1);
+        let b2 = linked_box(n2);
+        let b3 = linked_box(n3);
 
         tree::add_child(b3, b0);
         tree::add_child(b3, b1);
         tree::add_child(b3, b2);
-   }
+
+        reflow_block(b3, au(100));
+        let fb = flat_bounds(b3);
+        #debug["fb=%?", fb];
+        assert fb == [geom::box(au(0), au(0), au(10), au(10)),
+                      geom::box(au(0), au(10), au(10), au(10)),
+                      geom::box(au(0), au(20), au(10), au(10)),
+                      geom::box(au(0), au(0), au(100), au(30))];
+    }
 }
-*/
