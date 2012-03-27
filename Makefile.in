@@ -1,0 +1,15 @@
+RUSTC?=rustc
+RUSTFLAGS?=
+
+VPATH=%VPATH%
+
+all:    servo
+
+servo:	src/servo.rc
+	$(RUSTC) $(RUSTFLAGS) -o $@ $^
+
+.PHONY:	clean
+
+clean:
+	rm -f servo
+

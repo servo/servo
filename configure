@@ -1,0 +1,4 @@
+#!/bin/bash
+
+sed "s/%VPATH%/`dirname $0`/" `dirname $0`/Makefile.in > Makefile
+

@@ -1,0 +1,21 @@
+#[link(name = "servo",
+       vers = "0.1",
+       uuid = "637ffc98-9058-471d-9de7-abfc49ef0549",
+       url = "http://servo.org/")];
+
+#[comment = "The Servo Parallel Browser Project"];
+#[license = "MPL"];
+
+mod dom {
+    mod base;
+    mod rcu;
+}
+
+mod layout {
+    mod base;
+}
+
+mod widget {
+    mod base;
+}
+
