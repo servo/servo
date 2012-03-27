@@ -1,12 +1,14 @@
+VPATH=%VPATH%
+
 RUSTC?=rustc
 RUSTFLAGS?=
 
-VPATH=%VPATH%
+RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
 
 all:    servo
 
-servo:	src/servo.rc
-	$(RUSTC) $(RUSTFLAGS) -o $@ $^
+servo:	src/servo.rc $(RUST_SRC)
+	$(RUSTC) $(RUSTFLAGS) -o $@ $<
 
 .PHONY:	clean
 
