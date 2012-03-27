@@ -77,8 +77,7 @@ mod test {
         dummy(@{fields: empty(), value: v})
     }
 
-    #[test]
-    fn add_child_0() {
+    fn parent_with_3_children() -> {p: dummy, children: [dummy]} {
         let children = [new_dummy(0u),
                         new_dummy(1u),
                         new_dummy(2u)];
@@ -88,11 +87,28 @@ mod test {
             add_child(p, c);
         }
 
+        ret {p: p, children: children};
+    }
+
+    #[test]
+    fn add_child_0() {
+        let {p, children} = parent_with_3_children();
         let mut i = 0u;
         for each_child(p) {|c|
             assert c.value == i;
             i += 1u;
         }
         assert i == children.len();
+    }
+
+    #[test]
+    fn add_child_break() {
+        let {p, _} = parent_with_3_children();
+        let mut i = 0u;
+        for each_child(p) {|_c|
+            i += 1u;
+            break;
+        }
+        assert i == 1u;
     }
 }
