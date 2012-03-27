@@ -13,6 +13,16 @@ mod dom {
     mod rcu;
 }
 
+mod gfx {
+    mod surface;
+}
+
+mod image {
+    mod encode {
+        mod tga;
+    }
+}
+
 mod layout {
     mod base;
 }
