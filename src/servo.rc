@@ -6,6 +6,8 @@
 #[comment = "The Servo Parallel Browser Project"];
 #[license = "MPL"];
 
+use std;
+
 mod dom {
     mod base;
     mod rcu;
@@ -19,3 +21,7 @@ mod widget {
     mod base;
 }
 
+mod util {
+    mod tree;
+    mod geom;
+}
