@@ -111,8 +111,8 @@ mod test {
     #[test]
     fn do_layout() {
         let n0 = new_node(nk_img(size(au(10),au(10))));
-        let n1 = new_node(nk_img(size(au(10),au(10))));
-        let n2 = new_node(nk_img(size(au(10),au(10))));
+        let n1 = new_node(nk_img(size(au(10),au(15))));
+        let n2 = new_node(nk_img(size(au(10),au(20))));
         let n3 = new_node(nk_div);
 
         tree::add_child(n3, n0);
@@ -131,9 +131,9 @@ mod test {
         reflow_block(b3, au(100));
         let fb = flat_bounds(b3);
         #debug["fb=%?", fb];
-        assert fb == [geom::box(au(0), au(0), au(10), au(10)),
-                      geom::box(au(0), au(10), au(10), au(10)),
-                      geom::box(au(0), au(20), au(10), au(10)),
-                      geom::box(au(0), au(0), au(100), au(30))];
+        assert fb == [geom::box(au(0), au(0), au(10), au(10)),   // n0
+                      geom::box(au(0), au(10), au(10), au(15)),  // n1
+                      geom::box(au(0), au(25), au(10), au(20)),  // n2
+                      geom::box(au(0), au(0), au(100), au(45))]; // n3
     }
 }
