@@ -5,6 +5,12 @@ type rect<A> = { mut origin: point<A>, mut size: size<A> };
 
 enum au = int;
 
+impl size for size<int> {
+    fn area() -> int {
+        self.width * self.height
+    }
+}
+
 fn point<A:copy>(x: A, y: A) -> point<A> {
     {mut x: x, mut y: y}
 }
