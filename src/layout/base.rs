@@ -59,6 +59,11 @@ fn linked_box(n: node) -> box {
 fn reflow_block(root: box, available_width: au) {
     // Root here is the root of the reflow, not necessarily the doc as
     // a whole.
+    //
+    // This routine:
+    // - generates root.bounds.size
+    // - generates root.bounds.origin for each child
+    // - and recursively computes the bounds for each child
 
     alt root.node.get().kind {
       nk_img(size) {
