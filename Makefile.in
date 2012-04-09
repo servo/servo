@@ -9,11 +9,11 @@ RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
 all:    servo
 
 servo:	\
-	src/servo.rc $(RUST_SRC)
+	src/servo/servo.rc $(RUST_SRC)
 	$(RUSTC) $(RUSTFLAGS) -o $@ $<
 
 servo-test: \
-	src/servo.rc $(RUST_SRC)
+	src/servo/servo.rc $(RUST_SRC)
 	$(RUSTC) $(RUSTFLAGS) --test -o $@ $<
 
 .PHONY:	clean
