@@ -78,13 +78,13 @@ fn reflow_block(root: box, available_width: au) {
     for tree::each_child(root) {|c|
         let mut blk_available_width = available_width;
         // FIXME subtract borders, margins, etc
-        c.bounds.origin = {x: au(0), y: au(current_height)};
+        c.bounds.origin = {mut x: au(0), mut y: au(current_height)};
         reflow_block(c, blk_available_width);
         current_height += *c.bounds.size.height;
     }
 
-    root.bounds.size = {width: available_width, // FIXME
-                        height: au(current_height)};
+    root.bounds.size = {mut width: available_width, // FIXME
+                        mut height: au(current_height)};
 }
 
 #[cfg(test)]
