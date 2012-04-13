@@ -1,3 +1,6 @@
 [submodule "src/rust-sdl"]
 	path = src/rust-sdl
 	url = git://github.com/brson/rust-sdl.git
+[submodule "src/rust-azure"]
+	path = src/rust-azure
+	url = git://github.com/brson/rust-azure.git
