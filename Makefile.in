@@ -9,15 +9,27 @@ RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
 all:    servo
 
 servo:	\
-	src/servo/servo.rc $(RUST_SRC)
+	src/servo/servo.rc $(RUST_SRC) \
+	src/rust-azure/libazure.dummy \
+	src/rust-sdl/libsdl.dummy
 	$(RUSTC) $(RUSTFLAGS) -o $@ $<
 
 servo-test: \
-	src/servo/servo.rc $(RUST_SRC)
+	src/servo/servo.rc $(RUST_SRC) \
+	src/rust-azure/libazure.dummy \
+	src/rust-sdl/libsdl.dummy
 	$(RUSTC) $(RUSTFLAGS) --test -o $@ $<
+
+src/rust-azure/libazure.dummy:
+	make -C src/rust-azure
+
+src/rust-sdl/libsdl.dummy:
+	make -C src/rust-sdl
 
 .PHONY:	clean
 clean:
+	make clean -C src/rust-azure
+	make clean -C src/rust-sdl
 	rm -f servo servo-test
 
 .PHONY: test
