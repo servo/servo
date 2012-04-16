@@ -70,8 +70,14 @@ fn main() {
             sdl::video::blit_surface(sdl_surf, ptr::null(),
                                      screen, ptr::null());
             sdl::video::flip(screen);
-            sdl::event::poll_event {|_event|
+            let mut mustbreak = false;
+            sdl::event::poll_event {|event|
+                alt event {
+                  sdl::event::keyup_event(_) { mustbreak = true; }
+                  _ { }
+                }
             }
+            if mustbreak { break }
         }
         ReleaseDrawTarget(azure_target);
         cairo_surface_destroy(cairo_surf);
