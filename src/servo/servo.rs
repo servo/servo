@@ -1,3 +1,4 @@
+import azure::bindgen::*;
 import azure::cairo;
 import azure::cairo::bindgen::*;
 
@@ -23,7 +24,7 @@ fn main() {
             320, 200, 32,
             [sdl::video::swsurface],
             [sdl::video::doublebuf]);
-        assert ptr::is_not_null(screen);
+        assert !screen.is_null();
         let sdl_surf = sdl::video::create_rgb_surface(
             [sdl::video::swsurface],
             320, 200, 32,
@@ -32,7 +33,7 @@ fn main() {
             0x000000FFu32,
             0x00000000u32
             );
-        assert ptr::is_not_null(sdl_surf);
+        assert !sdl_surf.is_null();
         let cairo_surf = unsafe {
             cairo_image_surface_create_for_data(
                 unsafe::reinterpret_cast((*sdl_surf).pixels),
@@ -42,13 +43,37 @@ fn main() {
                 (*sdl_surf).pitch as libc::c_int
             )
         };
+        assert !cairo_surf.is_null();
+        let azure_target = CreateDrawTargetForCairoSurface(cairo_surf);
+        assert !azure_target.is_null();
+
         loop {
+            let rect = {
+                x: 200f as azure::Float,
+                y: 200f as azure::Float,
+                width: 100f as azure::Float,
+                height: 100f as azure::Float
+            };
+            let color = {
+                r: 0f as azure::Float,
+                g: 1f as azure::Float,
+                b: 0f as azure::Float,
+                a: 1f as azure::Float
+            };
+            let pattern = CreateColorPattern(ptr::addr_of(color));
+            DrawTargetFillRect(
+                azure_target,
+                ptr::addr_of(rect),
+                unsafe { unsafe::reinterpret_cast(pattern) });
+            ReleaseColorPattern(pattern);
+
             sdl::video::blit_surface(sdl_surf, ptr::null(),
                                      screen, ptr::null());
             sdl::video::flip(screen);
             sdl::event::poll_event {|_event|
             }
         }
+        ReleaseDrawTarget(azure_target);
         cairo_surface_destroy(cairo_surf);
         sdl::quit();
     }
