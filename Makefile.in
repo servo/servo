@@ -3,6 +3,8 @@ VPATH=%VPATH%
 RUSTC?=rustc
 RUSTFLAGS?=
 
+RUSTFLAGS += -L src/rust-azure -L src/rust-sdl
+
 RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
 
 .PHONY:	all
