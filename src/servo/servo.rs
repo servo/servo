@@ -2,7 +2,7 @@ import azure::bindgen::*;
 import azure::cairo;
 import azure::cairo::bindgen::*;
 
-fn on_main(f: fn~()) {
+fn on_osmain(f: fn~()) {
     let builder = task::builder();
     let opts = {
         sched: some({
@@ -16,7 +16,7 @@ fn on_main(f: fn~()) {
 }
 
 fn main() {
-    on_main {||
+    on_osmain {||
         sdl::init([
             sdl::init_video
         ]);
