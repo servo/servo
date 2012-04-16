@@ -1,3 +1,4 @@
+import libc::c_double;
 import azure::bindgen::*;
 import azure::cairo;
 import azure::cairo::bindgen::*;
@@ -34,6 +35,7 @@ fn main() {
             0x00000000u32
             );
         assert !sdl_surf.is_null();
+        sdl::video::lock_surface(sdl_surf);
         let cairo_surf = unsafe {
             cairo_image_surface_create_for_data(
                 unsafe::reinterpret_cast((*sdl_surf).pixels),
@@ -48,27 +50,29 @@ fn main() {
         assert !azure_target.is_null();
 
         loop {
+            let color = {
+                r: 1f as azure::Float,
+                g: 1f as azure::Float,
+                b: 1f as azure::Float,
+                a: 0.5f as azure::Float
+            };
+            let pattern = CreateColorPattern(ptr::addr_of(color));
             let rect = {
-                x: 200f as azure::Float,
-                y: 200f as azure::Float,
+                x: 100f as azure::Float,
+                y: 100f as azure::Float,
                 width: 100f as azure::Float,
                 height: 100f as azure::Float
             };
-            let color = {
-                r: 0f as azure::Float,
-                g: 1f as azure::Float,
-                b: 0f as azure::Float,
-                a: 1f as azure::Float
-            };
-            let pattern = CreateColorPattern(ptr::addr_of(color));
             DrawTargetFillRect(
                 azure_target,
                 ptr::addr_of(rect),
                 unsafe { unsafe::reinterpret_cast(pattern) });
             ReleaseColorPattern(pattern);
 
+            sdl::video::unlock_surface(sdl_surf);
             sdl::video::blit_surface(sdl_surf, ptr::null(),
                                      screen, ptr::null());
+            sdl::video::lock_surface(sdl_surf);
             sdl::video::flip(screen);
             let mut mustbreak = false;
             sdl::event::poll_event {|event|
@@ -81,6 +85,7 @@ fn main() {
         }
         ReleaseDrawTarget(azure_target);
         cairo_surface_destroy(cairo_surf);
+        sdl::video::unlock_surface(sdl_surf);
         sdl::quit();
     }
 }
