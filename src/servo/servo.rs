@@ -1,9 +1,10 @@
 import libc::c_double;
+import azure::*;
 import azure::bindgen::*;
 import azure::cairo;
 import azure::cairo::bindgen::*;
 
-fn on_osmain(f: fn~()) {
+fn on_osmain<T: send>(f: fn~(comm::port<T>)) -> comm::chan<T> {
     let builder = task::builder();
     let opts = {
         sched: some({
@@ -13,22 +14,32 @@ fn on_osmain(f: fn~()) {
         with task::get_opts(builder)
     };
     task::set_opts(builder, opts);
-    task::run(builder, f);
+    ret task::run_listener(builder, f);
+}
+
+enum osmain_msg {
+    get_draw_target(comm::chan<AzDrawTargetRef>),
+    add_key_handler(comm::chan<()>),
+    draw(AzDrawTargetRef, comm::chan<()>),
+    exit
 }
 
 fn main() {
-    on_osmain {||
+    // The platform event handler thread
+    let osmain_ch = on_osmain::<osmain_msg> {|po|
+        let mut key_handlers = [];
+
         sdl::init([
             sdl::init_video
         ]);
         let screen = sdl::video::set_video_mode(
-            320, 200, 32,
+            800, 600, 32,
             [sdl::video::swsurface],
             [sdl::video::doublebuf]);
         assert !screen.is_null();
         let sdl_surf = sdl::video::create_rgb_surface(
             [sdl::video::swsurface],
-            320, 200, 32,
+            800, 600, 32,
             0x00FF0000u32,
             0x0000FF00u32,
             0x000000FFu32,
@@ -74,18 +85,44 @@ fn main() {
                                      screen, ptr::null());
             sdl::video::lock_surface(sdl_surf);
             sdl::video::flip(screen);
-            let mut mustbreak = false;
             sdl::event::poll_event {|event|
                 alt event {
-                  sdl::event::keyup_event(_) { mustbreak = true; }
+                  sdl::event::keydown_event(_) {
+                    key_handlers.iter {|key_ch|
+                        comm::send(key_ch, ())
+                    }
+                  }
                   _ { }
                 }
             }
-            if mustbreak { break }
+
+            // Handle messages
+            if comm::peek(po) {
+                alt check comm::recv(po) {
+                  add_key_handler(key_ch) {
+                    key_handlers += [key_ch];
+                  }
+                  exit { break; }
+                }
+            }
         }
         AzReleaseDrawTarget(azure_target);
         cairo_surface_destroy(cairo_surf);
         sdl::video::unlock_surface(sdl_surf);
         sdl::quit();
+    };
+
+    // The keyboard handler
+    task::spawn {||
+        let key_po = comm::port();
+        comm::send(osmain_ch, add_key_handler(comm::chan(key_po)));
+        loop {
+            alt comm::recv(key_po) {
+              _ {
+                comm::send(osmain_ch, exit);
+                break;
+              }
+            }
+        }
     }
 }
