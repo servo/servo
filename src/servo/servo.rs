@@ -20,10 +20,15 @@ fn on_osmain<T: send>(f: fn~(comm::port<T>)) -> comm::chan<T> {
 
 // Messages to the platform event handler task
 enum osmain_msg {
-    get_draw_target(comm::chan<AzDrawTargetRef>),
-    add_key_handler(comm::chan<()>),
-    draw(comm::chan<()>),
-    exit
+    om_get_draw_target(comm::chan<AzDrawTargetRef>),
+    om_add_key_handler(comm::chan<()>),
+    om_draw(comm::chan<()>),
+    om_exit
+}
+
+enum draw_msg {
+    dm_draw,
+    dm_exit(comm::chan<()>)
 }
 
 fn main() {
@@ -77,13 +82,13 @@ fn main() {
             // Handle messages
             if comm::peek(po) {
                 alt check comm::recv(po) {
-                  add_key_handler(key_ch) {
+                  om_add_key_handler(key_ch) {
                     key_handlers += [key_ch];
                   }
-                  get_draw_target(response_ch) {
+                  om_get_draw_target(response_ch) {
                     comm::send(response_ch, azure_target);
                   }
-                  draw(response_ch) {
+                  om_draw(response_ch) {
                     sdl::video::unlock_surface(sdl_surf);
                     sdl::video::blit_surface(sdl_surf, ptr::null(),
                                              screen, ptr::null());
@@ -102,9 +107,9 @@ fn main() {
     };
 
     // The drawing task
-    let draw_exit_ch = task::spawn_listener {|exit_po|
+    let draw_ch = task::spawn_listener {|po|
         let draw_target_po = comm::port();
-        comm::send(osmain_ch, get_draw_target(comm::chan(draw_target_po)));
+        comm::send(osmain_ch, om_get_draw_target(comm::chan(draw_target_po)));
         let draw_target = comm::recv(draw_target_po);
 
         let red_color = {
@@ -123,56 +128,66 @@ fn main() {
         };
         let green_pattern = AzCreateColorPattern(ptr::addr_of(green_color));
 
-        while !comm::peek(exit_po) {
-            let red_rect = {
-                x: 100f as azure::AzFloat,
-                y: 100f as azure::AzFloat,
-                width: 200f as azure::AzFloat,
-                height: 200f as azure::AzFloat
-            };
-            AzDrawTargetFillRect(
-                draw_target,
-                ptr::addr_of(red_rect),
-                unsafe { unsafe::reinterpret_cast(red_pattern) }
-            );
-            let green_rect = {
-                x: 200f as azure::AzFloat,
-                y: 200f as azure::AzFloat,
-                width: 200f as azure::AzFloat,
-                height: 200f as azure::AzFloat
-            };
-            AzDrawTargetFillRect(
-                draw_target,
-                ptr::addr_of(green_rect),
-                unsafe { unsafe::reinterpret_cast(green_pattern) }
-            );
-            let draw_po = comm::port();
-            comm::send(osmain_ch, draw(comm::chan(draw_po)));
-            comm::recv(draw_po);
+        let mut exit_confirm_ch = none;
+        loop {
+            alt comm::recv::<draw_msg>(po) {
+              dm_draw {
+                let red_rect = {
+                    x: 100f as azure::AzFloat,
+                    y: 100f as azure::AzFloat,
+                    width: 200f as azure::AzFloat,
+                    height: 200f as azure::AzFloat
+                };
+                AzDrawTargetFillRect(
+                    draw_target,
+                    ptr::addr_of(red_rect),
+                    unsafe { unsafe::reinterpret_cast(red_pattern) }
+                );
+                let green_rect = {
+                    x: 200f as azure::AzFloat,
+                    y: 200f as azure::AzFloat,
+                    width: 200f as azure::AzFloat,
+                    height: 200f as azure::AzFloat
+                };
+                AzDrawTargetFillRect(
+                    draw_target,
+                    ptr::addr_of(green_rect),
+                    unsafe { unsafe::reinterpret_cast(green_pattern) }
+                );
+                let draw_po = comm::port();
+                comm::send(osmain_ch, om_draw(comm::chan(draw_po)));
+                comm::recv(draw_po);
+              }
+              dm_exit(response_ch) {
+                exit_confirm_ch = some(response_ch);
+                break;
+              }
+            }
         }
 
         AzReleaseColorPattern(red_pattern);
         AzReleaseColorPattern(green_pattern);
 
-        let exit_confirm_ch = comm::recv(exit_po);
-        comm::send(exit_confirm_ch, ());
+        assert exit_confirm_ch.is_some();
+        comm::send(exit_confirm_ch.get(), ());
     };
 
     // The keyboard handler
     task::spawn {||
         let key_po = comm::port();
-        comm::send(osmain_ch, add_key_handler(comm::chan(key_po)));
+        comm::send(osmain_ch, om_add_key_handler(comm::chan(key_po)));
         loop {
             alt comm::recv(key_po) {
               _ {
                 let draw_exit_confirm_po = comm::port();
-                comm::send(draw_exit_ch, comm::chan(draw_exit_confirm_po));
+                comm::send(draw_ch, dm_exit(comm::chan(draw_exit_confirm_po)));
                 comm::recv(draw_exit_confirm_po);
-                comm::send(osmain_ch, exit);
+                comm::send(osmain_ch, om_exit);
                 break;
               }
             }
         }
     }
 
+    comm::send(draw_ch, dm_draw);
 }
