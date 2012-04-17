@@ -18,6 +18,7 @@ mod dom {
 mod gfx {
     mod geom;
     mod surface;
+    mod compositor;
 }
 
 mod image {
