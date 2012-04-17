@@ -15,10 +15,10 @@ fn main() {
     // The platform event handler thread
     let osmain_ch = osmain::osmain();
 
-    // The drawing task
+    // The compositor
     let draw_ch = gfx::compositor::compositor(osmain_ch);
 
-    // The model
+    // Not sure what this is but it decides what to draw
     let model_ch = task::spawn_listener {|po|
         let mut x1 = 100;
         let mut y1 = 100;
