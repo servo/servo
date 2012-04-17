@@ -46,28 +46,28 @@ fn main() {
             )
         };
         assert !cairo_surf.is_null();
-        let azure_target = CreateDrawTargetForCairoSurface(cairo_surf);
+        let azure_target = AzCreateDrawTargetForCairoSurface(cairo_surf);
         assert !azure_target.is_null();
 
         loop {
             let color = {
-                r: 1f as azure::Float,
-                g: 1f as azure::Float,
-                b: 1f as azure::Float,
-                a: 0.5f as azure::Float
+                r: 1f as azure::AzFloat,
+                g: 1f as azure::AzFloat,
+                b: 1f as azure::AzFloat,
+                a: 0.5f as azure::AzFloat
             };
-            let pattern = CreateColorPattern(ptr::addr_of(color));
+            let pattern = AzCreateColorPattern(ptr::addr_of(color));
             let rect = {
-                x: 100f as azure::Float,
-                y: 100f as azure::Float,
-                width: 100f as azure::Float,
-                height: 100f as azure::Float
+                x: 100f as azure::AzFloat,
+                y: 100f as azure::AzFloat,
+                width: 100f as azure::AzFloat,
+                height: 100f as azure::AzFloat
             };
-            DrawTargetFillRect(
+            AzDrawTargetFillRect(
                 azure_target,
                 ptr::addr_of(rect),
                 unsafe { unsafe::reinterpret_cast(pattern) });
-            ReleaseColorPattern(pattern);
+            AzReleaseColorPattern(pattern);
 
             sdl::video::unlock_surface(sdl_surf);
             sdl::video::blit_surface(sdl_surf, ptr::null(),
@@ -83,7 +83,7 @@ fn main() {
             }
             if mustbreak { break }
         }
-        ReleaseDrawTarget(azure_target);
+        AzReleaseDrawTarget(azure_target);
         cairo_surface_destroy(cairo_surf);
         sdl::video::unlock_surface(sdl_surf);
         sdl::quit();
