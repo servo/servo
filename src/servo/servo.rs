@@ -4,6 +4,7 @@ import azure::bindgen::*;
 import azure::cairo;
 import azure::cairo::bindgen::*;
 
+// A function for spawning into the platform's main thread
 fn on_osmain<T: send>(f: fn~(comm::port<T>)) -> comm::chan<T> {
     let builder = task::builder();
     let opts = {
@@ -17,10 +18,11 @@ fn on_osmain<T: send>(f: fn~(comm::port<T>)) -> comm::chan<T> {
     ret task::run_listener(builder, f);
 }
 
+// Messages to the platform event handler task
 enum osmain_msg {
     get_draw_target(comm::chan<AzDrawTargetRef>),
     add_key_handler(comm::chan<()>),
-    draw(AzDrawTargetRef, comm::chan<()>),
+    draw(comm::chan<()>),
     exit
 }
 
@@ -61,30 +63,6 @@ fn main() {
         assert !azure_target.is_null();
 
         loop {
-            let color = {
-                r: 1f as azure::AzFloat,
-                g: 1f as azure::AzFloat,
-                b: 1f as azure::AzFloat,
-                a: 0.5f as azure::AzFloat
-            };
-            let pattern = AzCreateColorPattern(ptr::addr_of(color));
-            let rect = {
-                x: 100f as azure::AzFloat,
-                y: 100f as azure::AzFloat,
-                width: 100f as azure::AzFloat,
-                height: 100f as azure::AzFloat
-            };
-            AzDrawTargetFillRect(
-                azure_target,
-                ptr::addr_of(rect),
-                unsafe { unsafe::reinterpret_cast(pattern) });
-            AzReleaseColorPattern(pattern);
-
-            sdl::video::unlock_surface(sdl_surf);
-            sdl::video::blit_surface(sdl_surf, ptr::null(),
-                                     screen, ptr::null());
-            sdl::video::lock_surface(sdl_surf);
-            sdl::video::flip(screen);
             sdl::event::poll_event {|event|
                 alt event {
                   sdl::event::keydown_event(_) {
@@ -102,6 +80,17 @@ fn main() {
                   add_key_handler(key_ch) {
                     key_handlers += [key_ch];
                   }
+                  get_draw_target(response_ch) {
+                    comm::send(response_ch, azure_target);
+                  }
+                  draw(response_ch) {
+                    sdl::video::unlock_surface(sdl_surf);
+                    sdl::video::blit_surface(sdl_surf, ptr::null(),
+                                             screen, ptr::null());
+                    sdl::video::lock_surface(sdl_surf);
+                    sdl::video::flip(screen);
+                    comm::send(response_ch, ());
+                  }
                   exit { break; }
                 }
             }
@@ -112,6 +101,40 @@ fn main() {
         sdl::quit();
     };
 
+    // The drawing task
+    let draw_exit_ch = task::spawn_listener {|exit_po|
+        let draw_target_po = comm::port();
+        comm::send(osmain_ch, get_draw_target(comm::chan(draw_target_po)));
+        let draw_target = comm::recv(draw_target_po);
+
+        while !comm::peek(exit_po) {
+            let color = {
+                r: 1f as azure::AzFloat,
+                g: 1f as azure::AzFloat,
+                b: 1f as azure::AzFloat,
+                a: 0.5f as azure::AzFloat
+            };
+            let pattern = AzCreateColorPattern(ptr::addr_of(color));
+            let rect = {
+                x: 100f as azure::AzFloat,
+                y: 100f as azure::AzFloat,
+                width: 100f as azure::AzFloat,
+                height: 100f as azure::AzFloat
+            };
+            AzDrawTargetFillRect(
+                draw_target,
+                ptr::addr_of(rect),
+                unsafe { unsafe::reinterpret_cast(pattern) });
+            AzReleaseColorPattern(pattern);
+            let draw_po = comm::port();
+            comm::send(osmain_ch, draw(comm::chan(draw_po)));
+            comm::recv(draw_po);
+        }
+
+        let exit_confirm_ch = comm::recv(exit_po);
+        comm::send(exit_confirm_ch, ());
+    };
+
     // The keyboard handler
     task::spawn {||
         let key_po = comm::port();
@@ -119,10 +142,14 @@ fn main() {
         loop {
             alt comm::recv(key_po) {
               _ {
+                let draw_exit_confirm_po = comm::port();
+                comm::send(draw_exit_ch, comm::chan(draw_exit_confirm_po));
+                comm::recv(draw_exit_confirm_po);
                 comm::send(osmain_ch, exit);
                 break;
               }
             }
         }
     }
+
 }
