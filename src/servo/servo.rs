@@ -107,29 +107,52 @@ fn main() {
         comm::send(osmain_ch, get_draw_target(comm::chan(draw_target_po)));
         let draw_target = comm::recv(draw_target_po);
 
+        let red_color = {
+            r: 1f as azure::AzFloat,
+            g: 0f as azure::AzFloat,
+            b: 0f as azure::AzFloat,
+            a: 0.8f as azure::AzFloat
+        };
+        let red_pattern = AzCreateColorPattern(ptr::addr_of(red_color));
+
+        let green_color = {
+            r: 0f as azure::AzFloat,
+            g: 1f as azure::AzFloat,
+            b: 0f as azure::AzFloat,
+            a: 0.8f as azure::AzFloat
+        };
+        let green_pattern = AzCreateColorPattern(ptr::addr_of(green_color));
+
         while !comm::peek(exit_po) {
-            let color = {
-                r: 1f as azure::AzFloat,
-                g: 1f as azure::AzFloat,
-                b: 1f as azure::AzFloat,
-                a: 0.5f as azure::AzFloat
-            };
-            let pattern = AzCreateColorPattern(ptr::addr_of(color));
-            let rect = {
+            let red_rect = {
                 x: 100f as azure::AzFloat,
                 y: 100f as azure::AzFloat,
-                width: 100f as azure::AzFloat,
-                height: 100f as azure::AzFloat
+                width: 200f as azure::AzFloat,
+                height: 200f as azure::AzFloat
             };
             AzDrawTargetFillRect(
                 draw_target,
-                ptr::addr_of(rect),
-                unsafe { unsafe::reinterpret_cast(pattern) });
-            AzReleaseColorPattern(pattern);
+                ptr::addr_of(red_rect),
+                unsafe { unsafe::reinterpret_cast(red_pattern) }
+            );
+            let green_rect = {
+                x: 200f as azure::AzFloat,
+                y: 200f as azure::AzFloat,
+                width: 200f as azure::AzFloat,
+                height: 200f as azure::AzFloat
+            };
+            AzDrawTargetFillRect(
+                draw_target,
+                ptr::addr_of(green_rect),
+                unsafe { unsafe::reinterpret_cast(green_pattern) }
+            );
             let draw_po = comm::port();
             comm::send(osmain_ch, draw(comm::chan(draw_po)));
             comm::recv(draw_po);
         }
+
+        AzReleaseColorPattern(red_pattern);
+        AzReleaseColorPattern(green_pattern);
 
         let exit_confirm_ch = comm::recv(exit_po);
         comm::send(exit_confirm_ch, ());
