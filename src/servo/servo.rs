@@ -4,6 +4,13 @@ import azure::bindgen::*;
 import azure::cairo;
 import azure::cairo::bindgen::*;
 
+// FIXME: Busy wait hack
+fn sleep() {
+    iter::repeat(100000u) {||
+        task::yield();
+    }
+}
+
 // A function for spawning into the platform's main thread
 fn on_osmain<T: send>(f: fn~(comm::port<T>)) -> comm::chan<T> {
     let builder = task::builder();
@@ -27,9 +34,14 @@ enum osmain_msg {
 }
 
 enum draw_msg {
-    dm_draw,
+    dm_draw(model),
     dm_exit(comm::chan<()>)
 }
+
+type model = {
+    x1: int, y1: int, w1: int, h1: int,
+    x2: int, y2: int, w2: int, h2: int
+};
 
 fn main() {
     // The platform event handler thread
@@ -112,11 +124,19 @@ fn main() {
         comm::send(osmain_ch, om_get_draw_target(comm::chan(draw_target_po)));
         let draw_target = comm::recv(draw_target_po);
 
+        let black_color = {
+            r: 0f as azure::AzFloat,
+            g: 0f as azure::AzFloat,
+            b: 0f as azure::AzFloat,
+            a: 1f as azure::AzFloat
+        };
+        let black_pattern = AzCreateColorPattern(ptr::addr_of(black_color));
+
         let red_color = {
             r: 1f as azure::AzFloat,
             g: 0f as azure::AzFloat,
             b: 0f as azure::AzFloat,
-            a: 0.8f as azure::AzFloat
+            a: 0.5f as azure::AzFloat
         };
         let red_pattern = AzCreateColorPattern(ptr::addr_of(red_color));
 
@@ -124,19 +144,31 @@ fn main() {
             r: 0f as azure::AzFloat,
             g: 1f as azure::AzFloat,
             b: 0f as azure::AzFloat,
-            a: 0.8f as azure::AzFloat
+            a: 0.5f as azure::AzFloat
         };
         let green_pattern = AzCreateColorPattern(ptr::addr_of(green_color));
 
         let mut exit_confirm_ch = none;
         loop {
             alt comm::recv::<draw_msg>(po) {
-              dm_draw {
+              dm_draw(model) {
+                let black_rect = {
+                    x: 0 as azure::AzFloat,
+                    y: 0 as azure::AzFloat,
+                    width: 800 as azure::AzFloat,
+                    height: 600 as azure::AzFloat,
+                };
+                AzDrawTargetFillRect(
+                    draw_target,
+                    ptr::addr_of(black_rect),
+                    unsafe { unsafe::reinterpret_cast(black_pattern) }
+                );
+
                 let red_rect = {
-                    x: 100f as azure::AzFloat,
-                    y: 100f as azure::AzFloat,
-                    width: 200f as azure::AzFloat,
-                    height: 200f as azure::AzFloat
+                    x: model.x1 as azure::AzFloat,
+                    y: model.y1 as azure::AzFloat,
+                    width: model.w1 as azure::AzFloat,
+                    height: model.h1 as azure::AzFloat
                 };
                 AzDrawTargetFillRect(
                     draw_target,
@@ -144,10 +176,10 @@ fn main() {
                     unsafe { unsafe::reinterpret_cast(red_pattern) }
                 );
                 let green_rect = {
-                    x: 200f as azure::AzFloat,
-                    y: 200f as azure::AzFloat,
-                    width: 200f as azure::AzFloat,
-                    height: 200f as azure::AzFloat
+                    x: model.x2 as azure::AzFloat,
+                    y: model.y2 as azure::AzFloat,
+                    width: model.w2 as azure::AzFloat,
+                    height: model.h2 as azure::AzFloat
                 };
                 AzDrawTargetFillRect(
                     draw_target,
@@ -172,6 +204,37 @@ fn main() {
         comm::send(exit_confirm_ch.get(), ());
     };
 
+    // The model
+    let model_ch = task::spawn_listener {|po|
+        let mut x1 = 100;
+        let mut y1 = 100;
+        let mut w1 = 200;
+        let mut h1 = 200;
+        let mut x2 = 200;
+        let mut y2 = 200;
+        let mut w2 = 300;
+        let mut h2 = 300;
+
+        while !comm::peek(po) {
+            let model = {
+                x1: x1, y1: y1, w1: w1, h1: h1,
+                x2: x2, y2: y2, w2: w2, h2: h2
+            };
+            comm::send(draw_ch, dm_draw(model));
+
+            sleep();
+
+            x1 += 1;
+            y1 += 1;
+            x2 -= 1;
+            y2 -= 1;
+            if x1 > 800 { x1 = 0 }
+            if y1 > 600 { y1 = 0 }
+            if x2 < 0 { x2 = 800 }
+            if y2 < 0 { y2 = 600 }
+        }
+    };
+
     // The keyboard handler
     task::spawn {||
         let key_po = comm::port();
@@ -179,6 +242,7 @@ fn main() {
         loop {
             alt comm::recv(key_po) {
               _ {
+                comm::send(model_ch, ());
                 let draw_exit_confirm_po = comm::port();
                 comm::send(draw_ch, dm_exit(comm::chan(draw_exit_confirm_po)));
                 comm::recv(draw_exit_confirm_po);
@@ -188,6 +252,4 @@ fn main() {
             }
         }
     }
-
-    comm::send(draw_ch, dm_draw);
 }
