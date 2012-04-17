@@ -8,10 +8,10 @@ enum msg {
     exit(comm::chan<()>)
 }
 
-fn compositor(osmain_ch: comm::chan<osmain_msg>) -> comm::chan<msg> {
+fn compositor(osmain_ch: comm::chan<osmain::msg>) -> comm::chan<msg> {
     task::spawn_listener {|po|
         let draw_target_po = comm::port();
-        comm::send(osmain_ch, om_get_draw_target(comm::chan(draw_target_po)));
+        comm::send(osmain_ch, osmain::get_draw_target(comm::chan(draw_target_po)));
         let draw_target = comm::recv(draw_target_po);
 
         let black_color = {
@@ -77,7 +77,7 @@ fn compositor(osmain_ch: comm::chan<osmain_msg>) -> comm::chan<msg> {
                     unsafe { unsafe::reinterpret_cast(green_pattern) }
                 );
                 let draw_po = comm::port();
-                comm::send(osmain_ch, om_draw(comm::chan(draw_po)));
+                comm::send(osmain_ch, osmain::draw(comm::chan(draw_po)));
                 comm::recv(draw_po);
               }
               exit(response_ch) {

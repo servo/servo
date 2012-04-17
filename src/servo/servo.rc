@@ -38,3 +38,5 @@ mod widget {
 mod util {
     mod tree;
 }
+
+mod osmain;
