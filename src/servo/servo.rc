@@ -40,3 +40,4 @@ mod util {
 }
 
 mod osmain;
+mod input;
