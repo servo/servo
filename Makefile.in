@@ -3,24 +3,65 @@ VPATH=%VPATH%
 RUSTC?=rustc
 RUSTFLAGS?=
 
-RUSTFLAGS += -L src/rust-azure -L src/rust-sdl
+UNAME=$(shell uname)
+
+ifeq ($(UNAME),Darwin)
+    OSTYPE=darwin
+endif
+ifeq ($(UNAME),Linux)
+    OSTYPE=linux
+endif
+
+RUSTFLAGS += -L src/rust-azure -L src/rust-sdl -L src/rust-cocoa
 
 RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
+
+SERVO_DEPS = \
+	src/servo/servo.rc \
+	$(RUST_SRC) \
+	$(NULL)
+CHECK_DEPS =
+
+ifeq ($(OSTYPE),darwin)
+    SERVO_DEPS += src/rust-cocoa/libcocoa.dummy
+    # I want the cocoa check to come before the servo check since if cocoa
+    # doesn't work neither does servo
+    CHECK_DEPS += check-cocoa
+endif
+
+SERVO_DEPS += \
+	src/rust-azure/libazure.dummy \
+	src/rust-sdl/libsdl.dummy \
+	$(NULL)
+
+CHECK_DEPS += \
+	check-sdl \
+	check-azure \
+	check-servo \
+	$(NULL)
 
 .PHONY:	all
 all:    servo
 
-servo:	\
-	src/servo/servo.rc $(RUST_SRC) \
-	src/rust-azure/libazure.dummy \
-	src/rust-sdl/libsdl.dummy
+servo:	$(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) -o $@ $<
 
-servo-test: \
-	src/servo/servo.rc $(RUST_SRC) \
-	src/rust-azure/libazure.dummy \
-	src/rust-sdl/libsdl.dummy
+servo-test: $(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) --test -o $@ $<
+
+check: $(CHECK_DEPS)
+
+check-servo: servo-test
+	./servo-test
+
+check-azure: src/rust-azure/azure-test
+	src/rust-azure/azure-test
+
+check-sdl: src/rust-sdl/sdl-test
+	src/rust-sdl/sdl-test
+
+check-cocoa: src/rust-cocoa/cocoa-test
+	src/rust-cocoa/cocoa-test
 
 src/rust-azure/libazure.dummy:
 	make -C src/rust-azure
@@ -28,12 +69,21 @@ src/rust-azure/libazure.dummy:
 src/rust-sdl/libsdl.dummy:
 	make -C src/rust-sdl
 
+src/rust-cocoa/libcocoa.dummy:
+	make -C src/rust-cocoa
+
+src/rust-azure/azure-test:
+	make check -C src/rust-azure
+
+src/rust-sdl/sdl-test:
+	make check -C src/rust-sdl
+
+src/rust-cocoa/cocoa-test:
+	make check -C src/rust-cocoa
+
 .PHONY:	clean
 clean:
 	make clean -C src/rust-azure
 	make clean -C src/rust-sdl
+	make clean -C src/rust-cocoa
 	rm -f servo servo-test
-
-.PHONY: test
-test:	servo-test
-	./servo-test

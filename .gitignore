@@ -1,3 +1,10 @@
 *~
-Makefile
+*#
+*.o
+*.so
+*.dylib
+*.dSYM
+*.dll
+*.dummy
 servo-test
+Makefile
