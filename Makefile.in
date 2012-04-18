@@ -21,12 +21,14 @@ SERVO_DEPS = \
 	$(RUST_SRC) \
 	$(NULL)
 CHECK_DEPS =
+CLEAN_DEPS =
 
 ifeq ($(OSTYPE),darwin)
     SERVO_DEPS += src/rust-cocoa/libcocoa.dummy
     # I want the cocoa check to come before the servo check since if cocoa
     # doesn't work neither does servo
     CHECK_DEPS += check-cocoa
+    CLEAN_DEPS += clean-cocoa
 endif
 
 SERVO_DEPS += \
@@ -38,6 +40,12 @@ CHECK_DEPS += \
 	check-sdl \
 	check-azure \
 	check-servo \
+	$(NULL)
+
+CLEAN_DEPS += \
+	clean-sdl \
+	clean-azure \
+	clean-servo \
 	$(NULL)
 
 .PHONY:	all
@@ -82,8 +90,20 @@ src/rust-cocoa/cocoa-test:
 	make check -C src/rust-cocoa
 
 .PHONY:	clean
-clean:
+clean: $(CLEAN_DEPS)
+
+.PHONY: clean-azure
+clean-azure:
 	make clean -C src/rust-azure
+
+.PHONY: clean-sdl
+clean-sdl:
 	make clean -C src/rust-sdl
+
+.PHONY: clean-cocoa
+clean-cocoa:
 	make clean -C src/rust-cocoa
+
+.PHONY: clean-servo
+clean-servo:
 	rm -f servo servo-test
