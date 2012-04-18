@@ -4,3 +4,6 @@
 [submodule "src/rust-azure"]
 	path = src/rust-azure
 	url = git://github.com/brson/rust-azure.git
+[submodule "src/rust-cocoa"]
+	path = src/rust-cocoa
+	url = git://github.com/pcwalton/rust-cocoa.git
