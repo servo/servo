@@ -56,7 +56,7 @@ mod platform {
     mod NSApp {
          fn setDelegate(nsapp: id, main: id) {
 	     #debug("NSApp::setDelegate");
-	     let sel = str::as_c_str("setDelegate") { |s|
+	     let sel = str::as_c_str("setDelegate:") { |s|
 	         objc::sel_registerName(s)
 	     };
 	     cocoa::msgSend1Id(nsapp, sel, main);
