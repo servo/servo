@@ -74,15 +74,39 @@ mod platform {
     mod MainObj {
          crust fn applicationDidFinishLaunching(this: id, _sel: SEL) {
 	     #debug("applicationDidFinishLaunching");
+
+	     let fptr: *fn() = ptr::null();
+	     str::as_c_str("fptr") { |name|
+	         let outValue = unsafe { unsafe::reinterpret_cast(ptr::addr_of(fptr)) };
+                 #debug("*fptr %?", outValue);
+                 objc::object_getInstanceVariable(this, name, outValue)
+             };
+
+	     #debug("getting osmain fptr: %?", fptr);
+
+	     unsafe {
+	         // FIXME: We probably don't want to run the main routine in a crust function
+                 (*fptr)();
+             }
 	 }
 
-    	 fn create() -> id {
+    	 fn create(f: fn()) -> id {
              let NSObject = str::as_c_str("NSObject") { |s|
 	         objc::objc_getClass(s)
              };
 	     let MainObj = str::as_c_str("MainObj") { |s|
 	         objc::objc_allocateClassPair(NSObject, s, 0 as libc::size_t)
 	     };
+
+             // Add a field to our class to contain a pointer to a rust closure
+	     let res = str::as_c_str("fptr") { |name|
+                 str::as_c_str("^i") { |types|
+                     objc::class_addIvar(MainObj, name,
+                                         sys::size_of::<libc::uintptr_t>() as libc::size_t,
+                                         16u8, types)
+                 }
+             };
+ 	     assert res == true;
 
 	     let launchfn = str::as_c_str("applicationDidFinishLaunching:") { |s|
 	         objc::sel_registerName(s)
@@ -103,6 +127,14 @@ mod platform {
              };
              objc::objc_msgSend(mainobj, sel);
 
+	     let fptr = ptr::addr_of(f);
+	     str::as_c_str("fptr") { |name|
+	         #debug("setting osmain fptr: %?", fptr);
+		 let value = unsafe { unsafe::reinterpret_cast(fptr) };
+                 #debug("*fptr: %?", value);
+                 objc::object_setInstanceVariable(mainobj, name, value)
+             };
+
 	     ret mainobj;
 	 }
 	 fn release(mainobj: id) {
@@ -118,7 +150,7 @@ mod platform {
 	NSAutoreleasePool::init(pool);
         let NSApp = NSApplication::sharedApplication();
 
-        let mainobj = MainObj::create();
+        let mainobj = MainObj::create(f);
 	NSApp::setDelegate(NSApp, mainobj);
 	NSApp::run(NSApp);
 	
@@ -137,6 +169,7 @@ enum msg {
 fn osmain() -> comm::chan<msg> {
     on_osmain::<msg> {|po|
         platform::runmain {||
+            #debug("preparing to enter main loop");
 	    mainloop(po);
         }
     }
