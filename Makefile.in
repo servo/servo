@@ -49,7 +49,7 @@ CLEAN_DEPS += \
 	$(NULL)
 
 .PHONY:	all
-all:    servo
+all:    servo package
 
 servo:	$(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) -o $@ $<
@@ -101,3 +101,22 @@ clean-cocoa:
 .PHONY: clean-servo
 clean-servo:
 	rm -f servo servo-test
+
+ifeq ($(OSTYPE),darwin)
+
+package: servo
+	mkdir -p Servo.app/Contents/MacOS/src/rust-cocoa
+	mkdir -p Servo.app/Contents/MacOS/src/rust-sdl
+	mkdir -p Servo.app/Contents/MacOS/src/rust-azure
+	cp Info.plist Servo.app/Contents/
+	cp servo Servo.app/Contents/MacOS/
+	cp src/rust-cocoa/lib*.dylib Servo.app/Contents/MacOS/src/rust-cocoa/
+	cp src/rust-sdl/lib*.dylib Servo.app/Contents/MacOS/src/rust-sdl/
+	cp src/rust-azure/lib*.dylib Servo.app/Contents/MacOS/src/rust-azure/
+
+else
+
+.PHONY: package
+package:
+
+endif
