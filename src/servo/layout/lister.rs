@@ -18,7 +18,7 @@ enum msg {
 
 fn lister(renderer: chan<renderer::msg>) -> chan<msg> {
 
-    spawn_listener {|po|
+    spawn_listener::<msg> {|po|
         let mut x1 = 100;
         let mut y1 = 100;
         let mut w1 = 200;
@@ -28,38 +28,43 @@ fn lister(renderer: chan<renderer::msg>) -> chan<msg> {
         let mut w2 = 300;
         let mut h2 = 300;
 
-        while !peek(po) {
-            let dlist = [
-                display_item({
-                    item_type: solid_color,
-                    bounds: geom::box(
-                        int_to_au(x1),
-                        int_to_au(y1),
-                        int_to_au(w1),
-                        int_to_au(h1))
-                }),
-                display_item({
-                    item_type: solid_color,
-                    bounds: geom::box(
-                        int_to_au(x2),
-                        int_to_au(y2),
-                        int_to_au(w2),
-                        int_to_au(h2))
-                })
-            ];
+        loop {
+            alt recv(po) {
+              build {
+                let dlist = [
+                    display_item({
+                        item_type: solid_color,
+                        bounds: geom::box(
+                            int_to_au(x1),
+                            int_to_au(y1),
+                            int_to_au(w1),
+                            int_to_au(h1))
+                    }),
+                    display_item({
+                        item_type: solid_color,
+                        bounds: geom::box(
+                            int_to_au(x2),
+                            int_to_au(y2),
+                            int_to_au(w2),
+                            int_to_au(h2))
+                    })
+                ];
 
-            send(renderer, gfx::renderer::draw(dlist));
+                send(renderer, gfx::renderer::draw(dlist));
 
-            std::timer::sleep(100u);
-
-            x1 += 1;
-            y1 += 1;
-            x2 -= 1;
-            y2 -= 1;
-            if x1 > 800 { x1 = 0 }
-            if y1 > 600 { y1 = 0 }
-            if x2 < 0 { x2 = 800 }
-            if y2 < 0 { y2 = 600 }
+                x1 += 1;
+                y1 += 1;
+                x2 -= 1;
+                y2 -= 1;
+                if x1 > 800 { x1 = 0 }
+                if y1 > 600 { y1 = 0 }
+                if x2 < 0 { x2 = 800 }
+                if y2 < 0 { y2 = 600 }
+              }
+              exit {
+                break;
+              }
+            }
         }
     }
 
