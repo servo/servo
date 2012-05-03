@@ -6,6 +6,9 @@ Builds display lists on request and passes them to the renderer
 
 import task::*;
 import comm::*;
+import display_list::*;
+import gfx::geom;
+import gfx::geom::*;
 import gfx::renderer;
 
 enum msg {
@@ -26,11 +29,26 @@ fn lister(renderer: chan<renderer::msg>) -> chan<msg> {
         let mut h2 = 300;
 
         while !peek(po) {
-            let model = {
-                x1: x1, y1: y1, w1: w1, h1: h1,
-                x2: x2, y2: y2, w2: w2, h2: h2
-            };
-            send(renderer, gfx::renderer::draw(model));
+            let dlist = [
+                display_item({
+                    item_type: solid_color,
+                    bounds: geom::box(
+                        int_to_au(x1),
+                        int_to_au(y1),
+                        int_to_au(w1),
+                        int_to_au(h1))
+                }),
+                display_item({
+                    item_type: solid_color,
+                    bounds: geom::box(
+                        int_to_au(x2),
+                        int_to_au(y2),
+                        int_to_au(w2),
+                        int_to_au(h2))
+                })
+            ];
+
+            send(renderer, gfx::renderer::draw(dlist));
 
             std::timer::sleep(100u);
 
