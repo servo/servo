@@ -4,13 +4,6 @@ import azure::bindgen::*;
 import azure::cairo;
 import azure::cairo::bindgen::*;
 
-// FIXME: Busy wait hack
-fn sleep() {
-    iter::repeat(100000u) {||
-        task::yield();
-    }
-}
-
 fn main() {
     // The platform event handler thread
     let osmain_ch = osmain::osmain();
@@ -36,7 +29,7 @@ fn main() {
             };
             comm::send(draw_ch, gfx::compositor::draw(model));
 
-            sleep();
+            std::timer::sleep(100u);
 
             x1 += 1;
             y1 += 1;
