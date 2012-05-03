@@ -200,7 +200,7 @@ fn mainloop(po: comm::port<msg>) {
         800, 600, 32,
         [sdl::video::swsurface],
         [sdl::video::doublebuf]);
-    assert !screen.is_null();
+    assert !ptr::is_null(screen);
     let sdl_surf = sdl::video::create_rgb_surface(
         [sdl::video::swsurface],
         800, 600, 32,
@@ -209,7 +209,7 @@ fn mainloop(po: comm::port<msg>) {
         0x000000FFu32,
         0x00000000u32
         );
-    assert !sdl_surf.is_null();
+    assert !ptr::is_null(sdl_surf);
     sdl::video::lock_surface(sdl_surf);
     let cairo_surf = unsafe {
         cairo_image_surface_create_for_data(
@@ -220,9 +220,9 @@ fn mainloop(po: comm::port<msg>) {
             (*sdl_surf).pitch as libc::c_int
         )
     };
-    assert !cairo_surf.is_null();
+    assert !ptr::is_null(cairo_surf);
     let azure_target = AzCreateDrawTargetForCairoSurface(cairo_surf);
-    assert !azure_target.is_null();
+    assert !ptr::is_null(azure_target);
 
     loop {
         sdl::event::poll_event {|event|
