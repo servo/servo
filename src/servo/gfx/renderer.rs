@@ -8,7 +8,7 @@ enum msg {
     exit(comm::chan<()>)
 }
 
-fn compositor(osmain_ch: comm::chan<osmain::msg>) -> comm::chan<msg> {
+fn renderer(osmain_ch: comm::chan<osmain::msg>) -> comm::chan<msg> {
     task::spawn_listener {|po|
         let draw_target_po = comm::port();
         comm::send(osmain_ch, osmain::get_draw_target(comm::chan(draw_target_po)));

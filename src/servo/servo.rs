@@ -9,7 +9,7 @@ fn main() {
     let osmain_ch = osmain::osmain();
 
     // The compositor
-    let draw_ch = gfx::compositor::compositor(osmain_ch);
+    let renderer = gfx::renderer::renderer(osmain_ch);
 
     // Not sure what this is but it decides what to draw
     let model_ch = task::spawn_listener {|po|
@@ -27,7 +27,7 @@ fn main() {
                 x1: x1, y1: y1, w1: w1, h1: h1,
                 x2: x2, y2: y2, w2: w2, h2: h2
             };
-            comm::send(draw_ch, gfx::compositor::draw(model));
+            comm::send(renderer, gfx::renderer::draw(model));
 
             std::timer::sleep(100u);
 
@@ -43,5 +43,5 @@ fn main() {
     };
 
     // The keyboard handler
-    input::input(osmain_ch, draw_ch, model_ch);
+    input::input(osmain_ch, renderer, model_ch);
 }

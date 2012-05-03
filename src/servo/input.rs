@@ -1,6 +1,6 @@
 fn input(
     osmain_ch: comm::chan<osmain::msg>,
-    draw_ch: comm::chan<gfx::compositor::msg>,
+    draw_ch: comm::chan<gfx::renderer::msg>,
     model_ch: comm::chan<()>
 ) {
     task::spawn {||
@@ -11,7 +11,7 @@ fn input(
               _ {
                 comm::send(model_ch, ());
                 let draw_exit_confirm_po = comm::port();
-                comm::send(draw_ch, gfx::compositor::exit(comm::chan(draw_exit_confirm_po)));
+                comm::send(draw_ch, gfx::renderer::exit(comm::chan(draw_exit_confirm_po)));
                 comm::recv(draw_exit_confirm_po);
                 comm::send(osmain_ch, osmain::exit);
                 break;
