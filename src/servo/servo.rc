@@ -33,6 +33,10 @@ mod layout {
     mod layout;
 }
 
+mod parser {
+    mod html;
+}
+
 mod widget {
     mod base;
 }
@@ -42,3 +46,4 @@ mod util {
 }
 
 mod osmain;
+
