@@ -1,3 +1,5 @@
+import comm::{port, chan};
+
 type parser = {
     mut lookahead: option<char_or_eof>,
     reader: io::reader
@@ -160,5 +162,22 @@ impl methods for parser {
 
 fn parser(reader: io::reader) -> parser {
     ret { mut lookahead: none, reader: reader };
+}
+
+fn spawn_parser_task(filename: str) -> port<token> {
+    let result_port = port();
+    let result_chan = chan(result_port);
+    task::spawn_listener::<()> {|_child_port|
+        let file_data = io::read_whole_file(filename).get();
+        let reader = io::bytes_reader(file_data);
+        let parser = parser(reader);
+
+        loop {
+            let token = parser.parse();
+            result_chan.send(token);
+            if token == to_eof { break; }
+        }
+    };
+    ret result_port;
 }
 

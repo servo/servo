@@ -16,7 +16,12 @@ fn parse(filename: str) {
 
 fn main(args: [str]) {
     if args.len() >= 2u {
-        parse(args[1]);
+        let p = html::spawn_parser_task(args[1]);
+        loop {
+            let token = p.recv();
+            io::println(#fmt("token: %?", token));
+            if token == html::to_eof { break; }
+        }
     }
 
     // The platform event handler thread
