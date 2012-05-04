@@ -167,7 +167,7 @@ fn parser(reader: io::reader) -> parser {
 fn spawn_parser_task(filename: str) -> port<token> {
     let result_port = port();
     let result_chan = chan(result_port);
-    task::spawn_listener::<()> {|_child_port|
+    task::spawn {||
         let file_data = io::read_whole_file(filename).get();
         let reader = io::bytes_reader(file_data);
         let parser = parser(reader);
