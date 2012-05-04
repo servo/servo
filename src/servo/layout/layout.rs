@@ -33,7 +33,7 @@ fn layout(renderer: chan<renderer::msg>) -> chan<msg> {
                 let box = layout_dom(dom);
                 let dlist = build_display_list(box);
 
-                send(renderer, gfx::renderer::draw(dlist));
+                send(renderer, gfx::renderer::render(dlist));
               }
               exit {
                 break;
@@ -54,18 +54,18 @@ fn build_display_list(_box: @base::box) -> display_list::display_list {
         display_item({
             item_type: solid_color,
             bounds: geom::box(
-                int_to_au(r.next() as int % 800),
-                int_to_au(r.next() as int % 600),
-                int_to_au(100),
-                int_to_au(100))
+                int_to_au(r.next() as int % 800 - 100),
+                int_to_au(r.next() as int % 600 - 100),
+                int_to_au(200),
+                int_to_au(200))
         }),
         display_item({
             item_type: solid_color,
             bounds: geom::box(
-                int_to_au(100),
-                int_to_au(100),
-                int_to_au(100),
-                int_to_au(100))
+                int_to_au(r.next() as int % 800 - 100),
+                int_to_au(r.next() as int % 600 - 100),
+                int_to_au(200),
+                int_to_au(200))
         })
     ]
 }

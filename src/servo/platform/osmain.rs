@@ -2,9 +2,9 @@ import comm::*;
 import azure::cairo::cairo_surface_t;
 
 enum msg {
-    get_draw_target(chan<AzDrawTargetRef>),
+    begin_drawing(chan<AzDrawTargetRef>),
+    draw(chan<AzDrawTargetRef>, AzDrawTargetRef),
     add_key_handler(chan<()>),
-    draw(chan<()>),
     exit
 }
 
@@ -31,7 +31,7 @@ fn mainloop(po: port<msg>) {
         [sdl::video::doublebuf]);
     assert !ptr::is_null(screen);
 
-    let surface = mk_surface();
+    let surfaces = surface_set();
 
     loop {
         sdl::event::poll_event {|event|
@@ -51,37 +51,85 @@ fn mainloop(po: port<msg>) {
               add_key_handler(key_ch) {
                 key_handlers += [key_ch];
               }
-              get_draw_target(response_ch) {
-                response_ch.send(copy(surface.az_target));
+              begin_drawing(sender) {
+                lend_surface(surfaces, sender);
               }
-              draw(response_ch) {
-                sdl::video::unlock_surface(surface.sdl_surf);
-                sdl::video::blit_surface(surface.sdl_surf, ptr::null(),
+              draw(sender, dt) {
+                return_surface(surfaces, dt);
+                lend_surface(surfaces, sender);
+
+                #debug("osmain: drawing to screen");
+                assert surfaces.s1.surf.az_target == dt;
+                let sdl_surf = surfaces.s1.surf.sdl_surf;
+
+                sdl::video::unlock_surface(sdl_surf);
+                sdl::video::blit_surface(sdl_surf, ptr::null(),
                                          screen, ptr::null());
-                sdl::video::lock_surface(surface.sdl_surf);
+                sdl::video::lock_surface(sdl_surf);
                 sdl::video::flip(screen);
-                response_ch.send(());
               }
               exit { break; }
             }
         }
     }
-    destroy_surface(surface);
+    destroy_surface(surfaces.s1.surf);
+    destroy_surface(surfaces.s2.surf);
     sdl::quit();
 }
 
-#[doc = "A function for spawning into the platform's main thread"]
-fn on_osmain<T: send>(f: fn~(comm::port<T>)) -> comm::chan<T> {
-    let builder = task::builder();
-    let opts = {
-        sched: some({
-            mode: task::osmain,
-            native_stack_size: none
-        })
-        with task::get_opts(builder)
+type surface_set = {
+    mut s1: {
+        surf: surface,
+        have: bool
+    },
+    mut s2: {
+        surf: surface,
+        have: bool
+    }
+};
+
+fn lend_surface(surfaces: surface_set, recvr: chan<AzDrawTargetRef>) {
+    // We are in a position to lend out the surface?
+    assert surfaces.s1.have;
+    // Ok then take it
+    let dt1 = surfaces.s1.surf.az_target;
+    #debug("osmain: lending surface %?", dt1);
+    recvr.send(dt1);
+    // Now we don't have it
+    surfaces.s1 = {
+        have: false
+        with surfaces.s1
     };
-    task::set_opts(builder, opts);
-    ret task::run_listener(builder, f);
+    // But we (hopefully) have another!
+    surfaces.s1 <-> surfaces.s2;
+    // Let's look
+    assert surfaces.s1.have;
+}
+
+fn return_surface(surfaces: surface_set, dt: AzDrawTargetRef) {
+    #debug("osmain: returning surface %?", dt);
+    // We have room for a return
+    assert surfaces.s1.have;
+    assert !surfaces.s2.have;
+    assert surfaces.s2.surf.az_target == dt;
+    // Now we have it again
+    surfaces.s2 = {
+        have: true
+        with surfaces.s2
+    };
+}
+
+fn surface_set() -> surface_set {
+    {
+        mut s1: {
+            surf: mk_surface(),
+            have: true
+        },
+        mut s2: {
+            surf: mk_surface(),
+            have: true
+        }
+    }
 }
 
 type surface = {
@@ -127,6 +175,20 @@ fn destroy_surface(surface: surface) {
     cairo_surface_destroy(surface.cairo_surf);
     sdl::video::unlock_surface(surface.sdl_surf);
     sdl::video::free_surface(surface.sdl_surf);
+}
+
+#[doc = "A function for spawning into the platform's main thread"]
+fn on_osmain<T: send>(f: fn~(comm::port<T>)) -> comm::chan<T> {
+    let builder = task::builder();
+    let opts = {
+        sched: some({
+            mode: task::osmain,
+            native_stack_size: none
+        })
+        with task::get_opts(builder)
+    };
+    task::set_opts(builder, opts);
+    ret task::run_listener(builder, f);
 }
 
 #[cfg(target_os = "linux")]

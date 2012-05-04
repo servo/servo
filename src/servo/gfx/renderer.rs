@@ -4,26 +4,25 @@ import comm::*;
 import layout::display_list::*;
 
 enum msg {
-    draw(display_list),
+    render(display_list),
     exit(comm::chan<()>)
 }
 
 fn renderer(osmain: chan<osmain::msg>) -> chan<msg> {
     task::spawn_listener::<msg> {|po|
         listen {|draw_target_ch|
-            osmain.send(osmain::get_draw_target(draw_target_ch));
-            let draw_target = draw_target_ch.recv();
-
+            #debug("renderer: beginning rendering loop");
+            osmain.send(osmain::begin_drawing(draw_target_ch));
+                
             loop {
                 alt po.recv() {
-                  draw(display_list) {
-
+                  render(display_list) {
+                    #debug("renderer: got render request");
+                    let draw_target = draw_target_ch.recv();
+                    #debug("renderer: rendering");
                     draw_display_list(draw_target, display_list);
-
-                    listen {|draw_ch|
-                        osmain.send(osmain::draw(draw_ch));
-                        draw_ch.recv();
-                    }
+                    #debug("renderer: returning surface");
+                    osmain.send(osmain::draw(draw_target_ch, draw_target));
                   }
                   exit(response_ch) {
                     response_ch.send(());
