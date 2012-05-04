@@ -99,4 +99,5 @@ fn clear(draw_target: AzDrawTargetRef) {
         unsafe { unsafe::reinterpret_cast(black_pattern) }
     );
 
+    AzReleaseColorPattern(black_pattern);
 }
