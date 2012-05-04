@@ -39,11 +39,10 @@ mod parser {
 
 mod platform {
     mod base;
+    mod osmain;
 }
 
 mod util {
     mod tree;
 }
-
-mod osmain;
 

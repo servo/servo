@@ -25,7 +25,7 @@ fn main(args: [str]) {
     }
 
     // The platform event handler thread
-    let osmain = osmain::osmain();
+    let osmain = platform::osmain::osmain();
 
     // The compositor
     let renderer = gfx::renderer::renderer(osmain);
@@ -35,7 +35,7 @@ fn main(args: [str]) {
 
     // The keyboard handler
     let key_po = port();
-    send(osmain, osmain::add_key_handler(chan(key_po)));
+    send(osmain, platform::osmain::add_key_handler(chan(key_po)));
 
     loop {
         send(layout, layout::layout::build);
@@ -49,7 +49,7 @@ fn main(args: [str]) {
             comm::send(renderer, gfx::renderer::exit(comm::chan(draw_exit_confirm_po)));
 
             comm::recv(draw_exit_confirm_po);
-            comm::send(osmain, osmain::exit);
+            comm::send(osmain, platform::osmain::exit);
             break;
         }
     }

@@ -1,3 +1,4 @@
+import platform::osmain;
 import geom::*;
 import comm::*;
 import layout::display_list::*;
