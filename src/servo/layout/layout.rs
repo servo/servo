@@ -12,6 +12,7 @@ import gfx::geom::*;
 import gfx::renderer;
 import dom::base::*;
 import display_list::*;
+import dom::rcu::scope;
 
 enum msg {
     build,
@@ -22,7 +23,8 @@ fn layout(renderer: chan<renderer::msg>) -> chan<msg> {
 
     spawn_listener::<msg> {|po|
 
-        let dom = new_node(nk_div);
+        let s = scope();
+        let dom = s.new_node(nk_div);
 
         loop {
             alt recv(po) {
@@ -42,11 +44,11 @@ fn layout(renderer: chan<renderer::msg>) -> chan<msg> {
 
 }
 
-fn layout_dom(dom: node) -> base::box {
+fn layout_dom(dom: node) -> @base::box {
     base::new_box(dom)
 }
 
-fn build_display_list(_box: base::box) -> display_list::display_list {
+fn build_display_list(_box: @base::box) -> display_list::display_list {
     [
         display_item({
             item_type: solid_color,
