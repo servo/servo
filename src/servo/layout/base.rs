@@ -55,6 +55,15 @@ fn linked_box(n: node) -> @box {
     ret b;
 }
 
+fn linked_subtree(p: node) -> @box {
+    let p_box = linked_box(p);
+    for ntree.each_child(p) { |c|
+        let c_box = linked_box(c);
+        btree.add_child(p_box, c_box);
+    }
+    ret p_box;
+}
+
 fn reflow_block(root: @box, available_width: au) {
     // Root here is the root of the reflow, not necessarily the doc as
     // a whole.

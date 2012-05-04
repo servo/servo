@@ -35,6 +35,7 @@ mod layout {
 
 mod parser {
     mod html;
+    mod html_builder;
 }
 
 mod platform {

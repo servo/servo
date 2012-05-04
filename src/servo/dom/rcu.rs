@@ -98,6 +98,10 @@ fn scope<T:send,A>() -> scope<T,A> {
 }
 
 impl writer_methods<T:send,A> for scope<T,A> {
+    fn is_reader_forked() -> bool {
+        self.layout_active
+    }
+
     fn reader_forked() {
         assert !self.layout_active;
         assert self.first_dirty.is_null();
@@ -120,6 +124,7 @@ impl writer_methods<T:send,A> for scope<T,A> {
             self.first_dirty = null_handle();
         }
 
+        assert self.first_dirty.is_null();
         self.layout_active = false;
     }
 
@@ -130,12 +135,11 @@ impl writer_methods<T:send,A> for scope<T,A> {
     }
 
     fn wr<U>(h: handle<T,A>, f: fn(T) -> U) -> U unsafe {
-        if self.layout_active {
-            if h.rd_ptr() == h.wr_ptr() {
-                h.set_wr_ptr(self.clone(h.rd_ptr()));
-                h.set_next_dirty(self.first_dirty);
-                self.first_dirty = h;
-            }
+        if self.layout_active && h.rd_ptr() == h.wr_ptr() {
+            #debug["marking handle %? as dirty", h];
+            h.set_wr_ptr(self.clone(h.rd_ptr()));
+            h.set_next_dirty(self.first_dirty);
+            self.first_dirty = h;
         }
         f(*h.wr_ptr())
     }

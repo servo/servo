@@ -1,12 +1,12 @@
 import platform::osmain;
 import geom::*;
 import comm::*;
-import layout::display_list::*;
+import dl = layout::display_list;
 import azure::*;
 import azure::bindgen::*;
 
 enum msg {
-    render(display_list),
+    render(dl::display_list),
     exit(comm::chan<()>)
 }
 
@@ -15,7 +15,7 @@ fn renderer(osmain: chan<osmain::msg>) -> chan<msg> {
         listen {|draw_target_ch|
             #debug("renderer: beginning rendering loop");
             osmain.send(osmain::begin_drawing(draw_target_ch));
-                
+
             loop {
                 alt po.recv() {
                   render(display_list) {
@@ -38,13 +38,13 @@ fn renderer(osmain: chan<osmain::msg>) -> chan<msg> {
 
 fn draw_display_list(
     draw_target: AzDrawTargetRef,
-    display_list: display_list
+    display_list: dl::display_list
 ) {
     clear(draw_target);
 
     for display_list.each {|item|
         let (r, g, b) = alt check item.item_type {
-          solid_color(r, g, b) { (r, g, b) }
+          dl::solid_color(r, g, b) { (r, g, b) }
         };
         let bounds = (*item).bounds;
 

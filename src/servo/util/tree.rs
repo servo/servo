@@ -1,3 +1,7 @@
+// A generic tree datatype.
+//
+// TODO: Use traits.
+
 type fields<T> = {
     mut parent: option<T>,
     mut first_child: option<T>,
@@ -38,21 +42,21 @@ fn empty<T>() -> fields<T> {
 }
 
 fn add_child<T:copy,O:wr_tree_ops<T>>(
-    ops: O, node: T, child: T) {
+    ops: O, parent: T, child: T) {
 
     ops.with_tree_fields(child) { |child_tf|
         alt child_tf.parent {
           some(_) { fail "Already has a parent"; }
-          none { child_tf.parent = some(node); }
+          none { child_tf.parent = some(parent); }
         }
 
         assert child_tf.prev_sibling == none;
         assert child_tf.next_sibling == none;
 
-        ops.with_tree_fields(node) { |node_tf|
-            alt node_tf.last_child {
+        ops.with_tree_fields(parent) { |parent_tf|
+            alt parent_tf.last_child {
               none {
-                node_tf.first_child = some(child);
+                parent_tf.first_child = some(child);
               }
 
               some(lc) {
@@ -65,9 +69,13 @@ fn add_child<T:copy,O:wr_tree_ops<T>>(
               }
             }
 
-            node_tf.last_child = some(child);
+            parent_tf.last_child = some(child);
         }
     }
+}
+
+fn get_parent<T:copy,O:rd_tree_ops<T>>(ops: O, node: T) -> option<T> {
+    ops.with_tree_fields(node) { |tf| tf.parent }
 }
 
 #[cfg(test)]

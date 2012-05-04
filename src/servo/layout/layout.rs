@@ -8,56 +8,34 @@ them to be rendered
 import task::*;
 import comm::*;
 import gfx::geom;
-import gfx::geom::*;
 import gfx::renderer;
-import dom::base::*;
-import display_list::*;
+import dom::base::node;
 import dom::rcu::scope;
-import base::{btree, rd_tree_ops, wr_tree_ops};
+import base::{btree, rd_tree_ops, wr_tree_ops, linked_subtree};
+import dl = display_list;
 
 enum msg {
-    build,
+    build(node),
+    ping(chan<content::ping>),
     exit
 }
 
-fn layout(renderer: chan<renderer::msg>) -> chan<msg> {
-
-    spawn_listener::<msg> {|po|
-
-        let r = rand::rng();
-
+fn layout(to_renderer: chan<renderer::msg>) -> chan<msg> {
+    spawn_listener::<msg> { |po|
         loop {
-
-            let s = scope();
-            let ndiv = s.new_node(nk_div);
-            let bdiv = base::linked_box(ndiv);
-
-            iter::repeat(100u) {||
-                let node = s.new_node(nk_img(
-                    size(
-                        int_to_au(r.next() as int % 800),
-                        int_to_au(r.next() as int % 200)
-                    )));
-                s.add_child(ndiv, node);
-                let b = base::linked_box(node);
-                btree.add_child(bdiv, b);
-            }
-
-            alt recv(po) {
-              build {
+            alt po.recv() {
+              ping(ch) { ch.send(content::pong); }
+              exit { break; }
+              build(node) {
                 #debug("layout: received layout request");
-                base::reflow_block(bdiv, int_to_au(800));
-                let dlist = build_display_list(bdiv);
-
-                send(renderer, gfx::renderer::render(dlist));
-              }
-              exit {
-                break;
+                let box = linked_subtree(node);
+                base::reflow_block(box, geom::int_to_au(800));
+                let dlist = build_display_list(box);
+                to_renderer.send(renderer::render(dlist));
               }
             }
         }
     }
-
 }
 
 fn build_display_list(box: @base::box) -> display_list::display_list {
@@ -71,10 +49,12 @@ fn build_display_list(box: @base::box) -> display_list::display_list {
     ret list;
 }
 
-fn box_to_display_item(box: @base::box) -> display_item {
+fn box_to_display_item(box: @base::box) -> dl::display_item {
     let r = rand::rng();
-    let item = display_item({
-        item_type: solid_color(r.next() as u8, r.next() as u8, r.next() as u8),
+    let item = dl::display_item({
+        item_type: dl::solid_color(r.next() as u8,
+                                   r.next() as u8,
+                                   r.next() as u8),
         bounds: box.bounds
     });
     #debug("layout: display item: %?", item);
