@@ -1,35 +1,41 @@
-import dom::base::{nk_img, node_data, node_kind, node, new_node};
+import dom::base::{nk_div, nk_img, node_data, node_kind, node};
 import dom::rcu;
-import dom::rcu::methods;
+import dom::rcu::reader_methods;
 import gfx::geom;
 import gfx::geom::{size, rect, point, au};
 import util::{tree};
 
-enum box = @{
-    tree: tree::fields<box>,
+enum box = {
+    tree: tree::fields<@box>,
     node: node,
     mut bounds: geom::rect<au>
 };
 
-impl of tree::tree for box {
-    fn tree_fields() -> tree::fields<box> {
-        ret self.tree;
+impl of tree::tree for node {
+    fn with_tree_fields<R>(f: fn(tree::fields<node>) -> R) -> R {
+        f(self.rd { |f| f.tree })
     }
 }
 
-fn new_box(n: node) -> box {
-    box(@{tree: tree::empty(),
+impl of tree::tree for @box {
+    fn with_tree_fields<R>(f: fn(tree::fields<@box>) -> R) -> R {
+        f(self.tree)
+    }
+}
+
+fn new_box(n: node) -> @box {
+    @box({tree: tree::empty(),
           node: n,
           mut bounds: geom::zero_rect_au()})
 }
 
-fn linked_box(n: node) -> box {
+fn linked_box(n: node) -> @box {
     let b = new_box(n);
-    n.box = some(b);
+    n.set_aux(b);
     ret b;
 }
 
-fn reflow_block(root: box, available_width: au) {
+fn reflow_block(root: @box, available_width: au) {
     // Root here is the root of the reflow, not necessarily the doc as
     // a whole.
     //
@@ -38,7 +44,8 @@ fn reflow_block(root: box, available_width: au) {
     // - generates root.bounds.origin for each child
     // - and recursively computes the bounds for each child
 
-    alt root.node.get().kind {
+    let k = root.node.rd() { |r| r.kind };
+    alt k {
       nk_img(size) {
         root.bounds.size = size;
         ret;
@@ -62,6 +69,8 @@ fn reflow_block(root: box, available_width: au) {
 
 #[cfg(test)]
 mod test {
+    import dom::base::{nk_img, node_data, node_kind, node, methods};
+    import dom::rcu::scope;
 
     /*
     use sdl;
@@ -79,7 +88,7 @@ mod test {
     }
     */
 
-    fn flat_bounds(root: box) -> [geom::rect<au>] {
+    fn flat_bounds(root: @box) -> [geom::rect<au>] {
         let mut r = [];
         for tree::each_child(root) {|c|
             r += flat_bounds(c);
@@ -89,10 +98,12 @@ mod test {
 
     #[test]
     fn do_layout() {
-        let n0 = new_node(nk_img(size(au(10),au(10))));
-        let n1 = new_node(nk_img(size(au(10),au(15))));
-        let n2 = new_node(nk_img(size(au(10),au(20))));
-        let n3 = new_node(nk_div);
+        let s = scope();
+
+        let n0 = s.new_node(nk_img(size(au(10),au(10))));
+        let n1 = s.new_node(nk_img(size(au(10),au(15))));
+        let n2 = s.new_node(nk_img(size(au(10),au(20))));
+        let n3 = s.new_node(nk_div);
 
         tree::add_child(n3, n0);
         tree::add_child(n3, n1);

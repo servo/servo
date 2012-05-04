@@ -1,4 +1,4 @@
-import dom::rcu::methods;
+import dom::rcu::{scope, writer_methods};
 import gfx::geom::{au, size};
 import layout::base::box;
 import util::tree;
@@ -6,10 +6,6 @@ import util::tree;
 enum node_data = {
     tree: tree::fields<node>,
     kind: node_kind,
-
-    // Points to the primary box.  Note that there may be multiple
-    // boxes per DOM node.
-    mut box: option<box>,
 };
 
 enum node_kind {
@@ -17,17 +13,13 @@ enum node_kind {
     nk_img(size<au>)
 }
 
-type node = rcu::handle<node_data>;
+// The rd_aux data is a (weak) pointer to the primary box.  Note that
+// there may be multiple boxes per DOM node.
+type node = rcu::handle<node_data, box>;
 
-impl of tree::tree for node {
-    fn tree_fields() -> tree::fields<node> {
-        ret self.get().tree;
+impl methods for scope<node_data, box> {
+    fn new_node(+k: node_kind) -> node {
+        self.handle(node_data({tree: tree::empty(),
+                               kind: k}))
     }
 }
-
-fn new_node(+k: node_kind) -> node {
-    rcu::handle(node_data({tree: tree::empty(),
-                           kind: k,
-                           mut box: none}))
-}
-
