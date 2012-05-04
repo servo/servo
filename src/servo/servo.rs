@@ -7,10 +7,10 @@ import azure::cairo::bindgen::*;
 
 fn main() {
     // The platform event handler thread
-    let osmain_ch = osmain::osmain();
+    let osmain = osmain::osmain();
 
     // The compositor
-    let renderer = gfx::renderer::renderer(osmain_ch);
+    let renderer = gfx::renderer::renderer(osmain);
 
     // The display list builder
     let lister = layout::lister::lister(renderer);
@@ -19,10 +19,24 @@ fn main() {
     let layout = layout::layout::layout(lister);
 
     // The keyboard handler
-    input::input(osmain_ch, renderer, lister, layout);
+    let key_po = port();
+    send(osmain, osmain::add_key_handler(chan(key_po)));
 
     loop {
-        std::timer::sleep(10u);
         send(layout, layout::layout::do_layout);
+
+        std::timer::sleep(10u);
+
+        if peek(key_po) {
+            comm::send(layout, layout::layout::exit);
+            comm::send(lister, layout::lister::exit);
+
+            let draw_exit_confirm_po = comm::port();
+            comm::send(renderer, gfx::renderer::exit(comm::chan(draw_exit_confirm_po)));
+
+            comm::recv(draw_exit_confirm_po);
+            comm::send(osmain, osmain::exit);
+            break;
+        }
     }
 }
