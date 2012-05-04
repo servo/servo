@@ -1,6 +1,7 @@
 #[doc = "
 
-Builds display lists on request and passes them to the renderer
+The layout task. Performs layout on the dom, builds display lists and sends
+them to be rendered
 
 "];
 
