@@ -170,15 +170,6 @@ mod test {
         s.handle({name:"ferdinand", species:bull(~{mut horns:3u})});
     }
 
-    fn describe(a: animal) -> str {
-        let s = alt a.species {
-          chicken(c) { #fmt["chicken who lays %u eggs per day",
-                            c.eggs_per_day] }
-          bull(c) { #fmt["bull with %u horns", c.horns] }
-        };
-        #fmt["%s, the %s", a.name, s]
-    }
-
     fn mutate(a: animal) {
         alt a.species {
           chicken(c) { c.eggs_per_day += 1u; }
@@ -213,8 +204,8 @@ mod test {
             s.reader_forked();
             let wait_chan = task::spawn_listener {|wait_port|
                 uint::range(0u, iter2) { |_i|
-                    comm::send(read_chan, henrietta.rd(describe));
-                    comm::send(read_chan, ferdinand.rd(describe));
+                    comm::send(read_chan, henrietta.rd(read_characteristic));
+                    comm::send(read_chan, ferdinand.rd(read_characteristic));
                     comm::recv(wait_port);
                 }
             };
@@ -225,13 +216,10 @@ mod test {
             let frc = ferdinand.rd(read_characteristic);
             assert frc == i * iter2;
 
-            let exp1 = henrietta.rd(describe);
-            let exp2 = ferdinand.rd(describe);
-
             uint::range(0u, iter2) { |_i|
-                assert exp1 == comm::recv(read_port);
+                assert hrc == comm::recv(read_port);
                 s.wr(henrietta, mutate);
-                assert exp2 == comm::recv(read_port);
+                assert frc == comm::recv(read_port);
                 s.wr(ferdinand, mutate);
                 comm::send(wait_chan, ());
             }
