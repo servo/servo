@@ -37,7 +37,7 @@ mod parser {
     mod html;
 }
 
-mod widget {
+mod platform {
     mod base;
 }
 
