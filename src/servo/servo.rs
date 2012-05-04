@@ -1,9 +1,4 @@
 import comm::*;
-import libc::c_double;
-import azure::*;
-import azure::bindgen::*;
-import azure::cairo;
-import azure::cairo::bindgen::*;
 import parser::html;
 import parser::html::methods;
 import result::extensions;
@@ -38,7 +33,7 @@ fn main(args: [str]) {
 
     // Wait for keypress
     listen {|key_ch|
-        send(osmain, platform::osmain::add_key_handler(key_ch));
+        osmain.send(platform::osmain::add_key_handler(key_ch));
 
         key_ch.recv();
     }

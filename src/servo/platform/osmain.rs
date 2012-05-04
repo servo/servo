@@ -1,3 +1,7 @@
+import azure::*;
+import azure::bindgen::*;
+import azure::cairo;
+import azure::cairo::bindgen::*;
 import comm::*;
 import azure::cairo::cairo_surface_t;
 

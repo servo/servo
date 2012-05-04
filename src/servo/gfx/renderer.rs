@@ -2,6 +2,8 @@ import platform::osmain;
 import geom::*;
 import comm::*;
 import layout::display_list::*;
+import azure::*;
+import azure::bindgen::*;
 
 enum msg {
     render(display_list),
