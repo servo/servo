@@ -6,20 +6,24 @@ type fields<T> = {
     mut next_sibling: option<T>
 };
 
-iface tree {
-    fn with_tree_fields<R>(f: fn(fields<self>) -> R) -> R;
+iface rd_tree_ops<T> {
+    fn with_tree_fields<R>(T, f: fn(fields<T>) -> R) -> R;
 }
 
-fn each_child<T:copy tree>(
-    node: T, f: fn(T) -> bool) {
+iface wr_tree_ops<T> {
+    fn with_tree_fields<R>(T, f: fn(fields<T>) -> R) -> R;
+}
 
-    let mut p = node.with_tree_fields { |f| f.first_child };
+fn each_child<T:copy,O:rd_tree_ops<T>>(
+    ops: O, node: T, f: fn(T) -> bool) {
+
+    let mut p = ops.with_tree_fields(node) { |f| f.first_child };
     loop {
         alt p {
           none { ret; }
           some(c) {
             if !f(c) { ret; }
-            p = c.with_tree_fields { |f| f.next_sibling };
+            p = ops.with_tree_fields(c) { |f| f.next_sibling };
           }
         }
     }
@@ -33,10 +37,10 @@ fn empty<T>() -> fields<T> {
      mut next_sibling: none}
 }
 
-fn add_child<T:copy tree>(
-    node: T, child: T) {
+fn add_child<T:copy,O:wr_tree_ops<T>>(
+    ops: O, node: T, child: T) {
 
-    child.with_tree_fields { |child_tf|
+    ops.with_tree_fields(child) { |child_tf|
         alt child_tf.parent {
           some(_) { fail "Already has a parent"; }
           none { child_tf.parent = some(node); }
@@ -45,14 +49,15 @@ fn add_child<T:copy tree>(
         assert child_tf.prev_sibling == none;
         assert child_tf.next_sibling == none;
 
-        node.with_tree_fields { |node_tf|
+        ops.with_tree_fields(node) { |node_tf|
             alt node_tf.last_child {
               none {
                 node_tf.first_child = some(child);
               }
 
               some(lc) {
-                lc.with_tree_fields { |lc_tf|
+                let lc = lc; // satisfy alias checker
+                ops.with_tree_fields(lc) { |lc_tf|
                     assert lc_tf.next_sibling == none;
                     lc_tf.next_sibling = some(child);
                 }
@@ -72,9 +77,17 @@ mod test {
         value: uint
     };
 
-    impl of tree for dummy {
-        fn with_tree_fields<R>(f: fn(fields<dummy>) -> R) -> R {
-            f(self.fields)
+    enum dtree { dtree }
+
+    impl of rd_tree_ops<dummy> for dtree {
+        fn with_tree_fields<R>(d: dummy, f: fn(fields<dummy>) -> R) -> R {
+            f(d.fields)
+        }
+    }
+
+    impl of wr_tree_ops<dummy> for dtree {
+        fn with_tree_fields<R>(d: dummy, f: fn(fields<dummy>) -> R) -> R {
+            f(d.fields)
         }
     }
 
@@ -89,7 +102,7 @@ mod test {
         let p = new_dummy(3u);
 
         for vec::each(children) {|c|
-            add_child(p, c);
+            add_child(dtree, p, c);
         }
 
         ret {p: p, children: children};
@@ -99,7 +112,7 @@ mod test {
     fn add_child_0() {
         let {p, children} = parent_with_3_children();
         let mut i = 0u;
-        for each_child(p) {|c|
+        for each_child(dtree, p) {|c|
             assert c.value == i;
             i += 1u;
         }
@@ -110,7 +123,7 @@ mod test {
     fn add_child_break() {
         let {p, _} = parent_with_3_children();
         let mut i = 0u;
-        for each_child(p) {|_c|
+        for each_child(dtree, p) {|_c|
             i += 1u;
             break;
         }

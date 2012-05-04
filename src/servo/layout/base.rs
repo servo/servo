@@ -11,15 +11,35 @@ enum box = {
     mut bounds: geom::rect<au>
 };
 
-impl of tree::tree for node {
-    fn with_tree_fields<R>(f: fn(tree::fields<node>) -> R) -> R {
-        f(self.rd { |f| f.tree })
+enum ntree { ntree }
+impl of tree::rd_tree_ops<node> for ntree {
+    fn each_child(node: node, f: fn(node) -> bool) {
+        tree::each_child(self, node, f)
+    }
+
+    fn with_tree_fields<R>(n: node, f: fn(tree::fields<node>) -> R) -> R {
+        n.rd { |n| f(n.tree) }
     }
 }
 
-impl of tree::tree for @box {
-    fn with_tree_fields<R>(f: fn(tree::fields<@box>) -> R) -> R {
-        f(self.tree)
+enum btree { btree }
+impl of tree::rd_tree_ops<@box> for btree {
+    fn each_child(node: @box, f: fn(&&@box) -> bool) {
+        tree::each_child(self, node, f)
+    }
+
+    fn with_tree_fields<R>(b: @box, f: fn(tree::fields<@box>) -> R) -> R {
+        f(b.tree)
+    }
+}
+
+impl of tree::wr_tree_ops<@box> for btree {
+    fn add_child(node: @box, child: @box) {
+        tree::add_child(self, node, child)
+    }
+
+    fn with_tree_fields<R>(b: @box, f: fn(tree::fields<@box>) -> R) -> R {
+        f(b.tree)
     }
 }
 
@@ -55,7 +75,7 @@ fn reflow_block(root: @box, available_width: au) {
     }
 
     let mut current_height = 0;
-    for tree::each_child(root) {|c|
+    for tree::each_child(btree, root) {|c|
         let mut blk_available_width = available_width;
         // FIXME subtract borders, margins, etc
         c.bounds.origin = {mut x: au(0), mut y: au(current_height)};
@@ -69,7 +89,8 @@ fn reflow_block(root: @box, available_width: au) {
 
 #[cfg(test)]
 mod test {
-    import dom::base::{nk_img, node_data, node_kind, node, methods};
+    import dom::base::{nk_img, node_data, node_kind, node, methods,
+                       wr_tree_ops};
     import dom::rcu::scope;
 
     /*
@@ -90,7 +111,7 @@ mod test {
 
     fn flat_bounds(root: @box) -> [geom::rect<au>] {
         let mut r = [];
-        for tree::each_child(root) {|c|
+        for tree::each_child(btree, root) {|c|
             r += flat_bounds(c);
         }
         ret r + [root.bounds];
@@ -105,18 +126,18 @@ mod test {
         let n2 = s.new_node(nk_img(size(au(10),au(20))));
         let n3 = s.new_node(nk_div);
 
-        tree::add_child(n3, n0);
-        tree::add_child(n3, n1);
-        tree::add_child(n3, n2);
+        tree::add_child(s, n3, n0);
+        tree::add_child(s, n3, n1);
+        tree::add_child(s, n3, n2);
 
         let b0 = linked_box(n0);
         let b1 = linked_box(n1);
         let b2 = linked_box(n2);
         let b3 = linked_box(n3);
 
-        tree::add_child(b3, b0);
-        tree::add_child(b3, b1);
-        tree::add_child(b3, b2);
+        tree::add_child(btree, b3, b0);
+        tree::add_child(btree, b3, b1);
+        tree::add_child(btree, b3, b2);
 
         reflow_block(b3, au(100));
         let fb = flat_bounds(b3);

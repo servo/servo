@@ -4,7 +4,7 @@ export content;
 import gfx::geom::*;
 import dom::rcu::*;
 import dom::base::*;
-import layout::base::tree; // method implementations of tree for box and node
+import layout::base::{rd_tree_ops, wr_tree_ops};
 
 enum msg {
     exit

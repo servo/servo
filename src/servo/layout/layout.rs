@@ -13,7 +13,7 @@ import gfx::renderer;
 import dom::base::*;
 import display_list::*;
 import dom::rcu::scope;
-import base::tree;
+import base::{btree, rd_tree_ops, wr_tree_ops};
 
 enum msg {
     build,
@@ -38,9 +38,9 @@ fn layout(renderer: chan<renderer::msg>) -> chan<msg> {
                         int_to_au(r.next() as int % 800),
                         int_to_au(r.next() as int % 200)
                     )));
-                tree::add_child(ndiv, node);
+                s.add_child(ndiv, node);
                 let b = base::linked_box(node);
-                tree::add_child(bdiv, b);
+                btree.add_child(bdiv, b);
             }
 
             alt recv(po) {
@@ -63,7 +63,7 @@ fn layout(renderer: chan<renderer::msg>) -> chan<msg> {
 fn build_display_list(box: @base::box) -> display_list::display_list {
     let mut list = [box_to_display_item(box)];
 
-    for tree::each_child(box) {|c|
+    for btree.each_child(box) {|c|
         list += build_display_list(c);
     }
 

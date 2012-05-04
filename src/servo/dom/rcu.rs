@@ -123,6 +123,12 @@ impl writer_methods<T:send,A> for scope<T,A> {
         self.layout_active = false;
     }
 
+    fn rd<U>(h: handle<T,A>, f: fn(T) -> U) -> U unsafe {
+        // Use the wr_ptr, which may be more up to date than the
+        // rd_ptr or may not
+        f(*h.wr_ptr())
+    }
+
     fn wr<U>(h: handle<T,A>, f: fn(T) -> U) -> U unsafe {
         if self.layout_active {
             if h.rd_ptr() == h.wr_ptr() {

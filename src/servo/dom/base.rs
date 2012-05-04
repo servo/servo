@@ -23,3 +23,23 @@ impl methods for scope<node_data, box> {
                                kind: k}))
     }
 }
+
+impl of tree::rd_tree_ops<node> for scope<node_data, box> {
+    fn each_child(node: node, f: fn(node) -> bool) {
+        tree::each_child(self, node, f)
+    }
+
+    fn with_tree_fields<R>(node: node, f: fn(tree::fields<node>) -> R) -> R {
+        f(self.rd(node) { |f| f.tree })
+    }
+}
+
+impl of tree::wr_tree_ops<node> for scope<node_data, box> {
+    fn add_child(node: node, child: node) {
+        tree::add_child(self, node, child)
+    }
+
+    fn with_tree_fields<R>(node: node, f: fn(tree::fields<node>) -> R) -> R {
+        f(self.wr(node) { |f| f.tree })
+    }
+}
