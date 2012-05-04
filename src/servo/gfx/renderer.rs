@@ -54,7 +54,7 @@ fn draw_display_list(
             r: to_float(r) as AzFloat,
             g: to_float(g) as AzFloat,
             b: to_float(b) as AzFloat,
-            a: 0.5f as AzFloat
+            a: 1f as AzFloat
         };
         let red_pattern = AzCreateColorPattern(ptr::addr_of(red_color));
 
