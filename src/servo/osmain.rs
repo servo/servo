@@ -1,3 +1,5 @@
+import azure::cairo::cairo_surface_t;
+
 #[cfg(target_os = "linux")]
 mod platform {
     fn runmain(f: fn()) {
@@ -196,33 +198,14 @@ fn mainloop(po: comm::port<msg>) {
     sdl::init([
         sdl::init_video
     ]);
+
     let screen = sdl::video::set_video_mode(
         800, 600, 32,
         [sdl::video::swsurface],
         [sdl::video::doublebuf]);
     assert !ptr::is_null(screen);
-    let sdl_surf = sdl::video::create_rgb_surface(
-        [sdl::video::swsurface],
-        800, 600, 32,
-        0x00FF0000u32,
-        0x0000FF00u32,
-        0x000000FFu32,
-        0x00000000u32
-        );
-    assert !ptr::is_null(sdl_surf);
-    sdl::video::lock_surface(sdl_surf);
-    let cairo_surf = unsafe {
-        cairo_image_surface_create_for_data(
-            unsafe::reinterpret_cast((*sdl_surf).pixels),
-            cairo::CAIRO_FORMAT_RGB24,
-            (*sdl_surf).w,
-            (*sdl_surf).h,
-            (*sdl_surf).pitch as libc::c_int
-        )
-    };
-    assert !ptr::is_null(cairo_surf);
-    let azure_target = AzCreateDrawTargetForCairoSurface(cairo_surf);
-    assert !ptr::is_null(azure_target);
+
+    let surface = mk_surface();
 
     loop {
         sdl::event::poll_event {|event|
@@ -243,13 +226,13 @@ fn mainloop(po: comm::port<msg>) {
                 key_handlers += [key_ch];
               }
               get_draw_target(response_ch) {
-                comm::send(response_ch, azure_target);
+                comm::send(response_ch, copy(surface.az_target));
               }
               draw(response_ch) {
-                sdl::video::unlock_surface(sdl_surf);
-                sdl::video::blit_surface(sdl_surf, ptr::null(),
+                sdl::video::unlock_surface(surface.sdl_surf);
+                sdl::video::blit_surface(surface.sdl_surf, ptr::null(),
                                          screen, ptr::null());
-                sdl::video::lock_surface(sdl_surf);
+                sdl::video::lock_surface(surface.sdl_surf);
                 sdl::video::flip(screen);
                 comm::send(response_ch, ());
               }
@@ -257,8 +240,51 @@ fn mainloop(po: comm::port<msg>) {
             }
         }
     }
-    AzReleaseDrawTarget(azure_target);
-    cairo_surface_destroy(cairo_surf);
-    sdl::video::unlock_surface(sdl_surf);
+    destroy_surface(surface);
     sdl::quit();
+}
+
+type surface = {
+    sdl_surf: *sdl::video::surface,
+    cairo_surf: *cairo_surface_t,
+    az_target: AzDrawTargetRef
+};
+
+fn mk_surface() -> surface {
+    let sdl_surf = sdl::video::create_rgb_surface(
+        [sdl::video::swsurface],
+        800, 600, 32,
+        0x00FF0000u32,
+        0x0000FF00u32,
+        0x000000FFu32,
+        0x00000000u32
+        );
+    assert !ptr::is_null(sdl_surf);
+    sdl::video::lock_surface(sdl_surf);
+    let cairo_surf = unsafe {
+        cairo_image_surface_create_for_data(
+            unsafe::reinterpret_cast((*sdl_surf).pixels),
+            cairo::CAIRO_FORMAT_RGB24,
+            (*sdl_surf).w,
+            (*sdl_surf).h,
+            (*sdl_surf).pitch as libc::c_int
+        )
+    };
+    assert !ptr::is_null(cairo_surf);
+
+    let azure_target = AzCreateDrawTargetForCairoSurface(cairo_surf);
+    assert !ptr::is_null(azure_target);
+
+    {
+        sdl_surf: sdl_surf,
+        cairo_surf: cairo_surf,
+        az_target: azure_target
+    }
+}
+
+fn destroy_surface(surface: surface) {
+    AzReleaseDrawTarget(surface.az_target);
+    cairo_surface_destroy(surface.cairo_surf);
+    sdl::video::unlock_surface(surface.sdl_surf);
+    sdl::video::free_surface(surface.sdl_surf);
 }
