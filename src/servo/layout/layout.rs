@@ -24,31 +24,30 @@ fn layout(renderer: chan<renderer::msg>) -> chan<msg> {
 
     spawn_listener::<msg> {|po|
 
-        let s = scope();
-        let n0 = s.new_node(nk_img(size(int_to_au(10),int_to_au(10))));
-        let n1 = s.new_node(nk_img(size(int_to_au(10),int_to_au(15))));
-        let n2 = s.new_node(nk_img(size(int_to_au(10),int_to_au(20))));
-        let n3 = s.new_node(nk_div);
-
-        tree::add_child(n3, n0);
-        tree::add_child(n3, n1);
-        tree::add_child(n3, n2);
-
-        let b0 = base::linked_box(n0);
-        let b1 = base::linked_box(n1);
-        let b2 = base::linked_box(n2);
-        let b3 = base::linked_box(n3);
-
-        tree::add_child(b3, b0);
-        tree::add_child(b3, b1);
-        tree::add_child(b3, b2);
+        let r = rand::rng();
 
         loop {
+
+            let s = scope();
+            let ndiv = s.new_node(nk_div);
+            let bdiv = base::linked_box(ndiv);
+
+            iter::repeat(100u) {||
+                let node = s.new_node(nk_img(
+                    size(
+                        int_to_au(r.next() as int % 800),
+                        int_to_au(r.next() as int % 200)
+                    )));
+                tree::add_child(ndiv, node);
+                let b = base::linked_box(node);
+                tree::add_child(bdiv, b);
+            }
+
             alt recv(po) {
               build {
                 #debug("layout: received layout request");
-                base::reflow_block(b3, int_to_au(800));
-                let dlist = build_display_list(b3);
+                base::reflow_block(bdiv, int_to_au(800));
+                let dlist = build_display_list(bdiv);
 
                 send(renderer, gfx::renderer::render(dlist));
               }
