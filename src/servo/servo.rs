@@ -40,7 +40,7 @@ fn main(args: [str]) {
     loop {
         send(layout, layout::layout::build);
 
-        std::timer::sleep(10u);
+        std::timer::sleep(200u);
 
         if peek(key_po) {
             comm::send(layout, layout::layout::exit);

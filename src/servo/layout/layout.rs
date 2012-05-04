@@ -49,12 +49,13 @@ fn layout_dom(dom: node) -> @base::box {
 }
 
 fn build_display_list(_box: @base::box) -> display_list::display_list {
+    let r = core::rand::rng();
     [
         display_item({
             item_type: solid_color,
             bounds: geom::box(
-                int_to_au(0),
-                int_to_au(0),
+                int_to_au(r.next() as int % 800),
+                int_to_au(r.next() as int % 600),
                 int_to_au(100),
                 int_to_au(100))
         }),
