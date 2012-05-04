@@ -13,7 +13,6 @@ fn renderer(osmain: chan<osmain::msg>) -> chan<msg> {
             osmain.send(osmain::get_draw_target(draw_target_ch));
             let draw_target = draw_target_ch.recv();
 
-            let mut exit_confirm_ch = none;
             loop {
                 alt po.recv() {
                   draw(display_list) {
@@ -26,14 +25,11 @@ fn renderer(osmain: chan<osmain::msg>) -> chan<msg> {
                     }
                   }
                   exit(response_ch) {
-                    exit_confirm_ch = some(response_ch);
+                    response_ch.send(());
                     break;
                   }
                 }
             }
-
-            assert exit_confirm_ch.is_some();
-            exit_confirm_ch.get().send(());
         }
     }
 }
