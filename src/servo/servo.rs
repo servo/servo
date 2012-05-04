@@ -27,7 +27,7 @@ fn main(args: [str]) {
     // The platform event handler thread
     let osmain = platform::osmain::osmain();
 
-    // The compositor
+    // The renderer
     let renderer = gfx::renderer::renderer(osmain);
 
     // The layout task
