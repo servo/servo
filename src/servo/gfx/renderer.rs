@@ -41,12 +41,19 @@ fn draw_display_list(
     clear(draw_target);
 
     for display_list.each {|item|
+        let (r, g, b) = alt check item.item_type {
+          solid_color(r, g, b) { (r, g, b) }
+        };
         let bounds = (*item).bounds;
 
+        let to_float = fn@(u: u8) -> float {
+            (u as float) / 255f
+        };
+
         let red_color = {
-            r: 1f as AzFloat,
-            g: 0f as AzFloat,
-            b: 0f as AzFloat,
+            r: to_float(r) as AzFloat,
+            g: to_float(g) as AzFloat,
+            b: to_float(b) as AzFloat,
             a: 0.5f as AzFloat
         };
         let red_pattern = AzCreateColorPattern(ptr::addr_of(red_color));
