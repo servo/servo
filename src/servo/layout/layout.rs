@@ -24,13 +24,13 @@ fn layout(renderer: chan<renderer::msg>) -> chan<msg> {
     spawn_listener::<msg> {|po|
 
         let s = scope();
-        let dom = s.new_node(nk_div);
+        let box = base::new_box(s.new_node(nk_div));
 
         loop {
             alt recv(po) {
               build {
 
-                let box = layout_dom(dom);
+                base::reflow_block(box, int_to_au(800));
                 let dlist = build_display_list(box);
 
                 send(renderer, gfx::renderer::render(dlist));
@@ -42,10 +42,6 @@ fn layout(renderer: chan<renderer::msg>) -> chan<msg> {
         }
     }
 
-}
-
-fn layout_dom(dom: node) -> @base::box {
-    base::new_box(dom)
 }
 
 fn build_display_list(_box: @base::box) -> display_list::display_list {
