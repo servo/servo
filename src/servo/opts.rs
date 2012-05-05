@@ -12,7 +12,7 @@ type opts = {
 
 enum render_mode {
     screen,
-    file(str)
+    png(str)
 }
 
 fn from_cmdline_args(args: [str]) -> opts {
@@ -36,7 +36,7 @@ fn from_cmdline_args(args: [str]) -> opts {
     };
 
     let render_mode = alt getopts::opt_maybe_str(match, "o") {
-      some(output_file) { file(output_file) }
+      some(output_file) { png(output_file) }
       none { screen }
     };
 

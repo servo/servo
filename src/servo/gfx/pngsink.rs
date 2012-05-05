@@ -41,9 +41,11 @@ fn pngsink(output: chan<[u8]>) -> chan<msg> {
         loop {
             alt po.recv() {
               begin_drawing(sender) {
+                #debug("pngsink: begin_drawing");
                 sender.send(draw_target);
               }
               draw(sender, dt) {
+                #debug("pngsink: draw");
                 do_draw(sender, dt, output, cairo_surf);
               }
               exit { break }
