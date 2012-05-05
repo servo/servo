@@ -6,6 +6,11 @@ import gfx::renderer;
 import platform::osmain;
 
 fn main(args: [str]) {
+    run(opts::from_cmdline_args(args))
+}
+
+fn run(opts: opts::opts) {
+
     // The platform event handler thread
     let osmain = osmain::osmain();
 
@@ -23,7 +28,7 @@ fn main(args: [str]) {
     let content = content::content(layout);
 
     // Send each file to render then wait for keypress
-    for args.tail().each { |filename|
+    for opts.urls.each { |filename|
         #debug["master: Sending filename `%s`", filename];
         content.send(content::parse(filename));
         #debug["master: Waiting for keypress"];

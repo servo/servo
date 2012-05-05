@@ -49,3 +49,4 @@ mod util {
 }
 
 mod content;
+mod opts;
