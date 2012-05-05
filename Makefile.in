@@ -62,13 +62,13 @@ servo-test: $(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) --test -o $@ $<
 
 src/rust-azure/libazure.dummy:
-	make -C src/rust-azure
+	$(MAKE) -C src/rust-azure
 
 src/rust-sdl/libsdl.dummy:
-	make -C src/rust-sdl
+	$(MAKE) -C src/rust-sdl
 
 src/rust-cocoa/libcocoa.dummy:
-	make -C src/rust-cocoa
+	$(MAKE) -C src/rust-cocoa
 
 check: $(CHECK_DEPS)
 
@@ -77,30 +77,30 @@ check-servo: servo-test
 
 .PHONY: check-azure
 check-azure:
-	make check -C src/rust-azure
+	$(MAKE) check -C src/rust-azure
 
 .PHONY: check-sdl
 check-sdl:
-	make check -C src/rust-sdl
+	$(MAKE) check -C src/rust-sdl
 
 .PHONY: check-cocoa
 check-cocoa:
-	make check -C src/rust-cocoa
+	$(MAKE) check -C src/rust-cocoa
 
 .PHONY:	clean
 clean: $(CLEAN_DEPS)
 
 .PHONY: clean-azure
 clean-azure:
-	make clean -C src/rust-azure
+	$(MAKE) clean -C src/rust-azure
 
 .PHONY: clean-sdl
 clean-sdl:
-	make clean -C src/rust-sdl
+	$(MAKE) clean -C src/rust-sdl
 
 .PHONY: clean-cocoa
 clean-cocoa:
-	make clean -C src/rust-cocoa
+	$(MAKE) clean -C src/rust-cocoa
 
 .PHONY: clean-servo
 clean-servo:
