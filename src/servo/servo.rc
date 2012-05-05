@@ -19,6 +19,7 @@ mod gfx {
     mod geom;
     mod surface;
     mod renderer;
+    mod pngsink;
 }
 
 mod image {
