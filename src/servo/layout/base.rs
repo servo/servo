@@ -56,7 +56,6 @@ fn linked_box(n: node) -> @box {
 }
 
 fn linked_subtree(p: node) -> @box {
-    #debug["linked_subtree root=%?", p.rd() { |r| r.kind }];
     let p_box = linked_box(p);
     for ntree.each_child(p) { |c|
         let c_box = linked_subtree(c);
@@ -75,7 +74,6 @@ fn reflow_block(root: @box, available_width: au) {
     // - and recursively computes the bounds for each child
 
     let k = root.node.rd() { |r| r.kind };
-    #debug["reflow_block root=%?", k];
     alt k {
       nk_img(size) {
         root.bounds.size = size;
@@ -96,6 +94,8 @@ fn reflow_block(root: @box, available_width: au) {
 
     root.bounds.size = {mut width: available_width, // FIXME
                         mut height: au(current_height)};
+
+    #debug["reflow_block root=%? size=%?", k, root.bounds];
 }
 
 #[cfg(test)]
