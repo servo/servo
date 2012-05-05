@@ -29,7 +29,7 @@ fn layout(to_renderer: chan<renderer::msg>) -> chan<msg> {
               build(node) {
                 #debug("layout: received layout request");
                 let box = linked_subtree(node);
-                base::reflow_block(box, geom::int_to_au(800));
+                base::reflow_block(box, geom::px_to_au(800));
                 let dlist = build_display_list(box);
                 to_renderer.send(renderer::render(dlist));
               }

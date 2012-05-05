@@ -29,10 +29,10 @@ fn zero_rect_au() -> rect<au> {
     {mut origin: point(z, z), mut size: size(z, z)}
 }
 
-fn int_to_au(i: int) -> au {
+fn px_to_au(i: int) -> au {
     au(i * 60)
 }
 
-fn au_to_int(au: au) -> int {
+fn au_to_px(au: au) -> int {
     *au / 60
 }

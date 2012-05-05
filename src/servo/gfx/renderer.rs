@@ -61,10 +61,10 @@ fn draw_display_list(
         let red_pattern = AzCreateColorPattern(ptr::addr_of(red_color));
 
         let red_rect = {
-            x: au_to_int(bounds.origin.x) as AzFloat,
-            y: au_to_int(bounds.origin.y) as AzFloat,
-            width: au_to_int(bounds.size.width) as AzFloat,
-            height: au_to_int(bounds.size.height) as AzFloat
+            x: au_to_px(bounds.origin.x) as AzFloat,
+            y: au_to_px(bounds.origin.y) as AzFloat,
+            width: au_to_px(bounds.size.width) as AzFloat,
+            height: au_to_px(bounds.size.height) as AzFloat
         };
         AzDrawTargetFillRect(
             draw_target,

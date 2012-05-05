@@ -26,8 +26,8 @@ fn build_dom(scope: dom::node_scope,
             parser::to_start_tag("img") {
                 #debug["IMG"];
                 let new_node = scope.new_node(
-                    dom::nk_img({mut width: geom::int_to_au(100),
-                                 mut height: geom::int_to_au(100)}));
+                    dom::nk_img({mut width: geom::px_to_au(100),
+                                 mut height: geom::px_to_au(100)}));
                 scope.add_child(cur, new_node);
                 cur = new_node;
             }
