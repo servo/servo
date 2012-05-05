@@ -1,4 +1,12 @@
 #!/bin/bash
 
-sed "s/%VPATH%/`dirname $0`/" `dirname $0`/Makefile.in > Makefile
+SRCDIR="$(cd $(dirname $0) && pwd)"
+sed "s#%VPATH%#${SRCDIR}#" ${SRCDIR}/Makefile.in > Makefile
 
+mkdir -p src/rust-sdl
+mkdir -p src/rust-azure
+mkdir -p src/rust-cocoa
+
+(cd src/rust-sdl && sh ${SRCDIR}/src/rust-sdl/configure)
+(cd src/rust-azure && sh ${SRCDIR}/src/rust-azure/configure)
+(cd src/rust-cocoa && sh ${SRCDIR}/src/rust-cocoa/configure)

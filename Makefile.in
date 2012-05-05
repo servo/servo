@@ -12,8 +12,11 @@ ifeq ($(UNAME),Linux)
     OSTYPE=linux
 endif
 
-RUSTFLAGS += -L $(VPATH)/src/rust-azure -L $(VPATH)/src/rust-sdl \
-             -L $(VPATH)/src/rust-cocoa
+RUSTFLAGS += \
+	-L src/rust-azure \
+	-L src/rust-sdl \
+	-L src/rust-cocoa \
+	$(NULL)
 
 RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
 
@@ -59,13 +62,13 @@ servo-test: $(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) --test -o $@ $<
 
 src/rust-azure/libazure.dummy:
-	make -C $(VPATH)/src/rust-azure
+	make -C src/rust-azure
 
 src/rust-sdl/libsdl.dummy:
-	make -C $(VPATH)/src/rust-sdl
+	make -C src/rust-sdl
 
 src/rust-cocoa/libcocoa.dummy:
-	make -C $(VPATH)/src/rust-cocoa
+	make -C src/rust-cocoa
 
 check: $(CHECK_DEPS)
 
@@ -74,30 +77,30 @@ check-servo: servo-test
 
 .PHONY: check-azure
 check-azure:
-	make check -C $(VPATH)/src/rust-azure
+	make check -C src/rust-azure
 
 .PHONY: check-sdl
 check-sdl:
-	make check -C $(VPATH)/src/rust-sdl
+	make check -C src/rust-sdl
 
 .PHONY: check-cocoa
 check-cocoa:
-	make check -C $(VPATH)/src/rust-cocoa
+	make check -C src/rust-cocoa
 
 .PHONY:	clean
 clean: $(CLEAN_DEPS)
 
 .PHONY: clean-azure
 clean-azure:
-	make clean -C $(VPATH)/src/rust-azure
+	make clean -C src/rust-azure
 
 .PHONY: clean-sdl
 clean-sdl:
-	make clean -C $(VPATH)/src/rust-sdl
+	make clean -C src/rust-sdl
 
 .PHONY: clean-cocoa
 clean-cocoa:
-	make clean -C $(VPATH)/src/rust-cocoa
+	make clean -C src/rust-cocoa
 
 .PHONY: clean-servo
 clean-servo:
@@ -111,9 +114,9 @@ package: servo
 	mkdir -p Servo.app/Contents/MacOS/src/rust-azure
 	cp $(VPATH)/Info.plist Servo.app/Contents/
 	cp servo Servo.app/Contents/MacOS/
-	cp $(VPATH)/src/rust-cocoa/lib*.dylib Servo.app/Contents/MacOS/src/rust-cocoa/
-	cp $(VPATH)/src/rust-sdl/lib*.dylib Servo.app/Contents/MacOS/src/rust-sdl/
-	cp $(VPATH)/src/rust-azure/lib*.dylib Servo.app/Contents/MacOS/src/rust-azure/
+	cp src/rust-cocoa/lib*.dylib Servo.app/Contents/MacOS/src/rust-cocoa/
+	cp src/rust-sdl/lib*.dylib Servo.app/Contents/MacOS/src/rust-sdl/
+	cp src/rust-azure/lib*.dylib Servo.app/Contents/MacOS/src/rust-azure/
 
 else
 
