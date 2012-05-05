@@ -2,13 +2,19 @@ import comm::*;
 import parser::html;
 import parser::html::methods;
 import result::extensions;
+import gfx::renderer;
+import platform::osmain;
 
 fn main(args: [str]) {
     // The platform event handler thread
-    let osmain = platform::osmain::osmain();
+    let osmain = osmain::osmain();
 
     // The renderer
-    let renderer = gfx::renderer::renderer(osmain);
+    let renderer = {
+        // Use the platform thread as the renderer sink
+        import osmain::gfxsink;
+        renderer::renderer(osmain)
+    };
 
     // The layout task
     let layout = layout::layout::layout(renderer);

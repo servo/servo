@@ -10,11 +10,20 @@ enum msg {
     exit(comm::chan<()>)
 }
 
-fn renderer(osmain: chan<osmain::msg>) -> chan<msg> {
+#[doc = "
+The interface used to by the renderer to aquire draw targets for
+each rendered frame and submit them to be drawn to the display
+"]
+iface sink {
+    fn begin_drawing(next_dt: chan<AzDrawTargetRef>);
+    fn draw(next_dt: chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef);
+}
+
+fn renderer<S: sink send>(sink: S) -> chan<msg> {
     task::spawn_listener::<msg> {|po|
         listen {|draw_target_ch|
             #debug("renderer: beginning rendering loop");
-            osmain.send(osmain::begin_drawing(draw_target_ch));
+            sink.begin_drawing(draw_target_ch);
 
             loop {
                 alt po.recv() {
@@ -24,7 +33,7 @@ fn renderer(osmain: chan<osmain::msg>) -> chan<msg> {
                     #debug("renderer: rendering");
                     draw_display_list(draw_target, display_list);
                     #debug("renderer: returning surface");
-                    osmain.send(osmain::draw(draw_target_ch, draw_target));
+                    sink.draw(draw_target_ch, draw_target);
                   }
                   exit(response_ch) {
                     response_ch.send(());

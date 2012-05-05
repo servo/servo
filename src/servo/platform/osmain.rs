@@ -1,9 +1,12 @@
+export msg, osmain, gfxsink;
+
 import azure::*;
 import azure::bindgen::*;
 import azure::cairo;
 import azure::cairo::bindgen::*;
 import comm::*;
 import azure::cairo::cairo_surface_t;
+import gfx::renderer;
 
 enum msg {
     begin_drawing(chan<AzDrawTargetRef>),
@@ -79,6 +82,19 @@ fn mainloop(po: port<msg>) {
     destroy_surface(surfaces.s1.surf);
     destroy_surface(surfaces.s2.surf);
     sdl::quit();
+}
+
+#[doc = "
+Implementation to allow the osmain channel to be used as a graphics
+sink for the renderer
+"]
+impl gfxsink of renderer::sink for chan<msg> {
+    fn begin_drawing(next_dt: chan<AzDrawTargetRef>) {
+        self.send(begin_drawing(next_dt))
+    }
+    fn draw(next_dt: chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
+        self.send(draw(next_dt, draw_me))
+    }
 }
 
 type surface_set = {
