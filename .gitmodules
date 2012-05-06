@@ -7,3 +7,9 @@
 [submodule "src/rust-cocoa"]
 	path = src/rust-cocoa
 	url = git://github.com/pcwalton/rust-cocoa.git
+[submodule "src/mozjs"]
+	path = src/mozjs
+	url = git://github.com/brson/mozjs.git
+[submodule "src/rust-mozjs"]
+	path = src/rust-mozjs
+	url = git://github.com/brson/rust-mozjs.git

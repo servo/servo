@@ -13,6 +13,7 @@ ifeq ($(UNAME),Linux)
 endif
 
 RUSTFLAGS += \
+	-L src/rust-mozjs \
 	-L src/rust-azure \
 	-L src/rust-sdl \
 	-L src/rust-cocoa \
@@ -36,17 +37,20 @@ ifeq ($(OSTYPE),darwin)
 endif
 
 SERVO_DEPS += \
+	src/rust-mozjs/libmozjs.dummy \
 	src/rust-azure/libazure.dummy \
 	src/rust-sdl/libsdl.dummy \
 	$(NULL)
 
 CHECK_DEPS += \
+	check-mozjs \
 	check-sdl \
 	check-azure \
 	check-servo \
 	$(NULL)
 
 CLEAN_DEPS += \
+	clean-mozjs \
 	clean-sdl \
 	clean-azure \
 	clean-servo \
@@ -60,6 +64,12 @@ servo:	$(SERVO_DEPS)
 
 servo-test: $(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) --test -o $@ $<
+
+src/mozjs/libjs_static.a:
+	$(MAKE) -C src/mozjs
+
+src/rust-mozjs/libmozjs.dummy: src/mozjs/libjs_static.a
+	$(MAKE) -C src/rust-mozjs RUSTFLAGS="-L ../mozjs/"
 
 src/rust-azure/libazure.dummy:
 	$(MAKE) -C src/rust-azure
@@ -75,6 +85,10 @@ check: $(CHECK_DEPS)
 check-servo: servo-test
 	./servo-test
 
+.PHONY: check-mozjs
+check-mozjs:
+	$(MAKE) check -C src/rust-mozjs RUSTFLAGS="-L ../mozjs/"
+
 .PHONY: check-azure
 check-azure:
 	$(MAKE) check -C src/rust-azure
@@ -89,6 +103,10 @@ check-cocoa:
 
 .PHONY:	clean
 clean: $(CLEAN_DEPS)
+
+.PHONY: clean-mozjs
+clean-mozjs:
+	$(MAKE) clean -C src/rust-mozjs
 
 .PHONY: clean-azure
 clean-azure:
