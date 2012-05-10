@@ -1,3 +1,61 @@
+#[doc(str = "
+
+Implements the RCU dom-sharing model.  This model allows for a single
+writer and any number of readers, but the writer must be able to
+control and manage the lifetimes of the reader(s).  For simplicity I
+will describe the impl as though there were a single reader.
+
+The basic idea is that every object in the RCU pool has both a reader
+view and a writer view.  The writer always sees the writer view, which
+contains the most up-to-date values.  The reader uses the reader view,
+which contains the values as of the point where the reader was forked.
+When the writer joins the reader, the reader view will be synchronized
+with the writer view.
+
+Internally, the way this works is using a copy-on-write scheme.  Each
+RCU node maintains two pointers (`rd_ptr` and `wr_ptr`).  Assuming
+that readers are active, when a writer wants to modify a node, it
+first copies the reader's data into a new pointer.  Any writes that
+occur after that point (but before the reader is joined) will operate
+on this same copy.  When the reader is joined, any nodes which the
+writer modified will free the stale reader data and update the reader
+pointer to be the same as the writer pointer.
+
+# Using the RCU APIs as a writer
+
+You must first create a `scope` object.  The scope object manages the
+memory and the RCU operations.  RCU'd objects of some sendable type
+`T` are not referenced directly but rather through a `handle<T>`.  To
+create a new RCU object, you use `scope.handle(t)` where `t` is some
+initial value of type `T`.  To write to an RCU object, use
+`scope.wr()` and to read from it use `scope.rd()`. Be sure not to use
+the various `reader_methods`.
+
+Handles can be freely sent between tasks but the RCU scope cannot.  It
+must stay with the writer task.  You are responsible for correctly
+invoking `reader_forked()` and `reader_joined()` to keep the RCU scope
+abreast of when the reader is active.  Failure to do so will lead to
+race conditions or worse.
+
+# Using the RCU APIs as a reader
+
+Import the `reader_methods` impl.  When you receive a handle, you can
+invoke `h.rd { |v| ... }` and so forth.  There is also a piece of
+auxiliary data that can be optionally associated with each handle.
+
+Note: if the type `T` contains mutable fields, then there is nothing
+to stop the reader from mutating those fields in the `rd()` method.
+Do not do this.  It will lead to race conditions.
+
+# Auxiliary data
+
+Readers can associate a piece of auxiliary data of type `A` along with
+main nodes.  This is convenient but dangerous: it is the reader's job
+to ensure that this data remains live independent of the RCU nodes
+themselves.
+
+")];
+
 import ptr::extensions;
 
 export handle;
@@ -43,14 +101,20 @@ impl private_methods<T:send,A> for handle<T,A> {
 }
 
 impl reader_methods<T:send,A> for handle<T,A> {
+    #[doc(str = "access the reader's view of the handle's data")]
     fn rd<U>(f: fn(T) -> U) -> U unsafe {
         f(*self.rd_ptr())
     }
 
+    #[doc(str = "true if auxiliary data is associated with this handle")]
     fn has_aux() -> bool unsafe {
         self.rd_aux().is_not_null()
     }
 
+    #[doc(str = "set the auxiliary data associated with this handle.
+
+    **Warning:** the reader is responsible for keeping this data live!
+    ")]
     fn set_aux(p: @A) unsafe {
         let p2 = p;
         unsafe::forget(p2); // Bump the reference count.
@@ -58,6 +122,7 @@ impl reader_methods<T:send,A> for handle<T,A> {
         (**self).rd_aux = ptr::addr_of(*p);
     }
 
+    #[doc(str = "access the auxiliary data associated with this handle.")]
     fn aux<U>(f: fn(A) -> U) -> U unsafe {
         assert self.has_aux();
         f(*self.rd_aux())
