@@ -50,28 +50,6 @@ impl of tree::wr_tree_ops<@box> for btree {
     }
 }
 
-fn new_box(n: node) -> @box {
-    @box({tree: tree::empty(),
-          node: n,
-          mut display: di_block,
-          mut bounds: geom::zero_rect_au()})
-}
-
-fn linked_box(n: node) -> @box {
-    let b = new_box(n);
-    n.set_aux(b);
-    ret b;
-}
-
-fn linked_subtree(p: node) -> @box {
-    let p_box = linked_box(p);
-    for ntree.each_child(p) { |c|
-        let c_box = linked_subtree(c);
-        btree.add_child(p_box, c_box);
-    }
-    ret p_box;
-}
-
 impl block_layout_methods for @box {
     #[doc="The main reflow routine."]
     fn reflow(available_width: au) {

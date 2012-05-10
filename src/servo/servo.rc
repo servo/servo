@@ -31,6 +31,7 @@ mod image {
 
 mod layout {
     mod base;
+    mod box_builder;
     mod display_list;
     mod inline;
     mod layout;

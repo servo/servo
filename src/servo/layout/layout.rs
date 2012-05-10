@@ -11,8 +11,8 @@ import gfx::geom;
 import gfx::renderer;
 import dom::base::node;
 import dom::rcu::scope;
-import base::{btree, rd_tree_ops, wr_tree_ops, linked_subtree};
-import base::block_layout_methods;
+import base::*;
+import box_builder::box_builder_methods;
 import dl = display_list;
 
 enum msg {
@@ -29,9 +29,9 @@ fn layout(to_renderer: chan<renderer::msg>) -> chan<msg> {
               exit { break; }
               build(node) {
                 #debug("layout: received layout request");
-                let box = linked_subtree(node);
-                box.reflow(geom::px_to_au(800));
-                let dlist = build_display_list(box);
+                let this_box = node.construct_boxes_for_subtree();
+                this_box.reflow(geom::px_to_au(800));
+                let dlist = build_display_list(this_box);
                 to_renderer.send(renderer::render(dlist));
               }
             }
