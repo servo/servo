@@ -37,6 +37,7 @@ ifeq ($(OSTYPE),darwin)
 endif
 
 SERVO_DEPS += \
+	src/ragel/ragel/ragel \
 	src/rust-mozjs/libmozjs.dummy \
 	src/rust-azure/libazure.dummy \
 	src/rust-sdl/libsdl.dummy \
@@ -50,6 +51,7 @@ CHECK_DEPS += \
 	$(NULL)
 
 CLEAN_DEPS += \
+	clean-ragel \
 	clean-rust-mozjs \
 	clean-rust-sdl \
 	clean-rust-azure \
@@ -64,6 +66,9 @@ servo:	$(SERVO_DEPS)
 
 servo-test: $(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) --test -o $@ $<
+
+src/ragel/ragel/ragel:
+	$(MAKE) -C src/ragel
 
 src/mozjs/libjs_static.a:
 	$(MAKE) -C src/mozjs
@@ -103,6 +108,10 @@ check-rust-cocoa:
 
 .PHONY:	clean
 clean: $(CLEAN_DEPS)
+
+.PHONY: clean-ragel
+clean-ragel:
+	$(MAKE) clean -C src/ragel
 
 .PHONY: clean-rust-mozjs
 clean-rust-mozjs:
