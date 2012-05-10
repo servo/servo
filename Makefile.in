@@ -32,8 +32,8 @@ ifeq ($(OSTYPE),darwin)
     SERVO_DEPS += src/rust-cocoa/libcocoa.dummy
     # I want the cocoa check to come before the servo check since if cocoa
     # doesn't work neither does servo
-    CHECK_DEPS += check-cocoa
-    CLEAN_DEPS += clean-cocoa
+    CHECK_DEPS += check-rust-cocoa
+    CLEAN_DEPS += clean-rust-cocoa
 endif
 
 SERVO_DEPS += \
@@ -43,16 +43,16 @@ SERVO_DEPS += \
 	$(NULL)
 
 CHECK_DEPS += \
-	check-mozjs \
-	check-sdl \
-	check-azure \
+	check-rust-mozjs \
+	check-rust-sdl \
+	check-rust-azure \
 	check-servo \
 	$(NULL)
 
 CLEAN_DEPS += \
-	clean-mozjs \
-	clean-sdl \
-	clean-azure \
+	clean-rust-mozjs \
+	clean-rust-sdl \
+	clean-rust-azure \
 	clean-servo \
 	$(NULL)
 
@@ -85,39 +85,39 @@ check: $(CHECK_DEPS)
 check-servo: servo-test
 	./servo-test
 
-.PHONY: check-mozjs
-check-mozjs:
+.PHONY: check-rust-mozjs
+check-rust-mozjs:
 	$(MAKE) check -C src/rust-mozjs RUSTFLAGS="-L ../mozjs/"
 
-.PHONY: check-azure
-check-azure:
+.PHONY: check-rust-azure
+check-rust-azure:
 	$(MAKE) check -C src/rust-azure
 
-.PHONY: check-sdl
-check-sdl:
+.PHONY: check-rust-sdl
+check-rust-sdl:
 	$(MAKE) check -C src/rust-sdl
 
-.PHONY: check-cocoa
-check-cocoa:
+.PHONY: check-rust-cocoa
+check-rust-cocoa:
 	$(MAKE) check -C src/rust-cocoa
 
 .PHONY:	clean
 clean: $(CLEAN_DEPS)
 
-.PHONY: clean-mozjs
-clean-mozjs:
+.PHONY: clean-rust-mozjs
+clean-rust-mozjs:
 	$(MAKE) clean -C src/rust-mozjs
 
-.PHONY: clean-azure
-clean-azure:
+.PHONY: clean-rust-azure
+clean-rust-azure:
 	$(MAKE) clean -C src/rust-azure
 
-.PHONY: clean-sdl
-clean-sdl:
+.PHONY: clean-rust-sdl
+clean-rust-sdl:
 	$(MAKE) clean -C src/rust-sdl
 
-.PHONY: clean-cocoa
-clean-cocoa:
+.PHONY: clean-rust-cocoa
+clean-rust-cocoa:
 	$(MAKE) clean -C src/rust-cocoa
 
 .PHONY: clean-servo
