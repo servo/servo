@@ -13,3 +13,9 @@
 [submodule "src/rust-mozjs"]
 	path = src/rust-mozjs
 	url = git://github.com/brson/rust-mozjs.git
+[submodule "src/harfbuzz"]
+	path = src/harfbuzz
+	url = git://anongit.freedesktop.org/harfbuzz.git
+[submodule "src/ragel"]
+	path = src/ragel
+	url = git://github.com/brson/ragel-dist.git
