@@ -19,7 +19,13 @@ fn engine<S: renderer::sink send>(sink: S) -> comm::chan<msg> {
 
         loop {
             alt self_ch.recv() {
-              load_url(url) { content.send(content::parse(url)) }
+              load_url(url) {
+                if url.ends_with(".js") {
+                    content.send(content::execute(url))
+                } else {
+                    content.send(content::parse(url))
+                }
+              }
               exit(sender) {
                 content.send(content::exit);
                 layout.send(layout::layout::exit);

@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# Handy tool for extracting #defines from jsapi.h.  For example:
+#     ./jsdefine %x JSCLASS_GLOBAL_FLAGS
+# outputs
+#     48000
+
+ETCDIR=$(dirname $0)
+INCDIR=${ETCDIR}/../mozjs/dist/include
+
+echo > jsdefine.c
+echo '#include "jsapi.h"' >> jsdefine.c
+echo '' >> jsdefine.c
+echo 'int main() {' >> jsdefine.c
+echo '    printf(' >> jsdefine.c
+echo '      "'"$1"'\n"', >> jsdefine.c
+echo "      $2);" >> jsdefine.c
+echo '}' >> jsdefine.c
+
+gcc -I ${INCDIR} jsdefine.c -o jsdefine.exe
+./jsdefine.exe

@@ -12,6 +12,8 @@ use azure;
 use js;
 use harfbuzz;
 
+import js::jsapi;
+
 mod dom {
     mod base;
     mod rcu;
@@ -57,6 +59,10 @@ mod util {
     mod tree;
 }
 
-mod content;
+mod content {
+    mod js;
+    mod jsglobal;
+}
+
 mod opts;
 mod engine;
