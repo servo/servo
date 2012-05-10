@@ -2,16 +2,23 @@ import dom::base::{nk_div, nk_img, node_data, node_kind, node};
 import dom::rcu;
 import dom::rcu::reader_methods;
 import gfx::geom;
-import gfx::geom::{size, rect, point, au};
+import gfx::geom::{size, rect, point, au, zero_size_au};
 import /*layout::*/inline::inline_layout_methods;
 import /*layout::*/style::style::{computed_style, di_block, di_inline};
 import /*layout::*/style::style::style_methods;
 import util::{tree};
 
+enum box_kind {
+    bk_block,
+    bk_inline,
+    bk_intrinsic(@geom::size<au>)
+}
+
 enum box = {
     tree: tree::fields<@box>,
     node: node,
-    mut bounds: geom::rect<au>
+    mut bounds: geom::rect<au>,
+    kind: box_kind
 };
 
 enum layout_data = {
@@ -54,15 +61,16 @@ impl of tree::wr_tree_ops<@box> for btree {
 impl block_layout_methods for @box {
     #[doc="The main reflow routine."]
     fn reflow(available_width: au) {
-        alt self.node.get_computed_style().display {
-            di_block { self.reflow_block(available_width) }
-            di_inline { self.reflow_inline(available_width) }
+        alt self.kind {
+            bk_block { self.reflow_block(available_width) }
+            bk_inline { self.reflow_inline(available_width) }
+            bk_intrinsic(size) { self.reflow_intrinsic(*size) }
         }
     }
 
     #[doc="The main reflow routine for block layout."]
     fn reflow_block(available_width: au) {
-        assert self.node.get_computed_style().display == di_block;
+        assert self.kind == bk_block;
 
         // Root here is the root of the reflow, not necessarily the doc as
         // a whole.
@@ -71,16 +79,6 @@ impl block_layout_methods for @box {
         // - generates root.bounds.size
         // - generates root.bounds.origin for each child
         // - and recursively computes the bounds for each child
-
-        let k = self.node.rd() { |r| r.kind };
-        alt k {
-          nk_img(size) {
-            self.bounds.size = size;
-            ret;
-          }
-
-          nk_div { /* fallthrough */ }
-        }
 
         let mut current_height = 0;
         for tree::each_child(btree, self) {|c|
@@ -94,7 +92,14 @@ impl block_layout_methods for @box {
         self.bounds.size = {mut width: available_width, // FIXME
                             mut height: au(current_height)};
 
-        #debug["reflow_block root=%? size=%?", k, self.bounds];
+        #debug["reflow_block size=%?", self.bounds];
+    }
+
+    #[doc="The trivial reflow routine for instrinsically-sized frames."]
+    fn reflow_intrinsic(size: geom::size<au>) {
+        self.bounds.size = size;
+
+        #debug["reflow_intrinsic size=%?", self.bounds];
     }
 }
 

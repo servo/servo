@@ -17,7 +17,7 @@ enum display {
 fn default_style_for_node_kind(kind : node_kind) -> computed_style {
     alt kind {
         nk_div      { computed_style({ mut display: di_block })  }
-        nk_img(*)   { computed_style({ mut display: di_block }) }
+        nk_img(*)   { computed_style({ mut display: di_inline }) }
     }
 }
 

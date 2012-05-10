@@ -26,7 +26,11 @@ fn box<A:copy>(x: A, y: A, w: A, h: A) -> rect<A> {
 
 fn zero_rect_au() -> rect<au> {
     let z = au(0);
-    {mut origin: point(z, z), mut size: size(z, z)}
+    {mut origin: point(z, z), mut size: zero_size_au()}
+}
+
+fn zero_size_au() -> size<au> {
+    {mut width: au(0), mut height: au(0)}
 }
 
 fn px_to_au(i: int) -> au {
