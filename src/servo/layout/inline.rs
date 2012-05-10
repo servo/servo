@@ -1,15 +1,16 @@
 // Inline layout.
 
-import base::*; // FIXME: Can't get around import * due to resolve bug.
 import dom::rcu;
 import dom::rcu::reader_methods;
 import gfx::geom::au;
+import /*layout::*/base::*; // FIXME: Can't get around import *; resolve bug.
+import /*layout::*/style::style::{di_inline, style_methods};
 import util::tree;
 
 #[doc="The main reflow routine for inline layout."]
 impl inline_layout_methods for @box {
     fn reflow_inline(available_width: au) {
-        assert self.display == di_inline;
+        assert self.node.get_computed_style().display == di_inline;
 
         // FIXME: This is clownshoes inline layout and is not even close to
         // correct.

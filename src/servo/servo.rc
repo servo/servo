@@ -30,6 +30,10 @@ mod image {
 }
 
 mod layout {
+    mod style {
+        mod style;
+    }
+
     mod base;
     mod box_builder;
     mod display_list;

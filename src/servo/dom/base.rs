@@ -1,6 +1,6 @@
 import dom::rcu::{writer_methods};
 import gfx::geom::{au, size};
-import layout::base::box;
+import layout::base::layout_data;
 import util::tree;
 
 enum node_data = {
@@ -13,10 +13,12 @@ enum node_kind {
     nk_img(size<au>)
 }
 
-// The rd_aux data is a (weak) pointer to the primary box.  Note that
-// there may be multiple boxes per DOM node.
-type node = rcu::handle<node_data, box>;
-type node_scope = rcu::scope<node_data, box>;
+#[doc="The rd_aux data is a (weak) pointer to the layout data, which contains
+       the CSS info as well as the primary box.  Note that there may be multiple
+       boxes per DOM node."]
+type node = rcu::handle<node_data, layout_data>;
+
+type node_scope = rcu::scope<node_data, layout_data>;
 
 fn node_scope() -> node_scope { rcu::scope() }
 

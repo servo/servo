@@ -3,8 +3,8 @@
 import dom::base::node;
 import dom::rcu::reader_methods;
 import gfx::geom;
-import /*layout::*/base::{box, btree, di_block, di_inline, ntree, rd_tree_ops};
-import /*layout::*/base::wr_tree_ops;
+import /*layout::*/base::{box, btree, ntree, rd_tree_ops, wr_tree_ops};
+import /*layout::*/style::style::{di_block, di_inline};
 import util::tree;
 
 export box_builder_methods;
@@ -12,14 +12,13 @@ export box_builder_methods;
 fn new_box(n: node) -> @box {
     @box({tree: tree::empty(),
           node: n,
-          mut display: di_block,
           mut bounds: geom::zero_rect_au()})
 }
 
 impl box_builder_priv_methods for node {
     fn construct_boxes() -> @box {
         let b = new_box(self);
-        self.set_aux(b);
+        self.aux::<()>({ |a| a.box = some(b); });
         ret b;
     }
 }
