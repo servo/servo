@@ -56,7 +56,7 @@ impl reader_methods<T:send,A> for handle<T,A> {
     }
 
     fn aux<U>(f: fn(A) -> U) -> U unsafe {
-        // warning: do not use if has_aux() is false!
+        assert self.has_aux();
         f(*self.rd_aux())
     }
 }
