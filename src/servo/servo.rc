@@ -32,6 +32,7 @@ mod image {
 mod layout {
     mod base;
     mod display_list;
+    mod inline;
     mod layout;
 }
 

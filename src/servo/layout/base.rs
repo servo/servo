@@ -1,13 +1,20 @@
 import dom::base::{nk_div, nk_img, node_data, node_kind, node};
 import dom::rcu;
 import dom::rcu::reader_methods;
+import inline::inline_layout_methods;
 import gfx::geom;
 import gfx::geom::{size, rect, point, au};
 import util::{tree};
 
+enum display {
+    di_block,
+    di_inline
+}
+
 enum box = {
     tree: tree::fields<@box>,
     node: node,
+    mut display: display,
     mut bounds: geom::rect<au>
 };
 
@@ -46,6 +53,7 @@ impl of tree::wr_tree_ops<@box> for btree {
 fn new_box(n: node) -> @box {
     @box({tree: tree::empty(),
           node: n,
+          mut display: di_block,
           mut bounds: geom::zero_rect_au()})
 }
 
@@ -64,38 +72,51 @@ fn linked_subtree(p: node) -> @box {
     ret p_box;
 }
 
-fn reflow_block(root: @box, available_width: au) {
-    // Root here is the root of the reflow, not necessarily the doc as
-    // a whole.
-    //
-    // This routine:
-    // - generates root.bounds.size
-    // - generates root.bounds.origin for each child
-    // - and recursively computes the bounds for each child
-
-    let k = root.node.rd() { |r| r.kind };
-    alt k {
-      nk_img(size) {
-        root.bounds.size = size;
-        ret;
-      }
-
-      nk_div { /* fallthrough */ }
+impl block_layout_methods for @box {
+    #[doc="The main reflow routine."]
+    fn reflow(available_width: au) {
+        alt self.display {
+            di_block { self.reflow_block(available_width) }
+            di_inline { self.reflow_inline(available_width) }
+        }
     }
 
-    let mut current_height = 0;
-    for tree::each_child(btree, root) {|c|
-        let mut blk_available_width = available_width;
-        // FIXME subtract borders, margins, etc
-        c.bounds.origin = {mut x: au(0), mut y: au(current_height)};
-        reflow_block(c, blk_available_width);
-        current_height += *c.bounds.size.height;
+    #[doc="The main reflow routine for block layout."]
+    fn reflow_block(available_width: au) {
+        assert self.display == di_block;
+
+        // Root here is the root of the reflow, not necessarily the doc as
+        // a whole.
+        //
+        // This routine:
+        // - generates root.bounds.size
+        // - generates root.bounds.origin for each child
+        // - and recursively computes the bounds for each child
+
+        let k = self.node.rd() { |r| r.kind };
+        alt k {
+          nk_img(size) {
+            self.bounds.size = size;
+            ret;
+          }
+
+          nk_div { /* fallthrough */ }
+        }
+
+        let mut current_height = 0;
+        for tree::each_child(btree, self) {|c|
+            let mut blk_available_width = available_width;
+            // FIXME subtract borders, margins, etc
+            c.bounds.origin = {mut x: au(0), mut y: au(current_height)};
+            c.reflow(blk_available_width);
+            current_height += *c.bounds.size.height;
+        }
+
+        self.bounds.size = {mut width: available_width, // FIXME
+                            mut height: au(current_height)};
+
+        #debug["reflow_block root=%? size=%?", k, self.bounds];
     }
-
-    root.bounds.size = {mut width: available_width, // FIXME
-                        mut height: au(current_height)};
-
-    #debug["reflow_block root=%? size=%?", k, root.bounds];
 }
 
 #[cfg(test)]
@@ -150,7 +171,7 @@ mod test {
         tree::add_child(btree, b3, b1);
         tree::add_child(btree, b3, b2);
 
-        reflow_block(b3, au(100));
+        b3.reflow_block(au(100));
         let fb = flat_bounds(b3);
         #debug["fb=%?", fb];
         assert fb == [geom::box(au(0), au(0), au(10), au(10)),   // n0

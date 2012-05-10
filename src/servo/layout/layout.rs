@@ -12,6 +12,7 @@ import gfx::renderer;
 import dom::base::node;
 import dom::rcu::scope;
 import base::{btree, rd_tree_ops, wr_tree_ops, linked_subtree};
+import base::block_layout_methods;
 import dl = display_list;
 
 enum msg {
@@ -29,7 +30,7 @@ fn layout(to_renderer: chan<renderer::msg>) -> chan<msg> {
               build(node) {
                 #debug("layout: received layout request");
                 let box = linked_subtree(node);
-                base::reflow_block(box, geom::px_to_au(800));
+                box.reflow(geom::px_to_au(800));
                 let dlist = build_display_list(box);
                 to_renderer.send(renderer::render(dlist));
               }
