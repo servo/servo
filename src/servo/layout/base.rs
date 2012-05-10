@@ -1,12 +1,15 @@
+#[doc="Fundamental layout structures and algorithms."]
+
 import dom::base::{nk_div, nk_img, node_data, node_kind, node};
 import dom::rcu;
 import dom::rcu::reader_methods;
 import gfx::geom;
 import gfx::geom::{size, rect, point, au, zero_size_au};
+import /*layout::*/block::block_layout_methods;
 import /*layout::*/inline::inline_layout_methods;
 import /*layout::*/style::style::{computed_style, di_block, di_inline};
 import /*layout::*/style::style::style_methods;
-import util::{tree};
+import util::tree;
 
 enum box_kind {
     bk_block,
@@ -58,7 +61,7 @@ impl of tree::wr_tree_ops<@box> for btree {
     }
 }
 
-impl block_layout_methods for @box {
+impl layout_methods for @box {
     #[doc="The main reflow routine."]
     fn reflow(available_width: au) {
         alt self.kind {
@@ -66,33 +69,6 @@ impl block_layout_methods for @box {
             bk_inline { self.reflow_inline(available_width) }
             bk_intrinsic(size) { self.reflow_intrinsic(*size) }
         }
-    }
-
-    #[doc="The main reflow routine for block layout."]
-    fn reflow_block(available_width: au) {
-        assert self.kind == bk_block;
-
-        // Root here is the root of the reflow, not necessarily the doc as
-        // a whole.
-        //
-        // This routine:
-        // - generates root.bounds.size
-        // - generates root.bounds.origin for each child
-        // - and recursively computes the bounds for each child
-
-        let mut current_height = 0;
-        for tree::each_child(btree, self) {|c|
-            let mut blk_available_width = available_width;
-            // FIXME subtract borders, margins, etc
-            c.bounds.origin = {mut x: au(0), mut y: au(current_height)};
-            c.reflow(blk_available_width);
-            current_height += *c.bounds.size.height;
-        }
-
-        self.bounds.size = {mut width: available_width, // FIXME
-                            mut height: au(current_height)};
-
-        #debug["reflow_block size=%?", self.bounds];
     }
 
     #[doc="The trivial reflow routine for instrinsically-sized frames."]

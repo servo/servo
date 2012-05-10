@@ -35,6 +35,7 @@ mod layout {
     }
 
     mod base;
+    mod block;
     mod box_builder;
     mod display_list;
     mod inline;
