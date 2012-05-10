@@ -86,7 +86,7 @@ check-servo: servo-test
 	./servo-test
 
 .PHONY: check-rust-mozjs
-check-rust-mozjs:
+check-rust-mozjs: src/mozjs/libjs_static.a
 	$(MAKE) check -C src/rust-mozjs RUSTFLAGS="-L ../mozjs/"
 
 .PHONY: check-rust-azure
