@@ -6,6 +6,7 @@ sed "s#%VPATH%#${SRCDIR}#" ${SRCDIR}/Makefile.in > Makefile
 mkdir -p src/ragel || exit $?
 mkdir -p src/harfbuzz || exit $?
 mkdir -p src/mozjs || exit $?
+mkdir -p src/rust-harfbuzz || exit $?
 mkdir -p src/rust-mozjs || exit $?
 mkdir -p src/rust-sdl || exit $?
 mkdir -p src/rust-azure || exit $?
@@ -14,6 +15,7 @@ mkdir -p src/rust-cocoa || exit $?
 (cd src/ragel && sh ${SRCDIR}/src/ragel/configure) || exit $?
 (cd src/harfbuzz && sh ${SRCDIR}/src/harfbuzz/configure --enable-static) || exit $?
 (cd src/mozjs && sh ${SRCDIR}/src/mozjs/js/src/configure) || exit $?
+(cd src/rust-harfbuzz && sh ${SRCDIR}/src/rust-harfbuzz/configure) || exit $?
 (cd src/rust-mozjs && sh ${SRCDIR}/src/rust-mozjs/configure) || exit $?
 (cd src/rust-sdl && sh ${SRCDIR}/src/rust-sdl/configure) || exit $?
 (cd src/rust-azure && sh ${SRCDIR}/src/rust-azure/configure) || exit $?

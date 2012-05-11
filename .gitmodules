@@ -16,6 +16,9 @@
 [submodule "src/harfbuzz"]
 	path = src/harfbuzz
 	url = git://github.com/brson/harfbuzz-servo.git
+[submodule "src/rust-harfbuzz"]
+	path = src/rust-harfbuzz
+	url = git://github.com/brson/rust-harfbuzz.git
 [submodule "src/ragel"]
 	path = src/ragel
 	url = git://github.com/brson/ragel-dist.git

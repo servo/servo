@@ -14,6 +14,7 @@ ifeq ($(UNAME),Linux)
 endif
 
 RUSTFLAGS += \
+	-L src/rust-harfbuzz \
 	-L src/rust-mozjs \
 	-L src/rust-azure \
 	-L src/rust-sdl \
@@ -38,13 +39,14 @@ ifeq ($(OSTYPE),darwin)
 endif
 
 SERVO_DEPS += \
-	src/harfbuzz/src/libharfbuzz.la \
+	src/rust-harfbuzz/libharfbuzz.dummy \
 	src/rust-mozjs/libmozjs.dummy \
 	src/rust-azure/libazure.dummy \
 	src/rust-sdl/libsdl.dummy \
 	$(NULL)
 
 CHECK_DEPS += \
+	check-rust-harfbuzz \
 	check-rust-mozjs \
 	check-rust-sdl \
 	check-rust-azure \
@@ -54,6 +56,7 @@ CHECK_DEPS += \
 CLEAN_DEPS += \
 	clean-ragel \
 	clean-harfbuzz \
+	clean-rust-harfbuzz \
 	clean-rust-mozjs \
 	clean-rust-sdl \
 	clean-rust-azure \
@@ -72,11 +75,14 @@ servo-test: $(SERVO_DEPS)
 src/ragel/ragel/ragel:
 	$(MAKE) -C src/ragel
 
-src/harfbuzz/src/libharfbuzz.la: src/ragel/ragel/ragel
-	$(MAKE) -C src/harfbuzz PATH=$(PATH):$(BUILD_DIR)/src/ragel/ragel
+src/harfbuzz/src/.libs/libharfbuzz.a: src/ragel/ragel/ragel
+	$(MAKE) -C src/harfbuzz PATH=$(PATH):$(BUILD_DIR)/src/ragel/ragel CXXFLAGS=-fPIC LDFLAGS=-fPIC
 
 src/mozjs/libjs_static.a:
 	$(MAKE) -C src/mozjs
+
+src/rust-harfbuzz/libharfbuzz.dummy: src/harfbuzz/src/.libs/libharfbuzz.a
+	$(MAKE) -C src/rust-harfbuzz RUSTFLAGS="-L ../harfbuzz/src/.libs/"
 
 src/rust-mozjs/libmozjs.dummy: src/mozjs/libjs_static.a
 	$(MAKE) -C src/rust-mozjs RUSTFLAGS="-L ../mozjs/"
@@ -94,6 +100,10 @@ check: $(CHECK_DEPS)
 
 check-servo: servo-test
 	./servo-test
+
+.PHONY: check-rust-harfbuzz
+check-rust-harfbuzz: src/harfbuzz/src/.libs/libharfbuzz.a
+	$(MAKE) check -C src/rust-harfbuzz RUSTFLAGS="-L ../harfbuzz/src/.libs/"
 
 .PHONY: check-rust-mozjs
 check-rust-mozjs: src/mozjs/libjs_static.a
@@ -117,6 +127,14 @@ clean: $(CLEAN_DEPS)
 .PHONY: clean-ragel
 clean-ragel:
 	$(MAKE) clean -C src/ragel
+
+.PHONY: clean-harfbuzz
+clean-harfbuzz:
+	$(MAKE) clean -C src/harfbuzz
+
+.PHONY: clean-rust-harfbuzz
+clean-rust-harfbuzz:
+	$(MAKE) clean -C src/rust-harfbuzz
 
 .PHONY: clean-rust-mozjs
 clean-rust-mozjs:

@@ -10,6 +10,7 @@ use std;
 use sdl;
 use azure;
 use js;
+use harfbuzz;
 
 mod dom {
     mod base;
