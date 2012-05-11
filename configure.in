@@ -3,16 +3,18 @@
 SRCDIR="$(cd $(dirname $0) && pwd)"
 sed "s#%VPATH%#${SRCDIR}#" ${SRCDIR}/Makefile.in > Makefile
 
-mkdir -p src/ragel
-mkdir -p src/mozjs
-mkdir -p src/rust-mozjs
-mkdir -p src/rust-sdl
-mkdir -p src/rust-azure
-mkdir -p src/rust-cocoa
+mkdir -p src/ragel || exit $?
+mkdir -p src/harfbuzz || exit $?
+mkdir -p src/mozjs || exit $?
+mkdir -p src/rust-mozjs || exit $?
+mkdir -p src/rust-sdl || exit $?
+mkdir -p src/rust-azure || exit $?
+mkdir -p src/rust-cocoa || exit $?
 
-(cd src/ragel && sh ${SRCDIR}/src/ragel/configure)
-(cd src/mozjs && sh ${SRCDIR}/src/mozjs/js/src/configure)
-(cd src/rust-mozjs && sh ${SRCDIR}/src/rust-mozjs/configure)
-(cd src/rust-sdl && sh ${SRCDIR}/src/rust-sdl/configure)
-(cd src/rust-azure && sh ${SRCDIR}/src/rust-azure/configure)
-(cd src/rust-cocoa && sh ${SRCDIR}/src/rust-cocoa/configure)
+(cd src/ragel && sh ${SRCDIR}/src/ragel/configure) || exit $?
+(cd src/harfbuzz && sh ${SRCDIR}/src/harfbuzz/configure --enable-static) || exit $?
+(cd src/mozjs && sh ${SRCDIR}/src/mozjs/js/src/configure) || exit $?
+(cd src/rust-mozjs && sh ${SRCDIR}/src/rust-mozjs/configure) || exit $?
+(cd src/rust-sdl && sh ${SRCDIR}/src/rust-sdl/configure) || exit $?
+(cd src/rust-azure && sh ${SRCDIR}/src/rust-azure/configure) || exit $?
+(cd src/rust-cocoa && sh ${SRCDIR}/src/rust-cocoa/configure) || exit $?

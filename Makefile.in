@@ -4,6 +4,7 @@ RUSTC?=rustc
 RUSTFLAGS?=
 
 UNAME=$(shell uname)
+BUILD_DIR=$(shell pwd)
 
 ifeq ($(UNAME),Darwin)
     OSTYPE=darwin
@@ -37,7 +38,7 @@ ifeq ($(OSTYPE),darwin)
 endif
 
 SERVO_DEPS += \
-	src/ragel/ragel/ragel \
+	src/harfbuzz/src/libharfbuzz.la \
 	src/rust-mozjs/libmozjs.dummy \
 	src/rust-azure/libazure.dummy \
 	src/rust-sdl/libsdl.dummy \
@@ -52,6 +53,7 @@ CHECK_DEPS += \
 
 CLEAN_DEPS += \
 	clean-ragel \
+	clean-harfbuzz \
 	clean-rust-mozjs \
 	clean-rust-sdl \
 	clean-rust-azure \
@@ -69,6 +71,9 @@ servo-test: $(SERVO_DEPS)
 
 src/ragel/ragel/ragel:
 	$(MAKE) -C src/ragel
+
+src/harfbuzz/src/libharfbuzz.la: src/ragel/ragel/ragel
+	$(MAKE) -C src/harfbuzz PATH=$(PATH):$(BUILD_DIR)/src/ragel/ragel
 
 src/mozjs/libjs_static.a:
 	$(MAKE) -C src/mozjs
