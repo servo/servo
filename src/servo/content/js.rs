@@ -112,10 +112,11 @@ mod test {
         let gc = jsglobal::global_class();
         cx.new_global(gc).chain {
             |glob|
-            str::bytes("x = 1;") {
+            str::as_bytes("x = 1;") {
                 |bytes|
-                cx.evaluate_script(glob, bytes, "test", 1u);
-            }
+                cx.evaluate_script(glob, bytes, "test", 1u)
+            };
+            ok(())
         };
     }
 
