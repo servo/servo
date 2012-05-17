@@ -2,6 +2,7 @@ import jsapi::*;
 import jsapi::bindgen::*;
 import ptr::{null, addr_of};
 import result::{result, ok, err, extensions};
+import libc::c_char;
 
 export rt;
 export methods;
@@ -37,7 +38,8 @@ fn rt() -> rt {
 
 impl methods for rt {
     fn cx() -> cx {
-        @cx_rsrc({ptr: JS_NewContext(self.ptr, default_stacksize)})
+        @cx_rsrc({ptr: JS_NewContext(self.ptr, default_stacksize),
+                  rt: self})
     }
 }
 
@@ -45,14 +47,14 @@ impl methods for rt {
 // contexts
 
 type cx = @cx_rsrc;
-resource cx_rsrc(self: {ptr: *JSContext}) {
+resource cx_rsrc(self: {ptr: *JSContext, rt: rt}) {
     JS_DestroyContext(self.ptr);
 }
 
 impl methods for cx {
     fn rooted_obj(obj: *JSObject) -> jsobj {
-        let jsobj = @jsobj_rsrc({cx: self.ptr, obj: obj});
-        JS_AddObjectRoot(self.ptr, ptr::addr_of(jsobj.obj));
+        let jsobj = @jsobj_rsrc({cx: self, cxptr: self.ptr, ptr: obj});
+        JS_AddObjectRoot(self.ptr, ptr::addr_of(jsobj.ptr));
         jsobj
     }
 
@@ -66,6 +68,29 @@ impl methods for cx {
             ok(self.rooted_obj(globobj))
         }
     }
+
+    fn evaluate_script(glob: jsobj, bytes: [u8], filename: str,
+                       line_num: uint) -> result<(),()> {
+        vec::as_buf(bytes) { |bytes_ptr|
+            str::as_c_str(filename) { |filename_cstr|
+                let bytes_ptr = bytes_ptr as *c_char;
+                let v: jsval = 0_u64;
+                #debug["Evaluating script from %s", filename];
+                if JS_EvaluateScript(self.ptr, glob.ptr,
+                                     bytes_ptr, bytes.len() as uintN,
+                                     filename_cstr, line_num as uintN,
+                                     ptr::addr_of(v)) == ERR {
+                    #debug["...err!"];
+                    err(())
+                } else {
+                    // we could return the script result but then we'd have
+                    // to root it and so forth and, really, who cares?
+                    #debug["...ok!"];
+                    ok(())
+                }
+            }
+        }
+    }
 }
 
 // ___________________________________________________________________________
@@ -73,7 +98,25 @@ impl methods for cx {
 
 type jsobj = @jsobj_rsrc;
 
-resource jsobj_rsrc(self: {cx: *JSContext, obj: *JSObject}) {
-    JS_RemoveObjectRoot(self.cx, ptr::addr_of(self.obj));
+resource jsobj_rsrc(self: {cx: cx, cxptr: *JSContext, ptr: *JSObject}) {
+    JS_RemoveObjectRoot(self.cxptr, ptr::addr_of(self.ptr));
 }
 
+#[cfg(test)]
+mod test {
+
+    #[test]
+    fn dummy() {
+        let rt = rt();
+        let cx = rt.cx();
+        let gc = jsglobal::global_class();
+        cx.new_global(gc).chain {
+            |glob|
+            str::bytes("x = 1;") {
+                |bytes|
+                cx.evaluate_script(glob, bytes, "test", 1u);
+            }
+        };
+    }
+
+}

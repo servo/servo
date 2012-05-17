@@ -1,6 +1,7 @@
 export msg, ping;
 export content;
 
+import result::extensions;
 import dom::rcu::writer_methods;
 import dom=dom::base;
 import layout::layout;
@@ -56,8 +57,17 @@ fn content(to_layout: chan<layout::msg>) -> chan<msg> {
               execute(filename) {
                 #debug["content: Received filename `%s` to execute", filename];
 
-                let cx = rt.cx();
-                let _glob = cx.new_global(jsglobal::global_class());
+                alt io::read_whole_file(filename) {
+                  result::err(msg) {
+                    io::println(#fmt["Error opening %s: %s", filename, msg]);
+                  }
+                  result::ok(bytes) {
+                    let cx = rt.cx();
+                    cx.new_global(jsglobal::global_class()).chain { |glob|
+                        cx.evaluate_script(glob, bytes, filename, 1u)
+                    };
+                  }
+                }
               }
               exit {
                 to_layout.send(layout::exit);
