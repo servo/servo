@@ -61,6 +61,22 @@ impl of tree::wr_tree_ops<@box> for btree {
     }
 }
 
+impl layout_methods_priv for @box {
+    #[doc="Dumps the box tree, for debugging, with indentation."]
+    fn dump_indent(indent: uint) {
+        let mut s = "";
+        uint::range(0u, indent) {
+            |_i|
+            s += "    ";
+        }
+
+        s += #fmt("%?", self.kind);
+        #debug["%s", s];
+
+        for btree.each_child(self) { |kid| kid.dump_indent(indent + 1u) }
+    }
+}
+
 impl layout_methods for @box {
     #[doc="The main reflow routine."]
     fn reflow(available_width: au) {
@@ -76,6 +92,36 @@ impl layout_methods for @box {
         self.bounds.size = size;
 
         #debug["reflow_intrinsic size=%?", self.bounds];
+    }
+
+    #[doc="Dumps the box tree, for debugging."]
+    fn dump() {
+        self.dump_indent(0u);
+    }
+}
+
+// Debugging
+
+impl node_methods_priv for node {
+    #[doc="Dumps the node tree, for debugging, with indentation."]
+    fn dump_indent(indent: uint) {
+        let mut s = "";
+        uint::range(0u, indent) {
+            |_i|
+            s += "    ";
+        }
+
+        s += #fmt("%?", self.rd({ |n| n.kind }));
+        #debug["%s", s];
+
+        for ntree.each_child(self) { |kid| kid.dump_indent(indent + 1u) }
+    }
+}
+
+impl node_methods for node {
+    #[doc="Dumps the subtree rooted at this node, for debugging."]
+    fn dump() {
+        self.dump_indent(0u);
     }
 }
 

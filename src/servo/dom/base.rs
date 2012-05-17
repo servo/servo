@@ -52,3 +52,4 @@ impl of tree::wr_tree_ops<node> for node_scope {
         self.wr(node) { |n| f(n.tree) }
     }
 }
+

@@ -52,6 +52,9 @@ impl reader_methods<T:send,A> for handle<T,A> {
     }
 
     fn set_aux(p: @A) unsafe {
+        let p2 = p;
+        unsafe::forget(p2); // Bump the reference count.
+
         (**self).rd_aux = ptr::addr_of(*p);
     }
 

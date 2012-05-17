@@ -32,10 +32,17 @@ impl style_priv for node {
     fn recompute_style() {
         let default_style: computed_style =
             default_style_for_node_kind(self.rd { |n| n.kind });
+
+        #debug("recomputing style; parent node:");
+        self.dump();
+
         let the_layout_data = @layout_data({
             mut computed_style: default_style,
             mut box: none
         });
+
+        #debug("layout data: %?", the_layout_data);
+
         self.set_aux(the_layout_data);
     }
 }
