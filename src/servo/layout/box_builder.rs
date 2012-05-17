@@ -1,10 +1,10 @@
 #[doc="Creates CSS boxes from a DOM."]
 
-import dom::base::{nk_div, nk_img, node};
+import dom::base::{nk_div, nk_img, nk_text, node};
 import dom::rcu::reader_methods;
 import gfx::geom;
-import /*layout::*/base::{bk_block, bk_inline, bk_intrinsic, box, box_kind};
-import /*layout::*/base::{btree, node_methods, ntree, rd_tree_ops};
+import /*layout::*/base::{bk_block, bk_inline, bk_intrinsic, bk_text, box};
+import /*layout::*/base::{box_kind, btree, node_methods, ntree, rd_tree_ops};
 import /*layout::*/base::wr_tree_ops;
 import /*layout::*/style::style::{di_block, di_inline, style_methods};
 import util::tree;
@@ -120,6 +120,7 @@ impl box_builder_priv for node {
         alt self.rd({ |n| n.kind }) {
             nk_img(size) { bk_intrinsic(@size) }
             nk_div       { bk_block            }
+            nk_text(s)   { bk_text(s)          }
         }
     }
 }

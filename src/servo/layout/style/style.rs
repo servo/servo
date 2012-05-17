@@ -1,6 +1,6 @@
 #[doc="High-level interface to CSS selector matching."]
 
-import dom::base::{nk_div, nk_img, node, node_kind};
+import dom::base::{nk_div, nk_img, nk_text, node, node_kind};
 import dom::rcu::reader_methods;
 import /*layout::*/base::*; // FIXME: resolve bug requires *
 
@@ -16,8 +16,10 @@ enum display {
 #[doc="Returns the default style for the given node kind."]
 fn default_style_for_node_kind(kind : node_kind) -> computed_style {
     alt kind {
-        nk_div      { computed_style({ mut display: di_block })  }
-        nk_img(*)   { computed_style({ mut display: di_inline }) }
+        nk_div { computed_style({ mut display: di_block }) }
+        nk_img(*) | nk_text(*) {
+            computed_style({ mut display: di_inline })
+        }
     }
 }
 

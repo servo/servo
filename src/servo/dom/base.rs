@@ -10,7 +10,8 @@ enum node_data = {
 
 enum node_kind {
     nk_div,
-    nk_img(size<au>)
+    nk_img(size<au>),
+    nk_text(str)
 }
 
 #[doc="The rd_aux data is a (weak) pointer to the layout data, which contains

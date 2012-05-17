@@ -40,8 +40,12 @@ fn build_dom(scope: dom::node_scope,
                 //       spec) if we close more tags than we open.
                 cur = scope.get_parent(cur).get();
             }
+            parser::to_text(s) if !s.is_whitespace() {
+                let new_node = scope.new_node(dom::nk_text(s));
+                scope.add_child(cur, new_node);
+            }
             parser::to_text(_) {
-                // TODO
+                // FIXME: Whitespace should not be ignored.
             }
             parser::to_doctype {
                 // TODO: Do something here...
