@@ -43,6 +43,7 @@ mod layout {
     mod display_list;
     mod inline;
     mod layout;
+    mod text;
 }
 
 mod parser {
@@ -53,6 +54,11 @@ mod parser {
 mod platform {
     mod base;
     mod osmain;
+}
+
+mod text {
+    mod glyph;
+    mod text_run;
 }
 
 mod util {
@@ -66,3 +72,6 @@ mod content {
 
 mod opts;
 mod engine;
+
+import servo_text = text;
+

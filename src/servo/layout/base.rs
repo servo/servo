@@ -8,13 +8,14 @@ import gfx::geom::{size, rect, point, au, zero_size_au};
 import /*layout::*/block::block_layout_methods;
 import /*layout::*/inline::inline_layout_methods;
 import /*layout::*/style::style::*;
+import /*layout::*/text::{text_box, text_layout_methods};
 import util::tree;
 
 enum box_kind {
     bk_block,
     bk_inline,
     bk_intrinsic(@geom::size<au>),
-    bk_text(str)
+    bk_text(@text_box)
 }
 
 enum box = {
@@ -84,7 +85,7 @@ impl layout_methods for @box {
             bk_block { self.reflow_block(available_width) }
             bk_inline { self.reflow_inline(available_width) }
             bk_intrinsic(size) { self.reflow_intrinsic(*size) }
-            bk_text(s) { self.reflow_text(s) }
+            bk_text(subbox) { self.reflow_text(available_width, subbox) }
         }
     }
 
@@ -93,14 +94,6 @@ impl layout_methods for @box {
         self.bounds.size = size;
 
         #debug["reflow_intrinsic size=%?", self.bounds];
-    }
-
-    #[doc="The reflow routine for text frames."]
-    fn reflow_text(text: str) {
-        self.bounds.size = {
-            mut width: au(text.len() as int * 60 * 10),
-            mut height: au(60 * 14)
-        };
     }
 
     #[doc="Dumps the box tree, for debugging."]
