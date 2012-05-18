@@ -32,7 +32,9 @@ fn renderer<S: sink send copy>(sink: S) -> chan<msg> {
                     #debug("renderer: got render request");
                     let draw_target = draw_target_ch.recv();
                     #debug("renderer: rendering");
+                    clear(draw_target);
                     draw_display_list(draw_target, display_list);
+                    draw_some_text(draw_target);
                     #debug("renderer: returning surface");
                     sink.draw(draw_target_ch, draw_target);
                   }
@@ -127,8 +129,6 @@ fn draw_display_list(
     draw_target: AzDrawTargetRef,
     display_list: dl::display_list
 ) {
-    clear(draw_target);
-
     for display_list.each {|item|
         #debug["drawing %?", item];
 
@@ -144,6 +144,135 @@ fn draw_display_list(
             }
         }
     }
+}
+
+fn draw_some_text(draw_target: AzDrawTargetRef) {
+
+    import az = azure;
+    import azbg = azure::bindgen;
+    import ft = azure::freetype;
+    import ftbg = azure::freetype::bindgen;
+    import cairo = azure::cairo;
+    import cairobg = azure::cairo::bindgen;
+    import cairoftbg = azure::cairo_ft::bindgen;
+    import libc::types::common::c99::uint16_t;
+    import libc::types::common::c99::uint32_t;
+
+    impl methods for ft::FT_Error {
+        fn for_sure() { assert self == 0 as ft::FT_Error }
+    }
+
+    let library: ft::FT_Library = ptr::null();
+    ftbg::FT_Init_FreeType(ptr::addr_of(library)).for_sure();
+
+    let fontbin = #include_bin("JosefinSans-SemiBold.ttf");
+
+    let face: ft::FT_Face = ptr::null();
+    vec::as_buf(fontbin) {|buf|
+        ftbg::FT_New_Memory_Face(library, buf, fontbin.len() as ft::FT_Long,
+                                 0, ptr::addr_of(face)).for_sure();
+    }
+
+    unsafe {
+        #debug("num_glyphs %?", (*face).num_glyphs);
+        #debug("family_name %?",
+               str::unsafe::from_c_str((*face).family_name));
+        #debug("style_name %?",
+               str::unsafe::from_c_str((*face).style_name));
+    }
+
+    let cface = cairoftbg::cairo_ft_font_face_create_for_ft_face(
+        face, 0 as libc::c_int);
+    assert cface.is_not_null();
+
+    let fontmatrix: cairo::cairo_matrix_t = {
+        xx: 0 as libc::c_double,
+        yx: 0 as libc::c_double,
+        xy: 0 as libc::c_double,
+        yy: 0 as libc::c_double,
+        x0: 0 as libc::c_double,
+        y0: 0 as libc::c_double
+    };
+    cairobg::cairo_matrix_init_identity(ptr::addr_of(fontmatrix));
+    cairobg::cairo_matrix_scale(ptr::addr_of(fontmatrix), 300f as libc::c_double, 400f as libc::c_double);
+
+    let idmatrix: cairo::cairo_matrix_t = {
+        xx: 0 as libc::c_double,
+        yx: 0 as libc::c_double,
+        xy: 0 as libc::c_double,
+        yy: 0 as libc::c_double,
+        x0: 0 as libc::c_double,
+        y0: 0 as libc::c_double
+    };
+    cairobg::cairo_matrix_init_identity(ptr::addr_of(idmatrix));
+
+    let options = cairobg::cairo_font_options_create();
+
+    let cfont = cairobg::cairo_scaled_font_create(
+        cface, ptr::addr_of(fontmatrix), ptr::addr_of(idmatrix), options);
+    assert cfont.is_not_null();
+    assert cairobg::cairo_scaled_font_status(cfont) == 0 as cairo::cairo_status_t;
+    cairobg::cairo_font_face_destroy(cface);
+    cairobg::cairo_font_options_destroy(options);
+
+    let nfont: az::AzNativeFont = {
+        mType: az::AZ_NATIVE_FONT_CAIRO_FONT_FACE,
+        mFont: ptr::null()
+    };
+
+    let azfont = azbg::AzCreateScaledFontWithCairo(
+        ptr::addr_of(nfont),
+        20f as az::AzFloat,
+        cfont);
+    assert azfont.is_not_null();
+    cairobg::cairo_scaled_font_destroy(cfont);
+
+    let color = {
+        r: 1f as AzFloat,
+        g: 0f as AzFloat,
+        b: 0.5f as AzFloat,
+        a: 1f as AzFloat
+    };
+    let pattern = AzCreateColorPattern(ptr::addr_of(color));
+    assert pattern.is_not_null();
+
+    let options: az::AzDrawOptions = {
+        mAlpha: 1f as az::AzFloat,
+        fields: 0 as uint16_t
+    };
+
+    let glyphidx = ftbg::FT_Get_Char_Index(face, 'w' as ft::FT_ULong);
+
+    #debug("glyph: %?", glyphidx);
+
+    for int::range(0, 3) {|i|
+        let glyphs: [az::AzGlyph] = [
+            {
+                mIndex: glyphidx,
+                mPosition: {
+                    x: (100 + 250 * i) as az::AzFloat,
+                    y: 600 as az::AzFloat
+                }
+            }
+        ];
+
+        let glyphbuf: az::AzGlyphBuffer = unsafe {{
+            mGlyphs: vec::unsafe::to_ptr(glyphs),
+            mNumGlyphs: 1 as uint32_t
+        }};
+
+        AzDrawTargetFillGlyphs(draw_target,
+                               azfont,
+                               ptr::addr_of(glyphbuf),
+                               pattern,
+                               ptr::addr_of(options),
+                               ptr::null());
+    }
+
+    azbg::AzReleaseColorPattern(pattern);
+    azbg::AzReleaseScaledFont(azfont);
+    ftbg::FT_Done_Face(face).for_sure();
+    ftbg::FT_Done_FreeType(library).for_sure();
 }
 
 fn clear(draw_target: AzDrawTargetRef) {

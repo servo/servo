@@ -69,6 +69,7 @@ fn mainloop(po: port<msg>) {
                 assert surfaces.s1.surf.az_target == dt;
                 let sdl_surf = surfaces.s1.surf.sdl_surf;
 
+                cairo_surface_flush(surfaces.s1.surf.cairo_surf);
                 sdl::video::unlock_surface(sdl_surf);
                 sdl::video::blit_surface(sdl_surf, ptr::null(),
                                          screen, ptr::null());
