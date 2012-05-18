@@ -1,14 +1,22 @@
 import comm::{port, chan};
 
+enum parse_state {
+    ps_normal,
+    ps_tag
+}
+
 type parser = {
     mut lookahead: option<char_or_eof>,
+    mut state: parse_state,
     reader: io::reader
 };
 
 enum token {
-    to_start_tag(str),
+    to_start_opening_tag(str),
+    to_end_opening_tag,
     to_end_tag(str),
     to_text(str),
+    to_attr(str, str),
     to_doctype,
     to_eof
 }
@@ -16,6 +24,18 @@ enum token {
 enum char_or_eof {
     coe_char(u8),
     coe_eof
+}
+
+impl u8_methods for u8 {
+    fn is_alpha() -> bool {
+        ret (self >= ('A' as u8) && self <= ('Z' as u8)) ||
+            (self >= ('a' as u8) && self <= ('z' as u8));
+    }
+}
+
+impl u8_vec_methods for [u8] {
+    fn to_str() -> str { ret str::from_bytes(self); }
+    fn to_str_token() -> token { ret to_text(self.to_str()); }
 }
 
 impl methods for parser {
@@ -62,8 +82,7 @@ impl methods for parser {
         loop {
             alt self.get() {
                 coe_char(c) {
-                    if (c >= ('A' as u8) && c <= ('Z' as u8)) ||
-                           (c >= ('a' as u8) && c <= ('z' as u8)) {
+                    if (c.is_alpha()) {
                         result += [c];
                     } else if result.len() == 0u {
                         self.parse_err("expected ident");
@@ -112,6 +131,14 @@ impl methods for parser {
             coe_eof { ret to_eof; }
         }
 
+        ret alt self.state {
+            ps_normal   { self.parse_in_normal_state(ch) }
+            ps_tag      { self.parse_in_tag_state(ch)    }
+        }
+    }
+
+    fn parse_in_normal_state(c: u8) -> token {
+        let mut ch = c;
         if ch == ('<' as u8) {
             alt self.get() {
                 coe_char(c) { ch = c; }
@@ -139,8 +166,9 @@ impl methods for parser {
             self.eat_whitespace();
             let ident = self.parse_ident();
             self.eat_whitespace();
-            self.expect('>' as u8);
-            ret to_start_tag(ident);
+
+            self.state = ps_tag;
+            ret to_start_opening_tag(ident);
         }
 
         // Make a text node.
@@ -150,18 +178,66 @@ impl methods for parser {
                 coe_char(c) {
                     if c == ('<' as u8) {
                         self.unget(c);
-                        ret to_text(str::from_bytes(s));
+                        ret s.to_str_token();
                     }
                     s += [c];
                 }
-                coe_eof { ret to_text(str::from_bytes(s)); }
+                coe_eof { ret s.to_str_token(); }
             }
         }
+    }
+
+    fn parse_in_tag_state(c: u8) -> token {
+        let mut ch = c;
+
+        if ch == ('>' as u8) {
+            self.state = ps_normal;
+            ret to_end_opening_tag;
+        }
+
+        if !ch.is_alpha() {
+            fail "expected alphabetical in tag";
+        }
+
+        // Parse an attribute.
+        let mut attribute_name = [ch];
+        loop {
+            alt self.get() {
+                coe_char(c) {
+                    if c == ('=' as u8) { break; }
+                    attribute_name += [c];
+                }
+                coe_eof {
+                    ret to_attr(attribute_name.to_str(),
+                                attribute_name.to_str()); }
+            }
+        }
+
+        // Parse the attribute value.
+        self.expect('"' as u8);
+        let mut attribute_value = [];
+        loop {
+            alt self.get() {
+                coe_char(c) {
+                    if c == ('"' as u8) { break; }
+                    attribute_value += [c];
+                }
+                coe_eof {
+                    ret to_attr(attribute_name.to_str(),
+                                attribute_value.to_str());
+                }
+            }
+        }
+
+        // Eat whitespace.
+        self.eat_whitespace();
+
+        ret to_attr(attribute_name.to_str(), attribute_value.to_str());
     }
 }
 
 fn parser(reader: io::reader) -> parser {
-    ret { mut lookahead: none, reader: reader };
+    ret { mut lookahead: none, mut state: ps_normal, reader: reader };
 }
 
 fn spawn_parser_task(filename: str) -> port<token> {
