@@ -23,4 +23,4 @@ On Debian-based Linuxes:
     mkdir build && cd build
     ../configure
     make check && make
-    ./servo ../test.html
+    ./servo ../src/test/test.html
