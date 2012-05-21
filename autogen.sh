@@ -12,6 +12,11 @@ then
     AUTOCONF213=autoconf2.13
 fi
 
+if [ ! -z `which autoconf-2.13` ]
+then
+    AUTOCONF213=autoconf-2.13
+fi
+
 if [ -z "$AUTOCONF213" ]
 then
     echo "I need autoconf 2.13"
