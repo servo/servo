@@ -129,7 +129,7 @@ impl reader_methods<T:send,A> for handle<T,A> {
     }
 }
 
-impl private_methods<T:send,A> for scope<T,A> {
+impl private_methods<T: copy send,A> for scope<T,A> {
     fn clone(v: *T) -> *T unsafe {
         let n: *mut T =
             unsafe::reinterpret_cast(
@@ -165,7 +165,7 @@ fn scope<T:send,A>() -> scope<T,A> {
                  mut first_dirty: null_handle()})
 }
 
-impl writer_methods<T:send,A> for scope<T,A> {
+impl writer_methods<T:copy send,A> for scope<T,A> {
     fn is_reader_forked() -> bool {
         self.layout_active
     }
