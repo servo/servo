@@ -19,7 +19,7 @@ iface sink {
     fn draw(next_dt: chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef);
 }
 
-fn renderer<S: sink send>(sink: S) -> chan<msg> {
+fn renderer<S: sink send copy>(sink: S) -> chan<msg> {
     task::spawn_listener::<msg> {|po|
         listen {|draw_target_ch|
             #debug("renderer: beginning rendering loop");
