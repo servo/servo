@@ -63,8 +63,8 @@ fn content(to_layout: chan<layout::msg>) -> chan<msg> {
                   }
                   result::ok(bytes) {
                     let cx = rt.cx();
-                    cx.new_global(jsglobal::global_class()).chain { |glob|
-                        cx.evaluate_script(glob, bytes, filename, 1u)
+                    cx.new_compartment(jsglobal::global_class).chain { |comp|
+                        cx.evaluate_script(comp.global_obj, bytes, filename, 1u)
                     };
                   }
                 }

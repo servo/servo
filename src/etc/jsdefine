@@ -6,7 +6,9 @@
 #     48000
 
 ETCDIR=$(dirname $0)
-INCDIR=${ETCDIR}/../mozjs/dist/include
+JSDIR=${ETCDIR}/../../build/src/mozjs/dist/
+INCDIR=${JSDIR}/include
+LIBDIR=${JSDIR}/lib
 
 echo > jsdefine.c
 echo '#include "jsapi.h"' >> jsdefine.c
@@ -17,5 +19,5 @@ echo '      "'"$1"'\n"', >> jsdefine.c
 echo "      $2);" >> jsdefine.c
 echo '}' >> jsdefine.c
 
-gcc -I ${INCDIR} jsdefine.c -o jsdefine.exe
+g++ -I ${INCDIR} jsdefine.c -o jsdefine.exe 
 ./jsdefine.exe

@@ -68,6 +68,8 @@ mod util {
 mod content {
     mod js;
     mod jsglobal;
+    mod jsutil;
+    mod name_pool;
 }
 
 mod opts;

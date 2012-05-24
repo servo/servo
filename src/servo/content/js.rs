@@ -3,11 +3,11 @@ import jsapi::bindgen::*;
 import ptr::{null, addr_of};
 import result::{result, ok, err, extensions};
 import libc::c_char;
+import name_pool::{name_pool, methods};
 
 export rt;
 export methods;
 export cx;
-export named_class;
 export jsobj;
 
 const default_heapsize: u32 = 8_u32 * 1024_u32 * 1024_u32;
@@ -18,9 +18,9 @@ fn result(n: JSBool) -> result<(),()> {
     if n != ERR {ok(())} else {err(())}
 }
 
-type named_class = @{
-    name: str,
-    jsclass: JSClass
+type named_functions = @{
+    names: [str],
+    funcs: [JSFunctionSpec]
 };
 
 // ___________________________________________________________________________
@@ -58,14 +58,18 @@ impl methods for cx {
         jsobj
     }
 
-    fn new_global(globcls: named_class) -> result<jsobj,()> {
+    fn new_compartment(globclsfn: fn(name_pool) -> JSClass) -> result<compartment,()> {
+        let np = name_pool();
+        let globcls = @globclsfn(np);
         let globobj =
             JS_NewCompartmentAndGlobalObject(
                 self.ptr,
-                addr_of(globcls.jsclass),
+                &*globcls as *JSClass,
                 null());
         result(JS_InitStandardClasses(self.ptr, globobj)).chain { |_ok|
-            ok(self.rooted_obj(globobj))
+            ok({name_pool: np,
+                global_class: globcls,
+                global_obj: self.rooted_obj(globobj)})
         }
     }
 
@@ -94,6 +98,15 @@ impl methods for cx {
 }
 
 // ___________________________________________________________________________
+// compartment
+
+type compartment = {
+    name_pool: name_pool,
+    global_class: @JSClass,
+    global_obj: jsobj
+};
+
+// ___________________________________________________________________________
 // objects
 
 type jsobj = @jsobj_rsrc;
@@ -112,7 +125,7 @@ mod test {
         let gc = jsglobal::global_class();
         cx.new_global(gc).chain {
             |glob|
-            str::as_bytes("x = 1;") {
+            str::as_bytes("print(\"1\");") {
                 |bytes|
                 cx.evaluate_script(glob, bytes, "test", 1u)
             };
