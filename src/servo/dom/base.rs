@@ -26,7 +26,8 @@ class element {
 enum element_subclass {
     es_unknown,
     es_div,
-    es_img(size<au>)
+    es_img(size<au>),
+    es_head
 }
 
 #[doc="The rd_aux data is a (weak) pointer to the layout data, which contains

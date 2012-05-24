@@ -73,6 +73,9 @@ impl methods for ctxt {
                     };
                     btree.add_child(anon_box, kid_box);
                 }
+                di_none {
+                    // Nothing to do.
+                }
             }
         }
     }
@@ -104,6 +107,9 @@ impl methods for ctxt {
                 di_inline {
                     btree.add_child(self.parent_box, kid_box);
                 }
+                di_none {
+                    // Nothing to do.
+                }
             }
         }
     }
@@ -114,8 +120,9 @@ impl methods for ctxt {
         self.parent_node.dump();
 
         alt self.parent_node.get_computed_style().display {
-            di_block { self.construct_boxes_for_block_children(); }
+            di_block  { self.construct_boxes_for_block_children();  }
             di_inline { self.construct_boxes_for_inline_children(); }
+            di_none   { /* Nothing to do. */                        }
         }
 
         self.finish_anonymous_box_if_necessary();
