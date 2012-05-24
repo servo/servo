@@ -29,7 +29,7 @@ impl inline_layout_methods for @box {
         self.bounds.size = { mut width: available_width,
                              mut height: au(current_height) };
 
-        #debug["reflow_inline root=%? size=%?", self, self.bounds];
+        #debug["reflow_inline size=%?", self.bounds];
     }
 }
 

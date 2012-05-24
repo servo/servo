@@ -124,6 +124,7 @@ impl box_builder_priv for node {
                 alt *element.subclass {
                     es_div       { bk_block            }
                     es_img(size) { bk_intrinsic(@size) }
+                    es_unknown   { bk_inline           }
                 }
             }
         }

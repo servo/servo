@@ -1,8 +1,8 @@
 #[doc="Constructs a DOM tree from an incoming token stream."]
 
 import dom::rcu::writer_methods;
-import dom::base::{element, es_div, es_img, methods, nk_element, nk_text};
-import dom::base::{rd_tree_ops, wr_tree_ops};
+import dom::base::{element, es_div, es_img, es_unknown, methods, nk_element};
+import dom::base::{nk_text, rd_tree_ops, wr_tree_ops};
 import dom = dom::base;
 import parser = parser::html;
 import html::token;
@@ -29,7 +29,7 @@ fn link_up_attribute(scope: dom::node_scope, node: dom::node, key: str,
                             some(s) { dimensions.height = geom::px_to_au(s); }
                         }
                     }
-                    es_div | es_img(*) {
+                    es_div | es_img(*) | es_unknown {
                         // Drop on the floor.
                     }
                 }
@@ -67,7 +67,11 @@ fn build_dom(scope: dom::node_scope,
                 cur = new_node;
             }
             parser::to_start_opening_tag(t) {
-                fail ("Unrecognized tag: " + t);
+                #debug["unknown element: %s", t];
+                let new_node =
+                    scope.new_node(dom::nk_element(element(t, ~es_unknown)));
+                scope.add_child(cur, new_node);
+                cur = new_node;
             }
             parser::to_attr(key, value) {
                 #debug["attr: %? = %?", key, value];

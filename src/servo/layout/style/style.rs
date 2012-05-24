@@ -24,6 +24,7 @@ fn default_style_for_node_kind(kind: node_kind) -> computed_style {
             alt *element.subclass {
                 es_div { computed_style({ mut display: di_block }) }
                 es_img(*) { computed_style({ mut display: di_inline }) }
+                es_unknown { computed_style({ mut display: di_inline }) }
             }
         }
     }
@@ -42,7 +43,6 @@ impl style_priv for node {
             default_style_for_node_kind(self.rd { |n| *n.kind });
 
         #debug("recomputing style; parent node:");
-        self.dump();
 
         let the_layout_data = @layout_data({
             mut computed_style: default_style,
