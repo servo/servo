@@ -1,13 +1,14 @@
 #[doc="Constructs a DOM tree from an incoming token stream."]
 
 import dom::rcu::writer_methods;
-import dom::base::{element, element_subclass, es_div, es_head, es_img};
+import dom::base::{attr, element, element_subclass, es_div, es_head, es_img};
 import dom::base::{es_unknown, methods, nk_element, nk_text, rd_tree_ops};
 import dom::base::{wr_tree_ops};
 import dom = dom::base;
 import parser = parser::html;
 import html::token;
 import gfx::geom;
+import dvec::extensions;
 
 fn link_up_attribute(scope: dom::node_scope, node: dom::node, key: str,
                      value: str) {
@@ -17,6 +18,7 @@ fn link_up_attribute(scope: dom::node_scope, node: dom::node, key: str,
         |node_contents|
         alt *node_contents.kind {
             dom::nk_element(element) {
+                element.attrs.push(~attr(key, value));
                 alt *element.subclass {
                     es_img(dimensions) if key == "width" {
                         alt int::from_str(value) {
@@ -32,7 +34,6 @@ fn link_up_attribute(scope: dom::node_scope, node: dom::node, key: str,
                     }
                     es_div | es_img(*) | es_head | es_unknown {
                         // Drop on the floor.
-                        // FIXME: Implement attributes in a generic way.
                     }
                 }
             }

@@ -2,6 +2,7 @@ import dom::rcu::{writer_methods};
 import gfx::geom::{au, size};
 import layout::base::layout_data;
 import util::tree;
+import dvec::dvec;
 
 enum node_data = {
     tree: tree::fields<node>,
@@ -16,10 +17,22 @@ enum node_kind {
 class element {
     let tag_name: str;
     let subclass: ~element_subclass;
+    let attrs: dvec<~attr>;
 
     new(tag_name: str, -subclass: ~element_subclass) {
         self.tag_name = tag_name;
         self.subclass = subclass;
+        self.attrs = dvec();
+    }
+}
+
+class attr {
+    let name: str;
+    let value: str;
+
+    new(name: str, value: str) {
+        self.name = name;
+        self.value = value;
     }
 }
 
