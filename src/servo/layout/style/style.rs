@@ -1,6 +1,7 @@
 #[doc="High-level interface to CSS selector matching."]
 
-import dom::base::{nk_div, nk_img, nk_text, node, node_kind};
+import dom::base::{element, es_div, es_img, nk_element, nk_text, node};
+import dom::base::node_kind;
 import dom::rcu::reader_methods;
 import /*layout::*/base::*; // FIXME: resolve bug requires *
 
@@ -14,11 +15,16 @@ enum display {
 }
 
 #[doc="Returns the default style for the given node kind."]
-fn default_style_for_node_kind(kind : node_kind) -> computed_style {
+fn default_style_for_node_kind(kind: node_kind) -> computed_style {
     alt kind {
-        nk_div { computed_style({ mut display: di_block }) }
-        nk_img(*) | nk_text(*) {
+        nk_text(*) {
             computed_style({ mut display: di_inline })
+        }
+        nk_element(element) {
+            alt *element.subclass {
+                es_div { computed_style({ mut display: di_block }) }
+                es_img(*) { computed_style({ mut display: di_inline }) }
+            }
         }
     }
 }
@@ -33,7 +39,7 @@ impl style_priv for node {
     "]
     fn recompute_style() {
         let default_style: computed_style =
-            default_style_for_node_kind(self.rd { |n| n.kind });
+            default_style_for_node_kind(self.rd { |n| *n.kind });
 
         #debug("recomputing style; parent node:");
         self.dump();

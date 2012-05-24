@@ -1,7 +1,8 @@
 #[doc="Constructs a DOM tree from an incoming token stream."]
 
 import dom::rcu::writer_methods;
-import dom::base::{methods, rd_tree_ops, wr_tree_ops};
+import dom::base::{element, es_div, es_img, methods, nk_element, nk_text};
+import dom::base::{rd_tree_ops, wr_tree_ops};
 import dom = dom::base;
 import parser = parser::html;
 import html::token;
@@ -11,24 +12,28 @@ fn link_up_attribute(scope: dom::node_scope, node: dom::node, key: str,
                      value: str) {
     // TODO: Implement atoms so that we don't always perform string
     // comparisons.
-    // FIXME: This is wrong... we should not have DIV and IMG be separate types
-    // of nodes and instead have them inherit from Element, obviously.
     scope.rd(node) {
         |node_contents|
-        alt node_contents.kind {
-            dom::nk_img(dims) if key == "width" {
-                alt int::from_str(value) {
-                    none { /* drop on the floor */ }
-                    some(s) { dims.width = geom::px_to_au(s); }
+        alt *node_contents.kind {
+            dom::nk_element(element) {
+                alt *element.subclass {
+                    es_img(dimensions) if key == "width" {
+                        alt int::from_str(value) {
+                            none { /* drop on the floor */ }
+                            some(s) { dimensions.width = geom::px_to_au(s); }
+                        }
+                    }
+                    es_img(dimensions) if key == "height" {
+                        alt int::from_str(value) {
+                            none { /* drop on the floor */ }
+                            some(s) { dimensions.height = geom::px_to_au(s); }
+                        }
+                    }
+                    es_div | es_img(*) {
+                        // Drop on the floor.
+                    }
                 }
             }
-            dom::nk_img(dims) if key == "height" {
-                alt int::from_str(value) {
-                    none { /* drop on the floor */ }
-                    some(s) { dims.height = geom::px_to_au(s); }
-                }
-            }
-            dom::nk_div | dom::nk_img(*) { /* drop on the floor */ }
             dom::nk_text(*) {
                 fail "attempt to link up an attribute to a text node"
             }
@@ -39,7 +44,7 @@ fn link_up_attribute(scope: dom::node_scope, node: dom::node, key: str,
 fn build_dom(scope: dom::node_scope,
              stream: port<token>) -> dom::node {
     // The current reference node.
-    let mut cur = scope.new_node(dom::nk_div);
+    let mut cur = scope.new_node(dom::nk_element(element("html", ~es_div)));
     loop {
         let token = stream.recv();
         #debug["token=%?", token];
@@ -47,16 +52,17 @@ fn build_dom(scope: dom::node_scope,
             parser::to_eof { break; }
             parser::to_start_opening_tag("div") {
                 #debug["DIV"];
-                let new_node = scope.new_node(
-                    dom::nk_div);
+                let new_node =
+                    scope.new_node(dom::nk_element(element("div", ~es_div)));
                 scope.add_child(cur, new_node);
                 cur = new_node;
             }
             parser::to_start_opening_tag("img") {
                 #debug["IMG"];
-                let new_node = scope.new_node(
-                    dom::nk_img({mut width: geom::px_to_au(100),
-                                 mut height: geom::px_to_au(100)}));
+                let new_node =
+                    scope.new_node(dom::nk_element(element("img",
+                        ~es_img({mut width: geom::px_to_au(100),
+                                 mut height: geom::px_to_au(100)}))));
                 scope.add_child(cur, new_node);
                 cur = new_node;
             }

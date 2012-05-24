@@ -1,6 +1,6 @@
 #[doc="Fundamental layout structures and algorithms."]
 
-import dom::base::{nk_div, nk_img, node_data, node_kind, node};
+import dom::base::{element, es_div, es_img, node_data, node_kind, node};
 import dom::rcu;
 import dom::rcu::reader_methods;
 import gfx::geom;

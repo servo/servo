@@ -5,13 +5,27 @@ import util::tree;
 
 enum node_data = {
     tree: tree::fields<node>,
-    kind: node_kind,
+    kind: ~node_kind,
 };
 
 enum node_kind {
-    nk_div,
-    nk_img(size<au>),
+    nk_element(element),
     nk_text(str)
+}
+
+class element {
+    let tag_name: str;
+    let subclass: ~element_subclass;
+
+    new(tag_name: str, -subclass: ~element_subclass) {
+        self.tag_name = tag_name;
+        self.subclass = subclass;
+    }
+}
+
+enum element_subclass {
+    es_div,
+    es_img(size<au>)
 }
 
 #[doc="The rd_aux data is a (weak) pointer to the layout data, which contains
@@ -24,9 +38,9 @@ type node_scope = rcu::scope<node_data, layout_data>;
 fn node_scope() -> node_scope { rcu::scope() }
 
 impl methods for node_scope {
-    fn new_node(+k: node_kind) -> node {
+    fn new_node(-k: node_kind) -> node {
         self.handle(node_data({tree: tree::empty(),
-                               kind: k}))
+                               kind: ~k}))
     }
 }
 
