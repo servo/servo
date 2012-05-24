@@ -63,7 +63,7 @@ fn global_class(np: name_pool) -> JSClass {
                 null(), null(), null(), null(), null())} // 40
 }
 
-crust fn debug(cx: *JSContext, argc: uintN, vp: *jsval) {
+crust fn debug(cx: *JSContext, argc: uintN, vp: *jsval) -> JSBool {
     import io::writer_util;
 
     #debug["debug() called with %? arguments", argc];
@@ -78,6 +78,7 @@ crust fn debug(cx: *JSContext, argc: uintN, vp: *jsval) {
             #debug["%s", str];
         }
         JS_SET_RVAL(cx, vp, JSVAL_NULL);
+        ret 1_i32;
     }
 }
 

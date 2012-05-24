@@ -63,7 +63,10 @@ fn content(to_layout: chan<layout::msg>) -> chan<msg> {
                   }
                   result::ok(bytes) {
                     let cx = rt.cx();
+                    cx.set_default_options_and_version();
+                    cx.set_logging_error_reporter();
                     cx.new_compartment(jsglobal::global_class).chain { |comp|
+                        comp.define_functions(jsglobal::global_fns);
                         cx.evaluate_script(comp.global_obj, bytes, filename, 1u)
                     };
                   }

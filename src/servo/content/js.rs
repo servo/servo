@@ -74,6 +74,10 @@ impl methods for cx {
         JS_SetVersion(self.ptr, v);
     }
 
+    fn set_logging_error_reporter() {
+        JS_SetErrorReporter(self.ptr, reportError);
+    }
+
     fn set_error_reporter(reportfn: *u8) {
         JS_SetErrorReporter(self.ptr, reportfn);
     }
@@ -119,6 +123,18 @@ impl methods for cx {
     }
 }
 
+crust fn reportError(_cx: *JSContext,
+                     msg: *c_char,
+                     report: *JSErrorReport) {
+    unsafe {
+        let fnptr = (*report).filename;
+        let fname = if fnptr.is_not_null() {from_c_str(fnptr)} else {"none"};
+        let lineno = (*report).lineno;
+        let msg = from_c_str(msg);
+        #error["Error at %s:%?: %s\n", fname, lineno, msg];
+    }
+}
+
 // ___________________________________________________________________________
 // compartment
 
@@ -152,24 +168,12 @@ resource jsobj_rsrc(self: {cx: cx, cxptr: *JSContext, ptr: *JSObject}) {
 #[cfg(test)]
 mod test {
 
-    crust fn reportError(_cx: *JSContext,
-                         msg: *c_char,
-                         report: *JSErrorReport) {
-        unsafe {
-            let fnptr = (*report).filename;
-            let fname = if fnptr.is_not_null() {from_c_str(fnptr)} else {"none"};
-            let lineno = (*report).lineno;
-            let msg = from_c_str(msg);
-            #error["Error at %s:%?: %s\n", fname, lineno, msg];
-        }
-    }
-
     #[test]
     fn dummy() {
         let rt = rt();
         let cx = rt.cx();
         cx.set_default_options_and_version();
-        cx.set_error_reporter(reportError);
+        cx.set_logging_error_reporter();
         cx.new_compartment(jsglobal::global_class).chain { |comp|
             comp.define_functions(jsglobal::global_fns);
 
