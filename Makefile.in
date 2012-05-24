@@ -106,7 +106,7 @@ src/rust-stb-image/libstb-image.dummy:
 check: $(CHECK_DEPS)
 
 check-servo: servo-test
-	./servo-test
+	./servo-test $(TESTNAME)
 
 .PHONY: check-rust-harfbuzz
 check-rust-harfbuzz: src/harfbuzz/src/.libs/libharfbuzz.a
