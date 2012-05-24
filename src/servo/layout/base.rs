@@ -129,8 +129,8 @@ impl node_methods for node {
 
 #[cfg(test)]
 mod test {
-    import dom::base::{nk_img, node_data, node_kind, node, methods,
-                       wr_tree_ops};
+    import dom::base::{element, es_div, es_img, methods, nk_element, node_data,
+                       node_kind, node, wr_tree_ops};
     import dom::rcu::scope;
     import box_builder::{box_builder_methods};
 
@@ -163,10 +163,13 @@ mod test {
     fn do_layout() {
         let s = scope();
 
-        let n0 = s.new_node(nk_img(size(au(10),au(10))));
-        let n1 = s.new_node(nk_img(size(au(10),au(15))));
-        let n2 = s.new_node(nk_img(size(au(10),au(20))));
-        let n3 = s.new_node(nk_div);
+        let n0 = s.new_node(nk_element(element("img",
+                                               ~es_img(size(au(10),au(10))))));
+        let n1 = s.new_node(nk_element(element("img",
+                                               ~es_img(size(au(10),au(15))))));
+        let n2 = s.new_node(nk_element(element("img",
+                                               ~es_img(size(au(10),au(20))))));
+        let n3 = s.new_node(nk_element(element("div", ~es_div)));
 
         tree::add_child(s, n3, n0);
         tree::add_child(s, n3, n1);

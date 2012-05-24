@@ -4,7 +4,7 @@ import dom::rcu;
 import dom::rcu::reader_methods;
 import gfx::geom::au;
 import /*layout::*/base::*; // FIXME: Can't get around import *; resolve bug.
-import /*layout::*/style::style::style_methods;
+import /*layout::*/style::style::*;
 import util::tree;
 
 #[doc="The main reflow routine for inline layout."]
