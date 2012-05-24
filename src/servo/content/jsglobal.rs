@@ -1,23 +1,19 @@
 // Definition for the global object that we use:
 
-import jsapi::*;
-import jsapi::bindgen::*;
+import spidermonkey::*;
+import spidermonkey::jsapi::*;
+import spidermonkey::jsapi::bindgen::*;
 import ptr::null;
 import jsutil::*;
 import name_pool::{name_pool, methods};
 
-crust fn PropertyStub(++arg0: *JSContext,
-                      ++arg1: *JSObject,
-                      ++arg2: jsid,
-                      ++arg3: *jsval) -> JSBool {
+// Can't use spidermonkey::crust::* versions due to Rust #2440
+
+crust fn PropertyStub(++arg0: *JSContext, ++arg1: *JSObject, ++arg2: jsid, ++arg3: *jsval) -> JSBool {
     JS_PropertyStub(arg0, arg1, arg2, arg3)
 }
 
-crust fn StrictPropertyStub(++arg0: *JSContext,
-                            ++arg1: *JSObject,
-                            ++arg2: jsid,
-                            ++arg3: JSBool,
-                            ++arg4: *jsval) -> JSBool {
+crust fn StrictPropertyStub(++arg0: *JSContext, ++arg1: *JSObject, ++arg2: jsid, ++arg3: JSBool, ++arg4: *jsval) -> JSBool {
     JS_StrictPropertyStub(arg0, arg1, arg2, arg3, arg4)
 }
 
@@ -67,8 +63,10 @@ fn global_class(np: name_pool) -> JSClass {
                 null(), null(), null(), null(), null())} // 40
 }
 
-crust fn print(cx: *JSContext, argc: uintN, vp: *jsval) {
+crust fn debug(cx: *JSContext, argc: uintN, vp: *jsval) {
     import io::writer_util;
+
+    #debug["debug() called with %? arguments", argc];
 
     unsafe {
         let argv = JS_ARGV(cx, vp);
@@ -77,16 +75,15 @@ crust fn print(cx: *JSContext, argc: uintN, vp: *jsval) {
             let bytes = JS_EncodeString(cx, jsstr);
             let str = str::unsafe::from_c_str(bytes);
             JS_free(cx, unsafe::reinterpret_cast(bytes));
-            io::stdout().write_str(str);
-            io::stdout().write_str("\n");
+            #debug["%s", str];
         }
         JS_SET_RVAL(cx, vp, JSVAL_NULL);
     }
 }
 
 fn global_fns(np: name_pool) -> [JSFunctionSpec] {
-    [{name: np.add("print"),
-      call: print,
+    [{name: np.add("debug"),
+      call: debug,
       nargs: 0_u16,
       flags: 0_u16}]
 }
