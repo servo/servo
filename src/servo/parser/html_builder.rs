@@ -47,7 +47,6 @@ fn build_dom(scope: dom::node_scope,
     let mut cur = scope.new_node(dom::nk_element(element("html", ~es_div)));
     loop {
         let token = stream.recv();
-        #debug["token=%?", token];
         alt token {
             parser::to_eof { break; }
             parser::to_start_opening_tag("div") {
@@ -80,7 +79,7 @@ fn build_dom(scope: dom::node_scope,
             parser::to_end_opening_tag {
                 #debug("end opening tag");
             }
-            parser::to_end_tag(_) {
+            parser::to_end_tag(_) | parser::to_self_close_tag {
                 // TODO: Assert that the closing tag has the right name.
                 // TODO: Fail more gracefully (i.e. according to the HTML5
                 //       spec) if we close more tags than we open.

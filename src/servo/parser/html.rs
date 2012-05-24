@@ -15,6 +15,7 @@ enum token {
     to_start_opening_tag(str),
     to_end_opening_tag,
     to_end_tag(str),
+    to_self_close_tag,
     to_text(str),
     to_attr(str, str),
     to_doctype,
@@ -131,10 +132,13 @@ impl methods for parser {
             coe_eof { ret to_eof; }
         }
 
-        ret alt self.state {
+        let token = alt self.state {
             ps_normal   { self.parse_in_normal_state(ch) }
             ps_tag      { self.parse_in_tag_state(ch)    }
-        }
+        };
+
+        #debug["token=%?", token];
+        ret token;
     }
 
     fn parse_in_normal_state(c: u8) -> token {
@@ -195,8 +199,13 @@ impl methods for parser {
             ret to_end_opening_tag;
         }
 
+        if ch == ('/' as u8) {
+            self.state = ps_normal;
+            ret to_self_close_tag;
+        }
+
         if !ch.is_alpha() {
-            fail "expected alphabetical in tag";
+            fail #fmt("expected alphabetical in tag but found %c", ch as char);
         }
 
         // Parse an attribute.
