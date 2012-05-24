@@ -5,7 +5,7 @@ enum msg {
     exit(comm::chan<()>)
 }
 
-fn engine<S: renderer::sink send>(sink: S) -> comm::chan<msg> {
+fn engine<S: renderer::sink send copy>(sink: S) -> comm::chan<msg> {
 
     task::spawn_listener::<msg> {|self_ch|
         // The renderer
