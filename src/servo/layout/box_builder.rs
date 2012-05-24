@@ -82,7 +82,30 @@ impl methods for ctxt {
         attribute is 'inline'.
     "]
     fn construct_boxes_for_inline_children() {
-        // TODO
+        for ntree.each_child(self.parent_node) {
+            |kid|
+
+            // Construct boxes for the child. Get its primary box.
+            let kid_box = kid.construct_boxes();
+
+            // Determine the child's display.
+            let disp = kid.get_computed_style().display;
+            if disp != di_inline {
+                // TODO
+            }
+
+            // Add the child's box to the current enclosing box.
+            alt kid.get_computed_style().display {
+                di_block {
+                    // TODO
+                    #warn("TODO: non-inline display found inside inline box");
+                    btree.add_child(self.parent_box, kid_box);
+                }
+                di_inline {
+                    btree.add_child(self.parent_box, kid_box);
+                }
+            }
+        }
     }
 
     #[doc="Constructs boxes for the parent's children."]
@@ -136,9 +159,14 @@ impl box_builder_methods for node {
     fn construct_boxes() -> @box {
         let box_kind = self.determine_box_kind();
         let my_box = new_box(self, box_kind);
-        if box_kind == bk_block {
-            let cx = create_context(self, my_box);
-            cx.construct_boxes_for_children();
+        alt box_kind {
+            bk_block | bk_inline {
+                let cx = create_context(self, my_box);
+                cx.construct_boxes_for_children();
+            }
+            _ {
+                // Nothing to do.
+            }
         }
         ret my_box;
     }
