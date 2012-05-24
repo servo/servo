@@ -1,6 +1,6 @@
 import comm::*;
-import parser::html;
-import parser::html::methods;
+import parser::lexer;
+//import parser::lexer::util_methods;
 import result::extensions;
 import gfx::renderer;
 import platform::osmain;
