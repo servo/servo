@@ -22,3 +22,6 @@
 [submodule "src/ragel"]
 	path = src/ragel
 	url = git://github.com/brson/ragel-dist.git
+[submodule "src/rust-stb-image"]
+	path = src/rust-stb-image
+	url = git://github.com/pcwalton/rust-stb-image.git

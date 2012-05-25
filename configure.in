@@ -11,6 +11,7 @@ mkdir -p src/rust-mozjs || exit $?
 mkdir -p src/rust-sdl || exit $?
 mkdir -p src/rust-azure || exit $?
 mkdir -p src/rust-cocoa || exit $?
+mkdir -p src/rust-stb-image || exit $?
 
 (cd src/ragel && sh ${SRCDIR}/src/ragel/configure) || exit $?
 (cd src/harfbuzz && sh ${SRCDIR}/src/harfbuzz/configure --enable-static) || exit $?
@@ -20,3 +21,4 @@ mkdir -p src/rust-cocoa || exit $?
 (cd src/rust-sdl && sh ${SRCDIR}/src/rust-sdl/configure) || exit $?
 (cd src/rust-azure && sh ${SRCDIR}/src/rust-azure/configure) || exit $?
 (cd src/rust-cocoa && sh ${SRCDIR}/src/rust-cocoa/configure) || exit $?
+(cd src/rust-stb-image && sh ${SRCDIR}/src/rust-stb-image/configure) || exit $?

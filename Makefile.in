@@ -19,6 +19,7 @@ RUSTFLAGS += \
 	-L src/rust-azure \
 	-L src/rust-sdl \
 	-L src/rust-cocoa \
+	-L src/rust-stb-image \
 	$(NULL)
 
 RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
@@ -43,6 +44,7 @@ SERVO_DEPS += \
 	src/rust-mozjs/libmozjs.dummy \
 	src/rust-azure/libazure.dummy \
 	src/rust-sdl/libsdl.dummy \
+	src/rust-stb-image/libstb-image.dummy \
 	$(NULL)
 
 CHECK_DEPS += \
@@ -50,6 +52,7 @@ CHECK_DEPS += \
 	check-rust-mozjs \
 	check-rust-sdl \
 	check-rust-azure \
+	check-rust-stb-image \
 	check-servo \
 	$(NULL)
 
@@ -60,6 +63,7 @@ CLEAN_DEPS += \
 	clean-rust-mozjs \
 	clean-rust-sdl \
 	clean-rust-azure \
+	clean-rust-stb-image \
 	clean-servo \
 	$(NULL)
 
@@ -96,6 +100,9 @@ src/rust-sdl/libsdl.dummy:
 src/rust-cocoa/libcocoa.dummy:
 	$(MAKE) -C src/rust-cocoa
 
+src/rust-stb-image/libstb-image.dummy:
+	$(MAKE) -C src/rust-stb-image
+
 check: $(CHECK_DEPS)
 
 check-servo: servo-test
@@ -120,6 +127,10 @@ check-rust-sdl:
 .PHONY: check-rust-cocoa
 check-rust-cocoa:
 	$(MAKE) check -C src/rust-cocoa
+
+.PHONY: check-rust-stb-image
+check-rust-stb-image:
+	$(MAKE) check -C src/rust-stb-image
 
 .PHONY:	clean
 clean: $(CLEAN_DEPS)
@@ -151,6 +162,10 @@ clean-rust-sdl:
 .PHONY: clean-rust-cocoa
 clean-rust-cocoa:
 	$(MAKE) clean -C src/rust-cocoa
+
+.PHONY: clean-rust-stb-image
+clean-rust-stb-image:
+	$(MAKE) clean -C src/rust-stb-image
 
 .PHONY: clean-servo
 clean-servo:
