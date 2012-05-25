@@ -1,6 +1,7 @@
 import platform::osmain;
 import geom::*;
 import comm::*;
+import image::base::image;
 import dl = layout::display_list;
 import azure::*;
 import azure::bindgen::*;
@@ -45,6 +46,83 @@ fn renderer<S: sink send copy>(sink: S) -> chan<msg> {
     }
 }
 
+impl to_float for u8 {
+    fn to_float() -> float {
+        (self as float) / 255f
+    }
+}
+
+fn draw_solid_color(draw_target: AzDrawTargetRef, item: dl::display_item,
+                    r: u8, g: u8, b: u8) {
+    let bounds = (*item).bounds;
+
+    let red_color = {
+        r: r.to_float() as AzFloat,
+        g: g.to_float() as AzFloat,
+        b: b.to_float() as AzFloat,
+        a: 1f as AzFloat
+    };
+    let red_pattern = AzCreateColorPattern(ptr::addr_of(red_color));
+
+    let red_rect = {
+        x: au_to_px(bounds.origin.x) as AzFloat,
+        y: au_to_px(bounds.origin.y) as AzFloat,
+        width: au_to_px(bounds.size.width) as AzFloat,
+        height: au_to_px(bounds.size.height) as AzFloat
+    };
+    AzDrawTargetFillRect(
+        draw_target,
+        ptr::addr_of(red_rect),
+        unsafe { unsafe::reinterpret_cast(red_pattern) }
+    );
+
+    AzReleaseColorPattern(red_pattern);
+}
+
+fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item,
+              -image: ~image) {
+    // FIXME: This is hideously inefficient.
+
+    let bounds = (*item).bounds;
+
+    if (image.depth < 3u) {
+        #debug("TODO: can't draw images with depth less than 3 yet");
+        ret;
+    }
+
+    let stride = image.width * image.depth;
+    uint::range(0u, image.height) {
+        |y|
+        uint::range(0u, image.width) {
+            |x|
+            let color = {
+                r: image.data[y * stride + x * image.depth].to_float()
+                    as AzFloat,
+                g: image.data[y * stride + x * image.depth + 1u].to_float()
+                    as AzFloat,
+                b: image.data[y * stride + x * image.depth + 2u].to_float()
+                    as AzFloat,
+                a: 1f as AzFloat
+            };
+            let pattern = AzCreateColorPattern(ptr::addr_of(color));
+
+            let pixel_rect = {
+                x: (au_to_px(bounds.origin.x) + (x as int)) as AzFloat,
+                y: (au_to_px(bounds.origin.y) + (y as int)) as AzFloat,
+                width: 1f as AzFloat,
+                height: 1f as AzFloat
+            };
+            AzDrawTargetFillRect(
+                draw_target,
+                ptr::addr_of(pixel_rect),
+                unsafe { unsafe::reinterpret_cast(pattern) }
+            );
+
+            AzReleaseColorPattern(pattern);
+        }
+    }
+}
+
 fn draw_display_list(
     draw_target: AzDrawTargetRef,
     display_list: dl::display_list
@@ -53,36 +131,18 @@ fn draw_display_list(
 
     for display_list.each {|item|
         #debug["drawing %?", item];
-        let (r, g, b) = alt check item.item_type {
-          dl::display_item_solid_color(r, g, b) { (r, g, b) }
-        };
-        let bounds = (*item).bounds;
 
-        let to_float = fn@(u: u8) -> float {
-            (u as float) / 255f
-        };
-
-        let red_color = {
-            r: to_float(r) as AzFloat,
-            g: to_float(g) as AzFloat,
-            b: to_float(b) as AzFloat,
-            a: 1f as AzFloat
-        };
-        let red_pattern = AzCreateColorPattern(ptr::addr_of(red_color));
-
-        let red_rect = {
-            x: au_to_px(bounds.origin.x) as AzFloat,
-            y: au_to_px(bounds.origin.y) as AzFloat,
-            width: au_to_px(bounds.size.width) as AzFloat,
-            height: au_to_px(bounds.size.height) as AzFloat
-        };
-        AzDrawTargetFillRect(
-            draw_target,
-            ptr::addr_of(red_rect),
-            unsafe { unsafe::reinterpret_cast(red_pattern) }
-        );
-
-        AzReleaseColorPattern(red_pattern);
+        alt item.item_type {
+            dl::display_item_solid_color(r, g, b) {
+                draw_solid_color(draw_target, item, r, g, b);
+            }
+            dl::display_item_image(image) {
+                draw_image(draw_target, item, image);
+            }
+            dl::padding(*) {
+                fail "should never see padding";
+            }
+        }
     }
 }
 
