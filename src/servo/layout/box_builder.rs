@@ -3,9 +3,9 @@
 import dom::base::{element, es_div, es_img, nk_element, nk_text, node};
 import dom::rcu::reader_methods;
 import gfx::geom;
-import /*layout::*/base::{bk_block, bk_inline, bk_intrinsic, bk_text, box};
-import /*layout::*/base::{box_kind, btree, node_methods, ntree, rd_tree_ops};
-import /*layout::*/base::wr_tree_ops;
+import /*layout::*/base::{appearance, bk_block, bk_inline, bk_intrinsic};
+import /*layout::*/base::{bk_text, box, box_kind, btree, node_methods, ntree};
+import /*layout::*/base::{rd_tree_ops, wr_tree_ops};
 import /*layout::*/style::style::{di_block, di_inline, style_methods};
 import /*layout::*/text::text_box;
 import util::tree;
@@ -29,7 +29,8 @@ fn new_box(n: node, kind: box_kind) -> @box {
     @box({tree: tree::empty(),
           node: n,
           mut bounds: geom::zero_rect_au(),
-          kind: kind })
+          kind: kind,
+          appearance: appearance() })
 }
 
 fn create_context(parent_node: node, parent_box: @box) -> ctxt {

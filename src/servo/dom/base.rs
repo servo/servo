@@ -2,7 +2,7 @@ import dom::rcu::{writer_methods};
 import gfx::geom::{au, size};
 import layout::base::layout_data;
 import util::tree;
-import dvec::dvec;
+import dvec::{dvec, extensions};
 
 enum node_data = {
     tree: tree::fields<node>,
@@ -23,6 +23,17 @@ class element {
         self.tag_name = tag_name;
         self.subclass = subclass;
         self.attrs = dvec();
+    }
+
+    fn get_attr(attr_name: str) -> option<str> {
+        let mut i = 0u;
+        while i < self.attrs.len() {
+            if attr_name == self.attrs[i].name {
+                ret some(self.attrs[i].value);
+            }
+            i += 1u;
+        }
+        ret none;
     }
 }
 

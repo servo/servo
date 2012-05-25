@@ -11,6 +11,7 @@ use sdl;
 use azure;
 use spidermonkey (name = "js");
 use harfbuzz;
+use stb_image;
 
 mod dom {
     mod base;
@@ -25,6 +26,7 @@ mod gfx {
 }
 
 mod image {
+	mod base;
     mod encode {
         mod tga;
     }
@@ -32,6 +34,7 @@ mod image {
 
 mod layout {
     mod style {
+		mod apply;
         mod style;
     }
 

@@ -12,6 +12,7 @@ import gfx::renderer;
 import dom::base::node;
 import dom::rcu::scope;
 import /*layout::*/base::*;
+import /*layout::*/style::apply::apply_style_methods;
 import /*layout::*/style::style::style_methods;
 import box_builder::box_builder_methods;
 import dl = display_list;
@@ -37,7 +38,9 @@ fn layout(to_renderer: chan<renderer::msg>) -> chan<msg> {
                 let this_box = node.construct_boxes();
                 this_box.dump();
 
+				this_box.apply_style_for_subtree();
                 this_box.reflow(geom::px_to_au(800));
+
                 let dlist = build_display_list(this_box);
                 to_renderer.send(renderer::render(dlist));
               }

@@ -5,6 +5,7 @@ import dom::rcu;
 import dom::rcu::reader_methods;
 import gfx::geom;
 import gfx::geom::{size, rect, point, au, zero_size_au};
+import image::base::image;
 import /*layout::*/block::block_layout_methods;
 import /*layout::*/inline::inline_layout_methods;
 import /*layout::*/style::style::*;
@@ -18,11 +19,20 @@ enum box_kind {
     bk_text(@text_box)
 }
 
+class appearance {
+    let mut background_image: option<@image>;
+
+    new() {
+        self.background_image = none;
+    }
+}
+
 enum box = {
     tree: tree::fields<@box>,
     node: node,
     mut bounds: geom::rect<au>,
-    kind: box_kind
+    kind: box_kind,
+    appearance: appearance
 };
 
 enum layout_data = {
