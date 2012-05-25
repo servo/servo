@@ -54,7 +54,7 @@ fn draw_display_list(
     for display_list.each {|item|
         #debug["drawing %?", item];
         let (r, g, b) = alt check item.item_type {
-          dl::solid_color(r, g, b) { (r, g, b) }
+          dl::display_item_solid_color(r, g, b) { (r, g, b) }
         };
         let bounds = (*item).bounds;
 

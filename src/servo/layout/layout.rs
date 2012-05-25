@@ -63,9 +63,9 @@ fn build_display_list(box: @base::box) -> display_list::display_list {
 fn box_to_display_item(box: @base::box) -> dl::display_item {
     let r = rand::rng();
     let item = dl::display_item({
-        item_type: dl::solid_color(r.next() as u8,
-                                   r.next() as u8,
-                                   r.next() as u8),
+        item_type: dl::display_item_solid_color(r.next() as u8,
+                                                r.next() as u8,
+                                                r.next() as u8),
         bounds: box.bounds
     });
     #debug("layout: display item: %?", item);
