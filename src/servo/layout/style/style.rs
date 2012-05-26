@@ -43,7 +43,7 @@ impl style_priv for node {
     "]
     fn recompute_style() {
         let default_style: computed_style =
-            default_style_for_node_kind(self.rd { |n| *n.kind });
+            default_style_for_node_kind(self.rd { |n| copy *n.kind });
 
         #debug("recomputing style; parent node:");
 
@@ -69,7 +69,7 @@ impl style_methods for node {
         if !self.has_aux() {
             fail "get_computed_style() called on a node without a style!";
         }
-        ret self.aux({ |x| x }).computed_style;
+        ret copy self.aux({ |x| copy x }).computed_style;
     }
 
     #[doc="

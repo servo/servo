@@ -24,7 +24,7 @@ class glyph {
 
     new(codepoint: uint, pos: glyph_pos) {
         self.codepoint = codepoint;
-        self.pos = pos;
+        self.pos = copy pos;
     }
 }
 

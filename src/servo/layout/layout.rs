@@ -66,7 +66,7 @@ fn box_to_display_item(box: @base::box) -> dl::display_item {
 		some(image) {
 			item = dl::display_item({
 				item_type: dl::display_item_image(~copy *image),
-				bounds: box.bounds
+				bounds: copy box.bounds
 			});
 		}
 		none {
@@ -75,7 +75,7 @@ fn box_to_display_item(box: @base::box) -> dl::display_item {
 				item_type: dl::display_item_solid_color(r.next() as u8,
 														r.next() as u8,
 														r.next() as u8),
-				bounds: box.bounds
+				bounds: copy box.bounds
 			});
 		}
 	}

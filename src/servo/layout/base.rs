@@ -101,7 +101,7 @@ impl layout_methods for @box {
 
     #[doc="The trivial reflow routine for instrinsically-sized frames."]
     fn reflow_intrinsic(size: geom::size<au>) {
-        self.bounds.size = size;
+        self.bounds.size = copy size;
 
         #debug["reflow_intrinsic size=%?", self.bounds];
     }
@@ -123,7 +123,7 @@ impl node_methods_priv for node {
             s += "    ";
         }
 
-        s += #fmt("%?", self.rd({ |n| n.kind }));
+        s += #fmt("%?", self.rd({ |n| copy n.kind }));
         #debug["%s", s];
 
         for ntree.each_child(self) { |kid| kid.dump_indent(indent + 1u) }

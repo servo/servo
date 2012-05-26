@@ -54,7 +54,7 @@ impl to_float for u8 {
 
 fn draw_solid_color(draw_target: AzDrawTargetRef, item: dl::display_item,
                     r: u8, g: u8, b: u8) {
-    let bounds = (*item).bounds;
+    let bounds = copy (*item).bounds;
 
     let red_color = {
         r: r.to_float() as AzFloat,
@@ -83,7 +83,7 @@ fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item,
               -image: ~image) {
     // FIXME: This is hideously inefficient.
 
-    let bounds = (*item).bounds;
+    let bounds = copy (*item).bounds;
 
     if (image.depth < 3u) {
         #debug("TODO: can't draw images with depth less than 3 yet");

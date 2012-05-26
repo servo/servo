@@ -198,7 +198,7 @@ fn destroy_surface(surface: surface) {
 }
 
 #[doc = "A function for spawning into the platform's main thread"]
-fn on_osmain<T: send>(f: fn~(comm::port<T>)) -> comm::chan<T> {
+fn on_osmain<T: send>(+f: fn~(comm::port<T>)) -> comm::chan<T> {
     let builder = task::builder();
     let opts = {
         sched: some({

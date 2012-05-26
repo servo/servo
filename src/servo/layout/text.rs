@@ -23,7 +23,7 @@ impl text_layout_methods for @box {
         };
 
         let run = text_run(subbox.text);
-        subbox.run = some(run);
+        subbox.run = some(copy run);
         run.shape();
 
         self.bounds.size = {

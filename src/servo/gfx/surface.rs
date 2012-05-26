@@ -22,7 +22,7 @@ impl format for format {
 
 fn image_surface(size: geom::size<int>, format: format) -> image_surface {
     {
-        size: size,
+        size: copy size,
         format: format,
         buffer: vec::from_elem((size.area() as uint) * format.bpp(), 0u8)
     }
