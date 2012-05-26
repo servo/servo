@@ -278,10 +278,10 @@ mod test {
         let read_chan = comm::chan(read_port);
 
         // fire up a reader task
-        uint::range(0u, iter1) { |i|
+        for uint::range(0u, iter1) { |i|
             s.reader_forked();
             let wait_chan = task::spawn_listener {|wait_port|
-                uint::range(0u, iter2) { |_i|
+                for uint::range(0u, iter2) { |_i|
                     comm::send(read_chan, henrietta.rd(read_characteristic));
                     comm::send(read_chan, ferdinand.rd(read_characteristic));
                     comm::recv(wait_port);
@@ -294,7 +294,7 @@ mod test {
             let frc = ferdinand.rd(read_characteristic);
             assert frc == i * iter2;
 
-            uint::range(0u, iter2) { |_i|
+            for uint::range(0u, iter2) { |_i|
                 assert hrc == comm::recv(read_port);
                 s.wr(henrietta, mutate);
                 assert frc == comm::recv(read_port);

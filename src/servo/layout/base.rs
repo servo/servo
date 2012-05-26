@@ -76,7 +76,7 @@ impl layout_methods_priv for @box {
     #[doc="Dumps the box tree, for debugging, with indentation."]
     fn dump_indent(indent: uint) {
         let mut s = "";
-        uint::range(0u, indent) {
+        for uint::range(0u, indent) {
             |_i|
             s += "    ";
         }
@@ -118,7 +118,7 @@ impl node_methods_priv for node {
     #[doc="Dumps the node tree, for debugging, with indentation."]
     fn dump_indent(indent: uint) {
         let mut s = "";
-        uint::range(0u, indent) {
+        for uint::range(0u, indent) {
             |_i|
             s += "    ";
         }

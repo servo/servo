@@ -91,9 +91,9 @@ fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item,
     }
 
     let stride = image.width * image.depth;
-    uint::range(0u, image.height) {
+    for uint::range(0u, image.height) {
         |y|
-        uint::range(0u, image.width) {
+        for uint::range(0u, image.width) {
             |x|
             let color = {
                 r: image.data[y * stride + x * image.depth].to_float()

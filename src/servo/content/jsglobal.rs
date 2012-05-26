@@ -70,7 +70,7 @@ crust fn debug(cx: *JSContext, argc: uintN, vp: *jsval) {
 
     unsafe {
         let argv = JS_ARGV(cx, vp);
-        uint::range(0u, argc as uint) { |i|
+        for uint::range(0u, argc as uint) { |i|
             let jsstr = JS_ValueToString(cx, argv[i]);
             let bytes = JS_EncodeString(cx, jsstr);
             let str = str::unsafe::from_c_str(bytes);
