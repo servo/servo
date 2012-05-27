@@ -146,6 +146,12 @@ fn draw_display_list(
     }
 }
 
+#[cfg(target_os = "macos")]
+fn draw_some_text(_draw_target: AzDrawTargetRef) {
+   // FIXME: Don't know how to draw text on mac yet
+}
+
+#[cfg(target_os = "linux")]
 fn draw_some_text(draw_target: AzDrawTargetRef) {
 
     import az = azure;
