@@ -307,7 +307,7 @@ mod css {
               '>' as u8  { to_child }
               '+' as u8  { to_sibling }
               ',' as u8  { to_comma }
-              _          { to_descendant }                             
+              _          { self.unget(c); to_descendant }
             };
 
             self.eat_whitespace();
@@ -316,14 +316,22 @@ mod css {
         }
 
         fn parse_css_element(c : u8) -> token {
-            /* Check for special attributes with an implied element.*/
+            assert self.lookahead.is_none();
+
+            /* Check for special attributes with an implied element,
+            or a wildcard which is not a alphabet character.*/
             if c == '.' as u8 || c == '#' as u8 {
                 self.state = ps_css_attribute;
                 self.unget(c);
                 ret to_elmt("*");
+            } else if c == '*' as u8 {
+                self.state = ps_css_attribute;
+                ret to_elmt("*");
             }
 
+            self.unget(c);
             let element = self.parse_ident();
+
             self.state = ps_css_attribute;
             
             ret to_elmt(element);
@@ -389,7 +397,11 @@ mod css {
         fn parse_css_description(c: u8) -> token {
             let mut ch = c;
 
-            if ch.is_whitespace() {
+            if ch == '}' as u8 {
+                self.state = ps_css_elmt;
+                self.eat_whitespace();
+                ret to_end_desc;
+            } else if ch.is_whitespace() {
                 self.eat_whitespace();
 
                 alt self.get() {
@@ -439,7 +451,7 @@ mod css {
                     if desc_val.len() == 0u {
                         fail "Expected descriptor value";
                     } else {
-                        self.state = ps_css_elmt;
+                        self.unget('}' as u8);
                         break;
                     }
                 } else if ch == ';' as u8 {
@@ -485,16 +497,29 @@ fn spawn_css_parser_task(filename: str) -> port<css::token> {
     let result_port = port();
     let result_chan = chan(result_port);
     task::spawn {||
-        let file_data = io::read_whole_file(filename).get();
-        let reader = io::bytes_reader(file_data);
-        
         assert filename.ends_with(".css");
-        let parser : parser = parser(reader, ps_css_elmt);
 
-        loop {
-            let token = parser.parse_css();
-            result_chan.send(token);
-            if token == css::to_eof { break; }
+        let file_try = io::read_whole_file(filename);
+
+        // Check if the given css file existed, if it does, parse it,
+        // otherwise just send an eof.  This is a hack to allow
+        // guessing that if foo.html exists, foo.css is the
+        // corresponding stylesheet.
+        if file_try.is_success() {
+            #debug["Lexing css sheet %s", filename];
+            let file_data = file_try.get();
+            let reader = io::bytes_reader(file_data);
+        
+            let parser : parser = parser(reader, ps_css_elmt);
+
+            loop {
+                let token = parser.parse_css();
+                result_chan.send(token);
+                if token == css::to_eof { break; }
+            }
+        } else {
+            #debug["Failed to open css sheet %s", filename];
+            result_chan.send(css::to_eof);
         }
     };
     ret result_port;

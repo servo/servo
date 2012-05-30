@@ -1,0 +1,5 @@
+p {font-size : 12pt}
+p img {color : rgb(0,255,0); display : block }
+p.blue > p.green + p.red { background-color : blue ;color : green }
+img[class] .pastoral *[lang|=en] { display:inline}
+.book > #novel + *[type=novella] p { color : blue; color : white }
