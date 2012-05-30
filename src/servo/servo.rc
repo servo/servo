@@ -16,6 +16,7 @@ use stb_image;
 mod dom {
     mod base;
     mod rcu;
+    mod style;
 }
 
 mod gfx {
@@ -26,7 +27,7 @@ mod gfx {
 }
 
 mod image {
-	mod base;
+    mod base;
     mod encode {
         mod tga;
     }
@@ -34,7 +35,7 @@ mod image {
 
 mod layout {
     mod style {
-		mod apply;
+	mod apply;
         mod style;
     }
 
@@ -48,7 +49,7 @@ mod layout {
 }
 
 mod parser {
-    mod html;
+    mod lexer;
     mod html_builder;
 }
 
