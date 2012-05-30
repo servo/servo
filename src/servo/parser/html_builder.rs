@@ -5,8 +5,8 @@ import dom::base::{attr, element, element_subclass, es_div, es_head, es_img};
 import dom::base::{es_unknown, methods, nk_element, nk_text, rd_tree_ops};
 import dom::base::{wr_tree_ops};
 import dom = dom::base;
-import parser = parser::html;
-import html::token;
+import parser = parser::lexer::html;
+import parser::token;
 import gfx::geom;
 import dvec::extensions;
 

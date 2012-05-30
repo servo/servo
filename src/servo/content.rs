@@ -40,7 +40,7 @@ fn content(to_layout: chan<layout::msg>) -> chan<msg> {
 
                 // Note: we can parse the next document in parallel
                 // with any previous documents.
-                let stream = html::spawn_parser_task(filename);
+                let stream = lexer::spawn_html_parser_task(filename);
                 let root = parser::html_builder::build_dom(scope, stream);
 
                 // Now, join the layout so that they will see the latest
