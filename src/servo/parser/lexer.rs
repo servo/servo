@@ -114,7 +114,7 @@ impl util_methods for parser {
         loop {
             alt self.get() {
                 coe_char(c) {
-                  if c.is_whitespace() {
+                  if !c.is_whitespace() {
                         self.unget(c);
                         ret;
                     }
