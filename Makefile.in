@@ -30,6 +30,7 @@ SERVO_DEPS = \
 	$(NULL)
 CHECK_DEPS =
 CLEAN_DEPS =
+AZURE_DEPS =
 
 ifeq ($(OSTYPE),darwin)
     SERVO_DEPS += src/rust-cocoa/libcocoa.dummy
@@ -37,6 +38,7 @@ ifeq ($(OSTYPE),darwin)
     # doesn't work neither does servo
     CHECK_DEPS += check-rust-cocoa
     CLEAN_DEPS += clean-rust-cocoa
+    AZURE_DEPS += src/rust-cocoa/libcocoa.dummy
 endif
 
 SERVO_DEPS += \
@@ -91,8 +93,8 @@ src/rust-harfbuzz/libharfbuzz.dummy: src/harfbuzz/src/.libs/libharfbuzz.a
 src/rust-mozjs/libmozjs.dummy: src/mozjs/libjs_static.a
 	$(MAKE) -C src/rust-mozjs RUSTFLAGS="-L ../mozjs/"
 
-src/rust-azure/libazure.dummy:
-	$(MAKE) -C src/rust-azure
+src/rust-azure/libazure.dummy: $(AZURE_DEPS)
+	RUSTFLAGS="-L ../rust-cocoa" $(MAKE) -C src/rust-azure
 
 src/rust-sdl/libsdl.dummy:
 	$(MAKE) -C src/rust-sdl
@@ -117,8 +119,8 @@ check-rust-mozjs: src/mozjs/libjs_static.a
 	$(MAKE) check -C src/rust-mozjs RUSTFLAGS="-L ../mozjs/"
 
 .PHONY: check-rust-azure
-check-rust-azure:
-	$(MAKE) check -C src/rust-azure
+check-rust-azure: $(AZURE_DEPS)
+	RUSTFLAGS="-L ../rust-cocoa" $(MAKE) check -C src/rust-azure
 
 .PHONY: check-rust-sdl
 check-rust-sdl:
