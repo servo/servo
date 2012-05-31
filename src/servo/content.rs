@@ -5,7 +5,7 @@ import result::extensions;
 import dom::rcu::writer_methods;
 import dom=dom::base;
 import layout::layout;
-import js::methods;
+import js::rust::methods;
 
 enum msg {
     parse(str),
@@ -32,7 +32,7 @@ fn join_layout(scope: dom::node_scope,
 fn content(to_layout: chan<layout::msg>) -> chan<msg> {
     task::spawn_listener::<msg> {|from_master|
         let scope = dom::node_scope();
-        let rt = js::rt();
+        let rt = js::rust::rt();
         loop {
             alt from_master.recv() {
               parse(filename) {
@@ -65,8 +65,8 @@ fn content(to_layout: chan<layout::msg>) -> chan<msg> {
                     let cx = rt.cx();
                     cx.set_default_options_and_version();
                     cx.set_logging_error_reporter();
-                    cx.new_compartment(jsglobal::global_class).chain { |comp|
-                        comp.define_functions(jsglobal::global_fns);
+                    cx.new_compartment(js::global::global_class).chain { |comp|
+                        comp.define_functions(js::global::debug_fns);
                         cx.evaluate_script(comp.global_obj, bytes, filename, 1u)
                     };
                   }

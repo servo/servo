@@ -50,7 +50,7 @@ class attr {
 enum element_subclass {
     es_unknown,
     es_div,
-    es_img(size<au>),
+    es_img({mut size: size<au>}),
     es_head
 }
 

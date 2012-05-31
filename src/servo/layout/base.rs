@@ -173,12 +173,13 @@ mod test {
     fn do_layout() {
         let s = scope();
 
-        let n0 = s.new_node(nk_element(element("img",
-                                               ~es_img(size(au(10),au(10))))));
-        let n1 = s.new_node(nk_element(element("img",
-                                               ~es_img(size(au(10),au(15))))));
-        let n2 = s.new_node(nk_element(element("img",
-                                               ~es_img(size(au(10),au(20))))));
+        fn mk_img(size: size<au>) -> ~dom::base::element_subclass {
+            ~es_img({mut size: size})
+        }
+
+        let n0 = s.new_node(nk_element(element("img", mk_img(size(au(10),au(10))))));
+        let n1 = s.new_node(nk_element(element("img", mk_img(size(au(10),au(10))))));
+        let n2 = s.new_node(nk_element(element("img", mk_img(size(au(10),au(20))))));
         let n3 = s.new_node(nk_element(element("div", ~es_div)));
 
         tree::add_child(s, n3, n0);

@@ -20,16 +20,16 @@ fn link_up_attribute(scope: dom::node_scope, node: dom::node, key: str,
             dom::nk_element(element) {
                 element.attrs.push(~attr(key, value));
                 alt *element.subclass {
-                    es_img(dimensions) if key == "width" {
+                    es_img(img) if key == "width" {
                         alt int::from_str(value) {
                             none { /* drop on the floor */ }
-                            some(s) { dimensions.width = geom::px_to_au(s); }
+                            some(s) { img.size.width = geom::px_to_au(s); }
                         }
                     }
-                    es_img(dimensions) if key == "height" {
+                    es_img(img) if key == "height" {
                         alt int::from_str(value) {
                             none { /* drop on the floor */ }
-                            some(s) { dimensions.height = geom::px_to_au(s); }
+                            some(s) { img.size.height = geom::px_to_au(s); }
                         }
                     }
                     es_div | es_img(*) | es_head | es_unknown {
@@ -48,10 +48,10 @@ fn build_element_subclass(tag_name: str) -> ~element_subclass {
     alt tag_name {
         "div" { ret ~es_div; }
         "img" {
-            ret ~es_img({
-                mut width: geom::px_to_au(100),
-                mut height: geom::px_to_au(100)
-            });
+            ret ~es_img({mut size: {
+                width: geom::px_to_au(100),
+                height: geom::px_to_au(100)
+            }});
         }
         "head" { ret ~es_head; }
         _ { ret ~es_unknown; }

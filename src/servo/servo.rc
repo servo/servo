@@ -9,7 +9,7 @@
 use std;
 use sdl;
 use azure;
-use spidermonkey (name = "js");
+use js;
 use harfbuzz;
 use stb_image;
 
@@ -65,13 +65,10 @@ mod text {
 
 mod util {
     mod tree;
+    mod unsafe;
 }
 
 mod content {
-    mod js;
-    mod jsglobal;
-    mod jsutil;
-    mod name_pool;
 }
 
 mod net {

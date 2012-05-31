@@ -22,13 +22,13 @@ impl block_layout_methods for @box {
         for tree::each_child(btree, self) {|c|
             let mut blk_available_width = available_width;
             // FIXME subtract borders, margins, etc
-            c.bounds.origin = {mut x: au(0), mut y: au(current_height)};
+            c.bounds.origin = {x: au(0), y: au(current_height)};
             c.reflow(blk_available_width);
             current_height += *c.bounds.size.height;
         }
 
-        self.bounds.size = {mut width: available_width, // FIXME
-                            mut height: au(current_height)};
+        self.bounds.size = {width: available_width, // FIXME
+                            height: au(current_height)};
 
         #debug["reflow_block size=%?", self.bounds];
     }

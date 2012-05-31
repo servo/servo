@@ -7,12 +7,12 @@ class glyph_pos {
 
     new(hb_pos: harfbuzz::hb_glyph_position_t) {
         self.advance = {
-            mut x: px_to_au(hb_pos.x_advance as int),
-            mut y: px_to_au(hb_pos.y_advance as int)
+            x: px_to_au(hb_pos.x_advance as int),
+            y: px_to_au(hb_pos.y_advance as int)
         };
         self.offset = {
-            mut x: px_to_au(hb_pos.x_offset as int),
-            mut y: px_to_au(hb_pos.y_offset as int)
+            x: px_to_au(hb_pos.x_offset as int),
+            y: px_to_au(hb_pos.y_offset as int)
         };
     }
 }

@@ -19,15 +19,15 @@ impl inline_layout_methods for @box {
         let mut current_height = 0;
         for tree::each_child(btree, self) {
             |kid|
-            kid.bounds.origin = { mut x: au(x), mut y: y };
+            kid.bounds.origin = { x: au(x), y: y };
             kid.reflow(au(inline_available_width));
             inline_available_width -= *kid.bounds.size.width;
             x += *kid.bounds.size.width;
             current_height = int::max(current_height, *kid.bounds.size.height);
         }
 
-        self.bounds.size = { mut width: available_width,
-                             mut height: au(current_height) };
+        self.bounds.size = { width: available_width,
+                             height: au(current_height) };
 
         #debug["reflow_inline size=%?", self.bounds];
     }

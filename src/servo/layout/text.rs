@@ -27,14 +27,14 @@ impl text_layout_methods for @box {
         run.shape();
 
         self.bounds.size = {
-            mut width:
+            width:
                 alt vec::last_opt(run.glyphs.get()) {
                     some(glyph) {
                         au(*glyph.pos.offset.x + *glyph.pos.advance.x)
                     }
                     none { au(0) }
                 },
-            mut height: au(60 * 14)
+            height: au(60 * 14)
         };
     }
 }

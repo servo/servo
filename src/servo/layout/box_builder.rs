@@ -153,9 +153,9 @@ impl box_builder_priv for node {
             ~nk_text(string) { bk_text(@text_box(string)) }
             ~nk_element(element) {
                 alt *element.subclass {
-                    es_div       { bk_block            }
-                    es_img(size) { bk_intrinsic(@copy size) }
-                    es_unknown   { bk_inline           }
+                    es_div         { bk_block            }
+                    es_img({size}) { bk_intrinsic(@size) }
+                    es_unknown     { bk_inline           }
                 }
             }
         }
