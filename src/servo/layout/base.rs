@@ -46,7 +46,7 @@ impl of tree::rd_tree_ops<node> for ntree {
         tree::each_child(self, node, f)
     }
 
-    fn with_tree_fields<R>(n: node, f: fn(tree::fields<node>) -> R) -> R {
+    fn with_tree_fields<R>(&&n: node, f: fn(tree::fields<node>) -> R) -> R {
         n.rd { |n| f(n.tree) }
     }
 }
@@ -57,7 +57,7 @@ impl of tree::rd_tree_ops<@box> for btree {
         tree::each_child(self, node, f)
     }
 
-    fn with_tree_fields<R>(b: @box, f: fn(tree::fields<@box>) -> R) -> R {
+    fn with_tree_fields<R>(&&b: @box, f: fn(tree::fields<@box>) -> R) -> R {
         f(b.tree)
     }
 }
@@ -67,7 +67,7 @@ impl of tree::wr_tree_ops<@box> for btree {
         tree::add_child(self, node, child)
     }
 
-    fn with_tree_fields<R>(b: @box, f: fn(tree::fields<@box>) -> R) -> R {
+    fn with_tree_fields<R>(&&b: @box, f: fn(tree::fields<@box>) -> R) -> R {
         f(b.tree)
     }
 }
