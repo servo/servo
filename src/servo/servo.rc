@@ -62,6 +62,7 @@ mod text {
     mod glyph;
     mod text_run;
     mod font;
+    mod shaper;
 }
 
 mod util {
