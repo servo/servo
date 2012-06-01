@@ -1,6 +1,5 @@
 import comm::*;
 import parser::lexer;
-//import parser::lexer::util_methods;
 import result::extensions;
 import gfx::renderer;
 import platform::osmain;

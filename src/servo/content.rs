@@ -3,6 +3,7 @@ export content;
 
 import result::extensions;
 import dom::rcu::writer_methods;
+import dom::style;
 import dom=dom::base;
 import layout::layout;
 import js::rust::methods;
@@ -38,11 +39,36 @@ fn content(to_layout: chan<layout::msg>) -> chan<msg> {
               parse(filename) {
                 #debug["content: Received filename `%s` to parse", filename];
 
+                // TODO actually parse where the css sheet should be
+                // Replace .html with .css and try to open a stylesheet
+                assert filename.ends_with(".html");
+                let new_file = filename.substr(0u, filename.len() - 5u)
+                    + ".css";
+
+                // Send off a task to parse the stylesheet
+                let css_port = comm::port();
+                let css_chan = comm::chan(css_port);
+                task::spawn {||
+                    let css_stream = parser::lexer::
+                        spawn_css_parser_task(new_file);
+                    let css_rules = parser::css_builder::
+                        build_stylesheet(css_stream);
+                    css_chan.send(css_rules);
+                };
+
                 // Note: we can parse the next document in parallel
                 // with any previous documents.
-                let stream = lexer::spawn_html_parser_task(filename);
+                let stream = parser::lexer::spawn_html_parser_task(filename);
                 let root = parser::html_builder::build_dom(scope, stream);
 
+                // Collect the css stylesheet
+                let css_rules = comm::recv(css_port);
+                
+                // Apply the css rules to the dom tree:
+                // TODO
+                #debug["%s",style::print_sheet(css_rules)];
+                
+               
                 // Now, join the layout so that they will see the latest
                 // changes we have made.
                 join_layout(scope, to_layout);
