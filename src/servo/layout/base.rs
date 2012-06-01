@@ -165,7 +165,7 @@ mod test {
         for tree::each_child(btree, root) {|c|
             r += flat_bounds(c);
         }
-        ret r + [root.bounds];
+        ret r + [copy root.bounds];
     }
 
     #[test]
