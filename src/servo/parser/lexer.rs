@@ -493,7 +493,7 @@ fn spawn_html_parser_task(filename: str) -> port<html::token> {
     ret result_port;
 }
 
-fn spawn_css_parser_task(filename: str) -> port<css::token> {
+fn spawn_css_lexer_task(filename: str) -> port<css::token> {
     let result_port = port();
     let result_chan = chan(result_port);
     task::spawn {||

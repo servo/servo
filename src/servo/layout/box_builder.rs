@@ -1,12 +1,13 @@
 #[doc="Creates CSS boxes from a DOM."]
 
 import dom::base::{element, es_div, es_img, nk_element, nk_text, node};
+import dom::style::{display_type, di_block, di_inline, di_none};
 import dom::rcu::reader_methods;
 import gfx::geom;
 import /*layout::*/base::{appearance, bk_block, bk_inline, bk_intrinsic};
 import /*layout::*/base::{bk_text, box, box_kind, btree, node_methods, ntree};
 import /*layout::*/base::{rd_tree_ops, wr_tree_ops};
-import /*layout::*/style::style::{di_block, di_inline, style_methods};
+import /*layout::*/style::style::{style_methods};
 import /*layout::*/text::text_box;
 import util::tree;
 
@@ -62,7 +63,9 @@ impl methods for ctxt {
             // Add the child's box to the current enclosing box or the current
             // anonymous box.
             alt kid.get_computed_style().display {
-                di_block { btree.add_child(self.parent_box, kid_box); }
+                di_block { 
+                  btree.add_child(self.parent_box, kid_box);
+                }
                 di_inline {
                     let anon_box = alt self.anon_box {
                         none {
