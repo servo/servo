@@ -57,6 +57,7 @@ themselves.
 ")];
 
 import ptr::extensions;
+import core::libc::types::os::arch::c95::size_t;
 
 export handle;
 export reader_methods;
@@ -133,7 +134,7 @@ impl private_methods<T: copy send,A> for scope<T,A> {
     fn clone(v: *T) -> *T unsafe {
         let n: *mut T =
             unsafe::reinterpret_cast(
-                libc::calloc(sys::size_of::<T>(), 1u));
+                libc::calloc(sys::size_of::<T>() as size_t, 1u as size_t));
 
         // n.b.: this assignment will run the drop glue for <T,A>.
         // *Hopefully* the fact that everything is initialized to NULL
@@ -215,7 +216,7 @@ impl writer_methods<T:copy send,A> for scope<T,A> {
     fn handle(v: T) -> handle<T,A> unsafe {
         let d: *handle_data<T,A> =
             unsafe::reinterpret_cast(
-                libc::malloc(sys::size_of::<handle_data<T,A>>()));
+                libc::malloc(sys::size_of::<handle_data<T,A>>() as size_t));
         (*d).rd_ptr = self.clone(ptr::addr_of(v));
         (*d).wr_ptr = (*d).rd_ptr;
         (*d).rd_aux = ptr::null();
