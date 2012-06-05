@@ -315,6 +315,7 @@ fn draw_some_text(draw_target: AzDrawTargetRef) {
     import cairoftbg = azure::cairo_ft::bindgen;
     import libc::types::common::c99::uint16_t;
     import libc::types::common::c99::uint32_t;
+    import azure::freetype::FT_Long;
 
     impl methods for ft::FT_Error {
         fn for_sure() { assert self == 0 as ft::FT_Error }
@@ -328,7 +329,7 @@ fn draw_some_text(draw_target: AzDrawTargetRef) {
     let face: ft::FT_Face = ptr::null();
     vec::as_buf(fontbin) {|buf|
         ftbg::FT_New_Memory_Face(library, buf, fontbin.len() as ft::FT_Long,
-                                 0, ptr::addr_of(face)).for_sure();
+                                 0 as FT_Long, ptr::addr_of(face)).for_sure();
     }
 
     unsafe {
