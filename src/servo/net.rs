@@ -18,7 +18,11 @@ iface io_service {
 }
 
 class file_channel implements channel {
-    new() { }
+    let bogus : int;
+
+    new() {
+        self.bogus = 0;
+    }
 
     fn uri() -> uri { fail }
     fn open() -> input_stream { fail }
