@@ -5,6 +5,7 @@ import image::base::image;
 import dl = layout::display_list;
 import azure::*;
 import azure::bindgen::*;
+import libc::size_t;
 
 enum msg {
     render(dl::display_list),
@@ -185,7 +186,7 @@ fn draw_some_text(draw_target: AzDrawTargetRef) {
     let fontprov = vec::as_buf(fontbin) {|buf|
         CGDataProviderCreateWithData(ptr::null(),
                                      unsafe { unsafe::reinterpret_cast(buf) },
-                                     fontbin.len(),
+                                     fontbin.len() as size_t,
                                      ptr::null())
     };
 
