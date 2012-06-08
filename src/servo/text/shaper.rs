@@ -1,6 +1,22 @@
 import libc::types::common::c99::int32_t;
+import libc::{c_uint, c_int};
 import font::font;
 import glyph::{glyph, glyph_pos};
+import ptr::{null, addr_of, offset};
+
+import unsafe::reinterpret_cast;
+import harfbuzz::{HB_MEMORY_MODE_READONLY,
+                  HB_DIRECTION_LTR};
+import harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_buffer_t};
+import harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
+                           hb_face_create, hb_face_destroy,
+                           hb_font_create, hb_font_destroy,
+                           hb_buffer_create, hb_buffer_destroy,
+                           hb_buffer_add_utf8, hb_shape,
+                           hb_buffer_get_glyph_infos,
+                           hb_buffer_get_glyph_positions,
+                           hb_font_set_ppem, hb_font_set_scale,
+                           hb_buffer_set_direction};
 
 #[doc = "
 Calculate the layout metrics associated with a some given text
@@ -25,4 +41,67 @@ fn shape_text(_font: &font, text: str) -> [glyph] {
     };
 
     ret glyphs;
+}
+
+fn shape_text2(font: &font, text: str) -> [glyph] unsafe {
+    #debug("shaping text '%s'", text);
+
+    let face_blob = vec::as_buf(*(*font).buf()) { |buf|
+        hb_blob_create(reinterpret_cast(buf),
+                       (*(*font).buf()).len() as c_uint,
+                       HB_MEMORY_MODE_READONLY,
+                       null(),
+                       null())
+    };
+
+    let face = hb_face_create(face_blob, 0 as c_uint);
+    let font = hb_font_create(face);
+
+    hb_font_set_ppem(font, 10 as c_uint, 10 as c_uint);
+    hb_font_set_scale(font, 10 as c_int, 10 as c_int);
+
+    let buffer = hb_buffer_create();
+
+    hb_buffer_set_direction(buffer, HB_DIRECTION_LTR);
+
+    str::as_c_str(text) { |ctext|
+        hb_buffer_add_utf8(buffer, ctext,
+                           text.len() as c_int,
+                           0 as c_uint,
+                           text.len() as c_int);
+    }
+
+    hb_shape(font, buffer, null(), 0 as c_uint);
+
+    let info_len = 0 as c_uint;
+    let info_ = hb_buffer_get_glyph_infos(buffer, addr_of(info_len));
+    assert info_.is_not_null();
+    let pos_len = 0 as c_uint;
+    let pos = hb_buffer_get_glyph_positions(buffer, addr_of(pos_len));
+    assert pos.is_not_null();
+
+    assert info_len == pos_len;
+
+    for uint::range(0u, info_len as uint) { |i|
+        let info_ = offset(info_, i);
+        let pos = offset(pos, i);
+        #debug("glyph %?: codep %?, cluster %?,\
+                x_adv %?, y_adv %?, x_off %?, y_of %?",
+               i, (*info_).codepoint, (*info_).cluster,
+               (*pos).x_advance, (*pos).y_advance,
+               (*pos).x_offset, (*pos).y_offset);
+    }
+
+    hb_buffer_destroy(buffer);
+    hb_font_destroy(font);
+    hb_face_destroy(face);
+    hb_blob_destroy(face_blob);
+
+    ret [];
+}
+
+#[test]
+fn test_shape_basic() {
+    let font = font::create();
+    shape_text2(&font, "firecracker");
 }
