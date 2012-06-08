@@ -21,9 +21,11 @@ enum box_kind {
 
 class appearance {
     let mut background_image: option<@image>;
+    let mut background_color: option<uint>;
 
     new() {
         self.background_image = none;
+        self.background_color = none;
     }
 }
 

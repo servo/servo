@@ -21,6 +21,7 @@ impl methods for token_reader {
     }
 
     fn unget(tok : token) {
+        assert self.lookahead.is_none();
         self.lookahead = some(tok);
     }
 }
@@ -85,7 +86,7 @@ fn parse_color(color : str) -> uint {
 
         i += 1u;
          
-        while i < color_vec.len() && color_vec[i] != ',' as u8 {
+        while i < color_vec.len() && color_vec[i] != ')' as u8 {
             blue_vec += [color_vec[i]];
             i += 1u;
         }
@@ -220,8 +221,9 @@ fn parse_rule(reader : token_reader) -> option<~rule> {
               }
               "display" {
                 alt val {
-                  "inline"   { desc_list += [display(inline)]; }
-                  "block"    { desc_list += [display(block)]; }
+                  "inline"   { desc_list += [display(di_inline)]; }
+                  "block"    { desc_list += [display(di_block)]; }
+                  "none"     { desc_list += [display(di_none)]; }
                   _          { #debug["Recieved unknown display value '%s'",
                                       val]; }
                 }

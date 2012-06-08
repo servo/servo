@@ -37,6 +37,7 @@ mod layout {
     mod style {
 	mod apply;
         mod style;
+        mod matching;
     }
 
     mod base;

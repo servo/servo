@@ -50,7 +50,7 @@ fn content(to_layout: chan<layout::msg>) -> chan<msg> {
                 let css_chan = comm::chan(css_port);
                 task::spawn {||
                     let css_stream = parser::lexer::
-                        spawn_css_parser_task(new_file);
+                        spawn_css_lexer_task(new_file);
                     let css_rules = parser::css_builder::
                         build_stylesheet(css_stream);
                     css_chan.send(css_rules);
@@ -74,7 +74,7 @@ fn content(to_layout: chan<layout::msg>) -> chan<msg> {
                 join_layout(scope, to_layout);
 
                 // Send new document to layout.
-                to_layout.send(layout::build(root));
+                to_layout.send(layout::build(root, css_rules));
 
                 // Indicate that reader was forked so any further
                 // changes will be isolated.

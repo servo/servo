@@ -2,8 +2,9 @@ import io::println;
 
 
 enum display_type{
-    block,
-    inline
+    di_block,
+    di_inline,
+    di_none
 }
 
 enum style_decl{
@@ -66,8 +67,9 @@ fn print_list_vert<T>(list : [T], print : fn(T) -> str) -> str {
 
 fn print_display(dis_ty : display_type) -> str {
     alt dis_ty { 
-      block { "block" } 
-      inline { "inline" }      
+      di_block  { "block" } 
+      di_inline { "inline" }
+      di_none   { "none" }
     }
 }
 
@@ -130,7 +132,7 @@ fn test_pretty_print() {
     let elmt2 = ~element("body", [exact("class", "2")]);
 
     let test2 = [~([~descendant(elmt1, elmt2)],
-                  [display(block), text_color(0u)])];
+                  [display(di_block), text_color(0u)])];
 
     let actual2 = print_sheet(test2);
     let expected2 =  "CSS Rules:\n-Selectors: (Element * with attributes: ) "
