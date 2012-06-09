@@ -1,5 +1,5 @@
 import libc::types::common::c99::int32_t;
-import libc::{c_uint, c_int};
+import libc::{c_uint, c_int, c_void};
 import font::font;
 import glyph::{glyph, glyph_pos};
 import ptr::{null, addr_of, offset};
@@ -7,7 +7,8 @@ import ptr::{null, addr_of, offset};
 import unsafe::reinterpret_cast;
 import harfbuzz::{HB_MEMORY_MODE_READONLY,
                   HB_DIRECTION_LTR};
-import harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_buffer_t};
+import harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_buffer_t,
+                  hb_codepoint_t, hb_bool_t};
 import harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
                            hb_face_create, hb_face_destroy,
                            hb_font_create, hb_font_destroy,
@@ -16,7 +17,12 @@ import harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
                            hb_buffer_get_glyph_infos,
                            hb_buffer_get_glyph_positions,
                            hb_font_set_ppem, hb_font_set_scale,
-                           hb_buffer_set_direction};
+                           hb_buffer_set_direction,
+                           hb_font_funcs_create, hb_font_funcs_destroy,
+                           hb_font_set_funcs,
+                           hb_font_funcs_set_glyph_h_advance_func,
+                           hb_font_funcs_set_glyph_func,
+                           hb_font_funcs_set_glyph_h_kerning_func};
 
 #[doc = "
 Calculate the layout metrics associated with a some given text
@@ -60,6 +66,10 @@ fn shape_text2(font: &font, text: str) -> [glyph] unsafe {
     hb_font_set_ppem(font, 10 as c_uint, 10 as c_uint);
     hb_font_set_scale(font, 10 as c_int, 10 as c_int);
 
+    let funcs = hb_font_funcs_create();
+    hb_font_funcs_set_glyph_func(funcs, glyph_func, null(), null());
+    hb_font_set_funcs(font, funcs, addr_of(*font), null());
+
     let buffer = hb_buffer_create();
 
     hb_buffer_set_direction(buffer, HB_DIRECTION_LTR);
@@ -93,11 +103,23 @@ fn shape_text2(font: &font, text: str) -> [glyph] unsafe {
     }
 
     hb_buffer_destroy(buffer);
+    hb_font_funcs_destroy(funcs);
     hb_font_destroy(font);
     hb_face_destroy(face);
     hb_blob_destroy(face_blob);
 
     ret [];
+}
+
+crust fn glyph_func(_font: *hb_font_t,
+                    _font_data: *c_void,
+                    _unicode: hb_codepoint_t,
+                    _variant_selector: hb_codepoint_t,
+                    glyph: *mut hb_codepoint_t,
+                    _user_data: *c_void) -> hb_bool_t unsafe {
+
+    *glyph = 40 as hb_codepoint_t;
+    ret true as hb_bool_t;
 }
 
 #[test]
