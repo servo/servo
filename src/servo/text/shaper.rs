@@ -39,7 +39,7 @@ fn shape_text(_font: &font, text: str) -> [glyph] {
             y_advance: 0 as int32_t,
             x_offset: cur_x as int32_t,
             y_offset: 0 as int32_t,
-            var: 0
+            var: 0i32
         };
 
         vec::push(glyphs, glyph(ch as uint, glyph_pos(hb_pos)));
