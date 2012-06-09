@@ -1,19 +1,12 @@
-import gfx::geom::{au, point, px_to_au};
+import gfx::geom::{au, point};
 
 #[doc="The position of a glyph on the screen."]
 class glyph_pos {
     let advance: point<au>;
     let offset: point<au>;
-
-    new(hb_pos: harfbuzz::hb_glyph_position_t) {
-        self.advance = {
-            x: px_to_au(hb_pos.x_advance as int),
-            y: px_to_au(hb_pos.y_advance as int)
-        };
-        self.offset = {
-            x: px_to_au(hb_pos.x_offset as int),
-            y: px_to_au(hb_pos.y_offset as int)
-        };
+    new(advance: point<au>, offset: point<au>) {
+        self.advance = advance;
+        self.offset = offset;
     }
 }
 

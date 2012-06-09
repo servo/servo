@@ -1,14 +1,19 @@
+use harfbuzz;
+
+export shape_text;
+
 import libc::types::common::c99::int32_t;
 import libc::{c_uint, c_int, c_void};
 import font::font;
 import glyph::{glyph, glyph_pos};
 import ptr::{null, addr_of, offset};
+import gfx::geom::{point, px_to_au};
 
 import unsafe::reinterpret_cast;
 import harfbuzz::{HB_MEMORY_MODE_READONLY,
                   HB_DIRECTION_LTR};
 import harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_buffer_t,
-                  hb_codepoint_t, hb_bool_t};
+                  hb_codepoint_t, hb_bool_t, hb_glyph_position_t};
 import harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
                            hb_face_create, hb_face_destroy,
                            hb_font_create, hb_font_destroy,
@@ -42,7 +47,8 @@ fn shape_text(_font: &font, text: str) -> [glyph] {
             var: 0i32
         };
 
-        vec::push(glyphs, glyph(ch as uint, glyph_pos(hb_pos)));
+        let pos = hb_glyph_pos_to_servo_glyph_pos(hb_pos);
+        vec::push(glyphs, glyph(ch as uint, pos));
         cur_x += 10u;
     };
 
@@ -120,6 +126,13 @@ crust fn glyph_func(_font: *hb_font_t,
 
     *glyph = 40 as hb_codepoint_t;
     ret true as hb_bool_t;
+}
+
+fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: hb_glyph_position_t) -> glyph_pos {
+    glyph_pos(point(px_to_au(hb_pos.x_advance as int),
+                    px_to_au(hb_pos.y_advance as int)),
+              point(px_to_au(hb_pos.x_offset as int),
+                    px_to_au(hb_pos.y_offset as int)))
 }
 
 #[test]
