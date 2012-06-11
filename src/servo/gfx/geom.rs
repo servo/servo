@@ -32,10 +32,10 @@ fn zero_size_au() -> size<au> {
     {width: au(0), height: au(0)}
 }
 
-fn px_to_au(i: int) -> au {
+pure fn px_to_au(i: int) -> au {
     au(i * 60)
 }
 
-fn au_to_px(au: au) -> int {
+pure fn au_to_px(au: au) -> int {
     *au / 60
 }

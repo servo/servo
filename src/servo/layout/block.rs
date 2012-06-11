@@ -10,6 +10,8 @@ impl block_layout_methods for @box {
     fn reflow_block(available_width: au) {
         assert self.kind == bk_block;
 
+        #debug["starting reflow block"];
+
         // Root here is the root of the reflow, not necessarily the doc as
         // a whole.
         //
@@ -30,7 +32,7 @@ impl block_layout_methods for @box {
         self.bounds.size = {width: available_width, // FIXME
                             height: au(current_height)};
 
-        #debug["reflow_block size=%?", self.bounds];
+        #debug["reflow_block size=%?", copy self.bounds];
     }
 }
 

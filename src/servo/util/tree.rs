@@ -23,7 +23,7 @@ fn each_child<T:copy,O:rd_tree_ops<T>>(
 
     let mut p = ops.with_tree_fields(node) { |f| f.first_child };
     loop {
-        alt p {
+        alt copy p {
           none { ret; }
           some(c) {
             if !f(c) { ret; }
@@ -54,11 +54,10 @@ fn add_child<T:copy,O:wr_tree_ops<T>>(
         assert child_tf.next_sibling == none;
 
         ops.with_tree_fields(parent) { |parent_tf|
-            alt parent_tf.last_child {
+            alt copy parent_tf.last_child {
               none {
                 parent_tf.first_child = some(child);
               }
-
               some(lc) {
                 let lc = lc; // satisfy alias checker
                 ops.with_tree_fields(lc) { |lc_tf|

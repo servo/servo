@@ -2,6 +2,7 @@ import comm::{port, chan};
 import html::html_methods;
 import css::css_methods;
 import dom::style;
+import option::is_none;
 
 enum parse_state {
     ps_html_normal,
@@ -43,7 +44,7 @@ impl u8_vec_methods for [u8] {
 
 impl util_methods for parser {
     fn get() -> char_or_eof {
-        alt self.lookahead {
+        alt copy self.lookahead {
             some(coe) {
                 let rv = coe;
                 self.lookahead = none;
@@ -59,7 +60,7 @@ impl util_methods for parser {
     }
 
     fn unget(ch: u8) {
-        assert self.lookahead.is_none();
+        assert is_none(self.lookahead);
         self.lookahead = some(coe_char(ch));
     }
 
@@ -316,7 +317,7 @@ mod css {
         }
 
         fn parse_css_element(c : u8) -> token {
-            assert self.lookahead.is_none();
+            assert is_none(self.lookahead);
 
             /* Check for special attributes with an implied element,
             or a wildcard which is not a alphabet character.*/
