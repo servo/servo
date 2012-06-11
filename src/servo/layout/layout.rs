@@ -7,7 +7,7 @@ them to be rendered
 
 import task::*;
 import comm::*;
-import gfx::geom;
+import gfx::geom::{au, au_to_px, px_to_au, point, box};
 import gfx::renderer;
 import dom::base::node;
 import dom::rcu::scope;
@@ -40,7 +40,7 @@ fn layout(to_renderer: chan<renderer::msg>) -> chan<msg> {
                 this_box.dump();
 
 		this_box.apply_style_for_subtree();
-                this_box.reflow(geom::px_to_au(800));
+                this_box.reflow(px_to_au(800));
 
                 let dlist = build_display_list(this_box);
                 to_renderer.send(renderer::render(dlist));
@@ -50,50 +50,82 @@ fn layout(to_renderer: chan<renderer::msg>) -> chan<msg> {
     }
 }
 
-fn build_display_list(box: @base::box) -> display_list::display_list {
-    let mut list = [box_to_display_item(box)];
+#[doc="
+
+Builds a display list for a box and all its children. 
+Args: 
+-box: the box to build the display list for
+-origin: the coordinates of upper-left corner of the box containing
+ the passed in box.
+
+"]
+fn build_display_list_from_origin(box: @base::box, origin : point<au>)
+    -> dl::display_list {
+    let box_origin = point(
+        px_to_au(au_to_px(origin.x) + au_to_px(box.bounds.origin.x)),
+        px_to_au(au_to_px(origin.y) + au_to_px(box.bounds.origin.y)));
+    #debug("Handed origin %?, box has bounds %?, starting with origin %?", origin, copy box.bounds, box_origin);
+
+    let mut list = [box_to_display_item(box, box_origin)];
 
     for btree.each_child(box) {|c|
-        list += build_display_list(c);
+        #debug("Recursively building display list with origin %?", box_origin);
+        list += build_display_list_from_origin(c, box_origin);
     }
 
     #debug("display_list: %?", list);
     ret list;
 }
 
-fn box_to_display_item(box: @base::box) -> dl::display_item {
+fn build_display_list(box : @base::box) -> dl::display_list {
+    ret build_display_list_from_origin(box, point(au(0), au(0)));
+}
+
+#[doc="
+
+Creates a display list item for a single block. 
+Args: 
+-box: the box to build the display list for
+-origin: the coordinates of upper-left corner of the passed in box.
+
+"]
+fn box_to_display_item(box: @base::box, origin : point<au>)
+    -> dl::display_item {
     let mut item;
-    alt box.appearance.background_image {
-      some(image) {
+
+    #debug("request to display a box from origin %?", origin);
+
+    let bounds = {origin : origin, size : box.bounds.size};
+
+    alt (box.appearance.background_image, box.appearance.background_color) {
+      (some(image), some(*)) | (some(image), none) {
 	item = dl::display_item({
 	    item_type: dl::display_item_image(~copy *image),
-	    bounds: copy box.bounds
+	    bounds: bounds
 	});
       }
-      none {
-        alt box.appearance.background_color {
-          some(col) {
-            let red_col = (col >> 16u) & 255u;
-            let green_col = (col >> 8u) & 255u;
-            let blue_col = col & 255u;
+      (none, some(col)) {
+        let red_col = (col >> 16u) & 255u;
+        let green_col = (col >> 8u) & 255u;
+        let blue_col = col & 255u;
 
-	    item = dl::display_item({
-	        item_type: dl::display_item_solid_color(red_col as u8,
-                                                        green_col as u8,
-                                                        blue_col as u8),
-	        bounds: copy box.bounds
-	    });
-          }
-	  none {
-            let r = rand::rng();
-	    item = dl::display_item({
-	        item_type: dl::display_item_solid_color(r.next() as u8,
-						        r.next() as u8,
-						        r.next() as u8),
-	        bounds: copy box.bounds
-	    });
-          }
-        }
+        #debug("Assigning colors (%d, %d, %d) to box with bounds %?", red_col as int, green_col as int, blue_col as int, bounds);
+
+	item = dl::display_item({
+	    item_type: dl::display_item_solid_color(red_col as u8,
+                                                    green_col as u8,
+                                                    blue_col as u8),
+	    bounds: bounds
+	});
+      }
+      (none, none) {
+        let r = rand::rng();
+	item = dl::display_item({
+	    item_type: dl::display_item_solid_color(r.next() as u8,
+						    r.next() as u8,
+						    r.next() as u8),
+	    bounds: bounds
+	});
       }
     }
 

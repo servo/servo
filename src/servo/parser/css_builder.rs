@@ -9,19 +9,20 @@ import parser::lexer::css::{token, to_start_desc, to_end_desc,
                             to_comma, to_elmt, to_attr, to_desc,
                             to_eof};
 import comm::recv;
+import option::is_none;
 
 type token_reader = {stream : port<token>, mut lookahead : option<token>};
 
 impl methods for token_reader {
     fn get() -> token {
-        alt self.lookahead {
+        alt copy self.lookahead {
           some(tok)  { self.lookahead = none; tok }
           none       { recv(self.stream) }
         }
     }
 
     fn unget(tok : token) {
-        assert self.lookahead.is_none();
+        assert is_none(self.lookahead);
         self.lookahead = some(tok);
     }
 }

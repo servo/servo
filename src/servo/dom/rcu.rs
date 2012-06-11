@@ -97,7 +97,7 @@ impl private_methods<T:send,A> for handle<T,A> {
     fn set_rd_aux(t: *A) unsafe { (**self).rd_aux = t; }
     fn set_next_dirty(+h: handle<T,A>) unsafe { (**self).next_dirty = h; }
 
-    fn is_null() -> bool { (*self).is_null() }
+    pure fn is_null() -> bool { (*self).is_null() }
     fn is_not_null() -> bool { (*self).is_not_null() }
 }
 
