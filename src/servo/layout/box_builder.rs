@@ -70,9 +70,14 @@ impl methods for ctxt {
                 di_inline {
                     let anon_box = alt self.anon_box {
                         none {
-                            let b = new_box(kid, bk_inline);
-                            self.anon_box = some(b);
-                            b
+                          // the anonymous box inherits the attributes
+                          // of its parents for now, so that
+                          // properties of intrinsic boxes are not
+                          // spread to their parenting anonymous box.
+                          // TODO: check what css actually specifies
+                          let b = new_box(self.parent_node, bk_inline);
+                          self.anon_box = some(b);
+                          b
                         }
                         some(b) { b }
                     };

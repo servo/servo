@@ -4,7 +4,8 @@ p.blue > p.green + p.red { background-color : blue ;color : green }
 img[class] .pastoral *[lang|=en] { display:inline}
 .book > #novel + *[type=novella] p { color : blue; color : white }
 * {background-color : red}
-* * * * {background-color : black}
+* * * * {background-color : white}
+* * * * * {background-color : rgb(200,0,200)}
 div div {background-color : green}
 * * div {background-color : blue}
 div div div {background-color : rgb(100,100,100)}

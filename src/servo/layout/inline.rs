@@ -12,14 +12,16 @@ impl inline_layout_methods for @box {
     fn reflow_inline(available_width: au) {
         assert self.kind == bk_inline;
 
+        #debug["starting reflow inline"];
+
         // FIXME: This is clownshoes inline layout and is not even close to
         // correct.
-        let y = self.bounds.origin.y;
+        let y = 0;
         let mut x = 0, inline_available_width = *available_width;
         let mut current_height = 0;
         for tree::each_child(btree, self) {
             |kid|
-            kid.bounds.origin = { x: au(x), y: y };
+            kid.bounds.origin = { x: au(x), y: au(y) };
             kid.reflow(au(inline_available_width));
             inline_available_width -= *kid.bounds.size.width;
             x += *kid.bounds.size.width;
