@@ -1,5 +1,5 @@
-import io::println;
-
+import util::color::{Color, methods};
+import util::color::css_colors::black;
 
 enum display_type{
     di_block,
@@ -10,8 +10,8 @@ enum display_type{
 enum style_decl{
     font_size(uint), // Currently assumes format '# pt'
     display(display_type),
-    text_color(uint),
-    background_color(uint)
+    text_color(Color),
+    background_color(Color)
 }
 
 enum attr{
@@ -75,32 +75,32 @@ fn print_display(dis_ty : display_type) -> str {
 
 fn print_style(decl : style_decl) -> str{
     alt decl {
-      font_size(s) { #fmt("Font size = %u pt", s) }
-      display(dis_ty) { #fmt("Display style = %s", print_display(dis_ty)) }
-      text_color(c) { #fmt("Text color = 0x%06x", c) }
-      background_color(c) { #fmt("Background color = 0x%06x", c) }
+      font_size(s) { #fmt["Font size = %u pt", s] }
+      display(dis_ty) { #fmt["Display style = %s", print_display(dis_ty)] }
+      text_color(c) { #fmt["Text color = %s", c.print()] }
+      background_color(c) { #fmt["Background color = %s", c.print()] }
     }
 }
 
 fn print_attr(attribute : attr) -> str {
     alt attribute {
-      exists(att) { #fmt("[%s]", att) }
-      exact(att, val) { #fmt("[%s = %s]", att, val) }
-      includes(att, val) { #fmt("[%s ~= %s]", att, val) }
-      starts_with(att, val) { #fmt("[%s |= %s]", att, val) }
+      exists(att) { #fmt["[%s]", att] }
+      exact(att, val) { #fmt["[%s = %s]", att, val] }
+      includes(att, val) { #fmt["[%s ~= %s]", att, val] }
+      starts_with(att, val) { #fmt["[%s |= %s]", att, val] }
     }
 }
 
 fn print_selector(&&select : ~selector) -> str {
     alt *select {
-      element(s, attrs) { #fmt("Element %s with attributes: %s", s, 
-                               print_list(attrs, print_attr)) }
-      child(sel1, sel2) { #fmt("(%s) > (%s)", print_selector(sel1),
-                               print_selector(sel2)) }
-      descendant(sel1, sel2) { #fmt("(%s) (%s)", print_selector(sel1),
-                                    print_selector(sel2)) }
-      sibling(sel1, sel2) { #fmt("(%s) + (%s)", print_selector(sel1),
-                                    print_selector(sel2)) }
+      element(s, attrs) { #fmt["Element %s with attributes: %s", s, 
+                               print_list(attrs, print_attr)] }
+      child(sel1, sel2) { #fmt["(%s) > (%s)", print_selector(sel1),
+                               print_selector(sel2)] }
+      descendant(sel1, sel2) { #fmt["(%s) (%s)", print_selector(sel1),
+                                    print_selector(sel2)] }
+      sibling(sel1, sel2) { #fmt["(%s) + (%s)", print_selector(sel1),
+                                    print_selector(sel2)] }
     }
 }
 
@@ -110,13 +110,13 @@ fn print_rule(&&rule : ~rule) -> str {
         let sel_str = print_list(sels, print_selector);
         let sty_str = print_list(styles, print_style);        
         
-        #fmt("Selectors: %s; Style: {%s}", sel_str, sty_str)
+        #fmt["Selectors: %s; Style: {%s}", sel_str, sty_str]
       }
     }
 }
 
 fn print_sheet(sheet : stylesheet) -> str {
-    #fmt("CSS Rules:\n%s", print_list_vert(sheet, print_rule))
+    #fmt["CSS Rules:\n%s", print_list_vert(sheet, print_rule)]
 }
 
 #[test]
@@ -132,12 +132,12 @@ fn test_pretty_print() {
     let elmt2 = ~element("body", [exact("class", "2")]);
 
     let test2 = [~([~descendant(elmt1, elmt2)],
-                  [display(di_block), text_color(0u)])];
+                  [display(di_block), text_color(black())])];
 
     let actual2 = print_sheet(test2);
     let expected2 =  "CSS Rules:\n-Selectors: (Element * with attributes: ) "
         + "(Element body with attributes: [class = 2]); " + 
-        "Style: {Display style = block, Text color = 0x000000}";
+        "Style: {Display style = block, Text color = rgba(0,0,0,1)}";
 
     assert(actual2 == expected2);
 }
