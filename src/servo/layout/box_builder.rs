@@ -10,6 +10,7 @@ import /*layout::*/base::{rd_tree_ops, wr_tree_ops};
 import /*layout::*/style::style::{style_methods};
 import /*layout::*/text::text_box;
 import util::tree;
+import option::is_none;
 
 export box_builder_methods;
 
@@ -130,7 +131,7 @@ impl methods for ctxt {
         }
 
         self.finish_anonymous_box_if_necessary();
-        assert self.anon_box.is_none();
+        assert is_none(self.anon_box);
     }
 
     #[doc="
@@ -138,7 +139,7 @@ impl methods for ctxt {
         anonymous box to the block.
     "]
     fn finish_anonymous_box_if_necessary() {
-        alt self.anon_box {
+        alt copy self.anon_box {
             none { /* Nothing to do. */ }
             some(b) { btree.add_child(self.parent_box, b); }
         }

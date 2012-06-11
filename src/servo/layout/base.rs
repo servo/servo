@@ -105,7 +105,7 @@ impl layout_methods for @box {
     fn reflow_intrinsic(size: geom::size<au>) {
         self.bounds.size = copy size;
 
-        #debug["reflow_intrinsic size=%?", self.bounds];
+        #debug["reflow_intrinsic size=%?", copy self.bounds];
     }
 
     #[doc="Dumps the box tree, for debugging."]
