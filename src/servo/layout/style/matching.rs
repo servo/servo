@@ -207,10 +207,11 @@ mod test {
     import dvec::{dvec, extensions};
     import io::println;
 
-    fn new_node_from_attr(scope : node_scope, name : str, val : str) -> node {
+    fn new_node_from_attr(scope : node_scope, -name : str, -val : str) -> node
+    {
         let elmt = dom::base::element("div", ~es_div);
         let attr = ~attr(name, val);
-        elmt.attrs.push(copy attr);
+        elmt.attrs.push(attr);
         ret scope.new_node(nk_element(elmt));        
     }
 

@@ -475,31 +475,34 @@ fn parser(reader: io::reader, state : parse_state) -> parser {
     ret { mut lookahead: none, mut state: state, reader: reader };
 }
 
-fn spawn_html_parser_task(filename: str) -> port<html::token> {
+fn spawn_html_parser_task(-filename: ~str) -> port<html::token> {
     let result_port = port();
     let result_chan = chan(result_port);
     task::spawn {||
+        let filename <- *filename;
+        assert (copy filename).ends_with(".html");
         let file_data = io::read_whole_file(filename).get();
         let reader = io::bytes_reader(file_data);
         
-        assert filename.ends_with(".html");
         let parser = parser(reader, ps_html_normal);
 
         loop {
             let token = parser.parse_html();
+            let should_break = token == html::to_eof;
             result_chan.send(token);
-            if token == html::to_eof { break; }
+            if should_break { break; }
         }
     };
     ret result_port;
 }
 
-fn spawn_css_lexer_task(filename: str) -> port<css::token> {
+fn spawn_css_lexer_task(-filename: ~str) -> port<css::token> {
     let result_port = port();
     let result_chan = chan(result_port);
     task::spawn {||
-        assert filename.ends_with(".css");
+        let filename <- *filename;
 
+        assert (copy filename).ends_with(".css");
         let file_try = io::read_whole_file(filename);
 
         // Check if the given css file existed, if it does, parse it,
@@ -515,8 +518,9 @@ fn spawn_css_lexer_task(filename: str) -> port<css::token> {
 
             loop {
                 let token = parser.parse_css();
+                let should_break = token == css::to_eof;
                 result_chan.send(token);
-                if token == css::to_eof { break; }
+                if should_break { break; }
             }
         } else {
             #debug["Failed to open css sheet %s", filename];

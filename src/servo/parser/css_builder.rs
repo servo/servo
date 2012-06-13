@@ -16,12 +16,12 @@ type token_reader = {stream : port<token>, mut lookahead : option<token>};
 impl methods for token_reader {
     fn get() -> token {
         alt copy self.lookahead {
-          some(tok)  { self.lookahead = none; tok }
+          some(tok)  { self.lookahead = none; let t <- tok; t }
           none       { recv(self.stream) }
         }
     }
 
-    fn unget(tok : token) {
+    fn unget(-tok : token) {
         assert is_none(self.lookahead);
         self.lookahead = some(tok);
     }
@@ -30,7 +30,7 @@ impl methods for token_reader {
 fn parse_element(reader : token_reader) -> option<~selector> {
     // Get the current element type
     let elmt_name = alt reader.get() {
-      to_elmt(tag)  { tag }
+      to_elmt(tag)  { let t <- tag; t }
       to_eof        { ret none; }
       _             { fail "Expected an element" }
     };
@@ -41,7 +41,7 @@ fn parse_element(reader : token_reader) -> option<~selector> {
     loop {
         let tok = reader.get();
         alt tok {
-          to_attr(attr)       { attr_list += [attr]; }
+          to_attr(attr)       { let a <- attr; attr_list += [a]; }
           to_start_desc | to_descendant | to_child | to_sibling 
           | to_comma {
             reader.unget(tok); 

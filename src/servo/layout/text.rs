@@ -8,7 +8,7 @@ class text_box {
     let text: str;
     let mut run: option<text_run>;
 
-    new(text: str) {
+    new(-text: str) {
         self.text = text;
         self.run = none;
     }
@@ -22,7 +22,7 @@ impl text_layout_methods for @box {
             _ { fail "expected text box in reflow_text!" }
         };
 
-        let run = text_run(subbox.text);
+        let run = text_run(copy subbox.text);
         subbox.run = some(copy run);
         run.shape();
 
