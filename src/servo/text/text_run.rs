@@ -7,7 +7,7 @@ class text_run {
     let text: str;
     let mut glyphs: option<[glyph]>;
 
-    new(text: str) {
+    new(-text: str) {
         self.text = text;
         self.glyphs = none;
     }

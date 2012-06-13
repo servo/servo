@@ -9,8 +9,8 @@ import layout::layout;
 import js::rust::methods;
 
 enum msg {
-    parse(str),
-    execute(str),
+    parse(~str),
+    execute(~str),
     exit
 }
 
@@ -37,20 +37,21 @@ fn content(to_layout: chan<layout::msg>) -> chan<msg> {
         loop {
             alt from_master.recv() {
               parse(filename) {
-                #debug["content: Received filename `%s` to parse", filename];
+                #debug["content: Received filename `%s` to parse", *filename];
 
                 // TODO actually parse where the css sheet should be
                 // Replace .html with .css and try to open a stylesheet
-                assert filename.ends_with(".html");
-                let new_file = filename.substr(0u, filename.len() - 5u)
+                assert (*filename).ends_with(".html");
+                let new_file = (*filename).substr(0u, (*filename).len() - 5u)
                     + ".css";
 
                 // Send off a task to parse the stylesheet
                 let css_port = comm::port();
                 let css_chan = comm::chan(css_port);
                 task::spawn {||
+                    let new_file <- new_file;
                     let css_stream = parser::lexer::
-                        spawn_css_lexer_task(new_file);
+                        spawn_css_lexer_task(~new_file);
                     let css_rules = parser::css_builder::
                         build_stylesheet(css_stream);
                     css_chan.send(css_rules);
@@ -81,11 +82,12 @@ fn content(to_layout: chan<layout::msg>) -> chan<msg> {
                 scope.reader_forked();
               }
               execute(filename) {
-                #debug["content: Received filename `%s` to execute", filename];
+                #debug["content: Received filename `%s` to execute",
+                       *filename];
 
-                alt io::read_whole_file(filename) {
+                alt io::read_whole_file(*filename) {
                   result::err(msg) {
-                    io::println(#fmt["Error opening %s: %s", filename, msg]);
+                    io::println(#fmt["Error opening %s: %s", *filename, msg]);
                   }
                   result::ok(bytes) {
                     let cx = rt.cx();
@@ -93,7 +95,8 @@ fn content(to_layout: chan<layout::msg>) -> chan<msg> {
                     cx.set_logging_error_reporter();
                     cx.new_compartment(js::global::global_class).chain { |comp|
                         comp.define_functions(js::global::debug_fns);
-                        cx.evaluate_script(comp.global_obj, bytes, filename, 1u)
+                        cx.evaluate_script(comp.global_obj, bytes, *filename,
+                                           1u)
                     };
                   }
                 }

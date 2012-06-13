@@ -10,15 +10,15 @@ import parser::token;
 import gfx::geom;
 import dvec::extensions;
 
-fn link_up_attribute(scope: dom::node_scope, node: dom::node, key: str,
-                     value: str) {
+fn link_up_attribute(scope: dom::node_scope, node: dom::node, -key: str,
+                     -value: str) {
     // TODO: Implement atoms so that we don't always perform string
     // comparisons.
     scope.rd(node) {
         |node_contents|
         alt *node_contents.kind {
             dom::nk_element(element) {
-                element.attrs.push(~attr(key, value));
+                element.attrs.push(~attr(copy key, copy value));
                 alt *element.subclass {
                     es_img(img) if key == "width" {
                         alt int::from_str(value) {
@@ -89,6 +89,7 @@ fn build_dom(scope: dom::node_scope,
                 cur = scope.get_parent(cur).get();
             }
             parser::to_text(s) if !s.is_whitespace() {
+                let s <- s;
                 let new_node = scope.new_node(dom::nk_text(s));
                 scope.add_child(cur, new_node);
             }
