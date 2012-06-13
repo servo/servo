@@ -1,7 +1,7 @@
 import gfx::renderer;
 
 enum msg {
-    load_url(str),
+    load_url(~str),
     exit(comm::chan<()>)
 }
 
@@ -20,7 +20,8 @@ fn engine<S: renderer::sink send copy>(sink: S) -> comm::chan<msg> {
         loop {
             alt self_ch.recv() {
               load_url(url) {
-                if url.ends_with(".js") {
+                let url <- url;
+                if (*url).ends_with(".js") {
                     content.send(content::execute(url))
                 } else {
                     content.send(content::parse(url))

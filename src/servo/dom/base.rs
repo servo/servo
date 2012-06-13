@@ -19,7 +19,7 @@ class element {
     let subclass: ~element_subclass;
     let attrs: dvec<~attr>;
 
-    new(tag_name: str, -subclass: ~element_subclass) {
+    new(-tag_name: str, -subclass: ~element_subclass) {
         self.tag_name = tag_name;
         self.subclass = subclass;
         self.attrs = dvec();
@@ -29,7 +29,7 @@ class element {
         let mut i = 0u;
         while i < self.attrs.len() {
             if attr_name == self.attrs[i].name {
-                ret some(self.attrs[i].value);
+                ret some(copy self.attrs[i].value);
             }
             i += 1u;
         }
@@ -41,7 +41,7 @@ class attr {
     let name: str;
     let value: str;
 
-    new(name: str, value: str) {
+    new(-name: str, -value: str) {
         self.name = name;
         self.value = value;
     }

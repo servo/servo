@@ -41,7 +41,7 @@ fn run_pipeline_screen(urls: [str]) {
 
         for urls.each { |filename|
             #debug["master: Sending filename `%s`", filename];
-            engine.send(engine::load_url(filename));
+            engine.send(engine::load_url(~copy filename));
             #debug["master: Waiting for keypress"];
             key_ch.recv();
         }
@@ -56,7 +56,7 @@ fn run_pipeline_screen(urls: [str]) {
     osmain.send(platform::osmain::exit);
 }
 
-fn run_pipeline_png(url: str, outfile: str) {
+fn run_pipeline_png(-url: str, outfile: str) {
 
     // Use a PNG encoder as the graphics sink
     import gfx::pngsink;
@@ -65,7 +65,8 @@ fn run_pipeline_png(url: str, outfile: str) {
     listen {|pngdata|
         let sink = pngsink::pngsink(pngdata);
         let engine = engine::engine(sink);
-        engine.send(engine::load_url(url));
+        let url <- url;
+        engine.send(engine::load_url(~url));
         alt io::buffered_file_writer(outfile) {
           result::ok(writer) {
             import io::writer;
