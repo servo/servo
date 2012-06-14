@@ -5,10 +5,12 @@ import dom::base::{attr, element, element_subclass, es_div, es_head, es_img};
 import dom::base::{es_unknown, methods, nk_element, nk_text, rd_tree_ops};
 import dom::base::{wr_tree_ops};
 import dom = dom::base;
+import dvec::extensions;
+import geom::size::Size2D;
+import gfx::geometry;
+import gfx::geometry::au;
 import parser = parser::lexer::html;
 import parser::token;
-import gfx::geom;
-import dvec::extensions;
 
 fn link_up_attribute(scope: dom::node_scope, node: dom::node, -key: str,
                      -value: str) {
@@ -22,14 +24,20 @@ fn link_up_attribute(scope: dom::node_scope, node: dom::node, -key: str,
                 alt *element.subclass {
                     es_img(img) if key == "width" {
                         alt int::from_str(value) {
-                            none { /* drop on the floor */ }
-                            some(s) { img.size.width = geom::px_to_au(s); }
+                            none {
+                                // Drop on the floor.
+                            }
+                            some(s) { img.size.width = geometry::px_to_au(s); }
                         }
                     }
                     es_img(img) if key == "height" {
                         alt int::from_str(value) {
-                            none { /* drop on the floor */ }
-                            some(s) { img.size.height = geom::px_to_au(s); }
+                            none {
+                                // Drop on the floor.
+                            }
+                            some(s) {
+                                img.size.height = geometry::px_to_au(s);
+                            }
                         }
                     }
                     es_div | es_img(*) | es_head | es_unknown {
@@ -48,10 +56,10 @@ fn build_element_subclass(tag_name: str) -> ~element_subclass {
     alt tag_name {
         "div" { ret ~es_div; }
         "img" {
-            ret ~es_img({mut size: {
-                width: geom::px_to_au(100),
-                height: geom::px_to_au(100)
-            }});
+            ret ~es_img({
+                mut size: Size2D(geometry::px_to_au(100),
+                                 geometry::px_to_au(100))
+            });
         }
         "head" { ret ~es_head; }
         _ { ret ~es_unknown; }

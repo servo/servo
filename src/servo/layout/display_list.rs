@@ -1,4 +1,5 @@
-import gfx::geom::*;
+import gfx::geometry::*;
+import geom::rect::Rect;
 import image::base::image;
 
 enum item_type {
@@ -10,7 +11,7 @@ enum item_type {
 
 enum display_item = {
     item_type: item_type,
-    bounds: rect<au>
+    bounds: Rect<au>
 };
 
 type display_list = [display_item];

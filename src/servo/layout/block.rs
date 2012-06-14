@@ -1,6 +1,8 @@
 #[doc="Block layout."]
 
-import gfx::geom::au;
+import geom::point::Point2D;
+import geom::size::Size2D;
+import gfx::geometry::au;
 import /*layout::*/base::*; // FIXME: Can't get around import *; resolve bug.
 import util::tree;
 
@@ -24,13 +26,13 @@ impl block_layout_methods for @box {
         for tree::each_child(btree, self) {|c|
             let mut blk_available_width = available_width;
             // FIXME subtract borders, margins, etc
-            c.bounds.origin = {x: au(0), y: au(current_height)};
+            c.bounds.origin = Point2D(au(0), au(current_height));
             c.reflow(blk_available_width);
             current_height += *c.bounds.size.height;
         }
 
-        self.bounds.size = {width: available_width, // FIXME
-                            height: au(current_height)};
+        // FIXME: Width is wrong in the calculation below.
+        self.bounds.size = Size2D(available_width, au(current_height));
 
         #debug["reflow_block size=%?", copy self.bounds];
     }

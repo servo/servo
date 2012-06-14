@@ -3,7 +3,7 @@
 import dom::base::{element, es_div, es_img, nk_element, nk_text, node};
 import dom::style::{display_type, di_block, di_inline, di_none};
 import dom::rcu::reader_methods;
-import gfx::geom;
+import gfx::geometry;
 import /*layout::*/base::{appearance, bk_block, bk_inline, bk_intrinsic};
 import /*layout::*/base::{bk_text, box, box_kind, btree, node_methods, ntree};
 import /*layout::*/base::{rd_tree_ops, wr_tree_ops};
@@ -30,7 +30,7 @@ enum ctxt = {
 fn new_box(n: node, kind: box_kind) -> @box {
     @box({tree: tree::empty(),
           node: n,
-          mut bounds: geom::zero_rect_au(),
+          mut bounds: geometry::zero_rect_au(),
           kind: kind,
           appearance: appearance() })
 }

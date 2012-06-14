@@ -1,5 +1,5 @@
 import platform::osmain;
-import geom::*;
+import geometry::*;
 import comm::*;
 import image::base::image;
 import dl = layout::display_list;

@@ -3,8 +3,11 @@
 import dom::base::{element, es_div, es_img, node_data, node_kind, node};
 import dom::rcu;
 import dom::rcu::reader_methods;
-import gfx::geom;
-import gfx::geom::{size, rect, point, au, zero_size_au};
+import gfx::geometry;
+import gfx::geometry::{au, zero_size_au};
+import geom::point::Point2D;
+import geom::rect::Rect;
+import geom::size::Size2D;
 import image::base::image;
 import /*layout::*/block::block_layout_methods;
 import /*layout::*/inline::inline_layout_methods;
@@ -15,7 +18,7 @@ import util::tree;
 enum box_kind {
     bk_block,
     bk_inline,
-    bk_intrinsic(@geom::size<au>),
+    bk_intrinsic(@Size2D<au>),
     bk_text(@text_box)
 }
 
@@ -32,7 +35,7 @@ class appearance {
 enum box = {
     tree: tree::fields<@box>,
     node: node,
-    mut bounds: geom::rect<au>,
+    mut bounds: Rect<au>,
     kind: box_kind,
     appearance: appearance
 };
@@ -102,7 +105,7 @@ impl layout_methods for @box {
     }
 
     #[doc="The trivial reflow routine for instrinsically-sized frames."]
-    fn reflow_intrinsic(size: geom::size<au>) {
+    fn reflow_intrinsic(size: Size2D<au>) {
         self.bounds.size = copy size;
 
         #debug["reflow_intrinsic size=%?", copy self.bounds];
@@ -162,7 +165,7 @@ mod test {
     }
     */
 
-    fn flat_bounds(root: @box) -> [geom::rect<au>] {
+    fn flat_bounds(root: @box) -> [Rect<au>] {
         let mut r = [];
         for tree::each_child(btree, root) {|c|
             r += flat_bounds(c);
@@ -175,13 +178,13 @@ mod test {
     fn do_layout() {
         let s = scope();
 
-        fn mk_img(size: size<au>) -> ~dom::base::element_subclass {
+        fn mk_img(size: Size2D<au>) -> ~dom::base::element_subclass {
             ~es_img({mut size: size})
         }
 
-        let n0 = s.new_node(nk_element(element("img", mk_img(size(au(10),au(10))))));
-        let n1 = s.new_node(nk_element(element("img", mk_img(size(au(10),au(10))))));
-        let n2 = s.new_node(nk_element(element("img", mk_img(size(au(10),au(20))))));
+        let n0 = s.new_node(nk_element(element("img", mk_img(Size2D(au(10),au(10))))));
+        let n1 = s.new_node(nk_element(element("img", mk_img(Size2D(au(10),au(10))))));
+        let n2 = s.new_node(nk_element(element("img", mk_img(Size2D(au(10),au(20))))));
         let n3 = s.new_node(nk_element(element("div", ~es_div)));
 
         tree::add_child(s, n3, n0);
@@ -200,10 +203,10 @@ mod test {
         b3.reflow_block(au(100));
         let fb = flat_bounds(b3);
         #debug["fb=%?", fb];
-        assert fb == [geom::box(au(0), au(0), au(10), au(10)),   // n0
-                      geom::box(au(0), au(10), au(10), au(15)),  // n1
-                      geom::box(au(0), au(25), au(10), au(20)),  // n2
-                      geom::box(au(0), au(0), au(100), au(45))]; // n3
+        assert fb == [geometry::box(au(0), au(0), au(10), au(10)),   // n0
+                      geometry::box(au(0), au(10), au(10), au(15)),  // n1
+                      geometry::box(au(0), au(25), au(10), au(20)),  // n2
+                      geometry::box(au(0), au(0), au(100), au(45))]; // n3
     }
 }
 

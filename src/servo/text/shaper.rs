@@ -7,7 +7,8 @@ import libc::{c_uint, c_int, c_void};
 import font::font;
 import glyph::{glyph, glyph_pos};
 import ptr::{null, addr_of, offset};
-import gfx::geom::{point, px_to_au};
+import gfx::geometry::{au, px_to_au};
+import geom::point::Point2D;
 
 import unsafe::reinterpret_cast;
 import harfbuzz::{HB_MEMORY_MODE_READONLY,
@@ -130,10 +131,10 @@ crust fn glyph_func(_font: *hb_font_t,
 }
 
 fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: hb_glyph_position_t) -> glyph_pos {
-    glyph_pos(point(px_to_au(hb_pos.x_advance as int),
-                    px_to_au(hb_pos.y_advance as int)),
-              point(px_to_au(hb_pos.x_offset as int),
-                    px_to_au(hb_pos.y_offset as int)))
+    glyph_pos(Point2D(px_to_au(hb_pos.x_advance as int),
+                      px_to_au(hb_pos.y_advance as int)),
+              Point2D(px_to_au(hb_pos.x_offset as int),
+                      px_to_au(hb_pos.y_offset as int)))
 }
 
 #[test]

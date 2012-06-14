@@ -1,5 +1,5 @@
-import gfx::geom;
-import gfx::geom::size;
+import geom::size::Size2D;
+import int::num;
 
 enum format {
     fo_rgba_8888
@@ -7,7 +7,7 @@ enum format {
 }
 
 type image_surface = {
-    size: geom::size<int>,
+    size: Size2D<int>,
     format: format,
     buffer: [u8]
 };
@@ -20,7 +20,7 @@ impl format for format {
     }
 }
 
-fn image_surface(size: geom::size<int>, format: format) -> image_surface {
+fn image_surface(size: Size2D<int>, format: format) -> image_surface {
     {
         size: copy size,
         format: format,

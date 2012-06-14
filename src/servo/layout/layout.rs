@@ -7,7 +7,9 @@ them to be rendered
 
 import task::*;
 import comm::*;
-import gfx::geom::{au, au_to_px, px_to_au, point, box};
+import gfx::geometry::{au, au_to_px, box, px_to_au};
+import geom::point::Point2D;
+import geom::rect::Rect;
 import gfx::renderer;
 import dom::base::node;
 import dom::rcu::scope;
@@ -52,16 +54,18 @@ fn layout(to_renderer: chan<renderer::msg>) -> chan<msg> {
 
 #[doc="
 
-Builds a display list for a box and all its children. 
-Args: 
--box: the box to build the display list for
--origin: the coordinates of upper-left corner of the box containing
- the passed in box.
+Builds a display list for a box and all its children.
+
+# Arguments
+
+* `box` - The box to build the display list for.
+* `origin` - The coordinates of upper-left corner of the box containing the
+             passed-in box.
 
 "]
-fn build_display_list_from_origin(box: @base::box, origin : point<au>)
+fn build_display_list_from_origin(box: @base::box, origin: Point2D<au>)
     -> dl::display_list {
-    let box_origin = point(
+    let box_origin = Point2D(
         px_to_au(au_to_px(origin.x) + au_to_px(box.bounds.origin.x)),
         px_to_au(au_to_px(origin.y) + au_to_px(box.bounds.origin.y)));
     #debug("Handed origin %?, box has bounds %?, starting with origin %?", origin, copy box.bounds, box_origin);
@@ -78,7 +82,7 @@ fn build_display_list_from_origin(box: @base::box, origin : point<au>)
 }
 
 fn build_display_list(box : @base::box) -> dl::display_list {
-    ret build_display_list_from_origin(box, point(au(0), au(0)));
+    ret build_display_list_from_origin(box, Point2D(au(0), au(0)));
 }
 
 #[doc="
@@ -89,13 +93,13 @@ Args:
 -origin: the coordinates of upper-left corner of the passed in box.
 
 "]
-fn box_to_display_item(box: @base::box, origin : point<au>)
+fn box_to_display_item(box: @base::box, origin: Point2D<au>)
     -> dl::display_item {
     let mut item;
 
     #debug("request to display a box from origin %?", origin);
 
-    let bounds = {origin : origin, size : box.bounds.size};
+    let bounds = Rect(origin, copy box.bounds.size);
 
     alt (box.appearance.background_image, box.appearance.background_color) {
       (some(image), some(*)) | (some(image), none) {

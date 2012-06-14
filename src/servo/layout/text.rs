@@ -1,6 +1,7 @@
 #[doc="Text layout."]
 
-import gfx::geom::au;
+import geom::size::Size2D;
+import gfx::geometry::au;
 import /*layout::*/base::*; // FIXME: Can't get around import *; resolve bug.
 import servo_text::text_run::text_run;
 
@@ -26,16 +27,16 @@ impl text_layout_methods for @box {
         subbox.run = some(copy run);
         run.shape();
 
-        self.bounds.size = {
-            width:
-                alt vec::last_opt(run.glyphs.get()) {
-                    some(glyph) {
-                        au(*glyph.pos.offset.x + *glyph.pos.advance.x)
-                    }
-                    none { au(0) }
-                },
-            height: au(60 * 14)
-        };
+        self.bounds.size =
+            Size2D(alt vec::last_opt(run.glyphs.get()) {
+                        some(glyph) {
+                            au(*glyph.pos.offset.x + *glyph.pos.advance.x)
+                        }
+                        none {
+                            au(0)
+                        }
+                   },
+                   au(60 * 14));
     }
 }
 

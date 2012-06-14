@@ -11,6 +11,7 @@ use sdl;
 use azure;
 use js;
 use stb_image;
+use geom;
 
 mod dom {
     mod base;
@@ -19,7 +20,7 @@ mod dom {
 }
 
 mod gfx {
-    mod geom;
+    mod geometry;
     mod surface;
     mod renderer;
     mod pngsink;

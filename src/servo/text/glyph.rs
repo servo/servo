@@ -1,10 +1,11 @@
-import gfx::geom::{au, point};
+import gfx::geometry::au;
+import geom::point::Point2D;
 
 #[doc="The position of a glyph on the screen."]
 class glyph_pos {
-    let advance: point<au>;
-    let offset: point<au>;
-    new(advance: point<au>, offset: point<au>) {
+    let advance: Point2D<au>;
+    let offset: Point2D<au>;
+    new(advance: Point2D<au>, offset: Point2D<au>) {
         self.advance = advance;
         self.offset = offset;
     }

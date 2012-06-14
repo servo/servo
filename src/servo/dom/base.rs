@@ -1,5 +1,6 @@
 import dom::rcu::{writer_methods};
-import gfx::geom::{au, size};
+import gfx::geometry::au;
+import geom::size::Size2D;
 import layout::base::layout_data;
 import util::tree;
 import dvec::{dvec, extensions};
@@ -50,7 +51,7 @@ class attr {
 enum element_subclass {
     es_unknown,
     es_div,
-    es_img({mut size: size<au>}),
+    es_img({mut size: Size2D<au>}),
     es_head
 }
 
