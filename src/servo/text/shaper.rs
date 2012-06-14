@@ -13,7 +13,8 @@ import unsafe::reinterpret_cast;
 import harfbuzz::{HB_MEMORY_MODE_READONLY,
                   HB_DIRECTION_LTR};
 import harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_buffer_t,
-                  hb_codepoint_t, hb_bool_t, hb_glyph_position_t};
+                  hb_codepoint_t, hb_bool_t, hb_glyph_position_t,
+				  hb_var_int_t};
 import harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
                            hb_face_create, hb_face_destroy,
                            hb_font_create, hb_font_destroy,
@@ -44,7 +45,7 @@ fn shape_text(_font: &font, text: str) -> [glyph] {
             y_advance: 0 as int32_t,
             x_offset: cur_x as int32_t,
             y_offset: 0 as int32_t,
-            var: 0i32
+            var: 0 as hb_var_int_t
         };
 
         let pos = hb_glyph_pos_to_servo_glyph_pos(hb_pos);

@@ -20,6 +20,7 @@ RUSTFLAGS += \
 	-L src/rust-sdl \
 	-L src/rust-cocoa \
 	-L src/rust-stb-image \
+	-L src/rust-geom \
 	$(NULL)
 
 RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
@@ -47,6 +48,7 @@ SERVO_DEPS += \
 	src/rust-azure/libazure.dummy \
 	src/rust-sdl/libsdl.dummy \
 	src/rust-stb-image/libstb-image.dummy \
+	src/rust-geom/libgeom.dummy \
 	$(NULL)
 
 CHECK_DEPS += \
@@ -55,6 +57,7 @@ CHECK_DEPS += \
 	check-rust-sdl \
 	check-rust-azure \
 	check-rust-stb-image \
+	check-rust-geom \
 	check-servo \
 	$(NULL)
 
@@ -66,6 +69,7 @@ CLEAN_DEPS += \
 	clean-rust-sdl \
 	clean-rust-azure \
 	clean-rust-stb-image \
+	clean-rust-geom \
 	clean-servo \
 	$(NULL)
 
@@ -91,7 +95,8 @@ src/rust-harfbuzz/libharfbuzz.dummy: src/harfbuzz/src/.libs/libharfbuzz.a
 	$(MAKE) -C src/rust-harfbuzz RUSTFLAGS="-L ../harfbuzz/src/.libs/"
 
 src/rust-mozjs/libmozjs.dummy: src/mozjs/libjs_static.a
-	$(MAKE) -C src/rust-mozjs RUSTFLAGS="-L ../mozjs/"
+	$(MAKE) -C src/rust-mozjs \
+		RUSTFLAGS="-L ../mozjs/" CFLAGS="-I../mozjs/dist/include"
 
 src/rust-azure/libazure.dummy: $(AZURE_DEPS)
 	RUSTFLAGS="-L ../rust-cocoa" $(MAKE) -C src/rust-azure
@@ -104,6 +109,9 @@ src/rust-cocoa/libcocoa.dummy:
 
 src/rust-stb-image/libstb-image.dummy:
 	$(MAKE) -C src/rust-stb-image
+
+src/rust-geom/libgeom.dummy:
+	$(MAKE) -C src/rust-geom
 
 check: $(CHECK_DEPS)
 
@@ -133,6 +141,10 @@ check-rust-cocoa:
 .PHONY: check-rust-stb-image
 check-rust-stb-image:
 	$(MAKE) check -C src/rust-stb-image
+
+.PHONY: check-geom
+check-geom:
+	$(MAKE) check -C src/rust-geom
 
 .PHONY:	clean
 clean: $(CLEAN_DEPS)
@@ -168,6 +180,10 @@ clean-rust-cocoa:
 .PHONY: clean-rust-stb-image
 clean-rust-stb-image:
 	$(MAKE) clean -C src/rust-stb-image
+
+.PHONY: clean-rust-geom
+clean-rust-geom:
+	$(MAKE) clean -C src/rust-geom
 
 .PHONY: clean-servo
 clean-servo:
