@@ -22,19 +22,19 @@ fn engine<S:renderer::sink send copy>(sink: S) -> chan<Msg> {
               LoadURLMsg(url) {
                 let url <- url;
                 if (*url).ends_with(".js") {
-                    content.send(content::execute(url))
+                    content.send(content::ExecuteMsg(url))
                 } else {
-                    content.send(content::parse(url))
+                    content.send(content::ParseMsg(url))
                 }
               }
 
               ExitMsg(sender) {
-                content.send(content::exit);
-                layout.send(layout::layout_task::exit);
+                content.send(content::ExitMsg);
+                layout.send(layout::layout_task::ExitMsg);
                 listen {
-                    |resp_ch|
-                    renderer.send(renderer::exit(resp_ch));
-                    resp_ch.recv();
+                    |response_channel|
+                    renderer.send(renderer::ExitMsg(response_channel));
+                    response_channel.recv();
                 }
                 sender.send(());
                 break;

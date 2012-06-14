@@ -114,9 +114,9 @@ fn sanity_check() {
         let renderer = renderer::renderer(sink);
 
         let dlist = [];
-        renderer.send(renderer::render(dlist));
+        renderer.send(renderer::RenderMsg(dlist));
         listen {|resp|
-            renderer.send(renderer::exit(resp));
+            renderer.send(renderer::ExitMsg(resp));
             resp.recv();
         }
         sink.send(exit)

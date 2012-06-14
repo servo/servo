@@ -3,7 +3,7 @@
     tasks.
 "]
 
-export msg, ping;
+export ControlMsg, PingMsg;
 export content;
 
 import result::extensions;
@@ -13,35 +13,37 @@ import dom = dom::base;
 import layout::layout_task;
 import js::rust::methods;
 
-enum msg {
-    parse(~str),
-    execute(~str),
-    exit
+enum ControlMsg {
+    ParseMsg(~str),
+    ExecuteMsg(~str),
+    ExitMsg
 }
 
-enum ping {
-    pong
+enum PingMsg {
+    PongMsg
 }
 
-// sends a ping to layout and awaits the response.
-fn join_layout(scope: dom::node_scope,
-               to_layout: chan<layout_task::msg>) {
+#[doc="Sends a ping to layout and waits for the response."]
+fn join_layout(scope: dom::node_scope, to_layout: chan<layout_task::Msg>) {
+
     if scope.is_reader_forked() {
-        comm::listen { |ch|
-            to_layout.send(layout_task::ping(ch));
-            ch.recv();
+        comm::listen {
+            |from_layout|
+            to_layout.send(layout_task::PingMsg(from_layout));
+            from_layout.recv();
         }
         scope.reader_joined();
     }
 }
 
-fn content(to_layout: chan<layout_task::msg>) -> chan<msg> {
-    task::spawn_listener::<msg> {|from_master|
+fn content(to_layout: chan<layout_task::Msg>) -> chan<ControlMsg> {
+    task::spawn_listener::<ControlMsg> {
+        |from_master|
         let scope = dom::node_scope();
         let rt = js::rust::rt();
         loop {
             alt from_master.recv() {
-              parse(filename) {
+              ParseMsg(filename) {
                 #debug["content: Received filename `%s` to parse", *filename];
 
                 // TODO actually parse where the css sheet should be
@@ -80,13 +82,14 @@ fn content(to_layout: chan<layout_task::msg>) -> chan<msg> {
                 join_layout(scope, to_layout);
 
                 // Send new document to layout.
-                to_layout.send(layout_task::build(root, css_rules));
+                to_layout.send(layout_task::BuildMsg(root, css_rules));
 
                 // Indicate that reader was forked so any further
                 // changes will be isolated.
                 scope.reader_forked();
               }
-              execute(filename) {
+
+              ExecuteMsg(filename) {
                 #debug["content: Received filename `%s` to execute",
                        *filename];
 
@@ -98,16 +101,18 @@ fn content(to_layout: chan<layout_task::msg>) -> chan<msg> {
                     let cx = rt.cx();
                     cx.set_default_options_and_version();
                     cx.set_logging_error_reporter();
-                    cx.new_compartment(js::global::global_class).chain { |comp|
-                        comp.define_functions(js::global::debug_fns);
-                        cx.evaluate_script(comp.global_obj, bytes, *filename,
-                                           1u)
+                    cx.new_compartment(js::global::global_class).chain {
+                        |compartment|
+                        compartment.define_functions(js::global::debug_fns);
+                        cx.evaluate_script(compartment.global_obj, bytes,
+                                           *filename, 1u)
                     };
                   }
                 }
               }
-              exit {
-                to_layout.send(layout_task::exit);
+
+              ExitMsg {
+                to_layout.send(layout_task::ExitMsg);
                 break;
               }
             }

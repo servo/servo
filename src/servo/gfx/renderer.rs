@@ -7,9 +7,9 @@ import azure::*;
 import azure::bindgen::*;
 import libc::size_t;
 
-enum msg {
-    render(dl::display_list),
-    exit(comm::chan<()>)
+enum Msg {
+    RenderMsg(dl::display_list),
+    ExitMsg(comm::chan<()>)
 }
 
 #[doc = "
@@ -21,15 +21,16 @@ iface sink {
     fn draw(next_dt: chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef);
 }
 
-fn renderer<S: sink send copy>(sink: S) -> chan<msg> {
-    task::spawn_listener::<msg> {|po|
-        listen {|draw_target_ch|
+fn renderer<S: sink send copy>(sink: S) -> chan<Msg> {
+    task::spawn_listener::<Msg> {|po|
+        listen {
+            |draw_target_ch|
             #debug("renderer: beginning rendering loop");
             sink.begin_drawing(draw_target_ch);
 
             loop {
                 alt po.recv() {
-                  render(display_list) {
+                  RenderMsg(display_list) {
                     #debug("renderer: got render request");
                     let draw_target = draw_target_ch.recv();
                     #debug("renderer: rendering");
@@ -39,7 +40,7 @@ fn renderer<S: sink send copy>(sink: S) -> chan<msg> {
                     #debug("renderer: returning surface");
                     sink.draw(draw_target_ch, draw_target);
                   }
-                  exit(response_ch) {
+                  ExitMsg(response_ch) {
                     response_ch.send(());
                     break;
                   }

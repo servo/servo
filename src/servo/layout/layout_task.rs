@@ -21,33 +21,37 @@ import box_builder::box_builder_methods;
 import dl = display_list;
 import util::color::methods;
 
-enum msg {
-    build(node, stylesheet),
-    ping(chan<content::ping>),
-    exit
+enum Msg {
+    BuildMsg(node, stylesheet),
+    PingMsg(chan<content::PingMsg>),
+    ExitMsg
 }
 
-fn layout(to_renderer: chan<renderer::msg>) -> chan<msg> {
-    spawn_listener::<msg> { |po|
+fn layout(to_renderer: chan<renderer::Msg>) -> chan<Msg> {
+    spawn_listener::<Msg> { |po|
         loop {
             alt po.recv() {
-              ping(ch) { ch.send(content::pong); }
-              exit { break; }
-              build(node, styles) {
-                #debug("layout: received layout request for:");
-                node.dump();
+                PingMsg(ping_channel) {
+                    ping_channel.send(content::PongMsg);
+                }
+                ExitMsg {
+                    break;
+                }
+                BuildMsg(node, styles) {
+                    #debug("layout: received layout request for:");
+                    node.dump();
 
-                node.recompute_style_for_subtree(styles);
+                    node.recompute_style_for_subtree(styles);
 
-                let this_box = node.construct_boxes();
-                this_box.dump();
+                    let this_box = node.construct_boxes();
+                    this_box.dump();
 
-		this_box.apply_style_for_subtree();
-                this_box.reflow(px_to_au(800));
+                    this_box.apply_style_for_subtree();
+                    this_box.reflow(px_to_au(800));
 
-                let dlist = build_display_list(this_box);
-                to_renderer.send(renderer::render(dlist));
-              }
+                    let dlist = build_display_list(this_box);
+                    to_renderer.send(renderer::RenderMsg(dlist));
+                }
             }
         }
     }
