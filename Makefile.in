@@ -142,8 +142,8 @@ check-rust-cocoa:
 check-rust-stb-image:
 	$(MAKE) check -C src/rust-stb-image
 
-.PHONY: check-geom
-check-geom:
+.PHONY: check-rust-geom
+check-rust-geom:
 	$(MAKE) check -C src/rust-geom
 
 .PHONY:	clean
