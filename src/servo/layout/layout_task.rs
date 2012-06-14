@@ -19,6 +19,7 @@ import layout::style::apply::apply_style_methods;
 import layout::style::style::style_methods;
 import box_builder::box_builder_methods;
 import dl = display_list;
+import util::color::methods;
 
 enum msg {
     build(node, stylesheet),
@@ -109,16 +110,10 @@ fn box_to_display_item(box: @base::box, origin: Point2D<au>)
 	});
       }
       (none, some(col)) {
-        let red_col = (col >> 16u) & 255u;
-        let green_col = (col >> 8u) & 255u;
-        let blue_col = col & 255u;
-
-        #debug("Assigning colors (%d, %d, %d) to box with bounds %?", red_col as int, green_col as int, blue_col as int, bounds);
-
+        #debug("Assigning color %? to box with bounds %?", col, bounds);
 	item = dl::display_item({
-	    item_type: dl::display_item_solid_color(red_col as u8,
-                                                    green_col as u8,
-                                                    blue_col as u8),
+	    item_type: dl::display_item_solid_color(col.red, col.green,
+                                                    col.blue),
 	    bounds: bounds
 	});
       }

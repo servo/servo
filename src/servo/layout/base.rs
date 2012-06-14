@@ -14,6 +14,7 @@ import layout::inline::inline_layout_methods;
 import layout::style::style::*;
 import layout::text::*;
 import util::tree;
+import util::color::Color;
 
 enum box_kind {
     bk_block,
@@ -24,7 +25,7 @@ enum box_kind {
 
 class appearance {
     let mut background_image: option<@image>;
-    let mut background_color: option<uint>;
+    let mut background_color: option<Color>;
 
     new() {
         self.background_image = none;
