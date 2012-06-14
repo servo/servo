@@ -95,8 +95,8 @@ src/rust-harfbuzz/libharfbuzz.dummy: src/harfbuzz/src/.libs/libharfbuzz.a
 	$(MAKE) -C src/rust-harfbuzz RUSTFLAGS="-L ../harfbuzz/src/.libs/"
 
 src/rust-mozjs/libmozjs.dummy: src/mozjs/libjs_static.a
-	$(MAKE) -C src/rust-mozjs \
-		RUSTFLAGS="-L ../mozjs/" CFLAGS="-I../mozjs/dist/include"
+	RUSTFLAGS="-L ../mozjs/" CFLAGS="-I../mozjs/dist/include" \
+		$(MAKE) -C src/rust-mozjs
 
 src/rust-azure/libazure.dummy: $(AZURE_DEPS)
 	RUSTFLAGS="-L ../rust-cocoa" $(MAKE) -C src/rust-azure
@@ -124,7 +124,8 @@ check-rust-harfbuzz: src/harfbuzz/src/.libs/libharfbuzz.a
 
 .PHONY: check-rust-mozjs
 check-rust-mozjs: src/mozjs/libjs_static.a
-	$(MAKE) check -C src/rust-mozjs RUSTFLAGS="-L ../mozjs/"
+	RUSTFLAGS="-L ../mozjs/" CFLAGS="-I../mozjs/dist/include" \
+		$(MAKE) check -C src/rust-mozjs
 
 .PHONY: check-rust-azure
 check-rust-azure: $(AZURE_DEPS)
