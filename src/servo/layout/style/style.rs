@@ -6,7 +6,7 @@ import dom::base::{element, es_div, es_head, es_img, nk_element, nk_text};
 import dom::base::{node};
 import dom::base::node_kind;
 import dom::rcu::reader_methods;
-import /*layout::*/base::*; // FIXME: resolve bug requires *
+import layout::base::*; // FIXME: resolve bug requires *
 import matching::matching_methods;
 
 type computed_style = {mut display : display_type,

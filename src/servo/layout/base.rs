@@ -9,10 +9,10 @@ import geom::point::Point2D;
 import geom::rect::Rect;
 import geom::size::Size2D;
 import image::base::image;
-import /*layout::*/block::block_layout_methods;
-import /*layout::*/inline::inline_layout_methods;
-import /*layout::*/style::style::*;
-import /*layout::*/text::*;
+import layout::block::block_layout_methods;
+import layout::inline::inline_layout_methods;
+import layout::style::style::*;
+import layout::text::*;
 import util::tree;
 
 enum box_kind {

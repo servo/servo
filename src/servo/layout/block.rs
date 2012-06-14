@@ -3,7 +3,7 @@
 import geom::point::Point2D;
 import geom::size::Size2D;
 import gfx::geometry::au;
-import /*layout::*/base::*; // FIXME: Can't get around import *; resolve bug.
+import layout::base::*;     // FIXME: Can't get around import *; resolve bug.
 import util::tree;
 
 #[doc="The public block layout methods."]

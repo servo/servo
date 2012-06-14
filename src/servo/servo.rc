@@ -45,7 +45,7 @@ mod layout {
     mod box_builder;
     mod display_list;
     mod inline;
-    mod layout;
+    mod layout_task;
     mod text;
 }
 

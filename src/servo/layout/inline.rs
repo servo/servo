@@ -5,8 +5,8 @@ import dom::rcu::reader_methods;
 import geom::point::Point2D;
 import geom::size::Size2D;
 import gfx::geometry::au;
-import /*layout::*/base::*; // FIXME: Can't get around import *; resolve bug.
-import /*layout::*/style::style::*; // ditto
+import layout::base::*; // FIXME: Can't get around import *; resolve bug.
+import layout::style::style::*; // ditto
 import util::tree;
 
 #[doc="The main reflow routine for inline layout."]

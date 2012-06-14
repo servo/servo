@@ -12,7 +12,7 @@ fn engine<S: renderer::sink send copy>(sink: S) -> comm::chan<msg> {
         let renderer = renderer::renderer(sink);
 
         // The layout task
-        let layout = layout::layout::layout(renderer);
+        let layout = layout::layout_task::layout(renderer);
 
         // The content task
         let content = content::content(layout);
@@ -29,7 +29,7 @@ fn engine<S: renderer::sink send copy>(sink: S) -> comm::chan<msg> {
               }
               exit(sender) {
                 content.send(content::exit);
-                layout.send(layout::layout::exit);
+                layout.send(layout::layout_task::exit);
                 listen {|resp_ch|
                     renderer.send(renderer::exit(resp_ch));
                     resp_ch.recv();

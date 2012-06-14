@@ -14,9 +14,9 @@ import gfx::renderer;
 import dom::base::node;
 import dom::rcu::scope;
 import dom::style::stylesheet;
-import /*layout::*/base::*;
-import /*layout::*/style::apply::apply_style_methods;
-import /*layout::*/style::style::style_methods;
+import layout::base::*;
+import layout::style::apply::apply_style_methods;
+import layout::style::style::style_methods;
 import box_builder::box_builder_methods;
 import dl = display_list;
 

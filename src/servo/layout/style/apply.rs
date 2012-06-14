@@ -2,7 +2,7 @@
 import dom::base::{es_img, nk_element, node};
 import dom::rcu::reader_methods;
 import image::base::load;
-import /*layout::*/base::*;
+import layout::base::*;
 import style::style_methods;
 
 impl apply_style_methods for @box {

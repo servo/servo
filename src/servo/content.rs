@@ -1,11 +1,16 @@
+#[doc="
+    The content task is the main task that runs JavaScript and spawns layout
+    tasks.
+"]
+
 export msg, ping;
 export content;
 
 import result::extensions;
 import dom::rcu::writer_methods;
 import dom::style;
-import dom=dom::base;
-import layout::layout;
+import dom = dom::base;
+import layout::layout_task;
 import js::rust::methods;
 
 enum msg {
@@ -20,17 +25,17 @@ enum ping {
 
 // sends a ping to layout and awaits the response.
 fn join_layout(scope: dom::node_scope,
-               to_layout: chan<layout::msg>) {
+               to_layout: chan<layout_task::msg>) {
     if scope.is_reader_forked() {
         comm::listen { |ch|
-            to_layout.send(layout::ping(ch));
+            to_layout.send(layout_task::ping(ch));
             ch.recv();
         }
         scope.reader_joined();
     }
 }
 
-fn content(to_layout: chan<layout::msg>) -> chan<msg> {
+fn content(to_layout: chan<layout_task::msg>) -> chan<msg> {
     task::spawn_listener::<msg> {|from_master|
         let scope = dom::node_scope();
         let rt = js::rust::rt();
@@ -75,7 +80,7 @@ fn content(to_layout: chan<layout::msg>) -> chan<msg> {
                 join_layout(scope, to_layout);
 
                 // Send new document to layout.
-                to_layout.send(layout::build(root, css_rules));
+                to_layout.send(layout_task::build(root, css_rules));
 
                 // Indicate that reader was forked so any further
                 // changes will be isolated.
@@ -102,7 +107,7 @@ fn content(to_layout: chan<layout::msg>) -> chan<msg> {
                 }
               }
               exit {
-                to_layout.send(layout::exit);
+                to_layout.send(layout_task::exit);
                 break;
               }
             }
