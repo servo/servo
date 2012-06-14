@@ -25,3 +25,6 @@
 [submodule "src/rust-stb-image"]
 	path = src/rust-stb-image
 	url = git://github.com/pcwalton/rust-stb-image.git
+[submodule "src/rust-geom"]
+	path = src/rust-geom
+	url = git://github.com/pcwalton/rust-geom.git
