@@ -1,13 +1,13 @@
+import comm::chan;
 import gfx::renderer;
 
-enum msg {
-    load_url(~str),
-    exit(comm::chan<()>)
+enum Msg {
+    LoadURLMsg(~str),
+    ExitMsg(comm::chan<()>)
 }
 
-fn engine<S: renderer::sink send copy>(sink: S) -> comm::chan<msg> {
-
-    task::spawn_listener::<msg> {|self_ch|
+fn engine<S:renderer::sink send copy>(sink: S) -> chan<Msg> {
+    task::spawn_listener::<Msg> {|self_ch|
         // The renderer
         let renderer = renderer::renderer(sink);
 
@@ -19,7 +19,7 @@ fn engine<S: renderer::sink send copy>(sink: S) -> comm::chan<msg> {
 
         loop {
             alt self_ch.recv() {
-              load_url(url) {
+              LoadURLMsg(url) {
                 let url <- url;
                 if (*url).ends_with(".js") {
                     content.send(content::execute(url))
@@ -27,10 +27,12 @@ fn engine<S: renderer::sink send copy>(sink: S) -> comm::chan<msg> {
                     content.send(content::parse(url))
                 }
               }
-              exit(sender) {
+
+              ExitMsg(sender) {
                 content.send(content::exit);
                 layout.send(layout::layout_task::exit);
-                listen {|resp_ch|
+                listen {
+                    |resp_ch|
                     renderer.send(renderer::exit(resp_ch));
                     resp_ch.recv();
                 }

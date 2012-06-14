@@ -41,7 +41,7 @@ fn run_pipeline_screen(urls: [str]) {
 
         for urls.each { |filename|
             #debug["master: Sending filename `%s`", filename];
-            engine.send(engine::load_url(~copy filename));
+            engine.send(engine::LoadURLMsg(~copy filename));
             #debug["master: Waiting for keypress"];
             key_ch.recv();
         }
@@ -50,7 +50,7 @@ fn run_pipeline_screen(urls: [str]) {
     // Shut everything down
     #debug["master: Shut down"];
     listen {|resp_ch|
-        engine.send(engine::exit(resp_ch));
+        engine.send(engine::ExitMsg(resp_ch));
         resp_ch.recv();
     }
     osmain.send(platform::osmain::exit);
@@ -66,7 +66,7 @@ fn run_pipeline_png(-url: str, outfile: str) {
         let sink = pngsink::pngsink(pngdata);
         let engine = engine::engine(sink);
         let url <- url;
-        engine.send(engine::load_url(~url));
+        engine.send(engine::LoadURLMsg(~url));
         alt io::buffered_file_writer(outfile) {
           result::ok(writer) {
             import io::writer;
@@ -74,9 +74,9 @@ fn run_pipeline_png(-url: str, outfile: str) {
           }
           result::err(e) { fail e }
         }
-        listen {|resp_ch|
-            engine.send(engine::exit(resp_ch));
-            resp_ch.recv();
+        listen {|response_channel|
+            engine.send(engine::ExitMsg(response_channel));
+            response_channel.recv();
         }
         sink.send(pngsink::exit);
     }
