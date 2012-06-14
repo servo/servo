@@ -1,9 +1,7 @@
 #[doc="High-level interface to CSS selector matching."]
 
-import dom::style::{display_type, di_block, di_inline, di_none, 
-                    stylesheet};
-import dom::base::{element, es_div, es_head, es_img, nk_element, nk_text};
-import dom::base::{node};
+import dom::style::{display_type, di_block, di_inline, di_none, stylesheet};
+import dom::base::{es_div, es_head, es_img, Element, Text, node};
 import dom::base::node_kind;
 import dom::rcu::reader_methods;
 import layout::base::*; // FIXME: resolve bug requires *
@@ -17,21 +15,20 @@ type computed_style = {mut display : display_type,
 #[doc="Returns the default style for the given node kind."]
 fn default_style_for_node_kind(kind: node_kind) -> computed_style {
     alt kind {
-      nk_text(*) {
+      Text(*) {
         {mut display: di_inline, 
-         mut back_color : white()}
+         mut back_color: white()}
       }
-      nk_element(element) {
+      Element(element) {
         let r = rand::rng();
         let rand_color = rgb(r.next() as u8, r.next() as u8, r.next() as u8);
 
         alt *element.subclass {
-          es_div { {mut display : di_block,
-                    mut back_color : rand_color} }
-          es_head { {mut display : di_none, mut back_color : rand_color} }
-          es_img(*) { {mut display : di_inline, mut back_color : rand_color} }
-          es_unknown { {mut display : di_inline, mut back_color : 
-                            rand_color} }
+          es_div { {mut display: di_block,
+                    mut back_color: rand_color} }
+          es_head { {mut display: di_none, mut back_color: rand_color} }
+          es_img(*) { {mut display: di_inline, mut back_color: rand_color} }
+          es_unknown { {mut display: di_inline, mut back_color: rand_color} }
         }
       }
     }
@@ -41,9 +38,8 @@ impl style_priv for node {
     #[doc="
         Performs CSS selector matching on a node.
         
-        This is, importantly, the function that creates the layout data for
-        the node (the reader-auxiliary box in the RCU model) and populates it
-        with the computed style.
+        This is, importantly, the function that creates the layout data for the node (the reader-
+        auxiliary box in the RCU model) and populates it with the computed style.
     "]
     fn recompute_style(styles : stylesheet) {
         let style = self.match_css_style(styles);
@@ -63,8 +59,8 @@ impl style_priv for node {
 
 impl style_methods for node {
     #[doc="
-        Returns the computed style for the given node. If CSS selector matching
-        has not yet been performed, fails.
+        Returns the computed style for the given node. If CSS selector matching has not yet been
+        performed, fails.
 
         TODO: Return a safe reference; don't copy.
     "]
@@ -78,9 +74,8 @@ impl style_methods for node {
     #[doc="
         Performs CSS selector matching on a subtree.
 
-        This is, importantly, the function that creates the layout data for
-        the node (the reader-auxiliary box in the RCU model) and populates it
-        with the computed style.
+        This is, importantly, the function that creates the layout data for the node (the reader-
+        auxiliary box in the RCU model) and populates it with the computed style.
 
         TODO: compute the style of multiple nodes in parallel.
     "]

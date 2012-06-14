@@ -11,11 +11,11 @@ enum node_data = {
 };
 
 enum node_kind {
-    nk_element(element),
-    nk_text(str)
+    Element(ElementData),
+    Text(str)
 }
 
-class element {
+class ElementData {
     let tag_name: str;
     let subclass: ~element_subclass;
     let attrs: dvec<~attr>;
@@ -34,7 +34,8 @@ class element {
             }
             i += 1u;
         }
-        ret none;
+
+        none
     }
 }
 

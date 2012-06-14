@@ -7,8 +7,16 @@
 import float::round;
 import libc::types::os::arch::c95::c_double;
 import css_colors::*;
+import cmp::eq;
 
 enum Color = {red : u8, green : u8, blue : u8, alpha : float};
+
+impl Color of eq for Color {
+    fn eq(&&other: Color) -> bool {
+        ret self.red == other.red && self.green == other.green && self.blue == other.blue &&
+            self.alpha == other.alpha;
+    }
+}
 
 fn rgba(r : u8, g : u8, b : u8, a : float) -> Color {
     Color({red : r, green : g, blue : b, alpha : a})
@@ -172,55 +180,55 @@ mod test {
 
     #[test]
     fn test_parse_by_name() {
-        assert red() == parse_color("red");
-        assert lime() == parse_color("Lime");
-        assert blue() == parse_color("BLUE");
-        assert green() == parse_color("GreEN");
-        assert white() == parse_color("white");
-        assert black() == parse_color("Black");
-        assert gray() == parse_color("Gray");
-        assert silver() == parse_color("SiLvEr");
-        assert maroon() == parse_color("maroon");
-        assert purple() == parse_color("PURPLE");
-        assert fuschia() == parse_color("FUSCHIA");
-        assert olive() == parse_color("oLiVe");
-        assert yellow() == parse_color("yellow");
-        assert navy() == parse_color("NAVY");
-        assert teal() == parse_color("Teal");
-        assert aqua() == parse_color("Aqua");
+        assert red().eq(parse_color("red"));
+        assert lime().eq(parse_color("Lime"));
+        assert blue().eq(parse_color("BLUE"));
+        assert green().eq(parse_color("GreEN"));
+        assert white().eq(parse_color("white"));
+        assert black().eq(parse_color("Black"));
+        assert gray().eq(parse_color("Gray"));
+        assert silver().eq(parse_color("SiLvEr"));
+        assert maroon().eq(parse_color("maroon"));
+        assert purple().eq(parse_color("PURPLE"));
+        assert fuschia().eq(parse_color("FUSCHIA"));
+        assert olive().eq(parse_color("oLiVe"));
+        assert yellow().eq(parse_color("yellow"));
+        assert navy().eq(parse_color("NAVY"));
+        assert teal().eq(parse_color("Teal"));
+        assert aqua().eq(parse_color("Aqua"));
     }
 
     #[test]
     fn test_parsing_rgb() {
-        assert red() == parse_color("rgb(255,0,0)");
-        assert red() == parse_color("rgba(255,0,0,1.0)");
-        assert red() == parse_color("rgba(255,0,0,1)");
-        assert lime() == parse_color("rgba(0,255,0,1.00)");
-        assert rgb(1u8,2u8,3u8) == parse_color("rgb(1,2,03)");
-        assert rgba(15u8,250u8,3u8,0.5) == parse_color("rgba(15,250,3,.5)");
-        assert rgba(15u8,250u8,3u8,0.5) == parse_color("rgba(15,250,3,0.5)");
+        assert red().eq(parse_color("rgb(255,0,0)"));
+        assert red().eq(parse_color("rgba(255,0,0,1.0)"));
+        assert red().eq(parse_color("rgba(255,0,0,1)"));
+        assert lime().eq(parse_color("rgba(0,255,0,1.00)"));
+        assert rgb(1u8,2u8,3u8).eq(parse_color("rgb(1,2,03)"));
+        assert rgba(15u8,250u8,3u8,0.5).eq(parse_color("rgba(15,250,3,.5)"));
+        assert rgba(15u8,250u8,3u8,0.5).eq(parse_color("rgba(15,250,3,0.5)"));
     }
 
     #[test]
     fn test_parsing_hsl() {
-        assert red() == parse_color("hsl(0,1,.5)");
-        assert lime() == parse_color("hsl(120.0,1.0,.5)");
-        assert blue() == parse_color("hsl(240.0,1.0,.5)");
-        assert green() == parse_color("hsl(120.0,1.0,.25)");
-        assert white() == parse_color("hsl(1.0,1.,1.0)");
-        assert white() == parse_color("hsl(129.0,0.3,1.0)");
-        assert black() == parse_color("hsl(231.2,0.75,0.0)");
-        assert black() == parse_color("hsl(11.2,0.0,0.0)");
-        assert gray() == parse_color("hsl(0.0,0.0,0.5)");
-        assert maroon() == parse_color("hsl(0.0,1.0,0.25)");
-        assert purple() == parse_color("hsl(300.0,1.0,0.25)");
-        assert fuschia() == parse_color("hsl(300,1.0,0.5)");
-        assert olive() == parse_color("hsl(60.,1.0,0.25)");
-        assert yellow() == parse_color("hsl(60.,1.0,0.5)");
-        assert navy() == parse_color("hsl(240.0,1.0,.25)");
-        assert teal() == parse_color("hsl(180.0,1.0,.25)");
-        assert aqua() == parse_color("hsl(180.0,1.0,.5)");
-    }        
+        assert red().eq(parse_color("hsl(0,1,.5)"));
+        assert lime().eq(parse_color("hsl(120.0,1.0,.5)"));
+        assert blue().eq(parse_color("hsl(240.0,1.0,.5)"));
+        assert green().eq(parse_color("hsl(120.0,1.0,.25)"));
+        assert white().eq(parse_color("hsl(1.0,1.,1.0)"));
+        assert white().eq(parse_color("hsl(129.0,0.3,1.0)"));
+        assert black().eq(parse_color("hsl(231.2,0.75,0.0)"));
+        assert black().eq(parse_color("hsl(11.2,0.0,0.0)"));
+        assert gray().eq(parse_color("hsl(0.0,0.0,0.5)"));
+        assert maroon().eq(parse_color("hsl(0.0,1.0,0.25)"));
+        assert purple().eq(parse_color("hsl(300.0,1.0,0.25)"));
+        assert fuschia().eq(parse_color("hsl(300,1.0,0.5)"));
+        assert olive().eq(parse_color("hsl(60.,1.0,0.25)"));
+        assert yellow().eq(parse_color("hsl(60.,1.0,0.5)"));
+        assert navy().eq(parse_color("hsl(240.0,1.0,.25)"));
+        assert teal().eq(parse_color("hsl(180.0,1.0,.25)"));
+        assert aqua().eq(parse_color("hsl(180.0,1.0,.5)"));
+    }
 }
 
 

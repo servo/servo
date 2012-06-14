@@ -1,9 +1,8 @@
 #[doc="Constructs a DOM tree from an incoming token stream."]
 
 import dom::rcu::writer_methods;
-import dom::base::{attr, element, element_subclass, es_div, es_head, es_img};
-import dom::base::{es_unknown, methods, nk_element, nk_text, rd_tree_ops};
-import dom::base::{wr_tree_ops};
+import dom::base::{attr, element_subclass, es_div, es_head, es_img, es_unknown, methods, Element};
+import dom::base::{ElementData, Text, rd_tree_ops, wr_tree_ops};
 import dom = dom::base;
 import dvec::extensions;
 import geom::size::Size2D;
@@ -12,14 +11,12 @@ import gfx::geometry::au;
 import parser = parser::lexer::html;
 import parser::token;
 
-fn link_up_attribute(scope: dom::node_scope, node: dom::node, -key: str,
-                     -value: str) {
-    // TODO: Implement atoms so that we don't always perform string
-    // comparisons.
+fn link_up_attribute(scope: dom::node_scope, node: dom::node, -key: str, -value: str) {
+    // TODO: Implement atoms so that we don't always perform string comparisons.
     scope.rd(node) {
         |node_contents|
         alt *node_contents.kind {
-            dom::nk_element(element) {
+            Element(element) {
                 element.attrs.push(~attr(copy key, copy value));
                 alt *element.subclass {
                     es_img(img) if key == "width" {
@@ -45,7 +42,8 @@ fn link_up_attribute(scope: dom::node_scope, node: dom::node, -key: str,
                     }
                 }
             }
-            dom::nk_text(*) {
+
+            Text(*) {
                 fail "attempt to link up an attribute to a text node"
             }
         }
@@ -66,10 +64,9 @@ fn build_element_subclass(tag_name: str) -> ~element_subclass {
     }
 }
 
-fn build_dom(scope: dom::node_scope,
-             stream: port<token>) -> dom::node {
+fn build_dom(scope: dom::node_scope, stream: port<token>) -> dom::node {
     // The current reference node.
-    let mut cur = scope.new_node(dom::nk_element(element("html", ~es_div)));
+    let mut cur = scope.new_node(Element(ElementData("html", ~es_div)));
     loop {
         let token = stream.recv();
         alt token {
@@ -77,9 +74,7 @@ fn build_dom(scope: dom::node_scope,
             parser::to_start_opening_tag(tag_name) {
                 #debug["starting tag %s", tag_name];
                 let element_subclass = build_element_subclass(tag_name);
-                let new_node =
-                    scope.new_node(dom::nk_element(element(tag_name,
-                                                           element_subclass)));
+                let new_node = scope.new_node(Element(ElementData(tag_name, element_subclass)));
                 scope.add_child(cur, new_node);
                 cur = new_node;
             }
@@ -98,7 +93,7 @@ fn build_dom(scope: dom::node_scope,
             }
             parser::to_text(s) if !s.is_whitespace() {
                 let s <- s;
-                let new_node = scope.new_node(dom::nk_text(s));
+                let new_node = scope.new_node(Text(s));
                 scope.add_child(cur, new_node);
             }
             parser::to_text(_) {

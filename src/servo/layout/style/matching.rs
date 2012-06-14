@@ -1,17 +1,16 @@
 #[doc="Perform css selector matching"]
 
-import dom::base::{node, nk_element, nk_text};
-import dom::style::{selector, style_decl, font_size, display, text_color,
-                    background_color, stylesheet, element, child, descendant,
-                    sibling, attr, exact, exists, includes, starts_with};
+import dom::base::{node, Element, ElementData, Text};
+import dom::style::{selector, style_decl, font_size, display, text_color, background_color,
+                    stylesheet, element, child, descendant, sibling, attr, exact, exists, includes,
+                    starts_with};
 import dom::rcu::{reader_methods};
 import style::{computed_style, default_style_for_node_kind};
 import base::{layout_data};
 
 export matching_methods;
 
-#[doc="Update the computed style of an html element with a style specified
-       by css."]
+#[doc="Update the computed style of an HTML element with a style specified by CSS."]
 fn update_style(style : @computed_style, decl : style_decl) {
     alt decl {
       display(dis)           { (*style).display = dis; }
@@ -20,8 +19,8 @@ fn update_style(style : @computed_style, decl : style_decl) {
     }
 }
 
-#[doc="Check if a css attribute matches the attribute of an html element."]
-fn attrs_match(attr : attr, elmt : dom::base::element) -> bool {
+#[doc="Check if a CSS attribute matches the attribute of an HTML element."]
+fn attrs_match(attr: attr, elmt: ElementData) -> bool {
     alt attr {
       exists(name) {
         alt elmt.get_attr(name) {
@@ -56,22 +55,25 @@ fn attrs_match(attr : attr, elmt : dom::base::element) -> bool {
             if value.len() == val.len() { ret true; }
             else { ret value.starts_with(val + "-"); }
           }
-          none       { ret false; }
+          none {
+            ret false;
+          }
         }
       }
     }
 }
 
 impl priv_matching_methods for node {
-    #[doc="Checks if the given css selector, which must describe a single
-           element with no relational information, describes the given
-           html element."]
-    fn matches_element(sel : ~selector) -> bool {
+    #[doc="
+        Checks if the given CSS selector, which must describe a single element with no relational
+        information, describes the given HTML element.
+    "]
+    fn matches_element(sel: ~selector) -> bool {
         alt *sel {
           child(_, _) | descendant(_, _) | sibling(_, _) { ret false; }
           element(tag, attrs) {
             alt self.rd { |n| copy *n.kind } {
-                nk_element(elmt) {
+                Element(elmt) {
                     if !(tag == "*" || tag == elmt.tag_name) {
                         ret false;
                     }
@@ -84,7 +86,7 @@ impl priv_matching_methods for node {
 
                     ret true;
                 }
-                nk_text(str)   { /*fall through, currently unsupported*/ }
+                Text(str)   { /*fall through, currently unsupported*/ }
             }
           }
         }
@@ -93,7 +95,7 @@ impl priv_matching_methods for node {
                    //unsupported.
     }
 
-    #[doc = "Checks if a generic css selector matches a given html element"]
+    #[doc = "Checks if a generic CSS selector matches a given HTML element"]
     fn matches_selector(sel : ~selector) -> bool {
         alt *sel {
           element(str, atts) { ret self.matches_element(sel); }
@@ -202,17 +204,16 @@ impl matching_methods for node {
 }
 
 mod test {
-    import dom::base::{node_scope, methods, nk_element, attr, es_div,
-                       es_img, es_unknown, es_head, wr_tree_ops};
+    import dom::base::{node_scope, methods, Element, attr, es_div, es_img, es_unknown, es_head};
+    import dom::base::{wr_tree_ops};
     import dvec::{dvec, extensions};
     import io::println;
 
-    fn new_node_from_attr(scope : node_scope, -name : str, -val : str) -> node
-    {
-        let elmt = dom::base::element("div", ~es_div);
+    fn new_node_from_attr(scope: node_scope, -name: str, -val: str) -> node {
+        let elmt = ElementData("div", ~es_div);
         let attr = ~attr(name, val);
         elmt.attrs.push(attr);
-        ret scope.new_node(nk_element(elmt));        
+        ret scope.new_node(Element(elmt));
     }
 
     #[test]
@@ -222,7 +223,7 @@ mod test {
 
         let sel = element("*", [starts_with("lang", "en")]);
 
-        assert node.matches_selector(~sel);        
+        assert node.matches_selector(~sel);
     }
 
     #[test]
@@ -232,7 +233,7 @@ mod test {
 
         let sel = element("*", [starts_with("lang", "en")]);
 
-        assert node.matches_selector(~sel);        
+        assert node.matches_selector(~sel);
     }
     
     #[test] 
@@ -242,7 +243,7 @@ mod test {
 
         let sel = element("*", [starts_with("lang", "en")]);
 
-        assert !node.matches_selector(~sel);        
+        assert !node.matches_selector(~sel);
     }
 
     #[test]

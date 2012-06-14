@@ -1,6 +1,6 @@
 #[doc="Creates CSS boxes from a DOM."]
 
-import dom::base::{element, es_div, es_img, nk_element, nk_text, node};
+import dom::base::{ElementData, es_div, es_img, Element, Text, node};
 import dom::style::{display_type, di_block, di_inline, di_none};
 import dom::rcu::reader_methods;
 import gfx::geometry;
@@ -20,8 +20,7 @@ enum ctxt = {
     // The parent box that these boxes will be added to.
     parent_box: @box,
 
-    // The current anonymous box that we're currently appending inline nodes
-    // to.
+    // The current anonymous box that we're currently appending inline nodes to.
     //
     // See CSS2 9.2.1.1.
     mut anon_box: option<@box>
@@ -61,8 +60,7 @@ impl methods for ctxt {
                 self.finish_anonymous_box_if_necessary();
             }
 
-            // Add the child's box to the current enclosing box or the current
-            // anonymous box.
+            // Add the child's box to the current enclosing box or the current anonymous box.
             alt kid.get_computed_style().display {
                 di_block { 
                   btree.add_child(self.parent_box, kid_box);
@@ -70,11 +68,14 @@ impl methods for ctxt {
                 di_inline {
                     let anon_box = alt self.anon_box {
                         none {
-                          // the anonymous box inherits the attributes
-                          // of its parents for now, so that
-                          // properties of intrinsic boxes are not
-                          // spread to their parenting anonymous box.
+                          //
+                          // the anonymous box inherits the attributes of its parents for now, so
+                          // that properties of intrinsic boxes are not spread to their parenting
+                          // anonymous box.
+                          //
                           // TODO: check what css actually specifies
+                          //
+
                           let b = new_box(self.parent_node, bk_inline);
                           self.anon_box = some(b);
                           b
@@ -159,8 +160,8 @@ impl box_builder_priv for node {
     "]
     fn determine_box_kind() -> box_kind {
         alt self.rd({ |n| copy n.kind }) {
-            ~nk_text(string) { bk_text(@text_box(string)) }
-            ~nk_element(element) {
+            ~Text(string) { bk_text(@text_box(string)) }
+            ~Element(element) {
                 alt *element.subclass {
                     es_div         { bk_block            }
                     es_img({size}) { bk_intrinsic(@size) }

@@ -1,6 +1,6 @@
 #[doc="Fundamental layout structures and algorithms."]
 
-import dom::base::{element, es_div, es_img, node_data, node_kind, node};
+import dom::base::{Element, es_div, es_img, node_data, node_kind, node};
 import dom::rcu;
 import dom::rcu::reader_methods;
 import gfx::geometry;
@@ -145,8 +145,8 @@ impl node_methods for node {
 
 #[cfg(test)]
 mod test {
-    import dom::base::{element, es_div, es_img, methods, nk_element, node_data,
-                       node_kind, node, wr_tree_ops};
+    import dom::base::{ElementData, es_div, es_img, methods, Element, node_data, node_kind, node};
+    import dom::base::{wr_tree_ops};
     import dom::rcu::scope;
     import box_builder::{box_builder_methods};
 
@@ -183,10 +183,10 @@ mod test {
             ~es_img({mut size: size})
         }
 
-        let n0 = s.new_node(nk_element(element("img", mk_img(Size2D(au(10),au(10))))));
-        let n1 = s.new_node(nk_element(element("img", mk_img(Size2D(au(10),au(10))))));
-        let n2 = s.new_node(nk_element(element("img", mk_img(Size2D(au(10),au(20))))));
-        let n3 = s.new_node(nk_element(element("div", ~es_div)));
+        let n0 = s.new_node(Element(ElementData("img", mk_img(Size2D(au(10),au(10))))));
+        let n1 = s.new_node(Element(ElementData("img", mk_img(Size2D(au(10),au(10))))));
+        let n2 = s.new_node(Element(ElementData("img", mk_img(Size2D(au(10),au(20))))));
+        let n3 = s.new_node(Element(ElementData("div", ~es_div)));
 
         tree::add_child(s, n3, n0);
         tree::add_child(s, n3, n1);
