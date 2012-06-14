@@ -10,6 +10,7 @@ import parser::lexer::css::{token, to_start_desc, to_end_desc,
                             to_eof};
 import comm::recv;
 import option::is_none;
+import util::color::parsing::parse_color;
 
 type token_reader = {stream : port<token>, mut lookahead : option<token>};
 
@@ -56,77 +57,6 @@ fn parse_element(reader : token_reader) -> option<~selector> {
     }
         
     ret some(~element(elmt_name, attr_list));
-}
-
-// Currently colors are supported in rgb(a,b,c) form and also by
-// keywords for several common colors.
-// TODO: extend this
-fn parse_color(color : str) -> uint {
-    let blue_unit = 1u;
-    let green_unit = 256u;
-    let red_unit = 256u * 256u;
-    
-    let result_color = if color.starts_with("rgb(") {
-        let color_vec = str::bytes(color);
-        let mut i = 4u;
-        let mut red_vec = [];
-        let mut green_vec = [];
-        let mut blue_vec = [];
-
-        while i < color_vec.len() && color_vec[i] != ',' as u8 {
-            red_vec += [color_vec[i]];
-            i += 1u;
-        }
-
-        i += 1u;
-
-        while i < color_vec.len() && color_vec[i] != ',' as u8 {
-            green_vec += [color_vec[i]];
-            i += 1u;
-        }
-
-        i += 1u;
-         
-        while i < color_vec.len() && color_vec[i] != ')' as u8 {
-            blue_vec += [color_vec[i]];
-            i += 1u;
-        }
-
-        // TODO, fail by ignoring the rule instead of setting the
-        // color to black
-
-        let blue_intense = alt uint::from_str(str::from_bytes(blue_vec)) {
-          some(c)  { c }
-          none     { 0u }
-        };
-
-        let green_intense = alt uint::from_str(str::from_bytes(green_vec)) { 
-          some(c)  { c }
-          none     { 0u }
-        };
-
-        let red_intense = alt uint::from_str(str::from_bytes(red_vec)) { 
-          some(c)  { c }
-          none     { 0u }
-        };
-
-
-        blue_unit * blue_intense + green_intense * green_unit
-            + red_intense * red_unit
-    } else {
-        alt color {
-          "red"   { red_unit * 255u }
-          "blue"  { blue_unit * 255u }
-          "green" { green_unit * 255u}
-          "white" { red_unit * 256u - 1u }
-          "black" { 0u }
-          // TODO, fail by ignoring the rule instead of setting the
-          // color to black
-          _       { #debug["Unrecognized color %s", color]; 0u }
-        }
-    };
-
-    ret result_color;
 }
 
 fn parse_rule(reader : token_reader) -> option<~rule> {

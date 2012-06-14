@@ -8,22 +8,22 @@ import dom::base::node_kind;
 import dom::rcu::reader_methods;
 import layout::base::*; // FIXME: resolve bug requires *
 import matching::matching_methods;
+import util::color::{Color, rgb};
+import util::color::css_colors::{white, black};
 
 type computed_style = {mut display : display_type,
-                       mut back_color : uint};
+                       mut back_color : Color};
 
 #[doc="Returns the default style for the given node kind."]
 fn default_style_for_node_kind(kind: node_kind) -> computed_style {
     alt kind {
       nk_text(*) {
         {mut display: di_inline, 
-         mut back_color : 256u*256u*256u-1u}
+         mut back_color : white()}
       }
       nk_element(element) {
         let r = rand::rng();
-        let rand_color = 256u*256u*((r.next() & (255 as u32)) as uint)
-            + 256u*((r.next() & (255 as u32)) as uint)
-            + ((r.next() & (255 as u32)) as uint);
+        let rand_color = rgb(r.next() as u8, r.next() as u8, r.next() as u8);
 
         alt *element.subclass {
           es_div { {mut display : di_block,
