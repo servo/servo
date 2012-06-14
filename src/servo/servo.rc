@@ -35,7 +35,7 @@ mod image {
 
 mod layout {
     mod style {
-	mod apply;
+        mod apply;
         mod style;
         mod matching;
     }
