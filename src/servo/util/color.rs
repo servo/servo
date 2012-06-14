@@ -84,7 +84,7 @@ mod parsing {
           "maroon"  { maroon()  }
           "red"     { red()     }
           "purple"  { purple()  }
-          "fuschia" { fuschia() }
+          "fuchsia" { fuchsia() }
           "green"   { green()   }
           "lime"    { lime()    }
           "olive"   { olive()   }
@@ -190,7 +190,7 @@ mod test {
         assert silver().eq(parse_color("SiLvEr"));
         assert maroon().eq(parse_color("maroon"));
         assert purple().eq(parse_color("PURPLE"));
-        assert fuschia().eq(parse_color("FUSCHIA"));
+        assert fuchsia().eq(parse_color("FUCHSIA"));
         assert olive().eq(parse_color("oLiVe"));
         assert yellow().eq(parse_color("yellow"));
         assert navy().eq(parse_color("NAVY"));
@@ -222,7 +222,7 @@ mod test {
         assert gray().eq(parse_color("hsl(0.0,0.0,0.5)"));
         assert maroon().eq(parse_color("hsl(0.0,1.0,0.25)"));
         assert purple().eq(parse_color("hsl(300.0,1.0,0.25)"));
-        assert fuschia().eq(parse_color("hsl(300,1.0,0.5)"));
+        assert fuchsia().eq(parse_color("hsl(300,1.0,0.5)"));
         assert olive().eq(parse_color("hsl(60.,1.0,0.25)"));
         assert yellow().eq(parse_color("hsl(60.,1.0,0.5)"));
         assert navy().eq(parse_color("hsl(240.0,1.0,.25)"));
@@ -256,7 +256,7 @@ mod css_colors {
     fn purple() -> Color {
         Color({red : 128u8, green : 0u8, blue : 128u8, alpha : 1.0})
     }
-    fn fuschia() -> Color {
+    fn fuchsia() -> Color {
         Color({red : 255u8, green : 0u8, blue : 255u8, alpha : 1.0})
     }
     fn green() -> Color { 
