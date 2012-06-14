@@ -107,8 +107,10 @@ fn do_draw(sender: chan<AzDrawTargetRef>,
 
 #[test]
 fn sanity_check() {
-    listen {|ch|
-        let sink = pngsink(ch);
+    listen {
+        |self_channel|
+
+        let sink = pngsink(self_channel);
         let renderer = renderer::renderer(sink);
 
         let dlist = [];
