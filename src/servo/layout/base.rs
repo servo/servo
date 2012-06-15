@@ -3,7 +3,7 @@
 import dom::base::{Element, ElementKind, HTMLDivElement, HTMLImageElement, Node, NodeData};
 import dom::base::{NodeKind};
 import dom::rcu;
-import dom::rcu::reader_methods;
+import dom::rcu::ReaderMethods;
 import gfx::geometry;
 import gfx::geometry::{au, zero_size_au};
 import geom::point::Point2D;
@@ -62,7 +62,7 @@ impl of tree::rd_tree_ops<Node> for ntree {
     }
 
     fn with_tree_fields<R>(&&n: Node, f: fn(tree::fields<Node>) -> R) -> R {
-        n.rd { |n| f(n.tree) }
+        n.read { |n| f(n.tree) }
     }
 }
 
@@ -138,7 +138,7 @@ impl PrivateNodeMethods for Node {
             s += "    ";
         }
 
-        s += #fmt("%?", self.rd({ |n| copy n.kind }));
+        s += #fmt("%?", self.read({ |n| copy n.kind }));
         #debug["%s", s];
 
         for ntree.each_child(self) { |kid| kid.dump_indent(indent + 1u) }
@@ -156,7 +156,7 @@ impl NodeMethods for Node {
 mod test {
     import dom::base::{Element, ElementData, HTMLDivElement, HTMLImageElement, Node, NodeKind};
     import dom::base::{NodeScope, wr_tree_ops};
-    import dom::rcu::scope;
+    import dom::rcu::Scope;
     import box_builder::{box_builder_methods};
 
     /*
@@ -186,7 +186,7 @@ mod test {
     #[test]
     #[ignore(reason = "busted")]
     fn do_layout() {
-        let s = scope();
+        let s = Scope();
 
         fn mk_img(size: Size2D<au>) -> ~ElementKind {
             ~HTMLImageElement({mut size: size})

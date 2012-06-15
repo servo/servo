@@ -1,8 +1,11 @@
-import dom::rcu::{writer_methods};
+#[doc="The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements."]
+
+import dom::rcu::WriterMethods;
 import gfx::geometry::au;
 import geom::size::Size2D;
 import layout::base::layout_data;
 import util::tree;
+
 import dvec::{dvec, extensions};
 
 enum NodeData = {
@@ -61,12 +64,12 @@ enum ElementKind {
     the primary box.  Note that there may be multiple boxes per DOM node.
 "]
 
-type Node = rcu::handle<NodeData, layout_data>;
+type Node = rcu::Handle<NodeData, layout_data>;
 
-type NodeScope = rcu::scope<NodeData, layout_data>;
+type NodeScope = rcu::Scope<NodeData, layout_data>;
 
 fn NodeScope() -> NodeScope {
-    rcu::scope()
+    rcu::Scope()
 }
 
 impl NodeScope for NodeScope {
@@ -85,7 +88,7 @@ impl of tree::rd_tree_ops<Node> for NodeScope {
     }
 
     fn with_tree_fields<R>(node: Node, f: fn(tree::fields<Node>) -> R) -> R {
-        self.rd(node) { |n| f(n.tree) }
+        self.read(node) { |n| f(n.tree) }
     }
 }
 
@@ -95,7 +98,7 @@ impl of tree::wr_tree_ops<Node> for NodeScope {
     }
 
     fn with_tree_fields<R>(node: Node, f: fn(tree::fields<Node>) -> R) -> R {
-        self.wr(node) { |n| f(n.tree) }
+        self.write(node) { |n| f(n.tree) }
     }
 }
 

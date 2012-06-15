@@ -1,7 +1,7 @@
 #[doc="Inline layout."]
 
 import dom::rcu;
-import dom::rcu::reader_methods;
+import dom::rcu::ReaderMethods;
 import geom::point::Point2D;
 import geom::size::Size2D;
 import gfx::geometry::au;

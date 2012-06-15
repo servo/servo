@@ -3,7 +3,7 @@
 import dom::style::{display_type, di_block, di_inline, di_none, stylesheet};
 import dom::base::{Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement, Node, NodeKind};
 import dom::base::{Text};
-import dom::rcu::reader_methods;
+import dom::rcu::ReaderMethods;
 import layout::base::*; // FIXME: resolve bug requires *
 import matching::matching_methods;
 import util::color::{Color, rgb};

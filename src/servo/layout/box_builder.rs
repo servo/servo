@@ -2,7 +2,7 @@
 
 import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, Node};
 import dom::style::{display_type, di_block, di_inline, di_none};
-import dom::rcu::reader_methods;
+import dom::rcu::ReaderMethods;
 import gfx::geometry;
 import layout::base::{BlockBox, Box, BoxKind, InlineBox, IntrinsicBox, NodeMethods, TextBox};
 import layout::base::{appearance, btree, ntree, rd_tree_ops, wr_tree_ops};
@@ -153,7 +153,7 @@ impl box_builder_priv for Node {
         size.
     "]
     fn determine_box_kind() -> BoxKind {
-        alt self.rd({ |n| copy n.kind }) {
+        alt self.read({ |n| copy n.kind }) {
             ~Text(string) {
                 TextBox(@text_box(string))
             }

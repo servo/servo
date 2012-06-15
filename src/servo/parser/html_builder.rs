@@ -1,20 +1,20 @@
 #[doc="Constructs a DOM tree from an incoming token stream."]
 
-import dom::rcu::writer_methods;
 import dom::base::{Attr, Element, ElementData, ElementKind, HTMLDivElement, HTMLHeadElement};
 import dom::base::{HTMLImageElement, Node, NodeScope, Text, UnknownElement, rd_tree_ops};
 import dom::base::{wr_tree_ops};
-import dom = dom::base;
-import dvec::extensions;
+import dom::rcu::WriterMethods;
 import geom::size::Size2D;
 import gfx::geometry;
 import gfx::geometry::au;
 import parser = parser::lexer::html;
 import parser::token;
 
+import dvec::extensions;
+
 fn link_up_attribute(scope: NodeScope, node: Node, -key: str, -value: str) {
     // TODO: Implement atoms so that we don't always perform string comparisons.
-    scope.rd(node) {
+    scope.read(node) {
         |node_contents|
         alt *node_contents.kind {
             Element(element) {

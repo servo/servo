@@ -1,6 +1,7 @@
-#[doc="Applies style to boxes."]
-import dom::base::{HTMLImageElement, Element, Node};
-import dom::rcu::reader_methods;
+#[doc="Applies the appropriate CSS style to boxes."]
+
+import dom::base::{Element, HTMLImageElement, Node};
+import dom::rcu::ReaderMethods;
 import image::base::load;
 import layout::base::*;
 import style::style_methods;
@@ -17,7 +18,7 @@ impl ApplyStyleBoxMethods for @Box {
     #[doc="Applies CSS style."]
     fn apply_style() {
         // Right now, we only handle images.
-        self.node.rd {
+        self.node.read {
             |node|
             alt node.kind {
               ~Element(element) {

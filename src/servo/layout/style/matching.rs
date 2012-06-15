@@ -1,12 +1,12 @@
-#[doc="Perform css selector matching"]
+#[doc="Performs CSS selector matching."]
 
+import base::{layout_data};
 import dom::base::{Element, ElementData, Node, Text};
 import dom::style::{selector, style_decl, font_size, display, text_color, background_color,
                     stylesheet, element, child, descendant, sibling, attr, exact, exists, includes,
                     starts_with};
-import dom::rcu::{reader_methods};
+import dom::rcu::ReaderMethods;
 import style::{computed_style, default_style_for_node_kind};
-import base::{layout_data};
 
 export matching_methods;
 
@@ -72,7 +72,7 @@ impl priv_matching_methods for Node {
         alt *sel {
           child(_, _) | descendant(_, _) | sibling(_, _) { ret false; }
           element(tag, attrs) {
-            alt self.rd { |n| copy *n.kind } {
+            alt self.read { |n| copy *n.kind } {
                 Element(elmt) {
                     if !(tag == "*" || tag == elmt.tag_name) {
                         ret false;
@@ -100,7 +100,7 @@ impl priv_matching_methods for Node {
         alt *sel {
           element(str, atts) { ret self.matches_element(sel); }
           child(sel1, sel2) {
-            alt self.rd { |n| n.tree.parent } {
+            alt self.read { |n| n.tree.parent } {
               some(parent) { 
                 ret self.matches_element(sel2) &&
                     parent.matches_selector(sel1);
@@ -115,7 +115,7 @@ impl priv_matching_methods for Node {
 
             //loop over all ancestors to check if they are the person
             //we should be descended from.
-            let mut cur_parent = alt self.rd { |n| n.tree.parent } {
+            let mut cur_parent = alt self.read { |n| n.tree.parent } {
                 some(parent) { parent }
                 none         { ret false; }
             };
@@ -123,7 +123,7 @@ impl priv_matching_methods for Node {
             loop {
                 if cur_parent.matches_selector(sel1) { ret true; }
 
-                cur_parent = alt cur_parent.rd { |n| n.tree.parent } {
+                cur_parent = alt cur_parent.read { |n| n.tree.parent } {
                     some(parent) { parent }
                     none         { ret false; }
                 };
@@ -133,13 +133,13 @@ impl priv_matching_methods for Node {
             if !self.matches_element(sel2) { ret false; }
 
             // Loop over this node's previous siblings to see if they match.
-            alt self.rd { |n| n.tree.prev_sibling } {
+            alt self.read { |n| n.tree.prev_sibling } {
                 some(sib) {
                     let mut cur_sib = sib;
                     loop {
                         if cur_sib.matches_selector(sel1) { ret true; }
                 
-                        cur_sib = alt cur_sib.rd { |n| n.tree.prev_sibling } {
+                        cur_sib = alt cur_sib.read { |n| n.tree.prev_sibling } {
                             some(sib) { sib }
                             none      { break; }
                         };
@@ -149,13 +149,13 @@ impl priv_matching_methods for Node {
             }
 
             // check the rest of the siblings
-            alt self.rd { |n| n.tree.next_sibling } {
+            alt self.read { |n| n.tree.next_sibling } {
                 some(sib) {
                     let mut cur_sib = sib;
                     loop {
                         if cur_sib.matches_selector(sel1) { ret true; }
                 
-                        cur_sib = alt cur_sib.rd { |n| n.tree.next_sibling } {
+                        cur_sib = alt cur_sib.read { |n| n.tree.next_sibling } {
                             some(sib) { sib }
                             none      { break; }
                         };
@@ -174,7 +174,7 @@ impl matching_methods for Node {
     #[doc="Compare an html element to a list of css rules and update its
            style according to the rules matching it."]
     fn match_css_style(styles : stylesheet) -> computed_style {
-        let node_kind = self.rd { |n| copy *n.kind };
+        let node_kind = self.read { |n| copy *n.kind };
         let style = 
             @default_style_for_node_kind(node_kind);
 

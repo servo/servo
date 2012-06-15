@@ -6,13 +6,14 @@
 export ControlMsg, PingMsg;
 export content;
 
-import result::extensions;
 import dom::base::NodeScope;
-import dom::rcu::writer_methods;
+import dom::rcu::WriterMethods;
 import dom::style;
-import dom = dom::base;
 import layout::layout_task;
+
 import js::rust::methods;
+
+import result::extensions;
 
 enum ControlMsg {
     ParseMsg(~str),
@@ -40,7 +41,7 @@ fn join_layout(scope: NodeScope, to_layout: chan<layout_task::Msg>) {
 fn content(to_layout: chan<layout_task::Msg>) -> chan<ControlMsg> {
     task::spawn_listener::<ControlMsg> {
         |from_master|
-        let scope = dom::NodeScope();
+        let scope = NodeScope();
         let rt = js::rust::rt();
         loop {
             alt from_master.recv() {

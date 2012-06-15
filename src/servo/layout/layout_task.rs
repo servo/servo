@@ -1,14 +1,12 @@
 #[doc = "
-
-The layout task. Performs layout on the dom, builds display lists and sends
-them to be rendered
-
+    The layout task. Performs layout on the DOM, builds display lists and sends them to be
+    rendered.
 "];
 
 import box_builder::box_builder_methods;
 import dl = display_list;
 import dom::base::Node;
-import dom::rcu::scope;
+import dom::rcu::Scope;
 import dom::style::stylesheet;
 import gfx::geometry::{au, au_to_px, box, px_to_au};
 import gfx::renderer;
