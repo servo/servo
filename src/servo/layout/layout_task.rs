@@ -11,7 +11,7 @@ import gfx::geometry::{au, au_to_px, box, px_to_au};
 import geom::point::Point2D;
 import geom::rect::Rect;
 import gfx::renderer;
-import dom::base::node;
+import dom::base::Node;
 import dom::rcu::scope;
 import dom::style::stylesheet;
 import layout::base::*;
@@ -22,7 +22,7 @@ import dl = display_list;
 import util::color::methods;
 
 enum Msg {
-    BuildMsg(node, stylesheet),
+    BuildMsg(Node, stylesheet),
     PingMsg(chan<content::PingMsg>),
     ExitMsg
 }

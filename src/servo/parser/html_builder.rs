@@ -2,7 +2,8 @@
 
 import dom::rcu::writer_methods;
 import dom::base::{attr, ElementKind, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
-import dom::base::{UnknownElement, methods, Element, ElementData, Text, rd_tree_ops, wr_tree_ops};
+import dom::base::{UnknownElement, methods, Element, ElementData, Node, Text, rd_tree_ops};
+import dom::base::{wr_tree_ops};
 import dom = dom::base;
 import dvec::extensions;
 import geom::size::Size2D;
@@ -11,7 +12,7 @@ import gfx::geometry::au;
 import parser = parser::lexer::html;
 import parser::token;
 
-fn link_up_attribute(scope: dom::node_scope, node: dom::node, -key: str, -value: str) {
+fn link_up_attribute(scope: dom::node_scope, node: Node, -key: str, -value: str) {
     // TODO: Implement atoms so that we don't always perform string comparisons.
     scope.rd(node) {
         |node_contents|
@@ -64,7 +65,7 @@ fn build_element_kind(tag_name: str) -> ~ElementKind {
     }
 }
 
-fn build_dom(scope: dom::node_scope, stream: port<token>) -> dom::node {
+fn build_dom(scope: dom::node_scope, stream: port<token>) -> Node {
     // The current reference node.
     let mut cur = scope.new_node(Element(ElementData("html", ~HTMLDivElement)));
     loop {

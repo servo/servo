@@ -1,5 +1,5 @@
 #[doc="Applies style to boxes."]
-import dom::base::{HTMLImageElement, Element, node};
+import dom::base::{HTMLImageElement, Element, Node};
 import dom::rcu::reader_methods;
 import image::base::load;
 import layout::base::*;

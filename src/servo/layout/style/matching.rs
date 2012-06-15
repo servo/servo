@@ -1,6 +1,6 @@
 #[doc="Perform css selector matching"]
 
-import dom::base::{node, Element, ElementData, Text};
+import dom::base::{Element, ElementData, Node, Text};
 import dom::style::{selector, style_decl, font_size, display, text_color, background_color,
                     stylesheet, element, child, descendant, sibling, attr, exact, exists, includes,
                     starts_with};
@@ -63,7 +63,7 @@ fn attrs_match(attr: attr, elmt: ElementData) -> bool {
     }
 }
 
-impl priv_matching_methods for node {
+impl priv_matching_methods for Node {
     #[doc="
         Checks if the given CSS selector, which must describe a single element with no relational
         information, describes the given HTML element.
@@ -132,8 +132,7 @@ impl priv_matching_methods for node {
           sibling(sel1, sel2) {
             if !self.matches_element(sel2) { ret false; }
 
-            // loop over this node's previous siblings to see if they
-            // match
+            // Loop over this node's previous siblings to see if they match.
             alt self.rd { |n| n.tree.prev_sibling } {
                 some(sib) {
                     let mut cur_sib = sib;
@@ -171,7 +170,7 @@ impl priv_matching_methods for node {
     }
 }
 
-impl matching_methods for node {
+impl matching_methods for Node {
     #[doc="Compare an html element to a list of css rules and update its
            style according to the rules matching it."]
     fn match_css_style(styles : stylesheet) -> computed_style {
@@ -179,17 +178,16 @@ impl matching_methods for node {
         let style = 
             @default_style_for_node_kind(node_kind);
 
-        // Loop over each rule, see if our node matches what is
-        // described in the rule.  If it matches, update its style.
-        // As we don't currently have priorities of style information,
-        // the latest rule takes precedence so we can just overwrite
-        // style information.
+        // Loop over each rule, see if our node matches what is described in the rule. If it
+        // matches, update its style. As we don't currently have priorities of style information,
+        // the latest rule takes precedence over the others. So we just overwrite style
+        // information as we go.
+
         for styles.each { |sty|
             let (selectors, decls) <- *(copy sty);
             for selectors.each { |sel|
                 if self.matches_selector(sel) {
-                    #debug("Matched selector {%?} with node {%?}",
-                           *sel, node_kind);
+                    #debug("Matched selector {%?} with node {%?}", *sel, node_kind);
                     for decls.each { |decl| 
                         update_style(style, decl);
                     }
@@ -209,7 +207,7 @@ mod test {
     import dvec::{dvec, extensions};
     import io::println;
 
-    fn new_node_from_attr(scope: node_scope, -name: str, -val: str) -> node {
+    fn new_node_from_attr(scope: node_scope, -name: str, -val: str) -> Node {
         let elmt = ElementData("div", ~HTMLDivElement);
         let attr = ~attr(name, val);
         elmt.attrs.push(attr);

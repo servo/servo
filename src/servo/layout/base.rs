@@ -1,7 +1,7 @@
 #[doc="Fundamental layout structures and algorithms."]
 
 import dom::base::{Element, ElementKind, HTMLDivElement, HTMLImageElement, node_data, node_kind};
-import dom::base::{node};
+import dom::base::{Node};
 import dom::rcu;
 import dom::rcu::reader_methods;
 import gfx::geometry;
@@ -36,7 +36,7 @@ class appearance {
 
 enum box = {
     tree: tree::fields<@box>,
-    node: node,
+    node: Node,
     mut bounds: Rect<au>,
     kind: box_kind,
     appearance: appearance
@@ -48,12 +48,12 @@ enum layout_data = {
 };
 
 enum ntree { ntree }
-impl of tree::rd_tree_ops<node> for ntree {
-    fn each_child(node: node, f: fn(node) -> bool) {
+impl of tree::rd_tree_ops<Node> for ntree {
+    fn each_child(node: Node, f: fn(Node) -> bool) {
         tree::each_child(self, node, f)
     }
 
-    fn with_tree_fields<R>(&&n: node, f: fn(tree::fields<node>) -> R) -> R {
+    fn with_tree_fields<R>(&&n: Node, f: fn(tree::fields<Node>) -> R) -> R {
         n.rd { |n| f(n.tree) }
     }
 }
@@ -121,7 +121,7 @@ impl layout_methods for @box {
 
 // Debugging
 
-impl node_methods_priv for node {
+impl node_methods_priv for Node {
     #[doc="Dumps the node tree, for debugging, with indentation."]
     fn dump_indent(indent: uint) {
         let mut s = "";
@@ -137,7 +137,7 @@ impl node_methods_priv for node {
     }
 }
 
-impl node_methods for node {
+impl node_methods for Node {
     #[doc="Dumps the subtree rooted at this node, for debugging."]
     fn dump() {
         self.dump_indent(0u);
@@ -147,7 +147,7 @@ impl node_methods for node {
 #[cfg(test)]
 mod test {
     import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, methods, Element, node_data};
-    import dom::base::{node, node_kind, wr_tree_ops};
+    import dom::base::{Node, node_kind, wr_tree_ops};
     import dom::rcu::scope;
     import box_builder::{box_builder_methods};
 

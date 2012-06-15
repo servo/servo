@@ -1,6 +1,6 @@
 #[doc="Creates CSS boxes from a DOM."]
 
-import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, node};
+import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, Node};
 import dom::style::{display_type, di_block, di_inline, di_none};
 import dom::rcu::reader_methods;
 import gfx::geometry;
@@ -16,17 +16,20 @@ export box_builder_methods;
 
 enum ctxt = {
     // The parent node that we're scanning.
-    parent_node: node,
+    parent_node: Node,
     // The parent box that these boxes will be added to.
     parent_box: @box,
 
+    //
     // The current anonymous box that we're currently appending inline nodes to.
     //
     // See CSS2 9.2.1.1.
+    //
+
     mut anon_box: option<@box>
 };
 
-fn new_box(n: node, kind: box_kind) -> @box {
+fn new_box(n: Node, kind: box_kind) -> @box {
     @box({tree: tree::empty(),
           node: n,
           mut bounds: geometry::zero_rect_au(),
@@ -34,7 +37,7 @@ fn new_box(n: node, kind: box_kind) -> @box {
           appearance: appearance() })
 }
 
-fn create_context(parent_node: node, parent_box: @box) -> ctxt {
+fn create_context(parent_node: Node, parent_box: @box) -> ctxt {
     ret ctxt({
         parent_node: parent_node,
         parent_box: parent_box,
@@ -153,10 +156,10 @@ impl methods for ctxt {
     }
 }
 
-impl box_builder_priv for node {
+impl box_builder_priv for Node {
     #[doc="
-        Determines the kind of box that this node needs. Also, for images,
-        computes the intrinsic size.
+        Determines the kind of box that this node needs. Also, for images, computes the intrinsic
+        size.
     "]
     fn determine_box_kind() -> box_kind {
         alt self.rd({ |n| copy n.kind }) {
@@ -172,7 +175,7 @@ impl box_builder_priv for node {
     }
 }
 
-impl box_builder_methods for node {
+impl box_builder_methods for Node {
     #[doc="Creates boxes for this node. This is the entry point."]
     fn construct_boxes() -> @box {
         let box_kind = self.determine_box_kind();

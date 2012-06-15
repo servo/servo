@@ -1,7 +1,7 @@
 #[doc="High-level interface to CSS selector matching."]
 
 import dom::style::{display_type, di_block, di_inline, di_none, stylesheet};
-import dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, Element, Text, node};
+import dom::base::{Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement, Node, Text};
 import dom::base::node_kind;
 import dom::rcu::reader_methods;
 import layout::base::*; // FIXME: resolve bug requires *
@@ -33,7 +33,7 @@ fn default_style_for_node_kind(kind: node_kind) -> computed_style {
     }
 }
 
-impl style_priv for node {
+impl style_priv for Node {
     #[doc="
         Performs CSS selector matching on a node.
         
@@ -56,7 +56,7 @@ impl style_priv for node {
     }
 }
 
-impl style_methods for node {
+impl style_methods for Node {
     #[doc="
         Returns the computed style for the given node. If CSS selector matching has not yet been
         performed, fails.

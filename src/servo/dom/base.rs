@@ -6,7 +6,7 @@ import util::tree;
 import dvec::{dvec, extensions};
 
 enum node_data = {
-    tree: tree::fields<node>,
+    tree: tree::fields<Node>,
     kind: ~node_kind,
 };
 
@@ -56,43 +56,44 @@ enum ElementKind {
     HTMLImageElement({mut size: Size2D<au>})
 }
 
-#[doc="The rd_aux data is a (weak) pointer to the layout data, which
-       contains the CSS info as well as the primary box.  Note that
-       there may be multiple boxes per DOM node."]
+#[doc="
+    The rd_aux data is a (weak) pointer to the layout data, which contains the CSS info as well as
+    the primary box.  Note that there may be multiple boxes per DOM node.
+"]
 
-type node = rcu::handle<node_data, layout_data>;
+type Node = rcu::handle<node_data, layout_data>;
 
 type node_scope = rcu::scope<node_data, layout_data>;
 
 fn node_scope() -> node_scope { rcu::scope() }
 
 impl methods for node_scope {
-    fn new_node(-k: node_kind) -> node {
+    fn new_node(-k: node_kind) -> Node {
         self.handle(node_data({tree: tree::empty(),
                                kind: ~k}))
     }
 }
 
-impl of tree::rd_tree_ops<node> for node_scope {
-    fn each_child(node: node, f: fn(node) -> bool) {
+impl of tree::rd_tree_ops<Node> for node_scope {
+    fn each_child(node: Node, f: fn(Node) -> bool) {
         tree::each_child(self, node, f)
     }
 
-    fn get_parent(node: node) -> option<node> {
+    fn get_parent(node: Node) -> option<Node> {
         tree::get_parent(self, node)
     }
 
-    fn with_tree_fields<R>(node: node, f: fn(tree::fields<node>) -> R) -> R {
+    fn with_tree_fields<R>(node: Node, f: fn(tree::fields<Node>) -> R) -> R {
         self.rd(node) { |n| f(n.tree) }
     }
 }
 
-impl of tree::wr_tree_ops<node> for node_scope {
-    fn add_child(node: node, child: node) {
+impl of tree::wr_tree_ops<Node> for node_scope {
+    fn add_child(node: Node, child: Node) {
         tree::add_child(self, node, child)
     }
 
-    fn with_tree_fields<R>(node: node, f: fn(tree::fields<node>) -> R) -> R {
+    fn with_tree_fields<R>(node: Node, f: fn(tree::fields<Node>) -> R) -> R {
         self.wr(node) { |n| f(n.tree) }
     }
 }
