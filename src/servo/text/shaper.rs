@@ -139,6 +139,6 @@ fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: hb_glyph_position_t) -> glyph_pos {
 
 #[test]
 fn test_shape_basic() {
-    let font = font::create();
+    let font = font::create_test_font();
     shape_text2(&font, "firecracker");
 }

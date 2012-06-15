@@ -17,7 +17,7 @@ class text_run {
         line break positions.
     "]
     fn shape() {
-        let font = font::create();
+        let font = font::create_test_font();
         self.glyphs = some(shape_text(&font, self.text));
     }
 }
