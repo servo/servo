@@ -174,6 +174,7 @@ mod parsing {
     }
 }
 
+#[cfg(test)]
 mod test {
     import css_colors::*;
     import parsing::parse_color;

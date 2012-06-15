@@ -35,6 +35,7 @@ fn layout(to_renderer: chan<renderer::Msg>) -> chan<Msg> {
                     #debug("layout: received layout request for:");
                     node.dump();
 
+                    node.initialize_style_for_subtree();
                     node.recompute_style_for_subtree(styles);
 
                     let this_box = node.construct_boxes();

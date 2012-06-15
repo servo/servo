@@ -9,8 +9,7 @@ import matching::matching_methods;
 import util::color::{Color, rgb};
 import util::color::css_colors::{white, black};
 
-type computed_style = {mut display : display_type,
-                       mut back_color : Color};
+type computed_style = {mut display : display_type, mut back_color : Color};
 
 #[doc="Returns the default style for the given node kind."]
 fn default_style_for_node_kind(kind: NodeKind) -> computed_style {
@@ -34,29 +33,30 @@ fn default_style_for_node_kind(kind: NodeKind) -> computed_style {
 }
 
 impl style_priv for Node {
-    #[doc="
-        Performs CSS selector matching on a node.
+    #[doc="Set a default auxilliary data so that other threads can modify it.
         
         This is, importantly, the function that creates the layout data for the node (the reader-
-        auxiliary box in the RCU model) and populates it with the computed style.
-    "]
-    fn recompute_style(styles : stylesheet) {
-        let style = self.match_css_style(styles);
-
-        #debug("recomputing style; parent node:");
-
+        auxiliary box in the RCU model) and populates it with the default style.
+     "]
+    fn initialize_style() {
+        let node_kind = self.read { |n| copy *n.kind };
         let the_layout_data = @layout_data({
-            mut computed_style: style,
-            mut box: none
+            mut computed_style : ~default_style_for_node_kind(node_kind),
+            mut box : none
         });
-
-        #debug("layout data: %?", the_layout_data);
 
         self.set_aux(the_layout_data);
     }
 }
 
 impl style_methods for Node {
+    #[doc="Sequentially initialize the nodes' auxilliary data so they can be updated in parallel."]
+    fn initialize_style_for_subtree() {
+        self.initialize_style();
+        
+        for ntree.each_child(self) { |kid| kid.initialize_style_for_subtree(); }
+    }
+    
     #[doc="
         Returns the computed style for the given node. If CSS selector matching has not yet been
         performed, fails.
@@ -67,23 +67,30 @@ impl style_methods for Node {
         if !self.has_aux() {
             fail "get_computed_style() called on a node without a style!";
         }
-        ret copy self.aux({ |x| copy x }).computed_style;
+        ret copy *self.aux({ |x| copy x }).computed_style;
     }
 
     #[doc="
         Performs CSS selector matching on a subtree.
 
-        This is, importantly, the function that creates the layout data for the node (the reader-
-        auxiliary box in the RCU model) and populates it with the computed style.
-
-        TODO: compute the style of multiple nodes in parallel.
+        This is, importantly, the function that updates the layout data for the node (the reader-
+        auxiliary box in the RCU model) with the computed style.
     "]
     fn recompute_style_for_subtree(styles : stylesheet) {
-        self.recompute_style(styles);
-        for ntree.each_child(self) {
-            |kid|
-            kid.recompute_style_for_subtree(styles);
+        listen { |ack_chan| 
+
+            // TODO: Don't copy this for every element, look into shared, immutable state
+            let new_styles = copy styles;
+            
+            task::spawn { ||
+                self.match_css_style(new_styles);
+                ack_chan.send(());
+            }
+                
+            for ntree.each_child(self) { |kid| kid.recompute_style_for_subtree(styles); }
+
+            // Make sure we finish updating the tree before returning
+            ack_chan.recv();
         }
     }
 }
-

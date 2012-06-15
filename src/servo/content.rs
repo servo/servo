@@ -9,6 +9,9 @@ export content;
 import dom::base::NodeScope;
 import dom::rcu::WriterMethods;
 import dom::style;
+import parser::lexer::{spawn_css_lexer_task, spawn_html_parser_task};
+import parser::css_builder::build_stylesheet;
+import parser::html_builder::build_dom;
 import layout::layout_task;
 
 import js::rust::methods;
@@ -51,26 +54,23 @@ fn content(to_layout: chan<layout_task::Msg>) -> chan<ControlMsg> {
                 // TODO actually parse where the css sheet should be
                 // Replace .html with .css and try to open a stylesheet
                 assert (*filename).ends_with(".html");
-                let new_file = (*filename).substr(0u, (*filename).len() - 5u)
-                    + ".css";
+                let new_file = (*filename).substr(0u, (*filename).len() - 5u) + ".css";
 
                 // Send off a task to parse the stylesheet
                 let css_port = comm::port();
                 let css_chan = comm::chan(css_port);
                 task::spawn {||
                     let new_file <- new_file;
-                    let css_stream = parser::lexer::
-                        spawn_css_lexer_task(~new_file);
-                    let css_rules = parser::css_builder::
-                        build_stylesheet(css_stream);
+                    let css_stream = spawn_css_lexer_task(~new_file);
+                    let css_rules = build_stylesheet(css_stream);
                     css_chan.send(css_rules);
                 };
 
                 // Note: we can parse the next document in parallel
                 // with any previous documents.
-                let stream = parser::lexer::spawn_html_parser_task(filename);
-                let root = parser::html_builder::build_dom(scope, stream);
-
+                let stream = spawn_html_parser_task(filename);
+                let root = build_dom(scope, stream);
+           
                 // Collect the css stylesheet
                 let css_rules = comm::recv(css_port);
                 
@@ -92,8 +92,7 @@ fn content(to_layout: chan<layout_task::Msg>) -> chan<ControlMsg> {
               }
 
               ExecuteMsg(filename) {
-                #debug["content: Received filename `%s` to execute",
-                       *filename];
+                #debug["content: Received filename `%s` to execute", *filename];
 
                 alt io::read_whole_file(*filename) {
                   result::err(msg) {
@@ -106,8 +105,7 @@ fn content(to_layout: chan<layout_task::Msg>) -> chan<ControlMsg> {
                     cx.new_compartment(js::global::global_class).chain {
                         |compartment|
                         compartment.define_functions(js::global::debug_fns);
-                        cx.evaluate_script(compartment.global_obj, bytes,
-                                           *filename, 1u)
+                        cx.evaluate_script(compartment.global_obj, bytes, *filename, 1u)
                     };
                   }
                 }

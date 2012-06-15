@@ -55,9 +55,11 @@ fn build_display_list_from_origin(box: @Box, origin: Point2D<au>)
 #[doc="
 
 Creates a display list item for a single block. 
-Args: 
--box: the box to build the display list for
--origin: the coordinates of upper-left corner of the passed in box.
+
+# Arguments 
+
+* `box` - The box to build the display list for
+* `origin` - The coordinates of upper-left corner of the passed in box.
 
 "]
 fn box_to_display_items(box: @Box, origin: Point2D<au>) -> [dl::display_item] {

@@ -10,15 +10,6 @@ import style::{computed_style, default_style_for_node_kind};
 
 export matching_methods;
 
-#[doc="Update the computed style of an HTML element with a style specified by CSS."]
-fn update_style(style : @computed_style, decl : style_decl) {
-    alt decl {
-      display(dis)           { (*style).display = dis; }
-      background_color(col)  { (*style).back_color = col; }
-      text_color(*) | font_size(*)   { /* not supported yet */ } 
-    }
-}
-
 #[doc="Check if a CSS attribute matches the attribute of an HTML element."]
 fn attrs_match(attr: attr, elmt: ElementData) -> bool {
     alt attr {
@@ -170,14 +161,23 @@ impl priv_matching_methods for Node {
     }
 }
 
+impl priv_style_methods for Node {
+    #[doc="Update the computed style of an HTML element with a style specified by CSS."]
+    fn update_style(decl : style_decl) {
+        self.aux() { |layout|
+            alt decl {
+              display(dis)           { layout.computed_style.display = dis; }
+              background_color(col)  { layout.computed_style.back_color = col; }
+              text_color(*) | font_size(*)   { /* not supported yet */ } 
+            }
+        }
+    }
+}
+
 impl matching_methods for Node {
     #[doc="Compare an html element to a list of css rules and update its
            style according to the rules matching it."]
-    fn match_css_style(styles : stylesheet) -> computed_style {
-        let node_kind = self.read { |n| copy *n.kind };
-        let style = 
-            @default_style_for_node_kind(node_kind);
-
+    fn match_css_style(styles : stylesheet) {
         // Loop over each rule, see if our node matches what is described in the rule. If it
         // matches, update its style. As we don't currently have priorities of style information,
         // the latest rule takes precedence over the others. So we just overwrite style
@@ -187,20 +187,18 @@ impl matching_methods for Node {
             let (selectors, decls) <- *(copy sty);
             for selectors.each { |sel|
                 if self.matches_selector(sel) {
-                    #debug("Matched selector {%?} with node {%?}", *sel, node_kind);
                     for decls.each { |decl| 
-                        update_style(style, decl);
+                        self.update_style(decl);
                     }
                 }
             }
         }
-
-        #debug["Changed the style to: %?", *style];
-
-        ret copy *(style);
+        
+        self.aux() { |a| #debug["Changed the style to: %?", copy *a.computed_style]; }
     }
 }
 
+#[cfg(test)]
 mod test {
     import dom::base::{Attr, Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
     import dom::base::{NodeScope, TreeReadMethods, TreeWriteMethods, UnknownElement};
