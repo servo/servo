@@ -204,13 +204,13 @@ impl matching_methods for node {
 }
 
 mod test {
-    import dom::base::{node_scope, methods, Element, attr, es_div, es_img, es_unknown, es_head};
-    import dom::base::{wr_tree_ops};
+    import dom::base::{node_scope, methods, Element, attr, HTMLDivElement, HTMLImageElement};
+    import dom::base::{UnknownElement, HTMLHeadElement, wr_tree_ops};
     import dvec::{dvec, extensions};
     import io::println;
 
     fn new_node_from_attr(scope: node_scope, -name: str, -val: str) -> node {
-        let elmt = ElementData("div", ~es_div);
+        let elmt = ElementData("div", ~HTMLDivElement);
         let attr = ~attr(name, val);
         elmt.attrs.push(attr);
         ret scope.new_node(Element(elmt));

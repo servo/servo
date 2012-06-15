@@ -1,8 +1,8 @@
 #[doc="Constructs a DOM tree from an incoming token stream."]
 
 import dom::rcu::writer_methods;
-import dom::base::{attr, element_subclass, es_div, es_head, es_img, es_unknown, methods, Element};
-import dom::base::{ElementData, Text, rd_tree_ops, wr_tree_ops};
+import dom::base::{attr, ElementKind, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
+import dom::base::{UnknownElement, methods, Element, ElementData, Text, rd_tree_ops, wr_tree_ops};
 import dom = dom::base;
 import dvec::extensions;
 import geom::size::Size2D;
@@ -18,8 +18,8 @@ fn link_up_attribute(scope: dom::node_scope, node: dom::node, -key: str, -value:
         alt *node_contents.kind {
             Element(element) {
                 element.attrs.push(~attr(copy key, copy value));
-                alt *element.subclass {
-                    es_img(img) if key == "width" {
+                alt *element.kind {
+                    HTMLImageElement(img) if key == "width" {
                         alt int::from_str(value) {
                             none {
                                 // Drop on the floor.
@@ -27,7 +27,7 @@ fn link_up_attribute(scope: dom::node_scope, node: dom::node, -key: str, -value:
                             some(s) { img.size.width = geometry::px_to_au(s); }
                         }
                     }
-                    es_img(img) if key == "height" {
+                    HTMLImageElement(img) if key == "height" {
                         alt int::from_str(value) {
                             none {
                                 // Drop on the floor.
@@ -37,7 +37,7 @@ fn link_up_attribute(scope: dom::node_scope, node: dom::node, -key: str, -value:
                             }
                         }
                     }
-                    es_div | es_img(*) | es_head | es_unknown {
+                    HTMLDivElement | HTMLImageElement(*) | HTMLHeadElement | UnknownElement {
                         // Drop on the floor.
                     }
                 }
@@ -50,31 +50,31 @@ fn link_up_attribute(scope: dom::node_scope, node: dom::node, -key: str, -value:
     }
 }
 
-fn build_element_subclass(tag_name: str) -> ~element_subclass {
+fn build_element_kind(tag_name: str) -> ~ElementKind {
     alt tag_name {
-        "div" { ret ~es_div; }
-        "img" {
-            ret ~es_img({
+        "div"   { ~HTMLDivElement }
+        "img"   {
+            ~HTMLImageElement({
                 mut size: Size2D(geometry::px_to_au(100),
                                  geometry::px_to_au(100))
-            });
+            })
         }
-        "head" { ret ~es_head; }
-        _ { ret ~es_unknown; }
+        "head"  { ~HTMLHeadElement }
+        _       { ~UnknownElement  }
     }
 }
 
 fn build_dom(scope: dom::node_scope, stream: port<token>) -> dom::node {
     // The current reference node.
-    let mut cur = scope.new_node(Element(ElementData("html", ~es_div)));
+    let mut cur = scope.new_node(Element(ElementData("html", ~HTMLDivElement)));
     loop {
         let token = stream.recv();
         alt token {
             parser::to_eof { break; }
             parser::to_start_opening_tag(tag_name) {
                 #debug["starting tag %s", tag_name];
-                let element_subclass = build_element_subclass(tag_name);
-                let new_node = scope.new_node(Element(ElementData(tag_name, element_subclass)));
+                let element_kind = build_element_kind(tag_name);
+                let new_node = scope.new_node(Element(ElementData(tag_name, element_kind)));
                 scope.add_child(cur, new_node);
                 cur = new_node;
             }

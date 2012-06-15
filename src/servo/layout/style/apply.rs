@@ -1,5 +1,5 @@
 #[doc="Applies style to boxes."]
-import dom::base::{es_img, Element, node};
+import dom::base::{HTMLImageElement, Element, node};
 import dom::rcu::reader_methods;
 import image::base::load;
 import layout::base::*;
@@ -25,8 +25,8 @@ impl apply_style_methods for @box {
 
                 self.appearance.background_color = some(style.back_color);
 
-                alt element.subclass {
-                  ~es_img(*) {
+                alt element.kind {
+                  ~HTMLImageElement(*) {
                     alt element.get_attr("src") {
                       some(url) {
                         // FIXME: Some sort of BASE HREF support!

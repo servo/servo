@@ -17,12 +17,12 @@ enum node_kind {
 
 class ElementData {
     let tag_name: str;
-    let subclass: ~element_subclass;
+    let kind: ~ElementKind;
     let attrs: dvec<~attr>;
 
-    new(-tag_name: str, -subclass: ~element_subclass) {
+    new(-tag_name: str, -kind: ~ElementKind) {
         self.tag_name = tag_name;
-        self.subclass = subclass;
+        self.kind = kind;
         self.attrs = dvec();
     }
 
@@ -49,11 +49,11 @@ class attr {
     }
 }
 
-enum element_subclass {
-    es_unknown,
-    es_div,
-    es_img({mut size: Size2D<au>}),
-    es_head
+enum ElementKind {
+    UnknownElement,
+    HTMLDivElement,
+    HTMLHeadElement,
+    HTMLImageElement({mut size: Size2D<au>})
 }
 
 #[doc="The rd_aux data is a (weak) pointer to the layout data, which

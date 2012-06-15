@@ -1,7 +1,7 @@
 #[doc="High-level interface to CSS selector matching."]
 
 import dom::style::{display_type, di_block, di_inline, di_none, stylesheet};
-import dom::base::{es_div, es_head, es_img, Element, Text, node};
+import dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, Element, Text, node};
 import dom::base::node_kind;
 import dom::rcu::reader_methods;
 import layout::base::*; // FIXME: resolve bug requires *
@@ -23,12 +23,11 @@ fn default_style_for_node_kind(kind: node_kind) -> computed_style {
         let r = rand::rng();
         let rand_color = rgb(r.next() as u8, r.next() as u8, r.next() as u8);
 
-        alt *element.subclass {
-          es_div { {mut display: di_block,
-                    mut back_color: rand_color} }
-          es_head { {mut display: di_none, mut back_color: rand_color} }
-          es_img(*) { {mut display: di_inline, mut back_color: rand_color} }
-          es_unknown { {mut display: di_inline, mut back_color: rand_color} }
+        alt *element.kind {
+          HTMLDivElement      { {mut display: di_block,  mut back_color: rand_color} }
+          HTMLHeadElement     { {mut display: di_none,   mut back_color: rand_color} }
+          HTMLImageElement(*) { {mut display: di_inline, mut back_color: rand_color} }
+          UnknownElement      { {mut display: di_inline, mut back_color: rand_color} }
         }
       }
     }

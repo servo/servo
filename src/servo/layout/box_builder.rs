@@ -1,6 +1,6 @@
 #[doc="Creates CSS boxes from a DOM."]
 
-import dom::base::{ElementData, es_div, es_img, Element, Text, node};
+import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, node};
 import dom::style::{display_type, di_block, di_inline, di_none};
 import dom::rcu::reader_methods;
 import gfx::geometry;
@@ -162,10 +162,10 @@ impl box_builder_priv for node {
         alt self.rd({ |n| copy n.kind }) {
             ~Text(string) { bk_text(@text_box(string)) }
             ~Element(element) {
-                alt *element.subclass {
-                    es_div         { bk_block            }
-                    es_img({size}) { bk_intrinsic(@size) }
-                    es_unknown     { bk_inline           }
+                alt *element.kind {
+                    HTMLDivElement           { bk_block            }
+                    HTMLImageElement({size}) { bk_intrinsic(@size) }
+                    UnknownElement           { bk_inline           }
                 }
             }
         }
