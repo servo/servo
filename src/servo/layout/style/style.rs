@@ -1,8 +1,8 @@
 #[doc="High-level interface to CSS selector matching."]
 
 import dom::style::{display_type, di_block, di_inline, di_none, stylesheet};
-import dom::base::{Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement, Node, Text};
-import dom::base::node_kind;
+import dom::base::{Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement, Node, NodeKind};
+import dom::base::{Text};
 import dom::rcu::reader_methods;
 import layout::base::*; // FIXME: resolve bug requires *
 import matching::matching_methods;
@@ -13,7 +13,7 @@ type computed_style = {mut display : display_type,
                        mut back_color : Color};
 
 #[doc="Returns the default style for the given node kind."]
-fn default_style_for_node_kind(kind: node_kind) -> computed_style {
+fn default_style_for_node_kind(kind: NodeKind) -> computed_style {
     alt kind {
       Text(*) {
         {mut display: di_inline, 

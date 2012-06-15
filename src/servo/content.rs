@@ -7,6 +7,7 @@ export ControlMsg, PingMsg;
 export content;
 
 import result::extensions;
+import dom::base::NodeScope;
 import dom::rcu::writer_methods;
 import dom::style;
 import dom = dom::base;
@@ -24,7 +25,7 @@ enum PingMsg {
 }
 
 #[doc="Sends a ping to layout and waits for the response."]
-fn join_layout(scope: dom::node_scope, to_layout: chan<layout_task::Msg>) {
+fn join_layout(scope: NodeScope, to_layout: chan<layout_task::Msg>) {
 
     if scope.is_reader_forked() {
         comm::listen {
@@ -39,7 +40,7 @@ fn join_layout(scope: dom::node_scope, to_layout: chan<layout_task::Msg>) {
 fn content(to_layout: chan<layout_task::Msg>) -> chan<ControlMsg> {
     task::spawn_listener::<ControlMsg> {
         |from_master|
-        let scope = dom::node_scope();
+        let scope = dom::NodeScope();
         let rt = js::rust::rt();
         loop {
             alt from_master.recv() {

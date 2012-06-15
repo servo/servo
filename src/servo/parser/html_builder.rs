@@ -1,8 +1,8 @@
 #[doc="Constructs a DOM tree from an incoming token stream."]
 
 import dom::rcu::writer_methods;
-import dom::base::{attr, ElementKind, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
-import dom::base::{UnknownElement, methods, Element, ElementData, Node, Text, rd_tree_ops};
+import dom::base::{Attr, Element, ElementData, ElementKind, HTMLDivElement, HTMLHeadElement};
+import dom::base::{HTMLImageElement, Node, NodeScope, Text, UnknownElement, rd_tree_ops};
 import dom::base::{wr_tree_ops};
 import dom = dom::base;
 import dvec::extensions;
@@ -12,13 +12,13 @@ import gfx::geometry::au;
 import parser = parser::lexer::html;
 import parser::token;
 
-fn link_up_attribute(scope: dom::node_scope, node: Node, -key: str, -value: str) {
+fn link_up_attribute(scope: NodeScope, node: Node, -key: str, -value: str) {
     // TODO: Implement atoms so that we don't always perform string comparisons.
     scope.rd(node) {
         |node_contents|
         alt *node_contents.kind {
             Element(element) {
-                element.attrs.push(~attr(copy key, copy value));
+                element.attrs.push(~Attr(copy key, copy value));
                 alt *element.kind {
                     HTMLImageElement(img) if key == "width" {
                         alt int::from_str(value) {
@@ -65,7 +65,7 @@ fn build_element_kind(tag_name: str) -> ~ElementKind {
     }
 }
 
-fn build_dom(scope: dom::node_scope, stream: port<token>) -> Node {
+fn build_dom(scope: NodeScope, stream: port<token>) -> Node {
     // The current reference node.
     let mut cur = scope.new_node(Element(ElementData("html", ~HTMLDivElement)));
     loop {

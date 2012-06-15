@@ -202,21 +202,21 @@ impl matching_methods for Node {
 }
 
 mod test {
-    import dom::base::{node_scope, methods, Element, attr, HTMLDivElement, HTMLImageElement};
-    import dom::base::{UnknownElement, HTMLHeadElement, wr_tree_ops};
+    import dom::base::{Attr, Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
+    import dom::base::{NodeScope, UnknownElement, wr_tree_ops};
     import dvec::{dvec, extensions};
     import io::println;
 
-    fn new_node_from_attr(scope: node_scope, -name: str, -val: str) -> Node {
+    fn new_node_from_attr(scope: NodeScope, -name: str, -val: str) -> Node {
         let elmt = ElementData("div", ~HTMLDivElement);
-        let attr = ~attr(name, val);
+        let attr = ~Attr(name, val);
         elmt.attrs.push(attr);
         ret scope.new_node(Element(elmt));
     }
 
     #[test]
     fn test_match_pipe1() {
-        let scope = node_scope();
+        let scope = NodeScope();
         let node = new_node_from_attr(scope, "lang", "en-us");
 
         let sel = element("*", [starts_with("lang", "en")]);
@@ -226,7 +226,7 @@ mod test {
 
     #[test]
     fn test_match_pipe2() {
-        let scope = node_scope();
+        let scope = NodeScope();
         let node = new_node_from_attr(scope, "lang", "en");
 
         let sel = element("*", [starts_with("lang", "en")]);
@@ -236,7 +236,7 @@ mod test {
     
     #[test] 
     fn test_not_match_pipe() {
-        let scope = node_scope();
+        let scope = NodeScope();
         let node = new_node_from_attr(scope, "lang", "english");
 
         let sel = element("*", [starts_with("lang", "en")]);
@@ -246,7 +246,7 @@ mod test {
 
     #[test]
     fn test_match_includes() {
-        let scope = node_scope();
+        let scope = NodeScope();
         let node = new_node_from_attr(scope, "mad", "hatter cobler cooper");
 
         let sel = element("div", [includes("mad", "hatter")]);
@@ -256,7 +256,7 @@ mod test {
 
     #[test]
     fn test_match_exists() {
-        let scope = node_scope();
+        let scope = NodeScope();
         let node = new_node_from_attr(scope, "mad", "hatter cobler cooper");
 
         let sel1 = element("div", [exists("mad")]);
@@ -268,7 +268,7 @@ mod test {
 
     #[test]
     fn test_match_exact() {
-        let scope = node_scope();
+        let scope = NodeScope();
         let node1 = new_node_from_attr(scope, "mad", "hatter cobler cooper");
         let node2 = new_node_from_attr(scope, "mad", "hatter");
 
@@ -280,7 +280,7 @@ mod test {
 
     #[test]
     fn match_tree() {
-        let scope = node_scope();
+        let scope = NodeScope();
 
         let root = new_node_from_attr(scope, "class", "blue");
         let child1 = new_node_from_attr(scope, "id", "green");

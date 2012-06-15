@@ -5,12 +5,12 @@ import layout::base::layout_data;
 import util::tree;
 import dvec::{dvec, extensions};
 
-enum node_data = {
+enum NodeData = {
     tree: tree::fields<Node>,
-    kind: ~node_kind,
+    kind: ~NodeKind,
 };
 
-enum node_kind {
+enum NodeKind {
     Element(ElementData),
     Text(str)
 }
@@ -18,7 +18,7 @@ enum node_kind {
 class ElementData {
     let tag_name: str;
     let kind: ~ElementKind;
-    let attrs: dvec<~attr>;
+    let attrs: dvec<~Attr>;
 
     new(-tag_name: str, -kind: ~ElementKind) {
         self.tag_name = tag_name;
@@ -39,7 +39,7 @@ class ElementData {
     }
 }
 
-class attr {
+class Attr {
     let name: str;
     let value: str;
 
@@ -61,20 +61,21 @@ enum ElementKind {
     the primary box.  Note that there may be multiple boxes per DOM node.
 "]
 
-type Node = rcu::handle<node_data, layout_data>;
+type Node = rcu::handle<NodeData, layout_data>;
 
-type node_scope = rcu::scope<node_data, layout_data>;
+type NodeScope = rcu::scope<NodeData, layout_data>;
 
-fn node_scope() -> node_scope { rcu::scope() }
+fn NodeScope() -> NodeScope {
+    rcu::scope()
+}
 
-impl methods for node_scope {
-    fn new_node(-k: node_kind) -> Node {
-        self.handle(node_data({tree: tree::empty(),
-                               kind: ~k}))
+impl NodeScope for NodeScope {
+    fn new_node(-k: NodeKind) -> Node {
+        self.handle(NodeData({tree: tree::empty(), kind: ~k}))
     }
 }
 
-impl of tree::rd_tree_ops<Node> for node_scope {
+impl of tree::rd_tree_ops<Node> for NodeScope {
     fn each_child(node: Node, f: fn(Node) -> bool) {
         tree::each_child(self, node, f)
     }
@@ -88,7 +89,7 @@ impl of tree::rd_tree_ops<Node> for node_scope {
     }
 }
 
-impl of tree::wr_tree_ops<Node> for node_scope {
+impl of tree::wr_tree_ops<Node> for NodeScope {
     fn add_child(node: Node, child: Node) {
         tree::add_child(self, node, child)
     }
