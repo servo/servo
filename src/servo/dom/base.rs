@@ -9,7 +9,7 @@ import util::tree;
 import dvec::{dvec, extensions};
 
 enum NodeData = {
-    tree: tree::fields<Node>,
+    tree: tree::Tree<Node>,
     kind: ~NodeKind,
 };
 
@@ -78,7 +78,7 @@ impl NodeScope for NodeScope {
     }
 }
 
-impl of tree::rd_tree_ops<Node> for NodeScope {
+impl TreeReadMethods of tree::ReadMethods<Node> for NodeScope {
     fn each_child(node: Node, f: fn(Node) -> bool) {
         tree::each_child(self, node, f)
     }
@@ -87,17 +87,17 @@ impl of tree::rd_tree_ops<Node> for NodeScope {
         tree::get_parent(self, node)
     }
 
-    fn with_tree_fields<R>(node: Node, f: fn(tree::fields<Node>) -> R) -> R {
+    fn with_tree_fields<R>(node: Node, f: fn(tree::Tree<Node>) -> R) -> R {
         self.read(node) { |n| f(n.tree) }
     }
 }
 
-impl of tree::wr_tree_ops<Node> for NodeScope {
+impl TreeWriteMethods of tree::WriteMethods<Node> for NodeScope {
     fn add_child(node: Node, child: Node) {
         tree::add_child(self, node, child)
     }
 
-    fn with_tree_fields<R>(node: Node, f: fn(tree::fields<Node>) -> R) -> R {
+    fn with_tree_fields<R>(node: Node, f: fn(tree::Tree<Node>) -> R) -> R {
         self.write(node) { |n| f(n.tree) }
     }
 }

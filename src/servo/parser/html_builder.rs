@@ -1,8 +1,8 @@
 #[doc="Constructs a DOM tree from an incoming token stream."]
 
 import dom::base::{Attr, Element, ElementData, ElementKind, HTMLDivElement, HTMLHeadElement};
-import dom::base::{HTMLImageElement, Node, NodeScope, Text, UnknownElement, rd_tree_ops};
-import dom::base::{wr_tree_ops};
+import dom::base::{HTMLImageElement, Node, NodeScope, Text, TreeReadMethods, TreeWriteMethods};
+import dom::base::{UnknownElement};
 import dom::rcu::WriterMethods;
 import geom::size::Size2D;
 import gfx::geometry;

@@ -203,7 +203,7 @@ impl matching_methods for Node {
 
 mod test {
     import dom::base::{Attr, Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
-    import dom::base::{NodeScope, UnknownElement, wr_tree_ops};
+    import dom::base::{NodeScope, TreeReadMethods, TreeWriteMethods, UnknownElement};
     import dvec::{dvec, extensions};
     import io::println;
 

@@ -2,7 +2,7 @@
 //
 // TODO: Use traits.
 
-type fields<T> = {
+type Tree<T> = {
     mut parent: option<T>,
     mut first_child: option<T>,
     mut last_child: option<T>,
@@ -10,17 +10,15 @@ type fields<T> = {
     mut next_sibling: option<T>
 };
 
-iface rd_tree_ops<T> {
-    fn with_tree_fields<R>(T, f: fn(fields<T>) -> R) -> R;
+iface ReadMethods<T> {
+    fn with_tree_fields<R>(T, f: fn(Tree<T>) -> R) -> R;
 }
 
-iface wr_tree_ops<T> {
-    fn with_tree_fields<R>(T, f: fn(fields<T>) -> R) -> R;
+iface WriteMethods<T> {
+    fn with_tree_fields<R>(T, f: fn(Tree<T>) -> R) -> R;
 }
 
-fn each_child<T:copy,O:rd_tree_ops<T>>(
-    ops: O, node: T, f: fn(T) -> bool) {
-
+fn each_child<T:copy,O:ReadMethods<T>>(ops: O, node: T, f: fn(T) -> bool) {
     let mut p = ops.with_tree_fields(node) { |f| f.first_child };
     loop {
         alt copy p {
@@ -33,7 +31,7 @@ fn each_child<T:copy,O:rd_tree_ops<T>>(
     }
 }
 
-fn empty<T>() -> fields<T> {
+fn empty<T>() -> Tree<T> {
     {mut parent: none,
      mut first_child: none,
      mut last_child: none,
@@ -41,7 +39,7 @@ fn empty<T>() -> fields<T> {
      mut next_sibling: none}
 }
 
-fn add_child<T:copy,O:wr_tree_ops<T>>(
+fn add_child<T:copy,O:WriteMethods<T>>(
     ops: O, parent: T, child: T) {
 
     ops.with_tree_fields(child) { |child_tf|
@@ -73,27 +71,27 @@ fn add_child<T:copy,O:wr_tree_ops<T>>(
     }
 }
 
-fn get_parent<T:copy,O:rd_tree_ops<T>>(ops: O, node: T) -> option<T> {
+fn get_parent<T:copy,O:ReadMethods<T>>(ops: O, node: T) -> option<T> {
     ops.with_tree_fields(node) { |tf| tf.parent }
 }
 
 #[cfg(test)]
 mod test {
     enum dummy = @{
-        fields: fields<dummy>,
+        fields: Tree<dummy>,
         value: uint
     };
 
     enum dtree { dtree }
 
-    impl of rd_tree_ops<dummy> for dtree {
-        fn with_tree_fields<R>(d: dummy, f: fn(fields<dummy>) -> R) -> R {
+    impl of ReadMethods<dummy> for dtree {
+        fn with_tree_fields<R>(d: dummy, f: fn(Tree<dummy>) -> R) -> R {
             f(d.fields)
         }
     }
 
-    impl of wr_tree_ops<dummy> for dtree {
-        fn with_tree_fields<R>(d: dummy, f: fn(fields<dummy>) -> R) -> R {
+    impl of WriteMethods<dummy> for dtree {
+        fn with_tree_fields<R>(d: dummy, f: fn(Tree<dummy>) -> R) -> R {
             f(d.fields)
         }
     }

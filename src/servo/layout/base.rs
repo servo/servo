@@ -35,7 +35,7 @@ class appearance {
 }
 
 class Box {
-    let tree: tree::fields<@Box>;
+    let tree: tree::Tree<@Box>;
     let node: Node;
     let kind: BoxKind;
     let mut bounds: Rect<au>;
@@ -55,34 +55,36 @@ enum layout_data = {
     mut box: option<@Box>
 };
 
+// FIXME: This is way too complex! Why do these have to have dummy receivers? --pcw
+
 enum ntree { ntree }
-impl of tree::rd_tree_ops<Node> for ntree {
+impl NodeTreeReadMethods of tree::ReadMethods<Node> for ntree {
     fn each_child(node: Node, f: fn(Node) -> bool) {
         tree::each_child(self, node, f)
     }
 
-    fn with_tree_fields<R>(&&n: Node, f: fn(tree::fields<Node>) -> R) -> R {
+    fn with_tree_fields<R>(&&n: Node, f: fn(tree::Tree<Node>) -> R) -> R {
         n.read { |n| f(n.tree) }
     }
 }
 
 enum btree { btree }
-impl of tree::rd_tree_ops<@Box> for btree {
+impl BoxTreeReadMethods of tree::ReadMethods<@Box> for btree {
     fn each_child(node: @Box, f: fn(&&@Box) -> bool) {
         tree::each_child(self, node, f)
     }
 
-    fn with_tree_fields<R>(&&b: @Box, f: fn(tree::fields<@Box>) -> R) -> R {
+    fn with_tree_fields<R>(&&b: @Box, f: fn(tree::Tree<@Box>) -> R) -> R {
         f(b.tree)
     }
 }
 
-impl of tree::wr_tree_ops<@Box> for btree {
+impl BoxTreeWriteMethods of tree::WriteMethods<@Box> for btree {
     fn add_child(node: @Box, child: @Box) {
         tree::add_child(self, node, child)
     }
 
-    fn with_tree_fields<R>(&&b: @Box, f: fn(tree::fields<@Box>) -> R) -> R {
+    fn with_tree_fields<R>(&&b: @Box, f: fn(tree::Tree<@Box>) -> R) -> R {
         f(b.tree)
     }
 }
@@ -155,7 +157,7 @@ impl NodeMethods for Node {
 #[cfg(test)]
 mod test {
     import dom::base::{Element, ElementData, HTMLDivElement, HTMLImageElement, Node, NodeKind};
-    import dom::base::{NodeScope, wr_tree_ops};
+    import dom::base::{NodeScope, TreeWriteMethods};
     import dom::rcu::Scope;
     import box_builder::{box_builder_methods};
 
