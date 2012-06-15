@@ -34,17 +34,25 @@ class appearance {
     }
 }
 
-enum box = {
-    tree: tree::fields<@box>,
-    node: Node,
-    mut bounds: Rect<au>,
-    kind: BoxKind,
-    appearance: appearance
-};
+class Box {
+    let tree: tree::fields<@Box>;
+    let node: Node;
+    let kind: BoxKind;
+    let mut bounds: Rect<au>;
+    let appearance: appearance;
+
+    new(node: Node, kind: BoxKind) {
+        self.tree = tree::empty();
+        self.node = node;
+        self.kind = kind;
+        self.bounds = geometry::zero_rect_au();
+        self.appearance = appearance();
+    }
+}
 
 enum layout_data = {
     mut computed_style: computed_style,
-    mut box: option<@box>
+    mut box: option<@Box>
 };
 
 enum ntree { ntree }
@@ -59,27 +67,27 @@ impl of tree::rd_tree_ops<Node> for ntree {
 }
 
 enum btree { btree }
-impl of tree::rd_tree_ops<@box> for btree {
-    fn each_child(node: @box, f: fn(&&@box) -> bool) {
+impl of tree::rd_tree_ops<@Box> for btree {
+    fn each_child(node: @Box, f: fn(&&@Box) -> bool) {
         tree::each_child(self, node, f)
     }
 
-    fn with_tree_fields<R>(&&b: @box, f: fn(tree::fields<@box>) -> R) -> R {
+    fn with_tree_fields<R>(&&b: @Box, f: fn(tree::fields<@Box>) -> R) -> R {
         f(b.tree)
     }
 }
 
-impl of tree::wr_tree_ops<@box> for btree {
-    fn add_child(node: @box, child: @box) {
+impl of tree::wr_tree_ops<@Box> for btree {
+    fn add_child(node: @Box, child: @Box) {
         tree::add_child(self, node, child)
     }
 
-    fn with_tree_fields<R>(&&b: @box, f: fn(tree::fields<@box>) -> R) -> R {
+    fn with_tree_fields<R>(&&b: @Box, f: fn(tree::fields<@Box>) -> R) -> R {
         f(b.tree)
     }
 }
 
-impl layout_methods_priv for @box {
+impl layout_methods_priv for @Box {
     #[doc="Dumps the box tree, for debugging, with indentation."]
     fn dump_indent(indent: uint) {
         let mut s = "";
@@ -95,7 +103,7 @@ impl layout_methods_priv for @box {
     }
 }
 
-impl layout_methods for @box {
+impl layout_methods for @Box {
     #[doc="The main reflow routine."]
     fn reflow(available_width: au) {
         alt self.kind {
@@ -167,7 +175,7 @@ mod test {
     }
     */
 
-    fn flat_bounds(root: @box) -> [Rect<au>] {
+    fn flat_bounds(root: @Box) -> [Rect<au>] {
         let mut r = [];
         for tree::each_child(btree, root) {|c|
             r += flat_bounds(c);

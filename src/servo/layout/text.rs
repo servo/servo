@@ -16,7 +16,7 @@ class text_box {
 }
 
 #[doc="The main reflow routine for text layout."]
-impl text_layout_methods for @box {
+impl text_layout_methods for @Box {
     fn reflow_text(_available_width: au, subbox: @text_box) {
         alt self.kind {
             TextBox(*) { /* ok */ }

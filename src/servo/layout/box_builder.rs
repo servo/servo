@@ -4,8 +4,8 @@ import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text,
 import dom::style::{display_type, di_block, di_inline, di_none};
 import dom::rcu::reader_methods;
 import gfx::geometry;
-import layout::base::{BlockBox, BoxKind, InlineBox, IntrinsicBox, NodeMethods, TextBox};
-import layout::base::{appearance, box, btree, ntree, rd_tree_ops, wr_tree_ops};
+import layout::base::{BlockBox, Box, BoxKind, InlineBox, IntrinsicBox, NodeMethods, TextBox};
+import layout::base::{appearance, btree, ntree, rd_tree_ops, wr_tree_ops};
 import layout::style::style::{style_methods};
 import layout::text::text_box;
 import util::tree;
@@ -17,7 +17,7 @@ enum ctxt = {
     // The parent node that we're scanning.
     parent_node: Node,
     // The parent box that these boxes will be added to.
-    parent_box: @box,
+    parent_box: @Box,
 
     //
     // The current anonymous box that we're currently appending inline nodes to.
@@ -25,18 +25,10 @@ enum ctxt = {
     // See CSS2 9.2.1.1.
     //
 
-    mut anon_box: option<@box>
+    mut anon_box: option<@Box>
 };
 
-fn new_box(n: Node, kind: BoxKind) -> @box {
-    @box({tree: tree::empty(),
-          node: n,
-          mut bounds: geometry::zero_rect_au(),
-          kind: kind,
-          appearance: appearance() })
-}
-
-fn create_context(parent_node: Node, parent_box: @box) -> ctxt {
+fn create_context(parent_node: Node, parent_box: @Box) -> ctxt {
     ret ctxt({
         parent_node: parent_node,
         parent_box: parent_box,
@@ -71,14 +63,14 @@ impl methods for ctxt {
                     let anon_box = alt self.anon_box {
                         none {
                           //
-                          // the anonymous box inherits the attributes of its parents for now, so
+                          // The anonymous box inherits the attributes of its parents for now, so
                           // that properties of intrinsic boxes are not spread to their parenting
                           // anonymous box.
                           //
-                          // TODO: check what css actually specifies
+                          // TODO: check what CSS actually specifies
                           //
 
-                          let b = new_box(self.parent_node, InlineBox);
+                          let b = @Box(self.parent_node, InlineBox);
                           self.anon_box = some(b);
                           b
                         }
@@ -178,9 +170,9 @@ impl box_builder_priv for Node {
 
 impl box_builder_methods for Node {
     #[doc="Creates boxes for this node. This is the entry point."]
-    fn construct_boxes() -> @box {
+    fn construct_boxes() -> @Box {
         let box_kind = self.determine_box_kind();
-        let my_box = new_box(self, box_kind);
+        let my_box = @Box(self, box_kind);
         alt box_kind {
             BlockBox | InlineBox {
                 let cx = create_context(self, my_box);

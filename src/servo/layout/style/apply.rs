@@ -5,7 +5,7 @@ import image::base::load;
 import layout::base::*;
 import style::style_methods;
 
-impl apply_style_methods for @box {
+impl ApplyStyleBoxMethods for @Box {
     fn apply_style_for_subtree() {
         self.apply_style();
         for btree.each_child(self) {

@@ -10,7 +10,7 @@ import layout::style::style::*; // ditto
 import util::tree;
 
 #[doc="The main reflow routine for inline layout."]
-impl inline_layout_methods for @box {
+impl inline_layout_methods for @Box {
     fn reflow_inline(available_width: au) {
         assert self.kind == InlineBox;
 
