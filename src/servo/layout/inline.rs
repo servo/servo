@@ -12,7 +12,7 @@ import util::tree;
 #[doc="The main reflow routine for inline layout."]
 impl inline_layout_methods for @box {
     fn reflow_inline(available_width: au) {
-        assert self.kind == bk_inline;
+        assert self.kind == InlineBox;
 
         #debug["starting reflow inline"];
 

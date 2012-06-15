@@ -17,11 +17,11 @@ import layout::text::*;
 import util::tree;
 import util::color::Color;
 
-enum box_kind {
-    bk_block,
-    bk_inline,
-    bk_intrinsic(@Size2D<au>),
-    bk_text(@text_box)
+enum BoxKind {
+    BlockBox,
+    InlineBox,
+    IntrinsicBox(@Size2D<au>),
+    TextBox(@text_box)
 }
 
 class appearance {
@@ -38,7 +38,7 @@ enum box = {
     tree: tree::fields<@box>,
     node: Node,
     mut bounds: Rect<au>,
-    kind: box_kind,
+    kind: BoxKind,
     appearance: appearance
 };
 
@@ -99,10 +99,10 @@ impl layout_methods for @box {
     #[doc="The main reflow routine."]
     fn reflow(available_width: au) {
         alt self.kind {
-            bk_block { self.reflow_block(available_width) }
-            bk_inline { self.reflow_inline(available_width) }
-            bk_intrinsic(size) { self.reflow_intrinsic(*size) }
-            bk_text(subbox) { self.reflow_text(available_width, subbox) }
+            BlockBox            { self.reflow_block(available_width)        }
+            InlineBox           { self.reflow_inline(available_width)       }
+            IntrinsicBox(size)  { self.reflow_intrinsic(*size)              }
+            TextBox(subbox)     { self.reflow_text(available_width, subbox) }
         }
     }
 

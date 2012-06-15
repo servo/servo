@@ -4,8 +4,8 @@ import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text,
 import dom::style::{display_type, di_block, di_inline, di_none};
 import dom::rcu::reader_methods;
 import gfx::geometry;
-import layout::base::{NodeMethods, appearance, bk_block, bk_inline, bk_intrinsic, bk_text, box};
-import layout::base::{box_kind, btree, ntree, rd_tree_ops, wr_tree_ops};
+import layout::base::{BlockBox, BoxKind, InlineBox, IntrinsicBox, NodeMethods, TextBox};
+import layout::base::{appearance, box, btree, ntree, rd_tree_ops, wr_tree_ops};
 import layout::style::style::{style_methods};
 import layout::text::text_box;
 import util::tree;
@@ -28,7 +28,7 @@ enum ctxt = {
     mut anon_box: option<@box>
 };
 
-fn new_box(n: Node, kind: box_kind) -> @box {
+fn new_box(n: Node, kind: BoxKind) -> @box {
     @box({tree: tree::empty(),
           node: n,
           mut bounds: geometry::zero_rect_au(),
@@ -78,7 +78,7 @@ impl methods for ctxt {
                           // TODO: check what css actually specifies
                           //
 
-                          let b = new_box(self.parent_node, bk_inline);
+                          let b = new_box(self.parent_node, InlineBox);
                           self.anon_box = some(b);
                           b
                         }
@@ -160,14 +160,16 @@ impl box_builder_priv for Node {
         Determines the kind of box that this node needs. Also, for images, computes the intrinsic
         size.
     "]
-    fn determine_box_kind() -> box_kind {
+    fn determine_box_kind() -> BoxKind {
         alt self.rd({ |n| copy n.kind }) {
-            ~Text(string) { bk_text(@text_box(string)) }
+            ~Text(string) {
+                TextBox(@text_box(string))
+            }
             ~Element(element) {
                 alt *element.kind {
-                    HTMLDivElement           { bk_block            }
-                    HTMLImageElement({size}) { bk_intrinsic(@size) }
-                    UnknownElement           { bk_inline           }
+                    HTMLDivElement           { BlockBox            }
+                    HTMLImageElement({size}) { IntrinsicBox(@size) }
+                    UnknownElement           { InlineBox           }
                 }
             }
         }
@@ -180,7 +182,7 @@ impl box_builder_methods for Node {
         let box_kind = self.determine_box_kind();
         let my_box = new_box(self, box_kind);
         alt box_kind {
-            bk_block | bk_inline {
+            BlockBox | InlineBox {
                 let cx = create_context(self, my_box);
                 cx.construct_boxes_for_children();
             }

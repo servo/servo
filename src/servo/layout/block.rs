@@ -10,7 +10,7 @@ import util::tree;
 impl block_layout_methods for @box {
     #[doc="The main reflow routine for block layout."]
     fn reflow_block(available_width: au) {
-        assert self.kind == bk_block;
+        assert self.kind == BlockBox;
 
         #debug["starting reflow block"];
 

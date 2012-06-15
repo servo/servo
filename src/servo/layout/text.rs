@@ -19,7 +19,7 @@ class text_box {
 impl text_layout_methods for @box {
     fn reflow_text(_available_width: au, subbox: @text_box) {
         alt self.kind {
-            bk_text(*) { /* ok */ }
+            TextBox(*) { /* ok */ }
             _ { fail "expected text box in reflow_text!" }
         };
 
