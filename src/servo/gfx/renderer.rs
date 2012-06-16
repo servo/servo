@@ -135,15 +135,18 @@ fn draw_display_list(
         #debug["drawing %?", item];
 
         alt item.item_type {
-            dl::display_item_solid_color(r, g, b) {
-                draw_solid_color(draw_target, item, r, g, b);
-            }
-            dl::display_item_image(image) {
-                draw_image(draw_target, item, image);
-            }
-            dl::padding(*) {
-                fail "should never see padding";
-            }
+          dl::display_item_solid_color(r, g, b) {
+            draw_solid_color(draw_target, item, r, g, b);
+          }
+          dl::display_item_image(image) {
+            draw_image(draw_target, item, image);
+          }
+          dl::display_item_text(text_run) {
+            // FIXME
+          }
+          dl::padding(*) {
+            fail "should never see padding";
+          }
         }
     }
 }
