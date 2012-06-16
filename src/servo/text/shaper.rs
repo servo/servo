@@ -35,29 +35,7 @@ import harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
 Calculate the layout metrics associated with a some given text
 when rendered in a specific font.
 "]
-fn shape_text(_font: &font, text: str) -> [glyph] {
-    let mut glyphs = [];
-    let mut cur_x = 0u;
-    for text.each_char {
-        |ch|
-        // TODO: Use HarfBuzz!
-        let hb_pos = {
-            x_advance: 10 as int32_t,
-            y_advance: 0 as int32_t,
-            x_offset: cur_x as int32_t,
-            y_offset: 0 as int32_t,
-            var: 0 as hb_var_int_t
-        };
-
-        let pos = hb_glyph_pos_to_servo_glyph_pos(hb_pos);
-        vec::push(glyphs, glyph(ch as uint, pos));
-        cur_x += 10u;
-    };
-
-    ret glyphs;
-}
-
-fn shape_text2(font: &font, text: str) -> [glyph] unsafe {
+fn shape_text(font: &font, text: str) -> [glyph] unsafe {
     #debug("shaping text '%s'", text);
 
     let face_blob = vec::as_buf(*(*font).buf()) { |buf|
@@ -100,14 +78,17 @@ fn shape_text2(font: &font, text: str) -> [glyph] unsafe {
 
     assert info_len == pos_len;
 
+    let mut glyphs = [];
+
     for uint::range(0u, info_len as uint) { |i|
         let info_ = offset(info_, i);
         let pos = offset(pos, i);
-        #debug("glyph %?: codep %?, cluster %?,\
-                x_adv %?, y_adv %?, x_off %?, y_of %?",
-               i, (*info_).codepoint, (*info_).cluster,
-               (*pos).x_advance, (*pos).y_advance,
-               (*pos).x_offset, (*pos).y_offset);
+        let codepoint = (*info_).codepoint as uint;
+        let pos = hb_glyph_pos_to_servo_glyph_pos(&*pos);
+        #debug("glyph %?: codep %?, x_adv %?, y_adv %?, x_off %?, y_of %?",
+               i, codepoint, pos.advance.x, pos.advance.y, pos.offset.x, pos.offset.y);
+
+        glyphs += [glyph(codepoint, pos)];
     }
 
     hb_buffer_destroy(buffer);
@@ -116,7 +97,7 @@ fn shape_text2(font: &font, text: str) -> [glyph] unsafe {
     hb_face_destroy(hbface);
     hb_blob_destroy(face_blob);
 
-    ret [];
+    ret glyphs;
 }
 
 crust fn glyph_func(_font: *hb_font_t,
@@ -129,7 +110,7 @@ crust fn glyph_func(_font: *hb_font_t,
     let font: *font = reinterpret_cast(font_data);
     assert font.is_not_null();
 
-    ret alt (*font).get_glyph_idx(unicode as char) {
+    ret alt (*font).glyph_idx(unicode as char) {
       some(g) {
         *glyph = g as hb_codepoint_t;
         true
@@ -140,15 +121,18 @@ crust fn glyph_func(_font: *hb_font_t,
     } as hb_bool_t;
 }
 
-fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: hb_glyph_position_t) -> glyph_pos {
+fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: &hb_glyph_position_t) -> glyph_pos {
     glyph_pos(Point2D(px_to_au(hb_pos.x_advance as int),
                       px_to_au(hb_pos.y_advance as int)),
               Point2D(px_to_au(hb_pos.x_offset as int),
                       px_to_au(hb_pos.y_offset as int)))
 }
 
-#[test]
-fn test_shape_basic() {
+fn should_get_glyph_codepoints() {
+    #[test];
+
     let font = font::create_test_font();
-    shape_text2(&font, "firecracker");
+    let glyphs = shape_text(&font, "firecracker");
+    let idxs = glyphs.map { |glyph| glyph.codepoint };
+    assert idxs == [32u, 8u, 13u, 14u, 10u, 13u, 201u, 10u, 37u, 14u, 13u];
 }

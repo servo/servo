@@ -42,7 +42,7 @@ class font/& {
         &self.fontbuf
     }
 
-    fn get_glyph_idx(codepoint: char) -> option<uint> {
+    fn glyph_idx(codepoint: char) -> option<uint> {
         #debug("getting glyph for codepoint %u", codepoint as uint);
         let codepoint_str = str::from_char(codepoint);
 
@@ -72,6 +72,10 @@ class font/& {
             #error("cairo did not give me a glyph for %u", codepoint as uint);
             none
         }
+    }
+
+    fn glyph_advance(_glyph: uint) -> (int, int) {
+        (10, 10)
     }
 }
 
@@ -190,11 +194,20 @@ fn should_get_glyph_indexes() {
     #[test];
 
     let font = create_test_font();
-    let glyph_idx = font.get_glyph_idx('w');
+    let glyph_idx = font.glyph_idx('w');
     assert glyph_idx == some(40u);
 }
 
-fn should_be_threadsafe() {
+fn should_get_glyph_advance() {
+    #[test];
+
+    let font = create_test_font();
+    let (x, y) = font.glyph_advance(40u);
+    // These are bogus numbers
+    assert x == 10 && y == 10;
+}
+
+fn should_be_able_to_create_instances_in_multiple_threads() {
     #[test];
 
     iter::repeat(10u) {||
