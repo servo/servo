@@ -71,10 +71,16 @@ fn box_to_display_items(box: @Box, origin: Point2D<au>) -> [dl::display_item] {
       (TextBox(subbox), _, _) {
         let run = copy subbox.run;
         assert run.is_some();
-        items += [dl::display_item({
-            item_type: dl::display_item_text(run.get()),
-            bounds: bounds
-        })];
+        items += [
+            dl::display_item({
+                item_type: dl::display_item_solid_color(255u8, 255u8, 255u8),
+                bounds: bounds
+            }),
+            dl::display_item({
+                item_type: dl::display_item_text(run.get()),
+                bounds: bounds
+            })
+        ];
       }
       (_, some(image), some(*)) | (_, some(image), none) {
         items += [dl::display_item({
@@ -104,7 +110,8 @@ fn box_to_display_items(box: @Box, origin: Point2D<au>) -> [dl::display_item] {
     ret items;
 }
 
-fn should_convert_text_boxes_to_text_items() {
+
+fn should_convert_text_boxes_to_solid_color_background_items() {
     #[test];
 
     let s = Scope();
@@ -115,12 +122,29 @@ fn should_convert_text_boxes_to_text_items() {
     let di = box_to_display_items(b, Point2D(px_to_au(0), px_to_au(0)));
 
     alt di[0].item_type {
+      dl::display_item_solid_color(*) { }
+      _ { fail }
+    }
+    
+}
+
+fn should_convert_text_boxes_to_text_items() {
+    #[test];
+
+    let s = Scope();
+    let n = s.new_node(Text("firecracker"));
+    let b = n.construct_boxes();
+    let subbox = alt check b.kind { TextBox(subbox) { subbox } };
+    b.reflow_text(px_to_au(800), subbox);
+    let di = box_to_display_items(b, Point2D(px_to_au(0), px_to_au(0)));
+
+    alt di[1].item_type {
       dl::display_item_text(_) { }
       _ { fail }
     }
 }
 
-fn should_calculate_the_bounds_of_the_text_box() {
+fn should_calculate_the_bounds_of_the_text_box_background_color() {
     #[test];
 
     let s = Scope();
@@ -135,8 +159,23 @@ fn should_calculate_the_bounds_of_the_text_box() {
         Size2D(px_to_au(110), px_to_au(14))
     );
 
-    #error("%?", di[0].bounds);
-    #error("%?", expected);
-
     assert di[0].bounds == expected;
+}
+
+fn should_calculate_the_bounds_of_the_text_items() {
+    #[test];
+
+    let s = Scope();
+    let n = s.new_node(Text("firecracker"));
+    let b = n.construct_boxes();
+    let subbox = alt check b.kind { TextBox(subbox) { subbox } };
+    b.reflow_text(px_to_au(800), subbox);
+    let di = box_to_display_items(b, Point2D(px_to_au(0), px_to_au(0)));
+
+    let expected = Rect(
+        Point2D(px_to_au(0), px_to_au(0)),
+        Size2D(px_to_au(110), px_to_au(14))
+    );
+
+    assert di[1].bounds == expected;
 }
