@@ -68,15 +68,15 @@ fn shape_text2(font: &font, text: str) -> [glyph] unsafe {
                        null())
     };
 
-    let face = hb_face_create(face_blob, 0 as c_uint);
-    let font = hb_font_create(face);
+    let hbface = hb_face_create(face_blob, 0 as c_uint);
+    let hbfont = hb_font_create(hbface);
 
-    hb_font_set_ppem(font, 10 as c_uint, 10 as c_uint);
-    hb_font_set_scale(font, 10 as c_int, 10 as c_int);
+    hb_font_set_ppem(hbfont, 10 as c_uint, 10 as c_uint);
+    hb_font_set_scale(hbfont, 10 as c_int, 10 as c_int);
 
     let funcs = hb_font_funcs_create();
     hb_font_funcs_set_glyph_func(funcs, glyph_func, null(), null());
-    hb_font_set_funcs(font, funcs, addr_of(*font), null());
+    hb_font_set_funcs(hbfont, funcs, reinterpret_cast(addr_of(*font)), null());
 
     let buffer = hb_buffer_create();
 
@@ -89,7 +89,7 @@ fn shape_text2(font: &font, text: str) -> [glyph] unsafe {
                            text.len() as c_int);
     }
 
-    hb_shape(font, buffer, null(), 0 as c_uint);
+    hb_shape(hbfont, buffer, null(), 0 as c_uint);
 
     let info_len = 0 as c_uint;
     let info_ = hb_buffer_get_glyph_infos(buffer, addr_of(info_len));
@@ -112,22 +112,32 @@ fn shape_text2(font: &font, text: str) -> [glyph] unsafe {
 
     hb_buffer_destroy(buffer);
     hb_font_funcs_destroy(funcs);
-    hb_font_destroy(font);
-    hb_face_destroy(face);
+    hb_font_destroy(hbfont);
+    hb_face_destroy(hbface);
     hb_blob_destroy(face_blob);
 
     ret [];
 }
 
 crust fn glyph_func(_font: *hb_font_t,
-                    _font_data: *c_void,
-                    _unicode: hb_codepoint_t,
+                    font_data: *c_void,
+                    unicode: hb_codepoint_t,
                     _variant_selector: hb_codepoint_t,
                     glyph: *mut hb_codepoint_t,
                     _user_data: *c_void) -> hb_bool_t unsafe {
 
-    *glyph = 40 as hb_codepoint_t;
-    ret true as hb_bool_t;
+    let font: *font = reinterpret_cast(font_data);
+    assert font.is_not_null();
+
+    ret alt (*font).get_glyph_idx(unicode as char) {
+      some(g) {
+        *glyph = g as hb_codepoint_t;
+        true
+      }
+      none {
+        false
+      }
+    } as hb_bool_t;
 }
 
 fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: hb_glyph_position_t) -> glyph_pos {
