@@ -15,7 +15,7 @@ import harfbuzz::{HB_MEMORY_MODE_READONLY,
                   HB_DIRECTION_LTR};
 import harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_buffer_t,
                   hb_codepoint_t, hb_bool_t, hb_glyph_position_t,
-				  hb_var_int_t};
+		  hb_var_int_t, hb_position_t};
 import harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
                            hb_face_create, hb_face_destroy,
                            hb_font_create, hb_font_destroy,
@@ -54,6 +54,7 @@ fn shape_text(font: &font, text: str) -> [glyph] unsafe {
 
     let funcs = hb_font_funcs_create();
     hb_font_funcs_set_glyph_func(funcs, glyph_func, null(), null());
+    hb_font_funcs_set_glyph_h_advance_func(funcs, glyph_h_advance_func, null(), null());
     hb_font_set_funcs(hbfont, funcs, reinterpret_cast(addr_of(*font)), null());
 
     let buffer = hb_buffer_create();
@@ -121,6 +122,18 @@ crust fn glyph_func(_font: *hb_font_t,
     } as hb_bool_t;
 }
 
+crust fn glyph_h_advance_func(_font: *hb_font_t,
+                              font_data: *c_void,
+                              glyph: hb_codepoint_t,
+                              _user_data: *c_void) -> hb_position_t unsafe {
+    let font: *font = reinterpret_cast(font_data);
+    assert font.is_not_null();
+
+    let h_advance = (*font).glyph_h_advance(glyph as uint);
+    #debug("h_advance for codepoint %? is %?", glyph, h_advance);
+    ret h_advance as hb_position_t;
+}
+
 fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: &hb_glyph_position_t) -> glyph_pos {
     glyph_pos(Point2D(px_to_au(hb_pos.x_advance as int),
                       px_to_au(hb_pos.y_advance as int)),
@@ -135,4 +148,13 @@ fn should_get_glyph_codepoints() {
     let glyphs = shape_text(&font, "firecracker");
     let idxs = glyphs.map { |glyph| glyph.codepoint };
     assert idxs == [32u, 8u, 13u, 14u, 10u, 13u, 201u, 10u, 37u, 14u, 13u];
+}
+
+fn should_get_glyph_h_advance() {
+    #[test];
+
+    let font = font::create_test_font();
+    let glyphs = shape_text(&font, "firecracker");
+    // This number is just a placeholder and probably not correct
+    assert glyphs.all { |glyph| glyph.pos.advance.x == px_to_au(10) };
 }

@@ -74,8 +74,8 @@ class font/& {
         }
     }
 
-    fn glyph_advance(_glyph: uint) -> (int, int) {
-        (10, 10)
+    fn glyph_h_advance(_glyph: uint) -> int {
+        10
     }
 }
 
@@ -202,9 +202,9 @@ fn should_get_glyph_advance() {
     #[test];
 
     let font = create_test_font();
-    let (x, y) = font.glyph_advance(40u);
-    // These are bogus numbers
-    assert x == 10 && y == 10;
+    let x = font.glyph_h_advance(40u);
+    // This number is bogus
+    assert x == 10;
 }
 
 fn should_be_able_to_create_instances_in_multiple_threads() {
