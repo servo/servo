@@ -27,17 +27,25 @@ impl text_layout_methods for @Box {
         let font = create_test_font();
         let run = text_run(&font, subbox.text);
         subbox.run = some(run);
-
-        self.bounds.size =
-            Size2D(alt vec::last_opt(run.glyphs) {
-                        some(glyph) {
-                            au(*glyph.pos.offset.x + *glyph.pos.advance.x)
-                        }
-                        none {
-                            au(0)
-                        }
-                   },
-                   au(60 * 14));
+        self.bounds.size = run.size();
     }
 }
 
+fn should_calculate_the_size_of_the_text_box() {
+    #[test];
+
+    import dom::rcu::{Scope};
+    import dom::base::{Text, NodeScope};
+    import box_builder::box_builder_methods;
+    import util::tree;
+    import gfx::geometry::px_to_au;
+
+    let s = Scope();
+    let n = s.new_node(Text("firecracker"));
+    let b = n.construct_boxes();
+
+    let subbox = alt check b.kind { TextBox(subbox) { subbox } };
+    b.reflow_text(px_to_au(800), subbox);
+    let expected = Size2D(px_to_au(110), px_to_au(14));
+    assert b.bounds.size == Size2D(px_to_au(110), px_to_au(14));
+}
