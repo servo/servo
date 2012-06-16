@@ -41,7 +41,7 @@ fn build_display_list_from_origin(box: @Box, origin: Point2D<au>)
         px_to_au(au_to_px(origin.y) + au_to_px(box.bounds.origin.y)));
     #debug("Handed origin %?, box has bounds %?, starting with origin %?", origin, copy box.bounds, box_origin);
 
-    let mut list = [box_to_display_item(box, box_origin)];
+    let mut list = box_to_display_items(box, box_origin);
 
     for btree.each_child(box) {|c|
         #debug("Recursively building display list with origin %?", box_origin);
@@ -60,8 +60,8 @@ Args:
 -origin: the coordinates of upper-left corner of the passed in box.
 
 "]
-fn box_to_display_item(box: @Box, origin: Point2D<au>) -> dl::display_item {
-    let mut item;
+fn box_to_display_items(box: @Box, origin: Point2D<au>) -> [dl::display_item] {
+    let mut items = [];
 
     #debug("request to display a box from origin %?", origin);
 
@@ -71,37 +71,37 @@ fn box_to_display_item(box: @Box, origin: Point2D<au>) -> dl::display_item {
       (TextBox(subbox), _, _) {
         let run = copy subbox.run;
         assert run.is_some();
-        item = dl::display_item({
+        items += [dl::display_item({
             item_type: dl::display_item_text(run.get()),
             bounds: bounds
-        });
+        })];
       }
       (_, some(image), some(*)) | (_, some(image), none) {
-        item = dl::display_item({
+        items += [dl::display_item({
             item_type: dl::display_item_image(~copy *image),
             bounds: bounds
-        });
+        })];
       }
       (_, none, some(col)) {
         #debug("Assigning color %? to box with bounds %?", col, bounds);
-        item = dl::display_item({
+        items += [dl::display_item({
             item_type: dl::display_item_solid_color(col.red, col.green, col.blue),
             bounds: bounds
-        });
+        })];
       }
       (_, none, none) {
         let r = rand::rng();
-        item = dl::display_item({
+        items += [dl::display_item({
             item_type: dl::display_item_solid_color(r.next() as u8,
                                                     r.next() as u8,
                                                     r.next() as u8),
             bounds: bounds
-        });
+        })];
       }
     }
 
-    #debug("layout: display item: %?", item);
-    ret item;
+    #debug("layout: display items: %?", items);
+    ret items;
 }
 
 fn should_convert_text_boxes_to_text_items() {
@@ -112,9 +112,9 @@ fn should_convert_text_boxes_to_text_items() {
     let b = n.construct_boxes();
     let subbox = alt check b.kind { TextBox(subbox) { subbox } };
     b.reflow_text(px_to_au(800), subbox);
-    let di = box_to_display_item(b, Point2D(px_to_au(0), px_to_au(0)));
+    let di = box_to_display_items(b, Point2D(px_to_au(0), px_to_au(0)));
 
-    alt di.item_type {
+    alt di[0].item_type {
       dl::display_item_text(_) { }
       _ { fail }
     }
@@ -128,15 +128,15 @@ fn should_calculate_the_bounds_of_the_text_box() {
     let b = n.construct_boxes();
     let subbox = alt check b.kind { TextBox(subbox) { subbox } };
     b.reflow_text(px_to_au(800), subbox);
-    let di = box_to_display_item(b, Point2D(px_to_au(0), px_to_au(0)));
+    let di = box_to_display_items(b, Point2D(px_to_au(0), px_to_au(0)));
 
     let expected = Rect(
         Point2D(px_to_au(0), px_to_au(0)),
         Size2D(px_to_au(110), px_to_au(14))
     );
 
-    #error("%?", di.bounds);
+    #error("%?", di[0].bounds);
     #error("%?", expected);
 
-    assert di.bounds == expected;
+    assert di[0].bounds == expected;
 }
