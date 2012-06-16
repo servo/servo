@@ -182,7 +182,7 @@ fn draw_some_text(draw_target: AzDrawTargetRef) {
     //let library: ft::FT_Library = ptr::null();
     //ftbg::FT_Init_FreeType(ptr::addr_of(library)).for_sure();
 
-    let fontbin = #include_bin("JosefinSans-SemiBold.ttf");
+    let fontbin = text::font::test_font_bin();
 
     let fontprov = vec::as_buf(fontbin) {|buf|
         CGDataProviderCreateWithData(ptr::null(),
@@ -326,7 +326,7 @@ fn draw_some_text(draw_target: AzDrawTargetRef) {
     let library: ft::FT_Library = ptr::null();
     ftbg::FT_Init_FreeType(ptr::addr_of(library)).for_sure();
 
-    let fontbin = #include_bin("JosefinSans-SemiBold.ttf");
+    let fontbin = text::font::test_font_bin();
 
     let face: ft::FT_Face = ptr::null();
     vec::as_buf(fontbin) {|buf|

@@ -1,4 +1,4 @@
-export font, create_test_font;
+export font, create_test_font, test_font_bin;
 
 import libc::{ c_int, c_double };
 import ptr::{ null, addr_of };
@@ -178,9 +178,10 @@ fn get_cairo_face(buf: &[u8]) -> (*cairo_font_face_t, fn@()) {
 }
 
 fn create_test_font() -> font {
-    let buf = #include_bin("JosefinSans-SemiBold.ttf");
-    font(buf)
+    font(test_font_bin())
 }
+
+fn test_font_bin() -> [u8] { #include_bin("JosefinSans-SemiBold.ttf") }
 
 fn should_destruct_on_fail_without_leaking() {
     #[test];
@@ -227,7 +228,7 @@ fn get_cairo_face_should_fail_and_not_leak_if_font_cant_be_created() {
 fn get_cairo_face_should_return_a_new_face_and_dtor() {
     #[test];
 
-    let buf = #include_bin("JosefinSans-SemiBold.ttf");
+    let buf = test_font_bin();
     let (face, dtor) = get_cairo_face(&buf);
     assert face.is_not_null();
     dtor();
@@ -236,7 +237,7 @@ fn get_cairo_face_should_return_a_new_face_and_dtor() {
 fn get_cairo_font_should_return_a_new_font_and_dtor() {
     #[test];
 
-    let buf = #include_bin("JosefinSans-SemiBold.ttf");
+    let buf = test_font_bin();
     let (font, dtor) = get_cairo_font(&buf);
     assert font.is_not_null();
     dtor();
