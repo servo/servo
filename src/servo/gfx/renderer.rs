@@ -6,6 +6,7 @@ import dl = layout::display_list;
 import azure::*;
 import azure::bindgen::*;
 import libc::size_t;
+import text::text_run::text_run;
 
 enum Msg {
     RenderMsg(dl::display_list),
@@ -36,7 +37,6 @@ fn renderer<S: sink send copy>(sink: S) -> chan<Msg> {
                     #debug("renderer: rendering");
                     clear(draw_target);
                     draw_display_list(draw_target, display_list);
-                    draw_some_text(draw_target);
                     #debug("renderer: returning surface");
                     sink.draw(draw_target_ch, draw_target);
                   }
@@ -53,6 +53,30 @@ fn renderer<S: sink send copy>(sink: S) -> chan<Msg> {
 impl to_float for u8 {
     fn to_float() -> float {
         (self as float) / 255f
+    }
+}
+
+fn draw_display_list(
+    draw_target: AzDrawTargetRef,
+    display_list: dl::display_list
+) {
+    for display_list.each {|item|
+        #debug["drawing %?", item];
+
+        alt item.item_type {
+          dl::display_item_solid_color(r, g, b) {
+            draw_solid_color(draw_target, item, r, g, b);
+          }
+          dl::display_item_image(image) {
+            draw_image(draw_target, item, image);
+          }
+          dl::display_item_text(text_run) {
+            draw_text(draw_target, item, text_run);
+          }
+          dl::padding(*) {
+            fail "should never see padding";
+          }
+        }
     }
 }
 
@@ -127,28 +151,68 @@ fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item,
     }
 }
 
-fn draw_display_list(
-    draw_target: AzDrawTargetRef,
-    display_list: dl::display_list
-) {
-    for display_list.each {|item|
-        #debug["drawing %?", item];
+fn draw_text(draw_target: AzDrawTargetRef, item: dl::display_item, text_run: text_run) {
 
-        alt item.item_type {
-          dl::display_item_solid_color(r, g, b) {
-            draw_solid_color(draw_target, item, r, g, b);
-          }
-          dl::display_item_image(image) {
-            draw_image(draw_target, item, image);
-          }
-          dl::display_item_text(text_run) {
-            // FIXME
-          }
-          dl::padding(*) {
-            fail "should never see padding";
-          }
-        }
-    }
+    import ptr::{addr_of, null};
+    import vec::unsafe::to_ptr;
+    import libc::types::common::c99::{uint16_t, uint32_t};
+    import geom::point::Point2D;
+    import text::font::{font, create_test_font};
+    import azure::{AzNativeFont, AzFloat, AZ_NATIVE_FONT_CAIRO_FONT_FACE};
+    import azure::bindgen::{AzCreateScaledFontWithCairo,
+                            AzReleaseScaledFont,
+                            AzCreateColorPattern,
+                            AzReleaseColorPattern};
+
+    let bounds = copy (*item).bounds;
+    let font = create_test_font();
+
+    let nfont: AzNativeFont = {
+        mType: AZ_NATIVE_FONT_CAIRO_FONT_FACE,
+        mFont: null()
+    };
+
+    let azfont = AzCreateScaledFontWithCairo(addr_of(nfont), 1f as AzFloat, font.cairo_font);
+    assert azfont.is_not_null();
+
+    let color = {
+        r: 0f as AzFloat,
+        g: 0f as AzFloat,
+        b: 0f as AzFloat,
+        a: 1f as AzFloat
+    };
+    let pattern = AzCreateColorPattern(addr_of(color));
+    assert pattern.is_not_null();
+
+    let options: AzDrawOptions = {
+        mAlpha: 1f as AzFloat,
+        fields: 0 as uint16_t
+    };
+
+    let mut origin = Point2D(bounds.origin.x, bounds.origin.y.add(bounds.size.height));
+    let azglyphs = text_run.glyphs.map { |glyph|
+        let azglyph: AzGlyph = {
+            mIndex: glyph.codepoint as uint32_t,
+            mPosition: {
+                x: au_to_px(origin.x.add(glyph.pos.offset.x)) as AzFloat,
+                y: au_to_px(origin.y.add(glyph.pos.offset.y)) as AzFloat
+            }
+        };
+        origin = Point2D(origin.x.add(glyph.pos.advance.x),
+                         origin.y.add(glyph.pos.advance.y));
+        azglyph
+    };
+
+    let glyphbuf: AzGlyphBuffer = unsafe {{
+        mGlyphs: to_ptr(azglyphs),
+        mNumGlyphs: azglyphs.len() as uint32_t            
+    }};
+
+    AzDrawTargetFillGlyphs(draw_target, azfont, addr_of(glyphbuf),
+                           pattern, addr_of(options), null());
+
+    AzReleaseColorPattern(pattern);
+    AzReleaseScaledFont(azfont);
 }
 
 #[cfg(target_os = "macos")]

@@ -15,7 +15,7 @@ class text_run {
     }
 
     fn size() -> Size2D<au> {
-        let height = px_to_au(14);
+        let height = px_to_au(20);
         let pen_start_x = px_to_au(0);
         let pen_start_y = height;
         let pen_start = Point2D(pen_start_x, pen_start_y);
@@ -32,6 +32,6 @@ fn should_calculate_the_total_size() {
 
     let font = create_test_font();
     let run = text_run(&font, "firecracker");
-    let expected = Size2D(px_to_au(110), px_to_au(14));
+    let expected = Size2D(px_to_au(220), px_to_au(20));
     assert run.size() == expected;
 }

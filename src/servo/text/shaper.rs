@@ -156,5 +156,5 @@ fn should_get_glyph_h_advance() {
     let font = font::create_test_font();
     let glyphs = shape_text(&font, "firecracker");
     // This number is just a placeholder and probably not correct
-    assert glyphs.all { |glyph| glyph.pos.advance.x == px_to_au(10) };
+    assert glyphs.all { |glyph| glyph.pos.advance.x == px_to_au(20) };
 }

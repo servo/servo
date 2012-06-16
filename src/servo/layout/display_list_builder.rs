@@ -156,7 +156,7 @@ fn should_calculate_the_bounds_of_the_text_box_background_color() {
 
     let expected = Rect(
         Point2D(px_to_au(0), px_to_au(0)),
-        Size2D(px_to_au(110), px_to_au(14))
+        Size2D(px_to_au(220), px_to_au(20))
     );
 
     assert di[0].bounds == expected;
@@ -174,7 +174,7 @@ fn should_calculate_the_bounds_of_the_text_items() {
 
     let expected = Rect(
         Point2D(px_to_au(0), px_to_au(0)),
-        Size2D(px_to_au(110), px_to_au(14))
+        Size2D(px_to_au(220), px_to_au(20))
     );
 
     assert di[1].bounds == expected;

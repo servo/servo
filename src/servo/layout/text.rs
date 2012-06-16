@@ -46,6 +46,6 @@ fn should_calculate_the_size_of_the_text_box() {
 
     let subbox = alt check b.kind { TextBox(subbox) { subbox } };
     b.reflow_text(px_to_au(800), subbox);
-    let expected = Size2D(px_to_au(110), px_to_au(14));
-    assert b.bounds.size == Size2D(px_to_au(110), px_to_au(14));
+    let expected = Size2D(px_to_au(220), px_to_au(20));
+    assert b.bounds.size == expected;
 }

@@ -75,7 +75,7 @@ class font/& {
     }
 
     fn glyph_h_advance(_glyph: uint) -> int {
-        10
+        20
     }
 }
 
@@ -109,7 +109,7 @@ fn get_cairo_font(buf: &[u8]) -> (*cairo_scaled_font_t, fn@()) {
 
     let fontmatrix = idmatrix;
     cairo_matrix_scale(addr_of(fontmatrix),
-                       300f as c_double, 400f as c_double);
+                       20f as c_double, 20f as c_double);
 
     let options = cairo_font_options_create();
     let cfont = cairo_scaled_font_create(face, addr_of(fontmatrix),
@@ -205,7 +205,7 @@ fn should_get_glyph_advance() {
     let font = create_test_font();
     let x = font.glyph_h_advance(40u);
     // This number is bogus
-    assert x == 10;
+    assert x == 20;
 }
 
 fn should_be_able_to_create_instances_in_multiple_threads() {
