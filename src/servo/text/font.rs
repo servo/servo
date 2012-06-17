@@ -1,17 +1,20 @@
 export font, create_test_font, test_font_bin;
 
-import libc::{ c_int, c_double };
+import vec_to_ptr = vec::unsafe::to_ptr;
+import libc::{ c_int, c_double, c_ulong };
 import ptr::{ null, addr_of };
 import azure::cairo::{
     cairo_font_face_t,
     cairo_scaled_font_t,
     cairo_glyph_t,
+    cairo_text_extents_t,
     CAIRO_STATUS_SUCCESS,
 };
 import azure::cairo::bindgen::{
     cairo_font_face_destroy,
     cairo_scaled_font_destroy,
     cairo_scaled_font_text_to_glyphs,
+    cairo_scaled_font_glyph_extents,
     cairo_glyph_free,
 };
 
@@ -74,8 +77,30 @@ class font/& {
         }
     }
 
-    fn glyph_h_advance(_glyph: uint) -> int {
-        20
+    fn glyph_h_advance(glyph: uint) -> int {
+
+        let glyphs: [cairo_glyph_t] = [{
+            index: glyph as c_ulong,
+            x: 0 as c_double,
+            y: 0 as c_double,
+        }];
+        let extents: cairo_text_extents_t = {
+            x_bearing: 0 as c_double,
+            y_bearing: 0 as c_double,
+            width: 0 as c_double,
+            height: 0 as c_double,
+            x_advance: 0 as c_double,
+            y_advance: 0 as c_double,
+        };
+
+        cairo_scaled_font_glyph_extents(
+            self.cairo_font, unsafe { vec_to_ptr(glyphs) },
+            1 as c_int, addr_of(extents));
+
+        #debug("x_advance: %?", extents.x_advance);
+        #debug("y_advance: %?", extents.y_advance);
+
+        ret extents.x_advance as int;
     }
 }
 
@@ -241,8 +266,7 @@ fn should_get_glyph_advance() {
 
     let font = create_test_font();
     let x = font.glyph_h_advance(40u);
-    // This number is bogus
-    assert x == 20;
+    assert x == 15;
 }
 
 fn should_be_able_to_create_instances_in_multiple_threads() {

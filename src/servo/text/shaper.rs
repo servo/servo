@@ -155,6 +155,7 @@ fn should_get_glyph_h_advance() {
 
     let font = font::create_test_font();
     let glyphs = shape_text(&font, "firecracker");
-    // This number is just a placeholder and probably not correct
-    assert glyphs.all { |glyph| glyph.pos.advance.x == px_to_au(20) };
+    let actual = glyphs.map { |g| g.pos.advance.x };
+    let expected = [6, 4, 7, 9, 8, 7, 10, 8, 9, 9, 7].map { |a| px_to_au(a) };
+    assert expected == actual;
 }

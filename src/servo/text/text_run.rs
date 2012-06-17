@@ -32,6 +32,6 @@ fn should_calculate_the_total_size() {
 
     let font = create_test_font();
     let run = text_run(&font, "firecracker");
-    let expected = Size2D(px_to_au(220), px_to_au(20));
+    let expected = Size2D(px_to_au(84), px_to_au(20));
     assert run.size() == expected;
 }
