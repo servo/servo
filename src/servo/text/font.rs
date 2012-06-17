@@ -173,8 +173,45 @@ fn get_cairo_face(buf: &[u8]) -> (*cairo_font_face_t, fn@()) {
 }
 
 #[cfg(target_os = "macos")]
+mod cocoa {
+    use cocoa;
+    export cocoa;
+}
+
+#[cfg(target_os = "macos")]
 fn get_cairo_face(buf: &[u8]) -> (*cairo_font_face_t, fn@()) {
-    fail
+    import unsafe::reinterpret_cast;
+    import libc::size_t;
+    import cocoa::cocoa;
+    import cocoa::cg::cg::{
+        CGDataProviderCreateWithData,
+        CGDataProviderRelease,
+        CGFontCreateWithDataProvider,
+        CGFontRelease
+    };
+    import azure::cairo_quartz::bindgen::cairo_quartz_font_face_create_for_cgfont;
+
+    let mut dtor = fn@() { };
+
+    let fontprov = vec::as_buf(*buf) { |cbuf|
+        CGDataProviderCreateWithData(
+            null(),
+            unsafe { reinterpret_cast(cbuf) },
+            (*buf).len() as size_t,
+            null()
+        )
+    };
+    dtor = fn@(move dtor) { CGDataProviderRelease(fontprov); dtor() };
+
+    let cgfont = CGFontCreateWithDataProvider(fontprov);
+    if cgfont.is_null() { fail "could not create quartz font" }
+    dtor = fn@(move dtor) { CGFontRelease(cgfont); dtor() };
+
+    let cface = cairo_quartz_font_face_create_for_cgfont(cgfont);
+    assert cface.is_not_null(); // FIXME: error handling
+    dtor = fn@(move dtor) { cairo_font_face_destroy(cface); dtor() };
+
+    (cface, dtor)
 }
 
 fn create_test_font() -> font {
