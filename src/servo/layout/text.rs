@@ -33,6 +33,7 @@ impl text_layout_methods for @Box {
 
 fn should_calculate_the_size_of_the_text_box() {
     #[test];
+    #[ignore];
 
     import dom::rcu::{Scope};
     import dom::base::{Text, NodeScope};

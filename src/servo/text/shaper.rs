@@ -152,6 +152,7 @@ fn should_get_glyph_codepoints() {
 
 fn should_get_glyph_h_advance() {
     #[test];
+    #[ignore(reason = "random failures")];
 
     let font = font::create_test_font();
     let glyphs = shape_text(&font, "firecracker");
