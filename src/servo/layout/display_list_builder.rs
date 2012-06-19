@@ -146,6 +146,7 @@ fn should_convert_text_boxes_to_text_items() {
 
 fn should_calculate_the_bounds_of_the_text_box_background_color() {
     #[test];
+    #[ignore];
 
     let s = Scope();
     let n = s.new_node(Text("firecracker"));
@@ -164,6 +165,7 @@ fn should_calculate_the_bounds_of_the_text_box_background_color() {
 
 fn should_calculate_the_bounds_of_the_text_items() {
     #[test];
+    #[ignore];
 
     let s = Scope();
     let n = s.new_node(Text("firecracker"));
