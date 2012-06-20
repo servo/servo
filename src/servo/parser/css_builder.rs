@@ -4,35 +4,35 @@
 // are not as expected
 
 import dom::style::*;
-import parser::lexer::css::{token, to_start_desc, to_end_desc,
-                            to_descendant, to_child, to_sibling,
-                            to_comma, to_elmt, to_attr, to_desc,
-                            to_eof};
+import parser::css_lexer::{Token, StartDescription, EndDescription,
+                           Descendant, Child, Sibling,
+                           Comma, Element, Attr, Description,
+                           Eof};
 import comm::recv;
 import option::is_none;
 import util::color::parsing::parse_color;
 
-type token_reader = {stream : port<token>, mut lookahead : option<token>};
+type TokenReader = {stream : port<Token>, mut lookahead : option<Token>};
 
-impl methods for token_reader {
-    fn get() -> token {
+impl methods for TokenReader {
+    fn get() -> Token {
         alt copy self.lookahead {
           some(tok)  { self.lookahead = none; copy tok }
           none       { recv(self.stream) }
         }
     }
 
-    fn unget(-tok : token) {
+    fn unget(-tok : Token) {
         assert is_none(self.lookahead);
         self.lookahead = some(tok);
     }
 }
 
-fn parse_element(reader : token_reader) -> option<~selector> {
+fn parse_element(reader : TokenReader) -> option<~selector> {
     // Get the current element type
     let elmt_name = alt reader.get() {
-      to_elmt(tag)  { copy tag }
-      to_eof        { ret none; }
+      Element(tag)  { copy tag }
+      Eof        { ret none; }
       _             { fail "Expected an element" }
     };
 
@@ -42,24 +42,23 @@ fn parse_element(reader : token_reader) -> option<~selector> {
     loop {
         let tok = reader.get();
         alt tok {
-          to_attr(attr)       { attr_list += [copy attr]; }
-          to_start_desc | to_descendant | to_child | to_sibling 
-          | to_comma {
+          Attr(attr)       { attr_list += [copy attr]; }
+          StartDescription | Descendant | Child | Sibling | Comma {
             reader.unget(tok); 
             break;
           }
-          to_eof              { ret none; }          
-          to_elmt(_)          { fail "Unexpected second element without " +
+          Eof              { ret none; }          
+          Element(_)          { fail "Unexpected second element without " +
                                    "relation to first element"; }
-          to_end_desc         { fail "Unexpected '}'"; }
-          to_desc(_, _)       { fail "Unexpected description"; }
+          EndDescription         { fail "Unexpected '}'"; }
+          Description(_, _)       { fail "Unexpected description"; }
         }
     }
         
     ret some(~element(elmt_name, attr_list));
 }
 
-fn parse_rule(reader : token_reader) -> option<~rule> {
+fn parse_rule(reader : TokenReader) -> option<~rule> {
     let mut sel_list = [];
     let mut desc_list = [];
 
@@ -75,7 +74,7 @@ fn parse_rule(reader : token_reader) -> option<~rule> {
         loop {
             let tok = reader.get();
             alt tok {
-              to_descendant {
+              Descendant {
                 alt parse_element(reader) {
                   some(elmt)   { 
                     let built_sel <- cur_sel;
@@ -85,7 +84,7 @@ fn parse_rule(reader : token_reader) -> option<~rule> {
                   none         { ret none; }
                 }
               }
-              to_child {
+              Child {
                 alt parse_element(reader) {
                   some(elmt)   { 
                     let built_sel <- cur_sel;
@@ -95,7 +94,7 @@ fn parse_rule(reader : token_reader) -> option<~rule> {
                   none         { ret none; }
                 }
               }
-              to_sibling {
+              Sibling {
                 alt parse_element(reader) {
                   some(elmt)   { 
                     let built_sel <- cur_sel;
@@ -105,30 +104,30 @@ fn parse_rule(reader : token_reader) -> option<~rule> {
                   none         { ret none; }
                 }
               }
-              to_start_desc {
+              StartDescription {
                 let built_sel <- cur_sel; 
                 sel_list += [built_sel];
-                reader.unget(to_start_desc);
+                reader.unget(StartDescription);
                 break;
               }
-              to_comma      {
+              Comma      {
                 let built_sel <- cur_sel;
                 sel_list += [built_sel];
-                reader.unget(to_comma);
+                reader.unget(Comma);
                 break;
               }
-              to_attr(_) | to_end_desc | to_elmt(_) | to_desc(_, _) {
+              Attr(_) | EndDescription | Element(_) | Description(_, _) {
                 fail #fmt["Unexpected token %? in elements", tok];
               }
-              to_eof        { ret none; }
+              Eof        { ret none; }
             }
         }
 
         // check if we should break out of the nesting loop as well
         let tok = reader.get();
         alt tok {
-          to_start_desc { break; }
-          to_comma      { }
+          StartDescription { break; }
+          Comma      { }
           _             { reader.unget(tok); }
         }
     }
@@ -137,8 +136,8 @@ fn parse_rule(reader : token_reader) -> option<~rule> {
     loop {
         let tok = reader.get();
         alt tok {
-          to_end_desc   { break; }
-          to_desc(prop, val) {
+          EndDescription   { break; }
+          Description(prop, val) {
             alt prop {
               "font-size" {
                 // TODO, support more ways to declare a font size than # pt
@@ -169,9 +168,9 @@ fn parse_rule(reader : token_reader) -> option<~rule> {
                                   val]; }
             }
           }
-          to_eof        { ret none; }
-          to_start_desc | to_descendant | to_child | to_sibling
-          | to_comma | to_elmt(_) | to_attr(_)  {
+          Eof        { ret none; }
+          StartDescription | Descendant | Child | Sibling
+          | Comma | Element(_) | Attr(_)  {
             fail #fmt["Unexpected token %? in description", tok]; 
           }
         }
@@ -180,7 +179,7 @@ fn parse_rule(reader : token_reader) -> option<~rule> {
     ret some(~(sel_list, desc_list));
 }
 
-fn build_stylesheet(stream : port<token>) -> [~rule] {
+fn build_stylesheet(stream : port<Token>) -> [~rule] {
     let mut rule_list = [];
     let reader = {stream : stream, mut lookahead : none};
 

@@ -1,5 +1,4 @@
 import comm::*;
-import parser::lexer;
 import result::extensions;
 import gfx::renderer;
 import platform::osmain;

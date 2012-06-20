@@ -14,7 +14,8 @@ import dom::base::NodeScope;
 import dom::rcu::WriterMethods;
 import dom::style;
 import style::print_sheet;
-import parser::lexer::{spawn_css_lexer_task, spawn_html_parser_task};
+import parser::css_lexer::spawn_css_lexer_task;
+import parser::html_lexer::spawn_html_lexer_task;
 import parser::css_builder::build_stylesheet;
 import parser::html_builder::build_dom;
 import layout::layout_task;
@@ -79,7 +80,7 @@ fn Content(layout: Layout) -> Content {
 
                 // Note: we can parse the next document in parallel
                 // with any previous documents.
-                let stream = spawn_html_parser_task(copy filename);
+                let stream = spawn_html_lexer_task(copy filename);
                 let root = build_dom(scope, stream);
            
                 // Collect the css stylesheet

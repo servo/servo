@@ -51,7 +51,9 @@ mod layout {
 }
 
 mod parser {
-    mod lexer;
+    mod lexer_util;
+    mod css_lexer;
+    mod html_lexer;
     mod html_builder;
     mod css_builder;
 }

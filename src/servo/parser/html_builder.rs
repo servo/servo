@@ -7,8 +7,8 @@ import dom::rcu::WriterMethods;
 import geom::size::Size2D;
 import gfx::geometry;
 import gfx::geometry::au;
-import parser = parser::lexer::html;
-import parser::token;
+import parser = parser::html_lexer;
+import parser::Token;
 
 import dvec::extensions;
 
@@ -66,41 +66,41 @@ fn build_element_kind(tag_name: str) -> ~ElementKind {
     }
 }
 
-fn build_dom(scope: NodeScope, stream: port<token>) -> Node {
+fn build_dom(scope: NodeScope, stream: port<Token>) -> Node {
     // The current reference node.
     let mut cur = scope.new_node(Element(ElementData("html", ~HTMLDivElement)));
     loop {
         let token = stream.recv();
         alt token {
-            parser::to_eof { break; }
-            parser::to_start_opening_tag(tag_name) {
+            parser::Eof { break; }
+            parser::StartOpeningTag(tag_name) {
                 #debug["starting tag %s", tag_name];
                 let element_kind = build_element_kind(tag_name);
                 let new_node = scope.new_node(Element(ElementData(copy tag_name, element_kind)));
                 scope.add_child(cur, new_node);
                 cur = new_node;
             }
-            parser::to_attr(key, value) {
+            parser::Attr(key, value) {
                 #debug["attr: %? = %?", key, value];
                 link_up_attribute(scope, cur, copy key, copy value);
             }
-            parser::to_end_opening_tag {
+            parser::EndOpeningTag {
                 #debug("end opening tag");
             }
-            parser::to_end_tag(_) | parser::to_self_close_tag {
+            parser::EndTag(_) | parser::SelfCloseTag {
                 // TODO: Assert that the closing tag has the right name.
                 // TODO: Fail more gracefully (i.e. according to the HTML5
                 //       spec) if we close more tags than we open.
                 cur = scope.get_parent(cur).get();
             }
-            parser::to_text(s) if !s.is_whitespace() {
+            parser::Text(s) if !s.is_whitespace() {
                 let new_node = scope.new_node(Text(copy s));
                 scope.add_child(cur, new_node);
             }
-            parser::to_text(_) {
+            parser::Text(_) {
                 // FIXME: Whitespace should not be ignored.
             }
-            parser::to_doctype {
+            parser::Doctype {
                 // TODO: Do something here...
             }
         }

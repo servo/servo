@@ -1,0 +1,112 @@
+import option::is_none;
+
+enum CharOrEof {
+    CoeChar(u8),
+    CoeEof
+}
+
+type InputState = {
+    mut lookahead: option<CharOrEof>,
+    reader: io::reader
+};
+
+impl u8_methods for u8 {
+    fn is_whitespace() -> bool {
+        ret self == ' ' as u8 || self == '\n' as u8 || self == '\t' as u8;
+    }
+
+    fn is_alpha() -> bool {
+        ret (self >= ('A' as u8) && self <= ('Z' as u8)) ||
+            (self >= ('a' as u8) && self <= ('z' as u8));
+    }
+}
+
+impl u8_vec_methods for [u8] {
+    fn to_html_token() -> html_lexer::Token { ret html_lexer::Text(self.to_str()); }
+    fn to_str() -> str { ret str::from_bytes(self); }
+}
+
+impl util_methods for InputState {
+    fn get() -> CharOrEof {
+        alt copy self.lookahead {
+            some(coe) {
+                let rv = coe;
+                self.lookahead = none;
+                ret rv;
+            }
+            none {
+                /* fall through */
+            }
+        }
+
+        if self.reader.eof() { ret CoeEof; }
+        ret CoeChar(self.reader.read_byte() as u8);
+    }
+
+    fn unget(ch: u8) {
+        assert is_none(self.lookahead);
+        self.lookahead = some(CoeChar(ch));
+    }
+
+    fn parse_err(err: str) -> ! {
+        fail err
+    }
+
+    fn expect(ch: u8) {
+        alt self.get() {
+            CoeChar(c) {
+                if c != ch {
+                    self.parse_err(#fmt("expected '%c'", ch as char));
+                }
+            }
+            CoeEof {
+                self.parse_err(#fmt("expected '%c' at eof", ch as char));
+            }
+        }
+    }
+
+    fn parse_ident() -> str {
+        let mut result: [u8] = [];
+        loop {
+            alt self.get() {
+                CoeChar(c) {
+                    if (c.is_alpha()) {
+                        result += [c];
+                    } else if result.len() == 0u {
+                        self.parse_err("expected ident");
+                    } else {
+                        self.unget(c);
+                        break;
+                    }
+                }
+                CoeEof {
+                    self.parse_err("expected ident");
+                }
+            }
+        }
+        ret str::from_bytes(result);
+    }
+
+    fn expect_ident(expected: str) {
+        let actual = self.parse_ident();
+        if expected != actual {
+            self.parse_err(#fmt("expected '%s' but found '%s'", expected, actual));
+        }
+    }
+
+    fn eat_whitespace() {
+        loop {
+            alt self.get() {
+                CoeChar(c) {
+                  if !c.is_whitespace() {
+                        self.unget(c);
+                        ret;
+                    }
+                }
+                CoeEof {
+                    ret;
+                }
+            }
+        }
+    }
+}
