@@ -1,5 +1,7 @@
 #[doc="High-level interface to CSS selector matching."]
 
+import arc::{arc, get, clone};
+
 import dom::style::{display_type, di_block, di_inline, di_none, stylesheet};
 import dom::base::{Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement, Node, NodeKind};
 import dom::base::{Text};
@@ -15,8 +17,7 @@ type computed_style = {mut display : display_type, mut back_color : Color};
 fn default_style_for_node_kind(kind: NodeKind) -> computed_style {
     alt kind {
       Text(*) {
-        {mut display: di_inline, 
-         mut back_color: white()}
+        {mut display: di_inline, mut back_color: white()}
       }
       Element(element) {
         let r = rand::rng();
@@ -54,7 +55,9 @@ impl style_methods for Node {
     fn initialize_style_for_subtree() {
         self.initialize_style();
         
-        for ntree.each_child(self) { |kid| kid.initialize_style_for_subtree(); }
+        for ntree.each_child(self) { |kid| 
+            kid.initialize_style_for_subtree();
+        }
     }
     
     #[doc="
@@ -76,21 +79,28 @@ impl style_methods for Node {
         This is, importantly, the function that updates the layout data for the node (the reader-
         auxiliary box in the RCU model) with the computed style.
     "]
-    fn recompute_style_for_subtree(styles : stylesheet) {
+    fn recompute_style_for_subtree(styles : arc<stylesheet>) {
         listen { |ack_chan| 
-
-            // TODO: Don't copy this for every element, look into shared, immutable state
-            let new_styles = copy styles;
+            let mut i = 0u;
             
-            task::spawn { ||
-                self.match_css_style(new_styles);
-                ack_chan.send(());
-            }
+            // Compute the styles of each of our children in parallel
+            for ntree.each_child(self) { |kid| 
+                i = i + 1u;
+                let new_styles = clone(&styles);
                 
-            for ntree.each_child(self) { |kid| kid.recompute_style_for_subtree(styles); }
+                task::spawn { ||
+                    kid.recompute_style_for_subtree(new_styles); 
+                    ack_chan.send(());
+                }
+            }
 
-            // Make sure we finish updating the tree before returning
-            ack_chan.recv();
+            self.match_css_style(*get(&styles));
+            
+            // Make sure we have finished updating the tree before returning
+            while i > 0 {
+                ack_chan.recv();
+                i = i - 1u;
+            }
         }
     }
 }

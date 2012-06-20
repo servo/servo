@@ -3,6 +3,8 @@
     rendered.
 "];
 
+import arc::arc;
+
 import display_list_builder::build_display_list;
 import dom::base::{Node};
 import dom::style::stylesheet;
@@ -36,7 +38,7 @@ fn layout(to_renderer: chan<renderer::Msg>) -> chan<Msg> {
                     node.dump();
 
                     node.initialize_style_for_subtree();
-                    node.recompute_style_for_subtree(styles);
+                    node.recompute_style_for_subtree(arc(styles));
 
                     let this_box = node.construct_boxes();
                     this_box.dump();
