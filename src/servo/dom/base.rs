@@ -72,12 +72,14 @@ fn NodeScope() -> NodeScope {
     rcu::Scope()
 }
 
+#[warn(no_non_implicitly_copyable_typarams)]
 impl NodeScope for NodeScope {
     fn new_node(-k: NodeKind) -> Node {
         self.handle(NodeData({tree: tree::empty(), kind: ~k}))
     }
 }
 
+#[warn(no_non_implicitly_copyable_typarams)]
 impl TreeReadMethods of tree::ReadMethods<Node> for NodeScope {
     fn each_child(node: Node, f: fn(Node) -> bool) {
         tree::each_child(self, node, f)
@@ -92,6 +94,7 @@ impl TreeReadMethods of tree::ReadMethods<Node> for NodeScope {
     }
 }
 
+#[warn(no_non_implicitly_copyable_typarams)]
 impl TreeWriteMethods of tree::WriteMethods<Node> for NodeScope {
     fn add_child(node: Node, child: Node) {
         tree::add_child(self, node, child)

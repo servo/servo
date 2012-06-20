@@ -62,6 +62,7 @@ Creates a display list item for a single block.
 * `origin` - The coordinates of upper-left corner of the passed in box.
 
 "]
+#[warn(no_non_implicitly_copyable_typarams)]
 fn box_to_display_items(box: @Box, origin: Point2D<au>) -> [dl::display_item] {
     let mut items = [];
 

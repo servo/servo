@@ -205,6 +205,7 @@ impl WriterMethods<T:copy send,A> for Scope<T,A> {
         f(*h.write_ptr())
     }
 
+    #[warn(no_non_implicitly_copyable_typarams)]
     fn handle(v: T) -> Handle<T,A> unsafe {
         let d: *HandleData<T,A> =
             unsafe::reinterpret_cast(
@@ -220,6 +221,7 @@ impl WriterMethods<T:copy send,A> for Scope<T,A> {
 }
 
 #[cfg(test)]
+#[warn(no_non_implicitly_copyable_typarams)]
 mod test {
 
     type animal = {name: str, species: species};

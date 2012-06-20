@@ -12,6 +12,7 @@ import parser::token;
 
 import dvec::extensions;
 
+#[warn(no_non_implicitly_copyable_typarams)]
 fn link_up_attribute(scope: NodeScope, node: Node, -key: str, -value: str) {
     // TODO: Implement atoms so that we don't always perform string comparisons.
     scope.read(node) {

@@ -205,6 +205,7 @@ mod test {
     import dvec::{dvec, extensions};
     import io::println;
 
+    #[warn(no_non_implicitly_copyable_typarams)]
     fn new_node_from_attr(scope: NodeScope, -name: str, -val: str) -> Node {
         let elmt = ElementData("div", ~HTMLDivElement);
         let attr = ~Attr(name, val);

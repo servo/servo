@@ -26,8 +26,8 @@ impl text_layout_methods for @Box {
 
         let font = create_test_font();
         let run = text_run(&font, subbox.text);
-        subbox.run = some(run);
         self.bounds.size = run.size();
+        subbox.run = some(run);
     }
 }
 

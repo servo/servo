@@ -475,6 +475,7 @@ fn parser(reader: io::reader, state : parse_state) -> parser {
     ret { mut lookahead: none, mut state: state, reader: reader };
 }
 
+#[warn(no_non_implicitly_copyable_typarams)]
 fn spawn_html_parser_task(-filename: ~str) -> port<html::token> {
     let result_port = port();
     let result_chan = chan(result_port);
@@ -496,6 +497,7 @@ fn spawn_html_parser_task(-filename: ~str) -> port<html::token> {
     ret result_port;
 }
 
+#[warn(no_non_implicitly_copyable_typarams)]
 fn spawn_css_lexer_task(-filename: ~str) -> port<css::token> {
     let result_port = port();
     let result_chan = chan(result_port);

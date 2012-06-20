@@ -24,17 +24,18 @@ import azure::cairo::bindgen::{
 A font handle. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
 "]
+#[warn(no_non_implicitly_copyable_typarams)]
 class font/& {
     let fontbuf: [u8];
     let cairo_font: *cairo_scaled_font_t;
     let font_dtor: fn@();
 
-    new(+fontbuf: [u8]) {
+    new(-fontbuf: [u8]) {
 
-        let (cairo_font, font_dtor) = get_cairo_font(&fontbuf);
+        let (cairo_font, font_dtor) = get_cairo_font(&copy fontbuf);
         assert cairo_font.is_not_null();
 
-        self.fontbuf = fontbuf;
+        self.fontbuf <- fontbuf;
         self.cairo_font = cairo_font;
         self.font_dtor = font_dtor;
     }

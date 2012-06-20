@@ -15,6 +15,7 @@ enum render_mode {
     png(str)
 }
 
+#[warn(no_non_implicitly_copyable_typarams)]
 fn from_cmdline_args(args: [str]) -> opts {
     import std::getopts;
 

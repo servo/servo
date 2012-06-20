@@ -8,8 +8,8 @@ fn main(args: [str]) {
     run(opts::from_cmdline_args(args))
 }
 
+#[warn(no_non_implicitly_copyable_typarams)]
 fn run(opts: opts::opts) {
-
     alt opts.render_mode {
       opts::screen {
         run_pipeline_screen(opts.urls)

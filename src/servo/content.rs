@@ -29,6 +29,7 @@ enum PingMsg {
 }
 
 #[doc="Sends a ping to layout and waits for the response."]
+#[warn(no_non_implicitly_copyable_typarams)]
 fn join_layout(scope: NodeScope, to_layout: chan<layout_task::Msg>) {
 
     if scope.is_reader_forked() {
@@ -41,6 +42,7 @@ fn join_layout(scope: NodeScope, to_layout: chan<layout_task::Msg>) {
     }
 }
 
+#[warn(no_non_implicitly_copyable_typarams)]
 fn content(to_layout: chan<layout_task::Msg>) -> chan<ControlMsg> {
     task::spawn_listener::<ControlMsg> {
         |from_master|
