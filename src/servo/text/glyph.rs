@@ -1,5 +1,10 @@
+export GlyphIndex, GlyphPos, Glyph;
+
 import gfx::geometry::au;
 import geom::point::Point2D;
+
+#[doc = "The index of a particular glyph within a font"]
+type GlyphIndex = uint;
 
 #[doc="The position of a glyph on the screen."]
 class GlyphPos {
@@ -13,11 +18,11 @@ class GlyphPos {
 
 #[doc="A single glyph."]
 class Glyph {
-    let codepoint: uint;
+    let index: GlyphIndex;
     let pos: GlyphPos;
 
-    new(codepoint: uint, pos: GlyphPos) {
-        self.codepoint = codepoint;
+    new(index: GlyphIndex, pos: GlyphPos) {
+        self.index = index;
         self.pos = copy pos;
     }
 }

@@ -1,5 +1,6 @@
 export Font, create_test_font, test_font_bin;
 
+import glyph::GlyphIndex;
 import vec_to_ptr = vec::unsafe::to_ptr;
 import libc::{ c_int, c_double, c_ulong };
 import ptr::{ null, addr_of };
@@ -48,7 +49,7 @@ class Font/& {
         &self.fontbuf
     }
 
-    fn glyph_idx(codepoint: char) -> option<uint> {
+    fn glyph_idx(codepoint: char) -> option<GlyphIndex> {
         #debug("getting glyph for codepoint %u", codepoint as uint);
         let codepoint_str = str::from_char(codepoint);
 
@@ -70,7 +71,7 @@ class Font/& {
             // This might not be true, but at least we'll know if it isn't
             assert num_glyphs == 1 as c_int;
 
-            let glyph_index = unsafe { *glyphs }.index as uint;
+            let glyph_index = unsafe { *glyphs }.index as GlyphIndex;
             #debug("glyph index is %?", glyph_index);
             cairo_glyph_free(glyphs);
             some(glyph_index)
@@ -80,7 +81,7 @@ class Font/& {
         }
     }
 
-    fn glyph_h_advance(glyph: uint) -> int {
+    fn glyph_h_advance(glyph: GlyphIndex) -> int {
 
         #debug("getting h advance for glyph %?", glyph);
 

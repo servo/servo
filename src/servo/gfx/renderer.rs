@@ -192,7 +192,7 @@ fn draw_text(draw_target: AzDrawTargetRef, item: dl::display_item, text_run: Tex
     let mut origin = Point2D(bounds.origin.x, bounds.origin.y.add(bounds.size.height));
     let azglyphs = text_run.glyphs.map { |glyph|
         let azglyph: AzGlyph = {
-            mIndex: glyph.codepoint as uint32_t,
+            mIndex: glyph.index as uint32_t,
             mPosition: {
                 x: au_to_px(origin.x.add(glyph.pos.offset.x)) as AzFloat,
                 y: au_to_px(origin.y.add(glyph.pos.offset.y)) as AzFloat

@@ -141,12 +141,12 @@ fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: &hb_glyph_position_t) -> GlyphPos {
                      px_to_au(hb_pos.y_offset as int)))
 }
 
-fn should_get_glyph_codepoints() {
+fn should_get_glyph_indexes() {
     #[test];
 
     let font = font::create_test_font();
     let glyphs = shape_text(&font, "firecracker");
-    let idxs = glyphs.map { |glyph| glyph.codepoint };
+    let idxs = glyphs.map { |glyph| glyph.index };
     assert idxs == [32u, 8u, 13u, 14u, 10u, 13u, 201u, 10u, 37u, 14u, 13u];
 }
 
