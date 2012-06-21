@@ -4,8 +4,8 @@ export shape_text;
 
 import libc::types::common::c99::int32_t;
 import libc::{c_uint, c_int, c_void};
-import font::font;
-import glyph::{glyph, glyph_pos};
+import font::Font;
+import glyph::{Glyph, GlyphPos};
 import ptr::{null, addr_of, offset};
 import gfx::geometry::{au, px_to_au};
 import geom::point::Point2D;
@@ -35,7 +35,7 @@ import harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
 Calculate the layout metrics associated with a some given text
 when rendered in a specific font.
 "]
-fn shape_text(font: &font, text: str) -> [glyph] unsafe {
+fn shape_text(font: &Font, text: str) -> [Glyph] unsafe {
     #debug("shaping text '%s'", text);
 
     let face_blob = vec::as_buf(*(*font).buf()) { |buf|
@@ -89,7 +89,7 @@ fn shape_text(font: &font, text: str) -> [glyph] unsafe {
         #debug("glyph %?: codep %?, x_adv %?, y_adv %?, x_off %?, y_of %?",
                i, codepoint, pos.advance.x, pos.advance.y, pos.offset.x, pos.offset.y);
 
-        glyphs += [glyph(codepoint, pos)];
+        glyphs += [Glyph(codepoint, pos)];
     }
 
     hb_buffer_destroy(buffer);
@@ -108,7 +108,7 @@ crust fn glyph_func(_font: *hb_font_t,
                     glyph: *mut hb_codepoint_t,
                     _user_data: *c_void) -> hb_bool_t unsafe {
 
-    let font: *font = reinterpret_cast(font_data);
+    let font: *Font = reinterpret_cast(font_data);
     assert font.is_not_null();
 
     ret alt (*font).glyph_idx(unicode as char) {
@@ -126,7 +126,7 @@ crust fn glyph_h_advance_func(_font: *hb_font_t,
                               font_data: *c_void,
                               glyph: hb_codepoint_t,
                               _user_data: *c_void) -> hb_position_t unsafe {
-    let font: *font = reinterpret_cast(font_data);
+    let font: *Font = reinterpret_cast(font_data);
     assert font.is_not_null();
 
     let h_advance = (*font).glyph_h_advance(glyph as uint);
@@ -134,11 +134,11 @@ crust fn glyph_h_advance_func(_font: *hb_font_t,
     ret h_advance as hb_position_t;
 }
 
-fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: &hb_glyph_position_t) -> glyph_pos {
-    glyph_pos(Point2D(px_to_au(hb_pos.x_advance as int),
-                      px_to_au(hb_pos.y_advance as int)),
-              Point2D(px_to_au(hb_pos.x_offset as int),
-                      px_to_au(hb_pos.y_offset as int)))
+fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: &hb_glyph_position_t) -> GlyphPos {
+    GlyphPos(Point2D(px_to_au(hb_pos.x_advance as int),
+                     px_to_au(hb_pos.y_advance as int)),
+             Point2D(px_to_au(hb_pos.x_offset as int),
+                     px_to_au(hb_pos.y_offset as int)))
 }
 
 fn should_get_glyph_codepoints() {

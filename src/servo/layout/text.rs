@@ -3,12 +3,12 @@
 import geom::size::Size2D;
 import gfx::geometry::au;
 import layout::base::*;     // FIXME: Can't get around import *; resolve bug.
-import servo_text::text_run::text_run;
+import servo_text::text_run::TextRun;
 import servo_text::font::create_test_font;
 
 class text_box {
     let text: str;
-    let mut run: option<text_run>;
+    let mut run: option<TextRun>;
 
     new(-text: str) {
         self.text = text;
@@ -25,7 +25,7 @@ impl text_layout_methods for @Box {
         };
 
         let font = create_test_font();
-        let run = text_run(&font, subbox.text);
+        let run = TextRun(&font, subbox.text);
         self.bounds.size = run.size();
         subbox.run = some(run);
     }

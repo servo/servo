@@ -2,15 +2,15 @@ import geom::point::Point2D;
 import geom::size::Size2D;
 import gfx::geometry::{au, px_to_au};
 import libc::{c_void};
-import font::{font, create_test_font};
-import glyph::glyph;
+import font::{Font, create_test_font};
+import glyph::Glyph;
 import shaper::shape_text;
 
 #[doc="A single, unbroken line of text."]
-class text_run {
-    let glyphs: [glyph];
+class TextRun {
+    let glyphs: [Glyph];
 
-    new(font: &font, text: str) {
+    new(font: &Font, text: str) {
         self.glyphs = shape_text(font, text);
     }
 
@@ -32,7 +32,7 @@ fn should_calculate_the_total_size() {
     #[ignore(reason = "random failures")];
 
     let font = create_test_font();
-    let run = text_run(&font, "firecracker");
+    let run = TextRun(&font, "firecracker");
     let expected = Size2D(px_to_au(84), px_to_au(20));
     assert run.size() == expected;
 }

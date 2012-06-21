@@ -6,7 +6,7 @@ import dl = layout::display_list;
 import azure::*;
 import azure::bindgen::*;
 import libc::size_t;
-import text::text_run::text_run;
+import text::text_run::TextRun;
 
 enum Msg {
     RenderMsg(dl::display_list),
@@ -151,13 +151,13 @@ fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item,
     }
 }
 
-fn draw_text(draw_target: AzDrawTargetRef, item: dl::display_item, text_run: text_run) {
+fn draw_text(draw_target: AzDrawTargetRef, item: dl::display_item, text_run: TextRun) {
 
     import ptr::{addr_of, null};
     import vec::unsafe::to_ptr;
     import libc::types::common::c99::{uint16_t, uint32_t};
     import geom::point::Point2D;
-    import text::font::{font, create_test_font};
+    import text::font::{Font, create_test_font};
     import azure::{AzNativeFont, AzFloat, AZ_NATIVE_FONT_CAIRO_FONT_FACE};
     import azure::bindgen::{AzCreateScaledFontWithCairo,
                             AzReleaseScaledFont,

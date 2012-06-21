@@ -1,4 +1,4 @@
-export font, create_test_font, test_font_bin;
+export Font, create_test_font, test_font_bin;
 
 import vec_to_ptr = vec::unsafe::to_ptr;
 import libc::{ c_int, c_double, c_ulong };
@@ -25,7 +25,7 @@ A font handle. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
 "]
 #[warn(no_non_implicitly_copyable_typarams)]
-class font/& {
+class Font/& {
     let fontbuf: [u8];
     let cairo_font: *cairo_scaled_font_t;
     let font_dtor: fn@();
@@ -260,8 +260,8 @@ fn get_cairo_face(buf: &[u8]) -> (*cairo_font_face_t, fn@()) {
     (cface, dtor)
 }
 
-fn create_test_font() -> font {
-    font(test_font_bin())
+fn create_test_font() -> Font {
+    Font(test_font_bin())
 }
 
 fn test_font_bin() -> [u8] { #include_bin("JosefinSans-SemiBold.ttf") }
