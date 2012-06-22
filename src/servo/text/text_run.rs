@@ -2,7 +2,8 @@ import geom::point::Point2D;
 import geom::size::Size2D;
 import gfx::geometry::{au, px_to_au};
 import libc::{c_void};
-import font::{Font, create_test_font};
+import font_library::FontLibrary;
+import font::Font;
 import glyph::Glyph;
 import shaper::shape_text;
 
@@ -31,8 +32,9 @@ fn should_calculate_the_total_size() {
     #[test];
     #[ignore(reason = "random failures")];
 
-    let font = create_test_font();
-    let run = TextRun(&font, "firecracker");
+    let flib = FontLibrary();
+    let font = flib.get_test_font();
+    let run = TextRun(font, "firecracker");
     let expected = Size2D(px_to_au(84), px_to_au(20));
     assert run.size() == expected;
 }

@@ -1,4 +1,4 @@
-export Font, create_test_font, test_font_bin;
+export Font, test_font_bin, create_test_font;
 
 import glyph::GlyphIndex;
 import vec_to_ptr = vec::unsafe::to_ptr;
@@ -267,8 +267,11 @@ fn get_cairo_face(buf: &[u8]) -> (*cairo_font_face_t, fn@()) {
     (cface, dtor)
 }
 
-fn create_test_font() -> Font {
-    Font(test_font_bin())
+fn create_test_font() -> @Font {
+    import font_library::FontLibrary;
+
+    let flib = FontLibrary();
+    ret flib.get_test_font();
 }
 
 fn test_font_bin() -> [u8] { #include_bin("JosefinSans-SemiBold.ttf") }

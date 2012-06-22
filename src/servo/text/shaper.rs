@@ -146,7 +146,7 @@ fn should_get_glyph_indexes() {
     #[ignore(reason = "random failures")];
 
     let font = font::create_test_font();
-    let glyphs = shape_text(&font, "firecracker");
+    let glyphs = shape_text(font, "firecracker");
     let idxs = glyphs.map { |glyph| glyph.index };
     assert idxs == [32u, 8u, 13u, 14u, 10u, 13u, 201u, 10u, 37u, 14u, 13u];
 }
@@ -156,7 +156,7 @@ fn should_get_glyph_h_advance() {
     #[ignore(reason = "random failures")];
 
     let font = font::create_test_font();
-    let glyphs = shape_text(&font, "firecracker");
+    let glyphs = shape_text(font, "firecracker");
     let actual = glyphs.map { |g| g.pos.advance.x };
     let expected = [6, 4, 7, 9, 8, 7, 10, 8, 9, 9, 7].map { |a| px_to_au(a) };
     assert expected == actual;

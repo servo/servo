@@ -11,6 +11,10 @@ class FontLibrary {
         let f = Font(font::test_font_bin());
         ret @f;
     }
+
+    fn get_test_font() -> @Font {
+        self.get_font()
+    }
 }
 
 #[test]

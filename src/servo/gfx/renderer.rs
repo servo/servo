@@ -159,7 +159,8 @@ fn draw_text(draw_target: AzDrawTargetRef, item: dl::display_item, text_run: Tex
     import vec::unsafe::to_ptr;
     import libc::types::common::c99::{uint16_t, uint32_t};
     import geom::point::Point2D;
-    import text::font::{Font, create_test_font};
+    import text::font_library::FontLibrary;
+    import text::font::Font;
     import azure::{AzNativeFont, AzFloat, AZ_NATIVE_FONT_CAIRO_FONT_FACE};
     import azure::bindgen::{AzCreateScaledFontWithCairo,
                             AzReleaseScaledFont,
@@ -167,7 +168,9 @@ fn draw_text(draw_target: AzDrawTargetRef, item: dl::display_item, text_run: Tex
                             AzReleaseColorPattern};
 
     let bounds = copy (*item).bounds;
-    let font = create_test_font();
+    // FIXME: The font library should not be created here
+    let flib = FontLibrary();
+    let font = flib.get_test_font();
 
     let nfont: AzNativeFont = {
         mType: AZ_NATIVE_FONT_CAIRO_FONT_FACE,

@@ -4,7 +4,7 @@ import geom::size::Size2D;
 import gfx::geometry::au;
 import layout::base::*;     // FIXME: Can't get around import *; resolve bug.
 import servo_text::text_run::TextRun;
-import servo_text::font::create_test_font;
+import servo_text::font_library::FontLibrary;
 
 class text_box {
     let text: str;
@@ -24,8 +24,10 @@ impl text_layout_methods for @Box {
             _ { fail "expected text box in reflow_text!" }
         };
 
-        let font = create_test_font();
-        let run = TextRun(&font, subbox.text);
+        // FIXME: The font library should not be initialized here
+        let flib = FontLibrary();
+        let font = flib.get_test_font();
+        let run = TextRun(font, subbox.text);
         self.bounds.size = run.size();
         subbox.run = some(run);
     }
