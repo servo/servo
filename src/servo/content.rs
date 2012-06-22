@@ -63,39 +63,22 @@ fn Content(layout: Layout) -> Content {
               ParseMsg(filename) {
                 #debug["content: Received filename `%s` to parse", *filename];
 
-                // TODO actually parse where the css sheet should be
-                // Replace .html with .css and try to open a stylesheet
-                assert (*filename).ends_with(".html");
-                let new_file = (*filename).substr(0u, (*filename).len() - 5u) + ".css";
-
-                // Send off a task to parse the stylesheet
-                let css_port = port();
-                let css_chan = chan(css_port);
-                spawn { ||
-                    let new_file = copy new_file;
-                    let css_stream = spawn_css_lexer_task(~new_file);
-                    let css_rules = build_stylesheet(css_stream);
-                    css_chan.send(css_rules);
-                };
-
                 // Note: we can parse the next document in parallel
                 // with any previous documents.
                 let stream = spawn_html_lexer_task(copy filename);
-                let root = build_dom(scope, stream);
+                let (root, style_port) = build_dom(scope, stream);
            
                 // Collect the css stylesheet
-                let css_rules = css_port.recv();
+                let css_rules = style_port.recv();
                 
                 // Apply the css rules to the dom tree:
-                // TODO
                 #debug["%s", print_sheet(css_rules)];
-                
-               
+
                 // Now, join the layout so that they will see the latest
                 // changes we have made.
                 join_layout(scope, layout);
 
-                // Send new document to layout.
+                // Send new document and relevant styles to layout
                 layout.send(BuildMsg(root, css_rules));
 
                 // Indicate that reader was forked so any further

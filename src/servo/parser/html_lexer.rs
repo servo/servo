@@ -99,8 +99,19 @@ impl html_methods for HtmlLexer {
         }
 
         if ch == ('/' as u8) {
-            self.parser_state = NormalHtml;
-            ret SelfCloseTag;
+            alt self.input_state.get() {
+              CoeChar(c) {
+                if c == ('>' as u8) {
+                    self.parser_state = NormalHtml;
+                    ret SelfCloseTag;
+                } else {
+                    #warn["/ not followed by > in a tag"];
+                }
+              }
+              CoeEof {
+                #warn["/ not followed by > at end of file"];
+              }
+            }
         }
 
         if !ch.is_alpha() {
@@ -116,8 +127,8 @@ impl html_methods for HtmlLexer {
                 attribute_name += [c];
               }
               CoeEof {
-                ret Attr(attribute_name.to_str(),
-                            attribute_name.to_str()); }
+                ret Attr(attribute_name.to_str(), attribute_name.to_str());
+              }
             }
         }
 
@@ -131,8 +142,7 @@ impl html_methods for HtmlLexer {
                 attribute_value += [c];
               }
               CoeEof {
-                ret Attr(attribute_name.to_str(),
-                            attribute_value.to_str());
+                ret Attr(attribute_name.to_str(), attribute_value.to_str());
               }
             }
         }
@@ -151,10 +161,13 @@ fn lexer(reader: io::reader, state : ParseState) -> HtmlLexer {
 
 #[warn(no_non_implicitly_copyable_typarams)]
 fn spawn_html_lexer_task(-filename: ~str) -> port<Token> {
-    let result_port = port();
-    let result_chan = chan(result_port);
+    let html_port = port();
+    let html_chan = chan(html_port);
+    let html_file = copy filename;
+
     task::spawn {||
-        assert (*copy filename).ends_with(".html");
+        let filename = copy html_file;
+        assert (copy *filename).ends_with(".html");
         let file_data = io::read_whole_file(*filename).get();
         let reader = io::bytes_reader(file_data);
         
@@ -163,9 +176,10 @@ fn spawn_html_lexer_task(-filename: ~str) -> port<Token> {
         loop {
             let token = lexer.parse_html();
             let should_break = token == Eof;
-            result_chan.send(token);
+            html_chan.send(token);
             if should_break { break; }
         }
     };
-    ret result_port;
+
+    ret html_port;
 }

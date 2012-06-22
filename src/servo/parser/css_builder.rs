@@ -48,8 +48,8 @@ fn parse_element(reader : TokenReader) -> option<~selector> {
             break;
           }
           Eof              { ret none; }          
-          Element(_)          { fail "Unexpected second element without " +
-                                   "relation to first element"; }
+          Element(_)          { fail "Unexpected second element without "
+                                   + "relation to first element"; }
           EndDescription         { fail "Unexpected '}'"; }
           Description(_, _)       { fail "Unexpected description"; }
         }
