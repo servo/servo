@@ -66,12 +66,14 @@ mod platform {
 mod text {
     export glyph;
     export text_run;
+    export font_library;
     export font;
     export shaper;
 
     mod glyph;
     mod text_run;
     mod font;
+    mod font_library;
     mod shaper;
     mod native_font {
         #[cfg(target_os = "macos")]
