@@ -20,7 +20,7 @@ fn engine<S:renderer::sink send copy>(sink: S) -> chan<Msg> {
         loop {
             alt self_ch.recv() {
               LoadURLMsg(url) {
-                let url <- url;
+                let url = copy url;
                 if (*url).ends_with(".js") {
                     content.send(content::ExecuteMsg(url))
                 } else {

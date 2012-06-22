@@ -76,13 +76,13 @@ fn build_dom(scope: NodeScope, stream: port<token>) -> Node {
             parser::to_start_opening_tag(tag_name) {
                 #debug["starting tag %s", tag_name];
                 let element_kind = build_element_kind(tag_name);
-                let new_node = scope.new_node(Element(ElementData(tag_name, element_kind)));
+                let new_node = scope.new_node(Element(ElementData(copy tag_name, element_kind)));
                 scope.add_child(cur, new_node);
                 cur = new_node;
             }
             parser::to_attr(key, value) {
                 #debug["attr: %? = %?", key, value];
-                link_up_attribute(scope, cur, key, value);
+                link_up_attribute(scope, cur, copy key, copy value);
             }
             parser::to_end_opening_tag {
                 #debug("end opening tag");
@@ -94,8 +94,7 @@ fn build_dom(scope: NodeScope, stream: port<token>) -> Node {
                 cur = scope.get_parent(cur).get();
             }
             parser::to_text(s) if !s.is_whitespace() {
-                let s <- s;
-                let new_node = scope.new_node(Text(s));
+                let new_node = scope.new_node(Text(copy s));
                 scope.add_child(cur, new_node);
             }
             parser::to_text(_) {

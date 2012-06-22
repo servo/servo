@@ -17,7 +17,7 @@ type token_reader = {stream : port<token>, mut lookahead : option<token>};
 impl methods for token_reader {
     fn get() -> token {
         alt copy self.lookahead {
-          some(tok)  { self.lookahead = none; let t <- tok; t }
+          some(tok)  { self.lookahead = none; copy tok }
           none       { recv(self.stream) }
         }
     }
@@ -31,7 +31,7 @@ impl methods for token_reader {
 fn parse_element(reader : token_reader) -> option<~selector> {
     // Get the current element type
     let elmt_name = alt reader.get() {
-      to_elmt(tag)  { let t <- tag; t }
+      to_elmt(tag)  { copy tag }
       to_eof        { ret none; }
       _             { fail "Expected an element" }
     };
@@ -42,7 +42,7 @@ fn parse_element(reader : token_reader) -> option<~selector> {
     loop {
         let tok = reader.get();
         alt tok {
-          to_attr(attr)       { let a <- attr; attr_list += [a]; }
+          to_attr(attr)       { attr_list += [copy attr]; }
           to_start_desc | to_descendant | to_child | to_sibling 
           | to_comma {
             reader.unget(tok); 
@@ -68,7 +68,7 @@ fn parse_rule(reader : token_reader) -> option<~rule> {
         let mut cur_sel;
 
         alt parse_element(reader) {
-          some(elmt)  { cur_sel <- elmt; }
+          some(elmt)  { cur_sel = copy elmt; }
           none        { ret none; } // we hit an eof in the middle of a rule
         }
 
@@ -79,7 +79,7 @@ fn parse_rule(reader : token_reader) -> option<~rule> {
                 alt parse_element(reader) {
                   some(elmt)   { 
                     let built_sel <- cur_sel;
-                    let new_sel <- elmt;
+                    let new_sel = copy elmt;
                     cur_sel <- ~descendant(built_sel, new_sel)
                   }
                   none         { ret none; }
@@ -89,7 +89,7 @@ fn parse_rule(reader : token_reader) -> option<~rule> {
                 alt parse_element(reader) {
                   some(elmt)   { 
                     let built_sel <- cur_sel;
-                    let new_sel <- elmt;
+                    let new_sel = copy elmt;
                     cur_sel <- ~child(built_sel, new_sel)
                   }
                   none         { ret none; }
@@ -99,7 +99,7 @@ fn parse_rule(reader : token_reader) -> option<~rule> {
                 alt parse_element(reader) {
                   some(elmt)   { 
                     let built_sel <- cur_sel;
-                    let new_sel <- elmt;
+                    let new_sel = copy elmt;
                     cur_sel <- ~sibling(built_sel, new_sel)
                   }
                   none         { ret none; }
@@ -186,7 +186,7 @@ fn build_stylesheet(stream : port<token>) -> [~rule] {
 
     loop {
         alt parse_rule(reader) {
-          some(rule)   { let r <- rule; rule_list += [r]; }
+          some(rule)   { rule_list += [copy rule]; }
           none         { break; }
         }
     }

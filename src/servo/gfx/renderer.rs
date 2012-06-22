@@ -68,7 +68,7 @@ fn draw_display_list(
             draw_solid_color(draw_target, item, r, g, b);
           }
           dl::display_item_image(image) {
-            draw_image(draw_target, item, image);
+            draw_image(draw_target, item, copy image);
           }
           dl::display_item_text(text_run) {
             draw_text(draw_target, item, text_run);

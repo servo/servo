@@ -156,7 +156,7 @@ impl box_builder_priv for Node {
     fn determine_box_kind() -> BoxKind {
         alt self.read({ |n| copy n.kind }) {
             ~Text(string) {
-                TextBox(@text_box(string))
+                TextBox(@text_box(copy string))
             }
             ~Element(element) {
                 alt *element.kind {

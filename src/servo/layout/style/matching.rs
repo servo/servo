@@ -184,7 +184,7 @@ impl matching_methods for Node {
         // information as we go.
 
         for styles.each { |sty|
-            let (selectors, decls) <- *(copy sty);
+            let (selectors, decls) = copy *sty;
             for selectors.each { |sel|
                 if self.matches_selector(sel) {
                     for decls.each { |decl| 

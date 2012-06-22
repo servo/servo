@@ -480,7 +480,7 @@ fn spawn_html_parser_task(-filename: ~str) -> port<html::token> {
     let result_port = port();
     let result_chan = chan(result_port);
     task::spawn {||
-        let filename <- *filename;
+        let filename = copy *filename;
         assert (copy filename).ends_with(".html");
         let file_data = io::read_whole_file(filename).get();
         let reader = io::bytes_reader(file_data);
@@ -502,7 +502,7 @@ fn spawn_css_lexer_task(-filename: ~str) -> port<css::token> {
     let result_port = port();
     let result_chan = chan(result_port);
     task::spawn {||
-        let filename <- *filename;
+        let filename = copy *filename;
 
         assert (copy filename).ends_with(".css");
         let file_try = io::read_whole_file(filename);

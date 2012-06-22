@@ -62,7 +62,7 @@ fn content(to_layout: chan<layout_task::Msg>) -> chan<ControlMsg> {
                 let css_port = comm::port();
                 let css_chan = comm::chan(css_port);
                 task::spawn {||
-                    let new_file <- new_file;
+                    let new_file = copy new_file;
                     let css_stream = spawn_css_lexer_task(~new_file);
                     let css_rules = build_stylesheet(css_stream);
                     css_chan.send(css_rules);
@@ -70,7 +70,7 @@ fn content(to_layout: chan<layout_task::Msg>) -> chan<ControlMsg> {
 
                 // Note: we can parse the next document in parallel
                 // with any previous documents.
-                let stream = spawn_html_parser_task(filename);
+                let stream = spawn_html_parser_task(copy filename);
                 let root = build_dom(scope, stream);
            
                 // Collect the css stylesheet

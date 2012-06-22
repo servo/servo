@@ -65,7 +65,7 @@ fn run_pipeline_png(-url: str, outfile: str) {
     listen {|pngdata|
         let sink = pngsink::pngsink(pngdata);
         let engine = engine::engine(sink);
-        let url <- url;
+        let url = copy url;
         engine.send(engine::LoadURLMsg(~url));
         alt io::buffered_file_writer(outfile) {
           result::ok(writer) {
