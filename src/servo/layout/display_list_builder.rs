@@ -116,6 +116,7 @@ fn box_to_display_items(box: @Box, origin: Point2D<au>) -> [dl::display_item] {
 
 fn should_convert_text_boxes_to_solid_color_background_items() {
     #[test];
+    #[ignore(reason = "crashy")];
 
     let s = Scope();
     let n = s.new_node(Text("firecracker"));
@@ -133,6 +134,7 @@ fn should_convert_text_boxes_to_solid_color_background_items() {
 
 fn should_convert_text_boxes_to_text_items() {
     #[test];
+    #[ignore(reason = "crashy")];
 
     let s = Scope();
     let n = s.new_node(Text("firecracker"));
