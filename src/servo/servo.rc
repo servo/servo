@@ -62,10 +62,21 @@ mod platform {
 }
 
 mod text {
+    export glyph;
+    export text_run;
+    export font;
+    export shaper;
+
     mod glyph;
     mod text_run;
     mod font;
     mod shaper;
+    mod native_font {
+        #[cfg(target_os = "macos")]
+        mod quartz_native_font;
+        #[cfg(target_os = "linux")]
+        mod ft_native_font;
+    }
 }
 
 mod util {
