@@ -18,36 +18,36 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: str, -value: str) {
     scope.read(node) {
         |node_contents|
         alt *node_contents.kind {
-            Element(element) {
-                element.attrs.push(~Attr(copy key, copy value));
-                alt *element.kind {
-                    HTMLImageElement(img) if key == "width" {
-                        alt int::from_str(value) {
-                            none {
-                                // Drop on the floor.
-                            }
-                            some(s) { img.size.width = geometry::px_to_au(s); }
-                        }
-                    }
-                    HTMLImageElement(img) if key == "height" {
-                        alt int::from_str(value) {
-                            none {
-                                // Drop on the floor.
-                            }
-                            some(s) {
-                                img.size.height = geometry::px_to_au(s);
-                            }
-                        }
-                    }
-                    HTMLDivElement | HTMLImageElement(*) | HTMLHeadElement | UnknownElement {
-                        // Drop on the floor.
-                    }
+          Element(element) {
+            element.attrs.push(~Attr(copy key, copy value));
+            alt *element.kind {
+              HTMLImageElement(img) if key == "width" {
+                alt int::from_str(value) {
+                  none {
+                    // Drop on the floor.
+                  }
+                  some(s) { img.size.width = geometry::px_to_au(s); }
                 }
+              }
+              HTMLImageElement(img) if key == "height" {
+                alt int::from_str(value) {
+                  none {
+                    // Drop on the floor.
+                  }
+                  some(s) {
+                    img.size.height = geometry::px_to_au(s);
+                  }
+                }
+              }
+              HTMLDivElement | HTMLImageElement(*) | HTMLHeadElement | UnknownElement {
+                // Drop on the floor.
+              }
             }
+          }
 
-            Text(*) {
-                fail "attempt to link up an attribute to a text node"
-            }
+          Text(*) {
+            fail "attempt to link up an attribute to a text node"
+          }
         }
     }
 }
@@ -72,37 +72,38 @@ fn build_dom(scope: NodeScope, stream: port<Token>) -> Node {
     loop {
         let token = stream.recv();
         alt token {
-            parser::Eof { break; }
-            parser::StartOpeningTag(tag_name) {
-                #debug["starting tag %s", tag_name];
-                let element_kind = build_element_kind(tag_name);
-                let new_node = scope.new_node(Element(ElementData(copy tag_name, element_kind)));
-                scope.add_child(cur, new_node);
-                cur = new_node;
-            }
-            parser::Attr(key, value) {
-                #debug["attr: %? = %?", key, value];
-                link_up_attribute(scope, cur, copy key, copy value);
-            }
-            parser::EndOpeningTag {
-                #debug("end opening tag");
-            }
-            parser::EndTag(_) | parser::SelfCloseTag {
-                // TODO: Assert that the closing tag has the right name.
-                // TODO: Fail more gracefully (i.e. according to the HTML5
-                //       spec) if we close more tags than we open.
-                cur = scope.get_parent(cur).get();
-            }
-            parser::Text(s) if !s.is_whitespace() {
-                let new_node = scope.new_node(Text(copy s));
-                scope.add_child(cur, new_node);
-            }
-            parser::Text(_) {
-                // FIXME: Whitespace should not be ignored.
-            }
-            parser::Doctype {
-                // TODO: Do something here...
-            }
+          parser::Eof { break; }
+          parser::StartOpeningTag(tag_name) {
+            #debug["starting tag %s", tag_name];
+            let element_kind = build_element_kind(tag_name);
+            let new_node = scope.new_node(Element(ElementData(copy tag_name, element_kind)));
+            scope.add_child(cur, new_node);
+            cur = new_node;
+          }
+          parser::Attr(key, value) {
+            #debug["attr: %? = %?", key, value];
+            link_up_attribute(scope, cur, copy key, copy value);
+          }
+          parser::EndOpeningTag {
+            #debug("end opening tag");
+          }
+          
+          parser::EndTag(_) | parser::SelfCloseTag {
+            // TODO: Assert that the closing tag has the right name.
+            // TODO: Fail more gracefully (i.e. according to the HTML5
+            //       spec) if we close more tags than we open.
+            cur = scope.get_parent(cur).get();
+          }
+          parser::Text(s) if !s.is_whitespace() {
+            let new_node = scope.new_node(Text(copy s));
+            scope.add_child(cur, new_node);
+          }
+          parser::Text(_) {
+            // FIXME: Whitespace should not be ignored.
+          }
+          parser::Doctype {
+            // TODO: Do something here...
+          }
         }
     }
     ret cur;
