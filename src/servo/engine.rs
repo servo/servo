@@ -1,36 +1,42 @@
+import gfx::renderer::{Renderer, Sink};
+import task::spawn_listener;
 import comm::chan;
-import gfx::renderer;
+import layout::layout_task;
+import layout_task::Layout;
+import content::{Content, ExecuteMsg, ParseMsg};
+
+type Engine = chan<Msg>;
 
 enum Msg {
     LoadURLMsg(~str),
-    ExitMsg(comm::chan<()>)
+    ExitMsg(chan<()>)
 }
 
-fn engine<S:renderer::sink send copy>(sink: S) -> chan<Msg> {
-    task::spawn_listener::<Msg> {|self_ch|
+fn Engine<S: Sink send copy>(sink: S) -> Engine {
+    spawn_listener::<Msg> { |request|
         // The renderer
-        let renderer = renderer::renderer(sink);
+        let renderer = Renderer(sink);
 
         // The layout task
-        let layout = layout::layout_task::layout(renderer);
+        let layout = Layout(renderer);
 
         // The content task
-        let content = content::content(layout);
+        let content = Content(layout);
 
         loop {
-            alt self_ch.recv() {
+            alt request.recv() {
               LoadURLMsg(url) {
                 let url = copy url;
                 if (*url).ends_with(".js") {
-                    content.send(content::ExecuteMsg(url))
+                    content.send(ExecuteMsg(url))
                 } else {
-                    content.send(content::ParseMsg(url))
+                    content.send(ParseMsg(url))
                 }
               }
 
               ExitMsg(sender) {
                 content.send(content::ExitMsg);
-                layout.send(layout::layout_task::ExitMsg);
+                layout.send(layout_task::ExitMsg);
                 listen {
                     |response_channel|
                     renderer.send(renderer::ExitMsg(response_channel));

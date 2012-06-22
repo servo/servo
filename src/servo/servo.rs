@@ -3,18 +3,21 @@ import parser::lexer;
 import result::extensions;
 import gfx::renderer;
 import platform::osmain;
+import osmain::{OSMain, AddKeyHandler};
+import opts::{Opts, Screen, Png};
+import engine::{Engine, LoadURLMsg};
 
 fn main(args: [str]) {
     run(opts::from_cmdline_args(args))
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn run(opts: opts::opts) {
+fn run(opts: Opts) {
     alt opts.render_mode {
-      opts::screen {
+      Screen {
         run_pipeline_screen(opts.urls)
       }
-      opts::png(outfile) {
+      Png(outfile) {
         assert opts.urls.is_not_empty();
         if opts.urls.len() > 1u {
             fail "servo asks that you stick to a single URL in PNG output mode"
@@ -26,58 +29,56 @@ fn run(opts: opts::opts) {
 
 fn run_pipeline_screen(urls: [str]) {
 
-    // Use the platform thread as the renderer sink
-    import osmain::gfxsink;
-
     // The platform event handler thread
-    let osmain = osmain::osmain();
+    let osmain = OSMain();
 
     // Create a serve instance
-    let engine = engine::engine(osmain);
+    let engine = Engine(osmain);
 
     // Send each file to render then wait for keypress
-    listen {|key_ch|
-        osmain.send(platform::osmain::add_key_handler(key_ch));
+    listen { |keypress_from_osmain|
+        osmain.send(AddKeyHandler(keypress_from_osmain));
 
         for urls.each { |filename|
             #debug["master: Sending filename `%s`", filename];
-            engine.send(engine::LoadURLMsg(~copy filename));
+            engine.send(LoadURLMsg(~copy filename));
             #debug["master: Waiting for keypress"];
-            key_ch.recv();
+            keypress_from_osmain.recv();
         }
     }
 
     // Shut everything down
     #debug["master: Shut down"];
-    listen {|resp_ch|
-        engine.send(engine::ExitMsg(resp_ch));
-        resp_ch.recv();
+    listen { |exit_response_from_engine|
+        engine.send(engine::ExitMsg(exit_response_from_engine));
+        exit_response_from_engine.recv();
     }
-    osmain.send(platform::osmain::exit);
+    osmain.send(osmain::Exit);
 }
 
 fn run_pipeline_png(-url: str, outfile: str) {
 
     // Use a PNG encoder as the graphics sink
     import gfx::pngsink;
-    import pngsink::pngsink;
+    import pngsink::PngSink;
+    import result::{ok, err};
+    import io::{writer, buffered_file_writer};
 
-    listen {|pngdata|
-        let sink = pngsink::pngsink(pngdata);
-        let engine = engine::engine(sink);
+    listen { |pngdata_from_sink|
+        let sink = PngSink(pngdata_from_sink);
+        let engine = Engine(sink);
         let url = copy url;
-        engine.send(engine::LoadURLMsg(~url));
-        alt io::buffered_file_writer(outfile) {
-          result::ok(writer) {
-            import io::writer;
-            writer.write(pngdata.recv())
+        engine.send(LoadURLMsg(~url));
+        alt buffered_file_writer(outfile) {
+          ok(writer) {
+            writer.write(pngdata_from_sink.recv())
           }
-          result::err(e) { fail e }
+          err(e) { fail e }
         }
-        listen {|response_channel|
-            engine.send(engine::ExitMsg(response_channel));
-            response_channel.recv();
+        listen { |exit_response_from_engine|
+            engine.send(engine::ExitMsg(exit_response_from_engine));
+            exit_response_from_engine.recv();
         }
-        sink.send(pngsink::exit);
+        sink.send(pngsink::Exit);
     }
 }

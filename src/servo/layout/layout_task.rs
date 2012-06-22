@@ -9,6 +9,7 @@ import display_list_builder::build_display_list;
 import dom::base::{Node};
 import dom::style::stylesheet;
 import gfx::geometry::px_to_au;
+import gfx::renderer::Renderer;
 import base::{NodeMethods, layout_methods};
 import layout::style::style::style_methods;
 import box_builder::box_builder_methods;
@@ -17,16 +18,18 @@ import layout::style::apply::ApplyStyleBoxMethods;
 import task::*;
 import comm::*;
 
+type Layout = chan<Msg>;
+
 enum Msg {
     BuildMsg(Node, stylesheet),
     PingMsg(chan<content::PingMsg>),
     ExitMsg
 }
 
-fn layout(to_renderer: chan<renderer::Msg>) -> chan<Msg> {
-    spawn_listener::<Msg> { |po|
+fn Layout(renderer: Renderer) -> Layout {
+    spawn_listener::<Msg> { |request|
         loop {
-            alt po.recv() {
+            alt request.recv() {
                 PingMsg(ping_channel) {
                     ping_channel.send(content::PongMsg);
                 }
@@ -47,7 +50,7 @@ fn layout(to_renderer: chan<renderer::Msg>) -> chan<Msg> {
                     this_box.reflow(px_to_au(800));
 
                     let dlist = build_display_list(this_box);
-                    to_renderer.send(renderer::RenderMsg(dlist));
+                    renderer.send(renderer::RenderMsg(dlist));
                 }
             }
         }

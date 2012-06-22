@@ -5,18 +5,18 @@ from command line arguments.
 
 "];
 
-type opts = {
+type Opts = {
     urls: [str],
-    render_mode: render_mode
+    render_mode: RenderMode
 };
 
-enum render_mode {
-    screen,
-    png(str)
+enum RenderMode {
+    Screen,
+    Png(str)
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn from_cmdline_args(args: [str]) -> opts {
+fn from_cmdline_args(args: [str]) -> Opts {
     import std::getopts;
 
     let args = args.tail();
@@ -37,8 +37,8 @@ fn from_cmdline_args(args: [str]) -> opts {
     };
 
     let render_mode = alt getopts::opt_maybe_str(match, "o") {
-      some(output_file) { png(copy output_file) }
-      none { screen }
+      some(output_file) { Png(copy output_file) }
+      none { Screen }
     };
 
     {

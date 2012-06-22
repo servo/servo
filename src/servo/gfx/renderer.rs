@@ -8,6 +8,8 @@ import azure::bindgen::*;
 import libc::size_t;
 import text::text_run::TextRun;
 
+type Renderer = chan<Msg>;
+
 enum Msg {
     RenderMsg(dl::display_list),
     ExitMsg(comm::chan<()>)
@@ -17,12 +19,12 @@ enum Msg {
 The interface used to by the renderer to aquire draw targets for
 each rendered frame and submit them to be drawn to the display
 "]
-iface sink {
+iface Sink {
     fn begin_drawing(next_dt: chan<AzDrawTargetRef>);
     fn draw(next_dt: chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef);
 }
 
-fn renderer<S: sink send copy>(sink: S) -> chan<Msg> {
+fn Renderer<S: Sink send copy>(sink: S) -> chan<Msg> {
     task::spawn_listener::<Msg> {|po|
         listen {
             |draw_target_ch|

@@ -1,4 +1,4 @@
-export msg, osmain, gfxsink;
+export OSMain, Msg;
 
 import azure::*;
 import azure::bindgen::*;
@@ -6,17 +6,19 @@ import azure::cairo;
 import azure::cairo::bindgen::*;
 import comm::*;
 import azure::cairo::cairo_surface_t;
-import gfx::renderer;
+import gfx::renderer::{Sink};
 
-enum msg {
-    begin_drawing(chan<AzDrawTargetRef>),
-    draw(chan<AzDrawTargetRef>, AzDrawTargetRef),
-    add_key_handler(chan<()>),
-    exit
+type OSMain = chan<Msg>;
+
+enum Msg {
+    BeginDrawing(chan<AzDrawTargetRef>),
+    Draw(chan<AzDrawTargetRef>, AzDrawTargetRef),
+    AddKeyHandler(chan<()>),
+    Exit
 }
 
-fn osmain() -> chan<msg> {
-    on_osmain::<msg> {|po|
+fn OSMain() -> OSMain {
+    on_osmain::<Msg> {|po|
         platform::runmain {||
             #debug("preparing to enter main loop");
 	    mainloop(po);
@@ -24,7 +26,7 @@ fn osmain() -> chan<msg> {
     }
 }
 
-fn mainloop(po: port<msg>) {
+fn mainloop(po: port<Msg>) {
 
     let mut key_handlers: [chan<()>] = [];
 
@@ -42,6 +44,7 @@ fn mainloop(po: port<msg>) {
 
     loop {
         sdl::event::poll_event {|event|
+
             alt event {
               sdl::event::keydown_event(_) {
                 key_handlers.iter {|key_ch|
@@ -55,13 +58,13 @@ fn mainloop(po: port<msg>) {
         // Handle messages
         if po.peek() {
             alt check po.recv() {
-              add_key_handler(key_ch) {
+              AddKeyHandler(key_ch) {
                 key_handlers += [key_ch];
               }
-              begin_drawing(sender) {
+              BeginDrawing(sender) {
                 lend_surface(surfaces, sender);
               }
-              draw(sender, dt) {
+              Draw(sender, dt) {
                 return_surface(surfaces, dt);
                 lend_surface(surfaces, sender);
 
@@ -89,12 +92,12 @@ fn mainloop(po: port<msg>) {
 Implementation to allow the osmain channel to be used as a graphics
 sink for the renderer
 "]
-impl gfxsink of renderer::sink for chan<msg> {
+impl OSMain of Sink for OSMain {
     fn begin_drawing(next_dt: chan<AzDrawTargetRef>) {
-        self.send(begin_drawing(next_dt))
+        self.send(BeginDrawing(next_dt))
     }
     fn draw(next_dt: chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
-        self.send(draw(next_dt, draw_me))
+        self.send(Draw(next_dt, draw_me))
     }
 }
 
