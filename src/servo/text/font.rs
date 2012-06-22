@@ -21,32 +21,38 @@ import azure::cairo::bindgen::{
     cairo_status_to_string
 };
 
+// FIXME (rust 2708): convert this to a class
+
+type Font = FontDtor;
+
 #[doc = "
 A font handle. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
 "]
-#[warn(no_non_implicitly_copyable_typarams)]
-class Font/& {
-    let fontbuf: [u8];
-    let cairo_font: *cairo_scaled_font_t;
-    let font_dtor: fn@();
+resource FontDtor(state: FontState) {
+    state.font_dtor();
+}
 
-    new(-fontbuf: [u8]) {
+type FontState = {
+    fontbuf: @[u8],
+    cairo_font: *cairo_scaled_font_t,
+    font_dtor: fn@()
+};
 
-        let (cairo_font, font_dtor) = get_cairo_font(&copy fontbuf);
-        assert cairo_font.is_not_null();
+fn Font(-fontbuf: [u8]) -> Font {
+    let (cairo_font, font_dtor) = get_cairo_font(&copy fontbuf);
+    assert cairo_font.is_not_null();
 
-        self.fontbuf <- fontbuf;
-        self.cairo_font = cairo_font;
-        self.font_dtor = font_dtor;
-    }
+    ret FontDtor({
+        fontbuf: @fontbuf,
+        cairo_font: cairo_font,
+        font_dtor: font_dtor
+    });
+}
 
-    drop {
-        self.font_dtor();
-    }
-
-    fn buf() -> &self.[u8] {
-        &self.fontbuf
+impl Font for Font {
+    fn buf() -> @[u8] {
+        self.fontbuf
     }
 
     fn glyph_idx(codepoint: char) -> option<GlyphIndex> {
