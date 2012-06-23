@@ -1,6 +1,6 @@
 import glyph::GlyphIndex;
 
-class NativeFont/& {
+class QuartzNativeFont/& {
     let bogus: int;
 
     new() { self.bogus = 0; }
