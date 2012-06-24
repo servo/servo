@@ -1,5 +1,4 @@
 import comm::*;
-import result::extensions;
 import gfx::renderer;
 import platform::osmain;
 import osmain::{OSMain, AddKeyHandler};

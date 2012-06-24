@@ -17,7 +17,7 @@ iface io_service {
     fn new_channel(uri: uri) -> channel;
 }
 
-class file_channel implements channel {
+class file_channel: channel {
     let bogus : int;
 
     new() {

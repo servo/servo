@@ -76,7 +76,7 @@ fn do_draw(sender: chan<AzDrawTargetRef>,
            output: chan<[u8]>,
            cairo_surf: *cairo_surface_t) {
 
-    listen {|data_ch|
+    listen {|data_ch: chan<[u8]>|
 
         crust fn write_fn(closure: *c_void,
                           data: *c_uchar,

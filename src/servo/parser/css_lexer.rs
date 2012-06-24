@@ -230,7 +230,7 @@ fn spawn_css_lexer_task(-filename: ~str) -> port<Token> {
         // otherwise just send an eof.  This is a hack to allow
         // guessing that if foo.html exists, foo.css is the
         // corresponding stylesheet.
-        if file_try.is_success() {
+        if file_try.is_ok() {
             #debug["Lexing css sheet %s", *copy filename];
             let file_data = file_try.get();
             let reader = io::bytes_reader(file_data);
