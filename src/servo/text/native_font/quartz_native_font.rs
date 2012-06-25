@@ -17,7 +17,6 @@ class QuartzNativeFont/& {
     }
 }
 
-#[cfg(target_os = "linux")]
-fn with_test_native_font(f: fn@(nf: &NativeFont)) {
+fn with_test_native_font(_f: fn@(nf: &NativeFont)) {
     fail
 }

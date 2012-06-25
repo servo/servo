@@ -85,7 +85,6 @@ impl methods for FT_Error {
     fn succeeded() -> bool { self == 0 as FT_Error }
 }
 
-#[cfg(target_os = "linux")]
 fn with_test_native_font(f: fn@(nf: &NativeFont)) {
     import font::test_font_bin;
     import unwrap_result = result::unwrap;

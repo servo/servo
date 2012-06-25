@@ -16,7 +16,7 @@ type NativeFont/& = quartz_native_font::QuartzNativeFont;
 type NativeFont/& = ft_native_font::FreeTypeNativeFont;
 
 #[cfg(target_os = "macos")]
-fn with_test_native_font(f: fn@(NativeFont)) {
+fn with_test_native_font(f: fn@(nf: &NativeFont)) {
     quartz_native_font::with_test_native_font(f);
 }
 
