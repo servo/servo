@@ -15,12 +15,18 @@ type NativeFont/& = quartz_native_font::QuartzNativeFont;
 #[cfg(target_os = "linux")]
 type NativeFont/& = ft_native_font::FreeTypeNativeFont;
 
+#[cfg(target_os = "macos")]
 fn with_test_native_font(f: fn@(NativeFont)) {
-    fail
+    quartz_native_font::with_test_native_font(f);
+}
+
+#[cfg(target_os = "linux")]
+fn with_test_native_font(f: fn@(nf: &NativeFont)) {
+    ft_native_font::with_test_native_font(f);
 }
 
 #[test]
-#[ignore]
+#[ignore(cfg(target_os = "macos"))]
 fn should_get_glyph_indexes() {
     with_test_native_font { |font|
         let idx = font.glyph_index('w');
@@ -29,10 +35,28 @@ fn should_get_glyph_indexes() {
 }
 
 #[test]
-#[ignore]
+#[ignore(cfg(target_os = "macos"))]
+fn should_return_none_glyph_index_for_bad_codepoints() {
+    with_test_native_font { |font|
+        let idx = font.glyph_index(0 as char);
+        assert idx == none;
+    }
+}
+
+#[test]
+#[ignore(cfg(target_os = "macos"))]
 fn should_get_glyph_h_advance() {
     with_test_native_font { |font|
         let adv = font.glyph_h_advance(40u);
-        assert adv == 15;
+        assert adv == some(15);
+    }
+}
+
+#[test]
+#[ignore(cfg(target_os = "macos"))]
+fn should_return_none_glyph_h_advance_for_bad_codepoints() {
+    with_test_native_font { |font|
+        let adv = font.glyph_h_advance(-1 as uint);
+        assert adv == none;
     }
 }
