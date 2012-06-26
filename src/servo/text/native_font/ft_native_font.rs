@@ -96,7 +96,6 @@ fn with_test_native_font(f: fn@(nf: &NativeFont)) {
     }
 }
 
-#[cfg(test)]
 fn with_lib(f: fn@(FT_Library)) {
     let lib: FT_Library = null();
     assert FT_Init_FreeType(addr_of(lib)).succeeded();
