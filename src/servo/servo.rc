@@ -5,6 +5,7 @@
 
 #[comment = "The Servo Parallel Browser Project"];
 #[license = "MPL"];
+#[crate_type = "lib"];
 
 use std;
 use sdl;

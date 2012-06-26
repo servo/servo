@@ -77,6 +77,9 @@ CLEAN_DEPS += \
 all:    servo package
 
 servo:	$(SERVO_DEPS)
+	$(RUSTC) $(RUSTFLAGS) -o $@ $< --bin
+
+libservo.dummy: $(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) -o $@ $<
 
 servo-test: $(SERVO_DEPS)
