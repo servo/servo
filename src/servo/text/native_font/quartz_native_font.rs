@@ -1,11 +1,42 @@
+use cocoa;
+
 export QuartzNativeFont, with_test_native_font;
 
+import libc::size_t;
+import ptr::null;
+import unsafe::reinterpret_cast;
+import result::{result, ok};
 import glyph::GlyphIndex;
+import cocoa::cg::{
+    CGDataProviderRef,
+    CGFontRef
+};
+import cocoa::cg::cg::{
+    CGDataProviderCreateWithData,
+    CGDataProviderRelease,
+    CGFontCreateWithDataProvider,
+    CGFontRelease
+};
 
 class QuartzNativeFont/& {
-    let bogus: int;
+    let fontprov: CGDataProviderRef;
+    let cgfont: CGFontRef;
 
-    new() { self.bogus = 0; }
+    new (fontprov: CGDataProviderRef, cgfont: CGFontRef) {
+        assert fontprov.is_not_null();
+        assert cgfont.is_not_null();
+
+        self.fontprov = fontprov;
+        self.cgfont = cgfont;
+    }
+
+    drop {
+        assert self.cgfont.is_not_null();
+        assert self.fontprov.is_not_null();
+
+        CGFontRelease(self.cgfont);
+        CGDataProviderRelease(self.fontprov);
+    }
 
     fn glyph_index(_codepoint: char) -> option<GlyphIndex> {
         fail;
@@ -17,6 +48,28 @@ class QuartzNativeFont/& {
     }
 }
 
-fn with_test_native_font(_f: fn@(nf: &NativeFont)) {
-    fail
+fn create(buf: &[u8]) -> result<QuartzNativeFont, ()> {
+    let fontprov = vec::as_buf(*buf) { |cbuf|
+        CGDataProviderCreateWithData(
+            null(),
+            unsafe { reinterpret_cast(cbuf) },
+            (*buf).len() as size_t,
+            null())
+    };
+    // FIXME: Error handling
+    assert fontprov.is_not_null();
+    let cgfont = CGFontCreateWithDataProvider(fontprov);
+    // FIXME: Error handling
+    assert cgfont.is_not_null();
+
+    ret ok(QuartzNativeFont(fontprov, cgfont));
+}
+
+fn with_test_native_font(f: fn@(nf: &NativeFont)) {
+    import font::test_font_bin;
+    import unwrap_result = result::unwrap;
+
+    let buf = test_font_bin();
+    let font = unwrap_result(create(&buf));
+    f(&font);
 }
