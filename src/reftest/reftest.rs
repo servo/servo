@@ -2,10 +2,11 @@ use std;
 use servo;
 
 import result::{ok, err};
-import std::test{test_opts, run_tests_console, test_desc};
-import std::getopts::{getopts, reqopt, opt_opt, fail_str};
-import std::path::connect;
+import std::test::{test_opts, run_tests_console, test_desc};
+import std::getopts::{getopts, reqopt, opt_str, fail_str};
+import path::{connect, basename};
 import os::list_dir_path;
+import servo::run_pipeline_png;
 
 fn main(args: [str]) {
     let config = parse_config(args);
@@ -17,7 +18,8 @@ fn main(args: [str]) {
 
 type Config = {
     source_dir: str,
-    work_dir: str
+    work_dir: str,
+    filter: option<str>
 };
 
 fn parse_config(args: [str]) -> Config {
@@ -26,7 +28,7 @@ fn parse_config(args: [str]) -> Config {
     let match = alt getopts(args, opts) {
       ok(m) { m }
       err(f) { fail fail_str(f) }
-    }
+    };
 
     {
         source_dir: opt_str(match, "source-dir"),
@@ -34,14 +36,14 @@ fn parse_config(args: [str]) -> Config {
         filter: if match.free.is_empty() {
             none
         } else {
-            some(match.head())
+            some(match.free.head())
         }
     }
 }
 
 fn test_options(config: Config) -> test_opts {
     {
-        filter: none,
+        filter: config.filter,
         run_ignored: false,
         logfile: none
     }
@@ -55,7 +57,7 @@ fn find_tests(config: Config) -> [test_desc] {
 fn make_test(config: Config, file: str) -> test_desc {
     {
         name: file,
-        fn: { || run_test(config, file) },
+        fn: fn~() { run_test(config, file) },
         ignore: false,
         should_fail: false
     }
@@ -64,7 +66,7 @@ fn make_test(config: Config, file: str) -> test_desc {
 fn run_test(config: Config, file: str) {
     let servo_render = render_servo(config, file);
     let ref_render = render_ref(config, file);
-    if !servo_render.eq(ref_render) {
+    if servo_render != ref_render {
         fail;
     }
 }
@@ -72,8 +74,8 @@ fn run_test(config: Config, file: str) {
 type Render = [u8];
 
 fn render_servo(config: Config, file: str) -> Render {
-    let infile = connect(config.work_dir, file);
-    let outfile = infile + ".png";
+    let infile = file;
+    let outfile = connect(config.work_dir, basename(file) + ".png");
     run_pipeline_png(infile, outfile);
     fail;
 }
@@ -82,7 +84,7 @@ fn render_ref(config: Config, file: str) -> Render {
     fail
 }
 
-fn install_rasterize_js() { fail }
+fn install_rasterize_js() { }
 
 // This is the script that uses phantom.js to render pages
 fn rasterize_js() -> str { #include_str("rasterize.js") }
