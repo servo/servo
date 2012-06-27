@@ -63,8 +63,12 @@ type ScopeData<T:send,A> = {
     mut first_dirty: Handle<T,A>
 };
 
-resource ScopeResource<T:send,A>(d: ScopeData<T,A>) {
-    unsafe {
+class ScopeResource<T:send,A> {
+    let d : ScopeData<T,A>;
+    new(d : ScopeData<T,A>) {
+        self.d = d;
+    }
+    drop unsafe {
         for d.free_list.each { |h| free_handle(h); }
     }
 }

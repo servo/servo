@@ -7,6 +7,8 @@
 #[license = "MPL"];
 #[crate_type = "lib"];
 
+#[warn(no_oldvecs)];
+
 use std;
 use sdl;
 use azure;
