@@ -11,8 +11,8 @@ import shaper::shape_text;
 class TextRun {
     let glyphs: [Glyph];
 
-    new(font: &Font, text: str) {
-        self.glyphs = shape_text(font, text);
+    new(font: Font, text: str) {
+        self.glyphs = shape_text(&font, text);
     }
 
     fn size() -> Size2D<au> {
@@ -34,7 +34,7 @@ fn should_calculate_the_total_size() {
 
     let flib = FontLibrary();
     let font = flib.get_test_font();
-    let run = TextRun(font, "firecracker");
+    let run = TextRun(*font, "firecracker");
     let expected = Size2D(px_to_au(84), px_to_au(20));
     assert run.size() == expected;
 }

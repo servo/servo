@@ -69,7 +69,7 @@ class ScopeResource<T:send,A> {
         self.d = d;
     }
     drop unsafe {
-        for d.free_list.each { |h| free_handle(h); }
+        for self.d.free_list.each { |h| free_handle(h); }
     }
 }
 
@@ -165,20 +165,20 @@ fn Scope<T:send,A>() -> Scope<T,A> {
 
 impl WriterMethods<T:copy send,A> for Scope<T,A> {
     fn is_reader_forked() -> bool {
-        self.layout_active
+        self.d.layout_active
     }
 
     fn reader_forked() {
-        assert !self.layout_active;
-        assert self.first_dirty.is_null();
-        self.layout_active = true;
+        assert !self.d.layout_active;
+        assert self.d.first_dirty.is_null();
+        self.d.layout_active = true;
     }
 
     fn reader_joined() unsafe {
-        assert self.layout_active;
+        assert self.d.layout_active;
 
-        if self.first_dirty.is_not_null() {
-            let mut handle = self.first_dirty;
+        if self.d.first_dirty.is_not_null() {
+            let mut handle = self.d.first_dirty;
             while (*handle).is_not_null() {
                 free(handle.read_ptr());
 
@@ -187,11 +187,11 @@ impl WriterMethods<T:copy send,A> for Scope<T,A> {
                 handle.set_next_dirty(null_handle());
                 handle = next_handle;
             }
-            self.first_dirty = null_handle();
+            self.d.first_dirty = null_handle();
         }
 
-        assert self.first_dirty.is_null();
-        self.layout_active = false;
+        assert self.d.first_dirty.is_null();
+        self.d.layout_active = false;
     }
 
     fn read<U>(h: Handle<T,A>, f: fn(T) -> U) -> U unsafe {
@@ -200,11 +200,11 @@ impl WriterMethods<T:copy send,A> for Scope<T,A> {
     }
 
     fn write<U>(h: Handle<T,A>, f: fn(T) -> U) -> U unsafe {
-        if self.layout_active && h.read_ptr() == h.write_ptr() {
+        if self.d.layout_active && h.read_ptr() == h.write_ptr() {
             #debug["marking handle %? as dirty", h];
             h.set_write_ptr(unsafe::reinterpret_cast(self.clone(h.read_ptr())));
-            h.set_next_dirty(self.first_dirty);
-            self.first_dirty = h;
+            h.set_next_dirty(self.d.first_dirty);
+            self.d.first_dirty = h;
         }
         f(*h.write_ptr())
     }
@@ -219,7 +219,7 @@ impl WriterMethods<T:copy send,A> for Scope<T,A> {
         (*d).read_aux = ptr::null();
         (*d).next_dirty = null_handle();
         let h = _Handle(d);
-        self.free_list += [h];
+        self.d.free_list += [h];
         ret h;
     }
 }
