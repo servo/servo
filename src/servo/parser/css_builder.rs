@@ -1,27 +1,30 @@
-#[doc="Constructs a list of style rules from a token stream"]
+#[doc="Constructs a list of css style rules from a token stream"]
 
 // TODO: fail according to the css spec instead of failing when things
 // are not as expected
 
 import dom::style;
-import style::{DisInline, DisBlock, DisNone, Display, TextColor, BackgroundColor, FontSize};
+import style::{DisInline, DisBlock, DisNone, Display, TextColor, BackgroundColor, FontSize,
+               Height, Width, StyleDeclaration, Selector};
 import parser::css_lexer::{Token, StartDescription, EndDescription,
                            Descendant, Child, Sibling,
                            Comma, Element, Attr, Description,
                            Eof};
 import comm::recv;
-import option::is_none;
+import option::{map, is_none};
+import vec::push;
+import parser::parser_util::{parse_display_type, parse_font_size, parse_size};
 import util::color::parsing::parse_color;
 import vec::push;
 
 type TokenReader = {stream : port<Token>, mut lookahead : option<Token>};
 
-trait methods {
+trait util_methods {
     fn get() -> Token;
     fn unget(-tok : Token);
 }
 
-impl methods of methods for TokenReader {
+impl util_methods of util_methods for TokenReader {
     fn get() -> Token {
         alt copy self.lookahead {
           some(tok)  { self.lookahead = none; copy tok }
@@ -35,153 +38,160 @@ impl methods of methods for TokenReader {
     }
 }
 
-fn parse_element(reader : TokenReader) -> option<~style::Selector> {
-    // Get the current element type
-    let elmt_name = alt reader.get() {
-      Element(tag)  { copy tag }
-      Eof  { ret none; }
-      _  { fail ~"Expected an element" }
-    };
-
-    let mut attr_list = ~[];
-
-    // Get the attributes associated with that element
-    loop {
-        let tok = reader.get();
-        alt tok {
-          Attr(attr)       { push(attr_list, copy attr); }
-          StartDescription | Descendant | Child | Sibling | Comma {
-            reader.unget(tok); 
-            break;
-          }
-          Eof              { ret none; }          
-          Element(_)          { fail ~"Unexpected second element without "
-                                   + ~"relation to first element"; }
-          EndDescription         { fail ~"Unexpected '}'"; }
-          Description(_, _)       { fail ~"Unexpected description"; }
-        }
-    }
-        
-    ret some(~style::Element(elmt_name, attr_list));
+trait parser_methods {
+    fn parse_element() -> option<~style::Selector>;
+    fn parse_selector() -> option<~[~Selector]>;
+    fn parse_description() -> option<~[StyleDeclaration]>;
+    fn parse_rule() -> option<~style::Rule>;
 }
 
-fn parse_rule(reader : TokenReader) -> option<~style::Rule> {
-    let mut sel_list = ~[];
-    let mut desc_list = ~[];
+impl parser_methods of parser_methods for TokenReader {
+    fn parse_element() -> option<~style::Selector> {
+        // Get the current element type
+         let elmt_name = alt self.get() {
+           Element(tag) { copy tag }
+           Eof { ret none; }
+           _ { fail ~"Expected an element" }
+         };
 
-    // Collect all the selectors that this rule applies to
-    loop {
-        let mut cur_sel;
+         let mut attr_list = ~[];
 
-        alt parse_element(reader) {
-          some(elmt)  { cur_sel = copy elmt; }
-          none        { ret none; } // we hit an eof in the middle of a rule
-        }
+         // Get the attributes associated with that element
+         loop {
+             let tok = self.get();
+             alt tok {
+               Attr(attr) { push(attr_list, copy attr); }
+               StartDescription | Descendant | Child | Sibling | Comma {
+                 self.unget(tok); 
+                 break;
+               }
+               Eof { ret none; }          
+               Element(_) { fail ~"Unexpected second element without relation to first element"; }
+               EndDescription { fail ~"Unexpected '}'"; }
+               Description(_, _) { fail ~"Unexpected description"; }
+             }
+         }
+        ret some(~style::Element(elmt_name, attr_list));
+    }
 
+    fn parse_selector() -> option<~[~Selector]> {
+        let mut sel_list = ~[];
+
+        // Collect all the selectors that this rule applies to
         loop {
-            let tok = reader.get();
-            alt tok {
-              Descendant {
-                alt parse_element(reader) {
-                  some(elmt)   { 
-                    let built_sel <- cur_sel;
-                    let new_sel = copy elmt;
-                    cur_sel <- ~style::Descendant(built_sel, new_sel)
-                  }
-                  none         { ret none; }
-                }
-              }
-              Child {
-                alt parse_element(reader) {
-                  some(elmt)   { 
-                    let built_sel <- cur_sel;
-                    let new_sel = copy elmt;
-                    cur_sel <- ~style::Child(built_sel, new_sel)
-                  }
-                  none         { ret none; }
-                }
-              }
-              Sibling {
-                alt parse_element(reader) {
-                  some(elmt)   { 
-                    let built_sel <- cur_sel;
-                    let new_sel = copy elmt;
-                    cur_sel <- ~style::Sibling(built_sel, new_sel)
-                  }
-                  none         { ret none; }
-                }
-              }
-              StartDescription {
-                let built_sel <- cur_sel; 
-                push(sel_list, built_sel);
-                reader.unget(StartDescription);
-                break;
-              }
-              Comma      {
+            let mut cur_sel;
+
+            alt self.parse_element() {
+              some(elmt) { cur_sel = copy elmt; }
+              none { ret none; } // we hit an eof in the middle of a rule
+            }
+
+            loop {
+                let tok = self.get();
                 let built_sel <- cur_sel;
-                push(sel_list, built_sel);
-                reader.unget(Comma);
-                break;
-              }
-              Attr(_) | EndDescription | Element(_) | Description(_, _) {
-                fail #fmt["Unexpected token %? in elements", tok];
-              }
-              Eof        { ret none; }
-            }
-        }
-
-        // check if we should break out of the nesting loop as well
-        let tok = reader.get();
-        alt tok {
-          StartDescription { break; }
-          Comma      { }
-          _             { reader.unget(tok); }
-        }
-    }
-    
-    // Get the description to be applied to the selector
-    loop {
-        let tok = reader.get();
-        alt tok {
-          EndDescription   { break; }
-          Description(prop, val) {
-            alt prop {
-              ~"font-size" {
-                // TODO, support more ways to declare a font size than # pt
-                assert val.ends_with(~"pt");
-                let num = val.substr(0u, val.len() - 2u);
                 
-                alt uint::from_str(num) {
-                  some(n)    { push(desc_list, FontSize(n)); }
-                  none       { fail ~"Nonnumber provided as font size"; }
+                alt tok {
+                  Descendant {
+                    alt self.parse_element() {
+                      some(elmt) { 
+                        let new_sel = copy elmt;
+                        cur_sel <- ~style::Descendant(built_sel, new_sel)
+                      }
+                      none { ret none; }
+                    }
+                  }
+                  Child {
+                    alt self.parse_element() {
+                      some(elmt) { 
+                        let new_sel = copy elmt;
+                        cur_sel <- ~style::Child(built_sel, new_sel)
+                      }
+                      none { ret none; }
+                    }
+                  }
+                  Sibling {
+                    alt self.parse_element() {
+                      some(elmt) { 
+                        let new_sel = copy elmt;
+                        cur_sel <- ~style::Sibling(built_sel, new_sel)
+                      }
+                      none { ret none; }
+                    }
+                  }
+                  StartDescription {
+                    push(sel_list, built_sel);
+                    self.unget(StartDescription);
+                    break;
+                  }
+                  Comma {
+                    push(sel_list, built_sel);
+                    self.unget(Comma);
+                    break;
+                  }
+                  Attr(_) | EndDescription | Element(_) | Description(_, _) {
+                    fail #fmt["Unexpected token %? in elements", tok];
+                  }
+                  Eof { ret none; }
                 }
-              }
-              ~"display" {
-                alt val {
-                  ~"inline"   { push(desc_list, Display(DisInline)); }
-                  ~"block"    { push(desc_list, Display(DisBlock)); }
-                  ~"none"     { push(desc_list, Display(DisNone)); }
-                  _          { #debug["Recieved unknown display value '%s'", val]; }
-                }
-              }
-              ~"color" {
-                push(desc_list, TextColor(parse_color(val)));
-              }
-              ~"background-color" {
-                push(desc_list, BackgroundColor(parse_color(val)));
-              }
-              _ { #debug["Recieved unknown style property '%s'", val]; }
             }
-          }
-          Eof        { ret none; }
-          StartDescription | Descendant | Child | Sibling
-          | Comma | Element(_) | Attr(_)  {
-            fail #fmt["Unexpected token %? in description", tok]; 
-          }
+
+            // check if we should break out of the nesting loop as well
+            // TODO: fix this when rust gets labelled loops
+            let tok = self.get();
+            alt tok {
+              StartDescription { break; }
+              Comma { }
+              _ { self.unget(tok); }
+            }
         }
+        
+        ret some(sel_list);
     }
 
-    ret some(~(sel_list, desc_list));
+    fn parse_description() -> option<~[StyleDeclaration]> {
+        let mut desc_list : ~[StyleDeclaration]= ~[];
+        
+        // Get the description to be applied to the selector
+        loop {
+            let tok = self.get();
+            alt tok {
+              EndDescription { break; }
+              Description(prop, val) {
+                alt prop {
+                  // TODO: have color parsing return an option instead of a real value
+                  ~"background-color" { push(desc_list, BackgroundColor(parse_color(val))); }
+                  ~"color" { push(desc_list, TextColor(parse_color(val))); }
+                  ~"display" { parse_display_type(val).map(|res| push(desc_list, Display(res))); }
+                  ~"font-size" { parse_font_size(val).map(|res| push(desc_list, FontSize(res))); }
+                  ~"height" { parse_size(val).map(|res| push(desc_list, Height(res))); }
+                  ~"width" { parse_size(val).map(|res| push(desc_list, Width(res))); }
+                  _ { #debug["Recieved unknown style property '%s'", val]; }
+                }
+              }
+              Eof { ret none; }
+              StartDescription | Descendant | Child | Sibling | Comma | Element(_) | Attr(_)  {
+                fail #fmt["Unexpected token %? in description", tok]; 
+              }
+            }
+        }
+        
+        ret some(desc_list);
+    }
+
+    fn parse_rule() -> option<~style::Rule> {
+        let sel_list = alt self.parse_selector() {
+          some(list){ copy list }
+          none { ret none; }
+        };
+        
+        // Get the description to be applied to the selector
+        let desc_list = alt self.parse_description() {
+          some(list) { copy list }
+          none { ret none; }
+        };
+        
+        ret some(~(sel_list, desc_list));
+    }
 }
 
 fn build_stylesheet(stream : port<Token>) -> ~[~style::Rule] {
@@ -189,9 +199,9 @@ fn build_stylesheet(stream : port<Token>) -> ~[~style::Rule] {
     let reader = {stream : stream, mut lookahead : none};
 
     loop {
-        alt parse_rule(reader) {
-          some(rule)   { push(rule_list, copy rule); }
-          none         { break; }
+        alt reader.parse_rule() {
+          some(rule) { push(rule_list, copy rule); }
+          none { break; }
         }
     }
 

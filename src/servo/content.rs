@@ -20,7 +20,6 @@ import dom::style;
 import dom::style::Stylesheet;
 import gfx::renderer::Sink;
 import parser::html_lexer::spawn_html_lexer_task;
-import parser::css_builder::build_stylesheet;
 import parser::html_builder::build_dom;
 import layout::layout_task;
 import layout_task::{Layout, BuildMsg};

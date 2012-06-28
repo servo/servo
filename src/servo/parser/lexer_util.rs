@@ -1,3 +1,5 @@
+#[doc = "A collection of functions that are useful for both css and html parsing."]
+
 import option::is_none;
 import str::from_bytes;
 import vec::push;
@@ -16,7 +18,6 @@ trait u8_methods {
     fn is_whitespace() -> bool;
     fn is_alpha() -> bool;
 }
-
 
 impl u8_methods of u8_methods for u8 {
     fn is_whitespace() -> bool {
@@ -67,34 +68,26 @@ impl util_methods of util_methods for InputState {
 
     fn expect(ch: u8) {
         alt self.get() {
-            CoeChar(c) {
-                if c != ch {
-                    self.parse_err(#fmt("expected '%c'", ch as char));
-                }
-            }
-            CoeEof {
-                self.parse_err(#fmt("expected '%c' at eof", ch as char));
-            }
+          CoeChar(c) { if c != ch { self.parse_err(#fmt("expected '%c'", ch as char)); } }
+          CoeEof { self.parse_err(#fmt("expected '%c' at eof", ch as char)); }
         }
     }
-
+        
     fn parse_ident() -> ~str {
         let mut result: ~[u8] = ~[];
         loop {
             alt self.get() {
-                CoeChar(c) {
-                    if (c.is_alpha()) {
-                        push(result, c);
-                    } else if result.len() == 0u {
-                        self.parse_err(~"expected ident");
-                    } else {
-                        self.unget(c);
-                        break;
-                    }
+              CoeChar(c) {
+                if (c.is_alpha()) { push(result, c); }
+                else if result.len() == 0u { self.parse_err(~"expected ident"); }
+                else {
+                    self.unget(c);
+                    break;
                 }
-                CoeEof {
-                    self.parse_err(~"expected ident");
-                }
+              }
+              CoeEof {
+                self.parse_err(~"expected ident");
+              }
             }
         }
         ret str::from_bytes(result);
@@ -110,15 +103,15 @@ impl util_methods of util_methods for InputState {
     fn eat_whitespace() {
         loop {
             alt self.get() {
-                CoeChar(c) {
-                  if !c.is_whitespace() {
-                        self.unget(c);
-                        ret;
-                    }
-                }
-                CoeEof {
+              CoeChar(c) {
+                if !c.is_whitespace() {
+                    self.unget(c);
                     ret;
                 }
+              }
+              CoeEof {
+                ret;  
+              }
             }
         }
     }

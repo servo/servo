@@ -11,11 +11,12 @@ import parser = parser::html_lexer;
 import parser::Token;
 import dom::style::Stylesheet;
 import vec::{push, push_all_move, flat_map};
+
 import dvec::extensions;
 
-enum css_message {
-    file(~str),
-    exit   
+enum CSSMessage {
+    File(~str),
+    Exit   
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
@@ -59,15 +60,15 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: ~str, -value: ~str) {
 
 fn build_element_kind(tag_name: ~str) -> ~ElementKind {
     alt tag_name {
-        ~"div"   { ~HTMLDivElement }
-        ~"img"   {
-            ~HTMLImageElement({
-                mut size: Size2D(geometry::px_to_au(100),
-                                 geometry::px_to_au(100))
-            })
-        }
-        ~"head"  { ~HTMLHeadElement }
-        _       { ~UnknownElement  }
+      ~"div" { ~HTMLDivElement }
+      ~"img" {
+        ~HTMLImageElement({
+            mut size: Size2D(geometry::px_to_au(100),
+                             geometry::px_to_au(100))
+        })
+      }
+      ~"head" { ~HTMLHeadElement }
+      _ { ~UnknownElement  }
     }
 }
 
@@ -85,25 +86,26 @@ spawned, collates them, and sends them to the given result channel.
 * `from_parent` - A port on which to receive new links.
 
 "]
-fn css_link_listener(to_parent : chan<Stylesheet>, from_parent : port<css_message>) {
+fn css_link_listener(to_parent : chan<Stylesheet>, from_parent : port<CSSMessage>) {
     let mut result_vec = ~[];
 
     loop {
         alt from_parent.recv() {
-          file(filename) {
+          File(filename) {
             let result_port = comm::port();
             let result_chan = comm::chan(result_port);
             let filename = copy filename;
             task::spawn(|| {
                 //TODO: deal with extraneous copies
                 let filename <- copy filename;
-                let css_stream = css_lexer::spawn_css_lexer_task(filename);
+                let css_stream = css_lexer::spawn_css_lexer_from_file(filename);
                 let mut css_rules = css_builder::build_stylesheet(css_stream);
                 result_chan.send(css_rules);
             });
+
             push(result_vec, result_port);
           }
-          exit {
+          Exit {
             break;
           }
         }
@@ -159,7 +161,7 @@ fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>) 
                         alt elmt.get_attr(~"href") {
                           some(filename) {
                             #debug["Linking to a css sheet named: %s", filename];
-                            style_chan.send(file(copy filename));
+                            style_chan.send(File(copy filename));
                           }
                           none { /* fall through*/ }
                         }
@@ -189,7 +191,7 @@ fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>) 
         }
     }
 
-    style_chan.send(exit);
+    style_chan.send(Exit);
 
     ret (cur_node, style_port);
 }

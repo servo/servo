@@ -13,9 +13,9 @@ import image::base::image;
 import layout::block::block_layout_methods;
 import layout::inline::inline_layout_methods;
 import util::tree;
-import util::color::Color;
+import util::color::{Color, css_colors};
 import text::text_box;
-import style::style::computed_style;
+import style::style::SpecifiedStyle;
 import text::text_layout_methods;
 import vec::{push, push_all};
 
@@ -28,11 +28,11 @@ enum BoxKind {
 
 class Appearance {
     let mut background_image: option<@image>;
-    let mut background_color: option<Color>;
+    let mut background_color: Color;
 
     new() {
         self.background_image = none;
-        self.background_color = none;
+        self.background_color = css_colors::black();
     }
 }
 
@@ -53,7 +53,7 @@ class Box {
 }
 
 enum LayoutData = {
-    mut computed_style: ~computed_style,
+    mut specified_style: ~SpecifiedStyle,
     mut box: option<@Box>
 };
 

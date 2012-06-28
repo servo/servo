@@ -70,9 +70,10 @@ fn box_to_display_items(box: @Box, origin: Point2D<au>) -> ~[dl::display_item] {
     #debug("request to display a box from origin %?", origin);
 
     let bounds = Rect(origin, copy box.bounds.size);
+    let col = box.appearance.background_color;
 
-    alt (box.kind, box.appearance.background_image, box.appearance.background_color) {
-      (TextBox(subbox), _, _) {
+    alt (box.kind, box.appearance.background_image) {
+      (TextBox(subbox), _) {
         let run = copy subbox.run;
         assert run.is_some();
         push(items, dl::display_item({
@@ -84,25 +85,17 @@ fn box_to_display_items(box: @Box, origin: Point2D<au>) -> ~[dl::display_item] {
             bounds: bounds
         }));
       }
-      (_, some(image), some(*)) | (_, some(image), none) {
+      (_, some(image)) {   
         push(items, dl::display_item({
             item_type: dl::display_item_image(~copy *image),
             bounds: bounds
         }));
       }
-      (_, none, some(col)) {
+      (_, none) {
         #debug("Assigning color %? to box with bounds %?", col, bounds);
+        let col = box.appearance.background_color;
         push(items, dl::display_item({
             item_type: dl::display_item_solid_color(col.red, col.green, col.blue),
-            bounds: bounds
-        }));
-      }
-      (_, none, none) {
-        let r = rand::rng();
-        push(items, dl::display_item({
-            item_type: dl::display_item_solid_color(r.next() as u8,
-                                                    r.next() as u8,
-                                                    r.next() as u8),
             bounds: bounds
         }));
       }

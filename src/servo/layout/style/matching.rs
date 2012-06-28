@@ -5,9 +5,9 @@ import dom::base;
 import base::{ElementData, Node, Text};
 import dom::style::{Selector, StyleDeclaration, FontSize, Display, TextColor, BackgroundColor,
                     Stylesheet, Element, Child, Descendant, Sibling, Attr, Exact, Exists, Includes,
-                    StartsWith};
+                    StartsWith, Width, Height};
 import dom::rcu::ReaderMethods;
-import style::{computed_style, default_style_for_node_kind};
+import style::{SpecifiedStyle};
 
 export matching_methods;
 
@@ -70,20 +70,20 @@ impl priv_matching_methods of priv_matching_methods for Node {
           Child(_, _) | Descendant(_, _) | Sibling(_, _) { ret false; }
           Element(tag, attrs) {
             alt self.read(|n| copy *n.kind) {
-                base::Element(elmt) {
-                    if !(tag == ~"*" || tag == elmt.tag_name) {
-                        ret false;
-                    }
-                    
-                    let mut i = 0u;
-                    while i < attrs.len() {
-                        if !attrs_match(attrs[i], elmt) { ret false; }
-                        i += 1u;
-                    }
-
-                    ret true;
+              base::Element(elmt) {
+                if !(tag == ~"*" || tag == elmt.tag_name) {
+                    ret false;
                 }
-                Text(str)   { /*fall through, currently unsupported*/ }
+                
+                let mut i = 0u;
+                while i < attrs.len() {
+                    if !attrs_match(attrs[i], elmt) { ret false; }
+                    i += 1u;
+                }
+
+                ret true;
+              }
+              Text(str)   { /*fall through, currently unsupported*/ }
             }
           }
         }
@@ -113,16 +113,16 @@ impl priv_matching_methods of priv_matching_methods for Node {
             //loop over all ancestors to check if they are the person
             //we should be descended from.
             let mut cur_parent = alt self.read(|n| n.tree.parent) {
-                some(parent) { parent }
-                none         { ret false; }
+              some(parent) { parent }
+              none         { ret false; }
             };
 
             loop {
                 if cur_parent.matches_selector(sel1) { ret true; }
 
                 cur_parent = alt cur_parent.read(|n| n.tree.parent) {
-                    some(parent) { parent }
-                    none         { ret false; }
+                  some(parent) { parent }
+                  none         { ret false; }
                 };
             }
           }
@@ -131,18 +131,18 @@ impl priv_matching_methods of priv_matching_methods for Node {
 
             // Loop over this node's previous siblings to see if they match.
             alt self.read(|n| n.tree.prev_sibling) {
-                some(sib) {
-                    let mut cur_sib = sib;
-                    loop {
-                        if cur_sib.matches_selector(sel1) { ret true; }
-                
-                        cur_sib = alt cur_sib.read(|n| n.tree.prev_sibling) {
-                            some(sib) { sib }
-                            none      { break; }
-                        };
-                    }
+              some(sib) {
+                let mut cur_sib = sib;
+                loop {
+                    if cur_sib.matches_selector(sel1) { ret true; }
+                    
+                    cur_sib = alt cur_sib.read(|n| n.tree.prev_sibling) {
+                      some(sib) { sib }
+                      none      { break; }
+                    };
                 }
-                none { }
+              }
+              none { }
             }
 
             // check the rest of the siblings
@@ -176,9 +176,12 @@ impl priv_style_methods of priv_style_methods for Node {
     fn update_style(decl : StyleDeclaration) {
         self.aux(|layout| {
             alt decl {
-              Display(dis)           { layout.computed_style.display = dis; }
-              BackgroundColor(col)  { layout.computed_style.back_color = col; }
-              TextColor(*) | FontSize(*)   { /* not supported yet */ } 
+              BackgroundColor(col) { layout.specified_style.background_color = some(col); }
+              Display(dis) { layout.specified_style.display_type = some(dis); }
+              FontSize(size) { layout.specified_style.font_size = some(size); }
+              Height(size) { layout.specified_style.height = some(size); }
+              TextColor(col) { layout.specified_style.text_color = some(col); }
+              Width(size) { layout.specified_style.width = some(size); }
             }
         })
     }
@@ -208,7 +211,7 @@ impl matching_methods of matching_methods for Node {
             }
         }
         
-        self.aux(|a| #debug["Changed the style to: %?", copy *a.computed_style]);
+        self.aux(|a| #debug["Changed the style to: %?", copy *a.specified_style]);
     }
 }
 
@@ -308,8 +311,7 @@ mod test {
         scope.add_child(gchild, ggchild);
         scope.add_child(ggchild, gggchild);
 
-        let sel1 = Descendant(~Element(~"*", ~[Exact(~"class", ~"blue")]),
-                              ~Element(~"*", ~[]));
+        let sel1 = Descendant(~Element(~"*", ~[Exact(~"class", ~"blue")]), ~Element(~"*", ~[]));
 
         assert !root.matches_selector(~copy sel1);
         assert child1.matches_selector(~copy sel1);
@@ -338,8 +340,7 @@ mod test {
         assert !ggchild.matches_selector(~copy sel3);
         assert !gggchild.matches_selector(~sel3);
 
-        let sel4 = Descendant(~Child(~Element(~"*", ~[Exists(~"class")]),
-                                    ~Element(~"*", ~[])),
+        let sel4 = Descendant(~Child(~Element(~"*", ~[Exists(~"class")]), ~Element(~"*", ~[])),
                               ~Element(~"*", ~[]));
 
         assert !root.matches_selector(~copy sel4);

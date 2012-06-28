@@ -3,8 +3,8 @@
 import dom::base::{Element, HTMLImageElement, Node};
 import dom::rcu::ReaderMethods;
 import image::base::load;
-import base::{Box, BTree, NTree, LayoutData, BoxTreeReadMethods};
-import style::style_methods;
+import base::{Box, BTree, NTree, LayoutData, BoxTreeReadMethods, SpecifiedStyle};
+import style::{default_style_methods, style_methods};
 
 trait ApplyStyleBoxMethods {
     fn apply_style_for_subtree();
@@ -19,15 +19,24 @@ impl ApplyStyleBoxMethods of ApplyStyleBoxMethods for @Box {
         }
     }
 
-    #[doc="Applies CSS style."]
+    #[doc="Applies CSS style to a layout box.
+
+      Get the specified style and apply the existing traits to a
+      layout box.  If a trait does not exist, calculate the default
+      value for the given type of element and use that instead.
+
+     "]
     fn apply_style() {
         // Right now, we only handle images.
         self.node.read(|node| {
             alt node.kind {
               ~Element(element) {
-                let style = self.node.get_computed_style();
+                let style = self.node.get_specified_style();
 
-                self.appearance.background_color = some(style.back_color);
+                self.appearance.background_color = alt style.background_color {
+                  some(col) { col }
+                  none { node.kind.default_color() }
+                };
 
                 alt element.kind {
                   ~HTMLImageElement(*) {
