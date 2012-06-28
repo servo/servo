@@ -207,7 +207,7 @@ fn on_osmain<T: send>(+f: fn~(comm::port<T>)) -> comm::chan<T> {
     let opts = {
         sched: some({
             mode: task::osmain,
-            native_stack_size: none
+            foreign_stack_size: none
         })
         with task::get_opts(builder)
     };
