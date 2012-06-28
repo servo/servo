@@ -21,7 +21,7 @@ impl inline_layout_methods for @Box {
         let y = 0;
         let mut x = 0, inline_available_width = *available_width;
         let mut current_height = 0;
-        for tree::each_child(btree, self) {
+        for tree::each_child(BTree, self) {
             |kid|
             kid.bounds.origin = Point2D(au(x), au(y));
             kid.reflow(au(inline_available_width));

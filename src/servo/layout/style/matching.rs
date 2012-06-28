@@ -1,6 +1,6 @@
 #[doc="Performs CSS selector matching."]
 
-import base::{layout_data};
+import base::{LayoutData};
 import dom::base::{Element, ElementData, Node, Text};
 import dom::style::{selector, style_decl, font_size, display, text_color, background_color,
                     stylesheet, element, child, descendant, sibling, attr, exact, exists, includes,

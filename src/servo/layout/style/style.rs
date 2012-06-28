@@ -41,7 +41,7 @@ impl style_priv for Node {
      "]
     fn initialize_style() {
         let node_kind = self.read { |n| copy *n.kind };
-        let the_layout_data = @layout_data({
+        let the_layout_data = @LayoutData({
             mut computed_style : ~default_style_for_node_kind(node_kind),
             mut box : none
         });
@@ -55,7 +55,7 @@ impl style_methods for Node {
     fn initialize_style_for_subtree() {
         self.initialize_style();
         
-        for ntree.each_child(self) { |kid| 
+        for NTree.each_child(self) { |kid| 
             kid.initialize_style_for_subtree();
         }
     }
@@ -84,7 +84,7 @@ impl style_methods for Node {
             let mut i = 0u;
             
             // Compute the styles of each of our children in parallel
-            for ntree.each_child(self) { |kid| 
+            for NTree.each_child(self) { |kid| 
                 i = i + 1u;
                 let new_styles = clone(&styles);
                 

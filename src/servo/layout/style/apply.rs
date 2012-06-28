@@ -9,7 +9,7 @@ import style::style_methods;
 impl ApplyStyleBoxMethods for @Box {
     fn apply_style_for_subtree() {
         self.apply_style();
-        for btree.each_child(self) {
+        for BTree.each_child(self) {
             |child|
             child.apply_style_for_subtree();
         }

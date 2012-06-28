@@ -24,7 +24,7 @@ enum BoxKind {
     TextBox(@text_box)
 }
 
-class appearance {
+class Appearance {
     let mut background_image: option<@image>;
     let mut background_color: option<Color>;
 
@@ -39,26 +39,26 @@ class Box {
     let node: Node;
     let kind: BoxKind;
     let mut bounds: Rect<au>;
-    let appearance: appearance;
+    let appearance: Appearance;
 
     new(node: Node, kind: BoxKind) {
         self.tree = tree::empty();
         self.node = node;
         self.kind = kind;
         self.bounds = geometry::zero_rect_au();
-        self.appearance = appearance();
+        self.appearance = Appearance();
     }
 }
 
-enum layout_data = {
+enum LayoutData = {
     mut computed_style: ~computed_style,
     mut box: option<@Box>
 };
 
 // FIXME: This is way too complex! Why do these have to have dummy receivers? --pcw
 
-enum ntree { ntree }
-impl NodeTreeReadMethods of tree::ReadMethods<Node> for ntree {
+enum NTree { NTree }
+impl NodeTreeReadMethods of tree::ReadMethods<Node> for NTree {
     fn each_child(node: Node, f: fn(Node) -> bool) {
         tree::each_child(self, node, f)
     }
@@ -68,8 +68,8 @@ impl NodeTreeReadMethods of tree::ReadMethods<Node> for ntree {
     }
 }
 
-enum btree { btree }
-impl BoxTreeReadMethods of tree::ReadMethods<@Box> for btree {
+enum BTree { BTree }
+impl BoxTreeReadMethods of tree::ReadMethods<@Box> for BTree {
     fn each_child(node: @Box, f: fn(&&@Box) -> bool) {
         tree::each_child(self, node, f)
     }
@@ -79,7 +79,7 @@ impl BoxTreeReadMethods of tree::ReadMethods<@Box> for btree {
     }
 }
 
-impl BoxTreeWriteMethods of tree::WriteMethods<@Box> for btree {
+impl BoxTreeWriteMethods of tree::WriteMethods<@Box> for BTree {
     fn add_child(node: @Box, child: @Box) {
         tree::add_child(self, node, child)
     }
@@ -101,7 +101,7 @@ impl layout_methods_priv for @Box {
         s += #fmt("%?", self.kind);
         #debug["%s", s];
 
-        for btree.each_child(self) { |kid| kid.dump_indent(indent + 1u) }
+        for BTree.each_child(self) { |kid| kid.dump_indent(indent + 1u) }
     }
 }
 
@@ -143,7 +143,7 @@ impl PrivateNodeMethods for Node {
         s += #fmt("%?", self.read({ |n| copy n.kind }));
         #debug["%s", s];
 
-        for ntree.each_child(self) { |kid| kid.dump_indent(indent + 1u) }
+        for NTree.each_child(self) { |kid| kid.dump_indent(indent + 1u) }
     }
 }
 
@@ -179,7 +179,7 @@ mod test {
 
     fn flat_bounds(root: @Box) -> [Rect<au>] {
         let mut r = [];
-        for tree::each_child(btree, root) {|c|
+        for tree::each_child(BTree, root) {|c|
             r += flat_bounds(c);
         }
         ret r + [copy root.bounds];
@@ -208,9 +208,9 @@ mod test {
         let b2 = n2.construct_boxes();
         let b3 = n3.construct_boxes();
 
-        tree::add_child(btree, b3, b0);
-        tree::add_child(btree, b3, b1);
-        tree::add_child(btree, b3, b2);
+        tree::add_child(BTree, b3, b0);
+        tree::add_child(BTree, b3, b1);
+        tree::add_child(BTree, b3, b2);
 
         b3.reflow_block(au(100));
         let fb = flat_bounds(b3);

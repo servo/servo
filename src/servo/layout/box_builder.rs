@@ -6,7 +6,7 @@ import dom::rcu::ReaderMethods;
 import gfx::geometry;
 import layout::base::{BlockBox, Box, BoxKind, BoxTreeReadMethods, BoxTreeWriteMethods, InlineBox};
 import layout::base::{IntrinsicBox, NodeMethods, NodeTreeReadMethods, TextBox};
-import layout::base::{appearance, btree, ntree};
+import layout::base::{Appearance, BTree, NTree};
 import layout::style::style::{style_methods};
 import layout::text::text_box;
 import util::tree;
@@ -43,7 +43,7 @@ impl methods for ctxt {
         attribute is 'block'.
     "]
     fn construct_boxes_for_block_children() {
-        for ntree.each_child(self.parent_node) {
+        for NTree.each_child(self.parent_node) {
             |kid|
 
             // Create boxes for the child. Get its primary box.
@@ -58,7 +58,7 @@ impl methods for ctxt {
             // Add the child's box to the current enclosing box or the current anonymous box.
             alt kid.get_computed_style().display {
                 di_block { 
-                  btree.add_child(self.parent_box, kid_box);
+                  BTree.add_child(self.parent_box, kid_box);
                 }
                 di_inline {
                     let anon_box = alt self.anon_box {
@@ -77,7 +77,7 @@ impl methods for ctxt {
                         }
                         some(b) { b }
                     };
-                    btree.add_child(anon_box, kid_box);
+                    BTree.add_child(anon_box, kid_box);
                 }
                 di_none {
                     // Nothing to do.
@@ -91,7 +91,7 @@ impl methods for ctxt {
         attribute is 'inline'.
     "]
     fn construct_boxes_for_inline_children() {
-        for ntree.each_child(self.parent_node) {
+        for NTree.each_child(self.parent_node) {
             |kid|
 
             // Construct boxes for the child. Get its primary box.
@@ -108,10 +108,10 @@ impl methods for ctxt {
                 di_block {
                     // TODO
                     #warn("TODO: non-inline display found inside inline box");
-                    btree.add_child(self.parent_box, kid_box);
+                    BTree.add_child(self.parent_box, kid_box);
                 }
                 di_inline {
-                    btree.add_child(self.parent_box, kid_box);
+                    BTree.add_child(self.parent_box, kid_box);
                 }
                 di_none {
                     // Nothing to do.
@@ -142,7 +142,7 @@ impl methods for ctxt {
     fn finish_anonymous_box_if_necessary() {
         alt copy self.anon_box {
             none { /* Nothing to do. */ }
-            some(b) { btree.add_child(self.parent_box, b); }
+            some(b) { BTree.add_child(self.parent_box, b); }
         }
         self.anon_box = none;
     }

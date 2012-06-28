@@ -3,7 +3,7 @@
 import dom::rcu::WriterMethods;
 import gfx::geometry::au;
 import geom::size::Size2D;
-import layout::base::layout_data;
+import layout::base::LayoutData;
 import util::tree;
 
 import dvec::{dvec, extensions};
@@ -64,9 +64,9 @@ enum ElementKind {
     the primary box.  Note that there may be multiple boxes per DOM node.
 "]
 
-type Node = rcu::Handle<NodeData, layout_data>;
+type Node = rcu::Handle<NodeData, LayoutData>;
 
-type NodeScope = rcu::Scope<NodeData, layout_data>;
+type NodeScope = rcu::Scope<NodeData, LayoutData>;
 
 fn NodeScope() -> NodeScope {
     rcu::Scope()
