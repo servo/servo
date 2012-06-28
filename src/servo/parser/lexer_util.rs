@@ -1,4 +1,6 @@
 import option::is_none;
+import str::from_bytes;
+
 
 enum CharOrEof {
     CoeChar(u8),
@@ -19,11 +21,6 @@ impl u8_methods for u8 {
         ret (self >= ('A' as u8) && self <= ('Z' as u8)) ||
             (self >= ('a' as u8) && self <= ('z' as u8));
     }
-}
-
-impl u8_vec_methods for [u8] {
-    fn to_html_token() -> html_lexer::Token { ret html_lexer::Text(self.to_str()); }
-    fn to_str() -> str { ret str::from_bytes(self); }
 }
 
 impl util_methods for InputState {

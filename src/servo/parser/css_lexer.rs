@@ -1,6 +1,7 @@
 import comm::{port, chan};
 import dom::style;
 import option::is_none;
+import str::from_bytes;
 
 import lexer_util::*;
 
@@ -208,7 +209,7 @@ impl css_methods for CssLexer {
             }
         }
 
-        ret Description(desc_name.to_str(), desc_val.to_str());
+        ret Description(from_bytes(desc_name), from_bytes(desc_val));
     }
 }
 

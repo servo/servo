@@ -1,6 +1,7 @@
 import comm::{port, chan};
 import dom::style;
 import option::is_none;
+import str::from_bytes;
 import lexer_util::*;
 
 enum Token {
@@ -81,11 +82,11 @@ impl html_methods for HtmlLexer {
               CoeChar(c) {
                 if c == ('<' as u8) {
                     self.input_state.unget(c);
-                    ret s.to_html_token();
+                    ret Text(from_bytes(s));
                 }
                 s += [c];
               }
-              CoeEof { ret s.to_html_token(); }
+              CoeEof { ret Text(from_bytes(s)); }
             }
         }
     }
@@ -127,7 +128,8 @@ impl html_methods for HtmlLexer {
                 attribute_name += [c];
               }
               CoeEof {
-                ret Attr(attribute_name.to_str(), attribute_name.to_str());
+                let name = from_bytes(attribute_name);
+                ret Attr(copy name, name);
               }
             }
         }
@@ -142,7 +144,7 @@ impl html_methods for HtmlLexer {
                 attribute_value += [c];
               }
               CoeEof {
-                ret Attr(attribute_name.to_str(), attribute_value.to_str());
+                ret Attr(from_bytes(attribute_name), from_bytes(attribute_value));
               }
             }
         }
@@ -150,13 +152,12 @@ impl html_methods for HtmlLexer {
         // Eat whitespacpe.
         self.input_state.eat_whitespace();
 
-        ret Attr(attribute_name.to_str(), attribute_value.to_str());
+        ret Attr(from_bytes(attribute_name), from_bytes(attribute_value));
     }
 }
 
 fn lexer(reader: io::reader, state : ParseState) -> HtmlLexer {
-    ret { input_state: {mut lookahead: none, reader: reader},
-         mut parser_state: state };
+    ret { input_state: {mut lookahead: none, reader: reader}, mut parser_state: state };
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]

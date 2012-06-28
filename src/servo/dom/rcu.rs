@@ -65,7 +65,7 @@ type ScopeData<T:send,A> = {
 
 class ScopeResource<T:send,A> {
     let d : ScopeData<T,A>;
-    new(d : ScopeData<T,A>) {
+    new(-d : ScopeData<T,A>) {
         self.d = d;
     }
     drop unsafe {
