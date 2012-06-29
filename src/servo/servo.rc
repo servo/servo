@@ -84,6 +84,7 @@ mod text {
         #[cfg(target_os = "linux")]
         mod ft_native_font;
     }
+    mod util;
 }
 
 mod util {
