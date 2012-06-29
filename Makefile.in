@@ -39,7 +39,7 @@ ifeq ($(OSTYPE),darwin)
     # doesn't work neither does servo
     CHECK_DEPS += check-rust-cocoa
     CLEAN_DEPS += clean-rust-cocoa
-    AZURE_DEPS += src/rust-cocoa/libcocoa.dummy
+    AZURE_DEPS += src/rust-cocoa/libcocoa.dummy src/rust-geom/libgeom.dummy
 endif
 
 SERVO_DEPS += \
@@ -102,7 +102,7 @@ src/rust-mozjs/libmozjs.dummy: src/mozjs/libjs_static.a
 		$(MAKE) -C src/rust-mozjs
 
 src/rust-azure/libazure.dummy: $(AZURE_DEPS)
-	RUSTFLAGS="-L ../rust-cocoa" $(MAKE) -C src/rust-azure
+	RUSTFLAGS="-L ../rust-cocoa -L ../rust-geom" $(MAKE) -C src/rust-azure
 
 src/rust-sdl/libsdl.dummy:
 	$(MAKE) -C src/rust-sdl
