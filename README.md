@@ -12,7 +12,7 @@ On OS X:
 
 On Debian-based Linuxes:
 
-    sudo apt-get install libsdl1.2-dev libcairo2-dev libpango1.0-dev
+    sudo apt-get install libsdl1.2-dev libcairo2-dev libpango1.0-dev autoconf2.13
 
 ### Building
 
@@ -21,7 +21,7 @@ On Debian-based Linuxes:
     git submodule init
     git submodule update
     ./autogen.sh
-    mkdir build && cd build
+    mkdir -p build && cd build
     ../configure
     make check && make
     ./servo ../src/test/test.html
