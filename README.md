@@ -1,6 +1,7 @@
 ## The Servo Parallel Browser Project
 
-I currently build on OS X and Linux.
+Servo currently builds on Mac OS X and Linux. Since the Rust language is currently in flux, you
+will need the bleeding-edge (Git master) version of the Rust compiler.
 
 ### Prerequisites
 
