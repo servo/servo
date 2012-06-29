@@ -28,7 +28,7 @@ A font handle. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
 "]
 class Font {
-    let fontbuf: @[u8];
+    let fontbuf: @~[u8];
     let cairo_font: *cairo_scaled_font_t;
     let font_dtor: fn@();
 
@@ -41,7 +41,7 @@ class Font {
         self.font_dtor = font_dtor;
     }
 
-    fn buf() -> @[u8] {
+    fn buf() -> @~[u8] {
         self.fontbuf
     }
 
@@ -122,7 +122,7 @@ class Font {
     }
 }
 
-fn get_cairo_font(buf: &[u8]) -> (*cairo_scaled_font_t, fn@()) {
+fn get_cairo_font(buf: &~[u8]) -> (*cairo_scaled_font_t, fn@()) {
 
     import libc::c_double;
     import azure::cairo;
@@ -170,7 +170,7 @@ fn get_cairo_font(buf: &[u8]) -> (*cairo_scaled_font_t, fn@()) {
 }
 
 #[cfg(target_os = "linux")]
-fn get_cairo_face(buf: &[u8]) -> (*cairo_font_face_t, fn@()) {
+fn get_cairo_face(buf: &~[u8]) -> (*cairo_font_face_t, fn@()) {
     import freetype = azure::freetype;
     import freetype::{ FT_Error, FT_Library, FT_Face, FT_Long };
     import freetype::bindgen::{
@@ -307,7 +307,7 @@ fn get_cairo_face_should_fail_and_not_leak_if_font_cant_be_created() {
     #[test];
     #[should_fail];
 
-    get_cairo_face(&[0u8, 1u8, 2u8, 3u8]);
+    get_cairo_face(&~[0u8, 1u8, 2u8, 3u8]);
 }
 
 fn get_cairo_face_should_return_a_new_face_and_dtor() {

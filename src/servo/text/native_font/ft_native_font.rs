@@ -65,7 +65,7 @@ class FreeTypeNativeFont/& {
     }
 }
 
-fn create(lib: FT_Library, buf: &[u8]) -> result<FreeTypeNativeFont, ()> {
+fn create(lib: FT_Library, buf: &~[u8]) -> result<FreeTypeNativeFont, ()> {
     assert lib.is_not_null();
     let face: FT_Face = null();
     ret vec_as_buf(*buf) {|cbuf|
@@ -106,7 +106,7 @@ fn with_lib(f: fn@(FT_Library)) {
 #[test]
 fn create_should_return_err_if_buf_is_bogus() {
     with_lib { |lib|
-        let buf = &[];
+        let buf = &~[];
         assert create(lib, buf).is_err();
     }
 }

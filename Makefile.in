@@ -31,7 +31,8 @@ SERVO_DEPS = \
 	$(NULL)
 CHECK_DEPS =
 CLEAN_DEPS =
-AZURE_DEPS =
+AZURE_DEPS = \
+	src/rust-geom/libgeom.dummy
 
 ifeq ($(OSTYPE),darwin)
     SERVO_DEPS += src/rust-cocoa/libcocoa.dummy
