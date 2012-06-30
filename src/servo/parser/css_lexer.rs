@@ -25,7 +25,7 @@ enum Token {
     Sibling,
     Comma,
     Element(str),
-    Attr(style::attr), 
+    Attr(style::Attr), 
     Description(str, str),
     Eof
 }
@@ -105,10 +105,8 @@ impl css_methods for CssLexer {
         }
         
         alt ch {
-          '.' as u8 { ret Attr(
-              style::includes("class", self.input_state.parse_ident())); }
-          '#' as u8 { ret Attr(
-              style::includes("id", self.input_state.parse_ident())); }
+          '.' as u8 { ret Attr(style::Includes("class", self.input_state.parse_ident())); }
+          '#' as u8 { ret Attr(style::Includes("id", self.input_state.parse_ident())); }
           '[' as u8 {
             let attr_name = self.input_state.parse_ident();
             
@@ -118,21 +116,21 @@ impl css_methods for CssLexer {
             }
 
             if ch == ']' as u8 {
-                ret Attr(style::exists(attr_name));
+                ret Attr(style::Exists(attr_name));
             } else if ch == '=' as u8 {
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                ret Attr(style::exact(attr_name, attr_val));
+                ret Attr(style::Exact(attr_name, attr_val));
             } else if ch == '~' as u8 {
                 self.input_state.expect('=' as u8);
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                ret Attr(style::includes(attr_name, attr_val));
+                ret Attr(style::Includes(attr_name, attr_val));
             } else if ch == '|' as u8 {
                 self.input_state.expect('=' as u8);
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                ret Attr(style::starts_with(attr_name, attr_val));
+                ret Attr(style::StartsWith(attr_name, attr_val));
             }
             
             fail #fmt("Unexpected symbol %c in attribute", ch as char);

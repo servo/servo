@@ -7,7 +7,7 @@ import arc::arc;
 
 import display_list_builder::build_display_list;
 import dom::base::{Node};
-import dom::style::stylesheet;
+import dom::style::Stylesheet;
 import gfx::geometry::px_to_au;
 import gfx::renderer::Renderer;
 import base::{NodeMethods, layout_methods};
@@ -21,7 +21,7 @@ import comm::*;
 type Layout = chan<Msg>;
 
 enum Msg {
-    BuildMsg(Node, stylesheet),
+    BuildMsg(Node, Stylesheet),
     PingMsg(chan<content::PingMsg>),
     ExitMsg
 }

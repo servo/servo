@@ -9,7 +9,7 @@ import gfx::geometry;
 import gfx::geometry::au;
 import parser = parser::html_lexer;
 import parser::Token;
-import dom::style::stylesheet;
+import dom::style::Stylesheet;
 
 import dvec::extensions;
 
@@ -86,7 +86,7 @@ spawned, collates them, and sends them to the given result channel.
 * `from_parent` - A port on which to receive new links.
 
 "]
-fn css_link_listener(to_parent : chan<stylesheet>, from_parent : port<css_message>) {
+fn css_link_listener(to_parent : chan<Stylesheet>, from_parent : port<css_message>) {
     let mut result_vec = [];
 
     loop {
@@ -121,7 +121,7 @@ fn css_link_listener(to_parent : chan<stylesheet>, from_parent : port<css_messag
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<stylesheet>) {
+fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>) {
     // The current reference node.
     let mut cur_node = scope.new_node(Element(ElementData("html", ~HTMLDivElement)));
     // We will spawn a separate task to parse any css that is

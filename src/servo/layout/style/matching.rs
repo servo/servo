@@ -1,31 +1,32 @@
 #[doc="Performs CSS selector matching."]
 
 import base::{LayoutData};
-import dom::base::{Element, ElementData, Node, Text};
-import dom::style::{selector, style_decl, font_size, display, text_color, background_color,
-                    stylesheet, element, child, descendant, sibling, attr, exact, exists, includes,
-                    starts_with};
+import dom::base;
+import base::{ElementData, Node, Text};
+import dom::style::{Selector, StyleDeclaration, FontSize, Display, TextColor, BackgroundColor,
+                    Stylesheet, Element, Child, Descendant, Sibling, Attr, Exact, Exists, Includes,
+                    StartsWith};
 import dom::rcu::ReaderMethods;
 import style::{computed_style, default_style_for_node_kind};
 
 export matching_methods;
 
 #[doc="Check if a CSS attribute matches the attribute of an HTML element."]
-fn attrs_match(attr: attr, elmt: ElementData) -> bool {
+fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
     alt attr {
-      exists(name) {
+      Exists(name) {
         alt elmt.get_attr(name) {
           some(_) { ret true; }
           none    { ret false; }
         }
       }
-      exact(name, val) {
+      Exact(name, val) {
         alt elmt.get_attr(name) {
           some(value) { ret value == val; }
           none        { ret false; }
         }
       }
-      includes(name, val) {
+      Includes(name, val) {
         // Comply with css spec, if the specified attribute is empty
         // it cannot match.
         if val == "" { ret false; }
@@ -35,7 +36,7 @@ fn attrs_match(attr: attr, elmt: ElementData) -> bool {
           none        { ret false; }
         }
       }
-      starts_with(name, val) {
+      StartsWith(name, val) {
         alt elmt.get_attr(name) {
           some(value) { 
             //check that there is only one attribute value and it
@@ -59,12 +60,12 @@ impl priv_matching_methods for Node {
         Checks if the given CSS selector, which must describe a single element with no relational
         information, describes the given HTML element.
     "]
-    fn matches_element(sel: ~selector) -> bool {
+    fn matches_element(sel: ~Selector) -> bool {
         alt *sel {
-          child(_, _) | descendant(_, _) | sibling(_, _) { ret false; }
-          element(tag, attrs) {
+          Child(_, _) | Descendant(_, _) | Sibling(_, _) { ret false; }
+          Element(tag, attrs) {
             alt self.read { |n| copy *n.kind } {
-                Element(elmt) {
+                base::Element(elmt) {
                     if !(tag == "*" || tag == elmt.tag_name) {
                         ret false;
                     }
@@ -87,10 +88,10 @@ impl priv_matching_methods for Node {
     }
 
     #[doc = "Checks if a generic CSS selector matches a given HTML element"]
-    fn matches_selector(sel : ~selector) -> bool {
+    fn matches_selector(sel : ~Selector) -> bool {
         alt *sel {
-          element(str, atts) { ret self.matches_element(sel); }
-          child(sel1, sel2) {
+          Element(str, atts) { ret self.matches_element(sel); }
+          Child(sel1, sel2) {
             alt self.read { |n| n.tree.parent } {
               some(parent) { 
                 ret self.matches_element(sel2) &&
@@ -99,7 +100,7 @@ impl priv_matching_methods for Node {
               none         { ret false; }
             }
           }
-          descendant(sel1, sel2) {
+          Descendant(sel1, sel2) {
             if !self.matches_element(sel2) {
                 ret false;
             }
@@ -120,7 +121,7 @@ impl priv_matching_methods for Node {
                 };
             }
           }
-          sibling(sel1, sel2) {
+          Sibling(sel1, sel2) {
             if !self.matches_element(sel2) { ret false; }
 
             // Loop over this node's previous siblings to see if they match.
@@ -163,12 +164,12 @@ impl priv_matching_methods for Node {
 
 impl priv_style_methods for Node {
     #[doc="Update the computed style of an HTML element with a style specified by CSS."]
-    fn update_style(decl : style_decl) {
+    fn update_style(decl : StyleDeclaration) {
         self.aux() { |layout|
             alt decl {
-              display(dis)           { layout.computed_style.display = dis; }
-              background_color(col)  { layout.computed_style.back_color = col; }
-              text_color(*) | font_size(*)   { /* not supported yet */ } 
+              Display(dis)           { layout.computed_style.display = dis; }
+              BackgroundColor(col)  { layout.computed_style.back_color = col; }
+              TextColor(*) | FontSize(*)   { /* not supported yet */ } 
             }
         }
     }
@@ -177,7 +178,7 @@ impl priv_style_methods for Node {
 impl matching_methods for Node {
     #[doc="Compare an html element to a list of css rules and update its
            style according to the rules matching it."]
-    fn match_css_style(styles : stylesheet) {
+    fn match_css_style(styles : Stylesheet) {
         // Loop over each rule, see if our node matches what is described in the rule. If it
         // matches, update its style. As we don't currently have priorities of style information,
         // the latest rule takes precedence over the others. So we just overwrite style
@@ -200,7 +201,7 @@ impl matching_methods for Node {
 
 #[cfg(test)]
 mod test {
-    import dom::base::{Attr, Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
+    import dom::base::{Attr, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
     import dom::base::{NodeScope, TreeReadMethods, TreeWriteMethods, UnknownElement};
     import dvec::{dvec, extensions};
     import io::println;
@@ -210,7 +211,7 @@ mod test {
         let elmt = ElementData("div", ~HTMLDivElement);
         let attr = ~Attr(name, val);
         elmt.attrs.push(attr);
-        ret scope.new_node(Element(elmt));
+        ret scope.new_node(base::Element(elmt));
     }
 
     #[test]
@@ -218,7 +219,7 @@ mod test {
         let scope = NodeScope();
         let node = new_node_from_attr(scope, "lang", "en-us");
 
-        let sel = element("*", [starts_with("lang", "en")]);
+        let sel = Element("*", [StartsWith("lang", "en")]);
 
         assert node.matches_selector(~sel);
     }
@@ -228,7 +229,7 @@ mod test {
         let scope = NodeScope();
         let node = new_node_from_attr(scope, "lang", "en");
 
-        let sel = element("*", [starts_with("lang", "en")]);
+        let sel = Element("*", [StartsWith("lang", "en")]);
 
         assert node.matches_selector(~sel);
     }
@@ -238,7 +239,7 @@ mod test {
         let scope = NodeScope();
         let node = new_node_from_attr(scope, "lang", "english");
 
-        let sel = element("*", [starts_with("lang", "en")]);
+        let sel = Element("*", [StartsWith("lang", "en")]);
 
         assert !node.matches_selector(~sel);
     }
@@ -248,7 +249,7 @@ mod test {
         let scope = NodeScope();
         let node = new_node_from_attr(scope, "mad", "hatter cobler cooper");
 
-        let sel = element("div", [includes("mad", "hatter")]);
+        let sel = Element("div", [Includes("mad", "hatter")]);
 
         assert node.matches_selector(~sel);
     }
@@ -258,8 +259,8 @@ mod test {
         let scope = NodeScope();
         let node = new_node_from_attr(scope, "mad", "hatter cobler cooper");
 
-        let sel1 = element("div", [exists("mad")]);
-        let sel2 = element("div", [exists("hatter")]);
+        let sel1 = Element("div", [Exists("mad")]);
+        let sel2 = Element("div", [Exists("hatter")]);
 
         assert node.matches_selector(~sel1);
         assert !node.matches_selector(~sel2);
@@ -271,7 +272,7 @@ mod test {
         let node1 = new_node_from_attr(scope, "mad", "hatter cobler cooper");
         let node2 = new_node_from_attr(scope, "mad", "hatter");
 
-        let sel = element("div", [exact("mad", "hatter")]);
+        let sel = Element("div", [Exact("mad", "hatter")]);
 
         assert !node1.matches_selector(~copy sel);
         assert node2.matches_selector(~sel);
@@ -294,8 +295,8 @@ mod test {
         scope.add_child(gchild, ggchild);
         scope.add_child(ggchild, gggchild);
 
-        let sel1 = descendant(~element("*", [exact("class", "blue")]),
-                              ~element("*", []));
+        let sel1 = Descendant(~Element("*", [Exact("class", "blue")]),
+                              ~Element("*", []));
 
         assert !root.matches_selector(~copy sel1);
         assert child1.matches_selector(~copy sel1);
@@ -304,9 +305,9 @@ mod test {
         assert ggchild.matches_selector(~copy sel1);
         assert gggchild.matches_selector(~sel1);
 
-        let sel2 = descendant(~child(~element("*", [exact("class", "blue")]),
-                                     ~element("*", [])),
-                              ~element("div", [exists("flag")]));
+        let sel2 = Descendant(~Child(~Element("*", [Exact("class", "blue")]),
+                                     ~Element("*", [])),
+                              ~Element("div", [Exists("flag")]));
 
         assert !root.matches_selector(~copy sel2);
         assert !child1.matches_selector(~copy sel2);
@@ -315,7 +316,7 @@ mod test {
         assert ggchild.matches_selector(~copy sel2);
         assert gggchild.matches_selector(~sel2);
 
-        let sel3 = sibling(~element("*", []), ~element("*", []));
+        let sel3 = Sibling(~Element("*", []), ~Element("*", []));
 
         assert !root.matches_selector(~copy sel3);
         assert child1.matches_selector(~copy sel3);
@@ -324,9 +325,9 @@ mod test {
         assert !ggchild.matches_selector(~copy sel3);
         assert !gggchild.matches_selector(~sel3);
 
-        let sel4 = descendant(~child(~element("*", [exists("class")]),
-                                    ~element("*", [])),
-                              ~element("*", []));
+        let sel4 = Descendant(~Child(~Element("*", [Exists("class")]),
+                                    ~Element("*", [])),
+                              ~Element("*", []));
 
         assert !root.matches_selector(~copy sel4);
         assert !child1.matches_selector(~copy sel4);

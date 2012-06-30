@@ -2,7 +2,7 @@
 
 import arc::{arc, get, clone};
 
-import dom::style::{display_type, di_block, di_inline, di_none, stylesheet};
+import dom::style::{DisplayType, DisBlock, DisInline, DisNone, Stylesheet};
 import dom::base::{Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement, Node, NodeKind};
 import dom::base::{Text};
 import dom::rcu::ReaderMethods;
@@ -11,23 +11,23 @@ import matching::matching_methods;
 import util::color::{Color, rgb};
 import util::color::css_colors::{white, black};
 
-type computed_style = {mut display : display_type, mut back_color : Color};
+type computed_style = {mut display : DisplayType, mut back_color : Color};
 
 #[doc="Returns the default style for the given node kind."]
 fn default_style_for_node_kind(kind: NodeKind) -> computed_style {
     alt kind {
       Text(*) {
-        {mut display: di_inline, mut back_color: white()}
+        {mut display: DisInline, mut back_color: white()}
       }
       Element(element) {
         let r = rand::rng();
         let rand_color = rgb(r.next() as u8, r.next() as u8, r.next() as u8);
 
         alt *element.kind {
-          HTMLDivElement      { {mut display: di_block,  mut back_color: rand_color} }
-          HTMLHeadElement     { {mut display: di_none,   mut back_color: rand_color} }
-          HTMLImageElement(*) { {mut display: di_inline, mut back_color: rand_color} }
-          UnknownElement      { {mut display: di_inline, mut back_color: rand_color} }
+          HTMLDivElement      { {mut display: DisBlock,  mut back_color: rand_color} }
+          HTMLHeadElement     { {mut display: DisNone,   mut back_color: rand_color} }
+          HTMLImageElement(*) { {mut display: DisInline, mut back_color: rand_color} }
+          UnknownElement      { {mut display: DisInline, mut back_color: rand_color} }
         }
       }
     }
@@ -79,7 +79,7 @@ impl style_methods for Node {
         This is, importantly, the function that updates the layout data for the node (the reader-
         auxiliary box in the RCU model) with the computed style.
     "]
-    fn recompute_style_for_subtree(styles : arc<stylesheet>) {
+    fn recompute_style_for_subtree(styles : arc<Stylesheet>) {
         listen { |ack_chan| 
             let mut i = 0u;
             

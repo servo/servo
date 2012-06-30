@@ -3,7 +3,8 @@
 // TODO: fail according to the css spec instead of failing when things
 // are not as expected
 
-import dom::style::*;
+import dom::style;
+import style::{DisInline, DisBlock, DisNone, Display, TextColor, BackgroundColor, FontSize};
 import parser::css_lexer::{Token, StartDescription, EndDescription,
                            Descendant, Child, Sibling,
                            Comma, Element, Attr, Description,
@@ -28,12 +29,12 @@ impl methods for TokenReader {
     }
 }
 
-fn parse_element(reader : TokenReader) -> option<~selector> {
+fn parse_element(reader : TokenReader) -> option<~style::Selector> {
     // Get the current element type
     let elmt_name = alt reader.get() {
       Element(tag)  { copy tag }
-      Eof        { ret none; }
-      _             { fail "Expected an element" }
+      Eof  { ret none; }
+      _  { fail "Expected an element" }
     };
 
     let mut attr_list = [];
@@ -55,10 +56,10 @@ fn parse_element(reader : TokenReader) -> option<~selector> {
         }
     }
         
-    ret some(~element(elmt_name, attr_list));
+    ret some(~style::Element(elmt_name, attr_list));
 }
 
-fn parse_rule(reader : TokenReader) -> option<~rule> {
+fn parse_rule(reader : TokenReader) -> option<~style::Rule> {
     let mut sel_list = [];
     let mut desc_list = [];
 
@@ -79,7 +80,7 @@ fn parse_rule(reader : TokenReader) -> option<~rule> {
                   some(elmt)   { 
                     let built_sel <- cur_sel;
                     let new_sel = copy elmt;
-                    cur_sel <- ~descendant(built_sel, new_sel)
+                    cur_sel <- ~style::Descendant(built_sel, new_sel)
                   }
                   none         { ret none; }
                 }
@@ -89,7 +90,7 @@ fn parse_rule(reader : TokenReader) -> option<~rule> {
                   some(elmt)   { 
                     let built_sel <- cur_sel;
                     let new_sel = copy elmt;
-                    cur_sel <- ~child(built_sel, new_sel)
+                    cur_sel <- ~style::Child(built_sel, new_sel)
                   }
                   none         { ret none; }
                 }
@@ -99,7 +100,7 @@ fn parse_rule(reader : TokenReader) -> option<~rule> {
                   some(elmt)   { 
                     let built_sel <- cur_sel;
                     let new_sel = copy elmt;
-                    cur_sel <- ~sibling(built_sel, new_sel)
+                    cur_sel <- ~style::Sibling(built_sel, new_sel)
                   }
                   none         { ret none; }
                 }
@@ -145,24 +146,24 @@ fn parse_rule(reader : TokenReader) -> option<~rule> {
                 let num = val.substr(0u, val.len() - 2u);
                 
                 alt uint::from_str(num) {
-                  some(n)    { desc_list += [font_size(n)]; }
+                  some(n)    { desc_list += [FontSize(n)]; }
                   none       { fail "Nonnumber provided as font size"; }
                 }
               }
               "display" {
                 alt val {
-                  "inline"   { desc_list += [display(di_inline)]; }
-                  "block"    { desc_list += [display(di_block)]; }
-                  "none"     { desc_list += [display(di_none)]; }
+                  "inline"   { desc_list += [Display(DisInline)]; }
+                  "block"    { desc_list += [Display(DisBlock)]; }
+                  "none"     { desc_list += [Display(DisNone)]; }
                   _          { #debug["Recieved unknown display value '%s'",
                                       val]; }
                 }
               }
               "color" {
-                desc_list += [text_color(parse_color(val))];
+                desc_list += [TextColor(parse_color(val))];
               }
               "background-color" {
-                desc_list += [background_color(parse_color(val))];
+                desc_list += [BackgroundColor(parse_color(val))];
               }
               _          { #debug["Recieved unknown style property '%s'",
                                   val]; }
@@ -179,7 +180,7 @@ fn parse_rule(reader : TokenReader) -> option<~rule> {
     ret some(~(sel_list, desc_list));
 }
 
-fn build_stylesheet(stream : port<Token>) -> [~rule] {
+fn build_stylesheet(stream : port<Token>) -> [~style::Rule] {
     let mut rule_list = [];
     let reader = {stream : stream, mut lookahead : none};
 

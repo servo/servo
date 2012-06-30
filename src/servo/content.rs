@@ -13,8 +13,6 @@ import result::{ok, err};
 import dom::base::NodeScope;
 import dom::rcu::WriterMethods;
 import dom::style;
-import style::print_sheet;
-import parser::css_lexer::spawn_css_lexer_task;
 import parser::html_lexer::spawn_html_lexer_task;
 import parser::css_builder::build_stylesheet;
 import parser::html_builder::build_dom;
@@ -72,7 +70,7 @@ fn Content(layout: Layout) -> Content {
                 let css_rules = style_port.recv();
                 
                 // Apply the css rules to the dom tree:
-                #debug["%s", print_sheet(css_rules)];
+                #debug["%?", css_rules];
 
                 // Now, join the layout so that they will see the latest
                 // changes we have made.

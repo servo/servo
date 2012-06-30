@@ -1,7 +1,7 @@
 #[doc="Creates CSS boxes from a DOM."]
 
 import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, Node};
-import dom::style::{display_type, di_block, di_inline, di_none};
+import dom::style::{DisplayType, DisBlock, DisInline, DisNone};
 import dom::rcu::ReaderMethods;
 import gfx::geometry;
 import layout::base::{BlockBox, Box, BoxKind, BoxTreeReadMethods, BoxTreeWriteMethods, InlineBox};
@@ -51,16 +51,16 @@ impl methods for ctxt {
 
             // Determine the child's display.
             let disp = kid.get_computed_style().display;
-            if disp != di_inline {
+            if disp != DisInline {
                 self.finish_anonymous_box_if_necessary();
             }
 
             // Add the child's box to the current enclosing box or the current anonymous box.
             alt kid.get_computed_style().display {
-                di_block { 
+                DisBlock { 
                   BTree.add_child(self.parent_box, kid_box);
                 }
-                di_inline {
+                DisInline {
                     let anon_box = alt self.anon_box {
                         none {
                           //
@@ -79,7 +79,7 @@ impl methods for ctxt {
                     };
                     BTree.add_child(anon_box, kid_box);
                 }
-                di_none {
+                DisNone {
                     // Nothing to do.
                 }
             }
@@ -99,23 +99,23 @@ impl methods for ctxt {
 
             // Determine the child's display.
             let disp = kid.get_computed_style().display;
-            if disp != di_inline {
+            if disp != DisInline {
                 // TODO
             }
 
             // Add the child's box to the current enclosing box.
             alt kid.get_computed_style().display {
-                di_block {
-                    // TODO
-                    #warn("TODO: non-inline display found inside inline box");
-                    BTree.add_child(self.parent_box, kid_box);
-                }
-                di_inline {
-                    BTree.add_child(self.parent_box, kid_box);
-                }
-                di_none {
-                    // Nothing to do.
-                }
+              DisBlock {
+                // TODO
+                #warn("TODO: non-inline display found inside inline box");
+                BTree.add_child(self.parent_box, kid_box);
+              }
+              DisInline {
+                BTree.add_child(self.parent_box, kid_box);
+              }
+              DisNone {
+                // Nothing to do.
+              }
             }
         }
     }
@@ -126,9 +126,9 @@ impl methods for ctxt {
         self.parent_node.dump();
 
         alt self.parent_node.get_computed_style().display {
-            di_block  { self.construct_boxes_for_block_children();  }
-            di_inline { self.construct_boxes_for_inline_children(); }
-            di_none   { /* Nothing to do. */                        }
+            DisBlock  { self.construct_boxes_for_block_children();  }
+            DisInline { self.construct_boxes_for_inline_children(); }
+            DisNone   { /* Nothing to do. */                        }
         }
 
         self.finish_anonymous_box_if_necessary();
