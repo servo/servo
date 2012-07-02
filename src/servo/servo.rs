@@ -34,23 +34,23 @@ fn run_pipeline_screen(urls: [str]) {
     let engine = Engine(osmain);
 
     // Send each file to render then wait for keypress
-    listen { |keypress_from_osmain|
+    listen(|keypress_from_osmain| {
         osmain.send(AddKeyHandler(keypress_from_osmain));
 
-        for urls.each { |filename|
+        for urls.each |filename| {
             #debug["master: Sending filename `%s`", filename];
             engine.send(LoadURLMsg(~copy filename));
             #debug["master: Waiting for keypress"];
             keypress_from_osmain.recv();
         }
-    }
+    });
 
     // Shut everything down
     #debug["master: Shut down"];
-    listen { |exit_response_from_engine|
+    listen(|exit_response_from_engine| {
         engine.send(engine::ExitMsg(exit_response_from_engine));
         exit_response_from_engine.recv();
-    }
+    });
     osmain.send(osmain::Exit);
 }
 
@@ -62,7 +62,7 @@ fn run_pipeline_png(-url: str, outfile: str) {
     import result::{ok, err};
     import io::{writer, buffered_file_writer};
 
-    listen { |pngdata_from_sink|
+    listen(|pngdata_from_sink| {
         let sink = PngSink(pngdata_from_sink);
         let engine = Engine(sink);
         let url = copy url;
@@ -73,10 +73,10 @@ fn run_pipeline_png(-url: str, outfile: str) {
           }
           err(e) { fail e }
         }
-        listen { |exit_response_from_engine|
+        listen(|exit_response_from_engine| {
             engine.send(engine::ExitMsg(exit_response_from_engine));
             exit_response_from_engine.recv();
-        }
+        });
         sink.send(pngsink::Exit);
-    }
+    })
 }

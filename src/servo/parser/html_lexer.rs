@@ -166,7 +166,7 @@ fn spawn_html_lexer_task(-filename: ~str) -> port<Token> {
     let html_chan = chan(html_port);
     let html_file = copy filename;
 
-    task::spawn {||
+    task::spawn(|| {
         let filename = copy html_file;
         assert (copy *filename).ends_with(".html");
         let file_data = io::read_whole_file(*filename).get();
@@ -180,7 +180,7 @@ fn spawn_html_lexer_task(-filename: ~str) -> port<Token> {
             html_chan.send(token);
             if should_break { break; }
         }
-    };
+    });
 
     ret html_port;
 }

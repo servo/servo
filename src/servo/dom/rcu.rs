@@ -69,7 +69,7 @@ class ScopeResource<T:send,A> {
         self.d = d;
     }
     drop unsafe {
-        for self.d.free_list.each { |h| free_handle(h); }
+        for self.d.free_list.each |h| { free_handle(h); }
     }
 }
 
@@ -277,15 +277,15 @@ mod test {
         let read_chan = comm::chan(read_port);
 
         // fire up a reader task
-        for uint::range(0u, iter1) { |i|
+        for uint::range(0u, iter1) |i| {
             s.reader_forked();
-            let wait_chan = task::spawn_listener {|wait_port|
-                for uint::range(0u, iter2) { |_i|
+            let wait_chan = task::spawn_listener(|wait_port| {
+                for uint::range(0u, iter2) |_i| {
                     comm::send(read_chan, henrietta.read(read_characteristic));
                     comm::send(read_chan, ferdinand.read(read_characteristic));
                     comm::recv(wait_port);
                 }
-            };
+            });
 
             let hrc = henrietta.read(read_characteristic);
             assert hrc == (i * iter2);
@@ -293,7 +293,7 @@ mod test {
             let frc = ferdinand.read(read_characteristic);
             assert frc == i * iter2;
 
-            for uint::range(0u, iter2) { |_i|
+            for uint::range(0u, iter2) |_i| {
                 assert hrc == comm::recv(read_port);
                 s.write(henrietta, mutate);
                 assert frc == comm::recv(read_port);

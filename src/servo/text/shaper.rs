@@ -38,13 +38,13 @@ when rendered in a specific font.
 fn shape_text(font: &Font, text: str) -> [Glyph] unsafe {
     #debug("shaping text '%s'", text);
 
-    let face_blob = vec::as_buf(*(*font).buf()) { |buf|
+    let face_blob = vec::as_buf(*(*font).buf(), |buf| {
         hb_blob_create(reinterpret_cast(buf),
                        (*(*font).buf()).len() as c_uint,
                        HB_MEMORY_MODE_READONLY,
                        null(),
                        null())
-    };
+    });
 
     let hbface = hb_face_create(face_blob, 0 as c_uint);
     let hbfont = hb_font_create(hbface);
@@ -61,12 +61,12 @@ fn shape_text(font: &Font, text: str) -> [Glyph] unsafe {
 
     hb_buffer_set_direction(buffer, HB_DIRECTION_LTR);
 
-    str::as_c_str(text) { |ctext|
+    str::as_c_str(text, |ctext| {
         hb_buffer_add_utf8(buffer, ctext,
                            text.len() as c_int,
                            0 as c_uint,
                            text.len() as c_int);
-    }
+    });
 
     hb_shape(hbfont, buffer, null(), 0 as c_uint);
 
@@ -81,7 +81,7 @@ fn shape_text(font: &Font, text: str) -> [Glyph] unsafe {
 
     let mut glyphs = [];
 
-    for uint::range(0u, info_len as uint) { |i|
+    for uint::range(0u, info_len as uint) |i| {
         let info_ = offset(info_, i);
         let pos = offset(pos, i);
         let codepoint = (*info_).codepoint as uint;
@@ -147,7 +147,7 @@ fn should_get_glyph_indexes() {
 
     let font = font::create_test_font();
     let glyphs = shape_text(font, "firecracker");
-    let idxs = glyphs.map { |glyph| glyph.index };
+    let idxs = glyphs.map(|glyph| glyph.index);
     assert idxs == [32u, 8u, 13u, 14u, 10u, 13u, 201u, 10u, 37u, 14u, 13u];
 }
 
@@ -157,7 +157,7 @@ fn should_get_glyph_h_advance() {
 
     let font = font::create_test_font();
     let glyphs = shape_text(font, "firecracker");
-    let actual = glyphs.map { |g| g.pos.advance.x };
-    let expected = [6, 4, 7, 9, 8, 7, 10, 8, 9, 9, 7].map { |a| px_to_au(a) };
+    let actual = glyphs.map(|g| g.pos.advance.x);
+    let expected = [6, 4, 7, 9, 8, 7, 10, 8, 9, 9, 7].map(|a| px_to_au(a));
     assert expected == actual;
 }

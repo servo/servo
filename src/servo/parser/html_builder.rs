@@ -21,8 +21,7 @@ enum css_message {
 #[warn(no_non_implicitly_copyable_typarams)]
 fn link_up_attribute(scope: NodeScope, node: Node, -key: str, -value: str) {
     // TODO: Implement atoms so that we don't always perform string comparisons.
-    scope.read(node) {
-        |node_contents|
+    scope.read(node, |node_contents| {
         alt *node_contents.kind {
           Element(element) {
             element.attrs.push(~Attr(copy key, copy value));
@@ -55,7 +54,7 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: str, -value: str) {
             fail "attempt to link up an attribute to a text node"
           }
         }
-    }
+    })
 }
 
 fn build_element_kind(tag_name: str) -> ~ElementKind {
@@ -95,13 +94,13 @@ fn css_link_listener(to_parent : chan<Stylesheet>, from_parent : port<css_messag
             let result_port = comm::port();
             let result_chan = comm::chan(result_port);
             let filename = copy filename;
-            task::spawn{ ||
+            task::spawn(|| {
                 //TODO: deal with extraneous copies
                 let filename <- copy filename;
                 let css_stream = css_lexer::spawn_css_lexer_task(filename);
                 let mut css_rules = css_builder::build_stylesheet(css_stream);
                 result_chan.send(css_rules);
-            }
+            });
             result_vec += [result_port];
           }
           exit {
@@ -112,10 +111,10 @@ fn css_link_listener(to_parent : chan<Stylesheet>, from_parent : port<css_messag
 
     let css_rules = [];
     
-    let css_rules = result_vec.foldl(css_rules) { |rules, result_port|
+    let css_rules = result_vec.foldl(css_rules, |rules, result_port| {
         let new_rules = result_port.recv();
         rules + new_rules
-    };
+    });
 
     to_parent.send(css_rules);
 }
@@ -131,9 +130,9 @@ fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>) 
     // it along the returned port.
     let style_port = comm::port();
     let child_chan = comm::chan(style_port);
-    let style_chan = task::spawn_listener { |child_port|
+    let style_chan = task::spawn_listener(|child_port| {
         css_link_listener(child_chan, child_port);
-    };
+    });
 
     loop {
         let token = stream.recv();
@@ -157,7 +156,7 @@ fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>) 
           //       spec) if we close more tags than we open.
           parser::SelfCloseTag {
             //TODO: check for things other than the link tag
-            scope.read(cur_node) { |n|
+            scope.read(cur_node, |n| {
                 alt *n.kind {
                   Element(elmt) if elmt.tag_name == "link" {
                     alt elmt.get_attr("rel") {
@@ -175,7 +174,7 @@ fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>) 
                   }
                   _ { /* fall through*/ }
                 }                
-            }
+            });
             cur_node = scope.get_parent(cur_node).get();
           }
           parser::EndTag(_) {

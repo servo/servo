@@ -25,9 +25,8 @@ iface Sink {
 }
 
 fn Renderer<S: Sink send copy>(sink: S) -> chan<Msg> {
-    task::spawn_listener::<Msg> {|po|
-        listen {
-            |draw_target_ch|
+    task::spawn_listener::<Msg>(|po| {
+        listen(|draw_target_ch| {
             #debug("renderer: beginning rendering loop");
             sink.begin_drawing(draw_target_ch);
 
@@ -48,8 +47,8 @@ fn Renderer<S: Sink send copy>(sink: S) -> chan<Msg> {
                   }
                 }
             }
-        }
-    }
+        })
+    })
 }
 
 impl to_float for u8 {
@@ -58,11 +57,8 @@ impl to_float for u8 {
     }
 }
 
-fn draw_display_list(
-    draw_target: AzDrawTargetRef,
-    display_list: dl::display_list
-) {
-    for display_list.each {|item|
+fn draw_display_list(draw_target: AzDrawTargetRef, display_list: dl::display_list) {
+    for display_list.each |item| {
         #debug["drawing %?", item];
 
         alt item.item_type {
@@ -121,10 +117,8 @@ fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item,
     }
 
     let stride = image.width * image.depth;
-    for uint::range(0u, image.height) {
-        |y|
-        for uint::range(0u, image.width) {
-            |x|
+    for uint::range(0u, image.height) |y| {
+        for uint::range(0u, image.width) |x| {
             let color = {
                 r: image.data[y * stride + x * image.depth].to_float()
                     as AzFloat,
@@ -195,7 +189,7 @@ fn draw_text(draw_target: AzDrawTargetRef, item: dl::display_item, text_run: Tex
     };
 
     let mut origin = Point2D(bounds.origin.x, bounds.origin.y.add(bounds.size.height));
-    let azglyphs = text_run.glyphs.map { |glyph|
+    let azglyphs = text_run.glyphs.map(|glyph| {
         let azglyph: AzGlyph = {
             mIndex: glyph.index as uint32_t,
             mPosition: {
@@ -206,7 +200,7 @@ fn draw_text(draw_target: AzDrawTargetRef, item: dl::display_item, text_run: Tex
         origin = Point2D(origin.x.add(glyph.pos.advance.x),
                          origin.y.add(glyph.pos.advance.y));
         azglyph
-    };
+    });
 
     let glyphbuf: AzGlyphBuffer = unsafe {{
         mGlyphs: to_ptr(azglyphs),

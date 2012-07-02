@@ -64,7 +64,7 @@ impl NodeTreeReadMethods of tree::ReadMethods<Node> for NTree {
     }
 
     fn with_tree_fields<R>(&&n: Node, f: fn(tree::Tree<Node>) -> R) -> R {
-        n.read { |n| f(n.tree) }
+        n.read(|n| f(n.tree))
     }
 }
 
@@ -93,15 +93,16 @@ impl layout_methods_priv for @Box {
     #[doc="Dumps the box tree, for debugging, with indentation."]
     fn dump_indent(indent: uint) {
         let mut s = "";
-        for uint::range(0u, indent) {
-            |_i|
+        for uint::range(0u, indent) |_i| {
             s += "    ";
         }
 
         s += #fmt("%?", self.kind);
         #debug["%s", s];
 
-        for BTree.each_child(self) { |kid| kid.dump_indent(indent + 1u) }
+        for BTree.each_child(self) |kid| {
+            kid.dump_indent(indent + 1u) 
+        }
     }
 }
 
@@ -135,15 +136,16 @@ impl PrivateNodeMethods for Node {
     #[doc="Dumps the node tree, for debugging, with indentation."]
     fn dump_indent(indent: uint) {
         let mut s = "";
-        for uint::range(0u, indent) {
-            |_i|
+        for uint::range(0u, indent) |_i| {
             s += "    ";
         }
 
-        s += #fmt("%?", self.read({ |n| copy n.kind }));
+        s += #fmt("%?", self.read(|n| copy n.kind ));
         #debug["%s", s];
 
-        for NTree.each_child(self) { |kid| kid.dump_indent(indent + 1u) }
+        for NTree.each_child(self) |kid| {
+            kid.dump_indent(indent + 1u) 
+        }
     }
 }
 
@@ -179,7 +181,7 @@ mod test {
 
     fn flat_bounds(root: @Box) -> [Rect<au>] {
         let mut r = [];
-        for tree::each_child(BTree, root) {|c|
+        for tree::each_child(BTree, root) |c| {
             r += flat_bounds(c);
         }
         ret r + [copy root.bounds];

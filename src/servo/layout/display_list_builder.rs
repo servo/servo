@@ -43,7 +43,7 @@ fn build_display_list_from_origin(box: @Box, origin: Point2D<au>)
 
     let mut list = box_to_display_items(box, box_origin);
 
-    for BTree.each_child(box) {|c|
+    for BTree.each_child(box) |c| {
         #debug("Recursively building display list with origin %?", box_origin);
         list += build_display_list_from_origin(c, box_origin);
     }

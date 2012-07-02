@@ -52,7 +52,7 @@ class Font {
         let mut glyphs: *cairo_glyph_t = null();
         let mut num_glyphs = 0 as c_int;
 
-        let status = str::as_c_str(codepoint_str) { |codepoint_buf|
+        let status = str::as_c_str(codepoint_str, |codepoint_buf| {
             cairo_scaled_font_text_to_glyphs(
                 self.cairo_font,
                 0.0 as c_double, 0.0 as c_double,
@@ -60,7 +60,7 @@ class Font {
                 addr_of(glyphs), addr_of(num_glyphs),
                 null(), null(), null()
             )
-        };
+        });
 
         ret if status == CAIRO_STATUS_SUCCESS {
 
@@ -195,13 +195,13 @@ fn get_cairo_face(buf: &~[u8]) -> (*cairo_font_face_t, fn@()) {
     dtor = fn@(move dtor) { FT_Done_FreeType(library).for_sure(); dtor() };
 
     let face: FT_Face = null();
-    vec::as_buf(*buf) { |cbuf|
+    vec::as_buf(*buf, |cbuf| {
         if FT_New_Memory_Face(library, cbuf, (*buf).len() as FT_Long,
                               0 as FT_Long, addr_of(face)).failed() {
             dtor();
             fail "unable to create FreeType face";
         }
-    }
+    });
     dtor = fn@(move dtor) { FT_Done_Face(face).for_sure(); dtor() };
 
     let cface = cairo_ft_font_face_create_for_ft_face(face, 0 as c_int);
@@ -236,14 +236,14 @@ fn get_cairo_face(buf: &[u8]) -> (*cairo_font_face_t, fn@()) {
 
     let mut dtor = fn@() { };
 
-    let fontprov = vec::as_buf(*buf) { |cbuf|
+    let fontprov = vec::as_buf(*buf, |cbuf| {
         CGDataProviderCreateWithData(
             null(),
             unsafe { reinterpret_cast(cbuf) },
             (*buf).len() as size_t,
             null()
         )
-    };
+    });
     dtor = fn@(move dtor) { CGDataProviderRelease(fontprov); dtor() };
 
     let cgfont = CGFontCreateWithDataProvider(fontprov);
@@ -296,11 +296,7 @@ fn should_get_glyph_advance() {
 fn should_be_able_to_create_instances_in_multiple_threads() {
     #[test];
 
-    iter::repeat(10u) {||
-        task::spawn {||
-            create_test_font();
-        }
-    }
+    iter::repeat(10u, || task::spawn(|| {create_test_font();}));
 }
 
 fn get_cairo_face_should_fail_and_not_leak_if_font_cant_be_created() {

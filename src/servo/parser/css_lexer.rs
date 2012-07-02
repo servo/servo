@@ -221,7 +221,7 @@ fn spawn_css_lexer_task(-filename: ~str) -> port<Token> {
     let result_port = port();
     let result_chan = chan(result_port);
 
-    task::spawn {||
+    task::spawn(|| {
         assert (*copy filename).ends_with(".css");
         let file_try = io::read_whole_file(*filename);
 
@@ -246,7 +246,7 @@ fn spawn_css_lexer_task(-filename: ~str) -> port<Token> {
             #debug["Failed to open css sheet %s", *copy filename];
             result_chan.send(Eof);
         }
-    };
+    });
 
     ret result_port;
 }

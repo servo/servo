@@ -90,7 +90,7 @@ impl TreeReadMethods of tree::ReadMethods<Node> for NodeScope {
     }
 
     fn with_tree_fields<R>(node: Node, f: fn(tree::Tree<Node>) -> R) -> R {
-        self.read(node) { |n| f(n.tree) }
+        self.read(node, |n| f(n.tree))
     }
 }
 
@@ -101,7 +101,7 @@ impl TreeWriteMethods of tree::WriteMethods<Node> for NodeScope {
     }
 
     fn with_tree_fields<R>(node: Node, f: fn(tree::Tree<Node>) -> R) -> R {
-        self.write(node) { |n| f(n.tree) }
+        self.write(node, |n| f(n.tree))
     }
 }
 

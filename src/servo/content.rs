@@ -42,18 +42,17 @@ enum PingMsg {
 fn join_layout(scope: NodeScope, layout: Layout) {
 
     if scope.is_reader_forked() {
-        listen { |response_from_layout|
+        listen(|response_from_layout| {
             layout.send(layout_task::PingMsg(response_from_layout));
             response_from_layout.recv();
-        }
+        });
         scope.reader_joined();
     }
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
 fn Content(layout: Layout) -> Content {
-    spawn_listener::<ControlMsg> {
-        |from_master|
+    spawn_listener::<ControlMsg>(|from_master| {
         let scope = NodeScope();
         let rt = jsrt();
         loop {
@@ -95,11 +94,10 @@ fn Content(layout: Layout) -> Content {
                     let cx = rt.cx();
                     cx.set_default_options_and_version();
                     cx.set_logging_error_reporter();
-                    cx.new_compartment(global_class).chain {
-                        |compartment|
+                    cx.new_compartment(global_class).chain(|compartment| {
                         compartment.define_functions(debug_fns);
                         cx.evaluate_script(compartment.global_obj, bytes, *filename, 1u)
-                    };
+                    });
                   }
                 }
               }
@@ -110,5 +108,5 @@ fn Content(layout: Layout) -> Content {
               }
             }
         }
-    }
+    })
 }

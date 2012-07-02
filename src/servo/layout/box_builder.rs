@@ -43,8 +43,7 @@ impl methods for ctxt {
         attribute is 'block'.
     "]
     fn construct_boxes_for_block_children() {
-        for NTree.each_child(self.parent_node) {
-            |kid|
+        for NTree.each_child(self.parent_node) |kid| {
 
             // Create boxes for the child. Get its primary box.
             let kid_box = kid.construct_boxes();
@@ -91,8 +90,7 @@ impl methods for ctxt {
         attribute is 'inline'.
     "]
     fn construct_boxes_for_inline_children() {
-        for NTree.each_child(self.parent_node) {
-            |kid|
+        for NTree.each_child(self.parent_node) |kid| {
 
             // Construct boxes for the child. Get its primary box.
             let kid_box = kid.construct_boxes();
@@ -154,7 +152,7 @@ impl box_builder_priv for Node {
         size.
     "]
     fn determine_box_kind() -> BoxKind {
-        alt self.read({ |n| copy n.kind }) {
+        alt self.read(|n| copy n.kind) {
             ~Text(string) {
                 TextBox(@text_box(copy string))
             }

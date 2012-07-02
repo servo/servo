@@ -42,8 +42,7 @@ impl PngSink of Sink for chan<Msg> {
 }
 
 fn PngSink(output: chan<[u8]>) -> PngSink {
-    spawn_listener::<Msg> { |po|
-
+    spawn_listener::<Msg>(|po| {
         let cairo_surf = cairo_image_surface_create(
             CAIRO_FORMAT_ARGB32, 800 as c_int, 600 as c_int
             );
@@ -68,7 +67,7 @@ fn PngSink(output: chan<[u8]>) -> PngSink {
 
         AzReleaseDrawTarget(draw_target);
         cairo_surface_destroy(cairo_surf);
-    }
+    })
 }
 
 fn do_draw(sender: chan<AzDrawTargetRef>,
@@ -76,7 +75,7 @@ fn do_draw(sender: chan<AzDrawTargetRef>,
            output: chan<[u8]>,
            cairo_surf: *cairo_surface_t) {
 
-    listen {|data_ch: chan<[u8]>|
+    listen(|data_ch: chan<[u8]>| {
 
         crust fn write_fn(closure: *c_void,
                           data: *c_uchar,
@@ -112,27 +111,25 @@ fn do_draw(sender: chan<AzDrawTargetRef>,
 
         // Send the PNG image away
         output.send(result);
-    }
+    });
     // Send the next draw target to the renderer
     sender.send(dt);
 }
 
 #[test]
 fn sanity_check() {
-    listen {
-        |self_channel|
+    listen(|self_channel| {
 
         let sink = PngSink(self_channel);
         let renderer = Renderer(sink);
 
         let dlist = [];
         renderer.send(RenderMsg(dlist));
-        listen {
-            |from_renderer|
+        listen(|from_renderer| {
             renderer.send(renderer::ExitMsg(from_renderer));
             from_renderer.recv();
-        }
+        });
 
         sink.send(Exit)
-    }
+    })
 }

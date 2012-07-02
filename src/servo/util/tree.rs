@@ -19,13 +19,13 @@ iface WriteMethods<T> {
 }
 
 fn each_child<T:copy,O:ReadMethods<T>>(ops: O, node: T, f: fn(T) -> bool) {
-    let mut p = ops.with_tree_fields(node) { |f| f.first_child };
+    let mut p = ops.with_tree_fields(node, |f| f.first_child);
     loop {
         alt copy p {
           none { ret; }
           some(c) {
             if !f(c) { ret; }
-            p = ops.with_tree_fields(c) { |f| f.next_sibling };
+            p = ops.with_tree_fields(c, |f| f.next_sibling);
           }
         }
     }
@@ -39,10 +39,9 @@ fn empty<T>() -> Tree<T> {
      mut next_sibling: none}
 }
 
-fn add_child<T:copy,O:WriteMethods<T>>(
-    ops: O, parent: T, child: T) {
+fn add_child<T:copy,O:WriteMethods<T>>(ops: O, parent: T, child: T) {
 
-    ops.with_tree_fields(child) { |child_tf|
+    ops.with_tree_fields(child, |child_tf| {
         alt child_tf.parent {
           some(_) { fail "Already has a parent"; }
           none { child_tf.parent = some(parent); }
@@ -51,28 +50,28 @@ fn add_child<T:copy,O:WriteMethods<T>>(
         assert child_tf.prev_sibling == none;
         assert child_tf.next_sibling == none;
 
-        ops.with_tree_fields(parent) { |parent_tf|
+        ops.with_tree_fields(parent, |parent_tf| {
             alt copy parent_tf.last_child {
               none {
                 parent_tf.first_child = some(child);
               }
               some(lc) {
                 let lc = lc; // satisfy alias checker
-                ops.with_tree_fields(lc) { |lc_tf|
+                ops.with_tree_fields(lc, |lc_tf| {
                     assert lc_tf.next_sibling == none;
                     lc_tf.next_sibling = some(child);
-                }
+                });
                 child_tf.prev_sibling = some(lc);
               }
             }
 
             parent_tf.last_child = some(child);
-        }
-    }
+        });
+    });
 }
 
 fn get_parent<T:copy,O:ReadMethods<T>>(ops: O, node: T) -> option<T> {
-    ops.with_tree_fields(node) { |tf| tf.parent }
+    ops.with_tree_fields(node, |tf| tf.parent)
 }
 
 #[cfg(test)]
@@ -106,7 +105,7 @@ mod test {
                         new_dummy(2u)];
         let p = new_dummy(3u);
 
-        for vec::each(children) {|c|
+        for vec::each(children) |c| {
             add_child(dtree, p, c);
         }
 
@@ -117,7 +116,7 @@ mod test {
     fn add_child_0() {
         let {p, children} = parent_with_3_children();
         let mut i = 0u;
-        for each_child(dtree, p) {|c|
+        for each_child(dtree, p) |c| {
             assert c.value == i;
             i += 1u;
         }
@@ -128,7 +127,7 @@ mod test {
     fn add_child_break() {
         let {p, _} = parent_with_3_children();
         let mut i = 0u;
-        for each_child(dtree, p) {|_c|
+        for each_child(dtree, p) |_c| {
             i += 1u;
             break;
         }

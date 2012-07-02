@@ -20,10 +20,10 @@ class TextRun {
         let pen_start_x = px_to_au(0);
         let pen_start_y = height;
         let pen_start = Point2D(pen_start_x, pen_start_y);
-        let pen_end = self.glyphs.foldl(pen_start) { |cur, glyph|
+        let pen_end = self.glyphs.foldl(pen_start, |cur, glyph| {
             Point2D(cur.x.add(glyph.pos.offset.x).add(glyph.pos.advance.x),
                     cur.y.add(glyph.pos.offset.y).add(glyph.pos.advance.y))
-        };
+        });
         ret Size2D(pen_end.x, pen_end.y);
     }
 }

@@ -64,7 +64,7 @@ impl priv_matching_methods for Node {
         alt *sel {
           Child(_, _) | Descendant(_, _) | Sibling(_, _) { ret false; }
           Element(tag, attrs) {
-            alt self.read { |n| copy *n.kind } {
+            alt self.read(|n| copy *n.kind) {
                 base::Element(elmt) {
                     if !(tag == "*" || tag == elmt.tag_name) {
                         ret false;
@@ -92,7 +92,7 @@ impl priv_matching_methods for Node {
         alt *sel {
           Element(str, atts) { ret self.matches_element(sel); }
           Child(sel1, sel2) {
-            alt self.read { |n| n.tree.parent } {
+            alt self.read(|n| n.tree.parent) {
               some(parent) { 
                 ret self.matches_element(sel2) &&
                     parent.matches_selector(sel1);
@@ -107,7 +107,7 @@ impl priv_matching_methods for Node {
 
             //loop over all ancestors to check if they are the person
             //we should be descended from.
-            let mut cur_parent = alt self.read { |n| n.tree.parent } {
+            let mut cur_parent = alt self.read(|n| n.tree.parent) {
                 some(parent) { parent }
                 none         { ret false; }
             };
@@ -115,7 +115,7 @@ impl priv_matching_methods for Node {
             loop {
                 if cur_parent.matches_selector(sel1) { ret true; }
 
-                cur_parent = alt cur_parent.read { |n| n.tree.parent } {
+                cur_parent = alt cur_parent.read(|n| n.tree.parent) {
                     some(parent) { parent }
                     none         { ret false; }
                 };
@@ -125,13 +125,13 @@ impl priv_matching_methods for Node {
             if !self.matches_element(sel2) { ret false; }
 
             // Loop over this node's previous siblings to see if they match.
-            alt self.read { |n| n.tree.prev_sibling } {
+            alt self.read(|n| n.tree.prev_sibling) {
                 some(sib) {
                     let mut cur_sib = sib;
                     loop {
                         if cur_sib.matches_selector(sel1) { ret true; }
                 
-                        cur_sib = alt cur_sib.read { |n| n.tree.prev_sibling } {
+                        cur_sib = alt cur_sib.read(|n| n.tree.prev_sibling) {
                             some(sib) { sib }
                             none      { break; }
                         };
@@ -141,13 +141,13 @@ impl priv_matching_methods for Node {
             }
 
             // check the rest of the siblings
-            alt self.read { |n| n.tree.next_sibling } {
+            alt self.read(|n| n.tree.next_sibling) {
                 some(sib) {
                     let mut cur_sib = sib;
                     loop {
                         if cur_sib.matches_selector(sel1) { ret true; }
                 
-                        cur_sib = alt cur_sib.read { |n| n.tree.next_sibling } {
+                        cur_sib = alt cur_sib.read(|n| n.tree.next_sibling) {
                             some(sib) { sib }
                             none      { break; }
                         };
@@ -165,13 +165,13 @@ impl priv_matching_methods for Node {
 impl priv_style_methods for Node {
     #[doc="Update the computed style of an HTML element with a style specified by CSS."]
     fn update_style(decl : StyleDeclaration) {
-        self.aux() { |layout|
+        self.aux(|layout| {
             alt decl {
               Display(dis)           { layout.computed_style.display = dis; }
               BackgroundColor(col)  { layout.computed_style.back_color = col; }
               TextColor(*) | FontSize(*)   { /* not supported yet */ } 
             }
-        }
+        })
     }
 }
 
@@ -184,18 +184,18 @@ impl matching_methods for Node {
         // the latest rule takes precedence over the others. So we just overwrite style
         // information as we go.
 
-        for styles.each { |sty|
+        for styles.each |sty| {
             let (selectors, decls) = copy *sty;
-            for selectors.each { |sel|
+            for selectors.each |sel| {
                 if self.matches_selector(sel) {
-                    for decls.each { |decl| 
+                    for decls.each |decl| {
                         self.update_style(decl);
                     }
                 }
             }
         }
         
-        self.aux() { |a| #debug["Changed the style to: %?", copy *a.computed_style]; }
+        self.aux(|a| #debug["Changed the style to: %?", copy *a.computed_style]);
     }
 }
 

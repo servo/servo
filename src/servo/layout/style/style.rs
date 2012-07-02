@@ -40,7 +40,7 @@ impl style_priv for Node {
         auxiliary box in the RCU model) and populates it with the default style.
      "]
     fn initialize_style() {
-        let node_kind = self.read { |n| copy *n.kind };
+        let node_kind = self.read(|n| copy *n.kind);
         let the_layout_data = @LayoutData({
             mut computed_style : ~default_style_for_node_kind(node_kind),
             mut box : none
@@ -55,7 +55,7 @@ impl style_methods for Node {
     fn initialize_style_for_subtree() {
         self.initialize_style();
         
-        for NTree.each_child(self) { |kid| 
+        for NTree.each_child(self) |kid| {
             kid.initialize_style_for_subtree();
         }
     }
@@ -70,7 +70,7 @@ impl style_methods for Node {
         if !self.has_aux() {
             fail "get_computed_style() called on a node without a style!";
         }
-        ret copy *self.aux({ |x| copy x }).computed_style;
+        ret copy *self.aux(|x| copy x).computed_style;
     }
 
     #[doc="
@@ -80,18 +80,18 @@ impl style_methods for Node {
         auxiliary box in the RCU model) with the computed style.
     "]
     fn recompute_style_for_subtree(styles : arc<Stylesheet>) {
-        listen { |ack_chan| 
+        listen(|ack_chan| {
             let mut i = 0u;
             
             // Compute the styles of each of our children in parallel
-            for NTree.each_child(self) { |kid| 
+            for NTree.each_child(self) |kid| {
                 i = i + 1u;
                 let new_styles = clone(&styles);
                 
-                task::spawn { ||
+                task::spawn(|| {
                     kid.recompute_style_for_subtree(new_styles); 
                     ack_chan.send(());
-                }
+                })
             }
 
             self.match_css_style(*get(&styles));
@@ -101,6 +101,6 @@ impl style_methods for Node {
                 ack_chan.recv();
                 i = i - 1u;
             }
-        }
+        })
     }
 }

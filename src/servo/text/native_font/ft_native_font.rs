@@ -68,7 +68,7 @@ class FreeTypeNativeFont/& {
 fn create(lib: FT_Library, buf: &~[u8]) -> result<FreeTypeNativeFont, ()> {
     assert lib.is_not_null();
     let face: FT_Face = null();
-    ret vec_as_buf(*buf) {|cbuf|
+    ret vec_as_buf(*buf, |cbuf| {
         if FT_New_Memory_Face(lib, cbuf, (*buf).len() as FT_Long,
                               0 as FT_Long, addr_of(face)).succeeded() {
             // FIXME: These values are placeholders
@@ -78,7 +78,7 @@ fn create(lib: FT_Library, buf: &~[u8]) -> result<FreeTypeNativeFont, ()> {
         } else {
             err(())
         }
-    }
+    })
 }
 
 impl methods for FT_Error {
@@ -89,11 +89,11 @@ fn with_test_native_font(f: fn@(nf: &NativeFont)) {
     import font::test_font_bin;
     import unwrap_result = result::unwrap;
 
-    with_lib { |lib|
+    with_lib(|lib| {
         let buf = test_font_bin();
         let font = unwrap_result(create(lib, &buf));
         f(&font);
-    }
+    })
 }
 
 fn with_lib(f: fn@(FT_Library)) {
@@ -105,8 +105,8 @@ fn with_lib(f: fn@(FT_Library)) {
 
 #[test]
 fn create_should_return_err_if_buf_is_bogus() {
-    with_lib { |lib|
+    with_lib(|lib| {
         let buf = &~[];
         assert create(lib, buf).is_err();
-    }
+    })
 }

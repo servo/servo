@@ -27,7 +27,7 @@ enum Msg {
 }
 
 fn Layout(renderer: Renderer) -> Layout {
-    spawn_listener::<Msg> { |request|
+    spawn_listener::<Msg>(|request| {
         loop {
             alt request.recv() {
                 PingMsg(ping_channel) {
@@ -54,5 +54,5 @@ fn Layout(renderer: Renderer) -> Layout {
                 }
             }
         }
-    }
+    })
 }

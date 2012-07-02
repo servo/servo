@@ -23,7 +23,7 @@ impl block_layout_methods for @Box {
         // - and recursively computes the bounds for each child
 
         let mut current_height = 0;
-        for tree::each_child(BTree, self) {|c|
+        for tree::each_child(BTree, self) |c| {
             let mut blk_available_width = available_width;
             // FIXME subtract borders, margins, etc
             c.bounds.origin = Point2D(au(0), au(current_height));

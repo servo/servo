@@ -9,8 +9,7 @@ import style::style_methods;
 impl ApplyStyleBoxMethods for @Box {
     fn apply_style_for_subtree() {
         self.apply_style();
-        for BTree.each_child(self) {
-            |child|
+        for BTree.each_child(self) |child| {
             child.apply_style_for_subtree();
         }
     }
@@ -18,8 +17,7 @@ impl ApplyStyleBoxMethods for @Box {
     #[doc="Applies CSS style."]
     fn apply_style() {
         // Right now, we only handle images.
-        self.node.read {
-            |node|
+        self.node.read(|node| {
             alt node.kind {
               ~Element(element) {
                 let style = self.node.get_computed_style();
@@ -32,7 +30,7 @@ impl ApplyStyleBoxMethods for @Box {
                       some(url) {
                         // FIXME: Some sort of BASE HREF support!
                         // FIXME: Parse URLs!
-                        // FIXME: Don't load synchronously!
+                        // FIXME: Do not load synchronously!
                         #debug("loading image from %s", url);
                         let image = @load(url);
                         self.appearance.background_image = some(image);
@@ -47,7 +45,7 @@ impl ApplyStyleBoxMethods for @Box {
               }
               _ { /* Ignore. */ }
             }
-        }
+        })
     }
 }
 

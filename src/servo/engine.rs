@@ -13,7 +13,7 @@ enum Msg {
 }
 
 fn Engine<S: Sink send copy>(sink: S) -> Engine {
-    spawn_listener::<Msg> { |request|
+    spawn_listener::<Msg>(|request| {
         // The renderer
         let renderer = Renderer(sink);
 
@@ -37,15 +37,14 @@ fn Engine<S: Sink send copy>(sink: S) -> Engine {
               ExitMsg(sender) {
                 content.send(content::ExitMsg);
                 layout.send(layout_task::ExitMsg);
-                listen {
-                    |response_channel|
+                listen(|response_channel| {
                     renderer.send(renderer::ExitMsg(response_channel));
                     response_channel.recv();
-                }
+                });
                 sender.send(());
                 break;
               }
             }
         }
-    }
+    })
 }
