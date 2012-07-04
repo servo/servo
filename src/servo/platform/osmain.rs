@@ -271,7 +271,7 @@ mod platform {
     }
 
     mod MainObj {
-         crust fn applicationDidFinishLaunching(this: id, _sel: SEL) {
+         extern fn applicationDidFinishLaunching(this: id, _sel: SEL) {
 	         #debug("applicationDidFinishLaunching");
 
 	         let fptr: *fn() = ptr::null();

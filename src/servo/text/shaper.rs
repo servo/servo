@@ -101,7 +101,7 @@ fn shape_text(font: &Font, text: str) -> [Glyph] unsafe {
     ret glyphs;
 }
 
-crust fn glyph_func(_font: *hb_font_t,
+extern fn glyph_func(_font: *hb_font_t,
                     font_data: *c_void,
                     unicode: hb_codepoint_t,
                     _variant_selector: hb_codepoint_t,
@@ -122,10 +122,10 @@ crust fn glyph_func(_font: *hb_font_t,
     } as hb_bool_t;
 }
 
-crust fn glyph_h_advance_func(_font: *hb_font_t,
-                              font_data: *c_void,
-                              glyph: hb_codepoint_t,
-                              _user_data: *c_void) -> hb_position_t unsafe {
+extern fn glyph_h_advance_func(_font: *hb_font_t,
+                               font_data: *c_void,
+                               glyph: hb_codepoint_t,
+                               _user_data: *c_void) -> hb_position_t unsafe {
     let font: *Font = reinterpret_cast(font_data);
     assert font.is_not_null();
 

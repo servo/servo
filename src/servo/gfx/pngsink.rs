@@ -77,9 +77,9 @@ fn do_draw(sender: chan<AzDrawTargetRef>,
 
     listen(|data_ch: chan<[u8]>| {
 
-        crust fn write_fn(closure: *c_void,
-                          data: *c_uchar,
-                          len: c_uint)
+        extern fn write_fn(closure: *c_void,
+                           data: *c_uchar,
+                           len: c_uint)
 
             -> cairo_status_t unsafe {
 
