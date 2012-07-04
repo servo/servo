@@ -284,13 +284,13 @@ mod platform {
 	         #debug("getting osmain fptr: %?", fptr);
 
 	         unsafe {
-	             // FIXME: We probably don't want to run the main routine in a crust function
+	             // FIXME: We probably don't want to run the main routine in a foreign function
                  (*fptr)();
              }
 	     }
 
     	fn create(f: fn()) -> id {
-            let NSObject = str::as_c_str("NSObject", |s| ojc::objc_getClass(s));
+            let NSObject = str::as_c_str("NSObject", |s| objc::objc_getClass(s));
 	        let MainObj = str::as_c_str("MainObj", |s| {
 	            objc::objc_allocateClassPair(NSObject, s, 0 as libc::size_t)
 	        });

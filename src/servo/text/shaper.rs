@@ -102,11 +102,11 @@ fn shape_text(font: &Font, text: str) -> [Glyph] unsafe {
 }
 
 extern fn glyph_func(_font: *hb_font_t,
-                    font_data: *c_void,
-                    unicode: hb_codepoint_t,
-                    _variant_selector: hb_codepoint_t,
-                    glyph: *mut hb_codepoint_t,
-                    _user_data: *c_void) -> hb_bool_t unsafe {
+                     font_data: *c_void,
+                     unicode: hb_codepoint_t,
+                     _variant_selector: hb_codepoint_t,
+                     glyph: *mut hb_codepoint_t,
+                     _user_data: *c_void) -> hb_bool_t unsafe {
 
     let font: *Font = reinterpret_cast(font_data);
     assert font.is_not_null();

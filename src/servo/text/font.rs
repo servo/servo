@@ -222,7 +222,7 @@ mod cocoa {
 }
 
 #[cfg(target_os = "macos")]
-fn get_cairo_face(buf: &[u8]) -> (*cairo_font_face_t, fn@()) {
+fn get_cairo_face(buf: &~[u8]) -> (*cairo_font_face_t, fn@()) {
     import unsafe::reinterpret_cast;
     import libc::size_t;
     import cocoa::cocoa;
@@ -296,7 +296,7 @@ fn should_get_glyph_advance() {
 fn should_be_able_to_create_instances_in_multiple_threads() {
     #[test];
 
-    iter::repeat(10u, || task::spawn(|| {create_test_font();}));
+    for iter::repeat(10u) {do task::spawn {create_test_font();}}
 }
 
 fn get_cairo_face_should_fail_and_not_leak_if_font_cant_be_created() {
