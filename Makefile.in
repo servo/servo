@@ -90,7 +90,7 @@ src/ragel/ragel/ragel:
 	$(MAKE) -C src/ragel
 
 src/harfbuzz/src/.libs/libharfbuzz.a: src/ragel/ragel/ragel
-	$(MAKE) -C src/harfbuzz PATH=$(PATH):$(BUILD_DIR)/src/ragel/ragel CXXFLAGS=-fPIC LDFLAGS=-fPIC
+	$(MAKE) -C src/harfbuzz PATH=$(PATH):$(BUILD_DIR)/src/ragel/ragel CXXFLAGS=-fPIC LDFLAGS="-fPIC -lstdc++"
 
 src/mozjs/libjs_static.a:
 	$(MAKE) -C src/mozjs
@@ -133,7 +133,7 @@ check-rust-mozjs: src/mozjs/libjs_static.a
 
 .PHONY: check-rust-azure
 check-rust-azure: $(AZURE_DEPS)
-	RUSTFLAGS="-L ../rust-cocoa" $(MAKE) check -C src/rust-azure
+	RUSTFLAGS="-L ../rust-cocoa -L ../rust-geom" $(MAKE) check -C src/rust-azure
 
 .PHONY: check-rust-sdl
 check-rust-sdl:

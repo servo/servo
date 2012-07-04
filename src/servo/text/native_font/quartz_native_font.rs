@@ -48,12 +48,12 @@ class QuartzNativeFont/& {
     }
 }
 
-fn create(buf: &[u8]) -> result<QuartzNativeFont, ()> {
-    let fontprov = vec::as_buf(*buf, |cbuf| {
+fn create(buf: [u8]) -> result<QuartzNativeFont, ()> {
+    let fontprov = vec::as_buf(buf, |cbuf| {
         CGDataProviderCreateWithData(
             null(),
             unsafe { reinterpret_cast(cbuf) },
-            (*buf).len() as size_t,
+            buf.len() as size_t,
             null())
     });
     // FIXME: Error handling
@@ -70,6 +70,7 @@ fn with_test_native_font(f: fn@(nf: &NativeFont)) {
     import unwrap_result = result::unwrap;
 
     let buf = test_font_bin();
-    let font = unwrap_result(create(&buf));
+    let res = create(buf);
+    let font = unwrap_result(res);
     f(&font);
 }
