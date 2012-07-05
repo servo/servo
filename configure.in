@@ -15,6 +15,7 @@ mkdir -p src/rust-cocoa || exit $?
 mkdir -p src/rust-stb-image || exit $?
 mkdir -p src/rust-geom || exit $?
 mkdir -p src/rust-glut || exit $?
+mkdir -p src/rust-layers || exit $?
 
 (cd src/ragel && sh ${SRCDIR}/src/ragel/configure) || exit $?
 (cd src/harfbuzz && sh ${SRCDIR}/src/harfbuzz/configure --enable-static) || exit $?
@@ -28,3 +29,5 @@ mkdir -p src/rust-glut || exit $?
 (cd src/rust-stb-image && sh ${SRCDIR}/src/rust-stb-image/configure) || exit $?
 (cd src/rust-geom && sh ${SRCDIR}/src/rust-geom/configure) || exit $?
 (cd src/rust-glut && sh ${SRCDIR}/src/rust-glut/configure) || exit $?
+(cd src/rust-layers && sh ${SRCDIR}/src/rust-layers/configure) || exit $?
+

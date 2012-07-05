@@ -23,6 +23,7 @@ RUSTFLAGS += \
 	-L src/rust-geom \
 	-L src/rust-opengles \
 	-L src/rust-glut \
+	-L src/rust-layers \
 	$(NULL)
 
 RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
@@ -35,6 +36,13 @@ CHECK_DEPS =
 CLEAN_DEPS =
 AZURE_DEPS = \
 	src/rust-geom/libgeom.dummy
+GLUT_DEPS = \
+    src/rust-opengles/libopengles.dummy
+LAYERS_DEPS = \
+	src/rust-geom/libgeom.dummy \
+    src/rust-opengles/libopengles.dummy \
+    src/rust-glut/libglut.dummy \
+    src/rust-azure/libazure.dummy \
 
 ifeq ($(OSTYPE),darwin)
     SERVO_DEPS += src/rust-cocoa/libcocoa.dummy
@@ -43,6 +51,7 @@ ifeq ($(OSTYPE),darwin)
     CHECK_DEPS += check-rust-cocoa
     CLEAN_DEPS += clean-rust-cocoa
     AZURE_DEPS += src/rust-cocoa/libcocoa.dummy src/rust-geom/libgeom.dummy
+    LAYERS_DEPS += src/rust-cocoa/libcocoa.dummy
 endif
 
 SERVO_DEPS += \
@@ -54,6 +63,7 @@ SERVO_DEPS += \
 	src/rust-geom/libgeom.dummy \
     src/rust-opengles/libopengles.dummy \
     src/rust-glut/libglut.dummy \
+    src/rust-layers/liblayers.dummy \
 	$(NULL)
 
 CHECK_DEPS += \
@@ -65,6 +75,7 @@ CHECK_DEPS += \
 	check-rust-geom \
 	check-rust-opengles \
 	check-rust-glut \
+	check-rust-layers \
 	check-servo \
 	$(NULL)
 
@@ -79,6 +90,7 @@ CLEAN_DEPS += \
 	clean-rust-geom \
 	clean-rust-opengles \
 	clean-rust-glut \
+	clean-rust-layers \
 	clean-servo \
 	$(NULL)
 
@@ -128,8 +140,12 @@ src/rust-geom/libgeom.dummy:
 src/rust-opengles/libopengles.dummy:
 	$(MAKE) -C src/rust-opengles
 
-src/rust-glut/libglut.dummy:
-	$(MAKE) -C src/rust-glut
+src/rust-glut/libglut.dummy: $(GLUT_DEPS)
+	RUSTFLAGS="-L ../rust-opengles" $(MAKE) -C src/rust-glut
+
+src/rust-layers/liblayers.dummy: $(LAYERS_DEPS)
+	RUSTFLAGS="-L ../rust-geom -L ../rust-opengles -L ../rust-glut -L ../rust-azure -L ../rust-cocoa" \
+        $(MAKE) -C src/rust-layers
 
 check: $(CHECK_DEPS)
 
@@ -171,7 +187,12 @@ check-rust-opengles:
 
 .PHONY: check-rust-glut
 check-rust-glut:
-	$(MAKE) check -C src/rust-glut
+	RUSTFLAGS="-L ../rust-opengles" $(MAKE) check -C src/rust-glut
+
+.PHONY: check-rust-layers
+check-rust-layers:
+	RUSTFLAGS="-L ../rust-geom -L ../rust-opengles -L ../rust-glut -L ../rust-azure -L ../rust-cocoa" \
+        $(MAKE) check -C src/rust-layers
 
 .PHONY:	clean
 clean: $(CLEAN_DEPS)

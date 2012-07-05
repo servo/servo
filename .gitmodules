@@ -34,3 +34,6 @@
 [submodule "src/rust-glut"]
 	path = src/rust-glut
 	url = git://github.com/pcwalton/rust-glut.git
+[submodule "src/rust-layers"]
+	path = src/rust-layers
+	url = git://github.com/pcwalton/rust-layers.git
