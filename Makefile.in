@@ -22,6 +22,7 @@ RUSTFLAGS += \
 	-L src/rust-stb-image \
 	-L src/rust-geom \
 	-L src/rust-opengles \
+	-L src/rust-glut \
 	$(NULL)
 
 RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
@@ -52,6 +53,7 @@ SERVO_DEPS += \
 	src/rust-stb-image/libstb-image.dummy \
 	src/rust-geom/libgeom.dummy \
     src/rust-opengles/libopengles.dummy \
+    src/rust-glut/libglut.dummy \
 	$(NULL)
 
 CHECK_DEPS += \
@@ -62,6 +64,7 @@ CHECK_DEPS += \
 	check-rust-stb-image \
 	check-rust-geom \
 	check-rust-opengles \
+	check-rust-glut \
 	check-servo \
 	$(NULL)
 
@@ -75,6 +78,7 @@ CLEAN_DEPS += \
 	clean-rust-stb-image \
 	clean-rust-geom \
 	clean-rust-opengles \
+	clean-rust-glut \
 	clean-servo \
 	$(NULL)
 
@@ -124,6 +128,9 @@ src/rust-geom/libgeom.dummy:
 src/rust-opengles/libopengles.dummy:
 	$(MAKE) -C src/rust-opengles
 
+src/rust-glut/libglut.dummy:
+	$(MAKE) -C src/rust-glut
+
 check: $(CHECK_DEPS)
 
 check-servo: servo-test
@@ -161,6 +168,10 @@ check-rust-geom:
 .PHONY: check-rust-opengles
 check-rust-opengles:
 	$(MAKE) check -C src/rust-opengles
+
+.PHONY: check-rust-glut
+check-rust-glut:
+	$(MAKE) check -C src/rust-glut
 
 .PHONY:	clean
 clean: $(CLEAN_DEPS)

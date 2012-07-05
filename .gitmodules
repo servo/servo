@@ -31,3 +31,6 @@
 [submodule "src/rust-opengles"]
 	path = src/rust-opengles
 	url = git://github.com/pcwalton/rust-opengles.git
+[submodule "src/rust-glut"]
+	path = src/rust-glut
+	url = git://github.com/pcwalton/rust-glut.git
