@@ -28,3 +28,6 @@
 [submodule "src/rust-geom"]
 	path = src/rust-geom
 	url = git://github.com/pcwalton/rust-geom.git
+[submodule "src/rust-opengles"]
+	path = src/rust-opengles
+	url = git://github.com/pcwalton/rust-opengles.git
