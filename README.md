@@ -12,7 +12,7 @@ On OS X:
 
 On Debian-based Linuxes:
 
-    sudo apt-get install libsdl1.2-dev libcairo2-dev libpango1.0-dev autoconf2.13
+    sudo apt-get install libsdl1.2-dev libcairo2-dev libpango1.0-dev autoconf2.13 freeglut3
 
 ### Building
 
