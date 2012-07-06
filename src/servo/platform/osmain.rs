@@ -8,6 +8,9 @@ import azure::cairo::bindgen::*;
 import comm::*;
 import azure::cairo::cairo_surface_t;
 import gfx::renderer::{Sink};
+import layers::ImageLayer;
+import geom::size::Size2D;
+import std::cmp::fuzzy_eq;
 
 type OSMain = chan<Msg>;
 
@@ -19,40 +22,43 @@ enum Msg {
 }
 
 fn OSMain() -> OSMain {
-    on_osmain::<Msg>(|po| {
-        platform::runmain(|| {
+    do on_osmain::<Msg> |po| {
+        do platform::runmain {
             #debug("preparing to enter main loop");
 	        mainloop(po);
-        })
-    })
+        }
+    }
 }
 
 fn mainloop(po: port<Msg>) {
-
     let mut key_handlers: [chan<()>] = [];
 
-    sdl::init([
-        sdl::init_video
-    ]);
-
-    let screen = sdl::video::set_video_mode(
-        800, 600, 32,
-        [sdl::video::swsurface],
-        [sdl::video::doublebuf]);
-    assert !ptr::is_null(screen);
+    glut::init();
+    glut::init_display_mode(glut::DOUBLE);
 
     let surfaces = surface_set();
 
-    loop {
-        sdl::event::poll_event(|event| {
+    let window = glut::create_window("Servo");
+    glut::reshape_window(window, 800, 600);
 
-            alt event {
-              sdl::event::keydown_event(_) {
-                key_handlers.iter(|key_ch| key_ch.send(()))
-              }
-              _ { }
-            }
-        });
+    let context = layers::rendergl::init_render_context();
+
+    let image = @layers::layers::Image(0, 0, layers::layers::RGB24Format, ~[]);
+    let image_layer = @layers::layers::ImageLayer(image);
+    image_layer.common.set_transform
+        (image_layer.common.transform.scale(800.0f32, 600.0f32, 1.0f32));
+
+    let scene = @mut layers::scene::Scene(layers::layers::ImageLayerKind(image_layer),
+                                          Size2D(800.0f32, 600.0f32));
+
+    loop {
+        do glut::display_func() {
+            #debug("osmain: drawing to screen");
+
+            layers::rendergl::render_scene(context, *scene);
+            glut::swap_buffers();
+            glut::post_redisplay();
+        }
 
         // Handle messages
         if po.peek() {
@@ -66,25 +72,29 @@ fn mainloop(po: port<Msg>) {
               Draw(sender, dt) {
                 return_surface(surfaces, dt);
                 lend_surface(surfaces, sender);
+                //assert surfaces.s1.surf.az_target == dt;
 
-                #debug("osmain: drawing to screen");
-                assert surfaces.s1.surf.az_target == dt;
-                let sdl_surf = surfaces.s1.surf.sdl_surf;
+                let mut image_data;
+                unsafe {
+                    let buffer = cairo_image_surface_get_data(surfaces.s1.surf.cairo_surf);
+                    image_data = vec::unsafe::from_buf(buffer, 800 * 600 * 4);
+                }
 
-                cairo_surface_flush(surfaces.s1.surf.cairo_surf);
-                sdl::video::unlock_surface(sdl_surf);
-                sdl::video::blit_surface(sdl_surf, ptr::null(),
-                                         screen, ptr::null());
-                sdl::video::lock_surface(sdl_surf);
-                sdl::video::flip(screen);
+                let image =
+                    @layers::layers::Image(800, 600, layers::layers::RGB24Format,
+                                           layers::util::convert_rgb32_to_rgb24(image_data));
+                image_layer.set_image(image);
+
+                glut::post_redisplay();
               }
               exit { break; }
             }
         }
+
+        glut::check_loop();
     }
     destroy_surface(surfaces.s1.surf);
     destroy_surface(surfaces.s2.surf);
-    sdl::quit();
 }
 
 #[doc = "
@@ -156,38 +166,18 @@ fn surface_set() -> surface_set {
 }
 
 type surface = {
-    sdl_surf: *sdl::video::surface,
     cairo_surf: *cairo_surface_t,
     az_target: AzDrawTargetRef
 };
 
 fn mk_surface() -> surface {
-    let sdl_surf = sdl::video::create_rgb_surface(
-        [sdl::video::swsurface],
-        800, 600, 32,
-        0x00FF0000u32,
-        0x0000FF00u32,
-        0x000000FFu32,
-        0x00000000u32
-        );
-    assert !ptr::is_null(sdl_surf);
-    sdl::video::lock_surface(sdl_surf);
-    let cairo_surf = unsafe {
-        cairo_image_surface_create_for_data(
-            unsafe::reinterpret_cast((*sdl_surf).pixels),
-            cairo::CAIRO_FORMAT_RGB24,
-            (*sdl_surf).w,
-            (*sdl_surf).h,
-            (*sdl_surf).pitch as libc::c_int
-        )
-    };
+    let cairo_surf = cairo_image_surface_create(cairo::CAIRO_FORMAT_RGB24, 800, 600);
     assert !ptr::is_null(cairo_surf);
 
     let azure_target = AzCreateDrawTargetForCairoSurface(cairo_surf);
     assert !ptr::is_null(azure_target);
 
     {
-        sdl_surf: sdl_surf,
         cairo_surf: cairo_surf,
         az_target: azure_target
     }
@@ -196,8 +186,6 @@ fn mk_surface() -> surface {
 fn destroy_surface(surface: surface) {
     AzReleaseDrawTarget(surface.az_target);
     cairo_surface_destroy(surface.cairo_surf);
-    sdl::video::unlock_surface(surface.sdl_surf);
-    sdl::video::free_surface(surface.sdl_surf);
 }
 
 #[doc = "A function for spawning into the platform's main thread"]
@@ -214,13 +202,14 @@ fn on_osmain<T: send>(+f: fn~(comm::port<T>)) -> comm::chan<T> {
     ret task::run_listener(builder, f);
 }
 
-#[cfg(target_os = "linux")]
+// #[cfg(target_os = "linux")]
 mod platform {
     fn runmain(f: fn()) {
         f()
     }
 }
 
+/*
 #[cfg(target_os = "macos")]
 mod platform {
     use cocoa;
@@ -350,3 +339,5 @@ mod platform {
 	NSAutoreleasePool::release(pool);
     }
 }
+*/
+
