@@ -237,6 +237,14 @@ clean-rust-geom:
 clean-rust-opengles:
 	$(MAKE) clean -C src/rust-opengles
 
+.PHONY: clean-rust-glut
+clean-rust-opengles:
+	$(MAKE) clean -C src/rust-glut
+
+.PHONY: clean-rust-layers
+clean-rust-opengles:
+	$(MAKE) clean -C src/rust-layers
+
 .PHONY: clean-servo
 clean-servo:
 	rm -f servo servo-test
