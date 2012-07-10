@@ -17,7 +17,7 @@ import parser::parser_util::{parse_display_type, parse_font_size, parse_size};
 import util::color::parsing::parse_color;
 import vec::push;
 
-type TokenReader = {stream : port<Token>, mut lookahead : option<Token>};
+type TokenReader = {stream : comm::port<Token>, mut lookahead : option<Token>};
 
 trait util_methods {
     fn get() -> Token;
@@ -195,7 +195,7 @@ impl parser_methods of parser_methods for TokenReader {
     }
 }
 
-fn build_stylesheet(stream : port<Token>) -> ~[~style::Rule] {
+fn build_stylesheet(stream : comm::port<Token>) -> ~[~style::Rule] {
     let mut rule_list = ~[];
     let reader = {stream : stream, mut lookahead : none};
 

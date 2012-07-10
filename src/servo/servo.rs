@@ -5,6 +5,8 @@ import osmain::{OSMain, AddKeyHandler};
 import opts::{Opts, Screen, Png};
 import engine::{Engine, LoadURLMsg};
 
+import pipes::port;
+
 fn main(args: ~[~str]) {
     run(opts::from_cmdline_args(args))
 }
@@ -35,16 +37,18 @@ fn run_pipeline_screen(urls: ~[~str]) {
     let engine_chan = engine.start();
 
     // Send each file to render then wait for keypress
-    listen(|keypress_from_osmain| {
-        osmain.send(AddKeyHandler(keypress_from_osmain));
+    let (keypress_to_engine, keypress_from_osmain) = pipes::stream();
+    osmain.send(AddKeyHandler(keypress_to_engine));
 
-        for urls.each |filename| {
-            #debug["master: Sending filename `%s`", filename];
-            engine_chan.send(LoadURLMsg(copy filename));
-            #debug["master: Waiting for keypress"];
-            keypress_from_osmain.recv();
-        }
-    });
+    for urls.each |filename| {
+        #debug["master: Sending filename `%s`", filename];
+        engine_chan.send(LoadURLMsg(copy filename));
+        #debug["master: Waiting for keypress"];
+        alt keypress_from_osmain.try_recv() {
+          some(*) { }
+          none { #error("keypress stream closed unexpectedly") }
+        };
+    }
 
     // Shut everything down
     #debug["master: Shut down"];

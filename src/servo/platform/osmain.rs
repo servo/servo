@@ -16,13 +16,15 @@ import std::cmp::fuzzy_eq;
 import task::task_builder;
 import vec::push;
 
-type OSMain = chan<Msg>;
+import pipes::chan;
+
+type OSMain = comm::chan<Msg>;
 
 enum Msg {
-    BeginDrawing(chan<AzDrawTargetRef>),
-    Draw(chan<AzDrawTargetRef>, AzDrawTargetRef),
-    AddKeyHandler(chan<()>),
-    AddEventListener(chan<Event>),
+    BeginDrawing(comm::chan<AzDrawTargetRef>),
+    Draw(comm::chan<AzDrawTargetRef>, AzDrawTargetRef),
+    AddKeyHandler(pipes::chan<()>),
+    AddEventListener(comm::chan<Event>),
     Exit
 }
 
@@ -36,11 +38,16 @@ fn OSMain() -> OSMain {
 }
 
 fn mainloop(po: port<Msg>) {
-    let key_handlers: @dvec<chan<()>> = @dvec();
-    let event_listeners: @dvec<chan<Event>> = @dvec();
+    let key_handlers: @dvec<pipes::chan<()>> = @dvec();
+    let event_listeners: @dvec<comm::chan<Event>> = @dvec();
 
     glut::init();
     glut::init_display_mode(glut::DOUBLE);
+
+    #macro[
+        [#move[x],
+         unsafe { let y <- *ptr::addr_of(x); y }]
+    ];
 
     let surfaces = @surface_set();
 
@@ -65,7 +72,7 @@ fn mainloop(po: port<Msg>) {
         while po.peek() {
             alt po.recv() {
               AddKeyHandler(key_ch) {
-                key_handlers.push(key_ch);
+                key_handlers.push(#move(key_ch));
               }
               AddEventListener(event_listener) {
                 event_listeners.push(event_listener);
@@ -131,13 +138,13 @@ Implementation to allow the osmain channel to be used as a graphics
 sink for the renderer
 "]
 impl OSMain of Sink for OSMain {
-    fn begin_drawing(next_dt: chan<AzDrawTargetRef>) {
+    fn begin_drawing(next_dt: comm::chan<AzDrawTargetRef>) {
         self.send(BeginDrawing(next_dt))
     }
-    fn draw(next_dt: chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
+    fn draw(next_dt: comm::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
         self.send(Draw(next_dt, draw_me))
     }
-    fn add_event_listener(listener: chan<Event>) {
+    fn add_event_listener(listener: comm::chan<Event>) {
         self.send(AddEventListener(listener));
     }
 }
@@ -153,7 +160,7 @@ type surface_set = {
     }
 };
 
-fn lend_surface(surfaces: surface_set, recvr: chan<AzDrawTargetRef>) {
+fn lend_surface(surfaces: surface_set, recvr: comm::chan<AzDrawTargetRef>) {
     // We are in a position to lend out the surface?
     assert surfaces.s1.have;
     // Ok then take it

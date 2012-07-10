@@ -94,7 +94,7 @@ spawned, collates them, and sends them to the given result channel.
 * `from_parent` - A port on which to receive new links.
 
 "]
-fn css_link_listener(to_parent : chan<Stylesheet>, from_parent : port<CSSMessage>) {
+fn css_link_listener(to_parent : comm::chan<Stylesheet>, from_parent : comm::port<CSSMessage>) {
     let mut result_vec = ~[];
 
     loop {
@@ -124,7 +124,7 @@ fn css_link_listener(to_parent : chan<Stylesheet>, from_parent : port<CSSMessage
     to_parent.send(css_rules);
 }
 
-fn js_script_listener(to_parent : chan<~[~[u8]]>, from_parent : port<js_message>) {
+fn js_script_listener(to_parent : chan<~[~[u8]]>, from_parent : comm::port<js_message>) {
     let mut result_vec = ~[];
 
     loop {
@@ -155,7 +155,7 @@ fn js_script_listener(to_parent : chan<~[~[u8]]>, from_parent : port<js_message>
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>, port<~[~[u8]]>) {
+fn build_dom(scope: NodeScope, stream: comm::port<Token>) -> (Node, comm::port<Stylesheet>, comm::port<~[~[u8]]>) {
     // The current reference node.
     let mut cur_node = scope.new_node(Element(ElementData(~"html", ~HTMLDivElement)));
     // We will spawn a separate task to parse any css that is
