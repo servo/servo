@@ -16,4 +16,4 @@ enum display_item = {
     bounds: Rect<au>
 };
 
-type display_list = [display_item];
+type display_list = ~[display_item];

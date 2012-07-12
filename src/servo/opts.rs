@@ -6,7 +6,7 @@ from command line arguments.
 "];
 
 type Opts = {
-    urls: [str],
+    urls: ~[str],
     render_mode: RenderMode
 };
 
@@ -16,12 +16,12 @@ enum RenderMode {
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn from_cmdline_args(args: [str]) -> Opts {
+fn from_cmdline_args(args: ~[str]) -> Opts {
     import std::getopts;
 
     let args = args.tail();
 
-    let opts = [
+    let opts = ~[
         getopts::optopt("o")
     ];
 

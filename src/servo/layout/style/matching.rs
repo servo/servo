@@ -219,7 +219,7 @@ mod test {
         let scope = NodeScope();
         let node = new_node_from_attr(scope, "lang", "en-us");
 
-        let sel = Element("*", [StartsWith("lang", "en")]);
+        let sel = Element("*", ~[StartsWith("lang", "en")]);
 
         assert node.matches_selector(~sel);
     }
@@ -229,7 +229,7 @@ mod test {
         let scope = NodeScope();
         let node = new_node_from_attr(scope, "lang", "en");
 
-        let sel = Element("*", [StartsWith("lang", "en")]);
+        let sel = Element("*", ~[StartsWith("lang", "en")]);
 
         assert node.matches_selector(~sel);
     }
@@ -239,7 +239,7 @@ mod test {
         let scope = NodeScope();
         let node = new_node_from_attr(scope, "lang", "english");
 
-        let sel = Element("*", [StartsWith("lang", "en")]);
+        let sel = Element("*", ~[StartsWith("lang", "en")]);
 
         assert !node.matches_selector(~sel);
     }
@@ -249,7 +249,7 @@ mod test {
         let scope = NodeScope();
         let node = new_node_from_attr(scope, "mad", "hatter cobler cooper");
 
-        let sel = Element("div", [Includes("mad", "hatter")]);
+        let sel = Element("div", ~[Includes("mad", "hatter")]);
 
         assert node.matches_selector(~sel);
     }
@@ -259,8 +259,8 @@ mod test {
         let scope = NodeScope();
         let node = new_node_from_attr(scope, "mad", "hatter cobler cooper");
 
-        let sel1 = Element("div", [Exists("mad")]);
-        let sel2 = Element("div", [Exists("hatter")]);
+        let sel1 = Element("div", ~[Exists("mad")]);
+        let sel2 = Element("div", ~[Exists("hatter")]);
 
         assert node.matches_selector(~sel1);
         assert !node.matches_selector(~sel2);
@@ -272,7 +272,7 @@ mod test {
         let node1 = new_node_from_attr(scope, "mad", "hatter cobler cooper");
         let node2 = new_node_from_attr(scope, "mad", "hatter");
 
-        let sel = Element("div", [Exact("mad", "hatter")]);
+        let sel = Element("div", ~[Exact("mad", "hatter")]);
 
         assert !node1.matches_selector(~copy sel);
         assert node2.matches_selector(~sel);
@@ -295,8 +295,8 @@ mod test {
         scope.add_child(gchild, ggchild);
         scope.add_child(ggchild, gggchild);
 
-        let sel1 = Descendant(~Element("*", [Exact("class", "blue")]),
-                              ~Element("*", []));
+        let sel1 = Descendant(~Element("*", ~[Exact("class", "blue")]),
+                              ~Element("*", ~[]));
 
         assert !root.matches_selector(~copy sel1);
         assert child1.matches_selector(~copy sel1);
@@ -305,9 +305,9 @@ mod test {
         assert ggchild.matches_selector(~copy sel1);
         assert gggchild.matches_selector(~sel1);
 
-        let sel2 = Descendant(~Child(~Element("*", [Exact("class", "blue")]),
-                                     ~Element("*", [])),
-                              ~Element("div", [Exists("flag")]));
+        let sel2 = Descendant(~Child(~Element("*", ~[Exact("class", "blue")]),
+                                     ~Element("*", ~[])),
+                              ~Element("div", ~[Exists("flag")]));
 
         assert !root.matches_selector(~copy sel2);
         assert !child1.matches_selector(~copy sel2);
@@ -316,7 +316,7 @@ mod test {
         assert ggchild.matches_selector(~copy sel2);
         assert gggchild.matches_selector(~sel2);
 
-        let sel3 = Sibling(~Element("*", []), ~Element("*", []));
+        let sel3 = Sibling(~Element("*", ~[]), ~Element("*", ~[]));
 
         assert !root.matches_selector(~copy sel3);
         assert child1.matches_selector(~copy sel3);
@@ -325,9 +325,9 @@ mod test {
         assert !ggchild.matches_selector(~copy sel3);
         assert !gggchild.matches_selector(~sel3);
 
-        let sel4 = Descendant(~Child(~Element("*", [Exists("class")]),
-                                    ~Element("*", [])),
-                              ~Element("*", []));
+        let sel4 = Descendant(~Child(~Element("*", ~[Exists("class")]),
+                                    ~Element("*", ~[])),
+                              ~Element("*", ~[]));
 
         assert !root.matches_selector(~copy sel4);
         assert !child1.matches_selector(~copy sel4);

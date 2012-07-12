@@ -10,7 +10,7 @@ import gfx::geometry::au;
 import parser = parser::html_lexer;
 import parser::Token;
 import dom::style::Stylesheet;
-
+import vec::{push, push_all_move, flat_map};
 import dvec::extensions;
 
 enum css_message {
@@ -86,7 +86,7 @@ spawned, collates them, and sends them to the given result channel.
 
 "]
 fn css_link_listener(to_parent : chan<Stylesheet>, from_parent : port<css_message>) {
-    let mut result_vec = [];
+    let mut result_vec = ~[];
 
     loop {
         alt from_parent.recv() {
@@ -101,7 +101,7 @@ fn css_link_listener(to_parent : chan<Stylesheet>, from_parent : port<css_messag
                 let mut css_rules = css_builder::build_stylesheet(css_stream);
                 result_chan.send(css_rules);
             });
-            result_vec += [result_port];
+            push(result_vec, result_port);
           }
           exit {
             break;
@@ -109,13 +109,8 @@ fn css_link_listener(to_parent : chan<Stylesheet>, from_parent : port<css_messag
         }
     }
 
-    let css_rules = [];
+    let css_rules = flat_map(result_vec, |result_port| { result_port.recv() });
     
-    let css_rules = result_vec.foldl(css_rules, |rules, result_port| {
-        let new_rules = result_port.recv();
-        rules + new_rules
-    });
-
     to_parent.send(css_rules);
 }
 

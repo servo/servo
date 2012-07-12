@@ -7,8 +7,6 @@
 #[license = "MPL"];
 #[crate_type = "lib"];
 
-#[warn(no_old_vecs)];
-
 use std;
 use sdl;
 use azure;
@@ -96,6 +94,7 @@ mod util {
     mod unsafe;
 }
 
+#[warn(no_non_implicitly_copyable_typarams)]
 mod content {
 }
 

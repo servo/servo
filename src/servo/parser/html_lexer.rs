@@ -2,6 +2,7 @@ import comm::{port, chan};
 import dom::style;
 import option::is_none;
 import str::from_bytes;
+import vec::push;
 import lexer_util::*;
 
 enum Token {
@@ -76,7 +77,7 @@ impl html_methods for HtmlLexer {
         }
         
         // Make a text node.
-        let mut s: [u8] = [ch];
+        let mut s: ~[u8] = ~[ch];
         loop {
             alt self.input_state.get() {
               CoeChar(c) {
@@ -84,7 +85,7 @@ impl html_methods for HtmlLexer {
                     self.input_state.unget(c);
                     ret Text(from_bytes(s));
                 }
-                s += [c];
+                push(s, c);
               }
               CoeEof { ret Text(from_bytes(s)); }
             }
@@ -120,12 +121,12 @@ impl html_methods for HtmlLexer {
         }
 
         // Parse an attribute.
-        let mut attribute_name = [ch];
+        let mut attribute_name = ~[ch];
         loop {
             alt self.input_state.get() {
               CoeChar(c) {
                 if c == ('=' as u8) { break; }
-                attribute_name += [c];
+                push(attribute_name, c);
               }
               CoeEof {
                 let name = from_bytes(attribute_name);
@@ -136,12 +137,12 @@ impl html_methods for HtmlLexer {
 
         // Parse the attribute value.
         self.input_state.expect('"' as u8);
-        let mut attribute_value = [];
+        let mut attribute_value = ~[];
         loop {
             alt self.input_state.get() {
               CoeChar(c) {
                 if c == ('"' as u8) { break; }
-                attribute_value += [c];
+                push(attribute_value, c);
               }
               CoeEof {
                 ret Attr(from_bytes(attribute_name), from_bytes(attribute_value));

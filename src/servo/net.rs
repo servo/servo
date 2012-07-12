@@ -4,7 +4,7 @@ import uri::uri;
 
 iface input_stream {
     fn close();
-    fn read() -> [u8];
+    fn read() -> ~[u8];
 }
 
 iface channel {

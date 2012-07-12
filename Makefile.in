@@ -186,11 +186,11 @@ check-rust-opengles:
 	$(MAKE) check -C src/rust-opengles
 
 .PHONY: check-rust-glut
-check-rust-glut:
+check-rust-glut: $(GLUT_DEPS)
 	RUSTFLAGS="-L ../rust-opengles" $(MAKE) check -C src/rust-glut
 
 .PHONY: check-rust-layers
-check-rust-layers:
+check-rust-layers: $(LAYERS_DEPS)
 	RUSTFLAGS="-L ../rust-geom -L ../rust-opengles -L ../rust-glut -L ../rust-azure -L ../rust-cocoa" \
         $(MAKE) check -C src/rust-layers
 

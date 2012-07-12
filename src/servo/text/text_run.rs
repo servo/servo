@@ -9,7 +9,7 @@ import shaper::shape_text;
 
 #[doc="A single, unbroken line of text."]
 class TextRun {
-    let glyphs: [Glyph];
+    let glyphs: ~[Glyph];
 
     new(font: Font, text: str) {
         self.glyphs = shape_text(&font, text);

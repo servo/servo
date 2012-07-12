@@ -21,12 +21,12 @@ enum Attr{
 }
     
 enum Selector{
-    Element(str, [Attr]),
+    Element(str, ~[Attr]),
     Child(~Selector, ~Selector),
     Descendant(~Selector, ~Selector),
     Sibling(~Selector, ~Selector)
 }
 
-type Rule = ([~Selector], [StyleDeclaration]);
+type Rule = (~[~Selector], ~[StyleDeclaration]);
 
-type Stylesheet = [~Rule];
+type Stylesheet = ~[~Rule];

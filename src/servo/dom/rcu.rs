@@ -51,6 +51,7 @@ of the RCU nodes themselves.
 
 import ptr::extensions;
 import core::libc::types::os::arch::c95::size_t;
+import vec::push;
 
 export Handle;
 export ReaderMethods;
@@ -59,7 +60,7 @@ export Scope;
 
 type ScopeData<T:send,A> = {
     mut layout_active: bool,
-    mut free_list: [Handle<T,A>],
+    mut free_list: ~[Handle<T,A>],
     mut first_dirty: Handle<T,A>
 };
 
@@ -159,7 +160,7 @@ fn null_handle<T:send,A>() -> Handle<T,A> {
 
 fn Scope<T:send,A>() -> Scope<T,A> {
     @ScopeResource({mut layout_active: false,
-                    mut free_list: [],
+                    mut free_list: ~[],
                     mut first_dirty: null_handle()})
 }
 
@@ -219,7 +220,7 @@ impl WriterMethods<T:copy send,A> for Scope<T,A> {
         (*d).read_aux = ptr::null();
         (*d).next_dirty = null_handle();
         let h = _Handle(d);
-        self.d.free_list += [h];
+        push(self.d.free_list, h);
         ret h;
     }
 }

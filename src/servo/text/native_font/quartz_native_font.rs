@@ -48,7 +48,7 @@ class QuartzNativeFont/& {
     }
 }
 
-fn create(buf: [u8]) -> result<QuartzNativeFont, ()> {
+fn create(buf: ~[u8]) -> result<QuartzNativeFont, ()> {
     let fontprov = vec::as_buf(buf, |cbuf| {
         CGDataProviderCreateWithData(
             null(),

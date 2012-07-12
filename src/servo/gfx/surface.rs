@@ -9,7 +9,7 @@ enum format {
 type image_surface = {
     size: Size2D<int>,
     format: format,
-    buffer: [u8]
+    buffer: ~[u8]
 };
 
 impl format for format {

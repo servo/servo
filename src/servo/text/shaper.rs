@@ -35,7 +35,7 @@ import harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
 Calculate the layout metrics associated with a some given text
 when rendered in a specific font.
 "]
-fn shape_text(font: &Font, text: str) -> [Glyph] unsafe {
+fn shape_text(font: &Font, text: str) -> ~[Glyph] unsafe {
     #debug("shaping text '%s'", text);
 
     let face_blob = vec::as_buf(*(*font).buf(), |buf| {
@@ -79,7 +79,7 @@ fn shape_text(font: &Font, text: str) -> [Glyph] unsafe {
 
     assert info_len == pos_len;
 
-    let mut glyphs = [];
+    let mut glyphs = ~[];
 
     for uint::range(0u, info_len as uint) |i| {
         let info_ = offset(info_, i);
@@ -89,7 +89,7 @@ fn shape_text(font: &Font, text: str) -> [Glyph] unsafe {
         #debug("glyph %?: codep %?, x_adv %?, y_adv %?, x_off %?, y_of %?",
                i, codepoint, pos.advance.x, pos.advance.y, pos.offset.x, pos.offset.y);
 
-        glyphs += [Glyph(codepoint, pos)];
+        glyphs += ~[Glyph(codepoint, pos)];
     }
 
     hb_buffer_destroy(buffer);
@@ -148,7 +148,7 @@ fn should_get_glyph_indexes() {
     let font = font::create_test_font();
     let glyphs = shape_text(font, "firecracker");
     let idxs = glyphs.map(|glyph| glyph.index);
-    assert idxs == [32u, 8u, 13u, 14u, 10u, 13u, 201u, 10u, 37u, 14u, 13u];
+    assert idxs == ~[32u, 8u, 13u, 14u, 10u, 13u, 201u, 10u, 37u, 14u, 13u];
 }
 
 fn should_get_glyph_h_advance() {
@@ -158,6 +158,6 @@ fn should_get_glyph_h_advance() {
     let font = font::create_test_font();
     let glyphs = shape_text(font, "firecracker");
     let actual = glyphs.map(|g| g.pos.advance.x);
-    let expected = [6, 4, 7, 9, 8, 7, 10, 8, 9, 9, 7].map(|a| px_to_au(a));
+    let expected = (~[6, 4, 7, 9, 8, 7, 10, 8, 9, 9, 7]).map(|a| px_to_au(a));
     assert expected == actual;
 }

@@ -17,6 +17,7 @@ import util::color::Color;
 import text::text_box;
 import style::style::computed_style;
 import text::text_layout_methods;
+import vec::{push, push_all};
 
 enum BoxKind {
     BlockBox,
@@ -171,7 +172,7 @@ mod test {
     fn with_screen(f: fn(*sdl::surface)) {
         let screen = video::set_video_mode(
             320, 200, 32,
-            [video::hwsurface], [video::doublebuf]);
+            ~[video::hwsurface], ~[video::doublebuf]);
         assert screen != ptr::null();
 
         f(screen);
@@ -180,12 +181,15 @@ mod test {
     }
     */
 
-    fn flat_bounds(root: @Box) -> [Rect<au>] {
-        let mut r = [];
+    fn flat_bounds(root: @Box) -> ~[Rect<au>] {
+        let mut r = ~[];
         for tree::each_child(BTree, root) |c| {
-            r += flat_bounds(c);
+            push_all(r, flat_bounds(c));
         }
-        ret r + [copy root.bounds];
+
+        push(r, copy root.bounds);
+
+        ret r;
     }
 
     #[test]
@@ -218,10 +222,10 @@ mod test {
         b3.reflow_block(au(100));
         let fb = flat_bounds(b3);
         #debug["fb=%?", fb];
-        assert fb == [geometry::box(au(0), au(0), au(10), au(10)),   // n0
-                      geometry::box(au(0), au(10), au(10), au(15)),  // n1
-                      geometry::box(au(0), au(25), au(10), au(20)),  // n2
-                      geometry::box(au(0), au(0), au(100), au(45))]; // n3
+        assert fb == ~[geometry::box(au(0), au(0), au(10), au(10)),   // n0
+                       geometry::box(au(0), au(10), au(10), au(15)),  // n1
+                       geometry::box(au(0), au(25), au(10), au(20)),  // n2
+                       geometry::box(au(0), au(0), au(100), au(45))]; // n3
     }
 }
 

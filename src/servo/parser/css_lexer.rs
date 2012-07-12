@@ -2,6 +2,7 @@ import comm::{port, chan};
 import dom::style;
 import option::is_none;
 import str::from_bytes;
+import vec::push;
 
 import lexer_util::*;
 
@@ -155,7 +156,7 @@ impl css_methods for CssLexer {
             }
         }
         
-        let mut desc_name = [];
+        let mut desc_name = ~[];
         
         // Get the name of the descriptor
         loop {
@@ -168,7 +169,7 @@ impl css_methods for CssLexer {
                     break;
                 }
             } else {
-                desc_name += [ch];
+                push(desc_name, ch);
             }
 
             alt self.input_state.get() {
@@ -178,7 +179,7 @@ impl css_methods for CssLexer {
         }
 
         self.input_state.eat_whitespace();
-        let mut desc_val = [];
+        let mut desc_val = ~[];
 
         // Get the value of the descriptor
         loop {
@@ -203,7 +204,7 @@ impl css_methods for CssLexer {
                     break;
                 }
             } else {
-                desc_val += [ch];
+                push(desc_val, ch);
             }
         }
 

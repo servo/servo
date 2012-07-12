@@ -5,7 +5,7 @@ import osmain::{OSMain, AddKeyHandler};
 import opts::{Opts, Screen, Png};
 import engine::{Engine, LoadURLMsg};
 
-fn main(args: [str]) {
+fn main(args: ~[str]) {
     run(opts::from_cmdline_args(args))
 }
 
@@ -25,7 +25,7 @@ fn run(opts: Opts) {
     }
 }
 
-fn run_pipeline_screen(urls: [str]) {
+fn run_pipeline_screen(urls: ~[str]) {
 
     // The platform event handler thread
     let osmain = OSMain();

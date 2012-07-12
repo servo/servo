@@ -13,6 +13,7 @@ import geom::size::Size2D;
 import geom::point::Point2D;
 import geom::rect::Rect;
 import base::{Box, TextBox, BTree, BoxTreeReadMethods};
+import vec::push;
 
 #[doc = "
 
@@ -63,8 +64,8 @@ Creates a display list item for a single block.
 
 "]
 #[warn(no_non_implicitly_copyable_typarams)]
-fn box_to_display_items(box: @Box, origin: Point2D<au>) -> [dl::display_item] {
-    let mut items = [];
+fn box_to_display_items(box: @Box, origin: Point2D<au>) -> ~[dl::display_item] {
+    let mut items = ~[];
 
     #debug("request to display a box from origin %?", origin);
 
@@ -74,38 +75,36 @@ fn box_to_display_items(box: @Box, origin: Point2D<au>) -> [dl::display_item] {
       (TextBox(subbox), _, _) {
         let run = copy subbox.run;
         assert run.is_some();
-        items += [
-            dl::display_item({
-                item_type: dl::display_item_solid_color(255u8, 255u8, 255u8),
-                bounds: bounds
-            }),
-            dl::display_item({
-                item_type: dl::display_item_text(run.get()),
-                bounds: bounds
-            })
-        ];
+        push(items, dl::display_item({
+            item_type: dl::display_item_solid_color(255u8, 255u8, 255u8),
+            bounds: bounds
+        }));
+        push(items, dl::display_item({
+            item_type: dl::display_item_text(run.get()),
+            bounds: bounds
+        }));
       }
       (_, some(image), some(*)) | (_, some(image), none) {
-        items += [dl::display_item({
+        push(items, dl::display_item({
             item_type: dl::display_item_image(~copy *image),
             bounds: bounds
-        })];
+        }));
       }
       (_, none, some(col)) {
         #debug("Assigning color %? to box with bounds %?", col, bounds);
-        items += [dl::display_item({
+        push(items, dl::display_item({
             item_type: dl::display_item_solid_color(col.red, col.green, col.blue),
             bounds: bounds
-        })];
+        }));
       }
       (_, none, none) {
         let r = rand::rng();
-        items += [dl::display_item({
+        push(items, dl::display_item({
             item_type: dl::display_item_solid_color(r.next() as u8,
                                                     r.next() as u8,
                                                     r.next() as u8),
             bounds: bounds
-        })];
+        }));
       }
     }
 

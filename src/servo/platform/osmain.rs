@@ -13,6 +13,7 @@ import dom::event::{Event, ResizeEvent};
 import layers::ImageLayer;
 import geom::size::Size2D;
 import std::cmp::fuzzy_eq;
+import vec::push;
 
 type OSMain = chan<Msg>;
 
@@ -200,6 +201,7 @@ type surface = {
 
 fn mk_surface() -> surface {
     let cairo_surf = cairo_image_surface_create(cairo::CAIRO_FORMAT_RGB24, 800, 600);
+
     assert !ptr::is_null(cairo_surf);
 
     let azure_target = AzCreateDrawTargetForCairoSurface(cairo_surf);

@@ -32,7 +32,7 @@ class Font {
     let cairo_font: *cairo_scaled_font_t;
     let font_dtor: fn@();
 
-    new(-fontbuf: [u8]) {
+    new(-fontbuf: ~[u8]) {
         let (cairo_font, font_dtor) = get_cairo_font(&copy fontbuf);
         assert cairo_font.is_not_null();
 
@@ -81,7 +81,7 @@ class Font {
 
         #debug("getting h advance for glyph %?", glyph);
 
-        let glyphs: [cairo_glyph_t] = [{
+        let glyphs: ~[cairo_glyph_t] = ~[{
             index: glyph as c_ulong,
             x: 0 as c_double,
             y: 0 as c_double,
@@ -264,7 +264,7 @@ fn create_test_font() -> @Font {
     ret flib.get_test_font();
 }
 
-fn test_font_bin() -> [u8] { #include_bin("JosefinSans-SemiBold.ttf") }
+fn test_font_bin() -> ~[u8] { #include_bin("JosefinSans-SemiBold.ttf") }
 
 fn should_destruct_on_fail_without_leaking() {
     #[test];

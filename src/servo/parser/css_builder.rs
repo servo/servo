@@ -12,6 +12,7 @@ import parser::css_lexer::{Token, StartDescription, EndDescription,
 import comm::recv;
 import option::is_none;
 import util::color::parsing::parse_color;
+import vec::push;
 
 type TokenReader = {stream : port<Token>, mut lookahead : option<Token>};
 
@@ -37,13 +38,13 @@ fn parse_element(reader : TokenReader) -> option<~style::Selector> {
       _  { fail "Expected an element" }
     };
 
-    let mut attr_list = [];
+    let mut attr_list = ~[];
 
     // Get the attributes associated with that element
     loop {
         let tok = reader.get();
         alt tok {
-          Attr(attr)       { attr_list += [copy attr]; }
+          Attr(attr)       { push(attr_list, copy attr); }
           StartDescription | Descendant | Child | Sibling | Comma {
             reader.unget(tok); 
             break;
@@ -60,8 +61,8 @@ fn parse_element(reader : TokenReader) -> option<~style::Selector> {
 }
 
 fn parse_rule(reader : TokenReader) -> option<~style::Rule> {
-    let mut sel_list = [];
-    let mut desc_list = [];
+    let mut sel_list = ~[];
+    let mut desc_list = ~[];
 
     // Collect all the selectors that this rule applies to
     loop {
@@ -107,13 +108,13 @@ fn parse_rule(reader : TokenReader) -> option<~style::Rule> {
               }
               StartDescription {
                 let built_sel <- cur_sel; 
-                sel_list += [built_sel];
+                push(sel_list, built_sel);
                 reader.unget(StartDescription);
                 break;
               }
               Comma      {
                 let built_sel <- cur_sel;
-                sel_list += [built_sel];
+                push(sel_list, built_sel);
                 reader.unget(Comma);
                 break;
               }
@@ -146,27 +147,25 @@ fn parse_rule(reader : TokenReader) -> option<~style::Rule> {
                 let num = val.substr(0u, val.len() - 2u);
                 
                 alt uint::from_str(num) {
-                  some(n)    { desc_list += [FontSize(n)]; }
+                  some(n)    { push(desc_list, FontSize(n)); }
                   none       { fail "Nonnumber provided as font size"; }
                 }
               }
               "display" {
                 alt val {
-                  "inline"   { desc_list += [Display(DisInline)]; }
-                  "block"    { desc_list += [Display(DisBlock)]; }
-                  "none"     { desc_list += [Display(DisNone)]; }
-                  _          { #debug["Recieved unknown display value '%s'",
-                                      val]; }
+                  "inline"   { push(desc_list, Display(DisInline)); }
+                  "block"    { push(desc_list, Display(DisBlock)); }
+                  "none"     { push(desc_list, Display(DisNone)); }
+                  _          { #debug["Recieved unknown display value '%s'", val]; }
                 }
               }
               "color" {
-                desc_list += [TextColor(parse_color(val))];
+                push(desc_list, TextColor(parse_color(val)));
               }
               "background-color" {
-                desc_list += [BackgroundColor(parse_color(val))];
+                push(desc_list, BackgroundColor(parse_color(val)));
               }
-              _          { #debug["Recieved unknown style property '%s'",
-                                  val]; }
+              _ { #debug["Recieved unknown style property '%s'", val]; }
             }
           }
           Eof        { ret none; }
@@ -180,13 +179,13 @@ fn parse_rule(reader : TokenReader) -> option<~style::Rule> {
     ret some(~(sel_list, desc_list));
 }
 
-fn build_stylesheet(stream : port<Token>) -> [~style::Rule] {
-    let mut rule_list = [];
+fn build_stylesheet(stream : port<Token>) -> ~[~style::Rule] {
+    let mut rule_list = ~[];
     let reader = {stream : stream, mut lookahead : none};
 
     loop {
         alt parse_rule(reader) {
-          some(rule)   { rule_list += [copy rule]; }
+          some(rule)   { push(rule_list, copy rule); }
           none         { break; }
         }
     }

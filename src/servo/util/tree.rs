@@ -99,10 +99,10 @@ mod test {
         dummy(@{fields: empty(), value: v})
     }
 
-    fn parent_with_3_children() -> {p: dummy, children: [dummy]} {
-        let children = [new_dummy(0u),
-                        new_dummy(1u),
-                        new_dummy(2u)];
+    fn parent_with_3_children() -> {p: dummy, children: ~[dummy]} {
+        let children = ~[new_dummy(0u),
+                         new_dummy(1u),
+                         new_dummy(2u)];
         let p = new_dummy(3u);
 
         for vec::each(children) |c| {

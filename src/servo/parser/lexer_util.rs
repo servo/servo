@@ -1,6 +1,6 @@
 import option::is_none;
 import str::from_bytes;
-
+import vec::push;
 
 enum CharOrEof {
     CoeChar(u8),
@@ -63,12 +63,12 @@ impl util_methods for InputState {
     }
 
     fn parse_ident() -> str {
-        let mut result: [u8] = [];
+        let mut result: ~[u8] = ~[];
         loop {
             alt self.get() {
                 CoeChar(c) {
                     if (c.is_alpha()) {
-                        result += [c];
+                        push(result, c);
                     } else if result.len() == 0u {
                         self.parse_err("expected ident");
                     } else {

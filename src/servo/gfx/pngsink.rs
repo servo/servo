@@ -2,7 +2,7 @@
 A graphics sink that renders to PNG format buffers
 
 Each time the renderer renders a frame the bufsink will output a
-`[u8]` containing the frame in PNG format.
+`~[u8]` containing the frame in PNG format.
 "];
 
 export PngSink, Msg, Exit;
@@ -45,7 +45,7 @@ impl PngSink of Sink for chan<Msg> {
     }
 }
 
-fn PngSink(output: chan<[u8]>) -> PngSink {
+fn PngSink(output: chan<~[u8]>) -> PngSink {
     spawn_listener::<Msg>(|po| {
         let cairo_surf = cairo_image_surface_create(
             CAIRO_FORMAT_ARGB32, 800 as c_int, 600 as c_int
@@ -76,10 +76,10 @@ fn PngSink(output: chan<[u8]>) -> PngSink {
 
 fn do_draw(sender: chan<AzDrawTargetRef>,
            dt: AzDrawTargetRef,
-           output: chan<[u8]>,
+           output: chan<~[u8]>,
            cairo_surf: *cairo_surface_t) {
 
-    listen(|data_ch: chan<[u8]>| {
+    listen(|data_ch: chan<~[u8]>| {
 
         extern fn write_fn(closure: *c_void,
                            data: *c_uchar,
@@ -87,7 +87,7 @@ fn do_draw(sender: chan<AzDrawTargetRef>,
 
             -> cairo_status_t unsafe {
 
-            let p: *chan<[u8]> = reinterpret_cast(closure);
+            let p: *chan<~[u8]> = reinterpret_cast(closure);
             let data_ch = *p;
 
             // Convert from *c_uchar to *u8
@@ -108,7 +108,7 @@ fn do_draw(sender: chan<AzDrawTargetRef>,
         }
 
         // Collect the entire image into a single vector
-        let mut result = [];
+        let mut result = ~[];
         while data_ch.peek() {
             result += data_ch.recv();
         }
@@ -127,7 +127,7 @@ fn sanity_check() {
         let sink = PngSink(self_channel);
         let renderer = Renderer(sink);
 
-        let dlist = [];
+        let dlist = ~[];
         renderer.send(RenderMsg(dlist));
         listen(|from_renderer| {
             renderer.send(renderer::ExitMsg(from_renderer));
