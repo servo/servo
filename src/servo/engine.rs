@@ -3,21 +3,21 @@ import task::spawn_listener;
 import comm::chan;
 import layout::layout_task;
 import layout_task::Layout;
-import content::{Content, ExecuteMsg, ParseMsg, ExitMsg};
+import content::{Content, ExecuteMsg, ParseMsg, ExitMsg, create_content};
 
 class Engine<S:Sink send copy> {
     let sink: S;
 
     let renderer: Renderer;
     let layout: Layout;
-    let content: Content;
+    let content: chan<content::ControlMsg>;
 
     new(sink: S) {
         self.sink = sink;
 
         let renderer = Renderer(sink);
         let layout = Layout(renderer);
-        let content = Content(layout, sink);
+        let content = create_content(layout, sink);
 
         self.renderer = renderer;
         self.layout = layout;
