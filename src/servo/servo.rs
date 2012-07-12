@@ -32,6 +32,7 @@ fn run_pipeline_screen(urls: [str]) {
 
     // Create a serve instance
     let engine = Engine(osmain);
+    let engine_chan = engine.start();
 
     // Send each file to render then wait for keypress
     listen(|keypress_from_osmain| {
@@ -39,7 +40,7 @@ fn run_pipeline_screen(urls: [str]) {
 
         for urls.each |filename| {
             #debug["master: Sending filename `%s`", filename];
-            engine.send(LoadURLMsg(~copy filename));
+            engine_chan.send(LoadURLMsg(~copy filename));
             #debug["master: Waiting for keypress"];
             keypress_from_osmain.recv();
         }
@@ -48,7 +49,7 @@ fn run_pipeline_screen(urls: [str]) {
     // Shut everything down
     #debug["master: Shut down"];
     listen(|exit_response_from_engine| {
-        engine.send(engine::ExitMsg(exit_response_from_engine));
+        engine_chan.send(engine::ExitMsg(exit_response_from_engine));
         exit_response_from_engine.recv();
     });
     osmain.send(osmain::Exit);
@@ -65,8 +66,9 @@ fn run_pipeline_png(-url: str, outfile: str) {
     listen(|pngdata_from_sink| {
         let sink = PngSink(pngdata_from_sink);
         let engine = Engine(sink);
+        let engine_chan = engine.start();
         let url = copy url;
-        engine.send(LoadURLMsg(~url));
+        engine_chan.send(LoadURLMsg(~url));
         alt buffered_file_writer(outfile) {
           ok(writer) {
             writer.write(pngdata_from_sink.recv())
@@ -74,7 +76,7 @@ fn run_pipeline_png(-url: str, outfile: str) {
           err(e) { fail e }
         }
         listen(|exit_response_from_engine| {
-            engine.send(engine::ExitMsg(exit_response_from_engine));
+            engine_chan.send(engine::ExitMsg(exit_response_from_engine));
             exit_response_from_engine.recv();
         });
         sink.send(pngsink::Exit);

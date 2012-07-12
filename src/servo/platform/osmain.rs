@@ -6,8 +6,10 @@ import azure::bindgen::*;
 import azure::cairo;
 import azure::cairo::bindgen::*;
 import comm::*;
+import dvec::{dvec, extensions};
 import azure::cairo::cairo_surface_t;
 import gfx::renderer::{Sink};
+import dom::event::{Event, ResizeEvent};
 import layers::ImageLayer;
 import geom::size::Size2D;
 import std::cmp::fuzzy_eq;
@@ -18,6 +20,7 @@ enum Msg {
     BeginDrawing(chan<AzDrawTargetRef>),
     Draw(chan<AzDrawTargetRef>, AzDrawTargetRef),
     AddKeyHandler(chan<()>),
+    AddEventListener(chan<Event>),
     Exit
 }
 
@@ -32,6 +35,7 @@ fn OSMain() -> OSMain {
 
 fn mainloop(po: port<Msg>) {
     let mut key_handlers: [chan<()>] = [];
+    let event_listeners: @dvec<chan<Event>> = @dvec();
 
     glut::init();
     glut::init_display_mode(glut::DOUBLE);
@@ -51,6 +55,13 @@ fn mainloop(po: port<Msg>) {
     let scene = @mut layers::scene::Scene(layers::layers::ImageLayerKind(image_layer),
                                           Size2D(800.0f32, 600.0f32));
 
+    do glut::reshape_func(window) |width, height| {
+        #debug("osmain: window resized to %d,%d", width as int, height as int);
+        for event_listeners.each |event_listener| {
+            event_listener.send(ResizeEvent(width as int, height as int));
+        }
+    }
+
     loop {
         do glut::display_func() {
             #debug("osmain: drawing to screen");
@@ -65,6 +76,9 @@ fn mainloop(po: port<Msg>) {
             alt check po.recv() {
               AddKeyHandler(key_ch) {
                 key_handlers += [key_ch];
+              }
+              AddEventListener(event_listener) {
+                event_listeners.push(event_listener);
               }
               BeginDrawing(sender) {
                 lend_surface(surfaces, sender);
@@ -106,6 +120,9 @@ impl OSMain of Sink for OSMain {
     }
     fn draw(next_dt: chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
         self.send(Draw(next_dt, draw_me))
+    }
+    fn add_event_listener(listener: chan<Event>) {
+        self.send(AddEventListener(listener));
     }
 }
 

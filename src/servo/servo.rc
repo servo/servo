@@ -20,6 +20,7 @@ use layers;
 
 mod dom {
     mod base;
+    mod event;
     mod rcu;
     mod style;
 }

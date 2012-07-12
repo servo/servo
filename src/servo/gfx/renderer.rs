@@ -7,6 +7,7 @@ import azure::*;
 import azure::bindgen::*;
 import libc::size_t;
 import text::text_run::TextRun;
+import dom::event::{Event, ResizeEvent};
 
 type Renderer = chan<Msg>;
 
@@ -18,10 +19,13 @@ enum Msg {
 #[doc = "
 The interface used to by the renderer to aquire draw targets for
 each rendered frame and submit them to be drawn to the display
+
+FIXME: Change this name to Compositor.
 "]
 iface Sink {
     fn begin_drawing(next_dt: chan<AzDrawTargetRef>);
     fn draw(next_dt: chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef);
+    fn add_event_listener(listener: chan<Event>);
 }
 
 fn Renderer<S: Sink send copy>(sink: S) -> chan<Msg> {

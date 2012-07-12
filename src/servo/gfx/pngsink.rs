@@ -23,6 +23,7 @@ import comm::chan;
 import unsafe::reinterpret_cast;
 import vec_from_buf = vec::unsafe::from_buf;
 import ptr::addr_of;
+import dom::event::Event;
 
 type PngSink = chan<Msg>;
 
@@ -38,6 +39,9 @@ impl PngSink of Sink for chan<Msg> {
     }
     fn draw(next_dt: chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
         self.send(Draw(next_dt, draw_me))
+    }
+    fn add_event_listener(_listener: chan<Event>) {
+        // No events in this sink.
     }
 }
 

@@ -7,14 +7,16 @@ export Content;
 export ControlMsg, ExecuteMsg, ParseMsg, ExitMsg;
 export PingMsg, PongMsg;
 
-import comm::{port, chan, listen};
+import comm::{port, chan, listen, select2};
 import task::{spawn, spawn_listener};
 import io::{read_whole_file, println};
 import result::{ok, err};
 
 import dom::base::NodeScope;
+import dom::event::ResizeEvent;
 import dom::rcu::WriterMethods;
 import dom::style;
+import gfx::renderer::Sink;
 import parser::html_lexer::spawn_html_lexer_task;
 import parser::css_builder::build_stylesheet;
 import parser::html_builder::build_dom;
@@ -25,6 +27,7 @@ import jsrt = js::rust::rt;
 import js::rust::methods;
 import js::global::{global_class, debug_fns};
 
+import either::{left, right};
 import result::extensions;
 
 type Content = chan<ControlMsg>;
@@ -53,13 +56,16 @@ fn join_layout(scope: NodeScope, layout: Layout) {
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn Content(layout: Layout) -> Content {
+fn Content<S:Sink send copy>(layout: Layout, sink: S) -> Content {
     spawn_listener::<ControlMsg>(|from_master| {
+        let event_port = port();
+        sink.add_event_listener(event_port.chan());
+
         let scope = NodeScope();
         let rt = jsrt();
         loop {
-            alt from_master.recv() {
-              ParseMsg(filename) {
+            alt select2(from_master, event_port) {
+              left(ParseMsg(filename)) {
                 #debug["content: Received filename `%s` to parse", *filename];
 
                 // Note: we can parse the next document in parallel
@@ -85,7 +91,7 @@ fn Content(layout: Layout) -> Content {
                 scope.reader_forked();
               }
 
-              ExecuteMsg(filename) {
+              left(ExecuteMsg(filename)) {
                 #debug["content: Received filename `%s` to execute", *filename];
 
                 alt read_whole_file(*filename) {
@@ -104,9 +110,13 @@ fn Content(layout: Layout) -> Content {
                 }
               }
 
-              ExitMsg {
+              left(ExitMsg) {
                 layout.send(layout_task::ExitMsg);
                 break;
+              }
+
+              right(ResizeEvent(new_width, new_height)) {
+                #debug("content got resize event: %d, %d", new_width, new_height);
               }
             }
         }
