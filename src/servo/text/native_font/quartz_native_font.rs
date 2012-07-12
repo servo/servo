@@ -49,11 +49,11 @@ class QuartzNativeFont/& {
 }
 
 fn create(buf: ~[u8]) -> result<QuartzNativeFont, ()> {
-    let fontprov = vec::as_buf(buf, |cbuf| {
+    let fontprov = vec::as_buf(buf, |cbuf, len| {
         CGDataProviderCreateWithData(
             null(),
             unsafe { reinterpret_cast(cbuf) },
-            buf.len() as size_t,
+            len as size_t,
             null())
     });
     // FIXME: Error handling

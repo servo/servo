@@ -1,0 +1,10 @@
+debug("hi");
+var elem = document.documentElement;
+debug(elem);
+debug(elem.tagName);
+debug(elem.firstChild);
+debug(elem.firstChild.tagName);
+debug(elem.firstChild.nextSibling);
+debug(elem.firstChild.nextSibling.tagName);
+debug(elem.nextSibling);
+debug(elem.nextSibling.tagName);

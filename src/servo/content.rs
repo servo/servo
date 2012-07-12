@@ -7,13 +7,14 @@ export Content;
 export ControlMsg, ExecuteMsg, ParseMsg, ExitMsg;
 export PingMsg, PongMsg;
 export create_content;
+export Document;
 
 import comm::{port, chan, listen, select2};
 import task::{spawn, spawn_listener};
 import io::{read_whole_file, println};
 import result::{ok, err};
 
-import dom::base::{Node, NodeScope};
+import dom::base::{Node, NodeScope, define_bindings};
 import dom::event::{Event, ResizeEvent};
 import dom::rcu::WriterMethods;
 import dom::style;
@@ -30,6 +31,9 @@ import js::global::{global_class, debug_fns};
 
 import either::{either, left, right};
 import result::extensions;
+
+import dom::bindings::utils::rust_box;
+import js::rust::compartment;
 
 type Content = chan<ControlMsg>;
 
@@ -75,7 +79,7 @@ class Content<S:Sink send copy> {
     let scope: NodeScope;
     let jsrt: jsrt;
 
-    let mut document: option<Document>;
+    let mut document: option<@Document>;
 
     new(layout: Layout, sink: S, from_master: port<ControlMsg>) {
         self.layout = layout;
@@ -116,15 +120,31 @@ class Content<S:Sink send copy> {
             // Note: we can parse the next document in parallel
             // with any previous documents.
             let stream = spawn_html_lexer_task(copy filename);
-            let (root, style_port) = build_dom(self.scope, stream);
+            let (root, style_port, js_port) = build_dom(self.scope, stream);
             let css_rules = style_port.recv();
+            let js_scripts = js_port.recv();
 
             // Apply the css rules to the dom tree:
             #debug["%?", css_rules];
 
+            #debug["%?", js_scripts];
+
             let document = Document(root, css_rules);
             self.relayout(document);
-            self.document = some(document);
+            self.document = some(@document);
+
+            //XXXjdm it was easier to duplicate the relevant ExecuteMsg code;
+            //       they should be merged somehow in the future.
+            for vec::each(js_scripts) |bytes| {
+                let cx = self.jsrt.cx();
+                cx.set_default_options_and_version();
+                cx.set_logging_error_reporter();
+                cx.new_compartment(global_class).chain(|compartment| {
+                    compartment.define_functions(debug_fns);
+                    define_bindings(*compartment, option::get(self.document));
+                    cx.evaluate_script(compartment.global_obj, bytes, ~"???", 1u)
+                });
+            }
 
             ret true;
           }
@@ -181,7 +201,7 @@ class Content<S:Sink send copy> {
                     // Nothing to do.
                 }
                 some(document) {
-                    self.relayout(document);
+                    self.relayout(*document);
                 }
             }
             ret true;

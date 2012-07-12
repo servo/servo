@@ -5,6 +5,14 @@ import gfx::geometry::au;
 import geom::size::Size2D;
 import layout::base::LayoutData;
 import util::tree;
+import js::rust::{bare_compartment, compartment, methods};
+import js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, jsval, JSBool};
+import js::{JSPROP_ENUMERATE, JSPROP_SHARED};
+import js::crust::*;
+import js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
+import ptr::null;
+import content::Document;
+import bindings;
 
 import dvec::{dvec, extensions};
 
@@ -52,11 +60,17 @@ class Attr {
     }
 }
 
+fn define_bindings(compartment: bare_compartment, doc: @Document) {
+    //bindings::window::init(compartment);
+    bindings::document::init(compartment, doc);
+}
+
 enum ElementKind {
     UnknownElement,
     HTMLDivElement,
     HTMLHeadElement,
-    HTMLImageElement({mut size: Size2D<au>})
+    HTMLImageElement({mut size: Size2D<au>}),
+    HTMLScriptElement
 }
 
 #[doc="

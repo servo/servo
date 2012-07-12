@@ -200,8 +200,8 @@ fn get_cairo_face(buf: &~[u8]) -> (*cairo_font_face_t, fn@()) {
     dtor = fn@(move dtor) { FT_Done_FreeType(library).for_sure(); dtor() };
 
     let face: FT_Face = null();
-    vec::as_buf(*buf, |cbuf| {
-        if FT_New_Memory_Face(library, cbuf, (*buf).len() as FT_Long,
+    vec::as_buf(*buf, |cbuf, len| {
+        if FT_New_Memory_Face(library, cbuf, len as FT_Long,
                               0 as FT_Long, addr_of(face)).failed() {
             dtor();
             fail ~"unable to create FreeType face";
@@ -241,11 +241,11 @@ fn get_cairo_face(buf: &~[u8]) -> (*cairo_font_face_t, fn@()) {
 
     let mut dtor = fn@() { };
 
-    let fontprov = vec::as_buf(*buf, |cbuf| {
+    let fontprov = vec::as_buf(*buf, |cbuf, len| {
         CGDataProviderCreateWithData(
             null(),
             unsafe { reinterpret_cast(cbuf) },
-            (*buf).len() as size_t,
+            len as size_t,
             null()
         )
     });

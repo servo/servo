@@ -22,6 +22,11 @@ mod dom {
     mod event;
     mod rcu;
     mod style;
+    mod bindings {
+        mod document;
+        mod utils;
+        mod node;
+    }
 }
 
 mod gfx {

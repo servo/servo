@@ -19,7 +19,7 @@ mkdir -p src/rust-layers || exit $?
 
 (cd src/ragel && sh ${SRCDIR}/src/ragel/configure) || exit $?
 (cd src/harfbuzz && sh ${SRCDIR}/src/harfbuzz/configure --enable-static) || exit $?
-(cd src/mozjs && sh ${SRCDIR}/src/mozjs/js/src/configure) || exit $?
+(cd src/mozjs && sh ${SRCDIR}/src/mozjs/js/src/configure --enable-debug --disable-optimize) || exit $?
 (cd src/rust-opengles && sh ${SRCDIR}/src/rust-opengles/configure) || exit $?
 (cd src/rust-harfbuzz && sh ${SRCDIR}/src/rust-harfbuzz/configure) || exit $?
 (cd src/rust-mozjs && sh ${SRCDIR}/src/rust-mozjs/configure) || exit $?

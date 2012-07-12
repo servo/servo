@@ -87,6 +87,7 @@ CLEAN_DEPS += \
 	clean-ragel \
 	clean-harfbuzz \
 	clean-rust-harfbuzz \
+	clean-mozjs \
 	clean-rust-mozjs \
 	clean-rust-sdl \
 	clean-rust-azure \
@@ -212,6 +213,10 @@ clean-harfbuzz:
 .PHONY: clean-rust-harfbuzz
 clean-rust-harfbuzz:
 	$(MAKE) clean -C src/rust-harfbuzz
+
+.PHONY: clean-mozjs
+clean-mozjs:
+	$(MAKE) clean -C src/mozjs
 
 .PHONY: clean-rust-mozjs
 clean-rust-mozjs:

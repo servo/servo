@@ -1,6 +1,7 @@
 #[doc="Constructs a DOM tree from an incoming token stream."]
 
-import dom::base::{Attr, Element, ElementData, ElementKind, HTMLDivElement, HTMLHeadElement};
+import dom::base::{Attr, Element, ElementData, ElementKind, HTMLDivElement, HTMLHeadElement,
+                   HTMLScriptElement};
 import dom::base::{HTMLImageElement, Node, NodeScope, Text, TreeReadMethods, TreeWriteMethods};
 import dom::base::{UnknownElement};
 import dom::rcu::WriterMethods;
@@ -17,6 +18,11 @@ import dvec::extensions;
 enum CSSMessage {
     File(~str),
     Exit   
+}
+
+enum js_message {
+    js_file(~str),
+    js_exit
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
@@ -45,7 +51,8 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: ~str, -value: ~str) {
                   }
                 }
               }
-              HTMLDivElement | HTMLImageElement(*) | HTMLHeadElement | UnknownElement {
+              HTMLDivElement | HTMLImageElement(*) | HTMLHeadElement |
+              HTMLScriptElement | UnknownElement {
                 // Drop on the floor.
               }
             }
@@ -67,6 +74,7 @@ fn build_element_kind(tag_name: ~str) -> ~ElementKind {
                              geometry::px_to_au(100))
         })
       }
+      ~"script" { ~HTMLScriptElement }
       ~"head" { ~HTMLHeadElement }
       _ { ~UnknownElement  }
     }
@@ -116,8 +124,38 @@ fn css_link_listener(to_parent : chan<Stylesheet>, from_parent : port<CSSMessage
     to_parent.send(css_rules);
 }
 
+fn js_script_listener(to_parent : chan<~[~[u8]]>, from_parent : port<js_message>) {
+    let mut result_vec = ~[];
+
+    loop {
+        alt from_parent.recv() {
+          js_file(filename) {
+            let result_port = comm::port();
+            let result_chan = comm::chan(result_port);
+            let filename = copy filename;
+            do task::spawn {
+                let filename <- copy filename;
+                let file_try = io::read_whole_file(filename);
+                if (file_try.is_ok()) {
+                    result_chan.send(file_try.get());
+                } else {
+                    #error("error loading script %s", filename);
+                }
+            }
+            push(result_vec, result_port);
+          }
+          js_exit {
+            break;
+          }  
+        }
+    }
+
+    let js_scripts = vec::map(result_vec, |result_port| result_port.recv());
+    to_parent.send(js_scripts);
+}
+
 #[warn(no_non_implicitly_copyable_typarams)]
-fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>) {
+fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>, port<~[~[u8]]>) {
     // The current reference node.
     let mut cur_node = scope.new_node(Element(ElementData(~"html", ~HTMLDivElement)));
     // We will spawn a separate task to parse any css that is
@@ -129,6 +167,12 @@ fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>) 
     let child_chan = comm::chan(style_port);
     let style_chan = task::spawn_listener(|child_port| {
         css_link_listener(child_chan, child_port);
+    });
+
+    let js_port = comm::port();
+    let child_chan = comm::chan(js_port);
+    let js_chan = task::spawn_listener(|child_port| {
+        js_script_listener(child_chan, child_port);
     });
 
     loop {
@@ -174,8 +218,22 @@ fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>) 
             });
             cur_node = scope.get_parent(cur_node).get();
           }
-          parser::EndTag(_) {
+          parser::EndTag(tag_name) {
             // TODO: Assert that the closing tag has the right name.
+            scope.read(cur_node, |n| {
+                alt *n.kind {
+                  Element(elmt) if elmt.tag_name == ~"script" {
+                    alt elmt.get_attr(~"src") {
+                      some(filename) {
+                        #debug["Linking to a js script named: %s", filename];
+                        js_chan.send(js_file(copy filename));
+                      }
+                      none { /* fall through */ }
+                    }
+                  }
+                  _ { /* fall though */ }
+                }
+            });
             cur_node = scope.get_parent(cur_node).get();
           }
           parser::Text(s) if !s.is_whitespace() {
@@ -192,6 +250,7 @@ fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>) 
     }
 
     style_chan.send(Exit);
+    js_chan.send(js_exit);
 
-    ret (cur_node, style_port);
+    ret (cur_node, style_port, js_port);
 }

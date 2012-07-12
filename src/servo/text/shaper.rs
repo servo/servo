@@ -38,9 +38,9 @@ when rendered in a specific font.
 fn shape_text(font: &Font, text: ~str) -> ~[Glyph] unsafe {
     #debug("shaping text '%s'", text);
 
-    let face_blob = vec::as_buf(*(*font).buf(), |buf| {
+    let face_blob = vec::as_buf(*(*font).buf(), |buf, len| {
         hb_blob_create(reinterpret_cast(buf),
-                       (*(*font).buf()).len() as c_uint,
+                       len as c_uint,
                        HB_MEMORY_MODE_READONLY,
                        null(),
                        null())
