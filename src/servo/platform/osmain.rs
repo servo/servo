@@ -1,4 +1,5 @@
-export OSMain, Msg;
+export OSMain;
+export Msg, BeginDrawing, Draw, AddKeyHandler, Exit;
 
 import azure::*;
 import azure::bindgen::*;

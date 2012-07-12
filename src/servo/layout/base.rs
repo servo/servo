@@ -12,10 +12,11 @@ import geom::size::Size2D;
 import image::base::image;
 import layout::block::block_layout_methods;
 import layout::inline::inline_layout_methods;
-import layout::style::style::*;
-import layout::text::*;
 import util::tree;
 import util::color::Color;
+import text::text_box;
+import style::style::computed_style;
+import text::text_layout_methods;
 
 enum BoxKind {
     BlockBox,

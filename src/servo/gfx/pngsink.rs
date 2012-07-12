@@ -5,7 +5,7 @@ Each time the renderer renders a frame the bufsink will output a
 `[u8]` containing the frame in PNG format.
 "];
 
-export PngSink, Msg;
+export PngSink, Msg, Exit;
 
 import libc::{c_int, c_uint, c_void, c_uchar};
 import azure::AzDrawTargetRef;

@@ -3,8 +3,8 @@
 import geom::point::Point2D;
 import geom::size::Size2D;
 import gfx::geometry::au;
-import layout::base::*;     // FIXME: Can't get around import *; resolve bug.
 import util::tree;
+import base::{Box, BlockBox, BTree, layout_methods, BoxTreeReadMethods};
 
 #[doc="The public block layout methods."]
 impl block_layout_methods for @Box {

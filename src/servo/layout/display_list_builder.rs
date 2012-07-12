@@ -5,7 +5,6 @@ import dom::rcu::Scope;
 import dom::base::{Text, NodeScope};
 import gfx::geometry::{au, au_to_px, box, px_to_au};
 import gfx::renderer;
-import layout::base::*;
 import util::color::methods;
 import util::tree;
 import box_builder::box_builder_methods;
@@ -13,6 +12,7 @@ import text::text_layout_methods;
 import geom::size::Size2D;
 import geom::point::Point2D;
 import geom::rect::Rect;
+import base::{Box, TextBox, BTree, BoxTreeReadMethods};
 
 #[doc = "
 

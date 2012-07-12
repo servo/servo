@@ -3,7 +3,7 @@
 import dom::base::{Element, HTMLImageElement, Node};
 import dom::rcu::ReaderMethods;
 import image::base::load;
-import layout::base::*;
+import base::{Box, BTree, NTree, LayoutData, BoxTreeReadMethods};
 import style::style_methods;
 
 impl ApplyStyleBoxMethods for @Box {

@@ -2,9 +2,9 @@
 
 import geom::size::Size2D;
 import gfx::geometry::au;
-import layout::base::*;     // FIXME: Can't get around import *; resolve bug.
 import servo_text::text_run::TextRun;
 import servo_text::font_library::FontLibrary;
+import base::{Box, TextBox};
 
 class text_box {
     let text: str;

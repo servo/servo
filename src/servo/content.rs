@@ -3,7 +3,9 @@
     tasks.
 "]
 
-export Content, ControlMsg, PingMsg;
+export Content;
+export ControlMsg, ExecuteMsg, ParseMsg, ExitMsg;
+export PingMsg, PongMsg;
 
 import comm::{port, chan, listen};
 import task::{spawn, spawn_listener};

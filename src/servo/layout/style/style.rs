@@ -6,10 +6,10 @@ import dom::style::{DisplayType, DisBlock, DisInline, DisNone, Stylesheet};
 import dom::base::{Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement, Node, NodeKind};
 import dom::base::{Text};
 import dom::rcu::ReaderMethods;
-import layout::base::*; // FIXME: resolve bug requires *
 import matching::matching_methods;
 import util::color::{Color, rgb};
 import util::color::css_colors::{white, black};
+import base::{LayoutData, NTree, NodeTreeReadMethods};
 
 type computed_style = {mut display : DisplayType, mut back_color : Color};
 

@@ -3,7 +3,7 @@ import task::spawn_listener;
 import comm::chan;
 import layout::layout_task;
 import layout_task::Layout;
-import content::{Content, ExecuteMsg, ParseMsg};
+import content::{Content, ExecuteMsg, ParseMsg, ExitMsg};
 
 type Engine = chan<Msg>;
 
