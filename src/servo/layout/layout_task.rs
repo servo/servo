@@ -40,17 +40,19 @@ fn Layout(renderer: Renderer) -> Layout {
                     #debug("layout: received layout request for:");
                     node.dump();
 
-                    node.initialize_style_for_subtree();
-                    node.recompute_style_for_subtree(arc(copy styles));
+                    do util::time::time("layout") {
+                        node.initialize_style_for_subtree();
+                        node.recompute_style_for_subtree(arc(copy styles));
 
-                    let this_box = node.construct_boxes();
-                    this_box.dump();
+                        let this_box = node.construct_boxes();
+                        this_box.dump();
 
-                    this_box.apply_style_for_subtree();
-                    this_box.reflow(px_to_au(800));
+                        this_box.apply_style_for_subtree();
+                        this_box.reflow(px_to_au(800));
 
-                    let dlist = build_display_list(this_box);
-                    renderer.send(renderer::RenderMsg(dlist));
+                        let dlist = build_display_list(this_box);
+                        renderer.send(renderer::RenderMsg(dlist));
+                    }
                 }
             }
         }

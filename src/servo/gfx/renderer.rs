@@ -40,10 +40,13 @@ fn Renderer<S: Sink send copy>(sink: S) -> chan<Msg> {
                     #debug("renderer: got render request");
                     let draw_target = draw_target_ch.recv();
                     #debug("renderer: rendering");
-                    clear(draw_target);
-                    draw_display_list(draw_target, display_list);
-                    #debug("renderer: returning surface");
-                    sink.draw(draw_target_ch, draw_target);
+
+                    do util::time::time("rendering") {
+                        clear(draw_target);
+                        draw_display_list(draw_target, display_list);
+                        #debug("renderer: returning surface");
+                        sink.draw(draw_target_ch, draw_target);
+                    }
                   }
                   ExitMsg(response_ch) {
                     response_ch.send(());

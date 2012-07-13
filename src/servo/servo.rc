@@ -93,6 +93,7 @@ mod util {
     mod tree;
     mod color;
     mod unsafe;
+    mod time;
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]

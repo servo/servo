@@ -13,7 +13,6 @@ import dom::event::{Event, ResizeEvent};
 import layers::ImageLayer;
 import geom::size::Size2D;
 import std::cmp::fuzzy_eq;
-import std::time::precise_time_ns;
 import vec::push;
 
 type OSMain = chan<Msg>;
@@ -33,13 +32,6 @@ fn OSMain() -> OSMain {
 	        mainloop(po);
         }
     }
-}
-
-fn time(msg: str, callback: fn()) {
-    let start_time = precise_time_ns();
-    callback();
-    let end_time = precise_time_ns();
-    #debug("%s took %u ms", msg, ((end_time - start_time) / 1000000u64) as uint);
 }
 
 fn mainloop(po: port<Msg>) {
@@ -117,7 +109,7 @@ fn mainloop(po: port<Msg>) {
 
         #debug("osmain: drawing to screen");
 
-        do time("compositing") {
+        do util::time::time("compositing") {
             layers::rendergl::render_scene(context, *scene);
         }
 
