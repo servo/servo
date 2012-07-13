@@ -3,6 +3,10 @@ VPATH=%VPATH%
 RUSTC?=rustc
 RUSTFLAGS?=
 
+ifneq ($(DISABLE_OPTIMIZE),1)
+    RUSTFLAGS+=-O
+endif
+
 UNAME=$(shell uname)
 BUILD_DIR=$(shell pwd)
 
@@ -13,7 +17,7 @@ ifeq ($(UNAME),Linux)
     OSTYPE=linux
 endif
 
-RUSTFLAGS += \
+RUSTLIBS = \
 	-L src/rust-harfbuzz \
 	-L src/rust-mozjs \
 	-L src/rust-azure \
@@ -98,13 +102,13 @@ CLEAN_DEPS += \
 all:    servo package
 
 servo:	$(SERVO_DEPS)
-	$(RUSTC) $(RUSTFLAGS) -o $@ $< --bin
+	$(RUSTC) $(RUSTFLAGS) $(RUSTLIBS) -o $@ $< --bin
 
 libservo.dummy: $(SERVO_DEPS)
-	$(RUSTC) $(RUSTFLAGS) -o $@ $<
+	$(RUSTC) $(RUSTFLAGS) $(RUSTLIBS) -o $@ $<
 
 servo-test: $(SERVO_DEPS)
-	$(RUSTC) $(RUSTFLAGS) --test -o $@ $<
+	$(RUSTC) $(RUSTFLAGS) $(RUSTLIBS) --test -o $@ $<
 
 src/ragel/ragel/ragel:
 	$(MAKE) -C src/ragel
@@ -116,14 +120,14 @@ src/mozjs/libjs_static.a:
 	$(MAKE) -C src/mozjs
 
 src/rust-harfbuzz/libharfbuzz.dummy: src/harfbuzz/src/.libs/libharfbuzz.a
-	$(MAKE) -C src/rust-harfbuzz RUSTFLAGS="-L ../harfbuzz/src/.libs/"
+	$(MAKE) -C src/rust-harfbuzz RUSTFLAGS="$(RUSTFLAGS) -L ../harfbuzz/src/.libs/"
 
 src/rust-mozjs/libmozjs.dummy: src/mozjs/libjs_static.a
-	RUSTFLAGS="-L ../mozjs/" CFLAGS="-I../mozjs/dist/include" \
+	RUSTFLAGS="$(RUSTFLAGS) -L ../mozjs/" CFLAGS="-I../mozjs/dist/include" \
 		$(MAKE) -C src/rust-mozjs
 
 src/rust-azure/libazure.dummy: $(AZURE_DEPS)
-	RUSTFLAGS="-L ../rust-cocoa -L ../rust-geom" $(MAKE) -C src/rust-azure
+	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-cocoa -L ../rust-geom" $(MAKE) -C src/rust-azure
 
 src/rust-sdl/libsdl.dummy:
 	$(MAKE) -C src/rust-sdl
@@ -141,10 +145,10 @@ src/rust-opengles/libopengles.dummy:
 	$(MAKE) -C src/rust-opengles
 
 src/rust-glut/libglut.dummy: $(GLUT_DEPS)
-	RUSTFLAGS="-L ../rust-opengles" $(MAKE) -C src/rust-glut
+	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-opengles" $(MAKE) -C src/rust-glut
 
 src/rust-layers/liblayers.dummy: $(LAYERS_DEPS)
-	RUSTFLAGS="-L ../rust-geom -L ../rust-opengles -L ../rust-glut -L ../rust-azure -L ../rust-cocoa" \
+	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-geom -L ../rust-opengles -L ../rust-glut -L ../rust-azure -L ../rust-cocoa" \
         $(MAKE) -C src/rust-layers
 
 check: $(CHECK_DEPS)
@@ -154,16 +158,16 @@ check-servo: servo-test
 
 .PHONY: check-rust-harfbuzz
 check-rust-harfbuzz: src/harfbuzz/src/.libs/libharfbuzz.a
-	$(MAKE) check -C src/rust-harfbuzz RUSTFLAGS="-L ../harfbuzz/src/.libs/"
+	$(MAKE) check -C src/rust-harfbuzz RUSTFLAGS="$(RUSTFLAGS) -L ../harfbuzz/src/.libs/"
 
 .PHONY: check-rust-mozjs
 check-rust-mozjs: src/mozjs/libjs_static.a
-	RUSTFLAGS="-L ../mozjs/" CFLAGS="-I../mozjs/dist/include" \
+	RUSTFLAGS="$(RUSTFLAGS) -L ../mozjs/" CFLAGS="-I../mozjs/dist/include" \
 		$(MAKE) check -C src/rust-mozjs
 
 .PHONY: check-rust-azure
 check-rust-azure: $(AZURE_DEPS)
-	RUSTFLAGS="-L ../rust-cocoa -L ../rust-geom" $(MAKE) check -C src/rust-azure
+	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-cocoa -L ../rust-geom" $(MAKE) check -C src/rust-azure
 
 .PHONY: check-rust-sdl
 check-rust-sdl:
@@ -187,11 +191,11 @@ check-rust-opengles:
 
 .PHONY: check-rust-glut
 check-rust-glut: $(GLUT_DEPS)
-	RUSTFLAGS="-L ../rust-opengles" $(MAKE) check -C src/rust-glut
+	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-opengles" $(MAKE) check -C src/rust-glut
 
 .PHONY: check-rust-layers
 check-rust-layers: $(LAYERS_DEPS)
-	RUSTFLAGS="-L ../rust-geom -L ../rust-opengles -L ../rust-glut -L ../rust-azure -L ../rust-cocoa" \
+	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-geom -L ../rust-opengles -L ../rust-glut -L ../rust-azure -L ../rust-cocoa" \
         $(MAKE) check -C src/rust-layers
 
 .PHONY:	clean
