@@ -84,8 +84,7 @@ fn mainloop(po: port<Msg>) {
                 }
 
                 let image =
-                    @layers::layers::Image(800, 600, layers::layers::RGB24Format,
-                                           layers::util::convert_rgb32_to_rgb24(image_data));
+                    @layers::layers::Image(800, 600, layers::layers::ARGB32Format, image_data);
                 image_layer.set_image(image);
               }
               exit {
