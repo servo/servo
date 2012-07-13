@@ -223,15 +223,15 @@ fn spawn_css_lexer_task(-filename: ~str) -> port<Token> {
     let result_chan = chan(result_port);
 
     task::spawn(|| {
-        assert (*copy filename).ends_with(".css");
-        let file_try = io::read_whole_file(*filename);
+        assert (copy filename).ends_with(".css");
+        let file_try = io::read_whole_file(filename);
 
         // Check if the given css file existed, if it does, parse it,
         // otherwise just send an eof.  This is a hack to allow
         // guessing that if foo.html exists, foo.css is the
         // corresponding stylesheet.
         if file_try.is_ok() {
-            #debug["Lexing css sheet %s", *copy filename];
+            #debug["Lexing css sheet %s", copy filename];
             let file_data = file_try.get();
             let reader = io::bytes_reader(file_data);
         
@@ -244,7 +244,7 @@ fn spawn_css_lexer_task(-filename: ~str) -> port<Token> {
                 if should_break { break; }
             }
         } else {
-            #debug["Failed to open css sheet %s", *copy filename];
+            #debug["Failed to open css sheet %s", copy filename];
             result_chan.send(Eof);
         }
     });

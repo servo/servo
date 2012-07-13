@@ -40,7 +40,7 @@ fn run_pipeline_screen(urls: ~[str]) {
 
         for urls.each |filename| {
             #debug["master: Sending filename `%s`", filename];
-            engine_chan.send(LoadURLMsg(~copy filename));
+            engine_chan.send(LoadURLMsg(copy filename));
             #debug["master: Waiting for keypress"];
             keypress_from_osmain.recv();
         }
@@ -68,7 +68,7 @@ fn run_pipeline_png(-url: str, outfile: str) {
         let engine = Engine(sink);
         let engine_chan = engine.start();
         let url = copy url;
-        engine_chan.send(LoadURLMsg(~url));
+        engine_chan.send(LoadURLMsg(url));
         alt buffered_file_writer(outfile) {
           ok(writer) {
             writer.write(pngdata_from_sink.recv())

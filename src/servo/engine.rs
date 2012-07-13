@@ -36,7 +36,7 @@ class Engine<S:Sink send copy> {
         alt request {
           LoadURLMsg(url) {
             let url = copy url;
-            if (*url).ends_with(".js") {
+            if url.ends_with(".js") {
                 self.content.send(ExecuteMsg(url))
             } else {
                 self.content.send(ParseMsg(url))

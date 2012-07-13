@@ -169,8 +169,8 @@ fn spawn_html_lexer_task(-filename: ~str) -> port<Token> {
 
     task::spawn(|| {
         let filename = copy html_file;
-        assert (copy *filename).ends_with(".html");
-        let file_data = io::read_whole_file(*filename).get();
+        assert (copy filename).ends_with(".html");
+        let file_data = io::read_whole_file(filename).get();
         let reader = io::bytes_reader(file_data);
         
         let lexer = lexer(reader, NormalHtml);

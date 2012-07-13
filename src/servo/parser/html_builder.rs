@@ -159,7 +159,7 @@ fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>) 
                         alt elmt.get_attr("href") {
                           some(filename) {
                             #debug["Linking to a css sheet named: %s", filename];
-                            style_chan.send(file(~copy filename));
+                            style_chan.send(file(copy filename));
                           }
                           none { /* fall through*/ }
                         }

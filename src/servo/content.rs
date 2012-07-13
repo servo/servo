@@ -112,7 +112,7 @@ class Content<S:Sink send copy> {
     fn handle_control_msg(control_msg: ControlMsg) -> bool {
         alt control_msg {
           ParseMsg(filename) {
-            #debug["content: Received filename `%s` to parse", *filename];
+            #debug["content: Received filename `%s` to parse", filename];
 
             // Note: we can parse the next document in parallel
             // with any previous documents.
@@ -131,11 +131,11 @@ class Content<S:Sink send copy> {
           }
 
           ExecuteMsg(filename) {
-            #debug["content: Received filename `%s` to execute", *filename];
+            #debug["content: Received filename `%s` to execute", filename];
 
-            alt read_whole_file(*filename) {
+            alt read_whole_file(filename) {
               err(msg) {
-                println(#fmt["Error opening %s: %s", *filename, msg]);
+                println(#fmt["Error opening %s: %s", filename, msg]);
               }
               ok(bytes) {
                 let cx = self.jsrt.cx();
@@ -143,7 +143,7 @@ class Content<S:Sink send copy> {
                 cx.set_logging_error_reporter();
                 cx.new_compartment(global_class).chain(|compartment| {
                     compartment.define_functions(debug_fns);
-                    cx.evaluate_script(compartment.global_obj, bytes, *filename, 1u)
+                    cx.evaluate_script(compartment.global_obj, bytes, filename, 1u)
                 });
               }
             }
