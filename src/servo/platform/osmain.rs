@@ -21,8 +21,8 @@ import pipes::chan;
 type OSMain = comm::chan<Msg>;
 
 enum Msg {
-    BeginDrawing(comm::chan<AzDrawTargetRef>),
-    Draw(comm::chan<AzDrawTargetRef>, AzDrawTargetRef),
+    BeginDrawing(pipes::chan<AzDrawTargetRef>),
+    Draw(pipes::chan<AzDrawTargetRef>, AzDrawTargetRef),
     AddKeyHandler(pipes::chan<()>),
     AddEventListener(comm::chan<Event>),
     Exit
@@ -138,10 +138,10 @@ Implementation to allow the osmain channel to be used as a graphics
 sink for the renderer
 "]
 impl OSMain of Sink for OSMain {
-    fn begin_drawing(next_dt: comm::chan<AzDrawTargetRef>) {
+    fn begin_drawing(+next_dt: pipes::chan<AzDrawTargetRef>) {
         self.send(BeginDrawing(next_dt))
     }
-    fn draw(next_dt: comm::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
+    fn draw(+next_dt: pipes::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
         self.send(Draw(next_dt, draw_me))
     }
     fn add_event_listener(listener: comm::chan<Event>) {
@@ -160,7 +160,7 @@ type surface_set = {
     }
 };
 
-fn lend_surface(surfaces: surface_set, recvr: comm::chan<AzDrawTargetRef>) {
+fn lend_surface(surfaces: surface_set, recvr: pipes::chan<AzDrawTargetRef>) {
     // We are in a position to lend out the surface?
     assert surfaces.s1.have;
     // Ok then take it

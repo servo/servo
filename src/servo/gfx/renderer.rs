@@ -31,38 +31,45 @@ each rendered frame and submit them to be drawn to the display
 FIXME: Change this name to Compositor.
 "]
 iface Sink {
-    fn begin_drawing(next_dt: comm::chan<AzDrawTargetRef>);
-    fn draw(next_dt: comm::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef);
+    fn begin_drawing(+next_dt: pipes::chan<AzDrawTargetRef>);
+    fn draw(+next_dt: pipes::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef);
     fn add_event_listener(listener: comm::chan<Event>);
 }
 
 fn Renderer<S: Sink send copy>(sink: S) -> comm::chan<Msg> {
     task::spawn_listener::<Msg>(|po| {
-        listen(|draw_target_ch| {
-            #debug("renderer: beginning rendering loop");
-            sink.begin_drawing(draw_target_ch);
+        let (draw_target_ch, draw_target_po) = pipes::stream();
+        let mut draw_target_ch = draw_target_ch;
+        let mut draw_target_po = draw_target_po;
 
-            loop {
-                alt po.recv() {
-                  RenderMsg(display_list) {
-                    #debug("renderer: got render request");
-                    let draw_target = draw_target_ch.recv();
-                    #debug("renderer: rendering");
+        #debug("renderer: beginning rendering loop");
+        sink.begin_drawing(draw_target_ch);
 
-                    do util::time::time(~"rendering") {
-                        clear(draw_target);
-                        draw_display_list(draw_target, display_list);
-                        #debug("renderer: returning surface");
-                        sink.draw(draw_target_ch, draw_target);
-                    }
-                  }
-                  ExitMsg(response_ch) {
-                    response_ch.send(());
-                    break;
-                  }
+        loop {
+            alt po.recv() {
+              RenderMsg(display_list) {
+                #debug("renderer: got render request");
+                let draw_target = draw_target_po.recv();
+                let (ch, po) = pipes::stream();
+                let mut draw_target_ch_ = some(ch);
+                draw_target_po = po;
+                #debug("renderer: rendering");
+                do util::time::time(~"rendering") {
+                    let mut draw_target_ch = none;
+                    draw_target_ch_ <-> draw_target_ch;
+                    let draw_target_ch = option::unwrap(draw_target_ch);
+                    clear(draw_target);
+                    draw_display_list(draw_target, display_list);
+                    #debug("renderer: returning surface");
+                    sink.draw(draw_target_ch, draw_target);
                 }
+              }
+              ExitMsg(response_ch) {
+                response_ch.send(());
+                break;
+              }
             }
-        })
+        }
     })
 }
 
