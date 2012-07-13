@@ -5,7 +5,7 @@ import osmain::{OSMain, AddKeyHandler};
 import opts::{Opts, Screen, Png};
 import engine::{Engine, LoadURLMsg};
 
-import pipes::port;
+import pipes::{port, chan};
 
 fn main(args: ~[~str]) {
     run(opts::from_cmdline_args(args))
@@ -52,10 +52,10 @@ fn run_pipeline_screen(urls: ~[~str]) {
 
     // Shut everything down
     #debug["master: Shut down"];
-    listen(|exit_response_from_engine| {
-        engine_chan.send(engine::ExitMsg(exit_response_from_engine));
-        exit_response_from_engine.recv();
-    });
+    let (exit_chan, exit_response_from_engine) = pipes::stream();
+    engine_chan.send(engine::ExitMsg(exit_chan));
+    exit_response_from_engine.recv();
+
     osmain.send(osmain::Exit);
 }
 
@@ -79,10 +79,9 @@ fn run_pipeline_png(-url: ~str, outfile: ~str) {
           }
           err(e) { fail e }
         }
-        listen(|exit_response_from_engine| {
-            engine_chan.send(engine::ExitMsg(exit_response_from_engine));
-            exit_response_from_engine.recv();
-        });
+        let (exit_chan, exit_response_from_engine) = pipes::stream();
+        engine_chan.send(engine::ExitMsg(exit_chan));
+        exit_response_from_engine.recv();
         sink.send(pngsink::Exit);
     })
 }

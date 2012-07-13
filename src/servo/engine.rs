@@ -5,12 +5,14 @@ import layout::layout_task;
 import layout_task::Layout;
 import content::{Content, ExecuteMsg, ParseMsg, ExitMsg, create_content};
 
+import pipes::{port, chan};
+
 class Engine<S:Sink send copy> {
     let sink: S;
 
     let renderer: Renderer;
     let layout: Layout;
-    let content: chan<content::ControlMsg>;
+    let content: comm::chan<content::ControlMsg>;
 
     new(+sink: S) {
         self.sink = sink;
@@ -24,7 +26,7 @@ class Engine<S:Sink send copy> {
         self.content = content;
     }
 
-    fn start() -> chan<Msg> {
+    fn start() -> comm::chan<Msg> {
         do spawn_listener::<Msg> |request| {
             while self.handle_request(request.recv()) {
                 // Go on...
@@ -47,10 +49,12 @@ class Engine<S:Sink send copy> {
           ExitMsg(sender) {
             self.content.send(content::ExitMsg);
             self.layout.send(layout_task::ExitMsg);
-            do listen |response_channel| {
-                self.renderer.send(renderer::ExitMsg(response_channel));
-                response_channel.recv();
-            }
+            
+            let (response_chan, response_port) = pipes::stream();
+
+            self.renderer.send(renderer::ExitMsg(response_chan));
+            response_port.recv();
+
             sender.send(());
             ret false;
           }

@@ -15,11 +15,13 @@ import azure_hl::AsAzureRect;
 import ptr::addr_of;
 import arc::arc;
 
-type Renderer = chan<Msg>;
+import pipes::{port, chan};
+
+type Renderer = comm::chan<Msg>;
 
 enum Msg {
     RenderMsg(dl::display_list),
-    ExitMsg(comm::chan<()>)
+    ExitMsg(pipes::chan<()>)
 }
 
 #[doc = "
@@ -29,12 +31,12 @@ each rendered frame and submit them to be drawn to the display
 FIXME: Change this name to Compositor.
 "]
 iface Sink {
-    fn begin_drawing(next_dt: chan<AzDrawTargetRef>);
-    fn draw(next_dt: chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef);
-    fn add_event_listener(listener: chan<Event>);
+    fn begin_drawing(next_dt: comm::chan<AzDrawTargetRef>);
+    fn draw(next_dt: comm::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef);
+    fn add_event_listener(listener: comm::chan<Event>);
 }
 
-fn Renderer<S: Sink send copy>(sink: S) -> chan<Msg> {
+fn Renderer<S: Sink send copy>(sink: S) -> comm::chan<Msg> {
     task::spawn_listener::<Msg>(|po| {
         listen(|draw_target_ch| {
             #debug("renderer: beginning rendering loop");

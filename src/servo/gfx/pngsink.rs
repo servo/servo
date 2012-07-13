@@ -131,10 +131,9 @@ fn sanity_check() {
 
         let dlist : display_list = dvec();
         renderer.send(RenderMsg(dlist));
-        listen(|from_renderer| {
-            renderer.send(renderer::ExitMsg(from_renderer));
-            from_renderer.recv();
-        });
+        let (exit_chan, exit_response_from_engine) = pipes::stream();
+        renderer.send(renderer::ExitMsg(exit_chan));
+        exit_response_from_engine.recv();
 
         sink.send(Exit)
     })
