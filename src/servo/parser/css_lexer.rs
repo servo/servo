@@ -257,7 +257,7 @@ fn spawn_css_lexer_from_file(-filename: ~str) -> port<Token> {
     let result_chan = chan(result_port);
 
     task::spawn(|| {
-        assert (copy filename).ends_with(~".css");
+        assert filename.ends_with(".css");
         let file_try = io::read_whole_file(filename);
 
         // Check if the given css file existed, if it does, parse it,
