@@ -13,10 +13,11 @@ import task::{spawn, spawn_listener};
 import io::{read_whole_file, println};
 import result::{ok, err};
 
-import dom::base::NodeScope;
+import dom::base::{Node, NodeScope};
 import dom::event::{Event, ResizeEvent};
 import dom::rcu::WriterMethods;
 import dom::style;
+import dom::style::Stylesheet;
 import gfx::renderer::Sink;
 import parser::html_lexer::spawn_html_lexer_task;
 import parser::css_builder::build_stylesheet;
@@ -56,6 +57,16 @@ fn join_layout(scope: NodeScope, layout: Layout) {
     }
 }
 
+class Document {
+    let root: Node;
+    let css_rules: Stylesheet;
+
+    new(root: Node, +css_rules: Stylesheet) {
+        self.root = root;
+        self.css_rules = css_rules;
+    }
+}
+
 class Content<S:Sink send copy> {
     let sink: S;
     let layout: Layout;
@@ -65,6 +76,8 @@ class Content<S:Sink send copy> {
     let scope: NodeScope;
     let jsrt: jsrt;
 
+    let mut document: option<Document>;
+
     new(layout: Layout, sink: S, from_master: port<ControlMsg>) {
         self.layout = layout;
         self.sink = sink;
@@ -73,6 +86,8 @@ class Content<S:Sink send copy> {
 
         self.scope = NodeScope();
         self.jsrt = jsrt();
+
+        self.document = none;
 
         self.sink.add_event_listener(self.event_port.chan());
     }
@@ -103,23 +118,15 @@ class Content<S:Sink send copy> {
             // with any previous documents.
             let stream = spawn_html_lexer_task(copy filename);
             let (root, style_port) = build_dom(self.scope, stream);
-
-            // Collect the css stylesheet
             let css_rules = style_port.recv();
 
             // Apply the css rules to the dom tree:
             #debug["%?", css_rules];
 
-            // Now, join the layout so that they will see the latest
-            // changes we have made.
-            join_layout(self.scope, self.layout);
+            let document = Document(root, css_rules);
+            self.relayout(document);
+            self.document = some(document);
 
-            // Send new document and relevant styles to layout
-            self.layout.send(BuildMsg(root, css_rules));
-
-            // Indicate that reader was forked so any further
-            // changes will be isolated.
-            self.scope.reader_forked();
             ret true;
           }
 
@@ -150,10 +157,34 @@ class Content<S:Sink send copy> {
         }
     }
 
+    fn relayout(document: Document) {
+        #debug("content: performing relayout");
+
+        // Now, join the layout so that they will see the latest
+        // changes we have made.
+        join_layout(self.scope, self.layout);
+
+        // Send new document and relevant styles to layout
+        // FIXME: Put CSS rules in an arc or something.
+        self.layout.send(BuildMsg(document.root, document.css_rules));
+
+        // Indicate that reader was forked so any further
+        // changes will be isolated.
+        self.scope.reader_forked();
+    }
+
     fn handle_event(event: Event) -> bool {
         alt event {
           ResizeEvent(new_width, new_height) {
             #debug("content got resize event: %d, %d", new_width, new_height);
+            alt copy self.document {
+                none {
+                    // Nothing to do.
+                }
+                some(document) {
+                    self.relayout(document);
+                }
+            }
             ret true;
           }
         }

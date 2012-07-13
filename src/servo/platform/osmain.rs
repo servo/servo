@@ -34,13 +34,13 @@ fn OSMain() -> OSMain {
 }
 
 fn mainloop(po: port<Msg>) {
-    let mut key_handlers: [chan<()>] = [];
+    let key_handlers: @dvec<chan<()>> = @dvec();
     let event_listeners: @dvec<chan<Event>> = @dvec();
 
     glut::init();
     glut::init_display_mode(glut::DOUBLE);
 
-    let surfaces = surface_set();
+    let surfaces = @surface_set();
 
     let window = glut::create_window("Servo");
     glut::reshape_window(window, 800, 600);
@@ -55,37 +55,26 @@ fn mainloop(po: port<Msg>) {
     let scene = @mut layers::scene::Scene(layers::layers::ImageLayerKind(image_layer),
                                           Size2D(800.0f32, 600.0f32));
 
-    do glut::reshape_func(window) |width, height| {
-        #debug("osmain: window resized to %d,%d", width as int, height as int);
-        for event_listeners.each |event_listener| {
-            event_listener.send(ResizeEvent(width as int, height as int));
-        }
-    }
+    let done = @mut false;
 
-    loop {
-        do glut::display_func() {
-            #debug("osmain: drawing to screen");
-
-            layers::rendergl::render_scene(context, *scene);
-            glut::swap_buffers();
-            glut::post_redisplay();
-        }
-
+    let check_for_messages = fn@() {
         // Handle messages
+        #debug("osmain: peeking");
         if po.peek() {
-            alt check po.recv() {
+            alt po.recv() {
               AddKeyHandler(key_ch) {
-                key_handlers += [key_ch];
+                key_handlers.push(key_ch);
               }
               AddEventListener(event_listener) {
                 event_listeners.push(event_listener);
               }
               BeginDrawing(sender) {
-                lend_surface(surfaces, sender);
+                lend_surface(*surfaces, sender);
               }
               Draw(sender, dt) {
-                return_surface(surfaces, dt);
-                lend_surface(surfaces, sender);
+                #debug("osmain: received new frame");
+                return_surface(*surfaces, dt);
+                lend_surface(*surfaces, sender);
 
                 let mut image_data;
                 unsafe {
@@ -97,15 +86,38 @@ fn mainloop(po: port<Msg>) {
                     @layers::layers::Image(800, 600, layers::layers::RGB24Format,
                                            layers::util::convert_rgb32_to_rgb24(image_data));
                 image_layer.set_image(image);
-
-                glut::post_redisplay();
               }
-              exit { break; }
+              exit {
+                *done = true;
+              }
             }
         }
+    };
 
+    do glut::reshape_func(window) |width, height| {
+        check_for_messages();
+
+        #debug("osmain: window resized to %d,%d", width as int, height as int);
+        for event_listeners.each |event_listener| {
+            event_listener.send(ResizeEvent(width as int, height as int));
+        }
+    }
+
+    do glut::display_func() {
+        check_for_messages();
+
+        #debug("osmain: drawing to screen");
+
+        layers::rendergl::render_scene(context, *scene);
+        glut::swap_buffers();
+        glut::post_redisplay();
+    }
+
+    while !*done {
+        #debug("osmain: running GLUT check loop");
         glut::check_loop();
     }
+
     destroy_surface(surfaces.s1.surf);
     destroy_surface(surfaces.s2.surf);
 }
@@ -199,7 +211,7 @@ fn mk_surface() -> surface {
     }
 }
 
-fn destroy_surface(surface: surface) {
+fn destroy_surface(+surface: surface) {
     AzReleaseDrawTarget(surface.az_target);
     cairo_surface_destroy(surface.cairo_surf);
 }
