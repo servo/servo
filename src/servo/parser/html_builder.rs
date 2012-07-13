@@ -106,7 +106,7 @@ fn css_link_listener(to_parent : comm::chan<Stylesheet>, from_parent : comm::por
             task::spawn(|| {
                 //TODO: deal with extraneous copies
                 let filename <- copy filename;
-                let css_stream = css_lexer::spawn_css_lexer_from_file(filename);
+                let css_stream = css_lexer::spawn_css_lexer_task(filename);
                 let mut css_rules = css_builder::build_stylesheet(css_stream);
                 result_chan.send(css_rules);
             });

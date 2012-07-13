@@ -12,7 +12,7 @@ class Engine<S:Sink send copy> {
     let layout: Layout;
     let content: chan<content::ControlMsg>;
 
-    new(sink: S) {
+    new(+sink: S) {
         self.sink = sink;
 
         let renderer = Renderer(sink);

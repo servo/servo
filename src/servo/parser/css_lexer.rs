@@ -1,10 +1,11 @@
 #[doc = "Code to lex and tokenize css files."]
 
-import comm::{port, chan};
 import dom::style;
 import option::is_none;
 import str::from_bytes;
 import vec::push;
+
+import pipes::{port, chan};
 
 import lexer_util::*;
 
@@ -243,8 +244,7 @@ fn lex_css_from_bytes(-content : ~[u8], result_chan : chan<Token>) {
 }
 
 fn spawn_css_lexer_from_string(-content : ~str) -> port<Token> {
-    let result_port = port();
-    let result_chan = chan(result_port);
+    let (result_chan, result_port) = pipes::stream();
 
     task::spawn(|| lex_css_from_bytes(str::bytes(content), result_chan));
 
@@ -252,9 +252,8 @@ fn spawn_css_lexer_from_string(-content : ~str) -> port<Token> {
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn spawn_css_lexer_from_file(-filename: ~str) -> port<Token> {
-    let result_port = port();
-    let result_chan = chan(result_port);
+fn spawn_css_lexer_task(-filename: ~str) -> pipes::port<Token> {
+    let (result_chan, result_port) = pipes::stream();
 
     task::spawn(|| {
         assert filename.ends_with(".css");

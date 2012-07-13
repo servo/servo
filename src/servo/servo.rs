@@ -32,13 +32,13 @@ fn run_pipeline_screen(urls: ~[~str]) {
     // The platform event handler thread
     let osmain = OSMain();
 
-    // Create a serve instance
-    let engine = Engine(osmain);
-    let engine_chan = engine.start();
-
     // Send each file to render then wait for keypress
     let (keypress_to_engine, keypress_from_osmain) = pipes::stream();
     osmain.send(AddKeyHandler(keypress_to_engine));
+
+    // Create a serve instance
+    let engine = Engine(osmain);
+    let engine_chan = engine.start();
 
     for urls.each |filename| {
         #debug["master: Sending filename `%s`", filename];
