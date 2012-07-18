@@ -8,8 +8,12 @@ import gfx::geometry::au;
 import util::tree;
 import base::{Box, InlineBox, BTree, layout_methods, BoxTreeReadMethods};
 
+trait inline_layout_methods {
+    fn reflow_inline(available_width: au);
+}
+
 #[doc="The main reflow routine for inline layout."]
-impl inline_layout_methods for @Box {
+impl inline_layout_methods of inline_layout_methods for @Box {
     fn reflow_inline(available_width: au) {
         assert self.kind == InlineBox;
 

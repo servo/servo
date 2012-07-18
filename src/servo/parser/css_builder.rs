@@ -16,7 +16,12 @@ import vec::push;
 
 type TokenReader = {stream : port<Token>, mut lookahead : option<Token>};
 
-impl methods for TokenReader {
+trait methods {
+    fn get() -> Token;
+    fn unget(-tok : Token);
+}
+
+impl methods of methods for TokenReader {
     fn get() -> Token {
         alt copy self.lookahead {
           some(tok)  { self.lookahead = none; copy tok }

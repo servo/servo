@@ -55,7 +55,12 @@ fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
     }
 }
 
-impl priv_matching_methods for Node {
+trait priv_matching_methods {
+    fn matches_element(sel: ~Selector) -> bool;
+    fn matches_selector(sel : ~Selector) -> bool;
+}
+
+impl priv_matching_methods of priv_matching_methods for Node {
     #[doc="
         Checks if the given CSS selector, which must describe a single element with no relational
         information, describes the given HTML element.
@@ -162,7 +167,11 @@ impl priv_matching_methods for Node {
     }
 }
 
-impl priv_style_methods for Node {
+trait priv_style_methods {
+    fn update_style(decl : StyleDeclaration);
+}
+
+impl priv_style_methods of priv_style_methods for Node {
     #[doc="Update the computed style of an HTML element with a style specified by CSS."]
     fn update_style(decl : StyleDeclaration) {
         self.aux(|layout| {
@@ -175,7 +184,11 @@ impl priv_style_methods for Node {
     }
 }
 
-impl matching_methods for Node {
+trait matching_methods {
+    fn match_css_style(styles : Stylesheet);
+}
+
+impl matching_methods of matching_methods for Node {
     #[doc="Compare an html element to a list of css rules and update its
            style according to the rules matching it."]
     fn match_css_style(styles : Stylesheet) {

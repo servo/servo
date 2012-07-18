@@ -146,7 +146,11 @@ impl methods for ctxt {
     }
 }
 
-impl box_builder_priv for Node {
+trait box_builder_priv {
+    fn determine_box_kind() -> BoxKind;
+}
+
+impl box_builder_priv of box_builder_priv for Node {
     #[doc="
         Determines the kind of box that this node needs. Also, for images, computes the intrinsic
         size.
@@ -167,7 +171,11 @@ impl box_builder_priv for Node {
     }
 }
 
-impl box_builder_methods for Node {
+trait box_builder_methods {
+    fn construct_boxes() -> @Box;
+}
+
+impl box_builder_methods of box_builder_methods for Node {
     #[doc="Creates boxes for this node. This is the entry point."]
     fn construct_boxes() -> @Box {
         let box_kind = self.determine_box_kind();

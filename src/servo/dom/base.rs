@@ -72,8 +72,12 @@ fn NodeScope() -> NodeScope {
     rcu::Scope()
 }
 
+trait node_scope {
+    fn new_node(-k: NodeKind) -> Node;
+}
+
 #[warn(no_non_implicitly_copyable_typarams)]
-impl NodeScope for NodeScope {
+impl NodeScope of node_scope for NodeScope {
     fn new_node(-k: NodeKind) -> Node {
         self.handle(NodeData({tree: tree::empty(), kind: ~k}))
     }

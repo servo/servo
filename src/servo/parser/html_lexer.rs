@@ -26,7 +26,13 @@ type HtmlLexer = {
     mut parser_state: ParseState
 };
 
-impl html_methods for HtmlLexer {
+trait html_methods {
+    fn parse_html() -> Token;
+    fn parse_in_normal_state(c: u8) -> Token;
+    fn parse_in_tag_state(c: u8) -> Token;
+}
+
+impl html_methods of html_methods for HtmlLexer {
     fn parse_html() -> Token {
         let mut ch: u8;
         alt self.input_state.get() {

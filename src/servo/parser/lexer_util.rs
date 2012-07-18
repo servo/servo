@@ -12,7 +12,13 @@ type InputState = {
     reader: io::reader
 };
 
-impl u8_methods for u8 {
+trait u8_methods {
+    fn is_whitespace() -> bool;
+    fn is_alpha() -> bool;
+}
+
+
+impl u8_methods of u8_methods for u8 {
     fn is_whitespace() -> bool {
         ret self == ' ' as u8 || self == '\n' as u8 || self == '\t' as u8;
     }
@@ -23,7 +29,17 @@ impl u8_methods for u8 {
     }
 }
 
-impl util_methods for InputState {
+trait util_methods {
+    fn get() -> CharOrEof;
+    fn unget(ch: u8);
+    fn parse_err(err: ~str) -> !;
+    fn expect(ch: u8);
+    fn parse_ident() -> ~str;
+    fn expect_ident(expected: ~str);
+    fn eat_whitespace();
+}
+
+impl util_methods of util_methods for InputState {
     fn get() -> CharOrEof {
         alt copy self.lookahead {
             some(coe) {

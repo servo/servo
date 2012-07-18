@@ -33,7 +33,11 @@ fn default_style_for_node_kind(kind: NodeKind) -> computed_style {
     }
 }
 
-impl style_priv for Node {
+trait style_priv {
+    fn initialize_style();
+}
+
+impl style_priv of style_priv for Node {
     #[doc="Set a default auxilliary data so that other threads can modify it.
         
         This is, importantly, the function that creates the layout data for the node (the reader-
@@ -50,7 +54,13 @@ impl style_priv for Node {
     }
 }
 
-impl style_methods for Node {
+trait style_methods {
+    fn initialize_style_for_subtree();
+    fn get_computed_style() -> computed_style;
+    fn recompute_style_for_subtree(styles : arc<Stylesheet>);
+}
+
+impl style_methods of style_methods for Node {
     #[doc="Sequentially initialize the nodes' auxilliary data so they can be updated in parallel."]
     fn initialize_style_for_subtree() {
         self.initialize_style();

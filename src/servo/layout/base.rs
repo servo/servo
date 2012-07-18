@@ -134,7 +134,11 @@ impl layout_methods for @Box {
 
 // Debugging
 
-impl PrivateNodeMethods for Node {
+trait PrivateNodeMethods{
+    fn dump_indent(ident: uint);
+}
+
+impl PrivateNodeMethods of PrivateNodeMethods for Node {
     #[doc="Dumps the node tree, for debugging, with indentation."]
     fn dump_indent(indent: uint) {
         let mut s = ~"";
@@ -151,7 +155,11 @@ impl PrivateNodeMethods for Node {
     }
 }
 
-impl NodeMethods for Node {
+trait NodeMethods {
+    fn dump();
+}
+
+impl NodeMethods of NodeMethods for Node {
     #[doc="Dumps the subtree rooted at this node, for debugging."]
     fn dump() {
         self.dump_indent(0u);

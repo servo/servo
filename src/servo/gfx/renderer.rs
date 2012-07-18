@@ -58,7 +58,11 @@ fn Renderer<S: Sink send copy>(sink: S) -> chan<Msg> {
     })
 }
 
-impl to_float for u8 {
+trait to_float {
+    fn to_float() -> float;
+}
+
+impl to_float of to_float for u8 {
     fn to_float() -> float {
         (self as float) / 255f
     }

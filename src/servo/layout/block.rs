@@ -6,8 +6,12 @@ import gfx::geometry::au;
 import util::tree;
 import base::{Box, BlockBox, BTree, layout_methods, BoxTreeReadMethods};
 
+trait block_layout_methods {
+    fn reflow_block(available_widh: au);
+}
+
 #[doc="The public block layout methods."]
-impl block_layout_methods for @Box {
+impl block_layout_methods of block_layout_methods for @Box {
     #[doc="The main reflow routine for block layout."]
     fn reflow_block(available_width: au) {
         assert self.kind == BlockBox;
