@@ -43,7 +43,7 @@ fn add_child<T:copy,O:WriteMethods<T>>(ops: O, parent: T, child: T) {
 
     ops.with_tree_fields(child, |child_tf| {
         alt child_tf.parent {
-          some(_) { fail "Already has a parent"; }
+          some(_) { fail ~"Already has a parent"; }
           none { child_tf.parent = some(parent); }
         }
 

@@ -6,12 +6,12 @@ import vec::push;
 import lexer_util::*;
 
 enum Token {
-    StartOpeningTag(str),
+    StartOpeningTag(~str),
     EndOpeningTag,
-    EndTag(str),
+    EndTag(~str),
     SelfCloseTag,
-    Text(str),
-    Attr(str, str),
+    Text(~str),
+    Attr(~str, ~str),
     Doctype,
     Eof
 }
@@ -47,14 +47,14 @@ impl html_methods for HtmlLexer {
         if ch == ('<' as u8) {
             alt self.input_state.get() {
               CoeChar(c) { ch = c; }
-              CoeEof { self.input_state.parse_err("eof after '<'") }
+              CoeEof { self.input_state.parse_err(~"eof after '<'") }
             }
 
             if ch == ('!' as u8) {
                 self.input_state.eat_whitespace();
-                self.input_state.expect_ident("DOCTYPE");
+                self.input_state.expect_ident(~"DOCTYPE");
                 self.input_state.eat_whitespace();
-                self.input_state.expect_ident("html");
+                self.input_state.expect_ident(~"html");
                 self.input_state.eat_whitespace();
                 self.input_state.expect('>' as u8);
                 ret Doctype;
@@ -169,7 +169,7 @@ fn spawn_html_lexer_task(-filename: ~str) -> port<Token> {
 
     task::spawn(|| {
         let filename = copy html_file;
-        assert (copy filename).ends_with(".html");
+        assert (copy filename).ends_with(~".html");
         let file_data = io::read_whole_file(filename).get();
         let reader = io::bytes_reader(file_data);
         

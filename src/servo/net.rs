@@ -13,7 +13,7 @@ iface channel {
 }
 
 iface io_service {
-    fn new_uri(spec: str) -> uri;
+    fn new_uri(spec: ~str) -> uri;
     fn new_channel(uri: uri) -> channel;
 }
 

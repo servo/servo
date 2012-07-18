@@ -116,7 +116,7 @@ class Font {
             let status_str = unsafe { from_c_str(status_cstr) };
 
             #error("cairo_scaled_font_glyph_extents status: %s", status_str);
-            fail "failed to get glyph extents from cairo"
+            fail ~"failed to get glyph extents from cairo"
           }
         }
     }
@@ -162,7 +162,7 @@ fn get_cairo_font(buf: &~[u8]) -> (*cairo_scaled_font_t, fn@()) {
     // FIXME: Need negative tests
     if cfont.is_null() {
         dtor();
-        fail "unable to create cairo scaled font";
+        fail ~"unable to create cairo scaled font";
     }
     dtor = fn@(move dtor) { cairo_scaled_font_destroy(cfont); dtor() };
 
@@ -199,7 +199,7 @@ fn get_cairo_face(buf: &~[u8]) -> (*cairo_font_face_t, fn@()) {
         if FT_New_Memory_Face(library, cbuf, (*buf).len() as FT_Long,
                               0 as FT_Long, addr_of(face)).failed() {
             dtor();
-            fail "unable to create FreeType face";
+            fail ~"unable to create FreeType face";
         }
     });
     dtor = fn@(move dtor) { FT_Done_Face(face).for_sure(); dtor() };
@@ -208,7 +208,7 @@ fn get_cairo_face(buf: &~[u8]) -> (*cairo_font_face_t, fn@()) {
     if cface.is_null() {
         // FIXME: Need tests for failure case
         dtor();
-        fail "unable to create cairo font face";
+        fail ~"unable to create cairo font face";
     }
     dtor = fn@(move dtor) { cairo_font_face_destroy(cface); dtor() };
 
@@ -247,7 +247,7 @@ fn get_cairo_face(buf: &~[u8]) -> (*cairo_font_face_t, fn@()) {
     dtor = fn@(move dtor) { CGDataProviderRelease(fontprov); dtor() };
 
     let cgfont = CGFontCreateWithDataProvider(fontprov);
-    if cgfont.is_null() { fail "could not create quartz font" }
+    if cgfont.is_null() { fail ~"could not create quartz font" }
     dtor = fn@(move dtor) { CGFontRelease(cgfont); dtor() };
 
     let cface = cairo_quartz_font_face_create_for_cgfont(cgfont);

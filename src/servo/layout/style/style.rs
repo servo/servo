@@ -68,7 +68,7 @@ impl style_methods for Node {
     "]
     fn get_computed_style() -> computed_style {
         if !self.has_aux() {
-            fail "get_computed_style() called on a node without a style!";
+            fail ~"get_computed_style() called on a node without a style!";
         }
         ret copy *self.aux(|x| copy x).computed_style;
     }

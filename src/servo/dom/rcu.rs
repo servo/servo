@@ -229,7 +229,7 @@ impl WriterMethods<T:copy send,A> for Scope<T,A> {
 #[warn(no_non_implicitly_copyable_typarams)]
 mod test {
 
-    type animal = {name: str, species: species};
+    type animal = {name: ~str, species: species};
     enum species {
         chicken(~chicken),
         bull(~bull)
@@ -244,8 +244,8 @@ mod test {
     #[test]
     fn handles_get_freed() {
         let s: animal_scope = Scope();
-        s.handle({name:"henrietta", species:chicken(~{mut eggs_per_day:22u})});
-        s.handle({name:"ferdinand", species:bull(~{mut horns:3u})});
+        s.handle({name:~"henrietta", species:chicken(~{mut eggs_per_day:22u})});
+        s.handle({name:~"ferdinand", species:bull(~{mut horns:3u})});
     }
 
     fn mutate(a: animal) {
@@ -266,10 +266,10 @@ mod test {
     fn interspersed_execution() {
         let s: animal_scope = Scope();
         let henrietta =
-            s.handle({name:"henrietta",
+            s.handle({name:~"henrietta",
                       species:chicken(~{mut eggs_per_day:0u})});
         let ferdinand =
-            s.handle({name:"ferdinand",
+            s.handle({name:~"ferdinand",
                       species:bull(~{mut horns:0u})});
 
         let iter1 = 3u;

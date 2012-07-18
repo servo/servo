@@ -5,7 +5,7 @@ import osmain::{OSMain, AddKeyHandler};
 import opts::{Opts, Screen, Png};
 import engine::{Engine, LoadURLMsg};
 
-fn main(args: ~[str]) {
+fn main(args: ~[~str]) {
     run(opts::from_cmdline_args(args))
 }
 
@@ -18,14 +18,14 @@ fn run(opts: Opts) {
       Png(outfile) {
         assert opts.urls.is_not_empty();
         if opts.urls.len() > 1u {
-            fail "servo asks that you stick to a single URL in PNG output mode"
+            fail ~"servo asks that you stick to a single URL in PNG output mode"
         }
         run_pipeline_png(opts.urls.head(), outfile)
       }
     }
 }
 
-fn run_pipeline_screen(urls: ~[str]) {
+fn run_pipeline_screen(urls: ~[~str]) {
 
     // The platform event handler thread
     let osmain = OSMain();
@@ -55,7 +55,7 @@ fn run_pipeline_screen(urls: ~[str]) {
     osmain.send(osmain::Exit);
 }
 
-fn run_pipeline_png(-url: str, outfile: str) {
+fn run_pipeline_png(-url: ~str, outfile: ~str) {
 
     // Use a PNG encoder as the graphics sink
     import gfx::pngsink;

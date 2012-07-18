@@ -94,9 +94,9 @@ impl BoxTreeWriteMethods of tree::WriteMethods<@Box> for BTree {
 impl layout_methods_priv for @Box {
     #[doc="Dumps the box tree, for debugging, with indentation."]
     fn dump_indent(indent: uint) {
-        let mut s = "";
+        let mut s = ~"";
         for uint::range(0u, indent) |_i| {
-            s += "    ";
+            s += ~"    ";
         }
 
         s += #fmt("%?", self.kind);
@@ -137,9 +137,9 @@ impl layout_methods for @Box {
 impl PrivateNodeMethods for Node {
     #[doc="Dumps the node tree, for debugging, with indentation."]
     fn dump_indent(indent: uint) {
-        let mut s = "";
+        let mut s = ~"";
         for uint::range(0u, indent) |_i| {
-            s += "    ";
+            s += ~"    ";
         }
 
         s += #fmt("%?", self.read(|n| copy n.kind ));
@@ -201,10 +201,10 @@ mod test {
             ~HTMLImageElement({mut size: size})
         }
 
-        let n0 = s.new_node(Element(ElementData("img", mk_img(Size2D(au(10),au(10))))));
-        let n1 = s.new_node(Element(ElementData("img", mk_img(Size2D(au(10),au(10))))));
-        let n2 = s.new_node(Element(ElementData("img", mk_img(Size2D(au(10),au(20))))));
-        let n3 = s.new_node(Element(ElementData("div", ~HTMLDivElement)));
+        let n0 = s.new_node(Element(ElementData(~"img", mk_img(Size2D(au(10),au(10))))));
+        let n1 = s.new_node(Element(ElementData(~"img", mk_img(Size2D(au(10),au(10))))));
+        let n2 = s.new_node(Element(ElementData(~"img", mk_img(Size2D(au(10),au(20))))));
+        let n3 = s.new_node(Element(ElementData(~"div", ~HTMLDivElement)));
 
         tree::add_child(s, n3, n0);
         tree::add_child(s, n3, n1);

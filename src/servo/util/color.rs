@@ -41,7 +41,7 @@ fn hsla(h : float, s : float, l : float, a : float) -> Color {
           1.0/6.0 to 1.0/2.0 { ret m2; }
           1.0/2.0 to 2.0/3.0 { ret m1 + (m2 - m1)*(4.0 - 6.0*h); }
           2.0/3.0 to 1.0     { ret m1; }
-          _                  { fail "unexpected hue value"; }
+          _                  { fail ~"unexpected hue value"; }
         }
     }
 
@@ -57,7 +57,7 @@ fn hsl(h : float, s : float, l : float) -> Color {
 }
 
 impl methods for Color {
-    fn print() -> str {
+    fn print() -> ~str {
         #fmt["rgba(%u,%u,%u,%f)", self.red as uint, self.green as uint,
              self.blue as uint, self.alpha]
     }
@@ -68,37 +68,37 @@ mod parsing {
 
     // TODO, fail by ignoring the rule instead of setting the
     // color to black
-    fn fail_unrecognized(col : str) -> Color {
+    fn fail_unrecognized(col : ~str) -> Color {
         #warn["Unrecognized color %s", col];
         ret  black();
     }
 
     #[doc="Match an exact color keyword."]
-    fn parse_by_name(color : str) -> Color {
+    fn parse_by_name(color : ~str) -> Color {
         alt color.to_lower() {
-          "black"   { black()   }
-          "silver"  { silver()  }
-          "gray"    { gray()    }
-          "grey"    { gray()    }
-          "white"   { white()   }
-          "maroon"  { maroon()  }
-          "red"     { red()     }
-          "purple"  { purple()  }
-          "fuchsia" { fuchsia() }
-          "green"   { green()   }
-          "lime"    { lime()    }
-          "olive"   { olive()   }
-          "yellow"  { yellow()  }
-          "navy"    { navy()    }
-          "blue"    { blue()    }
-          "teal"    { teal()    }
-          "aqua"    { aqua()    }
+          ~"black"   { black()   }
+          ~"silver"  { silver()  }
+          ~"gray"    { gray()    }
+          ~"grey"    { gray()    }
+          ~"white"   { white()   }
+          ~"maroon"  { maroon()  }
+          ~"red"     { red()     }
+          ~"purple"  { purple()  }
+          ~"fuchsia" { fuchsia() }
+          ~"green"   { green()   }
+          ~"lime"    { lime()    }
+          ~"olive"   { olive()   }
+          ~"yellow"  { yellow()  }
+          ~"navy"    { navy()    }
+          ~"blue"    { blue()    }
+          ~"teal"    { teal()    }
+          ~"aqua"    { aqua()    }
           _         { fail_unrecognized(color) }
         }
     }
     
     #[doc="Parses a color specification in the form rgb(foo,bar,baz)"]
-    fn parse_rgb(color : str) -> Color {
+    fn parse_rgb(color : ~str) -> Color {
         // Shave off the rgb( and the )
         let only_colors = color.substr(4u, color.len() - 5u);
 
@@ -114,7 +114,7 @@ mod parsing {
     }
 
     #[doc="Parses a color specification in the form rgba(foo,bar,baz,qux)"]
-    fn parse_rgba(color : str) -> Color {
+    fn parse_rgba(color : ~str) -> Color {
         // Shave off the rgba( and the )
         let only_vals = color.substr(5u, color.len() - 6u);
 
@@ -130,7 +130,7 @@ mod parsing {
     }
 
     #[doc="Parses a color specification in the form hsl(foo,bar,baz)"]
-    fn parse_hsl(color : str) -> Color {
+    fn parse_hsl(color : ~str) -> Color {
         // Shave off the hsl( and the )
         let only_vals = color.substr(4u, color.len() - 5u);
 
@@ -146,7 +146,7 @@ mod parsing {
     }
 
     #[doc="Parses a color specification in the form hsla(foo,bar,baz,qux)"]
-    fn parse_hsla(color : str) -> Color {
+    fn parse_hsla(color : ~str) -> Color {
         // Shave off the hsla( and the )
         let only_vals = color.substr(5u, color.len() - 6u);
 
@@ -163,12 +163,12 @@ mod parsing {
     // Currently colors are supported in rgb(a,b,c) form and also by
     // keywords for several common colors.
     // TODO: extend this
-    fn parse_color(color : str) -> Color {
+    fn parse_color(color : ~str) -> Color {
         alt color {
-          c if c.starts_with("rgb(")  { parse_rgb(c) }
-          c if c.starts_with("rgba(") { parse_rgba(c) }
-          c if c.starts_with("hsl(")  { parse_hsl(c) }
-          c if c.starts_with("hsla(") { parse_hsla(c) }
+          c if c.starts_with(~"rgb(")  { parse_rgb(c) }
+          c if c.starts_with(~"rgba(") { parse_rgba(c) }
+          c if c.starts_with(~"hsl(")  { parse_hsl(c) }
+          c if c.starts_with(~"hsla(") { parse_hsla(c) }
           c                           { parse_by_name(c) }
         }
     }
@@ -181,54 +181,54 @@ mod test {
 
     #[test]
     fn test_parse_by_name() {
-        assert red().eq(parse_color("red"));
-        assert lime().eq(parse_color("Lime"));
-        assert blue().eq(parse_color("BLUE"));
-        assert green().eq(parse_color("GreEN"));
-        assert white().eq(parse_color("white"));
-        assert black().eq(parse_color("Black"));
-        assert gray().eq(parse_color("Gray"));
-        assert silver().eq(parse_color("SiLvEr"));
-        assert maroon().eq(parse_color("maroon"));
-        assert purple().eq(parse_color("PURPLE"));
-        assert fuchsia().eq(parse_color("FUCHSIA"));
-        assert olive().eq(parse_color("oLiVe"));
-        assert yellow().eq(parse_color("yellow"));
-        assert navy().eq(parse_color("NAVY"));
-        assert teal().eq(parse_color("Teal"));
-        assert aqua().eq(parse_color("Aqua"));
+        assert red().eq(parse_color(~"red"));
+        assert lime().eq(parse_color(~"Lime"));
+        assert blue().eq(parse_color(~"BLUE"));
+        assert green().eq(parse_color(~"GreEN"));
+        assert white().eq(parse_color(~"white"));
+        assert black().eq(parse_color(~"Black"));
+        assert gray().eq(parse_color(~"Gray"));
+        assert silver().eq(parse_color(~"SiLvEr"));
+        assert maroon().eq(parse_color(~"maroon"));
+        assert purple().eq(parse_color(~"PURPLE"));
+        assert fuchsia().eq(parse_color(~"FUCHSIA"));
+        assert olive().eq(parse_color(~"oLiVe"));
+        assert yellow().eq(parse_color(~"yellow"));
+        assert navy().eq(parse_color(~"NAVY"));
+        assert teal().eq(parse_color(~"Teal"));
+        assert aqua().eq(parse_color(~"Aqua"));
     }
 
     #[test]
     fn test_parsing_rgb() {
-        assert red().eq(parse_color("rgb(255,0,0)"));
-        assert red().eq(parse_color("rgba(255,0,0,1.0)"));
-        assert red().eq(parse_color("rgba(255,0,0,1)"));
-        assert lime().eq(parse_color("rgba(0,255,0,1.00)"));
-        assert rgb(1u8,2u8,3u8).eq(parse_color("rgb(1,2,03)"));
-        assert rgba(15u8,250u8,3u8,0.5).eq(parse_color("rgba(15,250,3,.5)"));
-        assert rgba(15u8,250u8,3u8,0.5).eq(parse_color("rgba(15,250,3,0.5)"));
+        assert red().eq(parse_color(~"rgb(255,0,0)"));
+        assert red().eq(parse_color(~"rgba(255,0,0,1.0)"));
+        assert red().eq(parse_color(~"rgba(255,0,0,1)"));
+        assert lime().eq(parse_color(~"rgba(0,255,0,1.00)"));
+        assert rgb(1u8,2u8,3u8).eq(parse_color(~"rgb(1,2,03)"));
+        assert rgba(15u8,250u8,3u8,0.5).eq(parse_color(~"rgba(15,250,3,.5)"));
+        assert rgba(15u8,250u8,3u8,0.5).eq(parse_color(~"rgba(15,250,3,0.5)"));
     }
 
     #[test]
     fn test_parsing_hsl() {
-        assert red().eq(parse_color("hsl(0,1,.5)"));
-        assert lime().eq(parse_color("hsl(120.0,1.0,.5)"));
-        assert blue().eq(parse_color("hsl(240.0,1.0,.5)"));
-        assert green().eq(parse_color("hsl(120.0,1.0,.25)"));
-        assert white().eq(parse_color("hsl(1.0,1.,1.0)"));
-        assert white().eq(parse_color("hsl(129.0,0.3,1.0)"));
-        assert black().eq(parse_color("hsl(231.2,0.75,0.0)"));
-        assert black().eq(parse_color("hsl(11.2,0.0,0.0)"));
-        assert gray().eq(parse_color("hsl(0.0,0.0,0.5)"));
-        assert maroon().eq(parse_color("hsl(0.0,1.0,0.25)"));
-        assert purple().eq(parse_color("hsl(300.0,1.0,0.25)"));
-        assert fuchsia().eq(parse_color("hsl(300,1.0,0.5)"));
-        assert olive().eq(parse_color("hsl(60.,1.0,0.25)"));
-        assert yellow().eq(parse_color("hsl(60.,1.0,0.5)"));
-        assert navy().eq(parse_color("hsl(240.0,1.0,.25)"));
-        assert teal().eq(parse_color("hsl(180.0,1.0,.25)"));
-        assert aqua().eq(parse_color("hsl(180.0,1.0,.5)"));
+        assert red().eq(parse_color(~"hsl(0,1,.5)"));
+        assert lime().eq(parse_color(~"hsl(120.0,1.0,.5)"));
+        assert blue().eq(parse_color(~"hsl(240.0,1.0,.5)"));
+        assert green().eq(parse_color(~"hsl(120.0,1.0,.25)"));
+        assert white().eq(parse_color(~"hsl(1.0,1.,1.0)"));
+        assert white().eq(parse_color(~"hsl(129.0,0.3,1.0)"));
+        assert black().eq(parse_color(~"hsl(231.2,0.75,0.0)"));
+        assert black().eq(parse_color(~"hsl(11.2,0.0,0.0)"));
+        assert gray().eq(parse_color(~"hsl(0.0,0.0,0.5)"));
+        assert maroon().eq(parse_color(~"hsl(0.0,1.0,0.25)"));
+        assert purple().eq(parse_color(~"hsl(300.0,1.0,0.25)"));
+        assert fuchsia().eq(parse_color(~"hsl(300,1.0,0.5)"));
+        assert olive().eq(parse_color(~"hsl(60.,1.0,0.25)"));
+        assert yellow().eq(parse_color(~"hsl(60.,1.0,0.5)"));
+        assert navy().eq(parse_color(~"hsl(240.0,1.0,.25)"));
+        assert teal().eq(parse_color(~"hsl(180.0,1.0,.25)"));
+        assert aqua().eq(parse_color(~"hsl(180.0,1.0,.5)"));
     }
 }
 

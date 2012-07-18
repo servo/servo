@@ -43,7 +43,7 @@ fn mainloop(po: port<Msg>) {
 
     let surfaces = @surface_set();
 
-    let window = glut::create_window("Servo");
+    let window = glut::create_window(~"Servo");
     glut::reshape_window(window, 800, 600);
 
     let context = layers::rendergl::init_render_context();
@@ -109,7 +109,7 @@ fn mainloop(po: port<Msg>) {
 
         #debug("osmain: drawing to screen");
 
-        do util::time::time("compositing") {
+        do util::time::time(~"compositing") {
             layers::rendergl::render_scene(context, *scene);
         }
 

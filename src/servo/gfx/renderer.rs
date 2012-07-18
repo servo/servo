@@ -41,7 +41,7 @@ fn Renderer<S: Sink send copy>(sink: S) -> chan<Msg> {
                     let draw_target = draw_target_ch.recv();
                     #debug("renderer: rendering");
 
-                    do util::time::time("rendering") {
+                    do util::time::time(~"rendering") {
                         clear(draw_target);
                         draw_display_list(draw_target, display_list);
                         #debug("renderer: returning surface");
@@ -79,7 +79,7 @@ fn draw_display_list(draw_target: AzDrawTargetRef, display_list: dl::display_lis
             draw_text(draw_target, item, text_run);
           }
           dl::padding(*) {
-            fail "should never see padding";
+            fail ~"should never see padding";
           }
         }
     }

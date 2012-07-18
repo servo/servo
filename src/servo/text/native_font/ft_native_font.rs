@@ -28,7 +28,7 @@ class FreeTypeNativeFont/& {
     drop {
         assert self.face.is_not_null();
         if !FT_Done_Face(self.face).succeeded() {
-            fail "FT_Done_Face failed";
+            fail ~"FT_Done_Face failed";
         }
     }
 
@@ -73,7 +73,7 @@ fn create(lib: FT_Library, buf: &~[u8]) -> result<FreeTypeNativeFont, ()> {
                               0 as FT_Long, addr_of(face)).succeeded() {
             // FIXME: These values are placeholders
             let res = FT_Set_Char_Size(face, 0, 20*64, 0, 72);
-            if !res.succeeded() { fail "unable to set font char size" }
+            if !res.succeeded() { fail ~"unable to set font char size" }
             ok(FreeTypeNativeFont(face))
         } else {
             err(())

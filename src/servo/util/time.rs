@@ -1,7 +1,7 @@
 // Timing functions.
 import std::time::precise_time_ns;
 
-fn time(msg: str, callback: fn()) {
+fn time(msg: ~str, callback: fn()) {
     let start_time = precise_time_ns();
     callback();
     let end_time = precise_time_ns();

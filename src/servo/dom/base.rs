@@ -15,21 +15,21 @@ enum NodeData = {
 
 enum NodeKind {
     Element(ElementData),
-    Text(str)
+    Text(~str)
 }
 
 class ElementData {
-    let tag_name: str;
+    let tag_name: ~str;
     let kind: ~ElementKind;
     let attrs: dvec<~Attr>;
 
-    new(-tag_name: str, -kind: ~ElementKind) {
+    new(-tag_name: ~str, -kind: ~ElementKind) {
         self.tag_name = tag_name;
         self.kind = kind;
         self.attrs = dvec();
     }
 
-    fn get_attr(attr_name: str) -> option<str> {
+    fn get_attr(attr_name: ~str) -> option<~str> {
         let mut i = 0u;
         while i < self.attrs.len() {
             if attr_name == self.attrs[i].name {
@@ -43,10 +43,10 @@ class ElementData {
 }
 
 class Attr {
-    let name: str;
-    let value: str;
+    let name: ~str;
+    let value: ~str;
 
-    new(-name: str, -value: str) {
+    new(-name: ~str, -value: ~str) {
         self.name = name;
         self.value = value;
     }

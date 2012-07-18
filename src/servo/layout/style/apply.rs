@@ -26,7 +26,7 @@ impl ApplyStyleBoxMethods for @Box {
 
                 alt element.kind {
                   ~HTMLImageElement(*) {
-                    alt element.get_attr("src") {
+                    alt element.get_attr(~"src") {
                       some(url) {
                         // FIXME: Some sort of BASE HREF support!
                         // FIXME: Parse URLs!

@@ -29,7 +29,7 @@ fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
       Includes(name, val) {
         // Comply with css spec, if the specified attribute is empty
         // it cannot match.
-        if val == "" { ret false; }
+        if val == ~"" { ret false; }
 
         alt elmt.get_attr(name) {
           some(value) { ret value.split_char(' ').contains(val); }
@@ -41,11 +41,11 @@ fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
           some(value) { 
             //check that there is only one attribute value and it
             //starts with the perscribed value
-            if !value.starts_with(val) || value.contains(" ") { ret false; }
+            if !value.starts_with(val) || value.contains(~" ") { ret false; }
 
             // We match on either the exact value or value-foo
             if value.len() == val.len() { ret true; }
-            else { ret value.starts_with(val + "-"); }
+            else { ret value.starts_with(val + ~"-"); }
           }
           none {
             ret false;
@@ -66,7 +66,7 @@ impl priv_matching_methods for Node {
           Element(tag, attrs) {
             alt self.read(|n| copy *n.kind) {
                 base::Element(elmt) {
-                    if !(tag == "*" || tag == elmt.tag_name) {
+                    if !(tag == ~"*" || tag == elmt.tag_name) {
                         ret false;
                     }
                     
@@ -207,8 +207,8 @@ mod test {
     import io::println;
 
     #[warn(no_non_implicitly_copyable_typarams)]
-    fn new_node_from_attr(scope: NodeScope, -name: str, -val: str) -> Node {
-        let elmt = ElementData("div", ~HTMLDivElement);
+    fn new_node_from_attr(scope: NodeScope, -name: ~str, -val: ~str) -> Node {
+        let elmt = ElementData(~"div", ~HTMLDivElement);
         let attr = ~Attr(name, val);
         elmt.attrs.push(attr);
         ret scope.new_node(base::Element(elmt));
@@ -217,9 +217,9 @@ mod test {
     #[test]
     fn test_match_pipe1() {
         let scope = NodeScope();
-        let node = new_node_from_attr(scope, "lang", "en-us");
+        let node = new_node_from_attr(scope, ~"lang", ~"en-us");
 
-        let sel = Element("*", ~[StartsWith("lang", "en")]);
+        let sel = Element(~"*", ~[StartsWith(~"lang", ~"en")]);
 
         assert node.matches_selector(~sel);
     }
@@ -227,9 +227,9 @@ mod test {
     #[test]
     fn test_match_pipe2() {
         let scope = NodeScope();
-        let node = new_node_from_attr(scope, "lang", "en");
+        let node = new_node_from_attr(scope, ~"lang", ~"en");
 
-        let sel = Element("*", ~[StartsWith("lang", "en")]);
+        let sel = Element(~"*", ~[StartsWith(~"lang", ~"en")]);
 
         assert node.matches_selector(~sel);
     }
@@ -237,9 +237,9 @@ mod test {
     #[test] 
     fn test_not_match_pipe() {
         let scope = NodeScope();
-        let node = new_node_from_attr(scope, "lang", "english");
+        let node = new_node_from_attr(scope, ~"lang", ~"english");
 
-        let sel = Element("*", ~[StartsWith("lang", "en")]);
+        let sel = Element(~"*", ~[StartsWith(~"lang", ~"en")]);
 
         assert !node.matches_selector(~sel);
     }
@@ -247,9 +247,9 @@ mod test {
     #[test]
     fn test_match_includes() {
         let scope = NodeScope();
-        let node = new_node_from_attr(scope, "mad", "hatter cobler cooper");
+        let node = new_node_from_attr(scope, ~"mad", ~"hatter cobler cooper");
 
-        let sel = Element("div", ~[Includes("mad", "hatter")]);
+        let sel = Element(~"div", ~[Includes(~"mad", ~"hatter")]);
 
         assert node.matches_selector(~sel);
     }
@@ -257,10 +257,10 @@ mod test {
     #[test]
     fn test_match_exists() {
         let scope = NodeScope();
-        let node = new_node_from_attr(scope, "mad", "hatter cobler cooper");
+        let node = new_node_from_attr(scope, ~"mad", ~"hatter cobler cooper");
 
-        let sel1 = Element("div", ~[Exists("mad")]);
-        let sel2 = Element("div", ~[Exists("hatter")]);
+        let sel1 = Element(~"div", ~[Exists(~"mad")]);
+        let sel2 = Element(~"div", ~[Exists(~"hatter")]);
 
         assert node.matches_selector(~sel1);
         assert !node.matches_selector(~sel2);
@@ -269,10 +269,10 @@ mod test {
     #[test]
     fn test_match_exact() {
         let scope = NodeScope();
-        let node1 = new_node_from_attr(scope, "mad", "hatter cobler cooper");
-        let node2 = new_node_from_attr(scope, "mad", "hatter");
+        let node1 = new_node_from_attr(scope, ~"mad", ~"hatter cobler cooper");
+        let node2 = new_node_from_attr(scope, ~"mad", ~"hatter");
 
-        let sel = Element("div", ~[Exact("mad", "hatter")]);
+        let sel = Element(~"div", ~[Exact(~"mad", ~"hatter")]);
 
         assert !node1.matches_selector(~copy sel);
         assert node2.matches_selector(~sel);
@@ -282,12 +282,12 @@ mod test {
     fn match_tree() {
         let scope = NodeScope();
 
-        let root = new_node_from_attr(scope, "class", "blue");
-        let child1 = new_node_from_attr(scope, "id", "green");
-        let child2 = new_node_from_attr(scope, "flag", "black");
-        let gchild = new_node_from_attr(scope, "flag", "grey");
-        let ggchild = new_node_from_attr(scope, "flag", "white");
-        let gggchild = new_node_from_attr(scope, "flag", "purple");
+        let root = new_node_from_attr(scope, ~"class", ~"blue");
+        let child1 = new_node_from_attr(scope, ~"id", ~"green");
+        let child2 = new_node_from_attr(scope, ~"flag", ~"black");
+        let gchild = new_node_from_attr(scope, ~"flag", ~"grey");
+        let ggchild = new_node_from_attr(scope, ~"flag", ~"white");
+        let gggchild = new_node_from_attr(scope, ~"flag", ~"purple");
 
         scope.add_child(root, child1);
         scope.add_child(root, child2);
@@ -295,8 +295,8 @@ mod test {
         scope.add_child(gchild, ggchild);
         scope.add_child(ggchild, gggchild);
 
-        let sel1 = Descendant(~Element("*", ~[Exact("class", "blue")]),
-                              ~Element("*", ~[]));
+        let sel1 = Descendant(~Element(~"*", ~[Exact(~"class", ~"blue")]),
+                              ~Element(~"*", ~[]));
 
         assert !root.matches_selector(~copy sel1);
         assert child1.matches_selector(~copy sel1);
@@ -305,9 +305,9 @@ mod test {
         assert ggchild.matches_selector(~copy sel1);
         assert gggchild.matches_selector(~sel1);
 
-        let sel2 = Descendant(~Child(~Element("*", ~[Exact("class", "blue")]),
-                                     ~Element("*", ~[])),
-                              ~Element("div", ~[Exists("flag")]));
+        let sel2 = Descendant(~Child(~Element(~"*", ~[Exact(~"class", ~"blue")]),
+                                     ~Element(~"*", ~[])),
+                              ~Element(~"div", ~[Exists(~"flag")]));
 
         assert !root.matches_selector(~copy sel2);
         assert !child1.matches_selector(~copy sel2);
@@ -316,7 +316,7 @@ mod test {
         assert ggchild.matches_selector(~copy sel2);
         assert gggchild.matches_selector(~sel2);
 
-        let sel3 = Sibling(~Element("*", ~[]), ~Element("*", ~[]));
+        let sel3 = Sibling(~Element(~"*", ~[]), ~Element(~"*", ~[]));
 
         assert !root.matches_selector(~copy sel3);
         assert child1.matches_selector(~copy sel3);
@@ -325,9 +325,9 @@ mod test {
         assert !ggchild.matches_selector(~copy sel3);
         assert !gggchild.matches_selector(~sel3);
 
-        let sel4 = Descendant(~Child(~Element("*", ~[Exists("class")]),
-                                    ~Element("*", ~[])),
-                              ~Element("*", ~[]));
+        let sel4 = Descendant(~Child(~Element(~"*", ~[Exists(~"class")]),
+                                    ~Element(~"*", ~[])),
+                              ~Element(~"*", ~[]));
 
         assert !root.matches_selector(~copy sel4);
         assert !child1.matches_selector(~copy sel4);

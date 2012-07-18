@@ -45,7 +45,7 @@ impl util_methods for InputState {
         self.lookahead = some(CoeChar(ch));
     }
 
-    fn parse_err(err: str) -> ! {
+    fn parse_err(err: ~str) -> ! {
         fail err
     }
 
@@ -62,7 +62,7 @@ impl util_methods for InputState {
         }
     }
 
-    fn parse_ident() -> str {
+    fn parse_ident() -> ~str {
         let mut result: ~[u8] = ~[];
         loop {
             alt self.get() {
@@ -70,21 +70,21 @@ impl util_methods for InputState {
                     if (c.is_alpha()) {
                         push(result, c);
                     } else if result.len() == 0u {
-                        self.parse_err("expected ident");
+                        self.parse_err(~"expected ident");
                     } else {
                         self.unget(c);
                         break;
                     }
                 }
                 CoeEof {
-                    self.parse_err("expected ident");
+                    self.parse_err(~"expected ident");
                 }
             }
         }
         ret str::from_bytes(result);
     }
 
-    fn expect_ident(expected: str) {
+    fn expect_ident(expected: ~str) {
         let actual = self.parse_ident();
         if expected != actual {
             self.parse_err(#fmt("expected '%s' but found '%s'", expected, actual));

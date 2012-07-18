@@ -25,9 +25,9 @@ enum Token {
     Child,
     Sibling,
     Comma,
-    Element(str),
+    Element(~str),
     Attr(style::Attr), 
-    Description(str, str),
+    Description(~str, ~str),
     Eof
 }
 
@@ -74,10 +74,10 @@ impl css_methods for CssLexer {
         if c == '.' as u8 || c == '#' as u8 {
             self.parser_state = CssAttribute;
             self.input_state.unget(c);
-            ret Element("*");
+            ret Element(~"*");
         } else if c == '*' as u8 {
             self.parser_state = CssAttribute;
-            ret Element("*");
+            ret Element(~"*");
         }
 
         self.input_state.unget(c);
@@ -99,21 +99,21 @@ impl css_methods for CssLexer {
 
             alt self.input_state.get() {
               CoeChar(c)  { ch = c }
-              CoeEof      { fail "File ended before description of style" }
+              CoeEof      { fail ~"File ended before description of style" }
             }
 
             ret self.parse_css_relation(ch);
         }
         
         alt ch {
-          '.' as u8 { ret Attr(style::Includes("class", self.input_state.parse_ident())); }
-          '#' as u8 { ret Attr(style::Includes("id", self.input_state.parse_ident())); }
+          '.' as u8 { ret Attr(style::Includes(~"class", self.input_state.parse_ident())); }
+          '#' as u8 { ret Attr(style::Includes(~"id", self.input_state.parse_ident())); }
           '[' as u8 {
             let attr_name = self.input_state.parse_ident();
             
             alt self.input_state.get() {
               CoeChar(c)    { ch = c; }
-              CoeEof        { fail "File ended before description finished"; }
+              CoeEof        { fail ~"File ended before description finished"; }
             }
 
             if ch == ']' as u8 {
@@ -152,7 +152,7 @@ impl css_methods for CssLexer {
 
             alt self.input_state.get() {
               CoeChar(c)  { ch = c }
-              CoeEof      { fail "Reached end of file in CSS description" }
+              CoeEof      { fail ~"Reached end of file in CSS description" }
             }
         }
         
@@ -164,7 +164,7 @@ impl css_methods for CssLexer {
                 self.input_state.eat_whitespace();
             } else if ch == ':' as u8 {
                 if desc_name.len() == 0u {
-                    fail "Expected descriptor name";
+                    fail ~"Expected descriptor name";
                 } else {
                     break;
                 }
@@ -174,7 +174,7 @@ impl css_methods for CssLexer {
 
             alt self.input_state.get() {
               CoeChar(c)  { ch = c }
-              CoeEof      { fail "Reached end of file in CSS description" }
+              CoeEof      { fail ~"Reached end of file in CSS description" }
             }
         }
 
@@ -185,21 +185,21 @@ impl css_methods for CssLexer {
         loop {
             alt self.input_state.get() {
               CoeChar(c)  { ch = c }
-              CoeEof      { fail "Reached end of file in CSS description" }
+              CoeEof      { fail ~"Reached end of file in CSS description" }
             }
 
             if ch.is_whitespace() {
                 self.input_state.eat_whitespace();
             } else if ch == '}' as u8 {
                 if desc_val.len() == 0u {
-                    fail "Expected descriptor value";
+                    fail ~"Expected descriptor value";
                 } else {
                     self.input_state.unget('}' as u8);
                     break;
                 }
             } else if ch == ';' as u8 {
                 if desc_val.len() == 0u {
-                    fail "Expected descriptor value";
+                    fail ~"Expected descriptor value";
                 } else {
                     break;
                 }
@@ -223,7 +223,7 @@ fn spawn_css_lexer_task(-filename: ~str) -> port<Token> {
     let result_chan = chan(result_port);
 
     task::spawn(|| {
-        assert (copy filename).ends_with(".css");
+        assert (copy filename).ends_with(~".css");
         let file_try = io::read_whole_file(filename);
 
         // Check if the given css file existed, if it does, parse it,

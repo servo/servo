@@ -118,7 +118,7 @@ fn should_convert_text_boxes_to_solid_color_background_items() {
     #[ignore(reason = "crashy")];
 
     let s = Scope();
-    let n = s.new_node(Text("firecracker"));
+    let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
     let subbox = alt check b.kind { TextBox(subbox) { subbox } };
     b.reflow_text(px_to_au(800), subbox);
@@ -136,7 +136,7 @@ fn should_convert_text_boxes_to_text_items() {
     #[ignore(reason = "crashy")];
 
     let s = Scope();
-    let n = s.new_node(Text("firecracker"));
+    let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
     let subbox = alt check b.kind { TextBox(subbox) { subbox } };
     b.reflow_text(px_to_au(800), subbox);
@@ -153,7 +153,7 @@ fn should_calculate_the_bounds_of_the_text_box_background_color() {
     #[ignore];
 
     let s = Scope();
-    let n = s.new_node(Text("firecracker"));
+    let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
     let subbox = alt check b.kind { TextBox(subbox) { subbox } };
     b.reflow_text(px_to_au(800), subbox);
@@ -172,7 +172,7 @@ fn should_calculate_the_bounds_of_the_text_items() {
     #[ignore];
 
     let s = Scope();
-    let n = s.new_node(Text("firecracker"));
+    let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
     let subbox = alt check b.kind { TextBox(subbox) { subbox } };
     b.reflow_text(px_to_au(800), subbox);

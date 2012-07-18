@@ -7,10 +7,10 @@ import servo_text::font_library::FontLibrary;
 import base::{Box, TextBox};
 
 class text_box {
-    let text: str;
+    let text: ~str;
     let mut run: option<TextRun>;
 
-    new(-text: str) {
+    new(-text: ~str) {
         self.text = text;
         self.run = none;
     }
@@ -21,7 +21,7 @@ impl text_layout_methods for @Box {
     fn reflow_text(_available_width: au, subbox: @text_box) {
         alt self.kind {
             TextBox(*) { /* ok */ }
-            _ { fail "expected text box in reflow_text!" }
+            _ { fail ~"expected text box in reflow_text!" }
         };
 
         // FIXME: The font library should not be initialized here
@@ -44,7 +44,7 @@ fn should_calculate_the_size_of_the_text_box() {
     import gfx::geometry::px_to_au;
 
     let s = Scope();
-    let n = s.new_node(Text("firecracker"));
+    let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
     let subbox = alt check b.kind { TextBox(subbox) { subbox } };

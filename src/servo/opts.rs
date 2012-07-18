@@ -6,23 +6,23 @@ from command line arguments.
 "];
 
 type Opts = {
-    urls: ~[str],
+    urls: ~[~str],
     render_mode: RenderMode
 };
 
 enum RenderMode {
     Screen,
-    Png(str)
+    Png(~str)
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn from_cmdline_args(args: ~[str]) -> Opts {
+fn from_cmdline_args(args: ~[~str]) -> Opts {
     import std::getopts;
 
     let args = args.tail();
 
     let opts = ~[
-        getopts::optopt("o")
+        getopts::optopt(~"o")
     ];
 
     let match = alt getopts::getopts(args, opts) {
@@ -31,12 +31,12 @@ fn from_cmdline_args(args: ~[str]) -> Opts {
     };
 
     let urls = if match.free.is_empty() {
-        fail "servo asks that you provide 1 or more URLs"
+        fail ~"servo asks that you provide 1 or more URLs"
     } else {
         copy match.free
     };
 
-    let render_mode = alt getopts::opt_maybe_str(match, "o") {
+    let render_mode = alt getopts::opt_maybe_str(match, ~"o") {
       some(output_file) { Png(copy output_file) }
       none { Screen }
     };

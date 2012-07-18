@@ -35,7 +35,7 @@ fn parse_element(reader : TokenReader) -> option<~style::Selector> {
     let elmt_name = alt reader.get() {
       Element(tag)  { copy tag }
       Eof  { ret none; }
-      _  { fail "Expected an element" }
+      _  { fail ~"Expected an element" }
     };
 
     let mut attr_list = ~[];
@@ -50,10 +50,10 @@ fn parse_element(reader : TokenReader) -> option<~style::Selector> {
             break;
           }
           Eof              { ret none; }          
-          Element(_)          { fail "Unexpected second element without "
-                                   + "relation to first element"; }
-          EndDescription         { fail "Unexpected '}'"; }
-          Description(_, _)       { fail "Unexpected description"; }
+          Element(_)          { fail ~"Unexpected second element without "
+                                   + ~"relation to first element"; }
+          EndDescription         { fail ~"Unexpected '}'"; }
+          Description(_, _)       { fail ~"Unexpected description"; }
         }
     }
         
@@ -141,28 +141,28 @@ fn parse_rule(reader : TokenReader) -> option<~style::Rule> {
           EndDescription   { break; }
           Description(prop, val) {
             alt prop {
-              "font-size" {
+              ~"font-size" {
                 // TODO, support more ways to declare a font size than # pt
-                assert val.ends_with("pt");
+                assert val.ends_with(~"pt");
                 let num = val.substr(0u, val.len() - 2u);
                 
                 alt uint::from_str(num) {
                   some(n)    { push(desc_list, FontSize(n)); }
-                  none       { fail "Nonnumber provided as font size"; }
+                  none       { fail ~"Nonnumber provided as font size"; }
                 }
               }
-              "display" {
+              ~"display" {
                 alt val {
-                  "inline"   { push(desc_list, Display(DisInline)); }
-                  "block"    { push(desc_list, Display(DisBlock)); }
-                  "none"     { push(desc_list, Display(DisNone)); }
+                  ~"inline"   { push(desc_list, Display(DisInline)); }
+                  ~"block"    { push(desc_list, Display(DisBlock)); }
+                  ~"none"     { push(desc_list, Display(DisNone)); }
                   _          { #debug["Recieved unknown display value '%s'", val]; }
                 }
               }
-              "color" {
+              ~"color" {
                 push(desc_list, TextColor(parse_color(val)));
               }
-              "background-color" {
+              ~"background-color" {
                 push(desc_list, BackgroundColor(parse_color(val)));
               }
               _ { #debug["Recieved unknown style property '%s'", val]; }

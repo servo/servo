@@ -14,14 +14,14 @@ enum StyleDeclaration{
 }
 
 enum Attr{
-    Exists(str),
-    Exact(str, str),
-    Includes(str, str),
-    StartsWith(str, str)
+    Exists(~str),
+    Exact(~str, ~str),
+    Includes(~str, ~str),
+    StartsWith(~str, ~str)
 }
     
 enum Selector{
-    Element(str, ~[Attr]),
+    Element(~str, ~[Attr]),
     Child(~Selector, ~Selector),
     Descendant(~Selector, ~Selector),
     Sibling(~Selector, ~Selector)

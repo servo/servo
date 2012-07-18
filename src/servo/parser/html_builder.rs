@@ -19,14 +19,14 @@ enum css_message {
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn link_up_attribute(scope: NodeScope, node: Node, -key: str, -value: str) {
+fn link_up_attribute(scope: NodeScope, node: Node, -key: ~str, -value: ~str) {
     // TODO: Implement atoms so that we don't always perform string comparisons.
     scope.read(node, |node_contents| {
         alt *node_contents.kind {
           Element(element) {
             element.attrs.push(~Attr(copy key, copy value));
             alt *element.kind {
-              HTMLImageElement(img) if key == "width" {
+              HTMLImageElement(img) if key == ~"width" {
                 alt int::from_str(value) {
                   none {
                     // Drop on the floor.
@@ -34,7 +34,7 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: str, -value: str) {
                   some(s) { img.size.width = geometry::px_to_au(s); }
                 }
               }
-              HTMLImageElement(img) if key == "height" {
+              HTMLImageElement(img) if key == ~"height" {
                 alt int::from_str(value) {
                   none {
                     // Drop on the floor.
@@ -51,22 +51,22 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: str, -value: str) {
           }
 
           Text(*) {
-            fail "attempt to link up an attribute to a text node"
+            fail ~"attempt to link up an attribute to a text node"
           }
         }
     })
 }
 
-fn build_element_kind(tag_name: str) -> ~ElementKind {
+fn build_element_kind(tag_name: ~str) -> ~ElementKind {
     alt tag_name {
-        "div"   { ~HTMLDivElement }
-        "img"   {
+        ~"div"   { ~HTMLDivElement }
+        ~"img"   {
             ~HTMLImageElement({
                 mut size: Size2D(geometry::px_to_au(100),
                                  geometry::px_to_au(100))
             })
         }
-        "head"  { ~HTMLHeadElement }
+        ~"head"  { ~HTMLHeadElement }
         _       { ~UnknownElement  }
     }
 }
@@ -117,7 +117,7 @@ fn css_link_listener(to_parent : chan<Stylesheet>, from_parent : port<css_messag
 #[warn(no_non_implicitly_copyable_typarams)]
 fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>) {
     // The current reference node.
-    let mut cur_node = scope.new_node(Element(ElementData("html", ~HTMLDivElement)));
+    let mut cur_node = scope.new_node(Element(ElementData(~"html", ~HTMLDivElement)));
     // We will spawn a separate task to parse any css that is
     // encountered, each link to a stylesheet is sent to the waiting
     // task.  After the html sheet has been fully read, the spawned
@@ -153,10 +153,10 @@ fn build_dom(scope: NodeScope, stream: port<Token>) -> (Node, port<Stylesheet>) 
             //TODO: check for things other than the link tag
             scope.read(cur_node, |n| {
                 alt *n.kind {
-                  Element(elmt) if elmt.tag_name == "link" {
-                    alt elmt.get_attr("rel") {
-                      some(r) if r == "stylesheet" {
-                        alt elmt.get_attr("href") {
+                  Element(elmt) if elmt.tag_name == ~"link" {
+                    alt elmt.get_attr(~"rel") {
+                      some(r) if r == ~"stylesheet" {
+                        alt elmt.get_attr(~"href") {
                           some(filename) {
                             #debug["Linking to a css sheet named: %s", filename];
                             style_chan.send(file(copy filename));

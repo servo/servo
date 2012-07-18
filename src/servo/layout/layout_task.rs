@@ -40,7 +40,7 @@ fn Layout(renderer: Renderer) -> Layout {
                     #debug("layout: received layout request for:");
                     node.dump();
 
-                    do util::time::time("layout") {
+                    do util::time::time(~"layout") {
                         node.initialize_style_for_subtree();
                         node.recompute_style_for_subtree(arc(copy styles));
 
