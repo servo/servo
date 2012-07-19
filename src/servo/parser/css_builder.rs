@@ -157,16 +157,17 @@ impl parser_methods of parser_methods for TokenReader {
             alt tok {
               EndDescription { break; }
               Description(prop, val) {
-                alt prop {
+                let desc = alt prop {
                   // TODO: have color parsing return an option instead of a real value
-                  ~"background-color" { push(desc_list, BackgroundColor(parse_color(val))); }
-                  ~"color" { push(desc_list, TextColor(parse_color(val))); }
-                  ~"display" { parse_display_type(val).map(|res| push(desc_list, Display(res))); }
-                  ~"font-size" { parse_font_size(val).map(|res| push(desc_list, FontSize(res))); }
-                  ~"height" { parse_size(val).map(|res| push(desc_list, Height(res))); }
-                  ~"width" { parse_size(val).map(|res| push(desc_list, Width(res))); }
-                  _ { #debug["Recieved unknown style property '%s'", val]; }
-                }
+                  ~"background-color" { parse_color(val).map(|res| BackgroundColor(res)) }
+                  ~"color" { parse_color(val).map(|res| TextColor(res)) }
+                  ~"display" { parse_display_type(val).map(|res| Display(res)) }
+                  ~"font-size" { parse_font_size(val).map(|res| FontSize(res)) }
+                  ~"height" { parse_size(val).map(|res| Height(res)) }
+                  ~"width" { parse_size(val).map(|res| Width(res)) }
+                  _ { #debug["Recieved unknown style property '%s'", val]; none }
+                };
+                desc.map(|res| push(desc_list, res));
               }
               Eof { ret none; }
               StartDescription | Descendant | Child | Sibling | Comma | Element(_) | Attr(_)  {
