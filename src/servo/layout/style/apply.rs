@@ -6,6 +6,8 @@ import image::base::load;
 import base::{Box, BTree, NTree, LayoutData, BoxTreeReadMethods, SpecifiedStyle};
 import style::{default_style_methods, style_methods};
 
+import future_spawn = future::spawn;
+
 trait ApplyStyleBoxMethods {
     fn apply_style_for_subtree();
     fn apply_style();
@@ -28,7 +30,7 @@ impl ApplyStyleBoxMethods of ApplyStyleBoxMethods for @Box {
      "]
     fn apply_style() {
         // Right now, we only handle images.
-        self.node.read(|node| {
+        do self.node.read |node| {
             alt node.kind {
               ~Element(element) {
                 let style = self.node.get_specified_style();
@@ -44,10 +46,10 @@ impl ApplyStyleBoxMethods of ApplyStyleBoxMethods for @Box {
                       some(url) {
                         // FIXME: Some sort of BASE HREF support!
                         // FIXME: Parse URLs!
-                        // FIXME: Do not load synchronously!
+                        self.appearance.background_image = some(do future_spawn {
+                            ~load(url)
+                        });
                         #debug("loading image from %s", url);
-                        let image = @load(url);
-                        self.appearance.background_image = some(image);
                       }
                       none {
                         /* Ignore. */
@@ -59,7 +61,7 @@ impl ApplyStyleBoxMethods of ApplyStyleBoxMethods for @Box {
               }
               _ { /* Ignore. */ }
             }
-        })
+        }
     }
 }
 

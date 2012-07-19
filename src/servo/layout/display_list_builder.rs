@@ -1,18 +1,19 @@
 export build_display_list;
 
-import dl = display_list;
-import dom::rcu::Scope;
-import dom::base::{Text, NodeScope};
-import gfx::geometry::{au, au_to_px, box, px_to_au};
-import gfx::renderer;
-import util::color::methods;
-import util::tree;
+import base::{Box, TextBox, BTree, BoxTreeReadMethods};
 import box_builder::box_builder_methods;
-import text::text_layout_methods;
-import geom::size::Size2D;
+import dl = display_list;
+import dom::base::{Text, NodeScope};
+import dom::rcu::Scope;
 import geom::point::Point2D;
 import geom::rect::Rect;
-import base::{Box, TextBox, BTree, BoxTreeReadMethods};
+import geom::size::Size2D;
+import gfx::geometry::{au, au_to_px, box, px_to_au};
+import gfx::renderer;
+import text::text_layout_methods;
+import util::color::methods;
+import util::tree;
+
 import vec::push;
 
 #[doc = "
@@ -85,9 +86,10 @@ fn box_to_display_items(box: @Box, origin: Point2D<au>) -> ~[dl::display_item] {
             bounds: bounds
         }));
       }
-      (_, some(image)) {   
+      (_, some(image)) {
+        // FIXME: This should not copy and instead should use an ARC.
         push(items, dl::display_item({
-            item_type: dl::display_item_image(~copy *image),
+            item_type: dl::display_item_image(copy image.get()),
             bounds: bounds
         }));
       }

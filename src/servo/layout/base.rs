@@ -19,6 +19,8 @@ import style::style::SpecifiedStyle;
 import text::text_layout_methods;
 import vec::{push, push_all};
 
+import future::future;
+
 enum BoxKind {
     BlockBox,
     InlineBox,
@@ -27,7 +29,7 @@ enum BoxKind {
 }
 
 class Appearance {
-    let mut background_image: option<@image>;
+    let mut background_image: option<future<~image>>;
     let mut background_color: Color;
 
     new() {
