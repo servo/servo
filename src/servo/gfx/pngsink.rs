@@ -24,6 +24,8 @@ import unsafe::reinterpret_cast;
 import vec_from_buf = vec::unsafe::from_buf;
 import ptr::addr_of;
 import dom::event::Event;
+import dvec::dvec;
+import layout::display_list::display_list;
 
 type PngSink = chan<Msg>;
 
@@ -127,7 +129,7 @@ fn sanity_check() {
         let sink = PngSink(self_channel);
         let renderer = Renderer(sink);
 
-        let dlist = ~[];
+        let dlist : display_list = dvec();
         renderer.send(RenderMsg(dlist));
         listen(|from_renderer| {
             renderer.send(renderer::ExitMsg(from_renderer));
