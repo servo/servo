@@ -3,9 +3,12 @@ import geom::rect::Rect;
 import image::base::image;
 import servo_text::text_run::TextRun;
 
+import arc::arc;
+import dvec::dvec;
+
 enum item_type {
     display_item_solid_color(u8, u8, u8),
-    display_item_image(~image),
+    display_item_image(~arc<~image>),
     display_item_text(TextRun),
     // FIXME: Shape code does not understand the alignment without this
     padding(u8, u8, u8, u8)
@@ -16,4 +19,4 @@ enum display_item = {
     bounds: Rect<au>
 };
 
-type display_list = ~[display_item];
+type display_list = dvec<display_item>;

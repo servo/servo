@@ -13,6 +13,7 @@ import geom::rect::Rect;
 import geom::point::Point2D;
 import azure_hl::AsAzureRect;
 import ptr::addr_of;
+import arc::arc;
 
 type Renderer = chan<Msg>;
 
@@ -82,7 +83,7 @@ fn draw_display_list(draw_target: AzDrawTargetRef, display_list: dl::display_lis
             draw_solid_color(draw_target, item, r, g, b);
           }
           dl::display_item_image(image) {
-            draw_image(draw_target, item, copy image);
+            draw_image(draw_target, item, *image);
           }
           dl::display_item_text(text_run) {
             draw_text(draw_target, item, text_run);
@@ -121,7 +122,8 @@ fn draw_solid_color(draw_target: AzDrawTargetRef, item: dl::display_item,
     AzReleaseColorPattern(red_pattern);
 }
 
-fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item, -image: ~image) unsafe {
+fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item, image: arc<~image>) unsafe {
+    let image = arc::get(&image);
     let size = Size2D(image.width as i32, image.height as i32);
     let stride = image.width * 4;
 

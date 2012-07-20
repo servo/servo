@@ -61,7 +61,6 @@ fn mainloop(po: port<Msg>) {
     let check_for_messages = fn@() {
         // Handle messages
         #debug("osmain: peeking");
-        let mut i = 0u;
         while po.peek() {
             alt po.recv() {
               AddKeyHandler(key_ch) {

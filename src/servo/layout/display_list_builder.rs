@@ -14,6 +14,7 @@ import text::text_layout_methods;
 import util::color::methods;
 import util::tree;
 
+import dvec::{dvec, extensions};
 import vec::push;
 
 #[doc = "
@@ -22,7 +23,9 @@ Builds a display list for a box and all its children
 
 "]
 fn build_display_list(box : @Box) -> dl::display_list {
-    ret build_display_list_from_origin(box, Point2D(au(0), au(0)));
+    let list = dvec();
+    build_display_list_from_origin(list, box, Point2D(au(0), au(0)));
+    ret list;
 }
 
 #[doc="
@@ -36,22 +39,18 @@ Builds a display list for a box and all its children.
              passed-in box.
 
 "]
-fn build_display_list_from_origin(box: @Box, origin: Point2D<au>)
-    -> dl::display_list {
+fn build_display_list_from_origin(list: dl::display_list, box: @Box, origin: Point2D<au>) {
     let box_origin = Point2D(
         px_to_au(au_to_px(origin.x) + au_to_px(box.bounds.origin.x)),
         px_to_au(au_to_px(origin.y) + au_to_px(box.bounds.origin.y)));
     #debug("Handed origin %?, box has bounds %?, starting with origin %?", origin, copy box.bounds, box_origin);
 
-    let mut list = box_to_display_items(box, box_origin);
+    box_to_display_items(list, box, box_origin);
 
     for BTree.each_child(box) |c| {
         #debug("Recursively building display list with origin %?", box_origin);
-        list += build_display_list_from_origin(c, box_origin);
+        build_display_list_from_origin(list, c, box_origin);
     }
-
-    #debug("display_list: %?", list);
-    ret list;
 }
 
 #[doc="
@@ -65,46 +64,43 @@ Creates a display list item for a single block.
 
 "]
 #[warn(no_non_implicitly_copyable_typarams)]
-fn box_to_display_items(box: @Box, origin: Point2D<au>) -> ~[dl::display_item] {
-    let mut items = ~[];
-
+fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) {
     #debug("request to display a box from origin %?", origin);
 
     let bounds = Rect(origin, copy box.bounds.size);
     let col = box.appearance.background_color;
 
-    alt (box.kind, box.appearance.background_image) {
+    alt (box.kind, copy box.appearance.background_image) {
       (TextBox(subbox), _) {
         let run = copy subbox.run;
         assert run.is_some();
-        push(items, dl::display_item({
+        list.push(dl::display_item({
             item_type: dl::display_item_solid_color(255u8, 255u8, 255u8),
             bounds: bounds
         }));
-        push(items, dl::display_item({
+        list.push(dl::display_item({
             item_type: dl::display_item_text(run.get()),
             bounds: bounds
         }));
       }
       (_, some(image)) {
-        // FIXME: This should not copy and instead should use an ARC.
-        push(items, dl::display_item({
-            item_type: dl::display_item_image(copy image.get()),
+        let display_item = dl::display_item({
+            item_type: do future::with(*image) |image| {
+                dl::display_item_image(~arc::clone(&*image))
+            },
             bounds: bounds
-        }));
+        });
+        list.push(display_item);
       }
       (_, none) {
         #debug("Assigning color %? to box with bounds %?", col, bounds);
         let col = box.appearance.background_color;
-        push(items, dl::display_item({
+        list.push(dl::display_item({
             item_type: dl::display_item_solid_color(col.red, col.green, col.blue),
             bounds: bounds
         }));
       }
     }
-
-    #debug("layout: display items: %?", items);
-    ret items;
 }
 
 

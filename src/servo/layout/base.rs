@@ -20,6 +20,7 @@ import text::text_layout_methods;
 import vec::{push, push_all};
 
 import future::future;
+import arc::arc;
 
 enum BoxKind {
     BlockBox,
@@ -29,7 +30,7 @@ enum BoxKind {
 }
 
 class Appearance {
-    let mut background_image: option<future<~image>>;
+    let mut background_image: option<~future<~arc<~image>>>;
     let mut background_color: Color;
 
     new() {

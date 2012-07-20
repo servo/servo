@@ -46,10 +46,10 @@ impl ApplyStyleBoxMethods of ApplyStyleBoxMethods for @Box {
                       some(url) {
                         // FIXME: Some sort of BASE HREF support!
                         // FIXME: Parse URLs!
-                        self.appearance.background_image = some(do future_spawn {
-                            ~load(url)
-                        });
                         #debug("loading image from %s", url);
+                        self.appearance.background_image = some(~do future_spawn |copy url| {
+                            ~arc::arc(~load(url))
+                        });
                       }
                       none {
                         /* Ignore. */
