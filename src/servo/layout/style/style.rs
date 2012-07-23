@@ -2,7 +2,7 @@
 
 import arc::{arc, get, clone};
 
-import dom::style::{DisplayType, DisBlock, DisInline, DisNone, Stylesheet, Unit};
+import dom::style::{DisplayType, DisBlock, DisInline, DisNone, Stylesheet, Unit, Auto};
 import dom::base::{Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement, Node, NodeKind};
 import dom::base::{Text};
 import dom::rcu::ReaderMethods;
@@ -22,6 +22,8 @@ type SpecifiedStyle = {mut background_color : option<Color>,
 trait default_style_methods {
     fn default_color() -> Color;
     fn default_display_type() -> DisplayType;
+    fn default_width() -> Unit;
+    fn default_height() -> Unit;
 }
 
 #[doc="Default stylesfor various attributes in case they don't get initialized from css selectors"]
@@ -48,6 +50,14 @@ impl default_style_methods of default_style_methods for NodeKind {
             }
           }
         }
+    }
+    
+    fn default_width() -> Unit {
+        Auto
+    }
+
+    fn default_height() -> Unit {
+        Auto
     }
 }
 

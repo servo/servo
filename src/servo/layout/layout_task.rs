@@ -48,7 +48,7 @@ fn Layout(renderer: Renderer) -> Layout {
                         let this_box = node.construct_boxes();
                         this_box.dump();
 
-                        this_box.apply_style_for_subtree();
+                        this_box.apply_css_style();
                         this_box.reflow(px_to_au(800));
 
                         let dlist = build_display_list(this_box);

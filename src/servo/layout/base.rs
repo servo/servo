@@ -4,23 +4,23 @@ import dom::base::{Element, ElementKind, HTMLDivElement, HTMLImageElement, Node,
 import dom::base::{NodeKind};
 import dom::rcu;
 import dom::rcu::ReaderMethods;
+import dom::style::Unit;
 import gfx::geometry;
 import gfx::geometry::{au, zero_size_au};
 import geom::point::Point2D;
 import geom::rect::Rect;
 import geom::size::Size2D;
-import image::base::image;
+import image::base::{image, load};
 import layout::block::block_layout_methods;
 import layout::inline::inline_layout_methods;
 import util::tree;
 import util::color::{Color, css_colors};
 import text::text_box;
-import style::style::SpecifiedStyle;
+import style::style::{SpecifiedStyle, default_style_methods};
 import text::text_layout_methods;
 import vec::{push, push_all};
 
-import future::future;
-import arc::arc;
+import arc::{arc, clone};
 
 enum BoxKind {
     BlockBox,
@@ -30,12 +30,35 @@ enum BoxKind {
 }
 
 class Appearance {
-    let mut background_image: option<~future<~arc<~image>>>;
+    let mut background_image: option<ImageHolder>;
     let mut background_color: Color;
+    let mut width: Unit;
+    let mut height: Unit;
 
-    new() {
+    new(kind: NodeKind) {
         self.background_image = none;
-        self.background_color = css_colors::black();
+        self.background_color = kind.default_color();
+        self.width = kind.default_width();
+        self.height = kind.default_height();
+    }
+
+    // This will be very unhappy if it is getting run in parallel with
+    // anything trying to read the background image
+    fn get_image() -> option<~arc<~image>> {
+        let mut image = none;
+
+        // Do a dance where we swap the ImageHolder out before we can
+        // get the image out of it because we can't alt over it
+        // because holder.get_image() is not pure.
+        if (self.background_image).is_some() {
+            let mut temp = none;
+            temp <-> self.background_image;
+            let holder <- option::unwrap(temp);
+            image = some(holder.get_image());
+            self.background_image = some(holder);
+        }
+
+        ret image;
     }
 }
 
@@ -47,11 +70,52 @@ class Box {
     let appearance: Appearance;
 
     new(node: Node, kind: BoxKind) {
+        self.appearance = node.read(|n| Appearance(*n.kind));
         self.tree = tree::empty();
         self.node = node;
         self.kind = kind;
         self.bounds = geometry::zero_rect_au();
-        self.appearance = Appearance();
+    }
+}
+
+#[doc="A class to store image data.  The image will be loaded once,
+ the first time it is requested, and an arc will be stored.  Clones of
+ this arc are given out on demand."]
+class ImageHolder {
+    // Invariant: at least one of url and image is not none, except
+    // occasionally while get_image is being called
+    let mut url : option<~str>;
+    let mut image : option<arc<~image>>;
+
+    new(-url : ~str) {
+        self.url = some(url);
+        self.image = none;
+    }
+
+    // This function should not be called by two tasks at the same time
+    fn get_image() -> ~arc<~image> {
+        // If this is the first time we've called this function, load
+        // the image and store it for the future
+        if self.image.is_none() {
+            assert self.url.is_some();
+
+            let mut temp = none;
+            temp <-> self.url;
+            let url = option::unwrap(temp);
+            let image = load(url);
+
+            self.image = some(arc(~image));
+        }
+
+        // Temporarily swap out the arc of the image so we can clone
+        // it without breaking purity, then put it back and return the
+        // clone.  This is not threadsafe.
+        let mut temp = none;
+        temp <-> self.image;
+        let im_arc = option::unwrap(temp);
+        self.image = some(clone(&im_arc));
+
+        ret ~im_arc;
     }
 }
 
@@ -74,6 +138,7 @@ impl NodeTreeReadMethods of tree::ReadMethods<Node> for NTree {
 }
 
 enum BTree { BTree }
+
 impl BoxTreeReadMethods of tree::ReadMethods<@Box> for BTree {
     fn each_child(node: @Box, f: fn(&&@Box) -> bool) {
         tree::each_child(self, node, f)

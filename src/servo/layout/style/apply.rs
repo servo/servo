@@ -2,23 +2,25 @@
 
 import dom::base::{Element, HTMLImageElement, Node};
 import dom::rcu::ReaderMethods;
+import either::right;
 import image::base::load;
-import base::{Box, BTree, NTree, LayoutData, BoxTreeReadMethods, SpecifiedStyle};
+import base::{Box, BTree, NTree, LayoutData, BoxTreeReadMethods, SpecifiedStyle, ImageHolder};
 import style::{default_style_methods, style_methods};
-
-import future_spawn = future::spawn;
+import traverse::top_down_traversal;
 
 trait ApplyStyleBoxMethods {
-    fn apply_style_for_subtree();
+    fn apply_css_style();
     fn apply_style();
 }
 
+#[doc="A wrapper so the function can be passed around by name."]
+fn apply_style_wrapper(box : @Box) {
+    box.apply_style();
+}
+
 impl ApplyStyleBoxMethods of ApplyStyleBoxMethods for @Box {
-    fn apply_style_for_subtree() {
-        self.apply_style();
-        for BTree.each_child(self) |child| {
-            child.apply_style_for_subtree();
-        }
+    fn apply_css_style() {
+        top_down_traversal(self, apply_style_wrapper);
     }
 
     #[doc="Applies CSS style to a layout box.
@@ -42,19 +44,13 @@ impl ApplyStyleBoxMethods of ApplyStyleBoxMethods for @Box {
 
                 alt element.kind {
                   ~HTMLImageElement(*) {
-                    alt element.get_attr(~"src") {
-                      some(url) {
+                    let url = element.get_attr(~"src");
+                    
+                    if url.is_some() {
                         // FIXME: Some sort of BASE HREF support!
                         // FIXME: Parse URLs!
-                        #debug("loading image from %s", url);
-                        self.appearance.background_image = some(~do future_spawn |copy url| {
-                            ~arc::arc(~load(url))
-                        });
-                      }
-                      none {
-                        /* Ignore. */
-                      }
-                    }
+                        self.appearance.background_image = some(ImageHolder(option::unwrap(url)))
+                    };
                   }
                   _ { /* Ignore. */ }
                 }
@@ -64,4 +60,3 @@ impl ApplyStyleBoxMethods of ApplyStyleBoxMethods for @Box {
         }
     }
 }
-

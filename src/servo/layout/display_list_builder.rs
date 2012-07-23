@@ -1,15 +1,17 @@
 export build_display_list;
 
-import base::{Box, TextBox, BTree, BoxTreeReadMethods};
+import base::{Box, TextBox, BTree, BoxTreeReadMethods, ImageHolder};
 import box_builder::box_builder_methods;
 import dl = display_list;
 import dom::base::{Text, NodeScope};
 import dom::rcu::Scope;
+import either::{left, right};
 import geom::point::Point2D;
 import geom::rect::Rect;
 import geom::size::Size2D;
 import gfx::geometry::{au, au_to_px, box, px_to_au};
 import gfx::renderer;
+import image::base::load;
 import text::text_layout_methods;
 import util::color::methods;
 import util::tree;
@@ -70,8 +72,8 @@ fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) 
     let bounds = Rect(origin, copy box.bounds.size);
     let col = box.appearance.background_color;
 
-    alt (box.kind, copy box.appearance.background_image) {
-      (TextBox(subbox), _) {
+    alt box.kind {
+      TextBox(subbox) {
         let run = copy subbox.run;
         assert run.is_some();
         list.push(dl::display_item({
@@ -82,24 +84,29 @@ fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) 
             item_type: dl::display_item_text(run.get()),
             bounds: bounds
         }));
+        ret;
       }
-      (_, some(image)) {
+      _ {
+        // Fall through
+      }
+    };
+
+    // Check if there is a background image, if not set the background color.
+    let image = box.appearance.get_image();
+    
+    if image.is_some() {
         let display_item = dl::display_item({
-            item_type: do future::with(*image) |image| {
-                dl::display_item_image(~arc::clone(&*image))
-            },
+            item_type: dl::display_item_image(option::unwrap(image)),
             bounds: bounds
         });
         list.push(display_item);
-      }
-      (_, none) {
+    } else {
         #debug("Assigning color %? to box with bounds %?", col, bounds);
         let col = box.appearance.background_color;
         list.push(dl::display_item({
             item_type: dl::display_item_solid_color(col.red, col.green, col.blue),
             bounds: bounds
         }));
-      }
     }
 }
 

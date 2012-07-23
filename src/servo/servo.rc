@@ -59,6 +59,7 @@ mod layout {
     mod inline;
     mod layout_task;
     mod text;
+    mod traverse;
 }
 
 mod parser {
