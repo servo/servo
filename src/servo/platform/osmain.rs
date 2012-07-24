@@ -13,6 +13,7 @@ import dom::event::{Event, ResizeEvent};
 import layers::ImageLayer;
 import geom::size::Size2D;
 import std::cmp::fuzzy_eq;
+import task::task_builder;
 import vec::push;
 
 type OSMain = chan<Msg>;
@@ -222,16 +223,7 @@ fn destroy_surface(+surface: surface) {
 
 #[doc = "A function for spawning into the platform's main thread"]
 fn on_osmain<T: send>(+f: fn~(comm::port<T>)) -> comm::chan<T> {
-    let builder = task::builder();
-    let opts = {
-        sched: some({
-            mode: task::osmain,
-            foreign_stack_size: none
-        })
-        with task::get_opts(builder)
-    };
-    task::set_opts(builder, opts);
-    ret task::run_listener(builder, f);
+    task::task().sched_mode(task::osmain).spawn_listener(f)
 }
 
 // #[cfg(target_os = "linux")]
