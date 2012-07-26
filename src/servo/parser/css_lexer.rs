@@ -1,10 +1,11 @@
 #[doc = "Code to lex and tokenize css files."]
 
-import comm::{port, chan};
 import dom::style;
 import option::is_none;
 import str::from_bytes;
 import vec::push;
+
+import pipes::{port, chan};
 
 import lexer_util::*;
 
@@ -243,8 +244,7 @@ fn lex_css_from_bytes(-content : ~[u8], result_chan : chan<Token>) {
 }
 
 fn spawn_css_lexer_from_string(-content : ~str) -> port<Token> {
-    let result_port = port();
-    let result_chan = chan(result_port);
+    let (result_chan, result_port) = pipes::stream();
 
     task::spawn(|| lex_css_from_bytes(str::bytes(content), result_chan));
 
@@ -252,22 +252,21 @@ fn spawn_css_lexer_from_string(-content : ~str) -> port<Token> {
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn spawn_css_lexer_from_file(-filename: ~str) -> port<Token> {
-    let result_port = port();
-    let result_chan = chan(result_port);
+fn spawn_css_lexer_task(-filename: ~str) -> pipes::port<Token> {
+    let (result_chan, result_port) = pipes::stream();
 
     task::spawn(|| {
-        assert (copy filename).ends_with(~".css");
+        assert filename.ends_with(".css");
         let file_try = io::read_whole_file(filename);
 
         // Check if the given css file existed, if it does, parse it,
         // otherwise just send an eof.
         if file_try.is_ok() {
-            #debug["Lexing css sheet %?", copy filename];
+            #debug["Lexing css sheet %?", filename];
             let file_data = file_try.get();
             lex_css_from_bytes(file_data, result_chan);
         } else {
-            #debug["Failed to open css sheet %?", copy filename];
+            #debug["Failed to open css sheet %?", filename];
             result_chan.send(Eof);
         }
     });

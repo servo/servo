@@ -34,7 +34,8 @@ fn Layout(renderer: Renderer) -> Layout {
                     ping_channel.send(content::PongMsg);
                 }
                 ExitMsg {
-                    break;
+                  #debug("layout: ExitMsg received");
+                  break;
                 }
                 BuildMsg(node, styles) {
                     #debug("layout: received layout request for:");

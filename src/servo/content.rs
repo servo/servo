@@ -73,8 +73,8 @@ class Document {
 class Content<S:Sink send copy> {
     let sink: S;
     let layout: Layout;
-    let from_master: port<ControlMsg>;
-    let event_port: port<Event>;
+    let from_master: comm::port<ControlMsg>;
+    let event_port: comm::port<Event>;
 
     let scope: NodeScope;
     let jsrt: jsrt;
