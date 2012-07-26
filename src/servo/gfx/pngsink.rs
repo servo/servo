@@ -30,16 +30,16 @@ import layout::display_list::display_list;
 type PngSink = chan<Msg>;
 
 enum Msg {
-    BeginDrawing(chan<AzDrawTargetRef>),
-    Draw(chan<AzDrawTargetRef>, AzDrawTargetRef),
+    BeginDrawing(pipes::chan<AzDrawTargetRef>),
+    Draw(pipes::chan<AzDrawTargetRef>, AzDrawTargetRef),
     Exit
 }
 
 impl PngSink of Sink for chan<Msg> {
-    fn begin_drawing(next_dt: chan<AzDrawTargetRef>) {
+    fn begin_drawing(+next_dt: pipes::chan<AzDrawTargetRef>) {
         self.send(BeginDrawing(next_dt))
     }
-    fn draw(next_dt: chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
+    fn draw(+next_dt: pipes::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
         self.send(Draw(next_dt, draw_me))
     }
     fn add_event_listener(_listener: chan<Event>) {
@@ -76,7 +76,7 @@ fn PngSink(output: chan<~[u8]>) -> PngSink {
     })
 }
 
-fn do_draw(sender: chan<AzDrawTargetRef>,
+fn do_draw(sender: pipes::chan<AzDrawTargetRef>,
            dt: AzDrawTargetRef,
            output: chan<~[u8]>,
            cairo_surf: *cairo_surface_t) {
@@ -131,10 +131,9 @@ fn sanity_check() {
 
         let dlist : display_list = dvec();
         renderer.send(RenderMsg(dlist));
-        listen(|from_renderer| {
-            renderer.send(renderer::ExitMsg(from_renderer));
-            from_renderer.recv();
-        });
+        let (exit_chan, exit_response_from_engine) = pipes::stream();
+        renderer.send(renderer::ExitMsg(exit_chan));
+        exit_response_from_engine.recv();
 
         sink.send(Exit)
     })
