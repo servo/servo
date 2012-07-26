@@ -263,11 +263,11 @@ fn spawn_css_lexer_from_file(-filename: ~str) -> port<Token> {
         // Check if the given css file existed, if it does, parse it,
         // otherwise just send an eof.
         if file_try.is_ok() {
-            #debug["Lexing css sheet %s", filename];
+            #debug["Lexing css sheet %?", filename];
             let file_data = file_try.get();
             lex_css_from_bytes(file_data, result_chan);
         } else {
-            #debug["Failed to open css sheet %s", filename];
+            #debug["Failed to open css sheet %?", filename];
             result_chan.send(Eof);
         }
     });
