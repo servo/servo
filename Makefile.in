@@ -239,11 +239,11 @@ clean-rust-opengles:
 	$(MAKE) clean -C src/rust-opengles
 
 .PHONY: clean-rust-glut
-clean-rust-opengles:
+clean-rust-glut:
 	$(MAKE) clean -C src/rust-glut
 
 .PHONY: clean-rust-layers
-clean-rust-opengles:
+clean-rust-layers:
 	$(MAKE) clean -C src/rust-layers
 
 .PHONY: clean-servo
