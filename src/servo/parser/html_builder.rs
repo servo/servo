@@ -124,7 +124,7 @@ fn css_link_listener(to_parent : comm::chan<Stylesheet>, from_parent : comm::por
     to_parent.send(css_rules);
 }
 
-fn js_script_listener(to_parent : chan<~[~[u8]]>, from_parent : comm::port<js_message>) {
+fn js_script_listener(to_parent : comm::chan<~[~[u8]]>, from_parent : comm::port<js_message>) {
     let mut result_vec = ~[];
 
     loop {
