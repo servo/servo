@@ -107,10 +107,6 @@ mod util {
 mod content {
 }
 
-mod net {
-    mod uri;
-}
-
 mod opts;
 mod engine;
 
