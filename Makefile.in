@@ -28,6 +28,7 @@ RUSTLIBS = \
 	-L src/rust-opengles \
 	-L src/rust-glut \
 	-L src/rust-layers \
+	-L src/rust-http-client \
 	$(NULL)
 
 RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
@@ -68,6 +69,7 @@ SERVO_DEPS += \
     src/rust-opengles/libopengles.dummy \
     src/rust-glut/libglut.dummy \
     src/rust-layers/liblayers.dummy \
+	src/rust-http-client/libhttp_client.dummy \
 	$(NULL)
 
 CHECK_DEPS += \
@@ -80,6 +82,7 @@ CHECK_DEPS += \
 	check-rust-opengles \
 	check-rust-glut \
 	check-rust-layers \
+	check-rust-http-client \
 	check-servo \
 	$(NULL)
 
@@ -96,6 +99,7 @@ CLEAN_DEPS += \
 	clean-rust-opengles \
 	clean-rust-glut \
 	clean-rust-layers \
+	clean-rust-http-client \
 	clean-servo \
 	$(NULL)
 
@@ -152,6 +156,9 @@ src/rust-layers/liblayers.dummy: $(LAYERS_DEPS)
 	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-geom -L ../rust-opengles -L ../rust-glut -L ../rust-azure -L ../rust-cocoa" \
         $(MAKE) -C src/rust-layers
 
+src/rust-http-client/libhttp_client.dummy:
+	$(MAKE) -C src/rust-http-client
+
 check: $(CHECK_DEPS)
 
 check-servo: servo-test
@@ -198,6 +205,10 @@ check-rust-glut: $(GLUT_DEPS)
 check-rust-layers: $(LAYERS_DEPS)
 	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-geom -L ../rust-opengles -L ../rust-glut -L ../rust-azure -L ../rust-cocoa" \
         $(MAKE) check -C src/rust-layers
+
+.PHONY: check-rust-http-client
+check-rust-http-client:
+	$(MAKE) check -C src/rust-http-client
 
 .PHONY:	clean
 clean: $(CLEAN_DEPS)
@@ -253,6 +264,10 @@ clean-rust-glut:
 .PHONY: clean-rust-layers
 clean-rust-layers:
 	$(MAKE) clean -C src/rust-layers
+
+.PHONY: clean-rust-http-client
+clean-rust-http-client:
+	$(MAKE) clean -C src/rust-http-client
 
 .PHONY: clean-servo
 clean-servo:

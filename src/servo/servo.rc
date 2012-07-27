@@ -16,6 +16,7 @@ use geom;
 use glut;
 use layers;
 use opengles;
+use http_client;
 
 mod dom {
     mod base;
