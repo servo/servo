@@ -37,3 +37,6 @@
 [submodule "src/rust-layers"]
 	path = src/rust-layers
 	url = git://github.com/pcwalton/rust-layers.git
+[submodule "src/rust-http-client"]
+	path = src/rust-http-client
+	url = git://github.com/brson/rust-http-client.git
