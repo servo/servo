@@ -35,6 +35,9 @@ import result::extensions;
 import dom::bindings::utils::rust_box;
 import js::rust::compartment;
 
+import resource::resource_task;
+import resource_task::{ResourceTask};
+
 type Content = chan<ControlMsg>;
 
 enum ControlMsg {
@@ -81,7 +84,9 @@ class Content<S:Sink send copy> {
 
     let mut document: option<@Document>;
 
-    new(layout: Layout, sink: S, from_master: port<ControlMsg>) {
+    let resource_task: ResourceTask;
+
+    new(layout: Layout, sink: S, from_master: port<ControlMsg>, resource_task: ResourceTask) {
         self.layout = layout;
         self.sink = sink;
         self.from_master = from_master;
@@ -93,6 +98,8 @@ class Content<S:Sink send copy> {
         self.document = none;
 
         self.sink.add_event_listener(self.event_port.chan());
+
+        self.resource_task = resource_task;
     }
 
     fn start() {
@@ -119,7 +126,7 @@ class Content<S:Sink send copy> {
 
             // Note: we can parse the next document in parallel
             // with any previous documents.
-            let stream = spawn_html_lexer_task(copy filename);
+            let stream = spawn_html_lexer_task(copy filename, self.resource_task);
             let (root, style_port, js_port) = build_dom(self.scope, stream);
             let css_rules = style_port.recv();
             let js_scripts = js_port.recv();
@@ -210,9 +217,9 @@ class Content<S:Sink send copy> {
     }
 }
 
-fn create_content<S: Sink send copy>(layout: Layout, sink: S) -> chan<ControlMsg> {
+fn create_content<S: Sink send copy>(layout: Layout, sink: S, resource_task: ResourceTask) -> chan<ControlMsg> {
     do spawn_listener::<ControlMsg> |from_master| {
-        Content(layout, sink, from_master).start();
+        Content(layout, sink, from_master, resource_task).start();
     }
 }
 

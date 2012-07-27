@@ -4,6 +4,8 @@ import comm::chan;
 import layout::layout_task;
 import layout_task::Layout;
 import content::{Content, ExecuteMsg, ParseMsg, ExitMsg, create_content};
+import resource::resource_task;
+import resource::resource_task::{ResourceTask};
 
 import pipes::{port, chan};
 
@@ -12,6 +14,7 @@ class Engine<S:Sink send copy> {
 
     let renderer: Renderer;
     let layout: Layout;
+    let resource_task: ResourceTask;
     let content: comm::chan<content::ControlMsg>;
 
     new(+sink: S) {
@@ -19,10 +22,12 @@ class Engine<S:Sink send copy> {
 
         let renderer = Renderer(sink);
         let layout = Layout(renderer);
-        let content = create_content(layout, sink);
+        let resource_task = ResourceTask();
+        let content = create_content(layout, sink, resource_task);
 
         self.renderer = renderer;
         self.layout = layout;
+        self.resource_task = resource_task;
         self.content = content;
     }
 
@@ -54,6 +59,8 @@ class Engine<S:Sink send copy> {
 
             self.renderer.send(renderer::ExitMsg(response_chan));
             response_port.recv();
+
+            self.resource_task.send(resource_task::Exit);
 
             sender.send(());
             ret false;

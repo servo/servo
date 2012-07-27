@@ -4,6 +4,8 @@ import option::is_none;
 import str::from_bytes;
 import vec::push;
 import lexer_util::*;
+import resource::resource_task;
+import resource_task::{ResourceTask};
 
 enum Token {
     StartOpeningTag(~str),
@@ -168,7 +170,7 @@ fn lexer(reader: io::reader, state : ParseState) -> HtmlLexer {
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn spawn_html_lexer_task(-filename: ~str) -> port<Token> {
+fn spawn_html_lexer_task(-filename: ~str, resource_task: ResourceTask) -> port<Token> {
     let html_port = port();
     let html_chan = chan(html_port);
     let html_file = copy filename;
