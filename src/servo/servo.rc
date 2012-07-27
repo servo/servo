@@ -101,6 +101,7 @@ mod util {
     mod color;
     mod unsafe;
     mod time;
+    mod url;
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
