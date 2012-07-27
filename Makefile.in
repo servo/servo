@@ -84,6 +84,7 @@ CHECK_DEPS += \
 	$(NULL)
 
 CLEAN_DEPS += \
+	clean-ragel \
 	clean-harfbuzz \
 	clean-rust-harfbuzz \
 	clean-mozjs \
@@ -110,8 +111,11 @@ libservo.dummy: $(SERVO_DEPS)
 servo-test: $(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) $(RUSTLIBS) --test -o $@ $<
 
-src/harfbuzz/src/.libs/libharfbuzz.a:
-	$(MAKE) -C src/harfbuzz CXXFLAGS=-fPIC LDFLAGS="-fPIC -lstdc++"
+src/ragel/ragel/ragel:
+	$(MAKE) -C src/ragel
+
+src/harfbuzz/src/.libs/libharfbuzz.a: src/ragel/ragel/ragel
+	$(MAKE) -C src/harfbuzz PATH=$(PATH):$(BUILD_DIR)/src/ragel/ragel CXXFLAGS=-fPIC LDFLAGS="-fPIC -lstdc++"
 
 src/mozjs/libjs_static.a:
 	$(MAKE) -C src/mozjs
@@ -197,6 +201,10 @@ check-rust-layers: $(LAYERS_DEPS)
 
 .PHONY:	clean
 clean: $(CLEAN_DEPS)
+
+.PHONY: clean-ragel
+clean-ragel:
+	$(MAKE) clean -C src/ragel
 
 .PHONY: clean-harfbuzz
 clean-harfbuzz:
