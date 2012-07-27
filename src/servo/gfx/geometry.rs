@@ -6,15 +6,15 @@ import num::num;
 enum au = int;
 
 impl au of num for au {
-    fn add(&&other: au) -> au       { au(*self + *other) }
-    fn sub(&&other: au) -> au       { au(*self - *other) }
-    fn mul(&&other: au) -> au       { au(*self * *other) }
-    fn div(&&other: au) -> au       { au(*self / *other) }
-    fn modulo(&&other: au) -> au    { au(*self % *other) }
-    fn neg() -> au                  { au(-*self)         }
+    pure fn add(&&other: au) -> au       { au(*self + *other) }
+    pure fn sub(&&other: au) -> au       { au(*self - *other) }
+    pure fn mul(&&other: au) -> au       { au(*self * *other) }
+    pure fn div(&&other: au) -> au       { au(*self / *other) }
+    pure fn modulo(&&other: au) -> au    { au(*self % *other) }
+    pure fn neg() -> au                  { au(-*self)         }
 
-    fn to_int() -> int              { *self              }
-    fn from_int(n: int) -> au       { au(n)              }
+    pure fn to_int() -> int              { *self              }
+    pure fn from_int(n: int) -> au       { au(n)              }
 }
 
 fn box<A:copy num>(x: A, y: A, w: A, h: A) -> Rect<A> {

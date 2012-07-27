@@ -12,7 +12,7 @@ import cmp::eq;
 enum Color = {red : u8, green : u8, blue : u8, alpha : float};
 
 impl Color of eq for Color {
-    fn eq(&&other: Color) -> bool {
+    pure fn eq(&&other: Color) -> bool {
         ret self.red == other.red && self.green == other.green && self.blue == other.blue &&
             self.alpha == other.alpha;
     }
