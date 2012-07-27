@@ -4,7 +4,9 @@ A task that takes a URL and streams back the binary data
 
 */
 
-export ControlMsg, ProgressMsg, ResourceTask, ResourceManager, LoaderTaskFactory;
+export ControlMsg, Load, Exit;
+export ProgressMsg, Payload, Done;
+export ResourceTask, ResourceManager, LoaderTaskFactory;
 
 import comm::{chan, port, methods};
 import task::{spawn, spawn_listener};
@@ -27,7 +29,10 @@ type ResourceTask = chan<ControlMsg>;
 type LoaderTaskFactory = fn~(url: url, chan<ProgressMsg>);
 
 fn ResourceTask() -> ResourceTask {
-    create_resource_task_with_loaders(~[])
+    let loaders = ~[
+        (~"file", file_loader::factory)
+    ];
+    create_resource_task_with_loaders(loaders)
 }
 
 fn create_resource_task_with_loaders(+loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
@@ -63,6 +68,7 @@ class ResourceManager {
 
         alt self.get_loader_factory(url) {
           some(loader_factory) {
+            #debug("resource_task: loading url: %s", url::to_str(url));
             loader_factory(url, progress_chan);
           }
           none {
