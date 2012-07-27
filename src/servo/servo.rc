@@ -110,4 +110,8 @@ mod content {
 mod opts;
 mod engine;
 
+mod resource {
+    mod resource_task;
+}
+
 import servo_text = text;
