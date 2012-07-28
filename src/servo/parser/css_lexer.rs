@@ -10,6 +10,8 @@ import pipes::{port, chan};
 import lexer_util::*;
 
 import std::net::url::url;
+import resource::resource_task::{ResourceTask, ProgressMsg, Load};
+import result::ok;
 
 enum ParserState {
     CssElement,
@@ -225,13 +227,20 @@ impl css_methods of css_methods for CssLexer {
     }
 }
 
-fn parser(reader: io::reader, state : ParserState) -> CssLexer {
-    ret { input_state: {mut lookahead: none, reader: reader}, mut parser_state: state };
+fn parser(input_port: comm::port<ProgressMsg>, state : ParserState) -> CssLexer {
+    ret {
+        input_state: {
+            mut lookahead: none,
+            mut buffer: ~[],
+            input_port: input_port,
+            mut eof: false
+        },
+        mut parser_state: state
+    };
 }
 
-fn lex_css_from_bytes(-content : ~[u8], result_chan : chan<Token>) {
-    let reader = io::bytes_reader(content);
-    let lexer = parser(reader, CssElement);
+fn lex_css_from_bytes(+input_port: comm::port<ProgressMsg>, result_chan : chan<Token>) {
+    let lexer = parser(input_port, CssElement);
 
     loop {
         let token = lexer.parse_css();
@@ -245,32 +254,31 @@ fn lex_css_from_bytes(-content : ~[u8], result_chan : chan<Token>) {
     }
 }
 
-fn spawn_css_lexer_from_string(-content : ~str) -> port<Token> {
+fn spawn_css_lexer_from_string(-content : ~str) -> pipes::port<Token> {
     let (result_chan, result_port) = pipes::stream();
 
-    task::spawn(|| lex_css_from_bytes(str::bytes(content), result_chan));
+    do task::spawn {
+        let input_port = comm::port();
+        let chan = input_port.chan();
+        input_port.send(Payload(str::bytes(content)));
+        input_port.send(Done(ok(())));
+
+        lex_css_from_bytes(input_port, result_chan);
+    }
 
     ret result_port;
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn spawn_css_lexer_task(-url: url) -> pipes::port<Token> {
+fn spawn_css_lexer_task(-url: url, resource_task: ResourceTask) -> pipes::port<Token> {
     let (result_chan, result_port) = pipes::stream();
 
     task::spawn(|| {
         assert url.path.ends_with(".css");
-        let file_try = io::read_whole_file(url.path);
+        let input_port = port();
+        resource_task.send(Load(url, input_port.chan()));
 
-        // Check if the given css file existed, if it does, parse it,
-        // otherwise just send an eof.
-        if file_try.is_ok() {
-            #debug["Lexing css sheet %?", url.path];
-            let file_data = file_try.get();
-            lex_css_from_bytes(file_data, result_chan);
-        } else {
-            #debug["Failed to open css sheet %?", url.path];
-            result_chan.send(Eof);
-        }
+        lex_css_from_bytes(input_port, result_chan);
     });
 
     ret result_port;

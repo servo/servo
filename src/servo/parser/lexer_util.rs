@@ -3,6 +3,8 @@
 import option::is_none;
 import str::from_bytes;
 import vec::push;
+import comm::{port, methods};
+import resource::resource_task::{ProgressMsg, Payload, Done};
 
 enum CharOrEof {
     CoeChar(u8),
@@ -11,7 +13,9 @@ enum CharOrEof {
 
 type InputState = {
     mut lookahead: option<CharOrEof>,
-    reader: io::reader
+    mut buffer: ~[u8],
+    input_port: port<ProgressMsg>,
+    mut eof: bool
 };
 
 trait u8_methods {
@@ -43,18 +47,36 @@ trait util_methods {
 impl util_methods of util_methods for InputState {
     fn get() -> CharOrEof {
         alt copy self.lookahead {
-            some(coe) {
-                let rv = coe;
-                self.lookahead = none;
-                ret rv;
-            }
-            none {
-                /* fall through */
-            }
+          some(coe) {
+            let rv = coe;
+            self.lookahead = none;
+            ret rv;
+          }
+          none {
+            /* fall through */
+          }
         }
 
-        if self.reader.eof() { ret CoeEof; }
-        ret CoeChar(self.reader.read_byte() as u8);
+        // FIXME: Lots of copies here
+
+        if self.buffer.len() > 0 {
+            ret CoeChar(vec::shift(self.buffer));
+        }
+
+        if self.eof {
+            ret CoeEof;
+        }
+
+        alt self.input_port.recv() {
+          Payload(data) {
+            self.buffer = data;
+            ret CoeChar(vec::shift(self.buffer));
+          }
+          Done(*) {
+            self.eof = true;
+            ret CoeEof;
+          }
+        }
     }
 
     fn unget(ch: u8) {

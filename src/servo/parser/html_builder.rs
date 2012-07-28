@@ -13,7 +13,7 @@ import parser::Token;
 import dom::style::Stylesheet;
 import vec::{push, push_all_move, flat_map};
 import std::net::url::url;
-
+import resource::resource_task::ResourceTask;
 import dvec::extensions;
 
 enum CSSMessage {
@@ -95,7 +95,8 @@ spawned, collates them, and sends them to the given result channel.
 * `from_parent` - A port on which to receive new links.
 
 "]
-fn css_link_listener(to_parent : comm::chan<Stylesheet>, from_parent : comm::port<CSSMessage>) {
+fn css_link_listener(to_parent : comm::chan<Stylesheet>, from_parent : comm::port<CSSMessage>,
+                     resource_task: ResourceTask) {
     let mut result_vec = ~[];
 
     loop {
@@ -104,7 +105,7 @@ fn css_link_listener(to_parent : comm::chan<Stylesheet>, from_parent : comm::por
             let result_port = comm::port();
             let result_chan = comm::chan(result_port);
             task::spawn(|| {
-                let css_stream = css_lexer::spawn_css_lexer_task(copy url);
+                let css_stream = css_lexer::spawn_css_lexer_task(copy url, resource_task);
                 let mut css_rules = css_builder::build_stylesheet(css_stream);
                 result_chan.send(css_rules);
             });
@@ -153,7 +154,8 @@ fn js_script_listener(to_parent : comm::chan<~[~[u8]]>, from_parent : comm::port
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn build_dom(scope: NodeScope, stream: comm::port<Token>, url: url) -> (Node, comm::port<Stylesheet>, comm::port<~[~[u8]]>) {
+fn build_dom(scope: NodeScope, stream: comm::port<Token>, url: url,
+             resource_task: ResourceTask) -> (Node, comm::port<Stylesheet>, comm::port<~[~[u8]]>) {
     // The current reference node.
     let mut cur_node = scope.new_node(Element(ElementData(~"html", ~HTMLDivElement)));
     // We will spawn a separate task to parse any css that is
@@ -164,7 +166,7 @@ fn build_dom(scope: NodeScope, stream: comm::port<Token>, url: url) -> (Node, co
     let style_port = comm::port();
     let child_chan = comm::chan(style_port);
     let style_chan = task::spawn_listener(|child_port| {
-        css_link_listener(child_chan, child_port);
+        css_link_listener(child_chan, child_port, resource_task);
     });
 
     let js_port = comm::port();

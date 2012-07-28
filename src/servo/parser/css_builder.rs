@@ -184,12 +184,16 @@ impl parser_methods of parser_methods for TokenReader {
           some(list){ copy list }
           none { ret none; }
         };
+
+        #debug("sel_list: %?", sel_list);
         
         // Get the description to be applied to the selector
         let desc_list = alt self.parse_description() {
           some(list) { copy list }
           none { ret none; }
         };
+
+        #debug("desc_list: %?", desc_list);
         
         ret some(~(sel_list, desc_list));
     }

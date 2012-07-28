@@ -5,7 +5,7 @@ import str::from_bytes;
 import vec::push;
 import lexer_util::*;
 import resource::resource_task;
-import resource_task::{ResourceTask};
+import resource_task::{ResourceTask, ProgressMsg, Load};
 import std::net::url::url;
 
 enum Token {
@@ -166,8 +166,16 @@ impl html_methods of html_methods for HtmlLexer {
     }
 }
 
-fn lexer(reader: io::reader, state : ParseState) -> HtmlLexer {
-    ret { input_state: {mut lookahead: none, reader: reader}, mut parser_state: state };
+fn lexer(+input_port: port<resource_task::ProgressMsg>, state : ParseState) -> HtmlLexer {
+    ret {
+        input_state: {
+            mut lookahead: none,
+            mut buffer: ~[],
+            input_port: input_port,
+            mut eof: false
+        },
+        mut parser_state: state
+    };
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
@@ -177,10 +185,10 @@ fn spawn_html_lexer_task(-url: url, resource_task: ResourceTask) -> port<Token> 
 
     task::spawn(|| {
         assert url.path.ends_with(~".html");
-        let file_data = io::read_whole_file(url.path).get();
-        let reader = io::bytes_reader(file_data);
+        let input_port = port();
+        resource_task.send(Load(url, input_port.chan()));
         
-        let lexer = lexer(reader, NormalHtml);
+        let lexer = lexer(input_port, NormalHtml);
 
         loop {
             let token = lexer.parse_html();
