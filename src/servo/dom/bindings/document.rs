@@ -7,7 +7,6 @@ import js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_Re
                             JS_DefineFunctions, JS_DefineProperty, JS_DefineProperties};
 import js::glue::bindgen::*;
 import js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub, JS_ResolveStub};
-import js::ptr_methods;
 import result::{result, ok, err};
 import ptr::null;
 import libc::c_uint;

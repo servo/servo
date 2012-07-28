@@ -99,7 +99,6 @@ mod text {
 mod util {
     mod tree;
     mod color;
-    mod unsafe;
     mod time;
     mod url;
 }
