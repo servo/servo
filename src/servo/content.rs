@@ -38,11 +38,15 @@ import js::rust::compartment;
 import resource::resource_task;
 import resource_task::{ResourceTask};
 
+import std::net::url::url;
+import url_to_str = std::net::url::to_str;
+import util::url::make_url;
+
 type Content = chan<ControlMsg>;
 
 enum ControlMsg {
-    ParseMsg(~str),
-    ExecuteMsg(~str),
+    ParseMsg(url),
+    ExecuteMsg(url),
     ExitMsg
 }
 
@@ -121,12 +125,12 @@ class Content<S:Sink send copy> {
 
     fn handle_control_msg(control_msg: ControlMsg) -> bool {
         alt control_msg {
-          ParseMsg(filename) {
-            #debug["content: Received filename `%s` to parse", filename];
+          ParseMsg(url) {
+            #debug["content: Received url `%s` to parse", url_to_str(url)];
 
             // Note: we can parse the next document in parallel
             // with any previous documents.
-            let stream = spawn_html_lexer_task(copy filename, self.resource_task);
+            let stream = spawn_html_lexer_task(copy url, self.resource_task);
             let (root, style_port, js_port) = build_dom(self.scope, stream);
             let css_rules = style_port.recv();
             let js_scripts = js_port.recv();
@@ -156,12 +160,12 @@ class Content<S:Sink send copy> {
             ret true;
           }
 
-          ExecuteMsg(filename) {
-            #debug["content: Received filename `%s` to execute", filename];
+          ExecuteMsg(url) {
+            #debug["content: Received url `%s` to execute", url_to_str(url)];
 
-            alt read_whole_file(filename) {
+            alt read_whole_file(url.path) {
               err(msg) {
-                println(#fmt["Error opening %s: %s", filename, msg]);
+                println(#fmt["Error opening %s: %s", url_to_str(url), msg]);
               }
               ok(bytes) {
                 let cx = self.jsrt.cx();
@@ -169,7 +173,7 @@ class Content<S:Sink send copy> {
                 cx.set_logging_error_reporter();
                 cx.new_compartment(global_class).chain(|compartment| {
                     compartment.define_functions(debug_fns);
-                    cx.evaluate_script(compartment.global_obj, bytes, filename, 1u)
+                    cx.evaluate_script(compartment.global_obj, bytes, url.path, 1u)
                 });
               }
             }

@@ -6,6 +6,7 @@ import vec::push;
 import lexer_util::*;
 import resource::resource_task;
 import resource_task::{ResourceTask};
+import std::net::url::url;
 
 enum Token {
     StartOpeningTag(~str),
@@ -170,15 +171,13 @@ fn lexer(reader: io::reader, state : ParseState) -> HtmlLexer {
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn spawn_html_lexer_task(-filename: ~str, resource_task: ResourceTask) -> port<Token> {
+fn spawn_html_lexer_task(-url: url, resource_task: ResourceTask) -> port<Token> {
     let html_port = port();
     let html_chan = chan(html_port);
-    let html_file = copy filename;
 
     task::spawn(|| {
-        let filename = copy html_file;
-        assert (copy filename).ends_with(~".html");
-        let file_data = io::read_whole_file(filename).get();
+        assert url.path.ends_with(~".html");
+        let file_data = io::read_whole_file(url.path).get();
         let reader = io::bytes_reader(file_data);
         
         let lexer = lexer(reader, NormalHtml);

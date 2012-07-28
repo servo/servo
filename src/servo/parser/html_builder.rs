@@ -12,11 +12,12 @@ import parser = parser::html_lexer;
 import parser::Token;
 import dom::style::Stylesheet;
 import vec::{push, push_all_move, flat_map};
+import std::net::url::url;
 
 import dvec::extensions;
 
 enum CSSMessage {
-    File(~str),
+    File(url),
     Exit   
 }
 
@@ -99,14 +100,11 @@ fn css_link_listener(to_parent : comm::chan<Stylesheet>, from_parent : comm::por
 
     loop {
         alt from_parent.recv() {
-          File(filename) {
+          File(url) {
             let result_port = comm::port();
             let result_chan = comm::chan(result_port);
-            let filename = copy filename;
             task::spawn(|| {
-                //TODO: deal with extraneous copies
-                let filename <- copy filename;
-                let css_stream = css_lexer::spawn_css_lexer_task(filename);
+                let css_stream = css_lexer::spawn_css_lexer_task(copy url);
                 let mut css_rules = css_builder::build_stylesheet(css_stream);
                 result_chan.send(css_rules);
             });
@@ -205,7 +203,9 @@ fn build_dom(scope: NodeScope, stream: comm::port<Token>) -> (Node, comm::port<S
                         alt elmt.get_attr(~"href") {
                           some(filename) {
                             #debug["Linking to a css sheet named: %s", filename];
-                            style_chan.send(File(copy filename));
+                            // FIXME: Need to base the new url on the current url
+                            let url = make_url(filename, none);
+                            style_chan.send(File(url));
                           }
                           none { /* fall through*/ }
                         }

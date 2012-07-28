@@ -6,6 +6,7 @@ import layout_task::Layout;
 import content::{Content, ExecuteMsg, ParseMsg, ExitMsg, create_content};
 import resource::resource_task;
 import resource::resource_task::{ResourceTask};
+import std::net::url::url;
 
 import pipes::{port, chan};
 
@@ -42,8 +43,7 @@ class Engine<S:Sink send copy> {
     fn handle_request(request: Msg) -> bool {
         alt request {
           LoadURLMsg(url) {
-            let url = copy url;
-            if url.ends_with(".js") {
+            if url.path.ends_with(".js") {
                 self.content.send(ExecuteMsg(url))
             } else {
                 self.content.send(ParseMsg(url))
@@ -70,7 +70,7 @@ class Engine<S:Sink send copy> {
 }
 
 enum Msg {
-    LoadURLMsg(~str),
+    LoadURLMsg(url),
     ExitMsg(chan<()>)
 }
 

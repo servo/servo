@@ -9,6 +9,8 @@ import pipes::{port, chan};
 
 import lexer_util::*;
 
+import std::net::url::url;
+
 enum ParserState {
     CssElement,
     CssRelation,
@@ -252,21 +254,21 @@ fn spawn_css_lexer_from_string(-content : ~str) -> port<Token> {
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn spawn_css_lexer_task(-filename: ~str) -> pipes::port<Token> {
+fn spawn_css_lexer_task(-url: url) -> pipes::port<Token> {
     let (result_chan, result_port) = pipes::stream();
 
     task::spawn(|| {
-        assert filename.ends_with(".css");
-        let file_try = io::read_whole_file(filename);
+        assert url.path.ends_with(".css");
+        let file_try = io::read_whole_file(url.path);
 
         // Check if the given css file existed, if it does, parse it,
         // otherwise just send an eof.
         if file_try.is_ok() {
-            #debug["Lexing css sheet %?", filename];
+            #debug["Lexing css sheet %?", url.path];
             let file_data = file_try.get();
             lex_css_from_bytes(file_data, result_chan);
         } else {
-            #debug["Failed to open css sheet %?", filename];
+            #debug["Failed to open css sheet %?", url.path];
             result_chan.send(Eof);
         }
     });

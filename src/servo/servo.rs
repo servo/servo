@@ -5,6 +5,9 @@ import osmain::{OSMain, AddKeyHandler};
 import opts::{Opts, Screen, Png};
 import engine::{Engine, LoadURLMsg};
 
+import url_to_str = std::net::url::to_str;
+import util::url::make_url;
+
 import pipes::{port, chan};
 
 fn main(args: ~[~str]) {
@@ -41,8 +44,9 @@ fn run_pipeline_screen(urls: ~[~str]) {
     let engine_chan = engine.start();
 
     for urls.each |filename| {
-        #debug["master: Sending filename `%s`", filename];
-        engine_chan.send(LoadURLMsg(copy filename));
+        let url = make_url(filename, none);
+        #debug["master: Sending url `%s`", url_to_str(url)];
+        engine_chan.send(LoadURLMsg(url));
         #debug["master: Waiting for keypress"];
         alt keypress_from_osmain.try_recv() {
           some(*) { }
@@ -71,8 +75,7 @@ fn run_pipeline_png(-url: ~str, outfile: ~str) {
         let sink = PngSink(pngdata_from_sink);
         let engine = Engine(sink);
         let engine_chan = engine.start();
-        let url = copy url;
-        engine_chan.send(LoadURLMsg(url));
+        engine_chan.send(LoadURLMsg(make_url(url, none)));
         alt buffered_file_writer(outfile) {
           ok(writer) {
             writer.write(pngdata_from_sink.recv())
