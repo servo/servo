@@ -153,7 +153,7 @@ fn js_script_listener(to_parent : comm::chan<~[~[u8]]>, from_parent : comm::port
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
-fn build_dom(scope: NodeScope, stream: comm::port<Token>) -> (Node, comm::port<Stylesheet>, comm::port<~[~[u8]]>) {
+fn build_dom(scope: NodeScope, stream: comm::port<Token>, url: url) -> (Node, comm::port<Stylesheet>, comm::port<~[~[u8]]>) {
     // The current reference node.
     let mut cur_node = scope.new_node(Element(ElementData(~"html", ~HTMLDivElement)));
     // We will spawn a separate task to parse any css that is
@@ -204,8 +204,8 @@ fn build_dom(scope: NodeScope, stream: comm::port<Token>) -> (Node, comm::port<S
                           some(filename) {
                             #debug["Linking to a css sheet named: %s", filename];
                             // FIXME: Need to base the new url on the current url
-                            let url = make_url(filename, none);
-                            style_chan.send(File(url));
+                            let new_url = make_url(filename, some(url));
+                            style_chan.send(File(new_url));
                           }
                           none { /* fall through*/ }
                         }

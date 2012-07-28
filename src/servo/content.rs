@@ -131,7 +131,7 @@ class Content<S:Sink send copy> {
             // Note: we can parse the next document in parallel
             // with any previous documents.
             let stream = spawn_html_lexer_task(copy url, self.resource_task);
-            let (root, style_port, js_port) = build_dom(self.scope, stream);
+            let (root, style_port, js_port) = build_dom(self.scope, stream, url);
             let css_rules = style_port.recv();
             let js_scripts = js_port.recv();
 
