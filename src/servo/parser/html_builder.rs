@@ -13,8 +13,10 @@ import parser::Token;
 import dom::style::Stylesheet;
 import vec::{push, push_all_move, flat_map};
 import std::net::url::url;
-import resource::resource_task::ResourceTask;
+import resource::resource_task::{ResourceTask, Load, Payload, Done};
 import dvec::extensions;
+import result::{ok, err};
+import to_str::to_str;
 
 enum CSSMessage {
     File(url),
@@ -22,7 +24,7 @@ enum CSSMessage {
 }
 
 enum js_message {
-    js_file(~str),
+    js_file(url),
     js_exit
 }
 
@@ -123,22 +125,33 @@ fn css_link_listener(to_parent : comm::chan<Stylesheet>, from_parent : comm::por
     to_parent.send(css_rules);
 }
 
-fn js_script_listener(to_parent : comm::chan<~[~[u8]]>, from_parent : comm::port<js_message>) {
+fn js_script_listener(to_parent : comm::chan<~[~[u8]]>, from_parent : comm::port<js_message>,
+                      resource_task: ResourceTask) {
     let mut result_vec = ~[];
 
     loop {
         alt from_parent.recv() {
-          js_file(filename) {
+          js_file(url) {
             let result_port = comm::port();
             let result_chan = comm::chan(result_port);
-            let filename = copy filename;
             do task::spawn {
-                let filename <- copy filename;
-                let file_try = io::read_whole_file(filename);
-                if (file_try.is_ok()) {
-                    result_chan.send(file_try.get());
-                } else {
-                    #error("error loading script %s", filename);
+                let input_port = port();
+                resource_task.send(Load(url, input_port.chan()));
+
+                let mut buf = ~[];
+                loop {
+                    alt input_port.recv() {
+                      Payload(data) {
+                        buf += data;
+                      }
+                      Done(ok(*)) {
+                        result_chan.send(buf);
+                        break;
+                      }
+                      Done(err(*)) {
+                        #error("error loading script %s", url.to_str());
+                      }
+                    }
                 }
             }
             push(result_vec, result_port);
@@ -172,7 +185,7 @@ fn build_dom(scope: NodeScope, stream: comm::port<Token>, url: url,
     let js_port = comm::port();
     let child_chan = comm::chan(js_port);
     let js_chan = task::spawn_listener(|child_port| {
-        js_script_listener(child_chan, child_port);
+        js_script_listener(child_chan, child_port, resource_task);
     });
 
     loop {
@@ -228,7 +241,8 @@ fn build_dom(scope: NodeScope, stream: comm::port<Token>, url: url,
                     alt elmt.get_attr(~"src") {
                       some(filename) {
                         #debug["Linking to a js script named: %s", filename];
-                        js_chan.send(js_file(copy filename));
+                        let new_url = make_url(filename, some(url));
+                        js_chan.send(js_file(new_url));
                       }
                       none { /* fall through */ }
                     }
