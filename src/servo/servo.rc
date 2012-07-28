@@ -114,6 +114,7 @@ mod engine;
 mod resource {
     mod resource_task;
     mod file_loader;
+    mod http_loader;
 }
 
 import servo_text = text;

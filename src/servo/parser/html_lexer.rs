@@ -184,7 +184,6 @@ fn spawn_html_lexer_task(-url: url, resource_task: ResourceTask) -> port<Token> 
     let html_chan = chan(html_port);
 
     task::spawn(|| {
-        assert url.path.ends_with(~".html");
         let input_port = port();
         resource_task.send(Load(url, input_port.chan()));
         

@@ -30,7 +30,8 @@ type LoaderTaskFactory = fn~(url: url, chan<ProgressMsg>);
 
 fn ResourceTask() -> ResourceTask {
     let loaders = ~[
-        (~"file", file_loader::factory)
+        (~"file", file_loader::factory),
+        (~"http", http_loader::factory)
     ];
     create_resource_task_with_loaders(loaders)
 }
