@@ -15,19 +15,31 @@ import std::net::url::url;
 import result::{result, ok, err};
 
 enum ControlMsg {
+    /// Request the data associated with a particular URL
     Load(url, chan<ProgressMsg>),
     Exit
 }
 
+/// Messages sent in response to a `Load` message
 enum ProgressMsg {
+    /// Binary data - there may be multiple of these
     Payload(~[u8]),
+    /// Indicates loading is complete, either successfully or not
     Done(result<(), ()>)
 }
 
+/// Handle to a resource task
 type ResourceTask = chan<ControlMsg>;
-/// Creates a task to load a specific resource
+
+/**
+Creates a task to load a specific resource
+
+The ResourceManager delegates loading to a different type of loader task for
+each URL scheme
+*/
 type LoaderTaskFactory = fn~(url: url, chan<ProgressMsg>);
 
+/// Create a ResourceTask with the default loaders
 fn ResourceTask() -> ResourceTask {
     let loaders = ~[
         (~"file", file_loader::factory),
