@@ -157,7 +157,7 @@ check-servo: servo-test
 	./servo-test $(TESTNAME)
 
 .PHONY: check-rust-harfbuzz
-check-rust-harfbuzz: src/harfbuzz/src/.libs/libharfbuzz.a
+check-rust-harfbuzz:
 	$(MAKE) check -C src/rust-harfbuzz
 
 .PHONY: check-rust-mozjs
