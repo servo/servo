@@ -30,7 +30,7 @@ each rendered frame and submit them to be drawn to the display
 
 FIXME: Change this name to Compositor.
 "]
-iface Sink {
+trait Sink {
     fn begin_drawing(+next_dt: pipes::chan<AzDrawTargetRef>);
     fn draw(+next_dt: pipes::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef);
     fn add_event_listener(listener: comm::chan<Event>);

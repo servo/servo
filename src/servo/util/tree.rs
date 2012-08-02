@@ -10,11 +10,11 @@ type Tree<T> = {
     mut next_sibling: option<T>
 };
 
-iface ReadMethods<T> {
+trait ReadMethods<T> {
     fn with_tree_fields<R>(T, f: fn(Tree<T>) -> R) -> R;
 }
 
-iface WriteMethods<T> {
+trait WriteMethods<T> {
     fn with_tree_fields<R>(T, f: fn(Tree<T>) -> R) -> R;
 }
 

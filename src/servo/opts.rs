@@ -25,18 +25,18 @@ fn from_cmdline_args(args: ~[~str]) -> Opts {
         getopts::optopt(~"o")
     ];
 
-    let match = alt getopts::getopts(args, opts) {
+    let opt_match = alt getopts::getopts(args, opts) {
       result::ok(m) { copy m }
       result::err(f) { fail getopts::fail_str(f) }
     };
 
-    let urls = if match.free.is_empty() {
+    let urls = if opt_match.free.is_empty() {
         fail ~"servo asks that you provide 1 or more URLs"
     } else {
-        copy match.free
+        copy opt_match.free
     };
 
-    let render_mode = alt getopts::opt_maybe_str(match, ~"o") {
+    let render_mode = alt getopts::opt_maybe_str(opt_match, ~"o") {
       some(output_file) { Png(copy output_file) }
       none { Screen }
     };
