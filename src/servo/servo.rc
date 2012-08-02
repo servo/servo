@@ -8,7 +8,6 @@
 #[crate_type = "lib"];
 
 use std;
-use sdl;
 use azure;
 use js;
 use stb_image;

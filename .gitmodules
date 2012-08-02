@@ -1,6 +1,3 @@
-[submodule "src/rust-sdl"]
-	path = src/rust-sdl
-	url = git://github.com/brson/rust-sdl.git
 [submodule "src/rust-azure"]
 	path = src/rust-azure
 	url = git://github.com/brson/rust-azure.git
@@ -13,15 +10,9 @@
 [submodule "src/rust-mozjs"]
 	path = src/rust-mozjs
 	url = git://github.com/brson/rust-mozjs.git
-[submodule "src/harfbuzz"]
-	path = src/harfbuzz
-	url = git://github.com/brson/harfbuzz-servo.git
 [submodule "src/rust-harfbuzz"]
 	path = src/rust-harfbuzz
 	url = git://github.com/brson/rust-harfbuzz.git
-[submodule "src/ragel"]
-	path = src/ragel
-	url = git://github.com/brson/ragel-dist.git
 [submodule "src/rust-stb-image"]
 	path = src/rust-stb-image
 	url = git://github.com/pcwalton/rust-stb-image.git

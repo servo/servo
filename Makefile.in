@@ -21,7 +21,6 @@ RUSTLIBS = \
 	-L src/rust-harfbuzz \
 	-L src/rust-mozjs \
 	-L src/rust-azure \
-	-L src/rust-sdl \
 	-L src/rust-cocoa \
 	-L src/rust-stb-image \
 	-L src/rust-geom \
@@ -63,7 +62,6 @@ SERVO_DEPS += \
 	src/rust-harfbuzz/libharfbuzz.dummy \
 	src/rust-mozjs/libmozjs.dummy \
 	src/rust-azure/libazure.dummy \
-	src/rust-sdl/libsdl.dummy \
 	src/rust-stb-image/libstb-image.dummy \
 	src/rust-geom/libgeom.dummy \
     src/rust-opengles/libopengles.dummy \
@@ -75,7 +73,6 @@ SERVO_DEPS += \
 CHECK_DEPS += \
 	check-rust-harfbuzz \
 	check-rust-mozjs \
-	check-rust-sdl \
 	check-rust-azure \
 	check-rust-stb-image \
 	check-rust-geom \
@@ -90,7 +87,6 @@ CLEAN_DEPS += \
 	clean-rust-harfbuzz \
 	clean-mozjs \
 	clean-rust-mozjs \
-	clean-rust-sdl \
 	clean-rust-azure \
 	clean-rust-stb-image \
 	clean-rust-geom \
@@ -125,9 +121,6 @@ src/rust-mozjs/libmozjs.dummy: src/mozjs/libjs_static.a
 
 src/rust-azure/libazure.dummy: $(AZURE_DEPS)
 	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-cocoa -L ../rust-geom" $(MAKE) -C src/rust-azure
-
-src/rust-sdl/libsdl.dummy:
-	$(MAKE) -C src/rust-sdl
 
 src/rust-cocoa/libcocoa.dummy:
 	$(MAKE) -C src/rust-cocoa
@@ -168,10 +161,6 @@ check-rust-mozjs: src/mozjs/libjs_static.a
 .PHONY: check-rust-azure
 check-rust-azure: $(AZURE_DEPS)
 	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-cocoa -L ../rust-geom" $(MAKE) check -C src/rust-azure
-
-.PHONY: check-rust-sdl
-check-rust-sdl:
-	$(MAKE) check -C src/rust-sdl
 
 .PHONY: check-rust-cocoa
 check-rust-cocoa:
@@ -221,10 +210,6 @@ clean-rust-mozjs:
 clean-rust-azure:
 	$(MAKE) clean -C src/rust-azure
 
-.PHONY: clean-rust-sdl
-clean-rust-sdl:
-	$(MAKE) clean -C src/rust-sdl
-
 .PHONY: clean-rust-cocoa
 clean-rust-cocoa:
 	$(MAKE) clean -C src/rust-cocoa
@@ -261,12 +246,10 @@ ifeq ($(OSTYPE),darwin)
 
 package: servo
 	mkdir -p Servo.app/Contents/MacOS/src/rust-cocoa
-	mkdir -p Servo.app/Contents/MacOS/src/rust-sdl
 	mkdir -p Servo.app/Contents/MacOS/src/rust-azure
 	cp $(VPATH)/Info.plist Servo.app/Contents/
 	cp servo Servo.app/Contents/MacOS/
 	cp src/rust-cocoa/lib*.dylib Servo.app/Contents/MacOS/src/rust-cocoa/
-	cp src/rust-sdl/lib*.dylib Servo.app/Contents/MacOS/src/rust-sdl/
 	cp src/rust-azure/lib*.dylib Servo.app/Contents/MacOS/src/rust-azure/
 
 else
