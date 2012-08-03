@@ -27,8 +27,8 @@ trait util_methods {
 impl util_methods of util_methods for TokenReader {
     fn get() -> Token {
         alt copy self.lookahead {
-          some(tok)  { self.lookahead = none; copy tok }
-          none       { self.stream.recv() }
+          some(tok) => { self.lookahead = none; copy tok }
+          none => { self.stream.recv() }
         }
     }
 
@@ -49,9 +49,9 @@ impl parser_methods of parser_methods for TokenReader {
     fn parse_element() -> option<~style::Selector> {
         // Get the current element type
          let elmt_name = alt self.get() {
-           Element(tag) { copy tag }
-           Eof { return none; }
-           _ { fail ~"Expected an element" }
+           Element(tag) => { copy tag }
+           Eof => { return none; }
+           _ => { fail ~"Expected an element" }
          };
 
          let mut attr_list = ~[];
@@ -60,15 +60,15 @@ impl parser_methods of parser_methods for TokenReader {
          loop {
              let tok = self.get();
              alt tok {
-               Attr(attr) { push(attr_list, copy attr); }
-               StartDescription | Descendant | Child | Sibling | Comma {
+               Attr(attr) => { push(attr_list, copy attr); }
+               StartDescription | Descendant | Child | Sibling | Comma => {
                  self.unget(tok); 
                  break;
                }
-               Eof { return none; }
-               Element(_) { fail ~"Unexpected second element without relation to first element"; }
-               EndDescription { fail ~"Unexpected '}'"; }
-               Description(_, _) { fail ~"Unexpected description"; }
+               Eof => { return none; }
+               Element(_) => fail ~"Unexpected second element without relation to first element",
+               EndDescription => fail ~"Unexpected '}'",
+               Description(_, _) => fail ~"Unexpected description"
              }
          }
         return some(~style::Element(elmt_name, attr_list));
@@ -82,8 +82,8 @@ impl parser_methods of parser_methods for TokenReader {
             let mut cur_sel;
 
             alt self.parse_element() {
-              some(elmt) { cur_sel = copy elmt; }
-              none { return none; } // we hit an eof in the middle of a rule
+              some(elmt) => { cur_sel = copy elmt; }
+              none => { return none; } // we hit an eof in the middle of a rule
             }
 
             loop {
@@ -91,47 +91,47 @@ impl parser_methods of parser_methods for TokenReader {
                 let built_sel <- cur_sel;
                 
                 alt tok {
-                  Descendant {
+                  Descendant => {
                     alt self.parse_element() {
-                      some(elmt) { 
+                      some(elmt) => { 
                         let new_sel = copy elmt;
                         cur_sel <- ~style::Descendant(built_sel, new_sel)
                       }
-                      none { return none; }
+                      none => { return none; }
                     }
                   }
-                  Child {
+                  Child => {
                     alt self.parse_element() {
-                      some(elmt) { 
+                      some(elmt) => { 
                         let new_sel = copy elmt;
                         cur_sel <- ~style::Child(built_sel, new_sel)
                       }
-                      none { return none; }
+                      none => { return none; }
                     }
                   }
-                  Sibling {
+                  Sibling => {
                     alt self.parse_element() {
-                      some(elmt) { 
+                      some(elmt) => { 
                         let new_sel = copy elmt;
                         cur_sel <- ~style::Sibling(built_sel, new_sel)
                       }
-                      none { return none; }
+                      none => { return none; }
                     }
                   }
-                  StartDescription {
+                  StartDescription => {
                     push(sel_list, built_sel);
                     self.unget(StartDescription);
                     break;
                   }
-                  Comma {
+                  Comma => {
                     push(sel_list, built_sel);
                     self.unget(Comma);
                     break;
                   }
-                  Attr(_) | EndDescription | Element(_) | Description(_, _) {
+                  Attr(_) | EndDescription | Element(_) | Description(_, _) => {
                     fail #fmt["Unexpected token %? in elements", tok];
                   }
-                  Eof { return none; }
+                  Eof => { return none; }
                 }
             }
 
@@ -139,9 +139,9 @@ impl parser_methods of parser_methods for TokenReader {
             // TODO: fix this when rust gets labelled loops
             let tok = self.get();
             alt tok {
-              StartDescription { break; }
-              Comma { }
-              _ { self.unget(tok); }
+              StartDescription => { break; }
+              Comma => { }
+              _ => { self.unget(tok); }
             }
         }
         
@@ -155,22 +155,22 @@ impl parser_methods of parser_methods for TokenReader {
         loop {
             let tok = self.get();
             alt tok {
-              EndDescription { break; }
-              Description(prop, val) {
+              EndDescription => { break; }
+              Description(prop, val) => {
                 let desc = alt prop {
                   // TODO: have color parsing return an option instead of a real value
-                  ~"background-color" { parse_color(val).map(|res| BackgroundColor(res)) }
-                  ~"color" { parse_color(val).map(|res| TextColor(res)) }
-                  ~"display" { parse_display_type(val).map(|res| Display(res)) }
-                  ~"font-size" { parse_font_size(val).map(|res| FontSize(res)) }
-                  ~"height" { parse_size(val).map(|res| Height(res)) }
-                  ~"width" { parse_size(val).map(|res| Width(res)) }
-                  _ { #debug["Recieved unknown style property '%s'", val]; none }
+                  ~"background-color" => parse_color(val).map(|res| BackgroundColor(res)),
+                  ~"color" => parse_color(val).map(|res| TextColor(res)),
+                  ~"display" => parse_display_type(val).map(|res| Display(res)),
+                  ~"font-size" => parse_font_size(val).map(|res| FontSize(res)),
+                  ~"height" => parse_size(val).map(|res| Height(res)),
+                  ~"width" => parse_size(val).map(|res| Width(res)),
+                  _ => { #debug["Recieved unknown style property '%s'", val]; none }
                 };
                 desc.map(|res| push(desc_list, res));
               }
-              Eof { return none; }
-              StartDescription | Descendant | Child | Sibling | Comma | Element(_) | Attr(_)  {
+              Eof => { return none; }
+              StartDescription | Descendant | Child | Sibling | Comma | Element(_) | Attr(_) => {
                 fail #fmt["Unexpected token %? in description", tok]; 
               }
             }
@@ -180,17 +180,18 @@ impl parser_methods of parser_methods for TokenReader {
     }
 
     fn parse_rule() -> option<~style::Rule> {
+        // TODO: get rid of copies once alt move works
         let sel_list = alt self.parse_selector() {
-          some(list){ copy list }
-          none { return none; }
+          some(list) => { copy list }
+          none => { return none; }
         };
 
         #debug("sel_list: %?", sel_list);
         
         // Get the description to be applied to the selector
         let desc_list = alt self.parse_description() {
-          some(list) { copy list }
-          none { return none; }
+          some(list) => { copy list }
+          none => { return none; }
         };
 
         #debug("desc_list: %?", desc_list);
@@ -205,8 +206,8 @@ fn build_stylesheet(+stream : pipes::port<Token>) -> ~[~style::Rule] {
 
     loop {
         alt reader.parse_rule() {
-          some(rule) { push(rule_list, copy rule); }
-          none { break; }
+          some(rule) => { push(rule_list, copy rule); }
+          none => { break; }
         }
     }
 

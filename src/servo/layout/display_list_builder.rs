@@ -65,7 +65,7 @@ Creates a display list item for a single block.
 * `origin` - The coordinates of upper-left corner of the passed in box.
 
 "]
-#[warn(no_non_implicitly_copyable_typarams)]
+#[allow(non_implicitly_copyable_typarams)]
 fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) {
     #debug("request to display a box from origin %?", origin);
 
@@ -73,7 +73,7 @@ fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) 
     let col = box.appearance.background_color;
 
     alt box.kind {
-      TextBox(subbox) {
+      TextBox(subbox) => {
         let run = copy subbox.run;
         assert run.is_some();
         list.push(dl::display_item({
@@ -86,7 +86,7 @@ fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) 
         }));
         return;
       }
-      _ {
+      _ => {
         // Fall through
       }
     };
@@ -118,14 +118,16 @@ fn should_convert_text_boxes_to_solid_color_background_items() {
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
-    let subbox = alt check b.kind { TextBox(subbox) { subbox } };
+
+    let subbox = alt check b.kind { TextBox(subbox) => subbox };
+
     b.reflow_text(px_to_au(800), subbox);
     let list = dvec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
     alt list[0].item_type {
-      dl::display_item_solid_color(*) { }
-      _ { fail }
+      dl::display_item_solid_color(*) => { }
+      _ => { fail }
     }
     
 }
@@ -137,14 +139,16 @@ fn should_convert_text_boxes_to_text_items() {
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
-    let subbox = alt check b.kind { TextBox(subbox) { subbox } };
+
+    let subbox = alt check b.kind { TextBox(subbox) => { subbox } };
+
     b.reflow_text(px_to_au(800), subbox);
     let list = dvec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
     alt list[1].item_type {
-      dl::display_item_text(_) { }
-      _ { fail }
+      dl::display_item_text(_) => { }
+      _ => { fail }
     }
 }
 
@@ -155,7 +159,9 @@ fn should_calculate_the_bounds_of_the_text_box_background_color() {
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
-    let subbox = alt check b.kind { TextBox(subbox) { subbox } };
+
+    let subbox = alt check b.kind { TextBox(subbox) => { subbox } };
+
     b.reflow_text(px_to_au(800), subbox);
     let list = dvec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
@@ -175,7 +181,9 @@ fn should_calculate_the_bounds_of_the_text_items() {
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
-    let subbox = alt check b.kind { TextBox(subbox) { subbox } };
+
+    let subbox = alt check b.kind { TextBox(subbox) => { subbox } };
+
     b.reflow_text(px_to_au(800), subbox);
     let list = dvec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));

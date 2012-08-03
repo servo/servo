@@ -30,8 +30,8 @@ trait default_style_methods {
 impl default_style_methods of default_style_methods for NodeKind {
     fn default_color() -> Color {
         alt self {
-          Text(*) { white() }
-          Element(*) {
+          Text(*) => { white() }
+          Element(*) => {
             let r = rand::rng();
             rgb(r.next() as u8, r.next() as u8, r.next() as u8)
           }
@@ -40,13 +40,13 @@ impl default_style_methods of default_style_methods for NodeKind {
 
     fn default_display_type() -> DisplayType {
         alt self {
-          Text(*) { DisInline }
-          Element(element) {
+          Text(*) => { DisInline }
+          Element(element) => {
             alt *element.kind {
-              HTMLDivElement      { DisBlock }
-              HTMLHeadElement     { DisNone }
-              HTMLImageElement(*) { DisInline }
-              UnknownElement      { DisInline }
+              HTMLDivElement => DisBlock,
+              HTMLHeadElement => DisNone,
+              HTMLImageElement(*) => DisInline,
+              UnknownElement => DisInline
             }
           }
         }

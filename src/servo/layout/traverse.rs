@@ -88,7 +88,7 @@ fn traverse_helper(-root : @Box, -top_down : fn~(@Box), -bottom_up : fn~(@Box)) 
 }
 
 #[doc="A noneffectful function to be used if only one pass is required."]
-fn nop(box : @Box) {
+fn nop(_box : @Box) {
     return;
 }
 

@@ -94,11 +94,11 @@ extern fn getFirstChild(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut js
     unsafe {
         (*unwrap(obj)).payload.read(|nd| {
             alt nd.tree.first_child {
-              some(n) {
+              some(n) => {
                 let obj = create(cx, n).ptr;
                 *rval = RUST_OBJECT_TO_JSVAL(obj);
               }
-              none {
+              none => {
                 *rval = JSVAL_NULL;
               }
             }
@@ -111,11 +111,11 @@ extern fn getNextSibling(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut j
     unsafe {
         (*unwrap(obj)).payload.read(|nd| {
             alt nd.tree.next_sibling {
-              some(n) {
+              some(n) => {
                 let obj = create(cx, n).ptr;
                 *rval = RUST_OBJECT_TO_JSVAL(obj);
               }
-              none {
+              none => {
                 *rval = JSVAL_NULL;
               }
             }
@@ -128,11 +128,11 @@ extern fn getTagName(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval
     unsafe {
         (*unwrap(obj)).payload.read(|nd| {
             alt nd.kind {
-              ~Element(ed) {
-                let s = str(ed.tag_name);
+              ~Element(ed) => {
+                let s = str(copy ed.tag_name);
                 *rval = domstring_to_jsval(cx, s);
               }
-              _ {
+              _ => {
                 //XXXjdm should probably read the spec to figure out what to do here
                 *rval = JSVAL_NULL;
               }

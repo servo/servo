@@ -22,8 +22,8 @@ fn each_child<T:copy,O:ReadMethods<T>>(ops: O, node: T, f: fn(T) -> bool) {
     let mut p = ops.with_tree_fields(node, |f| f.first_child);
     loop {
         alt copy p {
-          none { return; }
-          some(c) {
+          none => { return; }
+          some(c) => {
             if !f(c) { return; }
             p = ops.with_tree_fields(c, |f| f.next_sibling);
           }
@@ -43,8 +43,8 @@ fn add_child<T:copy,O:WriteMethods<T>>(ops: O, parent: T, child: T) {
 
     ops.with_tree_fields(child, |child_tf| {
         alt child_tf.parent {
-          some(_) { fail ~"Already has a parent"; }
-          none { child_tf.parent = some(parent); }
+          some(_) => { fail ~"Already has a parent"; }
+          none => { child_tf.parent = some(parent); }
         }
 
         assert child_tf.prev_sibling == none;
@@ -52,10 +52,10 @@ fn add_child<T:copy,O:WriteMethods<T>>(ops: O, parent: T, child: T) {
 
         ops.with_tree_fields(parent, |parent_tf| {
             alt copy parent_tf.last_child {
-              none {
+              none => {
                 parent_tf.first_child = some(child);
               }
-              some(lc) {
+              some(lc) => {
                 let lc = lc; // satisfy alias checker
                 ops.with_tree_fields(lc, |lc_tf| {
                     assert lc_tf.next_sibling == none;

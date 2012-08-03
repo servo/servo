@@ -180,10 +180,10 @@ impl layout_methods for @Box {
     #[doc="The main reflow routine."]
     fn reflow(available_width: au) {
         alt self.kind {
-            BlockBox            { self.reflow_block(available_width)        }
-            InlineBox           { self.reflow_inline(available_width)       }
-            IntrinsicBox(size)  { self.reflow_intrinsic(*size)              }
-            TextBox(subbox)     { self.reflow_text(available_width, subbox) }
+            BlockBox => self.reflow_block(available_width),
+            InlineBox => self.reflow_inline(available_width),
+            IntrinsicBox(size) => self.reflow_intrinsic(*size),
+            TextBox(subbox) => self.reflow_text(available_width, subbox)
         }
     }
 

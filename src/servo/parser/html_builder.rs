@@ -28,40 +28,40 @@ enum js_message {
     js_exit
 }
 
-#[warn(no_non_implicitly_copyable_typarams)]
+#[allow(non_implicitly_copyable_typarams)]
 fn link_up_attribute(scope: NodeScope, node: Node, -key: ~str, -value: ~str) {
     // TODO: Implement atoms so that we don't always perform string comparisons.
     scope.read(node, |node_contents| {
         alt *node_contents.kind {
-          Element(element) {
+          Element(element) => {
             element.attrs.push(~Attr(copy key, copy value));
             alt *element.kind {
-              HTMLImageElement(img) if key == ~"width" {
+              HTMLImageElement(img) if key == ~"width" => {
                 alt int::from_str(value) {
-                  none {
+                  none => {
                     // Drop on the floor.
                   }
-                  some(s) { img.size.width = geometry::px_to_au(s); }
+                  some(s) => { img.size.width = geometry::px_to_au(s); }
                 }
               }
-              HTMLImageElement(img) if key == ~"height" {
+              HTMLImageElement(img) if key == ~"height" => {
                 alt int::from_str(value) {
-                  none {
+                  none => {
                     // Drop on the floor.
                   }
-                  some(s) {
+                  some(s) => {
                     img.size.height = geometry::px_to_au(s);
                   }
                 }
               }
               HTMLDivElement | HTMLImageElement(*) | HTMLHeadElement |
-              HTMLScriptElement | UnknownElement {
+              HTMLScriptElement | UnknownElement => {
                 // Drop on the floor.
               }
             }
           }
 
-          Text(*) {
+          Text(*) => {
             fail ~"attempt to link up an attribute to a text node"
           }
         }
@@ -70,16 +70,15 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: ~str, -value: ~str) {
 
 fn build_element_kind(tag_name: ~str) -> ~ElementKind {
     alt tag_name {
-      ~"div" { ~HTMLDivElement }
-      ~"img" {
-        ~HTMLImageElement({
-            mut size: Size2D(geometry::px_to_au(100),
-                             geometry::px_to_au(100))
+      ~"div" => ~HTMLDivElement,
+      ~"img" => {
+        ~HTMLImageElement({ mut size: Size2D(geometry::px_to_au(100),
+                                             geometry::px_to_au(100))
         })
       }
-      ~"script" { ~HTMLScriptElement }
-      ~"head" { ~HTMLHeadElement }
-      _ { ~UnknownElement  }
+      ~"script" => ~HTMLScriptElement,
+      ~"head" => ~HTMLHeadElement,
+      _ => ~UnknownElement 
     }
 }
 
@@ -103,10 +102,13 @@ fn css_link_listener(to_parent : comm::chan<Stylesheet>, from_parent : comm::por
 
     loop {
         alt from_parent.recv() {
-          File(url) {
+          File(url) => {
             let result_port = comm::port();
             let result_chan = comm::chan(result_port);
+            // TODO: change copy to move once we have alt move
+            let url = copy url;
             task::spawn(|| {
+                // TODO: change copy to move once we can move into closures
                 let css_stream = css_lexer::spawn_css_lexer_task(copy url, resource_task);
                 let mut css_rules = css_builder::build_stylesheet(css_stream);
                 result_chan.send(css_rules);
@@ -114,7 +116,7 @@ fn css_link_listener(to_parent : comm::chan<Stylesheet>, from_parent : comm::por
 
             push(result_vec, result_port);
           }
-          Exit {
+          Exit => {
             break;
           }
         }
@@ -131,24 +133,27 @@ fn js_script_listener(to_parent : comm::chan<~[~[u8]]>, from_parent : comm::port
 
     loop {
         alt from_parent.recv() {
-          js_file(url) {
+          js_file(url) => {
             let result_port = comm::port();
             let result_chan = comm::chan(result_port);
-            do task::spawn {
+            // TODO: change copy to move once we have alt move
+            let url = copy url;
+            do task::spawn || {
                 let input_port = port();
-                resource_task.send(Load(url, input_port.chan()));
+                // TODO: change copy to move once we can move into closures
+                resource_task.send(Load(copy url, input_port.chan()));
 
                 let mut buf = ~[];
                 loop {
                     alt input_port.recv() {
-                      Payload(data) {
+                      Payload(data) => {
                         buf += data;
                       }
-                      Done(ok(*)) {
+                      Done(ok(*)) => {
                         result_chan.send(buf);
                         break;
                       }
-                      Done(err(*)) {
+                      Done(err(*)) => {
                         #error("error loading script %s", url.to_str());
                       }
                     }
@@ -156,7 +161,7 @@ fn js_script_listener(to_parent : comm::chan<~[~[u8]]>, from_parent : comm::port
             }
             push(result_vec, result_port);
           }
-          js_exit {
+          js_exit => {
             break;
           }  
         }
@@ -166,7 +171,7 @@ fn js_script_listener(to_parent : comm::chan<~[~[u8]]>, from_parent : comm::port
     to_parent.send(js_scripts);
 }
 
-#[warn(no_non_implicitly_copyable_typarams)]
+#[allow(non_implicitly_copyable_typarams)]
 fn build_dom(scope: NodeScope, stream: comm::port<Token>, url: url,
              resource_task: ResourceTask) -> (Node, comm::port<Stylesheet>, comm::port<~[~[u8]]>) {
     // The current reference node.
@@ -191,75 +196,75 @@ fn build_dom(scope: NodeScope, stream: comm::port<Token>, url: url,
     loop {
         let token = stream.recv();
         alt token {
-          parser::Eof { break; }
-          parser::StartOpeningTag(tag_name) {
+          parser::Eof => { break; }
+          parser::StartOpeningTag(tag_name) => {
             #debug["starting tag %s", tag_name];
             let element_kind = build_element_kind(tag_name);
             let new_node = scope.new_node(Element(ElementData(copy tag_name, element_kind)));
             scope.add_child(cur_node, new_node);
             cur_node = new_node;
           }
-          parser::Attr(key, value) {
+          parser::Attr(key, value) => {
             #debug["attr: %? = %?", key, value];
             link_up_attribute(scope, cur_node, copy key, copy value);
           }
-          parser::EndOpeningTag {
+          parser::EndOpeningTag => {
             #debug("end opening tag");
           }
           // TODO: Fail more gracefully (i.e. according to the HTML5
           //       spec) if we close more tags than we open.
-          parser::SelfCloseTag {
+          parser::SelfCloseTag => {
             //TODO: check for things other than the link tag
             scope.read(cur_node, |n| {
                 alt *n.kind {
-                  Element(elmt) if elmt.tag_name == ~"link" {
+                  Element(elmt) if elmt.tag_name == ~"link" => {
                     alt elmt.get_attr(~"rel") {
-                      some(r) if r == ~"stylesheet" {
+                      some(r) if r == ~"stylesheet" => {
                         alt elmt.get_attr(~"href") {
-                          some(filename) {
+                          some(filename) => {
                             #debug["Linking to a css sheet named: %s", filename];
                             // FIXME: Need to base the new url on the current url
-                            let new_url = make_url(filename, some(url));
+                            let new_url = make_url(filename, some(copy url));
                             style_chan.send(File(new_url));
                           }
-                          none { /* fall through*/ }
+                          none => { /* fall through*/ }
                         }
                       }
-                      _ { /* fall through*/ }
+                      _ => { /* fall through*/ }
                     }
                   }
-                  _ { /* fall through*/ }
+                  _ => { /* fall through*/ }
                 }                
             });
             cur_node = scope.get_parent(cur_node).get();
           }
-          parser::EndTag(tag_name) {
+          parser::EndTag(tag_name) => {
             // TODO: Assert that the closing tag has the right name.
             scope.read(cur_node, |n| {
                 alt *n.kind {
-                  Element(elmt) if elmt.tag_name == ~"script" {
+                  Element(elmt) if elmt.tag_name == ~"script" => {
                     alt elmt.get_attr(~"src") {
-                      some(filename) {
+                      some(filename) => {
                         #debug["Linking to a js script named: %s", filename];
-                        let new_url = make_url(filename, some(url));
+                        let new_url = make_url(filename, some(copy url));
                         js_chan.send(js_file(new_url));
                       }
-                      none { /* fall through */ }
+                      none => { /* fall through */ }
                     }
                   }
-                  _ { /* fall though */ }
+                  _ => { /* fall though */ }
                 }
             });
             cur_node = scope.get_parent(cur_node).get();
           }
-          parser::Text(s) if !s.is_whitespace() {
+          parser::Text(s) if !s.is_whitespace() => {
             let new_node = scope.new_node(Text(copy s));
             scope.add_child(cur_node, new_node);
           }
-          parser::Text(_) {
+          parser::Text(_) => {
             // FIXME: Whitespace should not be ignored.
           }
-          parser::Doctype {
+          parser::Doctype => {
             // TODO: Do something here...
           }
         }

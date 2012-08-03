@@ -55,10 +55,10 @@ fn jsval_to_str(cx: *JSContext, v: jsval) -> result<~str, ()> {
 
 unsafe fn domstring_to_jsval(cx: *JSContext, str: DOMString) -> jsval {
     alt str {
-      null_string {
+      null_string => {
         JSVAL_NULL
       }
-      str(s) {
+      str(s) => {
         str::as_buf(s, |buf, len| {
             let cbuf = unsafe::reinterpret_cast(buf);
             RUST_STRING_TO_JSVAL(JS_NewStringCopyN(cx, cbuf, len as libc::size_t))

@@ -39,12 +39,12 @@ impl html_methods of html_methods for HtmlLexer {
     fn parse_html() -> Token {
         let mut ch: u8;
         alt self.input_state.get() {
-          CoeChar(c) { ch = c; }
-          CoeEof { return Eof; }
+          CoeChar(c) => { ch = c; }
+          CoeEof => { return Eof; }
         }
         let token = alt self.parser_state {
-          NormalHtml   { self.parse_in_normal_state(ch) }
-          TagHtml      { self.parse_in_tag_state(ch) }
+          NormalHtml => { self.parse_in_normal_state(ch) }
+          TagHtml => { self.parse_in_tag_state(ch) }
         };
 
         #debug["token=%?", token];
@@ -55,8 +55,8 @@ impl html_methods of html_methods for HtmlLexer {
         let mut ch = c;
         if ch == ('<' as u8) {
             alt self.input_state.get() {
-              CoeChar(c) { ch = c; }
-              CoeEof { self.input_state.parse_err(~"eof after '<'") }
+              CoeChar(c) => { ch = c; }
+              CoeEof => { self.input_state.parse_err(~"eof after '<'") }
             }
 
             if ch == ('!' as u8) {
@@ -89,14 +89,14 @@ impl html_methods of html_methods for HtmlLexer {
         let mut s: ~[u8] = ~[ch];
         loop {
             alt self.input_state.get() {
-              CoeChar(c) {
+              CoeChar(c) => {
                 if c == ('<' as u8) {
                     self.input_state.unget(c);
                     return Text(from_bytes(s));
                 }
                 push(s, c);
               }
-              CoeEof { return Text(from_bytes(s)); }
+              CoeEof => { return Text(from_bytes(s)); }
             }
         }
     }
@@ -111,7 +111,7 @@ impl html_methods of html_methods for HtmlLexer {
 
         if ch == ('/' as u8) {
             alt self.input_state.get() {
-              CoeChar(c) {
+              CoeChar(c) => {
                 if c == ('>' as u8) {
                     self.parser_state = NormalHtml;
                     return SelfCloseTag;
@@ -119,7 +119,7 @@ impl html_methods of html_methods for HtmlLexer {
                     #warn["/ not followed by > in a tag"];
                 }
               }
-              CoeEof {
+              CoeEof => {
                 #warn["/ not followed by > at end of file"];
               }
             }
@@ -133,11 +133,11 @@ impl html_methods of html_methods for HtmlLexer {
         let mut attribute_name = ~[ch];
         loop {
             alt self.input_state.get() {
-              CoeChar(c) {
+              CoeChar(c) => {
                 if c == ('=' as u8) { break; }
                 push(attribute_name, c);
               }
-              CoeEof {
+              CoeEof => {
                 let name = from_bytes(attribute_name);
                 return Attr(copy name, name);
               }
@@ -149,11 +149,11 @@ impl html_methods of html_methods for HtmlLexer {
         let mut attribute_value = ~[];
         loop {
             alt self.input_state.get() {
-              CoeChar(c) {
+              CoeChar(c) => {
                 if c == ('"' as u8) { break; }
                 push(attribute_value, c);
               }
-              CoeEof {
+              CoeEof => {
                 return Attr(from_bytes(attribute_name), from_bytes(attribute_value));
               }
             }
@@ -178,14 +178,15 @@ fn lexer(+input_port: port<resource_task::ProgressMsg>, state : ParseState) -> H
     };
 }
 
-#[warn(no_non_implicitly_copyable_typarams)]
+#[allow(non_implicitly_copyable_typarams)]
 fn spawn_html_lexer_task(-url: url, resource_task: ResourceTask) -> port<Token> {
     let html_port = port();
     let html_chan = chan(html_port);
 
     task::spawn(|| {
         let input_port = port();
-        resource_task.send(Load(url, input_port.chan()));
+        // TODO: change copy to move once we can move into closures
+        resource_task.send(Load(copy url, input_port.chan()));
         
         let lexer = lexer(input_port, NormalHtml);
 

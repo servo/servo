@@ -15,7 +15,7 @@ type image_surface = {
 impl format for format {
     fn bpp() -> uint {
         alt self {
-            fo_rgba_8888 { 32u }
+            fo_rgba_8888 => 32u 
         }
     }
 }

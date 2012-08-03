@@ -14,41 +14,41 @@ export matching_methods;
 #[doc="Check if a CSS attribute matches the attribute of an HTML element."]
 fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
     alt attr {
-      Exists(name) {
+      Exists(name) => {
         alt elmt.get_attr(name) {
-          some(_) { return true; }
-          none    { return false; }
+          some(_) => true,
+          none => false
         }
       }
-      Exact(name, val) {
+      Exact(name, val) => {
         alt elmt.get_attr(name) {
-          some(value) { return value == val; }
-          none        { return false; }
+          some(value) => value == val,
+          none => false
         }
       }
-      Includes(name, val) {
+      Includes(name, val) => {
         // Comply with css spec, if the specified attribute is empty
         // it cannot match.
         if val == ~"" { return false; }
 
         alt elmt.get_attr(name) {
-          some(value) { return value.split_char(' ').contains(val); }
-          none        { return false; }
+          some(value) => value.split_char(' ').contains(val),
+          none => false
         }
       }
-      StartsWith(name, val) {
+      StartsWith(name, val) => {
         alt elmt.get_attr(name) {
-          some(value) { 
+          some(value) => { 
             //check that there is only one attribute value and it
             //starts with the perscribed value
             if !value.starts_with(val) || value.contains(~" ") { return false; }
 
             // We match on either the exact value or value-foo
-            if value.len() == val.len() { return true; }
-            else { return value.starts_with(val + ~"-"); }
+            if value.len() == val.len() { true }
+            else { value.starts_with(val + ~"-") }
           }
-          none {
-            return false;
+          none => {
+            false
           }
         }
       }
@@ -67,10 +67,10 @@ impl priv_matching_methods of priv_matching_methods for Node {
     "]
     fn matches_element(sel: ~Selector) -> bool {
         alt *sel {
-          Child(_, _) | Descendant(_, _) | Sibling(_, _) { return false; }
-          Element(tag, attrs) {
+          Child(_, _) | Descendant(_, _) | Sibling(_, _) => { return false; }
+          Element(tag, attrs) => {
             alt self.read(|n| copy *n.kind) {
-              base::Element(elmt) {
+              base::Element(elmt) => {
                 if !(tag == ~"*" || tag == elmt.tag_name) {
                     return false;
                 }
@@ -83,7 +83,7 @@ impl priv_matching_methods of priv_matching_methods for Node {
 
                 return true;
               }
-              Text(str)   { /*fall through, currently unsupported*/ }
+              Text(str) => { /*fall through, currently unsupported*/ }
             }
           }
         }
@@ -95,70 +95,65 @@ impl priv_matching_methods of priv_matching_methods for Node {
     #[doc = "Checks if a generic CSS selector matches a given HTML element"]
     fn matches_selector(sel : ~Selector) -> bool {
         alt *sel {
-          Element(str, atts) { return self.matches_element(sel); }
-          Child(sel1, sel2) {
-            alt self.read(|n| n.tree.parent) {
-              some(parent) { 
-                return self.matches_element(sel2) &&
-                    parent.matches_selector(sel1);
-              }
-              none         { return false; }
+          Element(str, atts) => { return self.matches_element(sel); }
+          Child(sel1, sel2) => {
+            return alt self.read(|n| n.tree.parent) {
+              some(parent) => self.matches_element(sel2) && parent.matches_selector(sel1),
+              none => false
             }
           }
-          Descendant(sel1, sel2) {
-            if !self.matches_element(sel2) {
-                return false;
-            }
+          Descendant(sel1, sel2) => {
+            if !self.matches_element(sel2) { return false; }
 
             //loop over all ancestors to check if they are the person
             //we should be descended from.
             let mut cur_parent = alt self.read(|n| n.tree.parent) {
-              some(parent) { parent }
-              none         { return false; }
+              some(parent) => parent,
+              none => return false
             };
 
             loop {
                 if cur_parent.matches_selector(sel1) { return true; }
 
                 cur_parent = alt cur_parent.read(|n| n.tree.parent) {
-                  some(parent) { parent }
-                  none         { return false; }
+                  some(parent) => parent,
+                  none => return false
                 };
             }
           }
-          Sibling(sel1, sel2) {
+          Sibling(sel1, sel2) => {
             if !self.matches_element(sel2) { return false; }
 
             // Loop over this node's previous siblings to see if they match.
             alt self.read(|n| n.tree.prev_sibling) {
-              some(sib) {
+              some(sib) => {
                 let mut cur_sib = sib;
                 loop {
                     if cur_sib.matches_selector(sel1) { return true; }
                     
                     cur_sib = alt cur_sib.read(|n| n.tree.prev_sibling) {
-                      some(sib) { sib }
-                      none      { break; }
+                      some(sib) => sib,
+                      none => { break; }
                     };
                 }
               }
-              none { }
+              none => { }
             }
 
             // check the rest of the siblings
             alt self.read(|n| n.tree.next_sibling) {
-                some(sib) {
+                some(sib) => {
                     let mut cur_sib = sib;
                     loop {
                         if cur_sib.matches_selector(sel1) { return true; }
                 
                         cur_sib = alt cur_sib.read(|n| n.tree.next_sibling) {
-                            some(sib) { sib }
-                            none      { break; }
+                            some(sib) => sib,
+                            none => { break; }
                         };
                     }
                 }
-                none { }
+                none => { }
             }
 
             return false;
@@ -176,13 +171,13 @@ impl priv_style_methods of priv_style_methods for Node {
     fn update_style(decl : StyleDeclaration) {
         self.aux(|layout| {
             alt decl {
-              BackgroundColor(col) { layout.specified_style.background_color = some(col); }
-              Display(dis) { layout.specified_style.display_type = some(dis); }
-              FontSize(size) { layout.specified_style.font_size = some(size); }
-              Height(size) { layout.specified_style.height = some(size); }
-              TextColor(col) { layout.specified_style.text_color = some(col); }
-              Width(size) { layout.specified_style.width = some(size); }
-            }
+              BackgroundColor(col) => layout.specified_style.background_color = some(col),
+              Display(dis) => layout.specified_style.display_type = some(dis),
+              FontSize(size) => layout.specified_style.font_size = some(size),
+              Height(size) => layout.specified_style.height = some(size),
+              TextColor(col) => layout.specified_style.text_color = some(col),
+              Width(size) => layout.specified_style.width = some(size)
+            };
         })
     }
 }
@@ -222,7 +217,7 @@ mod test {
     import dvec::{dvec, extensions};
     import io::println;
 
-    #[warn(no_non_implicitly_copyable_typarams)]
+    #[allow(non_implicitly_copyable_typarams)]
     fn new_node_from_attr(scope: NodeScope, -name: ~str, -val: ~str) -> Node {
         let elmt = ElementData(~"div", ~HTMLDivElement);
         let attr = ~Attr(name, val);

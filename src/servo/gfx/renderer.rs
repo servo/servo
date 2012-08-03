@@ -47,7 +47,7 @@ fn Renderer<S: Sink send copy>(sink: S) -> comm::chan<Msg> {
 
         loop {
             alt po.recv() {
-              RenderMsg(display_list) {
+              RenderMsg(display_list) => {
                 #debug("renderer: got render request");
                 let draw_target = draw_target_po.recv();
                 let (ch, po) = pipes::stream();
@@ -64,7 +64,7 @@ fn Renderer<S: Sink send copy>(sink: S) -> comm::chan<Msg> {
                     sink.draw(draw_target_ch, draw_target);
                 }
               }
-              ExitMsg(response_ch) {
+              ExitMsg(response_ch) => {
                 response_ch.send(());
                 break;
               }
@@ -88,18 +88,10 @@ fn draw_display_list(draw_target: AzDrawTargetRef, display_list: dl::display_lis
         #debug["drawing %?", item];
 
         alt item.item_type {
-          dl::display_item_solid_color(r, g, b) {
-            draw_solid_color(draw_target, item, r, g, b);
-          }
-          dl::display_item_image(image) {
-            draw_image(draw_target, item, *image);
-          }
-          dl::display_item_text(text_run) {
-            draw_text(draw_target, item, text_run);
-          }
-          dl::padding(*) {
-            fail ~"should never see padding";
-          }
+          dl::display_item_solid_color(r, g, b) => draw_solid_color(draw_target, item, r, g, b),
+          dl::display_item_image(image) => draw_image(draw_target, item, *image),
+          dl::display_item_text(text_run) => draw_text(draw_target, item, text_run),
+          dl::padding(*) => fail ~"should never see padding"
         }
     }
 }
@@ -141,11 +133,11 @@ fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item, image: arc<~
         let color = i % 4;
         let pixel = i / 4;
         alt color {
-            0 { image.data[pixel * 3 + 2] }
-            1 { image.data[pixel * 3 + 1] }
-            2 { image.data[pixel * 3 + 0] }
-            3 { 0xffu8                    }
-            _ { fail                      }
+            0 => image.data[pixel * 3 + 2],
+            1 => image.data[pixel * 3 + 1],
+            2 => image.data[pixel * 3 + 0],
+            3 => 0xffu8,
+            _ => fail
         }
     };
 

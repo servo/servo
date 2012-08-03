@@ -103,7 +103,7 @@ mod util {
     mod url;
 }
 
-#[warn(no_non_implicitly_copyable_typarams)]
+#[allow(non_implicitly_copyable_typarams)]
 mod content {
 }
 

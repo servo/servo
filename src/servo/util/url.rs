@@ -12,6 +12,7 @@ Create a URL object from a string. Does various helpful browsery things like
   is based off the current url
 
 */
+#[allow(non_implicitly_copyable_typarams)]
 fn make_url(str_url: ~str, current_url: option<url>) -> url {
     let mut schm = get_scheme(str_url);
     let str_url = if result::is_err(schm) {
@@ -27,13 +28,13 @@ fn make_url(str_url: ~str, current_url: option<url>) -> url {
             } else {
                 let path = path::split(current_url.path);
                 let path = path.init();
-                let path = path::connect_many(path + ~[str_url]);
+                let path = path::connect_many(path + ~[copy str_url]);
 
                 current_url.scheme + "://" + path::connect(current_url.host, path)
             }
         }
     } else {
-        str_url
+        copy str_url
     };
 
     // FIXME: Need to handle errors

@@ -9,6 +9,7 @@ export PingMsg, PongMsg;
 export create_content;
 export Document;
 
+import arc::{arc, clone};
 import comm::{port, chan, listen, select2};
 import task::{spawn, spawn_listener};
 import io::{read_whole_file, println};
@@ -55,7 +56,7 @@ enum PingMsg {
 }
 
 #[doc="Sends a ping to layout and waits for the response."]
-#[warn(no_non_implicitly_copyable_typarams)]
+#[allow(non_implicitly_copyable_typarams)]
 fn join_layout(scope: NodeScope, layout: Layout) {
 
     if scope.is_reader_forked() {
@@ -69,11 +70,11 @@ fn join_layout(scope: NodeScope, layout: Layout) {
 
 class Document {
     let root: Node;
-    let css_rules: Stylesheet;
+    let css_rules: arc<Stylesheet>;
 
-    new(root: Node, +css_rules: Stylesheet) {
+    new(root: Node, -css_rules: Stylesheet) {
         self.root = root;
-        self.css_rules = css_rules;
+        self.css_rules = arc(css_rules);
     }
 }
 
@@ -114,24 +115,21 @@ class Content<S:Sink send copy> {
 
     fn handle_msg(msg: either<ControlMsg,Event>) -> bool {
         alt msg {
-            left(control_msg) {
-                return self.handle_control_msg(control_msg);
-            }
-            right(event) {
-                return self.handle_event(event);
-            }
+            left(control_msg) => self.handle_control_msg(control_msg),
+            right(event) => self.handle_event(event)
         }
     }
 
     fn handle_control_msg(control_msg: ControlMsg) -> bool {
         alt control_msg {
-          ParseMsg(url) {
+          ParseMsg(url) => {
             #debug["content: Received url `%s` to parse", url_to_str(url)];
 
             // Note: we can parse the next document in parallel
             // with any previous documents.
             let stream = spawn_html_lexer_task(copy url, self.resource_task);
-            let (root, style_port, js_port) = build_dom(self.scope, stream, url, self.resource_task);
+            let (root, style_port, js_port) = build_dom(self.scope, stream, url, 
+                                                        self.resource_task);
             let css_rules = style_port.recv();
             let js_scripts = js_port.recv();
 
@@ -160,14 +158,14 @@ class Content<S:Sink send copy> {
             return true;
           }
 
-          ExecuteMsg(url) {
+          ExecuteMsg(url) => {
             #debug["content: Received url `%s` to execute", url_to_str(url)];
 
             alt read_whole_file(url.path) {
-              err(msg) {
+              err(msg) => {
                 println(#fmt["Error opening %s: %s", url_to_str(url), msg]);
               }
-              ok(bytes) {
+              ok(bytes) => {
                 let cx = self.jsrt.cx();
                 cx.set_default_options_and_version();
                 cx.set_logging_error_reporter();
@@ -180,7 +178,7 @@ class Content<S:Sink send copy> {
             return true;
           }
 
-          ExitMsg {
+          ExitMsg => {
             self.layout.send(layout_task::ExitMsg);
             return false;
           }
@@ -196,7 +194,7 @@ class Content<S:Sink send copy> {
 
         // Send new document and relevant styles to layout
         // FIXME: Put CSS rules in an arc or something.
-        self.layout.send(BuildMsg(document.root, document.css_rules));
+        self.layout.send(BuildMsg(document.root, clone(&document.css_rules)));
 
         // Indicate that reader was forked so any further
         // changes will be isolated.
@@ -205,13 +203,13 @@ class Content<S:Sink send copy> {
 
     fn handle_event(event: Event) -> bool {
         alt event {
-          ResizeEvent(new_width, new_height) {
+          ResizeEvent(new_width, new_height) => {
             #debug("content got resize event: %d, %d", new_width, new_height);
             alt copy self.document {
-                none {
+                none => {
                     // Nothing to do.
                 }
-                some(document) {
+                some(document) => {
                     self.relayout(*document);
                 }
             }

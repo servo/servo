@@ -55,12 +55,10 @@ impl methods for ctxt {
 
             // Add the child's box to the current enclosing box or the current anonymous box.
             alt kid.get_specified_style().display_type {
-              some(DisBlock) { 
-                BTree.add_child(self.parent_box, kid_box);
-              }
-              some(DisInline) {
+              some(DisBlock) => BTree.add_child(self.parent_box, kid_box),
+              some(DisInline) => {
                 let anon_box = alt self.anon_box {
-                  none {
+                  none => {
                     //
                     // The anonymous box inherits the attributes of its parents for now, so
                     // that properties of intrinsic boxes are not spread to their parenting
@@ -73,14 +71,14 @@ impl methods for ctxt {
                     self.anon_box = some(b);
                     b
                   }
-                  some(b) { b }
+                  some(b) => b
                 };
                 BTree.add_child(anon_box, kid_box);
               }
-              some(DisNone) {
+              some(DisNone) => {
                 // Nothing to do.
               }
-              _  { //hack for now
+              _ => { //hack for now
               }
             }
         }
@@ -104,18 +102,18 @@ impl methods for ctxt {
 
             // Add the child's box to the current enclosing box.
             alt kid.get_specified_style().display_type {
-              some(DisBlock) {
+              some(DisBlock) => {
                 // TODO
                 #warn("TODO: non-inline display found inside inline box");
                 BTree.add_child(self.parent_box, kid_box);
               }
-              some(DisInline) {
+              some(DisInline) => {
                 BTree.add_child(self.parent_box, kid_box);
               }
-              some(DisNone) {
+              some(DisNone) => {
                 // Nothing to do.
               }
-              _  { //hack for now
+              _  => { //hack for now
               }
             }
         }
@@ -127,10 +125,10 @@ impl methods for ctxt {
         self.parent_node.dump();
 
         alt self.parent_node.get_specified_style().display_type {
-          some(DisBlock)  { self.construct_boxes_for_block_children();  }
-          some(DisInline) { self.construct_boxes_for_inline_children(); }
-          some(DisNone)   { /* Nothing to do. */                        }
-          _  { //hack for now
+          some(DisBlock) => self.construct_boxes_for_block_children(),
+          some(DisInline) => self.construct_boxes_for_inline_children(),
+          some(DisNone) => { /* Nothing to do. */ }
+          _ => { //hack for now
           }
         }
 
@@ -144,8 +142,8 @@ impl methods for ctxt {
     "]
     fn finish_anonymous_box_if_necessary() {
         alt copy self.anon_box {
-          none { /* Nothing to do. */ }
-          some(b) { BTree.add_child(self.parent_box, b); }
+          none => { /* Nothing to do. */ }
+          some(b) => BTree.add_child(self.parent_box, b)
         }
         self.anon_box = none;
     }
@@ -162,14 +160,12 @@ impl box_builder_priv of box_builder_priv for Node {
      "]
     fn determine_box_kind() -> BoxKind {
         alt self.read(|n| copy n.kind) {
-          ~Text(string) {
-            TextBox(@text_box(copy string))
-          }
-          ~Element(element) {
+          ~Text(string) => TextBox(@text_box(copy string)),
+          ~Element(element) => {
             alt *element.kind {
-              HTMLDivElement           { BlockBox            }
-              HTMLImageElement({size}) { IntrinsicBox(@size) }
-              UnknownElement           { InlineBox           }
+              HTMLDivElement => BlockBox,
+              HTMLImageElement({size}) => IntrinsicBox(@size),
+              UnknownElement => InlineBox
             }
           }
         }
@@ -186,11 +182,11 @@ impl box_builder_methods of box_builder_methods for Node {
         let box_kind = self.determine_box_kind();
         let my_box = @Box(self, box_kind);
         alt box_kind {
-          BlockBox | InlineBox {
+          BlockBox | InlineBox => {
             let cx = create_context(self, my_box);
             cx.construct_boxes_for_children();
           }
-          _ {
+          _ => {
             // Nothing to do.
           }
         }

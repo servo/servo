@@ -14,14 +14,14 @@ fn factory(url: url, progress_chan: chan<ProgressMsg>) {
 
     do spawn {
         alt file_reader(url.path) {
-          ok(reader) {
+          ok(reader) => {
             while !reader.eof() {
                 let data = reader.read_bytes(READ_SIZE);
                 progress_chan.send(Payload(data));
             }
             progress_chan.send(Done(ok(())));
           }
-          err(*) {
+          err(*) => {
             progress_chan.send(Done(err(())));
           }
         };

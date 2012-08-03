@@ -34,16 +34,16 @@ impl ApplyStyleBoxMethods of ApplyStyleBoxMethods for @Box {
         // Right now, we only handle images.
         do self.node.read |node| {
             alt node.kind {
-              ~Element(element) {
+              ~Element(element) => {
                 let style = self.node.get_specified_style();
 
                 self.appearance.background_color = alt style.background_color {
-                  some(col) { col }
-                  none { node.kind.default_color() }
+                  some(col) => col,
+                  none => node.kind.default_color()
                 };
 
                 alt element.kind {
-                  ~HTMLImageElement(*) {
+                  ~HTMLImageElement(*) => {
                     let url = element.get_attr(~"src");
                     
                     if url.is_some() {
@@ -52,10 +52,10 @@ impl ApplyStyleBoxMethods of ApplyStyleBoxMethods for @Box {
                         self.appearance.background_image = some(ImageHolder(option::unwrap(url)))
                     };
                   }
-                  _ { /* Ignore. */ }
+                  _ => { /* Ignore. */ }
                 }
               }
-              _ { /* Ignore. */ }
+              _ => { /* Ignore. */ }
             }
         }
     }

@@ -71,16 +71,10 @@ fn mainloop(po: port<Msg>) {
         #debug("osmain: peeking");
         while po.peek() {
             alt po.recv() {
-              AddKeyHandler(key_ch) {
-                key_handlers.push(#move(key_ch));
-              }
-              AddEventListener(event_listener) {
-                event_listeners.push(event_listener);
-              }
-              BeginDrawing(sender) {
-                lend_surface(*surfaces, sender);
-              }
-              Draw(sender, dt) {
+              AddKeyHandler(key_ch) => key_handlers.push(#move(key_ch)),
+              AddEventListener(event_listener) => event_listeners.push(event_listener),
+              BeginDrawing(sender) => lend_surface(*surfaces, sender),
+              Draw(sender, dt) => {
                 #debug("osmain: received new frame");
                 return_surface(*surfaces, dt);
                 lend_surface(*surfaces, sender);
@@ -95,7 +89,7 @@ fn mainloop(po: port<Msg>) {
                     @layers::layers::Image(800, 600, layers::layers::ARGB32Format, image_data);
                 image_layer.set_image(image);
               }
-              exit {
+              exit => {
                 *done = true;
               }
             }

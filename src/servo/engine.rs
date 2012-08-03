@@ -42,7 +42,9 @@ class Engine<S:Sink send copy> {
 
     fn handle_request(request: Msg) -> bool {
         alt request {
-          LoadURLMsg(url) {
+          LoadURLMsg(url) => {
+            // TODO: change copy to move once we have alt move
+            let url = copy url;
             if url.path.ends_with(".js") {
                 self.content.send(ExecuteMsg(url))
             } else {
@@ -51,7 +53,7 @@ class Engine<S:Sink send copy> {
             return true;
           }
 
-          ExitMsg(sender) {
+          ExitMsg(sender) => {
             self.content.send(content::ExitMsg);
             self.layout.send(layout_task::ExitMsg);
             

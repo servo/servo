@@ -210,7 +210,7 @@ impl WriterMethods<T:copy send,A> for Scope<T,A> {
         f(*h.write_ptr())
     }
 
-    #[warn(no_non_implicitly_copyable_typarams)]
+    #[allow(non_implicitly_copyable_typarams)]
     fn handle(v: T) -> Handle<T,A> unsafe {
         let d: *HandleData<T,A> =
             unsafe::reinterpret_cast(
@@ -226,7 +226,7 @@ impl WriterMethods<T:copy send,A> for Scope<T,A> {
 }
 
 #[cfg(test)]
-#[warn(no_non_implicitly_copyable_typarams)]
+#[allow(non_implicitly_copyable_typarams)]
 mod test {
 
     type animal = {name: ~str, species: species};
@@ -250,15 +250,15 @@ mod test {
 
     fn mutate(a: animal) {
         alt a.species {
-          chicken(c) { c.eggs_per_day += 1u; }
-          bull(c) { c.horns += 1u; }
+          chicken(c) => c.eggs_per_day += 1u,
+          bull(c) => c.horns += 1u
         }
     }
 
     fn read_characteristic(a: animal) -> uint {
         alt a.species {
-          chicken(c) { c.eggs_per_day }
-          bull(c) { c.horns }
+          chicken(c) => c.eggs_per_day,
+          bull(c) => c.horns
         }
     }
 

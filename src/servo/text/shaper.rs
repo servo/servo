@@ -112,13 +112,13 @@ extern fn glyph_func(_font: *hb_font_t,
     assert font.is_not_null();
 
     return alt (*font).glyph_idx(unicode as char) {
-           some(g) {
-               *glyph = g as hb_codepoint_t;
-               true
-           }
-           none {
-               false
-           }
+      some(g) => {
+        *glyph = g as hb_codepoint_t;
+        true
+      }
+      none => {
+        false
+      }
     } as hb_bool_t;
 }
 

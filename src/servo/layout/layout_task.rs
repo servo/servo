@@ -21,41 +21,39 @@ import comm::*;
 type Layout = chan<Msg>;
 
 enum Msg {
-    BuildMsg(Node, Stylesheet),
+    BuildMsg(Node, arc<Stylesheet>),
     PingMsg(chan<content::PingMsg>),
     ExitMsg
 }
 
 fn Layout(renderer: Renderer) -> Layout {
-    spawn_listener::<Msg>(|request| {
+    do spawn_listener::<Msg>|request| {
         loop {
             alt request.recv() {
-                PingMsg(ping_channel) {
-                    ping_channel.send(content::PongMsg);
+              PingMsg(ping_channel) => ping_channel.send(content::PongMsg),
+              ExitMsg => {
+                #debug("layout: ExitMsg received");
+                break;
+              }
+              BuildMsg(node, styles) => {
+                #debug("layout: received layout request for:");
+                node.dump();
+
+                do util::time::time(~"layout") {
+                    node.initialize_style_for_subtree();
+                    node.recompute_style_for_subtree(styles);
+
+                    let this_box = node.construct_boxes();
+                    this_box.dump();
+
+                    this_box.apply_css_style();
+                    this_box.reflow(px_to_au(800));
+
+                    let dlist = build_display_list(this_box);
+                    renderer.send(renderer::RenderMsg(dlist));
                 }
-                ExitMsg {
-                  #debug("layout: ExitMsg received");
-                  break;
-                }
-                BuildMsg(node, styles) {
-                    #debug("layout: received layout request for:");
-                    node.dump();
-
-                    do util::time::time(~"layout") {
-                        node.initialize_style_for_subtree();
-                        node.recompute_style_for_subtree(arc(copy styles));
-
-                        let this_box = node.construct_boxes();
-                        this_box.dump();
-
-                        this_box.apply_css_style();
-                        this_box.reflow(px_to_au(800));
-
-                        let dlist = build_display_list(this_box);
-                        renderer.send(renderer::RenderMsg(dlist));
-                    }
-                }
+              }
             }
         }
-    })
+    }
 }

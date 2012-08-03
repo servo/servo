@@ -50,7 +50,8 @@ fn ResourceTask() -> ResourceTask {
 
 fn create_resource_task_with_loaders(+loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
     do spawn_listener |from_client| {
-        ResourceManager(from_client, loaders).start()
+        // TODO: change copy to move once we can move into closures
+        ResourceManager(from_client, copy loaders).start()
     }
 }
 
@@ -59,7 +60,7 @@ class ResourceManager {
     /// Per-scheme resource loaders
     let loaders: ~[(~str, LoaderTaskFactory)];
 
-    new(from_client: port<ControlMsg>, loaders: ~[(~str, LoaderTaskFactory)]) {
+    new(from_client: port<ControlMsg>, -loaders: ~[(~str, LoaderTaskFactory)]) {
         self.from_client = from_client;
         self.loaders = loaders;
     }
@@ -67,10 +68,10 @@ class ResourceManager {
     fn start() {
         loop {
             alt self.from_client.recv() {
-              Load(url, progress_chan) {
+              Load(url, progress_chan) => {
                 self.load(url, progress_chan)
               }
-              Exit {
+              Exit => {
                 break
               }
             }
@@ -80,11 +81,11 @@ class ResourceManager {
     fn load(url: url, progress_chan: chan<ProgressMsg>) {
 
         alt self.get_loader_factory(url) {
-          some(loader_factory) {
+          some(loader_factory) => {
             #debug("resource_task: loading url: %s", url::to_str(url));
             loader_factory(url, progress_chan);
           }
-          none {
+          none => {
             #debug("resource_task: no loader for scheme %s", url.scheme);
             progress_chan.send(Done(err(())));
           }
@@ -93,7 +94,7 @@ class ResourceManager {
 
     fn get_loader_factory(url: url) -> option<LoaderTaskFactory> {
         for self.loaders.each |scheme_loader| {
-            let (scheme, loader_factory) = scheme_loader;
+            let (scheme, loader_factory) = copy scheme_loader;
             if scheme == url.scheme {
                 return some(loader_factory);
             }
@@ -109,21 +110,23 @@ fn test_exit() {
 }
 
 #[test]
+#[allow(non_implicitly_copyable_typarams)]
 fn test_bad_scheme() {
     let resource_task = ResourceTask();
     let progress = port();
     resource_task.send(Load(url::from_str(~"bogus://whatever").get(), progress.chan()));
     alt check progress.recv() {
-      Done(result) { assert result.is_err() }
+      Done(result) => { assert result.is_err() }
     }
     resource_task.send(Exit);
 }
 
 #[test]
+#[allow(non_implicitly_copyable_typarams)]
 fn should_delegate_to_scheme_loader() {
     let payload = ~[1, 2, 3];
-    let loader_factory = fn~(url: url, progress_chan: chan<ProgressMsg>) {
-        progress_chan.send(Payload(payload));
+    let loader_factory = fn~(_url: url, progress_chan: chan<ProgressMsg>) {
+        progress_chan.send(Payload(copy payload));
         progress_chan.send(Done(ok(())));
     };
     let loader_factories = ~[(~"snicklefritz", loader_factory)];

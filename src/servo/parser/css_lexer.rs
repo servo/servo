@@ -50,15 +50,15 @@ impl css_methods of css_methods for CssLexer {
     fn parse_css() -> Token {
         let mut ch: u8;
         alt self.input_state.get() {
-            CoeChar(c) { ch = c; }
-            CoeEof { return Eof; }
+            CoeChar(c) => ch = c,
+            CoeEof => { return Eof; }
         }
 
         let token = alt self.parser_state {
-          CssDescription { self.parse_css_description(ch) }
-          CssAttribute   { self.parse_css_attribute(ch) }
-          CssElement     { self.parse_css_element(ch) }
-          CssRelation    { self.parse_css_relation(ch) }
+          CssDescription => self.parse_css_description(ch),
+          CssAttribute => self.parse_css_attribute(ch),
+          CssElement => self.parse_css_element(ch),
+          CssRelation => self.parse_css_relation(ch)
         };
 
         #debug["token=%?", token];
@@ -69,11 +69,11 @@ impl css_methods of css_methods for CssLexer {
         self.parser_state = CssElement;
 
         let token = alt c {
-          '{' as u8  { self.parser_state = CssDescription; StartDescription }
-          '>' as u8  { Child }
-          '+' as u8  { Sibling }
-          ',' as u8  { Comma }
-          _          { self.input_state.unget(c); Descendant }
+          '{' as u8 => { self.parser_state = CssDescription; StartDescription }
+          '>' as u8 => { Child }
+          '+' as u8 => { Sibling }
+          ',' as u8 => { Comma }
+          _ => { self.input_state.unget(c); Descendant }
         };
 
         self.input_state.eat_whitespace();
@@ -113,22 +113,22 @@ impl css_methods of css_methods for CssLexer {
             self.input_state.eat_whitespace();
 
             alt self.input_state.get() {
-              CoeChar(c)  { ch = c }
-              CoeEof      { fail ~"File ended before description of style" }
+              CoeChar(c) => { ch = c }
+              CoeEof => { fail ~"File ended before description of style" }
             }
 
             return self.parse_css_relation(ch);
         }
         
         alt ch {
-          '.' as u8 { return Attr(style::Includes(~"class", self.input_state.parse_ident())); }
-          '#' as u8 { return Attr(style::Includes(~"id", self.input_state.parse_ident())); }
-          '[' as u8 {
+          '.' as u8 => return Attr(style::Includes(~"class", self.input_state.parse_ident())),
+          '#' as u8 => return Attr(style::Includes(~"id", self.input_state.parse_ident())),
+          '[' as u8 => {
             let attr_name = self.input_state.parse_ident();
             
             alt self.input_state.get() {
-              CoeChar(c)    { ch = c; }
-              CoeEof        { fail ~"File ended before description finished"; }
+              CoeChar(c) => { ch = c; }
+              CoeEof => { fail ~"File ended before description finished"; }
             }
 
             if ch == ']' as u8 {
@@ -151,7 +151,7 @@ impl css_methods of css_methods for CssLexer {
             
             fail #fmt("Unexpected symbol %c in attribute", ch as char);
           }
-          _   { fail #fmt("Unexpected symbol %c in attribute", ch as char); }
+          _ => { fail #fmt("Unexpected symbol %c in attribute", ch as char); }
         }
     }
 
@@ -166,8 +166,8 @@ impl css_methods of css_methods for CssLexer {
             self.input_state.eat_whitespace();
 
             alt self.input_state.get() {
-              CoeChar(c)  { ch = c }
-              CoeEof      { fail ~"Reached end of file in CSS description" }
+              CoeChar(c) => { ch = c }
+              CoeEof => { fail ~"Reached end of file in CSS description" }
             }
         }
         
@@ -188,8 +188,8 @@ impl css_methods of css_methods for CssLexer {
             }
 
             alt self.input_state.get() {
-              CoeChar(c)  { ch = c }
-              CoeEof      { fail ~"Reached end of file in CSS description" }
+              CoeChar(c) => { ch = c }
+              CoeEof => { fail ~"Reached end of file in CSS description" }
             }
         }
 
@@ -199,8 +199,8 @@ impl css_methods of css_methods for CssLexer {
         // Get the value of the descriptor
         loop {
             alt self.input_state.get() {
-              CoeChar(c)  { ch = c }
-              CoeEof      { fail ~"Reached end of file in CSS description" }
+              CoeChar(c) => { ch = c }
+              CoeEof => { fail ~"Reached end of file in CSS description" }
             }
 
             if ch.is_whitespace() {
@@ -259,7 +259,6 @@ fn spawn_css_lexer_from_string(-content : ~str) -> pipes::port<Token> {
 
     do task::spawn {
         let input_port = comm::port();
-        let chan = input_port.chan();
         input_port.send(Payload(str::bytes(content)));
         input_port.send(Done(ok(())));
 
@@ -269,17 +268,18 @@ fn spawn_css_lexer_from_string(-content : ~str) -> pipes::port<Token> {
     return result_port;
 }
 
-#[warn(no_non_implicitly_copyable_typarams)]
+#[allow(non_implicitly_copyable_typarams)]
 fn spawn_css_lexer_task(-url: url, resource_task: ResourceTask) -> pipes::port<Token> {
     let (result_chan, result_port) = pipes::stream();
 
-    task::spawn(|| {
+    do task::spawn || {
         assert url.path.ends_with(".css");
         let input_port = port();
-        resource_task.send(Load(url, input_port.chan()));
+        // TODO: change copy to move once the compiler permits it
+        resource_task.send(Load(copy url, input_port.chan()));
 
         lex_css_from_bytes(input_port, result_chan);
-    });
+    };
 
     return result_port;
 }

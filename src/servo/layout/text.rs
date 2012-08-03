@@ -24,8 +24,8 @@ trait text_layout_methods {
 impl text_layout_methods of text_layout_methods for @Box {
     fn reflow_text(_available_width: au, subbox: @text_box) {
         alt self.kind {
-            TextBox(*) { /* ok */ }
-            _ { fail ~"expected text box in reflow_text!" }
+            TextBox(*) => { /* ok */ }
+            _ => { fail ~"expected text box in reflow_text!" }
         };
 
         // FIXME: The font library should not be initialized here
@@ -51,7 +51,7 @@ fn should_calculate_the_size_of_the_text_box() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = alt check b.kind { TextBox(subbox) { subbox } };
+    let subbox = alt check b.kind { TextBox(subbox) => { subbox } };
     b.reflow_text(px_to_au(800), subbox);
     let expected = Size2D(px_to_au(84), px_to_au(20));
     assert b.bounds.size == expected;

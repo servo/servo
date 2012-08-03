@@ -102,14 +102,14 @@ class Font {
             1 as c_int, addr_of(extents));
 
         alt cairo_scaled_font_status(self.cairo_font) {
-          status if status == CAIRO_STATUS_SUCCESS {
+          status if status == CAIRO_STATUS_SUCCESS => {
 
             #debug("x_advance: %?", extents.x_advance);
             #debug("y_advance: %?", extents.y_advance);
 
             return extents.x_advance as int;
           }
-         status {
+          status => {
             import str::unsafe::from_c_str;
 
             let status_cstr = cairo_status_to_string(status);

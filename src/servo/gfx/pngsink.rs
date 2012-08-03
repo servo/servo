@@ -59,15 +59,15 @@ fn PngSink(output: chan<~[u8]>) -> PngSink {
 
         loop {
             alt po.recv() {
-              BeginDrawing(sender) {
+              BeginDrawing(sender) => {
                 #debug("pngsink: begin_drawing");
                 sender.send(draw_target);
               }
-              Draw(sender, dt) {
+              Draw(sender, dt) => {
                 #debug("pngsink: draw");
                 do_draw(sender, dt, output, cairo_surf);
               }
-              Exit { break }
+              Exit => { break }
             }
         }
 

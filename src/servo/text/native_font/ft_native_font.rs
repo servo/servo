@@ -68,7 +68,7 @@ class FreeTypeNativeFont/& {
 fn create(lib: FT_Library, buf: &~[u8]) -> result<FreeTypeNativeFont, ()> {
     assert lib.is_not_null();
     let face: FT_Face = null();
-    return vec_as_buf(*buf, |cbuf, len| {
+    return vec_as_buf(*buf, |cbuf, _len| {
            if FT_New_Memory_Face(lib, cbuf, (*buf).len() as FT_Long,
                                  0 as FT_Long, addr_of(face)).succeeded() {
                // FIXME: These values are placeholders
