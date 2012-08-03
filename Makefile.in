@@ -39,35 +39,36 @@ SERVO_DEPS = \
 CHECK_DEPS =
 CLEAN_DEPS =
 AZURE_DEPS = \
-	src/rust-geom/libgeom.dummy
+	rust-geom
 GLUT_DEPS = \
-    src/rust-opengles/libopengles.dummy
+	rust-opengles
 LAYERS_DEPS = \
-	src/rust-geom/libgeom.dummy \
-    src/rust-opengles/libopengles.dummy \
-    src/rust-glut/libglut.dummy \
-    src/rust-azure/libazure.dummy \
+	rust-geom \
+	rust-opengles \
+	rust-glut \
+	rust-azure
 
 ifeq ($(OSTYPE),darwin)
-    SERVO_DEPS += src/rust-cocoa/libcocoa.dummy
+    SERVO_DEPS += rust-cocoa
     # I want the cocoa check to come before the servo check since if cocoa
     # doesn't work neither does servo
     CHECK_DEPS += check-rust-cocoa
     CLEAN_DEPS += clean-rust-cocoa
-    AZURE_DEPS += src/rust-cocoa/libcocoa.dummy src/rust-geom/libgeom.dummy
-    LAYERS_DEPS += src/rust-cocoa/libcocoa.dummy
+    AZURE_DEPS += rust-cocoa
+    LAYERS_DEPS += rust-cocoa
 endif
 
 SERVO_DEPS += \
-	src/rust-harfbuzz/libharfbuzz.dummy \
-	src/rust-mozjs/libmozjs.dummy \
-	src/rust-azure/libazure.dummy \
-	src/rust-stb-image/libstb-image.dummy \
-	src/rust-geom/libgeom.dummy \
-    src/rust-opengles/libopengles.dummy \
-    src/rust-glut/libglut.dummy \
-    src/rust-layers/liblayers.dummy \
-	src/rust-http-client/libhttp_client.dummy \
+	mozjs \
+	rust-harfbuzz \
+	rust-mozjs \
+	rust-azure \
+	rust-stb-image \
+	rust-geom \
+	rust-opengles \
+	rust-glut \
+	rust-layers \
+	rust-http-client \
 	$(NULL)
 
 CHECK_DEPS += \
@@ -97,8 +98,12 @@ CLEAN_DEPS += \
 	clean-servo \
 	$(NULL)
 
+
 .PHONY:	all
 all:    servo package
+
+
+# Servo binaries
 
 servo:	$(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) $(RUSTLIBS) -o $@ $< --bin
@@ -109,13 +114,45 @@ libservo.dummy: $(SERVO_DEPS)
 servo-test: $(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) $(RUSTLIBS) --test -o $@ $<
 
+
+# Convenient sub-project targets
+
+.PHONY: mozjs rust-harfbuzz rust-mozjs rust-azure rust-cocoa \
+	rust-stb-image rust-geom rust-opengles rust-glut rust-layers \
+	rust-http-client
+
+mozjs: src/mozjs/libjs_static.a
+
+rust-harfbuzz: src/rust-harfbuzz/libharfbuzz.dummy
+
+rust-mozjs: src/rust-mozjs/libmozjs.dummy
+
+rust-azure: src/rust-azure/libazure.dummy
+
+rust-cocoa: src/rust-cocoa/libcocoa.dummy
+
+rust-stb-image: src/rust-stb-image/libstb-image.dummy
+
+rust-geom: src/rust-geom/libgeom.dummy
+
+rust-opengles: src/rust-opengles/libopengles.dummy
+
+rust-glut: src/rust-glut/libglut.dummy
+
+rust-layers: src/rust-layers/liblayers.dummy
+
+rust-http-client: src/rust-http-client/libhttp_client.dummy
+
+
+# Subproject rules
+
 src/mozjs/libjs_static.a:
 	$(MAKE) -C src/mozjs
 
 src/rust-harfbuzz/libharfbuzz.dummy:
 	$(MAKE) -C src/rust-harfbuzz
 
-src/rust-mozjs/libmozjs.dummy: src/mozjs/libjs_static.a
+src/rust-mozjs/libmozjs.dummy: mozjs
 	RUSTFLAGS="$(RUSTFLAGS) -L ../mozjs/" CFLAGS="-I../mozjs/dist/include" \
 		$(MAKE) -C src/rust-mozjs
 
@@ -144,103 +181,93 @@ src/rust-layers/liblayers.dummy: $(LAYERS_DEPS)
 src/rust-http-client/libhttp_client.dummy:
 	$(MAKE) -C src/rust-http-client
 
+
+# Testing targets
+
+.PHONY: check $(CHECK_DEPS)
+
 check: $(CHECK_DEPS)
 
 check-servo: servo-test
 	./servo-test $(TESTNAME)
 
-.PHONY: check-rust-harfbuzz
 check-rust-harfbuzz:
 	$(MAKE) check -C src/rust-harfbuzz
 
-.PHONY: check-rust-mozjs
-check-rust-mozjs: src/mozjs/libjs_static.a
+check-rust-mozjs: mozjs
 	RUSTFLAGS="$(RUSTFLAGS) -L ../mozjs/" CFLAGS="-I../mozjs/dist/include" \
 		$(MAKE) check -C src/rust-mozjs
 
-.PHONY: check-rust-azure
 check-rust-azure: $(AZURE_DEPS)
 	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-cocoa -L ../rust-geom" $(MAKE) check -C src/rust-azure
 
-.PHONY: check-rust-cocoa
 check-rust-cocoa:
 	$(MAKE) check -C src/rust-cocoa
 
-.PHONY: check-rust-stb-image
 check-rust-stb-image:
 	$(MAKE) check -C src/rust-stb-image
 
-.PHONY: check-rust-geom
 check-rust-geom:
 	$(MAKE) check -C src/rust-geom
 
-.PHONY: check-rust-opengles
 check-rust-opengles:
 	$(MAKE) check -C src/rust-opengles
 
-.PHONY: check-rust-glut
 check-rust-glut: $(GLUT_DEPS)
 	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-opengles" $(MAKE) check -C src/rust-glut
 
-.PHONY: check-rust-layers
 check-rust-layers: $(LAYERS_DEPS)
 	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-geom -L ../rust-opengles -L ../rust-glut -L ../rust-azure -L ../rust-cocoa" \
         $(MAKE) check -C src/rust-layers
 
-.PHONY: check-rust-http-client
 check-rust-http-client:
 	$(MAKE) check -C src/rust-http-client
 
-.PHONY:	clean
+
+# Clean targets
+
+.PHONY:	clean $(CLEAN_DEPS)
+
 clean: $(CLEAN_DEPS)
 
-.PHONY: clean-rust-harfbuzz
 clean-rust-harfbuzz:
 	$(MAKE) clean -C src/rust-harfbuzz
 
-.PHONY: clean-mozjs
 clean-mozjs:
 	$(MAKE) clean -C src/mozjs
 
-.PHONY: clean-rust-mozjs
 clean-rust-mozjs:
 	$(MAKE) clean -C src/rust-mozjs
 
-.PHONY: clean-rust-azure
 clean-rust-azure:
 	$(MAKE) clean -C src/rust-azure
 
-.PHONY: clean-rust-cocoa
 clean-rust-cocoa:
 	$(MAKE) clean -C src/rust-cocoa
 
-.PHONY: clean-rust-stb-image
 clean-rust-stb-image:
 	$(MAKE) clean -C src/rust-stb-image
 
-.PHONY: clean-rust-geom
 clean-rust-geom:
 	$(MAKE) clean -C src/rust-geom
 
-.PHONY: clean-rust-opengles
 clean-rust-opengles:
 	$(MAKE) clean -C src/rust-opengles
 
-.PHONY: clean-rust-glut
 clean-rust-glut:
 	$(MAKE) clean -C src/rust-glut
 
-.PHONY: clean-rust-layers
 clean-rust-layers:
 	$(MAKE) clean -C src/rust-layers
 
-.PHONY: clean-rust-http-client
 clean-rust-http-client:
 	$(MAKE) clean -C src/rust-http-client
 
-.PHONY: clean-servo
 clean-servo:
 	rm -f servo servo-test
+
+
+# Darwin app packaging
 
 ifeq ($(OSTYPE),darwin)
 
