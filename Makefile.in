@@ -87,8 +87,6 @@ CHECK_DEPS += \
 	$(NULL)
 
 CLEAN_DEPS += \
-	clean-ragel \
-	clean-harfbuzz \
 	clean-rust-harfbuzz \
 	clean-mozjs \
 	clean-rust-mozjs \
@@ -115,17 +113,11 @@ libservo.dummy: $(SERVO_DEPS)
 servo-test: $(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) $(RUSTLIBS) --test -o $@ $<
 
-src/ragel/ragel/ragel:
-	$(MAKE) -C src/ragel
-
-src/harfbuzz/src/.libs/libharfbuzz.a: src/ragel/ragel/ragel
-	$(MAKE) -C src/harfbuzz PATH=$(PATH):$(BUILD_DIR)/src/ragel/ragel CXXFLAGS=-fPIC LDFLAGS="-fPIC -lstdc++"
-
 src/mozjs/libjs_static.a:
 	$(MAKE) -C src/mozjs
 
-src/rust-harfbuzz/libharfbuzz.dummy: src/harfbuzz/src/.libs/libharfbuzz.a
-	$(MAKE) -C src/rust-harfbuzz RUSTFLAGS="$(RUSTFLAGS) -L ../harfbuzz/src/.libs/"
+src/rust-harfbuzz/libharfbuzz.dummy:
+	$(MAKE) -C src/rust-harfbuzz
 
 src/rust-mozjs/libmozjs.dummy: src/mozjs/libjs_static.a
 	RUSTFLAGS="$(RUSTFLAGS) -L ../mozjs/" CFLAGS="-I../mozjs/dist/include" \
@@ -166,7 +158,7 @@ check-servo: servo-test
 
 .PHONY: check-rust-harfbuzz
 check-rust-harfbuzz: src/harfbuzz/src/.libs/libharfbuzz.a
-	$(MAKE) check -C src/rust-harfbuzz RUSTFLAGS="$(RUSTFLAGS) -L ../harfbuzz/src/.libs/"
+	$(MAKE) check -C src/rust-harfbuzz
 
 .PHONY: check-rust-mozjs
 check-rust-mozjs: src/mozjs/libjs_static.a
@@ -212,14 +204,6 @@ check-rust-http-client:
 
 .PHONY:	clean
 clean: $(CLEAN_DEPS)
-
-.PHONY: clean-ragel
-clean-ragel:
-	$(MAKE) clean -C src/ragel
-
-.PHONY: clean-harfbuzz
-clean-harfbuzz:
-	$(MAKE) clean -C src/harfbuzz
 
 .PHONY: clean-rust-harfbuzz
 clean-rust-harfbuzz:
