@@ -13,9 +13,8 @@ Create a URL object from a string. Does various helpful browsery things like
 
 */
 fn make_url(str_url: ~str, current_url: option<url>) -> url {
-    let str_url = if get_scheme(str_url).is_some() {
-        str_url
-    } else {
+    let mut schm = get_scheme(str_url);
+    let str_url = if result::is_err(schm) {
         if current_url.is_none() {
             // If all we have is a filename, assume it's a local relative file
             // and build an absolute path with the cwd
@@ -33,6 +32,8 @@ fn make_url(str_url: ~str, current_url: option<url>) -> url {
                 current_url.scheme + "://" + path::connect(current_url.host, path)
             }
         }
+    } else {
+        str_url
     };
 
     // FIXME: Need to handle errors

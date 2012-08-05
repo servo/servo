@@ -58,7 +58,7 @@ class Appearance {
             self.background_image = some(holder);
         }
 
-        ret image;
+        return image;
     }
 }
 
@@ -115,7 +115,7 @@ class ImageHolder {
         let im_arc = option::unwrap(temp);
         self.image = some(clone(&im_arc));
 
-        ret ~im_arc;
+        return ~im_arc;
     }
 }
 
@@ -265,7 +265,7 @@ mod test {
 
         push(r, copy root.bounds);
 
-        ret r;
+        return r;
     }
 
     #[test]

@@ -27,7 +27,7 @@ Builds a display list for a box and all its children
 fn build_display_list(box : @Box) -> dl::display_list {
     let list = dvec();
     build_display_list_from_origin(list, box, Point2D(au(0), au(0)));
-    ret list;
+    return list;
 }
 
 #[doc="
@@ -84,7 +84,7 @@ fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) 
             item_type: dl::display_item_text(run.get()),
             bounds: bounds
         }));
-        ret;
+        return;
       }
       _ {
         // Fall through

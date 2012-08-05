@@ -13,8 +13,8 @@ enum Color = {red : u8, green : u8, blue : u8, alpha : float};
 
 impl Color of eq for Color {
     pure fn eq(&&other: Color) -> bool {
-        ret self.red == other.red && self.green == other.green && self.blue == other.blue &&
-            self.alpha == other.alpha;
+        return self.red == other.red && self.green == other.green && self.blue == other.blue &&
+               self.alpha == other.alpha;
     }
 }
 
@@ -23,7 +23,7 @@ fn rgba(r : u8, g : u8, b : u8, a : float) -> Color {
 }
 
 fn rgb(r : u8, g : u8, b : u8) -> Color {
-    ret rgba(r, g, b, 1.0);
+    return rgba(r, g, b, 1.0);
 }
 
 fn hsla(h : float, s : float, l : float, a : float) -> Color {
@@ -37,10 +37,10 @@ fn hsla(h : float, s : float, l : float, a : float) -> Color {
         let h = if h < 0.0 { h + 1.0 } else if h > 1.0 { h - 1.0 } else { h };
 
         alt h {
-          0.0 to 1.0/6.0     { ret m1 + (m2 - m1)*h*6.0; }
-          1.0/6.0 to 1.0/2.0 { ret m2; }
-          1.0/2.0 to 2.0/3.0 { ret m1 + (m2 - m1)*(4.0 - 6.0*h); }
-          2.0/3.0 to 1.0     { ret m1; }
+          0.0 to 1.0/6.0     { return m1 + (m2 - m1)*h*6.0; }
+          1.0/6.0 to 1.0/2.0 { return m2; }
+          1.0/2.0 to 2.0/3.0 { return m1 + (m2 - m1)*(4.0 - 6.0*h); }
+          2.0/3.0 to 1.0     { return m1; }
           _                  { fail ~"unexpected hue value"; }
         }
     }
@@ -49,11 +49,11 @@ fn hsla(h : float, s : float, l : float, a : float) -> Color {
     let g = round(255.0*hue_to_rgb(m1, m2, h) as c_double);
     let b = round(255.0*hue_to_rgb(m1, m2, h - 1.0/3.0) as c_double);
 
-    ret rgba(r as u8, g as u8, b as u8, a);
+    return rgba(r as u8, g as u8, b as u8, a);
 }
 
 fn hsl(h : float, s : float, l : float) -> Color {
-    ret hsla(h, s, l, 1.0);
+    return hsla(h, s, l, 1.0);
 }
 
 impl methods for Color {
@@ -68,7 +68,7 @@ mod parsing {
 
     fn fail_unrecognized(col : ~str) -> option<Color> {
         #warn["Unrecognized color %s", col];
-        ret none;
+        return none;
     }
 
     #[doc="Match an exact color keyword."]
@@ -91,10 +91,10 @@ mod parsing {
           ~"blue"    { blue()    }
           ~"teal"    { teal()    }
           ~"aqua"    { aqua()    }
-          _          { ret fail_unrecognized(color) }
+          _          { return fail_unrecognized(color) }
         };
 
-        ret some(col);
+        return some(col);
     }
     
     #[doc="Parses a color specification in the form rgb(foo,bar,baz)"]
@@ -104,7 +104,7 @@ mod parsing {
 
         // split up r, g, and b
         let cols = only_colors.split_char(',');
-        if cols.len() != 3u { ret fail_unrecognized(color); } 
+        if cols.len() != 3u { return fail_unrecognized(color); }
 
         alt (u8::from_str(cols[0]), u8::from_str(cols[1]), 
              u8::from_str(cols[2])) {
@@ -120,7 +120,7 @@ mod parsing {
 
         // split up r, g, and b
         let cols = only_vals.split_char(',');
-        if cols.len() != 4u { ret fail_unrecognized(color); } 
+        if cols.len() != 4u { return fail_unrecognized(color); }
 
         alt (u8::from_str(cols[0]), u8::from_str(cols[1]), 
              u8::from_str(cols[2]), float::from_str(cols[3])) {
@@ -136,7 +136,7 @@ mod parsing {
 
         // split up h, s, and l
         let vals = only_vals.split_char(',');
-        if vals.len() != 3u { ret fail_unrecognized(color); } 
+        if vals.len() != 3u { return fail_unrecognized(color); }
 
         alt (float::from_str(vals[0]), float::from_str(vals[1]), 
              float::from_str(vals[2])) {
@@ -151,7 +151,7 @@ mod parsing {
         let only_vals = color.substr(5u, color.len() - 6u);
 
         let vals = only_vals.split_char(',');
-        if vals.len() != 4u { ret fail_unrecognized(color); } 
+        if vals.len() != 4u { return fail_unrecognized(color); }
 
         alt (float::from_str(vals[0]), float::from_str(vals[1]), 
              float::from_str(vals[2]), float::from_str(vals[3])) {

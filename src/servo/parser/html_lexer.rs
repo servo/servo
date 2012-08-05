@@ -40,7 +40,7 @@ impl html_methods of html_methods for HtmlLexer {
         let mut ch: u8;
         alt self.input_state.get() {
           CoeChar(c) { ch = c; }
-          CoeEof { ret Eof; }
+          CoeEof { return Eof; }
         }
         let token = alt self.parser_state {
           NormalHtml   { self.parse_in_normal_state(ch) }
@@ -48,7 +48,7 @@ impl html_methods of html_methods for HtmlLexer {
         };
 
         #debug["token=%?", token];
-        ret token;
+        return token;
     }
 
     fn parse_in_normal_state(c: u8) -> Token {
@@ -66,13 +66,13 @@ impl html_methods of html_methods for HtmlLexer {
                 self.input_state.expect_ident(~"html");
                 self.input_state.eat_whitespace();
                 self.input_state.expect('>' as u8);
-                ret Doctype;
+                return Doctype;
             }
 
             if ch == ('/' as u8) {
                 let ident = self.input_state.parse_ident();
                 self.input_state.expect('>' as u8);
-                ret EndTag(ident);
+                return EndTag(ident);
             }
 
             self.input_state.unget(ch);
@@ -82,7 +82,7 @@ impl html_methods of html_methods for HtmlLexer {
             self.input_state.eat_whitespace();
 
             self.parser_state = TagHtml;
-            ret StartOpeningTag(ident);
+            return StartOpeningTag(ident);
         }
         
         // Make a text node.
@@ -92,11 +92,11 @@ impl html_methods of html_methods for HtmlLexer {
               CoeChar(c) {
                 if c == ('<' as u8) {
                     self.input_state.unget(c);
-                    ret Text(from_bytes(s));
+                    return Text(from_bytes(s));
                 }
                 push(s, c);
               }
-              CoeEof { ret Text(from_bytes(s)); }
+              CoeEof { return Text(from_bytes(s)); }
             }
         }
     }
@@ -106,7 +106,7 @@ impl html_methods of html_methods for HtmlLexer {
         
         if ch == ('>' as u8) {
             self.parser_state = NormalHtml;
-            ret EndOpeningTag;
+            return EndOpeningTag;
         }
 
         if ch == ('/' as u8) {
@@ -114,7 +114,7 @@ impl html_methods of html_methods for HtmlLexer {
               CoeChar(c) {
                 if c == ('>' as u8) {
                     self.parser_state = NormalHtml;
-                    ret SelfCloseTag;
+                    return SelfCloseTag;
                 } else {
                     #warn["/ not followed by > in a tag"];
                 }
@@ -139,7 +139,7 @@ impl html_methods of html_methods for HtmlLexer {
               }
               CoeEof {
                 let name = from_bytes(attribute_name);
-                ret Attr(copy name, name);
+                return Attr(copy name, name);
               }
             }
         }
@@ -154,7 +154,7 @@ impl html_methods of html_methods for HtmlLexer {
                 push(attribute_value, c);
               }
               CoeEof {
-                ret Attr(from_bytes(attribute_name), from_bytes(attribute_value));
+                return Attr(from_bytes(attribute_name), from_bytes(attribute_value));
               }
             }
         }
@@ -162,19 +162,19 @@ impl html_methods of html_methods for HtmlLexer {
         // Eat whitespacpe.
         self.input_state.eat_whitespace();
 
-        ret Attr(from_bytes(attribute_name), from_bytes(attribute_value));
+        return Attr(from_bytes(attribute_name), from_bytes(attribute_value));
     }
 }
 
 fn lexer(+input_port: port<resource_task::ProgressMsg>, state : ParseState) -> HtmlLexer {
-    ret {
-        input_state: {
-            mut lookahead: none,
-            mut buffer: ~[],
-            input_port: input_port,
-            mut eof: false
-        },
-        mut parser_state: state
+    return {
+           input_state: {
+               mut lookahead: none,
+               mut buffer: ~[],
+               input_port: input_port,
+               mut eof: false
+           },
+           mut parser_state: state
     };
 }
 
@@ -197,5 +197,5 @@ fn spawn_html_lexer_task(-url: url, resource_task: ResourceTask) -> port<Token> 
         }
     });
 
-    ret html_port;
+    return html_port;
 }

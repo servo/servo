@@ -27,7 +27,7 @@ enum Element = int;
         str::as_c_str("Not enough arguments", |s| {
             JS_ReportError(cx, s);
         });
-        ret 0;
+        return 0;
     }
     let id;
     unsafe {
@@ -40,13 +40,13 @@ enum Element = int;
             let elem = (*doc).getElementById(s);
         }
         //XXX wrap result
-        ret 1;
+        return 1;
       }
       err(_) {
         str::as_c_str("???", |s| {
             JS_ReportError(cx, s);
         });
-        ret 0;
+        return 0;
       }
     }
 }*/
@@ -56,13 +56,13 @@ enum Element = int;
         let uri = (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.getDocumentURI();
         JS_SET_RVAL(cx, vp, domstring_to_jsval(cx, uri));
     }
-    ret 1;
+    return 1;
 }*/
 
 extern fn getDocumentElement(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval) -> JSBool unsafe {
     let node = (*unwrap(obj)).payload.root;
     *rval = RUST_OBJECT_TO_JSVAL(node::create(cx, node).ptr);
-    ret 1;
+    return 1;
 }
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Document> {

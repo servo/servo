@@ -82,7 +82,7 @@ fn create(cx: *JSContext, node: Node) -> jsobj unsafe {
         JS_SetReservedSlot(obj.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
 
-    ret obj;
+    return obj;
 }
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Node> {
@@ -104,7 +104,7 @@ extern fn getFirstChild(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut js
             }
         });
     }
-    ret 1;
+    return 1;
 }
 
 extern fn getNextSibling(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval) -> JSBool {
@@ -121,7 +121,7 @@ extern fn getNextSibling(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut j
             }
         });
     }
-    ret 1;
+    return 1;
 }
 
 extern fn getTagName(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval) -> JSBool {
@@ -139,5 +139,5 @@ extern fn getTagName(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval
             }
         });
     }
-    ret 1;
+    return 1;
 }

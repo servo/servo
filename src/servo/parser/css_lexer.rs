@@ -51,7 +51,7 @@ impl css_methods of css_methods for CssLexer {
         let mut ch: u8;
         alt self.input_state.get() {
             CoeChar(c) { ch = c; }
-            CoeEof { ret Eof; }
+            CoeEof { return Eof; }
         }
 
         let token = alt self.parser_state {
@@ -62,7 +62,7 @@ impl css_methods of css_methods for CssLexer {
         };
 
         #debug["token=%?", token];
-        ret token;
+        return token;
     }
 
     fn parse_css_relation(c : u8) -> Token {
@@ -78,7 +78,7 @@ impl css_methods of css_methods for CssLexer {
 
         self.input_state.eat_whitespace();
         
-        ret token;
+        return token;
     }
 
     fn parse_css_element(c : u8) -> Token {
@@ -89,10 +89,10 @@ impl css_methods of css_methods for CssLexer {
         if c == '.' as u8 || c == '#' as u8 {
             self.parser_state = CssAttribute;
             self.input_state.unget(c);
-            ret Element(~"*");
+            return Element(~"*");
         } else if c == '*' as u8 {
             self.parser_state = CssAttribute;
-            ret Element(~"*");
+            return Element(~"*");
         }
 
         self.input_state.unget(c);
@@ -100,7 +100,7 @@ impl css_methods of css_methods for CssLexer {
 
         self.parser_state = CssAttribute;
         
-        ret Element(element);
+        return Element(element);
     }
 
     fn parse_css_attribute(c : u8) -> Token {
@@ -117,12 +117,12 @@ impl css_methods of css_methods for CssLexer {
               CoeEof      { fail ~"File ended before description of style" }
             }
 
-            ret self.parse_css_relation(ch);
+            return self.parse_css_relation(ch);
         }
         
         alt ch {
-          '.' as u8 { ret Attr(style::Includes(~"class", self.input_state.parse_ident())); }
-          '#' as u8 { ret Attr(style::Includes(~"id", self.input_state.parse_ident())); }
+          '.' as u8 { return Attr(style::Includes(~"class", self.input_state.parse_ident())); }
+          '#' as u8 { return Attr(style::Includes(~"id", self.input_state.parse_ident())); }
           '[' as u8 {
             let attr_name = self.input_state.parse_ident();
             
@@ -132,21 +132,21 @@ impl css_methods of css_methods for CssLexer {
             }
 
             if ch == ']' as u8 {
-                ret Attr(style::Exists(attr_name));
+                return Attr(style::Exists(attr_name));
             } else if ch == '=' as u8 {
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                ret Attr(style::Exact(attr_name, attr_val));
+                return Attr(style::Exact(attr_name, attr_val));
             } else if ch == '~' as u8 {
                 self.input_state.expect('=' as u8);
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                ret Attr(style::Includes(attr_name, attr_val));
+                return Attr(style::Includes(attr_name, attr_val));
             } else if ch == '|' as u8 {
                 self.input_state.expect('=' as u8);
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                ret Attr(style::StartsWith(attr_name, attr_val));
+                return Attr(style::StartsWith(attr_name, attr_val));
             }
             
             fail #fmt("Unexpected symbol %c in attribute", ch as char);
@@ -161,7 +161,7 @@ impl css_methods of css_methods for CssLexer {
         if ch == '}' as u8 {
             self.parser_state = CssElement;
             self.input_state.eat_whitespace();
-            ret EndDescription;
+            return EndDescription;
         } else if ch.is_whitespace() {
             self.input_state.eat_whitespace();
 
@@ -223,19 +223,19 @@ impl css_methods of css_methods for CssLexer {
             }
         }
 
-        ret Description(from_bytes(desc_name), from_bytes(desc_val));
+        return Description(from_bytes(desc_name), from_bytes(desc_val));
     }
 }
 
 fn parser(input_port: comm::port<ProgressMsg>, state : ParserState) -> CssLexer {
-    ret {
-        input_state: {
-            mut lookahead: none,
-            mut buffer: ~[],
-            input_port: input_port,
-            mut eof: false
-        },
-        mut parser_state: state
+    return {
+           input_state: {
+               mut lookahead: none,
+               mut buffer: ~[],
+               input_port: input_port,
+               mut eof: false
+           },
+           mut parser_state: state
     };
 }
 
@@ -266,7 +266,7 @@ fn spawn_css_lexer_from_string(-content : ~str) -> pipes::port<Token> {
         lex_css_from_bytes(input_port, result_chan);
     }
 
-    ret result_port;
+    return result_port;
 }
 
 #[warn(no_non_implicitly_copyable_typarams)]
@@ -281,5 +281,5 @@ fn spawn_css_lexer_task(-url: url, resource_task: ResourceTask) -> pipes::port<T
         lex_css_from_bytes(input_port, result_chan);
     });
 
-    ret result_port;
+    return result_port;
 }

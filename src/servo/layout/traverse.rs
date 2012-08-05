@@ -22,13 +22,13 @@ type shared_box<T> = {
 #[doc="Transform and @ into its underlying representation.  The reference count stays constant."]
 fn unwrap_box(-b : @Box) -> *shared_box<Box> unsafe {
     let new_box : *shared_box<Box> = unsafe::transmute(b);
-    ret new_box;
+    return new_box;
 }
 
 #[doc="Transform an underlying representation back to an @.  The reference count stays constant."]
 fn rewrap_box(-b : *shared_box<Box>) -> @Box unsafe {
     let new_box : @Box = unsafe::transmute(b);
-    ret new_box;
+    return new_box;
 }
 
 #[doc="
@@ -89,7 +89,7 @@ fn traverse_helper(-root : @Box, -top_down : fn~(@Box), -bottom_up : fn~(@Box)) 
 
 #[doc="A noneffectful function to be used if only one pass is required."]
 fn nop(box : @Box) {
-    ret;
+    return;
 }
 
 #[doc="
