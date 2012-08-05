@@ -30,10 +30,10 @@ enum ctxt = {
 };
 
 fn create_context(parent_node: Node, parent_box: @Box) -> ctxt {
-    ret ctxt({
-        parent_node: parent_node,
-        parent_box: parent_box,
-        mut anon_box: none
+    return ctxt({
+           parent_node: parent_node,
+           parent_box: parent_box,
+           mut anon_box: none
     });
 }
 
@@ -194,7 +194,7 @@ impl box_builder_methods of box_builder_methods for Node {
             // Nothing to do.
           }
         }
-        ret my_box;
+        return my_box;
     }
 }
 

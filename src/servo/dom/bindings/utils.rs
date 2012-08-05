@@ -37,13 +37,13 @@ fn jsval_to_str(cx: *JSContext, v: jsval) -> result<~str, ()> {
     } else {
         jsstr = JS_ValueToString(cx, v);
         if jsstr.is_null() {
-            ret err(());
+            return err(());
         }
     }
 
     let len = 0;
     let chars = JS_GetStringCharsZAndLength(cx, jsstr, ptr::addr_of(len));
-    ret if chars.is_null() {
+    return if chars.is_null() {
         err(())
     } else {
         unsafe {

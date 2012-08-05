@@ -138,7 +138,7 @@ impl ScopePrivate<T: copy send,A> for Scope<T,A> {
         // take glue be tolerant of this.
         *n = unsafe{*v};
 
-        ret unsafe::reinterpret_cast(n);
+        return unsafe::reinterpret_cast(n);
     }
 }
 
@@ -221,7 +221,7 @@ impl WriterMethods<T:copy send,A> for Scope<T,A> {
         (*d).next_dirty = null_handle();
         let h = _Handle(d);
         push(self.d.free_list, h);
-        ret h;
+        return h;
     }
 }
 

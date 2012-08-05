@@ -268,5 +268,5 @@ fn build_dom(scope: NodeScope, stream: comm::port<Token>, url: url,
     style_chan.send(Exit);
     js_chan.send(js_exit);
 
-    ret (cur_node, style_port, js_port);
+    return (cur_node, style_port, js_port);
 }

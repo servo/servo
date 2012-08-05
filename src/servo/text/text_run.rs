@@ -24,7 +24,7 @@ class TextRun {
             Point2D(cur.x.add(glyph.pos.offset.x).add(glyph.pos.advance.x),
                     cur.y.add(glyph.pos.offset.y).add(glyph.pos.advance.y))
         });
-        ret Size2D(pen_end.x, pen_end.y);
+        return Size2D(pen_end.x, pen_end.y);
     }
 }
 

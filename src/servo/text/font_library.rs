@@ -9,7 +9,7 @@ class FontLibrary {
 
     fn get_font() -> @Font {
         let f = Font(font::test_font_bin());
-        ret @f;
+        return @f;
     }
 
     fn get_test_font() -> @Font {

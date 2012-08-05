@@ -98,7 +98,7 @@ fn shape_text(font: &Font, text: ~str) -> ~[Glyph] unsafe {
     hb_face_destroy(hbface);
     hb_blob_destroy(face_blob);
 
-    ret glyphs;
+    return glyphs;
 }
 
 extern fn glyph_func(_font: *hb_font_t,
@@ -111,14 +111,14 @@ extern fn glyph_func(_font: *hb_font_t,
     let font: *Font = reinterpret_cast(font_data);
     assert font.is_not_null();
 
-    ret alt (*font).glyph_idx(unicode as char) {
-      some(g) {
-        *glyph = g as hb_codepoint_t;
-        true
-      }
-      none {
-        false
-      }
+    return alt (*font).glyph_idx(unicode as char) {
+           some(g) {
+               *glyph = g as hb_codepoint_t;
+               true
+           }
+           none {
+               false
+           }
     } as hb_bool_t;
 }
 
@@ -131,7 +131,7 @@ extern fn glyph_h_advance_func(_font: *hb_font_t,
 
     let h_advance = (*font).glyph_h_advance(glyph as uint);
     #debug("h_advance for codepoint %? is %?", glyph, h_advance);
-    ret h_advance as hb_position_t;
+    return h_advance as hb_position_t;
 }
 
 fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: &hb_glyph_position_t) -> GlyphPos {

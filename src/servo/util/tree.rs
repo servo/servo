@@ -22,9 +22,9 @@ fn each_child<T:copy,O:ReadMethods<T>>(ops: O, node: T, f: fn(T) -> bool) {
     let mut p = ops.with_tree_fields(node, |f| f.first_child);
     loop {
         alt copy p {
-          none { ret; }
+          none { return; }
           some(c) {
-            if !f(c) { ret; }
+            if !f(c) { return; }
             p = ops.with_tree_fields(c, |f| f.next_sibling);
           }
         }
@@ -109,7 +109,7 @@ mod test {
             add_child(dtree, p, c);
         }
 
-        ret {p: p, children: children};
+        return {p: p, children: children};
     }
 
     #[test]

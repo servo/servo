@@ -131,7 +131,7 @@ impl style_methods of style_methods for Node {
         if !self.has_aux() {
             fail ~"get_computed_style() called on a node without a style!";
         }
-        ret copy *self.aux(|x| copy x).specified_style;
+        return copy *self.aux(|x| copy x).specified_style;
     }
 
     #[doc="

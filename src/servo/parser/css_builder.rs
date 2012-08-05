@@ -50,7 +50,7 @@ impl parser_methods of parser_methods for TokenReader {
         // Get the current element type
          let elmt_name = alt self.get() {
            Element(tag) { copy tag }
-           Eof { ret none; }
+           Eof { return none; }
            _ { fail ~"Expected an element" }
          };
 
@@ -65,13 +65,13 @@ impl parser_methods of parser_methods for TokenReader {
                  self.unget(tok); 
                  break;
                }
-               Eof { ret none; }          
+               Eof { return none; }
                Element(_) { fail ~"Unexpected second element without relation to first element"; }
                EndDescription { fail ~"Unexpected '}'"; }
                Description(_, _) { fail ~"Unexpected description"; }
              }
          }
-        ret some(~style::Element(elmt_name, attr_list));
+        return some(~style::Element(elmt_name, attr_list));
     }
 
     fn parse_selector() -> option<~[~Selector]> {
@@ -83,7 +83,7 @@ impl parser_methods of parser_methods for TokenReader {
 
             alt self.parse_element() {
               some(elmt) { cur_sel = copy elmt; }
-              none { ret none; } // we hit an eof in the middle of a rule
+              none { return none; } // we hit an eof in the middle of a rule
             }
 
             loop {
@@ -97,7 +97,7 @@ impl parser_methods of parser_methods for TokenReader {
                         let new_sel = copy elmt;
                         cur_sel <- ~style::Descendant(built_sel, new_sel)
                       }
-                      none { ret none; }
+                      none { return none; }
                     }
                   }
                   Child {
@@ -106,7 +106,7 @@ impl parser_methods of parser_methods for TokenReader {
                         let new_sel = copy elmt;
                         cur_sel <- ~style::Child(built_sel, new_sel)
                       }
-                      none { ret none; }
+                      none { return none; }
                     }
                   }
                   Sibling {
@@ -115,7 +115,7 @@ impl parser_methods of parser_methods for TokenReader {
                         let new_sel = copy elmt;
                         cur_sel <- ~style::Sibling(built_sel, new_sel)
                       }
-                      none { ret none; }
+                      none { return none; }
                     }
                   }
                   StartDescription {
@@ -131,7 +131,7 @@ impl parser_methods of parser_methods for TokenReader {
                   Attr(_) | EndDescription | Element(_) | Description(_, _) {
                     fail #fmt["Unexpected token %? in elements", tok];
                   }
-                  Eof { ret none; }
+                  Eof { return none; }
                 }
             }
 
@@ -145,7 +145,7 @@ impl parser_methods of parser_methods for TokenReader {
             }
         }
         
-        ret some(sel_list);
+        return some(sel_list);
     }
 
     fn parse_description() -> option<~[StyleDeclaration]> {
@@ -169,20 +169,20 @@ impl parser_methods of parser_methods for TokenReader {
                 };
                 desc.map(|res| push(desc_list, res));
               }
-              Eof { ret none; }
+              Eof { return none; }
               StartDescription | Descendant | Child | Sibling | Comma | Element(_) | Attr(_)  {
                 fail #fmt["Unexpected token %? in description", tok]; 
               }
             }
         }
         
-        ret some(desc_list);
+        return some(desc_list);
     }
 
     fn parse_rule() -> option<~style::Rule> {
         let sel_list = alt self.parse_selector() {
           some(list){ copy list }
-          none { ret none; }
+          none { return none; }
         };
 
         #debug("sel_list: %?", sel_list);
@@ -190,12 +190,12 @@ impl parser_methods of parser_methods for TokenReader {
         // Get the description to be applied to the selector
         let desc_list = alt self.parse_description() {
           some(list) { copy list }
-          none { ret none; }
+          none { return none; }
         };
 
         #debug("desc_list: %?", desc_list);
         
-        ret some(~(sel_list, desc_list));
+        return some(~(sel_list, desc_list));
     }
 }
 
@@ -210,5 +210,5 @@ fn build_stylesheet(+stream : pipes::port<Token>) -> ~[~style::Rule] {
         }
     }
 
-    ret rule_list;
+    return rule_list;
 }

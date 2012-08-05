@@ -99,7 +99,7 @@ fn do_draw(sender: pipes::chan<AzDrawTargetRef>,
             let data = vec_from_buf(data, len);
             data_ch.send(data);
 
-            ret CAIRO_STATUS_SUCCESS;
+            return CAIRO_STATUS_SUCCESS;
         }
 
         let closure = addr_of(data_ch);

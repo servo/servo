@@ -115,10 +115,10 @@ class Content<S:Sink send copy> {
     fn handle_msg(msg: either<ControlMsg,Event>) -> bool {
         alt msg {
             left(control_msg) {
-                ret self.handle_control_msg(control_msg);
+                return self.handle_control_msg(control_msg);
             }
             right(event) {
-                ret self.handle_event(event);
+                return self.handle_event(event);
             }
         }
     }
@@ -157,7 +157,7 @@ class Content<S:Sink send copy> {
                 });
             }
 
-            ret true;
+            return true;
           }
 
           ExecuteMsg(url) {
@@ -177,12 +177,12 @@ class Content<S:Sink send copy> {
                 });
               }
             }
-            ret true;
+            return true;
           }
 
           ExitMsg {
             self.layout.send(layout_task::ExitMsg);
-            ret false;
+            return false;
           }
         }
     }
@@ -215,7 +215,7 @@ class Content<S:Sink send copy> {
                     self.relayout(*document);
                 }
             }
-            ret true;
+            return true;
           }
         }
     }

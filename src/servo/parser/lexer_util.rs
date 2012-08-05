@@ -25,12 +25,12 @@ trait u8_methods {
 
 impl u8_methods of u8_methods for u8 {
     fn is_whitespace() -> bool {
-        ret self == ' ' as u8 || self == '\n' as u8 || self == '\t' as u8;
+        return self == ' ' as u8 || self == '\n' as u8 || self == '\t' as u8;
     }
 
     fn is_alpha() -> bool {
-        ret (self >= ('A' as u8) && self <= ('Z' as u8)) ||
-            (self >= ('a' as u8) && self <= ('z' as u8));
+        return (self >= ('A' as u8) && self <= ('Z' as u8)) ||
+               (self >= ('a' as u8) && self <= ('z' as u8));
     }
 }
 
@@ -50,7 +50,7 @@ impl util_methods of util_methods for InputState {
           some(coe) {
             let rv = coe;
             self.lookahead = none;
-            ret rv;
+            return rv;
           }
           none {
             /* fall through */
@@ -60,21 +60,21 @@ impl util_methods of util_methods for InputState {
         // FIXME: Lots of copies here
 
         if self.buffer.len() > 0 {
-            ret CoeChar(vec::shift(self.buffer));
+            return CoeChar(vec::shift(self.buffer));
         }
 
         if self.eof {
-            ret CoeEof;
+            return CoeEof;
         }
 
         alt self.input_port.recv() {
           Payload(data) {
             self.buffer = data;
-            ret CoeChar(vec::shift(self.buffer));
+            return CoeChar(vec::shift(self.buffer));
           }
           Done(*) {
             self.eof = true;
-            ret CoeEof;
+            return CoeEof;
           }
         }
     }
@@ -112,7 +112,7 @@ impl util_methods of util_methods for InputState {
               }
             }
         }
-        ret str::from_bytes(result);
+        return str::from_bytes(result);
     }
 
     fn expect_ident(expected: ~str) {
@@ -128,11 +128,11 @@ impl util_methods of util_methods for InputState {
               CoeChar(c) {
                 if !c.is_whitespace() {
                     self.unget(c);
-                    ret;
+                    return;
                 }
               }
               CoeEof {
-                ret;  
+                return;
               }
             }
         }

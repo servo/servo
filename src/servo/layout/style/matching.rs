@@ -16,24 +16,24 @@ fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
     alt attr {
       Exists(name) {
         alt elmt.get_attr(name) {
-          some(_) { ret true; }
-          none    { ret false; }
+          some(_) { return true; }
+          none    { return false; }
         }
       }
       Exact(name, val) {
         alt elmt.get_attr(name) {
-          some(value) { ret value == val; }
-          none        { ret false; }
+          some(value) { return value == val; }
+          none        { return false; }
         }
       }
       Includes(name, val) {
         // Comply with css spec, if the specified attribute is empty
         // it cannot match.
-        if val == ~"" { ret false; }
+        if val == ~"" { return false; }
 
         alt elmt.get_attr(name) {
-          some(value) { ret value.split_char(' ').contains(val); }
-          none        { ret false; }
+          some(value) { return value.split_char(' ').contains(val); }
+          none        { return false; }
         }
       }
       StartsWith(name, val) {
@@ -41,14 +41,14 @@ fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
           some(value) { 
             //check that there is only one attribute value and it
             //starts with the perscribed value
-            if !value.starts_with(val) || value.contains(~" ") { ret false; }
+            if !value.starts_with(val) || value.contains(~" ") { return false; }
 
             // We match on either the exact value or value-foo
-            if value.len() == val.len() { ret true; }
-            else { ret value.starts_with(val + ~"-"); }
+            if value.len() == val.len() { return true; }
+            else { return value.starts_with(val + ~"-"); }
           }
           none {
-            ret false;
+            return false;
           }
         }
       }
@@ -67,74 +67,74 @@ impl priv_matching_methods of priv_matching_methods for Node {
     "]
     fn matches_element(sel: ~Selector) -> bool {
         alt *sel {
-          Child(_, _) | Descendant(_, _) | Sibling(_, _) { ret false; }
+          Child(_, _) | Descendant(_, _) | Sibling(_, _) { return false; }
           Element(tag, attrs) {
             alt self.read(|n| copy *n.kind) {
               base::Element(elmt) {
                 if !(tag == ~"*" || tag == elmt.tag_name) {
-                    ret false;
+                    return false;
                 }
                 
                 let mut i = 0u;
                 while i < attrs.len() {
-                    if !attrs_match(attrs[i], elmt) { ret false; }
+                    if !attrs_match(attrs[i], elmt) { return false; }
                     i += 1u;
                 }
 
-                ret true;
+                return true;
               }
               Text(str)   { /*fall through, currently unsupported*/ }
             }
           }
         }
 
-        ret false; //If we got this far it was because something was
+        return false; //If we got this far it was because something was
                    //unsupported.
     }
 
     #[doc = "Checks if a generic CSS selector matches a given HTML element"]
     fn matches_selector(sel : ~Selector) -> bool {
         alt *sel {
-          Element(str, atts) { ret self.matches_element(sel); }
+          Element(str, atts) { return self.matches_element(sel); }
           Child(sel1, sel2) {
             alt self.read(|n| n.tree.parent) {
               some(parent) { 
-                ret self.matches_element(sel2) &&
+                return self.matches_element(sel2) &&
                     parent.matches_selector(sel1);
               }
-              none         { ret false; }
+              none         { return false; }
             }
           }
           Descendant(sel1, sel2) {
             if !self.matches_element(sel2) {
-                ret false;
+                return false;
             }
 
             //loop over all ancestors to check if they are the person
             //we should be descended from.
             let mut cur_parent = alt self.read(|n| n.tree.parent) {
               some(parent) { parent }
-              none         { ret false; }
+              none         { return false; }
             };
 
             loop {
-                if cur_parent.matches_selector(sel1) { ret true; }
+                if cur_parent.matches_selector(sel1) { return true; }
 
                 cur_parent = alt cur_parent.read(|n| n.tree.parent) {
                   some(parent) { parent }
-                  none         { ret false; }
+                  none         { return false; }
                 };
             }
           }
           Sibling(sel1, sel2) {
-            if !self.matches_element(sel2) { ret false; }
+            if !self.matches_element(sel2) { return false; }
 
             // Loop over this node's previous siblings to see if they match.
             alt self.read(|n| n.tree.prev_sibling) {
               some(sib) {
                 let mut cur_sib = sib;
                 loop {
-                    if cur_sib.matches_selector(sel1) { ret true; }
+                    if cur_sib.matches_selector(sel1) { return true; }
                     
                     cur_sib = alt cur_sib.read(|n| n.tree.prev_sibling) {
                       some(sib) { sib }
@@ -150,7 +150,7 @@ impl priv_matching_methods of priv_matching_methods for Node {
                 some(sib) {
                     let mut cur_sib = sib;
                     loop {
-                        if cur_sib.matches_selector(sel1) { ret true; }
+                        if cur_sib.matches_selector(sel1) { return true; }
                 
                         cur_sib = alt cur_sib.read(|n| n.tree.next_sibling) {
                             some(sib) { sib }
@@ -161,7 +161,7 @@ impl priv_matching_methods of priv_matching_methods for Node {
                 none { }
             }
 
-            ret false;
+            return false;
           }
         }
     }
@@ -227,7 +227,7 @@ mod test {
         let elmt = ElementData(~"div", ~HTMLDivElement);
         let attr = ~Attr(name, val);
         elmt.attrs.push(attr);
-        ret scope.new_node(base::Element(elmt));
+        return scope.new_node(base::Element(elmt));
     }
 
     #[test]

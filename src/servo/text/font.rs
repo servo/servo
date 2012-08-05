@@ -62,18 +62,18 @@ class Font {
             )
         });
 
-        ret if status == CAIRO_STATUS_SUCCESS {
+        return if status == CAIRO_STATUS_SUCCESS {
 
-            // This might not be true, but at least we'll know if it isn't
-            assert num_glyphs == 1 as c_int;
+               // This might not be true, but at least we'll know if it isn't
+               assert num_glyphs == 1 as c_int;
 
-            let glyph_index = unsafe { *glyphs }.index as GlyphIndex;
-            #debug("glyph index is %?", glyph_index);
-            cairo_glyph_free(glyphs);
-            some(glyph_index)
+               let glyph_index = unsafe { *glyphs }.index as GlyphIndex;
+               #debug("glyph index is %?", glyph_index);
+               cairo_glyph_free(glyphs);
+               some(glyph_index)
         } else {
-            #error("cairo did not give me a glyph for %u", codepoint as uint);
-            none
+               #error("cairo did not give me a glyph for %u", codepoint as uint);
+               none
         }
     }
 
@@ -107,7 +107,7 @@ class Font {
             #debug("x_advance: %?", extents.x_advance);
             #debug("y_advance: %?", extents.y_advance);
 
-            ret extents.x_advance as int;
+            return extents.x_advance as int;
           }
          status {
             import str::unsafe::from_c_str;
@@ -266,7 +266,7 @@ fn create_test_font() -> @Font {
     import font_library::FontLibrary;
 
     let flib = FontLibrary();
-    ret flib.get_test_font();
+    return flib.get_test_font();
 }
 
 fn test_font_bin() -> ~[u8] { #include_bin("JosefinSans-SemiBold.ttf") }
