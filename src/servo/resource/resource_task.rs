@@ -95,10 +95,10 @@ class ResourceManager {
         for self.loaders.each |scheme_loader| {
             let (scheme, loader_factory) = scheme_loader;
             if scheme == url.scheme {
-                ret some(loader_factory);
+                return some(loader_factory);
             }
         }
-        ret none;
+        return none;
     }
 }
 

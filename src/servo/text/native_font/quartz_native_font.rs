@@ -62,7 +62,7 @@ fn create(buf: ~[u8]) -> result<QuartzNativeFont, ()> {
     // FIXME: Error handling
     assert cgfont.is_not_null();
 
-    ret ok(QuartzNativeFont(fontprov, cgfont));
+    return ok(QuartzNativeFont(fontprov, cgfont));
 }
 
 fn with_test_native_font(f: fn@(nf: &NativeFont)) {

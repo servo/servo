@@ -41,7 +41,7 @@ class ElementData {
         let mut i = 0u;
         while i < self.attrs.len() {
             if attr_name == self.attrs[i].name {
-                ret some(copy self.attrs[i].value);
+                return some(copy self.attrs[i].value);
             }
             i += 1u;
         }

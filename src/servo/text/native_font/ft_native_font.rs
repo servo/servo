@@ -35,7 +35,7 @@ class FreeTypeNativeFont/& {
     fn glyph_index(codepoint: char) -> option<GlyphIndex> {
         assert self.face.is_not_null();
         let idx = FT_Get_Char_Index(self.face, codepoint as FT_ULong);
-        ret if idx != 0 as FT_UInt {
+        return if idx != 0 as FT_UInt {
             some(idx as GlyphIndex)
         } else {
             #warn("Invalid codepoint: %?", codepoint);
@@ -56,11 +56,11 @@ class FreeTypeNativeFont/& {
                 #debug("h_advance for %? is %?", glyph, advance);
                 // FIXME: Dividing by 64 converts to pixels, which
                 // is not the unit we should be using
-                ret some((advance / 64) as int);
+                return some((advance / 64) as int);
             }
         } else {
             #warn("Unable to load glyph %?. reason: %?", glyph, res);
-            ret none;
+            return none;
         }
     }
 }
@@ -68,16 +68,16 @@ class FreeTypeNativeFont/& {
 fn create(lib: FT_Library, buf: &~[u8]) -> result<FreeTypeNativeFont, ()> {
     assert lib.is_not_null();
     let face: FT_Face = null();
-    ret vec_as_buf(*buf, |cbuf, len| {
-        if FT_New_Memory_Face(lib, cbuf, (*buf).len() as FT_Long,
-                              0 as FT_Long, addr_of(face)).succeeded() {
-            // FIXME: These values are placeholders
-            let res = FT_Set_Char_Size(face, 0, 20*64, 0, 72);
-            if !res.succeeded() { fail ~"unable to set font char size" }
-            ok(FreeTypeNativeFont(face))
-        } else {
-            err(())
-        }
+    return vec_as_buf(*buf, |cbuf, len| {
+           if FT_New_Memory_Face(lib, cbuf, (*buf).len() as FT_Long,
+                                 0 as FT_Long, addr_of(face)).succeeded() {
+               // FIXME: These values are placeholders
+               let res = FT_Set_Char_Size(face, 0, 20*64, 0, 72);
+               if !res.succeeded() { fail ~"unable to set font char size" }
+               ok(FreeTypeNativeFont(face))
+           } else {
+               err(())
+           }
     })
 }
 

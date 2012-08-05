@@ -48,7 +48,7 @@ class Engine<S:Sink send copy> {
             } else {
                 self.content.send(ParseMsg(url))
             }
-            ret true;
+            return true;
           }
 
           ExitMsg(sender) {
@@ -63,7 +63,7 @@ class Engine<S:Sink send copy> {
             self.resource_task.send(resource_task::Exit);
 
             sender.send(());
-            ret false;
+            return false;
           }
         }
     }
