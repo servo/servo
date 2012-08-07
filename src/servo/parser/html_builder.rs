@@ -67,15 +67,15 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: ~str, -value: ~str) {
 
 fn build_element_kind(tag_name: ~str) -> ~ElementKind {
     match tag_name {
-      ~"div" => ~HTMLDivElement,
-      ~"img" => {
-        ~HTMLImageElement({ mut size: Size2D(geometry::px_to_au(100),
-                                             geometry::px_to_au(100))
-        })
-      }
-      ~"script" => ~HTMLScriptElement,
-      ~"head" => ~HTMLHeadElement,
-      _ => ~UnknownElement 
+        ~"div" => ~HTMLDivElement,
+        ~"img" => {
+            ~HTMLImageElement({ mut size: Size2D(geometry::px_to_au(100),
+                                                 geometry::px_to_au(100))
+                              })
+        }
+        ~"script" => ~HTMLScriptElement,
+        ~"head" => ~HTMLHeadElement,
+        _ => ~UnknownElement 
     }
 }
 

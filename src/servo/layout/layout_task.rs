@@ -42,7 +42,7 @@ fn Layout(renderer: Renderer) -> Layout {
                     this_box.dump();
 
                     this_box.apply_css_style();
-                    this_box.reflow(px_to_au(800));
+                    this_box.reflow_subtree(px_to_au(800));
 
                     let dlist = build_display_list(this_box);
                     renderer.send(renderer::RenderMsg(dlist));

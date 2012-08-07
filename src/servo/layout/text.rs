@@ -17,12 +17,12 @@ struct TextBox {
 }
 
 trait TextLayout {
-    fn reflow_text(_available_width: au, subbox: @TextBox);
+    fn reflow_text(subbox: @TextBox);
 }
 
 #[doc="The main reflow routine for text layout."]
 impl @Box : TextLayout {
-    fn reflow_text(_available_width: au, subbox: @TextBox) {
+    fn reflow_text(subbox: @TextBox) {
         match self.kind {
             TextBoxKind(*) => { /* ok */ }
             _ => { fail ~"expected text box in reflow_text!" }
@@ -51,7 +51,7 @@ fn should_calculate_the_size_of_the_text_box() {
     let b = n.construct_boxes();
 
     let subbox = match check b.kind { TextBoxKind(subbox) => { subbox } };
-    b.reflow_text(px_to_au(800), subbox);
+    b.reflow_text(subbox);
     let expected = Size2D(px_to_au(84), px_to_au(20));
     assert b.bounds.size == expected;
 }

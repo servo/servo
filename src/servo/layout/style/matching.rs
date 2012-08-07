@@ -212,7 +212,6 @@ mod test {
     import dom::base::{Attr, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
     import dom::base::{NodeScope, UnknownElement};
     import dvec::dvec;
-    import io::println;
 
     #[allow(non_implicitly_copyable_typarams)]
     fn new_node_from_attr(scope: NodeScope, -name: ~str, -val: ~str) -> Node {

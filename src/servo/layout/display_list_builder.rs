@@ -118,7 +118,7 @@ fn should_convert_text_boxes_to_solid_color_background_items() {
 
     let subbox = match check b.kind { TextBoxKind(subbox) => subbox };
 
-    b.reflow_text(px_to_au(800), subbox);
+    b.reflow_text(subbox);
     let list = dvec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
@@ -139,7 +139,7 @@ fn should_convert_text_boxes_to_text_items() {
 
     let subbox = match check b.kind { TextBoxKind(subbox) => { subbox } };
 
-    b.reflow_text(px_to_au(800), subbox);
+    b.reflow_text(subbox);
     let list = dvec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
@@ -159,7 +159,7 @@ fn should_calculate_the_bounds_of_the_text_box_background_color() {
 
     let subbox = match check b.kind { TextBoxKind(subbox) => { subbox } };
 
-    b.reflow_text(px_to_au(800), subbox);
+    b.reflow_text(subbox);
     let list = dvec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
@@ -181,7 +181,7 @@ fn should_calculate_the_bounds_of_the_text_items() {
 
     let subbox = match check b.kind { TextBoxKind(subbox) => { subbox } };
 
-    b.reflow_text(px_to_au(800), subbox);
+    b.reflow_text(subbox);
     let list = dvec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 

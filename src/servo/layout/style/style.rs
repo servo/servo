@@ -127,7 +127,7 @@ impl Node : StyleMethods {
     "]
     fn get_specified_style() -> SpecifiedStyle {
         if !self.has_aux() {
-            fail ~"get_computed_style() called on a node without a style!";
+            fail ~"get_specified_style() called on a node without a style!";
         }
         return copy *self.aux(|x| copy x).specified_style;
     }

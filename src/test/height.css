@@ -1,0 +1,7 @@
+.start {background-color : gray; height : 600px}
+.half {background-color : red; height : 50%}
+.quarter {background-color : rgb(250, 125, 0); height : 25%}
+.eighth {background-color : yellow; height : 12.5%}
+.sixteenth {background-color : green; height : 6.25%}
+.thirtysecond {background-color : blue; height : 3.125%}
+.sixtyfourth {background-color : purple; height : 1.5625%}

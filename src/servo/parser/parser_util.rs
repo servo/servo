@@ -12,14 +12,13 @@ export parse_display_type;
 fn parse_unit(str : ~str) -> option<Unit> {
     match str {
       s if s.ends_with(~"%") => from_str(str.substr(0, str.len() - 1)).map(|f| Percent(f)),
-      s if s.ends_with(~"in") => from_str(str.substr(0, str.len() - 2)).map(|f| In(f)),
-      s if s.ends_with(~"cm") => from_str(str.substr(0, str.len() - 2)).map(|f| Cm(f)),
+      s if s.ends_with(~"in") => from_str(str.substr(0, str.len() - 2)).map(|f| Pt(72.0*f)),
+      s if s.ends_with(~"cm") => from_str(str.substr(0, str.len() - 2)).map(|f| Mm(10.0*f)),
       s if s.ends_with(~"mm") => from_str(str.substr(0, str.len() - 2)).map(|f| Mm(f)),
       s if s.ends_with(~"pt") => from_str(str.substr(0, str.len() - 2)).map(|f| Pt(f)),
-      s if s.ends_with(~"pc") => from_str(str.substr(0, str.len() - 2)).map(|f| Pc(f)),
+      s if s.ends_with(~"pc") => from_str(str.substr(0, str.len() - 2)).map(|f| Pt(12.0*f)),
       s if s.ends_with(~"px") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(f)),
-      s if s.ends_with(~"em") => from_str(str.substr(0, str.len() - 2)).map(|f| Em(f)),
-      s if s.ends_with(~"ex") => from_str(str.substr(0, str.len() - 2)).map(|f| Ex(f)),
+      s if s.ends_with(~"ex") | s.ends_with(~"em") => fail ~"Em and Ex sizes not yet supported",
       _ => none,
     }
 }
@@ -36,9 +35,9 @@ fn parse_font_size(str : ~str) -> option<Unit> {
       ~"large" => some(Px(1.2*default)),
       ~"x-large" => some(Px(1.5*default)),
       ~"xx-large" => some(Px(2.0*default)),
-      ~"smaller" => some(Em(0.8)),
-      ~"larger" => some(Em(1.25)),
-      ~"inherit" => some(Em(1.0)),
+      ~"smaller" => some(Percent(80.0)),
+      ~"larger" => some(Percent(125.0)),
+      ~"inherit" => some(Percent(100.0)),
       _  => parse_unit(str),
     }
 }
@@ -47,7 +46,7 @@ fn parse_font_size(str : ~str) -> option<Unit> {
 fn parse_size(str : ~str) -> option<Unit> {
     match str {
       ~"auto" => some(Auto),
-      ~"inherit" => some(Em(1.0)),
+      ~"inherit" => some(Percent(100.0)),
       _ => parse_unit(str),
     }
 }
@@ -68,13 +67,13 @@ mod test {
     
     #[test]
     fn should_match_font_sizes() {
-        let input = ~"* {font-size:12pt; font-size:inherit; font-size:2em; font-size:x-small}";
+        let input = ~"* {font-size:12pt; font-size:inherit; font-size:200%; font-size:x-small}";
         let token_port = spawn_css_lexer_from_string(input);
         let actual_rule = build_stylesheet(token_port);
         let expected_rule : Stylesheet = ~[~(~[~Element(~"*", ~[])],
                                              ~[FontSize(Pt(12.0)),
-                                               FontSize(Em(1.0)),
-                                               FontSize(Em(2.0)),
+                                               FontSize(Percent(100.0)),
+                                               FontSize(Percent(200.0)),
                                                FontSize(Px(12.0))])];
 
         assert actual_rule == expected_rule;
@@ -89,9 +88,9 @@ mod test {
                                              ~[Width(Percent(20.0)),
                                                Height(Auto),
                                                Width(Px(20.0)),
-                                               Width(In(3.0)),
+                                               Width(Pt(216.0)),
                                                Height(Mm(70.0)),
-                                               Height(Cm(3.0))])];
+                                               Height(Mm(30.0))])];
 
         assert actual_rule == expected_rule;
     }

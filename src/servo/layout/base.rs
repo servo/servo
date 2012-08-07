@@ -11,9 +11,10 @@ import geom::rect::Rect;
 import geom::size::Size2D;
 import image::base::{image, load};
 import util::tree;
-import util::color::{Color, css_colors};
-import style::style::SpecifiedStyle;
+import util::color::Color;
 import text::TextBox;
+import traverse::extended_full_traversal;
+import style::style::{SpecifiedStyle};
 import vec::{push, push_all};
 
 import arc::{arc, clone};
@@ -155,8 +156,17 @@ impl BTree : tree::WriteMethods<@Box> {
     }
 }
 
-// Private methods
 impl @Box {
+    #[doc="The main reflow routine."]
+    fn reflow() {
+        match self.kind {
+            BlockBox => self.reflow_block(),
+            InlineBox => self.reflow_inline(),
+            IntrinsicBox(size) => self.reflow_intrinsic(*size),
+            TextBoxKind(subbox) => self.reflow_text(subbox)
+        }
+    }
+
     #[doc="Dumps the box tree, for debugging, with indentation."]
     fn dump_indent(indent: uint) {
         let mut s = ~"";
@@ -173,16 +183,37 @@ impl @Box {
     }
 }
 
-// Public methods
+#[doc = "
+     Set your width to the maximum available width and return the
+     maximum available width any children can use.  Currently children
+     are just given the same available width.
+"]
+fn give_kids_width(+available_width : au, box : @Box) -> au {
+    // TODO: give smaller available widths if the width of the
+    // containing box is constrained
+    match box.kind {
+        BlockBox | InlineBox => box.bounds.size.width = available_width,
+        IntrinsicBox(*) | TextBoxKind(*) => { }
+    }
+
+    available_width
+}
+
+#[doc="Wrapper around reflow so it can be passed to traverse"]
+fn reflow_wrapper(b : @Box) {
+    b.reflow();
+}
+
 impl @Box {
-    #[doc="The main reflow routine."]
-    fn reflow(available_width: au) {
-        match self.kind {
-            BlockBox => self.reflow_block(available_width),
-            InlineBox => self.reflow_inline(available_width),
-            IntrinsicBox(size) => self.reflow_intrinsic(*size),
-            TextBoxKind(subbox) => self.reflow_text(available_width, subbox)
-        }
+    #[doc="
+           Run a parallel traversal over the layout tree rooted at
+           this box.  On the top-down traversal give each box the
+           available width determined by their parent and on the
+           bottom-up traversal reflow each box based on their
+           attributes and their children's sizes.
+    "]
+    fn reflow_subtree(available_width : au) {
+        extended_full_traversal(self, available_width, give_kids_width, reflow_wrapper);
     }
 
     #[doc="The trivial reflow routine for instrinsically-sized frames."]
@@ -200,7 +231,7 @@ impl @Box {
 
 // Debugging
 
-trait PrivateNodeMethods {
+trait PrivateNodeMethods{
     fn dump_indent(ident: uint);
 }
 
@@ -292,7 +323,7 @@ mod test {
         tree::add_child(BTree, b3, b1);
         tree::add_child(BTree, b3, b2);
 
-        b3.reflow_block(au(100));
+        b3.reflow_subtree(au(100));
         let fb = flat_bounds(b3);
         #debug["fb=%?", fb];
         assert fb == ~[geometry::box(au(0), au(0), au(10), au(10)),   // n0
