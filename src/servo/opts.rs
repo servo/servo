@@ -25,7 +25,7 @@ fn from_cmdline_args(args: ~[~str]) -> Opts {
         getopts::optopt(~"o")
     ];
 
-    let opt_match = alt getopts::getopts(args, opts) {
+    let opt_match = match getopts::getopts(args, opts) {
       result::ok(m) => { copy m }
       result::err(f) => { fail getopts::fail_str(f) }
     };
@@ -36,7 +36,7 @@ fn from_cmdline_args(args: ~[~str]) -> Opts {
         copy opt_match.free
     };
 
-    let render_mode = alt getopts::opt_maybe_str(opt_match, ~"o") {
+    let render_mode = match getopts::opt_maybe_str(opt_match, ~"o") {
       some(output_file) => { Png(copy output_file) }
       none => { Screen }
     };

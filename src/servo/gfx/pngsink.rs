@@ -58,7 +58,7 @@ fn PngSink(output: chan<~[u8]>) -> PngSink {
         assert draw_target.is_not_null();
 
         loop {
-            alt po.recv() {
+            match po.recv() {
               BeginDrawing(sender) => {
                 #debug("pngsink: begin_drawing");
                 sender.send(draw_target);

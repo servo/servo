@@ -32,12 +32,12 @@ enum js_message {
 fn link_up_attribute(scope: NodeScope, node: Node, -key: ~str, -value: ~str) {
     // TODO: Implement atoms so that we don't always perform string comparisons.
     scope.read(node, |node_contents| {
-        alt *node_contents.kind {
+        match *node_contents.kind {
           Element(element) => {
             element.attrs.push(~Attr(copy key, copy value));
-            alt *element.kind {
+            match *element.kind {
               HTMLImageElement(img) if key == ~"width" => {
-                alt int::from_str(value) {
+                match int::from_str(value) {
                   none => {
                     // Drop on the floor.
                   }
@@ -45,7 +45,7 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: ~str, -value: ~str) {
                 }
               }
               HTMLImageElement(img) if key == ~"height" => {
-                alt int::from_str(value) {
+                match int::from_str(value) {
                   none => {
                     // Drop on the floor.
                   }
@@ -69,7 +69,7 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: ~str, -value: ~str) {
 }
 
 fn build_element_kind(tag_name: ~str) -> ~ElementKind {
-    alt tag_name {
+    match tag_name {
       ~"div" => ~HTMLDivElement,
       ~"img" => {
         ~HTMLImageElement({ mut size: Size2D(geometry::px_to_au(100),
@@ -101,11 +101,11 @@ fn css_link_listener(to_parent : comm::chan<Stylesheet>, from_parent : comm::por
     let mut result_vec = ~[];
 
     loop {
-        alt from_parent.recv() {
+        match from_parent.recv() {
           File(url) => {
             let result_port = comm::port();
             let result_chan = comm::chan(result_port);
-            // TODO: change copy to move once we have alt move
+            // TODO: change copy to move once we have match move
             let url = copy url;
             task::spawn(|| {
                 // TODO: change copy to move once we can move into closures
@@ -132,11 +132,11 @@ fn js_script_listener(to_parent : comm::chan<~[~[u8]]>, from_parent : comm::port
     let mut result_vec = ~[];
 
     loop {
-        alt from_parent.recv() {
+        match from_parent.recv() {
           js_file(url) => {
             let result_port = comm::port();
             let result_chan = comm::chan(result_port);
-            // TODO: change copy to move once we have alt move
+            // TODO: change copy to move once we have match move
             let url = copy url;
             do task::spawn || {
                 let input_port = port();
@@ -145,7 +145,7 @@ fn js_script_listener(to_parent : comm::chan<~[~[u8]]>, from_parent : comm::port
 
                 let mut buf = ~[];
                 loop {
-                    alt input_port.recv() {
+                    match input_port.recv() {
                       Payload(data) => {
                         buf += data;
                       }
@@ -195,7 +195,7 @@ fn build_dom(scope: NodeScope, stream: comm::port<Token>, url: url,
 
     loop {
         let token = stream.recv();
-        alt token {
+        match token {
           parser::Eof => { break; }
           parser::StartOpeningTag(tag_name) => {
             #debug["starting tag %s", tag_name];
@@ -216,11 +216,11 @@ fn build_dom(scope: NodeScope, stream: comm::port<Token>, url: url,
           parser::SelfCloseTag => {
             //TODO: check for things other than the link tag
             scope.read(cur_node, |n| {
-                alt *n.kind {
+                match *n.kind {
                   Element(elmt) if elmt.tag_name == ~"link" => {
-                    alt elmt.get_attr(~"rel") {
+                    match elmt.get_attr(~"rel") {
                       some(r) if r == ~"stylesheet" => {
-                        alt elmt.get_attr(~"href") {
+                        match elmt.get_attr(~"href") {
                           some(filename) => {
                             #debug["Linking to a css sheet named: %s", filename];
                             // FIXME: Need to base the new url on the current url
@@ -241,9 +241,9 @@ fn build_dom(scope: NodeScope, stream: comm::port<Token>, url: url,
           parser::EndTag(tag_name) => {
             // TODO: Assert that the closing tag has the right name.
             scope.read(cur_node, |n| {
-                alt *n.kind {
+                match *n.kind {
                   Element(elmt) if elmt.tag_name == ~"script" => {
-                    alt elmt.get_attr(~"src") {
+                    match elmt.get_attr(~"src") {
                       some(filename) => {
                         #debug["Linking to a js script named: %s", filename];
                         let new_url = make_url(filename, some(copy url));

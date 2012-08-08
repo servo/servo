@@ -46,7 +46,7 @@ trait util_methods {
 
 impl util_methods of util_methods for InputState {
     fn get() -> CharOrEof {
-        alt copy self.lookahead {
+        match copy self.lookahead {
           some(coe) => {
             let rv = coe;
             self.lookahead = none;
@@ -67,9 +67,9 @@ impl util_methods of util_methods for InputState {
             return CoeEof;
         }
 
-        alt self.input_port.recv() {
+        match self.input_port.recv() {
           Payload(data) => {
-            // TODO: change copy to move once we have alt move
+            // TODO: change copy to move once we have match move
             self.buffer = copy data;
             return CoeChar(vec::shift(self.buffer));
           }
@@ -90,7 +90,7 @@ impl util_methods of util_methods for InputState {
     }
 
     fn expect(ch: u8) {
-        alt self.get() {
+        match self.get() {
           CoeChar(c) => { if c != ch { self.parse_err(#fmt("expected '%c'", ch as char)); } }
           CoeEof => { self.parse_err(#fmt("expected '%c' at eof", ch as char)); }
         }
@@ -99,7 +99,7 @@ impl util_methods of util_methods for InputState {
     fn parse_ident() -> ~str {
         let mut result: ~[u8] = ~[];
         loop {
-            alt self.get() {
+            match self.get() {
               CoeChar(c) => {
                 if (c.is_alpha()) { push(result, c); }
                 else if result.len() == 0u { self.parse_err(~"expected ident"); }
@@ -125,7 +125,7 @@ impl util_methods of util_methods for InputState {
 
     fn eat_whitespace() {
         loop {
-            alt self.get() {
+            match self.get() {
               CoeChar(c) => {
                 if !c.is_whitespace() {
                     self.unget(c);

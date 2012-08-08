@@ -54,10 +54,10 @@ impl methods for ctxt {
             }
 
             // Add the child's box to the current enclosing box or the current anonymous box.
-            alt kid.get_specified_style().display_type {
+            match kid.get_specified_style().display_type {
               some(DisBlock) => BTree.add_child(self.parent_box, kid_box),
               some(DisInline) => {
-                let anon_box = alt self.anon_box {
+                let anon_box = match self.anon_box {
                   none => {
                     //
                     // The anonymous box inherits the attributes of its parents for now, so
@@ -101,7 +101,7 @@ impl methods for ctxt {
             }
 
             // Add the child's box to the current enclosing box.
-            alt kid.get_specified_style().display_type {
+            match kid.get_specified_style().display_type {
               some(DisBlock) => {
                 // TODO
                 #warn("TODO: non-inline display found inside inline box");
@@ -124,7 +124,7 @@ impl methods for ctxt {
         #debug("parent node:");
         self.parent_node.dump();
 
-        alt self.parent_node.get_specified_style().display_type {
+        match self.parent_node.get_specified_style().display_type {
           some(DisBlock) => self.construct_boxes_for_block_children(),
           some(DisInline) => self.construct_boxes_for_inline_children(),
           some(DisNone) => { /* Nothing to do. */ }
@@ -141,7 +141,7 @@ impl methods for ctxt {
       anonymous box to the block.
     "]
     fn finish_anonymous_box_if_necessary() {
-        alt copy self.anon_box {
+        match copy self.anon_box {
           none => { /* Nothing to do. */ }
           some(b) => BTree.add_child(self.parent_box, b)
         }
@@ -159,10 +159,10 @@ impl box_builder_priv of box_builder_priv for Node {
       size.
      "]
     fn determine_box_kind() -> BoxKind {
-        alt self.read(|n| copy n.kind) {
+        match self.read(|n| copy n.kind) {
           ~Text(string) => TextBox(@text_box(copy string)),
           ~Element(element) => {
-            alt *element.kind {
+            match *element.kind {
               HTMLDivElement => BlockBox,
               HTMLImageElement({size}) => IntrinsicBox(@size),
               UnknownElement => InlineBox
@@ -181,7 +181,7 @@ impl box_builder_methods of box_builder_methods for Node {
     fn construct_boxes() -> @Box {
         let box_kind = self.determine_box_kind();
         let my_box = @Box(self, box_kind);
-        alt box_kind {
+        match box_kind {
           BlockBox | InlineBox => {
             let cx = create_context(self, my_box);
             cx.construct_boxes_for_children();

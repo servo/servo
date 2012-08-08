@@ -16,7 +16,7 @@ fn main(args: ~[~str]) {
 
 #[allow(non_implicitly_copyable_typarams)]
 fn run(opts: Opts) {
-    alt opts.render_mode {
+    match opts.render_mode {
       Screen => run_pipeline_screen(opts.urls),
       Png(outfile) => {
         assert opts.urls.is_not_empty();
@@ -47,7 +47,7 @@ fn run_pipeline_screen(urls: ~[~str]) {
         engine_chan.send(LoadURLMsg(url));
         #debug["master: Waiting for keypress"];
 
-        alt keypress_from_osmain.try_recv() {
+        match keypress_from_osmain.try_recv() {
           some(*) => { }
           none => { #error("keypress stream closed unexpectedly") }
         };
@@ -76,7 +76,7 @@ fn run_pipeline_png(-url: ~str, outfile: ~str) {
         let engine_chan = engine.start();
         engine_chan.send(LoadURLMsg(make_url(url, none)));
 
-        alt buffered_file_writer(outfile) {
+        match buffered_file_writer(outfile) {
           ok(writer) => writer.write(pngdata_from_sink.recv()),
           err(e) => fail e
         }

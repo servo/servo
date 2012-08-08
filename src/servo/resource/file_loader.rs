@@ -13,7 +13,7 @@ fn factory(url: url, progress_chan: chan<ProgressMsg>) {
     assert url.scheme == ~"file";
 
     do spawn {
-        alt file_reader(url.path) {
+        match file_reader(url.path) {
           ok(reader) => {
             while !reader.eof() {
                 let data = reader.read_bytes(READ_SIZE);

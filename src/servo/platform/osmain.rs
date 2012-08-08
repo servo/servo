@@ -70,7 +70,7 @@ fn mainloop(po: port<Msg>) {
         // Handle messages
         #debug("osmain: peeking");
         while po.peek() {
-            alt po.recv() {
+            match po.recv() {
               AddKeyHandler(key_ch) => key_handlers.push(#move(key_ch)),
               AddEventListener(event_listener) => event_listeners.push(event_listener),
               BeginDrawing(sender) => lend_surface(*surfaces, sender),
@@ -224,7 +224,7 @@ fn destroy_surface(+surface: surface) {
 
 #[doc = "A function for spawning into the platform's main thread"]
 fn on_osmain<T: send>(+f: fn~(comm::port<T>)) -> comm::chan<T> {
-    task::task().sched_mode(task::osmain).spawn_listener(f)
+    task::task().sched_mode(task::platform_thread).spawn_listener(f)
 }
 
 // #[cfg(target_os = "linux")]

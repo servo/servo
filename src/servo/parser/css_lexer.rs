@@ -49,12 +49,12 @@ trait css_methods {
 impl css_methods of css_methods for CssLexer {
     fn parse_css() -> Token {
         let mut ch: u8;
-        alt self.input_state.get() {
+        match self.input_state.get() {
             CoeChar(c) => ch = c,
             CoeEof => { return Eof; }
         }
 
-        let token = alt self.parser_state {
+        let token = match self.parser_state {
           CssDescription => self.parse_css_description(ch),
           CssAttribute => self.parse_css_attribute(ch),
           CssElement => self.parse_css_element(ch),
@@ -68,7 +68,7 @@ impl css_methods of css_methods for CssLexer {
     fn parse_css_relation(c : u8) -> Token {
         self.parser_state = CssElement;
 
-        let token = alt c {
+        let token = match c {
           '{' as u8 => { self.parser_state = CssDescription; StartDescription }
           '>' as u8 => { Child }
           '+' as u8 => { Sibling }
@@ -112,7 +112,7 @@ impl css_methods of css_methods for CssLexer {
             self.parser_state = CssRelation;
             self.input_state.eat_whitespace();
 
-            alt self.input_state.get() {
+            match self.input_state.get() {
               CoeChar(c) => { ch = c }
               CoeEof => { fail ~"File ended before description of style" }
             }
@@ -120,13 +120,13 @@ impl css_methods of css_methods for CssLexer {
             return self.parse_css_relation(ch);
         }
         
-        alt ch {
+        match ch {
           '.' as u8 => return Attr(style::Includes(~"class", self.input_state.parse_ident())),
           '#' as u8 => return Attr(style::Includes(~"id", self.input_state.parse_ident())),
           '[' as u8 => {
             let attr_name = self.input_state.parse_ident();
             
-            alt self.input_state.get() {
+            match self.input_state.get() {
               CoeChar(c) => { ch = c; }
               CoeEof => { fail ~"File ended before description finished"; }
             }
@@ -165,7 +165,7 @@ impl css_methods of css_methods for CssLexer {
         } else if ch.is_whitespace() {
             self.input_state.eat_whitespace();
 
-            alt self.input_state.get() {
+            match self.input_state.get() {
               CoeChar(c) => { ch = c }
               CoeEof => { fail ~"Reached end of file in CSS description" }
             }
@@ -187,7 +187,7 @@ impl css_methods of css_methods for CssLexer {
                 push(desc_name, ch);
             }
 
-            alt self.input_state.get() {
+            match self.input_state.get() {
               CoeChar(c) => { ch = c }
               CoeEof => { fail ~"Reached end of file in CSS description" }
             }
@@ -198,7 +198,7 @@ impl css_methods of css_methods for CssLexer {
 
         // Get the value of the descriptor
         loop {
-            alt self.input_state.get() {
+            match self.input_state.get() {
               CoeChar(c) => { ch = c }
               CoeEof => { fail ~"Reached end of file in CSS description" }
             }

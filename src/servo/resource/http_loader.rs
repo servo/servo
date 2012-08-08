@@ -18,7 +18,7 @@ fn factory(url: url, progress_chan: chan<ProgressMsg>) {
         let errored = @mut false;
         do request.begin |event| {
             let url = copy url;
-            alt event {
+            match event {
               http_client::Status(*) => { }
               http_client::Payload(data) => {
                 #debug("http_loader: got data from %?", url);

@@ -26,7 +26,7 @@ trait util_methods {
 
 impl util_methods of util_methods for TokenReader {
     fn get() -> Token {
-        alt copy self.lookahead {
+        match copy self.lookahead {
           some(tok) => { self.lookahead = none; copy tok }
           none => { self.stream.recv() }
         }
@@ -48,7 +48,7 @@ trait parser_methods {
 impl parser_methods of parser_methods for TokenReader {
     fn parse_element() -> option<~style::Selector> {
         // Get the current element type
-         let elmt_name = alt self.get() {
+         let elmt_name = match self.get() {
            Element(tag) => { copy tag }
            Eof => { return none; }
            _ => { fail ~"Expected an element" }
@@ -59,7 +59,7 @@ impl parser_methods of parser_methods for TokenReader {
          // Get the attributes associated with that element
          loop {
              let tok = self.get();
-             alt tok {
+             match tok {
                Attr(attr) => { push(attr_list, copy attr); }
                StartDescription | Descendant | Child | Sibling | Comma => {
                  self.unget(tok); 
@@ -81,7 +81,7 @@ impl parser_methods of parser_methods for TokenReader {
         loop {
             let mut cur_sel;
 
-            alt self.parse_element() {
+            match self.parse_element() {
               some(elmt) => { cur_sel = copy elmt; }
               none => { return none; } // we hit an eof in the middle of a rule
             }
@@ -90,9 +90,9 @@ impl parser_methods of parser_methods for TokenReader {
                 let tok = self.get();
                 let built_sel <- cur_sel;
                 
-                alt tok {
+                match tok {
                   Descendant => {
-                    alt self.parse_element() {
+                    match self.parse_element() {
                       some(elmt) => { 
                         let new_sel = copy elmt;
                         cur_sel <- ~style::Descendant(built_sel, new_sel)
@@ -101,7 +101,7 @@ impl parser_methods of parser_methods for TokenReader {
                     }
                   }
                   Child => {
-                    alt self.parse_element() {
+                    match self.parse_element() {
                       some(elmt) => { 
                         let new_sel = copy elmt;
                         cur_sel <- ~style::Child(built_sel, new_sel)
@@ -110,7 +110,7 @@ impl parser_methods of parser_methods for TokenReader {
                     }
                   }
                   Sibling => {
-                    alt self.parse_element() {
+                    match self.parse_element() {
                       some(elmt) => { 
                         let new_sel = copy elmt;
                         cur_sel <- ~style::Sibling(built_sel, new_sel)
@@ -138,7 +138,7 @@ impl parser_methods of parser_methods for TokenReader {
             // check if we should break out of the nesting loop as well
             // TODO: fix this when rust gets labelled loops
             let tok = self.get();
-            alt tok {
+            match tok {
               StartDescription => { break; }
               Comma => { }
               _ => { self.unget(tok); }
@@ -154,10 +154,10 @@ impl parser_methods of parser_methods for TokenReader {
         // Get the description to be applied to the selector
         loop {
             let tok = self.get();
-            alt tok {
+            match tok {
               EndDescription => { break; }
               Description(prop, val) => {
-                let desc = alt prop {
+                let desc = match prop {
                   // TODO: have color parsing return an option instead of a real value
                   ~"background-color" => parse_color(val).map(|res| BackgroundColor(res)),
                   ~"color" => parse_color(val).map(|res| TextColor(res)),
@@ -180,8 +180,8 @@ impl parser_methods of parser_methods for TokenReader {
     }
 
     fn parse_rule() -> option<~style::Rule> {
-        // TODO: get rid of copies once alt move works
-        let sel_list = alt self.parse_selector() {
+        // TODO: get rid of copies once match move works
+        let sel_list = match self.parse_selector() {
           some(list) => { copy list }
           none => { return none; }
         };
@@ -189,7 +189,7 @@ impl parser_methods of parser_methods for TokenReader {
         #debug("sel_list: %?", sel_list);
         
         // Get the description to be applied to the selector
-        let desc_list = alt self.parse_description() {
+        let desc_list = match self.parse_description() {
           some(list) => { copy list }
           none => { return none; }
         };
@@ -205,7 +205,7 @@ fn build_stylesheet(+stream : pipes::port<Token>) -> ~[~style::Rule] {
     let reader = {stream : stream, mut lookahead : none};
 
     loop {
-        alt reader.parse_rule() {
+        match reader.parse_rule() {
           some(rule) => { push(rule_list, copy rule); }
           none => { break; }
         }

@@ -43,8 +43,6 @@ import std::net::url::url;
 import url_to_str = std::net::url::to_str;
 import util::url::make_url;
 
-type Content = chan<ControlMsg>;
-
 enum ControlMsg {
     ParseMsg(url),
     ExecuteMsg(url),
@@ -114,14 +112,14 @@ class Content<S:Sink send copy> {
     }
 
     fn handle_msg(msg: either<ControlMsg,Event>) -> bool {
-        alt msg {
+        match msg {
             left(control_msg) => self.handle_control_msg(control_msg),
             right(event) => self.handle_event(event)
         }
     }
 
     fn handle_control_msg(control_msg: ControlMsg) -> bool {
-        alt control_msg {
+        match control_msg {
           ParseMsg(url) => {
             #debug["content: Received url `%s` to parse", url_to_str(url)];
 
@@ -161,7 +159,7 @@ class Content<S:Sink send copy> {
           ExecuteMsg(url) => {
             #debug["content: Received url `%s` to execute", url_to_str(url)];
 
-            alt read_whole_file(url.path) {
+            match read_whole_file(url.path) {
               err(msg) => {
                 println(#fmt["Error opening %s: %s", url_to_str(url), msg]);
               }
@@ -202,10 +200,10 @@ class Content<S:Sink send copy> {
     }
 
     fn handle_event(event: Event) -> bool {
-        alt event {
+        match event {
           ResizeEvent(new_width, new_height) => {
             #debug("content got resize event: %d, %d", new_width, new_height);
-            alt copy self.document {
+            match copy self.document {
                 none => {
                     // Nothing to do.
                 }

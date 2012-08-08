@@ -38,11 +38,11 @@ trait html_methods {
 impl html_methods of html_methods for HtmlLexer {
     fn parse_html() -> Token {
         let mut ch: u8;
-        alt self.input_state.get() {
+        match self.input_state.get() {
           CoeChar(c) => { ch = c; }
           CoeEof => { return Eof; }
         }
-        let token = alt self.parser_state {
+        let token = match self.parser_state {
           NormalHtml => { self.parse_in_normal_state(ch) }
           TagHtml => { self.parse_in_tag_state(ch) }
         };
@@ -54,7 +54,7 @@ impl html_methods of html_methods for HtmlLexer {
     fn parse_in_normal_state(c: u8) -> Token {
         let mut ch = c;
         if ch == ('<' as u8) {
-            alt self.input_state.get() {
+            match self.input_state.get() {
               CoeChar(c) => { ch = c; }
               CoeEof => { self.input_state.parse_err(~"eof after '<'") }
             }
@@ -88,7 +88,7 @@ impl html_methods of html_methods for HtmlLexer {
         // Make a text node.
         let mut s: ~[u8] = ~[ch];
         loop {
-            alt self.input_state.get() {
+            match self.input_state.get() {
               CoeChar(c) => {
                 if c == ('<' as u8) {
                     self.input_state.unget(c);
@@ -110,7 +110,7 @@ impl html_methods of html_methods for HtmlLexer {
         }
 
         if ch == ('/' as u8) {
-            alt self.input_state.get() {
+            match self.input_state.get() {
               CoeChar(c) => {
                 if c == ('>' as u8) {
                     self.parser_state = NormalHtml;
@@ -132,7 +132,7 @@ impl html_methods of html_methods for HtmlLexer {
         // Parse an attribute.
         let mut attribute_name = ~[ch];
         loop {
-            alt self.input_state.get() {
+            match self.input_state.get() {
               CoeChar(c) => {
                 if c == ('=' as u8) { break; }
                 push(attribute_name, c);
@@ -148,7 +148,7 @@ impl html_methods of html_methods for HtmlLexer {
         self.input_state.expect('"' as u8);
         let mut attribute_value = ~[];
         loop {
-            alt self.input_state.get() {
+            match self.input_state.get() {
               CoeChar(c) => {
                 if c == ('"' as u8) { break; }
                 push(attribute_value, c);

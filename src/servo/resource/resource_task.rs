@@ -67,7 +67,7 @@ class ResourceManager {
 
     fn start() {
         loop {
-            alt self.from_client.recv() {
+            match self.from_client.recv() {
               Load(url, progress_chan) => {
                 self.load(url, progress_chan)
               }
@@ -80,7 +80,7 @@ class ResourceManager {
 
     fn load(url: url, progress_chan: chan<ProgressMsg>) {
 
-        alt self.get_loader_factory(url) {
+        match self.get_loader_factory(url) {
           some(loader_factory) => {
             #debug("resource_task: loading url: %s", url::to_str(url));
             loader_factory(url, progress_chan);
@@ -115,7 +115,7 @@ fn test_bad_scheme() {
     let resource_task = ResourceTask();
     let progress = port();
     resource_task.send(Load(url::from_str(~"bogus://whatever").get(), progress.chan()));
-    alt check progress.recv() {
+    match check progress.recv() {
       Done(result) => { assert result.is_err() }
     }
     resource_task.send(Exit);

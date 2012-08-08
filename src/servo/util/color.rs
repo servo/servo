@@ -36,7 +36,7 @@ fn hsla(h : float, s : float, l : float, a : float) -> Color {
     fn hue_to_rgb(m1 : float, m2 : float, h : float) -> float {
         let h = if h < 0.0 { h + 1.0 } else if h > 1.0 { h - 1.0 } else { h };
 
-        alt h {
+        match h {
           0.0 to 1.0/6.0 => m1 + (m2 - m1)*h*6.0,
           1.0/6.0 to 1.0/2.0 => m2,
           1.0/2.0 to 2.0/3.0 => m1 + (m2 - m1)*(4.0 - 6.0*h),
@@ -73,7 +73,7 @@ mod parsing {
 
     #[doc="Match an exact color keyword."]
     fn parse_by_name(color : ~str) -> option<Color> {
-        let col = alt color.to_lower() {
+        let col = match color.to_lower() {
           ~"black" => black(),
           ~"silver" => silver(),
           ~"gray" => gray(),
@@ -106,7 +106,7 @@ mod parsing {
         let cols = only_colors.split_char(',');
         if cols.len() != 3u { return fail_unrecognized(color); }
 
-        alt (u8::from_str(cols[0]), u8::from_str(cols[1]), 
+        match (u8::from_str(cols[0]), u8::from_str(cols[1]), 
              u8::from_str(cols[2])) {
           (some(r), some(g), some(b)) => { some(rgb(r, g, b)) }
           _ => { fail_unrecognized(color) }
@@ -122,7 +122,7 @@ mod parsing {
         let cols = only_vals.split_char(',');
         if cols.len() != 4u { return fail_unrecognized(color); }
 
-        alt (u8::from_str(cols[0]), u8::from_str(cols[1]), 
+        match (u8::from_str(cols[0]), u8::from_str(cols[1]), 
              u8::from_str(cols[2]), float::from_str(cols[3])) {
           (some(r), some(g), some(b), some(a)) => { some(rgba(r, g, b, a)) }
           _ => { fail_unrecognized(color) }
@@ -138,7 +138,7 @@ mod parsing {
         let vals = only_vals.split_char(',');
         if vals.len() != 3u { return fail_unrecognized(color); }
 
-        alt (float::from_str(vals[0]), float::from_str(vals[1]), 
+        match (float::from_str(vals[0]), float::from_str(vals[1]), 
              float::from_str(vals[2])) {
           (some(h), some(s), some(l)) => { some(hsl(h, s, l)) }
           _ => { fail_unrecognized(color) }
@@ -153,7 +153,7 @@ mod parsing {
         let vals = only_vals.split_char(',');
         if vals.len() != 4u { return fail_unrecognized(color); }
 
-        alt (float::from_str(vals[0]), float::from_str(vals[1]), 
+        match (float::from_str(vals[0]), float::from_str(vals[1]), 
              float::from_str(vals[2]), float::from_str(vals[3])) {
           (some(h), some(s), some(l), some(a)) => { some(hsla(h, s, l, a)) }
           _ => { fail_unrecognized(color) }
@@ -164,7 +164,7 @@ mod parsing {
     // keywords for several common colors.
     // TODO: extend this
     fn parse_color(color : ~str) -> option<Color> {
-        alt color {
+        match color {
           c if c.starts_with(~"rgb(") => parse_rgb(c),
           c if c.starts_with(~"rgba(") => parse_rgba(c),
           c if c.starts_with(~"hsl(") => parse_hsl(c),

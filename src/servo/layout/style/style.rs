@@ -29,7 +29,7 @@ trait default_style_methods {
 #[doc="Default stylesfor various attributes in case they don't get initialized from css selectors"]
 impl default_style_methods of default_style_methods for NodeKind {
     fn default_color() -> Color {
-        alt self {
+        match self {
           Text(*) => { white() }
           Element(*) => {
             let r = rand::rng();
@@ -39,10 +39,10 @@ impl default_style_methods of default_style_methods for NodeKind {
     }
 
     fn default_display_type() -> DisplayType {
-        alt self {
+        match self {
           Text(*) => { DisInline }
           Element(element) => {
-            alt *element.kind {
+            match *element.kind {
               HTMLDivElement => DisBlock,
               HTMLHeadElement => DisNone,
               HTMLImageElement(*) => DisInline,

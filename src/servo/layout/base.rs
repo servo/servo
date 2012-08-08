@@ -48,7 +48,7 @@ class Appearance {
         let mut image = none;
 
         // Do a dance where we swap the ImageHolder out before we can
-        // get the image out of it because we can't alt over it
+        // get the image out of it because we can't match against it
         // because holder.get_image() is not pure.
         if (self.background_image).is_some() {
             let mut temp = none;
@@ -179,7 +179,7 @@ impl layout_methods_priv for @Box {
 impl layout_methods for @Box {
     #[doc="The main reflow routine."]
     fn reflow(available_width: au) {
-        alt self.kind {
+        match self.kind {
             BlockBox => self.reflow_block(available_width),
             InlineBox => self.reflow_inline(available_width),
             IntrinsicBox(size) => self.reflow_intrinsic(*size),

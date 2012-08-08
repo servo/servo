@@ -33,16 +33,16 @@ impl ApplyStyleBoxMethods of ApplyStyleBoxMethods for @Box {
     fn apply_style() {
         // Right now, we only handle images.
         do self.node.read |node| {
-            alt node.kind {
+            match node.kind {
               ~Element(element) => {
                 let style = self.node.get_specified_style();
 
-                self.appearance.background_color = alt style.background_color {
+                self.appearance.background_color = match style.background_color {
                   some(col) => col,
                   none => node.kind.default_color()
                 };
 
-                alt element.kind {
+                match element.kind {
                   ~HTMLImageElement(*) => {
                     let url = element.get_attr(~"src");
                     

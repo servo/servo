@@ -93,7 +93,7 @@ unsafe fn unwrap(obj: *JSObject) -> *rust_box<Node> {
 extern fn getFirstChild(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval) -> JSBool {
     unsafe {
         (*unwrap(obj)).payload.read(|nd| {
-            alt nd.tree.first_child {
+            match nd.tree.first_child {
               some(n) => {
                 let obj = create(cx, n).ptr;
                 *rval = RUST_OBJECT_TO_JSVAL(obj);
@@ -110,7 +110,7 @@ extern fn getFirstChild(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut js
 extern fn getNextSibling(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval) -> JSBool {
     unsafe {
         (*unwrap(obj)).payload.read(|nd| {
-            alt nd.tree.next_sibling {
+            match nd.tree.next_sibling {
               some(n) => {
                 let obj = create(cx, n).ptr;
                 *rval = RUST_OBJECT_TO_JSVAL(obj);
@@ -127,7 +127,7 @@ extern fn getNextSibling(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut j
 extern fn getTagName(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval) -> JSBool {
     unsafe {
         (*unwrap(obj)).payload.read(|nd| {
-            alt nd.kind {
+            match nd.kind {
               ~Element(ed) => {
                 let s = str(copy ed.tag_name);
                 *rval = domstring_to_jsval(cx, s);

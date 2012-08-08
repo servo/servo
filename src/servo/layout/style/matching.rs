@@ -13,15 +13,15 @@ export matching_methods;
 
 #[doc="Check if a CSS attribute matches the attribute of an HTML element."]
 fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
-    alt attr {
+    match attr {
       Exists(name) => {
-        alt elmt.get_attr(name) {
+        match elmt.get_attr(name) {
           some(_) => true,
           none => false
         }
       }
       Exact(name, val) => {
-        alt elmt.get_attr(name) {
+        match elmt.get_attr(name) {
           some(value) => value == val,
           none => false
         }
@@ -31,13 +31,13 @@ fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
         // it cannot match.
         if val == ~"" { return false; }
 
-        alt elmt.get_attr(name) {
+        match elmt.get_attr(name) {
           some(value) => value.split_char(' ').contains(val),
           none => false
         }
       }
       StartsWith(name, val) => {
-        alt elmt.get_attr(name) {
+        match elmt.get_attr(name) {
           some(value) => { 
             //check that there is only one attribute value and it
             //starts with the perscribed value
@@ -66,10 +66,10 @@ impl priv_matching_methods of priv_matching_methods for Node {
         information, describes the given HTML element.
     "]
     fn matches_element(sel: ~Selector) -> bool {
-        alt *sel {
+        match *sel {
           Child(_, _) | Descendant(_, _) | Sibling(_, _) => { return false; }
           Element(tag, attrs) => {
-            alt self.read(|n| copy *n.kind) {
+            match self.read(|n| copy *n.kind) {
               base::Element(elmt) => {
                 if !(tag == ~"*" || tag == elmt.tag_name) {
                     return false;
@@ -94,10 +94,10 @@ impl priv_matching_methods of priv_matching_methods for Node {
 
     #[doc = "Checks if a generic CSS selector matches a given HTML element"]
     fn matches_selector(sel : ~Selector) -> bool {
-        alt *sel {
+        match *sel {
           Element(str, atts) => { return self.matches_element(sel); }
           Child(sel1, sel2) => {
-            return alt self.read(|n| n.tree.parent) {
+            return match self.read(|n| n.tree.parent) {
               some(parent) => self.matches_element(sel2) && parent.matches_selector(sel1),
               none => false
             }
@@ -107,7 +107,7 @@ impl priv_matching_methods of priv_matching_methods for Node {
 
             //loop over all ancestors to check if they are the person
             //we should be descended from.
-            let mut cur_parent = alt self.read(|n| n.tree.parent) {
+            let mut cur_parent = match self.read(|n| n.tree.parent) {
               some(parent) => parent,
               none => return false
             };
@@ -115,7 +115,7 @@ impl priv_matching_methods of priv_matching_methods for Node {
             loop {
                 if cur_parent.matches_selector(sel1) { return true; }
 
-                cur_parent = alt cur_parent.read(|n| n.tree.parent) {
+                cur_parent = match cur_parent.read(|n| n.tree.parent) {
                   some(parent) => parent,
                   none => return false
                 };
@@ -125,13 +125,13 @@ impl priv_matching_methods of priv_matching_methods for Node {
             if !self.matches_element(sel2) { return false; }
 
             // Loop over this node's previous siblings to see if they match.
-            alt self.read(|n| n.tree.prev_sibling) {
+            match self.read(|n| n.tree.prev_sibling) {
               some(sib) => {
                 let mut cur_sib = sib;
                 loop {
                     if cur_sib.matches_selector(sel1) { return true; }
                     
-                    cur_sib = alt cur_sib.read(|n| n.tree.prev_sibling) {
+                    cur_sib = match cur_sib.read(|n| n.tree.prev_sibling) {
                       some(sib) => sib,
                       none => { break; }
                     };
@@ -141,13 +141,13 @@ impl priv_matching_methods of priv_matching_methods for Node {
             }
 
             // check the rest of the siblings
-            alt self.read(|n| n.tree.next_sibling) {
+            match self.read(|n| n.tree.next_sibling) {
                 some(sib) => {
                     let mut cur_sib = sib;
                     loop {
                         if cur_sib.matches_selector(sel1) { return true; }
                 
-                        cur_sib = alt cur_sib.read(|n| n.tree.next_sibling) {
+                        cur_sib = match cur_sib.read(|n| n.tree.next_sibling) {
                             some(sib) => sib,
                             none => { break; }
                         };
@@ -170,7 +170,7 @@ impl priv_style_methods of priv_style_methods for Node {
     #[doc="Update the computed style of an HTML element with a style specified by CSS."]
     fn update_style(decl : StyleDeclaration) {
         self.aux(|layout| {
-            alt decl {
+            match decl {
               BackgroundColor(col) => layout.specified_style.background_color = some(col),
               Display(dis) => layout.specified_style.display_type = some(dis),
               FontSize(size) => layout.specified_style.font_size = some(size),

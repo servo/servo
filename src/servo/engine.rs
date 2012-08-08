@@ -41,9 +41,9 @@ class Engine<S:Sink send copy> {
     }
 
     fn handle_request(request: Msg) -> bool {
-        alt request {
+        match request {
           LoadURLMsg(url) => {
-            // TODO: change copy to move once we have alt move
+            // TODO: change copy to move once we have match move
             let url = copy url;
             if url.path.ends_with(".js") {
                 self.content.send(ExecuteMsg(url))

@@ -29,7 +29,7 @@ enum Msg {
 fn Layout(renderer: Renderer) -> Layout {
     do spawn_listener::<Msg>|request| {
         loop {
-            alt request.recv() {
+            match request.recv() {
               PingMsg(ping_channel) => ping_channel.send(content::PongMsg),
               ExitMsg => {
                 #debug("layout: ExitMsg received");

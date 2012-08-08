@@ -249,14 +249,14 @@ mod test {
     }
 
     fn mutate(a: animal) {
-        alt a.species {
+        match a.species {
           chicken(c) => c.eggs_per_day += 1u,
           bull(c) => c.horns += 1u
         }
     }
 
     fn read_characteristic(a: animal) -> uint {
-        alt a.species {
+        match a.species {
           chicken(c) => c.eggs_per_day,
           bull(c) => c.horns
         }

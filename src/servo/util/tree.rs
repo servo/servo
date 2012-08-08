@@ -21,7 +21,7 @@ trait WriteMethods<T> {
 fn each_child<T:copy,O:ReadMethods<T>>(ops: O, node: T, f: fn(T) -> bool) {
     let mut p = ops.with_tree_fields(node, |f| f.first_child);
     loop {
-        alt copy p {
+        match copy p {
           none => { return; }
           some(c) => {
             if !f(c) { return; }
@@ -42,7 +42,7 @@ fn empty<T>() -> Tree<T> {
 fn add_child<T:copy,O:WriteMethods<T>>(ops: O, parent: T, child: T) {
 
     ops.with_tree_fields(child, |child_tf| {
-        alt child_tf.parent {
+        match child_tf.parent {
           some(_) => { fail ~"Already has a parent"; }
           none => { child_tf.parent = some(parent); }
         }
@@ -51,7 +51,7 @@ fn add_child<T:copy,O:WriteMethods<T>>(ops: O, parent: T, child: T) {
         assert child_tf.next_sibling == none;
 
         ops.with_tree_fields(parent, |parent_tf| {
-            alt copy parent_tf.last_child {
+            match copy parent_tf.last_child {
               none => {
                 parent_tf.first_child = some(child);
               }

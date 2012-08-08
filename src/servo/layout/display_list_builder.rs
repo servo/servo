@@ -72,7 +72,7 @@ fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) 
     let bounds = Rect(origin, copy box.bounds.size);
     let col = box.appearance.background_color;
 
-    alt box.kind {
+    match box.kind {
       TextBox(subbox) => {
         let run = copy subbox.run;
         assert run.is_some();
@@ -119,13 +119,13 @@ fn should_convert_text_boxes_to_solid_color_background_items() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = alt check b.kind { TextBox(subbox) => subbox };
+    let subbox = match check b.kind { TextBox(subbox) => subbox };
 
     b.reflow_text(px_to_au(800), subbox);
     let list = dvec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
-    alt list[0].item_type {
+    match list[0].item_type {
       dl::display_item_solid_color(*) => { }
       _ => { fail }
     }
@@ -140,13 +140,13 @@ fn should_convert_text_boxes_to_text_items() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = alt check b.kind { TextBox(subbox) => { subbox } };
+    let subbox = match check b.kind { TextBox(subbox) => { subbox } };
 
     b.reflow_text(px_to_au(800), subbox);
     let list = dvec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
-    alt list[1].item_type {
+    match list[1].item_type {
       dl::display_item_text(_) => { }
       _ => { fail }
     }
@@ -160,7 +160,7 @@ fn should_calculate_the_bounds_of_the_text_box_background_color() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = alt check b.kind { TextBox(subbox) => { subbox } };
+    let subbox = match check b.kind { TextBox(subbox) => { subbox } };
 
     b.reflow_text(px_to_au(800), subbox);
     let list = dvec();
@@ -182,7 +182,7 @@ fn should_calculate_the_bounds_of_the_text_items() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = alt check b.kind { TextBox(subbox) => { subbox } };
+    let subbox = match check b.kind { TextBox(subbox) => { subbox } };
 
     b.reflow_text(px_to_au(800), subbox);
     let list = dvec();

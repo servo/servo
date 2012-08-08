@@ -46,7 +46,7 @@ fn Renderer<S: Sink send copy>(sink: S) -> comm::chan<Msg> {
         sink.begin_drawing(draw_target_ch);
 
         loop {
-            alt po.recv() {
+            match po.recv() {
               RenderMsg(display_list) => {
                 #debug("renderer: got render request");
                 let draw_target = draw_target_po.recv();
@@ -87,7 +87,7 @@ fn draw_display_list(draw_target: AzDrawTargetRef, display_list: dl::display_lis
     for display_list.each |item| {
         #debug["drawing %?", item];
 
-        alt item.item_type {
+        match item.item_type {
           dl::display_item_solid_color(r, g, b) => draw_solid_color(draw_target, item, r, g, b),
           dl::display_item_image(image) => draw_image(draw_target, item, *image),
           dl::display_item_text(text_run) => draw_text(draw_target, item, text_run),
@@ -132,7 +132,7 @@ fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item, image: arc<~
     let data = do vec::from_fn(image.width * image.height * 4) |i| {
         let color = i % 4;
         let pixel = i / 4;
-        alt color {
+        match color {
             0 => image.data[pixel * 3 + 2],
             1 => image.data[pixel * 3 + 1],
             2 => image.data[pixel * 3 + 0],

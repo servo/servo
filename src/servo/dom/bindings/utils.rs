@@ -54,7 +54,7 @@ fn jsval_to_str(cx: *JSContext, v: jsval) -> result<~str, ()> {
 }
 
 unsafe fn domstring_to_jsval(cx: *JSContext, str: DOMString) -> jsval {
-    alt str {
+    match str {
       null_string => {
         JSVAL_NULL
       }

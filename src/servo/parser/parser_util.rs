@@ -10,7 +10,7 @@ export parse_size;
 export parse_display_type;
 
 fn parse_unit(str : ~str) -> option<Unit> {
-    alt str {
+    match str {
       s if s.ends_with(~"%") => from_str(str.substr(0, str.len() - 1)).map(|f| Percent(f)),
       s if s.ends_with(~"in") => from_str(str.substr(0, str.len() - 2)).map(|f| In(f)),
       s if s.ends_with(~"cm") => from_str(str.substr(0, str.len() - 2)).map(|f| Cm(f)),
@@ -28,7 +28,7 @@ fn parse_font_size(str : ~str) -> option<Unit> {
     // The default pixel size, not sure if this is accurate.
     let default = 16.0;
 
-    alt str {
+    match str {
       ~"xx-small" => some(Px(0.6*default)),
       ~"x-small" => some(Px(0.75*default)),
       ~"small" => some(Px(8.0/9.0*default)),
@@ -45,7 +45,7 @@ fn parse_font_size(str : ~str) -> option<Unit> {
 
 // For width / height, and anything else with the same attribute values
 fn parse_size(str : ~str) -> option<Unit> {
-    alt str {
+    match str {
       ~"auto" => some(Auto),
       ~"inherit" => some(Em(1.0)),
       _ => parse_unit(str),
@@ -53,7 +53,7 @@ fn parse_size(str : ~str) -> option<Unit> {
 }
 
 fn parse_display_type(str : ~str) -> option<DisplayType> {
-    alt str {
+    match str {
       ~"inline" => some(DisInline),
       ~"block" => some(DisBlock),
       ~"none" => some(DisNone),
