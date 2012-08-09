@@ -39,12 +39,14 @@ class QuartzNativeFont/& {
     }
 
     fn glyph_index(_codepoint: char) -> option<GlyphIndex> {
-        fail;
+        // FIXME
+        some(40u)
     }
 
     // FIXME: What unit is this returning? Let's have a custom type
     fn glyph_h_advance(_glyph: GlyphIndex) -> option<int> {
-        fail;
+        // FIXME
+        some(15)
     }
 }
 
