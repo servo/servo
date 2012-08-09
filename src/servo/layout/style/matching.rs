@@ -6,10 +6,7 @@ import base::{ElementData, Node, Text};
 import dom::style::{Selector, StyleDeclaration, FontSize, Display, TextColor, BackgroundColor,
                     Stylesheet, Element, Child, Descendant, Sibling, Attr, Exact, Exists, Includes,
                     StartsWith, Width, Height};
-import dom::rcu::ReaderMethods;
 import style::{SpecifiedStyle};
-
-export matching_methods;
 
 #[doc="Check if a CSS attribute matches the attribute of an HTML element."]
 fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
@@ -55,12 +52,12 @@ fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
     }
 }
 
-trait priv_matching_methods {
+trait PrivMatchingMethods {
     fn matches_element(sel: ~Selector) -> bool;
     fn matches_selector(sel : ~Selector) -> bool;
 }
 
-impl priv_matching_methods of priv_matching_methods for Node {
+impl Node : PrivMatchingMethods {
     #[doc="
         Checks if the given CSS selector, which must describe a single element with no relational
         information, describes the given HTML element.
@@ -162,11 +159,11 @@ impl priv_matching_methods of priv_matching_methods for Node {
     }
 }
 
-trait priv_style_methods {
+trait PrivStyleMethods {
     fn update_style(decl : StyleDeclaration);
 }
 
-impl priv_style_methods of priv_style_methods for Node {
+impl Node : PrivStyleMethods {
     #[doc="Update the computed style of an HTML element with a style specified by CSS."]
     fn update_style(decl : StyleDeclaration) {
         self.aux(|layout| {
@@ -182,11 +179,11 @@ impl priv_style_methods of priv_style_methods for Node {
     }
 }
 
-trait matching_methods {
+trait MatchingMethods {
     fn match_css_style(styles : Stylesheet);
 }
 
-impl matching_methods of matching_methods for Node {
+impl Node : MatchingMethods {
     #[doc="Compare an html element to a list of css rules and update its
            style according to the rules matching it."]
     fn match_css_style(styles : Stylesheet) {
@@ -213,8 +210,8 @@ impl matching_methods of matching_methods for Node {
 #[cfg(test)]
 mod test {
     import dom::base::{Attr, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
-    import dom::base::{NodeScope, TreeReadMethods, TreeWriteMethods, UnknownElement};
-    import dvec::{dvec, extensions};
+    import dom::base::{NodeScope, UnknownElement};
+    import dvec::dvec;
     import io::println;
 
     #[allow(non_implicitly_copyable_typarams)]

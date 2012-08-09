@@ -19,12 +19,12 @@ import vec::push;
 
 type TokenReader = {stream : pipes::port<Token>, mut lookahead : option<Token>};
 
-trait util_methods {
+trait TokenReaderMethods {
     fn get() -> Token;
     fn unget(-tok : Token);
 }
 
-impl util_methods of util_methods for TokenReader {
+impl TokenReader : TokenReaderMethods {
     fn get() -> Token {
         match copy self.lookahead {
           some(tok) => { self.lookahead = none; copy tok }
@@ -38,14 +38,14 @@ impl util_methods of util_methods for TokenReader {
     }
 }
 
-trait parser_methods {
+trait ParserMethods {
     fn parse_element() -> option<~style::Selector>;
     fn parse_selector() -> option<~[~Selector]>;
     fn parse_description() -> option<~[StyleDeclaration]>;
     fn parse_rule() -> option<~style::Rule>;
 }
 
-impl parser_methods of parser_methods for TokenReader {
+impl TokenReader : ParserMethods {
     fn parse_element() -> option<~style::Selector> {
         // Get the current element type
          let elmt_name = match self.get() {

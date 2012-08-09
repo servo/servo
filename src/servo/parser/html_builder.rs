@@ -2,9 +2,7 @@
 
 import dom::base::{Attr, Element, ElementData, ElementKind, HTMLDivElement, HTMLHeadElement,
                    HTMLScriptElement};
-import dom::base::{HTMLImageElement, Node, NodeScope, Text, TreeReadMethods, TreeWriteMethods};
-import dom::base::{UnknownElement};
-import dom::rcu::WriterMethods;
+import dom::base::{HTMLImageElement, Node, NodeScope, Text, UnknownElement};
 import geom::size::Size2D;
 import gfx::geometry;
 import gfx::geometry::au;
@@ -14,7 +12,6 @@ import dom::style::Stylesheet;
 import vec::{push, push_all_move, flat_map};
 import std::net::url::url;
 import resource::resource_task::{ResourceTask, Load, Payload, Done};
-import dvec::extensions;
 import result::{ok, err};
 import to_str::to_str;
 

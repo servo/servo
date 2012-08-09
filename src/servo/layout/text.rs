@@ -4,11 +4,11 @@ import geom::size::Size2D;
 import gfx::geometry::au;
 import servo_text::text_run::TextRun;
 import servo_text::font_library::FontLibrary;
-import base::{Box, TextBox};
+import base::{Box, TextBoxKind};
 
-class text_box {
-    let text: ~str;
-    let mut run: option<TextRun>;
+struct TextBox {
+    text: ~str;
+    mut run: option<TextRun>;
 
     new(-text: ~str) {
         self.text = text;
@@ -16,15 +16,15 @@ class text_box {
     }
 }
 
-trait text_layout_methods {
-    fn reflow_text(_available_width: au, subbox: @text_box);
+trait TextLayout {
+    fn reflow_text(_available_width: au, subbox: @TextBox);
 }
 
 #[doc="The main reflow routine for text layout."]
-impl text_layout_methods of text_layout_methods for @Box {
-    fn reflow_text(_available_width: au, subbox: @text_box) {
+impl @Box : TextLayout {
+    fn reflow_text(_available_width: au, subbox: @TextBox) {
         match self.kind {
-            TextBox(*) => { /* ok */ }
+            TextBoxKind(*) => { /* ok */ }
             _ => { fail ~"expected text box in reflow_text!" }
         };
 
@@ -43,7 +43,6 @@ fn should_calculate_the_size_of_the_text_box() {
 
     import dom::rcu::{Scope};
     import dom::base::{Text, NodeScope};
-    import box_builder::box_builder_methods;
     import util::tree;
     import gfx::geometry::px_to_au;
 
@@ -51,7 +50,7 @@ fn should_calculate_the_size_of_the_text_box() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = match check b.kind { TextBox(subbox) => { subbox } };
+    let subbox = match check b.kind { TextBoxKind(subbox) => { subbox } };
     b.reflow_text(px_to_au(800), subbox);
     let expected = Size2D(px_to_au(84), px_to_au(20));
     assert b.bounds.size == expected;

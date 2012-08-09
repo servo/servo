@@ -83,13 +83,13 @@ mod test {
 
     enum dtree { dtree }
 
-    impl of ReadMethods<dummy> for dtree {
+    impl dtree : ReadMethods<dummy> {
         fn with_tree_fields<R>(d: dummy, f: fn(Tree<dummy>) -> R) -> R {
             f(d.fields)
         }
     }
 
-    impl of WriteMethods<dummy> for dtree {
+    impl dtree : WriteMethods<dummy> {
         fn with_tree_fields<R>(d: dummy, f: fn(Tree<dummy>) -> R) -> R {
             f(d.fields)
         }

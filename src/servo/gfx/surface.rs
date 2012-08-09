@@ -1,5 +1,4 @@
 import geom::size::Size2D;
-import int::num;
 
 enum format {
     fo_rgba_8888
@@ -12,7 +11,7 @@ type image_surface = {
     buffer: ~[u8]
 };
 
-impl format for format {
+impl format {
     fn bpp() -> uint {
         match self {
             fo_rgba_8888 => 32u 

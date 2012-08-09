@@ -11,7 +11,7 @@ import cmp::eq;
 
 enum Color = {red : u8, green : u8, blue : u8, alpha : float};
 
-impl Color of eq for Color {
+impl Color : eq {
     pure fn eq(&&other: Color) -> bool {
         return self.red == other.red && self.green == other.green && self.blue == other.blue &&
                self.alpha == other.alpha;
@@ -56,7 +56,7 @@ fn hsl(h : float, s : float, l : float) -> Color {
     return hsla(h, s, l, 1.0);
 }
 
-impl methods for Color {
+impl Color {
     fn print() -> ~str {
         #fmt["rgba(%u,%u,%u,%f)", self.red as uint, self.green as uint,
              self.blue as uint, self.alpha]

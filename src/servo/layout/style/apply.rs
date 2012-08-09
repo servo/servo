@@ -1,11 +1,9 @@
 #[doc="Applies the appropriate CSS style to boxes."]
 
 import dom::base::{Element, HTMLImageElement, Node};
-import dom::rcu::ReaderMethods;
 import either::right;
 import image::base::load;
-import base::{Box, BTree, NTree, LayoutData, BoxTreeReadMethods, SpecifiedStyle, ImageHolder};
-import style::{default_style_methods, style_methods};
+import base::{Box, BTree, ImageHolder, LayoutData, NTree, SpecifiedStyle};
 import traverse::top_down_traversal;
 
 trait ApplyStyleBoxMethods {
@@ -18,7 +16,7 @@ fn apply_style_wrapper(box : @Box) {
     box.apply_style();
 }
 
-impl ApplyStyleBoxMethods of ApplyStyleBoxMethods for @Box {
+impl @Box : ApplyStyleBoxMethods {
     fn apply_css_style() {
         top_down_traversal(self, apply_style_wrapper);
     }

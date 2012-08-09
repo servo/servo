@@ -6,9 +6,9 @@ import azure::bindgen::*;
 import azure::cairo;
 import azure::cairo::bindgen::*;
 import comm::*;
-import dvec::{dvec, extensions};
+import dvec::dvec;
 import azure::cairo::cairo_surface_t;
-import gfx::renderer::{Sink};
+import gfx::renderer::Sink;
 import dom::event::{Event, ResizeEvent};
 import layers::ImageLayer;
 import geom::size::Size2D;
@@ -131,7 +131,7 @@ fn mainloop(po: port<Msg>) {
 Implementation to allow the osmain channel to be used as a graphics
 sink for the renderer
 "]
-impl OSMain of Sink for OSMain {
+impl OSMain : Sink {
     fn begin_drawing(+next_dt: pipes::chan<AzDrawTargetRef>) {
         self.send(BeginDrawing(next_dt))
     }

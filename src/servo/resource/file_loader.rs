@@ -1,6 +1,6 @@
 export factory;
 
-import comm::{chan, methods};
+import comm::chan;
 import task::spawn;
 import resource_task::{ProgressMsg, Payload, Done};
 import std::net::url::url;

@@ -13,7 +13,6 @@ import dom::base::{Node, Element};
 import utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval, str};
 import libc::c_uint;
 import ptr::null;
-import rcu::ReaderMethods;
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     #debug("node finalize!");

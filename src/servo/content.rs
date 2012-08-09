@@ -17,7 +17,6 @@ import result::{ok, err};
 
 import dom::base::{Node, NodeScope, define_bindings};
 import dom::event::{Event, ResizeEvent};
-import dom::rcu::WriterMethods;
 import dom::style;
 import dom::style::Stylesheet;
 import gfx::renderer::Sink;
@@ -31,7 +30,6 @@ import js::rust::methods;
 import js::global::{global_class, debug_fns};
 
 import either::{either, left, right};
-import result::extensions;
 
 import dom::bindings::utils::rust_box;
 import js::rust::compartment;

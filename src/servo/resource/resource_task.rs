@@ -8,7 +8,7 @@ export ControlMsg, Load, Exit;
 export ProgressMsg, Payload, Done;
 export ResourceTask, ResourceManager, LoaderTaskFactory;
 
-import comm::{chan, port, methods};
+import comm::{chan, port};
 import task::{spawn, spawn_listener};
 import std::net::url;
 import std::net::url::url;

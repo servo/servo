@@ -182,12 +182,12 @@ fn get_cairo_face(buf: &~[u8]) -> (*cairo_font_face_t, fn@()) {
     import azure::cairo_ft;
     import cairo_ft::bindgen::cairo_ft_font_face_create_for_ft_face;
 
-    trait methods {
+    trait FTErrorMethods {
         fn for_sure();
         fn failed() -> bool;
     }
 
-    impl methods of methods for FT_Error {
+    impl FT_Error : FTErrorMethods {
         fn for_sure() { assert !self.failed() }
         fn failed() -> bool { self != 0 as FT_Error }
     }

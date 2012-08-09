@@ -35,7 +35,7 @@ enum Msg {
     Exit
 }
 
-impl PngSink of Sink for chan<Msg> {
+impl chan<Msg> : Sink {
     fn begin_drawing(+next_dt: pipes::chan<AzDrawTargetRef>) {
         self.send(BeginDrawing(next_dt))
     }

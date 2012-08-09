@@ -1,6 +1,5 @@
 #[doc="The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements."]
 
-import dom::rcu::WriterMethods;
 import gfx::geometry::au;
 import geom::size::Size2D;
 import layout::base::LayoutData;
@@ -10,11 +9,10 @@ import js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, jsval, JS
 import js::{JSPROP_ENUMERATE, JSPROP_SHARED};
 import js::crust::*;
 import js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
+import dvec::dvec;
 import ptr::null;
 import content::Document;
 import bindings;
-
-import dvec::{dvec, extensions};
 
 enum NodeData = {
     tree: tree::Tree<Node>,
@@ -86,19 +84,19 @@ fn NodeScope() -> NodeScope {
     rcu::Scope()
 }
 
-trait node_scope {
+trait NodeScopeExtensions {
     fn new_node(-k: NodeKind) -> Node;
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-impl NodeScope of node_scope for NodeScope {
+impl NodeScope : NodeScopeExtensions {
     fn new_node(-k: NodeKind) -> Node {
         self.handle(NodeData({tree: tree::empty(), kind: ~k}))
     }
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-impl TreeReadMethods of tree::ReadMethods<Node> for NodeScope {
+impl NodeScope : tree::ReadMethods<Node> {
     fn each_child(node: Node, f: fn(Node) -> bool) {
         tree::each_child(self, node, f)
     }
@@ -113,7 +111,7 @@ impl TreeReadMethods of tree::ReadMethods<Node> for NodeScope {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-impl TreeWriteMethods of tree::WriteMethods<Node> for NodeScope {
+impl NodeScope : tree::WriteMethods<Node> {
     fn add_child(node: Node, child: Node) {
         tree::add_child(self, node, child)
     }

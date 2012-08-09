@@ -49,8 +49,8 @@ of the RCU nodes themselves.
 
 ")];
 
-import ptr::extensions;
 import core::libc::types::os::arch::c95::size_t;
+import ptr::ptr;
 import vec::push;
 
 export Handle;
@@ -84,7 +84,8 @@ enum Handle<T:send,A> {
     _Handle(*HandleData<T,A>)
 }
 
-impl HandlePrivate<T:send,A> for Handle<T,A> {
+// Private methods
+impl<T:send,A> Handle<T,A> {
     fn read_ptr() -> *T unsafe            { (**self).read_ptr   }
     fn write_ptr() -> *mut T unsafe       { (**self).write_ptr  }
     fn read_aux() -> *A unsafe            { (**self).read_aux   }
@@ -99,7 +100,7 @@ impl HandlePrivate<T:send,A> for Handle<T,A> {
     fn is_not_null() -> bool { (*self).is_not_null() }
 }
 
-impl ReaderMethods<T:send,A> for Handle<T,A> {
+impl<T:send,A> Handle<T,A> {
     #[doc(str = "Access the reader's view of the handle's data.")]
     fn read<U>(f: fn(T) -> U) -> U unsafe {
         f(*self.read_ptr())
@@ -128,7 +129,8 @@ impl ReaderMethods<T:send,A> for Handle<T,A> {
     }
 }
 
-impl ScopePrivate<T: copy send,A> for Scope<T,A> {
+// Private methods
+impl<T: copy send,A> Scope<T,A> {
     fn clone(v: *T) -> *T unsafe {
         let n: *mut T =
             unsafe::reinterpret_cast(libc::calloc(sys::size_of::<T>() as size_t, 1u as size_t));
@@ -164,7 +166,8 @@ fn Scope<T:send,A>() -> Scope<T,A> {
                     mut first_dirty: null_handle()})
 }
 
-impl WriterMethods<T:copy send,A> for Scope<T,A> {
+// Writer methods
+impl<T:copy send,A> Scope<T,A> {
     fn is_reader_forked() -> bool {
         self.d.layout_active
     }
@@ -228,7 +231,6 @@ impl WriterMethods<T:copy send,A> for Scope<T,A> {
 #[cfg(test)]
 #[allow(non_implicitly_copyable_typarams)]
 mod test {
-
     type animal = {name: ~str, species: species};
     enum species {
         chicken(~chicken),
@@ -307,5 +309,4 @@ mod test {
         assert henrietta.read(read_characteristic) == iter1 * iter2;
         assert ferdinand.read(read_characteristic) == iter1 * iter2;
     }
-
 }

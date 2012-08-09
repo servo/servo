@@ -77,7 +77,7 @@ trait to_float {
     fn to_float() -> float;
 }
 
-impl to_float of to_float for u8 {
+impl u8 : to_float {
     fn to_float() -> float {
         (self as float) / 255f
     }

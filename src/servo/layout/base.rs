@@ -3,7 +3,6 @@
 import dom::base::{Element, ElementKind, HTMLDivElement, HTMLImageElement, Node, NodeData};
 import dom::base::{NodeKind};
 import dom::rcu;
-import dom::rcu::ReaderMethods;
 import dom::style::Unit;
 import gfx::geometry;
 import gfx::geometry::{au, zero_size_au};
@@ -11,13 +10,10 @@ import geom::point::Point2D;
 import geom::rect::Rect;
 import geom::size::Size2D;
 import image::base::{image, load};
-import layout::block::block_layout_methods;
-import layout::inline::inline_layout_methods;
 import util::tree;
 import util::color::{Color, css_colors};
-import text::text_box;
-import style::style::{SpecifiedStyle, default_style_methods};
-import text::text_layout_methods;
+import style::style::SpecifiedStyle;
+import text::TextBox;
 import vec::{push, push_all};
 
 import arc::{arc, clone};
@@ -26,7 +22,7 @@ enum BoxKind {
     BlockBox,
     InlineBox,
     IntrinsicBox(@Size2D<au>),
-    TextBox(@text_box)
+    TextBoxKind(@TextBox)
 }
 
 class Appearance {
@@ -127,7 +123,7 @@ enum LayoutData = {
 // FIXME: This is way too complex! Why do these have to have dummy receivers? --pcw
 
 enum NTree { NTree }
-impl NodeTreeReadMethods of tree::ReadMethods<Node> for NTree {
+impl NTree : tree::ReadMethods<Node> {
     fn each_child(node: Node, f: fn(Node) -> bool) {
         tree::each_child(self, node, f)
     }
@@ -139,7 +135,7 @@ impl NodeTreeReadMethods of tree::ReadMethods<Node> for NTree {
 
 enum BTree { BTree }
 
-impl BoxTreeReadMethods of tree::ReadMethods<@Box> for BTree {
+impl BTree : tree::ReadMethods<@Box> {
     fn each_child(node: @Box, f: fn(&&@Box) -> bool) {
         tree::each_child(self, node, f)
     }
@@ -149,7 +145,7 @@ impl BoxTreeReadMethods of tree::ReadMethods<@Box> for BTree {
     }
 }
 
-impl BoxTreeWriteMethods of tree::WriteMethods<@Box> for BTree {
+impl BTree : tree::WriteMethods<@Box> {
     fn add_child(node: @Box, child: @Box) {
         tree::add_child(self, node, child)
     }
@@ -159,7 +155,8 @@ impl BoxTreeWriteMethods of tree::WriteMethods<@Box> for BTree {
     }
 }
 
-impl layout_methods_priv for @Box {
+// Private methods
+impl @Box {
     #[doc="Dumps the box tree, for debugging, with indentation."]
     fn dump_indent(indent: uint) {
         let mut s = ~"";
@@ -176,14 +173,15 @@ impl layout_methods_priv for @Box {
     }
 }
 
-impl layout_methods for @Box {
+// Public methods
+impl @Box {
     #[doc="The main reflow routine."]
     fn reflow(available_width: au) {
         match self.kind {
             BlockBox => self.reflow_block(available_width),
             InlineBox => self.reflow_inline(available_width),
             IntrinsicBox(size) => self.reflow_intrinsic(*size),
-            TextBox(subbox) => self.reflow_text(available_width, subbox)
+            TextBoxKind(subbox) => self.reflow_text(available_width, subbox)
         }
     }
 
@@ -202,11 +200,11 @@ impl layout_methods for @Box {
 
 // Debugging
 
-trait PrivateNodeMethods{
+trait PrivateNodeMethods {
     fn dump_indent(ident: uint);
 }
 
-impl PrivateNodeMethods of PrivateNodeMethods for Node {
+impl Node : PrivateNodeMethods {
     #[doc="Dumps the node tree, for debugging, with indentation."]
     fn dump_indent(indent: uint) {
         let mut s = ~"";
@@ -227,7 +225,7 @@ trait NodeMethods {
     fn dump();
 }
 
-impl NodeMethods of NodeMethods for Node {
+impl Node : NodeMethods {
     #[doc="Dumps the subtree rooted at this node, for debugging."]
     fn dump() {
         self.dump_indent(0u);
@@ -237,9 +235,8 @@ impl NodeMethods of NodeMethods for Node {
 #[cfg(test)]
 mod test {
     import dom::base::{Element, ElementData, HTMLDivElement, HTMLImageElement, Node, NodeKind};
-    import dom::base::{NodeScope, TreeWriteMethods};
+    import dom::base::{NodeScope};
     import dom::rcu::Scope;
-    import box_builder::{box_builder_methods};
 
     /*
     use sdl;

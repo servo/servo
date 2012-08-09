@@ -38,7 +38,7 @@ enum Token {
     Eof
 }
 
-trait css_methods {
+trait CssLexerMethods {
     fn parse_css() -> Token;
     fn parse_css_relation(c : u8) -> Token;
     fn parse_css_element(c : u8) -> Token;
@@ -46,7 +46,7 @@ trait css_methods {
     fn parse_css_description(c: u8) -> Token;
 }
 
-impl css_methods of css_methods for CssLexer {
+impl CssLexer : CssLexerMethods {
     fn parse_css() -> Token {
         let mut ch: u8;
         match self.input_state.get() {

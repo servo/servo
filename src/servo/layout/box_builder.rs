@@ -2,13 +2,10 @@
 
 import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, Node};
 import dom::style::{DisplayType, DisBlock, DisInline, DisNone};
-import dom::rcu::ReaderMethods;
 import gfx::geometry;
-import layout::base::{BlockBox, Box, BoxKind, BoxTreeReadMethods, BoxTreeWriteMethods, InlineBox};
-import layout::base::{IntrinsicBox, NodeMethods, NodeTreeReadMethods, TextBox};
-import layout::base::{Appearance, BTree, NTree};
-import layout::style::style::{style_methods};
-import layout::text::text_box;
+import layout::base::{Appearance, BTree, BlockBox, Box, BoxKind, InlineBox, IntrinsicBox, NTree};
+import layout::base::{TextBoxKind};
+import layout::text::TextBox;
 import util::tree;
 import option::is_none;
 
@@ -37,7 +34,7 @@ fn create_context(parent_node: Node, parent_box: @Box) -> ctxt {
     });
 }
 
-impl methods for ctxt {
+impl ctxt {
     #[doc="
      Constructs boxes for the parent's children, when the parent's 'display' attribute is 'block'.
      "]
@@ -149,18 +146,18 @@ impl methods for ctxt {
     }
 }
 
-trait box_builder_priv {
+trait PrivBoxBuilder {
     fn determine_box_kind() -> BoxKind;
 }
 
-impl box_builder_priv of box_builder_priv for Node {
+impl Node : PrivBoxBuilder {
     #[doc="
       Determines the kind of box that this node needs. Also, for images, computes the intrinsic
       size.
      "]
     fn determine_box_kind() -> BoxKind {
         match self.read(|n| copy n.kind) {
-          ~Text(string) => TextBox(@text_box(copy string)),
+          ~Text(string) => TextBoxKind(@TextBox(copy string)),
           ~Element(element) => {
             match *element.kind {
               HTMLDivElement => BlockBox,
@@ -172,11 +169,11 @@ impl box_builder_priv of box_builder_priv for Node {
     }
 }
 
-trait box_builder_methods {
+trait BoxBuilder {
     fn construct_boxes() -> @Box;
 }
 
-impl box_builder_methods of box_builder_methods for Node {
+impl Node : BoxBuilder {
     #[doc="Creates boxes for this node. This is the entry point."]
     fn construct_boxes() -> @Box {
         let box_kind = self.determine_box_kind();

@@ -1,19 +1,18 @@
 #[doc="Inline layout."]
 
 import dom::rcu;
-import dom::rcu::ReaderMethods;
 import geom::point::Point2D;
 import geom::size::Size2D;
 import gfx::geometry::au;
 import util::tree;
-import base::{Box, InlineBox, BTree, layout_methods, BoxTreeReadMethods};
+import base::{Box, InlineBox, BTree};
 
-trait inline_layout_methods {
+trait InlineLayout {
     fn reflow_inline(available_width: au);
 }
 
 #[doc="The main reflow routine for inline layout."]
-impl inline_layout_methods of inline_layout_methods for @Box {
+impl @Box : InlineLayout {
     fn reflow_inline(available_width: au) {
         assert self.kind == InlineBox;
 

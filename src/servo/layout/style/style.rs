@@ -5,11 +5,9 @@ import arc::{arc, get, clone};
 import dom::style::{DisplayType, DisBlock, DisInline, DisNone, Stylesheet, Unit, Auto};
 import dom::base::{Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement, Node, NodeKind};
 import dom::base::{Text};
-import dom::rcu::ReaderMethods;
-import matching::matching_methods;
 import util::color::{Color, rgb};
 import util::color::css_colors::{white, black};
-import base::{LayoutData, NTree, NodeTreeReadMethods};
+import base::{LayoutData, NTree};
 
 type SpecifiedStyle = {mut background_color : option<Color>,
                         mut display_type : option<DisplayType>,
@@ -19,15 +17,15 @@ type SpecifiedStyle = {mut background_color : option<Color>,
                         mut width : option<Unit>
                        };
 
-trait default_style_methods {
+trait DefaultStyleMethods {
     fn default_color() -> Color;
     fn default_display_type() -> DisplayType;
     fn default_width() -> Unit;
     fn default_height() -> Unit;
 }
 
-#[doc="Default stylesfor various attributes in case they don't get initialized from css selectors"]
-impl default_style_methods of default_style_methods for NodeKind {
+/// Default styles for various attributes in case they don't get initialized from CSS selectors.
+impl NodeKind : DefaultStyleMethods {
     fn default_color() -> Color {
         match self {
           Text(*) => { white() }
@@ -61,14 +59,13 @@ impl default_style_methods of default_style_methods for NodeKind {
     }
 }
 
-#[doc="Create a specified style that can be used to initialize a node before selector matching.
-
-   Everything is initialized to none except the display style.  The
-   default value of thee display style is computed so that it can be
-   used to short-circuit selector matching to avoid computing style
-   for children of display:none objects.
-
-"]
+/**
+ * Create a specified style that can be used to initialize a node before selector matching.
+ *
+ * Everything is initialized to none except the display style. The default value of the display
+ * style is computed so that it can be used to short-circuit selector matching to avoid computing
+ * style for children of display:none objects.
+ */
 fn empty_style_for_node_kind(kind: NodeKind) -> SpecifiedStyle {
     let display_type = kind.default_display_type();
 
@@ -80,12 +77,13 @@ fn empty_style_for_node_kind(kind: NodeKind) -> SpecifiedStyle {
      mut width : none}
 }
 
-trait style_priv {
+trait StylePriv {
     fn initialize_style();
 }
 
-impl style_priv of style_priv for Node {
-    #[doc="Set a default auxilliary data so that other threads can modify it.
+impl Node : StylePriv {
+    #[doc="
+        Set a default auxiliary data so that other threads can modify it.
         
         This is, importantly, the function that creates the layout
         data for the node (the reader-auxiliary box in the RCU model)
@@ -105,13 +103,13 @@ impl style_priv of style_priv for Node {
     }
 }
 
-trait style_methods {
+trait StyleMethods {
     fn initialize_style_for_subtree();
     fn get_specified_style() -> SpecifiedStyle;
     fn recompute_style_for_subtree(styles : arc<Stylesheet>);
 }
 
-impl style_methods of style_methods for Node {
+impl Node : StyleMethods {
     #[doc="Sequentially initialize the nodes' auxilliary data so they can be updated in parallel."]
     fn initialize_style_for_subtree() {
         self.initialize_style();

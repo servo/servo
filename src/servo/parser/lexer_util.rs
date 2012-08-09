@@ -3,7 +3,7 @@
 import option::is_none;
 import str::from_bytes;
 import vec::push;
-import comm::{port, methods};
+import comm::port;
 import resource::resource_task::{ProgressMsg, Payload, Done};
 
 enum CharOrEof {
@@ -18,12 +18,12 @@ type InputState = {
     mut eof: bool
 };
 
-trait u8_methods {
+trait U8Methods {
     fn is_whitespace() -> bool;
     fn is_alpha() -> bool;
 }
 
-impl u8_methods of u8_methods for u8 {
+impl u8 : U8Methods {
     fn is_whitespace() -> bool {
         return self == ' ' as u8 || self == '\n' as u8 || self == '\t' as u8;
     }
@@ -34,7 +34,7 @@ impl u8_methods of u8_methods for u8 {
     }
 }
 
-trait util_methods {
+trait InputStateUtil {
     fn get() -> CharOrEof;
     fn unget(ch: u8);
     fn parse_err(err: ~str) -> !;
@@ -44,7 +44,7 @@ trait util_methods {
     fn eat_whitespace();
 }
 
-impl util_methods of util_methods for InputState {
+impl InputState : InputStateUtil {
     fn get() -> CharOrEof {
         match copy self.lookahead {
           some(coe) => {

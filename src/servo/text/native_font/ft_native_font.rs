@@ -81,11 +81,11 @@ fn create(lib: FT_Library, buf: &~[u8]) -> result<FreeTypeNativeFont, ()> {
     })
 }
 
-trait methods {
+trait FTErrorMethods {
     fn succeeded() -> bool;
 }
 
-impl methods of methods for FT_Error {
+impl FT_Error : FTErrorMethods {
     fn succeeded() -> bool { self == 0 as FT_Error }
 }
 

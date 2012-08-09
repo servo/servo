@@ -1,7 +1,6 @@
 export build_display_list;
 
-import base::{Box, TextBox, BTree, BoxTreeReadMethods, ImageHolder};
-import box_builder::box_builder_methods;
+import base::{Box, BTree, ImageHolder, TextBoxKind};
 import dl = display_list;
 import dom::base::{Text, NodeScope};
 import dom::rcu::Scope;
@@ -12,11 +11,9 @@ import geom::size::Size2D;
 import gfx::geometry::{au, au_to_px, box, px_to_au};
 import gfx::renderer;
 import image::base::load;
-import text::text_layout_methods;
-import util::color::methods;
 import util::tree;
 
-import dvec::{dvec, extensions};
+import dvec::dvec;
 import vec::push;
 
 #[doc = "
@@ -73,7 +70,7 @@ fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) 
     let col = box.appearance.background_color;
 
     match box.kind {
-      TextBox(subbox) => {
+      TextBoxKind(subbox) => {
         let run = copy subbox.run;
         assert run.is_some();
         list.push(dl::display_item({
@@ -119,7 +116,7 @@ fn should_convert_text_boxes_to_solid_color_background_items() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = match check b.kind { TextBox(subbox) => subbox };
+    let subbox = match check b.kind { TextBoxKind(subbox) => subbox };
 
     b.reflow_text(px_to_au(800), subbox);
     let list = dvec();
@@ -140,7 +137,7 @@ fn should_convert_text_boxes_to_text_items() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = match check b.kind { TextBox(subbox) => { subbox } };
+    let subbox = match check b.kind { TextBoxKind(subbox) => { subbox } };
 
     b.reflow_text(px_to_au(800), subbox);
     let list = dvec();
@@ -160,7 +157,7 @@ fn should_calculate_the_bounds_of_the_text_box_background_color() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = match check b.kind { TextBox(subbox) => { subbox } };
+    let subbox = match check b.kind { TextBoxKind(subbox) => { subbox } };
 
     b.reflow_text(px_to_au(800), subbox);
     let list = dvec();
@@ -182,7 +179,7 @@ fn should_calculate_the_bounds_of_the_text_items() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = match check b.kind { TextBox(subbox) => { subbox } };
+    let subbox = match check b.kind { TextBoxKind(subbox) => { subbox } };
 
     b.reflow_text(px_to_au(800), subbox);
     let list = dvec();

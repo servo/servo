@@ -5,7 +5,7 @@ import num::num;
 
 enum au = int;
 
-impl au of num for au {
+impl au : num {
     pure fn add(&&other: au) -> au       { au(*self + *other) }
     pure fn sub(&&other: au) -> au       { au(*self - *other) }
     pure fn mul(&&other: au) -> au       { au(*self * *other) }
