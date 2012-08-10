@@ -55,68 +55,71 @@ impl ImageCache {
 
         loop {
             match self.from_client.recv() {
-              Prefetch(url) => {
-                if self.prefetch_map.contains_key(url) {
-                    // We're already waiting for this image
-                    again
-                }
-                let response_port = port();
-                self.resource_task.send(resource_task::Load(url, response_port.chan()));
-
-                let prefetch_data = @PrefetchData {
-                    response_port: response_port,
-                    data: ~[]
-                };
-
-                self.prefetch_map.insert(url, prefetch_data);
-              }
-              GetImage(url, response) => {
-                match self.prefetch_map.find(url) {
-                  some(prefetch_data) => {
-
-                    let mut image_sent = false;
-
-                    while prefetch_data.response_port.peek() {
-                        match prefetch_data.response_port.recv() {
-                          resource_task::Payload(data) => {
-                            prefetch_data.data += data;
-                          }
-                          resource_task::Done(result::ok(*)) => {
-                            // We've got the entire image binary
-                            let mut data = ~[];
-                            data <-> prefetch_data.data;
-                            // FIXME: Need to do this in parallel
-                            let image = @arc(~load_from_memory(data));
-                            response.send(ImageReady(clone_arc(image)));
-                            self.prefetch_map.remove(url);
-                            self.image_map.insert(url, image);
-                            image_sent = true;
-                            break;
-                          }
-                          resource_task::Done(result::err(*)) => {
-                            fail ~"FIXME: what happens now?"
-                          }
-                        }
-                    }
-
-                    if !image_sent {
-                        response.send(ImageNotReady);
-                    }
-                  }
-                  none => {
-                    // FIXME: Probably faster to hit this map before the prefetch map
-                    match self.image_map.find(url) {
-                      some(image) => response.send(ImageReady(clone_arc(image))),
-                      none => fail ~"got a request for image data without prefetch"
-                    }
-                  }
-                }
-              }
+              Prefetch(url) => self.prefetch(url),
+              GetImage(url, response) => self.get_image(url, response),
               Exit => break
             }
         }
     }
 
+    /*priv*/ fn prefetch(url: url) {
+        if self.prefetch_map.contains_key(url) {
+            // We're already waiting for this image
+            return
+        }
+        let response_port = port();
+        self.resource_task.send(resource_task::Load(url, response_port.chan()));
+
+        let prefetch_data = @PrefetchData {
+            response_port: response_port,
+            data: ~[]
+        };
+
+        self.prefetch_map.insert(url, prefetch_data);
+    }
+
+    /*priv*/ fn get_image(url: url, response: chan<ImageResponseMsg>) {
+        match self.prefetch_map.find(url) {
+          some(prefetch_data) => {
+
+            let mut image_sent = false;
+
+            while prefetch_data.response_port.peek() {
+                match prefetch_data.response_port.recv() {
+                  resource_task::Payload(data) => {
+                    prefetch_data.data += data;
+                  }
+                  resource_task::Done(result::ok(*)) => {
+                    // We've got the entire image binary
+                    let mut data = ~[];
+                    data <-> prefetch_data.data;
+                    // FIXME: Need to do this in parallel
+                    let image = @arc(~load_from_memory(data));
+                    response.send(ImageReady(clone_arc(image)));
+                    self.prefetch_map.remove(url);
+                    self.image_map.insert(url, image);
+                    image_sent = true;
+                    break;
+                  }
+                  resource_task::Done(result::err(*)) => {
+                    fail ~"FIXME: what happens now?"
+                  }
+                }
+            }
+
+            if !image_sent {
+                response.send(ImageNotReady);
+            }
+          }
+          none => {
+            // FIXME: Probably faster to hit this map before the prefetch map
+            match self.image_map.find(url) {
+              some(image) => response.send(ImageReady(clone_arc(image))),
+              none => fail ~"got a request for image data without prefetch"
+            }
+          }
+        }
+    }
 }
 
 #[test]
