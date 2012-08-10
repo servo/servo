@@ -12,14 +12,15 @@ import azure::AzDrawTargetRef;
 import azure_bg = azure::bindgen;
 import azure_bg::{AzCreateDrawTargetForCairoSurface, AzReleaseDrawTarget};
 import azure::cairo;
-import cairo::{CAIRO_FORMAT_ARGB32, cairo_surface_t, cairo_status_t,
-               CAIRO_STATUS_SUCCESS};
+import azure::azure_hl::DrawTarget;
+import azure::cairo_hl::ImageSurface;
+import cairo::{CAIRO_FORMAT_ARGB32, cairo_surface_t, cairo_status_t, CAIRO_STATUS_SUCCESS};
 import cairo_bg = cairo::bindgen;
 import cairo_bg::{cairo_image_surface_create, cairo_surface_destroy,
                   cairo_surface_write_to_png_stream};
 import renderer::{Renderer, Sink, RenderMsg};
 import task::spawn_listener;
-import comm::chan;
+import comm::{chan, port};
 import unsafe::reinterpret_cast;
 import vec_from_buf = vec::unsafe::from_buf;
 import ptr::addr_of;
@@ -48,84 +49,40 @@ impl chan<Msg> : Sink {
 }
 
 fn PngSink(output: chan<~[u8]>) -> PngSink {
-    spawn_listener::<Msg>(|po| {
-        let cairo_surf = cairo_image_surface_create(
-            CAIRO_FORMAT_ARGB32, 800 as c_int, 600 as c_int
-            );
-        assert cairo_surf.is_not_null();
-
-        let draw_target = AzCreateDrawTargetForCairoSurface(cairo_surf);
-        assert draw_target.is_not_null();
+    do spawn_listener |po: port<Msg>| {
+        let cairo_surface = ImageSurface(CAIRO_FORMAT_ARGB32, 800, 600);
+        let draw_target = DrawTarget(cairo_surface);
 
         loop {
             match po.recv() {
-              BeginDrawing(sender) => {
-                #debug("pngsink: begin_drawing");
-                sender.send(draw_target);
-              }
-              Draw(sender, dt) => {
-                #debug("pngsink: draw");
-                do_draw(sender, dt, output, cairo_surf);
-              }
-              Exit => { break }
+                BeginDrawing(sender) => {
+                    debug!("pngsink: begin_drawing");
+                    sender.send(draw_target.azure_draw_target);
+                }
+                Draw(sender, dt) => {
+                    debug!("pngsink: draw");
+                    do_draw(sender, dt, output, cairo_surface);
+                }
+                Exit => break
             }
         }
-
-        AzReleaseDrawTarget(draw_target);
-        cairo_surface_destroy(cairo_surf);
-    })
+    }
 }
 
-fn do_draw(sender: pipes::chan<AzDrawTargetRef>,
-           dt: AzDrawTargetRef,
-           output: chan<~[u8]>,
-           cairo_surf: *cairo_surface_t) {
+fn do_draw(sender: pipes::chan<AzDrawTargetRef>, dt: AzDrawTargetRef, output: chan<~[u8]>,
+           cairo_surface: ImageSurface) {
+    let buffer = io::mem_buffer();
+    cairo_surface.write_to_png_stream(&buffer);
+    let @{ buf: buffer, pos: _ } <- buffer;
+    output.send(vec::from_mut(dvec::unwrap(move buffer)));
 
-    listen(|data_ch: chan<~[u8]>| {
-
-        extern fn write_fn(closure: *c_void,
-                           data: *c_uchar,
-                           len: c_uint)
-
-            -> cairo_status_t unsafe {
-
-            let p: *chan<~[u8]> = reinterpret_cast(closure);
-            let data_ch = *p;
-
-            // Convert from *c_uchar to *u8
-            let data = reinterpret_cast(data);
-            let len = len as uint;
-            // Copy to a vector
-            let data = vec_from_buf(data, len);
-            data_ch.send(data);
-
-            return CAIRO_STATUS_SUCCESS;
-        }
-
-        let closure = addr_of(data_ch);
-
-        unsafe {
-            cairo_surface_write_to_png_stream(
-                cairo_surf, write_fn, reinterpret_cast(closure));
-        }
-
-        // Collect the entire image into a single vector
-        let mut result = ~[];
-        while data_ch.peek() {
-            result += data_ch.recv();
-        }
-
-        // Send the PNG image away
-        output.send(result);
-    });
     // Send the next draw target to the renderer
     sender.send(dt);
 }
 
 #[test]
 fn sanity_check() {
-    listen(|self_channel| {
-
+    do listen |self_channel| {
         let sink = PngSink(self_channel);
         let renderer = Renderer(sink);
 
@@ -136,5 +93,5 @@ fn sanity_check() {
         exit_response_from_engine.recv();
 
         sink.send(Exit)
-    })
+    }
 }
