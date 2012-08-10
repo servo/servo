@@ -114,6 +114,7 @@ mod resource {
     mod resource_task;
     mod file_loader;
     mod http_loader;
+    mod image_cache_task;
 }
 
 import servo_text = text;
