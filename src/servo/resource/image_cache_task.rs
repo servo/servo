@@ -3,7 +3,7 @@ export ImageResponseMsg, ImageReady, ImageNotReady;
 export ImageCacheTask;
 export image_cache_task;
 
-import image::base::{ImageBuffer, SharedImageBuffer};
+import image::base::{Image, load_from_memory};
 import std::net::url::url;
 import util::url::{make_url, UrlMap, url_map};
 import comm::{chan, port};
@@ -18,7 +18,7 @@ enum Msg {
 }
 
 enum ImageResponseMsg {
-    ImageReady(ImageBuffer),
+    ImageReady(Image),
     ImageNotReady
 }
 

@@ -1,7 +1,7 @@
 import platform::osmain;
 import geometry::*;
 import comm::*;
-import image::base::image;
+import image::base::Image;
 import dl = layout::display_list;
 import azure::*;
 import azure::bindgen::*;
@@ -128,7 +128,7 @@ fn draw_solid_color(draw_target: AzDrawTargetRef, item: dl::display_item,
     AzReleaseColorPattern(red_pattern);
 }
 
-fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item, image: arc<~image>) unsafe {
+fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item, image: arc<~Image>) unsafe {
     let image = arc::get(&image);
     let size = Size2D(image.width as i32, image.height as i32);
     let stride = image.width * 4;

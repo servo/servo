@@ -1,15 +1,11 @@
-export ImageBuffer, SharedImageBuffer;
-export image;
-export load;
+export Image;
 
-import stb_image::image::{image, load};
-import core::arc::arc;
+export load;
+export load_from_memory;
+
+import stb_image::image::{image, load, load_from_memory};
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
-type SharedImageBuffer = arc<ImageBuffer>;
-
-struct ImageBuffer {
-    data: ~[u8];
-}
+type Image = image;

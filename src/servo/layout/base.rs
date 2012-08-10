@@ -9,7 +9,7 @@ import gfx::geometry::{au, zero_size_au};
 import geom::point::Point2D;
 import geom::rect::Rect;
 import geom::size::Size2D;
-import image::base::{image, load};
+import image::base::{Image, load};
 import util::tree;
 import util::color::Color;
 import text::TextBox;
@@ -41,7 +41,7 @@ class Appearance {
 
     // This will be very unhappy if it is getting run in parallel with
     // anything trying to read the background image
-    fn get_image() -> option<~arc<~image>> {
+    fn get_image() -> option<~arc<~Image>> {
         let mut image = none;
 
         // Do a dance where we swap the ImageHolder out before we can
@@ -82,7 +82,7 @@ class ImageHolder {
     // Invariant: at least one of url and image is not none, except
     // occasionally while get_image is being called
     let mut url : option<~str>;
-    let mut image : option<arc<~image>>;
+    let mut image : option<arc<~Image>>;
 
     new(-url : ~str) {
         self.url = some(url);
@@ -90,7 +90,7 @@ class ImageHolder {
     }
 
     // This function should not be called by two tasks at the same time
-    fn get_image() -> ~arc<~image> {
+    fn get_image() -> ~arc<~Image> {
         // If this is the first time we've called this function, load
         // the image and store it for the future
         if self.image.is_none() {
