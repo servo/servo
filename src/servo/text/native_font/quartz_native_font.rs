@@ -1,6 +1,6 @@
 use cocoa;
 
-export QuartzNativeFont, with_test_native_font;
+export QuartzNativeFont, with_test_native_font, create;
 
 import libc::size_t;
 import ptr::null;
@@ -50,8 +50,8 @@ class QuartzNativeFont/& {
     }
 }
 
-fn create(buf: ~[u8]) -> result<QuartzNativeFont, ()> {
-    let fontprov = vec::as_buf(buf, |cbuf, len| {
+fn create(buf: &~[u8]) -> result<QuartzNativeFont, ()> {
+    let fontprov = vec::as_buf(*buf, |cbuf, len| {
         CGDataProviderCreateWithData(
             null(),
             unsafe { reinterpret_cast(cbuf) },
@@ -72,7 +72,7 @@ fn with_test_native_font(f: fn@(nf: &NativeFont)) {
     import unwrap_result = result::unwrap;
 
     let buf = test_font_bin();
-    let res = create(buf);
+    let res = create(&buf);
     let font = unwrap_result(res);
     f(&font);
 }

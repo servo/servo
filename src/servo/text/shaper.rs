@@ -111,7 +111,7 @@ extern fn glyph_func(_font: *hb_font_t,
     let font: *Font = reinterpret_cast(font_data);
     assert font.is_not_null();
 
-    return match (*font).glyph_idx(unicode as char) {
+    return match (*font).glyph_index(unicode as char) {
       some(g) => {
         *glyph = g as hb_codepoint_t;
         true

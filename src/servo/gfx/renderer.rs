@@ -6,6 +6,7 @@ import dl = layout::display_list;
 import azure::*;
 import azure::bindgen::*;
 import libc::size_t;
+import text::font::Font;
 import text::text_run::TextRun;
 import dom::event::{Event, ResizeEvent};
 import geom::size::Size2D;
@@ -14,6 +15,7 @@ import geom::point::Point2D;
 import azure_hl::AsAzureRect;
 import ptr::addr_of;
 import arc::arc;
+import azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
 
 import pipes::{port, chan};
 
@@ -177,6 +179,7 @@ fn draw_text(draw_target: AzDrawTargetRef, item: dl::display_item, text_run: Tex
                             AzReleaseScaledFont,
                             AzCreateColorPattern,
                             AzReleaseColorPattern};
+    import azure::cairo::bindgen::cairo_scaled_font_destroy;
 
     let bounds = copy (*item).bounds;
     // FIXME: The font library should not be created here
@@ -188,8 +191,10 @@ fn draw_text(draw_target: AzDrawTargetRef, item: dl::display_item, text_run: Tex
         mFont: null()
     };
 
-    let azfont = AzCreateScaledFontWithCairo(addr_of(nfont), 1f as AzFloat, font.cairo_font);
+    let cfont = get_cairo_font(font);
+    let azfont = AzCreateScaledFontWithCairo(addr_of(nfont), 1f as AzFloat, cfont);
     assert azfont.is_not_null();
+    cairo_scaled_font_destroy(cfont);
 
     let color = {
         r: 0f as AzFloat,
@@ -229,6 +234,66 @@ fn draw_text(draw_target: AzDrawTargetRef, item: dl::display_item, text_run: Tex
 
     AzReleaseColorPattern(pattern);
     AzReleaseScaledFont(azfont);
+}
+
+#[cfg(target_os = "linux")]
+fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
+
+    import libc::c_int;
+    import azure::cairo_ft::bindgen::{cairo_ft_font_face_create_for_ft_face};
+
+    let ftface = font.native_font.face;
+    let cface = cairo_ft_font_face_create_for_ft_face(ftface, 0 as c_int);
+    // FIXME: error handling
+    return cface;
+}
+
+#[cfg(target_os = "macos")]
+fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
+    import azure::cairo_quartz::bindgen::cairo_quartz_font_face_create_for_cgfont;
+
+    let cgfont = font.native_font.cgfont;
+    let face = cairo_quartz_font_face_create_for_cgfont(cgfont);
+    // FIXME: error handling
+    return face;
+}
+
+fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
+
+    import libc::c_double;
+    import azure::cairo;
+    import cairo::cairo_matrix_t;
+    import cairo::bindgen::{cairo_matrix_init_identity,
+                            cairo_matrix_scale,
+                            cairo_font_options_create,
+                            cairo_scaled_font_create,
+                            cairo_font_options_destroy,
+                            cairo_font_face_destroy};
+
+    // FIXME: error handling
+
+    let face = get_cairo_face(font);
+
+    let idmatrix: cairo_matrix_t = {
+        xx: 0 as c_double,
+        yx: 0 as c_double,
+        xy: 0 as c_double,
+        yy: 0 as c_double,
+        x0: 0 as c_double,
+        y0: 0 as c_double
+    };
+    cairo_matrix_init_identity(addr_of(idmatrix));
+
+    let fontmatrix = idmatrix;
+    cairo_matrix_scale(addr_of(fontmatrix),
+                       20f as c_double, 20f as c_double);
+    let options = cairo_font_options_create();
+    let cfont = cairo_scaled_font_create(face, addr_of(fontmatrix),
+                                         addr_of(idmatrix), options);
+    cairo_font_options_destroy(options);
+    cairo_font_face_destroy(face);
+
+    return cfont;
 }
 
 fn clear(draw_target: AzDrawTargetRef) {

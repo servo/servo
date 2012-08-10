@@ -1,4 +1,4 @@
-export FreeTypeNativeFont, with_test_native_font;
+export FreeTypeNativeFont, with_test_native_font, create;
 
 import vec_as_buf = vec::as_buf;
 import result::{result, ok, err};
