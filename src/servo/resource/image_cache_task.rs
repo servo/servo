@@ -84,6 +84,14 @@ impl ImageCache {
     }
 
     /*priv*/ fn get_image(url: url, response: chan<ImageResponseMsg>) {
+        match self.image_map.find(url) {
+          some(image) => {
+            response.send(ImageReady(clone_arc(image)));
+            return
+          }
+          none => ()
+        }
+
         match self.prefetch_map.find(url) {
           some(prefetch_data) => {
 
@@ -118,13 +126,7 @@ impl ImageCache {
                 response.send(ImageNotReady);
             }
           }
-          none => {
-            // FIXME: Probably faster to hit this map before the prefetch map
-            match self.image_map.find(url) {
-              some(image) => response.send(ImageReady(clone_arc(image))),
-              none => fail ~"got a request for image data without prefetch"
-            }
-          }
+          none => fail ~"got a request for image data without prefetch"
         }
     }
 }
