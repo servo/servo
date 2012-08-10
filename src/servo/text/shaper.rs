@@ -144,7 +144,7 @@ fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: &hb_glyph_position_t) -> GlyphPos {
 
 fn should_get_glyph_indexes() {
     #[test];
-    #[ignore];
+    #[ignore(cfg(target_os = "macos"), reason = "bad metrics")];
 
     let lib = FontLibrary();
     let font = lib.get_test_font();
@@ -155,7 +155,7 @@ fn should_get_glyph_indexes() {
 
 fn should_get_glyph_h_advance() {
     #[test];
-    #[ignore];
+    #[ignore(cfg(target_os = "macos"), reason = "bad metrics")];
 
     let lib = FontLibrary();
     let font = lib.get_test_font();
