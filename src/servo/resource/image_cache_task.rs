@@ -107,7 +107,9 @@ impl ImageCache {
                     break;
                   }
                   resource_task::Done(result::err(*)) => {
-                    fail ~"FIXME: what happens now?"
+                    // FIXME: need to actually report the failed image load
+                    self.prefetch_map.remove(url);
+                    break;
                   }
                 }
             }
@@ -391,4 +393,47 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
     // Our resource task should not have received another request for the image
     // because it's already cached
     assert !image_bin_sent.peek();
+}
+
+#[test]
+fn should_return_not_ready_if_image_bin_cannot_be_fetched() {
+
+    let image_bin_sent = port();
+    let image_bin_sent_chan = image_bin_sent.chan();
+
+    let mock_resource_task = do spawn_listener |from_client| {
+
+        // infer me
+        let from_client: port<resource_task::ControlMsg> = from_client;
+
+        loop {
+            match from_client.recv() {
+              resource_task::Load(_, response) => {
+                response.send(resource_task::Payload(test_image_bin()));
+                // ERROR fetching image
+                response.send(resource_task::Done(result::err(())));
+                image_bin_sent_chan.send(());
+              }
+              resource_task::Exit => break
+            }
+        }
+    };
+
+    let image_cache_task = image_cache_task(mock_resource_task);
+    let url = make_url(~"file", none);
+
+    image_cache_task.send(Prefetch(url));
+
+    // Wait until our mock resource task has sent the image to the image cache
+    image_bin_sent.recv();
+
+    let response_port = port();
+    image_cache_task.send(GetImage(url, response_port.chan()));
+    match response_port.recv() {
+      ImageNotReady => (),
+      _ => fail
+    }
+
+    image_cache_task.send(Exit);
+    mock_resource_task.send(resource_task::Exit);
 }
