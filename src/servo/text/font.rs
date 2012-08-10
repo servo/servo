@@ -5,6 +5,7 @@ import vec_to_ptr = vec::unsafe::to_ptr;
 import libc::{ c_int, c_double, c_ulong };
 import ptr::{ null, addr_of };
 import native_font::NativeFont;
+import font_library::FontLibrary;
 
 // FIXME (rust 2708): convert this to a class
 
@@ -37,46 +38,43 @@ class Font {
     }
 }
 
-fn create_test_font() -> @Font {
-    import font_library::FontLibrary;
-
-    let flib = FontLibrary();
-    return flib.get_test_font();
-}
-
 fn test_font_bin() -> ~[u8] { #include_bin("JosefinSans-SemiBold.ttf") }
 
 fn should_destruct_on_fail_without_leaking() {
     #[test];
     #[should_fail];
-    #[ignore];
 
-    let _font = create_test_font();
+    let lib = FontLibrary();
+    let _font = lib.get_test_font();
     fail;
 }
 
 fn should_get_glyph_indexes() {
     #[test];
-    #[ignore(reason = "random failures")];
 
-    let font = create_test_font();
+    let lib = FontLibrary();
+    let font = lib.get_test_font();
     let glyph_idx = font.glyph_index('w');
     assert glyph_idx == some(40u);
 }
 
 fn should_get_glyph_advance() {
     #[test];
-    #[ignore(reason = "random failures")];
 
-    let font = create_test_font();
+    let lib = FontLibrary();
+    let font = lib.get_test_font();
     let x = font.glyph_h_advance(40u);
     assert x == 15;
 }
 
 fn should_be_able_to_create_instances_in_multiple_threads() {
     #[test];
-    #[ignore];
 
-    for iter::repeat(10u) {do task::spawn {create_test_font();}}
+    for iter::repeat(10u) {
+        do task::spawn {
+            let lib = FontLibrary();
+            let font = lib.get_test_font();
+        }
+    }
 }
 

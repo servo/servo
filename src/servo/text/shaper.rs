@@ -9,6 +9,7 @@ import glyph::{Glyph, GlyphPos};
 import ptr::{null, addr_of, offset};
 import gfx::geometry::{au, px_to_au};
 import geom::point::Point2D;
+import font_library::FontLibrary;
 
 import unsafe::reinterpret_cast;
 import harfbuzz::{HB_MEMORY_MODE_READONLY,
@@ -143,9 +144,10 @@ fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: &hb_glyph_position_t) -> GlyphPos {
 
 fn should_get_glyph_indexes() {
     #[test];
-    #[ignore(reason = "random failures")];
+    #[ignore];
 
-    let font = font::create_test_font();
+    let lib = FontLibrary();
+    let font = lib.get_test_font();
     let glyphs = shape_text(font, ~"firecracker");
     let idxs = glyphs.map(|glyph| glyph.index);
     assert idxs == ~[32u, 8u, 13u, 14u, 10u, 13u, 201u, 10u, 37u, 14u, 13u];
@@ -153,9 +155,10 @@ fn should_get_glyph_indexes() {
 
 fn should_get_glyph_h_advance() {
     #[test];
-    #[ignore(reason = "random failures")];
+    #[ignore];
 
-    let font = font::create_test_font();
+    let lib = FontLibrary();
+    let font = lib.get_test_font();
     let glyphs = shape_text(font, ~"firecracker");
     let actual = glyphs.map(|g| g.pos.advance.x);
     let expected = (~[6, 4, 7, 9, 8, 7, 10, 8, 9, 9, 7]).map(|a| px_to_au(a));
