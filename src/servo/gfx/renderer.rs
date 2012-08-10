@@ -39,12 +39,13 @@ trait Sink {
 }
 
 fn Renderer<S: Sink send copy>(sink: S) -> comm::chan<Msg> {
-    task::spawn_listener::<Msg>(|po| {
+    do task::spawn_listener |po: comm::port<Msg>| {
         let (draw_target_ch, draw_target_po) = pipes::stream();
         let mut draw_target_ch = draw_target_ch;
         let mut draw_target_po = draw_target_po;
 
-        #debug("renderer: beginning rendering loop");
+        debug!("renderer: beginning rendering loop");
+
         sink.begin_drawing(draw_target_ch);
 
         loop {
@@ -60,8 +61,10 @@ fn Renderer<S: Sink send copy>(sink: S) -> comm::chan<Msg> {
                     let mut draw_target_ch = none;
                     draw_target_ch_ <-> draw_target_ch;
                     let draw_target_ch = option::unwrap(draw_target_ch);
+
                     clear(draw_target);
                     draw_display_list(draw_target, display_list);
+
                     #debug("renderer: returning surface");
                     sink.draw(draw_target_ch, draw_target);
                 }
@@ -72,7 +75,7 @@ fn Renderer<S: Sink send copy>(sink: S) -> comm::chan<Msg> {
               }
             }
         }
-    })
+    }
 }
 
 trait to_float {

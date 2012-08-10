@@ -69,7 +69,9 @@ fn PngSink(output: chan<~[u8]>) -> PngSink {
     }
 }
 
-fn do_draw(sender: pipes::chan<AzDrawTargetRef>, dt: AzDrawTargetRef, output: chan<~[u8]>,
+fn do_draw(sender: pipes::chan<AzDrawTargetRef>,
+           dt: AzDrawTargetRef,
+           output: chan<~[u8]>,
            cairo_surface: ImageSurface) {
     let buffer = io::mem_buffer();
     cairo_surface.write_to_png_stream(&buffer);

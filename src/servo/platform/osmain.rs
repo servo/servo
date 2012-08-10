@@ -2,9 +2,11 @@ export OSMain;
 export Msg, BeginDrawing, Draw, AddKeyHandler, Exit;
 
 import azure::*;
+import azure::azure_hl::DrawTarget;
 import azure::bindgen::*;
 import azure::cairo;
 import azure::cairo::bindgen::*;
+import azure::cairo_hl::ImageSurface;
 import comm::*;
 import dvec::dvec;
 import azure::cairo::cairo_surface_t;
@@ -49,7 +51,7 @@ fn mainloop(po: port<Msg>) {
          unsafe { let y <- *ptr::addr_of(x); y }]
     ];
 
-    let surfaces = @surface_set();
+    let surfaces = @SurfaceSet();
 
     let window = glut::create_window(~"Servo");
     glut::reshape_window(window, 800, 600);
@@ -79,14 +81,8 @@ fn mainloop(po: port<Msg>) {
                 return_surface(*surfaces, dt);
                 lend_surface(*surfaces, sender);
 
-                let mut image_data;
-                unsafe {
-                    let buffer = cairo_image_surface_get_data(surfaces.s1.surf.cairo_surf);
-                    image_data = vec::unsafe::from_buf(buffer, 800 * 600 * 4);
-                }
-
-                let image =
-                    @layers::layers::Image(800, 600, layers::layers::ARGB32Format, image_data);
+                let buffer = surfaces.front.cairo_surface.data();
+                let image = @layers::layers::Image(800, 600, layers::layers::ARGB32Format, buffer);
                 image_layer.set_image(image);
               }
               exit => {
@@ -122,9 +118,6 @@ fn mainloop(po: port<Msg>) {
         #debug("osmain: running GLUT check loop");
         glut::check_loop();
     }
-
-    destroy_surface(surfaces.s1.surf);
-    destroy_surface(surfaces.s2.surf);
 }
 
 #[doc = "
@@ -143,83 +136,53 @@ impl OSMain : Sink {
     }
 }
 
-type surface_set = {
-    mut s1: {
-        surf: surface,
-        have: bool
-    },
-    mut s2: {
-        surf: surface,
-        have: bool
-    }
-};
+struct SurfaceSet {
+    mut front: Surface;
+    mut back: Surface;
+}
 
-fn lend_surface(surfaces: surface_set, recvr: pipes::chan<AzDrawTargetRef>) {
+fn lend_surface(surfaces: SurfaceSet, receiver: pipes::chan<AzDrawTargetRef>) {
     // We are in a position to lend out the surface?
-    assert surfaces.s1.have;
+    assert surfaces.front.have;
     // Ok then take it
-    let dt1 = surfaces.s1.surf.az_target;
-    #debug("osmain: lending surface %?", dt1);
-    recvr.send(dt1);
+    let draw_target = surfaces.front.draw_target.azure_draw_target;
+    #debug("osmain: lending surface %?", draw_target);
+    receiver.send(draw_target);
     // Now we don't have it
-    surfaces.s1 = {
-        have: false
-        with surfaces.s1
-    };
+    surfaces.front.have = false;
     // But we (hopefully) have another!
-    surfaces.s1 <-> surfaces.s2;
+    surfaces.front <-> surfaces.back;
     // Let's look
-    assert surfaces.s1.have;
+    assert surfaces.front.have;
 }
 
-fn return_surface(surfaces: surface_set, dt: AzDrawTargetRef) {
-    #debug("osmain: returning surface %?", dt);
+fn return_surface(surfaces: SurfaceSet, draw_target: AzDrawTargetRef) {
+    #debug("osmain: returning surface %?", draw_target);
     // We have room for a return
-    assert surfaces.s1.have;
-    assert !surfaces.s2.have;
-    assert surfaces.s2.surf.az_target == dt;
+    assert surfaces.front.have;
+    assert !surfaces.back.have;
+
+    // FIXME: This is incompatible with page resizing.
+    assert surfaces.back.draw_target.azure_draw_target == draw_target;
+
     // Now we have it again
-    surfaces.s2 = {
-        have: true
-        with surfaces.s2
-    };
+    surfaces.back.have = true;
 }
 
-fn surface_set() -> surface_set {
-    {
-        mut s1: {
-            surf: mk_surface(),
-            have: true
-        },
-        mut s2: {
-            surf: mk_surface(),
-            have: true
-        }
-    }
+fn SurfaceSet() -> SurfaceSet {
+    SurfaceSet { front: Surface(), back: Surface() }
 }
 
-type surface = {
-    cairo_surf: *cairo_surface_t,
-    az_target: AzDrawTargetRef
-};
-
-fn mk_surface() -> surface {
-    let cairo_surf = cairo_image_surface_create(cairo::CAIRO_FORMAT_RGB24, 800, 600);
-
-    assert !ptr::is_null(cairo_surf);
-
-    let azure_target = AzCreateDrawTargetForCairoSurface(cairo_surf);
-    assert !ptr::is_null(azure_target);
-
-    {
-        cairo_surf: cairo_surf,
-        az_target: azure_target
-    }
+struct Surface {
+    cairo_surface: ImageSurface;
+    draw_target: DrawTarget;
+    mut have: bool;
 }
 
-fn destroy_surface(+surface: surface) {
-    AzReleaseDrawTarget(surface.az_target);
-    cairo_surface_destroy(surface.cairo_surf);
+fn Surface() -> Surface {
+    let cairo_surface = ImageSurface(cairo::CAIRO_FORMAT_RGB24, 800, 600);
+    let draw_target = DrawTarget(cairo_surface);
+    Surface { cairo_surface: cairo_surface, draw_target: draw_target, have: true }
 }
 
 #[doc = "A function for spawning into the platform's main thread"]
