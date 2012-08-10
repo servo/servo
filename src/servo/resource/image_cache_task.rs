@@ -63,6 +63,11 @@ impl ImageCache {
     }
 
     /*priv*/ fn prefetch(url: url) {
+        if self.image_map.contains_key(url) {
+            // We've already decoded this image
+            return
+        }
+
         if self.prefetch_map.contains_key(url) {
             // We're already waiting for this image
             return
@@ -326,4 +331,64 @@ fn should_return_decoded_image_data_for_multiple_requests() {
 
     image_cache_task.send(Exit);
     mock_resource_task.send(resource_task::Exit);
+}
+
+#[test]
+fn should_not_request_image_from_resource_task_if_image_is_already_available() {
+
+    let image_bin_sent = port();
+    let image_bin_sent_chan = image_bin_sent.chan();
+
+    let resource_task_exited = port();
+    let resource_task_exited_chan = resource_task_exited.chan();
+
+    let mock_resource_task = do spawn_listener |from_client| {
+
+        // infer me
+        let from_client: port<resource_task::ControlMsg> = from_client;
+
+        loop {
+            match from_client.recv() {
+              resource_task::Load(_, response) => {
+                response.send(resource_task::Payload(test_image_bin()));
+                response.send(resource_task::Done(result::ok(())));
+                image_bin_sent_chan.send(());
+              }
+              resource_task::Exit => {
+                resource_task_exited_chan.send(());
+                break
+              }
+            }
+        }
+    };
+
+    let image_cache_task = image_cache_task(mock_resource_task);
+    let url = make_url(~"file", none);
+
+    image_cache_task.send(Prefetch(url));
+
+    // Wait until our mock resource task has sent the image to the image cache
+    image_bin_sent.recv();
+
+    let response_port = port();
+    image_cache_task.send(GetImage(url, response_port.chan()));
+    match response_port.recv() {
+      ImageReady(_) => (),
+      _ => fail
+    }
+
+    image_cache_task.send(Prefetch(url));
+
+    let response_port = port();
+    image_cache_task.send(GetImage(url, response_port.chan()));
+    response_port.recv();
+
+    image_cache_task.send(Exit);
+    mock_resource_task.send(resource_task::Exit);
+
+    resource_task_exited.recv();
+
+    // Our resource task should not have received another request for the image
+    // because it's already cached
+    assert !image_bin_sent.peek();
 }
