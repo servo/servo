@@ -76,7 +76,7 @@ fn traverse_helper<T : copy send>(-root : @Box, returned : T, -top_down : fn~(+T
             // task boundary without copying it
             let swappable : ~mut option<*shared_box<Box>> = ~mut some(unwrapped);
 
-            do task::spawn || {
+            do task::spawn |copy top_down, copy bottom_up| {
                 // Get the box out of the option and into the new task
                 let mut swapped_in = none;
                 swapped_in <-> *swappable;

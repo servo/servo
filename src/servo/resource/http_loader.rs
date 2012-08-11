@@ -7,7 +7,7 @@ import std::net::url::url;
 import http_client::{uv_http_request};
 import result::{ok, err};
 
-fn factory(url: url, progress_chan: chan<ProgressMsg>) {
+fn factory(+url: url, progress_chan: chan<ProgressMsg>) {
     assert url.scheme == ~"http";
 
     do spawn {

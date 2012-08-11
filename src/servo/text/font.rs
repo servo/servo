@@ -73,7 +73,7 @@ fn should_be_able_to_create_instances_in_multiple_threads() {
     for iter::repeat(10u) {
         do task::spawn {
             let lib = FontLibrary();
-            let font = lib.get_test_font();
+            let _font = lib.get_test_font();
         }
     }
 }

@@ -66,6 +66,7 @@ struct FutureData {
     mut waiters: ~[chan<ImageResponseMsg>];
 }
 
+#[allow(non_implicitly_copyable_typarams)]
 impl ImageCache {
 
     fn run() {
@@ -81,34 +82,34 @@ impl ImageCache {
     }
 
     /*priv*/ fn prefetch(url: url) {
-        if self.image_map.contains_key(url) {
+        if self.image_map.contains_key(copy url) {
             // We've already decoded this image
             return
         }
 
-        if self.future_image_map.contains_key(url) {
+        if self.future_image_map.contains_key(copy url) {
             // We've already begun decoding this image
             return
         }
 
-        if self.prefetch_map.contains_key(url) {
+        if self.prefetch_map.contains_key(copy url) {
             // We're already waiting for this image
             return
         }
 
         let response_port = port();
-        self.resource_task.send(resource_task::Load(url, response_port.chan()));
+        self.resource_task.send(resource_task::Load(copy url, response_port.chan()));
 
         let prefetch_data = @PrefetchData {
             response_port: response_port,
             data: ~[]
         };
 
-        self.prefetch_map.insert(url, prefetch_data);
+        self.prefetch_map.insert(copy url, prefetch_data);
     }
 
     /*priv*/ fn get_image(url: url, response: chan<ImageResponseMsg>) {
-        match self.image_map.find(url) {
+        match self.image_map.find(copy url) {
           some(image) => {
             response.send(ImageReady(clone_arc(image)));
             return
@@ -116,7 +117,7 @@ impl ImageCache {
           none => ()
         }
 
-        match self.future_image_map.find(url) {
+        match self.future_image_map.find(copy url) {
           some(future_data) => {
             // We've started decoding this image but haven't recieved it back yet.
             // Put this client on the wait list
@@ -126,7 +127,7 @@ impl ImageCache {
           none => ()
         }
 
-        match self.prefetch_map.find(url) {
+        match self.prefetch_map.find(copy url) {
           some(prefetch_data) => {
 
             let mut image_sent = false;
@@ -144,26 +145,26 @@ impl ImageCache {
 
                     let to_cache = self.from_client.chan();
 
-                    do spawn {
+                    do spawn |copy url| {
                         let image = arc(~load_from_memory(data));
                         // Send the image to the original requester
                         response.send(ImageReady(clone_arc(&image)));
-                        to_cache.send(StoreImage(url, clone_arc(&image)));
+                        to_cache.send(StoreImage(copy url, clone_arc(&image)));
                     }
 
                     let future_data = @FutureData {
                         waiters: ~[]
                     };
 
-                    self.prefetch_map.remove(url);
-                    self.future_image_map.insert(url, future_data);
+                    self.prefetch_map.remove(copy url);
+                    self.future_image_map.insert(copy url, future_data);
 
                     image_sent = true;
                     break;
                   }
                   resource_task::Done(result::err(*)) => {
                     // FIXME: need to actually report the failed image load
-                    self.prefetch_map.remove(url);
+                    self.prefetch_map.remove(copy url);
                     break;
                   }
                 }
@@ -178,7 +179,7 @@ impl ImageCache {
     }
 
     /*priv*/ fn store_image(url: url, image: &arc<~Image>) {
-        match self.future_image_map.find(url) {
+        match self.future_image_map.find(copy url) {
           some(future_data) => {
 
             let mut waiters = ~[];
@@ -189,8 +190,8 @@ impl ImageCache {
             for waiters.each |waiter| {
                 waiter.send(ImageReady(clone_arc(image)))
             }
-            self.image_map.insert(url, @clone_arc(image));
-            self.future_image_map.remove(url);
+            self.image_map.insert(copy url, @clone_arc(image));
+            self.future_image_map.remove(copy url);
           }
           none => fail ~"storing an image that isn't in the future map"
         }
@@ -214,7 +215,7 @@ fn should_exit_on_request() {
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
-    let url = make_url(~"file", none);
+    let _url = make_url(~"file", none);
 
     image_cache_task.send(Exit);
     mock_resource_task.send(resource_task::Exit);
@@ -224,7 +225,7 @@ fn should_exit_on_request() {
 #[should_fail]
 fn should_fail_if_unprefetched_image_is_requested() {
 
-    let mock_resource_task = do spawn_listener |from_client| {
+    let mock_resource_task = do spawn_listener |_from_client| {
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
@@ -283,7 +284,7 @@ fn should_not_request_url_from_resource_task_on_multiple_prefetches() {
     let image_cache_task = image_cache_task(mock_resource_task);
     let url = make_url(~"file", none);
 
-    image_cache_task.send(Prefetch(url));
+    image_cache_task.send(Prefetch(copy url));
     image_cache_task.send(Prefetch(url));
     url_requested.recv();
     image_cache_task.send(Exit);
@@ -309,7 +310,7 @@ fn should_return_image_not_ready_if_data_has_not_arrived() {
     let image_cache_task = image_cache_task(mock_resource_task);
     let url = make_url(~"file", none);
 
-    image_cache_task.send(Prefetch(url));
+    image_cache_task.send(Prefetch(copy url));
     let response_port = port();
     image_cache_task.send(GetImage(url, response_port.chan()));
     assert response_port.recv() == ImageNotReady;
@@ -343,7 +344,7 @@ fn should_return_decoded_image_data_if_data_has_arrived() {
     let image_cache_task = image_cache_task(mock_resource_task);
     let url = make_url(~"file", none);
 
-    image_cache_task.send(Prefetch(url));
+    image_cache_task.send(Prefetch(copy url));
 
     // Wait until our mock resource task has sent the image to the image cache
     image_bin_sent.recv();
@@ -385,14 +386,14 @@ fn should_return_decoded_image_data_for_multiple_requests() {
     let image_cache_task = image_cache_task(mock_resource_task);
     let url = make_url(~"file", none);
 
-    image_cache_task.send(Prefetch(url));
+    image_cache_task.send(Prefetch(copy url));
 
     // Wait until our mock resource task has sent the image to the image cache
     image_bin_sent.recv();
 
     for iter::repeat(2) {
         let response_port = port();
-        image_cache_task.send(GetImage(url, response_port.chan()));
+        image_cache_task.send(GetImage(copy url, response_port.chan()));
         match response_port.recv() {
           ImageReady(_) => (),
           _ => fail
@@ -435,19 +436,19 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
     let image_cache_task = image_cache_task(mock_resource_task);
     let url = make_url(~"file", none);
 
-    image_cache_task.send(Prefetch(url));
+    image_cache_task.send(Prefetch(copy url));
 
     // Wait until our mock resource task has sent the image to the image cache
     image_bin_sent.recv();
 
     let response_port = port();
-    image_cache_task.send(GetImage(url, response_port.chan()));
+    image_cache_task.send(GetImage(copy url, response_port.chan()));
     match response_port.recv() {
       ImageReady(_) => (),
       _ => fail
     }
 
-    image_cache_task.send(Prefetch(url));
+    image_cache_task.send(Prefetch(copy url));
 
     let response_port = port();
     image_cache_task.send(GetImage(url, response_port.chan()));
@@ -490,7 +491,7 @@ fn should_return_not_ready_if_image_bin_cannot_be_fetched() {
     let image_cache_task = image_cache_task(mock_resource_task);
     let url = make_url(~"file", none);
 
-    image_cache_task.send(Prefetch(url));
+    image_cache_task.send(Prefetch(copy url));
 
     // Wait until our mock resource task has sent the image to the image cache
     image_bin_sent.recv();

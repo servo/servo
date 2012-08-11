@@ -37,7 +37,7 @@ Creates a task to load a specific resource
 The ResourceManager delegates loading to a different type of loader task for
 each URL scheme
 */
-type LoaderTaskFactory = fn~(url: url, chan<ProgressMsg>);
+type LoaderTaskFactory = fn~(+url: url, chan<ProgressMsg>);
 
 /// Create a ResourceTask with the default loaders
 fn ResourceTask() -> ResourceTask {
@@ -69,7 +69,7 @@ class ResourceManager {
         loop {
             match self.from_client.recv() {
               Load(url, progress_chan) => {
-                self.load(url, progress_chan)
+                self.load(copy url, progress_chan)
               }
               Exit => {
                 break
@@ -78,7 +78,7 @@ class ResourceManager {
         }
     }
 
-    fn load(url: url, progress_chan: chan<ProgressMsg>) {
+    fn load(+url: url, progress_chan: chan<ProgressMsg>) {
 
         match self.get_loader_factory(url) {
           some(loader_factory) => {
@@ -125,7 +125,7 @@ fn test_bad_scheme() {
 #[allow(non_implicitly_copyable_typarams)]
 fn should_delegate_to_scheme_loader() {
     let payload = ~[1, 2, 3];
-    let loader_factory = fn~(_url: url, progress_chan: chan<ProgressMsg>) {
+    let loader_factory = fn~(+_url: url, progress_chan: chan<ProgressMsg>, copy payload) {
         progress_chan.send(Payload(copy payload));
         progress_chan.send(Done(ok(())));
     };

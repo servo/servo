@@ -9,7 +9,7 @@ import result::{result, ok, err};
 
 const READ_SIZE: uint = 1024;
 
-fn factory(url: url, progress_chan: chan<ProgressMsg>) {
+fn factory(+url: url, progress_chan: chan<ProgressMsg>) {
     assert url.scheme == ~"file";
 
     do spawn {

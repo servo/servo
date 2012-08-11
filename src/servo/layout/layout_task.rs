@@ -22,7 +22,7 @@ enum Msg {
     ExitMsg
 }
 
-fn Layout(renderer: Renderer, image_cache_task: ImageCacheTask) -> Layout {
+fn Layout(renderer: Renderer, _image_cache_task: ImageCacheTask) -> Layout {
     do spawn_listener::<Msg>|request| {
         loop {
             match request.recv() {
