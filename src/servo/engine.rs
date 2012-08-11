@@ -7,6 +7,8 @@ import content::{Content, ExecuteMsg, ParseMsg, ExitMsg, create_content};
 import resource::resource_task;
 import resource::resource_task::{ResourceTask};
 import std::net::url::url;
+import resource::image_cache_task;
+import image_cache_task::{ImageCacheTask, image_cache_task};
 
 import pipes::{port, chan};
 
@@ -14,21 +16,24 @@ class Engine<S:Sink send copy> {
     let sink: S;
 
     let renderer: Renderer;
-    let layout: Layout;
     let resource_task: ResourceTask;
+    let image_cache_task: ImageCacheTask;
+    let layout: Layout;
     let content: comm::chan<content::ControlMsg>;
 
     new(+sink: S) {
         self.sink = sink;
 
         let renderer = Renderer(sink);
-        let layout = Layout(renderer);
         let resource_task = ResourceTask();
+        let image_cache_task = image_cache_task(resource_task);
+        let layout = Layout(renderer, image_cache_task);
         let content = create_content(layout, sink, resource_task);
 
         self.renderer = renderer;
-        self.layout = layout;
         self.resource_task = resource_task;
+        self.image_cache_task = image_cache_task;
+        self.layout = layout;
         self.content = content;
     }
 
@@ -62,6 +67,7 @@ class Engine<S:Sink send copy> {
             self.renderer.send(renderer::ExitMsg(response_chan));
             response_port.recv();
 
+            self.image_cache_task.send(image_cache_task::Exit);
             self.resource_task.send(resource_task::Exit);
 
             sender.send(());

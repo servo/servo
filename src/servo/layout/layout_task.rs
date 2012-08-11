@@ -9,6 +9,7 @@ import dom::base::Node;
 import dom::style::Stylesheet;
 import gfx::geometry::px_to_au;
 import gfx::renderer::Renderer;
+import resource::image_cache_task::ImageCacheTask;
 
 import task::*;
 import comm::*;
@@ -21,7 +22,7 @@ enum Msg {
     ExitMsg
 }
 
-fn Layout(renderer: Renderer) -> Layout {
+fn Layout(renderer: Renderer, image_cache_task: ImageCacheTask) -> Layout {
     do spawn_listener::<Msg>|request| {
         loop {
             match request.recv() {
