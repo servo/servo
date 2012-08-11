@@ -7,7 +7,7 @@ import image::base::{Image, load_from_memory, test_image_bin};
 import std::net::url::url;
 import util::url::{make_url, UrlMap, url_map};
 import comm::{chan, port};
-import task::spawn_listener;
+import task::{spawn, spawn_listener};
 import resource::resource_task;
 import resource_task::ResourceTask;
 import core::arc::arc;
@@ -16,6 +16,7 @@ import clone_arc = core::arc::clone;
 enum Msg {
     Prefetch(url),
     GetImage(url, chan<ImageResponseMsg>),
+    StoreImage(url, arc<~Image>),
     Exit
 }
 
@@ -32,6 +33,7 @@ fn image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
             resource_task: resource_task,
             from_client: from_client,
             prefetch_map: url_map(),
+            future_image_map: url_map(),
             image_map: url_map()
         }.run();
     }
@@ -41,12 +43,17 @@ struct ImageCache {
     resource_task: ResourceTask;
     from_client: port<Msg>;
     prefetch_map: UrlMap<@PrefetchData>;
+    future_image_map: UrlMap<@FutureData>;
     image_map: UrlMap<@arc<~Image>>;
 }
 
 struct PrefetchData {
     response_port: port<resource_task::ProgressMsg>;
     mut data: ~[u8];
+}
+
+struct FutureData {
+    mut waiters: ~[chan<ImageResponseMsg>];
 }
 
 impl ImageCache {
@@ -57,6 +64,7 @@ impl ImageCache {
             match self.from_client.recv() {
               Prefetch(url) => self.prefetch(url),
               GetImage(url, response) => self.get_image(url, response),
+              StoreImage(url, image) => self.store_image(url, &image),
               Exit => break
             }
         }
@@ -68,10 +76,16 @@ impl ImageCache {
             return
         }
 
+        if self.future_image_map.contains_key(url) {
+            // We've already begun decoding this image
+            return
+        }
+
         if self.prefetch_map.contains_key(url) {
             // We're already waiting for this image
             return
         }
+
         let response_port = port();
         self.resource_task.send(resource_task::Load(url, response_port.chan()));
 
@@ -92,6 +106,16 @@ impl ImageCache {
           none => ()
         }
 
+        match self.future_image_map.find(url) {
+          some(future_data) => {
+            // We've started decoding this image but haven't recieved it back yet.
+            // Put this client on the wait list
+            vec::push(future_data.waiters, response);
+            return
+          }
+          none => ()
+        }
+
         match self.prefetch_map.find(url) {
           some(prefetch_data) => {
 
@@ -106,11 +130,24 @@ impl ImageCache {
                     // We've got the entire image binary
                     let mut data = ~[];
                     data <-> prefetch_data.data;
-                    // FIXME: Need to do this in parallel
-                    let image = @arc(~load_from_memory(data));
-                    response.send(ImageReady(clone_arc(image)));
+                    let data <- data; // freeze for capture
+
+                    let to_cache = self.from_client.chan();
+
+                    do spawn {
+                        let image = arc(~load_from_memory(data));
+                        // Send the image to the original requester
+                        response.send(ImageReady(clone_arc(&image)));
+                        to_cache.send(StoreImage(url, clone_arc(&image)));
+                    }
+
+                    let future_data = @FutureData {
+                        waiters: ~[]
+                    };
+
                     self.prefetch_map.remove(url);
-                    self.image_map.insert(url, image);
+                    self.future_image_map.insert(url, future_data);
+
                     image_sent = true;
                     break;
                   }
@@ -127,6 +164,25 @@ impl ImageCache {
             }
           }
           none => fail ~"got a request for image data without prefetch"
+        }
+    }
+
+    /*priv*/ fn store_image(url: url, image: &arc<~Image>) {
+        match self.future_image_map.find(url) {
+          some(future_data) => {
+
+            let mut waiters = ~[];
+            waiters <-> future_data.waiters;
+
+            // Send the image to all those who requested it while
+            // it was being decoded
+            for waiters.each |waiter| {
+                waiter.send(ImageReady(clone_arc(image)))
+            }
+            self.image_map.insert(url, @clone_arc(image));
+            self.future_image_map.remove(url);
+          }
+          none => fail ~"storing an image that isn't in the future map"
         }
     }
 }
