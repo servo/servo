@@ -84,6 +84,7 @@ class Content<S:Sink send copy> {
     let jsrt: jsrt;
 
     let mut document: option<@Document>;
+    let mut doc_url: option<url>;
 
     let resource_task: ResourceTask;
 
@@ -97,6 +98,7 @@ class Content<S:Sink send copy> {
         self.jsrt = jsrt();
 
         self.document = none;
+        self.doc_url = none;
 
         self.sink.add_event_listener(self.event_port.chan());
 
@@ -135,8 +137,9 @@ class Content<S:Sink send copy> {
             #debug["%?", js_scripts];
 
             let document = Document(root, css_rules);
-            self.relayout(document);
+            self.relayout(document, &url);
             self.document = some(@document);
+            self.doc_url = some(copy url);
 
             //XXXjdm it was easier to duplicate the relevant ExecuteMsg code;
             //       they should be merged somehow in the future.
@@ -181,7 +184,7 @@ class Content<S:Sink send copy> {
         }
     }
 
-    fn relayout(document: Document) {
+    fn relayout(document: Document, doc_url: &url) {
         #debug("content: performing relayout");
 
         // Now, join the layout so that they will see the latest
@@ -190,7 +193,7 @@ class Content<S:Sink send copy> {
 
         // Send new document and relevant styles to layout
         // FIXME: Put CSS rules in an arc or something.
-        self.layout.send(BuildMsg(document.root, clone(&document.css_rules)));
+        self.layout.send(BuildMsg(document.root, clone(&document.css_rules), copy *doc_url));
 
         // Indicate that reader was forked so any further
         // changes will be isolated.
@@ -206,7 +209,8 @@ class Content<S:Sink send copy> {
                     // Nothing to do.
                 }
                 some(document) => {
-                    self.relayout(*document);
+                    assert self.doc_url.is_some();
+                    self.relayout(*document, &self.doc_url.get());
                 }
             }
             return true;

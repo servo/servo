@@ -7,16 +7,34 @@ import image::base::load;
 import base::{Box, BTree, NTree, LayoutData, SpecifiedStyle, ImageHolder,
               BlockBox, InlineBox, IntrinsicBox, TextBox};
 import traverse::{top_down_traversal};
+import std::net::url::url;
+import resource::image_cache_task::ImageCacheTask;
 
-trait ApplyStyleBoxMethods {
-    fn apply_css_style();
-    fn apply_style();
+struct StyleApplicator {
+    box: @Box;
+    doc_url: &url;
+    image_cache_task: ImageCacheTask;
+}
+
+fn apply_style(box: @Box, doc_url: &url, image_cache_task: ImageCacheTask) {
+    let applicator = StyleApplicator {
+        box: box,
+        doc_url: doc_url,
+        image_cache_task: image_cache_task
+    };
+
+    applicator.apply_css_style();
 }
 
 #[doc="A wrapper around a set of functions that can be applied as a top-down traversal of layout
        boxes."]
-fn inheritance_wrapper(box : @Box) {
-    box.apply_style();
+fn inheritance_wrapper(box : @Box, doc_url: &url, image_cache_task: ImageCacheTask) {
+    let applicator = StyleApplicator {
+        box: box,
+        doc_url: doc_url,
+        image_cache_task: image_cache_task
+    };
+    applicator.apply_style();
     inhereit_height(box);
     inhereit_width(box);
 }
@@ -81,9 +99,13 @@ fn inhereit_width(box : @Box) {
     }
 }
 
-impl @Box : ApplyStyleBoxMethods {
+impl StyleApplicator {
     fn apply_css_style() {
-        top_down_traversal(self, inheritance_wrapper);
+        let doc_url = copy *self.doc_url;
+        let image_cache_task = self.image_cache_task;
+        do top_down_traversal(self.box) |box, move doc_url| {
+            inheritance_wrapper(box, &doc_url, image_cache_task);
+        }
     }
 
     #[doc="Applies CSS style to a layout box.
@@ -94,13 +116,14 @@ impl @Box : ApplyStyleBoxMethods {
 
      "]
     fn apply_style() {
+
         // Right now, we only handle images.
-        do self.node.read |node| {
+        do self.box.node.read |node| {
             match node.kind {
               ~Element(element) => {
-                let style = self.node.get_specified_style();
+                let style = self.box.node.get_specified_style();
 
-                self.appearance.background_color = match style.background_color {
+                self.box.appearance.background_color = match style.background_color {
                   some(col) => col,
                   none => node.kind.default_color()
                 };
@@ -112,7 +135,8 @@ impl @Box : ApplyStyleBoxMethods {
                     if url.is_some() {
                         // FIXME: Some sort of BASE HREF support!
                         // FIXME: Parse URLs!
-                        self.appearance.background_image = some(ImageHolder(option::unwrap(url)))
+                        let new_url = make_url(option::unwrap(url), some(copy *self.doc_url));
+                        self.box.appearance.background_image = some(ImageHolder(new_url, self.image_cache_task))
                     };
                   }
                   _ => { /* Ignore. */ }

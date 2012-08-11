@@ -16,7 +16,10 @@ import text::TextBox;
 import traverse::extended_full_traversal;
 import style::style::{SpecifiedStyle};
 import vec::{push, push_all};
-
+import std::net::url::url;
+import resource::image_cache_task;
+import image_cache_task::ImageCacheTask;
+import core::to_str::to_str;
 import arc::{arc, clone};
 
 enum BoxKind {
@@ -51,7 +54,7 @@ class Appearance {
             let mut temp = none;
             temp <-> self.background_image;
             let holder <- option::unwrap(temp);
-            image = some(holder.get_image());
+            image = holder.get_image();
             self.background_image = some(holder);
         }
 
@@ -81,16 +84,21 @@ class Box {
 class ImageHolder {
     // Invariant: at least one of url and image is not none, except
     // occasionally while get_image is being called
-    let mut url : option<~str>;
+    let mut url : option<url>;
     let mut image : option<arc<~Image>>;
+    let image_cache_task: ImageCacheTask;
 
-    new(-url : ~str) {
-        self.url = some(url);
+    new(-url : url, image_cache_task: ImageCacheTask) {
+        self.url = some(copy url);
         self.image = none;
+        self.image_cache_task = image_cache_task;
+
+        // Tell the image cache we're going to be interested in this url
+        image_cache_task.send(image_cache_task::Prefetch(move url));
     }
 
     // This function should not be called by two tasks at the same time
-    fn get_image() -> ~arc<~Image> {
+    fn get_image() -> option<~arc<~Image>> {
         // If this is the first time we've called this function, load
         // the image and store it for the future
         if self.image.is_none() {
@@ -99,20 +107,32 @@ class ImageHolder {
             let mut temp = none;
             temp <-> self.url;
             let url = option::unwrap(temp);
-            let image = load(url);
 
-            self.image = some(arc(~image));
+            let response_port = port();
+            self.image_cache_task.send(image_cache_task::GetImage(copy url, response_port.chan()));
+            self.image = match response_port.recv() {
+              image_cache_task::ImageReady(image) => some(clone(&image)),
+              image_cache_task::ImageNotReady => {
+                #info("image was not ready for %s", url.to_str());
+                // FIXME: Need to schedule another layout when the image is ready
+                none
+              }
+            };
         }
 
-        // Temporarily swap out the arc of the image so we can clone
-        // it without breaking purity, then put it back and return the
-        // clone.  This is not threadsafe.
-        let mut temp = none;
-        temp <-> self.image;
-        let im_arc = option::unwrap(temp);
-        self.image = some(clone(&im_arc));
+        if self.image.is_some() {
+            // Temporarily swap out the arc of the image so we can clone
+            // it without breaking purity, then put it back and return the
+            // clone.  This is not threadsafe.
+            let mut temp = none;
+            temp <-> self.image;
+            let im_arc = option::unwrap(temp);
+            self.image = some(clone(&im_arc));
 
-        return ~im_arc;
+            return some(~im_arc);
+        } else {
+            return none;
+        }
     }
 }
 
