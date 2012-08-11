@@ -14,7 +14,7 @@ import geom::rect::Rect;
 import geom::point::Point2D;
 import azure_hl::AsAzureRect;
 import ptr::addr_of;
-import arc::arc;
+import std::arc::arc;
 import azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
 
 import pipes::{port, chan};
@@ -129,7 +129,7 @@ fn draw_solid_color(draw_target: AzDrawTargetRef, item: dl::display_item,
 }
 
 fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item, image: arc<~Image>) unsafe {
-    let image = arc::get(&image);
+    let image = std::arc::get(&image);
     let size = Size2D(image.width as i32, image.height as i32);
     let stride = image.width * 4;
 

@@ -3,7 +3,7 @@
     rendered.
 "];
 
-import arc::arc;
+import std::arc::arc;
 import display_list_builder::build_display_list;
 import dom::base::Node;
 import dom::style::Stylesheet;

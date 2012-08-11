@@ -3,7 +3,7 @@ import geom::rect::Rect;
 import image::base::Image;
 import servo_text::text_run::TextRun;
 
-import arc::arc;
+import std::arc::arc;
 import dvec::dvec;
 
 enum item_type {

@@ -1,6 +1,6 @@
 #[doc="High-level interface to CSS selector matching."]
 
-import arc::{arc, get, clone};
+import std::arc::{arc, get, clone};
 
 import dom::style::{DisplayType, DisBlock, DisInline, DisNone, Stylesheet, Unit, Auto};
 import dom::base::{Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement, Node, NodeKind};

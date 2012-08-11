@@ -20,7 +20,7 @@ import std::net::url::url;
 import resource::image_cache_task;
 import image_cache_task::ImageCacheTask;
 import core::to_str::to_str;
-import arc::{arc, clone};
+import std::arc::{arc, clone};
 
 enum BoxKind {
     BlockBox,

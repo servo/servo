@@ -9,7 +9,7 @@ export PingMsg, PongMsg;
 export create_content;
 export Document;
 
-import arc::{arc, clone};
+import std::arc::{arc, clone};
 import comm::{port, chan, listen, select2};
 import task::{spawn, spawn_listener};
 import io::{read_whole_file, println};

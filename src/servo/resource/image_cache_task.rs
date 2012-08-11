@@ -10,8 +10,8 @@ import comm::{chan, port};
 import task::{spawn, spawn_listener};
 import resource::resource_task;
 import resource_task::ResourceTask;
-import core::arc::arc;
-import clone_arc = core::arc::clone;
+import std::arc::arc;
+import clone_arc = std::arc::clone;
 
 enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted
