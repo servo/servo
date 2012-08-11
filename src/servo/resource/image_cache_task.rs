@@ -14,8 +14,12 @@ import core::arc::arc;
 import clone_arc = core::arc::clone;
 
 enum Msg {
+    /// Tell the cache that we may need a particular image soon. Must be posted
+    /// before GetImage
     Prefetch(url),
+    /// Request an Image object for a URL
     GetImage(url, chan<ImageResponseMsg>),
+    /// Used by the decoder tasks to post decoded images back to the cache
     StoreImage(url, arc<~Image>),
     Exit
 }
@@ -40,10 +44,16 @@ fn image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
 }
 
 struct ImageCache {
+    /// A handle to the resource task for fetching the image binaries
     resource_task: ResourceTask;
+    /// The port on which we'll receive client requests
     from_client: port<Msg>;
+    /// A map from URLs to the partially loaded compressed image data.
+    /// Once the data is complete it is then sent to a decoder
     prefetch_map: UrlMap<@PrefetchData>;
+    /// A list of clients waiting on images that are currently being decoded
     future_image_map: UrlMap<@FutureData>;
+    /// The cache of decoded images
     image_map: UrlMap<@arc<~Image>>;
 }
 
