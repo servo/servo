@@ -1,0 +1,10 @@
+div {display : inline}
+div div {width : 120px}
+.start {background-color : gray; height : 500px}
+.whole {background-color : red; height : 100%}
+.half {background-color : rgb(250, 125, 0); height : 50%}
+.quarter {background-color : yellow; height : 25%}
+.eighth {background-color : green; height : 12.5%}
+.sixteenth {background-color : blue; height : 6.25%}
+.thirtysecond {background-color : purple; height : 3.125%}
+

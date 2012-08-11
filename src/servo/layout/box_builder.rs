@@ -2,7 +2,7 @@
 
 import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, Node};
 import dom::style::{DisplayType, DisBlock, DisInline, DisNone};
-import gfx::geometry;
+import gfx::geometry::zero_size_au;
 import layout::base::{Appearance, BTree, BlockBox, Box, BoxKind, InlineBox, IntrinsicBox, NTree};
 import layout::base::{TextBoxKind};
 import layout::text::TextBox;
@@ -157,14 +157,21 @@ impl Node : PrivBoxBuilder {
      "]
     fn determine_box_kind() -> BoxKind {
         match self.read(|n| copy n.kind) {
-          ~Text(string) => TextBoxKind(@TextBox(copy string)),
-          ~Element(element) => {
-            match *element.kind {
-              HTMLDivElement => BlockBox,
-              HTMLImageElement({size}) => IntrinsicBox(@size),
-              UnknownElement => InlineBox
+            ~Text(string) => TextBoxKind(@TextBox(copy string)),
+            ~Element(element) => {
+                match (copy *element.kind, self.get_specified_style().display_type)  {
+                    (HTMLImageElement({size}), _) => IntrinsicBox(@size),
+                    (_, some(DisBlock)) => BlockBox,
+                    (_, some(DisInline)) => InlineBox,
+                    (_, some(DisNone)) => {
+                        // TODO: don't have a box here at all?
+                        IntrinsicBox(@zero_size_au())
+                    }
+                    (_, none) => {
+                        fail ~"The specified display style should be a default instead of none"
+                    }
+                }
             }
-          }
         }
     }
 }

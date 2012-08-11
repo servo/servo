@@ -18,6 +18,7 @@ trait ApplyStyleBoxMethods {
 fn inheritance_wrapper(box : @Box) {
     box.apply_style();
     inhereit_height(box);
+    inhereit_width(box);
 }
 
 #[doc="Compute the specified height of a layout box based on it's css specification and its
@@ -41,6 +42,36 @@ fn inhereit_height(box : @Box) {
                             Px(f) => Px(em*f/100.0),
                             Percent(*) | Mm(*) | Pt(*) => {
                                 fail ~"failed inheriting heights, parent should only be Px or Auto"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[doc="Compute the specified width of a layout box based on it's css specification and its
+       parent's width."]
+fn inhereit_width(box : @Box) {
+    let style = box.node.get_specified_style();
+    
+    box.appearance.width = match style.width {
+        none =>  Auto,
+        some(h) => match h {
+            Auto | Px(*) => h,
+            Pt(*) => PtToPx(h),
+            Mm(*) => MmToPx(h),
+            Percent(em) => {
+                match box.tree.parent {
+                    none => Auto,
+                    some(parent) => {
+                        match parent.appearance.width {
+                            //This is a poorly constrained case, so we ignore the percentage
+                            Auto => Auto,
+                            Px(f) => Px(em*f/100.0),
+                            Percent(*) | Mm(*) | Pt(*) => {
+                                fail ~"failed inheriting widths, parent should only be Px or Auto"
                             }
                         }
                     }

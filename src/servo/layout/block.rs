@@ -46,7 +46,7 @@ impl @Box : BlockLayoutMethods {
         let width = match self.appearance.width { 
             Px(p) => px_to_au(p.to_int()),
             Auto => self.bounds.size.width, // Do nothing here, width was set by top-down pass
-            _ => fail ~"inhereit_height failed, width is neither a Px or auto"
+            _ => fail ~"inhereit_width failed, width is neither a Px or auto"
         };
 
         self.bounds.size = Size2D(width, height);

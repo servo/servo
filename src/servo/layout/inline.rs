@@ -1,11 +1,13 @@
 #[doc="Inline layout."]
 
+import base::{Box, InlineBox, BTree};
 import dom::rcu;
+import dom::style::{Auto, Px};
 import geom::point::Point2D;
 import geom::size::Size2D;
-import gfx::geometry::au;
+import gfx::geometry::{au, px_to_au};
+import num::num;
 import util::tree;
-import base::{Box, InlineBox, BTree};
 
 trait InlineLayout {
     fn reflow_inline();
@@ -31,9 +33,20 @@ impl @Box : InlineLayout {
             current_height = int::max(current_height, *kid.bounds.size.height);
         }
 
+        let height = match self.appearance.height { 
+            Px(p) => px_to_au(p.to_int()),
+            Auto => au(current_height),
+            _ => fail ~"inhereit_height failed, height is neither a Px or auto"
+        };
+
+        let width = match self.appearance.width { 
+            Px(p) => px_to_au(p.to_int()),
+            Auto => au(int::max(x, *self.bounds.size.width)),
+            _ => fail ~"inhereit_width failed, width is neither a Px or auto"
+        };
+
         // The maximum available width should have been set in the top-down pass
-        self.bounds.size = Size2D(au(int::max(x, *self.bounds.size.width)),
-                                  au(current_height));
+        self.bounds.size = Size2D(width, height);
 
         #debug["reflow_inline size=%?", copy self.bounds];
     }
