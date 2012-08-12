@@ -12,6 +12,7 @@ import resource::resource_task;
 import resource_task::ResourceTask;
 import std::arc::arc;
 import clone_arc = std::arc::clone;
+import std::cell::Cell;
 
 enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted
@@ -73,28 +74,29 @@ impl ImageCache {
     fn run() {
 
         loop {
+            // FIXME: Need to move out the urls
             match self.from_client.recv() {
-              Prefetch(url) => self.prefetch(url),
-              GetImage(url, response) => self.get_image(url, response),
-              StoreImage(url, image) => self.store_image(url, &image),
+              Prefetch(url) => self.prefetch(copy url),
+              GetImage(url, response) => self.get_image(copy url, response),
+              StoreImage(url, image) => self.store_image(copy url, &image),
               Exit => break
             }
         }
     }
 
-    /*priv*/ fn get_state(url: url) -> ImageState {
-        match self.state_map.find(copy url) {
+    /*priv*/ fn get_state(+url: url) -> ImageState {
+        match self.state_map.find(url) {
           some(state) => state,
           none => Init
         }
     }
 
-    /*priv*/ fn set_state(url: url, state: ImageState) {
-        self.state_map.insert(copy url, state);
+    /*priv*/ fn set_state(+url: url, state: ImageState) {
+        self.state_map.insert(url, state);
     }
 
-    /*priv*/ fn prefetch(url: url) {
-        match self.get_state(url) {
+    /*priv*/ fn prefetch(+url: url) {
+        match self.get_state(copy url) {
           Init => {
             let response_port = port();
             self.resource_task.send(resource_task::Load(copy url, response_port.chan()));
@@ -116,9 +118,9 @@ impl ImageCache {
         }
     }
 
-    /*priv*/ fn get_image(url: url, response: chan<ImageResponseMsg>) {
+    /*priv*/ fn get_image(+url: url, response: chan<ImageResponseMsg>) {
 
-        match self.get_state(url) {
+        match self.get_state(copy url) {
           Init => fail ~"Request for image before prefetch",
 
           Prefetching(prefetch_data) => {
@@ -138,18 +140,19 @@ impl ImageCache {
 
                     let to_cache = self.from_client.chan();
 
-                    do spawn |copy url| {
+                    let url_cell = Cell(copy url);
+                    do spawn |move url_cell| {
                         let image = arc(~load_from_memory(data));
                         // Send the image to the original requester
                         response.send(ImageReady(clone_arc(&image)));
-                        to_cache.send(StoreImage(copy url, clone_arc(&image)));
+                        to_cache.send(StoreImage(url_cell.take(), clone_arc(&image)));
                     }
 
                     let future_data = @FutureData {
                         waiters: ~[]
                     };
 
-                    self.set_state(copy url, Decoding(future_data));
+                    self.set_state(url, Decoding(future_data));
 
                     image_sent = true;
                     break;
@@ -158,7 +161,7 @@ impl ImageCache {
                     // There was an error loading the image binary. Put it
                     // in the error map so we remember the error for future
                     // requests.
-                    self.set_state(copy url, Failed);
+                    self.set_state(url, Failed);
                     break;
                   }
                 }
@@ -185,9 +188,9 @@ impl ImageCache {
         }
     }
 
-    /*priv*/ fn store_image(url: url, image: &arc<~Image>) {
+    /*priv*/ fn store_image(+url: url, image: &arc<~Image>) {
 
-        match self.get_state(url) {
+        match self.get_state(copy url) {
           Decoding(future_data) => {
 
             let mut waiters = ~[];
