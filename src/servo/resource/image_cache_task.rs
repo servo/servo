@@ -38,11 +38,14 @@ fn image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
             from_client: from_client,
             prefetch_map: url_map(),
             future_image_map: url_map(),
-            image_map: url_map()
+            image_map: url_map(),
+            error_map: url_map()
         }.run();
     }
 }
 
+// FIXME: All these maps just represent states in the image lifecycle.
+// Would be more efficient to just have a single state_map.
 struct ImageCache {
     /// A handle to the resource task for fetching the image binaries
     resource_task: ResourceTask;
@@ -55,6 +58,8 @@ struct ImageCache {
     future_image_map: UrlMap<@FutureData>;
     /// The cache of decoded images
     image_map: UrlMap<@arc<~Image>>;
+    /// Map of images which could not be obtained
+    error_map: UrlMap<()>;
 }
 
 struct PrefetchData {
@@ -82,6 +87,11 @@ impl ImageCache {
     }
 
     /*priv*/ fn prefetch(url: url) {
+        if self.error_map.contains_key(copy url) {
+            // We already know this image can't be used
+            return
+        }
+
         if self.image_map.contains_key(copy url) {
             // We've already decoded this image
             return
@@ -163,8 +173,11 @@ impl ImageCache {
                     break;
                   }
                   resource_task::Done(result::err(*)) => {
-                    // FIXME: need to actually report the failed image load
+                    // There was an error loading the image binary. Put it
+                    // in the error map so we remember the error for future
+                    // requests.
                     self.prefetch_map.remove(copy url);
+                    self.error_map.insert(copy url, ());
                     break;
                   }
                 }
@@ -173,6 +186,16 @@ impl ImageCache {
             if !image_sent {
                 response.send(ImageNotReady);
             }
+
+            return;
+          }
+          none => ()
+        }
+
+        match self.error_map.find(copy url) {
+          some(*) => {
+            response.send(ImageNotReady);
+            return;
           }
           none => fail ~"got a request for image data without prefetch"
         }
@@ -465,6 +488,63 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
 }
 
 #[test]
+fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
+
+    let image_bin_sent = port();
+    let image_bin_sent_chan = image_bin_sent.chan();
+
+    let resource_task_exited = port();
+    let resource_task_exited_chan = resource_task_exited.chan();
+
+    let mock_resource_task = do spawn_listener |from_client| {
+
+        // infer me
+        let from_client: port<resource_task::ControlMsg> = from_client;
+
+        loop {
+            match from_client.recv() {
+              resource_task::Load(_, response) => {
+                response.send(resource_task::Payload(test_image_bin()));
+                response.send(resource_task::Done(result::err(())));
+                image_bin_sent_chan.send(());
+              }
+              resource_task::Exit => {
+                resource_task_exited_chan.send(());
+                break
+              }
+            }
+        }
+    };
+
+    let image_cache_task = image_cache_task(mock_resource_task);
+    let url = make_url(~"file", none);
+
+    image_cache_task.send(Prefetch(copy url));
+
+    // Wait until our mock resource task has sent the image to the image cache
+    image_bin_sent.recv();
+
+    let response_port = port();
+    image_cache_task.send(GetImage(copy url, response_port.chan()));
+    response_port.recv();
+
+    image_cache_task.send(Prefetch(copy url));
+
+    let response_port = port();
+    image_cache_task.send(GetImage(url, response_port.chan()));
+    response_port.recv();
+
+    image_cache_task.send(Exit);
+    mock_resource_task.send(resource_task::Exit);
+
+    resource_task_exited.recv();
+
+    // Our resource task should not have received another request for the image
+    // because it's already cached
+    assert !image_bin_sent.peek();
+}
+
+#[test]
 fn should_return_not_ready_if_image_bin_cannot_be_fetched() {
 
     let image_bin_sent = port();
@@ -496,6 +576,57 @@ fn should_return_not_ready_if_image_bin_cannot_be_fetched() {
     // Wait until our mock resource task has sent the image to the image cache
     image_bin_sent.recv();
 
+    let response_port = port();
+    image_cache_task.send(GetImage(url, response_port.chan()));
+    match response_port.recv() {
+      ImageNotReady => (),
+      _ => fail
+    }
+
+    image_cache_task.send(Exit);
+    mock_resource_task.send(resource_task::Exit);
+}
+
+#[test]
+fn should_return_not_ready_for_multiple_get_image_requests_if_image_bin_cannot_be_fetched() {
+
+    let image_bin_sent = port();
+    let image_bin_sent_chan = image_bin_sent.chan();
+
+    let mock_resource_task = do spawn_listener |from_client| {
+
+        // infer me
+        let from_client: port<resource_task::ControlMsg> = from_client;
+
+        loop {
+            match from_client.recv() {
+              resource_task::Load(_, response) => {
+                response.send(resource_task::Payload(test_image_bin()));
+                // ERROR fetching image
+                response.send(resource_task::Done(result::err(())));
+                image_bin_sent_chan.send(());
+              }
+              resource_task::Exit => break
+            }
+        }
+    };
+
+    let image_cache_task = image_cache_task(mock_resource_task);
+    let url = make_url(~"file", none);
+
+    image_cache_task.send(Prefetch(copy url));
+
+    // Wait until our mock resource task has sent the image to the image cache
+    image_bin_sent.recv();
+
+    let response_port = port();
+    image_cache_task.send(GetImage(copy url, response_port.chan()));
+    match response_port.recv() {
+      ImageNotReady => (),
+      _ => fail
+    }
+
+    // And ask again, we should get the same response
     let response_port = port();
     image_cache_task.send(GetImage(url, response_port.chan()));
     match response_port.recv() {
