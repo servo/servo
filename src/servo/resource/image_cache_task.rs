@@ -36,30 +36,26 @@ fn image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
         ImageCache {
             resource_task: resource_task,
             from_client: from_client,
-            prefetch_map: url_map(),
-            future_image_map: url_map(),
-            image_map: url_map(),
-            error_map: url_map()
+            state_map: url_map()
         }.run();
     }
 }
 
-// FIXME: All these maps just represent states in the image lifecycle.
-// Would be more efficient to just have a single state_map.
 struct ImageCache {
     /// A handle to the resource task for fetching the image binaries
     resource_task: ResourceTask;
     /// The port on which we'll receive client requests
     from_client: port<Msg>;
-    /// A map from URLs to the partially loaded compressed image data.
-    /// Once the data is complete it is then sent to a decoder
-    prefetch_map: UrlMap<@PrefetchData>;
-    /// A list of clients waiting on images that are currently being decoded
-    future_image_map: UrlMap<@FutureData>;
-    /// The cache of decoded images
-    image_map: UrlMap<@arc<~Image>>;
-    /// Map of images which could not be obtained
-    error_map: UrlMap<()>;
+    /// The state of processsing an image for a URL
+    state_map: UrlMap<ImageState>;
+}
+
+enum ImageState {
+    Init,
+    Prefetching(@PrefetchData),
+    Decoding(@FutureData),
+    Decoded(@arc<~Image>),
+    Failed
 }
 
 struct PrefetchData {
@@ -86,59 +82,46 @@ impl ImageCache {
         }
     }
 
+    /*priv*/ fn get_state(url: url) -> ImageState {
+        match self.state_map.find(copy url) {
+          some(state) => state,
+          none => Init
+        }
+    }
+
+    /*priv*/ fn set_state(url: url, state: ImageState) {
+        self.state_map.insert(copy url, state);
+    }
+
     /*priv*/ fn prefetch(url: url) {
-        if self.error_map.contains_key(copy url) {
-            // We already know this image can't be used
-            return
+        match self.get_state(url) {
+          Init => {
+            let response_port = port();
+            self.resource_task.send(resource_task::Load(copy url, response_port.chan()));
+
+            let prefetch_data = @PrefetchData {
+                response_port: response_port,
+                data: ~[]
+            };
+
+            self.set_state(url, Prefetching(prefetch_data));
+          }
+
+          Prefetching(*)
+          | Decoding(*)
+          | Decoded(*)
+          | Failed => {
+            // We've already begun working on this image
+          }
         }
-
-        if self.image_map.contains_key(copy url) {
-            // We've already decoded this image
-            return
-        }
-
-        if self.future_image_map.contains_key(copy url) {
-            // We've already begun decoding this image
-            return
-        }
-
-        if self.prefetch_map.contains_key(copy url) {
-            // We're already waiting for this image
-            return
-        }
-
-        let response_port = port();
-        self.resource_task.send(resource_task::Load(copy url, response_port.chan()));
-
-        let prefetch_data = @PrefetchData {
-            response_port: response_port,
-            data: ~[]
-        };
-
-        self.prefetch_map.insert(copy url, prefetch_data);
     }
 
     /*priv*/ fn get_image(url: url, response: chan<ImageResponseMsg>) {
-        match self.image_map.find(copy url) {
-          some(image) => {
-            response.send(ImageReady(clone_arc(image)));
-            return
-          }
-          none => ()
-        }
 
-        match self.future_image_map.find(copy url) {
-          some(future_data) => {
-            // We've started decoding this image but haven't recieved it back yet.
-            // Put this client on the wait list
-            vec::push(future_data.waiters, response);
-            return
-          }
-          none => ()
-        }
+        match self.get_state(url) {
+          Init => fail ~"Request for image before prefetch",
 
-        match self.prefetch_map.find(copy url) {
-          some(prefetch_data) => {
+          Prefetching(prefetch_data) => {
 
             let mut image_sent = false;
 
@@ -166,8 +149,7 @@ impl ImageCache {
                         waiters: ~[]
                     };
 
-                    self.prefetch_map.remove(copy url);
-                    self.future_image_map.insert(copy url, future_data);
+                    self.set_state(copy url, Decoding(future_data));
 
                     image_sent = true;
                     break;
@@ -176,8 +158,7 @@ impl ImageCache {
                     // There was an error loading the image binary. Put it
                     // in the error map so we remember the error for future
                     // requests.
-                    self.prefetch_map.remove(copy url);
-                    self.error_map.insert(copy url, ());
+                    self.set_state(copy url, Failed);
                     break;
                   }
                 }
@@ -186,24 +167,28 @@ impl ImageCache {
             if !image_sent {
                 response.send(ImageNotReady);
             }
-
-            return;
           }
-          none => ()
-        }
 
-        match self.error_map.find(copy url) {
-          some(*) => {
+          Decoding(future_data) => {
+            // We've started decoding this image but haven't recieved it back yet.
+            // Put this client on the wait list
+            vec::push(future_data.waiters, response);
+          }
+
+          Decoded(image) => {
+            response.send(ImageReady(clone_arc(image)));
+          }
+
+          Failed => {
             response.send(ImageNotReady);
-            return;
           }
-          none => fail ~"got a request for image data without prefetch"
         }
     }
 
     /*priv*/ fn store_image(url: url, image: &arc<~Image>) {
-        match self.future_image_map.find(copy url) {
-          some(future_data) => {
+
+        match self.get_state(url) {
+          Decoding(future_data) => {
 
             let mut waiters = ~[];
             waiters <-> future_data.waiters;
@@ -213,11 +198,18 @@ impl ImageCache {
             for waiters.each |waiter| {
                 waiter.send(ImageReady(clone_arc(image)))
             }
-            self.image_map.insert(copy url, @clone_arc(image));
-            self.future_image_map.remove(copy url);
+
+            self.set_state(url, Decoded(@clone_arc(image)));
           }
-          none => fail ~"storing an image that isn't in the future map"
+
+          Init
+          | Prefetching(*)
+          | Decoded(*)
+          | Failed => {
+            fail ~"incorrect state in store_image"
+          }
         }
+
     }
 }
 
