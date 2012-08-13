@@ -8,7 +8,7 @@ import resource::resource_task;
 import resource::resource_task::{ResourceTask};
 import std::net::url::url;
 import resource::image_cache_task;
-import image_cache_task::{ImageCacheTask, image_cache_task};
+import image_cache_task::{ImageCacheTask, image_cache_task, ImageCacheTaskClient};
 
 import pipes::{port, chan};
 
@@ -67,7 +67,7 @@ class Engine<S:Sink send copy> {
             self.renderer.send(renderer::ExitMsg(response_chan));
             response_port.recv();
 
-            self.image_cache_task.send(image_cache_task::Exit);
+            self.image_cache_task.exit();
             self.resource_task.send(resource_task::Exit);
 
             sender.send(());
