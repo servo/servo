@@ -4,7 +4,7 @@ import image::base::Image;
 import servo_text::text_run::TextRun;
 
 import std::arc::arc;
-import dvec::dvec;
+import dvec::DVec;
 
 enum item_type {
     display_item_solid_color(u8, u8, u8),
@@ -19,4 +19,4 @@ enum display_item = {
     bounds: Rect<au>
 };
 
-type display_list = dvec<display_item>;
+type display_list = DVec<display_item>;

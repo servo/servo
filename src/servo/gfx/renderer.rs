@@ -19,7 +19,7 @@ import azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
 
 import pipes::{port, chan};
 
-type Renderer = comm::chan<Msg>;
+type Renderer = comm::Chan<Msg>;
 
 enum Msg {
     RenderMsg(dl::display_list),
@@ -35,11 +35,11 @@ FIXME: Change this name to Compositor.
 trait Sink {
     fn begin_drawing(+next_dt: pipes::chan<AzDrawTargetRef>);
     fn draw(+next_dt: pipes::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef);
-    fn add_event_listener(listener: comm::chan<Event>);
+    fn add_event_listener(listener: comm::Chan<Event>);
 }
 
-fn Renderer<S: Sink send copy>(sink: S) -> comm::chan<Msg> {
-    do task::spawn_listener |po: comm::port<Msg>| {
+fn Renderer<S: Sink send copy>(sink: S) -> comm::Chan<Msg> {
+    do task::spawn_listener |po: comm::Port<Msg>| {
         let (draw_target_ch, draw_target_po) = pipes::stream();
         let mut draw_target_ch = draw_target_ch;
         let mut draw_target_po = draw_target_po;

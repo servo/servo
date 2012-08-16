@@ -8,25 +8,25 @@ import azure::cairo;
 import azure::cairo::bindgen::*;
 import azure::cairo_hl::ImageSurface;
 import comm::*;
-import dvec::dvec;
+import dvec::{DVec, dvec};
 import azure::cairo::cairo_surface_t;
 import gfx::renderer::Sink;
 import dom::event::{Event, ResizeEvent};
 import layers::ImageLayer;
 import geom::size::Size2D;
 import std::cmp::fuzzy_eq;
-import task::task_builder;
+import task::TaskBuilder;
 import vec::push;
 
 import pipes::chan;
 
-type OSMain = comm::chan<Msg>;
+type OSMain = comm::Chan<Msg>;
 
 enum Msg {
     BeginDrawing(pipes::chan<AzDrawTargetRef>),
     Draw(pipes::chan<AzDrawTargetRef>, AzDrawTargetRef),
     AddKeyHandler(pipes::chan<()>),
-    AddEventListener(comm::chan<Event>),
+    AddEventListener(comm::Chan<Event>),
     Exit
 }
 
@@ -40,8 +40,8 @@ fn OSMain() -> OSMain {
 }
 
 fn mainloop(po: port<Msg>) {
-    let key_handlers: @dvec<pipes::chan<()>> = @dvec();
-    let event_listeners: @dvec<comm::chan<Event>> = @dvec();
+    let key_handlers: @DVec<pipes::chan<()>> = @dvec();
+    let event_listeners: @DVec<comm::Chan<Event>> = @dvec();
 
     glut::init();
     glut::init_display_mode(glut::DOUBLE);
@@ -131,7 +131,7 @@ impl OSMain : Sink {
     fn draw(+next_dt: pipes::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
         self.send(Draw(next_dt, draw_me))
     }
-    fn add_event_listener(listener: comm::chan<Event>) {
+    fn add_event_listener(listener: comm::Chan<Event>) {
         self.send(AddEventListener(listener));
     }
 }
@@ -186,8 +186,8 @@ fn Surface() -> Surface {
 }
 
 #[doc = "A function for spawning into the platform's main thread"]
-fn on_osmain<T: send>(+f: fn~(comm::port<T>)) -> comm::chan<T> {
-    task::task().sched_mode(task::platform_thread).spawn_listener(f)
+fn on_osmain<T: send>(+f: fn~(comm::Port<T>)) -> comm::Chan<T> {
+    task::task().sched_mode(task::PlatformThread).spawn_listener(f)
 }
 
 // #[cfg(target_os = "linux")]

@@ -50,7 +50,7 @@ of the RCU nodes themselves.
 ")];
 
 import core::libc::types::os::arch::c95::size_t;
-import ptr::ptr;
+import ptr::Ptr;
 import vec::push;
 
 export Handle;

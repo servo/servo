@@ -19,7 +19,7 @@ class Engine<S:Sink send copy> {
     let resource_task: ResourceTask;
     let image_cache_task: ImageCacheTask;
     let layout: Layout;
-    let content: comm::chan<content::ControlMsg>;
+    let content: comm::Chan<content::ControlMsg>;
 
     new(+sink: S) {
         self.sink = sink;
@@ -37,7 +37,7 @@ class Engine<S:Sink send copy> {
         self.content = content;
     }
 
-    fn start() -> comm::chan<Msg> {
+    fn start() -> comm::Chan<Msg> {
         do spawn_listener::<Msg> |request| {
             while self.handle_request(request.recv()) {
                 // Go on...

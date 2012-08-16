@@ -9,7 +9,7 @@ import js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, jsval, JS
 import js::{JSPROP_ENUMERATE, JSPROP_SHARED};
 import js::crust::*;
 import js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
-import dvec::dvec;
+import dvec::{DVec, dvec};
 import ptr::null;
 import content::Document;
 import bindings;
@@ -27,7 +27,7 @@ enum NodeKind {
 class ElementData {
     let tag_name: ~str;
     let kind: ~ElementKind;
-    let attrs: dvec<~Attr>;
+    let attrs: DVec<~Attr>;
 
     new(-tag_name: ~str, -kind: ~ElementKind) {
         self.tag_name = tag_name;

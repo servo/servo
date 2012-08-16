@@ -227,7 +227,7 @@ impl CssLexer : CssLexerMethods {
     }
 }
 
-fn parser(input_port: comm::port<ProgressMsg>, state : ParserState) -> CssLexer {
+fn parser(input_port: comm::Port<ProgressMsg>, state : ParserState) -> CssLexer {
     return {
            input_state: {
                mut lookahead: none,
@@ -239,7 +239,7 @@ fn parser(input_port: comm::port<ProgressMsg>, state : ParserState) -> CssLexer 
     };
 }
 
-fn lex_css_from_bytes(+input_port: comm::port<ProgressMsg>, result_chan : chan<Token>) {
+fn lex_css_from_bytes(+input_port: comm::Port<ProgressMsg>, result_chan : chan<Token>) {
     let lexer = parser(input_port, CssElement);
 
     loop {

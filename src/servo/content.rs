@@ -29,7 +29,7 @@ import jsrt = js::rust::rt;
 import js::rust::methods;
 import js::global::{global_class, debug_fns};
 
-import either::{either, left, right};
+import either::{Either, Left, Right};
 
 import dom::bindings::utils::rust_box;
 import js::rust::compartment;
@@ -77,8 +77,8 @@ class Document {
 class Content<S:Sink send copy> {
     let sink: S;
     let layout: Layout;
-    let from_master: comm::port<ControlMsg>;
-    let event_port: comm::port<Event>;
+    let from_master: comm::Port<ControlMsg>;
+    let event_port: comm::Port<Event>;
 
     let scope: NodeScope;
     let jsrt: jsrt;
@@ -111,10 +111,10 @@ class Content<S:Sink send copy> {
         }
     }
 
-    fn handle_msg(msg: either<ControlMsg,Event>) -> bool {
+    fn handle_msg(msg: Either<ControlMsg,Event>) -> bool {
         match msg {
-            left(control_msg) => self.handle_control_msg(control_msg),
-            right(event) => self.handle_event(event)
+            Left(control_msg) => self.handle_control_msg(control_msg),
+            Right(event) => self.handle_event(event)
         }
     }
 

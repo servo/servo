@@ -93,7 +93,7 @@ spawned, collates them, and sends them to the given result channel.
 * `from_parent` - A port on which to receive new links.
 
 "]
-fn css_link_listener(to_parent : comm::chan<Stylesheet>, from_parent : comm::port<CSSMessage>,
+fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Port<CSSMessage>,
                      resource_task: ResourceTask) {
     let mut result_vec = ~[];
 
@@ -124,7 +124,7 @@ fn css_link_listener(to_parent : comm::chan<Stylesheet>, from_parent : comm::por
     to_parent.send(css_rules);
 }
 
-fn js_script_listener(to_parent : comm::chan<~[~[u8]]>, from_parent : comm::port<js_message>,
+fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port<js_message>,
                       resource_task: ResourceTask) {
     let mut result_vec = ~[];
 
@@ -169,8 +169,8 @@ fn js_script_listener(to_parent : comm::chan<~[~[u8]]>, from_parent : comm::port
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-fn build_dom(scope: NodeScope, stream: comm::port<Token>, url: url,
-             resource_task: ResourceTask) -> (Node, comm::port<Stylesheet>, comm::port<~[~[u8]]>) {
+fn build_dom(scope: NodeScope, stream: comm::Port<Token>, url: url,
+             resource_task: ResourceTask) -> (Node, comm::Port<Stylesheet>, comm::Port<~[~[u8]]>) {
     // The current reference node.
     let mut cur_node = scope.new_node(Element(ElementData(~"html", ~HTMLDivElement)));
     // We will spawn a separate task to parse any css that is

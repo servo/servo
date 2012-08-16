@@ -4,7 +4,7 @@ import base::{Box, BTree, ImageHolder, TextBoxKind};
 import dl = display_list;
 import dom::base::{Text, NodeScope};
 import dom::rcu::Scope;
-import either::{left, right};
+import either::{Left, Right};
 import geom::point::Point2D;
 import geom::rect::Rect;
 import geom::size::Size2D;

@@ -68,7 +68,7 @@ fn run_pipeline_png(-url: ~str, outfile: ~str) {
     import gfx::pngsink;
     import pngsink::PngSink;
     import result::{ok, err};
-    import io::{writer, buffered_file_writer};
+    import io::{Writer, buffered_file_writer};
 
     listen(|pngdata_from_sink| {
         let sink = PngSink(pngdata_from_sink);
