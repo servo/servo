@@ -1,6 +1,6 @@
 export factory;
 
-import comm::chan;
+import comm::Chan;
 import task::spawn;
 import resource_task::{ProgressMsg, Payload, Done};
 import std::net::url::url;
@@ -9,7 +9,7 @@ import result::{result, ok, err};
 
 const READ_SIZE: uint = 1024;
 
-fn factory(+url: url, progress_chan: chan<ProgressMsg>) {
+fn factory(+url: url, progress_chan: Chan<ProgressMsg>) {
     assert url.scheme == ~"file";
 
     do spawn {

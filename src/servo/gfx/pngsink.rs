@@ -20,7 +20,7 @@ import cairo_bg::{cairo_image_surface_create, cairo_surface_destroy,
                   cairo_surface_write_to_png_stream};
 import renderer::{Renderer, Sink, RenderMsg};
 import task::spawn_listener;
-import comm::{chan, port};
+import comm::{Chan, Port, chan, port};
 import unsafe::reinterpret_cast;
 import vec_from_buf = vec::unsafe::from_buf;
 import ptr::addr_of;
@@ -28,7 +28,7 @@ import dom::event::Event;
 import dvec::dvec;
 import layout::display_list::display_list;
 
-type PngSink = chan<Msg>;
+type PngSink = Chan<Msg>;
 
 enum Msg {
     BeginDrawing(pipes::chan<AzDrawTargetRef>),
@@ -36,20 +36,20 @@ enum Msg {
     Exit
 }
 
-impl chan<Msg> : Sink {
+impl Chan<Msg> : Sink {
     fn begin_drawing(+next_dt: pipes::chan<AzDrawTargetRef>) {
         self.send(BeginDrawing(next_dt))
     }
     fn draw(+next_dt: pipes::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
         self.send(Draw(next_dt, draw_me))
     }
-    fn add_event_listener(_listener: chan<Event>) {
+    fn add_event_listener(_listener: Chan<Event>) {
         // No events in this sink.
     }
 }
 
-fn PngSink(output: chan<~[u8]>) -> PngSink {
-    do spawn_listener |po: port<Msg>| {
+fn PngSink(output: Chan<~[u8]>) -> PngSink {
+    do spawn_listener |po: Port<Msg>| {
         let cairo_surface = ImageSurface(CAIRO_FORMAT_ARGB32, 800, 600);
         let draw_target = DrawTarget(cairo_surface);
 
@@ -71,7 +71,7 @@ fn PngSink(output: chan<~[u8]>) -> PngSink {
 
 fn do_draw(sender: pipes::chan<AzDrawTargetRef>,
            dt: AzDrawTargetRef,
-           output: chan<~[u8]>,
+           output: Chan<~[u8]>,
            cairo_surface: ImageSurface) {
     let buffer = io::mem_buffer();
     cairo_surface.write_to_png_stream(&buffer);

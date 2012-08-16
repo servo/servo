@@ -3,7 +3,7 @@
 import option::is_none;
 import str::from_bytes;
 import vec::push;
-import comm::port;
+import comm::Port;
 import resource::resource_task::{ProgressMsg, Payload, Done};
 
 enum CharOrEof {
@@ -14,7 +14,7 @@ enum CharOrEof {
 type InputState = {
     mut lookahead: option<CharOrEof>,
     mut buffer: ~[u8],
-    input_port: port<ProgressMsg>,
+    input_port: Port<ProgressMsg>,
     mut eof: bool
 };
 

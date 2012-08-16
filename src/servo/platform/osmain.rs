@@ -39,7 +39,7 @@ fn OSMain() -> OSMain {
     }
 }
 
-fn mainloop(po: port<Msg>) {
+fn mainloop(po: Port<Msg>) {
     let key_handlers: @DVec<pipes::chan<()>> = @dvec();
     let event_listeners: @DVec<comm::Chan<Event>> = @dvec();
 

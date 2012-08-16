@@ -16,11 +16,11 @@ import style::apply::apply_style;
 import task::*;
 import comm::*;
 
-type Layout = chan<Msg>;
+type Layout = Chan<Msg>;
 
 enum Msg {
     BuildMsg(Node, arc<Stylesheet>, url),
-    PingMsg(chan<content::PingMsg>),
+    PingMsg(Chan<content::PingMsg>),
     ExitMsg
 }
 

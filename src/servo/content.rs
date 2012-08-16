@@ -10,7 +10,7 @@ export create_content;
 export Document;
 
 import std::arc::{arc, clone};
-import comm::{port, chan, listen, select2};
+import comm::{Port, Chan, port, chan, listen, select2};
 import task::{spawn, spawn_listener};
 import io::{read_whole_file, println};
 import result::{ok, err};
@@ -88,7 +88,7 @@ class Content<S:Sink send copy> {
 
     let resource_task: ResourceTask;
 
-    new(layout: Layout, sink: S, from_master: port<ControlMsg>, resource_task: ResourceTask) {
+    new(layout: Layout, sink: S, from_master: Port<ControlMsg>, resource_task: ResourceTask) {
         self.layout = layout;
         self.sink = sink;
         self.from_master = from_master;
@@ -219,7 +219,7 @@ class Content<S:Sink send copy> {
     }
 }
 
-fn create_content<S: Sink send copy>(layout: Layout, sink: S, resource_task: ResourceTask) -> chan<ControlMsg> {
+fn create_content<S: Sink send copy>(layout: Layout, sink: S, resource_task: ResourceTask) -> Chan<ControlMsg> {
     do spawn_listener::<ControlMsg> |from_master| {
         Content(layout, sink, from_master, resource_task).start();
     }

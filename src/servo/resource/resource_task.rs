@@ -8,7 +8,7 @@ export ControlMsg, Load, Exit;
 export ProgressMsg, Payload, Done;
 export ResourceTask, ResourceManager, LoaderTaskFactory;
 
-import comm::{chan, port};
+import comm::{Chan, Port, chan, port};
 import task::{spawn, spawn_listener};
 import std::net::url;
 import std::net::url::url;
@@ -16,7 +16,7 @@ import result::{result, ok, err};
 
 enum ControlMsg {
     /// Request the data associated with a particular URL
-    Load(url, chan<ProgressMsg>),
+    Load(url, Chan<ProgressMsg>),
     Exit
 }
 
@@ -29,7 +29,7 @@ enum ProgressMsg {
 }
 
 /// Handle to a resource task
-type ResourceTask = chan<ControlMsg>;
+type ResourceTask = Chan<ControlMsg>;
 
 /**
 Creates a task to load a specific resource
@@ -37,7 +37,7 @@ Creates a task to load a specific resource
 The ResourceManager delegates loading to a different type of loader task for
 each URL scheme
 */
-type LoaderTaskFactory = fn~(+url: url, chan<ProgressMsg>);
+type LoaderTaskFactory = fn~(+url: url, Chan<ProgressMsg>);
 
 /// Create a ResourceTask with the default loaders
 fn ResourceTask() -> ResourceTask {
@@ -56,11 +56,11 @@ fn create_resource_task_with_loaders(+loaders: ~[(~str, LoaderTaskFactory)]) -> 
 }
 
 class ResourceManager {
-    let from_client: port<ControlMsg>;
+    let from_client: Port<ControlMsg>;
     /// Per-scheme resource loaders
     let loaders: ~[(~str, LoaderTaskFactory)];
 
-    new(from_client: port<ControlMsg>, -loaders: ~[(~str, LoaderTaskFactory)]) {
+    new(from_client: Port<ControlMsg>, -loaders: ~[(~str, LoaderTaskFactory)]) {
         self.from_client = from_client;
         self.loaders = loaders;
     }
@@ -78,7 +78,7 @@ class ResourceManager {
         }
     }
 
-    fn load(+url: url, progress_chan: chan<ProgressMsg>) {
+    fn load(+url: url, progress_chan: Chan<ProgressMsg>) {
 
         match self.get_loader_factory(url) {
           some(loader_factory) => {
@@ -125,7 +125,7 @@ fn test_bad_scheme() {
 #[allow(non_implicitly_copyable_typarams)]
 fn should_delegate_to_scheme_loader() {
     let payload = ~[1, 2, 3];
-    let loader_factory = fn~(+_url: url, progress_chan: chan<ProgressMsg>, copy payload) {
+    let loader_factory = fn~(+_url: url, progress_chan: Chan<ProgressMsg>, copy payload) {
         progress_chan.send(Payload(copy payload));
         progress_chan.send(Done(ok(())));
     };

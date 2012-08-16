@@ -7,7 +7,7 @@ export ImageCacheTaskClient;
 import image::base::{Image, load_from_memory, test_image_bin};
 import std::net::url::url;
 import util::url::{make_url, UrlMap, url_map};
-import comm::{chan, port};
+import comm::{Chan, Port, chan, port};
 import task::{spawn, spawn_listener};
 import resource::resource_task;
 import resource_task::ResourceTask;
@@ -26,7 +26,7 @@ enum Msg {
     /*priv*/ StorePrefetchedImageData(url, result<Cell<~[u8]>, ()>),
 
     /// Request an Image object for a URL
-    GetImage(url, chan<ImageResponseMsg>),
+    GetImage(url, Chan<ImageResponseMsg>),
 
     /// Used by the decoder tasks to post decoded images back to the cache
     /*priv*/ StoreImage(url, arc<~Image>),
@@ -35,7 +35,7 @@ enum Msg {
     /*priv*/ OnMsg(fn~(msg: &Msg)),
 
     /// Clients must wait for a response before shutting down the ResourceTask
-    Exit(chan<()>)
+    Exit(Chan<()>)
 }
 
 enum ImageResponseMsg {
@@ -43,7 +43,7 @@ enum ImageResponseMsg {
     ImageNotReady
 }
 
-type ImageCacheTask = chan<Msg>;
+type ImageCacheTask = Chan<Msg>;
 
 fn image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
     do spawn_listener |from_client| {
@@ -60,10 +60,10 @@ struct ImageCache {
     /// A handle to the resource task for fetching the image binaries
     resource_task: ResourceTask;
     /// The port on which we'll receive client requests
-    from_client: port<Msg>;
+    from_client: Port<Msg>;
     /// The state of processsing an image for a URL
     state_map: UrlMap<ImageState>;
-    mut need_exit: option<chan<()>>;
+    mut need_exit: option<Chan<()>>;
 }
 
 enum ImageState {
@@ -76,7 +76,7 @@ enum ImageState {
 }
 
 struct FutureData {
-    mut waiters: ~[chan<ImageResponseMsg>];
+    mut waiters: ~[Chan<ImageResponseMsg>];
 }
 
 #[allow(non_implicitly_copyable_typarams)]
@@ -203,7 +203,7 @@ impl ImageCache {
         }
     }
 
-    /*priv*/ fn get_image(+url: url, response: chan<ImageResponseMsg>) {
+    /*priv*/ fn get_image(+url: url, response: Chan<ImageResponseMsg>) {
 
         match self.get_state(copy url) {
           Init => fail ~"Request for image before prefetch",
@@ -323,7 +323,7 @@ fn should_exit_on_request() {
     let mock_resource_task = do spawn_listener |from_client| {
 
         // infer me
-        let from_client: port<resource_task::ControlMsg> = from_client;
+        let from_client: Port<resource_task::ControlMsg> = from_client;
 
         loop {
             match from_client.recv() {
@@ -363,7 +363,7 @@ fn should_request_url_from_resource_task_on_prefetch() {
     let mock_resource_task = do spawn_listener |from_client| {
 
         // infer me
-        let from_client: port<resource_task::ControlMsg> = from_client;
+        let from_client: Port<resource_task::ControlMsg> = from_client;
 
         loop {
             match from_client.recv() {
@@ -393,7 +393,7 @@ fn should_not_request_url_from_resource_task_on_multiple_prefetches() {
     let mock_resource_task = do spawn_listener |from_client| {
 
         // infer me
-        let from_client: port<resource_task::ControlMsg> = from_client;
+        let from_client: Port<resource_task::ControlMsg> = from_client;
 
         loop {
             match from_client.recv() {
@@ -425,7 +425,7 @@ fn should_return_image_not_ready_if_data_has_not_arrived() {
     let mock_resource_task = do spawn_listener |from_client| {
 
         // infer me
-        let from_client: port<resource_task::ControlMsg> = from_client;
+        let from_client: Port<resource_task::ControlMsg> = from_client;
 
         loop {
             match from_client.recv() {
@@ -458,7 +458,7 @@ fn should_return_decoded_image_data_if_data_has_arrived() {
     let mock_resource_task = do spawn_listener |from_client| {
 
         // infer me
-        let from_client: port<resource_task::ControlMsg> = from_client;
+        let from_client: Port<resource_task::ControlMsg> = from_client;
 
         loop {
             match from_client.recv() {
@@ -506,7 +506,7 @@ fn should_return_decoded_image_data_for_multiple_requests() {
     let mock_resource_task = do spawn_listener |from_client| {
 
         // infer me
-        let from_client: port<resource_task::ControlMsg> = from_client;
+        let from_client: Port<resource_task::ControlMsg> = from_client;
 
         loop {
             match from_client.recv() {
@@ -562,7 +562,7 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
     let mock_resource_task = do spawn_listener |from_client| {
 
         // infer me
-        let from_client: port<resource_task::ControlMsg> = from_client;
+        let from_client: Port<resource_task::ControlMsg> = from_client;
 
         loop {
             match from_client.recv() {
@@ -633,7 +633,7 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
     let mock_resource_task = do spawn_listener |from_client| {
 
         // infer me
-        let from_client: port<resource_task::ControlMsg> = from_client;
+        let from_client: Port<resource_task::ControlMsg> = from_client;
 
         loop {
             match from_client.recv() {
@@ -684,7 +684,7 @@ fn should_return_not_ready_if_image_bin_cannot_be_fetched() {
     let mock_resource_task = do spawn_listener |from_client| {
 
         // infer me
-        let from_client: port<resource_task::ControlMsg> = from_client;
+        let from_client: Port<resource_task::ControlMsg> = from_client;
 
         loop {
             match from_client.recv() {
@@ -733,7 +733,7 @@ fn should_return_not_ready_for_multiple_get_image_requests_if_image_bin_cannot_b
     let mock_resource_task = do spawn_listener |from_client| {
 
         // infer me
-        let from_client: port<resource_task::ControlMsg> = from_client;
+        let from_client: Port<resource_task::ControlMsg> = from_client;
 
         loop {
             match from_client.recv() {

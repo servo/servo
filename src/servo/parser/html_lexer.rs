@@ -1,4 +1,4 @@
-import comm::{port, chan};
+import comm::{Port, Chan, port, chan};
 import dom::style;
 import option::is_none;
 import str::from_bytes;
@@ -166,7 +166,7 @@ impl HtmlLexer : HtmlLexerMethods {
     }
 }
 
-fn lexer(+input_port: port<resource_task::ProgressMsg>, state : ParseState) -> HtmlLexer {
+fn lexer(+input_port: Port<resource_task::ProgressMsg>, state : ParseState) -> HtmlLexer {
     return {
            input_state: {
                mut lookahead: none,
@@ -179,7 +179,7 @@ fn lexer(+input_port: port<resource_task::ProgressMsg>, state : ParseState) -> H
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-fn spawn_html_lexer_task(-url: url, resource_task: ResourceTask) -> port<Token> {
+fn spawn_html_lexer_task(-url: url, resource_task: ResourceTask) -> Port<Token> {
     let html_port = port();
     let html_chan = chan(html_port);
 
