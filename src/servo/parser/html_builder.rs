@@ -13,7 +13,7 @@ import vec::{push, push_all_move, flat_map};
 import std::net::url::url;
 import resource::resource_task::{ResourceTask, Load, Payload, Done};
 import result::{ok, err};
-import to_str::to_str;
+import to_str::ToStr;
 
 enum CSSMessage {
     File(url),

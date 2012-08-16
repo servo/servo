@@ -102,7 +102,7 @@ mod make_url_tests {
 type UrlMap<T: copy> = hashmap<url, T>;
 
 fn url_map<T: copy>() -> UrlMap<T> {
-    import core::to_str::to_str;
+    import core::to_str::ToStr;
 
     hashmap::<url, T>(|a| str::hash(&a.to_str()),
                       |a, b| str::eq(&a.to_str(), &b.to_str()))

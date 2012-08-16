@@ -15,7 +15,7 @@ import std::arc::arc;
 import clone_arc = std::arc::clone;
 import std::cell::Cell;
 import result::{result, ok, err};
-import to_str::to_str;
+import to_str::ToStr;
 
 enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted

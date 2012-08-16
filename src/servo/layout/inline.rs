@@ -6,7 +6,7 @@ import dom::style::{Auto, Px};
 import geom::point::Point2D;
 import geom::size::Size2D;
 import gfx::geometry::{au, px_to_au};
-import num::num;
+import num::Num;
 import util::tree;
 
 trait InlineLayout {

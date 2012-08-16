@@ -1,11 +1,11 @@
 import geom::point::Point2D;
 import geom::rect::Rect;
 import geom::size::Size2D;
-import num::num;
+import num::Num;
 
 enum au = int;
 
-impl au : num {
+impl au : Num {
     pure fn add(&&other: au) -> au       { au(*self + *other) }
     pure fn sub(&&other: au) -> au       { au(*self - *other) }
     pure fn mul(&&other: au) -> au       { au(*self * *other) }
@@ -17,7 +17,7 @@ impl au : num {
     pure fn from_int(n: int) -> au       { au(n)              }
 }
 
-fn box<A:copy num>(x: A, y: A, w: A, h: A) -> Rect<A> {
+fn box<A:copy Num>(x: A, y: A, w: A, h: A) -> Rect<A> {
     Rect(Point2D(x, y), Size2D(w, h))
 }
 

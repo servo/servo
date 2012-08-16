@@ -19,7 +19,7 @@ import vec::{push, push_all};
 import std::net::url::url;
 import resource::image_cache_task;
 import image_cache_task::ImageCacheTask;
-import core::to_str::to_str;
+import core::to_str::ToStr;
 import std::arc::{arc, clone};
 
 enum BoxKind {

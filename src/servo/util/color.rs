@@ -7,11 +7,11 @@
 import float::round;
 import libc::types::os::arch::c95::c_double;
 import css_colors::*;
-import cmp::eq;
+import cmp::Eq;
 
 enum Color = {red : u8, green : u8, blue : u8, alpha : float};
 
-impl Color : eq {
+impl Color : Eq {
     pure fn eq(&&other: Color) -> bool {
         return self.red == other.red && self.green == other.green && self.blue == other.blue &&
                self.alpha == other.alpha;

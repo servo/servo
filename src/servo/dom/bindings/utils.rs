@@ -13,7 +13,7 @@ enum DOMString {
     null_string
 }
 
-type rust_box<T> = {rc: uint, td: *sys::type_desc, next: *(), prev: *(), payload: T};
+type rust_box<T> = {rc: uint, td: *sys::TypeDesc, next: *(), prev: *(), payload: T};
 
 unsafe fn squirrel_away<T>(+x: @T) -> *rust_box<T> {
     let y: *rust_box<T> = unsafe::reinterpret_cast(x);
