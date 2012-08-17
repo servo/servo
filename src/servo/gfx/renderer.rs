@@ -12,7 +12,8 @@ import dom::event::{Event, ResizeEvent};
 import geom::size::Size2D;
 import geom::rect::Rect;
 import geom::point::Point2D;
-import azure_hl::{AsAzureRect, Color, ColorPattern, DrawTarget};
+import azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions};
+import azure_hl::{DrawTarget, Linear};
 import ptr::addr_of;
 import std::arc::arc;
 import azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
@@ -102,25 +103,27 @@ fn draw_display_list(azure_draw_target: AzDrawTargetRef, display_list: dl::displ
     }
 }
 
+trait ToAzureRect {
+    fn to_azure_rect() -> Rect<AzFloat>;
+}
+
+impl Rect<au> : ToAzureRect {
+    fn to_azure_rect() -> Rect<AzFloat> {
+        Rect(Point2D(au_to_px(self.origin.x) as AzFloat, au_to_px(self.origin.y) as AzFloat),
+             Size2D(au_to_px(self.size.width) as AzFloat, au_to_px(self.size.height) as AzFloat))
+    }
+}
+
 fn draw_solid_color(draw_target: &DrawTarget, item: dl::display_item, r: u8, g: u8, b: u8) {
     let color = Color(r.to_float() as AzFloat,
                       g.to_float() as AzFloat,
                       b.to_float() as AzFloat,
                       1f as AzFloat);
 
-    let pattern = ColorPattern(color);
-
-    let rect = Rect(Point2D(au_to_px(item.bounds.origin.x) as AzFloat,
-                            au_to_px(item.bounds.origin.y) as AzFloat),
-                    Size2D(au_to_px(item.bounds.size.width) as AzFloat,
-                           au_to_px(item.bounds.size.height) as AzFloat));
-
-    draw_target.fill_rect(rect, pattern);
+    draw_target.fill_rect(item.bounds.to_azure_rect(), ColorPattern(color));
 }
 
 fn draw_image(draw_target: &DrawTarget, item: dl::display_item, image: arc<~Image>) unsafe {
-    let draw_target = draw_target.azure_draw_target;
-
     let image = std::arc::get(&image);
     let size = Size2D(image.width as i32, image.height as i32);
     let stride = image.width * 4;
@@ -138,27 +141,15 @@ fn draw_image(draw_target: &DrawTarget, item: dl::display_item, image: arc<~Imag
         }
     };
 
-    let azure_surface =
-        AzDrawTargetCreateSourceSurfaceFromData(draw_target,
-                                                addr_of(data[0]),
-                                                unsafe::reinterpret_cast(addr_of(size)),
-                                                stride as i32,
-                                                0u32);
-    let source_rect = Rect(Point2D(0.0f as AzFloat, 0.0f as AzFloat),
+    let azure_surface = draw_target.create_source_surface_from_data(data, size, stride as i32,
+                                                                    B8G8R8A8);
+    let source_rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat),
                            Size2D(image.width as AzFloat, image.height as AzFloat));
-    let dest_rect = Rect(Point2D(au_to_px(item.bounds.origin.x) as AzFloat,
-                                 au_to_px(item.bounds.origin.y) as AzFloat),
-                         Size2D(au_to_px(item.bounds.size.width) as AzFloat,
-                                au_to_px(item.bounds.size.height) as AzFloat));
-    let draw_surface_options = azure_hl::DrawSurfaceOptions(azure_hl::Linear, true);
-    let draw_options = azure_hl::DrawOptions(1.0f as AzFloat, 0);
-    AzDrawTargetDrawSurface(draw_target,
-                            azure_surface,
-                            addr_of(dest_rect.as_azure_rect()),
-                            addr_of(source_rect.as_azure_rect()),
-                            addr_of(draw_surface_options.as_azure_draw_surface_options()),
-                            addr_of(draw_options.as_azure_draw_options()));
-    AzReleaseSourceSurface(azure_surface);
+    let dest_rect = item.bounds.to_azure_rect();
+    let draw_surface_options = DrawSurfaceOptions(Linear, true);
+    let draw_options = DrawOptions(1.0f as AzFloat, 0);
+    draw_target.draw_surface(azure_surface, dest_rect, source_rect, draw_surface_options,
+                             draw_options);
 }
 
 fn draw_text(draw_target: &DrawTarget, item: dl::display_item, text_run: TextRun) {
