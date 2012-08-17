@@ -419,21 +419,28 @@ fn default_decoder_factory() -> ~fn(~[u8]) -> option<Image> {
     fn~(data: ~[u8]) -> option<Image> { load_from_memory(data) }
 }
 
-#[test]
-fn should_exit_on_request() {
-
-    let mock_resource_task = do spawn_listener |from_client| {
+#[cfg(test)]
+fn mock_resource_task(+on_load: ~fn(resource: Chan<resource_task::ProgressMsg>)) -> ResourceTask {
+    do spawn_listener |from_client, move on_load| {
 
         // infer me
         let from_client: Port<resource_task::ControlMsg> = from_client;
 
         loop {
             match from_client.recv() {
-              resource_task::Exit => break,
-              _ => ()
+              resource_task::Load(_, response) => {
+                on_load(response);
+              }
+              resource_task::Exit => break
             }
         }
-    };
+    }
+}
+
+#[test]
+fn should_exit_on_request() {
+
+    let mock_resource_task = mock_resource_task(|_response| () );
 
     let image_cache_task = image_cache_task(mock_resource_task);
     let _url = make_url(~"file", none);
@@ -446,8 +453,7 @@ fn should_exit_on_request() {
 #[should_fail]
 fn should_fail_if_unprefetched_image_is_requested() {
 
-    let mock_resource_task = do spawn_listener |_from_client| {
-    };
+    let mock_resource_task = mock_resource_task(|_response| () );
 
     let image_cache_task = image_cache_task(mock_resource_task);
     let url = make_url(~"file", none);
@@ -462,20 +468,9 @@ fn should_request_url_from_resource_task_on_prefetch() {
     let url_requested = port();
     let url_requested_chan = url_requested.chan();
 
-    let mock_resource_task = do spawn_listener |from_client| {
-
-        // infer me
-        let from_client: Port<resource_task::ControlMsg> = from_client;
-
-        loop {
-            match from_client.recv() {
-              resource_task::Load(url, response) => {
-                url_requested_chan.send(());
-                response.send(resource_task::Done(result::ok(())));
-              }
-              resource_task::Exit => break
-            }
-        }
+    let mock_resource_task = do mock_resource_task |response| {
+        url_requested_chan.send(());
+        response.send(resource_task::Done(result::ok(())));
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
@@ -492,8 +487,7 @@ fn should_request_url_from_resource_task_on_prefetch() {
 #[should_fail]
 fn should_fail_if_requesting_decode_of_an_unprefetched_image() {
 
-    let mock_resource_task = do spawn_listener |_from_client| {
-    };
+    let mock_resource_task = mock_resource_task(|_response| () );
 
     let image_cache_task = image_cache_task(mock_resource_task);
     let url = make_url(~"file", none);
@@ -506,19 +500,8 @@ fn should_fail_if_requesting_decode_of_an_unprefetched_image() {
 #[should_fail]
 fn should_fail_if_requesting_image_before_requesting_decode() {
 
-    let mock_resource_task = do spawn_listener |from_client| {
-
-        // infer me
-        let from_client: Port<resource_task::ControlMsg> = from_client;
-
-        loop {
-            match from_client.recv() {
-              resource_task::Load(url, response) => {
-                response.send(resource_task::Done(result::ok(())));
-              }
-              resource_task::Exit => break
-            }
-        }
+    let mock_resource_task = do mock_resource_task |response| {
+        response.send(resource_task::Done(result::ok(())));
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
@@ -539,20 +522,9 @@ fn should_not_request_url_from_resource_task_on_multiple_prefetches() {
     let url_requested = port();
     let url_requested_chan = url_requested.chan();
 
-    let mock_resource_task = do spawn_listener |from_client| {
-
-        // infer me
-        let from_client: Port<resource_task::ControlMsg> = from_client;
-
-        loop {
-            match from_client.recv() {
-              resource_task::Load(url, response) => {
-                url_requested_chan.send(());
-                response.send(resource_task::Done(result::ok(())));
-              }
-              resource_task::Exit => break
-            }
-        }
+    let mock_resource_task = do mock_resource_task |response| {
+        url_requested_chan.send(());
+        response.send(resource_task::Done(result::ok(())));
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
@@ -571,23 +543,12 @@ fn should_return_image_not_ready_if_data_has_not_arrived() {
 
     let (wait_chan, wait_port) = pipes::stream();
 
-    let mock_resource_task = do spawn_listener |from_client| {
-
-        // infer me
-        let from_client: Port<resource_task::ControlMsg> = from_client;
-
-        loop {
-            match from_client.recv() {
-              resource_task::Load(url, response) => {
-                // Don't send the data until after the client requests
-                // the image
-                wait_port.recv();
-                response.send(resource_task::Payload(test_image_bin()));
-                response.send(resource_task::Done(result::ok(())));
-              }
-              resource_task::Exit => break,
-            }
-        }
+    let mock_resource_task = do mock_resource_task |response| {
+        // Don't send the data until after the client requests
+        // the image
+        wait_port.recv();
+        response.send(resource_task::Payload(test_image_bin()));
+        response.send(resource_task::Done(result::ok(())));
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
@@ -606,20 +567,9 @@ fn should_return_image_not_ready_if_data_has_not_arrived() {
 #[test]
 fn should_return_decoded_image_data_if_data_has_arrived() {
 
-    let mock_resource_task = do spawn_listener |from_client| {
-
-        // infer me
-        let from_client: Port<resource_task::ControlMsg> = from_client;
-
-        loop {
-            match from_client.recv() {
-              resource_task::Load(_, response) => {
-                response.send(resource_task::Payload(test_image_bin()));
-                response.send(resource_task::Done(result::ok(())));
-              }
-              resource_task::Exit => break
-            }
-        }
+    let mock_resource_task = do mock_resource_task |response| {
+        response.send(resource_task::Payload(test_image_bin()));
+        response.send(resource_task::Done(result::ok(())));
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
@@ -655,20 +605,9 @@ fn should_return_decoded_image_data_if_data_has_arrived() {
 #[test]
 fn should_return_decoded_image_data_for_multiple_requests() {
 
-    let mock_resource_task = do spawn_listener |from_client| {
-
-        // infer me
-        let from_client: Port<resource_task::ControlMsg> = from_client;
-
-        loop {
-            match from_client.recv() {
-              resource_task::Load(_, response) => {
-                response.send(resource_task::Payload(test_image_bin()));
-                response.send(resource_task::Done(result::ok(())));
-              }
-              resource_task::Exit => break
-            }
-        }
+    let mock_resource_task = do mock_resource_task |response| {
+        response.send(resource_task::Payload(test_image_bin()));
+        response.send(resource_task::Done(result::ok(())));
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
@@ -735,35 +674,12 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
     let image_cache_task = image_cache_task(mock_resource_task);
     let url = make_url(~"file", none);
 
-    let wait_for_image = port();
-    let wait_for_image_chan = wait_for_image.chan();
-
-    image_cache_task.send(OnMsg(|msg| {
-        match *msg {
-          StoreImage(*) => wait_for_image_chan.send(()),
-          _ => ()
-        }
-    }));
-
     image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
 
     // Wait until our mock resource task has sent the image to the image cache
     image_bin_sent.recv();
-    wait_for_image.recv();
-
-    let response_port = port();
-    image_cache_task.send(GetImage(copy url, response_port.chan()));
-    match response_port.recv() {
-      ImageReady(_) => (),
-      _ => fail
-    }
 
     image_cache_task.send(Prefetch(copy url));
-
-    let response_port = port();
-    image_cache_task.send(GetImage(url, response_port.chan()));
-    response_port.recv();
 
     image_cache_task.exit();
     mock_resource_task.send(resource_task::Exit);
@@ -813,16 +729,8 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
     // Wait until our mock resource task has sent the image to the image cache
     image_bin_sent.recv();
 
-    let response_port = port();
-    image_cache_task.send(GetImage(copy url, response_port.chan()));
-    response_port.recv();
-
     image_cache_task.send(Prefetch(copy url));
     image_cache_task.send(Decode(copy url));
-
-    let response_port = port();
-    image_cache_task.send(GetImage(url, response_port.chan()));
-    response_port.recv();
 
     image_cache_task.exit();
     mock_resource_task.send(resource_task::Exit);
@@ -837,21 +745,10 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
 #[test]
 fn should_return_failed_if_image_bin_cannot_be_fetched() {
 
-    let mock_resource_task = do spawn_listener |from_client| {
-
-        // infer me
-        let from_client: Port<resource_task::ControlMsg> = from_client;
-
-        loop {
-            match from_client.recv() {
-              resource_task::Load(_, response) => {
-                response.send(resource_task::Payload(test_image_bin()));
-                // ERROR fetching image
-                response.send(resource_task::Done(result::err(())));
-              }
-              resource_task::Exit => break
-            }
-        }
+    let mock_resource_task = do mock_resource_task |response| {
+        response.send(resource_task::Payload(test_image_bin()));
+        // ERROR fetching image
+        response.send(resource_task::Done(result::err(())));
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
@@ -887,21 +784,10 @@ fn should_return_failed_if_image_bin_cannot_be_fetched() {
 #[test]
 fn should_return_failed_for_multiple_get_image_requests_if_image_bin_cannot_be_fetched() {
 
-    let mock_resource_task = do spawn_listener |from_client| {
-
-        // infer me
-        let from_client: Port<resource_task::ControlMsg> = from_client;
-
-        loop {
-            match from_client.recv() {
-              resource_task::Load(_, response) => {
-                response.send(resource_task::Payload(test_image_bin()));
-                // ERROR fetching image
-                response.send(resource_task::Done(result::err(())));
-              }
-              resource_task::Exit => break
-            }
-        }
+    let mock_resource_task = do mock_resource_task |response | {
+        response.send(resource_task::Payload(test_image_bin()));
+        // ERROR fetching image
+        response.send(resource_task::Done(result::err(())));
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
@@ -947,20 +833,9 @@ fn should_return_not_ready_if_image_is_still_decoding() {
 
     let (wait_to_decode_chan, wait_to_decode_port) = pipes::stream();
 
-    let mock_resource_task = do spawn_listener |from_client| {
-
-        // infer me
-        let from_client: Port<resource_task::ControlMsg> = from_client;
-
-        loop {
-            match from_client.recv() {
-              resource_task::Load(_, response) => {
-                response.send(resource_task::Payload(test_image_bin()));
-                response.send(resource_task::Done(result::ok(())));
-              }
-              resource_task::Exit => break
-            }
-        }
+    let mock_resource_task = do mock_resource_task |response| {
+        response.send(resource_task::Payload(test_image_bin()));
+        response.send(resource_task::Done(result::ok(())));
     };
 
     let wait_to_decode_port_cell = Cell(wait_to_decode_port);
@@ -1011,21 +886,10 @@ fn should_return_not_ready_if_image_is_still_decoding() {
 #[test]
 fn should_return_failed_if_image_decode_fails() {
 
-    let mock_resource_task = do spawn_listener |from_client| {
-
-        // infer me
-        let from_client: Port<resource_task::ControlMsg> = from_client;
-
-        loop {
-            match from_client.recv() {
-              resource_task::Load(_, response) => {
-                // Bogus data
-                response.send(resource_task::Payload(~[]));
-                response.send(resource_task::Done(result::ok(())));
-              }
-              resource_task::Exit => break
-            }
-        }
+    let mock_resource_task = do mock_resource_task |response| {
+        // Bogus data
+        response.send(resource_task::Payload(~[]));
+        response.send(resource_task::Done(result::ok(())));
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
@@ -1063,20 +927,9 @@ fn should_return_failed_if_image_decode_fails() {
 #[test]
 fn should_return_image_on_wait_if_image_is_already_loaded() {
 
-    let mock_resource_task = do spawn_listener |from_client| {
-
-        // infer me
-        let from_client: Port<resource_task::ControlMsg> = from_client;
-
-        loop {
-            match from_client.recv() {
-              resource_task::Load(_, response) => {
-                response.send(resource_task::Payload(test_image_bin()));
-                response.send(resource_task::Done(result::ok(())));
-              }
-              resource_task::Exit => break
-            }
-        }
+    let mock_resource_task = do mock_resource_task |response| {
+        response.send(resource_task::Payload(test_image_bin()));
+        response.send(resource_task::Done(result::ok(())));
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
@@ -1114,21 +967,10 @@ fn should_return_image_on_wait_if_image_is_not_yet_loaded() {
 
     let (wait_chan, wait_port) = pipes::stream();
 
-    let mock_resource_task = do spawn_listener |from_client| {
-
-        // infer me
-        let from_client: Port<resource_task::ControlMsg> = from_client;
-
-        loop {
-            match from_client.recv() {
-              resource_task::Load(_, response) => {
-                wait_port.recv();
-                response.send(resource_task::Payload(test_image_bin()));
-                response.send(resource_task::Done(result::ok(())));
-              }
-              resource_task::Exit => break
-            }
-        }
+    let mock_resource_task = do mock_resource_task |response| {
+        wait_port.recv();
+        response.send(resource_task::Payload(test_image_bin()));
+        response.send(resource_task::Done(result::ok(())));
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
@@ -1156,21 +998,10 @@ fn should_return_image_failed_on_wait_if_image_fails_to_load() {
 
     let (wait_chan, wait_port) = pipes::stream();
 
-    let mock_resource_task = do spawn_listener |from_client| {
-
-        // infer me
-        let from_client: Port<resource_task::ControlMsg> = from_client;
-
-        loop {
-            match from_client.recv() {
-              resource_task::Load(_, response) => {
-                wait_port.recv();
-                response.send(resource_task::Payload(test_image_bin()));
-                response.send(resource_task::Done(result::err(())));
-              }
-              resource_task::Exit => break
-            }
-        }
+    let mock_resource_task = do mock_resource_task |response| {
+        wait_port.recv();
+        response.send(resource_task::Payload(test_image_bin()));
+        response.send(resource_task::Done(result::err(())));
     };
 
     let image_cache_task = image_cache_task(mock_resource_task);
