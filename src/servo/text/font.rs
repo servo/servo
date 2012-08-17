@@ -38,7 +38,11 @@ class Font {
     }
 }
 
-fn test_font_bin() -> ~[u8] { #include_bin("JosefinSans-SemiBold.ttf") }
+const TEST_FONT: [u8 * 33004] = #include_bin("JosefinSans-SemiBold.ttf");
+
+fn test_font_bin() -> ~[u8] {
+    return vec::from_fn(33004, |i| TEST_FONT[i]);
+}
 
 fn should_destruct_on_fail_without_leaking() {
     #[test];
