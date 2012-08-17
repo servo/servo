@@ -94,7 +94,12 @@ class ImageHolder {
         self.image_cache_task = image_cache_task;
 
         // Tell the image cache we're going to be interested in this url
-        image_cache_task.send(image_cache_task::Prefetch(move url));
+        // FIXME: These two messages must be sent to prep an image for use
+        // but they are intended to be spread out in time. Ideally prefetch
+        // should be done as early as possible and decode only once we
+        // are sure that the image will be used.
+        image_cache_task.send(image_cache_task::Prefetch(copy url));
+        image_cache_task.send(image_cache_task::Decode(move url));
     }
 
     // This function should not be called by two tasks at the same time
