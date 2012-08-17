@@ -53,7 +53,7 @@ fn Renderer<S: Sink send copy>(sink: S) -> comm::Chan<Msg> {
             match po.recv() {
               RenderMsg(display_list) => {
                 #debug("renderer: got render request");
-                let draw_target = draw_target_po.recv();
+                let azure_draw_target = draw_target_po.recv();
                 let (ch, po) = pipes::stream();
                 let mut draw_target_ch_ = some(ch);
                 draw_target_po = po;
@@ -63,11 +63,13 @@ fn Renderer<S: Sink send copy>(sink: S) -> comm::Chan<Msg> {
                     draw_target_ch_ <-> draw_target_ch;
                     let draw_target_ch = option::unwrap(draw_target_ch);
 
-                    clear(draw_target);
-                    draw_display_list(draw_target, display_list);
+                    let draw_target =
+                        azure_hl::new_draw_target_from_azure_draw_target(azure_draw_target);
+                    clear(&draw_target);
+                    draw_display_list(&draw_target, display_list);
 
                     #debug("renderer: returning surface");
-                    sink.draw(draw_target_ch, draw_target);
+                    sink.draw(draw_target_ch, azure_draw_target);
                 }
               }
               ExitMsg(response_ch) => {
@@ -89,15 +91,14 @@ impl u8 : to_float {
     }
 }
 
-fn draw_display_list(azure_draw_target: AzDrawTargetRef, display_list: dl::display_list) {
-    let draw_target = azure_hl::new_draw_target_from_azure_draw_target(azure_draw_target);
+fn draw_display_list(draw_target: &DrawTarget, display_list: dl::display_list) {
     for display_list.each |item| {
         #debug["drawing %?", item];
 
         match item.item_type {
-          dl::display_item_solid_color(r, g, b) => draw_solid_color(&draw_target, item, r, g, b),
-          dl::display_item_image(image) => draw_image(&draw_target, item, *image),
-          dl::display_item_text(text_run) => draw_text(&draw_target, item, text_run),
+          dl::display_item_solid_color(r, g, b) => draw_solid_color(draw_target, item, r, g, b),
+          dl::display_item_image(image) => draw_image(draw_target, item, *image),
+          dl::display_item_text(text_run) => draw_text(draw_target, item, text_run),
           dl::padding(*) => fail ~"should never see padding"
         }
     }
@@ -283,28 +284,8 @@ fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
     return cfont;
 }
 
-fn clear(draw_target: AzDrawTargetRef) {
-
-    let black_color = {
-        r: 0f as AzFloat,
-        g: 0f as AzFloat,
-        b: 0f as AzFloat,
-        a: 1f as AzFloat
-    };
-    let black_pattern = AzCreateColorPattern(ptr::addr_of(black_color));
-
-    let black_rect = {
-        x: 0 as AzFloat,
-        y: 0 as AzFloat,
-        width: 800 as AzFloat,
-        height: 600 as AzFloat,
-    };
-
-    AzDrawTargetFillRect(
-        draw_target,
-        ptr::addr_of(black_rect),
-        unsafe { unsafe::reinterpret_cast(black_pattern) }
-    );
-
-    AzReleaseColorPattern(black_pattern);
+fn clear(draw_target: &DrawTarget) {
+    let pattern = ColorPattern(Color(1f as AzFloat, 1f as AzFloat, 1f as AzFloat, 1f as AzFloat));
+    let rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat), Size2D(800 as AzFloat, 600 as AzFloat));
+    draw_target.fill_rect(rect, pattern);
 }
