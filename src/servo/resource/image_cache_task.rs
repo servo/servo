@@ -48,7 +48,7 @@ enum ImageResponseMsg {
 
 type ImageCacheTask = Chan<Msg>;
 
-type DecoderFactory = ~fn() -> ~fn(~[u8]) -> ~Image;
+type DecoderFactory = ~fn() -> ~fn(~[u8]) -> option<Image>;
 
 fn image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
     image_cache_task_(resource_task, default_decoder_factory)
@@ -250,7 +250,8 @@ impl ImageCache {
             do spawn |move url_cell, move decode| {
                 let url = url_cell.take();
                 #debug("image_cache_task: started image decode for %s", url.to_str());
-                let image = arc(decode(data));
+                let image = decode(data);
+                let image = arc(~option::unwrap(image));
                 to_cache.send(StoreImage(copy url, clone_arc(&image)));
                 #debug("image_cache_task: ended image decode for %s", url.to_str());
             }
@@ -347,8 +348,8 @@ fn load_image_data(+url: url, resource_task: ResourceTask) -> result<~[u8], ()> 
     }
 }
 
-fn default_decoder_factory() -> ~fn(~[u8]) -> ~Image {
-    fn~(data: ~[u8]) -> ~Image { ~load_from_memory(data) }
+fn default_decoder_factory() -> ~fn(~[u8]) -> option<Image> {
+    fn~(data: ~[u8]) -> option<Image> { load_from_memory(data) }
 }
 
 #[test]
@@ -896,12 +897,12 @@ fn should_return_not_ready_if_image_is_still_decoding() {
     };
 
     let wait_to_decode_port_cell = Cell(wait_to_decode_port);
-    let decoder_factory = fn~(move wait_to_decode_port_cell) -> ~fn(~[u8]) -> ~Image {
+    let decoder_factory = fn~(move wait_to_decode_port_cell) -> ~fn(~[u8]) -> option<Image> {
         let wait_to_decode_port = wait_to_decode_port_cell.take();
-        fn~(data: ~[u8], move wait_to_decode_port) -> ~Image {
+        fn~(data: ~[u8], move wait_to_decode_port) -> option<Image> {
             // Don't decode until after the client requests the image
             wait_to_decode_port.recv();
-            ~load_from_memory(data)
+            load_from_memory(data)
         }
     };
 
