@@ -12,7 +12,7 @@ import dom::event::{Event, ResizeEvent};
 import geom::size::Size2D;
 import geom::rect::Rect;
 import geom::point::Point2D;
-import azure_hl::AsAzureRect;
+import azure_hl::{AsAzureRect, Color, ColorPattern, DrawTarget};
 import ptr::addr_of;
 import std::arc::arc;
 import azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
@@ -88,47 +88,39 @@ impl u8 : to_float {
     }
 }
 
-fn draw_display_list(draw_target: AzDrawTargetRef, display_list: dl::display_list) {
+fn draw_display_list(azure_draw_target: AzDrawTargetRef, display_list: dl::display_list) {
+    let draw_target = azure_hl::new_draw_target_from_azure_draw_target(azure_draw_target);
     for display_list.each |item| {
         #debug["drawing %?", item];
 
         match item.item_type {
-          dl::display_item_solid_color(r, g, b) => draw_solid_color(draw_target, item, r, g, b),
-          dl::display_item_image(image) => draw_image(draw_target, item, *image),
-          dl::display_item_text(text_run) => draw_text(draw_target, item, text_run),
+          dl::display_item_solid_color(r, g, b) => draw_solid_color(&draw_target, item, r, g, b),
+          dl::display_item_image(image) => draw_image(&draw_target, item, *image),
+          dl::display_item_text(text_run) => draw_text(&draw_target, item, text_run),
           dl::padding(*) => fail ~"should never see padding"
         }
     }
 }
 
-fn draw_solid_color(draw_target: AzDrawTargetRef, item: dl::display_item,
-                    r: u8, g: u8, b: u8) {
-    let bounds = copy (*item).bounds;
+fn draw_solid_color(draw_target: &DrawTarget, item: dl::display_item, r: u8, g: u8, b: u8) {
+    let color = Color(r.to_float() as AzFloat,
+                      g.to_float() as AzFloat,
+                      b.to_float() as AzFloat,
+                      1f as AzFloat);
 
-    let red_color = {
-        r: r.to_float() as AzFloat,
-        g: g.to_float() as AzFloat,
-        b: b.to_float() as AzFloat,
-        a: 1f as AzFloat
-    };
-    let red_pattern = AzCreateColorPattern(ptr::addr_of(red_color));
+    let pattern = ColorPattern(color);
 
-    let red_rect = {
-        x: au_to_px(bounds.origin.x) as AzFloat,
-        y: au_to_px(bounds.origin.y) as AzFloat,
-        width: au_to_px(bounds.size.width) as AzFloat,
-        height: au_to_px(bounds.size.height) as AzFloat
-    };
-    AzDrawTargetFillRect(
-        draw_target,
-        ptr::addr_of(red_rect),
-        unsafe { unsafe::reinterpret_cast(red_pattern) }
-    );
+    let rect = Rect(Point2D(au_to_px(item.bounds.origin.x) as AzFloat,
+                            au_to_px(item.bounds.origin.y) as AzFloat),
+                    Size2D(au_to_px(item.bounds.size.width) as AzFloat,
+                           au_to_px(item.bounds.size.height) as AzFloat));
 
-    AzReleaseColorPattern(red_pattern);
+    draw_target.fill_rect(rect, pattern);
 }
 
-fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item, image: arc<~Image>) unsafe {
+fn draw_image(draw_target: &DrawTarget, item: dl::display_item, image: arc<~Image>) unsafe {
+    let draw_target = draw_target.azure_draw_target;
+
     let image = std::arc::get(&image);
     let size = Size2D(image.width as i32, image.height as i32);
     let stride = image.width * 4;
@@ -169,8 +161,7 @@ fn draw_image(draw_target: AzDrawTargetRef, item: dl::display_item, image: arc<~
     AzReleaseSourceSurface(azure_surface);
 }
 
-fn draw_text(draw_target: AzDrawTargetRef, item: dl::display_item, text_run: TextRun) {
-
+fn draw_text(draw_target: &DrawTarget, item: dl::display_item, text_run: TextRun) {
     import ptr::{addr_of, null};
     import vec::unsafe::to_ptr;
     import libc::types::common::c99::{uint16_t, uint32_t};
@@ -183,6 +174,8 @@ fn draw_text(draw_target: AzDrawTargetRef, item: dl::display_item, text_run: Tex
                             AzCreateColorPattern,
                             AzReleaseColorPattern};
     import azure::cairo::bindgen::cairo_scaled_font_destroy;
+
+    let draw_target = draw_target.azure_draw_target;
 
     let bounds = copy (*item).bounds;
     // FIXME: The font library should not be created here
