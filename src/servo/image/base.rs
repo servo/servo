@@ -11,8 +11,8 @@ import stb_image::image::{image, load, load_from_memory};
 
 type Image = image;
 
-const TEST_IMAGE: [u8 * 88129] = #include_bin("test.jpeg");
+const TEST_IMAGE: [u8 * 4962] = #include_bin("test.jpeg");
 
 fn test_image_bin() -> ~[u8] {
-    return vec::from_fn(88129, |i| TEST_IMAGE[i]);
+    return vec::from_fn(4962, |i| TEST_IMAGE[i]);
 }
