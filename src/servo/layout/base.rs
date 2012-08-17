@@ -117,7 +117,8 @@ class ImageHolder {
             self.image_cache_task.send(image_cache_task::GetImage(copy url, response_port.chan()));
             self.image = match response_port.recv() {
               image_cache_task::ImageReady(image) => some(clone(&image)),
-              image_cache_task::ImageNotReady => {
+              image_cache_task::ImageNotReady
+              | image_cache_task::ImageFailed => {
                 #info("image was not ready for %s", url.to_str());
                 // FIXME: Need to schedule another layout when the image is ready
                 none

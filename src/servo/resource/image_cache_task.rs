@@ -1,5 +1,5 @@
 export Msg, Prefetch, Decode, GetImage, Exit;
-export ImageResponseMsg, ImageReady, ImageNotReady;
+export ImageResponseMsg, ImageReady, ImageNotReady, ImageFailed;
 export ImageCacheTask;
 export image_cache_task;
 export ImageCacheTaskClient;
@@ -29,7 +29,7 @@ enum Msg {
     Decode(url),
 
     /// Used by the decoder tasks to post decoded images back to the cache
-    /*priv*/ StoreImage(url, arc<~Image>),
+    /*priv*/ StoreImage(url, option<arc<~Image>>),
 
     /// Request an Image object for a URL
     GetImage(url, Chan<ImageResponseMsg>),
@@ -43,7 +43,8 @@ enum Msg {
 
 enum ImageResponseMsg {
     ImageReady(arc<~Image>),
-    ImageNotReady
+    ImageNotReady,
+    ImageFailed
 }
 
 type ImageCacheTask = Chan<Msg>;
@@ -251,8 +252,12 @@ impl ImageCache {
                 let url = url_cell.take();
                 #debug("image_cache_task: started image decode for %s", url.to_str());
                 let image = decode(data);
-                let image = arc(~option::unwrap(image));
-                to_cache.send(StoreImage(copy url, clone_arc(&image)));
+                let image = if image.is_some() {
+                    some(arc(~option::unwrap(image)))
+                } else {
+                    none
+                };
+                to_cache.send(StoreImage(copy url, move image));
                 #debug("image_cache_task: ended image decode for %s", url.to_str());
             }
 
@@ -265,6 +270,31 @@ impl ImageCache {
             // We've already begun decoding
           }
         }
+    }
+
+    /*priv*/ fn store_image(+url: url, image: &option<arc<~Image>>) {
+
+        match self.get_state(copy url) {
+          Decoding => {
+            match *image {
+              some(image) => {
+                self.set_state(url, Decoded(@clone_arc(&image)));
+              }
+              none => {
+                self.set_state(url, Failed);
+              }
+            }
+          }
+
+          Init
+          | Prefetching(*)
+          | Prefetched(*)
+          | Decoded(*)
+          | Failed => {
+            fail ~"incorrect state in store_image"
+          }
+        }
+
     }
 
     /*priv*/ fn get_image(+url: url, response: Chan<ImageResponseMsg>) {
@@ -288,28 +318,11 @@ impl ImageCache {
           }
 
           Failed => {
-            response.send(ImageNotReady);
+            response.send(ImageFailed);
           }
         }
     }
 
-    /*priv*/ fn store_image(+url: url, image: &arc<~Image>) {
-
-        match self.get_state(copy url) {
-          Decoding => {
-            self.set_state(url, Decoded(@clone_arc(image)));
-          }
-
-          Init
-          | Prefetching(*)
-          | Prefetched(*)
-          | Decoded(*)
-          | Failed => {
-            fail ~"incorrect state in store_image"
-          }
-        }
-
-    }
 }
 
 
@@ -768,7 +781,7 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
 }
 
 #[test]
-fn should_return_not_ready_if_image_bin_cannot_be_fetched() {
+fn should_return_failed_if_image_bin_cannot_be_fetched() {
 
     let mock_resource_task = do spawn_listener |from_client| {
 
@@ -809,7 +822,7 @@ fn should_return_not_ready_if_image_bin_cannot_be_fetched() {
     let response_port = port();
     image_cache_task.send(GetImage(url, response_port.chan()));
     match response_port.recv() {
-      ImageNotReady => (),
+      ImageFailed => (),
       _ => fail
     }
 
@@ -818,7 +831,7 @@ fn should_return_not_ready_if_image_bin_cannot_be_fetched() {
 }
 
 #[test]
-fn should_return_not_ready_for_multiple_get_image_requests_if_image_bin_cannot_be_fetched() {
+fn should_return_failed_for_multiple_get_image_requests_if_image_bin_cannot_be_fetched() {
 
     let mock_resource_task = do spawn_listener |from_client| {
 
@@ -859,7 +872,7 @@ fn should_return_not_ready_for_multiple_get_image_requests_if_image_bin_cannot_b
     let response_port = port();
     image_cache_task.send(GetImage(copy url, response_port.chan()));
     match response_port.recv() {
-      ImageNotReady => (),
+      ImageFailed => (),
       _ => fail
     }
 
@@ -867,7 +880,7 @@ fn should_return_not_ready_for_multiple_get_image_requests_if_image_bin_cannot_b
     let response_port = port();
     image_cache_task.send(GetImage(url, response_port.chan()));
     match response_port.recv() {
-      ImageNotReady => (),
+      ImageFailed => (),
       _ => fail
     }
 
@@ -936,6 +949,58 @@ fn should_return_not_ready_if_image_is_still_decoding() {
 
     // Now decode
     wait_to_decode_chan.send(());
+
+    image_cache_task.exit();
+    mock_resource_task.send(resource_task::Exit);
+}
+
+#[test]
+fn should_return_failed_if_image_decode_fails() {
+
+    let mock_resource_task = do spawn_listener |from_client| {
+
+        // infer me
+        let from_client: Port<resource_task::ControlMsg> = from_client;
+
+        loop {
+            match from_client.recv() {
+              resource_task::Load(_, response) => {
+                // Bogus data
+                response.send(resource_task::Payload(~[]));
+                response.send(resource_task::Done(result::ok(())));
+              }
+              resource_task::Exit => break
+            }
+        }
+    };
+
+    let image_cache_task = image_cache_task(mock_resource_task);
+    let url = make_url(~"file", none);
+
+    let wait_for_decode = port();
+    let wait_for_decode_chan = wait_for_decode.chan();
+
+    image_cache_task.send(OnMsg(|msg| {
+        match *msg {
+          StoreImage(*) => wait_for_decode_chan.send(()),
+          _ => ()
+        }
+    }));
+
+    image_cache_task.send(Prefetch(copy url));
+    image_cache_task.send(Decode(copy url));
+
+    // Wait until our mock resource task has sent the image to the image cache
+    wait_for_decode.recv();
+
+    // Make the request
+    let response_port = port();
+    image_cache_task.send(GetImage(url, response_port.chan()));
+
+    match response_port.recv() {
+      ImageFailed => (),
+      _ => fail
+    }
 
     image_cache_task.exit();
     mock_resource_task.send(resource_task::Exit);
