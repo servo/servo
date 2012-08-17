@@ -28,11 +28,8 @@ trait DefaultStyleMethods {
 impl NodeKind : DefaultStyleMethods {
     fn default_color() -> Color {
         match self {
-          Text(*) => { white() }
-          Element(*) => {
-            let r = rand::rng();
-            rgb(r.next() as u8, r.next() as u8, r.next() as u8)
-          }
+          Text(*) => white(),
+          Element(*) => white()
         }
     }
 
