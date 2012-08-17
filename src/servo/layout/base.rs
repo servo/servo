@@ -29,7 +29,7 @@ enum BoxKind {
     TextBoxKind(@TextBox)
 }
 
-class Appearance {
+struct Appearance {
     let mut background_image: option<ImageHolder>;
     let mut background_color: Color;
     let mut width: Unit;
@@ -62,7 +62,7 @@ class Appearance {
     }
 }
 
-class Box {
+struct Box {
     let tree: tree::Tree<@Box>;
     let node: Node;
     let kind: BoxKind;
@@ -78,10 +78,10 @@ class Box {
     }
 }
 
-#[doc="A class to store image data.  The image will be loaded once,
+#[doc="A struct to store image data.  The image will be loaded once,
  the first time it is requested, and an arc will be stored.  Clones of
  this arc are given out on demand."]
-class ImageHolder {
+struct ImageHolder {
     // Invariant: at least one of url and image is not none, except
     // occasionally while get_image is being called
     let mut url : option<url>;

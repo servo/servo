@@ -55,7 +55,7 @@ fn create_resource_task_with_loaders(+loaders: ~[(~str, LoaderTaskFactory)]) -> 
     }
 }
 
-class ResourceManager {
+struct ResourceManager {
     let from_client: Port<ControlMsg>;
     /// Per-scheme resource loaders
     let loaders: ~[(~str, LoaderTaskFactory)];

@@ -3,7 +3,7 @@ export FontLibrary, native;
 import font::{Font, test_font_bin};
 import result::{result, ok, err};
 
-class FontLibrary {
+struct FontLibrary {
     let native_lib: native::NativeFontLibrary;
 
     new() {

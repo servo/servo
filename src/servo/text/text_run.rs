@@ -8,7 +8,7 @@ import glyph::Glyph;
 import shaper::shape_text;
 
 #[doc="A single, unbroken line of text."]
-class TextRun {
+struct TextRun {
     let glyphs: ~[Glyph];
 
     new(font: Font, text: ~str) {

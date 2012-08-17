@@ -7,13 +7,11 @@ import ptr::{ null, addr_of };
 import native_font::NativeFont;
 import font_library::FontLibrary;
 
-// FIXME (rust 2708): convert this to a class
-
 #[doc = "
 A font handle. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
 "]
-class Font {
+struct Font {
     let fontbuf: @~[u8];
     let native_font: NativeFont;
 

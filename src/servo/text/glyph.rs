@@ -7,7 +7,7 @@ import geom::point::Point2D;
 type GlyphIndex = uint;
 
 #[doc="The position of a glyph on the screen."]
-class GlyphPos {
+struct GlyphPos {
     let advance: Point2D<au>;
     let offset: Point2D<au>;
     new(advance: Point2D<au>, offset: Point2D<au>) {
@@ -17,7 +17,7 @@ class GlyphPos {
 }
 
 #[doc="A single glyph."]
-class Glyph {
+struct Glyph {
     let index: GlyphIndex;
     let pos: GlyphPos;
 

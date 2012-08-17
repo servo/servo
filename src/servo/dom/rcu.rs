@@ -64,7 +64,7 @@ type ScopeData<T:send,A> = {
     mut first_dirty: Handle<T,A>
 };
 
-class ScopeResource<T:send,A> {
+struct ScopeResource<T:send,A> {
     let d : ScopeData<T,A>;
     new(-d : ScopeData<T,A>) {
         self.d = d;

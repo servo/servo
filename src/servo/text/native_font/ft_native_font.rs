@@ -17,7 +17,7 @@ import freetype::bindgen::{
     FT_Set_Char_Size
 };
 
-class FreeTypeNativeFont/& {
+struct FreeTypeNativeFont/& {
     let face: FT_Face;
 
     new(face: FT_Face) {

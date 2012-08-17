@@ -24,7 +24,7 @@ enum NodeKind {
     Text(~str)
 }
 
-class ElementData {
+struct ElementData {
     let tag_name: ~str;
     let kind: ~ElementKind;
     let attrs: DVec<~Attr>;
@@ -48,7 +48,7 @@ class ElementData {
     }
 }
 
-class Attr {
+struct Attr {
     let name: ~str;
     let value: ~str;
 

@@ -12,7 +12,7 @@ import image_cache_task::{ImageCacheTask, image_cache_task, ImageCacheTaskClient
 
 import pipes::{port, chan};
 
-class Engine<S:Sink send copy> {
+struct Engine<S:Sink send copy> {
     let sink: S;
 
     let renderer: Renderer;

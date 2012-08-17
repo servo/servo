@@ -18,7 +18,7 @@ import cocoa::cg::cg::{
     CGFontRelease
 };
 
-class QuartzNativeFont/& {
+struct QuartzNativeFont/& {
     let fontprov: CGDataProviderRef;
     let cgfont: CGFontRef;
 

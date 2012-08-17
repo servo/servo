@@ -64,7 +64,7 @@ fn join_layout(scope: NodeScope, layout: Layout) {
     }
 }
 
-class Document {
+struct Document {
     let root: Node;
     let css_rules: arc<Stylesheet>;
 
@@ -74,7 +74,7 @@ class Document {
     }
 }
 
-class Content<S:Sink send copy> {
+struct Content<S:Sink send copy> {
     let sink: S;
     let layout: Layout;
     let from_master: comm::Port<ControlMsg>;
