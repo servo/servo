@@ -17,6 +17,7 @@ import azure_hl::{DrawTarget, Linear};
 import ptr::addr_of;
 import std::arc::arc;
 import azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
+import std::cell::Cell;
 
 import pipes::{port, chan};
 
@@ -34,8 +35,8 @@ each rendered frame and submit them to be drawn to the display
 FIXME: Change this name to Compositor.
 "]
 trait Sink {
-    fn begin_drawing(+next_dt: pipes::chan<AzDrawTargetRef>);
-    fn draw(+next_dt: pipes::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef);
+    fn begin_drawing(+next_dt: pipes::chan<DrawTarget>);
+    fn draw(+next_dt: pipes::chan<DrawTarget>, +draw_me: DrawTarget);
     fn add_event_listener(listener: comm::Chan<Event>);
 }
 
@@ -53,7 +54,7 @@ fn Renderer<S: Sink send copy>(sink: S) -> comm::Chan<Msg> {
             match po.recv() {
               RenderMsg(display_list) => {
                 #debug("renderer: got render request");
-                let azure_draw_target = draw_target_po.recv();
+                let draw_target = Cell(draw_target_po.recv());
                 let (ch, po) = pipes::stream();
                 let mut draw_target_ch_ = some(ch);
                 draw_target_po = po;
@@ -63,13 +64,13 @@ fn Renderer<S: Sink send copy>(sink: S) -> comm::Chan<Msg> {
                     draw_target_ch_ <-> draw_target_ch;
                     let draw_target_ch = option::unwrap(draw_target_ch);
 
-                    let draw_target =
-                        azure_hl::new_draw_target_from_azure_draw_target(azure_draw_target);
-                    clear(&draw_target);
-                    draw_display_list(&draw_target, display_list);
+                    do draw_target.with_ref |draw_target| {
+                        clear(draw_target);
+                        draw_display_list(draw_target, display_list);
+                    }
 
                     #debug("renderer: returning surface");
-                    sink.draw(draw_target_ch, azure_draw_target);
+                    sink.draw(draw_target_ch, draw_target.take());
                 }
               }
               ExitMsg(response_ch) => {

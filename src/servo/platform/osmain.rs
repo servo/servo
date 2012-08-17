@@ -23,8 +23,8 @@ import pipes::chan;
 type OSMain = comm::Chan<Msg>;
 
 enum Msg {
-    BeginDrawing(pipes::chan<AzDrawTargetRef>),
-    Draw(pipes::chan<AzDrawTargetRef>, AzDrawTargetRef),
+    BeginDrawing(pipes::chan<DrawTarget>),
+    Draw(pipes::chan<DrawTarget>, DrawTarget),
     AddKeyHandler(pipes::chan<()>),
     AddEventListener(comm::Chan<Event>),
     Exit
@@ -125,10 +125,10 @@ Implementation to allow the osmain channel to be used as a graphics
 sink for the renderer
 "]
 impl OSMain : Sink {
-    fn begin_drawing(+next_dt: pipes::chan<AzDrawTargetRef>) {
+    fn begin_drawing(+next_dt: pipes::chan<DrawTarget>) {
         self.send(BeginDrawing(next_dt))
     }
-    fn draw(+next_dt: pipes::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
+    fn draw(+next_dt: pipes::chan<DrawTarget>, +draw_me: DrawTarget) {
         self.send(Draw(next_dt, draw_me))
     }
     fn add_event_listener(listener: comm::Chan<Event>) {
@@ -141,11 +141,11 @@ struct SurfaceSet {
     mut back: Surface;
 }
 
-fn lend_surface(surfaces: SurfaceSet, receiver: pipes::chan<AzDrawTargetRef>) {
+fn lend_surface(surfaces: SurfaceSet, receiver: pipes::chan<DrawTarget>) {
     // We are in a position to lend out the surface?
     assert surfaces.front.have;
     // Ok then take it
-    let draw_target = surfaces.front.draw_target.azure_draw_target;
+    let draw_target = azure_hl::clone_mutable_draw_target(&mut surfaces.front.draw_target);
     #debug("osmain: lending surface %?", draw_target);
     receiver.send(draw_target);
     // Now we don't have it
@@ -156,14 +156,14 @@ fn lend_surface(surfaces: SurfaceSet, receiver: pipes::chan<AzDrawTargetRef>) {
     assert surfaces.front.have;
 }
 
-fn return_surface(surfaces: SurfaceSet, draw_target: AzDrawTargetRef) {
+fn return_surface(surfaces: SurfaceSet, draw_target: DrawTarget) {
     #debug("osmain: returning surface %?", draw_target);
     // We have room for a return
     assert surfaces.front.have;
     assert !surfaces.back.have;
 
     // FIXME: This is incompatible with page resizing.
-    assert surfaces.back.draw_target.azure_draw_target == draw_target;
+    assert surfaces.back.draw_target.azure_draw_target == draw_target.azure_draw_target;
 
     // Now we have it again
     surfaces.back.have = true;

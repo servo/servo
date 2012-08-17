@@ -8,7 +8,6 @@ Each time the renderer renders a frame the bufsink will output a
 export PngSink, Msg, Exit;
 
 import libc::{c_int, c_uint, c_void, c_uchar};
-import azure::AzDrawTargetRef;
 import azure_bg = azure::bindgen;
 import azure_bg::{AzCreateDrawTargetForCairoSurface, AzReleaseDrawTarget};
 import azure::cairo;
@@ -27,20 +26,21 @@ import ptr::addr_of;
 import dom::event::Event;
 import dvec::dvec;
 import layout::display_list::display_list;
+import std::cell::Cell;
 
 type PngSink = Chan<Msg>;
 
 enum Msg {
-    BeginDrawing(pipes::chan<AzDrawTargetRef>),
-    Draw(pipes::chan<AzDrawTargetRef>, AzDrawTargetRef),
+    BeginDrawing(pipes::chan<DrawTarget>),
+    Draw(pipes::chan<DrawTarget>, DrawTarget),
     Exit
 }
 
 impl Chan<Msg> : Sink {
-    fn begin_drawing(+next_dt: pipes::chan<AzDrawTargetRef>) {
+    fn begin_drawing(+next_dt: pipes::chan<DrawTarget>) {
         self.send(BeginDrawing(next_dt))
     }
-    fn draw(+next_dt: pipes::chan<AzDrawTargetRef>, draw_me: AzDrawTargetRef) {
+    fn draw(+next_dt: pipes::chan<DrawTarget>, +draw_me: DrawTarget) {
         self.send(Draw(next_dt, draw_me))
     }
     fn add_event_listener(_listener: Chan<Event>) {
@@ -51,17 +51,17 @@ impl Chan<Msg> : Sink {
 fn PngSink(output: Chan<~[u8]>) -> PngSink {
     do spawn_listener |po: Port<Msg>| {
         let cairo_surface = ImageSurface(CAIRO_FORMAT_ARGB32, 800, 600);
-        let draw_target = DrawTarget(cairo_surface);
+        let draw_target = Cell(DrawTarget(cairo_surface));
 
         loop {
             match po.recv() {
                 BeginDrawing(sender) => {
                     debug!("pngsink: begin_drawing");
-                    sender.send(draw_target.azure_draw_target);
+                    sender.send(draw_target.take());
                 }
                 Draw(sender, dt) => {
                     debug!("pngsink: draw");
-                    do_draw(sender, dt, output, cairo_surface);
+                    do_draw(sender, dt.clone(), output, cairo_surface);
                 }
                 Exit => break
             }
@@ -69,8 +69,8 @@ fn PngSink(output: Chan<~[u8]>) -> PngSink {
     }
 }
 
-fn do_draw(sender: pipes::chan<AzDrawTargetRef>,
-           dt: AzDrawTargetRef,
+fn do_draw(sender: pipes::chan<DrawTarget>,
+           +dt: DrawTarget,
            output: Chan<~[u8]>,
            cairo_surface: ImageSurface) {
     let buffer = io::mem_buffer();
@@ -79,7 +79,7 @@ fn do_draw(sender: pipes::chan<AzDrawTargetRef>,
     output.send(vec::from_mut(dvec::unwrap(move buffer)));
 
     // Send the next draw target to the renderer
-    sender.send(dt);
+    sender.send(move dt);
 }
 
 #[test]
