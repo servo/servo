@@ -21,6 +21,7 @@ import resource::image_cache_task;
 import image_cache_task::ImageCacheTask;
 import core::to_str::ToStr;
 import std::arc::{arc, clone};
+import task::spawn;
 
 enum BoxKind {
     BlockBox,
@@ -87,11 +88,13 @@ struct ImageHolder {
     let mut url : option<url>;
     let mut image : option<arc<~Image>>;
     let image_cache_task: ImageCacheTask;
+    let reflow: fn~();
 
-    new(-url : url, image_cache_task: ImageCacheTask) {
+    new(-url : url, image_cache_task: ImageCacheTask, reflow: fn~()) {
         self.url = some(copy url);
         self.image = none;
         self.image_cache_task = image_cache_task;
+        self.reflow = copy reflow;
 
         // Tell the image cache we're going to be interested in this url
         // FIXME: These two messages must be sent to prep an image for use
@@ -117,8 +120,22 @@ struct ImageHolder {
             self.image_cache_task.send(image_cache_task::GetImage(copy url, response_port.chan()));
             self.image = match response_port.recv() {
               image_cache_task::ImageReady(image) => some(clone(&image)),
-              image_cache_task::ImageNotReady
-              | image_cache_task::ImageFailed => {
+              image_cache_task::ImageNotReady => {
+                // Need to reflow when the image is available
+                let image_cache_task = self.image_cache_task;
+                let reflow = copy self.reflow;
+                do spawn |copy url, move reflow| {
+                    let response_port = port();
+                    image_cache_task.send(image_cache_task::WaitForImage(copy url, response_port.chan()));
+                    match response_port.recv() {
+                      image_cache_task::ImageReady(*) => reflow(),
+                      image_cache_task::ImageNotReady => fail /*not possible*/,
+                      image_cache_task::ImageFailed => ()
+                    }
+                }
+                none
+              }
+              image_cache_task::ImageFailed => {
                 #info("image was not ready for %s", url.to_str());
                 // FIXME: Need to schedule another layout when the image is ready
                 none

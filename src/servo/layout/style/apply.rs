@@ -14,13 +14,15 @@ struct StyleApplicator {
     box: @Box;
     doc_url: &url;
     image_cache_task: ImageCacheTask;
+    reflow: fn~();
 }
 
-fn apply_style(box: @Box, doc_url: &url, image_cache_task: ImageCacheTask) {
+fn apply_style(box: @Box, doc_url: &url, image_cache_task: ImageCacheTask, reflow: fn~()) {
     let applicator = StyleApplicator {
         box: box,
         doc_url: doc_url,
-        image_cache_task: image_cache_task
+        image_cache_task: image_cache_task,
+        reflow: reflow
     };
 
     applicator.apply_css_style();
@@ -28,11 +30,12 @@ fn apply_style(box: @Box, doc_url: &url, image_cache_task: ImageCacheTask) {
 
 #[doc="A wrapper around a set of functions that can be applied as a top-down traversal of layout
        boxes."]
-fn inheritance_wrapper(box : @Box, doc_url: &url, image_cache_task: ImageCacheTask) {
+fn inheritance_wrapper(box : @Box, doc_url: &url, image_cache_task: ImageCacheTask, reflow: fn~()) {
     let applicator = StyleApplicator {
         box: box,
         doc_url: doc_url,
-        image_cache_task: image_cache_task
+        image_cache_task: image_cache_task,
+        reflow: reflow
     };
     applicator.apply_style();
     inhereit_height(box);
@@ -103,8 +106,9 @@ impl StyleApplicator {
     fn apply_css_style() {
         let doc_url = copy *self.doc_url;
         let image_cache_task = self.image_cache_task;
+        let reflow = copy self.reflow;
         do top_down_traversal(self.box) |box, move doc_url| {
-            inheritance_wrapper(box, &doc_url, image_cache_task);
+            inheritance_wrapper(box, &doc_url, image_cache_task, reflow);
         }
     }
 
@@ -136,7 +140,7 @@ impl StyleApplicator {
                         // FIXME: Some sort of BASE HREF support!
                         // FIXME: Parse URLs!
                         let new_url = make_url(option::unwrap(url), some(copy *self.doc_url));
-                        self.box.appearance.background_image = some(ImageHolder(new_url, self.image_cache_task))
+                        self.box.appearance.background_image = some(ImageHolder(new_url, self.image_cache_task, self.reflow))
                     };
                   }
                   _ => { /* Ignore. */ }

@@ -88,7 +88,8 @@ struct Content<S:Sink send copy> {
 
     let resource_task: ResourceTask;
 
-    new(layout: Layout, sink: S, from_master: Port<ControlMsg>, resource_task: ResourceTask) {
+    new(layout: Layout, sink: S, from_master: Port<ControlMsg>,
+        resource_task: ResourceTask) {
         self.layout = layout;
         self.sink = sink;
         self.from_master = from_master;
@@ -193,7 +194,7 @@ struct Content<S:Sink send copy> {
 
         // Send new document and relevant styles to layout
         // FIXME: Put CSS rules in an arc or something.
-        self.layout.send(BuildMsg(document.root, clone(&document.css_rules), copy *doc_url));
+        self.layout.send(BuildMsg(document.root, clone(&document.css_rules), copy *doc_url, self.event_port.chan()));
 
         // Indicate that reader was forked so any further
         // changes will be isolated.
@@ -204,6 +205,19 @@ struct Content<S:Sink send copy> {
         match event {
           ResizeEvent(new_width, new_height) => {
             #debug("content got resize event: %d, %d", new_width, new_height);
+            match copy self.document {
+                none => {
+                    // Nothing to do.
+                }
+                some(document) => {
+                    assert self.doc_url.is_some();
+                    self.relayout(*document, &self.doc_url.get());
+                }
+            }
+            return true;
+          }
+          ReflowEvent => {
+            #debug("content got reflow event");
             match copy self.document {
                 none => {
                     // Nothing to do.

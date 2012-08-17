@@ -12,6 +12,7 @@ import gfx::renderer::Renderer;
 import resource::image_cache_task::ImageCacheTask;
 import std::net::url::url;
 import style::apply::apply_style;
+import dom::event::{Event, ReflowEvent};
 
 import task::*;
 import comm::*;
@@ -19,7 +20,7 @@ import comm::*;
 type Layout = Chan<Msg>;
 
 enum Msg {
-    BuildMsg(Node, arc<Stylesheet>, url),
+    BuildMsg(Node, arc<Stylesheet>, url, Chan<Event>),
     PingMsg(Chan<content::PingMsg>),
     ExitMsg
 }
@@ -33,7 +34,7 @@ fn Layout(renderer: Renderer, image_cache_task: ImageCacheTask) -> Layout {
                 #debug("layout: ExitMsg received");
                 break;
               }
-              BuildMsg(node, styles, doc_url) => {
+              BuildMsg(node, styles, doc_url, event_chan) => {
                 #debug("layout: received layout request for:");
                 node.dump();
 
@@ -44,7 +45,9 @@ fn Layout(renderer: Renderer, image_cache_task: ImageCacheTask) -> Layout {
                     let this_box = node.construct_boxes();
                     this_box.dump();
 
-                    apply_style(this_box, &doc_url, image_cache_task);
+                    let reflow: fn~() = || event_chan.send(ReflowEvent);
+
+                    apply_style(this_box, &doc_url, image_cache_task, reflow);
 
                     this_box.reflow_subtree(px_to_au(800));
 

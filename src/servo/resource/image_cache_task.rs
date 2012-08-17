@@ -1,4 +1,4 @@
-export Msg, Prefetch, Decode, GetImage, Exit;
+export Msg, Prefetch, Decode, GetImage, WaitForImage, Exit;
 export ImageResponseMsg, ImageReady, ImageNotReady, ImageFailed;
 export ImageCacheTask;
 export image_cache_task;
