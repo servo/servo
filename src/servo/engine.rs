@@ -42,57 +42,43 @@ struct Engine<S:Sink send copy> {
 
     fn start() -> EngineProto::client::Running {
         do spawn_service(EngineProto::init) |request| {
-            // this could probably be an @vector
-            let mut request = ~[move request];
+            import EngineProto::*;
+            let mut request = request;
 
             loop {
-                match move select(move request) {
-                  (_, some(ref message), ref requests) => {
-                    match move self.handle_request(move_ref!(message)) {
-                      some(ref req) =>
-                          request = vec::append_one(move_ref!(requests),
-                                                    move_ref!(req)),
-                      none => break
+                select! {
+                    request => {
+                        LoadURL(url) -> next {
+                            // TODO: change copy to move once we have match move
+                            let url = move_ref!(url);
+                            if url.path.ends_with(".js") {
+                                self.content.send(ExecuteMsg(url))
+                            } else {
+                                self.content.send(ParseMsg(url))
+                            }
+                            request = next;
+                        },
+                        
+                        Exit -> channel {
+                            self.content.send(content::ExitMsg);
+                            self.layout.send(layout_task::ExitMsg);
+                            
+                            let (response_chan, response_port) =
+                                pipes::stream();
+                            
+                            self.renderer.send(
+                                renderer::ExitMsg(response_chan));
+                            response_port.recv();
+                            
+                            self.image_cache_task.exit();
+                            self.resource_task.send(resource_task::Exit);
+                            
+                            server::Exited(channel);
+                            break
+                        }
                     }
-                  }
-
-                  _ => fail ~"select returned something unexpected."
                 }
             }
-        }
-    }
-
-    fn handle_request(+request: EngineProto::Running)
-        -> option<EngineProto::server::Running>
-    {
-        import EngineProto::*;
-        match move request {
-          LoadURL(ref url, ref next) => {
-            // TODO: change copy to move once we have match move
-            let url = move_ref!(url);
-            if url.path.ends_with(".js") {
-                self.content.send(ExecuteMsg(url))
-            } else {
-                self.content.send(ParseMsg(url))
-            }
-            return some(move_ref!(next));
-          }
-
-          Exit(ref channel) => {
-            self.content.send(content::ExitMsg);
-            self.layout.send(layout_task::ExitMsg);
-            
-            let (response_chan, response_port) = pipes::stream();
-
-            self.renderer.send(renderer::ExitMsg(response_chan));
-            response_port.recv();
-
-            self.image_cache_task.exit();
-            self.resource_task.send(resource_task::Exit);
-
-            server::Exited(move_ref!(channel));
-            return none;
-          }
         }
     }
 }
