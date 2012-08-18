@@ -1,7 +1,14 @@
 ## The Servo Parallel Browser Project
 
-Servo currently builds on Mac OS X and Linux. Since the Rust language is currently in flux, you
-will need the bleeding-edge (Git master) version of the Rust compiler.
+Servo is a web browser engine written in the Rust language. It is
+currently developed on OS X and Linux.
+
+Note: Servo requires a bleeding-edge version of Rust. Sometimes this
+means working off of the Rust _master_ branch; sometimes this means
+the _incoming_ branch. Because Rust is still undergoing major changes
+the Servo build is very often broken. Somebody in #servo or #rust
+will usually know what magic is required to make Servo build on any
+given day. Good luck!
 
 ### Prerequisites
 
