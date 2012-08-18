@@ -3,7 +3,6 @@
 import dom::base::{Element, HTMLImageElement, Node};
 import dom::style::{Percent, Mm, Pt, Px, Auto, PtToPx, MmToPx};
 import gfx::geometry::au_to_px;
-import image::base::load;
 import base::{Box, BTree, NTree, LayoutData, SpecifiedStyle, ImageHolder,
               BlockBox, InlineBox, IntrinsicBox, TextBox};
 import traverse::{top_down_traversal};

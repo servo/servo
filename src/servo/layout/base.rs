@@ -9,7 +9,7 @@ import gfx::geometry::{au, zero_size_au};
 import geom::point::Point2D;
 import geom::rect::Rect;
 import geom::size::Size2D;
-import image::base::{Image, load};
+import image::base::Image;
 import util::tree;
 import util::color::Color;
 import text::TextBox;

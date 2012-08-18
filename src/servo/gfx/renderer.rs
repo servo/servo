@@ -130,20 +130,7 @@ fn draw_image(draw_target: &DrawTarget, item: dl::display_item, image: arc<~Imag
     let size = Size2D(image.width as i32, image.height as i32);
     let stride = image.width * 4;
 
-    // Do color space conversion :(
-    let data = do vec::from_fn(image.width * image.height * 4) |i| {
-        let color = i % 4;
-        let pixel = i / 4;
-        match color {
-            0 => image.data[pixel * 3 + 2],
-            1 => image.data[pixel * 3 + 1],
-            2 => image.data[pixel * 3 + 0],
-            3 => 0xffu8,
-            _ => fail
-        }
-    };
-
-    let azure_surface = draw_target.create_source_surface_from_data(data, size, stride as i32,
+    let azure_surface = draw_target.create_source_surface_from_data(image.data, size, stride as i32,
                                                                     B8G8R8A8);
     let source_rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat),
                            Size2D(image.width as AzFloat, image.height as AzFloat));
