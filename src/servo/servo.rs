@@ -1,9 +1,11 @@
 import comm::*;
+import option::swap_unwrap;
 import gfx::renderer;
 import platform::osmain;
 import osmain::{OSMain, AddKeyHandler};
 import opts::{Opts, Screen, Png};
-import engine::{Engine, LoadURLMsg};
+import engine::Engine;
+import engine::EngineProto;
 
 import url_to_str = std::net::url::to_str;
 import util::url::make_url;
@@ -39,12 +41,14 @@ fn run_pipeline_screen(urls: ~[~str]) {
 
     // Create a serve instance
     let engine = Engine(osmain);
-    let engine_chan = engine.start();
+    let mut engine_chan = some(engine.start());
 
     for urls.each |filename| {
         let url = make_url(filename, none);
         #debug["master: Sending url `%s`", url_to_str(url)];
-        engine_chan.send(LoadURLMsg(url));
+        engine_chan =
+            some(EngineProto::client::LoadURL(swap_unwrap(&mut engine_chan),
+                                              url));
         #debug["master: Waiting for keypress"];
 
         match keypress_from_osmain.try_recv() {
@@ -55,9 +59,8 @@ fn run_pipeline_screen(urls: ~[~str]) {
 
     // Shut everything down
     #debug["master: Shut down"];
-    let (exit_chan, exit_response_from_engine) = pipes::stream();
-    engine_chan.send(engine::ExitMsg(exit_chan));
-    exit_response_from_engine.recv();
+    let engine_chan = EngineProto::client::Exit(option::unwrap(engine_chan));
+    pipes::recv(engine_chan);
 
     osmain.send(osmain::Exit);
 }
@@ -74,16 +77,16 @@ fn run_pipeline_png(-url: ~str, outfile: ~str) {
         let sink = PngSink(pngdata_from_sink);
         let engine = Engine(sink);
         let engine_chan = engine.start();
-        engine_chan.send(LoadURLMsg(make_url(url, none)));
+        let engine_chan =
+            EngineProto::client::LoadURL(engine_chan, make_url(url, none));
 
         match buffered_file_writer(outfile) {
           ok(writer) => writer.write(pngdata_from_sink.recv()),
           err(e) => fail e
         }
 
-        let (exit_chan, exit_response_from_engine) = pipes::stream();
-        engine_chan.send(engine::ExitMsg(exit_chan));
-        exit_response_from_engine.recv();
+        let engine_chan = EngineProto::client::Exit(engine_chan);
+        pipes::recv(engine_chan);
         sink.send(pngsink::Exit);
     })
 }
