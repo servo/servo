@@ -1,11 +1,11 @@
 #[doc = "
-A graphics sink that renders to PNG format buffers
+A graphics compositor that renders to PNG format buffers
 
-Each time the renderer renders a frame the bufsink will output a
+Each time the renderer renders a frame the compositor will output a
 `~[u8]` containing the frame in PNG format.
 "];
 
-export PngSink, Msg, Exit;
+export PngCompositor, Msg, Exit;
 
 import libc::{c_int, c_uint, c_void, c_uchar};
 import azure_bg = azure::bindgen;
@@ -17,7 +17,7 @@ import cairo::{CAIRO_FORMAT_ARGB32, cairo_surface_t, cairo_status_t, CAIRO_STATU
 import cairo_bg = cairo::bindgen;
 import cairo_bg::{cairo_image_surface_create, cairo_surface_destroy,
                   cairo_surface_write_to_png_stream};
-import renderer::{Renderer, Sink, RenderMsg};
+import renderer::{Renderer, Compositor, RenderMsg};
 import task::spawn_listener;
 import comm::{Chan, Port, chan, port};
 import unsafe::reinterpret_cast;
@@ -28,7 +28,7 @@ import dvec::dvec;
 import layout::display_list::display_list;
 import std::cell::Cell;
 
-type PngSink = Chan<Msg>;
+type PngCompositor = Chan<Msg>;
 
 enum Msg {
     BeginDrawing(pipes::chan<DrawTarget>),
@@ -36,7 +36,7 @@ enum Msg {
     Exit
 }
 
-impl Chan<Msg> : Sink {
+impl Chan<Msg> : Compositor {
     fn begin_drawing(+next_dt: pipes::chan<DrawTarget>) {
         self.send(BeginDrawing(next_dt))
     }
@@ -44,11 +44,11 @@ impl Chan<Msg> : Sink {
         self.send(Draw(next_dt, draw_me))
     }
     fn add_event_listener(_listener: Chan<Event>) {
-        // No events in this sink.
+        // No events in this compositor.
     }
 }
 
-fn PngSink(output: Chan<~[u8]>) -> PngSink {
+fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
     do spawn_listener |po: Port<Msg>| {
         let cairo_surface = ImageSurface(CAIRO_FORMAT_ARGB32, 800, 600);
         let draw_target = Cell(DrawTarget(cairo_surface));
@@ -56,11 +56,11 @@ fn PngSink(output: Chan<~[u8]>) -> PngSink {
         loop {
             match po.recv() {
                 BeginDrawing(sender) => {
-                    debug!("pngsink: begin_drawing");
+                    debug!("png_compositor: begin_drawing");
                     sender.send(draw_target.take());
                 }
                 Draw(sender, dt) => {
-                    debug!("pngsink: draw");
+                    debug!("png_compositor: draw");
                     do_draw(sender, dt.clone(), output, cairo_surface);
                 }
                 Exit => break
@@ -85,8 +85,8 @@ fn do_draw(sender: pipes::chan<DrawTarget>,
 #[test]
 fn sanity_check() {
     do listen |self_channel| {
-        let sink = PngSink(self_channel);
-        let renderer = Renderer(sink);
+        let compositor = PngCompositor(self_channel);
+        let renderer = Renderer(compositor);
 
         let dlist : display_list = dvec();
         renderer.send(RenderMsg(dlist));
@@ -94,6 +94,6 @@ fn sanity_check() {
         renderer.send(renderer::ExitMsg(exit_chan));
         exit_response_from_engine.recv();
 
-        sink.send(Exit)
+        compositor.send(Exit)
     }
 }

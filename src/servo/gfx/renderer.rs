@@ -31,16 +31,14 @@ enum Msg {
 #[doc = "
 The interface used to by the renderer to aquire draw targets for
 each rendered frame and submit them to be drawn to the display
-
-FIXME: Change this name to Compositor.
 "]
-trait Sink {
+trait Compositor {
     fn begin_drawing(+next_dt: pipes::chan<DrawTarget>);
     fn draw(+next_dt: pipes::chan<DrawTarget>, +draw_me: DrawTarget);
     fn add_event_listener(listener: comm::Chan<Event>);
 }
 
-fn Renderer<S: Sink send copy>(sink: S) -> comm::Chan<Msg> {
+fn Renderer<C: Compositor send copy>(compositor: C) -> comm::Chan<Msg> {
     do task::spawn_listener |po: comm::Port<Msg>| {
         let (draw_target_ch, draw_target_po) = pipes::stream();
         let mut draw_target_ch = draw_target_ch;
@@ -48,7 +46,7 @@ fn Renderer<S: Sink send copy>(sink: S) -> comm::Chan<Msg> {
 
         debug!("renderer: beginning rendering loop");
 
-        sink.begin_drawing(draw_target_ch);
+        compositor.begin_drawing(draw_target_ch);
 
         loop {
             match po.recv() {
@@ -70,7 +68,7 @@ fn Renderer<S: Sink send copy>(sink: S) -> comm::Chan<Msg> {
                     }
 
                     #debug("renderer: returning surface");
-                    sink.draw(draw_target_ch, draw_target.take());
+                    compositor.draw(draw_target_ch, draw_target.take());
                 }
               }
               ExitMsg(response_ch) => {

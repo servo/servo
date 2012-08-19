@@ -10,7 +10,7 @@ import azure::cairo_hl::ImageSurface;
 import comm::*;
 import dvec::{DVec, dvec};
 import azure::cairo::cairo_surface_t;
-import gfx::renderer::Sink;
+import gfx::renderer::Compositor;
 import dom::event::{Event, ResizeEvent};
 import layers::ImageLayer;
 import geom::size::Size2D;
@@ -122,9 +122,9 @@ fn mainloop(po: Port<Msg>) {
 
 #[doc = "
 Implementation to allow the osmain channel to be used as a graphics
-sink for the renderer
+compositor for the renderer
 "]
-impl OSMain : Sink {
+impl OSMain : Compositor {
     fn begin_drawing(+next_dt: pipes::chan<DrawTarget>) {
         self.send(BeginDrawing(next_dt))
     }

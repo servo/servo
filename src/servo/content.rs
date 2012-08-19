@@ -19,7 +19,7 @@ import dom::base::{Node, NodeScope, define_bindings};
 import dom::event::{Event, ResizeEvent};
 import dom::style;
 import dom::style::Stylesheet;
-import gfx::renderer::Sink;
+import gfx::renderer::Compositor;
 import parser::html_lexer::spawn_html_lexer_task;
 import parser::html_builder::build_dom;
 import layout::layout_task;
@@ -74,8 +74,8 @@ struct Document {
     }
 }
 
-struct Content<S:Sink send copy> {
-    let sink: S;
+struct Content<C:Compositor send copy> {
+    let compositor: C;
     let layout: Layout;
     let from_master: comm::Port<ControlMsg>;
     let event_port: comm::Port<Event>;
@@ -88,10 +88,10 @@ struct Content<S:Sink send copy> {
 
     let resource_task: ResourceTask;
 
-    new(layout: Layout, sink: S, from_master: Port<ControlMsg>,
+    new(layout: Layout, compositor: C, from_master: Port<ControlMsg>,
         resource_task: ResourceTask) {
         self.layout = layout;
-        self.sink = sink;
+        self.compositor = compositor;
         self.from_master = from_master;
         self.event_port = port();
 
@@ -101,7 +101,7 @@ struct Content<S:Sink send copy> {
         self.document = none;
         self.doc_url = none;
 
-        self.sink.add_event_listener(self.event_port.chan());
+        self.compositor.add_event_listener(self.event_port.chan());
 
         self.resource_task = resource_task;
     }
@@ -233,9 +233,9 @@ struct Content<S:Sink send copy> {
     }
 }
 
-fn create_content<S: Sink send copy>(layout: Layout, sink: S, resource_task: ResourceTask) -> Chan<ControlMsg> {
+fn create_content<S: Compositor send copy>(layout: Layout, compositor: S, resource_task: ResourceTask) -> Chan<ControlMsg> {
     do spawn_listener::<ControlMsg> |from_master| {
-        Content(layout, sink, from_master, resource_task).start();
+        Content(layout, compositor, from_master, resource_task).start();
     }
 }
 

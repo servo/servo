@@ -67,26 +67,26 @@ fn run_pipeline_screen(urls: ~[~str]) {
 
 fn run_pipeline_png(-url: ~str, outfile: ~str) {
 
-    // Use a PNG encoder as the graphics sink
-    import gfx::pngsink;
-    import pngsink::PngSink;
+    // Use a PNG encoder as the graphics compositor
+    import gfx::png_compositor;
+    import png_compositor::PngCompositor;
     import result::{ok, err};
     import io::{Writer, buffered_file_writer};
 
-    listen(|pngdata_from_sink| {
-        let sink = PngSink(pngdata_from_sink);
-        let engine = Engine(sink);
+    listen(|pngdata_from_compositor| {
+        let compositor = PngCompositor(pngdata_from_compositor);
+        let engine = Engine(compositor);
         let engine_chan = engine.start();
         let engine_chan =
             EngineProto::client::LoadURL(engine_chan, make_url(url, none));
 
         match buffered_file_writer(outfile) {
-          ok(writer) => writer.write(pngdata_from_sink.recv()),
+          ok(writer) => writer.write(pngdata_from_compositor.recv()),
           err(e) => fail e
         }
 
         let engine_chan = EngineProto::client::Exit(engine_chan);
         pipes::recv(engine_chan);
-        sink.send(pngsink::Exit);
+        compositor.send(png_compositor::Exit);
     })
 }

@@ -33,7 +33,7 @@ mod gfx {
     mod geometry;
     mod surface;
     mod renderer;
-    mod pngsink;
+    mod png_compositor;
 }
 
 mod image {

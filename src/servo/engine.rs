@@ -1,4 +1,4 @@
-import gfx::renderer::{Renderer, Sink};
+import gfx::renderer::{Renderer, Compositor};
 import pipes::{spawn_service, select};
 import layout::layout_task;
 import layout_task::Layout;
@@ -15,8 +15,8 @@ fn macros() {
     include!("macros.rs");
 }
 
-struct Engine<S:Sink send copy> {
-    let sink: S;
+struct Engine<C:Compositor send copy> {
+    let compositor: C;
 
     let renderer: Renderer;
     let resource_task: ResourceTask;
@@ -24,14 +24,14 @@ struct Engine<S:Sink send copy> {
     let layout: Layout;
     let content: comm::Chan<content::ControlMsg>;
 
-    new(+sink: S) {
-        self.sink = sink;
+    new(+compositor: C) {
+        self.compositor = compositor;
 
-        let renderer = Renderer(sink);
+        let renderer = Renderer(compositor);
         let resource_task = ResourceTask();
         let image_cache_task = image_cache_task(resource_task);
         let layout = Layout(renderer, image_cache_task);
-        let content = create_content(layout, sink, resource_task);
+        let content = create_content(layout, compositor, resource_task);
 
         self.renderer = renderer;
         self.resource_task = resource_task;
