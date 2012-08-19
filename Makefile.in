@@ -86,7 +86,6 @@ CHECK_DEPS += \
 
 CLEAN_DEPS += \
 	clean-rust-harfbuzz \
-	clean-mozjs \
 	clean-rust-mozjs \
 	clean-rust-azure \
 	clean-rust-stb-image \
