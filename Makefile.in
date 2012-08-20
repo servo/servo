@@ -39,14 +39,14 @@ SERVO_DEPS = \
 CHECK_DEPS =
 CLEAN_DEPS =
 AZURE_DEPS = \
-	rust-geom
+	src/rust-geom/librustgeom.dummy
 GLUT_DEPS = \
-	rust-opengles
+	src/rust-opengles/librustopengles.dummy
 LAYERS_DEPS = \
-	rust-geom \
-	rust-opengles \
-	rust-glut \
-	rust-azure
+	src/rust-geom/librustgeom.dummy \
+	src/rust-opengles/librustopengles.dummy \
+	src/rust-glut/librustglut.dummy \
+	src/rust-azure/libazure.dummy
 
 ifeq ($(OSTYPE),darwin)
     SERVO_DEPS += rust-cocoa
@@ -59,16 +59,16 @@ ifeq ($(OSTYPE),darwin)
 endif
 
 SERVO_DEPS += \
-	mozjs \
-	rust-harfbuzz \
-	rust-mozjs \
-	rust-azure \
-	rust-stb-image \
-	rust-geom \
-	rust-opengles \
-	rust-glut \
-	rust-layers \
-	rust-http-client \
+	src/mozjs/libjs_static.a \
+	src/rust-harfbuzz/libharfbuzz.dummy \
+	src/rust-mozjs/libjs.dummy \
+	src/rust-azure/libazure.dummy \
+	src/rust-stb-image/libstb-image.dummy \
+	src/rust-geom/librustgeom.dummy \
+	src/rust-opengles/librustopengles.dummy \
+	src/rust-glut/librustglut.dummy \
+	src/rust-layers/librustlayers.dummy \
+	src/rust-http-client/libhttp_client.dummy \
 	$(NULL)
 
 CHECK_DEPS += \
@@ -127,7 +127,7 @@ mozjs: src/mozjs/libjs_static.a
 
 rust-harfbuzz: src/rust-harfbuzz/libharfbuzz.dummy
 
-rust-mozjs: src/rust-mozjs/libmozjs.dummy
+rust-mozjs: src/rust-mozjs/libjs.dummy
 
 rust-azure: src/rust-azure/libazure.dummy
 
@@ -135,13 +135,13 @@ rust-cocoa: src/rust-cocoa/libcocoa.dummy
 
 rust-stb-image: src/rust-stb-image/libstb-image.dummy
 
-rust-geom: src/rust-geom/libgeom.dummy
+rust-geom: src/rust-geom/librustgeom.dummy
 
-rust-opengles: src/rust-opengles/libopengles.dummy
+rust-opengles: src/rust-opengles/librustopengles.dummy
 
-rust-glut: src/rust-glut/libglut.dummy
+rust-glut: src/rust-glut/librustglut.dummy
 
-rust-layers: src/rust-layers/liblayers.dummy
+rust-layers: src/rust-layers/librustlayers.dummy
 
 rust-http-client: src/rust-http-client/libhttp_client.dummy
 
@@ -154,7 +154,7 @@ src/mozjs/libjs_static.a:
 src/rust-harfbuzz/libharfbuzz.dummy:
 	$(MAKE) -C src/rust-harfbuzz
 
-src/rust-mozjs/libmozjs.dummy: mozjs
+src/rust-mozjs/libjs.dummy: src/mozjs/libjs_static.a
 	RUSTFLAGS="$(RUSTFLAGS) -L ../mozjs/" CFLAGS="-I../mozjs/dist/include" \
 		$(MAKE) -C src/rust-mozjs
 
@@ -167,16 +167,16 @@ src/rust-cocoa/libcocoa.dummy:
 src/rust-stb-image/libstb-image.dummy:
 	$(MAKE) -C src/rust-stb-image
 
-src/rust-geom/libgeom.dummy:
+src/rust-geom/librustgeom.dummy:
 	$(MAKE) -C src/rust-geom
 
-src/rust-opengles/libopengles.dummy:
+src/rust-opengles/librustopengles.dummy:
 	$(MAKE) -C src/rust-opengles
 
-src/rust-glut/libglut.dummy: $(GLUT_DEPS)
+src/rust-glut/librustglut.dummy: $(GLUT_DEPS)
 	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-opengles" $(MAKE) -C src/rust-glut
 
-src/rust-layers/liblayers.dummy: $(LAYERS_DEPS)
+src/rust-layers/librustlayers.dummy: $(LAYERS_DEPS)
 	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-geom -L ../rust-opengles -L ../rust-glut -L ../rust-azure -L ../rust-cocoa" \
         $(MAKE) -C src/rust-layers
 
