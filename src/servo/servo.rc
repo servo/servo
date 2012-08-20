@@ -32,7 +32,8 @@ mod dom {
 mod gfx {
     mod geometry;
     mod surface;
-    mod renderer;
+    mod render_task;
+    mod compositor;
     mod png_compositor;
 }
 

@@ -8,7 +8,6 @@ import azure::bindgen::*;
 import libc::size_t;
 import text::font::Font;
 import text::text_run::TextRun;
-import dom::event::{Event, ResizeEvent};
 import geom::size::Size2D;
 import geom::rect::Rect;
 import geom::point::Point2D;
@@ -18,6 +17,7 @@ import ptr::addr_of;
 import std::arc::arc;
 import azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
 import std::cell::Cell;
+import compositor::Compositor;
 
 import pipes::{port, chan};
 
@@ -28,17 +28,9 @@ enum Msg {
     ExitMsg(pipes::chan<()>)
 }
 
-#[doc = "
-The interface used to by the renderer to aquire draw targets for
-each rendered frame and submit them to be drawn to the display
-"]
-trait Compositor {
-    fn begin_drawing(+next_dt: pipes::chan<DrawTarget>);
-    fn draw(+next_dt: pipes::chan<DrawTarget>, +draw_me: DrawTarget);
-    fn add_event_listener(listener: comm::Chan<Event>);
-}
+type RenderTask = comm::Chan<Msg>;
 
-fn Renderer<C: Compositor send copy>(compositor: C) -> comm::Chan<Msg> {
+fn RenderTask<C: Compositor send copy>(compositor: C) -> RenderTask {
     do task::spawn_listener |po: comm::Port<Msg>| {
         let (draw_target_ch, draw_target_po) = pipes::stream();
         let mut draw_target_ch = draw_target_ch;

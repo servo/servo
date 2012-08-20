@@ -9,7 +9,6 @@ import geom::point::Point2D;
 import geom::rect::Rect;
 import geom::size::Size2D;
 import gfx::geometry::{au, au_to_px, box, px_to_au};
-import gfx::renderer;
 import util::tree;
 
 import dvec::dvec;

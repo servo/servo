@@ -10,7 +10,7 @@ import azure::cairo_hl::ImageSurface;
 import comm::*;
 import dvec::{DVec, dvec};
 import azure::cairo::cairo_surface_t;
-import gfx::renderer::Compositor;
+import gfx::compositor::Compositor;
 import dom::event::{Event, ResizeEvent};
 import layers::ImageLayer;
 import geom::size::Size2D;

@@ -8,7 +8,8 @@ import display_list_builder::build_display_list;
 import dom::base::Node;
 import dom::style::Stylesheet;
 import gfx::geometry::px_to_au;
-import gfx::renderer::Renderer;
+import gfx::render_task;
+import render_task::RenderTask;
 import resource::image_cache_task::ImageCacheTask;
 import std::net::url::url;
 import style::apply::apply_style;
@@ -25,7 +26,7 @@ enum Msg {
     ExitMsg
 }
 
-fn Layout(renderer: Renderer, image_cache_task: ImageCacheTask) -> Layout {
+fn Layout(render_task: RenderTask, image_cache_task: ImageCacheTask) -> Layout {
     do spawn_listener::<Msg>|request| {
         loop {
             match request.recv() {
@@ -52,7 +53,7 @@ fn Layout(renderer: Renderer, image_cache_task: ImageCacheTask) -> Layout {
                     this_box.reflow_subtree(px_to_au(800));
 
                     let dlist = build_display_list(this_box);
-                    renderer.send(renderer::RenderMsg(dlist));
+                    render_task.send(render_task::RenderMsg(dlist));
                 }
               }
             }

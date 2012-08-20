@@ -17,7 +17,8 @@ import cairo::{CAIRO_FORMAT_ARGB32, cairo_surface_t, cairo_status_t, CAIRO_STATU
 import cairo_bg = cairo::bindgen;
 import cairo_bg::{cairo_image_surface_create, cairo_surface_destroy,
                   cairo_surface_write_to_png_stream};
-import renderer::{Renderer, Compositor, RenderMsg};
+import compositor::Compositor;
+import render_task::{RenderTask, RenderMsg};
 import task::spawn_listener;
 import comm::{Chan, Port, chan, port};
 import unsafe::reinterpret_cast;
@@ -86,12 +87,12 @@ fn do_draw(sender: pipes::chan<DrawTarget>,
 fn sanity_check() {
     do listen |self_channel| {
         let compositor = PngCompositor(self_channel);
-        let renderer = Renderer(compositor);
+        let renderer = RenderTask(compositor);
 
         let dlist : display_list = dvec();
         renderer.send(RenderMsg(dlist));
         let (exit_chan, exit_response_from_engine) = pipes::stream();
-        renderer.send(renderer::ExitMsg(exit_chan));
+        renderer.send(render_task::ExitMsg(exit_chan));
         exit_response_from_engine.recv();
 
         compositor.send(Exit)

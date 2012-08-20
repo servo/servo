@@ -19,7 +19,7 @@ import dom::base::{Node, NodeScope, define_bindings};
 import dom::event::{Event, ResizeEvent};
 import dom::style;
 import dom::style::Stylesheet;
-import gfx::renderer::Compositor;
+import gfx::compositor::Compositor;
 import parser::html_lexer::spawn_html_lexer_task;
 import parser::html_builder::build_dom;
 import layout::layout_task;

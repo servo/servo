@@ -1,4 +1,6 @@
-import gfx::renderer::{Renderer, Compositor};
+import gfx::compositor::Compositor;
+import gfx::render_task;
+import render_task::RenderTask;
 import pipes::{spawn_service, select};
 import layout::layout_task;
 import layout_task::Layout;
@@ -18,7 +20,7 @@ fn macros() {
 struct Engine<C:Compositor send copy> {
     let compositor: C;
 
-    let renderer: Renderer;
+    let render_task: RenderTask;
     let resource_task: ResourceTask;
     let image_cache_task: ImageCacheTask;
     let layout: Layout;
@@ -27,13 +29,13 @@ struct Engine<C:Compositor send copy> {
     new(+compositor: C) {
         self.compositor = compositor;
 
-        let renderer = Renderer(compositor);
+        let render_task = RenderTask(compositor);
         let resource_task = ResourceTask();
         let image_cache_task = image_cache_task(resource_task);
-        let layout = Layout(renderer, image_cache_task);
+        let layout = Layout(render_task, image_cache_task);
         let content = create_content(layout, compositor, resource_task);
 
-        self.renderer = renderer;
+        self.render_task = render_task;
         self.resource_task = resource_task;
         self.image_cache_task = image_cache_task;
         self.layout = layout;
@@ -66,8 +68,8 @@ struct Engine<C:Compositor send copy> {
                             let (response_chan, response_port) =
                                 pipes::stream();
                             
-                            self.renderer.send(
-                                renderer::ExitMsg(response_chan));
+                            self.render_task.send(
+                                render_task::ExitMsg(response_chan));
                             response_port.recv();
                             
                             self.image_cache_task.exit();

@@ -1,6 +1,5 @@
 import comm::*;
 import option::swap_unwrap;
-import gfx::renderer;
 import platform::osmain;
 import osmain::{OSMain, AddKeyHandler};
 import opts::{Opts, Screen, Png};
