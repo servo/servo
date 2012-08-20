@@ -3,10 +3,9 @@
     tasks.
 "]
 
-export Content;
+export ContentTask;
 export ControlMsg, ExecuteMsg, ParseMsg, ExitMsg;
 export PingMsg, PongMsg;
-export create_content;
 export Document;
 
 import std::arc::{arc, clone};
@@ -49,6 +48,14 @@ enum ControlMsg {
 
 enum PingMsg {
     PongMsg
+}
+
+type ContentTask = Chan<ControlMsg>;
+
+fn ContentTask<S: Compositor send copy>(layout_task: LayoutTask, compositor: S, resource_task: ResourceTask) -> ContentTask {
+    do spawn_listener::<ControlMsg> |from_master| {
+        Content(layout_task, compositor, from_master, resource_task).start();
+    }
 }
 
 #[doc="Sends a ping to layout and waits for the response."]
@@ -232,10 +239,3 @@ struct Content<C:Compositor send copy> {
         }
     }
 }
-
-fn create_content<S: Compositor send copy>(layout_task: LayoutTask, compositor: S, resource_task: ResourceTask) -> Chan<ControlMsg> {
-    do spawn_listener::<ControlMsg> |from_master| {
-        Content(layout_task, compositor, from_master, resource_task).start();
-    }
-}
-

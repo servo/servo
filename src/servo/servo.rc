@@ -106,6 +106,7 @@ mod util {
 
 #[allow(non_implicitly_copyable_typarams)]
 mod content {
+    mod content_task;
 }
 
 mod opts;

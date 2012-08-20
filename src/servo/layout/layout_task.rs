@@ -14,6 +14,7 @@ import resource::image_cache_task::ImageCacheTask;
 import std::net::url::url;
 import style::apply::apply_style;
 import dom::event::{Event, ReflowEvent};
+import content::content_task;
 
 import task::*;
 import comm::*;
@@ -22,7 +23,7 @@ type LayoutTask = Chan<Msg>;
 
 enum Msg {
     BuildMsg(Node, arc<Stylesheet>, url, Chan<Event>),
-    PingMsg(Chan<content::PingMsg>),
+    PingMsg(Chan<content_task::PingMsg>),
     ExitMsg
 }
 
@@ -30,7 +31,7 @@ fn LayoutTask(render_task: RenderTask, image_cache_task: ImageCacheTask) -> Layo
     do spawn_listener::<Msg>|request| {
         loop {
             match request.recv() {
-              PingMsg(ping_channel) => ping_channel.send(content::PongMsg),
+              PingMsg(ping_channel) => ping_channel.send(content_task::PongMsg),
               ExitMsg => {
                 #debug("layout: ExitMsg received");
                 break;

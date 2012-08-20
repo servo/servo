@@ -11,7 +11,7 @@ import js::crust::*;
 import js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
 import dvec::{DVec, dvec};
 import ptr::null;
-import content::Document;
+import content::content_task::Document;
 import bindings;
 
 enum NodeData = {
