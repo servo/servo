@@ -17,6 +17,8 @@ use layers;
 use opengles;
 use http_client;
 
+mod engine;
+
 mod dom {
     mod base;
     mod event;
@@ -29,19 +31,9 @@ mod dom {
     }
 }
 
-mod gfx {
-    mod geometry;
-    mod surface;
-    mod render_task;
-    mod compositor;
-    mod png_compositor;
-}
-
-mod image {
-    mod base;
-    mod encode {
-        mod tga;
-    }
+#[allow(non_implicitly_copyable_typarams)]
+mod content {
+    mod content_task;
 }
 
 mod layout {
@@ -60,6 +52,21 @@ mod layout {
     mod layout_task;
     mod text;
     mod traverse;
+}
+
+mod gfx {
+    mod geometry;
+    mod surface;
+    mod render_task;
+    mod compositor;
+    mod png_compositor;
+}
+
+mod image {
+    mod base;
+    mod encode {
+        mod tga;
+    }
 }
 
 mod parser {
@@ -97,6 +104,13 @@ mod text {
     mod util;
 }
 
+mod resource {
+    mod resource_task;
+    mod file_loader;
+    mod http_loader;
+    mod image_cache_task;
+}
+
 mod util {
     mod tree;
     mod color;
@@ -104,19 +118,6 @@ mod util {
     mod url;
 }
 
-#[allow(non_implicitly_copyable_typarams)]
-mod content {
-    mod content_task;
-}
-
 mod opts;
-mod engine;
-
-mod resource {
-    mod resource_task;
-    mod file_loader;
-    mod http_loader;
-    mod image_cache_task;
-}
 
 import servo_text = text;
