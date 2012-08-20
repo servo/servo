@@ -10,7 +10,7 @@ import resource::resource_task;
 import resource::resource_task::{ResourceTask};
 import std::net::url::url;
 import resource::image_cache_task;
-import image_cache_task::{ImageCacheTask, image_cache_task, ImageCacheTaskClient};
+import image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 
 import pipes::{port, chan};
 
@@ -32,7 +32,7 @@ struct Engine<C:Compositor send copy> {
 
         let render_task = RenderTask(compositor);
         let resource_task = ResourceTask();
-        let image_cache_task = image_cache_task(resource_task);
+        let image_cache_task = ImageCacheTask(resource_task);
         let layout_task = LayoutTask(render_task, image_cache_task);
         let content_task = ContentTask(layout_task, compositor, resource_task);
 
@@ -66,11 +66,8 @@ struct Engine<C:Compositor send copy> {
                             self.content_task.send(content_task::ExitMsg);
                             self.layout_task.send(layout_task::ExitMsg);
                             
-                            let (response_chan, response_port) =
-                                pipes::stream();
-                            
-                            self.render_task.send(
-                                render_task::ExitMsg(response_chan));
+                            let (response_chan, response_port) = pipes::stream();
+                            self.render_task.send(render_task::ExitMsg(response_chan));
                             response_port.recv();
                             
                             self.image_cache_task.exit();

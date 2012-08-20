@@ -1,7 +1,6 @@
 export Msg, Prefetch, Decode, GetImage, WaitForImage, Exit;
 export ImageResponseMsg, ImageReady, ImageNotReady, ImageFailed;
 export ImageCacheTask;
-export image_cache_task;
 export ImageCacheTaskClient;
 
 import image::base::{Image, load_from_memory, test_image_bin};
@@ -55,11 +54,11 @@ type ImageCacheTask = Chan<Msg>;
 
 type DecoderFactory = ~fn() -> ~fn(~[u8]) -> option<Image>;
 
-fn image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
-    image_cache_task_(resource_task, default_decoder_factory)
+fn ImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
+    ImageCacheTask_(resource_task, default_decoder_factory)
 }
 
-fn image_cache_task_(resource_task: ResourceTask, +decoder_factory: DecoderFactory) -> ImageCacheTask {
+fn ImageCacheTask_(resource_task: ResourceTask, +decoder_factory: DecoderFactory) -> ImageCacheTask {
     // FIXME: Doing some dancing to avoid copying decoder_factory, our test
     // version of which contains an uncopyable type which rust will currently
     // copy unsoundly
@@ -442,7 +441,7 @@ fn should_exit_on_request() {
 
     let mock_resource_task = mock_resource_task(|_response| () );
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let _url = make_url(~"file", none);
 
     image_cache_task.exit();
@@ -455,7 +454,7 @@ fn should_fail_if_unprefetched_image_is_requested() {
 
     let mock_resource_task = mock_resource_task(|_response| () );
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     let request = port();
@@ -473,7 +472,7 @@ fn should_request_url_from_resource_task_on_prefetch() {
         response.send(resource_task::Done(result::ok(())));
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     image_cache_task.send(Prefetch(url));
@@ -489,7 +488,7 @@ fn should_fail_if_requesting_decode_of_an_unprefetched_image() {
 
     let mock_resource_task = mock_resource_task(|_response| () );
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     image_cache_task.send(Decode(url));
@@ -504,7 +503,7 @@ fn should_fail_if_requesting_image_before_requesting_decode() {
         response.send(resource_task::Done(result::ok(())));
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     image_cache_task.send(Prefetch(copy url));
@@ -527,7 +526,7 @@ fn should_not_request_url_from_resource_task_on_multiple_prefetches() {
         response.send(resource_task::Done(result::ok(())));
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     image_cache_task.send(Prefetch(copy url));
@@ -551,7 +550,7 @@ fn should_return_image_not_ready_if_data_has_not_arrived() {
         response.send(resource_task::Done(result::ok(())));
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     image_cache_task.send(Prefetch(copy url));
@@ -572,7 +571,7 @@ fn should_return_decoded_image_data_if_data_has_arrived() {
         response.send(resource_task::Done(result::ok(())));
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     let wait_for_image = port();
@@ -610,7 +609,7 @@ fn should_return_decoded_image_data_for_multiple_requests() {
         response.send(resource_task::Done(result::ok(())));
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     let wait_for_image = port();
@@ -671,7 +670,7 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
         }
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     image_cache_task.send(Prefetch(copy url));
@@ -720,7 +719,7 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
         }
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     image_cache_task.send(Prefetch(copy url));
@@ -751,7 +750,7 @@ fn should_return_failed_if_image_bin_cannot_be_fetched() {
         response.send(resource_task::Done(result::err(())));
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     let wait_for_prefetech = port();
@@ -790,7 +789,7 @@ fn should_return_failed_for_multiple_get_image_requests_if_image_bin_cannot_be_f
         response.send(resource_task::Done(result::err(())));
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     let wait_for_prefetech = port();
@@ -848,7 +847,7 @@ fn should_return_not_ready_if_image_is_still_decoding() {
         }
     };
 
-    let image_cache_task = image_cache_task_(mock_resource_task, decoder_factory);
+    let image_cache_task = ImageCacheTask_(mock_resource_task, decoder_factory);
     let url = make_url(~"file", none);
 
     let wait_for_prefetech = port();
@@ -892,7 +891,7 @@ fn should_return_failed_if_image_decode_fails() {
         response.send(resource_task::Done(result::ok(())));
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     let wait_for_decode = port();
@@ -932,7 +931,7 @@ fn should_return_image_on_wait_if_image_is_already_loaded() {
         response.send(resource_task::Done(result::ok(())));
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     let wait_for_decode = port();
@@ -973,7 +972,7 @@ fn should_return_image_on_wait_if_image_is_not_yet_loaded() {
         response.send(resource_task::Done(result::ok(())));
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     image_cache_task.send(Prefetch(copy url));
@@ -1004,7 +1003,7 @@ fn should_return_image_failed_on_wait_if_image_fails_to_load() {
         response.send(resource_task::Done(result::err(())));
     };
 
-    let image_cache_task = image_cache_task(mock_resource_task);
+    let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", none);
 
     image_cache_task.send(Prefetch(copy url));
