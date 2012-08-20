@@ -109,10 +109,13 @@ servo:	$(SERVO_DEPS)
 
 libservo.dummy: $(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) $(RUSTLIBS) -o $@ $<
+	touch $@
 
 servo-test: $(SERVO_DEPS)
 	$(RUSTC) $(RUSTFLAGS) $(RUSTLIBS) --test -o $@ $<
 
+reftest: src/reftest/reftest.rs libservo.dummy
+	$(RUSTC) $(RUSTFLAGS) $(RUSTLIBS) -o $@ $< -L .
 
 # Convenient sub-project targets
 

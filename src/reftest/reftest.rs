@@ -8,35 +8,35 @@ import path::{connect, basename};
 import os::list_dir_path;
 import servo::run_pipeline_png;
 
-fn main(args: [str]) {
+fn main(args: ~[~str]) {
     let config = parse_config(args);
     let opts = test_options(config);
     let tests = find_tests(config);
-    install_rasterize_js();
+    install_rasterize_py();
     run_tests_console(opts, tests);
 }
 
-type Config = {
-    source_dir: str,
-    work_dir: str,
-    filter: option<str>
-};
+struct Config {
+    source_dir: ~str;
+    work_dir: ~str;
+    filter: option<~str>;
+}
 
-fn parse_config(args: [str]) -> Config {
+fn parse_config(args: ~[~str]) -> Config {
     let args = args.tail();
-    let opts = [reqopt("source-dir"), reqopt("work-dir")];
-    let match = alt getopts(args, opts) {
-      ok(m) { m }
-      err(f) { fail fail_str(f) }
+    let opts = ~[reqopt(~"source-dir"), reqopt(~"work-dir")];
+    let matches = match getopts(args, opts) {
+      ok(m) => m,
+      err(f) => fail fail_str(f)
     };
 
-    {
-        source_dir: opt_str(match, "source-dir"),
-        work_dir: opt_str(match, "work-dir"),
-        filter: if match.free.is_empty() {
+    Config {
+        source_dir: opt_str(matches, ~"source-dir"),
+        work_dir: opt_str(matches, ~"work-dir"),
+        filter: if matches.free.is_empty() {
             none
         } else {
-            some(match.free.head())
+            some(matches.free.head())
         }
     }
 }
@@ -49,12 +49,12 @@ fn test_options(config: Config) -> test_opts {
     }
 }
 
-fn find_tests(config: Config) -> [test_desc] {
-    let html_files = list_dir_path(config.source_dir).filter({ |file| file.ends_with(".html") });
-    ret html_files.map({ |file| make_test(config, file) });
+fn find_tests(config: Config) -> ~[test_desc] {
+    let html_files = list_dir_path(config.source_dir).filter( |file| file.ends_with(".html") );
+    return html_files.map(|file| make_test(config, file) );
 }
 
-fn make_test(config: Config, file: str) -> test_desc {
+fn make_test(config: Config, file: ~str) -> test_desc {
     {
         name: file,
         fn: fn~() { run_test(config, file) },
@@ -63,7 +63,7 @@ fn make_test(config: Config, file: str) -> test_desc {
     }
 }
 
-fn run_test(config: Config, file: str) {
+fn run_test(config: Config, file: ~str) {
     let servo_render = render_servo(config, file);
     let ref_render = render_ref(config, file);
     if servo_render != ref_render {
@@ -71,20 +71,20 @@ fn run_test(config: Config, file: str) {
     }
 }
 
-type Render = [u8];
+type Render = ~[u8];
 
-fn render_servo(config: Config, file: str) -> Render {
+fn render_servo(config: Config, file: ~str) -> Render {
     let infile = file;
     let outfile = connect(config.work_dir, basename(file) + ".png");
     run_pipeline_png(infile, outfile);
     fail;
 }
 
-fn render_ref(config: Config, file: str) -> Render {
+fn render_ref(config: Config, file: ~str) -> Render {
     fail
 }
 
-fn install_rasterize_js() { }
+fn install_rasterize_py() { }
 
 // This is the script that uses phantom.js to render pages
-fn rasterize_js() -> str { #include_str("rasterize.js") }
+fn rasterize_py() -> ~str { #include_str("rasterize.py") }
