@@ -11,8 +11,19 @@ import js::crust::*;
 import js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
 import dvec::{DVec, dvec};
 import ptr::null;
-import content::content_task::Document;
 import bindings;
+import std::arc::arc;
+import style::Stylesheet;
+
+struct Document {
+    let root: Node;
+    let css_rules: arc<Stylesheet>;
+
+    new(root: Node, -css_rules: Stylesheet) {
+        self.root = root;
+        self.css_rules = arc(css_rules);
+    }
+}
 
 enum NodeData = {
     tree: tree::Tree<Node>,

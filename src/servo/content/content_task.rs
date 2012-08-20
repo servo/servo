@@ -6,7 +6,6 @@
 export ContentTask;
 export ControlMsg, ExecuteMsg, ParseMsg, ExitMsg;
 export PingMsg, PongMsg;
-export Document;
 
 import std::arc::{arc, clone};
 import comm::{Port, Chan, port, chan, listen, select2};
@@ -14,7 +13,7 @@ import task::{spawn, spawn_listener};
 import io::{read_whole_file, println};
 import result::{ok, err};
 
-import dom::base::{Node, NodeScope, define_bindings};
+import dom::base::{Document, Node, NodeScope, define_bindings};
 import dom::event::{Event, ResizeEvent};
 import dom::style;
 import dom::style::Stylesheet;
@@ -68,16 +67,6 @@ fn join_layout(scope: NodeScope, layout_task: LayoutTask) {
             response_from_layout.recv();
         });
         scope.reader_joined();
-    }
-}
-
-struct Document {
-    let root: Node;
-    let css_rules: arc<Stylesheet>;
-
-    new(root: Node, -css_rules: Stylesheet) {
-        self.root = root;
-        self.css_rules = arc(css_rules);
     }
 }
 

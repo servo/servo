@@ -12,7 +12,7 @@ import ptr::null;
 import libc::c_uint;
 import utils::{DOMString, domstring_to_jsval, rust_box, squirrel_away, str};
 import bindings::node::create;
-import content::content_task::Document;
+import base::Document;
 
 enum DOMException {
     INVALID_CHARACTER_ERR
