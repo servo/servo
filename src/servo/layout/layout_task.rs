@@ -18,7 +18,7 @@ import dom::event::{Event, ReflowEvent};
 import task::*;
 import comm::*;
 
-type Layout = Chan<Msg>;
+type LayoutTask = Chan<Msg>;
 
 enum Msg {
     BuildMsg(Node, arc<Stylesheet>, url, Chan<Event>),
@@ -26,7 +26,7 @@ enum Msg {
     ExitMsg
 }
 
-fn Layout(render_task: RenderTask, image_cache_task: ImageCacheTask) -> Layout {
+fn LayoutTask(render_task: RenderTask, image_cache_task: ImageCacheTask) -> LayoutTask {
     do spawn_listener::<Msg>|request| {
         loop {
             match request.recv() {

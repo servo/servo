@@ -3,7 +3,7 @@ import gfx::render_task;
 import render_task::RenderTask;
 import pipes::{spawn_service, select};
 import layout::layout_task;
-import layout_task::Layout;
+import layout_task::LayoutTask;
 import content::{Content, ExecuteMsg, ParseMsg, ExitMsg, create_content};
 import resource::resource_task;
 import resource::resource_task::{ResourceTask};
@@ -23,7 +23,7 @@ struct Engine<C:Compositor send copy> {
     let render_task: RenderTask;
     let resource_task: ResourceTask;
     let image_cache_task: ImageCacheTask;
-    let layout: Layout;
+    let layout_task: LayoutTask;
     let content: comm::Chan<content::ControlMsg>;
 
     new(+compositor: C) {
@@ -32,13 +32,13 @@ struct Engine<C:Compositor send copy> {
         let render_task = RenderTask(compositor);
         let resource_task = ResourceTask();
         let image_cache_task = image_cache_task(resource_task);
-        let layout = Layout(render_task, image_cache_task);
-        let content = create_content(layout, compositor, resource_task);
+        let layout_task = LayoutTask(render_task, image_cache_task);
+        let content = create_content(layout_task, compositor, resource_task);
 
         self.render_task = render_task;
         self.resource_task = resource_task;
         self.image_cache_task = image_cache_task;
-        self.layout = layout;
+        self.layout_task = layout_task;
         self.content = content;
     }
 
@@ -63,7 +63,7 @@ struct Engine<C:Compositor send copy> {
                         
                         Exit -> channel {
                             self.content.send(content::ExitMsg);
-                            self.layout.send(layout_task::ExitMsg);
+                            self.layout_task.send(layout_task::ExitMsg);
                             
                             let (response_chan, response_port) =
                                 pipes::stream();

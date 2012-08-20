@@ -23,7 +23,7 @@ import gfx::compositor::Compositor;
 import parser::html_lexer::spawn_html_lexer_task;
 import parser::html_builder::build_dom;
 import layout::layout_task;
-import layout_task::{Layout, BuildMsg};
+import layout_task::{LayoutTask, BuildMsg};
 
 import jsrt = js::rust::rt;
 import js::rust::methods;
@@ -53,11 +53,11 @@ enum PingMsg {
 
 #[doc="Sends a ping to layout and waits for the response."]
 #[allow(non_implicitly_copyable_typarams)]
-fn join_layout(scope: NodeScope, layout: Layout) {
+fn join_layout(scope: NodeScope, layout_task: LayoutTask) {
 
     if scope.is_reader_forked() {
         listen(|response_from_layout| {
-            layout.send(layout_task::PingMsg(response_from_layout));
+            layout_task.send(layout_task::PingMsg(response_from_layout));
             response_from_layout.recv();
         });
         scope.reader_joined();
@@ -76,7 +76,7 @@ struct Document {
 
 struct Content<C:Compositor send copy> {
     let compositor: C;
-    let layout: Layout;
+    let layout_task: LayoutTask;
     let from_master: comm::Port<ControlMsg>;
     let event_port: comm::Port<Event>;
 
@@ -88,9 +88,9 @@ struct Content<C:Compositor send copy> {
 
     let resource_task: ResourceTask;
 
-    new(layout: Layout, compositor: C, from_master: Port<ControlMsg>,
+    new(layout_task: LayoutTask, compositor: C, from_master: Port<ControlMsg>,
         resource_task: ResourceTask) {
-        self.layout = layout;
+        self.layout_task = layout_task;
         self.compositor = compositor;
         self.from_master = from_master;
         self.event_port = port();
@@ -179,7 +179,7 @@ struct Content<C:Compositor send copy> {
           }
 
           ExitMsg => {
-            self.layout.send(layout_task::ExitMsg);
+            self.layout_task.send(layout_task::ExitMsg);
             return false;
           }
         }
@@ -190,11 +190,11 @@ struct Content<C:Compositor send copy> {
 
         // Now, join the layout so that they will see the latest
         // changes we have made.
-        join_layout(self.scope, self.layout);
+        join_layout(self.scope, self.layout_task);
 
         // Send new document and relevant styles to layout
         // FIXME: Put CSS rules in an arc or something.
-        self.layout.send(BuildMsg(document.root, clone(&document.css_rules), copy *doc_url, self.event_port.chan()));
+        self.layout_task.send(BuildMsg(document.root, clone(&document.css_rules), copy *doc_url, self.event_port.chan()));
 
         // Indicate that reader was forked so any further
         // changes will be isolated.
@@ -233,9 +233,9 @@ struct Content<C:Compositor send copy> {
     }
 }
 
-fn create_content<S: Compositor send copy>(layout: Layout, compositor: S, resource_task: ResourceTask) -> Chan<ControlMsg> {
+fn create_content<S: Compositor send copy>(layout_task: LayoutTask, compositor: S, resource_task: ResourceTask) -> Chan<ControlMsg> {
     do spawn_listener::<ControlMsg> |from_master| {
-        Content(layout, compositor, from_master, resource_task).start();
+        Content(layout_task, compositor, from_master, resource_task).start();
     }
 }
 
