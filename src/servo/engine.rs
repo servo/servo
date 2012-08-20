@@ -1,3 +1,5 @@
+export EngineTask, EngineProto;
+
 import gfx::compositor::Compositor;
 import gfx::render_task;
 import render_task::RenderTask;
@@ -18,17 +20,10 @@ fn macros() {
     include!("macros.rs");
 }
 
-struct Engine<C:Compositor send copy> {
-    let compositor: C;
+type EngineTask = EngineProto::client::Running;
 
-    let render_task: RenderTask;
-    let resource_task: ResourceTask;
-    let image_cache_task: ImageCacheTask;
-    let layout_task: LayoutTask;
-    let content_task: ContentTask;
-
-    new(+compositor: C) {
-        self.compositor = compositor;
+fn EngineTask<C: Compositor send copy>(+compositor: C) -> EngineTask {
+    do spawn_service(EngineProto::init) |request, move compositor| {
 
         let render_task = RenderTask(compositor);
         let resource_task = ResourceTask();
@@ -36,46 +31,59 @@ struct Engine<C:Compositor send copy> {
         let layout_task = LayoutTask(render_task, image_cache_task);
         let content_task = ContentTask(layout_task, compositor, resource_task);
 
-        self.render_task = render_task;
-        self.resource_task = resource_task;
-        self.image_cache_task = image_cache_task;
-        self.layout_task = layout_task;
-        self.content_task = content_task;
+        Engine {
+            compositor: compositor,
+            render_task: render_task,
+            resource_task: resource_task,
+            image_cache_task: image_cache_task,
+            layout_task: layout_task,
+            content_task: content_task,
+        }.run(request);
     }
+}
 
-    fn start() -> EngineProto::client::Running {
-        do spawn_service(EngineProto::init) |request| {
-            import EngineProto::*;
-            let mut request = request;
 
-            loop {
-                select! {
-                    request => {
-                        LoadURL(url) -> next {
-                            // TODO: change copy to move once we have match move
-                            let url = move_ref!(url);
-                            if url.path.ends_with(".js") {
-                                self.content_task.send(content_task::ExecuteMsg(url))
-                            } else {
-                                self.content_task.send(content_task::ParseMsg(url))
-                            }
-                            request = next;
-                        },
-                        
-                        Exit -> channel {
-                            self.content_task.send(content_task::ExitMsg);
-                            self.layout_task.send(layout_task::ExitMsg);
-                            
-                            let (response_chan, response_port) = pipes::stream();
-                            self.render_task.send(render_task::ExitMsg(response_chan));
-                            response_port.recv();
-                            
-                            self.image_cache_task.exit();
-                            self.resource_task.send(resource_task::Exit);
-                            
-                            server::Exited(channel);
-                            break
+struct Engine<C:Compositor> {
+    compositor: C;
+    render_task: RenderTask;
+    resource_task: ResourceTask;
+    image_cache_task: ImageCacheTask;
+    layout_task: LayoutTask;
+    content_task: ContentTask;
+}
+
+impl<C: Compositor> Engine<C> {
+    fn run(+request: EngineProto::server::Running) {
+        import EngineProto::*;
+        let mut request = request;
+
+        loop {
+            select! {
+                request => {
+                    LoadURL(url) -> next {
+                        // TODO: change copy to move once we have match move
+                        let url = move_ref!(url);
+                        if url.path.ends_with(".js") {
+                            self.content_task.send(content_task::ExecuteMsg(url))
+                        } else {
+                            self.content_task.send(content_task::ParseMsg(url))
                         }
+                        request = next;
+                    },
+
+                    Exit -> channel {
+                        self.content_task.send(content_task::ExitMsg);
+                        self.layout_task.send(layout_task::ExitMsg);
+
+                        let (response_chan, response_port) = pipes::stream();
+                        self.render_task.send(render_task::ExitMsg(response_chan));
+                        response_port.recv();
+
+                        self.image_cache_task.exit();
+                        self.resource_task.send(resource_task::Exit);
+
+                        server::Exited(channel);
+                        break
                     }
                 }
             }

@@ -30,7 +30,7 @@ enum Msg {
 
 type RenderTask = comm::Chan<Msg>;
 
-fn RenderTask<C: Compositor send copy>(compositor: C) -> RenderTask {
+fn RenderTask<C: Compositor send>(+compositor: C) -> RenderTask {
     do task::spawn_listener |po: comm::Port<Msg>| {
         let (draw_target_ch, draw_target_po) = pipes::stream();
         let mut draw_target_ch = draw_target_ch;

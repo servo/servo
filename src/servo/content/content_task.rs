@@ -51,7 +51,7 @@ enum PingMsg {
 
 type ContentTask = Chan<ControlMsg>;
 
-fn ContentTask<S: Compositor send copy>(layout_task: LayoutTask, compositor: S, resource_task: ResourceTask) -> ContentTask {
+fn ContentTask<S: Compositor send copy>(layout_task: LayoutTask, +compositor: S, resource_task: ResourceTask) -> ContentTask {
     do spawn_listener::<ControlMsg> |from_master| {
         Content(layout_task, compositor, from_master, resource_task).start();
     }
@@ -70,7 +70,7 @@ fn join_layout(scope: NodeScope, layout_task: LayoutTask) {
     }
 }
 
-struct Content<C:Compositor send copy> {
+struct Content<C:Compositor> {
     let compositor: C;
     let layout_task: LayoutTask;
     let from_master: comm::Port<ControlMsg>;
@@ -84,7 +84,7 @@ struct Content<C:Compositor send copy> {
 
     let resource_task: ResourceTask;
 
-    new(layout_task: LayoutTask, compositor: C, from_master: Port<ControlMsg>,
+    new(layout_task: LayoutTask, +compositor: C, from_master: Port<ControlMsg>,
         resource_task: ResourceTask) {
         self.layout_task = layout_task;
         self.compositor = compositor;

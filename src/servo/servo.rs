@@ -3,8 +3,7 @@ import option::swap_unwrap;
 import platform::osmain;
 import osmain::{OSMain, AddKeyHandler};
 import opts::{Opts, Screen, Png};
-import engine::Engine;
-import engine::EngineProto;
+import engine::{EngineTask, EngineProto};
 
 import url_to_str = std::net::url::to_str;
 import util::url::make_url;
@@ -39,14 +38,13 @@ fn run_pipeline_screen(urls: ~[~str]) {
     osmain.send(AddKeyHandler(keypress_to_engine));
 
     // Create a serve instance
-    let engine = Engine(osmain);
-    let mut engine_chan = some(engine.start());
+    let mut engine_task = some(EngineTask(osmain));
 
     for urls.each |filename| {
         let url = make_url(filename, none);
         #debug["master: Sending url `%s`", url_to_str(url)];
-        engine_chan =
-            some(EngineProto::client::LoadURL(swap_unwrap(&mut engine_chan),
+        engine_task =
+            some(EngineProto::client::LoadURL(swap_unwrap(&mut engine_task),
                                               url));
         #debug["master: Waiting for keypress"];
 
@@ -58,8 +56,8 @@ fn run_pipeline_screen(urls: ~[~str]) {
 
     // Shut everything down
     #debug["master: Shut down"];
-    let engine_chan = EngineProto::client::Exit(option::unwrap(engine_chan));
-    pipes::recv(engine_chan);
+    let engine_task = EngineProto::client::Exit(option::unwrap(engine_task));
+    pipes::recv(engine_task);
 
     osmain.send(osmain::Exit);
 }
@@ -74,18 +72,16 @@ fn run_pipeline_png(-url: ~str, outfile: ~str) {
 
     listen(|pngdata_from_compositor| {
         let compositor = PngCompositor(pngdata_from_compositor);
-        let engine = Engine(compositor);
-        let engine_chan = engine.start();
-        let engine_chan =
-            EngineProto::client::LoadURL(engine_chan, make_url(url, none));
+        let engine_task = EngineTask(compositor);
+        let engine_task = EngineProto::client::LoadURL(engine_task, make_url(url, none));
 
         match buffered_file_writer(outfile) {
           ok(writer) => writer.write(pngdata_from_compositor.recv()),
           err(e) => fail e
         }
 
-        let engine_chan = EngineProto::client::Exit(engine_chan);
-        pipes::recv(engine_chan);
+        let engine_task = EngineProto::client::Exit(engine_task);
+        pipes::recv(engine_task);
         compositor.send(png_compositor::Exit);
     })
 }
