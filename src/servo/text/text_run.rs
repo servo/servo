@@ -30,7 +30,7 @@ struct TextRun {
 
 fn should_calculate_the_total_size() {
     #[test];
-    #[ignore(reason = "random failures")];
+    #[ignore(cfg(target_os = "macos"))];
 
     let flib = FontLibrary();
     let font = flib.get_test_font();

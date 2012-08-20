@@ -108,7 +108,6 @@ fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) 
 
 fn should_convert_text_boxes_to_solid_color_background_items() {
     #[test];
-    #[ignore(reason = "crashy")];
 
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
@@ -129,7 +128,6 @@ fn should_convert_text_boxes_to_solid_color_background_items() {
 
 fn should_convert_text_boxes_to_text_items() {
     #[test];
-    #[ignore(reason = "crashy")];
 
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
@@ -149,7 +147,7 @@ fn should_convert_text_boxes_to_text_items() {
 
 fn should_calculate_the_bounds_of_the_text_box_background_color() {
     #[test];
-    #[ignore];
+    #[ignore(cfg(target_os = "macos"))];
 
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
@@ -171,7 +169,7 @@ fn should_calculate_the_bounds_of_the_text_box_background_color() {
 
 fn should_calculate_the_bounds_of_the_text_items() {
     #[test];
-    #[ignore];
+    #[ignore(cfg(target_os = "macos"))];
 
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
