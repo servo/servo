@@ -67,7 +67,7 @@ fn run_test(config: Config, file: ~str) {
     let servo_render = render_servo(config, file);
     let ref_render = render_ref(config, file);
     if servo_render != ref_render {
-        fail ~"rendered pages to not match";
+        fail ~"rendered pages do not match";
     }
 }
 
@@ -86,9 +86,13 @@ fn render_servo(config: Config, file: ~str) -> Render {
 fn render_ref(config: Config, file: ~str) -> Render {
     let infile = file;
     let outfile = connect(config.work_dir, basename(file) + ".ref.png");
-    let rasterize_path = rasterize_path(config);
-    let prog = run::start_program("python", ~[rasterize_path, infile, outfile]);
-    prog.finish();
+    // After we've generated the reference image once, we don't need
+    // to keep launching Firefox
+    if !os::path_exists(outfile) {
+        let rasterize_path = rasterize_path(config);
+        let prog = run::start_program("python", ~[rasterize_path, infile, outfile]);
+        prog.finish();
+    }
     return sanitize_image(outfile);
 }
 
