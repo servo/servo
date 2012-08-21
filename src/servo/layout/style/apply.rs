@@ -164,7 +164,6 @@ mod test {
     }
 
     #[test]
-    #[ignore(reason = "leaks memory")]
     fn test_percent_height() {
         let scope = NodeScope();
 
@@ -178,7 +177,7 @@ mod test {
         scope.add_child(parent, child2);
         scope.add_child(child, g1);
         scope.add_child(child, g2);
-        parent.initialize_style_for_subtree();
+        let _handles = parent.initialize_style_for_subtree();
 
         do parent.aux |aux| { aux.specified_style.height = some(Px(100.0)); }
         do child.aux |aux| { aux.specified_style.height = some(Auto); }

@@ -116,9 +116,6 @@ impl<T:send,A> Handle<T,A> {
     **Warning:** the reader is responsible for keeping this data live!
     ")]
     fn set_aux(p: @A) unsafe {
-        let p2 = p;
-        unsafe::forget(p2); // Bump the reference count.
-
         (**self).read_aux = ptr::addr_of(*p);
     }
 

@@ -29,6 +29,10 @@ enum Msg {
 
 fn LayoutTask(render_task: RenderTask, image_cache_task: ImageCacheTask) -> LayoutTask {
     do spawn_listener::<Msg>|request| {
+
+        // This just keeps our dom aux objects alive
+        let mut layout_data_refs = ~[];
+
         loop {
             match request.recv() {
               PingMsg(ping_channel) => ping_channel.send(content_task::PongMsg),
@@ -41,7 +45,7 @@ fn LayoutTask(render_task: RenderTask, image_cache_task: ImageCacheTask) -> Layo
                 node.dump();
 
                 do util::time::time(~"layout") {
-                    node.initialize_style_for_subtree();
+                    layout_data_refs += node.initialize_style_for_subtree();
                     node.recompute_style_for_subtree(styles);
 
                     let this_box = node.construct_boxes();

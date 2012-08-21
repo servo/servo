@@ -75,7 +75,7 @@ fn empty_style_for_node_kind(kind: NodeKind) -> SpecifiedStyle {
 }
 
 trait StylePriv {
-    fn initialize_style();
+    fn initialize_style() -> ~[@LayoutData];
 }
 
 impl Node : StylePriv {
@@ -89,31 +89,39 @@ impl Node : StylePriv {
      "]
     // TODO: we should look into folding this into building the dom,
     // instead of doing a linear sweep afterwards.
-    fn initialize_style() {
-        let node_kind = self.read(|n| copy *n.kind);
-        let the_layout_data = @LayoutData({
-            mut specified_style : ~empty_style_for_node_kind(node_kind),
-            mut box : none
-        });
+    fn initialize_style() -> ~[@LayoutData] {
+        if !self.has_aux() {
+            let node_kind = self.read(|n| copy *n.kind);
+            let the_layout_data = @LayoutData({
+                mut specified_style : ~empty_style_for_node_kind(node_kind),
+                mut box : none
+            });
 
-        self.set_aux(the_layout_data);
+            self.set_aux(the_layout_data);
+
+            ~[the_layout_data]
+        } else {
+            ~[]
+        }
     }
 }
 
 trait StyleMethods {
-    fn initialize_style_for_subtree();
+    fn initialize_style_for_subtree() -> ~[@LayoutData];
     fn get_specified_style() -> SpecifiedStyle;
     fn recompute_style_for_subtree(styles : arc<Stylesheet>);
 }
 
 impl Node : StyleMethods {
     #[doc="Sequentially initialize the nodes' auxilliary data so they can be updated in parallel."]
-    fn initialize_style_for_subtree() {
-        self.initialize_style();
+    fn initialize_style_for_subtree() -> ~[@LayoutData] {
+        let mut handles = self.initialize_style();
         
         for NTree.each_child(self) |kid| {
-            kid.initialize_style_for_subtree();
+            handles += kid.initialize_style_for_subtree();
         }
+
+        return handles;
     }
     
     #[doc="
