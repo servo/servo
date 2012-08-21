@@ -33,6 +33,7 @@ trait HtmlLexerMethods {
     fn parse_html() -> Token;
     fn parse_in_normal_state(c: u8) -> Token;
     fn parse_in_tag_state(c: u8) -> Token;
+    fn eat_until_end_of_comment();
 }
 
 impl HtmlLexer : HtmlLexerMethods {
@@ -53,6 +54,7 @@ impl HtmlLexer : HtmlLexerMethods {
 
     fn parse_in_normal_state(c: u8) -> Token {
         let mut ch = c;
+
         if ch == ('<' as u8) {
             match self.input_state.get() {
               CoeChar(c) => { ch = c; }
@@ -60,13 +62,30 @@ impl HtmlLexer : HtmlLexerMethods {
             }
 
             if ch == ('!' as u8) {
-                self.input_state.eat_whitespace();
-                self.input_state.expect_ident(~"DOCTYPE");
-                self.input_state.eat_whitespace();
-                self.input_state.expect_ident(~"html");
-                self.input_state.eat_whitespace();
-                self.input_state.expect('>' as u8);
-                return Doctype;
+                let ch = self.input_state.get();
+                // FIXME: This comment parsing is very hacky
+                if ch == CoeChar('-' as u8) {
+                    self.eat_until_end_of_comment();
+                    return match self.input_state.get() {
+                      CoeChar(c) => self.parse_in_normal_state(c),
+                      CoeEof => self.input_state.parse_err(~"FIXME")
+                    }
+                } else if ch == CoeChar('D' as u8) {
+                    self.input_state.expect_ident(~"OCTYPE");
+                    self.input_state.eat_whitespace();
+                    self.input_state.expect_ident(~"html");
+                    self.input_state.eat_whitespace();
+                    self.input_state.expect('>' as u8);
+                    return Doctype;
+                } else {
+                    self.input_state.eat_whitespace();
+                    self.input_state.expect_ident(~"DOCTYPE");
+                    self.input_state.eat_whitespace();
+                    self.input_state.expect_ident(~"html");
+                    self.input_state.eat_whitespace();
+                    self.input_state.expect('>' as u8);
+                    return Doctype;
+                }
             }
 
             if ch == ('/' as u8) {
@@ -97,6 +116,32 @@ impl HtmlLexer : HtmlLexerMethods {
                 push(s, c);
               }
               CoeEof => { return Text(from_bytes(s)); }
+            }
+        }
+    }
+
+    fn eat_until_end_of_comment() {
+        let mut state = none;
+
+        loop {
+            match self.input_state.get() {
+              CoeChar(c) => {
+                match c {
+                  '-' as u8 if state == none => {
+                    state = some(~"-")
+                  }
+                  '-' as u8 if state == some(~"-") => {
+                    state = some(~"--")
+                  }
+                  '>' as u8 if state == some(~"--") => {
+                    return
+                  }
+                  _ => {
+                    state = none
+                  }
+                }
+              }
+              CoeEof => return
             }
         }
     }
