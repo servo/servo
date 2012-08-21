@@ -12,7 +12,7 @@ fn main(args: ~[~str]) {
     let config = parse_config(args);
     let opts = test_options(config);
     let tests = find_tests(config);
-    install_rasterize_py();
+    install_rasterize_py(config);
     run_tests_console(opts, tests);
 }
 
@@ -77,14 +77,30 @@ fn render_servo(config: Config, file: ~str) -> Render {
     let infile = file;
     let outfile = connect(config.work_dir, basename(file) + ".png");
     run_pipeline_png(infile, outfile);
-    fail;
+    let buf = io::read_whole_file(outfile).get();
+    return servo::image::base::load_from_memory(buf).get().data;
 }
 
 fn render_ref(config: Config, file: ~str) -> Render {
-    fail
+    let infile = file;
+    let outfile = connect(config.work_dir, basename(file) + ".ref.png");
+    let rasterize_path = rasterize_path(config);
+    let prog = run::start_program("python", ~[rasterize_path, infile, outfile]);
+    prog.finish();
+    let buf = io::read_whole_file(outfile).get();
+    return servo::image::base::load_from_memory(buf).get().data;
 }
 
-fn install_rasterize_py() { }
+fn install_rasterize_py(config: Config) {
+    import io::WriterUtil;
+    let path = rasterize_path(config);
+    let writer = io::file_writer(path, ~[io::Create, io::Truncate]).get();
+    writer.write_str(rasterize_py());
+}
+
+fn rasterize_path(config: Config) -> ~str {
+    connect(config.work_dir, ~"rasterize.py")
+}
 
 // This is the script that uses phantom.js to render pages
 fn rasterize_py() -> ~str { #include_str("rasterize.py") }
