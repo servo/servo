@@ -71,6 +71,7 @@ SERVO_DEPS += \
 	src/rust-http-client/libhttp_client.dummy \
 	src/libparserutils/libparserutils.dummy \
 	src/libhubbub/libhubbub.dummy \
+	src/servo-sandbox/servo-sandbox.dummy \
 	$(NULL)
 
 CHECK_DEPS += \
@@ -151,6 +152,8 @@ libparserutils: src/libparserutils/libparserutils.dummy
 
 libhubbub: src/libhubbub/libhubbub.dummy
 
+servo-sandbox: src/servo-sandbox/servo-sandbox.dummy
+
 
 # Subproject rules
 
@@ -194,6 +197,9 @@ src/libparserutils/libparserutils.dummy:
 
 src/libhubbub/libhubbub.dummy:
 	$(MAKE) -C src/libhubbub
+
+src/servo-sandbox/servo-sandbox.dummy:
+	$(MAKE) -C src/servo-sandbox
 
 
 # Testing targets

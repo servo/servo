@@ -16,6 +16,7 @@ mkdir -p src/rust-layers || exit $?
 mkdir -p src/rust-http-client || exit $?
 mkdir -p src/libparserutils || exit $?
 mkdir -p src/libhubbub || exit $?
+mkdir -p src/servo-sandbox || exit $?
 
 (cd src/mozjs && sh ${SRCDIR}/src/mozjs/js/src/configure --enable-debug --disable-optimize) || exit $?
 (cd src/rust-opengles && sh ${SRCDIR}/src/rust-opengles/configure) || exit $?
@@ -30,3 +31,4 @@ mkdir -p src/libhubbub || exit $?
 (cd src/rust-http-client && sh ${SRCDIR}/src/rust-http-client/configure) || exit $?
 (cd src/libparserutils && sh ${SRCDIR}/src/libparserutils/configure) || exit $?
 (cd src/libhubbub && sh ${SRCDIR}/src/libhubbub/configure) || exit $?
+(cd src/servo-sandbox && sh ${SRCDIR}/src/servo-sandbox/configure) || exit $?
