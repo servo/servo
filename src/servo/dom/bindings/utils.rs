@@ -4,7 +4,8 @@ import js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED
 import js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp};
 import js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
-                            JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate};
+                            JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate,
+                            JS_GetClass, JS_GetPrototype};
 import js::glue::bindgen::*;
 import result::{result, ok, err};
 
@@ -74,4 +75,19 @@ fn get_compartment(cx: *JSContext) -> *bare_compartment {
         assert cx == (*compartment).cx.ptr;
         compartment
     }
+}
+
+extern fn has_instance(_cx: *JSContext, obj: *JSObject, v: *jsval, bp: *mut JSBool) -> JSBool {
+    //XXXjdm this is totally broken for non-object values
+    let mut o = RUST_JSVAL_TO_OBJECT(unsafe {*v});
+    let clasp = JS_GetClass(obj);
+    unsafe { *bp = 0; }
+    while o.is_not_null() {
+        if JS_GetClass(o) == clasp {
+            unsafe { *bp = 1; }
+            break;
+        }
+        o = JS_GetPrototype(o);
+    }
+    return 1;
 }

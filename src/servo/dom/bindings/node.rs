@@ -22,8 +22,33 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-fn create(cx: *JSContext, node: Node) -> jsobj unsafe {
-    let compartment = get_compartment(cx);
+fn init(compartment: bare_compartment) {
+   fn NodeProto_class(compartment: bare_compartment) -> JSClass {
+        {name: compartment.add_name(~"NodePrototype"),
+         flags: 0,
+         addProperty: JS_PropertyStub,
+         delProperty: JS_PropertyStub,
+         getProperty: JS_PropertyStub,
+         setProperty: JS_StrictPropertyStub,
+         enumerate: JS_EnumerateStub,
+         resolve: JS_PropertyStub,
+         convert: JS_ConvertStub,
+         finalize: null(),
+         checkAccess: null(),
+         call: null(),
+         construct: null(),
+         hasInstance: utils::has_instance,
+         trace: null(),
+         reserved: (null(), null(), null(), null(), null(),  // 05
+                    null(), null(), null(), null(), null(),  // 10
+                    null(), null(), null(), null(), null(),  // 15
+                    null(), null(), null(), null(), null(),  // 20
+                    null(), null(), null(), null(), null(),  // 25
+                    null(), null(), null(), null(), null(),  // 30
+                    null(), null(), null(), null(), null(),  // 35
+                    null(), null(), null(), null(), null())} // 40
+    };
+
     fn Node_class(compartment: bare_compartment) -> JSClass {
         {name: compartment.add_name(~"Node"),
          flags: JSCLASS_HAS_RESERVED_SLOTS(1),
@@ -38,7 +63,7 @@ fn create(cx: *JSContext, node: Node) -> jsobj unsafe {
          checkAccess: null(),
          call: null(),
          construct: null(),
-         hasInstance: null(),
+         hasInstance: utils::has_instance,
          trace: null(),
          reserved: (null(), null(), null(), null(), null(),  // 05
                     null(), null(), null(), null(), null(),  // 10
@@ -50,32 +75,49 @@ fn create(cx: *JSContext, node: Node) -> jsobj unsafe {
                     null(), null(), null(), null(), null())} // 40
     };
 
+    compartment.register_class(NodeProto_class);
+    compartment.register_class(Node_class);
+
     let obj = result::unwrap(
-        (*compartment).new_object(Node_class, null(),
-                                  (*compartment).global_obj.ptr));
+        compartment.new_object(~"NodePrototype", null(),
+                               compartment.global_obj.ptr));
     let attrs = @~[
-        {name: (*compartment).add_name(~"firstChild"),
+        {name: compartment.add_name(~"firstChild"),
          tinyid: 0,
          flags: 0,
          getter: getFirstChild,
          setter: null()},
 
-        {name: (*compartment).add_name(~"nextSibling"),
+        {name: compartment.add_name(~"nextSibling"),
          tinyid: 0,
          flags: 0,
          getter: getNextSibling,
          setter: null()},
 
-        {name: (*compartment).add_name(~"tagName"),
+        {name: compartment.add_name(~"tagName"),
          tinyid: 0,
          flags: 0,
          getter: getTagName,
          setter: null()}];
-    vec::push((*compartment).global_props, attrs);
+    vec::push(compartment.global_props, attrs);
     vec::as_buf(*attrs, |specs, _len| {
-        JS_DefineProperties((*compartment).cx.ptr, obj.ptr, specs);
+        JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
     });
 
+    compartment.define_property(~"Node", RUST_OBJECT_TO_JSVAL(obj.ptr),
+                                JS_PropertyStub, JS_StrictPropertyStub,
+                                JSPROP_ENUMERATE);
+}
+
+fn create(cx: *JSContext, node: Node) -> jsobj unsafe {
+    let compartment = get_compartment(cx);
+
+    //XXXjdm the parent should probably be the node parent instead of the global
+    //TODO error checking
+    let obj = result::unwrap(
+        (*compartment).new_object_with_proto(~"Node", ~"NodePrototype",
+                                             (*compartment).global_obj.ptr));
+ 
     unsafe {
         let raw_ptr: *libc::c_void = unsafe::reinterpret_cast(squirrel_away_unique(~node));
         JS_SetReservedSlot(obj.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));

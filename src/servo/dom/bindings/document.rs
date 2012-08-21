@@ -66,6 +66,7 @@ extern fn getDocumentElement(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *m
 }
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Document> {
+    //TODO: some kind of check if this is a Document object
     let val = JS_GetReservedSlot(obj, 0);
     unsafe::reinterpret_cast(RUST_JSVAL_TO_PRIVATE(val))
 }
@@ -79,6 +80,32 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
 }
 
 fn init(compartment: bare_compartment, doc: @Document) {
+    fn DocumentProto_class(compartment: bare_compartment) -> JSClass {
+        {name: compartment.add_name(~"DOMDocumentPrototype"),
+         flags: 0,
+         addProperty: JS_PropertyStub,
+         delProperty: JS_PropertyStub,
+         getProperty: JS_PropertyStub,
+         setProperty: JS_StrictPropertyStub,
+         enumerate: JS_EnumerateStub,
+         resolve: JS_ResolveStub,
+         convert: JS_ConvertStub,
+         finalize: null(),
+         checkAccess: null(),
+         call: null(),
+         construct: null(),
+         hasInstance: utils::has_instance,
+         trace: null(),
+         reserved: (null(), null(), null(), null(), null(),  // 05
+                    null(), null(), null(), null(), null(),  // 10
+                    null(), null(), null(), null(), null(),  // 15
+                    null(), null(), null(), null(), null(),  // 20
+                    null(), null(), null(), null(), null(),  // 25
+                    null(), null(), null(), null(), null(),  // 30
+                    null(), null(), null(), null(), null(),  // 35
+                    null(), null(), null(), null(), null())} // 40
+    };
+
     fn Document_class(compartment: bare_compartment) -> JSClass {
         {name: compartment.add_name(~"DOMDocument"),
          flags: JSCLASS_HAS_RESERVED_SLOTS(1),
@@ -93,7 +120,7 @@ fn init(compartment: bare_compartment, doc: @Document) {
          checkAccess: null(),
          call: null(),
          construct: null(),
-         hasInstance: null(),
+         hasInstance: utils::has_instance,
          trace: null(),
          reserved: (null(), null(), null(), null(), null(),  // 05
                     null(), null(), null(), null(), null(),  // 10
@@ -105,8 +132,13 @@ fn init(compartment: bare_compartment, doc: @Document) {
                     null(), null(), null(), null(), null())} // 40
     };
 
+    compartment.register_class(DocumentProto_class);
+    compartment.register_class(Document_class);
+
+    //TODO error checking
     let obj = result::unwrap(
-        compartment.new_object(Document_class, null(), null()));
+        compartment.new_object(~"DOMDocumentPrototype", null(),
+                               compartment.global_obj.ptr));
     /*let methods = ~[
         {name: compartment.add_name("getDocumentURI"),
           call: getDocumentURI,
@@ -123,16 +155,25 @@ fn init(compartment: bare_compartment, doc: @Document) {
          getter: getDocumentElement,
          setter: null()}];
     vec::push(compartment.global_props, attrs);
-        vec::as_buf(*attrs, |specs, _len| {
+    vec::as_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
     });
 
+    compartment.define_property(~"Document", RUST_OBJECT_TO_JSVAL(obj.ptr),
+                                JS_PropertyStub, JS_StrictPropertyStub,
+                                JSPROP_ENUMERATE);
+
+    let instance = result::unwrap(
+        //compartment.new_object(Document_class, null(), compartment.global_obj.ptr));
+        compartment.new_object_with_proto(~"DOMDocument", ~"DOMDocumentPrototype",
+                                          compartment.global_obj.ptr));
+
     unsafe {
         let raw_ptr: *libc::c_void = unsafe::reinterpret_cast(squirrel_away(doc));
-        JS_SetReservedSlot(obj.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
+        JS_SetReservedSlot(instance.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
 
-    compartment.define_property(~"document", RUST_OBJECT_TO_JSVAL(obj.ptr),
+    compartment.define_property(~"document", RUST_OBJECT_TO_JSVAL(instance.ptr),
                                 JS_PropertyStub, JS_StrictPropertyStub,
                                 JSPROP_ENUMERATE);
 }

@@ -70,8 +70,8 @@ struct Attr {
 }
 
 fn define_bindings(compartment: bare_compartment, doc: @Document) {
-    //bindings::window::init(compartment);
     bindings::document::init(compartment, doc);
+    bindings::node::init(compartment);
 }
 
 enum ElementKind {
