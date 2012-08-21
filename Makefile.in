@@ -85,6 +85,7 @@ CHECK_DEPS += \
 	check-rust-layers \
 	check-rust-http-client \
 	check-servo \
+	check-ref \
 	$(NULL)
 
 CLEAN_DEPS += \
@@ -210,6 +211,9 @@ check: $(CHECK_DEPS)
 
 check-servo: servo-test
 	./servo-test $(TESTNAME)
+
+check-ref: reftest
+	./reftest --source-dir=$(VPATH)/src/test/ref --work-dir=src/test/ref $(TESTNAME)
 
 check-rust-harfbuzz:
 	$(MAKE) check -C src/rust-harfbuzz
