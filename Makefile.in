@@ -69,6 +69,8 @@ SERVO_DEPS += \
 	src/rust-glut/librustglut.dummy \
 	src/rust-layers/librustlayers.dummy \
 	src/rust-http-client/libhttp_client.dummy \
+	src/libparserutils/libparserutils.dummy \
+	src/libhubbub/libhubbub.dummy \
 	$(NULL)
 
 CHECK_DEPS += \
@@ -145,6 +147,10 @@ rust-layers: src/rust-layers/librustlayers.dummy
 
 rust-http-client: src/rust-http-client/libhttp_client.dummy
 
+libparserutils: src/libparserutils/libparserutils.dummy
+
+libhubbub: src/libhubbub/libhubbub.dummy
+
 
 # Subproject rules
 
@@ -182,6 +188,12 @@ src/rust-layers/librustlayers.dummy: $(LAYERS_DEPS)
 
 src/rust-http-client/libhttp_client.dummy:
 	$(MAKE) -C src/rust-http-client
+
+src/libparserutils/libparserutils.dummy:
+	$(MAKE) -C src/libparserutils
+
+src/libhubbub/libhubbub.dummy:
+	$(MAKE) -C src/libhubbub
 
 
 # Testing targets

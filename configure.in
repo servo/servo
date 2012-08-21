@@ -14,6 +14,8 @@ mkdir -p src/rust-geom || exit $?
 mkdir -p src/rust-glut || exit $?
 mkdir -p src/rust-layers || exit $?
 mkdir -p src/rust-http-client || exit $?
+mkdir -p src/libparserutils || exit $?
+mkdir -p src/libhubbub || exit $?
 
 (cd src/mozjs && sh ${SRCDIR}/src/mozjs/js/src/configure --enable-debug --disable-optimize) || exit $?
 (cd src/rust-opengles && sh ${SRCDIR}/src/rust-opengles/configure) || exit $?
@@ -26,3 +28,5 @@ mkdir -p src/rust-http-client || exit $?
 (cd src/rust-glut && sh ${SRCDIR}/src/rust-glut/configure) || exit $?
 (cd src/rust-layers && sh ${SRCDIR}/src/rust-layers/configure) || exit $?
 (cd src/rust-http-client && sh ${SRCDIR}/src/rust-http-client/configure) || exit $?
+(cd src/libparserutils && sh ${SRCDIR}/src/libparserutils/configure) || exit $?
+(cd src/libhubbub && sh ${SRCDIR}/src/libhubbub/configure) || exit $?
