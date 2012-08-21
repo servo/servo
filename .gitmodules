@@ -37,4 +37,7 @@
 [submodule "src/libparserutils"]
 	path = src/libparserutils
 	url = git://github.com/pcwalton/libparserutils.git
+[submodule "src/servo-sandbox"]
+	path = src/servo-sandbox
+	url = git://github.com/pcwalton/servo-sandbox.git
 
