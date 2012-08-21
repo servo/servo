@@ -1,4 +1,4 @@
-import js::rust::{bare_compartment, methods};
+import js::rust::{compartment, bare_compartment, methods, jsobj};
 import js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL, JS_THIS_OBJECT,
             JS_SET_RVAL};
 import js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp};
@@ -10,9 +10,10 @@ import js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_
 import result::{result, ok, err};
 import ptr::null;
 import libc::c_uint;
-import utils::{DOMString, domstring_to_jsval, rust_box, squirrel_away, str};
+import utils::{DOMString, domstring_to_jsval, rust_box, squirrel_away, str,
+     Document_class};
 import bindings::node::create;
-import base::Document;
+import base::{Document, Node};
 
 enum DOMException {
     INVALID_CHARACTER_ERR
@@ -59,6 +60,8 @@ enum Element = int;
     return 1;
 }*/
 
+// Unfortunately duplicated in document and window.
+// Generalizing it triggers a trans bug
 extern fn getDocumentElement(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval) -> JSBool unsafe {
     let node = (*unwrap(obj)).payload.root;
     *rval = RUST_OBJECT_TO_JSVAL(node::create(cx, node).ptr);
@@ -80,7 +83,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
 }
 
 fn init(compartment: bare_compartment, doc: @Document) {
-    fn DocumentProto_class(compartment: bare_compartment) -> JSClass {
+  fn DocumentProto_class(compartment: bare_compartment) -> JSClass {
         {name: compartment.add_name(~"DOMDocumentPrototype"),
          flags: 0,
          addProperty: JS_PropertyStub,
@@ -106,39 +109,16 @@ fn init(compartment: bare_compartment, doc: @Document) {
                     null(), null(), null(), null(), null())} // 40
     };
 
-    fn Document_class(compartment: bare_compartment) -> JSClass {
-        {name: compartment.add_name(~"DOMDocument"),
-         flags: JSCLASS_HAS_RESERVED_SLOTS(1),
-         addProperty: JS_PropertyStub,
-         delProperty: JS_PropertyStub,
-         getProperty: JS_PropertyStub,
-         setProperty: JS_StrictPropertyStub,
-         enumerate: JS_EnumerateStub,
-         resolve: JS_ResolveStub,
-         convert: JS_ConvertStub,
-         finalize: finalize,
-         checkAccess: null(),
-         call: null(),
-         construct: null(),
-         hasInstance: utils::has_instance,
-         trace: null(),
-         reserved: (null(), null(), null(), null(), null(),  // 05
-                    null(), null(), null(), null(), null(),  // 10
-                    null(), null(), null(), null(), null(),  // 15
-                    null(), null(), null(), null(), null(),  // 20
-                    null(), null(), null(), null(), null(),  // 25
-                    null(), null(), null(), null(), null(),  // 30
-                    null(), null(), null(), null(), null(),  // 35
-                    null(), null(), null(), null(), null())} // 40
-    };
-
     compartment.register_class(DocumentProto_class);
-    compartment.register_class(Document_class);
+    compartment.register_class(|c| Document_class(c, ~"DOMDocument",
+                                                  finalize));
 
     //TODO error checking
     let obj = result::unwrap(
-        compartment.new_object(~"DOMDocumentPrototype", null(),
-                               compartment.global_obj.ptr));
+                compartment.new_object(~"DOMDocumentPrototype",
+                                       null(),
+                                       compartment.global_obj.ptr));
+
     /*let methods = ~[
         {name: compartment.add_name("getDocumentURI"),
           call: getDocumentURI,

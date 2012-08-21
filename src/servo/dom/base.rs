@@ -15,6 +15,13 @@ import bindings;
 import std::arc::arc;
 import style::Stylesheet;
 
+struct Window {
+    let root: Node;
+    new(root: Node) {
+        self.root = root;
+    }
+}
+
 struct Document {
     let root: Node;
     let css_rules: arc<Stylesheet>;
@@ -69,7 +76,9 @@ struct Attr {
     }
 }
 
-fn define_bindings(compartment: bare_compartment, doc: @Document) {
+fn define_bindings(compartment: bare_compartment, doc: @Document,
+                   win: @Window) {
+    bindings::window::init(compartment, win);
     bindings::document::init(compartment, doc);
     bindings::node::init(compartment);
 }

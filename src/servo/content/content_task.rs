@@ -13,7 +13,7 @@ import task::{spawn, spawn_listener};
 import io::{read_whole_file, println};
 import result::{ok, err};
 
-import dom::base::{Document, Node, NodeScope, define_bindings};
+import dom::base::{Document, Node, NodeScope, Window, define_bindings};
 import dom::event::{Event, ResizeEvent};
 import dom::style;
 import dom::style::Stylesheet;
@@ -80,6 +80,7 @@ struct Content<C:Compositor> {
     let jsrt: jsrt;
 
     let mut document: option<@Document>;
+    let mut window:   option<@Window>;
     let mut doc_url: option<url>;
 
     let resource_task: ResourceTask;
@@ -95,7 +96,8 @@ struct Content<C:Compositor> {
         self.jsrt = jsrt();
 
         self.document = none;
-        self.doc_url = none;
+        self.window   = none;
+        self.doc_url  = none;
 
         self.compositor.add_event_listener(self.event_port.chan());
 
@@ -129,13 +131,15 @@ struct Content<C:Compositor> {
             let js_scripts = js_port.recv();
 
             // Apply the css rules to the dom tree:
-            #debug["%?", css_rules];
+            #debug["css_rules: %?", css_rules];
 
-            #debug["%?", js_scripts];
+            #debug["js_scripts: %?", js_scripts];
 
             let document = Document(root, css_rules);
+            let window   = Window(root);
             self.relayout(document, &url);
             self.document = some(@document);
+            self.window   = some(@window);
             self.doc_url = some(copy url);
 
             //XXXjdm it was easier to duplicate the relevant ExecuteMsg code;
@@ -146,7 +150,8 @@ struct Content<C:Compositor> {
                 cx.set_logging_error_reporter();
                 cx.new_compartment(global_class).chain(|compartment| {
                     compartment.define_functions(debug_fns);
-                    define_bindings(*compartment, option::get(self.document));
+                    define_bindings(*compartment, option::get(self.document),
+                                    option::get(self.window));
                     cx.evaluate_script(compartment.global_obj, bytes, ~"???", 1u)
                 });
             }

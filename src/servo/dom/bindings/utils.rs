@@ -1,4 +1,4 @@
-import js::rust::{compartment, bare_compartment};
+import js::rust::{compartment, bare_compartment, methods};
 import js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL};
 import js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp};
@@ -7,7 +7,10 @@ import js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_Re
                             JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate,
                             JS_GetClass, JS_GetPrototype};
 import js::glue::bindgen::*;
+import ptr::null;
 import result::{result, ok, err};
+import js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub,
+    JS_ResolveStub, JS_ConvertStub};
 
 enum DOMString {
     str(~str),
@@ -90,4 +93,31 @@ extern fn has_instance(_cx: *JSContext, obj: *JSObject, v: *jsval, bp: *mut JSBo
         o = JS_GetPrototype(o);
     }
     return 1;
+}
+
+fn Document_class(compartment: bare_compartment, name: ~str,
+                  finalize: *u8) -> JSClass {
+        {name: compartment.add_name(name),
+         flags: JSCLASS_HAS_RESERVED_SLOTS(1),
+         addProperty: JS_PropertyStub,
+         delProperty: JS_PropertyStub,
+         getProperty: JS_PropertyStub,
+         setProperty: JS_StrictPropertyStub,
+         enumerate: JS_EnumerateStub,
+         resolve: JS_ResolveStub,
+         convert: JS_ConvertStub,
+         finalize: finalize,
+         checkAccess: null(),
+         call: null(),
+         construct: null(),
+         hasInstance: null(),
+         trace: null(),
+         reserved: (null(), null(), null(), null(), null(),  // 05
+                    null(), null(), null(), null(), null(),  // 10
+                    null(), null(), null(), null(), null(),  // 15
+                    null(), null(), null(), null(), null(),  // 20
+                    null(), null(), null(), null(), null(),  // 25
+                    null(), null(), null(), null(), null(),  // 30
+                    null(), null(), null(), null(), null(),  // 35
+                    null(), null(), null(), null(), null())} // 40
 }

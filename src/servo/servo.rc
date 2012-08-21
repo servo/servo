@@ -28,6 +28,7 @@ mod dom {
         mod document;
         mod utils;
         mod node;
+        mod window;
     }
 }
 
