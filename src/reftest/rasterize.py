@@ -14,7 +14,7 @@ print output
 
 driver = webdriver.Firefox()
 
-driver.set_window_size(800, 700)
+driver.set_window_size(800, 1000)
 driver.get(input)
 
 screenshot = driver.get_screenshot_as_file(output)

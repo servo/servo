@@ -67,18 +67,20 @@ fn run_test(config: Config, file: ~str) {
     let servo_render = render_servo(config, file);
     let ref_render = render_ref(config, file);
     if servo_render != ref_render {
-        fail;
+        fail ~"rendered pages to not match";
     }
 }
 
 type Render = ~[u8];
 
+const WIDTH: uint = 800;
+const HEIGHT: uint = 600;
+
 fn render_servo(config: Config, file: ~str) -> Render {
     let infile = file;
     let outfile = connect(config.work_dir, basename(file) + ".png");
     run_pipeline_png(infile, outfile);
-    let buf = io::read_whole_file(outfile).get();
-    return servo::image::base::load_from_memory(buf).get().data;
+    return sanitize_image(outfile);
 }
 
 fn render_ref(config: Config, file: ~str) -> Render {
@@ -87,8 +89,18 @@ fn render_ref(config: Config, file: ~str) -> Render {
     let rasterize_path = rasterize_path(config);
     let prog = run::start_program("python", ~[rasterize_path, infile, outfile]);
     prog.finish();
-    let buf = io::read_whole_file(outfile).get();
-    return servo::image::base::load_from_memory(buf).get().data;
+    return sanitize_image(outfile);
+}
+
+fn sanitize_image(file: ~str) -> Render {
+    let buf = io::read_whole_file(file).get();
+    let image = servo::image::base::load_from_memory(buf).get();
+
+    // I don't know how to precisely control the rendered height of
+    // the Firefox output, so it is larger than we want. Trim it down.
+    assert image.width == WIDTH;
+    assert image.height >= HEIGHT;
+    vec::slice(image.data, 0, image.width * HEIGHT * 4)
 }
 
 fn install_rasterize_py(config: Config) {
