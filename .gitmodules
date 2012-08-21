@@ -31,3 +31,10 @@
 [submodule "src/rust-http-client"]
 	path = src/rust-http-client
 	url = git://github.com/brson/rust-http-client.git
+[submodule "src/libhubbub"]
+	path = src/libhubbub
+	url = git://github.com/pcwalton/libhubbub.git
+[submodule "src/libparserutils"]
+	path = src/libparserutils
+	url = git://github.com/pcwalton/libparserutils.git
+
