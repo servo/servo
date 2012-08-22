@@ -55,11 +55,43 @@ fn find_tests(config: Config) -> ~[test_desc] {
 }
 
 fn make_test(config: Config, file: ~str) -> test_desc {
+    let directives = load_test_directives(file);
+
     {
         name: file,
         fn: fn~() { run_test(config, file) },
-        ignore: false,
+        ignore: directives.ignore,
         should_fail: false
+    }
+}
+
+struct Directives {
+    ignore: bool;
+}
+
+fn load_test_directives(file: ~str) -> Directives {
+    let data = match io::read_whole_file_str(file) {
+      result::ok(data) => data,
+      result::err(*) => fail #fmt("unable to load directives for %s", file)
+    };
+
+    let mut ignore = false;
+
+    for str::lines(data).each |line| {
+        if is_comment(line) {
+            if line.contains("ignore") {
+                ignore = true;
+                break;
+            }
+        }
+    }
+
+    fn is_comment(line: ~str) -> bool {
+        line.starts_with("<!--")
+    }
+
+    return Directives {
+        ignore: ignore
     }
 }
 
@@ -77,7 +109,7 @@ const WIDTH: uint = 800;
 const HEIGHT: uint = 600;
 
 fn render_servo(config: Config, file: ~str) -> Render {
-    let infile = file;
+    let infile = ~"file://" + os::make_absolute(file);
     let outfile = connect(config.work_dir, basename(file) + ".png");
     run_pipeline_png(infile, outfile);
     return sanitize_image(outfile);
