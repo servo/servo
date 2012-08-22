@@ -69,10 +69,18 @@ fn run_pipeline_png(-url: ~str, outfile: ~str) {
     import png_compositor::PngCompositor;
     import result::{ok, err};
     import io::{Writer, buffered_file_writer};
+    import resource::resource_task::ResourceTask;
+    import resource::image_cache_task::SyncImageCacheTask;
+    import engine::EngineTask_;
 
     listen(|pngdata_from_compositor| {
         let compositor = PngCompositor(pngdata_from_compositor);
-        let engine_task = EngineTask(compositor);
+        let resource_task = ResourceTask();
+        // For the PNG pipeline we are using a synchronous image cache
+        // so that all requests will be fullfilled before the first
+        // render
+        let image_cache_task = SyncImageCacheTask(resource_task);
+        let engine_task = EngineTask_(compositor, resource_task, image_cache_task);
         let engine_task = EngineProto::client::LoadURL(engine_task, make_url(url, none));
 
         match buffered_file_writer(outfile) {

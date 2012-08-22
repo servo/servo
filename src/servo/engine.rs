@@ -1,4 +1,4 @@
-export EngineTask, EngineProto;
+export EngineTask, EngineTask_, EngineProto;
 
 import gfx::compositor::Compositor;
 import gfx::render_task;
@@ -23,11 +23,19 @@ fn macros() {
 type EngineTask = EngineProto::client::Running;
 
 fn EngineTask<C: Compositor send copy>(+compositor: C) -> EngineTask {
+    let resource_task = ResourceTask();
+    let image_cache_task = ImageCacheTask(resource_task);
+    EngineTask_(compositor, resource_task, image_cache_task)
+}
+
+fn EngineTask_<C: Compositor send copy>(
+    +compositor: C,
+    resource_task: ResourceTask,
+    image_cache_task: ImageCacheTask
+) -> EngineTask {
     do spawn_service(EngineProto::init) |request, move compositor| {
 
         let render_task = RenderTask(compositor);
-        let resource_task = ResourceTask();
-        let image_cache_task = ImageCacheTask(resource_task);
         let layout_task = LayoutTask(render_task, image_cache_task);
         let content_task = ContentTask(layout_task, compositor, resource_task);
 
