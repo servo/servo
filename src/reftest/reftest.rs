@@ -7,6 +7,7 @@ import std::getopts::{getopts, reqopt, opt_str, fail_str};
 import path::{connect, basename};
 import os::list_dir_path;
 import servo::run_pipeline_png;
+import servo::image::base::Image;
 
 fn main(args: ~[~str]) {
     let config = parse_config(args);
@@ -96,26 +97,48 @@ fn load_test_directives(file: ~str) -> Directives {
 }
 
 fn run_test(config: Config, file: ~str) {
-    let servo_render = render_servo(config, file);
-    let ref_render = render_ref(config, file);
-    if servo_render != ref_render {
-        fail ~"rendered pages do not match";
+    let servo_image = render_servo(config, file);
+    let ref_image = render_ref(config, file);
+
+    assert servo_image.width == ref_image.width;
+    assert servo_image.height == ref_image.height;
+    #debug("image depth: ref: %?, servo: %?", ref_image.depth, servo_image.depth);
+
+    for uint::range(0, servo_image.height) |h| {
+        for uint::range(0, servo_image.width) |w| {
+            let i = (h * servo_image.width + w) * 4;
+            let servo_pixel = (
+                servo_image.data[i + 0],
+                servo_image.data[i + 1],
+                servo_image.data[i + 2],
+                servo_image.data[i + 3]
+            );
+            let ref_pixel = (
+                ref_image.data[i + 0],
+                ref_image.data[i + 1],
+                ref_image.data[i + 2],
+                ref_image.data[i + 3]
+            );
+            #debug("i: %?, x: %?, y: %?, ref: %?, servo: %?", i, w, h, ref_pixel, servo_pixel);
+
+            if servo_pixel != ref_pixel {
+                fail #fmt("mismatched pixel. x: %?, y: %?, ref: %?, servo: %?", w, h, ref_pixel, servo_pixel)
+            }
+        }
     }
 }
-
-type Render = ~[u8];
 
 const WIDTH: uint = 800;
 const HEIGHT: uint = 600;
 
-fn render_servo(config: Config, file: ~str) -> Render {
+fn render_servo(config: Config, file: ~str) -> Image {
     let infile = ~"file://" + os::make_absolute(file);
     let outfile = connect(config.work_dir, basename(file) + ".png");
     run_pipeline_png(infile, outfile);
     return sanitize_image(outfile);
 }
 
-fn render_ref(config: Config, file: ~str) -> Render {
+fn render_ref(config: Config, file: ~str) -> Image {
     let infile = file;
     let outfile = connect(config.work_dir, basename(file) + ".ref.png");
     // After we've generated the reference image once, we don't need
@@ -128,7 +151,7 @@ fn render_ref(config: Config, file: ~str) -> Render {
     return sanitize_image(outfile);
 }
 
-fn sanitize_image(file: ~str) -> Render {
+fn sanitize_image(file: ~str) -> Image {
     let buf = io::read_whole_file(file).get();
     let image = servo::image::base::load_from_memory(buf).get();
 
@@ -136,7 +159,9 @@ fn sanitize_image(file: ~str) -> Render {
     // the Firefox output, so it is larger than we want. Trim it down.
     assert image.width == WIDTH;
     assert image.height >= HEIGHT;
-    vec::slice(image.data, 0, image.width * HEIGHT * 4)
+    let data = vec::slice(image.data, 0, image.width * HEIGHT * 4);
+
+    return Image(image.width, HEIGHT, image.depth, data);
 }
 
 fn install_rasterize_py(config: Config) {

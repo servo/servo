@@ -11,6 +11,10 @@ import stb_image = stb_image::image;
 
 type Image = stb_image::image;
 
+fn Image(width: uint, height: uint, depth: uint, +data: ~[u8]) -> Image {
+    stb_image::image(width, height, depth, data)
+}
+
 const TEST_IMAGE: [u8 * 4962] = #include_bin("test.jpeg");
 
 fn test_image_bin() -> ~[u8] {
