@@ -150,9 +150,6 @@ struct Content<C:Compositor> {
             let css_rules = style_port.recv();
             let js_scripts = js_port.recv();
 
-            let css_rules = ~[];
-            let js_scripts = ~[];
-
             // Apply the css rules to the dom tree:
             #debug["css_rules: %?", css_rules];
 
