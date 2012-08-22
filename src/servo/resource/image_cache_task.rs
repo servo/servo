@@ -2,6 +2,7 @@ export Msg, Prefetch, Decode, GetImage, WaitForImage, Exit;
 export ImageResponseMsg, ImageReady, ImageNotReady, ImageFailed;
 export ImageCacheTask;
 export ImageCacheTaskClient;
+export SyncImageCacheTask;
 
 import image::base::{Image, load_from_memory, test_image_bin};
 import std::net::url::url;
@@ -72,6 +73,25 @@ fn ImageCacheTask_(resource_task: ResourceTask, +decoder_factory: DecoderFactory
             wait_map: url_map(),
             need_exit: none
         }.run();
+    }
+}
+
+fn SyncImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
+    do spawn_listener |from_client: Port<Msg>| {
+        let inner_cache = ImageCacheTask(resource_task);
+
+        loop {
+            let msg = from_client.recv();
+
+            match msg {
+              GetImage(url, response) => inner_cache.send(WaitForImage(url, response)),
+              Exit(response) => {
+                inner_cache.send(Exit(response));
+                break;
+              }
+              _ => inner_cache.send(msg)
+            }
+        }
     }
 }
 
@@ -1016,6 +1036,30 @@ fn should_return_image_failed_on_wait_if_image_fails_to_load() {
 
     match response_port.recv() {
       ImageFailed => (),
+      _ => fail
+    }
+
+    image_cache_task.exit();
+    mock_resource_task.send(resource_task::Exit);
+}
+
+#[test]
+fn sync_cache_should_wait_for_images() {
+    let mock_resource_task = do mock_resource_task |response| {
+        response.send(resource_task::Payload(test_image_bin()));
+        response.send(resource_task::Done(result::ok(())));
+    };
+
+    let image_cache_task = SyncImageCacheTask(mock_resource_task);
+    let url = make_url(~"file", none);
+
+    image_cache_task.send(Prefetch(copy url));
+    image_cache_task.send(Decode(copy url));
+
+    let response_port = port();
+    image_cache_task.send(GetImage(url, response_port.chan()));
+    match response_port.recv() {
+      ImageReady(_) => (),
       _ => fail
     }
 
