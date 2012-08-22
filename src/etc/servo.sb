@@ -18,9 +18,8 @@
 (allow process-exec
     (regex #"/servo$"))
 
-(deny process-exec
-    (regex #"^/Users/[^/]+/Library/Autosave Information")
-    (subpath "/private/var"))
+(deny file-write*
+    (regex #"/servo$"))
 
 (allow sysctl-read)
 (allow sysctl-write)
