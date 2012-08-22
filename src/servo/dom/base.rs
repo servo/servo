@@ -14,20 +14,44 @@ import ptr::null;
 import bindings;
 import std::arc::arc;
 import style::Stylesheet;
+import comm::{Port, Chan};
+import content::content_task::{ControlMsg, Timer};
+
+enum TimerControlMsg {
+    Fire(~dom::bindings::window::TimerData),
+    Close
+}
 
 struct Window {
-    let unused: int;
-    new() {
-        self.unused = 0;
+    let timer_chan: Chan<TimerControlMsg>;
+
+    new(content_port: Port<ControlMsg>) {
+        let content_chan = chan(content_port);
+        
+        self.timer_chan = do task::spawn_listener |timer_port: Port<TimerControlMsg>| {
+            loop {
+                match timer_port.recv() {
+                  Close => break,
+                  Fire(td) => {
+                    content_chan.send(Timer(td));
+                  }
+                }
+            }
+        };
+    }
+    drop {
+        self.timer_chan.send(Close);
     }
 }
 
 struct Document {
     let root: Node;
+    let scope: NodeScope;
     let css_rules: arc<Stylesheet>;
 
-    new(root: Node, -css_rules: Stylesheet) {
+    new(root: Node, scope: NodeScope, -css_rules: Stylesheet) {
         self.root = root;
+        self.scope = scope;
         self.css_rules = arc(css_rules);
     }
 }

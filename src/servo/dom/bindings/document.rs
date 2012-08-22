@@ -61,8 +61,10 @@ enum Element = int;
 }*/
 
 extern fn getDocumentElement(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval) -> JSBool unsafe {
-    let node = (*unwrap(obj)).payload.root;
-    *rval = RUST_OBJECT_TO_JSVAL(node::create(cx, node).ptr);
+    let box = unwrap(obj);
+    let node = (*box).payload.root;
+    let scope = (*box).payload.scope;
+    *rval = RUST_OBJECT_TO_JSVAL(node::create(cx, node, scope).ptr);
     return 1;
 }
 

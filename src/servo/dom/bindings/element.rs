@@ -9,7 +9,8 @@ import js::jsapi::bindgen::*;
 import js::glue::bindgen::*;
 import js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub};
 
-import dom::base::{Node, Element};
+import dom::base::{Node, NodeScope, Element};
+import node::NodeBundle;
 import utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval, str};
 import libc::c_uint;
 import ptr::null;
@@ -22,7 +23,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     #debug("element finalize!");
     unsafe {
         let val = JS_GetReservedSlot(obj, 0);
-        let _node: ~Node = unsafe::reinterpret_cast(RUST_JSVAL_TO_PRIVATE(val));
+        let _node: ~NodeBundle = unsafe::reinterpret_cast(RUST_JSVAL_TO_PRIVATE(val));
     }
 }
 
@@ -62,7 +63,8 @@ fn init(compartment: bare_compartment) {
 
 extern fn HTMLImageElement_getWidth(_cx: *JSContext, obj: *JSObject, _id: jsid,
                                     rval: *mut jsval) -> JSBool unsafe {
-    let width = (*unwrap(obj)).payload.read(|nd| {
+    let bundle = unwrap(obj);
+    let width = (*bundle).payload.scope.write((*bundle).payload.node, |nd| {
         match nd.kind {
           ~Element(ed) => {
             match ed.kind {
@@ -80,7 +82,8 @@ extern fn HTMLImageElement_getWidth(_cx: *JSContext, obj: *JSObject, _id: jsid,
 
 extern fn HTMLImageElement_setWidth(_cx: *JSContext, obj: *JSObject, _id: jsid,
                                     _strict: JSBool, vp: *jsval) -> JSBool unsafe {
-    let width = (*unwrap(obj)).payload.read(|nd| {
+    let bundle = unwrap(obj);
+    do (*bundle).payload.scope.write((*bundle).payload.node) |nd| {
         match nd.kind {
           ~Element(ed) => {
             match ed.kind {
@@ -91,14 +94,15 @@ extern fn HTMLImageElement_setWidth(_cx: *JSContext, obj: *JSObject, _id: jsid,
           }
           _ => fail ~"why is this not an element?"
         }
-    });
+    };
     return 1;
 }
 
 extern fn getTagName(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval)
     -> JSBool {
     unsafe {
-        (*unwrap(obj)).payload.read(|nd| {
+        let bundle = unwrap(obj);
+        do (*bundle).payload.scope.write((*bundle).payload.node) |nd| {
             match nd.kind {
               ~Element(ed) => {
                 let s = str(copy ed.tag_name);
@@ -109,13 +113,13 @@ extern fn getTagName(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval
                 *rval = JSVAL_NULL;
               }
             }
-        });
+        };
     }
     return 1;
 }
 
-fn create(cx: *JSContext, node: Node) -> jsobj unsafe {
-    let proto = node.read(|nd| {
+fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
+    let proto = scope.write(node, |nd| {
         match nd.kind {
           ~Element(ed) => {
             match ed.kind {
@@ -138,7 +142,8 @@ fn create(cx: *JSContext, node: Node) -> jsobj unsafe {
                                              (*compartment).global_obj.ptr));
  
     unsafe {
-        let raw_ptr: *libc::c_void = unsafe::reinterpret_cast(squirrel_away_unique(~node));
+        let raw_ptr: *libc::c_void =
+            unsafe::reinterpret_cast(squirrel_away_unique(~NodeBundle(node, scope)));
         JS_SetReservedSlot(obj.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
     return obj;

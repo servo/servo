@@ -4,7 +4,7 @@
 "]
 
 export ContentTask;
-export ControlMsg, ExecuteMsg, ParseMsg, ExitMsg;
+export ControlMsg, ExecuteMsg, ParseMsg, ExitMsg, Timer;
 export PingMsg, PongMsg;
 
 import std::arc::{arc, clone};
@@ -24,7 +24,7 @@ import layout::layout_task;
 import layout_task::{LayoutTask, BuildMsg};
 
 import jsrt = js::rust::rt;
-import js::rust::methods;
+import js::rust::{cx, methods};
 import js::global::{global_class, debug_fns};
 
 import either::{Either, Left, Right};
@@ -40,9 +40,16 @@ import url_to_str = std::net::url::to_str;
 import util::url::make_url;
 import task::{task, SingleThreaded};
 
+import js::glue::bindgen::RUST_JSVAL_TO_OBJECT;
+import js::JSVAL_NULL;
+import js::jsapi::jsval;
+import js::jsapi::bindgen::JS_CallFunctionValue;
+import ptr::null;
+
 enum ControlMsg {
     ParseMsg(url),
     ExecuteMsg(url),
+    Timer(~dom::bindings::window::TimerData),
     ExitMsg
 }
 
@@ -79,12 +86,15 @@ struct Content<C:Compositor> {
 
     let scope: NodeScope;
     let jsrt: jsrt;
+    let cx: cx;
 
     let mut document: option<@Document>;
     let mut window:   option<@Window>;
     let mut doc_url: option<url>;
 
     let resource_task: ResourceTask;
+
+    let compartment: option<compartment>;
 
     new(layout_task: LayoutTask, +compositor: C, from_master: Port<ControlMsg>,
         resource_task: ResourceTask) {
@@ -95,6 +105,7 @@ struct Content<C:Compositor> {
 
         self.scope = NodeScope();
         self.jsrt = jsrt();
+        self.cx = self.jsrt.cx();
 
         self.document = none;
         self.window   = none;
@@ -103,6 +114,13 @@ struct Content<C:Compositor> {
         self.compositor.add_event_listener(self.event_port.chan());
 
         self.resource_task = resource_task;
+
+        self.cx.set_default_options_and_version();
+        self.cx.set_logging_error_reporter();
+        self.compartment = match self.cx.new_compartment(global_class) {
+          ok(c) => some(c),
+          err(()) => none
+        };
     }
 
     fn start() {
@@ -140,29 +158,41 @@ struct Content<C:Compositor> {
 
             #debug["js_scripts: %?", js_scripts];
 
-            let document = Document(root, css_rules);
-            let window   = Window();
+            let document = Document(root, self.scope, css_rules);
+            let window   = Window(self.from_master);
             self.relayout(document, &url);
             self.document = some(@document);
             self.window   = some(@window);
             self.doc_url = some(copy url);
 
-            //XXXjdm it was easier to duplicate the relevant ExecuteMsg code;
-            //       they should be merged somehow in the future.
+            let compartment = option::expect(self.compartment, ~"TODO error checking");
+            compartment.define_functions(debug_fns);
+            define_bindings(*compartment,
+                            option::get(self.document),
+                            option::get(self.window));
+
             for vec::each(js_scripts) |bytes| {
-                let cx = self.jsrt.cx();
-                cx.set_default_options_and_version();
-                cx.set_logging_error_reporter();
-                cx.new_compartment(global_class).chain(|compartment| {
-                    compartment.define_functions(debug_fns);
-                    define_bindings(*compartment, option::get(self.document),
-                                    option::get(self.window));
-                    cx.evaluate_script(compartment.global_obj, bytes, ~"???", 1u)
-                });
+                self.cx.evaluate_script(compartment.global_obj, bytes, ~"???", 1u);
             }
 
             return true;
           }
+
+          Timer(timerData) => {
+            let compartment = option::expect(self.compartment, ~"TODO error checking");
+            let thisValue = if timerData.args.len() > 0 {
+                RUST_JSVAL_TO_OBJECT(unsafe { timerData.args.shift() })
+            } else {
+                compartment.global_obj.ptr
+            };
+            let _rval = JSVAL_NULL;
+            //TODO: support extra args. requires passing a *jsval argv
+            JS_CallFunctionValue(self.cx.ptr, thisValue, timerData.funval,
+                                 0, null(), ptr::addr_of(_rval));
+            self.relayout(*option::get(self.document), &option::get(self.doc_url));
+            return true;
+          }
+
 
           ExecuteMsg(url) => {
             #debug["content: Received url `%s` to execute", url_to_str(url)];
@@ -172,13 +202,9 @@ struct Content<C:Compositor> {
                 println(#fmt["Error opening %s: %s", url_to_str(url), msg]);
               }
               ok(bytes) => {
-                let cx = self.jsrt.cx();
-                cx.set_default_options_and_version();
-                cx.set_logging_error_reporter();
-                cx.new_compartment(global_class).chain(|compartment| {
-                    compartment.define_functions(debug_fns);
-                    cx.evaluate_script(compartment.global_obj, bytes, url.path, 1u)
-                });
+                let compartment = option::expect(self.compartment, ~"TODO error checking");
+                compartment.define_functions(debug_fns);
+                self.cx.evaluate_script(compartment.global_obj, bytes, url.path, 1u);
               }
             }
             return true;
