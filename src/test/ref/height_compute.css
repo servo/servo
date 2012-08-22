@@ -1,3 +1,4 @@
+body {margin : 0px}
 .start {background-color : gray; height : 600px}
 .half {background-color : red; height : 50%}
 .quarter {background-color : rgb(250, 125, 0); height : 25%}
