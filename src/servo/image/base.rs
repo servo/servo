@@ -24,18 +24,21 @@ fn test_image_bin() -> ~[u8] {
 fn load_from_memory(buffer: &[u8]) -> option<Image> {
     do stb_image::load_from_memory(buffer).map |image| {
 
+        assert image.depth == 4;
         // Do color space conversion :(
         let data = do vec::from_fn(image.width * image.height * 4) |i| {
             let color = i % 4;
             let pixel = i / 4;
             match color {
-              0 => image.data[pixel * 3 + 2],
-              1 => image.data[pixel * 3 + 1],
-              2 => image.data[pixel * 3 + 0],
+              0 => image.data[pixel * 4 + 2],
+              1 => image.data[pixel * 4 + 1],
+              2 => image.data[pixel * 4 + 0],
               3 => 0xffu8,
               _ => fail
             }
         };
+
+        assert image.data.len() == data.len();
 
         stb_image::image(image.width, image.height, image.depth, data)
     }
