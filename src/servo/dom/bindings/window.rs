@@ -11,16 +11,9 @@ import js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_
 import result::{result, ok, err};
 import ptr::null;
 import libc::c_uint;
-import utils::{DOMString, domstring_to_jsval, rust_box, squirrel_away, str,
-    Document_class};
+import utils::{rust_box, squirrel_away, jsval_to_str};
 import bindings::node::create;
 import base::{Node, Window};
-
-enum DOMException {
-    INVALID_CHARACTER_ERR
-}
-
-enum Element = int;
 
 extern fn alert(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool {
   unsafe {
@@ -33,15 +26,6 @@ extern fn alert(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool {
     JS_SET_RVAL(cx, vp, JSVAL_NULL);
   }
   1_i32
-}
-
-// Unfortunately duplicated in document and window.
-// Generalizing it triggers a trans bug
-extern fn getDocumentElement(cx: *JSContext, obj: *JSObject,
-      _id: jsid, rval: *mut jsval) -> JSBool unsafe {
-  let node = (*unwrap(obj)).payload.root;
-    *rval = RUST_OBJECT_TO_JSVAL(node::create(cx, node).ptr);
-    return 1;
 }
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Window> {
@@ -58,12 +42,12 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
 }
 
 fn init(compartment: bare_compartment, win: @Window) {
-
-    compartment.register_class(|c| Document_class(c, ~"DOMWindow",
-                                                  finalize));
+    let proto = utils::define_empty_prototype(~"Window", none, compartment);
+    compartment.register_class(utils::instance_jsclass(~"WindowInstance", finalize));
 
     let obj = result::unwrap(
-                 compartment.new_object(~"DOMWindow", null(), null()));
+                 compartment.new_object_with_proto(~"WindowInstance",
+                                                   ~"Window", null()));
 
     /* Define methods on a window */
     let methods = ~[{name: compartment.add_name(~"alert"),
@@ -72,25 +56,16 @@ fn init(compartment: bare_compartment, win: @Window) {
                      flags: 0}];
     
     vec::as_buf(methods, |fns, _len| {
-        JS_DefineFunctions(compartment.cx.ptr, obj.ptr, fns);
+        JS_DefineFunctions(compartment.cx.ptr, proto.ptr, fns);
       });
-
-    let attrs = @~[
-        {name: compartment.add_name(~"DOMWindow"),
-         tinyid: 0, // ???
-         flags: 0,
-         getter: getDocumentElement,
-         setter: null()}];
-    vec::push(compartment.global_props, attrs);
-        vec::as_buf(*attrs, |specs, _len| {
-        JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
-    });
 
     unsafe {
         let raw_ptr: *libc::c_void = unsafe::reinterpret_cast(squirrel_away(win));
         JS_SetReservedSlot(obj.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
 
+    //TODO: All properties/methods on Window need to be available on the global
+    //      object as well. We probably want a special JSClass with a resolve hook.
     compartment.define_property(~"window", RUST_OBJECT_TO_JSVAL(obj.ptr),
                                 JS_PropertyStub, JS_StrictPropertyStub,
                                 JSPROP_ENUMERATE);

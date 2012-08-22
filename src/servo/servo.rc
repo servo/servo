@@ -26,6 +26,7 @@ mod dom {
     mod style;
     mod bindings {
         mod document;
+        mod element;
         mod utils;
         mod node;
         mod window;

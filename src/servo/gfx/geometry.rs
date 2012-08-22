@@ -1,9 +1,9 @@
 import geom::point::Point2D;
 import geom::rect::Rect;
 import geom::size::Size2D;
-import num::Num;
+import num::{Num, from_int};
 
-enum au = int;
+enum au = i32;
 
 impl au : Num {
     pure fn add(&&other: au) -> au        { au(*self + *other) }
@@ -13,8 +13,10 @@ impl au : Num {
     pure fn modulo(&&other: au) -> au     { au(*self % *other) }
     pure fn neg() -> au                   { au(-*self)         }
 
-    pure fn to_int() -> int               { *self              }
-    static pure fn from_int(n: int) -> au { au(n)              }
+    pure fn to_int() -> int               { *self as int       }
+    static pure fn from_int(n: int) -> au {
+        au((n & (i32::max_value as int)) as i32)
+    }
 }
 
 fn box<A:copy Num>(x: A, y: A, w: A, h: A) -> Rect<A> {
@@ -31,9 +33,9 @@ fn zero_size_au() -> Size2D<au> {
 }
 
 pure fn px_to_au(i: int) -> au {
-    au(i * 60)
+    from_int(i * 60)
 }
 
 pure fn au_to_px(au: au) -> int {
-    *au / 60
+    (*au / 60) as int
 }

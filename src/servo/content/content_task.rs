@@ -136,7 +136,7 @@ struct Content<C:Compositor> {
             #debug["js_scripts: %?", js_scripts];
 
             let document = Document(root, css_rules);
-            let window   = Window(root);
+            let window   = Window();
             self.relayout(document, &url);
             self.document = some(@document);
             self.window   = some(@window);

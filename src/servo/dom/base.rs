@@ -16,9 +16,9 @@ import std::arc::arc;
 import style::Stylesheet;
 
 struct Window {
-    let root: Node;
-    new(root: Node) {
-        self.root = root;
+    let unused: int;
+    new() {
+        self.unused = 0;
     }
 }
 
@@ -81,6 +81,7 @@ fn define_bindings(compartment: bare_compartment, doc: @Document,
     bindings::window::init(compartment, win);
     bindings::document::init(compartment, doc);
     bindings::node::init(compartment);
+    bindings::element::init(compartment);
 }
 
 enum ElementKind {

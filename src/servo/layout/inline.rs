@@ -30,7 +30,7 @@ impl @Box : InlineLayout {
         for tree::each_child(BTree, self) |kid| {
             kid.bounds.origin = Point2D(au(x), au(y));
             x += *kid.bounds.size.width;
-            current_height = int::max(current_height, *kid.bounds.size.height);
+            current_height = i32::max(current_height, *kid.bounds.size.height);
         }
 
         let height = match self.appearance.height { 
@@ -41,7 +41,7 @@ impl @Box : InlineLayout {
 
         let width = match self.appearance.width { 
             Px(p) => px_to_au(p.to_int()),
-            Auto => au(int::max(x, *self.bounds.size.width)),
+            Auto => au(i32::max(x, *self.bounds.size.width)),
             _ => fail ~"inhereit_width failed, width is neither a Px or auto"
         };
 

@@ -10,10 +10,10 @@ import js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_
 import result::{result, ok, err};
 import ptr::null;
 import libc::c_uint;
-import utils::{DOMString, domstring_to_jsval, rust_box, squirrel_away, str,
-     Document_class};
+import utils::{DOMString, domstring_to_jsval, rust_box, squirrel_away, str};
 import bindings::node::create;
-import base::{Document, Node};
+import base::Document;
+import option::{some, none};
 
 enum DOMException {
     INVALID_CHARACTER_ERR
@@ -60,8 +60,6 @@ enum Element = int;
     return 1;
 }*/
 
-// Unfortunately duplicated in document and window.
-// Generalizing it triggers a trans bug
 extern fn getDocumentElement(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval) -> JSBool unsafe {
     let node = (*unwrap(obj)).payload.root;
     *rval = RUST_OBJECT_TO_JSVAL(node::create(cx, node).ptr);
@@ -83,50 +81,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
 }
 
 fn init(compartment: bare_compartment, doc: @Document) {
-  fn DocumentProto_class(compartment: bare_compartment) -> JSClass {
-        {name: compartment.add_name(~"DOMDocumentPrototype"),
-         flags: 0,
-         addProperty: JS_PropertyStub,
-         delProperty: JS_PropertyStub,
-         getProperty: JS_PropertyStub,
-         setProperty: JS_StrictPropertyStub,
-         enumerate: JS_EnumerateStub,
-         resolve: JS_ResolveStub,
-         convert: JS_ConvertStub,
-         finalize: null(),
-         checkAccess: null(),
-         call: null(),
-         construct: null(),
-         hasInstance: utils::has_instance,
-         trace: null(),
-         reserved: (null(), null(), null(), null(), null(),  // 05
-                    null(), null(), null(), null(), null(),  // 10
-                    null(), null(), null(), null(), null(),  // 15
-                    null(), null(), null(), null(), null(),  // 20
-                    null(), null(), null(), null(), null(),  // 25
-                    null(), null(), null(), null(), null(),  // 30
-                    null(), null(), null(), null(), null(),  // 35
-                    null(), null(), null(), null(), null())} // 40
-    };
-
-    compartment.register_class(DocumentProto_class);
-    compartment.register_class(|c| Document_class(c, ~"DOMDocument",
-                                                  finalize));
-
-    //TODO error checking
-    let obj = result::unwrap(
-                compartment.new_object(~"DOMDocumentPrototype",
-                                       null(),
-                                       compartment.global_obj.ptr));
-
-    /*let methods = ~[
-        {name: compartment.add_name("getDocumentURI"),
-          call: getDocumentURI,
-          nargs: 0,
-          flags: 0}];
-    vec::as_buf(methods, |fns| {
-        JS_DefineFunctions(compartment.cx.ptr, obj.ptr, fns);
-    });*/
+    let obj = utils::define_empty_prototype(~"Document", none, compartment);
 
     let attrs = @~[
         {name: compartment.add_name(~"documentElement"),
@@ -139,13 +94,10 @@ fn init(compartment: bare_compartment, doc: @Document) {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
     });
 
-    compartment.define_property(~"Document", RUST_OBJECT_TO_JSVAL(obj.ptr),
-                                JS_PropertyStub, JS_StrictPropertyStub,
-                                JSPROP_ENUMERATE);
+    compartment.register_class(utils::instance_jsclass(~"DocumentInstance", finalize));
 
     let instance = result::unwrap(
-        //compartment.new_object(Document_class, null(), compartment.global_obj.ptr));
-        compartment.new_object_with_proto(~"DOMDocument", ~"DOMDocumentPrototype",
+        compartment.new_object_with_proto(~"DocumentInstance", ~"Document",
                                           compartment.global_obj.ptr));
 
     unsafe {
