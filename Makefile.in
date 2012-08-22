@@ -28,6 +28,7 @@ RUSTLIBS = \
 	-L src/rust-glut \
 	-L src/rust-layers \
 	-L src/rust-http-client \
+	-L src/rust-hubbub \
 	$(NULL)
 
 RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
@@ -72,6 +73,7 @@ SERVO_DEPS += \
 	src/libparserutils/libparserutils.dummy \
 	src/libhubbub/libhubbub.dummy \
 	src/servo-sandbox/servo-sandbox.dummy \
+	src/rust-hubbub/librusthubbub.dummy \
 	$(NULL)
 
 CHECK_DEPS += \
@@ -201,6 +203,9 @@ src/libhubbub/libhubbub.dummy:
 
 src/servo-sandbox/servo-sandbox.dummy:
 	$(MAKE) -C src/servo-sandbox
+
+src/rust-hubbub/librusthubbub.dummy:
+	$(MAKE) -C src/rust-hubbub
 
 
 # Testing targets

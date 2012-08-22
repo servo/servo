@@ -40,4 +40,7 @@
 [submodule "src/servo-sandbox"]
 	path = src/servo-sandbox
 	url = git://github.com/pcwalton/servo-sandbox.git
+[submodule "src/rust-hubbub"]
+	path = src/rust-hubbub
+	url = git://github.com/pcwalton/rust-hubbub.git
 

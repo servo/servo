@@ -128,8 +128,12 @@ struct Content<C:Compositor> {
             let stream = spawn_html_lexer_task(copy url, self.resource_task);
             let (root, style_port, js_port) = build_dom(self.scope, stream, url, 
                                                         self.resource_task);
+
             let css_rules = style_port.recv();
             let js_scripts = js_port.recv();
+
+            let css_rules = ~[];
+            let js_scripts = ~[];
 
             // Apply the css rules to the dom tree:
             #debug["css_rules: %?", css_rules];

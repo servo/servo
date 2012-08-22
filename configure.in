@@ -17,6 +17,7 @@ mkdir -p src/rust-http-client || exit $?
 mkdir -p src/libparserutils || exit $?
 mkdir -p src/libhubbub || exit $?
 mkdir -p src/servo-sandbox || exit $?
+mkdir -p src/rust-hubbub || exit $?
 
 mkdir -p src/test/ref || exit $?
 
@@ -34,3 +35,4 @@ mkdir -p src/test/ref || exit $?
 (cd src/libparserutils && sh ${SRCDIR}/src/libparserutils/configure) || exit $?
 (cd src/libhubbub && sh ${SRCDIR}/src/libhubbub/configure) || exit $?
 (cd src/servo-sandbox && sh ${SRCDIR}/src/servo-sandbox/configure) || exit $?
+(cd src/rust-hubbub && sh ${SRCDIR}/src/rust-hubbub/configure) || exit $?
