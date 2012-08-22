@@ -38,6 +38,7 @@ import resource_task::{ResourceTask};
 import std::net::url::url;
 import url_to_str = std::net::url::to_str;
 import util::url::make_url;
+import task::{task, SingleThreaded};
 
 enum ControlMsg {
     ParseMsg(url),
@@ -52,7 +53,7 @@ enum PingMsg {
 type ContentTask = Chan<ControlMsg>;
 
 fn ContentTask<S: Compositor send copy>(layout_task: LayoutTask, +compositor: S, resource_task: ResourceTask) -> ContentTask {
-    do spawn_listener::<ControlMsg> |from_master| {
+    do task().sched_mode(SingleThreaded).spawn_listener::<ControlMsg> |from_master| {
         Content(layout_task, compositor, from_master, resource_task).start();
     }
 }
