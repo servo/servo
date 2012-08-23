@@ -16,6 +16,7 @@ use glut;
 use layers;
 use opengles;
 use http_client;
+use hubbub;
 
 mod engine;
 
@@ -78,6 +79,7 @@ mod parser {
     mod html_lexer;
     mod html_builder;
     mod css_builder;
+    mod hubbub_html_parser;
 }
 
 mod platform {

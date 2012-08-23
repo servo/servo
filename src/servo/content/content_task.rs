@@ -143,12 +143,20 @@ struct Content<C:Compositor> {
 
             // Note: we can parse the next document in parallel
             // with any previous documents.
-            let stream = spawn_html_lexer_task(copy url, self.resource_task);
+            /*let stream = spawn_html_lexer_task(copy url, self.resource_task);
             let (root, style_port, js_port) = build_dom(self.scope, stream, url, 
                                                         self.resource_task);
 
             let css_rules = style_port.recv();
-            let js_scripts = js_port.recv();
+            let js_scripts = js_port.recv();*/
+
+            let result = parser::hubbub_html_parser::parse_html(self.scope,
+                                                                url,
+                                                                self.resource_task);
+
+            let root = result.root;
+            let css_rules = result.style_port.recv();
+            let js_scripts = result.js_port.recv();
 
             // Apply the css rules to the dom tree:
             #debug["css_rules: %?", css_rules];

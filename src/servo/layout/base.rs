@@ -235,8 +235,8 @@ fn give_kids_width(+available_width : au, box : @Box) -> au {
     // TODO: give smaller available widths if the width of the
     // containing box is constrained
     match box.kind {
-        BlockBox | InlineBox => box.bounds.size.width = available_width,
-        IntrinsicBox(*) | TextBoxKind(*) => { }
+        BlockBox => box.bounds.size.width = available_width,
+        InlineBox | IntrinsicBox(*) | TextBoxKind(*) => { }
     }
 
     available_width
