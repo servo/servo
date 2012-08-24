@@ -1,6 +1,6 @@
 import js::rust::{compartment, bare_compartment, methods, jsobj};
-import js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL, JS_THIS_OBJECT,
-            JS_SET_RVAL};
+import js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED,
+            JSVAL_NULL, JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
 import js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp};
 import js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
@@ -60,11 +60,17 @@ enum Element = int;
     return 1;
 }*/
 
-extern fn getDocumentElement(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval) -> JSBool unsafe {
+extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
+    -> JSBool unsafe {
+    let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(vp));
+    if obj.is_null() {
+        return 0;
+    }
+
     let box = unwrap(obj);
     let node = (*box).payload.root;
     let scope = (*box).payload.scope;
-    *rval = RUST_OBJECT_TO_JSVAL(node::create(cx, node, scope).ptr);
+    *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, node, scope).ptr);
     return 1;
 }
 
@@ -88,12 +94,12 @@ fn init(compartment: bare_compartment, doc: @Document) {
     let attrs = @~[
         {name: compartment.add_name(~"documentElement"),
          tinyid: 0,
-         flags: 0,
-         getter: getDocumentElement,
-         setter: null()}];
+         flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
+         getter: {op: getDocumentElement, info: null()},
+         setter: {op: null(), info: null()}}];
     vec::push(compartment.global_props, attrs);
     vec::as_buf(*attrs, |specs, _len| {
-        JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
+        assert JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs) == 1;
     });
 
     compartment.register_class(utils::instance_jsclass(~"DocumentInstance", finalize));

@@ -109,8 +109,8 @@ fn prototype_jsclass(name: ~str) -> fn(bare_compartment) -> JSClass {
          finalize: null(),
          checkAccess: null(),
          call: null(),
-         construct: null(),
          hasInstance: has_instance,
+         construct: null(),
          trace: null(),
          reserved: (null(), null(), null(), null(), null(),  // 05
                     null(), null(), null(), null(), null(),  // 10
@@ -138,8 +138,8 @@ fn instance_jsclass(name: ~str, finalize: *u8)
          finalize: finalize,
          checkAccess: null(),
          call: null(),
-         construct: null(),
          hasInstance: has_instance,
+         construct: null(),
          trace: null(),
          reserved: (null(), null(), null(), null(), null(),  // 05
                     null(), null(), null(), null(), null(),  // 10
