@@ -259,7 +259,7 @@ fn spawn_css_lexer_from_string(-content : ~str) -> pipes::port<Token> {
 
     do task::spawn {
         let input_port = comm::port();
-        input_port.send(Payload(str::bytes(content)));
+        input_port.send(Payload(str::to_bytes(content)));
         input_port.send(Done(ok(())));
 
         lex_css_from_bytes(input_port, result_chan);

@@ -145,6 +145,8 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
         js_script_listener(js_chan, js_port, resource_task);
     };
 
+    let (scope, url) = (@copy scope, @copy url);
+
     // Build the root node.
     let root = scope.new_node(Element(ElementData(~"html", ~HTMLDivElement)));
     debug!("created new node");
@@ -153,11 +155,11 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
     parser.set_document_node(reinterpret_cast(root));
     parser.enable_scripting(true);
     parser.set_tree_handler(@hubbub::TreeHandler {
-        create_comment: |data| {
+        create_comment: |_data| {
             debug!("create comment");
-            0u
+            0u  // FIXME: causes segfaults
         },
-        create_doctype: |doctype| {
+        create_doctype: |_doctype| {
             debug!("create doctype");
             let new_node = scope.new_node(Element(ElementData(~"doctype", ~UnknownElement)));
             reinterpret_cast(new_node)
@@ -202,7 +204,7 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
                         match (element.get_attr(~"rel"), element.get_attr(~"href")) {
                             (some(rel), some(href)) if rel == ~"stylesheet" => {
                                 debug!("found CSS stylesheet: %s", href);
-                                css_chan.send(CSSFileMessage(make_url(href, some(copy url))));
+                                css_chan.send(CSSFileMessage(make_url(href, some(copy *url))));
                             }
                             _ => {}
                         }
@@ -268,7 +270,7 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
                         match element.get_attr(~"src") {
                             some(src) => {
                                 debug!("found script: %s", src);
-                                let new_url = make_url(src, some(copy url));
+                                let new_url = make_url(src, some(copy *url));
                                 js_chan.send(JSFileMessage(new_url));
                             }
                             none => {}
@@ -283,7 +285,7 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
     debug!("set tree handler");
 
     let input_port = port();
-    resource_task.send(Load(copy url, input_port.chan()));
+    resource_task.send(Load(copy *url, input_port.chan()));
     debug!("loaded page");
     loop {
         match input_port.recv() {

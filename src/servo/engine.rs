@@ -66,7 +66,7 @@ impl<C: Compositor> Engine<C> {
         let mut request = request;
 
         loop {
-            select! {
+            select!(
                 request => {
                     LoadURL(url) -> next {
                         // TODO: change copy to move once we have match move
@@ -94,12 +94,12 @@ impl<C: Compositor> Engine<C> {
                         break
                     }
                 }
-            }
+            )
         }
     }
 }
 
-proto! EngineProto {
+proto! EngineProto(
     Running:send {
         LoadURL(url) -> Running,
         Exit -> Exiting
@@ -108,4 +108,5 @@ proto! EngineProto {
     Exiting:recv {
         Exited -> !
     }
-}
+)
+

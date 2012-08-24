@@ -1,14 +1,14 @@
 {
-    macro_rules! move_ref {
+    macro_rules! move_ref(
         { $x:expr } => { unsafe { let y <- *ptr::addr_of(*$x); y } }
-    }
+    )
 
-    macro_rules! move_val {
+    macro_rules! move_val(
         { $x:expr } => { unsafe { let y <- *ptr::addr_of(*$x); y } }
-    }
+    )
 
     // select!
-    macro_rules! select_if {
+    macro_rules! select_if(
     
         {
             $index:expr,
@@ -39,19 +39,19 @@
                   _ => fail
                 }
             } else {
-                select_if!{
+                select_if!(
                     $index,
                     $count + 1
                     $(, $ports => [
                         $(type_this $messages$(($(x $xs),+))dont_type_this*
                           -> $nexts => { $es }),+
                     ])*
-                }
+                )
             }
         };
-    }
+    )
     
-    macro_rules! select {
+    macro_rules! select(
         {
             $( $port:path => {
                 $($message:path$(($($x: ident),+))dont_type_this*
@@ -59,10 +59,10 @@
             } )+
         } => {
             let index = pipes::selecti([$(($port).header()),+]/_);
-            select_if!{index, 0 $(, $port => [
+            select_if!(index, 0 $(, $port => [
                 $(type_this $message$(($(x $x),+))dont_type_this* -> $next => { $e }),+
-            ])+}
+            ])+)
         }
-    }
+    )
 
 }
