@@ -6,8 +6,8 @@ import js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_Re
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
                             JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate,
                             JS_GetClass, JS_GetPrototype};
-import js::crust::{JS_ConvertStub, JS_PropertyStub, JS_StrictPropertyStub,
-                   JS_EnumerateStub, JS_ConvertStub, JS_ResolveStub};
+import js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB,
+                  RESOLVE_STUB};
 import js::glue::bindgen::*;
 import ptr::null;
 import result::{result, ok, err};
@@ -99,13 +99,13 @@ fn prototype_jsclass(name: ~str) -> fn(bare_compartment) -> JSClass {
     return fn@(compartment: bare_compartment) -> JSClass {
         {name: compartment.add_name(name),
          flags: 0,
-         addProperty: JS_PropertyStub,
-         delProperty: JS_PropertyStub,
-         getProperty: JS_PropertyStub,
-         setProperty: JS_StrictPropertyStub,
-         enumerate: JS_EnumerateStub,
-         resolve: JS_PropertyStub,
-         convert: JS_ConvertStub,
+         addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+         delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+         getProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+         setProperty: GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
+         enumerate: GetJSClassHookStubPointer(ENUMERATE_STUB) as *u8,
+         resolve: GetJSClassHookStubPointer(RESOLVE_STUB) as *u8,
+         convert: GetJSClassHookStubPointer(CONVERT_STUB) as *u8,
          finalize: null(),
          checkAccess: null(),
          call: null(),
@@ -128,13 +128,13 @@ fn instance_jsclass(name: ~str, finalize: *u8)
     return fn@(compartment: bare_compartment) -> JSClass {
         {name: compartment.add_name(name),
          flags: JSCLASS_HAS_RESERVED_SLOTS(1),
-         addProperty: JS_PropertyStub,
-         delProperty: JS_PropertyStub,
-         getProperty: JS_PropertyStub,
-         setProperty: JS_StrictPropertyStub,
-         enumerate: JS_EnumerateStub,
-         resolve: JS_ResolveStub,
-         convert: JS_ConvertStub,
+         addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+         delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+         getProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+         setProperty: GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
+         enumerate: GetJSClassHookStubPointer(ENUMERATE_STUB) as *u8,
+         resolve: GetJSClassHookStubPointer(RESOLVE_STUB) as *u8,
+         convert: GetJSClassHookStubPointer(CONVERT_STUB) as *u8,
          finalize: finalize,
          checkAccess: null(),
          call: null(),
@@ -165,7 +165,8 @@ fn define_empty_prototype(name: ~str, proto: option<~str>, compartment: bare_com
         });
 
     compartment.define_property(name, RUST_OBJECT_TO_JSVAL(obj.ptr),
-                                JS_PropertyStub, JS_StrictPropertyStub,
+                                GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+                                GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
                                 JSPROP_ENUMERATE);
     compartment.stash_global_proto(name, obj);
     return obj;

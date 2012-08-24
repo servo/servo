@@ -28,6 +28,12 @@ fn init(compartment: bare_compartment) {
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: {op: getNextSibling, info: null()},
+         setter: {op: null(), info: null()}},
+
+        {name: compartment.add_name(~"nodeType"),
+         tinyid: 0,
+         flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
+         getter: {op: getNodeType, info: null()},
          setter: {op: null(), info: null()}}];
     vec::push(compartment.global_props, attrs);
     vec::as_buf(*attrs, |specs, _len| {
