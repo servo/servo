@@ -87,17 +87,19 @@ fn init(compartment: bare_compartment, win: @Window) {
 
     /* Define methods on a window */
     let methods = ~[{name: compartment.add_name(~"alert"),
-                     call: alert,
+                     call: {op: alert, info: null()},
                      nargs: 1,
-                     flags: 0},
+                     flags: 0,
+                     selfHostedName: null()},
                     {name: compartment.add_name(~"setTimeout"),
-                     call: setTimeout,
+                     call: {op: setTimeout, info: null()},
                      nargs: 2,
-                     flags: 0}];
+                     flags: 0,
+                     selfHostedName: null()}];
 
     vec::as_buf(methods, |fns, _len| {
         JS_DefineFunctions(compartment.cx.ptr, proto.ptr, fns);
-      });
+    });
 
     unsafe {
         let raw_ptr: *libc::c_void = unsafe::reinterpret_cast(squirrel_away(win));

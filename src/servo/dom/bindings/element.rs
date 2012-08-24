@@ -1,6 +1,6 @@
 import js::rust::{bare_compartment, methods, jsobj};
 import js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
-            JS_THIS_OBJECT, JS_SET_RVAL};
+            JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
 import js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
 import js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
@@ -32,9 +32,9 @@ fn init(compartment: bare_compartment) {
     let attrs = @~[
         {name: compartment.add_name(~"tagName"),
          tinyid: 0,
-         flags: 0,
-         getter: getTagName,
-         setter: null()}];
+         flags: (JSPROP_ENUMERATE | JSPROP_SHARED | JSPROP_NATIVE_ACCESSORS) as u8,
+         getter: {op: getTagName, info: null()},
+         setter: {op: null(), info: null()}}];
     vec::push(compartment.global_props, attrs);
     vec::as_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
@@ -52,17 +52,22 @@ fn init(compartment: bare_compartment) {
     let attrs = @~[
         {name: compartment.add_name(~"width"),
          tinyid: 0,
-         flags: (JSPROP_SHARED | JSPROP_ENUMERATE) as u8,
-         getter: HTMLImageElement_getWidth,
-         setter: HTMLImageElement_setWidth}];
+         flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
+         getter: {op: HTMLImageElement_getWidth, info: null()},
+         setter: {op: HTMLImageElement_setWidth, info: null()}}];
     vec::push(compartment.global_props, attrs);
     vec::as_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
     });
 }
 
-extern fn HTMLImageElement_getWidth(_cx: *JSContext, obj: *JSObject, _id: jsid,
-                                    rval: *mut jsval) -> JSBool unsafe {
+extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
+    -> JSBool unsafe {
+    let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(vp));
+    if obj.is_null() {
+        return 0;
+    }
+
     let bundle = unwrap(obj);
     let width = (*bundle).payload.scope.write((*bundle).payload.node, |nd| {
         match nd.kind {
@@ -75,13 +80,18 @@ extern fn HTMLImageElement_getWidth(_cx: *JSContext, obj: *JSObject, _id: jsid,
           _ => fail ~"why is this not an element?"
         }
     });
-    *rval = RUST_INT_TO_JSVAL(
+    *vp = RUST_INT_TO_JSVAL(
               (au_to_px(width) & (i32::max_value as int)) as libc::c_int);
     return 1;
 }
 
-extern fn HTMLImageElement_setWidth(_cx: *JSContext, obj: *JSObject, _id: jsid,
-                                    _strict: JSBool, vp: *jsval) -> JSBool unsafe {
+extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
+    -> JSBool unsafe {
+    let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(vp));
+    if obj.is_null() {
+        return 0;
+    }
+
     let bundle = unwrap(obj);
     do (*bundle).payload.scope.write((*bundle).payload.node) |nd| {
         match nd.kind {
@@ -98,19 +108,24 @@ extern fn HTMLImageElement_setWidth(_cx: *JSContext, obj: *JSObject, _id: jsid,
     return 1;
 }
 
-extern fn getTagName(cx: *JSContext, obj: *JSObject, _id: jsid, rval: *mut jsval)
+extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
     -> JSBool {
     unsafe {
+        let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(vp));
+        if obj.is_null() {
+            return 0;
+        }
+
         let bundle = unwrap(obj);
         do (*bundle).payload.scope.write((*bundle).payload.node) |nd| {
             match nd.kind {
               ~Element(ed) => {
                 let s = str(copy ed.tag_name);
-                *rval = domstring_to_jsval(cx, s);
+                *vp = domstring_to_jsval(cx, s);
               }
               _ => {
                 //XXXjdm should probably read the spec to figure out what to do here
-                *rval = JSVAL_NULL;
+                *vp = JSVAL_NULL;
               }
             }
         };
