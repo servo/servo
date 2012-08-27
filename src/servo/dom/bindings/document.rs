@@ -6,6 +6,7 @@ import js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_Re
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
                             JS_DefineFunctions, JS_DefineProperty, JS_DefineProperties};
 import js::glue::bindgen::*;
+import js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB};
 import js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub, JS_ResolveStub};
 import result::{result, ok, err};
 import ptr::null;
@@ -114,6 +115,7 @@ fn init(compartment: bare_compartment, doc: @Document) {
     }
 
     compartment.define_property(~"document", RUST_OBJECT_TO_JSVAL(instance.ptr),
-                                JS_PropertyStub, JS_StrictPropertyStub,
+                                GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+                                GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
                                 JSPROP_ENUMERATE);
 }

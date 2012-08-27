@@ -1,7 +1,7 @@
 var elem = document.documentElement.firstChild;
 
 var start = (new Date()).getTime();
-for (var i = 0; i < 100000; i++) {
+for (var i = 0; i < 1000000; i++) {
   var a = elem.nodeType;
 }
 window.alert((new Date()).getTime() - start);
