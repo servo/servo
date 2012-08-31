@@ -43,4 +43,7 @@
 [submodule "src/rust-hubbub"]
 	path = src/rust-hubbub
 	url = git://github.com/pcwalton/rust-hubbub.git
+[submodule "src/rust-core-foundation"]
+	path = src/rust-core-foundation
+	url = git://github.com/pcwalton/rust-core-foundation.git
 

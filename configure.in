@@ -18,6 +18,7 @@ mkdir -p src/libparserutils || exit $?
 mkdir -p src/libhubbub || exit $?
 mkdir -p src/servo-sandbox || exit $?
 mkdir -p src/rust-hubbub || exit $?
+mkdir -p src/rust-core-foundation || exit $?
 
 mkdir -p src/test/ref || exit $?
 
@@ -36,3 +37,4 @@ mkdir -p src/test/ref || exit $?
 (cd src/libhubbub && sh ${SRCDIR}/src/libhubbub/configure) || exit $?
 (cd src/servo-sandbox && sh ${SRCDIR}/src/servo-sandbox/configure) || exit $?
 (cd src/rust-hubbub && sh ${SRCDIR}/src/rust-hubbub/configure) || exit $?
+(cd src/rust-core-foundation && sh ${SRCDIR}/src/rust-core-foundation/configure) || exit $?

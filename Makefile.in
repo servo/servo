@@ -29,6 +29,7 @@ RUSTLIBS = \
 	-L src/rust-layers \
 	-L src/rust-http-client \
 	-L src/rust-hubbub \
+	-L src/rust-rust-core-foundation \
 	$(NULL)
 
 RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
@@ -50,13 +51,13 @@ LAYERS_DEPS = \
 	src/rust-azure/libazure.dummy
 
 ifeq ($(OSTYPE),darwin)
-    SERVO_DEPS += rust-cocoa
+    SERVO_DEPS += rust-cocoa rust-core-foundation
     # I want the cocoa check to come before the servo check since if cocoa
     # doesn't work neither does servo
-    CHECK_DEPS += check-rust-cocoa
-    CLEAN_DEPS += clean-rust-cocoa
-    AZURE_DEPS += rust-cocoa
-    LAYERS_DEPS += rust-cocoa
+    CHECK_DEPS += check-rust-cocoa check-rust-core-foundation
+    CLEAN_DEPS += clean-rust-cocoa clean-rust-core-foundation
+    AZURE_DEPS += rust-cocoa rust-core-foundation
+    LAYERS_DEPS += rust-cocoa rust-core-foundation
 endif
 
 SERVO_DEPS += \
@@ -127,7 +128,7 @@ reftest: src/reftest/reftest.rs libservo.dummy
 
 .PHONY: mozjs rust-harfbuzz rust-mozjs rust-azure rust-cocoa \
 	rust-stb-image rust-geom rust-opengles rust-glut rust-layers \
-	rust-http-client
+	rust-http-client rust-core-foundation
 
 mozjs: src/mozjs/libjs_static.a
 
@@ -150,6 +151,8 @@ rust-glut: src/rust-glut/librustglut.dummy
 rust-layers: src/rust-layers/librustlayers.dummy
 
 rust-http-client: src/rust-http-client/libhttp_client.dummy
+
+rust-core-foundation: src/rust-core-foundation/librustcorefoundation.dummy
 
 libparserutils: src/libparserutils/libparserutils.dummy
 
@@ -207,6 +210,9 @@ src/servo-sandbox/servo-sandbox.dummy:
 src/rust-hubbub/librusthubbub.dummy:
 	$(MAKE) -C src/rust-hubbub
 
+src/rust-core-foundation/librustcorefoundation.dummy:
+	$(MAKE) -C src/rust-core-foundation
+
 
 # Testing targets
 
@@ -252,6 +258,9 @@ check-rust-layers: $(LAYERS_DEPS)
 check-rust-http-client:
 	$(MAKE) check -C src/rust-http-client
 
+check-rust-core-foundation:
+	$(MAKE) check -C src/rust-core-foundation
+
 
 # Clean targets
 
@@ -291,6 +300,9 @@ clean-rust-layers:
 
 clean-rust-http-client:
 	$(MAKE) clean -C src/rust-http-client
+
+clean-rust-core-foundation:
+	$(MAKE) clean -C src/rust-core-foundation
 
 clean-servo:
 	rm -f servo servo-test
