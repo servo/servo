@@ -1,10 +1,8 @@
 use std;
 use servo;
 
-import result::{ok, err};
 import std::test::{test_opts, run_tests_console, test_desc};
 import std::getopts::{getopts, reqopt, opt_str, fail_str};
-import path::{connect, basename};
 import os::list_dir_path;
 import servo::run_pipeline_png;
 import servo::image::base::Image;
@@ -20,24 +18,24 @@ fn main(args: ~[~str]) {
 struct Config {
     source_dir: ~str;
     work_dir: ~str;
-    filter: option<~str>;
+    filter: Option<~str>;
 }
 
 fn parse_config(args: ~[~str]) -> Config {
     let args = args.tail();
     let opts = ~[reqopt(~"source-dir"), reqopt(~"work-dir")];
     let matches = match getopts(args, opts) {
-      ok(m) => m,
-      err(f) => fail fail_str(f)
+      Ok(m) => m,
+      Err(f) => fail fail_str(f)
     };
 
     Config {
         source_dir: opt_str(matches, ~"source-dir"),
         work_dir: opt_str(matches, ~"work-dir"),
         filter: if matches.free.is_empty() {
-            none
+            None
         } else {
-            some(matches.free.head())
+            Some(matches.free.head())
         }
     }
 }
@@ -46,13 +44,13 @@ fn test_options(config: Config) -> test_opts {
     {
         filter: config.filter,
         run_ignored: false,
-        logfile: none
+        logfile: None
     }
 }
 
 fn find_tests(config: Config) -> ~[test_desc] {
-    let html_files = list_dir_path(config.source_dir).filter( |file| file.ends_with(".html") );
-    return html_files.map(|file| make_test(config, file) );
+    let html_files = list_dir_path(&Path(config.source_dir)).filter( |file| file.to_str().ends_with(".html") );
+    return html_files.map(|file| make_test(config, file.to_str()) );
 }
 
 fn make_test(config: Config, file: ~str) -> test_desc {
@@ -71,9 +69,9 @@ struct Directives {
 }
 
 fn load_test_directives(file: ~str) -> Directives {
-    let data = match io::read_whole_file_str(file) {
-      result::ok(data) => data,
-      result::err(*) => fail #fmt("unable to load directives for %s", file)
+    let data = match io::read_whole_file_str(&Path(file)) {
+      result::Ok(data) => data,
+      result::Err(e) => fail #fmt("unable to load directives for %s: %s", file, e)
     };
 
     let mut ignore = false;
@@ -132,27 +130,29 @@ const WIDTH: uint = 800;
 const HEIGHT: uint = 600;
 
 fn render_servo(config: Config, file: ~str) -> Image {
-    let infile = ~"file://" + os::make_absolute(file);
-    let outfile = connect(config.work_dir, basename(file) + ".png");
+    let infile = ~"file://" + os::make_absolute(&Path(file)).to_str();
+    let outfilename = Path(file).filename().get().to_str() + ".png";
+    let outfile = Path(config.work_dir).push(outfilename).to_str();
     run_pipeline_png(infile, outfile);
     return sanitize_image(outfile);
 }
 
 fn render_ref(config: Config, file: ~str) -> Image {
     let infile = file;
-    let outfile = connect(config.work_dir, basename(file) + ".ref.png");
+    let outfilename = Path(file).filename().get().to_str() + ".png";
+    let outfile = Path(config.work_dir).push(outfilename);
     // After we've generated the reference image once, we don't need
     // to keep launching Firefox
-    if !os::path_exists(outfile) {
+    if !os::path_exists(&outfile) {
         let rasterize_path = rasterize_path(config);
-        let prog = run::start_program("python", ~[rasterize_path, infile, outfile]);
+        let prog = run::start_program("python", ~[rasterize_path, infile, outfile.to_str()]);
         prog.finish();
     }
-    return sanitize_image(outfile);
+    return sanitize_image(outfile.to_str());
 }
 
 fn sanitize_image(file: ~str) -> Image {
-    let buf = io::read_whole_file(file).get();
+    let buf = io::read_whole_file(&Path(file)).get();
     let image = servo::image::base::load_from_memory(buf).get();
 
     // I don't know how to precisely control the rendered height of
@@ -167,12 +167,12 @@ fn sanitize_image(file: ~str) -> Image {
 fn install_rasterize_py(config: Config) {
     import io::WriterUtil;
     let path = rasterize_path(config);
-    let writer = io::file_writer(path, ~[io::Create, io::Truncate]).get();
+    let writer = io::file_writer(&Path(path), ~[io::Create, io::Truncate]).get();
     writer.write_str(rasterize_py());
 }
 
 fn rasterize_path(config: Config) -> ~str {
-    connect(config.work_dir, ~"rasterize.py")
+    Path(config.work_dir).push(~"rasterize.py").to_str()
 }
 
 // This is the script that uses phantom.js to render pages
