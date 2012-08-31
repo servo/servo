@@ -8,11 +8,11 @@ import base::{Box, TextBoxKind};
 
 struct TextBox {
     text: ~str;
-    mut run: option<TextRun>;
+    mut run: Option<TextRun>;
 
     new(-text: ~str) {
         self.text = text;
-        self.run = none;
+        self.run = None;
     }
 }
 
@@ -33,7 +33,7 @@ impl @Box : TextLayout {
         let font = flib.get_test_font();
         let run = TextRun(*font, subbox.text);
         self.bounds.size = run.size();
-        subbox.run = some(run);
+        subbox.run = Some(run);
     }
 }
 
@@ -50,7 +50,10 @@ fn should_calculate_the_size_of_the_text_box() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = match check b.kind { TextBoxKind(subbox) => { subbox } };
+    let subbox = match b.kind {
+      TextBoxKind(subbox) => { subbox },
+      _ => fail
+    };
     b.reflow_text(subbox);
     let expected = Size2D(px_to_au(84), px_to_au(20));
     assert b.bounds.size == expected;

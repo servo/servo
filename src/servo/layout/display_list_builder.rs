@@ -11,7 +11,7 @@ import geom::size::Size2D;
 import gfx::geometry::{au, au_to_px, box, px_to_au};
 import util::tree;
 
-import dvec::dvec;
+import dvec::DVec;
 import vec::push;
 
 #[doc = "
@@ -20,7 +20,7 @@ Builds a display list for a box and all its children
 
 "]
 fn build_display_list(box : @Box) -> dl::display_list {
-    let list = dvec();
+    let list = DVec();
     build_display_list_from_origin(list, box, Point2D(au(0), au(0)));
     return list;
 }
@@ -113,10 +113,13 @@ fn should_convert_text_boxes_to_solid_color_background_items() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = match check b.kind { TextBoxKind(subbox) => subbox };
+    let subbox = match b.kind {
+      TextBoxKind(subbox) => subbox,
+      _ => fail
+    };
 
     b.reflow_text(subbox);
-    let list = dvec();
+    let list = DVec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
     match list[0].item_type {
@@ -133,10 +136,13 @@ fn should_convert_text_boxes_to_text_items() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = match check b.kind { TextBoxKind(subbox) => { subbox } };
+    let subbox = match b.kind {
+      TextBoxKind(subbox) => { subbox },
+      _ => fail
+    };
 
     b.reflow_text(subbox);
-    let list = dvec();
+    let list = DVec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
     match list[1].item_type {
@@ -153,10 +159,13 @@ fn should_calculate_the_bounds_of_the_text_box_background_color() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = match check b.kind { TextBoxKind(subbox) => { subbox } };
+    let subbox = match b.kind {
+      TextBoxKind(subbox) => { subbox },
+      _ => fail
+    };
 
     b.reflow_text(subbox);
-    let list = dvec();
+    let list = DVec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
     let expected = Rect(
@@ -175,10 +184,13 @@ fn should_calculate_the_bounds_of_the_text_items() {
     let n = s.new_node(Text(~"firecracker"));
     let b = n.construct_boxes();
 
-    let subbox = match check b.kind { TextBoxKind(subbox) => { subbox } };
+    let subbox = match b.kind {
+      TextBoxKind(subbox) => { subbox },
+      _ => fail
+    };
 
     b.reflow_text(subbox);
-    let list = dvec();
+    let list = DVec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
     let expected = Rect(

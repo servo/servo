@@ -1,7 +1,6 @@
 export FontLibrary, native;
 
 import font::{Font, test_font_bin};
-import result::{result, ok, err};
 
 struct FontLibrary {
     let native_lib: native::NativeFontLibrary;
@@ -16,8 +15,8 @@ struct FontLibrary {
 
     fn get_font() -> @Font {
         match create_font(&self.native_lib) {
-          ok(font) => font,
-          err(*) => /* FIXME */ fail
+          Ok(font) => font,
+          Err(*) => /* FIXME */ fail
         }
     }
 
@@ -27,15 +26,15 @@ struct FontLibrary {
 }
 
 
-fn create_font(native_lib: &native::NativeFontLibrary) -> result<@Font, ()> {
+fn create_font(native_lib: &native::NativeFontLibrary) -> Result<@Font, ()> {
     let font_bin = test_font_bin();
     let native_font = native_font::create(native_lib, &font_bin);
     let native_font = if native_font.is_ok() {
         result::unwrap(native_font)
     } else {
-        return err(native_font.get_err());
+        return Err(native_font.get_err());
     };
-    return ok(@Font(font_bin, native_font));
+    return Ok(@Font(font_bin, native_font));
 }
 
 #[cfg(target_os = "linux")]

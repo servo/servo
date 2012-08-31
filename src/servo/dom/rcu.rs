@@ -201,7 +201,9 @@ impl<T:copy send,A> Scope<T,A> {
     }
 
     fn write<U>(h: Handle<T,A>, f: fn(T) -> U) -> U unsafe {
-        if self.d.layout_active && h.read_ptr() == h.write_ptr() {
+        let const_read_ptr = ptr::const_offset(h.read_ptr(), 0);
+        let const_write_ptr = ptr::const_offset(h.write_ptr(), 0);
+        if self.d.layout_active && const_read_ptr == const_write_ptr {
             #debug["marking handle %? as dirty", h];
             h.set_write_ptr(unsafe::reinterpret_cast(self.clone(h.read_ptr())));
             h.set_next_dirty(self.d.first_dirty);
@@ -273,8 +275,8 @@ mod test {
 
         let iter1 = 3u;
         let iter2 = 22u;
-        let read_port = comm::port();
-        let read_chan = comm::chan(read_port);
+        let read_port = comm::Port();
+        let read_chan = comm::Chan(read_port);
 
         // fire up a reader task
         for uint::range(0u, iter1) |i| {

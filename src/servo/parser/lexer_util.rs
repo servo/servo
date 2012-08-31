@@ -11,8 +11,18 @@ enum CharOrEof {
     CoeEof
 }
 
+impl CharOrEof: cmp::Eq {
+    pure fn eq(&&other: CharOrEof) -> bool {
+        match (self, other) {
+          (CoeChar(a), CoeChar(b)) => a == b,
+          (CoeChar(*), _) | (_, CoeChar(*)) => false,
+          (CoeEof, CoeEof) => true,
+        }
+    }
+}
+
 type InputState = {
-    mut lookahead: option<CharOrEof>,
+    mut lookahead: Option<CharOrEof>,
     mut buffer: ~[u8],
     input_port: Port<ProgressMsg>,
     mut eof: bool
@@ -47,12 +57,12 @@ trait InputStateUtil {
 impl InputState : InputStateUtil {
     fn get() -> CharOrEof {
         match copy self.lookahead {
-          some(coe) => {
+          Some(coe) => {
             let rv = coe;
-            self.lookahead = none;
+            self.lookahead = None;
             return rv;
           }
-          none => {
+          None => {
             /* fall through */
           }
         }
@@ -82,7 +92,7 @@ impl InputState : InputStateUtil {
 
     fn unget(ch: u8) {
         assert is_none(self.lookahead);
-        self.lookahead = some(CoeChar(ch));
+        self.lookahead = Some(CoeChar(ch));
     }
 
     fn parse_err(err: ~str) -> ! {

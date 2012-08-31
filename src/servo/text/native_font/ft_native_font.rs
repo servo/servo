@@ -1,7 +1,6 @@
 export FreeTypeNativeFont, with_test_native_font, create;
 
 import vec_as_buf = vec::as_buf;
-import result::{result, ok, err};
 import ptr::{addr_of, null};
 import unsafe::reinterpret_cast;
 import glyph::GlyphIndex;
@@ -32,19 +31,19 @@ struct FreeTypeNativeFont/& {
         }
     }
 
-    fn glyph_index(codepoint: char) -> option<GlyphIndex> {
+    fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
         assert self.face.is_not_null();
         let idx = FT_Get_Char_Index(self.face, codepoint as FT_ULong);
         return if idx != 0 as FT_UInt {
-            some(idx as GlyphIndex)
+            Some(idx as GlyphIndex)
         } else {
             #warn("Invalid codepoint: %?", codepoint);
-            none
+            None
         };
     }
 
     // FIXME: What unit is this returning? Let's have a custom type
-    fn glyph_h_advance(glyph: GlyphIndex) -> option<int> {
+    fn glyph_h_advance(glyph: GlyphIndex) -> Option<int> {
         assert self.face.is_not_null();
         let res =  FT_Load_Glyph(self.face, glyph as FT_UInt, 0);
         if res.succeeded() {
@@ -56,16 +55,16 @@ struct FreeTypeNativeFont/& {
                 #debug("h_advance for %? is %?", glyph, advance);
                 // FIXME: Dividing by 64 converts to pixels, which
                 // is not the unit we should be using
-                return some((advance / 64) as int);
+                return Some((advance / 64) as int);
             }
         } else {
             #warn("Unable to load glyph %?. reason: %?", glyph, res);
-            return none;
+            return None;
         }
     }
 }
 
-fn create(lib: FT_Library, buf: &~[u8]) -> result<FreeTypeNativeFont, ()> {
+fn create(lib: FT_Library, buf: &~[u8]) -> Result<FreeTypeNativeFont, ()> {
     assert lib.is_not_null();
     let face: FT_Face = null();
     return vec_as_buf(*buf, |cbuf, _len| {
@@ -74,9 +73,9 @@ fn create(lib: FT_Library, buf: &~[u8]) -> result<FreeTypeNativeFont, ()> {
                // FIXME: These values are placeholders
                let res = FT_Set_Char_Size(face, 0, 20*64, 0, 72);
                if !res.succeeded() { fail ~"unable to set font char size" }
-               ok(FreeTypeNativeFont(face))
+               Ok(FreeTypeNativeFont(face))
            } else {
-               err(())
+               Err(())
            }
     })
 }

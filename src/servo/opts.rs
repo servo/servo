@@ -26,8 +26,8 @@ fn from_cmdline_args(args: ~[~str]) -> Opts {
     ];
 
     let opt_match = match getopts::getopts(args, opts) {
-      result::ok(m) => { copy m }
-      result::err(f) => { fail getopts::fail_str(f) }
+      result::Ok(m) => { copy m }
+      result::Err(f) => { fail getopts::fail_str(f) }
     };
 
     let urls = if opt_match.free.is_empty() {
@@ -37,8 +37,8 @@ fn from_cmdline_args(args: ~[~str]) -> Opts {
     };
 
     let render_mode = match getopts::opt_maybe_str(opt_match, ~"o") {
-      some(output_file) => { Png(copy output_file) }
-      none => { Screen }
+      Some(output_file) => { Png(copy output_file) }
+      None => { Screen }
     };
 
     {

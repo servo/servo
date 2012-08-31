@@ -8,13 +8,11 @@ import js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_Re
 import js::glue::bindgen::*;
 import js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB};
 import js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub, JS_ResolveStub};
-import result::{result, ok, err};
 import ptr::null;
 import libc::c_uint;
 import utils::{DOMString, domstring_to_jsval, rust_box, squirrel_away, str};
 import bindings::node::create;
 import base::Document;
-import option::{some, none};
 
 enum DOMException {
     INVALID_CHARACTER_ERR
@@ -90,7 +88,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
 }
 
 fn init(compartment: bare_compartment, doc: @Document) {
-    let obj = utils::define_empty_prototype(~"Document", none, compartment);
+    let obj = utils::define_empty_prototype(~"Document", None, compartment);
 
     let attrs = @~[
         {name: compartment.add_name(~"documentElement"),

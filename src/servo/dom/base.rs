@@ -9,10 +9,10 @@ import js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, jsval, JS
 import js::{JSPROP_ENUMERATE, JSPROP_SHARED};
 import js::crust::*;
 import js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
-import dvec::{DVec, dvec};
+import dvec::DVec;
 import ptr::null;
 import bindings;
-import std::arc::arc;
+import std::arc::ARC;
 import style::Stylesheet;
 import comm::{Port, Chan};
 import content::content_task::{ControlMsg, Timer};
@@ -26,7 +26,7 @@ struct Window {
     let timer_chan: Chan<TimerControlMsg>;
 
     new(content_port: Port<ControlMsg>) {
-        let content_chan = chan(content_port);
+        let content_chan = Chan(content_port);
         
         self.timer_chan = do task::spawn_listener |timer_port: Port<TimerControlMsg>| {
             loop {
@@ -47,12 +47,12 @@ struct Window {
 struct Document {
     let root: Node;
     let scope: NodeScope;
-    let css_rules: arc<Stylesheet>;
+    let css_rules: ARC<Stylesheet>;
 
     new(root: Node, scope: NodeScope, -css_rules: Stylesheet) {
         self.root = root;
         self.scope = scope;
-        self.css_rules = arc(css_rules);
+        self.css_rules = ARC(css_rules);
     }
 }
 
@@ -74,19 +74,19 @@ struct ElementData {
     new(-tag_name: ~str, -kind: ~ElementKind) {
         self.tag_name = tag_name;
         self.kind = kind;
-        self.attrs = dvec();
+        self.attrs = DVec();
     }
 
-    fn get_attr(attr_name: ~str) -> option<~str> {
+    fn get_attr(attr_name: ~str) -> Option<~str> {
         let mut i = 0u;
         while i < self.attrs.len() {
             if attr_name == self.attrs[i].name {
-                return some(copy self.attrs[i].value);
+                return Some(copy self.attrs[i].value);
             }
             i += 1u;
         }
 
-        none
+        None
     }
 }
 
@@ -146,7 +146,7 @@ impl NodeScope : tree::ReadMethods<Node> {
         tree::each_child(self, node, f)
     }
 
-    fn get_parent(node: Node) -> option<Node> {
+    fn get_parent(node: Node) -> Option<Node> {
         tree::get_parent(self, node)
     }
 

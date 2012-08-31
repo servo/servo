@@ -23,14 +23,14 @@ enum ctxt = {
     // See CSS2 9.2.1.1.
     //
 
-    mut anon_box: option<@Box>
+    mut anon_box: Option<@Box>
 };
 
 fn create_context(parent_node: Node, parent_box: @Box) -> ctxt {
     return ctxt({
            parent_node: parent_node,
            parent_box: parent_box,
-           mut anon_box: none
+           mut anon_box: None
     });
 }
 
@@ -46,16 +46,16 @@ impl ctxt {
 
             // Determine the child's display.
             let disp = kid.get_specified_style().display_type;
-            if disp != some(DisInline) {
+            if disp != Some(DisInline) {
                 self.finish_anonymous_box_if_necessary();
             }
 
             // Add the child's box to the current enclosing box or the current anonymous box.
             match kid.get_specified_style().display_type {
-              some(DisBlock) => BTree.add_child(self.parent_box, kid_box),
-              some(DisInline) => {
+              Some(DisBlock) => BTree.add_child(self.parent_box, kid_box),
+              Some(DisInline) => {
                 let anon_box = match self.anon_box {
-                  none => {
+                  None => {
                     //
                     // The anonymous box inherits the attributes of its parents for now, so
                     // that properties of intrinsic boxes are not spread to their parenting
@@ -65,14 +65,14 @@ impl ctxt {
                     //
 
                     let b = @Box(self.parent_node, InlineBox);
-                    self.anon_box = some(b);
+                    self.anon_box = Some(b);
                     b
                   }
-                  some(b) => b
+                  Some(b) => b
                 };
                 BTree.add_child(anon_box, kid_box);
               }
-              some(DisNone) => {
+              Some(DisNone) => {
                 // Nothing to do.
               }
               _ => { //hack for now
@@ -93,21 +93,21 @@ impl ctxt {
 
             // Determine the child's display.
             let disp = kid.get_specified_style().display_type;
-            if disp != some(DisInline) {
+            if disp != Some(DisInline) {
                 // TODO
             }
 
             // Add the child's box to the current enclosing box.
             match kid.get_specified_style().display_type {
-              some(DisBlock) => {
+              Some(DisBlock) => {
                 // TODO
                 #warn("TODO: non-inline display found inside inline box");
                 BTree.add_child(self.parent_box, kid_box);
               }
-              some(DisInline) => {
+              Some(DisInline) => {
                 BTree.add_child(self.parent_box, kid_box);
               }
-              some(DisNone) => {
+              Some(DisNone) => {
                 // Nothing to do.
               }
               _  => { //hack for now
@@ -122,9 +122,9 @@ impl ctxt {
         self.parent_node.dump();
 
         match self.parent_node.get_specified_style().display_type {
-          some(DisBlock) => self.construct_boxes_for_block_children(),
-          some(DisInline) => self.construct_boxes_for_inline_children(),
-          some(DisNone) => { /* Nothing to do. */ }
+          Some(DisBlock) => self.construct_boxes_for_block_children(),
+          Some(DisInline) => self.construct_boxes_for_inline_children(),
+          Some(DisNone) => { /* Nothing to do. */ }
           _ => { //hack for now
           }
         }
@@ -139,10 +139,10 @@ impl ctxt {
     "]
     fn finish_anonymous_box_if_necessary() {
         match copy self.anon_box {
-          none => { /* Nothing to do. */ }
-          some(b) => BTree.add_child(self.parent_box, b)
+          None => { /* Nothing to do. */ }
+          Some(b) => BTree.add_child(self.parent_box, b)
         }
-        self.anon_box = none;
+        self.anon_box = None;
     }
 }
 
@@ -161,13 +161,13 @@ impl Node : PrivBoxBuilder {
             ~Element(element) => {
                 match (copy *element.kind, self.get_specified_style().display_type)  {
                     (HTMLImageElement({size}), _) => IntrinsicBox(@size),
-                    (_, some(DisBlock)) => BlockBox,
-                    (_, some(DisInline)) => InlineBox,
-                    (_, some(DisNone)) => {
+                    (_, Some(DisBlock)) => BlockBox,
+                    (_, Some(DisInline)) => InlineBox,
+                    (_, Some(DisNone)) => {
                         // TODO: don't have a box here at all?
                         IntrinsicBox(@zero_size_au())
                     }
-                    (_, none) => {
+                    (_, None) => {
                         fail ~"The specified display style should be a default instead of none"
                     }
                 }

@@ -47,15 +47,15 @@ fn inhereit_height(box : @Box) {
     let style = box.node.get_specified_style();
     
     box.appearance.height = match style.height {
-        none =>  Auto,
-        some(h) => match h {
+        None =>  Auto,
+        Some(h) => match h {
             Auto | Px(*) => h,
             Pt(*) => PtToPx(h),
             Mm(*) => MmToPx(h),
             Percent(em) => {
                 match box.tree.parent {
-                    none => Auto,
-                    some(parent) => {
+                    None => Auto,
+                    Some(parent) => {
                         match parent.appearance.height {
                             //This is a poorly constrained case, so we ignore the percentage
                             Auto => Auto,
@@ -77,15 +77,15 @@ fn inhereit_width(box : @Box) {
     let style = box.node.get_specified_style();
     
     box.appearance.width = match style.width {
-        none =>  Auto,
-        some(h) => match h {
+        None =>  Auto,
+        Some(h) => match h {
             Auto | Px(*) => h,
             Pt(*) => PtToPx(h),
             Mm(*) => MmToPx(h),
             Percent(em) => {
                 match box.tree.parent {
-                    none => Auto,
-                    some(parent) => {
+                    None => Auto,
+                    Some(parent) => {
                         match parent.appearance.width {
                             //This is a poorly constrained case, so we ignore the percentage
                             Auto => Auto,
@@ -127,8 +127,8 @@ impl StyleApplicator {
                 let style = self.box.node.get_specified_style();
 
                 self.box.appearance.background_color = match style.background_color {
-                  some(col) => col,
-                  none => node.kind.default_color()
+                  Some(col) => col,
+                  None => node.kind.default_color()
                 };
 
                 match element.kind {
@@ -138,8 +138,8 @@ impl StyleApplicator {
                     if url.is_some() {
                         // FIXME: Some sort of BASE HREF support!
                         // FIXME: Parse URLs!
-                        let new_url = make_url(option::unwrap(url), some(copy *self.doc_url));
-                        self.box.appearance.background_image = some(ImageHolder(new_url, self.image_cache_task, self.reflow))
+                        let new_url = make_url(option::unwrap(url), Some(copy *self.doc_url));
+                        self.box.appearance.background_image = Some(ImageHolder(new_url, self.image_cache_task, self.reflow))
                     };
                   }
                   _ => { /* Ignore. */ }
@@ -155,7 +155,7 @@ impl StyleApplicator {
 mod test {
     import dom::base::{Attr, HTMLDivElement, HTMLHeadElement, HTMLImageElement, ElementData};
     import dom::base::{NodeScope, UnknownElement};
-    import dvec::dvec;
+    import dvec::DVec;
 
     #[allow(non_implicitly_copyable_typarams)]
     fn new_node(scope: NodeScope, -name: ~str) -> Node {
@@ -179,11 +179,11 @@ mod test {
         scope.add_child(child, g2);
         let _handles = parent.initialize_style_for_subtree();
 
-        do parent.aux |aux| { aux.specified_style.height = some(Px(100.0)); }
-        do child.aux |aux| { aux.specified_style.height = some(Auto); }
-        do child2.aux |aux| { aux.specified_style.height = some(Percent(50.0)); }
-        do g1.aux |aux| { aux.specified_style.height = some(Percent(50.0)); }
-        do g2.aux |aux| { aux.specified_style.height = some(Px(10.0)); }
+        do parent.aux |aux| { aux.specified_style.height = Some(Px(100.0)); }
+        do child.aux |aux| { aux.specified_style.height = Some(Auto); }
+        do child2.aux |aux| { aux.specified_style.height = Some(Percent(50.0)); }
+        do g1.aux |aux| { aux.specified_style.height = Some(Percent(50.0)); }
+        do g2.aux |aux| { aux.specified_style.height = Some(Px(10.0)); }
 
         let parent_box = parent.construct_boxes();
         let child_box = parent_box.tree.first_child.get();

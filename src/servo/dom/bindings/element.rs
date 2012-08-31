@@ -28,7 +28,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
 }
 
 fn init(compartment: bare_compartment) {
-    let obj = utils::define_empty_prototype(~"Element", some(~"Node"), compartment);
+    let obj = utils::define_empty_prototype(~"Element", Some(~"Node"), compartment);
     let attrs = @~[
         {name: compartment.add_name(~"tagName"),
          tinyid: 0,
@@ -43,12 +43,12 @@ fn init(compartment: bare_compartment) {
     compartment.register_class(utils::instance_jsclass(~"GenericElementInstance",
                                                        finalize));
 
-    let _ = utils::define_empty_prototype(~"HTMLElement", some(~"Element"), compartment);
-    let _ = utils::define_empty_prototype(~"HTMLDivElement", some(~"HTMLElement"), compartment);
-    let _ = utils::define_empty_prototype(~"HTMLScriptElement", some(~"HTMLElement"), compartment);
-    let _ = utils::define_empty_prototype(~"HTMLHeadElement", some(~"HTMLElement"), compartment);
+    let _ = utils::define_empty_prototype(~"HTMLElement", Some(~"Element"), compartment);
+    let _ = utils::define_empty_prototype(~"HTMLDivElement", Some(~"HTMLElement"), compartment);
+    let _ = utils::define_empty_prototype(~"HTMLScriptElement", Some(~"HTMLElement"), compartment);
+    let _ = utils::define_empty_prototype(~"HTMLHeadElement", Some(~"HTMLElement"), compartment);
 
-    let obj = utils::define_empty_prototype(~"HTMLImageElement", some(~"HTMLElement"), compartment);
+    let obj = utils::define_empty_prototype(~"HTMLImageElement", Some(~"HTMLElement"), compartment);
     let attrs = @~[
         {name: compartment.add_name(~"width"),
          tinyid: 0,

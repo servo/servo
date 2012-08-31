@@ -31,7 +31,7 @@
         } => {
             if $index == $count {
                 match move pipes::try_recv($port) {
-                  $(some($message($($(ref $x,)+)* ref next)) => {
+                  $(Some($message($($(ref $x,)+)* ref next)) => {
                     // FIXME (#2329) we really want move out of enum here.
                     let $next = move_ref!(next);
                     $e

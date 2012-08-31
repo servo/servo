@@ -3,12 +3,12 @@ import geom::rect::Rect;
 import image::base::Image;
 import servo_text::text_run::TextRun;
 
-import std::arc::arc;
+import std::arc::ARC;
 import dvec::DVec;
 
 enum item_type {
     display_item_solid_color(u8, u8, u8),
-    display_item_image(~arc<~Image>),
+    display_item_image(~ARC<~Image>),
     display_item_text(TextRun),
     // FIXME: Shape code does not understand the alignment without this
     padding(u8, u8, u8, u8)

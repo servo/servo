@@ -14,18 +14,18 @@ import geom::point::Point2D;
 import azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions};
 import azure_hl::{DrawTarget, Linear};
 import ptr::addr_of;
-import std::arc::arc;
+import std::arc::ARC;
 import azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
 import std::cell::Cell;
 import compositor::Compositor;
 
-import pipes::{port, chan};
+import pipes::{Port, Chan};
 
 type Renderer = comm::Chan<Msg>;
 
 enum Msg {
     RenderMsg(dl::display_list),
-    ExitMsg(pipes::chan<()>)
+    ExitMsg(pipes::Chan<()>)
 }
 
 type RenderTask = comm::Chan<Msg>;
@@ -46,11 +46,11 @@ fn RenderTask<C: Compositor send>(+compositor: C) -> RenderTask {
                 #debug("renderer: got render request");
                 let draw_target = Cell(draw_target_po.recv());
                 let (ch, po) = pipes::stream();
-                let mut draw_target_ch_ = some(ch);
+                let mut draw_target_ch_ = Some(ch);
                 draw_target_po = po;
                 #debug("renderer: rendering");
                 do util::time::time(~"rendering") {
-                    let mut draw_target_ch = none;
+                    let mut draw_target_ch = None;
                     draw_target_ch_ <-> draw_target_ch;
                     let draw_target_ch = option::unwrap(draw_target_ch);
 
@@ -115,7 +115,7 @@ fn draw_solid_color(draw_target: &DrawTarget, item: dl::display_item, r: u8, g: 
     draw_target.fill_rect(item.bounds.to_azure_rect(), ColorPattern(color));
 }
 
-fn draw_image(draw_target: &DrawTarget, item: dl::display_item, image: arc<~Image>) unsafe {
+fn draw_image(draw_target: &DrawTarget, item: dl::display_item, image: ARC<~Image>) unsafe {
     let image = std::arc::get(&image);
     let size = Size2D(image.width as i32, image.height as i32);
     let stride = image.width * 4;

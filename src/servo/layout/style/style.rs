@@ -1,20 +1,20 @@
 #[doc="High-level interface to CSS selector matching."]
 
-import std::arc::{arc, get, clone};
+import std::arc::{ARC, get, clone};
 
 import dom::style::{DisplayType, DisBlock, DisInline, DisNone, Stylesheet, Unit, Auto};
-import dom::base::{Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement, Node, NodeKind};
+import dom::base::{Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement, Node, NodeKind, UnknownElement, HTMLScriptElement};
 import dom::base::{Text};
 import util::color::{Color, rgb};
 import util::color::css_colors::{white, black};
 import base::{LayoutData, NTree};
 
-type SpecifiedStyle = {mut background_color : option<Color>,
-                        mut display_type : option<DisplayType>,
-                        mut font_size : option<Unit>,
-                        mut height : option<Unit>,
-                        mut text_color : option<Color>,
-                        mut width : option<Unit>
+type SpecifiedStyle = {mut background_color : Option<Color>,
+                        mut display_type : Option<DisplayType>,
+                        mut font_size : Option<Unit>,
+                        mut height : Option<Unit>,
+                        mut text_color : Option<Color>,
+                        mut width : Option<Unit>
                        };
 
 trait DefaultStyleMethods {
@@ -41,7 +41,8 @@ impl NodeKind : DefaultStyleMethods {
               HTMLDivElement => DisBlock,
               HTMLHeadElement => DisNone,
               HTMLImageElement(*) => DisInline,
-              UnknownElement => DisInline
+              HTMLScriptElement => DisNone,
+              UnknownElement => DisInline,
             }
           }
         }
@@ -66,12 +67,12 @@ impl NodeKind : DefaultStyleMethods {
 fn empty_style_for_node_kind(kind: NodeKind) -> SpecifiedStyle {
     let display_type = kind.default_display_type();
 
-    {mut background_color : none,
-     mut display_type : some(display_type),
-     mut font_size : none,
-     mut height : none,
-     mut text_color : none,
-     mut width : none}
+    {mut background_color : None,
+     mut display_type : Some(display_type),
+     mut font_size : None,
+     mut height : None,
+     mut text_color : None,
+     mut width : None}
 }
 
 trait StylePriv {
@@ -94,7 +95,7 @@ impl Node : StylePriv {
             let node_kind = self.read(|n| copy *n.kind);
             let the_layout_data = @LayoutData({
                 mut specified_style : ~empty_style_for_node_kind(node_kind),
-                mut box : none
+                mut box : None
             });
 
             self.set_aux(the_layout_data);
@@ -109,7 +110,7 @@ impl Node : StylePriv {
 trait StyleMethods {
     fn initialize_style_for_subtree() -> ~[@LayoutData];
     fn get_specified_style() -> SpecifiedStyle;
-    fn recompute_style_for_subtree(styles : arc<Stylesheet>);
+    fn recompute_style_for_subtree(styles : ARC<Stylesheet>);
 }
 
 impl Node : StyleMethods {
@@ -143,7 +144,7 @@ impl Node : StyleMethods {
         This is, importantly, the function that updates the layout data for the node (the reader-
         auxiliary box in the RCU model) with the computed style.
     "]
-    fn recompute_style_for_subtree(styles : arc<Stylesheet>) {
+    fn recompute_style_for_subtree(styles : ARC<Stylesheet>) {
         listen(|ack_chan| {
             let mut i = 0u;
             

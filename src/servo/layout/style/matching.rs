@@ -13,14 +13,14 @@ fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
     match attr {
       Exists(name) => {
         match elmt.get_attr(name) {
-          some(_) => true,
-          none => false
+          Some(_) => true,
+          None => false
         }
       }
       Exact(name, val) => {
         match elmt.get_attr(name) {
-          some(value) => value == val,
-          none => false
+          Some(value) => value == val,
+          None => false
         }
       }
       Includes(name, val) => {
@@ -29,13 +29,13 @@ fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
         if val == ~"" { return false; }
 
         match elmt.get_attr(name) {
-          some(value) => value.split_char(' ').contains(val),
-          none => false
+          Some(value) => value.split_char(' ').contains(val),
+          None => false
         }
       }
       StartsWith(name, val) => {
         match elmt.get_attr(name) {
-          some(value) => { 
+          Some(value) => { 
             //check that there is only one attribute value and it
             //starts with the perscribed value
             if !value.starts_with(val) || value.contains(~" ") { return false; }
@@ -44,7 +44,7 @@ fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
             if value.len() == val.len() { true }
             else { value.starts_with(val + ~"-") }
           }
-          none => {
+          None => {
             false
           }
         }
@@ -80,7 +80,7 @@ impl Node : PrivMatchingMethods {
 
                 return true;
               }
-              Text(str) => { /*fall through, currently unsupported*/ }
+              Text(*) => { /*fall through, currently unsupported*/ }
             }
           }
         }
@@ -92,11 +92,11 @@ impl Node : PrivMatchingMethods {
     #[doc = "Checks if a generic CSS selector matches a given HTML element"]
     fn matches_selector(sel : ~Selector) -> bool {
         match *sel {
-          Element(str, atts) => { return self.matches_element(sel); }
+          Element(*) => { return self.matches_element(sel); }
           Child(sel1, sel2) => {
             return match self.read(|n| n.tree.parent) {
-              some(parent) => self.matches_element(sel2) && parent.matches_selector(sel1),
-              none => false
+              Some(parent) => self.matches_element(sel2) && parent.matches_selector(sel1),
+              None => false
             }
           }
           Descendant(sel1, sel2) => {
@@ -105,16 +105,16 @@ impl Node : PrivMatchingMethods {
             //loop over all ancestors to check if they are the person
             //we should be descended from.
             let mut cur_parent = match self.read(|n| n.tree.parent) {
-              some(parent) => parent,
-              none => return false
+              Some(parent) => parent,
+              None => return false
             };
 
             loop {
                 if cur_parent.matches_selector(sel1) { return true; }
 
                 cur_parent = match cur_parent.read(|n| n.tree.parent) {
-                  some(parent) => parent,
-                  none => return false
+                  Some(parent) => parent,
+                  None => return false
                 };
             }
           }
@@ -123,34 +123,34 @@ impl Node : PrivMatchingMethods {
 
             // Loop over this node's previous siblings to see if they match.
             match self.read(|n| n.tree.prev_sibling) {
-              some(sib) => {
+              Some(sib) => {
                 let mut cur_sib = sib;
                 loop {
                     if cur_sib.matches_selector(sel1) { return true; }
                     
                     cur_sib = match cur_sib.read(|n| n.tree.prev_sibling) {
-                      some(sib) => sib,
-                      none => { break; }
+                      Some(sib) => sib,
+                      None => { break; }
                     };
                 }
               }
-              none => { }
+              None => { }
             }
 
             // check the rest of the siblings
             match self.read(|n| n.tree.next_sibling) {
-                some(sib) => {
+                Some(sib) => {
                     let mut cur_sib = sib;
                     loop {
                         if cur_sib.matches_selector(sel1) { return true; }
                 
                         cur_sib = match cur_sib.read(|n| n.tree.next_sibling) {
-                            some(sib) => sib,
-                            none => { break; }
+                            Some(sib) => sib,
+                            None => { break; }
                         };
                     }
                 }
-                none => { }
+                None => { }
             }
 
             return false;
@@ -168,12 +168,12 @@ impl Node : PrivStyleMethods {
     fn update_style(decl : StyleDeclaration) {
         self.aux(|layout| {
             match decl {
-              BackgroundColor(col) => layout.specified_style.background_color = some(col),
-              Display(dis) => layout.specified_style.display_type = some(dis),
-              FontSize(size) => layout.specified_style.font_size = some(size),
-              Height(size) => layout.specified_style.height = some(size),
-              TextColor(col) => layout.specified_style.text_color = some(col),
-              Width(size) => layout.specified_style.width = some(size)
+              BackgroundColor(col) => layout.specified_style.background_color = Some(col),
+              Display(dis) => layout.specified_style.display_type = Some(dis),
+              FontSize(size) => layout.specified_style.font_size = Some(size),
+              Height(size) => layout.specified_style.height = Some(size),
+              TextColor(col) => layout.specified_style.text_color = Some(col),
+              Width(size) => layout.specified_style.width = Some(size)
             };
         })
     }
@@ -211,7 +211,7 @@ impl Node : MatchingMethods {
 mod test {
     import dom::base::{Attr, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
     import dom::base::{NodeScope, UnknownElement};
-    import dvec::dvec;
+    import dvec::DVec;
 
     #[allow(non_implicitly_copyable_typarams)]
     fn new_node_from_attr(scope: NodeScope, -name: ~str, -val: ~str) -> Node {

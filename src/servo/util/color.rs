@@ -66,13 +66,13 @@ impl Color {
 mod parsing {
     export parse_color;
 
-    fn fail_unrecognized(col : ~str) -> option<Color> {
+    fn fail_unrecognized(col : ~str) -> Option<Color> {
         #warn["Unrecognized color %s", col];
-        return none;
+        return None;
     }
 
     #[doc="Match an exact color keyword."]
-    fn parse_by_name(color : ~str) -> option<Color> {
+    fn parse_by_name(color : ~str) -> Option<Color> {
         let col = match color.to_lower() {
           ~"black" => black(),
           ~"silver" => silver(),
@@ -94,11 +94,11 @@ mod parsing {
           _ => return fail_unrecognized(color)
         };
 
-        return some(col);
+        return Some(col);
     }
     
     #[doc="Parses a color specification in the form rgb(foo,bar,baz)"]
-    fn parse_rgb(color : ~str) -> option<Color> {
+    fn parse_rgb(color : ~str) -> Option<Color> {
         // Shave off the rgb( and the )
         let only_colors = color.substr(4u, color.len() - 5u);
 
@@ -108,13 +108,13 @@ mod parsing {
 
         match (u8::from_str(cols[0]), u8::from_str(cols[1]), 
              u8::from_str(cols[2])) {
-          (some(r), some(g), some(b)) => { some(rgb(r, g, b)) }
+          (Some(r), Some(g), Some(b)) => { Some(rgb(r, g, b)) }
           _ => { fail_unrecognized(color) }
         }
     }
 
     #[doc="Parses a color specification in the form rgba(foo,bar,baz,qux)"]
-    fn parse_rgba(color : ~str) -> option<Color> {
+    fn parse_rgba(color : ~str) -> Option<Color> {
         // Shave off the rgba( and the )
         let only_vals = color.substr(5u, color.len() - 6u);
 
@@ -124,13 +124,13 @@ mod parsing {
 
         match (u8::from_str(cols[0]), u8::from_str(cols[1]), 
              u8::from_str(cols[2]), float::from_str(cols[3])) {
-          (some(r), some(g), some(b), some(a)) => { some(rgba(r, g, b, a)) }
+          (Some(r), Some(g), Some(b), Some(a)) => { Some(rgba(r, g, b, a)) }
           _ => { fail_unrecognized(color) }
         }
     }
 
     #[doc="Parses a color specification in the form hsl(foo,bar,baz)"]
-    fn parse_hsl(color : ~str) -> option<Color> {
+    fn parse_hsl(color : ~str) -> Option<Color> {
         // Shave off the hsl( and the )
         let only_vals = color.substr(4u, color.len() - 5u);
 
@@ -140,13 +140,13 @@ mod parsing {
 
         match (float::from_str(vals[0]), float::from_str(vals[1]), 
              float::from_str(vals[2])) {
-          (some(h), some(s), some(l)) => { some(hsl(h, s, l)) }
+          (Some(h), Some(s), Some(l)) => { Some(hsl(h, s, l)) }
           _ => { fail_unrecognized(color) }
         }
     }
 
     #[doc="Parses a color specification in the form hsla(foo,bar,baz,qux)"]
-    fn parse_hsla(color : ~str) -> option<Color> {
+    fn parse_hsla(color : ~str) -> Option<Color> {
         // Shave off the hsla( and the )
         let only_vals = color.substr(5u, color.len() - 6u);
 
@@ -155,7 +155,7 @@ mod parsing {
 
         match (float::from_str(vals[0]), float::from_str(vals[1]), 
              float::from_str(vals[2]), float::from_str(vals[3])) {
-          (some(h), some(s), some(l), some(a)) => { some(hsla(h, s, l, a)) }
+          (Some(h), Some(s), Some(l), Some(a)) => { Some(hsla(h, s, l, a)) }
           _ => { fail_unrecognized(color) }
         }
     }
@@ -163,7 +163,7 @@ mod parsing {
     // Currently colors are supported in rgb(a,b,c) form and also by
     // keywords for several common colors.
     // TODO: extend this
-    fn parse_color(color : ~str) -> option<Color> {
+    fn parse_color(color : ~str) -> Option<Color> {
         match color {
           c if c.starts_with(~"rgb(") => parse_rgb(c),
           c if c.starts_with(~"rgba(") => parse_rgba(c),
@@ -198,7 +198,7 @@ mod test {
         assert navy().eq(unwrap(parse_color(~"NAVY")));
         assert teal().eq(unwrap(parse_color(~"Teal")));
         assert aqua().eq(unwrap(parse_color(~"Aqua")));
-        assert none == parse_color(~"foobarbaz");
+        assert None == parse_color(~"foobarbaz");
     }
 
     #[test]
@@ -210,7 +210,7 @@ mod test {
         assert rgb(1u8,2u8,3u8).eq(unwrap(parse_color(~"rgb(1,2,03)")));
         assert rgba(15u8,250u8,3u8,0.5).eq(unwrap(parse_color(~"rgba(15,250,3,.5)")));
         assert rgba(15u8,250u8,3u8,0.5).eq(unwrap(parse_color(~"rgba(15,250,3,0.5)")));
-        assert none == parse_color(~"rbga(1,2,3)");
+        assert None == parse_color(~"rbga(1,2,3)");
     }
 
     #[test]
@@ -232,7 +232,7 @@ mod test {
         assert navy().eq(unwrap(parse_color(~"hsl(240.0,1.0,.25)")));
         assert teal().eq(unwrap(parse_color(~"hsl(180.0,1.0,.25)")));
         assert aqua().eq(unwrap(parse_color(~"hsl(180.0,1.0,.5)")));
-        assert none == parse_color(~"hsl(1,2,3,.4)");
+        assert None == parse_color(~"hsl(1,2,3,.4)");
     }
 }
 

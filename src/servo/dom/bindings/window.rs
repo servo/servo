@@ -9,13 +9,12 @@ import js::glue::bindgen::*;
 import js::global::jsval_to_rust_str;
 import js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub, JS_ResolveStub};
 import js::glue::bindgen::RUST_JSVAL_TO_INT;
-import result::{result, ok, err};
 import ptr::null;
 import libc::c_uint;
 import utils::{rust_box, squirrel_away, jsval_to_str};
 import bindings::node::create;
 import base::{Node, Window};
-import dvec::{DVec, dvec};
+import dvec::DVec;
 
 extern fn alert(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool {
   unsafe {
@@ -38,7 +37,7 @@ struct TimerData {
     let args: DVec<jsval>;
     new(argc: c_uint, argv: *jsval) unsafe {
         self.funval = *argv;
-        self.args = dvec();
+        self.args = DVec();
         let mut i = 2;
         while i < argc as uint {
             self.args.push(*ptr::offset(argv, i));
@@ -78,7 +77,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
 }
 
 fn init(compartment: bare_compartment, win: @Window) {
-    let proto = utils::define_empty_prototype(~"Window", none, compartment);
+    let proto = utils::define_empty_prototype(~"Window", None, compartment);
     compartment.register_class(utils::instance_jsclass(~"WindowInstance", finalize));
 
     let obj = result::unwrap(

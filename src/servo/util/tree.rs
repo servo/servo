@@ -3,11 +3,11 @@
 // TODO: Use traits.
 
 type Tree<T> = {
-    mut parent: option<T>,
-    mut first_child: option<T>,
-    mut last_child: option<T>,
-    mut prev_sibling: option<T>,
-    mut next_sibling: option<T>
+    mut parent: Option<T>,
+    mut first_child: Option<T>,
+    mut last_child: Option<T>,
+    mut prev_sibling: Option<T>,
+    mut next_sibling: Option<T>
 };
 
 trait ReadMethods<T> {
@@ -22,8 +22,8 @@ fn each_child<T:copy,O:ReadMethods<T>>(ops: O, node: T, f: fn(T) -> bool) {
     let mut p = ops.with_tree_fields(node, |f| f.first_child);
     loop {
         match copy p {
-          none => { return; }
-          some(c) => {
+          None => { return; }
+          Some(c) => {
             if !f(c) { return; }
             p = ops.with_tree_fields(c, |f| f.next_sibling);
           }
@@ -32,45 +32,45 @@ fn each_child<T:copy,O:ReadMethods<T>>(ops: O, node: T, f: fn(T) -> bool) {
 }
 
 fn empty<T>() -> Tree<T> {
-    {mut parent: none,
-     mut first_child: none,
-     mut last_child: none,
-     mut prev_sibling: none,
-     mut next_sibling: none}
+    {mut parent: None,
+     mut first_child: None,
+     mut last_child: None,
+     mut prev_sibling: None,
+     mut next_sibling: None}
 }
 
 fn add_child<T:copy,O:WriteMethods<T>>(ops: O, parent: T, child: T) {
 
     ops.with_tree_fields(child, |child_tf| {
         match child_tf.parent {
-          some(_) => { fail ~"Already has a parent"; }
-          none => { child_tf.parent = some(parent); }
+          Some(_) => { fail ~"Already has a parent"; }
+          None => { child_tf.parent = Some(parent); }
         }
 
-        assert child_tf.prev_sibling == none;
-        assert child_tf.next_sibling == none;
+        assert child_tf.prev_sibling.is_none();
+        assert child_tf.next_sibling.is_none();
 
         ops.with_tree_fields(parent, |parent_tf| {
             match copy parent_tf.last_child {
-              none => {
-                parent_tf.first_child = some(child);
+              None => {
+                parent_tf.first_child = Some(child);
               }
-              some(lc) => {
+              Some(lc) => {
                 let lc = lc; // satisfy alias checker
                 ops.with_tree_fields(lc, |lc_tf| {
-                    assert lc_tf.next_sibling == none;
-                    lc_tf.next_sibling = some(child);
+                    assert lc_tf.next_sibling.is_none();
+                    lc_tf.next_sibling = Some(child);
                 });
-                child_tf.prev_sibling = some(lc);
+                child_tf.prev_sibling = Some(lc);
               }
             }
 
-            parent_tf.last_child = some(child);
+            parent_tf.last_child = Some(child);
         });
     });
 }
 
-fn get_parent<T:copy,O:ReadMethods<T>>(ops: O, node: T) -> option<T> {
+fn get_parent<T:copy,O:ReadMethods<T>>(ops: O, node: T) -> Option<T> {
     ops.with_tree_fields(node, |tf| tf.parent)
 }
 

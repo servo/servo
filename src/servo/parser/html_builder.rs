@@ -12,7 +12,6 @@ import dom::style::Stylesheet;
 import vec::{push, push_all_move, flat_map};
 import std::net::url::url;
 import resource::resource_task::{ResourceTask, Load, Payload, Done};
-import result::{ok, err};
 import to_str::ToStr;
 
 enum CSSMessage {
@@ -35,18 +34,18 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: ~str, -value: ~str) {
             match *element.kind {
               HTMLImageElement(img) if key == ~"width" => {
                 match int::from_str(value) {
-                  none => {
+                  None => {
                     // Drop on the floor.
                   }
-                  some(s) => { img.size.width = geometry::px_to_au(s); }
+                  Some(s) => { img.size.width = geometry::px_to_au(s); }
                 }
               }
               HTMLImageElement(img) if key == ~"height" => {
                 match int::from_str(value) {
-                  none => {
+                  None => {
                     // Drop on the floor.
                   }
-                  some(s) => {
+                  Some(s) => {
                     img.size.height = geometry::px_to_au(s);
                   }
                 }
@@ -100,8 +99,8 @@ fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Por
     loop {
         match from_parent.recv() {
           File(url) => {
-            let result_port = comm::port();
-            let result_chan = comm::chan(result_port);
+            let result_port = comm::Port();
+            let result_chan = comm::Chan(result_port);
             // TODO: change copy to move once we have match move
             let url = copy url;
             task::spawn(|| {
@@ -131,12 +130,12 @@ fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port
     loop {
         match from_parent.recv() {
           js_file(url) => {
-            let result_port = comm::port();
-            let result_chan = comm::chan(result_port);
+            let result_port = comm::Port();
+            let result_chan = comm::Chan(result_port);
             // TODO: change copy to move once we have match move
             let url = copy url;
             do task::spawn || {
-                let input_port = port();
+                let input_port = Port();
                 // TODO: change copy to move once we can move into closures
                 resource_task.send(Load(copy url, input_port.chan()));
 
@@ -146,11 +145,11 @@ fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port
                       Payload(data) => {
                         buf += data;
                       }
-                      Done(ok(*)) => {
+                      Done(Ok(*)) => {
                         result_chan.send(buf);
                         break;
                       }
-                      Done(err(*)) => {
+                      Done(Err(*)) => {
                         #error("error loading script %s", url.to_str());
                       }
                     }
@@ -178,14 +177,14 @@ fn build_dom(scope: NodeScope, stream: comm::Port<Token>, url: url,
     // task.  After the html sheet has been fully read, the spawned
     // task will collect the results of all linked style data and send
     // it along the returned port.
-    let style_port = comm::port();
-    let child_chan = comm::chan(style_port);
+    let style_port = comm::Port();
+    let child_chan = comm::Chan(style_port);
     let style_chan = task::spawn_listener(|child_port| {
         css_link_listener(child_chan, child_port, resource_task);
     });
 
-    let js_port = comm::port();
-    let child_chan = comm::chan(js_port);
+    let js_port = comm::Port();
+    let child_chan = comm::Chan(js_port);
     let js_chan = task::spawn_listener(|child_port| {
         js_script_listener(child_chan, child_port, resource_task);
     });
@@ -216,15 +215,15 @@ fn build_dom(scope: NodeScope, stream: comm::Port<Token>, url: url,
                 match *n.kind {
                   Element(elmt) if elmt.tag_name == ~"link" => {
                     match elmt.get_attr(~"rel") {
-                      some(r) if r == ~"stylesheet" => {
+                      Some(r) if r == ~"stylesheet" => {
                         match elmt.get_attr(~"href") {
-                          some(filename) => {
+                          Some(filename) => {
                             #debug["Linking to a css sheet named: %s", filename];
                             // FIXME: Need to base the new url on the current url
-                            let new_url = make_url(filename, some(copy url));
+                            let new_url = make_url(filename, Some(copy url));
                             style_chan.send(File(new_url));
                           }
-                          none => { /* fall through*/ }
+                          None => { /* fall through*/ }
                         }
                       }
                       _ => { /* fall through*/ }
@@ -235,18 +234,18 @@ fn build_dom(scope: NodeScope, stream: comm::Port<Token>, url: url,
             });
             cur_node = scope.get_parent(cur_node).get();
           }
-          parser::EndTag(tag_name) => {
+          parser::EndTag(*) => {
             // TODO: Assert that the closing tag has the right name.
             scope.read(cur_node, |n| {
                 match *n.kind {
                   Element(elmt) if elmt.tag_name == ~"script" => {
                     match elmt.get_attr(~"src") {
-                      some(filename) => {
+                      Some(filename) => {
                         #debug["Linking to a js script named: %s", filename];
-                        let new_url = make_url(filename, some(copy url));
+                        let new_url = make_url(filename, Some(copy url));
                         js_chan.send(js_file(new_url));
                       }
-                      none => { /* fall through */ }
+                      None => { /* fall through */ }
                     }
                   }
                   _ => { /* fall though */ }

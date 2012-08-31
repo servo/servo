@@ -20,7 +20,7 @@ import std::net::url::url;
 import resource::image_cache_task;
 import image_cache_task::ImageCacheTask;
 import core::to_str::ToStr;
-import std::arc::{arc, clone};
+import std::arc::{ARC, clone};
 import task::spawn;
 
 enum BoxKind {
@@ -30,14 +30,23 @@ enum BoxKind {
     TextBoxKind(@TextBox)
 }
 
+impl BoxKind : cmp::Eq {
+    pure fn eq(&&other: BoxKind) -> bool {
+        match (self, other) {
+          (BlockBox, BlockBox) => true,
+          _ => fail ~"unimplemented case in BoxKind.eq"
+        }
+    }
+}
+
 struct Appearance {
-    let mut background_image: option<ImageHolder>;
+    let mut background_image: Option<ImageHolder>;
     let mut background_color: Color;
     let mut width: Unit;
     let mut height: Unit;
 
     new(kind: NodeKind) {
-        self.background_image = none;
+        self.background_image = None;
         self.background_color = kind.default_color();
         self.width = kind.default_width();
         self.height = kind.default_height();
@@ -45,18 +54,18 @@ struct Appearance {
 
     // This will be very unhappy if it is getting run in parallel with
     // anything trying to read the background image
-    fn get_image() -> option<~arc<~Image>> {
-        let mut image = none;
+    fn get_image() -> Option<~ARC<~Image>> {
+        let mut image = None;
 
         // Do a dance where we swap the ImageHolder out before we can
         // get the image out of it because we can't match against it
         // because holder.get_image() is not pure.
         if (self.background_image).is_some() {
-            let mut temp = none;
+            let mut temp = None;
             temp <-> self.background_image;
             let holder <- option::unwrap(temp);
             image = holder.get_image();
-            self.background_image = some(holder);
+            self.background_image = Some(holder);
         }
 
         return image;
@@ -85,14 +94,14 @@ struct Box {
 struct ImageHolder {
     // Invariant: at least one of url and image is not none, except
     // occasionally while get_image is being called
-    let mut url : option<url>;
-    let mut image : option<arc<~Image>>;
+    let mut url : Option<url>;
+    let mut image : Option<ARC<~Image>>;
     let image_cache_task: ImageCacheTask;
     let reflow: fn~();
 
     new(-url : url, image_cache_task: ImageCacheTask, reflow: fn~()) {
-        self.url = some(copy url);
-        self.image = none;
+        self.url = Some(copy url);
+        self.image = None;
         self.image_cache_task = image_cache_task;
         self.reflow = copy reflow;
 
@@ -106,26 +115,26 @@ struct ImageHolder {
     }
 
     // This function should not be called by two tasks at the same time
-    fn get_image() -> option<~arc<~Image>> {
+    fn get_image() -> Option<~ARC<~Image>> {
         // If this is the first time we've called this function, load
         // the image and store it for the future
         if self.image.is_none() {
             assert self.url.is_some();
 
-            let mut temp = none;
+            let mut temp = None;
             temp <-> self.url;
             let url = option::unwrap(temp);
 
-            let response_port = port();
+            let response_port = Port();
             self.image_cache_task.send(image_cache_task::GetImage(copy url, response_port.chan()));
             self.image = match response_port.recv() {
-              image_cache_task::ImageReady(image) => some(clone(&image)),
+              image_cache_task::ImageReady(image) => Some(clone(&image)),
               image_cache_task::ImageNotReady => {
                 // Need to reflow when the image is available
                 let image_cache_task = self.image_cache_task;
                 let reflow = copy self.reflow;
                 do spawn |copy url, move reflow| {
-                    let response_port = port();
+                    let response_port = Port();
                     image_cache_task.send(image_cache_task::WaitForImage(copy url, response_port.chan()));
                     match response_port.recv() {
                       image_cache_task::ImageReady(*) => reflow(),
@@ -133,12 +142,12 @@ struct ImageHolder {
                       image_cache_task::ImageFailed => ()
                     }
                 }
-                none
+                None
               }
               image_cache_task::ImageFailed => {
                 #info("image was not ready for %s", url.to_str());
                 // FIXME: Need to schedule another layout when the image is ready
-                none
+                None
               }
             };
         }
@@ -147,21 +156,21 @@ struct ImageHolder {
             // Temporarily swap out the arc of the image so we can clone
             // it without breaking purity, then put it back and return the
             // clone.  This is not threadsafe.
-            let mut temp = none;
+            let mut temp = None;
             temp <-> self.image;
             let im_arc = option::unwrap(temp);
-            self.image = some(clone(&im_arc));
+            self.image = Some(clone(&im_arc));
 
-            return some(~im_arc);
+            return Some(~im_arc);
         } else {
-            return none;
+            return None;
         }
     }
 }
 
 enum LayoutData = {
     mut specified_style: ~SpecifiedStyle,
-    mut box: option<@Box>
+    mut box: Option<@Box>
 };
 
 // FIXME: This is way too complex! Why do these have to have dummy receivers? --pcw

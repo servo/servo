@@ -17,7 +17,7 @@ import parser::parser_util::{parse_display_type, parse_font_size, parse_size};
 import util::color::parsing::parse_color;
 import vec::push;
 
-type TokenReader = {stream : pipes::port<Token>, mut lookahead : option<Token>};
+type TokenReader = {stream : pipes::Port<Token>, mut lookahead : Option<Token>};
 
 trait TokenReaderMethods {
     fn get() -> Token;
@@ -27,30 +27,30 @@ trait TokenReaderMethods {
 impl TokenReader : TokenReaderMethods {
     fn get() -> Token {
         match copy self.lookahead {
-          some(tok) => { self.lookahead = none; copy tok }
-          none => { self.stream.recv() }
+          Some(tok) => { self.lookahead = None; copy tok }
+          None => { self.stream.recv() }
         }
     }
 
     fn unget(-tok : Token) {
         assert is_none(self.lookahead);
-        self.lookahead = some(tok);
+        self.lookahead = Some(tok);
     }
 }
 
 trait ParserMethods {
-    fn parse_element() -> option<~style::Selector>;
-    fn parse_selector() -> option<~[~Selector]>;
-    fn parse_description() -> option<~[StyleDeclaration]>;
-    fn parse_rule() -> option<~style::Rule>;
+    fn parse_element() -> Option<~style::Selector>;
+    fn parse_selector() -> Option<~[~Selector]>;
+    fn parse_description() -> Option<~[StyleDeclaration]>;
+    fn parse_rule() -> Option<~style::Rule>;
 }
 
 impl TokenReader : ParserMethods {
-    fn parse_element() -> option<~style::Selector> {
+    fn parse_element() -> Option<~style::Selector> {
         // Get the current element type
          let elmt_name = match self.get() {
            Element(tag) => { copy tag }
-           Eof => { return none; }
+           Eof => { return None; }
            _ => { fail ~"Expected an element" }
          };
 
@@ -65,16 +65,16 @@ impl TokenReader : ParserMethods {
                  self.unget(tok); 
                  break;
                }
-               Eof => { return none; }
+               Eof => { return None; }
                Element(_) => fail ~"Unexpected second element without relation to first element",
                EndDescription => fail ~"Unexpected '}'",
                Description(_, _) => fail ~"Unexpected description"
              }
          }
-        return some(~style::Element(elmt_name, attr_list));
+        return Some(~style::Element(elmt_name, attr_list));
     }
 
-    fn parse_selector() -> option<~[~Selector]> {
+    fn parse_selector() -> Option<~[~Selector]> {
         let mut sel_list = ~[];
 
         // Collect all the selectors that this rule applies to
@@ -82,8 +82,8 @@ impl TokenReader : ParserMethods {
             let mut cur_sel;
 
             match self.parse_element() {
-              some(elmt) => { cur_sel = copy elmt; }
-              none => { return none; } // we hit an eof in the middle of a rule
+              Some(elmt) => { cur_sel = copy elmt; }
+              None => { return None; } // we hit an eof in the middle of a rule
             }
 
             loop {
@@ -93,29 +93,29 @@ impl TokenReader : ParserMethods {
                 match tok {
                   Descendant => {
                     match self.parse_element() {
-                      some(elmt) => { 
+                      Some(elmt) => { 
                         let new_sel = copy elmt;
                         cur_sel <- ~style::Descendant(built_sel, new_sel)
                       }
-                      none => { return none; }
+                      None => { return None; }
                     }
                   }
                   Child => {
                     match self.parse_element() {
-                      some(elmt) => { 
+                      Some(elmt) => { 
                         let new_sel = copy elmt;
                         cur_sel <- ~style::Child(built_sel, new_sel)
                       }
-                      none => { return none; }
+                      None => { return None; }
                     }
                   }
                   Sibling => {
                     match self.parse_element() {
-                      some(elmt) => { 
+                      Some(elmt) => { 
                         let new_sel = copy elmt;
                         cur_sel <- ~style::Sibling(built_sel, new_sel)
                       }
-                      none => { return none; }
+                      None => { return None; }
                     }
                   }
                   StartDescription => {
@@ -131,7 +131,7 @@ impl TokenReader : ParserMethods {
                   Attr(_) | EndDescription | Element(_) | Description(_, _) => {
                     fail #fmt["Unexpected token %? in elements", tok];
                   }
-                  Eof => { return none; }
+                  Eof => { return None; }
                 }
             }
 
@@ -145,10 +145,10 @@ impl TokenReader : ParserMethods {
             }
         }
         
-        return some(sel_list);
+        return Some(sel_list);
     }
 
-    fn parse_description() -> option<~[StyleDeclaration]> {
+    fn parse_description() -> Option<~[StyleDeclaration]> {
         let mut desc_list : ~[StyleDeclaration]= ~[];
         
         // Get the description to be applied to the selector
@@ -165,49 +165,49 @@ impl TokenReader : ParserMethods {
                   ~"font-size" => parse_font_size(val).map(|res| FontSize(res)),
                   ~"height" => parse_size(val).map(|res| Height(res)),
                   ~"width" => parse_size(val).map(|res| Width(res)),
-                  _ => { #debug["Recieved unknown style property '%s'", val]; none }
+                  _ => { #debug["Recieved unknown style property '%s'", val]; None }
                 };
                 desc.map(|res| push(desc_list, res));
               }
-              Eof => { return none; }
+              Eof => { return None; }
               StartDescription | Descendant | Child | Sibling | Comma | Element(_) | Attr(_) => {
                 fail #fmt["Unexpected token %? in description", tok]; 
               }
             }
         }
         
-        return some(desc_list);
+        return Some(desc_list);
     }
 
-    fn parse_rule() -> option<~style::Rule> {
+    fn parse_rule() -> Option<~style::Rule> {
         // TODO: get rid of copies once match move works
         let sel_list = match self.parse_selector() {
-          some(list) => { copy list }
-          none => { return none; }
+          Some(list) => { copy list }
+          None => { return None; }
         };
 
         #debug("sel_list: %?", sel_list);
         
         // Get the description to be applied to the selector
         let desc_list = match self.parse_description() {
-          some(list) => { copy list }
-          none => { return none; }
+          Some(list) => { copy list }
+          None => { return None; }
         };
 
         #debug("desc_list: %?", desc_list);
         
-        return some(~(sel_list, desc_list));
+        return Some(~(sel_list, desc_list));
     }
 }
 
-fn build_stylesheet(+stream : pipes::port<Token>) -> ~[~style::Rule] {
+fn build_stylesheet(+stream : pipes::Port<Token>) -> ~[~style::Rule] {
     let mut rule_list = ~[];
-    let reader = {stream : stream, mut lookahead : none};
+    let reader = {stream : stream, mut lookahead : None};
 
     loop {
         match reader.parse_rule() {
-          some(rule) => { push(rule_list, copy rule); }
-          none => { break; }
+          Some(rule) => { push(rule_list, copy rule); }
+          None => { break; }
         }
     }
 

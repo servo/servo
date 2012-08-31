@@ -15,7 +15,7 @@ import libc::c_uint;
 import ptr::null;
 
 fn init(compartment: bare_compartment) {
-    let obj = utils::define_empty_prototype(~"Node", none, compartment);
+    let obj = utils::define_empty_prototype(~"Node", None, compartment);
 
     let attrs = @~[
         {name: compartment.add_name(~"firstChild"),
@@ -44,11 +44,11 @@ fn init(compartment: bare_compartment) {
 fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
     do scope.write(node) |nd| {
         match nd.kind {
-            ~Element(ed) => {
+            ~Element(*) => {
               element::create(cx, node, scope)
             }
 
-            ~Text(s) => {
+            ~Text(*) => {
               fail ~"no text node bindings yet";
             }
         }
@@ -80,11 +80,11 @@ extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBool
         let bundle = unwrap(obj);
         do (*bundle).payload.scope.write((*bundle).payload.node) |nd| {
             match nd.tree.first_child {
-              some(n) => {
+              Some(n) => {
                 let obj = create(cx, n, (*bundle).payload.scope).ptr;
                 *vp = RUST_OBJECT_TO_JSVAL(obj);
               }
-              none => {
+              None => {
                 *vp = JSVAL_NULL;
               }
             }
@@ -103,11 +103,11 @@ extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBoo
         let bundle = unwrap(obj);
         do (*bundle).payload.scope.write((*bundle).payload.node) |nd| {
             match nd.tree.next_sibling {
-              some(n) => {
+              Some(n) => {
                 let obj = create(cx, n, (*bundle).payload.scope).ptr;
                 *vp = RUST_OBJECT_TO_JSVAL(obj);
               }
-              none => {
+              None => {
                 *vp = JSVAL_NULL;
               }
             }

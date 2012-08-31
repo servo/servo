@@ -11,12 +11,9 @@ use JSExitMessage = parser::html_builder::js_exit;
 use JSFileMessage = parser::html_builder::js_file;
 use JSMessage = parser::html_builder::js_message;
 
-use comm::{chan, port};
+use comm::{Chan, Port};
 use str::from_slice;
 use unsafe::reinterpret_cast;
-use Error = result::err;
-use OK = result::ok;
-use Result = result::result;
 use Url = std::net::url::url;
 
 type JSResult = ~[~[u8]];
@@ -48,8 +45,8 @@ fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Por
     loop {
         match from_parent.recv() {
           CSSFileMessage(url) => {
-            let result_port = comm::port();
-            let result_chan = comm::chan(result_port);
+            let result_port = comm::Port();
+            let result_chan = comm::Chan(result_port);
             // TODO: change copy to move once we have match move
             let url = copy url;
             task::spawn(|| {
@@ -79,12 +76,12 @@ fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port
     loop {
         match from_parent.recv() {
           JSFileMessage(url) => {
-            let result_port = comm::port();
-            let result_chan = comm::chan(result_port);
+            let result_port = comm::Port();
+            let result_chan = comm::Chan(result_port);
             // TODO: change copy to move once we have match move
             let url = copy url;
             do task::spawn || {
-                let input_port = port();
+                let input_port = Port();
                 // TODO: change copy to move once we can move into closures
                 resource_task.send(Load(copy url, input_port.chan()));
 
@@ -94,11 +91,11 @@ fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port
                       Payload(data) => {
                         buf += data;
                       }
-                      Done(OK(*)) => {
+                      Done(Ok(*)) => {
                         result_chan.send(buf);
                         break;
                       }
-                      Done(Error(*)) => {
+                      Done(Err(*)) => {
                         #error("error loading script %s", url.to_str());
                       }
                     }
@@ -162,7 +159,7 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
         create_doctype: |_doctype| {
             debug!("create doctype");
             let new_node = scope.new_node(Element(ElementData(~"doctype", ~UnknownElement)));
-            reinterpret_cast(new_node)
+            unsafe { reinterpret_cast(new_node) }
         },
         create_element: |tag| {
             debug!("create element");
@@ -177,14 +174,14 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
                         match *element.kind {
                           HTMLImageElement(img) if attribute.name == "width" => {
                             match int::from_str(from_slice(attribute.value)) {
-                              none => {} // Drop on the floor.
-                              some(s) => img.size.width = px_to_au(s)
+                              None => {} // Drop on the floor.
+                              Some(s) => img.size.width = px_to_au(s)
                             }
                           }
                           HTMLImageElement(img) if attribute.name == "height" => {
                             match int::from_str(from_slice(attribute.value)) {
-                              none => {} // Drop on the floor.
-                              some(s) => img.size.height = px_to_au(s)
+                              None => {} // Drop on the floor.
+                              Some(s) => img.size.height = px_to_au(s)
                             }
                           }
                           HTMLDivElement | HTMLImageElement(*) | HTMLHeadElement |
@@ -202,9 +199,9 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
                 match *node_contents.kind {
                     Element(element) if element.tag_name == ~"link" => {
                         match (element.get_attr(~"rel"), element.get_attr(~"href")) {
-                            (some(rel), some(href)) if rel == ~"stylesheet" => {
+                            (Some(rel), Some(href)) if rel == ~"stylesheet" => {
                                 debug!("found CSS stylesheet: %s", href);
-                                css_chan.send(CSSFileMessage(make_url(href, some(copy *url))));
+                                css_chan.send(CSSFileMessage(make_url(href, Some(copy *url))));
                             }
                             _ => {}
                         }
@@ -213,12 +210,12 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
                 }
             }
 
-            reinterpret_cast(node)
+            unsafe { reinterpret_cast(node) }
         },
         create_text: |data| {
             debug!("create text");
             let new_node = scope.new_node(Text(from_slice(data)));
-            reinterpret_cast(new_node)
+            unsafe { reinterpret_cast(new_node) }
         },
         ref_node: |_node| {},
         unref_node: |_node| {},
@@ -268,12 +265,12 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
                 match *node_contents.kind {
                     Element(element) if element.tag_name == ~"script" => {
                         match element.get_attr(~"src") {
-                            some(src) => {
+                            Some(src) => {
                                 debug!("found script: %s", src);
-                                let new_url = make_url(src, some(copy *url));
+                                let new_url = make_url(src, Some(copy *url));
                                 js_chan.send(JSFileMessage(new_url));
                             }
-                            none => {}
+                            None => {}
                         }
                     }
                     _ => {}
@@ -284,7 +281,7 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
     });
     debug!("set tree handler");
 
-    let input_port = port();
+    let input_port = Port();
     resource_task.send(Load(copy *url, input_port.chan()));
     debug!("loaded page");
     loop {

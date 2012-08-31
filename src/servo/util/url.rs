@@ -3,6 +3,7 @@ export make_url, UrlMap, url_map;
 import std::net::url;
 import url::{get_scheme, url};
 import std::map::hashmap;
+import path::Path;
 
 /**
 Create a URL object from a string. Does various helpful browsery things like
@@ -14,24 +15,24 @@ Create a URL object from a string. Does various helpful browsery things like
 
 */
 #[allow(non_implicitly_copyable_typarams)]
-fn make_url(str_url: ~str, current_url: option<url>) -> url {
+fn make_url(str_url: ~str, current_url: Option<url>) -> url {
     let mut schm = get_scheme(str_url);
     let str_url = if result::is_err(schm) {
         if current_url.is_none() {
             // If all we have is a filename, assume it's a local relative file
             // and build an absolute path with the cwd
-            ~"file://" + path::connect(os::getcwd(), str_url)
+            ~"file://" + os::getcwd().push(str_url).to_str()
         } else {
             let current_url = current_url.get();
             #debug("make_url: current_url: %?", current_url);
             if current_url.path.is_empty() || current_url.path.ends_with("/") {
-                current_url.scheme + "://" + path::connect(current_url.host, str_url)
+                current_url.scheme + "://" + current_url.host + "/" + str_url
             } else {
-                let path = path::split(current_url.path);
+                let path = str::split_char(current_url.path, '/');
                 let path = path.init();
-                let path = path::connect_many(path + ~[copy str_url]);
+                let path = str::connect(path + ~[copy str_url], "/");
 
-                current_url.scheme + "://" + path::connect(current_url.host, path)
+                current_url.scheme + "://" + current_url.host + "/" + path
             }
         }
     } else {
@@ -47,18 +48,18 @@ mod make_url_tests {
     #[test]
     fn should_create_absolute_file_url_if_current_url_is_none_and_str_url_looks_filey() {
         let file = ~"local.html";
-        let url = make_url(file, none);
+        let url = make_url(file, None);
         #debug("url: %?", url);
         assert url.scheme == ~"file";
-        assert url.path.contains(os::getcwd());
+        assert url.path.contains(os::getcwd().to_str());
     }
 
     #[test]
     fn should_create_url_based_on_old_url_1() {
         let old_str = ~"http://example.com";
-        let old_url = make_url(old_str, none);
+        let old_url = make_url(old_str, None);
         let new_str = ~"index.html";
-        let new_url = make_url(new_str, some(old_url));
+        let new_url = make_url(new_str, Some(old_url));
         assert new_url.scheme == ~"http";
         assert new_url.host == ~"example.com";
         assert new_url.path == ~"/index.html";
@@ -67,9 +68,9 @@ mod make_url_tests {
     #[test]
     fn should_create_url_based_on_old_url_2() {
         let old_str = ~"http://example.com/";
-        let old_url = make_url(old_str, none);
+        let old_url = make_url(old_str, None);
         let new_str = ~"index.html";
-        let new_url = make_url(new_str, some(old_url));
+        let new_url = make_url(new_str, Some(old_url));
         assert new_url.scheme == ~"http";
         assert new_url.host == ~"example.com";
         assert new_url.path == ~"/index.html";
@@ -78,9 +79,9 @@ mod make_url_tests {
     #[test]
     fn should_create_url_based_on_old_url_3() {
         let old_str = ~"http://example.com/index.html";
-        let old_url = make_url(old_str, none);
+        let old_url = make_url(old_str, None);
         let new_str = ~"crumpet.html";
-        let new_url = make_url(new_str, some(old_url));
+        let new_url = make_url(new_str, Some(old_url));
         assert new_url.scheme == ~"http";
         assert new_url.host == ~"example.com";
         assert new_url.path == ~"/crumpet.html";
@@ -89,9 +90,9 @@ mod make_url_tests {
     #[test]
     fn should_create_url_based_on_old_url_4() {
         let old_str = ~"http://example.com/snarf/index.html";
-        let old_url = make_url(old_str, none);
+        let old_url = make_url(old_str, None);
         let new_str = ~"crumpet.html";
-        let new_url = make_url(new_str, some(old_url));
+        let new_url = make_url(new_str, Some(old_url));
         assert new_url.scheme == ~"http";
         assert new_url.host == ~"example.com";
         assert new_url.path == ~"/snarf/crumpet.html";

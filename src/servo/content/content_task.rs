@@ -7,14 +7,13 @@ export ContentTask;
 export ControlMsg, ExecuteMsg, ParseMsg, ExitMsg, Timer;
 export PingMsg, PongMsg;
 
-import std::arc::{arc, clone};
-import comm::{Port, Chan, port, chan, listen, select2};
+import std::arc::{ARC, clone};
+import comm::{Port, Chan, listen, select2};
 import task::{spawn, spawn_listener};
 import io::{read_whole_file, println};
-import result::{ok, err};
 
 import dom::base::{Document, Node, NodeScope, Window, define_bindings};
-import dom::event::{Event, ResizeEvent};
+import dom::event::{Event, ResizeEvent, ReflowEvent};
 import dom::style;
 import dom::style::Stylesheet;
 import gfx::compositor::Compositor;
@@ -88,28 +87,28 @@ struct Content<C:Compositor> {
     let jsrt: jsrt;
     let cx: cx;
 
-    let mut document: option<@Document>;
-    let mut window:   option<@Window>;
-    let mut doc_url: option<url>;
+    let mut document: Option<@Document>;
+    let mut window:   Option<@Window>;
+    let mut doc_url: Option<url>;
 
     let resource_task: ResourceTask;
 
-    let compartment: option<compartment>;
+    let compartment: Option<compartment>;
 
     new(layout_task: LayoutTask, +compositor: C, from_master: Port<ControlMsg>,
         resource_task: ResourceTask) {
         self.layout_task = layout_task;
         self.compositor = compositor;
         self.from_master = from_master;
-        self.event_port = port();
+        self.event_port = Port();
 
         self.scope = NodeScope();
         self.jsrt = jsrt();
         self.cx = self.jsrt.cx();
 
-        self.document = none;
-        self.window   = none;
-        self.doc_url  = none;
+        self.document = None;
+        self.window   = None;
+        self.doc_url  = None;
 
         self.compositor.add_event_listener(self.event_port.chan());
 
@@ -118,8 +117,8 @@ struct Content<C:Compositor> {
         self.cx.set_default_options_and_version();
         self.cx.set_logging_error_reporter();
         self.compartment = match self.cx.new_compartment(global_class) {
-          ok(c) => some(c),
-          err(()) => none
+          Ok(c) => Some(c),
+          Err(()) => None
         };
     }
 
@@ -166,9 +165,9 @@ struct Content<C:Compositor> {
             let document = Document(root, self.scope, css_rules);
             let window   = Window(self.from_master);
             self.relayout(document, &url);
-            self.document = some(@document);
-            self.window   = some(@window);
-            self.doc_url = some(copy url);
+            self.document = Some(@document);
+            self.window   = Some(@window);
+            self.doc_url = Some(copy url);
 
             let compartment = option::expect(self.compartment, ~"TODO error checking");
             compartment.define_functions(debug_fns);
@@ -202,11 +201,11 @@ struct Content<C:Compositor> {
           ExecuteMsg(url) => {
             #debug["content: Received url `%s` to execute", url_to_str(url)];
 
-            match read_whole_file(url.path) {
-              err(msg) => {
+            match read_whole_file(&Path(url.path)) {
+              Err(msg) => {
                 println(#fmt["Error opening %s: %s", url_to_str(url), msg]);
               }
-              ok(bytes) => {
+              Ok(bytes) => {
                 let compartment = option::expect(self.compartment, ~"TODO error checking");
                 compartment.define_functions(debug_fns);
                 self.cx.evaluate_script(compartment.global_obj, bytes, url.path, 1u);
@@ -243,10 +242,10 @@ struct Content<C:Compositor> {
           ResizeEvent(new_width, new_height) => {
             #debug("content got resize event: %d, %d", new_width, new_height);
             match copy self.document {
-                none => {
+                None => {
                     // Nothing to do.
                 }
-                some(document) => {
+                Some(document) => {
                     assert self.doc_url.is_some();
                     self.relayout(*document, &self.doc_url.get());
                 }
@@ -256,10 +255,10 @@ struct Content<C:Compositor> {
           ReflowEvent => {
             #debug("content got reflow event");
             match copy self.document {
-                none => {
+                None => {
                     // Nothing to do.
                 }
-                some(document) => {
+                Some(document) => {
                     assert self.doc_url.is_some();
                     self.relayout(*document, &self.doc_url.get());
                 }

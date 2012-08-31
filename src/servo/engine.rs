@@ -14,7 +14,7 @@ import std::net::url::url;
 import resource::image_cache_task;
 import image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 
-import pipes::{port, chan};
+import pipes::{Port, Chan};
 
 fn macros() {
     include!("macros.rs");

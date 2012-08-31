@@ -8,13 +8,13 @@ import azure::cairo;
 import azure::cairo::bindgen::*;
 import azure::cairo_hl::ImageSurface;
 import comm::*;
-import dvec::{DVec, dvec};
+import dvec::DVec;
 import azure::cairo::cairo_surface_t;
 import gfx::compositor::Compositor;
 import dom::event::{Event, ResizeEvent};
 import layers::ImageLayer;
 import geom::size::Size2D;
-import std::cmp::fuzzy_eq;
+import std::cmp::FuzzyEq;
 import task::TaskBuilder;
 import vec::push;
 
@@ -23,9 +23,9 @@ import pipes::chan;
 type OSMain = comm::Chan<Msg>;
 
 enum Msg {
-    BeginDrawing(pipes::chan<DrawTarget>),
-    Draw(pipes::chan<DrawTarget>, DrawTarget),
-    AddKeyHandler(pipes::chan<()>),
+    BeginDrawing(pipes::Chan<DrawTarget>),
+    Draw(pipes::Chan<DrawTarget>, DrawTarget),
+    AddKeyHandler(pipes::Chan<()>),
     AddEventListener(comm::Chan<Event>),
     Exit
 }
@@ -40,8 +40,8 @@ fn OSMain() -> OSMain {
 }
 
 fn mainloop(po: Port<Msg>) {
-    let key_handlers: @DVec<pipes::chan<()>> = @dvec();
-    let event_listeners: @DVec<comm::Chan<Event>> = @dvec();
+    let key_handlers: @DVec<pipes::Chan<()>> = @DVec();
+    let event_listeners: @DVec<comm::Chan<Event>> = @DVec();
 
     glut::init();
     glut::init_display_mode(glut::DOUBLE);
@@ -85,7 +85,7 @@ fn mainloop(po: Port<Msg>) {
                 let image = @layers::layers::Image(800, 600, layers::layers::ARGB32Format, buffer);
                 image_layer.set_image(image);
               }
-              exit => {
+              Exit => {
                 *done = true;
               }
             }
@@ -125,10 +125,10 @@ Implementation to allow the osmain channel to be used as a graphics
 compositor for the renderer
 "]
 impl OSMain : Compositor {
-    fn begin_drawing(+next_dt: pipes::chan<DrawTarget>) {
+    fn begin_drawing(+next_dt: pipes::Chan<DrawTarget>) {
         self.send(BeginDrawing(next_dt))
     }
-    fn draw(+next_dt: pipes::chan<DrawTarget>, +draw_me: DrawTarget) {
+    fn draw(+next_dt: pipes::Chan<DrawTarget>, +draw_me: DrawTarget) {
         self.send(Draw(next_dt, draw_me))
     }
     fn add_event_listener(listener: comm::Chan<Event>) {
@@ -141,7 +141,7 @@ struct SurfaceSet {
     mut back: Surface;
 }
 
-fn lend_surface(surfaces: SurfaceSet, receiver: pipes::chan<DrawTarget>) {
+fn lend_surface(surfaces: SurfaceSet, receiver: pipes::Chan<DrawTarget>) {
     // We are in a position to lend out the surface?
     assert surfaces.front.have;
     // Ok then take it

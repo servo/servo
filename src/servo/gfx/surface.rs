@@ -5,6 +5,14 @@ enum format {
     // TODO: RGB 565, others?
 }
 
+impl format: cmp::Eq {
+    pure fn eq(&&other: format) -> bool {
+        match (self, other) {
+          (fo_rgba_8888, fo_rgba_8888) => true,
+       }
+    }
+}
+
 type image_surface = {
     size: Size2D<int>,
     format: format,

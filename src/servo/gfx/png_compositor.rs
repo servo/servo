@@ -20,28 +20,28 @@ import cairo_bg::{cairo_image_surface_create, cairo_surface_destroy,
 import compositor::Compositor;
 import render_task::{RenderTask, RenderMsg};
 import task::spawn_listener;
-import comm::{Chan, Port, chan, port};
+import comm::{Chan, Port};
 import unsafe::reinterpret_cast;
 import vec_from_buf = vec::unsafe::from_buf;
 import ptr::addr_of;
 import dom::event::Event;
-import dvec::dvec;
+import dvec::DVec;
 import layout::display_list::display_list;
 import std::cell::Cell;
 
 type PngCompositor = Chan<Msg>;
 
 enum Msg {
-    BeginDrawing(pipes::chan<DrawTarget>),
-    Draw(pipes::chan<DrawTarget>, DrawTarget),
+    BeginDrawing(pipes::Chan<DrawTarget>),
+    Draw(pipes::Chan<DrawTarget>, DrawTarget),
     Exit
 }
 
 impl Chan<Msg> : Compositor {
-    fn begin_drawing(+next_dt: pipes::chan<DrawTarget>) {
+    fn begin_drawing(+next_dt: pipes::Chan<DrawTarget>) {
         self.send(BeginDrawing(next_dt))
     }
-    fn draw(+next_dt: pipes::chan<DrawTarget>, +draw_me: DrawTarget) {
+    fn draw(+next_dt: pipes::Chan<DrawTarget>, +draw_me: DrawTarget) {
         self.send(Draw(next_dt, draw_me))
     }
     fn add_event_listener(_listener: Chan<Event>) {
@@ -70,7 +70,7 @@ fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
     }
 }
 
-fn do_draw(sender: pipes::chan<DrawTarget>,
+fn do_draw(sender: pipes::Chan<DrawTarget>,
            +dt: DrawTarget,
            output: Chan<~[u8]>,
            cairo_surface: ImageSurface) {
@@ -89,7 +89,7 @@ fn sanity_check() {
         let compositor = PngCompositor(self_channel);
         let renderer = RenderTask(compositor);
 
-        let dlist : display_list = dvec();
+        let dlist : display_list = DVec();
         renderer.send(RenderMsg(dlist));
         let (exit_chan, exit_response_from_engine) = pipes::stream();
         renderer.send(render_task::ExitMsg(exit_chan));

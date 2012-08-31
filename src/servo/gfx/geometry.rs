@@ -19,6 +19,12 @@ impl au : Num {
     }
 }
 
+impl au : cmp::Eq {
+    pure fn eq(&&other: au) -> bool {
+        *self == *other
+    }
+}
+
 fn box<A:copy Num>(x: A, y: A, w: A, h: A) -> Rect<A> {
     Rect(Point2D(x, y), Size2D(w, h))
 }

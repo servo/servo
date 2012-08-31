@@ -10,7 +10,6 @@ import js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_S
                   RESOLVE_STUB};
 import js::glue::bindgen::*;
 import ptr::null;
-import result::{result, ok, err};
 
 enum DOMString {
     str(~str),
@@ -34,25 +33,25 @@ unsafe fn squirrel_away_unique<T>(+x: ~T) -> *rust_box<T> {
 }
 
 //XXX very incomplete
-fn jsval_to_str(cx: *JSContext, v: jsval) -> result<~str, ()> {
+fn jsval_to_str(cx: *JSContext, v: jsval) -> Result<~str, ()> {
     let jsstr;
     if RUST_JSVAL_IS_STRING(v) == 1 {
         jsstr = RUST_JSVAL_TO_STRING(v)
     } else {
         jsstr = JS_ValueToString(cx, v);
         if jsstr.is_null() {
-            return err(());
+            return Err(());
         }
     }
 
     let len = 0;
     let chars = JS_GetStringCharsZAndLength(cx, jsstr, ptr::addr_of(len));
     return if chars.is_null() {
-        err(())
+        Err(())
     } else {
         unsafe {
             let buf = vec::unsafe::from_buf(chars as *u8, len as uint);
-            ok(str::from_bytes(buf))
+            Ok(str::from_bytes(buf))
         }
     }
 }
@@ -152,16 +151,16 @@ fn instance_jsclass(name: ~str, finalize: *u8)
     };
 }
 
-fn define_empty_prototype(name: ~str, proto: option<~str>, compartment: bare_compartment)
+fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: bare_compartment)
     -> js::rust::jsobj {
     compartment.register_class(utils::prototype_jsclass(name));
 
     //TODO error checking
     let obj = result::unwrap(
         match proto {
-            some(s) => compartment.new_object_with_proto(name, s,
+            Some(s) => compartment.new_object_with_proto(name, s,
                                                          compartment.global_obj.ptr),
-            none => compartment.new_object(name, null(), compartment.global_obj.ptr)
+            None => compartment.new_object(name, null(), compartment.global_obj.ptr)
         });
 
     compartment.define_property(name, RUST_OBJECT_TO_JSVAL(obj.ptr),

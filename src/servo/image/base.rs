@@ -21,7 +21,7 @@ fn test_image_bin() -> ~[u8] {
     return vec::from_fn(4962, |i| TEST_IMAGE[i]);
 }
 
-fn load_from_memory(buffer: &[u8]) -> option<Image> {
+fn load_from_memory(buffer: &[u8]) -> Option<Image> {
     do stb_image::load_from_memory(buffer).map |image| {
 
         assert image.depth == 4;

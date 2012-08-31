@@ -24,14 +24,14 @@ struct Font {
         self.fontbuf
     }
 
-    fn glyph_index(codepoint: char) -> option<GlyphIndex> {
+    fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
         self.native_font.glyph_index(codepoint)
     }
 
     fn glyph_h_advance(glyph: GlyphIndex) -> int {
         match self.native_font.glyph_h_advance(glyph) {
-          some(adv) => adv,
-          none => /* FIXME: Need fallback strategy */ 10
+          Some(adv) => adv,
+          None => /* FIXME: Need fallback strategy */ 10
         }
     }
 }
@@ -57,7 +57,7 @@ fn should_get_glyph_indexes() {
     let lib = FontLibrary();
     let font = lib.get_test_font();
     let glyph_idx = font.glyph_index('w');
-    assert glyph_idx == some(40u);
+    assert glyph_idx == Some(40u);
 }
 
 fn should_get_glyph_advance() {

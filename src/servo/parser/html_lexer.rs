@@ -1,4 +1,4 @@
-import comm::{Port, Chan, port, chan};
+import comm::{Port, Chan};
 import dom::style;
 import option::is_none;
 import str::from_bytes;
@@ -121,23 +121,23 @@ impl HtmlLexer : HtmlLexerMethods {
     }
 
     fn eat_until_end_of_comment() {
-        let mut state = none;
+        let mut state = None;
 
         loop {
             match self.input_state.get() {
               CoeChar(c) => {
                 match c {
-                  '-' as u8 if state == none => {
-                    state = some(~"-")
+                  '-' as u8 if state == None => {
+                    state = Some(~"-")
                   }
-                  '-' as u8 if state == some(~"-") => {
-                    state = some(~"--")
+                  '-' as u8 if state == Some(~"-") => {
+                    state = Some(~"--")
                   }
-                  '>' as u8 if state == some(~"--") => {
+                  '>' as u8 if state == Some(~"--") => {
                     return
                   }
                   _ => {
-                    state = none
+                    state = None
                   }
                 }
               }
@@ -214,7 +214,7 @@ impl HtmlLexer : HtmlLexerMethods {
 fn lexer(+input_port: Port<resource_task::ProgressMsg>, state : ParseState) -> HtmlLexer {
     return {
            input_state: {
-               mut lookahead: none,
+               mut lookahead: None,
                mut buffer: ~[],
                input_port: input_port,
                mut eof: false
@@ -225,11 +225,11 @@ fn lexer(+input_port: Port<resource_task::ProgressMsg>, state : ParseState) -> H
 
 #[allow(non_implicitly_copyable_typarams)]
 fn spawn_html_lexer_task(-url: url, resource_task: ResourceTask) -> Port<Token> {
-    let html_port = port();
-    let html_chan = chan(html_port);
+    let html_port = Port();
+    let html_chan = Chan(html_port);
 
     task::spawn(|| {
-        let input_port = port();
+        let input_port = Port();
         // TODO: change copy to move once we can move into closures
         resource_task.send(Load(copy url, input_port.chan()));
         
@@ -237,7 +237,7 @@ fn spawn_html_lexer_task(-url: url, resource_task: ResourceTask) -> Port<Token> 
 
         loop {
             let token = lexer.parse_html();
-            let should_break = token == Eof;
+            let should_break = match token { Eof => true, _ => false };
             html_chan.send(token);
             if should_break { break; }
         }

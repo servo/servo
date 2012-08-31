@@ -9,7 +9,7 @@ export parse_font_size;
 export parse_size;
 export parse_display_type;
 
-fn parse_unit(str : ~str) -> option<Unit> {
+fn parse_unit(str : ~str) -> Option<Unit> {
     match str {
       s if s.ends_with(~"%") => from_str(str.substr(0, str.len() - 1)).map(|f| Percent(f)),
       s if s.ends_with(~"in") => from_str(str.substr(0, str.len() - 2)).map(|f| Pt(72.0*f)),
@@ -19,44 +19,44 @@ fn parse_unit(str : ~str) -> option<Unit> {
       s if s.ends_with(~"pc") => from_str(str.substr(0, str.len() - 2)).map(|f| Pt(12.0*f)),
       s if s.ends_with(~"px") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(f)),
       s if s.ends_with(~"ex") | s.ends_with(~"em") => fail ~"Em and Ex sizes not yet supported",
-      _ => none,
+      _ => None,
     }
 }
 
-fn parse_font_size(str : ~str) -> option<Unit> {
+fn parse_font_size(str : ~str) -> Option<Unit> {
     // The default pixel size, not sure if this is accurate.
     let default = 16.0;
 
     match str {
-      ~"xx-small" => some(Px(0.6*default)),
-      ~"x-small" => some(Px(0.75*default)),
-      ~"small" => some(Px(8.0/9.0*default)),
-      ~"medium" => some(Px(default)),
-      ~"large" => some(Px(1.2*default)),
-      ~"x-large" => some(Px(1.5*default)),
-      ~"xx-large" => some(Px(2.0*default)),
-      ~"smaller" => some(Percent(80.0)),
-      ~"larger" => some(Percent(125.0)),
-      ~"inherit" => some(Percent(100.0)),
+      ~"xx-small" => Some(Px(0.6*default)),
+      ~"x-small" => Some(Px(0.75*default)),
+      ~"small" => Some(Px(8.0/9.0*default)),
+      ~"medium" => Some(Px(default)),
+      ~"large" => Some(Px(1.2*default)),
+      ~"x-large" => Some(Px(1.5*default)),
+      ~"xx-large" => Some(Px(2.0*default)),
+      ~"smaller" => Some(Percent(80.0)),
+      ~"larger" => Some(Percent(125.0)),
+      ~"inherit" => Some(Percent(100.0)),
       _  => parse_unit(str),
     }
 }
 
 // For width / height, and anything else with the same attribute values
-fn parse_size(str : ~str) -> option<Unit> {
+fn parse_size(str : ~str) -> Option<Unit> {
     match str {
-      ~"auto" => some(Auto),
-      ~"inherit" => some(Percent(100.0)),
+      ~"auto" => Some(Auto),
+      ~"inherit" => Some(Percent(100.0)),
       _ => parse_unit(str),
     }
 }
 
-fn parse_display_type(str : ~str) -> option<DisplayType> {
+fn parse_display_type(str : ~str) -> Option<DisplayType> {
     match str {
-      ~"inline" => some(DisInline),
-      ~"block" => some(DisBlock),
-      ~"none" => some(DisNone),
-      _ => { #debug["Recieved unknown display value '%s'", str]; none }
+      ~"inline" => Some(DisInline),
+      ~"block" => Some(DisBlock),
+      ~"none" => Some(DisNone),
+      _ => { #debug["Recieved unknown display value '%s'", str]; None }
     }
 }
 

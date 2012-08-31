@@ -8,7 +8,7 @@ import engine::{EngineTask, EngineProto};
 import url_to_str = std::net::url::to_str;
 import util::url::make_url;
 
-import pipes::{port, chan};
+import pipes::{Port, Chan};
 
 fn main(args: ~[~str]) {
     run(opts::from_cmdline_args(args))
@@ -38,19 +38,19 @@ fn run_pipeline_screen(urls: ~[~str]) {
     osmain.send(AddKeyHandler(keypress_to_engine));
 
     // Create a serve instance
-    let mut engine_task = some(EngineTask(osmain));
+    let mut engine_task = Some(EngineTask(osmain));
 
     for urls.each |filename| {
-        let url = make_url(filename, none);
+        let url = make_url(filename, None);
         #debug["master: Sending url `%s`", url_to_str(url)];
         engine_task =
-            some(EngineProto::client::LoadURL(swap_unwrap(&mut engine_task),
+            Some(EngineProto::client::LoadURL(swap_unwrap(&mut engine_task),
                                               url));
         #debug["master: Waiting for keypress"];
 
         match keypress_from_osmain.try_recv() {
-          some(*) => { }
-          none => { #error("keypress stream closed unexpectedly") }
+          Some(*) => { }
+          None => { #error("keypress stream closed unexpectedly") }
         };
     }
 
@@ -67,7 +67,6 @@ fn run_pipeline_png(-url: ~str, outfile: ~str) {
     // Use a PNG encoder as the graphics compositor
     import gfx::png_compositor;
     import png_compositor::PngCompositor;
-    import result::{ok, err};
     import io::{Writer, buffered_file_writer};
     import resource::resource_task::ResourceTask;
     import resource::image_cache_task::SyncImageCacheTask;
@@ -81,11 +80,11 @@ fn run_pipeline_png(-url: ~str, outfile: ~str) {
         // render
         let image_cache_task = SyncImageCacheTask(resource_task);
         let engine_task = EngineTask_(compositor, resource_task, image_cache_task);
-        let engine_task = EngineProto::client::LoadURL(engine_task, make_url(url, none));
+        let engine_task = EngineProto::client::LoadURL(engine_task, make_url(url, None));
 
-        match buffered_file_writer(outfile) {
-          ok(writer) => writer.write(pngdata_from_compositor.recv()),
-          err(e) => fail e
+        match buffered_file_writer(&Path(outfile)) {
+          Ok(writer) => writer.write(pngdata_from_compositor.recv()),
+          Err(e) => fail e
         }
 
         let engine_task = EngineProto::client::Exit(engine_task);

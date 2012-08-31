@@ -3,7 +3,7 @@
     rendered.
 "];
 
-import std::arc::arc;
+import std::arc::ARC;
 import display_list_builder::build_display_list;
 import dom::base::Node;
 import dom::style::Stylesheet;
@@ -22,7 +22,7 @@ import comm::*;
 type LayoutTask = Chan<Msg>;
 
 enum Msg {
-    BuildMsg(Node, arc<Stylesheet>, url, Chan<Event>),
+    BuildMsg(Node, ARC<Stylesheet>, url, Chan<Event>),
     PingMsg(Chan<content_task::PingMsg>),
     ExitMsg
 }
