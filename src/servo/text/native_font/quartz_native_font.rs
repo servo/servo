@@ -5,7 +5,7 @@ export QuartzNativeFont, with_test_native_font, create;
 import libc::size_t;
 import ptr::null;
 import unsafe::reinterpret_cast;
-import result::{result, ok};
+import result::{Result, Ok};
 import glyph::GlyphIndex;
 import cocoa::cg::{
     CGDataProviderRef,
@@ -38,19 +38,19 @@ struct QuartzNativeFont/& {
         CGDataProviderRelease(self.fontprov);
     }
 
-    fn glyph_index(_codepoint: char) -> option<GlyphIndex> {
+    fn glyph_index(_codepoint: char) -> Option<GlyphIndex> {
         // FIXME
-        some(40u)
+        Some(40u)
     }
 
     // FIXME: What unit is this returning? Let's have a custom type
-    fn glyph_h_advance(_glyph: GlyphIndex) -> option<int> {
+    fn glyph_h_advance(_glyph: GlyphIndex) -> Option<int> {
         // FIXME
-        some(15)
+        Some(15)
     }
 }
 
-fn create(buf: &~[u8]) -> result<QuartzNativeFont, ()> {
+fn create(buf: &~[u8]) -> Result<QuartzNativeFont, ()> {
     let fontprov = vec::as_buf(*buf, |cbuf, len| {
         CGDataProviderCreateWithData(
             null(),
@@ -64,7 +64,7 @@ fn create(buf: &~[u8]) -> result<QuartzNativeFont, ()> {
     // FIXME: Error handling
     assert cgfont.is_not_null();
 
-    return ok(QuartzNativeFont(fontprov, cgfont));
+    return Ok(QuartzNativeFont(fontprov, cgfont));
 }
 
 fn with_test_native_font(f: fn@(nf: &NativeFont)) {
