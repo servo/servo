@@ -46,4 +46,7 @@
 [submodule "src/rust-core-foundation"]
 	path = src/rust-core-foundation
 	url = git://github.com/pcwalton/rust-core-foundation.git
+[submodule "src/rust-io-surface"]
+	path = src/rust-io-surface
+	url = git://github.com/pcwalton/rust-io-surface.git
 
