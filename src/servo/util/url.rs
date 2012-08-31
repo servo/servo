@@ -32,7 +32,7 @@ fn make_url(str_url: ~str, current_url: Option<url>) -> url {
                 let path = path.init();
                 let path = str::connect(path + ~[copy str_url], "/");
 
-                current_url.scheme + "://" + current_url.host + "/" + path
+                current_url.scheme + "://" + current_url.host + path
             }
         }
     } else {
