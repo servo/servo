@@ -29,9 +29,6 @@ On Debian-based Linuxes:
 
     git clone git://github.com/mozilla/servo.git
     cd servo
-    git submodule init
-    git submodule update
-    ./autogen.sh
     mkdir -p build && cd build
     ../configure
     make check && make
