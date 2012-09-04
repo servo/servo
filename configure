@@ -1,0 +1,378 @@
+#!/bin/bash
+
+msg() {
+    echo "configure: $1"
+}
+
+step_msg() {
+    msg
+    msg "$1"
+    msg
+}
+
+warn() {
+    echo "configure: WARNING: $1"
+}
+
+err() {
+    echo "configure: error: $1"
+    exit 1
+}
+
+need_ok() {
+    if [ $? -ne 0 ]
+    then
+        err $1
+    fi
+}
+
+need_cmd() {
+    if which $1 >/dev/null 2>&1
+    then msg "found $1"
+    else err "need $1"
+    fi
+}
+
+make_dir() {
+    if [ ! -d $1 ]
+    then
+        msg "mkdir -p $1"
+        mkdir -p $1
+    fi
+}
+
+copy_if_changed() {
+    if cmp -s $1 $2
+    then
+        msg "leaving $2 unchanged"
+    else
+        msg "cp $1 $2"
+        cp -f $1 $2
+        chmod u-w $2 # make copied artifact read-only
+    fi
+}
+
+move_if_changed() {
+    if cmp -s $1 $2
+    then
+        msg "leaving $2 unchanged"
+    else
+        msg "mv $1 $2"
+        mv -f $1 $2
+        chmod u-w $2 # make moved artifact read-only
+    fi
+}
+
+putvar() {
+    local T
+    eval T=\$$1
+    eval TLEN=\${#$1}
+    if [ $TLEN -gt 35 ]
+    then
+        printf "configure: %-20s := %.35s ...\n" $1 "$T"
+    else
+        printf "configure: %-20s := %s %s\n" $1 "$T" "$2"
+    fi
+    printf "%-20s := %s\n" $1 "$T" >>config.tmp
+}
+
+probe() {
+    local V=$1
+    shift
+    local P
+    local T
+    for P
+    do
+        T=$(which $P 2>&1)
+        if [ $? -eq 0 ]
+        then
+            VER0=$($P --version 2>/dev/null | head -1 \
+                |  sed -e 's/[^0-9]*\([vV]\?[0-9.]\+[^ ]*\).*/\1/' )
+            if [ $? -eq 0 -a "x${VER0}" != "x" ]
+            then
+              VER="($VER0)"
+            else
+              VER=""
+            fi
+            break
+        else
+            VER=""
+            T=""
+        fi
+    done
+    eval $V=\$T
+    putvar $V "$VER"
+}
+
+probe_need() {
+    local V=$1
+    probe $*
+    eval VV=\$$V
+    if [ -z "$VV" ]
+    then
+        err "needed, but unable to find any of: $*"
+    fi
+}
+
+valopt() {
+    local OP=$1
+    local DEFAULT=$2
+    shift
+    shift
+    local DOC="$*"
+    if [ $HELP -eq 0 ]
+    then
+        local UOP=$(echo $OP | tr '[:lower:]' '[:upper:]' | tr '\-' '\_')
+        local V="CFG_${UOP}"
+        eval $V="$DEFAULT"
+        for arg in $CFG_CONFIGURE_ARGS
+        do
+            if echo "$arg" | grep -q -- "--$OP="
+            then
+                val=$(echo "$arg" | cut -f2 -d=)
+                eval $V=$val
+            fi
+        done
+        putvar $V
+    else
+        if [ -z "$DEFAULT" ]
+        then
+            DEFAULT="<none>"
+        fi
+        OP="${OP}=[${DEFAULT}]"
+        printf "    --%-30s %s\n" "$OP" "$DOC"
+    fi
+}
+
+opt() {
+    local OP=$1
+    local DEFAULT=$2
+    shift
+    shift
+    local DOC="$*"
+    local FLAG=""
+
+    if [ $DEFAULT -eq 0 ]
+    then
+        FLAG="enable"
+    else
+        FLAG="disable"
+        DOC="don't $DOC"
+    fi
+
+    if [ $HELP -eq 0 ]
+    then
+        for arg in $CFG_CONFIGURE_ARGS
+        do
+            if [ "$arg" = "--${FLAG}-${OP}" ]
+            then
+                OP=$(echo $OP | tr 'a-z-' 'A-Z_')
+                FLAG=$(echo $FLAG | tr 'a-z' 'A-Z')
+                local V="CFG_${FLAG}_${OP}"
+                eval $V=1
+                putvar $V
+            fi
+        done
+    else
+        if [ ! -z "$META" ]
+        then
+            OP="$OP=<$META>"
+        fi
+        printf "    --%-30s %s\n" "$FLAG-$OP" "$DOC"
+     fi
+}
+
+msg "looking for configure programs"
+need_cmd cmp
+need_cmd mkdir
+need_cmd printf
+need_cmd cut
+need_cmd grep
+need_cmd xargs
+need_cmd cp
+need_cmd find
+need_cmd uname
+need_cmd date
+need_cmd tr
+need_cmd sed
+
+msg "inspecting environment"
+
+CFG_SRC_DIR="$(cd $(dirname $0) && pwd)/"
+CFG_BUILD_DIR="$(pwd)/"
+CFG_SELF=${CFG_SRC_DIR}$(basename $0)
+CFG_CONFIGURE_ARGS="$@"
+
+OPTIONS=""
+HELP=0
+if [ "$1" = "--help" ]
+then
+    HELP=1
+    shift
+    echo ""
+    echo "Usage: $CFG_SELF [options]"
+    echo ""
+    echo "Options:"
+    echo ""
+else
+    msg "recreating config.tmp"
+    echo '' >config.tmp
+
+    step_msg "processing $CFG_SELF args"
+fi
+
+opt manage-submodules 1 "let the build manage the git submodules"
+valopt prefix "/usr/local" "set installation prefix"
+valopt local-rust-root "/usr/local" "set prefix for local rust binary"
+
+if [ $HELP -eq 1 ]
+then
+    echo ""
+    exit 0
+fi
+
+step_msg "looking for build programs"
+
+probe_need CFG_GIT         git
+probe CFG_CLANG            clang++
+probe CFG_GCC              gcc
+probe CFG_LD               ld
+# Spidermonkey requires autoconf 2.13 exactly
+probe_need CFG_AUTOCONF213 autoconf213  \
+                           autoconf2.13 \
+                           autoconf-2.13
+
+if [ ! -z "$CFG_ENABLE_LOCAL_RUST" ]
+then
+    if [ ! -f ${CFG_LOCAL_RUST_ROOT}/bin/rustc ]
+    then
+        err "no local rust to use"
+    else
+        LRV=`${CFG_LOCAL_RUST_ROOT}/bin/rustc --version`
+        step_msg "using rustc at: ${CFG_LOCAL_RUST_ROOT} with version: " $LRV
+    fi
+fi
+
+if [ ! -z "$CFG_ENABLE_CLANG" ]
+then
+    if [ -z "$CFG_CLANG" ]
+    then
+	err "clang requested but not found"
+    fi
+    CFG_CLANG_VERSION=$("$CFG_CLANG" \
+                      --version \
+                      | grep version \
+                      | sed 's/.*\(version .*\)/\1/' \
+                      | cut -d ' ' -f 2)
+
+    case $CFG_CLANG_VERSION in
+        (3.0svn | 3.0 | 3.1 | 4.0)
+        step_msg "found ok version of CLANG: $CFG_CLANG_VERSION"
+        CFG_C_COMPILER="clang"
+        ;;
+        (*)
+        err "bad CLANG version: $CFG_CLANG_VERSION, need >=3.0svn"
+        ;;
+    esac
+else
+    CFG_C_COMPILER="gcc"
+fi
+
+if [ -z "$CFG_ENABLE_CLANG" -a -z "$CFG_GCC" ]
+then
+    err "either clang or gcc is required"
+fi
+
+# Configure submodules
+step_msg "configuring submodules"
+
+# Have to be in the top of src directory for this
+if [ -z $CFG_DISABLE_MANAGE_SUBMODULES ]
+then
+    cd ${CFG_SRC_DIR}
+
+    msg "git: submodule sync"
+    "${CFG_GIT}" submodule --quiet sync
+
+    # NB: this is just for the sake of getting the submodule SHA1 values
+    # and status written into the build log.
+    msg "git: submodule status"
+    "${CFG_GIT}" submodule status --recursive
+
+    msg "git: submodule update"
+    "${CFG_GIT}" submodule --quiet update --init --recursive
+    need_ok "git failed"
+
+    msg "git: submodule clobber"
+    "${CFG_GIT}" submodule --quiet foreach --recursive git clean -dxf
+    need_ok "git failed"
+    "${CFG_GIT}" submodule --quiet foreach --recursive git checkout .
+    need_ok "git failed"
+
+    cd ${CFG_BUILD_DIR}
+fi
+
+step_msg "running submodule autoconf scripts"
+
+(cd ${CFG_SRC_DIR}src/mozjs/js/src && "${CFG_AUTOCONF213}") || exit $?
+
+step_msg "making build directories"
+
+cd "${CFG_BUILD_DIR}"
+
+make_dir src/mozjs
+make_dir src/rust-harfbuzz
+make_dir src/rust-opengles
+make_dir src/rust-mozjs
+make_dir src/rust-azure
+make_dir src/rust-cocoa
+make_dir src/rust-stb-image
+make_dir src/rust-geom
+make_dir src/rust-glut
+make_dir src/rust-layers
+make_dir src/rust-http-client
+make_dir src/libparserutils
+make_dir src/libhubbub
+make_dir src/servo-sandbox
+make_dir src/rust-hubbub
+make_dir src/rust-core-foundation
+
+make_dir src/test/ref
+
+# TODO: don't run configure on submodules unless necessary. For an example,
+# see how Rust's configure script optionally reconfigures the LLVM module.
+step_msg "running submodule configure scripts"
+
+(cd ${CFG_BUILD_DIR}src/mozjs && sh ${CFG_SRC_DIR}src/mozjs/js/src/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/rust-opengles && sh ${CFG_SRC_DIR}src/rust-opengles/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/rust-harfbuzz && sh ${CFG_SRC_DIR}src/rust-harfbuzz/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/rust-mozjs && sh ${CFG_SRC_DIR}src/rust-mozjs/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/rust-azure && sh ${CFG_SRC_DIR}src/rust-azure/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/rust-cocoa && sh ${CFG_SRC_DIR}src/rust-cocoa/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/rust-stb-image && sh ${CFG_SRC_DIR}src/rust-stb-image/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/rust-geom && sh ${CFG_SRC_DIR}src/rust-geom/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/rust-glut && sh ${CFG_SRC_DIR}src/rust-glut/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/rust-layers && sh ${CFG_SRC_DIR}src/rust-layers/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/rust-http-client && sh ${CFG_SRC_DIR}src/rust-http-client/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/libparserutils && sh ${CFG_SRC_DIR}src/libparserutils/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/libhubbub && sh ${CFG_SRC_DIR}src/libhubbub/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/servo-sandbox && sh ${CFG_SRC_DIR}src/servo-sandbox/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/rust-hubbub && sh ${CFG_SRC_DIR}src/rust-hubbub/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/rust-core-foundation && sh ${CFG_SRC_DIR}src/rust-core-foundation/configure) || exit $?
+
+step_msg "writing configuration"
+
+putvar CFG_SRC_DIR
+putvar CFG_BUILD_DIR
+putvar CFG_CONFIGURE_ARGS
+putvar CFG_PREFIX
+putvar CFG_C_COMPILER
+putvar CFG_DISABLE_MANAGE_SUBMODULES
+
+msg
+sed "s#%VPATH%#${CFG_SRC_DIR}#" ${CFG_SRC_DIR}Makefile.in > Makefile
+move_if_changed config.tmp config.mk
+rm -f config.tmp
+touch config.stamp
+
+step_msg "complete"

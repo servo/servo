@@ -10,4 +10,5 @@ servo-test
 Makefile
 Servo.app
 build
-configure
+config.mk
+config.stamp
