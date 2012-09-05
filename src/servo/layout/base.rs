@@ -16,7 +16,7 @@ import text::TextBox;
 import traverse::extended_full_traversal;
 import style::style::{SpecifiedStyle};
 import vec::{push, push_all};
-import std::net::url::url;
+import std::net::url::Url;
 import resource::image_cache_task;
 import image_cache_task::ImageCacheTask;
 import core::to_str::ToStr;
@@ -94,12 +94,12 @@ struct Box {
 struct ImageHolder {
     // Invariant: at least one of url and image is not none, except
     // occasionally while get_image is being called
-    let mut url : Option<url>;
+    let mut url : Option<Url>;
     let mut image : Option<ARC<~Image>>;
     let image_cache_task: ImageCacheTask;
     let reflow: fn~();
 
-    new(-url : url, image_cache_task: ImageCacheTask, reflow: fn~()) {
+    new(-url : Url, image_cache_task: ImageCacheTask, reflow: fn~()) {
         self.url = Some(copy url);
         self.image = None;
         self.image_cache_task = image_cache_task;

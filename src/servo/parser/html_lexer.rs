@@ -6,7 +6,7 @@ import vec::push;
 import lexer_util::*;
 import resource::resource_task;
 import resource_task::{ResourceTask, ProgressMsg, Load};
-import std::net::url::url;
+import std::net::url::Url;
 
 enum Token {
     StartOpeningTag(~str),
@@ -224,7 +224,7 @@ fn lexer(+input_port: Port<resource_task::ProgressMsg>, state : ParseState) -> H
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-fn spawn_html_lexer_task(-url: url, resource_task: ResourceTask) -> Port<Token> {
+fn spawn_html_lexer_task(-url: Url, resource_task: ResourceTask) -> Port<Token> {
     let html_port = Port();
     let html_chan = Chan(html_port);
 

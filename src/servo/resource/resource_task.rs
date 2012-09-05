@@ -10,12 +10,11 @@ export ResourceTask, ResourceManager, LoaderTaskFactory;
 
 import comm::{Chan, Port};
 import task::{spawn, spawn_listener};
-import std::net::url;
-import std::net::url::url;
+import std::net::url::{Url, to_str};
 
 enum ControlMsg {
     /// Request the data associated with a particular URL
-    Load(url, Chan<ProgressMsg>),
+    Load(Url, Chan<ProgressMsg>),
     Exit
 }
 
@@ -48,7 +47,7 @@ Creates a task to load a specific resource
 The ResourceManager delegates loading to a different type of loader task for
 each URL scheme
 */
-type LoaderTaskFactory = fn~(+url: url, Chan<ProgressMsg>);
+type LoaderTaskFactory = fn~(+url: Url, Chan<ProgressMsg>);
 
 /// Create a ResourceTask with the default loaders
 fn ResourceTask() -> ResourceTask {
@@ -89,11 +88,11 @@ struct ResourceManager {
         }
     }
 
-    fn load(+url: url, progress_chan: Chan<ProgressMsg>) {
+    fn load(+url: Url, progress_chan: Chan<ProgressMsg>) {
 
         match self.get_loader_factory(url) {
           Some(loader_factory) => {
-            #debug("resource_task: loading url: %s", url::to_str(url));
+            #debug("resource_task: loading url: %s", to_str(url));
             loader_factory(url, progress_chan);
           }
           None => {
@@ -103,7 +102,7 @@ struct ResourceManager {
         }
     }
 
-    fn get_loader_factory(url: url) -> Option<LoaderTaskFactory> {
+    fn get_loader_factory(url: Url) -> Option<LoaderTaskFactory> {
         for self.loaders.each |scheme_loader| {
             let (scheme, loader_factory) = copy scheme_loader;
             if scheme == url.scheme {

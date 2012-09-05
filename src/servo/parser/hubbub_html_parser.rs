@@ -14,7 +14,7 @@ use JSMessage = parser::html_builder::js_message;
 use comm::{Chan, Port};
 use str::from_slice;
 use unsafe::reinterpret_cast;
-use Url = std::net::url::url;
+use std::net::url::Url;
 
 type JSResult = ~[~[u8]];
 
@@ -149,7 +149,7 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
     debug!("created new node");
     let parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
-    parser.set_document_node(reinterpret_cast(root));
+    parser.set_document_node(reinterpret_cast(&root));
     parser.enable_scripting(true);
     parser.set_tree_handler(@hubbub::TreeHandler {
         create_comment: |_data| {
@@ -159,7 +159,7 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
         create_doctype: |_doctype| {
             debug!("create doctype");
             let new_node = scope.new_node(Element(ElementData(~"doctype", ~UnknownElement)));
-            unsafe { reinterpret_cast(new_node) }
+            unsafe { reinterpret_cast(&new_node) }
         },
         create_element: |tag| {
             debug!("create element");
@@ -210,18 +210,18 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
                 }
             }
 
-            unsafe { reinterpret_cast(node) }
+            unsafe { reinterpret_cast(&node) }
         },
         create_text: |data| {
             debug!("create text");
             let new_node = scope.new_node(Text(from_slice(data)));
-            unsafe { reinterpret_cast(new_node) }
+            unsafe { reinterpret_cast(&new_node) }
         },
         ref_node: |_node| {},
         unref_node: |_node| {},
         append_child: |parent, child| unsafe {
             debug!("append child");
-            scope.add_child(reinterpret_cast(parent), reinterpret_cast(child));
+            scope.add_child(reinterpret_cast(&parent), reinterpret_cast(&child));
             child
         },
         insert_before: |_parent, _child| {
@@ -261,7 +261,7 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
             debug!("encoding change");
         },
         complete_script: |script| unsafe {
-            do scope.read(reinterpret_cast(script)) |node_contents| {
+            do scope.read(reinterpret_cast(&script)) |node_contents| {
                 match *node_contents.kind {
                     Element(element) if element.tag_name == ~"script" => {
                         match element.get_attr(~"src") {

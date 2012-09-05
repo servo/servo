@@ -37,10 +37,10 @@ fn hsla(h : float, s : float, l : float, a : float) -> Color {
         let h = if h < 0.0 { h + 1.0 } else if h > 1.0 { h - 1.0 } else { h };
 
         match h {
-          0.0 to 1.0/6.0 => m1 + (m2 - m1)*h*6.0,
-          1.0/6.0 to 1.0/2.0 => m2,
-          1.0/2.0 to 2.0/3.0 => m1 + (m2 - m1)*(4.0 - 6.0*h),
-          2.0/3.0 to 1.0 => return m1,
+          0.0 .. 1.0/6.0 => m1 + (m2 - m1)*h*6.0,
+          1.0/6.0 .. 1.0/2.0 => m2,
+          1.0/2.0 .. 2.0/3.0 => m1 + (m2 - m1)*(4.0 - 6.0*h),
+          2.0/3.0 .. 1.0 => return m1,
           _ => fail ~"unexpected hue value"
         }
     }

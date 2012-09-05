@@ -6,17 +6,17 @@ import gfx::geometry::au_to_px;
 import base::{Box, BTree, NTree, LayoutData, SpecifiedStyle, ImageHolder,
               BlockBox, InlineBox, IntrinsicBox, TextBox};
 import traverse::{top_down_traversal};
-import std::net::url::url;
+import std::net::url::Url;
 import resource::image_cache_task::ImageCacheTask;
 
 struct StyleApplicator {
     box: @Box;
-    doc_url: &url;
+    doc_url: &Url;
     image_cache_task: ImageCacheTask;
     reflow: fn~();
 }
 
-fn apply_style(box: @Box, doc_url: &url, image_cache_task: ImageCacheTask, reflow: fn~()) {
+fn apply_style(box: @Box, doc_url: &Url, image_cache_task: ImageCacheTask, reflow: fn~()) {
     let applicator = StyleApplicator {
         box: box,
         doc_url: doc_url,
@@ -29,7 +29,7 @@ fn apply_style(box: @Box, doc_url: &url, image_cache_task: ImageCacheTask, reflo
 
 #[doc="A wrapper around a set of functions that can be applied as a top-down traversal of layout
        boxes."]
-fn inheritance_wrapper(box : @Box, doc_url: &url, image_cache_task: ImageCacheTask, reflow: fn~()) {
+fn inheritance_wrapper(box : @Box, doc_url: &Url, image_cache_task: ImageCacheTask, reflow: fn~()) {
     let applicator = StyleApplicator {
         box: box,
         doc_url: doc_url,

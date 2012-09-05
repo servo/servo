@@ -1,7 +1,7 @@
 export make_url, UrlMap, url_map;
 
 import std::net::url;
-import url::{get_scheme, url};
+import std::net::url::Url;
 import std::map::hashmap;
 import path::Path;
 
@@ -15,8 +15,8 @@ Create a URL object from a string. Does various helpful browsery things like
 
 */
 #[allow(non_implicitly_copyable_typarams)]
-fn make_url(str_url: ~str, current_url: Option<url>) -> url {
-    let mut schm = get_scheme(str_url);
+fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
+    let mut schm = url::get_scheme(str_url);
     let str_url = if result::is_err(schm) {
         if current_url.is_none() {
             // If all we have is a filename, assume it's a local relative file
@@ -100,11 +100,11 @@ mod make_url_tests {
 
 }
 
-type UrlMap<T: copy> = hashmap<url, T>;
+type UrlMap<T: copy> = hashmap<Url, T>;
 
 fn url_map<T: copy>() -> UrlMap<T> {
     import core::to_str::ToStr;
 
-    hashmap::<url, T>(|a| str::hash(&a.to_str()),
+    hashmap::<Url, T>(|a| str::hash(&a.to_str()),
                       |a, b| str::eq(&a.to_str(), &b.to_str()))
 }

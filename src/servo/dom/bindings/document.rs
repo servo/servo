@@ -61,7 +61,7 @@ enum Element = int;
 
 extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
     -> JSBool unsafe {
-    let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(vp));
+    let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(&vp));
     if obj.is_null() {
         return 0;
     }
@@ -76,14 +76,14 @@ extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Document> {
     //TODO: some kind of check if this is a Document object
     let val = JS_GetReservedSlot(obj, 0);
-    unsafe::reinterpret_cast(RUST_JSVAL_TO_PRIVATE(val))
+    unsafe::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val))
 }
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     #debug("document finalize!");
     unsafe {
         let val = JS_GetReservedSlot(obj, 0);
-        let _doc: @Document = unsafe::reinterpret_cast(RUST_JSVAL_TO_PRIVATE(val));
+        let _doc: @Document = unsafe::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
     }
 }
 
@@ -108,7 +108,7 @@ fn init(compartment: bare_compartment, doc: @Document) {
                                           compartment.global_obj.ptr));
 
     unsafe {
-        let raw_ptr: *libc::c_void = unsafe::reinterpret_cast(squirrel_away(doc));
+        let raw_ptr: *libc::c_void = unsafe::reinterpret_cast(&squirrel_away(doc));
         JS_SetReservedSlot(instance.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
 

@@ -130,26 +130,26 @@ impl<T:send,A> Handle<T,A> {
 impl<T: copy send,A> Scope<T,A> {
     fn clone(v: *T) -> *T unsafe {
         let n: *mut T =
-            unsafe::reinterpret_cast(libc::calloc(sys::size_of::<T>() as size_t, 1u as size_t));
+            unsafe::reinterpret_cast(&libc::calloc(sys::size_of::<T>() as size_t, 1u as size_t));
 
         // n.b.: this assignment will run the drop glue for <T,A>. *Hopefully* the fact that
         // everything is initialized to NULL by calloc will make this ok.  We may have to make the
         // take glue be tolerant of this.
         *n = unsafe{*v};
 
-        return unsafe::reinterpret_cast(n);
+        return unsafe::reinterpret_cast(&n);
     }
 }
 
 unsafe fn free<T:send>(t: *T) {
-    let _x <- *unsafe::reinterpret_cast::<*T,*mut T>(t);
-    libc::free(unsafe::reinterpret_cast(t));
+    let _x <- *unsafe::reinterpret_cast::<*T,*mut T>(&t);
+    libc::free(unsafe::reinterpret_cast(&t));
 }
 
 unsafe fn free_handle<T:send,A>(h: Handle<T,A>) {
     free(h.read_ptr());
-    if h.write_ptr() != unsafe::reinterpret_cast(h.read_ptr()) {
-        free(unsafe::reinterpret_cast::<*mut T,*T>(h.write_ptr()));
+    if h.write_ptr() != unsafe::reinterpret_cast(&h.read_ptr()) {
+        free(unsafe::reinterpret_cast::<*mut T,*T>(&h.write_ptr()));
     }
 }
 
@@ -183,7 +183,7 @@ impl<T:copy send,A> Scope<T,A> {
             while (*handle).is_not_null() {
                 free(handle.read_ptr());
 
-                handle.set_read_ptr(unsafe::reinterpret_cast(handle.write_ptr()));
+                handle.set_read_ptr(unsafe::reinterpret_cast(&handle.write_ptr()));
                 let next_handle = handle.next_dirty();
                 handle.set_next_dirty(null_handle());
                 handle = next_handle;
@@ -205,7 +205,7 @@ impl<T:copy send,A> Scope<T,A> {
         let const_write_ptr = ptr::const_offset(h.write_ptr(), 0);
         if self.d.layout_active && const_read_ptr == const_write_ptr {
             #debug["marking handle %? as dirty", h];
-            h.set_write_ptr(unsafe::reinterpret_cast(self.clone(h.read_ptr())));
+            h.set_write_ptr(unsafe::reinterpret_cast(&self.clone(h.read_ptr())));
             h.set_next_dirty(self.d.first_dirty);
             self.d.first_dirty = h;
         }
@@ -216,9 +216,9 @@ impl<T:copy send,A> Scope<T,A> {
     fn handle(v: T) -> Handle<T,A> unsafe {
         let d: *HandleData<T,A> =
             unsafe::reinterpret_cast(
-                libc::malloc(sys::size_of::<HandleData<T,A>>() as size_t));
+                &libc::malloc(sys::size_of::<HandleData<T,A>>() as size_t));
         (*d).read_ptr = self.clone(ptr::addr_of(v));
-        (*d).write_ptr = unsafe::reinterpret_cast((*d).read_ptr);
+        (*d).write_ptr = unsafe::reinterpret_cast(&(*d).read_ptr);
         (*d).read_aux = ptr::null();
         (*d).next_dirty = null_handle();
         let h = _Handle(d);

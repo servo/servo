@@ -34,7 +34,7 @@ import js::rust::compartment;
 import resource::resource_task;
 import resource_task::{ResourceTask};
 
-import std::net::url::url;
+import std::net::url::Url;
 import url_to_str = std::net::url::to_str;
 import util::url::make_url;
 import task::{task, SingleThreaded};
@@ -46,8 +46,8 @@ import js::jsapi::bindgen::JS_CallFunctionValue;
 import ptr::null;
 
 enum ControlMsg {
-    ParseMsg(url),
-    ExecuteMsg(url),
+    ParseMsg(Url),
+    ExecuteMsg(Url),
     Timer(~dom::bindings::window::TimerData),
     ExitMsg
 }
@@ -89,7 +89,7 @@ struct Content<C:Compositor> {
 
     let mut document: Option<@Document>;
     let mut window:   Option<@Window>;
-    let mut doc_url: Option<url>;
+    let mut doc_url: Option<Url>;
 
     let resource_task: ResourceTask;
 
@@ -221,7 +221,7 @@ struct Content<C:Compositor> {
         }
     }
 
-    fn relayout(document: Document, doc_url: &url) {
+    fn relayout(document: Document, doc_url: &Url) {
         #debug("content: performing relayout");
 
         // Now, join the layout so that they will see the latest

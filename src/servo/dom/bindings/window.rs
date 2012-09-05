@@ -65,14 +65,14 @@ extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool unsafe 
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Window> {
     let val = JS_GetReservedSlot(obj, 0);
-    unsafe::reinterpret_cast(RUST_JSVAL_TO_PRIVATE(val))
+    unsafe::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val))
 }
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     #debug("finalize!");
     unsafe {
         let val = JS_GetReservedSlot(obj, 0);
-        let _: @Window = unsafe::reinterpret_cast(RUST_JSVAL_TO_PRIVATE(val));
+        let _: @Window = unsafe::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
     }
 }
 
@@ -101,7 +101,7 @@ fn init(compartment: bare_compartment, win: @Window) {
     });
 
     unsafe {
-        let raw_ptr: *libc::c_void = unsafe::reinterpret_cast(squirrel_away(win));
+        let raw_ptr: *libc::c_void = unsafe::reinterpret_cast(&squirrel_away(win));
         JS_SetReservedSlot(obj.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
 

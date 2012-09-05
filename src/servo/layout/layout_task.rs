@@ -11,7 +11,7 @@ import gfx::geometry::px_to_au;
 import gfx::render_task;
 import render_task::RenderTask;
 import resource::image_cache_task::ImageCacheTask;
-import std::net::url::url;
+import std::net::url::Url;
 import style::apply::apply_style;
 import dom::event::{Event, ReflowEvent};
 import content::content_task;
@@ -22,7 +22,7 @@ import comm::*;
 type LayoutTask = Chan<Msg>;
 
 enum Msg {
-    BuildMsg(Node, ARC<Stylesheet>, url, Chan<Event>),
+    BuildMsg(Node, ARC<Stylesheet>, Url, Chan<Event>),
     PingMsg(Chan<content_task::PingMsg>),
     ExitMsg
 }

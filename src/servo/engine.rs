@@ -10,7 +10,7 @@ import content::content_task;
 import content_task::{ContentTask};
 import resource::resource_task;
 import resource::resource_task::{ResourceTask};
-import std::net::url::url;
+import std::net::url::Url;
 import resource::image_cache_task;
 import image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 
@@ -101,7 +101,7 @@ impl<C: Compositor> Engine<C> {
 
 proto! EngineProto(
     Running:send {
-        LoadURL(url) -> Running,
+        LoadURL(Url) -> Running,
         Exit -> Exiting
     }
 

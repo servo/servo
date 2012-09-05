@@ -5,7 +5,7 @@ export ImageCacheTaskClient;
 export SyncImageCacheTask;
 
 import image::base::{Image, load_from_memory, test_image_bin};
-import std::net::url::url;
+import std::net::url::Url;
 import util::url::{make_url, UrlMap, url_map};
 import comm::{Chan, Port};
 import task::{spawn, spawn_listener};
@@ -19,23 +19,23 @@ import to_str::ToStr;
 enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted
     /// before Decode
-    Prefetch(url),
+    Prefetch(Url),
 
     /// Used be the prefetch tasks to post back image binaries
-    /*priv*/ StorePrefetchedImageData(url, Result<Cell<~[u8]>, ()>),
+    /*priv*/ StorePrefetchedImageData(Url, Result<Cell<~[u8]>, ()>),
 
     /// Tell the cache to decode an image. Must be posted before GetImage/WaitForImage
-    Decode(url),
+    Decode(Url),
 
     /// Used by the decoder tasks to post decoded images back to the cache
-    /*priv*/ StoreImage(url, Option<ARC<~Image>>),
+    /*priv*/ StoreImage(Url, Option<ARC<~Image>>),
 
     /// Request an Image object for a URL. If the image is not is not immediately
     /// available then ImageNotReady is returned.
-    GetImage(url, Chan<ImageResponseMsg>),
+    GetImage(Url, Chan<ImageResponseMsg>),
 
     /// Wait for an image to become available (or fail to load).
-    WaitForImage(url, Chan<ImageResponseMsg>),
+    WaitForImage(Url, Chan<ImageResponseMsg>),
 
     /// For testing
     /*priv*/ OnMsg(fn~(msg: &Msg)),
@@ -203,18 +203,18 @@ impl ImageCache {
         }
     }
 
-    /*priv*/ fn get_state(+url: url) -> ImageState {
+    /*priv*/ fn get_state(+url: Url) -> ImageState {
         match self.state_map.find(url) {
           Some(state) => state,
           None => Init
         }
     }
 
-    /*priv*/ fn set_state(+url: url, state: ImageState) {
+    /*priv*/ fn set_state(+url: Url, state: ImageState) {
         self.state_map.insert(url, state);
     }
 
-    /*priv*/ fn prefetch(+url: url) {
+    /*priv*/ fn prefetch(+url: Url) {
         match self.get_state(copy url) {
           Init => {
             let to_cache = self.from_client.chan();
@@ -249,7 +249,7 @@ impl ImageCache {
         }
     }
 
-    /*priv*/ fn store_prefetched_image_data(+url: url, data: &Result<Cell<~[u8]>, ()>) {
+    /*priv*/ fn store_prefetched_image_data(+url: Url, data: &Result<Cell<~[u8]>, ()>) {
         match self.get_state(copy url) {
           Prefetching(next_step) => {
             match *data {
@@ -278,7 +278,7 @@ impl ImageCache {
         }
     }
 
-    /*priv*/ fn decode(+url: url) {
+    /*priv*/ fn decode(+url: Url) {
 
         match self.get_state(copy url) {
           Init => fail ~"decoding image before prefetch",
@@ -324,7 +324,7 @@ impl ImageCache {
         }
     }
 
-    /*priv*/ fn store_image(+url: url, image: &Option<ARC<~Image>>) {
+    /*priv*/ fn store_image(+url: Url, image: &Option<ARC<~Image>>) {
 
         match self.get_state(copy url) {
           Decoding => {
@@ -351,7 +351,7 @@ impl ImageCache {
 
     }
 
-    /*priv*/ fn purge_waiters(+url: url, f: fn() -> ImageResponseMsg) {
+    /*priv*/ fn purge_waiters(+url: Url, f: fn() -> ImageResponseMsg) {
         match self.wait_map.find(copy url) {
           Some(@waiters) => {
             for waiters.each |response| {
@@ -364,7 +364,7 @@ impl ImageCache {
     }
 
 
-    /*priv*/ fn get_image(+url: url, response: Chan<ImageResponseMsg>) {
+    /*priv*/ fn get_image(+url: Url, response: Chan<ImageResponseMsg>) {
 
         match self.get_state(copy url) {
           Init => fail ~"request for image before prefetch",
@@ -390,7 +390,7 @@ impl ImageCache {
         }
     }
 
-    /*priv*/ fn wait_for_image(+url: url, response: Chan<ImageResponseMsg>) {
+    /*priv*/ fn wait_for_image(+url: Url, response: Chan<ImageResponseMsg>) {
 
         match self.get_state(copy url) {
           Init => fail ~"request for image before prefetch",
@@ -438,7 +438,7 @@ impl ImageCacheTask: ImageCacheTaskClient {
 
 }
 
-fn load_image_data(+url: url, resource_task: ResourceTask) -> Result<~[u8], ()> {
+fn load_image_data(+url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
     let response_port = Port();
     resource_task.send(resource_task::Load(url, response_port.chan()));
 

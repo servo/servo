@@ -9,7 +9,7 @@ import pipes::{Port, Chan};
 
 import lexer_util::*;
 
-import std::net::url::url;
+import std::net::url::Url;
 import resource::resource_task::{ResourceTask, ProgressMsg, Load};
 
 enum ParserState {
@@ -268,7 +268,7 @@ fn spawn_css_lexer_from_string(-content : ~str) -> pipes::Port<Token> {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-fn spawn_css_lexer_task(-url: url, resource_task: ResourceTask) -> pipes::Port<Token> {
+fn spawn_css_lexer_task(-url: Url, resource_task: ResourceTask) -> pipes::Port<Token> {
     let (result_chan, result_port) = pipes::stream();
 
     do task::spawn || {

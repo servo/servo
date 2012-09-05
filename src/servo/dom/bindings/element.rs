@@ -23,7 +23,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     #debug("element finalize!");
     unsafe {
         let val = JS_GetReservedSlot(obj, 0);
-        let _node: ~NodeBundle = unsafe::reinterpret_cast(RUST_JSVAL_TO_PRIVATE(val));
+        let _node: ~NodeBundle = unsafe::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
     }
 }
 
@@ -63,7 +63,7 @@ fn init(compartment: bare_compartment) {
 
 extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
     -> JSBool unsafe {
-    let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(vp));
+    let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(&vp));
     if obj.is_null() {
         return 0;
     }
@@ -87,7 +87,7 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
 
 extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
     -> JSBool unsafe {
-    let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(vp));
+    let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(&vp));
     if obj.is_null() {
         return 0;
     }
@@ -111,7 +111,7 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
 extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
     -> JSBool {
     unsafe {
-        let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(vp));
+        let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(&vp));
         if obj.is_null() {
             return 0;
         }
@@ -158,7 +158,7 @@ fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
  
     unsafe {
         let raw_ptr: *libc::c_void =
-            unsafe::reinterpret_cast(squirrel_away_unique(~NodeBundle(node, scope)));
+            unsafe::reinterpret_cast(&squirrel_away_unique(~NodeBundle(node, scope)));
         JS_SetReservedSlot(obj.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
     return obj;

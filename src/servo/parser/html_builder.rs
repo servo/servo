@@ -10,17 +10,17 @@ import parser = parser::html_lexer;
 import parser::Token;
 import dom::style::Stylesheet;
 import vec::{push, push_all_move, flat_map};
-import std::net::url::url;
+import std::net::url::Url;
 import resource::resource_task::{ResourceTask, Load, Payload, Done};
 import to_str::ToStr;
 
 enum CSSMessage {
-    File(url),
+    File(Url),
     Exit   
 }
 
 enum js_message {
-    js_file(url),
+    js_file(Url),
     js_exit
 }
 
@@ -168,7 +168,7 @@ fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-fn build_dom(scope: NodeScope, stream: comm::Port<Token>, url: url,
+fn build_dom(scope: NodeScope, stream: comm::Port<Token>, url: Url,
              resource_task: ResourceTask) -> (Node, comm::Port<Stylesheet>, comm::Port<~[~[u8]]>) {
     // The current reference node.
     let mut cur_node = scope.new_node(Element(ElementData(~"html", ~HTMLDivElement)));

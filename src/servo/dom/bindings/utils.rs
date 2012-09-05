@@ -63,7 +63,7 @@ unsafe fn domstring_to_jsval(cx: *JSContext, str: DOMString) -> jsval {
       }
       str(s) => {
         str::as_buf(s, |buf, len| {
-            let cbuf = unsafe::reinterpret_cast(buf);
+            let cbuf = unsafe::reinterpret_cast(&buf);
             RUST_STRING_TO_JSVAL(JS_NewStringCopyN(cx, cbuf, len as libc::size_t))
         })
       }
@@ -73,7 +73,7 @@ unsafe fn domstring_to_jsval(cx: *JSContext, str: DOMString) -> jsval {
 fn get_compartment(cx: *JSContext) -> *bare_compartment {
     unsafe {
         let priv: *libc::c_void = JS_GetContextPrivate(cx);
-        let compartment: *bare_compartment = unsafe::reinterpret_cast(priv);
+        let compartment: *bare_compartment = unsafe::reinterpret_cast(&priv);
         assert cx == (*compartment).cx.ptr;
         compartment
     }
