@@ -28,7 +28,7 @@ enum ProgressMsg {
 
 impl ProgressMsg: cmp::Eq {
     pure fn eq(&&other: ProgressMsg) -> bool {
-        match (self, other) {
+        match (copy self, copy other) {
           (Payload(a), Payload(b)) => a == b,
           (Done(a), Done(b)) => a == b,
 
@@ -92,7 +92,7 @@ struct ResourceManager {
 
         match self.get_loader_factory(url) {
           Some(loader_factory) => {
-            #debug("resource_task: loading url: %s", to_str(url));
+            #debug("resource_task: loading url: %s", to_str(copy url));
             loader_factory(url, progress_chan);
           }
           None => {

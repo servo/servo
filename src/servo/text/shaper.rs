@@ -40,7 +40,7 @@ fn shape_text(font: &Font, text: ~str) -> ~[Glyph] unsafe {
     #debug("shaping text '%s'", text);
 
     let face_blob = vec::as_buf(*(*font).buf(), |buf, len| {
-        hb_blob_create(reinterpret_cast(buf),
+        hb_blob_create(reinterpret_cast(&buf),
                        len as c_uint,
                        HB_MEMORY_MODE_READONLY,
                        null(),
@@ -56,7 +56,7 @@ fn shape_text(font: &Font, text: ~str) -> ~[Glyph] unsafe {
     let funcs = hb_font_funcs_create();
     hb_font_funcs_set_glyph_func(funcs, glyph_func, null(), null());
     hb_font_funcs_set_glyph_h_advance_func(funcs, glyph_h_advance_func, null(), null());
-    hb_font_set_funcs(hbfont, funcs, reinterpret_cast(addr_of(*font)), null());
+    hb_font_set_funcs(hbfont, funcs, reinterpret_cast(&addr_of(*font)), null());
 
     let buffer = hb_buffer_create();
 
@@ -109,7 +109,7 @@ extern fn glyph_func(_font: *hb_font_t,
                      glyph: *mut hb_codepoint_t,
                      _user_data: *c_void) -> hb_bool_t unsafe {
 
-    let font: *Font = reinterpret_cast(font_data);
+    let font: *Font = reinterpret_cast(&font_data);
     assert font.is_not_null();
 
     return match (*font).glyph_index(unicode as char) {
@@ -127,7 +127,7 @@ extern fn glyph_h_advance_func(_font: *hb_font_t,
                                font_data: *c_void,
                                glyph: hb_codepoint_t,
                                _user_data: *c_void) -> hb_position_t unsafe {
-    let font: *Font = reinterpret_cast(font_data);
+    let font: *Font = reinterpret_cast(&font_data);
     assert font.is_not_null();
 
     let h_advance = (*font).glyph_h_advance(glyph as uint);

@@ -33,7 +33,7 @@ struct Window {
                 match timer_port.recv() {
                   Close => break,
                   Fire(td) => {
-                    content_chan.send(Timer(td));
+                    content_chan.send(Timer(copy td));
                   }
                 }
             }

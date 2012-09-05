@@ -108,7 +108,7 @@ impl StyleDeclaration: cmp::Eq {
 
 impl Attr: cmp::Eq {
     pure fn eq(&&other: Attr) -> bool {
-        match (self, other) {
+        match (copy self, copy other) {
           (Exists(a), Exists(b)) => a == b,
 
           (Exact(a, aa), Exact(b, bb))
@@ -126,7 +126,7 @@ impl Attr: cmp::Eq {
 impl Selector: cmp::Eq {
     pure fn eq(&&other: Selector) -> bool {
         // FIXME: Lots of copying here
-        match (self, other) {
+        match (copy self, copy other) {
           (Element(s_a, attrs_a), Element(s_b, attrs_b)) => s_a == s_b && attrs_a == attrs_b,
 
           (Child(s1a, s2a), Child(s1b, s2b))

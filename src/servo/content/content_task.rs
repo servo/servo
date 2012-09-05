@@ -138,7 +138,7 @@ struct Content<C:Compositor> {
     fn handle_control_msg(control_msg: ControlMsg) -> bool {
         match control_msg {
           ParseMsg(url) => {
-            #debug["content: Received url `%s` to parse", url_to_str(url)];
+            #debug["content: Received url `%s` to parse", url_to_str(copy url)];
 
             // Note: we can parse the next document in parallel
             // with any previous documents.
@@ -199,11 +199,11 @@ struct Content<C:Compositor> {
 
 
           ExecuteMsg(url) => {
-            #debug["content: Received url `%s` to execute", url_to_str(url)];
+            #debug["content: Received url `%s` to execute", url_to_str(copy url)];
 
             match read_whole_file(&Path(url.path)) {
               Err(msg) => {
-                println(#fmt["Error opening %s: %s", url_to_str(url), msg]);
+                println(#fmt["Error opening %s: %s", url_to_str(copy url), msg]);
               }
               Ok(bytes) => {
                 let compartment = option::expect(self.compartment, ~"TODO error checking");

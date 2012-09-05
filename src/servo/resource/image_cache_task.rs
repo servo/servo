@@ -108,7 +108,7 @@ fn SyncImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
             let msg = from_client.recv();
 
             match msg {
-              GetImage(url, response) => inner_cache.send(WaitForImage(url, response)),
+              GetImage(url, response) => inner_cache.send(WaitForImage(copy url, response)),
               Exit(response) => {
                 inner_cache.send(Exit(response));
                 break;

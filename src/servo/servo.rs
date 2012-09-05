@@ -42,7 +42,7 @@ fn run_pipeline_screen(urls: ~[~str]) {
 
     for urls.each |filename| {
         let url = make_url(filename, None);
-        #debug["master: Sending url `%s`", url_to_str(url)];
+        #debug["master: Sending url `%s`", url_to_str(copy url)];
         engine_task =
             Some(EngineProto::client::LoadURL(swap_unwrap(&mut engine_task),
                                               url));

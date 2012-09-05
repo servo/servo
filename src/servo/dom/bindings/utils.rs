@@ -19,7 +19,7 @@ enum DOMString {
 type rust_box<T> = {rc: uint, td: *sys::TypeDesc, next: *(), prev: *(), payload: T};
 
 unsafe fn squirrel_away<T>(+x: @T) -> *rust_box<T> {
-    let y: *rust_box<T> = unsafe::reinterpret_cast(x);
+    let y: *rust_box<T> = unsafe::reinterpret_cast(&x);
     unsafe::forget(x);
     y
 }
@@ -27,7 +27,7 @@ unsafe fn squirrel_away<T>(+x: @T) -> *rust_box<T> {
 type rust_unique<T> = {payload: T};
 
 unsafe fn squirrel_away_unique<T>(+x: ~T) -> *rust_box<T> {
-    let y: *rust_box<T> = unsafe::reinterpret_cast(x);
+    let y: *rust_box<T> = unsafe::reinterpret_cast(&x);
     unsafe::forget(x);
     y
 }

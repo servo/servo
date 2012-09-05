@@ -27,7 +27,7 @@ fn from_cmdline_args(args: ~[~str]) -> Opts {
 
     let opt_match = match getopts::getopts(args, opts) {
       result::Ok(m) => { copy m }
-      result::Err(f) => { fail getopts::fail_str(f) }
+      result::Err(f) => { fail getopts::fail_str(copy f) }
     };
 
     let urls = if opt_match.free.is_empty() {
