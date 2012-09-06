@@ -1,7 +1,7 @@
 use std;
 use servo;
 
-import std::test::{test_opts, run_tests_console, test_desc};
+import std::test::{TestOpts, run_tests_console, TestDesc};
 import std::getopts::{getopts, reqopt, opt_str, fail_str};
 import os::list_dir_path;
 import servo::run_pipeline_png;
@@ -40,7 +40,7 @@ fn parse_config(args: ~[~str]) -> Config {
     }
 }
 
-fn test_options(config: Config) -> test_opts {
+fn test_options(config: Config) -> TestOpts {
     {
         filter: config.filter,
         run_ignored: false,
@@ -48,12 +48,13 @@ fn test_options(config: Config) -> test_opts {
     }
 }
 
-fn find_tests(config: Config) -> ~[test_desc] {
-    let html_files = list_dir_path(&Path(config.source_dir)).filter( |file| file.to_str().ends_with(".html") );
+fn find_tests(config: Config) -> ~[TestDesc] {
+    let all_files = list_dir_path(&Path(config.source_dir));
+    let html_files = all_files.filter( |file| file.to_str().ends_with(".html") );
     return html_files.map(|file| make_test(config, file.to_str()) );
 }
 
-fn make_test(config: Config, file: ~str) -> test_desc {
+fn make_test(config: Config, file: ~str) -> TestDesc {
     let directives = load_test_directives(file);
 
     {
