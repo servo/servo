@@ -34,6 +34,7 @@ impl BoxKind : cmp::Eq {
     pure fn eq(&&other: BoxKind) -> bool {
         match (self, other) {
           (BlockBox, BlockBox) => true,
+          (InlineBox, InlineBox) => true,
           _ => fail ~"unimplemented case in BoxKind.eq"
         }
     }
