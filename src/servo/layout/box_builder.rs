@@ -171,7 +171,8 @@ impl Node : PrivBoxBuilder {
                         fail ~"The specified display style should be a default instead of none"
                     }
                 }
-            }
+            },
+            _ => fail ~"unstyleable node type encountered"
         }
     }
 }

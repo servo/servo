@@ -1,5 +1,6 @@
-use dom::base::{Attr, Element, ElementData, ElementKind, HTMLDivElement, HTMLHeadElement};
-use dom::base::{HTMLImageElement, HTMLScriptElement, Node, NodeScope, Text, UnknownElement};
+use dom::base::{Attr, Comment, Doctype, DoctypeData, Element, ElementData, ElementKind};
+use dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, HTMLScriptElement};
+use dom::base::{Node, NodeScope, Text, UnknownElement};
 use dom::style::Stylesheet;
 use geom::size::Size2D;
 use gfx::geometry::px_to_au;
@@ -152,16 +153,26 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
     parser.set_document_node(reinterpret_cast(&root));
     parser.enable_scripting(true);
     parser.set_tree_handler(@hubbub::TreeHandler {
-        create_comment: |_data| {
+        create_comment: |data: &str| {
             debug!("create comment");
-            0u  // FIXME: causes segfaults
-        },
-        create_doctype: |_doctype| {
-            debug!("create doctype");
-            let new_node = scope.new_node(Element(ElementData(~"doctype", ~UnknownElement)));
+            let new_node = scope.new_node(Comment(from_slice(data)));
             unsafe { reinterpret_cast(&new_node) }
         },
-        create_element: |tag| {
+        create_doctype: |doctype: &hubbub::Doctype| {
+            debug!("create doctype");
+            let name = from_slice(doctype.name);
+            let public_id = match doctype.public_id {
+                None => None,
+                Some(id) => Some(from_slice(id))
+            };
+            let system_id = match doctype.system_id {
+                None => None,
+                Some(id) => Some(from_slice(id))
+            };
+            let new_node = scope.new_node(Doctype(DoctypeData(name, public_id, system_id, doctype.force_quirks)));
+            unsafe { reinterpret_cast(&new_node) }
+        },
+        create_element: |tag: &hubbub::Tag| {
             debug!("create element");
             let element_kind = build_element_kind(tag.name);
             let node = scope.new_node(Element(ElementData(from_slice(tag.name), element_kind)));

@@ -3,8 +3,8 @@
 import std::arc::{ARC, get, clone};
 
 import dom::style::{DisplayType, DisBlock, DisInline, DisNone, Stylesheet, Unit, Auto};
-import dom::base::{Element, HTMLDivElement, HTMLHeadElement, HTMLImageElement, Node, NodeKind, UnknownElement, HTMLScriptElement};
-import dom::base::{Text};
+import dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
+import dom::base::{Comment, Doctype, Element, Node, NodeKind, Text};
 import util::color::{Color, rgb};
 import util::color::css_colors::{white, black};
 import base::{LayoutData, NTree};
@@ -29,7 +29,8 @@ impl NodeKind : DefaultStyleMethods {
     fn default_color() -> Color {
         match self {
           Text(*) => white(),
-          Element(*) => white()
+          Element(*) => white(),
+            _ => fail ~"unstyleable node type encountered"
         }
     }
 
@@ -44,7 +45,8 @@ impl NodeKind : DefaultStyleMethods {
               HTMLScriptElement => DisNone,
               UnknownElement => DisInline,
             }
-          }
+          },
+            _ => fail ~"unstyleable node type encountered"
         }
     }
     

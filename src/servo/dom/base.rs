@@ -62,8 +62,25 @@ enum NodeData = {
 };
 
 enum NodeKind {
+    Doctype(DoctypeData),
+    Comment(~str),
     Element(ElementData),
     Text(~str)
+}
+
+struct DoctypeData {
+    let name: ~str;
+    let public_id: Option<~str>;
+    let system_id: Option<~str>;
+    let force_quirks: bool;
+
+    new (name: ~str, public_id: Option<~str>,
+         system_id: Option<~str>, force_quirks: bool) {
+        self.name = name;
+        self.public_id = public_id;
+        self.system_id = system_id;
+        self.force_quirks = force_quirks;
+    }
 }
 
 struct ElementData {

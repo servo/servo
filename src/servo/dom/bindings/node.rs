@@ -9,7 +9,7 @@ import js::jsapi::bindgen::*;
 import js::glue::bindgen::*;
 import js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub};
 
-import dom::base::{Node, NodeScope, Element, Text};
+import dom::base::{Node, NodeScope, Element, Text, Doctype, Comment};
 import utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval, str};
 import libc::c_uint;
 import ptr::null;
@@ -47,9 +47,14 @@ fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
             ~Element(*) => {
               element::create(cx, node, scope)
             }
-
             ~Text(*) => {
               fail ~"no text node bindings yet";
+            }
+            ~Comment(*) => {
+              fail ~"no comment node bindings yet";
+            }
+            ~Doctype(*) => {
+              fail ~"no doctype node bindings yet";
             }
         }
     }
@@ -127,7 +132,9 @@ extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBool {
         let nodeType = do (*bundle).payload.node.read |nd| {
             match nd.kind {
               ~Element(*) => 1,
-              ~Text(*) => 3
+              ~Text(*)    => 3,
+              ~Comment(*) => 8,
+              ~Doctype(*) => 10
             }
         };
         *vp = RUST_INT_TO_JSVAL(nodeType);

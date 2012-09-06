@@ -80,7 +80,7 @@ impl Node : PrivMatchingMethods {
 
                 return true;
               }
-              Text(*) => { /*fall through, currently unsupported*/ }
+              _ => { /*fall through, currently unsupported*/ }
             }
           }
         }

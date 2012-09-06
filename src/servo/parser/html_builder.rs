@@ -57,8 +57,8 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: ~str, -value: ~str) {
             }
           }
 
-          Text(*) => {
-            fail ~"attempt to link up an attribute to a text node"
+          _ => {
+            fail ~"attempt to link up an attribute to an unstyleable node"
           }
         }
     })
