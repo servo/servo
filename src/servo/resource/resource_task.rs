@@ -10,6 +10,7 @@ export ResourceTask, ResourceManager, LoaderTaskFactory;
 
 import comm::{Chan, Port};
 import task::{spawn, spawn_listener};
+import std::net::url;
 import std::net::url::{Url, to_str};
 
 enum ControlMsg {
@@ -136,7 +137,7 @@ fn test_bad_scheme() {
 #[allow(non_implicitly_copyable_typarams)]
 fn should_delegate_to_scheme_loader() {
     let payload = ~[1, 2, 3];
-    let loader_factory = fn~(+_url: url, progress_chan: Chan<ProgressMsg>, copy payload) {
+    let loader_factory = fn~(+_url: Url, progress_chan: Chan<ProgressMsg>, copy payload) {
         progress_chan.send(Payload(copy payload));
         progress_chan.send(Done(Ok(())));
     };

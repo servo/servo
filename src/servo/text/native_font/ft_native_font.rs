@@ -49,7 +49,7 @@ struct FreeTypeNativeFont/& {
         if res.succeeded() {
             unsafe {
                 let void_glyph = (*self.face).glyph;
-                let slot: FT_GlyphSlot = reinterpret_cast(void_glyph);
+                let slot: FT_GlyphSlot = reinterpret_cast(&void_glyph);
                 assert slot.is_not_null();
                 let advance = (*slot).metrics.horiAdvance;
                 #debug("h_advance for %? is %?", glyph, advance);
