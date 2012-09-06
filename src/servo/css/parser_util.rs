@@ -1,9 +1,10 @@
 #[doc = "Helper functions to parse values of specific attributes."]
 
-import css::values::*;
-import str::{pop_char, from_chars};
-import float::from_str;
-import option::map;
+use css::values::{DisplayType, Inline, Block, DisplayNone};
+use css::values::{Unit, Pt, Mm, Px, Percent, Auto};
+use str::{pop_char, from_chars};
+use float::from_str;
+use option::map;
 
 export parse_font_size;
 export parse_size;
@@ -53,9 +54,9 @@ fn parse_size(str : ~str) -> Option<Unit> {
 
 fn parse_display_type(str : ~str) -> Option<DisplayType> {
     match str {
-      ~"inline" => Some(DisInline),
-      ~"block" => Some(DisBlock),
-      ~"none" => Some(DisNone),
+      ~"inline" => Some(Inline),
+      ~"block" => Some(Block),
+      ~"none" => Some(DisplayNone),
       _ => { #debug["Recieved unknown display value '%s'", str]; None }
     }
 }

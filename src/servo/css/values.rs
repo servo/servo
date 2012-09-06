@@ -7,9 +7,21 @@ import util::color::Color;
 "]
 
 enum DisplayType {
-    DisBlock,
-    DisInline,
-    DisNone
+    Inline,
+    Block,
+    ListItem,
+    InlineBlock,
+    Table,
+    InlineTable,
+    TableRowGroup,
+    TableHeaderGroup,
+    TableFooterGroup,
+    TableRow,
+    TableColumnGroup,
+    TableColumn,
+    TableCell,
+    TableCaption,
+    DisplayNone
 }
 
 enum Unit {

@@ -2,7 +2,7 @@
 
 import std::arc::{ARC, get, clone};
 
-import css::values::{DisplayType, DisBlock, DisInline, DisNone, Unit, Auto};
+import css::values::{DisplayType, DisplayNone, Inline, Block, Unit, Auto};
 import css::values::Stylesheet;
 import dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
 import dom::base::{Comment, Doctype, Element, Node, NodeKind, Text};
@@ -37,17 +37,17 @@ impl NodeKind : DefaultStyleMethods {
 
     fn default_display_type() -> DisplayType {
         match self {
-          Text(*) => { DisInline }
+          Text(*) => { Inline }
           Element(element) => {
             match *element.kind {
-              HTMLDivElement => DisBlock,
-              HTMLHeadElement => DisNone,
-              HTMLImageElement(*) => DisInline,
-              HTMLScriptElement => DisNone,
-              UnknownElement => DisInline,
+              HTMLDivElement => Block,
+              HTMLHeadElement => DisplayNone,
+              HTMLImageElement(*) => Inline,
+              HTMLScriptElement => DisplayNone,
+              UnknownElement => Inline,
             }
           },
-          Comment(*) | Doctype(*) => DisNone
+          Comment(*) | Doctype(*) => DisplayNone
         }
     }
     

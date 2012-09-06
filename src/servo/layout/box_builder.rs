@@ -1,6 +1,6 @@
 #[doc="Creates CSS boxes from a DOM."]
 
-import css::values::{DisplayType, DisBlock, DisInline, DisNone};
+import css::values::{DisplayType, Block, Inline, DisplayNone};
 import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, Node};
 import gfx::geometry::zero_size_au;
 import layout::base::{Appearance, BTree, BlockBox, Box, BoxKind, InlineBox, IntrinsicBox, NTree};
@@ -43,17 +43,20 @@ impl ctxt {
 
             // Create boxes for the child. Get its primary box.
             let kid_box = kid.construct_boxes();
+            if (kid_box.is_none()) {
+                again;
+            }
 
             // Determine the child's display.
             let disp = kid.get_specified_style().display_type;
-            if disp != Some(DisInline) {
+            if disp != Some(Inline) {
                 self.finish_anonymous_box_if_necessary();
             }
 
             // Add the child's box to the current enclosing box or the current anonymous box.
             match kid.get_specified_style().display_type {
-              Some(DisBlock) => BTree.add_child(self.parent_box, kid_box),
-              Some(DisInline) => {
+              Some(Block) => BTree.add_child(self.parent_box, kid_box.get()),
+              Some(Inline) => {
                 let anon_box = match self.anon_box {
                   None => {
                     //
@@ -70,9 +73,9 @@ impl ctxt {
                   }
                   Some(b) => b
                 };
-                BTree.add_child(anon_box, kid_box);
+                BTree.add_child(anon_box, kid_box.get());
               }
-              Some(DisNone) => {
+              Some(DisplayNone) => {
                 // Nothing to do.
               }
               _ => { //hack for now
@@ -93,21 +96,21 @@ impl ctxt {
 
             // Determine the child's display.
             let disp = kid.get_specified_style().display_type;
-            if disp != Some(DisInline) {
+            if disp != Some(Inline) {
                 // TODO
             }
 
             // Add the child's box to the current enclosing box.
             match kid.get_specified_style().display_type {
-              Some(DisBlock) => {
+              Some(Block) => {
                 // TODO
                 #warn("TODO: non-inline display found inside inline box");
-                BTree.add_child(self.parent_box, kid_box);
+                BTree.add_child(self.parent_box, kid_box.get());
               }
-              Some(DisInline) => {
-                BTree.add_child(self.parent_box, kid_box);
+              Some(Inline) => {
+                BTree.add_child(self.parent_box, kid_box.get());
               }
-              Some(DisNone) => {
+              Some(DisplayNone) => {
                 // Nothing to do.
               }
               _  => { //hack for now
@@ -122,9 +125,9 @@ impl ctxt {
         self.parent_node.dump();
 
         match self.parent_node.get_specified_style().display_type {
-          Some(DisBlock) => self.construct_boxes_for_block_children(),
-          Some(DisInline) => self.construct_boxes_for_inline_children(),
-          Some(DisNone) => { /* Nothing to do. */ }
+          Some(Block) => self.construct_boxes_for_block_children(),
+          Some(Inline) => self.construct_boxes_for_inline_children(),
+          Some(DisplayNone) => { /* Nothing to do. */ }
           _ => { //hack for now
           }
         }
@@ -147,7 +150,7 @@ impl ctxt {
 }
 
 trait PrivBoxBuilder {
-    fn determine_box_kind() -> BoxKind;
+    fn determine_box_kind() -> Option<BoxKind>;
 }
 
 impl Node : PrivBoxBuilder {
@@ -155,18 +158,16 @@ impl Node : PrivBoxBuilder {
       Determines the kind of box that this node needs. Also, for images, computes the intrinsic
       size.
      "]
-    fn determine_box_kind() -> BoxKind {
+    fn determine_box_kind() -> Option<BoxKind> {
         match self.read(|n| copy n.kind) {
-            ~Text(string) => TextBoxKind(@TextBox(copy string)),
+            ~Text(string) => Some(TextBoxKind(@TextBox(copy string))),
             ~Element(element) => {
                 match (copy *element.kind, self.get_specified_style().display_type)  {
-                    (HTMLImageElement({size}), _) => IntrinsicBox(@size),
-                    (_, Some(DisBlock)) => BlockBox,
-                    (_, Some(DisInline)) => InlineBox,
-                    (_, Some(DisNone)) => {
-                        // TODO: don't have a box here at all?
-                        IntrinsicBox(@zero_size_au())
-                    }
+                    (HTMLImageElement({size}), _) => Some(IntrinsicBox(@size)),
+                    (_, Some(Block)) => Some(BlockBox),
+                    (_, Some(Inline)) => Some(InlineBox),
+                    (_, Some(DisplayNone)) => None,
+                    (_, Some(_)) => Some(InlineBox),
                     (_, None) => {
                         fail ~"The specified display style should be a default instead of none"
                     }
@@ -178,24 +179,28 @@ impl Node : PrivBoxBuilder {
 }
 
 trait BoxBuilder {
-    fn construct_boxes() -> @Box;
+    fn construct_boxes() -> Option<@Box>;
 }
 
 impl Node : BoxBuilder {
     #[doc="Creates boxes for this node. This is the entry point."]
-    fn construct_boxes() -> @Box {
-        let box_kind = self.determine_box_kind();
-        let my_box = @Box(self, box_kind);
-        match box_kind {
-          BlockBox | InlineBox => {
-            let cx = create_context(self, my_box);
-            cx.construct_boxes_for_children();
-          }
-          _ => {
-            // Nothing to do.
-          }
+    fn construct_boxes() -> Option<@Box> {
+        match self.determine_box_kind() {
+            None => None,
+            Some(kind) => {
+                let my_box = @Box(self, kind);
+                match kind {
+                    BlockBox | InlineBox => {
+                        let cx = create_context(self, my_box);
+                        cx.construct_boxes_for_children();
+                    }
+                    _ => {
+                        // Nothing to do.
+                    }
+                }
+                Some(my_box)
+            }
         }
-        return my_box;
     }
 }
 

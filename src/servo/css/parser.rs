@@ -3,8 +3,8 @@
 // TODO: fail according to the css spec instead of failing when things
 // are not as expected
 
-use css::values::{DisInline, DisBlock, DisNone, Display, TextColor, BackgroundColor, FontSize,
-                     Height, Width, StyleDeclaration};
+use css::values::{TextColor, BackgroundColor, FontSize, Height, Width,
+                     Display, StyleDeclaration};
 // Disambiguate parsed Selector, Rule values from tokens
 use css = css::values;
 use tok = lexer;

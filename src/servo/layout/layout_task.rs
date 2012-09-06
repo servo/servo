@@ -10,6 +10,7 @@ import css::values::Stylesheet;
 import gfx::geometry::px_to_au;
 import gfx::render_task;
 import render_task::RenderTask;
+import layout::base::Box;
 import resource::image_cache_task::ImageCacheTask;
 import std::net::url::Url;
 import css::resolve::apply::apply_style;
@@ -48,16 +49,21 @@ fn LayoutTask(render_task: RenderTask, image_cache_task: ImageCacheTask) -> Layo
                     layout_data_refs += node.initialize_style_for_subtree();
                     node.recompute_style_for_subtree(styles);
 
-                    let this_box = node.construct_boxes();
-                    this_box.dump();
+                    let root_box: @Box;
+                    match node.construct_boxes() {
+                        None => fail ~"Root node should always exist; did it get 'display: none' somehow?",
+                        Some(root) => root_box = root
+                    }
+                    
+                    root_box.dump();
 
                     let reflow: fn~() = || event_chan.send(ReflowEvent);
 
-                    apply_style(this_box, &doc_url, image_cache_task, reflow);
+                    apply_style(root_box, &doc_url, image_cache_task, reflow);
 
-                    this_box.reflow_subtree(px_to_au(800));
+                    root_box.reflow_subtree(px_to_au(800));
 
-                    let dlist = build_display_list(this_box);
+                    let dlist = build_display_list(root_box);
                     render_task.send(render_task::RenderMsg(dlist));
                 }
               }
