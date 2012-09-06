@@ -47,7 +47,7 @@ impl NodeKind : DefaultStyleMethods {
               UnknownElement => DisInline,
             }
           },
-            _ => fail ~"unstyleable node type encountered"
+          Comment(*) | Doctype(*) => DisNone
         }
     }
     
