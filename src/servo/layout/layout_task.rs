@@ -6,13 +6,13 @@
 import std::arc::ARC;
 import display_list_builder::build_display_list;
 import dom::base::Node;
-import dom::style::Stylesheet;
+import css::values::Stylesheet;
 import gfx::geometry::px_to_au;
 import gfx::render_task;
 import render_task::RenderTask;
 import resource::image_cache_task::ImageCacheTask;
 import std::net::url::Url;
-import style::apply::apply_style;
+import css::resolve::apply::apply_style;
 import dom::event::{Event, ReflowEvent};
 import content::content_task;
 

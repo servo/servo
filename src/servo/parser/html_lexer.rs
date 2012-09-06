@@ -1,5 +1,4 @@
 import comm::{Port, Chan};
-import dom::style;
 import option::is_none;
 import str::from_bytes;
 import vec::push;

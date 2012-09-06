@@ -13,7 +13,7 @@ import dvec::DVec;
 import ptr::null;
 import bindings;
 import std::arc::ARC;
-import style::Stylesheet;
+import css::values::Stylesheet;
 import comm::{Port, Chan};
 import content::content_task::{ControlMsg, Timer};
 

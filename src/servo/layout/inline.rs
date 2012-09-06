@@ -1,8 +1,8 @@
 #[doc="Inline layout."]
 
 import base::{Box, InlineBox, BTree};
+import css::values::{Auto, Px};
 import dom::rcu;
-import dom::style::{Auto, Px};
 import geom::point::Point2D;
 import geom::size::Size2D;
 import gfx::geometry::{au, px_to_au};

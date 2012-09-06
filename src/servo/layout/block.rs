@@ -1,6 +1,6 @@
 #[doc="Block layout."]
 
-import dom::style::{Px, Mm, Pt, Auto, Percent, Unit};
+import css::values::{Px, Mm, Pt, Auto, Percent, Unit};
 import geom::point::Point2D;
 import geom::size::Size2D;
 import gfx::geometry::{px_to_au, au};

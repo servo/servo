@@ -1,7 +1,7 @@
 #[doc="Creates CSS boxes from a DOM."]
 
+import css::values::{DisplayType, DisBlock, DisInline, DisNone};
 import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, Node};
-import dom::style::{DisplayType, DisBlock, DisInline, DisNone};
 import gfx::geometry::zero_size_au;
 import layout::base::{Appearance, BTree, BlockBox, Box, BoxKind, InlineBox, IntrinsicBox, NTree};
 import layout::base::{TextBoxKind};

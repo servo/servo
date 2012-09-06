@@ -1,6 +1,5 @@
 #[doc = "Code to lex and tokenize css files."]
 
-import dom::style;
 import option::is_none;
 import str::from_bytes;
 import vec::push;
@@ -32,7 +31,7 @@ enum Token {
     Sibling,
     Comma,
     Element(~str),
-    Attr(style::Attr), 
+    Attr(css::values::Attr), 
     Description(~str, ~str),
     Eof
 }
@@ -120,8 +119,8 @@ impl CssLexer : CssLexerMethods {
         }
         
         match ch {
-          '.' as u8 => return Attr(style::Includes(~"class", self.input_state.parse_ident())),
-          '#' as u8 => return Attr(style::Includes(~"id", self.input_state.parse_ident())),
+          '.' as u8 => return Attr(css::values::Includes(~"class", self.input_state.parse_ident())),
+          '#' as u8 => return Attr(css::values::Includes(~"id", self.input_state.parse_ident())),
           '[' as u8 => {
             let attr_name = self.input_state.parse_ident();
             
@@ -131,21 +130,21 @@ impl CssLexer : CssLexerMethods {
             }
 
             if ch == ']' as u8 {
-                return Attr(style::Exists(attr_name));
+                return Attr(css::values::Exists(attr_name));
             } else if ch == '=' as u8 {
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                return Attr(style::Exact(attr_name, attr_val));
+                return Attr(css::values::Exact(attr_name, attr_val));
             } else if ch == '~' as u8 {
                 self.input_state.expect('=' as u8);
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                return Attr(style::Includes(attr_name, attr_val));
+                return Attr(css::values::Includes(attr_name, attr_val));
             } else if ch == '|' as u8 {
                 self.input_state.expect('=' as u8);
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                return Attr(style::StartsWith(attr_name, attr_val));
+                return Attr(css::values::StartsWith(attr_name, attr_val));
             }
             
             fail #fmt("Unexpected symbol %c in attribute", ch as char);

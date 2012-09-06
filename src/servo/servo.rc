@@ -24,7 +24,6 @@ mod dom {
     mod base;
     mod event;
     mod rcu;
-    mod style;
     mod bindings {
         mod document;
         mod element;
@@ -39,13 +38,16 @@ mod content {
     mod content_task;
 }
 
-mod layout {
-    mod style {
+mod css {
+    mod values;
+    mod styles;
+    mod resolve {
         mod apply;
-        mod style;
         mod matching;
     }
+}
 
+mod layout {
     mod base;
     mod block;
     mod box_builder;

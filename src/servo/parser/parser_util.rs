@@ -1,6 +1,6 @@
 #[doc = "Helper functions to parse values of specific attributes."]
 
-import dom::style::*;
+import css::values::*;
 import str::{pop_char, from_chars};
 import float::from_str;
 import option::map;

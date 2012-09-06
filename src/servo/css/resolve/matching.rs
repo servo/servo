@@ -1,12 +1,13 @@
 #[doc="Performs CSS selector matching."]
 
-import base::{LayoutData};
+import dom::base::{LayoutData};
 import dom::base;
 import base::{ElementData, Node, Text};
-import dom::style::{Selector, StyleDeclaration, FontSize, Display, TextColor, BackgroundColor,
+
+import values::{Selector, StyleDeclaration, FontSize, Display, TextColor, BackgroundColor,
                     Stylesheet, Element, Child, Descendant, Sibling, Attr, Exact, Exists, Includes,
                     StartsWith, Width, Height};
-import style::{SpecifiedStyle};
+import styles::{SpecifiedStyle};
 
 #[doc="Check if a CSS attribute matches the attribute of an HTML element."]
 fn attrs_match(attr: Attr, elmt: ElementData) -> bool {

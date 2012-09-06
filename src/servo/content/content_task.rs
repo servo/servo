@@ -14,13 +14,13 @@ import io::{read_whole_file, println};
 
 import dom::base::{Document, Node, NodeScope, Window, define_bindings};
 import dom::event::{Event, ResizeEvent, ReflowEvent};
-import dom::style;
-import dom::style::Stylesheet;
 import gfx::compositor::Compositor;
 import parser::html_lexer::spawn_html_lexer_task;
 import parser::html_builder::build_dom;
 import layout::layout_task;
 import layout_task::{LayoutTask, BuildMsg};
+
+import css::styles::Stylesheet;
 
 import jsrt = js::rust::rt;
 import js::rust::{cx, methods};

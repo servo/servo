@@ -1,9 +1,10 @@
 #[doc="Fundamental layout structures and algorithms."]
 
+import css::values::Unit;
+import css::styles::SpecifiedStyle;
 import dom::base::{Element, ElementKind, HTMLDivElement, HTMLImageElement, Node, NodeData};
 import dom::base::{NodeKind};
 import dom::rcu;
-import dom::style::Unit;
 import gfx::geometry;
 import gfx::geometry::{au, zero_size_au};
 import geom::point::Point2D;
@@ -14,7 +15,6 @@ import util::tree;
 import util::color::Color;
 import text::TextBox;
 import traverse::extended_full_traversal;
-import style::style::{SpecifiedStyle};
 import vec::{push, push_all};
 import std::net::url::Url;
 import resource::image_cache_task;

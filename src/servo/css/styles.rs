@@ -2,12 +2,13 @@
 
 import std::arc::{ARC, get, clone};
 
-import dom::style::{DisplayType, DisBlock, DisInline, DisNone, Stylesheet, Unit, Auto};
+import css::values::{DisplayType, DisBlock, DisInline, DisNone, Unit, Auto};
+import css::values::Stylesheet;
 import dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
 import dom::base::{Comment, Doctype, Element, Node, NodeKind, Text};
 import util::color::{Color, rgb};
 import util::color::css_colors::{white, black};
-import base::{LayoutData, NTree};
+import layout::base::{LayoutData, NTree};
 
 type SpecifiedStyle = {mut background_color : Option<Color>,
                         mut display_type : Option<DisplayType>,

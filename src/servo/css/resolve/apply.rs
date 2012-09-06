@@ -1,13 +1,14 @@
 #[doc="Applies the appropriate CSS style to boxes."]
 
 import dom::base::{Element, HTMLImageElement, Node};
-import dom::style::{Percent, Mm, Pt, Px, Auto, PtToPx, MmToPx};
 import gfx::geometry::au_to_px;
-import base::{Box, BTree, NTree, LayoutData, SpecifiedStyle, ImageHolder,
+import layout::base::{Box, BTree, NTree, LayoutData, SpecifiedStyle, ImageHolder,
               BlockBox, InlineBox, IntrinsicBox, TextBox};
-import traverse::{top_down_traversal};
+import layout::traverse::{top_down_traversal};
 import std::net::url::Url;
 import resource::image_cache_task::ImageCacheTask;
+
+import css::values::{Percent, Mm, Pt, Px, Auto, PtToPx, MmToPx};
 
 struct StyleApplicator {
     box: @Box;

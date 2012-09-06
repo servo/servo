@@ -8,7 +8,7 @@ import gfx::geometry;
 import gfx::geometry::au;
 import parser = parser::html_lexer;
 import parser::Token;
-import dom::style::Stylesheet;
+import css::values::Stylesheet;
 import vec::{push, push_all_move, flat_map};
 import std::net::url::Url;
 import resource::resource_task::{ResourceTask, Load, Payload, Done};

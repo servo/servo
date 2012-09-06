@@ -1,7 +1,7 @@
 use dom::base::{Attr, Comment, Doctype, DoctypeData, Element, ElementData, ElementKind};
 use dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, HTMLScriptElement};
 use dom::base::{Node, NodeScope, Text, UnknownElement};
-use dom::style::Stylesheet;
+use css::values::Stylesheet;
 use geom::size::Size2D;
 use gfx::geometry::px_to_au;
 use parser::html_builder::CSSMessage;

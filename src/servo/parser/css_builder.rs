@@ -3,13 +3,12 @@
 // TODO: fail according to the css spec instead of failing when things
 // are not as expected
 
-import dom::style;
-import style::{DisInline, DisBlock, DisNone, Display, TextColor, BackgroundColor, FontSize,
-               Height, Width, StyleDeclaration, Selector};
-import parser::css_lexer::{Token, StartDescription, EndDescription,
-                           Descendant, Child, Sibling,
-                           Comma, Element, Attr, Description,
-                           Eof};
+import css::values::{DisInline, DisBlock, DisNone, Display, TextColor, BackgroundColor, FontSize,
+                     Height, Width, StyleDeclaration};
+// Disambiguate parsed Selector, Rule values from tokens
+import css = css::values;
+import tok = parser::css_lexer;
+import parser::css_lexer::Token;
 import comm::recv;
 import option::{map, is_none};
 import vec::push;
@@ -39,18 +38,18 @@ impl TokenReader : TokenReaderMethods {
 }
 
 trait ParserMethods {
-    fn parse_element() -> Option<~style::Selector>;
-    fn parse_selector() -> Option<~[~Selector]>;
+    fn parse_element() -> Option<~css::Selector>;
+    fn parse_selector() -> Option<~[~css::Selector]>;
     fn parse_description() -> Option<~[StyleDeclaration]>;
-    fn parse_rule() -> Option<~style::Rule>;
+    fn parse_rule() -> Option<~css::Rule>;
 }
 
 impl TokenReader : ParserMethods {
-    fn parse_element() -> Option<~style::Selector> {
+    fn parse_element() -> Option<~css::Selector> {
         // Get the current element type
          let elmt_name = match self.get() {
-           Element(tag) => { copy tag }
-           Eof => { return None; }
+           tok::Element(tag) => { copy tag }
+           tok::Eof => { return None; }
            _ => { fail ~"Expected an element" }
          };
 
@@ -58,23 +57,23 @@ impl TokenReader : ParserMethods {
 
          // Get the attributes associated with that element
          loop {
-             let tok = self.get();
-             match tok {
-               Attr(attr) => { push(attr_list, copy attr); }
-               StartDescription | Descendant | Child | Sibling | Comma => {
-                 self.unget(tok); 
+             let token = self.get();
+             match token {
+               tok::Attr(attr) => { push(attr_list, copy attr); }
+               tok::StartDescription | tok::Descendant | tok::Child | tok::Sibling | tok::Comma => {
+                 self.unget(token); 
                  break;
                }
-               Eof => { return None; }
-               Element(_) => fail ~"Unexpected second element without relation to first element",
-               EndDescription => fail ~"Unexpected '}'",
-               Description(_, _) => fail ~"Unexpected description"
+               tok::Eof => { return None; }
+               tok::Element(_) => fail ~"Unexpected second element without relation to first element",
+               tok::EndDescription => fail ~"Unexpected '}'",
+               tok::Description(_, _) => fail ~"Unexpected description"
              }
          }
-        return Some(~style::Element(elmt_name, attr_list));
+        return Some(~css::Element(elmt_name, attr_list));
     }
 
-    fn parse_selector() -> Option<~[~Selector]> {
+    fn parse_selector() -> Option<~[~css::Selector]> {
         let mut sel_list = ~[];
 
         // Collect all the selectors that this rule applies to
@@ -91,47 +90,47 @@ impl TokenReader : ParserMethods {
                 let built_sel <- cur_sel;
                 
                 match tok {
-                  Descendant => {
+                  tok::Descendant => {
                     match self.parse_element() {
                       Some(elmt) => { 
                         let new_sel = copy elmt;
-                        cur_sel <- ~style::Descendant(built_sel, new_sel)
+                        cur_sel <- ~css::Descendant(built_sel, new_sel)
                       }
                       None => { return None; }
                     }
                   }
-                  Child => {
+                  tok::Child => {
                     match self.parse_element() {
                       Some(elmt) => { 
                         let new_sel = copy elmt;
-                        cur_sel <- ~style::Child(built_sel, new_sel)
+                        cur_sel <- ~css::Child(built_sel, new_sel)
                       }
                       None => { return None; }
                     }
                   }
-                  Sibling => {
+                  tok::Sibling => {
                     match self.parse_element() {
                       Some(elmt) => { 
                         let new_sel = copy elmt;
-                        cur_sel <- ~style::Sibling(built_sel, new_sel)
+                        cur_sel <- ~css::Sibling(built_sel, new_sel)
                       }
                       None => { return None; }
                     }
                   }
-                  StartDescription => {
+                  tok::StartDescription => {
                     push(sel_list, built_sel);
-                    self.unget(StartDescription);
+                    self.unget(tok::StartDescription);
                     break;
                   }
-                  Comma => {
+                  tok::Comma => {
                     push(sel_list, built_sel);
-                    self.unget(Comma);
+                    self.unget(tok::Comma);
                     break;
                   }
-                  Attr(_) | EndDescription | Element(_) | Description(_, _) => {
+                  tok::Attr(_) | tok::EndDescription | tok::Element(_) | tok::Description(_, _) => {
                     fail #fmt["Unexpected token %? in elements", tok];
                   }
-                  Eof => { return None; }
+                  tok::Eof => { return None; }
                 }
             }
 
@@ -139,8 +138,8 @@ impl TokenReader : ParserMethods {
             // TODO: fix this when rust gets labelled loops
             let tok = self.get();
             match tok {
-              StartDescription => { break; }
-              Comma => { }
+              tok::StartDescription => { break; }
+              tok::Comma => { }
               _ => { self.unget(tok); }
             }
         }
@@ -155,8 +154,8 @@ impl TokenReader : ParserMethods {
         loop {
             let tok = self.get();
             match tok {
-              EndDescription => { break; }
-              Description(prop, val) => {
+              tok::EndDescription => { break; }
+              tok::Description(prop, val) => {
                 let desc = match prop {
                   // TODO: have color parsing return an option instead of a real value
                   ~"background-color" => parse_color(val).map(|res| BackgroundColor(res)),
@@ -169,8 +168,9 @@ impl TokenReader : ParserMethods {
                 };
                 desc.map(|res| push(desc_list, res));
               }
-              Eof => { return None; }
-              StartDescription | Descendant | Child | Sibling | Comma | Element(_) | Attr(_) => {
+              tok::Eof => { return None; }
+              tok::StartDescription | tok::Descendant |  tok::Child | tok::Sibling 
+              | tok::Comma | tok::Element(_) | tok::Attr(_) => {
                 fail #fmt["Unexpected token %? in description", tok]; 
               }
             }
@@ -179,7 +179,7 @@ impl TokenReader : ParserMethods {
         return Some(desc_list);
     }
 
-    fn parse_rule() -> Option<~style::Rule> {
+    fn parse_rule() -> Option<~css::Rule> {
         // TODO: get rid of copies once match move works
         let sel_list = match self.parse_selector() {
           Some(list) => { copy list }
@@ -200,7 +200,7 @@ impl TokenReader : ParserMethods {
     }
 }
 
-fn build_stylesheet(+stream : pipes::Port<Token>) -> ~[~style::Rule] {
+fn build_stylesheet(+stream : pipes::Port<Token>) -> ~[~css::Rule] {
     let mut rule_list = ~[];
     let reader = {stream : stream, mut lookahead : None};
 
