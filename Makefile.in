@@ -94,7 +94,6 @@ CHECK_DEPS += \
 	check-rust-layers \
 	check-rust-http-client \
 	check-servo \
-	check-ref \
 	$(NULL)
 
 CLEAN_DEPS += \
