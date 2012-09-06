@@ -169,7 +169,8 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
                 None => None,
                 Some(id) => Some(from_slice(id))
             };
-            let new_node = scope.new_node(Doctype(DoctypeData(name, public_id, system_id, doctype.force_quirks)));
+            let data = DoctypeData(name, public_id, system_id, doctype.force_quirks);
+            let new_node = scope.new_node(Doctype(data));
             unsafe { reinterpret_cast(&new_node) }
         },
         create_element: |tag: &hubbub::Tag| {
