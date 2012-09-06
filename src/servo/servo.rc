@@ -39,6 +39,10 @@ mod content {
 }
 
 mod css {
+    mod lexer;
+    mod parser;
+    mod parser_util;
+
     mod values;
     mod styles;
     mod resolve {
@@ -74,13 +78,10 @@ mod image {
     }
 }
 
-mod parser {
+mod html {
+    mod lexer;
     mod lexer_util;
-    mod parser_util;
-    mod css_lexer;
-    mod html_lexer;
-    mod html_builder;
-    mod css_builder;
+    mod dom_builder;
     mod hubbub_html_parser;
 }
 

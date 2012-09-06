@@ -1,15 +1,15 @@
 #[doc = "Code to lex and tokenize css files."]
 
-import option::is_none;
-import str::from_bytes;
-import vec::push;
+use option::is_none;
+use str::from_bytes;
+use vec::push;
 
-import pipes::{Port, Chan};
+use pipes::{Port, Chan};
 
-import lexer_util::*;
+use html::lexer_util::*;
 
-import std::net::url::Url;
-import resource::resource_task::{ResourceTask, ProgressMsg, Load};
+use std::net::url::Url;
+use resource::resource_task::{ResourceTask, ProgressMsg, Load};
 
 enum ParserState {
     CssElement,

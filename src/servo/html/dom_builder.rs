@@ -1,18 +1,18 @@
 #[doc="Constructs a DOM tree from an incoming token stream."]
 
-import dom::base::{Attr, Element, ElementData, ElementKind, HTMLDivElement, HTMLHeadElement,
+use dom::base::{Attr, Element, ElementData, ElementKind, HTMLDivElement, HTMLHeadElement,
                    HTMLScriptElement};
-import dom::base::{HTMLImageElement, Node, NodeScope, Text, UnknownElement};
-import geom::size::Size2D;
-import gfx::geometry;
-import gfx::geometry::au;
-import parser = parser::html_lexer;
-import parser::Token;
-import css::values::Stylesheet;
-import vec::{push, push_all_move, flat_map};
-import std::net::url::Url;
-import resource::resource_task::{ResourceTask, Load, Payload, Done};
-import to_str::ToStr;
+use dom::base::{HTMLImageElement, Node, NodeScope, Text, UnknownElement};
+use geom::size::Size2D;
+use gfx::geometry;
+use gfx::geometry::au;
+use html::lexer;
+use html::lexer::Token;
+use css::values::Stylesheet;
+use vec::{push, push_all_move, flat_map};
+use std::net::url::Url;
+use resource::resource_task::{ResourceTask, Load, Payload, Done};
+use to_str::ToStr;
 
 enum CSSMessage {
     File(Url),
@@ -105,8 +105,8 @@ fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Por
             let url = copy url;
             task::spawn(|| {
                 // TODO: change copy to move once we can move into closures
-                let css_stream = css_lexer::spawn_css_lexer_task(copy url, resource_task);
-                let mut css_rules = css_builder::build_stylesheet(css_stream);
+                let css_stream = css::lexer::spawn_css_lexer_task(copy url, resource_task);
+                let mut css_rules = css::parser::build_stylesheet(css_stream);
                 result_chan.send(css_rules);
             });
 
@@ -192,24 +192,24 @@ fn build_dom(scope: NodeScope, stream: comm::Port<Token>, url: Url,
     loop {
         let token = stream.recv();
         match token {
-          parser::Eof => { break; }
-          parser::StartOpeningTag(tag_name) => {
+          lexer::Eof => { break; }
+          lexer::StartOpeningTag(tag_name) => {
             #debug["starting tag %s", tag_name];
             let element_kind = build_element_kind(tag_name);
             let new_node = scope.new_node(Element(ElementData(copy tag_name, element_kind)));
             scope.add_child(cur_node, new_node);
             cur_node = new_node;
           }
-          parser::Attr(key, value) => {
+          lexer::Attr(key, value) => {
             #debug["attr: %? = %?", key, value];
             link_up_attribute(scope, cur_node, copy key, copy value);
           }
-          parser::EndOpeningTag => {
+          lexer::EndOpeningTag => {
             #debug("end opening tag");
           }
           // TODO: Fail more gracefully (i.e. according to the HTML5
           //       spec) if we close more tags than we open.
-          parser::SelfCloseTag => {
+          lexer::SelfCloseTag => {
             //TODO: check for things other than the link tag
             scope.read(cur_node, |n| {
                 match *n.kind {
@@ -234,7 +234,7 @@ fn build_dom(scope: NodeScope, stream: comm::Port<Token>, url: Url,
             });
             cur_node = scope.get_parent(cur_node).get();
           }
-          parser::EndTag(*) => {
+          lexer::EndTag(*) => {
             // TODO: Assert that the closing tag has the right name.
             scope.read(cur_node, |n| {
                 match *n.kind {
@@ -253,14 +253,14 @@ fn build_dom(scope: NodeScope, stream: comm::Port<Token>, url: Url,
             });
             cur_node = scope.get_parent(cur_node).get();
           }
-          parser::Text(s) if !s.is_whitespace() => {
+          lexer::Text(s) if !s.is_whitespace() => {
             let new_node = scope.new_node(Text(copy s));
             scope.add_child(cur_node, new_node);
           }
-          parser::Text(_) => {
+          lexer::Text(_) => {
             // FIXME: Whitespace should not be ignored.
           }
-          parser::Doctype => {
+          lexer::Doctype => {
             // TODO: Do something here...
           }
         }

@@ -7,43 +7,43 @@ export ContentTask;
 export ControlMsg, ExecuteMsg, ParseMsg, ExitMsg, Timer;
 export PingMsg, PongMsg;
 
-import std::arc::{ARC, clone};
-import comm::{Port, Chan, listen, select2};
-import task::{spawn, spawn_listener};
-import io::{read_whole_file, println};
+use std::arc::{ARC, clone};
+use comm::{Port, Chan, listen, select2};
+use task::{spawn, spawn_listener};
+use io::{read_whole_file, println};
 
-import dom::base::{Document, Node, NodeScope, Window, define_bindings};
-import dom::event::{Event, ResizeEvent, ReflowEvent};
-import gfx::compositor::Compositor;
-import parser::html_lexer::spawn_html_lexer_task;
-import parser::html_builder::build_dom;
-import layout::layout_task;
-import layout_task::{LayoutTask, BuildMsg};
+use dom::base::{Document, Node, NodeScope, Window, define_bindings};
+use dom::event::{Event, ResizeEvent, ReflowEvent};
+use gfx::compositor::Compositor;
+use html::lexer::spawn_html_lexer_task;
+use html::dom_builder::build_dom;
+use layout::layout_task;
+use layout_task::{LayoutTask, BuildMsg};
 
-import css::styles::Stylesheet;
+use css::styles::Stylesheet;
 
-import jsrt = js::rust::rt;
-import js::rust::{cx, methods};
-import js::global::{global_class, debug_fns};
+use jsrt = js::rust::rt;
+use js::rust::{cx, methods};
+use js::global::{global_class, debug_fns};
 
-import either::{Either, Left, Right};
+use either::{Either, Left, Right};
 
-import dom::bindings::utils::rust_box;
-import js::rust::compartment;
+use dom::bindings::utils::rust_box;
+use js::rust::compartment;
 
-import resource::resource_task;
-import resource_task::{ResourceTask};
+use resource::resource_task;
+use resource_task::{ResourceTask};
 
-import std::net::url::Url;
-import url_to_str = std::net::url::to_str;
-import util::url::make_url;
-import task::{task, SingleThreaded};
+use std::net::url::Url;
+use url_to_str = std::net::url::to_str;
+use util::url::make_url;
+use task::{task, SingleThreaded};
 
-import js::glue::bindgen::RUST_JSVAL_TO_OBJECT;
-import js::JSVAL_NULL;
-import js::jsapi::jsval;
-import js::jsapi::bindgen::JS_CallFunctionValue;
-import ptr::null;
+use js::glue::bindgen::RUST_JSVAL_TO_OBJECT;
+use js::JSVAL_NULL;
+use js::jsapi::jsval;
+use js::jsapi::bindgen::JS_CallFunctionValue;
+use ptr::null;
 
 enum ControlMsg {
     ParseMsg(Url),
@@ -149,9 +149,9 @@ struct Content<C:Compositor> {
             let css_rules = style_port.recv();
             let js_scripts = js_port.recv();*/
 
-            let result = parser::hubbub_html_parser::parse_html(self.scope,
-                                                                url,
-                                                                self.resource_task);
+            let result = html::hubbub_html_parser::parse_html(self.scope,
+                                                              url,
+                                                              self.resource_task);
 
             let root = result.root;
             let css_rules = result.style_port.recv();

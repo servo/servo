@@ -4,13 +4,13 @@ use dom::base::{Node, NodeScope, Text, UnknownElement};
 use css::values::Stylesheet;
 use geom::size::Size2D;
 use gfx::geometry::px_to_au;
-use parser::html_builder::CSSMessage;
+use html::dom_builder::CSSMessage;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
-use CSSExitMessage = parser::html_builder::Exit;
-use CSSFileMessage = parser::html_builder::File;
-use JSExitMessage = parser::html_builder::js_exit;
-use JSFileMessage = parser::html_builder::js_file;
-use JSMessage = parser::html_builder::js_message;
+use CSSExitMessage = html::dom_builder::Exit;
+use CSSFileMessage = html::dom_builder::File;
+use JSExitMessage = html::dom_builder::js_exit;
+use JSFileMessage = html::dom_builder::js_file;
+use JSMessage = html::dom_builder::js_message;
 
 use comm::{Chan, Port};
 use str::from_slice;
@@ -52,8 +52,8 @@ fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Por
             let url = copy url;
             task::spawn(|| {
                 // TODO: change copy to move once we can move into closures
-                let css_stream = css_lexer::spawn_css_lexer_task(copy url, resource_task);
-                let mut css_rules = css_builder::build_stylesheet(css_stream);
+                let css_stream = css::lexer::spawn_css_lexer_task(copy url, resource_task);
+                let mut css_rules = css::parser::build_stylesheet(css_stream);
                 result_chan.send(css_rules);
             });
 
