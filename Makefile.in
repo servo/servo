@@ -106,6 +106,10 @@ CLEAN_DEPS += \
 	clean-rust-glut \
 	clean-rust-layers \
 	clean-rust-http-client \
+	clean-libparserutils \
+	clean-libhubbub \
+	clean-servo-sandbox \
+	clean-rust-hubbub \
 	clean-servo \
 	$(NULL)
 
@@ -268,7 +272,6 @@ check-rust-http-client:
 check-rust-core-foundation:
 	$(MAKE) check -C src/rust-core-foundation
 
-
 # Clean targets
 
 .PHONY:	clean $(CLEAN_DEPS)
@@ -310,6 +313,18 @@ clean-rust-http-client:
 
 clean-rust-core-foundation:
 	$(MAKE) clean -C src/rust-core-foundation
+
+clean-libparserutils:
+	$(MAKE) clean -C src/libparserutils
+
+clean-libhubbub:
+	$(MAKE) clean -C src/libhubbub
+
+clean-servo-sandbox:
+	$(MAKE) clean -C src/servo-sandbox
+
+clean-rust-hubbub:
+	$(MAKE) clean -C src/rust-hubbub
 
 clean-servo:
 	rm -f servo servo-test
