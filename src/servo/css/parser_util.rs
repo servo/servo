@@ -62,8 +62,9 @@ fn parse_display_type(str : ~str) -> Option<DisplayType> {
 
 #[cfg(test)]
 mod test {
-    import css_lexer::spawn_css_lexer_from_string;
-    import css_builder::build_stylesheet;
+    import css::lexer::spawn_css_lexer_from_string;
+    import css::parser::build_stylesheet;
+    import css::values::{Stylesheet, Element, FontSize, Width, Height};
     
     #[test]
     fn should_match_font_sizes() {

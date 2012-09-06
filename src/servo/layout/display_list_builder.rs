@@ -111,7 +111,7 @@ fn should_convert_text_boxes_to_solid_color_background_items() {
 
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
-    let b = n.construct_boxes();
+    let b = n.construct_boxes().get();
 
     let subbox = match b.kind {
       TextBoxKind(subbox) => subbox,
@@ -134,7 +134,7 @@ fn should_convert_text_boxes_to_text_items() {
 
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
-    let b = n.construct_boxes();
+    let b = n.construct_boxes().get();
 
     let subbox = match b.kind {
       TextBoxKind(subbox) => { subbox },
@@ -157,7 +157,7 @@ fn should_calculate_the_bounds_of_the_text_box_background_color() {
 
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
-    let b = n.construct_boxes();
+    let b = n.construct_boxes().get();
 
     let subbox = match b.kind {
       TextBoxKind(subbox) => { subbox },
@@ -182,7 +182,7 @@ fn should_calculate_the_bounds_of_the_text_items() {
 
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
-    let b = n.construct_boxes();
+    let b = n.construct_boxes().get();
 
     let subbox = match b.kind {
       TextBoxKind(subbox) => { subbox },

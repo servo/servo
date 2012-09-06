@@ -48,7 +48,7 @@ fn should_calculate_the_size_of_the_text_box() {
 
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
-    let b = n.construct_boxes();
+    let b = n.construct_boxes().get();
 
     let subbox = match b.kind {
       TextBoxKind(subbox) => { subbox },

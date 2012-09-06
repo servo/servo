@@ -161,7 +161,7 @@ mod test {
     #[allow(non_implicitly_copyable_typarams)]
     fn new_node(scope: NodeScope, -name: ~str) -> Node {
         let elmt = ElementData(name, ~HTMLDivElement);
-        return scope.new_node(base::Element(elmt));
+        return scope.new_node(dom::base::Element(elmt));
     }
 
     #[test]
@@ -187,14 +187,14 @@ mod test {
         do g2.aux |aux| { aux.specified_style.height = Some(Px(10.0)); }
 
         let parent_box = parent.construct_boxes();
-        let child_box = parent_box.tree.first_child.get();
-        let child2_box = parent_box.tree.last_child.get();
+        let child_box = parent_box.get().tree.first_child.get();
+        let child2_box = parent_box.get().tree.last_child.get();
         let g1_box = child_box.tree.first_child.get();
         let g2_box = child_box.tree.last_child.get();
         
-        top_down_traversal(parent_box, inhereit_height);
+        top_down_traversal(parent_box.get(), inhereit_height);
 
-        assert parent_box.appearance.height == Px(100.0);
+        assert parent_box.get().appearance.height == Px(100.0);
         assert child_box.appearance.height == Auto;
         assert child2_box.appearance.height == Px(50.0);
         assert g1_box.appearance.height == Auto;

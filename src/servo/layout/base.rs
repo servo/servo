@@ -367,10 +367,10 @@ mod test {
         tree::add_child(s, n3, n1);
         tree::add_child(s, n3, n2);
 
-        let b0 = n0.construct_boxes();
-        let b1 = n1.construct_boxes();
-        let b2 = n2.construct_boxes();
-        let b3 = n3.construct_boxes();
+        let b0 = n0.construct_boxes().get();
+        let b1 = n1.construct_boxes().get();
+        let b2 = n2.construct_boxes().get();
+        let b3 = n3.construct_boxes().get();
 
         tree::add_child(BTree, b3, b0);
         tree::add_child(BTree, b3, b1);
