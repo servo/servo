@@ -1,7 +1,7 @@
 #[doc="Creates CSS boxes from a DOM."]
 
 import css::values::{DisplayType, Block, Inline, DisplayNone};
-import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, Node};
+import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, Node, Doctype, Comment};
 import gfx::geometry::zero_size_au;
 import layout::base::{Appearance, BTree, BlockBox, Box, BoxKind, InlineBox, IntrinsicBox, NTree};
 import layout::base::{TextBoxKind};
@@ -173,7 +173,8 @@ impl Node : PrivBoxBuilder {
                     }
                 }
             },
-            _ => fail ~"unstyleable node type encountered"
+          ~Doctype(*)
+          | ~Comment(*) => None
         }
     }
 }
