@@ -140,7 +140,7 @@ fn render_servo(config: Config, file: ~str) -> Image {
 
 fn render_ref(config: Config, file: ~str) -> Image {
     let infile = file;
-    let outfilename = Path(file).filename().get().to_str() + ".png";
+    let outfilename = Path(file).filename().get().to_str() + "ref..png";
     let outfile = Path(config.work_dir).push(outfilename);
     // After we've generated the reference image once, we don't need
     // to keep launching Firefox
