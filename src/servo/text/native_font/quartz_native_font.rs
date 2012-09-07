@@ -86,7 +86,10 @@ struct QuartzNativeFont/& {
             }
         };
 
-        assert result != false; // FIXME: error handling
+        if !result {
+            // No glyph for this character
+            return None;
+        }
 
         CFRelease(ctfont);
 
