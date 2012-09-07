@@ -51,7 +51,7 @@ fn test_options(config: Config) -> TestOpts {
 fn find_tests(config: Config) -> ~[TestDesc] {
     let all_files = list_dir_path(&Path(config.source_dir));
     let html_files = all_files.filter( |file| file.to_str().ends_with(".html") );
-    return html_files.map(|file| make_test(config, file.to_str()) );
+    return html_files.map(|file| make_test(config, (*file).to_str()) );
 }
 
 fn make_test(config: Config, file: ~str) -> TestDesc {
