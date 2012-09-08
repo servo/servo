@@ -1,7 +1,7 @@
 #[doc="Inline layout."]
 
 import base::{Box, InlineBox, BTree};
-import css::values::{Auto, Px};
+import css::values::{BoxAuto, BoxLength, Px};
 import dom::rcu;
 import geom::point::Point2D;
 import geom::size::Size2D;
@@ -34,14 +34,14 @@ impl @Box : InlineLayout {
         }
 
         let height = match self.appearance.height { 
-            Px(p) => px_to_au(p.to_int()),
-            Auto => au(current_height),
+            BoxLength(Px(p)) => px_to_au(p.to_int()),
+            BoxAuto => au(current_height),
             _ => fail ~"inhereit_height failed, height is neither a Px or auto"
         };
 
         let width = match self.appearance.width { 
-            Px(p) => px_to_au(p.to_int()),
-            Auto => au(i32::max(x, *self.bounds.size.width)),
+            BoxLength(Px(p)) => px_to_au(p.to_int()),
+            BoxAuto => au(i32::max(x, *self.bounds.size.width)),
             _ => fail ~"inhereit_width failed, width is neither a Px or auto"
         };
 

@@ -4,9 +4,7 @@ import dom::base::{LayoutData};
 import dom::base;
 import base::{ElementData, Node, Text};
 
-import values::{Selector, StyleDeclaration, FontSize, Display, TextColor, BackgroundColor,
-                    Stylesheet, Element, Child, Descendant, Sibling, Attr, Exact, Exists, Includes,
-                    StartsWith, Width, Height};
+import values::*;
 import styles::{SpecifiedStyle};
 
 #[doc="Check if a CSS attribute matches the attribute of an HTML element."]
@@ -169,12 +167,12 @@ impl Node : PrivStyleMethods {
     fn update_style(decl : StyleDeclaration) {
         self.aux(|layout| {
             match decl {
-              BackgroundColor(col) => layout.specified_style.background_color = Some(col),
-              Display(dis) => layout.specified_style.display_type = Some(dis),
-              FontSize(size) => layout.specified_style.font_size = Some(size),
-              Height(size) => layout.specified_style.height = Some(size),
-              TextColor(col) => layout.specified_style.text_color = Some(col),
-              Width(size) => layout.specified_style.width = Some(size)
+              BackgroundColor(col) => layout.specified_style.background_color = col,
+              Display(dis) => layout.specified_style.display_type = dis,
+              FontSize(size) => layout.specified_style.font_size = size,
+              Height(size) => layout.specified_style.height = size,
+              Color(col) => layout.specified_style.text_color = col,
+              Width(size) => layout.specified_style.width = size
             };
         })
     }

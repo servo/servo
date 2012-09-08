@@ -3,8 +3,7 @@
 // TODO: fail according to the css spec instead of failing when things
 // are not as expected
 
-use css::values::{TextColor, BackgroundColor, FontSize, Height, Width,
-                     Display, StyleDeclaration};
+use css::values::*;
 // Disambiguate parsed Selector, Rule values from tokens
 use css = css::values;
 use tok = lexer;
@@ -156,17 +155,20 @@ impl TokenReader : ParserMethods {
             match tok {
               tok::EndDescription => { break; }
               tok::Description(prop, val) => {
-                let desc = match prop {
-                  // TODO: have color parsing return an option instead of a real value
-                  ~"background-color" => parse_color(val).map(|res| BackgroundColor(res)),
-                  ~"color" => parse_color(val).map(|res| TextColor(res)),
-                  ~"display" => parse_display_type(val).map(|res| Display(res)),
-                  ~"font-size" => parse_font_size(val).map(|res| FontSize(res)),
-                  ~"height" => parse_size(val).map(|res| Height(res)),
-                  ~"width" => parse_size(val).map(|res| Width(res)),
+                let desc : Option<StyleDeclaration> = match prop {
+                  // TODO: have color parsing return a ParseResult instead of a real value
+                  ~"background-color" => parse_color(val).map(|res| BackgroundColor(Specified(BgColor(res)))),
+                  ~"color" => parse_color(val).map(|res| Color(Specified(TextColor(res)))),
+                  ~"display" => parse_display_type(val).extract(|res| Display(res)),
+                  ~"font-size" => parse_font_size(val).extract(|res| FontSize(res)),
+                  ~"height" => parse_box_sizing(val).extract(|res| Height(res)),
+                  ~"width" => parse_box_sizing(val).extract(|res| Width(res)),
                   _ => { #debug["Recieved unknown style property '%s'", val]; None }
                 };
-                desc.map(|res| push(desc_list, res));
+                match desc {
+                  Some(d) => push(desc_list, d),
+                  None => { #debug["Couldn't parse value '%s' for property '%s'", val, prop] }
+                }
               }
               tok::Eof => { return None; }
               tok::StartDescription | tok::Descendant |  tok::Child | tok::Sibling 

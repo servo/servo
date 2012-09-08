@@ -1,5 +1,6 @@
 export build_display_list;
 
+import css::values::{BgColor, BgTransparent, Specified};
 import base::{Box, BTree, ImageHolder, TextBoxKind};
 import dl = display_list;
 import dom::base::{Text, NodeScope};
@@ -65,7 +66,6 @@ fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) 
     #debug("request to display a box from origin %?", origin);
 
     let bounds = Rect(origin, copy box.bounds.size);
-    let col = box.appearance.background_color;
 
     match box.kind {
       TextBoxKind(subbox) => {
@@ -96,10 +96,16 @@ fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) 
         });
         list.push(display_item);
     } else {
-        #debug("Assigning color %? to box with bounds %?", col, bounds);
-        let col = box.appearance.background_color;
+        // DAC
+        // TODO: shouldn't need to unbox CSSValue by now
+        let boxed_color = box.node.get_specified_style().background_color;
+        let color = match boxed_color {
+            Specified(BgColor(c)) => c,
+            Specified(BgTransparent) | _ => util::color::rgba(0,0,0,0.0)
+        };
+        #debug("Assigning color %? to box with bounds %?", color, bounds);
         list.push(dl::display_item({
-            item_type: dl::display_item_solid_color(col.red, col.green, col.blue),
+            item_type: dl::display_item_solid_color(color.red, color.green, color.blue),
             bounds: bounds
         }));
     }

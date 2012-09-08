@@ -1,7 +1,7 @@
 #[doc="Fundamental layout structures and algorithms."]
 
-import css::values::Unit;
 import css::styles::SpecifiedStyle;
+import css::values::{BoxSizing, Length, Px};
 import dom::base::{Element, ElementKind, HTMLDivElement, HTMLImageElement, Node, NodeData};
 import dom::base::{NodeKind};
 import dom::rcu;
@@ -42,13 +42,16 @@ impl BoxKind : cmp::Eq {
 
 struct Appearance {
     let mut background_image: Option<ImageHolder>;
-    let mut background_color: Color;
-    let mut width: Unit;
-    let mut height: Unit;
+    // TODO: create some sort of layout-specific enum to differentiate between
+    // relative and resolved values.
+    let mut width: BoxSizing;
+    let mut height: BoxSizing;
+    let mut font_size: Length;
 
     new(kind: NodeKind) {
+        // TODO: these should come from initial() or elsewhere
+        self.font_size = Px(14.0);
         self.background_image = None;
-        self.background_color = kind.default_color();
         self.width = kind.default_width();
         self.height = kind.default_height();
     }

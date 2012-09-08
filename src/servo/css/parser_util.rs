@@ -1,63 +1,76 @@
 #[doc = "Helper functions to parse values of specific attributes."]
 
-use css::values::{DisplayType, Inline, Block, DisplayNone};
-use css::values::{Unit, Pt, Mm, Px, Percent, Auto};
+use css::values::*;
 use str::{pop_char, from_chars};
 use float::from_str;
 use option::map;
 
 export parse_font_size;
 export parse_size;
+export parse_box_sizing;
 export parse_display_type;
 
-fn parse_unit(str : ~str) -> Option<Unit> {
+
+fn parse_length(str : ~str) -> Option<Length> {
+    // TODO: use these once we stop lexing below
+    const PTS_PER_INCH: float = 72.0;
+    const CM_PER_INCH: float = 2.54;
+    const PX_PER_PT: float = 1.0 / 0.75;
+
     match str {
-      s if s.ends_with(~"%") => from_str(str.substr(0, str.len() - 1)).map(|f| Percent(f)),
-      s if s.ends_with(~"in") => from_str(str.substr(0, str.len() - 2)).map(|f| Pt(72.0*f)),
-      s if s.ends_with(~"cm") => from_str(str.substr(0, str.len() - 2)).map(|f| Mm(10.0*f)),
-      s if s.ends_with(~"mm") => from_str(str.substr(0, str.len() - 2)).map(|f| Mm(f)),
-      s if s.ends_with(~"pt") => from_str(str.substr(0, str.len() - 2)).map(|f| Pt(f)),
-      s if s.ends_with(~"pc") => from_str(str.substr(0, str.len() - 2)).map(|f| Pt(12.0*f)),
+      s if s.ends_with(~"in") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * 72.0 * f)),
+      s if s.ends_with(~"cm") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(f / 2.54 * 72.0 * 1.0/0.75)),
+      s if s.ends_with(~"mm") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(f * 0.1 / 2.54 * 72.0 * 1.0/0.75)),
+      s if s.ends_with(~"pt") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * f)),
+      s if s.ends_with(~"pc") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * 12.0 * f)),
       s if s.ends_with(~"px") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(f)),
-      s if s.ends_with(~"ex") | s.ends_with(~"em") => fail ~"Em and Ex sizes not yet supported",
+      s if s.ends_with(~"em") => from_str(str.substr(0, str.len() - 2)).map(|f| Em(f)),
+      s if s.ends_with(~"ex") => from_str(str.substr(0, str.len() - 2)).map(|f| Em(0.5*f)),
       _ => None,
     }
 }
 
-fn parse_font_size(str : ~str) -> Option<Unit> {
-    // The default pixel size, not sure if this is accurate.
-    let default = 16.0;
-
+fn parse_absolute_size(str : ~str) -> ParseResult<AbsoluteSize> {
     match str {
-      ~"xx-small" => Some(Px(0.6*default)),
-      ~"x-small" => Some(Px(0.75*default)),
-      ~"small" => Some(Px(8.0/9.0*default)),
-      ~"medium" => Some(Px(default)),
-      ~"large" => Some(Px(1.2*default)),
-      ~"x-large" => Some(Px(1.5*default)),
-      ~"xx-large" => Some(Px(2.0*default)),
-      ~"smaller" => Some(Percent(80.0)),
-      ~"larger" => Some(Percent(125.0)),
-      ~"inherit" => Some(Percent(100.0)),
-      _  => parse_unit(str),
+      ~"xx-small" => Value(XXSmall),
+      ~"x-small" => Value(XSmall),
+      ~"small" => Value(Small),
+      ~"medium" => Value(Medium),
+      ~"large" => Value(Large),
+      ~"x-large" => Value(XLarge),
+      ~"xx-large" => Value(XXLarge),
+      _  => Fail
     }
+}
+
+fn parse_relative_size(str: ~str) -> ParseResult<RelativeSize> {
+    match str {
+      ~"smaller" => Value(Smaller),
+      ~"larger" => Value(Larger),
+      _ => Fail
+    }
+}
+
+fn parse_font_size(str: ~str) -> ParseResult<CSSFontSize> {
+    // TODO: complete me
+    Value(LengthSize(Px(14.0)))
 }
 
 // For width / height, and anything else with the same attribute values
-fn parse_size(str : ~str) -> Option<Unit> {
+fn parse_box_sizing(str : ~str) -> ParseResult<BoxSizing> {
     match str {
-      ~"auto" => Some(Auto),
-      ~"inherit" => Some(Percent(100.0)),
-      _ => parse_unit(str),
+      ~"auto" => Value(BoxAuto),
+      ~"inherit" => CSSInherit,
+      _ => Fail,
     }
 }
 
-fn parse_display_type(str : ~str) -> Option<DisplayType> {
+fn parse_display_type(str : ~str) -> ParseResult<CSSDisplay> {
     match str {
-      ~"inline" => Some(Inline),
-      ~"block" => Some(Block),
-      ~"none" => Some(DisplayNone),
-      _ => { #debug["Recieved unknown display value '%s'", str]; None }
+      ~"inline" => Value(DisplayInline),
+      ~"block" => Value(DisplayBlock),
+      ~"none" => Value(DisplayNone),
+      _ => { #debug["Recieved unknown display value '%s'", str]; Fail }
     }
 }
 

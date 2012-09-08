@@ -2,7 +2,7 @@
 
 import std::arc::{ARC, get, clone};
 
-import css::values::{DisplayType, DisplayNone, Inline, Block, Unit, Auto};
+import css::values::*;
 import css::values::Stylesheet;
 import dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
 import dom::base::{Comment, Doctype, Element, Node, NodeKind, Text};
@@ -10,19 +10,19 @@ import util::color::{Color, rgb};
 import util::color::css_colors::{white, black};
 import layout::base::{LayoutData, NTree};
 
-type SpecifiedStyle = {mut background_color : Option<Color>,
-                        mut display_type : Option<DisplayType>,
-                        mut font_size : Option<Unit>,
-                        mut height : Option<Unit>,
-                        mut text_color : Option<Color>,
-                        mut width : Option<Unit>
+type SpecifiedStyle = {mut background_color : CSSValue<CSSBackgroundColor>,
+                        mut display_type : CSSValue<CSSDisplay>,
+                        mut font_size : CSSValue<CSSFontSize>,
+                        mut height : CSSValue<BoxSizing>,
+                        mut text_color : CSSValue<CSSColor>,
+                        mut width : CSSValue<BoxSizing>
                        };
 
 trait DefaultStyleMethods {
     fn default_color() -> Color;
-    fn default_display_type() -> DisplayType;
-    fn default_width() -> Unit;
-    fn default_height() -> Unit;
+    fn default_display_type() -> CSSDisplay;
+    fn default_width() -> BoxSizing;
+    fn default_height() -> BoxSizing;
 }
 
 /// Default styles for various attributes in case they don't get initialized from CSS selectors.
@@ -35,28 +35,28 @@ impl NodeKind : DefaultStyleMethods {
         }
     }
 
-    fn default_display_type() -> DisplayType {
+    fn default_display_type() -> CSSDisplay {
         match self {
-          Text(*) => { Inline }
+          Text(*) => { DisplayInline }
           Element(element) => {
             match *element.kind {
-              HTMLDivElement => Block,
+              HTMLDivElement => DisplayBlock,
               HTMLHeadElement => DisplayNone,
-              HTMLImageElement(*) => Inline,
+              HTMLImageElement(*) => DisplayInline,
               HTMLScriptElement => DisplayNone,
-              UnknownElement => Inline,
+              UnknownElement => DisplayInline,
             }
           },
           Comment(*) | Doctype(*) => DisplayNone
         }
     }
     
-    fn default_width() -> Unit {
-        Auto
+    fn default_width() -> BoxSizing {
+        BoxAuto
     }
 
-    fn default_height() -> Unit {
-        Auto
+    fn default_height() -> BoxSizing {
+        BoxAuto
     }
 }
 
@@ -70,12 +70,12 @@ impl NodeKind : DefaultStyleMethods {
 fn empty_style_for_node_kind(kind: NodeKind) -> SpecifiedStyle {
     let display_type = kind.default_display_type();
 
-    {mut background_color : None,
-     mut display_type : Some(display_type),
-     mut font_size : None,
-     mut height : None,
-     mut text_color : None,
-     mut width : None}
+    {mut background_color : Initial,
+     mut display_type : Specified(display_type),
+     mut font_size : Initial,
+     mut height : Initial,
+     mut text_color : Initial,
+     mut width : Initial}
 }
 
 trait StylePriv {

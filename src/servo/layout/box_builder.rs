@@ -1,6 +1,6 @@
 #[doc="Creates CSS boxes from a DOM."]
 
-import css::values::{DisplayType, Block, Inline, DisplayNone};
+import css::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayNone, Specified};
 import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, Node, Doctype, Comment};
 import gfx::geometry::zero_size_au;
 import layout::base::{Appearance, BTree, BlockBox, Box, BoxKind, InlineBox, IntrinsicBox, NTree};
@@ -49,14 +49,14 @@ impl ctxt {
 
             // Determine the child's display.
             let disp = kid.get_specified_style().display_type;
-            if disp != Some(Inline) {
+            if disp != Specified(DisplayInline) {
                 self.finish_anonymous_box_if_necessary();
             }
 
             // Add the child's box to the current enclosing box or the current anonymous box.
             match kid.get_specified_style().display_type {
-              Some(Block) => BTree.add_child(self.parent_box, kid_box.get()),
-              Some(Inline) => {
+              Specified(DisplayBlock) => BTree.add_child(self.parent_box, kid_box.get()),
+              Specified(DisplayInline) => {
                 let anon_box = match self.anon_box {
                   None => {
                     //
@@ -75,7 +75,7 @@ impl ctxt {
                 };
                 BTree.add_child(anon_box, kid_box.get());
               }
-              Some(DisplayNone) => {
+              Specified(DisplayNone) => {
                 // Nothing to do.
               }
               _ => { //hack for now
@@ -96,21 +96,21 @@ impl ctxt {
 
             // Determine the child's display.
             let disp = kid.get_specified_style().display_type;
-            if disp != Some(Inline) {
+            if disp != Specified(DisplayInline) {
                 // TODO
             }
 
             // Add the child's box to the current enclosing box.
             match kid.get_specified_style().display_type {
-              Some(Block) => {
+              Specified(DisplayBlock) => {
                 // TODO
                 #warn("TODO: non-inline display found inside inline box");
                 BTree.add_child(self.parent_box, kid_box.get());
               }
-              Some(Inline) => {
+              Specified(DisplayInline) => {
                 BTree.add_child(self.parent_box, kid_box.get());
               }
-              Some(DisplayNone) => {
+              Specified(DisplayNone) => {
                 // Nothing to do.
               }
               _  => { //hack for now
@@ -125,9 +125,9 @@ impl ctxt {
         self.parent_node.dump();
 
         match self.parent_node.get_specified_style().display_type {
-          Some(Block) => self.construct_boxes_for_block_children(),
-          Some(Inline) => self.construct_boxes_for_inline_children(),
-          Some(DisplayNone) => { /* Nothing to do. */ }
+          Specified(DisplayBlock) => self.construct_boxes_for_block_children(),
+          Specified(DisplayInline) => self.construct_boxes_for_inline_children(),
+          Specified(DisplayNone) => { /* Nothing to do. */ }
           _ => { //hack for now
           }
         }
@@ -164,11 +164,11 @@ impl Node : PrivBoxBuilder {
             ~Element(element) => {
                 match (copy *element.kind, self.get_specified_style().display_type)  {
                     (HTMLImageElement({size}), _) => Some(IntrinsicBox(@size)),
-                    (_, Some(Block)) => Some(BlockBox),
-                    (_, Some(Inline)) => Some(InlineBox),
-                    (_, Some(DisplayNone)) => None,
-                    (_, Some(_)) => Some(InlineBox),
-                    (_, None) => {
+                    (_, Specified(DisplayBlock)) => Some(BlockBox),
+                    (_, Specified(DisplayInline)) => Some(InlineBox),
+                    (_, Specified(DisplayNone)) => None,
+                    (_, Specified(_)) => Some(InlineBox),
+                    (_, _) => {
                         fail ~"The specified display style should be a default instead of none"
                     }
                 }

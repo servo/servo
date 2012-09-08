@@ -1,6 +1,6 @@
 #[doc="Block layout."]
 
-import css::values::{Px, Mm, Pt, Auto, Percent, Unit};
+import css::values::*;
 import geom::point::Point2D;
 import geom::size::Size2D;
 import gfx::geometry::{px_to_au, au};
@@ -37,15 +37,15 @@ impl @Box : BlockLayoutMethods {
         }
 
         let height = match self.appearance.height { 
-            Px(p) => px_to_au(p.to_int()),
-            Auto => au(current_height),
+            BoxLength(Px(p)) => px_to_au(p.to_int()),
+            BoxAuto => au(current_height),
             _ => fail ~"inhereit_height failed, height is neither a Px or auto"
         };
 
         // FIXME: Width is wrong in the calculation below.
         let width = match self.appearance.width { 
-            Px(p) => px_to_au(p.to_int()),
-            Auto => self.bounds.size.width, // Do nothing here, width was set by top-down pass
+            BoxLength(Px(p)) => px_to_au(p.to_int()),
+            BoxAuto => self.bounds.size.width, // Do nothing here, width was set by top-down pass
             _ => fail ~"inhereit_width failed, width is neither a Px or auto"
         };
 

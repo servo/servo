@@ -1,6 +1,6 @@
 #[doc="Applies the appropriate CSS style to boxes."]
 
-import dom::base::{Element, HTMLImageElement, Node};
+import dom = dom::base;
 import gfx::geometry::au_to_px;
 import layout::base::{Box, BTree, NTree, LayoutData, SpecifiedStyle, ImageHolder,
               BlockBox, InlineBox, IntrinsicBox, TextBox};
@@ -8,7 +8,28 @@ import layout::traverse::{top_down_traversal};
 import std::net::url::Url;
 import resource::image_cache_task::ImageCacheTask;
 
-import css::values::{Percent, Mm, Pt, Px, Auto, PtToPx, MmToPx};
+import css::values::*;
+
+trait ResolveMethods<T> {
+    pure fn initial() -> T;
+}
+
+impl CSSValue<CSSBackgroundColor> : ResolveMethods<CSSBackgroundColor> {
+    pure fn initial() -> CSSBackgroundColor { return BgTransparent; }
+}
+
+impl CSSValue<CSSDisplay> : ResolveMethods<CSSDisplay> {
+    pure fn initial() -> CSSDisplay { return DisplayInline; }
+}
+
+impl CSSValue<BoxSizing> : ResolveMethods<BoxSizing> {
+    pure fn initial() -> BoxSizing { return BoxAuto; }
+}
+
+impl CSSValue<CSSFontSize> : ResolveMethods<CSSFontSize> {
+    pure fn initial() -> CSSFontSize { return AbsoluteSize(Medium); }
+}
+
 
 struct StyleApplicator {
     box: @Box;
@@ -16,6 +37,7 @@ struct StyleApplicator {
     image_cache_task: ImageCacheTask;
     reflow: fn~();
 }
+
 
 fn apply_style(box: @Box, doc_url: &Url, image_cache_task: ImageCacheTask, reflow: fn~()) {
     let applicator = StyleApplicator {
@@ -28,6 +50,8 @@ fn apply_style(box: @Box, doc_url: &Url, image_cache_task: ImageCacheTask, reflo
     applicator.apply_css_style();
 }
 
+// TODO: this is misleadingly-named. It is actually trying to resolve CSS 'inherit' values.
+
 #[doc="A wrapper around a set of functions that can be applied as a top-down traversal of layout
        boxes."]
 fn inheritance_wrapper(box : @Box, doc_url: &Url, image_cache_task: ImageCacheTask, reflow: fn~()) {
@@ -38,66 +62,51 @@ fn inheritance_wrapper(box : @Box, doc_url: &Url, image_cache_task: ImageCacheTa
         reflow: reflow
     };
     applicator.apply_style();
-    inhereit_height(box);
-    inhereit_width(box);
+    inherit_fontsize(box);
+    inherit_height(box);
+    inherit_width(box);
 }
+
+/* Turns symbolic (abs, rel) and relative font sizes into absolute lengths */
+    fn inherit_fontsize(box : @Box) {
+        // TODO: complete this
+        return
+    }
 
 #[doc="Compute the specified height of a layout box based on it's css specification and its
        parent's height."]
-fn inhereit_height(box : @Box) {
+fn inherit_height(box : @Box) {
     let style = box.node.get_specified_style();
-    
+    let inherit_val = match box.tree.parent {
+        None => style.height.initial(),
+        Some(node) => node.appearance.height
+    };
+
     box.appearance.height = match style.height {
-        None =>  Auto,
-        Some(h) => match h {
-            Auto | Px(*) => h,
-            Pt(*) => PtToPx(h),
-            Mm(*) => MmToPx(h),
-            Percent(em) => {
-                match box.tree.parent {
-                    None => Auto,
-                    Some(parent) => {
-                        match parent.appearance.height {
-                            //This is a poorly constrained case, so we ignore the percentage
-                            Auto => Auto,
-                            Px(f) => Px(em*f/100.0),
-                            Percent(*) | Mm(*) | Pt(*) => {
-                                fail ~"failed inheriting heights, parent should only be Px or Auto"
-                            }
-                        }
-                    }
-                }
-            }
+        Initial => style.height.initial(),
+        Inherit => inherit_val,
+        Specified(val) => match val { // BoxSizing
+            BoxPercent(*) | BoxAuto | BoxLength(Px(_)) => val,
+            BoxLength(Em(n)) => BoxLength(Px(n * box.appearance.font_size.abs()))
         }
     }
 }
 
 #[doc="Compute the specified width of a layout box based on it's css specification and its
        parent's width."]
-fn inhereit_width(box : @Box) {
+fn inherit_width(box : @Box) {
     let style = box.node.get_specified_style();
-    
+    let inherit_val = match box.tree.parent {
+        None => style.height.initial(),
+        Some(node) => node.appearance.width
+    };
+
     box.appearance.width = match style.width {
-        None =>  Auto,
-        Some(h) => match h {
-            Auto | Px(*) => h,
-            Pt(*) => PtToPx(h),
-            Mm(*) => MmToPx(h),
-            Percent(em) => {
-                match box.tree.parent {
-                    None => Auto,
-                    Some(parent) => {
-                        match parent.appearance.width {
-                            //This is a poorly constrained case, so we ignore the percentage
-                            Auto => Auto,
-                            Px(f) => Px(em*f/100.0),
-                            Percent(*) | Mm(*) | Pt(*) => {
-                                fail ~"failed inheriting widths, parent should only be Px or Auto"
-                            }
-                        }
-                    }
-                }
-            }
+        Initial => style.width.initial(),
+        Inherit => inherit_val,
+        Specified(val) => match val { // BoxSizing
+            BoxPercent(*) | BoxAuto | BoxLength(Px(_)) => val,
+            BoxLength(Em(n)) => BoxLength(Px(n * box.appearance.font_size.abs()))
         }
     }
 }
@@ -124,16 +133,9 @@ impl StyleApplicator {
         // Right now, we only handle images.
         do self.box.node.read |node| {
             match node.kind {
-              ~Element(element) => {
-                let style = self.box.node.get_specified_style();
-
-                self.box.appearance.background_color = match style.background_color {
-                  Some(col) => col,
-                  None => node.kind.default_color()
-                };
-
+              ~dom::Element(element) => {
                 match element.kind {
-                  ~HTMLImageElement(*) => {
+                  ~dom::HTMLImageElement(*) => {
                     let url = element.get_attr(~"src");
                     
                     if url.is_some() {
@@ -192,7 +194,7 @@ mod test {
         let g1_box = child_box.tree.first_child.get();
         let g2_box = child_box.tree.last_child.get();
         
-        top_down_traversal(parent_box.get(), inhereit_height);
+        top_down_traversal(parent_box.get(), inherit_height);
 
         assert parent_box.get().appearance.height == Px(100.0);
         assert child_box.appearance.height == Auto;
