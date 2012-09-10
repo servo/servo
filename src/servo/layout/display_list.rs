@@ -6,17 +6,20 @@ import servo_text::text_run::TextRun;
 import std::arc::ARC;
 import dvec::DVec;
 
-enum item_type {
-    display_item_solid_color(u8, u8, u8),
-    display_item_image(~ARC<~Image>),
-    display_item_text(TextRun),
+// TODO: convert to DisplayItem trait with methods like bounds(), paint(), etc.
+enum ItemKind {
+    SolidColor(u8, u8, u8),
+    Image(ARC<~Image>),
+    Text(TextRun),
     // FIXME: Shape code does not understand the alignment without this
-    padding(u8, u8, u8, u8)
+    Padding(u8, u8, u8, u8)
 }
 
-enum display_item = {
-    item_type: item_type,
+struct DisplayItem {
+    item: ItemKind,
     bounds: Rect<au>
-};
+}
 
-type display_list = DVec<display_item>;
+impl DisplayItem : Copy { }
+
+type DisplayList = DVec<DisplayItem>;

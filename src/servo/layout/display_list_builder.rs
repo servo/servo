@@ -2,7 +2,7 @@ export build_display_list;
 
 import css::values::{BgColor, BgTransparent, Specified};
 import base::{Box, BTree, ImageHolder, TextBoxKind};
-import dl = display_list;
+import dl = layout::display_list;
 import dom::base::{Text, NodeScope};
 import dom::rcu::Scope;
 import either::{Left, Right};
@@ -20,7 +20,7 @@ import vec::push;
 Builds a display list for a box and all its children
 
 "]
-fn build_display_list(box : @Box) -> dl::display_list {
+fn build_display_list(box : @Box) -> dl::DisplayList {
     let list = DVec();
     build_display_list_from_origin(list, box, Point2D(au(0), au(0)));
     return list;
@@ -37,7 +37,7 @@ Builds a display list for a box and all its children.
              passed-in box.
 
 "]
-fn build_display_list_from_origin(list: dl::display_list, box: @Box, origin: Point2D<au>) {
+fn build_display_list_from_origin(list: dl::DisplayList, box: @Box, origin: Point2D<au>) {
     let box_origin = Point2D(
         px_to_au(au_to_px(origin.x) + au_to_px(box.bounds.origin.x)),
         px_to_au(au_to_px(origin.y) + au_to_px(box.bounds.origin.y)));
@@ -62,7 +62,7 @@ Creates a display list item for a single block.
 
 "]
 #[allow(non_implicitly_copyable_typarams)]
-fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) {
+fn box_to_display_items(list: dl::DisplayList, box: @Box, origin: Point2D<au>) {
     #debug("request to display a box from origin %?", origin);
 
     let bounds = Rect(origin, copy box.bounds.size);
@@ -71,14 +71,14 @@ fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) 
       TextBoxKind(subbox) => {
         let run = copy subbox.run;
         assert run.is_some();
-        list.push(dl::display_item({
-            item_type: dl::display_item_solid_color(255u8, 255u8, 255u8),
+        list.push(dl::DisplayItem {
+            item: dl::SolidColor(255u8, 255u8, 255u8),
             bounds: bounds
-        }));
-        list.push(dl::display_item({
-            item_type: dl::display_item_text(run.get()),
+        } );
+        list.push(dl::DisplayItem {
+            item: dl::Text(run.get()),
             bounds: bounds
-        }));
+        });
         return;
       }
       _ => {
@@ -90,10 +90,10 @@ fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) 
     let image = box.appearance.get_image();
     
     if image.is_some() {
-        let display_item = dl::display_item({
-            item_type: dl::display_item_image(option::unwrap(image)),
+        let display_item = dl::DisplayItem {
+            item: dl::Image(option::unwrap(image)),
             bounds: bounds
-        });
+        };
         list.push(display_item);
     } else {
         // DAC
@@ -104,10 +104,10 @@ fn box_to_display_items(list: dl::display_list, box: @Box, origin: Point2D<au>) 
             Specified(BgTransparent) | _ => util::color::rgba(0,0,0,0.0)
         };
         #debug("Assigning color %? to box with bounds %?", color, bounds);
-        list.push(dl::display_item({
-            item_type: dl::display_item_solid_color(color.red, color.green, color.blue),
+        list.push(dl::DisplayItem {
+            item: dl::SolidColor(color.red, color.green, color.blue),
             bounds: bounds
-        }));
+        });
     }
 }
 
@@ -128,11 +128,12 @@ fn should_convert_text_boxes_to_solid_color_background_items() {
     let list = DVec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
-    match list[0].item_type {
-      dl::display_item_solid_color(*) => { }
-      _ => { fail }
-    }
-    
+    do list.borrow |l| {
+        match l[0].item {
+            dl::SolidColor(*) => { }
+            _ => { fail }
+        }
+    }    
 }
 
 fn should_convert_text_boxes_to_text_items() {
@@ -151,9 +152,11 @@ fn should_convert_text_boxes_to_text_items() {
     let list = DVec();
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
-    match list[1].item_type {
-      dl::display_item_text(_) => { }
-      _ => { fail }
+    do list.borrow |l| {
+        match l[1].item {
+            dl::Text(_) => { }
+            _ => { fail }
+        }
     }
 }
 
@@ -179,7 +182,7 @@ fn should_calculate_the_bounds_of_the_text_box_background_color() {
         Size2D(px_to_au(84), px_to_au(20))
     );
 
-    assert list[0].bounds == expected;
+    do list.borrow |l| { assert l[0].bounds == expected }
 }
 
 fn should_calculate_the_bounds_of_the_text_items() {
@@ -204,5 +207,5 @@ fn should_calculate_the_bounds_of_the_text_items() {
         Size2D(px_to_au(84), px_to_au(20))
     );
 
-    assert list[1].bounds == expected;
+    do list.borrow |l| { assert l[1].bounds == expected; }
 }

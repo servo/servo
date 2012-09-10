@@ -5,33 +5,31 @@ Each time the renderer renders a frame the compositor will output a
 `~[u8]` containing the frame in PNG format.
 "];
 
-export PngCompositor, Msg, Exit;
-
-import libc::{c_int, c_uint, c_void, c_uchar};
-import azure_bg = azure::bindgen;
-import azure_bg::{AzCreateDrawTargetForCairoSurface, AzReleaseDrawTarget};
-import azure::cairo;
-import azure::azure_hl::DrawTarget;
-import azure::cairo_hl::ImageSurface;
-import cairo::{CAIRO_FORMAT_ARGB32, cairo_surface_t, cairo_status_t, CAIRO_STATUS_SUCCESS};
-import cairo_bg = cairo::bindgen;
-import cairo_bg::{cairo_image_surface_create, cairo_surface_destroy,
+use libc::{c_int, c_uint, c_void, c_uchar};
+use azure_bg = azure::bindgen;
+use azure_bg::{AzCreateDrawTargetForCairoSurface, AzReleaseDrawTarget};
+use azure::cairo;
+use azure::azure_hl::DrawTarget;
+use azure::cairo_hl::ImageSurface;
+use cairo::{CAIRO_FORMAT_ARGB32, cairo_surface_t, cairo_status_t, CAIRO_STATUS_SUCCESS};
+use cairo_bg = cairo::bindgen;
+use cairo_bg::{cairo_image_surface_create, cairo_surface_destroy,
                   cairo_surface_write_to_png_stream};
-import compositor::Compositor;
-import render_task::{RenderTask, RenderMsg};
-import task::spawn_listener;
-import comm::{Chan, Port};
-import unsafe::reinterpret_cast;
-import vec_from_buf = vec::unsafe::from_buf;
-import ptr::addr_of;
-import dom::event::Event;
-import dvec::DVec;
-import layout::display_list::display_list;
-import std::cell::Cell;
+use compositor::Compositor;
+use render_task::{RenderTask, RenderMsg};
+use task::spawn_listener;
+use comm::{Chan, Port};
+use unsafe::reinterpret_cast;
+use vec_from_buf = vec::unsafe::from_buf;
+use ptr::addr_of;
+use dom::event::Event;
+use dvec::DVec;
+use layout::display_list::DisplayList;
+use std::cell::Cell;
 
-type PngCompositor = Chan<Msg>;
+pub type PngCompositor = Chan<Msg>;
 
-enum Msg {
+pub enum Msg {
     BeginDrawing(pipes::Chan<DrawTarget>),
     Draw(pipes::Chan<DrawTarget>, DrawTarget),
     Exit
@@ -49,7 +47,7 @@ impl Chan<Msg> : Compositor {
     }
 }
 
-fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
+pub fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
     do spawn_listener |po: Port<Msg>| {
         let cairo_surface = ImageSurface(CAIRO_FORMAT_ARGB32, 800, 600);
         let draw_target = Cell(DrawTarget(cairo_surface));
@@ -89,7 +87,7 @@ fn sanity_check() {
         let compositor = PngCompositor(self_channel);
         let renderer = RenderTask(compositor);
 
-        let dlist : display_list = DVec();
+        let dlist : DisplayList = DVec();
         renderer.send(RenderMsg(dlist));
         let (exit_chan, exit_response_from_engine) = pipes::stream();
         renderer.send(render_task::ExitMsg(exit_chan));

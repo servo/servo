@@ -63,12 +63,17 @@ fn mainloop(po: Port<Msg>) {
 
     let done = @mut false;
 
+    #macro[
+        [#moov[x],
+         unsafe { let y <- *ptr::addr_of(x); y }]
+    ];
+
     let check_for_messages = fn@() {
         // Handle messages
         #debug("osmain: peeking");
         while po.peek() {
             match po.recv() {
-              AddKeyHandler(key_ch) => key_handlers.push(move key_ch),
+              AddKeyHandler(key_ch) => key_handlers.push(#moov(key_ch)),
               AddEventListener(event_listener) => event_listeners.push(event_listener),
               BeginDrawing(sender) => lend_surface(*surfaces, sender),
               Draw(sender, dt) => {

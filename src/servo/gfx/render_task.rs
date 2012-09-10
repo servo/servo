@@ -24,7 +24,7 @@ import pipes::{Port, Chan};
 type Renderer = comm::Chan<Msg>;
 
 enum Msg {
-    RenderMsg(dl::display_list),
+    RenderMsg(dl::DisplayList),
     ExitMsg(pipes::Chan<()>)
 }
 
@@ -82,15 +82,15 @@ impl u8 : to_float {
     }
 }
 
-fn draw_display_list(draw_target: &DrawTarget, display_list: dl::display_list) {
+fn draw_display_list(draw_target: &DrawTarget, display_list: dl::DisplayList) {
     for display_list.each |item| {
         #debug["drawing %?", item];
 
-        match item.item_type {
-          dl::display_item_solid_color(r, g, b) => draw_solid_color(draw_target, item, r, g, b),
-          dl::display_item_image(image) => draw_image(draw_target, item, *image),
-          dl::display_item_text(text_run) => draw_text(draw_target, item, text_run),
-          dl::padding(*) => fail ~"should never see padding"
+        match item.item {
+          dl::SolidColor(r, g, b) => draw_solid_color(draw_target, item, r, g, b),
+          dl::Image(image) => draw_image(draw_target, item, image),
+          dl::Text(text_run) => draw_text(draw_target, item, text_run),
+          dl::Padding(*) => fail ~"should never see padding"
         }
     }
 }
@@ -106,7 +106,7 @@ impl Rect<au> : ToAzureRect {
     }
 }
 
-fn draw_solid_color(draw_target: &DrawTarget, item: dl::display_item, r: u8, g: u8, b: u8) {
+fn draw_solid_color(draw_target: &DrawTarget, item: dl::DisplayItem, r: u8, g: u8, b: u8) {
     let color = Color(r.to_float() as AzFloat,
                       g.to_float() as AzFloat,
                       b.to_float() as AzFloat,
@@ -115,7 +115,7 @@ fn draw_solid_color(draw_target: &DrawTarget, item: dl::display_item, r: u8, g: 
     draw_target.fill_rect(item.bounds.to_azure_rect(), ColorPattern(color));
 }
 
-fn draw_image(draw_target: &DrawTarget, item: dl::display_item, image: ARC<~Image>) unsafe {
+fn draw_image(draw_target: &DrawTarget, item: dl::DisplayItem, image: ARC<~Image>) unsafe {
     let image = std::arc::get(&image);
     let size = Size2D(image.width as i32, image.height as i32);
     let stride = image.width * 4;
@@ -131,7 +131,7 @@ fn draw_image(draw_target: &DrawTarget, item: dl::display_item, image: ARC<~Imag
                              draw_options);
 }
 
-fn draw_text(draw_target: &DrawTarget, item: dl::display_item, text_run: TextRun) {
+fn draw_text(draw_target: &DrawTarget, item: dl::DisplayItem, text_run: TextRun) {
     import ptr::{addr_of, null};
     import vec::unsafe::to_ptr;
     import libc::types::common::c99::{uint16_t, uint32_t};
@@ -147,7 +147,7 @@ fn draw_text(draw_target: &DrawTarget, item: dl::display_item, text_run: TextRun
 
     let draw_target = draw_target.azure_draw_target;
 
-    let bounds = copy (*item).bounds;
+    let bounds = copy item.bounds;
     // FIXME: The font library should not be created here
     let flib = FontLibrary();
     let font = flib.get_test_font();

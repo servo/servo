@@ -53,7 +53,7 @@ struct Appearance {
 
     // This will be very unhappy if it is getting run in parallel with
     // anything trying to read the background image
-    fn get_image() -> Option<~ARC<~Image>> {
+    fn get_image() -> Option<ARC<~Image>> {
         let mut image = None;
 
         // Do a dance where we swap the ImageHolder out before we can
@@ -134,7 +134,7 @@ fn ImageHolder(-url : Url, image_cache_task: ImageCacheTask, reflow: fn~()) -> I
 
 impl ImageHolder {
     // This function should not be called by two tasks at the same time
-    fn get_image() -> Option<~ARC<~Image>> {
+    fn get_image() -> Option<ARC<~Image>> {
         // If this is the first time we've called this function, load
         // the image and store it for the future
         if self.image.is_none() {
@@ -180,7 +180,7 @@ impl ImageHolder {
             let im_arc = option::unwrap(temp);
             self.image = Some(clone(&im_arc));
 
-            return Some(~im_arc);
+            return Some(im_arc);
         } else {
             return None;
         }
