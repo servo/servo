@@ -103,7 +103,7 @@ fn init(compartment: bare_compartment, doc: @Document) {
 
     compartment.register_class(utils::instance_jsclass(~"DocumentInstance", finalize));
 
-    let instance = result::unwrap(
+    let instance : jsobj = result::unwrap(
         compartment.new_object_with_proto(~"DocumentInstance", ~"Document",
                                           compartment.global_obj.ptr));
 

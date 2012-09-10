@@ -19,6 +19,9 @@ impl CharOrEof: cmp::Eq {
           (CoeEof, CoeEof) => true,
         }
     }
+    pure fn ne(&&other: CharOrEof) -> bool {
+        return !self.eq(other);
+    }
 }
 
 type InputState = {

@@ -22,13 +22,13 @@ fn macros() {
 
 type EngineTask = EngineProto::client::Running;
 
-fn EngineTask<C: Compositor send copy>(+compositor: C) -> EngineTask {
+fn EngineTask<C: Compositor Send Copy>(+compositor: C) -> EngineTask {
     let resource_task = ResourceTask();
     let image_cache_task = ImageCacheTask(resource_task);
     EngineTask_(compositor, resource_task, image_cache_task)
 }
 
-fn EngineTask_<C: Compositor send copy>(
+fn EngineTask_<C: Compositor Send Copy>(
     +compositor: C,
     resource_task: ResourceTask,
     image_cache_task: ImageCacheTask
@@ -52,12 +52,12 @@ fn EngineTask_<C: Compositor send copy>(
 
 
 struct Engine<C:Compositor> {
-    compositor: C;
-    render_task: RenderTask;
-    resource_task: ResourceTask;
-    image_cache_task: ImageCacheTask;
-    layout_task: LayoutTask;
-    content_task: ContentTask;
+    compositor: C,
+    render_task: RenderTask,
+    resource_task: ResourceTask,
+    image_cache_task: ImageCacheTask,
+    layout_task: LayoutTask,
+    content_task: ContentTask,
 }
 
 impl<C: Compositor> Engine<C> {

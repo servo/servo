@@ -16,6 +16,9 @@ impl Color : Eq {
         return self.red == other.red && self.green == other.green && self.blue == other.blue &&
                self.alpha == other.alpha;
     }
+    pure fn ne(&&other: Color) -> bool {
+        !self.eq(other)
+    }
 }
 
 fn rgba(r : u8, g : u8, b : u8, a : float) -> Color {

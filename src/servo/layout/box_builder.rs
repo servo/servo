@@ -1,13 +1,13 @@
 #[doc="Creates CSS boxes from a DOM."]
 
-import css::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayNone, Specified};
-import dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, Node, Doctype, Comment};
-import gfx::geometry::zero_size_au;
-import layout::base::{Appearance, BTree, BlockBox, Box, BoxKind, InlineBox, IntrinsicBox, NTree};
-import layout::base::{TextBoxKind};
-import layout::text::TextBox;
-import util::tree;
-import option::is_none;
+use css::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayNone, Specified};
+use dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, Node, Doctype, Comment};
+use gfx::geometry::zero_size_au;
+use layout::base::{Appearance, BTree, BlockBox, Box, BoxKind, InlineBox, IntrinsicBox, NTree};
+use layout::base::{TextBoxKind};
+use layout::text::TextBox;
+use util::tree;
+use option::is_none;
 
 export box_builder_methods;
 
@@ -44,7 +44,7 @@ impl ctxt {
             // Create boxes for the child. Get its primary box.
             let kid_box = kid.construct_boxes();
             if (kid_box.is_none()) {
-                again;
+                loop
             }
 
             // Determine the child's display.

@@ -11,6 +11,9 @@ impl format: cmp::Eq {
           (fo_rgba_8888, fo_rgba_8888) => true,
        }
     }
+    pure fn ne(&&other: format) -> bool {
+        return !self.eq(other);
+    }
 }
 
 type image_surface = {

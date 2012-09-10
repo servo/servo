@@ -1,6 +1,5 @@
 #[doc="Applies the appropriate CSS style to boxes."]
 
-import dom = dom::base;
 import gfx::geometry::au_to_px;
 import layout::base::{Box, BTree, NTree, LayoutData, SpecifiedStyle, ImageHolder,
               BlockBox, InlineBox, IntrinsicBox, TextBox};
@@ -32,10 +31,10 @@ impl CSSValue<CSSFontSize> : ResolveMethods<CSSFontSize> {
 
 
 struct StyleApplicator {
-    box: @Box;
-    doc_url: &Url;
-    image_cache_task: ImageCacheTask;
-    reflow: fn~();
+    box: @Box,
+    doc_url: &Url,
+    image_cache_task: ImageCacheTask,
+    reflow: fn~(),
 }
 
 
@@ -133,9 +132,9 @@ impl StyleApplicator {
         // Right now, we only handle images.
         do self.box.node.read |node| {
             match node.kind {
-              ~dom::Element(element) => {
+              ~dom::base::Element(element) => {
                 match element.kind {
-                  ~dom::HTMLImageElement(*) => {
+                  ~dom::base::HTMLImageElement(*) => {
                     let url = element.get_attr(~"src");
                     
                     if url.is_some() {
@@ -156,9 +155,9 @@ impl StyleApplicator {
 
 #[cfg(test)]
 mod test {
-    import dom::base::{Attr, HTMLDivElement, HTMLHeadElement, HTMLImageElement, ElementData};
-    import dom::base::{NodeScope, UnknownElement};
-    import dvec::DVec;
+    use dom::base::{Attr, HTMLDivElement, HTMLHeadElement, HTMLImageElement, ElementData};
+    use dom::base::{NodeScope, Node, UnknownElement};
+    use dvec::DVec;
 
     #[allow(non_implicitly_copyable_typarams)]
     fn new_node(scope: NodeScope, -name: ~str) -> Node {
@@ -182,11 +181,17 @@ mod test {
         scope.add_child(child, g2);
         let _handles = parent.initialize_style_for_subtree();
 
-        do parent.aux |aux| { aux.specified_style.height = Some(Px(100.0)); }
-        do child.aux |aux| { aux.specified_style.height = Some(Auto); }
-        do child2.aux |aux| { aux.specified_style.height = Some(Percent(50.0)); }
-        do g1.aux |aux| { aux.specified_style.height = Some(Percent(50.0)); }
-        do g2.aux |aux| { aux.specified_style.height = Some(Px(10.0)); }
+        // TODO: use helper methods to create test values
+        let px100 = BoxLength(Px(100.0));
+        let px10 = BoxLength(Px(10.0));
+        let px50 = BoxLength(Px(50.0));
+        let pc50 = BoxPercent(50.0);
+
+        do parent.aux |aux| { aux.specified_style.height = Specified(px100); }
+        do child.aux |aux| { aux.specified_style.height = Specified(BoxAuto); }
+        do child2.aux |aux| { aux.specified_style.height = Specified(pc50); }
+        do g1.aux |aux| { aux.specified_style.height = Specified(pc50); }
+        do g2.aux |aux| { aux.specified_style.height = Specified(px10); }
 
         let parent_box = parent.construct_boxes();
         let child_box = parent_box.get().tree.first_child.get();
@@ -196,10 +201,10 @@ mod test {
         
         top_down_traversal(parent_box.get(), inherit_height);
 
-        assert parent_box.get().appearance.height == Px(100.0);
-        assert child_box.appearance.height == Auto;
-        assert child2_box.appearance.height == Px(50.0);
-        assert g1_box.appearance.height == Auto;
-        assert g2_box.appearance.height == Px(10.0);
+        assert parent_box.get().appearance.height == px100;
+        assert child_box.appearance.height == BoxAuto;
+        assert child2_box.appearance.height == px50;
+        assert g1_box.appearance.height == BoxAuto;
+        assert g2_box.appearance.height == px10;
     }
 }

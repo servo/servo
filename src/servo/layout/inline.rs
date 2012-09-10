@@ -1,13 +1,13 @@
 #[doc="Inline layout."]
 
-import base::{Box, InlineBox, BTree};
-import css::values::{BoxAuto, BoxLength, Px};
-import dom::rcu;
-import geom::point::Point2D;
-import geom::size::Size2D;
-import gfx::geometry::{au, px_to_au};
-import num::Num;
-import util::tree;
+use base::{Box, InlineBox, BTree};
+use css::values::{BoxAuto, BoxLength, Px};
+use dom::rcu;
+use geom::point::Point2D;
+use geom::size::Size2D;
+use gfx::geometry::{au, px_to_au};
+use num::Num;
+use util::tree;
 
 trait InlineLayout {
     fn reflow_inline();

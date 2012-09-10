@@ -46,11 +46,6 @@ fn mainloop(po: Port<Msg>) {
     glut::init();
     glut::init_display_mode(glut::DOUBLE);
 
-    #macro[
-        [#move[x],
-         unsafe { let y <- *ptr::addr_of(x); y }]
-    ];
-
     let surfaces = @SurfaceSet();
 
     let window = glut::create_window(~"Servo");
@@ -73,7 +68,7 @@ fn mainloop(po: Port<Msg>) {
         #debug("osmain: peeking");
         while po.peek() {
             match po.recv() {
-              AddKeyHandler(key_ch) => key_handlers.push(#move(key_ch)),
+              AddKeyHandler(key_ch) => key_handlers.push(move key_ch),
               AddEventListener(event_listener) => event_listeners.push(event_listener),
               BeginDrawing(sender) => lend_surface(*surfaces, sender),
               Draw(sender, dt) => {
@@ -137,8 +132,8 @@ impl OSMain : Compositor {
 }
 
 struct SurfaceSet {
-    mut front: Surface;
-    mut back: Surface;
+    mut front: Surface,
+    mut back: Surface,
 }
 
 fn lend_surface(surfaces: SurfaceSet, receiver: pipes::Chan<DrawTarget>) {
@@ -174,9 +169,9 @@ fn SurfaceSet() -> SurfaceSet {
 }
 
 struct Surface {
-    cairo_surface: ImageSurface;
-    draw_target: DrawTarget;
-    mut have: bool;
+    cairo_surface: ImageSurface,
+    draw_target: DrawTarget,
+    mut have: bool,
 }
 
 fn Surface() -> Surface {
@@ -186,7 +181,7 @@ fn Surface() -> Surface {
 }
 
 #[doc = "A function for spawning into the platform's main thread"]
-fn on_osmain<T: send>(+f: fn~(comm::Port<T>)) -> comm::Chan<T> {
+fn on_osmain<T: Send>(+f: fn~(comm::Port<T>)) -> comm::Chan<T> {
     task::task().sched_mode(task::PlatformThread).spawn_listener(f)
 }
 

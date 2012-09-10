@@ -53,7 +53,7 @@ finish, and then applies the second function to the current box.
                 applied to that node's children
 
 "]
-fn traverse_helper<T : copy send>(-root : @Box, returned : T, -top_down : fn~(+T, @Box) -> T,
+fn traverse_helper<T : Copy Send>(-root : @Box, returned : T, -top_down : fn~(+T, @Box) -> T,
                       -bottom_up : fn~(@Box)) {
     let returned = top_down(returned, root);
 
@@ -140,7 +140,7 @@ fn bottom_up_traversal(+root : @Box, -bottom_up : fn~(@Box)) {
    the recursion unwinds, the second function is applied to first the
    children in parallel, and then the parent.
 "]
-fn extended_full_traversal<T : copy send>(+root : @Box, first_val : T, 
+fn extended_full_traversal<T : Copy Send>(+root : @Box, first_val : T, 
                                           -top_down : fn~(+T, @Box) -> T,
                                           -bottom_up : fn~(@Box)) {
     traverse_helper(root, first_val, top_down, bottom_up);
@@ -151,7 +151,7 @@ fn extended_full_traversal<T : copy send>(+root : @Box, first_val : T,
    function to a parent before its children, the value returned by the
    function is passed to each child when they are recursed upon.
 "]
-fn extended_top_down_traversal<T : copy send>(+root : @Box, first_val : T,
+fn extended_top_down_traversal<T : Copy Send>(+root : @Box, first_val : T,
                                               -top_down : fn~(+T, @Box) -> T) {
     traverse_helper(root, first_val, top_down, nop);
 }

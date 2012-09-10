@@ -1,18 +1,20 @@
 #[doc="Text layout."]
 
-import geom::size::Size2D;
-import gfx::geometry::au;
-import servo_text::text_run::TextRun;
-import servo_text::font_library::FontLibrary;
-import base::{Box, TextBoxKind};
+use geom::size::Size2D;
+use gfx::geometry::au;
+use servo_text::text_run::TextRun;
+use servo_text::font_library::FontLibrary;
+use base::{Box, TextBoxKind};
 
 struct TextBox {
-    text: ~str;
-    mut run: Option<TextRun>;
+    text: ~str,
+    mut run: Option<TextRun>,
+}
 
-    new(-text: ~str) {
-        self.text = text;
-        self.run = None;
+fn TextBox(text: ~str) -> TextBox {
+    TextBox {
+        text: text,
+        run: None,
     }
 }
 
@@ -41,10 +43,10 @@ fn should_calculate_the_size_of_the_text_box() {
     #[test];
     #[ignore(cfg(target_os = "macos"))];
 
-    import dom::rcu::{Scope};
-    import dom::base::{Text, NodeScope};
-    import util::tree;
-    import gfx::geometry::px_to_au;
+    use dom::rcu::{Scope};
+    use dom::base::{Text, NodeScope};
+    use util::tree;
+    use gfx::geometry::px_to_au;
 
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));

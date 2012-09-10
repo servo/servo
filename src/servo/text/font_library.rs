@@ -3,11 +3,7 @@ export FontLibrary, native;
 import font::{Font, test_font_bin};
 
 struct FontLibrary {
-    let native_lib: native::NativeFontLibrary;
-
-    new() {
-        self.native_lib = native::create_native_lib();
-    }
+    native_lib: native::NativeFontLibrary,
 
     drop {
         native::destroy_native_lib(&self.native_lib);
@@ -25,6 +21,11 @@ struct FontLibrary {
     }
 }
 
+fn FontLibrary() -> FontLibrary {
+    FontLibrary {
+        native_lib: native::create_native_lib()
+    }
+}
 
 fn create_font(native_lib: &native::NativeFontLibrary) -> Result<@Font, ()> {
     let font_bin = test_font_bin();

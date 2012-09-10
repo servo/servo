@@ -16,17 +16,17 @@ enum ParseResult<T> {
     Fail
 }
 
-enum CSSValue<T : copy> {
+enum CSSValue<T : Copy> {
     Specified(T),
     Initial,
     Inherit
 }
 
-impl<T : copy> ParseResult<T> {
+impl<T : Copy> ParseResult<T> {
     pure fn extract<U>(f: fn(CSSValue<T>) -> U) -> Option<U> { extract(self, f) }
 }
 
-pure fn extract<T : copy, U>(res: ParseResult<T>, f: fn(CSSValue<T>) -> U) -> Option<U> {
+pure fn extract<T : Copy, U>(res: ParseResult<T>, f: fn(CSSValue<T>) -> U) -> Option<U> {
     match res {
         Fail => None,
         CSSInitial => Some(f(Initial)),
@@ -35,7 +35,7 @@ pure fn extract<T : copy, U>(res: ParseResult<T>, f: fn(CSSValue<T>) -> U) -> Op
     }
 }
 
-impl<T: Eq copy> CSSValue<T> : Eq {
+impl<T: Eq Copy> CSSValue<T> : Eq {
     pure fn eq(&&other: CSSValue<T>) -> bool {
         match (self, other) {
             (Initial, Initial) => true,
@@ -44,11 +44,14 @@ impl<T: Eq copy> CSSValue<T> : Eq {
             _ => false
         }
     }
+    pure fn ne(&&other: CSSValue<T>) -> bool {
+        return !self.eq(other);
+    }
 }
 
 enum Auto = ();
 
-enum Length {
+pub enum Length {
     Em(float), // normalized to 'em'
     Px(float) // normalized to 'px'
 }
@@ -68,7 +71,7 @@ impl Length {
     }
 }
 
-enum BoxSizing { // used by width, height, top, left, etc
+pub enum BoxSizing { // used by width, height, top, left, etc
     BoxLength(Length),
     BoxPercent(float),
     BoxAuto
@@ -186,6 +189,9 @@ impl Length: cmp::Eq {
           (_, _) => false
         }
     }
+    pure fn ne(&&other: Length) -> bool {
+        return !self.eq(other);
+    }
 }
 
 impl BoxSizing: cmp::Eq {
@@ -197,17 +203,26 @@ impl BoxSizing: cmp::Eq {
           (_, _) => false
         }
     }
+    pure fn ne(&&other: BoxSizing) -> bool {
+        return !self.eq(other);
+    }
 }
 
 impl AbsoluteSize: cmp::Eq {
     pure fn eq(&&other: AbsoluteSize) -> bool {
         self as uint == other as uint
     }
+    pure fn ne(&&other: AbsoluteSize) -> bool {
+        return !self.eq(other);
+    }
 }
 
 impl RelativeSize: cmp::Eq {
     pure fn eq(&&other: RelativeSize) -> bool {
         self as uint == other as uint
+    }
+    pure fn ne(&&other: RelativeSize) -> bool {
+        return !self.eq(other);
     }
 }
 
@@ -221,6 +236,9 @@ impl CSSBackgroundColor: cmp::Eq {
             (_, _) => false
         }
     }
+    pure fn ne(&&other: CSSBackgroundColor) -> bool {
+        return !self.eq(other);
+    }
 }
 
 
@@ -230,11 +248,17 @@ impl CSSColor: cmp::Eq {
             (TextColor(a), TextColor(b)) => a == b
         }
     }
+    pure fn ne(&&other: CSSColor) -> bool {
+        return !self.eq(other);
+    }
 }
 
 impl CSSDisplay: cmp::Eq {
     pure fn eq(&&other: CSSDisplay) -> bool {
         self as uint == other as uint
+    }
+    pure fn ne(&&other: CSSDisplay) -> bool {
+        return !self.eq(other);
     }
 }
 
@@ -248,6 +272,9 @@ impl CSSFontSize: cmp::Eq {
             (PercentSize(a),  PercentSize(b))  => a == b,
             (_, _) => false
         }
+    }
+    pure fn ne(&&other: CSSFontSize) -> bool {
+        return !self.eq(other);
     }
 }
 /*
@@ -286,6 +313,9 @@ impl Attr: cmp::Eq {
           | (StartsWith(*), _) => false
         }
     }
+    pure fn ne(&&other: Attr) -> bool {
+        return !self.eq(other);
+    }
 }
 
 impl Selector: cmp::Eq {
@@ -305,5 +335,8 @@ impl Selector: cmp::Eq {
           (Descendant(*), _) => false,
           (Sibling(*), _) => false
         }
+    }
+    pure fn ne(&&other: Selector) -> bool {
+        return !self.eq(other);
     }
 }

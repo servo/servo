@@ -8,21 +8,26 @@ type GlyphIndex = uint;
 
 #[doc="The position of a glyph on the screen."]
 struct GlyphPos {
-    let advance: Point2D<au>;
-    let offset: Point2D<au>;
-    new(advance: Point2D<au>, offset: Point2D<au>) {
-        self.advance = advance;
-        self.offset = offset;
+    advance: Point2D<au>,
+    offset: Point2D<au>,
+}
+
+fn GlyphPos(advance: Point2D<au>, offset: Point2D<au>) -> GlyphPos {
+    GlyphPos {
+        advance : advance,
+        offset : offset,
     }
 }
 
 #[doc="A single glyph."]
 struct Glyph {
-    let index: GlyphIndex;
-    let pos: GlyphPos;
+    index: GlyphIndex,
+    pos: GlyphPos,
+}
 
-    new(index: GlyphIndex, pos: GlyphPos) {
-        self.index = index;
-        self.pos = copy pos;
+fn Glyph(index: GlyphIndex, pos: GlyphPos) -> Glyph {
+    Glyph {
+        index : index,
+        pos : copy pos,
     }
 }

@@ -9,11 +9,7 @@ import shaper::shape_text;
 
 #[doc="A single, unbroken line of text."]
 struct TextRun {
-    let glyphs: ~[Glyph];
-
-    new(font: Font, text: ~str) {
-        self.glyphs = shape_text(&font, text);
-    }
+    glyphs: ~[Glyph],
 
     fn size() -> Size2D<au> {
         let height = px_to_au(20);
@@ -25,6 +21,12 @@ struct TextRun {
                     cur.y.add(glyph.pos.offset.y).add(glyph.pos.advance.y))
         });
         return Size2D(pen_end.x, pen_end.y);
+    }
+}
+
+fn TextRun(font: Font, text: ~str) -> TextRun {
+    TextRun {
+        glyphs : shape_text(&font, text)
     }
 }
 

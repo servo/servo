@@ -4,15 +4,15 @@ export load;
 export load_from_memory;
 export test_image_bin;
 
-import stb_image = stb_image::image;
+import stb_image = stb_image::Image;
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
-type Image = stb_image::image;
+type Image = stb_image::Image;
 
 fn Image(width: uint, height: uint, depth: uint, +data: ~[u8]) -> Image {
-    stb_image::image(width, height, depth, data)
+    Image(width, height, depth, data)
 }
 
 const TEST_IMAGE: [u8 * 4962] = #include_bin("test.jpeg");
@@ -40,6 +40,6 @@ fn load_from_memory(buffer: &[u8]) -> Option<Image> {
 
         assert image.data.len() == data.len();
 
-        stb_image::image(image.width, image.height, image.depth, data)
+       Image(image.width, image.height, image.depth, data)
     }
 }

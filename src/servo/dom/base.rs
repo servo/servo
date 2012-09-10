@@ -1,21 +1,21 @@
 #[doc="The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements."]
 
-import gfx::geometry::au;
-import geom::size::Size2D;
-import layout::base::LayoutData;
-import util::tree;
-import js::rust::{bare_compartment, compartment, methods};
-import js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, jsval, JSBool};
-import js::{JSPROP_ENUMERATE, JSPROP_SHARED};
-import js::crust::*;
-import js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
-import dvec::DVec;
-import ptr::null;
-import bindings;
-import std::arc::ARC;
-import css::values::Stylesheet;
-import comm::{Port, Chan};
-import content::content_task::{ControlMsg, Timer};
+use gfx::geometry::au;
+use geom::size::Size2D;
+use layout::base::LayoutData;
+use util::tree;
+use js::rust::{bare_compartment, compartment, methods};
+use js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, jsval, JSBool};
+use js::{JSPROP_ENUMERATE, JSPROP_SHARED};
+use js::crust::*;
+use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
+use dvec::DVec;
+use ptr::null;
+use dom::bindings;
+use std::arc::ARC;
+use css::values::Stylesheet;
+use comm::{Port, Chan};
+use content::content_task::{ControlMsg, Timer};
 
 enum TimerControlMsg {
     Fire(~dom::bindings::window::TimerData),
@@ -23,36 +23,41 @@ enum TimerControlMsg {
 }
 
 struct Window {
-    let timer_chan: Chan<TimerControlMsg>;
+    timer_chan: Chan<TimerControlMsg>,
 
-    new(content_port: Port<ControlMsg>) {
-        let content_chan = Chan(content_port);
-        
-        self.timer_chan = do task::spawn_listener |timer_port: Port<TimerControlMsg>| {
-            loop {
-                match timer_port.recv() {
-                  Close => break,
-                  Fire(td) => {
-                    content_chan.send(Timer(copy td));
-                  }
-                }
-            }
-        };
-    }
     drop {
         self.timer_chan.send(Close);
     }
 }
 
-struct Document {
-    let root: Node;
-    let scope: NodeScope;
-    let css_rules: ARC<Stylesheet>;
+fn Window(content_port: Port<ControlMsg>) -> Window {
+    let content_chan = Chan(content_port);
+        
+    Window {
+        timer_chan: do task::spawn_listener |timer_port: Port<TimerControlMsg>| {
+            loop {
+                match timer_port.recv() {
+                    Close => break,
+                    Fire(td) => {
+                        content_chan.send(Timer(copy td));
+                    }
+                }
+            }
+        }
+    }
+}
 
-    new(root: Node, scope: NodeScope, -css_rules: Stylesheet) {
-        self.root = root;
-        self.scope = scope;
-        self.css_rules = ARC(css_rules);
+struct Document {
+    root: Node,
+    scope: NodeScope,
+    css_rules: ARC<Stylesheet>,
+}
+
+fn Document(root: Node, scope: NodeScope, -css_rules: Stylesheet) -> Document {
+    Document {
+        root : root,
+        scope : scope,
+        css_rules : ARC(css_rules),
     }
 }
 
@@ -69,30 +74,26 @@ enum NodeKind {
 }
 
 struct DoctypeData {
-    let name: ~str;
-    let public_id: Option<~str>;
-    let system_id: Option<~str>;
-    let force_quirks: bool;
+    name: ~str,
+    public_id: Option<~str>,
+    system_id: Option<~str>,
+    force_quirks: bool
+}
 
-    new (name: ~str, public_id: Option<~str>,
-         system_id: Option<~str>, force_quirks: bool) {
-        self.name = name;
-        self.public_id = public_id;
-        self.system_id = system_id;
-        self.force_quirks = force_quirks;
+fn DoctypeData(name: ~str, public_id: Option<~str>,
+               system_id: Option<~str>, force_quirks: bool) -> DoctypeData {
+    DoctypeData {
+        name : name,
+        public_id : public_id,
+        system_id : system_id,
+        force_quirks : force_quirks,
     }
 }
 
 struct ElementData {
-    let tag_name: ~str;
-    let kind: ~ElementKind;
-    let attrs: DVec<~Attr>;
-
-    new(-tag_name: ~str, -kind: ~ElementKind) {
-        self.tag_name = tag_name;
-        self.kind = kind;
-        self.attrs = DVec();
-    }
+    tag_name: ~str,
+    kind: ~ElementKind,
+    attrs: DVec<~Attr>,
 
     fn get_attr(attr_name: ~str) -> Option<~str> {
         let mut i = 0u;
@@ -107,13 +108,25 @@ struct ElementData {
     }
 }
 
-struct Attr {
-    let name: ~str;
-    let value: ~str;
 
-    new(-name: ~str, -value: ~str) {
-        self.name = name;
-        self.value = value;
+fn ElementData(tag_name: ~str, kind: ~ElementKind) -> ElementData {
+    ElementData {
+        tag_name : tag_name,
+        kind : kind,
+        attrs : DVec(),
+    }
+}
+
+
+struct Attr {
+    name: ~str,
+    value: ~str,
+}
+
+fn Attr(name: ~str, value: ~str) -> Attr {
+    Attr {
+        name : name,
+        value : value,
     }
 }
 

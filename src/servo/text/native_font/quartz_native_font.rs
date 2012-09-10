@@ -32,8 +32,8 @@ mod coretext {
     type CGFloat = libc::c_double;
 
     struct CGSize {
-        width: CGFloat;
-        height: CGFloat;
+        width: CGFloat,
+        height: CGFloat,
     }
 
     type CGAffineTransform = ();
@@ -50,16 +50,8 @@ mod coretext {
 }
 
 struct QuartzNativeFont/& {
-    let fontprov: CGDataProviderRef;
-    let cgfont: CGFontRef;
-
-    new (fontprov: CGDataProviderRef, cgfont: CGFontRef) {
-        assert fontprov.is_not_null();
-        assert cgfont.is_not_null();
-
-        self.fontprov = fontprov;
-        self.cgfont = cgfont;
-    }
+    fontprov: CGDataProviderRef,
+    cgfont: CGFontRef,
 
     drop {
         assert self.cgfont.is_not_null();
@@ -68,7 +60,19 @@ struct QuartzNativeFont/& {
         CGFontRelease(self.cgfont);
         CGDataProviderRelease(self.fontprov);
     }
+}
 
+fn QuartzNativeFont(fontprov: CGDataProviderRef, cgfont: CGFontRef) -> QuartzNativeFont {
+    assert fontprov.is_not_null();
+    assert cgfont.is_not_null();
+
+    QuartzNativeFont {
+        fontprov : fontprov,
+        cgfont : cgfont,
+    }
+}
+
+impl QuartzNativeFont {
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
 
         import coretext::{UniChar, CGGlyph, CFIndex};

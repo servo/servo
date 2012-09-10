@@ -58,7 +58,7 @@ enum PingMsg {
 
 type ContentTask = Chan<ControlMsg>;
 
-fn ContentTask<S: Compositor send copy>(layout_task: LayoutTask, +compositor: S, resource_task: ResourceTask) -> ContentTask {
+fn ContentTask<S: Compositor Send Copy>(layout_task: LayoutTask, +compositor: S, resource_task: ResourceTask) -> ContentTask {
     do task().sched_mode(SingleThreaded).spawn_listener::<ControlMsg> |from_master| {
         Content(layout_task, compositor, from_master, resource_task).start();
     }
@@ -78,49 +78,62 @@ fn join_layout(scope: NodeScope, layout_task: LayoutTask) {
 }
 
 struct Content<C:Compositor> {
-    let compositor: C;
-    let layout_task: LayoutTask;
-    let from_master: comm::Port<ControlMsg>;
-    let event_port: comm::Port<Event>;
+    compositor: C,
+    layout_task: LayoutTask,
+    from_master: comm::Port<ControlMsg>,
+    event_port: comm::Port<Event>,
 
-    let scope: NodeScope;
-    let jsrt: jsrt;
-    let cx: cx;
+    scope: NodeScope,
+    jsrt: jsrt,
+    cx: cx,
 
-    let mut document: Option<@Document>;
-    let mut window:   Option<@Window>;
-    let mut doc_url: Option<Url>;
+    mut document: Option<@Document>,
+    mut window:   Option<@Window>,
+    mut doc_url: Option<Url>,
 
-    let resource_task: ResourceTask;
+    resource_task: ResourceTask,
 
-    let compartment: Option<compartment>;
+    compartment: Option<compartment>,
+}
 
-    new(layout_task: LayoutTask, +compositor: C, from_master: Port<ControlMsg>,
-        resource_task: ResourceTask) {
-        self.layout_task = layout_task;
-        self.compositor = compositor;
-        self.from_master = from_master;
-        self.event_port = Port();
+fn Content<C:Compositor>(layout_task: LayoutTask, 
+                         compositor: C, 
+                         from_master: Port<ControlMsg>,
+                         resource_task: ResourceTask) -> Content<C> {
 
-        self.scope = NodeScope();
-        self.jsrt = jsrt();
-        self.cx = self.jsrt.cx();
+    let jsrt = jsrt();
+    let cx = jsrt.cx();
+    let event_port = Port();
 
-        self.document = None;
-        self.window   = None;
-        self.doc_url  = None;
+    compositor.add_event_listener(event_port.chan());
 
-        self.compositor.add_event_listener(self.event_port.chan());
-
-        self.resource_task = resource_task;
-
-        self.cx.set_default_options_and_version();
-        self.cx.set_logging_error_reporter();
-        self.compartment = match self.cx.new_compartment(global_class) {
+    cx.set_default_options_and_version();
+    cx.set_logging_error_reporter();
+    let compartment = match cx.new_compartment(global_class) {
           Ok(c) => Some(c),
           Err(()) => None
-        };
+    };
+
+    Content {
+        layout_task : layout_task,
+        compositor : compositor,
+        from_master : from_master,
+        event_port : event_port,
+
+        scope : NodeScope(),
+        jsrt : jsrt,
+        cx : cx,
+
+        document : None,
+        window   : None,
+        doc_url  : None,
+
+        resource_task : resource_task,
+        compartment : compartment
     }
+}
+
+impl<C:Compositor> Content<C> {
 
     fn start() {
         while self.handle_msg(select2(self.from_master, self.event_port)) {

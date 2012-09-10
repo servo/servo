@@ -20,9 +20,9 @@ use std::net::url::Url;
 type JSResult = ~[~[u8]];
 
 struct HtmlParserResult {
-    root: Node;
-    style_port: comm::Port<Stylesheet>;
-    js_port: comm::Port<JSResult>;
+    root: Node,
+    style_port: comm::Port<Stylesheet>,
+    js_port: comm::Port<JSResult>,
 }
 
 #[doc="Runs a task that coordinates parsing links to css stylesheets.

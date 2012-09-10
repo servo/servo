@@ -22,8 +22,6 @@ mod engine;
 
 mod dom {
     mod base;
-    mod event;
-    mod rcu;
     mod bindings {
         mod document;
         mod element;
@@ -31,6 +29,8 @@ mod dom {
         mod node;
         mod window;
     }
+    mod event;
+    mod rcu;
 }
 
 #[allow(non_implicitly_copyable_typarams)]

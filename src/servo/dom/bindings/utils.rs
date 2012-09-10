@@ -72,8 +72,8 @@ unsafe fn domstring_to_jsval(cx: *JSContext, str: DOMString) -> jsval {
 
 fn get_compartment(cx: *JSContext) -> *bare_compartment {
     unsafe {
-        let priv: *libc::c_void = JS_GetContextPrivate(cx);
-        let compartment: *bare_compartment = unsafe::reinterpret_cast(&priv);
+        let privptr: *libc::c_void = JS_GetContextPrivate(cx);
+        let compartment: *bare_compartment = unsafe::reinterpret_cast(&privptr);
         assert cx == (*compartment).cx.ptr;
         compartment
     }

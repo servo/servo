@@ -100,9 +100,9 @@ mod make_url_tests {
 
 }
 
-type UrlMap<T: copy> = hashmap<Url, T>;
+type UrlMap<T: Copy> = hashmap<Url, T>;
 
-fn url_map<T: copy>() -> UrlMap<T> {
+fn url_map<T: Copy>() -> UrlMap<T> {
     import core::to_str::ToStr;
 
     hashmap::<Url, T>(|a| str::hash(&a.to_str()),

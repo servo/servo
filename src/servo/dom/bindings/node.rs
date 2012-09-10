@@ -61,12 +61,14 @@ fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
 }
 
 struct NodeBundle {
-    let node: Node;
-    let scope: NodeScope;
+    node: Node,
+    scope: NodeScope,
+}
 
-    new(n: Node, s: NodeScope) {
-        self.node = n;
-        self.scope = s;
+fn NodeBundle(n: Node, s: NodeScope) -> NodeBundle {
+    NodeBundle {
+        node : n,
+        scope : s
     }
 }
 

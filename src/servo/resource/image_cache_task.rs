@@ -73,6 +73,9 @@ impl ImageResponseMsg: cmp::Eq {
           | (ImageFailed, _) => false
         }
     }
+    pure fn ne(&&other: ImageResponseMsg) -> bool {
+        return !self.eq(other);
+    }
 }
 
 type ImageCacheTask = Chan<Msg>;
@@ -121,16 +124,16 @@ fn SyncImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
 
 struct ImageCache {
     /// A handle to the resource task for fetching the image binaries
-    resource_task: ResourceTask;
+    resource_task: ResourceTask,
     /// Creates image decoders
-    decoder_factory: DecoderFactory;
+    decoder_factory: DecoderFactory,
     /// The port on which we'll receive client requests
-    from_client: Port<Msg>;
+    from_client: Port<Msg>,
     /// The state of processsing an image for a URL
-    state_map: UrlMap<ImageState>;
+    state_map: UrlMap<ImageState>,
     /// List of clients waiting on a WaitForImage response
-    wait_map: UrlMap<@mut ~[Chan<ImageResponseMsg>]>;
-    mut need_exit: Option<Chan<()>>;
+    wait_map: UrlMap<@mut ~[Chan<ImageResponseMsg>]>,
+    mut need_exit: Option<Chan<()>>,
 }
 
 enum ImageState {

@@ -17,12 +17,7 @@ import freetype::bindgen::{
 };
 
 struct FreeTypeNativeFont/& {
-    let face: FT_Face;
-
-    new(face: FT_Face) {
-        assert face.is_not_null();
-        self.face = face;
-    }
+    face: FT_Face,
 
     drop {
         assert self.face.is_not_null();
@@ -30,6 +25,14 @@ struct FreeTypeNativeFont/& {
             fail ~"FT_Done_Face failed";
         }
     }
+}
+
+fn FreeTypeNativeFont(face: FT_Face) -> FreeTypeNativeFont/& {
+    assert face.is_not_null();
+    FreeTypeNativeFont { face: face }
+}
+
+impl FreeTypeNativeFont/& {
 
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
         assert self.face.is_not_null();

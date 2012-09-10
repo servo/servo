@@ -37,6 +37,9 @@ impl ProgressMsg: cmp::Eq {
           | (Done(*), _) => false
         }
     }
+    pure fn ne(&&other: ProgressMsg) -> bool {
+        return !self.eq(other);
+    }
 }
 
 /// Handle to a resource task
@@ -67,15 +70,22 @@ fn create_resource_task_with_loaders(+loaders: ~[(~str, LoaderTaskFactory)]) -> 
 }
 
 struct ResourceManager {
-    let from_client: Port<ControlMsg>;
+    from_client: Port<ControlMsg>,
     /// Per-scheme resource loaders
-    let loaders: ~[(~str, LoaderTaskFactory)];
+    loaders: ~[(~str, LoaderTaskFactory)],
+}
 
-    new(from_client: Port<ControlMsg>, -loaders: ~[(~str, LoaderTaskFactory)]) {
-        self.from_client = from_client;
-        self.loaders = loaders;
+
+fn ResourceManager(from_client: Port<ControlMsg>, 
+                   loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceManager {
+    ResourceManager {
+        from_client : from_client,
+        loaders : loaders,
     }
+}
 
+
+impl ResourceManager {
     fn start() {
         loop {
             match self.from_client.recv() {

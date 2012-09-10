@@ -12,13 +12,8 @@ A font handle. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
 "]
 struct Font {
-    let fontbuf: @~[u8];
-    let native_font: NativeFont;
-
-    new(-fontbuf: ~[u8], -native_font: NativeFont) {
-        self.fontbuf = @fontbuf;
-        self.native_font = native_font;
-    }
+    fontbuf: @~[u8],
+    native_font: NativeFont,
 
     fn buf() -> @~[u8] {
         self.fontbuf
@@ -33,6 +28,13 @@ struct Font {
           Some(adv) => adv,
           None => /* FIXME: Need fallback strategy */ 10
         }
+    }
+}
+
+fn Font(fontbuf: ~[u8], native_font: NativeFont) -> Font {
+    Font {
+        fontbuf : @fontbuf,
+        native_font : native_font,
     }
 }
 

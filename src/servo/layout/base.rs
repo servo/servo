@@ -38,23 +38,18 @@ impl BoxKind : cmp::Eq {
           _ => fail ~"unimplemented case in BoxKind.eq"
         }
     }
+    pure fn ne(&&other: BoxKind) -> bool {
+        return !self.eq(other);
+    }
 }
 
 struct Appearance {
-    let mut background_image: Option<ImageHolder>;
+    mut background_image: Option<ImageHolder>,
     // TODO: create some sort of layout-specific enum to differentiate between
     // relative and resolved values.
-    let mut width: BoxSizing;
-    let mut height: BoxSizing;
-    let mut font_size: Length;
-
-    new(kind: NodeKind) {
-        // TODO: these should come from initial() or elsewhere
-        self.font_size = Px(14.0);
-        self.background_image = None;
-        self.width = kind.default_width();
-        self.height = kind.default_height();
-    }
+    mut width: BoxSizing,
+    mut height: BoxSizing,
+    mut font_size: Length,
 
     // This will be very unhappy if it is getting run in parallel with
     // anything trying to read the background image
@@ -76,19 +71,32 @@ struct Appearance {
     }
 }
 
-struct Box {
-    let tree: tree::Tree<@Box>;
-    let node: Node;
-    let kind: BoxKind;
-    let mut bounds: Rect<au>;
-    let appearance: Appearance;
 
-    new(node: Node, kind: BoxKind) {
-        self.appearance = node.read(|n| Appearance(*n.kind));
-        self.tree = tree::empty();
-        self.node = node;
-        self.kind = kind;
-        self.bounds = geometry::zero_rect_au();
+fn Appearance(kind: NodeKind) -> Appearance {
+        // TODO: these should come from initial() or elsewhere
+    Appearance {
+        font_size : Px(14.0),
+        background_image : None,
+        width : kind.default_width(),
+        height : kind.default_height(),
+    }
+}
+
+struct Box {
+    tree: tree::Tree<@Box>,
+    node: Node,
+    kind: BoxKind,
+    mut bounds: Rect<au>,
+    appearance: Appearance,
+}
+
+fn Box(node: Node, kind: BoxKind) -> Box {
+    Box {
+        appearance : node.read(|n| Appearance(*n.kind)),
+        tree : tree::empty(),
+        node : node,
+        kind : kind,
+        bounds : geometry::zero_rect_au(),
     }
 }
 
@@ -98,26 +106,33 @@ struct Box {
 struct ImageHolder {
     // Invariant: at least one of url and image is not none, except
     // occasionally while get_image is being called
-    let mut url : Option<Url>;
-    let mut image : Option<ARC<~Image>>;
-    let image_cache_task: ImageCacheTask;
-    let reflow: fn~();
+    mut url : Option<Url>,
+    mut image : Option<ARC<~Image>>,
+    image_cache_task: ImageCacheTask,
+    reflow: fn~(),
 
-    new(-url : Url, image_cache_task: ImageCacheTask, reflow: fn~()) {
-        self.url = Some(copy url);
-        self.image = None;
-        self.image_cache_task = image_cache_task;
-        self.reflow = copy reflow;
+}
 
-        // Tell the image cache we're going to be interested in this url
-        // FIXME: These two messages must be sent to prep an image for use
-        // but they are intended to be spread out in time. Ideally prefetch
-        // should be done as early as possible and decode only once we
-        // are sure that the image will be used.
-        image_cache_task.send(image_cache_task::Prefetch(copy url));
-        image_cache_task.send(image_cache_task::Decode(move url));
-    }
+fn ImageHolder(-url : Url, image_cache_task: ImageCacheTask, reflow: fn~()) -> ImageHolder {
+    let holder = ImageHolder {
+        url : Some(copy url),
+        image : None,
+        image_cache_task : image_cache_task,
+        reflow : copy reflow,
+    };
 
+    // Tell the image cache we're going to be interested in this url
+    // FIXME: These two messages must be sent to prep an image for use
+    // but they are intended to be spread out in time. Ideally prefetch
+    // should be done as early as possible and decode only once we
+    // are sure that the image will be used.
+    image_cache_task.send(image_cache_task::Prefetch(copy url));
+    image_cache_task.send(image_cache_task::Decode(move url));
+
+    holder
+}
+
+impl ImageHolder {
     // This function should not be called by two tasks at the same time
     fn get_image() -> Option<~ARC<~Image>> {
         // If this is the first time we've called this function, load

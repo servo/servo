@@ -13,7 +13,7 @@ import ptr::null;
 import libc::c_uint;
 import utils::{rust_box, squirrel_away, jsval_to_str};
 import bindings::node::create;
-import base::{Node, Window};
+import dom::base::{Node, Window};
 import dvec::DVec;
 
 extern fn alert(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool {
@@ -33,18 +33,25 @@ extern fn alert(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool {
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
 struct TimerData {
-    let funval: jsval;
-    let args: DVec<jsval>;
-    new(argc: c_uint, argv: *jsval) unsafe {
-        self.funval = *argv;
-        self.args = DVec();
-        let mut i = 2;
-        while i < argc as uint {
-            self.args.push(*ptr::offset(argv, i));
-            i += 1;
-        };
-    }
+    funval: jsval,
+    args: DVec<jsval>,
 }
+
+fn TimerData(argc: c_uint, argv: *jsval) -> TimerData unsafe {
+    let data = TimerData {
+        funval : *argv,
+        args : DVec(),
+    };
+
+    let mut i = 2;
+    while i < argc as uint {
+        data.args.push(*ptr::offset(argv, i));
+        i += 1;
+    };
+
+    data
+}
+
 
 extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool unsafe {
     let argv = JS_ARGV(cx, vp);
