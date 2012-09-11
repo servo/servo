@@ -1,7 +1,7 @@
-import geom::point::Point2D;
-import geom::rect::Rect;
-import geom::size::Size2D;
-import num::{Num, from_int};
+use geom::point::Point2D;
+use geom::rect::Rect;
+use geom::size::Size2D;
+use num::{Num, from_int};
 
 enum au = i32;
 

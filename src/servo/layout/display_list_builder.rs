@@ -1,19 +1,19 @@
 export build_display_list;
 
-import css::values::{BgColor, BgTransparent, Specified};
-import base::{Box, BTree, ImageHolder, TextBoxKind};
-import dl = layout::display_list;
-import dom::base::{Text, NodeScope};
-import dom::rcu::Scope;
-import either::{Left, Right};
-import geom::point::Point2D;
-import geom::rect::Rect;
-import geom::size::Size2D;
-import gfx::geometry::{au, au_to_px, box, px_to_au};
-import util::tree;
+use css::values::{BgColor, BgTransparent, Specified};
+use base::{Box, BTree, ImageHolder, TextBoxKind};
+use dl = layout::display_list;
+use dom::base::{Text, NodeScope};
+use dom::rcu::Scope;
+use either::{Left, Right};
+use geom::point::Point2D;
+use geom::rect::Rect;
+use geom::size::Size2D;
+use gfx::geometry::{au, au_to_px, box, px_to_au};
+use util::tree;
 
-import dvec::DVec;
-import vec::push;
+use dvec::DVec;
+use vec::push;
 
 #[doc = "
 

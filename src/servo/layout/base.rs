@@ -1,27 +1,27 @@
 #[doc="Fundamental layout structures and algorithms."]
 
-import css::styles::SpecifiedStyle;
-import css::values::{BoxSizing, Length, Px};
-import dom::base::{Element, ElementKind, HTMLDivElement, HTMLImageElement, Node, NodeData};
-import dom::base::{NodeKind};
-import dom::rcu;
-import gfx::geometry;
-import gfx::geometry::{au, zero_size_au};
-import geom::point::Point2D;
-import geom::rect::Rect;
-import geom::size::Size2D;
-import image::base::Image;
-import util::tree;
-import util::color::Color;
-import text::TextBox;
-import traverse::extended_full_traversal;
-import vec::{push, push_all};
-import std::net::url::Url;
-import resource::image_cache_task;
-import image_cache_task::ImageCacheTask;
-import core::to_str::ToStr;
-import std::arc::{ARC, clone};
-import task::spawn;
+use css::styles::SpecifiedStyle;
+use css::values::{BoxSizing, Length, Px};
+use dom::base::{Element, ElementKind, HTMLDivElement, HTMLImageElement, Node, NodeData};
+use dom::base::{NodeKind};
+use dom::rcu;
+use gfx::geometry;
+use gfx::geometry::{au, zero_size_au};
+use geom::point::Point2D;
+use geom::rect::Rect;
+use geom::size::Size2D;
+use image::base::Image;
+use util::tree;
+use util::color::Color;
+use text::TextBox;
+use traverse::extended_full_traversal;
+use vec::{push, push_all};
+use std::net::url::Url;
+use resource::image_cache_task;
+use image_cache_task::ImageCacheTask;
+use core::to_str::ToStr;
+use std::arc::{ARC, clone};
+use task::spawn;
 
 enum BoxKind {
     BlockBox,
@@ -50,7 +50,9 @@ struct Appearance {
     mut width: BoxSizing,
     mut height: BoxSizing,
     mut font_size: Length,
+}
 
+impl Appearance {
     // This will be very unhappy if it is getting run in parallel with
     // anything trying to read the background image
     fn get_image() -> Option<ARC<~Image>> {
@@ -336,13 +338,13 @@ impl Node : NodeMethods {
 
 #[cfg(test)]
 mod test {
-    import dom::base::{Element, ElementData, HTMLDivElement, HTMLImageElement, Node, NodeKind};
-    import dom::base::{NodeScope};
-    import dom::rcu::Scope;
+    use dom::base::{Element, ElementData, HTMLDivElement, HTMLImageElement, Node, NodeKind};
+    use dom::base::{NodeScope};
+    use dom::rcu::Scope;
 
     /*
     use sdl;
-    import sdl::video;
+    use sdl::video;
 
     fn with_screen(f: fn(*sdl::surface)) {
         let screen = video::set_video_mode(

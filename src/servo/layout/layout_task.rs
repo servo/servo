@@ -3,22 +3,22 @@
     rendered.
 "];
 
-import std::arc::ARC;
-import display_list_builder::build_display_list;
-import dom::base::Node;
-import css::values::Stylesheet;
-import gfx::geometry::px_to_au;
-import gfx::render_task;
-import render_task::RenderTask;
-import layout::base::Box;
-import resource::image_cache_task::ImageCacheTask;
-import std::net::url::Url;
-import css::resolve::apply::apply_style;
-import dom::event::{Event, ReflowEvent};
-import content::content_task;
+use std::arc::ARC;
+use display_list_builder::build_display_list;
+use dom::base::Node;
+use css::values::Stylesheet;
+use gfx::geometry::px_to_au;
+use gfx::render_task;
+use render_task::RenderTask;
+use layout::base::Box;
+use resource::image_cache_task::ImageCacheTask;
+use std::net::url::Url;
+use css::resolve::apply::apply_style;
+use dom::event::{Event, ReflowEvent};
+use content::content_task;
 
-import task::*;
-import comm::*;
+use task::*;
+use comm::*;
 
 type LayoutTask = Chan<Msg>;
 

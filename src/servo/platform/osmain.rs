@@ -1,24 +1,24 @@
 export OSMain;
 export Msg, BeginDrawing, Draw, AddKeyHandler, Exit;
 
-import azure::*;
-import azure::azure_hl::DrawTarget;
-import azure::bindgen::*;
-import azure::cairo;
-import azure::cairo::bindgen::*;
-import azure::cairo_hl::ImageSurface;
-import comm::*;
-import dvec::DVec;
-import azure::cairo::cairo_surface_t;
-import gfx::compositor::Compositor;
-import dom::event::{Event, ResizeEvent};
-import layers::ImageLayer;
-import geom::size::Size2D;
-import std::cmp::FuzzyEq;
-import task::TaskBuilder;
-import vec::push;
+use azure::*;
+use azure::azure_hl::DrawTarget;
+use azure::bindgen::*;
+use azure::cairo;
+use azure::cairo::bindgen::*;
+use azure::cairo_hl::ImageSurface;
+use comm::*;
+use dvec::DVec;
+use azure::cairo::cairo_surface_t;
+use gfx::compositor::Compositor;
+use dom::event::{Event, ResizeEvent};
+use layers::ImageLayer;
+use geom::size::Size2D;
+use std::cmp::FuzzyEq;
+use task::TaskBuilder;
+use vec::push;
 
-import pipes::chan;
+use pipes::chan;
 
 type OSMain = comm::Chan<Msg>;
 

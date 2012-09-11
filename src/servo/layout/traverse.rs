@@ -1,7 +1,7 @@
 #[doc = "Interface for running tree-based traversals over layout boxes"]
 
-import base::{Box, BTree, NodeMethods};
-import intrinsic::TyDesc;
+use base::{Box, BTree, NodeMethods};
+use intrinsic::TyDesc;
 
 export full_traversal;
 export top_down_traversal;

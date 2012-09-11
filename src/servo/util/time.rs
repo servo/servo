@@ -1,5 +1,5 @@
 // Timing functions.
-import std::time::precise_time_ns;
+use std::time::precise_time_ns;
 
 fn time(msg: ~str, callback: fn()) {
     let start_time = precise_time_ns();

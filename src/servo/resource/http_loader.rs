@@ -1,10 +1,10 @@
 export factory;
 
-import comm::Chan;
-import task::spawn;
-import resource_task::{ProgressMsg, Payload, Done};
-import std::net::url::Url;
-import http_client::{uv_http_request};
+use comm::Chan;
+use task::spawn;
+use resource_task::{ProgressMsg, Payload, Done};
+use std::net::url::Url;
+use http_client::{uv_http_request};
 
 fn factory(+url: Url, progress_chan: Chan<ProgressMsg>) {
     assert url.scheme == ~"http";

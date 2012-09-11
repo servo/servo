@@ -1,10 +1,10 @@
 #[doc = "A collection of functions that are useful for both css and html parsing."]
 
-import option::is_none;
-import str::from_bytes;
-import vec::push;
-import comm::Port;
-import resource::resource_task::{ProgressMsg, Payload, Done};
+use option::is_none;
+use str::from_bytes;
+use vec::push;
+use comm::Port;
+use resource::resource_task::{ProgressMsg, Payload, Done};
 
 enum CharOrEof {
     CoeChar(u8),

@@ -2,22 +2,22 @@ use harfbuzz;
 
 export shape_text;
 
-import libc::types::common::c99::int32_t;
-import libc::{c_uint, c_int, c_void};
-import font::Font;
-import glyph::{Glyph, GlyphPos};
-import ptr::{null, addr_of, offset};
-import gfx::geometry::{au, px_to_au};
-import geom::point::Point2D;
-import font_library::FontLibrary;
+use libc::types::common::c99::int32_t;
+use libc::{c_uint, c_int, c_void};
+use font::Font;
+use glyph::{Glyph, GlyphPos};
+use ptr::{null, addr_of, offset};
+use gfx::geometry::{au, px_to_au};
+use geom::point::Point2D;
+use font_library::FontLibrary;
 
-import unsafe::reinterpret_cast;
-import harfbuzz::{HB_MEMORY_MODE_READONLY,
+use unsafe::reinterpret_cast;
+use harfbuzz::{HB_MEMORY_MODE_READONLY,
                   HB_DIRECTION_LTR};
-import harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_buffer_t,
+use harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_buffer_t,
                   hb_codepoint_t, hb_bool_t, hb_glyph_position_t,
 		  hb_var_int_t, hb_position_t};
-import harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
+use harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
                            hb_face_create, hb_face_destroy,
                            hb_font_create, hb_font_destroy,
                            hb_buffer_create, hb_buffer_destroy,

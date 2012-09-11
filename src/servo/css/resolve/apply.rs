@@ -1,13 +1,13 @@
 #[doc="Applies the appropriate CSS style to boxes."]
 
-import gfx::geometry::au_to_px;
-import layout::base::{Box, BTree, NTree, LayoutData, SpecifiedStyle, ImageHolder,
+use gfx::geometry::au_to_px;
+use layout::base::{Box, BTree, NTree, LayoutData, SpecifiedStyle, ImageHolder,
               BlockBox, InlineBox, IntrinsicBox, TextBox};
-import layout::traverse::{top_down_traversal};
-import std::net::url::Url;
-import resource::image_cache_task::ImageCacheTask;
+use layout::traverse::{top_down_traversal};
+use std::net::url::Url;
+use resource::image_cache_task::ImageCacheTask;
 
-import css::values::*;
+use css::values::*;
 
 trait ResolveMethods<T> {
     pure fn initial() -> T;

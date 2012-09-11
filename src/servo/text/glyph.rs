@@ -1,7 +1,7 @@
 export GlyphIndex, GlyphPos, Glyph;
 
-import gfx::geometry::au;
-import geom::point::Point2D;
+use gfx::geometry::au;
+use geom::point::Point2D;
 
 #[doc = "The index of a particular glyph within a font"]
 type GlyphIndex = uint;

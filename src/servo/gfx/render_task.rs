@@ -1,25 +1,25 @@
-import platform::osmain;
-import geometry::*;
-import comm::*;
-import image::base::Image;
-import dl = layout::display_list;
-import azure::*;
-import azure::bindgen::*;
-import libc::size_t;
-import text::font::Font;
-import text::text_run::TextRun;
-import geom::size::Size2D;
-import geom::rect::Rect;
-import geom::point::Point2D;
-import azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions};
-import azure_hl::{DrawTarget, Linear};
-import ptr::addr_of;
-import std::arc::ARC;
-import azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
-import std::cell::Cell;
-import compositor::Compositor;
+use platform::osmain;
+use geometry::*;
+use comm::*;
+use image::base::Image;
+use dl = layout::display_list;
+use azure::*;
+use azure::bindgen::*;
+use libc::size_t;
+use text::font::Font;
+use text::text_run::TextRun;
+use geom::size::Size2D;
+use geom::rect::Rect;
+use geom::point::Point2D;
+use azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions};
+use azure_hl::{DrawTarget, Linear};
+use ptr::addr_of;
+use std::arc::ARC;
+use azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
+use std::cell::Cell;
+use compositor::Compositor;
 
-import pipes::{Port, Chan};
+use pipes::{Port, Chan};
 
 type Renderer = comm::Chan<Msg>;
 
@@ -132,18 +132,18 @@ fn draw_image(draw_target: &DrawTarget, item: dl::DisplayItem, image: ARC<~Image
 }
 
 fn draw_text(draw_target: &DrawTarget, item: dl::DisplayItem, text_run: TextRun) {
-    import ptr::{addr_of, null};
-    import vec::unsafe::to_ptr;
-    import libc::types::common::c99::{uint16_t, uint32_t};
-    import geom::point::Point2D;
-    import text::font_library::FontLibrary;
-    import text::font::Font;
-    import azure::{AzNativeFont, AzFloat, AZ_NATIVE_FONT_CAIRO_FONT_FACE};
-    import azure::bindgen::{AzCreateScaledFontWithCairo,
+    use ptr::{addr_of, null};
+    use vec::unsafe::to_ptr;
+    use libc::types::common::c99::{uint16_t, uint32_t};
+    use geom::point::Point2D;
+    use text::font_library::FontLibrary;
+    use text::font::Font;
+    use azure::{AzNativeFont, AzFloat, AZ_NATIVE_FONT_CAIRO_FONT_FACE};
+    use azure::bindgen::{AzCreateScaledFontWithCairo,
                             AzReleaseScaledFont,
                             AzCreateColorPattern,
                             AzReleaseColorPattern};
-    import azure::cairo::bindgen::cairo_scaled_font_destroy;
+    use azure::cairo::bindgen::cairo_scaled_font_destroy;
 
     let draw_target = draw_target.azure_draw_target;
 
@@ -205,8 +205,8 @@ fn draw_text(draw_target: &DrawTarget, item: dl::DisplayItem, text_run: TextRun)
 #[cfg(target_os = "linux")]
 fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
 
-    import libc::c_int;
-    import azure::cairo_ft::bindgen::{cairo_ft_font_face_create_for_ft_face};
+    use libc::c_int;
+    use azure::cairo_ft::bindgen::{cairo_ft_font_face_create_for_ft_face};
 
     let ftface = font.native_font.face;
     let cface = cairo_ft_font_face_create_for_ft_face(ftface, 0 as c_int);
@@ -216,7 +216,7 @@ fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
 
 #[cfg(target_os = "macos")]
 fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
-    import azure::cairo_quartz::bindgen::cairo_quartz_font_face_create_for_cgfont;
+    use azure::cairo_quartz::bindgen::cairo_quartz_font_face_create_for_cgfont;
 
     let cgfont = font.native_font.cgfont;
     let face = cairo_quartz_font_face_create_for_cgfont(cgfont);
@@ -226,10 +226,10 @@ fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
 
 fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
 
-    import libc::c_double;
-    import azure::cairo;
-    import cairo::cairo_matrix_t;
-    import cairo::bindgen::{cairo_matrix_init_identity,
+    use libc::c_double;
+    use azure::cairo;
+    use cairo::cairo_matrix_t;
+    use cairo::bindgen::{cairo_matrix_init_identity,
                             cairo_matrix_scale,
                             cairo_font_options_create,
                             cairo_scaled_font_create,

@@ -1,4 +1,4 @@
-import geom::size::Size2D;
+use geom::size::Size2D;
 
 enum format {
     fo_rgba_8888

@@ -2,14 +2,14 @@ use cocoa;
 
 export QuartzNativeFont, with_test_native_font, create;
 
-import libc::size_t;
-import ptr::null;
-import glyph::GlyphIndex;
-import cocoa::cg::{
+use libc::size_t;
+use ptr::null;
+use glyph::GlyphIndex;
+use cocoa::cg::{
     CGDataProviderRef,
     CGFontRef
 };
-import cocoa::cg::cg::{
+use cocoa::cg::cg::{
     CGDataProviderCreateWithData,
     CGDataProviderRelease,
     CGFontCreateWithDataProvider,
@@ -75,8 +75,8 @@ fn QuartzNativeFont(fontprov: CGDataProviderRef, cgfont: CGFontRef) -> QuartzNat
 impl QuartzNativeFont {
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
 
-        import coretext::{UniChar, CGGlyph, CFIndex};
-        import coretext::coretext::{CFRelease, CTFontGetGlyphsForCharacters};
+        use coretext::{UniChar, CGGlyph, CFIndex};
+        use coretext::coretext::{CFRelease, CTFontGetGlyphsForCharacters};
 
         let ctfont = ctfont_from_cgfont(self.cgfont);
         assert ctfont.is_not_null();
@@ -103,8 +103,8 @@ impl QuartzNativeFont {
 
     // FIXME: What unit is this returning? Let's have a custom type
     fn glyph_h_advance(glyph: GlyphIndex) -> Option<int> {
-        import coretext::{CGGlyph, kCTFontDefaultOrientation};
-        import coretext::coretext::{CFRelease, CTFontGetAdvancesForGlyphs};
+        use coretext::{CGGlyph, kCTFontDefaultOrientation};
+        use coretext::coretext::{CFRelease, CTFontGetAdvancesForGlyphs};
 
         let ctfont = ctfont_from_cgfont(self.cgfont);
         assert ctfont.is_not_null();
@@ -120,8 +120,8 @@ impl QuartzNativeFont {
 }
 
 fn ctfont_from_cgfont(cgfont: CGFontRef) -> coretext::CTFontRef {
-    import coretext::CGFloat;
-    import coretext::coretext::CTFontCreateWithGraphicsFont;
+    use coretext::CGFloat;
+    use coretext::coretext::CTFontCreateWithGraphicsFont;
 
     assert cgfont.is_not_null();
     CTFontCreateWithGraphicsFont(cgfont, 21f as CGFloat, null(), null())
@@ -147,8 +147,8 @@ fn create(buf: &~[u8]) -> Result<QuartzNativeFont, ()> {
 }
 
 fn with_test_native_font(f: fn@(nf: &NativeFont)) {
-    import font::test_font_bin;
-    import unwrap_result = result::unwrap;
+    use font::test_font_bin;
+    use unwrap_result = result::unwrap;
 
     let buf = test_font_bin();
     let res = create(&buf);

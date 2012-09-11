@@ -1,10 +1,10 @@
-import gfx::geometry::*;
-import geom::rect::Rect;
-import image::base::Image;
-import servo_text::text_run::TextRun;
+use gfx::geometry::*;
+use geom::rect::Rect;
+use image::base::Image;
+use servo_text::text_run::TextRun;
 
-import std::arc::ARC;
-import dvec::DVec;
+use std::arc::ARC;
+use dvec::DVec;
 
 // TODO: convert to DisplayItem trait with methods like bounds(), paint(), etc.
 enum ItemKind {

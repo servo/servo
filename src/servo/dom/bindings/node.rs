@@ -1,18 +1,18 @@
-import js::rust::{bare_compartment, methods, jsobj};
-import js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
+use js::rust::{bare_compartment, methods, jsobj};
+use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
-import js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
-import js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
+use js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
+use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
                             JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate};
-import js::jsapi::bindgen::*;
-import js::glue::bindgen::*;
-import js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub};
+use js::jsapi::bindgen::*;
+use js::glue::bindgen::*;
+use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub};
 
-import dom::base::{Node, NodeScope, Element, Text, Doctype, Comment};
-import utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval, str};
-import libc::c_uint;
-import ptr::null;
+use dom::base::{Node, NodeScope, Element, Text, Doctype, Comment};
+use utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval, str};
+use libc::c_uint;
+use ptr::null;
 
 fn init(compartment: bare_compartment) {
     let obj = utils::define_empty_prototype(~"Node", None, compartment);

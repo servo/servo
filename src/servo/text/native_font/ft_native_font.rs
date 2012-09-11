@@ -1,12 +1,12 @@
 export FreeTypeNativeFont, with_test_native_font, create;
 
-import vec_as_buf = vec::as_buf;
-import ptr::{addr_of, null};
-import unsafe::reinterpret_cast;
-import glyph::GlyphIndex;
-import azure::freetype;
-import freetype::{ FT_Error, FT_Library, FT_Face, FT_Long, FT_ULong, FT_UInt, FT_GlyphSlot };
-import freetype::bindgen::{
+use vec_as_buf = vec::as_buf;
+use ptr::{addr_of, null};
+use unsafe::reinterpret_cast;
+use glyph::GlyphIndex;
+use azure::freetype;
+use freetype::{ FT_Error, FT_Library, FT_Face, FT_Long, FT_ULong, FT_UInt, FT_GlyphSlot };
+use freetype::bindgen::{
     FT_Init_FreeType,
     FT_Done_FreeType,
     FT_New_Memory_Face,
@@ -92,8 +92,8 @@ impl FT_Error : FTErrorMethods {
 }
 
 fn with_test_native_font(f: fn@(nf: &NativeFont)) {
-    import font::test_font_bin;
-    import unwrap_result = result::unwrap;
+    use font::test_font_bin;
+    use unwrap_result = result::unwrap;
 
     with_lib(|lib| {
         let buf = test_font_bin();

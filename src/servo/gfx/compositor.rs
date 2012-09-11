@@ -1,5 +1,5 @@
-import dom::event::Event;
-import azure::azure_hl::DrawTarget;
+use dom::event::Event;
+use azure::azure_hl::DrawTarget;
 
 #[doc = "
 The interface used to by the renderer to aquire draw targets for

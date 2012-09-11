@@ -1,10 +1,10 @@
 export factory;
 
-import comm::Chan;
-import task::spawn;
-import resource_task::{ProgressMsg, Payload, Done};
-import std::net::url::Url;
-import io::{file_reader, ReaderUtil};
+use comm::Chan;
+use task::spawn;
+use resource_task::{ProgressMsg, Payload, Done};
+use std::net::url::Url;
+use io::{file_reader, ReaderUtil};
 
 const READ_SIZE: uint = 1024;
 

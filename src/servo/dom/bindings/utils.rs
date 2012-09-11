@@ -1,15 +1,15 @@
-import js::rust::{compartment, bare_compartment, methods};
-import js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
+use js::rust::{compartment, bare_compartment, methods};
+use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL};
-import js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp};
-import js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
+use js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp};
+use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
                             JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate,
                             JS_GetClass, JS_GetPrototype};
-import js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB,
+use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB,
                   RESOLVE_STUB};
-import js::glue::bindgen::*;
-import ptr::null;
+use js::glue::bindgen::*;
+use ptr::null;
 
 enum DOMString {
     str(~str),

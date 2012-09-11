@@ -1,14 +1,14 @@
 #[doc="High-level interface to CSS selector matching."]
 
-import std::arc::{ARC, get, clone};
+use std::arc::{ARC, get, clone};
 
-import css::values::*;
-import css::values::Stylesheet;
-import dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
-import dom::base::{Comment, Doctype, Element, Node, NodeKind, Text};
-import util::color::{Color, rgb};
-import util::color::css_colors::{white, black};
-import layout::base::{LayoutData, NTree};
+use css::values::*;
+use css::values::Stylesheet;
+use dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
+use dom::base::{Comment, Doctype, Element, Node, NodeKind, Text};
+use util::color::{Color, rgb};
+use util::color::css_colors::{white, black};
+use layout::base::{LayoutData, NTree};
 
 type SpecifiedStyle = {mut background_color : CSSValue<CSSBackgroundColor>,
                         mut display_type : CSSValue<CSSDisplay>,

@@ -1,9 +1,9 @@
 export make_url, UrlMap, url_map;
 
-import std::net::url;
-import std::net::url::Url;
-import std::map::hashmap;
-import path::Path;
+use std::net::url;
+use std::net::url::Url;
+use std::map::hashmap;
+use path::Path;
 
 /**
 Create a URL object from a string. Does various helpful browsery things like
@@ -103,7 +103,7 @@ mod make_url_tests {
 type UrlMap<T: Copy> = hashmap<Url, T>;
 
 fn url_map<T: Copy>() -> UrlMap<T> {
-    import core::to_str::ToStr;
+    use core::to_str::ToStr;
 
     hashmap::<Url, T>()
 }

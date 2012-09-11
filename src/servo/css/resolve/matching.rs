@@ -1,11 +1,11 @@
 #[doc="Performs CSS selector matching."]
 
-import dom::base::{LayoutData};
-import dom::base;
-import base::{ElementData, Node, Text};
+use dom::base::{LayoutData};
+use dom::base;
+use base::{ElementData, Node, Text};
 
-import values::*;
-import styles::{SpecifiedStyle};
+use values::*;
+use styles::{SpecifiedStyle};
 
 #[doc="Check if a CSS attribute matches the attribute of an HTML element."]
 fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
@@ -208,9 +208,9 @@ impl Node : MatchingMethods {
 
 #[cfg(test)]
 mod test {
-    import dom::base::{Attr, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
-    import dom::base::{NodeScope, UnknownElement};
-    import dvec::DVec;
+    use dom::base::{Attr, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
+    use dom::base::{NodeScope, UnknownElement};
+    use dvec::DVec;
 
     #[allow(non_implicitly_copyable_typarams)]
     fn new_node_from_attr(scope: NodeScope, -name: ~str, -val: ~str) -> Node {

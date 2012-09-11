@@ -1,5 +1,5 @@
-import gfx::surface;
-import io::WriterUtil;
+use gfx::surface;
+use io::WriterUtil;
 
 fn encode(writer: io::Writer, surface: surface::image_surface) {
     assert surface.format == gfx::surface::fo_rgba_8888;

@@ -1,16 +1,18 @@
-import geom::point::Point2D;
-import geom::size::Size2D;
-import gfx::geometry::{au, px_to_au};
-import libc::{c_void};
-import font_library::FontLibrary;
-import font::Font;
-import glyph::Glyph;
-import shaper::shape_text;
+use geom::point::Point2D;
+use geom::size::Size2D;
+use gfx::geometry::{au, px_to_au};
+use libc::{c_void};
+use font_library::FontLibrary;
+use font::Font;
+use glyph::Glyph;
+use shaper::shape_text;
 
 #[doc="A single, unbroken line of text."]
 struct TextRun {
     glyphs: ~[Glyph],
+}
 
+impl TextRun {
     fn size() -> Size2D<au> {
         let height = px_to_au(20);
         let pen_start_x = px_to_au(0);

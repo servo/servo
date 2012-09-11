@@ -76,9 +76,9 @@ fn parse_display_type(str : ~str) -> ParseResult<CSSDisplay> {
 
 #[cfg(test)]
 mod test {
-    import css::lexer::spawn_css_lexer_from_string;
-    import css::parser::build_stylesheet;
-    import css::values::{Stylesheet, Element, FontSize, Width, Height};
+    use css::lexer::spawn_css_lexer_from_string;
+    use css::parser::build_stylesheet;
+    use css::values::{Stylesheet, Element, FontSize, Width, Height};
     
     // TODO: use helper methods to create test values
 

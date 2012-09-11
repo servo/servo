@@ -4,10 +4,10 @@
 // sanitize input / crop it to correct ranges, predefine other 130
 // css-defined colors
 
-import float::round;
-import libc::types::os::arch::c95::c_double;
-import css_colors::*;
-import cmp::Eq;
+use float::round;
+use libc::types::os::arch::c95::c_double;
+use css_colors::*;
+use cmp::Eq;
 
 enum Color = {red : u8, green : u8, blue : u8, alpha : float};
 
@@ -179,9 +179,9 @@ mod parsing {
 
 #[cfg(test)]
 mod test {
-    import css_colors::*;
-    import option::unwrap;
-    import parsing::parse_color;
+    use css_colors::*;
+    use option::unwrap;
+    use parsing::parse_color;
 
     #[test]
     fn test_parse_by_name() {

@@ -1,20 +1,20 @@
 export EngineTask, EngineTask_, EngineProto;
 
-import gfx::compositor::Compositor;
-import gfx::render_task;
-import render_task::RenderTask;
-import pipes::{spawn_service, select};
-import layout::layout_task;
-import layout_task::LayoutTask;
-import content::content_task;
-import content_task::{ContentTask};
-import resource::resource_task;
-import resource::resource_task::{ResourceTask};
-import std::net::url::Url;
-import resource::image_cache_task;
-import image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
+use gfx::compositor::Compositor;
+use gfx::render_task;
+use render_task::RenderTask;
+use pipes::{spawn_service, select};
+use layout::layout_task;
+use layout_task::LayoutTask;
+use content::content_task;
+use content_task::{ContentTask};
+use resource::resource_task;
+use resource::resource_task::{ResourceTask};
+use std::net::url::Url;
+use resource::image_cache_task;
+use image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 
-import pipes::{Port, Chan};
+use pipes::{Port, Chan};
 
 fn macros() {
     include!("macros.rs");
@@ -62,7 +62,7 @@ struct Engine<C:Compositor> {
 
 impl<C: Compositor> Engine<C> {
     fn run(+request: EngineProto::server::Running) {
-        import EngineProto::*;
+        use EngineProto::*;
         let mut request = request;
 
         loop {

@@ -1,11 +1,11 @@
-import comm::{Port, Chan};
-import option::is_none;
-import str::from_bytes;
-import vec::push;
-import lexer_util::*;
-import resource::resource_task;
-import resource_task::{ResourceTask, ProgressMsg, Load};
-import std::net::url::Url;
+use comm::{Port, Chan};
+use option::is_none;
+use str::from_bytes;
+use vec::push;
+use lexer_util::*;
+use resource::resource_task;
+use resource_task::{ResourceTask, ProgressMsg, Load};
+use std::net::url::Url;
 
 enum Token {
     StartOpeningTag(~str),

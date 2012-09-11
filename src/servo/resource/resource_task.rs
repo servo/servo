@@ -8,10 +8,10 @@ export ControlMsg, Load, Exit;
 export ProgressMsg, Payload, Done;
 export ResourceTask, ResourceManager, LoaderTaskFactory;
 
-import comm::{Chan, Port};
-import task::{spawn, spawn_listener};
-import std::net::url;
-import std::net::url::{Url, to_str};
+use comm::{Chan, Port};
+use task::{spawn, spawn_listener};
+use std::net::url;
+use std::net::url::{Url, to_str};
 
 enum ControlMsg {
     /// Request the data associated with a particular URL

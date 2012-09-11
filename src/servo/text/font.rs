@@ -1,11 +1,11 @@
 export Font, test_font_bin, create_test_font;
 
-import glyph::GlyphIndex;
-import vec_to_ptr = vec::unsafe::to_ptr;
-import libc::{ c_int, c_double, c_ulong };
-import ptr::{ null, addr_of };
-import native_font::NativeFont;
-import font_library::FontLibrary;
+use glyph::GlyphIndex;
+use vec_to_ptr = vec::unsafe::to_ptr;
+use libc::{ c_int, c_double, c_ulong };
+use ptr::{ null, addr_of };
+use native_font::NativeFont;
+use font_library::FontLibrary;
 
 #[doc = "
 A font handle. Layout can use this to calculate glyph metrics
@@ -14,7 +14,9 @@ and the renderer can use it to render text.
 struct Font {
     fontbuf: @~[u8],
     native_font: NativeFont,
+}
 
+impl Font {
     fn buf() -> @~[u8] {
         self.fontbuf
     }

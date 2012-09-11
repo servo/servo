@@ -1,11 +1,11 @@
 #[doc="Block layout."]
 
-import css::values::*;
-import geom::point::Point2D;
-import geom::size::Size2D;
-import gfx::geometry::{px_to_au, au};
-import util::tree;
-import base::{Box, BlockBox, BTree};
+use css::values::*;
+use geom::point::Point2D;
+use geom::size::Size2D;
+use gfx::geometry::{px_to_au, au};
+use util::tree;
+use base::{Box, BlockBox, BTree};
 
 trait BlockLayoutMethods {
     fn reflow_block();

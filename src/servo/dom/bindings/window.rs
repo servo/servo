@@ -1,20 +1,20 @@
-import js::rust::{bare_compartment, methods};
-import js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
+use js::rust::{bare_compartment, methods};
+use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL};
-import js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp};
-import js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
+use js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp};
+use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
     JS_DefineFunctions, JS_DefineProperty, JS_DefineProperties, JS_EncodeString, JS_free};
-import js::glue::bindgen::*;
-import js::global::jsval_to_rust_str;
-import js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub, JS_ResolveStub};
-import js::glue::bindgen::RUST_JSVAL_TO_INT;
-import ptr::null;
-import libc::c_uint;
-import utils::{rust_box, squirrel_away, jsval_to_str};
-import bindings::node::create;
-import dom::base::{Node, Window};
-import dvec::DVec;
+use js::glue::bindgen::*;
+use js::global::jsval_to_rust_str;
+use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub, JS_ResolveStub};
+use js::glue::bindgen::RUST_JSVAL_TO_INT;
+use ptr::null;
+use libc::c_uint;
+use utils::{rust_box, squirrel_away, jsval_to_str};
+use bindings::node::create;
+use dom::base::{Node, Window};
+use dvec::DVec;
 
 extern fn alert(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool {
   unsafe {

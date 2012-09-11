@@ -17,7 +17,7 @@ enum RenderMode {
 
 #[allow(non_implicitly_copyable_typarams)]
 fn from_cmdline_args(args: ~[~str]) -> Opts {
-    import std::getopts;
+    use std::getopts;
 
     let args = args.tail();
 

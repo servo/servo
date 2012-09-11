@@ -4,17 +4,17 @@ export ImageCacheTask;
 export ImageCacheTaskClient;
 export SyncImageCacheTask;
 
-import image::base::{Image, load_from_memory, test_image_bin};
-import std::net::url::Url;
-import util::url::{make_url, UrlMap, url_map};
-import comm::{Chan, Port};
-import task::{spawn, spawn_listener};
-import resource::resource_task;
-import resource_task::ResourceTask;
-import std::arc::ARC;
-import clone_arc = std::arc::clone;
-import std::cell::Cell;
-import to_str::ToStr;
+use image::base::{Image, load_from_memory, test_image_bin};
+use std::net::url::Url;
+use util::url::{make_url, UrlMap, url_map};
+use comm::{Chan, Port};
+use task::{spawn, spawn_listener};
+use resource::resource_task;
+use resource_task::ResourceTask;
+use std::arc::ARC;
+use clone_arc = std::arc::clone;
+use std::cell::Cell;
+use to_str::ToStr;
 
 enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted

@@ -1,6 +1,6 @@
 export FontLibrary, native;
 
-import font::{Font, test_font_bin};
+use font::{Font, test_font_bin};
 
 struct FontLibrary {
     native_lib: native::NativeFontLibrary,
@@ -8,7 +8,9 @@ struct FontLibrary {
     drop {
         native::destroy_native_lib(&self.native_lib);
     }
+}
 
+impl FontLibrary {
     fn get_font() -> @Font {
         match create_font(&self.native_lib) {
           Ok(font) => font,
@@ -40,10 +42,10 @@ fn create_font(native_lib: &native::NativeFontLibrary) -> Result<@Font, ()> {
 
 #[cfg(target_os = "linux")]
 mod native {
-    import ptr::{null, addr_of};
-    import azure::freetype;
-    import freetype::{FT_Library, FT_Error};
-    import freetype::bindgen::{FT_Init_FreeType, FT_Done_FreeType};
+    use ptr::{null, addr_of};
+    use azure::freetype;
+    use freetype::{FT_Library, FT_Error};
+    use freetype::bindgen::{FT_Init_FreeType, FT_Done_FreeType};
 
     type NativeFontLibrary = FT_Library;
 

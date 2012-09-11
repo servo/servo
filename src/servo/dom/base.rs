@@ -94,7 +94,9 @@ struct ElementData {
     tag_name: ~str,
     kind: ~ElementKind,
     attrs: DVec<~Attr>,
+}
 
+impl ElementData {
     fn get_attr(attr_name: ~str) -> Option<~str> {
         let mut i = 0u;
         while i < self.attrs.len() {

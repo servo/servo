@@ -1,14 +1,14 @@
-import comm::*;
-import option::swap_unwrap;
-import platform::osmain;
-import osmain::{OSMain, AddKeyHandler};
-import opts::{Opts, Screen, Png};
-import engine::{EngineTask, EngineProto};
+use comm::*;
+use option::swap_unwrap;
+use platform::osmain;
+use osmain::{OSMain, AddKeyHandler};
+use opts::{Opts, Screen, Png};
+use engine::{EngineTask, EngineProto};
 
-import url_to_str = std::net::url::to_str;
-import util::url::make_url;
+use url_to_str = std::net::url::to_str;
+use util::url::make_url;
 
-import pipes::{Port, Chan};
+use pipes::{Port, Chan};
 
 fn main(args: ~[~str]) {
     run(opts::from_cmdline_args(args))
@@ -65,12 +65,12 @@ fn run_pipeline_screen(urls: ~[~str]) {
 fn run_pipeline_png(-url: ~str, outfile: ~str) {
 
     // Use a PNG encoder as the graphics compositor
-    import gfx::png_compositor;
-    import png_compositor::PngCompositor;
-    import io::{Writer, buffered_file_writer};
-    import resource::resource_task::ResourceTask;
-    import resource::image_cache_task::SyncImageCacheTask;
-    import engine::EngineTask_;
+    use gfx::png_compositor;
+    use png_compositor::PngCompositor;
+    use io::{Writer, buffered_file_writer};
+    use resource::resource_task::ResourceTask;
+    use resource::image_cache_task::SyncImageCacheTask;
+    use engine::EngineTask_;
 
     listen(|pngdata_from_compositor| {
         let compositor = PngCompositor(pngdata_from_compositor);

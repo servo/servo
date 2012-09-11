@@ -127,4 +127,4 @@ mod util {
 
 mod opts;
 
-import servo_text = text;
+use servo_text = text;
