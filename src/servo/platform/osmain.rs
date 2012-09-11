@@ -18,7 +18,7 @@ use std::cmp::FuzzyEq;
 use task::TaskBuilder;
 use vec::push;
 
-use pipes::chan;
+use pipes::Chan;
 
 type OSMain = comm::Chan<Msg>;
 

@@ -2,7 +2,7 @@ export make_url, UrlMap, url_map;
 
 use std::net::url;
 use std::net::url::Url;
-use std::map::hashmap;
+use std::map::HashMap;
 use path::Path;
 
 /**
@@ -100,10 +100,10 @@ mod make_url_tests {
 
 }
 
-type UrlMap<T: Copy> = hashmap<Url, T>;
+type UrlMap<T: Copy> = HashMap<Url, T>;
 
 fn url_map<T: Copy>() -> UrlMap<T> {
     use core::to_str::ToStr;
 
-    hashmap::<Url, T>()
+    HashMap::<Url, T>()
 }
