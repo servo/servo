@@ -4,7 +4,6 @@ export QuartzNativeFont, with_test_native_font, create;
 
 import libc::size_t;
 import ptr::null;
-import unsafe::reinterpret_cast;
 import glyph::GlyphIndex;
 import cocoa::cg::{
     CGDataProviderRef,
@@ -16,6 +15,7 @@ import cocoa::cg::cg::{
     CGFontCreateWithDataProvider,
     CGFontRelease
 };
+use unsafe::transmute;
 
 mod coretext {
 
@@ -49,7 +49,7 @@ mod coretext {
     }
 }
 
-struct QuartzNativeFont/& {
+struct QuartzNativeFont {
     fontprov: CGDataProviderRef,
     cgfont: CGFontRef,
 
@@ -77,7 +77,7 @@ impl QuartzNativeFont {
 
         import coretext::{UniChar, CGGlyph, CFIndex};
         import coretext::coretext::{CFRelease, CTFontGetGlyphsForCharacters};
-         
+
         let ctfont = ctfont_from_cgfont(self.cgfont);
         assert ctfont.is_not_null();
         let characters: ~[UniChar] = ~[codepoint as UniChar];
@@ -119,7 +119,7 @@ impl QuartzNativeFont {
     }
 }
 
-fn ctfont_from_cgfont(+cgfont: CGFontRef) -> coretext::CTFontRef unsafe {
+fn ctfont_from_cgfont(cgfont: CGFontRef) -> coretext::CTFontRef {
     import coretext::CGFloat;
     import coretext::coretext::CTFontCreateWithGraphicsFont;
 
@@ -131,17 +131,19 @@ fn create(buf: &~[u8]) -> Result<QuartzNativeFont, ()> {
     let fontprov = vec::as_buf(*buf, |cbuf, len| {
         CGDataProviderCreateWithData(
             null(),
-            unsafe { reinterpret_cast(&cbuf) },
+            unsafe { transmute(&cbuf) },
             len as size_t,
             null())
     });
     // FIXME: Error handling
     assert fontprov.is_not_null();
     let cgfont = CGFontCreateWithDataProvider(fontprov);
-    // FIXME: Error handling
-    assert cgfont.is_not_null();
 
-    return Ok(QuartzNativeFont(fontprov, cgfont));
+    match cgfont.is_not_null() {
+        true => Ok(QuartzNativeFont(fontprov, cgfont)),
+        false => Err(())
+    }
+    
 }
 
 fn with_test_native_font(f: fn@(nf: &NativeFont)) {
