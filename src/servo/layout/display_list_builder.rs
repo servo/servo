@@ -63,22 +63,31 @@ Creates a display list item for a single block.
 "]
 #[allow(non_implicitly_copyable_typarams)]
 fn box_to_display_items(list: dl::DisplayList, box: @Box, origin: Point2D<au>) {
+
+    // TODO: each box should know how to make its own display items.
+    // The display list builder should mainly hold information about
+    // the initial request and desired result---for example, is the 
+    // DisplayList to be used for painting or hit testing. This can
+    // influence which boxes are created.
+
+    // TODO: to implement stacking contexts correctly, we need to
+    // create a set of display lists, one per each layer of a stacking
+    // context. (CSS 2.1, Section 9.9.1). Each box is passed the list
+    // set representing the box's stacking context. When asked to
+    // construct its constituent display items, each box puts its
+    // DisplayItems into the correct stack layer (according to CSS 2.1
+    // Appendix E).  and then builder flattens the list at the end.
+    
     #debug("request to display a box from origin %?", origin);
 
-    let bounds = Rect(origin, copy box.bounds.size);
+    let bounds : Rect<au> = Rect(origin, copy box.bounds.size);
 
     match box.kind {
       TextBoxKind(subbox) => {
         let run = copy subbox.run;
         assert run.is_some();
-        list.push(dl::DisplayItem {
-            item: dl::SolidColor(255u8, 255u8, 255u8),
-            bounds: bounds
-        } );
-        list.push(dl::DisplayItem {
-            item: dl::Text(run.get()),
-            bounds: bounds
-        });
+        list.push(~dl::SolidColor(bounds, 255u8, 255u8, 255u8));
+        list.push(~dl::Text(bounds, run.get()));
         return;
       }
       _ => {
@@ -90,11 +99,7 @@ fn box_to_display_items(list: dl::DisplayList, box: @Box, origin: Point2D<au>) {
     let image = box.appearance.get_image();
     
     if image.is_some() {
-        let display_item = dl::DisplayItem {
-            item: dl::Image(option::unwrap(image)),
-            bounds: bounds
-        };
-        list.push(display_item);
+        list.push(~dl::Image(bounds, option::unwrap(image)))
     } else {
         // DAC
         // TODO: shouldn't need to unbox CSSValue by now
@@ -104,10 +109,7 @@ fn box_to_display_items(list: dl::DisplayList, box: @Box, origin: Point2D<au>) {
             Specified(BgTransparent) | _ => util::color::rgba(0,0,0,0.0)
         };
         #debug("Assigning color %? to box with bounds %?", color, bounds);
-        list.push(dl::DisplayItem {
-            item: dl::SolidColor(color.red, color.green, color.blue),
-            bounds: bounds
-        });
+        list.push(~dl::SolidColor(bounds, color.red, color.green, color.blue));
     }
 }
 

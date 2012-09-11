@@ -23,7 +23,7 @@ use pipes::{Port, Chan};
 
 type Renderer = comm::Chan<Msg>;
 
-enum Msg {
+pub enum Msg {
     RenderMsg(dl::DisplayList),
     ExitMsg(pipes::Chan<()>)
 }
@@ -56,7 +56,7 @@ fn RenderTask<C: Compositor Send>(+compositor: C) -> RenderTask {
 
                     do draw_target.with_ref |draw_target| {
                         clear(draw_target);
-                        draw_display_list(draw_target, display_list);
+                        display_list.draw(draw_target)
                     }
 
                     #debug("renderer: returning surface");
@@ -82,19 +82,6 @@ impl u8 : to_float {
     }
 }
 
-fn draw_display_list(draw_target: &DrawTarget, display_list: dl::DisplayList) {
-    for display_list.each |item| {
-        #debug["drawing %?", item];
-
-        match item.item {
-          dl::SolidColor(r, g, b) => draw_solid_color(draw_target, item, r, g, b),
-          dl::Image(image) => draw_image(draw_target, item, image),
-          dl::Text(text_run) => draw_text(draw_target, item, text_run),
-          dl::Padding(*) => fail ~"should never see padding"
-        }
-    }
-}
-
 trait ToAzureRect {
     fn to_azure_rect() -> Rect<AzFloat>;
 }
@@ -106,16 +93,16 @@ impl Rect<au> : ToAzureRect {
     }
 }
 
-fn draw_solid_color(draw_target: &DrawTarget, item: dl::DisplayItem, r: u8, g: u8, b: u8) {
+pub fn draw_solid_color(draw_target: &DrawTarget, bounds: &Rect<au>, r: u8, g: u8, b: u8) {
     let color = Color(r.to_float() as AzFloat,
                       g.to_float() as AzFloat,
                       b.to_float() as AzFloat,
                       1f as AzFloat);
 
-    draw_target.fill_rect(item.bounds.to_azure_rect(), ColorPattern(color));
+    draw_target.fill_rect(bounds.to_azure_rect(), ColorPattern(color));
 }
 
-fn draw_image(draw_target: &DrawTarget, item: dl::DisplayItem, image: ARC<~Image>) unsafe {
+pub fn draw_image(draw_target: &DrawTarget, bounds: Rect<au>, image: ARC<~Image>) {
     let image = std::arc::get(&image);
     let size = Size2D(image.width as i32, image.height as i32);
     let stride = image.width * 4;
@@ -124,14 +111,14 @@ fn draw_image(draw_target: &DrawTarget, item: dl::DisplayItem, image: ARC<~Image
                                                                     B8G8R8A8);
     let source_rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat),
                            Size2D(image.width as AzFloat, image.height as AzFloat));
-    let dest_rect = item.bounds.to_azure_rect();
+    let dest_rect = bounds.to_azure_rect();
     let draw_surface_options = DrawSurfaceOptions(Linear, true);
     let draw_options = DrawOptions(1.0f as AzFloat, 0);
     draw_target.draw_surface(azure_surface, dest_rect, source_rect, draw_surface_options,
                              draw_options);
 }
 
-fn draw_text(draw_target: &DrawTarget, item: dl::DisplayItem, text_run: TextRun) {
+pub fn draw_text(draw_target: &DrawTarget, bounds: Rect<au>, text_run: &TextRun) {
     use ptr::{addr_of, null};
     use vec::unsafe::to_ptr;
     use libc::types::common::c99::{uint16_t, uint32_t};
@@ -147,7 +134,6 @@ fn draw_text(draw_target: &DrawTarget, item: dl::DisplayItem, text_run: TextRun)
 
     let draw_target = draw_target.azure_draw_target;
 
-    let bounds = copy item.bounds;
     // FIXME: The font library should not be created here
     let flib = FontLibrary();
     let font = flib.get_test_font();
@@ -230,11 +216,11 @@ fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
     use azure::cairo;
     use cairo::cairo_matrix_t;
     use cairo::bindgen::{cairo_matrix_init_identity,
-                            cairo_matrix_scale,
-                            cairo_font_options_create,
-                            cairo_scaled_font_create,
-                            cairo_font_options_destroy,
-                            cairo_font_face_destroy};
+                         cairo_matrix_scale,
+                         cairo_font_options_create,
+                         cairo_scaled_font_create,
+                         cairo_font_options_destroy,
+                         cairo_font_face_destroy};
 
     // FIXME: error handling
 
