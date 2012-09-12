@@ -12,7 +12,7 @@ use stb_image = stb_image::Image;
 type Image = stb_image::Image;
 
 fn Image(width: uint, height: uint, depth: uint, +data: ~[u8]) -> Image {
-    Image(width, height, depth, data)
+    stb_image::new_image(width, height, depth, data)
 }
 
 const TEST_IMAGE: [u8 * 4962] = #include_bin("test.jpeg");
