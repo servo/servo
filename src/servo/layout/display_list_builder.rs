@@ -131,8 +131,8 @@ fn should_convert_text_boxes_to_solid_color_background_items() {
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
     do list.borrow |l| {
-        match l[0].item {
-            dl::SolidColor(*) => { }
+        match l[0].data {
+            dl::SolidColorData(*) => { }
             _ => { fail }
         }
     }    
@@ -155,8 +155,8 @@ fn should_convert_text_boxes_to_text_items() {
     box_to_display_items(list, b, Point2D(px_to_au(0), px_to_au(0)));
 
     do list.borrow |l| {
-        match l[1].item {
-            dl::Text(_) => { }
+        match l[1].data {
+            dl::TextData(_) => { }
             _ => { fail }
         }
     }
