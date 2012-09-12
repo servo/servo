@@ -14,7 +14,7 @@ use image::base::Image;
 use util::tree;
 use util::color::Color;
 use text::TextBox;
-use traverse::extended_full_traversal;
+use traverse_parallel::extended_full_traversal;
 use vec::{push, push_all};
 use std::net::url::Url;
 use resource::image_cache_task;

@@ -3,7 +3,7 @@
 use gfx::geometry::au_to_px;
 use layout::base::{Box, BTree, NTree, LayoutData, SpecifiedStyle, ImageHolder,
               BlockBox, InlineBox, IntrinsicBox, TextBox};
-use layout::traverse::{top_down_traversal};
+use layout::traverse_parallel::{top_down_traversal};
 use std::net::url::Url;
 use resource::image_cache_task::ImageCacheTask;
 
