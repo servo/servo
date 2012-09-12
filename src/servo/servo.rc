@@ -58,7 +58,9 @@ mod layout {
     mod display_list_builder;
     mod inline;
     mod layout_task;
+    mod root;
     mod text;
+    mod traverse;
     mod traverse_parallel;
 }
 
@@ -73,6 +75,7 @@ mod gfx {
 
 mod image {
     mod base;
+    mod holder;
     mod encode {
         mod tga;
     }
@@ -97,17 +100,17 @@ mod text {
     export font;
     export shaper;
 
-    mod glyph;
-    mod text_run;
     mod font;
     mod font_library;
-    mod shaper;
+    mod glyph;
     mod native_font {
         #[cfg(target_os = "macos")]
         mod quartz_native_font;
         #[cfg(target_os = "linux")]
         mod ft_native_font;
     }
+    mod shaper;
+    mod text_run;
     mod util;
 }
 

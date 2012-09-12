@@ -1,6 +1,7 @@
+use au = gfx::geometry;
 use geom::point::Point2D;
 use geom::size::Size2D;
-use gfx::geometry::{au, px_to_au};
+use gfx::geometry::au;
 use libc::{c_void};
 use font_library::FontLibrary;
 use font::Font;
@@ -9,7 +10,7 @@ use shaper::shape_text;
 
 /// A single, unbroken line of text
 struct TextRun {
-    priv text: ~str,
+    text: ~str,
     priv glyphs: ~[Glyph],
     priv size_: Size2D<au>,
     priv min_break_width_: au,
@@ -76,8 +77,8 @@ fn TextRun(font: &Font, +text: ~str) -> TextRun {
 }
 
 fn glyph_run_size(glyphs: &[Glyph]) -> Size2D<au> {
-    let height = px_to_au(20);
-    let pen_start_x = px_to_au(0);
+    let height = au::from_px(20);
+    let pen_start_x = au::from_px(0);
     let pen_start_y = height;
     let pen_start = Point2D(pen_start_x, pen_start_y);
     let pen_end = glyphs.foldl(pen_start, |cur, glyph| {
@@ -137,7 +138,7 @@ fn test_calc_min_break_width1() {
     let flib = FontLibrary();
     let font = flib.get_test_font();
     let actual = calc_min_break_width(font, ~"firecracker");
-    let expected = px_to_au(84);
+    let expected = au::from_px(84);
     assert expected == actual;
 }
 
@@ -146,7 +147,7 @@ fn test_calc_min_break_width2() {
     let flib = FontLibrary();
     let font = flib.get_test_font();
     let actual = calc_min_break_width(font, ~"firecracker yumyum");
-    let expected = px_to_au(84);
+    let expected = au::from_px(84);
     assert expected == actual;
 }
 
@@ -155,7 +156,7 @@ fn test_calc_min_break_width3() {
     let flib = FontLibrary();
     let font = flib.get_test_font();
     let actual = calc_min_break_width(font, ~"yumyum firecracker");
-    let expected = px_to_au(84);
+    let expected = au::from_px(84);
     assert expected == actual;
 }
 
@@ -164,7 +165,7 @@ fn test_calc_min_break_width4() {
     let flib = FontLibrary();
     let font = flib.get_test_font();
     let actual = calc_min_break_width(font, ~"yumyum firecracker yumyum");
-    let expected = px_to_au(84);
+    let expected = au::from_px(84);
     assert expected == actual;
 }
 
@@ -237,7 +238,7 @@ fn test_split3() {
     let flib = FontLibrary();
     let font = flib.get_test_font();
     let run = TextRun(font, ~"firecracker firecracker");
-    let break_runs = run.split(font, run.min_break_width() + px_to_au(10));
+    let break_runs = run.split(font, run.min_break_width() + au::from_px(10));
     assert break_runs.first().text == ~"firecracker";
     assert break_runs.second().text == ~"firecracker";
 
@@ -249,7 +250,7 @@ fn should_calculate_the_total_size() {
     let flib = FontLibrary();
     let font = flib.get_test_font();
     let run = TextRun(font, ~"firecracker");
-    let expected = Size2D(px_to_au(84), px_to_au(20));
+    let expected = Size2D(au::from_px(84), au::from_px(20));
     assert run.size() == expected;
 }
 

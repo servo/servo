@@ -2,12 +2,13 @@ extern mod harfbuzz;
 
 export shape_text;
 
+use au = gfx::geometry;
 use libc::types::common::c99::int32_t;
 use libc::{c_uint, c_int, c_void, c_char};
 use font::Font;
 use glyph::{Glyph, GlyphPos};
 use ptr::{null, addr_of, offset};
-use gfx::geometry::{au, px_to_au};
+use gfx::geometry::au;
 use geom::point::Point2D;
 use font_library::FontLibrary;
 
@@ -137,10 +138,10 @@ extern fn glyph_h_advance_func(_font: *hb_font_t,
 }
 
 fn hb_glyph_pos_to_servo_glyph_pos(hb_pos: &hb_glyph_position_t) -> GlyphPos {
-    GlyphPos(Point2D(px_to_au(hb_pos.x_advance as int),
-                     px_to_au(hb_pos.y_advance as int)),
-             Point2D(px_to_au(hb_pos.x_offset as int),
-                     px_to_au(hb_pos.y_offset as int)))
+    GlyphPos(Point2D(au::from_px(hb_pos.x_advance as int),
+                     au::from_px(hb_pos.y_advance as int)),
+             Point2D(au::from_px(hb_pos.x_offset as int),
+                     au::from_px(hb_pos.y_offset as int)))
 }
 
 fn should_get_glyph_indexes() {
@@ -162,6 +163,6 @@ fn should_get_glyph_h_advance() {
     let font = lib.get_test_font();
     let glyphs = shape_text(font, ~"firecracker");
     let actual = glyphs.map(|g| g.pos.advance.x);
-    let expected = (~[6, 4, 7, 9, 8, 7, 10, 8, 9, 9, 7]).map(|a| px_to_au(a));
+    let expected = (~[6, 4, 7, 9, 8, 7, 10, 8, 9, 9, 7]).map(|a| au::from_px(a));
     assert expected == actual;
 }

@@ -1,5 +1,6 @@
+use au = geometry;
+use au::au;
 use platform::osmain;
-use geometry::*;
 use comm::*;
 use image::base::Image;
 use dl = display_list;
@@ -88,8 +89,8 @@ trait ToAzureRect {
 
 impl Rect<au> : ToAzureRect {
     fn to_azure_rect() -> Rect<AzFloat> {
-        Rect(Point2D(au_to_px(self.origin.x) as AzFloat, au_to_px(self.origin.y) as AzFloat),
-             Size2D(au_to_px(self.size.width) as AzFloat, au_to_px(self.size.height) as AzFloat))
+        Rect(Point2D(au::to_px(self.origin.x) as AzFloat, au::to_px(self.origin.y) as AzFloat),
+             Size2D(au::to_px(self.size.width) as AzFloat, au::to_px(self.size.height) as AzFloat))
     }
 }
 
@@ -167,8 +168,8 @@ pub fn draw_glyphs(draw_target: &DrawTarget, bounds: Rect<au>, text_run: &GlyphR
         let azglyph: AzGlyph = {
             mIndex: glyph.index as uint32_t,
             mPosition: {
-                x: au_to_px(origin.x.add(glyph.pos.offset.x)) as AzFloat,
-                y: au_to_px(origin.y.add(glyph.pos.offset.y)) as AzFloat
+                x: au::to_px(origin.x.add(glyph.pos.offset.x)) as AzFloat,
+                y: au::to_px(origin.y.add(glyph.pos.offset.y)) as AzFloat
             }
         };
         origin = Point2D(origin.x.add(glyph.pos.advance.x),

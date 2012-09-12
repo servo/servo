@@ -1,6 +1,6 @@
-#[doc = "Interface for running tree-based traversals over layout boxes"]
 
-use base::{Box, BTree, NodeMethods};
+#[doc = "Interface for running tree-based traversals over layout boxes"]
+use base::{Box, BoxTree};
 use intrinsic::TyDesc;
 
 export full_traversal;
@@ -67,7 +67,7 @@ fn traverse_helper<T : Copy Send>(-root : @Box, returned : T, -top_down : fn~(+T
         // current task will block until all of it's children return,
         // so the original owner of the @-box will not exit while the
         // children are still live.
-        for BTree.each_child(root) |kid| {
+        for BoxTree.each_child(root) |kid| {
             count += 1;
 
             // Unwrap the box so we can send it out of this task

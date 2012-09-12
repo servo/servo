@@ -1,205 +1,195 @@
-#[doc="Creates CSS boxes from a DOM."]
-
-use css::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayNone, Specified};
-use dom::base::{ElementData, HTMLDivElement, HTMLImageElement, Element, Text, Node, Doctype, Comment};
-use gfx::geometry::zero_size_au;
-use layout::base::{Appearance, BTree, BlockBox, Box, BoxKind, InlineBox, IntrinsicBox, NTree};
-use layout::base::{TextBoxKind};
-use layout::text::TextBox;
-use util::tree;
+/** Creates CSS boxes from a DOM. */
+use au = gfx::geometry;
+use core::dvec::DVec;
+use css::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayInlineBlock, DisplayNone};
+use css::values::{Inherit, Initial, Specified};
+use dom::base::{ElementData, HTMLDivElement, HTMLImageElement};
+use dom::base::{Element, Text, Node, Doctype, Comment, NodeTree};
+use layout::base::{Box, BoxData, GenericBox, ImageBox, TextBox, BoxTree};
+use layout::base::{FlowContext, FlowContextData, BlockFlow, InlineFlow, InlineBlockFlow, RootFlow, FlowTree};
+use layout::block::BlockFlowData;
+use layout::inline::InlineFlowData;
+use layout::root::RootFlowData;
+use layout::text::TextBoxData;
 use option::is_none;
+use util::tree;
+use servo_text::text_run::TextRun;
+use servo_text::font_library::FontLibrary;
 
-export box_builder_methods;
+export LayoutTreeBuilder;
 
-enum ctxt = {
-    // The parent node that we're scanning.
-    parent_node: Node,
-    // The parent box that these boxes will be added to.
-    parent_box: @Box,
-
-    //
-    // The current anonymous box that we're currently appending inline nodes to.
-    //
-    // See CSS2 9.2.1.1.
-    //
-
-    mut anon_box: Option<@Box>
-};
-
-fn create_context(parent_node: Node, parent_box: @Box) -> ctxt {
-    return ctxt({
-           parent_node: parent_node,
-           parent_box: parent_box,
-           mut anon_box: None
-    });
+struct LayoutTreeBuilder {
+    mut root_box: Option<@Box>,
+    mut root_ctx: Option<@FlowContext>,
+    mut next_bid: int,
+    mut next_cid: int
 }
 
-impl ctxt {
-    #[doc="
-     Constructs boxes for the parent's children, when the parent's 'display' attribute is 'block'.
-     "]
-    fn construct_boxes_for_block_children() {
-        for NTree.each_child(self.parent_node) |kid| {
-
-            // Create boxes for the child. Get its primary box.
-            let kid_box = kid.construct_boxes();
-            if (kid_box.is_none()) {
-                loop
-            }
-
-            // Determine the child's display.
-            let disp = kid.get_specified_style().display_type;
-            if disp != Specified(DisplayInline) {
-                self.finish_anonymous_box_if_necessary();
-            }
-
-            // Add the child's box to the current enclosing box or the current anonymous box.
-            match kid.get_specified_style().display_type {
-              Specified(DisplayBlock) => BTree.add_child(self.parent_box, kid_box.get()),
-              Specified(DisplayInline) => {
-                let anon_box = match self.anon_box {
-                  None => {
-                    //
-                    // The anonymous box inherits the attributes of its parents for now, so
-                    // that properties of intrinsic boxes are not spread to their parenting
-                    // anonymous box.
-                    //
-                    // TODO: check what CSS actually specifies
-                    //
-
-                    let b = @Box(self.parent_node, InlineBox);
-                    self.anon_box = Some(b);
-                    b
-                  }
-                  Some(b) => b
-                };
-                BTree.add_child(anon_box, kid_box.get());
-              }
-              Specified(DisplayNone) => {
-                // Nothing to do.
-              }
-              _ => { //hack for now
-              }
-            }
-        }
-    }
-
-    #[doc="
-      Constructs boxes for the parent's children, when the parent's 'display'
-      attribute is 'inline'.
-     "]
-    fn construct_boxes_for_inline_children() {
-        for NTree.each_child(self.parent_node) |kid| {
-
-            // Construct boxes for the child. Get its primary box.
-            let kid_box = kid.construct_boxes();
-
-            // Determine the child's display.
-            let disp = kid.get_specified_style().display_type;
-            if disp != Specified(DisplayInline) {
-                // TODO
-            }
-
-            // Add the child's box to the current enclosing box.
-            match kid.get_specified_style().display_type {
-              Specified(DisplayBlock) => {
-                // TODO
-                #warn("TODO: non-inline display found inside inline box");
-                BTree.add_child(self.parent_box, kid_box.get());
-              }
-              Specified(DisplayInline) => {
-                BTree.add_child(self.parent_box, kid_box.get());
-              }
-              Specified(DisplayNone) => {
-                // Nothing to do.
-              }
-              _  => { //hack for now
-              }
-            }
-        }
-    }
-
-    #[doc="Constructs boxes for the parent's children."]
-    fn construct_boxes_for_children() {
-        #debug("parent node:");
-        self.parent_node.dump();
-
-        match self.parent_node.get_specified_style().display_type {
-          Specified(DisplayBlock) => self.construct_boxes_for_block_children(),
-          Specified(DisplayInline) => self.construct_boxes_for_inline_children(),
-          Specified(DisplayNone) => { /* Nothing to do. */ }
-          _ => { //hack for now
-          }
-        }
-
-        self.finish_anonymous_box_if_necessary();
-        assert is_none(self.anon_box);
-    }
-
-    #[doc="
-      Flushes the anonymous box we're creating if it exists. This appends the
-      anonymous box to the block.
-    "]
-    fn finish_anonymous_box_if_necessary() {
-        match copy self.anon_box {
-          None => { /* Nothing to do. */ }
-          Some(b) => BTree.add_child(self.parent_box, b)
-        }
-        self.anon_box = None;
+fn LayoutTreeBuilder() -> LayoutTreeBuilder {
+    LayoutTreeBuilder {
+        root_box: None,
+        root_ctx: None,
+        next_bid: -1,
+        next_cid: -1
     }
 }
 
-trait PrivBoxBuilder {
-    fn determine_box_kind() -> Option<BoxKind>;
-}
+impl LayoutTreeBuilder {
+    /* Debug-only ids */
+    fn next_box_id() -> int { self.next_bid += 1; self.next_bid }
+    fn next_ctx_id() -> int { self.next_cid += 1; self.next_cid }
 
-impl Node : PrivBoxBuilder {
-    #[doc="
-      Determines the kind of box that this node needs. Also, for images, computes the intrinsic
-      size.
-     "]
-    fn determine_box_kind() -> Option<BoxKind> {
-        match self.read(|n| copy n.kind) {
-            ~Text(string) => Some(TextBoxKind(@TextBox(copy string))),
-            ~Element(element) => {
-                match (copy *element.kind, self.get_specified_style().display_type)  {
-                    (HTMLImageElement({size}), _) => Some(IntrinsicBox(@size)),
-                    (_, Specified(DisplayBlock)) => Some(BlockBox),
-                    (_, Specified(DisplayInline)) => Some(InlineBox),
-                    (_, Specified(DisplayNone)) => None,
-                    (_, Specified(_)) => Some(InlineBox),
-                    (_, _) => {
-                        fail ~"The specified display style should be a default instead of none"
-                    }
+    /** Creates necessary box(es) and flow context(s) for the current DOM node,
+    and recurses on its children. */
+    fn construct_recursively(cur_node: Node, parent_ctx: @FlowContext, parent_box: @Box) {
+        let style = cur_node.style();
+        
+        // DEBUG
+        let n_str = fmt!("%?", cur_node.read(|n| copy n.kind ));
+        debug!("Considering node: %?", n_str);
+
+        // TODO: handle interactions with 'float', 'position' (CSS 2.1, Section 9.7)
+        let display = match style.display_type {
+            Specified(v) => match v {
+                // tree ends here if 'display: none'
+                DisplayNone => return, 
+                _ => v
+            },
+            Inherit | Initial => DisplayInline // TODO: fail instead once resolve works
+            //fail ~"Node should have resolved value for 'display', but was initial or inherit"
+        };
+
+        // first, create the proper box kind, based on node characteristics
+        let box_data = match cur_node.create_box_data(display) {
+            None => return,
+            Some(data) => data
+        };
+
+        // then, figure out its proper context, possibly reorganizing.
+        let next_ctx: @FlowContext = match box_data {
+            /* Text box is always an inline flow. create implicit inline
+            flow ctx if we aren't inside one already. */
+            TextBox(*) => {
+                if (parent_ctx.starts_inline_flow()) {
+                    parent_ctx
+                } else {
+                    self.make_ctx(InlineFlow(InlineFlowData()), tree::empty())
                 }
             },
-          ~Doctype(*)
-          | ~Comment(*) => None
+            ImageBox(*) | GenericBox => {
+                match display {
+                    DisplayInline | DisplayInlineBlock => {
+                        /* if inline, try to put into inline context,
+                        making a new one if necessary */
+                        if (parent_ctx.starts_inline_flow()) {
+                            parent_ctx
+                        } else {
+                            self.make_ctx(InlineFlow(InlineFlowData()), tree::empty())
+                        }
+                    },
+                    /* block boxes always create a new context */
+                    DisplayBlock => {
+                        self.make_ctx(BlockFlow(BlockFlowData()), tree::empty())
+                    },
+                    _ => fail fmt!("unsupported display type in box generation: %?", display)
+                }
+            }
+        };
+
+        // make box, add box to any context-specific list.
+        let mut new_box = self.make_box(cur_node, parent_ctx, box_data);
+        debug!("Assign ^box to flow: %?", next_ctx.debug_str());
+
+        match next_ctx.kind {
+            InlineFlow(d) => { d.boxes.push(new_box) }
+            BlockFlow(d) => { d.box = Some(new_box) }
+            _ => {} // TODO: float lists, etc.
+        };
+
+        // connect the box to its parent box
+        debug!("Adding child box b%? of b%?", parent_box.id, new_box.id);
+        BoxTree.add_child(parent_box, new_box);
+    
+        if (!next_ctx.eq(parent_ctx)) {
+            debug!("Adding child flow f%? of f%?", parent_ctx.id, next_ctx.id);
+            FlowTree.add_child(parent_ctx, next_ctx);
         }
+        // recurse
+        do NodeTree.each_child(cur_node) |child_node| {
+            self.construct_recursively(child_node, next_ctx, new_box); true
+        }
+
+        // Fixup any irregularities, such as split inlines (CSS 2.1 Section 9.2.1.1)
+        if (next_ctx.starts_inline_flow()) {
+            let mut found_child_inline = false;
+            let mut found_child_block = false;
+
+            do FlowTree.each_child(next_ctx) |child_ctx| {
+                match child_ctx.kind {
+                    InlineFlow(*) | InlineBlockFlow => found_child_inline = true,
+                    BlockFlow(*) => found_child_block = true,
+                    _ => {}
+                }; true
+            }
+
+            if found_child_block && found_child_inline {
+                self.fixup_split_inline(next_ctx)
+            }
+        }
+    }
+
+    fn fixup_split_inline(foo: @FlowContext) {
+        // TODO: finish me. 
+        fail ~"TODO: handle case where an inline is split by a block"
+    }
+
+    /** entry point for box creation. Should only be 
+    called on root DOM element. */
+    fn construct_trees(root: Node) -> Result<@Box, ()> {
+        self.root_ctx = Some(self.make_ctx(RootFlow(RootFlowData()), tree::empty()));
+        self.root_box = Some(self.make_box(root, self.root_ctx.get(), GenericBox));
+
+        self.construct_recursively(root, self.root_ctx.get(), self.root_box.get());
+        return Ok(self.root_box.get())
+    }
+
+    fn make_ctx(kind : FlowContextData, tree: tree::Tree<@FlowContext>) -> @FlowContext {
+        let ret = @FlowContext(self.next_ctx_id(), kind, tree);
+        debug!("Created context: %s", ret.debug_str());
+        ret
+    }
+
+    fn make_box(node : Node, ctx: @FlowContext, data: BoxData) -> @Box {
+        let ret = @Box(self.next_box_id(), node, ctx, data);
+        debug!("Created box: %s", ret.debug_str());
+        ret
     }
 }
 
-trait BoxBuilder {
-    fn construct_boxes() -> Option<@Box>;
+trait PrivateBuilderMethods {
+    fn create_box_data(display: CSSDisplay) -> Option<BoxData>;
 }
 
-impl Node : BoxBuilder {
-    #[doc="Creates boxes for this node. This is the entry point."]
-    fn construct_boxes() -> Option<@Box> {
-        match self.determine_box_kind() {
-            None => None,
-            Some(kind) => {
-                let my_box = @Box(self, kind);
-                match kind {
-                    BlockBox | InlineBox => {
-                        let cx = create_context(self, my_box);
-                        cx.construct_boxes_for_children();
-                    }
-                    _ => {
-                        // Nothing to do.
+impl Node : PrivateBuilderMethods {
+    fn create_box_data(display: CSSDisplay) -> Option<BoxData> {
+        do self.read |node| {
+            match node.kind {
+                ~Doctype(*) | ~Comment(*) => None,
+                ~Text(string) => {
+                    // TODO: clean this up. Fonts should not be created here.
+                    let flib = FontLibrary();
+                    let font = flib.get_test_font();
+                    let run = TextRun(font, string);
+                    Some(TextBox(TextBoxData(copy string, ~[move run])))
+                }
+                ~Element(element) => {
+                    match (element.kind, display) {
+                        (~HTMLImageElement({size}), _) => Some(ImageBox(size)),
+//                      (_, Specified(_)) => Some(GenericBox),
+                        (_, _) => Some(GenericBox) // TODO: replace this with the commented lines
+//                      (_, _) => fail ~"Can't create box for Node with non-specified 'display' type"
                     }
                 }
-                Some(my_box)
             }
         }
     }

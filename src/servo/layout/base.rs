@@ -1,58 +1,184 @@
-#[doc="Fundamental layout structures and algorithms."]
+/* Fundamental layout structures and algorithms. */
 
+use au = gfx::geometry;
+use core::dvec::DVec;
+use core::to_str::ToStr;
+use core::rand;
 use css::styles::SpecifiedStyle;
-use css::values::{BoxSizing, Length, Px};
-use dom::base::{Element, ElementKind, HTMLDivElement, HTMLImageElement, Node, NodeData};
-use dom::base::{NodeKind};
+use css::values::{BoxSizing, Length, Px, CSSDisplay};
+use dom::base::{Element, ElementKind, HTMLDivElement, HTMLImageElement};
+use dom::base::{Node, NodeData, NodeKind, NodeTree};
 use dom::rcu;
-use gfx::geometry;
-use gfx::geometry::{au, zero_size_au};
-use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use image::base::Image;
-use util::tree;
-use util::color::Color;
-use text::TextBox;
-use traverse_parallel::extended_full_traversal;
-use vec::{push, push_all};
-use std::net::url::Url;
-use resource::image_cache_task;
-use image_cache_task::ImageCacheTask;
-use core::to_str::ToStr;
+use gfx::geometry::au;
+use image::{Image, ImageHolder};
+use layout::block::BlockFlowData;
+use layout::inline::InlineFlowData;
+use layout::root::RootFlowData;
+use layout::text::TextBoxData;
+use servo_text::text_run::TextRun;
 use std::arc::{ARC, clone};
+use std::net::url::Url;
 use task::spawn;
+use util::color::Color;
+use util::tree;
+use vec::{push, push_all};
 
-enum BoxKind {
-    BlockBox,
-    InlineBox,
-    IntrinsicBox(@Size2D<au>),
-    TextBoxKind(@TextBox)
+/* The type of the formatting context, and data specific to each
+context, such as lineboxes or float lists */ 
+enum FlowContextData {
+    AbsoluteFlow, 
+    BlockFlow(BlockFlowData),
+    FloatFlow,
+    InlineBlockFlow,
+    InlineFlow(InlineFlowData),
+    RootFlow(RootFlowData),
+    TableFlow
 }
 
-impl BoxKind : cmp::Eq {
-    pure fn eq(&&other: BoxKind) -> bool {
-        match (self, other) {
-          (BlockBox, BlockBox) => true,
-          (InlineBox, InlineBox) => true,
-          _ => fail ~"unimplemented case in BoxKind.eq"
+/* A particular kind of layout context. It manages the positioning of
+   layout boxes within the context.
+
+   Flow contexts form a tree that is induced by the structure of the
+   box tree. Each context is responsible for laying out one or more
+   boxes, according to the flow type. The number of flow contexts should
+   be much fewer than the number of boxes. The context maintains a vector
+   of its constituent boxes in their document order.
+*/
+struct FlowContext {
+    kind: FlowContextData,
+    data: FlowLayoutData,
+    /* reference to parent, children flow contexts */
+    tree: tree::Tree<@FlowContext>,
+    /* TODO: debug only */
+    mut id: int
+}
+
+fn FlowContext(id: int, kind: FlowContextData, tree: tree::Tree<@FlowContext>) -> FlowContext {
+    FlowContext {
+        kind: kind,
+        data: FlowLayoutData(),
+        tree: tree,
+        id: id
+    }
+}
+
+impl @FlowContext : cmp::Eq {
+    pure fn eq(&&other: @FlowContext) -> bool { box::ptr_eq(self, other) }
+    pure fn ne(&&other: @FlowContext) -> bool { !box::ptr_eq(self, other) }
+}
+
+/* A box's kind influences how its styles are interpreted during
+   layout.  For example, replaced content such as images are resized
+   differently than tables, text, or other content.
+
+   It also holds data specific to different box types, such as text.
+*/
+enum BoxData {
+    GenericBox,
+    ImageBox(Size2D<au>),
+    TextBox(TextBoxData)
+}
+
+struct Box {
+    /* references to children, parent */
+    tree : tree::Tree<@Box>,
+    /* originating DOM node */
+    node : Node,
+    /* reference to containing flow context, which this box
+       participates in */
+    ctx  : @FlowContext,
+    /* results of flow computation */
+    data : BoxLayoutData,
+    /* kind tag and kind-specific data */
+    kind : BoxData,
+    /* TODO: debug only */
+    mut id: int
+}
+
+fn Box(id: int, node: Node, ctx: @FlowContext, kind: BoxData) -> Box {
+    Box {
+        /* will be set when box is parented */
+        tree : tree::empty(),
+        node : node,
+        ctx  : ctx,
+        data : BoxLayoutData(),
+        kind : kind,
+        id : id
+    }
+}
+
+impl @Box {
+    pure fn is_replaced() -> bool {
+        match self.kind {
+            ImageBox(*) => true, // TODO: form elements, etc
+            _ => false
         }
     }
-    pure fn ne(&&other: BoxKind) -> bool {
-        return !self.eq(other);
+
+    pure fn get_min_width() -> au {
+        match self.kind {
+            // TODO: this should account for min/pref widths of the
+            // box element in isolation. That includes
+            // border/margin/padding but not child widths. The block
+            // FlowContext will combine the width of this element and
+            // that of its children to arrive at the context width.
+            GenericBox => au(0),
+            // TODO: If image isn't available, consult Node
+            // attrs, etc. to determine intrinsic dimensions. These
+            // dimensions are not defined by CSS 2.1, but are defined
+            // by the HTML5 spec in Section 4.8.1
+            ImageBox(size) => size.width,
+            // TODO: account for line breaks, etc. The run should know
+            // how to compute its own min and pref widths, and should
+            // probably cache them.
+            TextBox(d) => d.runs.foldl(au(0), |sum, run| {
+                au::max(sum, run.min_break_width())
+            })
+        }
     }
-}
 
-struct Appearance {
-    mut background_image: Option<ImageHolder>,
-    // TODO: create some sort of layout-specific enum to differentiate between
-    // relative and resolved values.
-    mut width: BoxSizing,
-    mut height: BoxSizing,
-    mut font_size: Length,
-}
+    pure fn get_pref_width() -> au {
+        match self.kind {
+            // TODO: this should account for min/pref widths of the
+            // box element in isolation. That includes
+            // border/margin/padding but not child widths. The block
+            // FlowContext will combine the width of this element and
+            // that of its children to arrive at the context width.
+            GenericBox => au(0),
+            // TODO: If image isn't available, consult Node
+            // attrs, etc. to determine intrinsic dimensions. These
+            // dimensions are not defined by CSS 2.1, but are defined
+            // by the HTML5 spec in Section 4.8.1
+            ImageBox(size) => size.width,
+            // TODO: account for line breaks, etc. The run should know
+            // how to compute its own min and pref widths, and should
+            // probably cache them.
+            TextBox(d) => d.runs.foldl(au(0), |sum, run| {
+                au::max(sum, run.size().width)
+            })
+        }
+    }
 
-impl Appearance {
+    /* Returns the amount of left, right "fringe" used by this
+    box. This should be based on margin, border, padding, width. */
+    fn get_used_width() -> (au, au) {
+        // TODO: this should actually do some computation!
+        // See CSS 2.1, Section 10.3, 10.4.
+
+        (au(0), au(0))
+    }
+    
+    /* Returns the amount of left, right "fringe" used by this
+    box. This should be based on margin, border, padding, width. */
+    fn get_used_height() -> (au, au) {
+        // TODO: this should actually do some computation!
+        // See CSS 2.1, Section 10.5, 10.6.
+
+        (au(0), au(0))
+    }
+
     // This will be very unhappy if it is getting run in parallel with
     // anything trying to read the background image
     fn get_image() -> Option<ARC<~Image>> {
@@ -61,155 +187,59 @@ impl Appearance {
         // Do a dance where we swap the ImageHolder out before we can
         // get the image out of it because we can't match against it
         // because holder.get_image() is not pure.
-        if (self.background_image).is_some() {
+        if (self.data.background_image).is_some() {
             let mut temp = None;
-            temp <-> self.background_image;
+            temp <-> self.data.background_image;
             let holder <- option::unwrap(temp);
             image = holder.get_image();
-            self.background_image = Some(holder);
+            self.data.background_image = Some(holder);
         }
 
-        return image;
+        image
     }
 }
 
+struct FlowLayoutData {
+    mut min_width: au,
+    mut pref_width: au,
+    mut position: Rect<au>,
+}
 
-fn Appearance(kind: NodeKind) -> Appearance {
-        // TODO: these should come from initial() or elsewhere
-    Appearance {
-        font_size : Px(14.0),
+
+fn FlowLayoutData() -> FlowLayoutData {
+    FlowLayoutData {
+        min_width: au(0),
+        pref_width: au(0),
+        position : au::zero_rect(),
+    }
+}
+
+struct BoxLayoutData {
+    mut min_width: au,
+    mut pref_width: au,
+    mut position: Rect<au>,
+
+    mut font_size: Length,
+    mut background_image: Option<ImageHolder>,
+}
+
+fn BoxLayoutData() -> BoxLayoutData {
+    BoxLayoutData {
+        min_width: au(0),
+        pref_width: au(0),
+        position : au::zero_rect(),
+
+        font_size : Px(0.0),
         background_image : None,
-        width : kind.default_width(),
-        height : kind.default_height(),
     }
 }
 
-struct Box {
-    tree: tree::Tree<@Box>,
-    node: Node,
-    kind: BoxKind,
-    mut bounds: Rect<au>,
-    appearance: Appearance,
-}
+// FIXME: Why do these have to be redefined for each node type?
 
-fn Box(node: Node, kind: BoxKind) -> Box {
-    Box {
-        appearance : node.read(|n| Appearance(*n.kind)),
-        tree : tree::empty(),
-        node : node,
-        kind : kind,
-        bounds : geometry::zero_rect_au(),
-    }
-}
+/* The tree holding boxes */
+enum BoxTree { BoxTree }
 
-#[doc="A struct to store image data.  The image will be loaded once,
- the first time it is requested, and an arc will be stored.  Clones of
- this arc are given out on demand."]
-struct ImageHolder {
-    // Invariant: at least one of url and image is not none, except
-    // occasionally while get_image is being called
-    mut url : Option<Url>,
-    mut image : Option<ARC<~Image>>,
-    image_cache_task: ImageCacheTask,
-    reflow: fn~(),
-
-}
-
-fn ImageHolder(-url : Url, image_cache_task: ImageCacheTask, reflow: fn~()) -> ImageHolder {
-    let holder = ImageHolder {
-        url : Some(copy url),
-        image : None,
-        image_cache_task : image_cache_task,
-        reflow : copy reflow,
-    };
-
-    // Tell the image cache we're going to be interested in this url
-    // FIXME: These two messages must be sent to prep an image for use
-    // but they are intended to be spread out in time. Ideally prefetch
-    // should be done as early as possible and decode only once we
-    // are sure that the image will be used.
-    image_cache_task.send(image_cache_task::Prefetch(copy url));
-    image_cache_task.send(image_cache_task::Decode(move url));
-
-    holder
-}
-
-impl ImageHolder {
-    // This function should not be called by two tasks at the same time
-    fn get_image() -> Option<ARC<~Image>> {
-        // If this is the first time we've called this function, load
-        // the image and store it for the future
-        if self.image.is_none() {
-            assert self.url.is_some();
-
-            let mut temp = None;
-            temp <-> self.url;
-            let url = option::unwrap(temp);
-
-            let response_port = Port();
-            self.image_cache_task.send(image_cache_task::GetImage(copy url, response_port.chan()));
-            self.image = match response_port.recv() {
-              image_cache_task::ImageReady(image) => Some(clone(&image)),
-              image_cache_task::ImageNotReady => {
-                // Need to reflow when the image is available
-                let image_cache_task = self.image_cache_task;
-                let reflow = copy self.reflow;
-                do spawn |copy url, move reflow| {
-                    let response_port = Port();
-                    image_cache_task.send(image_cache_task::WaitForImage(copy url, response_port.chan()));
-                    match response_port.recv() {
-                      image_cache_task::ImageReady(*) => reflow(),
-                      image_cache_task::ImageNotReady => fail /*not possible*/,
-                      image_cache_task::ImageFailed => ()
-                    }
-                }
-                None
-              }
-              image_cache_task::ImageFailed => {
-                #info("image was not ready for %s", url.to_str());
-                // FIXME: Need to schedule another layout when the image is ready
-                None
-              }
-            };
-        }
-
-        if self.image.is_some() {
-            // Temporarily swap out the arc of the image so we can clone
-            // it without breaking purity, then put it back and return the
-            // clone.  This is not threadsafe.
-            let mut temp = None;
-            temp <-> self.image;
-            let im_arc = option::unwrap(temp);
-            self.image = Some(clone(&im_arc));
-
-            return Some(im_arc);
-        } else {
-            return None;
-        }
-    }
-}
-
-enum LayoutData = {
-    mut specified_style: ~SpecifiedStyle,
-    mut box: Option<@Box>
-};
-
-// FIXME: This is way too complex! Why do these have to have dummy receivers? --pcw
-
-enum NTree { NTree }
-impl NTree : tree::ReadMethods<Node> {
-    fn each_child(node: Node, f: fn(Node) -> bool) {
-        tree::each_child(self, node, f)
-    }
-
-    fn with_tree_fields<R>(&&n: Node, f: fn(tree::Tree<Node>) -> R) -> R {
-        n.read(|n| f(n.tree))
-    }
-}
-
-enum BTree { BTree }
-
-impl BTree : tree::ReadMethods<@Box> {
+impl BoxTree : tree::ReadMethods<@Box> {
     fn each_child(node: @Box, f: fn(&&@Box) -> bool) {
         tree::each_child(self, node, f)
     }
@@ -219,9 +249,10 @@ impl BTree : tree::ReadMethods<@Box> {
     }
 }
 
-impl BTree : tree::WriteMethods<@Box> {
-    fn add_child(node: @Box, child: @Box) {
-        tree::add_child(self, node, child)
+impl BoxTree : tree::WriteMethods<@Box> {
+    fn add_child(parent: @Box, child: @Box) {
+        assert !box::ptr_eq(parent, child);
+        tree::add_child(self, parent, child)
     }
 
     fn with_tree_fields<R>(&&b: @Box, f: fn(tree::Tree<@Box>) -> R) -> R {
@@ -229,110 +260,167 @@ impl BTree : tree::WriteMethods<@Box> {
     }
 }
 
-impl @Box {
-    #[doc="The main reflow routine."]
-    fn reflow() {
+/* The tree holding FlowContexts */
+enum FlowTree { FlowTree }
+
+impl FlowTree : tree::ReadMethods<@FlowContext> {
+    fn each_child(ctx: @FlowContext, f: fn(&&@FlowContext) -> bool) {
+        tree::each_child(self, ctx, f)
+    }
+
+    fn with_tree_fields<R>(&&b: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
+        f(b.tree)
+    }
+}
+
+impl FlowTree : tree::WriteMethods<@FlowContext> {
+    fn add_child(parent: @FlowContext, child: @FlowContext) {
+        assert !box::ptr_eq(parent, child);
+        tree::add_child(self, parent, child)
+    }
+
+    fn with_tree_fields<R>(&&b: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
+        f(b.tree)
+    }
+}
+
+impl @FlowContext {
+    fn bubble_widths() {
         match self.kind {
-            BlockBox => self.reflow_block(),
-            InlineBox => self.reflow_inline(),
-            IntrinsicBox(size) => self.reflow_intrinsic(*size),
-            TextBoxKind(subbox) => self.reflow_text(subbox)
+            BlockFlow(*)  => self.bubble_widths_block(),
+            InlineFlow(*) => self.bubble_widths_inline(),
+            RootFlow(*)   => self.bubble_widths_root(),
+            _ => fail fmt!("Tried to bubble_widths of flow: %?", self.kind)
         }
     }
 
-    #[doc="Dumps the box tree, for debugging, with indentation."]
-    fn dump_indent(indent: uint) {
-        let mut s = ~"";
-        for uint::range(0u, indent) |_i| {
-            s += ~"    ";
-        }
-
-        s += #fmt("%?", self.kind);
-        #debug["%s", s];
-
-        for BTree.each_child(self) |kid| {
-            kid.dump_indent(indent + 1u) 
+    fn assign_widths() {
+        match self.kind {
+            BlockFlow(*)  => self.assign_widths_block(),
+            InlineFlow(*) => self.assign_widths_inline(),
+            RootFlow(*)   => self.assign_widths_root(),
+            _ => fail fmt!("Tried to assign_widths of flow: %?", self.kind)
         }
     }
-}
 
-#[doc = "
-     Set your width to the maximum available width and return the
-     maximum available width any children can use.  Currently children
-     are just given the same available width.
-"]
-fn give_kids_width(+available_width : au, box : @Box) -> au {
-    // TODO: give smaller available widths if the width of the
-    // containing box is constrained
-    match box.kind {
-        BlockBox => box.bounds.size.width = available_width,
-        InlineBox | IntrinsicBox(*) | TextBoxKind(*) => { }
-    }
-
-    available_width
-}
-
-#[doc="Wrapper around reflow so it can be passed to traverse"]
-fn reflow_wrapper(b : @Box) {
-    b.reflow();
-}
-
-impl @Box {
-    #[doc="
-           Run a parallel traversal over the layout tree rooted at
-           this box.  On the top-down traversal give each box the
-           available width determined by their parent and on the
-           bottom-up traversal reflow each box based on their
-           attributes and their children's sizes.
-    "]
-    fn reflow_subtree(available_width : au) {
-        extended_full_traversal(self, available_width, give_kids_width, reflow_wrapper);
-    }
-
-    #[doc="The trivial reflow routine for instrinsically-sized frames."]
-    fn reflow_intrinsic(size: Size2D<au>) {
-        self.bounds.size = copy size;
-
-        #debug["reflow_intrinsic size=%?", copy self.bounds];
-    }
-
-    #[doc="Dumps the box tree, for debugging."]
-    fn dump() {
-        self.dump_indent(0u);
+    fn assign_height() {
+        match self.kind {
+            BlockFlow(*)  => self.assign_height_block(),
+            InlineFlow(*) => self.assign_height_inline(),
+            RootFlow(*)   => self.assign_height_root(),
+            _ => fail fmt!("Tried to assign_height of flow: %?", self.kind)
+        }
     }
 }
 
 // Debugging
 
-trait PrivateNodeMethods{
+trait DebugMethods {
+    fn dump();
     fn dump_indent(ident: uint);
+    fn debug_str() -> ~str;
 }
 
-impl Node : PrivateNodeMethods {
-    #[doc="Dumps the node tree, for debugging, with indentation."]
+impl @FlowContext : DebugMethods {
+    fn dump() {
+        self.dump_indent(0u);
+    }
+
+    /** Dumps the flow tree, for debugging, with indentation. */
+    fn dump_indent(indent: uint) {
+        let mut s = ~"|";
+        for uint::range(0u, indent) |_i| {
+            s += ~"---- ";
+        }
+
+        s += self.debug_str();
+        debug!("%s", s);
+
+        for FlowTree.each_child(self) |child| {
+            child.dump_indent(indent + 1u) 
+        }
+    }
+    
+    /* TODO: we need a string builder. This is horribly inefficient */
+    fn debug_str() -> ~str {
+        let repr = match self.kind {
+            InlineFlow(d) => {
+                let mut s = d.boxes.foldl(~"InlineFlow(children=", |s, box| {
+                    fmt!("%s %?", s, box.id)
+                });
+                s += ~")"; s
+            },
+            BlockFlow(d) => {
+                match d.box {
+                    Some(b) => fmt!("BlockFlow(box=b%?)", d.box.get().id),
+                    None => ~"BlockFlow",
+                }
+            },
+            _ => fmt!("%?", self.kind)
+        };
+            
+        fmt!("c%? %?", self.id, repr)
+    }
+}
+
+impl Node : DebugMethods {
+    /* Dumps the subtree rooted at this node, for debugging. */
+    fn dump() {
+        self.dump_indent(0u);
+    }
+    /* Dumps the node tree, for debugging, with indentation. */
     fn dump_indent(indent: uint) {
         let mut s = ~"";
         for uint::range(0u, indent) |_i| {
             s += ~"    ";
         }
 
-        s += #fmt("%?", self.read(|n| copy n.kind ));
-        #debug["%s", s];
+        s += self.debug_str();
+        debug!("%s", s);
 
-        for NTree.each_child(self) |kid| {
+        for NodeTree.each_child(self) |kid| {
             kid.dump_indent(indent + 1u) 
         }
     }
+
+    fn debug_str() -> ~str {
+        fmt!("%?", self.read(|n| copy n.kind ))
+    }
 }
 
-trait NodeMethods {
-    fn dump();
-}
-
-impl Node : NodeMethods {
-    #[doc="Dumps the subtree rooted at this node, for debugging."]
+impl @Box : DebugMethods {
     fn dump() {
         self.dump_indent(0u);
+    }
+
+    /* Dumps the node tree, for debugging, with indentation. */
+    fn dump_indent(indent: uint) {
+        let mut s = ~"";
+        for uint::range(0u, indent) |_i| {
+            s += ~"    ";
+        }
+
+        s += self.debug_str();
+        debug!("%s", s);
+
+        for BoxTree.each_child(self) |kid| {
+            kid.dump_indent(indent + 1u) 
+        }
+    }
+
+    fn debug_str() -> ~str {
+        let repr = match self.kind {
+            GenericBox(*) => ~"GenericBox",
+            ImageBox(*) => ~"ImageBox",
+            TextBox(d) => {
+                let mut s = d.runs.foldl(~"TextBox(runs=", |s, run| {
+                    fmt!("%s  \"%s\"", s, run.text)
+                });
+                s += ~")"; s
+            }
+        };
+
+        fmt!("box b%?: %?", self.id, repr)
     }
 }
 
@@ -360,49 +448,15 @@ mod test {
 
     fn flat_bounds(root: @Box) -> ~[Rect<au>] {
         let mut r = ~[];
-        for tree::each_child(BTree, root) |c| {
+        for tree::each_child(BoxTree, root) |c| {
             push_all(r, flat_bounds(c));
         }
 
-        push(r, copy root.bounds);
+        push(r, copy root.data.position);
 
         return r;
     }
 
-    #[test]
-    #[ignore(reason = "busted")]
-    fn do_layout() {
-        let s = Scope();
-
-        fn mk_img(size: Size2D<au>) -> ~ElementKind {
-            ~HTMLImageElement({mut size: size})
-        }
-
-        let n0 = s.new_node(Element(ElementData(~"img", mk_img(Size2D(au(10),au(10))))));
-        let n1 = s.new_node(Element(ElementData(~"img", mk_img(Size2D(au(10),au(10))))));
-        let n2 = s.new_node(Element(ElementData(~"img", mk_img(Size2D(au(10),au(20))))));
-        let n3 = s.new_node(Element(ElementData(~"div", ~HTMLDivElement)));
-
-        tree::add_child(s, n3, n0);
-        tree::add_child(s, n3, n1);
-        tree::add_child(s, n3, n2);
-
-        let b0 = n0.construct_boxes().get();
-        let b1 = n1.construct_boxes().get();
-        let b2 = n2.construct_boxes().get();
-        let b3 = n3.construct_boxes().get();
-
-        tree::add_child(BTree, b3, b0);
-        tree::add_child(BTree, b3, b1);
-        tree::add_child(BTree, b3, b2);
-
-        b3.reflow_subtree(au(100));
-        let fb = flat_bounds(b3);
-        #debug["fb=%?", fb];
-        assert fb == ~[geometry::box(au(0), au(0), au(10), au(10)),   // n0
-                       geometry::box(au(0), au(10), au(10), au(15)),  // n1
-                       geometry::box(au(0), au(25), au(10), au(20)),  // n2
-                       geometry::box(au(0), au(0), au(100), au(45))]; // n3
-    }
+    // TODO: redo tests here, but probably is part of box_builder.rs
 }
 

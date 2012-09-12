@@ -167,12 +167,12 @@ impl Node : PrivStyleMethods {
     fn update_style(decl : StyleDeclaration) {
         self.aux(|layout| {
             match decl {
-              BackgroundColor(col) => layout.specified_style.background_color = col,
-              Display(dis) => layout.specified_style.display_type = dis,
-              FontSize(size) => layout.specified_style.font_size = size,
-              Height(size) => layout.specified_style.height = size,
-              Color(col) => layout.specified_style.text_color = col,
-              Width(size) => layout.specified_style.width = size
+              BackgroundColor(col) => layout.style.background_color = col,
+              Display(dis) => layout.style.display_type = dis,
+              FontSize(size) => layout.style.font_size = size,
+              Height(size) => layout.style.height = size,
+              Color(col) => layout.style.text_color = col,
+              Width(size) => layout.style.width = size
             };
         })
     }
@@ -202,7 +202,7 @@ impl Node : MatchingMethods {
             }
         }
         
-        self.aux(|a| #debug["Changed the style to: %?", copy *a.specified_style]);
+        self.aux(|a| #debug["Changed the style to: %?", copy *a.style]);
     }
 }
 

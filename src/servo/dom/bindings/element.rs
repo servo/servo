@@ -1,3 +1,4 @@
+use au = gfx::geometry;
 use js::rust::{bare_compartment, methods, jsobj};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
@@ -17,7 +18,6 @@ use ptr::null;
 use node::unwrap;
 use dom::base::{HTMLImageElement, HTMLScriptElement, HTMLHeadElement, HTMLDivElement,
                    UnknownElement};
-use gfx::geometry::{au_to_px, px_to_au};
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     #debug("element finalize!");
@@ -81,7 +81,7 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
         }
     });
     *vp = RUST_INT_TO_JSVAL(
-              (au_to_px(width) & (i32::max_value as int)) as libc::c_int);
+              (au::to_px(width) & (i32::max_value as int)) as libc::c_int);
     return 1;
 }
 
@@ -99,7 +99,7 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
             match ed.kind {
               ~HTMLImageElement(img) => {
                 let arg = ptr::offset(JS_ARGV(cx, unsafe::reinterpret_cast(&vp)), 0);
-                img.size.width = px_to_au(RUST_JSVAL_TO_INT(*arg) as int)
+                img.size.width = au::from_px(RUST_JSVAL_TO_INT(*arg) as int)
               },
               _ => fail ~"why is this not an image element?"
             }

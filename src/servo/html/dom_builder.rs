@@ -1,11 +1,11 @@
 #[doc="Constructs a DOM tree from an incoming token stream."]
 
+use au = gfx::geometry;
+use au::au;
 use dom::base::{Attr, Element, ElementData, ElementKind, HTMLDivElement, HTMLHeadElement,
                    HTMLScriptElement};
 use dom::base::{HTMLImageElement, Node, NodeScope, Text, UnknownElement};
 use geom::size::Size2D;
-use gfx::geometry;
-use gfx::geometry::au;
 use html::lexer;
 use html::lexer::Token;
 use css::values::Stylesheet;
@@ -37,7 +37,7 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: ~str, -value: ~str) {
                   None => {
                     // Drop on the floor.
                   }
-                  Some(s) => { img.size.width = geometry::px_to_au(s); }
+                  Some(s) => { img.size.width = au::from_px(s); }
                 }
               }
               HTMLImageElement(img) if key == ~"height" => {
@@ -46,7 +46,7 @@ fn link_up_attribute(scope: NodeScope, node: Node, -key: ~str, -value: ~str) {
                     // Drop on the floor.
                   }
                   Some(s) => {
-                    img.size.height = geometry::px_to_au(s);
+                    img.size.height = au::from_px(s);
                   }
                 }
               }
@@ -68,8 +68,8 @@ fn build_element_kind(tag_name: ~str) -> ~ElementKind {
     match tag_name {
         ~"div" => ~HTMLDivElement,
         ~"img" => {
-            ~HTMLImageElement({ mut size: Size2D(geometry::px_to_au(100),
-                                                 geometry::px_to_au(100))
+            ~HTMLImageElement({ mut size: Size2D(au::from_px(100),
+                                                 au::from_px(100))
                               })
         }
         ~"script" => ~HTMLScriptElement,

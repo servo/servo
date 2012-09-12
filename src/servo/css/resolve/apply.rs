@@ -1,11 +1,11 @@
 #[doc="Applies the appropriate CSS style to boxes."]
 
-use gfx::geometry::au_to_px;
-use layout::base::{Box, BTree, NTree, LayoutData, SpecifiedStyle, ImageHolder,
-              BlockBox, InlineBox, IntrinsicBox, TextBox};
-use layout::traverse_parallel::{top_down_traversal};
-use std::net::url::Url;
+use au = gfx::geometry;
+use layout::base::{Box, SpecifiedStyle};
+use layout::traverse_parallel::top_down_traversal;
+use image::ImageHolder;
 use resource::image_cache_task::ImageCacheTask;
+use std::net::url::Url;
 
 use css::values::*;
 
@@ -37,7 +37,7 @@ struct StyleApplicator {
     reflow: fn~(),
 }
 
-
+// TODO: normalize this into a normal preorder tree traversal function
 fn apply_style(box: @Box, doc_url: &Url, image_cache_task: ImageCacheTask, reflow: fn~()) {
     let applicator = StyleApplicator {
         box: box,
@@ -61,24 +61,19 @@ fn inheritance_wrapper(box : @Box, doc_url: &Url, image_cache_task: ImageCacheTa
         reflow: reflow
     };
     applicator.apply_style();
-    inherit_fontsize(box);
-    inherit_height(box);
-    inherit_width(box);
 }
 
-/* Turns symbolic (abs, rel) and relative font sizes into absolute lengths */
-    fn inherit_fontsize(box : @Box) {
-        // TODO: complete this
-        return
-    }
+/*
+fn resolve_fontsize(box : @Box) {
+    // TODO: complete this
+    return
+}
 
-#[doc="Compute the specified height of a layout box based on it's css specification and its
-       parent's height."]
-fn inherit_height(box : @Box) {
-    let style = box.node.get_specified_style();
+fn resolve_height(box : @Box) -> au {
+    let style = box.node.get_style();
     let inherit_val = match box.tree.parent {
-        None => style.height.initial(),
-        Some(node) => node.appearance.height
+        None => au(0),
+        Some(parent) => parent.data.computed_size.height
     };
 
     box.appearance.height = match style.height {
@@ -91,9 +86,7 @@ fn inherit_height(box : @Box) {
     }
 }
 
-#[doc="Compute the specified width of a layout box based on it's css specification and its
-       parent's width."]
-fn inherit_width(box : @Box) {
+fn resolve_width(box : @Box) {
     let style = box.node.get_specified_style();
     let inherit_val = match box.tree.parent {
         None => style.height.initial(),
@@ -108,7 +101,7 @@ fn inherit_width(box : @Box) {
             BoxLength(Em(n)) => BoxLength(Px(n * box.appearance.font_size.abs()))
         }
     }
-}
+}*/
 
 impl StyleApplicator {
     fn apply_css_style() {
@@ -141,7 +134,7 @@ impl StyleApplicator {
                         // FIXME: Some sort of BASE HREF support!
                         // FIXME: Parse URLs!
                         let new_url = make_url(option::unwrap(url), Some(copy *self.doc_url));
-                        self.box.appearance.background_image = Some(ImageHolder(new_url, self.image_cache_task, self.reflow))
+                        self.box.data.background_image = Some(ImageHolder(new_url, self.image_cache_task, self.reflow))
                     };
                   }
                   _ => { /* Ignore. */ }
@@ -155,57 +148,5 @@ impl StyleApplicator {
 
 #[cfg(test)]
 mod test {
-    use dom::base::{Attr, HTMLDivElement, HTMLHeadElement, HTMLImageElement, ElementData};
-    use dom::base::{NodeScope, Node, UnknownElement};
-    use dvec::DVec;
-
-    #[allow(non_implicitly_copyable_typarams)]
-    fn new_node(scope: NodeScope, -name: ~str) -> Node {
-        let elmt = ElementData(name, ~HTMLDivElement);
-        return scope.new_node(dom::base::Element(elmt));
-    }
-
-    #[test]
-    #[ignore(reason = "busted")]
-    fn test_percent_height() {
-        let scope = NodeScope();
-
-        let parent = new_node(scope, ~"parent");
-        let child = new_node(scope, ~"child");
-        let child2 = new_node(scope, ~"child");
-        let g1 = new_node(scope, ~"gchild");
-        let g2 = new_node(scope, ~"gchild");
-
-        scope.add_child(parent, child);
-        scope.add_child(parent, child2);
-        scope.add_child(child, g1);
-        scope.add_child(child, g2);
-        let _handles = parent.initialize_style_for_subtree();
-
-        // TODO: use helper methods to create test values
-        let px100 = BoxLength(Px(100.0));
-        let px10 = BoxLength(Px(10.0));
-        let px50 = BoxLength(Px(50.0));
-        let pc50 = BoxPercent(50.0);
-
-        do parent.aux |aux| { aux.specified_style.height = Specified(px100); }
-        do child.aux |aux| { aux.specified_style.height = Specified(BoxAuto); }
-        do child2.aux |aux| { aux.specified_style.height = Specified(pc50); }
-        do g1.aux |aux| { aux.specified_style.height = Specified(pc50); }
-        do g2.aux |aux| { aux.specified_style.height = Specified(px10); }
-
-        let parent_box = parent.construct_boxes();
-        let child_box = parent_box.get().tree.first_child.get();
-        let child2_box = parent_box.get().tree.last_child.get();
-        let g1_box = child_box.tree.first_child.get();
-        let g2_box = child_box.tree.last_child.get();
-        
-        top_down_traversal(parent_box.get(), inherit_height);
-
-        assert parent_box.get().appearance.height == px100;
-        assert child_box.appearance.height == BoxAuto;
-        assert child2_box.appearance.height == px50;
-        assert g1_box.appearance.height == BoxAuto;
-        assert g2_box.appearance.height == px10;
-    }
+    /* TODO: rewrite once cascade and resolve written. */
 }

@@ -6,9 +6,10 @@ use css::values::*;
 use css::values::Stylesheet;
 use dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
 use dom::base::{Comment, Doctype, Element, Node, NodeKind, Text};
+use dom::base::{LayoutData};
 use util::color::{Color, rgb};
 use util::color::css_colors::{white, black};
-use layout::base::{LayoutData, NTree};
+use dom::base::NodeTree;
 
 type SpecifiedStyle = {mut background_color : CSSValue<CSSBackgroundColor>,
                         mut display_type : CSSValue<CSSDisplay>,
@@ -97,7 +98,7 @@ impl Node : StylePriv {
         if !self.has_aux() {
             let node_kind = self.read(|n| copy *n.kind);
             let the_layout_data = @LayoutData({
-                mut specified_style : ~empty_style_for_node_kind(node_kind),
+                mut style : ~empty_style_for_node_kind(node_kind),
                 mut box : None
             });
 
@@ -112,7 +113,7 @@ impl Node : StylePriv {
 
 trait StyleMethods {
     fn initialize_style_for_subtree() -> ~[@LayoutData];
-    fn get_specified_style() -> SpecifiedStyle;
+    fn style() -> SpecifiedStyle;
     fn recompute_style_for_subtree(styles : ARC<Stylesheet>);
 }
 
@@ -121,7 +122,7 @@ impl Node : StyleMethods {
     fn initialize_style_for_subtree() -> ~[@LayoutData] {
         let mut handles = self.initialize_style();
         
-        for NTree.each_child(self) |kid| {
+        for NodeTree.each_child(self) |kid| {
             handles += kid.initialize_style_for_subtree();
         }
 
@@ -134,11 +135,11 @@ impl Node : StyleMethods {
 
         TODO: Return a safe reference; don't copy.
     "]
-    fn get_specified_style() -> SpecifiedStyle {
+    fn style() -> SpecifiedStyle {
         if !self.has_aux() {
-            fail ~"get_specified_style() called on a node without a style!";
+            fail ~"get_style() called on a node without a style!";
         }
-        return copy *self.aux(|x| copy x).specified_style;
+        return copy *self.aux(|x| copy x).style;
     }
 
     #[doc="
@@ -152,7 +153,7 @@ impl Node : StyleMethods {
             let mut i = 0u;
             
             // Compute the styles of each of our children in parallel
-            for NTree.each_child(self) |kid| {
+            for NodeTree.each_child(self) |kid| {
                 i = i + 1u;
                 let new_styles = clone(&styles);
                 

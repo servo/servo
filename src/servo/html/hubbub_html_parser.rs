@@ -1,9 +1,9 @@
+use au = gfx::geometry;
 use dom::base::{Attr, Comment, Doctype, DoctypeData, Element, ElementData, ElementKind};
 use dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, HTMLScriptElement};
 use dom::base::{Node, NodeScope, Text, UnknownElement};
 use css::values::Stylesheet;
 use geom::size::Size2D;
-use gfx::geometry::px_to_au;
 use html::dom_builder::CSSMessage;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
 use CSSExitMessage = html::dom_builder::Exit;
@@ -118,7 +118,7 @@ fn build_element_kind(tag_name: &str) -> ~ElementKind {
     if tag_name == "div" {
         ~HTMLDivElement
     } else if tag_name == "img" {
-        ~HTMLImageElement({ mut size: Size2D(px_to_au(100), px_to_au(100)) })
+        ~HTMLImageElement({ mut size: Size2D(au::from_px(100), au::from_px(100)) })
     } else if tag_name == "script" {
         ~HTMLScriptElement
     } else if tag_name == "head" {
@@ -187,13 +187,13 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
                           HTMLImageElement(img) if attribute.name == "width" => {
                             match int::from_str(from_slice(attribute.value)) {
                               None => {} // Drop on the floor.
-                              Some(s) => img.size.width = px_to_au(s)
+                              Some(s) => img.size.width = au::from_px(s)
                             }
                           }
                           HTMLImageElement(img) if attribute.name == "height" => {
                             match int::from_str(from_slice(attribute.value)) {
                               None => {} // Drop on the floor.
-                              Some(s) => img.size.height = px_to_au(s)
+                              Some(s) => img.size.height = au::from_px(s)
                             }
                           }
                           HTMLDivElement | HTMLImageElement(*) | HTMLHeadElement |

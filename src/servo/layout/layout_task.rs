@@ -3,22 +3,24 @@
     rendered.
 "];
 
-use std::arc::ARC;
+use au = gfx::geometry;
+use content::content_task;
+use css::resolve::apply::apply_style;
+use css::values::Stylesheet;
 use display_list_builder::build_display_list;
 use dom::base::Node;
-use css::values::Stylesheet;
-use gfx::geometry::px_to_au;
-use gfx::render_task;
-use render_task::RenderTask;
-use layout::base::Box;
-use resource::image_cache_task::ImageCacheTask;
-use std::net::url::Url;
-use css::resolve::apply::apply_style;
 use dom::event::{Event, ReflowEvent};
-use content::content_task;
+use gfx::render_task;
+use layout::base::Box;
+use layout::box_builder::LayoutTreeBuilder;
+use render_task::RenderTask;
+use resource::image_cache_task::ImageCacheTask;
+use std::arc::ARC;
+use std::net::url::Url;
 
-use task::*;
+use layout::traverse::*;
 use comm::*;
+use task::*;
 
 type LayoutTask = Chan<Msg>;
 
@@ -38,11 +40,12 @@ fn LayoutTask(render_task: RenderTask, image_cache_task: ImageCacheTask) -> Layo
             match request.recv() {
               PingMsg(ping_channel) => ping_channel.send(content_task::PongMsg),
               ExitMsg => {
-                #debug("layout: ExitMsg received");
+                debug!("layout: ExitMsg received");
                 break;
               }
               BuildMsg(node, styles, doc_url, event_chan) => {
-                #debug("layout: received layout request for:");
+                debug!("layout: received layout request for: %s", doc_url.to_str());
+                debug!("layout: parsed Node tree");
                 node.dump();
 
                 do util::time::time(~"layout") {
@@ -50,18 +53,29 @@ fn LayoutTask(render_task: RenderTask, image_cache_task: ImageCacheTask) -> Layo
                     node.recompute_style_for_subtree(styles);
 
                     let root_box: @Box;
-                    match node.construct_boxes() {
-                        None => fail ~"Root node should always exist; did it get 'display: none' somehow?",
-                        Some(root) => root_box = root
+                    let builder = LayoutTreeBuilder();
+                    match builder.construct_trees(node) {
+                        Ok(root) => root_box = root,
+                        Err(*) => fail ~"Root node should always exist"
                     }
-                    
+
+                    debug!("layout: constructed Box tree");
                     root_box.dump();
 
-                    let reflow: fn~() = || event_chan.send(ReflowEvent);
+                    debug!("layout: constructed Flow tree");
+                    root_box.ctx.dump();
 
-                    apply_style(root_box, &doc_url, image_cache_task, reflow);
+                    /* resolve styles (convert relative values) down the box tree */
+                    let reflow_cb: fn~() = || event_chan.send(ReflowEvent);
+                    apply_style(root_box, &doc_url, image_cache_task, reflow_cb);
 
-                    root_box.reflow_subtree(px_to_au(800));
+                    /* perform layout passes over the flow tree */
+                    let root_flow = root_box.ctx;
+                    do root_flow.traverse_postorder |f| { f.bubble_widths() }
+                    root_flow.data.position.origin = au::zero_point();
+                    root_flow.data.position.size.width = au::from_px(800); // TODO: window/frame size
+                    do root_flow.traverse_preorder |f| { f.assign_widths() }
+                    do root_flow.traverse_postorder |f| { f.assign_height() }
 
                     let dlist = build_display_list(root_box);
                     render_task.send(render_task::RenderMsg(dlist));
