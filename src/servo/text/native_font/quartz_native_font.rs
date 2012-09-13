@@ -131,7 +131,7 @@ fn create(buf: &~[u8]) -> Result<QuartzNativeFont, ()> {
     let fontprov = vec::as_buf(*buf, |cbuf, len| {
         CGDataProviderCreateWithData(
             null(),
-            unsafe { transmute(&cbuf) },
+            unsafe { transmute(copy cbuf) },
             len as size_t,
             null())
     });

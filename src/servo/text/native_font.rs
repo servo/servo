@@ -38,7 +38,6 @@ fn with_test_native_font(f: fn@(nf: &NativeFont)) {
 }
 
 #[test]
-#[ignore(cfg(target_os = "macos"))]
 fn should_get_glyph_indexes() {
     with_test_native_font(|font| {
         let idx = font.glyph_index('w');
@@ -47,7 +46,6 @@ fn should_get_glyph_indexes() {
 }
 
 #[test]
-#[ignore(cfg(target_os = "macos"))]
 fn should_return_none_glyph_index_for_bad_codepoints() {
     with_test_native_font(|font| {
         let idx = font.glyph_index(0 as char);
@@ -56,19 +54,21 @@ fn should_return_none_glyph_index_for_bad_codepoints() {
 }
 
 #[test]
-#[ignore(cfg(target_os = "macos"))]
+#[ignore(target_os = "macos")]
 fn should_get_glyph_h_advance() {
     with_test_native_font(|font| {
         let adv = font.glyph_h_advance(40u);
+        error!("%?", adv);
         assert adv == Some(15);
     })
 }
 
 #[test]
-#[ignore(cfg(target_os = "macos"))]
+#[ignore(target_os = "macos")]
 fn should_return_none_glyph_h_advance_for_bad_codepoints() {
     with_test_native_font(|font| {
         let adv = font.glyph_h_advance(-1 as uint);
+        error!("%?", adv);
         assert adv == None;
     })
 }
