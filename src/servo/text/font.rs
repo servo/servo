@@ -1,7 +1,7 @@
 export Font, test_font_bin, create_test_font;
 
 use glyph::GlyphIndex;
-use vec_to_ptr = vec::unsafe::to_ptr;
+use vec_to_ptr = vec::raw::to_ptr;
 use libc::{ c_int, c_double, c_ulong };
 use ptr::{ null, addr_of };
 use native_font::NativeFont;

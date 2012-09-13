@@ -120,7 +120,7 @@ pub fn draw_image(draw_target: &DrawTarget, bounds: Rect<au>, image: ARC<~Image>
 
 pub fn draw_text(draw_target: &DrawTarget, bounds: Rect<au>, text_run: &TextRun) {
     use ptr::{addr_of, null};
-    use vec::unsafe::to_ptr;
+    use vec::raw::to_ptr;
     use libc::types::common::c99::{uint16_t, uint32_t};
     use geom::point::Point2D;
     use text::font_library::FontLibrary;

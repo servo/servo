@@ -1,4 +1,4 @@
-use cocoa;
+extern mod cocoa;
 
 export QuartzNativeFont, with_test_native_font, create;
 
@@ -84,8 +84,8 @@ impl QuartzNativeFont {
         let glyphs: ~[mut CGGlyph] = ~[mut 0 as CGGlyph];
         let count: CFIndex = 1;
 
-        let result = do vec::as_buf(characters) |character_buf, _l| {
-            do vec::as_buf(glyphs) |glyph_buf, _l| {
+        let result = do vec::as_imm_buf(characters) |character_buf, _l| {
+            do vec::as_imm_buf(glyphs) |glyph_buf, _l| {
                 CTFontGetGlyphsForCharacters(ctfont, character_buf, glyph_buf, count)
             }
         };
@@ -109,7 +109,7 @@ impl QuartzNativeFont {
         let ctfont = ctfont_from_cgfont(self.cgfont);
         assert ctfont.is_not_null();
         let glyphs = ~[glyph as CGGlyph];
-        let advance = do vec::as_buf(glyphs) |glyph_buf, _l| {
+        let advance = do vec::as_imm_buf(glyphs) |glyph_buf, _l| {
             CTFontGetAdvancesForGlyphs(ctfont, kCTFontDefaultOrientation, glyph_buf, null(), 1)
         };
 
@@ -128,7 +128,7 @@ fn ctfont_from_cgfont(cgfont: CGFontRef) -> coretext::CTFontRef {
 }
 
 fn create(buf: &~[u8]) -> Result<QuartzNativeFont, ()> {
-    let fontprov = vec::as_buf(*buf, |cbuf, len| {
+    let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
         CGDataProviderCreateWithData(
             null(),
             unsafe { transmute(copy cbuf) },

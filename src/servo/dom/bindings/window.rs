@@ -103,7 +103,7 @@ fn init(compartment: bare_compartment, win: @Window) {
                      flags: 0,
                      selfHostedName: null()}];
 
-    vec::as_buf(methods, |fns, _len| {
+    vec::as_imm_buf(methods, |fns, _len| {
         JS_DefineFunctions(compartment.cx.ptr, proto.ptr, fns);
     });
 

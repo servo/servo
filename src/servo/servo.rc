@@ -7,16 +7,16 @@
 #[license = "MPL"];
 #[crate_type = "lib"];
 
-use std;
-use azure;
-use js;
-use stb_image;
-use geom;
-use glut;
-use layers;
-use opengles;
-use http_client;
-use hubbub;
+extern mod std;
+extern mod azure;
+extern mod js;
+extern mod stb_image;
+extern mod geom;
+extern mod glut;
+extern mod layers;
+extern mod opengles;
+extern mod http_client;
+extern mod hubbub;
 
 mod engine;
 

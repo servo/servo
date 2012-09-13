@@ -50,7 +50,7 @@ fn jsval_to_str(cx: *JSContext, v: jsval) -> Result<~str, ()> {
         Err(())
     } else {
         unsafe {
-            let buf = vec::unsafe::from_buf(chars as *u8, len as uint);
+            let buf = vec::raw::from_buf(chars as *u8, len as uint);
             Ok(str::from_bytes(buf))
         }
     }

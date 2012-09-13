@@ -20,7 +20,7 @@ use render_task::{RenderTask, RenderMsg};
 use task::spawn_listener;
 use comm::{Chan, Port};
 use unsafe::reinterpret_cast;
-use vec_from_buf = vec::unsafe::from_buf;
+use vec_from_buf = vec::raw::from_buf;
 use ptr::addr_of;
 use dom::event::Event;
 use dvec::DVec;
@@ -75,7 +75,7 @@ fn do_draw(sender: pipes::Chan<DrawTarget>,
     let buffer = io::mem_buffer();
     cairo_surface.write_to_png_stream(&buffer);
     let @{ buf: buffer, pos: _ } <- buffer;
-    output.send(vec::from_mut(dvec::unwrap(move buffer)));
+    output.send(dvec::unwrap(move buffer));
 
     // Send the next draw target to the renderer
     sender.send(move dt);

@@ -97,7 +97,7 @@ fn init(compartment: bare_compartment, doc: @Document) {
          getter: {op: getDocumentElement, info: null()},
          setter: {op: null(), info: null()}}];
     vec::push(compartment.global_props, attrs);
-    vec::as_buf(*attrs, |specs, _len| {
+    vec::as_imm_buf(*attrs, |specs, _len| {
         assert JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs) == 1;
     });
 

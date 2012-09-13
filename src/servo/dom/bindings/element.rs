@@ -36,7 +36,7 @@ fn init(compartment: bare_compartment) {
          getter: {op: getTagName, info: null()},
          setter: {op: null(), info: null()}}];
     vec::push(compartment.global_props, attrs);
-    vec::as_buf(*attrs, |specs, _len| {
+    vec::as_imm_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
     });
 
@@ -56,7 +56,7 @@ fn init(compartment: bare_compartment) {
          getter: {op: HTMLImageElement_getWidth, info: null()},
          setter: {op: HTMLImageElement_setWidth, info: null()}}];
     vec::push(compartment.global_props, attrs);
-    vec::as_buf(*attrs, |specs, _len| {
+    vec::as_imm_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
     });
 }
