@@ -33,10 +33,10 @@ impl Font {
     }
 }
 
-fn Font(fontbuf: ~[u8], +native_font: NativeFont) -> Font {
+fn Font(fontbuf: @~[u8], +native_font: NativeFont) -> Font {
     Font {
-        fontbuf : @fontbuf,
-        native_font : native_font,
+        fontbuf : fontbuf,
+        native_font : move native_font,
     }
 }
 
@@ -71,6 +71,29 @@ fn should_get_glyph_advance() {
     let font = lib.get_test_font();
     let x = font.glyph_h_advance(40u);
     assert x == 15;
+}
+
+// Testing thread safety
+fn should_get_glyph_advance_stress() {
+    #[test];
+
+    let mut ports = ~[];
+
+    for iter::repeat(100) {
+        let (chan, port) = pipes::stream();
+        ports += [@move port];
+        do task::spawn {
+            let lib = FontLibrary();
+            let font = lib.get_test_font();
+            let x = font.glyph_h_advance(40u);
+            assert x == 15;
+            chan.send(());
+        }
+    }
+
+    for ports.each |port| {
+        port.recv();
+    }
 }
 
 fn should_be_able_to_create_instances_in_multiple_threads() {

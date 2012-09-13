@@ -127,7 +127,7 @@ fn ctfont_from_cgfont(cgfont: CGFontRef) -> coretext::CTFontRef {
     CTFontCreateWithGraphicsFont(cgfont, 21f as CGFloat, null(), null())
 }
 
-fn create(buf: &~[u8]) -> Result<QuartzNativeFont, ()> {
+fn create(buf: @~[u8]) -> Result<QuartzNativeFont, ()> {
     let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
         CGDataProviderCreateWithData(
             null(),
@@ -150,8 +150,8 @@ fn with_test_native_font(f: fn@(nf: &NativeFont)) {
     use font::test_font_bin;
     use unwrap_result = result::unwrap;
 
-    let buf = test_font_bin();
-    let res = create(&buf);
+    let buf = @test_font_bin();
+    let res = create(buf);
     let font = unwrap_result(res);
     f(&font);
 }

@@ -30,8 +30,8 @@ fn FontLibrary() -> FontLibrary {
 }
 
 fn create_font(native_lib: &native::NativeFontLibrary) -> Result<@Font, ()> {
-    let font_bin = test_font_bin();
-    let native_font = native_font::create(native_lib, &font_bin);
+    let font_bin = @test_font_bin();
+    let native_font = native_font::create(native_lib, font_bin);
     let native_font = if native_font.is_ok() {
         result::unwrap(native_font)
     } else {

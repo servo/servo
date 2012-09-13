@@ -17,6 +17,8 @@ use freetype::bindgen::{
 };
 
 struct FreeTypeNativeFont {
+    /// The font binary. This must stay valid for the lifetime of the font
+    buf: @~[u8],
     face: FT_Face,
 
     drop {
@@ -27,9 +29,9 @@ struct FreeTypeNativeFont {
     }
 }
 
-fn FreeTypeNativeFont(face: FT_Face) -> FreeTypeNativeFont {
+fn FreeTypeNativeFont(face: FT_Face, buf: @~[u8]) -> FreeTypeNativeFont {
     assert face.is_not_null();
-    FreeTypeNativeFont { face: face }
+    FreeTypeNativeFont { buf: buf, face: face }
 }
 
 impl FreeTypeNativeFont {
@@ -67,16 +69,16 @@ impl FreeTypeNativeFont {
     }
 }
 
-fn create(lib: FT_Library, buf: &~[u8]) -> Result<FreeTypeNativeFont, ()> {
+fn create(lib: &FT_Library, buf: @~[u8]) -> Result<FreeTypeNativeFont, ()> {
     assert lib.is_not_null();
     let face: FT_Face = null();
     return vec_as_buf(*buf, |cbuf, _len| {
-           if FT_New_Memory_Face(lib, cbuf, (*buf).len() as FT_Long,
+           if FT_New_Memory_Face(*lib, cbuf, (*buf).len() as FT_Long,
                                  0 as FT_Long, addr_of(face)).succeeded() {
                // FIXME: These values are placeholders
                let res = FT_Set_Char_Size(face, 0, 20*64, 0, 72);
                if !res.succeeded() { fail ~"unable to set font char size" }
-               Ok(FreeTypeNativeFont(face))
+               Ok(FreeTypeNativeFont(face, buf))
            } else {
                Err(())
            }
@@ -96,23 +98,23 @@ fn with_test_native_font(f: fn@(nf: &NativeFont)) {
     use unwrap_result = result::unwrap;
 
     with_lib(|lib| {
-        let buf = test_font_bin();
-        let font = unwrap_result(create(lib, &buf));
+        let buf = @test_font_bin();
+        let font = unwrap_result(create(lib, move buf));
         f(&font);
     })
 }
 
-fn with_lib(f: fn@(FT_Library)) {
+fn with_lib(f: fn@((&FT_Library))) {
     let lib: FT_Library = null();
     assert FT_Init_FreeType(addr_of(lib)).succeeded();
-    f(lib);
+    f(&lib);
     FT_Done_FreeType(lib);
 }
 
 #[test]
 fn create_should_return_err_if_buf_is_bogus() {
     with_lib(|lib| {
-        let buf = &~[];
+        let buf = @~[];
         assert create(lib, buf).is_err();
     })
 }
