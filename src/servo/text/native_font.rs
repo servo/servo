@@ -58,7 +58,6 @@ fn should_return_none_glyph_index_for_bad_codepoints() {
 fn should_get_glyph_h_advance() {
     with_test_native_font(|font| {
         let adv = font.glyph_h_advance(40u);
-        error!("%?", adv);
         assert adv == Some(15);
     })
 }
@@ -68,7 +67,6 @@ fn should_get_glyph_h_advance() {
 fn should_return_none_glyph_h_advance_for_bad_codepoints() {
     with_test_native_font(|font| {
         let adv = font.glyph_h_advance(-1 as uint);
-        error!("%?", adv);
         assert adv == None;
     })
 }
