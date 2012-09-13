@@ -16,7 +16,7 @@ use freetype::bindgen::{
     FT_Set_Char_Size
 };
 
-struct FreeTypeNativeFont/& {
+struct FreeTypeNativeFont {
     face: FT_Face,
 
     drop {
@@ -27,12 +27,12 @@ struct FreeTypeNativeFont/& {
     }
 }
 
-fn FreeTypeNativeFont(face: FT_Face) -> FreeTypeNativeFont/& {
+fn FreeTypeNativeFont(face: FT_Face) -> FreeTypeNativeFont {
     assert face.is_not_null();
     FreeTypeNativeFont { face: face }
 }
 
-impl FreeTypeNativeFont/& {
+impl FreeTypeNativeFont {
 
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
         assert self.face.is_not_null();
