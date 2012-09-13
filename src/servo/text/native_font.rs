@@ -54,7 +54,7 @@ fn should_return_none_glyph_index_for_bad_codepoints() {
 }
 
 #[test]
-#[ignore(target_os = "macos")]
+#[ignore(cfg(target_os = "macos"))]
 fn should_get_glyph_h_advance() {
     with_test_native_font(|font| {
         let adv = font.glyph_h_advance(40u);
@@ -64,7 +64,7 @@ fn should_get_glyph_h_advance() {
 }
 
 #[test]
-#[ignore(target_os = "macos")]
+#[ignore(cfg(target_os = "macos"))]
 fn should_return_none_glyph_h_advance_for_bad_codepoints() {
     with_test_native_font(|font| {
         let adv = font.glyph_h_advance(-1 as uint);
