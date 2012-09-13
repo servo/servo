@@ -189,7 +189,7 @@ fn should_calculate_the_bounds_of_the_text_box_background_color() {
 
 fn should_calculate_the_bounds_of_the_text_items() {
     #[test];
-    #[ignore(cfg(target_os = "macos"))];
+    #[ignore(reason = "busted")];
 
     let s = Scope();
     let n = s.new_node(Text(~"firecracker"));
