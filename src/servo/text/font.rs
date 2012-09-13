@@ -33,7 +33,7 @@ impl Font {
     }
 }
 
-fn Font(fontbuf: ~[u8], native_font: NativeFont) -> Font {
+fn Font(fontbuf: ~[u8], +native_font: NativeFont) -> Font {
     Font {
         fontbuf : @fontbuf,
         native_font : native_font,
