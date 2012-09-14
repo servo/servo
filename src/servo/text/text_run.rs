@@ -15,6 +15,7 @@ struct TextRun {
 
 impl TextRun {
     fn size() -> Size2D<au> { self.size_ }
+    fn preferred_width() -> au { self.size_.width }
 }
 
 fn TextRun(font: Font, text: ~str) -> TextRun {
