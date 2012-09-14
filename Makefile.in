@@ -29,7 +29,7 @@ RUSTLIBS = \
 	-L src/rust-layers \
 	-L src/rust-http-client \
 	-L src/rust-hubbub \
-	-L src/rust-rust-core-foundation \
+	-L src/rust-core-foundation \
 	$(NULL)
 
 RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
