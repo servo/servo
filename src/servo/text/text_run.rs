@@ -20,13 +20,13 @@ impl TextRun {
     fn min_break_width() -> au { self.min_break_width_ }
 }
 
-fn TextRun(font: Font, text: ~str) -> TextRun {
-    let glyphs = shape_text(&font, text);
+fn TextRun(font: &Font, text: ~str) -> TextRun {
+    let glyphs = shape_text(font, text);
     let size = glyph_run_size(glyphs);
-    let min_break_width = calc_min_break_width(&font, text);
+    let min_break_width = calc_min_break_width(font, text);
 
     TextRun {
-        glyphs: shape_text(&font, text),
+        glyphs: shape_text(font, text),
         size_: size,
         min_break_width_: min_break_width
     }
@@ -175,7 +175,7 @@ fn should_calculate_the_total_size() {
 
     let flib = FontLibrary();
     let font = flib.get_test_font();
-    let run = TextRun(*font, ~"firecracker");
+    let run = TextRun(font, ~"firecracker");
     let expected = Size2D(px_to_au(84), px_to_au(20));
     assert run.size() == expected;
 }

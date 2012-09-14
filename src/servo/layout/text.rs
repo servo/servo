@@ -33,7 +33,7 @@ impl @Box : TextLayout {
         // FIXME: The font library should not be initialized here
         let flib = FontLibrary();
         let font = flib.get_test_font();
-        let run = TextRun(*font, subbox.text);
+        let run = TextRun(font, subbox.text);
         self.bounds.size = run.size();
         subbox.run = Some(run);
     }
