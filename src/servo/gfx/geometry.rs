@@ -28,6 +28,21 @@ impl au : cmp::Eq {
     }
 }
 
+impl au : cmp::Ord {
+    pure fn lt(&&other: au) -> bool {
+        *self < *other
+    }
+    pure fn le(&&other: au) -> bool {
+        *self <= *other
+    }
+    pure fn ge(&&other: au) -> bool {
+        *self >= *other
+    }
+    pure fn gt(&&other: au) -> bool {
+        *self > *other
+    }
+}
+
 fn box<A:Copy Num>(x: A, y: A, w: A, h: A) -> Rect<A> {
     Rect(Point2D(x, y), Size2D(w, h))
 }
