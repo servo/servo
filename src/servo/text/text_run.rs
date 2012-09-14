@@ -11,20 +11,28 @@ use shaper::shape_text;
 struct TextRun {
     priv glyphs: ~[Glyph],
     priv size_: Size2D<au>,
+    priv min_width_: au,
 }
 
 impl TextRun {
     fn size() -> Size2D<au> { self.size_ }
     fn preferred_width() -> au { self.size_.width }
+    fn min_width() -> au { self.min_width_ }
 }
 
 fn TextRun(font: Font, text: ~str) -> TextRun {
     let glyphs = shape_text(&font, text);
     let size = glyph_run_size(glyphs);
 
+    let min_width = match calc_min_width(&font, text) {
+      Some(w) => w,
+      None => size.width
+    };
+
     TextRun {
+        glyphs: shape_text(&font, text),
         size_: size,
-        glyphs: shape_text(&font, text)
+        min_width_: min_width
     }
 }
 
@@ -40,6 +48,38 @@ fn glyph_run_size(glyphs: &[Glyph]) -> Size2D<au> {
     return Size2D(pen_end.x, pen_end.y);
 }
 
+/// If there are breaking opportunities inside a string, then
+/// returns the width of the text up to the first break. Otherwise None.
+fn calc_min_width(font: &Font, text: &str) -> Option<au> {
+    match str::find(text, |c| char::is_whitespace(c)) {
+      Some(offset) => {
+        let short_text = str::view(text, 0, offset);
+        let glyphs = shape_text(font, short_text);
+        let size = glyph_run_size(glyphs);
+        Some(size.width)
+      }
+      None => None
+    }
+}
+
+#[test]
+fn test_calc_min_width_with_breaking() {
+    let flib = FontLibrary();
+    let font = flib.get_test_font();
+    let actual = calc_min_width(font, ~"firecracker yumyum");
+    let expected = Some(px_to_au(84));
+    assert expected == actual;
+}
+
+#[test]
+fn test_calc_min_width_without_breaking() {
+    let flib = FontLibrary();
+    let font = flib.get_test_font();
+    let actual = calc_min_width(font, ~"firecracker_yumyum");
+    let expected = None;
+    assert expected == actual;
+}
+
 fn should_calculate_the_total_size() {
     #[test];
     #[ignore(cfg(target_os = "macos"))];
@@ -50,3 +90,4 @@ fn should_calculate_the_total_size() {
     let expected = Size2D(px_to_au(84), px_to_au(20));
     assert run.size() == expected;
 }
+
