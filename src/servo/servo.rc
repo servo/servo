@@ -55,7 +55,6 @@ mod layout {
     mod base;
     mod block;
     mod box_builder;
-    mod display_list;
     mod display_list_builder;
     mod inline;
     mod layout_task;
@@ -69,6 +68,7 @@ mod gfx {
     mod render_task;
     mod compositor;
     mod png_compositor;
+    mod display_list;
 }
 
 mod image {

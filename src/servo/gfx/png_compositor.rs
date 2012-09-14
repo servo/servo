@@ -24,7 +24,7 @@ use vec_from_buf = vec::raw::from_buf;
 use ptr::addr_of;
 use dom::event::Event;
 use dvec::DVec;
-use layout::display_list::DisplayList;
+use display_list::DisplayList;
 use std::cell::Cell;
 
 pub type PngCompositor = Chan<Msg>;

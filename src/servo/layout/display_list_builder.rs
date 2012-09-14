@@ -2,7 +2,7 @@ export build_display_list;
 
 use css::values::{BgColor, BgTransparent, Specified};
 use base::{Box, BTree, ImageHolder, TextBoxKind};
-use dl = layout::display_list;
+use dl = gfx::display_list;
 use dom::base::{Text, NodeScope};
 use dom::rcu::Scope;
 use either::{Left, Right};

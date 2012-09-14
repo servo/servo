@@ -2,7 +2,7 @@ use platform::osmain;
 use geometry::*;
 use comm::*;
 use image::base::Image;
-use dl = layout::display_list;
+use dl = display_list;
 use azure::*;
 use azure::bindgen::*;
 use libc::size_t;
