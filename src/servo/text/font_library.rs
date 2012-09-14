@@ -3,6 +3,10 @@ export FontLibrary, native;
 use font::{Font, test_font_bin};
 
 struct FontLibrary {
+    // FIXME: This is a hack to hold onto a boxed reference to
+    // the self pointer until explicit self types work on methods.
+    // This is a huge space leak.
+    mut at_self: Option<@FontLibrary>,
     native_lib: native::NativeFontLibrary,
 
     drop {
@@ -12,7 +16,8 @@ struct FontLibrary {
 
 impl FontLibrary {
     fn get_font() -> @Font {
-        match create_font(&self.native_lib) {
+        assert self.at_self.is_some();
+        match create_font(self.at_self.get(), &self.native_lib) {
           Ok(font) => font,
           Err(*) => /* FIXME */ fail
         }
@@ -23,13 +28,17 @@ impl FontLibrary {
     }
 }
 
-fn FontLibrary() -> FontLibrary {
-    FontLibrary {
+fn FontLibrary() -> @FontLibrary {
+    let lib = @FontLibrary {
+        mut at_self: None,
         native_lib: native::create_native_lib()
-    }
+    };
+
+    lib.at_self = Some(lib);
+    return lib;
 }
 
-fn create_font(native_lib: &native::NativeFontLibrary) -> Result<@Font, ()> {
+fn create_font(lib: @FontLibrary, native_lib: &native::NativeFontLibrary) -> Result<@Font, ()> {
     let font_bin = @test_font_bin();
     let native_font = native_font::create(native_lib, font_bin);
     let native_font = if native_font.is_ok() {
@@ -37,7 +46,7 @@ fn create_font(native_lib: &native::NativeFontLibrary) -> Result<@Font, ()> {
     } else {
         return Err(native_font.get_err());
     };
-    return Ok(@Font(font_bin, native_font));
+    return Ok(@Font(lib, font_bin, native_font));
 }
 
 #[cfg(target_os = "linux")]
