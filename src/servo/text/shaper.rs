@@ -3,7 +3,7 @@ extern mod harfbuzz;
 export shape_text;
 
 use libc::types::common::c99::int32_t;
-use libc::{c_uint, c_int, c_void};
+use libc::{c_uint, c_int, c_void, c_char};
 use font::Font;
 use glyph::{Glyph, GlyphPos};
 use ptr::{null, addr_of, offset};
@@ -36,7 +36,7 @@ use harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
 Calculate the layout metrics associated with a some given text
 when rendered in a specific font.
 "]
-fn shape_text(font: &Font, text: ~str) -> ~[Glyph] unsafe {
+fn shape_text(font: &Font, text: &str) -> ~[Glyph] unsafe {
     #debug("shaping text '%s'", text);
 
     let face_blob = vec::as_imm_buf(*(*font).buf(), |buf, len| {
@@ -62,8 +62,9 @@ fn shape_text(font: &Font, text: ~str) -> ~[Glyph] unsafe {
 
     hb_buffer_set_direction(buffer, HB_DIRECTION_LTR);
 
-    str::as_c_str(text, |ctext| {
-        hb_buffer_add_utf8(buffer, ctext,
+    // Using as_buf because it never does a copy - we don't need the trailing null
+    str::as_buf(text, |ctext, _l| {
+        hb_buffer_add_utf8(buffer, ctext as *c_char,
                            text.len() as c_int,
                            0 as c_uint,
                            text.len() as c_int);
