@@ -7,7 +7,7 @@ use font::Font;
 use glyph::Glyph;
 use shaper::shape_text;
 
-#[doc="A single, unbroken line of text."]
+/// A single, unbroken line of text
 struct TextRun {
     priv glyphs: ~[Glyph],
     priv size_: Size2D<au>,
