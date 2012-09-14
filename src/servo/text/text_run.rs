@@ -9,27 +9,34 @@ use shaper::shape_text;
 
 #[doc="A single, unbroken line of text."]
 struct TextRun {
-    glyphs: ~[Glyph],
+    priv glyphs: ~[Glyph],
+    priv size_: Size2D<au>,
 }
 
 impl TextRun {
-    fn size() -> Size2D<au> {
-        let height = px_to_au(20);
-        let pen_start_x = px_to_au(0);
-        let pen_start_y = height;
-        let pen_start = Point2D(pen_start_x, pen_start_y);
-        let pen_end = self.glyphs.foldl(pen_start, |cur, glyph| {
-            Point2D(cur.x.add(glyph.pos.offset.x).add(glyph.pos.advance.x),
-                    cur.y.add(glyph.pos.offset.y).add(glyph.pos.advance.y))
-        });
-        return Size2D(pen_end.x, pen_end.y);
-    }
+    fn size() -> Size2D<au> { self.size_ }
 }
 
 fn TextRun(font: Font, text: ~str) -> TextRun {
+    let glyphs = shape_text(&font, text);
+    let size = glyph_run_size(glyphs);
+
     TextRun {
-        glyphs : shape_text(&font, text)
+        size_: size,
+        glyphs: shape_text(&font, text)
     }
+}
+
+fn glyph_run_size(glyphs: &[Glyph]) -> Size2D<au> {
+    let height = px_to_au(20);
+    let pen_start_x = px_to_au(0);
+    let pen_start_y = height;
+    let pen_start = Point2D(pen_start_x, pen_start_y);
+    let pen_end = glyphs.foldl(pen_start, |cur, glyph| {
+        Point2D(cur.x.add(glyph.pos.offset.x).add(glyph.pos.advance.x),
+                cur.y.add(glyph.pos.offset.y).add(glyph.pos.advance.y))
+    });
+    return Size2D(pen_end.x, pen_end.y);
 }
 
 fn should_calculate_the_total_size() {
