@@ -11,7 +11,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::geometry::{au, au_to_px, box, px_to_au};
 use util::tree;
-
+use servo_text::text_run::TextRun;
 use dvec::DVec;
 use vec::push;
 
@@ -87,8 +87,15 @@ fn box_to_display_items(list: dl::DisplayList, box: @Box, origin: Point2D<au>) {
         let run = copy subbox.run;
         assert run.is_some();
         list.push(~dl::SolidColor(bounds, 255u8, 255u8, 255u8));
-        list.push(~dl::Text(bounds, run.get()));
+        let glyph_run = text_run_to_dl_glyph_run(run.get_ref());
+        list.push(~dl::Glyphs(bounds, glyph_run));
         return;
+
+        fn text_run_to_dl_glyph_run(text_run: &TextRun) -> dl::GlyphRun {
+            dl::GlyphRun {
+                glyphs: copy text_run.glyphs
+            }
+        }
       }
       _ => {
         // Fall through
@@ -156,7 +163,7 @@ fn should_convert_text_boxes_to_text_items() {
 
     do list.borrow |l| {
         match l[1].data {
-            dl::TextData(_) => { }
+            dl::GlyphData(_) => { }
             _ => { fail }
         }
     }

@@ -1,12 +1,12 @@
 use azure::azure_hl::DrawTarget;
-use gfx::render_task::{draw_solid_color, draw_image, draw_text};
+use gfx::render_task::{draw_solid_color, draw_image, draw_glyphs};
 use gfx::geometry::*;
 use geom::rect::Rect;
 use image::base::Image;
-use servo_text::text_run::TextRun;
 
 use std::arc::{ARC, clone};
 use dvec::DVec;
+use text::glyph::Glyph;
 
 struct DisplayItem {
     draw: ~fn((&DisplayItem), (&DrawTarget)),
@@ -16,9 +16,18 @@ struct DisplayItem {
 
 enum DisplayItemData {
     SolidColorData(u8, u8, u8),
-    TextData(TextRun),
+    GlyphData(GlyphRun),
     ImageData(ARC<~image::base::Image>),
     PaddingData(u8, u8, u8, u8) // This is a hack to make fonts work (?)
+}
+
+/**
+A run of glyphs in a single font. This is distinguished from any similar
+structure used by layout in that this must be sendable, whereas the text
+shaping data structures may end up unsendable.
+*/
+struct GlyphRun {
+    glyphs: ~[Glyph]
 }
 
 fn draw_SolidColor(self: &DisplayItem, ctx: &DrawTarget) {
@@ -28,9 +37,9 @@ fn draw_SolidColor(self: &DisplayItem, ctx: &DrawTarget) {
     }        
 }
 
-fn draw_Text(self: &DisplayItem, ctx: &DrawTarget) {
+fn draw_Glyphs(self: &DisplayItem, ctx: &DrawTarget) {
     match self.data {
-        TextData(run) => draw_text(ctx, self.bounds, &run),
+        GlyphData(run) => draw_glyphs(ctx, self.bounds, &run),
         _ => fail
     }        
 }
@@ -51,11 +60,11 @@ fn SolidColor(bounds: Rect<au>, r: u8, g: u8, b: u8) -> DisplayItem {
     }
 }
 
-fn Text(bounds: Rect<au>, run: TextRun) -> DisplayItem {
+fn Glyphs(bounds: Rect<au>, run: GlyphRun) -> DisplayItem {
     DisplayItem {
-        draw: |self, ctx| draw_Text(self, ctx),
+        draw: |self, ctx| draw_Glyphs(self, ctx),
         bounds: bounds,
-        data: TextData(run)
+        data: GlyphData(run)
     }
 }
 

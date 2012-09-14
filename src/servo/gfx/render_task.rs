@@ -7,7 +7,7 @@ use azure::*;
 use azure::bindgen::*;
 use libc::size_t;
 use text::font::Font;
-use text::text_run::TextRun;
+use display_list::GlyphRun;
 use geom::size::Size2D;
 use geom::rect::Rect;
 use geom::point::Point2D;
@@ -118,7 +118,7 @@ pub fn draw_image(draw_target: &DrawTarget, bounds: Rect<au>, image: ARC<~Image>
                              draw_options);
 }
 
-pub fn draw_text(draw_target: &DrawTarget, bounds: Rect<au>, text_run: &TextRun) {
+pub fn draw_glyphs(draw_target: &DrawTarget, bounds: Rect<au>, text_run: &GlyphRun) {
     use ptr::{addr_of, null};
     use vec::raw::to_ptr;
     use libc::types::common::c99::{uint16_t, uint32_t};
