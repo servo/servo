@@ -20,15 +20,16 @@ impl TextRun {
     fn size() -> Size2D<au> { self.size_ }
     fn min_break_width() -> au { self.min_break_width_ }
 
+    /// Split a run of text in two
     // FIXME: Should be storing a reference to the Font inside
     // of the TextRun, but I'm hitting cycle collector bugs
-    fn break_text(font: &Font, h_offset: au) -> ~[TextRun] {
+    fn split(font: &Font, h_offset: au) -> (TextRun, TextRun) {
         assert h_offset >= self.min_break_width();
+        assert h_offset <= self.size_.width;
 
-        let mut runs = ~[];
         let mut curr_run = ~"";
 
-        do iter_indivisible_slices(font, self.text) |slice| {
+        for iter_indivisible_slices(font, self.text) |slice| {
             let mut candidate = curr_run;
 
             if candidate.is_not_empty() {
@@ -39,19 +40,19 @@ impl TextRun {
 
             let glyphs = shape_text(font, candidate);
             let size = glyph_run_size(glyphs);
-            if size.width <= self.min_break_width() {
+            if size.width <= h_offset {
                 curr_run = candidate;
             } else {
-                runs += [TextRun(font, curr_run)];
-                curr_run = slice.to_str();
+                break;
             }
         }
 
-        if curr_run.is_not_empty() {
-            runs += [TextRun(font, curr_run)];
-        }
+        assert curr_run.is_not_empty();
 
-        return runs;
+        let first = move curr_run;
+        let second = str::slice(self.text, first.len(), self.text.len());
+        let second = second.trim_left();
+        return (TextRun(font, first), TextRun(font, second));
     }
 }
 
@@ -83,7 +84,7 @@ fn glyph_run_size(glyphs: &[Glyph]) -> Size2D<au> {
 /// Discovers the width of the largest indivisible substring
 fn calc_min_break_width(font: &Font, text: &str) -> au {
     let mut max_piece_width = au(0);
-    do iter_indivisible_slices(font, text) |slice| {
+    for iter_indivisible_slices(font, text) |slice| {
         let glyphs = shape_text(font, slice);
         let size = glyph_run_size(glyphs);
         if size.width > max_piece_width {
@@ -95,7 +96,7 @@ fn calc_min_break_width(font: &Font, text: &str) -> au {
 
 /// Iterates over all the indivisible substrings
 fn iter_indivisible_slices(font: &Font, text: &r/str,
-                           f: fn((&r/str))) {
+                           f: fn((&r/str)) -> bool) {
 
     let mut curr = text;
     loop {
@@ -112,12 +113,12 @@ fn iter_indivisible_slices(font: &Font, text: &r/str,
         match str::find(curr, |c| char::is_whitespace(c) ) {
           Some(idx) => {
             let piece = str::view(curr, 0, idx);
-            f(piece);
+            if !f(piece) { break }
             curr = str::view(curr, idx, curr.len());
           }
           None => {
             assert curr.is_not_empty();
-            f(curr);
+            if !f(curr) { break }
             // This is the end of the string
             break;
           }
@@ -166,7 +167,7 @@ fn test_iter_indivisible_slices() {
     let flib = FontLibrary();
     let font = flib.get_test_font();
     let mut slices = ~[];
-    do iter_indivisible_slices(font, "firecracker yumyum woopwoop") |slice| {
+    for iter_indivisible_slices(font, "firecracker yumyum woopwoop") |slice| {
         slices += [slice];
     }
     assert slices == ~["firecracker", "yumyum", "woopwoop"];
@@ -177,7 +178,7 @@ fn test_iter_indivisible_slices_trailing_whitespace() {
     let flib = FontLibrary();
     let font = flib.get_test_font();
     let mut slices = ~[];
-    do iter_indivisible_slices(font, "firecracker  ") |slice| {
+    for iter_indivisible_slices(font, "firecracker  ") |slice| {
         slices += [slice];
     }
     assert slices == ~["firecracker"];
@@ -188,7 +189,7 @@ fn test_iter_indivisible_slices_leading_whitespace() {
     let flib = FontLibrary();
     let font = flib.get_test_font();
     let mut slices = ~[];
-    do iter_indivisible_slices(font, "  firecracker") |slice| {
+    for iter_indivisible_slices(font, "  firecracker") |slice| {
         slices += [slice];
     }
     assert slices == ~["firecracker"];
@@ -199,30 +200,41 @@ fn test_iter_indivisible_slices_empty() {
     let flib = FontLibrary();
     let font = flib.get_test_font();
     let mut slices = ~[];
-    do iter_indivisible_slices(font, "") |slice| {
+    for iter_indivisible_slices(font, "") |slice| {
         slices += [slice];
     }
     assert slices == ~[];
 }
 
 #[test]
-fn test_break_text_simple() {
+fn test_split() {
     let flib = FontLibrary();
     let font = flib.get_test_font();
     let run = TextRun(font, ~"firecracker yumyum");
-    let break_runs = run.break_text(font, run.min_break_width());
-    assert break_runs[0].text == ~"firecracker";
-    assert break_runs[1].text == ~"yumyum";
+    let break_runs = run.split(font, run.min_break_width());
+    assert break_runs.first().text == ~"firecracker";
+    assert break_runs.second().text == ~"yumyum";
 }
 
 #[test]
-fn test_break_text2() {
+fn test_split2() {
     let flib = FontLibrary();
     let font = flib.get_test_font();
-    let run = TextRun(font, ~"firecracker yum yum");
-    let break_runs = run.break_text(font, run.min_break_width());
-    assert break_runs[0].text == ~"firecracker";
-    assert break_runs[1].text == ~"yum yum";
+    let run = TextRun(font, ~"firecracker yum yum yum yum yum");
+    let break_runs = run.split(font, run.min_break_width());
+    assert break_runs.first().text == ~"firecracker";
+    assert break_runs.second().text == ~"yum yum yum yum yum";
+}
+
+#[test]
+fn test_split3() {
+    let flib = FontLibrary();
+    let font = flib.get_test_font();
+    let run = TextRun(font, ~"firecracker firecracker");
+    let break_runs = run.split(font, run.min_break_width() + px_to_au(10));
+    assert break_runs.first().text == ~"firecracker";
+    assert break_runs.second().text == ~"firecracker";
+
 }
 
 fn should_calculate_the_total_size() {
