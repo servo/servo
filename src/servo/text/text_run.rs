@@ -30,18 +30,18 @@ impl TextRun {
         let mut curr_run = ~"";
 
         for iter_indivisible_slices(font, self.text) |slice| {
-            let mut candidate = curr_run;
+            let mut candidate = copy curr_run;
 
             if candidate.is_not_empty() {
-                candidate += " "; // FIXME: just inserting spaces between words can't be right
+                str::push_str(candidate, " "); // FIXME: just inserting spaces between words can't be right
             }
 
-            candidate += slice;
+            str::push_str(candidate, slice);
 
             let glyphs = shape_text(font, candidate);
             let size = glyph_run_size(glyphs);
             if size.width <= h_offset {
-                curr_run = candidate;
+                curr_run = move candidate;
             } else {
                 break;
             }
@@ -50,8 +50,14 @@ impl TextRun {
         assert curr_run.is_not_empty();
 
         let first = move curr_run;
-        let second = str::slice(self.text, first.len(), self.text.len());
-        let second = second.trim_left();
+        let second_start = match str::find_from(self.text, first.len(), |c| !char::is_whitespace(c)) {
+            Some(idx) => idx,
+            None => {
+                // This will be an empty string
+                self.text.len()
+            }
+        };
+        let second = str::slice(self.text, second_start, self.text.len());
         return (TextRun(font, first), TextRun(font, second));
     }
 }
