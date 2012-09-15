@@ -79,13 +79,13 @@ fn get_compartment(cx: *JSContext) -> *bare_compartment {
     }
 }
 
-extern fn has_instance(_cx: *JSContext, obj: *JSObject, v: *jsval, bp: *mut JSBool) -> JSBool {
+extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *jsval, bp: *mut JSBool) -> JSBool {
     //XXXjdm this is totally broken for non-object values
     let mut o = RUST_JSVAL_TO_OBJECT(unsafe {*v});
-    let clasp = JS_GetClass(obj);
+    let obj = unsafe {*obj};
     unsafe { *bp = 0; }
     while o.is_not_null() {
-        if JS_GetClass(o) == clasp {
+        if o == obj {
             unsafe { *bp = 1; }
             break;
         }
@@ -95,7 +95,7 @@ extern fn has_instance(_cx: *JSContext, obj: *JSObject, v: *jsval, bp: *mut JSBo
 }
 
 fn prototype_jsclass(name: ~str) -> fn(bare_compartment) -> JSClass {
-    return fn@(compartment: bare_compartment) -> JSClass {
+    |compartment: bare_compartment, copy name| {
         {name: compartment.add_name(name),
          flags: 0,
          addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -119,12 +119,12 @@ fn prototype_jsclass(name: ~str) -> fn(bare_compartment) -> JSClass {
                     null(), null(), null(), null(), null(),  // 30
                     null(), null(), null(), null(), null(),  // 35
                     null(), null(), null(), null(), null())} // 40
-    };
+    }
 }
 
 fn instance_jsclass(name: ~str, finalize: *u8)
     -> fn(bare_compartment) -> JSClass {
-    return fn@(compartment: bare_compartment) -> JSClass {
+    |compartment: bare_compartment, copy name| {
         {name: compartment.add_name(name),
          flags: JSCLASS_HAS_RESERVED_SLOTS(1),
          addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -148,7 +148,7 @@ fn instance_jsclass(name: ~str, finalize: *u8)
                     null(), null(), null(), null(), null(),  // 30
                     null(), null(), null(), null(), null(),  // 35
                     null(), null(), null(), null(), null())} // 40
-    };
+    }
 }
 
 fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: bare_compartment)

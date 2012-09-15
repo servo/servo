@@ -97,8 +97,10 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
         match nd.kind {
           ~Element(ed) => {
             match ed.kind {
-              ~HTMLImageElement(img) =>
-                img.size.width = px_to_au(RUST_JSVAL_TO_INT(*vp) as int),
+              ~HTMLImageElement(img) => {
+                let arg = ptr::offset(JS_ARGV(cx, unsafe::reinterpret_cast(&vp)), 0);
+                img.size.width = px_to_au(RUST_JSVAL_TO_INT(*arg) as int)
+              },
               _ => fail ~"why is this not an image element?"
             }
           }
