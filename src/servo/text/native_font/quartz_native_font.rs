@@ -16,6 +16,8 @@ use cocoa::cg::cg::{
     CGFontRelease
 };
 use unsafe::transmute;
+use coretext::CTFontRef;
+use coretext::coretext::CFRelease;
 
 mod coretext {
 
@@ -52,11 +54,14 @@ mod coretext {
 struct QuartzNativeFont {
     fontprov: CGDataProviderRef,
     cgfont: CGFontRef,
+    ctfont: CTFontRef,
 
     drop {
+        assert self.ctfont.is_not_null();
         assert self.cgfont.is_not_null();
         assert self.fontprov.is_not_null();
 
+        CFRelease(self.ctfont);
         CGFontRelease(self.cgfont);
         CGDataProviderRelease(self.fontprov);
     }
@@ -66,9 +71,13 @@ fn QuartzNativeFont(fontprov: CGDataProviderRef, cgfont: CGFontRef) -> QuartzNat
     assert fontprov.is_not_null();
     assert cgfont.is_not_null();
 
+    let ctfont = ctfont_from_cgfont(cgfont);
+    assert ctfont.is_not_null();
+
     QuartzNativeFont {
         fontprov : fontprov,
         cgfont : cgfont,
+        ctfont : ctfont,
     }
 }
 
@@ -76,17 +85,16 @@ impl QuartzNativeFont {
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
 
         use coretext::{UniChar, CGGlyph, CFIndex};
-        use coretext::coretext::{CFRelease, CTFontGetGlyphsForCharacters};
+        use coretext::coretext::{CTFontGetGlyphsForCharacters};
 
-        let ctfont = ctfont_from_cgfont(self.cgfont);
-        assert ctfont.is_not_null();
+        assert self.ctfont.is_not_null();
         let characters: ~[UniChar] = ~[codepoint as UniChar];
         let glyphs: ~[mut CGGlyph] = ~[mut 0 as CGGlyph];
         let count: CFIndex = 1;
 
         let result = do vec::as_imm_buf(characters) |character_buf, _l| {
             do vec::as_imm_buf(glyphs) |glyph_buf, _l| {
-                CTFontGetGlyphsForCharacters(ctfont, character_buf, glyph_buf, count)
+                CTFontGetGlyphsForCharacters(self.ctfont, character_buf, glyph_buf, count)
             }
         };
 
@@ -95,8 +103,6 @@ impl QuartzNativeFont {
             return None;
         }
 
-        CFRelease(ctfont);
-
         assert glyphs[0] != 0; // FIXME: error handling
         return Some(glyphs[0] as GlyphIndex);
     }
@@ -104,16 +110,13 @@ impl QuartzNativeFont {
     // FIXME: What unit is this returning? Let's have a custom type
     fn glyph_h_advance(glyph: GlyphIndex) -> Option<int> {
         use coretext::{CGGlyph, kCTFontDefaultOrientation};
-        use coretext::coretext::{CFRelease, CTFontGetAdvancesForGlyphs};
+        use coretext::coretext::{CTFontGetAdvancesForGlyphs};
 
-        let ctfont = ctfont_from_cgfont(self.cgfont);
-        assert ctfont.is_not_null();
+        assert self.ctfont.is_not_null();
         let glyphs = ~[glyph as CGGlyph];
         let advance = do vec::as_imm_buf(glyphs) |glyph_buf, _l| {
-            CTFontGetAdvancesForGlyphs(ctfont, kCTFontDefaultOrientation, glyph_buf, null(), 1)
+            CTFontGetAdvancesForGlyphs(self.ctfont, kCTFontDefaultOrientation, glyph_buf, null(), 1)
         };
-
-        CFRelease(ctfont);
 
         return Some(advance as int);
     }
