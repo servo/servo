@@ -9,6 +9,7 @@ use shaper::shape_text;
 
 /// A single, unbroken line of text
 struct TextRun {
+    priv text: ~str,
     priv glyphs: ~[Glyph],
     priv size_: Size2D<au>,
     priv min_break_width_: au,
@@ -18,14 +19,49 @@ impl TextRun {
     /// The size of the entire TextRun
     fn size() -> Size2D<au> { self.size_ }
     fn min_break_width() -> au { self.min_break_width_ }
+
+    // FIXME: Should be storing a reference to the Font inside
+    // of the TextRun, but I'm hitting cycle collector bugs
+    fn break_text(font: &Font, h_offset: au) -> ~[TextRun] {
+        assert h_offset >= self.min_break_width();
+
+        let mut runs = ~[];
+        let mut curr_run = ~"";
+
+        do iter_indivisible_slices(font, self.text) |slice| {
+            let mut candidate = curr_run;
+
+            if candidate.is_not_empty() {
+                candidate += " "; // FIXME: just inserting spaces between words can't be right
+            }
+
+            candidate += slice;
+
+            let glyphs = shape_text(font, candidate);
+            let size = glyph_run_size(glyphs);
+            if size.width <= self.min_break_width() {
+                curr_run = candidate;
+            } else {
+                runs += [TextRun(font, curr_run)];
+                curr_run = slice.to_str();
+            }
+        }
+
+        if curr_run.is_not_empty() {
+            runs += [TextRun(font, curr_run)];
+        }
+
+        return runs;
+    }
 }
 
-fn TextRun(font: &Font, text: ~str) -> TextRun {
+fn TextRun(font: &Font, +text: ~str) -> TextRun {
     let glyphs = shape_text(font, text);
     let size = glyph_run_size(glyphs);
     let min_break_width = calc_min_break_width(font, text);
 
     TextRun {
+        text: text,
         glyphs: shape_text(font, text),
         size_: size,
         min_break_width_: min_break_width
@@ -167,6 +203,26 @@ fn test_iter_indivisible_slices_empty() {
         slices += [slice];
     }
     assert slices == ~[];
+}
+
+#[test]
+fn test_break_text_simple() {
+    let flib = FontLibrary();
+    let font = flib.get_test_font();
+    let run = TextRun(font, ~"firecracker yumyum");
+    let break_runs = run.break_text(font, run.min_break_width());
+    assert break_runs[0].text == ~"firecracker";
+    assert break_runs[1].text == ~"yumyum";
+}
+
+#[test]
+fn test_break_text2() {
+    let flib = FontLibrary();
+    let font = flib.get_test_font();
+    let run = TextRun(font, ~"firecracker yum yum");
+    let break_runs = run.break_text(font, run.min_break_width());
+    assert break_runs[0].text == ~"firecracker";
+    assert break_runs[1].text == ~"yum yum";
 }
 
 fn should_calculate_the_total_size() {
