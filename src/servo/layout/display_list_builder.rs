@@ -84,14 +84,20 @@ fn box_to_display_items(list: dl::DisplayList, box: @Box, origin: Point2D<au>) {
 
     match box.kind {
       TextBoxKind(subbox) => {
-        let run = copy subbox.run;
-        assert run.is_some();
+        let runs = &mut subbox.runs;
         list.push(~dl::SolidColor(bounds, 255u8, 255u8, 255u8));
-        let glyph_run = text_run_to_dl_glyph_run(run.get_ref());
-        list.push(~dl::Glyphs(bounds, glyph_run));
+
+        let mut bounds = bounds;
+        for uint::range(0, runs.len()) |i| {
+            bounds.size.height = runs[i].size().height;
+            let glyph_run = text_run_to_dl_glyph_run(&mut runs[i]);
+            list.push(~dl::Glyphs(bounds, glyph_run));
+            bounds.origin.y += bounds.size.height;
+        }
         return;
 
-        fn text_run_to_dl_glyph_run(text_run: &TextRun) -> dl::GlyphRun {
+        pure fn text_run_to_dl_glyph_run(text_run: &mut TextRun) ->
+                dl::GlyphRun {
             dl::GlyphRun {
                 glyphs: copy text_run.glyphs
             }

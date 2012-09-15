@@ -17,8 +17,8 @@ struct TextRun {
 
 impl TextRun {
     /// The size of the entire TextRun
-    fn size() -> Size2D<au> { self.size_ }
-    fn min_break_width() -> au { self.min_break_width_ }
+    pure fn size() -> Size2D<au> { self.size_ }
+    pure fn min_break_width() -> au { self.min_break_width_ }
 
     /// Split a run of text in two
     // FIXME: Should be storing a reference to the Font inside
