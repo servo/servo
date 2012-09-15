@@ -1,9 +1,5 @@
-#[doc = "
-
-Configuration options for a single run of the servo application. Created
-from command line arguments.
-
-"];
+//! Configuration options for a single run of the servo application. Created
+//! from command line arguments.
 
 type Opts = {
     urls: ~[~str],

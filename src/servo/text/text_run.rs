@@ -237,10 +237,9 @@ fn test_split3() {
 
 }
 
+#[test]
+#[ignore(cfg(target_os = "macos"))]
 fn should_calculate_the_total_size() {
-    #[test];
-    #[ignore(cfg(target_os = "macos"))];
-
     let flib = FontLibrary();
     let font = flib.get_test_font();
     let run = TextRun(font, ~"firecracker");

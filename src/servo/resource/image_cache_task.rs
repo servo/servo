@@ -16,35 +16,35 @@ use clone_arc = std::arc::clone;
 use std::cell::Cell;
 use to_str::ToStr;
 
-enum Msg {
+pub enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted
     /// before Decode
-    Prefetch(Url),
+    pub Prefetch(Url),
 
     /// Used be the prefetch tasks to post back image binaries
-    /*priv*/ StorePrefetchedImageData(Url, Result<Cell<~[u8]>, ()>),
+    priv StorePrefetchedImageData(Url, Result<Cell<~[u8]>, ()>),
 
     /// Tell the cache to decode an image. Must be posted before GetImage/WaitForImage
-    Decode(Url),
+    pub Decode(Url),
 
     /// Used by the decoder tasks to post decoded images back to the cache
-    /*priv*/ StoreImage(Url, Option<ARC<~Image>>),
+    priv StoreImage(Url, Option<ARC<~Image>>),
 
     /// Request an Image object for a URL. If the image is not is not immediately
     /// available then ImageNotReady is returned.
-    GetImage(Url, Chan<ImageResponseMsg>),
+    pub GetImage(Url, Chan<ImageResponseMsg>),
 
     /// Wait for an image to become available (or fail to load).
-    WaitForImage(Url, Chan<ImageResponseMsg>),
+    pub WaitForImage(Url, Chan<ImageResponseMsg>),
 
     /// For testing
-    /*priv*/ OnMsg(fn~(msg: &Msg)),
+    priv OnMsg(fn~(msg: &Msg)),
 
     /// Clients must wait for a response before shutting down the ResourceTask
-    Exit(Chan<()>)
+    pub Exit(Chan<()>)
 }
 
-enum ImageResponseMsg {
+pub enum ImageResponseMsg {
     ImageReady(ARC<~Image>),
     ImageNotReady,
     ImageFailed
@@ -153,7 +153,7 @@ enum AfterPrefetch {
 #[allow(non_implicitly_copyable_typarams)]
 impl ImageCache {
 
-    fn run() {
+    pub fn run() {
 
         let mut msg_handlers: ~[fn~(msg: &Msg)] = ~[];
 
@@ -206,18 +206,18 @@ impl ImageCache {
         }
     }
 
-    /*priv*/ fn get_state(+url: Url) -> ImageState {
+    priv fn get_state(+url: Url) -> ImageState {
         match self.state_map.find(url) {
           Some(state) => state,
           None => Init
         }
     }
 
-    /*priv*/ fn set_state(+url: Url, state: ImageState) {
+    priv fn set_state(+url: Url, state: ImageState) {
         self.state_map.insert(url, state);
     }
 
-    /*priv*/ fn prefetch(+url: Url) {
+    priv fn prefetch(+url: Url) {
         match self.get_state(copy url) {
           Init => {
             let to_cache = self.from_client.chan();
@@ -252,7 +252,7 @@ impl ImageCache {
         }
     }
 
-    /*priv*/ fn store_prefetched_image_data(+url: Url, data: &Result<Cell<~[u8]>, ()>) {
+    priv fn store_prefetched_image_data(+url: Url, data: &Result<Cell<~[u8]>, ()>) {
         match self.get_state(copy url) {
           Prefetching(next_step) => {
             match *data {
@@ -281,7 +281,7 @@ impl ImageCache {
         }
     }
 
-    /*priv*/ fn decode(+url: Url) {
+    priv fn decode(+url: Url) {
 
         match self.get_state(copy url) {
           Init => fail ~"decoding image before prefetch",
@@ -327,7 +327,7 @@ impl ImageCache {
         }
     }
 
-    /*priv*/ fn store_image(+url: Url, image: &Option<ARC<~Image>>) {
+    priv fn store_image(+url: Url, image: &Option<ARC<~Image>>) {
 
         match self.get_state(copy url) {
           Decoding => {
@@ -354,7 +354,7 @@ impl ImageCache {
 
     }
 
-    /*priv*/ fn purge_waiters(+url: Url, f: fn() -> ImageResponseMsg) {
+    priv fn purge_waiters(+url: Url, f: fn() -> ImageResponseMsg) {
         match self.wait_map.find(copy url) {
           Some(@waiters) => {
             for waiters.each |response| {
@@ -367,7 +367,7 @@ impl ImageCache {
     }
 
 
-    /*priv*/ fn get_image(+url: Url, response: Chan<ImageResponseMsg>) {
+    priv fn get_image(+url: Url, response: Chan<ImageResponseMsg>) {
 
         match self.get_state(copy url) {
           Init => fail ~"request for image before prefetch",
@@ -393,7 +393,7 @@ impl ImageCache {
         }
     }
 
-    /*priv*/ fn wait_for_image(+url: Url, response: Chan<ImageResponseMsg>) {
+    priv fn wait_for_image(+url: Url, response: Chan<ImageResponseMsg>) {
 
         match self.get_state(copy url) {
           Init => fail ~"request for image before prefetch",

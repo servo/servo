@@ -1,7 +1,7 @@
-#[doc="
-    The content task is the main task that runs JavaScript and spawns layout
-    tasks.
-"]
+/*!
+The content task is the main task that runs JavaScript and spawns layout
+tasks.
+*/
 
 export ContentTask;
 export ControlMsg, ExecuteMsg, ParseMsg, ExitMsg, Timer;
@@ -64,7 +64,7 @@ fn ContentTask<S: Compositor Send Copy>(layout_task: LayoutTask, +compositor: S,
     }
 }
 
-#[doc="Sends a ping to layout and waits for the response."]
+/// Sends a ping to layout and waits for the response
 #[allow(non_implicitly_copyable_typarams)]
 fn join_layout(scope: NodeScope, layout_task: LayoutTask) {
 
