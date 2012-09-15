@@ -1,11 +1,11 @@
-use std;
-use servo;
+extern mod std;
+extern mod servo;
 
-import std::test::{TestOpts, run_tests_console, TestDesc};
-import std::getopts::{getopts, reqopt, opt_str, fail_str};
-import os::list_dir_path;
-import servo::run_pipeline_png;
-import servo::image::base::Image;
+use std::test::{TestOpts, run_tests_console, TestDesc};
+use std::getopts::{getopts, reqopt, opt_str, fail_str};
+use os::list_dir_path;
+use servo::run_pipeline_png;
+use servo::image::base::Image;
 
 fn main(args: ~[~str]) {
     let config = parse_config(args);
@@ -16,9 +16,9 @@ fn main(args: ~[~str]) {
 }
 
 struct Config {
-    source_dir: ~str;
-    work_dir: ~str;
-    filter: Option<~str>;
+    source_dir: ~str,
+    work_dir: ~str,
+    filter: Option<~str>
 }
 
 fn parse_config(args: ~[~str]) -> Config {
@@ -59,14 +59,14 @@ fn make_test(config: Config, file: ~str) -> TestDesc {
 
     {
         name: file,
-        fn: fn~() { run_test(config, file) },
+        testfn: fn~() { run_test(config, file) },
         ignore: directives.ignore,
         should_fail: false
     }
 }
 
 struct Directives {
-    ignore: bool;
+    ignore: bool
 }
 
 fn load_test_directives(file: ~str) -> Directives {
@@ -120,7 +120,13 @@ fn run_test(config: Config, file: ~str) {
             );
             #debug("i: %?, x: %?, y: %?, ref: %?, servo: %?", i, w, h, ref_pixel, servo_pixel);
 
-            if servo_pixel != ref_pixel {
+            let (sr, sg, sb, sa) = servo_pixel;
+            let (rr, rg, rb, ra) = ref_pixel;
+
+            if sr != rr
+                || sg != rg
+                || sb != rb
+                || sa != ra {
                 fail #fmt("mismatched pixel. x: %?, y: %?, ref: %?, servo: %?", w, h, ref_pixel, servo_pixel)
             }
         }
@@ -166,7 +172,7 @@ fn sanitize_image(file: ~str) -> Image {
 }
 
 fn install_rasterize_py(config: Config) {
-    import io::WriterUtil;
+    use io::WriterUtil;
     let path = rasterize_path(config);
     let writer = io::file_writer(&Path(path), ~[io::Create, io::Truncate]).get();
     writer.write_str(rasterize_py());
