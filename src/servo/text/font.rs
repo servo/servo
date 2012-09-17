@@ -1,4 +1,4 @@
-export Font, test_font_bin, create_test_font;
+export Font, FontMetrics, test_font_bin, create_test_font;
 
 use glyph::GlyphIndex;
 use vec_to_ptr = vec::raw::to_ptr;
@@ -16,6 +16,7 @@ struct Font {
     lib: @FontLibrary,
     fontbuf: @~[u8],
     native_font: NativeFont,
+    metrics: FontMetrics
 }
 
 impl Font {
@@ -35,12 +36,25 @@ impl Font {
     }
 }
 
-fn Font(lib: @FontLibrary, fontbuf: @~[u8], +native_font: NativeFont) -> Font {
+fn Font(lib: @FontLibrary, fontbuf: @~[u8], +native_font: NativeFont, +metrics: FontMetrics) -> Font {
     Font {
         lib: lib,
         fontbuf : fontbuf,
         native_font : move native_font,
+        metrics: move metrics
     }
+}
+
+struct FontMetrics {
+    underline_size:   float,
+    underline_offset: float,
+    leading:          float,
+    x_height:         float,
+
+    em_height:        float,
+    em_ascent:        float,
+    em_descent:       float,
+    max_advance:      float
 }
 
 const TEST_FONT: [u8 * 33004] = #include_bin("JosefinSans-SemiBold.ttf");

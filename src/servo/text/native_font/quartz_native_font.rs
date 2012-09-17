@@ -2,6 +2,8 @@ extern mod cocoa;
 
 export QuartzNativeFont, with_test_native_font, create;
 
+use font::FontMetrics;
+
 use libc::size_t;
 use ptr::null;
 use glyph::GlyphIndex;
@@ -38,6 +40,16 @@ mod coretext {
         height: CGFloat,
     }
 
+    struct CGPoint {
+        x: CGFloat,
+        y: CGFloat,
+    }
+
+    struct CGRect {
+        origin: CGPoint,
+        size: CGSize
+    }
+
     type CGAffineTransform = ();
     type CTFontDescriptorRef = *u8;
 
@@ -47,6 +59,17 @@ mod coretext {
         fn CTFontCreateWithGraphicsFont(graphicsFont: CGFontRef, size: CGFloat, matrix: *CGAffineTransform, attributes: CTFontDescriptorRef) -> CTFontRef;
         fn CTFontGetGlyphsForCharacters(font: CTFontRef, characters: *UniChar, glyphs: *CGGlyph, count: CFIndex) -> bool;
         fn CTFontGetAdvancesForGlyphs(font: CTFontRef, orientation: CTFontOrientation, glyphs: *CGGlyph, advances: *CGSize, count: CFIndex) -> libc::c_double;
+
+        /* metrics API */
+        fn CTFontGetAscent(font: CTFontRef) -> libc::c_float;
+        fn CTFontGetDescent(font: CTFontRef) -> libc::c_float;
+        fn CTFontGetLeading(font: CTFontRef) -> libc::c_float;
+        fn CTFontGetUnitsPerEm(font: CTFontRef) -> libc::c_uint;
+        fn CTFontGetUnderlinePosition(font: CTFontRef) -> libc::c_float;
+        fn CTFontGetUnderlineThickness(font: CTFontRef) -> libc::c_float;
+        fn CTFontGetXHeight(font: CTFontRef) -> libc::c_float;
+        fn CTFontGetBoundingBox(font: CTFontRef) -> CGRect;
+            
         fn CFRelease(font: CTFontRef);
     }
 }
@@ -119,6 +142,30 @@ impl QuartzNativeFont {
         };
 
         return Some(advance as int);
+    }
+
+    fn get_metrics() -> FontMetrics {
+        use coretext::CGRect;
+        use coretext::coretext::*;
+
+        let ctfont = self.ctfont;
+        assert ctfont.is_not_null();
+
+        let convFactor : float = 1.0 / (CTFontGetUnitsPerEm(ctfont) as float);
+        let bounding_rect: CGRect = CTFontGetBoundingBox(ctfont);
+        let em_ascent = CTFontGetAscent(ctfont) as float * convFactor;
+        let em_descent = CTFontGetDescent(ctfont) as float * convFactor;
+
+        return FontMetrics {
+            underline_size:   CTFontGetUnderlineThickness(ctfont) as float * convFactor,
+            underline_offset: CTFontGetUnderlinePosition(ctfont) as float * convFactor,
+            leading:          CTFontGetLeading(ctfont) as float * convFactor,
+            x_height:         CTFontGetXHeight(ctfont) as float * convFactor,
+            em_ascent:        CTFontGetAscent(ctfont) as float * convFactor,
+            em_descent:       CTFontGetDescent(ctfont) as float * convFactor,
+            em_height:        em_ascent + em_descent,
+            max_advance:      bounding_rect.size.width as float * convFactor,
+        }
     }
 }
 

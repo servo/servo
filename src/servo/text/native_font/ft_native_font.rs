@@ -4,6 +4,7 @@ use vec_as_buf = vec::as_imm_buf;
 use ptr::{addr_of, null};
 use unsafe::reinterpret_cast;
 use glyph::GlyphIndex;
+use font::FontMetrics;
 use azure::freetype;
 use freetype::{ FT_Error, FT_Library, FT_Face, FT_Long, FT_ULong, FT_UInt, FT_GlyphSlot };
 use freetype::bindgen::{
@@ -65,6 +66,20 @@ impl FreeTypeNativeFont {
         } else {
             #warn("Unable to load glyph %?. reason: %?", glyph, res);
             return None;
+        }
+    }
+
+    fn get_metrics() -> FontMetrics {
+        /* TODO: complete me (Issue #76) */
+        return FontMetrics {
+            underline_size:   0.0,
+            underline_offset: 0.0,
+            leading:          0.0,
+            x_height:         0.0,
+            em_ascent:        0.0,
+            em_descent:       0.0,
+            em_height:        0.0,
+            max_advance:      0.0
         }
     }
 }
