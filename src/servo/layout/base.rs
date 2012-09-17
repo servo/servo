@@ -14,6 +14,7 @@ use geom::size::Size2D;
 use gfx::geometry::au;
 use image::{Image, ImageHolder};
 use layout::block::BlockFlowData;
+use layout::debug::DebugMethods;
 use layout::inline::InlineFlowData;
 use layout::root::RootFlowData;
 use layout::text::TextBoxData;
@@ -24,6 +25,20 @@ use task::spawn;
 use util::color::Color;
 use util::tree;
 use vec::{push, push_all};
+
+struct FlowLayoutData {
+    mut min_width: au,
+    mut pref_width: au,
+    mut position: Rect<au>,
+}
+
+fn FlowLayoutData() -> FlowLayoutData {
+    FlowLayoutData {
+        min_width: au(0),
+        pref_width: au(0),
+        position : au::zero_rect(),
+    }
+}
 
 /* The type of the formatting context, and data specific to each
 context, such as lineboxes or float lists */ 
@@ -69,12 +84,87 @@ impl @FlowContext : cmp::Eq {
     pure fn ne(&&other: @FlowContext) -> bool { !box::ptr_eq(self, other) }
 }
 
+impl @FlowContext {
+    fn bubble_widths() {
+        match self.kind {
+            BlockFlow(*)  => self.bubble_widths_block(),
+            InlineFlow(*) => self.bubble_widths_inline(),
+            RootFlow(*)   => self.bubble_widths_root(),
+            _ => fail fmt!("Tried to bubble_widths of flow: %?", self.kind)
+        }
+    }
+
+    fn assign_widths() {
+        match self.kind {
+            BlockFlow(*)  => self.assign_widths_block(),
+            InlineFlow(*) => self.assign_widths_inline(),
+            RootFlow(*)   => self.assign_widths_root(),
+            _ => fail fmt!("Tried to assign_widths of flow: %?", self.kind)
+        }
+    }
+
+    fn assign_height() {
+        match self.kind {
+            BlockFlow(*)  => self.assign_height_block(),
+            InlineFlow(*) => self.assign_height_inline(),
+            RootFlow(*)   => self.assign_height_root(),
+            _ => fail fmt!("Tried to assign_height of flow: %?", self.kind)
+        }
+    }
+}
+
+/* The tree holding FlowContexts */
+enum FlowTree { FlowTree }
+
+impl FlowTree : tree::ReadMethods<@FlowContext> {
+    fn each_child(ctx: @FlowContext, f: fn(&&@FlowContext) -> bool) {
+        tree::each_child(self, ctx, f)
+    }
+
+    fn with_tree_fields<R>(&&b: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
+        f(b.tree)
+    }
+}
+
+impl FlowTree : tree::WriteMethods<@FlowContext> {
+    fn add_child(parent: @FlowContext, child: @FlowContext) {
+        assert !box::ptr_eq(parent, child);
+        tree::add_child(self, parent, child)
+    }
+
+    fn with_tree_fields<R>(&&b: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
+        f(b.tree)
+    }
+}
+
+
 /* A box's kind influences how its styles are interpreted during
    layout.  For example, replaced content such as images are resized
    differently than tables, text, or other content.
 
    It also holds data specific to different box types, such as text.
 */
+
+struct BoxLayoutData {
+    mut min_width: au,
+    mut pref_width: au,
+    mut position: Rect<au>,
+
+    mut font_size: Length,
+    mut background_image: Option<ImageHolder>,
+}
+
+fn BoxLayoutData() -> BoxLayoutData {
+    BoxLayoutData {
+        min_width: au(0),
+        pref_width: au(0),
+        position : au::zero_rect(),
+
+        font_size : Px(0.0),
+        background_image : None,
+    }
+}
+
 enum BoxData {
     GenericBox,
     ImageBox(Size2D<au>),
@@ -134,7 +224,9 @@ impl @Box {
             // how to compute its own min and pref widths, and should
             // probably cache them.
             TextBox(d) => d.runs.foldl(au(0), |sum, run| {
-                au::max(sum, run.min_break_width())
+                let ret = au::max(sum, run.min_break_width());
+                debug!("text min width: %?px", au::to_px(ret));
+                ret
             })
         }
     }
@@ -156,7 +248,9 @@ impl @Box {
             // how to compute its own min and pref widths, and should
             // probably cache them.
             TextBox(d) => d.runs.foldl(au(0), |sum, run| {
-                au::max(sum, run.size().width)
+                let ret = au::max(sum, run.size().width);
+                debug!("text pref width: %?px", au::to_px(ret));
+                ret
             })
         }
     }
@@ -199,41 +293,6 @@ impl @Box {
     }
 }
 
-struct FlowLayoutData {
-    mut min_width: au,
-    mut pref_width: au,
-    mut position: Rect<au>,
-}
-
-
-fn FlowLayoutData() -> FlowLayoutData {
-    FlowLayoutData {
-        min_width: au(0),
-        pref_width: au(0),
-        position : au::zero_rect(),
-    }
-}
-
-struct BoxLayoutData {
-    mut min_width: au,
-    mut pref_width: au,
-    mut position: Rect<au>,
-
-    mut font_size: Length,
-    mut background_image: Option<ImageHolder>,
-}
-
-fn BoxLayoutData() -> BoxLayoutData {
-    BoxLayoutData {
-        min_width: au(0),
-        pref_width: au(0),
-        position : au::zero_rect(),
-
-        font_size : Px(0.0),
-        background_image : None,
-    }
-}
-
 // FIXME: Why do these have to be redefined for each node type?
 
 /* The tree holding boxes */
@@ -260,66 +319,7 @@ impl BoxTree : tree::WriteMethods<@Box> {
     }
 }
 
-/* The tree holding FlowContexts */
-enum FlowTree { FlowTree }
-
-impl FlowTree : tree::ReadMethods<@FlowContext> {
-    fn each_child(ctx: @FlowContext, f: fn(&&@FlowContext) -> bool) {
-        tree::each_child(self, ctx, f)
-    }
-
-    fn with_tree_fields<R>(&&b: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
-        f(b.tree)
-    }
-}
-
-impl FlowTree : tree::WriteMethods<@FlowContext> {
-    fn add_child(parent: @FlowContext, child: @FlowContext) {
-        assert !box::ptr_eq(parent, child);
-        tree::add_child(self, parent, child)
-    }
-
-    fn with_tree_fields<R>(&&b: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
-        f(b.tree)
-    }
-}
-
-impl @FlowContext {
-    fn bubble_widths() {
-        match self.kind {
-            BlockFlow(*)  => self.bubble_widths_block(),
-            InlineFlow(*) => self.bubble_widths_inline(),
-            RootFlow(*)   => self.bubble_widths_root(),
-            _ => fail fmt!("Tried to bubble_widths of flow: %?", self.kind)
-        }
-    }
-
-    fn assign_widths() {
-        match self.kind {
-            BlockFlow(*)  => self.assign_widths_block(),
-            InlineFlow(*) => self.assign_widths_inline(),
-            RootFlow(*)   => self.assign_widths_root(),
-            _ => fail fmt!("Tried to assign_widths of flow: %?", self.kind)
-        }
-    }
-
-    fn assign_height() {
-        match self.kind {
-            BlockFlow(*)  => self.assign_height_block(),
-            InlineFlow(*) => self.assign_height_inline(),
-            RootFlow(*)   => self.assign_height_root(),
-            _ => fail fmt!("Tried to assign_height of flow: %?", self.kind)
-        }
-    }
-}
-
 // Debugging
-
-trait DebugMethods {
-    fn dump();
-    fn dump_indent(ident: uint);
-    fn debug_str() -> ~str;
-}
 
 impl @FlowContext : DebugMethods {
     fn dump() {
@@ -360,31 +360,6 @@ impl @FlowContext : DebugMethods {
         };
             
         fmt!("c%? %?", self.id, repr)
-    }
-}
-
-impl Node : DebugMethods {
-    /* Dumps the subtree rooted at this node, for debugging. */
-    fn dump() {
-        self.dump_indent(0u);
-    }
-    /* Dumps the node tree, for debugging, with indentation. */
-    fn dump_indent(indent: uint) {
-        let mut s = ~"";
-        for uint::range(0u, indent) |_i| {
-            s += ~"    ";
-        }
-
-        s += self.debug_str();
-        debug!("%s", s);
-
-        for NodeTree.each_child(self) |kid| {
-            kid.dump_indent(indent + 1u) 
-        }
-    }
-
-    fn debug_str() -> ~str {
-        fmt!("%?", self.read(|n| copy n.kind ))
     }
 }
 

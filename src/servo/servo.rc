@@ -55,6 +55,7 @@ mod layout {
     mod base;
     mod block;
     mod box_builder;
+    mod debug;
     mod display_list_builder;
     mod inline;
     mod layout_task;

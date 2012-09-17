@@ -14,6 +14,7 @@ use js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, jsval, JSBoo
 use js::rust::{bare_compartment, compartment, methods};
 use js::{JSPROP_ENUMERATE, JSPROP_SHARED};
 use layout::base::Box;
+use layout::debug::DebugMethods;
 use ptr::null;
 use std::arc::ARC;
 use util::tree;
@@ -78,6 +79,32 @@ impl NodeTree : tree::ReadMethods<Node> {
 
     fn with_tree_fields<R>(&&n: Node, f: fn(tree::Tree<Node>) -> R) -> R {
         n.read(|n| f(n.tree))
+    }
+}
+
+
+impl Node : DebugMethods {
+    /* Dumps the subtree rooted at this node, for debugging. */
+    fn dump() {
+        self.dump_indent(0u);
+    }
+    /* Dumps the node tree, for debugging, with indentation. */
+    fn dump_indent(indent: uint) {
+        let mut s = ~"";
+        for uint::range(0u, indent) |_i| {
+            s += ~"    ";
+        }
+
+        s += self.debug_str();
+        debug!("%s", s);
+
+        for NodeTree.each_child(self) |kid| {
+            kid.dump_indent(indent + 1u) 
+        }
+    }
+
+    fn debug_str() -> ~str {
+        fmt!("%?", self.read(|n| copy n.kind ))
     }
 }
 
