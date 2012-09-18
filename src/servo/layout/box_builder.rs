@@ -8,13 +8,14 @@ use dom::base::{Element, Text, Node, Doctype, Comment, NodeTree};
 use layout::base::{Box, BoxData, GenericBox, ImageBox, TextBox, BoxTree};
 use layout::base::{FlowContext, FlowContextData, BlockFlow, InlineFlow, InlineBlockFlow, RootFlow, FlowTree};
 use layout::block::BlockFlowData;
+use layout::context::LayoutContext;
 use layout::inline::InlineFlowData;
 use layout::root::RootFlowData;
 use layout::text::TextBoxData;
 use option::is_none;
 use util::tree;
 use servo_text::text_run::TextRun;
-use servo_text::font_library::FontLibrary;
+use servo_text::font_cache::FontCache;
 
 export LayoutTreeBuilder;
 
@@ -41,7 +42,7 @@ impl LayoutTreeBuilder {
 
     /** Creates necessary box(es) and flow context(s) for the current DOM node,
     and recurses on its children. */
-    fn construct_recursively(cur_node: Node, parent_ctx: @FlowContext, parent_box: @Box) {
+    fn construct_recursively(layout_ctx: &LayoutContext, cur_node: Node, parent_ctx: @FlowContext, parent_box: @Box) {
         let style = cur_node.style();
         
         // DEBUG
@@ -60,7 +61,7 @@ impl LayoutTreeBuilder {
         };
 
         // first, create the proper box kind, based on node characteristics
-        let box_data = match cur_node.create_box_data(display) {
+        let box_data = match cur_node.create_box_data(layout_ctx, display) {
             None => return,
             Some(data) => data
         };
@@ -116,7 +117,7 @@ impl LayoutTreeBuilder {
         }
         // recurse
         do NodeTree.each_child(cur_node) |child_node| {
-            self.construct_recursively(child_node, next_ctx, new_box); true
+            self.construct_recursively(layout_ctx, child_node, next_ctx, new_box); true
         }
 
         // Fixup any irregularities, such as split inlines (CSS 2.1 Section 9.2.1.1)
@@ -145,11 +146,11 @@ impl LayoutTreeBuilder {
 
     /** entry point for box creation. Should only be 
     called on root DOM element. */
-    fn construct_trees(root: Node) -> Result<@Box, ()> {
+    fn construct_trees(layout_ctx: &LayoutContext, root: Node) -> Result<@Box, ()> {
         self.root_ctx = Some(self.make_ctx(RootFlow(RootFlowData()), tree::empty()));
         self.root_box = Some(self.make_box(root, self.root_ctx.get(), GenericBox));
 
-        self.construct_recursively(root, self.root_ctx.get(), self.root_box.get());
+        self.construct_recursively(layout_ctx, root, self.root_ctx.get(), self.root_box.get());
         return Ok(self.root_box.get())
     }
 
@@ -167,18 +168,17 @@ impl LayoutTreeBuilder {
 }
 
 trait PrivateBuilderMethods {
-    fn create_box_data(display: CSSDisplay) -> Option<BoxData>;
+    fn create_box_data(layout_ctx: &LayoutContext, display: CSSDisplay) -> Option<BoxData>;
 }
 
 impl Node : PrivateBuilderMethods {
-    fn create_box_data(display: CSSDisplay) -> Option<BoxData> {
+    fn create_box_data(layout_ctx: &LayoutContext, display: CSSDisplay) -> Option<BoxData> {
         do self.read |node| {
             match node.kind {
                 ~Doctype(*) | ~Comment(*) => None,
                 ~Text(string) => {
                     // TODO: clean this up. Fonts should not be created here.
-                    let flib = FontLibrary();
-                    let font = flib.get_test_font();
+                    let font = layout_ctx.font_cache.get_test_font();
                     let run = TextRun(font, string);
                     Some(TextBox(TextBoxData(copy string, ~[move run])))
                 }

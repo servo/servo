@@ -4,6 +4,7 @@ use geom::point::Point2D;
 use geom::size::Size2D;
 use gfx::geometry::au;
 use layout::base::{Box, FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
+use layout::context::LayoutContext;
 use util::tree;
 
 struct RootFlowData {
@@ -20,9 +21,9 @@ trait RootLayout {
     pure fn starts_root_flow() -> bool;
     pure fn access_root<T>(fn(&&RootFlowData) -> T) -> T;
 
-    fn bubble_widths_root();
-    fn assign_widths_root();
-    fn assign_height_root();
+    fn bubble_widths_root(ctx: &LayoutContext);
+    fn assign_widths_root(ctx: &LayoutContext);
+    fn assign_height_root(ctx: &LayoutContext);
 }
 
 impl @FlowContext : RootLayout {
@@ -42,21 +43,21 @@ impl @FlowContext : RootLayout {
     }
 
     /* defer to the block algorithm */
-    fn bubble_widths_root() {
+    fn bubble_widths_root(ctx: &LayoutContext) {
         assert self.starts_root_flow();
-        self.bubble_widths_block()
+        self.bubble_widths_block(ctx)
     }
  
-    fn assign_widths_root() { 
+    fn assign_widths_root(ctx: &LayoutContext) { 
         assert self.starts_root_flow();
 
         /* TODO: should determine frame width here, not in
         LayoutTask. Until then, defer to block.  */
-        self.assign_widths_block() }
+        self.assign_widths_block(ctx) }
 
-    fn assign_height_root() {
+    fn assign_height_root(ctx: &LayoutContext) {
         assert self.starts_root_flow();
 
-        self.assign_height_block();
+        self.assign_height_block(ctx);
     }
 }

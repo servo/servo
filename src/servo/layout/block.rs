@@ -4,6 +4,7 @@ use geom::point::Point2D;
 use geom::size::Size2D;
 use gfx::geometry::au;
 use layout::base::{Box, FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
+use layout::context::LayoutContext;
 use util::tree;
 
 struct BlockFlowData {
@@ -21,9 +22,9 @@ trait BlockLayout {
     pure fn access_block<T>(fn(&&BlockFlowData) -> T) -> T;
     pure fn with_block_box(fn(&&@Box) -> ()) -> ();
 
-    fn bubble_widths_block();
-    fn assign_widths_block();
-    fn assign_height_block();
+    fn bubble_widths_block(ctx: &LayoutContext);
+    fn assign_widths_block(ctx: &LayoutContext);
+    fn assign_height_block(ctx: &LayoutContext);
 }
 
 impl @FlowContext : BlockLayout {
@@ -71,7 +72,7 @@ impl @FlowContext : BlockLayout {
     /* TODO: floats */
     /* TODO: absolute contexts */
     /* TODO: inline-blocks */
-    fn bubble_widths_block() {
+    fn bubble_widths_block(ctx: &LayoutContext) {
         assert self.starts_block_flow();
 
         let mut min_width = au(0);
@@ -103,7 +104,7 @@ impl @FlowContext : BlockLayout {
     Dual boxes consume some width first, and the remainder is assigned to
     all child (block) contexts. */
 
-    fn assign_widths_block() { 
+    fn assign_widths_block(ctx: &LayoutContext) { 
         assert self.starts_block_flow();
 
         let mut remaining_width = self.data.position.size.width;
@@ -125,7 +126,7 @@ impl @FlowContext : BlockLayout {
         }
     }
 
-    fn assign_height_block() {
+    fn assign_height_block(ctx: &LayoutContext) {
         assert self.starts_block_flow();
 
         let mut cur_y = au(0);

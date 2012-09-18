@@ -10,7 +10,7 @@ use glyph::{Glyph, GlyphPos};
 use ptr::{null, addr_of, offset};
 use gfx::geometry::au;
 use geom::point::Point2D;
-use font_library::FontLibrary;
+use font_cache::FontCache;
 
 use unsafe::reinterpret_cast;
 use harfbuzz::{HB_MEMORY_MODE_READONLY,
@@ -148,7 +148,7 @@ fn should_get_glyph_indexes() {
     #[test];
     #[ignore(cfg(target_os = "macos"), reason = "bad metrics")];
 
-    let lib = FontLibrary();
+    let lib = FontCache();
     let font = lib.get_test_font();
     let glyphs = shape_text(font, ~"firecracker");
     let idxs = glyphs.map(|glyph| glyph.index);
@@ -159,7 +159,7 @@ fn should_get_glyph_h_advance() {
     #[test];
     #[ignore(cfg(target_os = "macos"), reason = "bad metrics")];
 
-    let lib = FontLibrary();
+    let lib = FontCache();
     let font = lib.get_test_font();
     let glyphs = shape_text(font, ~"firecracker");
     let actual = glyphs.map(|g| g.pos.advance.x);

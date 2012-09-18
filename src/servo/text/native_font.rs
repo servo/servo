@@ -9,7 +9,7 @@ font resources needed by the graphics layer to draw glyphs.
 
 export NativeFont, create;
 
-use font_library::native::NativeFontLibrary;
+use font_cache::native::NativeFontCache;
 
 #[cfg(target_os = "macos")]
 type NativeFont/& = quartz_native_font::QuartzNativeFont;
@@ -18,12 +18,12 @@ type NativeFont/& = quartz_native_font::QuartzNativeFont;
 type NativeFont/& = ft_native_font::FreeTypeNativeFont;
 
 #[cfg(target_os = "macos")]
-fn create(_native_lib: &NativeFontLibrary, buf: @~[u8]) -> Result<NativeFont, ()> {
+fn create(_native_lib: &NativeFontCache, buf: @~[u8]) -> Result<NativeFont, ()> {
     quartz_native_font::create(buf)
 }
 
 #[cfg(target_os = "linux")]
-fn create(native_lib: &NativeFontLibrary, buf: @~[u8]) -> Result<NativeFont, ()> {
+fn create(native_lib: &NativeFontCache, buf: @~[u8]) -> Result<NativeFont, ()> {
     ft_native_font::create(native_lib, buf)
 }
 

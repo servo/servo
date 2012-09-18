@@ -1,3 +1,4 @@
+pub use font_cache::FontCache;
 export Font, FontMetrics, test_font_bin, create_test_font;
 
 use glyph::GlyphIndex;
@@ -5,7 +6,6 @@ use vec_to_ptr = vec::raw::to_ptr;
 use libc::{ c_int, c_double, c_ulong };
 use ptr::{ null, addr_of };
 use native_font::NativeFont;
-use font_library::FontLibrary;
 
 #[doc = "
 A font handle. Layout can use this to calculate glyph metrics
@@ -13,7 +13,7 @@ and the renderer can use it to render text.
 "]
 struct Font {
     // A back reference to keep the library alive
-    lib: @FontLibrary,
+    lib: @FontCache,
     fontbuf: @~[u8],
     native_font: NativeFont,
     metrics: FontMetrics
@@ -36,7 +36,7 @@ impl Font {
     }
 }
 
-fn Font(lib: @FontLibrary, fontbuf: @~[u8], +native_font: NativeFont, +metrics: FontMetrics) -> Font {
+fn Font(lib: @FontCache, fontbuf: @~[u8], +native_font: NativeFont, +metrics: FontMetrics) -> Font {
     Font {
         lib: lib,
         fontbuf : fontbuf,
@@ -67,7 +67,7 @@ fn should_destruct_on_fail_without_leaking() {
     #[test];
     #[should_fail];
 
-    let lib = FontLibrary();
+    let lib = FontCache();
     let _font = lib.get_test_font();
     fail;
 }
@@ -75,7 +75,7 @@ fn should_destruct_on_fail_without_leaking() {
 fn should_get_glyph_indexes() {
     #[test];
 
-    let lib = FontLibrary();
+    let lib = FontCache();
     let font = lib.get_test_font();
     let glyph_idx = font.glyph_index('w');
     assert glyph_idx == Some(40u);
@@ -84,7 +84,7 @@ fn should_get_glyph_indexes() {
 fn should_get_glyph_advance() {
     #[test];
 
-    let lib = FontLibrary();
+    let lib = FontCache();
     let font = lib.get_test_font();
     let x = font.glyph_h_advance(40u);
     assert x == 15;
@@ -100,7 +100,7 @@ fn should_get_glyph_advance_stress() {
         let (chan, port) = pipes::stream();
         ports += [@move port];
         do task::spawn {
-            let lib = FontLibrary();
+            let lib = FontCache();
             let font = lib.get_test_font();
             let x = font.glyph_h_advance(40u);
             assert x == 15;
@@ -118,7 +118,7 @@ fn should_be_able_to_create_instances_in_multiple_threads() {
 
     for iter::repeat(10u) {
         do task::spawn {
-            let lib = FontLibrary();
+            let lib = FontCache();
             let _font = lib.get_test_font();
         }
     }

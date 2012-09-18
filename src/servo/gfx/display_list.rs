@@ -3,13 +3,14 @@ use gfx::render_task::{draw_solid_color, draw_image, draw_glyphs};
 use gfx::geometry::*;
 use geom::rect::Rect;
 use image::base::Image;
+use render_task::RenderContext;
 
 use std::arc::{ARC, clone};
 use dvec::DVec;
 use text::glyph::Glyph;
 
 struct DisplayItem {
-    draw: ~fn((&DisplayItem), (&DrawTarget)),
+    draw: ~fn((&DisplayItem), (&RenderContext)),
     bounds : Rect<au>, // TODO: whose coordinate system should this use?
     data : DisplayItemData
 }
@@ -30,21 +31,21 @@ struct GlyphRun {
     glyphs: ~[Glyph]
 }
 
-fn draw_SolidColor(self: &DisplayItem, ctx: &DrawTarget) {
+fn draw_SolidColor(self: &DisplayItem, ctx: &RenderContext) {
     match self.data {
         SolidColorData(r,g,b) => draw_solid_color(ctx, &self.bounds, r, g, b),
         _ => fail
     }        
 }
 
-fn draw_Glyphs(self: &DisplayItem, ctx: &DrawTarget) {
+fn draw_Glyphs(self: &DisplayItem, ctx: &RenderContext) {
     match self.data {
         GlyphData(run) => draw_glyphs(ctx, self.bounds, &run),
         _ => fail
     }        
 }
 
-fn draw_Image(self: &DisplayItem, ctx: &DrawTarget) {
+fn draw_Image(self: &DisplayItem, ctx: &RenderContext) {
     match self.data {
         ImageData(img) => draw_image(ctx, self.bounds, img),
         _ => fail
@@ -81,11 +82,11 @@ fn Image(bounds: Rect<au>, image: ARC<~image::base::Image>) -> DisplayItem {
 type DisplayList = DVec<~DisplayItem>;
 
 trait DisplayListMethods {
-    fn draw(ctx: &DrawTarget);
+    fn draw(ctx: &RenderContext);
 }
 
 impl DisplayList : DisplayListMethods {
-    fn draw(ctx: &DrawTarget) {
+    fn draw(ctx: &RenderContext) {
         for self.each |item| {
             #debug["drawing %?", item];
             item.draw(item, ctx);

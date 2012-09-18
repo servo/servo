@@ -3,7 +3,7 @@ use geom::point::Point2D;
 use geom::size::Size2D;
 use gfx::geometry::au;
 use libc::{c_void};
-use font_library::FontLibrary;
+use font_cache::FontCache;
 use font::Font;
 use glyph::Glyph;
 use shaper::shape_text;
@@ -135,7 +135,7 @@ fn iter_indivisible_slices(font: &Font, text: &r/str,
 
 #[test]
 fn test_calc_min_break_width1() {
-    let flib = FontLibrary();
+    let flib = FontCache();
     let font = flib.get_test_font();
     let actual = calc_min_break_width(font, ~"firecracker");
     let expected = au::from_px(84);
@@ -144,7 +144,7 @@ fn test_calc_min_break_width1() {
 
 #[test]
 fn test_calc_min_break_width2() {
-    let flib = FontLibrary();
+    let flib = FontCache();
     let font = flib.get_test_font();
     let actual = calc_min_break_width(font, ~"firecracker yumyum");
     let expected = au::from_px(84);
@@ -153,7 +153,7 @@ fn test_calc_min_break_width2() {
 
 #[test]
 fn test_calc_min_break_width3() {
-    let flib = FontLibrary();
+    let flib = FontCache();
     let font = flib.get_test_font();
     let actual = calc_min_break_width(font, ~"yumyum firecracker");
     let expected = au::from_px(84);
@@ -162,7 +162,7 @@ fn test_calc_min_break_width3() {
 
 #[test]
 fn test_calc_min_break_width4() {
-    let flib = FontLibrary();
+    let flib = FontCache();
     let font = flib.get_test_font();
     let actual = calc_min_break_width(font, ~"yumyum firecracker yumyum");
     let expected = au::from_px(84);
@@ -171,7 +171,7 @@ fn test_calc_min_break_width4() {
 
 #[test]
 fn test_iter_indivisible_slices() {
-    let flib = FontLibrary();
+    let flib = FontCache();
     let font = flib.get_test_font();
     let mut slices = ~[];
     for iter_indivisible_slices(font, "firecracker yumyum woopwoop") |slice| {
@@ -182,7 +182,7 @@ fn test_iter_indivisible_slices() {
 
 #[test]
 fn test_iter_indivisible_slices_trailing_whitespace() {
-    let flib = FontLibrary();
+    let flib = FontCache();
     let font = flib.get_test_font();
     let mut slices = ~[];
     for iter_indivisible_slices(font, "firecracker  ") |slice| {
@@ -193,7 +193,7 @@ fn test_iter_indivisible_slices_trailing_whitespace() {
 
 #[test]
 fn test_iter_indivisible_slices_leading_whitespace() {
-    let flib = FontLibrary();
+    let flib = FontCache();
     let font = flib.get_test_font();
     let mut slices = ~[];
     for iter_indivisible_slices(font, "  firecracker") |slice| {
@@ -204,7 +204,7 @@ fn test_iter_indivisible_slices_leading_whitespace() {
 
 #[test]
 fn test_iter_indivisible_slices_empty() {
-    let flib = FontLibrary();
+    let flib = FontCache();
     let font = flib.get_test_font();
     let mut slices = ~[];
     for iter_indivisible_slices(font, "") |slice| {
@@ -215,7 +215,7 @@ fn test_iter_indivisible_slices_empty() {
 
 #[test]
 fn test_split() {
-    let flib = FontLibrary();
+    let flib = FontCache();
     let font = flib.get_test_font();
     let run = TextRun(font, ~"firecracker yumyum");
     let break_runs = run.split(font, run.min_break_width());
@@ -225,7 +225,7 @@ fn test_split() {
 
 #[test]
 fn test_split2() {
-    let flib = FontLibrary();
+    let flib = FontCache();
     let font = flib.get_test_font();
     let run = TextRun(font, ~"firecracker yum yum yum yum yum");
     let break_runs = run.split(font, run.min_break_width());
@@ -235,7 +235,7 @@ fn test_split2() {
 
 #[test]
 fn test_split3() {
-    let flib = FontLibrary();
+    let flib = FontCache();
     let font = flib.get_test_font();
     let run = TextRun(font, ~"firecracker firecracker");
     let break_runs = run.split(font, run.min_break_width() + au::from_px(10));
@@ -247,7 +247,7 @@ fn test_split3() {
 #[test]
 #[ignore(cfg(target_os = "macos"))]
 fn should_calculate_the_total_size() {
-    let flib = FontLibrary();
+    let flib = FontCache();
     let font = flib.get_test_font();
     let run = TextRun(font, ~"firecracker");
     let expected = Size2D(au::from_px(84), au::from_px(20));

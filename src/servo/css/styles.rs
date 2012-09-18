@@ -10,6 +10,7 @@ use dom::base::{LayoutData};
 use util::color::{Color, rgb};
 use util::color::css_colors::{white, black};
 use dom::base::NodeTree;
+use layout::context::LayoutContext;
 
 type SpecifiedStyle = {mut background_color : CSSValue<CSSBackgroundColor>,
                         mut display_type : CSSValue<CSSDisplay>,
@@ -114,7 +115,7 @@ impl Node : StylePriv {
 trait StyleMethods {
     fn initialize_style_for_subtree() -> ~[@LayoutData];
     fn style() -> SpecifiedStyle;
-    fn recompute_style_for_subtree(styles : ARC<Stylesheet>);
+    fn recompute_style_for_subtree(ctx: &LayoutContext, styles : ARC<Stylesheet>);
 }
 
 impl Node : StyleMethods {
@@ -145,31 +146,20 @@ impl Node : StyleMethods {
     #[doc="
         Performs CSS selector matching on a subtree.
 
-        This is, importantly, the function that updates the layout data for the node (the reader-
-        auxiliary box in the RCU model) with the computed style.
-    "]
-    fn recompute_style_for_subtree(styles : ARC<Stylesheet>) {
-        listen(|ack_chan| {
-            let mut i = 0u;
+This is, importantly, the function that updates the layout data for the node (the reader-
+auxiliary box in the RCU model) with the computed style.
+"]
+    fn recompute_style_for_subtree(ctx: &LayoutContext, styles : ARC<Stylesheet>) {
+        let mut i = 0u;
+        
+        // Compute the styles of each of our children in parallel
+        for NodeTree.each_child(self) |kid| {
+            i = i + 1u;
+            let new_styles = clone(&styles);
             
-            // Compute the styles of each of our children in parallel
-            for NodeTree.each_child(self) |kid| {
-                i = i + 1u;
-                let new_styles = clone(&styles);
-                
-                task::spawn(|| {
-                    kid.recompute_style_for_subtree(new_styles); 
-                    ack_chan.send(());
-                })
-            }
+            kid.recompute_style_for_subtree(ctx, new_styles); 
+        }
 
-            self.match_css_style(*get(&styles));
-            
-            // Make sure we have finished updating the tree before returning
-            while i > 0 {
-                ack_chan.recv();
-                i = i - 1u;
-            }
-        })
+        self.match_css_style(*get(&styles));
     }
 }

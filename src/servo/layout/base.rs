@@ -14,6 +14,7 @@ use geom::size::Size2D;
 use gfx::geometry::au;
 use image::{Image, ImageHolder};
 use layout::block::BlockFlowData;
+use layout::context::LayoutContext;
 use layout::debug::DebugMethods;
 use layout::inline::InlineFlowData;
 use layout::root::RootFlowData;
@@ -85,29 +86,29 @@ impl @FlowContext : cmp::Eq {
 }
 
 impl @FlowContext {
-    fn bubble_widths() {
+    fn bubble_widths(ctx: &LayoutContext) {
         match self.kind {
-            BlockFlow(*)  => self.bubble_widths_block(),
-            InlineFlow(*) => self.bubble_widths_inline(),
-            RootFlow(*)   => self.bubble_widths_root(),
+            BlockFlow(*)  => self.bubble_widths_block(ctx),
+            InlineFlow(*) => self.bubble_widths_inline(ctx),
+            RootFlow(*)   => self.bubble_widths_root(ctx),
             _ => fail fmt!("Tried to bubble_widths of flow: %?", self.kind)
         }
     }
 
-    fn assign_widths() {
+    fn assign_widths(ctx: &LayoutContext) {
         match self.kind {
-            BlockFlow(*)  => self.assign_widths_block(),
-            InlineFlow(*) => self.assign_widths_inline(),
-            RootFlow(*)   => self.assign_widths_root(),
+            BlockFlow(*)  => self.assign_widths_block(ctx),
+            InlineFlow(*) => self.assign_widths_inline(ctx),
+            RootFlow(*)   => self.assign_widths_root(ctx),
             _ => fail fmt!("Tried to assign_widths of flow: %?", self.kind)
         }
     }
 
-    fn assign_height() {
+    fn assign_height(ctx: &LayoutContext) {
         match self.kind {
-            BlockFlow(*)  => self.assign_height_block(),
-            InlineFlow(*) => self.assign_height_inline(),
-            RootFlow(*)   => self.assign_height_root(),
+            BlockFlow(*)  => self.assign_height_block(ctx),
+            InlineFlow(*) => self.assign_height_inline(ctx),
+            RootFlow(*)   => self.assign_height_root(ctx),
             _ => fail fmt!("Tried to assign_height of flow: %?", self.kind)
         }
     }
@@ -224,9 +225,7 @@ impl @Box {
             // how to compute its own min and pref widths, and should
             // probably cache them.
             TextBox(d) => d.runs.foldl(au(0), |sum, run| {
-                let ret = au::max(sum, run.min_break_width());
-                debug!("text min width: %?px", au::to_px(ret));
-                ret
+                au::max(sum, run.min_break_width())
             })
         }
     }
@@ -248,9 +247,7 @@ impl @Box {
             // how to compute its own min and pref widths, and should
             // probably cache them.
             TextBox(d) => d.runs.foldl(au(0), |sum, run| {
-                let ret = au::max(sum, run.size().width);
-                debug!("text pref width: %?px", au::to_px(ret));
-                ret
+                au::max(sum, run.size().width)
             })
         }
     }

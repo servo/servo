@@ -19,6 +19,7 @@ use std::arc::ARC;
 use azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
 use std::cell::Cell;
 use compositor::Compositor;
+use servo_text::font_cache::FontCache;
 
 use pipes::{Port, Chan};
 
@@ -29,6 +30,11 @@ pub enum Msg {
     ExitMsg(pipes::Chan<()>)
 }
 
+struct RenderContext {
+    canvas: &DrawTarget,
+    font_cache: @FontCache,
+}
+
 type RenderTask = comm::Chan<Msg>;
 
 fn RenderTask<C: Compositor Send>(+compositor: C) -> RenderTask {
@@ -36,6 +42,8 @@ fn RenderTask<C: Compositor Send>(+compositor: C) -> RenderTask {
         let (draw_target_ch, draw_target_po) = pipes::stream();
         let mut draw_target_ch = draw_target_ch;
         let mut draw_target_po = draw_target_po;
+
+        let font_cache = FontCache();
 
         debug!("renderer: beginning rendering loop");
 
@@ -56,8 +64,13 @@ fn RenderTask<C: Compositor Send>(+compositor: C) -> RenderTask {
                     let draw_target_ch = option::unwrap(draw_target_ch);
 
                     do draw_target.with_ref |draw_target| {
-                        clear(draw_target);
-                        display_list.draw(draw_target)
+                        let ctx = RenderContext {
+                            canvas: draw_target,
+                            font_cache: font_cache
+                        };
+
+                        clear(&ctx);
+                        display_list.draw(&ctx)
                     }
 
                     #debug("renderer: returning surface");
@@ -94,37 +107,37 @@ impl Rect<au> : ToAzureRect {
     }
 }
 
-pub fn draw_solid_color(draw_target: &DrawTarget, bounds: &Rect<au>, r: u8, g: u8, b: u8) {
+pub fn draw_solid_color(ctx: &RenderContext, bounds: &Rect<au>, r: u8, g: u8, b: u8) {
     let color = Color(r.to_float() as AzFloat,
                       g.to_float() as AzFloat,
                       b.to_float() as AzFloat,
                       1f as AzFloat);
 
-    draw_target.fill_rect(bounds.to_azure_rect(), ColorPattern(color));
+    ctx.canvas.fill_rect(bounds.to_azure_rect(), ColorPattern(color));
 }
 
-pub fn draw_image(draw_target: &DrawTarget, bounds: Rect<au>, image: ARC<~Image>) {
+pub fn draw_image(ctx: &RenderContext, bounds: Rect<au>, image: ARC<~Image>) {
     let image = std::arc::get(&image);
     let size = Size2D(image.width as i32, image.height as i32);
     let stride = image.width * 4;
 
-    let azure_surface = draw_target.create_source_surface_from_data(image.data, size, stride as i32,
+    let azure_surface = ctx.canvas.create_source_surface_from_data(image.data, size, stride as i32,
                                                                     B8G8R8A8);
     let source_rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat),
                            Size2D(image.width as AzFloat, image.height as AzFloat));
     let dest_rect = bounds.to_azure_rect();
     let draw_surface_options = DrawSurfaceOptions(Linear, true);
     let draw_options = DrawOptions(1.0f as AzFloat, 0);
-    draw_target.draw_surface(azure_surface, dest_rect, source_rect, draw_surface_options,
+    ctx.canvas.draw_surface(azure_surface, dest_rect, source_rect, draw_surface_options,
                              draw_options);
 }
 
-pub fn draw_glyphs(draw_target: &DrawTarget, bounds: Rect<au>, text_run: &GlyphRun) {
+pub fn draw_glyphs(ctx: &RenderContext, bounds: Rect<au>, text_run: &GlyphRun) {
     use ptr::{addr_of, null};
     use vec::raw::to_ptr;
     use libc::types::common::c99::{uint16_t, uint32_t};
     use geom::point::Point2D;
-    use text::font_library::FontLibrary;
+    use text::font_cache::FontCache;
     use text::font::Font;
     use azure::{AzNativeFont, AzFloat, AZ_NATIVE_FONT_CAIRO_FONT_FACE};
     use azure::bindgen::{AzCreateScaledFontWithCairo,
@@ -133,10 +146,10 @@ pub fn draw_glyphs(draw_target: &DrawTarget, bounds: Rect<au>, text_run: &GlyphR
                             AzReleaseColorPattern};
     use azure::cairo::bindgen::cairo_scaled_font_destroy;
 
-    let draw_target = draw_target.azure_draw_target;
+    let draw_target = ctx.canvas.azure_draw_target;
 
     // FIXME: The font library should not be created here
-    let flib = FontLibrary();
+    let flib = FontCache();
     let font = flib.get_test_font();
 
     let nfont: AzNativeFont = {
@@ -182,7 +195,8 @@ pub fn draw_glyphs(draw_target: &DrawTarget, bounds: Rect<au>, text_run: &GlyphR
         mNumGlyphs: azglyphs.len() as uint32_t            
     }};
 
-    AzDrawTargetFillGlyphs(draw_target, azfont, addr_of(glyphbuf),
+    // TODO: this call needs to move into azure_hl.rs
+    AzDrawTargetFillGlyphs(ctx.canvas.azure_draw_target, azfont, addr_of(glyphbuf),
                            pattern, addr_of(options), null());
 
     AzReleaseColorPattern(pattern);
@@ -249,8 +263,8 @@ fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
     return cfont;
 }
 
-fn clear(draw_target: &DrawTarget) {
+fn clear(ctx: &RenderContext) {
     let pattern = ColorPattern(Color(1f as AzFloat, 1f as AzFloat, 1f as AzFloat, 1f as AzFloat));
     let rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat), Size2D(800 as AzFloat, 600 as AzFloat));
-    draw_target.fill_rect(rect, pattern);
+    ctx.canvas.fill_rect(rect, pattern);
 }

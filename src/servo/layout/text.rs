@@ -4,8 +4,9 @@ use au = gfx::geometry;
 use geom::size::Size2D;
 use gfx::geometry::au;
 use servo_text::text_run::TextRun;
-use servo_text::font_library::FontLibrary;
+use servo_text::font_cache::FontCache;
 use layout::base::{TextBox, Box};
+use layout::context::LayoutContext;
 
 struct TextBoxData {
     text: ~str,
@@ -20,20 +21,18 @@ fn TextBoxData(text: ~str, runs: ~[TextRun]) -> TextBoxData {
 }
 
 trait TextLayout {
-    fn reflow_text();
+    fn reflow_text(ctx: &LayoutContext);
 }
 
 #[doc="The main reflow routine for text layout."]
 impl @Box : TextLayout {
-    fn reflow_text() {
+    fn reflow_text(ctx: &LayoutContext) {
         let d = match self.kind {
             TextBox(d) => { d }
             _ => { fail ~"expected text box in reflow_text!" }
         };
 
-        // FIXME: The font library should not be initialized here
-        let flib = FontLibrary();
-        let font = flib.get_test_font();
+        let font = ctx.font_cache.get_test_font();
 
         // Do line breaking.
         let mut current = TextRun(font, d.text);

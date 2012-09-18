@@ -55,6 +55,7 @@ mod layout {
     mod base;
     mod block;
     mod box_builder;
+    mod context;
     mod debug;
     mod display_list_builder;
     mod inline;
@@ -97,12 +98,12 @@ mod platform {
 mod text {
     export glyph;
     export text_run;
-    export font_library;
     export font;
+    export font_cache;
     export shaper;
 
     mod font;
-    mod font_library;
+    mod font_cache;
     mod glyph;
     mod native_font {
         #[cfg(target_os = "macos")]

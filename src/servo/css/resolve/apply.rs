@@ -1,7 +1,8 @@
 #[doc="Applies the appropriate CSS style to boxes."]
 
 use au = gfx::geometry;
-use layout::base::{Box, SpecifiedStyle};
+use layout::base::{Box, SpecifiedStyle, BoxTree};
+use layout::context::LayoutContext;
 use layout::traverse_parallel::top_down_traversal;
 use image::ImageHolder;
 use resource::image_cache_task::ImageCacheTask;
@@ -32,35 +33,29 @@ impl CSSValue<CSSFontSize> : ResolveMethods<CSSFontSize> {
 
 struct StyleApplicator {
     box: @Box,
-    doc_url: &Url,
-    image_cache_task: ImageCacheTask,
     reflow: fn~(),
 }
 
 // TODO: normalize this into a normal preorder tree traversal function
-fn apply_style(box: @Box, doc_url: &Url, image_cache_task: ImageCacheTask, reflow: fn~()) {
+fn apply_style(layout_ctx: &LayoutContext, box: @Box, reflow: fn~()) {
     let applicator = StyleApplicator {
         box: box,
-        doc_url: doc_url,
-        image_cache_task: image_cache_task,
         reflow: reflow
     };
 
-    applicator.apply_css_style();
+    applicator.apply_css_style(layout_ctx);
 }
 
 // TODO: this is misleadingly-named. It is actually trying to resolve CSS 'inherit' values.
 
 #[doc="A wrapper around a set of functions that can be applied as a top-down traversal of layout
        boxes."]
-fn inheritance_wrapper(box : @Box, doc_url: &Url, image_cache_task: ImageCacheTask, reflow: fn~()) {
+fn inheritance_wrapper(layout_ctx: &LayoutContext, box : @Box, reflow: fn~()) {
     let applicator = StyleApplicator {
         box: box,
-        doc_url: doc_url,
-        image_cache_task: image_cache_task,
         reflow: reflow
     };
-    applicator.apply_style();
+    applicator.apply_style(layout_ctx);
 }
 
 /*
@@ -104,12 +99,11 @@ fn resolve_width(box : @Box) {
 }*/
 
 impl StyleApplicator {
-    fn apply_css_style() {
-        let doc_url = copy *self.doc_url;
-        let image_cache_task = self.image_cache_task;
+    fn apply_css_style(layout_ctx: &LayoutContext) {
         let reflow = copy self.reflow;
-        do top_down_traversal(self.box) |box, move doc_url| {
-            inheritance_wrapper(box, &doc_url, image_cache_task, reflow);
+
+        do BoxTree.each_child(self.box) |child| {
+            inheritance_wrapper(layout_ctx, child, reflow); true
         }
     }
 
@@ -120,7 +114,7 @@ impl StyleApplicator {
       value for the given type of element and use that instead.
 
      "]
-    fn apply_style() {
+    fn apply_style(layout_ctx: &LayoutContext) {
 
         // Right now, we only handle images.
         do self.box.node.read |node| {
@@ -133,8 +127,8 @@ impl StyleApplicator {
                     if url.is_some() {
                         // FIXME: Some sort of BASE HREF support!
                         // FIXME: Parse URLs!
-                        let new_url = make_url(option::unwrap(url), Some(copy *self.doc_url));
-                        self.box.data.background_image = Some(ImageHolder(new_url, self.image_cache_task, self.reflow))
+                        let new_url = make_url(option::unwrap(url), Some(copy layout_ctx.doc_url));
+                        self.box.data.background_image = Some(ImageHolder(new_url, layout_ctx.image_cache, self.reflow))
                     };
                   }
                   _ => { /* Ignore. */ }
