@@ -15,15 +15,15 @@ given day. Good luck!
 On OS X (homebrew):
 
     brew install https://raw.github.com/Homebrew/homebrew-versions/master/autoconf213.rb
-    brew install sdl cairo
+    brew install cairo
 
 On OS X (MacPorts):
 
-    sudo port install autoconf213 libsdl cairo +x11 +quartz
+    sudo port install autoconf213 cairo +x11 +quartz
     
 On Debian-based Linuxes:
 
-    sudo apt-get install libsdl1.2-dev libcairo2-dev libpango1.0-dev autoconf2.13 freeglut3-dev
+    sudo apt-get install libcairo2-dev libpango1.0-dev autoconf2.13 freeglut3-dev
 
 ### Building
 
