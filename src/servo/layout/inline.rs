@@ -46,13 +46,6 @@ impl @FlowContext : InlineLayout {
         let mut min_width = au(0);
         let mut pref_width = au(0);
 
-        /* TODO: implement a "line sizes" API. Each inline element
-        should report its longest possible chunk (i.e., text run) and
-        shortest chunk (i.e., smallest word or hyphenatable segment). 
-
-        Until this exists, pretend that the text is indivisible, just
-        like a replaced element.  */
-
         do self.access_inline |d| {
             for d.boxes.each |box| {
                 min_width = au::max(min_width, box.get_min_width());
