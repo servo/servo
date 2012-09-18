@@ -3,12 +3,14 @@
 Servo is a web browser engine written in the Rust language. It is
 currently developed on OS X and Linux.
 
-Note: Servo requires a bleeding-edge version of Rust. Sometimes this
-means working off of the Rust _master_ branch; sometimes this means
-the _incoming_ branch. Because Rust is still undergoing major changes
-the Servo build is very often broken. Somebody in #servo or #rust
-will usually know what magic is required to make Servo build on any
-given day. Good luck!
+Note: Servo requires a bleeding-edge version of Rust. The Rust commit
+most recently tested is listed below. Servo often doesn't build
+against Rust _incoming_ or _master_ branches, due to upstream language
+changes. If you want to unbreak Servo against the latest Rust build,
+somebody in #servo or #rust will usually know what magic is required
+to fix the build.
+
+* Last known-good rust commit: 0e584f2e741ad5c6a1aefefe6eec3e2dd9fff518
 
 ### Prerequisites
 
@@ -31,7 +33,7 @@ On Debian-based Linuxes:
     cd servo
     mkdir -p build && cd build
     ../configure
-    make check && make
+    make check-servo && make
     ./servo ../src/test/test.html
 
 
@@ -39,12 +41,10 @@ On Debian-based Linuxes:
 
 #### MacPorts
 
-Currently, the Makefile for the rust-azure submodule has a hardcoded
-library path that assumes cairo has been installed with homebrew. If
-you have installed with MacPorts, you will need to change the library
-path to cairo. The following command should apply a patch with the fix:
-
-    cd src/rust-azure && git diff 1e811d44^1 1e811d44 | patch -p1
+Currently, the Makefile for the `rust-azure` submodule has hardcoded
+library paths that assumes cairo has been installed with homebrew or
+MacPorts. If you have installed cairo via another methods or a
+different version, you will need to change the library path.
 
 This problem should go away once Issue #40 is fixed, and an
 externally-built cairo is no longer needed.
