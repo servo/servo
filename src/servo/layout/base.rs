@@ -147,20 +147,14 @@ impl FlowTree : tree::WriteMethods<@FlowContext> {
 */
 
 struct BoxLayoutData {
-    mut min_width: au,
-    mut pref_width: au,
     mut position: Rect<au>,
-
     mut font_size: Length,
     mut background_image: Option<ImageHolder>,
 }
 
 fn BoxLayoutData() -> BoxLayoutData {
     BoxLayoutData {
-        min_width: au(0),
-        pref_width: au(0),
         position : au::zero_rect(),
-
         font_size : Px(0.0),
         background_image : None,
     }
