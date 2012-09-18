@@ -4,12 +4,16 @@
 "];
 
 use au = gfx::geometry;
+use au::au;
 use content::content_task;
 use css::resolve::apply::apply_style;
 use css::values::Stylesheet;
 use display_list_builder::build_display_list;
 use dom::base::Node;
 use dom::event::{Event, ReflowEvent};
+use geom::point::Point2D;
+use geom::rect::Rect;
+use geom::size::Size2D;
 use gfx::render_task;
 use layout::base::Box;
 use layout::box_builder::LayoutTreeBuilder;
@@ -55,6 +59,8 @@ fn LayoutTask(render_task: RenderTask, image_cache_task: ImageCacheTask) -> Layo
                         image_cache: image_cache_task,
                         font_cache: font_cache,
                         doc_url: doc_url,
+                        // TODO: obtain screen size from a real data source
+                        screen_size: Rect(Point2D(au(0), au(0)), Size2D(au::from_px(800), au::from_px(600)))
                     };
 
                     do util::time::time(~"layout") {
@@ -81,10 +87,6 @@ fn LayoutTask(render_task: RenderTask, image_cache_task: ImageCacheTask) -> Layo
                         /* perform layout passes over the flow tree */
                         let root_flow = root_box.ctx;
                         do root_flow.traverse_postorder |f| { f.bubble_widths(&layout_ctx) }
-                        // TODO: window/frame size should be set inside RootBox::assign_widths
-                        root_flow.data.position.origin = au::zero_point();
-                        root_flow.data.position.size.width = au::from_px(800);
-                        // end TODO
                         do root_flow.traverse_preorder |f| { f.assign_widths(&layout_ctx) }
                         do root_flow.traverse_postorder |f| { f.assign_height(&layout_ctx) }
 

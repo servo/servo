@@ -1,7 +1,5 @@
 use au = gfx::geometry;
 use css::values::*;
-use geom::point::Point2D;
-use geom::size::Size2D;
 use gfx::geometry::au;
 use layout::base::{Box, FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
 use layout::context::LayoutContext;
@@ -51,9 +49,9 @@ impl @FlowContext : RootLayout {
     fn assign_widths_root(ctx: &LayoutContext) { 
         assert self.starts_root_flow();
 
-        /* TODO: should determine frame width here, not in
-        LayoutTask. Until then, defer to block.  */
-        self.assign_widths_block(ctx) }
+        self.data.position = copy ctx.screen_size;
+        self.assign_widths_block(ctx)
+    }
 
     fn assign_height_root(ctx: &LayoutContext) {
         assert self.starts_root_flow();
