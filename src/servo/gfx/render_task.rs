@@ -148,9 +148,8 @@ pub fn draw_glyphs(ctx: &RenderContext, bounds: Rect<au>, text_run: &GlyphRun) {
 
     let draw_target = ctx.canvas.azure_draw_target;
 
-    // FIXME: The font library should not be created here
-    let flib = FontCache();
-    let font = flib.get_test_font();
+    // FIXME: font should be accessible from GlyphRun
+    let font = ctx.font_cache.get_test_font();
 
     let nfont: AzNativeFont = {
         mType: AZ_NATIVE_FONT_CAIRO_FONT_FACE,
