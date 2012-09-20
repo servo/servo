@@ -1,7 +1,8 @@
 use au = gfx::geometry;
-use dom::base::{Comment, Doctype, DoctypeData, Element};
+use dom::element::UnknownElement;
+use dom::node::{Comment, Doctype, DoctypeData, Text,
+                Element, Node, NodeScope};
 use dom::element::*;
-use dom::base::{Node, NodeScope, Text, UnknownElement};
 use css::values::Stylesheet;
 use geom::size::Size2D;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};

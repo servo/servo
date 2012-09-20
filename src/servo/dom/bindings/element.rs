@@ -11,7 +11,7 @@ use js::jsapi::bindgen::*;
 use js::glue::bindgen::*;
 use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub};
 
-use dom::base::{Node, NodeScope, Element};
+use dom::node::{Node, NodeScope, Element};
 use dom::element::*;
 use node::NodeBundle;
 use utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval, str};

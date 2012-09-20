@@ -4,7 +4,7 @@ use au = gfx::geometry;
 use base::{RenderBox, RenderBoxTree};
 use css::values::{BgColor, BgTransparent, Specified};
 use dl = gfx::display_list;
-use dom::base::{Text, NodeScope};
+use dom::node::{Text, NodeScope};
 use dom::rcu::Scope;
 use dvec::DVec;
 use either::{Left, Right};

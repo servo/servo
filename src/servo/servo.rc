@@ -23,7 +23,6 @@ extern mod hubbub;
 mod engine;
 
 mod dom {
-    mod base;
     mod bindings {
         mod document;
         mod element;
@@ -31,8 +30,10 @@ mod dom {
         mod node;
         mod window;
     }
+    mod document;
     mod element;
     mod event;
+    mod node;
     mod rcu;
     mod window;
 }

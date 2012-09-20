@@ -1,6 +1,7 @@
 /* The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements. */
 use css::styles::SpecifiedStyle;
 use css::values::Stylesheet;
+use dom::document::Document;
 use dom::element::{Attr, ElementData};
 use dom::window::Window;
 use dom::bindings;
@@ -16,20 +17,6 @@ use layout::debug::DebugMethods;
 use ptr::null;
 use std::arc::ARC;
 use util::tree;
-
-struct Document {
-    root: Node,
-    scope: NodeScope,
-    css_rules: ARC<Stylesheet>,
-}
-
-fn Document(root: Node, scope: NodeScope, -css_rules: Stylesheet) -> Document {
-    Document {
-        root : root,
-        scope : scope,
-        css_rules : ARC(css_rules),
-    }
-}
 
 enum NodeData = {
     tree: tree::Tree<Node>,

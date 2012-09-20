@@ -12,7 +12,8 @@ use comm::{Port, Chan, listen, select2};
 use task::{spawn, spawn_listener};
 use io::{read_whole_file, println};
 
-use dom::base::{Document, Node, NodeScope, define_bindings};
+use dom::document::Document;
+use dom::node::{Node, NodeScope, define_bindings};
 use dom::event::{Event, ResizeEvent, ReflowEvent};
 use dom::window::Window;
 use gfx::compositor::Compositor;

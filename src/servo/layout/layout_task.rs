@@ -10,7 +10,7 @@ use core::dvec::DVec;
 use css::resolve::apply::apply_style;
 use css::values::Stylesheet;
 use dl = gfx::display_list;
-use dom::base::Node;
+use dom::node::Node;
 use dom::event::{Event, ReflowEvent};
 use geom::point::Point2D;
 use geom::rect::Rect;

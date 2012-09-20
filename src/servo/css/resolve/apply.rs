@@ -120,7 +120,7 @@ impl StyleApplicator {
         // Right now, we only handle images.
         do self.box.node.read |node| {
             match node.kind {
-              ~dom::base::Element(element) => {
+              ~dom::node::Element(element) => {
                 match element.kind {
                   ~HTMLImageElement(*) => {
                     let url = element.get_attr(~"src");

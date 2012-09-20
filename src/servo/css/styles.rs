@@ -5,11 +5,10 @@ use std::arc::{ARC, get, clone};
 use css::values::*;
 use css::values::Stylesheet;
 use dom::element::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
-use dom::base::{Comment, Doctype, Element, Node, NodeKind, Text};
-use dom::base::{LayoutData};
+use dom::node::{Comment, Doctype, Element, Text,
+                Node, NodeKind, NodeTree, LayoutData};
 use util::color::{Color, rgb};
 use util::color::css_colors::{white, black};
-use dom::base::NodeTree;
 use layout::context::LayoutContext;
 
 type SpecifiedStyle = {mut background_color : CSSValue<CSSBackgroundColor>,

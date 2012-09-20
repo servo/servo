@@ -9,7 +9,7 @@ use js::jsapi::bindgen::*;
 use js::glue::bindgen::*;
 use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub};
 
-use dom::base::{Node, NodeScope, Element, Text, Doctype, Comment};
+use dom::node::{Node, NodeScope, Text, Doctype, Comment, Element};
 use utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval, str};
 use libc::c_uint;
 use ptr::null;

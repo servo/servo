@@ -11,7 +11,7 @@ use css::styles::SpecifiedStyle;
 use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgTransparent};
 use dl = gfx::display_list;
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
-use dom::base::{Element, Node, NodeData, NodeKind, NodeTree};
+use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
 use dom::rcu;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -527,8 +527,8 @@ impl @RenderBox : DebugMethods {
 
 #[cfg(test)]
 mod test {
-    use dom::base::{Element, ElementData, HTMLDivElement, HTMLImageElement, Node, NodeKind};
-    use dom::base::{NodeScope};
+    use dom::element::{ElementData, HTMLDivElement, HTMLImageElement};
+    use dom::node::{Element, NodeScope, Node, NodeKind};
     use dom::rcu::Scope;
 
     /*

@@ -12,7 +12,8 @@ use ptr::null;
 use libc::c_uint;
 use utils::{DOMString, domstring_to_jsval, rust_box, squirrel_away, str};
 use bindings::node::create;
-use base::Document;
+
+use dom::document::Document;
 
 enum DOMException {
     INVALID_CHARACTER_ERR

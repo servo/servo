@@ -1,9 +1,7 @@
 #[doc="Performs CSS selector matching."]
 
-use dom::base::{LayoutData};
-use dom::base;
+use dom::node::{LayoutData, Node, Text};
 use dom::element::ElementData;
-use base::{Node, Text};
 
 use values::*;
 use styles::{SpecifiedStyle};
@@ -67,7 +65,7 @@ impl Node : PrivMatchingMethods {
           Child(_, _) | Descendant(_, _) | Sibling(_, _) => { return false; }
           Element(tag, attrs) => {
             match self.read(|n| copy *n.kind) {
-              base::Element(elmt) => {
+              dom::node::Element(elmt) => {
                 if !(tag == ~"*" || tag == elmt.tag_name) {
                     return false;
                 }
@@ -209,8 +207,8 @@ impl Node : MatchingMethods {
 
 #[cfg(test)]
 mod test {
-    use dom::base::{Attr, HTMLDivElement, HTMLHeadElement, HTMLImageElement};
-    use dom::base::{NodeScope, UnknownElement};
+    use dom::element::{Attr, HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement};
+    use dom::node::NodeScope;
     use dvec::DVec;
 
     #[allow(non_implicitly_copyable_typarams)]
@@ -218,7 +216,7 @@ mod test {
         let elmt = ElementData(~"div", ~HTMLDivElement);
         let attr = ~Attr(name, val);
         elmt.attrs.push(attr);
-        return scope.new_node(base::Element(elmt));
+        return scope.new_node(dom::node::Element(elmt));
     }
 
     #[test]

@@ -14,7 +14,7 @@ use libc::c_uint;
 use utils::{rust_box, squirrel_away, jsval_to_str};
 use bindings::node::create;
 use dom::window::{Window, TimerMessage_Fire};
-use dom::base::Node;
+use dom::node::Node;
 use dvec::DVec;
 
 extern fn alert(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool {
