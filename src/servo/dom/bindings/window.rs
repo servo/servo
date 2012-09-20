@@ -13,7 +13,8 @@ use ptr::null;
 use libc::c_uint;
 use utils::{rust_box, squirrel_away, jsval_to_str};
 use bindings::node::create;
-use dom::base::{Node, Window};
+use dom::window::{Window, TimerMessage_Fire};
+use dom::base::Node;
 use dvec::DVec;
 
 extern fn alert(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool {
@@ -64,7 +65,7 @@ extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool unsafe 
     std::timer::delayed_send(std::uv_global_loop::get(),
                              RUST_JSVAL_TO_INT(*ptr::offset(argv, 1)) as uint,
                              (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.timer_chan,
-                             base::Fire(~TimerData(argc, argv)));
+                             TimerMessage_Fire(~TimerData(argc, argv)));
 
     JS_SET_RVAL(cx, vp, JSVAL_NULL);
     return 1;

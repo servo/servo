@@ -1,9 +1,8 @@
 /* The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements. */
-use comm::{Port, Chan};
-use content::content_task::{ControlMsg, Timer};
 use css::styles::SpecifiedStyle;
 use css::values::Stylesheet;
 use dom::element::{Attr, ElementData};
+use dom::window::Window;
 use dom::bindings;
 use geom::size::Size2D;
 use gfx::geometry::au;
@@ -17,36 +16,6 @@ use layout::debug::DebugMethods;
 use ptr::null;
 use std::arc::ARC;
 use util::tree;
-
-enum TimerControlMsg {
-    Fire(~dom::bindings::window::TimerData),
-    Close
-}
-
-struct Window {
-    timer_chan: Chan<TimerControlMsg>,
-
-    drop {
-        self.timer_chan.send(Close);
-    }
-}
-
-fn Window(content_port: Port<ControlMsg>) -> Window {
-    let content_chan = Chan(content_port);
-        
-    Window {
-        timer_chan: do task::spawn_listener |timer_port: Port<TimerControlMsg>| {
-            loop {
-                match timer_port.recv() {
-                    Close => break,
-                    Fire(td) => {
-                        content_chan.send(Timer(copy td));
-                    }
-                }
-            }
-        }
-    }
-}
 
 struct Document {
     root: Node,

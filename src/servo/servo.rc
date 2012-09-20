@@ -34,6 +34,7 @@ mod dom {
     mod element;
     mod event;
     mod rcu;
+    mod window;
 }
 
 #[allow(non_implicitly_copyable_typarams)]

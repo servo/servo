@@ -12,8 +12,9 @@ use comm::{Port, Chan, listen, select2};
 use task::{spawn, spawn_listener};
 use io::{read_whole_file, println};
 
-use dom::base::{Document, Node, NodeScope, Window, define_bindings};
+use dom::base::{Document, Node, NodeScope, define_bindings};
 use dom::event::{Event, ResizeEvent, ReflowEvent};
+use dom::window::Window;
 use gfx::compositor::Compositor;
 use html::lexer::spawn_html_lexer_task;
 use layout::layout_task;
