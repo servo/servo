@@ -49,4 +49,7 @@
 [submodule "src/rust-io-surface"]
 	path = src/rust-io-surface
 	url = git://github.com/pcwalton/rust-io-surface.git
+[submodule "src/sharegl"]
+	path = src/sharegl
+	url = git://github.com/pcwalton/sharegl.git
 
