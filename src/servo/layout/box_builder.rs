@@ -1,10 +1,10 @@
 /** Creates CSS boxes from a DOM. */
 use au = gfx::geometry;
 use core::dvec::DVec;
+use css::styles::SpecifiedStyle;
 use css::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayInlineBlock, DisplayNone};
 use css::values::{Inherit, Initial, Specified};
-use dom::base::{ElementData, HTMLDivElement, HTMLImageElement};
-use dom::base::{Element, Text, Node, Doctype, Comment, NodeTree};
+use dom::base::*;
 use layout::base::{RenderBox, BoxData, GenericBox, ImageBox, TextBox, RenderBoxTree};
 use layout::base::{FlowContext, FlowContextData, BlockFlow, InlineFlow, InlineBlockFlow, RootFlow, FlowTree};
 use layout::block::BlockFlowData;
@@ -49,19 +49,15 @@ impl LayoutTreeBuilder {
         let n_str = fmt!("%?", cur_node.read(|n| copy n.kind ));
         debug!("Considering node: %?", n_str);
 
+        // TODO: remove this once UA styles work
         // TODO: handle interactions with 'float', 'position' (CSS 2.1, Section 9.7)
-        let display = match style.display_type {
-            Specified(v) => match v {
-                // tree ends here if 'display: none'
-                DisplayNone => return, 
-                _ => v
-            },
-            Inherit | Initial => DisplayInline // TODO: fail instead once resolve works
-            //fail ~"Node should have resolved value for 'display', but was initial or inherit"
+        let simulated_display = match self.simulate_UA_display_rules(cur_node, style) {
+            DisplayNone => return, // tree ends here if 'display: none'
+            v => v
         };
 
         // first, create the proper box kind, based on node characteristics
-        let box_data = match cur_node.create_box_data(layout_ctx, display) {
+        let box_data = match self.create_box_data(layout_ctx, cur_node, simulated_display) {
             None => return,
             Some(data) => data
         };
@@ -78,7 +74,7 @@ impl LayoutTreeBuilder {
                 }
             },
             ImageBox(*) | GenericBox => {
-                match display {
+                match simulated_display {
                     DisplayInline | DisplayInlineBlock => {
                         /* if inline, try to put into inline context,
                         making a new one if necessary */
@@ -92,7 +88,7 @@ impl LayoutTreeBuilder {
                     DisplayBlock => {
                         self.make_ctx(BlockFlow(BlockFlowData()), tree::empty())
                     },
-                    _ => fail fmt!("unsupported display type in box generation: %?", display)
+                    _ => fail fmt!("unsupported display type in box generation: %?", simulated_display)
                 }
             }
         };
@@ -144,6 +140,27 @@ impl LayoutTreeBuilder {
         fail ~"TODO: handle case where an inline is split by a block"
     }
 
+    priv fn simulate_UA_display_rules(node: Node, style: SpecifiedStyle) -> CSSDisplay {
+        let resolved = match style.display_type {
+            Inherit | Initial => DisplayInline, // TODO: remove once resolve works
+            Specified(v) => v
+        };
+
+        if (resolved == DisplayNone) { return resolved; }
+
+        do node.read |n| {
+            match n.kind {
+                ~Doctype(*) | ~Comment(*) => DisplayNone,
+                ~Text(*) => DisplayInline,
+                ~Element(e) => match e.kind {
+                    ~HTMLHeadElement(*) => DisplayNone,
+                    ~HTMLScriptElement(*) => DisplayNone,
+                    _ => resolved
+                }
+            }
+        }
+    }
+
     /** entry point for box creation. Should only be 
     called on root DOM element. */
     fn construct_trees(layout_ctx: &LayoutContext, root: Node) -> Result<@RenderBox, ()> {
@@ -165,16 +182,12 @@ impl LayoutTreeBuilder {
         debug!("Created box: %s", ret.debug_str());
         ret
     }
-}
 
-trait PrivateBuilderMethods {
-    fn create_box_data(layout_ctx: &LayoutContext, display: CSSDisplay) -> Option<BoxData>;
-}
-
-impl Node : PrivateBuilderMethods {
-    fn create_box_data(layout_ctx: &LayoutContext, display: CSSDisplay) -> Option<BoxData> {
-        do self.read |node| {
-            match node.kind {
+    /* Based on the DOM node type, create a specific type of box */
+    fn create_box_data(layout_ctx: &LayoutContext, node: Node, display: CSSDisplay) -> Option<BoxData> {
+        // TODO: handle more types of nodes.
+        do node.read |n| {
+            match n.kind {
                 ~Doctype(*) | ~Comment(*) => None,
                 ~Text(string) => {
                     // TODO: clean this up. Fonts should not be created here.
