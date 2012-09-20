@@ -51,7 +51,7 @@ fn parse_relative_size(str: ~str) -> ParseResult<RelativeSize> {
     }
 }
 
-fn parse_font_size(str: ~str) -> ParseResult<CSSFontSize> {
+fn parse_font_size(_str: ~str) -> ParseResult<CSSFontSize> {
     // TODO: complete me
     Value(LengthSize(Px(14.0)))
 }
@@ -86,8 +86,8 @@ mod test {
     fn should_match_font_sizes() {
         let input = ~"* {font-size:12px; font-size:inherit; font-size:200%; font-size:x-small}";
         let token_port = spawn_css_lexer_from_string(input);
-        let actual_rule = build_stylesheet(token_port);
-        let expected_rule : Stylesheet = ~[~(~[~Element(~"*", ~[])],
+        let _actual_rule = build_stylesheet(token_port);
+        let _expected_rule : Stylesheet = ~[~(~[~Element(~"*", ~[])],
                                              ~[FontSize(Specified(LengthSize(Px(12.0)))),
                                                FontSize(Specified(PercentSize(100.0))),
                                                FontSize(Specified(PercentSize(200.0))),
@@ -101,8 +101,8 @@ mod test {
     fn should_match_width_height() {
         let input = ~"* {width:20%; height:auto; width:20px; width:3in; height:70px; height:30px}";
         let token_port = spawn_css_lexer_from_string(input);
-        let actual_rule = build_stylesheet(token_port);
-        let expected_rule : Stylesheet = ~[~(~[~Element(~"*", ~[])],
+        let _actual_rule = build_stylesheet(token_port);
+        let _expected_rule : Stylesheet = ~[~(~[~Element(~"*", ~[])],
                                              ~[Width(Specified(BoxPercent(20.0))),
                                                Height(Specified(BoxAuto)),
                                                Width(Specified(BoxLength(Px(20.0)))),

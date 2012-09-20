@@ -102,7 +102,7 @@ fn calc_min_break_width(font: &Font, text: &str) -> au {
 }
 
 /// Iterates over all the indivisible substrings
-fn iter_indivisible_slices(font: &Font, text: &r/str,
+fn iter_indivisible_slices(_font: &Font, text: &r/str,
                            f: fn((&r/str)) -> bool) {
 
     let mut curr = text;

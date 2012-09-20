@@ -367,7 +367,7 @@ impl @RenderBox {
     * `origin` - Total offset from display list root flow to this box's owning flow
     * `list` - List to which items should be appended
     */
-    fn build_display_list(builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
+    fn build_display_list(_builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
                           offset: &Point2D<au>, list: &dl::DisplayList) {
         if !self.data.position.intersects(dirty) {
             return;
@@ -478,7 +478,7 @@ impl @FlowContext : DebugMethods {
             },
             BlockFlow(d) => {
                 match d.box {
-                    Some(b) => fmt!("BlockFlow(box=b%?)", d.box.get().id),
+                    Some(_b) => fmt!("BlockFlow(box=b%?)", d.box.get().id),
                     None => ~"BlockFlow",
                 }
             },

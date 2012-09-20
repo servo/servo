@@ -67,7 +67,7 @@ impl @FlowContext : InlineLayout {
         }
     }
 
-    fn bubble_widths_inline(ctx: &LayoutContext) {
+    fn bubble_widths_inline(_ctx: &LayoutContext) {
         assert self.starts_inline_flow();
 
         let mut min_width = au(0);
@@ -87,7 +87,7 @@ impl @FlowContext : InlineLayout {
     /* Recursively (top-down) determines the actual width of child
     contexts and boxes. When called on this context, the context has
     had its width set by the parent context. */
-    fn assign_widths_inline(ctx: &LayoutContext) {
+    fn assign_widths_inline(_ctx: &LayoutContext) {
         assert self.starts_inline_flow();
 
         /* Perform inline flow with the available width. */
@@ -138,7 +138,7 @@ impl @FlowContext : InlineLayout {
 
     } // fn assign_widths_inline
 
-    fn assign_height_inline(ctx: &LayoutContext) {
+    fn assign_height_inline(_ctx: &LayoutContext) {
         // Don't need to set box or ctx heights, since that is done
         // during inline flowing.
     }

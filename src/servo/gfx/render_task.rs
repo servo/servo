@@ -146,8 +146,6 @@ pub fn draw_glyphs(ctx: &RenderContext, bounds: Rect<au>, text_run: &GlyphRun) {
                             AzReleaseColorPattern};
     use azure::cairo::bindgen::cairo_scaled_font_destroy;
 
-    let draw_target = ctx.canvas.azure_draw_target;
-
     // FIXME: font should be accessible from GlyphRun
     let font = ctx.font_cache.get_test_font();
 

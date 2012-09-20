@@ -77,7 +77,7 @@ impl @FlowContext : BlockLayout {
     /* TODO: floats */
     /* TODO: absolute contexts */
     /* TODO: inline-blocks */
-    fn bubble_widths_block(ctx: &LayoutContext) {
+    fn bubble_widths_block(_ctx: &LayoutContext) {
         assert self.starts_block_flow();
 
         let mut min_width = au(0);
@@ -109,11 +109,11 @@ impl @FlowContext : BlockLayout {
     Dual boxes consume some width first, and the remainder is assigned to
     all child (block) contexts. */
 
-    fn assign_widths_block(ctx: &LayoutContext) { 
+    fn assign_widths_block(_ctx: &LayoutContext) { 
         assert self.starts_block_flow();
 
         let mut remaining_width = self.data.position.size.width;
-        let mut right_used = au(0);
+        let mut _right_used = au(0);
         let mut left_used = au(0);
 
         /* Let the box consume some width. It will return the amount remaining
@@ -131,7 +131,7 @@ impl @FlowContext : BlockLayout {
         }
     }
 
-    fn assign_height_block(ctx: &LayoutContext) {
+    fn assign_height_block(_ctx: &LayoutContext) {
         assert self.starts_block_flow();
 
         let mut cur_y = au(0);
@@ -143,13 +143,13 @@ impl @FlowContext : BlockLayout {
 
         self.data.position.size.height = cur_y;
 
-        let used_top = au(0);
-        let used_bot = au(0);
+        let _used_top = au(0);
+        let _used_bot = au(0);
         
         do self.with_block_box |box| {
             box.data.position.origin.y = au(0);
             box.data.position.size.height = cur_y;
-            let (used_top, used_bot) = box.get_used_height();
+            let (_used_top, _used_bot) = box.get_used_height();
         }
     }
 

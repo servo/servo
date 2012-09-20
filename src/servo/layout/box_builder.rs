@@ -139,7 +139,7 @@ impl LayoutTreeBuilder {
         }
     }
 
-    fn fixup_split_inline(foo: @FlowContext) {
+    fn fixup_split_inline(_foo: @FlowContext) {
         // TODO: finish me. 
         fail ~"TODO: handle case where an inline is split by a block"
     }
