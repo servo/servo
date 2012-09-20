@@ -53,7 +53,7 @@ pub enum ImageResponseMsg {
 impl ImageResponseMsg {
     pure fn clone() -> ImageResponseMsg {
         match self {
-          ImageReady(img) => ImageReady(unchecked { clone_arc(&img) }),
+          ImageReady(img) => ImageReady(unsafe { clone_arc(&img) }),
           ImageNotReady => ImageNotReady,
           ImageFailed => ImageFailed
         }
@@ -61,7 +61,7 @@ impl ImageResponseMsg {
 }
 
 impl ImageResponseMsg: cmp::Eq {
-    pure fn eq(&&other: ImageResponseMsg) -> bool {
+    pure fn eq(other: &ImageResponseMsg) -> bool {
         // FIXME: Bad copies
         match (self.clone(), other.clone()) {
           (ImageReady(*), ImageReady(*)) => fail ~"unimplemented comparison",
@@ -73,7 +73,7 @@ impl ImageResponseMsg: cmp::Eq {
           | (ImageFailed, _) => false
         }
     }
-    pure fn ne(&&other: ImageResponseMsg) -> bool {
+    pure fn ne(other: &ImageResponseMsg) -> bool {
         return !self.eq(other);
     }
 }
@@ -160,7 +160,7 @@ impl ImageCache {
         loop {
             let msg = self.from_client.recv();
 
-            for msg_handlers.each |handler| { handler(&msg) }
+            for msg_handlers.each |handler| { (*handler)(&msg) }
 
             #debug("image_cache_task: received: %?", msg);
 

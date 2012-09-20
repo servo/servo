@@ -19,16 +19,16 @@ enum DOMString {
 type rust_box<T> = {rc: uint, td: *sys::TypeDesc, next: *(), prev: *(), payload: T};
 
 unsafe fn squirrel_away<T>(+x: @T) -> *rust_box<T> {
-    let y: *rust_box<T> = unsafe::reinterpret_cast(&x);
-    unsafe::forget(x);
+    let y: *rust_box<T> = cast::reinterpret_cast(&x);
+    cast::forget(x);
     y
 }
 
 type rust_unique<T> = {payload: T};
 
 unsafe fn squirrel_away_unique<T>(+x: ~T) -> *rust_box<T> {
-    let y: *rust_box<T> = unsafe::reinterpret_cast(&x);
-    unsafe::forget(x);
+    let y: *rust_box<T> = cast::reinterpret_cast(&x);
+    cast::forget(x);
     y
 }
 
@@ -63,7 +63,7 @@ unsafe fn domstring_to_jsval(cx: *JSContext, str: DOMString) -> jsval {
       }
       str(s) => {
         str::as_buf(s, |buf, len| {
-            let cbuf = unsafe::reinterpret_cast(&buf);
+            let cbuf = cast::reinterpret_cast(&buf);
             RUST_STRING_TO_JSVAL(JS_NewStringCopyN(cx, cbuf, len as libc::size_t))
         })
       }
@@ -73,7 +73,7 @@ unsafe fn domstring_to_jsval(cx: *JSContext, str: DOMString) -> jsval {
 fn get_compartment(cx: *JSContext) -> *bare_compartment {
     unsafe {
         let privptr: *libc::c_void = JS_GetContextPrivate(cx);
-        let compartment: *bare_compartment = unsafe::reinterpret_cast(&privptr);
+        let compartment: *bare_compartment = cast::reinterpret_cast(&privptr);
         assert cx == (*compartment).cx.ptr;
         compartment
     }
@@ -94,8 +94,8 @@ extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *jsval, bp: *mut JSB
     return 1;
 }
 
-fn prototype_jsclass(name: ~str) -> fn(bare_compartment) -> JSClass {
-    |compartment: bare_compartment, copy name| {
+fn prototype_jsclass(name: ~str) -> fn(+bare_compartment) -> JSClass {
+    |+compartment: bare_compartment, copy name| {
         {name: compartment.add_name(name),
          flags: 0,
          addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -123,8 +123,8 @@ fn prototype_jsclass(name: ~str) -> fn(bare_compartment) -> JSClass {
 }
 
 fn instance_jsclass(name: ~str, finalize: *u8)
-    -> fn(bare_compartment) -> JSClass {
-    |compartment: bare_compartment, copy name| {
+    -> fn(+bare_compartment) -> JSClass {
+    |+compartment: bare_compartment, copy name| {
         {name: compartment.add_name(name),
          flags: JSCLASS_HAS_RESERVED_SLOTS(1),
          addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,

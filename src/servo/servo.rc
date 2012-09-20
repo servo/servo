@@ -7,6 +7,8 @@
 #[license = "MPL"];
 #[crate_type = "lib"];
 
+#[legacy_modes];
+
 extern mod std;
 extern mod azure;
 extern mod js;

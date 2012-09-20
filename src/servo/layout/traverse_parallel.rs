@@ -23,13 +23,13 @@ type shared_box<T> = {
 
 #[doc="Transform and @ into its underlying representation.  The reference count stays constant."]
 fn unwrap_box(-b : @RenderBox) -> *shared_box<RenderBox> unsafe {
-    let new_box : *shared_box<RenderBox> = unsafe::transmute(b);
+    let new_box : *shared_box<RenderBox> = cast::transmute(b);
     return new_box;
 }
 
 #[doc="Transform an underlying representation back to an @.  The reference count stays constant."]
 fn rewrap_box(-b : *shared_box<RenderBox>) -> @RenderBox unsafe {
-    let new_box : @RenderBox = unsafe::transmute(b);
+    let new_box : @RenderBox = cast::transmute(b);
     return new_box;
 }
 

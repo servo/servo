@@ -19,13 +19,14 @@ use compositor::Compositor;
 use render_task::{RenderTask, RenderMsg};
 use task::spawn_listener;
 use comm::{Chan, Port};
-use unsafe::reinterpret_cast;
+use cast::reinterpret_cast;
 use vec_from_buf = vec::raw::from_buf;
 use ptr::addr_of;
 use dom::event::Event;
 use dvec::DVec;
 use display_list::DisplayList;
 use std::cell::Cell;
+use core::io::BytesWriter;
 
 pub type PngCompositor = Chan<Msg>;
 
@@ -72,10 +73,9 @@ fn do_draw(sender: pipes::Chan<DrawTarget>,
            +dt: DrawTarget,
            output: Chan<~[u8]>,
            cairo_surface: ImageSurface) {
-    let buffer = io::mem_buffer();
+    let buffer = BytesWriter();
     cairo_surface.write_to_png_stream(&buffer);
-    let @{ buf: buffer, pos: _ } <- buffer;
-    output.send(dvec::unwrap(move buffer));
+    output.send(buffer.buf.get());
 
     // Send the next draw target to the renderer
     sender.send(move dt);

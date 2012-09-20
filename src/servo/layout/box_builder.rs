@@ -111,7 +111,7 @@ impl LayoutTreeBuilder {
         debug!("Adding child box b%? of b%?", parent_box.id, new_box.id);
         RenderBoxTree.add_child(parent_box, new_box);
     
-        if (!next_ctx.eq(parent_ctx)) {
+        if (!next_ctx.eq(&parent_ctx)) {
             debug!("Adding child flow f%? of f%?", parent_ctx.id, next_ctx.id);
             FlowTree.add_child(parent_ctx, next_ctx);
         }

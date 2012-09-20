@@ -189,7 +189,7 @@ impl<C:Compositor> Content<C> {
                             option::get(self.window));
 
             for vec::each(js_scripts) |bytes| {
-                self.cx.evaluate_script(compartment.global_obj, bytes, ~"???", 1u);
+                self.cx.evaluate_script(compartment.global_obj, *bytes, ~"???", 1u);
             }
 
             return true;

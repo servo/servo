@@ -2,7 +2,7 @@ export FreeTypeNativeFont, with_test_native_font, create;
 
 use vec_as_buf = vec::as_imm_buf;
 use ptr::{addr_of, null};
-use unsafe::reinterpret_cast;
+use cast::reinterpret_cast;
 use glyph::GlyphIndex;
 use font::FontMetrics;
 use azure::freetype;

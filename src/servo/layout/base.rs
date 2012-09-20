@@ -137,8 +137,8 @@ fn FlowContext(id: int, kind: FlowContextData, tree: tree::Tree<@FlowContext>) -
 }
 
 impl @FlowContext : cmp::Eq {
-    pure fn eq(&&other: @FlowContext) -> bool { box::ptr_eq(self, other) }
-    pure fn ne(&&other: @FlowContext) -> bool { !box::ptr_eq(self, other) }
+    pure fn eq(other: &@FlowContext) -> bool { box::ptr_eq(self, *other) }
+    pure fn ne(other: &@FlowContext) -> bool { !box::ptr_eq(self, *other) }
 }
 
 
@@ -387,7 +387,7 @@ impl @RenderBox {
                     bounds.size.height = runs[i].size().height;
                     let glyph_run = make_glyph_run(&runs[i]);
                     list.push(~dl::Glyphs(bounds, glyph_run));
-                    bounds.origin.y += bounds.size.height;
+                    bounds.origin.y = bounds.origin.y.add(bounds.size.height);
                 }
                 return;
 

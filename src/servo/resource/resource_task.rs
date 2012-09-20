@@ -28,8 +28,8 @@ enum ProgressMsg {
 }
 
 impl ProgressMsg: cmp::Eq {
-    pure fn eq(&&other: ProgressMsg) -> bool {
-        match (copy self, copy other) {
+    pure fn eq(other: &ProgressMsg) -> bool {
+        match (copy self, copy *other) {
           (Payload(a), Payload(b)) => a == b,
           (Done(a), Done(b)) => a == b,
 
@@ -37,7 +37,7 @@ impl ProgressMsg: cmp::Eq {
           | (Done(*), _) => false
         }
     }
-    pure fn ne(&&other: ProgressMsg) -> bool {
+    pure fn ne(other: &ProgressMsg) -> bool {
         return !self.eq(other);
     }
 }
@@ -115,7 +115,7 @@ impl ResourceManager {
 
     fn get_loader_factory(url: Url) -> Option<LoaderTaskFactory> {
         for self.loaders.each |scheme_loader| {
-            let (scheme, loader_factory) = copy scheme_loader;
+            let (scheme, loader_factory) = copy *scheme_loader;
             if scheme == url.scheme {
                 return Some(loader_factory);
             }

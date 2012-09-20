@@ -21,15 +21,15 @@ impl au : Num {
 }
 
 impl au : cmp::Ord {
-    pure fn lt(&&other: au) -> bool { *self <  *other }
-    pure fn le(&&other: au) -> bool { *self <= *other }
-    pure fn ge(&&other: au) -> bool { *self >= *other }
-    pure fn gt(&&other: au) -> bool { *self >  *other }
+    pure fn lt(other: &au) -> bool { *self <  **other }
+    pure fn le(other: &au) -> bool { *self <= **other }
+    pure fn ge(other: &au) -> bool { *self >= **other }
+    pure fn gt(other: &au) -> bool { *self >  **other }
 }
 
 impl au : cmp::Eq {
-    pure fn eq(&&other: au) -> bool { *self == *other }
-    pure fn ne(&&other: au) -> bool { *self != *other }
+    pure fn eq(other: &au) -> bool { *self == **other }
+    pure fn ne(other: &au) -> bool { *self != **other }
 }
 
 pure fn min(x: au, y: au) -> au { if x < y { x } else { y } }

@@ -74,12 +74,12 @@ fn NodeBundle(n: Node, s: NodeScope) -> NodeBundle {
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<NodeBundle> {
     let val = JS_GetReservedSlot(obj, 0);
-    unsafe::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val))
+    cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val))
 }
 
 extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBool {
     unsafe {
-        let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(&vp));
+        let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
         if obj.is_null() {
             return 0;
         }
@@ -102,7 +102,7 @@ extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBool
 
 extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBool {
     unsafe {
-        let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(&vp));
+        let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
         if obj.is_null() {
             return 0;
         }
@@ -125,7 +125,7 @@ extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBoo
 
 extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBool {
     unsafe {
-        let obj = JS_THIS_OBJECT(cx, unsafe::reinterpret_cast(&vp));
+        let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
         if obj.is_null() {
             return 0;
         }

@@ -41,7 +41,7 @@ fn run_pipeline_screen(urls: ~[~str]) {
     let mut engine_task = Some(EngineTask(osmain));
 
     for urls.each |filename| {
-        let url = make_url(filename, None);
+        let url = make_url(*filename, None);
         #debug["master: Sending url `%s`", url_to_str(copy url)];
         engine_task =
             Some(EngineProto::client::LoadURL(swap_unwrap(&mut engine_task),

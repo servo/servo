@@ -36,15 +36,15 @@ pure fn extract<T : Copy, U>(res: ParseResult<T>, f: fn(CSSValue<T>) -> U) -> Op
 }
 
 impl<T: Eq Copy> CSSValue<T> : Eq {
-    pure fn eq(&&other: CSSValue<T>) -> bool {
-        match (self, other) {
+    pure fn eq(other: &CSSValue<T>) -> bool {
+        match (self, *other) {
             (Initial, Initial) => true,
             (Inherit, Inherit) => true,
             (Specified(a), Specified(b)) => a == b,
             _ => false
         }
     }
-    pure fn ne(&&other: CSSValue<T>) -> bool {
+    pure fn ne(other: &CSSValue<T>) -> bool {
         return !self.eq(other);
     }
 }
@@ -182,46 +182,46 @@ type Stylesheet = ~[~Rule];
 
 
 impl Length: cmp::Eq {
-    pure fn eq(&&other: Length) -> bool {
-        match (self, other) {
+    pure fn eq(other: &Length) -> bool {
+        match (self, *other) {
           (Em(a), Em(b)) => a == b,
           (Px(a), Px(b)) => a == b,
           (_, _) => false
         }
     }
-    pure fn ne(&&other: Length) -> bool {
+    pure fn ne(other: &Length) -> bool {
         return !self.eq(other);
     }
 }
 
 impl BoxSizing: cmp::Eq {
-    pure fn eq(&&other: BoxSizing) -> bool {
-        match (self, other) {
+    pure fn eq(other: &BoxSizing) -> bool {
+        match (self, *other) {
           (BoxLength(a), BoxLength(b)) => a == b,
           (BoxPercent(a), BoxPercent(b)) => a == b,
           (BoxAuto, BoxAuto) => true,
           (_, _) => false
         }
     }
-    pure fn ne(&&other: BoxSizing) -> bool {
+    pure fn ne(other: &BoxSizing) -> bool {
         return !self.eq(other);
     }
 }
 
 impl AbsoluteSize: cmp::Eq {
-    pure fn eq(&&other: AbsoluteSize) -> bool {
-        self as uint == other as uint
+    pure fn eq(other: &AbsoluteSize) -> bool {
+        self as uint == (*other) as uint
     }
-    pure fn ne(&&other: AbsoluteSize) -> bool {
+    pure fn ne(other: &AbsoluteSize) -> bool {
         return !self.eq(other);
     }
 }
 
 impl RelativeSize: cmp::Eq {
-    pure fn eq(&&other: RelativeSize) -> bool {
-        self as uint == other as uint
+    pure fn eq(other: &RelativeSize) -> bool {
+        self as uint == (*other) as uint
     }
-    pure fn ne(&&other: RelativeSize) -> bool {
+    pure fn ne(other: &RelativeSize) -> bool {
         return !self.eq(other);
     }
 }
@@ -229,43 +229,43 @@ impl RelativeSize: cmp::Eq {
 
 
 impl CSSBackgroundColor: cmp::Eq {
-    pure fn eq(&&other: CSSBackgroundColor) -> bool {
-        match (self, other) {
+    pure fn eq(other: &CSSBackgroundColor) -> bool {
+        match (self, *other) {
             (BgColor(a), BgColor(b)) => a == b,
             (BgTransparent, BgTransparent) => true,
             (_, _) => false
         }
     }
-    pure fn ne(&&other: CSSBackgroundColor) -> bool {
+    pure fn ne(other: &CSSBackgroundColor) -> bool {
         return !self.eq(other);
     }
 }
 
 
 impl CSSColor: cmp::Eq {
-    pure fn eq(&&other: CSSColor) -> bool {
-        match (self, other) {
+    pure fn eq(other: &CSSColor) -> bool {
+        match (self, *other) {
             (TextColor(a), TextColor(b)) => a == b
         }
     }
-    pure fn ne(&&other: CSSColor) -> bool {
+    pure fn ne(other: &CSSColor) -> bool {
         return !self.eq(other);
     }
 }
 
 impl CSSDisplay: cmp::Eq {
-    pure fn eq(&&other: CSSDisplay) -> bool {
-        self as uint == other as uint
+    pure fn eq(other: &CSSDisplay) -> bool {
+        self as uint == (*other) as uint
     }
-    pure fn ne(&&other: CSSDisplay) -> bool {
+    pure fn ne(other: &CSSDisplay) -> bool {
         return !self.eq(other);
     }
 }
 
 
 impl CSSFontSize: cmp::Eq {
-    pure fn eq(&&other: CSSFontSize) -> bool {
-        match (self, other) {
+    pure fn eq(other: &CSSFontSize) -> bool {
+        match (self, *other) {
             (AbsoluteSize(a), AbsoluteSize(b)) => a == b,
             (RelativeSize(a), RelativeSize(b)) => a == b,
             (LengthSize(a),   LengthSize(b))   => a == b,
@@ -273,7 +273,7 @@ impl CSSFontSize: cmp::Eq {
             (_, _) => false
         }
     }
-    pure fn ne(&&other: CSSFontSize) -> bool {
+    pure fn ne(other: &CSSFontSize) -> bool {
         return !self.eq(other);
     }
 }
@@ -299,8 +299,8 @@ impl StyleDeclaration: cmp::Eq {
 }*/
 
 impl Attr: cmp::Eq {
-    pure fn eq(&&other: Attr) -> bool {
-        match (copy self, copy other) {
+    pure fn eq(other: &Attr) -> bool {
+        match (copy self, copy *other) {
           (Exists(a), Exists(b)) => a == b,
 
           (Exact(a, aa), Exact(b, bb))
@@ -313,15 +313,15 @@ impl Attr: cmp::Eq {
           | (StartsWith(*), _) => false
         }
     }
-    pure fn ne(&&other: Attr) -> bool {
+    pure fn ne(other: &Attr) -> bool {
         return !self.eq(other);
     }
 }
 
 impl Selector: cmp::Eq {
-    pure fn eq(&&other: Selector) -> bool {
+    pure fn eq(other: &Selector) -> bool {
         // FIXME: Lots of copying here
-        match (copy self, copy other) {
+        match (copy self, copy *other) {
           (Element(s_a, attrs_a), Element(s_b, attrs_b)) => s_a == s_b && attrs_a == attrs_b,
 
           (Child(s1a, s2a), Child(s1b, s2b))
@@ -336,7 +336,7 @@ impl Selector: cmp::Eq {
           (Sibling(*), _) => false
         }
     }
-    pure fn ne(&&other: Selector) -> bool {
+    pure fn ne(other: &Selector) -> bool {
         return !self.eq(other);
     }
 }

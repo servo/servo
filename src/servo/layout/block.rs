@@ -94,8 +94,8 @@ impl @FlowContext : BlockLayout {
         /* if not an anonymous block context, add in block box's widths.
            these widths will not include child elements, just padding etc. */
         do self.with_block_box |box| {
-            min_width  += box.get_min_width();
-            pref_width += box.get_pref_width();
+            min_width = min_width.add(box.get_min_width());
+            pref_width = pref_width.add(box.get_pref_width());
         }
 
         self.data.min_width = min_width;
@@ -121,7 +121,7 @@ impl @FlowContext : BlockLayout {
         do self.with_block_box |box| {
             box.data.position.size.width = remaining_width;
             let (left_used, right_used) = box.get_used_width();
-            remaining_width -= (left_used + right_used);
+            remaining_width = remaining_width.sub(left_used.add(right_used));
         }
 
         for FlowTree.each_child(self) |child_ctx| {
@@ -138,7 +138,7 @@ impl @FlowContext : BlockLayout {
 
         for FlowTree.each_child(self) |child_ctx| {
             child_ctx.data.position.origin.y = cur_y;
-            cur_y += child_ctx.data.position.size.height;
+            cur_y = cur_y.add(child_ctx.data.position.size.height);
         }
 
         self.data.position.size.height = cur_y;

@@ -12,14 +12,14 @@ enum CharOrEof {
 }
 
 impl CharOrEof: cmp::Eq {
-    pure fn eq(&&other: CharOrEof) -> bool {
-        match (self, other) {
+    pure fn eq(other: &CharOrEof) -> bool {
+        match (self, *other) {
           (CoeChar(a), CoeChar(b)) => a == b,
           (CoeChar(*), _) | (_, CoeChar(*)) => false,
           (CoeEof, CoeEof) => true,
         }
     }
-    pure fn ne(&&other: CharOrEof) -> bool {
+    pure fn ne(other: &CharOrEof) -> bool {
         return !self.eq(other);
     }
 }

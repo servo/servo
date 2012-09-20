@@ -12,7 +12,7 @@ use gfx::geometry::au;
 use geom::point::Point2D;
 use font_cache::FontCache;
 
-use unsafe::reinterpret_cast;
+use cast::reinterpret_cast;
 use harfbuzz::{HB_MEMORY_MODE_READONLY,
                   HB_DIRECTION_LTR};
 use harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_buffer_t,

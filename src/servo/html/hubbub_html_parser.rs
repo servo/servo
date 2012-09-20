@@ -14,7 +14,7 @@ use JSMessage = html::dom_builder::js_message;
 
 use comm::{Chan, Port};
 use str::from_slice;
-use unsafe::reinterpret_cast;
+use cast::reinterpret_cast;
 use std::net::url::Url;
 
 type JSResult = ~[~[u8]];

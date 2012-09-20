@@ -90,8 +90,8 @@ trait DisplayListMethods {
 impl DisplayList : DisplayListMethods {
     fn draw(ctx: &RenderContext) {
         for self.each |item| {
-            debug!("drawing %?", item);
-            item.draw(item, ctx);
+            debug!("drawing %?", *item);
+            item.draw(*item, ctx);
         }
     }
 }

@@ -17,7 +17,7 @@ use cocoa::cg::cg::{
     CGFontCreateWithDataProvider,
     CGFontRelease
 };
-use unsafe::transmute;
+use cast::transmute;
 use coretext::CTFontRef;
 use coretext::coretext::CFRelease;
 
