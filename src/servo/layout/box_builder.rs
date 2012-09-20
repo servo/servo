@@ -5,7 +5,7 @@ use css::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayInlineBlock, D
 use css::values::{Inherit, Initial, Specified};
 use dom::base::{ElementData, HTMLDivElement, HTMLImageElement};
 use dom::base::{Element, Text, Node, Doctype, Comment, NodeTree};
-use layout::base::{Box, BoxData, GenericBox, ImageBox, TextBox, BoxTree};
+use layout::base::{RenderBox, BoxData, GenericBox, ImageBox, TextBox, RenderBoxTree};
 use layout::base::{FlowContext, FlowContextData, BlockFlow, InlineFlow, InlineBlockFlow, RootFlow, FlowTree};
 use layout::block::BlockFlowData;
 use layout::context::LayoutContext;
@@ -20,7 +20,7 @@ use servo_text::font_cache::FontCache;
 export LayoutTreeBuilder;
 
 struct LayoutTreeBuilder {
-    mut root_box: Option<@Box>,
+    mut root_box: Option<@RenderBox>,
     mut root_ctx: Option<@FlowContext>,
     mut next_bid: int,
     mut next_cid: int
@@ -42,7 +42,7 @@ impl LayoutTreeBuilder {
 
     /** Creates necessary box(es) and flow context(s) for the current DOM node,
     and recurses on its children. */
-    fn construct_recursively(layout_ctx: &LayoutContext, cur_node: Node, parent_ctx: @FlowContext, parent_box: @Box) {
+    fn construct_recursively(layout_ctx: &LayoutContext, cur_node: Node, parent_ctx: @FlowContext, parent_box: @RenderBox) {
         let style = cur_node.style();
         
         // DEBUG
@@ -109,7 +109,7 @@ impl LayoutTreeBuilder {
 
         // connect the box to its parent box
         debug!("Adding child box b%? of b%?", parent_box.id, new_box.id);
-        BoxTree.add_child(parent_box, new_box);
+        RenderBoxTree.add_child(parent_box, new_box);
     
         if (!next_ctx.eq(parent_ctx)) {
             debug!("Adding child flow f%? of f%?", parent_ctx.id, next_ctx.id);
@@ -146,7 +146,7 @@ impl LayoutTreeBuilder {
 
     /** entry point for box creation. Should only be 
     called on root DOM element. */
-    fn construct_trees(layout_ctx: &LayoutContext, root: Node) -> Result<@Box, ()> {
+    fn construct_trees(layout_ctx: &LayoutContext, root: Node) -> Result<@RenderBox, ()> {
         self.root_ctx = Some(self.make_ctx(RootFlow(RootFlowData()), tree::empty()));
         self.root_box = Some(self.make_box(root, self.root_ctx.get(), GenericBox));
 
@@ -160,8 +160,8 @@ impl LayoutTreeBuilder {
         ret
     }
 
-    fn make_box(node : Node, ctx: @FlowContext, data: BoxData) -> @Box {
-        let ret = @Box(self.next_box_id(), node, ctx, data);
+    fn make_box(node : Node, ctx: @FlowContext, data: BoxData) -> @RenderBox {
+        let ret = @RenderBox(self.next_box_id(), node, ctx, data);
         debug!("Created box: %s", ret.debug_str());
         ret
     }

@@ -1,14 +1,16 @@
 use au = gfx::geometry;
 use css::values::*;
+use dl = gfx::display_list;
 use geom::point::Point2D;
+use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::geometry::au;
-use layout::base::{Box, FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
+use layout::base::{RenderBox, FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
 use layout::context::LayoutContext;
 use util::tree;
 
 struct BlockFlowData {
-    mut box: Option<@Box>
+    mut box: Option<@RenderBox>
 }
 
 fn BlockFlowData() -> BlockFlowData {
@@ -20,11 +22,14 @@ fn BlockFlowData() -> BlockFlowData {
 trait BlockLayout {
     pure fn starts_block_flow() -> bool;
     pure fn access_block<T>(fn(&&BlockFlowData) -> T) -> T;
-    pure fn with_block_box(fn(&&@Box) -> ()) -> ();
+    pure fn with_block_box(fn(&&@RenderBox) -> ()) -> ();
 
     fn bubble_widths_block(ctx: &LayoutContext);
     fn assign_widths_block(ctx: &LayoutContext);
     fn assign_height_block(ctx: &LayoutContext);
+
+    fn build_display_list_block(a: &dl::DisplayListBuilder, b: &Rect<au>,
+                                c: &Point2D<au>, d: &dl::DisplayList);
 }
 
 impl @FlowContext : BlockLayout {
@@ -45,7 +50,7 @@ impl @FlowContext : BlockLayout {
 
     /* Get the current flow's corresponding block box, if it exists, and do something with it. 
        This works on both BlockFlow and RootFlow, since they are mostly the same. */
-    pure fn with_block_box(cb:fn(&&@Box) -> ()) -> () {
+    pure fn with_block_box(cb:fn(&&@RenderBox) -> ()) -> () {
         match self.kind {
             BlockFlow(*) => { 
                 do self.access_block |d| {
@@ -145,6 +150,24 @@ impl @FlowContext : BlockLayout {
             box.data.position.origin.y = au(0);
             box.data.position.size.height = cur_y;
             let (used_top, used_bot) = box.get_used_height();
+        }
+    }
+
+    fn build_display_list_block(builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
+                                offset: &Point2D<au>, list: &dl::DisplayList) {
+
+        assert self.starts_block_flow();
+        
+        // add box that starts block context
+        do self.with_block_box |box| {
+            box.build_display_list(builder, dirty, offset, list)
+        }
+
+        // TODO: handle any out-of-flow elements
+
+        // go deeper into the flow tree
+        for FlowTree.each_child(self) |child| {
+            self.build_display_list_for_child(builder, child, dirty, offset, list)
         }
     }
 }

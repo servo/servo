@@ -9,6 +9,8 @@ use std::arc::{ARC, clone};
 use dvec::DVec;
 use text::glyph::Glyph;
 
+pub use layout::display_list_builder::DisplayListBuilder;
+
 struct DisplayItem {
     draw: ~fn((&DisplayItem), (&RenderContext)),
     bounds : Rect<au>, // TODO: whose coordinate system should this use?
@@ -88,7 +90,7 @@ trait DisplayListMethods {
 impl DisplayList : DisplayListMethods {
     fn draw(ctx: &RenderContext) {
         for self.each |item| {
-            debug!["drawing %?", item];
+            debug!("drawing %?", item);
             item.draw(item, ctx);
         }
     }

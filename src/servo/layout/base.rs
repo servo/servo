@@ -1,17 +1,21 @@
 /* Fundamental layout structures and algorithms. */
 
+use arc = std::arc;
+use arc::ARC;
 use au = gfx::geometry;
+use au::au;
 use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
 use css::styles::SpecifiedStyle;
-use css::values::{BoxSizing, Length, Px, CSSDisplay};
+use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgTransparent};
+use dl = gfx::display_list;
 use dom::base::{Element, ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::base::{Node, NodeData, NodeKind, NodeTree};
 use dom::rcu;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::geometry::au;
+use geom::point::Point2D;
 use image::{Image, ImageHolder};
 use layout::block::BlockFlowData;
 use layout::context::LayoutContext;
@@ -20,14 +24,73 @@ use layout::inline::InlineFlowData;
 use layout::root::RootFlowData;
 use layout::text::TextBoxData;
 use servo_text::text_run::TextRun;
-use std::arc::{ARC, clone};
 use std::net::url::Url;
 use task::spawn;
 use util::color::Color;
 use util::tree;
 use vec::{push, push_all};
 
+
+/** Servo's experimental layout system builds a tree of FlowContexts
+and RenderBoxes, and figures out positions and display attributes of
+tree nodes. Positions are computed in several tree traversals driven
+by fundamental data dependencies of inline and block layout.
+
+Render boxes (`struct RenderBox`) are the leafs of the layout
+tree. They cannot position themselves. In general, render boxes do not
+have a simple correspondence with CSS boxes as in the specification:
+
+ * Several render boxes may correspond to the same CSS box or DOM
+   node. For example, a CSS text box broken across two lines is
+   represented by two render boxes.
+
+ * Some CSS boxes are not created at all, such as some anonymous block
+   boxes induced by inline boxes with block-level sibling boxes. In
+   that case, Servo uses an InlineFlow with BlockFlow siblings; the
+   InlineFlow is block-level, but not a block container. It is
+   positioned as if it were a block box, but its children are
+   positioned according to inline flow.
+
+Fundamental box types include:
+
+ * GenericBox: an empty box that contributes only borders, margins,
+padding, backgrounds. It is analogous to a CSS nonreplaced content box.
+
+ * ImageBox: a box that represents a (replaced content) image and its
+   accompanying borders, shadows, etc.
+
+ * TextBox: a box representing a single run of text with a distinct
+   style. A TextBox may be split into two or more render boxes across
+   line breaks. Several TextBoxes may correspond to a single DOM text
+   node. Split text boxes are implemented by referring to subsets of a
+   master TextRun object.
+
+
+Flows (`struct FlowContext`) are interior nodes in the layout tree,
+and correspond closely to flow contexts in the CSS
+specification. Flows are responsible for positioning their child flow
+contexts and render boxes. Flows have purpose-specific fields, such as
+auxilliary line box structs, out-of-flow child lists, and so on.
+
+Currently, the important types of flows are:
+
+ * BlockFlow: a flow that establishes a block context. It has several
+   child flows, each of which are positioned according to block
+   formatting context rules (as if child flows CSS block boxes). Block
+   flows also contain a single GenericBox to represent their rendered
+   borders, padding, etc. (In the future, this render box may be
+   folded into BlockFlow to save space.)
+
+ * InlineFlow: a flow that establishes an inline context. It has a
+   flat list of child boxes/flows that are subject to inline layout
+   and line breaking, and structs to represent line breaks and mapping
+   to CSS boxes, for the purpose of handling `getClientRects()`.
+
+*/
+
 struct FlowLayoutData {
+    // TODO: min/pref and position are used during disjoint phases of
+    // layout; maybe combine into a single enum to save space.
     mut min_width: au,
     mut pref_width: au,
     mut position: Rect<au>,
@@ -42,7 +105,7 @@ fn FlowLayoutData() -> FlowLayoutData {
 }
 
 /* The type of the formatting context, and data specific to each
-context, such as lineboxes or float lists */ 
+context, such as linebox structures or float lists */ 
 enum FlowContextData {
     AbsoluteFlow, 
     BlockFlow(BlockFlowData),
@@ -54,14 +117,7 @@ enum FlowContextData {
 }
 
 /* A particular kind of layout context. It manages the positioning of
-   layout boxes within the context.
-
-   Flow contexts form a tree that is induced by the structure of the
-   box tree. Each context is responsible for laying out one or more
-   boxes, according to the flow type. The number of flow contexts should
-   be much fewer than the number of boxes. The context maintains a vector
-   of its constituent boxes in their document order.
-*/
+   render boxes within the context.  */
 struct FlowContext {
     kind: FlowContextData,
     data: FlowLayoutData,
@@ -85,6 +141,8 @@ impl @FlowContext : cmp::Eq {
     pure fn ne(&&other: @FlowContext) -> bool { !box::ptr_eq(self, other) }
 }
 
+
+/* Flow context disambiguation methods: the verbose alternative to virtual methods */
 impl @FlowContext {
     fn bubble_widths(ctx: &LayoutContext) {
         match self.kind {
@@ -110,6 +168,16 @@ impl @FlowContext {
             InlineFlow(*) => self.assign_height_inline(ctx),
             RootFlow(*)   => self.assign_height_root(ctx),
             _ => fail fmt!("Tried to assign_height of flow: %?", self.kind)
+        }
+    }
+
+    fn build_display_list_recurse(builder: &dl::DisplayListBuilder, dirty: &Rect<au>,
+                                  offset: &Point2D<au>, list: &dl::DisplayList) {
+        match self.kind {
+            RootFlow(*) => self.build_display_list_root(builder, dirty, offset, list),
+            BlockFlow(*) => self.build_display_list_block(builder, dirty, offset, list),
+            InlineFlow(*) => self.build_display_list_inline(builder, dirty, offset, list),
+            _ => fail fmt!("Tried to build_display_list_recurse of flow: %?", self.kind)
         }
     }
 }
@@ -166,9 +234,9 @@ enum BoxData {
     TextBox(TextBoxData)
 }
 
-struct Box {
+struct RenderBox {
     /* references to children, parent */
-    tree : tree::Tree<@Box>,
+    tree : tree::Tree<@RenderBox>,
     /* originating DOM node */
     node : Node,
     /* reference to containing flow context, which this box
@@ -182,8 +250,8 @@ struct Box {
     mut id: int
 }
 
-fn Box(id: int, node: Node, ctx: @FlowContext, kind: BoxData) -> Box {
-    Box {
+fn RenderBox(id: int, node: Node, ctx: @FlowContext, kind: BoxData) -> RenderBox {
+    RenderBox {
         /* will be set when box is parented */
         tree : tree::empty(),
         node : node,
@@ -194,7 +262,7 @@ fn Box(id: int, node: Node, ctx: @FlowContext, kind: BoxData) -> Box {
     }
 }
 
-impl @Box {
+impl @RenderBox {
     pure fn is_replaced() -> bool {
         match self.kind {
             ImageBox(*) => true, // TODO: form elements, etc
@@ -210,14 +278,12 @@ impl @Box {
             // FlowContext will combine the width of this element and
             // that of its children to arrive at the context width.
             GenericBox => au(0),
+            // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult Node
             // attrs, etc. to determine intrinsic dimensions. These
             // dimensions are not defined by CSS 2.1, but are defined
             // by the HTML5 spec in Section 4.8.1
             ImageBox(size) => size.width,
-            // TODO: account for line breaks, etc. The run should know
-            // how to compute its own min and pref widths, and should
-            // probably cache them.
             TextBox(d) => d.runs.foldl(au(0), |sum, run| {
                 au::max(sum, run.min_break_width())
             })
@@ -282,30 +348,99 @@ impl @Box {
 
         image
     }
+
+    // TODO: to implement stacking contexts correctly, we need to
+    // create a set of display lists, one per each layer of a stacking
+    // context. (CSS 2.1, Section 9.9.1). Each box is passed the list
+    // set representing the box's stacking context. When asked to
+    // construct its constituent display items, each box puts its
+    // DisplayItems into the correct stack layer (according to CSS 2.1
+    // Appendix E).  and then builder flattens the list at the end.
+
+    /* Methods for building a display list. This is a good candidate
+       for a function pointer as the number of boxes explodes.
+
+    # Arguments
+
+    * `builder` - the display list builder which manages the coordinate system and options.
+    * `dirty` - Dirty rectangle, in the coordinate system of the owning flow (self.ctx)
+    * `origin` - Total offset from display list root flow to this box's owning flow
+    * `list` - List to which items should be appended
+    */
+    fn build_display_list(builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
+                          offset: &Point2D<au>, list: &dl::DisplayList) {
+        if !self.data.position.intersects(dirty) {
+            return;
+        }
+
+        let bounds : Rect<au> = Rect(self.data.position.origin.add(offset),
+                                     copy self.data.position.size);
+
+        match self.kind {
+            TextBox(d) => {
+                let mut runs = d.runs;
+                // TODO: don't paint background for text boxes
+                list.push(~dl::SolidColor(bounds, 255u8, 255u8, 255u8));
+                
+                let mut bounds = bounds;
+                for uint::range(0, runs.len()) |i| {
+                    bounds.size.height = runs[i].size().height;
+                    let glyph_run = make_glyph_run(&runs[i]);
+                    list.push(~dl::Glyphs(bounds, glyph_run));
+                    bounds.origin.y += bounds.size.height;
+                }
+                return;
+
+                pure fn make_glyph_run(text_run: &TextRun) -> dl::GlyphRun {
+                    dl::GlyphRun {
+                        glyphs: copy text_run.glyphs
+                    }
+                }
+            },
+            // TODO: items for background, border, outline
+            GenericBox(*) => { },
+            ImageBox(*) => {
+                match self.get_image() {
+                    Some(image) => list.push(~dl::Image(bounds, image)),
+                    /* No image data at all? Okay, add some fallback content instead. */
+                    None => {
+                        // TODO: shouldn't need to unbox CSSValue by now
+                        let boxed_color = self.node.style().background_color;
+                        let color = match boxed_color {
+                            Specified(BgColor(c)) => c,
+                            Specified(BgTransparent) | _ => util::color::rgba(0,0,0,0.0)
+                        };
+                        list.push(~dl::SolidColor(bounds, color.red, color.green, color.blue));
+                    }
+                }
+            }
+        }
+    }
 }
 
 // FIXME: Why do these have to be redefined for each node type?
 
-/* The tree holding boxes */
-enum BoxTree { BoxTree }
+/* The tree holding render box relations. (This should only be used 
+for painting nested inlines, AFAIK-- everything else depends on Flow tree)  */
+enum RenderBoxTree { RenderBoxTree }
 
-impl BoxTree : tree::ReadMethods<@Box> {
-    fn each_child(node: @Box, f: fn(&&@Box) -> bool) {
+impl RenderBoxTree : tree::ReadMethods<@RenderBox> {
+    fn each_child(node: @RenderBox, f: fn(&&@RenderBox) -> bool) {
         tree::each_child(self, node, f)
     }
 
-    fn with_tree_fields<R>(&&b: @Box, f: fn(tree::Tree<@Box>) -> R) -> R {
+    fn with_tree_fields<R>(&&b: @RenderBox, f: fn(tree::Tree<@RenderBox>) -> R) -> R {
         f(b.tree)
     }
 }
 
-impl BoxTree : tree::WriteMethods<@Box> {
-    fn add_child(parent: @Box, child: @Box) {
+impl RenderBoxTree : tree::WriteMethods<@RenderBox> {
+    fn add_child(parent: @RenderBox, child: @RenderBox) {
         assert !box::ptr_eq(parent, child);
         tree::add_child(self, parent, child)
     }
 
-    fn with_tree_fields<R>(&&b: @Box, f: fn(tree::Tree<@Box>) -> R) -> R {
+    fn with_tree_fields<R>(&&b: @RenderBox, f: fn(tree::Tree<@RenderBox>) -> R) -> R {
         f(b.tree)
     }
 }
@@ -354,7 +489,7 @@ impl @FlowContext : DebugMethods {
     }
 }
 
-impl @Box : DebugMethods {
+impl @RenderBox : DebugMethods {
     fn dump() {
         self.dump_indent(0u);
     }
@@ -369,7 +504,7 @@ impl @Box : DebugMethods {
         s += self.debug_str();
         debug!("%s", s);
 
-        for BoxTree.each_child(self) |kid| {
+        for RenderBoxTree.each_child(self) |kid| {
             kid.dump_indent(indent + 1u) 
         }
     }
@@ -412,9 +547,9 @@ mod test {
     }
     */
 
-    fn flat_bounds(root: @Box) -> ~[Rect<au>] {
+    fn flat_bounds(root: @RenderBox) -> ~[Rect<au>] {
         let mut r = ~[];
-        for tree::each_child(BoxTree, root) |c| {
+        for tree::each_child(RenderBoxTree, root) |c| {
             push_all(r, flat_bounds(c));
         }
 

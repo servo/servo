@@ -13,7 +13,7 @@ use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
 use js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, jsval, JSBool};
 use js::rust::{bare_compartment, compartment, methods};
 use js::{JSPROP_ENUMERATE, JSPROP_SHARED};
-use layout::base::Box;
+use layout::base::RenderBox;
 use layout::debug::DebugMethods;
 use ptr::null;
 use std::arc::ARC;
@@ -193,12 +193,12 @@ enum ElementKind {
 
 /** The RCU rd_aux data is a (weak) pointer to the layout data,
    defined by this `LayoutData` enum. It contains the CSS style object
-   as well as the primary `Box`.
+   as well as the primary `RenderBox`.
 
    Note that there may be multiple boxes per DOM node. */
 enum LayoutData = {
     mut style: ~SpecifiedStyle,
-    mut box: Option<@Box>
+    mut box: Option<@RenderBox>
 };
 
 type Node = rcu::Handle<NodeData, LayoutData>;

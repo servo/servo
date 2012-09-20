@@ -1,7 +1,7 @@
 #[doc="Applies the appropriate CSS style to boxes."]
 
 use au = gfx::geometry;
-use layout::base::{Box, SpecifiedStyle, BoxTree};
+use layout::base::{RenderBox, SpecifiedStyle, RenderBoxTree};
 use layout::context::LayoutContext;
 use layout::traverse_parallel::top_down_traversal;
 use image::ImageHolder;
@@ -32,12 +32,12 @@ impl CSSValue<CSSFontSize> : ResolveMethods<CSSFontSize> {
 
 
 struct StyleApplicator {
-    box: @Box,
+    box: @RenderBox,
     reflow: fn~(),
 }
 
 // TODO: normalize this into a normal preorder tree traversal function
-fn apply_style(layout_ctx: &LayoutContext, box: @Box, reflow: fn~()) {
+fn apply_style(layout_ctx: &LayoutContext, box: @RenderBox, reflow: fn~()) {
     let applicator = StyleApplicator {
         box: box,
         reflow: reflow
@@ -50,7 +50,7 @@ fn apply_style(layout_ctx: &LayoutContext, box: @Box, reflow: fn~()) {
 
 #[doc="A wrapper around a set of functions that can be applied as a top-down traversal of layout
        boxes."]
-fn inheritance_wrapper(layout_ctx: &LayoutContext, box : @Box, reflow: fn~()) {
+fn inheritance_wrapper(layout_ctx: &LayoutContext, box : @RenderBox, reflow: fn~()) {
     let applicator = StyleApplicator {
         box: box,
         reflow: reflow
@@ -59,12 +59,12 @@ fn inheritance_wrapper(layout_ctx: &LayoutContext, box : @Box, reflow: fn~()) {
 }
 
 /*
-fn resolve_fontsize(box : @Box) {
+fn resolve_fontsize(box : @RenderBox) {
     // TODO: complete this
     return
 }
 
-fn resolve_height(box : @Box) -> au {
+fn resolve_height(box : @RenderBox) -> au {
     let style = box.node.get_style();
     let inherit_val = match box.tree.parent {
         None => au(0),
@@ -81,7 +81,7 @@ fn resolve_height(box : @Box) -> au {
     }
 }
 
-fn resolve_width(box : @Box) {
+fn resolve_width(box : @RenderBox) {
     let style = box.node.get_specified_style();
     let inherit_val = match box.tree.parent {
         None => style.height.initial(),
@@ -102,7 +102,7 @@ impl StyleApplicator {
     fn apply_css_style(layout_ctx: &LayoutContext) {
         let reflow = copy self.reflow;
 
-        do BoxTree.each_child(self.box) |child| {
+        do RenderBoxTree.each_child(self.box) |child| {
             inheritance_wrapper(layout_ctx, child, reflow); true
         }
     }

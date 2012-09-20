@@ -1,12 +1,15 @@
 use au = gfx::geometry;
 use css::values::*;
+use dl = gfx::display_list;
+use geom::point::Point2D;
+use geom::rect::Rect;
 use gfx::geometry::au;
-use layout::base::{Box, FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
+use layout::base::{RenderBox, FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
 use layout::context::LayoutContext;
 use util::tree;
 
 struct RootFlowData {
-    mut box: Option<@Box>
+    mut box: Option<@RenderBox>
 }
 
 fn RootFlowData() -> RootFlowData {
@@ -22,6 +25,8 @@ trait RootLayout {
     fn bubble_widths_root(ctx: &LayoutContext);
     fn assign_widths_root(ctx: &LayoutContext);
     fn assign_height_root(ctx: &LayoutContext);
+
+    fn build_display_list_root(a: &dl::DisplayListBuilder, b: &Rect<au>, c: &Point2D<au>, d: &dl::DisplayList);
 }
 
 impl @FlowContext : RootLayout {
@@ -57,5 +62,12 @@ impl @FlowContext : RootLayout {
         assert self.starts_root_flow();
 
         self.assign_height_block(ctx);
+    }
+
+    fn build_display_list_root(builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
+                               offset: &Point2D<au>, list: &dl::DisplayList) {
+        assert self.starts_root_flow();
+        
+        self.build_display_list_block(builder, dirty, offset, list);
     }
 }
