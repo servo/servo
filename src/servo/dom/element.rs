@@ -10,20 +10,20 @@ struct ElementData {
 }
 
 impl ElementData {
-    fn get_attr(attr_name: ~str) -> Option<~str> {
-        let mut i = 0u;
-        while i < self.attrs.len() {
-            if attr_name == self.attrs[i].name {
-                return Some(copy self.attrs[i].value);
-            }
-            i += 1u;
+    fn get_attr(name: ~str) -> Option<~str> {
+        let found = do self.attrs.find |attr| { attr.name == name };
+        match found {
+            Some(attr) => Some(copy attr.value),
+            None => None
         }
-
-        None
     }
 
-    fn set_attr(_attr_name: ~str, attr_value: ~str) {
-        // TODO: add new attr of name, or delete old one
+    fn set_attr(name: ~str, value: ~str) {
+        let idx = do self.attrs.position |attr| { attr.name == name };
+        match idx {
+            Some(idx) => self.attrs.set_elt(idx, ~Attr(name, value)),
+            None => {}
+        }
     }
 }
 
