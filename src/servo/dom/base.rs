@@ -1,11 +1,10 @@
-#[doc="The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements."]
-
+/* The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements. */
 use comm::{Port, Chan};
 use content::content_task::{ControlMsg, Timer};
 use css::styles::SpecifiedStyle;
 use css::values::Stylesheet;
+use dom::element::{Attr, ElementData};
 use dom::bindings;
-use dvec::DVec;
 use geom::size::Size2D;
 use gfx::geometry::au;
 use js::crust::*;
@@ -132,47 +131,7 @@ fn DoctypeData(name: ~str, public_id: Option<~str>,
     }
 }
 
-struct ElementData {
-    tag_name: ~str,
-    kind: ~ElementKind,
-    attrs: DVec<~Attr>,
-}
 
-impl ElementData {
-    fn get_attr(attr_name: ~str) -> Option<~str> {
-        let mut i = 0u;
-        while i < self.attrs.len() {
-            if attr_name == self.attrs[i].name {
-                return Some(copy self.attrs[i].value);
-            }
-            i += 1u;
-        }
-
-        None
-    }
-}
-
-
-fn ElementData(tag_name: ~str, kind: ~ElementKind) -> ElementData {
-    ElementData {
-        tag_name : tag_name,
-        kind : kind,
-        attrs : DVec(),
-    }
-}
-
-
-struct Attr {
-    name: ~str,
-    value: ~str,
-}
-
-fn Attr(name: ~str, value: ~str) -> Attr {
-    Attr {
-        name : name,
-        value : value,
-    }
-}
 
 fn define_bindings(compartment: bare_compartment, doc: @Document,
                    win: @Window) {
@@ -180,14 +139,6 @@ fn define_bindings(compartment: bare_compartment, doc: @Document,
     bindings::document::init(compartment, doc);
     bindings::node::init(compartment);
     bindings::element::init(compartment);
-}
-
-enum ElementKind {
-    UnknownElement,
-    HTMLDivElement,
-    HTMLHeadElement,
-    HTMLImageElement({mut size: Size2D<au>}),
-    HTMLScriptElement
 }
 
 

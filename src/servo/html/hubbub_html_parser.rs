@@ -1,16 +1,10 @@
 use au = gfx::geometry;
-use dom::base::{Attr, Comment, Doctype, DoctypeData, Element, ElementData, ElementKind};
-use dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, HTMLScriptElement};
+use dom::base::{Comment, Doctype, DoctypeData, Element};
+use dom::element::*;
 use dom::base::{Node, NodeScope, Text, UnknownElement};
 use css::values::Stylesheet;
 use geom::size::Size2D;
-use html::dom_builder::CSSMessage;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
-use CSSExitMessage = html::dom_builder::Exit;
-use CSSFileMessage = html::dom_builder::File;
-use JSExitMessage = html::dom_builder::js_exit;
-use JSFileMessage = html::dom_builder::js_file;
-use JSMessage = html::dom_builder::js_message;
 
 use comm::{Chan, Port};
 use str::from_slice;
@@ -18,6 +12,16 @@ use cast::reinterpret_cast;
 use std::net::url::Url;
 
 type JSResult = ~[~[u8]];
+
+enum CSSMessage {
+    CSSTaskNewFile(Url),
+    CSSTaskExit   
+}
+
+enum JSMessage {
+    JSTaskNewFile(Url),
+    JSTaskExit
+}
 
 struct HtmlParserResult {
     root: Node,
@@ -45,7 +49,7 @@ fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Por
 
     loop {
         match from_parent.recv() {
-          CSSFileMessage(url) => {
+          CSSTaskNewFile(url) => {
             let result_port = comm::Port();
             let result_chan = comm::Chan(result_port);
             // TODO: change copy to move once we have match move
@@ -59,7 +63,7 @@ fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Por
 
             vec::push(result_vec, result_port);
           }
-          CSSExitMessage => {
+          CSSTaskExit => {
             break;
           }
         }
@@ -76,7 +80,7 @@ fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port
 
     loop {
         match from_parent.recv() {
-          JSFileMessage(url) => {
+          JSTaskNewFile(url) => {
             let result_port = comm::Port();
             let result_chan = comm::Chan(result_port);
             // TODO: change copy to move once we have match move
@@ -104,7 +108,7 @@ fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port
             }
             vec::push(result_vec, result_port);
           }
-          JSExitMessage => {
+          JSTaskExit => {
             break;
           }  
         }
@@ -114,18 +118,47 @@ fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port
     to_parent.send(js_scripts);
 }
 
-fn build_element_kind(tag_name: &str) -> ~ElementKind {
-    if tag_name == "div" {
-        ~HTMLDivElement
-    } else if tag_name == "img" {
-        ~HTMLImageElement({ mut size: Size2D(au::from_px(100), au::from_px(100)) })
-    } else if tag_name == "script" {
-        ~HTMLScriptElement
-    } else if tag_name == "head" {
-        ~HTMLHeadElement
-    } else {
-        ~UnknownElement 
-    }
+fn build_element_kind(tag: &str) -> ~ElementKind {
+    // TODO: use atoms
+    if      tag == ~"a" { ~HTMLAnchorElement }
+    else if tag == ~"aside" { ~HTMLAsideElement }
+    else if tag == ~"br" { ~HTMLBRElement }
+    else if tag == ~"body" { ~HTMLBodyElement }
+    else if tag == ~"bold" { ~HTMLBoldElement }
+    else if tag == ~"div" { ~HTMLDivElement }
+    else if tag == ~"font" { ~HTMLFontElement }
+    else if tag == ~"form" { ~HTMLFormElement }
+    else if tag == ~"hr" { ~HTMLHRElement }
+    else if tag == ~"head" { ~HTMLHeadElement }
+    else if tag == ~"h1" { ~HTMLHeadingElement(Heading1) }
+    else if tag == ~"h2" { ~HTMLHeadingElement(Heading2) }
+    else if tag == ~"h3" { ~HTMLHeadingElement(Heading3) }
+    else if tag == ~"h4" { ~HTMLHeadingElement(Heading4) }
+    else if tag == ~"h5" { ~HTMLHeadingElement(Heading5) }
+    else if tag == ~"h6" { ~HTMLHeadingElement(Heading6) }
+    else if tag == ~"html" { ~HTMLHtmlElement }
+    else if tag == ~"img" { ~HTMLImageElement({ mut size: au::zero_size() }) }
+    else if tag == ~"input" { ~HTMLInputElement }
+    else if tag == ~"i" { ~HTMLItalicElement }
+    else if tag == ~"link" { ~HTMLLinkElement }
+    else if tag == ~"li" { ~HTMLListItemElement }
+    else if tag == ~"meta" { ~HTMLMetaElement }
+    else if tag == ~"ol" { ~HTMLOListElement }
+    else if tag == ~"option" { ~HTMLOptionElement }
+    else if tag == ~"p" { ~HTMLParagraphElement }
+    else if tag == ~"script" { ~HTMLScriptElement }
+    else if tag == ~"section" { ~HTMLSectionElement }
+    else if tag == ~"select" { ~HTMLSelectElement }
+    else if tag == ~"small" { ~HTMLSmallElement }
+    else if tag == ~"span" { ~HTMLSpanElement }
+    else if tag == ~"style" { ~HTMLStyleElement }
+    else if tag == ~"tbody" { ~HTMLTableBodyElement }
+    else if tag == ~"td" { ~HTMLTableCellElement }
+    else if tag == ~"table" { ~HTMLTableElement }
+    else if tag == ~"tr" { ~HTMLTableRowElement }
+    else if tag == ~"title" { ~HTMLTitleElement }
+    else if tag == ~"ul" { ~HTMLUListElement }
+    else { ~UnknownElement }
 }
 
 fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlParserResult unsafe {
@@ -175,53 +208,30 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
         },
         create_element: |tag: &hubbub::Tag| {
             debug!("create element");
-            let element_kind = build_element_kind(tag.name);
-            let node = scope.new_node(Element(ElementData(from_slice(tag.name), element_kind)));
+            let elem_kind = build_element_kind(tag.name);
+            let elem = ElementData(from_slice(tag.name), elem_kind);
+            debug!("attach attrs");
             for tag.attributes.each |attribute| {
-                do scope.read(node) |node_contents| {
-                    match *node_contents.kind {
-                      Element(element) => {
-                        element.attrs.push(~Attr(from_slice(attribute.name),
-                                                 from_slice(attribute.value)));
-                        match *element.kind {
-                          HTMLImageElement(img) if attribute.name == "width" => {
-                            match int::from_str(from_slice(attribute.value)) {
-                              None => {} // Drop on the floor.
-                              Some(s) => img.size.width = au::from_px(s)
-                            }
-                          }
-                          HTMLImageElement(img) if attribute.name == "height" => {
-                            match int::from_str(from_slice(attribute.value)) {
-                              None => {} // Drop on the floor.
-                              Some(s) => img.size.height = au::from_px(s)
-                            }
-                          }
-                          HTMLDivElement | HTMLImageElement(*) | HTMLHeadElement |
-                          HTMLScriptElement | UnknownElement => {} // Drop on the floor.
-                        }
-                      }
-
-                      _ => fail ~"can't happen: unexpected node type"
-                    }
-                }
+                elem.attrs.push(~Attr(from_slice(attribute.name),
+                                      from_slice(attribute.value)));
             }
 
-            // Handle CSS style sheet links.
-            do scope.read(node) |node_contents| {
-                match *node_contents.kind {
-                    Element(element) if element.tag_name == ~"link" => {
-                        match (element.get_attr(~"rel"), element.get_attr(~"href")) {
-                            (Some(rel), Some(href)) if rel == ~"stylesheet" => {
-                                debug!("found CSS stylesheet: %s", href);
-                                css_chan.send(CSSFileMessage(make_url(href, Some(copy *url))));
-                            }
-                            _ => {}
+            // Spawn additional parsing, network loads, etc. from opening tag
+            match elem.tag_name {
+                //Handle CSS style sheets from <link> elements
+                ~"link" => {
+                    match (elem.get_attr(~"rel"), elem.get_attr(~"href")) {
+                        (Some(rel), Some(href)) if rel == ~"stylesheet" => {
+                            debug!("found CSS stylesheet: %s", href);
+                            css_chan.send(CSSTaskNewFile(make_url(href, Some(copy *url))));
                         }
+                        _ => {}
                     }
-                    _ => {}
                 }
+                //TODO: handle inline styles ('style' attr)
+                _ => {}
             }
-
+            let node = scope.new_node(Element(elem));
             unsafe { reinterpret_cast(&node) }
         },
         create_text: |data| {
@@ -280,7 +290,7 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
                             Some(src) => {
                                 debug!("found script: %s", src);
                                 let new_url = make_url(src, Some(copy *url));
-                                js_chan.send(JSFileMessage(new_url));
+                                js_chan.send(JSTaskNewFile(new_url));
                             }
                             None => {}
                         }
@@ -308,8 +318,8 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
         }
     }
 
-    css_chan.send(CSSExitMessage);
-    js_chan.send(JSExitMessage);
+    css_chan.send(CSSTaskExit);
+    js_chan.send(JSTaskExit);
 
     return HtmlParserResult { root: root, style_port: css_port, js_port: js_port };
 }

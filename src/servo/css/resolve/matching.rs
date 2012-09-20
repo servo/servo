@@ -2,7 +2,8 @@
 
 use dom::base::{LayoutData};
 use dom::base;
-use base::{ElementData, Node, Text};
+use dom::element::ElementData;
+use base::{Node, Text};
 
 use values::*;
 use styles::{SpecifiedStyle};

@@ -16,7 +16,6 @@ use dom::base::{Document, Node, NodeScope, Window, define_bindings};
 use dom::event::{Event, ResizeEvent, ReflowEvent};
 use gfx::compositor::Compositor;
 use html::lexer::spawn_html_lexer_task;
-use html::dom_builder::build_dom;
 use layout::layout_task;
 use layout_task::{LayoutTask, BuildMsg};
 
@@ -155,12 +154,6 @@ impl<C:Compositor> Content<C> {
 
             // Note: we can parse the next document in parallel
             // with any previous documents.
-            /*let stream = spawn_html_lexer_task(copy url, self.resource_task);
-            let (root, style_port, js_port) = build_dom(self.scope, stream, url, 
-                                                        self.resource_task);
-
-            let css_rules = style_port.recv();
-            let js_scripts = js_port.recv();*/
 
             let result = html::hubbub_html_parser::parse_html(self.scope,
                                                               url,

@@ -87,7 +87,7 @@ impl @FlowContext : InlineLayout {
     /* Recursively (top-down) determines the actual width of child
     contexts and boxes. When called on this context, the context has
     had its width set by the parent context. */
-    fn assign_widths_inline(_ctx: &LayoutContext) {
+    fn assign_widths_inline(ctx: &LayoutContext) {
         assert self.starts_inline_flow();
 
         /* Perform inline flow with the available width. */
@@ -107,6 +107,13 @@ impl @FlowContext : InlineLayout {
                 where its chunks ended up.
 
                 - Save the dvec of this context's lineboxes. */
+
+                /* hack: until text box splitting is hoisted into this
+                function, force "reflow" on TextBoxes.  */
+                match box.kind {
+                    TextBox(*) => box.reflow_text(ctx),
+                    _ => {}
+                }
             
                 box.data.position.size.width = match box.kind {
                     ImageBox(sz) => sz.width,

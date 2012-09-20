@@ -1,4 +1,5 @@
 use au = gfx::geometry;
+use au::au;
 use js::rust::{bare_compartment, methods, jsobj};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
@@ -11,13 +12,13 @@ use js::glue::bindgen::*;
 use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub};
 
 use dom::base::{Node, NodeScope, Element};
+use dom::element::*;
 use node::NodeBundle;
 use utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval, str};
 use libc::c_uint;
 use ptr::null;
 use node::unwrap;
-use dom::base::{HTMLImageElement, HTMLScriptElement, HTMLHeadElement, HTMLDivElement,
-                   UnknownElement};
+
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     #debug("element finalize!");
@@ -71,13 +72,22 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
     let bundle = unwrap(obj);
     let width = (*bundle).payload.scope.write((*bundle).payload.node, |nd| {
         match nd.kind {
-          ~Element(ed) => {
-            match ed.kind {
-              ~HTMLImageElement(img) => img.size.width,
-              _ => fail ~"why is this not an image element?"
-            }
-          }
-          _ => fail ~"why is this not an element?"
+            ~Element(ed) => {
+                match ed.kind {
+                    ~HTMLImageElement(*) => {
+                        // TODO: this should actually come from rendered dimensions!
+                        match ed.get_attr(~"width") {
+                            Some(s) => match int::from_str(s) {
+                                Some(w) => au::from_px(w),
+                                None => au(0) /* failed to parse a number */
+                            },
+                            None => au(0) /* no width attr. */
+                        }
+                    },
+                    _ => fail ~"why is this not an image element?"
+                }
+            },
+            _ => fail ~"why is this not an element?"
         }
     });
     *vp = RUST_INT_TO_JSVAL(
@@ -97,9 +107,9 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
         match nd.kind {
           ~Element(ed) => {
             match ed.kind {
-              ~HTMLImageElement(img) => {
+              ~HTMLImageElement(*) => {
                 let arg = ptr::offset(JS_ARGV(cx, cast::reinterpret_cast(&vp)), 0);
-                img.size.width = au::from_px(RUST_JSVAL_TO_INT(*arg) as int)
+                ed.set_attr(~"width", int::str(RUST_JSVAL_TO_INT(*arg) as int))
               },
               _ => fail ~"why is this not an image element?"
             }
@@ -144,7 +154,7 @@ fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
               ~HTMLHeadElement(*) => ~"HTMLHeadElement",
               ~HTMLImageElement(*) => ~"HTMLImageElement",
               ~HTMLScriptElement(*) => ~"HTMLScriptElement",
-              ~UnknownElement(*) => ~"HTMLElement"
+              _ => ~"HTMLElement"
             }
           }
           _ => fail ~"element::create only handles elements"

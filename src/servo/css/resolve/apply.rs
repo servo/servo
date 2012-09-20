@@ -1,6 +1,7 @@
 #[doc="Applies the appropriate CSS style to boxes."]
 
 use au = gfx::geometry;
+use dom::element::*;
 use layout::base::{RenderBox, SpecifiedStyle, RenderBoxTree};
 use layout::context::LayoutContext;
 use layout::traverse_parallel::top_down_traversal;
@@ -121,7 +122,7 @@ impl StyleApplicator {
             match node.kind {
               ~dom::base::Element(element) => {
                 match element.kind {
-                  ~dom::base::HTMLImageElement(*) => {
+                  ~HTMLImageElement(*) => {
                     let url = element.get_attr(~"src");
                     
                     if url.is_some() {

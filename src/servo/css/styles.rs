@@ -4,7 +4,7 @@ use std::arc::{ARC, get, clone};
 
 use css::values::*;
 use css::values::Stylesheet;
-use dom::base::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
+use dom::element::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
 use dom::base::{Comment, Doctype, Element, Node, NodeKind, Text};
 use dom::base::{LayoutData};
 use util::color::{Color, rgb};
@@ -37,6 +37,7 @@ impl NodeKind : DefaultStyleMethods {
         }
     }
 
+    /* TODO: this belongs in the UA stylesheet */
     fn default_display_type() -> CSSDisplay {
         match self {
           Text(*) => { DisplayInline }
@@ -46,7 +47,7 @@ impl NodeKind : DefaultStyleMethods {
               HTMLHeadElement => DisplayNone,
               HTMLImageElement(*) => DisplayInline,
               HTMLScriptElement => DisplayNone,
-              UnknownElement => DisplayInline,
+              _ => DisplayInline,
             }
           },
           Comment(*) | Doctype(*) => DisplayNone

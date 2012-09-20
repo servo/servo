@@ -31,6 +31,7 @@ mod dom {
         mod node;
         mod window;
     }
+    mod element;
     mod event;
     mod rcu;
 }
@@ -88,7 +89,6 @@ mod image {
 mod html {
     mod lexer;
     mod lexer_util;
-    mod dom_builder;
     mod hubbub_html_parser;
 }
 
