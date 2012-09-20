@@ -337,6 +337,7 @@ make_dir src/servo-sandbox
 make_dir src/rust-hubbub
 make_dir src/rust-core-foundation
 make_dir src/rust-io-surface
+make_dir src/sharegl
 
 make_dir src/test/ref
 
@@ -361,6 +362,7 @@ step_msg "running submodule configure scripts"
 (cd ${CFG_BUILD_DIR}src/rust-hubbub && sh ${CFG_SRC_DIR}src/rust-hubbub/configure) || exit $?
 (cd ${CFG_BUILD_DIR}src/rust-core-foundation && sh ${CFG_SRC_DIR}src/rust-core-foundation/configure) || exit $?
 (cd ${CFG_BUILD_DIR}src/rust-io-surface && sh ${CFG_SRC_DIR}src/rust-io-surface/configure) || exit $?
+(cd ${CFG_BUILD_DIR}src/sharegl && sh ${CFG_SRC_DIR}src/sharegl/configure) || exit $?
 
 step_msg "writing configuration"
 

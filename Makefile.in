@@ -31,6 +31,7 @@ RUSTLIBS = \
 	-L src/rust-hubbub \
 	-L src/rust-core-foundation \
 	-L src/rust-io-surface \
+	-L src/sharegl \
 	$(NULL)
 
 RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
@@ -50,6 +51,9 @@ LAYERS_DEPS = \
 	src/rust-opengles/librustopengles.dummy \
 	src/rust-glut/librustglut.dummy \
 	src/rust-azure/libazure.dummy
+SHAREGL_DEPS = \
+	src/rust-opengles/librustopengles.dummy \
+	src/sharegl/libsharegl.dummy
 
 ifeq ($(OSTYPE),darwin)
     SERVO_DEPS += \
@@ -73,6 +77,9 @@ ifeq ($(OSTYPE),darwin)
 	src/rust-cocoa/libcocoa.dummy \
 	src/rust-core-foundation/librustcorefoundation.dummy
 	IOSURFACE_DEPS = src/rust-core-foundation/librustcorefoundation.dummy
+	SHAREGL_DEPS += \
+	src/rust-core-foundation/librustcorefoundation.dummy \
+	src/rust-io-surface/librustiosurface.dummy
 endif
 
 SERVO_DEPS += \
@@ -90,6 +97,7 @@ SERVO_DEPS += \
 	src/libhubbub/libhubbub.dummy \
 	src/servo-sandbox/servo-sandbox.dummy \
 	src/rust-hubbub/librusthubbub.dummy \
+	src/sharegl/libsharegl.dummy \
 	$(NULL)
 
 CHECK_DEPS += \
@@ -182,6 +190,8 @@ servo-sandbox: src/servo-sandbox/servo-sandbox.dummy
 
 rust-io-surface: src/rust-io-surface/librustiosurface.dummy
 
+sharegl: src/sharegl/libsharegl.dummy
+
 
 # Subproject rules
 
@@ -237,6 +247,9 @@ src/rust-core-foundation/librustcorefoundation.dummy:
 
 src/rust-io-surface/librustiosurface.dummy: $(IOSURFACE_DEPS)
 	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-core-foundation" $(MAKE) -C src/rust-io-surface
+
+src/sharegl/libsharegl.dummy: $(SHAREGL_DEPS)
+	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-core-foundation -L ../rust-io-surface -L ../rust-opengles -L ../rust-geom" $(MAKE) -C src/sharegl
 
 
 # Testing targets
