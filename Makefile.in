@@ -30,6 +30,7 @@ RUSTLIBS = \
 	-L src/rust-http-client \
 	-L src/rust-hubbub \
 	-L src/rust-core-foundation \
+	-L src/rust-io-surface \
 	$(NULL)
 
 RUST_SRC=$(shell find $(VPATH)/src -type f -name '*.rs')
@@ -53,17 +54,25 @@ LAYERS_DEPS = \
 ifeq ($(OSTYPE),darwin)
     SERVO_DEPS += \
 	src/rust-cocoa/libcocoa.dummy \
-	src/rust-core-foundation/librustcorefoundation.dummy
+	src/rust-core-foundation/librustcorefoundation.dummy \
+	src/rust-io-surface/librustiosurface.dummy
     # I want the cocoa check to come before the servo check since if cocoa
     # doesn't work neither does servo
-    CHECK_DEPS += check-rust-cocoa check-rust-core-foundation
-    CLEAN_DEPS += clean-rust-cocoa clean-rust-core-foundation
+    CHECK_DEPS += \
+	check-rust-cocoa \
+	check-rust-core-foundation \
+	check-rust-io-surface
+    CLEAN_DEPS += \
+	clean-rust-cocoa \
+	clean-rust-core-foundation \
+	clean-rust-io-surface
     AZURE_DEPS += \
 	src/rust-cocoa/libcocoa.dummy \
 	src/rust-core-foundation/librustcorefoundation.dummy
     LAYERS_DEPS += \
 	src/rust-cocoa/libcocoa.dummy \
 	src/rust-core-foundation/librustcorefoundation.dummy
+	IOSURFACE_DEPS = src/rust-core-foundation/librustcorefoundation.dummy
 endif
 
 SERVO_DEPS += \
@@ -171,6 +180,8 @@ libhubbub: src/libhubbub/libhubbub.dummy
 
 servo-sandbox: src/servo-sandbox/servo-sandbox.dummy
 
+rust-io-surface: src/rust-io-surface/librustiosurface.dummy
+
 
 # Subproject rules
 
@@ -224,6 +235,9 @@ src/rust-hubbub/librusthubbub.dummy:
 src/rust-core-foundation/librustcorefoundation.dummy:
 	$(MAKE) -C src/rust-core-foundation
 
+src/rust-io-surface/librustiosurface.dummy: $(IOSURFACE_DEPS)
+	RUSTFLAGS="$(RUSTFLAGS) -L ../rust-core-foundation" $(MAKE) -C src/rust-io-surface
+
 
 # Testing targets
 
@@ -271,6 +285,9 @@ check-rust-http-client:
 
 check-rust-core-foundation:
 	$(MAKE) check -C src/rust-core-foundation
+
+check-rust-io-surface:
+	$(MAKE) check -C src/rust-io-surface
 
 # Clean targets
 
@@ -325,6 +342,9 @@ clean-servo-sandbox:
 
 clean-rust-hubbub:
 	$(MAKE) clean -C src/rust-hubbub
+
+clean-rust-io-surface:
+	$(MAKE) clean -C src/rust-io-surface
 
 clean-servo:
 	rm -f servo servo-test
