@@ -10,7 +10,7 @@ use core::dvec::DVec;
 use css::resolve::apply::apply_style;
 use css::values::Stylesheet;
 use dl = gfx::display_list;
-use dom::node::Node;
+use dom::node::{Node, LayoutData};
 use dom::event::{Event, ReflowEvent};
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -41,7 +41,7 @@ fn LayoutTask(render_task: RenderTask, image_cache_task: ImageCacheTask) -> Layo
     do spawn_listener::<Msg>|request| {
 
         // This just keeps our dom aux objects alive
-        let mut layout_data_refs = ~[];
+        let layout_data_refs = DVec();
         let font_cache = FontCache();
 
         loop {
@@ -65,7 +65,7 @@ fn LayoutTask(render_task: RenderTask, image_cache_task: ImageCacheTask) -> Layo
                     };
 
                     do util::time::time(~"layout") {
-                        layout_data_refs += node.initialize_style_for_subtree();
+                        node.initialize_style_for_subtree(&layout_ctx, &layout_data_refs);
                         node.recompute_style_for_subtree(&layout_ctx, styles);
 
                         // TODO: this should care about root flow, not root box.

@@ -1,7 +1,9 @@
-#[doc="High-level interface to CSS selector matching."]
-
+/**
+ * High-level interface to CSS selector matching.
+ */
 use std::arc::{ARC, get, clone};
 
+use core::dvec::DVec;
 use css::values::*;
 use css::values::Stylesheet;
 use dom::element::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
@@ -39,7 +41,7 @@ impl NodeKind : DefaultStyleMethods {
     /* TODO: this belongs in the UA stylesheet */
     fn default_display_type() -> CSSDisplay {
         match self {
-          Text(*) => { DisplayInline }
+          Text(*) => DisplayInline,
           Element(element) => {
             match *element.kind {
               HTMLDivElement => DisplayBlock,
@@ -80,75 +82,64 @@ fn empty_style_for_node_kind(kind: NodeKind) -> SpecifiedStyle {
      mut width : Initial}
 }
 
-trait StylePriv {
-    fn initialize_style() -> ~[@LayoutData];
-}
-
-impl Node : StylePriv {
-    #[doc="
-        Set a default auxiliary data so that other threads can modify it.
-        
-        This is, importantly, the function that creates the layout
-        data for the node (the reader-auxiliary box in the RCU model)
-        and populates it with the default style.
-
-     "]
-    // TODO: we should look into folding this into building the dom,
-    // instead of doing a linear sweep afterwards.
-    fn initialize_style() -> ~[@LayoutData] {
-        if !self.has_aux() {
-            let node_kind = self.read(|n| copy *n.kind);
-            let the_layout_data = @LayoutData({
-                mut style : ~empty_style_for_node_kind(node_kind),
-                mut box : None
-            });
-
-            self.set_aux(the_layout_data);
-
-            ~[the_layout_data]
-        } else {
-            ~[]
-        }
-    }
-}
-
 trait StyleMethods {
-    fn initialize_style_for_subtree() -> ~[@LayoutData];
+    fn initialize_layout_data() -> Option<@LayoutData>;
+
     fn style() -> SpecifiedStyle;
+    fn initialize_style_for_subtree(ctx: &LayoutContext, refs: &DVec<@LayoutData>);
     fn recompute_style_for_subtree(ctx: &LayoutContext, styles : ARC<Stylesheet>);
 }
 
 impl Node : StyleMethods {
-    #[doc="Sequentially initialize the nodes' auxilliary data so they can be updated in parallel."]
-    fn initialize_style_for_subtree() -> ~[@LayoutData] {
-        let mut handles = self.initialize_style();
-        
-        for NodeTree.each_child(self) |kid| {
-            handles += kid.initialize_style_for_subtree();
+    /** If none exists, creates empty layout data for the node (the reader-auxiliary
+     * box in the RCU model) and populates it with an empty style object.
+     */
+    fn initialize_layout_data() -> Option<@LayoutData> {
+        match self.has_aux() {
+            false => {
+                let node_kind = self.read(|n| copy *n.kind);
+                let data = @LayoutData({
+                    mut style : ~empty_style_for_node_kind(node_kind),
+                    mut flow  : None
+                });
+                self.set_aux(data); Some(data)
+            },
+            true => None
         }
-
-        return handles;
     }
-    
-    #[doc="
-        Returns the computed style for the given node. If CSS selector matching has not yet been
-        performed, fails.
-
-        TODO: Return a safe reference; don't copy.
-    "]
+        
+    /** 
+     * Returns the computed style for the given node. If CSS selector
+     * matching has not yet been performed, fails.
+     */
     fn style() -> SpecifiedStyle {
         if !self.has_aux() {
             fail ~"get_style() called on a node without a style!";
         }
+        // TODO: return a safe reference; don't copy!
         return copy *self.aux(|x| copy x).style;
     }
 
-    #[doc="
-        Performs CSS selector matching on a subtree.
+    /**
+     * Initializes layout data and styles for a Node tree, if any nodes do not have
+     * this data already. Append created layout data to the task's GC roots.
+     */
+    fn initialize_style_for_subtree(_ctx: &LayoutContext, refs: &DVec<@LayoutData>) {
+        do self.traverse_preorder |n| {
+            match n.initialize_layout_data() {
+                Some(r) => refs.push(r),
+                None => {}
+            }
+        }
+    }
 
-This is, importantly, the function that updates the layout data for the node (the reader-
-auxiliary box in the RCU model) with the computed style.
-"]
+    /**
+     * Performs CSS selector matching on a subtree.
+
+     * This is, importantly, the function that updates the layout data for
+     * the node (the reader-auxiliary box in the RCU model) with the
+     * computed style.
+     */
     fn recompute_style_for_subtree(ctx: &LayoutContext, styles : ARC<Stylesheet>) {
         let mut i = 0u;
         

@@ -12,7 +12,7 @@ use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
 use js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, jsval, JSBool};
 use js::rust::{bare_compartment, compartment, methods};
 use js::{JSPROP_ENUMERATE, JSPROP_SHARED};
-use layout::base::RenderBox;
+use layout::base::FlowContext;
 use layout::debug::DebugMethods;
 use ptr::null;
 use std::arc::ARC;
@@ -34,6 +34,18 @@ impl NodeTree : tree::ReadMethods<Node> {
 
     fn with_tree_fields<R>(&&n: Node, f: fn(tree::Tree<Node>) -> R) -> R {
         n.read(|n| f(n.tree))
+    }
+}
+
+impl Node {
+    fn traverse_preorder(preorder_cb: &fn(Node)) {
+        preorder_cb(self);
+        do NodeTree.each_child(self) |child| { child.traverse_preorder(preorder_cb); true }
+    }
+
+    fn traverse_postorder(postorder_cb: &fn(Node)) {
+        do NodeTree.each_child(self) |child| { child.traverse_postorder(postorder_cb); true }
+        postorder_cb(self);
     }
 }
 
@@ -105,7 +117,7 @@ fn define_bindings(compartment: bare_compartment, doc: @Document,
    Note that there may be multiple boxes per DOM node. */
 enum LayoutData = {
     mut style: ~SpecifiedStyle,
-    mut box: Option<@RenderBox>
+    mut flow:  Option<@FlowContext>
 };
 
 type Node = rcu::Handle<NodeData, LayoutData>;
@@ -152,4 +164,3 @@ impl NodeScope : tree::WriteMethods<Node> {
         self.write(node, |n| f(n.tree))
     }
 }
-

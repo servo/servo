@@ -1,11 +1,11 @@
 /** Creates CSS boxes from a DOM. */
 use au = gfx::geometry;
 use core::dvec::DVec;
-use css::styles::SpecifiedStyle;
+use css::styles::{SpecifiedStyle, empty_style_for_node_kind};
 use css::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayInlineBlock, DisplayNone};
 use css::values::{Inherit, Initial, Specified};
 use dom::element::*;
-use dom::node::{Comment, Doctype, Element, Text, Node, NodeTree};
+use dom::node::{Comment, Doctype, Element, Text, Node, NodeTree, LayoutData};
 use layout::base::{RenderBox, BoxData, GenericBox, ImageBox, TextBox, RenderBoxTree};
 use layout::base::{FlowContext, FlowContextData, BlockFlow, InlineFlow, InlineBlockFlow, RootFlow, FlowTree};
 use layout::block::BlockFlowData;
