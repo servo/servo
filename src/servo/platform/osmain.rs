@@ -14,6 +14,7 @@ use gfx::compositor::Compositor;
 use dom::event::{Event, ResizeEvent};
 use layers::ImageLayer;
 use geom::size::Size2D;
+use ShareGlContext = sharegl::platform::Context;
 use std::cmp::FuzzyEq;
 use task::TaskBuilder;
 use vec::push;
@@ -21,6 +22,16 @@ use vec::push;
 use pipes::Chan;
 
 type OSMain = comm::Chan<Msg>;
+
+enum Mode {
+	GlutMode,
+	ShareMode
+}
+
+enum Window {
+	GlutWindow(glut::Window),
+	ShareWindow(ShareGlContext)
+}
 
 enum Msg {
     BeginDrawing(pipes::Chan<DrawTarget>),
@@ -34,22 +45,39 @@ fn OSMain() -> OSMain {
     do on_osmain::<Msg> |po| {
         do platform::runmain {
             #debug("preparing to enter main loop");
-	        mainloop(po);
+
+			let mode;
+			match os::getenv("SERVO_SHARE") {
+				Some(_) => mode = ShareMode,
+				None => mode = GlutMode
+			}
+
+	        mainloop(mode, po);
         }
     }
 }
 
-fn mainloop(po: Port<Msg>) {
+fn mainloop(+mode: Mode, po: Port<Msg>) {
     let key_handlers: @DVec<pipes::Chan<()>> = @DVec();
     let event_listeners: @DVec<comm::Chan<Event>> = @DVec();
 
-    glut::init();
-    glut::init_display_mode(glut::DOUBLE);
+	let window;
+	match mode {
+		GlutMode => {
+			glut::init();
+			glut::init_display_mode(glut::DOUBLE);
+			let glut_window = glut::create_window(~"Servo");
+			glut::reshape_window(glut_window, 800, 600);
+			window = GlutWindow(move glut_window);
+		}
+		ShareMode => {
+			let share_context: ShareGlContext = sharegl::base::new(Size2D(800, 600));
+			io::println(fmt!("Sharing ID is %d", share_context.id()));
+			window = ShareWindow(move share_context);
+		}
+	}
 
     let surfaces = @SurfaceSet();
-
-    let window = glut::create_window(~"Servo");
-    glut::reshape_window(window, 800, 600);
 
     let context = layers::rendergl::init_render_context();
 
@@ -82,7 +110,8 @@ fn mainloop(po: Port<Msg>) {
                 lend_surface(*surfaces, sender);
 
                 let buffer = surfaces.front.cairo_surface.data();
-                let image = @layers::layers::Image(800, 600, layers::layers::ARGB32Format, buffer);
+                let image = @layers::layers::Image(800, 600, layers::layers::ARGB32Format,
+												   buffer);
                 image_layer.set_image(image);
               }
               Exit => {
@@ -92,32 +121,46 @@ fn mainloop(po: Port<Msg>) {
         }
     };
 
-    do glut::reshape_func(window) |width, height| {
-        check_for_messages();
+	match window {
+		GlutWindow(window) => {
+			do glut::reshape_func(window) |width, height| {
+				check_for_messages();
 
-        #debug("osmain: window resized to %d,%d", width as int, height as int);
-        for event_listeners.each |event_listener| {
-            event_listener.send(ResizeEvent(width as int, height as int));
-        }
-    }
+				#debug("osmain: window resized to %d,%d", width as int, height as int);
+				for event_listeners.each |event_listener| {
+					event_listener.send(ResizeEvent(width as int, height as int));
+				}
+			}
 
-    do glut::display_func() {
-        check_for_messages();
+			do glut::display_func() {
+				check_for_messages();
 
-        #debug("osmain: drawing to screen");
+				#debug("osmain: drawing to screen");
 
-        do util::time::time(~"compositing") {
-            layers::rendergl::render_scene(context, *scene);
-        }
+				do util::time::time(~"compositing") {
+					layers::rendergl::render_scene(context, *scene);
+				}
 
-        glut::swap_buffers();
-        glut::post_redisplay();
-    }
+				glut::swap_buffers();
+				glut::post_redisplay();
+			}
 
-    while !*done {
-        #debug("osmain: running GLUT check loop");
-        glut::check_loop();
-    }
+			while !*done {
+				#debug("osmain: running GLUT check loop");
+				glut::check_loop();
+			}
+		}
+		ShareWindow(share_context) => {
+			loop {
+				check_for_messages();
+				do util::time::time(~"compositing") {
+					layers::rendergl::render_scene(context, *scene);
+				}
+
+				share_context.flush();
+			}
+		}
+	}
 }
 
 #[doc = "

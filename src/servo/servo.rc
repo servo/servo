@@ -19,6 +19,7 @@ extern mod layers;
 extern mod opengles;
 extern mod http_client;
 extern mod hubbub;
+extern mod sharegl;
 
 mod engine;
 
