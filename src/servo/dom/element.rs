@@ -2,6 +2,7 @@ use au = gfx::geometry;
 use au::au;
 use dvec::DVec;
 use geom::size::Size2D;
+use std::net::url::Url;
 
 struct ElementData {
     tag_name: ~str,
@@ -47,6 +48,16 @@ fn Attr(name: ~str, value: ~str) -> Attr {
     }
 }
 
+fn HTMLImageData() -> HTMLImageData {
+    HTMLImageData {
+        image: None
+    }
+}
+
+struct HTMLImageData {
+    mut image: Option<Url>
+}
+
 enum HeadingLevel {
     Heading1,
     Heading2,
@@ -69,9 +80,7 @@ enum ElementKind {
     HTMLHeadElement,
     HTMLHeadingElement(HeadingLevel),
     HTMLHtmlElement,
-    // TODO: should not take this as argument--it is fetched from
-    // layout task as requested.
-    HTMLImageElement({mut size: Size2D<au>}),
+    HTMLImageElement(HTMLImageData),
     HTMLInputElement,
     HTMLItalicElement,
     HTMLLinkElement,

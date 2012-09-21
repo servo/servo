@@ -10,5 +10,6 @@ struct LayoutContext {
     font_cache: @FontCache,
     image_cache: ImageCacheTask,
     doc_url: Url,
+    reflow_cb: fn~(),
     screen_size: Rect<au>
 }

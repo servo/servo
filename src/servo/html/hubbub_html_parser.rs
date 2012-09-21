@@ -1,10 +1,12 @@
 use au = gfx::geometry;
-use dom::element::UnknownElement;
+use content::content_task::ContentTask;
+use css::values::Stylesheet;
+use dom::element::*;
+use dom::event::{Event, ReflowEvent};
 use dom::node::{Comment, Doctype, DoctypeData, Text,
                 Element, Node, NodeScope};
-use dom::element::*;
-use css::values::Stylesheet;
-use geom::size::Size2D;
+use resource::image_cache_task::ImageCacheTask;
+use resource::image_cache_task;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
 
 use comm::{Chan, Port};
@@ -138,7 +140,7 @@ fn build_element_kind(tag: &str) -> ~ElementKind {
     else if tag == ~"h5" { ~HTMLHeadingElement(Heading5) }
     else if tag == ~"h6" { ~HTMLHeadingElement(Heading6) }
     else if tag == ~"html" { ~HTMLHtmlElement }
-    else if tag == ~"img" { ~HTMLImageElement({ mut size: au::zero_size() }) }
+    else if tag == ~"img" { ~HTMLImageElement(HTMLImageData()) }
     else if tag == ~"input" { ~HTMLInputElement }
     else if tag == ~"i" { ~HTMLItalicElement }
     else if tag == ~"link" { ~HTMLLinkElement }
@@ -162,7 +164,10 @@ fn build_element_kind(tag: &str) -> ~ElementKind {
     else { ~UnknownElement }
 }
 
-fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlParserResult unsafe {
+fn parse_html(scope: NodeScope,
+              url: Url,
+              resource_task: ResourceTask,
+              image_cache_task: ImageCacheTask) -> HtmlParserResult unsafe {
     // Spawn a CSS parser to receive links to CSS style sheets.
     let (css_port, css_chan): (comm::Port<Stylesheet>, comm::Chan<CSSMessage>) =
             do task::spawn_conversation |css_port: comm::Port<CSSMessage>,
@@ -217,16 +222,24 @@ fn parse_html(scope: NodeScope, url: Url, resource_task: ResourceTask) -> HtmlPa
                                       from_slice(attribute.value)));
             }
 
-            // Spawn additional parsing, network loads, etc. from opening tag
-            match elem.tag_name {
+            // Spawn additional parsing, network loads, etc. from tag and attrs
+            match elem.kind {
                 //Handle CSS style sheets from <link> elements
-                ~"link" => {
+                ~HTMLLinkElement => {
                     match (elem.get_attr(~"rel"), elem.get_attr(~"href")) {
                         (Some(rel), Some(href)) if rel == ~"stylesheet" => {
                             debug!("found CSS stylesheet: %s", href);
                             css_chan.send(CSSTaskNewFile(make_url(href, Some(copy *url))));
                         }
                         _ => {}
+                    }
+                },
+                ~HTMLImageElement(d) => {
+                    do elem.get_attr(~"src").iter |img_url_str| {
+                        let img_url = make_url(copy img_url_str, Some(copy *url));
+                        d.image = Some(copy img_url);
+                        // inform the image cache to load this, but don't store a handle.
+                        image_cache_task.send(image_cache_task::Prefetch(move img_url));
                     }
                 }
                 //TODO: handle inline styles ('style' attr)

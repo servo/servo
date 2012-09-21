@@ -2,7 +2,7 @@ export DisplayListBuilder;
 
 use au = gfx::geometry;
 use base::{RenderBox, RenderBoxTree};
-use css::values::{BgColor, BgTransparent, Specified};
+use css::values::{BgColor, BgColorTransparent, Specified};
 use dl = gfx::display_list;
 use dom::node::{Text, NodeScope};
 use dom::rcu::Scope;

@@ -1,7 +1,8 @@
 use std::net::url::Url;
-use std::arc::{ARC, clone};
+use std::arc::{ARC, clone, get};
 use resource::image_cache_task::ImageCacheTask;
 use resource::image_cache_task;
+use geom::size::Size2D;
 
 /** A struct to store image data. The image will be loaded once, the
     first time it is requested, and an arc will be stored.  Clones of
@@ -17,9 +18,10 @@ pub struct ImageHolder {
 
 }
 
-fn ImageHolder(-url : Url, image_cache_task: ImageCacheTask, cb: fn~()) -> ImageHolder {
+fn ImageHolder(url : &Url, image_cache_task: ImageCacheTask, cb: fn~()) -> ImageHolder {
+    debug!("ImageHolder() %?", url.to_str());
     let holder = ImageHolder {
-        url : Some(copy url),
+        url : Some(copy *url),
         image : None,
         image_cache_task : image_cache_task,
         reflow_cb : copy cb,
@@ -30,23 +32,34 @@ fn ImageHolder(-url : Url, image_cache_task: ImageCacheTask, cb: fn~()) -> Image
     // but they are intended to be spread out in time. Ideally prefetch
     // should be done as early as possible and decode only once we
     // are sure that the image will be used.
-    image_cache_task.send(image_cache_task::Prefetch(copy url));
-    image_cache_task.send(image_cache_task::Decode(move url));
+    image_cache_task.send(image_cache_task::Prefetch(copy *url));
+    image_cache_task.send(image_cache_task::Decode(copy *url));
 
     holder
 }
 
 impl ImageHolder {
+    fn get_size() -> Option<Size2D<int>> {
+        debug!("get_size() %?", self.url);
+        match self.get_image() {
+            Some(img) => { 
+                let img_ref = get(&img);
+                Some(Size2D(img_ref.width as int,
+                            img_ref.height as int))
+            },
+            None => None
+        }
+    }
+
     // This function should not be called by two tasks at the same time
     fn get_image() -> Option<ARC<~Image>> {
+        debug!("get_image() %?", self.url);
+
         // If this is the first time we've called this function, load
         // the image and store it for the future
         if self.image.is_none() {
             assert self.url.is_some();
-
-            let mut temp = None;
-            temp <-> self.url;
-            let url = option::unwrap(temp);
+            let url = copy self.url.get();
 
             let response_port = Port();
             self.image_cache_task.send(image_cache_task::GetImage(copy url, response_port.chan()));
@@ -68,7 +81,7 @@ impl ImageHolder {
                 None
               }
               image_cache_task::ImageFailed => {
-                #info("image was not ready for %s", url.to_str());
+                debug!("image was not ready for %s", url.to_str());
                 // FIXME: Need to schedule another layout when the image is ready
                 None
               }

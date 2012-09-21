@@ -6,6 +6,7 @@ use css::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayInlineBlock, D
 use css::values::{Inherit, Initial, Specified};
 use dom::element::*;
 use dom::node::{Comment, Doctype, Element, Text, Node, NodeTree, LayoutData};
+use image::holder::ImageHolder;
 use layout::base::{RenderBox, BoxData, GenericBox, ImageBox, TextBox, RenderBoxTree};
 use layout::base::{FlowContext, FlowContextData, BlockFlow, InlineFlow, InlineBlockFlow, RootFlow, FlowTree};
 use layout::block::BlockFlowData;
@@ -21,7 +22,6 @@ use servo_text::font_cache::FontCache;
 export LayoutTreeBuilder;
 
 struct LayoutTreeBuilder {
-    mut root_box: Option<@RenderBox>,
     mut root_ctx: Option<@FlowContext>,
     mut next_bid: int,
     mut next_cid: int
@@ -29,7 +29,6 @@ struct LayoutTreeBuilder {
 
 fn LayoutTreeBuilder() -> LayoutTreeBuilder {
     LayoutTreeBuilder {
-        root_box: None,
         root_ctx: None,
         next_bid: -1,
         next_cid: -1
@@ -43,7 +42,9 @@ impl LayoutTreeBuilder {
 
     /** Creates necessary box(es) and flow context(s) for the current DOM node,
     and recurses on its children. */
-    fn construct_recursively(layout_ctx: &LayoutContext, cur_node: Node, parent_ctx: @FlowContext, parent_box: @RenderBox) {
+    fn construct_recursively(layout_ctx: &LayoutContext, cur_node: Node, 
+                             parent_ctx: @FlowContext, parent_box: Option<@RenderBox>) {
+
         let style = cur_node.style();
         
         // DEBUG
@@ -58,10 +59,7 @@ impl LayoutTreeBuilder {
         };
 
         // first, create the proper box kind, based on node characteristics
-        let box_data = match self.create_box_data(layout_ctx, cur_node, simulated_display) {
-            None => return,
-            Some(data) => data
-        };
+        let box_data = self.create_box_data(layout_ctx, cur_node, simulated_display);
 
         // then, figure out its proper context, possibly reorganizing.
         let next_ctx: @FlowContext = match box_data {
@@ -94,27 +92,40 @@ impl LayoutTreeBuilder {
             }
         };
 
+        // store reference to the flow context which contains any boxes
+        // that correspond to cur_node
+        assert cur_node.has_aux();
+        do cur_node.aux |data| { data.flow = Some(next_ctx) }
+
         // make box, add box to any context-specific list.
         let mut new_box = self.make_box(cur_node, parent_ctx, box_data);
         debug!("Assign ^box to flow: %?", next_ctx.debug_str());
 
         match next_ctx.kind {
-            InlineFlow(d) => { d.boxes.push(new_box) }
+            InlineFlow(d) => {
+                d.boxes.push(new_box);
+
+                if (parent_box.is_some()) {
+                    let parent = parent_box.get();
+
+                    // connect the box to its parent box
+                    debug!("In inline flow f%?, set child b%? of parent b%?", next_ctx.id, parent.id, new_box.id);
+                    RenderBoxTree.add_child(parent, new_box);
+                }
+            }
             BlockFlow(d) => { d.box = Some(new_box) }
             _ => {} // TODO: float lists, etc.
         };
 
-        // connect the box to its parent box
-        debug!("Adding child box b%? of b%?", parent_box.id, new_box.id);
-        RenderBoxTree.add_child(parent_box, new_box);
     
         if (!next_ctx.eq(&parent_ctx)) {
             debug!("Adding child flow f%? of f%?", parent_ctx.id, next_ctx.id);
             FlowTree.add_child(parent_ctx, next_ctx);
         }
         // recurse
+        // TODO: don't set parent box unless this is an inline flow?
         do NodeTree.each_child(cur_node) |child_node| {
-            self.construct_recursively(layout_ctx, child_node, next_ctx, new_box); true
+            self.construct_recursively(layout_ctx, child_node, next_ctx, Some(new_box)); true
         }
 
         // Fixup any irregularities, such as split inlines (CSS 2.1 Section 9.2.1.1)
@@ -164,12 +175,11 @@ impl LayoutTreeBuilder {
 
     /** entry point for box creation. Should only be 
     called on root DOM element. */
-    fn construct_trees(layout_ctx: &LayoutContext, root: Node) -> Result<@RenderBox, ()> {
+    fn construct_trees(layout_ctx: &LayoutContext, root: Node) -> Result<@FlowContext, ()> {
         self.root_ctx = Some(self.make_ctx(RootFlow(RootFlowData()), tree::empty()));
-        self.root_box = Some(self.make_box(root, self.root_ctx.get(), GenericBox));
 
-        self.construct_recursively(layout_ctx, root, self.root_ctx.get(), self.root_box.get());
-        return Ok(self.root_box.get())
+        self.construct_recursively(layout_ctx, root, self.root_ctx.get(), None);
+        return Ok(self.root_ctx.get())
     }
 
     fn make_ctx(kind : FlowContextData, tree: tree::Tree<@FlowContext>) -> @FlowContext {
@@ -185,22 +195,27 @@ impl LayoutTreeBuilder {
     }
 
     /* Based on the DOM node type, create a specific type of box */
-    fn create_box_data(layout_ctx: &LayoutContext, node: Node, display: CSSDisplay) -> Option<BoxData> {
+    fn create_box_data(layout_ctx: &LayoutContext, node: Node, display: CSSDisplay) -> BoxData {
         // TODO: handle more types of nodes.
         do node.read |n| {
             match n.kind {
-                ~Doctype(*) | ~Comment(*) => None,
+                ~Doctype(*) | ~Comment(*) => fail ~"Hey, doctypes and comments shouldn't get here! They are display:none!",
                 ~Text(string) => {
                     // TODO: clean this up. Fonts should not be created here.
                     let font = layout_ctx.font_cache.get_test_font();
                     let run = TextRun(font, string);
-                    Some(TextBox(TextBoxData(copy string, ~[move run])))
+                    TextBox(TextBoxData(copy string, ~[move run]))
                 }
                 ~Element(element) => {
                     match (element.kind, display) {
-                        (~HTMLImageElement({size}), _) => Some(ImageBox(size)),
-//                      (_, Specified(_)) => Some(GenericBox),
-                        (_, _) => Some(GenericBox) // TODO: replace this with the commented lines
+                        (~HTMLImageElement(d), _) if d.image.is_some() => {
+                            let holder = ImageHolder(&d.image.get(), 
+                                                     layout_ctx.image_cache,
+                                                     copy layout_ctx.reflow_cb);
+                            ImageBox(holder)
+                        },
+//                      (_, Specified(_)) => GenericBox,
+                        (_, _) => GenericBox // TODO: replace this with the commented lines
 //                      (_, _) => fail ~"Can't create box for Node with non-specified 'display' type"
                     }
                 }

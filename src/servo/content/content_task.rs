@@ -20,6 +20,7 @@ use gfx::compositor::Compositor;
 use html::lexer::spawn_html_lexer_task;
 use layout::layout_task;
 use layout_task::{LayoutTask, BuildMsg};
+use resource::image_cache_task::ImageCacheTask;
 
 use css::styles::Stylesheet;
 
@@ -59,9 +60,12 @@ enum PingMsg {
 
 type ContentTask = Chan<ControlMsg>;
 
-fn ContentTask<S: Compositor Send Copy>(layout_task: LayoutTask, +compositor: S, resource_task: ResourceTask) -> ContentTask {
+fn ContentTask<S: Compositor Send Copy>(layout_task: LayoutTask,
+                                        +compositor: S,
+                                        resource_task: ResourceTask,
+                                        img_cache_task: ImageCacheTask) -> ContentTask {
     do task().sched_mode(SingleThreaded).spawn_listener::<ControlMsg> |from_master| {
-        Content(layout_task, compositor, from_master, resource_task).start();
+        Content(layout_task, compositor, from_master, resource_task, img_cache_task).start();
     }
 }
 
@@ -81,6 +85,7 @@ fn join_layout(scope: NodeScope, layout_task: LayoutTask) {
 struct Content<C:Compositor> {
     compositor: C,
     layout_task: LayoutTask,
+    image_cache_task: ImageCacheTask,
     from_master: comm::Port<ControlMsg>,
     event_port: comm::Port<Event>,
 
@@ -100,7 +105,8 @@ struct Content<C:Compositor> {
 fn Content<C:Compositor>(layout_task: LayoutTask, 
                          compositor: C, 
                          from_master: Port<ControlMsg>,
-                         resource_task: ResourceTask) -> Content<C> {
+                         resource_task: ResourceTask,
+                         img_cache_task: ImageCacheTask) -> Content<C> {
 
     let jsrt = jsrt();
     let cx = jsrt.cx();
@@ -117,6 +123,7 @@ fn Content<C:Compositor>(layout_task: LayoutTask,
 
     Content {
         layout_task : layout_task,
+        image_cache_task : img_cache_task,
         compositor : compositor,
         from_master : from_master,
         event_port : event_port,
@@ -159,7 +166,8 @@ impl<C:Compositor> Content<C> {
 
             let result = html::hubbub_html_parser::parse_html(self.scope,
                                                               url,
-                                                              self.resource_task);
+                                                              self.resource_task,
+                                                              self.image_cache_task);
 
             let root = result.root;
             let css_rules = result.style_port.recv();

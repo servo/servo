@@ -37,7 +37,7 @@ fn EngineTask_<C: Compositor Send Copy>(
 
         let render_task = RenderTask(compositor);
         let layout_task = LayoutTask(render_task, image_cache_task);
-        let content_task = ContentTask(layout_task, compositor, resource_task);
+        let content_task = ContentTask(layout_task, compositor, resource_task, image_cache_task);
 
         Engine {
             compositor: compositor,

@@ -8,7 +8,7 @@ use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
 use css::styles::SpecifiedStyle;
-use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgTransparent};
+use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent};
 use dl = gfx::display_list;
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
@@ -121,6 +121,7 @@ enum FlowContextData {
 struct FlowContext {
     kind: FlowContextData,
     data: FlowLayoutData,
+    mut node: Option<Node>,
     /* reference to parent, children flow contexts */
     tree: tree::Tree<@FlowContext>,
     /* TODO: debug only */
@@ -131,6 +132,7 @@ fn FlowContext(id: int, kind: FlowContextData, tree: tree::Tree<@FlowContext>) -
     FlowContext {
         kind: kind,
         data: FlowLayoutData(),
+        node: None,
         tree: tree,
         id: id
     }
@@ -230,7 +232,7 @@ fn BoxLayoutData() -> BoxLayoutData {
 
 enum BoxData {
     GenericBox,
-    ImageBox(Size2D<au>),
+    ImageBox(ImageHolder),
     TextBox(TextBoxData)
 }
 
@@ -270,7 +272,11 @@ impl @RenderBox {
         }
     }
 
-    pure fn get_min_width() -> au {
+    /** In general, these functions are transitively impure because they
+     * may cause glyphs to be allocated. For now, it's impure because of 
+     * holder.get_image()
+    */
+    fn get_min_width() -> au {
         match self.kind {
             // TODO: this should account for min/pref widths of the
             // box element in isolation. That includes
@@ -279,18 +285,15 @@ impl @RenderBox {
             // that of its children to arrive at the context width.
             GenericBox => au(0),
             // TODO: consult CSS 'width', margin, border.
-            // TODO: If image isn't available, consult Node
-            // attrs, etc. to determine intrinsic dimensions. These
-            // dimensions are not defined by CSS 2.1, but are defined
-            // by the HTML5 spec in Section 4.8.1
-            ImageBox(size) => size.width,
+            // TODO: If image isn't available, consult 'width'.
+            ImageBox(i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
             TextBox(d) => d.runs.foldl(au(0), |sum, run| {
                 au::max(sum, run.min_break_width())
             })
         }
     }
 
-    pure fn get_pref_width() -> au {
+    fn get_pref_width() -> au {
         match self.kind {
             // TODO: this should account for min/pref widths of the
             // box element in isolation. That includes
@@ -298,11 +301,7 @@ impl @RenderBox {
             // FlowContext will combine the width of this element and
             // that of its children to arrive at the context width.
             GenericBox => au(0),
-            // TODO: If image isn't available, consult Node
-            // attrs, etc. to determine intrinsic dimensions. These
-            // dimensions are not defined by CSS 2.1, but are defined
-            // by the HTML5 spec in Section 4.8.1
-            ImageBox(size) => size.width,
+            ImageBox(i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
             // TODO: account for line breaks, etc. The run should know
             // how to compute its own min and pref widths, and should
             // probably cache them.
@@ -329,6 +328,7 @@ impl @RenderBox {
 
         (au(0), au(0))
     }
+
 
     // This will be very unhappy if it is getting run in parallel with
     // anything trying to read the background image
@@ -408,7 +408,7 @@ impl @RenderBox {
                         let boxed_color = self.node.style().background_color;
                         let color = match boxed_color {
                             Specified(BgColor(c)) => c,
-                            Specified(BgTransparent) | _ => util::color::rgba(0,0,0,0.0)
+                            Specified(BgColorTransparent) | _ => util::color::rgba(0,0,0,0.0)
                         };
                         list.push(~dl::SolidColor(bounds, color.red, color.green, color.blue));
                     }

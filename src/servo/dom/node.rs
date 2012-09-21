@@ -71,7 +71,7 @@ impl Node : DebugMethods {
     }
 
     fn debug_str() -> ~str {
-        fmt!("%?", self.read(|n| copy n.kind ))
+        do self.read |n| { fmt!("%?", n.kind) }
     }
 }
 

@@ -60,37 +60,31 @@ fn LayoutTask(render_task: RenderTask, image_cache_task: ImageCacheTask) -> Layo
                         image_cache: image_cache_task,
                         font_cache: font_cache,
                         doc_url: doc_url,
+                        reflow_cb: || event_chan.send(ReflowEvent),
                         // TODO: obtain screen size from a real data source
                         screen_size: Rect(Point2D(au(0), au(0)), Size2D(au::from_px(800), au::from_px(600)))
                     };
 
                     do util::time::time(~"layout") {
+                        // TODO: this is dumb. we don't need 3 separate traversals.
                         node.initialize_style_for_subtree(&layout_ctx, &layout_data_refs);
                         node.recompute_style_for_subtree(&layout_ctx, styles);
-
-                        // TODO: this should care about root flow, not root box.
-                        let root_box: @RenderBox;
+                        /* resolve styles (convert relative values) down the node tree */
+                        apply_style(&layout_ctx, node, layout_ctx.reflow_cb);
+                        
                         let builder = LayoutTreeBuilder();
-                        match builder.construct_trees(&layout_ctx, node) {
-                            Ok(root) => root_box = root,
-                            Err(*) => fail ~"Root node should always exist"
-                        }
-
-                        debug!("layout: constructed RenderBox tree");
-                        root_box.dump();
+                        let layout_root: @FlowContext = match builder.construct_trees(&layout_ctx, node) {
+                            Ok(root) => root,
+                            Err(*) => fail ~"Root flow should always exist"
+                        };
 
                         debug!("layout: constructed Flow tree");
-                        root_box.ctx.dump();
-
-                        /* resolve styles (convert relative values) down the box tree */
-                        let reflow_cb: fn~() = || event_chan.send(ReflowEvent);
-                        apply_style(&layout_ctx, root_box, reflow_cb);
+                        layout_root.dump();
 
                         /* perform layout passes over the flow tree */
-                        let root_flow = root_box.ctx;
-                        do root_flow.traverse_postorder |f| { f.bubble_widths(&layout_ctx) }
-                        do root_flow.traverse_preorder |f| { f.assign_widths(&layout_ctx) }
-                        do root_flow.traverse_postorder |f| { f.assign_height(&layout_ctx) }
+                        do layout_root.traverse_postorder |f| { f.bubble_widths(&layout_ctx) }
+                        do layout_root.traverse_preorder  |f| { f.assign_widths(&layout_ctx) }
+                        do layout_root.traverse_postorder |f| { f.assign_height(&layout_ctx) }
 
                         let dlist = DVec();
                         let builder = dl::DisplayListBuilder {
@@ -98,7 +92,7 @@ fn LayoutTask(render_task: RenderTask, image_cache_task: ImageCacheTask) -> Layo
                         };
                         // TODO: set options on the builder before building
                         // TODO: be smarter about what needs painting
-                        root_flow.build_display_list(&builder, &copy root_flow.data.position, &dlist);
+                        layout_root.build_display_list(&builder, &copy layout_root.data.position, &dlist);
                         render_task.send(render_task::RenderMsg(dlist));
                     }
                 }

@@ -116,14 +116,14 @@ impl @FlowContext : InlineLayout {
                 }
             
                 box.data.position.size.width = match box.kind {
-                    ImageBox(sz) => sz.width,
+                    ImageBox(img) => au::from_px(img.get_size().get_default(Size2D(0,0)).width),
                     TextBox(d) => d.runs[0].size().width,
                     // TODO: this should be set to the extents of its children
                     GenericBox(*) => au(0)
                 };
 
                 box.data.position.size.height = match box.kind {
-                    ImageBox(sz) => sz.height,
+                    ImageBox(img) => au::from_px(img.get_size().get_default(Size2D(0,0)).height),
                     TextBox(d) => d.runs[0].size().height,
                     // TODO: this should be set to the extents of its children
                     GenericBox(*) => au(0)

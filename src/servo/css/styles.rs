@@ -14,6 +14,7 @@ use util::color::css_colors::{white, black};
 use layout::context::LayoutContext;
 
 type SpecifiedStyle = {mut background_color : CSSValue<CSSBackgroundColor>,
+                       mut background_image : CSSValue<CSSBackgroundImage>,
                         mut display_type : CSSValue<CSSDisplay>,
                         mut font_size : CSSValue<CSSFontSize>,
                         mut height : CSSValue<BoxSizing>,
@@ -75,6 +76,7 @@ fn empty_style_for_node_kind(kind: NodeKind) -> SpecifiedStyle {
     let display_type = kind.default_display_type();
 
     {mut background_color : Initial,
+     mut background_image: Initial,
      mut display_type : Specified(display_type),
      mut font_size : Initial,
      mut height : Initial,

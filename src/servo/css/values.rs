@@ -1,5 +1,6 @@
 use SharedColor = util::color::Color;
 use cmp::Eq;
+use std::net::url::Url;
 
 #[doc = "
   Defines how css rules, both selectors and style specifications, are
@@ -101,7 +102,7 @@ enum CSSBackgroundAttachment {
 
 enum CSSBackgroundColor {
     BgColor(SharedColor),
-    BgTransparent
+    BgColorTransparent
 }
 
 enum CSSBackgroundRepeat {
@@ -109,6 +110,11 @@ enum CSSBackgroundRepeat {
     BgRepeatX,
     BgRepeatY,
     BgNoRepeat
+}
+
+enum CSSBackgroundImage {
+    BgImage(Url),
+    BgImageNone,
 }
 
 enum CSSColor {
@@ -232,7 +238,7 @@ impl CSSBackgroundColor: cmp::Eq {
     pure fn eq(other: &CSSBackgroundColor) -> bool {
         match (self, *other) {
             (BgColor(a), BgColor(b)) => a == b,
-            (BgTransparent, BgTransparent) => true,
+            (BgColorTransparent, BgColorTransparent) => true,
             (_, _) => false
         }
     }
