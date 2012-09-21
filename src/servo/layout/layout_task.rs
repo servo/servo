@@ -1,7 +1,7 @@
-#[doc = "
+/**
     The layout task. Performs layout on the DOM, builds display lists and sends them to be
     rendered.
-"];
+*/
 
 use au = gfx::geometry;
 use au::au;
@@ -10,20 +10,20 @@ use core::dvec::DVec;
 use css::resolve::apply::apply_style;
 use css::values::Stylesheet;
 use dl = gfx::display_list;
-use dom::node::{Node, LayoutData};
 use dom::event::{Event, ReflowEvent};
+use dom::node::{Node, LayoutData};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::render_task;
-use layout::base::RenderBox;
+use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
 use render_task::RenderTask;
 use resource::image_cache_task::ImageCacheTask;
+use servo_text::font_cache::FontCache;
 use std::arc::ARC;
 use std::net::url::Url;
-use servo_text::font_cache::FontCache;
 
 use layout::traverse::*;
 use comm::*;

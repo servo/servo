@@ -1,10 +1,10 @@
 /* The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements. */
 use css::styles::SpecifiedStyle;
 use css::values::Stylesheet;
+use dom::bindings;
 use dom::document::Document;
 use dom::element::{Attr, ElementData};
 use dom::window::Window;
-use dom::bindings;
 use geom::size::Size2D;
 use gfx::geometry::au;
 use js::crust::*;
@@ -12,8 +12,8 @@ use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
 use js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, jsval, JSBool};
 use js::rust::{bare_compartment, compartment, methods};
 use js::{JSPROP_ENUMERATE, JSPROP_SHARED};
-use layout::base::FlowContext;
 use layout::debug::DebugMethods;
+use layout::flow::FlowContext;
 use ptr::null;
 use std::arc::ARC;
 use util::tree;

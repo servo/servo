@@ -5,7 +5,7 @@ use geom::size::Size2D;
 use gfx::geometry::au;
 use servo_text::text_run::TextRun;
 use servo_text::font_cache::FontCache;
-use layout::base::{TextBox, RenderBox};
+use layout::box::{TextBox, RenderBox};
 use layout::context::LayoutContext;
 
 struct TextBoxData {

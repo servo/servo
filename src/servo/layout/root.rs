@@ -4,8 +4,9 @@ use dl = gfx::display_list;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::geometry::au;
-use layout::base::{RenderBox, FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
+use layout::box::RenderBox;
 use layout::context::LayoutContext;
+use layout::flow::{FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
 use util::tree;
 
 struct RootFlowData {

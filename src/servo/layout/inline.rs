@@ -1,5 +1,4 @@
 use au = gfx::geometry;
-use base::RenderBox;
 use core::dvec::DVec;
 use css::values::{BoxAuto, BoxLength, Px};
 use dl = gfx::display_list;
@@ -8,8 +7,9 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::geometry::au;
+use layout::box::{RenderBox, RenderBoxTree, ImageBox, TextBox, GenericBox};
+use layout::flow::{FlowContext, InlineFlow};
 use layout::context::LayoutContext;
-use layout::base::{FlowContext, InlineFlow, RenderBoxTree, ImageBox, TextBox, GenericBox};
 use num::Num;
 use util::tree;
 

@@ -58,14 +58,15 @@ mod css {
 }
 
 mod layout {
-    mod base;
     mod block;
+    mod box;
     mod box_builder;
     mod context;
     mod debug;
     mod display_list_builder;
-    mod inline;
+    mod flow;
     mod layout_task;
+    mod inline;
     mod root;
     mod text;
     mod traverse;

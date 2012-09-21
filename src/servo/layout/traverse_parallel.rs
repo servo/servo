@@ -1,6 +1,5 @@
-
-#[doc = "Interface for running tree-based traversals over layout boxes"]
-use base::{RenderBox, RenderBoxTree};
+/* Interface for running tree-based traversals over layout boxes */
+use layout::box::{RenderBox, RenderBoxTree};
 use intrinsic::TyDesc;
 
 export full_traversal;
@@ -21,19 +20,23 @@ type shared_box<T> = {
     payload : T
 };
 
-#[doc="Transform and @ into its underlying representation.  The reference count stays constant."]
+/**
+Transform and @ into its underlying representation.  The reference count stays constant.
+*/
 fn unwrap_box(-b : @RenderBox) -> *shared_box<RenderBox> unsafe {
     let new_box : *shared_box<RenderBox> = cast::transmute(b);
     return new_box;
 }
 
-#[doc="Transform an underlying representation back to an @.  The reference count stays constant."]
+/**
+Transform an underlying representation back to an @.  The reference count stays constant.
+*/
 fn rewrap_box(-b : *shared_box<RenderBox>) -> @RenderBox unsafe {
     let new_box : @RenderBox = cast::transmute(b);
     return new_box;
 }
 
-#[doc="
+/**
 
 Iterate down and then up a tree of layout boxes in parallel and apply
 the given functions to each box.  Each box applies the first function,
@@ -52,7 +55,7 @@ finish, and then applies the second function to the current box.
 * `bottom_up` - A function that is applied to each node after it is
                 applied to that node's children
 
-"]
+*/
 fn traverse_helper<T : Copy Send>(-root : @RenderBox, returned : T, -top_down : fn~(+T, @RenderBox) -> T,
                       -bottom_up : fn~(@RenderBox)) {
     let returned = top_down(returned, root);
@@ -96,61 +99,63 @@ fn traverse_helper<T : Copy Send>(-root : @RenderBox, returned : T, -top_down : 
     bottom_up(root);
 }
 
-#[doc="A noneffectful function to be used if only one pass is required."]
+/**
+A noneffectful function to be used if only one pass is required.
+*/
 fn nop(_box : @RenderBox) {
     return;
 }
 
-#[doc= "
+/**
    A wrapper to change a function that only acts on a box to one that
    threasds a unit through to match travserse_helper
-"]
+*/
 fn unit_wrapper(-fun : fn~(@RenderBox)) -> fn~(+(), @RenderBox) {
     fn~(+_u : (), box : @RenderBox) { fun(box); }
 }
 
-#[doc="
+/**
    Iterate in parallel over the boxes in a tree, applying one function
    to a parent before recursing on its children and one after.
-"]
+*/
 fn full_traversal(+root : @RenderBox, -top_down : fn~(@RenderBox), -bottom_up : fn~(@RenderBox)) {
     traverse_helper(root, (), unit_wrapper(top_down), bottom_up);
 }
 
-#[doc="
+/**
    Iterate in parallel over the boxes in a tree, applying the given
    function to a parent before its children.
-"]
+*/
 fn top_down_traversal(+root : @RenderBox, -top_down : fn~(@RenderBox)) {
     traverse_helper(root, (), unit_wrapper(top_down), nop);
 }
 
-#[doc="
+/**
    Iterate in parallel over the boxes in a tree, applying the given
    function to a parent after its children.
-"]
+*/
 fn bottom_up_traversal(+root : @RenderBox, -bottom_up : fn~(@RenderBox)) {
     traverse_helper(root, (), unit_wrapper(nop), bottom_up);
 }
 
-#[doc="
+/**
    Iterate in parallel over the boxes in a tree, applying the given
    function to a parent before its children, the value returned by the
    function is passed to each child when they are recursed upon.  As
    the recursion unwinds, the second function is applied to first the
    children in parallel, and then the parent.
-"]
+*/
 fn extended_full_traversal<T : Copy Send>(+root : @RenderBox, first_val : T, 
                                           -top_down : fn~(+T, @RenderBox) -> T,
                                           -bottom_up : fn~(@RenderBox)) {
     traverse_helper(root, first_val, top_down, bottom_up);
 }
 
-#[doc="
+/**
    Iterate in parallel over the boxes in a tree, applying the given
    function to a parent before its children, the value returned by the
    function is passed to each child when they are recursed upon.
-"]
+*/
 fn extended_top_down_traversal<T : Copy Send>(+root : @RenderBox, first_val : T,
                                               -top_down : fn~(+T, @RenderBox) -> T) {
     traverse_helper(root, first_val, top_down, nop);

@@ -1,7 +1,7 @@
 /** Interface for running tree-based traversals over layout boxes and contextsg */
 
-use layout::base::{RenderBox, RenderBoxTree};
-use layout::base::{FlowContext, FlowTree};
+use layout::box::{RenderBox, RenderBoxTree};
+use layout::flow::{FlowContext, FlowTree};
 
 /* TODO: we shouldn't need render box traversals  */
 trait RenderBoxTraversals {

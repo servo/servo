@@ -5,7 +5,7 @@
 use au = gfx::geometry;
 use dom::node::{Node, NodeTree};
 use dom::element::*;
-use layout::base::{RenderBox, SpecifiedStyle, RenderBoxTree};
+use layout::box::{RenderBox, SpecifiedStyle, RenderBoxTree};
 use layout::context::LayoutContext;
 use layout::traverse_parallel::top_down_traversal;
 use image::ImageHolder;

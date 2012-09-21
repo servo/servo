@@ -7,17 +7,17 @@ use css::values::{Inherit, Initial, Specified};
 use dom::element::*;
 use dom::node::{Comment, Doctype, Element, Text, Node, NodeTree, LayoutData};
 use image::holder::ImageHolder;
-use layout::base::{RenderBox, BoxData, GenericBox, ImageBox, TextBox, RenderBoxTree};
-use layout::base::{FlowContext, FlowContextData, BlockFlow, InlineFlow, InlineBlockFlow, RootFlow, FlowTree};
+use layout::flow::{FlowContext, FlowContextData, BlockFlow, InlineFlow, InlineBlockFlow, RootFlow, FlowTree};
+use layout::box::{RenderBox, BoxData, GenericBox, ImageBox, TextBox, RenderBoxTree};
 use layout::block::BlockFlowData;
 use layout::context::LayoutContext;
 use layout::inline::InlineFlowData;
 use layout::root::RootFlowData;
 use layout::text::TextBoxData;
 use option::is_none;
-use util::tree;
-use servo_text::text_run::TextRun;
 use servo_text::font_cache::FontCache;
+use servo_text::text_run::TextRun;
+use util::tree;
 
 export LayoutTreeBuilder;
 
