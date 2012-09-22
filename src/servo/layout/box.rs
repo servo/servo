@@ -71,14 +71,14 @@ padding, backgrounds. It is analogous to a CSS nonreplaced content box.
 struct BoxLayoutData {
     mut position: Rect<au>,
     mut font_size: Length,
-    mut background_image: Option<ImageHolder>,
 }
 
+/* TODO: this should eventually be just 'position', and
+   merged into the base RenderBox struct */
 fn BoxLayoutData() -> BoxLayoutData {
     BoxLayoutData {
         position : au::zero_rect(),
         font_size : Px(0.0),
-        background_image : None,
     }
 }
 
@@ -89,7 +89,7 @@ enum BoxData {
 }
 
 struct RenderBox {
-    /* references to children, parent */
+    /* references to children, parent inline flow boxes  */
     tree : tree::Tree<@RenderBox>,
     /* originating DOM node */
     node : Node,
@@ -106,7 +106,7 @@ struct RenderBox {
 
 fn RenderBox(id: int, node: Node, ctx: @FlowContext, kind: BoxData) -> RenderBox {
     RenderBox {
-        /* will be set when box is parented */
+        /* will be set if box is parented */
         tree : tree::empty(),
         node : node,
         ctx  : ctx,
@@ -221,25 +221,6 @@ impl @RenderBox {
         self.content_box()
     }
 
-    // This will be very unhappy if it is getting run in parallel with
-    // anything trying to read the background image
-    fn get_image() -> Option<ARC<~Image>> {
-        let mut image = None;
-
-        // Do a dance where we swap the ImageHolder out before we can
-        // get the image out of it because we can't match against it
-        // because holder.get_image() is not pure.
-        if (self.data.background_image).is_some() {
-            let mut temp = None;
-            temp <-> self.data.background_image;
-            let holder <- option::unwrap(temp);
-            image = holder.get_image();
-            self.data.background_image = Some(holder);
-        }
-
-        image
-    }
-
     // TODO: to implement stacking contexts correctly, we need to
     // create a set of display lists, one per each layer of a stacking
     // context. (CSS 2.1, Section 9.9.1). Each box is passed the list
@@ -290,8 +271,8 @@ impl @RenderBox {
             },
             // TODO: items for background, border, outline
             GenericBox(*) => { },
-            ImageBox(*) => {
-                match self.get_image() {
+            ImageBox(i) => {
+                match i.get_image() {
                     Some(image) => list.push(~dl::Image(bounds, image)),
                     /* No image data at all? Okay, add some fallback content instead. */
                     None => {

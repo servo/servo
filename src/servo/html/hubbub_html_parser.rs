@@ -239,6 +239,7 @@ fn parse_html(scope: NodeScope,
                         let img_url = make_url(copy img_url_str, Some(copy *url));
                         d.image = Some(copy img_url);
                         // inform the image cache to load this, but don't store a handle.
+                        // TODO (Issue #84) : don't prefetch if we are within a <noscript> tag.
                         image_cache_task.send(image_cache_task::Prefetch(move img_url));
                     }
                 }
