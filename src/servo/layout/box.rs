@@ -181,6 +181,45 @@ impl @RenderBox {
         (au(0), au(0))
     }
 
+    /* The box formed by the content edge, as defined in CSS 2.1 Section 8.1.
+       Coordinates are relative to the owning flow. */
+    fn content_box() -> Rect<au> {
+        match self.kind {
+            ImageBox(i) => {
+                let size = i.get_size().get_default(Size2D(0,0));
+                Rect {
+                    origin: copy self.data.position.origin,
+                    size:   Size2D(au::from_px(size.width),
+                                   au::from_px(size.height))
+                }
+            },
+            GenericBox(*) => {
+                copy self.data.position
+                /* FIXME: The following hits an ICE for whatever reason
+
+                let origin = self.data.position.origin;
+                let size   = self.data.position.size;
+                let (offset_left, offset_right) = self.get_used_width();
+                let (offset_top, offset_bottom) = self.get_used_height();
+
+                Rect {
+                    origin: Point2D(origin.x + offset_left, origin.y + offset_top),
+                    size:   Size2D(size.width - (offset_left + offset_right),
+                                   size.height - (offset_top + offset_bottom))
+                }*/
+            },
+            TextBox(*) => {
+                copy self.data.position
+            }
+        }
+    }
+
+    /* The box formed by the border edge, as defined in CSS 2.1 Section 8.1.
+       Coordinates are relative to the owning flow. */
+    fn border_box() -> Rect<au> {
+        // TODO: actually compute content_box + padding + border
+        self.content_box()
+    }
 
     // This will be very unhappy if it is getting run in parallel with
     // anything trying to read the background image
