@@ -32,7 +32,8 @@ struct HtmlParserResult {
     js_port: comm::Port<JSResult>,
 }
 
-#[doc="Runs a task that coordinates parsing links to css stylesheets.
+/**
+Runs a task that coordinates parsing links to css stylesheets.
 
 This function should be spawned in a separate task and spins waiting
 for the html builder to find links to css stylesheets and sends off
@@ -45,7 +46,7 @@ spawned, collates them, and sends them to the given result channel.
 * `to_parent` - A channel on which to send back the full set of rules.
 * `from_parent` - A port on which to receive new links.
 
-"]
+*/
 fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Port<CSSMessage>,
                      resource_task: ResourceTask) {
     let mut result_vec = ~[];
@@ -122,7 +123,7 @@ fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port
 }
 
 fn build_element_kind(tag: &str) -> ~ElementKind {
-    // TODO: use atoms
+    // TODO (Issue #85): use atoms
     if      tag == ~"a" { ~HTMLAnchorElement }
     else if tag == ~"aside" { ~HTMLAsideElement }
     else if tag == ~"br" { ~HTMLBRElement }
@@ -239,11 +240,11 @@ fn parse_html(scope: NodeScope,
                         let img_url = make_url(copy img_url_str, Some(copy *url));
                         d.image = Some(copy img_url);
                         // inform the image cache to load this, but don't store a handle.
-                        // TODO (Issue #84) : don't prefetch if we are within a <noscript> tag.
+                        // TODO (Issue #84): don't prefetch if we are within a <noscript> tag.
                         image_cache_task.send(image_cache_task::Prefetch(move img_url));
                     }
                 }
-                //TODO: handle inline styles ('style' attr)
+                //TODO (Issue #86): handle inline styles ('style' attr)
                 _ => {}
             }
             let node = scope.new_node(Element(elem));

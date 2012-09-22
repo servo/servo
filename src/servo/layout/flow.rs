@@ -76,7 +76,7 @@ struct FlowContext {
     mut node: Option<Node>,
     /* reference to parent, children flow contexts */
     tree: tree::Tree<@FlowContext>,
-    /* TODO: debug only */
+    /* TODO (Issue #87): debug only */
     mut id: int
 }
 

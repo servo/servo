@@ -100,7 +100,7 @@ struct RenderBox {
     data : BoxLayoutData,
     /* kind tag and kind-specific data */
     kind : BoxData,
-    /* TODO: debug only */
+    /* TODO (Issue #87): debug only */
     mut id: int
 }
 
