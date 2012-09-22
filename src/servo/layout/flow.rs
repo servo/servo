@@ -6,6 +6,7 @@ use geom::rect::Rect;
 use geom::point::Point2D;
 // TODO: pub-use these
 use layout::block::BlockFlowData;
+use layout::box::RenderBox;
 use layout::context::LayoutContext;
 use layout::debug::DebugMethods;
 use layout::inline::InlineFlowData;
@@ -133,6 +134,28 @@ impl @FlowContext {
             BlockFlow(*) => self.build_display_list_block(builder, dirty, offset, list),
             InlineFlow(*) => self.build_display_list_inline(builder, dirty, offset, list),
             _ => fail fmt!("Tried to build_display_list_recurse of flow: %?", self.kind)
+        }
+    }
+}
+
+// Actual methods that do not require much flow-specific logic
+impl @FlowContext {
+    fn iter_boxes_for_node<T>(node: Node, cb: pure fn&(@RenderBox) -> T) {
+        match self.kind {
+            RootFlow(d) => match d.box {
+                Some(box) if box.node == node => { cb(box); },
+                _ => {}
+            },
+            BlockFlow(d) => match d.box {
+                Some(box) if box.node == node => { cb(box); },
+                _ => {}
+            },
+            InlineFlow(d) => {
+                for d.boxes.each |box| {
+                    if box.node == node { cb(*box); }
+                }
+            },
+            _ => fail fmt!("Don't know how to iterate node's RenderBoxes for %?", self.kind)
         }
     }
 }
