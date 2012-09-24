@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 msg() {
     echo "configure: $1"
@@ -73,7 +73,7 @@ putvar() {
     else
         printf "configure: %-20s := %s %s\n" $1 "$T" "$2"
     fi
-    printf "%-20s := %s\n" $1 "$T" >>config.tmp
+    printf "%-20s := %s\n" $1 "$T" >>${CFG_SRC_DIR}config.tmp
 }
 
 probe() {
@@ -198,6 +198,29 @@ need_cmd sed
 
 msg "inspecting environment"
 
+CFG_OSTYPE=$(uname -s)
+case $CFG_OSTYPE in
+    Linux)
+        CFG_OSTYPE=linux
+        ;;
+
+    FreeBSD)
+        CFG_OSTYPE=freebsd
+        ;;
+
+    Darwin)
+        CFG_OSTYPE=darwin
+        ;;
+
+    MINGW32*)
+        CFG_OSTYPE=mingw32
+        ;;
+    *)
+        err "unknown OS type: $CFG_OSTYPE"
+        ;;
+esac
+
+
 CFG_SRC_DIR="$(cd $(dirname $0) && pwd)/"
 CFG_BUILD_DIR="$(pwd)/"
 CFG_SELF=${CFG_SRC_DIR}$(basename $0)
@@ -216,13 +239,15 @@ then
     echo ""
 else
     msg "recreating config.tmp"
-    echo '' >config.tmp
+    echo '' >${CFG_SRC_DIR}config.tmp
 
     step_msg "processing $CFG_SELF args"
 fi
 
+opt optimize 1 "build optimized rust code"
+opt optimize-cxx 1 "build optimized C++ code"
 opt manage-submodules 1 "let the build manage the git submodules"
-valopt prefix "/usr/local" "set installation prefix"
+opt fast-make 0 "use .gitmodules as timestamp for submodule deps"
 valopt local-rust-root "/usr/local" "set prefix for local rust binary"
 
 if [ $HELP -eq 1 ]
@@ -250,7 +275,10 @@ then
     else
         LRV=`${CFG_LOCAL_RUST_ROOT}/bin/rustc --version`
         step_msg "using rustc at: ${CFG_LOCAL_RUST_ROOT} with version: " $LRV
+	CFG_RUSTC = ${CFG_LOCAL_RUST_ROOT}/bin/rustc
     fi
+else
+    probe CFG_RUSTC rustc
 fi
 
 if [ ! -z "$CFG_ENABLE_CLANG" ]
@@ -316,28 +344,24 @@ step_msg "running submodule autoconf scripts"
 
 (cd ${CFG_SRC_DIR}src/mozjs/js/src && "${CFG_AUTOCONF213}") || exit $?
 
+CFG_SUBMODULES="rust-harfbuzz rust-opengles rust-azure rust-stb-image rust-geom rust-glut rust-layers rust-http-client libparserutils libhubbub servo-sandbox rust-hubbub sharegl rust-mozjs mozjs"
+
+if [ $CFG_OSTYPE == "darwin" ]
+then
+CFG_SUBMODULES="rust-cocoa rust-io-surface rust-core-foundation ${CFG_SUBMODULES}"
+fi
+
+# needed because Spidermonkey configure is in non-standard location
+CFG_CONFIGURE_PATHS="${CFG_SUBMODULES} mozjs/js/src/"
+
 step_msg "making build directories"
 
 cd "${CFG_BUILD_DIR}"
 
-make_dir src/mozjs
-make_dir src/rust-harfbuzz
-make_dir src/rust-opengles
-make_dir src/rust-mozjs
-make_dir src/rust-azure
-make_dir src/rust-cocoa
-make_dir src/rust-stb-image
-make_dir src/rust-geom
-make_dir src/rust-glut
-make_dir src/rust-layers
-make_dir src/rust-http-client
-make_dir src/libparserutils
-make_dir src/libhubbub
-make_dir src/servo-sandbox
-make_dir src/rust-hubbub
-make_dir src/rust-core-foundation
-make_dir src/rust-io-surface
-make_dir src/sharegl
+for i in ${CFG_SUBMODULES}
+do
+    make_dir ${CFG_BUILD_DIR}src/${i}
+done
 
 make_dir src/test/ref
 
@@ -345,38 +369,34 @@ make_dir src/test/ref
 # see how Rust's configure script optionally reconfigures the LLVM module.
 step_msg "running submodule configure scripts"
 
-(cd ${CFG_BUILD_DIR}src/mozjs && sh ${CFG_SRC_DIR}src/mozjs/js/src/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/rust-opengles && sh ${CFG_SRC_DIR}src/rust-opengles/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/rust-harfbuzz && sh ${CFG_SRC_DIR}src/rust-harfbuzz/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/rust-mozjs && sh ${CFG_SRC_DIR}src/rust-mozjs/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/rust-azure && sh ${CFG_SRC_DIR}src/rust-azure/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/rust-cocoa && sh ${CFG_SRC_DIR}src/rust-cocoa/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/rust-stb-image && sh ${CFG_SRC_DIR}src/rust-stb-image/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/rust-geom && sh ${CFG_SRC_DIR}src/rust-geom/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/rust-glut && sh ${CFG_SRC_DIR}src/rust-glut/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/rust-layers && sh ${CFG_SRC_DIR}src/rust-layers/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/rust-http-client && sh ${CFG_SRC_DIR}src/rust-http-client/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/libparserutils && sh ${CFG_SRC_DIR}src/libparserutils/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/libhubbub && sh ${CFG_SRC_DIR}src/libhubbub/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/servo-sandbox && sh ${CFG_SRC_DIR}src/servo-sandbox/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/rust-hubbub && sh ${CFG_SRC_DIR}src/rust-hubbub/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/rust-core-foundation && sh ${CFG_SRC_DIR}src/rust-core-foundation/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/rust-io-surface && sh ${CFG_SRC_DIR}src/rust-io-surface/configure) || exit $?
-(cd ${CFG_BUILD_DIR}src/sharegl && sh ${CFG_SRC_DIR}src/sharegl/configure) || exit $?
+for i in ${CFG_CONFIGURE_PATHS}
+do
+    if [ -d ${CFG_BUILD_DIR}src/${i} ]
+    then
+	cd ${CFG_BUILD_DIR}src/${i}
+    fi
+    CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/configure"
+    if [ -f ${CONFIGURE_SCRIPT} ]
+    then
+	sh ${CONFIGURE_SCRIPT}
+    fi
+done
 
 step_msg "writing configuration"
 
+putvar CFG_OSTYPE
 putvar CFG_SRC_DIR
 putvar CFG_BUILD_DIR
 putvar CFG_CONFIGURE_ARGS
-putvar CFG_PREFIX
 putvar CFG_C_COMPILER
+putvar CFG_SUBMODULES
 putvar CFG_DISABLE_MANAGE_SUBMODULES
 
 msg
-sed "s#%VPATH%#${CFG_SRC_DIR}#" ${CFG_SRC_DIR}Makefile.in > Makefile
-move_if_changed config.tmp config.mk
-rm -f config.tmp
-touch config.stamp
+copy_if_changed ${CFG_SRC_DIR}Makefile.in ${CFG_BUILD_DIR}Makefile
+move_if_changed ${CFG_SRC_DIR}config.tmp ${CFG_SRC_DIR}config.mk
+copy_if_changed ${CFG_SRC_DIR}config.mk ${CFG_BUILD_DIR}config.mk
+rm -f ${CFG_SRC_DIR}config.tmp
+touch ${CFG_SRC_DIR}config.stamp
 
 step_msg "complete"
