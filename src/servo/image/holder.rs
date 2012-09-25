@@ -13,6 +13,7 @@ pub struct ImageHolder {
     // occasionally while get_image is being called
     mut url : Option<Url>,
     mut image : Option<ARC<~Image>>,
+    mut cached_size: Size2D<int>,
     image_cache_task: ImageCacheTask,
     reflow_cb: fn~(),
 
@@ -23,6 +24,7 @@ fn ImageHolder(url : &Url, image_cache_task: ImageCacheTask, cb: fn~()) -> Image
     let holder = ImageHolder {
         url : Some(copy *url),
         image : None,
+        cached_size : Size2D(0,0),
         image_cache_task : image_cache_task,
         reflow_cb : copy cb,
     };
@@ -39,13 +41,26 @@ fn ImageHolder(url : &Url, image_cache_task: ImageCacheTask, cb: fn~()) -> Image
 }
 
 impl ImageHolder {
+    /**
+    This version doesn't perform any computation, but may be stale w.r.t.
+    newly-available image data that determines size.
+
+    The intent is that the impure version is used during layout when
+    dimensions are used for computing layout.
+    */
+    pure fn size() -> Size2D<int> {
+        self.cached_size
+    }
+    
+    /** Query and update current image size */
     fn get_size() -> Option<Size2D<int>> {
         debug!("get_size() %?", self.url);
         match self.get_image() {
             Some(img) => { 
                 let img_ref = get(&img);
-                Some(Size2D(img_ref.width as int,
-                            img_ref.height as int))
+                self.cached_size = Size2D(img_ref.width as int,
+                                          img_ref.height as int);
+                Some(copy self.cached_size)
             },
             None => None
         }

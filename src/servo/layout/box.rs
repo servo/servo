@@ -183,10 +183,10 @@ impl @RenderBox {
 
     /* The box formed by the content edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
-    fn content_box() -> Rect<au> {
+    pure fn content_box() -> Rect<au> {
         match self.kind {
             ImageBox(i) => {
-                let size = i.get_size().get_default(Size2D(0,0));
+                let size = i.size();
                 Rect {
                     origin: copy self.data.position.origin,
                     size:   Size2D(au::from_px(size.width),

@@ -140,7 +140,25 @@ impl @FlowContext {
 
 // Actual methods that do not require much flow-specific logic
 impl @FlowContext {
-    fn iter_boxes_for_node<T>(node: Node, cb: pure fn&(@RenderBox) -> T) {
+    pure fn foldl_boxes_for_node<B: Copy>(node: Node, seed: B, blk: pure fn&(B,@RenderBox) -> B) -> B {
+        match self.kind {
+            RootFlow(d) => match d.box {
+                Some(box) if box.node == node => { blk(seed, box) },
+                _ => seed
+            },
+            BlockFlow(d) => match d.box {
+                Some(box)  if box.node == node => { blk(seed, box) },
+                _ => seed
+            },
+            InlineFlow(d) => do d.boxes.foldl(seed) |acc, box| {
+                if box.node == node { blk(acc, box) }
+                else { acc }
+            },
+            _ => fail fmt!("Don't know how to iterate node's RenderBoxes for %?", self.kind)
+        }
+    }
+
+    pure fn iter_boxes_for_node<T>(node: Node, cb: pure fn&(@RenderBox) -> T) {
         match self.kind {
             RootFlow(d) => match d.box {
                 Some(box) if box.node == node => { cb(box); },

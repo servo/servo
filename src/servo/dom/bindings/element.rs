@@ -6,11 +6,13 @@ use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, J
 use js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
 use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
-                            JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate};
+                            JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::bindgen::*;
 use js::glue::bindgen::*;
 use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub};
 
+use content::content_task::{Content, task_from_context};
+use layout::layout_task;
 use dom::node::{Node, NodeScope, Element};
 use dom::element::*;
 use node::NodeBundle;
@@ -70,20 +72,20 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
     }
 
     let bundle = unwrap(obj);
-    let width = (*bundle).payload.scope.write((*bundle).payload.node, |nd| {
+    let node = (*bundle).payload.node;
+    let scope = (*bundle).payload.scope;
+    let width = scope.write(node, |nd| {
         match nd.kind {
             ~Element(ed) => {
                 match ed.kind {
                     ~HTMLImageElement(*) => {
-                        // TODO: this should actually come from rendered dimensions!
-                        match ed.get_attr(~"width") {
-                            Some(s) => match int::from_str(s) {
-                                Some(w) => au::from_px(w),
-                                None => au(0) /* failed to parse a number */
-                            },
-                            None => au(0) /* no width attr. */
+                        let content : &Content = task_from_context(cx);
+                        match content.query_layout(layout_task::ContentBox(node)) {
+                            Ok(rect) => rect.width,
+                            Err(()) => 0,
                         }
-                    },
+                        // TODO: if nothing is being rendered(?), return zero dimensions
+                    }
                     _ => fail ~"why is this not an image element?"
                 }
             },
@@ -91,7 +93,7 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
         }
     });
     *vp = RUST_INT_TO_JSVAL(
-              (au::to_px(width) & (i32::max_value as int)) as libc::c_int);
+              (width & (i32::max_value as int)) as libc::c_int);
     return 1;
 }
 

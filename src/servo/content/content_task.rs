@@ -3,9 +3,10 @@ The content task is the main task that runs JavaScript and spawns layout
 tasks.
 */
 
-export ContentTask;
+export Content, ContentTask;
 export ControlMsg, ExecuteMsg, ParseMsg, ExitMsg, Timer;
 export PingMsg, PongMsg;
+export task_from_context;
 
 use std::arc::{ARC, clone};
 use comm::{Port, Chan, listen, select2};
@@ -43,8 +44,8 @@ use task::{task, SingleThreaded};
 
 use js::glue::bindgen::RUST_JSVAL_TO_OBJECT;
 use js::JSVAL_NULL;
-use js::jsapi::jsval;
-use js::jsapi::bindgen::JS_CallFunctionValue;
+use js::jsapi::{JSContext, jsval};
+use js::jsapi::bindgen::{JS_CallFunctionValue, JS_GetContextPrivate};
 use ptr::null;
 
 enum ControlMsg {
@@ -65,25 +66,13 @@ fn ContentTask<S: Compositor Send Copy>(layout_task: LayoutTask,
                                         resource_task: ResourceTask,
                                         img_cache_task: ImageCacheTask) -> ContentTask {
     do task().sched_mode(SingleThreaded).spawn_listener::<ControlMsg> |from_master| {
-        Content(layout_task, compositor, from_master, resource_task, img_cache_task).start();
+        let content = Content(layout_task, from_master, resource_task, img_cache_task);
+        compositor.add_event_listener(content.event_port.chan());
+        content.start();
     }
 }
 
-/// Sends a ping to layout and waits for the response
-#[allow(non_implicitly_copyable_typarams)]
-fn join_layout(scope: NodeScope, layout_task: LayoutTask) {
-
-    if scope.is_reader_forked() {
-        listen(|response_from_layout| {
-            layout_task.send(layout_task::PingMsg(response_from_layout));
-            response_from_layout.recv();
-        });
-        scope.reader_joined();
-    }
-}
-
-struct Content<C:Compositor> {
-    compositor: C,
+struct Content {
     layout_task: LayoutTask,
     image_cache_task: ImageCacheTask,
     from_master: comm::Port<ControlMsg>,
@@ -102,29 +91,26 @@ struct Content<C:Compositor> {
     compartment: Option<compartment>,
 }
 
-fn Content<C:Compositor>(layout_task: LayoutTask, 
-                         compositor: C, 
-                         from_master: Port<ControlMsg>,
-                         resource_task: ResourceTask,
-                         img_cache_task: ImageCacheTask) -> Content<C> {
-
+fn Content(layout_task: LayoutTask, 
+           from_master: Port<ControlMsg>,
+           resource_task: ResourceTask,
+           img_cache_task: ImageCacheTask) -> Content {
+    
     let jsrt = jsrt();
     let cx = jsrt.cx();
     let event_port = Port();
 
-    compositor.add_event_listener(event_port.chan());
-
     cx.set_default_options_and_version();
     cx.set_logging_error_reporter();
+
     let compartment = match cx.new_compartment(global_class) {
           Ok(c) => Some(c),
           Err(()) => None
     };
 
-    Content {
+    let content = Content {
         layout_task : layout_task,
         image_cache_task : img_cache_task,
-        compositor : compositor,
         from_master : from_master,
         event_port : event_port,
 
@@ -138,10 +124,18 @@ fn Content<C:Compositor>(layout_task: LayoutTask,
 
         resource_task : resource_task,
         compartment : compartment
-    }
+    };
+
+    cx.set_cx_private(ptr::to_unsafe_ptr(&content) as *());
+
+    content
 }
 
-impl<C:Compositor> Content<C> {
+fn task_from_context(cx: *JSContext) -> &Content unsafe {
+    cast::reinterpret_cast(&JS_GetContextPrivate(cx))
+}
+
+impl Content {
 
     fn start() {
         while self.handle_msg(select2(self.from_master, self.event_port)) {
@@ -159,7 +153,7 @@ impl<C:Compositor> Content<C> {
     fn handle_control_msg(control_msg: ControlMsg) -> bool {
         match control_msg {
           ParseMsg(url) => {
-            #debug["content: Received url `%s` to parse", url_to_str(copy url)];
+            debug!("content: Received url `%s` to parse", url_to_str(copy url));
 
             // Note: we can parse the next document in parallel
             // with any previous documents.
@@ -174,9 +168,9 @@ impl<C:Compositor> Content<C> {
             let js_scripts = result.js_port.recv();
 
             // Apply the css rules to the dom tree:
-            #debug["css_rules: %?", css_rules];
+            debug!("css_rules: %?", css_rules);
 
-            #debug["js_scripts: %?", js_scripts];
+            debug!("js_scripts: %?", js_scripts);
 
             let document = Document(root, self.scope, css_rules);
             let window   = Window(self.from_master);
@@ -215,11 +209,11 @@ impl<C:Compositor> Content<C> {
 
 
           ExecuteMsg(url) => {
-            #debug["content: Received url `%s` to execute", url_to_str(copy url)];
+            debug!("content: Received url `%s` to execute", url_to_str(copy url));
 
             match read_whole_file(&Path(url.path)) {
               Err(msg) => {
-                println(#fmt["Error opening %s: %s", url_to_str(copy url), msg]);
+                println(fmt!("Error opening %s: %s", url_to_str(copy url), msg));
               }
               Ok(bytes) => {
                 let compartment = option::expect(self.compartment, ~"TODO error checking");
@@ -237,12 +231,31 @@ impl<C:Compositor> Content<C> {
         }
     }
 
+    /**
+       Sends a ping to layout and waits for the response (i.e., it has finished any
+       pending layout request messages).
+    */
+    fn join_layout() {
+        if self.scope.is_reader_forked() {
+            listen(|response_from_layout| {
+                self.layout_task.send(layout_task::PingMsg(response_from_layout));
+                response_from_layout.recv();
+            });
+            self.scope.reader_joined();
+        }
+    }
+
+    /**
+       This method will wait until the layout task has completed its current action,
+       join the layout task, and then request a new layout run. It won't wait for the
+       new layout computation to finish.
+    */
     fn relayout(document: Document, doc_url: &Url) {
-        #debug("content: performing relayout");
+        debug!("content: performing relayout");
 
         // Now, join the layout so that they will see the latest
         // changes we have made.
-        join_layout(self.scope, self.layout_task);
+        self.join_layout();
 
         // Send new document and relevant styles to layout
         // FIXME: Put CSS rules in an arc or something.
@@ -253,10 +266,23 @@ impl<C:Compositor> Content<C> {
         self.scope.reader_forked();
     }
 
+     fn query_layout(query: layout_task::LayoutQuery) -> layout_task::LayoutQueryResponse {
+         self.relayout(*self.document.get(), &self.doc_url.get());
+         self.join_layout();
+         
+         let response_port = Port();
+         self.layout_task.send(layout_task::QueryMsg(query, response_port.chan()));
+         return response_port.recv()
+    }
+
+    /**
+       This is the main entry point for receiving and dispatching DOM events.
+    */
+    // TODO: actually perform DOM event dispatch.
     fn handle_event(event: Event) -> bool {
         match event {
           ResizeEvent(new_width, new_height) => {
-            #debug("content got resize event: %d, %d", new_width, new_height);
+            debug!("content got resize event: %d, %d", new_width, new_height);
             match copy self.document {
                 None => {
                     // Nothing to do.
@@ -269,7 +295,7 @@ impl<C:Compositor> Content<C> {
             return true;
           }
           ReflowEvent => {
-            #debug("content got reflow event");
+            debug!("content got reflow event");
             match copy self.document {
                 None => {
                     // Nothing to do.
