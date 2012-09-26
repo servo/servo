@@ -1,5 +1,5 @@
 use au = gfx::geometry;
-use core::dvec::DVec;
+use core::dlist::DList;
 use css::values::{BoxAuto, BoxLength, Px};
 use dl = gfx::display_list;
 use dom::rcu;
@@ -38,12 +38,12 @@ hard to try out that alternative.
 */
 
 struct InlineFlowData {
-    boxes: ~DVec<@RenderBox>
+    boxes: ~DList<@RenderBox>
 }
 
 fn InlineFlowData() -> InlineFlowData {
     InlineFlowData {
-        boxes: ~DVec()
+        boxes: ~DList()
     }
 }
 
