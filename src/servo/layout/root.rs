@@ -30,7 +30,7 @@ trait RootLayout {
     fn build_display_list_root(a: &dl::DisplayListBuilder, b: &Rect<au>, c: &Point2D<au>, d: &dl::DisplayList);
 }
 
-impl @FlowContext : RootLayout {
+impl FlowContext : RootLayout {
 
     pure fn starts_root_flow() -> bool {
         match self.kind {

@@ -57,7 +57,7 @@ trait InlineLayout {
     fn build_display_list_inline(a: &dl::DisplayListBuilder, b: &Rect<au>, c: &Point2D<au>, d: &dl::DisplayList);
 }
 
-impl @FlowContext : InlineLayout {
+impl FlowContext : InlineLayout {
     pure fn starts_inline_flow() -> bool { match self.kind { InlineFlow(*) => true, _ => false } }
 
     pure fn access_inline<T>(cb: fn(&&InlineFlowData) -> T) -> T {
@@ -110,27 +110,27 @@ impl @FlowContext : InlineLayout {
 
                 /* hack: until text box splitting is hoisted into this
                 function, force "reflow" on TextBoxes.  */
-                match box.kind {
-                    TextBox(*) => box.reflow_text(ctx),
+                match *box {
+                    @TextBox(*) => box.reflow_text(ctx),
                     _ => {}
                 }
-            
-                box.data.position.size.width = match box.kind {
-                    ImageBox(img) => au::from_px(img.get_size().get_default(Size2D(0,0)).width),
-                    TextBox(d) => d.runs[0].size().width,
+
+                box.d().position.size.width = match *box {
+                    @ImageBox(_,img) => au::from_px(img.get_size().get_default(Size2D(0,0)).width),
+                    @TextBox(_,d) => d.runs[0].size().width,
                     // TODO: this should be set to the extents of its children
-                    GenericBox(*) => au(0)
+                    @GenericBox(*) => au(0)
                 };
 
-                box.data.position.size.height = match box.kind {
-                    ImageBox(img) => au::from_px(img.get_size().get_default(Size2D(0,0)).height),
-                    TextBox(d) => d.runs[0].size().height,
+                box.d().position.size.height = match *box {
+                    @ImageBox(_,img) => au::from_px(img.get_size().get_default(Size2D(0,0)).height),
+                    @TextBox(_,d) => d.runs[0].size().height,
                     // TODO: this should be set to the extents of its children
-                    GenericBox(*) => au(0)
+                    @GenericBox(*) => au(0)
                 };
-                
-                box.data.position.origin = Point2D(au(0), cur_y);
-                cur_y = cur_y.add(au::max(line_height, box.data.position.size.height));
+
+                box.d().position.origin = Point2D(au(0), cur_y);
+                cur_y = cur_y.add(au::max(line_height, box.d().position.size.height));
             } // for boxes.each |box|
         }
 

@@ -33,7 +33,7 @@ trait BlockLayout {
                                 c: &Point2D<au>, d: &dl::DisplayList);
 }
 
-impl @FlowContext : BlockLayout {
+impl FlowContext : BlockLayout {
 
     pure fn starts_block_flow() -> bool {
         match self.kind {
@@ -85,7 +85,7 @@ impl @FlowContext : BlockLayout {
         let mut pref_width = au(0);
 
         /* find max width from child block contexts */
-        for FlowTree.each_child(self) |child_ctx| {
+        for FlowTree.each_child(@self) |child_ctx| {
             assert child_ctx.starts_block_flow() || child_ctx.starts_inline_flow();
 
             min_width  = au::max(min_width, child_ctx.data.min_width);
@@ -120,12 +120,12 @@ impl @FlowContext : BlockLayout {
         /* Let the box consume some width. It will return the amount remaining
            for its children. */
         do self.with_block_box |box| {
-            box.data.position.size.width = remaining_width;
+            box.d().position.size.width = remaining_width;
             let (left_used, right_used) = box.get_used_width();
             remaining_width = remaining_width.sub(left_used.add(right_used));
         }
 
-        for FlowTree.each_child(self) |child_ctx| {
+        for FlowTree.each_child(@self) |child_ctx| {
             assert child_ctx.starts_block_flow() || child_ctx.starts_inline_flow();
             child_ctx.data.position.origin.x = left_used;
             child_ctx.data.position.size.width = remaining_width;
@@ -137,7 +137,7 @@ impl @FlowContext : BlockLayout {
 
         let mut cur_y = au(0);
 
-        for FlowTree.each_child(self) |child_ctx| {
+        for FlowTree.each_child(@self) |child_ctx| {
             child_ctx.data.position.origin.y = cur_y;
             cur_y = cur_y.add(child_ctx.data.position.size.height);
         }
@@ -148,8 +148,8 @@ impl @FlowContext : BlockLayout {
         let _used_bot = au(0);
         
         do self.with_block_box |box| {
-            box.data.position.origin.y = au(0);
-            box.data.position.size.height = cur_y;
+            box.d().position.origin.y = au(0);
+            box.d().position.size.height = cur_y;
             let (_used_top, _used_bot) = box.get_used_height();
         }
     }
@@ -167,7 +167,7 @@ impl @FlowContext : BlockLayout {
         // TODO: handle any out-of-flow elements
 
         // go deeper into the flow tree
-        for FlowTree.each_child(self) |child| {
+        for FlowTree.each_child(@self) |child| {
             self.build_display_list_for_child(builder, child, dirty, offset, list)
         }
     }

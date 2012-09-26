@@ -8,7 +8,7 @@ use dom::element::*;
 use dom::node::{Comment, Doctype, Element, Text, Node, NodeTree, LayoutData};
 use image::holder::ImageHolder;
 use layout::flow::{FlowContext, FlowContextData, BlockFlow, InlineFlow, InlineBlockFlow, RootFlow, FlowTree};
-use layout::box::{RenderBox, BoxData, GenericBox, ImageBox, TextBox, RenderBoxTree};
+use layout::box::*;
 use layout::block::BlockFlowData;
 use layout::context::LayoutContext;
 use layout::inline::InlineFlowData;
@@ -58,21 +58,21 @@ impl LayoutTreeBuilder {
             v => v
         };
 
-        // first, create the proper box kind, based on node characteristics
-        let box_data = self.create_box_data(layout_ctx, cur_node, simulated_display);
+        // first, determine the box type, based on node characteristics
+        let box_type = self.decide_box_type(cur_node, simulated_display);
 
         // then, figure out its proper context, possibly reorganizing.
-        let next_ctx: @FlowContext = match box_data {
+        let next_ctx: @FlowContext = match box_type {
             /* Text box is always an inline flow. create implicit inline
             flow ctx if we aren't inside one already. */
-            TextBox(*) => {
+            RenderBox_Text => {
                 if (parent_ctx.starts_inline_flow()) {
                     parent_ctx
                 } else {
                     self.make_ctx(InlineFlow(InlineFlowData()), tree::empty())
                 }
             },
-            ImageBox(*) | GenericBox => {
+            RenderBox_Image | RenderBox_Generic => {
                 match simulated_display {
                     DisplayInline | DisplayInlineBlock => {
                         /* if inline, try to put into inline context,
@@ -98,7 +98,7 @@ impl LayoutTreeBuilder {
         do cur_node.aux |data| { data.flow = Some(next_ctx) }
 
         // make box, add box to any context-specific list.
-        let mut new_box = self.make_box(cur_node, parent_ctx, box_data);
+        let mut new_box = self.make_box(layout_ctx, box_type, cur_node, parent_ctx);
         debug!("Assign ^box to flow: %?", next_ctx.debug_str());
 
         match next_ctx.kind {
@@ -109,7 +109,7 @@ impl LayoutTreeBuilder {
                     let parent = parent_box.get();
 
                     // connect the box to its parent box
-                    debug!("In inline flow f%?, set child b%? of parent b%?", next_ctx.id, parent.id, new_box.id);
+                    debug!("In inline flow f%?, set child b%? of parent b%?", next_ctx.id, parent.d().id, new_box.d().id);
                     RenderBoxTree.add_child(parent, new_box);
                 }
             }
@@ -118,7 +118,7 @@ impl LayoutTreeBuilder {
         };
 
     
-        if (!next_ctx.eq(&parent_ctx)) {
+        if !core::box::ptr_eq(next_ctx, parent_ctx) {
             debug!("Adding child flow f%? of f%?", parent_ctx.id, next_ctx.id);
             FlowTree.add_child(parent_ctx, next_ctx);
         }
@@ -188,34 +188,75 @@ impl LayoutTreeBuilder {
         ret
     }
 
-    fn make_box(node : Node, ctx: @FlowContext, data: BoxData) -> @RenderBox {
-        let ret = @RenderBox(self.next_box_id(), node, ctx, data);
+    /**
+       disambiguate between different methods here instead of inlining, since each
+       case has very different complexity 
+    */
+    fn make_box(layout_ctx: &LayoutContext, ty: RenderBoxType, node: Node, ctx: @FlowContext) -> @RenderBox {
+        let ret = match ty {
+            RenderBox_Generic => self.make_generic_box(layout_ctx, node, ctx),
+            RenderBox_Text    => self.make_text_box(layout_ctx, node, ctx),
+            RenderBox_Image   => self.make_image_box(layout_ctx, node, ctx),
+        };
         debug!("Created box: %s", ret.debug_str());
         ret
     }
 
-    /* Based on the DOM node type, create a specific type of box */
-    fn create_box_data(layout_ctx: &LayoutContext, node: Node, display: CSSDisplay) -> BoxData {
-        // TODO: handle more types of nodes.
+    fn make_generic_box(_layout_ctx: &LayoutContext, node: Node, ctx: @FlowContext) -> @RenderBox {
+        @GenericBox(RenderBoxData(node, ctx, self.next_box_id()))
+    }
+
+    fn make_image_box(layout_ctx: &LayoutContext, node: Node, ctx: @FlowContext) -> @RenderBox {
         do node.read |n| {
             match n.kind {
-                ~Doctype(*) | ~Comment(*) => fail ~"Hey, doctypes and comments shouldn't get here! They are display:none!",
+                ~Element(ed) => match ed.kind {
+                    ~HTMLImageElement(d) => {
+                        // TODO: this could be written as a pattern guard, but it triggers
+                        // an ICE (mozilla/rust issue #3601)
+                        if d.image.is_some() {
+                            let holder = ImageHolder(&d.image.get(), 
+                                                     layout_ctx.image_cache,
+                                                     copy layout_ctx.reflow_cb);
+
+                            @ImageBox(RenderBoxData(node, ctx, self.next_box_id()), holder)
+                        } else {
+                            info!("Tried to make image box, but couldn't find image. Made generic box instead.");
+                            self.make_generic_box(layout_ctx, node, ctx)
+                        }
+                    },
+                    _ => fail ~"WAT error: why couldn't we make an image box?"
+                },
+                _ => fail ~"WAT error: why couldn't we make an image box?"
+            }
+        }
+
+    }
+
+    fn make_text_box(layout_ctx: &LayoutContext, node: Node, ctx: @FlowContext) -> @RenderBox {
+        do node.read |n| {
+            match n.kind {
                 ~Text(string) => {
                     // TODO: clean this up. Fonts should not be created here.
                     let font = layout_ctx.font_cache.get_test_font();
                     let run = TextRun(font, string);
-                    TextBox(TextBoxData(copy string, ~[move run]))
-                }
+                    @TextBox(RenderBoxData(node, ctx, self.next_box_id()),
+                             TextBoxData(copy string, ~[move run]))
+                },
+                _ => fail ~"WAT error: why couldn't we make a text box?"
+            }
+        }
+    }
+
+    fn decide_box_type(node: Node, display: CSSDisplay) -> RenderBoxType {
+        do node.read |n| {
+            match n.kind {
+                ~Doctype(*) | ~Comment(*) => fail ~"Hey, doctypes and comments shouldn't get here! They are display:none!",
+                ~Text(*) => RenderBox_Text,
                 ~Element(element) => {
                     match (element.kind, display) {
-                        (~HTMLImageElement(d), _) if d.image.is_some() => {
-                            let holder = ImageHolder(&d.image.get(), 
-                                                     layout_ctx.image_cache,
-                                                     copy layout_ctx.reflow_cb);
-                            ImageBox(holder)
-                        },
+                        (~HTMLImageElement(d), _) if d.image.is_some() => RenderBox_Image,
 //                      (_, Specified(_)) => GenericBox,
-                        (_, _) => GenericBox // TODO: replace this with the commented lines
+                        (_, _) => RenderBox_Generic // TODO: replace this with the commented lines
 //                      (_, _) => fail ~"Can't create box for Node with non-specified 'display' type"
                     }
                 }
@@ -223,4 +264,3 @@ impl LayoutTreeBuilder {
         }
     }
 }
-

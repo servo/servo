@@ -8,7 +8,7 @@ use geom::point::Point2D;
 use layout::block::BlockFlowData;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
-use layout::debug::DebugMethods;
+use layout::debug::BoxedDebugMethods;
 use layout::inline::InlineFlowData;
 use layout::root::RootFlowData;
 use util::tree;
@@ -92,14 +92,8 @@ fn FlowContext(id: int, kind: FlowContextData, tree: tree::Tree<@FlowContext>) -
     }
 }
 
-impl @FlowContext : cmp::Eq {
-    pure fn eq(other: &@FlowContext) -> bool { core::box::ptr_eq(self, *other) }
-    pure fn ne(other: &@FlowContext) -> bool { !core::box::ptr_eq(self, *other) }
-}
-
-
 /* Flow context disambiguation methods: the verbose alternative to virtual methods */
-impl @FlowContext {
+impl FlowContext {
     fn bubble_widths(ctx: &LayoutContext) {
         match self.kind {
             BlockFlow(*)  => self.bubble_widths_block(ctx),
@@ -139,19 +133,19 @@ impl @FlowContext {
 }
 
 // Actual methods that do not require much flow-specific logic
-impl @FlowContext {
+impl FlowContext {
     pure fn foldl_boxes_for_node<B: Copy>(node: Node, seed: B, blk: pure fn&(B,@RenderBox) -> B) -> B {
         match self.kind {
             RootFlow(d) => match d.box {
-                Some(box) if box.node == node => { blk(seed, box) },
+                Some(box) if box.d().node == node => { blk(seed, box) },
                 _ => seed
             },
             BlockFlow(d) => match d.box {
-                Some(box)  if box.node == node => { blk(seed, box) },
+                Some(box)  if box.d().node == node => { blk(seed, box) },
                 _ => seed
             },
             InlineFlow(d) => do d.boxes.foldl(seed) |acc, box| {
-                if box.node == node { blk(acc, box) }
+                if box.d().node == node { blk(acc, box) }
                 else { acc }
             },
             _ => fail fmt!("Don't know how to iterate node's RenderBoxes for %?", self.kind)
@@ -161,16 +155,16 @@ impl @FlowContext {
     pure fn iter_boxes_for_node<T>(node: Node, cb: pure fn&(@RenderBox) -> T) {
         match self.kind {
             RootFlow(d) => match d.box {
-                Some(box) if box.node == node => { cb(box); },
+                Some(box) if box.d().node == node => { cb(box); },
                 _ => {}
             },
             BlockFlow(d) => match d.box {
-                Some(box) if box.node == node => { cb(box); },
+                Some(box) if box.d().node == node => { cb(box); },
                 _ => {}
             },
             InlineFlow(d) => {
                 for d.boxes.each |box| {
-                    if box.node == node { cb(*box); }
+                    if box.d().node == node { cb(*box); }
                 }
             },
             _ => fail fmt!("Don't know how to iterate node's RenderBoxes for %?", self.kind)
@@ -204,13 +198,13 @@ impl FlowTree : tree::WriteMethods<@FlowContext> {
 }
 
 
-impl @FlowContext : DebugMethods {
-    fn dump() {
+impl FlowContext : BoxedDebugMethods {
+    fn dump(@self) {
         self.dump_indent(0u);
     }
 
     /** Dumps the flow tree, for debugging, with indentation. */
-    fn dump_indent(indent: uint) {
+    fn dump_indent(@self, indent: uint) {
         let mut s = ~"|";
         for uint::range(0u, indent) |_i| {
             s += ~"---- ";
@@ -225,17 +219,17 @@ impl @FlowContext : DebugMethods {
     }
     
     /* TODO: we need a string builder. This is horribly inefficient */
-    fn debug_str() -> ~str {
+    fn debug_str(@self) -> ~str {
         let repr = match self.kind {
             InlineFlow(d) => {
                 let mut s = d.boxes.foldl(~"InlineFlow(children=", |s, box| {
-                    fmt!("%s %?", s, box.id)
+                    fmt!("%s %?", s, box.d().id)
                 });
                 s += ~")"; s
             },
             BlockFlow(d) => {
                 match d.box {
-                    Some(_b) => fmt!("BlockFlow(box=b%?)", d.box.get().id),
+                    Some(_b) => fmt!("BlockFlow(box=b%?)", d.box.get().d().id),
                     None => ~"BlockFlow",
                 }
             },

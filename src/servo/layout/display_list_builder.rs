@@ -38,7 +38,7 @@ trait FlowDisplayListBuilderMethods {
                                     c: &Rect<au>, d: &Point2D<au>, e: &dl::DisplayList);
 }
 
-impl @FlowContext: FlowDisplayListBuilderMethods {
+impl FlowContext: FlowDisplayListBuilderMethods {
 
     fn build_display_list(builder: &DisplayListBuilder, dirty: &Rect<au>, list: &dl::DisplayList) {
         let zero = au::zero_point();

@@ -27,8 +27,8 @@ trait TextLayout {
 #[doc="The main reflow routine for text layout."]
 impl @RenderBox : TextLayout {
     fn reflow_text(ctx: &LayoutContext) {
-        let d = match self.kind {
-            TextBox(d) => { d }
+        let d = match self {
+            @TextBox(_,d) => { d }
             _ => { fail ~"expected text box in reflow_text!" }
         };
 
@@ -73,7 +73,7 @@ impl @RenderBox : TextLayout {
         let total_height = au(*current.size().height * line_count);
         lines.push(move current);
 
-        self.data.position.size = Size2D(max_width, total_height);
+        self.d().position.size = Size2D(max_width, total_height);
         d.runs = move dvec::unwrap(lines);
     }
 }

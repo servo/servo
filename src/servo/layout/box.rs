@@ -18,7 +18,7 @@ use geom::size::Size2D;
 use geom::point::Point2D;
 use image::{Image, ImageHolder};
 use layout::context::LayoutContext;
-use layout::debug::DebugMethods;
+use layout::debug::BoxedDebugMethods;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
 use servo_text::text_run::TextRun;
@@ -68,27 +68,8 @@ padding, backgrounds. It is analogous to a CSS nonreplaced content box.
    It also holds data specific to different box types, such as text.
 */
 
-struct BoxLayoutData {
-    mut position: Rect<au>,
-    mut font_size: Length,
-}
 
-/* TODO: this should eventually be just 'position', and
-   merged into the base RenderBox struct */
-fn BoxLayoutData() -> BoxLayoutData {
-    BoxLayoutData {
-        position : au::zero_rect(),
-        font_size : Px(0.0),
-    }
-}
-
-enum BoxData {
-    GenericBox,
-    ImageBox(ImageHolder),
-    TextBox(TextBoxData)
-}
-
-struct RenderBox {
+struct RenderBoxData {
     /* references to children, parent inline flow boxes  */
     tree : tree::Tree<@RenderBox>,
     /* originating DOM node */
@@ -96,30 +77,51 @@ struct RenderBox {
     /* reference to containing flow context, which this box
        participates in */
     ctx  : @FlowContext,
-    /* results of flow computation */
-    data : BoxLayoutData,
-    /* kind tag and kind-specific data */
-    kind : BoxData,
+    /* position of this box relative to owning flow */
+    mut position : Rect<au>,
+    font_size : Length,
     /* TODO (Issue #87): debug only */
     mut id: int
 }
 
-fn RenderBox(id: int, node: Node, ctx: @FlowContext, kind: BoxData) -> RenderBox {
-    RenderBox {
+enum RenderBoxType {
+    RenderBox_Generic,
+    RenderBox_Image,
+    RenderBox_Text
+}
+
+enum RenderBox {
+    GenericBox(RenderBoxData),
+    ImageBox(RenderBoxData, ImageHolder),
+    TextBox(RenderBoxData, TextBoxData)
+}
+
+impl RenderBox {
+    pure fn d(&self) -> &self/RenderBoxData {
+        match *self {
+            GenericBox(ref d)  => d,
+            ImageBox(ref d, _) => d,
+            TextBox(ref d, _)  => d
+        }
+    }
+}
+
+fn RenderBoxData(node: Node, ctx: @FlowContext, id: int) -> RenderBoxData {
+    RenderBoxData {
         /* will be set if box is parented */
         tree : tree::empty(),
         node : node,
-        ctx  : ctx,
-        data : BoxLayoutData(),
-        kind : kind,
+        mut ctx  : ctx,
+        mut position : au::zero_rect(),
+        font_size: Px(0.0),
         id : id
     }
 }
 
-impl @RenderBox {
+impl RenderBox {
     pure fn is_replaced() -> bool {
-        match self.kind {
-            ImageBox(*) => true, // TODO: form elements, etc
+        match self {
+           ImageBox(*) => true, // TODO: form elements, etc
             _ => false
         }
     }
@@ -129,35 +131,35 @@ impl @RenderBox {
      * holder.get_image()
     */
     fn get_min_width() -> au {
-        match self.kind {
+        match self {
             // TODO: this should account for min/pref widths of the
             // box element in isolation. That includes
             // border/margin/padding but not child widths. The block
             // FlowContext will combine the width of this element and
             // that of its children to arrive at the context width.
-            GenericBox => au(0),
+            GenericBox(*) => au(0),
             // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult 'width'.
-            ImageBox(i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
-            TextBox(d) => d.runs.foldl(au(0), |sum, run| {
+            ImageBox(_,i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
+            TextBox(_,d) => d.runs.foldl(au(0), |sum, run| {
                 au::max(sum, run.min_break_width())
             })
         }
     }
 
     fn get_pref_width() -> au {
-        match self.kind {
+        match self {
             // TODO: this should account for min/pref widths of the
             // box element in isolation. That includes
             // border/margin/padding but not child widths. The block
             // FlowContext will combine the width of this element and
             // that of its children to arrive at the context width.
-            GenericBox => au(0),
-            ImageBox(i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
+            GenericBox(*) => au(0),
+            ImageBox(_,i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
             // TODO: account for line breaks, etc. The run should know
             // how to compute its own min and pref widths, and should
             // probably cache them.
-            TextBox(d) => d.runs.foldl(au(0), |sum, run| {
+            TextBox(_,d) => d.runs.foldl(au(0), |sum, run| {
                 au::max(sum, run.size().width)
             })
         }
@@ -184,21 +186,21 @@ impl @RenderBox {
     /* The box formed by the content edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
     pure fn content_box() -> Rect<au> {
-        match self.kind {
-            ImageBox(i) => {
+        match self {
+            ImageBox(_,i) => {
                 let size = i.size();
                 Rect {
-                    origin: copy self.data.position.origin,
+                    origin: copy self.d().position.origin,
                     size:   Size2D(au::from_px(size.width),
                                    au::from_px(size.height))
                 }
             },
             GenericBox(*) => {
-                copy self.data.position
+                copy self.d().position
                 /* FIXME: The following hits an ICE for whatever reason
 
-                let origin = self.data.position.origin;
-                let size   = self.data.position.size;
+                let origin = self.d().position.origin;
+                let size   = self.d().position.size;
                 let (offset_left, offset_right) = self.get_used_width();
                 let (offset_top, offset_bottom) = self.get_used_height();
 
@@ -209,7 +211,7 @@ impl @RenderBox {
                 }*/
             },
             TextBox(*) => {
-                copy self.data.position
+                copy self.d().position
             }
         }
     }
@@ -241,15 +243,15 @@ impl @RenderBox {
     */
     fn build_display_list(_builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
                           offset: &Point2D<au>, list: &dl::DisplayList) {
-        if !self.data.position.intersects(dirty) {
+        if !self.d().position.intersects(dirty) {
             return;
         }
 
-        let bounds : Rect<au> = Rect(self.data.position.origin.add(offset),
-                                     copy self.data.position.size);
+        let bounds : Rect<au> = Rect(self.d().position.origin.add(offset),
+                                     copy self.d().position.size);
 
-        match self.kind {
-            TextBox(d) => {
+        match self {
+            TextBox(_,d) => {
                 let mut runs = d.runs;
                 // TODO: don't paint background for text boxes
                 list.push(~dl::SolidColor(bounds, 255u8, 255u8, 255u8));
@@ -271,13 +273,13 @@ impl @RenderBox {
             },
             // TODO: items for background, border, outline
             GenericBox(*) => { },
-            ImageBox(i) => {
+            ImageBox(_,i) => {
                 match i.get_image() {
                     Some(image) => list.push(~dl::Image(bounds, image)),
                     /* No image data at all? Okay, add some fallback content instead. */
                     None => {
                         // TODO: shouldn't need to unbox CSSValue by now
-                        let boxed_color = self.node.style().background_color;
+                        let boxed_color = self.d().node.style().background_color;
                         let color = match boxed_color {
                             Specified(BgColor(c)) => c,
                             Specified(BgColorTransparent) | _ => util::color::rgba(0,0,0,0.0)
@@ -288,6 +290,10 @@ impl @RenderBox {
             }
         }
     }
+}
+
+trait ImageBoxMethods {
+    
 }
 
 /**
@@ -303,7 +309,7 @@ impl RenderBoxTree : tree::ReadMethods<@RenderBox> {
     }
 
     fn with_tree_fields<R>(&&b: @RenderBox, f: fn(tree::Tree<@RenderBox>) -> R) -> R {
-        f(b.tree)
+        f(b.d().tree)
     }
 }
 
@@ -314,17 +320,17 @@ impl RenderBoxTree : tree::WriteMethods<@RenderBox> {
     }
 
     fn with_tree_fields<R>(&&b: @RenderBox, f: fn(tree::Tree<@RenderBox>) -> R) -> R {
-        f(b.tree)
+        f(b.d().tree)
     }
 }
 
-impl @RenderBox : DebugMethods {
-    fn dump() {
+impl RenderBox : BoxedDebugMethods {
+    fn dump(@self) {
         self.dump_indent(0u);
     }
 
     /* Dumps the node tree, for debugging, with indentation. */
-    fn dump_indent(indent: uint) {
+    fn dump_indent(@self, indent: uint) {
         let mut s = ~"";
         for uint::range(0u, indent) |_i| {
             s += ~"    ";
@@ -338,11 +344,11 @@ impl @RenderBox : DebugMethods {
         }
     }
 
-    fn debug_str() -> ~str {
-        let repr = match self.kind {
-            GenericBox(*) => ~"GenericBox",
-            ImageBox(*) => ~"ImageBox",
-            TextBox(d) => {
+    fn debug_str(@self) -> ~str {
+        let repr = match self {
+            @GenericBox(*) => ~"GenericBox",
+            @ImageBox(*) => ~"ImageBox",
+            @TextBox(_,d) => {
                 let mut s = d.runs.foldl(~"TextBox(runs=", |s, run| {
                     fmt!("%s  \"%s\"", s, run.text)
                 });
@@ -350,7 +356,7 @@ impl @RenderBox : DebugMethods {
             }
         };
 
-        fmt!("box b%?: %?", self.id, repr)
+        fmt!("box b%?: %?", self.d().id, repr)
     }
 }
 
