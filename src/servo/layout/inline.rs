@@ -24,7 +24,7 @@ merging of TextBoxes.
 A similar list will keep track of the mapping between CSS boxes and
 the corresponding render boxes in the inline flow.
 
-After line breaks are determined, lender boxes in the inline flow may
+After line breaks are determined, render boxes in the inline flow may
 overlap visually. For example, in the case of nested inline CSS boxes,
 outer inlines must be at least as large as the inner inlines, for
 purposes of drawing noninherited things like backgrounds, borders,
@@ -37,13 +37,26 @@ serve as the starting point, but the current design doesn't make it
 hard to try out that alternative.
 */
 
+type BoxRange = {start: u8, len: u8};
+
 struct InlineFlowData {
-    boxes: ~DList<@RenderBox>
+    // A flat list of all inline render boxes. Several boxes may
+    // correspond to one Node/Element.
+    boxes: DList<@RenderBox>,
+    // vec of ranges into boxes that represents line positions.
+    // these ranges are disjoint, and are the result of inline layout.
+    lines: DVec<BoxRange>,
+    // vec of ranges into boxes that represent elements. These
+    // ranges must be disjoint or well-nested, and are only related to
+    // the content of boxes (not lines)
+    elems: DVec<BoxRange>
 }
 
 fn InlineFlowData() -> InlineFlowData {
     InlineFlowData {
-        boxes: ~DList()
+        boxes: DList(),
+        lines: DVec(),
+        elems: DVec()
     }
 }
 
