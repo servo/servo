@@ -50,7 +50,6 @@ fn InlineFlowData() -> InlineFlowData {
 trait InlineLayout {
     pure fn starts_inline_flow() -> bool;
 
-    pure fn access_inline<T>(fn(&&InlineFlowData) -> T) -> T;
     fn bubble_widths_inline(ctx: &LayoutContext);
     fn assign_widths_inline(ctx: &LayoutContext);
     fn assign_height_inline(ctx: &LayoutContext);
@@ -58,14 +57,7 @@ trait InlineLayout {
 }
 
 impl FlowContext : InlineLayout {
-    pure fn starts_inline_flow() -> bool { match self.kind { InlineFlow(*) => true, _ => false } }
-
-    pure fn access_inline<T>(cb: fn(&&InlineFlowData) -> T) -> T {
-        match self.kind {
-            InlineFlow(d) => cb(d),
-            _  => fail fmt!("Tried to access() data of InlineFlow, but this is a %?", self.kind)
-        }
-    }
+    pure fn starts_inline_flow() -> bool { match self { InlineFlow(*) => true, _ => false } }
 
     fn bubble_widths_inline(_ctx: &LayoutContext) {
         assert self.starts_inline_flow();
@@ -73,15 +65,13 @@ impl FlowContext : InlineLayout {
         let mut min_width = au(0);
         let mut pref_width = au(0);
 
-        do self.access_inline |d| {
-            for d.boxes.each |box| {
-                min_width = au::max(min_width, box.get_min_width());
-                pref_width = au::max(pref_width, box.get_pref_width());
-            }
+        for self.inline().boxes.each |box| {
+            min_width = au::max(min_width, box.get_min_width());
+            pref_width = au::max(pref_width, box.get_pref_width());
         }
 
-        self.data.min_width = min_width;
-        self.data.pref_width = pref_width;
+        self.d().min_width = min_width;
+        self.d().pref_width = pref_width;
     }
 
     /* Recursively (top-down) determines the actual width of child
@@ -91,59 +81,56 @@ impl FlowContext : InlineLayout {
         assert self.starts_inline_flow();
 
         /* Perform inline flow with the available width. */
-        //let avail_width = self.data.position.size.width;
+        //let avail_width = self.d().position.size.width;
 
         let line_height = au::from_px(20);
         //let mut cur_x = au(0);
         let mut cur_y = au(0);
         
-        do self.access_inline |d| {
-            for d.boxes.each |box| {
-                /* TODO: actually do inline flow.
-                - Create a working linebox, and successively put boxes
-                into it, splitting if necessary.
-                
-                - Set width and height for each positioned element based on 
-                where its chunks ended up.
+        for self.inline().boxes.each |box| {
+            /* TODO: actually do inline flow.
+            - Create a working linebox, and successively put boxes
+            into it, splitting if necessary.
+            
+            - Set width and height for each positioned element based on 
+            where its chunks ended up.
 
-                - Save the dvec of this context's lineboxes. */
+            - Save the dvec of this context's lineboxes. */
 
-                /* hack: until text box splitting is hoisted into this
-                function, force "reflow" on TextBoxes.  */
-                match *box {
-                    @TextBox(*) => box.reflow_text(ctx),
-                    _ => {}
-                }
+            /* hack: until text box splitting is hoisted into this
+            function, force "reflow" on TextBoxes.  */
+            match *box {
+                @TextBox(*) => box.reflow_text(ctx),
+                _ => {}
+            }
 
-                box.d().position.size.width = match *box {
-                    @ImageBox(_,img) => au::from_px(img.get_size().get_default(Size2D(0,0)).width),
-                    @TextBox(_,d) => d.runs[0].size().width,
-                    // TODO: this should be set to the extents of its children
-                    @GenericBox(*) => au(0)
-                };
+            box.d().position.size.width = match *box {
+                @ImageBox(_,img) => au::from_px(img.get_size().get_default(Size2D(0,0)).width),
+                @TextBox(_,d) => d.runs[0].size().width,
+                // TODO: this should be set to the extents of its children
+                @GenericBox(*) => au(0)
+            };
 
-                box.d().position.size.height = match *box {
-                    @ImageBox(_,img) => au::from_px(img.get_size().get_default(Size2D(0,0)).height),
-                    @TextBox(_,d) => d.runs[0].size().height,
-                    // TODO: this should be set to the extents of its children
-                    @GenericBox(*) => au(0)
-                };
+            box.d().position.size.height = match *box {
+                @ImageBox(_,img) => au::from_px(img.get_size().get_default(Size2D(0,0)).height),
+                @TextBox(_,d) => d.runs[0].size().height,
+                // TODO: this should be set to the extents of its children
+                @GenericBox(*) => au(0)
+            };
 
-                box.d().position.origin = Point2D(au(0), cur_y);
-                cur_y = cur_y.add(au::max(line_height, box.d().position.size.height));
-            } // for boxes.each |box|
-        }
+            box.d().position.origin = Point2D(au(0), cur_y);
+            cur_y = cur_y.add(au::max(line_height, box.d().position.size.height));
+        } // for boxes.each |box|
 
-        self.data.position.size.height = cur_y;
-        
-        /* There are no child contexts, so stop here. */
+    self.d().position.size.height = cur_y;
+    
+    /* There are no child contexts, so stop here. */
 
-        // TODO: once there are 'inline-block' elements, this won't be
-        // true.  In that case, perform inline flow, and then set the
-        // block flow context's width as the width of the
-        // 'inline-block' box that created this flow.
-
-    } // fn assign_widths_inline
+    // TODO: once there are 'inline-block' elements, this won't be
+    // true.  In that case, perform inline flow, and then set the
+    // block flow context's width as the width of the
+    // 'inline-block' box that created this flow.
+    }
 
     fn assign_height_inline(_ctx: &LayoutContext) {
         // Don't need to set box or ctx heights, since that is done
@@ -160,10 +147,8 @@ impl FlowContext : InlineLayout {
 
         // TODO: once we form line boxes and have their cached bounds, we can be 
         // smarter and not recurse on a line if nothing in it can intersect dirty
-        do self.access_inline |d| {
-            for d.boxes.each |box| {
-                box.build_display_list(builder, dirty, offset, list)
-            }
+        for self.inline().boxes.each |box| {
+            box.build_display_list(builder, dirty, offset, list)
         }
 
         // TODO: should inline-block elements have flows as children

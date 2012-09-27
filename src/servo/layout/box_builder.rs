@@ -7,10 +7,10 @@ use css::values::{Inherit, Initial, Specified};
 use dom::element::*;
 use dom::node::{Comment, Doctype, Element, Text, Node, NodeTree, LayoutData};
 use image::holder::ImageHolder;
-use layout::flow::{FlowContext, FlowContextData, BlockFlow, InlineFlow, InlineBlockFlow, RootFlow, FlowTree};
 use layout::box::*;
 use layout::block::BlockFlowData;
 use layout::context::LayoutContext;
+use layout::flow::*;
 use layout::inline::InlineFlowData;
 use layout::root::RootFlowData;
 use layout::text::TextBoxData;
@@ -69,7 +69,7 @@ impl LayoutTreeBuilder {
                 if (parent_ctx.starts_inline_flow()) {
                     parent_ctx
                 } else {
-                    self.make_ctx(InlineFlow(InlineFlowData()), tree::empty())
+                    self.make_ctx(Flow_Inline)
                 }
             },
             RenderBox_Image | RenderBox_Generic => {
@@ -80,12 +80,12 @@ impl LayoutTreeBuilder {
                         if (parent_ctx.starts_inline_flow()) {
                             parent_ctx
                         } else {
-                            self.make_ctx(InlineFlow(InlineFlowData()), tree::empty())
+                            self.make_ctx(Flow_Inline)
                         }
                     },
                     /* block boxes always create a new context */
                     DisplayBlock => {
-                        self.make_ctx(BlockFlow(BlockFlowData()), tree::empty())
+                        self.make_ctx(Flow_Block)
                     },
                     _ => fail fmt!("unsupported display type in box generation: %?", simulated_display)
                 }
@@ -101,25 +101,27 @@ impl LayoutTreeBuilder {
         let mut new_box = self.make_box(layout_ctx, box_type, cur_node, parent_ctx);
         debug!("Assign ^box to flow: %?", next_ctx.debug_str());
 
-        match next_ctx.kind {
-            InlineFlow(d) => {
-                d.boxes.push(new_box);
+        match *next_ctx {
+            InlineFlow(*) => {
+                next_ctx.inline().boxes.push(new_box);
 
                 if (parent_box.is_some()) {
                     let parent = parent_box.get();
 
                     // connect the box to its parent box
-                    debug!("In inline flow f%?, set child b%? of parent b%?", next_ctx.id, parent.d().id, new_box.d().id);
+                    debug!("In inline flow f%?, set child b%? of parent b%?", 
+                           next_ctx.d().id, parent.d().id, new_box.d().id);
                     RenderBoxTree.add_child(parent, new_box);
                 }
             }
-            BlockFlow(d) => { d.box = Some(new_box) }
+            BlockFlow(*) => next_ctx.block().box = Some(new_box),
             _ => {} // TODO: float lists, etc.
         };
 
     
         if !core::box::ptr_eq(next_ctx, parent_ctx) {
-            debug!("Adding child flow f%? of f%?", parent_ctx.id, next_ctx.id);
+            debug!("Adding child flow f%? of f%?",
+                   parent_ctx.d().id, next_ctx.d().id);
             FlowTree.add_child(parent_ctx, next_ctx);
         }
         // recurse
@@ -134,8 +136,8 @@ impl LayoutTreeBuilder {
             let mut found_child_block = false;
 
             do FlowTree.each_child(next_ctx) |child_ctx| {
-                match child_ctx.kind {
-                    InlineFlow(*) | InlineBlockFlow => found_child_inline = true,
+                match *child_ctx {
+                    InlineFlow(*) | InlineBlockFlow(*) => found_child_inline = true,
                     BlockFlow(*) => found_child_block = true,
                     _ => {}
                 }; true
@@ -176,14 +178,22 @@ impl LayoutTreeBuilder {
     /** entry point for box creation. Should only be 
     called on root DOM element. */
     fn construct_trees(layout_ctx: &LayoutContext, root: Node) -> Result<@FlowContext, ()> {
-        self.root_ctx = Some(self.make_ctx(RootFlow(RootFlowData()), tree::empty()));
-
+        self.root_ctx = Some(self.make_ctx(Flow_Root));
         self.construct_recursively(layout_ctx, root, self.root_ctx.get(), None);
         return Ok(self.root_ctx.get())
     }
 
-    fn make_ctx(kind : FlowContextData, tree: tree::Tree<@FlowContext>) -> @FlowContext {
-        let ret = @FlowContext(self.next_ctx_id(), kind, tree);
+    fn make_ctx(ty : FlowContextType) -> @FlowContext {
+        let data = FlowData(self.next_ctx_id());
+        let ret = match ty {
+            Flow_Absolute    => @AbsoluteFlow(data),
+            Flow_Block       => @BlockFlow(data, BlockFlowData()),
+            Flow_Float       => @FloatFlow(data),
+            Flow_InlineBlock => @InlineBlockFlow(data),
+            Flow_Inline      => @InlineFlow(data, InlineFlowData()),
+            Flow_Root        => @RootFlow(data, RootFlowData()),
+            Flow_Table       => @TableFlow(data)
+        };
         debug!("Created context: %s", ret.debug_str());
         ret
     }

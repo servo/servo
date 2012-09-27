@@ -21,7 +21,6 @@ fn RootFlowData() -> RootFlowData {
 
 trait RootLayout {
     pure fn starts_root_flow() -> bool;
-    pure fn access_root<T>(fn(&&RootFlowData) -> T) -> T;
 
     fn bubble_widths_root(ctx: &LayoutContext);
     fn assign_widths_root(ctx: &LayoutContext);
@@ -33,16 +32,9 @@ trait RootLayout {
 impl FlowContext : RootLayout {
 
     pure fn starts_root_flow() -> bool {
-        match self.kind {
+        match self {
             RootFlow(*) => true,
             _ => false 
-        }
-    }
-
-    pure fn access_root<T>(cb:fn(&&RootFlowData) -> T) -> T {
-        match self.kind {
-            RootFlow(d) => cb(d),
-            _  => fail fmt!("Tried to access() data of RootFlow, but this is a %?", self.kind)
         }
     }
 
@@ -55,7 +47,7 @@ impl FlowContext : RootLayout {
     fn assign_widths_root(ctx: &LayoutContext) { 
         assert self.starts_root_flow();
 
-        self.data.position = copy ctx.screen_size;
+        self.d().position = copy ctx.screen_size;
         self.assign_widths_block(ctx)
     }
 

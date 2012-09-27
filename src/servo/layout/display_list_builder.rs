@@ -49,10 +49,10 @@ impl FlowContext: FlowDisplayListBuilderMethods {
                                     dirty: &Rect<au>, offset: &Point2D<au>, list: &dl::DisplayList) {
 
         // adjust the dirty rect to child flow context coordinates
-        let adj_dirty = dirty.translate(&child.data.position.origin);
-        let adj_offset = offset.add(&child.data.position.origin);
+        let adj_dirty = dirty.translate(&child.d().position.origin);
+        let adj_offset = offset.add(&child.d().position.origin);
 
-        if (adj_dirty.intersects(&child.data.position)) {
+        if (adj_dirty.intersects(&child.d().position)) {
             child.build_display_list_recurse(builder, &adj_dirty, &adj_offset, list);
         }
     }

@@ -168,7 +168,7 @@ impl Layout {
                     };
                     // TODO: set options on the builder before building
                     // TODO: be smarter about what needs painting
-                    layout_root.build_display_list(&builder, &copy layout_root.data.position, &dlist);
+                    layout_root.build_display_list(&builder, &copy layout_root.d().position, &dlist);
                     self.render_task.send(render_task::RenderMsg(dlist));
                 } // time(layout)
             } // BuildMsg

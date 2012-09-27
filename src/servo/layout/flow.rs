@@ -40,8 +40,74 @@ Currently, the important types of flows are:
 
 */
 
+/* The type of the formatting context, and data specific to each
+context, such as linebox structures or float lists */ 
+enum FlowContext {
+    AbsoluteFlow(FlowData), 
+    BlockFlow(FlowData, BlockFlowData),
+    FloatFlow(FlowData),
+    InlineBlockFlow(FlowData),
+    InlineFlow(FlowData, InlineFlowData),
+    RootFlow(FlowData, RootFlowData),
+    TableFlow(FlowData)
+}
 
-struct FlowLayoutData {
+enum FlowContextType {
+    Flow_Absolute, 
+    Flow_Block,
+    Flow_Float,
+    Flow_InlineBlock,
+    Flow_Inline,
+    Flow_Root,
+    Flow_Table
+}
+
+impl FlowContext {
+    pure fn d(&self) -> &self/FlowData {
+        match *self {
+            AbsoluteFlow(ref d)    => d,
+            BlockFlow(ref d, _)    => d,
+            FloatFlow(ref d)       => d,
+            InlineBlockFlow(ref d) => d,
+            InlineFlow(ref d, _)   => d,
+            RootFlow(ref d, _)     => d,
+            TableFlow(ref d)       => d
+        }
+    }
+
+    pure fn inline(&self) -> &self/InlineFlowData {
+        match *self {
+            InlineFlow(_, ref i) => i,
+            _ => fail fmt!("Tried to access inline data of non-inline: %?", self)
+        }
+    }
+
+    pure fn block(&self) -> &self/BlockFlowData {
+        match *self {
+            BlockFlow(_, ref b) => b,
+            _ => fail fmt!("Tried to access block data of non-block: %?", self)
+        }
+    }
+
+    pure fn root(&self) -> &self/RootFlowData {
+        match *self {
+            RootFlow(_, ref r) => r,
+            _ => fail fmt!("Tried to access root data of non-root: %?", self)
+        }
+    }
+
+}
+
+/* A particular kind of layout context. It manages the positioning of
+   render boxes within the context.  */
+struct FlowData {
+    mut node: Option<Node>,
+    /* reference to parent, children flow contexts */
+    tree: tree::Tree<@FlowContext>,
+    /* TODO (Issue #87): debug only */
+    mut id: int,
+
+    /* layout computations */
     // TODO: min/pref and position are used during disjoint phases of
     // layout; maybe combine into a single enum to save space.
     mut min_width: au,
@@ -49,85 +115,55 @@ struct FlowLayoutData {
     mut position: Rect<au>,
 }
 
-fn FlowLayoutData() -> FlowLayoutData {
-    FlowLayoutData {
+
+fn FlowData(id: int) -> FlowData {
+    FlowData {
+        node: None,
+        tree: tree::empty(),
+        id: id,
+
         min_width: au(0),
         pref_width: au(0),
-        position : au::zero_rect(),
-    }
-}
-
-/* The type of the formatting context, and data specific to each
-context, such as linebox structures or float lists */ 
-enum FlowContextData {
-    AbsoluteFlow, 
-    BlockFlow(BlockFlowData),
-    FloatFlow,
-    InlineBlockFlow,
-    InlineFlow(InlineFlowData),
-    RootFlow(RootFlowData),
-    TableFlow
-}
-
-/* A particular kind of layout context. It manages the positioning of
-   render boxes within the context.  */
-struct FlowContext {
-    kind: FlowContextData,
-    data: FlowLayoutData,
-    mut node: Option<Node>,
-    /* reference to parent, children flow contexts */
-    tree: tree::Tree<@FlowContext>,
-    /* TODO (Issue #87): debug only */
-    mut id: int
-}
-
-
-fn FlowContext(id: int, kind: FlowContextData, tree: tree::Tree<@FlowContext>) -> FlowContext {
-    FlowContext {
-        kind: kind,
-        data: FlowLayoutData(),
-        node: None,
-        tree: tree,
-        id: id
+        position: au::zero_rect()
     }
 }
 
 /* Flow context disambiguation methods: the verbose alternative to virtual methods */
 impl FlowContext {
     fn bubble_widths(ctx: &LayoutContext) {
-        match self.kind {
+        match self {
             BlockFlow(*)  => self.bubble_widths_block(ctx),
             InlineFlow(*) => self.bubble_widths_inline(ctx),
             RootFlow(*)   => self.bubble_widths_root(ctx),
-            _ => fail fmt!("Tried to bubble_widths of flow: %?", self.kind)
+            _ => fail fmt!("Tried to bubble_widths of flow: %?", self)
         }
     }
 
     fn assign_widths(ctx: &LayoutContext) {
-        match self.kind {
+        match self {
             BlockFlow(*)  => self.assign_widths_block(ctx),
             InlineFlow(*) => self.assign_widths_inline(ctx),
             RootFlow(*)   => self.assign_widths_root(ctx),
-            _ => fail fmt!("Tried to assign_widths of flow: %?", self.kind)
+            _ => fail fmt!("Tried to assign_widths of flow: %?", self)
         }
     }
 
     fn assign_height(ctx: &LayoutContext) {
-        match self.kind {
+        match self {
             BlockFlow(*)  => self.assign_height_block(ctx),
             InlineFlow(*) => self.assign_height_inline(ctx),
             RootFlow(*)   => self.assign_height_root(ctx),
-            _ => fail fmt!("Tried to assign_height of flow: %?", self.kind)
+            _ => fail fmt!("Tried to assign_height of flow: %?", self)
         }
     }
 
     fn build_display_list_recurse(builder: &dl::DisplayListBuilder, dirty: &Rect<au>,
                                   offset: &Point2D<au>, list: &dl::DisplayList) {
-        match self.kind {
+        match self {
             RootFlow(*) => self.build_display_list_root(builder, dirty, offset, list),
             BlockFlow(*) => self.build_display_list_block(builder, dirty, offset, list),
             InlineFlow(*) => self.build_display_list_inline(builder, dirty, offset, list),
-            _ => fail fmt!("Tried to build_display_list_recurse of flow: %?", self.kind)
+            _ => fail fmt!("Tried to build_display_list_recurse of flow: %?", self)
         }
     }
 }
@@ -135,39 +171,39 @@ impl FlowContext {
 // Actual methods that do not require much flow-specific logic
 impl FlowContext {
     pure fn foldl_boxes_for_node<B: Copy>(node: Node, seed: B, blk: pure fn&(B,@RenderBox) -> B) -> B {
-        match self.kind {
-            RootFlow(d) => match d.box {
+        match self {
+            RootFlow(*) => match self.root().box {
                 Some(box) if box.d().node == node => { blk(seed, box) },
                 _ => seed
             },
-            BlockFlow(d) => match d.box {
+            BlockFlow(*) => match self.block().box {
                 Some(box)  if box.d().node == node => { blk(seed, box) },
                 _ => seed
             },
-            InlineFlow(d) => do d.boxes.foldl(seed) |acc, box| {
+            InlineFlow(*) => do self.inline().boxes.foldl(seed) |acc, box| {
                 if box.d().node == node { blk(acc, box) }
                 else { acc }
             },
-            _ => fail fmt!("Don't know how to iterate node's RenderBoxes for %?", self.kind)
+            _ => fail fmt!("Don't know how to iterate node's RenderBoxes for %?", self)
         }
     }
 
     pure fn iter_boxes_for_node<T>(node: Node, cb: pure fn&(@RenderBox) -> T) {
-        match self.kind {
-            RootFlow(d) => match d.box {
+        match self {
+            RootFlow(*) => match self.root().box {
                 Some(box) if box.d().node == node => { cb(box); },
                 _ => {}
             },
-            BlockFlow(d) => match d.box {
+            BlockFlow(*) => match self.block().box {
                 Some(box) if box.d().node == node => { cb(box); },
                 _ => {}
             },
-            InlineFlow(d) => {
-                for d.boxes.each |box| {
+            InlineFlow(*) => {
+                for self.inline().boxes.each |box| {
                     if box.d().node == node { cb(*box); }
                 }
             },
-            _ => fail fmt!("Don't know how to iterate node's RenderBoxes for %?", self.kind)
+            _ => fail fmt!("Don't know how to iterate node's RenderBoxes for %?", self)
         }
     }
 }
@@ -182,7 +218,7 @@ impl FlowTree : tree::ReadMethods<@FlowContext> {
     }
 
     fn with_tree_fields<R>(&&b: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
-        f(b.tree)
+        f(b.d().tree)
     }
 }
 
@@ -193,7 +229,7 @@ impl FlowTree : tree::WriteMethods<@FlowContext> {
     }
 
     fn with_tree_fields<R>(&&b: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
-        f(b.tree)
+        f(b.d().tree)
     }
 }
 
@@ -220,22 +256,28 @@ impl FlowContext : BoxedDebugMethods {
     
     /* TODO: we need a string builder. This is horribly inefficient */
     fn debug_str(@self) -> ~str {
-        let repr = match self.kind {
-            InlineFlow(d) => {
-                let mut s = d.boxes.foldl(~"InlineFlow(children=", |s, box| {
+        let repr = match *self {
+            InlineFlow(*) => {
+                let mut s = self.inline().boxes.foldl(~"InlineFlow(children=", |s, box| {
                     fmt!("%s %?", s, box.d().id)
                 });
                 s += ~")"; s
             },
-            BlockFlow(d) => {
-                match d.box {
-                    Some(_b) => fmt!("BlockFlow(box=b%?)", d.box.get().d().id),
+            BlockFlow(*) => {
+                match self.block().box {
+                    Some(box) => fmt!("BlockFlow(box=b%?)", box.d().id),
                     None => ~"BlockFlow",
                 }
             },
-            _ => fmt!("%?", self.kind)
+            RootFlow(*) => {
+                match self.root().box {
+                    Some(box) => fmt!("RootFlo(box=b%?)", box.d().id),
+                    None => ~"RootFlow",
+                }
+            },
+            _ => ~"(Unknown flow)"
         };
             
-        fmt!("c%? %?", self.id, repr)
+        fmt!("c%? %?", self.d().id, repr)
     }
 }
