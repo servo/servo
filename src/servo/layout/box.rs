@@ -388,7 +388,7 @@ mod test {
             push_all(r, flat_bounds(c));
         }
 
-        push(r, copy root.data.position);
+        push(r, copy root.d().position);
 
         return r;
     }
