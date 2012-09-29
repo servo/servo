@@ -23,36 +23,13 @@ extern fn alert(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool {
     assert (argc == 1);
     // Abstract this pattern and use it in debug, too?
     let jsstr = JS_ValueToString(cx, *ptr::offset(argv, 0));
-    // Right now, just print to the console
-    io::println(#fmt("ALERT: %s", jsval_to_rust_str(cx, jsstr)));
+    
+    (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.alert(jsval_to_rust_str(cx, jsstr));
+
     JS_SET_RVAL(cx, vp, JSVAL_NULL);
   }
   1_i32
 }
-
-// Holder for the various JS values associated with setTimeout
-// (ie. function value to invoke and all arguments to pass
-//      to the function when calling it)
-struct TimerData {
-    funval: jsval,
-    args: DVec<jsval>,
-}
-
-fn TimerData(argc: c_uint, argv: *jsval) -> TimerData unsafe {
-    let data = TimerData {
-        funval : *argv,
-        args : DVec(),
-    };
-
-    let mut i = 2;
-    while i < argc as uint {
-        data.args.push(*ptr::offset(argv, i));
-        i += 1;
-    };
-
-    data
-}
-
 
 extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool unsafe {
     let argv = JS_ARGV(cx, vp);
@@ -60,12 +37,9 @@ extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool unsafe 
 
     //TODO: don't crash when passed a non-integer value for the timeout
 
-    // Post a delayed message to the per-window timer task; it will dispatch it
-    // to the relevant content handler that will deal with it.
-    std::timer::delayed_send(std::uv_global_loop::get(),
-                             RUST_JSVAL_TO_INT(*ptr::offset(argv, 1)) as uint,
-                             (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.timer_chan,
-                             TimerMessage_Fire(~TimerData(argc, argv)));
+    (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.setTimeout(
+        RUST_JSVAL_TO_INT(*ptr::offset(argv, 1)) as int,
+        argc, argv);
 
     JS_SET_RVAL(cx, vp, JSVAL_NULL);
     return 1;
