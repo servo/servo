@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Enums</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+  var xhr = new XMLHttpRequest();
+  xhr.open("get", "foo")
+  assert_equals(xhr.responseType, "");
+  xhr.responseType = "foo";
+  assert_equals(xhr.responseType, "");
+}, "Assigning an invalid value to an enum attribute should not throw.");
+</script>

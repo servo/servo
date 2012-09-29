@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=775543
+-->
+<head>
+  <meta charset="utf-8">
+  <title>Test for Bug 775543</title>
+  <script type="application/javascript" src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=775543">Mozilla Bug 775543</a>
+<p id="display"></p>
+<div id="content" style="display: none">
+<iframe id="t" src="http://example.org/tests/dom/bindings/test/file_bug775543.html" onload="test();"></iframe>  
+</div>
+<pre id="test">
+<script type="application/javascript">
+
+/** Test for Bug 775543 **/
+
+function test()
+{
+  var a = XPCNativeWrapper(document.getElementById("t").contentWindow.wrappedJSObject.worker);
+  isnot(XPCNativeWrapper.unwrap(a), a, "XPCNativeWrapper(Worker) should be an Xray wrapper");
+  a.toString();
+  ok(true, "Shouldn't crash when calling a method on an Xray wrapper around a worker");
+  SimpleTest.finish();
+}
+
+SimpleTest.waitForExplicitFinish();
+
+</script>
+</pre>
+</body>
+</html>

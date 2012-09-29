@@ -1,0 +1,94 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=725907
+-->
+<head>
+  <meta charset="utf-8">
+  <title>Test for Bug 725907</title>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=725907">Mozilla Bug 725907</a>
+<p id="display"></p>
+<div id="content" style="display: none">
+  
+</div>
+<div id="basket">
+  <span id="egg0"></span>
+  <span id="egg1"><span id="duckling1"></span></span>
+  <span id="egg2"></span>
+</div>
+<pre id="test">
+<script type="application/javascript">
+
+/** Test for Bug 725907 **/
+
+function runTestsForDocument(document, msgSuffix) {
+    function is(a, b, msg) { SimpleTest.is(a, b, msg + msgSuffix); }
+    function isnot(a, b, msg) { SimpleTest.isnot(a, b, msg + msgSuffix); }
+
+    var basket = document.getElementById("basket");
+    var egg3 = document.createElement("span");
+    egg3.id = "egg3";
+
+    var log = '';
+    for (var x of basket.childNodes) {
+        if (x.nodeType != x.TEXT_NODE)
+            log += x.id + ";";
+    }
+    is(log, "egg0;egg1;egg2;", "'for (x of div.childNodes)' should iterate over child nodes");
+
+    log = '';
+    for (var x of basket.childNodes) {
+        if (x.nodeType != x.TEXT_NODE) {
+            log += x.id + ";";
+            if (x.id == "egg1")
+                basket.appendChild(egg3);
+        }
+    }
+    is(log, "egg0;egg1;egg2;egg3;", "'for (x of div.childNodes)' should see elements added during iteration");
+
+    var iter1 = basket.childNodes.iterator();
+    var iter2 = basket.childNodes.iterator();
+    isnot(iter1, iter2, "nodelist.iterator() returns a new iterator each time");
+
+    log = '';
+    basket.appendChild(document.createTextNode("some text"));
+    for (var x of basket.children)
+        log += x.id + ";";
+    is(log, "egg0;egg1;egg2;egg3;", "'for (x of div.children)' should iterate over child elements");
+
+    var iter1 = basket.children.iterator();
+    var iter2 = basket.children.iterator();
+    isnot(iter1, iter2, ".iterator() returns a new iterator each time");
+
+    var count = 0;
+    for (var x of document.getElementsByClassName("hazardous-materials"))
+        count++;
+    is(count, 0, "'for (x of emptyNodeList)' loop should run zero times");
+
+    var log = '';
+    for (var x of document.querySelectorAll("span"))
+        log += x.id + ";";
+    is(log, "egg0;egg1;duckling1;egg2;egg3;", "for-of loop should work with a querySelectorAll() NodeList");
+}
+
+/* All the tests run twice. First, in this document, so without any wrappers. */
+runTestsForDocument(document, "");
+
+/* And once using the document of an iframe, so working with cross-compartment wrappers. */
+SimpleTest.waitForExplicitFinish();
+function iframeLoaded(iframe) {
+    runTestsForDocument(iframe.contentWindow.document, " (in iframe)");
+    SimpleTest.finish();
+}
+
+</script>
+
+<iframe src="forOf_iframe.html" onload="iframeLoaded(this)"></iframe>
+
+</pre>
+</body>
+</html>

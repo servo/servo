@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=742156
+-->
+<head>
+  <meta charset="utf-8">
+  <title>Test for Bug 742156</title>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=742156">Mozilla Bug 742156</a>
+<p id="display"></p>
+<div id="content" style="display: none">
+  
+</div>
+<pre id="test">
+<script type="application/javascript">
+
+/** Test for Bug 742156 **/
+
+var nativeToString = ("" + String.replace).replace("replace", "EventTarget");
+try {
+    var eventTargetToString = "" + EventTarget;
+    is(eventTargetToString, nativeToString,
+       "Stringifying a DOM interface object should return the same string" +
+       "as stringifying a native function.");
+}
+catch (e) {
+    ok(false, "Stringifying a DOM interface object shouldn't throw.");
+}
+
+
+</script>
+</pre>
+</body>
+</html>

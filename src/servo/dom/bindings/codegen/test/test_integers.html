@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<p id="display"></p>
+<div id="content" style="display: none">
+  <canvas id="c" width="1" height="1"></canvas>
+</div>
+<pre id="test">
+<script type="application/javascript">
+
+  function testInt64NonFinite(arg) {
+    // We can use a WebGLRenderingContext to test conversion to 64-bit signed
+    // ints edge cases.
+    try {
+      var gl = $("c").getContext("experimental-webgl");
+    } catch (ex) {
+      // No WebGL support on MacOS 10.5.  Just skip this test
+      todo(false, "WebGL not supported");
+      return;
+    }
+    is(gl.getError(), 0, "Should not start in an error state");
+
+    var b = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, b);
+
+    var a = new Float32Array(1);
+    gl.bufferData(gl.ARRAY_BUFFER, a, gl.STATIC_DRAW);
+
+    gl.bufferSubData(gl.ARRAY_BUFFER, arg, a);
+
+    is(gl.getError(), 0, "Should have treated non-finite double as 0");
+  }
+
+  testInt64NonFinite(NaN);
+  testInt64NonFinite(Infinity);
+  testInt64NonFinite(-Infinity);
+</script>
+</pre>
+</body>
+</html>
