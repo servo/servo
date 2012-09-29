@@ -1,5 +1,6 @@
 use au = gfx::geometry;
 use core::dlist::DList;
+use core::dvec::DVec;
 use css::values::{BoxAuto, BoxLength, Px};
 use dl = gfx::display_list;
 use dom::rcu;
