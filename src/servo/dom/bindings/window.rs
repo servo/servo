@@ -45,6 +45,12 @@ extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool unsafe 
     return 1;
 }
 
+extern fn close(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool unsafe {
+    (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.close();
+    JS_SET_RVAL(cx, vp, JSVAL_NULL);
+    return 1;
+}
+
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Window> {
     let val = JS_GetReservedSlot(obj, 0);
     cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val))
@@ -74,6 +80,11 @@ fn init(compartment: bare_compartment, win: @Window) {
                      selfHostedName: null()},
                     {name: compartment.add_name(~"setTimeout"),
                      call: {op: setTimeout, info: null()},
+                     nargs: 2,
+                     flags: 0,
+                     selfHostedName: null()},
+                    {name: compartment.add_name(~"close"),
+                     call: {op: close, info: null()},
                      nargs: 2,
                      flags: 0,
                      selfHostedName: null()}];

@@ -51,7 +51,7 @@ use ptr::null;
 enum ControlMsg {
     ParseMsg(Url),
     ExecuteMsg(Url),
-    Timer(~dom::base::TimerData),
+    Timer(~dom::window::TimerData),
     ExitMsg
 }
 

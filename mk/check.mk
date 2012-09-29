@@ -20,7 +20,10 @@ $(eval $(call DEF_SUBMODULE_TEST_RULES,$(submodule))))
 servo-test: $(DEPS_servo)
 	$(CFG_RUSTC) $(RFLAGS_servo) --test -o $@ $<
 
-reftest: src/reftest/reftest.rs servo
+reftest: $(S)src/reftest/reftest.rs servo
+	$(CFG_RUSTC) $(RFLAGS_servo) -o $@ $< -L .
+
+contenttest: $(S)src/contenttest/contenttest.rs servo
 	$(CFG_RUSTC) $(RFLAGS_servo) -o $@ $< -L .
 
 .PHONY: check $(DEPS_CHECK)
@@ -31,5 +34,7 @@ check-servo: servo-test
 	./servo-test $(TESTNAME)
 
 check-ref: reftest
-	./reftest --source-dir=$(VPATH)/src/test/ref --work-dir=src/test/ref $(TESTNAME)
+	./reftest --source-dir=$(VPATH)/test/ref --work-dir=src/test/ref $(TESTNAME)
 
+check-content: contenttest
+	./contenttest --source-dir=$(VPATH)/test/content $(TESTNAME)

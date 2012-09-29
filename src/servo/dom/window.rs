@@ -1,9 +1,12 @@
 use comm::{Port, Chan};
-use content::content_task::{ControlMsg, Timer};
+use content::content_task::{ControlMsg, Timer, ExitMsg};
+use js::jsapi::jsval;
+use dvec::DVec;
 
 enum TimerControlMsg {
     TimerMessage_Fire(~TimerData),
-    TimerMessage_Close
+    TimerMessage_Close,
+    TimerMessage_TriggerExit //XXXjdm this is just a quick hack to talk to the content task
 }
 
 struct Window {
@@ -43,6 +46,10 @@ impl Window {
         io::println(#fmt("ALERT: %s", s));
     }
 
+    fn close() {
+        self.timer_chan.send(TimerMessage_TriggerExit);
+    }
+
     fn setTimeout(&self, timeout: int, argc: libc::c_uint, argv: *jsval) {
         let timeout = int::max(0, timeout) as uint;
 
@@ -65,6 +72,7 @@ fn Window(content_port: Port<ControlMsg>) -> Window {
                     TimerMessage_Fire(td) => {
                         content_chan.send(Timer(copy td));
                     }
+                    TimerMessage_TriggerExit => content_chan.send(ExitMsg)
                 }
             }
         }
