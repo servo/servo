@@ -1,4 +1,6 @@
-#[doc="Constructs a list of css style rules from a token stream"]
+/**
+Constructs a list of css style rules from a token stream
+*/
 
 // TODO: fail according to the css spec instead of failing when things
 // are not as expected

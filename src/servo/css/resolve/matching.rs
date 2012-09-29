@@ -1,4 +1,6 @@
-#[doc="Performs CSS selector matching."]
+/**
+   Performs CSS selector matching.
+*/
 
 use dom::node::{LayoutData, Node, Text};
 use dom::element::ElementData;
@@ -6,7 +8,9 @@ use dom::element::ElementData;
 use values::*;
 use styles::{SpecifiedStyle};
 
-#[doc="Check if a CSS attribute matches the attribute of an HTML element."]
+/** 
+   Check if a CSS attribute matches the attribute of an HTML element.
+*/
 fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
     match attr {
       Exists(name) => {
@@ -55,11 +59,13 @@ trait PrivMatchingMethods {
     fn matches_selector(sel : ~Selector) -> bool;
 }
 
-impl Node : PrivMatchingMethods {
-    #[doc="
-        Checks if the given CSS selector, which must describe a single element with no relational
-        information, describes the given HTML element.
-    "]
+impl Node : PrivMatchingMethods { 
+
+    /** 
+    Checks if the given CSS selector, which must describe a single
+    element with no relational information, describes the given HTML
+    element.
+    */
     fn matches_element(sel: ~Selector) -> bool {
         match *sel {
           Child(_, _) | Descendant(_, _) | Sibling(_, _) => { return false; }
@@ -87,7 +93,9 @@ impl Node : PrivMatchingMethods {
                    //unsupported.
     }
 
-    #[doc = "Checks if a generic CSS selector matches a given HTML element"]
+    /**
+    Checks if a generic CSS selector matches a given HTML element
+    */
     fn matches_selector(sel : ~Selector) -> bool {
         match *sel {
           Element(*) => { return self.matches_element(sel); }
@@ -162,7 +170,9 @@ trait PrivStyleMethods {
 }
 
 impl Node : PrivStyleMethods {
-    #[doc="Update the computed style of an HTML element with a style specified by CSS."]
+    /**
+    Update the computed style of an HTML element with a style specified by CSS.
+    */
     fn update_style(decl : StyleDeclaration) {
         self.aux(|layout| {
             match decl {
@@ -182,13 +192,16 @@ trait MatchingMethods {
 }
 
 impl Node : MatchingMethods {
-    #[doc="Compare an html element to a list of css rules and update its
-           style according to the rules matching it."]
+    /**
+    Compare an html element to a list of css rules and update its
+    style according to the rules matching it.
+    */
     fn match_css_style(styles : Stylesheet) {
-        // Loop over each rule, see if our node matches what is described in the rule. If it
-        // matches, update its style. As we don't currently have priorities of style information,
-        // the latest rule takes precedence over the others. So we just overwrite style
-        // information as we go.
+        // Loop over each rule, see if our node matches what is
+        // described in the rule. If it matches, update its style. As
+        // we don't currently have priorities of style information,
+        // the latest rule takes precedence over the others. So we
+        // just overwrite style information as we go.
 
         for styles.each |sty| {
             let (selectors, decls) = copy **sty;
@@ -201,7 +214,7 @@ impl Node : MatchingMethods {
             }
         }
         
-        self.aux(|a| #debug["Changed the style to: %?", copy *a.style]);
+        self.aux(|a| debug!("Changed the style to: %?", copy *a.style));
     }
 }
 

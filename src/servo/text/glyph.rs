@@ -3,10 +3,10 @@ export GlyphIndex, GlyphPos, Glyph;
 use gfx::geometry::au;
 use geom::point::Point2D;
 
-#[doc = "The index of a particular glyph within a font"]
+/** The index of a particular glyph within a font */
 type GlyphIndex = uint;
 
-#[doc="The position of a glyph on the screen."]
+/** The position of a glyph on the screen. */
 struct GlyphPos {
     advance: Point2D<au>,
     offset: Point2D<au>,
@@ -19,7 +19,7 @@ fn GlyphPos(advance: Point2D<au>, offset: Point2D<au>) -> GlyphPos {
     }
 }
 
-#[doc="A single glyph."]
+/** A single glyph. */
 struct Glyph {
     index: GlyphIndex,
     pos: GlyphPos,

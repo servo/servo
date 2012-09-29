@@ -1,4 +1,4 @@
-#[doc = "A library for handling colors and parsing css color declarations."]
+/** A library for handling colors and parsing css color declarations. */
 
 // TODO: handle #rrggbb color declarations, handle rgb(r%,g%,b%),
 // sanitize input / crop it to correct ranges, predefine other 130
@@ -61,8 +61,8 @@ fn hsl(h : float, s : float, l : float) -> Color {
 
 impl Color {
     fn print() -> ~str {
-        #fmt["rgba(%u,%u,%u,%f)", self.red as uint, self.green as uint,
-             self.blue as uint, self.alpha]
+        fmt!("rgba(%u,%u,%u,%f)", self.red as uint, self.green as uint,
+             self.blue as uint, self.alpha)
     }
 }
 
@@ -70,11 +70,11 @@ mod parsing {
     export parse_color;
 
     fn fail_unrecognized(col : ~str) -> Option<Color> {
-        #warn["Unrecognized color %s", col];
+        warn!("Unrecognized color %s", col);
         return None;
     }
 
-    #[doc="Match an exact color keyword."]
+    /** Match an exact color keyword. */
     fn parse_by_name(color : ~str) -> Option<Color> {
         let col = match color.to_lower() {
           ~"black" => black(),
@@ -100,7 +100,7 @@ mod parsing {
         return Some(col);
     }
     
-    #[doc="Parses a color specification in the form rgb(foo,bar,baz)"]
+    /** Parses a color specification in the form rgb(foo,bar,baz) */
     fn parse_rgb(color : ~str) -> Option<Color> {
         // Shave off the rgb( and the )
         let only_colors = color.substr(4u, color.len() - 5u);
@@ -116,7 +116,7 @@ mod parsing {
         }
     }
 
-    #[doc="Parses a color specification in the form rgba(foo,bar,baz,qux)"]
+    /** Parses a color specification in the form rgba(foo,bar,baz,qux) */
     fn parse_rgba(color : ~str) -> Option<Color> {
         // Shave off the rgba( and the )
         let only_vals = color.substr(5u, color.len() - 6u);
@@ -132,7 +132,7 @@ mod parsing {
         }
     }
 
-    #[doc="Parses a color specification in the form hsl(foo,bar,baz)"]
+    /** Parses a color specification in the form hsl(foo,bar,baz) */
     fn parse_hsl(color : ~str) -> Option<Color> {
         // Shave off the hsl( and the )
         let only_vals = color.substr(4u, color.len() - 5u);
@@ -148,7 +148,7 @@ mod parsing {
         }
     }
 
-    #[doc="Parses a color specification in the form hsla(foo,bar,baz,qux)"]
+    /** Parses a color specification in the form hsla(foo,bar,baz,qux) */
     fn parse_hsla(color : ~str) -> Option<Color> {
         // Shave off the hsla( and the )
         let only_vals = color.substr(5u, color.len() - 6u);
@@ -240,7 +240,7 @@ mod test {
 }
 
 
-#[doc="Define the colors specified by css"]
+/** Define the colors specified by css */
 mod css_colors {
     // The 16 basic css colors
     fn black() -> Color {

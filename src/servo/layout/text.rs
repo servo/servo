@@ -1,4 +1,4 @@
-#[doc="Text layout."]
+/** Text layout. */
 
 use au = gfx::geometry;
 use geom::size::Size2D;
@@ -24,7 +24,7 @@ trait TextLayout {
     fn reflow_text(ctx: &LayoutContext);
 }
 
-#[doc="The main reflow routine for text layout."]
+/** The main reflow routine for text layout. */
 impl @RenderBox : TextLayout {
     fn reflow_text(ctx: &LayoutContext) {
         let d = match self {
