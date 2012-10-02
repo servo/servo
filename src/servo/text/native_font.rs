@@ -1,14 +1,13 @@
-#[doc = "
-
+/**
 NativeFont encapsulates access to the platform's font API,
 e.g. quartz, FreeType. It provides access to metrics and tables
 needed by the text shaper as well as access to the underlying
 font resources needed by the graphics layer to draw glyphs.
-
-"];
+*/
 
 export NativeFont, create;
 
+use glyph::GlyphIndex;
 use font_cache::native::NativeFontCache;
 
 #[cfg(target_os = "macos")]
@@ -41,7 +40,7 @@ fn with_test_native_font(f: fn@(nf: &NativeFont)) {
 fn should_get_glyph_indexes() {
     with_test_native_font(|font| {
         let idx = font.glyph_index('w');
-        assert idx == Some(40u);
+        assert idx == Some(40u as GlyphIndex);
     })
 }
 
@@ -57,7 +56,7 @@ fn should_return_none_glyph_index_for_bad_codepoints() {
 #[ignore(cfg(target_os = "macos"))]
 fn should_get_glyph_h_advance() {
     with_test_native_font(|font| {
-        let adv = font.glyph_h_advance(40u);
+        let adv = font.glyph_h_advance(40u as GlyphIndex);
         assert adv == Some(15);
     })
 }
@@ -66,7 +65,7 @@ fn should_get_glyph_h_advance() {
 #[ignore(cfg(target_os = "macos"))]
 fn should_return_none_glyph_h_advance_for_bad_codepoints() {
     with_test_native_font(|font| {
-        let adv = font.glyph_h_advance(-1 as uint);
+        let adv = font.glyph_h_advance(-1 as GlyphIndex);
         assert adv == None;
     })
 }

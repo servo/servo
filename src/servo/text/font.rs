@@ -7,10 +7,10 @@ use libc::{ c_int, c_double, c_ulong };
 use ptr::{ null, addr_of };
 use native_font::NativeFont;
 
-#[doc = "
+/**
 A font handle. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
-"]
+*/
 struct Font {
     // A back reference to keep the library alive
     lib: @FontCache,
@@ -78,7 +78,7 @@ fn should_get_glyph_indexes() {
     let lib = FontCache();
     let font = lib.get_test_font();
     let glyph_idx = font.glyph_index('w');
-    assert glyph_idx == Some(40u);
+    assert glyph_idx == Some(40u as GlyphIndex);
 }
 
 fn should_get_glyph_advance() {
@@ -86,7 +86,7 @@ fn should_get_glyph_advance() {
 
     let lib = FontCache();
     let font = lib.get_test_font();
-    let x = font.glyph_h_advance(40u);
+    let x = font.glyph_h_advance(40u as GlyphIndex);
     assert x == 15;
 }
 
@@ -102,7 +102,7 @@ fn should_get_glyph_advance_stress() {
         do task::spawn {
             let lib = FontCache();
             let font = lib.get_test_font();
-            let x = font.glyph_h_advance(40u);
+            let x = font.glyph_h_advance(40u as GlyphIndex);
             assert x == 15;
             chan.send(());
         }

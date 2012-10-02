@@ -6,7 +6,7 @@ use au = gfx::geometry;
 use libc::types::common::c99::int32_t;
 use libc::{c_uint, c_int, c_void, c_char};
 use font::Font;
-use glyph::{Glyph, GlyphPos};
+use glyph::{Glyph, GlyphPos, GlyphIndex};
 use ptr::{null, addr_of, offset};
 use gfx::geometry::au;
 use geom::point::Point2D;
@@ -87,7 +87,7 @@ fn shape_text(font: &Font, text: &str) -> ~[Glyph] unsafe {
     for uint::range(0u, info_len as uint) |i| {
         let info_ = offset(info_, i);
         let pos = offset(pos, i);
-        let codepoint = (*info_).codepoint as uint;
+        let codepoint = (*info_).codepoint as u32;
         let pos = hb_glyph_pos_to_servo_glyph_pos(&*pos);
         #debug("glyph %?: codep %?, x_adv %?, y_adv %?, x_off %?, y_of %?",
                i, codepoint, pos.advance.x, pos.advance.y, pos.offset.x, pos.offset.y);
@@ -132,7 +132,7 @@ extern fn glyph_h_advance_func(_font: *hb_font_t,
     let font: *Font = reinterpret_cast(&font_data);
     assert font.is_not_null();
 
-    let h_advance = (*font).glyph_h_advance(glyph as uint);
+    let h_advance = (*font).glyph_h_advance(glyph as u32);
     #debug("h_advance for codepoint %? is %?", glyph, h_advance);
     return h_advance as hb_position_t;
 }
@@ -152,7 +152,7 @@ fn should_get_glyph_indexes() {
     let font = lib.get_test_font();
     let glyphs = shape_text(font, ~"firecracker");
     let idxs = glyphs.map(|glyph| glyph.index);
-    assert idxs == ~[32u, 8u, 13u, 14u, 10u, 13u, 201u, 10u, 37u, 14u, 13u];
+    assert idxs == ~[32u32, 8u32, 13u32, 14u32, 10u32, 13u32, 201u32, 10u32, 37u32, 14u32, 13u32];
 }
 
 fn should_get_glyph_h_advance() {
