@@ -23,7 +23,6 @@ enum NodeData = {
     kind: ~NodeKind,
 };
 
-
 /* The tree holding Nodes (read-only) */
 enum NodeTree { NodeTree }
 
