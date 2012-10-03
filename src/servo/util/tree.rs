@@ -108,7 +108,7 @@ mod test {
         let p = new_dummy(3u);
 
         for vec::each(children) |c| {
-            add_child(dtree, p, c);
+            add_child(dtree, p, *c);
         }
 
         return {p: p, children: children};
