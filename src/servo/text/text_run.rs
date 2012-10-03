@@ -233,16 +233,19 @@ fn test_split2() {
     assert break_runs.second().text == ~"yum yum yum yum yum";
 }
 
+/* Causes ICE during compilation. See Rust Issue #3592 */
+/*
 #[test]
 fn test_split3() {
     let flib = FontCache();
     let font = flib.get_test_font();
     let run = TextRun(font, ~"firecracker firecracker");
-    let break_runs = run.split(font, run.min_break_width() + au::from_px(10));
+    let px = au::from_px(10);
+    let break_runs = run.split(font, run.min_break_width() + px);
     assert break_runs.first().text == ~"firecracker";
     assert break_runs.second().text == ~"firecracker";
 
-}
+}*/
 
 #[test]
 #[ignore(cfg(target_os = "macos"))]
