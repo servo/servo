@@ -130,12 +130,14 @@ mod resource {
 }
 
 mod util {
-    mod tree;
     mod color;
     mod time;
+    mod tree;
     mod url;
+    mod vec;
 }
 
 mod opts;
 
+use servo_util = util;
 use servo_text = text;

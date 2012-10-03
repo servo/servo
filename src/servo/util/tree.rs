@@ -1,3 +1,5 @@
+use core::vec;
+
 // A generic tree datatype.
 //
 // TODO: Use traits.
