@@ -1,27 +1,30 @@
-export GlyphIndex, GlyphPos, Glyph;
-
 use au = gfx::geometry;
 use au::au;
+use core::cmp::{Ord, Eq};
+use core::dvec::DVec;
 use geom::point::Point2D;
+use std::sort;
+use servo_util::vec::*;
 
-/** The index of a particular glyph within a font */
+export GlyphIndex, GlyphPos, Glyph;
+
 struct CompressedGlyph {
     mut value : u32
 }
+
+/// The index of a particular glyph within a font
 type GlyphIndex = u32;
 
-enum BreakTypeFlags {
-    BREAK_TYPE_NONE   = 0x0,
-    BREAK_TYPE_NORMAL = 0x1,
-    BREAK_TYPE_HYPEN  = 0x2,
-}
+const BREAK_TYPE_NONE   : u8 = 0x0u8;
+const BREAK_TYPE_NORMAL : u8 = 0x1u8;
+const BREAK_TYPE_HYPEN  : u8 = 0x2u8;
 
 // TODO: make this more type-safe.
 
 const FLAG_CHAR_IS_SPACE : u32             = 0x10000000u32;
-// These two bits store a BreakTypeFlags
+// These two bits store some BREAK_TYPE_* flags
 const FLAG_CAN_BREAK_MASK : u32            = 0x60000000u32;
-const FLAG_CAN_BREAK_SHIFT : u32           = 29u32;
+const FLAG_CAN_BREAK_SHIFT : u32           = 29;
 const FLAG_IS_SIMPLE_GLYPH : u32           = 0x80000000u32;
 
 // glyph advance; in au's.
@@ -50,7 +53,6 @@ const FLAG_CHAR_IS_TAB : u32               = 0x00000008u32;
 const FLAG_CHAR_IS_NEWLINE : u32           = 0x00000010u32;
 const FLAG_CHAR_IS_LOW_SURROGATE : u32     = 0x00000020u32;
 const CHAR_IDENTITY_FLAGS_MASK : u32       = 0x00000038u32;
-
 
 pure fn is_simple_glyph_id(glyphId: GlyphIndex) -> bool {
     ((glyphId as u32) & GLYPH_ID_MASK) == glyphId
@@ -188,6 +190,130 @@ impl CompressedGlyph {
         (self.value & flag) != 0
     }
 }
+
+struct DetailedGlyph {
+    // The GlyphIndex, or the unicode codepoint if glyph is missing.
+    index: u32,
+    // glyph's advance, in the text's direction (RTL or RTL)
+    advance: au,
+    // glyph's offset from the font's em-box (from top-left)
+    offset: Point2D<au>
+}
+
+// cg = CompressedGlyph,
+// dg = DetailedGlyph
+
+struct DetailedGlyphRecord {
+    // source character/CompressedGlyph offset in the TextRun
+    cg_offset: u32,
+    // offset into the detailed glyphs buffer
+    dg_offset: uint
+}
+
+impl DetailedGlyphRecord : Ord {
+    pure fn lt(other: &DetailedGlyphRecord) -> bool { self.cg_offset <  other.cg_offset }
+    pure fn le(other: &DetailedGlyphRecord) -> bool { self.cg_offset <= other.cg_offset }
+    pure fn ge(other: &DetailedGlyphRecord) -> bool { self.cg_offset >= other.cg_offset }
+    pure fn gt(other: &DetailedGlyphRecord) -> bool { self.cg_offset >  other.cg_offset }
+}
+
+impl DetailedGlyphRecord : Eq {
+    pure fn eq(other : &DetailedGlyphRecord) -> bool { self.cg_offset == other.cg_offset }
+    pure fn ne(other : &DetailedGlyphRecord) -> bool { self.cg_offset != other.cg_offset }
+}
+
+// Manages the lookup table for detailed glyphs. 
+struct DetailedGlyphStore {
+    dg_buffer: DVec<DetailedGlyph>,
+    dg_lookup: DVec<DetailedGlyphRecord>,
+    mut lookup_is_sorted: bool,
+}
+
+fn DetailedGlyphStore() -> DetailedGlyphStore {
+    DetailedGlyphStore {
+        dg_buffer: DVec(),
+        dg_lookup: DVec(),
+        lookup_is_sorted: false
+    }
+}
+
+impl DetailedGlyphStore {
+    fn add_glyphs_for_cg(cg_offset: u32, glyphs: &[DetailedGlyph]) {
+        let entry = DetailedGlyphRecord {
+            cg_offset: cg_offset,
+            dg_offset: self.dg_buffer.len()
+        };
+
+        /*
+        TODO: don't actually assert this until asserts are compiled
+        in/out based on severity, debug/release, etc.
+
+        See Rust Issue #3647, #2228, #3627 for related information.
+
+        do self.dg_lookup.borrow |arr| {
+            assert !arr.contains(entry)
+        }
+        */
+
+        self.dg_lookup.push(entry);
+        self.dg_buffer.push_all(glyphs);
+        self.lookup_is_sorted = false;
+    }
+
+    // not pure; may perform a deferred sort.
+    fn get_glyphs_for_cg(&self, cg_offset: u32, count: uint) -> &[DetailedGlyph] {
+        assert count > 0 && count < self.dg_buffer.len();
+        self.ensure_sorted();
+
+        let key = DetailedGlyphRecord {
+            cg_offset: cg_offset,
+            dg_offset: 0 // unused
+        };
+
+        do self.dg_lookup.borrow |records : &[DetailedGlyphRecord]| {
+            match records.binary_search_index(&key) {
+                None => fail ~"Invalid index not found in detailed glyph lookup table!",
+                Some(i) => {
+                    do self.dg_buffer.borrow |glyphs : &[DetailedGlyph]| {
+                        assert i + count < glyphs.len();
+                        // return a view into the buffer
+                        vec::view(glyphs, i, count)
+                    }
+                }
+            }
+        }
+    }
+
+    /*priv*/ fn ensure_sorted() {
+        if self.lookup_is_sorted {
+            return;
+        }
+
+        do self.dg_lookup.borrow_mut |arr| {
+            sort::quick_sort3(arr);
+        };
+        self.lookup_is_sorted = true;
+    }
+}
+
+// Public data structure and API for storing glyph data
+struct GlyphStore {
+    mut cg_buffer: ~[CompressedGlyph],
+    dg_store: DetailedGlyphStore,
+}
+
+// Initializes the glyph store, but doesn't actually shape anything.
+// Use the set_glyph, set_glyphs() methods to store glyph data.
+// Use the get_glyph_data method to retrieve glyph data for a char..
+fn GlyphStore(text: ~str) {
+
+}
+
+impl GlyphStore {
+    
+}
+
+// XXX: legacy glyphs below. rip out once converted to new glyphs
 
 /** The position of a glyph on the screen. */
 struct GlyphPos {
