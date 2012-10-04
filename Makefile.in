@@ -145,7 +145,7 @@ all:    servo package
 # Servo binaries
 
 servo:	$(DEPS_servo)
-	$(CFG_RUSTC) $(RFLAGS_servo) -o $@ $< --bin
+	$(RUSTC) $(RFLAGS_servo) -o $@ $< --bin
 
 # Darwin app packaging
 

@@ -23,7 +23,7 @@ type CssLexer = {
     mut parser_state: ParserState
 };
 
-enum Token {
+pub enum Token {
     StartDescription,
     EndDescription,
     Descendant,
@@ -80,7 +80,7 @@ impl CssLexer : CssLexerMethods {
     }
 
     fn parse_css_element(c : u8) -> Token {
-        assert is_none(self.input_state.lookahead);
+        assert is_none(&self.input_state.lookahead);
 
         /* Check for special attributes with an implied element,
         or a wildcard which is not a alphabet character.*/
@@ -182,7 +182,7 @@ impl CssLexer : CssLexerMethods {
                     break;
                 }
             } else {
-                push(desc_name, ch);
+                push(&mut desc_name, ch);
             }
 
             match self.input_state.get() {
@@ -217,7 +217,7 @@ impl CssLexer : CssLexerMethods {
                     break;
                 }
             } else {
-                push(desc_val, ch);
+                push(&mut desc_val, ch);
             }
         }
 
@@ -267,7 +267,7 @@ fn spawn_css_lexer_from_string(-content : ~str) -> pipes::Port<Token> {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-fn spawn_css_lexer_task(-url: Url, resource_task: ResourceTask) -> pipes::Port<Token> {
+pub fn spawn_css_lexer_task(-url: Url, resource_task: ResourceTask) -> pipes::Port<Token> {
     let (result_chan, result_port) = pipes::stream();
 
     do task::spawn || {

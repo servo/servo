@@ -65,7 +65,7 @@ fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Por
                 result_chan.send(css_rules);
             });
 
-            vec::push(result_vec, result_port);
+            vec::push(&mut result_vec, result_port);
           }
           CSSTaskExit => {
             break;
@@ -110,7 +110,7 @@ fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port
                     }
                 }
             }
-            vec::push(result_vec, result_port);
+            vec::push(&mut result_vec, result_port);
           }
           JSTaskExit => {
             break;
@@ -165,10 +165,10 @@ fn build_element_kind(tag: &str) -> ~ElementKind {
     else { ~UnknownElement }
 }
 
-fn parse_html(scope: NodeScope,
-              url: Url,
-              resource_task: ResourceTask,
-              image_cache_task: ImageCacheTask) -> HtmlParserResult unsafe {
+pub fn parse_html(scope: NodeScope,
+                  url: Url,
+                  resource_task: ResourceTask,
+                  image_cache_task: ImageCacheTask) -> HtmlParserResult unsafe {
     // Spawn a CSS parser to receive links to CSS style sheets.
     let (css_port, css_chan): (comm::Port<Stylesheet>, comm::Chan<CSSMessage>) =
             do task::spawn_conversation |css_port: comm::Port<CSSMessage>,
@@ -237,7 +237,7 @@ fn parse_html(scope: NodeScope,
                 },
                 ~HTMLImageElement(d) => {
                     do elem.get_attr(~"src").iter |img_url_str| {
-                        let img_url = make_url(copy img_url_str, Some(copy *url));
+                        let img_url = make_url(copy *img_url_str, Some(copy *url));
                         d.image = Some(copy img_url);
                         // inform the image cache to load this, but don't store a handle.
                         // TODO (Issue #84): don't prefetch if we are within a <noscript> tag.

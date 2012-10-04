@@ -1,6 +1,6 @@
 use geom::size::Size2D;
 
-enum format {
+pub enum format {
     fo_rgba_8888
     // TODO: RGB 565, others?
 }
@@ -16,7 +16,7 @@ impl format: cmp::Eq {
     }
 }
 
-type image_surface = {
+pub type image_surface = {
     size: Size2D<int>,
     format: format,
     buffer: ~[u8]
@@ -30,7 +30,7 @@ impl format {
     }
 }
 
-fn image_surface(size: Size2D<int>, format: format) -> image_surface {
+pub fn image_surface(size: Size2D<int>, format: format) -> image_surface {
     {
         size: copy size,
         format: format,

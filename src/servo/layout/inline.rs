@@ -133,7 +133,7 @@ impl FlowContext : InlineLayout {
             };
 
             box.d().position.origin = Point2D(au(0), cur_y);
-            cur_y = cur_y.add(au::max(line_height, box.d().position.size.height));
+            cur_y = cur_y.add(&au::max(line_height, box.d().position.size.height));
         } // for boxes.each |box|
 
     self.d().position.size.height = cur_y;

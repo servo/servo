@@ -34,10 +34,10 @@ impl TextRun {
             let mut candidate = copy curr_run;
 
             if candidate.is_not_empty() {
-                str::push_str(candidate, " "); // FIXME: just inserting spaces between words can't be right
+                str::push_str(&mut candidate, " "); // FIXME: just inserting spaces between words can't be right
             }
 
-            str::push_str(candidate, slice);
+            str::push_str(&mut candidate, slice);
 
             let glyphs = shape_text(font, candidate);
             let size = glyph_run_size(glyphs);
@@ -82,8 +82,8 @@ fn glyph_run_size(glyphs: &[Glyph]) -> Size2D<au> {
     let pen_start_y = height;
     let pen_start = Point2D(pen_start_x, pen_start_y);
     let pen_end = glyphs.foldl(pen_start, |cur, glyph| {
-        Point2D(cur.x.add(glyph.pos.offset.x).add(glyph.pos.advance.x),
-                cur.y.add(glyph.pos.offset.y).add(glyph.pos.advance.y))
+        Point2D(cur.x.add(&glyph.pos.offset.x).add(&glyph.pos.advance.x),
+                cur.y.add(&glyph.pos.offset.y).add(&glyph.pos.advance.y))
     });
     return Size2D(pen_end.x, pen_end.y);
 }

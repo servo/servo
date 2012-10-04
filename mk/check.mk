@@ -18,13 +18,13 @@ $(eval $(call DEF_SUBMODULE_TEST_RULES,$(submodule))))
 # Testing targets
 
 servo-test: $(DEPS_servo)
-	$(CFG_RUSTC) $(RFLAGS_servo) --test -o $@ $<
+	$(RUSTC) $(RFLAGS_servo) --test -o $@ $<
 
 reftest: $(S)src/reftest/reftest.rs servo
-	$(CFG_RUSTC) $(RFLAGS_servo) -o $@ $< -L .
+	$(RUSTC) $(RFLAGS_servo) -o $@ $< -L .
 
 contenttest: $(S)src/contenttest/contenttest.rs servo
-	$(CFG_RUSTC) $(RFLAGS_servo) -o $@ $< -L .
+	$(RUSTC) $(RFLAGS_servo) -o $@ $< -L .
 
 .PHONY: check $(DEPS_CHECK)
 

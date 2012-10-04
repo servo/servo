@@ -14,7 +14,7 @@ use utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval,
 use libc::c_uint;
 use ptr::null;
 
-fn init(compartment: bare_compartment) {
+pub fn init(compartment: bare_compartment) {
     let obj = utils::define_empty_prototype(~"Node", None, compartment);
 
     let attrs = @~[
@@ -35,13 +35,13 @@ fn init(compartment: bare_compartment) {
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: {op: getNodeType, info: null()},
          setter: {op: null(), info: null()}}];
-    vec::push(compartment.global_props, attrs);
+    vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
     });
 }
 
-fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
+pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
     do scope.write(node) |nd| {
         match nd.kind {
             ~Element(*) => {

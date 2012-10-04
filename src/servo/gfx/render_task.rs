@@ -1,20 +1,21 @@
+use mod azure::azure_hl;
 use au = geometry;
 use au::au;
 use platform::osmain;
 use comm::*;
 use image::base::Image;
 use dl = display_list;
-use azure::*;
-use azure::bindgen::*;
 use libc::size_t;
 use text::font::Font;
 use display_list::GlyphRun;
 use geom::size::Size2D;
 use geom::rect::Rect;
 use geom::point::Point2D;
+use azure::{AzDrawOptions, AzFloat, AzGlyph, AzGlyphBuffer};
+use azure::bindgen::AzDrawTargetFillGlyphs;
 use azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions};
 use azure_hl::{DrawTarget, Linear};
-use ptr::addr_of;
+use ptr::to_unsafe_ptr;
 use std::arc::ARC;
 use azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
 use std::cell::Cell;
@@ -23,7 +24,7 @@ use servo_text::font_cache::FontCache;
 
 use pipes::{Port, Chan};
 
-type Renderer = comm::Chan<Msg>;
+pub type Renderer = comm::Chan<Msg>;
 
 pub enum Msg {
     RenderMsg(dl::DisplayList),
@@ -35,9 +36,9 @@ struct RenderContext {
     font_cache: @FontCache,
 }
 
-type RenderTask = comm::Chan<Msg>;
+pub type RenderTask = comm::Chan<Msg>;
 
-fn RenderTask<C: Compositor Send>(+compositor: C) -> RenderTask {
+pub fn RenderTask<C: Compositor Send>(+compositor: C) -> RenderTask {
     do task::spawn_listener |po: comm::Port<Msg>| {
         let (draw_target_ch, draw_target_po) = pipes::stream();
         let mut draw_target_ch = draw_target_ch;
@@ -133,7 +134,7 @@ pub fn draw_image(ctx: &RenderContext, bounds: Rect<au>, image: ARC<~Image>) {
 }
 
 pub fn draw_glyphs(ctx: &RenderContext, bounds: Rect<au>, text_run: &GlyphRun) {
-    use ptr::{addr_of, null};
+    use ptr::{null};
     use vec::raw::to_ptr;
     use libc::types::common::c99::{uint16_t, uint32_t};
     use geom::point::Point2D;
@@ -155,7 +156,7 @@ pub fn draw_glyphs(ctx: &RenderContext, bounds: Rect<au>, text_run: &GlyphRun) {
     };
 
     let cfont = get_cairo_font(font);
-    let azfont = AzCreateScaledFontWithCairo(addr_of(nfont), 1f as AzFloat, cfont);
+    let azfont = AzCreateScaledFontWithCairo(to_unsafe_ptr(&nfont), 1f as AzFloat, cfont);
     assert azfont.is_not_null();
     cairo_scaled_font_destroy(cfont);
 
@@ -165,7 +166,7 @@ pub fn draw_glyphs(ctx: &RenderContext, bounds: Rect<au>, text_run: &GlyphRun) {
         b: 0f as AzFloat,
         a: 1f as AzFloat
     };
-    let pattern = AzCreateColorPattern(addr_of(color));
+    let pattern = AzCreateColorPattern(to_unsafe_ptr(&color));
     assert pattern.is_not_null();
 
     let options: AzDrawOptions = {
@@ -173,17 +174,17 @@ pub fn draw_glyphs(ctx: &RenderContext, bounds: Rect<au>, text_run: &GlyphRun) {
         fields: 0 as uint16_t
     };
 
-    let mut origin = Point2D(bounds.origin.x, bounds.origin.y.add(bounds.size.height));
+    let mut origin = Point2D(bounds.origin.x, bounds.origin.y.add(&bounds.size.height));
     let azglyphs = text_run.glyphs.map(|glyph| {
         let azglyph: AzGlyph = {
             mIndex: glyph.index as uint32_t,
             mPosition: {
-                x: au::to_px(origin.x.add(glyph.pos.offset.x)) as AzFloat,
-                y: au::to_px(origin.y.add(glyph.pos.offset.y)) as AzFloat
+                x: au::to_px(origin.x.add(&glyph.pos.offset.x)) as AzFloat,
+                y: au::to_px(origin.y.add(&glyph.pos.offset.y)) as AzFloat
             }
         };
-        origin = Point2D(origin.x.add(glyph.pos.advance.x),
-                         origin.y.add(glyph.pos.advance.y));
+        origin = Point2D(origin.x.add(&glyph.pos.advance.x),
+                         origin.y.add(&glyph.pos.advance.y));
         azglyph
     });
 
@@ -193,8 +194,8 @@ pub fn draw_glyphs(ctx: &RenderContext, bounds: Rect<au>, text_run: &GlyphRun) {
     }};
 
     // TODO: this call needs to move into azure_hl.rs
-    AzDrawTargetFillGlyphs(ctx.canvas.azure_draw_target, azfont, addr_of(glyphbuf),
-                           pattern, addr_of(options), null());
+    AzDrawTargetFillGlyphs(ctx.canvas.azure_draw_target, azfont, to_unsafe_ptr(&glyphbuf),
+                           pattern, to_unsafe_ptr(&options), null());
 
     AzReleaseColorPattern(pattern);
     AzReleaseScaledFont(azfont);
@@ -246,14 +247,13 @@ fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
         x0: 0 as c_double,
         y0: 0 as c_double
     };
-    cairo_matrix_init_identity(addr_of(idmatrix));
+    cairo_matrix_init_identity(to_unsafe_ptr(&idmatrix));
 
     let fontmatrix = idmatrix;
-    cairo_matrix_scale(addr_of(fontmatrix),
-                       20f as c_double, 20f as c_double);
+    cairo_matrix_scale(to_unsafe_ptr(&fontmatrix), 20f as c_double, 20f as c_double);
     let options = cairo_font_options_create();
-    let cfont = cairo_scaled_font_create(face, addr_of(fontmatrix),
-                                         addr_of(idmatrix), options);
+    let cfont = cairo_scaled_font_create(face, to_unsafe_ptr(&fontmatrix),
+                                         to_unsafe_ptr(&idmatrix), options);
     cairo_font_options_destroy(options);
     cairo_font_face_destroy(face);
 

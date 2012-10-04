@@ -8,7 +8,7 @@ use io::{file_reader, ReaderUtil};
 
 const READ_SIZE: uint = 1024;
 
-fn factory(+url: Url, progress_chan: Chan<ProgressMsg>) {
+pub fn factory(+url: Url, progress_chan: Chan<ProgressMsg>) {
     assert url.scheme == ~"file";
 
     do spawn {

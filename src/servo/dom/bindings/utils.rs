@@ -45,7 +45,7 @@ fn jsval_to_str(cx: *JSContext, v: jsval) -> Result<~str, ()> {
     }
 
     let len = 0;
-    let chars = JS_GetStringCharsZAndLength(cx, jsstr, ptr::addr_of(len));
+    let chars = JS_GetStringCharsZAndLength(cx, jsstr, ptr::to_unsafe_ptr(&len));
     return if chars.is_null() {
         Err(())
     } else {
@@ -70,7 +70,7 @@ unsafe fn domstring_to_jsval(cx: *JSContext, str: DOMString) -> jsval {
     }
 }
 
-fn get_compartment(cx: *JSContext) -> *bare_compartment {
+pub fn get_compartment(cx: *JSContext) -> *bare_compartment {
     unsafe {
         let privptr: *libc::c_void = JS_GetContextPrivate(cx);
         let compartment: *bare_compartment = cast::reinterpret_cast(&privptr);
@@ -94,7 +94,7 @@ extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *jsval, bp: *mut JSB
     return 1;
 }
 
-fn prototype_jsclass(name: ~str) -> fn(+bare_compartment) -> JSClass {
+pub fn prototype_jsclass(name: ~str) -> fn(+compartment: bare_compartment) -> JSClass {
     |+compartment: bare_compartment, copy name| {
         {name: compartment.add_name(name),
          flags: 0,
@@ -122,8 +122,8 @@ fn prototype_jsclass(name: ~str) -> fn(+bare_compartment) -> JSClass {
     }
 }
 
-fn instance_jsclass(name: ~str, finalize: *u8)
-    -> fn(+bare_compartment) -> JSClass {
+pub fn instance_jsclass(name: ~str, finalize: *u8)
+    -> fn(+compartment: bare_compartment) -> JSClass {
     |+compartment: bare_compartment, copy name| {
         {name: compartment.add_name(name),
          flags: JSCLASS_HAS_RESERVED_SLOTS(1),
@@ -151,7 +151,7 @@ fn instance_jsclass(name: ~str, finalize: *u8)
     }
 }
 
-fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: bare_compartment)
+pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: bare_compartment)
     -> js::rust::jsobj {
     compartment.register_class(utils::prototype_jsclass(name));
 

@@ -26,7 +26,7 @@ use vec::push;
 
  Right now, the builder isn't used for much, but it  establishes the
  pattern we'll need once we support DL-based hit testing &c.  */
-struct DisplayListBuilder {
+pub struct DisplayListBuilder {
     ctx:  &LayoutContext,
 }
 

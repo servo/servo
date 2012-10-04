@@ -8,7 +8,7 @@ Constructs a list of css style rules from a token stream
 use css::values::*;
 // Disambiguate parsed Selector, Rule values from tokens
 use css = css::values;
-use tok = lexer;
+use mod tok = lexer;
 use lexer::Token;
 use comm::recv;
 use option::{map, is_none};
@@ -33,7 +33,7 @@ impl TokenReader : TokenReaderMethods {
     }
 
     fn unget(-tok : Token) {
-        assert is_none(self.lookahead);
+        assert is_none(&self.lookahead);
         self.lookahead = Some(tok);
     }
 }
@@ -60,7 +60,7 @@ impl TokenReader : ParserMethods {
          loop {
              let token = self.get();
              match token {
-               tok::Attr(attr) => { push(attr_list, copy attr); }
+               tok::Attr(attr) => { push(&mut attr_list, copy attr); }
                tok::StartDescription | tok::Descendant | tok::Child | tok::Sibling | tok::Comma => {
                  self.unget(token); 
                  break;
@@ -119,12 +119,12 @@ impl TokenReader : ParserMethods {
                     }
                   }
                   tok::StartDescription => {
-                    push(sel_list, built_sel);
+                    push(&mut sel_list, built_sel);
                     self.unget(tok::StartDescription);
                     break;
                   }
                   tok::Comma => {
-                    push(sel_list, built_sel);
+                    push(&mut sel_list, built_sel);
                     self.unget(tok::Comma);
                     break;
                   }
@@ -159,8 +159,8 @@ impl TokenReader : ParserMethods {
               tok::Description(prop, val) => {
                 let desc : Option<StyleDeclaration> = match prop {
                   // TODO: have color parsing return a ParseResult instead of a real value
-                  ~"background-color" => parse_color(val).map(|res| BackgroundColor(Specified(BgColor(res)))),
-                  ~"color" => parse_color(val).map(|res| Color(Specified(TextColor(res)))),
+                  ~"background-color" => parse_color(val).map(|res| BackgroundColor(Specified(BgColor(*res)))),
+                  ~"color" => parse_color(val).map(|res| Color(Specified(TextColor(*res)))),
                   ~"display" => parse_display_type(val).extract(|res| Display(res)),
                   ~"font-size" => parse_font_size(val).extract(|res| FontSize(res)),
                   ~"height" => parse_box_sizing(val).extract(|res| Height(res)),
@@ -168,7 +168,7 @@ impl TokenReader : ParserMethods {
                   _ => { #debug["Recieved unknown style property '%s'", val]; None }
                 };
                 match desc {
-                  Some(d) => push(desc_list, d),
+                  Some(d) => push(&mut desc_list, d),
                   None => { #debug["Couldn't parse value '%s' for property '%s'", val, prop] }
                 }
               }
@@ -204,13 +204,13 @@ impl TokenReader : ParserMethods {
     }
 }
 
-fn build_stylesheet(+stream : pipes::Port<Token>) -> ~[~css::Rule] {
+pub fn build_stylesheet(+stream : pipes::Port<Token>) -> ~[~css::Rule] {
     let mut rule_list = ~[];
     let reader = {stream : stream, mut lookahead : None};
 
     loop {
         match reader.parse_rule() {
-          Some(rule) => { push(rule_list, copy rule); }
+          Some(rule) => { push(&mut rule_list, copy rule); }
           None => { break; }
         }
     }

@@ -9,7 +9,7 @@ use libc::types::os::arch::c95::c_double;
 use css_colors::*;
 use cmp::Eq;
 
-enum Color = {red : u8, green : u8, blue : u8, alpha : float};
+pub enum Color = {red : u8, green : u8, blue : u8, alpha : float};
 
 impl Color : Eq {
     pure fn eq(other: &Color) -> bool {
@@ -21,15 +21,15 @@ impl Color : Eq {
     }
 }
 
-fn rgba(r : u8, g : u8, b : u8, a : float) -> Color {
+pub fn rgba(r : u8, g : u8, b : u8, a : float) -> Color {
     Color({red : r, green : g, blue : b, alpha : a})
 }
 
-fn rgb(r : u8, g : u8, b : u8) -> Color {
+pub fn rgb(r : u8, g : u8, b : u8) -> Color {
     return rgba(r, g, b, 1.0);
 }
 
-fn hsla(h : float, s : float, l : float, a : float) -> Color {
+pub fn hsla(h : float, s : float, l : float, a : float) -> Color {
     // Algorithm for converting hsl to rbg taken from
     // http://www.w3.org/TR/2003/CR-css3-color-20030514/#hsl-color
     let m2 = if l <= 0.5 { l*(s + 1.0) } else { l + s - l*s };
@@ -55,7 +55,7 @@ fn hsla(h : float, s : float, l : float, a : float) -> Color {
     return rgba(r as u8, g as u8, b as u8, a);
 }
 
-fn hsl(h : float, s : float, l : float) -> Color {
+pub fn hsl(h : float, s : float, l : float) -> Color {
     return hsla(h, s, l, 1.0);
 }
 

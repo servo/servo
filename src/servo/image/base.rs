@@ -9,9 +9,9 @@ use stb_image = stb_image::image;
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
-type Image = stb_image::Image;
+pub type Image = stb_image::Image;
 
-fn Image(width: uint, height: uint, depth: uint, +data: ~[u8]) -> Image {
+pub fn Image(width: uint, height: uint, depth: uint, +data: ~[u8]) -> Image {
     stb_image::new_image(width, height, depth, data)
 }
 
@@ -21,7 +21,7 @@ fn test_image_bin() -> ~[u8] {
     return vec::from_fn(4962, |i| TEST_IMAGE[i]);
 }
 
-fn load_from_memory(buffer: &[u8]) -> Option<Image> {
+pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
     do stb_image::load_from_memory(buffer).map |image| {
 
         assert image.depth == 4;

@@ -88,7 +88,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-fn init(compartment: bare_compartment, doc: @Document) {
+pub fn init(compartment: bare_compartment, doc: @Document) {
     let obj = utils::define_empty_prototype(~"Document", None, compartment);
 
     let attrs = @~[
@@ -97,7 +97,7 @@ fn init(compartment: bare_compartment, doc: @Document) {
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: {op: getDocumentElement, info: null()},
          setter: {op: null(), info: null()}}];
-    vec::push(compartment.global_props, attrs);
+    vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
         assert JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs) == 1;
     });

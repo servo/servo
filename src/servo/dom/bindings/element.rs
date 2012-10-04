@@ -30,7 +30,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-fn init(compartment: bare_compartment) {
+pub fn init(compartment: bare_compartment) {
     let obj = utils::define_empty_prototype(~"Element", Some(~"Node"), compartment);
     let attrs = @~[
         {name: compartment.add_name(~"tagName"),
@@ -38,7 +38,7 @@ fn init(compartment: bare_compartment) {
          flags: (JSPROP_ENUMERATE | JSPROP_SHARED | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: {op: getTagName, info: null()},
          setter: {op: null(), info: null()}}];
-    vec::push(compartment.global_props, attrs);
+    vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
     });
@@ -58,7 +58,7 @@ fn init(compartment: bare_compartment) {
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: {op: HTMLImageElement_getWidth, info: null()},
          setter: {op: HTMLImageElement_setWidth, info: null()}}];
-    vec::push(compartment.global_props, attrs);
+    vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
     });
@@ -147,7 +147,7 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
     return 1;
 }
 
-fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
+pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
     let proto = scope.write(node, |nd| {
         match nd.kind {
           ~Element(ed) => {

@@ -87,7 +87,7 @@ impl Node : DebugMethods {
     }
 }
 
-enum NodeKind {
+pub enum NodeKind {
     Doctype(DoctypeData),
     Comment(~str),
     Element(ElementData),

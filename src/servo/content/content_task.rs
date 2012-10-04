@@ -18,12 +18,11 @@ use dom::node::{Node, NodeScope, define_bindings};
 use dom::event::{Event, ResizeEvent, ReflowEvent};
 use dom::window::Window;
 use gfx::compositor::Compositor;
-use html::lexer::spawn_html_lexer_task;
 use layout::layout_task;
 use layout_task::{LayoutTask, BuildMsg};
 use resource::image_cache_task::ImageCacheTask;
 
-use css::styles::Stylesheet;
+use css::values::Stylesheet;
 
 use jsrt = js::rust::rt;
 use js::rust::{cx, methods};
@@ -48,18 +47,18 @@ use js::jsapi::{JSContext, jsval};
 use js::jsapi::bindgen::{JS_CallFunctionValue, JS_GetContextPrivate};
 use ptr::null;
 
-enum ControlMsg {
+pub enum ControlMsg {
     ParseMsg(Url),
     ExecuteMsg(Url),
     Timer(~dom::window::TimerData),
     ExitMsg
 }
 
-enum PingMsg {
+pub enum PingMsg {
     PongMsg
 }
 
-type ContentTask = Chan<ControlMsg>;
+pub type ContentTask = Chan<ControlMsg>;
 
 fn ContentTask<S: Compositor Send Copy>(layout_task: LayoutTask,
                                         +compositor: S,
@@ -179,11 +178,11 @@ impl Content {
             self.window   = Some(@window);
             self.doc_url = Some(copy url);
 
-            let compartment = option::expect(self.compartment, ~"TODO error checking");
+            let compartment = option::expect(&self.compartment, ~"TODO error checking");
             compartment.define_functions(debug_fns);
             define_bindings(*compartment,
-                            option::get(self.document),
-                            option::get(self.window));
+                            option::get(&self.document),
+                            option::get(&self.window));
 
             for vec::each(js_scripts) |bytes| {
                 self.cx.evaluate_script(compartment.global_obj, *bytes, ~"???", 1u);
@@ -193,17 +192,17 @@ impl Content {
           }
 
           Timer(timerData) => {
-            let compartment = option::expect(self.compartment, ~"TODO error checking");
+            let compartment = option::expect(&self.compartment, ~"TODO error checking");
             let thisValue = if timerData.args.len() > 0 {
                 RUST_JSVAL_TO_OBJECT(unsafe { timerData.args.shift() })
             } else {
                 compartment.global_obj.ptr
             };
-            let _rval = JSVAL_NULL;
+            let rval = JSVAL_NULL;
             //TODO: support extra args. requires passing a *jsval argv
             JS_CallFunctionValue(self.cx.ptr, thisValue, timerData.funval,
-                                 0, null(), ptr::addr_of(_rval));
-            self.relayout(*option::get(self.document), &option::get(self.doc_url));
+                                 0, null(), ptr::to_unsafe_ptr(&rval));
+            self.relayout(*option::get(&self.document), &option::get(&self.doc_url));
             return true;
           }
 
@@ -216,7 +215,7 @@ impl Content {
                 println(fmt!("Error opening %s: %s", url_to_str(copy url), msg));
               }
               Ok(bytes) => {
-                let compartment = option::expect(self.compartment, ~"TODO error checking");
+                let compartment = option::expect(&self.compartment, ~"TODO error checking");
                 compartment.define_functions(debug_fns);
                 self.cx.evaluate_script(compartment.global_obj, bytes, url.path, 1u);
               }

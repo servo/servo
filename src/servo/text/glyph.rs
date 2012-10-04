@@ -107,7 +107,7 @@ fn MissingGlyphs(glyphCount: u16) -> CompressedGlyph {
 impl CompressedGlyph {
     pure fn advance() -> GlyphStoreResult<au> {
         match self.is_simple() {
-            true  => Simple(au::from_int(((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) as int)),
+            true  => Simple(num::from_int(((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) as int)),
             false => Detailed(self.glyph_count())
         }
     }

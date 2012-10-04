@@ -18,14 +18,14 @@ fn parse_length(str : ~str) -> Option<Length> {
     const PX_PER_PT: float = 1.0 / 0.75;
 
     match str {
-      s if s.ends_with(~"in") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * 72.0 * f)),
-      s if s.ends_with(~"cm") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(f / 2.54 * 72.0 * 1.0/0.75)),
-      s if s.ends_with(~"mm") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(f * 0.1 / 2.54 * 72.0 * 1.0/0.75)),
-      s if s.ends_with(~"pt") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * f)),
-      s if s.ends_with(~"pc") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * 12.0 * f)),
-      s if s.ends_with(~"px") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(f)),
-      s if s.ends_with(~"em") => from_str(str.substr(0, str.len() - 2)).map(|f| Em(f)),
-      s if s.ends_with(~"ex") => from_str(str.substr(0, str.len() - 2)).map(|f| Em(0.5*f)),
+      s if s.ends_with(~"in") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * 72.0 * *f)),
+      s if s.ends_with(~"cm") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(*f / 2.54 * 72.0 * 1.0/0.75)),
+      s if s.ends_with(~"mm") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(*f * 0.1 / 2.54 * 72.0 * 1.0/0.75)),
+      s if s.ends_with(~"pt") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * *f)),
+      s if s.ends_with(~"pc") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * 12.0 * *f)),
+      s if s.ends_with(~"px") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(*f)),
+      s if s.ends_with(~"em") => from_str(str.substr(0, str.len() - 2)).map(|f| Em(*f)),
+      s if s.ends_with(~"ex") => from_str(str.substr(0, str.len() - 2)).map(|f| Em(0.5 * *f)),
       _ => None,
     }
 }

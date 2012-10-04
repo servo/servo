@@ -30,28 +30,28 @@ use layout::traverse::*;
 use comm::*;
 use task::*;
 
-type LayoutTask = Chan<Msg>;
+pub type LayoutTask = comm::Chan<Msg>;
 
-enum LayoutQuery {
+pub enum LayoutQuery {
     ContentBox(Node)
 }
 
-type LayoutQueryResponse = Result<LayoutQueryResponse_, ()>;
+pub type LayoutQueryResponse = Result<LayoutQueryResponse_, ()>;
 
 enum LayoutQueryResponse_ {
     ContentSize(Size2D<int>)
 }
 
-enum Msg {
-    BuildMsg(Node, ARC<Stylesheet>, Url, Chan<Event>),
-    PingMsg(Chan<content_task::PingMsg>),
-    QueryMsg(LayoutQuery, Chan<LayoutQueryResponse>),
+pub enum Msg {
+    BuildMsg(Node, ARC<Stylesheet>, Url, comm::Chan<Event>),
+    PingMsg(comm::Chan<content_task::PingMsg>),
+    QueryMsg(LayoutQuery, comm::Chan<LayoutQueryResponse>),
     ExitMsg
 }
 
 fn LayoutTask(render_task: RenderTask,
               img_cache_task: ImageCacheTask) -> LayoutTask {
-    do spawn_listener::<Msg>|from_content| {
+    do spawn_listener::<Msg> |from_content| {
         Layout(render_task, img_cache_task, from_content).start();
     }
 }

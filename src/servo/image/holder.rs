@@ -1,7 +1,7 @@
 use std::net::url::Url;
 use std::arc::{ARC, clone, get};
 use resource::image_cache_task::ImageCacheTask;
-use resource::image_cache_task;
+use mod resource::image_cache_task;
 use geom::size::Size2D;
 
 /** A struct to store image data. The image will be loaded once, the

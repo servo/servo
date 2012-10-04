@@ -181,8 +181,8 @@ impl FlowContext {
                 _ => seed
             },
             InlineFlow(*) => do self.inline().boxes.foldl(seed) |acc, box| {
-                if box.d().node == node { blk(acc, box) }
-                else { acc }
+                if box.d().node == node { blk(*acc, *box) }
+                else { *acc }
             },
             _ => fail fmt!("Don't know how to iterate node's RenderBoxes for %?", self)
         }
@@ -213,12 +213,12 @@ impl FlowContext {
 enum FlowTree { FlowTree }
 
 impl FlowTree : tree::ReadMethods<@FlowContext> {
-    fn each_child(ctx: @FlowContext, f: fn(&&@FlowContext) -> bool) {
+    fn each_child(ctx: @FlowContext, f: fn(&&box: @FlowContext) -> bool) {
         tree::each_child(self, ctx, f)
     }
 
-    fn with_tree_fields<R>(&&b: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
-        f(b.d().tree)
+    fn with_tree_fields<R>(&&box: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
+        f(box.d().tree)
     }
 }
 
@@ -228,8 +228,8 @@ impl FlowTree : tree::WriteMethods<@FlowContext> {
         tree::add_child(self, parent, child)
     }
 
-    fn with_tree_fields<R>(&&b: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
-        f(b.d().tree)
+    fn with_tree_fields<R>(&&box: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
+        f(box.d().tree)
     }
 }
 
@@ -259,7 +259,7 @@ impl FlowContext : BoxedDebugMethods {
         let repr = match *self {
             InlineFlow(*) => {
                 let mut s = self.inline().boxes.foldl(~"InlineFlow(children=", |s, box| {
-                    fmt!("%s %?", s, box.d().id)
+                    fmt!("%s %?", *s, box.d().id)
                 });
                 s += ~")"; s
             },

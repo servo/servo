@@ -7,7 +7,7 @@ use libc::types::common::c99::int32_t;
 use libc::{c_uint, c_int, c_void, c_char};
 use font::Font;
 use glyph::{Glyph, GlyphPos, GlyphIndex};
-use ptr::{null, addr_of, offset};
+use ptr::{null, to_unsafe_ptr, offset};
 use gfx::geometry::au;
 use geom::point::Point2D;
 use font_cache::FontCache;
@@ -57,7 +57,7 @@ fn shape_text(font: &Font, text: &str) -> ~[Glyph] unsafe {
     let funcs = hb_font_funcs_create();
     hb_font_funcs_set_glyph_func(funcs, glyph_func, null(), null());
     hb_font_funcs_set_glyph_h_advance_func(funcs, glyph_h_advance_func, null(), null());
-    hb_font_set_funcs(hbfont, funcs, reinterpret_cast(&addr_of(*font)), null());
+    hb_font_set_funcs(hbfont, funcs, reinterpret_cast(&to_unsafe_ptr(font)), null());
 
     let buffer = hb_buffer_create();
 
@@ -74,10 +74,10 @@ fn shape_text(font: &Font, text: &str) -> ~[Glyph] unsafe {
     hb_shape(hbfont, buffer, null(), 0 as c_uint);
 
     let info_len = 0 as c_uint;
-    let info_ = hb_buffer_get_glyph_infos(buffer, addr_of(info_len));
+    let info_ = hb_buffer_get_glyph_infos(buffer, to_unsafe_ptr(&info_len));
     assert info_.is_not_null();
     let pos_len = 0 as c_uint;
-    let pos = hb_buffer_get_glyph_positions(buffer, addr_of(pos_len));
+    let pos = hb_buffer_get_glyph_positions(buffer, to_unsafe_ptr(&pos_len));
     assert pos.is_not_null();
 
     assert info_len == pos_len;
@@ -163,6 +163,6 @@ fn should_get_glyph_h_advance() {
     let font = lib.get_test_font();
     let glyphs = shape_text(font, ~"firecracker");
     let actual = glyphs.map(|g| g.pos.advance.x);
-    let expected = (~[6, 4, 7, 9, 8, 7, 10, 8, 9, 9, 7]).map(|a| au::from_px(a));
+    let expected = (~[6, 4, 7, 9, 8, 7, 10, 8, 9, 9, 7]).map(|a| au::from_px(*a));
     assert expected == actual;
 }

@@ -1,13 +1,10 @@
 export OSMain;
 export Msg, BeginDrawing, Draw, AddKeyHandler, Exit;
 
-use azure::*;
+use mod azure::azure_hl;
 use azure::azure_hl::DrawTarget;
-use azure::bindgen::*;
 use azure::cairo;
-use azure::cairo::bindgen::*;
 use azure::cairo_hl::ImageSurface;
-use comm::*;
 use dvec::DVec;
 use azure::cairo::cairo_surface_t;
 use gfx::compositor::Compositor;
@@ -23,6 +20,7 @@ use pipes::Chan;
 
 type OSMain = comm::Chan<Msg>;
 
+// FIXME: Move me over to opts.rs.
 enum Mode {
 	GlutMode,
 	ShareMode
@@ -33,7 +31,7 @@ enum Window {
 	ShareWindow(ShareGlContext)
 }
 
-enum Msg {
+pub enum Msg {
     BeginDrawing(pipes::Chan<DrawTarget>),
     Draw(pipes::Chan<DrawTarget>, DrawTarget),
     AddKeyHandler(pipes::Chan<()>),
@@ -57,7 +55,7 @@ fn OSMain() -> OSMain {
     }
 }
 
-fn mainloop(+mode: Mode, po: Port<Msg>) {
+fn mainloop(+mode: Mode, po: comm::Port<Msg>) {
     let key_handlers: @DVec<pipes::Chan<()>> = @DVec();
     let event_listeners: @DVec<comm::Chan<Event>> = @DVec();
 
@@ -101,7 +99,7 @@ fn mainloop(+mode: Mode, po: Port<Msg>) {
         #debug("osmain: peeking");
         while po.peek() {
             match po.recv() {
-              AddKeyHandler(key_ch) => key_handlers.push(#moov(key_ch)),
+              AddKeyHandler(move key_ch) => key_handlers.push(move key_ch),
               AddEventListener(event_listener) => event_listeners.push(event_listener),
               BeginDrawing(sender) => lend_surface(*surfaces, sender),
               Draw(sender, dt) => {
@@ -229,13 +227,13 @@ fn Surface() -> Surface {
 }
 
 #[doc = "A function for spawning into the platform's main thread"]
-fn on_osmain<T: Send>(+f: fn~(comm::Port<T>)) -> comm::Chan<T> {
+fn on_osmain<T: Send>(+f: fn~(+po: comm::Port<T>)) -> comm::Chan<T> {
     task::task().sched_mode(task::PlatformThread).spawn_listener(f)
 }
 
 // #[cfg(target_os = "linux")]
 mod platform {
-    fn runmain(f: fn()) {
+    pub fn runmain(f: fn()) {
         f()
     }
 }

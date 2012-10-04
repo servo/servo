@@ -90,7 +90,7 @@ enum RenderBoxType {
     RenderBox_Text
 }
 
-enum RenderBox {
+pub enum RenderBox {
     GenericBox(RenderBoxData),
     ImageBox(RenderBoxData, ImageHolder),
     TextBox(RenderBoxData, TextBoxData)
@@ -142,7 +142,7 @@ impl RenderBox {
             // TODO: If image isn't available, consult 'width'.
             ImageBox(_,i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
             TextBox(_,d) => d.runs.foldl(au(0), |sum, run| {
-                au::max(sum, run.min_break_width())
+                au::max(*sum, run.min_break_width())
             })
         }
     }
@@ -160,7 +160,7 @@ impl RenderBox {
             // how to compute its own min and pref widths, and should
             // probably cache them.
             TextBox(_,d) => d.runs.foldl(au(0), |sum, run| {
-                au::max(sum, run.size().width)
+                au::max(*sum, run.size().width)
             })
         }
     }
@@ -261,7 +261,7 @@ impl RenderBox {
                     bounds.size.height = runs[i].size().height;
                     let glyph_run = make_glyph_run(&runs[i]);
                     list.push(~dl::Glyphs(bounds, glyph_run));
-                    bounds.origin.y = bounds.origin.y.add(bounds.size.height);
+                    bounds.origin.y = bounds.origin.y.add(&bounds.size.height);
                 }
                 return;
 
@@ -301,10 +301,10 @@ trait ImageBoxMethods {
  * nested CSS boxes that are nested in an otherwise inline flow
  * context.
 */
-enum RenderBoxTree { RenderBoxTree }
+pub enum RenderBoxTree { RenderBoxTree }
 
 impl RenderBoxTree : tree::ReadMethods<@RenderBox> {
-    fn each_child(node: @RenderBox, f: fn(&&@RenderBox) -> bool) {
+    fn each_child(node: @RenderBox, f: fn(&&box: @RenderBox) -> bool) {
         tree::each_child(self, node, f)
     }
 
@@ -350,7 +350,7 @@ impl RenderBox : BoxedDebugMethods {
             @ImageBox(*) => ~"ImageBox",
             @TextBox(_,d) => {
                 let mut s = d.runs.foldl(~"TextBox(runs=", |s, run| {
-                    fmt!("%s  \"%s\"", s, run.text)
+                    fmt!("%s  \"%s\"", *s, run.text)
                 });
                 s += ~")"; s
             }
@@ -385,10 +385,10 @@ mod test {
     fn flat_bounds(root: @RenderBox) -> ~[Rect<au>] {
         let mut r = ~[];
         for tree::each_child(RenderBoxTree, root) |c| {
-            push_all(r, flat_bounds(c));
+            push_all(&mut r, flat_bounds(c));
         }
 
-        push(r, copy root.d().position);
+        push(&mut r, copy root.d().position);
 
         return r;
     }

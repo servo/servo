@@ -1,9 +1,3 @@
-export Msg, Prefetch, Decode, GetImage, WaitForImage, Exit;
-export ImageResponseMsg, ImageReady, ImageNotReady, ImageFailed;
-export ImageCacheTask;
-export ImageCacheTaskClient;
-export SyncImageCacheTask;
-
 use image::base::{Image, load_from_memory, test_image_bin};
 use std::net::url::Url;
 use util::url::{make_url, UrlMap, url_map};
@@ -78,15 +72,15 @@ impl ImageResponseMsg: cmp::Eq {
     }
 }
 
-type ImageCacheTask = Chan<Msg>;
+pub type ImageCacheTask = Chan<Msg>;
 
 type DecoderFactory = ~fn() -> ~fn(~[u8]) -> Option<Image>;
 
-fn ImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
+pub fn ImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
     ImageCacheTask_(resource_task, default_decoder_factory)
 }
 
-fn ImageCacheTask_(resource_task: ResourceTask, +decoder_factory: DecoderFactory) -> ImageCacheTask {
+pub fn ImageCacheTask_(resource_task: ResourceTask, +decoder_factory: DecoderFactory) -> ImageCacheTask {
     // FIXME: Doing some dancing to avoid copying decoder_factory, our test
     // version of which contains an uncopyable type which rust will currently
     // copy unsoundly
@@ -406,7 +400,7 @@ impl ImageCache {
             // We don't have this image yet
             match self.wait_map.find(copy url) {
               Some(waiters) => {
-                vec::push(*waiters, response);
+                vec::push(&mut *waiters, response);
               }
               None => {
                 self.wait_map.insert(url, @mut ~[response]);

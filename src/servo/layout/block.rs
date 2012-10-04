@@ -22,7 +22,7 @@ fn BlockFlowData() -> BlockFlowData {
 
 trait BlockLayout {
     pure fn starts_block_flow() -> bool;
-    pure fn with_block_box(fn(&&@RenderBox) -> ()) -> ();
+    pure fn with_block_box(fn(box: &@RenderBox) -> ()) -> ();
 
     fn bubble_widths_block(ctx: &LayoutContext);
     fn assign_widths_block(ctx: &LayoutContext);
@@ -43,7 +43,7 @@ impl FlowContext : BlockLayout {
 
     /* Get the current flow's corresponding block box, if it exists, and do something with it. 
        This works on both BlockFlow and RootFlow, since they are mostly the same. */
-    pure fn with_block_box(cb:fn(&&@RenderBox) -> ()) -> () {
+    pure fn with_block_box(cb: fn(box: &@RenderBox) -> ()) -> () {
         match self {
             BlockFlow(*) => {
                 let mut box = self.block().box;
@@ -83,8 +83,8 @@ impl FlowContext : BlockLayout {
         /* if not an anonymous block context, add in block box's widths.
            these widths will not include child elements, just padding etc. */
         do self.with_block_box |box| {
-            min_width = min_width.add(box.get_min_width());
-            pref_width = pref_width.add(box.get_pref_width());
+            min_width = min_width.add(&box.get_min_width());
+            pref_width = pref_width.add(&box.get_pref_width());
         }
 
         self.d().min_width = min_width;
@@ -110,7 +110,7 @@ impl FlowContext : BlockLayout {
         do self.with_block_box |box| {
             box.d().position.size.width = remaining_width;
             let (left_used, right_used) = box.get_used_width();
-            remaining_width = remaining_width.sub(left_used.add(right_used));
+            remaining_width = remaining_width.sub(&left_used.add(&right_used));
         }
 
         for FlowTree.each_child(@self) |child_ctx| {
@@ -127,7 +127,7 @@ impl FlowContext : BlockLayout {
 
         for FlowTree.each_child(@self) |child_ctx| {
             child_ctx.d().position.origin.y = cur_y;
-            cur_y = cur_y.add(child_ctx.d().position.size.height);
+            cur_y = cur_y.add(&child_ctx.d().position.size.height);
         }
 
         self.d().position.size.height = cur_y;

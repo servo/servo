@@ -53,11 +53,6 @@ use core::libc::types::os::arch::c95::size_t;
 use ptr::Ptr;
 use vec::push;
 
-export Handle;
-export ReaderMethods;
-export WriterMethods;
-export Scope;
-
 type ScopeData<T:Send,A> = {
     mut layout_active: bool,
     mut free_list: ~[Handle<T,A>],
@@ -76,13 +71,13 @@ fn ScopeResource<T:Send,A>(d : ScopeData<T,A>) -> ScopeResource<T,A> {
     ScopeResource { d: d }
 }
 
-type Scope<T:Send,A> = @ScopeResource<T,A>;
+pub type Scope<T:Send,A> = @ScopeResource<T,A>;
 
 type HandleData<T:Send,A> = {mut read_ptr: *T,
                              mut write_ptr: *mut T,
                              mut read_aux: *A,
                              mut next_dirty: Handle<T,A>};
-enum Handle<T:Send,A> {
+pub enum Handle<T:Send,A> {
     _Handle(*HandleData<T,A>)
 }
 
@@ -118,7 +113,7 @@ impl<T:Send,A> Handle<T,A> {
     **Warning:** the reader is responsible for keeping this data live!
     ")]
     fn set_aux(p: @A) unsafe {
-        (**self).read_aux = ptr::addr_of(*p);
+        (**self).read_aux = ptr::to_unsafe_ptr(&*p);
     }
 
     #[doc(str = "access the auxiliary data associated with this handle.")]
@@ -159,7 +154,7 @@ fn null_handle<T:Send,A>() -> Handle<T,A> {
     _Handle(ptr::null())
 }
 
-fn Scope<T:Send,A>() -> Scope<T,A> {
+pub fn Scope<T:Send,A>() -> Scope<T,A> {
     @ScopeResource({mut layout_active: false,
                     mut free_list: ~[],
                     mut first_dirty: null_handle()})
@@ -219,12 +214,12 @@ impl<T:Copy Send,A> Scope<T,A> {
         let d: *HandleData<T,A> =
             cast::reinterpret_cast(
                 &libc::malloc(sys::size_of::<HandleData<T,A>>() as size_t));
-        (*d).read_ptr = self.clone(ptr::addr_of(v));
+        (*d).read_ptr = self.clone(ptr::to_unsafe_ptr(&v));
         (*d).write_ptr = cast::reinterpret_cast(&(*d).read_ptr);
         (*d).read_aux = ptr::null();
         (*d).next_dirty = null_handle();
         let h = _Handle(d);
-        push(self.d.free_list, h);
+        push(&mut self.d.free_list, h);
         return h;
     }
 }

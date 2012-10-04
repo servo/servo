@@ -73,7 +73,7 @@ impl InputState : InputStateUtil {
         // FIXME: Lots of copies here
 
         if self.buffer.len() > 0 {
-            return CoeChar(vec::shift(self.buffer));
+            return CoeChar(vec::shift(&mut self.buffer));
         }
 
         if self.eof {
@@ -84,7 +84,7 @@ impl InputState : InputStateUtil {
           Payload(data) => {
             // TODO: change copy to move once we have match move
             self.buffer = copy data;
-            return CoeChar(vec::shift(self.buffer));
+            return CoeChar(vec::shift(&mut self.buffer));
           }
           Done(*) => {
             self.eof = true;
@@ -94,7 +94,7 @@ impl InputState : InputStateUtil {
     }
 
     fn unget(ch: u8) {
-        assert is_none(self.lookahead);
+        assert is_none(&self.lookahead);
         self.lookahead = Some(CoeChar(ch));
     }
 
@@ -114,7 +114,7 @@ impl InputState : InputStateUtil {
         loop {
             match self.get() {
               CoeChar(c) => {
-                if (c.is_alpha()) { push(result, c); }
+                if (c.is_alpha()) { push(&mut result, c); }
                 else if result.len() == 0u { self.parse_err(~"expected ident"); }
                 else {
                     self.unget(c);

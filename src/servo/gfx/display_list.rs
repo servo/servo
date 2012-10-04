@@ -29,7 +29,7 @@ A run of glyphs in a single font. This is distinguished from any similar
 structure used by layout in that this must be sendable, whereas the text
 shaping data structures may end up unsendable.
 */
-struct GlyphRun {
+pub struct GlyphRun {
     glyphs: ~[Glyph]
 }
 
@@ -54,7 +54,7 @@ fn draw_Image(self: &DisplayItem, ctx: &RenderContext) {
     }        
 }
 
-fn SolidColor(bounds: Rect<au>, r: u8, g: u8, b: u8) -> DisplayItem {
+pub fn SolidColor(bounds: Rect<au>, r: u8, g: u8, b: u8) -> DisplayItem {
     DisplayItem { 
         // TODO: this seems wrong.
         draw: |self, ctx| draw_SolidColor(self, ctx),
@@ -63,7 +63,7 @@ fn SolidColor(bounds: Rect<au>, r: u8, g: u8, b: u8) -> DisplayItem {
     }
 }
 
-fn Glyphs(bounds: Rect<au>, run: GlyphRun) -> DisplayItem {
+pub fn Glyphs(bounds: Rect<au>, run: GlyphRun) -> DisplayItem {
     DisplayItem {
         draw: |self, ctx| draw_Glyphs(self, ctx),
         bounds: bounds,
@@ -72,7 +72,7 @@ fn Glyphs(bounds: Rect<au>, run: GlyphRun) -> DisplayItem {
 }
 
 // ARC should be cloned into ImageData, but Images are not sendable
-fn Image(bounds: Rect<au>, image: ARC<~image::base::Image>) -> DisplayItem {
+pub fn Image(bounds: Rect<au>, image: ARC<~image::base::Image>) -> DisplayItem {
     DisplayItem {
         // TODO: this seems wrong.
         draw: |self, ctx| draw_Image(self, ctx),
@@ -81,7 +81,7 @@ fn Image(bounds: Rect<au>, image: ARC<~image::base::Image>) -> DisplayItem {
     }
 }
 
-type DisplayList = DVec<~DisplayItem>;
+pub type DisplayList = DVec<~DisplayItem>;
 
 trait DisplayListMethods {
     fn draw(ctx: &RenderContext);

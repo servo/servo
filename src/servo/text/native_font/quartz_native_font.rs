@@ -23,58 +23,58 @@ use coretext::coretext::CFRelease;
 
 mod coretext {
 
-    type CTFontRef = *u8;
-    type UniChar = libc::c_ushort;
-    type CGGlyph = libc::c_ushort;
-    type CFIndex = libc::c_long;
+    pub type CTFontRef = *u8;
+    pub type UniChar = libc::c_ushort;
+    pub type CGGlyph = libc::c_ushort;
+    pub type CFIndex = libc::c_long;
 
-    type CTFontOrientation = u32;
-    const kCTFontDefaultOrientation: CTFontOrientation = 0;
-    const kCTFontHorizontalOrientation: CTFontOrientation = 1;
-    const kCTFontVerticalOrientation: CTFontOrientation = 2;
+    pub type CTFontOrientation = u32;
+    pub const kCTFontDefaultOrientation: CTFontOrientation = 0;
+    pub const kCTFontHorizontalOrientation: CTFontOrientation = 1;
+    pub const kCTFontVerticalOrientation: CTFontOrientation = 2;
 
-    type CGFloat = libc::c_double;
+    pub type CGFloat = libc::c_double;
 
-    struct CGSize {
+    pub struct CGSize {
         width: CGFloat,
         height: CGFloat,
     }
 
-    struct CGPoint {
+    pub struct CGPoint {
         x: CGFloat,
         y: CGFloat,
     }
 
-    struct CGRect {
+    pub struct CGRect {
         origin: CGPoint,
         size: CGSize
     }
 
-    type CGAffineTransform = ();
-    type CTFontDescriptorRef = *u8;
+    pub type CGAffineTransform = ();
+    pub type CTFontDescriptorRef = *u8;
 
     #[nolink]
     #[link_args = "-framework ApplicationServices"]
-    extern mod coretext {
-        fn CTFontCreateWithGraphicsFont(graphicsFont: CGFontRef, size: CGFloat, matrix: *CGAffineTransform, attributes: CTFontDescriptorRef) -> CTFontRef;
-        fn CTFontGetGlyphsForCharacters(font: CTFontRef, characters: *UniChar, glyphs: *CGGlyph, count: CFIndex) -> bool;
-        fn CTFontGetAdvancesForGlyphs(font: CTFontRef, orientation: CTFontOrientation, glyphs: *CGGlyph, advances: *CGSize, count: CFIndex) -> libc::c_double;
+    pub extern mod coretext {
+        pub fn CTFontCreateWithGraphicsFont(graphicsFont: CGFontRef, size: CGFloat, matrix: *CGAffineTransform, attributes: CTFontDescriptorRef) -> CTFontRef;
+        pub fn CTFontGetGlyphsForCharacters(font: CTFontRef, characters: *UniChar, glyphs: *CGGlyph, count: CFIndex) -> bool;
+        pub fn CTFontGetAdvancesForGlyphs(font: CTFontRef, orientation: CTFontOrientation, glyphs: *CGGlyph, advances: *CGSize, count: CFIndex) -> libc::c_double;
 
         /* metrics API */
-        fn CTFontGetAscent(font: CTFontRef) -> libc::c_float;
-        fn CTFontGetDescent(font: CTFontRef) -> libc::c_float;
-        fn CTFontGetLeading(font: CTFontRef) -> libc::c_float;
-        fn CTFontGetUnitsPerEm(font: CTFontRef) -> libc::c_uint;
-        fn CTFontGetUnderlinePosition(font: CTFontRef) -> libc::c_float;
-        fn CTFontGetUnderlineThickness(font: CTFontRef) -> libc::c_float;
-        fn CTFontGetXHeight(font: CTFontRef) -> libc::c_float;
-        fn CTFontGetBoundingBox(font: CTFontRef) -> CGRect;
+        pub fn CTFontGetAscent(font: CTFontRef) -> libc::c_float;
+        pub fn CTFontGetDescent(font: CTFontRef) -> libc::c_float;
+        pub fn CTFontGetLeading(font: CTFontRef) -> libc::c_float;
+        pub fn CTFontGetUnitsPerEm(font: CTFontRef) -> libc::c_uint;
+        pub fn CTFontGetUnderlinePosition(font: CTFontRef) -> libc::c_float;
+        pub fn CTFontGetUnderlineThickness(font: CTFontRef) -> libc::c_float;
+        pub fn CTFontGetXHeight(font: CTFontRef) -> libc::c_float;
+        pub fn CTFontGetBoundingBox(font: CTFontRef) -> CGRect;
             
-        fn CFRelease(font: CTFontRef);
+        pub fn CFRelease(font: CTFontRef);
     }
 }
 
-struct QuartzNativeFont {
+pub struct QuartzNativeFont {
     fontprov: CGDataProviderRef,
     cgfont: CGFontRef,
     ctfont: CTFontRef,
@@ -177,7 +177,7 @@ fn ctfont_from_cgfont(cgfont: CGFontRef) -> coretext::CTFontRef {
     CTFontCreateWithGraphicsFont(cgfont, 21f as CGFloat, null(), null())
 }
 
-fn create(buf: @~[u8]) -> Result<QuartzNativeFont, ()> {
+pub fn create(buf: @~[u8]) -> Result<QuartzNativeFont, ()> {
     let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
         CGDataProviderCreateWithData(
             null(),
@@ -196,7 +196,7 @@ fn create(buf: @~[u8]) -> Result<QuartzNativeFont, ()> {
     
 }
 
-fn with_test_native_font(f: fn@(nf: &NativeFont)) {
+pub fn with_test_native_font(f: fn@(nf: &NativeFont)) {
     use font::test_font_bin;
     use unwrap_result = result::unwrap;
 

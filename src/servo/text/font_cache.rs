@@ -50,15 +50,15 @@ fn create_font(lib: @FontCache, native_lib: &native::NativeFontCache) -> Result<
 }
 
 #[cfg(target_os = "linux")]
-mod native {
+pub mod native {
     use ptr::{null, addr_of};
     use azure::freetype;
     use freetype::{FT_Library, FT_Error};
     use freetype::bindgen::{FT_Init_FreeType, FT_Done_FreeType};
 
-    type NativeFontCache = FT_Library;
+    pub type NativeFontCache = FT_Library;
 
-    fn create_native_lib() -> NativeFontCache {
+    pub fn create_native_lib() -> NativeFontCache {
         let lib: FT_Library = null();
         let res = FT_Init_FreeType(addr_of(lib));
         // FIXME: error handling
@@ -66,22 +66,22 @@ mod native {
         return lib;
     }
 
-    fn destroy_native_lib(native_lib: &NativeFontCache) {
+    pub fn destroy_native_lib(native_lib: &NativeFontCache) {
         assert native_lib.is_not_null();
         FT_Done_FreeType(*native_lib);
     }
 }
 
 #[cfg(target_os = "macos")]
-mod native {
-    type NativeFontCache = ();
+pub mod native {
+    pub type NativeFontCache = ();
 
-    fn create_native_lib() -> NativeFontCache { () }
-    fn destroy_native_lib(_native_lib: &NativeFontCache) { }
+    pub fn create_native_lib() -> NativeFontCache { () }
+    pub fn destroy_native_lib(_native_lib: &NativeFontCache) { }
 }
 
 #[test]
-fn should_get_fonts() {
+pub fn should_get_fonts() {
     let lib = FontCache();
     lib.get_font();
 }

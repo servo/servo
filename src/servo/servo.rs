@@ -3,7 +3,9 @@ use option::swap_unwrap;
 use platform::osmain;
 use osmain::{OSMain, AddKeyHandler};
 use opts::{Opts, Screen, Png};
-use engine::{EngineTask, EngineProto};
+use engine::{Engine, ExitMsg, LoadURLMsg};
+use resource::image_cache_task::ImageCacheTask;
+use resource::resource_task::ResourceTask;
 
 use url_to_str = std::net::url::to_str;
 use util::url::make_url;
@@ -37,15 +39,16 @@ fn run_pipeline_screen(urls: ~[~str]) {
     let (keypress_to_engine, keypress_from_osmain) = pipes::stream();
     osmain.send(AddKeyHandler(keypress_to_engine));
 
-    // Create a serve instance
-    let mut engine_task = Some(EngineTask(osmain));
+    // Create a servo instance
+    let resource_task = ResourceTask();
+    let image_cache_task = ImageCacheTask(resource_task);
+    let engine = Engine(osmain, resource_task, image_cache_task);
+    let engine_chan = engine.start();
 
     for urls.each |filename| {
         let url = make_url(*filename, None);
-        #debug["master: Sending url `%s`", url_to_str(copy url)];
-        engine_task =
-            Some(EngineProto::client::LoadURL(swap_unwrap(&mut engine_task),
-                                              url));
+        #debug["master: Sending url `%s`", url_to_str(url)];
+        engine_chan.send(LoadURLMsg(url));
         #debug["master: Waiting for keypress"];
 
         match keypress_from_osmain.try_recv() {
@@ -56,39 +59,39 @@ fn run_pipeline_screen(urls: ~[~str]) {
 
     // Shut everything down
     #debug["master: Shut down"];
-    let engine_task = EngineProto::client::Exit(option::unwrap(engine_task));
-    pipes::recv(engine_task);
+    let (exit_chan, exit_response_from_engine) = pipes::stream();
+    engine_chan.send(engine::ExitMsg(exit_chan));
+    exit_response_from_engine.recv();
 
     osmain.send(osmain::Exit);
 }
 
 fn run_pipeline_png(-url: ~str, outfile: ~str) {
-
     // Use a PNG encoder as the graphics compositor
     use gfx::png_compositor;
     use png_compositor::PngCompositor;
     use io::{Writer, buffered_file_writer};
     use resource::resource_task::ResourceTask;
     use resource::image_cache_task::SyncImageCacheTask;
-    use engine::EngineTask_;
 
     listen(|pngdata_from_compositor| {
         let compositor = PngCompositor(pngdata_from_compositor);
         let resource_task = ResourceTask();
-        // For the PNG pipeline we are using a synchronous image cache
-        // so that all requests will be fullfilled before the first
-        // render
+        // For the PNG pipeline we are using a synchronous image task so that all images will be
+        // fulfilled before the first paint.
         let image_cache_task = SyncImageCacheTask(resource_task);
-        let engine_task = EngineTask_(compositor, resource_task, image_cache_task);
-        let engine_task = EngineProto::client::LoadURL(engine_task, make_url(url, None));
+        let engine_task = Engine(compositor, resource_task, image_cache_task);
+        let engine_chan = engine_task.start();
+        engine_chan.send(LoadURLMsg(make_url(url, None)));
 
         match buffered_file_writer(&Path(outfile)) {
           Ok(writer) => writer.write(pngdata_from_compositor.recv()),
           Err(e) => fail e
         }
 
-        let engine_task = EngineProto::client::Exit(engine_task);
-        pipes::recv(engine_task);
+        let (exit_chan, exit_response_from_engine) = pipes::stream();
+        engine_chan.send(engine::ExitMsg(exit_chan));
+        exit_response_from_engine.recv();
         compositor.send(png_compositor::Exit);
     })
 }

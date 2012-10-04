@@ -4,7 +4,7 @@ use core::vec;
 //
 // TODO: Use traits.
 
-type Tree<T> = {
+pub type Tree<T> = {
     mut parent: Option<T>,
     mut first_child: Option<T>,
     mut last_child: Option<T>,
@@ -12,15 +12,15 @@ type Tree<T> = {
     mut next_sibling: Option<T>
 };
 
-trait ReadMethods<T> {
+pub trait ReadMethods<T> {
     fn with_tree_fields<R>(T, f: fn(Tree<T>) -> R) -> R;
 }
 
-trait WriteMethods<T> {
+pub trait WriteMethods<T> {
     fn with_tree_fields<R>(T, f: fn(Tree<T>) -> R) -> R;
 }
 
-fn each_child<T:Copy,O:ReadMethods<T>>(ops: O, node: T, f: fn(T) -> bool) {
+pub fn each_child<T:Copy,O:ReadMethods<T>>(ops: O, node: T, f: fn(T) -> bool) {
     let mut p = ops.with_tree_fields(node, |f| f.first_child);
     loop {
         match copy p {
@@ -33,7 +33,7 @@ fn each_child<T:Copy,O:ReadMethods<T>>(ops: O, node: T, f: fn(T) -> bool) {
     }
 }
 
-fn empty<T>() -> Tree<T> {
+pub fn empty<T>() -> Tree<T> {
     {mut parent: None,
      mut first_child: None,
      mut last_child: None,
@@ -41,7 +41,7 @@ fn empty<T>() -> Tree<T> {
      mut next_sibling: None}
 }
 
-fn add_child<T:Copy,O:WriteMethods<T>>(ops: O, parent: T, child: T) {
+pub fn add_child<T:Copy,O:WriteMethods<T>>(ops: O, parent: T, child: T) {
 
     ops.with_tree_fields(child, |child_tf| {
         match child_tf.parent {
@@ -72,7 +72,7 @@ fn add_child<T:Copy,O:WriteMethods<T>>(ops: O, parent: T, child: T) {
     });
 }
 
-fn get_parent<T:Copy,O:ReadMethods<T>>(ops: O, node: T) -> Option<T> {
+pub fn get_parent<T:Copy,O:ReadMethods<T>>(ops: O, node: T) -> Option<T> {
     ops.with_tree_fields(node, |tf| tf.parent)
 }
 

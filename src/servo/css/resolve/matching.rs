@@ -31,7 +31,7 @@ fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
         if val == ~"" { return false; }
 
         match elmt.get_attr(name) {
-          Some(value) => value.split_char(' ').contains(val),
+          Some(value) => value.split_char(' ').contains(&val),
           None => false
         }
       }

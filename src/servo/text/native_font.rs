@@ -5,34 +5,32 @@ needed by the text shaper as well as access to the underlying
 font resources needed by the graphics layer to draw glyphs.
 */
 
-export NativeFont, create;
-
 use glyph::GlyphIndex;
 use font_cache::native::NativeFontCache;
 
 #[cfg(target_os = "macos")]
-type NativeFont/& = quartz_native_font::QuartzNativeFont;
+pub type NativeFont/& = quartz_native_font::QuartzNativeFont;
 
 #[cfg(target_os = "linux")]
-type NativeFont/& = ft_native_font::FreeTypeNativeFont;
+pub type NativeFont/& = ft_native_font::FreeTypeNativeFont;
 
 #[cfg(target_os = "macos")]
-fn create(_native_lib: &NativeFontCache, buf: @~[u8]) -> Result<NativeFont, ()> {
+pub fn create(_native_lib: &NativeFontCache, buf: @~[u8]) -> Result<NativeFont, ()> {
     quartz_native_font::create(buf)
 }
 
 #[cfg(target_os = "linux")]
-fn create(native_lib: &NativeFontCache, buf: @~[u8]) -> Result<NativeFont, ()> {
+pub fn create(native_lib: &NativeFontCache, buf: @~[u8]) -> Result<NativeFont, ()> {
     ft_native_font::create(native_lib, buf)
 }
 
 #[cfg(target_os = "macos")]
-fn with_test_native_font(f: fn@(nf: &NativeFont)) {
+pub fn with_test_native_font(f: fn@(nf: &NativeFont)) {
     quartz_native_font::with_test_native_font(f);
 }
 
 #[cfg(target_os = "linux")]
-fn with_test_native_font(f: fn@(nf: &NativeFont)) {
+pub fn with_test_native_font(f: fn@(nf: &NativeFont)) {
     ft_native_font::with_test_native_font(f);
 }
 

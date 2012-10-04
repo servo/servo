@@ -20,12 +20,12 @@ struct Window {
 // Holder for the various JS values associated with setTimeout
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
-struct TimerData {
+pub struct TimerData {
     funval: jsval,
     args: DVec<jsval>,
 }
 
-fn TimerData(argc: libc::c_uint, argv: *jsval) -> TimerData unsafe {
+pub fn TimerData(argc: libc::c_uint, argv: *jsval) -> TimerData unsafe {
     let data = TimerData {
         funval : *argv,
         args : DVec(),

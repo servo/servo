@@ -21,123 +21,116 @@ extern mod http_client;
 extern mod hubbub;
 extern mod sharegl;
 
-mod engine;
+pub mod engine;
 
-mod dom {
-    mod bindings {
-        mod document;
-        mod element;
-        mod utils;
-        mod node;
-        mod window;
+pub mod dom {
+    pub mod bindings {
+        pub mod document;
+        pub mod element;
+        pub mod utils;
+        pub mod node;
+        pub mod window;
     }
-    mod document;
-    mod element;
-    mod event;
-    mod node;
-    mod rcu;
-    mod window;
+    pub mod document;
+    pub mod element;
+    pub mod event;
+    pub mod node;
+    pub mod rcu;
+    pub mod window;
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-mod content {
-    mod content_task;
+pub mod content {
+    pub mod content_task;
 }
 
-mod css {
-    mod lexer;
-    mod parser;
-    mod parser_util;
+pub mod css {
+    pub mod lexer;
+    pub mod parser;
+    pub mod parser_util;
 
-    mod values;
-    mod styles;
-    mod resolve {
-        mod apply;
-        mod matching;
+    pub mod values;
+    pub mod styles;
+    pub mod resolve {
+        pub mod apply;
+        pub mod matching;
     }
 }
 
-mod layout {
-    mod block;
-    mod box;
-    mod box_builder;
-    mod context;
-    mod debug;
-    mod display_list_builder;
-    mod flow;
-    mod layout_task;
-    mod inline;
-    mod root;
-    mod text;
-    mod traverse;
-    mod traverse_parallel;
+pub mod layout {
+    pub mod block;
+    pub mod box;
+    pub mod box_builder;
+    pub mod context;
+    pub mod debug;
+    pub mod display_list_builder;
+    pub mod flow;
+    pub mod layout_task;
+    pub mod inline;
+    pub mod root;
+    pub mod text;
+    pub mod traverse;
+    pub mod traverse_parallel;
 }
 
-mod gfx {
-    mod geometry;
-    mod surface;
-    mod render_task;
-    mod compositor;
-    mod png_compositor;
-    mod display_list;
+pub mod gfx {
+    pub mod geometry;
+    pub mod surface;
+    pub mod render_task;
+    pub mod compositor;
+    pub mod png_compositor;
+    pub mod display_list;
 }
 
-mod image {
-    mod base;
-    mod holder;
-    mod encode {
-        mod tga;
+pub mod image {
+    pub mod base;
+    pub mod holder;
+    pub mod encode {
+        pub mod tga;
     }
 }
 
-mod html {
-    mod lexer;
-    mod lexer_util;
-    mod hubbub_html_parser;
+pub mod html {
+    pub mod lexer_util;
+    pub mod hubbub_html_parser;
 }
 
-mod platform {
-    mod base;
-    mod osmain;
+pub mod platform {
+    pub mod base;
+    pub mod osmain;
 }
 
-mod text {
-    export glyph;
-    export text_run;
-    export font;
-    export font_cache;
-    export shaper;
-
-    mod font;
-    mod font_cache;
-    mod glyph;
-    mod native_font {
+pub mod text {
+    pub mod font;
+    pub mod font_cache;
+    pub mod glyph;
+    pub mod native_font {
         #[cfg(target_os = "macos")]
-        mod quartz_native_font;
+        pub mod quartz_native_font;
         #[cfg(target_os = "linux")]
-        mod ft_native_font;
+        pub mod ft_native_font;
     }
-    mod shaper;
-    mod text_run;
-    mod util;
+    pub mod shaper;
+    pub mod text_run;
+    pub mod util;
 }
 
-mod resource {
-    mod resource_task;
-    mod file_loader;
-    mod http_loader;
-    mod image_cache_task;
+pub mod resource {
+    pub mod resource_task;
+    pub mod file_loader;
+    pub mod http_loader;
+    pub mod image_cache_task;
 }
 
-mod util {
-    mod color;
-    mod time;
-    mod tree;
-    mod url;
-    mod vec;
+pub mod util {
+    pub mod tree;
+    pub mod color;
+    pub mod time;
+    pub mod url;
+    pub mod vec;
 }
 
-mod opts;
+pub mod opts;
 
 use servo_util = util;
 use servo_text = text;

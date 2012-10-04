@@ -168,21 +168,21 @@ enum StyleDeclaration {
     Width(CSSValue<BoxSizing>)
 }
 
-enum Attr{
+pub enum Attr {
     Exists(~str),
     Exact(~str, ~str),
     Includes(~str, ~str),
     StartsWith(~str, ~str)
 }
     
-enum Selector{
+pub enum Selector {
     Element(~str, ~[Attr]),
     Child(~Selector, ~Selector),
     Descendant(~Selector, ~Selector),
     Sibling(~Selector, ~Selector)
 }
 
-type Rule = (~[~Selector], ~[StyleDeclaration]);
+pub type Rule = (~[~Selector], ~[StyleDeclaration]);
 
 type Stylesheet = ~[~Rule];
 

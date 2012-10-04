@@ -1,18 +1,18 @@
 //! Configuration options for a single run of the servo application. Created
 //! from command line arguments.
 
-type Opts = {
+pub type Opts = {
     urls: ~[~str],
     render_mode: RenderMode
 };
 
-enum RenderMode {
+pub enum RenderMode {
     Screen,
     Png(~str)
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-fn from_cmdline_args(args: ~[~str]) -> Opts {
+pub fn from_cmdline_args(args: ~[~str]) -> Opts {
     use std::getopts;
 
     let args = args.tail();
