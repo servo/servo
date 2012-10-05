@@ -8,7 +8,7 @@ check-$(1) : $$(DONE_$(1))
 	$$(ENV_RFLAGS_$(1)) \
 	$$(MAKE) -C $$(B)src/$(1) check
 
-DEPS_CLEAN += clean-$(1)
+DEPS_CHECK += check-$(1)
 endef
 
 $(foreach submodule,$(CFG_SUBMODULES),\
@@ -28,7 +28,7 @@ contenttest: $(S)src/contenttest/contenttest.rs servo
 
 .PHONY: check $(DEPS_CHECK)
 
-check: $(CHECK_DEPS) check-servo
+check: $(DEPS_CHECK) check-servo
 
 check-servo: servo-test
 	./servo-test $(TESTNAME)
