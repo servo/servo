@@ -102,32 +102,29 @@ ENV_RFLAGS_$(1) = RUSTFLAGS="$$(strip $$(CFG_RUSTC_FLAGS)) $$(addprefix -L $$(B)
 # whenever a submodule changes
 # TODO: this may be a bit brutish, but is there a better way?
 ROUGH_DEPS_$(1)=$$(call rwildcard,$$(S)src/$(1),*h *c *cpp *rs *rc)
-
+DONE_DEPS_$(1)=$$(foreach dep,$$(DEPS_$(1)),$$(DONE_$$(dep)))
 # the main target for a submodule
 # --
-# this depends on the phony command, which enforces an ordering between parallel
-# recursive makes, but causes the phony command to always run whether or not
-# anything has actually changes. 
-$$(DONE_$(1)) : $$(DEPS_$(1)) $$(ROUGH_DEPS_$(1))
+$$(DONE_$(1)) : $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1))
 #	@$$(call E, make: $(1))
 #	@$$(call E, $(1) deps= $$(DEPS_$(1)))
+#	@$$(call E, $(1) done_deps= $$(DONE_DEPS_$(1)))
 #	@$$(call E, $(1) cflags= $$(ENV_CFLAGS_$(1)))
 #	@$$(call E, $(1) rflags= $$(ENV_RFLAGS_$(1)))
 
 	$$(Q) \
 	$$(ENV_CFLAGS_$(1)) \
 	$$(ENV_RFLAGS_$(1)) \
-	$$(MAKE) -C $$(B)src/$(1)
-	$$(Q)touch $$(DONE_$(1))
+	$$(MAKE) -C $$(B)src/$(1) && touch $$(DONE_$(1))
 
 # main submodule target
-$(1) : $$(DEPS_$(1)) $$(DONE_$(1))
+$(1) : $$(DONE_$(1))
+.PHONY : $(1)
+.NOTPARALLEL : $(1)
 endef
 
 $(foreach submodule,$(CFG_SUBMODULES),\
 $(eval $(call DEF_SUBMODULE_RULES,$(submodule))))
-
-.PHONY : $(1) $(DEPS_SUBMODULES)
 
 RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
 SRC_servo = $(call rwildcard,$(S)src/servo/,*.rs)
