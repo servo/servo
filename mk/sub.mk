@@ -30,6 +30,10 @@ DEPS_rust-mozjs += \
 CFLAGS_rust-mozjs += \
 	"-I../mozjs/dist/include"
 
+DEPS_libcss += \
+    libwapcaplet \
+    libparserutils
+
 # Platform-specific dependencies
 ifeq ($(CFG_OSTYPE),darwin)
 DEPS_rust-azure += \

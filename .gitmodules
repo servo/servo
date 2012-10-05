@@ -55,4 +55,7 @@
 [submodule "src/libwapcaplet"]
     path = src/libwapcaplet
     url = git://github.com/pcwalton/libwapcaplet.git
+[submodule "src/libcss"]
+    path = src/libcss
+    url = git://github.com/pcwalton/libcss.git
 
