@@ -60,7 +60,7 @@ pub mod native {
 
     pub fn create_native_lib() -> NativeFontCache {
         let lib: FT_Library = null();
-        let res = FT_Init_FreeType(addr_of(lib));
+        let res = FT_Init_FreeType(addr_of(&lib));
         // FIXME: error handling
         assert res == 0 as FT_Error;
         return lib;

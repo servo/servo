@@ -1,3 +1,4 @@
+#[legacy_exports];
 export FreeTypeNativeFont, with_test_native_font, create;
 
 use vec_as_buf = vec::as_imm_buf;
@@ -89,7 +90,7 @@ pub fn create(lib: &FT_Library, buf: @~[u8]) -> Result<FreeTypeNativeFont, ()> {
     let face: FT_Face = null();
     return vec_as_buf(*buf, |cbuf, _len| {
            if FT_New_Memory_Face(*lib, cbuf, (*buf).len() as FT_Long,
-                                 0 as FT_Long, addr_of(face)).succeeded() {
+                                 0 as FT_Long, addr_of(&face)).succeeded() {
                // FIXME: These values are placeholders
                let res = FT_Set_Char_Size(face, 0, 20*64, 0, 72);
                if !res.succeeded() { fail ~"unable to set font char size" }
@@ -121,7 +122,7 @@ fn with_test_native_font(f: fn@(nf: &NativeFont)) {
 
 fn with_lib(f: fn@((&FT_Library))) {
     let lib: FT_Library = null();
-    assert FT_Init_FreeType(addr_of(lib)).succeeded();
+    assert FT_Init_FreeType(addr_of(&lib)).succeeded();
     f(&lib);
     FT_Done_FreeType(lib);
 }
