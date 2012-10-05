@@ -49,6 +49,8 @@ endif
 
 export CFG_RUSTC
 export CFG_RUSTC_FLAGS
+export RUSTC=$(CFG_RUSTC)
+export RUSTFLAGS=$(CFG_RUSTC_FLAGS)
 
 ######################################################################
 # Re-configuration
