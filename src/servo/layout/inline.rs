@@ -161,6 +161,7 @@ impl FlowContext : InlineLayout {
 
         // TODO: once we form line boxes and have their cached bounds, we can be 
         // smarter and not recurse on a line if nothing in it can intersect dirty
+        debug!("building display list for %u", self.inline().boxes.len());
         for self.inline().boxes.each |box| {
             box.build_display_list(builder, dirty, offset, list)
         }

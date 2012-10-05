@@ -39,14 +39,14 @@ trait FlowDisplayListBuilderMethods {
 }
 
 impl FlowContext: FlowDisplayListBuilderMethods {
-
     fn build_display_list(builder: &DisplayListBuilder, dirty: &Rect<au>, list: &dl::DisplayList) {
         let zero = au::zero_point();
         self.build_display_list_recurse(builder, dirty, &zero, list);
     }
 
     fn build_display_list_for_child(builder: &DisplayListBuilder, child: @FlowContext,
-                                    dirty: &Rect<au>, offset: &Point2D<au>, list: &dl::DisplayList) {
+                                    dirty: &Rect<au>, offset: &Point2D<au>,
+                                    list: &dl::DisplayList) {
 
         // adjust the dirty rect to child flow context coordinates
         let adj_dirty = dirty.translate(&child.d().position.origin);

@@ -52,4 +52,7 @@
 [submodule "src/sharegl"]
 	path = src/sharegl
 	url = git://github.com/pcwalton/sharegl.git
+[submodule "src/libwapcaplet"]
+    path = src/libwapcaplet
+    url = git://github.com/pcwalton/libwapcaplet.git
 
