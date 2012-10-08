@@ -305,7 +305,7 @@ struct GlyphStore {
 // Initializes the glyph store, but doesn't actually shape anything.
 // Use the set_glyph, set_glyphs() methods to store glyph data.
 // Use the get_glyph_data method to retrieve glyph data for a char..
-fn GlyphStore(text: ~str) {
+fn GlyphStore(_text: ~str) {
 
 }
 

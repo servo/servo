@@ -51,7 +51,7 @@ impl Chan<Msg> : Compositor {
 pub fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
     do spawn_listener |po: Port<Msg>| {
         let cairo_surface = ImageSurface(CAIRO_FORMAT_ARGB32, 800, 600);
-        let draw_target = Cell(DrawTarget(cairo_surface));
+        let draw_target = Cell(DrawTarget(&cairo_surface));
 
         loop {
             match po.recv() {

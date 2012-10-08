@@ -45,7 +45,7 @@ extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool unsafe 
     return 1;
 }
 
-extern fn close(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool unsafe {
+extern fn close(cx: *JSContext, _argc: c_uint, vp: *jsval) -> JSBool unsafe {
     (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.close();
     JS_SET_RVAL(cx, vp, JSVAL_NULL);
     return 1;

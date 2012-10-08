@@ -82,9 +82,9 @@ fn mainloop(+mode: Mode, po: comm::Port<Msg>) {
     let image = @layers::layers::Image(0, 0, layers::layers::RGB24Format, ~[]);
     let image_layer = @layers::layers::ImageLayer(image);
     image_layer.common.set_transform
-        (image_layer.common.transform.scale(800.0f32, 600.0f32, 1.0f32));
+        (image_layer.common.transform.scale(&800.0f32, &600.0f32, &1.0f32));
 
-    let scene = @mut layers::scene::Scene(layers::layers::ImageLayerKind(image_layer),
+    let scene = @layers::scene::Scene(layers::layers::ImageLayerKind(image_layer),
                                           Size2D(800.0f32, 600.0f32));
 
     let done = @mut false;
@@ -119,46 +119,46 @@ fn mainloop(+mode: Mode, po: comm::Port<Msg>) {
         }
     };
 
-	match window {
-		GlutWindow(window) => {
-			do glut::reshape_func(window) |width, height| {
-				check_for_messages();
+    match window {
+        GlutWindow(window) => {
+            do glut::reshape_func(window) |width, height| {
+                check_for_messages();
 
-				#debug("osmain: window resized to %d,%d", width as int, height as int);
-				for event_listeners.each |event_listener| {
-					event_listener.send(ResizeEvent(width as int, height as int));
-				}
-			}
+                #debug("osmain: window resized to %d,%d", width as int, height as int);
+                for event_listeners.each |event_listener| {
+                    event_listener.send(ResizeEvent(width as int, height as int));
+                }
+            }
 
-			do glut::display_func() {
-				check_for_messages();
+            do glut::display_func() {
+                check_for_messages();
 
-				#debug("osmain: drawing to screen");
+                #debug("osmain: drawing to screen");
 
-				do util::time::time(~"compositing") {
-					layers::rendergl::render_scene(context, *scene);
-				}
+                do util::time::time(~"compositing") {
+                    layers::rendergl::render_scene(context, scene);
+                }
 
-				glut::swap_buffers();
-				glut::post_redisplay();
-			}
+                glut::swap_buffers();
+                glut::post_redisplay();
+            }
 
-			while !*done {
-				#debug("osmain: running GLUT check loop");
-				glut::check_loop();
-			}
-		}
-		ShareWindow(share_context) => {
-			loop {
-				check_for_messages();
-				do util::time::time(~"compositing") {
-					layers::rendergl::render_scene(context, *scene);
-				}
+            while !*done {
+                #debug("osmain: running GLUT check loop");
+                glut::check_loop();
+            }
+        }
+        ShareWindow(share_context) => {
+            loop {
+                check_for_messages();
+                do util::time::time(~"compositing") {
+                    layers::rendergl::render_scene(context, scene);
+                }
 
-				share_context.flush();
-			}
-		}
-	}
+                share_context.flush();
+            }
+        }
+    }
 }
 
 #[doc = "
@@ -222,7 +222,7 @@ struct Surface {
 
 fn Surface() -> Surface {
     let cairo_surface = ImageSurface(cairo::CAIRO_FORMAT_RGB24, 800, 600);
-    let draw_target = DrawTarget(cairo_surface);
+    let draw_target = DrawTarget(&cairo_surface);
     Surface { cairo_surface: cairo_surface, draw_target: draw_target, have: true }
 }
 

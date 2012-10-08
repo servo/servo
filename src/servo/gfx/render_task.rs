@@ -114,7 +114,7 @@ pub fn draw_solid_color(ctx: &RenderContext, bounds: &Rect<au>, r: u8, g: u8, b:
                       b.to_float() as AzFloat,
                       1f as AzFloat);
 
-    ctx.canvas.fill_rect(bounds.to_azure_rect(), ColorPattern(color));
+    ctx.canvas.fill_rect(&bounds.to_azure_rect(), &ColorPattern(color));
 }
 
 pub fn draw_image(ctx: &RenderContext, bounds: Rect<au>, image: ARC<~Image>) {
@@ -263,5 +263,5 @@ fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
 fn clear(ctx: &RenderContext) {
     let pattern = ColorPattern(Color(1f as AzFloat, 1f as AzFloat, 1f as AzFloat, 1f as AzFloat));
     let rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat), Size2D(800 as AzFloat, 600 as AzFloat));
-    ctx.canvas.fill_rect(rect, pattern);
+    ctx.canvas.fill_rect(&rect, &pattern);
 }
