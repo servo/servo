@@ -346,7 +346,7 @@ step_msg "running submodule autoconf scripts"
 
 CFG_SUBMODULES="libwapcaplet rust-harfbuzz rust-opengles rust-azure rust-stb-image rust-geom rust-glut rust-layers rust-http-client libparserutils libhubbub libcss servo-sandbox rust-hubbub sharegl rust-mozjs mozjs"
 
-if [ $CFG_OSTYPE == "darwin" ]
+if [ $CFG_OSTYPE = "darwin" ]
 then
 CFG_SUBMODULES="rust-cocoa rust-io-surface rust-core-foundation ${CFG_SUBMODULES}"
 fi
