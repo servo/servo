@@ -159,26 +159,3 @@ extern fn glyph_h_advance_func(_font: *hb_font_t,
     let advance = (*font).glyph_h_advance(glyph as GlyphIndex);
     float_to_fixed_hb(advance)
 }
-
-fn should_get_glyph_indexes() {
-    #[test];
-    #[ignore(cfg(target_os = "macos"), reason = "bad metrics")];
-
-    let lib = FontCache();
-    let font = lib.get_test_font();
-    let glyphs = shape_text(font, ~"firecracker");
-    let idxs = glyphs.map(|glyph| glyph.index);
-    assert idxs == ~[32u32, 8u32, 13u32, 14u32, 10u32, 13u32, 201u32, 10u32, 37u32, 14u32, 13u32];
-}
-
-fn should_get_glyph_h_advance() {
-    #[test];
-    #[ignore(cfg(target_os = "macos"), reason = "bad metrics")];
-
-    let lib = FontCache();
-    let font = lib.get_test_font();
-    let glyphs = shape_text(font, ~"firecracker");
-    let actual = glyphs.map(|g| g.pos.advance.x);
-    let expected = (~[6, 4, 7, 9, 8, 7, 10, 8, 9, 9, 7]).map(|a| au::from_px(*a));
-    assert expected == actual;
-}

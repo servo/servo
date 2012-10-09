@@ -128,7 +128,7 @@ fn should_get_glyph_advance() {
     let lib = FontCache();
     let font = lib.get_test_font();
     let x = font.glyph_h_advance(40u as GlyphIndex);
-    assert x == 15 || x == 16;
+    assert x == 15f || x == 16f;
 }
 
 // Testing thread safety
@@ -144,7 +144,7 @@ fn should_get_glyph_advance_stress() {
             let lib = FontCache();
             let font = lib.get_test_font();
             let x = font.glyph_h_advance(40u as GlyphIndex);
-            assert x == 15 || x == 16;
+            assert x == 15f || x == 16f;
             chan.send(());
         }
     }

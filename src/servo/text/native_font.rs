@@ -55,7 +55,8 @@ fn should_return_none_glyph_index_for_bad_codepoints() {
 fn should_get_glyph_h_advance() {
     with_test_native_font(|font| {
         let adv = font.glyph_h_advance(40u as GlyphIndex);
-        assert adv == Some(15);
+        // TODO: add correct advances; these are old
+        assert adv == Some(15f);
     })
 }
 

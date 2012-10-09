@@ -131,128 +131,43 @@ fn TextRun(font: &Font, text: ~str) -> TextRun {
     return run;
 }
 
-/// Iterates over all the indivisible substrings
-#[test]
-fn test_calc_min_break_width1() {
-    let flib = FontCache();
-    let font = flib.get_test_font();
-    let actual = calc_min_break_width(font, ~"firecracker");
-    let expected = au::from_px(84);
-    assert expected == actual;
-}
-
-#[test]
-fn test_calc_min_break_width2() {
-    let flib = FontCache();
-    let font = flib.get_test_font();
-    let actual = calc_min_break_width(font, ~"firecracker yumyum");
-    let expected = au::from_px(84);
-    assert expected == actual;
-}
-
-#[test]
-fn test_calc_min_break_width3() {
-    let flib = FontCache();
-    let font = flib.get_test_font();
-    let actual = calc_min_break_width(font, ~"yumyum firecracker");
-    let expected = au::from_px(84);
-    assert expected == actual;
-}
-
-#[test]
-fn test_calc_min_break_width4() {
-    let flib = FontCache();
-    let font = flib.get_test_font();
-    let actual = calc_min_break_width(font, ~"yumyum firecracker yumyum");
-    let expected = au::from_px(84);
-    assert expected == actual;
-}
-
-#[test]
-fn test_iter_indivisible_slices() {
-    let flib = FontCache();
-    let font = flib.get_test_font();
-    let mut slices = ~[];
-    for iter_indivisible_slices(font, "firecracker yumyum woopwoop") |slice| {
-        slices += [slice];
-    }
-    assert slices == ~["firecracker", "yumyum", "woopwoop"];
-}
-
-#[test]
-fn test_iter_indivisible_slices_trailing_whitespace() {
-    let flib = FontCache();
-    let font = flib.get_test_font();
-    let mut slices = ~[];
-    for iter_indivisible_slices(font, "firecracker  ") |slice| {
-        slices += [slice];
-    }
-    assert slices == ~["firecracker"];
-}
-
-#[test]
-fn test_iter_indivisible_slices_leading_whitespace() {
-    let flib = FontCache();
-    let font = flib.get_test_font();
-    let mut slices = ~[];
-    for iter_indivisible_slices(font, "  firecracker") |slice| {
-        slices += [slice];
-    }
-    assert slices == ~["firecracker"];
-}
-
-#[test]
-fn test_iter_indivisible_slices_empty() {
-    let flib = FontCache();
-    let font = flib.get_test_font();
-    let mut slices = ~[];
-    for iter_indivisible_slices(font, "") |slice| {
-        slices += [slice];
-    }
-    assert slices == ~[];
-}
-
-#[test]
-fn test_split() {
-    let flib = FontCache();
-    let font = flib.get_test_font();
-    let run = TextRun(font, ~"firecracker yumyum");
-    let break_runs = run.split(font, run.min_break_width());
-    assert break_runs.first().text == ~"firecracker";
-    assert break_runs.second().text == ~"yumyum";
-}
-
-#[test]
-fn test_split2() {
-    let flib = FontCache();
-    let font = flib.get_test_font();
-    let run = TextRun(font, ~"firecracker yum yum yum yum yum");
-    let break_runs = run.split(font, run.min_break_width());
-    assert break_runs.first().text == ~"firecracker";
-    assert break_runs.second().text == ~"yum yum yum yum yum";
-}
-
-/* Causes ICE during compilation. See Rust Issue #3592 */
+// this test can't run until LayoutContext is removed as an argument
+// to min_width_for_range.
 /*
 #[test]
-fn test_split3() {
-    let flib = FontCache();
-    let font = flib.get_test_font();
-    let run = TextRun(font, ~"firecracker firecracker");
-    let px = au::from_px(10);
-    let break_runs = run.split(font, run.min_break_width() + px);
-    assert break_runs.first().text == ~"firecracker";
-    assert break_runs.second().text == ~"firecracker";
+fn test_calc_min_break_width() {
 
-}*/
+    fn test_min_width_for_run(text: ~str, width: au) {
+        let flib = FontCache();
+        let font = flib.get_test_font();
+        let run = TextRun(font, text);
+        run.min_width_for_range(0, text.len())
+    }
+
+    test_min_width_for_run(~"firecracker", au::from_px(84));
+    test_min_width_for_run(~"firecracker yumyum", au::from_px(84));
+    test_min_width_for_run(~"yumyum firecracker", au::from_px(84));
+    test_min_width_for_run(~"yumyum firecracker yumyum", au::from_px(84));
+}
+*/
 
 #[test]
-#[ignore(cfg(target_os = "macos"))]
-fn should_calculate_the_total_size() {
-    let flib = FontCache();
-    let font = flib.get_test_font();
-    let run = TextRun(font, ~"firecracker");
-    let expected = Size2D(au::from_px(84), au::from_px(20));
-    assert run.size() == expected;
+fn test_iter_indivisible_pieces() {
+    fn test_pieces(text: ~str, res: ~[~str]) {
+        let flib = FontCache();
+        let font = flib.get_test_font();
+        let run = TextRun(font, copy text);
+        let mut slices : ~[~str] = ~[];
+        for run.iter_indivisible_pieces_for_range(0, text.len()) |offset, length| {
+            slices.push(str::slice(text, offset, length));
+        }
+        assert slices == res;
+    }
+
+    test_pieces(~"firecracker yumyum woopwoop", ~[~"firecracker", ~" ", ~"yumyum", ~" ", ~"woopwoop"]);
+    test_pieces(~"firecracker yumyum     ", ~[~"firecracker", ~" ", ~"yumyum", ~"     "]);
+    test_pieces(~"     firecracker yumyum", ~[~"     ", ~"firecracker", ~" ", ~"yumyum"]);
+    test_pieces(~"  ", ~[~"  "]);
+    test_pieces(~"", ~[]);
 }
 
