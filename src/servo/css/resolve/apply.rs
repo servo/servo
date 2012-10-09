@@ -8,7 +8,6 @@ use dom::node::{Node, NodeTree};
 use dom::element::*;
 use layout::box::{RenderBox, RenderBoxTree};
 use layout::context::LayoutContext;
-use layout::traverse_parallel::top_down_traversal;
 use image::ImageHolder;
 use resource::image_cache_task::ImageCacheTask;
 use std::net::url::Url;
