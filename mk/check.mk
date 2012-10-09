@@ -34,7 +34,7 @@ check-servo: servo-test
 	./servo-test $(TESTNAME)
 
 check-ref: reftest
-	./reftest --source-dir=$(VPATH)/test/ref --work-dir=src/test/ref $(TESTNAME)
+	./reftest --source-dir=$(S)/src/test/ref --work-dir=src/test/ref $(TESTNAME)
 
 check-content: contenttest
-	./contenttest --source-dir=$(VPATH)/test/content $(TESTNAME)
+	./contenttest --source-dir=$(S)/src/test/content $(TESTNAME)

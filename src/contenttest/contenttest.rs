@@ -9,7 +9,8 @@ struct Config {
     filter: Option<~str>
 }
 
-fn main(args: ~[~str]) {
+fn main() {
+    let args = os::args();
     let config = parse_config(args);
     let opts = test_options(config);
     let tests = find_tests(config);
