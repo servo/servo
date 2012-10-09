@@ -39,18 +39,21 @@ pub fn box<A:Copy Num>(x: A, y: A, w: A, h: A) -> Rect<A> {
     Rect(Point2D(x, y), Size2D(w, h))
 }
 
-pub fn zero_rect() -> Rect<au> {
+pub pure fn zero_rect() -> Rect<au> {
     let z = au(0);
     Rect(Point2D(z, z), Size2D(z, z))
 }
 
-
-pub fn zero_point() -> Point2D<au> {
+pub pure fn zero_point() -> Point2D<au> {
     Point2D(au(0), au(0))
 }
 
-pub fn zero_size() -> Size2D<au> {
+pub pure fn zero_size() -> Size2D<au> {
     Size2D(au(0), au(0))
+}
+
+pub pure fn from_frac_px(f: float) -> au {
+    au((f * 60f) as i32)
 }
 
 pub pure fn from_px(i: int) -> au {
@@ -59,4 +62,9 @@ pub pure fn from_px(i: int) -> au {
 
 pub pure fn to_px(au: au) -> int {
     (*au / 60) as int
+}
+
+// assumes 72 points per inch, and 96 px per inch
+pub pure fn from_pt(f: float) -> au {
+    from_int((f * 96f / 72f) as int)
 }

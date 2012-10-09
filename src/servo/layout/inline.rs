@@ -8,10 +8,13 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::geometry::au;
-use layout::box::{RenderBox, RenderBoxTree, ImageBox, TextBox, GenericBox};
-use layout::flow::{FlowContext, InlineFlow};
+use layout::box::{RenderBox, RenderBoxTree, ImageBox, TextBox, GenericBox, UnscannedTextBox};
 use layout::context::LayoutContext;
+use layout::flow::{FlowContext, InlineFlow};
+use layout::text::TextBoxData;
 use num::Num;
+use servo_text::text_run::TextRun;
+use std::arc;
 use util::tree;
 
 /*
@@ -40,10 +43,24 @@ hard to try out that alternative.
 
 type BoxRange = {start: u8, len: u8};
 
+// TODO: flesh out into TextRunScanner
+fn build_runs_for_flow(ctx: &LayoutContext, dummy_boxes: &DVec<@RenderBox>) {
+    for uint::range(0, dummy_boxes.len()) |i| {
+        match *dummy_boxes[i] {
+            UnscannedTextBox(d, text) => {
+                let run = TextRun(&*ctx.font_cache.get_test_font(), text);
+                let box_guts = TextBoxData(@run, 0, text.len());
+                dummy_boxes.set_elt(i, @TextBox(d, box_guts));
+            },
+            _ => {}
+        }
+    }
+}
+
 struct InlineFlowData {
-    // A flat list of all inline render boxes. Several boxes may
+    // A vec of all inline render boxes. Several boxes may
     // correspond to one Node/Element.
-    boxes: DList<@RenderBox>,
+    boxes: DVec<@RenderBox>,
     // vec of ranges into boxes that represents line positions.
     // these ranges are disjoint, and are the result of inline layout.
     lines: DVec<BoxRange>,
@@ -55,7 +72,7 @@ struct InlineFlowData {
 
 fn InlineFlowData() -> InlineFlowData {
     InlineFlowData {
-        boxes: DList(),
+        boxes: DVec(),
         lines: DVec(),
         elems: DVec()
     }
@@ -73,15 +90,18 @@ trait InlineLayout {
 impl FlowContext : InlineLayout {
     pure fn starts_inline_flow() -> bool { match self { InlineFlow(*) => true, _ => false } }
 
-    fn bubble_widths_inline(_ctx: &LayoutContext) {
+    fn bubble_widths_inline(ctx: &LayoutContext) {
         assert self.starts_inline_flow();
+
+        // TODO: this is a hack
+        build_runs_for_flow(ctx, &self.inline().boxes);
 
         let mut min_width = au(0);
         let mut pref_width = au(0);
 
         for self.inline().boxes.each |box| {
-            min_width = au::max(min_width, box.get_min_width());
-            pref_width = au::max(pref_width, box.get_pref_width());
+            min_width = au::max(min_width, box.get_min_width(ctx));
+            pref_width = au::max(pref_width, box.get_pref_width(ctx));
         }
 
         self.d().min_width = min_width;
@@ -101,6 +121,9 @@ impl FlowContext : InlineLayout {
         //let mut cur_x = au(0);
         let mut cur_y = au(0);
         
+        // TODO: remove test font uses
+        let test_font = ctx.font_cache.get_test_font();
+        
         for self.inline().boxes.each |box| {
             /* TODO: actually do inline flow.
             - Create a working linebox, and successively put boxes
@@ -111,25 +134,26 @@ impl FlowContext : InlineLayout {
 
             - Save the dvec of this context's lineboxes. */
 
-            /* hack: until text box splitting is hoisted into this
-            function, force "reflow" on TextBoxes.  */
-            match *box {
-                @TextBox(*) => box.reflow_text(ctx),
-                _ => {}
-            }
-
             box.d().position.size.width = match *box {
                 @ImageBox(_,img) => au::from_px(img.get_size().get_default(Size2D(0,0)).width),
-                @TextBox(_,d) => d.runs[0].size().width,
+                @TextBox(_,d) => { 
+                    // TODO: measure twice, cut once doesn't apply to text. Shouldn't need
+                    // to measure text again here (should be inside TextBox.split)
+                    let metrics = test_font.measure_text(d.run, d.offset, d.length);
+                    metrics.advance
+                },
                 // TODO: this should be set to the extents of its children
-                @GenericBox(*) => au(0)
+                @GenericBox(*) => au(0),
+                _ => fail fmt!("Tried to assign width to unknown Box variant: %?", box)
             };
 
             box.d().position.size.height = match *box {
                 @ImageBox(_,img) => au::from_px(img.get_size().get_default(Size2D(0,0)).height),
-                @TextBox(_,d) => d.runs[0].size().height,
+                // TODO: we should use the bounding box of the actual text, i think?
+                @TextBox(*) => test_font.metrics.em_size,
                 // TODO: this should be set to the extents of its children
-                @GenericBox(*) => au(0)
+                @GenericBox(*) => au(0),
+                _ => fail fmt!("Tried to assign width to unknown Box variant: %?", box)
             };
 
             box.d().position.origin = Point2D(au(0), cur_y);
@@ -161,7 +185,7 @@ impl FlowContext : InlineLayout {
 
         // TODO: once we form line boxes and have their cached bounds, we can be 
         // smarter and not recurse on a line if nothing in it can intersect dirty
-        debug!("building display list for %u", self.inline().boxes.len());
+        debug!("building display list for %u inline boxes", self.inline().boxes.len());
         for self.inline().boxes.each |box| {
             box.build_display_list(builder, dirty, offset, list)
         }

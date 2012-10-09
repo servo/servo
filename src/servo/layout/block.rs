@@ -66,7 +66,7 @@ impl FlowContext : BlockLayout {
     /* TODO: floats */
     /* TODO: absolute contexts */
     /* TODO: inline-blocks */
-    fn bubble_widths_block(_ctx: &LayoutContext) {
+    fn bubble_widths_block(ctx: &LayoutContext) {
         assert self.starts_block_flow();
 
         let mut min_width = au(0);
@@ -83,8 +83,8 @@ impl FlowContext : BlockLayout {
         /* if not an anonymous block context, add in block box's widths.
            these widths will not include child elements, just padding etc. */
         do self.with_block_box |box| {
-            min_width = min_width.add(&box.get_min_width());
-            pref_width = pref_width.add(&box.get_pref_width());
+            min_width = min_width.add(&box.get_min_width(ctx));
+            pref_width = pref_width.add(&box.get_pref_width(ctx));
         }
 
         self.d().min_width = min_width;

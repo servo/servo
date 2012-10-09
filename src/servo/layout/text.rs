@@ -1,30 +1,28 @@
 /** Text layout. */
 
 use au = gfx::geometry;
+use au::au;
 use geom::size::Size2D;
-use gfx::geometry::au;
 use servo_text::text_run::TextRun;
 use servo_text::font_cache::FontCache;
 use layout::box::{TextBox, RenderBox};
 use layout::context::LayoutContext;
 
-struct TextBoxData {
-    text: ~str,
-    mut runs: ~[TextRun]
+pub struct TextBoxData {
+    run: @TextRun,
+    offset: uint,
+    length: uint
 }
 
-fn TextBoxData(text: ~str, runs: ~[TextRun]) -> TextBoxData {
+pub fn TextBoxData(run: @TextRun, offset: uint, length: uint) -> TextBoxData {
     TextBoxData {
-        text: text,
-        runs: runs
+        run: run,
+        offset: offset,
+        length: length
     }
 }
 
-trait TextLayout {
-    fn reflow_text(ctx: &LayoutContext);
-}
-
-/** The main reflow routine for text layout. */
+/* The main reflow routine for text layout. 
 impl @RenderBox : TextLayout {
     fn reflow_text(ctx: &LayoutContext) {
         let d = match self {
@@ -32,6 +30,7 @@ impl @RenderBox : TextLayout {
             _ => { fail ~"expected text box in reflow_text!" }
         };
 
+        // TODO: get font from textrun's TextStyle
         let font = ctx.font_cache.get_test_font();
 
         // Do line breaking.
@@ -76,26 +75,4 @@ impl @RenderBox : TextLayout {
         self.d().position.size = Size2D(max_width, total_height);
         d.runs = move dvec::unwrap(lines);
     }
-}
-
-/* TODO: new unit tests for TextBox splitting, etc
-fn should_calculate_the_size_of_the_text_box() {
-    #[test];
-    #[ignore(cfg(target_os = "macos"))];
-
-    use au = gfx::geometry;
-    use dom::rcu::{Scope};
-    use dom::base::{Text, NodeScope};
-    use util::tree;
-    use layout::box_builder::LayoutTreeBuilder;
-
-    let s = Scope();
-    let n = s.new_node(Text(~"firecracker"));
-    let builder = LayoutTreeBuilder();
-    let b = builder.construct_trees(n).get();
-
-    b.reflow_text();
-    let expected = Size2D(au::from_px(84), au::from_px(20));
-    assert b.data.position.size == expected;
-}
-*/
+}*/

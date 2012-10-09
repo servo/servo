@@ -93,7 +93,8 @@ enum RenderBoxType {
 pub enum RenderBox {
     GenericBox(RenderBoxData),
     ImageBox(RenderBoxData, ImageHolder),
-    TextBox(RenderBoxData, TextBoxData)
+    TextBox(RenderBoxData, TextBoxData),
+    UnscannedTextBox(RenderBoxData, ~str)
 }
 
 impl RenderBox {
@@ -101,7 +102,8 @@ impl RenderBox {
         match *self {
             GenericBox(ref d)  => d,
             ImageBox(ref d, _) => d,
-            TextBox(ref d, _)  => d
+            TextBox(ref d, _)  => d,
+            UnscannedTextBox(ref d, _) => d,
         }
     }
 }
@@ -130,7 +132,7 @@ impl RenderBox {
      * may cause glyphs to be allocated. For now, it's impure because of 
      * holder.get_image()
     */
-    fn get_min_width() -> au {
+    fn get_min_width(ctx: &LayoutContext) -> au {
         match self {
             // TODO: this should account for min/pref widths of the
             // box element in isolation. That includes
@@ -141,13 +143,12 @@ impl RenderBox {
             // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult 'width'.
             ImageBox(_,i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
-            TextBox(_,d) => d.runs.foldl(au(0), |sum, run| {
-                au::max(*sum, run.min_break_width())
-            })
+            TextBox(_,d) => d.run.min_width_for_range(ctx, d.offset, d.length),
+            UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
         }
     }
 
-    fn get_pref_width() -> au {
+    fn get_pref_width(_ctx: &LayoutContext) -> au {
         match self {
             // TODO: this should account for min/pref widths of the
             // box element in isolation. That includes
@@ -156,12 +157,30 @@ impl RenderBox {
             // that of its children to arrive at the context width.
             GenericBox(*) => au(0),
             ImageBox(_,i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
-            // TODO: account for line breaks, etc. The run should know
-            // how to compute its own min and pref widths, and should
-            // probably cache them.
-            TextBox(_,d) => d.runs.foldl(au(0), |sum, run| {
-                au::max(*sum, run.size().width)
-            })
+
+            // a text box cannot span lines, so assume that this is an unsplit text box.
+
+            // TODO: If text boxes have been split to wrap lines, then
+            // they could report a smaller pref width during incremental reflow.
+            // maybe text boxes should report nothing, and the parent flow could
+            // factor in min/pref widths of any text runs that it owns.
+            TextBox(_,d) => {
+                let mut max_line_width: au = au(0);
+                do d.run.iter_natural_lines_for_range(d.offset, d.length) |line_offset, line_len| {
+                    let mut line_width: au = au(0);
+                    do d.run.glyphs.iter_glyphs_for_range(line_offset, line_len) |_char_i, glyph| {
+                        line_width += glyph.advance()
+                    };
+
+                    if max_line_width < line_width {
+                        max_line_width = line_width;
+                    };
+                    true
+                }
+
+                max_line_width
+            },
+            UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
         }
     }
 
@@ -212,7 +231,8 @@ impl RenderBox {
             },
             TextBox(*) => {
                 copy self.d().position
-            }
+            },
+            UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
         }
     }
 
@@ -251,25 +271,9 @@ impl RenderBox {
                                      copy self.d().position.size);
 
         match self {
+            UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
             TextBox(_,d) => {
-                let mut runs = d.runs;
-                // TODO: don't paint background for text boxes
-                list.push(~dl::SolidColor(bounds, 255u8, 255u8, 255u8));
-                
-                let mut bounds = bounds;
-                for uint::range(0, runs.len()) |i| {
-                    bounds.size.height = runs[i].size().height;
-                    let glyph_run = make_glyph_run(&runs[i]);
-                    list.push(~dl::Glyphs(bounds, glyph_run));
-                    bounds.origin.y = bounds.origin.y.add(&bounds.size.height);
-                }
-                return;
-
-                pure fn make_glyph_run(text_run: &TextRun) -> dl::GlyphRun {
-                    dl::GlyphRun {
-                        glyphs: copy text_run.glyphs
-                    }
-                }
+                list.push(~dl::Text(bounds, ~(copy *d.run), d.offset, d.length))
             },
             // TODO: items for background, border, outline
             GenericBox(*) => { },
@@ -348,12 +352,8 @@ impl RenderBox : BoxedDebugMethods {
         let repr = match self {
             @GenericBox(*) => ~"GenericBox",
             @ImageBox(*) => ~"ImageBox",
-            @TextBox(_,d) => {
-                let mut s = d.runs.foldl(~"TextBox(runs=", |s, run| {
-                    fmt!("%s  \"%s\"", *s, run.text)
-                });
-                s += ~")"; s
-            }
+            @TextBox(_,d) => fmt!("TextBox(text=%s)", str::substr(d.run.text, d.offset, d.length)),
+            @UnscannedTextBox(_,s) => fmt!("UnscannedTextBox(%s)", s)
         };
 
         fmt!("box b%?: %?", self.d().id, repr)

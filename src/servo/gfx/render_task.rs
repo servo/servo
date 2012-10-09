@@ -1,28 +1,31 @@
 use mod azure::azure_hl;
-use au = geometry;
+
+use au = gfx::geometry;
 use au::au;
-use platform::osmain;
-use comm::*;
-use image::base::Image;
-use dl = display_list;
-use libc::size_t;
-use text::font::Font;
-use display_list::GlyphRun;
-use geom::size::Size2D;
-use geom::rect::Rect;
-use geom::point::Point2D;
-use azure::{AzDrawOptions, AzFloat, AzGlyph, AzGlyphBuffer};
 use azure::bindgen::AzDrawTargetFillGlyphs;
+use azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
+use azure::{AzDrawOptions, AzFloat, AzGlyph, AzGlyphBuffer};
 use azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions};
 use azure_hl::{DrawTarget, Linear};
+use comm::*;
+use compositor::Compositor;
+use core::dvec::DVec;
+use dl = display_list;
+use geom::point::Point2D;
+use geom::rect::Rect;
+use geom::size::Size2D;
+use image::base::Image;
+use libc::size_t;
+use pipes::{Port, Chan};
+use platform::osmain;
 use ptr::to_unsafe_ptr;
 use std::arc::ARC;
-use azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
 use std::cell::Cell;
-use compositor::Compositor;
-use servo_text::font_cache::FontCache;
+use text::text_run::TextRun;
+use text::font::Font;
+use text::font_cache::FontCache;
 
-use pipes::{Port, Chan};
+
 
 pub type Renderer = comm::Chan<Msg>;
 
@@ -133,7 +136,7 @@ pub fn draw_image(ctx: &RenderContext, bounds: Rect<au>, image: ARC<~Image>) {
                              draw_options);
 }
 
-pub fn draw_glyphs(ctx: &RenderContext, bounds: Rect<au>, text_run: &GlyphRun) {
+pub fn draw_text(ctx: &RenderContext, bounds: Rect<au>, run: &TextRun, offset: uint, length: uint) {
     use ptr::{null};
     use vec::raw::to_ptr;
     use libc::types::common::c99::{uint16_t, uint32_t};
@@ -147,7 +150,7 @@ pub fn draw_glyphs(ctx: &RenderContext, bounds: Rect<au>, text_run: &GlyphRun) {
                             AzReleaseColorPattern};
     use azure::cairo::bindgen::cairo_scaled_font_destroy;
 
-    // FIXME: font should be accessible from GlyphRun
+    // FIXME: font should be accessible from TextRun
     let font = ctx.font_cache.get_test_font();
 
     let nfont: AzNativeFont = {
@@ -175,22 +178,29 @@ pub fn draw_glyphs(ctx: &RenderContext, bounds: Rect<au>, text_run: &GlyphRun) {
     };
 
     let mut origin = Point2D(bounds.origin.x, bounds.origin.y.add(&bounds.size.height));
-    let azglyphs = text_run.glyphs.map(|glyph| {
+    let azglyphs = DVec();
+    azglyphs.reserve(length);
+
+    do run.glyphs.iter_glyphs_for_range(offset, length) |_i, glyph| {
+        let glyph_advance = glyph.advance();
+        let glyph_offset = glyph.offset().get_default(au::zero_point());
+
         let azglyph: AzGlyph = {
-            mIndex: glyph.index as uint32_t,
+            mIndex: glyph.index() as uint32_t,
             mPosition: {
-                x: au::to_px(origin.x.add(&glyph.pos.offset.x)) as AzFloat,
-                y: au::to_px(origin.y.add(&glyph.pos.offset.y)) as AzFloat
+                x: au::to_px(origin.x + glyph_offset.x) as AzFloat,
+                y: au::to_px(origin.y + glyph_offset.y) as AzFloat
             }
         };
-        origin = Point2D(origin.x.add(&glyph.pos.advance.x),
-                         origin.y.add(&glyph.pos.advance.y));
-        azglyph
-    });
+        origin = Point2D(origin.x + glyph_advance, origin.y);
+        azglyphs.push(move azglyph)
+    };
 
+    let azglyph_buf_len = azglyphs.len();
+    let azglyph_buf = dvec::unwrap(move azglyphs);
     let glyphbuf: AzGlyphBuffer = unsafe {{
-        mGlyphs: to_ptr(azglyphs),
-        mNumGlyphs: azglyphs.len() as uint32_t            
+        mGlyphs: to_ptr(azglyph_buf),
+        mNumGlyphs: azglyph_buf_len as uint32_t            
     }};
 
     // TODO: this call needs to move into azure_hl.rs

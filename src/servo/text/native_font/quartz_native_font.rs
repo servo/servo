@@ -2,8 +2,9 @@ extern mod cocoa;
 
 export QuartzNativeFont, with_test_native_font, create;
 
-use font::FontMetrics;
+use font::{FontMetrics, FractionalPixel};
 
+use au = gfx::geometry;
 use libc::size_t;
 use ptr::null;
 use glyph::GlyphIndex;
@@ -130,8 +131,7 @@ impl QuartzNativeFont {
         return Some(glyphs[0] as GlyphIndex);
     }
 
-    // FIXME: What unit is this returning? Let's have a custom type
-    fn glyph_h_advance(glyph: GlyphIndex) -> Option<int> {
+    fn glyph_h_advance(glyph: GlyphIndex) -> Option<FractionalPixel> {
         use coretext::{CGGlyph, kCTFontDefaultOrientation};
         use coretext::coretext::{CTFontGetAdvancesForGlyphs};
 
@@ -141,7 +141,7 @@ impl QuartzNativeFont {
             CTFontGetAdvancesForGlyphs(self.ctfont, kCTFontDefaultOrientation, glyph_buf, null(), 1)
         };
 
-        return Some(advance as int);
+        return Some(advance as FractionalPixel);
     }
 
     fn get_metrics() -> FontMetrics {
@@ -164,6 +164,7 @@ impl QuartzNativeFont {
             em_ascent:        CTFontGetAscent(ctfont) as float * convFactor,
             em_descent:       CTFontGetDescent(ctfont) as float * convFactor,
             em_height:        em_ascent + em_descent,
+            em_size:          au::from_pt(21f),
             max_advance:      bounding_rect.size.width as float * convFactor,
         }
     }
@@ -174,6 +175,7 @@ fn ctfont_from_cgfont(cgfont: CGFontRef) -> coretext::CTFontRef {
     use coretext::coretext::CTFontCreateWithGraphicsFont;
 
     assert cgfont.is_not_null();
+    // TODO: use actual font size here!
     CTFontCreateWithGraphicsFont(cgfont, 21f as CGFloat, null(), null())
 }
 

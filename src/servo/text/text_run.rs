@@ -1,138 +1,137 @@
+use arc = std::arc;
+use arc::ARC;
 use au = gfx::geometry;
+use font::Font;
+use font_cache::FontCache;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use gfx::geometry::au;
+use glyph::GlyphStore;
+use layout::context::LayoutContext;
 use libc::{c_void};
-use font_cache::FontCache;
-use font::Font;
-use glyph::Glyph;
-use shaper::shape_text;
+use servo_util::color;
+use shaper::shape_textrun;
+use std::arc;
 
-/// A single, unbroken line of text
-struct TextRun {
+pub struct TextRun {
     text: ~str,
-    priv glyphs: ~[Glyph],
-    priv size_: Size2D<au>,
-    priv min_break_width_: au,
+    priv glyphs: GlyphStore,
 }
 
 impl TextRun {
-    /// The size of the entire TextRun
-    pure fn size() -> Size2D<au> { self.size_ }
-    pure fn min_break_width() -> au { self.min_break_width_ }
+    pure fn glyphs(&self) -> &self/GlyphStore { &self.glyphs }
 
-    /// Split a run of text in two
-    // FIXME: Should be storing a reference to the Font inside
-    // of the TextRun, but I'm hitting cycle collector bugs
-    fn split(font: &Font, h_offset: au) -> (TextRun, TextRun) {
-        assert h_offset >= self.min_break_width();
-        assert h_offset <= self.size_.width;
+    fn min_width_for_range(ctx: &LayoutContext, offset: uint, length: uint) -> au {    
+        assert length > 0;
+        assert offset < self.text.len();
+        assert offset + length <= self.text.len();
 
-        let mut curr_run = ~"";
+        let mut max_piece_width = au(0);
+        // TODO: use a real font reference
+        let font = ctx.font_cache.get_test_font();
+        for self.iter_indivisible_pieces_for_range(offset, length) |piece_offset, piece_len| {
 
-        for iter_indivisible_slices(font, self.text) |slice| {
-            let mut candidate = copy curr_run;
-
-            if candidate.is_not_empty() {
-                str::push_str(&mut candidate, " "); // FIXME: just inserting spaces between words can't be right
-            }
-
-            str::push_str(&mut candidate, slice);
-
-            let glyphs = shape_text(font, candidate);
-            let size = glyph_run_size(glyphs);
-            if size.width <= h_offset {
-                curr_run = move candidate;
-            } else {
-                break;
-            }
-        }
-
-        assert curr_run.is_not_empty();
-
-        let first = move curr_run;
-        let second_start = match str::find_from(self.text, first.len(), |c| !char::is_whitespace(c)) {
-            Some(idx) => idx,
-            None => {
-                // This will be an empty string
-                self.text.len()
+            let metrics = font.measure_text(&self, piece_offset, piece_len);
+            if metrics.advance > max_piece_width {
+                max_piece_width = metrics.advance;
             }
         };
-        let second = str::slice(self.text, second_start, self.text.len());
-        return (TextRun(font, first), TextRun(font, second));
+        return max_piece_width;
     }
-}
 
-fn TextRun(font: &Font, +text: ~str) -> TextRun {
-    let glyphs = shape_text(font, text);
-    let size = glyph_run_size(glyphs);
-    let min_break_width = calc_min_break_width(font, text);
+    fn iter_natural_lines_for_range(&self, offset: uint, length: uint, f: fn(uint, uint) -> bool) {
+        assert length > 0;
+        assert offset < self.text.len();
+        assert offset + length <= self.text.len();
 
-    TextRun {
-        text: text,
-        glyphs: shape_text(font, text),
-        size_: size,
-        min_break_width_: min_break_width
-    }
-}
+        let mut clump_start = offset;
+        let mut clump_end = offset;
+        let mut in_clump = false;
 
-fn glyph_run_size(glyphs: &[Glyph]) -> Size2D<au> {
-    let height = au::from_px(20);
-    let pen_start_x = au::from_px(0);
-    let pen_start_y = height;
-    let pen_start = Point2D(pen_start_x, pen_start_y);
-    let pen_end = glyphs.foldl(pen_start, |cur, glyph| {
-        Point2D(cur.x.add(&glyph.pos.offset.x).add(&glyph.pos.advance.x),
-                cur.y.add(&glyph.pos.offset.y).add(&glyph.pos.advance.y))
-    });
-    return Size2D(pen_end.x, pen_end.y);
-}
-
-/// Discovers the width of the largest indivisible substring
-fn calc_min_break_width(font: &Font, text: &str) -> au {
-    let mut max_piece_width = au(0);
-    for iter_indivisible_slices(font, text) |slice| {
-        let glyphs = shape_text(font, slice);
-        let size = glyph_run_size(glyphs);
-        if size.width > max_piece_width {
-            max_piece_width = size.width
+        // clump non-linebreaks of nonzero length
+        for uint::range(offset, offset + length) |i| {
+            match (self.glyphs.char_is_newline(i), in_clump) {
+                (false, true)  => { clump_end = i; }
+                (false, false) => { in_clump = true; clump_start = i; clump_end = i; }
+                (true, false) => { /* chomp whitespace */ }
+                (true, true)  => {
+                    in_clump = false;
+                    // don't include the linebreak 'glyph'
+                    // (we assume there's one GlyphEntry for a newline, and no actual glyphs)
+                    if !f(clump_start, clump_end - clump_start + 1) { break }
+                }
+            }
+        }
+        
+        // flush any remaining chars as a line
+        if in_clump {
+            clump_end = offset + length - 1;
+            f(clump_start, clump_end - clump_start + 1);
         }
     }
-    return max_piece_width;
+
+    pure fn iter_indivisible_pieces_for_range(&self, offset: uint, length: uint, f: fn(uint, uint) -> bool) {
+        assert length > 0;
+        assert offset < self.text.len();
+        assert offset + length <= self.text.len();
+
+        //TODO: need a more sophisticated model of words and possible breaks
+        let text = str::view(self.text, offset, length);
+
+        let mut clump_start = offset;
+
+        loop {
+            // clump contiguous non-whitespace
+            match str::find_from(text, clump_start, |c| !char::is_whitespace(c)) {
+                Some(clump_end) => {
+                    if !f(clump_start, clump_end - clump_start + 1) { break }
+                    clump_start = clump_end + 1;
+                    // reached end
+                    if clump_start == offset + length { break }
+                },
+                None => {
+                    // nothing left, flush last piece containing only spaces
+                    if clump_start < offset + length {
+                        let clump_end = offset + length - 1;
+                        f(clump_start, clump_end - clump_start + 1);
+                    }
+                    break
+                }
+            };
+
+            // clump contiguous whitespace
+            match str::find_from(text, clump_start, |c| char::is_whitespace(c)) {
+                Some(clump_end) => {
+                    if !f(clump_start, clump_end - clump_start + 1) { break }
+                    clump_start = clump_end + 1;
+                    // reached end
+                    if clump_start == offset + length { break }
+                }
+                None => {
+                    // nothing left, flush last piece containing only spaces
+                    if clump_start < offset + length {
+                        let clump_end = offset + length - 1;
+                        f(clump_start, clump_end - clump_start + 1);
+                    }
+                    break
+                }
+            }
+        }
+    }
+}
+ 
+fn TextRun(font: &Font, text: ~str) -> TextRun {
+    let glyph_store = GlyphStore(text);
+    let run = TextRun {
+        text: text,
+        glyphs: glyph_store,
+    };
+
+    shape_textrun(font, &run);
+    return run;
 }
 
 /// Iterates over all the indivisible substrings
-fn iter_indivisible_slices(_font: &Font, text: &r/str,
-                           f: fn((&r/str)) -> bool) {
-
-    let mut curr = text;
-    loop {
-        match str::find(curr, |c| !char::is_whitespace(c) ) {
-          Some(idx) => {
-            curr = str::view(curr, idx, curr.len());
-          }
-          None => {
-            // Everything else is whitespace
-            break
-          }
-        }
-
-        match str::find(curr, |c| char::is_whitespace(c) ) {
-          Some(idx) => {
-            let piece = str::view(curr, 0, idx);
-            if !f(piece) { break }
-            curr = str::view(curr, idx, curr.len());
-          }
-          None => {
-            assert curr.is_not_empty();
-            if !f(curr) { break }
-            // This is the end of the string
-            break;
-          }
-        }
-    }
-}
-
 #[test]
 fn test_calc_min_break_width1() {
     let flib = FontCache();

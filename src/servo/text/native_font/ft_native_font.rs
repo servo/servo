@@ -1,6 +1,7 @@
 #[legacy_exports];
 export FreeTypeNativeFont, with_test_native_font, create;
 
+use util::*;
 use vec_as_buf = vec::as_imm_buf;
 use ptr::{addr_of, null};
 use cast::reinterpret_cast;
@@ -17,6 +18,14 @@ use freetype::bindgen::{
     FT_Load_Glyph,
     FT_Set_Char_Size
 };
+
+fn float_to_fixed_ft(f: float) -> i32 {
+    float_to_fixed(26, f)
+}
+
+fn fixed_to_float_ft(f: i32) -> float {
+    fixed_to_float(26, f)
+}
 
 struct FreeTypeNativeFont {
     /// The font binary. This must stay valid for the lifetime of the font
@@ -44,13 +53,13 @@ impl FreeTypeNativeFont {
         return if idx != 0 as FT_UInt {
             Some(idx as GlyphIndex)
         } else {
-            #warn("Invalid codepoint: %?", codepoint);
+            debug!("Invalid codepoint: %?", codepoint);
             None
         };
     }
 
     // FIXME: What unit is this returning? Let's have a custom type
-    fn glyph_h_advance(glyph: GlyphIndex) -> Option<int> {
+    fn glyph_h_advance(glyph: GlyphIndex) -> Option<FractionalPixel> {
         assert self.face.is_not_null();
         let res =  FT_Load_Glyph(self.face, glyph as FT_UInt, 0);
         if res.succeeded() {
@@ -59,13 +68,11 @@ impl FreeTypeNativeFont {
                 let slot: FT_GlyphSlot = reinterpret_cast(&void_glyph);
                 assert slot.is_not_null();
                 let advance = (*slot).metrics.horiAdvance;
-                #debug("h_advance for %? is %?", glyph, advance);
-                // FIXME: Dividing by 64 converts to pixels, which
-                // is not the unit we should be using
-                return Some((advance / 64) as int);
+                debug!("h_advance for %? is %?", glyph, advance);
+                return Some(fixed_to_float_ft(advance) as FractionalPixel);
             }
         } else {
-            #warn("Unable to load glyph %?. reason: %?", glyph, res);
+            debug!("Unable to load glyph %?. reason: %?", glyph, res);
             return None;
         }
     }

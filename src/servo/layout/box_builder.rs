@@ -13,10 +13,7 @@ use layout::context::LayoutContext;
 use layout::flow::*;
 use layout::inline::InlineFlowData;
 use layout::root::RootFlowData;
-use layout::text::TextBoxData;
 use option::is_none;
-use servo_text::font_cache::FontCache;
-use servo_text::text_run::TextRun;
 use util::tree;
 
 export LayoutTreeBuilder;
@@ -242,16 +239,10 @@ impl LayoutTreeBuilder {
 
     }
 
-    fn make_text_box(layout_ctx: &LayoutContext, node: Node, ctx: @FlowContext) -> @RenderBox {
+    fn make_text_box(_layout_ctx: &LayoutContext, node: Node, ctx: @FlowContext) -> @RenderBox {
         do node.read |n| {
             match n.kind {
-                ~Text(string) => {
-                    // TODO: clean this up. Fonts should not be created here.
-                    let font = layout_ctx.font_cache.get_test_font();
-                    let run = TextRun(font, string);
-                    @TextBox(RenderBoxData(node, ctx, self.next_box_id()),
-                             TextBoxData(copy string, ~[move run]))
-                },
+                ~Text(string) => @UnscannedTextBox(RenderBoxData(node, ctx, self.next_box_id()), copy string),
                 _ => fail ~"WAT error: why couldn't we make a text box?"
             }
         }
