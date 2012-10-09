@@ -15,7 +15,7 @@ pub fn fixed_to_rounded_int(before: int, f: i32) -> int {
     }
 }
 
-/* Generate a 32-bit TrueType tag from its 4 charecters */
+/* Generate a 32-bit TrueType tag from its 4 characters */
 pub fn true_type_tag(a: char, b: char, c: char, d: char) -> u32 {
     (a << 24 | b << 16 | c << 8 | d) as u32
 }
