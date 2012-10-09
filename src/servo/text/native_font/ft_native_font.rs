@@ -1,6 +1,8 @@
 #[legacy_exports];
 export FreeTypeNativeFont, with_test_native_font, create;
 
+use font::{FontMetrics, FractionalPixel};
+
 use util::*;
 use vec_as_buf = vec::as_imm_buf;
 use ptr::{addr_of, null};
@@ -69,6 +71,7 @@ impl FreeTypeNativeFont {
                 assert slot.is_not_null();
                 let advance = (*slot).metrics.horiAdvance;
                 debug!("h_advance for %? is %?", glyph, advance);
+                let advance = advance as i32;
                 return Some(fixed_to_float_ft(advance) as FractionalPixel);
             }
         } else {
@@ -84,9 +87,10 @@ impl FreeTypeNativeFont {
             underline_offset: 0.0,
             leading:          0.0,
             x_height:         0.0,
+            em_size:          gfx::geometry::au(0),
+            em_height:        0.0,
             em_ascent:        0.0,
             em_descent:       0.0,
-            em_height:        0.0,
             max_advance:      0.0
         }
     }
