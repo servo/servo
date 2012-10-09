@@ -12,7 +12,7 @@ pub enum RenderMode {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub fn from_cmdline_args(args: ~[~str]) -> Opts {
+pub fn from_cmdline_args(args: &[~str]) -> Opts {
     use std::getopts;
 
     let args = args.tail();

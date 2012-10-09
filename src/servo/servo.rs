@@ -12,12 +12,13 @@ use util::url::make_url;
 
 use pipes::{Port, Chan};
 
-fn main(args: ~[~str]) {
-    run(opts::from_cmdline_args(args))
+fn main() {
+    let args = os::args();
+    run(&opts::from_cmdline_args(args))
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-fn run(opts: Opts) {
+fn run(opts: &Opts) {
     match opts.render_mode {
       Screen => run_pipeline_screen(opts.urls),
       Png(outfile) => {
@@ -30,7 +31,7 @@ fn run(opts: Opts) {
     }
 }
 
-fn run_pipeline_screen(urls: ~[~str]) {
+fn run_pipeline_screen(urls: &[~str]) {
 
     // The platform event handler thread
     let osmain = OSMain();
@@ -66,7 +67,7 @@ fn run_pipeline_screen(urls: ~[~str]) {
     osmain.send(osmain::Exit);
 }
 
-fn run_pipeline_png(-url: ~str, outfile: ~str) {
+fn run_pipeline_png(+url: ~str, outfile: &str) {
     // Use a PNG encoder as the graphics compositor
     use gfx::png_compositor;
     use png_compositor::PngCompositor;
