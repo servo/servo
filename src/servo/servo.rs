@@ -7,7 +7,6 @@ use engine::{Engine, ExitMsg, LoadURLMsg};
 use resource::image_cache_task::ImageCacheTask;
 use resource::resource_task::ResourceTask;
 
-use url_to_str = std::net::url::to_str;
 use util::url::make_url;
 
 use pipes::{Port, Chan};
@@ -47,8 +46,8 @@ fn run_pipeline_screen(urls: &[~str]) {
     let engine_chan = engine.start();
 
     for urls.each |filename| {
-        let url = make_url(*filename, None);
-        #debug["master: Sending url `%s`", url_to_str(url)];
+        let url = make_url(copy *filename, None);
+        #debug["master: Sending url `%s`", url.to_str()];
         engine_chan.send(LoadURLMsg(url));
         #debug["master: Waiting for keypress"];
 
@@ -83,7 +82,7 @@ fn run_pipeline_png(+url: ~str, outfile: &str) {
         let image_cache_task = SyncImageCacheTask(resource_task);
         let engine_task = Engine(compositor, resource_task, image_cache_task);
         let engine_chan = engine_task.start();
-        engine_chan.send(LoadURLMsg(make_url(url, None)));
+        engine_chan.send(LoadURLMsg(make_url(copy url, None)));
 
         match buffered_file_writer(&Path(outfile)) {
           Ok(writer) => writer.write(pngdata_from_compositor.recv()),
