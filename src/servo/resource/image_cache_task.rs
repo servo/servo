@@ -74,7 +74,7 @@ impl ImageResponseMsg: cmp::Eq {
 
 pub type ImageCacheTask = Chan<Msg>;
 
-type DecoderFactory = ~fn() -> ~fn(~[u8]) -> Option<Image>;
+type DecoderFactory = ~fn() -> ~fn(&[u8]) -> Option<Image>;
 
 pub fn ImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
     ImageCacheTask_(resource_task, default_decoder_factory)
@@ -456,8 +456,8 @@ fn load_image_data(+url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> 
     }
 }
 
-fn default_decoder_factory() -> ~fn(~[u8]) -> Option<Image> {
-    fn~(data: ~[u8]) -> Option<Image> { load_from_memory(data) }
+fn default_decoder_factory() -> ~fn(&[u8]) -> Option<Image> {
+    fn~(data: &[u8]) -> Option<Image> { load_from_memory(data) }
 }
 
 #[cfg(test)]
@@ -880,9 +880,9 @@ fn should_return_not_ready_if_image_is_still_decoding() {
     };
 
     let wait_to_decode_port_cell = Cell(wait_to_decode_port);
-    let decoder_factory = fn~(move wait_to_decode_port_cell) -> ~fn(~[u8]) -> Option<Image> {
+    let decoder_factory = fn~(move wait_to_decode_port_cell) -> ~fn(&[u8]) -> Option<Image> {
         let wait_to_decode_port = wait_to_decode_port_cell.take();
-        fn~(data: ~[u8], move wait_to_decode_port) -> Option<Image> {
+        fn~(data: &[u8], move wait_to_decode_port) -> Option<Image> {
             // Don't decode until after the client requests the image
             wait_to_decode_port.recv();
             load_from_memory(data)
