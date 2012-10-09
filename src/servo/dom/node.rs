@@ -27,8 +27,8 @@ enum NodeData = {
 enum NodeTree { NodeTree }
 
 impl NodeTree : tree::ReadMethods<Node> {
-    fn each_child(node: Node, f: fn(Node) -> bool) {
-        tree::each_child(self, node, f)
+    fn each_child(node: &Node, f: fn(&Node) -> bool) {
+        tree::each_child(&self, node, f)
     }
 
     fn with_tree_fields<R>(&&n: Node, f: fn(tree::Tree<Node>) -> R) -> R {
@@ -39,11 +39,11 @@ impl NodeTree : tree::ReadMethods<Node> {
 impl Node {
     fn traverse_preorder(preorder_cb: &fn(Node)) {
         preorder_cb(self);
-        do NodeTree.each_child(self) |child| { child.traverse_preorder(preorder_cb); true }
+        do NodeTree.each_child(&self) |child| { child.traverse_preorder(preorder_cb); true }
     }
 
     fn traverse_postorder(postorder_cb: &fn(Node)) {
-        do NodeTree.each_child(self) |child| { child.traverse_postorder(postorder_cb); true }
+        do NodeTree.each_child(&self) |child| { child.traverse_postorder(postorder_cb); true }
         postorder_cb(self);
     }
 }
@@ -77,7 +77,7 @@ impl Node : DebugMethods {
         s += self.debug_str();
         debug!("%s", s);
 
-        for NodeTree.each_child(*self) |kid| {
+        for NodeTree.each_child(self) |kid| {
             kid.dump_indent(indent + 1u) 
         }
     }
@@ -153,12 +153,12 @@ impl NodeScope : NodeScopeExtensions {
 
 #[allow(non_implicitly_copyable_typarams)]
 impl NodeScope : tree::ReadMethods<Node> {
-    fn each_child(node: Node, f: fn(Node) -> bool) {
-        tree::each_child(self, node, f)
+    fn each_child(node: &Node, f: fn(&Node) -> bool) {
+        tree::each_child(&self, node, f)
     }
 
-    fn get_parent(node: Node) -> Option<Node> {
-        tree::get_parent(self, node)
+    fn get_parent(node: &Node) -> Option<Node> {
+        tree::get_parent(&self, node)
     }
 
     fn with_tree_fields<R>(node: Node, f: fn(tree::Tree<Node>) -> R) -> R {
@@ -168,8 +168,8 @@ impl NodeScope : tree::ReadMethods<Node> {
 
 #[allow(non_implicitly_copyable_typarams)]
 impl NodeScope : tree::WriteMethods<Node> {
-    fn add_child(node: Node, child: Node) {
-        tree::add_child(self, node, child)
+    fn add_child(+node: Node, +child: Node) {
+        tree::add_child(&self, node, child)
     }
 
     fn with_tree_fields<R>(node: Node, f: fn(tree::Tree<Node>) -> R) -> R {

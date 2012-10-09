@@ -304,8 +304,8 @@ trait ImageBoxMethods {
 pub enum RenderBoxTree { RenderBoxTree }
 
 impl RenderBoxTree : tree::ReadMethods<@RenderBox> {
-    fn each_child(node: @RenderBox, f: fn(&&box: @RenderBox) -> bool) {
-        tree::each_child(self, node, f)
+    fn each_child(node: @RenderBox, f: fn(box: @RenderBox) -> bool) {
+        tree::each_child(&self, &node, |box| f(*box) )
     }
 
     fn with_tree_fields<R>(&&b: @RenderBox, f: fn(tree::Tree<@RenderBox>) -> R) -> R {
@@ -316,7 +316,7 @@ impl RenderBoxTree : tree::ReadMethods<@RenderBox> {
 impl RenderBoxTree : tree::WriteMethods<@RenderBox> {
     fn add_child(parent: @RenderBox, child: @RenderBox) {
         assert !core::box::ptr_eq(parent, child);
-        tree::add_child(self, parent, child)
+        tree::add_child(&self, parent, child)
     }
 
     fn with_tree_fields<R>(&&b: @RenderBox, f: fn(tree::Tree<@RenderBox>) -> R) -> R {
@@ -384,8 +384,8 @@ mod test {
 
     fn flat_bounds(root: @RenderBox) -> ~[Rect<au>] {
         let mut r = ~[];
-        for tree::each_child(RenderBoxTree, root) |c| {
-            push_all(&mut r, flat_bounds(c));
+        for tree::each_child(&RenderBoxTree, &root) |c| {
+            push_all(&mut r, flat_bounds(*c));
         }
 
         push(&mut r, copy root.d().position);

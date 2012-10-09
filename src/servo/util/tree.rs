@@ -20,14 +20,14 @@ pub trait WriteMethods<T> {
     fn with_tree_fields<R>(T, f: fn(Tree<T>) -> R) -> R;
 }
 
-pub fn each_child<T:Copy,O:ReadMethods<T>>(ops: O, node: T, f: fn(T) -> bool) {
-    let mut p = ops.with_tree_fields(node, |f| f.first_child);
+pub fn each_child<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T, f: fn(&T) -> bool) {
+    let mut p = ops.with_tree_fields(*node, |f| f.first_child);
     loop {
         match copy p {
           None => { return; }
-          Some(c) => {
+          Some(ref c) => {
             if !f(c) { return; }
-            p = ops.with_tree_fields(c, |f| f.next_sibling);
+            p = ops.with_tree_fields(*c, |f| f.next_sibling);
           }
         }
     }
@@ -41,7 +41,7 @@ pub fn empty<T>() -> Tree<T> {
      mut next_sibling: None}
 }
 
-pub fn add_child<T:Copy,O:WriteMethods<T>>(ops: O, parent: T, child: T) {
+pub fn add_child<T:Copy,O:WriteMethods<T>>(ops: &O, +parent: T, +child: T) {
 
     ops.with_tree_fields(child, |child_tf| {
         match child_tf.parent {
@@ -72,8 +72,8 @@ pub fn add_child<T:Copy,O:WriteMethods<T>>(ops: O, parent: T, child: T) {
     });
 }
 
-pub fn get_parent<T:Copy,O:ReadMethods<T>>(ops: O, node: T) -> Option<T> {
-    ops.with_tree_fields(node, |tf| tf.parent)
+pub fn get_parent<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T) -> Option<T> {
+    ops.with_tree_fields(*node, |tf| tf.parent)
 }
 
 #[cfg(test)]
@@ -108,7 +108,7 @@ mod test {
         let p = new_dummy(3u);
 
         for vec::each(children) |c| {
-            add_child(dtree, p, *c);
+            add_child(&dtree, p, *c);
         }
 
         return {p: p, children: children};
@@ -118,7 +118,7 @@ mod test {
     fn add_child_0() {
         let {p, children} = parent_with_3_children();
         let mut i = 0u;
-        for each_child(dtree, p) |c| {
+        for each_child(&dtree, &p) |c| {
             assert c.value == i;
             i += 1u;
         }
@@ -129,7 +129,7 @@ mod test {
     fn add_child_break() {
         let {p, _} = parent_with_3_children();
         let mut i = 0u;
-        for each_child(dtree, p) |_c| {
+        for each_child(&dtree, &p) |_c| {
             i += 1u;
             break;
         }

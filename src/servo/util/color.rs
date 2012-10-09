@@ -69,13 +69,13 @@ impl Color {
 mod parsing {
     export parse_color;
 
-    fn fail_unrecognized(col : ~str) -> Option<Color> {
+    fn fail_unrecognized(col : &str) -> Option<Color> {
         warn!("Unrecognized color %s", col);
         return None;
     }
 
     /** Match an exact color keyword. */
-    fn parse_by_name(color : ~str) -> Option<Color> {
+    fn parse_by_name(color : &str) -> Option<Color> {
         let col = match color.to_lower() {
           ~"black" => black(),
           ~"silver" => silver(),
@@ -101,7 +101,7 @@ mod parsing {
     }
     
     /** Parses a color specification in the form rgb(foo,bar,baz) */
-    fn parse_rgb(color : ~str) -> Option<Color> {
+    fn parse_rgb(color : &str) -> Option<Color> {
         // Shave off the rgb( and the )
         let only_colors = color.substr(4u, color.len() - 5u);
 
@@ -117,7 +117,7 @@ mod parsing {
     }
 
     /** Parses a color specification in the form rgba(foo,bar,baz,qux) */
-    fn parse_rgba(color : ~str) -> Option<Color> {
+    fn parse_rgba(color : &str) -> Option<Color> {
         // Shave off the rgba( and the )
         let only_vals = color.substr(5u, color.len() - 6u);
 
@@ -133,7 +133,7 @@ mod parsing {
     }
 
     /** Parses a color specification in the form hsl(foo,bar,baz) */
-    fn parse_hsl(color : ~str) -> Option<Color> {
+    fn parse_hsl(color : &str) -> Option<Color> {
         // Shave off the hsl( and the )
         let only_vals = color.substr(4u, color.len() - 5u);
 
@@ -149,7 +149,7 @@ mod parsing {
     }
 
     /** Parses a color specification in the form hsla(foo,bar,baz,qux) */
-    fn parse_hsla(color : ~str) -> Option<Color> {
+    fn parse_hsla(color : &str) -> Option<Color> {
         // Shave off the hsla( and the )
         let only_vals = color.substr(5u, color.len() - 6u);
 
@@ -166,12 +166,12 @@ mod parsing {
     // Currently colors are supported in rgb(a,b,c) form and also by
     // keywords for several common colors.
     // TODO: extend this
-    fn parse_color(color : ~str) -> Option<Color> {
+    fn parse_color(color : &str) -> Option<Color> {
         match color {
-          c if c.starts_with(~"rgb(") => parse_rgb(c),
-          c if c.starts_with(~"rgba(") => parse_rgba(c),
-          c if c.starts_with(~"hsl(") => parse_hsl(c),
-          c if c.starts_with(~"hsla(") => parse_hsla(c),
+          c if c.starts_with("rgb(") => parse_rgb(c),
+          c if c.starts_with("rgba(") => parse_rgba(c),
+          c if c.starts_with("hsl(") => parse_hsl(c),
+          c if c.starts_with("hsla(") => parse_hsla(c),
           c => parse_by_name(c)
         }
     }

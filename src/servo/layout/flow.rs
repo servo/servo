@@ -213,8 +213,8 @@ impl FlowContext {
 enum FlowTree { FlowTree }
 
 impl FlowTree : tree::ReadMethods<@FlowContext> {
-    fn each_child(ctx: @FlowContext, f: fn(&&box: @FlowContext) -> bool) {
-        tree::each_child(self, ctx, f)
+    fn each_child(ctx: @FlowContext, f: fn(box: @FlowContext) -> bool) {
+        tree::each_child(&self, &ctx, |box| f(*box) )
     }
 
     fn with_tree_fields<R>(&&box: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
@@ -225,7 +225,7 @@ impl FlowTree : tree::ReadMethods<@FlowContext> {
 impl FlowTree : tree::WriteMethods<@FlowContext> {
     fn add_child(parent: @FlowContext, child: @FlowContext) {
         assert !core::box::ptr_eq(parent, child);
-        tree::add_child(self, parent, child)
+        tree::add_child(&self, parent, child)
     }
 
     fn with_tree_fields<R>(&&box: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {

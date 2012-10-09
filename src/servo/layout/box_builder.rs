@@ -126,8 +126,8 @@ impl LayoutTreeBuilder {
         }
         // recurse
         // TODO: don't set parent box unless this is an inline flow?
-        do NodeTree.each_child(cur_node) |child_node| {
-            self.construct_recursively(layout_ctx, child_node, next_ctx, Some(new_box)); true
+        do NodeTree.each_child(&cur_node) |child_node| {
+            self.construct_recursively(layout_ctx, *child_node, next_ctx, Some(new_box)); true
         }
 
         // Fixup any irregularities, such as split inlines (CSS 2.1 Section 9.2.1.1)

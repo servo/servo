@@ -146,7 +146,7 @@ impl Node : StyleMethods {
         let mut i = 0u;
         
         // Compute the styles of each of our children in parallel
-        for NodeTree.each_child(self) |kid| {
+        for NodeTree.each_child(&self) |kid| {
             i = i + 1u;
             let new_styles = clone(&styles);
             
