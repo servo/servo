@@ -101,11 +101,11 @@ fn mainloop(+mode: Mode, po: comm::Port<Msg>) {
             match po.recv() {
               AddKeyHandler(move key_ch) => key_handlers.push(move key_ch),
               AddEventListener(event_listener) => event_listeners.push(event_listener),
-              BeginDrawing(sender) => lend_surface(*surfaces, sender),
-              Draw(sender, dt) => {
+              BeginDrawing(move sender) => lend_surface(surfaces, sender),
+              Draw(move sender, move dt) => {
                 #debug("osmain: received new frame");
-                return_surface(*surfaces, dt);
-                lend_surface(*surfaces, sender);
+                return_surface(surfaces, dt);
+                lend_surface(surfaces, sender);
 
                 let buffer = surfaces.front.cairo_surface.data();
                 let image = @layers::layers::Image(800, 600, layers::layers::ARGB32Format,
@@ -182,7 +182,7 @@ struct SurfaceSet {
     mut back: Surface,
 }
 
-fn lend_surface(surfaces: SurfaceSet, receiver: pipes::Chan<DrawTarget>) {
+fn lend_surface(surfaces: &SurfaceSet, +receiver: pipes::Chan<DrawTarget>) {
     // We are in a position to lend out the surface?
     assert surfaces.front.have;
     // Ok then take it
@@ -197,7 +197,7 @@ fn lend_surface(surfaces: SurfaceSet, receiver: pipes::Chan<DrawTarget>) {
     assert surfaces.front.have;
 }
 
-fn return_surface(surfaces: SurfaceSet, draw_target: DrawTarget) {
+fn return_surface(surfaces: &SurfaceSet, +draw_target: DrawTarget) {
     #debug("osmain: returning surface %?", draw_target);
     // We have room for a return
     assert surfaces.front.have;

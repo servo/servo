@@ -73,7 +73,7 @@ pub struct ResourceManager {
 
 
 pub fn ResourceManager(from_client: Port<ControlMsg>, 
-                       loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceManager {
+                       +loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceManager {
     ResourceManager {
         from_client : from_client,
         loaders : loaders,
@@ -97,7 +97,7 @@ impl ResourceManager {
 
     fn load(+url: Url, progress_chan: Chan<ProgressMsg>) {
 
-        match self.get_loader_factory(url) {
+        match self.get_loader_factory(&url) {
           Some(loader_factory) => {
             #debug("resource_task: loading url: %s", to_str(copy url));
             loader_factory(url, progress_chan);
@@ -109,7 +109,7 @@ impl ResourceManager {
         }
     }
 
-    fn get_loader_factory(url: Url) -> Option<LoaderTaskFactory> {
+    fn get_loader_factory(url: &Url) -> Option<LoaderTaskFactory> {
         for self.loaders.each |scheme_loader| {
             let (scheme, loader_factory) = copy *scheme_loader;
             if scheme == url.scheme {

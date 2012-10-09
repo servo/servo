@@ -166,7 +166,7 @@ fn build_element_kind(tag: &str) -> ~ElementKind {
 }
 
 pub fn parse_html(scope: NodeScope,
-                  url: Url,
+                  +url: Url,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask) -> HtmlParserResult unsafe {
     // Spawn a CSS parser to receive links to CSS style sheets.
@@ -183,7 +183,7 @@ pub fn parse_html(scope: NodeScope,
         js_script_listener(js_chan, js_port, resource_task);
     };
 
-    let (scope, url) = (@copy scope, @copy url);
+    let (scope, url) = (@copy scope, @url);
 
     // Build the root node.
     let root = scope.new_node(Element(ElementData(~"html", ~HTMLDivElement)));

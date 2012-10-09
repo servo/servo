@@ -120,7 +120,7 @@ impl TextRun {
     }
 }
  
-fn TextRun(font: &Font, text: ~str) -> TextRun {
+fn TextRun(font: &Font, +text: ~str) -> TextRun {
     let glyph_store = GlyphStore(text);
     let run = TextRun {
         text: text,
@@ -154,7 +154,7 @@ fn test_calc_min_break_width() {
 #[test]
 #[ignore]
 fn test_iter_indivisible_pieces() {
-    fn test_pieces(text: ~str, res: ~[~str]) {
+    fn test_pieces(+text: ~str, +res: ~[~str]) {
         let flib = FontCache();
         let font = flib.get_test_font();
         let run = TextRun(font, copy text);
