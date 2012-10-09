@@ -31,8 +31,8 @@ impl NodeTree : tree::ReadMethods<Node> {
         tree::each_child(&self, node, f)
     }
 
-    fn with_tree_fields<R>(&&n: Node, f: fn(tree::Tree<Node>) -> R) -> R {
-        n.read(|n| f(n.tree))
+    fn with_tree_fields<R>(n: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {
+        n.read(|n| f(&n.tree))
     }
 }
 
@@ -161,8 +161,8 @@ impl NodeScope : tree::ReadMethods<Node> {
         tree::get_parent(&self, node)
     }
 
-    fn with_tree_fields<R>(node: Node, f: fn(tree::Tree<Node>) -> R) -> R {
-        self.read(node, |n| f(n.tree))
+    fn with_tree_fields<R>(node: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {
+        self.read(*node, |n| f(&n.tree))
     }
 }
 
@@ -172,7 +172,7 @@ impl NodeScope : tree::WriteMethods<Node> {
         tree::add_child(&self, node, child)
     }
 
-    fn with_tree_fields<R>(node: Node, f: fn(tree::Tree<Node>) -> R) -> R {
-        self.write(node, |n| f(n.tree))
+    fn with_tree_fields<R>(node: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {
+        self.write(*node, |n| f(&n.tree))
     }
 }

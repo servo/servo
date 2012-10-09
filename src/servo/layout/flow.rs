@@ -217,8 +217,8 @@ impl FlowTree : tree::ReadMethods<@FlowContext> {
         tree::each_child(&self, &ctx, |box| f(*box) )
     }
 
-    fn with_tree_fields<R>(&&box: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
-        f(box.d().tree)
+    fn with_tree_fields<R>(box: &@FlowContext, f: fn(&tree::Tree<@FlowContext>) -> R) -> R {
+        f(&box.d().tree)
     }
 }
 
@@ -228,8 +228,8 @@ impl FlowTree : tree::WriteMethods<@FlowContext> {
         tree::add_child(&self, parent, child)
     }
 
-    fn with_tree_fields<R>(&&box: @FlowContext, f: fn(tree::Tree<@FlowContext>) -> R) -> R {
-        f(box.d().tree)
+    fn with_tree_fields<R>(box: &@FlowContext, f: fn(&tree::Tree<@FlowContext>) -> R) -> R {
+        f(&box.d().tree)
     }
 }
 

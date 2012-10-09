@@ -312,8 +312,8 @@ impl RenderBoxTree : tree::ReadMethods<@RenderBox> {
         tree::each_child(&self, &node, |box| f(*box) )
     }
 
-    fn with_tree_fields<R>(&&b: @RenderBox, f: fn(tree::Tree<@RenderBox>) -> R) -> R {
-        f(b.d().tree)
+    fn with_tree_fields<R>(b: &@RenderBox, f: fn(&tree::Tree<@RenderBox>) -> R) -> R {
+        f(&b.d().tree)
     }
 }
 
@@ -323,8 +323,8 @@ impl RenderBoxTree : tree::WriteMethods<@RenderBox> {
         tree::add_child(&self, parent, child)
     }
 
-    fn with_tree_fields<R>(&&b: @RenderBox, f: fn(tree::Tree<@RenderBox>) -> R) -> R {
-        f(b.d().tree)
+    fn with_tree_fields<R>(b: &@RenderBox, f: fn(&tree::Tree<@RenderBox>) -> R) -> R {
+        f(&b.d().tree)
     }
 }
 
