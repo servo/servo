@@ -64,7 +64,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-pub fn init(compartment: bare_compartment, win: @Window) {
+pub fn init(compartment: &bare_compartment, win: @Window) {
     let proto = utils::define_empty_prototype(~"Window", None, compartment);
     compartment.register_class(utils::instance_jsclass(~"WindowInstance", finalize));
 

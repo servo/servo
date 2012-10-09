@@ -88,7 +88,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-pub fn init(compartment: bare_compartment, doc: @Document) {
+pub fn init(compartment: &bare_compartment, doc: @Document) {
     let obj = utils::define_empty_prototype(~"Document", None, compartment);
 
     let attrs = @~[

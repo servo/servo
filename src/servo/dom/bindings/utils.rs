@@ -56,8 +56,8 @@ fn jsval_to_str(cx: *JSContext, v: jsval) -> Result<~str, ()> {
     }
 }
 
-unsafe fn domstring_to_jsval(cx: *JSContext, str: DOMString) -> jsval {
-    match str {
+unsafe fn domstring_to_jsval(cx: *JSContext, str: &DOMString) -> jsval {
+    match *str {
       null_string => {
         JSVAL_NULL
       }
@@ -94,8 +94,8 @@ extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *jsval, bp: *mut JSB
     return 1;
 }
 
-pub fn prototype_jsclass(name: ~str) -> fn(+compartment: bare_compartment) -> JSClass {
-    |+compartment: bare_compartment, copy name| {
+pub fn prototype_jsclass(+name: ~str) -> fn(+compartment: bare_compartment) -> JSClass {
+    |+compartment: bare_compartment| {
         {name: compartment.add_name(name),
          flags: 0,
          addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -122,9 +122,9 @@ pub fn prototype_jsclass(name: ~str) -> fn(+compartment: bare_compartment) -> JS
     }
 }
 
-pub fn instance_jsclass(name: ~str, finalize: *u8)
+pub fn instance_jsclass(+name: ~str, finalize: *u8)
     -> fn(+compartment: bare_compartment) -> JSClass {
-    |+compartment: bare_compartment, copy name| {
+    |+compartment: bare_compartment| {
         {name: compartment.add_name(name),
          flags: JSCLASS_HAS_RESERVED_SLOTS(1),
          addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -151,7 +151,7 @@ pub fn instance_jsclass(name: ~str, finalize: *u8)
     }
 }
 
-pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: bare_compartment)
+pub fn define_empty_prototype(+name: ~str, +proto: Option<~str>, compartment: &bare_compartment)
     -> js::rust::jsobj {
     compartment.register_class(utils::prototype_jsclass(name));
 

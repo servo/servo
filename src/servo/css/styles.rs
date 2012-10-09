@@ -119,7 +119,7 @@ impl Node : StyleMethods {
             fail ~"get_style() called on a node without a style!";
         }
         // TODO: return a safe reference; don't copy!
-        return copy *self.aux(|x| copy x).style;
+        return copy *self.aux(|x| copy *x).style;
     }
 
     /**

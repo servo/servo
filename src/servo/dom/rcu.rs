@@ -67,7 +67,7 @@ struct ScopeResource<T:Send,A> {
     }
 }
 
-fn ScopeResource<T:Send,A>(d : ScopeData<T,A>) -> ScopeResource<T,A> {
+fn ScopeResource<T:Send,A>(+d : ScopeData<T,A>) -> ScopeResource<T,A> {
     ScopeResource { d: d }
 }
 
@@ -99,8 +99,8 @@ impl<T:Send,A> Handle<T,A> {
 
 impl<T:Send,A> Handle<T,A> {
     #[doc(str = "Access the reader's view of the handle's data.")]
-    fn read<U>(f: fn(T) -> U) -> U unsafe {
-        f(*self.read_ptr())
+    fn read<U>(f: fn(&T) -> U) -> U unsafe {
+        f(&*self.read_ptr())
     }
 
     #[doc(str = "True if auxiliary data is associated with this handle.")]
@@ -117,9 +117,9 @@ impl<T:Send,A> Handle<T,A> {
     }
 
     #[doc(str = "access the auxiliary data associated with this handle.")]
-    fn aux<U>(f: fn(A) -> U) -> U unsafe {
+    fn aux<U>(f: fn(&A) -> U) -> U unsafe {
         assert self.has_aux();
-        f(*self.read_aux())
+        f(&*self.read_aux())
     }
 }
 
@@ -192,29 +192,30 @@ impl<T:Copy Send,A> Scope<T,A> {
         self.d.layout_active = false;
     }
 
-    fn read<U>(h: Handle<T,A>, f: fn(T) -> U) -> U unsafe {
+    fn read<U>(h: &Handle<T,A>, f: fn(&T) -> U) -> U unsafe {
         // Use the write_ptr, which may be more up to date than the read_ptr or may not
-        f(*h.write_ptr())
+        f(&*h.write_ptr())
     }
 
-    fn write<U>(h: Handle<T,A>, f: fn(T) -> U) -> U unsafe {
+    fn write<U>(h: &Handle<T,A>, f: fn(&T) -> U) -> U unsafe {
         let const_read_ptr = ptr::const_offset(h.read_ptr(), 0);
         let const_write_ptr = ptr::const_offset(h.write_ptr(), 0);
         if self.d.layout_active && const_read_ptr == const_write_ptr {
             #debug["marking handle %? as dirty", h];
             h.set_write_ptr(cast::reinterpret_cast(&self.clone(h.read_ptr())));
             h.set_next_dirty(self.d.first_dirty);
-            self.d.first_dirty = h;
+            self.d.first_dirty = *h;
         }
-        f(*h.write_ptr())
+        f(&*h.write_ptr())
     }
 
+    // FIXME: This could avoid a deep copy by taking ownership of `v`
     #[allow(non_implicitly_copyable_typarams)]
-    fn handle(v: T) -> Handle<T,A> unsafe {
+    fn handle(v: &T) -> Handle<T,A> unsafe {
         let d: *HandleData<T,A> =
             cast::reinterpret_cast(
                 &libc::malloc(sys::size_of::<HandleData<T,A>>() as size_t));
-        (*d).read_ptr = self.clone(ptr::to_unsafe_ptr(&v));
+        (*d).read_ptr = self.clone(ptr::to_unsafe_ptr(v));
         (*d).write_ptr = cast::reinterpret_cast(&(*d).read_ptr);
         (*d).read_aux = ptr::null();
         (*d).next_dirty = null_handle();
@@ -242,18 +243,18 @@ mod test {
     #[test]
     fn handles_get_freed() {
         let s: animal_scope = Scope();
-        s.handle({name:~"henrietta", species:chicken(~{mut eggs_per_day:22u})});
-        s.handle({name:~"ferdinand", species:bull(~{mut horns:3u})});
+        s.handle(&{name:~"henrietta", species:chicken(~{mut eggs_per_day:22u})});
+        s.handle(&{name:~"ferdinand", species:bull(~{mut horns:3u})});
     }
 
-    fn mutate(a: animal) {
+    fn mutate(a: &animal) {
         match a.species {
           chicken(c) => c.eggs_per_day += 1u,
           bull(c) => c.horns += 1u
         }
     }
 
-    fn read_characteristic(a: animal) -> uint {
+    fn read_characteristic(a: &animal) -> uint {
         match a.species {
           chicken(c) => c.eggs_per_day,
           bull(c) => c.horns
@@ -264,10 +265,10 @@ mod test {
     fn interspersed_execution() {
         let s: animal_scope = Scope();
         let henrietta =
-            s.handle({name:~"henrietta",
+            s.handle(&{name:~"henrietta",
                       species:chicken(~{mut eggs_per_day:0u})});
         let ferdinand =
-            s.handle({name:~"ferdinand",
+            s.handle(&{name:~"ferdinand",
                       species:bull(~{mut horns:0u})});
 
         let iter1 = 3u;
@@ -294,9 +295,9 @@ mod test {
 
             for uint::range(0u, iter2) |_i| {
                 assert hrc == comm::recv(read_port);
-                s.write(henrietta, mutate);
+                s.write(&henrietta, mutate);
                 assert frc == comm::recv(read_port);
-                s.write(ferdinand, mutate);
+                s.write(&ferdinand, mutate);
                 comm::send(wait_chan, ());
             }
             s.reader_joined();

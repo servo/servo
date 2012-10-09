@@ -86,7 +86,7 @@ impl Layout {
         match query {
             ContentBox(node) => {
                 // TODO: extract me to a method when I get sibling arms
-                let response = match node.aux(|a| a).flow {
+                let response = match node.aux(|a| *a).flow {
                     None => Err(()),
                     Some(flow) => {
                         let start_val : Option<Rect<au>> = None;

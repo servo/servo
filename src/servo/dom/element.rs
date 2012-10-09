@@ -11,24 +11,24 @@ struct ElementData {
 }
 
 impl ElementData {
-    fn get_attr(name: ~str) -> Option<~str> {
-        let found = do self.attrs.find |attr| { attr.name == name };
+    fn get_attr(name: &str) -> Option<~str> {
+        let found = do self.attrs.find |attr| { name == attr.name };
         match found {
             Some(attr) => Some(copy attr.value),
             None => None
         }
     }
 
-    fn set_attr(name: ~str, value: ~str) {
-        let idx = do self.attrs.position |attr| { attr.name == name };
+    fn set_attr(name: &str, +value: ~str) {
+        let idx = do self.attrs.position |attr| { name == attr.name };
         match idx {
-            Some(idx) => self.attrs.set_elt(idx, ~Attr(name, value)),
+            Some(idx) => self.attrs.set_elt(idx, ~Attr(name.to_str(), value)),
             None => {}
         }
     }
 }
 
-fn ElementData(tag_name: ~str, kind: ~ElementKind) -> ElementData {
+fn ElementData(+tag_name: ~str, +kind: ~ElementKind) -> ElementData {
     ElementData {
         tag_name : tag_name,
         kind : kind,
@@ -41,7 +41,7 @@ struct Attr {
     value: ~str,
 }
 
-fn Attr(name: ~str, value: ~str) -> Attr {
+fn Attr(+name: ~str, +value: ~str) -> Attr {
     Attr {
         name : name,
         value : value,

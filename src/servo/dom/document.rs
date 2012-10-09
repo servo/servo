@@ -8,7 +8,7 @@ struct Document {
     css_rules: ARC<Stylesheet>,
 }
 
-fn Document(root: Node, scope: NodeScope, -css_rules: Stylesheet) -> Document {
+fn Document(+root: Node, +scope: NodeScope, +css_rules: Stylesheet) -> Document {
     Document {
         root : root,
         scope : scope,

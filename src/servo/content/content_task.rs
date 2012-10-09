@@ -142,14 +142,14 @@ impl Content {
         }
     }
 
-    fn handle_msg(msg: Either<ControlMsg,Event>) -> bool {
+    fn handle_msg(+msg: Either<ControlMsg,Event>) -> bool {
         match msg {
             Left(control_msg) => self.handle_control_msg(control_msg),
             Right(event) => self.handle_event(event)
         }
     }
 
-    fn handle_control_msg(control_msg: ControlMsg) -> bool {
+    fn handle_control_msg(+control_msg: ControlMsg) -> bool {
         match control_msg {
           ParseMsg(url) => {
             debug!("content: Received url `%s` to parse", url_to_str(copy url));
@@ -173,14 +173,14 @@ impl Content {
 
             let document = Document(root, self.scope, css_rules);
             let window   = Window(self.from_master);
-            self.relayout(document, &url);
+            self.relayout(&document, &url);
             self.document = Some(@document);
             self.window   = Some(@window);
             self.doc_url = Some(copy url);
 
             let compartment = option::expect(&self.compartment, ~"TODO error checking");
             compartment.define_functions(debug_fns);
-            define_bindings(*compartment,
+            define_bindings(compartment,
                             option::get(&self.document),
                             option::get(&self.window));
 
@@ -202,7 +202,7 @@ impl Content {
             //TODO: support extra args. requires passing a *jsval argv
             JS_CallFunctionValue(self.cx.ptr, thisValue, timerData.funval,
                                  0, null(), ptr::to_unsafe_ptr(&rval));
-            self.relayout(*option::get(&self.document), &option::get(&self.doc_url));
+            self.relayout(self.document.get(), &option::get(&self.doc_url));
             return true;
           }
 
@@ -249,7 +249,7 @@ impl Content {
        join the layout task, and then request a new layout run. It won't wait for the
        new layout computation to finish.
     */
-    fn relayout(document: Document, doc_url: &Url) {
+    fn relayout(document: &Document, doc_url: &Url) {
         debug!("content: performing relayout");
 
         // Now, join the layout so that they will see the latest
@@ -266,7 +266,7 @@ impl Content {
     }
 
      fn query_layout(query: layout_task::LayoutQuery) -> layout_task::LayoutQueryResponse {
-         self.relayout(*self.document.get(), &self.doc_url.get());
+         self.relayout(self.document.get(), &self.doc_url.get());
          self.join_layout();
          
          let response_port = Port();
@@ -288,7 +288,7 @@ impl Content {
                 }
                 Some(document) => {
                     assert self.doc_url.is_some();
-                    self.relayout(*document, &self.doc_url.get());
+                    self.relayout(document, &self.doc_url.get());
                 }
             }
             return true;
@@ -301,7 +301,7 @@ impl Content {
                 }
                 Some(document) => {
                     assert self.doc_url.is_some();
-                    self.relayout(*document, &self.doc_url.get());
+                    self.relayout(document, &self.doc_url.get());
                 }
             }
             return true;

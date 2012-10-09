@@ -30,7 +30,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-pub fn init(compartment: bare_compartment) {
+pub fn init(compartment: &bare_compartment) {
     let obj = utils::define_empty_prototype(~"Element", Some(~"Node"), compartment);
     let attrs = @~[
         {name: compartment.add_name(~"tagName"),
@@ -74,7 +74,7 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
     let bundle = unwrap(obj);
     let node = (*bundle).payload.node;
     let scope = (*bundle).payload.scope;
-    let width = scope.write(node, |nd| {
+    let width = scope.write(&node, |nd| {
         match nd.kind {
             ~Element(ed) => {
                 match ed.kind {
@@ -105,7 +105,7 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
     }
 
     let bundle = unwrap(obj);
-    do (*bundle).payload.scope.write((*bundle).payload.node) |nd| {
+    do (*bundle).payload.scope.write(&(*bundle).payload.node) |nd| {
         match nd.kind {
           ~Element(ed) => {
             match ed.kind {
@@ -131,11 +131,11 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
         }
 
         let bundle = unwrap(obj);
-        do (*bundle).payload.scope.write((*bundle).payload.node) |nd| {
+        do (*bundle).payload.scope.write(&(*bundle).payload.node) |nd| {
             match nd.kind {
               ~Element(ed) => {
                 let s = str(copy ed.tag_name);
-                *vp = domstring_to_jsval(cx, s);
+                *vp = domstring_to_jsval(cx, &s);
               }
               _ => {
                 //XXXjdm should probably read the spec to figure out what to do here
@@ -148,7 +148,7 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
 }
 
 pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
-    let proto = scope.write(node, |nd| {
+    let proto = scope.write(&node, |nd| {
         match nd.kind {
           ~Element(ed) => {
             match ed.kind {

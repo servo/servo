@@ -53,8 +53,8 @@ impl Node {
    with a generic implementation of rcu::Handle */
 impl Node : cmp::Eq {
     pure fn eq(other : &Node) -> bool unsafe {
-        let my_data : @LayoutData = @self.aux(|a| a);
-        let ot_data : @LayoutData = @other.aux(|a| a);
+        let my_data : @LayoutData = @self.aux(|a| *a);
+        let ot_data : @LayoutData = @other.aux(|a| *a);
         core::box::ptr_eq(my_data, ot_data)
     }
     pure fn ne(other : &Node) -> bool unsafe {
@@ -101,8 +101,8 @@ struct DoctypeData {
     force_quirks: bool
 }
 
-fn DoctypeData(name: ~str, public_id: Option<~str>,
-               system_id: Option<~str>, force_quirks: bool) -> DoctypeData {
+fn DoctypeData(+name: ~str, +public_id: Option<~str>,
+               +system_id: Option<~str>, force_quirks: bool) -> DoctypeData {
     DoctypeData {
         name : name,
         public_id : public_id,
@@ -113,7 +113,7 @@ fn DoctypeData(name: ~str, public_id: Option<~str>,
 
 
 
-fn define_bindings(compartment: bare_compartment, doc: @Document,
+fn define_bindings(compartment: &bare_compartment, doc: @Document,
                    win: @Window) {
     bindings::window::init(compartment, win);
     bindings::document::init(compartment, doc);
@@ -141,13 +141,13 @@ fn NodeScope() -> NodeScope {
 }
 
 trait NodeScopeExtensions {
-    fn new_node(-k: NodeKind) -> Node;
+    fn new_node(+k: NodeKind) -> Node;
 }
 
 #[allow(non_implicitly_copyable_typarams)]
 impl NodeScope : NodeScopeExtensions {
-    fn new_node(-k: NodeKind) -> Node {
-        self.handle(NodeData({tree: tree::empty(), kind: ~k}))
+    fn new_node(+k: NodeKind) -> Node {
+        self.handle(&NodeData({tree: tree::empty(), kind: ~k}))
     }
 }
 
@@ -162,7 +162,7 @@ impl NodeScope : tree::ReadMethods<Node> {
     }
 
     fn with_tree_fields<R>(node: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {
-        self.read(*node, |n| f(&n.tree))
+        self.read(node, |n| f(&n.tree))
     }
 }
 
@@ -173,6 +173,6 @@ impl NodeScope : tree::WriteMethods<Node> {
     }
 
     fn with_tree_fields<R>(node: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {
-        self.write(*node, |n| f(&n.tree))
+        self.write(node, |n| f(&n.tree))
     }
 }
