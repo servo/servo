@@ -97,15 +97,19 @@ pub enum RenderBox {
     UnscannedTextBox(RenderBoxData, ~str)
 }
 
-impl RenderBox {
-    pure fn d(&self) -> &self/RenderBoxData {
-        match *self {
-            GenericBox(ref d)  => d,
-            ImageBox(ref d, _) => d,
-            TextBox(ref d, _)  => d,
-            UnscannedTextBox(ref d, _) => d,
-        }
-    }
+trait RenderBoxMethods {
+    pure fn d(&self) -> &self/RenderBoxData;
+
+    pure fn is_replaced() -> bool;
+    pure fn content_box() -> Rect<au>;
+    pure fn border_box() -> Rect<au>;
+
+    fn get_min_width(&LayoutContext) -> au;
+    fn get_pref_width(&LayoutContext) -> au;
+    fn get_used_width() -> (au, au);
+    fn get_used_height() -> (au, au);
+    fn build_display_list(&dl::DisplayListBuilder, dirty: &Rect<au>, 
+                          offset: &Point2D<au>, &dl::DisplayList);
 }
 
 fn RenderBoxData(node: Node, ctx: @FlowContext, id: int) -> RenderBoxData {
@@ -120,7 +124,16 @@ fn RenderBoxData(node: Node, ctx: @FlowContext, id: int) -> RenderBoxData {
     }
 }
 
-impl RenderBox {
+impl RenderBox : RenderBoxMethods {
+    pure fn d(&self) -> &self/RenderBoxData {
+        match *self {
+            GenericBox(ref d)  => d,
+            ImageBox(ref d, _) => d,
+            TextBox(ref d, _)  => d,
+            UnscannedTextBox(ref d, _) => d,
+        }
+    }
+
     pure fn is_replaced() -> bool {
         match self {
            ImageBox(*) => true, // TODO: form elements, etc
@@ -238,7 +251,7 @@ impl RenderBox {
 
     /* The box formed by the border edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
-    fn border_box() -> Rect<au> {
+    pure fn border_box() -> Rect<au> {
         // TODO: actually compute content_box + padding + border
         self.content_box()
     }
@@ -294,10 +307,6 @@ impl RenderBox {
             }
         }
     }
-}
-
-trait ImageBoxMethods {
-    
 }
 
 /**
