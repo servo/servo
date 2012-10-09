@@ -19,7 +19,7 @@ pub struct ImageHolder {
 
 }
 
-fn ImageHolder(url : &Url, image_cache_task: ImageCacheTask, cb: fn~()) -> ImageHolder {
+fn ImageHolder(url : &Url, image_cache_task: ImageCacheTask, +cb: fn~()) -> ImageHolder {
     debug!("ImageHolder() %?", url.to_str());
     let holder = ImageHolder {
         url : Some(copy *url),

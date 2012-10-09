@@ -35,7 +35,7 @@ impl au : cmp::Eq {
 pub pure fn min(x: au, y: au) -> au { if x < y { x } else { y } }
 pub pure fn max(x: au, y: au) -> au { if x > y { x } else { y } }
 
-pub fn box<A:Copy Num>(x: A, y: A, w: A, h: A) -> Rect<A> {
+pub fn box<A:Copy Num>(+x: A, +y: A, +w: A, +h: A) -> Rect<A> {
     Rect(Point2D(x, y), Size2D(w, h))
 }
 

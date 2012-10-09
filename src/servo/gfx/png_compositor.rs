@@ -59,9 +59,9 @@ pub fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
                     debug!("png_compositor: begin_drawing");
                     sender.send(draw_target.take());
                 }
-                Draw(sender, dt) => {
+                Draw(move sender, move dt) => {
                     debug!("png_compositor: draw");
-                    do_draw(sender, dt.clone(), output, cairo_surface);
+                    do_draw(sender, dt, output, &cairo_surface);
                 }
                 Exit => break
             }
@@ -69,10 +69,10 @@ pub fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
     }
 }
 
-fn do_draw(sender: pipes::Chan<DrawTarget>,
+fn do_draw(+sender: pipes::Chan<DrawTarget>,
            +dt: DrawTarget,
            output: Chan<~[u8]>,
-           cairo_surface: ImageSurface) {
+           cairo_surface: &ImageSurface) {
     let buffer = BytesWriter();
     cairo_surface.write_to_png_stream(&buffer);
     output.send(buffer.buf.get());

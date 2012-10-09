@@ -50,10 +50,10 @@ impl u8 : U8Methods {
 trait InputStateUtil {
     fn get() -> CharOrEof;
     fn unget(ch: u8);
-    fn parse_err(err: ~str) -> !;
+    fn parse_err(+err: ~str) -> !;
     fn expect(ch: u8);
     fn parse_ident() -> ~str;
-    fn expect_ident(expected: ~str);
+    fn expect_ident(+expected: ~str);
     fn eat_whitespace();
 }
 
@@ -98,7 +98,7 @@ impl InputState : InputStateUtil {
         self.lookahead = Some(CoeChar(ch));
     }
 
-    fn parse_err(err: ~str) -> ! {
+    fn parse_err(+err: ~str) -> ! {
         fail err
     }
 
@@ -129,7 +129,7 @@ impl InputState : InputStateUtil {
         return str::from_bytes(result);
     }
 
-    fn expect_ident(expected: ~str) {
+    fn expect_ident(+expected: ~str) {
         let actual = self.parse_ident();
         if expected != actual {
             self.parse_err(#fmt("expected '%s' but found '%s'", expected, actual));

@@ -279,7 +279,7 @@ impl RenderBox {
             GenericBox(*) => { },
             ImageBox(_,i) => {
                 match i.get_image() {
-                    Some(image) => list.push(~dl::Image(bounds, image)),
+                    Some(image) => list.push(~dl::Image(bounds, arc::clone(&image))),
                     /* No image data at all? Okay, add some fallback content instead. */
                     None => {
                         // TODO: shouldn't need to unbox CSSValue by now
