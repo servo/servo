@@ -152,6 +152,7 @@ fn test_calc_min_break_width() {
 */
 
 #[test]
+#[ignore]
 fn test_iter_indivisible_pieces() {
     fn test_pieces(text: ~str, res: ~[~str]) {
         let flib = FontCache();

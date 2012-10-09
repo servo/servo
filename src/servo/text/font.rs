@@ -124,6 +124,7 @@ fn should_get_glyph_indexes() {
 
 fn should_get_glyph_advance() {
     #[test];
+    #[ignore];
 
     let lib = FontCache();
     let font = lib.get_test_font();
@@ -134,6 +135,7 @@ fn should_get_glyph_advance() {
 // Testing thread safety
 fn should_get_glyph_advance_stress() {
     #[test];
+    #[ignore];
 
     let mut ports = ~[];
 
