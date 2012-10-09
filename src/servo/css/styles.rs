@@ -72,7 +72,7 @@ impl NodeKind : DefaultStyleMethods {
  * style is computed so that it can be used to short-circuit selector matching to avoid computing
  * style for children of display:none objects.
  */
-fn empty_style_for_node_kind(kind: NodeKind) -> SpecifiedStyle {
+fn empty_style_for_node_kind(kind: &NodeKind) -> SpecifiedStyle {
     let display_type = kind.default_display_type();
 
     {mut background_color : Initial,
@@ -89,7 +89,7 @@ trait StyleMethods {
 
     fn style() -> SpecifiedStyle;
     fn initialize_style_for_subtree(ctx: &LayoutContext, refs: &DVec<@LayoutData>);
-    fn recompute_style_for_subtree(ctx: &LayoutContext, styles : ARC<Stylesheet>);
+    fn recompute_style_for_subtree(ctx: &LayoutContext, styles : &ARC<Stylesheet>);
 }
 
 impl Node : StyleMethods {
@@ -101,7 +101,7 @@ impl Node : StyleMethods {
             false => {
                 let node_kind = self.read(|n| copy *n.kind);
                 let data = @LayoutData({
-                    mut style : ~empty_style_for_node_kind(node_kind),
+                    mut style : ~empty_style_for_node_kind(&node_kind),
                     mut flow  : None
                 });
                 self.set_aux(data); Some(data)
@@ -142,17 +142,15 @@ impl Node : StyleMethods {
      * the node (the reader-auxiliary box in the RCU model) with the
      * computed style.
      */
-    fn recompute_style_for_subtree(ctx: &LayoutContext, styles : ARC<Stylesheet>) {
+    fn recompute_style_for_subtree(ctx: &LayoutContext, styles : &ARC<Stylesheet>) {
         let mut i = 0u;
         
         // Compute the styles of each of our children in parallel
         for NodeTree.each_child(&self) |kid| {
             i = i + 1u;
-            let new_styles = clone(&styles);
-            
-            kid.recompute_style_for_subtree(ctx, new_styles); 
+            kid.recompute_style_for_subtree(ctx, styles); 
         }
 
-        self.match_css_style(*get(&styles));
+        self.match_css_style(get(styles));
     }
 }

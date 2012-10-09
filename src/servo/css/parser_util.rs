@@ -11,27 +11,28 @@ export parse_box_sizing;
 export parse_display_type;
 
 
-fn parse_length(str : ~str) -> Option<Length> {
+fn parse_length(str : &str) -> Option<Length> {
     // TODO: use these once we stop lexing below
     const PTS_PER_INCH: float = 72.0;
     const CM_PER_INCH: float = 2.54;
     const PX_PER_PT: float = 1.0 / 0.75;
 
     match str {
-      s if s.ends_with(~"in") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * 72.0 * *f)),
-      s if s.ends_with(~"cm") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(*f / 2.54 * 72.0 * 1.0/0.75)),
-      s if s.ends_with(~"mm") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(*f * 0.1 / 2.54 * 72.0 * 1.0/0.75)),
-      s if s.ends_with(~"pt") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * *f)),
-      s if s.ends_with(~"pc") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * 12.0 * *f)),
-      s if s.ends_with(~"px") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(*f)),
-      s if s.ends_with(~"em") => from_str(str.substr(0, str.len() - 2)).map(|f| Em(*f)),
-      s if s.ends_with(~"ex") => from_str(str.substr(0, str.len() - 2)).map(|f| Em(0.5 * *f)),
+      s if s.ends_with("in") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * 72.0 * *f)),
+      s if s.ends_with("cm") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(*f / 2.54 * 72.0 * 1.0/0.75)),
+      s if s.ends_with("mm") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(*f * 0.1 / 2.54 * 72.0 * 1.0/0.75)),
+      s if s.ends_with("pt") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * *f)),
+      s if s.ends_with("pc") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(1.0/0.75 * 12.0 * *f)),
+      s if s.ends_with("px") => from_str(str.substr(0, str.len() - 2)).map(|f| Px(*f)),
+      s if s.ends_with("em") => from_str(str.substr(0, str.len() - 2)).map(|f| Em(*f)),
+      s if s.ends_with("ex") => from_str(str.substr(0, str.len() - 2)).map(|f| Em(0.5 * *f)),
       _ => None,
     }
 }
 
-fn parse_absolute_size(str : ~str) -> ParseResult<AbsoluteSize> {
-    match str {
+fn parse_absolute_size(str : &str) -> ParseResult<AbsoluteSize> {
+    // FIXME: Bad copy. Can't match &str
+    match str.to_str() {
       ~"xx-small" => Value(XXSmall),
       ~"x-small" => Value(XSmall),
       ~"small" => Value(Small),
@@ -43,30 +44,33 @@ fn parse_absolute_size(str : ~str) -> ParseResult<AbsoluteSize> {
     }
 }
 
-fn parse_relative_size(str: ~str) -> ParseResult<RelativeSize> {
-    match str {
+fn parse_relative_size(str: &str) -> ParseResult<RelativeSize> {
+    // FIXME: Bad copy. Can't match &str
+    match str.to_str() {
       ~"smaller" => Value(Smaller),
       ~"larger" => Value(Larger),
       _ => Fail
     }
 }
 
-fn parse_font_size(_str: ~str) -> ParseResult<CSSFontSize> {
+fn parse_font_size(_str: &str) -> ParseResult<CSSFontSize> {
     // TODO: complete me
     Value(LengthSize(Px(14.0)))
 }
 
 // For width / height, and anything else with the same attribute values
-fn parse_box_sizing(str : ~str) -> ParseResult<BoxSizing> {
-    match str {
+fn parse_box_sizing(str : &str) -> ParseResult<BoxSizing> {
+    // FIXME: Bad copy. Can't match &str
+    match str.to_str() {
       ~"auto" => Value(BoxAuto),
       ~"inherit" => CSSInherit,
       _ => Fail,
     }
 }
 
-fn parse_display_type(str : ~str) -> ParseResult<CSSDisplay> {
-    match str {
+fn parse_display_type(str : &str) -> ParseResult<CSSDisplay> {
+    // FIXME: Bad copy. Can't match &str
+    match str.to_str() {
       ~"inline" => Value(DisplayInline),
       ~"block" => Value(DisplayBlock),
       ~"none" => Value(DisplayNone),

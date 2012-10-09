@@ -11,8 +11,8 @@ use styles::{SpecifiedStyle};
 /** 
    Check if a CSS attribute matches the attribute of an HTML element.
 */
-fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
-    match attr {
+fn attrs_match(attr: &Attr, elmt: &ElementData) -> bool {
+    match *attr {
       Exists(name) => {
         match elmt.get_attr(name) {
           Some(_) => true,
@@ -55,8 +55,8 @@ fn attrs_match(attr: Attr, elmt: ElementData) -> bool {
 }
 
 trait PrivMatchingMethods {
-    fn matches_element(sel: ~Selector) -> bool;
-    fn matches_selector(sel : ~Selector) -> bool;
+    fn matches_element(sel: &Selector) -> bool;
+    fn matches_selector(sel: &Selector) -> bool;
 }
 
 impl Node : PrivMatchingMethods { 
@@ -66,7 +66,7 @@ impl Node : PrivMatchingMethods {
     element with no relational information, describes the given HTML
     element.
     */
-    fn matches_element(sel: ~Selector) -> bool {
+    fn matches_element(sel: &Selector) -> bool {
         match *sel {
           Child(_, _) | Descendant(_, _) | Sibling(_, _) => { return false; }
           Element(tag, attrs) => {
@@ -78,7 +78,7 @@ impl Node : PrivMatchingMethods {
                 
                 let mut i = 0u;
                 while i < attrs.len() {
-                    if !attrs_match(attrs[i], elmt) { return false; }
+                    if !attrs_match(&attrs[i], &elmt) { return false; }
                     i += 1u;
                 }
 
@@ -96,7 +96,7 @@ impl Node : PrivMatchingMethods {
     /**
     Checks if a generic CSS selector matches a given HTML element
     */
-    fn matches_selector(sel : ~Selector) -> bool {
+    fn matches_selector(sel : &Selector) -> bool {
         match *sel {
           Element(*) => { return self.matches_element(sel); }
           Child(sel1, sel2) => {
@@ -188,7 +188,7 @@ impl Node : PrivStyleMethods {
 }
 
 trait MatchingMethods {
-    fn match_css_style(styles : Stylesheet);
+    fn match_css_style(styles : &Stylesheet);
 }
 
 impl Node : MatchingMethods {
@@ -196,7 +196,7 @@ impl Node : MatchingMethods {
     Compare an html element to a list of css rules and update its
     style according to the rules matching it.
     */
-    fn match_css_style(styles : Stylesheet) {
+    fn match_css_style(styles : &Stylesheet) {
         // Loop over each rule, see if our node matches what is
         // described in the rule. If it matches, update its style. As
         // we don't currently have priorities of style information,
@@ -225,7 +225,7 @@ mod test {
     use dvec::DVec;
 
     #[allow(non_implicitly_copyable_typarams)]
-    fn new_node_from_attr(scope: NodeScope, -name: ~str, -val: ~str) -> Node {
+    fn new_node_from_attr(scope: NodeScope, +name: ~str, +val: ~str) -> Node {
         let elmt = ElementData(~"div", ~HTMLDivElement);
         let attr = ~Attr(name, val);
         elmt.attrs.push(attr);

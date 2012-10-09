@@ -50,7 +50,7 @@ impl LayoutTreeBuilder {
 
         // TODO: remove this once UA styles work
         // TODO: handle interactions with 'float', 'position' (CSS 2.1, Section 9.7)
-        let simulated_display = match self.simulate_UA_display_rules(cur_node, style) {
+        let simulated_display = match self.simulate_UA_display_rules(cur_node, &style) {
             DisplayNone => return, // tree ends here if 'display: none'
             v => v
         };
@@ -151,7 +151,7 @@ impl LayoutTreeBuilder {
         fail ~"TODO: handle case where an inline is split by a block"
     }
 
-    priv fn simulate_UA_display_rules(node: Node, style: SpecifiedStyle) -> CSSDisplay {
+    priv fn simulate_UA_display_rules(node: Node, style: &SpecifiedStyle) -> CSSDisplay {
         let resolved = match style.display_type {
             Inherit | Initial => DisplayInline, // TODO: remove once resolve works
             Specified(v) => v

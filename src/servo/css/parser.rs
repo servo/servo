@@ -21,7 +21,7 @@ type TokenReader = {stream : pipes::Port<Token>, mut lookahead : Option<Token>};
 
 trait TokenReaderMethods {
     fn get() -> Token;
-    fn unget(-tok : Token);
+    fn unget(+tok : Token);
 }
 
 impl TokenReader : TokenReaderMethods {
@@ -32,7 +32,7 @@ impl TokenReader : TokenReaderMethods {
         }
     }
 
-    fn unget(-tok : Token) {
+    fn unget(+tok : Token) {
         assert is_none(&self.lookahead);
         self.lookahead = Some(tok);
     }

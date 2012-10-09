@@ -144,7 +144,7 @@ impl Layout {
                 do util::time::time(~"layout") {
                     // TODO: this is dumb. we don't need 3 separate traversals.
                     node.initialize_style_for_subtree(&layout_ctx, &self.layout_refs);
-                    node.recompute_style_for_subtree(&layout_ctx, styles);
+                    node.recompute_style_for_subtree(&layout_ctx, &styles);
                     /* resolve styles (convert relative values) down the node tree */
                     apply_style(&layout_ctx, node, layout_ctx.reflow_cb);
                     

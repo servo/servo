@@ -170,7 +170,7 @@ impl FlowContext {
 
 // Actual methods that do not require much flow-specific logic
 impl FlowContext {
-    pure fn foldl_boxes_for_node<B: Copy>(node: Node, seed: B, blk: pure fn&(B,@RenderBox) -> B) -> B {
+    pure fn foldl_boxes_for_node<B: Copy>(node: Node, +seed: B, blk: pure fn&(+a: B,@RenderBox) -> B) -> B {
         match self {
             RootFlow(*) => match self.root().box {
                 Some(box) if box.d().node == node => { blk(seed, box) },
@@ -181,6 +181,7 @@ impl FlowContext {
                 _ => seed
             },
             InlineFlow(*) => do self.inline().boxes.foldl(seed) |acc, box| {
+                // FIXME: Bad copies. foldl's accumulator should be by-value
                 if box.d().node == node { blk(*acc, *box) }
                 else { *acc }
             },
