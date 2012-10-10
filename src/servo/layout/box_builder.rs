@@ -88,15 +88,19 @@ impl LayoutTreeBuilder {
             }
         };
 
-        let mut builder_ctx : BuilderContext = copy *parent_ctx;
+        let builder_ctx : BuilderContext;
 
         // if this is a new flow, attach to parent flow and make a new BuilderContext.
         if !core::box::ptr_eq(next_flow, parent_ctx.flow) {
+            debug!("using parent builder context");
             debug!("Adding child flow f%? of f%?",
                    parent_ctx.flow.d().id, next_flow.d().id);
             FlowTree.add_child(parent_ctx.flow, next_flow);
 
             builder_ctx = { flow: next_flow, consumer: BoxConsumer(next_flow) };
+        } else {
+            debug!("creating fresh  builder context");
+            builder_ctx = copy *parent_ctx;
         }
 
         // store reference to the flow context which contains any
@@ -106,15 +110,16 @@ impl LayoutTreeBuilder {
         assert cur_node.has_aux();
         do cur_node.aux |data| { data.flow = Some(builder_ctx.flow) }
 
-
         let new_box = self.make_box(layout_ctx, box_type, cur_node, builder_ctx.flow);
         debug!("Assign ^box to flow: %?", builder_ctx.flow.debug_str());
-        builder_ctx.consumer.accept_box(layout_ctx, new_box);
+        builder_ctx.consumer.push_box(layout_ctx, new_box);
 
         // recurse on child nodes.
         do NodeTree.each_child(&cur_node) |child_node| {
             self.construct_recursively(layout_ctx, *child_node, &builder_ctx); true
         }
+
+        builder_ctx.consumer.pop_box(layout_ctx, new_box);
 
         // Fixup any irregularities, such as split inlines (CSS 2.1 Section 9.2.1.1)
         if (builder_ctx.flow.starts_inline_flow()) {

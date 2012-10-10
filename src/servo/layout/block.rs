@@ -22,7 +22,7 @@ fn BlockFlowData() -> BlockFlowData {
 
 trait BlockLayout {
     pure fn starts_block_flow() -> bool;
-    pure fn with_block_box(fn(box: &@RenderBox) -> ()) -> ();
+    pure fn with_block_box(@self, fn(box: &@RenderBox) -> ()) -> ();
 
     fn bubble_widths_block(@self, ctx: &LayoutContext);
     fn assign_widths_block(@self, ctx: &LayoutContext);
@@ -42,8 +42,8 @@ impl FlowContext : BlockLayout {
 
     /* Get the current flow's corresponding block box, if it exists, and do something with it. 
        This works on both BlockFlow and RootFlow, since they are mostly the same. */
-    pure fn with_block_box(cb: fn(box: &@RenderBox) -> ()) -> () {
-        match self {
+    pure fn with_block_box(@self, cb: fn(box: &@RenderBox) -> ()) -> () {
+        match *self {
             BlockFlow(*) => {
                 let mut box = self.block().box;
                 box.iter(cb);

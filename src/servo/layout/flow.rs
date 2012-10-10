@@ -1,12 +1,13 @@
 use au = gfx::geometry;
 use au::au;
+use core::dvec::DVec;
 use dl = gfx::display_list;
 use dom::node::Node;
 use geom::rect::Rect;
 use geom::point::Point2D;
 // TODO: pub-use these
 use layout::block::BlockFlowData;
-use layout::box::RenderBox;
+use layout::box::{LogicalBefore, LogicalAfter, RenderBox};
 use layout::context::LayoutContext;
 use layout::debug::BoxedDebugMethods;
 use layout::inline::InlineFlowData;
@@ -105,31 +106,94 @@ fn FlowData(id: int) -> FlowData {
     }
 }
 
+struct PendingEntry { 
+    start_box: @RenderBox,
+    start_idx: uint 
+}
+
 // helper object for building the initial box list and making the
 // mapping between DOM nodes and boxes.
 struct BoxConsumer {
     flow: @FlowContext,
+    stack: DVec<PendingEntry>,
 }
 
 fn BoxConsumer(flow: @FlowContext) -> BoxConsumer {
+    debug!("Creating box consumer for flow: f%s", flow.debug_str());
     BoxConsumer {
         flow: flow,
+        stack: DVec()
     }
 }
 
 impl BoxConsumer {
-    pub fn accept_box(_ctx: &LayoutContext, box: @RenderBox) {
+    pub fn push_box(ctx: &LayoutContext, box: @RenderBox) {
+        debug!("BoxConsumer: pushing box b%d to flow f%d", box.d().id, self.flow.d().id);
+        let length = match self.flow {
+            @InlineFlow(*) => self.flow.inline().boxes.len(),
+            _ => 0
+        };
+        let entry = PendingEntry { start_box: box, start_idx: length };
+        self.stack.push(entry);
+
         match self.flow {
-            @InlineFlow(*) => self.flow.inline().boxes.push(box),
+            @InlineFlow(*) => {
+                if box.requires_inline_spacers() {
+                    do box.create_inline_spacer_for_side(ctx, LogicalBefore).iter |b: &@RenderBox| {
+                        self.flow.inline().boxes.push(*b);
+                    }
+                }
+            },
+            @BlockFlow(*) | @RootFlow(*) => {
+                assert self.stack.len() == 1;
+            },
+            _ => { warn!("push_box() not implemented for flow f%d", self.flow.d().id) }
+        }
+    }
+
+    pub fn pop_box(ctx: &LayoutContext, box: @RenderBox) {
+        assert self.stack.len() > 0;
+        let entry = self.stack.pop();
+        assert core::box::ptr_eq(box, entry.start_box);
+
+        debug!("BoxConsumer: popping box b%d to flow f%d", box.d().id, self.flow.d().id);
+
+        match self.flow {
+            @InlineFlow(*) => {
+                let pre_length = self.flow.inline().boxes.len() - entry.start_idx;
+                match (pre_length, box.requires_inline_spacers()) {
+                    // leaf box
+                    (0, _) => { self.flow.inline().boxes.push(box); },
+                    // if this non-leaf box generates extra horizontal
+                    // spacing, add a SpacerBox for it.
+                    (_, true) => {
+                        do box.create_inline_spacer_for_side(ctx, LogicalAfter).iter |b: &@RenderBox| {
+                            self.flow.inline().boxes.push(*b);
+                        }
+                    },
+                    // non-leaf with no spacer; do nothing
+                    (_, false) => { }
+                }
+
+                let post_length = self.flow.inline().boxes.len() - entry.start_idx;
+                let mapping = { node: copy box.d().node, 
+                               span: { 
+                                   start: entry.start_idx as u8, 
+                                   len: post_length as u8
+                               }
+                              };
+                debug!("BoxConsumer: adding element range %?", mapping.span);
+                self.flow.inline().elems.push(mapping);
+            },
             @BlockFlow(*) => {
                 assert self.flow.block().box.is_none();
-                self.flow.block().box = Some(box);
+                self.flow.block().box = Some(entry.start_box);
             },
             @RootFlow(*) => {
-                assert self.flow.block().box.is_none();
-                self.flow.block().box = Some(box);
+                assert self.flow.root().box.is_none();
+                self.flow.root().box = Some(entry.start_box);
             },
-            _ => { warn!("accept_box not implemented for flow %?", self.flow.d().id) }
+            _ => { warn!("pop_box not implemented for flow %?", self.flow.d().id) }
         }
     }
 }
@@ -150,21 +214,21 @@ impl FlowContext : FlowContextMethods {
     pure fn inline(&self) -> &self/InlineFlowData {
         match *self {
             InlineFlow(_, ref i) => i,
-            _ => fail fmt!("Tried to access inline data of non-inline: %?", self)
+            _ => fail fmt!("Tried to access inline data of non-inline: f%d", self.d().id)
         }
     }
 
     pure fn block(&self) -> &self/BlockFlowData {
         match *self {
             BlockFlow(_, ref b) => b,
-            _ => fail fmt!("Tried to access block data of non-block: %?", self)
+            _ => fail fmt!("Tried to access block data of non-block: f%d", self.d().id)
         }
     }
 
     pure fn root(&self) -> &self/RootFlowData {
         match *self {
             RootFlow(_, ref r) => r,
-            _ => fail fmt!("Tried to access root data of non-root: %?", self)
+            _ => fail fmt!("Tried to access root data of non-root: f%d", self.d().id)
         }
     }
 
@@ -173,7 +237,7 @@ impl FlowContext : FlowContextMethods {
             @BlockFlow(*)  => self.bubble_widths_block(ctx),
             @InlineFlow(*) => self.bubble_widths_inline(ctx),
             @RootFlow(*)   => self.bubble_widths_root(ctx),
-            _ => fail fmt!("Tried to bubble_widths of flow: %?", self)
+            _ => fail fmt!("Tried to bubble_widths of flow: f%d", self.d().id)
         }
     }
 
@@ -182,7 +246,7 @@ impl FlowContext : FlowContextMethods {
             @BlockFlow(*)  => self.assign_widths_block(ctx),
             @InlineFlow(*) => self.assign_widths_inline(ctx),
             @RootFlow(*)   => self.assign_widths_root(ctx),
-            _ => fail fmt!("Tried to assign_widths of flow: %?", self)
+            _ => fail fmt!("Tried to assign_widths of flow: f%d", self.d().id)
         }
     }
 
@@ -191,7 +255,7 @@ impl FlowContext : FlowContextMethods {
             @BlockFlow(*)  => self.assign_height_block(ctx),
             @InlineFlow(*) => self.assign_height_inline(ctx),
             @RootFlow(*)   => self.assign_height_root(ctx),
-            _ => fail fmt!("Tried to assign_height of flow: %?", self)
+            _ => fail fmt!("Tried to assign_height of flow: f%d", self.d().id)
         }
     }
 
@@ -290,7 +354,6 @@ impl FlowContext : BoxedDebugMethods {
         }
     }
     
-    /* TODO: we need a string builder. This is horribly inefficient */
     fn debug_str(@self) -> ~str {
         let repr = match *self {
             InlineFlow(*) => {

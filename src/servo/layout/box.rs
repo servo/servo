@@ -91,12 +91,18 @@ pub enum RenderBox {
     UnscannedTextBox(RenderBoxData, ~str)
 }
 
+enum InlineSpacerSide {
+    LogicalBefore,
+    LogicalAfter,
+}
+
 trait RenderBoxMethods {
     pure fn d(&self) -> &self/RenderBoxData;
 
     pure fn is_replaced() -> bool;
     pure fn can_split() -> bool;
     pure fn can_merge_with_box(@self, other: @RenderBox) -> bool;
+    pure fn requires_inline_spacers() -> bool;
     pure fn content_box() -> Rect<au>;
     pure fn border_box() -> Rect<au>;
 
@@ -104,6 +110,7 @@ trait RenderBoxMethods {
     fn get_pref_width(&LayoutContext) -> au;
     fn get_used_width() -> (au, au);
     fn get_used_height() -> (au, au);
+    fn create_inline_spacer_for_side(&LayoutContext, InlineSpacerSide) -> Option<@RenderBox>;
     fn build_display_list(&dl::DisplayListBuilder, dirty: &Rect<au>, 
                           offset: &Point2D<au>, &dl::DisplayList);
 }
@@ -226,6 +233,11 @@ impl RenderBox : RenderBoxMethods {
         (au(0), au(0))
     }
 
+    /* Whether "spacer" boxes are needed to stand in for this DOM node */
+    pure fn requires_inline_spacers() -> bool {
+        return false;
+    }
+
     /* The box formed by the content edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
     pure fn content_box() -> Rect<au> {
@@ -265,6 +277,12 @@ impl RenderBox : RenderBoxMethods {
     pure fn border_box() -> Rect<au> {
         // TODO: actually compute content_box + padding + border
         self.content_box()
+    }
+
+
+    // TODO: implement this, generating spacer 
+    fn create_inline_spacer_for_side(_ctx: &LayoutContext, _side: InlineSpacerSide) -> Option<@RenderBox> {
+        None
     }
 
     // TODO: to implement stacking contexts correctly, we need to

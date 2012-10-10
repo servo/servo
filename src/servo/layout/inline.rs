@@ -3,6 +3,7 @@ use core::dlist::DList;
 use core::dvec::DVec;
 use css::values::{BoxAuto, BoxLength, Px};
 use dl = gfx::display_list;
+use dom::node::Node;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -39,6 +40,7 @@ hard to try out that alternative.
 */
 
 type BoxRange = {start: u8, len: u8};
+type NodeRange = {node: Node, span: BoxRange};
 
 // stack-allocated object for scanning an inline flow into
 // TextRun-containing TextBoxes.
@@ -173,7 +175,7 @@ struct InlineFlowData {
     // vec of ranges into boxes that represent elements. These
     // ranges must be disjoint or well-nested, and are only related to
     // the content of boxes (not lines)
-    elems: DVec<BoxRange>
+    elems: DVec<NodeRange>
 }
 
 fn InlineFlowData() -> InlineFlowData {
