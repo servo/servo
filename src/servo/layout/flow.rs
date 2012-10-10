@@ -62,7 +62,50 @@ enum FlowContextType {
     Flow_Table
 }
 
-impl FlowContext {
+trait FlowContextMethods {
+    pure fn d(&self) -> &self/FlowData;
+    pure fn inline(&self) -> &self/InlineFlowData;
+    pure fn block(&self) -> &self/BlockFlowData;
+    pure fn root(&self) -> &self/RootFlowData;
+    fn bubble_widths(@self, &LayoutContext);
+    fn assign_widths(@self, &LayoutContext);
+    fn assign_height(@self, &LayoutContext);
+    fn build_display_list_recurse(@self, &dl::DisplayListBuilder, dirty: &Rect<au>,
+                                  offset: &Point2D<au>, &dl::DisplayList);
+    pure fn foldl_boxes_for_node<B: Copy>(Node, +seed: B, cb: pure fn&(+a: B,@RenderBox) -> B) -> B;
+    pure fn iter_boxes_for_node<T>(Node, cb: pure fn&(@RenderBox) -> T);
+}
+
+/* A particular kind of layout context. It manages the positioning of
+   render boxes within the context.  */
+struct FlowData {
+    mut node: Option<Node>,
+    /* reference to parent, children flow contexts */
+    tree: tree::Tree<@FlowContext>,
+    /* TODO (Issue #87): debug only */
+    mut id: int,
+
+    /* layout computations */
+    // TODO: min/pref and position are used during disjoint phases of
+    // layout; maybe combine into a single enum to save space.
+    mut min_width: au,
+    mut pref_width: au,
+    mut position: Rect<au>,
+}
+
+fn FlowData(id: int) -> FlowData {
+    FlowData {
+        node: None,
+        tree: tree::empty(),
+        id: id,
+
+        min_width: au(0),
+        pref_width: au(0),
+        position: au::zero_rect()
+    }
+}
+
+impl FlowContext : FlowContextMethods {
     pure fn d(&self) -> &self/FlowData {
         match *self {
             AbsoluteFlow(ref d)    => d,
@@ -96,40 +139,6 @@ impl FlowContext {
         }
     }
 
-}
-
-/* A particular kind of layout context. It manages the positioning of
-   render boxes within the context.  */
-struct FlowData {
-    mut node: Option<Node>,
-    /* reference to parent, children flow contexts */
-    tree: tree::Tree<@FlowContext>,
-    /* TODO (Issue #87): debug only */
-    mut id: int,
-
-    /* layout computations */
-    // TODO: min/pref and position are used during disjoint phases of
-    // layout; maybe combine into a single enum to save space.
-    mut min_width: au,
-    mut pref_width: au,
-    mut position: Rect<au>,
-}
-
-
-fn FlowData(id: int) -> FlowData {
-    FlowData {
-        node: None,
-        tree: tree::empty(),
-        id: id,
-
-        min_width: au(0),
-        pref_width: au(0),
-        position: au::zero_rect()
-    }
-}
-
-/* Flow context disambiguation methods: the verbose alternative to virtual methods */
-impl FlowContext {
     fn bubble_widths(@self, ctx: &LayoutContext) {
         match self {
             @BlockFlow(*)  => self.bubble_widths_block(ctx),
@@ -166,10 +175,8 @@ impl FlowContext {
             _ => fail fmt!("Tried to build_display_list_recurse of flow: %?", self)
         }
     }
-}
 
-// Actual methods that do not require much flow-specific logic
-impl FlowContext {
+    // Actual methods that do not require much flow-specific logic
     pure fn foldl_boxes_for_node<B: Copy>(node: Node, +seed: B, blk: pure fn&(+a: B,@RenderBox) -> B) -> B {
         match self {
             RootFlow(*) => match self.root().box {
@@ -208,7 +215,6 @@ impl FlowContext {
         }
     }
 }
-
 
 /* The tree holding FlowContexts */
 enum FlowTree { FlowTree }
