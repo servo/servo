@@ -12,7 +12,6 @@ use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColor
 use dl = gfx::display_list;
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
-use dom::rcu;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::point::Point2D;

@@ -96,7 +96,7 @@ trait StyleMethods {
 
 impl Node : StyleMethods {
     /** If none exists, creates empty layout data for the node (the reader-auxiliary
-     * box in the RCU model) and populates it with an empty style object.
+     * box in the COW model) and populates it with an empty style object.
      */
     fn initialize_layout_data() -> Option<@LayoutData> {
         match self.has_aux() {
@@ -141,7 +141,7 @@ impl Node : StyleMethods {
      * Performs CSS selector matching on a subtree.
 
      * This is, importantly, the function that updates the layout data for
-     * the node (the reader-auxiliary box in the RCU model) with the
+     * the node (the reader-auxiliary box in the COW model) with the
      * computed style.
      */
     fn recompute_style_for_subtree(ctx: &LayoutContext, styles : &ARC<Stylesheet>) {

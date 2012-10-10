@@ -5,7 +5,7 @@ use au::au;
 use css::values::{BgColor, BgColorTransparent, Specified};
 use dl = gfx::display_list;
 use dom::node::{Text, NodeScope};
-use dom::rcu::Scope;
+use dom::cow::Scope;
 use dvec::DVec;
 use either::{Left, Right};
 use geom::point::Point2D;

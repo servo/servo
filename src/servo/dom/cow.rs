@@ -1,35 +1,35 @@
 #[doc(str = "
 
-Implements the RCU DOM-sharing model.  This model allows for a single writer and any number of
+Implements the copy-on-write DOM-sharing model.  This model allows for a single writer and any number of
 readers, but the writer must be able to control and manage the lifetimes of the reader(s).  For
 simplicity I will describe the implementation as though there were a single reader.
 
-The basic idea is that every object in the RCU pool has both a reader view and a writer view.  The
+The basic idea is that every object in the COW pool has both a reader view and a writer view.  The
 writer always sees the writer view, which contains the most up-to-date values.  The reader uses the
 reader view, which contains the values as of the point where the reader was forked.  When the
 writer joins the reader, the reader view will be synchronized with the writer view.
 
-Internally, the way this works is using a copy-on-write scheme.  Each RCU node maintains two
+Internally, the way this works is using a copy-on-write scheme.  Each COW node maintains two
 pointers (`read_ptr` and `write_ptr`).  Assuming that readers are active, when a writer wants to
 modify a node, it first copies the reader's data into a new pointer.  Any writes that occur after
 that point (but before the reader is joined) will operate on this same copy.  When the reader is
 joined, any nodes which the writer modified will free the stale reader data and update the reader
 pointer to be the same as the writer pointer.
 
-# Using the RCU APIs as a writer
+# Using the COW APIs as a writer
 
-You must first create a `scope` object.  The scope object manages the memory and the RCU
-operations.  RCU'd objects of some sendable type `T` are not referenced directly but rather through
-a `handle<T>`.  To create a new RCU object, you use `scope.handle(t)` where `t` is some initial
-value of type `T`.  To write to an RCU object, use `scope.write()` and to read from it use
+You must first create a `scope` object.  The scope object manages the memory and the COW
+operations.  COW'd objects of some sendable type `T` are not referenced directly but rather through
+a `handle<T>`.  To create a new COW object, you use `scope.handle(t)` where `t` is some initial
+value of type `T`.  To write to an COW object, use `scope.write()` and to read from it use
 `scope.read()`. Be sure not to use the various `ReaderMethods`.
 
-Handles can be freely sent between tasks but the RCU scope cannot.  It must stay with the writer
+Handles can be freely sent between tasks but the COW scope cannot.  It must stay with the writer
 task.  You are responsible for correctly invoking `reader_forked()` and `reader_joined()` to keep
-the RCU scope abreast of when the reader is active.  Failure to do so will lead to race conditions
+the COW scope abreast of when the reader is active.  Failure to do so will lead to race conditions
 or worse.
 
-# Using the RCU APIs as a reader
+# Using the COW APIs as a reader
 
 Import the `ReaderMethods` impl.  When you receive a handle, you can invoke `h.read { |v| ... }`
 and so forth.  There is also a piece of auxiliary data that can be optionally associated with each
@@ -45,7 +45,7 @@ fields.
 
 Readers can associate a piece of auxiliary data of type `A` along with main nodes.  This is
 convenient but dangerous: it is the reader's job to ensure that this data remains live independent
-of the RCU nodes themselves.
+of the COW nodes themselves.
 
 ")];
 

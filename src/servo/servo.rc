@@ -35,7 +35,7 @@ pub mod dom {
     pub mod element;
     pub mod event;
     pub mod node;
-    pub mod rcu;
+    pub mod cow;
     pub mod window;
 }
 
