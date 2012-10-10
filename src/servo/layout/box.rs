@@ -87,7 +87,7 @@ struct RenderBoxData {
 enum RenderBoxType {
     RenderBox_Generic,
     RenderBox_Image,
-    RenderBox_Text
+    RenderBox_Text,
 }
 
 pub enum RenderBox {
@@ -101,6 +101,8 @@ trait RenderBoxMethods {
     pure fn d(&self) -> &self/RenderBoxData;
 
     pure fn is_replaced() -> bool;
+    pure fn can_split() -> bool;
+    pure fn can_merge_with_box(@self, other: @RenderBox) -> bool;
     pure fn content_box() -> Rect<au>;
     pure fn border_box() -> Rect<au>;
 
@@ -138,6 +140,23 @@ impl RenderBox : RenderBoxMethods {
         match self {
            ImageBox(*) => true, // TODO: form elements, etc
             _ => false
+        }
+    }
+
+    pure fn can_split() -> bool {
+        match self {
+            TextBox(*) => true,
+            _ => false
+        }
+    }
+
+    pure fn can_merge_with_box(@self, other: @RenderBox) -> bool {
+        assert !core::box::ptr_eq(self, other);
+
+        match (self, other) {
+            (@UnscannedTextBox(*), @UnscannedTextBox(*)) => true,
+            (@TextBox(_,d1), @TextBox(_,d2)) => { core::box::ptr_eq(d1.run, d2.run) }
+            (_, _) => false
         }
     }
 

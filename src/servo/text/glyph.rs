@@ -463,10 +463,10 @@ struct GlyphStore {
 
 // Initializes the glyph store, but doesn't actually shape anything.
 // Use the set_glyph, set_glyphs() methods to store glyph data.
-fn GlyphStore(text: &str) -> GlyphStore {
-    assert text.len() > 0;
+fn GlyphStore(length: uint) -> GlyphStore {
+    assert length > 0;
 
-    let buffer = vec::from_elem(text.len(), InitialGlyphEntry());
+    let buffer = vec::from_elem(length, InitialGlyphEntry());
 
     GlyphStore {
         entry_buffer: dvec::from_vec(buffer),

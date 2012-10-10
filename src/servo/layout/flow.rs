@@ -130,39 +130,39 @@ fn FlowData(id: int) -> FlowData {
 
 /* Flow context disambiguation methods: the verbose alternative to virtual methods */
 impl FlowContext {
-    fn bubble_widths(ctx: &LayoutContext) {
+    fn bubble_widths(@self, ctx: &LayoutContext) {
         match self {
-            BlockFlow(*)  => self.bubble_widths_block(ctx),
-            InlineFlow(*) => self.bubble_widths_inline(ctx),
-            RootFlow(*)   => self.bubble_widths_root(ctx),
+            @BlockFlow(*)  => self.bubble_widths_block(ctx),
+            @InlineFlow(*) => self.bubble_widths_inline(ctx),
+            @RootFlow(*)   => self.bubble_widths_root(ctx),
             _ => fail fmt!("Tried to bubble_widths of flow: %?", self)
         }
     }
 
-    fn assign_widths(ctx: &LayoutContext) {
+    fn assign_widths(@self, ctx: &LayoutContext) {
         match self {
-            BlockFlow(*)  => self.assign_widths_block(ctx),
-            InlineFlow(*) => self.assign_widths_inline(ctx),
-            RootFlow(*)   => self.assign_widths_root(ctx),
+            @BlockFlow(*)  => self.assign_widths_block(ctx),
+            @InlineFlow(*) => self.assign_widths_inline(ctx),
+            @RootFlow(*)   => self.assign_widths_root(ctx),
             _ => fail fmt!("Tried to assign_widths of flow: %?", self)
         }
     }
 
-    fn assign_height(ctx: &LayoutContext) {
+    fn assign_height(@self, ctx: &LayoutContext) {
         match self {
-            BlockFlow(*)  => self.assign_height_block(ctx),
-            InlineFlow(*) => self.assign_height_inline(ctx),
-            RootFlow(*)   => self.assign_height_root(ctx),
+            @BlockFlow(*)  => self.assign_height_block(ctx),
+            @InlineFlow(*) => self.assign_height_inline(ctx),
+            @RootFlow(*)   => self.assign_height_root(ctx),
             _ => fail fmt!("Tried to assign_height of flow: %?", self)
         }
     }
 
-    fn build_display_list_recurse(builder: &dl::DisplayListBuilder, dirty: &Rect<au>,
+    fn build_display_list_recurse(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<au>,
                                   offset: &Point2D<au>, list: &dl::DisplayList) {
         match self {
-            RootFlow(*) => self.build_display_list_root(builder, dirty, offset, list),
-            BlockFlow(*) => self.build_display_list_block(builder, dirty, offset, list),
-            InlineFlow(*) => self.build_display_list_inline(builder, dirty, offset, list),
+            @RootFlow(*) => self.build_display_list_root(builder, dirty, offset, list),
+            @BlockFlow(*) => self.build_display_list_block(builder, dirty, offset, list),
+            @InlineFlow(*) => self.build_display_list_inline(builder, dirty, offset, list),
             _ => fail fmt!("Tried to build_display_list_recurse of flow: %?", self)
         }
     }

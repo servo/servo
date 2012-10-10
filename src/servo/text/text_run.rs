@@ -26,16 +26,19 @@ impl TextRun {
         assert offset < self.text.len();
         assert offset + length <= self.text.len();
 
+        debug!("enter min_width_for_range(o=%?, l=%?)", offset, length);
+
         let mut max_piece_width = au(0);
         // TODO: use a real font reference
         let font = ctx.font_cache.get_test_font();
         for self.iter_indivisible_pieces_for_range(offset, length) |piece_offset, piece_len| {
-
             let metrics = font.measure_text(&self, piece_offset, piece_len);
             if metrics.advance > max_piece_width {
                 max_piece_width = metrics.advance;
             }
         };
+
+        debug!("exit min_width_for_range(o=%?, l=%?)", offset, length);
         return max_piece_width;
     }
 
@@ -74,6 +77,8 @@ impl TextRun {
         assert length > 0;
         assert offset < self.text.len();
         assert offset + length <= self.text.len();
+
+        debug!("enter iter_indivisible_pieces_for_range(o=%?, l=%?)", offset, length);
 
         //TODO: need a more sophisticated model of words and possible breaks
         let text = str::view(self.text, offset, length);
@@ -117,11 +122,12 @@ impl TextRun {
                 }
             }
         }
+        debug!("exit iter_indivisible_pieces_for_range(o=%?, l=%?)", offset, length);
     }
 }
  
-fn TextRun(font: &Font, +text: ~str) -> TextRun {
-    let glyph_store = GlyphStore(text);
+fn TextRun(font: &Font, text: ~str) -> TextRun {
+    let glyph_store = GlyphStore(text.len());
     let run = TextRun {
         text: text,
         glyphs: glyph_store,

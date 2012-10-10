@@ -5,7 +5,7 @@ use au::au;
 use geom::size::Size2D;
 use servo_text::text_run::TextRun;
 use servo_text::font_cache::FontCache;
-use layout::box::{TextBox, RenderBox};
+use layout::box::{TextBox, RenderBox, UnscannedTextBox};
 use layout::context::LayoutContext;
 
 pub struct TextBoxData {
@@ -19,6 +19,19 @@ pub fn TextBoxData(run: @TextRun, offset: uint, length: uint) -> TextBoxData {
         run: run,
         offset: offset,
         length: length
+    }
+}
+
+trait UnscannedMethods {
+    pure fn raw_text() -> ~str;
+}
+
+impl RenderBox : UnscannedMethods {
+    pure fn raw_text() -> ~str {
+        match self {
+            UnscannedTextBox(_, s) => copy s,
+            _ => fail ~"unsupported operation: box.raw_text() on non-unscanned text box."
+        }
     }
 }
 

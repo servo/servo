@@ -22,11 +22,12 @@ fn RootFlowData() -> RootFlowData {
 trait RootLayout {
     pure fn starts_root_flow() -> bool;
 
-    fn bubble_widths_root(ctx: &LayoutContext);
-    fn assign_widths_root(ctx: &LayoutContext);
-    fn assign_height_root(ctx: &LayoutContext);
+    fn bubble_widths_root(@self, ctx: &LayoutContext);
+    fn assign_widths_root(@self, ctx: &LayoutContext);
+    fn assign_height_root(@self, ctx: &LayoutContext);
 
-    fn build_display_list_root(a: &dl::DisplayListBuilder, b: &Rect<au>, c: &Point2D<au>, d: &dl::DisplayList);
+    fn build_display_list_root(@self, a: &dl::DisplayListBuilder, b: &Rect<au>,
+                               c: &Point2D<au>, d: &dl::DisplayList);
 }
 
 impl FlowContext : RootLayout {
@@ -39,25 +40,25 @@ impl FlowContext : RootLayout {
     }
 
     /* defer to the block algorithm */
-    fn bubble_widths_root(ctx: &LayoutContext) {
+    fn bubble_widths_root(@self, ctx: &LayoutContext) {
         assert self.starts_root_flow();
         self.bubble_widths_block(ctx)
     }
  
-    fn assign_widths_root(ctx: &LayoutContext) { 
+    fn assign_widths_root(@self, ctx: &LayoutContext) { 
         assert self.starts_root_flow();
 
         self.d().position = copy ctx.screen_size;
         self.assign_widths_block(ctx)
     }
 
-    fn assign_height_root(ctx: &LayoutContext) {
+    fn assign_height_root(@self, ctx: &LayoutContext) {
         assert self.starts_root_flow();
 
         self.assign_height_block(ctx);
     }
 
-    fn build_display_list_root(builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
+    fn build_display_list_root(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
                                offset: &Point2D<au>, list: &dl::DisplayList) {
         assert self.starts_root_flow();
         

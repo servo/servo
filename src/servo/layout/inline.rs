@@ -18,8 +18,6 @@ use std::arc;
 use util::tree;
 
 /*
-Tentative design: (may not line up with reality)
-
 Lineboxes are represented as offsets into the child list, rather than
 as an object that "owns" boxes. Choosing a different set of line
 breaks requires a new list of offsets, and possibly some splitting and
@@ -43,17 +41,129 @@ hard to try out that alternative.
 
 type BoxRange = {start: u8, len: u8};
 
-// TODO: flesh out into TextRunScanner
-fn build_runs_for_flow(ctx: &LayoutContext, dummy_boxes: &DVec<@RenderBox>) {
-    for uint::range(0, dummy_boxes.len()) |i| {
-        match *dummy_boxes[i] {
-            UnscannedTextBox(d, text) => {
+// stack-allocated object for scanning an inline flow into
+// TextRun-containing TextBoxes.
+struct TextRunScanner {
+    mut in_clump: bool,
+    mut clump_start: uint,
+    mut clump_end: uint,
+    flow: @FlowContext,
+}
+
+fn TextRunScanner(flow: @FlowContext) -> TextRunScanner {
+    TextRunScanner {
+        in_clump: false,
+        clump_start: 0,
+        clump_end: 0,
+        flow: flow,
+    }
+}
+
+impl TextRunScanner {
+    fn scan_for_runs(ctx: &LayoutContext) {
+        // if reused, must be reset.
+        assert !self.in_clump;
+        let in_boxes = self.flow.inline().boxes;
+        assert in_boxes.len() > 0;
+
+        debug!("scanning %u boxes for text runs...", in_boxes.len());
+
+        let temp_boxes = DVec();
+        let mut prev_box: @RenderBox = in_boxes[0];
+
+        for uint::range(0, in_boxes.len()) |i| {
+            debug!("considering box: %?", in_boxes[i].debug_str());
+
+            let can_coalesce_with_prev = i > 0 && boxes_can_be_coalesced(prev_box, in_boxes[i]);
+
+            match (self.in_clump, can_coalesce_with_prev) {
+                // start a new clump
+                (false, _)    => { self.reset_clump_to_index(i); },
+                // extend clump
+                (true, true)  => { self.clump_end = i; },
+                // boundary detected; flush and start new clump
+                (true, false) => {
+                    self.flush_clump_to_list(ctx, &temp_boxes);
+                    self.reset_clump_to_index(i);
+                }
+            };
+
+            prev_box = in_boxes[i];
+        }
+
+        // handle remaining clumps
+        if self.in_clump {
+            self.flush_clump_to_list(ctx, &temp_boxes);
+        }
+
+        debug!("swapping out boxes.");
+        // swap out old and new box list of flow
+        self.flow.inline().boxes.set(dvec::unwrap(temp_boxes));
+
+        debug!("new inline flow boxes:");
+        do self.flow.inline().boxes.each |box| {
+            debug!("%s", box.debug_str()); true
+        }
+
+        // helper functions
+        pure fn boxes_can_be_coalesced(a: @RenderBox, b: @RenderBox) -> bool {
+            assert !core::box::ptr_eq(a, b);
+
+            match (a, b) {
+                // TODO: check whether text styles, fonts are the same.
+                (@UnscannedTextBox(*), @UnscannedTextBox(*)) => a.can_merge_with_box(b),
+                (_, _) => false
+            }
+        }
+    }
+
+    fn reset_clump_to_index(i: uint) {
+        debug!("resetting clump to %u", i);
+        
+        self.clump_start = i;
+        self.clump_end = i;
+        self.in_clump = true;
+    }
+
+    fn flush_clump_to_list(ctx: &LayoutContext, temp_boxes: &DVec<@RenderBox>) {
+        assert self.in_clump;
+
+        debug!("flushing when start=%?,end=%?", self.clump_start, self.clump_end);
+
+        let in_boxes = self.flow.inline().boxes;
+        let is_singleton = (self.clump_start == self.clump_end);
+        let is_text_clump = match in_boxes[self.clump_start] {
+            @UnscannedTextBox(*) => true,
+            _ => false
+        };
+
+        // TODO: repair the mapping of DOM elements to boxes if it changed.
+        // (the mapping does not yet exist; see Issue #103)
+        match (is_singleton, is_text_clump) {
+            (false, false) => fail ~"WAT: can't coalesce non-text boxes in flush_clump_to_list()!",
+            (true, false) => { temp_boxes.push(in_boxes[self.clump_start]); }
+            (true, true)  => { 
+                let text = in_boxes[self.clump_start].raw_text();
+                // TODO: use actual font for corresponding DOM node to create text run.
                 let run = TextRun(&*ctx.font_cache.get_test_font(), text);
                 let box_guts = TextBoxData(@run, 0, text.len());
-                dummy_boxes.set_elt(i, @TextBox(d, box_guts));
+                debug!("pushing when start=%?,end=%?", self.clump_start, self.clump_end);
+                temp_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
             },
-            _ => {}
+            (false, true) => {
+                let mut run_str : ~str = ~"";
+                // TODO: is using ropes to construct the merged text any faster?
+                do uint::range(self.clump_start, self.clump_end+1) |i| {
+                    run_str = str::append(run_str, in_boxes[i].raw_text()); true
+                }
+                // TODO: use actual font for corresponding DOM node to create text run.
+                let run = TextRun(&*ctx.font_cache.get_test_font(), move run_str);
+                let box_guts = TextBoxData(@run, 0, run.text.len());
+                debug!("pushing when start=%?,end=%?", self.clump_start, self.clump_end);
+                temp_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
+            }
         }
+        self.in_clump = false;
     }
 }
 
@@ -81,25 +191,30 @@ fn InlineFlowData() -> InlineFlowData {
 trait InlineLayout {
     pure fn starts_inline_flow() -> bool;
 
-    fn bubble_widths_inline(ctx: &LayoutContext);
-    fn assign_widths_inline(ctx: &LayoutContext);
-    fn assign_height_inline(ctx: &LayoutContext);
-    fn build_display_list_inline(a: &dl::DisplayListBuilder, b: &Rect<au>, c: &Point2D<au>, d: &dl::DisplayList);
+    fn bubble_widths_inline(@self, ctx: &LayoutContext);
+    fn assign_widths_inline(@self, ctx: &LayoutContext);
+    fn assign_height_inline(@self, ctx: &LayoutContext);
+    fn build_display_list_inline(@self, a: &dl::DisplayListBuilder, b: &Rect<au>, c: &Point2D<au>, d: &dl::DisplayList);
 }
 
 impl FlowContext : InlineLayout {
     pure fn starts_inline_flow() -> bool { match self { InlineFlow(*) => true, _ => false } }
 
-    fn bubble_widths_inline(ctx: &LayoutContext) {
+    fn bubble_widths_inline(@self, ctx: &LayoutContext) {
         assert self.starts_inline_flow();
 
-        // TODO: this is a hack
-        build_runs_for_flow(ctx, &self.inline().boxes);
+        debug!("box count: %u", self.inline().boxes.len());
+
+        let scanner = TextRunScanner(self);
+        scanner.scan_for_runs(ctx);
 
         let mut min_width = au(0);
         let mut pref_width = au(0);
 
+        debug!("/box count: %u", self.inline().boxes.len());
+
         for self.inline().boxes.each |box| {
+            debug!("measuring box: %s", box.debug_str());
             min_width = au::max(min_width, box.get_min_width(ctx));
             pref_width = au::max(pref_width, box.get_pref_width(ctx));
         }
@@ -111,7 +226,7 @@ impl FlowContext : InlineLayout {
     /* Recursively (top-down) determines the actual width of child
     contexts and boxes. When called on this context, the context has
     had its width set by the parent context. */
-    fn assign_widths_inline(ctx: &LayoutContext) {
+    fn assign_widths_inline(@self, ctx: &LayoutContext) {
         assert self.starts_inline_flow();
 
         /* Perform inline flow with the available width. */
@@ -170,12 +285,12 @@ impl FlowContext : InlineLayout {
     // 'inline-block' box that created this flow.
     }
 
-    fn assign_height_inline(_ctx: &LayoutContext) {
+    fn assign_height_inline(@self, _ctx: &LayoutContext) {
         // Don't need to set box or ctx heights, since that is done
         // during inline flowing.
     }
 
-    fn build_display_list_inline(builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
+    fn build_display_list_inline(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
                                  offset: &Point2D<au>, list: &dl::DisplayList) {
 
         assert self.starts_inline_flow();
