@@ -140,9 +140,10 @@ impl TextRunScanner {
             (true, false) => { temp_boxes.push(in_boxes[self.clump_start]); }
             (true, true)  => { 
                 let text = in_boxes[self.clump_start].raw_text();
+                let text_len = text.len();
                 // TODO: use actual font for corresponding DOM node to create text run.
-                let run = TextRun(&*ctx.font_cache.get_test_font(), text);
-                let box_guts = TextBoxData(@run, 0, text.len());
+                let run = @TextRun(&*ctx.font_cache.get_test_font(), move text);
+                let box_guts = TextBoxData(run, 0, text_len);
                 debug!("pushing when start=%?,end=%?", self.clump_start, self.clump_end);
                 temp_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
             },

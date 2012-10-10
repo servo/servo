@@ -221,7 +221,7 @@ impl LayoutTreeBuilder {
                         // TODO: this could be written as a pattern guard, but it triggers
                         // an ICE (mozilla/rust issue #3601)
                         if d.image.is_some() {
-                            let holder = ImageHolder(&d.image.get(), 
+                            let holder = ImageHolder({copy *d.image.get_ref()},
                                                      layout_ctx.image_cache,
                                                      copy layout_ctx.reflow_cb);
 
@@ -254,7 +254,8 @@ impl LayoutTreeBuilder {
                 ~Doctype(*) | ~Comment(*) => fail ~"Hey, doctypes and comments shouldn't get here! They are display:none!",
                 ~Text(*) => RenderBox_Text,
                 ~Element(element) => {
-                    match (element.kind, display) {
+                    // FIXME: Bad copy
+                    match (copy element.kind, display) {
                         (~HTMLImageElement(d), _) if d.image.is_some() => RenderBox_Image,
 //                      (_, Specified(_)) => GenericBox,
                         (_, _) => RenderBox_Generic // TODO: replace this with the commented lines

@@ -107,8 +107,8 @@ impl StyleApplicator {
     fn apply_css_style(layout_ctx: &LayoutContext) {
         let reflow = copy self.reflow;
 
-        do NodeTree.each_child(&self.node) |child| {
-            inheritance_wrapper(layout_ctx, *child, reflow); true
+        for NodeTree.each_child(&self.node) |child| {
+            inheritance_wrapper(layout_ctx, *child, copy reflow)
         }
     }
 

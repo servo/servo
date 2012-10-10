@@ -228,9 +228,11 @@ pub fn parse_html(scope: NodeScope,
                 //Handle CSS style sheets from <link> elements
                 ~HTMLLinkElement => {
                     match (elem.get_attr(~"rel"), elem.get_attr(~"href")) {
-                        (Some(rel), Some(href)) if rel == ~"stylesheet" => {
-                            debug!("found CSS stylesheet: %s", href);
-                            css_chan.send(CSSTaskNewFile(make_url(href, Some(copy *url))));
+                        (Some(move rel), Some(move href)) => {
+                            if rel == ~"stylesheet" {
+                                debug!("found CSS stylesheet: %s", href);
+                                css_chan.send(CSSTaskNewFile(make_url(href, Some(copy *url))));
+                            }
                         }
                         _ => {}
                     }
@@ -298,22 +300,27 @@ pub fn parse_html(scope: NodeScope,
         encoding_change: |_encname| {
             debug!("encoding change");
         },
-        complete_script: |script| unsafe {
-            do scope.read(reinterpret_cast(&script)) |node_contents| {
-                match *node_contents.kind {
-                    Element(element) if element.tag_name == ~"script" => {
-                        match element.get_attr(~"src") {
-                            Some(src) => {
-                                debug!("found script: %s", src);
-                                let new_url = make_url(src, Some(copy *url));
-                                js_chan.send(JSTaskNewFile(new_url));
+        complete_script: |script| {
+            // A little function for holding this lint attr
+            #[allow(non_implicitly_copyable_typarams)]
+            fn complete_script(scope: &NodeScope, script: hubbub::Node, url: &Url, js_chan: &comm::Chan<JSMessage>) unsafe {
+                do scope.read(reinterpret_cast(&script)) |node_contents| {
+                    match *node_contents.kind {
+                        Element(element) if element.tag_name == ~"script" => {
+                            match element.get_attr(~"src") {
+                                Some(move src) => {
+                                    debug!("found script: %s", src);
+                                    let new_url = make_url(src, Some(copy *url));
+                                    js_chan.send(JSTaskNewFile(new_url));
+                                }
+                                None => {}
                             }
-                            None => {}
                         }
+                        _ => {}
                     }
-                    _ => {}
                 }
             }
+            complete_script(scope, script, url, &js_chan);
             debug!("complete script");
         }
     });

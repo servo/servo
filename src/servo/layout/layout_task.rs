@@ -86,7 +86,7 @@ impl Layout {
         match query {
             ContentBox(node) => {
                 // TODO: extract me to a method when I get sibling arms
-                let response = match node.aux(|a| *a).flow {
+                let response = match node.aux(|a| copy *a).flow {
                     None => Err(()),
                     Some(flow) => {
                         let start_val : Option<Rect<au>> = None;
@@ -146,7 +146,7 @@ impl Layout {
                     node.initialize_style_for_subtree(&layout_ctx, &self.layout_refs);
                     node.recompute_style_for_subtree(&layout_ctx, &styles);
                     /* resolve styles (convert relative values) down the node tree */
-                    apply_style(&layout_ctx, node, layout_ctx.reflow_cb);
+                    apply_style(&layout_ctx, node, copy layout_ctx.reflow_cb);
                     
                     let builder = LayoutTreeBuilder();
                     let layout_root: @FlowContext = match builder.construct_trees(&layout_ctx, node) {

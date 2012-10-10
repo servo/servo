@@ -96,7 +96,7 @@ extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *jsval, bp: *mut JSB
 
 pub fn prototype_jsclass(+name: ~str) -> fn(+compartment: bare_compartment) -> JSClass {
     |+compartment: bare_compartment| {
-        {name: compartment.add_name(name),
+        {name: compartment.add_name(copy name),
          flags: 0,
          addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
          delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -125,7 +125,7 @@ pub fn prototype_jsclass(+name: ~str) -> fn(+compartment: bare_compartment) -> J
 pub fn instance_jsclass(+name: ~str, finalize: *u8)
     -> fn(+compartment: bare_compartment) -> JSClass {
     |+compartment: bare_compartment| {
-        {name: compartment.add_name(name),
+        {name: compartment.add_name(copy name),
          flags: JSCLASS_HAS_RESERVED_SLOTS(1),
          addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
          delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -151,19 +151,20 @@ pub fn instance_jsclass(+name: ~str, finalize: *u8)
     }
 }
 
+// FIXME: A lot of string copies here
 pub fn define_empty_prototype(+name: ~str, +proto: Option<~str>, compartment: &bare_compartment)
     -> js::rust::jsobj {
-    compartment.register_class(utils::prototype_jsclass(name));
+    compartment.register_class(utils::prototype_jsclass(copy name));
 
     //TODO error checking
     let obj = result::unwrap(
-        match proto {
-            Some(s) => compartment.new_object_with_proto(name, s,
-                                                         compartment.global_obj.ptr),
-            None => compartment.new_object(name, null(), compartment.global_obj.ptr)
+        match move proto {
+            Some(move s) => compartment.new_object_with_proto(copy name, s, 
+                                                        compartment.global_obj.ptr),
+            None => compartment.new_object(copy name, null(), compartment.global_obj.ptr)
         });
 
-    compartment.define_property(name, RUST_OBJECT_TO_JSVAL(obj.ptr),
+    compartment.define_property(copy name, RUST_OBJECT_TO_JSVAL(obj.ptr),
                                 GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
                                 GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
                                 JSPROP_ENUMERATE);

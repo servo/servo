@@ -143,22 +143,22 @@ impl Content {
     }
 
     fn handle_msg(+msg: Either<ControlMsg,Event>) -> bool {
-        match msg {
-            Left(control_msg) => self.handle_control_msg(control_msg),
-            Right(event) => self.handle_event(event)
+        match move msg {
+            Left(move control_msg) => self.handle_control_msg(control_msg),
+            Right(move event) => self.handle_event(event)
         }
     }
 
     fn handle_control_msg(+control_msg: ControlMsg) -> bool {
-        match control_msg {
-          ParseMsg(url) => {
+        match move control_msg {
+          ParseMsg(move url) => {
             debug!("content: Received url `%s` to parse", url_to_str(copy url));
 
             // Note: we can parse the next document in parallel
             // with any previous documents.
 
             let result = html::hubbub_html_parser::parse_html(self.scope,
-                                                              url,
+                                                              copy url,
                                                               self.resource_task,
                                                               self.image_cache_task);
 
@@ -184,8 +184,8 @@ impl Content {
                             option::get(&self.document),
                             option::get(&self.window));
 
-            for vec::each(js_scripts) |bytes| {
-                self.cx.evaluate_script(compartment.global_obj, *bytes, ~"???", 1u);
+            do vec::consume(js_scripts) |_i, bytes| {
+                self.cx.evaluate_script(compartment.global_obj, bytes, ~"???", 1u);
             }
 
             return true;
@@ -214,10 +214,10 @@ impl Content {
               Err(msg) => {
                 println(fmt!("Error opening %s: %s", url_to_str(copy url), msg));
               }
-              Ok(bytes) => {
+              Ok(move bytes) => {
                 let compartment = option::expect(&self.compartment, ~"TODO error checking");
                 compartment.define_functions(debug_fns);
-                self.cx.evaluate_script(compartment.global_obj, bytes, url.path, 1u);
+                self.cx.evaluate_script(compartment.global_obj, bytes, copy url.path, 1u);
               }
             }
             return true;

@@ -126,7 +126,7 @@ impl TextRun {
     }
 }
  
-fn TextRun(font: &Font, text: ~str) -> TextRun {
+fn TextRun(font: &Font, +text: ~str) -> TextRun {
     let glyph_store = GlyphStore(text.len());
     let run = TextRun {
         text: text,

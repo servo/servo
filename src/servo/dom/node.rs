@@ -53,8 +53,8 @@ impl Node {
    with a generic implementation of rcu::Handle */
 impl Node : cmp::Eq {
     pure fn eq(other : &Node) -> bool unsafe {
-        let my_data : @LayoutData = @self.aux(|a| *a);
-        let ot_data : @LayoutData = @other.aux(|a| *a);
+        let my_data : @LayoutData = @self.aux(|a| copy *a);
+        let ot_data : @LayoutData = @other.aux(|a| copy *a);
         core::box::ptr_eq(my_data, ot_data)
     }
     pure fn ne(other : &Node) -> bool unsafe {

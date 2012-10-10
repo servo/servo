@@ -19,10 +19,10 @@ pub struct ImageHolder {
 
 }
 
-fn ImageHolder(url : &Url, image_cache_task: ImageCacheTask, +cb: fn~()) -> ImageHolder {
+fn ImageHolder(+url : Url, image_cache_task: ImageCacheTask, +cb: fn~()) -> ImageHolder {
     debug!("ImageHolder() %?", url.to_str());
     let holder = ImageHolder {
-        url : Some(copy *url),
+        url : Some(copy url),
         image : None,
         cached_size : Size2D(0,0),
         image_cache_task : image_cache_task,
@@ -34,8 +34,8 @@ fn ImageHolder(url : &Url, image_cache_task: ImageCacheTask, +cb: fn~()) -> Imag
     // but they are intended to be spread out in time. Ideally prefetch
     // should be done as early as possible and decode only once we
     // are sure that the image will be used.
-    image_cache_task.send(image_cache_task::Prefetch(copy *url));
-    image_cache_task.send(image_cache_task::Decode(copy *url));
+    image_cache_task.send(image_cache_task::Prefetch(copy url));
+    image_cache_task.send(image_cache_task::Decode(move url));
 
     holder
 }
@@ -73,8 +73,10 @@ impl ImageHolder {
         // If this is the first time we've called this function, load
         // the image and store it for the future
         if self.image.is_none() {
-            assert self.url.is_some();
-            let url = copy self.url.get();
+            let url = match copy self.url {
+                Some(move url) => url,
+                None => fail ~"expected to have a url"
+            };
 
             let response_port = Port();
             self.image_cache_task.send(image_cache_task::GetImage(copy url, response_port.chan()));
