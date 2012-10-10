@@ -25,8 +25,6 @@ trait RootLayout {
     fn bubble_widths_root(@self, ctx: &LayoutContext);
     fn assign_widths_root(@self, ctx: &LayoutContext);
     fn assign_height_root(@self, ctx: &LayoutContext);
-    fn accept_new_box_root(@self, ctx: &LayoutContext, @RenderBox);
-
     fn build_display_list_root(@self, a: &dl::DisplayListBuilder, b: &Rect<au>,
                                c: &Point2D<au>, d: &dl::DisplayList);
 }
@@ -57,13 +55,6 @@ impl FlowContext : RootLayout {
         assert self.starts_root_flow();
 
         self.assign_height_block(ctx);
-    }
-
-    fn accept_new_box_root(@self, _ctx: &LayoutContext, box: @RenderBox) {
-        assert self.starts_root_flow();
-        assert self.root().box.is_none();
-
-        self.root().box = Some(box);
     }
 
     fn build_display_list_root(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 

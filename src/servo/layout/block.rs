@@ -27,8 +27,6 @@ trait BlockLayout {
     fn bubble_widths_block(@self, ctx: &LayoutContext);
     fn assign_widths_block(@self, ctx: &LayoutContext);
     fn assign_height_block(@self, ctx: &LayoutContext);
-    fn accept_new_box_block(@self, ctx: &LayoutContext, @RenderBox);
-
     fn build_display_list_block(@self, a: &dl::DisplayListBuilder, b: &Rect<au>,
                                 c: &Point2D<au>, d: &dl::DisplayList);
 }
@@ -141,13 +139,6 @@ impl FlowContext : BlockLayout {
             box.d().position.size.height = cur_y;
             let (_used_top, _used_bot) = box.get_used_height();
         }
-    }
-
-    fn accept_new_box_block(@self, _ctx: &LayoutContext, box: @RenderBox) {
-        assert self.starts_block_flow();
-        assert self.block().box.is_none();
-
-        self.block().box = Some(box);
     }
 
     fn build_display_list_block(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 

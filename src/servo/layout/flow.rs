@@ -70,7 +70,6 @@ trait FlowContextMethods {
     fn bubble_widths(@self, &LayoutContext);
     fn assign_widths(@self, &LayoutContext);
     fn assign_height(@self, &LayoutContext);
-    fn accept_new_box(@self, &LayoutContext, @RenderBox);
     fn build_display_list_recurse(@self, &dl::DisplayListBuilder, dirty: &Rect<au>,
                                   offset: &Point2D<au>, &dl::DisplayList);
     pure fn foldl_boxes_for_node<B: Copy>(Node, +seed: B, cb: pure fn&(+a: B,@RenderBox) -> B) -> B;
@@ -193,15 +192,6 @@ impl FlowContext : FlowContextMethods {
             @InlineFlow(*) => self.assign_height_inline(ctx),
             @RootFlow(*)   => self.assign_height_root(ctx),
             _ => fail fmt!("Tried to assign_height of flow: %?", self)
-        }
-    }
-
-    fn accept_new_box(@self, ctx: &LayoutContext, box: @RenderBox) {
-        match self {
-            @BlockFlow(*)  => self.accept_new_box_block(ctx, box),
-            @InlineFlow(*) => self.accept_new_box_inline(ctx, box),
-            @RootFlow(*)   => self.accept_new_box_root(ctx, box),
-            _ => fail fmt!("Tried to accept_new_box of flow: %?", self)
         }
     }
 
