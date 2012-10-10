@@ -39,11 +39,8 @@ impl LayoutTreeBuilder {
 
     /** Creates necessary box(es) and flow context(s) for the current DOM node,
     and recurses on its children. */
-    fn construct_recursively(layout_ctx: &LayoutContext, cur_node: Node, 
-                             parent_ctx: @FlowContext, parent_box: Option<@RenderBox>) {
-
+    fn construct_recursively(layout_ctx: &LayoutContext, cur_node: Node, parent_ctx: @FlowContext) {
         let style = cur_node.style();
-        
         // DEBUG
         let n_str = fmt!("%?", cur_node.read(|n| copy n.kind ));
         debug!("Considering node: %?", n_str);
@@ -89,42 +86,28 @@ impl LayoutTreeBuilder {
             }
         };
 
-        // store reference to the flow context which contains any boxes
-        // that correspond to cur_node
+        // store reference to the flow context which contains any
+        // boxes that correspond to cur_node. These boxes may
+        // eventually be elided or split, but the mapping between
+        // nodes and FlowContexts should not change during layout.
         assert cur_node.has_aux();
         do cur_node.aux |data| { data.flow = Some(next_ctx) }
 
         // make box, add box to any context-specific list.
-        let mut new_box = self.make_box(layout_ctx, box_type, cur_node, parent_ctx);
+        let new_box = self.make_box(layout_ctx, box_type, cur_node, parent_ctx);
         debug!("Assign ^box to flow: %?", next_ctx.debug_str());
+        next_ctx.accept_new_box(layout_ctx, new_box);
 
-        match *next_ctx {
-            InlineFlow(*) => {
-                next_ctx.inline().boxes.push(new_box);
-
-                if (parent_box.is_some()) {
-                    let parent = parent_box.get();
-
-                    // connect the box to its parent box
-                    debug!("In inline flow f%?, set child b%? of parent b%?", 
-                           next_ctx.d().id, parent.d().id, new_box.d().id);
-                    RenderBoxTree.add_child(parent, new_box);
-                }
-            }
-            BlockFlow(*) => next_ctx.block().box = Some(new_box),
-            _ => {} // TODO: float lists, etc.
-        };
-
-    
+        // if this is a new flow, attach to parent flow.
         if !core::box::ptr_eq(next_ctx, parent_ctx) {
             debug!("Adding child flow f%? of f%?",
                    parent_ctx.d().id, next_ctx.d().id);
             FlowTree.add_child(parent_ctx, next_ctx);
         }
-        // recurse
-        // TODO: don't set parent box unless this is an inline flow?
+
+        // recurse on child nodes.
         do NodeTree.each_child(&cur_node) |child_node| {
-            self.construct_recursively(layout_ctx, *child_node, next_ctx, Some(new_box)); true
+            self.construct_recursively(layout_ctx, *child_node, next_ctx); true
         }
 
         // Fixup any irregularities, such as split inlines (CSS 2.1 Section 9.2.1.1)
@@ -176,7 +159,7 @@ impl LayoutTreeBuilder {
     called on root DOM element. */
     fn construct_trees(layout_ctx: &LayoutContext, root: Node) -> Result<@FlowContext, ()> {
         self.root_ctx = Some(self.make_ctx(Flow_Root));
-        self.construct_recursively(layout_ctx, root, self.root_ctx.get(), None);
+        self.construct_recursively(layout_ctx, root, self.root_ctx.get());
         return Ok(self.root_ctx.get())
     }
 

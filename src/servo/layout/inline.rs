@@ -191,6 +191,7 @@ trait InlineLayout {
     fn bubble_widths_inline(@self, ctx: &LayoutContext);
     fn assign_widths_inline(@self, ctx: &LayoutContext);
     fn assign_height_inline(@self, ctx: &LayoutContext);
+    fn accept_new_box_inline(@self, &LayoutContext, @RenderBox);
     fn build_display_list_inline(@self, a: &dl::DisplayListBuilder, b: &Rect<au>, c: &Point2D<au>, d: &dl::DisplayList);
 }
 
@@ -285,6 +286,13 @@ impl FlowContext : InlineLayout {
     fn assign_height_inline(@self, _ctx: &LayoutContext) {
         // Don't need to set box or ctx heights, since that is done
         // during inline flowing.
+    }
+
+    fn accept_new_box_inline(@self, _ctx: &LayoutContext, box: @RenderBox) {
+        assert self.starts_inline_flow();
+
+        self.inline().boxes.push(box);
+        // TODO: use the boxlistbuilder
     }
 
     fn build_display_list_inline(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
