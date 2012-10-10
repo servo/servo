@@ -106,6 +106,35 @@ fn FlowData(id: int) -> FlowData {
     }
 }
 
+// helper object for building the initial box list and making the
+// mapping between DOM nodes and boxes.
+struct BoxConsumer {
+    flow: @FlowContext,
+}
+
+fn BoxConsumer(flow: @FlowContext) -> BoxConsumer {
+    BoxConsumer {
+        flow: flow,
+    }
+}
+
+impl BoxConsumer {
+    pub fn accept_box(_ctx: &LayoutContext, box: @RenderBox) {
+        match self.flow {
+            @InlineFlow(*) => self.flow.inline().boxes.push(box),
+            @BlockFlow(*) => {
+                assert self.flow.block().box.is_none();
+                self.flow.block().box = Some(box);
+            },
+            @RootFlow(*) => {
+                assert self.flow.block().box.is_none();
+                self.flow.block().box = Some(box);
+            },
+            _ => { warn!("accept_box not implemented for flow %?", self.flow.d().id) }
+        }
+    }
+}
+
 impl FlowContext : FlowContextMethods {
     pure fn d(&self) -> &self/FlowData {
         match *self {

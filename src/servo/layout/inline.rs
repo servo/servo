@@ -8,7 +8,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::geometry::au;
-use layout::box::{RenderBox, RenderBoxTree, ImageBox, TextBox, GenericBox, UnscannedTextBox};
+use layout::box::{RenderBox, ImageBox, TextBox, GenericBox, UnscannedTextBox};
 use layout::context::LayoutContext;
 use layout::flow::{FlowContext, InlineFlow};
 use layout::text::TextBoxData;
@@ -181,7 +181,7 @@ fn InlineFlowData() -> InlineFlowData {
     InlineFlowData {
         boxes: DVec(),
         lines: DVec(),
-        elems: DVec()
+        elems: DVec(),
     }
 }
 

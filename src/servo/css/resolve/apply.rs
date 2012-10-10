@@ -6,7 +6,6 @@ use au = gfx::geometry;
 use css::styles::SpecifiedStyle;
 use dom::node::{Node, NodeTree};
 use dom::element::*;
-use layout::box::{RenderBox, RenderBoxTree};
 use layout::context::LayoutContext;
 use image::ImageHolder;
 use resource::image_cache_task::ImageCacheTask;

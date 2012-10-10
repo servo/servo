@@ -60,18 +60,13 @@ padding, backgrounds. It is analogous to a CSS nonreplaced content box.
 
 */
 
-
 /* A box's kind influences how its styles are interpreted during
    layout.  For example, replaced content such as images are resized
    differently than tables, text, or other content.
 
    It also holds data specific to different box types, such as text.
 */
-
-
 struct RenderBoxData {
-    /* references to children, parent inline flow boxes  */
-    tree : tree::Tree<@RenderBox>,
     /* originating DOM node */
     node : Node,
     /* reference to containing flow context, which this box
@@ -116,8 +111,6 @@ trait RenderBoxMethods {
 
 fn RenderBoxData(node: Node, ctx: @FlowContext, id: int) -> RenderBoxData {
     RenderBoxData {
-        /* will be set if box is parented */
-        tree : tree::empty(),
         node : node,
         mut ctx  : ctx,
         mut position : au::zero_rect(),
@@ -328,34 +321,6 @@ impl RenderBox : RenderBoxMethods {
     }
 }
 
-/**
- * The tree holding render box relations. These are only defined for
- * nested CSS boxes that are nested in an otherwise inline flow
- * context.
-*/
-pub enum RenderBoxTree { RenderBoxTree }
-
-impl RenderBoxTree : tree::ReadMethods<@RenderBox> {
-    fn each_child(node: @RenderBox, f: fn(box: @RenderBox) -> bool) {
-        tree::each_child(&self, &node, |box| f(*box) )
-    }
-
-    fn with_tree_fields<R>(b: &@RenderBox, f: fn(&tree::Tree<@RenderBox>) -> R) -> R {
-        f(&b.d().tree)
-    }
-}
-
-impl RenderBoxTree : tree::WriteMethods<@RenderBox> {
-    fn add_child(parent: @RenderBox, child: @RenderBox) {
-        assert !core::box::ptr_eq(parent, child);
-        tree::add_child(&self, parent, child)
-    }
-
-    fn with_tree_fields<R>(b: &@RenderBox, f: fn(&tree::Tree<@RenderBox>) -> R) -> R {
-        f(&b.d().tree)
-    }
-}
-
 impl RenderBox : BoxedDebugMethods {
     fn dump(@self) {
         self.dump_indent(0u);
@@ -370,10 +335,6 @@ impl RenderBox : BoxedDebugMethods {
 
         s += self.debug_str();
         debug!("%s", s);
-
-        for RenderBoxTree.each_child(self) |kid| {
-            kid.dump_indent(indent + 1u) 
-        }
     }
 
     fn debug_str(@self) -> ~str {
@@ -387,40 +348,3 @@ impl RenderBox : BoxedDebugMethods {
         fmt!("box b%?: %?", self.d().id, repr)
     }
 }
-
-#[cfg(test)]
-mod test {
-    use dom::element::{ElementData, HTMLDivElement, HTMLImageElement};
-    use dom::node::{Element, NodeScope, Node, NodeKind};
-    use dom::rcu::Scope;
-
-    /*
-    use sdl;
-    use sdl::video;
-
-    fn with_screen(f: fn(*sdl::surface)) {
-        let screen = video::set_video_mode(
-            320, 200, 32,
-            ~[video::hwsurface], ~[video::doublebuf]);
-        assert screen != ptr::null();
-
-        f(screen);
-
-        video::free_surface(screen);
-    }
-    */
-
-    fn flat_bounds(root: @RenderBox) -> ~[Rect<au>] {
-        let mut r = ~[];
-        for tree::each_child(&RenderBoxTree, &root) |c| {
-            push_all(&mut r, flat_bounds(*c));
-        }
-
-        push(&mut r, copy root.d().position);
-
-        return r;
-    }
-
-    // TODO: redo tests here, but probably is part of box_builder.rs
-}
-
