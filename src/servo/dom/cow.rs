@@ -1,28 +1,36 @@
-#[doc(str = "
+/*!
 
-Implements the copy-on-write DOM-sharing model.  This model allows for a single writer and any number of
-readers, but the writer must be able to control and manage the lifetimes of the reader(s).  For
-simplicity I will describe the implementation as though there were a single reader.
+Implements the copy-on-write DOM-sharing model.  This model allows for
+a single writer and any number of readers, but the writer must be able
+to control and manage the lifetimes of the reader(s).  For simplicity
+I will describe the implementation as though there were a single
+reader.
 
-The basic idea is that every object in the COW pool has both a reader view and a writer view.  The
-writer always sees the writer view, which contains the most up-to-date values.  The reader uses the
-reader view, which contains the values as of the point where the reader was forked.  When the
-writer joins the reader, the reader view will be synchronized with the writer view.
+The basic idea is that every object in the COW pool has both a reader
+view and a writer view.  The writer always sees the writer view, which
+contains the most up-to-date values.  The reader uses the reader view,
+which contains the values as of the point where the reader was forked.
+When the writer joins the reader, the reader view will be synchronized
+with the writer view.
 
-Internally, the way this works is using a copy-on-write scheme.  Each COW node maintains two
-pointers (`read_ptr` and `write_ptr`).  Assuming that readers are active, when a writer wants to
-modify a node, it first copies the reader's data into a new pointer.  Any writes that occur after
-that point (but before the reader is joined) will operate on this same copy.  When the reader is
-joined, any nodes which the writer modified will free the stale reader data and update the reader
-pointer to be the same as the writer pointer.
+Internally, the way this works is using a copy-on-write scheme.  Each
+COW node maintains two pointers (`read_ptr` and `write_ptr`).
+Assuming that readers are active, when a writer wants to modify a
+node, it first copies the reader's data into a new pointer.  Any
+writes that occur after that point (but before the reader is joined)
+will operate on this same copy.  When the reader is joined, any nodes
+which the writer modified will free the stale reader data and update
+the reader pointer to be the same as the writer pointer.
 
 # Using the COW APIs as a writer
 
-You must first create a `scope` object.  The scope object manages the memory and the COW
-operations.  COW'd objects of some sendable type `T` are not referenced directly but rather through
-a `handle<T>`.  To create a new COW object, you use `scope.handle(t)` where `t` is some initial
-value of type `T`.  To write to an COW object, use `scope.write()` and to read from it use
-`scope.read()`. Be sure not to use the various `ReaderMethods`.
+You must first create a `scope` object.  The scope object manages the
+memory and the COW operations.  COW'd objects of some sendable type
+`T` are not referenced directly but rather through a `handle<T>`.  To
+create a new COW object, you use `scope.handle(t)` where `t` is some
+initial value of type `T`.  To write to an COW object, use
+`scope.write()` and to read from it use `scope.read()`. Be sure not to
+use the various `ReaderMethods`.
 
 Handles can be freely sent between tasks but the COW scope cannot.  It must stay with the writer
 task.  You are responsible for correctly invoking `reader_forked()` and `reader_joined()` to keep
@@ -31,23 +39,25 @@ or worse.
 
 # Using the COW APIs as a reader
 
-Import the `ReaderMethods` impl.  When you receive a handle, you can invoke `h.read { |v| ... }`
-and so forth.  There is also a piece of auxiliary data that can be optionally associated with each
-handle.
+Import the `ReaderMethods` impl.  When you receive a handle, you can
+invoke `h.read { |v| ... }` and so forth.  There is also a piece of
+auxiliary data that can be optionally associated with each handle.
 
-Note: if the type `T` contains mutable fields, then there is nothing to stop the reader from
-mutating those fields in the `read()` method.  Do not do this.  It will lead to race conditions.
+Note: if the type `T` contains mutable fields, then there is nothing
+to stop the reader from mutating those fields in the `read()` method.
+Do not do this.  It will lead to race conditions.
 
-FIXME: We can enforce that this is not done by ensuring that the type `T` contains no mutable
-fields.
+FIXME: We can enforce that this is not done by ensuring that the type
+`T` contains no mutable fields.
 
 # Auxiliary data
 
-Readers can associate a piece of auxiliary data of type `A` along with main nodes.  This is
-convenient but dangerous: it is the reader's job to ensure that this data remains live independent
-of the COW nodes themselves.
+Readers can associate a piece of auxiliary data of type `A` along with
+main nodes.  This is convenient but dangerous: it is the reader's job
+to ensure that this data remains live independent of the COW nodes
+themselves.
 
-")];
+*/
 
 use core::libc::types::os::arch::c95::size_t;
 use ptr::Ptr;
@@ -98,25 +108,25 @@ impl<T:Send,A> Handle<T,A> {
 }
 
 impl<T:Send,A> Handle<T,A> {
-    #[doc(str = "Access the reader's view of the handle's data.")]
+    /// Access the reader's view of the handle's data
     fn read<U>(f: fn(&T) -> U) -> U unsafe {
         f(&*self.read_ptr())
     }
 
-    #[doc(str = "True if auxiliary data is associated with this handle.")]
+    /// True if auxiliary data is associated with this handle
     fn has_aux() -> bool unsafe {
         self.read_aux().is_not_null()
     }
 
-    #[doc(str = "set the auxiliary data associated with this handle.
+    /** Set the auxiliary data associated with this handle.
 
     **Warning:** the reader is responsible for keeping this data live!
-    ")]
+    */
     fn set_aux(p: @A) unsafe {
         (**self).read_aux = ptr::to_unsafe_ptr(&*p);
     }
 
-    #[doc(str = "access the auxiliary data associated with this handle.")]
+    /// Access the auxiliary data associated with this handle
     fn aux<U>(f: fn(&A) -> U) -> U unsafe {
         assert self.has_aux();
         f(&*self.read_aux())
