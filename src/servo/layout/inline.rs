@@ -63,46 +63,42 @@ impl TextRunScanner {
     fn scan_for_runs(ctx: &LayoutContext) {
         // if reused, must be reset.
         assert !self.in_clump;
-        let in_boxes = self.flow.inline().boxes;
-        assert in_boxes.len() > 0;
+        assert self.flow.inline().boxes.len() > 0;
 
-        debug!("scanning %u boxes for text runs...", in_boxes.len());
+        do self.flow.inline().boxes.swap |in_boxes| {
+            debug!("scanning %u boxes for text runs...", in_boxes.len());
+            
+            let temp_boxes = DVec();
+            let mut prev_box: @RenderBox = in_boxes[0];
 
-        let temp_boxes = DVec();
-        let mut prev_box: @RenderBox = in_boxes[0];
+            for uint::range(0, in_boxes.len()) |i| {
+                debug!("considering box: %?", in_boxes[i].debug_str());
 
-        for uint::range(0, in_boxes.len()) |i| {
-            debug!("considering box: %?", in_boxes[i].debug_str());
+                let can_coalesce_with_prev = i > 0 && boxes_can_be_coalesced(prev_box, in_boxes[i]);
 
-            let can_coalesce_with_prev = i > 0 && boxes_can_be_coalesced(prev_box, in_boxes[i]);
+                match (self.in_clump, can_coalesce_with_prev) {
+                    // start a new clump
+                    (false, _)    => { self.reset_clump_to_index(i); },
+                    // extend clump
+                    (true, true)  => { self.clump_end = i; },
+                    // boundary detected; flush and start new clump
+                    (true, false) => {
+                        self.flush_clump_to_list(ctx, in_boxes, &temp_boxes);
+                        self.reset_clump_to_index(i);
+                    }
+                };
+                
+                prev_box = in_boxes[i];
+            }
+            // handle remaining clumps
+            if self.in_clump {
+                self.flush_clump_to_list(ctx, in_boxes, &temp_boxes);
+            }
 
-            match (self.in_clump, can_coalesce_with_prev) {
-                // start a new clump
-                (false, _)    => { self.reset_clump_to_index(i); },
-                // extend clump
-                (true, true)  => { self.clump_end = i; },
-                // boundary detected; flush and start new clump
-                (true, false) => {
-                    self.flush_clump_to_list(ctx, &temp_boxes);
-                    self.reset_clump_to_index(i);
-                }
-            };
-
-            prev_box = in_boxes[i];
-        }
-
-        // handle remaining clumps
-        if self.in_clump {
-            self.flush_clump_to_list(ctx, &temp_boxes);
-        }
-
-        debug!("swapping out boxes.");
-        // swap out old and new box list of flow
-        self.flow.inline().boxes.set(dvec::unwrap(temp_boxes));
-
-        debug!("new inline flow boxes:");
-        do self.flow.inline().boxes.each |box| {
-            debug!("%s", box.debug_str()); true
+            debug!("swapping out boxes.");
+            // swap out old and new box list of flow, by supplying
+            // temp boxes as return value to boxes.swap |...|
+            dvec::unwrap(temp_boxes)
         }
 
         // helper functions
@@ -125,12 +121,12 @@ impl TextRunScanner {
         self.in_clump = true;
     }
 
-    fn flush_clump_to_list(ctx: &LayoutContext, temp_boxes: &DVec<@RenderBox>) {
+    fn flush_clump_to_list(ctx: &LayoutContext, 
+                           in_boxes: &[@RenderBox], temp_boxes: &DVec<@RenderBox>) {
         assert self.in_clump;
 
         debug!("flushing when start=%?,end=%?", self.clump_start, self.clump_end);
 
-        let in_boxes = self.flow.inline().boxes;
         let is_singleton = (self.clump_start == self.clump_end);
         let is_text_clump = match in_boxes[self.clump_start] {
             @UnscannedTextBox(*) => true,
@@ -154,11 +150,11 @@ impl TextRunScanner {
                 let mut run_str : ~str = ~"";
                 // TODO: is using ropes to construct the merged text any faster?
                 do uint::range(self.clump_start, self.clump_end+1) |i| {
-                    run_str = str::append(run_str, in_boxes[i].raw_text()); true
+                    run_str = str::append(copy run_str, in_boxes[i].raw_text()); true
                 }
                 // TODO: use actual font for corresponding DOM node to create text run.
-                let run = TextRun(&*ctx.font_cache.get_test_font(), move run_str);
-                let box_guts = TextBoxData(@run, 0, run.text.len());
+                let run = @TextRun(&*ctx.font_cache.get_test_font(), move run_str);
+                let box_guts = TextBoxData(run, 0, run.text.len());
                 debug!("pushing when start=%?,end=%?", self.clump_start, self.clump_end);
                 temp_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
             }
