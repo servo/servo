@@ -10,6 +10,7 @@ struct ElementData {
     attrs: DVec<~Attr>,
 }
 
+#[allow(non_implicitly_copyable_typarams)]
 impl ElementData {
     fn get_attr(name: &str) -> Option<~str> {
         let found = do self.attrs.find |attr| { name == attr.name };

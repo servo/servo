@@ -13,6 +13,7 @@ use util::color::{Color, rgb};
 use util::color::css_colors::{white, black};
 use layout::context::LayoutContext;
 
+#[allow(non_implicitly_copyable_typarams)]
 type SpecifiedStyle = {mut background_color : CSSValue<CSSBackgroundColor>,
                        mut background_image : CSSValue<CSSBackgroundImage>,
                         mut display_type : CSSValue<CSSDisplay>,
@@ -72,6 +73,7 @@ impl NodeKind : DefaultStyleMethods {
  * style is computed so that it can be used to short-circuit selector matching to avoid computing
  * style for children of display:none objects.
  */
+#[allow(non_implicitly_copyable_typarams)]
 fn empty_style_for_node_kind(kind: &NodeKind) -> SpecifiedStyle {
     let display_type = kind.default_display_type();
 

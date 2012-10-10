@@ -40,6 +40,8 @@ pub fn TimerData(argc: libc::c_uint, argv: *jsval) -> TimerData unsafe {
     data
 }
 
+// FIXME: delayed_send shouldn't require Copy
+#[allow(non_implicitly_copyable_typarams)]
 impl Window {
     fn alert(s: &str) {
         // Right now, just print to the console

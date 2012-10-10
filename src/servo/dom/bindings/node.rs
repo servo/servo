@@ -41,6 +41,7 @@ pub fn init(compartment: &bare_compartment) {
     });
 }
 
+#[allow(non_implicitly_copyable_typarams)]
 pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
     do scope.write(&node) |nd| {
         match nd.kind {
@@ -77,6 +78,7 @@ unsafe fn unwrap(obj: *JSObject) -> *rust_box<NodeBundle> {
     cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val))
 }
 
+#[allow(non_implicitly_copyable_typarams)]
 extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBool {
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
@@ -100,6 +102,7 @@ extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBool
     return 1;
 }
 
+#[allow(non_implicitly_copyable_typarams)]
 extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBool {
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));

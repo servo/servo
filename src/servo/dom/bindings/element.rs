@@ -64,6 +64,7 @@ pub fn init(compartment: &bare_compartment) {
     });
 }
 
+#[allow(non_implicitly_copyable_typarams)]
 extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
     -> JSBool unsafe {
     let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
@@ -97,6 +98,7 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
     return 1;
 }
 
+#[allow(non_implicitly_copyable_typarams)]
 extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
     -> JSBool unsafe {
     let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
@@ -122,6 +124,7 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
     return 1;
 }
 
+#[allow(non_implicitly_copyable_typarams)]
 extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
     -> JSBool {
     unsafe {
@@ -147,6 +150,7 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
     return 1;
 }
 
+#[allow(non_implicitly_copyable_typarams)]
 pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
     let proto = scope.write(&node, |nd| {
         match nd.kind {
