@@ -7,7 +7,7 @@ use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_Repor
                             JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate};
 use js::jsapi::bindgen::*;
 use js::glue::bindgen::*;
-use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub};
+use js::jsval::{INT_TO_JSVAL, JSVAL_TO_PRIVATE};
 
 use dom::node::{Node, NodeScope, Text, Doctype, Comment, Element};
 use utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval, str};
@@ -75,7 +75,7 @@ fn NodeBundle(n: Node, s: NodeScope) -> NodeBundle {
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<NodeBundle> {
     let val = JS_GetReservedSlot(obj, 0);
-    cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val))
+    cast::reinterpret_cast(&JSVAL_TO_PRIVATE(val))
 }
 
 #[allow(non_implicitly_copyable_typarams)]
@@ -126,6 +126,19 @@ extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBoo
     return 1;
 }
 
+impl NodeBundle {
+    fn getNodeType() -> i32 {
+        do self.node.read |nd| {
+            match nd.kind {
+              ~Element(*) => 1,
+              ~Text(*)    => 3,
+              ~Comment(*) => 8,
+              ~Doctype(*) => 10
+            }
+        }
+    }
+}
+
 extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBool {
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
@@ -134,15 +147,8 @@ extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut jsval) -> JSBool {
         }
 
         let bundle = unwrap(obj);
-        let nodeType = do (*bundle).payload.node.read |nd| {
-            match nd.kind {
-              ~Element(*) => 1,
-              ~Text(*)    => 3,
-              ~Comment(*) => 8,
-              ~Doctype(*) => 10
-            }
-        };
-        *vp = RUST_INT_TO_JSVAL(nodeType);
+        let nodeType = (*bundle).payload.getNodeType();
+        *vp = INT_TO_JSVAL(nodeType);
     }
     return 1;
 }
