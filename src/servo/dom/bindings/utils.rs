@@ -10,6 +10,7 @@ use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB
                   RESOLVE_STUB};
 use js::glue::bindgen::*;
 use ptr::null;
+use content::content_task::{Content, task_from_context};
 
 enum DOMString {
     str(~str),
@@ -23,8 +24,6 @@ unsafe fn squirrel_away<T>(x: @T) -> *rust_box<T> {
     cast::forget(x);
     y
 }
-
-type rust_unique<T> = {payload: T};
 
 unsafe fn squirrel_away_unique<T>(x: ~T) -> *rust_box<T> {
     let y: *rust_box<T> = cast::reinterpret_cast(&x);
@@ -70,11 +69,13 @@ unsafe fn domstring_to_jsval(cx: *JSContext, str: &DOMString) -> jsval {
     }
 }
 
-pub fn get_compartment(cx: *JSContext) -> *bare_compartment {
+pub fn get_compartment(cx: *JSContext) -> compartment {
     unsafe {
-        let privptr: *libc::c_void = JS_GetContextPrivate(cx);
-        let compartment: *bare_compartment = cast::reinterpret_cast(&privptr);
-        assert cx == (*compartment).cx.ptr;
+        let content = task_from_context(cx);
+        let compartment = option::expect(&(*content).compartment,
+                                         ~"Should always have compartment when \
+                                           executing JS code");
+        assert cx == compartment.cx.ptr;
         compartment
     }
 }

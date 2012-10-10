@@ -93,8 +93,8 @@ struct Content {
 fn Content(layout_task: LayoutTask, 
            from_master: Port<ControlMsg>,
            resource_task: ResourceTask,
-           img_cache_task: ImageCacheTask) -> Content {
-    
+           img_cache_task: ImageCacheTask) -> @Content {
+
     let jsrt = jsrt();
     let cx = jsrt.cx();
     let event_port = Port();
@@ -107,7 +107,7 @@ fn Content(layout_task: LayoutTask,
           Err(()) => None
     };
 
-    let content = Content {
+    let content = @Content {
         layout_task : layout_task,
         image_cache_task : img_cache_task,
         from_master : from_master,
@@ -125,12 +125,12 @@ fn Content(layout_task: LayoutTask,
         compartment : compartment
     };
 
-    cx.set_cx_private(ptr::to_unsafe_ptr(&content) as *());
+    cx.set_cx_private(ptr::to_unsafe_ptr(&*content) as *());
 
     content
 }
 
-fn task_from_context(cx: *JSContext) -> &Content unsafe {
+fn task_from_context(cx: *JSContext) -> *Content unsafe {
     cast::reinterpret_cast(&JS_GetContextPrivate(cx))
 }
 

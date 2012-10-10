@@ -80,8 +80,8 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
             ~Element(ed) => {
                 match ed.kind {
                     ~HTMLImageElement(*) => {
-                        let content : &Content = task_from_context(cx);
-                        match content.query_layout(layout_task::ContentBox(node)) {
+                        let content = task_from_context(cx);
+                        match (*content).query_layout(layout_task::ContentBox(node)) {
                             Ok(rect) => rect.width,
                             Err(()) => 0,
                         }
@@ -171,8 +171,8 @@ pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
     //TODO error checking
     let compartment = utils::get_compartment(cx);
     let obj = result::unwrap(
-        (*compartment).new_object_with_proto(~"GenericElementInstance", proto,
-                                             (*compartment).global_obj.ptr));
+        compartment.new_object_with_proto(~"GenericElementInstance", proto,
+                                          compartment.global_obj.ptr));
  
     unsafe {
         let raw_ptr: *libc::c_void =

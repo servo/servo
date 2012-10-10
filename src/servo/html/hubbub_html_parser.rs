@@ -304,7 +304,7 @@ pub fn parse_html(scope: NodeScope,
             // A little function for holding this lint attr
             #[allow(non_implicitly_copyable_typarams)]
             fn complete_script(scope: &NodeScope, script: hubbub::Node, url: &Url, js_chan: &comm::Chan<JSMessage>) unsafe {
-                do scope.read(reinterpret_cast(&script)) |node_contents| {
+                do scope.read(&reinterpret_cast(&script)) |node_contents| {
                     match *node_contents.kind {
                         Element(element) if element.tag_name == ~"script" => {
                             match element.get_attr(~"src") {
