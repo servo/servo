@@ -134,6 +134,7 @@ fn task_from_context(cx: *JSContext) -> &Content unsafe {
     cast::reinterpret_cast(&JS_GetContextPrivate(cx))
 }
 
+#[allow(non_implicitly_copyable_typarams)]
 impl Content {
 
     fn start() {
@@ -202,7 +203,7 @@ impl Content {
             //TODO: support extra args. requires passing a *jsval argv
             JS_CallFunctionValue(self.cx.ptr, thisValue, timerData.funval,
                                  0, null(), ptr::to_unsafe_ptr(&rval));
-            self.relayout(self.document.get(), &option::get(&self.doc_url));
+            self.relayout(self.document.get(), &self.doc_url.get());
             return true;
           }
 

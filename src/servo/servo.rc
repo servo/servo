@@ -39,7 +39,6 @@ pub mod dom {
     pub mod window;
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 pub mod content {
     pub mod content_task;
 }
