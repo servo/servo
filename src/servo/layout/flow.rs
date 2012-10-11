@@ -139,8 +139,8 @@ impl BoxConsumer {
         match self.flow {
             @InlineFlow(*) => {
                 if box.requires_inline_spacers() {
-                    do box.create_inline_spacer_for_side(ctx, LogicalBefore).iter |b: &@RenderBox| {
-                        self.flow.inline().boxes.push(*b);
+                    do box.create_inline_spacer_for_side(ctx, LogicalBefore).iter |spacer: &@RenderBox| {
+                        self.flow.inline().boxes.push(*spacer);
                     }
                 }
             },
@@ -160,29 +160,31 @@ impl BoxConsumer {
 
         match self.flow {
             @InlineFlow(*) => {
-                let pre_length = self.flow.inline().boxes.len() - entry.start_idx;
-                match (pre_length, box.requires_inline_spacers()) {
+                let span_length = self.flow.inline().boxes.len() - entry.start_idx + 1;
+                match (span_length, box.requires_inline_spacers()) {
                     // leaf box
-                    (0, _) => { self.flow.inline().boxes.push(box); },
+                    (1, _) => { self.flow.inline().boxes.push(box); return; },
                     // if this non-leaf box generates extra horizontal
                     // spacing, add a SpacerBox for it.
                     (_, true) => {
-                        do box.create_inline_spacer_for_side(ctx, LogicalAfter).iter |b: &@RenderBox| {
-                            self.flow.inline().boxes.push(*b);
+                        do box.create_inline_spacer_for_side(ctx, LogicalAfter).iter |spacer: &@RenderBox| {
+                            self.flow.inline().boxes.push(*spacer);
                         }
                     },
                     // non-leaf with no spacer; do nothing
                     (_, false) => { }
                 }
 
-                let post_length = self.flow.inline().boxes.len() - entry.start_idx;
+                // only create NodeRanges for non-leaf nodes.
+                let final_span_length = self.flow.inline().boxes.len() - entry.start_idx + 1;
+                assert final_span_length > 1;
                 let mapping = { node: copy box.d().node, 
                                span: { 
                                    start: entry.start_idx as u8, 
-                                   len: post_length as u8
+                                   len: final_span_length as u8
                                }
                               };
-                debug!("BoxConsumer: adding element range %?", mapping.span);
+                debug!("BoxConsumer: adding element range=%?", mapping.span);
                 self.flow.inline().elems.push(mapping);
             },
             @BlockFlow(*) => {
