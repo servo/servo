@@ -1,6 +1,3 @@
-export OSMain;
-export Msg, BeginDrawing, Draw, AddKeyHandler, Exit;
-
 use mod azure::azure_hl;
 use azure::azure_hl::DrawTarget;
 use azure::cairo;
@@ -15,10 +12,9 @@ use ShareGlContext = sharegl::platform::Context;
 use std::cmp::FuzzyEq;
 use task::TaskBuilder;
 use vec::push;
-
 use pipes::Chan;
 
-type OSMain = comm::Chan<Msg>;
+pub type OSMain = comm::Chan<Msg>;
 
 // FIXME: Move me over to opts.rs.
 enum Mode {
