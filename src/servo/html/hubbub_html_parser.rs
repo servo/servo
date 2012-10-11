@@ -55,7 +55,7 @@ fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Por
         match from_parent.recv() {
           CSSTaskNewFile(url) => {
             let result_port = comm::Port();
-            let result_chan = comm::Chan(result_port);
+            let result_chan = comm::Chan(&result_port);
             // TODO: change copy to move once we have match move
             let url = copy url;
             task::spawn(|| {
@@ -86,7 +86,7 @@ fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port
         match from_parent.recv() {
           JSTaskNewFile(url) => {
             let result_port = comm::Port();
-            let result_chan = comm::Chan(result_port);
+            let result_chan = comm::Chan(&result_port);
             // TODO: change copy to move once we have match move
             let url = copy url;
             do task::spawn || {
