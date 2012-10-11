@@ -1,4 +1,4 @@
-#[doc = "Helper functions to parse values of specific attributes."]
+//! Helper functions to parse values of specific attributes
 
 use css::values::*;
 use str::{pop_char, from_chars};

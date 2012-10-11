@@ -1,4 +1,6 @@
-#[doc = "A collection of functions that are useful for both css and html parsing."]
+/*!
+A collection of functions that are useful for both css and html parsing
+*/
 
 use option::is_none;
 use str::from_bytes;

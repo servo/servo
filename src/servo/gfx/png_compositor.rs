@@ -1,9 +1,9 @@
-#[doc = "
+/*!
 A graphics compositor that renders to PNG format buffers
 
 Each time the renderer renders a frame the compositor will output a
 `~[u8]` containing the frame in PNG format.
-"];
+*/
 
 use libc::{c_int, c_uint, c_void, c_uchar};
 use azure_bg = azure::bindgen;

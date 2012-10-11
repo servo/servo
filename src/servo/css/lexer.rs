@@ -1,4 +1,4 @@
-#[doc = "Code to lex and tokenize css files."]
+//! Code to lex and tokenize css files
 
 use option::is_none;
 use str::from_bytes;

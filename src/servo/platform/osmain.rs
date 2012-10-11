@@ -161,10 +161,10 @@ fn mainloop(+mode: Mode, po: comm::Port<Msg>) {
     }
 }
 
-#[doc = "
+/**
 Implementation to allow the osmain channel to be used as a graphics
 compositor for the renderer
-"]
+*/
 impl OSMain : Compositor {
     fn begin_drawing(+next_dt: pipes::Chan<DrawTarget>) {
         self.send(BeginDrawing(next_dt))
@@ -226,7 +226,7 @@ fn Surface() -> Surface {
     Surface { cairo_surface: cairo_surface, draw_target: draw_target, have: true }
 }
 
-#[doc = "A function for spawning into the platform's main thread"]
+/// A function for spawning into the platform's main thread
 fn on_osmain<T: Send>(+f: fn~(+po: comm::Port<T>)) -> comm::Chan<T> {
     task::task().sched_mode(task::PlatformThread).spawn_listener(f)
 }
