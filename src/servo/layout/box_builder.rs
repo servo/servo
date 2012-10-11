@@ -159,6 +159,13 @@ impl LayoutTreeBuilder {
                 ~Element(e) => match e.kind {
                     ~HTMLHeadElement(*) => DisplayNone,
                     ~HTMLScriptElement(*) => DisplayNone,
+                    ~HTMLParagraphElement(*) => DisplayBlock,
+                    ~HTMLDivElement(*) => DisplayBlock,
+                    ~HTMLBodyElement(*) => DisplayBlock,
+                    ~HTMLHeadingElement(*) => DisplayBlock,
+                    ~HTMLHtmlElement(*) => DisplayBlock,
+                    ~HTMLUListElement(*) => DisplayBlock,
+                    ~HTMLOListElement(*) => DisplayBlock,
                     _ => resolved
                 }
             }

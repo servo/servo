@@ -358,19 +358,19 @@ impl FlowContext : BoxedDebugMethods {
         let repr = match *self {
             InlineFlow(*) => {
                 let mut s = self.inline().boxes.foldl(~"InlineFlow(children=", |s, box| {
-                    fmt!("%s %?", *s, box.d().id)
+                    fmt!("%s b%d", *s, box.d().id)
                 });
                 s += ~")"; s
             },
             BlockFlow(*) => {
                 match self.block().box {
-                    Some(box) => fmt!("BlockFlow(box=b%?)", box.d().id),
+                    Some(box) => fmt!("BlockFlow(box=b%d)", box.d().id),
                     None => ~"BlockFlow",
                 }
             },
             RootFlow(*) => {
                 match self.root().box {
-                    Some(box) => fmt!("RootFlo(box=b%?)", box.d().id),
+                    Some(box) => fmt!("RootFlo(box=b%d)", box.d().id),
                     None => ~"RootFlow",
                 }
             },
