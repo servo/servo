@@ -379,6 +379,6 @@ impl FlowContext : BoxedDebugMethods {
             _ => ~"(Unknown flow)"
         };
             
-        fmt!("c%? %?", self.d().id, repr)
+        fmt!("f%? %?", self.d().id, repr)
     }
 }

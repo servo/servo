@@ -91,14 +91,14 @@ impl LayoutTreeBuilder {
 
         // if this is a new flow, attach to parent flow and make a new BuilderContext.
         if !core::box::ptr_eq(next_flow, parent_ctx.flow) {
-            debug!("using parent builder context");
-            debug!("Adding child flow f%? of f%?",
+            debug!("LayoutTreeBuilder: using parent builder context");
+            debug!("LayoutTreeBuilder: Adding child flow f%? of f%?",
                    parent_ctx.flow.d().id, next_flow.d().id);
             FlowTree.add_child(parent_ctx.flow, next_flow);
 
             builder_ctx = { flow: next_flow, consumer: BoxConsumer(next_flow) };
         } else {
-            debug!("creating fresh  builder context");
+            debug!("LayoutTreeBuilder: creating fresh builder context");
             builder_ctx = copy *parent_ctx;
         }
 
@@ -110,7 +110,7 @@ impl LayoutTreeBuilder {
         do cur_node.aux |data| { data.flow = Some(builder_ctx.flow) }
 
         let new_box = self.make_box(layout_ctx, box_type, cur_node, builder_ctx.flow);
-        debug!("Assign ^box to flow: %?", builder_ctx.flow.debug_str());
+        debug!("LayoutTreeBuilder: Assign ^box to flow f%d", builder_ctx.flow.d().id);
         builder_ctx.consumer.push_box(layout_ctx, new_box);
 
         // recurse on child nodes.
@@ -193,7 +193,7 @@ impl LayoutTreeBuilder {
             Flow_Root        => @RootFlow(data, RootFlowData()),
             Flow_Table       => @TableFlow(data)
         };
-        debug!("Created context: %s", ret.debug_str());
+        debug!("LayoutTreeBuilder: created flow: %s", ret.debug_str());
         ret
     }
 
@@ -207,7 +207,7 @@ impl LayoutTreeBuilder {
             RenderBox_Text    => self.make_text_box(layout_ctx, node, ctx),
             RenderBox_Image   => self.make_image_box(layout_ctx, node, ctx),
         };
-        debug!("Created box: %s", ret.debug_str());
+        debug!("LayoutTreeBuilder: created box: %s", ret.debug_str());
         ret
     }
 

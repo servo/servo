@@ -26,8 +26,6 @@ impl TextRun {
         assert offset < self.text.len();
         assert offset + length <= self.text.len();
 
-        debug!("enter min_width_for_range(o=%?, l=%?)", offset, length);
-
         let mut max_piece_width = au(0);
         // TODO: use a real font reference
         let font = ctx.font_cache.get_test_font();
@@ -38,7 +36,6 @@ impl TextRun {
             }
         };
 
-        debug!("exit min_width_for_range(o=%?, l=%?)", offset, length);
         return max_piece_width;
     }
 
@@ -77,8 +74,6 @@ impl TextRun {
         assert length > 0;
         assert offset < self.text.len();
         assert offset + length <= self.text.len();
-
-        debug!("enter iter_indivisible_pieces_for_range(o=%?, l=%?)", offset, length);
 
         //TODO: need a more sophisticated model of words and possible breaks
         let text = str::view(self.text, offset, length);
@@ -122,7 +117,6 @@ impl TextRun {
                 }
             }
         }
-        debug!("exit iter_indivisible_pieces_for_range(o=%?, l=%?)", offset, length);
     }
 }
  

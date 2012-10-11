@@ -222,18 +222,14 @@ impl FlowContext : InlineLayout {
     fn bubble_widths_inline(@self, ctx: &LayoutContext) {
         assert self.starts_inline_flow();
 
-        debug!("box count: %u", self.inline().boxes.len());
-
         let scanner = TextRunScanner(self);
         scanner.scan_for_runs(ctx);
 
         let mut min_width = au(0);
         let mut pref_width = au(0);
 
-        debug!("/box count: %u", self.inline().boxes.len());
-
         for self.inline().boxes.each |box| {
-            debug!("measuring box: %s", box.debug_str());
+            debug!("FlowContext[%d]: measuring %s", self.d().id, box.debug_str());
             min_width = au::max(min_width, box.get_min_width(ctx));
             pref_width = au::max(pref_width, box.get_pref_width(ctx));
         }
@@ -315,11 +311,12 @@ impl FlowContext : InlineLayout {
         assert self.starts_inline_flow();
 
         // TODO: if the CSS box introducing this inline context is *not* anonymous,
-        // we need to draw it too, in a way similar to BlowFlowContext
+        // we need to draw it too, in a way similar to BlockFlowContext
 
         // TODO: once we form line boxes and have their cached bounds, we can be 
         // smarter and not recurse on a line if nothing in it can intersect dirty
-        debug!("building display list for %u inline boxes", self.inline().boxes.len());
+        debug!("FlowContext[%d]: building display list for %u inline boxes",
+               self.d().id, self.inline().boxes.len());
         for self.inline().boxes.each |box| {
             box.build_display_list(builder, dirty, offset, list)
         }
