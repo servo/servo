@@ -11,7 +11,7 @@ use stb_image = stb_image::image;
 
 pub type Image = stb_image::Image;
 
-pub fn Image(width: uint, height: uint, depth: uint, +data: ~[u8]) -> Image {
+pub fn Image(width: uint, height: uint, depth: uint, data: ~[u8]) -> Image {
     stb_image::new_image(width, height, depth, data)
 }
 

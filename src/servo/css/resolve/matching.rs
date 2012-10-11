@@ -225,7 +225,7 @@ mod test {
     use dvec::DVec;
 
     #[allow(non_implicitly_copyable_typarams)]
-    fn new_node_from_attr(scope: NodeScope, +name: ~str, +val: ~str) -> Node {
+    fn new_node_from_attr(scope: &NodeScope, name: ~str, val: ~str) -> Node {
         let elmt = ElementData(~"div", ~HTMLDivElement);
         let attr = ~Attr(name, val);
         elmt.attrs.push(attr);
@@ -235,7 +235,7 @@ mod test {
     #[test]
     fn test_match_pipe1() {
         let scope = NodeScope();
-        let node = new_node_from_attr(scope, ~"lang", ~"en-us");
+        let node = new_node_from_attr(&scope, ~"lang", ~"en-us");
 
         let sel = Element(~"*", ~[StartsWith(~"lang", ~"en")]);
 
@@ -245,7 +245,7 @@ mod test {
     #[test]
     fn test_match_pipe2() {
         let scope = NodeScope();
-        let node = new_node_from_attr(scope, ~"lang", ~"en");
+        let node = new_node_from_attr(&scope, ~"lang", ~"en");
 
         let sel = Element(~"*", ~[StartsWith(~"lang", ~"en")]);
 
@@ -255,7 +255,7 @@ mod test {
     #[test] 
     fn test_not_match_pipe() {
         let scope = NodeScope();
-        let node = new_node_from_attr(scope, ~"lang", ~"english");
+        let node = new_node_from_attr(&scope, ~"lang", ~"english");
 
         let sel = Element(~"*", ~[StartsWith(~"lang", ~"en")]);
 
@@ -265,7 +265,7 @@ mod test {
     #[test]
     fn test_match_includes() {
         let scope = NodeScope();
-        let node = new_node_from_attr(scope, ~"mad", ~"hatter cobler cooper");
+        let node = new_node_from_attr(&scope, ~"mad", ~"hatter cobler cooper");
 
         let sel = Element(~"div", ~[Includes(~"mad", ~"hatter")]);
 
@@ -275,7 +275,7 @@ mod test {
     #[test]
     fn test_match_exists() {
         let scope = NodeScope();
-        let node = new_node_from_attr(scope, ~"mad", ~"hatter cobler cooper");
+        let node = new_node_from_attr(&scope, ~"mad", ~"hatter cobler cooper");
 
         let sel1 = Element(~"div", ~[Exists(~"mad")]);
         let sel2 = Element(~"div", ~[Exists(~"hatter")]);
@@ -287,8 +287,8 @@ mod test {
     #[test]
     fn test_match_exact() {
         let scope = NodeScope();
-        let node1 = new_node_from_attr(scope, ~"mad", ~"hatter cobler cooper");
-        let node2 = new_node_from_attr(scope, ~"mad", ~"hatter");
+        let node1 = new_node_from_attr(&scope, ~"mad", ~"hatter cobler cooper");
+        let node2 = new_node_from_attr(&scope, ~"mad", ~"hatter");
 
         let sel = Element(~"div", ~[Exact(~"mad", ~"hatter")]);
 
@@ -300,12 +300,12 @@ mod test {
     fn match_tree() {
         let scope = NodeScope();
 
-        let root = new_node_from_attr(scope, ~"class", ~"blue");
-        let child1 = new_node_from_attr(scope, ~"id", ~"green");
-        let child2 = new_node_from_attr(scope, ~"flag", ~"black");
-        let gchild = new_node_from_attr(scope, ~"flag", ~"grey");
-        let ggchild = new_node_from_attr(scope, ~"flag", ~"white");
-        let gggchild = new_node_from_attr(scope, ~"flag", ~"purple");
+        let root = new_node_from_attr(&scope, ~"class", ~"blue");
+        let child1 = new_node_from_attr(&scope, ~"id", ~"green");
+        let child2 = new_node_from_attr(&scope, ~"flag", ~"black");
+        let gchild = new_node_from_attr(&scope, ~"flag", ~"grey");
+        let ggchild = new_node_from_attr(&scope, ~"flag", ~"white");
+        let gggchild = new_node_from_attr(&scope, ~"flag", ~"purple");
 
         scope.add_child(root, child1);
         scope.add_child(root, child2);

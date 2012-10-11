@@ -15,7 +15,7 @@ impl au : Num {
 
     pure fn to_int() -> int               { *self as int       }
 
-    static pure fn from_int(+n: int) -> au {
+    static pure fn from_int(n: int) -> au {
         au((n & (i32::max_value as int)) as i32)
     }
 }
@@ -35,7 +35,7 @@ impl au : cmp::Eq {
 pub pure fn min(x: au, y: au) -> au { if x < y { x } else { y } }
 pub pure fn max(x: au, y: au) -> au { if x > y { x } else { y } }
 
-pub fn box<A:Copy Num>(+x: A, +y: A, +w: A, +h: A) -> Rect<A> {
+pub fn box<A:Copy Num>(x: A, y: A, w: A, h: A) -> Rect<A> {
     Rect(Point2D(x, y), Size2D(w, h))
 }
 

@@ -32,7 +32,7 @@ impl TokenReader : TokenReaderMethods {
         }
     }
 
-    fn unget(+tok : Token) {
+    fn unget(tok : Token) {
         assert is_none(&self.lookahead);
         self.lookahead = Some(tok);
     }
@@ -204,7 +204,7 @@ impl TokenReader : ParserMethods {
     }
 }
 
-pub fn build_stylesheet(+stream : pipes::Port<Token>) -> ~[~css::Rule] {
+pub fn build_stylesheet(stream : pipes::Port<Token>) -> ~[~css::Rule] {
     let mut rule_list = ~[];
     let reader = {stream : stream, mut lookahead : None};
 

@@ -22,9 +22,9 @@ pub struct Engine<C:Compositor Send Copy> {
     content_task: ContentTask
 }
 
-pub fn Engine<C:Compositor Send Copy>(+compositor: C,
-                                      +resource_task: ResourceTask,
-                                      +image_cache_task: ImageCacheTask) -> Engine<C> {
+pub fn Engine<C:Compositor Send Copy>(compositor: C,
+                                      resource_task: ResourceTask,
+                                      image_cache_task: ImageCacheTask) -> Engine<C> {
     let render_task = RenderTask(compositor);
     let layout_task = LayoutTask(render_task, image_cache_task);
     let content_task = ContentTask(layout_task, compositor, resource_task, image_cache_task);
@@ -48,7 +48,7 @@ impl<C: Compositor Copy Send> Engine<C> {
         }
     }
 
-    fn handle_request(+request: Msg) -> bool {
+    fn handle_request(request: Msg) -> bool {
         match request {
           LoadURLMsg(url) => {
             // TODO: change copy to move once we have match move

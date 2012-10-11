@@ -15,7 +15,7 @@ Create a URL object from a string. Does various helpful browsery things like
 
 */
 #[allow(non_implicitly_copyable_typarams)]
-fn make_url(+str_url: ~str, +current_url: Option<Url>) -> Url {
+fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
     let mut schm = url::get_scheme(str_url);
     let str_url = if result::is_err(&schm) {
         if current_url.is_none() {

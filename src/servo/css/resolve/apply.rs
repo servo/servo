@@ -40,7 +40,7 @@ struct StyleApplicator {
 }
 
 // TODO: normalize this into a normal preorder tree traversal function
-fn apply_style(layout_ctx: &LayoutContext, node: Node, +reflow: fn~()) {
+fn apply_style(layout_ctx: &LayoutContext, node: Node, reflow: fn~()) {
     let applicator = StyleApplicator {
         node: node,
         reflow: reflow
@@ -54,7 +54,7 @@ fn apply_style(layout_ctx: &LayoutContext, node: Node, +reflow: fn~()) {
 /** A wrapper around a set of functions that can be applied as a
  * top-down traversal of layout boxes.
  */
-fn inheritance_wrapper(layout_ctx: &LayoutContext, node : Node, +reflow: fn~()) {
+fn inheritance_wrapper(layout_ctx: &LayoutContext, node : Node, reflow: fn~()) {
     let applicator = StyleApplicator {
         node: node,
         reflow: reflow

@@ -61,7 +61,7 @@ pub enum PingMsg {
 pub type ContentTask = Chan<ControlMsg>;
 
 fn ContentTask<S: Compositor Send Copy>(layout_task: LayoutTask,
-                                        +compositor: S,
+                                        compositor: S,
                                         resource_task: ResourceTask,
                                         img_cache_task: ImageCacheTask) -> ContentTask {
     do task().sched_mode(SingleThreaded).spawn_listener::<ControlMsg> |from_master| {
@@ -143,14 +143,14 @@ impl Content {
         }
     }
 
-    fn handle_msg(+msg: Either<ControlMsg,Event>) -> bool {
+    fn handle_msg(msg: Either<ControlMsg,Event>) -> bool {
         match move msg {
             Left(move control_msg) => self.handle_control_msg(control_msg),
             Right(move event) => self.handle_event(event)
         }
     }
 
-    fn handle_control_msg(+control_msg: ControlMsg) -> bool {
+    fn handle_control_msg(control_msg: ControlMsg) -> bool {
         match move control_msg {
           ParseMsg(move url) => {
             debug!("content: Received url `%s` to parse", url_to_str(copy url));

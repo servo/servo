@@ -101,8 +101,8 @@ struct DoctypeData {
     force_quirks: bool
 }
 
-fn DoctypeData(+name: ~str, +public_id: Option<~str>,
-               +system_id: Option<~str>, force_quirks: bool) -> DoctypeData {
+fn DoctypeData(name: ~str, public_id: Option<~str>,
+               system_id: Option<~str>, force_quirks: bool) -> DoctypeData {
     DoctypeData {
         name : name,
         public_id : public_id,
@@ -146,7 +146,7 @@ trait NodeScopeExtensions {
 
 #[allow(non_implicitly_copyable_typarams)]
 impl NodeScope : NodeScopeExtensions {
-    fn new_node(+k: NodeKind) -> Node {
+    fn new_node(k: NodeKind) -> Node {
         self.handle(&NodeData({tree: tree::empty(), kind: ~k}))
     }
 }
@@ -168,7 +168,7 @@ impl NodeScope : tree::ReadMethods<Node> {
 
 #[allow(non_implicitly_copyable_typarams)]
 impl NodeScope : tree::WriteMethods<Node> {
-    fn add_child(+node: Node, +child: Node) {
+    fn add_child(node: Node, child: Node) {
         tree::add_child(&self, node, child)
     }
 

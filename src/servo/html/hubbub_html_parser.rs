@@ -166,7 +166,7 @@ fn build_element_kind(tag: &str) -> ~ElementKind {
 }
 
 pub fn parse_html(scope: NodeScope,
-                  +url: Url,
+                  url: Url,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask) -> HtmlParserResult unsafe {
     // Spawn a CSS parser to receive links to CSS style sheets.

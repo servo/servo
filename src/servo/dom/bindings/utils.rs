@@ -18,7 +18,7 @@ enum DOMString {
 
 type rust_box<T> = {rc: uint, td: *sys::TypeDesc, next: *(), prev: *(), payload: T};
 
-unsafe fn squirrel_away<T>(+x: @T) -> *rust_box<T> {
+unsafe fn squirrel_away<T>(x: @T) -> *rust_box<T> {
     let y: *rust_box<T> = cast::reinterpret_cast(&x);
     cast::forget(x);
     y
@@ -26,7 +26,7 @@ unsafe fn squirrel_away<T>(+x: @T) -> *rust_box<T> {
 
 type rust_unique<T> = {payload: T};
 
-unsafe fn squirrel_away_unique<T>(+x: ~T) -> *rust_box<T> {
+unsafe fn squirrel_away_unique<T>(x: ~T) -> *rust_box<T> {
     let y: *rust_box<T> = cast::reinterpret_cast(&x);
     cast::forget(x);
     y
@@ -94,8 +94,8 @@ extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *jsval, bp: *mut JSB
     return 1;
 }
 
-pub fn prototype_jsclass(+name: ~str) -> fn(+compartment: bare_compartment) -> JSClass {
-    |+compartment: bare_compartment| {
+pub fn prototype_jsclass(name: ~str) -> fn(compartment: bare_compartment) -> JSClass {
+    |compartment: bare_compartment| {
         {name: compartment.add_name(copy name),
          flags: 0,
          addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -122,9 +122,9 @@ pub fn prototype_jsclass(+name: ~str) -> fn(+compartment: bare_compartment) -> J
     }
 }
 
-pub fn instance_jsclass(+name: ~str, finalize: *u8)
-    -> fn(+compartment: bare_compartment) -> JSClass {
-    |+compartment: bare_compartment| {
+pub fn instance_jsclass(name: ~str, finalize: *u8)
+    -> fn(compartment: bare_compartment) -> JSClass {
+    |compartment: bare_compartment| {
         {name: compartment.add_name(copy name),
          flags: JSCLASS_HAS_RESERVED_SLOTS(1),
          addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -152,7 +152,7 @@ pub fn instance_jsclass(+name: ~str, finalize: *u8)
 }
 
 // FIXME: A lot of string copies here
-pub fn define_empty_prototype(+name: ~str, +proto: Option<~str>, compartment: &bare_compartment)
+pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: &bare_compartment)
     -> js::rust::jsobj {
     compartment.register_class(utils::prototype_jsclass(copy name));
 

@@ -70,7 +70,7 @@ pub impl Font : FontMethods {
 
 // TODO: font should compute its own metrics using native_font.
 // TODO: who should own fontbuf?
-fn Font(lib: @FontCache, fontbuf: @~[u8], +native_font: NativeFont, +metrics: FontMetrics) -> Font {
+fn Font(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont, metrics: FontMetrics) -> Font {
     Font {
         lib: lib,
         fontbuf : fontbuf,

@@ -47,7 +47,7 @@ Creates a task to load a specific resource
 The ResourceManager delegates loading to a different type of loader task for
 each URL scheme
 */
-type LoaderTaskFactory = fn~(+url: Url, Chan<ProgressMsg>);
+type LoaderTaskFactory = fn~(url: Url, Chan<ProgressMsg>);
 
 /// Create a ResourceTask with the default loaders
 fn ResourceTask() -> ResourceTask {
@@ -58,7 +58,7 @@ fn ResourceTask() -> ResourceTask {
     create_resource_task_with_loaders(loaders)
 }
 
-fn create_resource_task_with_loaders(+loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
+fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
     do spawn_listener |from_client| {
         // TODO: change copy to move once we can move into closures
         ResourceManager(from_client, copy loaders).start()
@@ -73,7 +73,7 @@ pub struct ResourceManager {
 
 
 pub fn ResourceManager(from_client: Port<ControlMsg>, 
-                       +loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceManager {
+                       loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceManager {
     ResourceManager {
         from_client : from_client,
         loaders : loaders,
@@ -95,7 +95,7 @@ impl ResourceManager {
         }
     }
 
-    fn load(+url: Url, progress_chan: Chan<ProgressMsg>) {
+    fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
 
         match self.get_loader_factory(&url) {
           Some(loader_factory) => {
@@ -143,7 +143,7 @@ fn test_bad_scheme() {
 #[allow(non_implicitly_copyable_typarams)]
 fn should_delegate_to_scheme_loader() {
     let payload = ~[1, 2, 3];
-    let loader_factory = fn~(+_url: Url, progress_chan: Chan<ProgressMsg>, copy payload) {
+    let loader_factory = fn~(_url: Url, progress_chan: Chan<ProgressMsg>, copy payload) {
         progress_chan.send(Payload(copy payload));
         progress_chan.send(Done(Ok(())));
     };

@@ -57,7 +57,7 @@ pub fn SolidColor(bounds: Rect<au>, r: u8, g: u8, b: u8) -> DisplayItem {
     }
 }
 
-pub fn Text(bounds: Rect<au>, +run: ~TextRun, offset: uint, length: uint) -> DisplayItem {
+pub fn Text(bounds: Rect<au>, run: ~TextRun, offset: uint, length: uint) -> DisplayItem {
     DisplayItem {
         draw: |self, ctx| draw_Text(self, ctx),
         bounds: bounds,
@@ -66,7 +66,7 @@ pub fn Text(bounds: Rect<au>, +run: ~TextRun, offset: uint, length: uint) -> Dis
 }
 
 // ARC should be cloned into ImageData, but Images are not sendable
-pub fn Image(bounds: Rect<au>, +image: ARC<~image::base::Image>) -> DisplayItem {
+pub fn Image(bounds: Rect<au>, image: ARC<~image::base::Image>) -> DisplayItem {
     DisplayItem {
         draw: |self, ctx| draw_Image(self, ctx),
         bounds: bounds,

@@ -41,7 +41,7 @@ struct RenderContext {
 
 pub type RenderTask = comm::Chan<Msg>;
 
-pub fn RenderTask<C: Compositor Send>(+compositor: C) -> RenderTask {
+pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
     do task::spawn_listener |po: comm::Port<Msg>| {
         let (draw_target_ch, draw_target_po) = pipes::stream();
         let mut draw_target_ch = draw_target_ch;
@@ -120,7 +120,7 @@ pub fn draw_solid_color(ctx: &RenderContext, bounds: &Rect<au>, r: u8, g: u8, b:
     ctx.canvas.fill_rect(&bounds.to_azure_rect(), &ColorPattern(color));
 }
 
-pub fn draw_image(ctx: &RenderContext, bounds: Rect<au>, +image: ARC<~Image>) {
+pub fn draw_image(ctx: &RenderContext, bounds: Rect<au>, image: ARC<~Image>) {
     let image = std::arc::get(&image);
     let size = Size2D(image.width as i32, image.height as i32);
     let stride = image.width * 4;

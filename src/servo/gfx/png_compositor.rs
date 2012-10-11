@@ -37,10 +37,10 @@ pub enum Msg {
 }
 
 impl Chan<Msg> : Compositor {
-    fn begin_drawing(+next_dt: pipes::Chan<DrawTarget>) {
+    fn begin_drawing(next_dt: pipes::Chan<DrawTarget>) {
         self.send(BeginDrawing(next_dt))
     }
-    fn draw(+next_dt: pipes::Chan<DrawTarget>, +draw_me: DrawTarget) {
+    fn draw(next_dt: pipes::Chan<DrawTarget>, draw_me: DrawTarget) {
         self.send(Draw(next_dt, draw_me))
     }
     fn add_event_listener(_listener: Chan<Event>) {
@@ -69,8 +69,8 @@ pub fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
     }
 }
 
-fn do_draw(+sender: pipes::Chan<DrawTarget>,
-           +dt: DrawTarget,
+fn do_draw(sender: pipes::Chan<DrawTarget>,
+           dt: DrawTarget,
            output: Chan<~[u8]>,
            cairo_surface: &ImageSurface) {
     let buffer = BytesWriter();

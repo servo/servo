@@ -237,7 +237,7 @@ fn parser(input_port: comm::Port<ProgressMsg>, state : ParserState) -> CssLexer 
     };
 }
 
-fn lex_css_from_bytes(+input_port: comm::Port<ProgressMsg>, result_chan : &Chan<Token>) {
+fn lex_css_from_bytes(input_port: comm::Port<ProgressMsg>, result_chan : &Chan<Token>) {
     let lexer = parser(input_port, CssElement);
 
     loop {
@@ -252,7 +252,7 @@ fn lex_css_from_bytes(+input_port: comm::Port<ProgressMsg>, result_chan : &Chan<
     }
 }
 
-fn spawn_css_lexer_from_string(+content : ~str) -> pipes::Port<Token> {
+fn spawn_css_lexer_from_string(content : ~str) -> pipes::Port<Token> {
     let (result_chan, result_port) = pipes::stream();
 
     do task::spawn {
@@ -267,7 +267,7 @@ fn spawn_css_lexer_from_string(+content : ~str) -> pipes::Port<Token> {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub fn spawn_css_lexer_task(+url: Url, resource_task: ResourceTask) -> pipes::Port<Token> {
+pub fn spawn_css_lexer_task(url: Url, resource_task: ResourceTask) -> pipes::Port<Token> {
     let (result_chan, result_port) = pipes::stream();
 
     do task::spawn || {

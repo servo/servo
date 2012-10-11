@@ -73,11 +73,12 @@ struct ScopeResource<T:Send,A> {
     d : ScopeData<T,A>,
 
     drop unsafe {
+        error!("dropp!");
         for self.d.free_list.each |h| { free_handle(*h); }
     }
 }
 
-fn ScopeResource<T:Send,A>(+d : ScopeData<T,A>) -> ScopeResource<T,A> {
+fn ScopeResource<T:Send,A>(d : ScopeData<T,A>) -> ScopeResource<T,A> {
     ScopeResource { d: d }
 }
 
@@ -101,7 +102,7 @@ impl<T:Send,A> Handle<T,A> {
     fn set_read_ptr(t: *T) unsafe             { (**self).read_ptr = t;   }
     fn set_write_ptr(t: *mut T) unsafe        { (**self).write_ptr = t;  }
     fn set_read_aux(t: *A) unsafe             { (**self).read_aux = t;   }
-    fn set_next_dirty(+h: Handle<T,A>) unsafe { (**self).next_dirty = h; }
+    fn set_next_dirty(h: Handle<T,A>) unsafe { (**self).next_dirty = h; }
 
     pure fn is_null() -> bool { (*self).is_null() }
     fn is_not_null() -> bool { (*self).is_not_null() }
@@ -222,6 +223,7 @@ impl<T:Copy Send,A> Scope<T,A> {
     // FIXME: This could avoid a deep copy by taking ownership of `v`
     #[allow(non_implicitly_copyable_typarams)]
     fn handle(v: &T) -> Handle<T,A> unsafe {
+        debug!("vv: %?", *v);
         let d: *HandleData<T,A> =
             cast::reinterpret_cast(
                 &libc::malloc(sys::size_of::<HandleData<T,A>>() as size_t));
@@ -231,6 +233,9 @@ impl<T:Copy Send,A> Scope<T,A> {
         (*d).next_dirty = null_handle();
         let h = _Handle(d);
         push(&mut self.d.free_list, h);
+        do self.read(&h) |v| {
+            debug!("vv: %?", *v);
+        }
         return h;
     }
 }

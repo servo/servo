@@ -41,7 +41,7 @@ pub fn empty<T>() -> Tree<T> {
      mut next_sibling: None}
 }
 
-pub fn add_child<T:Copy,O:WriteMethods<T>>(ops: &O, +parent: T, +child: T) {
+pub fn add_child<T:Copy,O:WriteMethods<T>>(ops: &O, parent: T, child: T) {
 
     ops.with_tree_fields(&child, |child_tf| {
         match child_tf.parent {

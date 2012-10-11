@@ -270,7 +270,7 @@ impl FlowContext : FlowContextMethods {
     }
 
     // Actual methods that do not require much flow-specific logic
-    pure fn foldl_boxes_for_node<B: Copy>(node: Node, +seed: B, blk: pure fn&(+a: B,@RenderBox) -> B) -> B {
+    pure fn foldl_boxes_for_node<B: Copy>(node: Node, seed: B, blk: pure fn&(a: B,@RenderBox) -> B) -> B {
         match self {
             RootFlow(*) => match self.root().box {
                 Some(box) if box.d().node == node => { blk(seed, box) },

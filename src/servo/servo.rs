@@ -66,7 +66,7 @@ fn run_pipeline_screen(urls: &[~str]) {
     osmain.send(osmain::Exit);
 }
 
-fn run_pipeline_png(+url: ~str, outfile: &str) {
+fn run_pipeline_png(url: ~str, outfile: &str) {
     // Use a PNG encoder as the graphics compositor
     use gfx::png_compositor;
     use png_compositor::PngCompositor;
