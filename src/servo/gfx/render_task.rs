@@ -25,8 +25,6 @@ use text::text_run::TextRun;
 use text::font::Font;
 use text::font_cache::FontCache;
 
-
-
 pub type Renderer = comm::Chan<Msg>;
 
 pub enum Msg {
@@ -34,8 +32,13 @@ pub enum Msg {
     ExitMsg(pipes::Chan<()>)
 }
 
+struct LayerBuffer {
+    draw_target: DrawTarget,
+    size: Size2D<uint>
+}
+
 struct RenderContext {
-    canvas: &DrawTarget,
+    canvas: &LayerBuffer,
     font_cache: @FontCache,
 }
 
@@ -43,48 +46,47 @@ pub type RenderTask = comm::Chan<Msg>;
 
 pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
     do task::spawn_listener |po: comm::Port<Msg>| {
-        let (draw_target_ch, draw_target_po) = pipes::stream();
-        let mut draw_target_ch = draw_target_ch;
-        let mut draw_target_po = draw_target_po;
+        let (layer_buffer_channel, layer_buffer_port) = pipes::stream();
+        let mut layer_buffer_channel = layer_buffer_channel;
+        let mut layer_buffer_port = layer_buffer_port;
 
         let font_cache = FontCache();
 
         debug!("renderer: beginning rendering loop");
 
-        compositor.begin_drawing(draw_target_ch);
+        compositor.begin_drawing(move layer_buffer_channel);
 
         loop {
             match po.recv() {
-              RenderMsg(display_list) => {
-                #debug("renderer: got render request");
-                let draw_target = Cell(draw_target_po.recv());
-                let (ch, po) = pipes::stream();
-                let mut draw_target_ch_ = Some(ch);
-                draw_target_po = po;
-                #debug("renderer: rendering");
-                do util::time::time(~"rendering") {
-                    let mut draw_target_ch = None;
-                    draw_target_ch_ <-> draw_target_ch;
-                    let draw_target_ch = option::unwrap(draw_target_ch);
+                RenderMsg(display_list) => {
+                    #debug("renderer: got render request");
+                    let layer_buffer = Cell(layer_buffer_port.recv());
 
-                    do draw_target.with_ref |draw_target| {
-                        let ctx = RenderContext {
-                            canvas: draw_target,
-                            font_cache: font_cache
-                        };
+                    let (layer_buffer_channel, new_layer_buffer_port) = pipes::stream();
+                    let layer_buffer_channel = Cell(move layer_buffer_channel);
+                    layer_buffer_port = new_layer_buffer_port;
 
-                        clear(&ctx);
-                        display_list.draw(&ctx)
+                    #debug("renderer: rendering");
+
+                    do util::time::time(~"rendering") {
+                        do layer_buffer.with_ref |layer_buffer_ref| {
+                            let ctx = RenderContext {
+                                canvas: layer_buffer_ref,
+                                font_cache: font_cache
+                            };
+
+                            clear(&ctx);
+                            display_list.draw(&ctx)
+                        }
+
+                        #debug("renderer: returning surface");
+                        compositor.draw(layer_buffer_channel.take(), layer_buffer.take());
                     }
-
-                    #debug("renderer: returning surface");
-                    compositor.draw(draw_target_ch, draw_target.take());
                 }
-              }
-              ExitMsg(response_ch) => {
-                response_ch.send(());
-                break;
-              }
+                ExitMsg(response_ch) => {
+                    response_ch.send(());
+                    break;
+                }
             }
         }
     }
@@ -117,7 +119,7 @@ pub fn draw_solid_color(ctx: &RenderContext, bounds: &Rect<au>, r: u8, g: u8, b:
                       b.to_float() as AzFloat,
                       1f as AzFloat);
 
-    ctx.canvas.fill_rect(&bounds.to_azure_rect(), &ColorPattern(color));
+    ctx.canvas.draw_target.fill_rect(&bounds.to_azure_rect(), &ColorPattern(color));
 }
 
 pub fn draw_image(ctx: &RenderContext, bounds: Rect<au>, image: ARC<~Image>) {
@@ -125,15 +127,16 @@ pub fn draw_image(ctx: &RenderContext, bounds: Rect<au>, image: ARC<~Image>) {
     let size = Size2D(image.width as i32, image.height as i32);
     let stride = image.width * 4;
 
-    let azure_surface = ctx.canvas.create_source_surface_from_data(image.data, size, stride as i32,
-                                                                    B8G8R8A8);
+    let draw_target_ref = &ctx.canvas.draw_target;
+    let azure_surface = draw_target_ref.create_source_surface_from_data(image.data, size,
+                                                                        stride as i32, B8G8R8A8);
     let source_rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat),
                            Size2D(image.width as AzFloat, image.height as AzFloat));
     let dest_rect = bounds.to_azure_rect();
     let draw_surface_options = DrawSurfaceOptions(Linear, true);
     let draw_options = DrawOptions(1.0f as AzFloat, 0);
-    ctx.canvas.draw_surface(azure_surface, dest_rect, source_rect, draw_surface_options,
-                             draw_options);
+    draw_target_ref.draw_surface(azure_surface, dest_rect, source_rect, draw_surface_options,
+                                 draw_options);
 }
 
 pub fn draw_text(ctx: &RenderContext, bounds: Rect<au>, run: &TextRun, offset: uint, length: uint) {
@@ -204,8 +207,8 @@ pub fn draw_text(ctx: &RenderContext, bounds: Rect<au>, run: &TextRun, offset: u
     }};
 
     // TODO: this call needs to move into azure_hl.rs
-    AzDrawTargetFillGlyphs(ctx.canvas.azure_draw_target, azfont, to_unsafe_ptr(&glyphbuf),
-                           pattern, to_unsafe_ptr(&options), null());
+    AzDrawTargetFillGlyphs(ctx.canvas.draw_target.azure_draw_target, azfont,
+                           to_unsafe_ptr(&glyphbuf), pattern, to_unsafe_ptr(&options), null());
 
     AzReleaseColorPattern(pattern);
     AzReleaseScaledFont(azfont);
@@ -273,5 +276,5 @@ fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
 fn clear(ctx: &RenderContext) {
     let pattern = ColorPattern(Color(1f as AzFloat, 1f as AzFloat, 1f as AzFloat, 1f as AzFloat));
     let rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat), Size2D(800 as AzFloat, 600 as AzFloat));
-    ctx.canvas.fill_rect(&rect, &pattern);
+    ctx.canvas.draw_target.fill_rect(&rect, &pattern);
 }

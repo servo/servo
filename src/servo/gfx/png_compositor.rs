@@ -27,20 +27,22 @@ use dvec::DVec;
 use display_list::DisplayList;
 use std::cell::Cell;
 use core::io::BytesWriter;
+use gfx::render_task::LayerBuffer;
+use geom::size::Size2D;
 
 pub type PngCompositor = Chan<Msg>;
 
 pub enum Msg {
-    BeginDrawing(pipes::Chan<DrawTarget>),
-    Draw(pipes::Chan<DrawTarget>, DrawTarget),
+    BeginDrawing(pipes::Chan<LayerBuffer>),
+    Draw(pipes::Chan<LayerBuffer>, LayerBuffer),
     Exit
 }
 
 impl Chan<Msg> : Compositor {
-    fn begin_drawing(next_dt: pipes::Chan<DrawTarget>) {
+    fn begin_drawing(next_dt: pipes::Chan<LayerBuffer>) {
         self.send(BeginDrawing(next_dt))
     }
-    fn draw(next_dt: pipes::Chan<DrawTarget>, draw_me: DrawTarget) {
+    fn draw(next_dt: pipes::Chan<LayerBuffer>, draw_me: LayerBuffer) {
         self.send(Draw(next_dt, draw_me))
     }
     fn add_event_listener(_listener: Chan<Event>) {
@@ -51,17 +53,19 @@ impl Chan<Msg> : Compositor {
 pub fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
     do spawn_listener |po: Port<Msg>| {
         let cairo_surface = ImageSurface(CAIRO_FORMAT_ARGB32, 800, 600);
-        let draw_target = Cell(DrawTarget(&cairo_surface));
+        let draw_target = DrawTarget(&cairo_surface);
+        let layer_buffer = LayerBuffer { draw_target: move draw_target, size: Size2D(800u, 600u) };
+        let layer_buffer = Cell(move layer_buffer);
 
         loop {
             match po.recv() {
                 BeginDrawing(sender) => {
                     debug!("png_compositor: begin_drawing");
-                    sender.send(draw_target.take());
+                    sender.send(layer_buffer.take());
                 }
-                Draw(move sender, move dt) => {
+                Draw(move sender, move layer_buffer) => {
                     debug!("png_compositor: draw");
-                    do_draw(sender, dt, output, &cairo_surface);
+                    do_draw(sender, layer_buffer, output, &cairo_surface);
                 }
                 Exit => break
             }
@@ -69,8 +73,8 @@ pub fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
     }
 }
 
-fn do_draw(sender: pipes::Chan<DrawTarget>,
-           dt: DrawTarget,
+fn do_draw(sender: pipes::Chan<LayerBuffer>,
+           layer_buffer: LayerBuffer,
            output: Chan<~[u8]>,
            cairo_surface: &ImageSurface) {
     let buffer = BytesWriter();
@@ -78,7 +82,7 @@ fn do_draw(sender: pipes::Chan<DrawTarget>,
     output.send(buffer.buf.get());
 
     // Send the next draw target to the renderer
-    sender.send(move dt);
+    sender.send(move layer_buffer);
 }
 
 #[test]

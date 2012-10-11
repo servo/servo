@@ -5,6 +5,7 @@ use azure::cairo_hl::ImageSurface;
 use dvec::DVec;
 use azure::cairo::cairo_surface_t;
 use gfx::compositor::Compositor;
+use gfx::render_task::LayerBuffer;
 use dom::event::{Event, ResizeEvent};
 use layers::ImageLayer;
 use geom::size::Size2D;
@@ -28,8 +29,8 @@ enum Window {
 }
 
 pub enum Msg {
-    BeginDrawing(pipes::Chan<DrawTarget>),
-    Draw(pipes::Chan<DrawTarget>, DrawTarget),
+    BeginDrawing(pipes::Chan<LayerBuffer>),
+    Draw(pipes::Chan<LayerBuffer>, LayerBuffer),
     AddKeyHandler(pipes::Chan<()>),
     AddEventListener(comm::Chan<Event>),
     Exit
@@ -40,6 +41,7 @@ fn OSMain() -> OSMain {
         do platform::runmain {
             #debug("preparing to enter main loop");
 
+            // FIXME: Use the servo options.
 			let mode;
 			match os::getenv("SERVO_SHARE") {
 				Some(_) => mode = ShareMode,
@@ -162,10 +164,10 @@ Implementation to allow the osmain channel to be used as a graphics
 compositor for the renderer
 */
 impl OSMain : Compositor {
-    fn begin_drawing(next_dt: pipes::Chan<DrawTarget>) {
+    fn begin_drawing(next_dt: pipes::Chan<LayerBuffer>) {
         self.send(BeginDrawing(next_dt))
     }
-    fn draw(next_dt: pipes::Chan<DrawTarget>, draw_me: DrawTarget) {
+    fn draw(next_dt: pipes::Chan<LayerBuffer>, draw_me: LayerBuffer) {
         self.send(Draw(next_dt, draw_me))
     }
     fn add_event_listener(listener: comm::Chan<Event>) {
@@ -178,13 +180,17 @@ struct SurfaceSet {
     mut back: Surface,
 }
 
-fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<DrawTarget>) {
+fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBuffer>) {
     // We are in a position to lend out the surface?
     assert surfaces.front.have;
     // Ok then take it
-    let draw_target = azure_hl::clone_mutable_draw_target(&mut surfaces.front.draw_target);
-    #debug("osmain: lending surface %?", draw_target);
-    receiver.send(draw_target);
+    let draw_target_ref = &mut surfaces.front.layer_buffer.draw_target;
+    let layer_buffer = LayerBuffer {
+        draw_target: azure_hl::clone_mutable_draw_target(draw_target_ref),
+        size: copy surfaces.front.layer_buffer.size
+    };
+    #debug("osmain: lending surface %?", layer_buffer);
+    receiver.send(layer_buffer);
     // Now we don't have it
     surfaces.front.have = false;
     // But we (hopefully) have another!
@@ -193,14 +199,15 @@ fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<DrawTarget>) {
     assert surfaces.front.have;
 }
 
-fn return_surface(surfaces: &SurfaceSet, draw_target: DrawTarget) {
-    #debug("osmain: returning surface %?", draw_target);
+fn return_surface(surfaces: &SurfaceSet, layer_buffer: LayerBuffer) {
+    #debug("osmain: returning surface %?", layer_buffer);
     // We have room for a return
     assert surfaces.front.have;
     assert !surfaces.back.have;
 
     // FIXME: This is incompatible with page resizing.
-    assert surfaces.back.draw_target.azure_draw_target == draw_target.azure_draw_target;
+    assert surfaces.back.layer_buffer.draw_target.azure_draw_target ==
+        layer_buffer.draw_target.azure_draw_target;
 
     // Now we have it again
     surfaces.back.have = true;
@@ -212,14 +219,15 @@ fn SurfaceSet() -> SurfaceSet {
 
 struct Surface {
     cairo_surface: ImageSurface,
-    draw_target: DrawTarget,
+    layer_buffer: LayerBuffer,
     mut have: bool,
 }
 
 fn Surface() -> Surface {
     let cairo_surface = ImageSurface(cairo::CAIRO_FORMAT_RGB24, 800, 600);
     let draw_target = DrawTarget(&cairo_surface);
-    Surface { cairo_surface: cairo_surface, draw_target: draw_target, have: true }
+    let layer_buffer = LayerBuffer { draw_target: move draw_target, size: Size2D(800u, 600u) };
+    Surface { cairo_surface: cairo_surface, layer_buffer: move layer_buffer, have: true }
 }
 
 /// A function for spawning into the platform's main thread
