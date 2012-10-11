@@ -14,6 +14,7 @@ use layout::flow::{FlowContext, InlineFlow};
 use layout::text::TextBoxData;
 use num::Num;
 use servo_text::text_run::TextRun;
+use servo_text::util::*;
 use std::arc;
 use util::tree;
 
@@ -67,13 +68,13 @@ impl TextRunScanner {
         assert self.flow.inline().boxes.len() > 0;
 
         do self.flow.inline().boxes.swap |in_boxes| {
-            debug!("scanning %u boxes for text runs...", in_boxes.len());
+            debug!("TextRunScanner: scanning %u boxes for text runs...", in_boxes.len());
             
             let temp_boxes = DVec();
             let mut prev_box: @RenderBox = in_boxes[0];
 
             for uint::range(0, in_boxes.len()) |i| {
-                debug!("considering box: %?", in_boxes[i].debug_str());
+                debug!("TextRunScanner: considering box: %?", in_boxes[i].debug_str());
 
                 let can_coalesce_with_prev = i > 0 && boxes_can_be_coalesced(prev_box, in_boxes[i]);
 
@@ -96,7 +97,7 @@ impl TextRunScanner {
                 self.flush_clump_to_list(ctx, in_boxes, &temp_boxes);
             }
 
-            debug!("swapping out boxes.");
+            debug!("TextRunScanner: swapping out boxes.");
             // swap out old and new box list of flow, by supplying
             // temp boxes as return value to boxes.swap |...|
             dvec::unwrap(temp_boxes)
@@ -115,18 +116,26 @@ impl TextRunScanner {
     }
 
     fn reset_clump_to_index(i: uint) {
-        debug!("resetting clump to %u", i);
+        debug!("TextRunScanner: resetting clump to %u", i);
         
         self.clump_start = i;
         self.clump_end = i;
         self.in_clump = true;
     }
 
+    // a 'clump' is a range of inline flow leaves that can be merged
+    // together into a single RenderBox. Adjacent text with the same
+    // style can be merged, and nothing else can. 
+    //
+    // the flow keeps track of the RenderBoxes contained by all
+    // non-leaf DOM nodes. This is necessary for correct painting
+    // order. Since we compress several leaf RenderBoxes here, the
+    // mapping must be adjusted.
     fn flush_clump_to_list(ctx: &LayoutContext, 
-                           in_boxes: &[@RenderBox], temp_boxes: &DVec<@RenderBox>) {
+                           in_boxes: &[@RenderBox], out_boxes: &DVec<@RenderBox>) {
         assert self.in_clump;
 
-        debug!("flushing when start=%?,end=%?", self.clump_start, self.clump_end);
+        debug!("TextRunScanner: flushing boxes when start=%?,end=%?", self.clump_start, self.clump_end);
 
         let is_singleton = (self.clump_start == self.clump_end);
         let is_text_clump = match in_boxes[self.clump_start] {
@@ -134,19 +143,26 @@ impl TextRunScanner {
             _ => false
         };
 
+        do self.flow.inline().elems.borrow |_node_map: &[NodeRange]| {
         // TODO: repair the mapping of DOM elements to boxes if it changed.
         // (the mapping does not yet exist; see Issue #103)
         match (is_singleton, is_text_clump) {
             (false, false) => fail ~"WAT: can't coalesce non-text boxes in flush_clump_to_list()!",
-            (true, false) => { temp_boxes.push(in_boxes[self.clump_start]); }
+            (true, false) => { 
+                debug!("TextRunScanner: pushing single non-text box when start=%u,end=%u", 
+                       self.clump_start, self.clump_end);
+                out_boxes.push(in_boxes[self.clump_start]);
+            },
             (true, true)  => { 
                 let text = in_boxes[self.clump_start].raw_text();
-                let text_len = text.len();
+                // TODO: use actual CSS 'white-space' property of relevant style.
+                let compression = CompressWhitespaceNewline;
+                let transformed_text = transform_text(text, compression);
                 // TODO: use actual font for corresponding DOM node to create text run.
-                let run = @TextRun(&*ctx.font_cache.get_test_font(), move text);
-                let box_guts = TextBoxData(run, 0, text_len);
-                debug!("pushing when start=%?,end=%?", self.clump_start, self.clump_end);
-                temp_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
+                let run = @TextRun(&*ctx.font_cache.get_test_font(), move transformed_text);
+                let box_guts = TextBoxData(run, 0, run.text.len());
+                debug!("TextRunScanner: pushing single text box when start=%u,end=%u", self.clump_start, self.clump_end);
+                out_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
             },
             (false, true) => {
                 let mut run_str : ~str = ~"";
@@ -157,11 +173,12 @@ impl TextRunScanner {
                 // TODO: use actual font for corresponding DOM node to create text run.
                 let run = @TextRun(&*ctx.font_cache.get_test_font(), move run_str);
                 let box_guts = TextBoxData(run, 0, run.text.len());
-                debug!("pushing when start=%?,end=%?", self.clump_start, self.clump_end);
-                temp_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
+                debug!("TextRunScanner: pushing box(es) when start=%?,end=%?", self.clump_start, self.clump_end);
+                out_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
             }
         }
         self.in_clump = false;
+        }
     }
 }
 
