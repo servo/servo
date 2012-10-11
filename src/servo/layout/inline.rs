@@ -70,7 +70,7 @@ impl TextRunScanner {
         do self.flow.inline().boxes.swap |in_boxes| {
             debug!("TextRunScanner: scanning %u boxes for text runs...", in_boxes.len());
             
-            let temp_boxes = DVec();
+            let out_boxes = DVec();
             let mut prev_box: @RenderBox = in_boxes[0];
 
             for uint::range(0, in_boxes.len()) |i| {
@@ -85,7 +85,7 @@ impl TextRunScanner {
                     (true, true)  => { self.clump_end = i; },
                     // boundary detected; flush and start new clump
                     (true, false) => {
-                        self.flush_clump_to_list(ctx, in_boxes, &temp_boxes);
+                        self.flush_clump_to_list(ctx, in_boxes, &out_boxes);
                         self.reset_clump_to_index(i);
                     }
                 };
@@ -94,13 +94,13 @@ impl TextRunScanner {
             }
             // handle remaining clumps
             if self.in_clump {
-                self.flush_clump_to_list(ctx, in_boxes, &temp_boxes);
+                self.flush_clump_to_list(ctx, in_boxes, &out_boxes);
             }
 
             debug!("TextRunScanner: swapping out boxes.");
             // swap out old and new box list of flow, by supplying
             // temp boxes as return value to boxes.swap |...|
-            dvec::unwrap(temp_boxes)
+            dvec::unwrap(out_boxes)
         }
 
         // helper functions
@@ -131,6 +131,10 @@ impl TextRunScanner {
     // non-leaf DOM nodes. This is necessary for correct painting
     // order. Since we compress several leaf RenderBoxes here, the
     // mapping must be adjusted.
+    // 
+    // N.B. in_boxes is passed by reference, since we cannot
+    // recursively borrow or swap the flow's dvec of boxes. When all
+    // boxes are appended, the caller swaps the flow's box list.
     fn flush_clump_to_list(ctx: &LayoutContext, 
                            in_boxes: &[@RenderBox], out_boxes: &DVec<@RenderBox>) {
         assert self.in_clump;
