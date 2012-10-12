@@ -22,11 +22,11 @@ use freetype::bindgen::{
 };
 
 fn float_to_fixed_ft(f: float) -> i32 {
-    float_to_fixed(26, f)
+    float_to_fixed(6, f)
 }
 
 fn fixed_to_float_ft(f: i32) -> float {
-    fixed_to_float(26, f)
+    fixed_to_float(6, f)
 }
 
 struct FreeTypeNativeFont {
@@ -69,6 +69,7 @@ impl FreeTypeNativeFont {
                 let void_glyph = (*self.face).glyph;
                 let slot: FT_GlyphSlot = reinterpret_cast(&void_glyph);
                 assert slot.is_not_null();
+                debug!("metrics: %?", (*slot).metrics);
                 let advance = (*slot).metrics.horiAdvance;
                 debug!("h_advance for %? is %?", glyph, advance);
                 let advance = advance as i32;
