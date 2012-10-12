@@ -14,6 +14,8 @@ use dl = display_list;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use mod gfx::render_layers;
+use gfx::render_layers::RenderLayer;
 use image::base::Image;
 use libc::size_t;
 use pipes::{Port, Chan};
@@ -58,29 +60,41 @@ pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
 
         loop {
             match po.recv() {
-                RenderMsg(display_list) => {
+                RenderMsg(move display_list) => {
                     #debug("renderer: got render request");
-                    let layer_buffer = Cell(layer_buffer_port.recv());
+                    let layer_buffer_cell = Cell(layer_buffer_port.recv());
 
                     let (layer_buffer_channel, new_layer_buffer_port) = pipes::stream();
                     let layer_buffer_channel = Cell(move layer_buffer_channel);
                     layer_buffer_port = new_layer_buffer_port;
 
+                    let display_list = Cell(move display_list);
+
                     #debug("renderer: rendering");
 
                     do util::time::time(~"rendering") {
-                        do layer_buffer.with_ref |layer_buffer_ref| {
+                        let layer_buffer = layer_buffer_cell.take();
+                        let display_list = move display_list.take();
+
+                        let render_layer = RenderLayer {
+                            display_list: move display_list,
+                            size: Size2D(800u, 600u)
+                        };
+
+                        let layer_buffer =
+                                for render_layers::render_layers(&render_layer, move layer_buffer)
+                                |render_layer, layer_buffer| {
                             let ctx = RenderContext {
-                                canvas: layer_buffer_ref,
+                                canvas: layer_buffer,
                                 font_cache: font_cache
                             };
 
                             clear(&ctx);
-                            display_list.draw(&ctx)
-                        }
+                            render_layer.display_list.draw(&ctx);
+                        };
 
                         #debug("renderer: returning surface");
-                        compositor.draw(layer_buffer_channel.take(), layer_buffer.take());
+                        compositor.draw(layer_buffer_channel.take(), move layer_buffer);
                     }
                 }
                 ExitMsg(response_ch) => {
