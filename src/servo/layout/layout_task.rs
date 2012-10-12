@@ -44,7 +44,7 @@ enum LayoutQueryResponse_ {
 }
 
 pub enum Msg {
-    BuildMsg(Node, ARC<Stylesheet>, Url, comm::Chan<Event>),
+    BuildMsg(Node, ARC<Stylesheet>, Url, comm::Chan<Event>, Size2D<uint>),
     PingMsg(comm::Chan<content_task::PingMsg>),
     QueryMsg(LayoutQuery, comm::Chan<LayoutQueryResponse>),
     ExitMsg
@@ -128,18 +128,20 @@ impl Layout {
                 debug!("layout: ExitMsg received");
                 return false
             },
-            BuildMsg(node, styles, doc_url, to_content) => {
+            BuildMsg(node, styles, doc_url, to_content, window_size) => {
                 debug!("layout: received layout request for: %s", doc_url.to_str());
                 debug!("layout: parsed Node tree");
                 node.dump();
+
+                let screen_size = Size2D(au::from_px(window_size.width as int),
+                                         au::from_px(window_size.height as int));
 
                 let layout_ctx = LayoutContext {
                     image_cache: self.image_cache_task,
                     font_cache: self.font_cache,
                     doc_url: doc_url,
                     reflow_cb: || to_content.send(ReflowEvent),
-                    // TODO: obtain screen size from a real data source
-                    screen_size: Rect(Point2D(au(0), au(0)), Size2D(au::from_px(800), au::from_px(600)))
+                    screen_size: Rect(Point2D(au(0), au(0)), screen_size)
                 };
 
                 do util::time::time(~"layout") {
@@ -150,7 +152,8 @@ impl Layout {
                     apply_style(&layout_ctx, node, copy layout_ctx.reflow_cb);
                     
                     let builder = LayoutTreeBuilder();
-                    let layout_root: @FlowContext = match builder.construct_trees(&layout_ctx, node) {
+                    let layout_root: @FlowContext = match builder.construct_trees(&layout_ctx,
+                                                                                  node) {
                         Ok(root) => root,
                         Err(*) => fail ~"Root flow should always exist"
                     };
@@ -169,7 +172,8 @@ impl Layout {
                     };
                     let render_layer = RenderLayer {
                         display_list: move dlist,
-                        size: Size2D(800u, 600u)
+                        size: Size2D(au::to_px(screen_size.width) as uint,
+                                     au::to_px(screen_size.height) as uint)
                     };
 
                     // TODO: set options on the builder before building

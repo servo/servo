@@ -289,6 +289,7 @@ fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
 
 fn clear(ctx: &RenderContext) {
     let pattern = ColorPattern(Color(1f as AzFloat, 1f as AzFloat, 1f as AzFloat, 1f as AzFloat));
-    let rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat), Size2D(800 as AzFloat, 600 as AzFloat));
+    let rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat),
+                    Size2D(ctx.canvas.size.width as AzFloat, ctx.canvas.size.height as AzFloat));
     ctx.canvas.draw_target.fill_rect(&rect, &pattern);
 }

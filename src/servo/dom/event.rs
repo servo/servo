@@ -1,5 +1,5 @@
 enum Event {
-    ResizeEvent(int, int),
+    ResizeEvent(uint, uint),
     ReflowEvent        
 }
 

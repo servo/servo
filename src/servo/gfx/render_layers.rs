@@ -22,7 +22,6 @@ pub fn render_layers(layer: &RenderLayer,
     let mut buffer = buffer;
     if buffer.size != layer.size {
         // Create a new buffer.
-        io::println("making new buffer size!");
         let cairo_surface = ImageSurface(CAIRO_FORMAT_RGB24,
                                          layer.size.width as c_int,
                                          layer.size.height as c_int);

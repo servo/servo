@@ -17,6 +17,7 @@ use dom::document::Document;
 use dom::node::{Node, NodeScope, define_bindings};
 use dom::event::{Event, ResizeEvent, ReflowEvent};
 use dom::window::Window;
+use geom::size::Size2D;
 use gfx::compositor::Compositor;
 use layout::layout_task;
 use layout_task::{LayoutTask, BuildMsg};
@@ -84,6 +85,7 @@ struct Content {
     mut document: Option<@Document>,
     mut window:   Option<@Window>,
     mut doc_url: Option<Url>,
+    mut window_size: Size2D<uint>,
 
     resource_task: ResourceTask,
 
@@ -117,9 +119,10 @@ fn Content(layout_task: LayoutTask,
         jsrt : jsrt,
         cx : cx,
 
-        document : None,
-        window   : None,
-        doc_url  : None,
+        document    : None,
+        window      : None,
+        doc_url     : None,
+        window_size : Size2D(800u, 600u),
 
         resource_task : resource_task,
         compartment : compartment
@@ -259,7 +262,8 @@ impl Content {
 
         // Send new document and relevant styles to layout
         // FIXME: Put CSS rules in an arc or something.
-        self.layout_task.send(BuildMsg(document.root, clone(&document.css_rules), copy *doc_url, self.event_port.chan()));
+        self.layout_task.send(BuildMsg(document.root, clone(&document.css_rules), copy *doc_url,
+                                       self.event_port.chan(), self.window_size));
 
         // Indicate that reader was forked so any further
         // changes will be isolated.
@@ -282,7 +286,8 @@ impl Content {
     fn handle_event(event: Event) -> bool {
         match event {
           ResizeEvent(new_width, new_height) => {
-            debug!("content got resize event: %d, %d", new_width, new_height);
+            debug!("content got resize event: %u, %u", new_width, new_height);
+            self.window_size = Size2D(new_width, new_height);
             match copy self.document {
                 None => {
                     // Nothing to do.

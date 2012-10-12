@@ -79,8 +79,8 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>) {
 
     let image = @layers::layers::Image(0, 0, layers::layers::RGB24Format, ~[]);
     let image_layer = @layers::layers::ImageLayer(image);
-    image_layer.common.set_transform
-        (image_layer.common.transform.scale(&800.0f32, &600.0f32, &1.0f32));
+    let original_layer_transform = image_layer.common.transform;
+    image_layer.common.set_transform(original_layer_transform.scale(&800.0f32, &600.0f32, &1f32));
 
     let scene = @layers::scene::Scene(layers::layers::ImageLayerKind(image_layer),
                                           Size2D(800.0f32, 600.0f32));
@@ -105,10 +105,21 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>) {
                 return_surface(surfaces, dt);
                 lend_surface(surfaces, sender);
 
+                let width = surfaces.front.layer_buffer.size.width as uint;
+                let height = surfaces.front.layer_buffer.size.height as uint;
+
                 let buffer = surfaces.front.layer_buffer.cairo_surface.data();
-                let image = @layers::layers::Image(800, 600, layers::layers::ARGB32Format,
+                let image = @layers::layers::Image(width, height, layers::layers::ARGB32Format,
 												   buffer);
                 image_layer.set_image(image);
+                image_layer.common.set_transform(original_layer_transform.scale(&(width as f32),
+                                                                                &(height as f32),
+                                                                                &1.0f32));
+
+                // FIXME: Cross-crate struct mutability is broken.
+                let size: &mut Size2D<f32>;
+                unsafe { size = cast::transmute(&scene.size); }
+                *size = Size2D(width as f32, height as f32);
               }
               Exit => {
                 *done = true;
@@ -124,7 +135,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>) {
 
                 #debug("osmain: window resized to %d,%d", width as int, height as int);
                 for event_listeners.each |event_listener| {
-                    event_listener.send(ResizeEvent(width as int, height as int));
+                    event_listener.send(ResizeEvent(width as uint, height as uint));
                 }
             }
 
@@ -206,9 +217,7 @@ fn return_surface(surfaces: &SurfaceSet, layer_buffer: LayerBuffer) {
     assert surfaces.front.have;
     assert !surfaces.back.have;
 
-    // FIXME: This is incompatible with page resizing.
-    assert surfaces.back.layer_buffer.draw_target.azure_draw_target ==
-        layer_buffer.draw_target.azure_draw_target;
+    surfaces.back.layer_buffer = move layer_buffer;
 
     // Now we have it again
     surfaces.back.have = true;
