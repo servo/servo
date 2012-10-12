@@ -3,6 +3,7 @@ use font::{Font, test_font_bin};
 
 struct FontCache {
     native_lib: native::NativeFontCache,
+    mut cached_font: Option<@Font>,
 
     drop {
         native::destroy_native_lib(&self.native_lib);
@@ -11,9 +12,15 @@ struct FontCache {
 
 impl FontCache {
     fn get_font(@self) -> @Font {
-        match create_font(self, &self.native_lib) {
-          Ok(font) => font,
-          Err(*) => /* FIXME */ fail
+        match self.cached_font {
+            Some(font) => font,
+            None => match create_font(self, &self.native_lib) {
+                Ok(font) => {
+                    self.cached_font = Some(font);
+                    font
+                }
+                Err(*) => /* FIXME */ fail
+            }
         }
     }
 
@@ -24,7 +31,8 @@ impl FontCache {
 
 fn FontCache() -> @FontCache {
     @FontCache {
-        native_lib: native::create_native_lib()
+        native_lib: native::create_native_lib(),
+        cached_font: None
     }
 }
 
