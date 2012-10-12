@@ -131,7 +131,7 @@ impl Layout {
             BuildMsg(node, styles, doc_url, to_content, window_size) => {
                 debug!("layout: received layout request for: %s", doc_url.to_str());
                 debug!("layout: parsed Node tree");
-                node.dump();
+                //node.dump();
 
                 let screen_size = Size2D(au::from_px(window_size.width as int),
                                          au::from_px(window_size.height as int));
