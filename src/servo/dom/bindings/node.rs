@@ -74,7 +74,7 @@ fn NodeBundle(n: Node, s: NodeScope) -> NodeBundle {
 }
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<NodeBundle> {
-    let val = JS_GetReservedSlot(obj, 0);
+    let val = js::GetReservedSlot(obj, 0);
     cast::reinterpret_cast(&JSVAL_TO_PRIVATE(val))
 }
 
