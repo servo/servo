@@ -40,7 +40,7 @@ serve as the starting point, but the current design doesn't make it
 hard to try out that alternative.
 */
 
-type BoxRange = {start: u8, len: u8};
+type BoxRange = {mut start: u16, mut len: u16};
 type NodeRange = {node: Node, span: BoxRange};
 
 // stack-allocated object for scanning an inline flow into
@@ -139,7 +139,8 @@ impl TextRunScanner {
                            in_boxes: &[@RenderBox], out_boxes: &DVec<@RenderBox>) {
         assert self.in_clump;
 
-        debug!("TextRunScanner: flushing boxes when start=%?,end=%?", self.clump_start, self.clump_end);
+        debug!("TextRunScanner: flushing boxes when start=%?,end=%?",
+               self.clump_start, self.clump_end);
 
         let is_singleton = (self.clump_start == self.clump_end);
         let is_text_clump = match in_boxes[self.clump_start] {
@@ -147,7 +148,6 @@ impl TextRunScanner {
             _ => false
         };
 
-        do self.flow.inline().elems.borrow |_node_map: &[NodeRange]| {
         // TODO: repair the mapping of DOM elements to boxes if it changed.
         // (the mapping does not yet exist; see Issue #103)
         match (is_singleton, is_text_clump) {
@@ -165,25 +165,105 @@ impl TextRunScanner {
                 // TODO: use actual font for corresponding DOM node to create text run.
                 let run = @TextRun(&*ctx.font_cache.get_test_font(), move transformed_text);
                 let box_guts = TextBoxData(run, 0, run.text.len());
-                debug!("TextRunScanner: pushing single text box when start=%u,end=%u", self.clump_start, self.clump_end);
+                debug!("TextRunScanner: pushing single text box when start=%u,end=%u",
+                       self.clump_start, self.clump_end);
                 out_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
             },
             (false, true) => {
-                let mut run_str : ~str = ~"";
-                // TODO: is using ropes to construct the merged text any faster?
-                do uint::range(self.clump_start, self.clump_end+1) |i| {
-                    run_str = str::append(copy run_str, in_boxes[i].raw_text()); true
+                // TODO: use actual CSS 'white-space' property of relevant style.
+                let compression = CompressWhitespaceNewline;
+                let clump_box_count = self.clump_end - self.clump_start + 1;
+
+                // first, transform/compress text of all the nodes
+                let transformed_strs : ~[~str] = vec::from_fn(clump_box_count, |i| {
+                    // TODO: we shoud be passing compression context
+                    // between calls to transform_text, so that boxes
+                    // starting/ending with whitespace &c can be
+                    // compressed correctly w.r.t. the TextRun.
+                    let idx = i + self.clump_start;
+                    transform_text(in_boxes[idx].raw_text(), compression)
+                });
+
+                // then, fix NodeRange mappings to account for elided boxes.
+                do self.flow.inline().elems.borrow |ranges: &[NodeRange]| {
+                    for ranges.each |range: &NodeRange| {
+                        debug!("TextRunScanner: repairing element range %?", range);
+                        let span = &range.span;
+                        match relation_of_clump_and_range(span, self.clump_start, self.clump_end) {
+                            RangeEntirelyBeforeClump => {},
+                            RangeEntirelyAfterClump => { span.start -= clump_box_count as u16; },
+                            RangeCoincidesClump | RangeContainedByClump => 
+                                                       { span.start  = self.clump_start as u16;
+                                                         span.len    = 1 },
+                            RangeContainsClump =>      { span.len   -= clump_box_count as u16; },
+                            RangeOverlapsClumpStart(overlap) => 
+                                                       { span.len   -= (overlap - 1) as u16; },
+                            RangeOverlapsClumpEnd(overlap) => 
+                                                       { span.start  = self.clump_start as u16;
+                                                         span.len   -= (overlap - 1) as u16; }
+                        }
+                        debug!("TextRunScanner: new element range: ---- %?", range);
+                    }
                 }
+
+                // TODO: use a rope, simply give ownership of  nonzero strs to rope
+                let mut run_str : ~str = ~"";
+                for uint::range(0, transformed_strs.len()) |i| {
+                    str::push_str(&run_str, transformed_strs[i]);
+                }
+                
                 // TODO: use actual font for corresponding DOM node to create text run.
                 let run = @TextRun(&*ctx.font_cache.get_test_font(), move run_str);
                 let box_guts = TextBoxData(run, 0, run.text.len());
-                debug!("TextRunScanner: pushing box(es) when start=%?,end=%?", self.clump_start, self.clump_end);
+                debug!("TextRunScanner: pushing box(es) when start=%?,end=%?",
+                       self.clump_start, self.clump_end);
                 out_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
             }
-        }
+        } /* /match */
         self.in_clump = false;
+    
+        enum ClumpRangeRelation {
+            RangeOverlapsClumpStart(/* overlap */ uint),
+            RangeOverlapsClumpEnd(/* overlap */ uint),
+            RangeContainedByClump,
+            RangeContainsClump,
+            RangeCoincidesClump,
+            RangeEntirelyBeforeClump,
+            RangeEntirelyAfterClump
         }
-    }
+        
+        fn relation_of_clump_and_range(range: &BoxRange, clump_start: uint, 
+                                       clump_end: uint) -> ClumpRangeRelation {
+            let range_start = range.start as uint;
+            let range_end = (range.start + range.len) as uint;
+
+            if range_end < clump_start {
+                return RangeEntirelyBeforeClump;
+            } 
+            if range_start > clump_end {
+                return RangeEntirelyAfterClump;
+            }
+            if range_start == clump_start && range_end == clump_end {
+                return RangeCoincidesClump;
+            }
+            if range_start <= clump_start && range_end >= clump_end {
+                return RangeContainsClump;
+            }
+            if range_start >= clump_start && range_end <= clump_end {
+                return RangeContainedByClump;
+            }
+            if range_start < clump_start && range_end < clump_end {
+                let overlap = range_end - clump_start;
+                return RangeOverlapsClumpStart(overlap);
+            }
+            if range_start > clump_start && range_end > clump_end {
+                let overlap = clump_end - range_start;
+                return RangeOverlapsClumpEnd(overlap);
+            }
+            fail fmt!("relation_of_clump_and_range(): didn't classify range=%?, clump_start=%u, clump_end=%u",
+                      range, clump_start, clump_end);
+        }
+    } /* /fn flush_clump_to_list */
 }
 
 struct InlineFlowData {

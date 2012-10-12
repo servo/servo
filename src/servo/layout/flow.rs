@@ -180,8 +180,8 @@ impl BoxConsumer {
                 assert final_span_length > 1;
                 let mapping = { node: copy box.d().node, 
                                span: { 
-                                   start: entry.start_idx as u8, 
-                                   len: final_span_length as u8
+                                   mut start: entry.start_idx as u16, 
+                                   mut len: final_span_length as u16
                                }
                               };
                 debug!("BoxConsumer: adding element range=%?", mapping.span);
