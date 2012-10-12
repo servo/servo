@@ -30,7 +30,7 @@ use text::font_cache::FontCache;
 pub type Renderer = comm::Chan<Msg>;
 
 pub enum Msg {
-    RenderMsg(dl::DisplayList),
+    RenderMsg(RenderLayer),
     ExitMsg(pipes::Chan<()>)
 }
 
@@ -60,7 +60,7 @@ pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
 
         loop {
             match po.recv() {
-                RenderMsg(move display_list) => {
+                RenderMsg(move render_layer) => {
                     #debug("renderer: got render request");
                     let layer_buffer_cell = Cell(layer_buffer_port.recv());
 
@@ -68,18 +68,13 @@ pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
                     let layer_buffer_channel = Cell(move layer_buffer_channel);
                     layer_buffer_port = new_layer_buffer_port;
 
-                    let display_list = Cell(move display_list);
+                    let render_layer = Cell(move render_layer);
 
                     #debug("renderer: rendering");
 
                     do util::time::time(~"rendering") {
                         let layer_buffer = layer_buffer_cell.take();
-                        let display_list = move display_list.take();
-
-                        let render_layer = RenderLayer {
-                            display_list: move display_list,
-                            size: Size2D(800u, 600u)
-                        };
+                        let render_layer = move render_layer.take();
 
                         let layer_buffer =
                                 for render_layers::render_layers(&render_layer, move layer_buffer)

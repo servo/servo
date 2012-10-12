@@ -16,6 +16,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::render_task;
+use gfx::render_layers::RenderLayer;
 use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
@@ -166,10 +167,16 @@ impl Layout {
                     let builder = dl::DisplayListBuilder {
                         ctx: &layout_ctx,
                     };
+                    let render_layer = RenderLayer {
+                        display_list: move dlist,
+                        size: Size2D(800u, 600u)
+                    };
+
                     // TODO: set options on the builder before building
                     // TODO: be smarter about what needs painting
-                    layout_root.build_display_list(&builder, &copy layout_root.d().position, &dlist);
-                    self.render_task.send(render_task::RenderMsg(dlist));
+                    layout_root.build_display_list(&builder, &copy layout_root.d().position,
+                                                   &render_layer.display_list);
+                    self.render_task.send(render_task::RenderMsg(move render_layer));
                 } // time(layout)
             } // BuildMsg
         } // match

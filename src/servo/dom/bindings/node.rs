@@ -5,9 +5,9 @@ use js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSP
 use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
                             JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate};
+use js::jsval::{INT_TO_JSVAL, JSVAL_TO_PRIVATE};
 use js::jsapi::bindgen::*;
 use js::glue::bindgen::*;
-use js::jsval::{INT_TO_JSVAL, JSVAL_TO_PRIVATE};
 
 use dom::node::{Node, NodeScope, Text, Doctype, Comment, Element};
 use utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval, str};

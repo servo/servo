@@ -29,6 +29,7 @@ use std::cell::Cell;
 use core::io::BytesWriter;
 use gfx::render_task::LayerBuffer;
 use geom::size::Size2D;
+use gfx::render_layers::RenderLayer;
 
 pub type PngCompositor = Chan<Msg>;
 
@@ -92,6 +93,7 @@ fn sanity_check() {
         let renderer = RenderTask(compositor);
 
         let dlist : DisplayList = DVec();
+        let render_layer = RenderLayer { display_list: move dlist, size: Size2D(800u, 600u) };
         renderer.send(RenderMsg(dlist));
         let (exit_chan, exit_response_from_engine) = pipes::stream();
         renderer.send(render_task::ExitMsg(exit_chan));
