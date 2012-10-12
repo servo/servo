@@ -44,8 +44,7 @@ impl LayoutTreeBuilder {
     fn construct_recursively(layout_ctx: &LayoutContext, cur_node: Node, parent_ctx: &BuilderContext) {
         let style = cur_node.style();
         // DEBUG
-        let n_str = fmt!("%?", cur_node.read(|n| copy n.kind ));
-        debug!("Considering node: %?", n_str);
+        debug!("Considering node: %?", fmt!("%?", cur_node.read(|n| copy n.kind )));
 
         // TODO: remove this once UA styles work
         // TODO: handle interactions with 'float', 'position' (CSS 2.1, Section 9.7)
