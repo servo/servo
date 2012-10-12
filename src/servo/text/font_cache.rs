@@ -2,10 +2,6 @@ export FontCache, native;
 use font::{Font, test_font_bin};
 
 struct FontCache {
-    // FIXME: This is a hack to hold onto a boxed reference to
-    // the self pointer until explicit self types work on methods.
-    // This is a huge space leak.
-    mut at_self: Option<@FontCache>,
     native_lib: native::NativeFontCache,
 
     drop {
@@ -14,27 +10,22 @@ struct FontCache {
 }
 
 impl FontCache {
-    fn get_font() -> @Font {
-        assert self.at_self.is_some();
-        match create_font(self.at_self.get(), &self.native_lib) {
+    fn get_font(@self) -> @Font {
+        match create_font(self, &self.native_lib) {
           Ok(font) => font,
           Err(*) => /* FIXME */ fail
         }
     }
 
-    fn get_test_font() -> @Font {
+    fn get_test_font(@self) -> @Font {
         self.get_font()
     }
 }
 
 fn FontCache() -> @FontCache {
-    let lib = @FontCache {
-        mut at_self: None,
+    @FontCache {
         native_lib: native::create_native_lib()
-    };
-
-    lib.at_self = Some(lib);
-    return lib;
+    }
 }
 
 fn create_font(lib: @FontCache, native_lib: &native::NativeFontCache) -> Result<@Font, ()> {
