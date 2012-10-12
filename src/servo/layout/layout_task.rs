@@ -131,7 +131,7 @@ impl Layout {
             BuildMsg(node, styles, doc_url, to_content, window_size) => {
                 debug!("layout: received layout request for: %s", doc_url.to_str());
                 debug!("layout: parsed Node tree");
-                //node.dump();
+                debug!("%?", node.dump());
 
                 let screen_size = Size2D(au::from_px(window_size.width as int),
                                          au::from_px(window_size.height as int));
@@ -144,7 +144,7 @@ impl Layout {
                     screen_size: Rect(Point2D(au(0), au(0)), screen_size)
                 };
 
-                do util::time::time(~"layout") {
+                let layout_root: @FlowContext = do util::time::time("layout: tree construction") {
                     // TODO: this is dumb. we don't need 3 separate traversals.
                     node.initialize_style_for_subtree(&layout_ctx, &self.layout_refs);
                     node.recompute_style_for_subtree(&layout_ctx, &styles);
@@ -159,13 +159,19 @@ impl Layout {
                     };
 
                     debug!("layout: constructed Flow tree");
-                    layout_root.dump();
+                    debug!("%?", layout_root.dump());
 
+                    layout_root
+                };
+
+                do util::time::time("layout: main layout") {
                     /* perform layout passes over the flow tree */
                     do layout_root.traverse_postorder |f| { f.bubble_widths(&layout_ctx) }
                     do layout_root.traverse_preorder  |f| { f.assign_widths(&layout_ctx) }
                     do layout_root.traverse_postorder |f| { f.assign_height(&layout_ctx) }
+                }
 
+                do util::time::time("layout: display list building") {
                     let dlist = DVec();
                     let builder = dl::DisplayListBuilder {
                         ctx: &layout_ctx,
@@ -181,7 +187,7 @@ impl Layout {
                     layout_root.build_display_list(&builder, &copy layout_root.d().position,
                                                    &render_layer.display_list);
                     self.render_task.send(render_task::RenderMsg(move render_layer));
-                } // time(layout)
+                } // time(layout: display list building)
             } // BuildMsg
         } // match
 
