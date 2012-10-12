@@ -1,3 +1,4 @@
+use core::util::replace;
 use image::base::{Image, load_from_memory, test_image_bin};
 use std::net::url::Url;
 use util::url::{make_url, UrlMap, url_map};
@@ -15,6 +16,7 @@ pub enum Msg {
     /// before Decode
     pub Prefetch(Url),
 
+    // FIXME: We can probably get rid of this Cell now
     /// Used be the prefetch tasks to post back image binaries
     priv StorePrefetchedImageData(Url, Result<Cell<~[u8]>, ()>),
 
@@ -104,13 +106,13 @@ fn SyncImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
         loop {
             let msg = from_client.recv();
 
-            match msg {
-              GetImage(url, response) => inner_cache.send(WaitForImage(copy url, response)),
-              Exit(response) => {
+            match move msg {
+              GetImage(move url, move response) => inner_cache.send(WaitForImage(url, response)),
+              Exit(move response) => {
                 inner_cache.send(Exit(response));
                 break;
               }
-              _ => inner_cache.send(msg)
+              move msg => inner_cache.send(msg)
             }
         }
     }
@@ -158,23 +160,24 @@ impl ImageCache {
 
             #debug("image_cache_task: received: %?", msg);
 
-            // FIXME: Need to move out the urls
-            match msg {
-              Prefetch(url) => self.prefetch(copy url),
-              StorePrefetchedImageData(url, data) => self.store_prefetched_image_data(copy url, &data),
-              Decode(url) => self.decode(copy url),
-              StoreImage(url, image) => self.store_image(copy url, &image),
-              GetImage(url, response) => self.get_image(copy url, response),
-              WaitForImage(url, response) => self.wait_for_image(copy url, response),
-              OnMsg(handler) => msg_handlers += [copy handler],
-              Exit(response) => {
+            match move msg {
+              Prefetch(move url) => self.prefetch(url),
+              StorePrefetchedImageData(move url, move data) => self.store_prefetched_image_data(url, data),
+              Decode(move url) => self.decode(url),
+              StoreImage(move url, move image) => self.store_image(url, image),
+              GetImage(move url, move response) => self.get_image(url, response),
+              WaitForImage(move url, move response) => self.wait_for_image(url, response),
+              OnMsg(move handler) => msg_handlers += [copy handler],
+              Exit(move response) => {
                 assert self.need_exit.is_none();
                 self.need_exit = Some(response);
               }
             }
 
-            match copy self.need_exit {
-              Some(response) => {
+            let need_exit = replace(&mut self.need_exit, None);
+
+            match move need_exit {
+              Some(move response) => {
                 // Wait until we have no outstanding requests and subtasks
                 // before exiting
                 let mut can_exit = true;
@@ -193,6 +196,8 @@ impl ImageCache {
                 if can_exit {
                     response.send(());
                     break;
+                } else {
+                    self.need_exit = Some(move response);
                 }
               }
               None => ()
@@ -246,10 +251,10 @@ impl ImageCache {
         }
     }
 
-    priv fn store_prefetched_image_data(url: Url, data: &Result<Cell<~[u8]>, ()>) {
+    priv fn store_prefetched_image_data(url: Url, data: Result<Cell<~[u8]>, ()>) {
         match self.get_state(copy url) {
           Prefetching(next_step) => {
-            match *data {
+            match data {
               Ok(data_cell) => {
                 let data = data_cell.take();
                 self.set_state(copy url, Prefetched(@Cell(data)));
@@ -321,11 +326,11 @@ impl ImageCache {
         }
     }
 
-    priv fn store_image(url: Url, image: &Option<ARC<~Image>>) {
+    priv fn store_image(url: Url, image: Option<ARC<~Image>>) {
 
         match self.get_state(copy url) {
           Decoding => {
-            match *image {
+            match image {
               Some(image) => {
                 self.set_state(copy url, Decoded(@clone_arc(&image)));
                 self.purge_waiters(url, || ImageReady(clone_arc(&image)) );
