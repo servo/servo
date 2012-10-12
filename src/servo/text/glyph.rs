@@ -332,9 +332,9 @@ impl DetailedGlyphStore {
                 None => fail ~"Invalid index not found in detailed glyph lookup table!",
                 Some(i) => {
                     do self.detail_buffer.borrow |glyphs : &[DetailedGlyph]| {
-                        assert i + (count as uint)  < glyphs.len();
+                        assert i + (count as uint)  <= glyphs.len();
                         // return a view into the buffer
-                        vec::view(glyphs, i, count as uint)
+                        vec::view(glyphs, i, i + count as uint)
                     }
                 }
             }
