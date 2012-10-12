@@ -98,7 +98,7 @@ fn sanity_check() {
 
         let dlist : DisplayList = DVec();
         let render_layer = RenderLayer { display_list: move dlist, size: Size2D(800u, 600u) };
-        renderer.send(RenderMsg(dlist));
+        renderer.send(RenderMsg(render_layer));
         let (exit_chan, exit_response_from_engine) = pipes::stream();
         renderer.send(render_task::ExitMsg(exit_chan));
         exit_response_from_engine.recv();
