@@ -289,7 +289,7 @@ mod test {
         let iter1 = 3u;
         let iter2 = 22u;
         let read_port = comm::Port();
-        let read_chan = comm::Chan(read_port);
+        let read_chan = comm::Chan(&read_port);
 
         // fire up a reader task
         for uint::range(0u, iter1) |i| {
