@@ -78,17 +78,17 @@ impl ImageHolder {
                 None => fail ~"expected to have a url"
             };
 
-            let response_port = Port();
-            self.image_cache_task.send(image_cache_task::GetImage(copy url, response_port.chan()));
+            let (response_chan, response_port) = pipes::stream();
+            self.image_cache_task.send(image_cache_task::GetImage(copy url, response_chan));
             self.image = match response_port.recv() {
               image_cache_task::ImageReady(image) => Some(clone(&image)),
               image_cache_task::ImageNotReady => {
                 // Need to reflow when the image is available
-                let image_cache_task = self.image_cache_task;
+                let image_cache_task = self.image_cache_task.clone();
                 let reflow = copy self.reflow_cb;
                 do task::spawn |copy url, move reflow| {
-                    let response_port = Port();
-                    image_cache_task.send(image_cache_task::WaitForImage(copy url, response_port.chan()));
+                    let (response_chan, response_port) = pipes::stream();
+                    image_cache_task.send(image_cache_task::WaitForImage(copy url, response_chan));
                     match response_port.recv() {
                       image_cache_task::ImageReady(*) => reflow(),
                       image_cache_task::ImageNotReady => fail /*not possible*/,

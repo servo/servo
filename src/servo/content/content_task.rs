@@ -66,7 +66,7 @@ fn ContentTask<S: Compositor Send Copy>(layout_task: LayoutTask,
                                         resource_task: ResourceTask,
                                         img_cache_task: ImageCacheTask) -> ContentTask {
     do task().sched_mode(SingleThreaded).spawn_listener::<ControlMsg> |from_master| {
-        let content = Content(layout_task, from_master, resource_task, img_cache_task);
+        let content = Content(layout_task, from_master, resource_task, img_cache_task.clone());
         compositor.add_event_listener(content.event_port.chan());
         content.start();
     }
@@ -164,7 +164,7 @@ impl Content {
             let result = html::hubbub_html_parser::parse_html(self.scope,
                                                               copy url,
                                                               self.resource_task,
-                                                              self.image_cache_task);
+                                                              self.image_cache_task.clone());
 
             let root = result.root;
             let css_rules = result.style_port.recv();

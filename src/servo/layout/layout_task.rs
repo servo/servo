@@ -53,7 +53,7 @@ pub enum Msg {
 fn LayoutTask(render_task: RenderTask,
               img_cache_task: ImageCacheTask) -> LayoutTask {
     do spawn_listener::<Msg> |from_content| {
-        Layout(render_task, img_cache_task, from_content).start();
+        Layout(render_task, img_cache_task.clone(), from_content).start();
     }
 }
 
@@ -137,7 +137,7 @@ impl Layout {
                                          au::from_px(window_size.height as int));
 
                 let layout_ctx = LayoutContext {
-                    image_cache: self.image_cache_task,
+                    image_cache: self.image_cache_task.clone(),
                     font_cache: self.font_cache,
                     doc_url: doc_url,
                     reflow_cb: || to_content.send(ReflowEvent),

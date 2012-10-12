@@ -42,13 +42,12 @@ fn run_pipeline_screen(urls: &[~str]) {
     // Create a servo instance
     let resource_task = ResourceTask();
     let image_cache_task = ImageCacheTask(resource_task);
-    let engine = Engine(osmain, resource_task, image_cache_task);
-    let engine_chan = engine.start();
+    let engine_task = Engine(osmain, resource_task, image_cache_task);
 
     for urls.each |filename| {
         let url = make_url(copy *filename, None);
         #debug["master: Sending url `%s`", url.to_str()];
-        engine_chan.send(LoadURLMsg(url));
+        engine_task.send(LoadURLMsg(url));
         #debug["master: Waiting for keypress"];
 
         match keypress_from_osmain.try_recv() {
@@ -60,7 +59,7 @@ fn run_pipeline_screen(urls: &[~str]) {
     // Shut everything down
     #debug["master: Shut down"];
     let (exit_chan, exit_response_from_engine) = pipes::stream();
-    engine_chan.send(engine::ExitMsg(exit_chan));
+    engine_task.send(engine::ExitMsg(exit_chan));
     exit_response_from_engine.recv();
 
     osmain.send(osmain::Exit);
@@ -81,8 +80,7 @@ fn run_pipeline_png(url: ~str, outfile: &str) {
         // fulfilled before the first paint.
         let image_cache_task = SyncImageCacheTask(resource_task);
         let engine_task = Engine(compositor, resource_task, image_cache_task);
-        let engine_chan = engine_task.start();
-        engine_chan.send(LoadURLMsg(make_url(copy url, None)));
+        engine_task.send(LoadURLMsg(make_url(copy url, None)));
 
         match buffered_file_writer(&Path(outfile)) {
           Ok(writer) => writer.write(pngdata_from_compositor.recv()),
@@ -90,7 +88,7 @@ fn run_pipeline_png(url: ~str, outfile: &str) {
         }
 
         let (exit_chan, exit_response_from_engine) = pipes::stream();
-        engine_chan.send(engine::ExitMsg(exit_chan));
+        engine_task.send(engine::ExitMsg(exit_chan));
         exit_response_from_engine.recv();
         compositor.send(png_compositor::Exit);
     })

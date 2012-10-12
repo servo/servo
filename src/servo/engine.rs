@@ -13,7 +13,15 @@ use resource::image_cache_task;
 use image_cache_task::{ImageCacheTask, image_cache_task, ImageCacheTaskClient};
 use pipes::{Port, Chan};
 
-pub struct Engine<C:Compositor Send Copy> {
+pub type EngineTask = comm::Chan<Msg>;
+
+pub enum Msg {
+    LoadURLMsg(Url),
+    ExitMsg(Chan<()>)
+}
+
+struct Engine<C:Compositor Send Copy> {
+    request_port: comm::Port<Msg>,
     compositor: C,
     render_task: Renderer,
     resource_task: ResourceTask,
@@ -22,29 +30,30 @@ pub struct Engine<C:Compositor Send Copy> {
     content_task: ContentTask
 }
 
-pub fn Engine<C:Compositor Send Copy>(compositor: C,
-                                      resource_task: ResourceTask,
-                                      image_cache_task: ImageCacheTask) -> Engine<C> {
-    let render_task = RenderTask(compositor);
-    let layout_task = LayoutTask(render_task, image_cache_task);
-    let content_task = ContentTask(layout_task, compositor, resource_task, image_cache_task);
+fn Engine<C:Compositor Send Copy>(compositor: C,
+                                  resource_task: ResourceTask,
+                                  image_cache_task: ImageCacheTask) -> EngineTask {
+    do spawn_listener::<Msg> |request| {
+        let render_task = RenderTask(compositor);
+        let layout_task = LayoutTask(render_task, image_cache_task.clone());
+        let content_task = ContentTask(layout_task, compositor, resource_task, image_cache_task.clone());
 
-    Engine {
-        compositor: compositor,
-        render_task: render_task,
-        resource_task: resource_task,
-        image_cache_task: image_cache_task,
-        layout_task: layout_task,
-        content_task: content_task
+        Engine {
+            request_port: request,
+            compositor: compositor,
+            render_task: render_task,
+            resource_task: resource_task,
+            image_cache_task: image_cache_task,
+            layout_task: layout_task,
+            content_task: content_task
+        }.run();
     }
 }
 
 impl<C: Compositor Copy Send> Engine<C> {
-    fn start() -> comm::Chan<Msg> {
-        do spawn_listener::<Msg> |request| {
-            while self.handle_request(request.recv()) {
-                // Go on...
-            }
+    fn run() {
+        while self.handle_request(self.request_port.recv()) {
+            // Go on...
         }
     }
 
@@ -78,10 +87,5 @@ impl<C: Compositor Copy Send> Engine<C> {
           }
         }
     }
-}
-
-pub enum Msg {
-    LoadURLMsg(Url),
-    ExitMsg(Chan<()>)
 }
 
