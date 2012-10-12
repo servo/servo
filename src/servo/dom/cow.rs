@@ -73,7 +73,6 @@ struct ScopeResource<T:Send,A> {
     d : ScopeData<T,A>,
 
     drop unsafe {
-        error!("dropp!");
         for self.d.free_list.each |h| { free_handle(*h); }
     }
 }
