@@ -55,7 +55,11 @@ pub fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
     do spawn_listener |po: Port<Msg>| {
         let cairo_surface = ImageSurface(CAIRO_FORMAT_ARGB32, 800, 600);
         let draw_target = DrawTarget(&cairo_surface);
-        let layer_buffer = LayerBuffer { draw_target: move draw_target, size: Size2D(800u, 600u) };
+        let layer_buffer = LayerBuffer {
+            cairo_surface: cairo_surface.clone(),
+            draw_target: move draw_target,
+            size: Size2D(800u, 600u)
+        };
         let layer_buffer = Cell(move layer_buffer);
 
         loop {

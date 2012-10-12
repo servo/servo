@@ -105,7 +105,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>) {
                 return_surface(surfaces, dt);
                 lend_surface(surfaces, sender);
 
-                let buffer = surfaces.front.cairo_surface.data();
+                let buffer = surfaces.front.layer_buffer.cairo_surface.data();
                 let image = @layers::layers::Image(800, 600, layers::layers::ARGB32Format,
 												   buffer);
                 image_layer.set_image(image);
@@ -186,6 +186,7 @@ fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBuffer>) {
     // Ok then take it
     let draw_target_ref = &mut surfaces.front.layer_buffer.draw_target;
     let layer_buffer = LayerBuffer {
+        cairo_surface: surfaces.front.layer_buffer.cairo_surface.clone(),
         draw_target: azure_hl::clone_mutable_draw_target(draw_target_ref),
         size: copy surfaces.front.layer_buffer.size
     };
@@ -218,7 +219,6 @@ fn SurfaceSet() -> SurfaceSet {
 }
 
 struct Surface {
-    cairo_surface: ImageSurface,
     layer_buffer: LayerBuffer,
     mut have: bool,
 }
@@ -226,8 +226,12 @@ struct Surface {
 fn Surface() -> Surface {
     let cairo_surface = ImageSurface(cairo::CAIRO_FORMAT_RGB24, 800, 600);
     let draw_target = DrawTarget(&cairo_surface);
-    let layer_buffer = LayerBuffer { draw_target: move draw_target, size: Size2D(800u, 600u) };
-    Surface { cairo_surface: cairo_surface, layer_buffer: move layer_buffer, have: true }
+    let layer_buffer = LayerBuffer {
+        cairo_surface: move cairo_surface,
+        draw_target: move draw_target,
+        size: Size2D(800u, 600u)
+    };
+    Surface { layer_buffer: move layer_buffer, have: true }
 }
 
 /// A function for spawning into the platform's main thread

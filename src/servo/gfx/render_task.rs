@@ -4,6 +4,7 @@ use au = gfx::geometry;
 use au::au;
 use azure::bindgen::AzDrawTargetFillGlyphs;
 use azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
+use azure::cairo_hl::ImageSurface;
 use azure::{AzDrawOptions, AzFloat, AzGlyph, AzGlyphBuffer};
 use azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions};
 use azure_hl::{DrawTarget, Linear};
@@ -35,6 +36,10 @@ pub enum Msg {
 }
 
 struct LayerBuffer {
+    // TODO: We should not be coupled to Cairo this tightly. Instead we should pull the buffer out
+    // of the draw target with the Azure API.
+    cairo_surface: ImageSurface,
+
     draw_target: DrawTarget,
     size: Size2D<uint>
 }

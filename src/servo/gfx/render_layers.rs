@@ -27,7 +27,11 @@ pub fn render_layers(layer: &RenderLayer,
                                          layer.size.width as c_int,
                                          layer.size.height as c_int);
         let draw_target = DrawTarget(&cairo_surface);
-        buffer = LayerBuffer { draw_target: move draw_target, size: copy layer.size };
+        buffer = LayerBuffer {
+            cairo_surface: move cairo_surface,
+            draw_target: move draw_target,
+            size: copy layer.size
+        };
     }
 
     let _ = f(layer, &buffer);
