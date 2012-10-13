@@ -569,7 +569,7 @@ fn should_fail_if_requesting_image_before_requesting_decode() {
     image_cache_task.send(Prefetch(copy url));
     // no decode message
 
-    let (chan, port) = stream();
+    let (chan, _port) = stream();
     image_cache_task.send(GetImage(url, chan));
 
     image_cache_task.exit();

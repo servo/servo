@@ -117,6 +117,7 @@ pub mod resource {
     pub mod file_loader;
     pub mod http_loader;
     pub mod image_cache_task;
+    pub mod local_image_cache;
 }
 
 pub mod util {
