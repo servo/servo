@@ -4,50 +4,104 @@ extra message traffic, it also avoids waiting on the same image
 multiple times and thus triggering reflows multiple times.
 */
 
+use clone_arc = std::arc::clone;
 use std::net::url::Url;
 use pipes::{Port, Chan, stream};
-use image_cache_task::{ImageCacheTask, ImageResponseMsg, Prefetch, Decode, GetImage, WaitForImage};
+use image_cache_task::{ImageCacheTask, ImageResponseMsg, Prefetch, Decode, GetImage, WaitForImage, ImageReady, ImageNotReady, ImageFailed};
+use util::url::{UrlMap, url_map};
 
 pub fn LocalImageCache(
     image_cache_task: ImageCacheTask
 ) -> LocalImageCache {
     LocalImageCache {
         image_cache_task: image_cache_task,
-        round_number: 0,
-        mut on_image_available: None
+        round_number: 1,
+        mut on_image_available: None,
+        state_map: url_map()
     }
 }
 
 pub struct LocalImageCache {
     priv image_cache_task: ImageCacheTask,
     priv mut round_number: uint,
-    priv mut on_image_available: Option<~fn(ImageResponseMsg)>
+    priv mut on_image_available: Option<~fn(ImageResponseMsg)>,
+    priv state_map: UrlMap<@ImageState>
 }
 
+priv struct ImageState {
+    mut prefetched: bool,
+    mut decoded: bool,
+    mut last_request_round: uint,
+    mut last_response: ImageResponseMsg
+}
+
+#[allow(non_implicitly_copyable_typarams)] // Using maps of Urls
 pub impl LocalImageCache {
     /// The local cache will only do a single remote request for a given
     /// URL in each 'round'. Layout should call this each time it begins
-    fn next_round(on_image_available: ~fn(ImageResponseMsg)) {
+    // FIXME: 'pub' is an unexpected token?
+    /* pub */ fn next_round(on_image_available: ~fn(ImageResponseMsg)) {
         self.round_number += 1;
         self.on_image_available = Some(move on_image_available);
     }
 
-    fn prefetch(url: &Url) {
-        self.image_cache_task.send(Prefetch(copy *url));
+    pub fn prefetch(url: &Url) {
+        let state = self.get_state(url);
+        if !state.prefetched {
+            self.image_cache_task.send(Prefetch(copy *url));
+            state.prefetched = true;
+        }
     }
 
-    fn decode(url: &Url) {
-        self.image_cache_task.send(Decode(copy *url));
+    pub fn decode(url: &Url) {
+        let state = self.get_state(url);
+        if !state.decoded {
+            self.image_cache_task.send(Decode(copy *url));
+            state.decoded = true;
+        }
     }
 
     // FIXME: Should return a Future
-    fn get_image(url: &Url) -> Port<ImageResponseMsg> {
+    pub fn get_image(url: &Url) -> Port<ImageResponseMsg> {
+        let state = self.get_state(url);
+
+        // Save the previous round number for comparison
+        let last_round = state.last_request_round;
+        // Set the current round number for this image
+        state.last_request_round = self.round_number;
+
+        match state.last_response {
+            ImageReady(ref image) => {
+                // FIXME: appease borrowck
+                unsafe {
+                    let (chan, port) = pipes::stream();
+                    chan.send(ImageReady(clone_arc(image)));
+                    return port;
+                }
+            }
+            ImageNotReady => {
+                if last_round == self.round_number {
+                    let (chan, port) = pipes::stream();
+                    chan.send(ImageNotReady);
+                    return port;
+                } else {
+                    // We haven't requested the image from the
+                    // remote cache this round
+                }
+            }
+            ImageFailed => {
+                let (chan, port) = pipes::stream();
+                chan.send(ImageFailed);
+                return port;
+            }
+        }
+
         let (response_chan, response_port) = pipes::stream();
-        self.image_cache_task.send(image_cache_task::GetImage(copy *url, response_chan));
+        self.image_cache_task.send(GetImage(copy *url, response_chan));
 
         let response = response_port.recv();
         match response {
-            image_cache_task::ImageNotReady => {
+            ImageNotReady => {
                 // Need to reflow when the image is available
                 // FIXME: Instead we should be just passing a Future
                 // to the caller, then to the display list. Finally,
@@ -59,16 +113,40 @@ pub impl LocalImageCache {
                 let url = copy *url;
                 do task::spawn |move url, move on_image_available| {
                     let (response_chan, response_port) = pipes::stream();
-                    image_cache_task.send(image_cache_task::WaitForImage(copy url, response_chan));
+                    image_cache_task.send(WaitForImage(copy url, response_chan));
                     on_image_available(response_port.recv());
                 }
             }
             _ => ()
         }
 
+        // Put a copy of the response in the cache
+        let response_copy = match response {
+            ImageReady(ref image) => ImageReady(clone_arc(image)),
+            ImageNotReady => ImageNotReady,
+            ImageFailed => ImageFailed
+        };
+        state.last_response = move response_copy;
+
         let (chan, port) = pipes::stream();
         chan.send(response);
         return port;
+    }
+
+    priv fn get_state(url: &Url) -> @ImageState {
+        match self.state_map.find(copy *url) {
+            Some(state) => state,
+            None => {
+                let new_state = @ImageState {
+                    prefetched: false,
+                    decoded: false,
+                    last_request_round: 0,
+                    last_response: ImageNotReady
+                };
+                self.state_map.insert(copy *url, new_state);
+                self.get_state(url)
+            }
+        }
     }
 }
 
