@@ -108,7 +108,7 @@ impl TextRunScanner {
             assert !core::box::ptr_eq(a, b);
 
             match (a, b) {
-                // TODO: check whether text styles, fonts are the same.
+                // TODO(Issue #117): check whether text styles, fonts are the same.
                 (@UnscannedTextBox(*), @UnscannedTextBox(*)) => a.can_merge_with_box(b),
                 (_, _) => false
             }
@@ -148,8 +148,6 @@ impl TextRunScanner {
             _ => false
         };
 
-        // TODO: repair the mapping of DOM elements to boxes if it changed.
-        // (the mapping does not yet exist; see Issue #103)
         match (is_singleton, is_text_clump) {
             (false, false) => fail ~"WAT: can't coalesce non-text boxes in flush_clump_to_list()!",
             (true, false) => { 
@@ -159,10 +157,10 @@ impl TextRunScanner {
             },
             (true, true)  => { 
                 let text = in_boxes[self.clump_start].raw_text();
-                // TODO: use actual CSS 'white-space' property of relevant style.
+                // TODO(Issue #115): use actual CSS 'white-space' property of relevant style.
                 let compression = CompressWhitespaceNewline;
                 let transformed_text = transform_text(text, compression);
-                // TODO: use actual font for corresponding DOM node to create text run.
+                // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
                 let run = @TextRun(&*ctx.font_cache.get_test_font(), move transformed_text);
                 let box_guts = TextBoxData(run, 0, run.text.len());
                 debug!("TextRunScanner: pushing single text box when start=%u,end=%u",
@@ -170,13 +168,13 @@ impl TextRunScanner {
                 out_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
             },
             (false, true) => {
-                // TODO: use actual CSS 'white-space' property of relevant style.
+                // TODO(Issue #115): use actual CSS 'white-space' property of relevant style.
                 let compression = CompressWhitespaceNewline;
                 let clump_box_count = self.clump_end - self.clump_start + 1;
 
                 // first, transform/compress text of all the nodes
                 let transformed_strs : ~[~str] = vec::from_fn(clump_box_count, |i| {
-                    // TODO: we shoud be passing compression context
+                    // TODO(Issue #113): we shoud be passing compression context
                     // between calls to transform_text, so that boxes
                     // starting/ending with whitespace &c can be
                     // compressed correctly w.r.t. the TextRun.
@@ -206,13 +204,13 @@ impl TextRunScanner {
                     }
                 }
 
-                // TODO: use a rope, simply give ownership of  nonzero strs to rope
+                // TODO(Issue #118): use a rope, simply give ownership of  nonzero strs to rope
                 let mut run_str : ~str = ~"";
                 for uint::range(0, transformed_strs.len()) |i| {
                     str::push_str(&mut run_str, transformed_strs[i]);
                 }
                 
-                // TODO: use actual font for corresponding DOM node to create text run.
+                // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
                 let run = @TextRun(&*ctx.font_cache.get_test_font(), move run_str);
                 let box_guts = TextBoxData(run, 0, run.text.len());
                 debug!("TextRunScanner: pushing box(es) when start=%?,end=%?",
@@ -331,7 +329,7 @@ impl FlowContext : InlineLayout {
         //let mut cur_x = au(0);
         let mut cur_y = au(0);
         
-        // TODO: remove test font uses
+        // TODO(Issue #118): remove test font uses
         let test_font = ctx.font_cache.get_test_font();
         
         for self.inline().boxes.each |box| {

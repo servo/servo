@@ -23,10 +23,13 @@ impl CompressionMode : cmp::Eq {
 // ported from Gecko's nsTextFrameUtils::TransformText. 
 // 
 // High level TODOs:
-// * consider incoming text state (preceding spaces, arabic, etc)
-// * send outgoing text state (dual of above)
-// * record skipped and kept chars for mapping original to new text
-// * various edge cases for bidi, CJK, combining char seqs, etc.
+//
+// * Issue #113: consider incoming text state (preceding spaces, arabic, etc)
+//               and propogate outgoing text state (dual of above) 
+//
+// * Issue #114: record skipped and kept chars for mapping original to new text
+//
+// * Untracked: various edge cases for bidi, CJK, etc.
 pub fn transform_text(text: &str, mode: CompressionMode) -> ~str {
     let mut out_str: ~str = ~"";
     match mode {
@@ -49,9 +52,6 @@ pub fn transform_text(text: &str, mode: CompressionMode) -> ~str {
             for str::each_char(text) |ch: char| {
                 // TODO: discard newlines between CJK chars
                 let mut next_in_whitespace: bool = match (ch, mode) {
-                    // TODO: check for following char that may create
-                    // a Unicode combining-character sequence with a
-                    // space, in which case it shouldn't be  compressed.
                     (' ', _)  => true,
                     ('\t', _) => true,
                     ('\n', CompressWhitespaceNewline) => true,
