@@ -48,20 +48,6 @@ impl Node {
     }
 }
 
-/* TODO: LayoutData is just a pointer, but we must circumvent the type
-   system to actually compare the pointers. This should be fixed in
-   with a generic implementation of cow::Handle */
-impl Node : cmp::Eq {
-    pure fn eq(other : &Node) -> bool unsafe {
-        let my_data : @LayoutData = @self.aux(|a| copy *a);
-        let ot_data : @LayoutData = @other.aux(|a| copy *a);
-        core::box::ptr_eq(my_data, ot_data)
-    }
-    pure fn ne(other : &Node) -> bool unsafe {
-        !self.eq(other)
-    }
-}
-
 impl Node : DebugMethods {
     /* Dumps the subtree rooted at this node, for debugging. */
     fn dump(&self) {

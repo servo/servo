@@ -133,6 +133,11 @@ impl<T:Send,A> Handle<T,A> {
     }
 }
 
+impl <T: Send,A> Handle<T,A> : cmp::Eq {
+    pure fn eq(other: &Handle<T,A>) -> bool { *self == **other }
+    pure fn ne(other: &Handle<T,A>) -> bool { *self != **other }
+}
+
 // Private methods
 impl<T: Copy Send,A> Scope<T,A> {
     fn clone(v: *T) -> *T unsafe {
