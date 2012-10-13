@@ -9,27 +9,27 @@ use pipes::{Port, Chan, stream};
 use image_cache_task::{ImageCacheTask, ImageResponseMsg, Prefetch, Decode, GetImage, WaitForImage};
 
 pub fn LocalImageCache(
-    image_cache_task: ImageCacheTask,
-    on_image_available: ~fn(ImageResponseMsg)
+    image_cache_task: ImageCacheTask
 ) -> LocalImageCache {
     LocalImageCache {
+        image_cache_task: image_cache_task,
         round_number: 0,
-        image_cache_task: move image_cache_task,
-        on_image_available: on_image_available
+        mut on_image_available: None
     }
 }
 
 pub struct LocalImageCache {
-    priv mut round_number: uint,
     priv image_cache_task: ImageCacheTask,
-    priv on_image_available: ~fn(ImageResponseMsg)
+    priv mut round_number: uint,
+    priv mut on_image_available: Option<~fn(ImageResponseMsg)>
 }
 
 pub impl LocalImageCache {
     /// The local cache will only do a single remote request for a given
     /// URL in each 'round'. Layout should call this each time it begins
-    fn next_round() {
+    fn next_round(on_image_available: ~fn(ImageResponseMsg)) {
         self.round_number += 1;
+        self.on_image_available = Some(move on_image_available);
     }
 
     fn prefetch(url: &Url) {
@@ -54,7 +54,8 @@ pub impl LocalImageCache {
                 // the compositor should be resonsible for waiting
                 // on the image to load and triggering layout
                 let image_cache_task = self.image_cache_task.clone();
-                let on_image_available = copy self.on_image_available;
+                assert self.on_image_available.is_some();
+                let on_image_available = {copy *self.on_image_available.get_ref()};
                 let url = copy *url;
                 do task::spawn |move url, move on_image_available| {
                     let (response_chan, response_port) = pipes::stream();

@@ -22,7 +22,8 @@ use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
 use opt = core::option;
 use render_task::RenderTask;
-use resource::image_cache_task::ImageCacheTask;
+use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg};
+use resource::local_image_cache::LocalImageCache;
 use servo_text::font_cache::FontCache;
 use std::arc::ARC;
 use std::net::url::Url;
@@ -60,6 +61,7 @@ fn LayoutTask(render_task: RenderTask,
 struct Layout {
     render_task: RenderTask,
     image_cache_task: ImageCacheTask,
+    local_image_cache: @LocalImageCache,
     from_content: comm::Port<Msg>,
 
     font_cache: @FontCache,
@@ -73,7 +75,8 @@ fn Layout(render_task: RenderTask,
 
     Layout {
         render_task: render_task,
-        image_cache_task: image_cache_task,
+        image_cache_task: image_cache_task.clone(),
+        local_image_cache: @LocalImageCache(move image_cache_task),
         from_content: from_content,
         font_cache: FontCache(),
         layout_refs: DVec()
@@ -133,14 +136,16 @@ impl Layout {
                 debug!("layout: parsed Node tree");
                 debug!("%?", node.dump());
 
+                // Reset the image cache
+                self.local_image_cache.next_round(self.make_on_image_available_cb(to_content));
+
                 let screen_size = Size2D(au::from_px(window_size.width as int),
                                          au::from_px(window_size.height as int));
 
                 let layout_ctx = LayoutContext {
-                    image_cache: self.image_cache_task.clone(),
+                    image_cache: self.local_image_cache,
                     font_cache: self.font_cache,
                     doc_url: doc_url,
-                    reflow_cb: || to_content.send(ReflowEvent),
                     screen_size: Rect(Point2D(au(0), au(0)), screen_size)
                 };
 
@@ -149,7 +154,7 @@ impl Layout {
                     node.initialize_style_for_subtree(&layout_ctx, &self.layout_refs);
                     node.recompute_style_for_subtree(&layout_ctx, &styles);
                     /* resolve styles (convert relative values) down the node tree */
-                    apply_style(&layout_ctx, node, copy layout_ctx.reflow_cb);
+                    apply_style(&layout_ctx, node);
                     
                     let builder = LayoutTreeBuilder();
                     let layout_root: @FlowContext = match builder.construct_trees(&layout_ctx,
@@ -192,6 +197,15 @@ impl Layout {
         } // match
 
         true
+    }
+
+    // When images can't be loaded in time to display they trigger
+    // this callback in some task somewhere. This w
+    fn make_on_image_available_cb(to_content: comm::Chan<Event>) -> ~fn(ImageResponseMsg) {
+        let f: ~fn(ImageResponseMsg) = |_msg| {
+            to_content.send(ReflowEvent)
+        };
+        return f;
     }
 }
 

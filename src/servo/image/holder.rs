@@ -1,7 +1,9 @@
+use core::util::replace;
 use std::net::url::Url;
 use std::arc::{ARC, clone, get};
-use resource::image_cache_task::ImageCacheTask;
+use resource::image_cache_task::{ImageCacheTask, ImageReady, ImageNotReady, ImageFailed};
 use mod resource::image_cache_task;
+use resource::local_image_cache::LocalImageCache;
 use geom::size::Size2D;
 
 /** A struct to store image data. The image will be loaded once, the
@@ -9,24 +11,19 @@ use geom::size::Size2D;
     this arc are given out on demand.
  */
 pub struct ImageHolder {
-    // Invariant: at least one of url and image is not none, except
-    // occasionally while get_image is being called
-    mut url : Option<Url>,
+    url : Url,
     mut image : Option<ARC<~Image>>,
     mut cached_size: Size2D<int>,
-    image_cache_task: ImageCacheTask,
-    reflow_cb: fn~(),
-
+    local_image_cache: @LocalImageCache,
 }
 
-fn ImageHolder(url : Url, image_cache_task: ImageCacheTask, cb: fn~()) -> ImageHolder {
+fn ImageHolder(url : Url, local_image_cache: @LocalImageCache) -> ImageHolder {
     debug!("ImageHolder() %?", url.to_str());
     let holder = ImageHolder {
-        url : Some(copy url),
+        url : url,
         image : None,
         cached_size : Size2D(0,0),
-        image_cache_task : image_cache_task,
-        reflow_cb : copy cb,
+        local_image_cache: local_image_cache,
     };
 
     // Tell the image cache we're going to be interested in this url
@@ -34,8 +31,8 @@ fn ImageHolder(url : Url, image_cache_task: ImageCacheTask, cb: fn~()) -> ImageH
     // but they are intended to be spread out in time. Ideally prefetch
     // should be done as early as possible and decode only once we
     // are sure that the image will be used.
-    image_cache_task.send(image_cache_task::Prefetch(copy url));
-    image_cache_task.send(image_cache_task::Decode(move url));
+    local_image_cache.prefetch(&holder.url);
+    local_image_cache.decode(&holder.url);
 
     holder
 }
@@ -66,57 +63,35 @@ impl ImageHolder {
         }
     }
 
-    // This function should not be called by two tasks at the same time
     fn get_image() -> Option<ARC<~Image>> {
         debug!("get_image() %?", self.url);
 
         // If this is the first time we've called this function, load
         // the image and store it for the future
         if self.image.is_none() {
-            let url = match copy self.url {
-                Some(move url) => url,
-                None => fail ~"expected to have a url"
-            };
-
-            let (response_chan, response_port) = pipes::stream();
-            self.image_cache_task.send(image_cache_task::GetImage(copy url, response_chan));
-            self.image = match response_port.recv() {
-              image_cache_task::ImageReady(image) => Some(clone(&image)),
-              image_cache_task::ImageNotReady => {
-                // Need to reflow when the image is available
-                let image_cache_task = self.image_cache_task.clone();
-                let reflow = copy self.reflow_cb;
-                do task::spawn |copy url, move reflow| {
-                    let (response_chan, response_port) = pipes::stream();
-                    image_cache_task.send(image_cache_task::WaitForImage(copy url, response_chan));
-                    match response_port.recv() {
-                      image_cache_task::ImageReady(*) => reflow(),
-                      image_cache_task::ImageNotReady => fail /*not possible*/,
-                      image_cache_task::ImageFailed => ()
-                    }
+            match self.local_image_cache.get_image(&self.url).recv() {
+                ImageReady(move image) => {
+                    self.image = Some(image);
                 }
-                None
-              }
-              image_cache_task::ImageFailed => {
-                debug!("image was not ready for %s", url.to_str());
-                // FIXME: Need to schedule another layout when the image is ready
-                None
-              }
-            };
+                ImageNotReady => {
+                    debug!("image not ready for %s", self.url.to_str());
+                }
+                ImageFailed => {
+                    debug!("image decoding failed for %s", self.url.to_str());
+                }
+            }
         }
 
-        if self.image.is_some() {
-            // Temporarily swap out the arc of the image so we can clone
-            // it without breaking purity, then put it back and return the
-            // clone.  This is not threadsafe.
-            let mut temp = None;
-            temp <-> self.image;
-            let im_arc = option::unwrap(temp);
-            self.image = Some(clone(&im_arc));
+        // Clone isn't pure so we have to swap out the mutable image option
+        let image = replace(&mut self.image, None);
 
-            return Some(im_arc);
-        } else {
-            return None;
-        }
+        let result = match image {
+            Some(ref image) => Some(clone(image)),
+            None => None
+        };
+
+        replace(&mut self.image, move image);
+
+        return result;
     }
 }

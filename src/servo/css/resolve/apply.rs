@@ -36,14 +36,12 @@ impl CSSValue<CSSFontSize> : ResolveMethods<CSSFontSize> {
 
 struct StyleApplicator {
     node: Node,
-    reflow: fn~(),
 }
 
 // TODO: normalize this into a normal preorder tree traversal function
-fn apply_style(layout_ctx: &LayoutContext, node: Node, reflow: fn~()) {
+fn apply_style(layout_ctx: &LayoutContext, node: Node) {
     let applicator = StyleApplicator {
         node: node,
-        reflow: reflow
     };
 
     applicator.apply_css_style(layout_ctx);
@@ -54,10 +52,9 @@ fn apply_style(layout_ctx: &LayoutContext, node: Node, reflow: fn~()) {
 /** A wrapper around a set of functions that can be applied as a
  * top-down traversal of layout boxes.
  */
-fn inheritance_wrapper(layout_ctx: &LayoutContext, node : Node, reflow: fn~()) {
+fn inheritance_wrapper(layout_ctx: &LayoutContext, node : Node) {
     let applicator = StyleApplicator {
         node: node,
-        reflow: reflow
     };
     applicator.resolve_style(layout_ctx);
 }
@@ -104,10 +101,9 @@ fn resolve_width(box : @RenderBox) {
 
 impl StyleApplicator {
     fn apply_css_style(layout_ctx: &LayoutContext) {
-        let reflow = copy self.reflow;
 
         for NodeTree.each_child(&self.node) |child| {
-            inheritance_wrapper(layout_ctx, *child, copy reflow)
+            inheritance_wrapper(layout_ctx, *child)
         }
     }
 

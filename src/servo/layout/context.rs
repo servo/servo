@@ -1,4 +1,4 @@
-use resource::image_cache_task::ImageCacheTask;
+use resource::local_image_cache::LocalImageCache;
 use servo_text::font_cache::FontCache;
 use std::net::url::Url;
 use geom::rect::Rect;
@@ -8,8 +8,7 @@ use au = gfx::geometry::au;
 
 struct LayoutContext {
     font_cache: @FontCache,
-    image_cache: ImageCacheTask,
+    image_cache: @LocalImageCache,
     doc_url: Url,
-    reflow_cb: fn~(),
     screen_size: Rect<au>
 }

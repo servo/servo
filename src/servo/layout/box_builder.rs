@@ -224,8 +224,7 @@ impl LayoutTreeBuilder {
                         // an ICE (mozilla/rust issue #3601)
                         if d.image.is_some() {
                             let holder = ImageHolder({copy *d.image.get_ref()},
-                                                     layout_ctx.image_cache.clone(),
-                                                     copy layout_ctx.reflow_cb);
+                                                     layout_ctx.image_cache);
 
                             @ImageBox(RenderBoxData(node, ctx, self.next_box_id()), holder)
                         } else {
