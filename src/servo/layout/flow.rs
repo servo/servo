@@ -326,9 +326,10 @@ impl FlowTree : tree::ReadMethods<@FlowContext> {
 
 impl FlowTree : tree::WriteMethods<@FlowContext> {
     fn add_child(parent: @FlowContext, child: @FlowContext) {
-        assert !core::box::ptr_eq(parent, child);
         tree::add_child(&self, parent, child)
     }
+
+    pure fn eq(a: &@FlowContext, b: &@FlowContext) -> bool { core::box::ptr_eq(*a, *b) }
 
     fn with_tree_fields<R>(box: &@FlowContext, f: fn(&tree::Tree<@FlowContext>) -> R) -> R {
         f(&box.d().tree)

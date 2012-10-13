@@ -158,6 +158,8 @@ impl NodeScope : tree::WriteMethods<Node> {
         tree::add_child(&self, node, child)
     }
 
+    pure fn eq(a: &Node, b: &Node) -> bool { a == b }
+
     fn with_tree_fields<R>(node: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {
         self.write(node, |n| f(&n.tree))
     }
