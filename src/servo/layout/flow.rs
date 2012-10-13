@@ -272,41 +272,37 @@ impl FlowContext : FlowContextMethods {
     }
 
     // Actual methods that do not require much flow-specific logic
-    pure fn foldl_boxes_for_node<B: Copy>(node: Node, seed: B, blk: pure fn&(a: B,@RenderBox) -> B) -> B {
+    pure fn foldl_all_boxes<B: Copy>(seed: B, 
+                                     cb: pure fn&(a: B,@RenderBox) -> B) -> B {
         match self {
-            RootFlow(*) => match self.root().box {
-                Some(box) if box.d().node == node => { blk(seed, box) },
-                _ => seed
-            },
-            BlockFlow(*) => match self.block().box {
-                Some(box)  if box.d().node == node => { blk(seed, box) },
-                _ => seed
-            },
-            InlineFlow(*) => do self.inline().boxes.foldl(seed) |acc, box| {
-                // FIXME: Bad copies. foldl's accumulator should be by-value
-                if box.d().node == node { blk(*acc, *box) }
-                else { *acc }
-            },
+            RootFlow(*)   => option::map_default(&self.root().box, seed, |box| { cb(seed, *box) }),
+            BlockFlow(*)  => option::map_default(&self.block().box, seed, |box| { cb(seed, *box) }),
+            InlineFlow(*) => do self.inline().boxes.foldl(seed) |acc, box| { cb(*acc, *box) },
             _ => fail fmt!("Don't know how to iterate node's RenderBoxes for %?", self)
         }
     }
 
-    pure fn iter_boxes_for_node<T>(node: Node, cb: pure fn&(@RenderBox) -> T) {
+    pure fn foldl_boxes_for_node<B: Copy>(node: Node, seed: B, 
+                                          cb: pure fn&(a: B,@RenderBox) -> B) -> B {
+        do self.foldl_all_boxes(seed) |acc, box| {
+            if box.d().node == node { cb(acc, box) }
+            else { acc }
+        }
+    }
+
+    pure fn iter_all_boxes<T>(cb: pure fn&(@RenderBox) -> T) {
         match self {
-            RootFlow(*) => match self.root().box {
-                Some(box) if box.d().node == node => { cb(box); },
-                _ => {}
-            },
-            BlockFlow(*) => match self.block().box {
-                Some(box) if box.d().node == node => { cb(box); },
-                _ => {}
-            },
-            InlineFlow(*) => {
-                for self.inline().boxes.each |box| {
-                    if box.d().node == node { cb(*box); }
-                }
-            },
+            RootFlow(*)   => do self.root().box.iter |box| { cb(*box); },
+            BlockFlow(*)  => do self.block().box.iter |box| { cb(*box); },
+            InlineFlow(*) => for self.inline().boxes.each |box| { cb(*box); },
             _ => fail fmt!("Don't know how to iterate node's RenderBoxes for %?", self)
+        }
+    }
+
+    pure fn iter_boxes_for_node<T>(node: Node,
+                                   cb: pure fn&(@RenderBox) -> T) {
+        do self.iter_all_boxes |box| {
+            if box.d().node == node { cb(box); }
         }
     }
 }
