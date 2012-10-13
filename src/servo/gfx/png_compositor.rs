@@ -20,7 +20,6 @@ use render_task::{RenderTask, RenderMsg};
 use task::spawn_listener;
 use comm::{Chan, Port};
 use cast::reinterpret_cast;
-use vec_from_buf = vec::raw::from_buf;
 use ptr::addr_of;
 use dom::event::Event;
 use dvec::DVec;

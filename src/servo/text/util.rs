@@ -28,7 +28,7 @@ impl CompressionMode : cmp::Eq {
 // * record skipped and kept chars for mapping original to new text
 // * various edge cases for bidi, CJK, combining char seqs, etc.
 pub fn transform_text(text: &str, mode: CompressionMode) -> ~str {
-    let out_str: ~str = ~"";
+    let mut out_str: ~str = ~"";
     match mode {
         CompressNone | DiscardNewline => {
             for str::each_char(text) |ch: char| {
@@ -39,7 +39,7 @@ pub fn transform_text(text: &str, mode: CompressionMode) -> ~str {
                     if ch == '\t' {
                         // TODO: set "has tab" flag
                     }
-                    str::push_char(&out_str, ch);
+                    str::push_char(&mut out_str, ch);
                 }
             }
         },
@@ -65,14 +65,14 @@ pub fn transform_text(text: &str, mode: CompressionMode) -> ~str {
                         // TODO: record skipped char
                     } else {
                         // TODO: record kept char
-                        str::push_char(&out_str, ch);
+                        str::push_char(&mut out_str, ch);
                     }
                 } else { /* next_in_whitespace; possibly add a space char */
                     if in_whitespace {
                         // TODO: record skipped char
                     } else {
                         // TODO: record kept char
-                        str::push_char(&out_str, ' ');
+                        str::push_char(&mut out_str, ' ');
                     }
                 }
                 // save whitespace context for next char

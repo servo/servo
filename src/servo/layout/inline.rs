@@ -209,7 +209,7 @@ impl TextRunScanner {
                 // TODO: use a rope, simply give ownership of  nonzero strs to rope
                 let mut run_str : ~str = ~"";
                 for uint::range(0, transformed_strs.len()) |i| {
-                    str::push_str(&run_str, transformed_strs[i]);
+                    str::push_str(&mut run_str, transformed_strs[i]);
                 }
                 
                 // TODO: use actual font for corresponding DOM node to create text run.
