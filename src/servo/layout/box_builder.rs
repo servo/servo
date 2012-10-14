@@ -32,7 +32,78 @@ fn LayoutTreeBuilder() -> LayoutTreeBuilder {
     }
 }
 
-type BuilderContext = { flow: @FlowContext, consumer: BoxConsumer };
+struct BuilderContext {
+    flow: @FlowContext,
+    priv mut inline_collector: Option<@FlowContext>,
+    // BJB: conceptually `consumer` has the same lifetime as `self`,
+    // but I haven't converted recursive calls to pass a ref to parent
+    // builder context (if it is unchanged). I wonder if it's even possible?
+    consumer: @BoxConsumer
+}
+
+fn BuilderContext(flow: @FlowContext) -> BuilderContext {
+    debug!("BuilderContext: creating new builder context");
+    BuilderContext {
+        flow: flow,
+        inline_collector: None,
+        consumer: @BoxConsumer(flow)
+    }
+}
+
+impl BuilderContext {
+    fn clone() -> BuilderContext {
+        debug!("BuilderContext: cloning context");
+        copy self
+    }
+    
+    priv fn attach_child_flow(child: @FlowContext) {
+        debug!("BuilderContext: Adding child flow f%? of f%?",
+               self.flow.d().id, child.d().id);
+        tree::add_child(&FlowTree, self.flow, child);
+    }
+    
+    priv fn create_child_flow_of_type(flow_type: FlowContextType,
+                                      builder: &LayoutTreeBuilder) -> BuilderContext {
+        let new_flow = builder.make_flow(flow_type);
+        self.attach_child_flow(new_flow);
+        return BuilderContext(new_flow);
+    }
+        
+    priv fn make_inline_collector(builder: &LayoutTreeBuilder) -> BuilderContext {
+        debug!("BuilderContext: making new inline collector flow");
+        let new_flow = builder.make_flow(Flow_Inline);
+        self.inline_collector = Some(new_flow);
+        self.attach_child_flow(new_flow);
+        return BuilderContext(new_flow);
+    }
+
+    priv fn get_inline_collector(builder: &LayoutTreeBuilder) -> BuilderContext {
+        match copy self.inline_collector {
+            Some(collector) => BuilderContext(collector),
+            None => self.make_inline_collector(builder)
+        }
+    }
+
+    priv fn clear_inline_collector() {
+        self.inline_collector = None;
+    }
+
+    fn containing_context_for_display(display: CSSDisplay,
+                                      builder: &LayoutTreeBuilder) -> BuilderContext {
+        match (display, self.flow) { 
+            (DisplayBlock, @RootFlow(*)) => self.create_child_flow_of_type(Flow_Block, builder),
+            (DisplayBlock, @BlockFlow(*)) => {
+                self.clear_inline_collector();
+                self.create_child_flow_of_type(Flow_Block, builder)
+            },
+            (DisplayInline, @InlineFlow(*)) => self.clone(),
+            (DisplayInlineBlock, @InlineFlow(*)) => self.clone(),
+            (DisplayInline, @BlockFlow(*)) => self.get_inline_collector(builder),
+            (DisplayInlineBlock, @BlockFlow(*)) => self.get_inline_collector(builder),
+            _ => self.clone()
+        }
+    }
+}
 
 impl LayoutTreeBuilder {
     /* Debug-only ids */
@@ -55,71 +126,28 @@ impl LayoutTreeBuilder {
 
         // first, determine the box type, based on node characteristics
         let box_type = self.decide_box_type(cur_node, simulated_display);
-
-        // then, figure out its proper context, possibly reorganizing.
-        let next_flow: @FlowContext = match box_type {
-            /* Text box is always an inline flow. create implicit inline
-            flow if we aren't inside one already. */
-            RenderBox_Text => {
-                if (parent_ctx.flow.starts_inline_flow()) {
-                    parent_ctx.flow
-                } else {
-                    self.make_flow(Flow_Inline)
-                }
-            },
-            RenderBox_Image | RenderBox_Generic => {
-                match simulated_display {
-                    DisplayInline | DisplayInlineBlock => {
-                        /* if inline, try to put into inline context,
-                        making a new one if necessary */
-                        if (parent_ctx.flow.starts_inline_flow()) {
-                            parent_ctx.flow
-                        } else {
-                            self.make_flow(Flow_Inline)
-                        }
-                    },
-                    /* block boxes always create a new context */
-                    DisplayBlock => {
-                        self.make_flow(Flow_Block)
-                    },
-                    _ => fail fmt!("unsupported display type in box generation: %?", simulated_display)
-                }
-            }
-        };
-
-        let builder_ctx : BuilderContext;
-
-        // if this is a new flow, attach to parent flow and make a new BuilderContext.
-        if !core::box::ptr_eq(next_flow, parent_ctx.flow) {
-            debug!("LayoutTreeBuilder: using parent builder context");
-            debug!("LayoutTreeBuilder: Adding child flow f%? of f%?",
-                   parent_ctx.flow.d().id, next_flow.d().id);
-            tree::add_child(&FlowTree, parent_ctx.flow, next_flow);
-
-            builder_ctx = { flow: next_flow, consumer: BoxConsumer(next_flow) };
-        } else {
-            debug!("LayoutTreeBuilder: creating fresh builder context");
-            builder_ctx = copy *parent_ctx;
-        }
-
-        // store reference to the flow context which contains any
-        // boxes that correspond to cur_node. These boxes may
-        // eventually be elided or split, but the mapping between
-        // nodes and FlowContexts should not change during layout.
-        assert cur_node.has_aux();
-        do cur_node.aux |data| { data.flow = Some(builder_ctx.flow) }
-
-        let new_box = self.make_box(layout_ctx, box_type, cur_node, builder_ctx.flow);
-        debug!("LayoutTreeBuilder: Assign ^box to flow f%d", builder_ctx.flow.d().id);
-        builder_ctx.consumer.push_box(layout_ctx, new_box);
+        let this_ctx = parent_ctx.containing_context_for_display(simulated_display, &self);
+        let new_box = self.make_box(layout_ctx, box_type, cur_node, this_ctx.flow);
+        this_ctx.consumer.push_box(layout_ctx, new_box);
 
         // recurse on child nodes.
         for tree::each_child(&NodeTree, &cur_node) |child_node| {
-            self.construct_recursively(layout_ctx, *child_node, &builder_ctx);
+            self.construct_recursively(layout_ctx, *child_node, &this_ctx);
         }
 
-        builder_ctx.consumer.pop_box(layout_ctx, new_box);
-        self.simplify_children_of_flow(layout_ctx, &builder_ctx);
+        this_ctx.consumer.pop_box(layout_ctx, new_box);
+        self.simplify_children_of_flow(layout_ctx, &this_ctx);
+
+        // store reference to the flow context which contains any
+        // boxes that correspond to child_flow.node. These boxes may
+        // eventually be elided or split, but the mapping between
+        // nodes and FlowContexts should not change during layout.
+        for tree::each_child(&FlowTree, &this_ctx.flow) |child_flow: &@FlowContext| {
+            do (copy child_flow.d().node).iter |node| {
+                assert node.has_aux();
+                do node.aux |data| { data.flow = Some(*child_flow) }
+            }
+        }
     }
 
     // Fixup any irregularities such as:
@@ -131,13 +159,13 @@ impl LayoutTreeBuilder {
     // The latter can only be done immediately adjacent to, or at the
     // beginning or end of a block flow. Otherwise, the whitespace
     // might affect whitespace collapsing with adjacent text.
-    fn simplify_children_of_flow(_layout_ctx: &LayoutContext, builder_ctx: &BuilderContext) {
-        match *builder_ctx.flow {
+    fn simplify_children_of_flow(_layout_ctx: &LayoutContext, parent_ctx: &BuilderContext) {
+        match *parent_ctx.flow {
             InlineFlow(*) => {
                 let mut found_child_inline = false;
                 let mut found_child_block = false;
 
-                for tree::each_child(&FlowTree, &builder_ctx.flow) |child_ctx: &@FlowContext| {
+                for tree::each_child(&FlowTree, &parent_ctx.flow) |child_ctx: &@FlowContext| {
                     match **child_ctx {
                         InlineFlow(*) | InlineBlockFlow(*) => found_child_inline = true,
                         BlockFlow(*) => found_child_block = true,
@@ -146,13 +174,13 @@ impl LayoutTreeBuilder {
                 }
 
                 if found_child_block && found_child_inline {
-                    self.fixup_split_inline(builder_ctx.flow)
+                    self.fixup_split_inline(parent_ctx.flow)
                 }
             },
             BlockFlow(*) => {
                 // FIXME: this will create refcounted cycles between the removed flow and any
                 // of its RenderBox or FlowContext children, and possibly keep alive other junk
-                let parent_flow = builder_ctx.flow;
+                let parent_flow = parent_ctx.flow;
                 // check first/last child for whitespace-ness
                 do tree::first_child(&FlowTree, &parent_flow).iter |first_flow: &@FlowContext| {
                     if first_flow.starts_inline_flow() {
@@ -216,9 +244,10 @@ impl LayoutTreeBuilder {
     called on root DOM element. */
     fn construct_trees(layout_ctx: &LayoutContext, root: Node) -> Result<@FlowContext, ()> {
         let new_flow = self.make_flow(Flow_Root);
+        let root_ctx = BuilderContext(new_flow);
+
         self.root_flow = Some(new_flow);
-        let builder_ctx = { flow: new_flow, consumer: BoxConsumer(new_flow) };
-        self.construct_recursively(layout_ctx, root, &builder_ctx);
+        self.construct_recursively(layout_ctx, root, &root_ctx);
         return Ok(new_flow)
     }
 

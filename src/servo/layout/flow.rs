@@ -188,10 +188,12 @@ impl BoxConsumer {
                 self.flow.inline().elems.push(mapping);
             },
             @BlockFlow(*) => {
+                assert self.stack.len() == 0;
                 assert self.flow.block().box.is_none();
                 self.flow.block().box = Some(entry.start_box);
             },
             @RootFlow(*) => {
+                assert self.stack.len() == 0;
                 assert self.flow.root().box.is_none();
                 self.flow.root().box = Some(entry.start_box);
             },
