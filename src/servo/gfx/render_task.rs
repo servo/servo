@@ -66,7 +66,13 @@ pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
         loop {
             match po.recv() {
                 RenderMsg(move render_layer) => {
-                    #debug("renderer: got render request");
+                    debug!("renderer: got render request");
+
+                    if !layer_buffer_port.peek() {
+                        warn!("renderer: no layer buffer. skipping frame");
+                        loop;
+                    }
+
                     let layer_buffer_cell = Cell(layer_buffer_port.recv());
 
                     let (layer_buffer_channel, new_layer_buffer_port) = pipes::stream();

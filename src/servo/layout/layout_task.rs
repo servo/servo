@@ -27,6 +27,7 @@ use resource::local_image_cache::LocalImageCache;
 use servo_text::font_cache::FontCache;
 use std::arc::ARC;
 use std::net::url::Url;
+use core::util::replace;
 
 use layout::traverse::*;
 use comm::*;
@@ -45,8 +46,7 @@ enum LayoutQueryResponse_ {
 }
 
 pub enum Msg {
-    BuildMsg(Node, ARC<Stylesheet>, Url, comm::Chan<Event>, Size2D<uint>),
-    PingMsg(comm::Chan<content_task::PingMsg>),
+    BuildMsg(Node, ARC<Stylesheet>, Url, comm::Chan<Event>, Size2D<uint>, pipes::Chan<()>),
     QueryMsg(LayoutQuery, comm::Chan<LayoutQueryResponse>),
     ExitMsg
 }
@@ -118,20 +118,20 @@ impl Layout {
     }
 
     fn start() {
-        while self.handle_request(self.from_content) {
+        while self.handle_request() {
             // loop indefinitely
         }
     }
         
-    fn handle_request(request: comm::Port<Msg>) -> bool {
-        match request.recv() {
-            PingMsg(ping_channel) => ping_channel.send(content_task::PongMsg),
+    fn handle_request() -> bool {
+
+        match self.from_content.recv() {
             QueryMsg(query, chan) => self.handle_query(query, chan),
             ExitMsg => {
                 debug!("layout: ExitMsg received");
                 return false
             },
-            BuildMsg(node, styles, doc_url, to_content, window_size) => {
+            BuildMsg(node, styles, doc_url, to_content, window_size, join_chan) => {
                 debug!("layout: received layout request for: %s", doc_url.to_str());
                 debug!("layout: parsed Node tree");
                 debug!("%?", node.dump());
@@ -193,6 +193,10 @@ impl Layout {
                                                    &render_layer.display_list);
                     self.render_task.send(render_task::RenderMsg(move render_layer));
                 } // time(layout: display list building)
+
+                // Tell content we're done
+                join_chan.send(());
+
             } // BuildMsg
         } // match
 

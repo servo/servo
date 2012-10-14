@@ -8,6 +8,7 @@ export ControlMsg, ExecuteMsg, ParseMsg, ExitMsg, Timer;
 export PingMsg, PongMsg;
 export task_from_context;
 
+use core::util::replace;
 use std::arc::{ARC, clone};
 use comm::{Port, Chan, listen, select2};
 use task::{spawn, spawn_listener};
@@ -74,6 +75,8 @@ fn ContentTask<S: Compositor Send Copy>(layout_task: LayoutTask,
 
 struct Content {
     layout_task: LayoutTask,
+    mut layout_join_port: Option<pipes::Port<()>>,
+
     image_cache_task: ImageCacheTask,
     from_master: comm::Port<ControlMsg>,
     event_port: comm::Port<Event>,
@@ -111,6 +114,7 @@ fn Content(layout_task: LayoutTask,
 
     let content = @Content {
         layout_task : layout_task,
+        layout_join_port : None,
         image_cache_task : img_cache_task,
         from_master : from_master,
         event_port : event_port,
@@ -239,11 +243,23 @@ impl Content {
        pending layout request messages).
     */
     fn join_layout() {
+        assert self.scope.is_reader_forked() == self.layout_join_port.is_some();
+
         if self.scope.is_reader_forked() {
-            listen(|response_from_layout| {
-                self.layout_task.send(layout_task::PingMsg(response_from_layout));
-                response_from_layout.recv();
-            });
+
+            let join_port = replace(&mut self.layout_join_port, None);
+
+            match join_port {
+                Some(ref join_port) => {
+                    if !join_port.peek() {
+                        warn!("content: waiting on layout");
+                    }
+                    join_port.recv();
+                    debug!("content: layout joined");
+                }
+                None => fail ~"reader forked but no join port?"
+            }
+
             self.scope.reader_joined();
         }
     }
@@ -260,14 +276,20 @@ impl Content {
         // changes we have made.
         self.join_layout();
 
+        // Layout will let us know when it's done
+        let (join_chan, join_port) = pipes::stream();
+        self.layout_join_port = move Some(join_port);
+
         // Send new document and relevant styles to layout
         // FIXME: Put CSS rules in an arc or something.
         self.layout_task.send(BuildMsg(document.root, clone(&document.css_rules), copy *doc_url,
-                                       self.event_port.chan(), self.window_size));
+                                       self.event_port.chan(), self.window_size, join_chan));
 
         // Indicate that reader was forked so any further
         // changes will be isolated.
         self.scope.reader_forked();
+
+        debug!("content: layout forked");
     }
 
      fn query_layout(query: layout_task::LayoutQuery) -> layout_task::LayoutQueryResponse {
