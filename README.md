@@ -10,7 +10,7 @@ changes. If you want to unbreak Servo against the latest Rust build,
 somebody in #servo or #rust will usually know what magic is required
 to fix the build.
 
-* Last known-good rust commit: 5558ebb6b7bf54a370111a46ea7c75b5becf85ec
+* Last known-good rust commit: 57b4d10ff652d3beddae64782c882a07822bac3c
 
 ### Prerequisites
 
