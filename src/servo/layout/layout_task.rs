@@ -28,7 +28,8 @@ use servo_text::font_cache::FontCache;
 use std::arc::ARC;
 use std::net::url::Url;
 use core::util::replace;
-
+use util::time::time;
+use std::cell::Cell;
 use layout::traverse::*;
 use comm::*;
 use task::*;
@@ -96,9 +97,21 @@ impl Layout {
         match self.from_content.recv() {
             BuildMsg(move node, move styles, move doc_url,
                      move to_content, move window_size, move join_chan) => {
-                self.handle_build(node, styles, doc_url, to_content, window_size, join_chan);
+
+                let styles = Cell(styles);
+                let doc_url = Cell(doc_url);
+                let join_chan = Cell(join_chan);
+
+                do time("layout: performing layout") {
+                    self.handle_build(node, styles.take(), doc_url.take(), to_content, window_size, join_chan.take());
+                }
+
             }
-            QueryMsg(query, chan) => self.handle_query(query, chan),
+            QueryMsg(query, chan) => {
+                do time("layout: querying layout") {
+                    self.handle_query(query, chan)
+                }
+            }
             ExitMsg => {
                 debug!("layout: ExitMsg received");
                 return false
@@ -128,7 +141,7 @@ impl Layout {
             screen_size: Rect(Point2D(au(0), au(0)), screen_size)
         };
 
-        let layout_root: @FlowContext = do util::time::time("layout: tree construction") {
+        let layout_root: @FlowContext = do time("layout: tree construction") {
             // TODO: this is dumb. we don't need 3 separate traversals.
             node.initialize_style_for_subtree(&layout_ctx, &self.layout_refs);
             node.recompute_style_for_subtree(&layout_ctx, &styles);
@@ -148,14 +161,14 @@ impl Layout {
             layout_root
         };
 
-        do util::time::time("layout: main layout") {
+        do time("layout: main layout") {
             /* perform layout passes over the flow tree */
             do layout_root.traverse_postorder |f| { f.bubble_widths(&layout_ctx) }
             do layout_root.traverse_preorder  |f| { f.assign_widths(&layout_ctx) }
             do layout_root.traverse_postorder |f| { f.assign_height(&layout_ctx) }
         }
 
-        do util::time::time("layout: display list building") {
+        do time("layout: display list building") {
             let dlist = DVec();
             let builder = dl::DisplayListBuilder {
                 ctx: &layout_ctx,
