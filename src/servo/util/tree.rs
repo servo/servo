@@ -34,6 +34,26 @@ pub fn each_child<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T, f: fn(&T) -> bool)
     }
 }
 
+pub fn first_child<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T) -> Option<T> {
+    ops.with_tree_fields(node, |tf| tf.first_child)
+}
+
+pub fn last_child<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T) -> Option<T> {
+    ops.with_tree_fields(node, |tf| tf.last_child)
+}
+
+pub fn next_sibling<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T) -> Option<T> {
+    ops.with_tree_fields(node, |tf| tf.next_sibling)
+}
+
+pub fn prev_sibling<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T) -> Option<T> {
+    ops.with_tree_fields(node, |tf| tf.prev_sibling)
+}
+
+pub fn parent<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T) -> Option<T> {
+    ops.with_tree_fields(node, |tf| tf.parent)
+}
+
 pub fn empty<T>() -> Tree<T> {
     {mut parent: None,
      mut first_child: None,
