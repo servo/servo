@@ -69,8 +69,7 @@ pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
                     debug!("renderer: got render request");
 
                     if !layer_buffer_port.peek() {
-                        warn!("renderer: no layer buffer. skipping frame");
-                        loop;
+                        warn!("renderer: waiting on layer buffer");
                     }
 
                     let layer_buffer_cell = Cell(layer_buffer_port.recv());
