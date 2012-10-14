@@ -19,7 +19,6 @@ use dom::node::{Node, NodeScope, define_bindings};
 use dom::event::{Event, ResizeEvent, ReflowEvent};
 use dom::window::Window;
 use geom::size::Size2D;
-use gfx::compositor::Compositor;
 use layout::layout_task;
 use layout_task::{LayoutTask, BuildMsg};
 use resource::image_cache_task::ImageCacheTask;
@@ -63,24 +62,24 @@ pub enum PingMsg {
 
 pub type ContentTask = pipes::SharedChan<ControlMsg>;
 
-fn ContentTask<S: Compositor Send Copy>(layout_task: LayoutTask,
-                                        compositor: S,
-                                        resource_task: ResourceTask,
-                                        img_cache_task: ImageCacheTask) -> ContentTask {
+fn ContentTask(layout_task: LayoutTask,
+               dom_event_port: pipes::Port<Event>,
+               dom_event_chan: pipes::SharedChan<Event>,
+               resource_task: ResourceTask,
+               img_cache_task: ImageCacheTask) -> ContentTask {
 
     let (control_chan, control_port) = pipes::stream();
 
     let control_chan = pipes::SharedChan(control_chan);
     let control_chan_copy = control_chan.clone();
-    let control_port = Cell(move control_port);
+    let control_port = Cell(control_port);
+    let dom_event_port = Cell(dom_event_port);
+    let dom_event_chan = Cell(dom_event_chan);
 
-    do task().sched_mode(SingleThreaded).spawn |move control_port| {
-        let (event_chan, event_port) = pipes::stream();
-        let event_chan = pipes::SharedChan(event_chan);
+    do task().sched_mode(SingleThreaded).spawn {
         let content = Content(layout_task, control_port.take(), control_chan_copy.clone(),
-                              resource_task,
-                              img_cache_task.clone(), move event_port, event_chan.clone());
-        compositor.add_event_listener(move event_chan);
+                              resource_task, img_cache_task.clone(),
+                              dom_event_port.take(), dom_event_chan.take());
         content.start();
     }
 

@@ -12,6 +12,8 @@ use std::net::url::Url;
 use resource::image_cache_task;
 use image_cache_task::{ImageCacheTask, image_cache_task, ImageCacheTaskClient};
 use pipes::{Port, Chan};
+use dom::event::Event;
+use std::cell::Cell;
 
 pub type EngineTask = comm::Chan<Msg>;
 
@@ -31,12 +33,20 @@ struct Engine<C:Compositor Send Copy> {
 }
 
 fn Engine<C:Compositor Send Copy>(compositor: C,
+                                  dom_event_port: pipes::Port<Event>,
+                                  dom_event_chan: pipes::SharedChan<Event>,
                                   resource_task: ResourceTask,
                                   image_cache_task: ImageCacheTask) -> EngineTask {
-    do spawn_listener::<Msg> |request| {
+
+    let dom_event_port = Cell(dom_event_port);
+    let dom_event_chan = Cell(dom_event_chan);
+
+    do spawn_listener::<Msg> |request, move dom_event_port, move dom_event_chan| {
         let render_task = RenderTask(compositor);
         let layout_task = LayoutTask(render_task, image_cache_task.clone());
-        let content_task = ContentTask(layout_task, compositor, resource_task, image_cache_task.clone());
+        let content_task = ContentTask(layout_task,
+                                       dom_event_port.take(), dom_event_chan.take(),
+                                       resource_task, image_cache_task.clone());
 
         Engine {
             request_port: request,

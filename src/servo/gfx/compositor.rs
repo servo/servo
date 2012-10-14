@@ -8,6 +8,5 @@ each rendered frame and submit them to be drawn to the display
 trait Compositor {
     fn begin_drawing(next_dt: pipes::Chan<LayerBuffer>);
     fn draw(next_dt: pipes::Chan<LayerBuffer>, +draw_me: LayerBuffer);
-    fn add_event_listener(listener: pipes::SharedChan<Event>);
 }
 

@@ -32,8 +32,11 @@ fn run(opts: &Opts) {
 
 fn run_pipeline_screen(urls: &[~str]) {
 
+    let (dom_event_chan, dom_event_port) = pipes::stream();
+    let dom_event_chan = pipes::SharedChan(move dom_event_chan);
+
     // The platform event handler thread
-    let osmain = OSMain();
+    let osmain = OSMain(dom_event_chan.clone());
 
     // Send each file to render then wait for keypress
     let (keypress_to_engine, keypress_from_osmain) = pipes::stream();
@@ -42,7 +45,7 @@ fn run_pipeline_screen(urls: &[~str]) {
     // Create a servo instance
     let resource_task = ResourceTask();
     let image_cache_task = ImageCacheTask(resource_task);
-    let engine_task = Engine(osmain, resource_task, image_cache_task);
+    let engine_task = Engine(osmain, dom_event_port, dom_event_chan, resource_task, image_cache_task);
 
     for urls.each |filename| {
         let url = make_url(copy *filename, None);
@@ -74,12 +77,15 @@ fn run_pipeline_png(url: ~str, outfile: &str) {
     use resource::image_cache_task::SyncImageCacheTask;
 
     listen(|pngdata_from_compositor| {
+        let (dom_event_chan, dom_event_port) = pipes::stream();
+        let dom_event_chan = pipes::SharedChan(move dom_event_chan);
+
         let compositor = PngCompositor(pngdata_from_compositor);
         let resource_task = ResourceTask();
         // For the PNG pipeline we are using a synchronous image task so that all images will be
         // fulfilled before the first paint.
         let image_cache_task = SyncImageCacheTask(resource_task);
-        let engine_task = Engine(compositor, resource_task, image_cache_task);
+        let engine_task = Engine(compositor, dom_event_port, dom_event_chan, resource_task, image_cache_task);
         engine_task.send(LoadURLMsg(make_url(copy url, None)));
 
         match buffered_file_writer(&Path(outfile)) {

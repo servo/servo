@@ -14,6 +14,7 @@ use std::cmp::FuzzyEq;
 use task::TaskBuilder;
 use vec::push;
 use pipes::Chan;
+use std::cell::Cell;
 
 pub type OSMain = comm::Chan<Msg>;
 
@@ -32,11 +33,11 @@ pub enum Msg {
     BeginDrawing(pipes::Chan<LayerBuffer>),
     Draw(pipes::Chan<LayerBuffer>, LayerBuffer),
     AddKeyHandler(pipes::Chan<()>),
-    AddEventListener(pipes::SharedChan<Event>),
     Exit
 }
 
-fn OSMain() -> OSMain {
+fn OSMain(dom_event_chan: pipes::SharedChan<Event>) -> OSMain {
+    let dom_event_chan = Cell(dom_event_chan);
     do on_osmain::<Msg> |po| {
         do platform::runmain {
             #debug("preparing to enter main loop");
@@ -48,14 +49,16 @@ fn OSMain() -> OSMain {
 				None => mode = GlutMode
 			}
 
-	        mainloop(mode, po);
+	        mainloop(mode, po, dom_event_chan.take());
         }
     }
 }
 
-fn mainloop(mode: Mode, po: comm::Port<Msg>) {
+fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<Event>) {
+
+    let dom_event_chan = @move dom_event_chan;
+
     let key_handlers: @DVec<pipes::Chan<()>> = @DVec();
-    let event_listeners: @DVec<pipes::SharedChan<Event>> = @DVec();
 
 	let window;
 	match mode {
@@ -98,7 +101,6 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>) {
         while po.peek() {
             match po.recv() {
               AddKeyHandler(move key_ch) => key_handlers.push(move key_ch),
-              AddEventListener(move event_listener) => event_listeners.push(event_listener),
               BeginDrawing(move sender) => lend_surface(surfaces, sender),
               Draw(move sender, move dt) => {
                 #debug("osmain: received new frame");
@@ -134,9 +136,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>) {
                 check_for_messages();
 
                 #debug("osmain: window resized to %d,%d", width as int, height as int);
-                for event_listeners.each |event_listener| {
-                    event_listener.send(ResizeEvent(width as uint, height as uint));
-                }
+                dom_event_chan.send(ResizeEvent(width as uint, height as uint));
             }
 
             do glut::display_func() {
@@ -180,9 +180,6 @@ impl OSMain : Compositor {
     }
     fn draw(next_dt: pipes::Chan<LayerBuffer>, draw_me: LayerBuffer) {
         self.send(Draw(next_dt, draw_me))
-    }
-    fn add_event_listener(listener: pipes::SharedChan<Event>) {
-        self.send(AddEventListener(listener));
     }
 }
 
