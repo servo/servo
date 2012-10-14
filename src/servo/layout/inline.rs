@@ -139,7 +139,7 @@ impl TextRunScanner {
                            in_boxes: &[@RenderBox], out_boxes: &DVec<@RenderBox>) {
         assert self.in_clump;
 
-        debug!("TextRunScanner: flushing boxes when start=%?,end=%?",
+        debug!("TextRunScanner: flushing boxes when start=%u,end=%u",
                self.clump_start, self.clump_end);
 
         let is_singleton = (self.clump_start == self.clump_end);
@@ -185,7 +185,7 @@ impl TextRunScanner {
                 // then, fix NodeRange mappings to account for elided boxes.
                 do self.flow.inline().elems.borrow |ranges: &[NodeRange]| {
                     for ranges.each |range: &NodeRange| {
-                        debug!("TextRunScanner: repairing element range %?", range);
+                        debug!("TextRunScanner: repairing element range %?", range.span);
                         let span = &range.span;
                         match relation_of_clump_and_range(span, self.clump_start, self.clump_end) {
                             RangeEntirelyBeforeClump => {},
@@ -200,7 +200,7 @@ impl TextRunScanner {
                                                        { span.start  = self.clump_start as u16;
                                                          span.len   -= (overlap - 1) as u16; }
                         }
-                        debug!("TextRunScanner: new element range: ---- %?", range);
+                        debug!("TextRunScanner: new element range: ---- %?", range.span);
                     }
                 }
 
@@ -213,7 +213,7 @@ impl TextRunScanner {
                 // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
                 let run = @TextRun(&*ctx.font_cache.get_test_font(), move run_str);
                 let box_guts = TextBoxData(run, 0, run.text.len());
-                debug!("TextRunScanner: pushing box(es) when start=%?,end=%?",
+                debug!("TextRunScanner: pushing box(es) when start=%u,end=%u",
                        self.clump_start, self.clump_end);
                 out_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
             }
