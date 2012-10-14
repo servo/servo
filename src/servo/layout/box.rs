@@ -101,6 +101,7 @@ trait RenderBoxMethods {
 
     pure fn is_replaced() -> bool;
     pure fn can_split() -> bool;
+    pure fn is_whitespace_only() -> bool;
     pure fn can_merge_with_box(@self, other: @RenderBox) -> bool;
     pure fn requires_inline_spacers() -> bool;
     pure fn content_box() -> Rect<au>;
@@ -145,6 +146,13 @@ impl RenderBox : RenderBoxMethods {
     pure fn can_split() -> bool {
         match self {
             TextBox(*) => true,
+            _ => false
+        }
+    }
+
+    pure fn is_whitespace_only() -> bool {
+        match self {
+            UnscannedTextBox(_, raw_text) => raw_text.is_whitespace(),
             _ => false
         }
     }
