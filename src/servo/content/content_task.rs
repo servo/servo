@@ -42,6 +42,7 @@ use std::net::url::Url;
 use url_to_str = std::net::url::to_str;
 use util::url::make_url;
 use task::{task, SingleThreaded};
+use std::cell::Cell;
 
 use js::glue::bindgen::RUST_JSVAL_TO_OBJECT;
 use js::JSVAL_NULL;
@@ -60,17 +61,30 @@ pub enum PingMsg {
     PongMsg
 }
 
-pub type ContentTask = Chan<ControlMsg>;
+pub type ContentTask = pipes::SharedChan<ControlMsg>;
 
 fn ContentTask<S: Compositor Send Copy>(layout_task: LayoutTask,
                                         compositor: S,
                                         resource_task: ResourceTask,
                                         img_cache_task: ImageCacheTask) -> ContentTask {
-    do task().sched_mode(SingleThreaded).spawn_listener::<ControlMsg> |from_master| {
-        let content = Content(layout_task, from_master, resource_task, img_cache_task.clone());
-        compositor.add_event_listener(content.event_port.chan());
+
+    let (control_chan, control_port) = pipes::stream();
+
+    let control_chan = pipes::SharedChan(control_chan);
+    let control_chan_copy = control_chan.clone();
+    let control_port = Cell(move control_port);
+
+    do task().sched_mode(SingleThreaded).spawn |move control_port| {
+        let (event_chan, event_port) = pipes::stream();
+        let event_chan = pipes::SharedChan(event_chan);
+        let content = Content(layout_task, control_port.take(), control_chan_copy.clone(),
+                              resource_task,
+                              img_cache_task.clone(), move event_port, event_chan.clone());
+        compositor.add_event_listener(move event_chan);
         content.start();
     }
+
+    return control_chan;
 }
 
 struct Content {
@@ -78,8 +92,10 @@ struct Content {
     mut layout_join_port: Option<pipes::Port<()>>,
 
     image_cache_task: ImageCacheTask,
-    from_master: comm::Port<ControlMsg>,
-    event_port: comm::Port<Event>,
+    control_port: pipes::Port<ControlMsg>,
+    control_chan: pipes::SharedChan<ControlMsg>,
+    event_port: pipes::Port<Event>,
+    event_chan: pipes::SharedChan<Event>,
 
     scope: NodeScope,
     jsrt: jsrt,
@@ -96,13 +112,15 @@ struct Content {
 }
 
 fn Content(layout_task: LayoutTask, 
-           from_master: Port<ControlMsg>,
+           control_port: pipes::Port<ControlMsg>,
+           control_chan: pipes::SharedChan<ControlMsg>,
            resource_task: ResourceTask,
-           img_cache_task: ImageCacheTask) -> @Content {
+           img_cache_task: ImageCacheTask,
+           event_port: pipes::Port<Event>,
+           event_chan: pipes::SharedChan<Event>) -> @Content {
 
     let jsrt = jsrt();
     let cx = jsrt.cx();
-    let event_port = Port();
 
     cx.set_default_options_and_version();
     cx.set_logging_error_reporter();
@@ -116,8 +134,10 @@ fn Content(layout_task: LayoutTask,
         layout_task : layout_task,
         layout_join_port : None,
         image_cache_task : img_cache_task,
-        from_master : from_master,
+        control_port : control_port,
+        control_chan : control_chan,
         event_port : event_port,
+        event_chan : event_chan,
 
         scope : NodeScope(),
         jsrt : jsrt,
@@ -145,15 +165,15 @@ fn task_from_context(cx: *JSContext) -> *Content unsafe {
 impl Content {
 
     fn start() {
-        while self.handle_msg(select2(self.from_master, self.event_port)) {
-            // Go on...
+        while self.handle_msg() {
+            // Go on ...
         }
     }
 
-    fn handle_msg(msg: Either<ControlMsg,Event>) -> bool {
-        match move msg {
-            Left(move control_msg) => self.handle_control_msg(control_msg),
-            Right(move event) => self.handle_event(event)
+    fn handle_msg() -> bool {
+        match pipes::select2i(&self.control_port, &self.event_port) {
+            either::Left(*) => self.handle_control_msg(self.control_port.recv()),
+            either::Right(*) => self.handle_event(self.event_port.recv())
         }
     }
 
@@ -180,7 +200,7 @@ impl Content {
             debug!("js_scripts: %?", js_scripts);
 
             let document = Document(root, self.scope, css_rules);
-            let window   = Window(self.from_master);
+            let window   = Window(self.control_chan.clone());
             self.relayout(&document, &url);
             self.document = Some(@document);
             self.window   = Some(@window);
@@ -283,7 +303,7 @@ impl Content {
         // Send new document and relevant styles to layout
         // FIXME: Put CSS rules in an arc or something.
         self.layout_task.send(BuildMsg(document.root, clone(&document.css_rules), copy *doc_url,
-                                       self.event_port.chan(), self.window_size, join_chan));
+                                       self.event_chan.clone(), self.window_size, join_chan));
 
         // Indicate that reader was forked so any further
         // changes will be isolated.

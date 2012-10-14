@@ -47,7 +47,7 @@ enum LayoutQueryResponse_ {
 }
 
 pub enum Msg {
-    BuildMsg(Node, ARC<Stylesheet>, Url, comm::Chan<Event>, Size2D<uint>, pipes::Chan<()>),
+    BuildMsg(Node, ARC<Stylesheet>, Url, pipes::SharedChan<Event>, Size2D<uint>, pipes::Chan<()>),
     QueryMsg(LayoutQuery, comm::Chan<LayoutQueryResponse>),
     ExitMsg
 }
@@ -96,14 +96,14 @@ impl Layout {
 
         match self.from_content.recv() {
             BuildMsg(move node, move styles, move doc_url,
-                     move to_content, move window_size, move join_chan) => {
+                     move dom_event_chan, move window_size, move join_chan) => {
 
                 let styles = Cell(styles);
                 let doc_url = Cell(doc_url);
                 let join_chan = Cell(join_chan);
 
                 do time("layout: performing layout") {
-                    self.handle_build(node, styles.take(), doc_url.take(), to_content, window_size, join_chan.take());
+                    self.handle_build(node, styles.take(), doc_url.take(), dom_event_chan.clone(), window_size, join_chan.take());
                 }
 
             }
@@ -122,14 +122,14 @@ impl Layout {
     }
 
     fn handle_build(node: Node, styles: ARC<Stylesheet>, doc_url: Url,
-                    to_content: comm::Chan<Event>, window_size: Size2D<uint>,
-                    join_chan: pipes::Chan<()>) {
+                    dom_event_chan: pipes::SharedChan<Event>, window_size: Size2D<uint>,
+                    content_join_chan: pipes::Chan<()>) {
         debug!("layout: received layout request for: %s", doc_url.to_str());
         debug!("layout: parsed Node tree");
         debug!("%?", node.dump());
 
         // Reset the image cache
-        self.local_image_cache.next_round(self.make_on_image_available_cb(to_content));
+        self.local_image_cache.next_round(self.make_on_image_available_cb(move dom_event_chan));
 
         let screen_size = Size2D(au::from_px(window_size.width as int),
                                  au::from_px(window_size.height as int));
@@ -187,7 +187,7 @@ impl Layout {
         } // time(layout: display list building)
 
         // Tell content we're done
-        join_chan.send(());
+        content_join_chan.send(());
 
     }
 
@@ -225,10 +225,21 @@ impl Layout {
     }
 
     // When images can't be loaded in time to display they trigger
-    // this callback in some task somewhere. This w
-    fn make_on_image_available_cb(to_content: comm::Chan<Event>) -> ~fn(ImageResponseMsg) {
-        let f: ~fn(ImageResponseMsg) = |_msg| {
-            to_content.send(ReflowEvent)
+    // this callback in some task somewhere. This will send a message
+    // to the content task, and ultimately cause the image to be
+    // re-requested. We probably don't need to go all the way back to
+    // the content task for this.
+    fn make_on_image_available_cb(dom_event_chan: pipes::SharedChan<Event>) -> @fn() -> ~fn(ImageResponseMsg) {
+        // This has a crazy signature because the image cache needs to
+        // make multiple copies of the callback, and the dom event
+        // channel is not a copyable type, so this is actually a
+        // little factory to produce callbacks
+        let f: @fn() -> ~fn(ImageResponseMsg) = |move dom_event_chan| {
+            let dom_event_chan = dom_event_chan.clone();
+            let f: ~fn(ImageResponseMsg) = |_msg, move dom_event_chan| {
+                dom_event_chan.send(ReflowEvent)
+            };
+            f
         };
         return f;
     }

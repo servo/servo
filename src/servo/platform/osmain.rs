@@ -32,7 +32,7 @@ pub enum Msg {
     BeginDrawing(pipes::Chan<LayerBuffer>),
     Draw(pipes::Chan<LayerBuffer>, LayerBuffer),
     AddKeyHandler(pipes::Chan<()>),
-    AddEventListener(comm::Chan<Event>),
+    AddEventListener(pipes::SharedChan<Event>),
     Exit
 }
 
@@ -55,7 +55,7 @@ fn OSMain() -> OSMain {
 
 fn mainloop(mode: Mode, po: comm::Port<Msg>) {
     let key_handlers: @DVec<pipes::Chan<()>> = @DVec();
-    let event_listeners: @DVec<comm::Chan<Event>> = @DVec();
+    let event_listeners: @DVec<pipes::SharedChan<Event>> = @DVec();
 
 	let window;
 	match mode {
@@ -98,7 +98,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>) {
         while po.peek() {
             match po.recv() {
               AddKeyHandler(move key_ch) => key_handlers.push(move key_ch),
-              AddEventListener(event_listener) => event_listeners.push(event_listener),
+              AddEventListener(move event_listener) => event_listeners.push(event_listener),
               BeginDrawing(move sender) => lend_surface(surfaces, sender),
               Draw(move sender, move dt) => {
                 #debug("osmain: received new frame");
@@ -181,7 +181,7 @@ impl OSMain : Compositor {
     fn draw(next_dt: pipes::Chan<LayerBuffer>, draw_me: LayerBuffer) {
         self.send(Draw(next_dt, draw_me))
     }
-    fn add_event_listener(listener: comm::Chan<Event>) {
+    fn add_event_listener(listener: pipes::SharedChan<Event>) {
         self.send(AddEventListener(listener));
     }
 }

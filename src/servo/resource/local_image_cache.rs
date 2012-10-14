@@ -24,7 +24,7 @@ pub fn LocalImageCache(
 pub struct LocalImageCache {
     priv image_cache_task: ImageCacheTask,
     priv mut round_number: uint,
-    priv mut on_image_available: Option<~fn(ImageResponseMsg)>,
+    priv mut on_image_available: Option<@fn() -> ~fn(ImageResponseMsg)>,
     priv state_map: UrlMap<@ImageState>
 }
 
@@ -40,7 +40,7 @@ pub impl LocalImageCache {
     /// The local cache will only do a single remote request for a given
     /// URL in each 'round'. Layout should call this each time it begins
     // FIXME: 'pub' is an unexpected token?
-    /* pub */ fn next_round(on_image_available: ~fn(ImageResponseMsg)) {
+    /* pub */ fn next_round(on_image_available: @fn() -> ~fn(ImageResponseMsg)) {
         self.round_number += 1;
         self.on_image_available = Some(move on_image_available);
     }
@@ -109,7 +109,7 @@ pub impl LocalImageCache {
                 // on the image to load and triggering layout
                 let image_cache_task = self.image_cache_task.clone();
                 assert self.on_image_available.is_some();
-                let on_image_available = {copy *self.on_image_available.get_ref()};
+                let on_image_available = self.on_image_available.get()();
                 let url = copy *url;
                 do task::spawn |move url, move on_image_available| {
                     let (response_chan, response_port) = pipes::stream();

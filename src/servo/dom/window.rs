@@ -63,8 +63,7 @@ impl Window {
     }
 }
 
-fn Window(content_port: Port<ControlMsg>) -> Window {
-    let content_chan = Chan(&content_port);
+fn Window(content_chan: pipes::SharedChan<ControlMsg>) -> Window {
         
     Window {
         timer_chan: do task::spawn_listener |timer_port: Port<TimerControlMsg>| {

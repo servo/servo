@@ -45,7 +45,7 @@ impl Chan<Msg> : Compositor {
     fn draw(next_dt: pipes::Chan<LayerBuffer>, draw_me: LayerBuffer) {
         self.send(Draw(next_dt, draw_me))
     }
-    fn add_event_listener(_listener: Chan<Event>) {
+    fn add_event_listener(_listener: pipes::SharedChan<Event>) {
         // No events in this compositor.
     }
 }
