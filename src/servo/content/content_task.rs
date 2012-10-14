@@ -326,7 +326,7 @@ impl Content {
     // TODO: actually perform DOM event dispatch.
     fn handle_event(event: Event) -> bool {
         match event {
-          ResizeEvent(new_width, new_height) => {
+          ResizeEvent(new_width, new_height, response_chan) => {
             debug!("content got resize event: %u, %u", new_width, new_height);
             self.window_size = Size2D(new_width, new_height);
             match copy self.document {
@@ -338,6 +338,7 @@ impl Content {
                     self.relayout(document, &self.doc_url.get());
                 }
             }
+            response_chan.send(());
             return true;
           }
           ReflowEvent => {

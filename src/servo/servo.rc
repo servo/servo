@@ -95,6 +95,7 @@ pub mod html {
 pub mod platform {
     pub mod base;
     pub mod osmain;
+    priv mod resize_rate_limiter;
 }
 
 pub mod text {

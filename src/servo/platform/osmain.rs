@@ -15,6 +15,7 @@ use task::TaskBuilder;
 use vec::push;
 use pipes::Chan;
 use std::cell::Cell;
+use resize_rate_limiter::ResizeRateLimiter;
 
 pub type OSMain = comm::Chan<Msg>;
 
@@ -56,8 +57,6 @@ fn OSMain(dom_event_chan: pipes::SharedChan<Event>) -> OSMain {
 
 fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<Event>) {
 
-    let dom_event_chan = @move dom_event_chan;
-
     let key_handlers: @DVec<pipes::Chan<()>> = @DVec();
 
 	let window;
@@ -90,12 +89,18 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
 
     let done = @mut false;
 
+    let resize_rate_limiter = @ResizeRateLimiter(move dom_event_chan);
+
     #macro[
         [#moov[x],
          unsafe { let y <- *ptr::addr_of(x); y }]
     ];
 
     let check_for_messages = fn@() {
+
+        // Periodically check if content responded to our last resize event
+        resize_rate_limiter.check_resize_response();
+
         // Handle messages
         #debug("osmain: peeking");
         while po.peek() {
@@ -136,7 +141,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
                 check_for_messages();
 
                 #debug("osmain: window resized to %d,%d", width as int, height as int);
-                dom_event_chan.send(ResizeEvent(width as uint, height as uint));
+                resize_rate_limiter.window_resized(width as uint, height as uint);
             }
 
             do glut::display_func() {
