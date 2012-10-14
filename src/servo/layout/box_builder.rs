@@ -5,7 +5,7 @@ use css::styles::{SpecifiedStyle, empty_style_for_node_kind};
 use css::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayInlineBlock, DisplayNone};
 use css::values::{Inherit, Initial, Specified};
 use dom::element::*;
-use dom::node::{Comment, Doctype, Element, Text, Node, NodeTree, LayoutData};
+use dom::node::{Comment, Doctype, Element, Text, Node, LayoutData};
 use image::holder::ImageHolder;
 use layout::box::*;
 use layout::block::BlockFlowData;
@@ -94,7 +94,7 @@ impl LayoutTreeBuilder {
             debug!("LayoutTreeBuilder: using parent builder context");
             debug!("LayoutTreeBuilder: Adding child flow f%? of f%?",
                    parent_ctx.flow.d().id, next_flow.d().id);
-            FlowTree.add_child(parent_ctx.flow, next_flow);
+            tree::add_child(&FlowTree, parent_ctx.flow, next_flow);
 
             builder_ctx = { flow: next_flow, consumer: BoxConsumer(next_flow) };
         } else {
@@ -114,28 +114,68 @@ impl LayoutTreeBuilder {
         builder_ctx.consumer.push_box(layout_ctx, new_box);
 
         // recurse on child nodes.
-        do NodeTree.each_child(&cur_node) |child_node| {
-            self.construct_recursively(layout_ctx, *child_node, &builder_ctx); true
+        for tree::each_child(&NodeTree, &cur_node) |child_node| {
+            self.construct_recursively(layout_ctx, *child_node, &builder_ctx);
         }
 
         builder_ctx.consumer.pop_box(layout_ctx, new_box);
+        self.simplify_children_of_flow(layout_ctx, &builder_ctx);
+    }
 
-        // Fixup any irregularities, such as split inlines (CSS 2.1 Section 9.2.1.1)
-        if (builder_ctx.flow.starts_inline_flow()) {
-            let mut found_child_inline = false;
-            let mut found_child_block = false;
+    // Fixup any irregularities such as:
+    //
+    // * split inlines (CSS 2.1 Section 9.2.1.1)
+    // * elide non-preformatted whitespace-only text boxes and their
+    //   flows (CSS 2.1 Section 9.2.2.1).
+    //
+    // The latter can only be done immediately adjacent to, or at the
+    // beginning or end of a block flow. Otherwise, the whitespace
+    // might affect whitespace collapsing with adjacent text.
+    fn simplify_children_of_flow(_layout_ctx: &LayoutContext, builder_ctx: &BuilderContext) {
+        match *builder_ctx.flow {
+            InlineFlow(*) => {
+                let mut found_child_inline = false;
+                let mut found_child_block = false;
 
-            do FlowTree.each_child(builder_ctx.flow) |child_ctx| {
-                match *child_ctx {
-                    InlineFlow(*) | InlineBlockFlow(*) => found_child_inline = true,
-                    BlockFlow(*) => found_child_block = true,
-                    _ => {}
-                }; true
-            }
+                for tree::each_child(&FlowTree, &builder_ctx.flow) |child_ctx: &@FlowContext| {
+                    match **child_ctx {
+                        InlineFlow(*) | InlineBlockFlow(*) => found_child_inline = true,
+                        BlockFlow(*) => found_child_block = true,
+                        _ => {}
+                    }
+                }
 
-            if found_child_block && found_child_inline {
-                self.fixup_split_inline(builder_ctx.flow)
-            }
+                if found_child_block && found_child_inline {
+                    self.fixup_split_inline(builder_ctx.flow)
+                }
+            },
+            BlockFlow(*) => {
+                // FIXME: this will create refcounted cycles between the removed flow and any
+                // of its RenderBox or FlowContext children, and possibly keep alive other junk
+                let parent_flow = builder_ctx.flow;
+                // check first/last child for whitespace-ness
+                do tree::first_child(&FlowTree, &parent_flow).iter |first_flow: &@FlowContext| {
+                    if first_flow.starts_inline_flow() {
+                        let boxes = &first_flow.inline().boxes;
+                        if boxes.len() == 1 && boxes[0].is_whitespace_only() {
+                            debug!("LayoutTreeBuilder: pruning whitespace-only first child flow f%d from parent f%d", 
+                                   first_flow.d().id, parent_flow.d().id);
+                            tree::remove_child(&FlowTree, parent_flow, *first_flow);
+                        }
+                    }
+                }
+                do tree::last_child(&FlowTree, &parent_flow).iter |last_flow: &@FlowContext| {
+                    if last_flow.starts_inline_flow() {
+                        let boxes = &last_flow.inline().boxes;
+                        if boxes.len() == 1 && boxes.last().is_whitespace_only() {
+                            debug!("LayoutTreeBuilder: pruning whitespace-only last child flow f%d from parent f%d", 
+                                   last_flow.d().id, parent_flow.d().id);
+                            tree::remove_child(&FlowTree, parent_flow, *last_flow);
+                        }
+                    }
+                }
+            },
+            _ => {}
         }
     }
 
