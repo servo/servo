@@ -3,6 +3,7 @@ export FreeTypeNativeFont, with_test_native_font, create;
 
 use font::{FontMetrics, FractionalPixel};
 
+use au = gfx::geometry;
 use util::*;
 use vec_as_buf = vec::as_imm_buf;
 use ptr::{addr_of, null};
@@ -84,15 +85,14 @@ impl FreeTypeNativeFont {
     fn get_metrics() -> FontMetrics {
         /* TODO: complete me (Issue #76) */
         return FontMetrics {
-            underline_size:   0.0,
-            underline_offset: 0.0,
-            leading:          0.0,
-            x_height:         0.0,
-            em_size:          gfx::geometry::au(0),
-            em_height:        0.0,
-            em_ascent:        0.0,
-            em_descent:       0.0,
-            max_advance:      0.0
+            underline_size:   au::from_pt(0.0),
+            underline_offset: au::from_pt(0.0),
+            leading:          au::from_pt(0.0),
+            x_height:         au::from_pt(0.0),
+            em_size:          au::from_pt(0.0),
+            ascent:           au::from_pt(0.0),
+            descent:          au::from_pt(0.0),
+            max_advance:      au::from_pt(0.0)
         }
     }
 }
