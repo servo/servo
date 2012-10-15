@@ -39,6 +39,12 @@ pub fn box<A:Copy Num>(x: A, y: A, w: A, h: A) -> Rect<A> {
     Rect(Point2D(x, y), Size2D(w, h))
 }
 
+impl au {
+    pub fn scale_by(factor: float) -> au {
+        au(((*self as float) * factor) as i32)
+    }
+}
+
 pub pure fn zero_rect() -> Rect<au> {
     let z = au(0);
     Rect(Point2D(z, z), Size2D(z, z))
