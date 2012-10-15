@@ -185,9 +185,12 @@ impl TextRunScanner {
                 // then, fix NodeRange mappings to account for elided boxes.
                 do self.flow.inline().elems.borrow |ranges: &[NodeRange]| {
                     for ranges.each |range: &NodeRange| {
-                        debug!("TextRunScanner: repairing element range %?", range.span);
                         let span = &range.span;
-                        match relation_of_clump_and_range(span, self.clump_start, self.clump_end) {
+                        let relation = relation_of_clump_and_range(span, self.clump_start, self.clump_end);
+                        debug!("TextRunScanner: possibly repairing element range %?", range.span);
+                        debug!("TextRunScanner: relation of range and clump(start=%u, end=%u): %?",
+                               self.clump_start, self.clump_end, relation);
+                        match relation {
                             RangeEntirelyBeforeClump => {},
                             RangeEntirelyAfterClump => { span.start -= clump_box_count as u16; },
                             RangeCoincidesClump | RangeContainedByClump => 
