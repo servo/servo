@@ -320,12 +320,7 @@ impl RenderBox : RenderBoxMethods {
         let bounds : Rect<au> = Rect(self.d().position.origin.add(offset),
                                      copy self.d().position.size);
 
-        // TODO: shouldn't need to unbox CSSValue by now
-        let boxed_bgcolor = self.d().node.style().background_color;
-        let bgcolor = match boxed_bgcolor {
-            Specified(BgColor(c)) => c,
-            Specified(BgColorTransparent) | _ => util::color::rgba(0,0,0,0.0)
-        };
+        self.add_bgcolor_to_list(list, bounds);
 
         match self {
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
@@ -334,20 +329,27 @@ impl RenderBox : RenderBoxMethods {
             },
             // TODO: items for background, border, outline
             GenericBox(_) => {
-                use std::cmp::FuzzyEq;
-                if !bgcolor.alpha.fuzzy_eq(&0.0) {
-                    list.push(~dl::SolidColor(bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
-                }
             },
             ImageBox(_,i) => {
                 match i.get_image() {
                     Some(image) => list.push(~dl::Image(bounds, arc::clone(&image))),
                     /* No image data at all? Okay, add some fallback content instead. */
-                    None => {
-                        list.push(~dl::SolidColor(bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
-                    }
+                    None => ()
                 }
             }
+        }
+    }
+
+    fn add_bgcolor_to_list(list: &dl::DisplayList, bounds: Rect<au>) {
+        use std::cmp::FuzzyEq;
+        // TODO: shouldn't need to unbox CSSValue by now
+        let boxed_bgcolor = self.d().node.style().background_color;
+        let bgcolor = match boxed_bgcolor {
+            Specified(BgColor(c)) => c,
+            Specified(BgColorTransparent) | _ => util::color::rgba(0,0,0,0.0)
+        };
+        if !bgcolor.alpha.fuzzy_eq(&0.0) {
+            list.push(~dl::SolidColor(bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
         }
     }
 }
