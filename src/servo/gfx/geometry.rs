@@ -72,5 +72,5 @@ pub pure fn to_px(au: au) -> int {
 
 // assumes 72 points per inch, and 96 px per inch
 pub pure fn from_pt(f: float) -> au {
-    from_int((f * 96f / 72f) as int)
+    from_px((f / 72f * 96f) as int)
 }
