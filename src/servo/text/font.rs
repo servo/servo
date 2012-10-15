@@ -52,29 +52,27 @@ pub trait FontMethods {
 
 pub impl Font : FontMethods {
     fn measure_text(run: &TextRun, offset: uint, length: uint) -> RunMetrics {
-        let em_size = self.metrics.em_size;
-        let em_ascent = self.metrics.em_ascent;
-        let em_descent = self.metrics.em_descent;
-
         // TODO: alter advance direction for RTL
-        // TODO: using inter-char and inter-word spacing settings  when measuring text
+        // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = au(0);
-        let mut bounds = Rect(Point2D(au(0), em_size.scale_by(-em_ascent)),
-                          Size2D(au(0), em_size.scale_by(em_ascent + em_descent)));
+        let mut bounds = Rect(Point2D(au(0), -self.metrics.ascent),
+                          Size2D(au(0), self.metrics.ascent + self.metrics.descent));
         do run.glyphs.iter_glyphs_for_range(offset, length) |_i, glyph| {
             advance += glyph.advance();
             bounds = bounds.translate(&Point2D(glyph.advance(), au(0)));
         }
 
-        // TODO: support loose and tight bounding boxes; using the
+        // TODO(Issue #125): support loose and tight bounding boxes; using the
         // ascent+descent and advance is sometimes too generous and
         // looking at actual glyph extents can yield a tighter box.
 
         let metrics = RunMetrics { advance_width: advance,
                                   bounding_box: bounds,
-                                  ascent: em_size.scale_by(em_ascent),
-                                  descent: em_size.scale_by(em_descent),
+                                  ascent: self.metrics.ascent,
+                                  descent: self.metrics.descent,
                                  };
+        debug!("Measured text range '%s' with metrics:", run.text.substr(offset, length));
+        debug!("%?", metrics);
 
         return metrics;
     }
@@ -95,7 +93,6 @@ pub impl Font : FontMethods {
     }
 }
 
-// TODO: font should compute its own metrics using native_font.
 // TODO: who should own fontbuf?
 fn Font(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont) -> Font {
     let metrics = native_font.get_metrics();
@@ -103,24 +100,21 @@ fn Font(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont) -> Font {
     Font {
         lib: lib,
         fontbuf : fontbuf,
+        metrics: move metrics,
         native_font : move native_font,
-        metrics: move metrics
     }
 }
 
 // Most of these metrics are in terms of em. Use em_size to convert to au.
 struct FontMetrics {
-    underline_size:   float,
-    underline_offset: float,
-    leading:          float,
-    x_height:         float,
-
-    // how many appunits an em is equivalent to (based on point-to-au)
+    underline_size:   au,
+    underline_offset: au,
+    leading:          au,
+    x_height:         au,
     em_size:          au,
-    em_height:        float,
-    em_ascent:        float,
-    em_descent:       float,
-    max_advance:      float
+    ascent:           au,
+    descent:          au,
+    max_advance:      au
 }
 
 const TEST_FONT: [u8 * 33004] = #include_bin("JosefinSans-SemiBold.ttf");

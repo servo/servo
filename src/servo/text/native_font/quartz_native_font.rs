@@ -34,6 +34,7 @@ mod coretext {
     pub const kCTFontHorizontalOrientation: CTFontOrientation = 1;
     pub const kCTFontVerticalOrientation: CTFontOrientation = 2;
 
+    // TODO: this is actually a libc::c_float on 32bit
     pub type CGFloat = libc::c_double;
 
     pub struct CGSize {
@@ -61,14 +62,16 @@ mod coretext {
         pub fn CTFontGetGlyphsForCharacters(font: CTFontRef, characters: *UniChar, glyphs: *CGGlyph, count: CFIndex) -> bool;
         pub fn CTFontGetAdvancesForGlyphs(font: CTFontRef, orientation: CTFontOrientation, glyphs: *CGGlyph, advances: *CGSize, count: CFIndex) -> libc::c_double;
 
+        pub fn CTFontGetSize(font: CTFontRef) -> CGFloat;
+
         /* metrics API */
-        pub fn CTFontGetAscent(font: CTFontRef) -> libc::c_float;
-        pub fn CTFontGetDescent(font: CTFontRef) -> libc::c_float;
-        pub fn CTFontGetLeading(font: CTFontRef) -> libc::c_float;
+        pub fn CTFontGetAscent(font: CTFontRef) -> CGFloat;
+        pub fn CTFontGetDescent(font: CTFontRef) -> CGFloat;
+        pub fn CTFontGetLeading(font: CTFontRef) -> CGFloat;
         pub fn CTFontGetUnitsPerEm(font: CTFontRef) -> libc::c_uint;
-        pub fn CTFontGetUnderlinePosition(font: CTFontRef) -> libc::c_float;
-        pub fn CTFontGetUnderlineThickness(font: CTFontRef) -> libc::c_float;
-        pub fn CTFontGetXHeight(font: CTFontRef) -> libc::c_float;
+        pub fn CTFontGetUnderlinePosition(font: CTFontRef) -> CGFloat;
+        pub fn CTFontGetUnderlineThickness(font: CTFontRef) -> CGFloat;
+        pub fn CTFontGetXHeight(font: CTFontRef) -> CGFloat;
         pub fn CTFontGetBoundingBox(font: CTFontRef) -> CGRect;
             
         pub fn CFRelease(font: CTFontRef);
@@ -151,22 +154,26 @@ impl QuartzNativeFont {
         let ctfont = self.ctfont;
         assert ctfont.is_not_null();
 
-        let convFactor : float = 1.0 / (CTFontGetUnitsPerEm(ctfont) as float);
         let bounding_rect: CGRect = CTFontGetBoundingBox(ctfont);
-        let em_ascent = CTFontGetAscent(ctfont) as float * convFactor;
-        let em_descent = CTFontGetDescent(ctfont) as float * convFactor;
+        let ascent = au::from_pt(CTFontGetAscent(ctfont) as float);
+        let descent = au::from_pt(CTFontGetDescent(ctfont) as float);
 
-        return FontMetrics {
-            underline_size:   CTFontGetUnderlineThickness(ctfont) as float * convFactor,
-            underline_offset: CTFontGetUnderlinePosition(ctfont) as float * convFactor,
-            leading:          CTFontGetLeading(ctfont) as float * convFactor,
-            x_height:         CTFontGetXHeight(ctfont) as float * convFactor,
-            em_ascent:        CTFontGetAscent(ctfont) as float * convFactor,
-            em_descent:       CTFontGetDescent(ctfont) as float * convFactor,
-            em_height:        em_ascent + em_descent,
-            em_size:          au::from_pt(21f),
-            max_advance:      bounding_rect.size.width as float * convFactor,
-        }
+        let metrics =  FontMetrics {
+            underline_size:   au::from_pt(CTFontGetUnderlineThickness(ctfont) as float),
+            // TODO: underline metrics are not reliable. Have to pull out of font table directly.
+            // see also: https://bugs.webkit.org/show_bug.cgi?id=16768
+            // see also: https://bugreports.qt-project.org/browse/QTBUG-13364
+            underline_offset: au::from_pt(CTFontGetUnderlinePosition(ctfont) as float),
+            leading:          au::from_pt(CTFontGetLeading(ctfont) as float),
+            x_height:         au::from_pt(CTFontGetXHeight(ctfont) as float),
+            em_size:          ascent + descent,
+            ascent:           ascent,
+            descent:          descent,
+            max_advance:      au::from_pt(bounding_rect.size.width as float)
+        };
+
+        debug!("Font metrics (@%f pt): %?", CTFontGetSize(ctfont) as float, metrics);
+        return metrics;
     }
 }
 
