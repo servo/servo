@@ -20,6 +20,7 @@ use layout::context::LayoutContext;
 use layout::debug::BoxedDebugMethods;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
+use servo_text::text_run;
 use servo_text::text_run::TextRun;
 use std::net::url::Url;
 use task::spawn;
@@ -331,7 +332,7 @@ impl RenderBox : RenderBoxMethods {
     * `origin` - Total offset from display list root flow to this box's owning flow
     * `list` - List to which items should be appended
     */
-    fn build_display_list(_builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
+    fn build_display_list(builder: &dl::DisplayListBuilder, dirty: &Rect<au>,
                           offset: &Point2D<au>, list: &dl::DisplayList) {
         if !self.d().position.intersects(dirty) {
             return;
@@ -345,7 +346,7 @@ impl RenderBox : RenderBoxMethods {
         match self {
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
             TextBox(_,d) => {
-                list.push(~dl::Text(bounds, ~(copy *d.run), d.offset, d.length))
+                list.push(~dl::Text(bounds, text_run::serialize(builder.ctx.font_cache, d.run), d.offset, d.length))
             },
             // TODO: items for background, border, outline
             GenericBox(_) => {

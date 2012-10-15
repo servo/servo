@@ -15,7 +15,34 @@ use std::arc;
 
 pub struct TextRun {
     text: ~str,
+    font: @Font,
     priv glyphs: GlyphStore,
+}
+
+// This is a hack until TextRuns are normally sendable, or
+// we instead use ARC<TextRun> everywhere.
+pub struct SendableTextRun {
+    text: ~str,
+    font_descriptor: (),
+    priv glyphs: GlyphStore,
+}
+
+pub fn serialize(_cache: @FontCache, run: &TextRun) -> ~SendableTextRun {
+    ~SendableTextRun {
+        text: copy run.text,
+        // TODO: actually serialize a font descriptor thingy
+        font_descriptor: (),
+        glyphs: copy run.glyphs,
+    }
+}
+
+pub fn deserialize(cache: @FontCache, run: &SendableTextRun) -> @TextRun {
+    @TextRun {
+        text: copy run.text,
+        // TODO: actually deserialize a font descriptor thingy
+        font: cache.get_test_font(),
+        glyphs: copy run.glyphs
+    }
 }
 
 trait TextRunMethods {
@@ -128,14 +155,15 @@ impl TextRun : TextRunMethods {
     }
 }
  
-fn TextRun(font: &Font, text: ~str) -> TextRun {
+fn TextRun(font: @Font, text: ~str) -> TextRun {
     let glyph_store = GlyphStore(text.len());
     let run = TextRun {
         text: text,
+        font: font,
         glyphs: glyph_store,
     };
 
-    shape_textrun(font, &run);
+    shape_textrun(&run);
     return run;
 }
 

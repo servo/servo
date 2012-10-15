@@ -4,11 +4,12 @@ use gfx::geometry::*;
 use geom::rect::Rect;
 use image::base::Image;
 use render_task::RenderContext;
+use servo_text::text_run;
 
 use std::arc::ARC;
 use clone_arc = std::arc::clone;
 use dvec::DVec;
-use text::text_run::TextRun;
+use text::text_run::SendableTextRun;
 
 pub use layout::display_list_builder::DisplayListBuilder;
 
@@ -24,7 +25,7 @@ pub enum DisplayItemData {
     // TODO: need to provide spacing data for text run.
     // (i.e, to support rendering of CSS 'word-spacing' and 'letter-spacing')
     // TODO: don't copy text runs, ever.
-    TextData(~TextRun, uint, uint),
+    TextData(~SendableTextRun, uint, uint),
     ImageData(ARC<~image::base::Image>),
 }
 
@@ -37,7 +38,10 @@ fn draw_SolidColor(self: &DisplayItem, ctx: &RenderContext) {
 
 fn draw_Text(self: &DisplayItem, ctx: &RenderContext) {
     match self.data {
-        TextData(~run, offset, len) => draw_text(ctx, self.bounds, &run, offset, len),
+        TextData(run, offset, len) => {
+            let new_run = text_run::deserialize(ctx.font_cache, run);
+            draw_text(ctx, self.bounds, new_run, offset, len)
+        },
         _ => fail
     }        
 }
@@ -57,7 +61,7 @@ pub fn SolidColor(bounds: Rect<au>, r: u8, g: u8, b: u8) -> DisplayItem {
     }
 }
 
-pub fn Text(bounds: Rect<au>, run: ~TextRun, offset: uint, length: uint) -> DisplayItem {
+pub fn Text(bounds: Rect<au>, run: ~SendableTextRun, offset: uint, length: uint) -> DisplayItem {
     DisplayItem {
         draw: |self, ctx| draw_Text(self, ctx),
         bounds: bounds,

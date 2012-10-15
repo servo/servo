@@ -52,12 +52,12 @@ fn fixed_to_rounded_int_hb(f: hb_position_t) -> int {
 Calculate the layout metrics associated with a some given text
 when rendered in a specific font.
 */
-pub fn shape_textrun(font: &Font, run: &TextRun) {
+pub fn shape_textrun(run: &TextRun) {
     debug!("shaping text '%s'", run.text);
 
     // TODO: harfbuzz fonts and faces should be cached on the Font object.
     // TODO: font tables should be stored in Font object and cached by FontCache (Issue #92)
-    let face_blob: *hb_blob_t = vec::as_imm_buf(*(*font).fontbuf, |buf: *u8, len: uint| {
+    let face_blob: *hb_blob_t = vec::as_imm_buf(*(run.font).fontbuf, |buf: *u8, len: uint| {
         hb_blob_create(buf as *c_char,
                        len as c_uint,
                        HB_MEMORY_MODE_READONLY,
@@ -79,7 +79,7 @@ pub fn shape_textrun(font: &Font, run: &TextRun) {
     hb_font_funcs_set_glyph_h_advance_func(funcs, glyph_h_advance_func, null(), null());
 
     unsafe {
-        let font_data: *c_void = cast::transmute(font);
+        let font_data: *c_void = core::ptr::addr_of(run.font) as *c_void;
         hb_font_set_funcs(hb_font, funcs, font_data, null());
     };
 
@@ -140,9 +140,8 @@ extern fn glyph_func(_font: *hb_font_t,
                      glyph: *mut hb_codepoint_t,
                      _user_data: *c_void) -> hb_bool_t unsafe {
 
-    let font: *Font = cast::transmute(font_data);
+    let font: *Font = font_data as *Font;
     assert font.is_not_null();
-
     return match (*font).glyph_index(unicode as char) {
         Some(g) => { *glyph = g as hb_codepoint_t; true },
         None => false
@@ -153,8 +152,9 @@ extern fn glyph_h_advance_func(_font: *hb_font_t,
                                font_data: *c_void,
                                glyph: hb_codepoint_t,
                                _user_data: *c_void) -> hb_position_t unsafe {
-    let font: *Font = cast::transmute(font_data);
+    let font: *Font = font_data as *Font;
     assert font.is_not_null();
+    debug!("font_data = %?", font_data);
 
     let advance = (*font).glyph_h_advance(glyph as GlyphIndex);
     float_to_fixed_hb(advance)

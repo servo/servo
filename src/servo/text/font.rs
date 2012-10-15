@@ -105,7 +105,6 @@ fn Font(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont) -> Font {
     }
 }
 
-// Most of these metrics are in terms of em. Use em_size to convert to au.
 struct FontMetrics {
     underline_size:   au,
     underline_offset: au,

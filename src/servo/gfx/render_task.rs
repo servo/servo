@@ -172,8 +172,7 @@ pub fn draw_text(ctx: &RenderContext, bounds: Rect<au>, run: &TextRun, offset: u
                             AzReleaseColorPattern};
     use azure::cairo::bindgen::cairo_scaled_font_destroy;
 
-    // FIXME: font should be accessible from TextRun
-    let font = ctx.font_cache.get_test_font();
+    let font = run.font;
 
     let nfont: AzNativeFont = {
         mType: AZ_NATIVE_FONT_CAIRO_FONT_FACE,

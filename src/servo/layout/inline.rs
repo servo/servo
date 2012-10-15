@@ -161,7 +161,7 @@ impl TextRunScanner {
                 let compression = CompressWhitespaceNewline;
                 let transformed_text = transform_text(text, compression);
                 // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
-                let run = @TextRun(&*ctx.font_cache.get_test_font(), move transformed_text);
+                let run = @TextRun(ctx.font_cache.get_test_font(), move transformed_text);
                 let box_guts = TextBoxData(run, 0, run.text.len());
                 debug!("TextRunScanner: pushing single text box when start=%u,end=%u",
                        self.clump_start, self.clump_end);
@@ -214,7 +214,7 @@ impl TextRunScanner {
                 }
                 
                 // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
-                let run = @TextRun(&*ctx.font_cache.get_test_font(), move run_str);
+                let run = @TextRun(ctx.font_cache.get_test_font(), move run_str);
                 let box_guts = TextBoxData(run, 0, run.text.len());
                 debug!("TextRunScanner: pushing box(es) when start=%u,end=%u",
                        self.clump_start, self.clump_end);
