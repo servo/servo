@@ -21,6 +21,9 @@ DEPS_servo-sandbox += \
 DEPS_rust-hubbub += \
 	libhubbub
 
+DEPS_rust-css += \
+	libcss
+
 CFLAGS_mozjs += \
 	"-I../mozjs/dist/include"
 
