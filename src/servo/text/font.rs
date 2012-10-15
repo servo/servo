@@ -52,22 +52,30 @@ pub trait FontMethods {
 
 pub impl Font : FontMethods {
     fn measure_text(run: &TextRun, offset: uint, length: uint) -> RunMetrics {
+        let em_size = self.metrics.em_size;
+        let em_ascent = self.metrics.em_ascent;
+        let em_descent = self.metrics.em_descent;
+
         // TODO: alter advance direction for RTL
         // TODO: using inter-char and inter-word spacing settings  when measuring text
         let mut advance = au(0);
-        let mut bounds = Rect(Point2D(au(0), self.metrics.em_size.scale_by(-self.metrics.em_ascent)),
-                          Size2D(au(0), self.metrics.em_size.scale_by(self.metrics.em_ascent + self.metrics.em_descent)));
+        let mut bounds = Rect(Point2D(au(0), em_size.scale_by(-em_ascent)),
+                          Size2D(au(0), em_size.scale_by(em_ascent + em_descent)));
         do run.glyphs.iter_glyphs_for_range(offset, length) |_i, glyph| {
-            advance += glyph.advance()
+            advance += glyph.advance();
+            bounds = bounds.translate(&Point2D(glyph.advance(), au(0)));
         }
 
-        // TODO: support loose and tight bounding boxes
+        // TODO: support loose and tight bounding boxes; using the
+        // ascent+descent and advance is sometimes too generous and
+        // looking at actual glyph extents can yield a tighter box.
 
-        RunMetrics { advance_width: advance,
-                     bounding_box: bounds,
-                     ascent: self.metrics.em_size.scale_by(self.metrics.em_ascent),
-                     descent: self.metrics.em_size.scale_by(self.metrics.em_descent),
-                   }
+        let metrics = RunMetrics { advance_width: advance,
+                                  bounding_box: bounds,
+                                  ascent: em_size.scale_by(em_ascent),
+                                  descent: em_size.scale_by(em_descent),
+                                 };
+        return metrics;
     }
 
     fn buf(&self) -> @~[u8] {
@@ -97,11 +105,7 @@ fn Font(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont, metrics: Font
     }
 }
 
-// TODO: what are the units of these metrics? CTFont metrics calls are
-// font units for a specific point size, and these are normalized by
-// font units-per-em. Are there some cases where these metrics depend
-// on font size? If so, need to be careful about using same sizes on
-// font creation, metrics gathering, and drawing.
+// Most of these metrics are in terms of em. Use em_size to convert to au.
 struct FontMetrics {
     underline_size:   float,
     underline_offset: float,
