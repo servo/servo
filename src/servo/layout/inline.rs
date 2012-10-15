@@ -351,7 +351,7 @@ impl FlowContext : InlineLayout {
                     // TODO: measure twice, cut once doesn't apply to text. Shouldn't need
                     // to measure text again here (should be inside TextBox.split)
                     let metrics = test_font.measure_text(d.run, d.offset, d.length);
-                    metrics.advance
+                    metrics.advance_width
                 },
                 // TODO: this should be set to the extents of its children
                 @GenericBox(*) => au(0),

@@ -2,6 +2,9 @@ pub use font_cache::FontCache;
 
 use au = gfx::geometry;
 use au::au;
+use geom::point::Point2D;
+use geom::rect::Rect;
+use geom::size::Size2D;
 use glyph::GlyphIndex;
 use libc::{ c_int, c_double, c_ulong };
 use native_font::NativeFont;
@@ -25,7 +28,15 @@ struct Font {
 }
 
 struct RunMetrics {
-    advance: au,
+    // may be negative due to negative width
+    advance_width: au,
+
+    ascent: au, // nonzero
+    descent: au, // nonzero
+
+    // this bounding box is relative to the left origin baseline.
+    // so, bounding_box.position.y = -ascent
+    bounding_box: Rect<au>
 }
 
 // Public API
@@ -42,14 +53,21 @@ pub trait FontMethods {
 pub impl Font : FontMethods {
     fn measure_text(run: &TextRun, offset: uint, length: uint) -> RunMetrics {
         // TODO: alter advance direction for RTL
-        // TODO: calculate actual bounding box as part of RunMetrics
         // TODO: using inter-char and inter-word spacing settings  when measuring text
         let mut advance = au(0);
+        let mut bounds = Rect(Point2D(au(0), self.metrics.em_size.scale_by(-self.metrics.em_ascent)),
+                          Size2D(au(0), self.metrics.em_size.scale_by(self.metrics.em_ascent + self.metrics.em_descent)));
         do run.glyphs.iter_glyphs_for_range(offset, length) |_i, glyph| {
             advance += glyph.advance()
         }
 
-        RunMetrics { advance: advance }
+        // TODO: support loose and tight bounding boxes
+
+        RunMetrics { advance_width: advance,
+                     bounding_box: bounds,
+                     ascent: self.metrics.em_size.scale_by(self.metrics.em_ascent),
+                     descent: self.metrics.em_size.scale_by(self.metrics.em_descent),
+                   }
     }
 
     fn buf(&self) -> @~[u8] {
