@@ -18,7 +18,15 @@ pub struct TextRun {
     priv glyphs: GlyphStore,
 }
 
-impl TextRun {
+trait TextRunMethods {
+    pure fn glyphs(&self) -> &self/GlyphStore;
+    pure fn iter_indivisible_pieces_for_range(&self, offset: uint, length: uint, f: fn(uint, uint) -> bool);
+
+    fn min_width_for_range(&LayoutContext, offset: uint, length: uint) -> au;
+    fn iter_natural_lines_for_range(&self, offset: uint, length: uint, f: fn(uint, uint) -> bool);
+}
+
+impl TextRun : TextRunMethods {
     pure fn glyphs(&self) -> &self/GlyphStore { &self.glyphs }
 
     fn min_width_for_range(ctx: &LayoutContext, offset: uint, length: uint) -> au {    
