@@ -320,25 +320,31 @@ impl RenderBox : RenderBoxMethods {
         let bounds : Rect<au> = Rect(self.d().position.origin.add(offset),
                                      copy self.d().position.size);
 
+        // TODO: shouldn't need to unbox CSSValue by now
+        let boxed_bgcolor = self.d().node.style().background_color;
+        let bgcolor = match boxed_bgcolor {
+            Specified(BgColor(c)) => c,
+            Specified(BgColorTransparent) | _ => util::color::rgba(0,0,0,0.0)
+        };
+
         match self {
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
             TextBox(_,d) => {
                 list.push(~dl::Text(bounds, ~(copy *d.run), d.offset, d.length))
             },
             // TODO: items for background, border, outline
-            GenericBox(*) => { },
+            GenericBox(_) => {
+                use std::cmp::FuzzyEq;
+                if !bgcolor.alpha.fuzzy_eq(&0.0) {
+                    list.push(~dl::SolidColor(bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
+                }
+            },
             ImageBox(_,i) => {
                 match i.get_image() {
                     Some(image) => list.push(~dl::Image(bounds, arc::clone(&image))),
                     /* No image data at all? Okay, add some fallback content instead. */
                     None => {
-                        // TODO: shouldn't need to unbox CSSValue by now
-                        let boxed_color = self.d().node.style().background_color;
-                        let color = match boxed_color {
-                            Specified(BgColor(c)) => c,
-                            Specified(BgColorTransparent) | _ => util::color::rgba(0,0,0,0.0)
-                        };
-                        list.push(~dl::SolidColor(bounds, color.red, color.green, color.blue));
+                        list.push(~dl::SolidColor(bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
                     }
                 }
             }
