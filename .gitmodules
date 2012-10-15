@@ -59,6 +59,6 @@
     path = src/libcss
     url = git://github.com/pcwalton/libcss.git
 
-[submodule "src/rust-css"]
-	path = src/rust-css
-	url = git://github.com/brson/rust-css.git
+[submodule "src/rust-netsurfcss"]
+	path = src/rust-netsurfcss
+	url = git://github.com/brson/rust-netsurfcss.git

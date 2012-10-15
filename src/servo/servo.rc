@@ -18,7 +18,7 @@ extern mod opengles;
 extern mod http_client;
 extern mod hubbub;
 extern mod sharegl;
-extern mod cssparser (name = "css");
+extern mod netsurfcss;
 
 pub mod engine;
 

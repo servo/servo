@@ -21,7 +21,7 @@ DEPS_servo-sandbox += \
 DEPS_rust-hubbub += \
 	libhubbub
 
-DEPS_rust-css += \
+DEPS_rust-netsurfcss += \
 	libcss
 
 CFLAGS_mozjs += \
