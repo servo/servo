@@ -91,6 +91,13 @@ pub enum RenderBox {
     UnscannedTextBox(RenderBoxData, ~str)
 }
 
+enum SplitBoxResult {
+    CannotSplit(@RenderBox),
+    SplitUnnecessary(@RenderBox),
+    SplitDidFit(@RenderBox, @RenderBox),
+    SplitDidNotFit(@RenderBox, @RenderBox)
+}
+
 enum InlineSpacerSide {
     LogicalBefore,
     LogicalAfter,
@@ -107,6 +114,7 @@ trait RenderBoxMethods {
     pure fn content_box() -> Rect<au>;
     pure fn border_box() -> Rect<au>;
 
+    fn split_to_width(@self, &LayoutContext, au) -> SplitBoxResult;
     fn get_min_width(&LayoutContext) -> au;
     fn get_pref_width(&LayoutContext) -> au;
     fn get_used_width() -> (au, au);
@@ -165,6 +173,18 @@ impl RenderBox : RenderBoxMethods {
             (@TextBox(_,d1), @TextBox(_,d2)) => { core::box::ptr_eq(d1.run, d2.run) }
             (_, _) => false
         }
+    }
+
+    fn split_to_width(@self, _ctx: &LayoutContext, _max_width: au) -> SplitBoxResult {
+        // TODO: finish
+        CannotSplit(self)
+/*        match self {
+            @GenericBox(*) => CannotSplit(self),
+            @ImageBox(*) => CannotSplit(self),
+            @TextBox(*) => {
+            }
+        }
+*/
     }
 
     /** In general, these functions are transitively impure because they

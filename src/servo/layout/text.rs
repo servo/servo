@@ -5,7 +5,7 @@ use au::au;
 use geom::size::Size2D;
 use servo_text::text_run::TextRun;
 use servo_text::font_cache::FontCache;
-use layout::box::{TextBox, RenderBox, UnscannedTextBox};
+use layout::box::{TextBox, RenderBox, RenderBoxData, UnscannedTextBox};
 use layout::context::LayoutContext;
 
 pub struct TextBoxData {
@@ -20,6 +20,15 @@ pub fn TextBoxData(run: @TextRun, offset: uint, length: uint) -> TextBoxData {
         offset: offset,
         length: length
     }
+}
+
+pub fn adapt_textbox_with_range(box_data: &RenderBoxData, run: @TextRun, 
+                                offset: uint, length: uint) -> @RenderBox {
+    let new_box_data = copy *box_data;
+    let new_text_data = TextBoxData(run, offset, length);
+    @TextBox(move new_box_data, move new_text_data)
+    // TODO: set position based on run metrics
+    //new_box_data.position.size = { width: run.font
 }
 
 trait UnscannedMethods {
