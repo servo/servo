@@ -44,8 +44,7 @@ fn create_font(lib: @FontCache, native_lib: &native::NativeFontCache) -> Result<
     } else {
         return Err(native_font.get_err());
     };
-    let metrics = native_font.get_metrics();
-    return Ok(@Font(lib, font_bin, native_font, metrics));
+    return Ok(@Font(lib, font_bin, native_font));
 }
 
 #[cfg(target_os = "linux")]

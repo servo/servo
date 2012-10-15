@@ -75,6 +75,7 @@ pub impl Font : FontMethods {
                                   ascent: em_size.scale_by(em_ascent),
                                   descent: em_size.scale_by(em_descent),
                                  };
+
         return metrics;
     }
 
@@ -96,7 +97,9 @@ pub impl Font : FontMethods {
 
 // TODO: font should compute its own metrics using native_font.
 // TODO: who should own fontbuf?
-fn Font(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont, metrics: FontMetrics) -> Font {
+fn Font(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont) -> Font {
+    let metrics = native_font.get_metrics();
+
     Font {
         lib: lib,
         fontbuf : fontbuf,
