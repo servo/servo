@@ -20,7 +20,7 @@ use dom::event::{Event, ResizeEvent, ReflowEvent};
 use dom::window::Window;
 use geom::size::Size2D;
 use layout::layout_task;
-use layout_task::{LayoutTask, BuildMsg};
+use layout_task::{LayoutTask, BuildMsg, BuildData};
 use resource::image_cache_task::ImageCacheTask;
 
 use css::values::Stylesheet;
@@ -300,9 +300,17 @@ impl Content {
         self.layout_join_port = move Some(join_port);
 
         // Send new document and relevant styles to layout
-        // FIXME: Put CSS rules in an arc or something.
-        self.layout_task.send(BuildMsg(document.root, clone(&document.css_rules), copy *doc_url,
-                                       self.event_chan.clone(), self.window_size, join_chan));
+
+        let data = BuildData {
+            node: document.root,
+            style: clone(&document.css_rules),
+            url: copy *doc_url,
+            dom_event_chan: self.event_chan.clone(),
+            window_size: self.window_size,
+            content_join_chan: move join_chan
+        };
+
+        self.layout_task.send(BuildMsg(move data));
 
         // Indicate that reader was forked so any further
         // changes will be isolated.

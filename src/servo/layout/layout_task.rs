@@ -47,9 +47,18 @@ enum LayoutQueryResponse_ {
 }
 
 pub enum Msg {
-    BuildMsg(Node, ARC<Stylesheet>, Url, pipes::SharedChan<Event>, Size2D<uint>, pipes::Chan<()>),
+    BuildMsg(BuildData),
     QueryMsg(LayoutQuery, comm::Chan<LayoutQueryResponse>),
     ExitMsg
+}
+
+struct BuildData {
+    node: Node,
+    style: ARC<Stylesheet>,
+    url: Url,
+    dom_event_chan: pipes::SharedChan<Event>,
+    window_size: Size2D<uint>,
+    content_join_chan: pipes::Chan<()>
 }
 
 fn LayoutTask(render_task: RenderTask,
@@ -95,15 +104,11 @@ impl Layout {
     fn handle_request() -> bool {
 
         match self.from_content.recv() {
-            BuildMsg(move node, move styles, move doc_url,
-                     move dom_event_chan, move window_size, move join_chan) => {
-
-                let styles = Cell(styles);
-                let doc_url = Cell(doc_url);
-                let join_chan = Cell(join_chan);
+            BuildMsg(move data) => {
+                let data = Cell(data);
 
                 do time("layout: performing layout") {
-                    self.handle_build(node, styles.take(), doc_url.take(), dom_event_chan.clone(), window_size, join_chan.take());
+                    self.handle_build(data.take());
                 }
 
             }
@@ -121,9 +126,14 @@ impl Layout {
         true
     }
 
-    fn handle_build(node: Node, styles: ARC<Stylesheet>, doc_url: Url,
-                    dom_event_chan: pipes::SharedChan<Event>, window_size: Size2D<uint>,
-                    content_join_chan: pipes::Chan<()>) {
+    fn handle_build(data: BuildData) {
+
+        let node = &data.node;
+        // FIXME: Bad copy
+        let doc_url = copy data.url;
+        // FIXME: Bad clone
+        let dom_event_chan = data.dom_event_chan.clone();
+
         debug!("layout: received layout request for: %s", doc_url.to_str());
         debug!("layout: parsed Node tree");
         debug!("%?", node.dump());
@@ -131,8 +141,8 @@ impl Layout {
         // Reset the image cache
         self.local_image_cache.next_round(self.make_on_image_available_cb(move dom_event_chan));
 
-        let screen_size = Size2D(au::from_px(window_size.width as int),
-                                 au::from_px(window_size.height as int));
+        let screen_size = Size2D(au::from_px(data.window_size.width as int),
+                                 au::from_px(data.window_size.height as int));
 
         let layout_ctx = LayoutContext {
             image_cache: self.local_image_cache,
@@ -144,13 +154,13 @@ impl Layout {
         let layout_root: @FlowContext = do time("layout: tree construction") {
             // TODO: this is dumb. we don't need 3 separate traversals.
             node.initialize_style_for_subtree(&layout_ctx, &self.layout_refs);
-            node.recompute_style_for_subtree(&layout_ctx, &styles);
+            node.recompute_style_for_subtree(&layout_ctx, &data.style);
             /* resolve styles (convert relative values) down the node tree */
-            apply_style(&layout_ctx, node);
+            apply_style(&layout_ctx, *node);
             
             let builder = LayoutTreeBuilder();
             let layout_root: @FlowContext = match builder.construct_trees(&layout_ctx,
-                                                                          node) {
+                                                                          *node) {
                 Ok(root) => root,
                 Err(*) => fail ~"Root flow should always exist"
             };
@@ -187,7 +197,7 @@ impl Layout {
         } // time(layout: display list building)
 
         // Tell content we're done
-        content_join_chan.send(());
+        data.content_join_chan.send(());
 
     }
 
