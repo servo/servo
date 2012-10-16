@@ -26,9 +26,9 @@ pub fn adapt_textbox_with_range(box_data: &RenderBoxData, run: @TextRun,
                                 offset: uint, length: uint) -> @RenderBox {
     let new_box_data = copy *box_data;
     let new_text_data = TextBoxData(run, offset, length);
+    let metrics = run.metrics_for_range(offset, length);
+    new_box_data.position.size = metrics.bounding_box.size;
     @TextBox(move new_box_data, move new_text_data)
-    // TODO: set position based on run metrics
-    //new_box_data.position.size = { width: run.font
 }
 
 trait UnscannedMethods {

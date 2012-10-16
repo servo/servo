@@ -1,7 +1,7 @@
 use arc = std::arc;
 use arc::ARC;
 use au = gfx::geometry;
-use font::Font;
+use font::{RunMetrics, Font};
 use font_cache::FontCache;
 use geom::point::Point2D;
 use geom::size::Size2D;
@@ -49,12 +49,17 @@ trait TextRunMethods {
     pure fn glyphs(&self) -> &self/GlyphStore;
     pure fn iter_indivisible_pieces_for_range(&self, offset: uint, length: uint, f: fn(uint, uint) -> bool);
 
+    fn metrics_for_range(offset: uint, length: uint) -> RunMetrics;
     fn min_width_for_range(offset: uint, length: uint) -> au;
     fn iter_natural_lines_for_range(&self, offset: uint, length: uint, f: fn(uint, uint) -> bool);
 }
 
 impl TextRun : TextRunMethods {
     pure fn glyphs(&self) -> &self/GlyphStore { &self.glyphs }
+
+    fn metrics_for_range(offset: uint, length: uint) -> RunMetrics {
+        self.font.measure_text(&self, offset, length)
+    }
 
     fn min_width_for_range(offset: uint, length: uint) -> au {    
         assert length > 0;
