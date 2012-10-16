@@ -93,7 +93,7 @@ pub enum RenderBox {
     UnscannedTextBox(RenderBoxData, ~str)
 }
 
-enum SplitBoxResult {
+pub enum SplitBoxResult {
     CannotSplit(@RenderBox),
     SplitUnnecessary(@RenderBox),
     SplitDidFit(@RenderBox, @RenderBox),

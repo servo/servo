@@ -8,7 +8,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::geometry::au;
-use layout::box::{RenderBox, ImageBox, TextBox, GenericBox, UnscannedTextBox};
+use layout::box::*;
 use layout::context::LayoutContext;
 use layout::flow::{FlowContext, InlineFlow};
 use layout::text::TextBoxData;
@@ -41,6 +41,10 @@ hard to try out that alternative.
 */
 
 type BoxRange = {mut start: u16, mut len: u16};
+fn EmptyBoxRange() -> BoxRange {
+    { mut start: 0 as u16, mut len: 0 as u16 }
+}
+
 type NodeRange = {node: Node, span: BoxRange};
 
 // stack-allocated object for scanning an inline flow into
@@ -162,10 +166,10 @@ impl TextRunScanner {
                 let transformed_text = transform_text(text, compression);
                 // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
                 let run = @TextRun(ctx.font_cache.get_test_font(), move transformed_text);
-                let box_guts = TextBoxData(run, 0, run.text.len());
                 debug!("TextRunScanner: pushing single text box when start=%u,end=%u",
                        self.clump_start, self.clump_end);
-                out_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
+                let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump_start].d(), run, 0, run.text.len());
+                out_boxes.push(new_box);
             },
             (false, true) => {
                 // TODO(Issue #115): use actual CSS 'white-space' property of relevant style.
@@ -215,10 +219,10 @@ impl TextRunScanner {
                 
                 // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
                 let run = @TextRun(ctx.font_cache.get_test_font(), move run_str);
-                let box_guts = TextBoxData(run, 0, run.text.len());
                 debug!("TextRunScanner: pushing box(es) when start=%u,end=%u",
                        self.clump_start, self.clump_end);
-                out_boxes.push(@TextBox(copy *in_boxes[self.clump_start].d(), box_guts));
+                let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump_start].d(), run, 0, run.text.len());
+                out_boxes.push(new_box);
             }
         } /* /match */
         self.in_clump = false;
@@ -265,6 +269,182 @@ impl TextRunScanner {
                       range, clump_start, clump_end);
         }
     } /* /fn flush_clump_to_list */
+}
+
+struct LineboxScanner {
+    flow: @FlowContext,
+    new_boxes: DVec<@RenderBox>,
+    work_list: DList<@RenderBox>,
+    mut pending_line: {span: BoxRange, width: au},
+    line_spans: DVec<BoxRange>
+}
+
+fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
+    assert inline.starts_inline_flow();
+
+    LineboxScanner {
+        flow: inline,
+        new_boxes: DVec(),
+        work_list: DList(),
+        pending_line: {span: EmptyBoxRange(), width: au(0)},
+        line_spans: DVec()
+    }
+}
+
+impl LineboxScanner {
+    fn reset() {
+        debug!("Resetting line box scanner's state for flow f%d.", self.flow.d().id);
+        do self.line_spans.swap |_v| { ~[] };
+        do self.new_boxes.swap |_v| { ~[] };
+        self.pending_line = {span: EmptyBoxRange(), width: au(0)};
+    }
+
+    pub fn scan_for_lines(ctx: &LayoutContext) {
+        self.reset();
+        
+        let boxes = &self.flow.inline().boxes;
+        let mut i = 0u;
+
+        loop {
+            // acquire the next box to lay out from work list or box list
+            let cur_box = match (self.work_list.pop(), boxes.len()) {
+                (Some(box), _) => { 
+                    debug!("LineboxScanner: Working with box from work list: b%d", box.d().id);
+                    box
+                },
+                (None, 0) => { break },
+                (None, _) => { 
+                    let box = boxes[i]; i += 1;
+                    debug!("LineboxScanner: Working with box from box list: b%d", box.d().id);
+                    box
+                }
+            };
+
+            let box_was_appended = self.try_append_to_line(ctx, cur_box);
+            if !box_was_appended {
+                debug!("LineboxScanner: Box wasn't appended, because line %u was full.",
+                       self.line_spans.len());
+                self.flush_current_line();
+            }
+        }
+
+        if self.pending_line.span.len > 0 {
+            debug!("LineboxScanner: Partially full linebox %u left at end of scanning.",
+                   self.line_spans.len());
+            self.flush_current_line();
+        }
+
+        // cleanup and store results
+        debug!("LineboxScanner: Propagating scanned lines[n=%u] to inline flow f%d", 
+               self.line_spans.len(), self.flow.d().id);
+        // TODO: repair Node->box mappings, using strategy similar to TextRunScanner
+        do self.new_boxes.swap |boxes| {
+            self.flow.inline().boxes.set(boxes);
+            ~[]
+        };
+        do self.line_spans.swap |boxes| {
+            self.flow.inline().lines.set(boxes);
+            ~[]
+        };
+    }
+
+    priv fn flush_current_line() {
+        debug!("LineboxScanner: Flushing line %u: %?",
+               self.line_spans.len(), self.pending_line);
+        // set box horizontal offsets
+        let boxes = &self.flow.inline().boxes;
+        let line_span = copy self.pending_line.span;
+        let mut offset_x = au(0);
+        // TODO: interpretation of CSS 'text-direction' and 'text-align' 
+        // will change from which side we start laying out the line.
+        debug!("LineboxScanner: Setting horizontal offsets for boxes in line %u range: %?",
+               self.line_spans.len(), line_span);
+        for uint::range(line_span.start as uint, (line_span.start + line_span.len) as uint) |i| {
+            boxes[i].d().position.origin.x = offset_x;
+            offset_x += boxes[i].d().position.size.width;
+        }
+
+        // clear line and add line mapping
+        debug!("LineboxScanner: Saving information for flushed line %u.", self.line_spans.len());
+        self.line_spans.push(copy self.pending_line.span);
+        self.pending_line = {span: EmptyBoxRange(), width: au(0)};
+    }
+
+    // return value: whether any box was appended.
+    priv fn try_append_to_line(ctx: &LayoutContext, in_box: @RenderBox) -> bool {
+        let remaining_width = self.flow.d().position.size.width - self.pending_line.width;
+        let in_box_width = in_box.d().position.size.width;
+        let line_is_empty: bool = self.pending_line.span.len == 0;
+
+        debug!("LineboxScanner: Trying to append box to line %u (box width: %?, remaining width: %?): %s",
+               self.line_spans.len(), in_box_width, remaining_width, in_box.debug_str());
+
+        if in_box_width <= remaining_width {
+            debug!("LineboxScanner: case=box fits without splitting");
+            self.push_box_to_line(in_box);
+            return true;
+        }
+
+        if !in_box.can_split() {
+            // force it onto the line anyway, if its otherwise empty
+            // TODO: signal that horizontal overflow happened?
+            if line_is_empty {
+                debug!("LineboxScanner: case=box can't split and line %u is empty, so overflowing.",
+                      self.line_spans.len());
+                self.push_box_to_line(in_box);
+                return true;
+            } else {
+                debug!("LineboxScanner: Case=box can't split, not appending.");
+                return false;
+            }
+        }
+
+        // not enough width; try splitting?
+        match in_box.split_to_width(ctx, remaining_width, line_is_empty) {
+            CannotSplit(_) => {
+                error!("LineboxScanner: Tried to split unsplittable render box! %s", in_box.debug_str());
+                return false;
+            },
+            SplitUnnecessary(_) => {
+                error!("LineboxScanner: Tried to split when un-split piece was small enough! %s", in_box.debug_str());
+                self.push_box_to_line(in_box);
+                return true;
+            },
+            SplitDidFit(left, right) => {
+                debug!("LineboxScanner: case=split box did fit; deferring remainder box.");
+                self.push_box_to_line(left);
+                self.work_list.push_head(right);
+                return true;
+            },
+            SplitDidNotFit(left, right) => {
+                if line_is_empty {
+                    debug!("LineboxScanner: case=split box didn't fit and line %u is empty, so overflowing and deferring remainder box.",
+                          self.line_spans.len());
+                    // TODO: signal that horizontal overflow happened?
+                    self.push_box_to_line(left);
+                    self.work_list.push_head(right);
+                    return true;
+                } else {
+                    debug!("LineboxScanner: case=split box didn't fit, not appending and deferring original box.");
+                    self.work_list.push_head(in_box);
+                    return false;
+                }
+            }
+        }
+    }
+
+    // unconditional push
+    priv fn push_box_to_line(box: @RenderBox) {
+        debug!("LineboxScanner: Pushing box b%d to line %u", box.d().id, self.line_spans.len());
+
+        if self.pending_line.span.len == 0 {
+            assert self.new_boxes.len() <= (core::u16::max_value as uint);
+            self.pending_line.span.start = self.new_boxes.len() as u16;
+        }
+        self.pending_line.span.len += 1;
+        self.pending_line.width += box.d().position.size.width;
+        self.new_boxes.push(box);
+    }
 }
 
 struct InlineFlowData {
