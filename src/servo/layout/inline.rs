@@ -360,8 +360,9 @@ impl LineboxScanner {
         debug!("LineboxScanner: Setting horizontal offsets for boxes in line %u range: %?",
                self.line_spans.len(), line_span);
         for uint::range(line_span.start as uint, (line_span.start + line_span.len) as uint) |i| {
-            boxes[i].d().position.origin.x = offset_x;
-            offset_x += boxes[i].d().position.size.width;
+            let box_data = &boxes[i].d();
+            box_data.position.origin.x = offset_x;
+            offset_x += box_data.position.size.width;
         }
 
         // clear line and add line mapping
