@@ -154,7 +154,6 @@ extern fn glyph_h_advance_func(_font: *hb_font_t,
                                _user_data: *c_void) -> hb_position_t unsafe {
     let font: *Font = font_data as *Font;
     assert font.is_not_null();
-    debug!("font_data = %?", font_data);
 
     let advance = (*font).glyph_h_advance(glyph as GlyphIndex);
     float_to_fixed_hb(advance)
