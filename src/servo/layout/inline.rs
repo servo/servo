@@ -503,68 +503,56 @@ impl FlowContext : InlineLayout {
     /* Recursively (top-down) determines the actual width of child
     contexts and boxes. When called on this context, the context has
     had its width set by the parent context. */
-    fn assign_widths_inline(@self, ctx: &LayoutContext) {
+    fn assign_widths_inline(@self, _ctx: &LayoutContext) {
         assert self.starts_inline_flow();
 
-        /* Perform inline flow with the available width. */
-        //let avail_width = self.d().position.size.width;
-
-        let line_height = au::from_px(20);
-        //let mut cur_x = au(0);
-        let mut cur_y = au(0);
-        
-        // TODO(Issue #118): remove test font uses
-        let test_font = ctx.font_cache.get_test_font();
-        
+        // initialize (content) box widths, if they haven't been
+        // already. This could be combined with LineboxScanner's walk
+        // over the box list, and/or put into RenderBox.
         for self.inline().boxes.each |box| {
-            /* TODO: actually do inline flow.
-            - Create a working linebox, and successively put boxes
-            into it, splitting if necessary.
-            
-            - Set width and height for each positioned element based on 
-            where its chunks ended up.
-
-            - Save the dvec of this context's lineboxes. */
-
             box.d().position.size.width = match *box {
                 @ImageBox(_,img) => au::from_px(img.get_size().get_default(Size2D(0,0)).width),
-                @TextBox(_,d) => { 
-                    // TODO: measure twice, cut once doesn't apply to text. Shouldn't need
-                    // to measure text again here (should be inside TextBox.split)
-                    let metrics = test_font.measure_text(d.run, d.offset, d.length);
-                    metrics.advance_width
+                @TextBox(*) => { /* text boxes are initialized with dimensions */
+                                   box.d().position.size.width
                 },
-                // TODO: this should be set to the extents of its children
-                @GenericBox(*) => au(0),
+                @GenericBox(*) => au::from_px(45), /* TODO: should use CSS 'width'? */
                 _ => fail fmt!("Tried to assign width to unknown Box variant: %?", box)
             };
-
-            box.d().position.size.height = match *box {
-                @ImageBox(_,img) => au::from_px(img.get_size().get_default(Size2D(0,0)).height),
-                // TODO: we should use the bounding box of the actual text, i think?
-                @TextBox(*) => test_font.metrics.em_size,
-                // TODO: this should be set to the extents of its children
-                @GenericBox(*) => au(0),
-                _ => fail fmt!("Tried to assign width to unknown Box variant: %?", box)
-            };
-
-            box.d().position.origin = Point2D(au(0), cur_y);
-            cur_y = cur_y.add(&au::max(line_height, box.d().position.size.height));
         } // for boxes.each |box|
 
-    self.d().position.size.height = cur_y;
-    
-    /* There are no child contexts, so stop here. */
+        //let scanner = LineBoxScanner(self);
+        //scanner.scan_for_lines(ctx);
+   
+        /* There are no child contexts, so stop here. */
 
-    // TODO: once there are 'inline-block' elements, this won't be
-    // true.  In that case, perform inline flow, and then set the
-    // block flow context's width as the width of the
-    // 'inline-block' box that created this flow.
+        // TODO: once there are 'inline-block' elements, this won't be
+        // true.  In that case, set the InlineBlockBox's width to the
+        // shrink-to-fit width, perform inline flow, and set the block
+        // flow context's width as the assigned width of the
+        // 'inline-block' box that created this flow before recursing.
     }
 
     fn assign_height_inline(@self, _ctx: &LayoutContext) {
-        // Don't need to set box or ctx heights, since that is done
-        // during inline flowing.
+        // TODO: calculate linebox heights and set y-offsets
+        let line_height = au::from_px(20);
+        let mut cur_y = au(0);
+
+        for self.inline().boxes.each |box| {
+            let box_height = match *box {
+                @ImageBox(_,img) => au::from_px(img.size().height),
+                @TextBox(*) => { /* text boxes are initialized with dimensions */
+                                 box.d().position.size.height
+                },
+                @GenericBox(*) => au::from_px(30), /* TODO: should use CSS 'height'? */
+                _ => fail fmt!("Tried to assign width to unknown Box variant: %?", box)
+            };
+            // TODO: calculate linebox heights and set y-offsets
+            box.d().position.origin.y = cur_y;
+            cur_y += au::max(line_height, box_height);
+            box.d().position.size.height = box_height;
+        } // for boxes.each |box|
+
+        self.d().position.size.height = cur_y;
     }
 
     fn build_display_list_inline(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
