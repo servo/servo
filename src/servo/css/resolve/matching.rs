@@ -181,7 +181,9 @@ impl Node : PrivStyleMethods {
               FontSize(size) => layout.style.font_size = size,
               Height(size) => layout.style.height = size,
               Color(col) => layout.style.text_color = col,
-              Width(size) => layout.style.width = size
+              Width(size) => layout.style.width = size,
+              BorderColor(col) => layout.style.border_color = col,
+              BorderWidth(size) => layout.style.border_width = size,
             };
         })
     }

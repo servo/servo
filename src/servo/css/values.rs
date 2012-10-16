@@ -117,6 +117,24 @@ enum CSSBackgroundImage {
     BgImageNone,
 }
 
+enum CSSBorderColor {
+    BdrColor(SharedColor),
+    BdrColorTransparent
+}
+
+enum CSSBorderStyle {
+    BdrStyleNone,
+    BdrStyleHidden,
+    BdrStyleDotted,
+    BdrStyleDashed,
+    BdrStyleSolid,
+    BdrStyleDouble,
+    BdrStyleGroove,
+    BdrStyleRidge,
+    BdrStyleInset,
+    BdrStyleOutset,
+}
+
 enum CSSColor {
     TextColor(SharedColor)
 }
@@ -165,7 +183,9 @@ enum StyleDeclaration {
     FontSize(CSSValue<CSSFontSize>),
     Height(CSSValue<BoxSizing>),
     Color(CSSValue<CSSColor>),
-    Width(CSSValue<BoxSizing>)
+    Width(CSSValue<BoxSizing>),
+    BorderColor(CSSValue<CSSBorderColor>),
+    BorderWidth(CSSValue<Length>)
 }
 
 pub enum Attr {

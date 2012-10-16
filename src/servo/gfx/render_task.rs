@@ -6,7 +6,7 @@ use azure::bindgen::AzDrawTargetFillGlyphs;
 use azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
 use azure::cairo_hl::ImageSurface;
 use azure::{AzDrawOptions, AzFloat, AzGlyph, AzGlyphBuffer};
-use azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions};
+use azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions, StrokeOptions};
 use azure_hl::{DrawTarget, Linear};
 use comm::*;
 use compositor::Compositor;
@@ -19,6 +19,7 @@ use mod gfx::render_layers;
 use gfx::render_layers::RenderLayer;
 use image::base::Image;
 use libc::size_t;
+use libc::types::common::c99::uint16_t;
 use pipes::{Port, Chan};
 use platform::osmain;
 use ptr::to_unsafe_ptr;
@@ -139,6 +140,20 @@ pub fn draw_solid_color(ctx: &RenderContext, bounds: &Rect<au>, r: u8, g: u8, b:
                       1f as AzFloat);
 
     ctx.canvas.draw_target.fill_rect(&bounds.to_azure_rect(), &ColorPattern(color));
+}
+
+pub fn draw_border(ctx: &RenderContext, bounds: &Rect<au>, width: au, r: u8, g: u8, b: u8) {
+    let rect = bounds.to_azure_rect();
+    let color = Color(r.to_float() as AzFloat,
+                      g.to_float() as AzFloat,
+                      b.to_float() as AzFloat,
+                      1f as AzFloat);
+    let pattern = ColorPattern(color);
+    let stroke_fields = 2; // CAP_SQUARE
+    let stroke_opts = StrokeOptions(au::to_px(width) as AzFloat, 10 as AzFloat, stroke_fields);
+    let draw_opts = DrawOptions(1 as AzFloat, 0 as uint16_t);
+
+    ctx.canvas.draw_target.stroke_rect(&rect, &pattern, &stroke_opts, &draw_opts);
 }
 
 pub fn draw_image(ctx: &RenderContext, bounds: Rect<au>, image: ARC<~Image>) {

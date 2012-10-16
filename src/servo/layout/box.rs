@@ -1,5 +1,6 @@
 /* Fundamental layout structures and algorithms. */
 
+use servo_util::color::rgb;
 use arc = std::arc;
 use arc::ARC;
 use au = gfx::geometry;
@@ -8,7 +9,7 @@ use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
 use css::styles::SpecifiedStyle;
-use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent};
+use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent, BdrColor};
 use dl = gfx::display_list;
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
@@ -410,6 +411,8 @@ impl RenderBox : RenderBoxMethods {
                 }
             }
         }
+
+        self.add_border_to_list(list, bounds);
     }
 
     fn add_bgcolor_to_list(list: &dl::DisplayList, bounds: Rect<au>) {
@@ -422,6 +425,32 @@ impl RenderBox : RenderBoxMethods {
         };
         if !bgcolor.alpha.fuzzy_eq(&0.0) {
             list.push(~dl::SolidColor(bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
+        }
+    }
+
+    fn add_border_to_list(list: &dl::DisplayList, bounds: Rect<au>) {
+        let style = self.d().node.style();
+        match style.border_width {
+            Specified(Px(px)) => {
+                // If there's a border, let's try to display *something*
+                let border_width = au::from_frac_px(px);
+                let bounds = Rect {
+                    origin: Point2D {
+                        x: bounds.origin.x - border_width / au(2),
+                        y: bounds.origin.y - border_width / au(2),
+                    },
+                    size: Size2D {
+                        width: bounds.size.width + border_width,
+                        height: bounds.size.height + border_width
+                    }
+                };
+                let color = match style.border_color {
+                    Specified(BdrColor(color)) => color,
+                    _ => rgb(0, 0, 0) // FIXME
+                };
+                list.push(~dl::Border(bounds, border_width, color.red, color.green, color.blue));
+            }
+            _ => () // TODO
         }
     }
 }

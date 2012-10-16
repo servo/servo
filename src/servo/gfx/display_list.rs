@@ -1,5 +1,5 @@
 use azure::azure_hl::DrawTarget;
-use gfx::render_task::{draw_solid_color, draw_image, draw_text};
+use gfx::render_task::{draw_solid_color, draw_image, draw_text, draw_border};
 use gfx::geometry::*;
 use geom::rect::Rect;
 use image::base::Image;
@@ -27,6 +27,7 @@ pub enum DisplayItemData {
     // TODO: don't copy text runs, ever.
     TextData(~SendableTextRun, uint, uint),
     ImageData(ARC<~image::base::Image>),
+    BorderData(au, u8, u8, u8)
 }
 
 fn draw_SolidColor(self: &DisplayItem, ctx: &RenderContext) {
@@ -53,11 +54,26 @@ fn draw_Image(self: &DisplayItem, ctx: &RenderContext) {
     }        
 }
 
+fn draw_Border(self: &DisplayItem, ctx: &RenderContext) {
+    match self.data {
+        BorderData(width, r, g, b) => draw_border(ctx, &self.bounds, width, r, g, b),
+        _ => fail
+    }
+}
+
 pub fn SolidColor(bounds: Rect<au>, r: u8, g: u8, b: u8) -> DisplayItem {
     DisplayItem { 
         draw: |self, ctx| draw_SolidColor(self, ctx),
         bounds: bounds,
         data: SolidColorData(r, g, b)
+    }
+}
+
+pub fn Border(bounds: Rect<au>, width: au, r: u8, g: u8, b: u8) -> DisplayItem {
+    DisplayItem {
+        draw: |self, ctx| draw_Border(self, ctx),
+        bounds: bounds,
+        data: BorderData(width, r, g, b)
     }
 }
 

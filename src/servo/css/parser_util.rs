@@ -64,7 +64,7 @@ fn parse_box_sizing(str : &str) -> ParseResult<BoxSizing> {
     match str.to_str() {
       ~"auto" => Value(BoxAuto),
       ~"inherit" => CSSInherit,
-      _ => Fail,
+        _ => Fail
     }
 }
 
