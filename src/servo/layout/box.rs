@@ -27,7 +27,6 @@ use std::net::url::Url;
 use task::spawn;
 use util::color::Color;
 use util::tree;
-use vec::{push, push_all};
 
 /** 
 Render boxes (`struct RenderBox`) are the leafs of the layout
@@ -123,7 +122,7 @@ trait RenderBoxMethods {
     fn get_used_width() -> (au, au);
     fn get_used_height() -> (au, au);
     fn create_inline_spacer_for_side(&LayoutContext, InlineSpacerSide) -> Option<@RenderBox>;
-    fn build_display_list(&dl::DisplayListBuilder, dirty: &Rect<au>, 
+    fn build_display_list(@self, &dl::DisplayListBuilder, dirty: &Rect<au>, 
                           offset: &Point2D<au>, &dl::DisplayList);
 }
 
@@ -391,14 +390,10 @@ impl RenderBox : RenderBoxMethods {
     * `origin` - Total offset from display list root flow to this box's owning flow
     * `list` - List to which items should be appended
     */
-    fn build_display_list(builder: &dl::DisplayListBuilder, dirty: &Rect<au>,
+    fn build_display_list(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<au>,
                           offset: &Point2D<au>, list: &dl::DisplayList) {
-        if !self.d().position.intersects(dirty) {
-            return;
-        }
 
         let style = self.d().node.style();
-
         let bounds : Rect<au> = match style.position {
             Specified(PosAbsolute) => {
                 let x_offset = match style.left {
@@ -412,24 +407,29 @@ impl RenderBox : RenderBoxMethods {
                 Rect(Point2D(x_offset, y_offset), copy self.d().position.size)
             }
             _ => {
-                Rect(self.d().position.origin.add(offset),
-                     copy self.d().position.size)
+                self.d().position.translate(offset)
             }
         };
 
-        self.add_bgcolor_to_list(list, bounds);
+        debug!("RenderBox::build_display_list at %?: %s", self.d().position, self.debug_str());
+        debug!("RenderBox::build_display_list: dirty=%?, offset=%?", dirty, offset);
+        // TODO: don't make display item if box not in dirty rect
+        //if !self.d().position.intersects(dirty) { return; }
 
-        match self {
+        self.add_bgcolor_to_list(list, &bounds); 
+
+        match *self {
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
             TextBox(_,d) => {
-                list.push(~dl::Text(bounds, text_run::serialize(builder.ctx.font_cache, d.run), d.offset, d.length))
+                list.append_item(~dl::Text(copy bounds, text_run::serialize(builder.ctx.font_cache, d.run),
+                                           d.offset, d.length))
             },
             // TODO: items for background, border, outline
             GenericBox(_) => {
             },
             ImageBox(_,i) => {
                 match i.get_image() {
-                    Some(image) => list.push(~dl::Image(bounds, arc::clone(&image))),
+                    Some(image) => list.append_item(~dl::Image(copy bounds, arc::clone(&image))),
                     /* No image data at all? Okay, add some fallback content instead. */
                     None => ()
                 }
@@ -439,7 +439,7 @@ impl RenderBox : RenderBoxMethods {
         self.add_border_to_list(list, bounds);
     }
 
-    fn add_bgcolor_to_list(list: &dl::DisplayList, bounds: Rect<au>) {
+    fn add_bgcolor_to_list(list: &dl::DisplayList, bounds: &Rect<au>) {
         use std::cmp::FuzzyEq;
         // TODO: shouldn't need to unbox CSSValue by now
         let boxed_bgcolor = self.d().node.style().background_color;
@@ -448,7 +448,7 @@ impl RenderBox : RenderBoxMethods {
             Specified(BgColorTransparent) | _ => util::color::rgba(0,0,0,0.0)
         };
         if !bgcolor.alpha.fuzzy_eq(&0.0) {
-            list.push(~dl::SolidColor(bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
+            list.append_item(~dl::SolidColor(copy *bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
         }
     }
 

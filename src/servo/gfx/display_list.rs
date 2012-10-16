@@ -101,6 +101,11 @@ trait DisplayListMethods {
 }
 
 impl DisplayList : DisplayListMethods {
+    fn append_item(item: ~DisplayItem) {
+        debug!("Adding display item %u: %?", self.len(), item);
+        self.push(move item);
+    }
+
     fn draw(ctx: &RenderContext) {
         debug!("beginning display list");
         for self.each |item| {

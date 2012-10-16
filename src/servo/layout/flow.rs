@@ -265,6 +265,8 @@ impl FlowContext : FlowContextMethods {
 
     fn build_display_list_recurse(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<au>,
                                   offset: &Point2D<au>, list: &dl::DisplayList) {
+        debug!("FlowContext::build_display_list at %?: %s", self.d().position, self.debug_str());
+
         match self {
             @RootFlow(*) => self.build_display_list_root(builder, dirty, offset, list),
             @BlockFlow(*) => self.build_display_list_block(builder, dirty, offset, list),
