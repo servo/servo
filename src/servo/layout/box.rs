@@ -115,6 +115,7 @@ trait RenderBoxMethods {
     pure fn requires_inline_spacers() -> bool;
     pure fn content_box() -> Rect<au>;
     pure fn border_box() -> Rect<au>;
+    pure fn margin_box() -> Rect<au>;
 
     fn split_to_width(@self, &LayoutContext, au, starts_line: bool) -> SplitBoxResult;
     fn get_min_width(&LayoutContext) -> au;
@@ -360,6 +361,12 @@ impl RenderBox : RenderBoxMethods {
         self.content_box()
     }
 
+    /* The box fromed by the margin edge, as defined in CSS 2.1 Section 8.1.
+       Coordinates are relative to the owning flow. */
+    pure fn margin_box() -> Rect<au> {
+        // TODO: actually compute content_box + padding + border + margin
+        self.content_box()
+    }
 
     // TODO: implement this, generating spacer 
     fn create_inline_spacer_for_side(_ctx: &LayoutContext, _side: InlineSpacerSide) -> Option<@RenderBox> {
