@@ -115,7 +115,7 @@ trait RenderBoxMethods {
     pure fn content_box() -> Rect<au>;
     pure fn border_box() -> Rect<au>;
 
-    fn split_to_width(@self, &LayoutContext, au) -> SplitBoxResult;
+    fn split_to_width(@self, &LayoutContext, au, starts_line: bool) -> SplitBoxResult;
     fn get_min_width(&LayoutContext) -> au;
     fn get_pref_width(&LayoutContext) -> au;
     fn get_used_width() -> (au, au);
@@ -176,16 +176,67 @@ impl RenderBox : RenderBoxMethods {
         }
     }
 
-    fn split_to_width(@self, _ctx: &LayoutContext, _max_width: au) -> SplitBoxResult {
-        // TODO: finish
-        CannotSplit(self)
-/*        match self {
+    fn split_to_width(@self, _ctx: &LayoutContext, max_width: au, starts_line: bool) -> SplitBoxResult {
+        match self {
             @GenericBox(*) => CannotSplit(self),
             @ImageBox(*) => CannotSplit(self),
-            @TextBox(*) => {
-            }
+            @UnscannedTextBox(*) => fail ~"WAT: shouldn't be an unscanned text box here.",
+            @TextBox(_,data) => {
+
+                let mut i : uint = 0;
+                let mut remaining_width : au = max_width;
+                let mut left_offset : uint = data.offset;
+                let mut left_length : uint = 0;
+                let mut right_offset : Option<uint> = None;
+                let mut right_length : Option<uint> = None;
+                do data.run.iter_indivisible_pieces_for_range(data.offset, data.length) |off, len| {
+                    let metrics = data.run.metrics_for_range(off, len);
+                    let advance = metrics.advance_width;
+                    let should_continue : bool;
+
+                    if advance < remaining_width {
+                        if starts_line && data.run.range_is_trimmable_whitespace(off, len) {
+                            left_offset += len; 
+                        } else {
+                            remaining_width -= advance;
+                            left_length += len;
+                        }
+                        should_continue = true;
+                    } else if advance > remaining_width
+                        && data.run.range_is_trimmable_whitespace(off, len) {
+                        // if there are still things after the trimmable whitespace, create right chunk
+                        if off + len < data.length {
+                            right_offset = Some(off + len);
+                            right_length = Some(data.length - (off + len));
+                        }
+                        should_continue = false;
+                    } else {
+                        right_offset = Some(off);
+                        right_length = Some(data.length - off);
+                        should_continue = false;
+                    }
+
+                    i += 1;
+                    should_continue
+                }
+
+                assert left_length > 0;
+                let left_box = layout::text::adapt_textbox_with_range(self.d(), data.run,
+                                                                      left_offset, left_length);
+                
+                match (right_offset, right_length) {
+                    (Some(right_off), Some(right_len)) => {
+                        assert right_len > 0;
+                        let right_box = layout::text::adapt_textbox_with_range(self.d(), data.run,
+                                                                               right_off, right_len);
+                        if i == 1 { return SplitDidNotFit(left_box, right_box); }
+                        else      { return SplitDidFit(left_box, right_box); }
+                    },
+                    (None, None) => { return SplitUnnecessary(left_box); },
+                    (_, _) => fail ~"Must specify right box's offset and length, not one or other."
+                }
+            },
         }
-*/
     }
 
     /** In general, these functions are transitively impure because they

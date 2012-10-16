@@ -48,6 +48,9 @@ pub fn deserialize(cache: @FontCache, run: &SendableTextRun) -> @TextRun {
 trait TextRunMethods {
     pure fn glyphs(&self) -> &self/GlyphStore;
     pure fn iter_indivisible_pieces_for_range(&self, offset: uint, length: uint, f: fn(uint, uint) -> bool);
+    // TODO: needs to take box style as argument, or move to TextBox.
+    // see Gecko's IsTrimmableSpace methods for details.
+    pure fn range_is_trimmable_whitespace(&self, offset: uint, length: uint) -> bool;
 
     fn metrics_for_range(offset: uint, length: uint) -> RunMetrics;
     fn min_width_for_range(offset: uint, length: uint) -> au;
@@ -56,6 +59,19 @@ trait TextRunMethods {
 
 impl TextRun : TextRunMethods {
     pure fn glyphs(&self) -> &self/GlyphStore { &self.glyphs }
+
+    pure fn range_is_trimmable_whitespace(&self, offset: uint, length: uint) -> bool {
+        let mut i = offset;
+        while i < offset + length {
+            let {ch, next} = str::char_range_at(self.text, i);
+            match ch {
+                ' ' | '\t' | '\r'  => {},
+                _ => { return false; }
+            }
+            i = next;
+        }
+        return true;
+    }
 
     fn metrics_for_range(offset: uint, length: uint) -> RunMetrics {
         self.font.measure_text(&self, offset, length)
