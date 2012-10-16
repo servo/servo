@@ -49,23 +49,21 @@ trait TextRunMethods {
     pure fn glyphs(&self) -> &self/GlyphStore;
     pure fn iter_indivisible_pieces_for_range(&self, offset: uint, length: uint, f: fn(uint, uint) -> bool);
 
-    fn min_width_for_range(&LayoutContext, offset: uint, length: uint) -> au;
+    fn min_width_for_range(offset: uint, length: uint) -> au;
     fn iter_natural_lines_for_range(&self, offset: uint, length: uint, f: fn(uint, uint) -> bool);
 }
 
 impl TextRun : TextRunMethods {
     pure fn glyphs(&self) -> &self/GlyphStore { &self.glyphs }
 
-    fn min_width_for_range(ctx: &LayoutContext, offset: uint, length: uint) -> au {    
+    fn min_width_for_range(offset: uint, length: uint) -> au {    
         assert length > 0;
         assert offset < self.text.len();
         assert offset + length <= self.text.len();
 
         let mut max_piece_width = au(0);
-        // TODO: use a real font reference
-        let font = ctx.font_cache.get_test_font();
         for self.iter_indivisible_pieces_for_range(offset, length) |piece_offset, piece_len| {
-            let metrics = font.measure_text(&self, piece_offset, piece_len);
+            let metrics = self.font.measure_text(&self, piece_offset, piece_len);
             if metrics.advance_width > max_piece_width {
                 max_piece_width = metrics.advance_width;
             }

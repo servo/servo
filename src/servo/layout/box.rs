@@ -192,7 +192,7 @@ impl RenderBox : RenderBoxMethods {
      * may cause glyphs to be allocated. For now, it's impure because of 
      * holder.get_image()
     */
-    fn get_min_width(ctx: &LayoutContext) -> au {
+    fn get_min_width(_ctx: &LayoutContext) -> au {
         match self {
             // TODO: this should account for min/pref widths of the
             // box element in isolation. That includes
@@ -203,7 +203,7 @@ impl RenderBox : RenderBoxMethods {
             // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult 'width'.
             ImageBox(_,i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
-            TextBox(_,d) => d.run.min_width_for_range(ctx, d.offset, d.length),
+            TextBox(_,d) => d.run.min_width_for_range(d.offset, d.length),
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
         }
     }
