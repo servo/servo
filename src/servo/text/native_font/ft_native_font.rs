@@ -3,7 +3,8 @@ export FreeTypeNativeFont, with_test_native_font, create;
 
 use font::{FontMetrics, FractionalPixel};
 
-use au = gfx::geometry;
+use gfx::geometry;
+use gfx::geometry::au;
 use util::*;
 use vec_as_buf = vec::as_imm_buf;
 use ptr::{addr_of, null};
@@ -11,7 +12,8 @@ use cast::reinterpret_cast;
 use glyph::GlyphIndex;
 use font::FontMetrics;
 use azure::freetype;
-use freetype::{ FT_Error, FT_Library, FT_Face, FT_Long, FT_ULong, FT_UInt, FT_GlyphSlot };
+use freetype::{ FT_Error, FT_Library, FT_Face, FT_Long, FT_ULong, FT_Size, FT_SizeRec,
+               FT_UInt, FT_GlyphSlot, FT_Size_Metrics, FT_FaceRec };
 use freetype::bindgen::{
     FT_Init_FreeType,
     FT_Done_FreeType,
@@ -84,16 +86,48 @@ impl FreeTypeNativeFont {
 
     fn get_metrics() -> FontMetrics {
         /* TODO: complete me (Issue #76) */
+
+        let face = self.get_face_rec();
+
+        let underline_size = self.font_units_to_au(face.underline_thickness as float);
+        let underline_offset = self.font_units_to_au(face.underline_position as float);
+        let em_size = self.font_units_to_au(face.units_per_EM as float);
+        let ascent = self.font_units_to_au(face.ascender as float);
+        let descent = self.font_units_to_au(face.descender as float);
+        let max_advance = self.font_units_to_au(face.max_advance_width as float);
+
         return FontMetrics {
-            underline_size:   au::from_pt(0.0),
-            underline_offset: au::from_pt(0.0),
-            leading:          au::from_pt(0.0),
-            x_height:         au::from_pt(0.0),
-            em_size:          au::from_pt(0.0),
-            ascent:           au::from_pt(0.0),
-            descent:          au::from_pt(0.0),
-            max_advance:      au::from_pt(0.0)
+            underline_size:   underline_size,
+            underline_offset: underline_offset,
+            leading:          geometry::from_pt(0.0), //FIXME
+            x_height:         geometry::from_pt(0.0), //FIXME
+            em_size:          em_size,
+            ascent:           ascent,
+            descent:          descent,
+            max_advance:      max_advance
         }
+    }
+
+    priv fn get_face_rec() -> &self/FT_FaceRec unsafe {
+        &(*self.face)
+    }
+
+    priv fn font_units_to_au(value: float) -> au {
+
+        let face = self.get_face_rec();
+
+        // face.size is a *c_void in the bindings, presumably to avoid
+        // recursive structural types
+        let size: &FT_SizeRec = unsafe { cast::transmute(&(*face.size)) };
+        let metrics: &FT_Size_Metrics = unsafe { &((*size).metrics) };
+
+        let em_size = face.units_per_EM as float;
+        let x_scale = (metrics.x_ppem as float) / em_size as float;
+
+        // If this isn't true then we're scaling one of the axes wrong
+        assert metrics.x_ppem == metrics.y_ppem;
+
+        return geometry::from_frac_px(value * x_scale);
     }
 }
 
