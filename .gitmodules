@@ -1,18 +1,18 @@
 [submodule "src/rust-azure"]
 	path = src/rust-azure
-	url = git://github.com/brson/rust-azure.git
+	url = git://github.com/mozilla-servo/rust-azure.git
 [submodule "src/rust-cocoa"]
 	path = src/rust-cocoa
 	url = git://github.com/pcwalton/rust-cocoa.git
 [submodule "src/mozjs"]
 	path = src/mozjs
-	url = git://github.com/brson/mozjs.git
+	url = git://github.com/mozilla-servo/mozjs.git
 [submodule "src/rust-mozjs"]
 	path = src/rust-mozjs
-	url = git://github.com/brson/rust-mozjs.git
+	url = git://github.com/mozilla-servo/rust-mozjs.git
 [submodule "src/rust-harfbuzz"]
 	path = src/rust-harfbuzz
-	url = git://github.com/brson/rust-harfbuzz.git
+	url = git://github.com/mozilla-servo/rust-harfbuzz.git
 [submodule "src/rust-stb-image"]
 	path = src/rust-stb-image
 	url = git://github.com/pcwalton/rust-stb-image.git
@@ -30,7 +30,7 @@
 	url = git://github.com/pcwalton/rust-layers.git
 [submodule "src/rust-http-client"]
 	path = src/rust-http-client
-	url = git://github.com/brson/rust-http-client.git
+	url = git://github.com/mozilla-servo/rust-http-client.git
 [submodule "src/libhubbub"]
 	path = src/libhubbub
 	url = git://github.com/pcwalton/libhubbub.git
@@ -61,4 +61,4 @@
 
 [submodule "src/rust-netsurfcss"]
 	path = src/rust-netsurfcss
-	url = git://github.com/brson/rust-netsurfcss.git
+	url = git://github.com/mozilla-servo/rust-netsurfcss.git
