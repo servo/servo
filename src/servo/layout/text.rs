@@ -24,6 +24,8 @@ pub fn TextBoxData(run: @TextRun, offset: uint, length: uint) -> TextBoxData {
 
 pub fn adapt_textbox_with_range(box_data: &RenderBoxData, run: @TextRun, 
                                 offset: uint, length: uint) -> @RenderBox {
+    debug!("Creating textbox with span: (strlen=%u, off=%u, len=%u) of textrun: %s",
+           run.text.len(), offset, length, run.text);
     let new_box_data = copy *box_data;
     let new_text_data = TextBoxData(run, offset, length);
     let metrics = run.metrics_for_range(offset, length);

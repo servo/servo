@@ -94,9 +94,10 @@ pub enum RenderBox {
 
 pub enum SplitBoxResult {
     CannotSplit(@RenderBox),
-    SplitUnnecessary(@RenderBox),
-    SplitDidFit(@RenderBox, @RenderBox),
-    SplitDidNotFit(@RenderBox, @RenderBox)
+    // in general, when splitting the left or right side can
+    // be zero length, due to leading/trailing trimmable whitespace
+    SplitDidFit(Option<@RenderBox>, Option<@RenderBox>),
+    SplitDidNotFit(Option<@RenderBox>, Option<@RenderBox>)
 }
 
 enum InlineSpacerSide {
@@ -190,51 +191,65 @@ impl RenderBox : RenderBoxMethods {
                 let mut left_length : uint = 0;
                 let mut right_offset : Option<uint> = None;
                 let mut right_length : Option<uint> = None;
+                debug!("split_to_width: splitting text box (strlen=%u, off=%u, len=%u, avail_width=%?)",
+                       data.run.text.len(), data.offset, data.length, max_width);
                 do data.run.iter_indivisible_pieces_for_range(data.offset, data.length) |off, len| {
+                    debug!("split_to_width: considering range (off=%u, len=%u, remain_width=%?)",
+                           off, len, remaining_width);
                     let metrics = data.run.metrics_for_range(off, len);
                     let advance = metrics.advance_width;
                     let should_continue : bool;
 
-                    if advance < remaining_width {
-                        if starts_line && data.run.range_is_trimmable_whitespace(off, len) {
+                    if advance <= remaining_width {
+                        should_continue = true;
+                        if starts_line && i == 0 && data.run.range_is_trimmable_whitespace(off, len) {
+                            debug!("split_to_width: case=skipping leading trimmable whitespace");
                             left_offset += len; 
                         } else {
+                            debug!("split_to_width: case=enlarging span");
                             remaining_width -= advance;
                             left_length += len;
                         }
-                        should_continue = true;
-                    } else if advance > remaining_width
-                        && data.run.range_is_trimmable_whitespace(off, len) {
-                        // if there are still things after the trimmable whitespace, create right chunk
-                        if off + len < data.length {
-                            right_offset = Some(off + len);
-                            right_length = Some(data.length - (off + len));
-                        }
+                    } else { /* advance > remaining_width */
                         should_continue = false;
-                    } else {
-                        right_offset = Some(off);
-                        right_length = Some(data.length - off);
-                        should_continue = false;
-                    }
 
+                        if data.run.range_is_trimmable_whitespace(off, len) {
+                            // if there are still things after the trimmable whitespace, create right chunk
+                            if off + len < data.offset + data.length {
+                                debug!("split_to_width: case=skipping trimmable trailing whitespace, then split remainder");
+                                right_offset = Some(off + len);
+                                right_length = Some((data.offset + data.length) - (off + len));
+                            } else {
+                                debug!("split_to_width: case=skipping trimmable trailing whitespace");
+                            }
+                        } else if off < data.length + data.offset {
+                            // still things left, create right chunk
+                            right_offset = Some(off);
+                            right_length = Some((data.offset + data.length) - off);
+                            debug!("split_to_width: case=splitting remainder with right span: (off=%u, len=%u)",
+                                   off, (data.offset + data.length) - off);
+                        }
+                    }
                     i += 1;
                     should_continue
                 }
 
-                assert left_length > 0;
-                let left_box = layout::text::adapt_textbox_with_range(self.d(), data.run,
-                                                                      left_offset, left_length);
+                let left_box = if left_length > 0 {
+                    Some(layout::text::adapt_textbox_with_range(self.d(), data.run,
+                                                                left_offset, left_length))
+                } else { None };
                 
                 match (right_offset, right_length) {
                     (Some(right_off), Some(right_len)) => {
-                        assert right_len > 0;
                         let right_box = layout::text::adapt_textbox_with_range(self.d(), data.run,
                                                                                right_off, right_len);
-                        if i == 1 { return SplitDidNotFit(left_box, right_box); }
-                        else      { return SplitDidFit(left_box, right_box); }
+                        return if i == 1 || left_box.is_none() {
+                            SplitDidNotFit(left_box, Some(right_box))
+                        } else {
+                            SplitDidFit(left_box, Some(right_box))
+                        }
                     },
-                    (None, None) => { return SplitUnnecessary(left_box); },
-                    (_, _) => fail ~"Must specify right box's offset and length, not one or other."
+                    (_, _) => { return SplitDidFit(left_box, None); },
                 }
             },
         }

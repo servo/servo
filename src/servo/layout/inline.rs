@@ -307,13 +307,13 @@ impl LineboxScanner {
 
         loop {
             // acquire the next box to lay out from work list or box list
-            let cur_box = match (self.work_list.pop(), boxes.len()) {
-                (Some(box), _) => { 
+            let cur_box = match self.work_list.pop() {
+                Some(box) => { 
                     debug!("LineboxScanner: Working with box from work list: b%d", box.d().id);
                     box
                 },
-                (None, 0) => { break },
-                (None, _) => { 
+                None => { 
+                    if i == boxes.len() { break; }
                     let box = boxes[i]; i += 1;
                     debug!("LineboxScanner: Working with box from box list: b%d", box.d().id);
                     box
@@ -325,6 +325,8 @@ impl LineboxScanner {
                 debug!("LineboxScanner: Box wasn't appended, because line %u was full.",
                        self.line_spans.len());
                 self.flush_current_line();
+            } else {
+                debug!("LineboxScanner: appended a box to line %u", self.line_spans.len());
             }
         }
 
@@ -352,7 +354,6 @@ impl LineboxScanner {
         debug!("LineboxScanner: Flushing line %u: %?",
                self.line_spans.len(), self.pending_line);
         // set box horizontal offsets
-        let boxes = &self.flow.inline().boxes;
         let line_span = copy self.pending_line.span;
         let mut offset_x = au(0);
         // TODO: interpretation of CSS 'text-direction' and 'text-align' 
@@ -360,7 +361,7 @@ impl LineboxScanner {
         debug!("LineboxScanner: Setting horizontal offsets for boxes in line %u range: %?",
                self.line_spans.len(), line_span);
         for uint::range(line_span.start as uint, (line_span.start + line_span.len) as uint) |i| {
-            let box_data = &boxes[i].d();
+            let box_data = &self.new_boxes[i].d();
             box_data.position.origin.x = offset_x;
             offset_x += box_data.position.size.width;
         }
@@ -406,15 +407,17 @@ impl LineboxScanner {
                 error!("LineboxScanner: Tried to split unsplittable render box! %s", in_box.debug_str());
                 return false;
             },
-            SplitUnnecessary(_) => {
-                error!("LineboxScanner: Tried to split when un-split piece was small enough! %s", in_box.debug_str());
-                self.push_box_to_line(in_box);
-                return true;
-            },
             SplitDidFit(left, right) => {
                 debug!("LineboxScanner: case=split box did fit; deferring remainder box.");
-                self.push_box_to_line(left);
-                self.work_list.push_head(right);
+                match (left, right) {
+                    (Some(left_box), Some(right_box)) => {
+                        self.push_box_to_line(left_box);
+                        self.work_list.push_head(right_box);
+                    },
+                    (Some(left_box), None) =>  { self.push_box_to_line(left_box); }
+                    (None, Some(right_box)) => { self.push_box_to_line(right_box); }
+                    (None, None) => { fail ~"This split case makes no sense!" }
+                }
                 return true;
             },
             SplitDidNotFit(left, right) => {
@@ -422,8 +425,19 @@ impl LineboxScanner {
                     debug!("LineboxScanner: case=split box didn't fit and line %u is empty, so overflowing and deferring remainder box.",
                           self.line_spans.len());
                     // TODO: signal that horizontal overflow happened?
-                    self.push_box_to_line(left);
-                    self.work_list.push_head(right);
+                    match (left, right) {
+                        (Some(left_box), Some(right_box)) => {
+                            self.push_box_to_line(left_box);
+                            self.work_list.push_head(right_box);
+                        },
+                        (Some(left_box), None) => {
+                            self.push_box_to_line(left_box);
+                        }
+                        (None, Some(right_box)) => {
+                            self.push_box_to_line(right_box);
+                        },
+                        (None, None) => { fail ~"This split case makes no sense!" }
+                    }
                     return true;
                 } else {
                     debug!("LineboxScanner: case=split box didn't fit, not appending and deferring original box.");
@@ -503,7 +517,7 @@ impl FlowContext : InlineLayout {
     /* Recursively (top-down) determines the actual width of child
     contexts and boxes. When called on this context, the context has
     had its width set by the parent context. */
-    fn assign_widths_inline(@self, _ctx: &LayoutContext) {
+    fn assign_widths_inline(@self, ctx: &LayoutContext) {
         assert self.starts_inline_flow();
 
         // initialize (content) box widths, if they haven't been
@@ -520,8 +534,8 @@ impl FlowContext : InlineLayout {
             };
         } // for boxes.each |box|
 
-        //let scanner = LineBoxScanner(self);
-        //scanner.scan_for_lines(ctx);
+        let scanner = LineboxScanner(self);
+        scanner.scan_for_lines(ctx);
    
         /* There are no child contexts, so stop here. */
 
