@@ -416,7 +416,9 @@ impl LineboxScanner {
                     },
                     (Some(left_box), None) =>  { self.push_box_to_line(left_box); }
                     (None, Some(right_box)) => { self.push_box_to_line(right_box); }
-                    (None, None) => { fail ~"This split case makes no sense!" }
+                    (None, None) => {
+                        error!("LineboxScanner: This split case makes no sense!");
+                    }
                 }
                 return true;
             },
@@ -436,7 +438,9 @@ impl LineboxScanner {
                         (None, Some(right_box)) => {
                             self.push_box_to_line(right_box);
                         },
-                        (None, None) => { fail ~"This split case makes no sense!" }
+                        (None, None) => {
+                            error!("LineboxScanner: This split case makes no sense!");
+                        }
                     }
                     return true;
                 } else {
