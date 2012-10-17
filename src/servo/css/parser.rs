@@ -167,6 +167,11 @@ impl TokenReader : ParserMethods {
                   ~"width" => parse_box_sizing(val).extract(|res| Width(res)),
                     ~"border-width" => parse_length(val).map(|res| BorderWidth(Specified(*res))),
                     ~"border-color" => parse_color(val).map(|res| BorderColor(Specified(BdrColor(*res)))),
+                    ~"position" => parse_position(val).extract(|res| Position(res)),
+                    ~"top" => parse_length(val).map(|res| Top(Specified(*res))),
+                    ~"right" => parse_length(val).map(|res| Right(Specified(*res))),
+                    ~"bottom" => parse_length(val).map(|res| Bottom(Specified(*res))),
+                    ~"left" => parse_length(val).map(|res| Left(Specified(*res))),
                   _ => { #debug["Recieved unknown style property '%s'", val]; None }
                 };
                 match desc {

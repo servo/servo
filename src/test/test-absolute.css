@@ -1,0 +1,7 @@
+img {
+    position: absolute;
+    top: 200px;
+    left: 100px;
+    border-width: 10px;
+    border-color: blue
+}

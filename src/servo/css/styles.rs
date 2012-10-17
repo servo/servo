@@ -23,7 +23,12 @@ type SpecifiedStyle = {mut background_color : CSSValue<CSSBackgroundColor>,
                         mut width : CSSValue<BoxSizing>,
                        mut border_color : CSSValue<CSSBorderColor>,
                        mut border_style : CSSValue<CSSBorderStyle>,
-                       mut border_width : CSSValue<Length>
+                       mut border_width : CSSValue<Length>,
+                       mut position : CSSValue<CSSPosition>,
+                       mut top : CSSValue<Length>,
+                       mut right : CSSValue<Length>,
+                       mut bottom : CSSValue<Length>,
+                       mut left : CSSValue<Length>
                        };
 
 trait DefaultStyleMethods {
@@ -89,7 +94,12 @@ fn empty_style_for_node_kind(kind: &NodeKind) -> SpecifiedStyle {
      mut width : Initial,
      mut border_color : Initial,
      mut border_style : Initial,
-     mut border_width : Initial}
+     mut border_width : Initial,
+     mut position : Initial,
+     mut top : Initial,
+     mut right : Initial,
+     mut bottom : Initial,
+     mut left : Initial}
 }
 
 trait StyleMethods {

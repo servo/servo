@@ -184,6 +184,11 @@ impl Node : PrivStyleMethods {
               Width(size) => layout.style.width = size,
               BorderColor(col) => layout.style.border_color = col,
               BorderWidth(size) => layout.style.border_width = size,
+              Position(pos) => layout.style.position = pos,
+              Top(pos) => layout.style.top = pos,
+              Right(pos) => layout.style.right = pos,
+              Bottom(pos) => layout.style.bottom = pos,
+              Left(pos) => layout.style.left = pos,
             };
         })
     }

@@ -9,7 +9,7 @@ use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
 use css::styles::SpecifiedStyle;
-use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent, BdrColor};
+use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent, BdrColor, PosAbsolute};
 use dl = gfx::display_list;
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
@@ -390,8 +390,25 @@ impl RenderBox : RenderBoxMethods {
             return;
         }
 
-        let bounds : Rect<au> = Rect(self.d().position.origin.add(offset),
-                                     copy self.d().position.size);
+        let style = self.d().node.style();
+
+        let bounds : Rect<au> = match style.position {
+            Specified(PosAbsolute) => {
+                let x_offset = match style.left {
+                    Specified(Px(px)) => au::from_frac_px(px),
+                    _ => self.d().position.origin.x
+                };
+                let y_offset = match style.top {
+                    Specified(Px(px)) => au::from_frac_px(px),
+                    _ => self.d().position.origin.y
+                };
+                Rect(Point2D(x_offset, y_offset), copy self.d().position.size)
+            }
+            _ => {
+                Rect(self.d().position.origin.add(offset),
+                     copy self.d().position.size)
+            }
+        };
 
         self.add_bgcolor_to_list(list, bounds);
 

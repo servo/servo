@@ -44,6 +44,17 @@ fn parse_absolute_size(str : &str) -> ParseResult<AbsoluteSize> {
     }
 }
 
+fn parse_position(str: &str) -> ParseResult<CSSPosition> {
+    // FIXME: Bad copy
+    match str.to_str() {
+        ~"static" => Value(PosStatic),
+        ~"relative" => Value(PosRelative),
+        ~"absolute" => Value(PosAbsolute),
+        ~"fixed" => Value(PosFixed),
+        _ => Fail
+    }
+}
+
 fn parse_relative_size(str: &str) -> ParseResult<RelativeSize> {
     // FIXME: Bad copy. Can't match &str
     match str.to_str() {

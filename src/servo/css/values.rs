@@ -175,6 +175,13 @@ enum CSSFontSize {
     PercentSize(float)
 }
 
+enum CSSPosition {
+    PosStatic,
+    PosRelative,
+    PosAbsolute,
+    PosFixed
+}
+
 // Stylesheet parts
 
 enum StyleDeclaration {
@@ -185,7 +192,12 @@ enum StyleDeclaration {
     Color(CSSValue<CSSColor>),
     Width(CSSValue<BoxSizing>),
     BorderColor(CSSValue<CSSBorderColor>),
-    BorderWidth(CSSValue<Length>)
+    BorderWidth(CSSValue<Length>),
+    Position(CSSValue<CSSPosition>),
+    Top(CSSValue<Length>),
+    Right(CSSValue<Length>),
+    Bottom(CSSValue<Length>),
+    Left(CSSValue<Length>),
 }
 
 pub enum Attr {
