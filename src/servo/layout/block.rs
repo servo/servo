@@ -109,7 +109,7 @@ impl FlowContext : BlockLayout {
         do self.with_block_box |box| {
             box.d().position.size.width = remaining_width;
             let (left_used, right_used) = box.get_used_width();
-            remaining_width = remaining_width.sub(&left_used.add(&right_used));
+            remaining_width -= left_used.add(&right_used);
         }
 
         for FlowTree.each_child(self) |child_ctx| {
@@ -126,7 +126,7 @@ impl FlowContext : BlockLayout {
 
         for FlowTree.each_child(self) |child_ctx| {
             child_ctx.d().position.origin.y = cur_y;
-            cur_y = cur_y.add(&child_ctx.d().position.size.height);
+            cur_y += child_ctx.d().position.size.height;
         }
 
         self.d().position.size.height = cur_y;

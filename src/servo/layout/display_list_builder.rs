@@ -44,16 +44,24 @@ impl FlowContext: FlowDisplayListBuilderMethods {
         self.build_display_list_recurse(builder, dirty, &zero, list);
     }
 
-    fn build_display_list_for_child(@self, builder: &DisplayListBuilder, child: @FlowContext,
+    fn build_display_list_for_child(@self, builder: &DisplayListBuilder, child_flow: @FlowContext,
                                     dirty: &Rect<au>, offset: &Point2D<au>,
                                     list: &dl::DisplayList) {
 
         // adjust the dirty rect to child flow context coordinates
-        let adj_dirty = dirty.translate(&child.d().position.origin);
-        let adj_offset = offset.add(&child.d().position.origin);
+        let abs_flow_bounds = child_flow.d().position.translate(offset);
+        let adj_offset = offset.add(&child_flow.d().position.origin);
 
-        if (adj_dirty.intersects(&child.d().position)) {
-            child.build_display_list_recurse(builder, &adj_dirty, &adj_offset, list);
+        debug!("build_display_list_for_child: rel=%?, abs=%?",
+               child_flow.d().position, abs_flow_bounds);
+        debug!("build_display_list_for_child: dirty=%?, offset=%?",
+               dirty, offset);
+
+        if dirty.intersects(&abs_flow_bounds) {
+            debug!("build_display_list_for_child: intersected. recursing into child flow...");
+            child_flow.build_display_list_recurse(builder, dirty, &adj_offset, list);
+        } else {
+            debug!("build_display_list_for_child: Did not intersect...");
         }
     }
 }

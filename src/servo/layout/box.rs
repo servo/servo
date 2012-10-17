@@ -408,7 +408,7 @@ impl RenderBox : RenderBoxMethods {
                           offset: &Point2D<au>, list: &dl::DisplayList) {
 
         let style = self.d().node.style();
-        let bounds : Rect<au> = match style.position {
+        let box_bounds : Rect<au> = match style.position {
             Specified(PosAbsolute) => {
                 let x_offset = match style.left {
                     Specified(Px(px)) => au::from_frac_px(px),
@@ -421,21 +421,27 @@ impl RenderBox : RenderBoxMethods {
                 Rect(Point2D(x_offset, y_offset), copy self.d().position.size)
             }
             _ => {
-                self.d().position.translate(offset)
+                self.d().position
             }
         };
 
-        debug!("RenderBox::build_display_list at %?: %s", self.d().position, self.debug_str());
+        let abs_box_bounds = box_bounds.translate(offset);
+        debug!("RenderBox::build_display_list at rel=%?, abs=%?: %s", 
+               box_bounds, abs_box_bounds, self.debug_str());
         debug!("RenderBox::build_display_list: dirty=%?, offset=%?", dirty, offset);
-        // TODO: don't make display item if box not in dirty rect
-        //if !self.d().position.intersects(dirty) { return; }
+        if abs_box_bounds.intersects(dirty) {
+            debug!("RenderBox::build_display_list: intersected. Adding display item...");
+        } else {
+            debug!("RenderBox::build_display_list: Did not intersect...");
+            return;
+        }
 
-        self.add_bgcolor_to_list(list, &bounds); 
+        self.add_bgcolor_to_list(list, &abs_box_bounds); 
 
         match *self {
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
             TextBox(_,d) => {
-                list.append_item(~dl::Text(copy bounds, text_run::serialize(builder.ctx.font_cache, d.run),
+                list.append_item(~dl::Text(copy abs_box_bounds, text_run::serialize(builder.ctx.font_cache, d.run),
                                            d.offset, d.length))
             },
             // TODO: items for background, border, outline
@@ -443,17 +449,17 @@ impl RenderBox : RenderBoxMethods {
             },
             ImageBox(_,i) => {
                 match i.get_image() {
-                    Some(image) => list.append_item(~dl::Image(copy bounds, arc::clone(&image))),
+                    Some(image) => list.append_item(~dl::Image(copy abs_box_bounds, arc::clone(&image))),
                     /* No image data at all? Okay, add some fallback content instead. */
                     None => ()
                 }
             }
         }
 
-        self.add_border_to_list(list, bounds);
+        self.add_border_to_list(list, abs_box_bounds);
     }
 
-    fn add_bgcolor_to_list(list: &dl::DisplayList, bounds: &Rect<au>) {
+    fn add_bgcolor_to_list(list: &dl::DisplayList, abs_bounds: &Rect<au>) {
         use std::cmp::FuzzyEq;
         // TODO: shouldn't need to unbox CSSValue by now
         let boxed_bgcolor = self.d().node.style().background_color;
@@ -462,31 +468,31 @@ impl RenderBox : RenderBoxMethods {
             Specified(BgColorTransparent) | _ => util::color::rgba(0,0,0,0.0)
         };
         if !bgcolor.alpha.fuzzy_eq(&0.0) {
-            list.append_item(~dl::SolidColor(copy *bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
+            list.append_item(~dl::SolidColor(copy *abs_bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
         }
     }
 
-    fn add_border_to_list(list: &dl::DisplayList, bounds: Rect<au>) {
+    fn add_border_to_list(list: &dl::DisplayList, abs_bounds: Rect<au>) {
         let style = self.d().node.style();
         match style.border_width {
             Specified(Px(px)) => {
                 // If there's a border, let's try to display *something*
                 let border_width = au::from_frac_px(px);
-                let bounds = Rect {
+                let abs_bounds = Rect {
                     origin: Point2D {
-                        x: bounds.origin.x - border_width / au(2),
-                        y: bounds.origin.y - border_width / au(2),
+                        x: abs_bounds.origin.x - border_width / au(2),
+                        y: abs_bounds.origin.y - border_width / au(2),
                     },
                     size: Size2D {
-                        width: bounds.size.width + border_width,
-                        height: bounds.size.height + border_width
+                        width: abs_bounds.size.width + border_width,
+                        height: abs_bounds.size.height + border_width
                     }
                 };
                 let color = match style.border_color {
                     Specified(BdrColor(color)) => color,
                     _ => rgb(0, 0, 0) // FIXME
                 };
-                list.push(~dl::Border(bounds, border_width, color.red, color.green, color.blue));
+                list.push(~dl::Border(abs_bounds, border_width, color.red, color.green, color.blue));
             }
             _ => () // TODO
         }
