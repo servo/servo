@@ -278,16 +278,15 @@ impl RenderBox : RenderBoxMethods {
             // factor in min/pref widths of any text runs that it owns.
             TextBox(_,d) => {
                 let mut max_line_width: au = au(0);
-                do d.run.iter_natural_lines_for_range(d.offset, d.length) |line_offset, line_len| {
+                for d.run.iter_natural_lines_for_range(d.offset, d.length) |line_offset, line_len| {
+                    // if the line is a single newline, then len will be zero
+                    if line_len == 0 { loop }
+
                     let mut line_width: au = au(0);
                     do d.run.glyphs.iter_glyphs_for_range(line_offset, line_len) |_char_i, glyph| {
                         line_width += glyph.advance()
                     };
-
-                    if max_line_width < line_width {
-                        max_line_width = line_width;
-                    };
-                    true
+                    max_line_width = au::max(max_line_width, line_width);
                 }
 
                 max_line_width
