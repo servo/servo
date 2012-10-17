@@ -52,14 +52,19 @@ pub trait FontMethods {
 
 pub impl Font : FontMethods {
     fn measure_text(run: &TextRun, offset: uint, length: uint) -> RunMetrics {
+        assert offset < run.text.len();
+        assert offset + length <= run.text.len();
+
         // TODO: alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = au(0);
-        do run.glyphs.iter_glyphs_for_range(offset, length) |_i, glyph| {
-            advance += glyph.advance();
+        if length > 0 {
+            do run.glyphs.iter_glyphs_for_range(offset, length) |_i, glyph| {
+                advance += glyph.advance();
+            }
         }
         let mut bounds = Rect(Point2D(au(0), -self.metrics.ascent),
-                          Size2D(advance, self.metrics.ascent + self.metrics.descent));
+                              Size2D(advance, self.metrics.ascent + self.metrics.descent));
 
         // TODO(Issue #125): support loose and tight bounding boxes; using the
         // ascent+descent and advance is sometimes too generous and
