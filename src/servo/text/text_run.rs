@@ -138,13 +138,13 @@ impl TextRun : TextRunMethods {
             // clump contiguous non-whitespace
             match str::find_from(text, clump_start, |c| !char::is_whitespace(c)) {
                 Some(clump_end) => {
-                    if !f(clump_start, clump_end - clump_start + 1) { break }
-                    clump_start = clump_end + 1;
+                    if !f(clump_start, clump_end - clump_start) { break }
+                    clump_start = clump_end;
                     // reached end
                     if clump_start == offset + length { break }
                 },
                 None => {
-                    // nothing left, flush last piece containing only spaces
+                    // nothing left, flush last piece containing only whitespace
                     if clump_start < offset + length {
                         let clump_end = offset + length - 1;
                         f(clump_start, clump_end - clump_start + 1);
@@ -156,13 +156,13 @@ impl TextRun : TextRunMethods {
             // clump contiguous whitespace
             match str::find_from(text, clump_start, |c| char::is_whitespace(c)) {
                 Some(clump_end) => {
-                    if !f(clump_start, clump_end - clump_start + 1) { break }
-                    clump_start = clump_end + 1;
+                    if !f(clump_start, clump_end - clump_start) { break }
+                    clump_start = clump_end;
                     // reached end
                     if clump_start == offset + length { break }
                 }
                 None => {
-                    // nothing left, flush last piece containing only spaces
+                    // nothing left, flush last piece containing only non-whitespaces
                     if clump_start < offset + length {
                         let clump_end = offset + length - 1;
                         f(clump_start, clump_end - clump_start + 1);
