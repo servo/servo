@@ -62,3 +62,6 @@
 [submodule "src/rust-netsurfcss"]
 	path = src/rust-netsurfcss
 	url = git://github.com/mozilla-servo/rust-netsurfcss.git
+[submodule "src/rust-wapcaplet"]
+	path = src/rust-wapcaplet
+	url = git://github.com/mozilla-servo/rust-wapcaplet.git

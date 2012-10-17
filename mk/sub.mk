@@ -22,7 +22,11 @@ DEPS_rust-hubbub += \
 	libhubbub
 
 DEPS_rust-netsurfcss += \
-	libcss
+	libcss \
+	rust-wapcaplet
+
+DEPS_rust-wapcaplet += \
+	libwapcaplet
 
 CFLAGS_mozjs += \
 	"-I../mozjs/dist/include"
