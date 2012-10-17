@@ -129,43 +129,43 @@ impl TextRun : TextRunMethods {
         assert offset < self.text.len();
         assert offset + length <= self.text.len();
 
-        //TODO: need a more sophisticated model of words and possible breaks
-        let text = str::view(self.text, offset, length);
-
-        let mut clump_start = offset;
+        let mut clump_offset = offset;
+        let mut clump_length;
 
         loop {
-            // clump contiguous non-whitespace
-            match str::find_from(text, clump_start, |c| !char::is_whitespace(c)) {
-                Some(clump_end) => {
-                    if !f(clump_start, clump_end - clump_start) { break }
-                    clump_start = clump_end;
+            // find next non-whitespace byte index, then clump all whitespace before it.
+            match str::find_from(self.text, clump_offset, |c| !char::is_whitespace(c)) {
+                Some(nonws_char_offset) => {
+                    clump_length = nonws_char_offset - clump_offset;
+                    if !f(clump_offset, clump_length) { break }
+                    clump_offset += clump_length;
                     // reached end
-                    if clump_start == offset + length { break }
+                    if clump_offset == offset + length { break }
                 },
                 None => {
                     // nothing left, flush last piece containing only whitespace
-                    if clump_start < offset + length {
-                        let clump_end = offset + length - 1;
-                        f(clump_start, clump_end - clump_start + 1);
+                    if clump_offset < offset + length {
+                        let clump_length = (offset + length) - clump_offset;
+                        f(clump_offset, clump_length);
                     }
                     break
                 }
             };
 
-            // clump contiguous whitespace
-            match str::find_from(text, clump_start, |c| char::is_whitespace(c)) {
-                Some(clump_end) => {
-                    if !f(clump_start, clump_end - clump_start) { break }
-                    clump_start = clump_end;
+            // find next whitespace byte index, then clump all non-whitespace before it.
+            match str::find_from(self.text, clump_offset, |c| char::is_whitespace(c)) {
+                Some(ws_char_offset) => {
+                    clump_length = ws_char_offset - clump_offset;
+                    if !f(clump_offset, clump_length) { break }
+                    clump_offset += clump_length;
                     // reached end
-                    if clump_start == offset + length { break }
+                    if clump_offset == offset + length { break }
                 }
                 None => {
                     // nothing left, flush last piece containing only non-whitespaces
-                    if clump_start < offset + length {
-                        let clump_end = offset + length - 1;
-                        f(clump_start, clump_end - clump_start + 1);
+                    if clump_offset < offset + length {
+                        let clump_length = (offset + length) - clump_offset;
+                        f(clump_offset, clump_length);
                     }
                     break
                 }
