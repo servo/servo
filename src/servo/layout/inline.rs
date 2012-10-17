@@ -551,24 +551,54 @@ impl FlowContext : InlineLayout {
     }
 
     fn assign_height_inline(@self, _ctx: &LayoutContext) {
-        // TODO: calculate linebox heights and set y-offsets
+        // TODO: get from CSS 'line-height' property
         let line_height = au::from_px(20);
         let mut cur_y = au(0);
 
-        for self.inline().boxes.each |box| {
-            let box_height = match *box {
-                @ImageBox(_,img) => au::from_px(img.size().height),
-                @TextBox(*) => { /* text boxes are initialized with dimensions */
-                                 box.d().position.size.height
-                },
-                @GenericBox(*) => au::from_px(30), /* TODO: should use CSS 'height'? */
-                _ => fail fmt!("Tried to assign width to unknown Box variant: %?", box)
-            };
-            // TODO: calculate linebox heights and set y-offsets
-            box.d().position.origin.y = cur_y;
-            cur_y += au::max(line_height, box_height);
-            box.d().position.size.height = box_height;
-        } // for boxes.each |box|
+        for self.inline().lines.eachi |i, line_span| {
+            debug!("assign_height_inline: processing line %u with box span: %?", i, line_span);
+            // coords relative to left baseline
+            let mut linebox_bounding_box = au::zero_rect();
+            let boxes = &self.inline().boxes;
+            for uint::range(line_span.start as uint, (line_span.start + line_span.len) as uint) |box_i| {
+                let cur_box = boxes[box_i];
+
+                // compute box height.
+                cur_box.d().position.size.height = match cur_box {
+                    @ImageBox(_,img) => au::from_px(img.size().height),
+                    @TextBox(*) => { /* text boxes are initialized with dimensions */
+                        cur_box.d().position.size.height
+                    },
+                    @GenericBox(*) => au::from_px(30), /* TODO: should use CSS 'height'? */
+                    _ => fail fmt!("Tried to assign height to unknown Box variant: %s", cur_box.debug_str())
+                };
+
+                // compute bounding rect, with left baseline as origin.
+                // so, linebox height is a matter of lining up ideal baselines,
+                // and then using the union of all these rects.
+                let bounding_box = match cur_box {
+                    // adjust to baseline coords
+                    // TODO: account for padding, margin, border in bounding box?
+                    @ImageBox(*) | @GenericBox(*) => {
+                        let box_bounds = cur_box.d().position;
+                        box_bounds.translate(&Point2D(au(0), -cur_box.d().position.size.height))
+                    },
+                    // adjust bounding box metric to box's horizontal offset
+                    // TODO: can we trust the leading provided by font metrics?
+                    @TextBox(_, data) => { 
+                        let text_bounds = data.run.metrics_for_range(data.offset, data.length).bounding_box;
+                        text_bounds.translate(&Point2D(cur_box.d().position.origin.x, au(0)))
+                    },
+                    _ => fail fmt!("Tried to compute bounding box of unknown Box variant: %s", cur_box.debug_str())
+                };
+                cur_box.d().position.origin.y = cur_y;
+                debug!("assign_height_inline: bounding box for box b%d = %?", cur_box.d().id, bounding_box);
+                linebox_bounding_box = linebox_bounding_box.union(&bounding_box);
+                debug!("assign_height_inline: linebox bounding box = %?", linebox_bounding_box);
+            }
+            let linebox_height = linebox_bounding_box.size.height;
+            cur_y += au::max(line_height, linebox_height);
+        } // /lines.each |line_span|
 
         self.d().position.size.height = cur_y;
     }
