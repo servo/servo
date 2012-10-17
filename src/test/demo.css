@@ -1,0 +1,43 @@
+body {
+    background-color: rgb(200, 255, 255)
+}
+
+#hello {
+    background-color: blue;
+    color: red
+}
+
+#kitty {
+    position: absolute;
+    top: 200px;
+    left: 100px;
+    border-color: rgb(0, 0, 0);
+    border-width: 10px
+}
+
+#boxa {
+    position: absolute;
+    top: 50px;
+    left: 500px;
+    width: 100px;
+    height: 100px;
+    background-color: rgba(255, 0, 0, 0.5)
+}
+
+#boxb {
+    position: absolute;
+    top: 70px;
+    left: 580px;
+    width: 100px;
+    height: 100px;
+    background-color: rgba(0, 255, 0, 0.5)
+}
+
+#boxc {
+    position: absolute;
+    top: 130px;
+    left: 550px;
+    width: 100px;
+    height: 100px;
+    background-color: rgba(0, 0, 255, 0.5)
+}
