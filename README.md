@@ -1,18 +1,21 @@
-## The Servo Parallel Browser Project
+# The Servo Parallel Browser Project
 
-Servo is a web browser engine written in the Rust language. It is
-currently developed on OS X and Linux.
+Servo is a prototype web browser engine written in the [Rust]
+language. It is currently developed on OS X and Linux.
 
-Note: Servo requires a bleeding-edge version of Rust. The Rust commit
-most recently tested is listed below. Servo often doesn't build
-against Rust _incoming_ or _master_ branches, due to upstream language
-changes. If you want to unbreak Servo against the latest Rust build,
-somebody in #servo or #rust will usually know what magic is required
-to fix the build.
+**Note:** Servo always requires a specific version of Rust - building
+against a released version of Rust will not work, nor will the Rust
+'master' branch. The commit below will *probably* work. If it does not
+then the topic in #servo might know better.
 
-* Last known-good rust commit: 57b4d10ff652d3beddae64782c882a07822bac3c
+* Last known-good Rust commit: 57b4d10ff652d3beddae64782c882a07822bac3c
 
-### Prerequisites
+[rust]: http://www.rust-lang.org
+
+## Prerequisites
+
+First, you need the Rust compiler, built from the exact commit listed
+above.
 
 On OS X (homebrew):
 
@@ -27,19 +30,22 @@ On Debian-based Linuxes:
 
     sudo apt-get install libcairo2-dev libpango1.0-dev autoconf2.13 freeglut3-dev
 
-### Building
+## Building
 
     git clone git://github.com/mozilla/servo.git
     cd servo
     mkdir -p build && cd build
     ../configure
     make check-servo && make
-    ./servo ../src/test/test.html
+    ./servo ../src/test/hello.html
+
+If `rustc` is not installed then add `RUSTC=/path/to/rustc` to your
+`make` commands.
 
 
-### Build Workarounds
+## Build Workarounds
 
-#### MacPorts
+### MacPorts
 
 Currently, the Makefile for the `rust-azure` submodule has hardcoded
 library paths that assumes cairo has been installed with homebrew or
