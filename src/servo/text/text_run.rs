@@ -98,29 +98,29 @@ impl TextRun : TextRunMethods {
         assert offset < self.text.len();
         assert offset + length <= self.text.len();
 
-        let mut clump_start = offset;
-        let mut clump_end = offset;
+        let mut clump_offset = offset;
+        let mut clump_length = 0;
         let mut in_clump = false;
 
         // clump non-linebreaks of nonzero length
         for uint::range(offset, offset + length) |i| {
             match (self.glyphs.char_is_newline(i), in_clump) {
-                (false, true)  => { clump_end = i; }
-                (false, false) => { in_clump = true; clump_start = i; clump_end = i; }
+                (false, true)  => { clump_length += 1; }
+                (false, false) => { in_clump = true; clump_offset = i; clump_length = 1; }
                 (true, false) => { /* chomp whitespace */ }
                 (true, true)  => {
                     in_clump = false;
                     // don't include the linebreak 'glyph'
                     // (we assume there's one GlyphEntry for a newline, and no actual glyphs)
-                    if !f(clump_start, clump_end - clump_start + 1) { break }
+                    if !f(clump_offset, clump_length) { break }
                 }
             }
         }
         
         // flush any remaining chars as a line
         if in_clump {
-            clump_end = offset + length - 1;
-            f(clump_start, clump_end - clump_start + 1);
+            clump_length = (offset + length) - clump_offset;
+            f(clump_offset, clump_length);
         }
     }
 
