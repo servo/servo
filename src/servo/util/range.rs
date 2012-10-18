@@ -13,6 +13,8 @@ pub pure fn Range(off: uint, len: uint) -> Range {
     }
 }
 
+pub pure fn empty() -> Range { Range(0,0) }
+
 pub impl Range {
     pub pure fn begin() -> uint { self.off as uint }
     pub pure fn length() -> uint { self.len as uint }
@@ -41,6 +43,8 @@ pub impl Range {
         Range(((self.off as int) + off_i) as uint, ((self.len as int) + len_i) as uint)
     }
 }
+
+pub pure fn empty_mut() -> MutableRange { MutableRange(0,0) }
 
 pub struct MutableRange {
     priv mut off: uint,

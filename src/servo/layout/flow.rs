@@ -12,6 +12,7 @@ use layout::context::LayoutContext;
 use layout::debug::BoxedDebugMethods;
 use layout::inline::InlineFlowData;
 use layout::root::RootFlowData;
+use util::range::{Range, MutableRange};
 use util::tree;
 
 /** Servo's experimental layout system builds a tree of FlowContexts
@@ -179,12 +180,9 @@ impl BoxConsumer {
                 let final_span_length = self.flow.inline().boxes.len() - entry.start_idx + 1;
                 assert final_span_length > 1;
                 let mapping = { node: copy box.d().node, 
-                               span: { 
-                                   mut start: entry.start_idx as u16, 
-                                   mut len: final_span_length as u16
-                               }
+                                range: MutableRange(entry.start_idx, final_span_length)
                               };
-                debug!("BoxConsumer: adding element range=%?", mapping.span);
+                debug!("BoxConsumer: adding element range=%?", mapping.range);
                 self.flow.inline().elems.push(mapping);
             },
             @BlockFlow(*) => {

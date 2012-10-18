@@ -41,12 +41,7 @@ serve as the starting point, but the current design doesn't make it
 hard to try out that alternative.
 */
 
-type BoxRange = {mut start: u16, mut len: u16};
-fn EmptyBoxRange() -> BoxRange {
-    { mut start: 0 as u16, mut len: 0 as u16 }
-}
-
-type NodeRange = {node: Node, span: BoxRange};
+type NodeRange = {node: Node, range: MutableRange};
 
 // stack-allocated object for scanning an inline flow into
 // TextRun-containing TextBoxes.
@@ -190,26 +185,24 @@ impl TextRunScanner {
 
                 // then, fix NodeRange mappings to account for elided boxes.
                 do self.flow.inline().elems.borrow |ranges: &[NodeRange]| {
-                    for ranges.each |range: &NodeRange| {
-                        let span = &range.span;
-                        let relation = relation_of_clump_and_range(span, self.clump_start, self.clump_end);
-                        debug!("TextRunScanner: possibly repairing element range %?", range.span);
+                    for ranges.each |node_range: &NodeRange| {
+                        let range = &node_range.range;
+                        let relation = relation_of_clump_and_range(range.as_immutable(), self.clump_start, self.clump_end);
+                        debug!("TextRunScanner: possibly repairing element range %?", node_range.range);
                         debug!("TextRunScanner: relation of range and clump(start=%u, end=%u): %?",
                                self.clump_start, self.clump_end, relation);
                         match relation {
                             RangeEntirelyBeforeClump => {},
-                            RangeEntirelyAfterClump => { span.start -= clump_box_count as u16; },
+                            RangeEntirelyAfterClump => { range.shift_by(-clump_box_count as int); },
                             RangeCoincidesClump | RangeContainedByClump => 
-                                                       { span.start  = self.clump_start as u16;
-                                                         span.len    = 1 },
-                            RangeContainsClump =>      { span.len   -= clump_box_count as u16; },
+                                                       { range.reset(self.clump_start, 1); },
+                            RangeContainsClump =>      { range.extend_by(-(clump_box_count as int)); },
                             RangeOverlapsClumpStart(overlap) => 
-                                                       { span.len   -= (overlap - 1) as u16; },
+                                                       { range.extend_by(1 - (overlap as int)); },
                             RangeOverlapsClumpEnd(overlap) => 
-                                                       { span.start  = self.clump_start as u16;
-                                                         span.len   -= (overlap - 1) as u16; }
+                            { range.reset(self.clump_start, 1 + range.length() - overlap); }
                         }
-                        debug!("TextRunScanner: new element range: ---- %?", range.span);
+                        debug!("TextRunScanner: new element range: ---- %?", node_range.range);
                     }
                 }
 
@@ -240,10 +233,10 @@ impl TextRunScanner {
             RangeEntirelyAfterClump
         }
         
-        fn relation_of_clump_and_range(range: &BoxRange, clump_start: uint, 
+        fn relation_of_clump_and_range(range: Range, clump_start: uint, 
                                        clump_end: uint) -> ClumpRangeRelation {
-            let range_start = range.start as uint;
-            let range_end = (range.start + range.len) as uint;
+            let range_start = range.begin();
+            let range_end = (range.begin() + range.length());
 
             if range_end < clump_start {
                 return RangeEntirelyBeforeClump;
@@ -278,8 +271,8 @@ struct LineboxScanner {
     flow: @FlowContext,
     new_boxes: DVec<@RenderBox>,
     work_list: DList<@RenderBox>,
-    mut pending_line: {span: BoxRange, width: au},
-    line_spans: DVec<BoxRange>
+    pending_line: {range: MutableRange, mut width: au},
+    line_spans: DVec<Range>
 }
 
 fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
@@ -289,21 +282,26 @@ fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
         flow: inline,
         new_boxes: DVec(),
         work_list: DList(),
-        pending_line: {span: EmptyBoxRange(), width: au(0)},
+        pending_line: {range: util::range::empty_mut(), mut width: au(0)},
         line_spans: DVec()
     }
 }
 
 impl LineboxScanner {
-    fn reset() {
+    priv fn reset_scanner() {
         debug!("Resetting line box scanner's state for flow f%d.", self.flow.d().id);
         do self.line_spans.swap |_v| { ~[] };
         do self.new_boxes.swap |_v| { ~[] };
-        self.pending_line = {span: EmptyBoxRange(), width: au(0)};
+        self.reset_linebox();
+    }
+
+    priv fn reset_linebox() {
+        self.pending_line.range.reset(0,0);
+        self.pending_line.width = au(0);
     }
 
     pub fn scan_for_lines(ctx: &LayoutContext) {
-        self.reset();
+        self.reset_scanner();
         
         let boxes = &self.flow.inline().boxes;
         let mut i = 0u;
@@ -333,7 +331,7 @@ impl LineboxScanner {
             }
         }
 
-        if self.pending_line.span.len > 0 {
+        if self.pending_line.range.length() > 0 {
             debug!("LineboxScanner: Partially full linebox %u left at end of scanning.",
                    self.line_spans.len());
             self.flush_current_line();
@@ -357,13 +355,13 @@ impl LineboxScanner {
         debug!("LineboxScanner: Flushing line %u: %?",
                self.line_spans.len(), self.pending_line);
         // set box horizontal offsets
-        let line_span = copy self.pending_line.span;
+        let line_range = self.pending_line.range.as_immutable();
         let mut offset_x = au(0);
         // TODO: interpretation of CSS 'text-direction' and 'text-align' 
         // will change from which side we start laying out the line.
         debug!("LineboxScanner: Setting horizontal offsets for boxes in line %u range: %?",
-               self.line_spans.len(), line_span);
-        for uint::range(line_span.start as uint, (line_span.start + line_span.len) as uint) |i| {
+               self.line_spans.len(), line_range);
+        for line_range.eachi |i| {
             let box_data = &self.new_boxes[i].d();
             box_data.position.origin.x = offset_x;
             offset_x += box_data.position.size.width;
@@ -371,15 +369,15 @@ impl LineboxScanner {
 
         // clear line and add line mapping
         debug!("LineboxScanner: Saving information for flushed line %u.", self.line_spans.len());
-        self.line_spans.push(copy self.pending_line.span);
-        self.pending_line = {span: EmptyBoxRange(), width: au(0)};
+        self.line_spans.push(line_range);
+        self.reset_linebox();
     }
 
     // return value: whether any box was appended.
     priv fn try_append_to_line(ctx: &LayoutContext, in_box: @RenderBox) -> bool {
         let remaining_width = self.flow.d().position.size.width - self.pending_line.width;
         let in_box_width = in_box.d().position.size.width;
-        let line_is_empty: bool = self.pending_line.span.len == 0;
+        let line_is_empty: bool = self.pending_line.range.length() == 0;
 
         debug!("LineboxScanner: Trying to append box to line %u (box width: %?, remaining width: %?): %s",
                self.line_spans.len(), in_box_width, remaining_width, in_box.debug_str());
@@ -459,11 +457,11 @@ impl LineboxScanner {
     priv fn push_box_to_line(box: @RenderBox) {
         debug!("LineboxScanner: Pushing box b%d to line %u", box.d().id, self.line_spans.len());
 
-        if self.pending_line.span.len == 0 {
+        if self.pending_line.range.length() == 0 {
             assert self.new_boxes.len() <= (core::u16::max_value as uint);
-            self.pending_line.span.start = self.new_boxes.len() as u16;
+            self.pending_line.range.reset(self.new_boxes.len(), 0);
         }
-        self.pending_line.span.len += 1;
+        self.pending_line.range.extend_by(1);
         self.pending_line.width += box.d().position.size.width;
         self.new_boxes.push(box);
     }
@@ -475,7 +473,7 @@ struct InlineFlowData {
     boxes: DVec<@RenderBox>,
     // vec of ranges into boxes that represents line positions.
     // these ranges are disjoint, and are the result of inline layout.
-    lines: DVec<BoxRange>,
+    lines: DVec<Range>,
     // vec of ranges into boxes that represent elements. These ranges
     // must be well-nested, and are only related to the content of
     // boxes (not lines). Ranges are only kept for non-leaf elements.
@@ -563,7 +561,7 @@ impl FlowContext : InlineLayout {
             // coords relative to left baseline
             let mut linebox_bounding_box = au::zero_rect();
             let boxes = &self.inline().boxes;
-            for uint::range(line_span.start as uint, (line_span.start + line_span.len) as uint) |box_i| {
+            for line_span.eachi |box_i| {
                 let cur_box = boxes[box_i];
 
                 // compute box height.
