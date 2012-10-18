@@ -167,7 +167,7 @@ impl TextRun : TextRunMethods {
     }
 
     fn metrics_for_range(&self, range: TextRange) -> RunMetrics {
-        self.font.measure_text(self, range.begin(), range.length())
+        self.font.measure_text(self, range)
     }
 
     fn min_width_for_range(&self, range: TextRange) -> au {    
@@ -175,7 +175,7 @@ impl TextRun : TextRunMethods {
 
         let mut max_piece_width = au(0);
         for self.iter_indivisible_pieces_for_range(range) |piece_range| {
-            let metrics = self.font.measure_text(self, piece_range.begin(), piece_range.length());
+            let metrics = self.font.measure_text(self, piece_range);
             max_piece_width = au::max(max_piece_width, metrics.advance_width);
         }
         return max_piece_width;

@@ -9,7 +9,7 @@ use glyph::GlyphIndex;
 use libc::{ c_int, c_double, c_ulong };
 use native_font::NativeFont;
 use ptr::{null, addr_of};
-use text::text_run::TextRun;
+use text::text_run::{TextRun, TextRange};
 use vec_to_ptr = vec::raw::to_ptr;
 
 // Used to abstract over the shaper's choice of fixed int representation.
@@ -41,7 +41,7 @@ struct RunMetrics {
 
 // Public API
 pub trait FontMethods {
-    fn measure_text(run: &TextRun, offset: uint, length: uint) -> RunMetrics;
+    fn measure_text(&TextRun, TextRange) -> RunMetrics;
 
     fn buf(&self) -> @~[u8];
     // these are used to get glyphs and advances in the case that the
@@ -51,15 +51,14 @@ pub trait FontMethods {
 }
 
 pub impl Font : FontMethods {
-    fn measure_text(run: &TextRun, offset: uint, length: uint) -> RunMetrics {
-        assert offset < run.text.len();
-        assert offset + length <= run.text.len();
+    fn measure_text(run: &TextRun, range: TextRange) -> RunMetrics {
+        assert range.is_valid_for_string(run.text);
 
         // TODO: alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = au(0);
-        if length > 0 {
-            do run.glyphs.iter_glyphs_for_range(offset, length) |_i, glyph| {
+        if range.length() > 0 {
+            do run.glyphs.iter_glyphs_for_range(range.begin(), range.length()) |_i, glyph| {
                 advance += glyph.advance();
             }
         }
@@ -75,7 +74,7 @@ pub impl Font : FontMethods {
                                   ascent: self.metrics.ascent,
                                   descent: self.metrics.descent,
                                  };
-        debug!("Measured text range '%s' with metrics:", run.text.substr(offset, length));
+        debug!("Measured text range '%s' with metrics:", run.text.substr(range.begin(), range.length()));
         debug!("%?", metrics);
 
         return metrics;

@@ -187,47 +187,47 @@ impl RenderBox : RenderBoxMethods {
 
                 let mut i : uint = 0;
                 let mut remaining_width : au = max_width;
-                let mut left_offset : uint = data.offset;
+                let mut left_offset : uint = data.range.begin();
                 let mut left_length : uint = 0;
                 let mut right_offset : Option<uint> = None;
                 let mut right_length : Option<uint> = None;
                 debug!("split_to_width: splitting text box (strlen=%u, off=%u, len=%u, avail_width=%?)",
-                       data.run.text.len(), data.offset, data.length, max_width);
-                do data.run.iter_indivisible_pieces_for_range(TextRange(data.offset, data.length)) |subrange| {
+                       data.run.text.len(), data.range.begin(), data.range.length(), max_width);
+                do data.run.iter_indivisible_pieces_for_range(data.range) |piece_range| {
                     debug!("split_to_width: considering range (off=%u, len=%u, remain_width=%?)",
-                           subrange.begin(), subrange.length(), remaining_width);
-                    let metrics = data.run.metrics_for_range(subrange);
+                           piece_range.begin(), piece_range.length(), remaining_width);
+                    let metrics = data.run.metrics_for_range(piece_range);
                     let advance = metrics.advance_width;
                     let should_continue : bool;
 
                     if advance <= remaining_width {
                         should_continue = true;
-                        if starts_line && i == 0 && data.run.range_is_trimmable_whitespace(subrange) {
+                        if starts_line && i == 0 && data.run.range_is_trimmable_whitespace(piece_range) {
                             debug!("split_to_width: case=skipping leading trimmable whitespace");
-                            left_offset += subrange.length(); 
+                            left_offset += piece_range.length(); 
                         } else {
                             debug!("split_to_width: case=enlarging span");
                             remaining_width -= advance;
-                            left_length += subrange.length();
+                            left_length += piece_range.length();
                         }
                     } else { /* advance > remaining_width */
                         should_continue = false;
 
-                        if data.run.range_is_trimmable_whitespace(subrange) {
+                        if data.run.range_is_trimmable_whitespace(piece_range) {
                             // if there are still things after the trimmable whitespace, create right chunk
-                            if subrange.end() < data.offset + data.length {
+                            if piece_range.end() < data.range.end() {
                                 debug!("split_to_width: case=skipping trimmable trailing whitespace, then split remainder");
-                                right_offset = Some(subrange.end());
-                                right_length = Some((data.offset + data.length) - subrange.end());
+                                right_offset = Some(piece_range.end());
+                                right_length = Some(data.range.end() - piece_range.end());
                             } else {
                                 debug!("split_to_width: case=skipping trimmable trailing whitespace");
                             }
-                        } else if subrange.begin() < data.length + data.offset {
+                        } else if piece_range.begin() < data.range.end() {
                             // still things left, create right chunk
-                            right_offset = Some(subrange.begin());
-                            right_length = Some((data.offset + data.length) - subrange.begin());
+                            right_offset = Some(piece_range.begin());
+                            right_length = Some(data.range.end() - piece_range.begin());
                             debug!("split_to_width: case=splitting remainder with right span: (off=%u, len=%u)",
-                                   subrange.begin(), (data.offset + data.length) - subrange.begin());
+                                   piece_range.begin(), data.range.end() - piece_range.begin());
                         }
                     }
                     i += 1;
@@ -235,14 +235,14 @@ impl RenderBox : RenderBoxMethods {
                 }
 
                 let left_box = if left_length > 0 {
-                    Some(layout::text::adapt_textbox_with_range(self.d(), data.run,
-                                                                left_offset, left_length))
+                    Some(layout::text::adapt_textbox_with_range(self.d(), data.run, 
+                                                                TextRange(left_offset, left_length)))
                 } else { None };
                 
                 match (right_offset, right_length) {
                     (Some(right_off), Some(right_len)) => {
                         let right_box = layout::text::adapt_textbox_with_range(self.d(), data.run,
-                                                                               right_off, right_len);
+                                                                               TextRange(right_off, right_len));
                         return if i == 1 || left_box.is_none() {
                             SplitDidNotFit(left_box, Some(right_box))
                         } else {
@@ -270,7 +270,7 @@ impl RenderBox : RenderBoxMethods {
             // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult 'width'.
             ImageBox(_,i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
-            TextBox(_,d) => d.run.min_width_for_range(TextRange(d.offset, d.length)),
+            TextBox(_,d) => d.run.min_width_for_range(d.range),
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
         }
     }
@@ -293,7 +293,7 @@ impl RenderBox : RenderBoxMethods {
             // factor in min/pref widths of any text runs that it owns.
             TextBox(_,d) => {
                 let mut max_line_width: au = au(0);
-                for d.run.iter_natural_lines_for_range(TextRange(d.offset, d.length)) |line_range| {
+                for d.run.iter_natural_lines_for_range(d.range) |line_range| {
                     // if the line is a single newline, then len will be zero
                     if line_range.length() == 0 { loop }
 
@@ -442,7 +442,7 @@ impl RenderBox : RenderBoxMethods {
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
             TextBox(_,d) => {
                 list.append_item(~dl::Text(copy abs_box_bounds, text_run::serialize(builder.ctx.font_cache, d.run),
-                                           d.offset, d.length))
+                                           d.range.begin(), d.range.length()))
             },
             // TODO: items for background, border, outline
             GenericBox(_) => {
@@ -519,7 +519,7 @@ impl RenderBox : BoxedDebugMethods {
         let repr = match self {
             @GenericBox(*) => ~"GenericBox",
             @ImageBox(*) => ~"ImageBox",
-            @TextBox(_,d) => fmt!("TextBox(text=%s)", str::substr(d.run.text, d.offset, d.length)),
+            @TextBox(_,d) => fmt!("TextBox(text=%s)", str::substr(d.run.text, d.range.begin(), d.range.length())),
             @UnscannedTextBox(_,s) => fmt!("UnscannedTextBox(%s)", s)
         };
 

@@ -168,7 +168,8 @@ impl TextRunScanner {
                 let run = @TextRun(ctx.font_cache.get_test_font(), move transformed_text);
                 debug!("TextRunScanner: pushing single text box when start=%u,end=%u",
                        self.clump_start, self.clump_end);
-                let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump_start].d(), run, 0, run.text.len());
+                let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump_start].d(), run,
+                                                                     TextRange(0, run.text.len()));
                 out_boxes.push(new_box);
             },
             (false, true) => {
@@ -221,7 +222,8 @@ impl TextRunScanner {
                 let run = @TextRun(ctx.font_cache.get_test_font(), move run_str);
                 debug!("TextRunScanner: pushing box(es) when start=%u,end=%u",
                        self.clump_start, self.clump_end);
-                let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump_start].d(), run, 0, run.text.len());
+                let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump_start].d(), run, 
+                                                                     TextRange(0, run.text.len()));
                 out_boxes.push(new_box);
             }
         } /* /match */
@@ -586,7 +588,7 @@ impl FlowContext : InlineLayout {
                     // adjust bounding box metric to box's horizontal offset
                     // TODO: can we trust the leading provided by font metrics?
                     @TextBox(_, data) => { 
-                        let text_bounds = data.run.metrics_for_range(TextRange(data.offset, data.length)).bounding_box;
+                        let text_bounds = data.run.metrics_for_range(data.range).bounding_box;
                         text_bounds.translate(&Point2D(cur_box.d().position.origin.x, au(0)))
                     },
                     _ => fail fmt!("Tried to compute bounding box of unknown Box variant: %s", cur_box.debug_str())
