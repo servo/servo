@@ -1,6 +1,6 @@
 use gfx::compositor::Compositor;
 use mod gfx::render_task;
-use gfx::render_task::{Renderer, RenderTask};
+use gfx::render_task::RenderTask;
 use task::spawn_listener;
 use layout::layout_task;
 use layout_task::LayoutTask;
@@ -25,7 +25,7 @@ pub enum Msg {
 struct Engine<C:Compositor Send Copy> {
     request_port: comm::Port<Msg>,
     compositor: C,
-    render_task: Renderer,
+    render_task: RenderTask,
     resource_task: ResourceTask,
     image_cache_task: ImageCacheTask,
     layout_task: LayoutTask,
