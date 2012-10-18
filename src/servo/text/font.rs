@@ -57,10 +57,8 @@ pub impl Font : FontMethods {
         // TODO: alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = au(0);
-        if range.length() > 0 {
-            do run.glyphs.iter_glyphs_for_range(range.begin(), range.length()) |_i, glyph| {
-                advance += glyph.advance();
-            }
+        for run.glyphs.iter_glyphs_for_range(range) |_i, glyph| {
+            advance += glyph.advance();
         }
         let mut bounds = Rect(Point2D(au(0), -self.metrics.ascent),
                               Size2D(advance, self.metrics.ascent + self.metrics.descent));

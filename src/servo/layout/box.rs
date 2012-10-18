@@ -294,13 +294,10 @@ impl RenderBox : RenderBoxMethods {
             TextBox(_,d) => {
                 let mut max_line_width: au = au(0);
                 for d.run.iter_natural_lines_for_range(d.range) |line_range| {
-                    // if the line is a single newline, then len will be zero
-                    if line_range.length() == 0 { loop }
-
                     let mut line_width: au = au(0);
-                    do d.run.glyphs.iter_glyphs_for_range(line_range.begin(), line_range.length()) |_char_i, glyph| {
+                    for d.run.glyphs.iter_glyphs_for_range(line_range) |_char_i, glyph| {
                         line_width += glyph.advance()
-                    };
+                    }
                     max_line_width = au::max(max_line_width, line_width);
                 }
 
@@ -442,7 +439,7 @@ impl RenderBox : RenderBoxMethods {
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
             TextBox(_,d) => {
                 list.append_item(~dl::Text(copy abs_box_bounds, text_run::serialize(builder.ctx.font_cache, d.run),
-                                           d.range.begin(), d.range.length()))
+                                           d.range))
             },
             // TODO: items for background, border, outline
             GenericBox(_) => {

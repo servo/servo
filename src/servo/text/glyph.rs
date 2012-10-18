@@ -4,9 +4,11 @@ use core::cmp::{Ord, Eq};
 use core::dvec::DVec;
 use core::u16;
 use geom::point::Point2D;
-use std::sort;
-use servo_util::vec::*;
 use num::from_int;
+use std::sort;
+use servo_text::text_run::TextRange;
+use servo_util::vec::*;
+
 
 // GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing
 // glyph data compactly.
@@ -543,13 +545,11 @@ impl GlyphStore {
         }
     }
 
-    fn iter_glyphs_for_range<T>(&self, offset: uint, len: uint, cb: fn&(uint, GlyphInfo/&) -> T) {
-        assert offset < self.entry_buffer.len();
-        assert len > 0 && len + offset <= self.entry_buffer.len();
+    fn iter_glyphs_for_range<T>(&self, range: TextRange, cb: fn&(uint, GlyphInfo/&) -> T) {
+        assert range.begin() < self.entry_buffer.len();
+        assert range.end() <= self.entry_buffer.len();
 
-        for uint::range(offset, offset + len) |i| {
-            self.iter_glyphs_for_index(i, cb);
-        }
+        for range.eachi |i| { self.iter_glyphs_for_index(i, cb); }
     }
 
     fn iter_all_glyphs<T>(cb: fn&(uint, GlyphInfo/&) -> T) {

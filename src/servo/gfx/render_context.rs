@@ -2,7 +2,7 @@ use mod au = geometry;
 
 use compositor::LayerBuffer;
 use text::font::Font;
-use text::text_run::TextRun;
+use text::text_run::{TextRun, TextRange};
 use text::font_cache::FontCache;
 use image::base::Image;
 use au = au::au;
@@ -67,7 +67,7 @@ impl RenderContext  {
                                      draw_options);
     }
 
-    pub fn draw_text(&self, bounds: Rect<au>, run: &TextRun, offset: uint, length: uint) {
+    pub fn draw_text(&self, bounds: Rect<au>, run: &TextRun, range: TextRange) {
         use ptr::{null};
         use vec::raw::to_ptr;
         use libc::types::common::c99::{uint16_t, uint32_t};
@@ -109,9 +109,9 @@ impl RenderContext  {
 
         let mut origin = Point2D(bounds.origin.x, bounds.origin.y.add(&bounds.size.height));
         let azglyphs = DVec();
-        azglyphs.reserve(length);
+        azglyphs.reserve(range.length());
 
-        do run.glyphs.iter_glyphs_for_range(offset, length) |_i, glyph| {
+        do run.glyphs.iter_glyphs_for_range(range) |_i, glyph| {
             let glyph_advance = glyph.advance();
             let glyph_offset = glyph.offset().get_default(au::zero_point());
 
