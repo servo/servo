@@ -22,7 +22,7 @@ use layout::debug::BoxedDebugMethods;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
 use servo_text::text_run;
-use servo_text::text_run::{TextRange, TextRun};
+use servo_text::text_run::{MutableTextRange, TextRange, TextRun};
 use std::net::url::Url;
 use task::spawn;
 use util::color::Color;
@@ -185,30 +185,29 @@ impl RenderBox : RenderBoxMethods {
             @UnscannedTextBox(*) => fail ~"WAT: shouldn't be an unscanned text box here.",
             @TextBox(_,data) => {
 
-                let mut i : uint = 0;
+                let mut pieces_processed_count : uint = 0;
                 let mut remaining_width : au = max_width;
-                let mut left_offset : uint = data.range.begin();
-                let mut left_length : uint = 0;
-                let mut right_offset : Option<uint> = None;
-                let mut right_length : Option<uint> = None;
-                debug!("split_to_width: splitting text box (strlen=%u, off=%u, len=%u, avail_width=%?)",
-                       data.run.text.len(), data.range.begin(), data.range.length(), max_width);
+                let left_range = MutableTextRange(data.range.begin(), 0);
+                let mut right_range : Option<TextRange> = None;
+                debug!("split_to_width: splitting text box (strlen=%u, range=%?, avail_width=%?)",
+                       data.run.text.len(), data.range, max_width);
                 do data.run.iter_indivisible_pieces_for_range(data.range) |piece_range| {
-                    debug!("split_to_width: considering range (off=%u, len=%u, remain_width=%?)",
-                           piece_range.begin(), piece_range.length(), remaining_width);
+                    debug!("split_to_width: considering piece (range=%?, remain_width=%?)",
+                           piece_range, remaining_width);
                     let metrics = data.run.metrics_for_range(piece_range);
                     let advance = metrics.advance_width;
                     let should_continue : bool;
 
                     if advance <= remaining_width {
                         should_continue = true;
-                        if starts_line && i == 0 && data.run.range_is_trimmable_whitespace(piece_range) {
+                        if starts_line && pieces_processed_count == 0 
+                            && data.run.range_is_trimmable_whitespace(piece_range) {
                             debug!("split_to_width: case=skipping leading trimmable whitespace");
-                            left_offset += piece_range.length(); 
+                            left_range.shift_by(piece_range.length() as int); 
                         } else {
                             debug!("split_to_width: case=enlarging span");
                             remaining_width -= advance;
-                            left_length += piece_range.length();
+                            left_range.extend_by(piece_range.length() as int);
                         }
                     } else { /* advance > remaining_width */
                         should_continue = false;
@@ -217,39 +216,35 @@ impl RenderBox : RenderBoxMethods {
                             // if there are still things after the trimmable whitespace, create right chunk
                             if piece_range.end() < data.range.end() {
                                 debug!("split_to_width: case=skipping trimmable trailing whitespace, then split remainder");
-                                right_offset = Some(piece_range.end());
-                                right_length = Some(data.range.end() - piece_range.end());
+                                right_range = Some(TextRange(piece_range.end(),
+                                                             data.range.end() - piece_range.end()));
                             } else {
                                 debug!("split_to_width: case=skipping trimmable trailing whitespace");
                             }
                         } else if piece_range.begin() < data.range.end() {
                             // still things left, create right chunk
-                            right_offset = Some(piece_range.begin());
-                            right_length = Some(data.range.end() - piece_range.begin());
-                            debug!("split_to_width: case=splitting remainder with right span: (off=%u, len=%u)",
-                                   piece_range.begin(), data.range.end() - piece_range.begin());
+                            right_range = Some(TextRange(piece_range.begin(),
+                                                         data.range.end() - piece_range.begin()));
+                            debug!("split_to_width: case=splitting remainder with right range=%?",
+                                   right_range);
                         }
                     }
-                    i += 1;
+                    pieces_processed_count += 1;
                     should_continue
                 }
 
-                let left_box = if left_length > 0 {
-                    Some(layout::text::adapt_textbox_with_range(self.d(), data.run, 
-                                                                TextRange(left_offset, left_length)))
+                let left_box = if left_range.length() > 0 {
+                    Some(layout::text::adapt_textbox_with_range(self.d(), data.run, left_range.as_immutable()))
                 } else { None };
+
+                let right_box = option::map_default(&right_range, None, |range: &TextRange| {
+                    Some(layout::text::adapt_textbox_with_range(self.d(), data.run, *range))
+                });
                 
-                match (right_offset, right_length) {
-                    (Some(right_off), Some(right_len)) => {
-                        let right_box = layout::text::adapt_textbox_with_range(self.d(), data.run,
-                                                                               TextRange(right_off, right_len));
-                        return if i == 1 || left_box.is_none() {
-                            SplitDidNotFit(left_box, Some(right_box))
-                        } else {
-                            SplitDidFit(left_box, Some(right_box))
-                        }
-                    },
-                    (_, _) => { return SplitDidFit(left_box, None); },
+                return if pieces_processed_count == 1 || left_box.is_none() {
+                    SplitDidNotFit(left_box, right_box)
+                } else {
+                    SplitDidFit(left_box, right_box)
                 }
             },
         }
