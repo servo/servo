@@ -586,7 +586,7 @@ impl FlowContext : InlineLayout {
                     // adjust bounding box metric to box's horizontal offset
                     // TODO: can we trust the leading provided by font metrics?
                     @TextBox(_, data) => { 
-                        let text_bounds = data.run.metrics_for_range(data.offset, data.length).bounding_box;
+                        let text_bounds = data.run.metrics_for_range(TextRange(data.offset, data.length)).bounding_box;
                         text_bounds.translate(&Point2D(cur_box.d().position.origin.x, au(0)))
                     },
                     _ => fail fmt!("Tried to compute bounding box of unknown Box variant: %s", cur_box.debug_str())

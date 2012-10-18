@@ -3,7 +3,7 @@
 use au = gfx::geometry;
 use au::au;
 use geom::size::Size2D;
-use servo_text::text_run::TextRun;
+use servo_text::text_run::{TextRange, TextRun};
 use servo_text::font_cache::FontCache;
 use layout::box::{TextBox, RenderBox, RenderBoxData, UnscannedTextBox};
 use layout::context::LayoutContext;
@@ -28,7 +28,7 @@ pub fn adapt_textbox_with_range(box_data: &RenderBoxData, run: @TextRun,
            run.text.len(), offset, length, run.text);
     let new_box_data = copy *box_data;
     let new_text_data = TextBoxData(run, offset, length);
-    let metrics = run.metrics_for_range(offset, length);
+    let metrics = run.metrics_for_range(TextRange(offset, length));
     new_box_data.position.size = metrics.bounding_box.size;
     @TextBox(move new_box_data, move new_text_data)
 }

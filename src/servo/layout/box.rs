@@ -22,7 +22,7 @@ use layout::debug::BoxedDebugMethods;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
 use servo_text::text_run;
-use servo_text::text_run::TextRun;
+use servo_text::text_run::{TextRange, TextRun};
 use std::net::url::Url;
 use task::spawn;
 use util::color::Color;
@@ -193,16 +193,16 @@ impl RenderBox : RenderBoxMethods {
                 let mut right_length : Option<uint> = None;
                 debug!("split_to_width: splitting text box (strlen=%u, off=%u, len=%u, avail_width=%?)",
                        data.run.text.len(), data.offset, data.length, max_width);
-                do data.run.iter_indivisible_pieces_for_range(data.offset, data.length) |off, len| {
+                do data.run.iter_indivisible_pieces_for_range(TextRange(data.offset, data.length)) |off, len| {
                     debug!("split_to_width: considering range (off=%u, len=%u, remain_width=%?)",
                            off, len, remaining_width);
-                    let metrics = data.run.metrics_for_range(off, len);
+                    let metrics = data.run.metrics_for_range(TextRange(off, len));
                     let advance = metrics.advance_width;
                     let should_continue : bool;
 
                     if advance <= remaining_width {
                         should_continue = true;
-                        if starts_line && i == 0 && data.run.range_is_trimmable_whitespace(off, len) {
+                        if starts_line && i == 0 && data.run.range_is_trimmable_whitespace(TextRange(off, len)) {
                             debug!("split_to_width: case=skipping leading trimmable whitespace");
                             left_offset += len; 
                         } else {
@@ -213,7 +213,7 @@ impl RenderBox : RenderBoxMethods {
                     } else { /* advance > remaining_width */
                         should_continue = false;
 
-                        if data.run.range_is_trimmable_whitespace(off, len) {
+                        if data.run.range_is_trimmable_whitespace(TextRange(off, len)) {
                             // if there are still things after the trimmable whitespace, create right chunk
                             if off + len < data.offset + data.length {
                                 debug!("split_to_width: case=skipping trimmable trailing whitespace, then split remainder");
@@ -270,7 +270,7 @@ impl RenderBox : RenderBoxMethods {
             // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult 'width'.
             ImageBox(_,i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
-            TextBox(_,d) => d.run.min_width_for_range(d.offset, d.length),
+            TextBox(_,d) => d.run.min_width_for_range(TextRange(d.offset, d.length)),
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
         }
     }
@@ -293,7 +293,7 @@ impl RenderBox : RenderBoxMethods {
             // factor in min/pref widths of any text runs that it owns.
             TextBox(_,d) => {
                 let mut max_line_width: au = au(0);
-                for d.run.iter_natural_lines_for_range(d.offset, d.length) |line_offset, line_len| {
+                for d.run.iter_natural_lines_for_range(TextRange(d.offset, d.length)) |line_offset, line_len| {
                     // if the line is a single newline, then len will be zero
                     if line_len == 0 { loop }
 
