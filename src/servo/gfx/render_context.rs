@@ -2,10 +2,11 @@ use mod au = geometry;
 
 use compositor::LayerBuffer;
 use text::font::Font;
-use text::text_run::{TextRun, TextRange};
+use text::text_run::TextRun;
 use text::font_cache::FontCache;
 use image::base::Image;
 use au = au::au;
+use util::range::Range;
 
 use core::libc::types::common::c99::uint16_t;
 use core::ptr::to_unsafe_ptr;
@@ -67,7 +68,7 @@ impl RenderContext  {
                                      draw_options);
     }
 
-    pub fn draw_text(&self, bounds: Rect<au>, run: &TextRun, range: TextRange) {
+    pub fn draw_text(&self, bounds: Rect<au>, run: &TextRun, range: Range) {
         use ptr::{null};
         use vec::raw::to_ptr;
         use libc::types::common::c99::{uint16_t, uint32_t};

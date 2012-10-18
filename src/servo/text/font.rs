@@ -9,8 +9,9 @@ use glyph::GlyphIndex;
 use libc::{ c_int, c_double, c_ulong };
 use native_font::NativeFont;
 use ptr::{null, addr_of};
-use text::text_run::{TextRun, TextRange};
+use text::text_run::TextRun;
 use vec_to_ptr = vec::raw::to_ptr;
+use servo_util::range::Range;
 
 // Used to abstract over the shaper's choice of fixed int representation.
 type FractionalPixel = float;
@@ -41,7 +42,7 @@ struct RunMetrics {
 
 // Public API
 pub trait FontMethods {
-    fn measure_text(&TextRun, TextRange) -> RunMetrics;
+    fn measure_text(&TextRun, Range) -> RunMetrics;
 
     fn buf(&self) -> @~[u8];
     // these are used to get glyphs and advances in the case that the
@@ -51,7 +52,7 @@ pub trait FontMethods {
 }
 
 pub impl Font : FontMethods {
-    fn measure_text(run: &TextRun, range: TextRange) -> RunMetrics {
+    fn measure_text(run: &TextRun, range: Range) -> RunMetrics {
         assert range.is_valid_for_string(run.text);
 
         // TODO: alter advance direction for RTL

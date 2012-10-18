@@ -16,6 +16,7 @@ use num::Num;
 use servo_text::text_run::TextRun;
 use servo_text::util::*;
 use std::arc;
+use util::range::Range;
 use util::tree;
 
 /*
@@ -169,7 +170,7 @@ impl TextRunScanner {
                 debug!("TextRunScanner: pushing single text box when start=%u,end=%u",
                        self.clump_start, self.clump_end);
                 let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump_start].d(), run,
-                                                                     TextRange(0, run.text.len()));
+                                                                     Range(0, run.text.len()));
                 out_boxes.push(new_box);
             },
             (false, true) => {
@@ -223,7 +224,7 @@ impl TextRunScanner {
                 debug!("TextRunScanner: pushing box(es) when start=%u,end=%u",
                        self.clump_start, self.clump_end);
                 let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump_start].d(), run, 
-                                                                     TextRange(0, run.text.len()));
+                                                                     Range(0, run.text.len()));
                 out_boxes.push(new_box);
             }
         } /* /match */

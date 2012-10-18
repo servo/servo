@@ -129,6 +129,7 @@ pub mod util {
     pub mod time;
     pub mod url;
     pub mod vec;
+    pub mod range;
 }
 
 pub mod opts;

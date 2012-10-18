@@ -1,14 +1,15 @@
 /** Text layout. */
 
-use servo_text::text_run::{TextRange, TextRun};
+use servo_text::text_run::TextRun;
 use layout::box::{TextBox, RenderBox, RenderBoxData, UnscannedTextBox};
+use util::range::Range;
 
 pub struct TextBoxData {
     run: @TextRun,
-    range: TextRange,
+    range: Range,
 }
 
-pub fn TextBoxData(run: @TextRun, range: TextRange) -> TextBoxData {
+pub fn TextBoxData(run: @TextRun, range: Range) -> TextBoxData {
     TextBoxData {
         run: run,
         range: range,
@@ -16,7 +17,7 @@ pub fn TextBoxData(run: @TextRun, range: TextRange) -> TextBoxData {
 }
 
 pub fn adapt_textbox_with_range(box_data: &RenderBoxData, run: @TextRun, 
-                                range: TextRange) -> @RenderBox {
+                                range: Range) -> @RenderBox {
     debug!("Creating textbox with span: (strlen=%u, off=%u, len=%u) of textrun: %s",
            run.text.len(), range.begin(), range.length(), run.text);
     let new_box_data = copy *box_data;

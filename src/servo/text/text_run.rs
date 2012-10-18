@@ -12,103 +12,12 @@ use libc::{c_void};
 use servo_util::color;
 use shaper::shape_textrun;
 use std::arc;
+use servo_util::range::{Range, MutableRange};
 
 pub struct TextRun {
     text: ~str,
     font: @Font,
     priv glyphs: GlyphStore,
-}
-
-pub struct TextRange {
-    priv off: u16,
-    priv len: u16
-}
-
-pure fn TextRange(off: uint, len :uint) -> TextRange {
-    assert off <= u16::max_value as uint;
-    assert len <= u16::max_value as uint;
-
-    TextRange {
-        off: off as u16,
-        len: len as u16
-    }
-}
-
-impl TextRange {
-    pub pure fn begin() -> uint { self.off as uint }
-    pub pure fn length() -> uint { self.len as uint }
-    pub pure fn end() -> uint { (self.off as uint) + (self.len as uint) }
-
-    pub pure fn eachi(cb: fn&(uint) -> bool) {
-        do uint::range(self.off as uint, 
-                       (self.off as uint) + (self.len as uint)) |i| {
-            cb(i)
-        }
-    }
-
-    pub pure fn is_valid_for_string(s: &str) -> bool {
-        self.begin() < s.len() && self.end() <= s.len() && self.length() <= s.len()
-    }
-
-    pub pure fn shift_by(i: int) -> TextRange { 
-        TextRange(((self.off as int) + i) as uint, self.len as uint)
-    }
-
-    pub pure fn extend_by(i: int) -> TextRange { 
-        TextRange(self.off as uint, ((self.len as int) + i) as uint)
-    }
-
-    pub pure fn adjust_by(off_i: int, len_i: int) -> TextRange {
-        TextRange(((self.off as int) + off_i) as uint, ((self.len as int) + len_i) as uint)
-    }
-}
-
-pub struct MutableTextRange {
-    priv mut off: uint,
-    priv mut len: uint
-}
-
-pure fn MutableTextRange(off: uint, len :uint) -> MutableTextRange {
-    MutableTextRange { off: off, len: len }
-}
-
-impl MutableTextRange {
-    pub pure fn begin() -> uint { self.off  }
-    pub pure fn length() -> uint { self.len }
-    pub pure fn end() -> uint { self.off + self.len }
-    pub pure fn eachi(cb: fn&(uint) -> bool) {
-        do uint::range(self.off, self.off + self.len) |i| { cb(i) }
-    }
-
-    pub pure fn as_immutable() -> TextRange {
-        TextRange(self.begin(), self.length())
-    }
-
-    pub pure fn is_valid_for_string(s: &str) -> bool {
-        self.begin() < s.len() && self.end() <= s.len() && self.length() <= s.len()
-    }
-
-    pub fn shift_by(i: int) { 
-        self.off = ((self.off as int) + i) as uint;
-    }
-
-    pub fn extend_by(i: int) { 
-        self.len = ((self.len as int) + i) as uint;
-    }
-
-    pub fn extend_to(i: uint) { 
-        self.len = i - self.off;
-    }
-
-    pub fn adjust_by(off_i: int, len_i: int) {
-        self.off = ((self.off as int) + off_i) as uint;
-        self.len = ((self.len as int) + len_i) as uint;
-    }
-
-    pub fn reset(off_i: uint, len_i: uint) {
-        self.off = off_i;
-        self.len = len_i;
-    }
 }
 
 // This is a hack until TextRuns are normally sendable, or
@@ -139,20 +48,20 @@ pub fn deserialize(cache: @FontCache, run: &SendableTextRun) -> @TextRun {
 
 trait TextRunMethods {
     pure fn glyphs(&self) -> &self/GlyphStore;
-    fn iter_indivisible_pieces_for_range(&self, range: TextRange, f: fn&(TextRange) -> bool);
+    fn iter_indivisible_pieces_for_range(&self, range: Range, f: fn&(Range) -> bool);
     // TODO: needs to take box style as argument, or move to TextBox.
     // see Gecko's IsTrimmableSpace methods for details.
-    pure fn range_is_trimmable_whitespace(&self, range: TextRange) -> bool;
+    pure fn range_is_trimmable_whitespace(&self, range: Range) -> bool;
 
-    fn metrics_for_range(&self, range: TextRange) -> RunMetrics;
-    fn min_width_for_range(&self, range: TextRange) -> au;
-    fn iter_natural_lines_for_range(&self, range: TextRange, f: fn&(TextRange) -> bool);
+    fn metrics_for_range(&self, range: Range) -> RunMetrics;
+    fn min_width_for_range(&self, range: Range) -> au;
+    fn iter_natural_lines_for_range(&self, range: Range, f: fn&(Range) -> bool);
 }
 
 impl TextRun : TextRunMethods {
     pure fn glyphs(&self) -> &self/GlyphStore { &self.glyphs }
 
-    pure fn range_is_trimmable_whitespace(&self, range: TextRange) -> bool {
+    pure fn range_is_trimmable_whitespace(&self, range: Range) -> bool {
         let mut i = range.begin();
         while i < range.end() {
             // jump i to each new char
@@ -166,11 +75,11 @@ impl TextRun : TextRunMethods {
         return true;
     }
 
-    fn metrics_for_range(&self, range: TextRange) -> RunMetrics {
+    fn metrics_for_range(&self, range: Range) -> RunMetrics {
         self.font.measure_text(self, range)
     }
 
-    fn min_width_for_range(&self, range: TextRange) -> au {    
+    fn min_width_for_range(&self, range: Range) -> au {    
         assert range.is_valid_for_string(self.text);
 
         let mut max_piece_width = au(0);
@@ -181,10 +90,10 @@ impl TextRun : TextRunMethods {
         return max_piece_width;
     }
 
-    fn iter_natural_lines_for_range(&self, range: TextRange, f: fn(TextRange) -> bool) {
+    fn iter_natural_lines_for_range(&self, range: Range, f: fn(Range) -> bool) {
         assert range.is_valid_for_string(self.text);
 
-        let clump = MutableTextRange(range.begin(), 0);
+        let clump = MutableRange(range.begin(), 0);
         let mut in_clump = false;
 
         // clump non-linebreaks of nonzero length
@@ -209,10 +118,10 @@ impl TextRun : TextRunMethods {
         }
     }
 
-    fn iter_indivisible_pieces_for_range(&self, range: TextRange, f: fn(TextRange) -> bool) {
+    fn iter_indivisible_pieces_for_range(&self, range: Range, f: fn(Range) -> bool) {
         assert range.is_valid_for_string(self.text);
 
-        let clump = MutableTextRange(range.begin(), 0);
+        let clump = MutableRange(range.begin(), 0);
         loop {
             // find next non-whitespace byte index, then clump all whitespace before it.
             if clump.end() == range.end() { break }
@@ -291,7 +200,7 @@ fn test_iter_indivisible_pieces() {
         let font = flib.get_test_font();
         let run = TextRun(font, copy text);
         let mut slices : ~[~str] = ~[];
-        for run.iter_indivisible_pieces_for_range(TextRange(0, text.len())) |subrange| {
+        for run.iter_indivisible_pieces_for_range(Range(0, text.len())) |subrange| {
             slices.push(str::slice(text, subrange.begin(), subrange.length()));
         }
         assert slices == res;

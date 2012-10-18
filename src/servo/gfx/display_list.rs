@@ -4,11 +4,12 @@ use geom::rect::Rect;
 use image::base::Image;
 use render_context::RenderContext;
 use servo_text::text_run;
+use text::text_run::SendableTextRun;
+use util::range::Range;
 
 use std::arc::ARC;
 use clone_arc = std::arc::clone;
 use dvec::DVec;
-use text::text_run::{TextRange, SendableTextRun};
 
 pub use layout::display_list_builder::DisplayListBuilder;
 
@@ -24,7 +25,7 @@ pub enum DisplayItemData {
     // TODO: need to provide spacing data for text run.
     // (i.e, to support rendering of CSS 'word-spacing' and 'letter-spacing')
     // TODO: don't copy text runs, ever.
-    TextData(~SendableTextRun, TextRange),
+    TextData(~SendableTextRun, Range),
     ImageData(ARC<~image::base::Image>),
     BorderData(au, u8, u8, u8)
 }
@@ -76,7 +77,7 @@ pub fn Border(bounds: Rect<au>, width: au, r: u8, g: u8, b: u8) -> DisplayItem {
     }
 }
 
-pub fn Text(bounds: Rect<au>, run: ~SendableTextRun, range: TextRange) -> DisplayItem {
+pub fn Text(bounds: Rect<au>, run: ~SendableTextRun, range: Range) -> DisplayItem {
     DisplayItem {
         draw: |self, ctx| draw_Text(self, ctx),
         bounds: bounds,

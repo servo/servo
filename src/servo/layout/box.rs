@@ -22,10 +22,11 @@ use layout::debug::BoxedDebugMethods;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
 use servo_text::text_run;
-use servo_text::text_run::{MutableTextRange, TextRange, TextRun};
+use servo_text::text_run::TextRun;
 use std::net::url::Url;
 use task::spawn;
 use util::color::Color;
+use util::range::*;
 use util::tree;
 
 /** 
@@ -187,8 +188,8 @@ impl RenderBox : RenderBoxMethods {
 
                 let mut pieces_processed_count : uint = 0;
                 let mut remaining_width : au = max_width;
-                let left_range = MutableTextRange(data.range.begin(), 0);
-                let mut right_range : Option<TextRange> = None;
+                let left_range = MutableRange(data.range.begin(), 0);
+                let mut right_range : Option<Range> = None;
                 debug!("split_to_width: splitting text box (strlen=%u, range=%?, avail_width=%?)",
                        data.run.text.len(), data.range, max_width);
                 do data.run.iter_indivisible_pieces_for_range(data.range) |piece_range| {
@@ -216,14 +217,14 @@ impl RenderBox : RenderBoxMethods {
                             // if there are still things after the trimmable whitespace, create right chunk
                             if piece_range.end() < data.range.end() {
                                 debug!("split_to_width: case=skipping trimmable trailing whitespace, then split remainder");
-                                right_range = Some(TextRange(piece_range.end(),
+                                right_range = Some(Range(piece_range.end(),
                                                              data.range.end() - piece_range.end()));
                             } else {
                                 debug!("split_to_width: case=skipping trimmable trailing whitespace");
                             }
                         } else if piece_range.begin() < data.range.end() {
                             // still things left, create right chunk
-                            right_range = Some(TextRange(piece_range.begin(),
+                            right_range = Some(Range(piece_range.begin(),
                                                          data.range.end() - piece_range.begin()));
                             debug!("split_to_width: case=splitting remainder with right range=%?",
                                    right_range);
@@ -237,7 +238,7 @@ impl RenderBox : RenderBoxMethods {
                     Some(layout::text::adapt_textbox_with_range(self.d(), data.run, left_range.as_immutable()))
                 } else { None };
 
-                let right_box = option::map_default(&right_range, None, |range: &TextRange| {
+                let right_box = option::map_default(&right_range, None, |range: &Range| {
                     Some(layout::text::adapt_textbox_with_range(self.d(), data.run, *range))
                 });
                 

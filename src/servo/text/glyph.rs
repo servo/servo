@@ -6,7 +6,7 @@ use core::u16;
 use geom::point::Point2D;
 use num::from_int;
 use std::sort;
-use servo_text::text_run::TextRange;
+use servo_util::range::Range;
 use servo_util::vec::*;
 
 
@@ -545,7 +545,7 @@ impl GlyphStore {
         }
     }
 
-    fn iter_glyphs_for_range<T>(&self, range: TextRange, cb: fn&(uint, GlyphInfo/&) -> T) {
+    fn iter_glyphs_for_range<T>(&self, range: Range, cb: fn&(uint, GlyphInfo/&) -> T) {
         assert range.begin() < self.entry_buffer.len();
         assert range.end() <= self.entry_buffer.len();
 
