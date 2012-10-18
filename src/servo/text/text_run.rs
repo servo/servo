@@ -50,16 +50,64 @@ impl TextRange {
         self.begin() < s.len() && self.end() <= s.len() && self.length() <= s.len()
     }
 
-    pub pure fn shift(i: int) -> TextRange { 
+    pub pure fn shift_by(i: int) -> TextRange { 
         TextRange(((self.off as int) + i) as uint, self.len as uint)
     }
 
-    pub pure fn extend(i: int) -> TextRange { 
+    pub pure fn extend_by(i: int) -> TextRange { 
         TextRange(self.off as uint, ((self.len as int) + i) as uint)
     }
 
-    pub pure fn adjust(off_i: int, len_i: int) -> TextRange {
+    pub pure fn adjust_by(off_i: int, len_i: int) -> TextRange {
         TextRange(((self.off as int) + off_i) as uint, ((self.len as int) + len_i) as uint)
+    }
+}
+
+pub struct MutableTextRange {
+    priv mut off: uint,
+    priv mut len: uint
+}
+
+pure fn MutableTextRange(off: uint, len :uint) -> MutableTextRange {
+    MutableTextRange { off: off, len: len }
+}
+
+impl MutableTextRange {
+    pub pure fn begin() -> uint { self.off  }
+    pub pure fn length() -> uint { self.len }
+    pub pure fn end() -> uint { self.off + self.len }
+    pub pure fn eachi(cb: fn&(uint) -> bool) {
+        do uint::range(self.off, self.off + self.len) |i| { cb(i) }
+    }
+
+    pub pure fn as_immutable() -> TextRange {
+        TextRange(self.begin(), self.length())
+    }
+
+    pub pure fn is_valid_for_string(s: &str) -> bool {
+        self.begin() < s.len() && self.end() <= s.len() && self.length() <= s.len()
+    }
+
+    pub fn shift_by(i: int) { 
+        self.off = ((self.off as int) + i) as uint;
+    }
+
+    pub fn extend_by(i: int) { 
+        self.len = ((self.len as int) + i) as uint;
+    }
+
+    pub fn extend_to(i: uint) { 
+        self.len = i - self.off;
+    }
+
+    pub fn adjust_by(off_i: int, len_i: int) {
+        self.off = ((self.off as int) + off_i) as uint;
+        self.len = ((self.len as int) + len_i) as uint;
+    }
+
+    pub fn reset(off_i: uint, len_i: uint) {
+        self.off = off_i;
+        self.len = len_i;
     }
 }
 
@@ -91,7 +139,7 @@ pub fn deserialize(cache: @FontCache, run: &SendableTextRun) -> @TextRun {
 
 trait TextRunMethods {
     pure fn glyphs(&self) -> &self/GlyphStore;
-    pure fn iter_indivisible_pieces_for_range(&self, range: TextRange, f: fn(uint, uint) -> bool);
+    fn iter_indivisible_pieces_for_range(&self, range: TextRange, f: fn(uint, uint) -> bool);
     // TODO: needs to take box style as argument, or move to TextBox.
     // see Gecko's IsTrimmableSpace methods for details.
     pure fn range_is_trimmable_whitespace(&self, range: TextRange) -> bool;
@@ -136,74 +184,68 @@ impl TextRun : TextRunMethods {
     fn iter_natural_lines_for_range(&self, range: TextRange, f: fn(uint, uint) -> bool) {
         assert range.is_valid_for_string(self.text);
 
-        let mut clump_offset = range.begin();
-        let mut clump_length = 0;
+        let clump = MutableTextRange(range.begin(), 0);
         let mut in_clump = false;
 
         // clump non-linebreaks of nonzero length
         for range.eachi |i| {
             match (self.glyphs.char_is_newline(i), in_clump) {
-                (false, true)  => { clump_length += 1; }
-                (false, false) => { in_clump = true; clump_offset = i; clump_length = 1; }
+                (false, true)  => { clump.extend_by(1); }
+                (false, false) => { in_clump = true; clump.reset(i, 1); }
                 (true, false) => { /* chomp whitespace */ }
                 (true, true)  => {
                     in_clump = false;
                     // don't include the linebreak 'glyph'
                     // (we assume there's one GlyphEntry for a newline, and no actual glyphs)
-                    if !f(clump_offset, clump_length) { break }
+                    if !f(clump.begin(), clump.length()) { break }
                 }
             }
         }
         
         // flush any remaining chars as a line
         if in_clump {
-            clump_length = range.end() - clump_offset;
-            f(clump_offset, clump_length);
+            clump.extend_to(range.end());
+            f(clump.begin(), clump.length());
         }
     }
 
-    pure fn iter_indivisible_pieces_for_range(&self, range: TextRange, f: fn(uint, uint) -> bool) {
+    fn iter_indivisible_pieces_for_range(&self, range: TextRange, f: fn(uint, uint) -> bool) {
         assert range.is_valid_for_string(self.text);
 
-        let mut clump_offset = range.begin();
-        let mut clump_length;
+        let clump = MutableTextRange(range.begin(), 0);
 
         loop {
             // find next non-whitespace byte index, then clump all whitespace before it.
-            match str::find_from(self.text, clump_offset, |c| !char::is_whitespace(c)) {
+            if clump.end() == range.end() { break }
+            match str::find_from(self.text, clump.begin(), |c| !char::is_whitespace(c)) {
                 Some(nonws_char_offset) => {
-                    clump_length = nonws_char_offset - clump_offset;
-                    if !f(clump_offset, clump_length) { break }
-                    clump_offset += clump_length;
-                    // reached end
-                    if clump_offset == range.end() { break }
+                    clump.extend_to(nonws_char_offset);
+                    if !f(clump.begin(), clump.length()) { break }
+                    clump.reset(clump.end(), 0);
                 },
                 None => {
                     // nothing left, flush last piece containing only whitespace
-                    if clump_offset < range.end() {
-                        let clump_length = range.end() - clump_offset;
-                        f(clump_offset, clump_length);
+                    if clump.end() < range.end() {
+                        clump.extend_to(range.end());
+                        f(clump.begin(), clump.length());
                     }
-                    break
                 }
             };
 
             // find next whitespace byte index, then clump all non-whitespace before it.
-            match str::find_from(self.text, clump_offset, |c| char::is_whitespace(c)) {
+            if clump.end() == range.end() { break }
+            match str::find_from(self.text, clump.begin(), |c| char::is_whitespace(c)) {
                 Some(ws_char_offset) => {
-                    clump_length = ws_char_offset - clump_offset;
-                    if !f(clump_offset, clump_length) { break }
-                    clump_offset += clump_length;
-                    // reached end
-                    if clump_offset == range.end() { break }
+                    clump.extend_to(ws_char_offset);
+                    if !f(clump.begin(), clump.length()) { break }
+                    clump.reset(clump.end(), 0);
                 }
                 None => {
                     // nothing left, flush last piece containing only non-whitespaces
-                    if clump_offset < range.end() {
-                        let clump_length = range.end() - clump_offset;
-                        f(clump_offset, clump_length);
+                    if clump.end() < range.end() {
+                        clump.extend_to(range.end());
+                        f(clump.begin(), clump.length());
                     }
-                    break
                 }
             }
         }
