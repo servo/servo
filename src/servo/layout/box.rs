@@ -193,41 +193,41 @@ impl RenderBox : RenderBoxMethods {
                 let mut right_length : Option<uint> = None;
                 debug!("split_to_width: splitting text box (strlen=%u, off=%u, len=%u, avail_width=%?)",
                        data.run.text.len(), data.offset, data.length, max_width);
-                do data.run.iter_indivisible_pieces_for_range(TextRange(data.offset, data.length)) |off, len| {
+                do data.run.iter_indivisible_pieces_for_range(TextRange(data.offset, data.length)) |subrange| {
                     debug!("split_to_width: considering range (off=%u, len=%u, remain_width=%?)",
-                           off, len, remaining_width);
-                    let metrics = data.run.metrics_for_range(TextRange(off, len));
+                           subrange.begin(), subrange.length(), remaining_width);
+                    let metrics = data.run.metrics_for_range(subrange);
                     let advance = metrics.advance_width;
                     let should_continue : bool;
 
                     if advance <= remaining_width {
                         should_continue = true;
-                        if starts_line && i == 0 && data.run.range_is_trimmable_whitespace(TextRange(off, len)) {
+                        if starts_line && i == 0 && data.run.range_is_trimmable_whitespace(subrange) {
                             debug!("split_to_width: case=skipping leading trimmable whitespace");
-                            left_offset += len; 
+                            left_offset += subrange.length(); 
                         } else {
                             debug!("split_to_width: case=enlarging span");
                             remaining_width -= advance;
-                            left_length += len;
+                            left_length += subrange.length();
                         }
                     } else { /* advance > remaining_width */
                         should_continue = false;
 
-                        if data.run.range_is_trimmable_whitespace(TextRange(off, len)) {
+                        if data.run.range_is_trimmable_whitespace(subrange) {
                             // if there are still things after the trimmable whitespace, create right chunk
-                            if off + len < data.offset + data.length {
+                            if subrange.end() < data.offset + data.length {
                                 debug!("split_to_width: case=skipping trimmable trailing whitespace, then split remainder");
-                                right_offset = Some(off + len);
-                                right_length = Some((data.offset + data.length) - (off + len));
+                                right_offset = Some(subrange.end());
+                                right_length = Some((data.offset + data.length) - subrange.end());
                             } else {
                                 debug!("split_to_width: case=skipping trimmable trailing whitespace");
                             }
-                        } else if off < data.length + data.offset {
+                        } else if subrange.begin() < data.length + data.offset {
                             // still things left, create right chunk
-                            right_offset = Some(off);
-                            right_length = Some((data.offset + data.length) - off);
+                            right_offset = Some(subrange.begin());
+                            right_length = Some((data.offset + data.length) - subrange.begin());
                             debug!("split_to_width: case=splitting remainder with right span: (off=%u, len=%u)",
-                                   off, (data.offset + data.length) - off);
+                                   subrange.begin(), (data.offset + data.length) - subrange.begin());
                         }
                     }
                     i += 1;
@@ -293,12 +293,12 @@ impl RenderBox : RenderBoxMethods {
             // factor in min/pref widths of any text runs that it owns.
             TextBox(_,d) => {
                 let mut max_line_width: au = au(0);
-                for d.run.iter_natural_lines_for_range(TextRange(d.offset, d.length)) |line_offset, line_len| {
+                for d.run.iter_natural_lines_for_range(TextRange(d.offset, d.length)) |line_range| {
                     // if the line is a single newline, then len will be zero
-                    if line_len == 0 { loop }
+                    if line_range.length() == 0 { loop }
 
                     let mut line_width: au = au(0);
-                    do d.run.glyphs.iter_glyphs_for_range(line_offset, line_len) |_char_i, glyph| {
+                    do d.run.glyphs.iter_glyphs_for_range(line_range.begin(), line_range.length()) |_char_i, glyph| {
                         line_width += glyph.advance()
                     };
                     max_line_width = au::max(max_line_width, line_width);

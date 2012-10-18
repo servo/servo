@@ -139,14 +139,14 @@ pub fn deserialize(cache: @FontCache, run: &SendableTextRun) -> @TextRun {
 
 trait TextRunMethods {
     pure fn glyphs(&self) -> &self/GlyphStore;
-    fn iter_indivisible_pieces_for_range(&self, range: TextRange, f: fn(uint, uint) -> bool);
+    fn iter_indivisible_pieces_for_range(&self, range: TextRange, f: fn&(TextRange) -> bool);
     // TODO: needs to take box style as argument, or move to TextBox.
     // see Gecko's IsTrimmableSpace methods for details.
     pure fn range_is_trimmable_whitespace(&self, range: TextRange) -> bool;
 
     fn metrics_for_range(&self, range: TextRange) -> RunMetrics;
     fn min_width_for_range(&self, range: TextRange) -> au;
-    fn iter_natural_lines_for_range(&self, range: TextRange, f: fn(uint, uint) -> bool);
+    fn iter_natural_lines_for_range(&self, range: TextRange, f: fn&(TextRange) -> bool);
 }
 
 impl TextRun : TextRunMethods {
@@ -174,14 +174,14 @@ impl TextRun : TextRunMethods {
         assert range.is_valid_for_string(self.text);
 
         let mut max_piece_width = au(0);
-        for self.iter_indivisible_pieces_for_range(range) |piece_offset, piece_len| {
-            let metrics = self.font.measure_text(self, piece_offset, piece_len);
+        for self.iter_indivisible_pieces_for_range(range) |piece_range| {
+            let metrics = self.font.measure_text(self, piece_range.begin(), piece_range.length());
             max_piece_width = au::max(max_piece_width, metrics.advance_width);
         }
         return max_piece_width;
     }
 
-    fn iter_natural_lines_for_range(&self, range: TextRange, f: fn(uint, uint) -> bool) {
+    fn iter_natural_lines_for_range(&self, range: TextRange, f: fn(TextRange) -> bool) {
         assert range.is_valid_for_string(self.text);
 
         let clump = MutableTextRange(range.begin(), 0);
@@ -197,7 +197,7 @@ impl TextRun : TextRunMethods {
                     in_clump = false;
                     // don't include the linebreak 'glyph'
                     // (we assume there's one GlyphEntry for a newline, and no actual glyphs)
-                    if !f(clump.begin(), clump.length()) { break }
+                    if !f(clump.as_immutable()) { break }
                 }
             }
         }
@@ -205,29 +205,28 @@ impl TextRun : TextRunMethods {
         // flush any remaining chars as a line
         if in_clump {
             clump.extend_to(range.end());
-            f(clump.begin(), clump.length());
+            f(clump.as_immutable());
         }
     }
 
-    fn iter_indivisible_pieces_for_range(&self, range: TextRange, f: fn(uint, uint) -> bool) {
+    fn iter_indivisible_pieces_for_range(&self, range: TextRange, f: fn(TextRange) -> bool) {
         assert range.is_valid_for_string(self.text);
 
         let clump = MutableTextRange(range.begin(), 0);
-
         loop {
             // find next non-whitespace byte index, then clump all whitespace before it.
             if clump.end() == range.end() { break }
             match str::find_from(self.text, clump.begin(), |c| !char::is_whitespace(c)) {
                 Some(nonws_char_offset) => {
                     clump.extend_to(nonws_char_offset);
-                    if !f(clump.begin(), clump.length()) { break }
+                    if !f(clump.as_immutable()) { break }
                     clump.reset(clump.end(), 0);
                 },
                 None => {
                     // nothing left, flush last piece containing only whitespace
                     if clump.end() < range.end() {
                         clump.extend_to(range.end());
-                        f(clump.begin(), clump.length());
+                        f(clump.as_immutable());
                     }
                 }
             };
@@ -237,14 +236,14 @@ impl TextRun : TextRunMethods {
             match str::find_from(self.text, clump.begin(), |c| char::is_whitespace(c)) {
                 Some(ws_char_offset) => {
                     clump.extend_to(ws_char_offset);
-                    if !f(clump.begin(), clump.length()) { break }
+                    if !f(clump.as_immutable()) { break }
                     clump.reset(clump.end(), 0);
                 }
                 None => {
                     // nothing left, flush last piece containing only non-whitespaces
                     if clump.end() < range.end() {
                         clump.extend_to(range.end());
-                        f(clump.begin(), clump.length());
+                        f(clump.as_immutable());
                     }
                 }
             }
@@ -292,8 +291,8 @@ fn test_iter_indivisible_pieces() {
         let font = flib.get_test_font();
         let run = TextRun(font, copy text);
         let mut slices : ~[~str] = ~[];
-        for run.iter_indivisible_pieces_for_range(TextRange(0, text.len())) |offset, length| {
-            slices.push(str::slice(text, offset, length));
+        for run.iter_indivisible_pieces_for_range(TextRange(0, text.len())) |subrange| {
+            slices.push(str::slice(text, subrange.begin(), subrange.length()));
         }
         assert slices == res;
     }
