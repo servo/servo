@@ -1,9 +1,8 @@
 use azure::azure_hl::DrawTarget;
-use gfx::render_task::{draw_solid_color, draw_image, draw_text, draw_border};
 use gfx::geometry::*;
 use geom::rect::Rect;
 use image::base::Image;
-use render_task::RenderContext;
+use render_context::RenderContext;
 use servo_text::text_run;
 
 use std::arc::ARC;
@@ -32,7 +31,7 @@ pub enum DisplayItemData {
 
 fn draw_SolidColor(self: &DisplayItem, ctx: &RenderContext) {
     match self.data {
-        SolidColorData(r,g,b) => draw_solid_color(ctx, &self.bounds, r, g, b),
+        SolidColorData(r,g,b) => ctx.draw_solid_color(&self.bounds, r, g, b),
         _ => fail
     }        
 }
@@ -41,7 +40,7 @@ fn draw_Text(self: &DisplayItem, ctx: &RenderContext) {
     match self.data {
         TextData(run, offset, len) => {
             let new_run = text_run::deserialize(ctx.font_cache, run);
-            draw_text(ctx, self.bounds, new_run, offset, len)
+            ctx.draw_text(self.bounds, new_run, offset, len)
         },
         _ => fail
     }        
@@ -49,14 +48,14 @@ fn draw_Text(self: &DisplayItem, ctx: &RenderContext) {
 
 fn draw_Image(self: &DisplayItem, ctx: &RenderContext) {
     match self.data {
-        ImageData(ref img) => draw_image(ctx, self.bounds, clone_arc(img)),
+        ImageData(ref img) => ctx.draw_image(self.bounds, clone_arc(img)),
         _ => fail
     }        
 }
 
 fn draw_Border(self: &DisplayItem, ctx: &RenderContext) {
     match self.data {
-        BorderData(width, r, g, b) => draw_border(ctx, &self.bounds, width, r, g, b),
+        BorderData(width, r, g, b) => ctx.draw_border(&self.bounds, width, r, g, b),
         _ => fail
     }
 }

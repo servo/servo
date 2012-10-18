@@ -78,6 +78,7 @@ pub mod gfx {
     pub mod png_compositor;
     pub mod display_list;
     pub mod render_layers;
+    priv mod render_context;
 }
 
 pub mod image {

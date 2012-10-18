@@ -26,7 +26,7 @@ use dvec::DVec;
 use display_list::DisplayList;
 use std::cell::Cell;
 use core::io::BytesWriter;
-use gfx::render_task::LayerBuffer;
+use gfx::compositor::LayerBuffer;
 use geom::size::Size2D;
 use gfx::render_layers::RenderLayer;
 

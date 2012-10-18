@@ -1,5 +1,16 @@
 use dom::event::Event;
-use gfx::render_task::LayerBuffer;
+use azure::cairo_hl::ImageSurface;
+use azure::azure_hl::{DrawTarget};
+use geom::size::Size2D;
+
+struct LayerBuffer {
+    // TODO: We should not be coupled to Cairo this tightly. Instead we should pull the buffer out
+    // of the draw target with the Azure API.
+    cairo_surface: ImageSurface,
+
+    draw_target: DrawTarget,
+    size: Size2D<uint>
+}
 
 /**
 The interface used to by the renderer to aquire draw targets for

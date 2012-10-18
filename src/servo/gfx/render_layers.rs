@@ -1,5 +1,5 @@
 use gfx::display_list::DisplayList;
-use gfx::render_task::LayerBuffer;
+use gfx::compositor::LayerBuffer;
 
 use azure::azure_hl::DrawTarget;
 use azure::cairo::CAIRO_FORMAT_RGB24;
