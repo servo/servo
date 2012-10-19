@@ -348,7 +348,7 @@ CFG_SUBMODULES="libwapcaplet rust-wapcaplet rust-harfbuzz rust-opengles rust-azu
 
 if [ $CFG_OSTYPE = "darwin" ]
 then
-CFG_SUBMODULES="rust-cocoa rust-io-surface rust-core-foundation rust-core-graphics ${CFG_SUBMODULES}"
+CFG_SUBMODULES="rust-cocoa rust-io-surface rust-core-foundation rust-core-graphics rust-core-text ${CFG_SUBMODULES}"
 fi
 
 # needed because Spidermonkey configure is in non-standard location

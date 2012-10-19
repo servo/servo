@@ -56,4 +56,8 @@ DEPS_rust-io-surface += \
 DEPS_sharegl += \
 	rust-core-foundation \
 	rust-io-surface
+
+DEPS_rust-core-text += \
+	rust-core-foundation \
+	rust-core-graphics
 endif

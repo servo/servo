@@ -67,3 +67,6 @@
 [submodule "src/rust-core-graphics"]
 	path = src/rust-core-graphics
 	url = git://github.com/mozilla-servo/rust-core-graphics.git
+[submodule "src/rust-core-text"]
+	path = src/rust-core-text
+	url = git://github.com/mozilla-servo/rust-core-text.git
