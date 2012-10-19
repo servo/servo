@@ -22,14 +22,24 @@ pub fn render_layers(layer: &RenderLayer,
     let mut buffer = move buffer;
     if buffer.size != layer.size {
         // Create a new buffer.
+
+        // Round the width up the nearest 32 pixels for DMA on the Mac.
+        let mut stride = layer.size.width;
+        if stride % 32 != 0 {
+            stride = (stride & !(32 - 1)) + 32;
+        }
+        assert stride % 32 == 0;
+        assert stride >= layer.size.width;
+
         let cairo_surface = ImageSurface(CAIRO_FORMAT_RGB24,
-                                         layer.size.width as c_int,
+                                         stride as c_int,
                                          layer.size.height as c_int);
         let draw_target = DrawTarget(&cairo_surface);
         buffer = LayerBuffer {
             cairo_surface: move cairo_surface,
             draw_target: move draw_target,
-            size: copy layer.size
+            size: copy layer.size,
+            stride: stride
         };
     }
 

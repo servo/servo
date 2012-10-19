@@ -54,7 +54,8 @@ pub fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
         let layer_buffer = LayerBuffer {
             cairo_surface: cairo_surface.clone(),
             draw_target: move draw_target,
-            size: Size2D(800u, 600u)
+            size: Size2D(800u, 600u),
+            stride: 800
         };
         let layer_buffer = Cell(move layer_buffer);
 

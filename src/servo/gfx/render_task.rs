@@ -84,7 +84,8 @@ impl<C: Compositor Send> Renderer<C> {
             let layer_buffer = layer_buffer_cell.take();
             let layer_buffer_channel = layer_buffer_channel_cell.take();
 
-            let layer_buffer = for render_layers(&render_layer, move layer_buffer) |render_layer, layer_buffer| {
+            let layer_buffer = for render_layers(&render_layer, move layer_buffer)
+                    |render_layer, layer_buffer| {
                 let ctx = RenderContext {
                     canvas: layer_buffer,
                     font_cache: self.font_cache

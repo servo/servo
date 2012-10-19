@@ -56,13 +56,13 @@ fn OSMain(dom_event_chan: pipes::SharedChan<Event>) -> OSMain {
 
 /// Cairo surface wrapping to work with layers
 struct CairoSurfaceImageData {
-    cairo_surface: ImageSurface
+    cairo_surface: ImageSurface,
+    size: Size2D<uint>
 }
 
 impl CairoSurfaceImageData : layers::layers::ImageData {
-    fn size() -> Size2D<uint> {
-        Size2D(self.cairo_surface.width() as uint, self.cairo_surface.height() as uint)
-    }
+    fn size() -> Size2D<uint> { self.size }
+    fn stride() -> uint { self.cairo_surface.width() as uint }
     fn format() -> layers::layers::Format { layers::layers::ARGB32Format }
     fn with_data(f: layers::layers::WithDataFn) { f(self.cairo_surface.data()) }
 }
@@ -92,7 +92,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
     let context = layers::rendergl::init_render_context();
 
     let image_data = @layers::layers::BasicImageData::new(
-        Size2D(0u, 0u), layers::layers::RGB24Format, ~[]);
+        Size2D(0u, 0u), 0, layers::layers::RGB24Format, ~[]);
     let image = @layers::layers::Image::new(image_data as @layers::layers::ImageData);
     let image_layer = @layers::layers::ImageLayer(image);
     let original_layer_transform = image_layer.common.transform;
@@ -130,7 +130,8 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
                     let height = surfaces.front.layer_buffer.size.height as uint;
 
                     let image_data = @CairoSurfaceImageData {
-                        cairo_surface: surfaces.front.layer_buffer.cairo_surface.clone()
+                        cairo_surface: surfaces.front.layer_buffer.cairo_surface.clone(),
+                        size: Size2D(width, height)
                     };
                     let image = @layers::layers::Image::new(
                         image_data as @layers::layers::ImageData);
@@ -217,7 +218,8 @@ fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBuffer>) {
     let layer_buffer = LayerBuffer {
         cairo_surface: surfaces.front.layer_buffer.cairo_surface.clone(),
         draw_target: azure_hl::clone_mutable_draw_target(draw_target_ref),
-        size: copy surfaces.front.layer_buffer.size
+        size: copy surfaces.front.layer_buffer.size,
+        stride: surfaces.front.layer_buffer.stride
     };
     #debug("osmain: lending surface %?", layer_buffer);
     receiver.send(move layer_buffer);
@@ -256,7 +258,8 @@ fn Surface() -> Surface {
     let layer_buffer = LayerBuffer {
         cairo_surface: move cairo_surface,
         draw_target: move draw_target,
-        size: Size2D(800u, 600u)
+        size: Size2D(800u, 600u),
+        stride: 800
     };
     Surface { layer_buffer: move layer_buffer, have: true }
 }

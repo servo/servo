@@ -9,7 +9,11 @@ struct LayerBuffer {
     cairo_surface: ImageSurface,
 
     draw_target: DrawTarget,
-    size: Size2D<uint>
+
+    size: Size2D<uint>,
+
+    // NB: stride is in pixels, like OpenGL GL_UNPACK_ROW_LENGTH.
+    stride: uint
 }
 
 /**
