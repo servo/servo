@@ -54,6 +54,19 @@ fn OSMain(dom_event_chan: pipes::SharedChan<Event>) -> OSMain {
     }
 }
 
+/// Cairo surface wrapping to work with layers
+struct CairoSurfaceImageData {
+    cairo_surface: ImageSurface
+}
+
+impl CairoSurfaceImageData : layers::layers::ImageData {
+    fn size() -> Size2D<uint> {
+        Size2D(self.cairo_surface.width() as uint, self.cairo_surface.height() as uint)
+    }
+    fn format() -> layers::layers::Format { layers::layers::ARGB32Format }
+    fn with_data(f: layers::layers::WithDataFn) { f(self.cairo_surface.data()) }
+}
+
 fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<Event>) {
 
     let key_handlers: @DVec<pipes::Chan<()>> = @DVec();
@@ -78,7 +91,9 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
 
     let context = layers::rendergl::init_render_context();
 
-    let image = @layers::layers::Image(0, 0, layers::layers::RGB24Format, ~[]);
+    let image_data = @layers::layers::BasicImageData::new(
+        Size2D(0u, 0u), layers::layers::RGB24Format, ~[]);
+    let image = @layers::layers::Image::new(image_data as @layers::layers::ImageData);
     let image_layer = @layers::layers::ImageLayer(image);
     let original_layer_transform = image_layer.common.transform;
     image_layer.common.set_transform(original_layer_transform.scale(&800.0f32, &600.0f32, &1f32));
@@ -114,9 +129,12 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
                     let width = surfaces.front.layer_buffer.size.width as uint;
                     let height = surfaces.front.layer_buffer.size.height as uint;
 
-                    let buffer = surfaces.front.layer_buffer.cairo_surface.data();
-                    let image = @layers::layers::Image(
-                        width, height, layers::layers::ARGB32Format, move buffer);
+                    let image_data = @CairoSurfaceImageData {
+                        cairo_surface: surfaces.front.layer_buffer.cairo_surface.clone()
+                    };
+                    let image = @layers::layers::Image::new(
+                        image_data as @layers::layers::ImageData);
+
                     image_layer.set_image(image);
                     image_layer.common.set_transform(original_layer_transform.scale(
                         &(width as f32), &(height as f32), &1.0f32));
