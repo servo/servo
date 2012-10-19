@@ -40,10 +40,10 @@ pub enum Msg {
 
 impl Chan<Msg> : Compositor {
     fn begin_drawing(next_dt: pipes::Chan<LayerBuffer>) {
-        self.send(BeginDrawing(next_dt))
+        self.send(BeginDrawing(move next_dt))
     }
     fn draw(next_dt: pipes::Chan<LayerBuffer>, draw_me: LayerBuffer) {
-        self.send(Draw(next_dt, draw_me))
+        self.send(Draw(move next_dt, move draw_me))
     }
 }
 
@@ -66,7 +66,7 @@ pub fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
                 }
                 Draw(move sender, move layer_buffer) => {
                     debug!("png_compositor: draw");
-                    do_draw(sender, layer_buffer, output, &cairo_surface);
+                    do_draw(move sender, move layer_buffer, output, &cairo_surface);
                 }
                 Exit => break
             }
@@ -80,7 +80,7 @@ fn do_draw(sender: pipes::Chan<LayerBuffer>,
            cairo_surface: &ImageSurface) {
     let buffer = BytesWriter();
     cairo_surface.write_to_png_stream(&buffer);
-    output.send(buffer.buf.get());
+    output.send(buffer.bytes.get());
 
     // Send the next draw target to the renderer
     sender.send(move layer_buffer);

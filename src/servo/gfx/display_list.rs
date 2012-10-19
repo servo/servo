@@ -16,7 +16,7 @@ pub use layout::display_list_builder::DisplayListBuilder;
 // TODO: invert this so common data is nested inside each variant as first arg.
 struct DisplayItem {
     draw: ~fn((&DisplayItem), (&RenderContext)),
-    bounds : Rect<au>, // TODO: whose coordinate system should this use?
+    bounds : Rect<Au>, // TODO: whose coordinate system should this use?
     data : DisplayItemData
 }
 
@@ -27,7 +27,7 @@ pub enum DisplayItemData {
     // TODO: don't copy text runs, ever.
     TextData(~SendableTextRun, Range),
     ImageData(ARC<~image::base::Image>),
-    BorderData(au, u8, u8, u8)
+    BorderData(Au, u8, u8, u8)
 }
 
 fn draw_SolidColor(self: &DisplayItem, ctx: &RenderContext) {
@@ -61,7 +61,7 @@ fn draw_Border(self: &DisplayItem, ctx: &RenderContext) {
     }
 }
 
-pub fn SolidColor(bounds: Rect<au>, r: u8, g: u8, b: u8) -> DisplayItem {
+pub fn SolidColor(bounds: Rect<Au>, r: u8, g: u8, b: u8) -> DisplayItem {
     DisplayItem { 
         draw: |self, ctx| draw_SolidColor(self, ctx),
         bounds: bounds,
@@ -69,7 +69,7 @@ pub fn SolidColor(bounds: Rect<au>, r: u8, g: u8, b: u8) -> DisplayItem {
     }
 }
 
-pub fn Border(bounds: Rect<au>, width: au, r: u8, g: u8, b: u8) -> DisplayItem {
+pub fn Border(bounds: Rect<Au>, width: Au, r: u8, g: u8, b: u8) -> DisplayItem {
     DisplayItem {
         draw: |self, ctx| draw_Border(self, ctx),
         bounds: bounds,
@@ -77,20 +77,20 @@ pub fn Border(bounds: Rect<au>, width: au, r: u8, g: u8, b: u8) -> DisplayItem {
     }
 }
 
-pub fn Text(bounds: Rect<au>, run: ~SendableTextRun, range: Range) -> DisplayItem {
+pub fn Text(bounds: Rect<Au>, run: ~SendableTextRun, range: Range) -> DisplayItem {
     DisplayItem {
         draw: |self, ctx| draw_Text(self, ctx),
         bounds: bounds,
-        data: TextData(run, range)
+        data: TextData(move run, move range)
     }
 }
 
 // ARC should be cloned into ImageData, but Images are not sendable
-pub fn Image(bounds: Rect<au>, image: ARC<~image::base::Image>) -> DisplayItem {
+pub fn Image(bounds: Rect<Au>, image: ARC<~image::base::Image>) -> DisplayItem {
     DisplayItem {
         draw: |self, ctx| draw_Image(self, ctx),
         bounds: bounds,
-        data: ImageData(image)
+        data: ImageData(move image)
     }
 }
 

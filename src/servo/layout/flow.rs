@@ -1,5 +1,5 @@
 use au = gfx::geometry;
-use au::au;
+use au::Au;
 use core::dvec::DVec;
 use dl = gfx::display_list;
 use dom::node::Node;
@@ -72,8 +72,8 @@ trait FlowContextMethods {
     fn bubble_widths(@self, &LayoutContext);
     fn assign_widths(@self, &LayoutContext);
     fn assign_height(@self, &LayoutContext);
-    fn build_display_list_recurse(@self, &dl::DisplayListBuilder, dirty: &Rect<au>,
-                                  offset: &Point2D<au>, &dl::DisplayList);
+    fn build_display_list_recurse(@self, &dl::DisplayListBuilder, dirty: &Rect<Au>,
+                                  offset: &Point2D<Au>, &dl::DisplayList);
     pure fn foldl_boxes_for_node<B: Copy>(Node, +seed: B, cb: pure fn&(+a: B,@RenderBox) -> B) -> B;
     pure fn iter_boxes_for_node<T>(Node, cb: pure fn&(@RenderBox) -> T);
 }
@@ -90,9 +90,9 @@ struct FlowData {
     /* layout computations */
     // TODO: min/pref and position are used during disjoint phases of
     // layout; maybe combine into a single enum to save space.
-    mut min_width: au,
-    mut pref_width: au,
-    mut position: Rect<au>,
+    mut min_width: Au,
+    mut pref_width: Au,
+    mut position: Rect<Au>,
 }
 
 fn FlowData(id: int) -> FlowData {
@@ -101,8 +101,8 @@ fn FlowData(id: int) -> FlowData {
         tree: tree::empty(),
         id: id,
 
-        min_width: au(0),
-        pref_width: au(0),
+        min_width: Au(0),
+        pref_width: Au(0),
         position: au::zero_rect()
     }
 }
@@ -183,7 +183,7 @@ impl BoxConsumer {
                                 range: MutableRange(entry.start_idx, final_span_length)
                               };
                 debug!("BoxConsumer: adding element range=%?", mapping.range);
-                self.flow.inline().elems.push(mapping);
+                self.flow.inline().elems.push(move mapping);
             },
             @BlockFlow(*) => {
                 assert self.stack.len() == 0;
@@ -261,8 +261,8 @@ impl FlowContext : FlowContextMethods {
         }
     }
 
-    fn build_display_list_recurse(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<au>,
-                                  offset: &Point2D<au>, list: &dl::DisplayList) {
+    fn build_display_list_recurse(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<Au>,
+                                  offset: &Point2D<Au>, list: &dl::DisplayList) {
         debug!("FlowContext::build_display_list at %?: %s", self.d().position, self.debug_str());
 
         match self {
@@ -361,7 +361,8 @@ impl FlowContext : BoxedDebugMethods {
                 let mut s = self.inline().boxes.foldl(~"InlineFlow(children=", |s, box| {
                     fmt!("%s b%d", *s, box.d().id)
                 });
-                s += ~")"; s
+                s += ~")";
+                move s
             },
             BlockFlow(*) => {
                 match self.block().box {

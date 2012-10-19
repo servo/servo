@@ -1,11 +1,11 @@
-use mod au = geometry;
+use au = geometry;
 
 use compositor::LayerBuffer;
 use text::font::Font;
 use text::text_run::TextRun;
 use text::font_cache::FontCache;
 use image::base::Image;
-use au = au::au;
+use au::Au;
 use util::range::Range;
 
 use core::libc::types::common::c99::uint16_t;
@@ -28,7 +28,7 @@ struct RenderContext {
 }
 
 impl RenderContext  {
-    pub fn draw_solid_color(&self, bounds: &Rect<au>, r: u8, g: u8, b: u8) {
+    pub fn draw_solid_color(&self, bounds: &Rect<Au>, r: u8, g: u8, b: u8) {
         let color = Color(r.to_float() as AzFloat,
                           g.to_float() as AzFloat,
                           b.to_float() as AzFloat,
@@ -37,7 +37,7 @@ impl RenderContext  {
         self.canvas.draw_target.fill_rect(&bounds.to_azure_rect(), &ColorPattern(color));
     }
 
-    pub fn draw_border(&self, bounds: &Rect<au>, width: au, r: u8, g: u8, b: u8) {
+    pub fn draw_border(&self, bounds: &Rect<Au>, width: Au, r: u8, g: u8, b: u8) {
         let rect = bounds.to_azure_rect();
         let color = Color(r.to_float() as AzFloat,
                           g.to_float() as AzFloat,
@@ -51,7 +51,7 @@ impl RenderContext  {
         self.canvas.draw_target.stroke_rect(&rect, &pattern, &stroke_opts, &draw_opts);
     }
 
-    pub fn draw_image(&self, bounds: Rect<au>, image: ARC<~Image>) {
+    pub fn draw_image(&self, bounds: Rect<Au>, image: ARC<~Image>) {
         let image = std::arc::get(&image);
         let size = Size2D(image.width as i32, image.height as i32);
         let stride = image.width * 4;
@@ -64,11 +64,11 @@ impl RenderContext  {
         let dest_rect = bounds.to_azure_rect();
         let draw_surface_options = DrawSurfaceOptions(Linear, true);
         let draw_options = DrawOptions(1.0f as AzFloat, 0);
-        draw_target_ref.draw_surface(azure_surface, dest_rect, source_rect, draw_surface_options,
-                                     draw_options);
+        draw_target_ref.draw_surface(move azure_surface, dest_rect, source_rect,
+                                     draw_surface_options, draw_options);
     }
 
-    pub fn draw_text(&self, bounds: Rect<au>, run: &TextRun, range: Range) {
+    pub fn draw_text(&self, bounds: Rect<Au>, run: &TextRun, range: Range) {
         use ptr::{null};
         use vec::raw::to_ptr;
         use libc::types::common::c99::{uint16_t, uint32_t};
@@ -164,7 +164,7 @@ trait ToAzureRect {
     fn to_azure_rect() -> Rect<AzFloat>;
 }
 
-impl Rect<au> : ToAzureRect {
+impl Rect<Au> : ToAzureRect {
     fn to_azure_rect() -> Rect<AzFloat> {
         Rect(Point2D(au::to_px(self.origin.x) as AzFloat, au::to_px(self.origin.y) as AzFloat),
              Size2D(au::to_px(self.size.width) as AzFloat, au::to_px(self.size.height) as AzFloat))

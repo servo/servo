@@ -8,7 +8,7 @@ Constructs a list of css style rules from a token stream
 use css::values::*;
 // Disambiguate parsed Selector, Rule values from tokens
 use css = css::values;
-use mod tok = lexer;
+use tok = lexer;
 use lexer::Token;
 use comm::recv;
 use option::{map, is_none};
@@ -34,7 +34,7 @@ impl TokenReader : TokenReaderMethods {
 
     fn unget(tok : Token) {
         assert is_none(&self.lookahead);
-        self.lookahead = Some(tok);
+        self.lookahead = Some(move tok);
     }
 }
 
@@ -49,8 +49,8 @@ impl TokenReader : ParserMethods {
     fn parse_element() -> Option<~css::Selector> {
         // Get the current element type
          let elmt_name = match self.get() {
-           tok::Element(tag) => { copy tag }
-           tok::Eof => { return None; }
+           lexer::Element(tag) => { copy tag }
+           lexer::Eof => { return None; }
            _ => { fail ~"Expected an element" }
          };
 
@@ -60,9 +60,9 @@ impl TokenReader : ParserMethods {
          loop {
              let token = self.get();
              match token {
-               tok::Attr(attr) => { push(&mut attr_list, copy attr); }
+               lexer::Attr(attr) => { push(&mut attr_list, copy attr); }
                tok::StartDescription | tok::Descendant | tok::Child | tok::Sibling | tok::Comma => {
-                 self.unget(token); 
+                 self.unget(move token); 
                  break;
                }
                tok::Eof => { return None; }
@@ -71,7 +71,7 @@ impl TokenReader : ParserMethods {
                tok::Description(_, _) => fail ~"Unexpected description"
              }
          }
-        return Some(~css::Element(elmt_name, attr_list));
+        return Some(~css::Element(move elmt_name, move attr_list));
     }
 
     fn parse_selector() -> Option<~[~css::Selector]> {
@@ -95,7 +95,7 @@ impl TokenReader : ParserMethods {
                     match self.parse_element() {
                       Some(elmt) => { 
                         let new_sel = copy elmt;
-                        cur_sel <- ~css::Descendant(built_sel, new_sel)
+                        cur_sel <- ~css::Descendant(move built_sel, move new_sel)
                       }
                       None => { return None; }
                     }
@@ -104,7 +104,7 @@ impl TokenReader : ParserMethods {
                     match self.parse_element() {
                       Some(elmt) => { 
                         let new_sel = copy elmt;
-                        cur_sel <- ~css::Child(built_sel, new_sel)
+                        cur_sel <- ~css::Child(move built_sel, move new_sel)
                       }
                       None => { return None; }
                     }
@@ -113,18 +113,18 @@ impl TokenReader : ParserMethods {
                     match self.parse_element() {
                       Some(elmt) => { 
                         let new_sel = copy elmt;
-                        cur_sel <- ~css::Sibling(built_sel, new_sel)
+                        cur_sel <- ~css::Sibling(move built_sel, move new_sel)
                       }
                       None => { return None; }
                     }
                   }
                   tok::StartDescription => {
-                    push(&mut sel_list, built_sel);
+                    push(&mut sel_list, move built_sel);
                     self.unget(tok::StartDescription);
                     break;
                   }
                   tok::Comma => {
-                    push(&mut sel_list, built_sel);
+                    push(&mut sel_list, move built_sel);
                     self.unget(tok::Comma);
                     break;
                   }
@@ -141,11 +141,11 @@ impl TokenReader : ParserMethods {
             match tok {
               tok::StartDescription => { break; }
               tok::Comma => { }
-              _ => { self.unget(tok); }
+              _ => { self.unget(move tok); }
             }
         }
         
-        return Some(sel_list);
+        return Some(move sel_list);
     }
 
     fn parse_description() -> Option<~[StyleDeclaration]> {
@@ -187,7 +187,7 @@ impl TokenReader : ParserMethods {
             }
         }
         
-        return Some(desc_list);
+        return Some(move desc_list);
     }
 
     fn parse_rule() -> Option<~css::Rule> {
@@ -207,13 +207,13 @@ impl TokenReader : ParserMethods {
 
         #debug("desc_list: %?", desc_list);
         
-        return Some(~(sel_list, desc_list));
+        return Some(~(move sel_list, move desc_list));
     }
 }
 
 pub fn build_stylesheet(stream : pipes::Port<Token>) -> ~[~css::Rule] {
     let mut rule_list = ~[];
-    let reader = {stream : stream, mut lookahead : None};
+    let reader = {stream : move stream, mut lookahead : None};
 
     loop {
         match reader.parse_rule() {
@@ -222,5 +222,5 @@ pub fn build_stylesheet(stream : pipes::Port<Token>) -> ~[~css::Rule] {
         }
     }
 
-    return rule_list;
+    return move rule_list;
 }

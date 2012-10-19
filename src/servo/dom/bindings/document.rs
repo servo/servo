@@ -1,7 +1,7 @@
 use js::rust::{compartment, bare_compartment, methods, jsobj};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED,
             JSVAL_NULL, JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
-use js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp};
 use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
                             JS_DefineFunctions, JS_DefineProperty, JS_DefineProperties};
@@ -60,7 +60,7 @@ enum Element = int;
     return 1;
 }*/
 
-extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
+extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
     -> JSBool unsafe {
     let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
     if obj.is_null() {

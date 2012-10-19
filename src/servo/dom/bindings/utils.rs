@@ -1,7 +1,7 @@
 use js::rust::{compartment, bare_compartment, methods};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL};
-use js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp};
 use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
                             JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate,
@@ -27,12 +27,12 @@ unsafe fn squirrel_away<T>(x: @T) -> *rust_box<T> {
 
 unsafe fn squirrel_away_unique<T>(x: ~T) -> *rust_box<T> {
     let y: *rust_box<T> = cast::reinterpret_cast(&x);
-    cast::forget(x);
+    cast::forget(move x);
     y
 }
 
 //XXX very incomplete
-fn jsval_to_str(cx: *JSContext, v: jsval) -> Result<~str, ()> {
+fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
     let jsstr;
     if RUST_JSVAL_IS_STRING(v) == 1 {
         jsstr = RUST_JSVAL_TO_STRING(v)
@@ -55,7 +55,7 @@ fn jsval_to_str(cx: *JSContext, v: jsval) -> Result<~str, ()> {
     }
 }
 
-unsafe fn domstring_to_jsval(cx: *JSContext, str: &DOMString) -> jsval {
+unsafe fn domstring_to_jsval(cx: *JSContext, str: &DOMString) -> JSVal {
     match *str {
       null_string => {
         JSVAL_NULL
@@ -80,7 +80,7 @@ pub fn get_compartment(cx: *JSContext) -> compartment {
     }
 }
 
-extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *jsval, bp: *mut JSBool) -> JSBool {
+extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *JSVal, bp: *mut JSBool) -> JSBool {
     //XXXjdm this is totally broken for non-object values
     let mut o = RUST_JSVAL_TO_OBJECT(unsafe {*v});
     let obj = unsafe {*obj};
@@ -95,8 +95,8 @@ extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *jsval, bp: *mut JSB
     return 1;
 }
 
-pub fn prototype_jsclass(name: ~str) -> fn(compartment: bare_compartment) -> JSClass {
-    |compartment: bare_compartment| {
+pub fn prototype_jsclass(name: ~str) -> fn(compartment: &bare_compartment) -> JSClass {
+    |compartment: &bare_compartment, move name| {
         {name: compartment.add_name(copy name),
          flags: 0,
          addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -124,8 +124,8 @@ pub fn prototype_jsclass(name: ~str) -> fn(compartment: bare_compartment) -> JSC
 }
 
 pub fn instance_jsclass(name: ~str, finalize: *u8)
-    -> fn(compartment: bare_compartment) -> JSClass {
-    |compartment: bare_compartment| {
+    -> fn(compartment: &bare_compartment) -> JSClass {
+    |compartment: &bare_compartment, move name| {
         {name: compartment.add_name(copy name),
          flags: JSCLASS_HAS_RESERVED_SLOTS(1),
          addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -160,7 +160,7 @@ pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: &bar
     //TODO error checking
     let obj = result::unwrap(
         match move proto {
-            Some(move s) => compartment.new_object_with_proto(copy name, s, 
+            Some(move s) => compartment.new_object_with_proto(copy name, move s, 
                                                         compartment.global_obj.ptr),
             None => compartment.new_object(copy name, null(), compartment.global_obj.ptr)
         });
@@ -169,6 +169,6 @@ pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: &bar
                                 GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
                                 GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
                                 JSPROP_ENUMERATE);
-    compartment.stash_global_proto(name, obj);
+    compartment.stash_global_proto(move name, obj);
     return obj;
 }

@@ -5,7 +5,7 @@ use font::{RunMetrics, Font};
 use font_cache::FontCache;
 use geom::point::Point2D;
 use geom::size::Size2D;
-use gfx::geometry::au;
+use gfx::geometry::Au;
 use glyph::GlyphStore;
 use layout::context::LayoutContext;
 use libc::{c_void};
@@ -54,7 +54,7 @@ trait TextRunMethods {
     pure fn range_is_trimmable_whitespace(&self, range: Range) -> bool;
 
     fn metrics_for_range(&self, range: Range) -> RunMetrics;
-    fn min_width_for_range(&self, range: Range) -> au;
+    fn min_width_for_range(&self, range: Range) -> Au;
     fn iter_natural_lines_for_range(&self, range: Range, f: fn&(Range) -> bool);
 }
 
@@ -79,10 +79,10 @@ impl TextRun : TextRunMethods {
         self.font.measure_text(self, range)
     }
 
-    fn min_width_for_range(&self, range: Range) -> au {    
+    fn min_width_for_range(&self, range: Range) -> Au {
         assert range.is_valid_for_string(self.text);
 
-        let mut max_piece_width = au(0);
+        let mut max_piece_width = Au(0);
         for self.iter_indivisible_pieces_for_range(range) |piece_range| {
             let metrics = self.font.measure_text(self, piece_range);
             max_piece_width = au::max(max_piece_width, metrics.advance_width);
@@ -163,13 +163,13 @@ impl TextRun : TextRunMethods {
 fn TextRun(font: @Font, text: ~str) -> TextRun {
     let glyph_store = GlyphStore(text.len());
     let run = TextRun {
-        text: text,
+        text: move text,
         font: font,
-        glyphs: glyph_store,
+        glyphs: move glyph_store,
     };
 
     shape_textrun(&run);
-    return run;
+    return move run;
 }
 
 // this test can't run until LayoutContext is removed as an argument
@@ -178,7 +178,7 @@ fn TextRun(font: @Font, text: ~str) -> TextRun {
 #[test]
 fn test_calc_min_break_width() {
 
-    fn test_min_width_for_run(text: ~str, width: au) {
+    fn test_min_width_for_run(text: ~str, width: Au) {
         let flib = FontCache();
         let font = flib.get_test_font();
         let run = TextRun(font, text);

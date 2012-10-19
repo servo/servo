@@ -32,13 +32,13 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         copy opt_match.free
     };
 
-    let render_mode = match getopts::opt_maybe_str(opt_match, ~"o") {
-      Some(output_file) => { Png(copy output_file) }
+    let render_mode = match getopts::opt_maybe_str(move opt_match, ~"o") {
+      Some(move output_file) => { Png(move output_file) }
       None => { Screen }
     };
 
     {
-        urls: urls,
-        render_mode: render_mode
+        urls: move urls,
+        render_mode: move render_mode
     }
 }

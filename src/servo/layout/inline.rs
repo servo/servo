@@ -7,7 +7,7 @@ use dom::node::Node;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::geometry::au;
+use gfx::geometry::Au;
 use layout::box::*;
 use layout::context::LayoutContext;
 use layout::flow::{FlowContext, InlineFlow};
@@ -100,7 +100,7 @@ impl TextRunScanner {
             debug!("TextRunScanner: swapping out boxes.");
             // swap out old and new box list of flow, by supplying
             // temp boxes as return value to boxes.swap |...|
-            dvec::unwrap(out_boxes)
+            dvec::unwrap(move out_boxes)
         }
 
         // helper functions
@@ -271,7 +271,7 @@ struct LineboxScanner {
     flow: @FlowContext,
     new_boxes: DVec<@RenderBox>,
     work_list: DList<@RenderBox>,
-    pending_line: {range: MutableRange, mut width: au},
+    pending_line: {range: MutableRange, mut width: Au},
     line_spans: DVec<Range>
 }
 
@@ -282,7 +282,7 @@ fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
         flow: inline,
         new_boxes: DVec(),
         work_list: DList(),
-        pending_line: {range: util::range::empty_mut(), mut width: au(0)},
+        pending_line: {range: util::range::empty_mut(), mut width: Au(0)},
         line_spans: DVec()
     }
 }
@@ -297,7 +297,7 @@ impl LineboxScanner {
 
     priv fn reset_linebox() {
         self.pending_line.range.reset(0,0);
-        self.pending_line.width = au(0);
+        self.pending_line.width = Au(0);
     }
 
     pub fn scan_for_lines(ctx: &LayoutContext) {
@@ -342,11 +342,11 @@ impl LineboxScanner {
                self.line_spans.len(), self.flow.d().id);
         // TODO: repair Node->box mappings, using strategy similar to TextRunScanner
         do self.new_boxes.swap |boxes| {
-            self.flow.inline().boxes.set(boxes);
+            self.flow.inline().boxes.set(move boxes);
             ~[]
         };
         do self.line_spans.swap |boxes| {
-            self.flow.inline().lines.set(boxes);
+            self.flow.inline().lines.set(move boxes);
             ~[]
         };
     }
@@ -356,7 +356,7 @@ impl LineboxScanner {
                self.line_spans.len(), self.pending_line);
         // set box horizontal offsets
         let line_range = self.pending_line.range.as_immutable();
-        let mut offset_x = au(0);
+        let mut offset_x = Au(0);
         // TODO: interpretation of CSS 'text-direction' and 'text-align' 
         // will change from which side we start laying out the line.
         debug!("LineboxScanner: Setting horizontal offsets for boxes in line %u range: %?",
@@ -369,7 +369,7 @@ impl LineboxScanner {
 
         // clear line and add line mapping
         debug!("LineboxScanner: Saving information for flushed line %u.", self.line_spans.len());
-        self.line_spans.push(line_range);
+        self.line_spans.push(move line_range);
         self.reset_linebox();
     }
 
@@ -494,7 +494,7 @@ trait InlineLayout {
     fn bubble_widths_inline(@self, ctx: &LayoutContext);
     fn assign_widths_inline(@self, ctx: &LayoutContext);
     fn assign_height_inline(@self, ctx: &LayoutContext);
-    fn build_display_list_inline(@self, a: &dl::DisplayListBuilder, b: &Rect<au>, c: &Point2D<au>, d: &dl::DisplayList);
+    fn build_display_list_inline(@self, a: &dl::DisplayListBuilder, b: &Rect<Au>, c: &Point2D<Au>, d: &dl::DisplayList);
 }
 
 impl FlowContext : InlineLayout {
@@ -506,8 +506,8 @@ impl FlowContext : InlineLayout {
         let scanner = TextRunScanner(self);
         scanner.scan_for_runs(ctx);
 
-        let mut min_width = au(0);
-        let mut pref_width = au(0);
+        let mut min_width = Au(0);
+        let mut pref_width = Au(0);
 
         for self.inline().boxes.each |box| {
             debug!("FlowContext[%d]: measuring %s", self.d().id, box.debug_str());
@@ -554,7 +554,7 @@ impl FlowContext : InlineLayout {
     fn assign_height_inline(@self, _ctx: &LayoutContext) {
         // TODO: get from CSS 'line-height' property
         let line_height = au::from_px(20);
-        let mut cur_y = au(0);
+        let mut cur_y = Au(0);
 
         for self.inline().lines.eachi |i, line_span| {
             debug!("assign_height_inline: processing line %u with box span: %?", i, line_span);
@@ -582,13 +582,13 @@ impl FlowContext : InlineLayout {
                     // TODO: account for padding, margin, border in bounding box?
                     @ImageBox(*) | @GenericBox(*) => {
                         let box_bounds = cur_box.d().position;
-                        box_bounds.translate(&Point2D(au(0), -cur_box.d().position.size.height))
+                        box_bounds.translate(&Point2D(Au(0), -cur_box.d().position.size.height))
                     },
                     // adjust bounding box metric to box's horizontal offset
                     // TODO: can we trust the leading provided by font metrics?
                     @TextBox(_, data) => { 
                         let text_bounds = data.run.metrics_for_range(data.range).bounding_box;
-                        text_bounds.translate(&Point2D(cur_box.d().position.origin.x, au(0)))
+                        text_bounds.translate(&Point2D(cur_box.d().position.origin.x, Au(0)))
                     },
                     _ => fail fmt!("Tried to compute bounding box of unknown Box variant: %s", cur_box.debug_str())
                 };
@@ -604,8 +604,8 @@ impl FlowContext : InlineLayout {
         self.d().position.size.height = cur_y;
     }
 
-    fn build_display_list_inline(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
-                                 offset: &Point2D<au>, list: &dl::DisplayList) {
+    fn build_display_list_inline(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<Au>, 
+                                 offset: &Point2D<Au>, list: &dl::DisplayList) {
 
         assert self.starts_inline_flow();
 

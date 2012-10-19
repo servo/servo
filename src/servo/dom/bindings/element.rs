@@ -3,7 +3,7 @@ use au::au;
 use js::rust::{bare_compartment, methods, jsobj};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
-use js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
 use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
                             JS_DefineFunctions, JS_DefineProperty};
@@ -65,7 +65,7 @@ pub fn init(compartment: &bare_compartment) {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
+extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
     -> JSBool unsafe {
     let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
     if obj.is_null() {
@@ -99,7 +99,7 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
+extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
     -> JSBool unsafe {
     let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
     if obj.is_null() {
@@ -125,7 +125,7 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut jsva
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut jsval)
+extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
     -> JSBool {
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
@@ -171,7 +171,7 @@ pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
     //TODO error checking
     let compartment = utils::get_compartment(cx);
     let obj = result::unwrap(
-        compartment.new_object_with_proto(~"GenericElementInstance", proto,
+        compartment.new_object_with_proto(~"GenericElementInstance", move proto,
                                           compartment.global_obj.ptr));
  
     unsafe {

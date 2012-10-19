@@ -6,10 +6,9 @@ use dom::document::Document;
 use dom::element::{Attr, ElementData};
 use dom::window::Window;
 use geom::size::Size2D;
-use gfx::geometry::au;
 use js::crust::*;
 use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
-use js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, jsval, JSBool};
+use js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, JSVal, JSBool};
 use js::rust::{bare_compartment, compartment, methods};
 use js::{JSPROP_ENUMERATE, JSPROP_SHARED};
 use layout::debug::DebugMethods;
@@ -90,9 +89,9 @@ struct DoctypeData {
 fn DoctypeData(name: ~str, public_id: Option<~str>,
                system_id: Option<~str>, force_quirks: bool) -> DoctypeData {
     DoctypeData {
-        name : name,
-        public_id : public_id,
-        system_id : system_id,
+        name : move name,
+        public_id : move public_id,
+        system_id : move system_id,
         force_quirks : force_quirks,
     }
 }
@@ -133,7 +132,7 @@ trait NodeScopeExtensions {
 #[allow(non_implicitly_copyable_typarams)]
 impl NodeScope : NodeScopeExtensions {
     fn new_node(k: NodeKind) -> Node {
-        self.handle(&NodeData({tree: tree::empty(), kind: ~k}))
+        self.handle(&NodeData({tree: tree::empty(), kind: ~move k}))
     }
 }
 

@@ -40,11 +40,11 @@ fn create_font(lib: @FontCache, native_lib: &native::NativeFontCache) -> Result<
     let font_bin = @test_font_bin();
     let native_font = native_font::create(native_lib, font_bin);
     let native_font = if native_font.is_ok() {
-        result::unwrap(native_font)
+        result::unwrap(move native_font)
     } else {
         return Err(native_font.get_err());
     };
-    return Ok(@Font(lib, font_bin, native_font));
+    return Ok(@Font(lib, font_bin, move native_font));
 }
 
 #[cfg(target_os = "linux")]

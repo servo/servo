@@ -40,17 +40,18 @@ fn run_pipeline_screen(urls: &[~str]) {
 
     // Send each file to render then wait for keypress
     let (keypress_to_engine, keypress_from_osmain) = pipes::stream();
-    osmain.send(AddKeyHandler(keypress_to_engine));
+    osmain.send(AddKeyHandler(move keypress_to_engine));
 
     // Create a servo instance
     let resource_task = ResourceTask();
-    let image_cache_task = ImageCacheTask(resource_task);
-    let engine_task = Engine(osmain, dom_event_port, dom_event_chan, resource_task, image_cache_task);
+    let image_cache_task = ImageCacheTask(copy resource_task);
+    let engine_task = Engine(osmain, move dom_event_port, move dom_event_chan, move resource_task,
+                             move image_cache_task);
 
     for urls.each |filename| {
         let url = make_url(copy *filename, None);
         #debug["master: Sending url `%s`", url.to_str()];
-        engine_task.send(LoadURLMsg(url));
+        engine_task.send(LoadURLMsg(move url));
         #debug["master: Waiting for keypress"];
 
         match keypress_from_osmain.try_recv() {
@@ -62,7 +63,7 @@ fn run_pipeline_screen(urls: &[~str]) {
     // Shut everything down
     #debug["master: Shut down"];
     let (exit_chan, exit_response_from_engine) = pipes::stream();
-    engine_task.send(engine::ExitMsg(exit_chan));
+    engine_task.send(engine::ExitMsg(move exit_chan));
     exit_response_from_engine.recv();
 
     osmain.send(osmain::Exit);
@@ -85,7 +86,8 @@ fn run_pipeline_png(url: ~str, outfile: &str) {
         // For the PNG pipeline we are using a synchronous image task so that all images will be
         // fulfilled before the first paint.
         let image_cache_task = SyncImageCacheTask(resource_task);
-        let engine_task = Engine(compositor, dom_event_port, dom_event_chan, resource_task, image_cache_task);
+        let engine_task = Engine(copy compositor, move dom_event_port, move dom_event_chan,
+                                 move resource_task, move image_cache_task);
         engine_task.send(LoadURLMsg(make_url(copy url, None)));
 
         match buffered_file_writer(&Path(outfile)) {
@@ -94,7 +96,7 @@ fn run_pipeline_png(url: ~str, outfile: &str) {
         }
 
         let (exit_chan, exit_response_from_engine) = pipes::stream();
-        engine_task.send(engine::ExitMsg(exit_chan));
+        engine_task.send(engine::ExitMsg(move exit_chan));
         exit_response_from_engine.recv();
         compositor.send(png_compositor::Exit);
     })

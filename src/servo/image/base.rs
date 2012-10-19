@@ -12,7 +12,7 @@ use stb_image = stb_image::image;
 pub type Image = stb_image::Image;
 
 pub fn Image(width: uint, height: uint, depth: uint, data: ~[u8]) -> Image {
-    stb_image::new_image(width, height, depth, data)
+    stb_image::new_image(width, height, depth, move data)
 }
 
 const TEST_IMAGE: [u8 * 4962] = #include_bin("test.jpeg");
@@ -40,6 +40,6 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
 
         assert image.data.len() == data.len();
 
-       Image(image.width, image.height, image.depth, data)
+       Image(image.width, image.height, image.depth, move data)
     }
 }

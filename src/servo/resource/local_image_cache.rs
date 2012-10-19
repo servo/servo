@@ -10,11 +10,9 @@ use pipes::{Port, Chan, stream};
 use image_cache_task::{ImageCacheTask, ImageResponseMsg, Prefetch, Decode, GetImage, WaitForImage, ImageReady, ImageNotReady, ImageFailed};
 use util::url::{UrlMap, url_map};
 
-pub fn LocalImageCache(
-    image_cache_task: ImageCacheTask
-) -> LocalImageCache {
+pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
     LocalImageCache {
-        image_cache_task: image_cache_task,
+        image_cache_task: move image_cache_task,
         round_number: 1,
         mut on_image_available: None,
         state_map: url_map()
@@ -76,14 +74,14 @@ pub impl LocalImageCache {
                 unsafe {
                     let (chan, port) = pipes::stream();
                     chan.send(ImageReady(clone_arc(image)));
-                    return port;
+                    return move port;
                 }
             }
             ImageNotReady => {
                 if last_round == self.round_number {
                     let (chan, port) = pipes::stream();
                     chan.send(ImageNotReady);
-                    return port;
+                    return move port;
                 } else {
                     // We haven't requested the image from the
                     // remote cache this round
@@ -92,12 +90,12 @@ pub impl LocalImageCache {
             ImageFailed => {
                 let (chan, port) = pipes::stream();
                 chan.send(ImageFailed);
-                return port;
+                return move port;
             }
         }
 
         let (response_chan, response_port) = pipes::stream();
-        self.image_cache_task.send(GetImage(copy *url, response_chan));
+        self.image_cache_task.send(GetImage(copy *url, move response_chan));
 
         let response = response_port.recv();
         match response {
@@ -111,9 +109,9 @@ pub impl LocalImageCache {
                 assert self.on_image_available.is_some();
                 let on_image_available = self.on_image_available.get()();
                 let url = copy *url;
-                do task::spawn |move url, move on_image_available| {
+                do task::spawn |move url, move on_image_available, move image_cache_task| {
                     let (response_chan, response_port) = pipes::stream();
-                    image_cache_task.send(WaitForImage(copy url, response_chan));
+                    image_cache_task.send(WaitForImage(copy url, move response_chan));
                     on_image_available(response_port.recv());
                 }
             }
@@ -129,8 +127,8 @@ pub impl LocalImageCache {
         state.last_response = move response_copy;
 
         let (chan, port) = pipes::stream();
-        chan.send(response);
-        return port;
+        chan.send(move response);
+        return move port;
     }
 
     priv fn get_state(url: &Url) -> @ImageState {

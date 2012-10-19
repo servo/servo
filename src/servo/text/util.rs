@@ -81,7 +81,7 @@ pub fn transform_text(text: &str, mode: CompressionMode) -> ~str {
         } 
     }
 
-    return out_str;
+    return move out_str;
 
     fn is_discardable_char(ch: char, mode: CompressionMode) -> bool {
         if is_always_discardable_char(ch) {

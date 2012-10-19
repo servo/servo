@@ -60,7 +60,7 @@ impl CssLexer : CssLexerMethods {
         };
 
         #debug["token=%?", token];
-        return token;
+        return move token;
     }
 
     fn parse_css_relation(c : u8) -> Token {
@@ -76,7 +76,7 @@ impl CssLexer : CssLexerMethods {
 
         self.input_state.eat_whitespace();
         
-        return token;
+        return move token;
     }
 
     fn parse_css_element(c : u8) -> Token {
@@ -98,7 +98,7 @@ impl CssLexer : CssLexerMethods {
 
         self.parser_state = CssAttribute;
         
-        return Element(element);
+        return move Element(move element);
     }
 
     fn parse_css_attribute(c : u8) -> Token {
@@ -130,21 +130,21 @@ impl CssLexer : CssLexerMethods {
             }
 
             if ch == ']' as u8 {
-                return Attr(css::values::Exists(attr_name));
+                return Attr(css::values::Exists(move attr_name));
             } else if ch == '=' as u8 {
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                return Attr(css::values::Exact(attr_name, attr_val));
+                return Attr(css::values::Exact(move attr_name, move attr_val));
             } else if ch == '~' as u8 {
                 self.input_state.expect('=' as u8);
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                return Attr(css::values::Includes(attr_name, attr_val));
+                return Attr(css::values::Includes(move attr_name, move attr_val));
             } else if ch == '|' as u8 {
                 self.input_state.expect('=' as u8);
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                return Attr(css::values::StartsWith(attr_name, attr_val));
+                return Attr(css::values::StartsWith(move attr_name, move attr_val));
             }
             
             fail #fmt("Unexpected symbol %c in attribute", ch as char);
@@ -244,7 +244,7 @@ fn lex_css_from_bytes(input_port: comm::Port<ProgressMsg>, result_chan : &Chan<T
         let token = lexer.parse_css();
         let should_break = match token { Eof => true, _ => false };
 
-        result_chan.send(token);
+        result_chan.send(move token);
 
         if should_break { 
             break;
@@ -255,7 +255,7 @@ fn lex_css_from_bytes(input_port: comm::Port<ProgressMsg>, result_chan : &Chan<T
 fn spawn_css_lexer_from_string(content : ~str) -> pipes::Port<Token> {
     let (result_chan, result_port) = pipes::stream();
 
-    do task::spawn {
+    do task::spawn |move result_chan, move content| {
         let input_port = comm::Port();
         input_port.send(Payload(str::to_bytes(content)));
         input_port.send(Done(Ok(())));
@@ -263,14 +263,14 @@ fn spawn_css_lexer_from_string(content : ~str) -> pipes::Port<Token> {
         lex_css_from_bytes(input_port, &result_chan);
     }
 
-    return result_port;
+    return move result_port;
 }
 
 #[allow(non_implicitly_copyable_typarams)]
 pub fn spawn_css_lexer_task(url: Url, resource_task: ResourceTask) -> pipes::Port<Token> {
     let (result_chan, result_port) = pipes::stream();
 
-    do task::spawn || {
+    do task::spawn |move result_chan, move url| {
         assert url.path.ends_with(".css");
         let input_port = Port();
         // TODO: change copy to move once the compiler permits it
@@ -279,5 +279,5 @@ pub fn spawn_css_lexer_task(url: Url, resource_task: ResourceTask) -> pipes::Por
         lex_css_from_bytes(input_port, &result_chan);
     };
 
-    return result_port;
+    return move result_port;
 }

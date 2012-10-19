@@ -1,5 +1,5 @@
 use au = gfx::geometry;
-use au::au;
+use au::Au;
 use core::cmp::{Ord, Eq};
 use core::dvec::DVec;
 use core::u16;
@@ -64,7 +64,7 @@ const FLAG_CAN_BREAK_MASK : u32            = 0x60000000u32;
 const FLAG_CAN_BREAK_SHIFT : u32           = 29;
 const FLAG_IS_SIMPLE_GLYPH : u32           = 0x80000000u32;
 
-// glyph advance; in au's.
+// glyph advance; in Au's.
 const GLYPH_ADVANCE_MASK : u32             = 0x0FFF0000u32;
 const GLYPH_ADVANCE_SHIFT : u32            = 16;
 const GLYPH_ID_MASK : u32                  = 0x0000FFFFu32;
@@ -95,7 +95,7 @@ pure fn is_simple_glyph_id(glyphId: GlyphIndex) -> bool {
     ((glyphId as u32) & GLYPH_ID_MASK) == glyphId
 }
 
-pure fn is_simple_advance(advance: au) -> bool {
+pure fn is_simple_advance(advance: Au) -> bool {
     let unsignedAu = advance.to_int() as u32;
     (unsignedAu & (GLYPH_ADVANCE_MASK >> GLYPH_ADVANCE_SHIFT)) == unsignedAu
 }
@@ -107,7 +107,7 @@ pure fn InitialGlyphEntry() -> GlyphEntry {
 }
 
 // Creates a GlyphEntry for the common case
-pure fn SimpleGlyphEntry(index: GlyphIndex, advance: au) -> GlyphEntry {
+pure fn SimpleGlyphEntry(index: GlyphIndex, advance: Au) -> GlyphEntry {
     assert is_simple_glyph_id(index);
     assert is_simple_advance(advance);
 
@@ -153,7 +153,7 @@ pure fn MissingGlyphsEntry(glyphCount: uint) -> GlyphEntry {
 // because GlyphEntry is immutable and only a u32 in size.
 impl GlyphEntry {
     // getter methods
-    pure fn advance() -> au {
+    pure fn advance() -> Au {
         assert self.is_simple();
         from_int(((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) as int)
     }
@@ -163,9 +163,9 @@ impl GlyphEntry {
         self.value & GLYPH_ID_MASK
     }
 
-    pure fn offset() -> Point2D<au> {
+    pure fn offset() -> Point2D<Au> {
         assert self.is_simple();
-        Point2D(au(0), au(0))
+        Point2D(Au(0), Au(0))
     }
     
     pure fn is_ligature_start() -> bool {
@@ -243,14 +243,14 @@ impl GlyphEntry {
 struct DetailedGlyph {
     index: GlyphIndex,
     // glyph's advance, in the text's direction (RTL or RTL)
-    advance: au,
+    advance: Au,
     // glyph's offset from the font's em-box (from top-left)
-    offset: Point2D<au>
+    offset: Point2D<Au>
 }
 
 
 fn DetailedGlyph(index: GlyphIndex,
-                 advance: au, offset: Point2D<au>) -> DetailedGlyph {
+                 advance: Au, offset: Point2D<Au>) -> DetailedGlyph {
     DetailedGlyph {
         index: index,
         advance: advance,
@@ -381,16 +381,16 @@ impl DetailedGlyphStore {
 // It should be allocated on the stack and passed by reference to GlyphStore.
 struct GlyphData {
     index: GlyphIndex,
-    advance: au,
-    offset: Point2D<au>,
+    advance: Au,
+    offset: Point2D<Au>,
     is_missing: bool,
     cluster_start: bool,
     ligature_start: bool,
 }
 
 pure fn GlyphData(index: GlyphIndex, 
-                   advance: au,
-                   offset: Option<Point2D<au>>,
+                   advance: Au,
+                   offset: Option<Point2D<Au>>,
                    is_missing: bool,
                    cluster_start: bool,
                    ligature_start: bool) -> GlyphData {
@@ -427,14 +427,14 @@ impl GlyphInfo {
         }
     }
 
-    fn advance() -> au {
+    fn advance() -> Au {
         match self {
             SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i].advance(),
             DetailGlyphInfo(store, entry_i, detail_j) => store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).advance
         }
     }
 
-    fn offset() -> Option<Point2D<au>> {
+    fn offset() -> Option<Point2D<Au>> {
         match self {
             SimpleGlyphInfo(_, _) => None,
             DetailGlyphInfo(store, entry_i, detail_j) => Some(store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).offset)
@@ -471,7 +471,7 @@ fn GlyphStore(length: uint) -> GlyphStore {
     let buffer = vec::from_elem(length, InitialGlyphEntry());
 
     GlyphStore {
-        entry_buffer: dvec::from_vec(buffer),
+        entry_buffer: dvec::from_vec(move buffer),
         detail_store: DetailedGlyphStore(),
     }
 }

@@ -4,7 +4,7 @@ use dl = gfx::display_list;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::geometry::au;
+use gfx::geometry::Au;
 use layout::box::{RenderBox};
 use layout::context::LayoutContext;
 use layout::flow::{FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
@@ -27,8 +27,8 @@ trait BlockLayout {
     fn bubble_widths_block(@self, ctx: &LayoutContext);
     fn assign_widths_block(@self, ctx: &LayoutContext);
     fn assign_height_block(@self, ctx: &LayoutContext);
-    fn build_display_list_block(@self, a: &dl::DisplayListBuilder, b: &Rect<au>,
-                                c: &Point2D<au>, d: &dl::DisplayList);
+    fn build_display_list_block(@self, a: &dl::DisplayListBuilder, b: &Rect<Au>,
+                                c: &Point2D<Au>, d: &dl::DisplayList);
 }
 
 impl FlowContext : BlockLayout {
@@ -68,8 +68,8 @@ impl FlowContext : BlockLayout {
     fn bubble_widths_block(@self, ctx: &LayoutContext) {
         assert self.starts_block_flow();
 
-        let mut min_width = au(0);
-        let mut pref_width = au(0);
+        let mut min_width = Au(0);
+        let mut pref_width = Au(0);
 
         /* find max width from child block contexts */
         for FlowTree.each_child(self) |child_ctx| {
@@ -101,8 +101,8 @@ impl FlowContext : BlockLayout {
         assert self.starts_block_flow();
 
         let mut remaining_width = self.d().position.size.width;
-        let mut _right_used = au(0);
-        let mut left_used = au(0);
+        let mut _right_used = Au(0);
+        let mut left_used = Au(0);
 
         /* Let the box consume some width. It will return the amount remaining
            for its children. */
@@ -122,7 +122,7 @@ impl FlowContext : BlockLayout {
     fn assign_height_block(@self, _ctx: &LayoutContext) {
         assert self.starts_block_flow();
 
-        let mut cur_y = au(0);
+        let mut cur_y = Au(0);
 
         for FlowTree.each_child(self) |child_ctx| {
             child_ctx.d().position.origin.y = cur_y;
@@ -131,18 +131,18 @@ impl FlowContext : BlockLayout {
 
         self.d().position.size.height = cur_y;
 
-        let _used_top = au(0);
-        let _used_bot = au(0);
+        let _used_top = Au(0);
+        let _used_bot = Au(0);
         
         do self.with_block_box |box| {
-            box.d().position.origin.y = au(0);
+            box.d().position.origin.y = Au(0);
             box.d().position.size.height = cur_y;
             let (_used_top, _used_bot) = box.get_used_height();
         }
     }
 
-    fn build_display_list_block(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<au>, 
-                                offset: &Point2D<au>, list: &dl::DisplayList) {
+    fn build_display_list_block(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<Au>, 
+                                offset: &Point2D<Au>, list: &dl::DisplayList) {
 
         assert self.starts_block_flow();
         

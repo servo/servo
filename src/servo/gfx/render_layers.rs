@@ -19,7 +19,7 @@ pub struct RenderLayer {
 pub fn render_layers(layer: &RenderLayer,
                      buffer: LayerBuffer,
                      f: &fn(layer: &RenderLayer, buffer: &LayerBuffer) -> bool) -> LayerBuffer {
-    let mut buffer = buffer;
+    let mut buffer = move buffer;
     if buffer.size != layer.size {
         // Create a new buffer.
         let cairo_surface = ImageSurface(CAIRO_FORMAT_RGB24,

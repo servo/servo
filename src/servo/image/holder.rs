@@ -20,7 +20,7 @@ pub struct ImageHolder {
 fn ImageHolder(url : Url, local_image_cache: @LocalImageCache) -> ImageHolder {
     debug!("ImageHolder() %?", url.to_str());
     let holder = ImageHolder {
-        url : url,
+        url : move url,
         image : None,
         cached_size : Size2D(0,0),
         local_image_cache: local_image_cache,
@@ -34,7 +34,7 @@ fn ImageHolder(url : Url, local_image_cache: @LocalImageCache) -> ImageHolder {
     local_image_cache.prefetch(&holder.url);
     local_image_cache.decode(&holder.url);
 
-    holder
+    move holder
 }
 
 impl ImageHolder {
@@ -71,7 +71,7 @@ impl ImageHolder {
         if self.image.is_none() {
             match self.local_image_cache.get_image(&self.url).recv() {
                 ImageReady(move image) => {
-                    self.image = Some(image);
+                    self.image = Some(move image);
                 }
                 ImageNotReady => {
                     debug!("image not ready for %s", self.url.to_str());
@@ -92,6 +92,6 @@ impl ImageHolder {
 
         replace(&mut self.image, move image);
 
-        return result;
+        return move result;
     }
 }

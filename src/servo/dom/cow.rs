@@ -78,7 +78,7 @@ struct ScopeResource<T:Send,A> {
 }
 
 fn ScopeResource<T:Send,A>(d : ScopeData<T,A>) -> ScopeResource<T,A> {
-    ScopeResource { d: d }
+    ScopeResource { d: move d }
 }
 
 pub type Scope<T:Send,A> = @ScopeResource<T,A>;

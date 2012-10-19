@@ -4,7 +4,7 @@
 */
 
 use au = gfx::geometry;
-use au::au;
+use au::Au;
 use content::content_task;
 use core::dvec::DVec;
 use css::resolve::apply::apply_style;
@@ -63,7 +63,7 @@ struct BuildData {
 
 fn LayoutTask(render_task: RenderTask,
               img_cache_task: ImageCacheTask) -> LayoutTask {
-    do spawn_listener::<Msg> |from_content| {
+    do spawn_listener::<Msg> |from_content, move img_cache_task| {
         Layout(render_task, img_cache_task.clone(), from_content).start();
     }
 }
@@ -105,7 +105,7 @@ impl Layout {
 
         match self.from_content.recv() {
             BuildMsg(move data) => {
-                let data = Cell(data);
+                let data = Cell(move data);
 
                 do time("layout: performing layout") {
                     self.handle_build(data.take());
@@ -147,8 +147,8 @@ impl Layout {
         let layout_ctx = LayoutContext {
             image_cache: self.local_image_cache,
             font_cache: self.font_cache,
-            doc_url: doc_url,
-            screen_size: Rect(Point2D(au(0), au(0)), screen_size)
+            doc_url: move doc_url,
+            screen_size: Rect(Point2D(Au(0), Au(0)), screen_size)
         };
 
         let layout_root: @FlowContext = do time("layout: tree construction") {
@@ -210,7 +210,7 @@ impl Layout {
                 let response = match node.aux(|a| copy *a).flow {
                     None => Err(()),
                     Some(flow) => {
-                        let start_val : Option<Rect<au>> = None;
+                        let start_val : Option<Rect<Au>> = None;
                         let rect = do flow.foldl_boxes_for_node(node, start_val) |acc, box| {
                             match acc {
                                 Some(acc) => Some(acc.union(&box.content_box())),
@@ -249,7 +249,7 @@ impl Layout {
             let f: ~fn(ImageResponseMsg) = |_msg, move dom_event_chan| {
                 dom_event_chan.send(ReflowEvent)
             };
-            f
+            move f
         };
         return f;
     }

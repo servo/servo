@@ -1,7 +1,7 @@
 export DisplayListBuilder;
 
 use au = gfx::geometry;
-use au::au;
+use au::Au;
 use css::values::{BgColor, BgColorTransparent, Specified};
 use dl = gfx::display_list;
 use dom::node::{Text, NodeScope};
@@ -32,20 +32,20 @@ pub struct DisplayListBuilder {
 
 
 trait FlowDisplayListBuilderMethods {
-    fn build_display_list(@self, a: &DisplayListBuilder, b: &Rect<au>, c: &dl::DisplayList);
+    fn build_display_list(@self, a: &DisplayListBuilder, b: &Rect<Au>, c: &dl::DisplayList);
 
     fn build_display_list_for_child(@self, a: &DisplayListBuilder, b: @FlowContext,
-                                    c: &Rect<au>, d: &Point2D<au>, e: &dl::DisplayList);
+                                    c: &Rect<Au>, d: &Point2D<Au>, e: &dl::DisplayList);
 }
 
 impl FlowContext: FlowDisplayListBuilderMethods {
-    fn build_display_list(@self, builder: &DisplayListBuilder, dirty: &Rect<au>, list: &dl::DisplayList) {
+    fn build_display_list(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>, list: &dl::DisplayList) {
         let zero = au::zero_point();
         self.build_display_list_recurse(builder, dirty, &zero, list);
     }
 
     fn build_display_list_for_child(@self, builder: &DisplayListBuilder, child_flow: @FlowContext,
-                                    dirty: &Rect<au>, offset: &Point2D<au>,
+                                    dirty: &Rect<Au>, offset: &Point2D<Au>,
                                     list: &dl::DisplayList) {
 
         // adjust the dirty rect to child flow context coordinates

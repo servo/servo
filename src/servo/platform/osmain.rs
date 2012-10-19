@@ -37,8 +37,8 @@ pub enum Msg {
 }
 
 fn OSMain(dom_event_chan: pipes::SharedChan<Event>) -> OSMain {
-    let dom_event_chan = Cell(dom_event_chan);
-    do on_osmain::<Msg> |po| {
+    let dom_event_chan = Cell(move dom_event_chan);
+    do on_osmain::<Msg> |po, move dom_event_chan| {
         do platform::runmain {
             #debug("preparing to enter main loop");
 
@@ -104,32 +104,31 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
         #debug("osmain: peeking");
         while po.peek() {
             match po.recv() {
-              AddKeyHandler(move key_ch) => key_handlers.push(move key_ch),
-              BeginDrawing(move sender) => lend_surface(surfaces, sender),
-              Draw(move sender, move dt) => {
-                #debug("osmain: received new frame");
-                return_surface(surfaces, dt);
-                lend_surface(surfaces, sender);
+                AddKeyHandler(move key_ch) => key_handlers.push(move key_ch),
+                BeginDrawing(move sender) => lend_surface(surfaces, move sender),
+                Draw(move sender, move dt) => {
+                    #debug("osmain: received new frame");
+                    return_surface(surfaces, move dt);
+                    lend_surface(surfaces, move sender);
 
-                let width = surfaces.front.layer_buffer.size.width as uint;
-                let height = surfaces.front.layer_buffer.size.height as uint;
+                    let width = surfaces.front.layer_buffer.size.width as uint;
+                    let height = surfaces.front.layer_buffer.size.height as uint;
 
-                let buffer = surfaces.front.layer_buffer.cairo_surface.data();
-                let image = @layers::layers::Image(width, height, layers::layers::ARGB32Format,
-												   buffer);
-                image_layer.set_image(image);
-                image_layer.common.set_transform(original_layer_transform.scale(&(width as f32),
-                                                                                &(height as f32),
-                                                                                &1.0f32));
+                    let buffer = surfaces.front.layer_buffer.cairo_surface.data();
+                    let image = @layers::layers::Image(
+                        width, height, layers::layers::ARGB32Format, move buffer);
+                    image_layer.set_image(image);
+                    image_layer.common.set_transform(original_layer_transform.scale(
+                        &(width as f32), &(height as f32), &1.0f32));
 
-                // FIXME: Cross-crate struct mutability is broken.
-                let size: &mut Size2D<f32>;
-                unsafe { size = cast::transmute(&scene.size); }
-                *size = Size2D(width as f32, height as f32);
-              }
-              Exit => {
-                *done = true;
-              }
+                    // FIXME: Cross-crate struct mutability is broken.
+                    let size: &mut Size2D<f32>;
+                    unsafe { size = cast::transmute(&scene.size); }
+                    *size = Size2D(width as f32, height as f32);
+                }
+                Exit => {
+                    *done = true;
+                }
             }
         }
     };
@@ -180,10 +179,10 @@ compositor for the renderer
 */
 impl OSMain : Compositor {
     fn begin_drawing(next_dt: pipes::Chan<LayerBuffer>) {
-        self.send(BeginDrawing(next_dt))
+        self.send(BeginDrawing(move next_dt))
     }
     fn draw(next_dt: pipes::Chan<LayerBuffer>, draw_me: LayerBuffer) {
-        self.send(Draw(next_dt, draw_me))
+        self.send(Draw(move next_dt, move draw_me))
     }
 }
 
@@ -203,7 +202,7 @@ fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBuffer>) {
         size: copy surfaces.front.layer_buffer.size
     };
     #debug("osmain: lending surface %?", layer_buffer);
-    receiver.send(layer_buffer);
+    receiver.send(move layer_buffer);
     // Now we don't have it
     surfaces.front.have = false;
     // But we (hopefully) have another!
@@ -246,7 +245,7 @@ fn Surface() -> Surface {
 
 /// A function for spawning into the platform's main thread
 fn on_osmain<T: Send>(f: fn~(po: comm::Port<T>)) -> comm::Chan<T> {
-    task::task().sched_mode(task::PlatformThread).spawn_listener(f)
+    task::task().sched_mode(task::PlatformThread).spawn_listener(move f)
 }
 
 // #[cfg(target_os = "linux")]

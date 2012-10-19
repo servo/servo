@@ -1,7 +1,7 @@
 use js::rust::{bare_compartment, methods};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL};
-use js::jsapi::{JSContext, jsval, JSObject, JSBool, jsid, JSClass, JSFreeOp};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp};
 use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
     JS_DefineFunctions, JS_DefineProperty, JS_DefineProperties, JS_EncodeString, JS_free};
@@ -17,7 +17,7 @@ use dom::window::{Window, TimerMessage_Fire};
 use dom::node::Node;
 use dvec::DVec;
 
-extern fn alert(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool {
+extern fn alert(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
   unsafe {
     let argv = JS_ARGV(cx, vp);
     assert (argc == 1);
@@ -31,7 +31,7 @@ extern fn alert(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool {
   1_i32
 }
 
-extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool unsafe {
+extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool unsafe {
     let argv = JS_ARGV(cx, vp);
     assert (argc >= 2);
 
@@ -45,7 +45,7 @@ extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool unsafe 
     return 1;
 }
 
-extern fn close(cx: *JSContext, _argc: c_uint, vp: *jsval) -> JSBool unsafe {
+extern fn close(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool unsafe {
     (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.close();
     JS_SET_RVAL(cx, vp, JSVAL_NULL);
     return 1;

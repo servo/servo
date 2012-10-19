@@ -53,29 +53,29 @@ fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Por
 
     loop {
         match from_parent.recv() {
-          CSSTaskNewFile(url) => {
-            let result_port = comm::Port();
-            let result_chan = comm::Chan(&result_port);
-            // TODO: change copy to move once we have match move
-            let url = copy url;
-            task::spawn(|| {
-                // TODO: change copy to move once we can move into closures
-                let css_stream = css::lexer::spawn_css_lexer_task(copy url, resource_task);
-                let mut css_rules = css::parser::build_stylesheet(css_stream);
-                result_chan.send(css_rules);
-            });
+            CSSTaskNewFile(url) => {
+                let result_port = comm::Port();
+                let result_chan = comm::Chan(&result_port);
+                // TODO: change copy to move once we have match move
+                let url = copy url;
+                do task::spawn |move url, copy resource_task| {
+                    // TODO: change copy to move once we can move out of closures
+                    let css_stream = css::lexer::spawn_css_lexer_task(copy url, resource_task);
+                    let mut css_rules = css::parser::build_stylesheet(move css_stream);
+                    result_chan.send(move css_rules);
+                }
 
-            vec::push(&mut result_vec, result_port);
-          }
-          CSSTaskExit => {
-            break;
-          }
+                vec::push(&mut result_vec, result_port);
+            }
+            CSSTaskExit => {
+                break;
+            }
         }
     }
 
     let css_rules = vec::flat_map(result_vec, |result_port| { result_port.recv() });
     
-    to_parent.send(css_rules);
+    to_parent.send(move css_rules);
 }
 
 fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port<JSMessage>,
@@ -84,42 +84,40 @@ fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port
 
     loop {
         match from_parent.recv() {
-          JSTaskNewFile(url) => {
-            let result_port = comm::Port();
-            let result_chan = comm::Chan(&result_port);
-            // TODO: change copy to move once we have match move
-            let url = copy url;
-            do task::spawn || {
-                let input_port = Port();
-                // TODO: change copy to move once we can move into closures
-                resource_task.send(Load(copy url, input_port.chan()));
+            JSTaskNewFile(move url) => {
+                let result_port = comm::Port();
+                let result_chan = comm::Chan(&result_port);
+                do task::spawn |move url| {
+                    let input_port = Port();
+                    // TODO: change copy to move once we can move into closures
+                    resource_task.send(Load(copy url, input_port.chan()));
 
-                let mut buf = ~[];
-                loop {
-                    match input_port.recv() {
-                      Payload(data) => {
-                        buf += data;
-                      }
-                      Done(Ok(*)) => {
-                        result_chan.send(buf);
-                        break;
-                      }
-                      Done(Err(*)) => {
-                        #error("error loading script %s", url.to_str());
-                      }
+                    let mut buf = ~[];
+                    loop {
+                        match input_port.recv() {
+                            Payload(move data) => {
+                                buf += data;
+                            }
+                            Done(Ok(*)) => {
+                                result_chan.send(move buf);
+                                break;
+                            }
+                            Done(Err(*)) => {
+                                #error("error loading script %s", url.to_str());
+                            }
+                        }
                     }
                 }
+                vec::push(&mut result_vec, result_port);
             }
-            vec::push(&mut result_vec, result_port);
-          }
-          JSTaskExit => {
-            break;
-          }  
+            JSTaskExit => {
+                break;
+            }
         }
     }
 
     let js_scripts = vec::map(result_vec, |result_port| result_port.recv());
-    to_parent.send(js_scripts);
+    to_parent.send(move js_scripts);
 }
 
 fn build_element_kind(tag: &str) -> ~ElementKind {
@@ -183,7 +181,7 @@ pub fn parse_html(scope: NodeScope,
         js_script_listener(js_chan, js_port, resource_task);
     };
 
-    let (scope, url) = (@copy scope, @url);
+    let (scope, url) = (@copy scope, @move url);
 
     // Build the root node.
     let root = scope.new_node(Element(ElementData(~"html", ~HTMLDivElement)));
@@ -209,14 +207,15 @@ pub fn parse_html(scope: NodeScope,
                 None => None,
                 Some(id) => Some(from_slice(id))
             };
-            let data = DoctypeData(name, public_id, system_id, doctype.force_quirks);
-            let new_node = scope.new_node(Doctype(data));
+            let data = DoctypeData(move name, move public_id, move system_id,
+                                   doctype.force_quirks);
+            let new_node = scope.new_node(Doctype(move data));
             unsafe { reinterpret_cast(&new_node) }
         },
-        create_element: |tag: &hubbub::Tag| {
+        create_element: |tag: &hubbub::Tag, move image_cache_task| {
             debug!("create element");
             let elem_kind = build_element_kind(tag.name);
-            let elem = ElementData(from_slice(tag.name), elem_kind);
+            let elem = ElementData(from_slice(tag.name), move elem_kind);
             debug!("attach attrs");
             for tag.attributes.each |attribute| {
                 elem.attrs.push(~Attr(from_slice(attribute.name),
@@ -231,13 +230,14 @@ pub fn parse_html(scope: NodeScope,
                         (Some(move rel), Some(move href)) => {
                             if rel == ~"stylesheet" {
                                 debug!("found CSS stylesheet: %s", href);
-                                css_chan.send(CSSTaskNewFile(make_url(href, Some(copy *url))));
+                                css_chan.send(CSSTaskNewFile(make_url(move href,
+                                                                      Some(copy *url))));
                             }
                         }
                         _ => {}
                     }
                 },
-                ~HTMLImageElement(d) => {
+                ~HTMLImageElement(copy d) => {  // FIXME: Bad copy.
                     do elem.get_attr(~"src").iter |img_url_str| {
                         let img_url = make_url(copy *img_url_str, Some(copy *url));
                         d.image = Some(copy img_url);
@@ -249,7 +249,7 @@ pub fn parse_html(scope: NodeScope,
                 //TODO (Issue #86): handle inline styles ('style' attr)
                 _ => {}
             }
-            let node = scope.new_node(Element(elem));
+            let node = scope.new_node(Element(move elem));
             unsafe { reinterpret_cast(&node) }
         },
         create_text: |data| {
@@ -310,8 +310,8 @@ pub fn parse_html(scope: NodeScope,
                             match element.get_attr(~"src") {
                                 Some(move src) => {
                                     debug!("found script: %s", src);
-                                    let new_url = make_url(src, Some(copy *url));
-                                    js_chan.send(JSTaskNewFile(new_url));
+                                    let new_url = make_url(move src, Some(copy *url));
+                                    js_chan.send(JSTaskNewFile(move new_url));
                                 }
                                 None => {}
                             }

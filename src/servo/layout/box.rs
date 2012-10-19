@@ -4,7 +4,7 @@ use servo_util::color::rgb;
 use arc = std::arc;
 use arc::ARC;
 use au = gfx::geometry;
-use au::au;
+use au::Au;
 use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
@@ -74,7 +74,7 @@ struct RenderBoxData {
        participates in */
     ctx  : @FlowContext,
     /* position of this box relative to owning flow */
-    mut position : Rect<au>,
+    mut position : Rect<Au>,
     font_size : Length,
     /* TODO (Issue #87): debug only */
     mut id: int
@@ -114,18 +114,18 @@ trait RenderBoxMethods {
     pure fn is_whitespace_only() -> bool;
     pure fn can_merge_with_box(@self, other: @RenderBox) -> bool;
     pure fn requires_inline_spacers() -> bool;
-    pure fn content_box() -> Rect<au>;
-    pure fn border_box() -> Rect<au>;
-    pure fn margin_box() -> Rect<au>;
+    pure fn content_box() -> Rect<Au>;
+    pure fn border_box() -> Rect<Au>;
+    pure fn margin_box() -> Rect<Au>;
 
-    fn split_to_width(@self, &LayoutContext, au, starts_line: bool) -> SplitBoxResult;
-    fn get_min_width(&LayoutContext) -> au;
-    fn get_pref_width(&LayoutContext) -> au;
-    fn get_used_width() -> (au, au);
-    fn get_used_height() -> (au, au);
+    fn split_to_width(@self, &LayoutContext, Au, starts_line: bool) -> SplitBoxResult;
+    fn get_min_width(&LayoutContext) -> Au;
+    fn get_pref_width(&LayoutContext) -> Au;
+    fn get_used_width() -> (Au, Au);
+    fn get_used_height() -> (Au, Au);
     fn create_inline_spacer_for_side(&LayoutContext, InlineSpacerSide) -> Option<@RenderBox>;
-    fn build_display_list(@self, &dl::DisplayListBuilder, dirty: &Rect<au>, 
-                          offset: &Point2D<au>, &dl::DisplayList);
+    fn build_display_list(@self, &dl::DisplayListBuilder, dirty: &Rect<Au>, 
+                          offset: &Point2D<Au>, &dl::DisplayList);
 }
 
 fn RenderBoxData(node: Node, ctx: @FlowContext, id: int) -> RenderBoxData {
@@ -179,7 +179,7 @@ impl RenderBox : RenderBoxMethods {
         }
     }
 
-    fn split_to_width(@self, _ctx: &LayoutContext, max_width: au, starts_line: bool) -> SplitBoxResult {
+    fn split_to_width(@self, _ctx: &LayoutContext, max_width: Au, starts_line: bool) -> SplitBoxResult {
         match self {
             @GenericBox(*) => CannotSplit(self),
             @ImageBox(*) => CannotSplit(self),
@@ -187,7 +187,7 @@ impl RenderBox : RenderBoxMethods {
             @TextBox(_,data) => {
 
                 let mut pieces_processed_count : uint = 0;
-                let mut remaining_width : au = max_width;
+                let mut remaining_width : Au = max_width;
                 let left_range = MutableRange(data.range.begin(), 0);
                 let mut right_range : Option<Range> = None;
                 debug!("split_to_width: splitting text box (strlen=%u, range=%?, avail_width=%?)",
@@ -255,14 +255,14 @@ impl RenderBox : RenderBoxMethods {
      * may cause glyphs to be allocated. For now, it's impure because of 
      * holder.get_image()
     */
-    fn get_min_width(_ctx: &LayoutContext) -> au {
+    fn get_min_width(_ctx: &LayoutContext) -> Au {
         match self {
             // TODO: this should account for min/pref widths of the
             // box element in isolation. That includes
             // border/margin/padding but not child widths. The block
             // FlowContext will combine the width of this element and
             // that of its children to arrive at the context width.
-            GenericBox(*) => au(0),
+            GenericBox(*) => Au(0),
             // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult 'width'.
             ImageBox(_,i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
@@ -271,14 +271,14 @@ impl RenderBox : RenderBoxMethods {
         }
     }
 
-    fn get_pref_width(_ctx: &LayoutContext) -> au {
+    fn get_pref_width(_ctx: &LayoutContext) -> Au {
         match self {
             // TODO: this should account for min/pref widths of the
             // box element in isolation. That includes
             // border/margin/padding but not child widths. The block
             // FlowContext will combine the width of this element and
             // that of its children to arrive at the context width.
-            GenericBox(*) => au(0),
+            GenericBox(*) => Au(0),
             ImageBox(_,i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
 
             // a text box cannot span lines, so assume that this is an unsplit text box.
@@ -288,9 +288,9 @@ impl RenderBox : RenderBoxMethods {
             // maybe text boxes should report nothing, and the parent flow could
             // factor in min/pref widths of any text runs that it owns.
             TextBox(_,d) => {
-                let mut max_line_width: au = au(0);
+                let mut max_line_width: Au = Au(0);
                 for d.run.iter_natural_lines_for_range(d.range) |line_range| {
-                    let mut line_width: au = au(0);
+                    let mut line_width: Au = Au(0);
                     for d.run.glyphs.iter_glyphs_for_range(line_range) |_char_i, glyph| {
                         line_width += glyph.advance()
                     }
@@ -305,20 +305,20 @@ impl RenderBox : RenderBoxMethods {
 
     /* Returns the amount of left, right "fringe" used by this
     box. This should be based on margin, border, padding, width. */
-    fn get_used_width() -> (au, au) {
+    fn get_used_width() -> (Au, Au) {
         // TODO: this should actually do some computation!
         // See CSS 2.1, Section 10.3, 10.4.
 
-        (au(0), au(0))
+        (Au(0), Au(0))
     }
     
     /* Returns the amount of left, right "fringe" used by this
     box. This should be based on margin, border, padding, width. */
-    fn get_used_height() -> (au, au) {
+    fn get_used_height() -> (Au, Au) {
         // TODO: this should actually do some computation!
         // See CSS 2.1, Section 10.5, 10.6.
 
-        (au(0), au(0))
+        (Au(0), Au(0))
     }
 
     /* Whether "spacer" boxes are needed to stand in for this DOM node */
@@ -328,7 +328,7 @@ impl RenderBox : RenderBoxMethods {
 
     /* The box formed by the content edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
-    pure fn content_box() -> Rect<au> {
+    pure fn content_box() -> Rect<Au> {
         match self {
             ImageBox(_,i) => {
                 let size = i.size();
@@ -362,14 +362,14 @@ impl RenderBox : RenderBoxMethods {
 
     /* The box formed by the border edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
-    pure fn border_box() -> Rect<au> {
+    pure fn border_box() -> Rect<Au> {
         // TODO: actually compute content_box + padding + border
         self.content_box()
     }
 
     /* The box fromed by the margin edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
-    pure fn margin_box() -> Rect<au> {
+    pure fn margin_box() -> Rect<Au> {
         // TODO: actually compute content_box + padding + border + margin
         self.content_box()
     }
@@ -397,11 +397,11 @@ impl RenderBox : RenderBoxMethods {
     * `origin` - Total offset from display list root flow to this box's owning flow
     * `list` - List to which items should be appended
     */
-    fn build_display_list(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<au>,
-                          offset: &Point2D<au>, list: &dl::DisplayList) {
+    fn build_display_list(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<Au>,
+                          offset: &Point2D<Au>, list: &dl::DisplayList) {
 
         let style = self.d().node.style();
-        let box_bounds : Rect<au> = match style.position {
+        let box_bounds : Rect<Au> = match style.position {
             Specified(PosAbsolute) => {
                 let x_offset = match style.left {
                     Specified(Px(px)) => au::from_frac_px(px),
@@ -452,7 +452,7 @@ impl RenderBox : RenderBoxMethods {
         self.add_border_to_list(list, abs_box_bounds);
     }
 
-    fn add_bgcolor_to_list(list: &dl::DisplayList, abs_bounds: &Rect<au>) {
+    fn add_bgcolor_to_list(list: &dl::DisplayList, abs_bounds: &Rect<Au>) {
         use std::cmp::FuzzyEq;
         // TODO: shouldn't need to unbox CSSValue by now
         let boxed_bgcolor = self.d().node.style().background_color;
@@ -465,7 +465,7 @@ impl RenderBox : RenderBoxMethods {
         }
     }
 
-    fn add_border_to_list(list: &dl::DisplayList, abs_bounds: Rect<au>) {
+    fn add_border_to_list(list: &dl::DisplayList, abs_bounds: Rect<Au>) {
         let style = self.d().node.style();
         match style.border_width {
             Specified(Px(px)) => {
@@ -473,8 +473,8 @@ impl RenderBox : RenderBoxMethods {
                 let border_width = au::from_frac_px(px);
                 let abs_bounds = Rect {
                     origin: Point2D {
-                        x: abs_bounds.origin.x - border_width / au(2),
-                        y: abs_bounds.origin.y - border_width / au(2),
+                        x: abs_bounds.origin.x - border_width / Au(2),
+                        y: abs_bounds.origin.y - border_width / Au(2),
                     },
                     size: Size2D {
                         width: abs_bounds.size.width + border_width,

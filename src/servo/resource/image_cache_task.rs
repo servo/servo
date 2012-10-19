@@ -105,14 +105,14 @@ pub fn ImageCacheTask_(resource_task: ResourceTask, decoder_factory: DecoderFact
         }.run();
     }
 
-    chan
+    move chan
 }
 
 fn SyncImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
     let (chan, port) = stream();
     let port_cell = Cell(move port);
 
-    do spawn |move port_cell| {
+    do spawn |move port_cell, move resource_task| {
         let port = port_cell.take();
         let inner_cache = ImageCacheTask(resource_task);
 
@@ -120,17 +120,19 @@ fn SyncImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
             let msg: Msg = port.recv();
 
             match move msg {
-              GetImage(move url, move response) => inner_cache.send(WaitForImage(url, response)),
-              Exit(move response) => {
-                inner_cache.send(Exit(response));
-                break;
-              }
-              move msg => inner_cache.send(msg)
+                GetImage(move url, move response) => {
+                    inner_cache.send(WaitForImage(move url, move response));
+                }
+                Exit(move response) => {
+                    inner_cache.send(Exit(move response));
+                    break;
+                }
+                move msg => inner_cache.send(move msg)
             }
         }
     }
 
-    return SharedChan(chan);
+    return move SharedChan(move chan);
 }
 
 struct ImageCache {
@@ -178,17 +180,21 @@ impl ImageCache {
             #debug("image_cache_task: received: %?", msg);
 
             match move msg {
-              Prefetch(move url) => self.prefetch(url),
-              StorePrefetchedImageData(move url, move data) => self.store_prefetched_image_data(url, data),
-              Decode(move url) => self.decode(url),
-              StoreImage(move url, move image) => self.store_image(url, image),
-              GetImage(move url, move response) => self.get_image(url, response),
-              WaitForImage(move url, move response) => self.wait_for_image(url, response),
-              OnMsg(move handler) => msg_handlers += [copy handler],
-              Exit(move response) => {
-                assert self.need_exit.is_none();
-                self.need_exit = Some(response);
-              }
+                Prefetch(move url) => self.prefetch(move url),
+                StorePrefetchedImageData(move url, move data) => {
+                    self.store_prefetched_image_data(move url, move data);
+                }
+                Decode(move url) => self.decode(move url),
+                StoreImage(move url, move image) => self.store_image(move url, move image),
+                GetImage(move url, move response) => self.get_image(move url, move response),
+                WaitForImage(move url, move response) => {
+                    self.wait_for_image(move url, move response)
+                }
+                OnMsg(move handler) => msg_handlers += [move handler],
+                Exit(move response) => {
+                    assert self.need_exit.is_none();
+                    self.need_exit = Some(move response);
+                }
             }
 
             let need_exit = replace(&mut self.need_exit, None);
@@ -223,14 +229,14 @@ impl ImageCache {
     }
 
     priv fn get_state(url: Url) -> ImageState {
-        match self.state_map.find(url) {
-          Some(state) => state,
-          None => Init
+        match move self.state_map.find(move url) {
+            Some(move state) => move state,
+            None => Init
         }
     }
 
     priv fn set_state(url: Url, state: ImageState) {
-        self.state_map.insert(url, state);
+        self.state_map.insert(move url, move state);
     }
 
     priv fn prefetch(url: Url) {
@@ -240,22 +246,22 @@ impl ImageCache {
             let resource_task = self.resource_task;
             let url_cell = Cell(copy url);
 
-            do spawn |move url_cell| {
+            do spawn |move to_cache, move url_cell| {
                 let url = url_cell.take();
                 #debug("image_cache_task: started fetch for %s", url.to_str());
 
                 let image = load_image_data(copy url, resource_task);
 
                 let result = if image.is_ok() {
-                    Ok(Cell(result::unwrap(image)))
+                    Ok(Cell(result::unwrap(move image)))
                 } else {
                     Err(())
                 };
-                to_cache.send(StorePrefetchedImageData(copy url, result));
+                to_cache.send(StorePrefetchedImageData(copy url, move result));
                 #debug("image_cache_task: ended fetch for %s", (copy url).to_str());
             }
 
-            self.set_state(url, Prefetching(DoNotDecode));
+            self.set_state(move url, Prefetching(DoNotDecode));
           }
 
           Prefetching(*)
@@ -274,15 +280,15 @@ impl ImageCache {
             match data {
               Ok(data_cell) => {
                 let data = data_cell.take();
-                self.set_state(copy url, Prefetched(@Cell(data)));
+                self.set_state(copy url, Prefetched(@Cell(move data)));
                 match next_step {
-                  DoDecode => self.decode(url),
+                  DoDecode => self.decode(move url),
                   _ => ()
                 }
               }
               Err(*) => {
                 self.set_state(copy url, Failed);
-                self.purge_waiters(url, || ImageFailed);
+                self.purge_waiters(move url, || ImageFailed);
               }
             }
           }
@@ -298,48 +304,45 @@ impl ImageCache {
     }
 
     priv fn decode(url: Url) {
-
         match self.get_state(copy url) {
-          Init => fail ~"decoding image before prefetch",
+            Init => fail ~"decoding image before prefetch",
 
-          Prefetching(DoNotDecode) => {
-            // We don't have the data yet, queue up the decode
-            self.set_state(url, Prefetching(DoDecode))
-          }
-
-          Prefetching(DoDecode) => {
-            // We don't have the data yet, but the decode request is queued up
-          }
-
-          Prefetched(data_cell) => {
-            assert !data_cell.is_empty();
-
-            let data = data_cell.take();
-            let to_cache = self.chan.clone();
-            let url_cell = Cell(copy url);
-            let decode = self.decoder_factory();
-
-            do spawn |move url_cell, move decode| {
-                let url = url_cell.take();
-                #debug("image_cache_task: started image decode for %s", url.to_str());
-                let image = decode(data);
-                let image = if image.is_some() {
-                    Some(ARC(~option::unwrap(image)))
-                } else {
-                    None
-                };
-                to_cache.send(StoreImage(copy url, move image));
-                #debug("image_cache_task: ended image decode for %s", url.to_str());
+            Prefetching(DoNotDecode) => {
+                // We don't have the data yet, queue up the decode
+                self.set_state(move url, Prefetching(DoDecode))
             }
 
-            self.set_state(url, Decoding);
-          }
+            Prefetching(DoDecode) => {
+                // We don't have the data yet, but the decode request is queued up
+            }
 
-          Decoding
-          | Decoded(*)
-          | Failed => {
-            // We've already begun decoding
-          }
+            Prefetched(data_cell) => {
+                assert !data_cell.is_empty();
+
+                let data = data_cell.take();
+                let to_cache = self.chan.clone();
+                let url_cell = Cell(copy url);
+                let decode = self.decoder_factory();
+
+                do spawn |move url_cell, move decode, move data, move to_cache| {
+                    let url = url_cell.take();
+                    #debug("image_cache_task: started image decode for %s", url.to_str());
+                    let image = decode(data);
+                    let image = if image.is_some() {
+                        Some(ARC(~option::unwrap(move image)))
+                    } else {
+                        None
+                    };
+                    to_cache.send(StoreImage(copy url, move image));
+                    #debug("image_cache_task: ended image decode for %s", url.to_str());
+                }
+
+                self.set_state(move url, Decoding);
+            }
+
+            Decoding | Decoded(*) | Failed => {
+                // We've already begun decoding
+            }
         }
     }
 
@@ -350,11 +353,11 @@ impl ImageCache {
             match image {
               Some(image) => {
                 self.set_state(copy url, Decoded(@clone_arc(&image)));
-                self.purge_waiters(url, || ImageReady(clone_arc(&image)) );
+                self.purge_waiters(move url, || ImageReady(clone_arc(&image)) );
               }
               None => {
                 self.set_state(copy url, Failed);
-                self.purge_waiters(url, || ImageFailed );
+                self.purge_waiters(move url, || ImageFailed );
               }
             }
           }
@@ -376,7 +379,7 @@ impl ImageCache {
             for waiters.each |response| {
                 response.send(f());
             }
-            self.wait_map.remove(url);
+            self.wait_map.remove(move url);
           }
           None => ()
         }
@@ -410,33 +413,30 @@ impl ImageCache {
     }
 
     priv fn wait_for_image(url: Url, response: Chan<ImageResponseMsg>) {
-
         match self.get_state(copy url) {
-          Init => fail ~"request for image before prefetch",
+            Init => fail ~"request for image before prefetch",
 
-          Prefetching(DoNotDecode)
-          | Prefetched(*) => fail ~"request for image before decode",
+            Prefetching(DoNotDecode) | Prefetched(*) => fail ~"request for image before decode",
 
-          Prefetching(DoDecode)
-          | Decoding => {
-            // We don't have this image yet
-            match self.wait_map.find(copy url) {
-              Some(waiters) => {
-                vec::push(&mut *waiters, response);
-              }
-              None => {
-                self.wait_map.insert(url, @mut ~[response]);
-              }
+            Prefetching(DoDecode) | Decoding => {
+                // We don't have this image yet
+                match self.wait_map.find(copy url) {
+                    Some(waiters) => {
+                        vec::push(&mut *waiters, move response);
+                    }
+                    None => {
+                        self.wait_map.insert(move url, @mut ~[move response]);
+                    }
+                }
             }
-          }
 
-          Decoded(image) => {
-            response.send(ImageReady(clone_arc(image)));
-          }
+            Decoded(image) => {
+                response.send(ImageReady(clone_arc(image)));
+            }
 
-          Failed => {
-            response.send(ImageFailed);
-          }
+            Failed => {
+                response.send(ImageFailed);
+            }
         }
     }
 
@@ -451,7 +451,7 @@ impl ImageCacheTask: ImageCacheTaskClient {
 
     fn exit() {
         let (response_chan, response_port) = stream();
-        self.send(Exit(response_chan));
+        self.send(Exit(move response_chan));
         response_port.recv();
     }
 
@@ -459,21 +459,21 @@ impl ImageCacheTask: ImageCacheTaskClient {
 
 fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
     let response_port = Port();
-    resource_task.send(resource_task::Load(url, response_port.chan()));
+    resource_task.send(resource_task::Load(move url, response_port.chan()));
 
     let mut image_data = ~[];
 
     loop {
         match response_port.recv() {
-          resource_task::Payload(data) => {
-            image_data += data;
-          }
-          resource_task::Done(result::Ok(*)) => {
-            return Ok(image_data);
-          }
-          resource_task::Done(result::Err(*)) => {
-            return Err(());
-          }
+            resource_task::Payload(data) => {
+                image_data += data;
+            }
+            resource_task::Done(result::Ok(*)) => {
+                return Ok(move image_data);
+            }
+            resource_task::Done(result::Err(*)) => {
+                return Err(());
+            }
         }
     }
 }

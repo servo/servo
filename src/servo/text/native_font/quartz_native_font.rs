@@ -211,6 +211,6 @@ pub fn with_test_native_font(f: fn@(nf: &NativeFont)) {
 
     let buf = @test_font_bin();
     let res = create(buf);
-    let font = unwrap_result(res);
+    let font = unwrap_result(move res);
     f(&font);
 }

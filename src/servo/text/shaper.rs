@@ -1,7 +1,7 @@
 extern mod harfbuzz;
 
 use au = gfx::geometry;
-use au::au;
+use au::Au;
 use core::num::from_int;
 use font::Font;
 use font_cache::FontCache;
@@ -110,7 +110,7 @@ pub fn shape_textrun(run: &TextRun) {
         let hb_info: hb_glyph_info_t = *offset(info_buf, i);
         let hb_pos: hb_glyph_position_t = *offset(pos_buf, i);
         let codepoint = hb_info.codepoint as GlyphIndex;
-        let advance: au = au::from_frac_px(fixed_to_float_hb(hb_pos.x_advance));
+        let advance: Au = au::from_frac_px(fixed_to_float_hb(hb_pos.x_advance));
         let offset = match (hb_pos.x_offset, hb_pos.y_offset) {
             (0, 0) => None,
             (x, y) => Some(Point2D(au::from_frac_px(fixed_to_float_hb(x)),

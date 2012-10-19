@@ -1,7 +1,7 @@
 pub use font_cache::FontCache;
 
 use au = gfx::geometry;
-use au::au;
+use au::Au;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -30,14 +30,14 @@ struct Font {
 
 struct RunMetrics {
     // may be negative due to negative width
-    advance_width: au,
+    advance_width: Au,
 
-    ascent: au, // nonzero
-    descent: au, // nonzero
+    ascent: Au, // nonzero
+    descent: Au, // nonzero
 
     // this bounding box is relative to the left origin baseline.
     // so, bounding_box.position.y = -ascent
-    bounding_box: Rect<au>
+    bounding_box: Rect<Au>
 }
 
 // Public API
@@ -57,11 +57,11 @@ pub impl Font : FontMethods {
 
         // TODO: alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
-        let mut advance = au(0);
+        let mut advance = Au(0);
         for run.glyphs.iter_glyphs_for_range(range) |_i, glyph| {
             advance += glyph.advance();
         }
-        let mut bounds = Rect(Point2D(au(0), -self.metrics.ascent),
+        let mut bounds = Rect(Point2D(Au(0), -self.metrics.ascent),
                               Size2D(advance, self.metrics.ascent + self.metrics.descent));
 
         // TODO(Issue #125): support loose and tight bounding boxes; using the
@@ -108,14 +108,14 @@ fn Font(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont) -> Font {
 }
 
 struct FontMetrics {
-    underline_size:   au,
-    underline_offset: au,
-    leading:          au,
-    x_height:         au,
-    em_size:          au,
-    ascent:           au,
-    descent:          au,
-    max_advance:      au
+    underline_size:   Au,
+    underline_offset: Au,
+    leading:          Au,
+    x_height:         Au,
+    em_size:          Au,
+    ascent:           Au,
+    descent:          Au,
+    max_advance:      Au
 }
 
 const TEST_FONT: [u8 * 33004] = #include_bin("JosefinSans-SemiBold.ttf");

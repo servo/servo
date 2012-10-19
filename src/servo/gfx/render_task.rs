@@ -1,5 +1,5 @@
 use au = gfx::geometry;
-use au::au;
+use au::Au;
 use comm::*;
 use compositor::{Compositor, LayerBuffer};
 use dl = display_list;
@@ -22,15 +22,17 @@ pub enum Msg {
 pub type RenderTask = comm::Chan<Msg>;
 
 pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
-    do task::spawn_listener |po: comm::Port<Msg>| {
+    let compositor_cell = Cell(move compositor);
+    do task::spawn_listener |po: comm::Port<Msg>, move compositor_cell| {
         let (layer_buffer_channel, layer_buffer_port) = pipes::stream();
 
+        let compositor = compositor_cell.take();
         compositor.begin_drawing(move layer_buffer_channel);
 
         Renderer {
             port: po,
-            compositor: compositor,
-            mut layer_buffer_port: Cell(layer_buffer_port),
+            compositor: move compositor,
+            mut layer_buffer_port: Cell(move layer_buffer_port),
             font_cache: FontCache(),
         }.start();
     }
@@ -49,7 +51,7 @@ impl<C: Compositor Send> Renderer<C> {
 
         loop {
             match self.port.recv() {
-                RenderMsg(move render_layer) => self.render(render_layer),
+                RenderMsg(move render_layer) => self.render(move render_layer),
                 ExitMsg(response_ch) => {
                     response_ch.send(());
                     break;
@@ -69,10 +71,10 @@ impl<C: Compositor Send> Renderer<C> {
 
         let layer_buffer = layer_buffer_port.recv();
         let (layer_buffer_channel, new_layer_buffer_port) = pipes::stream();
-        self.layer_buffer_port.put_back(new_layer_buffer_port);
+        self.layer_buffer_port.put_back(move new_layer_buffer_port);
 
         let render_layer_cell = Cell(move render_layer);
-        let layer_buffer_cell = Cell(layer_buffer);
+        let layer_buffer_cell = Cell(move layer_buffer);
         let layer_buffer_channel_cell = Cell(move layer_buffer_channel);
 
         #debug("renderer: rendering");
@@ -93,7 +95,7 @@ impl<C: Compositor Send> Renderer<C> {
             };
 
             #debug("renderer: returning surface");
-            self.compositor.draw(layer_buffer_channel, move layer_buffer);
+            self.compositor.draw(move layer_buffer_channel, move layer_buffer);
         }
     }
 }

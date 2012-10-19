@@ -1,6 +1,6 @@
 use comm::{Port, Chan};
 use content::content_task::{ControlMsg, Timer, ExitMsg};
-use js::jsapi::jsval;
+use js::jsapi::JSVal;
 use dvec::DVec;
 
 enum TimerControlMsg {
@@ -21,11 +21,11 @@ struct Window {
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
 pub struct TimerData {
-    funval: jsval,
-    args: DVec<jsval>,
+    funval: JSVal,
+    args: DVec<JSVal>,
 }
 
-pub fn TimerData(argc: libc::c_uint, argv: *jsval) -> TimerData unsafe {
+pub fn TimerData(argc: libc::c_uint, argv: *JSVal) -> TimerData unsafe {
     let data = TimerData {
         funval : *argv,
         args : DVec(),
@@ -37,7 +37,7 @@ pub fn TimerData(argc: libc::c_uint, argv: *jsval) -> TimerData unsafe {
         i += 1;
     };
 
-    data
+    move data
 }
 
 // FIXME: delayed_send shouldn't require Copy
@@ -52,7 +52,7 @@ impl Window {
         self.timer_chan.send(TimerMessage_TriggerExit);
     }
 
-    fn setTimeout(&self, timeout: int, argc: libc::c_uint, argv: *jsval) {
+    fn setTimeout(&self, timeout: int, argc: libc::c_uint, argv: *JSVal) {
         let timeout = int::max(0, timeout) as uint;
 
         // Post a delayed message to the per-window timer task; it will dispatch it
@@ -66,12 +66,13 @@ impl Window {
 fn Window(content_chan: pipes::SharedChan<ControlMsg>) -> Window {
         
     Window {
-        timer_chan: do task::spawn_listener |timer_port: Port<TimerControlMsg>| {
+        timer_chan: do task::spawn_listener |timer_port: Port<TimerControlMsg>,
+                                             move content_chan| {
             loop {
-                match timer_port.recv() {
+                match move timer_port.recv() {
                     TimerMessage_Close => break,
-                    TimerMessage_Fire(td) => {
-                        content_chan.send(Timer(copy td));
+                    TimerMessage_Fire(move td) => {
+                        content_chan.send(Timer(move td));
                     }
                     TimerMessage_TriggerExit => content_chan.send(ExitMsg)
                 }

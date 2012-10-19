@@ -55,12 +55,12 @@ fn ResourceTask() -> ResourceTask {
         (~"file", file_loader::factory),
         (~"http", http_loader::factory)
     ];
-    create_resource_task_with_loaders(loaders)
+    create_resource_task_with_loaders(move loaders)
 }
 
 fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
-    do spawn_listener |from_client| {
-        // TODO: change copy to move once we can move into closures
+    do spawn_listener |from_client, move loaders| {
+        // TODO: change copy to move once we can move out of closures
         ResourceManager(from_client, copy loaders).start()
     }
 }
@@ -75,8 +75,8 @@ pub struct ResourceManager {
 pub fn ResourceManager(from_client: Port<ControlMsg>, 
                        loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceManager {
     ResourceManager {
-        from_client : from_client,
-        loaders : loaders,
+        from_client : move from_client,
+        loaders : move loaders,
     }
 }
 
@@ -98,14 +98,14 @@ impl ResourceManager {
     fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
 
         match self.get_loader_factory(&url) {
-          Some(loader_factory) => {
-            #debug("resource_task: loading url: %s", to_str(copy url));
-            loader_factory(url, progress_chan);
-          }
-          None => {
-            #debug("resource_task: no loader for scheme %s", url.scheme);
-            progress_chan.send(Done(Err(())));
-          }
+            Some(loader_factory) => {
+                #debug("resource_task: loading url: %s", to_str(copy url));
+                loader_factory(move url, progress_chan);
+            }
+            None => {
+                #debug("resource_task: no loader for scheme %s", url.scheme);
+                progress_chan.send(Done(Err(())));
+            }
         }
     }
 
@@ -113,7 +113,7 @@ impl ResourceManager {
         for self.loaders.each |scheme_loader| {
             let (scheme, loader_factory) = copy *scheme_loader;
             if scheme == url.scheme {
-                return Some(loader_factory);
+                return Some(move loader_factory);
             }
         }
         return None;
