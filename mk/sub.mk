@@ -5,14 +5,14 @@ DEPS_rust-glut += \
 	rust-opengles
 
 DEPS_rust-layers += \
+	rust-azure \
 	rust-geom \
-	rust-opengles \
 	rust-glut \
-	rust-azure
+	rust-opengles
 
 DEPS_sharegl += \
-	rust-opengles \
-	rust-geom
+	rust-geom \
+	rust-opengles
 
 DEPS_servo-sandbox += \
 	libhubbub \
@@ -44,11 +44,11 @@ DEPS_libcss += \
 # Platform-specific dependencies
 ifeq ($(CFG_OSTYPE),darwin)
 DEPS_rust-azure += \
-	rust-cocoa \
+	rust-core-graphics \
 	rust-core-foundation
 
 DEPS_rust-layers += \
-	rust-cocoa
+	rust-core-graphics
 
 DEPS_rust-io-surface += \
 	rust-core-foundation

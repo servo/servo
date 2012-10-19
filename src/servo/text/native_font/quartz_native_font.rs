@@ -1,4 +1,4 @@
-extern mod cocoa;
+extern mod core_graphics;
 
 export QuartzNativeFont, with_test_native_font, create;
 
@@ -8,15 +8,16 @@ use au = gfx::geometry;
 use libc::size_t;
 use ptr::null;
 use glyph::GlyphIndex;
-use cocoa::cg::{
+use cg = core_graphics;
+use cg::data_provider::{
     CGDataProviderRef,
-    CGFontRef
-};
-use cocoa::cg::cg::{
     CGDataProviderCreateWithData,
     CGDataProviderRelease,
+};
+use cg::font::{
+    CGFontRef,
     CGFontCreateWithDataProvider,
-    CGFontRelease
+    CGFontRelease,
 };
 use cast::transmute;
 use coretext::CTFontRef;

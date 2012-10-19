@@ -58,10 +58,12 @@
 [submodule "src/libcss"]
     path = src/libcss
     url = git://github.com/pcwalton/libcss.git
-
 [submodule "src/rust-netsurfcss"]
 	path = src/rust-netsurfcss
 	url = git://github.com/mozilla-servo/rust-netsurfcss.git
 [submodule "src/rust-wapcaplet"]
 	path = src/rust-wapcaplet
 	url = git://github.com/mozilla-servo/rust-wapcaplet.git
+[submodule "src/rust-core-graphics"]
+	path = src/rust-core-graphics
+	url = git://github.com/mozilla-servo/rust-core-graphics.git
