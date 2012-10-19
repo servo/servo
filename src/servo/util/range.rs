@@ -15,6 +15,16 @@ pub pure fn Range(off: uint, len: uint) -> Range {
 
 pub pure fn empty() -> Range { Range(0,0) }
 
+enum RangeRelation {
+    OverlapsBegin(/* overlap */ uint),
+    OverlapsEnd(/* overlap */ uint),
+    ContainedBy,
+    Contains,
+    Coincides,
+    EntirelyBefore,
+    EntirelyAfter
+}
+
 pub impl Range {
     pub pure fn begin() -> uint { self.off as uint }
     pub pure fn length() -> uint { self.len as uint }
@@ -42,6 +52,37 @@ pub impl Range {
     pub pure fn adjust_by(off_i: int, len_i: int) -> Range {
         Range(((self.off as int) + off_i) as uint, ((self.len as int) + len_i) as uint)
     }
+      
+    /// Computes the relationship between two ranges (`self` and `other`),
+    /// from the point of view of `self`. So, 'EntirelyBefore' means
+    /// that the `self` range is entirely before `other` range.
+    fn relation_to_range(&self, other: Range) -> RangeRelation {
+        if other.begin() > self.end() {
+            return EntirelyBefore;
+        }
+        if self.begin() > other.end() {
+            return EntirelyAfter;
+        } 
+        if self.begin() == other.begin() && self.end() == other.end() {
+            return Coincides;
+        }
+        if self.begin() <= other.begin() && self.end() >= other.end() {
+            return Contains;
+        }
+        if self.begin() >= other.begin() && self.end() <= other.end() {
+            return ContainedBy;
+        }
+        if self.begin() < other.begin() && self.end() < other.end() {
+            let overlap = self.end() - other.begin();
+            return OverlapsBegin(overlap);
+        }
+        if self.begin() > other.begin() && self.end() > other.end() {
+            let overlap = other.end() - self.begin();
+            return OverlapsEnd(overlap);
+        }
+        fail fmt!("relation_to_range(): didn't classify self=%?, other=%?",
+                  self, other);
+    }
 }
 
 pub pure fn empty_mut() -> MutableRange { MutableRange(0,0) }
@@ -61,6 +102,10 @@ impl MutableRange {
     pub pure fn end() -> uint { self.off + self.len }
     pub pure fn eachi(cb: fn&(uint) -> bool) {
         do uint::range(self.off, self.off + self.len) |i| { cb(i) }
+    }
+
+    fn relation_to_range(&self, other: &MutableRange) -> RangeRelation {
+        self.as_immutable().relation_to_range(other.as_immutable())
     }
 
     pub pure fn as_immutable() -> Range {

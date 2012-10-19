@@ -16,7 +16,7 @@ use num::Num;
 use servo_text::text_run::TextRun;
 use servo_text::util::*;
 use std::arc;
-use util::range::Range;
+use util::range::{MutableRange, Range};
 use util::tree;
 
 /*
@@ -46,54 +46,34 @@ type NodeRange = {node: Node, range: MutableRange};
 // stack-allocated object for scanning an inline flow into
 // TextRun-containing TextBoxes.
 struct TextRunScanner {
-    mut in_clump: bool,
-    mut clump_start: uint,
-    mut clump_end: uint,
+    clump: MutableRange,
     flow: @FlowContext,
 }
 
 fn TextRunScanner(flow: @FlowContext) -> TextRunScanner {
     TextRunScanner {
-        in_clump: false,
-        clump_start: 0,
-        clump_end: 0,
+        clump: util::range::empty_mut(),
         flow: flow,
     }
 }
 
 impl TextRunScanner {
     fn scan_for_runs(ctx: &LayoutContext) {
-        // if reused, must be reset.
-        assert !self.in_clump;
         assert self.flow.inline().boxes.len() > 0;
 
         do self.flow.inline().boxes.swap |in_boxes| {
             debug!("TextRunScanner: scanning %u boxes for text runs...", in_boxes.len());
-            
             let out_boxes = DVec();
-            let mut prev_box: @RenderBox = in_boxes[0];
 
-            for uint::range(0, in_boxes.len()) |i| {
-                debug!("TextRunScanner: considering box: %?", in_boxes[i].debug_str());
-
-                let can_coalesce_with_prev = i > 0 && boxes_can_be_coalesced(prev_box, in_boxes[i]);
-
-                match (self.in_clump, can_coalesce_with_prev) {
-                    // start a new clump
-                    (false, _)    => { self.reset_clump_to_index(i); },
-                    // extend clump
-                    (true, true)  => { self.clump_end = i; },
-                    // boundary detected; flush and start new clump
-                    (true, false) => {
-                        self.flush_clump_to_list(ctx, in_boxes, &out_boxes);
-                        self.reset_clump_to_index(i);
-                    }
-                };
-                
-                prev_box = in_boxes[i];
+            for uint::range(0, in_boxes.len()) |box_i| {
+                debug!("TextRunScanner: considering box: %?", in_boxes[box_i].debug_str());
+                if box_i > 0 && !can_coalesce_boxes(in_boxes, box_i-1, box_i) {
+                    self.flush_clump_to_list(ctx, in_boxes, &out_boxes);
+                }
+                self.clump.extend_by(1);
             }
             // handle remaining clumps
-            if self.in_clump {
+            if self.clump.length() > 0 {
                 self.flush_clump_to_list(ctx, in_boxes, &out_boxes);
             }
 
@@ -104,23 +84,18 @@ impl TextRunScanner {
         }
 
         // helper functions
-        pure fn boxes_can_be_coalesced(a: @RenderBox, b: @RenderBox) -> bool {
-            assert !core::box::ptr_eq(a, b);
+        pure fn can_coalesce_boxes(boxes: &[@RenderBox], left_i: uint, right_i: uint) -> bool {
+            assert left_i >= 0 && left_i < boxes.len();
+            assert right_i > 0 && right_i < boxes.len();
+            assert left_i != right_i;
 
-            match (a, b) {
+            let (left, right) = (boxes[left_i], boxes[right_i]);
+            match (left, right) {
                 // TODO(Issue #117): check whether text styles, fonts are the same.
-                (@UnscannedTextBox(*), @UnscannedTextBox(*)) => a.can_merge_with_box(b),
+                (@UnscannedTextBox(*), @UnscannedTextBox(*)) => left.can_merge_with_box(right),
                 (_, _) => false
             }
         }
-    }
-
-    fn reset_clump_to_index(i: uint) {
-        debug!("TextRunScanner: resetting clump to %u", i);
-        
-        self.clump_start = i;
-        self.clump_end = i;
-        self.in_clump = true;
     }
 
     // a 'clump' is a range of inline flow leaves that can be merged
@@ -137,13 +112,11 @@ impl TextRunScanner {
     // boxes are appended, the caller swaps the flow's box list.
     fn flush_clump_to_list(ctx: &LayoutContext, 
                            in_boxes: &[@RenderBox], out_boxes: &DVec<@RenderBox>) {
-        assert self.in_clump;
+        assert self.clump.length() > 0;
 
-        debug!("TextRunScanner: flushing boxes when start=%u,end=%u",
-               self.clump_start, self.clump_end);
-
-        let is_singleton = (self.clump_start == self.clump_end);
-        let is_text_clump = match in_boxes[self.clump_start] {
+        debug!("TextRunScanner: flushing boxes in range=%?", self.clump);
+        let is_singleton = self.clump.length() == 1;
+        let is_text_clump = match in_boxes[self.clump.begin()] {
             @UnscannedTextBox(*) => true,
             _ => false
         };
@@ -151,35 +124,32 @@ impl TextRunScanner {
         match (is_singleton, is_text_clump) {
             (false, false) => fail ~"WAT: can't coalesce non-text boxes in flush_clump_to_list()!",
             (true, false) => { 
-                debug!("TextRunScanner: pushing single non-text box when start=%u,end=%u", 
-                       self.clump_start, self.clump_end);
-                out_boxes.push(in_boxes[self.clump_start]);
+                debug!("TextRunScanner: pushing single non-text box in range: %?", self.clump);
+                out_boxes.push(in_boxes[self.clump.begin()]);
             },
             (true, true)  => { 
-                let text = in_boxes[self.clump_start].raw_text();
+                let text = in_boxes[self.clump.begin()].raw_text();
                 // TODO(Issue #115): use actual CSS 'white-space' property of relevant style.
                 let compression = CompressWhitespaceNewline;
                 let transformed_text = transform_text(text, compression);
                 // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
                 let run = @TextRun(ctx.font_cache.get_test_font(), move transformed_text);
-                debug!("TextRunScanner: pushing single text box when start=%u,end=%u",
-                       self.clump_start, self.clump_end);
-                let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump_start].d(), run,
+                debug!("TextRunScanner: pushing single text box in range: %?", self.clump);
+                let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump.begin()].d(), run,
                                                                      Range(0, run.text.len()));
                 out_boxes.push(new_box);
             },
             (false, true) => {
                 // TODO(Issue #115): use actual CSS 'white-space' property of relevant style.
                 let compression = CompressWhitespaceNewline;
-                let clump_box_count = self.clump_end - self.clump_start + 1;
 
                 // first, transform/compress text of all the nodes
-                let transformed_strs : ~[~str] = vec::from_fn(clump_box_count, |i| {
+                let transformed_strs : ~[~str] = vec::from_fn(self.clump.length(), |i| {
                     // TODO(Issue #113): we shoud be passing compression context
                     // between calls to transform_text, so that boxes
                     // starting/ending with whitespace &c can be
                     // compressed correctly w.r.t. the TextRun.
-                    let idx = i + self.clump_start;
+                    let idx = i + self.clump.begin();
                     transform_text(in_boxes[idx].raw_text(), compression)
                 });
 
@@ -187,20 +157,18 @@ impl TextRunScanner {
                 do self.flow.inline().elems.borrow |ranges: &[NodeRange]| {
                     for ranges.each |node_range: &NodeRange| {
                         let range = &node_range.range;
-                        let relation = relation_of_clump_and_range(range.as_immutable(), self.clump_start, self.clump_end);
+                        let relation = range.relation_to_range(&self.clump);
                         debug!("TextRunScanner: possibly repairing element range %?", node_range.range);
-                        debug!("TextRunScanner: relation of range and clump(start=%u, end=%u): %?",
-                               self.clump_start, self.clump_end, relation);
+                        debug!("TextRunScanner: relation of range and clump(%?): %?",
+                               self.clump, relation);
                         match relation {
-                            RangeEntirelyBeforeClump => {},
-                            RangeEntirelyAfterClump => { range.shift_by(-clump_box_count as int); },
-                            RangeCoincidesClump | RangeContainedByClump => 
-                                                       { range.reset(self.clump_start, 1); },
-                            RangeContainsClump =>      { range.extend_by(-(clump_box_count as int)); },
-                            RangeOverlapsClumpStart(overlap) => 
-                                                       { range.extend_by(1 - (overlap as int)); },
-                            RangeOverlapsClumpEnd(overlap) => 
-                            { range.reset(self.clump_start, 1 + range.length() - overlap); }
+                            EntirelyBefore => {},
+                            EntirelyAfter =>  { range.shift_by(-(self.clump.length() as int)); },
+                            Coincides | ContainedBy =>   { range.reset(self.clump.begin(), 1); },
+                            Contains =>      { range.extend_by(-(self.clump.length() as int)); },
+                            OverlapsBegin(overlap) => { range.extend_by(1 - (overlap as int)); },
+                            OverlapsEnd(overlap) => 
+                              { range.reset(self.clump.begin(), range.length() - overlap + 1); }
                         }
                         debug!("TextRunScanner: new element range: ---- %?", node_range.range);
                     }
@@ -214,56 +182,14 @@ impl TextRunScanner {
                 
                 // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
                 let run = @TextRun(ctx.font_cache.get_test_font(), move run_str);
-                debug!("TextRunScanner: pushing box(es) when start=%u,end=%u",
-                       self.clump_start, self.clump_end);
-                let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump_start].d(), run, 
+                debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
+                let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump.begin()].d(), run, 
                                                                      Range(0, run.text.len()));
                 out_boxes.push(new_box);
             }
         } /* /match */
-        self.in_clump = false;
     
-        enum ClumpRangeRelation {
-            RangeOverlapsClumpStart(/* overlap */ uint),
-            RangeOverlapsClumpEnd(/* overlap */ uint),
-            RangeContainedByClump,
-            RangeContainsClump,
-            RangeCoincidesClump,
-            RangeEntirelyBeforeClump,
-            RangeEntirelyAfterClump
-        }
-        
-        fn relation_of_clump_and_range(range: Range, clump_start: uint, 
-                                       clump_end: uint) -> ClumpRangeRelation {
-            let range_start = range.begin();
-            let range_end = (range.begin() + range.length());
-
-            if range_end < clump_start {
-                return RangeEntirelyBeforeClump;
-            } 
-            if range_start > clump_end {
-                return RangeEntirelyAfterClump;
-            }
-            if range_start == clump_start && range_end == clump_end {
-                return RangeCoincidesClump;
-            }
-            if range_start <= clump_start && range_end >= clump_end {
-                return RangeContainsClump;
-            }
-            if range_start >= clump_start && range_end <= clump_end {
-                return RangeContainedByClump;
-            }
-            if range_start < clump_start && range_end < clump_end {
-                let overlap = range_end - clump_start;
-                return RangeOverlapsClumpStart(overlap);
-            }
-            if range_start > clump_start && range_end > clump_end {
-                let overlap = clump_end - range_start;
-                return RangeOverlapsClumpEnd(overlap);
-            }
-            fail fmt!("relation_of_clump_and_range(): didn't classify range=%?, clump_start=%u, clump_end=%u",
-                      range, clump_start, clump_end);
-        }
+        self.clump.reset(self.clump.end(), 0);
     } /* /fn flush_clump_to_list */
 }
 
