@@ -198,7 +198,11 @@ struct LineboxScanner {
     new_boxes: DVec<@RenderBox>,
     work_list: DList<@RenderBox>,
     pending_line: {range: MutableRange, mut width: Au},
-    line_spans: DVec<Range>
+    line_spans: DVec<Range>,
+
+    drop {
+        debug!("---DROPPING LINEBOXSCANNER---");
+    }
 }
 
 fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
@@ -216,8 +220,8 @@ fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
 impl LineboxScanner {
     priv fn reset_scanner() {
         debug!("Resetting line box scanner's state for flow f%d.", self.flow.d().id);
-        do self.line_spans.swap |_v| { ~[] };
-        do self.new_boxes.swap |_v| { ~[] };
+        self.line_spans.set(~[]);
+        self.new_boxes.set(~[]);
         self.reset_linebox();
     }
 
@@ -263,10 +267,71 @@ impl LineboxScanner {
             self.flush_current_line();
         }
 
-        // cleanup and store results
+        //self.repair_elem_ranges();
+        self.swap_out_results();
+    }
+
+    priv fn repair_elem_ranges() {
+        debug!("--- Elem ranges before repair: ---");
+        for self.flow.inline().elems.eachi |i: uint, nr: &NodeRange| {
+            debug!("%u: %?", i, nr.range);
+        }
+        debug!("----------------------------------");
+
+        let mut old_i = 0;
+        let old_boxes = &self.flow.inline().boxes;
+
+        // index into self.new_boxes
+        let mut new_j = 0;
+
+        struct WorkItem {
+            begin_idx: uint,
+            elem_idx: uint,
+        };
+        let repair_stack : DVec<WorkItem> = DVec();
+
+        do self.flow.inline().elems.borrow |elems: &[NodeRange]| {
+            // index into elems
+            let mut elems_k = 0;
+            
+            while old_i < old_boxes.len() {
+                debug!("Considering old box %u", old_i);
+                // possibly push several items
+                while elems_k < elems.len() && old_i == elems[elems_k].range.begin() {
+                    let item = WorkItem {begin_idx: new_j, elem_idx: elems_k};
+                    debug!("Push work item for elem %u: %?", elems_k, item);
+                    repair_stack.push(item);
+                    elems_k += 1;
+                }
+            
+                // slide forward through any dups
+                while new_j < self.new_boxes.len() && old_boxes[old_i].d().node == self.new_boxes[new_j].d().node {
+                    debug!("Slide through new box %u", new_j);
+                    new_j += 1;
+                }
+
+                // possibly pop several items
+                while repair_stack.len() > 0 && old_i == elems[repair_stack.last().elem_idx].range.end() {
+                    let item = repair_stack.pop();
+                    debug!("Set range for %u to %?", item.elem_idx, Range(item.begin_idx, new_j));
+                    elems[item.elem_idx].range.reset(item.begin_idx, new_j);
+                }
+                old_i += 1;
+            }
+            
+            // possibly pop several items
+            while repair_stack.len() > 0 && old_i == elems[repair_stack.last().elem_idx].range.end() {
+                let item = repair_stack.pop();
+                debug!("Set range for %u to %?", item.elem_idx, Range(item.begin_idx, new_j));
+                elems[item.elem_idx].range.reset(item.begin_idx, new_j);
+            }
+        }
+    }
+
+    priv fn swap_out_results() {
         debug!("LineboxScanner: Propagating scanned lines[n=%u] to inline flow f%d", 
                self.line_spans.len(), self.flow.d().id);
-        // TODO: repair Node->box mappings, using strategy similar to TextRunScanner
+
         do self.new_boxes.swap |boxes| {
             self.flow.inline().boxes.set(move boxes);
             ~[]
@@ -275,6 +340,12 @@ impl LineboxScanner {
             self.flow.inline().lines.set(move boxes);
             ~[]
         };
+
+        debug!("--- Elem ranges after repair: ---");
+//        for self.flow.inline().elems.eachi |i: uint, nr: &NodeRange| {
+//            debug!("%u: %?", i, nr.range);
+//        }
+        debug!("----------------------------------");
     }
 
     priv fn flush_current_line() {
