@@ -3,7 +3,7 @@
 	url = git://github.com/mozilla-servo/rust-azure.git
 [submodule "src/rust-cocoa"]
 	path = src/rust-cocoa
-	url = git://github.com/pcwalton/rust-cocoa.git
+	url = git://github.com/mozilla-servo/rust-cocoa.git
 [submodule "src/mozjs"]
 	path = src/mozjs
 	url = git://github.com/mozilla-servo/mozjs.git
@@ -18,16 +18,16 @@
 	url = git://github.com/pcwalton/rust-stb-image.git
 [submodule "src/rust-geom"]
 	path = src/rust-geom
-	url = git://github.com/pcwalton/rust-geom.git
+	url = git://github.com/mozilla-servo/rust-geom.git
 [submodule "src/rust-opengles"]
 	path = src/rust-opengles
-	url = git://github.com/pcwalton/rust-opengles.git
+	url = git://github.com/mozilla-servo/rust-opengles.git
 [submodule "src/rust-glut"]
 	path = src/rust-glut
 	url = git://github.com/pcwalton/rust-glut.git
 [submodule "src/rust-layers"]
 	path = src/rust-layers
-	url = git://github.com/pcwalton/rust-layers.git
+	url = git://github.com/mozilla-servo/rust-layers.git
 [submodule "src/rust-http-client"]
 	path = src/rust-http-client
 	url = git://github.com/mozilla-servo/rust-http-client.git
@@ -45,7 +45,7 @@
 	url = git://github.com/pcwalton/rust-hubbub.git
 [submodule "src/rust-core-foundation"]
 	path = src/rust-core-foundation
-	url = git://github.com/pcwalton/rust-core-foundation.git
+	url = git://github.com/mozilla-servo/rust-core-foundation.git
 [submodule "src/rust-io-surface"]
 	path = src/rust-io-surface
 	url = git://github.com/pcwalton/rust-io-surface.git
