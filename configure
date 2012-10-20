@@ -278,7 +278,7 @@ then
 	CFG_RUSTC = ${CFG_LOCAL_RUST_ROOT}/bin/rustc
     fi
 else
-    probe CFG_RUSTC rustc
+    probe_need CFG_RUSTC rustc
 fi
 
 if [ ! -z "$CFG_ENABLE_CLANG" ]
