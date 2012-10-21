@@ -162,7 +162,7 @@ fn should_get_glyph_advance_stress() {
     for iter::repeat(100) {
         let (chan, port) = pipes::stream();
         ports += [@move port];
-        do task::spawn {
+        do task::spawn |move chan| {
             let lib = FontCache();
             let font = lib.get_test_font();
             let x = font.glyph_h_advance(40u as GlyphIndex);

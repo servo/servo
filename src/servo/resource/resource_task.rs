@@ -147,11 +147,11 @@ fn should_delegate_to_scheme_loader() {
         progress_chan.send(Payload(copy payload));
         progress_chan.send(Done(Ok(())));
     };
-    let loader_factories = ~[(~"snicklefritz", loader_factory)];
-    let resource_task = create_resource_task_with_loaders(loader_factories);
+    let loader_factories = ~[(~"snicklefritz", move loader_factory)];
+    let resource_task = create_resource_task_with_loaders(move loader_factories);
     let progress = Port();
     resource_task.send(Load(url::from_str(~"snicklefritz://heya").get(), progress.chan()));
-    assert progress.recv() == Payload(payload);
+    assert progress.recv() == Payload(move payload);
     assert progress.recv() == Done(Ok(()));
     resource_task.send(Exit);
 }

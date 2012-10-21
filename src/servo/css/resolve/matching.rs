@@ -234,9 +234,9 @@ mod test {
     #[allow(non_implicitly_copyable_typarams)]
     fn new_node_from_attr(scope: &NodeScope, name: ~str, val: ~str) -> Node {
         let elmt = ElementData(~"div", ~HTMLDivElement);
-        let attr = ~Attr(name, val);
-        elmt.attrs.push(attr);
-        return scope.new_node(dom::node::Element(elmt));
+        let attr = ~Attr(move name, move val);
+        elmt.attrs.push(move attr);
+        return scope.new_node(dom::node::Element(move elmt));
     }
 
     #[test]
@@ -246,7 +246,7 @@ mod test {
 
         let sel = Element(~"*", ~[StartsWith(~"lang", ~"en")]);
 
-        assert node.matches_selector(~sel);
+        assert node.matches_selector(~move sel);
     }
 
     #[test]
@@ -256,7 +256,7 @@ mod test {
 
         let sel = Element(~"*", ~[StartsWith(~"lang", ~"en")]);
 
-        assert node.matches_selector(~sel);
+        assert node.matches_selector(~move sel);
     }
     
     #[test] 
@@ -266,7 +266,7 @@ mod test {
 
         let sel = Element(~"*", ~[StartsWith(~"lang", ~"en")]);
 
-        assert !node.matches_selector(~sel);
+        assert !node.matches_selector(~move sel);
     }
 
     #[test]
@@ -276,7 +276,7 @@ mod test {
 
         let sel = Element(~"div", ~[Includes(~"mad", ~"hatter")]);
 
-        assert node.matches_selector(~sel);
+        assert node.matches_selector(~move sel);
     }
 
     #[test]
@@ -287,8 +287,8 @@ mod test {
         let sel1 = Element(~"div", ~[Exists(~"mad")]);
         let sel2 = Element(~"div", ~[Exists(~"hatter")]);
 
-        assert node.matches_selector(~sel1);
-        assert !node.matches_selector(~sel2);
+        assert node.matches_selector(~move sel1);
+        assert !node.matches_selector(~move sel2);
     }
 
     #[test]
@@ -300,7 +300,7 @@ mod test {
         let sel = Element(~"div", ~[Exact(~"mad", ~"hatter")]);
 
         assert !node1.matches_selector(~copy sel);
-        assert node2.matches_selector(~sel);
+        assert node2.matches_selector(~move sel);
     }
 
     #[test]
@@ -327,7 +327,7 @@ mod test {
         assert child2.matches_selector(~copy sel1);
         assert gchild.matches_selector(~copy sel1);
         assert ggchild.matches_selector(~copy sel1);
-        assert gggchild.matches_selector(~sel1);
+        assert gggchild.matches_selector(~move sel1);
 
         let sel2 = Descendant(~Child(~Element(~"*", ~[Exact(~"class", ~"blue")]),
                                      ~Element(~"*", ~[])),
@@ -338,7 +338,7 @@ mod test {
         assert !child2.matches_selector(~copy sel2);
         assert gchild.matches_selector(~copy sel2);
         assert ggchild.matches_selector(~copy sel2);
-        assert gggchild.matches_selector(~sel2);
+        assert gggchild.matches_selector(~move sel2);
 
         let sel3 = Sibling(~Element(~"*", ~[]), ~Element(~"*", ~[]));
 
@@ -347,7 +347,7 @@ mod test {
         assert child2.matches_selector(~copy sel3);
         assert !gchild.matches_selector(~copy sel3);
         assert !ggchild.matches_selector(~copy sel3);
-        assert !gggchild.matches_selector(~sel3);
+        assert !gggchild.matches_selector(~move sel3);
 
         let sel4 = Descendant(~Child(~Element(~"*", ~[Exists(~"class")]), ~Element(~"*", ~[])),
                               ~Element(~"*", ~[]));
@@ -357,6 +357,6 @@ mod test {
         assert !child2.matches_selector(~copy sel4);
         assert gchild.matches_selector(~copy sel4);
         assert ggchild.matches_selector(~copy sel4);
-        assert gggchild.matches_selector(~sel4);
+        assert gggchild.matches_selector(~move sel4);
     }
 }

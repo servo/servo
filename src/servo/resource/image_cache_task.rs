@@ -518,7 +518,7 @@ fn should_fail_if_unprefetched_image_is_requested() {
     let url = make_url(~"file", None);
 
     let (chan, port) = stream();
-    image_cache_task.send(GetImage(url, chan));
+    image_cache_task.send(GetImage(move url, move chan));
     port.recv();
 }
 
@@ -535,7 +535,7 @@ fn should_request_url_from_resource_task_on_prefetch() {
     let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", None);
 
-    image_cache_task.send(Prefetch(url));
+    image_cache_task.send(Prefetch(move url));
     url_requested.recv();
     image_cache_task.exit();
     mock_resource_task.send(resource_task::Exit);
@@ -551,7 +551,7 @@ fn should_fail_if_requesting_decode_of_an_unprefetched_image() {
     let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", None);
 
-    image_cache_task.send(Decode(url));
+    image_cache_task.send(Decode(move url));
     image_cache_task.exit();
 }
 
@@ -570,7 +570,7 @@ fn should_fail_if_requesting_image_before_requesting_decode() {
     // no decode message
 
     let (chan, _port) = stream();
-    image_cache_task.send(GetImage(url, chan));
+    image_cache_task.send(GetImage(move url, move chan));
 
     image_cache_task.exit();
     mock_resource_task.send(resource_task::Exit);
@@ -590,7 +590,7 @@ fn should_not_request_url_from_resource_task_on_multiple_prefetches() {
     let url = make_url(~"file", None);
 
     image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Prefetch(url));
+    image_cache_task.send(Prefetch(move url));
     url_requested.recv();
     image_cache_task.exit();
     mock_resource_task.send(resource_task::Exit);
@@ -602,7 +602,7 @@ fn should_return_image_not_ready_if_data_has_not_arrived() {
 
     let (wait_chan, wait_port) = pipes::stream();
 
-    let mock_resource_task = do mock_resource_task |response| {
+    let mock_resource_task = do mock_resource_task |response, move wait_port| {
         // Don't send the data until after the client requests
         // the image
         wait_port.recv();
@@ -616,7 +616,7 @@ fn should_return_image_not_ready_if_data_has_not_arrived() {
     image_cache_task.send(Prefetch(copy url));
     image_cache_task.send(Decode(copy url));
     let (response_chan, response_port) = stream();
-    image_cache_task.send(GetImage(url, response_chan));
+    image_cache_task.send(GetImage(move url, move response_chan));
     assert response_port.recv() == ImageNotReady;
     wait_chan.send(());
     image_cache_task.exit();
@@ -651,7 +651,7 @@ fn should_return_decoded_image_data_if_data_has_arrived() {
     wait_for_image_chan.recv();
 
     let (response_chan, response_port) = stream();
-    image_cache_task.send(GetImage(url, response_chan));
+    image_cache_task.send(GetImage(move url, move response_chan));
     match response_port.recv() {
       ImageReady(_) => (),
       _ => fail
@@ -690,7 +690,7 @@ fn should_return_decoded_image_data_for_multiple_requests() {
 
     for iter::repeat(2) {
         let (response_chan, response_port) = stream();
-        image_cache_task.send(GetImage(copy url, response_chan));
+        image_cache_task.send(GetImage(copy url, move response_chan));
         match response_port.recv() {
           ImageReady(_) => (),
           _ => fail
@@ -822,7 +822,7 @@ fn should_return_failed_if_image_bin_cannot_be_fetched() {
     wait_for_prefetech.recv();
 
     let (response_chan, response_port) = stream();
-    image_cache_task.send(GetImage(url, response_chan));
+    image_cache_task.send(GetImage(move url, move response_chan));
     match response_port.recv() {
       ImageFailed => (),
       _ => fail
@@ -861,7 +861,7 @@ fn should_return_failed_for_multiple_get_image_requests_if_image_bin_cannot_be_f
     wait_for_prefetech.recv();
 
     let (response_chan, response_port) = stream();
-    image_cache_task.send(GetImage(copy url, response_chan));
+    image_cache_task.send(GetImage(copy url, move response_chan));
     match response_port.recv() {
       ImageFailed => (),
       _ => fail
@@ -869,7 +869,7 @@ fn should_return_failed_for_multiple_get_image_requests_if_image_bin_cannot_be_f
 
     // And ask again, we should get the same response
     let (response_chan, response_port) = stream();
-    image_cache_task.send(GetImage(url, response_chan));
+    image_cache_task.send(GetImage(move url, move response_chan));
     match response_port.recv() {
       ImageFailed => (),
       _ => fail
@@ -889,7 +889,7 @@ fn should_return_not_ready_if_image_is_still_decoding() {
         response.send(resource_task::Done(result::Ok(())));
     };
 
-    let wait_to_decode_port_cell = Cell(wait_to_decode_port);
+    let wait_to_decode_port_cell = Cell(move wait_to_decode_port);
     let decoder_factory = fn~(move wait_to_decode_port_cell) -> ~fn(&[u8]) -> Option<Image> {
         let wait_to_decode_port = wait_to_decode_port_cell.take();
         fn~(data: &[u8], move wait_to_decode_port) -> Option<Image> {
@@ -899,7 +899,7 @@ fn should_return_not_ready_if_image_is_still_decoding() {
         }
     };
 
-    let image_cache_task = ImageCacheTask_(mock_resource_task, decoder_factory);
+    let image_cache_task = ImageCacheTask_(mock_resource_task, move decoder_factory);
     let url = make_url(~"file", None);
 
     let wait_for_prefetech = Port();
@@ -920,7 +920,7 @@ fn should_return_not_ready_if_image_is_still_decoding() {
 
     // Make the request
     let (response_chan, response_port) = stream();
-    image_cache_task.send(GetImage(url, response_chan));
+    image_cache_task.send(GetImage(move url, move response_chan));
 
     match response_port.recv() {
       ImageNotReady => (),
@@ -964,7 +964,7 @@ fn should_return_failed_if_image_decode_fails() {
 
     // Make the request
     let (response_chan, response_port) = stream();
-    image_cache_task.send(GetImage(url, response_chan));
+    image_cache_task.send(GetImage(move url, move response_chan));
 
     match response_port.recv() {
       ImageFailed => (),
@@ -1003,7 +1003,7 @@ fn should_return_image_on_wait_if_image_is_already_loaded() {
     wait_for_decode.recv();
 
     let (response_chan, response_port) = stream();
-    image_cache_task.send(WaitForImage(url, response_chan));
+    image_cache_task.send(WaitForImage(move url, move response_chan));
     match response_port.recv() {
       ImageReady(*) => (),
       _ => fail
@@ -1018,7 +1018,7 @@ fn should_return_image_on_wait_if_image_is_not_yet_loaded() {
 
     let (wait_chan, wait_port) = pipes::stream();
 
-    let mock_resource_task = do mock_resource_task |response| {
+    let mock_resource_task = do mock_resource_task |response, move wait_port| {
         wait_port.recv();
         response.send(resource_task::Payload(test_image_bin()));
         response.send(resource_task::Done(result::Ok(())));
@@ -1031,7 +1031,7 @@ fn should_return_image_on_wait_if_image_is_not_yet_loaded() {
     image_cache_task.send(Decode(copy url));
 
     let (response_chan, response_port) = stream();
-    image_cache_task.send(WaitForImage(url, response_chan));
+    image_cache_task.send(WaitForImage(move url, move response_chan));
 
     wait_chan.send(());
 
@@ -1049,7 +1049,7 @@ fn should_return_image_failed_on_wait_if_image_fails_to_load() {
 
     let (wait_chan, wait_port) = pipes::stream();
 
-    let mock_resource_task = do mock_resource_task |response| {
+    let mock_resource_task = do mock_resource_task |response, move wait_port| {
         wait_port.recv();
         response.send(resource_task::Payload(test_image_bin()));
         response.send(resource_task::Done(result::Err(())));
@@ -1062,7 +1062,7 @@ fn should_return_image_failed_on_wait_if_image_fails_to_load() {
     image_cache_task.send(Decode(copy url));
 
     let (response_chan, response_port) = stream();
-    image_cache_task.send(WaitForImage(url, response_chan));
+    image_cache_task.send(WaitForImage(move url, move response_chan));
 
     wait_chan.send(());
 
@@ -1089,7 +1089,7 @@ fn sync_cache_should_wait_for_images() {
     image_cache_task.send(Decode(copy url));
 
     let (response_chan, response_port) = stream();
-    image_cache_task.send(GetImage(url, response_chan));
+    image_cache_task.send(GetImage(move url, move response_chan));
     match response_port.recv() {
       ImageReady(_) => (),
       _ => fail

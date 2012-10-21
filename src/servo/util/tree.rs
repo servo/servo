@@ -186,7 +186,7 @@ mod test {
             add_child(&dtree, p, *c);
         }
 
-        return {p: p, children: children};
+        return {p: p, children: move children};
     }
 
     #[test]
