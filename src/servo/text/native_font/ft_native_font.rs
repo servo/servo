@@ -4,7 +4,7 @@ export FreeTypeNativeFont, with_test_native_font, create;
 use font::{FontMetrics, FractionalPixel};
 
 use gfx::geometry;
-use gfx::geometry::au;
+use gfx::geometry::Au;
 use util::*;
 use vec_as_buf = vec::as_imm_buf;
 use ptr::{addr_of, null};
@@ -112,7 +112,7 @@ impl FreeTypeNativeFont {
         &(*self.face)
     }
 
-    priv fn font_units_to_au(value: float) -> au {
+    priv fn font_units_to_au(value: float) -> Au {
 
         let face = self.get_face_rec();
 
