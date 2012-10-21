@@ -16,14 +16,14 @@ struct ActorRef<M: Send> {
 }
 
 impl<M: Send> ActorRef<M> {
-    fn send(msg: M) {
+    fn send(&self, msg: M) {
         self.chan.send(move msg);
     }
 }
 
 /// The local actor interface
 trait Actor<M> {
-    fn handle(msg: M) -> bool;
+    fn handle(&self, msg: M) -> bool;
 }
 
 /// A helper function used by actor constructors
@@ -49,8 +49,14 @@ struct SharedActorRef<M: Send> {
 }
 
 impl<M: Send> SharedActorRef<M> {
-    fn send(msg: M) {
+    fn send(&self, msg: M) {
         self.chan.send(move msg);
+    }
+
+    fn clone(&self) -> SharedActorRef<M> {
+        SharedActorRef {
+            chan: self.chan.clone()
+        }
     }
 }
 
@@ -72,6 +78,7 @@ fn SharedActorRef<M: Send>(actor: ActorRef<M>) -> SharedActorRef<M> {
 mod test {
 
     enum HelloMsg {
+        GetName(Chan<~str>),
         Exit(Chan<()>)
     }
 
@@ -80,13 +87,16 @@ mod test {
     }
 
     impl HelloActor: Actor<HelloMsg> {
-        fn handle(msg: HelloMsg) -> bool {
+        fn handle(&self, msg: HelloMsg) -> bool {
             match msg {
+                GetName(chan) => chan.send(copy self.name),
                 Exit(chan) => {
                     chan.send(());
                     return false;
                 }
             }
+
+            return true;
         }
     }
 
@@ -106,4 +116,24 @@ mod test {
         actor.send(Exit(move chan));
         port.recv();
     }
+
+    #[test]
+    fn test_shared() {
+        let actor = HelloActor(~"bob");
+        let actor1 = SharedActorRef(move actor);
+        let actor2 = actor1.clone();
+
+        let (chan1, port1) = stream();
+        actor1.send(GetName(move chan1));
+        let (chan2, port2) = stream();
+        actor2.send(GetName(move chan2));
+
+        assert port1.recv() == ~"bob";
+        assert port2.recv() == ~"bob";
+
+        let (chan, port) = stream();
+        actor1.send(Exit(move chan));
+        port.recv();
+    }
+
 }
