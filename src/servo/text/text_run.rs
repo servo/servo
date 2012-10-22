@@ -124,8 +124,7 @@ impl TextRun : TextRunMethods {
         let clump = MutableRange(range.begin(), 0);
         loop {
             // find next non-whitespace byte index, then clump all whitespace before it.
-            if clump.end() == range.end() { break }
-            match str::find_from(self.text, clump.begin(), |c| !char::is_whitespace(c)) {
+            match str::find_between(self.text, clump.begin(), range.end(), |c| !char::is_whitespace(c)) {
                 Some(nonws_char_offset) => {
                     clump.extend_to(nonws_char_offset);
                     if !f(clump.as_immutable()) { break }
@@ -136,13 +135,13 @@ impl TextRun : TextRunMethods {
                     if clump.end() < range.end() {
                         clump.extend_to(range.end());
                         f(clump.as_immutable());
+                        break;
                     }
                 }
             };
 
             // find next whitespace byte index, then clump all non-whitespace before it.
-            if clump.end() == range.end() { break }
-            match str::find_from(self.text, clump.begin(), |c| char::is_whitespace(c)) {
+            match str::find_between(self.text, clump.begin(), range.end(), |c| char::is_whitespace(c)) {
                 Some(ws_char_offset) => {
                     clump.extend_to(ws_char_offset);
                     if !f(clump.as_immutable()) { break }
@@ -153,6 +152,7 @@ impl TextRun : TextRunMethods {
                     if clump.end() < range.end() {
                         clump.extend_to(range.end());
                         f(clump.as_immutable());
+                        break;
                     }
                 }
             }
