@@ -39,22 +39,22 @@
 	url = git://github.com/mozilla-servo/libparserutils.git
 [submodule "src/rust-hubbub"]
 	path = src/rust-hubbub
-	url = git://github.com/pcwalton/rust-hubbub.git
+	url = git://github.com/mozilla-servo/rust-hubbub.git
 [submodule "src/rust-core-foundation"]
 	path = src/rust-core-foundation
 	url = git://github.com/mozilla-servo/rust-core-foundation.git
 [submodule "src/rust-io-surface"]
 	path = src/rust-io-surface
-	url = git://github.com/pcwalton/rust-io-surface.git
+	url = git://github.com/mozilla-servo/rust-io-surface.git
 [submodule "src/sharegl"]
 	path = src/sharegl
-	url = git://github.com/pcwalton/sharegl.git
+	url = git://github.com/mozilla-servo/sharegl.git
 [submodule "src/libwapcaplet"]
     path = src/libwapcaplet
-    url = git://github.com/pcwalton/libwapcaplet.git
+    url = git://github.com/mozilla-servo/libwapcaplet.git
 [submodule "src/libcss"]
     path = src/libcss
-    url = git://github.com/pcwalton/libcss.git
+    url = git://github.com/mozilla-servo/libcss.git
 [submodule "src/rust-netsurfcss"]
 	path = src/rust-netsurfcss
 	url = git://github.com/mozilla-servo/rust-netsurfcss.git
