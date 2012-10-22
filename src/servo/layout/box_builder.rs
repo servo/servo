@@ -32,30 +32,107 @@ impl LayoutTreeBuilder {
     }
 }
 
-struct BoxCollector {
-    flow: @FlowContext,
-    consumer: @BoxConsumer
+struct PendingEntry { 
+    start_box: @RenderBox,
+    start_idx: uint 
 }
 
-impl BoxCollector {
-    static pure fn new(flow: @FlowContext, consumer: @BoxConsumer) -> BoxCollector {
-        BoxCollector {
+// helper object for building the initial box list and making the
+// mapping between DOM nodes and boxes.
+struct BoxGenerator {
+    flow: @FlowContext,
+    stack: DVec<PendingEntry>,
+}
+
+impl BoxGenerator {
+    pub static pure fn new(flow: @FlowContext) -> BoxGenerator {
+        unsafe { debug!("Creating box generator for flow: f%s", flow.debug_str()); }
+        BoxGenerator {
             flow: flow,
-            consumer: consumer
+            stack: DVec()
+        }
+    }
+
+    pub fn push_box(ctx: &LayoutContext, box: @RenderBox) {
+        debug!("BoxGenerator: pushing box b%d to flow f%d", box.d().id, self.flow.d().id);
+        let length = match self.flow {
+            @InlineFlow(*) => self.flow.inline().boxes.len(),
+            _ => 0
+        };
+        let entry = PendingEntry { start_box: box, start_idx: length };
+        self.stack.push(entry);
+
+        match self.flow {
+            @InlineFlow(*) => {
+                if box.requires_inline_spacers() {
+                    do box.create_inline_spacer_for_side(ctx, LogicalBefore).iter |spacer: &@RenderBox| {
+                        self.flow.inline().boxes.push(*spacer);
+                    }
+                }
+            },
+            @BlockFlow(*) | @RootFlow(*) => {
+                assert self.stack.len() == 1;
+            },
+            _ => { warn!("push_box() not implemented for flow f%d", self.flow.d().id) }
+        }
+    }
+
+    pub fn pop_box(ctx: &LayoutContext, box: @RenderBox) {
+        assert self.stack.len() > 0;
+        let entry = self.stack.pop();
+        assert core::box::ptr_eq(box, entry.start_box);
+
+        debug!("BoxGenerator: popping box b%d to flow f%d", box.d().id, self.flow.d().id);
+
+        match self.flow {
+            @InlineFlow(*) => {
+                let span_length = self.flow.inline().boxes.len() - entry.start_idx + 1;
+                match (span_length, box.requires_inline_spacers()) {
+                    // if this non-leaf box generates extra horizontal
+                    // spacing, add a SpacerBox for it.
+                    (_, true) => {
+                        do box.create_inline_spacer_for_side(ctx, LogicalAfter).iter |spacer: &@RenderBox| {
+                            self.flow.inline().boxes.push(*spacer);
+                        }
+                    },
+                    // leaf box
+                    (1, _) => { self.flow.inline().boxes.push(box); return; },
+                    // non-leaf with no spacer; do nothing
+                    (_, false) => { }
+                }
+
+                // only create NodeRanges for non-leaf nodes.
+                let final_span_length = self.flow.inline().boxes.len() - entry.start_idx;
+                assert final_span_length > 0;
+                let new_range = Range(entry.start_idx, final_span_length);
+                debug!("BoxGenerator: adding element range=%?", new_range);
+                self.flow.inline().elems.add_mapping(copy box.d().node, move new_range);
+            },
+            @BlockFlow(*) => {
+                assert self.stack.len() == 0;
+                assert self.flow.block().box.is_none();
+                self.flow.block().box = Some(entry.start_box);
+            },
+            @RootFlow(*) => {
+                assert self.stack.len() == 0;
+                assert self.flow.root().box.is_none();
+                self.flow.root().box = Some(entry.start_box);
+            },
+            _ => { warn!("pop_box not implemented for flow %?", self.flow.d().id) }
         }
     }
 }
 
 struct BuilderContext {
-    default_collector: BoxCollector,
-    priv mut inline_collector: Option<BoxCollector>
+    default_collector: @BoxGenerator,
+    priv mut inline_collector: Option<@BoxGenerator>
 }
 
 impl BuilderContext {
-    static pure fn new(collector: &BoxCollector) -> BuilderContext {
+    static pure fn new(collector: @BoxGenerator) -> BuilderContext {
         unsafe { debug!("Creating new BuilderContext for flow: %s", collector.flow.debug_str()); }
         BuilderContext {
-            default_collector: copy *collector,
+            default_collector: collector,
             inline_collector: None,
         }
     }
@@ -76,24 +153,23 @@ impl BuilderContext {
         let new_flow = builder.make_flow(flow_type);
         self.attach_child_flow(new_flow);
 
-        BuilderContext::new(&BoxCollector::new(new_flow, @BoxConsumer::new(new_flow)))
+        BuilderContext::new(@BoxGenerator::new(new_flow))
     }
         
     priv fn make_inline_collector(builder: &LayoutTreeBuilder) -> BuilderContext {
         debug!("BuilderContext: making new inline collector flow");
         let new_flow = builder.make_flow(Flow_Inline);
-        let new_consumer = @BoxConsumer::new(new_flow);
-        let inline_collector = BoxCollector::new(new_flow, new_consumer);
+        let new_generator = @BoxGenerator::new(new_flow);
 
-        self.inline_collector = Some(inline_collector);
+        self.inline_collector = Some(new_generator);
         self.attach_child_flow(new_flow);
 
-        BuilderContext::new(&inline_collector)
+        BuilderContext::new(new_generator)
     }
 
     priv fn get_inline_collector(builder: &LayoutTreeBuilder) -> BuilderContext {
         match copy self.inline_collector {
-            Some(ref collector) => BuilderContext::new(collector),
+            Some(collector) => BuilderContext::new(collector),
             None => self.make_inline_collector(builder)
         }
     }
@@ -142,14 +218,14 @@ impl LayoutTreeBuilder {
         let box_type = self.decide_box_type(cur_node, simulated_display);
         let this_ctx = parent_ctx.containing_context_for_display(simulated_display, &self);
         let new_box = self.make_box(layout_ctx, box_type, cur_node, this_ctx.default_collector.flow);
-        this_ctx.default_collector.consumer.push_box(layout_ctx, new_box);
+        this_ctx.default_collector.push_box(layout_ctx, new_box);
 
         // recurse on child nodes.
         for tree::each_child(&NodeTree, &cur_node) |child_node| {
             self.construct_recursively(layout_ctx, *child_node, &this_ctx);
         }
 
-        this_ctx.default_collector.consumer.pop_box(layout_ctx, new_box);
+        this_ctx.default_collector.pop_box(layout_ctx, new_box);
         self.simplify_children_of_flow(layout_ctx, &this_ctx);
 
         // store reference to the flow context which contains any
@@ -258,8 +334,8 @@ impl LayoutTreeBuilder {
     called on root DOM element. */
     fn construct_trees(layout_ctx: &LayoutContext, root: Node) -> Result<@FlowContext, ()> {
         let new_flow = self.make_flow(Flow_Root);
-        let new_consumer = @BoxConsumer::new(new_flow);
-        let root_ctx = BuilderContext::new(&BoxCollector::new(new_flow, new_consumer));
+        let new_generator = @BoxGenerator::new(new_flow);
+        let root_ctx = BuilderContext::new(new_generator);
 
         self.root_flow = Some(new_flow);
         self.construct_recursively(layout_ctx, root, &root_ctx);
