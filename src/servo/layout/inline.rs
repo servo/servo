@@ -52,6 +52,107 @@ impl NodeRange {
     }
 }
 
+struct ElementMapping {
+    priv entries: DVec<NodeRange>,
+}
+
+impl ElementMapping {
+    static pure fn new() -> ElementMapping {
+        ElementMapping { entries: DVec() }
+    }
+
+    fn add_mapping(node: Node, range: Range) {
+        self.entries.push(NodeRange::new(node, range))
+    }
+
+    fn each(cb: pure fn&(nr: &NodeRange) -> bool) {
+        do self.entries.each |nr| { cb(nr) }
+    }
+
+    fn eachi(cb: pure fn&(i: uint, nr: &NodeRange) -> bool) {
+        do self.entries.eachi |i, nr| { cb(i, nr) }
+    }
+
+    fn eachi_mut(cb: fn&(i: uint, nr: &NodeRange) -> bool) {
+        do self.entries.eachi |i, nr| { cb(i, nr) }
+    }
+
+    fn repair_for_box_changes(old_boxes: &DVec<@RenderBox>, new_boxes: &DVec<@RenderBox>) {
+        debug!("--- Old boxes: ---");
+        for old_boxes.eachi |i, box| {
+            debug!("%u --> %s", i, box.debug_str());
+        }
+        debug!("------------------");
+
+        debug!("--- New boxes: ---");
+        for new_boxes.eachi |i, box| {
+            debug!("%u --> %s", i, box.debug_str());
+        }
+        debug!("------------------");
+
+        debug!("--- Elem ranges before repair: ---");
+        for self.entries.eachi |i: uint, nr: &NodeRange| {
+            debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str());
+        }
+        debug!("----------------------------------");
+
+        let mut old_i = 0;
+        let mut new_j = 0;
+
+        struct WorkItem {
+            begin_idx: uint,
+            entry_idx: uint,
+        };
+        let repair_stack : DVec<WorkItem> = DVec();
+
+        do self.entries.borrow |entries: &[NodeRange]| {
+            // index into entries
+            let mut entries_k = 0;
+
+            while old_i < old_boxes.len() {
+                debug!("repair_for_box_changes: Considering old box %u", old_i);
+                // possibly push several items
+                while entries_k < entries.len() && old_i == entries[entries_k].range.begin() {
+                    let item = WorkItem {begin_idx: new_j, entry_idx: entries_k};
+                    debug!("repair_for_box_changes: Push work item for elem %u: %?", entries_k, item);
+                    repair_stack.push(item);
+                    entries_k += 1;
+                }
+                // XXX: the following loop form causes segfaults; assigning to locals doesn't.
+                // while new_j < new_boxes.len() && old_boxes[old_i].d().node != new_boxes[new_j].d().node {
+                while new_j < new_boxes.len() {
+                    let o = old_boxes[old_i];
+                    let n = new_boxes[new_j];
+                    if o.d().node != n.d().node { break }
+                    debug!("repair_for_box_changes: Slide through new box %u", new_j);
+                    new_j += 1;
+                }
+
+                // possibly pop several items
+                while repair_stack.len() > 0 && old_i == entries[repair_stack.last().entry_idx].range.end() {
+                    let item = repair_stack.pop();
+                    debug!("repair_for_box_changes: Set range for %u to %?",
+                           item.entry_idx, Range(item.begin_idx, new_j));
+                    entries[item.entry_idx].range = Range(item.begin_idx, new_j);
+                }
+                old_i += 1;
+            }
+            // possibly pop several items
+            while repair_stack.len() > 0 && old_i == entries[repair_stack.last().entry_idx].range.end() {
+                let item = repair_stack.pop();
+                debug!("repair_for_box_changes: Set range for %u to %?",
+                       item.entry_idx, Range(item.begin_idx, new_j));
+                entries[item.entry_idx].range = Range(item.begin_idx, new_j);
+            }
+        }
+        debug!("--- Elem ranges after repair: ---");
+        for self.entries.eachi |i: uint, nr: &NodeRange| {
+            debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str());
+        }
+        debug!("----------------------------------");
+    }
+}
+
 // stack-allocated object for scanning an inline flow into
 // TextRun-containing TextBoxes.
 struct TextRunScanner {
@@ -168,13 +269,10 @@ impl TextRunScanner {
                 let mut run_str : ~str = ~"";
                 let new_ranges : DVec<Range> = DVec();
                 for uint::range(0, transformed_strs.len()) |i| {
-                    // XXX: if transformed_strs[i].len() == 0 { loop }
                     new_ranges.push(Range(run_str.len(), transformed_strs[i].len()));
                     str::push_str(&mut run_str, transformed_strs[i]);
                 }
 
-                // TODO: adjust containing ranges to account for any elided boxes (see XXX above, below)
-                
                 // create the run, then make new boxes with the run and adjusted text indices
 
                 // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
@@ -182,13 +280,36 @@ impl TextRunScanner {
                 debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
                 for self.clump.eachi |i| {
                     let range = new_ranges[i - self.clump.begin()];
-                    if range.length() == 0 { loop } // XXX
+                    if range.length() == 0 { 
+                        error!("Elided an UnscannedTextbox because it was zero-length after compression; %s",
+                              in_boxes[i].debug_str());
+                        loop
+                    }
                     let new_box = layout::text::adapt_textbox_with_range(in_boxes[i].d(), run, range);
                     out_boxes.push(new_box);
                 }
             }
         } /* /match */
     
+        debug!("--- In boxes: ---");
+        for in_boxes.eachi |i, box| {
+            debug!("%u --> %s", i, box.debug_str());
+        }
+        debug!("------------------");
+
+        debug!("--- Out boxes: ---");
+        for out_boxes.eachi |i, box| {
+            debug!("%u --> %s", i, box.debug_str());
+        }
+        debug!("------------------");
+
+        debug!("--- Elem ranges: ---");
+        for self.flow.inline().elems.eachi_mut |i: uint, nr: &NodeRange| {
+            debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str()); ()
+        }
+        debug!("--------------------");
+
+
         self.clump.reset(self.clump.end(), 0);
     } /* /fn flush_clump_to_list */
 }
@@ -199,10 +320,6 @@ struct LineboxScanner {
     work_list: DList<@RenderBox>,
     pending_line: {range: MutableRange, mut width: Au},
     line_spans: DVec<Range>,
-
-    drop {
-        debug!("---DROPPING LINEBOXSCANNER---");
-    }
 }
 
 fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
@@ -267,66 +384,8 @@ impl LineboxScanner {
             self.flush_current_line();
         }
 
-        self.repair_elem_ranges();
+        self.flow.inline().elems.repair_for_box_changes(&self.flow.inline().boxes, &self.new_boxes);
         self.swap_out_results();
-    }
-
-    priv fn repair_elem_ranges() {
-        debug!("--- Elem ranges before repair: ---");
-        for self.flow.inline().elems.eachi |i: uint, nr: &NodeRange| {
-            debug!("%u: %?", i, nr.range);
-        }
-        debug!("----------------------------------");
-
-        let mut old_i = 0;
-        let old_boxes = &self.flow.inline().boxes;
-        // index into self.new_boxes
-        let mut new_j = 0;
-
-        struct WorkItem {
-            begin_idx: uint,
-            elem_idx: uint,
-        };
-        let repair_stack : DVec<WorkItem> = DVec();
-
-        do self.flow.inline().elems.borrow |elems: &[NodeRange]| {
-            // index into elems
-            let mut elems_k = 0;
-
-            while old_i < old_boxes.len() {
-                debug!("Considering old box %u", old_i);
-                // possibly push several items
-                while elems_k < elems.len() && old_i == elems[elems_k].range.begin() {
-                    let item = WorkItem {begin_idx: new_j, elem_idx: elems_k};
-                    debug!("Push work item for elem %u: %?", elems_k, item);
-                    repair_stack.push(item);
-                    elems_k += 1;
-                }
-                // XXX: the following loop form causes segfaults; assigning to locals doesn't.
-                // while new_j < new_boxes.len() && old_boxes[old_i].d().node != new_boxes[new_j].d().node {
-                while new_j < self.new_boxes.len() {
-                    let o = old_boxes[old_i];
-                    let n = self.new_boxes[new_j];
-                    if o.d().node != n.d().node { break }
-                    debug!("Slide through new box %u", new_j);
-                    new_j += 1;
-                }
-
-                // possibly pop several items
-                while repair_stack.len() > 0 && old_i == elems[repair_stack.last().elem_idx].range.end() {
-                    let item = repair_stack.pop();
-                    debug!("Set range for %u to %?", item.elem_idx, Range(item.begin_idx, new_j));
-                    elems[item.elem_idx].range = Range(item.begin_idx, new_j);
-                }
-                old_i += 1;
-            }
-            // possibly pop several items
-            while repair_stack.len() > 0 && old_i == elems[repair_stack.last().elem_idx].range.end() {
-                let item = repair_stack.pop();
-                debug!("Set range for %u to %?", item.elem_idx, Range(item.begin_idx, new_j));
-                elems[item.elem_idx].range = Range(item.begin_idx, new_j);
-            }
-        }
     }
 
     priv fn swap_out_results() {
@@ -341,12 +400,6 @@ impl LineboxScanner {
             self.flow.inline().lines.set(move boxes);
             ~[]
         };
-
-        debug!("--- Elem ranges after repair: ---");
-        for self.flow.inline().elems.eachi |i: uint, nr: &NodeRange| {
-            debug!("%u: %?", i, nr.range);
-        }
-        debug!("----------------------------------");
     }
 
     priv fn flush_current_line() {
@@ -475,14 +528,14 @@ struct InlineFlowData {
     // vec of ranges into boxes that represent elements. These ranges
     // must be well-nested, and are only related to the content of
     // boxes (not lines). Ranges are only kept for non-leaf elements.
-    elems: DVec<NodeRange>
+    elems: ElementMapping
 }
 
 fn InlineFlowData() -> InlineFlowData {
     InlineFlowData {
         boxes: DVec(),
         lines: DVec(),
-        elems: DVec(),
+        elems: ElementMapping::new(),
     }
 }
 

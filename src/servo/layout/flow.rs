@@ -181,7 +181,7 @@ impl BoxConsumer {
                 assert final_span_length > 1;
                 let new_range = Range(entry.start_idx, final_span_length);
                 debug!("BoxConsumer: adding element range=%?", new_range);
-                self.flow.inline().elems.push(NodeRange::new(copy box.d().node, move new_range));
+                self.flow.inline().elems.add_mapping(copy box.d().node, move new_range);
             },
             @BlockFlow(*) => {
                 assert self.stack.len() == 0;
