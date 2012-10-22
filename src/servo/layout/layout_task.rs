@@ -158,7 +158,7 @@ impl Layout {
             /* resolve styles (convert relative values) down the node tree */
             apply_style(&layout_ctx, *node);
             
-            let builder = LayoutTreeBuilder();
+            let builder = LayoutTreeBuilder::new();
             let layout_root: @FlowContext = match builder.construct_trees(&layout_ctx,
                                                                           *node) {
                 Ok(root) => root,

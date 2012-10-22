@@ -119,15 +119,15 @@ struct BoxConsumer {
     stack: DVec<PendingEntry>,
 }
 
-fn BoxConsumer(flow: @FlowContext) -> BoxConsumer {
-    debug!("Creating box consumer for flow: f%s", flow.debug_str());
-    BoxConsumer {
-        flow: flow,
-        stack: DVec()
-    }
-}
-
 impl BoxConsumer {
+    pub static pure fn new(flow: @FlowContext) -> BoxConsumer {
+        unsafe { debug!("Creating box consumer for flow: f%s", flow.debug_str()); }
+        BoxConsumer {
+            flow: flow,
+            stack: DVec()
+        }
+    }
+
     pub fn push_box(ctx: &LayoutContext, box: @RenderBox) {
         debug!("BoxConsumer: pushing box b%d to flow f%d", box.d().id, self.flow.d().id);
         let length = match self.flow {

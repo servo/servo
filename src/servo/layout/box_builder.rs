@@ -16,41 +16,50 @@ use layout::root::RootFlowData;
 use option::is_none;
 use util::tree;
 
-export LayoutTreeBuilder;
-
-struct LayoutTreeBuilder {
+pub struct LayoutTreeBuilder {
     mut root_flow: Option<@FlowContext>,
     mut next_bid: int,
     mut next_cid: int
 }
 
-fn LayoutTreeBuilder() -> LayoutTreeBuilder {
-    LayoutTreeBuilder {
-        root_flow: None,
-        next_bid: -1,
-        next_cid: -1
+impl LayoutTreeBuilder {
+    static pure fn new() -> LayoutTreeBuilder {
+        LayoutTreeBuilder {
+            root_flow: None,
+            next_bid: -1,
+            next_cid: -1
+        }
+    }
+}
+
+struct BoxCollector {
+    flow: @FlowContext,
+    consumer: @BoxConsumer
+}
+
+impl BoxCollector {
+    static pure fn new(flow: @FlowContext, consumer: @BoxConsumer) -> BoxCollector {
+        BoxCollector {
+            flow: flow,
+            consumer: consumer
+        }
     }
 }
 
 struct BuilderContext {
-    flow: @FlowContext,
-    priv mut inline_collector: Option<@FlowContext>,
-    // BJB: conceptually `consumer` has the same lifetime as `self`,
-    // but I haven't converted recursive calls to pass a ref to parent
-    // builder context (if it is unchanged). I wonder if it's even possible?
-    consumer: @BoxConsumer
-}
-
-fn BuilderContext(flow: @FlowContext) -> BuilderContext {
-    debug!("BuilderContext: creating new builder context");
-    BuilderContext {
-        flow: flow,
-        inline_collector: None,
-        consumer: @BoxConsumer(flow)
-    }
+    default_collector: BoxCollector,
+    priv mut inline_collector: Option<BoxCollector>
 }
 
 impl BuilderContext {
+    static pure fn new(collector: &BoxCollector) -> BuilderContext {
+        unsafe { debug!("Creating new BuilderContext for flow: %s", collector.flow.debug_str()); }
+        BuilderContext {
+            default_collector: copy *collector,
+            inline_collector: None,
+        }
+    }
+
     fn clone() -> BuilderContext {
         debug!("BuilderContext: cloning context");
         copy self
@@ -58,28 +67,33 @@ impl BuilderContext {
     
     priv fn attach_child_flow(child: @FlowContext) {
         debug!("BuilderContext: Adding child flow f%? of f%?",
-               self.flow.d().id, child.d().id);
-        tree::add_child(&FlowTree, self.flow, child);
+               self.default_collector.flow.d().id, child.d().id);
+        tree::add_child(&FlowTree, self.default_collector.flow, child);
     }
     
     priv fn create_child_flow_of_type(flow_type: FlowContextType,
                                       builder: &LayoutTreeBuilder) -> BuilderContext {
         let new_flow = builder.make_flow(flow_type);
         self.attach_child_flow(new_flow);
-        return BuilderContext(new_flow);
+
+        BuilderContext::new(&BoxCollector::new(new_flow, @BoxConsumer::new(new_flow)))
     }
         
     priv fn make_inline_collector(builder: &LayoutTreeBuilder) -> BuilderContext {
         debug!("BuilderContext: making new inline collector flow");
         let new_flow = builder.make_flow(Flow_Inline);
-        self.inline_collector = Some(new_flow);
+        let new_consumer = @BoxConsumer::new(new_flow);
+        let inline_collector = BoxCollector::new(new_flow, new_consumer);
+
+        self.inline_collector = Some(inline_collector);
         self.attach_child_flow(new_flow);
-        return BuilderContext(new_flow);
+
+        BuilderContext::new(&inline_collector)
     }
 
     priv fn get_inline_collector(builder: &LayoutTreeBuilder) -> BuilderContext {
         match copy self.inline_collector {
-            Some(collector) => BuilderContext(collector),
+            Some(ref collector) => BuilderContext::new(collector),
             None => self.make_inline_collector(builder)
         }
     }
@@ -90,7 +104,7 @@ impl BuilderContext {
 
     fn containing_context_for_display(display: CSSDisplay,
                                       builder: &LayoutTreeBuilder) -> BuilderContext {
-        match (display, self.flow) { 
+        match (display, self.default_collector.flow) { 
             (DisplayBlock, @RootFlow(*)) => self.create_child_flow_of_type(Flow_Block, builder),
             (DisplayBlock, @BlockFlow(*)) => {
                 self.clear_inline_collector();
@@ -127,22 +141,22 @@ impl LayoutTreeBuilder {
         // first, determine the box type, based on node characteristics
         let box_type = self.decide_box_type(cur_node, simulated_display);
         let this_ctx = parent_ctx.containing_context_for_display(simulated_display, &self);
-        let new_box = self.make_box(layout_ctx, box_type, cur_node, this_ctx.flow);
-        this_ctx.consumer.push_box(layout_ctx, new_box);
+        let new_box = self.make_box(layout_ctx, box_type, cur_node, this_ctx.default_collector.flow);
+        this_ctx.default_collector.consumer.push_box(layout_ctx, new_box);
 
         // recurse on child nodes.
         for tree::each_child(&NodeTree, &cur_node) |child_node| {
             self.construct_recursively(layout_ctx, *child_node, &this_ctx);
         }
 
-        this_ctx.consumer.pop_box(layout_ctx, new_box);
+        this_ctx.default_collector.consumer.pop_box(layout_ctx, new_box);
         self.simplify_children_of_flow(layout_ctx, &this_ctx);
 
         // store reference to the flow context which contains any
         // boxes that correspond to child_flow.node. These boxes may
         // eventually be elided or split, but the mapping between
         // nodes and FlowContexts should not change during layout.
-        for tree::each_child(&FlowTree, &this_ctx.flow) |child_flow: &@FlowContext| {
+        for tree::each_child(&FlowTree, &this_ctx.default_collector.flow) |child_flow: &@FlowContext| {
             do (copy child_flow.d().node).iter |node| {
                 assert node.has_aux();
                 do node.aux |data| { data.flow = Some(*child_flow) }
@@ -160,12 +174,12 @@ impl LayoutTreeBuilder {
     // beginning or end of a block flow. Otherwise, the whitespace
     // might affect whitespace collapsing with adjacent text.
     fn simplify_children_of_flow(_layout_ctx: &LayoutContext, parent_ctx: &BuilderContext) {
-        match *parent_ctx.flow {
+        match *parent_ctx.default_collector.flow {
             InlineFlow(*) => {
                 let mut found_child_inline = false;
                 let mut found_child_block = false;
 
-                for tree::each_child(&FlowTree, &parent_ctx.flow) |child_ctx: &@FlowContext| {
+                for tree::each_child(&FlowTree, &parent_ctx.default_collector.flow) |child_ctx: &@FlowContext| {
                     match **child_ctx {
                         InlineFlow(*) | InlineBlockFlow(*) => found_child_inline = true,
                         BlockFlow(*) => found_child_block = true,
@@ -174,13 +188,13 @@ impl LayoutTreeBuilder {
                 }
 
                 if found_child_block && found_child_inline {
-                    self.fixup_split_inline(parent_ctx.flow)
+                    self.fixup_split_inline(parent_ctx.default_collector.flow)
                 }
             },
             BlockFlow(*) => {
                 // FIXME: this will create refcounted cycles between the removed flow and any
                 // of its RenderBox or FlowContext children, and possibly keep alive other junk
-                let parent_flow = parent_ctx.flow;
+                let parent_flow = parent_ctx.default_collector.flow;
                 // check first/last child for whitespace-ness
                 do tree::first_child(&FlowTree, &parent_flow).iter |first_flow: &@FlowContext| {
                     if first_flow.starts_inline_flow() {
@@ -244,7 +258,8 @@ impl LayoutTreeBuilder {
     called on root DOM element. */
     fn construct_trees(layout_ctx: &LayoutContext, root: Node) -> Result<@FlowContext, ()> {
         let new_flow = self.make_flow(Flow_Root);
-        let root_ctx = BuilderContext(new_flow);
+        let new_consumer = @BoxConsumer::new(new_flow);
+        let root_ctx = BuilderContext::new(&BoxCollector::new(new_flow, new_consumer));
 
         self.root_flow = Some(new_flow);
         self.construct_recursively(layout_ctx, root, &root_ctx);
