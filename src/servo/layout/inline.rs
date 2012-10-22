@@ -267,7 +267,7 @@ impl LineboxScanner {
             self.flush_current_line();
         }
 
-        //self.repair_elem_ranges();
+        self.repair_elem_ranges();
         self.swap_out_results();
     }
 
@@ -280,7 +280,6 @@ impl LineboxScanner {
 
         let mut old_i = 0;
         let old_boxes = &self.flow.inline().boxes;
-
         // index into self.new_boxes
         let mut new_j = 0;
 
@@ -293,7 +292,7 @@ impl LineboxScanner {
         do self.flow.inline().elems.borrow |elems: &[NodeRange]| {
             // index into elems
             let mut elems_k = 0;
-            
+
             while old_i < old_boxes.len() {
                 debug!("Considering old box %u", old_i);
                 // possibly push several items
@@ -303,9 +302,12 @@ impl LineboxScanner {
                     repair_stack.push(item);
                     elems_k += 1;
                 }
-            
-                // slide forward through any dups
-                while new_j < self.new_boxes.len() && old_boxes[old_i].d().node == self.new_boxes[new_j].d().node {
+                // XXX: the following loop form causes segfaults; assigning to locals doesn't.
+                // while new_j < new_boxes.len() && old_boxes[old_i].d().node != new_boxes[new_j].d().node {
+                while new_j < self.new_boxes.len() {
+                    let o = old_boxes[old_i];
+                    let n = self.new_boxes[new_j];
+                    if o.d().node != n.d().node { break }
                     debug!("Slide through new box %u", new_j);
                     new_j += 1;
                 }
@@ -318,7 +320,6 @@ impl LineboxScanner {
                 }
                 old_i += 1;
             }
-            
             // possibly pop several items
             while repair_stack.len() > 0 && old_i == elems[repair_stack.last().elem_idx].range.end() {
                 let item = repair_stack.pop();
@@ -342,9 +343,9 @@ impl LineboxScanner {
         };
 
         debug!("--- Elem ranges after repair: ---");
-//        for self.flow.inline().elems.eachi |i: uint, nr: &NodeRange| {
-//            debug!("%u: %?", i, nr.range);
-//        }
+        for self.flow.inline().elems.eachi |i: uint, nr: &NodeRange| {
+            debug!("%u: %?", i, nr.range);
+        }
         debug!("----------------------------------");
     }
 
