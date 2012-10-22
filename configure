@@ -344,7 +344,7 @@ step_msg "running submodule autoconf scripts"
 
 (cd ${CFG_SRC_DIR}src/mozjs/js/src && "${CFG_AUTOCONF213}") || exit $?
 
-CFG_SUBMODULES="libwapcaplet rust-wapcaplet rust-harfbuzz rust-opengles rust-azure rust-stb-image rust-geom rust-glut rust-layers rust-http-client libparserutils libhubbub libcss rust-netsurfcss servo-sandbox rust-hubbub sharegl rust-mozjs mozjs"
+CFG_SUBMODULES="libwapcaplet rust-wapcaplet rust-harfbuzz rust-opengles rust-azure rust-stb-image rust-geom rust-glut rust-layers rust-http-client libparserutils libhubbub libcss rust-netsurfcss rust-hubbub sharegl rust-mozjs mozjs"
 
 if [ $CFG_OSTYPE = "darwin" ]
 then

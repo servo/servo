@@ -14,10 +14,6 @@ DEPS_sharegl += \
 	rust-geom \
 	rust-opengles
 
-DEPS_servo-sandbox += \
-	libhubbub \
-	libparserutils
-
 DEPS_rust-hubbub += \
 	libhubbub
 
