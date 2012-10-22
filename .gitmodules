@@ -15,7 +15,7 @@
 	url = git://github.com/mozilla-servo/rust-harfbuzz.git
 [submodule "src/rust-stb-image"]
 	path = src/rust-stb-image
-	url = git://github.com/pcwalton/rust-stb-image.git
+	url = git://github.com/mozilla-servo/rust-stb-image.git
 [submodule "src/rust-geom"]
 	path = src/rust-geom
 	url = git://github.com/mozilla-servo/rust-geom.git
@@ -24,7 +24,7 @@
 	url = git://github.com/mozilla-servo/rust-opengles.git
 [submodule "src/rust-glut"]
 	path = src/rust-glut
-	url = git://github.com/pcwalton/rust-glut.git
+	url = git://github.com/mozilla-servo/rust-glut.git
 [submodule "src/rust-layers"]
 	path = src/rust-layers
 	url = git://github.com/mozilla-servo/rust-layers.git
@@ -33,13 +33,10 @@
 	url = git://github.com/mozilla-servo/rust-http-client.git
 [submodule "src/libhubbub"]
 	path = src/libhubbub
-	url = git://github.com/pcwalton/libhubbub.git
+	url = git://github.com/mozilla-servo/libhubbub.git
 [submodule "src/libparserutils"]
 	path = src/libparserutils
-	url = git://github.com/pcwalton/libparserutils.git
-[submodule "src/servo-sandbox"]
-	path = src/servo-sandbox
-	url = git://github.com/pcwalton/servo-sandbox.git
+	url = git://github.com/mozilla-servo/libparserutils.git
 [submodule "src/rust-hubbub"]
 	path = src/rust-hubbub
 	url = git://github.com/pcwalton/rust-hubbub.git
