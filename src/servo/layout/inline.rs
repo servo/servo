@@ -41,7 +41,16 @@ serve as the starting point, but the current design doesn't make it
 hard to try out that alternative.
 */
 
-type NodeRange = {node: Node, range: MutableRange};
+struct NodeRange {
+    node: Node,
+    mut range: Range,
+}
+
+impl NodeRange {
+    static pure fn new(node: Node, range: Range) -> NodeRange {
+        NodeRange { node: node, range: range }
+    }
+}
 
 // stack-allocated object for scanning an inline flow into
 // TextRun-containing TextBoxes.
@@ -305,7 +314,7 @@ impl LineboxScanner {
                 while repair_stack.len() > 0 && old_i == elems[repair_stack.last().elem_idx].range.end() {
                     let item = repair_stack.pop();
                     debug!("Set range for %u to %?", item.elem_idx, Range(item.begin_idx, new_j));
-                    elems[item.elem_idx].range.reset(item.begin_idx, new_j);
+                    elems[item.elem_idx].range = Range(item.begin_idx, new_j);
                 }
                 old_i += 1;
             }
@@ -314,7 +323,7 @@ impl LineboxScanner {
             while repair_stack.len() > 0 && old_i == elems[repair_stack.last().elem_idx].range.end() {
                 let item = repair_stack.pop();
                 debug!("Set range for %u to %?", item.elem_idx, Range(item.begin_idx, new_j));
-                elems[item.elem_idx].range.reset(item.begin_idx, new_j);
+                elems[item.elem_idx].range = Range(item.begin_idx, new_j);
             }
         }
     }

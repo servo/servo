@@ -10,7 +10,7 @@ use layout::block::BlockFlowData;
 use layout::box::{LogicalBefore, LogicalAfter, RenderBox};
 use layout::context::LayoutContext;
 use layout::debug::BoxedDebugMethods;
-use layout::inline::InlineFlowData;
+use layout::inline::{InlineFlowData, NodeRange};
 use layout::root::RootFlowData;
 use util::range::{Range, MutableRange};
 use util::tree;
@@ -179,11 +179,9 @@ impl BoxConsumer {
                 // only create NodeRanges for non-leaf nodes.
                 let final_span_length = self.flow.inline().boxes.len() - entry.start_idx + 1;
                 assert final_span_length > 1;
-                let mapping = { node: copy box.d().node, 
-                                range: MutableRange(entry.start_idx, final_span_length)
-                              };
-                debug!("BoxConsumer: adding element range=%?", mapping.range);
-                self.flow.inline().elems.push(move mapping);
+                let new_range = Range(entry.start_idx, final_span_length);
+                debug!("BoxConsumer: adding element range=%?", new_range);
+                self.flow.inline().elems.push(NodeRange::new(copy box.d().node, move new_range));
             },
             @BlockFlow(*) => {
                 assert self.stack.len() == 0;
