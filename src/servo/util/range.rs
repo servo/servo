@@ -83,6 +83,24 @@ pub impl Range {
         fail fmt!("relation_to_range(): didn't classify self=%?, other=%?",
                   self, other);
     }
+
+    fn repair_after_coalesced_range(&self, other: Range) -> Range {
+        let relation = self.relation_to_range(other);
+        debug!("repair_after_coalesced_range: possibly repairing range %?", self);
+        debug!("repair_after_coalesced_range: relation of original range and coalesced range(%?): %?",
+               other, relation);
+        let new_range = match relation {
+            EntirelyBefore => { *self },
+            EntirelyAfter =>  { self.shift_by(-(other.length() as int)) },
+            Coincides | ContainedBy =>   { Range(other.begin(), 1) },
+            Contains =>      { self.extend_by(-(other.length() as int)) },
+            OverlapsBegin(overlap) => { self.extend_by(1 - (overlap as int)) },
+            OverlapsEnd(overlap) => 
+            { Range(other.begin(), self.length() - overlap + 1) }
+        };
+        debug!("repair_after_coalesced_range: new range: ---- %?", new_range);
+        new_range
+    }
 }
 
 pub pure fn empty_mut() -> MutableRange { MutableRange(0,0) }

@@ -67,7 +67,7 @@ impl TextRunScanner {
 
             for uint::range(0, in_boxes.len()) |box_i| {
                 debug!("TextRunScanner: considering box: %?", in_boxes[box_i].debug_str());
-                if box_i > 0 && !can_coalesce_boxes(in_boxes, box_i-1, box_i) {
+                if box_i > 0 && !can_coalesce_text_nodes(in_boxes, box_i-1, box_i) {
                     self.flush_clump_to_list(ctx, in_boxes, &out_boxes);
                 }
                 self.clump.extend_by(1);
@@ -84,7 +84,7 @@ impl TextRunScanner {
         }
 
         // helper functions
-        pure fn can_coalesce_boxes(boxes: &[@RenderBox], left_i: uint, right_i: uint) -> bool {
+        pure fn can_coalesce_text_nodes(boxes: &[@RenderBox], left_i: uint, right_i: uint) -> bool {
             assert left_i >= 0 && left_i < boxes.len();
             assert right_i > 0 && right_i < boxes.len();
             assert left_i != right_i;
@@ -122,7 +122,7 @@ impl TextRunScanner {
         };
 
         match (is_singleton, is_text_clump) {
-            (false, false) => fail ~"WAT: can't coalesce non-text boxes in flush_clump_to_list()!",
+            (false, false) => fail ~"WAT: can't coalesce non-text nodes in flush_clump_to_list()!",
             (true, false) => { 
                 debug!("TextRunScanner: pushing single non-text box in range: %?", self.clump);
                 out_boxes.push(in_boxes[self.clump.begin()]);
@@ -153,39 +153,30 @@ impl TextRunScanner {
                     transform_text(in_boxes[idx].raw_text(), compression)
                 });
 
-                // then, fix NodeRange mappings to account for elided boxes.
-                do self.flow.inline().elems.borrow |ranges: &[NodeRange]| {
-                    for ranges.each |node_range: &NodeRange| {
-                        let range = &node_range.range;
-                        let relation = range.relation_to_range(&self.clump);
-                        debug!("TextRunScanner: possibly repairing element range %?", node_range.range);
-                        debug!("TextRunScanner: relation of range and clump(%?): %?",
-                               self.clump, relation);
-                        match relation {
-                            EntirelyBefore => {},
-                            EntirelyAfter =>  { range.shift_by(-(self.clump.length() as int)); },
-                            Coincides | ContainedBy =>   { range.reset(self.clump.begin(), 1); },
-                            Contains =>      { range.extend_by(-(self.clump.length() as int)); },
-                            OverlapsBegin(overlap) => { range.extend_by(1 - (overlap as int)); },
-                            OverlapsEnd(overlap) => 
-                              { range.reset(self.clump.begin(), range.length() - overlap + 1); }
-                        }
-                        debug!("TextRunScanner: new element range: ---- %?", node_range.range);
-                    }
-                }
+                // next, concatenate all of the transformed strings together, saving the new text indices
 
                 // TODO(Issue #118): use a rope, simply give ownership of  nonzero strs to rope
                 let mut run_str : ~str = ~"";
+                let new_ranges : DVec<Range> = DVec();
                 for uint::range(0, transformed_strs.len()) |i| {
+                    // XXX: if transformed_strs[i].len() == 0 { loop }
+                    new_ranges.push(Range(run_str.len(), transformed_strs[i].len()));
                     str::push_str(&mut run_str, transformed_strs[i]);
                 }
+
+                // TODO: adjust containing ranges to account for any elided boxes (see XXX above, below)
                 
+                // create the run, then make new boxes with the run and adjusted text indices
+
                 // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
                 let run = @TextRun(ctx.font_cache.get_test_font(), move run_str);
                 debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
-                let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump.begin()].d(), run, 
-                                                                     Range(0, run.text.len()));
-                out_boxes.push(new_box);
+                for self.clump.eachi |i| {
+                    let range = new_ranges[i - self.clump.begin()];
+                    if range.length() == 0 { loop } // XXX
+                    let new_box = layout::text::adapt_textbox_with_range(in_boxes[i].d(), run, range);
+                    out_boxes.push(new_box);
+                }
             }
         } /* /match */
     
