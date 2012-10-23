@@ -165,6 +165,14 @@ unsafe fn free_handle<T:Send,A>(h: Handle<T,A>) {
     }
 }
 
+pub unsafe fn unwrap<T:Send, A>(handle: Handle<T,A>) -> *HandleData<T,A> {
+    *handle
+}
+
+pub unsafe fn wrap<T:Send, A>(data: *HandleData<T,A>) -> Handle<T,A> {
+    _Handle(data)
+}
+
 fn null_handle<T:Send,A>() -> Handle<T,A> {
     _Handle(ptr::null())
 }

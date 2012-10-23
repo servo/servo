@@ -1,6 +1,7 @@
 use au = gfx::geometry;
 use content::content_task::ContentTask;
 use css::values::Stylesheet;
+use dom::cow;
 use dom::element::*;
 use dom::event::{Event, ReflowEvent};
 use dom::node::{Comment, Doctype, DoctypeData, Text,
@@ -10,8 +11,6 @@ use resource::image_cache_task;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
 
 use comm::{Chan, Port};
-use str::from_slice;
-use cast::reinterpret_cast;
 use std::net::url::Url;
 
 type JSResult = ~[~[u8]];
@@ -188,38 +187,38 @@ pub fn parse_html(scope: NodeScope,
     debug!("created new node");
     let parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
-    parser.set_document_node(reinterpret_cast(&root));
+    parser.set_document_node(cast::transmute(cow::unwrap(root)));
     parser.enable_scripting(true);
     parser.set_tree_handler(@hubbub::TreeHandler {
         create_comment: |data: &str| {
             debug!("create comment");
-            let new_node = scope.new_node(Comment(from_slice(data)));
-            unsafe { reinterpret_cast(&new_node) }
+            let new_node = scope.new_node(Comment(str::from_slice(data)));
+            unsafe { cast::transmute(cow::unwrap(new_node)) }
         },
         create_doctype: |doctype: &hubbub::Doctype| {
             debug!("create doctype");
-            let name = from_slice(doctype.name);
+            let name = str::from_slice(doctype.name);
             let public_id = match doctype.public_id {
                 None => None,
-                Some(id) => Some(from_slice(id))
+                Some(id) => Some(str::from_slice(id))
             };
             let system_id = match doctype.system_id {
                 None => None,
-                Some(id) => Some(from_slice(id))
+                Some(id) => Some(str::from_slice(id))
             };
             let data = DoctypeData(move name, move public_id, move system_id,
                                    doctype.force_quirks);
             let new_node = scope.new_node(Doctype(move data));
-            unsafe { reinterpret_cast(&new_node) }
+            unsafe { cast::transmute(cow::unwrap(new_node)) }
         },
         create_element: |tag: &hubbub::Tag, move image_cache_task| {
             debug!("create element");
             let elem_kind = build_element_kind(tag.name);
-            let elem = ElementData(from_slice(tag.name), move elem_kind);
+            let elem = ElementData(str::from_slice(tag.name), move elem_kind);
             debug!("attach attrs");
             for tag.attributes.each |attribute| {
-                elem.attrs.push(~Attr(from_slice(attribute.name),
-                                      from_slice(attribute.value)));
+                elem.attrs.push(~Attr(str::from_slice(attribute.name),
+                                      str::from_slice(attribute.value)));
             }
 
             // Spawn additional parsing, network loads, etc. from tag and attrs
@@ -250,18 +249,22 @@ pub fn parse_html(scope: NodeScope,
                 _ => {}
             }
             let node = scope.new_node(Element(move elem));
-            unsafe { reinterpret_cast(&node) }
+            unsafe { cast::transmute(cow::unwrap(node)) }
         },
-        create_text: |data| {
+        create_text: |data: &str| {
             debug!("create text");
-            let new_node = scope.new_node(Text(from_slice(data)));
-            unsafe { reinterpret_cast(&new_node) }
+            let new_node = scope.new_node(Text(str::from_slice(data)));
+            unsafe { cast::transmute(cow::unwrap(new_node)) }
         },
         ref_node: |_node| {},
         unref_node: |_node| {},
-        append_child: |parent, child| unsafe {
+        append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| unsafe {
             debug!("append child");
-            scope.add_child(reinterpret_cast(&parent), reinterpret_cast(&child));
+            unsafe {
+                let p: Node = cow::wrap(cast::transmute(parent));
+                let c: Node = cow::wrap(cast::transmute(child));
+                scope.add_child(p, c);
+            }
             child
         },
         insert_before: |_parent, _child| {
@@ -303,8 +306,8 @@ pub fn parse_html(scope: NodeScope,
         complete_script: |script| {
             // A little function for holding this lint attr
             #[allow(non_implicitly_copyable_typarams)]
-            fn complete_script(scope: &NodeScope, script: hubbub::Node, url: &Url, js_chan: &comm::Chan<JSMessage>) unsafe {
-                do scope.read(&reinterpret_cast(&script)) |node_contents| {
+            fn complete_script(scope: &NodeScope, script: hubbub::NodeDataPtr, url: &Url, js_chan: &comm::Chan<JSMessage>) unsafe {
+                do scope.read(&cow::wrap(cast::transmute(script))) |node_contents| {
                     match *node_contents.kind {
                         Element(element) if element.tag_name == ~"script" => {
                             match element.get_attr(~"src") {
