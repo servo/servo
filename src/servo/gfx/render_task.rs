@@ -92,7 +92,7 @@ impl<C: Compositor Send> Renderer<C> {
                 };
 
                 ctx.clear();
-                render_layer.display_list.draw(&ctx);
+                render_layer.display_list.draw_into_context(&ctx);
             };
 
             #debug("renderer: returning surface");

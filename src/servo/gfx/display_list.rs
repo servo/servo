@@ -13,91 +13,70 @@ use dvec::DVec;
 
 pub use layout::display_list_builder::DisplayListBuilder;
 
-// TODO: invert this so common data is nested inside each variant as first arg.
-struct DisplayItem {
-    draw: ~fn((&DisplayItem), (&RenderContext)),
+struct DisplayItemData {
     bounds : Rect<Au>, // TODO: whose coordinate system should this use?
-    data : DisplayItemData
 }
 
-pub enum DisplayItemData {
-    SolidColorData(u8, u8, u8),
+impl DisplayItemData {
+    static pure fn new(bounds: &Rect<Au>) -> DisplayItemData {
+        DisplayItemData { bounds: copy *bounds }
+    }
+}
+
+pub enum DisplayItem {
+    SolidColor(DisplayItemData, u8, u8, u8),
     // TODO: need to provide spacing data for text run.
     // (i.e, to support rendering of CSS 'word-spacing' and 'letter-spacing')
     // TODO: don't copy text runs, ever.
-    TextData(~SendableTextRun, Range),
-    ImageData(ARC<~image::base::Image>),
-    BorderData(Au, u8, u8, u8)
+    Text(DisplayItemData, ~SendableTextRun, Range),
+    Image(DisplayItemData, ARC<~image::base::Image>),
+    Border(DisplayItemData, Au, u8, u8, u8)
 }
 
-fn draw_SolidColor(self: &DisplayItem, ctx: &RenderContext) {
-    match self.data {
-        SolidColorData(r,g,b) => ctx.draw_solid_color(&self.bounds, r, g, b),
-        _ => fail
-    }        
-}
-
-fn draw_Text(self: &DisplayItem, ctx: &RenderContext) {
-    match self.data {
-        TextData(run, range) => {
-            let new_run = text_run::deserialize(ctx.font_cache, run);
-            ctx.draw_text(self.bounds, new_run, range)
-        },
-        _ => fail
-    }        
-}
-
-fn draw_Image(self: &DisplayItem, ctx: &RenderContext) {
-    match self.data {
-        ImageData(ref img) => ctx.draw_image(self.bounds, clone_arc(img)),
-        _ => fail
-    }        
-}
-
-fn draw_Border(self: &DisplayItem, ctx: &RenderContext) {
-    match self.data {
-        BorderData(width, r, g, b) => ctx.draw_border(&self.bounds, width, r, g, b),
-        _ => fail
+impl DisplayItem {
+    pure fn d(&self) -> &self/DisplayItemData {
+        match *self {
+            SolidColor(ref d, _, _, _) => d,
+            Text(ref d, _, _) => d,
+            Image(ref d, _) => d,
+            Border(ref d, _, _, _, _) => d
+        }
     }
-}
-
-pub fn SolidColor(bounds: Rect<Au>, r: u8, g: u8, b: u8) -> DisplayItem {
-    DisplayItem { 
-        draw: |self, ctx| draw_SolidColor(self, ctx),
-        bounds: bounds,
-        data: SolidColorData(r, g, b)
+    
+    fn draw_into_context(&self, ctx: &RenderContext) {
+        match *self {
+            SolidColor(_, r,g,b) => ctx.draw_solid_color(&self.d().bounds, r, g, b),
+            Text(_, run, range) => {
+                let new_run = @run.deserialize(ctx.font_cache);
+                ctx.draw_text(self.d().bounds, new_run, range)
+            },
+            Image(_, ref img) => ctx.draw_image(self.d().bounds, clone_arc(img)),
+            Border(_, width, r, g, b) => ctx.draw_border(&self.d().bounds, width, r, g, b),
+        }
     }
-}
 
-pub fn Border(bounds: Rect<Au>, width: Au, r: u8, g: u8, b: u8) -> DisplayItem {
-    DisplayItem {
-        draw: |self, ctx| draw_Border(self, ctx),
-        bounds: bounds,
-        data: BorderData(width, r, g, b)
+    static pure fn new_SolidColor(bounds: &Rect<Au>, r: u8, g: u8, b: u8) -> DisplayItem {
+        SolidColor(DisplayItemData::new(bounds), r, g, b)
     }
-}
 
-pub fn Text(bounds: Rect<Au>, run: ~SendableTextRun, range: Range) -> DisplayItem {
-    DisplayItem {
-        draw: |self, ctx| draw_Text(self, ctx),
-        bounds: bounds,
-        data: TextData(move run, move range)
+    static pure fn new_Border(bounds: &Rect<Au>, width: Au, r: u8, g: u8, b: u8) -> DisplayItem {
+        Border(DisplayItemData::new(bounds), width, r, g, b)
     }
-}
 
-// ARC should be cloned into ImageData, but Images are not sendable
-pub fn Image(bounds: Rect<Au>, image: ARC<~image::base::Image>) -> DisplayItem {
-    DisplayItem {
-        draw: |self, ctx| draw_Image(self, ctx),
-        bounds: bounds,
-        data: ImageData(move image)
+    static pure fn new_Text(bounds: &Rect<Au>, run: ~SendableTextRun, range: Range) -> DisplayItem {
+        Text(DisplayItemData::new(bounds), move run, range)
+    }
+
+    // ARC should be cloned into ImageData, but Images are not sendable
+    static pure fn new_Image(bounds: &Rect<Au>, image: ARC<~image::base::Image>) -> DisplayItem {
+        Image(DisplayItemData::new(bounds), move image)
     }
 }
 
 pub type DisplayList = DVec<~DisplayItem>;
 
 trait DisplayListMethods {
-    fn draw(ctx: &RenderContext);
+    fn draw_into_context(ctx: &RenderContext);
 }
 
 impl DisplayList : DisplayListMethods {
@@ -106,11 +85,11 @@ impl DisplayList : DisplayListMethods {
         self.push(move item);
     }
 
-    fn draw(ctx: &RenderContext) {
+    fn draw_into_context(ctx: &RenderContext) {
         debug!("beginning display list");
         for self.each |item| {
             debug!("drawing %?", *item);
-            item.draw(*item, ctx);
+            item.draw_into_context(ctx);
         }
         debug!("ending display list");
     }

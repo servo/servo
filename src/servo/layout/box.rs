@@ -11,6 +11,7 @@ use core::rand;
 use css::styles::SpecifiedStyle;
 use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent, BdrColor, PosAbsolute};
 use dl = gfx::display_list;
+use dl::DisplayItem;
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
 use geom::rect::Rect;
@@ -417,22 +418,23 @@ impl RenderBox : RenderBoxMethods {
         match *self {
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
             TextBox(_,d) => {
-                list.append_item(~dl::Text(copy abs_box_bounds, text_run::serialize(builder.ctx.font_cache, d.run),
-                                           d.range))
+                list.append_item(~DisplayItem::new_Text(&abs_box_bounds, 
+                                                        ~d.run.serialize(builder.ctx.font_cache),
+                                                        d.range))
             },
             // TODO: items for background, border, outline
             GenericBox(_) => {
             },
             ImageBox(_,i) => {
                 match i.get_image() {
-                    Some(image) => list.append_item(~dl::Image(copy abs_box_bounds, arc::clone(&image))),
+                    Some(image) => list.append_item(~DisplayItem::new_Image(&abs_box_bounds, arc::clone(&image))),
                     /* No image data at all? Okay, add some fallback content instead. */
                     None => ()
                 }
             }
         }
 
-        self.add_border_to_list(list, abs_box_bounds);
+        self.add_border_to_list(list, &abs_box_bounds);
     }
 
     fn add_bgcolor_to_list(list: &dl::DisplayList, abs_bounds: &Rect<Au>) {
@@ -444,11 +446,11 @@ impl RenderBox : RenderBoxMethods {
             Specified(BgColorTransparent) | _ => util::color::rgba(0,0,0,0.0)
         };
         if !bgcolor.alpha.fuzzy_eq(&0.0) {
-            list.append_item(~dl::SolidColor(copy *abs_bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
+            list.append_item(~DisplayItem::new_SolidColor(abs_bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
         }
     }
 
-    fn add_border_to_list(list: &dl::DisplayList, abs_bounds: Rect<Au>) {
+    fn add_border_to_list(list: &dl::DisplayList, abs_bounds: &Rect<Au>) {
         let style = self.d().node.style();
         match style.border_width {
             Specified(Px(px)) => {
@@ -468,7 +470,7 @@ impl RenderBox : RenderBoxMethods {
                     Specified(BdrColor(color)) => color,
                     _ => rgb(0, 0, 0) // FIXME
                 };
-                list.push(~dl::Border(abs_bounds, border_width, color.red, color.green, color.blue));
+                list.push(~DisplayItem::new_Border(&abs_bounds, border_width, color.red, color.green, color.blue));
             }
             _ => () // TODO
         }

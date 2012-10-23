@@ -237,7 +237,7 @@ impl TextRunScanner {
                 let compression = CompressWhitespaceNewline;
                 let transformed_text = transform_text(text, compression);
                 // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
-                let run = @TextRun(ctx.font_cache.get_test_font(), move transformed_text);
+                let run = @TextRun::new(ctx.font_cache.get_test_font(), move transformed_text);
                 debug!("TextRunScanner: pushing single text box in range: %?", self.clump);
                 let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump.begin()].d(), run,
                                                                      Range(0, run.text.len()));
@@ -270,7 +270,7 @@ impl TextRunScanner {
                 // create the run, then make new boxes with the run and adjusted text indices
 
                 // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
-                let run = @TextRun(ctx.font_cache.get_test_font(), move run_str);
+                let run = @TextRun::new(ctx.font_cache.get_test_font(), move run_str);
                 debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
                 for self.clump.eachi |i| {
                     let range = new_ranges[i - self.clump.begin()];

@@ -28,37 +28,39 @@ pub struct SendableTextRun {
     priv glyphs: GlyphStore,
 }
 
-pub fn serialize(_cache: @FontCache, run: &TextRun) -> ~SendableTextRun {
-    ~SendableTextRun {
-        text: copy run.text,
-        // TODO: actually serialize a font descriptor thingy
-        font_descriptor: (),
-        glyphs: copy run.glyphs,
+impl SendableTextRun {
+    pub fn deserialize(&self, cache: @FontCache) -> TextRun {
+        TextRun {
+            text: copy self.text,
+            // TODO: actually deserialize a font descriptor thingy
+            font: cache.get_test_font(),
+            glyphs: copy self.glyphs
+        }
     }
 }
 
-pub fn deserialize(cache: @FontCache, run: &SendableTextRun) -> @TextRun {
-    @TextRun {
-        text: copy run.text,
-        // TODO: actually deserialize a font descriptor thingy
-        font: cache.get_test_font(),
-        glyphs: copy run.glyphs
+impl TextRun {
+    pub static fn new(font: @Font, text: ~str) -> TextRun {
+        let glyph_store = GlyphStore(text.len());
+        let run = TextRun {
+            text: move text,
+            font: font,
+            glyphs: move glyph_store,
+        };
+
+        shape_textrun(&run);
+        return move run;
     }
-}
 
-trait TextRunMethods {
-    pure fn glyphs(&self) -> &self/GlyphStore;
-    fn iter_indivisible_pieces_for_range(&self, range: Range, f: fn&(Range) -> bool);
-    // TODO: needs to take box style as argument, or move to TextBox.
-    // see Gecko's IsTrimmableSpace methods for details.
-    pure fn range_is_trimmable_whitespace(&self, range: Range) -> bool;
+    pub pure fn serialize(&self, _cache: @FontCache) -> SendableTextRun {
+        SendableTextRun {
+            text: copy self.text,
+            // TODO: actually serialize a font descriptor thingy
+            font_descriptor: (),
+            glyphs: copy self.glyphs,
+        }
+    }
 
-    fn metrics_for_range(&self, range: Range) -> RunMetrics;
-    fn min_width_for_range(&self, range: Range) -> Au;
-    fn iter_natural_lines_for_range(&self, range: Range, f: fn&(Range) -> bool);
-}
-
-impl TextRun : TextRunMethods {
     pure fn glyphs(&self) -> &self/GlyphStore { &self.glyphs }
 
     pure fn range_is_trimmable_whitespace(&self, range: Range) -> bool {
@@ -160,18 +162,6 @@ impl TextRun : TextRunMethods {
     }
 }
  
-fn TextRun(font: @Font, text: ~str) -> TextRun {
-    let glyph_store = GlyphStore(text.len());
-    let run = TextRun {
-        text: move text,
-        font: font,
-        glyphs: move glyph_store,
-    };
-
-    shape_textrun(&run);
-    return move run;
-}
-
 // this test can't run until LayoutContext is removed as an argument
 // to min_width_for_range.
 /*
