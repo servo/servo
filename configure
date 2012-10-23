@@ -351,9 +351,6 @@ then
 CFG_SUBMODULES="rust-cocoa rust-io-surface rust-core-foundation rust-core-graphics rust-core-text ${CFG_SUBMODULES}"
 fi
 
-# needed because Spidermonkey configure is in non-standard location
-CFG_CONFIGURE_PATHS="${CFG_SUBMODULES} mozjs/js/src/"
-
 step_msg "making build directories"
 
 cd "${CFG_BUILD_DIR}"
@@ -369,13 +366,17 @@ make_dir src/test/ref
 # see how Rust's configure script optionally reconfigures the LLVM module.
 step_msg "running submodule configure scripts"
 
-for i in ${CFG_CONFIGURE_PATHS}
+for i in ${CFG_SUBMODULES}
 do
     if [ -d ${CFG_BUILD_DIR}src/${i} ]
     then
 	cd ${CFG_BUILD_DIR}src/${i}
     fi
     CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/configure"
+    # needed because Spidermonkey configure is in non-standard location
+    if [ $i = mozjs ]; then
+	CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/js/src/configure"
+    fi
     if [ -f ${CONFIGURE_SCRIPT} ]
     then
 	sh ${CONFIGURE_SCRIPT}
