@@ -101,11 +101,6 @@ pub enum SplitBoxResult {
     SplitDidNotFit(Option<@RenderBox>, Option<@RenderBox>)
 }
 
-enum InlineSpacerSide {
-    LogicalBefore,
-    LogicalAfter,
-}
-
 trait RenderBoxMethods {
     pure fn d(&self) -> &self/RenderBoxData;
 
@@ -113,7 +108,6 @@ trait RenderBoxMethods {
     pure fn can_split() -> bool;
     pure fn is_whitespace_only() -> bool;
     pure fn can_merge_with_box(@self, other: @RenderBox) -> bool;
-    pure fn requires_inline_spacers() -> bool;
     pure fn content_box() -> Rect<Au>;
     pure fn border_box() -> Rect<Au>;
     pure fn margin_box() -> Rect<Au>;
@@ -123,7 +117,6 @@ trait RenderBoxMethods {
     fn get_pref_width(&LayoutContext) -> Au;
     fn get_used_width() -> (Au, Au);
     fn get_used_height() -> (Au, Au);
-    fn create_inline_spacer_for_side(&LayoutContext, InlineSpacerSide) -> Option<@RenderBox>;
     fn build_display_list(@self, &dl::DisplayListBuilder, dirty: &Rect<Au>, 
                           offset: &Point2D<Au>, &dl::DisplayList);
 }
@@ -321,11 +314,6 @@ impl RenderBox : RenderBoxMethods {
         (Au(0), Au(0))
     }
 
-    /* Whether "spacer" boxes are needed to stand in for this DOM node */
-    pure fn requires_inline_spacers() -> bool {
-        return false;
-    }
-
     /* The box formed by the content edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
     pure fn content_box() -> Rect<Au> {
@@ -372,11 +360,6 @@ impl RenderBox : RenderBoxMethods {
     pure fn margin_box() -> Rect<Au> {
         // TODO: actually compute content_box + padding + border + margin
         self.content_box()
-    }
-
-    // TODO: implement this, generating spacer 
-    fn create_inline_spacer_for_side(_ctx: &LayoutContext, _side: InlineSpacerSide) -> Option<@RenderBox> {
-        None
     }
 
     // TODO: to implement stacking contexts correctly, we need to

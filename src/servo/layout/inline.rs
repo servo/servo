@@ -128,21 +128,15 @@ impl ElementMapping {
                     new_j += 1;
                 }
 
+                old_i += 1;
+
                 // possibly pop several items
                 while repair_stack.len() > 0 && old_i == entries[repair_stack.last().entry_idx].range.end() {
                     let item = repair_stack.pop();
                     debug!("repair_for_box_changes: Set range for %u to %?",
-                           item.entry_idx, Range(item.begin_idx, new_j));
-                    entries[item.entry_idx].range = Range(item.begin_idx, new_j);
+                           item.entry_idx, Range(item.begin_idx, new_j - item.begin_idx));
+                    entries[item.entry_idx].range = Range(item.begin_idx, new_j - item.begin_idx);
                 }
-                old_i += 1;
-            }
-            // possibly pop several items
-            while repair_stack.len() > 0 && old_i == entries[repair_stack.last().entry_idx].range.end() {
-                let item = repair_stack.pop();
-                debug!("repair_for_box_changes: Set range for %u to %?",
-                       item.entry_idx, Range(item.begin_idx, new_j));
-                entries[item.entry_idx].range = Range(item.begin_idx, new_j);
             }
         }
         debug!("--- Elem ranges after repair: ---");
@@ -308,7 +302,6 @@ impl TextRunScanner {
             debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str()); ()
         }
         debug!("--------------------");
-
 
         self.clump.reset(self.clump.end(), 0);
     } /* /fn flush_clump_to_list */

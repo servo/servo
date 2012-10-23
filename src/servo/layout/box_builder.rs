@@ -32,93 +32,134 @@ impl LayoutTreeBuilder {
     }
 }
 
-struct PendingEntry { 
-    start_box: @RenderBox,
-    start_idx: uint 
-}
-
 // helper object for building the initial box list and making the
 // mapping between DOM nodes and boxes.
 struct BoxGenerator {
     flow: @FlowContext,
-    stack: DVec<PendingEntry>,
+    range_stack: DVec<uint>,
+}
+
+enum InlineSpacerSide {
+    LogicalBefore,
+    LogicalAfter,
+}
+
+priv fn simulate_UA_display_rules(node: Node) -> CSSDisplay {
+
+    let resolved = do node.aux |nd| {
+        match nd.style.display_type {
+            Inherit | Initial => DisplayInline, // TODO: remove once resolve works
+            Specified(v) => v
+        }
+    };
+    if (resolved == DisplayNone) { return resolved; }
+
+    do node.read |n| {
+        match n.kind {
+            ~Doctype(*) | ~Comment(*) => DisplayNone,
+            ~Text(*) => DisplayInline,
+            ~Element(e) => match e.kind {
+                ~HTMLHeadElement(*) => DisplayNone,
+                ~HTMLScriptElement(*) => DisplayNone,
+                ~HTMLParagraphElement(*) => DisplayBlock,
+                ~HTMLDivElement(*) => DisplayBlock,
+                ~HTMLBodyElement(*) => DisplayBlock,
+                ~HTMLHeadingElement(*) => DisplayBlock,
+                ~HTMLHtmlElement(*) => DisplayBlock,
+                ~HTMLUListElement(*) => DisplayBlock,
+                ~HTMLOListElement(*) => DisplayBlock,
+                _ => resolved
+            }
+        }
+    }
 }
 
 impl BoxGenerator {
     pub static pure fn new(flow: @FlowContext) -> BoxGenerator {
-        unsafe { debug!("Creating box generator for flow: f%s", flow.debug_str()); }
+        unsafe { debug!("Creating box generator for flow: %s", flow.debug_str()); }
         BoxGenerator {
             flow: flow,
-            stack: DVec()
+            range_stack: DVec()
         }
     }
 
-    pub fn push_box(ctx: &LayoutContext, box: @RenderBox) {
-        debug!("BoxGenerator: pushing box b%d to flow f%d", box.d().id, self.flow.d().id);
-        let length = match self.flow {
-            @InlineFlow(*) => self.flow.inline().boxes.len(),
-            _ => 0
-        };
-        let entry = PendingEntry { start_box: box, start_idx: length };
-        self.stack.push(entry);
+    /* Whether "spacer" boxes are needed to stand in for this DOM node */
+    pure fn inline_spacers_needed_for_node(_node: Node) -> bool {
+        return false;
+    }
 
+    // TODO: implement this, generating spacer 
+    fn make_inline_spacer_for_node_side(_ctx: &LayoutContext, _node: Node,
+                                        _side: InlineSpacerSide) -> Option<@RenderBox> {
+        None
+    }
+
+    pub fn push_node(ctx: &LayoutContext, builder: &LayoutTreeBuilder, node: Node) {
+        debug!("BoxGenerator[f%d]: pushing node: %s", self.flow.d().id, node.debug_str());
+
+        // first, determine the box type, based on node characteristics
+        let simulated_display = simulate_UA_display_rules(node);
+        // TODO: remove this once UA styles work
+        let box_type = builder.decide_box_type(node, simulated_display);
+
+        // depending on flow, make a box for this node.
         match self.flow {
             @InlineFlow(*) => {
-                if box.requires_inline_spacers() {
-                    do box.create_inline_spacer_for_side(ctx, LogicalBefore).iter |spacer: &@RenderBox| {
+                let node_range_start = match self.flow {
+                    @InlineFlow(*) => self.flow.inline().boxes.len(),
+                    _ => 0
+                };
+                self.range_stack.push(node_range_start);
+
+                // if a leaf, make a box.
+                if tree::is_leaf(&NodeTree, &node) {
+                    let new_box = builder.make_box(ctx, box_type, node, self.flow);
+                    self.flow.inline().boxes.push(new_box);
+                } // else, maybe make a spacer for "left" margin, border, padding
+                else if self.inline_spacers_needed_for_node(node) {
+                    do self.make_inline_spacer_for_node_side(ctx, node, LogicalBefore).iter |spacer: &@RenderBox| {
                         self.flow.inline().boxes.push(*spacer);
                     }
                 }
+                // TODO: cases for inline-block, etc.
             },
-            @BlockFlow(*) | @RootFlow(*) => {
-                assert self.stack.len() == 1;
+            @BlockFlow(*) => {
+                let new_box = builder.make_box(ctx, box_type, node, self.flow);
+                assert self.flow.block().box.is_none();
+                self.flow.block().box = Some(new_box);
             },
-            _ => { warn!("push_box() not implemented for flow f%d", self.flow.d().id) }
+            @RootFlow(*) => {
+                let new_box = builder.make_box(ctx, box_type, node, self.flow);
+                assert self.flow.root().box.is_none();
+                self.flow.root().box = Some(new_box);
+            },
+            _ => { warn!("push_node() not implemented for flow f%d", self.flow.d().id) }
         }
     }
 
-    pub fn pop_box(ctx: &LayoutContext, box: @RenderBox) {
-        assert self.stack.len() > 0;
-        let entry = self.stack.pop();
-        assert core::box::ptr_eq(box, entry.start_box);
-
-        debug!("BoxGenerator: popping box b%d to flow f%d", box.d().id, self.flow.d().id);
+    pub fn pop_node(ctx: &LayoutContext, _builder: &LayoutTreeBuilder, node: Node) {
+        debug!("BoxGenerator[f%d]: popping node: %s", self.flow.d().id, node.debug_str());
 
         match self.flow {
             @InlineFlow(*) => {
-                let span_length = self.flow.inline().boxes.len() - entry.start_idx + 1;
-                match (span_length, box.requires_inline_spacers()) {
+                if self.inline_spacers_needed_for_node(node) {
                     // if this non-leaf box generates extra horizontal
                     // spacing, add a SpacerBox for it.
-                    (_, true) => {
-                        do box.create_inline_spacer_for_side(ctx, LogicalAfter).iter |spacer: &@RenderBox| {
-                            self.flow.inline().boxes.push(*spacer);
-                        }
-                    },
-                    // leaf box
-                    (1, _) => { self.flow.inline().boxes.push(box); return; },
-                    // non-leaf with no spacer; do nothing
-                    (_, false) => { }
+                    do self.make_inline_spacer_for_node_side(ctx, node, LogicalAfter).iter |spacer: &@RenderBox| {
+                        self.flow.inline().boxes.push(*spacer);
+                    }
                 }
+                let node_range : MutableRange = MutableRange(self.range_stack.pop(), 0);
+                node_range.extend_to(self.flow.inline().boxes.len());
+                assert node_range.length() > 0;
 
-                // only create NodeRanges for non-leaf nodes.
-                let final_span_length = self.flow.inline().boxes.len() - entry.start_idx;
-                assert final_span_length > 0;
-                let new_range = Range(entry.start_idx, final_span_length);
-                debug!("BoxGenerator: adding element range=%?", new_range);
-                self.flow.inline().elems.add_mapping(copy box.d().node, move new_range);
+                debug!("BoxGenerator: adding element range=%?", node_range);
+                self.flow.inline().elems.add_mapping(node, node_range.as_immutable());
             },
-            @BlockFlow(*) => {
-                assert self.stack.len() == 0;
-                assert self.flow.block().box.is_none();
-                self.flow.block().box = Some(entry.start_box);
+            @BlockFlow(*) | @RootFlow(*) => {
+                assert self.range_stack.len() == 0;
             },
-            @RootFlow(*) => {
-                assert self.stack.len() == 0;
-                assert self.flow.root().box.is_none();
-                self.flow.root().box = Some(entry.start_box);
-            },
-            _ => { warn!("pop_box not implemented for flow %?", self.flow.d().id) }
+            _ => { warn!("pop_node() not implemented for flow %?", self.flow.d().id) }
         }
     }
 }
@@ -203,29 +244,25 @@ impl LayoutTreeBuilder {
     /** Creates necessary box(es) and flow context(s) for the current DOM node,
     and recurses on its children. */
     fn construct_recursively(layout_ctx: &LayoutContext, cur_node: Node, parent_ctx: &BuilderContext) {
-        let style = cur_node.style();
         // DEBUG
         debug!("Considering node: %?", fmt!("%?", cur_node.read(|n| copy n.kind )));
 
         // TODO: remove this once UA styles work
         // TODO: handle interactions with 'float', 'position' (CSS 2.1, Section 9.7)
-        let simulated_display = match self.simulate_UA_display_rules(cur_node, &style) {
+        let simulated_display = match simulate_UA_display_rules(cur_node) {
             DisplayNone => return, // tree ends here if 'display: none'
             v => v
         };
 
-        // first, determine the box type, based on node characteristics
-        let box_type = self.decide_box_type(cur_node, simulated_display);
         let this_ctx = parent_ctx.containing_context_for_display(simulated_display, &self);
-        let new_box = self.make_box(layout_ctx, box_type, cur_node, this_ctx.default_collector.flow);
-        this_ctx.default_collector.push_box(layout_ctx, new_box);
+        this_ctx.default_collector.push_node(layout_ctx, &self, cur_node);
 
         // recurse on child nodes.
         for tree::each_child(&NodeTree, &cur_node) |child_node| {
             self.construct_recursively(layout_ctx, *child_node, &this_ctx);
         }
 
-        this_ctx.default_collector.pop_box(layout_ctx, new_box);
+        this_ctx.default_collector.pop_node(layout_ctx, &self, cur_node);
         self.simplify_children_of_flow(layout_ctx, &this_ctx);
 
         // store reference to the flow context which contains any
@@ -300,34 +337,6 @@ impl LayoutTreeBuilder {
     fn fixup_split_inline(_foo: @FlowContext) {
         // TODO: finish me. 
         fail ~"TODO: handle case where an inline is split by a block"
-    }
-
-    priv fn simulate_UA_display_rules(node: Node, style: &SpecifiedStyle) -> CSSDisplay {
-        let resolved = match style.display_type {
-            Inherit | Initial => DisplayInline, // TODO: remove once resolve works
-            Specified(v) => v
-        };
-
-        if (resolved == DisplayNone) { return resolved; }
-
-        do node.read |n| {
-            match n.kind {
-                ~Doctype(*) | ~Comment(*) => DisplayNone,
-                ~Text(*) => DisplayInline,
-                ~Element(e) => match e.kind {
-                    ~HTMLHeadElement(*) => DisplayNone,
-                    ~HTMLScriptElement(*) => DisplayNone,
-                    ~HTMLParagraphElement(*) => DisplayBlock,
-                    ~HTMLDivElement(*) => DisplayBlock,
-                    ~HTMLBodyElement(*) => DisplayBlock,
-                    ~HTMLHeadingElement(*) => DisplayBlock,
-                    ~HTMLHtmlElement(*) => DisplayBlock,
-                    ~HTMLUListElement(*) => DisplayBlock,
-                    ~HTMLOListElement(*) => DisplayBlock,
-                    _ => resolved
-                }
-            }
-        }
     }
 
     /** entry point for box creation. Should only be 

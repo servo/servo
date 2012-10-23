@@ -7,7 +7,7 @@ use geom::rect::Rect;
 use geom::point::Point2D;
 // TODO: pub-use these
 use layout::block::BlockFlowData;
-use layout::box::{LogicalBefore, LogicalAfter, RenderBox};
+use layout::box::RenderBox;
 use layout::context::LayoutContext;
 use layout::debug::BoxedDebugMethods;
 use layout::inline::{InlineFlowData, NodeRange};

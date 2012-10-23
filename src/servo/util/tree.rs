@@ -34,6 +34,10 @@ pub fn each_child<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T, f: fn(&T) -> bool)
     }
 }
 
+pub fn is_leaf<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T) -> bool {
+    tree::first_child(ops, node).is_none()
+}
+
 pub fn first_child<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T) -> Option<T> {
     ops.with_tree_fields(node, |tf| tf.first_child)
 }
