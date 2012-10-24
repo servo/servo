@@ -74,6 +74,10 @@ impl RenderContext  {
                                      draw_surface_options, draw_options);
     }
 
+    // TODO: azure takes the origin as the left or right baseline. We
+    // should be passing in a bunch of glyphs and the baseline
+    // point. The baseline point should be computed somewhere else,
+    // like Font::draw_to_context() or TextRun::draw_to_context().
     pub fn draw_text(&self, bounds: Rect<Au>, run: &TextRun, range: Range) {
         use ptr::{null};
         use vec::raw::to_ptr;
@@ -89,7 +93,8 @@ impl RenderContext  {
         use azure::cairo::bindgen::cairo_scaled_font_destroy;
 
         let font = run.font;
-
+        // See the TODO above.
+        let y_adjust = font.metrics.descent;
         let nfont: AzNativeFont = {
             mType: AZ_NATIVE_FONT_CAIRO_FONT_FACE,
             mFont: null()
@@ -114,7 +119,7 @@ impl RenderContext  {
             fields: 0 as uint16_t
         };
 
-        let mut origin = Point2D(bounds.origin.x, bounds.origin.y.add(&bounds.size.height));
+        let mut origin = Point2D(bounds.origin.x, bounds.origin.y.add(&bounds.size.height) - y_adjust);
         let azglyphs = DVec();
         azglyphs.reserve(range.length());
 
@@ -232,7 +237,7 @@ fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
     cairo_matrix_init_identity(to_unsafe_ptr(&idmatrix));
 
     let fontmatrix = idmatrix;
-    cairo_matrix_scale(to_unsafe_ptr(&fontmatrix), 20f as c_double, 20f as c_double);
+    cairo_matrix_scale(to_unsafe_ptr(&fontmatrix), 21f as c_double, 21f as c_double);
     let options = cairo_font_options_create();
     let cfont = cairo_scaled_font_create(face, to_unsafe_ptr(&fontmatrix),
                                          to_unsafe_ptr(&idmatrix), options);
