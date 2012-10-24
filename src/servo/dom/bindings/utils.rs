@@ -72,7 +72,7 @@ unsafe fn domstring_to_jsval(cx: *JSContext, str: &DOMString) -> JSVal {
 pub fn get_compartment(cx: *JSContext) -> compartment {
     unsafe {
         let content = task_from_context(cx);
-        let compartment = option::expect(&(*content).compartment,
+        let compartment = option::expect((*content).compartment,
                                          ~"Should always have compartment when \
                                            executing JS code");
         assert cx == compartment.cx.ptr;

@@ -154,7 +154,7 @@ impl<T: Copy Send,A> Scope<T,A> {
 }
 
 unsafe fn free<T:Send>(t: *T) {
-    let _x <- *cast::reinterpret_cast::<*T,*mut T>(&t);
+    let _x = move *cast::reinterpret_cast::<*T,*mut T>(&t);
     libc::free(cast::reinterpret_cast(&t));
 }
 

@@ -102,14 +102,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
                                           Size2D(800.0f32, 600.0f32));
 
     let done = @mut false;
-
     let resize_rate_limiter = @ResizeRateLimiter(move dom_event_chan);
-
-    #macro[
-        [#moov[x],
-         unsafe { let y <- *ptr::addr_of(x); y }]
-    ];
-
     let check_for_messages = fn@() {
 
         // Periodically check if content responded to our last resize event

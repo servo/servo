@@ -88,14 +88,14 @@ impl TokenReader : ParserMethods {
 
             loop {
                 let tok = self.get();
-                let built_sel <- cur_sel;
+                let built_sel = move cur_sel;
                 
                 match tok {
                   tok::Descendant => {
                     match self.parse_element() {
                       Some(elmt) => { 
                         let new_sel = copy elmt;
-                        cur_sel <- ~css::Descendant(move built_sel, move new_sel)
+                        cur_sel = ~css::Descendant(move built_sel, move new_sel)
                       }
                       None => { return None; }
                     }
@@ -104,7 +104,7 @@ impl TokenReader : ParserMethods {
                     match self.parse_element() {
                       Some(elmt) => { 
                         let new_sel = copy elmt;
-                        cur_sel <- ~css::Child(move built_sel, move new_sel)
+                        cur_sel = ~css::Child(move built_sel, move new_sel)
                       }
                       None => { return None; }
                     }
@@ -113,7 +113,7 @@ impl TokenReader : ParserMethods {
                     match self.parse_element() {
                       Some(elmt) => { 
                         let new_sel = copy elmt;
-                        cur_sel <- ~css::Sibling(move built_sel, move new_sel)
+                        cur_sel = ~css::Sibling(move built_sel, move new_sel)
                       }
                       None => { return None; }
                     }

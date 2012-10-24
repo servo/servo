@@ -208,11 +208,11 @@ impl Content {
             self.window   = Some(@move window);
             self.doc_url = Some(move url);
 
-            let compartment = option::expect(&self.compartment, ~"TODO error checking");
+            let compartment = option::expect(self.compartment, ~"TODO error checking");
             compartment.define_functions(debug_fns);
             define_bindings(compartment,
-                            option::get(&self.document),
-                            option::get(&self.window));
+                            option::get(self.document),
+                            option::get(self.window));
 
             do vec::consume(move js_scripts) |_i, bytes| {
                 self.cx.evaluate_script(compartment.global_obj, move bytes, ~"???", 1u);
@@ -222,7 +222,7 @@ impl Content {
           }
 
           Timer(timerData) => {
-            let compartment = option::expect(&self.compartment, ~"TODO error checking");
+            let compartment = option::expect(self.compartment, ~"TODO error checking");
             let thisValue = if timerData.args.len() > 0 {
                 RUST_JSVAL_TO_OBJECT(unsafe { timerData.args.shift() })
             } else {
@@ -245,7 +245,7 @@ impl Content {
                 println(fmt!("Error opening %s: %s", url_to_str(copy url), msg));
               }
               Ok(move bytes) => {
-                let compartment = option::expect(&self.compartment, ~"TODO error checking");
+                let compartment = option::expect(self.compartment, ~"TODO error checking");
                 compartment.define_functions(debug_fns);
                 self.cx.evaluate_script(compartment.global_obj, move bytes, copy url.path, 1u);
               }
