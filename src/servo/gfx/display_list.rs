@@ -1,5 +1,6 @@
 use azure::azure_hl::DrawTarget;
-use gfx::geometry::*;
+use au = gfx::geometry;
+use au::Au;
 use geom::rect::Rect;
 use image::base::Image;
 use render_context::RenderContext;
@@ -53,6 +54,10 @@ impl DisplayItem {
             Image(_, ref img) => ctx.draw_image(self.d().bounds, clone_arc(img)),
             Border(_, width, r, g, b) => ctx.draw_border(&self.d().bounds, width, r, g, b),
         }
+
+        debug!("%?", {
+        ctx.draw_border(&self.d().bounds, au::from_px(1), 150, 150, 150);
+        () });
     }
 
     static pure fn new_SolidColor(bounds: &Rect<Au>, r: u8, g: u8, b: u8) -> DisplayItem {
@@ -81,14 +86,16 @@ trait DisplayListMethods {
 
 impl DisplayList : DisplayListMethods {
     fn append_item(item: ~DisplayItem) {
-        debug!("Adding display item %u: %?", self.len(), item);
+        // FIXME(Issue #150): crashes
+        //debug!("Adding display item %u: %?", self.len(), item);
         self.push(move item);
     }
 
     fn draw_into_context(ctx: &RenderContext) {
         debug!("beginning display list");
         for self.each |item| {
-            debug!("drawing %?", *item);
+            // FIXME(Issue #150): crashes
+            //debug!("drawing %?", *item);
             item.draw_into_context(ctx);
         }
         debug!("ending display list");

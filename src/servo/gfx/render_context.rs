@@ -38,14 +38,20 @@ impl RenderContext  {
     }
 
     pub fn draw_border(&self, bounds: &Rect<Au>, width: Au, r: u8, g: u8, b: u8) {
-        let rect = bounds.to_azure_rect();
         let color = Color(r.to_float() as AzFloat,
                           g.to_float() as AzFloat,
                           b.to_float() as AzFloat,
                           1f as AzFloat);
         let pattern = ColorPattern(color);
         let stroke_fields = 2; // CAP_SQUARE
-        let stroke_opts = StrokeOptions(au::to_px(width) as AzFloat, 10 as AzFloat, stroke_fields);
+        let width_px = au::to_px(width);
+        let rect = if width_px % 2 == 0 {
+            bounds.to_azure_rect()
+        } else {
+            bounds.to_azure_snapped_rect()
+        };
+            
+        let stroke_opts = StrokeOptions(width_px as AzFloat, 10 as AzFloat, stroke_fields);
         let draw_opts = DrawOptions(1 as AzFloat, 0 as uint16_t);
 
         self.canvas.draw_target.stroke_rect(&rect, &pattern, &stroke_opts, &draw_opts);
@@ -162,11 +168,17 @@ impl u8 : to_float {
 
 trait ToAzureRect {
     fn to_azure_rect() -> Rect<AzFloat>;
+    fn to_azure_snapped_rect() -> Rect<AzFloat>;
 }
 
 impl Rect<Au> : ToAzureRect {
     fn to_azure_rect() -> Rect<AzFloat> {
         Rect(Point2D(au::to_px(self.origin.x) as AzFloat, au::to_px(self.origin.y) as AzFloat),
+             Size2D(au::to_px(self.size.width) as AzFloat, au::to_px(self.size.height) as AzFloat))
+    }
+
+    fn to_azure_snapped_rect() -> Rect<AzFloat> {
+        Rect(Point2D(au::to_px(self.origin.x) as AzFloat + 0.5f as AzFloat, au::to_px(self.origin.y) as AzFloat + 0.5f as AzFloat),
              Size2D(au::to_px(self.size.width) as AzFloat, au::to_px(self.size.height) as AzFloat))
     }
 }

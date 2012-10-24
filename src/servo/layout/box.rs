@@ -420,7 +420,11 @@ impl RenderBox : RenderBoxMethods {
             TextBox(_,d) => {
                 list.append_item(~DisplayItem::new_Text(&abs_box_bounds, 
                                                         ~d.run.serialize(builder.ctx.font_cache),
-                                                        d.range))
+                                                        d.range));
+                // debug frames for text box bounds
+                debug!("%?", { 
+                    list.append_item(~DisplayItem::new_Border(&abs_box_bounds, au::from_px(1), 0, 0, 200))
+                ; ()});
             },
             // TODO: items for background, border, outline
             GenericBox(_) => {
