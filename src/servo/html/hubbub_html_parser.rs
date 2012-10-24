@@ -10,6 +10,8 @@ use resource::image_cache_task::ImageCacheTask;
 use resource::image_cache_task;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
 
+use hubbub::Attribute;
+
 use comm::{Chan, Port};
 use std::net::url::Url;
 
@@ -190,35 +192,38 @@ pub fn parse_html(scope: NodeScope,
     parser.set_document_node(cast::transmute(cow::unwrap(root)));
     parser.enable_scripting(true);
     parser.set_tree_handler(@hubbub::TreeHandler {
-        create_comment: |data: &str| {
+        create_comment: |data: ~str| {
             debug!("create comment");
-            let new_node = scope.new_node(Comment(str::from_slice(data)));
+            let new_node = scope.new_node(Comment(move data));
             unsafe { cast::transmute(cow::unwrap(new_node)) }
         },
-        create_doctype: |doctype: &hubbub::Doctype| {
+        create_doctype: |doctype: ~hubbub::Doctype| {
             debug!("create doctype");
-            let name = str::from_slice(doctype.name);
+            // TODO: remove copying here by using struct pattern matching to 
+            // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
             let public_id = match doctype.public_id {
                 None => None,
-                Some(id) => Some(str::from_slice(id))
+                Some(id) => Some(copy id)
             };
             let system_id = match doctype.system_id {
                 None => None,
-                Some(id) => Some(str::from_slice(id))
+                Some(id) => Some(copy id)
             };
-            let data = DoctypeData(move name, move public_id, move system_id,
-                                   doctype.force_quirks);
+            let data = DoctypeData(copy doctype.name, move public_id, move system_id,
+                                   copy doctype.force_quirks);
             let new_node = scope.new_node(Doctype(move data));
             unsafe { cast::transmute(cow::unwrap(new_node)) }
         },
-        create_element: |tag: &hubbub::Tag, move image_cache_task| {
+        create_element: |tag: ~hubbub::Tag, move image_cache_task| {
             debug!("create element");
+            // TODO: remove copying here by using struct pattern matching to 
+            // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
             let elem_kind = build_element_kind(tag.name);
-            let elem = ElementData(str::from_slice(tag.name), move elem_kind);
+            let elem = ElementData(copy tag.name, move elem_kind);
+
             debug!("attach attrs");
-            for tag.attributes.each |attribute| {
-                elem.attrs.push(~Attr(str::from_slice(attribute.name),
-                                      str::from_slice(attribute.value)));
+            for tag.attributes.each |attr| {
+                elem.attrs.push(~Attr(copy attr.name, copy attr.value));
             }
 
             // Spawn additional parsing, network loads, etc. from tag and attrs
@@ -251,9 +256,9 @@ pub fn parse_html(scope: NodeScope,
             let node = scope.new_node(Element(move elem));
             unsafe { cast::transmute(cow::unwrap(node)) }
         },
-        create_text: |data: &str| {
+        create_text: |data: ~str| {
             debug!("create text");
-            let new_node = scope.new_node(Text(str::from_slice(data)));
+            let new_node = scope.new_node(Text(move data));
             unsafe { cast::transmute(cow::unwrap(new_node)) }
         },
         ref_node: |_node| {},
