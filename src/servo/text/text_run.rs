@@ -188,7 +188,7 @@ fn test_iter_indivisible_pieces() {
     fn test_pieces(text: ~str, res: ~[~str]) {
         let flib = FontCache();
         let font = flib.get_test_font();
-        let run = TextRun(font, copy text);
+        let run = TextRun::new(font, copy text);
         let mut slices : ~[~str] = ~[];
         for run.iter_indivisible_pieces_for_range(Range(0, text.len())) |subrange| {
             slices.push(str::slice(text, subrange.begin(), subrange.length()));
