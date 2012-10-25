@@ -6,6 +6,7 @@ use dvec::DVec;
 use gfx::compositor::{LayerBuffer, Compositor};
 use dom::event::{Event, ResizeEvent};
 use layers::ImageLayer;
+use geom::matrix::{Matrix4, identity};
 use geom::size::Size2D;
 use ShareGlContext = sharegl::platform::Context;
 use std::cmp::FuzzyEq;
@@ -98,7 +99,8 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
     image_layer.common.set_transform(original_layer_transform.scale(&800.0f32, &600.0f32, &1f32));
 
     let scene = @layers::scene::Scene(layers::layers::ImageLayerKind(image_layer),
-                                          Size2D(800.0f32, 600.0f32));
+                                      Size2D(800.0f32, 600.0f32),
+                                      identity(0.0f32));
 
     let done = @mut false;
     let resize_rate_limiter = @ResizeRateLimiter(move dom_event_chan);
@@ -131,17 +133,35 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
                     image_layer.set_image(image);
                     image_layer.common.set_transform(original_layer_transform.scale(
                         &(width as f32), &(height as f32), &1.0f32));
-
-                    // FIXME: Cross-crate struct mutability is broken.
-                    let size: &mut Size2D<f32>;
-                    unsafe { size = cast::transmute(&scene.size); }
-                    *size = Size2D(width as f32, height as f32);
                 }
                 Exit => {
                     *done = true;
                 }
             }
         }
+    };
+
+    let adjust_for_window_resizing: fn@() = || {
+        let height = surfaces.front.layer_buffer.size.height as uint;
+        let window_width = glut::get(glut::WindowWidth) as uint;
+        let window_height = glut::get(glut::WindowHeight) as uint;
+
+        // FIXME: Cross-crate struct mutability is broken.
+        let size: &mut Size2D<f32>;
+        unsafe { size = cast::transmute(&scene.size); }
+        *size = Size2D(window_width as f32, window_height as f32);
+    };
+
+    let composite: fn@() = || {
+        #debug("osmain: drawing to screen");
+
+        do util::time::time(~"compositing") {
+            adjust_for_window_resizing();
+            layers::rendergl::render_scene(context, scene);
+        }
+
+        glut::swap_buffers();
+        glut::post_redisplay();
     };
 
     match window {
@@ -151,19 +171,13 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
 
                 #debug("osmain: window resized to %d,%d", width as int, height as int);
                 resize_rate_limiter.window_resized(width as uint, height as uint);
+
+                composite();
             }
 
             do glut::display_func() {
                 check_for_messages();
-
-                #debug("osmain: drawing to screen");
-
-                do util::time::time(~"compositing") {
-                    layers::rendergl::render_scene(context, scene);
-                }
-
-                glut::swap_buffers();
-                glut::post_redisplay();
+                composite();
             }
 
             while !*done {
