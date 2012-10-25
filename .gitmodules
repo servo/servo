@@ -73,3 +73,9 @@
 [submodule "src/rust-fontconfig"]
 	path = src/rust-fontconfig
 	url = git://github.com/mozilla-servo/rust-fontconfig.git
+[submodule "src/rust-xlib"]
+	path = src/rust-xlib
+	url = git://github.com/mozilla-servo/rust-xlib.git
+[submodule "src/rust-cairo"]
+	path = src/rust-cairo
+	url = git://github.com/mozilla-servo/rust-cairo.git

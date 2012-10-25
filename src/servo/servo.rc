@@ -7,18 +7,19 @@
 #[license = "MPL"];
 #[crate_type = "lib"];
 
-extern mod std;
 extern mod azure;
-extern mod js;
-extern mod stb_image;
+extern mod cairo;
 extern mod geom;
 extern mod glut;
-extern mod layers;
-extern mod opengles;
 extern mod http_client;
 extern mod hubbub;
-extern mod sharegl;
+extern mod js;
+extern mod layers;
 extern mod netsurfcss;
+extern mod opengles;
+extern mod sharegl;
+extern mod stb_image;
+extern mod std;
 
 pub mod engine;
 

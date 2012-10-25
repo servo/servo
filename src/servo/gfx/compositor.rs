@@ -1,6 +1,6 @@
-use dom::event::Event;
-use azure::cairo_hl::ImageSurface;
 use azure::azure_hl::{DrawTarget};
+use cairo::cairo_hl::ImageSurface;
+use dom::event::Event;
 use geom::size::Size2D;
 
 struct LayerBuffer {

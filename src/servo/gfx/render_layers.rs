@@ -2,8 +2,8 @@ use gfx::display_list::DisplayList;
 use gfx::compositor::LayerBuffer;
 
 use azure::azure_hl::DrawTarget;
-use azure::cairo::CAIRO_FORMAT_RGB24;
-use azure::cairo_hl::ImageSurface;
+use cairo::CAIRO_FORMAT_RGB24;
+use cairo::cairo_hl::ImageSurface;
 use core::libc::c_int;
 use geom::size::Size2D;
 

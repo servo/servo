@@ -8,9 +8,8 @@ Each time the renderer renders a frame the compositor will output a
 use libc::{c_int, c_uint, c_void, c_uchar};
 use azure_bg = azure::bindgen;
 use azure_bg::{AzCreateDrawTargetForCairoSurface, AzReleaseDrawTarget};
-use azure::cairo;
 use azure::azure_hl::DrawTarget;
-use azure::cairo_hl::ImageSurface;
+use cairo::cairo_hl::ImageSurface;
 use cairo::{CAIRO_FORMAT_ARGB32, cairo_surface_t, cairo_status_t, CAIRO_STATUS_SUCCESS};
 use cairo_bg = cairo::bindgen;
 use cairo_bg::{cairo_image_surface_create, cairo_surface_destroy,

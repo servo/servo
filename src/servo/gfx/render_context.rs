@@ -8,6 +8,7 @@ use image::base::Image;
 use au::Au;
 use util::range::Range;
 
+use cairo::cairo_hl::ImageSurface;
 use core::libc::types::common::c99::uint16_t;
 use core::ptr::to_unsafe_ptr;
 use core::dvec::DVec;
@@ -15,7 +16,6 @@ use std::arc::ARC;
 use geom::size::Size2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
-use azure::cairo_hl::ImageSurface;
 use azure::{AzDrawOptions, AzFloat};
 use azure::azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions, StrokeOptions};
 use azure::azure_hl::{DrawTarget, Linear};

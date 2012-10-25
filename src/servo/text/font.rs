@@ -82,7 +82,6 @@ impl Font {
             AZ_NATIVE_FONT_CAIRO_FONT_FACE
         };
         use azure::bindgen::AzCreateScaledFontWithCairo;
-        use azure::cairo;
         use cairo::{cairo_font_face_t, cairo_scaled_font_t};
         use cairo::bindgen::cairo_scaled_font_destroy;
 
@@ -110,7 +109,7 @@ impl Font {
 
         #[cfg(target_os = "linux")]
         fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
-            use azure::cairo_ft::bindgen::{cairo_ft_font_face_create_for_ft_face};
+            use cairo::cairo_ft::bindgen::{cairo_ft_font_face_create_for_ft_face};
 
             let ftface = font.native_font.face;
             let cface = cairo_ft_font_face_create_for_ft_face(ftface, 0 as c_int);
@@ -120,7 +119,7 @@ impl Font {
 
         #[cfg(target_os = "macos")]
         fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
-            use azure::cairo_quartz::bindgen::cairo_quartz_font_face_create_for_cgfont;
+            use cairo::cairo_quartz::bindgen::cairo_quartz_font_face_create_for_cgfont;
 
             let cgfont = font.native_font.cgfont;
             let face = cairo_quartz_font_face_create_for_cgfont(cgfont);

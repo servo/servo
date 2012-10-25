@@ -1,9 +1,8 @@
 use mod azure::azure_hl;
 use azure::azure_hl::DrawTarget;
-use azure::cairo;
-use azure::cairo_hl::ImageSurface;
+use cairo::cairo_surface_t;
+use cairo::cairo_hl::ImageSurface;
 use dvec::DVec;
-use azure::cairo::cairo_surface_t;
 use gfx::compositor::{LayerBuffer, Compositor};
 use dom::event::{Event, ResizeEvent};
 use layers::ImageLayer;

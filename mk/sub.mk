@@ -5,16 +5,19 @@
 # NB. This should not be a problem once a real package system exists.
 
 DEPS_rust-azure += \
-	rust-geom
+	rust-geom \
+	rust-cairo
 
 DEPS_rust-glut += \
 	rust-opengles
 
 DEPS_rust-layers += \
 	rust-azure \
+	rust-cairo \
 	rust-geom \
 	rust-glut \
-	rust-opengles
+	rust-opengles \
+	$(NULL)
 
 DEPS_sharegl += \
 	rust-geom \
@@ -43,8 +46,8 @@ CFLAGS_rust-mozjs += \
 	"-I../mozjs/dist/include"
 
 DEPS_libcss += \
-    libwapcaplet \
-    libparserutils
+	libwapcaplet \
+	libparserutils
 
 # Platform-specific dependencies
 ifeq ($(CFG_OSTYPE),darwin)
@@ -52,7 +55,7 @@ DEPS_rust-azure += \
 	rust-core-graphics \
 	rust-core-foundation
 
-DEPS_rust-layers += \
+DEPS_rust-cairo += \
 	rust-core-graphics
 
 DEPS_rust-io-surface += \
@@ -68,6 +71,10 @@ DEPS_rust-core-text += \
 endif
 
 ifeq ($(CFG_OSTYPE),linux)
+
+DEPS_rust-cairo += \
+	rust-xlib
+
 DEPS_rust-azure += \
 	rust-freetype \
 	rust-fontconfig
