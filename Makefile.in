@@ -78,7 +78,7 @@ $(S)config.stamp : $(S)configure $(S)Makefile.in
 
 define DEF_SUBMODULE_VARS
 DEPS_$(1) =
-CFLAGS_$(1) =
+CFLAGS_$(1) = -O2
 DONE_$(1) = $$(B)src/$(1)/$(1).dummy
 DEPS_SUBMODULES += $(1)
 endef
