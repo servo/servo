@@ -1,5 +1,5 @@
 use gfx::display_list::DisplayList;
-use gfx::compositor::LayerBuffer;
+use gfx::compositor::{LayerBuffer, LayerBufferSet};
 
 use azure::azure_hl::DrawTarget;
 use cairo::CAIRO_FORMAT_RGB24;
@@ -17,9 +17,10 @@ pub struct RenderLayer {
 /// given callback with the render layer and the buffer. Returns the resulting layer buffer (which
 /// might be the old layer buffer if it had the appropriate size and format).
 pub fn render_layers(layer: &RenderLayer,
-                     buffer: LayerBuffer,
-                     f: &fn(layer: &RenderLayer, buffer: &LayerBuffer) -> bool) -> LayerBuffer {
-    let mut buffer = move buffer;
+                     buffer_set: LayerBufferSet,
+                     f: &fn(layer: &RenderLayer, buffer: &LayerBuffer) -> bool) -> LayerBufferSet {
+    let mut buffers = match move buffer_set { LayerBufferSet { buffers: move b } => move b };
+    let mut buffer = buffers.pop();
     if buffer.size != layer.size {
         // Create a new buffer.
 
@@ -44,6 +45,6 @@ pub fn render_layers(layer: &RenderLayer,
     }
 
     let _ = f(layer, &buffer);
-    return move buffer;
+    return LayerBufferSet { buffers: ~[ move buffer ] };
 }
 

@@ -16,12 +16,18 @@ struct LayerBuffer {
     stride: uint
 }
 
+/// A set of layer buffers. This is an atomic unit used to switch between the front and back
+/// buffers.
+struct LayerBufferSet {
+    buffers: ~[LayerBuffer]
+}
+
 /**
 The interface used to by the renderer to aquire draw targets for
 each rendered frame and submit them to be drawn to the display
 */
 trait Compositor {
-    fn begin_drawing(next_dt: pipes::Chan<LayerBuffer>);
-    fn draw(next_dt: pipes::Chan<LayerBuffer>, +draw_me: LayerBuffer);
+    fn begin_drawing(next_dt: pipes::Chan<LayerBufferSet>);
+    fn draw(next_dt: pipes::Chan<LayerBufferSet>, +draw_me: LayerBufferSet);
 }
 

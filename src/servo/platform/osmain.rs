@@ -1,20 +1,21 @@
-use mod azure::azure_hl;
+use ShareGlContext = sharegl::platform::Context;
+use azure::azure_hl;
 use azure::azure_hl::DrawTarget;
-use cairo::cairo_surface_t;
 use cairo::cairo_hl::ImageSurface;
-use dvec::DVec;
-use gfx::compositor::{LayerBuffer, Compositor};
+use cairo::cairo_surface_t;
+use core::util::replace;
 use dom::event::{Event, ResizeEvent};
-use layers::ImageLayer;
+use dvec::DVec;
 use geom::matrix::{Matrix4, identity};
 use geom::size::Size2D;
-use ShareGlContext = sharegl::platform::Context;
+use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
+use layers::ImageLayer;
+use pipes::Chan;
+use resize_rate_limiter::ResizeRateLimiter;
+use std::cell::Cell;
 use std::cmp::FuzzyEq;
 use task::TaskBuilder;
 use vec::push;
-use pipes::Chan;
-use std::cell::Cell;
-use resize_rate_limiter::ResizeRateLimiter;
 
 pub type OSMain = comm::Chan<Msg>;
 
@@ -30,8 +31,8 @@ enum Window {
 }
 
 pub enum Msg {
-    BeginDrawing(pipes::Chan<LayerBuffer>),
-    Draw(pipes::Chan<LayerBuffer>, LayerBuffer),
+    BeginDrawing(pipes::Chan<LayerBufferSet>),
+    Draw(pipes::Chan<LayerBufferSet>, LayerBufferSet),
     AddKeyHandler(pipes::Chan<()>),
     Exit
 }
@@ -120,11 +121,12 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
                     return_surface(surfaces, move dt);
                     lend_surface(surfaces, move sender);
 
-                    let width = surfaces.front.layer_buffer.size.width as uint;
-                    let height = surfaces.front.layer_buffer.size.height as uint;
+                    let buffers = &mut surfaces.front.layer_buffer_set.buffers;
+                    let width = buffers[0].size.width as uint;
+                    let height = buffers[0].size.height as uint;
 
                     let image_data = @CairoSurfaceImageData {
-                        cairo_surface: surfaces.front.layer_buffer.cairo_surface.clone(),
+                        cairo_surface: buffers[0].cairo_surface.clone(),
                         size: Size2D(width, height)
                     };
                     let image = @layers::layers::Image::new(
@@ -142,7 +144,6 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
     };
 
     let adjust_for_window_resizing: fn@() = || {
-        let height = surfaces.front.layer_buffer.size.height as uint;
         let window_width = glut::get(glut::WindowWidth) as uint;
         let window_height = glut::get(glut::WindowHeight) as uint;
 
@@ -167,15 +168,14 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
     match window {
         GlutWindow(window) => {
             do glut::reshape_func(window) |width, height| {
-                check_for_messages();
-
                 #debug("osmain: window resized to %d,%d", width as int, height as int);
+                check_for_messages();
                 resize_rate_limiter.window_resized(width as uint, height as uint);
-
-                composite();
+                //composite();
             }
 
             do glut::display_func() {
+                debug!("osmain: display func");
                 check_for_messages();
                 composite();
             }
@@ -203,10 +203,10 @@ Implementation to allow the osmain channel to be used as a graphics
 compositor for the renderer
 */
 impl OSMain : Compositor {
-    fn begin_drawing(next_dt: pipes::Chan<LayerBuffer>) {
+    fn begin_drawing(next_dt: pipes::Chan<LayerBufferSet>) {
         self.send(BeginDrawing(move next_dt))
     }
-    fn draw(next_dt: pipes::Chan<LayerBuffer>, draw_me: LayerBuffer) {
+    fn draw(next_dt: pipes::Chan<LayerBufferSet>, draw_me: LayerBufferSet) {
         self.send(Draw(move next_dt, move draw_me))
     }
 }
@@ -216,19 +216,26 @@ struct SurfaceSet {
     mut back: Surface,
 }
 
-fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBuffer>) {
+fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBufferSet>) {
     // We are in a position to lend out the surface?
     assert surfaces.front.have;
     // Ok then take it
-    let draw_target_ref = &mut surfaces.front.layer_buffer.draw_target;
-    let layer_buffer = LayerBuffer {
-        cairo_surface: surfaces.front.layer_buffer.cairo_surface.clone(),
-        draw_target: azure_hl::clone_mutable_draw_target(draw_target_ref),
-        size: copy surfaces.front.layer_buffer.size,
-        stride: surfaces.front.layer_buffer.stride
+    let old_layer_buffers = replace(&mut surfaces.front.layer_buffer_set.buffers, ~[]);
+    let new_layer_buffers = do old_layer_buffers.map |layer_buffer| {
+        let draw_target_ref = &layer_buffer.draw_target;
+        let layer_buffer = LayerBuffer {
+            cairo_surface: layer_buffer.cairo_surface.clone(),
+            draw_target: draw_target_ref.clone(),
+            size: copy layer_buffer.size,
+            stride: layer_buffer.stride
+        };
+        #debug("osmain: lending surface %?", layer_buffer);
+        move layer_buffer
     };
-    #debug("osmain: lending surface %?", layer_buffer);
-    receiver.send(move layer_buffer);
+    surfaces.front.layer_buffer_set.buffers = move old_layer_buffers;
+
+    let new_layer_buffer_set = LayerBufferSet { buffers: move new_layer_buffers };
+    receiver.send(move new_layer_buffer_set);
     // Now we don't have it
     surfaces.front.have = false;
     // But we (hopefully) have another!
@@ -237,13 +244,13 @@ fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBuffer>) {
     assert surfaces.front.have;
 }
 
-fn return_surface(surfaces: &SurfaceSet, layer_buffer: LayerBuffer) {
-    #debug("osmain: returning surface %?", layer_buffer);
+fn return_surface(surfaces: &SurfaceSet, layer_buffer_set: LayerBufferSet) {
+    #debug("osmain: returning surface %?", layer_buffer_set);
     // We have room for a return
     assert surfaces.front.have;
     assert !surfaces.back.have;
 
-    surfaces.back.layer_buffer = move layer_buffer;
+    surfaces.back.layer_buffer_set = move layer_buffer_set;
 
     // Now we have it again
     surfaces.back.have = true;
@@ -254,7 +261,7 @@ fn SurfaceSet() -> SurfaceSet {
 }
 
 struct Surface {
-    layer_buffer: LayerBuffer,
+    layer_buffer_set: LayerBufferSet,
     mut have: bool,
 }
 
@@ -267,7 +274,8 @@ fn Surface() -> Surface {
         size: Size2D(800u, 600u),
         stride: 800
     };
-    Surface { layer_buffer: move layer_buffer, have: true }
+    let layer_buffer_set = LayerBufferSet { buffers: ~[ move layer_buffer ] };
+    Surface { layer_buffer_set: move layer_buffer_set, have: true }
 }
 
 /// A function for spawning into the platform's main thread

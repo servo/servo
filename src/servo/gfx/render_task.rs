@@ -1,7 +1,7 @@
 use au = gfx::geometry;
 use au::Au;
 use comm::*;
-use compositor::{Compositor, LayerBuffer};
+use compositor::{Compositor, LayerBufferSet};
 use dl = display_list;
 use mod gfx::render_layers;
 use render_layers::render_layers;
@@ -24,7 +24,7 @@ pub type RenderTask = comm::Chan<Msg>;
 pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
     let compositor_cell = Cell(move compositor);
     do task::spawn_listener |po: comm::Port<Msg>, move compositor_cell| {
-        let (layer_buffer_channel, layer_buffer_port) = pipes::stream();
+        let (layer_buffer_channel, layer_buffer_set_port) = pipes::stream();
 
         let compositor = compositor_cell.take();
         compositor.begin_drawing(move layer_buffer_channel);
@@ -32,7 +32,7 @@ pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
         Renderer {
             port: po,
             compositor: move compositor,
-            mut layer_buffer_port: Cell(move layer_buffer_port),
+            mut layer_buffer_set_port: Cell(move layer_buffer_set_port),
             font_cache: FontCache(),
         }.start();
     }
@@ -41,7 +41,7 @@ pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
 priv struct Renderer<C: Compositor Send> {
     port: comm::Port<Msg>,
     compositor: C,
-    layer_buffer_port: Cell<pipes::Port<LayerBuffer>>,
+    layer_buffer_set_port: Cell<pipes::Port<LayerBufferSet>>,
     font_cache: @FontCache
 }
 
@@ -63,28 +63,28 @@ impl<C: Compositor Send> Renderer<C> {
     fn render(render_layer: RenderLayer) {
         debug!("renderer: got render request");
 
-        let layer_buffer_port = self.layer_buffer_port.take();
+        let layer_buffer_set_port = self.layer_buffer_set_port.take();
 
-        if !layer_buffer_port.peek() {
+        if !layer_buffer_set_port.peek() {
             warn!("renderer: waiting on layer buffer");
         }
 
-        let layer_buffer = layer_buffer_port.recv();
-        let (layer_buffer_channel, new_layer_buffer_port) = pipes::stream();
-        self.layer_buffer_port.put_back(move new_layer_buffer_port);
+        let layer_buffer_set = layer_buffer_set_port.recv();
+        let (layer_buffer_set_channel, new_layer_buffer_set_port) = pipes::stream();
+        self.layer_buffer_set_port.put_back(move new_layer_buffer_set_port);
 
         let render_layer_cell = Cell(move render_layer);
-        let layer_buffer_cell = Cell(move layer_buffer);
-        let layer_buffer_channel_cell = Cell(move layer_buffer_channel);
+        let layer_buffer_set_cell = Cell(move layer_buffer_set);
+        let layer_buffer_set_channel_cell = Cell(move layer_buffer_set_channel);
 
         #debug("renderer: rendering");
 
         do util::time::time(~"rendering") {
             let render_layer = render_layer_cell.take();
-            let layer_buffer = layer_buffer_cell.take();
-            let layer_buffer_channel = layer_buffer_channel_cell.take();
+            let layer_buffer_set = layer_buffer_set_cell.take();
+            let layer_buffer_set_channel = layer_buffer_set_channel_cell.take();
 
-            let layer_buffer = for render_layers(&render_layer, move layer_buffer)
+            let layer_buffer_set = for render_layers(&render_layer, move layer_buffer_set)
                     |render_layer, layer_buffer| {
                 let ctx = RenderContext {
                     canvas: layer_buffer,
@@ -96,7 +96,7 @@ impl<C: Compositor Send> Renderer<C> {
             };
 
             #debug("renderer: returning surface");
-            self.compositor.draw(move layer_buffer_channel, move layer_buffer);
+            self.compositor.draw(move layer_buffer_set_channel, move layer_buffer_set);
         }
     }
 }
