@@ -7,6 +7,8 @@ use core::util::replace;
 use dom::event::{Event, ResizeEvent};
 use dvec::DVec;
 use geom::matrix::{Matrix4, identity};
+use geom::point::Point2D;
+use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
 use layers::ImageLayer;
@@ -122,8 +124,8 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
                     lend_surface(surfaces, move sender);
 
                     let buffers = &mut surfaces.front.layer_buffer_set.buffers;
-                    let width = buffers[0].size.width as uint;
-                    let height = buffers[0].size.height as uint;
+                    let width = buffers[0].rect.size.width as uint;
+                    let height = buffers[0].rect.size.height as uint;
 
                     let image_data = @CairoSurfaceImageData {
                         cairo_surface: buffers[0].cairo_surface.clone(),
@@ -226,7 +228,7 @@ fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBufferSet>) {
         let layer_buffer = LayerBuffer {
             cairo_surface: layer_buffer.cairo_surface.clone(),
             draw_target: draw_target_ref.clone(),
-            size: copy layer_buffer.size,
+            rect: copy layer_buffer.rect,
             stride: layer_buffer.stride
         };
         #debug("osmain: lending surface %?", layer_buffer);
@@ -271,7 +273,7 @@ fn Surface() -> Surface {
     let layer_buffer = LayerBuffer {
         cairo_surface: move cairo_surface,
         draw_target: move draw_target,
-        size: Size2D(800u, 600u),
+        rect: Rect(Point2D(0u, 0u), Size2D(800u, 600u)),
         stride: 800
     };
     let layer_buffer_set = LayerBufferSet { buffers: ~[ move layer_buffer ] };

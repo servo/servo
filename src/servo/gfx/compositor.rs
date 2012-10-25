@@ -1,7 +1,7 @@
 use azure::azure_hl::{DrawTarget};
 use cairo::cairo_hl::ImageSurface;
 use dom::event::Event;
-use geom::size::Size2D;
+use geom::rect::Rect;
 
 struct LayerBuffer {
     // TODO: We should not be coupled to Cairo this tightly. Instead we should pull the buffer out
@@ -10,7 +10,8 @@ struct LayerBuffer {
 
     draw_target: DrawTarget,
 
-    size: Size2D<uint>,
+    // The rect in the containing RenderLayer that this represents.
+    rect: Rect<uint>,
 
     // NB: stride is in pixels, like OpenGL GL_UNPACK_ROW_LENGTH.
     stride: uint

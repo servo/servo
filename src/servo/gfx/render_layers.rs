@@ -5,6 +5,8 @@ use azure::azure_hl::DrawTarget;
 use cairo::CAIRO_FORMAT_RGB24;
 use cairo::cairo_hl::ImageSurface;
 use core::libc::c_int;
+use geom::point::Point2D;
+use geom::rect::Rect;
 use geom::size::Size2D;
 
 pub struct RenderLayer {
@@ -21,7 +23,7 @@ pub fn render_layers(layer: &RenderLayer,
                      f: &fn(layer: &RenderLayer, buffer: &LayerBuffer) -> bool) -> LayerBufferSet {
     let mut buffers = match move buffer_set { LayerBufferSet { buffers: move b } => move b };
     let mut buffer = buffers.pop();
-    if buffer.size != layer.size {
+    if buffer.rect.size != layer.size {
         // Create a new buffer.
 
         // Round the width up the nearest 32 pixels for DMA on the Mac.
@@ -39,7 +41,7 @@ pub fn render_layers(layer: &RenderLayer,
         buffer = LayerBuffer {
             cairo_surface: move cairo_surface,
             draw_target: move draw_target,
-            size: copy layer.size,
+            rect: Rect(Point2D(0u, 0u), copy layer.size),
             stride: stride
         };
     }

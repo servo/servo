@@ -5,29 +5,31 @@ Each time the renderer renders a frame the compositor will output a
 `~[u8]` containing the frame in PNG format.
 */
 
-use libc::{c_int, c_uint, c_void, c_uchar};
+use azure::azure_hl::DrawTarget;
 use azure_bg = azure::bindgen;
 use azure_bg::{AzCreateDrawTargetForCairoSurface, AzReleaseDrawTarget};
-use azure::azure_hl::DrawTarget;
 use cairo::cairo_hl::ImageSurface;
 use cairo::{CAIRO_FORMAT_ARGB32, cairo_surface_t, cairo_status_t, CAIRO_STATUS_SUCCESS};
 use cairo_bg = cairo::bindgen;
 use cairo_bg::{cairo_image_surface_create, cairo_surface_destroy};
 use cairo_bg::{cairo_surface_write_to_png_stream};
-use compositor::Compositor;
-use render_task::{RenderTask, RenderMsg};
-use task::spawn_listener;
-use comm::{Chan, Port};
 use cast::reinterpret_cast;
-use ptr::addr_of;
+use comm::{Chan, Port};
+use compositor::Compositor;
+use core::io::BytesWriter;
+use display_list::DisplayList;
 use dom::event::Event;
 use dvec::DVec;
-use display_list::DisplayList;
-use std::cell::Cell;
-use core::io::BytesWriter;
-use gfx::compositor::{LayerBuffer, LayerBufferSet};
+use geom::point::Point2D;
+use geom::rect::Rect;
 use geom::size::Size2D;
+use gfx::compositor::{LayerBuffer, LayerBufferSet};
 use gfx::render_layers::RenderLayer;
+use libc::{c_int, c_uint, c_void, c_uchar};
+use ptr::addr_of;
+use render_task::{RenderTask, RenderMsg};
+use std::cell::Cell;
+use task::spawn_listener;
 
 pub type PngCompositor = Chan<Msg>;
 
@@ -53,7 +55,7 @@ pub fn PngCompositor(output: Chan<~[u8]>) -> PngCompositor {
         let layer_buffer = LayerBuffer {
             cairo_surface: cairo_surface.clone(),
             draw_target: move draw_target,
-            size: Size2D(800u, 600u),
+            rect: Rect(Point2D(0u, 0u), Size2D(800u, 600u)),
             stride: 800
         };
         let layer_buffer_set = LayerBufferSet { buffers: ~[ move layer_buffer ] };
