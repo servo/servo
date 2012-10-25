@@ -73,14 +73,20 @@ endif
 ifeq ($(CFG_OSTYPE),linux)
 
 DEPS_rust-cairo += \
-	rust-xlib
+	rust-freetype \
+	rust-fontconfig \
+	rust-xlib \
+	$(NONE)
 
 DEPS_rust-azure += \
 	rust-freetype \
-	rust-fontconfig
+	rust-fontconfig \
+	rust-xlib \
+	$(NONE)
 
 # See note at top of file
 DEPS_rust-layers += \
 	rust-freetype \
-	rust-fontconfig
+	rust-fontconfig \
+	$(NONE)
 endif
