@@ -351,6 +351,11 @@ then
 CFG_SUBMODULES="rust-cocoa rust-io-surface rust-core-foundation rust-core-graphics rust-core-text ${CFG_SUBMODULES}"
 fi
 
+if [ $CFG_OSTYPE = "linux" ]
+then
+CFG_SUBMODULES="rust-freetype ${CFG_SUBMODULES}"
+fi
+
 step_msg "making build directories"
 
 cd "${CFG_BUILD_DIR}"

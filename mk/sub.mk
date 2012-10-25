@@ -1,3 +1,9 @@
+# NOTE: the make magic can only compute transitive build dependencies,
+# not transitive link flags. So, if A -> B -> C, must add A as a dep
+# of C so the correct -L/path/to/A flag is generated for building C.
+
+# NB. This should not be a problem once a real package system exists.
+
 DEPS_rust-azure += \
 	rust-geom
 
@@ -59,4 +65,14 @@ DEPS_sharegl += \
 DEPS_rust-core-text += \
 	rust-core-foundation \
 	rust-core-graphics
+endif
+
+ifeq ($(CFG_OSTYPE),linux)
+DEPS_rust-azure += \
+	rust-freetype
+
+# See note at top of file
+DEPS_rust-layers += \
+	rust-freetype
+
 endif

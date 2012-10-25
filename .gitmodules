@@ -67,3 +67,6 @@
 [submodule "src/rust-core-text"]
 	path = src/rust-core-text
 	url = git://github.com/mozilla-servo/rust-core-text.git
+[submodule "src/rust-freetype"]
+	path = src/rust-freetype
+	url = git://github.com/mozilla-servo/rust-freetype.git

@@ -1,5 +1,5 @@
-#[legacy_exports];
-export FreeTypeNativeFont, with_test_native_font, create;
+
+extern mod freetype;
 
 use font::{FontMetrics, FractionalPixel};
 
@@ -11,7 +11,6 @@ use ptr::{addr_of, null};
 use cast::reinterpret_cast;
 use glyph::GlyphIndex;
 use font::FontMetrics;
-use azure::freetype;
 use freetype::{ FT_Error, FT_Library, FT_Face, FT_Long, FT_ULong, FT_Size, FT_SizeRec,
                FT_UInt, FT_GlyphSlot, FT_Size_Metrics, FT_FaceRec };
 use freetype::bindgen::{
@@ -32,7 +31,7 @@ fn fixed_to_float_ft(f: i32) -> float {
     fixed_to_float(6, f)
 }
 
-struct FreeTypeNativeFont {
+pub struct FreeTypeNativeFont {
     /// The font binary. This must stay valid for the lifetime of the font
     buf: @~[u8],
     face: FT_Face,
@@ -45,12 +44,12 @@ struct FreeTypeNativeFont {
     }
 }
 
-fn FreeTypeNativeFont(face: FT_Face, buf: @~[u8]) -> FreeTypeNativeFont {
+pub fn FreeTypeNativeFont(face: FT_Face, buf: @~[u8]) -> FreeTypeNativeFont {
     assert face.is_not_null();
     FreeTypeNativeFont { buf: buf, face: face }
 }
 
-impl FreeTypeNativeFont {
+pub impl FreeTypeNativeFont {
 
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
         assert self.face.is_not_null();
@@ -155,7 +154,7 @@ impl FT_Error : FTErrorMethods {
     fn succeeded() -> bool { self == 0 as FT_Error }
 }
 
-fn with_test_native_font(f: fn@(nf: &NativeFont)) {
+pub fn with_test_native_font(f: fn@(nf: &NativeFont)) {
     use font::test_font_bin;
     use unwrap_result = result::unwrap;
 
