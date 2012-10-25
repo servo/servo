@@ -24,6 +24,9 @@ DEPS_rust-netsurfcss += \
 DEPS_rust-wapcaplet += \
 	libwapcaplet
 
+CFLAGS_rust-wapcaplet += \
+	"-I$(S)src/libwapcaplet/include"
+
 CFLAGS_mozjs += \
 	"-I../mozjs/dist/include"
 
