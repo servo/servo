@@ -40,7 +40,7 @@ impl SendableTextRun {
 }
 
 impl TextRun {
-    static pub fn new(font: @Font, text: ~str) -> TextRun {
+    static fn new(font: @Font, text: ~str) -> TextRun {
         let glyph_store = GlyphStore(text.len());
         let run = TextRun {
             text: move text,

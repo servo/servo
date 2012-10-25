@@ -75,7 +75,7 @@ priv fn simulate_UA_display_rules(node: Node) -> CSSDisplay {
 }
 
 impl BoxGenerator {
-    static pub pure fn new(flow: @FlowContext) -> BoxGenerator {
+    static pure fn new(flow: @FlowContext) -> BoxGenerator {
         unsafe { debug!("Creating box generator for flow: %s", flow.debug_str()); }
         BoxGenerator {
             flow: flow,

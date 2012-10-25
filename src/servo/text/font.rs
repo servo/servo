@@ -63,7 +63,7 @@ struct RunMetrics {
 
 impl Font {
     // TODO: who should own fontbuf?
-    static pub fn new(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont) -> Font {
+    static fn new(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont) -> Font {
         let metrics = native_font.get_metrics();
 
         Font {

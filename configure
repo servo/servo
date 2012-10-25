@@ -267,7 +267,7 @@ probe_need CFG_AUTOCONF213 autoconf213  \
                            autoconf2.13 \
                            autoconf-2.13
 
-if [ ! -z "$CFG_ENABLE_LOCAL_RUST" ]
+if [ ! -z "$CFG_LOCAL_RUST_ROOT" ]
 then
     if [ ! -f ${CFG_LOCAL_RUST_ROOT}/bin/rustc ]
     then
@@ -275,7 +275,7 @@ then
     else
         LRV=`${CFG_LOCAL_RUST_ROOT}/bin/rustc --version`
         step_msg "using rustc at: ${CFG_LOCAL_RUST_ROOT} with version: " $LRV
-	CFG_RUSTC = ${CFG_LOCAL_RUST_ROOT}/bin/rustc
+	CFG_RUSTC=${CFG_LOCAL_RUST_ROOT}/bin/rustc
     fi
 else
     probe_need CFG_RUSTC rustc
@@ -392,6 +392,7 @@ putvar CFG_CONFIGURE_ARGS
 putvar CFG_C_COMPILER
 putvar CFG_SUBMODULES
 putvar CFG_DISABLE_MANAGE_SUBMODULES
+putvar CFG_RUSTC
 
 msg
 copy_if_changed ${CFG_SRC_DIR}Makefile.in ${CFG_BUILD_DIR}Makefile
