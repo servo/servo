@@ -2,16 +2,15 @@ pub use font_cache::FontCache;
 
 use au = gfx::geometry;
 use au::Au;
+use core::dvec::DVec;
+use gfx::render_context::RenderContext;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use glyph::GlyphIndex;
-use libc::{ c_int, c_double, c_ulong };
 use native_font::NativeFont;
-use ptr::{null, addr_of};
-use text::text_run::TextRun;
-use vec_to_ptr = vec::raw::to_ptr;
 use servo_util::range::Range;
+use text::text_run::TextRun;
 
 // Used to abstract over the shaper's choice of fixed int representation.
 type FractionalPixel = float;
@@ -42,6 +41,7 @@ struct RunMetrics {
 
 // Public API
 pub trait FontMethods {
+    fn draw_text_into_context(rctx: &RenderContext, run: &TextRun, range: Range, baseline_origin: Point2D<Au>);
     fn measure_text(&TextRun, Range) -> RunMetrics;
 
     fn buf(&self) -> @~[u8];
@@ -52,6 +52,145 @@ pub trait FontMethods {
 }
 
 pub impl Font : FontMethods {
+    fn draw_text_into_context(rctx: &RenderContext, run: &TextRun, range: Range, baseline_origin: Point2D<Au>) {
+        use libc::types::common::c99::{uint16_t, uint32_t};
+        use azure::{AzDrawOptions,
+                    AzFloat,
+                    AzGlyph,
+                    AzGlyphBuffer,
+                    AzNativeFont, 
+                    AZ_NATIVE_FONT_CAIRO_FONT_FACE};
+        use azure::bindgen::{AzCreateColorPattern,
+                             AzCreateScaledFontWithCairo,
+                             AzDrawTargetFillGlyphs,
+                             AzReleaseScaledFont,
+                             AzReleaseColorPattern};
+        use azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
+        use azure::cairo::bindgen::cairo_scaled_font_destroy;
+
+        let target = rctx.get_draw_target();
+        // TODO(Issue #83): these should be cached on this Font, not created anew
+        let nfont: AzNativeFont = {
+            mType: AZ_NATIVE_FONT_CAIRO_FONT_FACE,
+            mFont: ptr::null()
+        };
+
+        // TODO(Issue #64): we should be able to remove cairo stepping
+        // stones and manual memory management, and put them inside of
+        // azure_hl.rs and elsewhere instead.
+        let cfont = get_cairo_font(&self);
+        let azfont = AzCreateScaledFontWithCairo(ptr::to_unsafe_ptr(&nfont), 1f as AzFloat, cfont);
+        assert azfont.is_not_null();
+        cairo_scaled_font_destroy(cfont);
+
+        let color = {
+            r: 0f as AzFloat,
+            g: 0f as AzFloat,
+            b: 0f as AzFloat,
+            a: 1f as AzFloat
+        };
+        let pattern = AzCreateColorPattern(ptr::to_unsafe_ptr(&color));
+        assert pattern.is_not_null();
+
+        let options: AzDrawOptions = {
+            mAlpha: 1f as AzFloat,
+            fields: 0 as uint16_t
+        };
+
+        let mut origin = copy baseline_origin;
+        let azglyphs = DVec();
+        azglyphs.reserve(range.length());
+
+        do run.glyphs.iter_glyphs_for_range(range) |_i, glyph| {
+            let glyph_advance = glyph.advance();
+            let glyph_offset = glyph.offset().get_default(au::zero_point());
+
+            let azglyph: AzGlyph = {
+                mIndex: glyph.index() as uint32_t,
+                mPosition: {
+                    x: au::to_px(origin.x + glyph_offset.x) as AzFloat,
+                    y: au::to_px(origin.y + glyph_offset.y) as AzFloat
+                }
+            };
+            origin = Point2D(origin.x + glyph_advance, origin.y);
+            azglyphs.push(move azglyph)
+        };
+
+        let azglyph_buf_len = azglyphs.len();
+        let azglyph_buf = dvec::unwrap(move azglyphs);
+        let glyphbuf: AzGlyphBuffer = unsafe {{
+            mGlyphs: vec::raw::to_ptr(azglyph_buf),
+            mNumGlyphs: azglyph_buf_len as uint32_t            
+        }};
+
+        // TODO: this call needs to move into azure_hl.rs
+        AzDrawTargetFillGlyphs(target.azure_draw_target, azfont,
+                               ptr::to_unsafe_ptr(&glyphbuf), pattern, ptr::to_unsafe_ptr(&options), ptr::null());
+
+        AzReleaseColorPattern(pattern);
+        AzReleaseScaledFont(azfont);
+
+        // TODO: these should be private instance methods
+        #[cfg(target_os = "linux")]
+        fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
+
+            use libc::c_int;
+            use azure::cairo_ft::bindgen::{cairo_ft_font_face_create_for_ft_face};
+
+            let ftface = font.native_font.face;
+            let cface = cairo_ft_font_face_create_for_ft_face(ftface, 0 as c_int);
+            // FIXME: error handling
+            return cface;
+        }
+
+        #[cfg(target_os = "macos")]
+        fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
+            use azure::cairo_quartz::bindgen::cairo_quartz_font_face_create_for_cgfont;
+
+            let cgfont = font.native_font.cgfont;
+            let face = cairo_quartz_font_face_create_for_cgfont(cgfont);
+            // FIXME: error handling
+            return face;
+        }
+
+        fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
+
+            use libc::c_double;
+            use azure::cairo;
+            use cairo::cairo_matrix_t;
+            use cairo::bindgen::{cairo_matrix_init_identity,
+                                 cairo_matrix_scale,
+                                 cairo_font_options_create,
+                                 cairo_scaled_font_create,
+                                 cairo_font_options_destroy,
+                                 cairo_font_face_destroy};
+
+            // FIXME: error handling
+
+            let face = get_cairo_face(font);
+
+            let idmatrix: cairo_matrix_t = {
+                xx: 0 as c_double,
+                yx: 0 as c_double,
+                xy: 0 as c_double,
+                yy: 0 as c_double,
+                x0: 0 as c_double,
+                y0: 0 as c_double
+            };
+            cairo_matrix_init_identity(ptr::to_unsafe_ptr(&idmatrix));
+
+            let fontmatrix = idmatrix;
+            cairo_matrix_scale(ptr::to_unsafe_ptr(&fontmatrix), 21f as c_double, 21f as c_double);
+            let options = cairo_font_options_create();
+            let cfont = cairo_scaled_font_create(face, ptr::to_unsafe_ptr(&fontmatrix),
+                                                 ptr::to_unsafe_ptr(&idmatrix), options);
+            cairo_font_options_destroy(options);
+            cairo_font_face_destroy(face);
+
+            return cfont;
+        }
+    }
+
     fn measure_text(run: &TextRun, range: Range) -> RunMetrics {
         assert range.is_valid_for_string(run.text);
 

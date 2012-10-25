@@ -2,6 +2,7 @@ use azure::azure_hl::DrawTarget;
 use au = gfx::geometry;
 use au::Au;
 use geom::rect::Rect;
+use geom::point::Point2D;
 use image::base::Image;
 use render_context::RenderContext;
 use servo_text::text_run;
@@ -49,7 +50,10 @@ impl DisplayItem {
             SolidColor(_, r,g,b) => ctx.draw_solid_color(&self.d().bounds, r, g, b),
             Text(_, run, range) => {
                 let new_run = @run.deserialize(ctx.font_cache);
-                ctx.draw_text(self.d().bounds, new_run, range)
+                let font = new_run.font;
+                let origin = self.d().bounds.origin;
+                let baseline_origin = Point2D(origin.x, origin.y + font.metrics.ascent);
+                font.draw_text_into_context(ctx, new_run, range, baseline_origin);
             },
             Image(_, ref img) => ctx.draw_image(self.d().bounds, clone_arc(img)),
             Border(_, width, r, g, b) => ctx.draw_border(&self.d().bounds, width, r, g, b),
