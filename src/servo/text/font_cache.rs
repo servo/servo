@@ -1,5 +1,3 @@
-extern mod freetype;
-
 use font::{Font, test_font_bin};
 
 struct FontCache {
@@ -50,6 +48,8 @@ fn create_font(lib: @FontCache, native_lib: &native::NativeFontCache) -> Result<
 
 #[cfg(target_os = "linux")]
 pub mod native {
+    extern mod freetype;
+
     use ptr::{null, addr_of};
     use freetype::{FT_Library, FT_Error};
     use freetype::bindgen::{FT_Init_FreeType, FT_Done_FreeType};
