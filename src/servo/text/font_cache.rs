@@ -44,7 +44,7 @@ fn create_font(lib: @FontCache, native_lib: &native::NativeFontCache) -> Result<
     } else {
         return Err(native_font.get_err());
     };
-    return Ok(@Font(lib, font_bin, move native_font));
+    return Ok(@Font::new(lib, font_bin, move native_font));
 }
 
 #[cfg(target_os = "linux")]

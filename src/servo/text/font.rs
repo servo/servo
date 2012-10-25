@@ -2,6 +2,10 @@ pub use font_cache::FontCache;
 
 use au = gfx::geometry;
 use au::Au;
+use azure::{
+    AzFloat,
+    AzScaledFontRef,
+};
 use core::dvec::DVec;
 use gfx::render_context::RenderContext;
 use geom::point::Point2D;
@@ -20,11 +24,29 @@ A font handle. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
 */
 struct Font {
+    // TODO: is this actually needed? -bjb
     // A back reference to keep the library alive
-    lib: @FontCache,
-    fontbuf: @~[u8],
-    native_font: NativeFont,
+    priv lib: @FontCache,
+    priv fontbuf: @~[u8],
+    priv native_font: NativeFont,
+    priv mut azure_font: Option<AzScaledFontRef>,
     metrics: FontMetrics,
+
+    drop {
+        use azure::bindgen::AzReleaseScaledFont;
+        do (copy self.azure_font).iter |fontref| { AzReleaseScaledFont(*fontref); }
+    }
+}
+
+struct FontMetrics {
+    underline_size:   Au,
+    underline_offset: Au,
+    leading:          Au,
+    x_height:         Au,
+    em_size:          Au,
+    ascent:           Au,
+    descent:          Au,
+    max_advance:      Au
 }
 
 struct RunMetrics {
@@ -37,6 +59,109 @@ struct RunMetrics {
     // this bounding box is relative to the left origin baseline.
     // so, bounding_box.position.y = -ascent
     bounding_box: Rect<Au>
+}
+
+impl Font {
+    // TODO: who should own fontbuf?
+    static pub fn new(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont) -> Font {
+        let metrics = native_font.get_metrics();
+
+        Font {
+            lib: lib,
+            fontbuf : fontbuf,
+            metrics: move metrics,
+            native_font : move native_font,
+            azure_font: None
+        }
+    }
+
+    priv fn get_azure_font() -> AzScaledFontRef {
+        use libc::{c_int, c_double};
+        use azure::{
+            AzNativeFont,
+            AZ_NATIVE_FONT_CAIRO_FONT_FACE
+        };
+        use azure::bindgen::AzCreateScaledFontWithCairo;
+        use azure::cairo;
+        use cairo::{cairo_font_face_t, cairo_scaled_font_t};
+        use cairo::bindgen::cairo_scaled_font_destroy;
+
+        // fast path: we've already created the azure font resource
+        match self.azure_font {
+            Some(azfont) => { return azfont; },
+            None => {}
+        }
+        
+        let nfont: AzNativeFont = {
+            mType: AZ_NATIVE_FONT_CAIRO_FONT_FACE,
+            mFont: ptr::null()
+        };
+
+        // TODO(Issue #64): we should be able to remove cairo stepping
+        // stones and manual memory management, and put them inside of
+        // azure_hl.rs and elsewhere instead.
+        let cfont = get_cairo_font(&self);
+        let azfont = AzCreateScaledFontWithCairo(ptr::to_unsafe_ptr(&nfont), 1f as AzFloat, cfont);
+        assert azfont.is_not_null();
+        cairo_scaled_font_destroy(cfont);
+
+        self.azure_font = Some(azfont);
+        return azfont;
+
+        #[cfg(target_os = "linux")]
+        fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
+            use azure::cairo_ft::bindgen::{cairo_ft_font_face_create_for_ft_face};
+
+            let ftface = font.native_font.face;
+            let cface = cairo_ft_font_face_create_for_ft_face(ftface, 0 as c_int);
+            // FIXME: error handling
+            return cface;
+        }
+
+        #[cfg(target_os = "macos")]
+        fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
+            use azure::cairo_quartz::bindgen::cairo_quartz_font_face_create_for_cgfont;
+
+            let cgfont = font.native_font.cgfont;
+            let face = cairo_quartz_font_face_create_for_cgfont(cgfont);
+            // FIXME: error handling
+            return face;
+        }
+
+        fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
+            use cairo::cairo_matrix_t;
+            use cairo::bindgen::{cairo_matrix_init_identity,
+                                 cairo_matrix_scale,
+                                 cairo_font_options_create,
+                                 cairo_scaled_font_create,
+                                 cairo_font_options_destroy,
+                                 cairo_font_face_destroy};
+
+            // FIXME: error handling
+
+            let face = get_cairo_face(font);
+
+            let idmatrix: cairo_matrix_t = {
+                xx: 0 as c_double,
+                yx: 0 as c_double,
+                xy: 0 as c_double,
+                yy: 0 as c_double,
+                x0: 0 as c_double,
+                y0: 0 as c_double
+            };
+            cairo_matrix_init_identity(ptr::to_unsafe_ptr(&idmatrix));
+
+            let fontmatrix = idmatrix;
+            cairo_matrix_scale(ptr::to_unsafe_ptr(&fontmatrix), 21f as c_double, 21f as c_double);
+            let options = cairo_font_options_create();
+            let cfont = cairo_scaled_font_create(face, ptr::to_unsafe_ptr(&fontmatrix),
+                                                 ptr::to_unsafe_ptr(&idmatrix), options);
+            cairo_font_options_destroy(options);
+            cairo_font_face_destroy(face);
+
+            return cfont;
+        }
+    }
 }
 
 // Public API
@@ -55,34 +180,14 @@ pub impl Font : FontMethods {
     fn draw_text_into_context(rctx: &RenderContext, run: &TextRun, range: Range, baseline_origin: Point2D<Au>) {
         use libc::types::common::c99::{uint16_t, uint32_t};
         use azure::{AzDrawOptions,
-                    AzFloat,
                     AzGlyph,
-                    AzGlyphBuffer,
-                    AzNativeFont, 
-                    AZ_NATIVE_FONT_CAIRO_FONT_FACE};
+                    AzGlyphBuffer};
         use azure::bindgen::{AzCreateColorPattern,
-                             AzCreateScaledFontWithCairo,
                              AzDrawTargetFillGlyphs,
-                             AzReleaseScaledFont,
                              AzReleaseColorPattern};
-        use azure::cairo::{cairo_font_face_t, cairo_scaled_font_t};
-        use azure::cairo::bindgen::cairo_scaled_font_destroy;
 
         let target = rctx.get_draw_target();
-        // TODO(Issue #83): these should be cached on this Font, not created anew
-        let nfont: AzNativeFont = {
-            mType: AZ_NATIVE_FONT_CAIRO_FONT_FACE,
-            mFont: ptr::null()
-        };
-
-        // TODO(Issue #64): we should be able to remove cairo stepping
-        // stones and manual memory management, and put them inside of
-        // azure_hl.rs and elsewhere instead.
-        let cfont = get_cairo_font(&self);
-        let azfont = AzCreateScaledFontWithCairo(ptr::to_unsafe_ptr(&nfont), 1f as AzFloat, cfont);
-        assert azfont.is_not_null();
-        cairo_scaled_font_destroy(cfont);
-
+        let azfont = self.get_azure_font();
         let color = {
             r: 0f as AzFloat,
             g: 0f as AzFloat,
@@ -128,67 +233,6 @@ pub impl Font : FontMethods {
                                ptr::to_unsafe_ptr(&glyphbuf), pattern, ptr::to_unsafe_ptr(&options), ptr::null());
 
         AzReleaseColorPattern(pattern);
-        AzReleaseScaledFont(azfont);
-
-        // TODO: these should be private instance methods
-        #[cfg(target_os = "linux")]
-        fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
-
-            use libc::c_int;
-            use azure::cairo_ft::bindgen::{cairo_ft_font_face_create_for_ft_face};
-
-            let ftface = font.native_font.face;
-            let cface = cairo_ft_font_face_create_for_ft_face(ftface, 0 as c_int);
-            // FIXME: error handling
-            return cface;
-        }
-
-        #[cfg(target_os = "macos")]
-        fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
-            use azure::cairo_quartz::bindgen::cairo_quartz_font_face_create_for_cgfont;
-
-            let cgfont = font.native_font.cgfont;
-            let face = cairo_quartz_font_face_create_for_cgfont(cgfont);
-            // FIXME: error handling
-            return face;
-        }
-
-        fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
-
-            use libc::c_double;
-            use azure::cairo;
-            use cairo::cairo_matrix_t;
-            use cairo::bindgen::{cairo_matrix_init_identity,
-                                 cairo_matrix_scale,
-                                 cairo_font_options_create,
-                                 cairo_scaled_font_create,
-                                 cairo_font_options_destroy,
-                                 cairo_font_face_destroy};
-
-            // FIXME: error handling
-
-            let face = get_cairo_face(font);
-
-            let idmatrix: cairo_matrix_t = {
-                xx: 0 as c_double,
-                yx: 0 as c_double,
-                xy: 0 as c_double,
-                yy: 0 as c_double,
-                x0: 0 as c_double,
-                y0: 0 as c_double
-            };
-            cairo_matrix_init_identity(ptr::to_unsafe_ptr(&idmatrix));
-
-            let fontmatrix = idmatrix;
-            cairo_matrix_scale(ptr::to_unsafe_ptr(&fontmatrix), 21f as c_double, 21f as c_double);
-            let options = cairo_font_options_create();
-            let cfont = cairo_scaled_font_create(face, ptr::to_unsafe_ptr(&fontmatrix),
-                                                 ptr::to_unsafe_ptr(&idmatrix), options);
-            cairo_font_options_destroy(options);
-            cairo_font_face_destroy(face);
-
-            return cfont;
-        }
     }
 
     fn measure_text(run: &TextRun, range: Range) -> RunMetrics {
@@ -232,29 +276,6 @@ pub impl Font : FontMethods {
           None => /* FIXME: Need fallback strategy */ 10f as FractionalPixel
         }
     }
-}
-
-// TODO: who should own fontbuf?
-fn Font(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont) -> Font {
-    let metrics = native_font.get_metrics();
-
-    Font {
-        lib: lib,
-        fontbuf : fontbuf,
-        metrics: move metrics,
-        native_font : move native_font,
-    }
-}
-
-struct FontMetrics {
-    underline_size:   Au,
-    underline_offset: Au,
-    leading:          Au,
-    x_height:         Au,
-    em_size:          Au,
-    ascent:           Au,
-    descent:          Au,
-    max_advance:      Au
 }
 
 const TEST_FONT: [u8 * 33004] = #include_bin("JosefinSans-SemiBold.ttf");
