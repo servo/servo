@@ -69,10 +69,11 @@ endif
 
 ifeq ($(CFG_OSTYPE),linux)
 DEPS_rust-azure += \
-	rust-freetype
+	rust-freetype \
+	rust-fontconfig
 
 # See note at top of file
 DEPS_rust-layers += \
-	rust-freetype
-
+	rust-freetype \
+	rust-fontconfig
 endif

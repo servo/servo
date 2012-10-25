@@ -353,7 +353,7 @@ fi
 
 if [ $CFG_OSTYPE = "linux" ]
 then
-CFG_SUBMODULES="rust-freetype ${CFG_SUBMODULES}"
+CFG_SUBMODULES="rust-freetype rust-fontconfig ${CFG_SUBMODULES}"
 fi
 
 step_msg "making build directories"
