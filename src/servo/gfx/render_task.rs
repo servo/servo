@@ -1,18 +1,20 @@
 use au = gfx::geometry;
 use au::Au;
+use azure::AzFloat;
 use comm::*;
 use compositor::{Compositor, LayerBufferSet};
 use dl = display_list;
-use mod gfx::render_layers;
-use render_layers::render_layers;
+use geom::matrix2d::Matrix2D;
 use gfx::render_layers::RenderLayer;
 use libc::size_t;
 use libc::types::common::c99::uint16_t;
+use mod gfx::render_layers;
 use pipes::{Port, Chan};
 use platform::osmain;
+use render_context::RenderContext;
+use render_layers::render_layers;
 use std::cell::Cell;
 use text::font_cache::FontCache;
-use render_context::RenderContext;
 
 pub enum Msg {
     RenderMsg(RenderLayer),
@@ -91,7 +93,14 @@ impl<C: Compositor Send> Renderer<C> {
                     font_cache: self.font_cache
                 };
 
+                // Apply the translation to render the tile we want.
+                let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
+                let matrix = matrix.translate(&-(layer_buffer.rect.origin.x as AzFloat),
+                                              &-(layer_buffer.rect.origin.y as AzFloat));
+                layer_buffer.draw_target.set_transform(&matrix);
+
                 ctx.clear();
+
                 render_layer.display_list.draw_into_context(&ctx);
             };
 

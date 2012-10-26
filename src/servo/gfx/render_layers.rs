@@ -11,6 +11,8 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 
+const TILE_SIZE: uint = 512;
+
 pub struct RenderLayer {
     display_list: DisplayList,
     size: Size2D<uint>
@@ -24,36 +26,61 @@ pub fn render_layers(layer: &RenderLayer,
                      buffer_set: LayerBufferSet,
                      f: &fn(layer: &RenderLayer, buffer: &LayerBuffer) -> bool) -> LayerBufferSet {
     let mut buffers = match move buffer_set { LayerBufferSet { buffers: move b } => move b };
-    let mut buffer = buffers.pop();
-    if buffer.rect.size != layer.size {
-        // Create a new buffer.
 
-        // Round the width up the nearest 32 pixels for DMA on the Mac.
-        let mut stride = layer.size.width;
-        if stride % 32 != 0 {
-            stride = (stride & !(32 - 1)) + 32;
+    // FIXME: Try not to create a new array here.
+    let new_buffers = dvec::DVec();
+
+    // Divide up the layer into tiles.
+    let mut y = 0;
+    while y < layer.size.height {
+        let mut x = 0;
+        while x < layer.size.width {
+            // Figure out the dimension of this tile.
+            let right = uint::min(x + TILE_SIZE, layer.size.width);
+            let bottom = uint::min(y + TILE_SIZE, layer.size.height);
+            let width = right - x;
+            let height = bottom - y;
+
+            // Round the width up the nearest 32 pixels for DMA on the Mac.
+            let mut stride = width;
+            if stride % 32 != 0 {
+                stride = (stride & !(32 - 1)) + 32;
+            }
+            assert stride % 32 == 0;
+            assert stride >= width;
+
+            let tile_rect = Rect(Point2D(x, y), Size2D(width, height));
+
+            let buffer;
+            // FIXME: Try harder to search for a matching tile.
+            // FIXME: Don't use shift; it's bad for perf. Maybe reverse and pop.
+            if buffers.len() != 0 && buffers[0].rect == tile_rect {
+                debug!("reusing tile, (%u, %u)", x, y);
+                buffer = buffers.shift();
+            } else {
+                // Create a new buffer.
+                debug!("creating tile, (%u, %u)", x, y);
+
+                let cairo_surface = ImageSurface(
+                    CAIRO_FORMAT_RGB24, stride as c_int, height as c_int);
+                let draw_target = DrawTarget(&cairo_surface);
+
+                buffer = LayerBuffer {
+                    cairo_surface: move cairo_surface,
+                    draw_target: move draw_target,
+                    rect: tile_rect,
+                    stride: stride
+                };
+            }
+
+            let _ = f(layer, &buffer);
+            new_buffers.push(move buffer);
+
+            x += TILE_SIZE;
         }
-        assert stride % 32 == 0;
-        assert stride >= layer.size.width;
-
-        let cairo_surface = ImageSurface(CAIRO_FORMAT_RGB24,
-                                         stride as c_int,
-                                         layer.size.height as c_int);
-        let draw_target = DrawTarget(&cairo_surface);
-
-        /*let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
-        let matrix = matrix.translate(&(-32 as AzFloat), &(0 as AzFloat));
-        draw_target.set_transform(&matrix);*/
-
-        buffer = LayerBuffer {
-            cairo_surface: move cairo_surface,
-            draw_target: move draw_target,
-            rect: Rect(Point2D(0u, 0u), copy layer.size),
-            stride: stride
-        };
+        y += TILE_SIZE;
     }
 
-    let _ = f(layer, &buffer);
-    return LayerBufferSet { buffers: ~[ move buffer ] };
+    return LayerBufferSet { buffers: move dvec::unwrap(move new_buffers) };
 }
 

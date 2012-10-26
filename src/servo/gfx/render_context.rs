@@ -78,7 +78,8 @@ impl RenderContext  {
 
     fn clear(&self) {
         let pattern = ColorPattern(Color(1f as AzFloat, 1f as AzFloat, 1f as AzFloat, 1f as AzFloat));
-        let rect = Rect(Point2D(0 as AzFloat, 0 as AzFloat),
+        let rect = Rect(Point2D(self.canvas.rect.origin.x as AzFloat,
+                                self.canvas.rect.origin.y as AzFloat),
                         Size2D(self.canvas.rect.size.width as AzFloat,
                                self.canvas.rect.size.height as AzFloat));
         self.canvas.draw_target.fill_rect(&rect, &pattern);

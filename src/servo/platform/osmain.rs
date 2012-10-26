@@ -116,7 +116,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
         resize_rate_limiter.check_resize_response();
 
         // Handle messages
-        #debug("osmain: peeking");
+        //#debug("osmain: peeking");
         while po.peek() {
             match po.recv() {
                 AddKeyHandler(move key_ch) => key_handlers.push(move key_ch),
@@ -135,8 +135,12 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
                         let width = buffer.rect.size.width as uint;
                         let height = buffer.rect.size.height as uint;
 
+                        debug!("osmain: compositing buffer rect %?, cairo surface %?",
+                               &buffer.rect,
+                               &buffer.cairo_surface);
+
                         let image_data = @CairoSurfaceImageData {
-                            cairo_surface: buffers[0].cairo_surface.clone(),
+                            cairo_surface: buffer.cairo_surface.clone(),
                             size: Size2D(width, height)
                         };
                         let image = @layers::layers::Image::new(
@@ -146,6 +150,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
                         let image_layer;
                         current_layer_child = match current_layer_child {
                             None => {
+                                debug!("osmain: adding new image layer");
                                 image_layer = @layers::layers::ImageLayer(image);
                                 root_layer.add_child(layers::layers::ImageLayerKind(image_layer));
                                 None
@@ -191,7 +196,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
     };
 
     let composite: fn@() = || {
-        #debug("osmain: drawing to screen");
+        //#debug("osmain: drawing to screen");
 
         do util::time::time(~"compositing") {
             adjust_for_window_resizing();
@@ -212,13 +217,13 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
             }
 
             do glut::display_func() {
-                debug!("osmain: display func");
+                //debug!("osmain: display func");
                 check_for_messages();
                 composite();
             }
 
             while !*done {
-                #debug("osmain: running GLUT check loop");
+                //#debug("osmain: running GLUT check loop");
                 glut::check_loop();
             }
         }
@@ -282,7 +287,7 @@ fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBufferSet>) {
 }
 
 fn return_surface(surfaces: &SurfaceSet, layer_buffer_set: LayerBufferSet) {
-    #debug("osmain: returning surface %?", layer_buffer_set);
+    //#debug("osmain: returning surface %?", layer_buffer_set);
     // We have room for a return
     assert surfaces.front.have;
     assert !surfaces.back.have;
