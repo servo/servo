@@ -15,6 +15,7 @@ use dom::node::{Node, LayoutData};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use gfx::display_list::DisplayList;
 use gfx::render_task;
 use gfx::render_layers::RenderLayer;
 use layout::box::RenderBox;
@@ -179,12 +180,11 @@ impl Layout {
         }
 
         do time("layout: display list building") {
-            let dlist = DVec();
             let builder = dl::DisplayListBuilder {
                 ctx: &layout_ctx,
             };
-            let render_layer = RenderLayer {
-                display_list: move dlist,
+            let mut render_layer = RenderLayer {
+                display_list: DisplayList::new(),
                 size: Size2D(au::to_px(screen_size.width) as uint,
                              au::to_px(screen_size.height) as uint)
             };
@@ -192,7 +192,7 @@ impl Layout {
             // TODO: set options on the builder before building
             // TODO: be smarter about what needs painting
             layout_root.build_display_list(&builder, &copy layout_root.d().position,
-                                           &render_layer.display_list);
+                                           &mut render_layer.display_list);
             self.render_task.send(render_task::RenderMsg(move render_layer));
         } // time(layout: display list building)
 

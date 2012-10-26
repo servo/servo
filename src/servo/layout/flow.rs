@@ -1,10 +1,10 @@
 use au = gfx::geometry;
 use au::Au;
 use core::dvec::DVec;
-use dl = gfx::display_list;
 use dom::node::Node;
 use geom::rect::Rect;
 use geom::point::Point2D;
+use gfx::display_list::{DisplayList, DisplayListBuilder};
 // TODO: pub-use these
 use layout::block::BlockFlowData;
 use layout::box::RenderBox;
@@ -72,8 +72,8 @@ trait FlowContextMethods {
     fn bubble_widths(@self, &LayoutContext);
     fn assign_widths(@self, &LayoutContext);
     fn assign_height(@self, &LayoutContext);
-    fn build_display_list_recurse(@self, &dl::DisplayListBuilder, dirty: &Rect<Au>,
-                                  offset: &Point2D<Au>, &dl::DisplayList);
+    fn build_display_list_recurse(@self, &DisplayListBuilder, dirty: &Rect<Au>,
+                                  offset: &Point2D<Au>, &mut DisplayList);
     pure fn foldl_boxes_for_node<B: Copy>(Node, +seed: B, cb: pure fn&(+a: B,@RenderBox) -> B) -> B;
     pure fn iter_boxes_for_node<T>(Node, cb: pure fn&(@RenderBox) -> T);
 }
@@ -168,8 +168,8 @@ impl FlowContext : FlowContextMethods {
         }
     }
 
-    fn build_display_list_recurse(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<Au>,
-                                  offset: &Point2D<Au>, list: &dl::DisplayList) {
+    fn build_display_list_recurse(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>,
+                                  offset: &Point2D<Au>, list: &mut DisplayList) {
         debug!("FlowContext::build_display_list at %?: %s", self.d().position, self.debug_str());
 
         match self {

@@ -1,9 +1,9 @@
 use au = gfx::geometry;
 use css::values::*;
-use dl = gfx::display_list;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use gfx::display_list::{DisplayList, DisplayListBuilder};
 use gfx::geometry::Au;
 use layout::box::{RenderBox};
 use layout::context::LayoutContext;
@@ -27,8 +27,8 @@ trait BlockLayout {
     fn bubble_widths_block(@self, ctx: &LayoutContext);
     fn assign_widths_block(@self, ctx: &LayoutContext);
     fn assign_height_block(@self, ctx: &LayoutContext);
-    fn build_display_list_block(@self, a: &dl::DisplayListBuilder, b: &Rect<Au>,
-                                c: &Point2D<Au>, d: &dl::DisplayList);
+    fn build_display_list_block(@self, a: &DisplayListBuilder, b: &Rect<Au>,
+                                c: &Point2D<Au>, d: &mut DisplayList);
 }
 
 impl FlowContext : BlockLayout {
@@ -141,8 +141,8 @@ impl FlowContext : BlockLayout {
         }
     }
 
-    fn build_display_list_block(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<Au>, 
-                                offset: &Point2D<Au>, list: &dl::DisplayList) {
+    fn build_display_list_block(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
+                                offset: &Point2D<Au>, list: &mut DisplayList) {
 
         assert self.starts_block_flow();
         

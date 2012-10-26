@@ -82,22 +82,32 @@ impl DisplayItem {
     }
 }
 
-pub type DisplayList = DVec<~DisplayItem>;
+// Dual-mode/freezable.
+pub struct DisplayList {
+    list: ~[~DisplayItem]
+}
 
 trait DisplayListMethods {
+    fn append_item(&mut self, item: ~DisplayItem);
     fn draw_into_context(ctx: &RenderContext);
 }
 
+impl DisplayList {
+    static fn new() -> DisplayList {
+        DisplayList { list: ~[] }
+    }
+}
+
 impl DisplayList : DisplayListMethods {
-    fn append_item(item: ~DisplayItem) {
+    fn append_item(&mut self, item: ~DisplayItem) {
         // FIXME(Issue #150): crashes
         //debug!("Adding display item %u: %?", self.len(), item);
-        self.push(move item);
+        self.list.push(move item);
     }
 
     fn draw_into_context(ctx: &RenderContext) {
         debug!("beginning display list");
-        for self.each |item| {
+        for self.list.each |item| {
             // FIXME(Issue #150): crashes
             //debug!("drawing %?", *item);
             item.draw_into_context(ctx);

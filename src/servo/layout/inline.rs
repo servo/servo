@@ -2,11 +2,11 @@ use au = gfx::geometry;
 use core::dlist::DList;
 use core::dvec::DVec;
 use css::values::{BoxAuto, BoxLength, Px};
-use dl = gfx::display_list;
 use dom::node::Node;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use gfx::display_list::{DisplayList, DisplayListBuilder};
 use gfx::geometry::Au;
 use layout::box::*;
 use layout::context::LayoutContext;
@@ -538,7 +538,8 @@ trait InlineLayout {
     fn bubble_widths_inline(@self, ctx: &LayoutContext);
     fn assign_widths_inline(@self, ctx: &LayoutContext);
     fn assign_height_inline(@self, ctx: &LayoutContext);
-    fn build_display_list_inline(@self, a: &dl::DisplayListBuilder, b: &Rect<Au>, c: &Point2D<Au>, d: &dl::DisplayList);
+    fn build_display_list_inline(@self, a: &DisplayListBuilder, b: &Rect<Au>, c: &Point2D<Au>,
+                                 d: &mut DisplayList);
 }
 
 impl FlowContext : InlineLayout {
@@ -648,8 +649,8 @@ impl FlowContext : InlineLayout {
         self.d().position.size.height = cur_y;
     }
 
-    fn build_display_list_inline(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<Au>, 
-                                 offset: &Point2D<Au>, list: &dl::DisplayList) {
+    fn build_display_list_inline(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
+                                 offset: &Point2D<Au>, list: &mut DisplayList) {
 
         assert self.starts_inline_flow();
 

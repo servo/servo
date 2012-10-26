@@ -9,14 +9,14 @@ use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
 use css::styles::SpecifiedStyle;
-use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent, BdrColor, PosAbsolute};
-use dl = gfx::display_list;
-use dl::DisplayItem;
+use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent};
+use css::values::{BdrColor, PosAbsolute};
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
 use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::point::Point2D;
+use gfx::display_list::{DisplayItem, DisplayList, DisplayListBuilder};
 use image::{Image, ImageHolder};
 use layout::context::LayoutContext;
 use layout::debug::BoxedDebugMethods;
@@ -118,8 +118,8 @@ trait RenderBoxMethods {
     fn get_pref_width(&LayoutContext) -> Au;
     fn get_used_width() -> (Au, Au);
     fn get_used_height() -> (Au, Au);
-    fn build_display_list(@self, &dl::DisplayListBuilder, dirty: &Rect<Au>, 
-                          offset: &Point2D<Au>, &dl::DisplayList);
+    fn build_display_list(@self, &DisplayListBuilder, dirty: &Rect<Au>, 
+                          offset: &Point2D<Au>, dl: &mut DisplayList);
 }
 
 fn RenderBoxData(node: Node, ctx: @FlowContext, id: int) -> RenderBoxData {
@@ -381,8 +381,8 @@ impl RenderBox : RenderBoxMethods {
     * `origin` - Total offset from display list root flow to this box's owning flow
     * `list` - List to which items should be appended
     */
-    fn build_display_list(@self, builder: &dl::DisplayListBuilder, dirty: &Rect<Au>,
-                          offset: &Point2D<Au>, list: &dl::DisplayList) {
+    fn build_display_list(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>,
+                          offset: &Point2D<Au>, list: &mut DisplayList) {
 
         let style = self.d().node.style();
         let box_bounds : Rect<Au> = match style.position {
@@ -441,7 +441,7 @@ impl RenderBox : RenderBoxMethods {
         self.add_border_to_list(list, &abs_box_bounds);
     }
 
-    fn add_bgcolor_to_list(list: &dl::DisplayList, abs_bounds: &Rect<Au>) {
+    fn add_bgcolor_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
         use std::cmp::FuzzyEq;
         // TODO: shouldn't need to unbox CSSValue by now
         let boxed_bgcolor = self.d().node.style().background_color;
@@ -454,7 +454,7 @@ impl RenderBox : RenderBoxMethods {
         }
     }
 
-    fn add_border_to_list(list: &dl::DisplayList, abs_bounds: &Rect<Au>) {
+    fn add_border_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
         let style = self.d().node.style();
         match style.border_width {
             Specified(Px(px)) => {
@@ -474,7 +474,8 @@ impl RenderBox : RenderBoxMethods {
                     Specified(BdrColor(color)) => color,
                     _ => rgb(0, 0, 0) // FIXME
                 };
-                list.push(~DisplayItem::new_Border(&abs_bounds, border_width, color.red, color.green, color.blue));
+                list.append_item(~DisplayItem::new_Border(&abs_bounds, border_width, color.red,
+                                                          color.green, color.blue));
             }
             _ => () // TODO
         }
