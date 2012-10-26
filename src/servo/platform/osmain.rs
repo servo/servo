@@ -97,13 +97,14 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
     let image_data = @layers::layers::BasicImageData::new(
         Size2D(0u, 0u), 0, layers::layers::RGB24Format, ~[]);
     let image = @layers::layers::Image::new(image_data as @layers::layers::ImageData);
-    let layers = @dvec::DVec();
     let image_layer = @layers::layers::ImageLayer(image);
     let original_layer_transform = image_layer.common.transform;
     image_layer.common.set_transform(original_layer_transform.scale(&800.0f32, &600.0f32, &1f32));
-    layers.push(image_layer);
 
-    let scene = @layers::scene::Scene(layers::layers::ImageLayerKind(image_layer),
+    let root_layer = @layers::layers::ContainerLayer();
+    root_layer.add_child(layers::layers::ImageLayerKind(image_layer));
+
+    let scene = @layers::scene::Scene(layers::layers::ContainerLayerKind(root_layer),
                                       Size2D(800.0f32, 600.0f32),
                                       identity(0.0f32));
 
@@ -125,9 +126,12 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
                     return_surface(surfaces, move dt);
                     lend_surface(surfaces, move sender);
 
+                    // Iterate over the children of the container layer.
+                    let mut current_layer_child = root_layer.first_child;
+
                     // Replace the image layer data with the buffer data.
                     let buffers = replace(&mut surfaces.front.layer_buffer_set.buffers, ~[]);
-                    for buffers.eachi |i, buffer| {
+                    for buffers.each |buffer| {
                         let width = buffer.rect.size.width as uint;
                         let height = buffer.rect.size.height as uint;
 
@@ -140,12 +144,25 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
 
                         // Find or create an image layer.
                         let image_layer;
-                        if i < layers.len() {
-                            image_layer = layers[i];
-                            image_layer.set_image(image);
-                        } else {
-                            image_layer = @layers::layers::ImageLayer(image);
-                        }
+                        current_layer_child = match current_layer_child {
+                            None => {
+                                image_layer = @layers::layers::ImageLayer(image);
+                                root_layer.add_child(layers::layers::ImageLayerKind(image_layer));
+                                None
+                            }
+                            Some(layers::layers::ImageLayerKind(existing_image_layer)) => {
+                                image_layer = existing_image_layer;
+                                image_layer.set_image(image);
+
+                                // Move on to the next sibling.
+                                do current_layer_child.get().with_common |common| {
+                                    common.next_sibling
+                                }
+                            }
+                            Some(_) => {
+                                fail ~"found unexpected layer kind"
+                            }
+                        };
 
                         // Set the layer's transform.
                         let x = buffer.rect.origin.x as f32;
