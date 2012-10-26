@@ -1,10 +1,12 @@
 use gfx::display_list::DisplayList;
 use gfx::compositor::{LayerBuffer, LayerBufferSet};
 
+use azure::AzFloat;
 use azure::azure_hl::DrawTarget;
 use cairo::CAIRO_FORMAT_RGB24;
 use cairo::cairo_hl::ImageSurface;
 use core::libc::c_int;
+use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -38,6 +40,11 @@ pub fn render_layers(layer: &RenderLayer,
                                          stride as c_int,
                                          layer.size.height as c_int);
         let draw_target = DrawTarget(&cairo_surface);
+
+        /*let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
+        let matrix = matrix.translate(&(-32 as AzFloat), &(0 as AzFloat));
+        draw_target.set_transform(&matrix);*/
+
         buffer = LayerBuffer {
             cairo_surface: move cairo_surface,
             draw_target: move draw_target,
