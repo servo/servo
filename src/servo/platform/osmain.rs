@@ -97,9 +97,11 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
     let image_data = @layers::layers::BasicImageData::new(
         Size2D(0u, 0u), 0, layers::layers::RGB24Format, ~[]);
     let image = @layers::layers::Image::new(image_data as @layers::layers::ImageData);
+    let layers = @dvec::DVec();
     let image_layer = @layers::layers::ImageLayer(image);
     let original_layer_transform = image_layer.common.transform;
     image_layer.common.set_transform(original_layer_transform.scale(&800.0f32, &600.0f32, &1f32));
+    layers.push(image_layer);
 
     let scene = @layers::scene::Scene(layers::layers::ImageLayerKind(image_layer),
                                       Size2D(800.0f32, 600.0f32),
@@ -123,20 +125,36 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
                     return_surface(surfaces, move dt);
                     lend_surface(surfaces, move sender);
 
-                    let buffers = &mut surfaces.front.layer_buffer_set.buffers;
-                    let width = buffers[0].rect.size.width as uint;
-                    let height = buffers[0].rect.size.height as uint;
+                    // Replace the image layer data with the buffer data.
+                    let buffers = replace(&mut surfaces.front.layer_buffer_set.buffers, ~[]);
+                    for buffers.eachi |i, buffer| {
+                        let width = buffer.rect.size.width as uint;
+                        let height = buffer.rect.size.height as uint;
 
-                    let image_data = @CairoSurfaceImageData {
-                        cairo_surface: buffers[0].cairo_surface.clone(),
-                        size: Size2D(width, height)
-                    };
-                    let image = @layers::layers::Image::new(
-                        image_data as @layers::layers::ImageData);
+                        let image_data = @CairoSurfaceImageData {
+                            cairo_surface: buffers[0].cairo_surface.clone(),
+                            size: Size2D(width, height)
+                        };
+                        let image = @layers::layers::Image::new(
+                            image_data as @layers::layers::ImageData);
 
-                    image_layer.set_image(image);
-                    image_layer.common.set_transform(original_layer_transform.scale(
-                        &(width as f32), &(height as f32), &1.0f32));
+                        // Find or create an image layer.
+                        let image_layer;
+                        if i < layers.len() {
+                            image_layer = layers[i];
+                            image_layer.set_image(image);
+                        } else {
+                            image_layer = @layers::layers::ImageLayer(image);
+                        }
+
+                        // Set the layer's transform.
+                        let x = buffer.rect.origin.x as f32;
+                        let y = buffer.rect.origin.y as f32;
+                        image_layer.common.set_transform(
+                            original_layer_transform.translate(&x, &y, &0.0f32)
+                                .scale(&(width as f32), &(height as f32), &1.0f32));
+                    }
+                    surfaces.front.layer_buffer_set.buffers = move buffers;
                 }
                 Exit => {
                     *done = true;
