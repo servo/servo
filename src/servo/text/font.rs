@@ -19,25 +19,6 @@ use text::text_run::TextRun;
 // Used to abstract over the shaper's choice of fixed int representation.
 type FractionalPixel = float;
 
-/**
-A font handle. Layout can use this to calculate glyph metrics
-and the renderer can use it to render text.
-*/
-struct Font {
-    // TODO: is this actually needed? -bjb
-    // A back reference to keep the library alive
-    priv lib: @FontCache,
-    priv fontbuf: @~[u8],
-    priv native_font: NativeFont,
-    priv mut azure_font: Option<AzScaledFontRef>,
-    metrics: FontMetrics,
-
-    drop {
-        use azure::bindgen::AzReleaseScaledFont;
-        do (copy self.azure_font).iter |fontref| { AzReleaseScaledFont(*fontref); }
-    }
-}
-
 struct FontMetrics {
     underline_size:   Au,
     underline_offset: Au,
@@ -49,29 +30,80 @@ struct FontMetrics {
     max_advance:      Au
 }
 
-struct RunMetrics {
-    // may be negative due to negative width
-    advance_width: Au,
+// TODO: use enum from CSS bindings
+enum CSSFontWeight {
+    FontWeight100,
+    FontWeight200,
+    FontWeight300,
+    FontWeight400,
+    FontWeight500,
+    FontWeight600,
+    FontWeight700,
+    FontWeight800,
+    FontWeight900,
+}
 
+struct FontStyle {
+    pt_size: float,
+    weight: CSSFontWeight,
+    italic: bool,
+    oblique: bool,
+}
+
+struct FontFaceProperties {
+    family_name: @str,
+    face_name: ~str,
+    priv weight: u16,
+    priv italic: bool,
+}
+
+impl FontFaceProperties {
+    pure fn is_bold() -> bool { self.weight >= (500 as u16) }
+    pure fn is_italic() -> bool { self.italic }
+}
+
+struct RunMetrics {
+    // may be negative due to negative width (i.e., kerning of '.' in 'P.T.')
+    advance_width: Au,
     ascent: Au, // nonzero
     descent: Au, // nonzero
-
     // this bounding box is relative to the left origin baseline.
     // so, bounding_box.position.y = -ascent
     bounding_box: Rect<Au>
 }
 
+/**
+A font handle. Layout can use this to calculate glyph metrics
+and the renderer can use it to render text.
+*/
+struct Font {
+    // TODO: is this actually needed? -bjb
+    // A back reference to keep the library alive
+    priv lib: @FontCache,
+    priv fontbuf: @~[u8],
+    priv native_font: NativeFont,
+    priv mut azure_font: Option<AzScaledFontRef>,
+    style: FontStyle,
+    metrics: FontMetrics,
+
+    drop {
+        use azure::bindgen::AzReleaseScaledFont;
+        do (copy self.azure_font).iter |fontref| { AzReleaseScaledFont(*fontref); }
+    }
+}
+
 impl Font {
     // TODO: who should own fontbuf?
-    static fn new(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont) -> Font {
+    static fn new(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont, style: FontStyle) -> Font {
         let metrics = native_font.get_metrics();
 
         Font {
             lib: lib,
             fontbuf : fontbuf,
-            metrics: move metrics,
             native_font : move native_font,
-            azure_font: None
+            azure_font: None,
+            style: move style,
+            metrics: move metrics,
         }
     }
 
@@ -100,6 +132,7 @@ impl Font {
         // stones and manual memory management, and put them inside of
         // azure_hl.rs and elsewhere instead.
         let cfont = get_cairo_font(&self);
+        // TODO: This should probably not even use cairo
         let azfont = AzCreateScaledFontWithCairo(ptr::to_unsafe_ptr(&nfont), 1f as AzFloat, cfont);
         assert azfont.is_not_null();
         cairo_scaled_font_destroy(cfont);
@@ -107,6 +140,9 @@ impl Font {
         self.azure_font = Some(azfont);
         return azfont;
 
+        // TODO: these cairo-related things should be in rust-cairo.
+        // creating a cairo font/face from a native font resource
+        // should be part of the NativeFont API, not exposed here.
         #[cfg(target_os = "linux")]
         fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
             use cairo::cairo_ft::bindgen::{cairo_ft_font_face_create_for_ft_face};
@@ -151,10 +187,14 @@ impl Font {
             cairo_matrix_init_identity(ptr::to_unsafe_ptr(&idmatrix));
 
             let fontmatrix = idmatrix;
-            cairo_matrix_scale(ptr::to_unsafe_ptr(&fontmatrix), 21f as c_double, 21f as c_double);
+            cairo_matrix_scale(ptr::to_unsafe_ptr(&fontmatrix),
+                               font.style.pt_size as c_double, 
+                               font.style.pt_size as c_double);
             let options = cairo_font_options_create();
-            let cfont = cairo_scaled_font_create(face, ptr::to_unsafe_ptr(&fontmatrix),
-                                                 ptr::to_unsafe_ptr(&idmatrix), options);
+            let cfont = cairo_scaled_font_create(face, 
+                                                 ptr::to_unsafe_ptr(&fontmatrix),
+                                                 ptr::to_unsafe_ptr(&idmatrix), 
+                                                 options);
             cairo_font_options_destroy(options);
             cairo_font_face_destroy(face);
 

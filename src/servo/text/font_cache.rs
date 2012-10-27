@@ -1,4 +1,7 @@
-use font::{Font, test_font_bin};
+use font::{Font,
+           FontStyle,
+           FontWeight300,
+           test_font_bin};
 
 struct FontCache {
     native_lib: native::NativeFontCache,
@@ -37,13 +40,20 @@ fn FontCache() -> @FontCache {
 
 fn create_font(lib: @FontCache, native_lib: &native::NativeFontCache) -> Result<@Font, ()> {
     let font_bin = @test_font_bin();
-    let native_font = native_font::create(native_lib, font_bin);
+    let dummy_style = FontStyle {
+        pt_size: 40f,
+        weight: FontWeight300,
+        italic: false,
+        oblique: false
+    };
+    let native_font = native_font::create(native_lib, font_bin, dummy_style.pt_size);
     let native_font = if native_font.is_ok() {
         result::unwrap(move native_font)
     } else {
         return Err(native_font.get_err());
     };
-    return Ok(@Font::new(lib, font_bin, move native_font));
+
+    return Ok(@Font::new(lib, font_bin, move native_font, move dummy_style));
 }
 
 #[cfg(target_os = "linux")]

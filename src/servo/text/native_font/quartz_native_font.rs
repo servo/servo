@@ -68,11 +68,11 @@ pub struct QuartzNativeFont {
     }
 }
 
-fn QuartzNativeFont(fontprov: CGDataProviderRef, cgfont: CGFontRef) -> QuartzNativeFont {
+fn QuartzNativeFont(fontprov: CGDataProviderRef, cgfont: CGFontRef, pt_size: float) -> QuartzNativeFont {
     assert fontprov.is_not_null();
     assert cgfont.is_not_null();
 
-    let ctfont = ctfont_from_cgfont(cgfont);
+    let ctfont = ctfont_from_cgfont(cgfont, pt_size);
     assert ctfont.is_not_null();
 
     QuartzNativeFont {
@@ -143,14 +143,13 @@ impl QuartzNativeFont {
     }
 }
 
-fn ctfont_from_cgfont(cgfont: CGFontRef) -> CTFontRef {
+fn ctfont_from_cgfont(cgfont: CGFontRef, pt_size: float) -> CTFontRef {
     assert cgfont.is_not_null();
 
-    // TODO: use actual font size here!
-    CTFontCreateWithGraphicsFont(cgfont, 21f as CGFloat, null(), null())
+    CTFontCreateWithGraphicsFont(cgfont, pt_size as CGFloat, null(), null())
 }
 
-pub fn create(buf: @~[u8]) -> Result<QuartzNativeFont, ()> {
+pub fn create(_lib: &NativeFontCache, buf: @~[u8], pt_size: float) -> Result<QuartzNativeFont, ()> {
     let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
         CGDataProviderCreateWithData(
             null(),
@@ -163,18 +162,8 @@ pub fn create(buf: @~[u8]) -> Result<QuartzNativeFont, ()> {
     let cgfont = CGFontCreateWithDataProvider(fontprov);
 
     match cgfont.is_not_null() {
-        true => Ok(QuartzNativeFont(fontprov, cgfont)),
+        true => Ok(QuartzNativeFont(fontprov, cgfont, pt_size)),
         false => Err(())
     }
     
-}
-
-pub fn with_test_native_font(f: fn@(nf: &NativeFont)) {
-    use font::test_font_bin;
-    use unwrap_result = result::unwrap;
-
-    let buf = @test_font_bin();
-    let res = create(buf);
-    let font = unwrap_result(move res);
-    f(&font);
 }
