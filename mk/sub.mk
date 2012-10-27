@@ -36,6 +36,10 @@ DEPS_rust-wapcaplet += \
 CFLAGS_rust-wapcaplet += \
 	"-I$(S)src/libwapcaplet/include"
 
+DEPS_rust-css += \
+	rust-netsurfcss \
+	rust-wapcaplet
+
 CFLAGS_mozjs += \
 	"-I../mozjs/dist/include"
 

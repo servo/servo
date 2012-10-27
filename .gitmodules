@@ -79,3 +79,6 @@
 [submodule "src/rust-cairo"]
 	path = src/rust-cairo
 	url = git://github.com/mozilla-servo/rust-cairo.git
+[submodule "src/rust-css"]
+	path = src/rust-css
+	url = git://github.com/mozilla-servo/rust-css.git
