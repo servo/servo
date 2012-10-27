@@ -11,7 +11,8 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 
-const TILE_SIZE: uint = 512;
+// FIXME: Tiles are busted. Disable them for now.
+const TILE_SIZE: uint = 4096;
 
 pub struct RenderLayer {
     display_list: DisplayList,
