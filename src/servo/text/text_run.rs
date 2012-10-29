@@ -49,7 +49,7 @@ impl TextRun {
             glyphs: move glyph_store,
         };
 
-        // XXX wrong! use typedef
+        // XXX(Issue #163): wrong! use typedef (as commented out)
         let shaper = harfbuzz::shaper::HarfbuzzShaper::new();
         // let shaper = Shaper::new();
         shaper.shape_textrun(&run);
