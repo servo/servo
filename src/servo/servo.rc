@@ -77,7 +77,6 @@ pub mod gfx {
     pub mod surface;
     pub mod render_task;
     pub mod compositor;
-    pub mod png_compositor;
     pub mod display_list;
     pub mod render_layers;
     priv mod render_context;

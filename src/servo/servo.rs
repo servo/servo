@@ -69,6 +69,11 @@ fn run_pipeline_screen(urls: &[~str]) {
     osmain.send(osmain::Exit);
 }
 
+fn run_pipeline_png(_url: ~str, _outfile: &str) {
+    fail ~"PNG compositor is broken";
+}
+
+#[cfg(broken)]
 fn run_pipeline_png(url: ~str, outfile: &str) {
     // Use a PNG encoder as the graphics compositor
     use gfx::png_compositor;
