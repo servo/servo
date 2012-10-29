@@ -55,6 +55,8 @@ pub mod css {
         pub mod apply;
         pub mod matching;
     }
+
+    pub mod color;
 }
 
 pub mod layout {
@@ -136,7 +138,6 @@ pub mod resource {
 
 pub mod util {
     pub mod tree;
-    pub mod color;
     pub mod time;
     pub mod url;
     pub mod vec;

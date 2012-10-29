@@ -14,7 +14,7 @@ use comm::recv;
 use option::{map, is_none};
 use vec::push;
 use parser_util::*;
-use util::color::parsing::parse_color;
+use color::parsing::parse_color;
 use vec::push;
 
 type TokenReader = {stream : pipes::Port<Token>, mut lookahead : Option<Token>};

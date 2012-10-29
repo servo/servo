@@ -4,7 +4,7 @@ stored.  CSS selector-matching rules, as presented by
 http://www.w3.org/TR/CSS2/selector.html are represented by nested types.
 */
 
-use SharedColor = util::color::Color;
+use SharedColor = color::Color;
 use cmp::Eq;
 use std::net::url::Url;
 

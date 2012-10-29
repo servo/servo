@@ -1,6 +1,6 @@
 /* Fundamental layout structures and algorithms. */
 
-use servo_util::color::rgb;
+use css::color::rgb;
 use arc = std::arc;
 use arc::ARC;
 use au = gfx::geometry;
@@ -11,6 +11,7 @@ use core::rand;
 use css::styles::SpecifiedStyle;
 use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent};
 use css::values::{BdrColor, PosAbsolute};
+use css::color::{Color, rgba};
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
 use geom::rect::Rect;
@@ -26,7 +27,6 @@ use servo_text::text_run;
 use servo_text::text_run::TextRun;
 use std::net::url::Url;
 use task::spawn;
-use util::color::Color;
 use util::range::*;
 use util::tree;
 
@@ -447,7 +447,7 @@ impl RenderBox : RenderBoxMethods {
         let boxed_bgcolor = self.d().node.style().background_color;
         let bgcolor = match boxed_bgcolor {
             Specified(BgColor(c)) => c,
-            Specified(BgColorTransparent) | _ => util::color::rgba(0,0,0,0.0)
+            Specified(BgColorTransparent) | _ => rgba(0,0,0,0.0)
         };
         if !bgcolor.alpha.fuzzy_eq(&0.0) {
             list.append_item(~DisplayItem::new_SolidColor(abs_bounds, bgcolor.red, bgcolor.green, bgcolor.blue));

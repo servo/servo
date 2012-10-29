@@ -1,9 +1,3 @@
-/** A library for handling colors and parsing css color declarations. */
-
-// TODO: handle #rrggbb color declarations, handle rgb(r%,g%,b%),
-// sanitize input / crop it to correct ranges, predefine other 130
-// css-defined colors
-
 use float::round;
 use libc::types::os::arch::c95::c_double;
 use css_colors::*;
