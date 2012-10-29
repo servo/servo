@@ -10,7 +10,6 @@ use glyph::GlyphStore;
 use layout::context::LayoutContext;
 use libc::{c_void};
 use servo_util::color;
-use shaper::shape_textrun;
 use std::arc;
 use servo_util::range::{Range, MutableRange};
 
@@ -41,6 +40,8 @@ impl SendableTextRun {
 
 impl TextRun {
     static fn new(font: @Font, text: ~str) -> TextRun {
+        use shaper::Shaper;
+
         let glyph_store = GlyphStore(text.len());
         let run = TextRun {
             text: move text,
@@ -48,7 +49,10 @@ impl TextRun {
             glyphs: move glyph_store,
         };
 
-        shape_textrun(&run);
+        // XXX wrong! use typedef
+        let shaper = harfbuzz::shaper::HarfbuzzShaper::new();
+        // let shaper = Shaper::new();
+        shaper.shape_textrun(&run);
         return move run;
     }
 

@@ -2,15 +2,14 @@ extern mod core_foundation;
 extern mod core_graphics;
 extern mod core_text;
 
-export QuartzNativeFont, with_test_native_font, create;
-
 use font::{FontMetrics, FractionalPixel};
+use font_cache::native::NativeFontCache;
 
 use au = gfx::geometry;
 use cast::transmute;
+use glyph::GlyphIndex;
 use libc::size_t;
 use ptr::null;
-use glyph::GlyphIndex;
 
 use cf = core_foundation;
 use cf::base::{
