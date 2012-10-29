@@ -1,6 +1,6 @@
 //! Helper functions to parse values of specific attributes
 
-use css::values::*;
+use newcss::values::*;
 use str::{pop_char, from_chars};
 use float::from_str;
 use option::map;
@@ -93,7 +93,7 @@ fn parse_display_type(str : &str) -> ParseResult<CSSDisplay> {
 mod test {
     use css::lexer::spawn_css_lexer_from_string;
     use css::parser::build_stylesheet;
-    use css::values::{Stylesheet, Element, FontSize, Width, Height};
+    use newcss::values::{Stylesheet, Element, FontSize, Width, Height};
     
     // TODO: use helper methods to create test values
 

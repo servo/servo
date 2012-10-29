@@ -1,6 +1,6 @@
 /* The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements. */
 use css::styles::SpecifiedStyle;
-use css::values::Stylesheet;
+use newcss::values::Stylesheet;
 use dom::bindings;
 use dom::document::Document;
 use dom::element::{Attr, ElementData};

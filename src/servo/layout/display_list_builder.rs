@@ -2,7 +2,7 @@ export DisplayListBuilder;
 
 use au = gfx::geometry;
 use au::Au;
-use css::values::{BgColor, BgColorTransparent, Specified};
+use newcss::values::{BgColor, BgColorTransparent, Specified};
 use dom::node::{Text, NodeScope};
 use dom::cow::Scope;
 use dvec::DVec;

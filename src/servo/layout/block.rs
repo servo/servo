@@ -1,5 +1,5 @@
 use au = gfx::geometry;
-use css::values::*;
+use newcss::values::*;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;

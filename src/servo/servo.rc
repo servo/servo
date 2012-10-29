@@ -49,14 +49,11 @@ pub mod css {
     pub mod parser;
     pub mod parser_util;
 
-    pub mod values;
     pub mod styles;
     pub mod resolve {
         pub mod apply;
         pub mod matching;
     }
-
-    pub mod color;
 }
 
 pub mod layout {

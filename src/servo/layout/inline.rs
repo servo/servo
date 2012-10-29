@@ -1,7 +1,7 @@
 use au = gfx::geometry;
 use core::dlist::DList;
 use core::dvec::DVec;
-use css::values::{BoxAuto, BoxLength, Px};
+use newcss::values::{BoxAuto, BoxLength, Px};
 use dom::node::Node;
 use geom::point::Point2D;
 use geom::rect::Rect;

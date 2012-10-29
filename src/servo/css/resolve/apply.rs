@@ -11,7 +11,7 @@ use image::ImageHolder;
 use resource::image_cache_task::ImageCacheTask;
 use std::net::url::Url;
 
-use css::values::*;
+use newcss::values::*;
 
 trait ResolveMethods<T> {
     pure fn initial() -> T;

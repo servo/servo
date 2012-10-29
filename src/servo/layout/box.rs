@@ -1,6 +1,6 @@
 /* Fundamental layout structures and algorithms. */
 
-use css::color::rgb;
+use newcss::color::rgb;
 use arc = std::arc;
 use arc::ARC;
 use au = gfx::geometry;
@@ -9,9 +9,9 @@ use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
 use css::styles::SpecifiedStyle;
-use css::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent};
-use css::values::{BdrColor, PosAbsolute};
-use css::color::{Color, rgba};
+use newcss::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent};
+use newcss::values::{BdrColor, PosAbsolute};
+use newcss::color::{Color, rgba};
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
 use geom::rect::Rect;

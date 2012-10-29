@@ -5,16 +5,16 @@ Constructs a list of css style rules from a token stream
 // TODO: fail according to the css spec instead of failing when things
 // are not as expected
 
-use css::values::*;
+use newcss::values::*;
 // Disambiguate parsed Selector, Rule values from tokens
-use css = css::values;
+use css = newcss::values;
 use tok = lexer;
 use lexer::Token;
 use comm::recv;
 use option::{map, is_none};
 use vec::push;
 use parser_util::*;
-use color::parsing::parse_color;
+use newcss::color::parsing::parse_color;
 use vec::push;
 
 type TokenReader = {stream : pipes::Port<Token>, mut lookahead : Option<Token>};

@@ -9,7 +9,7 @@ use gfx::geometry::Au;
 use glyph::GlyphStore;
 use layout::context::LayoutContext;
 use libc::{c_void};
-use css::color;
+use newcss::color;
 use std::arc;
 use servo_util::range::{Range, MutableRange};
 

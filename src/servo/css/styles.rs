@@ -4,13 +4,13 @@
 use std::arc::{ARC, get, clone};
 
 use core::dvec::DVec;
-use css::values::*;
-use css::values::Stylesheet;
+use newcss::values::*;
+use newcss::values::Stylesheet;
 use dom::element::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
 use dom::node::{Comment, Doctype, Element, Text,
                 Node, NodeKind, NodeTree, LayoutData};
-use color::{Color, rgb};
-use color::css_colors::{white, black};
+use newcss::color::{Color, rgb};
+use newcss::color::css_colors::{white, black};
 use layout::context::LayoutContext;
 
 #[allow(non_implicitly_copyable_typarams)]

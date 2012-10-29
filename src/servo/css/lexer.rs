@@ -31,7 +31,7 @@ pub enum Token {
     Sibling,
     Comma,
     Element(~str),
-    Attr(css::values::Attr), 
+    Attr(newcss::values::Attr), 
     Description(~str, ~str),
     Eof
 }
@@ -119,8 +119,8 @@ impl CssLexer : CssLexerMethods {
         }
         
         match ch {
-          '.' as u8 => return Attr(css::values::Includes(~"class", self.input_state.parse_ident())),
-          '#' as u8 => return Attr(css::values::Includes(~"id", self.input_state.parse_ident())),
+          '.' as u8 => return Attr(newcss::values::Includes(~"class", self.input_state.parse_ident())),
+          '#' as u8 => return Attr(newcss::values::Includes(~"id", self.input_state.parse_ident())),
           '[' as u8 => {
             let attr_name = self.input_state.parse_ident();
             
@@ -130,21 +130,21 @@ impl CssLexer : CssLexerMethods {
             }
 
             if ch == ']' as u8 {
-                return Attr(css::values::Exists(move attr_name));
+                return Attr(newcss::values::Exists(move attr_name));
             } else if ch == '=' as u8 {
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                return Attr(css::values::Exact(move attr_name, move attr_val));
+                return Attr(newcss::values::Exact(move attr_name, move attr_val));
             } else if ch == '~' as u8 {
                 self.input_state.expect('=' as u8);
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                return Attr(css::values::Includes(move attr_name, move attr_val));
+                return Attr(newcss::values::Includes(move attr_name, move attr_val));
             } else if ch == '|' as u8 {
                 self.input_state.expect('=' as u8);
                 let attr_val = self.input_state.parse_ident();
                 self.input_state.expect(']' as u8);
-                return Attr(css::values::StartsWith(move attr_name, move attr_val));
+                return Attr(newcss::values::StartsWith(move attr_name, move attr_val));
             }
             
             fail #fmt("Unexpected symbol %c in attribute", ch as char);

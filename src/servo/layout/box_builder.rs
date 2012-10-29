@@ -2,8 +2,8 @@
 use au = gfx::geometry;
 use core::dvec::DVec;
 use css::styles::{SpecifiedStyle, empty_style_for_node_kind};
-use css::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayInlineBlock, DisplayNone};
-use css::values::{Inherit, Initial, Specified};
+use newcss::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayInlineBlock, DisplayNone};
+use newcss::values::{Inherit, Initial, Specified};
 use dom::element::*;
 use dom::node::{Comment, Doctype, Element, Text, Node, LayoutData};
 use image::holder::ImageHolder;
