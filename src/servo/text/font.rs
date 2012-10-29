@@ -110,7 +110,7 @@ impl Font {
         }
     }
 
-    priv fn get_shaper(&self) -> @Shaper {
+    priv fn get_shaper(@self) -> @Shaper {
         // fast path: already created a shaper
         match self.shaper {
             Some(shaper) => { return shaper; },
@@ -118,7 +118,7 @@ impl Font {
         }
 
         // XXX(Issue #163): wrong! use typedef (as commented out)
-        let shaper = @harfbuzz::shaper::HarfbuzzShaper::new();
+        let shaper = @harfbuzz::shaper::HarfbuzzShaper::new(self);
         self.shaper = Some(shaper);
         shaper
     }
@@ -223,7 +223,7 @@ impl Font {
 pub trait FontMethods {
     fn draw_text_into_context(rctx: &RenderContext, run: &TextRun, range: Range, baseline_origin: Point2D<Au>);
     fn measure_text(&TextRun, Range) -> RunMetrics;
-    fn shape_text(&self, &str) -> GlyphStore;
+    fn shape_text(@self, &str) -> GlyphStore;
 
     fn buf(&self) -> @~[u8];
     // these are used to get glyphs and advances in the case that the
@@ -318,10 +318,10 @@ pub impl Font : FontMethods {
         return metrics;
     }
 
-    fn shape_text(&self, text: &str) -> GlyphStore {
+    fn shape_text(@self, text: &str) -> GlyphStore {
         let store = GlyphStore(text.len());
         let shaper = self.get_shaper();
-        shaper.shape_text(text, self, &store);
+        shaper.shape_text(text, &store);
         return move store;
     }
 

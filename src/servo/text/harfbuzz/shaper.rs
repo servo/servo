@@ -46,25 +46,25 @@ fn fixed_to_rounded_int_hb(f: hb_position_t) -> int {
 }
 
 pub struct HarfbuzzShaper {
-    dummy: int
+    font: @Font
 }
 
 pub impl HarfbuzzShaper {
-    static pub fn new() -> HarfbuzzShaper {
-        HarfbuzzShaper { dummy: 42 }
+    static pub fn new(font: @Font) -> HarfbuzzShaper {
+        HarfbuzzShaper { font: font }
     }
     
     /**
     Calculate the layout metrics associated with a some given text
     when rendered in a specific font.
     */
-    pub fn shape_text(text: &str, font: &Font, glyphs: &GlyphStore) {
+    pub fn shape_text(text: &str, glyphs: &GlyphStore) {
         debug!("shaping text '%s'", text);
 
         // TODO(Issue #94): harfbuzz fonts and faces should be cached on the 
         // Shaper object, which is owned by the Font instance.
         // TODO(Issue #92): font tables should be stored in Font object and cached per-task
-        let face_blob: *hb_blob_t = vec::as_imm_buf(*(font).fontbuf, |buf: *u8, len: uint| {
+        let face_blob: *hb_blob_t = vec::as_imm_buf(*(self.font).fontbuf, |buf: *u8, len: uint| {
             hb_blob_create(buf as *c_char,
                            len as c_uint,
                            HB_MEMORY_MODE_READONLY,
@@ -76,7 +76,7 @@ pub impl HarfbuzzShaper {
         let hb_font: *hb_font_t = hb_font_create(hb_face);
 
         // Set points-per-em. if zero, performs no hinting in that direction.
-        let pt_size = font.style.pt_size;
+        let pt_size = self.font.style.pt_size;
         hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
         // Set scaling. Note that this takes 16.16 fixed point.
         hb_font_set_scale(hb_font, float_to_fixed_hb(pt_size) as c_int, float_to_fixed_hb(pt_size) as c_int);
@@ -86,7 +86,7 @@ pub impl HarfbuzzShaper {
         hb_font_funcs_set_glyph_h_advance_func(funcs, glyph_h_advance_func, null(), null());
 
         unsafe {
-            let font_data: *c_void = core::ptr::addr_of(font) as *c_void;
+            let font_data: *c_void = core::ptr::addr_of(self.font) as *c_void;
             hb_font_set_funcs(hb_font, funcs, font_data, null());
         };
 
