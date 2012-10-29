@@ -11,7 +11,7 @@ use cast::reinterpret_cast;
 use glyph::GlyphIndex;
 
 use freetype::{ FT_Error, FT_Library, FT_Face, FT_Long, FT_ULong, FT_Size, FT_SizeRec,
-               FT_UInt, FT_GlyphSlot, FT_Size_Metrics, FT_FaceRec };
+               FT_UInt, FT_GlyphSlot, FT_Size_Metrics, FT_FaceRec, FT_F26Dot6 };
 use freetype::bindgen::{
     FT_Init_FreeType,
     FT_Done_FreeType,
@@ -137,8 +137,8 @@ pub fn create(lib: &FT_Library, buf: @~[u8], pt_size: float) -> Result<FreeTypeN
                                  0 as FT_Long, addr_of(&face)).succeeded() {
                // FIXME: These values are placeholders
                let res = FT_Set_Char_Size(face, // the face
-                                          float_to_fixed_ft(pt_size), // char width
-                                          float_to_fixed_ft(pt_size), // char height
+                                          float_to_fixed_ft(pt_size) as FT_F26Dot6, // char width
+                                          float_to_fixed_ft(pt_size) as FT_F26Dot6, // char height
                                           72, // horiz. DPI
                                           72); // vert. DPI
                if !res.succeeded() { fail ~"unable to set font char size" }
