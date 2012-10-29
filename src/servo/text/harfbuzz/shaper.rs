@@ -62,8 +62,9 @@ pub impl HarfbuzzShaper {
     pub fn shape_textrun(run: &TextRun) {
         debug!("shaping text '%s'", run.text);
 
-        // TODO: harfbuzz fonts and faces should be cached on the Font object.
-        // TODO: font tables should be stored in Font object and cached by FontCache (Issue #92)
+        // TODO(Issue #94): harfbuzz fonts and faces should be cached on the 
+        // Shaper object, which is owned by the Font instance.
+        // TODO(Issue #92): font tables should be stored in Font object and cached per-task
         let face_blob: *hb_blob_t = vec::as_imm_buf(*(run.font).fontbuf, |buf: *u8, len: uint| {
             hb_blob_create(buf as *c_char,
                            len as c_uint,
@@ -75,11 +76,11 @@ pub impl HarfbuzzShaper {
         let hb_face: *hb_face_t = hb_face_create(face_blob, 0 as c_uint);
         let hb_font: *hb_font_t = hb_font_create(hb_face);
 
-        // TODO: set font size here, based on Font's size
         // Set points-per-em. if zero, performs no hinting in that direction.
-        hb_font_set_ppem(hb_font, 21 as c_uint, 21 as c_uint);
+        let pt_size = run.font.style.pt_size;
+        hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
         // Set scaling. Note that this takes 16.16 fixed point.
-        hb_font_set_scale(hb_font, float_to_fixed_hb(21f) as c_int, float_to_fixed_hb(21f) as c_int);
+        hb_font_set_scale(hb_font, float_to_fixed_hb(pt_size) as c_int, float_to_fixed_hb(pt_size) as c_int);
 
         let funcs: *hb_font_funcs_t = hb_font_funcs_create();
         hb_font_funcs_set_glyph_func(funcs, glyph_func, null(), null());
