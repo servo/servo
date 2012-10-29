@@ -117,8 +117,7 @@ impl Font {
             None => {}
         }
 
-        // XXX(Issue #163): wrong! use typedef (as commented out)
-        let shaper = @harfbuzz::shaper::HarfbuzzShaper::new(self);
+        let shaper = @Shaper::new(self);
         self.shaper = Some(shaper);
         shaper
     }
