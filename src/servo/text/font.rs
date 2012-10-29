@@ -11,9 +11,10 @@ use gfx::render_context::RenderContext;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use glyph::GlyphIndex;
+use glyph::{GlyphStore, GlyphIndex};
 use native_font::NativeFont;
 use servo_util::range::Range;
+use shaper::Shaper;
 use text::text_run::TextRun;
 
 // Used to abstract over the shaper's choice of fixed int representation.
@@ -83,6 +84,7 @@ struct Font {
     priv fontbuf: @~[u8],
     priv native_font: NativeFont,
     priv mut azure_font: Option<AzScaledFontRef>,
+    priv mut shaper: Option<@Shaper>,
     style: FontStyle,
     metrics: FontMetrics,
 
@@ -102,9 +104,23 @@ impl Font {
             fontbuf : fontbuf,
             native_font : move native_font,
             azure_font: None,
+            shaper: None,
             style: move style,
             metrics: move metrics,
         }
+    }
+
+    priv fn get_shaper(&self) -> @Shaper {
+        // fast path: already created a shaper
+        match self.shaper {
+            Some(shaper) => { return shaper; },
+            None => {}
+        }
+
+        // XXX(Issue #163): wrong! use typedef (as commented out)
+        let shaper = @harfbuzz::shaper::HarfbuzzShaper::new();
+        self.shaper = Some(shaper);
+        shaper
     }
 
     priv fn get_azure_font() -> AzScaledFontRef {
@@ -207,6 +223,7 @@ impl Font {
 pub trait FontMethods {
     fn draw_text_into_context(rctx: &RenderContext, run: &TextRun, range: Range, baseline_origin: Point2D<Au>);
     fn measure_text(&TextRun, Range) -> RunMetrics;
+    fn shape_text(&self, &str) -> GlyphStore;
 
     fn buf(&self) -> @~[u8];
     // these are used to get glyphs and advances in the case that the
@@ -299,6 +316,13 @@ pub impl Font : FontMethods {
         debug!("%?", metrics);
 
         return metrics;
+    }
+
+    fn shape_text(&self, text: &str) -> GlyphStore {
+        let store = GlyphStore(text.len());
+        let shaper = self.get_shaper();
+        shaper.shape_text(text, self, &store);
+        return move store;
     }
 
     fn buf(&self) -> @~[u8] {

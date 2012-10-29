@@ -42,17 +42,12 @@ impl TextRun {
     static fn new(font: @Font, text: ~str) -> TextRun {
         use shaper::Shaper;
 
-        let glyph_store = GlyphStore(text.len());
+        let glyph_store = font.shape_text(text);
         let run = TextRun {
             text: move text,
             font: font,
             glyphs: move glyph_store,
         };
-
-        // XXX(Issue #163): wrong! use typedef (as commented out)
-        let shaper = harfbuzz::shaper::HarfbuzzShaper::new();
-        // let shaper = Shaper::new();
-        shaper.shape_textrun(&run);
         return move run;
     }
 

@@ -11,7 +11,6 @@ use libc::types::common::c99::int32_t;
 use libc::{c_uint, c_int, c_void, c_char};
 use ptr::{null, to_unsafe_ptr, offset};
 use std::arc;
-use text_run::TextRun;
 use util::*;
 
 use harfbuzz::{HB_MEMORY_MODE_READONLY,
@@ -59,13 +58,13 @@ pub impl HarfbuzzShaper {
     Calculate the layout metrics associated with a some given text
     when rendered in a specific font.
     */
-    pub fn shape_textrun(run: &TextRun) {
-        debug!("shaping text '%s'", run.text);
+    pub fn shape_text(text: &str, font: &Font, glyphs: &GlyphStore) {
+        debug!("shaping text '%s'", text);
 
         // TODO(Issue #94): harfbuzz fonts and faces should be cached on the 
         // Shaper object, which is owned by the Font instance.
         // TODO(Issue #92): font tables should be stored in Font object and cached per-task
-        let face_blob: *hb_blob_t = vec::as_imm_buf(*(run.font).fontbuf, |buf: *u8, len: uint| {
+        let face_blob: *hb_blob_t = vec::as_imm_buf(*(font).fontbuf, |buf: *u8, len: uint| {
             hb_blob_create(buf as *c_char,
                            len as c_uint,
                            HB_MEMORY_MODE_READONLY,
@@ -77,7 +76,7 @@ pub impl HarfbuzzShaper {
         let hb_font: *hb_font_t = hb_font_create(hb_face);
 
         // Set points-per-em. if zero, performs no hinting in that direction.
-        let pt_size = run.font.style.pt_size;
+        let pt_size = font.style.pt_size;
         hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
         // Set scaling. Note that this takes 16.16 fixed point.
         hb_font_set_scale(hb_font, float_to_fixed_hb(pt_size) as c_int, float_to_fixed_hb(pt_size) as c_int);
@@ -87,7 +86,7 @@ pub impl HarfbuzzShaper {
         hb_font_funcs_set_glyph_h_advance_func(funcs, glyph_h_advance_func, null(), null());
 
         unsafe {
-            let font_data: *c_void = core::ptr::addr_of(run.font) as *c_void;
+            let font_data: *c_void = core::ptr::addr_of(font) as *c_void;
             hb_font_set_funcs(hb_font, funcs, font_data, null());
         };
 
@@ -95,12 +94,12 @@ pub impl HarfbuzzShaper {
         hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
 
         // Using as_buf because it never does a copy - we don't need the trailing null
-        str::as_buf(run.text, |ctext: *u8, _l: uint| {
+        str::as_buf(text, |ctext: *u8, _l: uint| {
             hb_buffer_add_utf8(hb_buffer, 
                                ctext as *c_char,
-                               run.text.len() as c_int,
+                               text.len() as c_int,
                                0 as c_uint,
-                               run.text.len() as c_int);
+                               text.len() as c_int);
         });
 
         hb_shape(hb_font, hb_buffer, null(), 0 as c_uint);
@@ -131,7 +130,7 @@ pub impl HarfbuzzShaper {
                    i, codepoint, advance, offset);
 
             let data = GlyphData(codepoint, advance, offset, false, false, false);
-            run.glyphs.add_glyph_for_index(i, &data);
+            glyphs.add_glyph_for_index(i, &data);
         } /* unsafe */ }
 
         hb_buffer_destroy(hb_buffer);
