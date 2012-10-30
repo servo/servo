@@ -174,5 +174,5 @@ impl Node : StyleMethods {
 }
 
 fn apply_style(layout_ctx: &LayoutContext, node: Node) {
-    resolve::apply::apply_style(layout_ctx, node)
+    apply::apply_style(layout_ctx, node)
 }

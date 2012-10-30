@@ -46,10 +46,8 @@ pub mod content {
 
 pub mod css {
     pub mod styles;
-    mod resolve {
-        pub mod apply;
-        mod matching;
-    }
+    mod apply;
+    mod matching;
 }
 
 pub mod layout {
