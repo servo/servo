@@ -25,6 +25,7 @@ use opt = core::option;
 use render_task::RenderTask;
 use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use resource::local_image_cache::LocalImageCache;
+use servo_text::font_context::FontContext;
 use servo_text::font_cache::FontCache;
 use servo_text::font_matcher::FontMatcher;
 use std::arc::ARC;
@@ -77,6 +78,7 @@ struct Layout {
     from_content: comm::Port<Msg>,
 
     font_cache: @FontCache,
+    font_matcher: @FontMatcher,
     // This is used to root auxilliary RCU reader data
     layout_refs: DVec<@LayoutData>
 }
@@ -85,12 +87,15 @@ fn Layout(render_task: RenderTask,
          image_cache_task: ImageCacheTask,
          from_content: comm::Port<Msg>) -> Layout {
 
+    let fctx = @FontContext::new();
+
     Layout {
         render_task: render_task,
         image_cache_task: image_cache_task.clone(),
         local_image_cache: @LocalImageCache(move image_cache_task),
         from_content: from_content,
-        font_cache: @FontCache::new(@FontMatcher::new()),
+        font_matcher: @FontMatcher::new(fctx),
+        font_cache: @FontCache::new(fctx),
         layout_refs: DVec()
     }
 }

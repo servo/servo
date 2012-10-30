@@ -340,16 +340,18 @@ fn should_destruct_on_fail_without_leaking() {
     #[test];
     #[should_fail];
 
-    let lib = FontCache();
-    let _font = lib.get_test_font();
+    let fctx = @FontContext();
+    let matcher = @FontMatcher(fctx);
+    let _font = matcher.get_test_font();
     fail;
 }
 
 fn should_get_glyph_indexes() {
     #[test];
 
-    let lib = FontCache();
-    let font = lib.get_test_font();
+    let fctx = @FontContext();
+    let matcher = @FontMatcher(fctx);
+    let font = matcher.get_test_font();
     let glyph_idx = font.glyph_index('w');
     assert glyph_idx == Some(40u as GlyphIndex);
 }
@@ -358,8 +360,9 @@ fn should_get_glyph_advance() {
     #[test];
     #[ignore];
 
-    let lib = FontCache();
-    let font = lib.get_test_font();
+    let fctx = @FontContext();
+    let matcher = @FontMatcher(fctx);
+    let font = matcher.get_test_font();
     let x = font.glyph_h_advance(40u as GlyphIndex);
     assert x == 15f || x == 16f;
 }
@@ -375,8 +378,9 @@ fn should_get_glyph_advance_stress() {
         let (chan, port) = pipes::stream();
         ports += [@move port];
         do task::spawn |move chan| {
-            let lib = FontCache();
-            let font = lib.get_test_font();
+            let fctx = @FontContext();
+            let matcher = @FontMatcher(fctx);
+            let _font = matcher.get_test_font();
             let x = font.glyph_h_advance(40u as GlyphIndex);
             assert x == 15f || x == 16f;
             chan.send(());
@@ -393,8 +397,9 @@ fn should_be_able_to_create_instances_in_multiple_threads() {
 
     for iter::repeat(10u) {
         do task::spawn {
-            let lib = FontCache();
-            let _font = lib.get_test_font();
+            let fctx = @FontContext();
+            let matcher = @FontMatcher(fctx);
+            let _font = matcher.get_test_font();
         }
     }
 }

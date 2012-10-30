@@ -109,8 +109,8 @@ pub mod text {
     pub mod util;
 
     // platform and library-specific implementations.
+    pub mod font_context;
     pub mod native_font;
-    pub mod native_font_matcher;
     pub mod shaper;
 
     pub mod harfbuzz {
@@ -119,14 +119,14 @@ pub mod text {
 
     #[cfg(target_os = "macos")]
     pub mod quartz {
+        pub mod font_context;
         pub mod native_font;
-        pub mod native_font_matcher;
     }
 
     #[cfg(target_os = "linux")]
     pub mod freetype {
+        pub mod font_context;
         pub mod native_font;
-        pub mod native_font_matcher;
     }
 }
 

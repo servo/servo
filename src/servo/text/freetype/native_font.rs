@@ -1,7 +1,7 @@
 extern mod freetype;
 
 use font::{FontMetrics, FractionalPixel};
-use native_font_matcher::FreeTypeNativeFontMatcher;
+use font_context::FreeTypeFontContext;
 
 use gfx::geometry;
 use gfx::geometry::Au;
@@ -45,13 +45,13 @@ pub struct FreeTypeNativeFont {
 }
 
 pub impl FreeTypeNativeFont {
-    static pub fn new(matcher: &FreeTypeNativeFontMatcher,
+    static pub fn new(fctx: &FreeTypeFontContext,
                       buf: @~[u8], pt_size: float) -> Result<FreeTypeNativeFont, ()> {
-        let lib = matcher.ft_lib;
-        assert lib.is_not_null();
+        let ft_ctx = fctx.ctx;
+        assert ft_ctx.is_not_null();
         let face: FT_Face = null();
         return vec_as_buf(*buf, |cbuf, _len| {
-            if FT_New_Memory_Face(lib, cbuf, (*buf).len() as FT_Long,
+            if FT_New_Memory_Face(ft_ctx, cbuf, (*buf).len() as FT_Long,
                                   0 as FT_Long, addr_of(&face)).succeeded() {
                 let res = FT_Set_Char_Size(face, // the face
                                            float_to_fixed_ft(pt_size) as FT_F26Dot6, // char width

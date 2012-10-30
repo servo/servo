@@ -1,16 +1,25 @@
 use font::{Font, FontStyle, FontWeight300};
-use font_matcher::FontMatcher;
+use native_font::NativeFont;
+use font_context::FontContext;
+
+// TODO(Issue #164): delete, and get default font from NativeFontMatcher
+const TEST_FONT: [u8 * 33004] = #include_bin("JosefinSans-SemiBold.ttf");
+
+fn test_font_bin() -> ~[u8] {
+    return vec::from_fn(33004, |i| TEST_FONT[i]);
+}
+
 // Dummy font cache.
 
 struct FontCache {
-    matcher: @FontMatcher,
+    fctx: @FontContext,
     mut cached_font: Option<@Font>
 }
 
 impl FontCache {
-    static pub fn new(matcher: @FontMatcher) -> FontCache {
+    static pub fn new(fctx: @FontContext) -> FontCache {
         FontCache { 
-            matcher: matcher,
+            fctx: fctx,
             cached_font: None
         }
     }
@@ -25,10 +34,27 @@ impl FontCache {
 
         return match self.cached_font {
             Some(font) => font,
-            None => match self.matcher.get_font(&dummy_style) {
+            None => match self.get_font(&dummy_style) {
                 Ok(font) => { self.cached_font = Some(font); font }
                 Err(*) => /* FIXME */ fail
             }
         }
+    }
+
+    // TODO: maybe FontStyle should be canonicalized when used in FontCache?
+    priv fn create_font(style: &FontStyle) -> Result<@Font, ()> {
+        let font_bin = @test_font_bin();
+        let native_font = NativeFont::new(self.fctx, font_bin, style.pt_size);
+        let native_font = if native_font.is_ok() {
+            result::unwrap(move native_font)
+        } else {
+            return Err(native_font.get_err());
+        };
+
+        return Ok(@Font::new(font_bin, move native_font, copy *style));
+    }
+
+    pub fn get_font(@self, style: &FontStyle) -> Result<@Font, ()> {
+        self.create_font(style)
     }
 }
