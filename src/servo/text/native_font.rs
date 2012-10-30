@@ -5,7 +5,7 @@ needed by the text shaper as well as access to the underlying
 font resources needed by the graphics layer to draw glyphs.
 */
 
-use font_cache::native::NativeFontCache;
+use native_font_matcher::NativeFontMatcher;
 
 #[cfg(target_os = "macos")]
 pub type NativeFont/& = quartz::native_font::QuartzNativeFont;
@@ -22,14 +22,14 @@ pub type NativeFont/& = freetype::native_font::FreeTypeNativeFont;
 // to conditionally define the entire impl.
 #[cfg(target_os = "macos")]
 impl NativeFont {
-    static pub fn new(native_lib: &NativeFontCache, buf: @~[u8], pt_size: float) -> Result<NativeFont, ()> {
+    static pub fn new(native_lib: &NativeFontMatcher, buf: @~[u8], pt_size: float) -> Result<NativeFont, ()> {
         quartz::native_font::QuartzNativeFont::new(native_lib, buf, pt_size)
     }
 }
 
 #[cfg(target_os = "linux")]
 impl NativeFont {
-    static pub fn new(native_lib: &NativeFontCache, buf: @~[u8], pt_size: float) -> Result<NativeFont, ()> {
+    static pub fn new(native_lib: &NativeFontMatcher, buf: @~[u8], pt_size: float) -> Result<NativeFont, ()> {
         freetype::native_font::FreeTypeNativeFont::new(native_lib, buf, pt_size)
     }
 }

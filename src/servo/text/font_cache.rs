@@ -1,96 +1,34 @@
-use font::{Font,
-           FontStyle,
-           FontWeight300,
-           test_font_bin};
-use native_font::NativeFont;
+use font::{Font, FontStyle, FontWeight300};
+use font_matcher::FontMatcher;
+// Dummy font cache.
 
 struct FontCache {
-    native_lib: native::NativeFontCache,
-    mut cached_font: Option<@Font>,
-
-    drop {
-        native::destroy_native_lib(&self.native_lib);
-    }
+    matcher: @FontMatcher,
+    mut cached_font: Option<@Font>
 }
 
 impl FontCache {
-    fn get_font(@self) -> @Font {
-        match self.cached_font {
+    static pub fn new(matcher: @FontMatcher) -> FontCache {
+        FontCache { 
+            matcher: matcher,
+            cached_font: None
+        }
+    }
+    
+    pub fn get_test_font(@self) -> @Font {
+        let dummy_style = FontStyle {
+            pt_size: 40f,
+            weight: FontWeight300,
+            italic: false,
+            oblique: false
+        };
+
+        return match self.cached_font {
             Some(font) => font,
-            None => match create_font(self, &self.native_lib) {
-                Ok(font) => {
-                    self.cached_font = Some(font);
-                    font
-                }
+            None => match self.matcher.get_font(&dummy_style) {
+                Ok(font) => { self.cached_font = Some(font); font }
                 Err(*) => /* FIXME */ fail
             }
         }
     }
-
-    fn get_test_font(@self) -> @Font {
-        self.get_font()
-    }
-}
-
-fn FontCache() -> @FontCache {
-    @FontCache {
-        native_lib: native::create_native_lib(),
-        cached_font: None
-    }
-}
-
-fn create_font(lib: @FontCache, native_lib: &native::NativeFontCache) -> Result<@Font, ()> {
-    let font_bin = @test_font_bin();
-    let dummy_style = FontStyle {
-        pt_size: 40f,
-        weight: FontWeight300,
-        italic: false,
-        oblique: false
-    };
-    let native_font = NativeFont::new(native_lib, font_bin, dummy_style.pt_size);
-    let native_font = if native_font.is_ok() {
-        result::unwrap(move native_font)
-    } else {
-        return Err(native_font.get_err());
-    };
-
-    return Ok(@Font::new(lib, font_bin, move native_font, move dummy_style));
-}
-
-#[cfg(target_os = "linux")]
-pub mod native {
-    extern mod freetype;
-
-    use ptr::{null, addr_of};
-    use freetype::{FT_Library, FT_Error};
-    use freetype::bindgen::{FT_Init_FreeType, FT_Done_FreeType};
-
-    pub type NativeFontCache = FT_Library;
-
-    pub fn create_native_lib() -> NativeFontCache {
-        let lib: FT_Library = null();
-        let res = FT_Init_FreeType(addr_of(&lib));
-        // FIXME: error handling
-        assert res == 0 as FT_Error;
-        return lib;
-    }
-
-    pub fn destroy_native_lib(native_lib: &NativeFontCache) {
-        assert native_lib.is_not_null();
-        FT_Done_FreeType(*native_lib);
-    }
-}
-
-#[cfg(target_os = "macos")]
-pub mod native {
-    pub type NativeFontCache = ();
-
-    pub fn create_native_lib() -> NativeFontCache { () }
-    pub fn destroy_native_lib(_native_lib: &NativeFontCache) { }
-}
-
-#[test]
-pub fn should_get_fonts() {
-    let lib = FontCache();
-    lib.get_font();
 }

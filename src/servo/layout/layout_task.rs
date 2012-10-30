@@ -26,6 +26,7 @@ use render_task::RenderTask;
 use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use resource::local_image_cache::LocalImageCache;
 use servo_text::font_cache::FontCache;
+use servo_text::font_matcher::FontMatcher;
 use std::arc::ARC;
 use std::net::url::Url;
 use core::util::replace;
@@ -89,7 +90,7 @@ fn Layout(render_task: RenderTask,
         image_cache_task: image_cache_task.clone(),
         local_image_cache: @LocalImageCache(move image_cache_task),
         from_content: from_content,
-        font_cache: FontCache(),
+        font_cache: @FontCache::new(@FontMatcher::new()),
         layout_refs: DVec()
     }
 }

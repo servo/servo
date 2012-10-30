@@ -15,6 +15,7 @@ use render_context::RenderContext;
 use render_layers::render_layers;
 use std::cell::Cell;
 use text::font_cache::FontCache;
+use text::font_matcher::FontMatcher;
 
 pub enum Msg {
     RenderMsg(RenderLayer),
@@ -35,7 +36,7 @@ pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
             port: po,
             compositor: move compositor,
             mut layer_buffer_set_port: Cell(move layer_buffer_set_port),
-            font_cache: FontCache(),
+            font_cache: @FontCache::new(@FontMatcher::new()),
         }.start();
     }
 }

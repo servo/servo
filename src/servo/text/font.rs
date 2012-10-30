@@ -78,9 +78,6 @@ A font handle. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
 */
 struct Font {
-    // TODO: is this actually needed? -bjb
-    // A back reference to keep the library alive
-    priv lib: @FontCache,
     priv fontbuf: @~[u8],
     priv native_font: NativeFont,
     priv mut azure_font: Option<AzScaledFontRef>,
@@ -96,11 +93,10 @@ struct Font {
 
 impl Font {
     // TODO: who should own fontbuf?
-    static fn new(lib: @FontCache, fontbuf: @~[u8], native_font: NativeFont, style: FontStyle) -> Font {
+    static fn new(fontbuf: @~[u8], native_font: NativeFont, style: FontStyle) -> Font {
         let metrics = native_font.get_metrics();
 
         Font {
-            lib: lib,
             fontbuf : fontbuf,
             native_font : move native_font,
             azure_font: None,
@@ -338,12 +334,6 @@ pub impl Font : FontMethods {
           None => /* FIXME: Need fallback strategy */ 10f as FractionalPixel
         }
     }
-}
-
-const TEST_FONT: [u8 * 33004] = #include_bin("JosefinSans-SemiBold.ttf");
-
-fn test_font_bin() -> ~[u8] {
-    return vec::from_fn(33004, |i| TEST_FONT[i]);
 }
 
 fn should_destruct_on_fail_without_leaking() {

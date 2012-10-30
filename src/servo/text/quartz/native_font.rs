@@ -3,7 +3,7 @@ extern mod core_graphics;
 extern mod core_text;
 
 use font::{FontMetrics, FractionalPixel};
-use font_cache::native::NativeFontCache;
+use native_font_matcher::QuartzNativeFontMatcher;
 
 use au = gfx::geometry;
 use cast::transmute;
@@ -68,7 +68,7 @@ pub struct QuartzNativeFont {
 }
 
 pub impl QuartzNativeFont {
-    static pub fn new(_lib: &NativeFontCache, buf: @~[u8], pt_size: float) -> Result<QuartzNativeFont, ()> {
+    static pub fn new(_lib: &QuartzNativeFontMatcher, buf: @~[u8], pt_size: float) -> Result<QuartzNativeFont, ()> {
         let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
             CGDataProviderCreateWithData(
                 null(),
