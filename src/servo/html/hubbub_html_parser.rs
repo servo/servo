@@ -14,6 +14,7 @@ use hubbub::Attribute;
 
 use comm::{Chan, Port};
 use std::net::url::Url;
+use cssparse::spawn_css_parser;
 
 type JSResult = ~[~[u8]];
 
@@ -54,19 +55,8 @@ fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Por
 
     loop {
         match from_parent.recv() {
-            CSSTaskNewFile(url) => {
-                let result_port = comm::Port();
-                let result_chan = comm::Chan(&result_port);
-                // TODO: change copy to move once we have match move
-                let url = copy url;
-                do task::spawn |move url, copy resource_task| {
-                    // TODO: change copy to move once we can move out of closures
-                    let css_stream = css::lexer::spawn_css_lexer_task(copy url, resource_task);
-                    let mut css_rules = css::parser::build_stylesheet(move css_stream);
-                    result_chan.send(move css_rules);
-                }
-
-                vec::push(&mut result_vec, result_port);
+            CSSTaskNewFile(move url) => {
+                result_vec.push(spawn_css_parser(move url, copy resource_task));
             }
             CSSTaskExit => {
                 break;

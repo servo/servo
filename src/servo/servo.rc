@@ -92,6 +92,7 @@ pub mod image {
 
 pub mod html {
     pub mod hubbub_html_parser;
+    pub mod cssparse;
 }
 
 pub mod platform {

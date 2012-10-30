@@ -9,7 +9,7 @@ use pipes::{Port, Chan};
 use lexer_util::*;
 
 use std::net::url::Url;
-use resource::resource_task::{ResourceTask, ProgressMsg, Load, Payload, Done};
+use std::cell::Cell;
 
 enum ParserState {
     CssElement,
@@ -225,29 +225,20 @@ impl CssLexer : CssLexerMethods {
     }
 }
 
-fn resource_port_to_lexer_stream(input_port: comm::Port<ProgressMsg>) -> DataStream {
-    return || {
-        match input_port.recv() {
-            Payload(move data) => Some(move data),
-            Done(*) => None
-        }
-    }
-}
-
-fn parser(input_port: comm::Port<ProgressMsg>, state : ParserState) -> CssLexer {
+fn parser(input: DataStream, state : ParserState) -> CssLexer {
     return {
            input_state: {
                mut lookahead: None,
                mut buffer: ~[],
-               input: resource_port_to_lexer_stream(input_port),
+               input: input,
                mut eof: false
            },
            mut parser_state: state
     };
 }
 
-fn lex_css_from_bytes(input_port: comm::Port<ProgressMsg>, result_chan : &Chan<Token>) {
-    let lexer = parser(input_port, CssElement);
+pub fn lex_css_from_bytes(input_stream: DataStream, result_chan : &Chan<Token>) {
+    let lexer = parser(input_stream, CssElement);
 
     loop {
         let token = lexer.parse_css();
@@ -265,28 +256,11 @@ fn spawn_css_lexer_from_string(content : ~str) -> pipes::Port<Token> {
     let (result_chan, result_port) = pipes::stream();
 
     do task::spawn |move result_chan, move content| {
-        let input_port = comm::Port();
-        input_port.send(Payload(str::to_bytes(content)));
-        input_port.send(Done(Ok(())));
-
-        lex_css_from_bytes(input_port, &result_chan);
+        let content = str::to_bytes(content);
+        let content = Cell(copy content);
+        let input = |move content| if !content.is_empty() { Some(content.take()) } else { None };
+        lex_css_from_bytes(input, &result_chan);
     }
-
-    return move result_port;
-}
-
-#[allow(non_implicitly_copyable_typarams)]
-pub fn spawn_css_lexer_task(url: Url, resource_task: ResourceTask) -> pipes::Port<Token> {
-    let (result_chan, result_port) = pipes::stream();
-
-    do task::spawn |move result_chan, move url| {
-        assert url.path.ends_with(".css");
-        let input_port = Port();
-        // TODO: change copy to move once the compiler permits it
-        resource_task.send(Load(copy url, input_port.chan()));
-
-        lex_css_from_bytes(input_port, &result_chan);
-    };
 
     return move result_port;
 }
