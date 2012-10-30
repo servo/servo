@@ -6,12 +6,13 @@ use option::is_none;
 use str::from_bytes;
 use vec::push;
 use comm::Port;
-use resource::resource_task::{ProgressMsg, Payload, Done};
 
 enum CharOrEof {
     CoeChar(u8),
     CoeEof
 }
+
+pub type DataStream = @fn() -> Option<~[u8]>;
 
 impl CharOrEof: cmp::Eq {
     pure fn eq(other: &CharOrEof) -> bool {
@@ -29,7 +30,7 @@ impl CharOrEof: cmp::Eq {
 type InputState = {
     mut lookahead: Option<CharOrEof>,
     mut buffer: ~[u8],
-    input_port: Port<ProgressMsg>,
+    input: DataStream,
     mut eof: bool
 };
 
@@ -82,13 +83,13 @@ impl InputState : InputStateUtil {
             return CoeEof;
         }
 
-        match self.input_port.recv() {
-          Payload(data) => {
+        match self.input() {
+          Some(data) => {
             // TODO: change copy to move once we have match move
             self.buffer = copy data;
             return CoeChar(vec::shift(&mut self.buffer));
           }
-          Done(*) => {
+          None => {
             self.eof = true;
             return CoeEof;
           }

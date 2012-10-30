@@ -9,7 +9,7 @@ use pipes::{Port, Chan};
 use lexer_util::*;
 
 use std::net::url::Url;
-use resource::resource_task::{ResourceTask, ProgressMsg, Load};
+use resource::resource_task::{ResourceTask, ProgressMsg, Load, Payload, Done};
 
 enum ParserState {
     CssElement,
@@ -225,12 +225,21 @@ impl CssLexer : CssLexerMethods {
     }
 }
 
+fn resource_port_to_lexer_stream(input_port: comm::Port<ProgressMsg>) -> DataStream {
+    return || {
+        match input_port.recv() {
+            Payload(move data) => Some(move data),
+            Done(*) => None
+        }
+    }
+}
+
 fn parser(input_port: comm::Port<ProgressMsg>, state : ParserState) -> CssLexer {
     return {
            input_state: {
                mut lookahead: None,
                mut buffer: ~[],
-               input_port: input_port,
+               input: resource_port_to_lexer_stream(input_port),
                mut eof: false
            },
            mut parser_state: state
