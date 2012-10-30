@@ -2,6 +2,7 @@ use font::{Font,
            FontStyle,
            FontWeight300,
            test_font_bin};
+use native_font::NativeFont;
 
 struct FontCache {
     native_lib: native::NativeFontCache,
@@ -46,7 +47,7 @@ fn create_font(lib: @FontCache, native_lib: &native::NativeFontCache) -> Result<
         italic: false,
         oblique: false
     };
-    let native_font = native_font::create(native_lib, font_bin, dummy_style.pt_size);
+    let native_font = NativeFont::new(native_lib, font_bin, dummy_style.pt_size);
     let native_font = if native_font.is_ok() {
         result::unwrap(move native_font)
     } else {

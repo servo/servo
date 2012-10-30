@@ -43,14 +43,27 @@ pub struct FreeTypeNativeFont {
     }
 }
 
-pub fn FreeTypeNativeFont(face: FT_Face, buf: @~[u8]) -> FreeTypeNativeFont {
-    assert face.is_not_null();
-    FreeTypeNativeFont { buf: buf, face: face }
-}
-
 pub impl FreeTypeNativeFont {
+    static pub fn new(lib: &FT_Library, buf: @~[u8], pt_size: float) -> Result<FreeTypeNativeFont, ()> {
+        assert lib.is_not_null();
+        let face: FT_Face = null();
+        return vec_as_buf(*buf, |cbuf, _len| {
+            if FT_New_Memory_Face(*lib, cbuf, (*buf).len() as FT_Long,
+                                  0 as FT_Long, addr_of(&face)).succeeded() {
+                let res = FT_Set_Char_Size(face, // the face
+                                           float_to_fixed_ft(pt_size) as FT_F26Dot6, // char width
+                                           float_to_fixed_ft(pt_size) as FT_F26Dot6, // char height
+                                           72, // horiz. DPI
+                                           72); // vert. DPI
+                if !res.succeeded() { fail ~"unable to set font char size" }
+                Ok(FreeTypeNativeFont { face: face, buf: buf })
+            } else {
+                Err(())
+            }
+        })
+    }
 
-    fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
+    pub fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
         assert self.face.is_not_null();
         let idx = FT_Get_Char_Index(self.face, codepoint as FT_ULong);
         return if idx != 0 as FT_UInt {
@@ -61,8 +74,7 @@ pub impl FreeTypeNativeFont {
         };
     }
 
-    // FIXME: What unit is this returning? Let's have a custom type
-    fn glyph_h_advance(glyph: GlyphIndex) -> Option<FractionalPixel> {
+    pub fn glyph_h_advance(glyph: GlyphIndex) -> Option<FractionalPixel> {
         assert self.face.is_not_null();
         let res =  FT_Load_Glyph(self.face, glyph as FT_UInt, 0);
         if res.succeeded() {
@@ -82,9 +94,8 @@ pub impl FreeTypeNativeFont {
         }
     }
 
-    fn get_metrics() -> FontMetrics {
-        /* TODO: complete me (Issue #76) */
-
+    pub fn get_metrics() -> FontMetrics {
+        /* TODO(Issue #76): complete me */
         let face = self.get_face_rec();
 
         let underline_size = self.font_units_to_au(face.underline_thickness as float);
@@ -127,26 +138,6 @@ pub impl FreeTypeNativeFont {
 
         return geometry::from_frac_px(value * x_scale);
     }
-}
-
-pub fn create(lib: &FT_Library, buf: @~[u8], pt_size: float) -> Result<FreeTypeNativeFont, ()> {
-    assert lib.is_not_null();
-    let face: FT_Face = null();
-    return vec_as_buf(*buf, |cbuf, _len| {
-           if FT_New_Memory_Face(*lib, cbuf, (*buf).len() as FT_Long,
-                                 0 as FT_Long, addr_of(&face)).succeeded() {
-               // FIXME: These values are placeholders
-               let res = FT_Set_Char_Size(face, // the face
-                                          float_to_fixed_ft(pt_size) as FT_F26Dot6, // char width
-                                          float_to_fixed_ft(pt_size) as FT_F26Dot6, // char height
-                                          72, // horiz. DPI
-                                          72); // vert. DPI
-               if !res.succeeded() { fail ~"unable to set font char size" }
-               Ok(FreeTypeNativeFont(face, buf))
-           } else {
-               Err(())
-           }
-    })
 }
 
 trait FTErrorMethods {

@@ -13,13 +13,23 @@ pub type NativeFont/& = quartz::native_font::QuartzNativeFont;
 #[cfg(target_os = "linux")]
 pub type NativeFont/& = freetype::native_font::FreeTypeNativeFont;
 
-// TODO: this should be part of trait NativeFont
+// TODO: `new` should be part of trait NativeFont
+
+// TODO(Issue #163): this is a workaround for static methods and
+// typedefs not working well together. It should be removed.
+
+// TODO(Rust #1723): #cfg doesn't work for impl methods, so we have
+// to conditionally define the entire impl.
 #[cfg(target_os = "macos")]
-pub fn create(native_lib: &NativeFontCache, buf: @~[u8], pt_size: float) -> Result<NativeFont, ()> {
-    quartz::native_font::create(native_lib, buf, pt_size)
+impl NativeFont {
+    static pub fn new(native_lib: &NativeFontCache, buf: @~[u8], pt_size: float) -> Result<NativeFont, ()> {
+        quartz::native_font::QuartzNativeFont::new(native_lib, buf, pt_size)
+    }
 }
 
 #[cfg(target_os = "linux")]
-pub fn create(native_lib: &NativeFontCache, buf: @~[u8], pt_size: float) -> Result<NativeFont, ()> {
-    freetype::native_font::create(native_lib, buf, pt_size)
+impl NativeFont {
+    static pub fn new(native_lib: &NativeFontCache, buf: @~[u8], pt_size: float) -> Result<NativeFont, ()> {
+        freetype::native_font::FreeTypeNativeFont::new(native_lib, buf, pt_size)
+    }
 }

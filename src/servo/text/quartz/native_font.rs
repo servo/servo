@@ -67,21 +67,30 @@ pub struct QuartzNativeFont {
     }
 }
 
-fn QuartzNativeFont(fontprov: CGDataProviderRef, cgfont: CGFontRef, pt_size: float) -> QuartzNativeFont {
-    assert fontprov.is_not_null();
-    assert cgfont.is_not_null();
+pub impl QuartzNativeFont {
+    static pub fn new(_lib: &NativeFontCache, buf: @~[u8], pt_size: float) -> Result<QuartzNativeFont, ()> {
+        let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
+            CGDataProviderCreateWithData(
+                null(),
+                unsafe { transmute(copy cbuf) },
+                len as size_t,
+                null())
+        });
+        if fontprov.is_null() { return Err(()); }
 
-    let ctfont = ctfont_from_cgfont(cgfont, pt_size);
-    assert ctfont.is_not_null();
+        let cgfont = CGFontCreateWithDataProvider(fontprov);
+        if cgfont.is_null() { return Err(()); }
 
-    QuartzNativeFont {
-        fontprov : fontprov,
-        cgfont : cgfont,
-        ctfont : ctfont,
+        let ctfont = ctfont_from_cgfont(cgfont, pt_size);
+        if ctfont.is_null() { return Err(()); }
+
+        Ok(QuartzNativeFont {
+            fontprov : fontprov,
+            cgfont : cgfont,
+            ctfont : ctfont,
+        })
     }
-}
 
-impl QuartzNativeFont {
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
         assert self.ctfont.is_not_null();
 
@@ -146,23 +155,4 @@ fn ctfont_from_cgfont(cgfont: CGFontRef, pt_size: float) -> CTFontRef {
     assert cgfont.is_not_null();
 
     CTFontCreateWithGraphicsFont(cgfont, pt_size as CGFloat, null(), null())
-}
-
-pub fn create(_lib: &NativeFontCache, buf: @~[u8], pt_size: float) -> Result<QuartzNativeFont, ()> {
-    let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
-        CGDataProviderCreateWithData(
-            null(),
-            unsafe { transmute(copy cbuf) },
-            len as size_t,
-            null())
-    });
-    // FIXME: Error handling
-    assert fontprov.is_not_null();
-    let cgfont = CGFontCreateWithDataProvider(fontprov);
-
-    match cgfont.is_not_null() {
-        true => Ok(QuartzNativeFont(fontprov, cgfont, pt_size)),
-        false => Err(())
-    }
-    
 }
