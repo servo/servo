@@ -6,7 +6,7 @@ use vec::push;
 
 use pipes::{Port, Chan};
 
-use html::lexer_util::*;
+use lexer_util::*;
 
 use std::net::url::Url;
 use resource::resource_task::{ResourceTask, ProgressMsg, Load};

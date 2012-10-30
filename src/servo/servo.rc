@@ -46,6 +46,7 @@ pub mod content {
 
 pub mod css {
     pub mod lexer;
+    pub mod lexer_util;
     pub mod parser;
     pub mod parser_util;
 
@@ -90,7 +91,6 @@ pub mod image {
 }
 
 pub mod html {
-    pub mod lexer_util;
     pub mod hubbub_html_parser;
 }
 
