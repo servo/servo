@@ -45,10 +45,10 @@ pub mod content {
 }
 
 pub mod css {
-    pub mod styles;
+    mod styles;
     pub mod resolve {
         pub mod apply;
-        pub mod matching;
+        mod matching;
     }
 }
 

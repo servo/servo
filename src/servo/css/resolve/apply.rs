@@ -59,46 +59,6 @@ fn inheritance_wrapper(layout_ctx: &LayoutContext, node : Node) {
     applicator.resolve_style(layout_ctx);
 }
 
-/*
-fn resolve_fontsize(box : @RenderBox) {
-    // TODO: complete this
-    return
-}
-
-fn resolve_height(box : @RenderBox) -> au {
-    let style = box.node.get_style();
-    let inherit_val = match box.tree.parent {
-        None => au(0),
-        Some(parent) => parent.data.computed_size.height
-    };
-
-    box.appearance.height = match style.height {
-        Initial => style.height.initial(),
-        Inherit => inherit_val,
-        Specified(val) => match val { // BoxSizing
-            BoxPercent(*) | BoxAuto | BoxLength(Px(_)) => val,
-            BoxLength(Em(n)) => BoxLength(Px(n * box.appearance.font_size.abs()))
-        }
-    }
-}
-
-fn resolve_width(box : @RenderBox) {
-    let style = box.node.get_specified_style();
-    let inherit_val = match box.tree.parent {
-        None => style.height.initial(),
-        Some(node) => node.appearance.width
-    };
-
-    box.appearance.width = match style.width {
-        Initial => style.width.initial(),
-        Inherit => inherit_val,
-        Specified(val) => match val { // BoxSizing
-            BoxPercent(*) | BoxAuto | BoxLength(Px(_)) => val,
-            BoxLength(Em(n)) => BoxLength(Px(n * box.appearance.font_size.abs()))
-        }
-    }
-}*/
-
 impl StyleApplicator {
     fn apply_css_style(layout_ctx: &LayoutContext) {
 
@@ -116,9 +76,4 @@ impl StyleApplicator {
     fn resolve_style(_layout_ctx: &LayoutContext) {
         // TODO: implement
     }
-}
-
-#[cfg(test)]
-mod test {
-    /* TODO: rewrite once cascade and resolve written. */
 }
