@@ -5,8 +5,8 @@ Some little helpers for hooking up the HTML parser with the CSS parser
 use std::net::url::Url;
 use resource::resource_task::{ResourceTask, ProgressMsg, Load, Payload, Done};
 use newcss::values::Rule;
-use css::lexer_util::DataStream;
-use css::lexer::{Token, lex_css_from_bytes};
+use newcss::lexer_util::DataStream;
+use newcss::lexer::{Token, lex_css_from_bytes};
 
 pub fn spawn_css_parser(url: Url, resource_task: ResourceTask) -> comm::Port<~[~Rule]> {
     let result_port = comm::Port();
@@ -15,7 +15,7 @@ pub fn spawn_css_parser(url: Url, resource_task: ResourceTask) -> comm::Port<~[~
     let url = copy url;
     do task::spawn |move url, copy resource_task| {
         let css_stream = spawn_css_lexer_task(copy url, resource_task);
-        let mut css_rules = css::parser::build_stylesheet(move css_stream);
+        let mut css_rules = newcss::parser::build_stylesheet(move css_stream);
         result_chan.send(move css_rules);
     }
 

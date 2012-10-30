@@ -45,11 +45,6 @@ pub mod content {
 }
 
 pub mod css {
-    pub mod lexer;
-    pub mod lexer_util;
-    pub mod parser;
-    pub mod parser_util;
-
     pub mod styles;
     pub mod resolve {
         pub mod apply;
