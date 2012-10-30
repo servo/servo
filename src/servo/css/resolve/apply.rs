@@ -39,7 +39,7 @@ struct StyleApplicator {
 }
 
 // TODO: normalize this into a normal preorder tree traversal function
-fn apply_style(layout_ctx: &LayoutContext, node: Node) {
+pub fn apply_style(layout_ctx: &LayoutContext, node: Node) {
     let applicator = StyleApplicator {
         node: node,
     };

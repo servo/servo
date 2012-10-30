@@ -7,7 +7,7 @@ use au = gfx::geometry;
 use au::Au;
 use content::content_task;
 use core::dvec::DVec;
-use css::resolve::apply::apply_style;
+use css::styles::apply_style;
 use newcss::values::Stylesheet;
 use dl = gfx::display_list;
 use dom::event::{Event, ReflowEvent};

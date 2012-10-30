@@ -172,3 +172,7 @@ impl Node : StyleMethods {
         self.match_css_style(get(styles));
     }
 }
+
+fn apply_style(layout_ctx: &LayoutContext, node: Node) {
+    resolve::apply::apply_style(layout_ctx, node)
+}

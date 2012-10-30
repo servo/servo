@@ -45,8 +45,8 @@ pub mod content {
 }
 
 pub mod css {
-    mod styles;
-    pub mod resolve {
+    pub mod styles;
+    mod resolve {
         pub mod apply;
         mod matching;
     }
