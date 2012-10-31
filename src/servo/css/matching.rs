@@ -9,6 +9,7 @@ use newcss::values::*;
 use newcss::{SelectCtx, SelectResults};
 use styles::{SpecifiedStyle};
 use select_handler::NodeSelectHandler;
+use std::cell::Cell;
 
 /** 
    Check if a CSS attribute matches the attribute of an HTML element.
@@ -176,23 +177,10 @@ impl Node : PrivStyleMethods {
     Update the computed style of an HTML element with a style specified by CSS.
     */
     fn update_style(decl : SelectResults) {
-        /*self.aux(|layout| {
-            match decl {
-              BackgroundColor(col) => layout.style.background_color = col,
-              Display(dis) => layout.style.display_type = dis,
-              FontSize(size) => layout.style.font_size = size,
-              Height(size) => layout.style.height = size,
-              Color(col) => layout.style.text_color = col,
-              Width(size) => layout.style.width = size,
-              BorderColor(col) => layout.style.border_color = col,
-              BorderWidth(size) => layout.style.border_width = size,
-              Position(pos) => layout.style.position = pos,
-              Top(pos) => layout.style.top = pos,
-              Right(pos) => layout.style.right = pos,
-              Bottom(pos) => layout.style.bottom = pos,
-              Left(pos) => layout.style.left = pos,
-            };
-        })*/
+        let decl = Cell(move decl);
+        do self.aux |data| {
+            data.style = Some(decl.take())
+        }
     }
 }
 
