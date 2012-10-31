@@ -6,8 +6,9 @@ use dom::node::{LayoutData, Node, Text};
 use dom::element::ElementData;
 
 use newcss::values::*;
-use newcss::SelectCtx;
+use newcss::{SelectCtx, SelectResults};
 use styles::{SpecifiedStyle};
+use select_handler::NodeSelectHandler;
 
 /** 
    Check if a CSS attribute matches the attribute of an HTML element.
@@ -167,15 +168,15 @@ impl Node : PrivMatchingMethods {
 }
 
 trait PrivStyleMethods {
-    fn update_style(decl : StyleDeclaration);
+    fn update_style(decl : SelectResults);
 }
 
 impl Node : PrivStyleMethods {
     /**
     Update the computed style of an HTML element with a style specified by CSS.
     */
-    fn update_style(decl : StyleDeclaration) {
-        self.aux(|layout| {
+    fn update_style(decl : SelectResults) {
+        /*self.aux(|layout| {
             match decl {
               BackgroundColor(col) => layout.style.background_color = col,
               Display(dis) => layout.style.display_type = dis,
@@ -191,12 +192,12 @@ impl Node : PrivStyleMethods {
               Bottom(pos) => layout.style.bottom = pos,
               Left(pos) => layout.style.left = pos,
             };
-        })
+        })*/
     }
 }
 
 trait MatchingMethods {
-    fn match_css_style(styles : &SelectCtx);
+    fn match_css_style(select_ctx : &SelectCtx);
 }
 
 impl Node : MatchingMethods {
@@ -204,23 +205,18 @@ impl Node : MatchingMethods {
     Compare an html element to a list of css rules and update its
     style according to the rules matching it.
     */
-    fn match_css_style(styles : &SelectCtx) {
+    fn match_css_style(select_ctx : &SelectCtx) {
         // Loop over each rule, see if our node matches what is
         // described in the rule. If it matches, update its style. As
         // we don't currently have priorities of style information,
         // the latest rule takes precedence over the others. So we
         // just overwrite style information as we go.
 
-        /*for styles.each |sty| {
-            let (selectors, decls) = copy **sty;
-            for selectors.each |sel| {
-                if self.matches_selector(*sel) {
-                    for decls.each |decl| {
-                        self.update_style(*decl);
-                    }
-                }
-            }
-        }*/
+        let select_handler = NodeSelectHandler {
+            node: self
+        };
+        let style = select_ctx.select_style(&self, &select_handler);
+        self.update_style(move style);
     }
 }
 
