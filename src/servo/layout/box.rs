@@ -457,7 +457,7 @@ impl RenderBox : RenderBoxMethods {
     fn add_border_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
         let style = self.d().node.style();
         match style.border_width {
-            Specified(Px(px)) => {
+            Specified(Px(copy px)) => {
                 // If there's a border, let's try to display *something*
                 let border_width = au::from_frac_px(px);
                 let abs_bounds = Rect {
