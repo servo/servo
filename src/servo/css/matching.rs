@@ -6,6 +6,7 @@ use dom::node::{LayoutData, Node, Text};
 use dom::element::ElementData;
 
 use newcss::values::*;
+use newcss::Stylesheet;
 use styles::{SpecifiedStyle};
 
 /** 

@@ -5,7 +5,7 @@ use std::arc::{ARC, get, clone};
 
 use core::dvec::DVec;
 use newcss::values::*;
-use newcss::values::Stylesheet;
+use newcss::Stylesheet;
 use dom::element::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
 use dom::node::{Comment, Doctype, Element, Text,
                 Node, NodeKind, NodeTree, LayoutData};

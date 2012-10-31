@@ -8,7 +8,7 @@ use au::Au;
 use content::content_task;
 use core::dvec::DVec;
 use css::styles::apply_style;
-use newcss::values::Stylesheet;
+use newcss::Stylesheet;
 use dl = gfx::display_list;
 use dom::event::{Event, ReflowEvent};
 use dom::node::{Node, LayoutData};
