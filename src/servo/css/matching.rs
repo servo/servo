@@ -6,7 +6,7 @@ use dom::node::{LayoutData, Node, Text};
 use dom::element::ElementData;
 
 use newcss::values::*;
-use newcss::Stylesheet;
+use newcss::SelectCtx;
 use styles::{SpecifiedStyle};
 
 /** 
@@ -196,7 +196,7 @@ impl Node : PrivStyleMethods {
 }
 
 trait MatchingMethods {
-    fn match_css_style(styles : &Stylesheet);
+    fn match_css_style(styles : &SelectCtx);
 }
 
 impl Node : MatchingMethods {
@@ -204,7 +204,7 @@ impl Node : MatchingMethods {
     Compare an html element to a list of css rules and update its
     style according to the rules matching it.
     */
-    fn match_css_style(styles : &Stylesheet) {
+    fn match_css_style(styles : &SelectCtx) {
         // Loop over each rule, see if our node matches what is
         // described in the rule. If it matches, update its style. As
         // we don't currently have priorities of style information,

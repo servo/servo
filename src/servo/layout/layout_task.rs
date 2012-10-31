@@ -37,6 +37,7 @@ use layout::traverse::*;
 use comm::*;
 use task::*;
 use core::mutable::Mut;
+use newcss::SelectCtx;
 
 pub type LayoutTask = comm::Chan<Msg>;
 
@@ -82,7 +83,7 @@ struct Layout {
     font_matcher: @FontMatcher,
     // This is used to root auxilliary RCU reader data
     layout_refs: DVec<@LayoutData>,
-    stylesheet: Mut<Option<Stylesheet>>
+    css_select_ctx: Mut<SelectCtx>,
 }
 
 fn Layout(render_task: RenderTask, 
@@ -99,7 +100,7 @@ fn Layout(render_task: RenderTask,
         font_matcher: @FontMatcher::new(fctx),
         font_cache: @FontCache::new(fctx),
         layout_refs: DVec(),
-        stylesheet: Mut(None)
+        css_select_ctx: Mut(SelectCtx::new())
     }
 }
 
@@ -141,9 +142,8 @@ impl Layout {
 
     fn handle_add_stylesheet(sheet: Stylesheet) {
         let sheet = Cell(move sheet);
-        do self.stylesheet.borrow_mut |mysheet| {
-            assert mysheet.is_none(); // FIXME: Support multiple sheets
-            *mysheet = Some(sheet.take());
+        do self.css_select_ctx.borrow_mut |ctx| {
+            ctx.append_sheet(sheet.take());
         }
     }
 
@@ -175,15 +175,8 @@ impl Layout {
         let layout_root: @FlowContext = do time("layout: tree construction") {
             // TODO: this is dumb. we don't need 3 separate traversals.
             node.initialize_style_for_subtree(&layout_ctx, &self.layout_refs);
-            do self.stylesheet.borrow_imm |sheet| {
-                match *sheet {
-                    Some(ref sheet) => {
-                        unsafe {
-                            node.recompute_style_for_subtree(&layout_ctx, sheet);
-                        }
-                    } 
-                    None => ()
-                }
+            do self.css_select_ctx.borrow_imm |ctx| {
+                node.recompute_style_for_subtree(&layout_ctx, ctx);
             }
             /* resolve styles (convert relative values) down the node tree */
             apply_style(&layout_ctx, *node);
