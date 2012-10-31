@@ -210,7 +210,7 @@ impl Node : MatchingMethods {
         // the latest rule takes precedence over the others. So we
         // just overwrite style information as we go.
 
-        for styles.each |sty| {
+        /*for styles.each |sty| {
             let (selectors, decls) = copy **sty;
             for selectors.each |sel| {
                 if self.matches_selector(*sel) {
@@ -219,9 +219,7 @@ impl Node : MatchingMethods {
                     }
                 }
             }
-        }
-        
-        self.aux(|a| debug!("Changed the style to: %?", copy *a.style));
+        }*/
     }
 }
 

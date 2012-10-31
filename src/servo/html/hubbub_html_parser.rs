@@ -30,7 +30,7 @@ enum JSMessage {
 
 struct HtmlParserResult {
     root: Node,
-    style_port: comm::Port<Stylesheet>,
+    style_port: comm::Port<Option<Stylesheet>>,
     js_port: comm::Port<JSResult>,
 }
 
@@ -49,7 +49,7 @@ spawned, collates them, and sends them to the given result channel.
 * `from_parent` - A port on which to receive new links.
 
 */
-fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Port<CSSMessage>,
+fn css_link_listener(to_parent : comm::Chan<Option<Stylesheet>>, from_parent : comm::Port<CSSMessage>,
                      resource_task: ResourceTask) {
     let mut result_vec = ~[];
 
@@ -64,9 +64,12 @@ fn css_link_listener(to_parent : comm::Chan<Stylesheet>, from_parent : comm::Por
         }
     }
 
-    let css_rules = vec::flat_map(result_vec, |result_port| { result_port.recv() });
-    
-    to_parent.send(move css_rules);
+    // Send the sheets back in order
+    // FIXME: Shouldn't wait until after we've recieved CSSTaskExit to start sending these
+    do vec::consume(move result_vec) |_i, port| {
+        to_parent.send(Some(port.recv()));
+    }
+    to_parent.send(None);
 }
 
 fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port<JSMessage>,
@@ -159,9 +162,9 @@ pub fn parse_html(scope: NodeScope,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask) -> HtmlParserResult unsafe {
     // Spawn a CSS parser to receive links to CSS style sheets.
-    let (css_port, css_chan): (comm::Port<Stylesheet>, comm::Chan<CSSMessage>) =
+    let (css_port, css_chan): (comm::Port<Option<Stylesheet>>, comm::Chan<CSSMessage>) =
             do task::spawn_conversation |css_port: comm::Port<CSSMessage>,
-                                         css_chan: comm::Chan<Stylesheet>| {
+                                         css_chan: comm::Chan<Option<Stylesheet>>| {
         css_link_listener(css_chan, css_port, resource_task);
     };
 

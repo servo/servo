@@ -197,9 +197,14 @@ impl Content {
               // Send stylesheets over to layout
               // FIXME: Need these should be streamed to layout as they are parsed
               // and do not need to stop here in the content task
-              // FIXME: This currently expects exactly one stylesheet
-              let sheet = result.style_port.recv();
-              self.layout_task.send(AddStylesheet(move sheet));
+              loop {
+                  match result.style_port.recv() {
+                      Some(move sheet) => {
+                          self.layout_task.send(AddStylesheet(move sheet));
+                      }
+                      None => break
+                  }
+              }
 
             let js_scripts = result.js_port.recv();
             debug!("js_scripts: %?", js_scripts);
