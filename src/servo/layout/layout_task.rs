@@ -36,6 +36,7 @@ use std::cell::Cell;
 use layout::traverse::*;
 use comm::*;
 use task::*;
+use core::mutable::Mut;
 
 pub type LayoutTask = comm::Chan<Msg>;
 
@@ -50,6 +51,7 @@ enum LayoutQueryResponse_ {
 }
 
 pub enum Msg {
+    AddStylesheet(Stylesheet),
     BuildMsg(BuildData),
     QueryMsg(LayoutQuery, comm::Chan<LayoutQueryResponse>),
     ExitMsg
@@ -57,7 +59,6 @@ pub enum Msg {
 
 struct BuildData {
     node: Node,
-    style: ARC<Stylesheet>,
     url: Url,
     dom_event_chan: pipes::SharedChan<Event>,
     window_size: Size2D<uint>,
@@ -80,7 +81,8 @@ struct Layout {
     font_cache: @FontCache,
     font_matcher: @FontMatcher,
     // This is used to root auxilliary RCU reader data
-    layout_refs: DVec<@LayoutData>
+    layout_refs: DVec<@LayoutData>,
+    stylesheet: Mut<Option<Stylesheet>>
 }
 
 fn Layout(render_task: RenderTask, 
@@ -96,7 +98,8 @@ fn Layout(render_task: RenderTask,
         from_content: from_content,
         font_matcher: @FontMatcher::new(fctx),
         font_cache: @FontCache::new(fctx),
-        layout_refs: DVec()
+        layout_refs: DVec(),
+        stylesheet: Mut(None)
     }
 }
 
@@ -111,6 +114,9 @@ impl Layout {
     fn handle_request() -> bool {
 
         match self.from_content.recv() {
+            AddStylesheet(move sheet) => {
+                self.handle_add_stylesheet(move sheet);
+            }
             BuildMsg(move data) => {
                 let data = Cell(move data);
 
@@ -131,6 +137,14 @@ impl Layout {
         }
 
         true
+    }
+
+    fn handle_add_stylesheet(sheet: Stylesheet) {
+        let sheet = Cell(move sheet);
+        do self.stylesheet.borrow_mut |mysheet| {
+            assert mysheet.is_none(); // FIXME: Support multiple sheets
+            *mysheet = Some(sheet.take());
+        }
     }
 
     fn handle_build(data: BuildData) {
@@ -161,7 +175,16 @@ impl Layout {
         let layout_root: @FlowContext = do time("layout: tree construction") {
             // TODO: this is dumb. we don't need 3 separate traversals.
             node.initialize_style_for_subtree(&layout_ctx, &self.layout_refs);
-            node.recompute_style_for_subtree(&layout_ctx, &data.style);
+            do self.stylesheet.borrow_imm |sheet| {
+                match *sheet {
+                    Some(ref sheet) => {
+                        unsafe {
+                            node.recompute_style_for_subtree(&layout_ctx, sheet);
+                        }
+                    } 
+                    None => ()
+                }
+            }
             /* resolve styles (convert relative values) down the node tree */
             apply_style(&layout_ctx, *node);
             

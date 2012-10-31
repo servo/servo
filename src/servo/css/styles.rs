@@ -107,7 +107,7 @@ trait StyleMethods {
 
     fn style() -> SpecifiedStyle;
     fn initialize_style_for_subtree(ctx: &LayoutContext, refs: &DVec<@LayoutData>);
-    fn recompute_style_for_subtree(ctx: &LayoutContext, styles : &ARC<Stylesheet>);
+    fn recompute_style_for_subtree(ctx: &LayoutContext, styles : &Stylesheet);
 }
 
 impl Node : StyleMethods {
@@ -160,7 +160,7 @@ impl Node : StyleMethods {
      * the node (the reader-auxiliary box in the COW model) with the
      * computed style.
      */
-    fn recompute_style_for_subtree(ctx: &LayoutContext, styles : &ARC<Stylesheet>) {
+    fn recompute_style_for_subtree(ctx: &LayoutContext, styles : &Stylesheet) {
         let mut i = 0u;
         
         // Compute the styles of each of our children in parallel
@@ -169,7 +169,7 @@ impl Node : StyleMethods {
             kid.recompute_style_for_subtree(ctx, styles); 
         }
 
-        self.match_css_style(get(styles));
+        self.match_css_style(styles);
     }
 }
 

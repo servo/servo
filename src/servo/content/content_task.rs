@@ -20,7 +20,7 @@ use dom::event::{Event, ResizeEvent, ReflowEvent};
 use dom::window::Window;
 use geom::size::Size2D;
 use layout::layout_task;
-use layout_task::{LayoutTask, BuildMsg, BuildData};
+use layout_task::{LayoutTask, BuildMsg, BuildData, AddStylesheet};
 use resource::image_cache_task::ImageCacheTask;
 
 use newcss::values::Stylesheet;
@@ -193,15 +193,18 @@ impl Content {
                                                               self.image_cache_task.clone());
 
             let root = result.root;
-            let css_rules = result.style_port.recv();
+
+              // Send stylesheets over to layout
+              // FIXME: Need these should be streamed to layout as they are parsed
+              // and do not need to stop here in the content task
+              // FIXME: This currently expects exactly one stylesheet
+              let sheet = result.style_port.recv();
+              self.layout_task.send(AddStylesheet(move sheet));
+
             let js_scripts = result.js_port.recv();
-
-            // Apply the css rules to the dom tree:
-            debug!("css_rules: %?", css_rules);
-
             debug!("js_scripts: %?", js_scripts);
 
-            let document = Document(root, self.scope, move css_rules);
+            let document = Document(root, self.scope);
             let window   = Window(self.control_chan.clone());
             self.relayout(&document, &url);
             self.document = Some(@move document);
@@ -306,7 +309,6 @@ impl Content {
 
         let data = BuildData {
             node: document.root,
-            style: clone(&document.css_rules),
             url: copy *doc_url,
             dom_event_chan: self.event_chan.clone(),
             window_size: self.window_size,
