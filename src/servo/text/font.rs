@@ -336,7 +336,7 @@ pub impl Font : FontMethods {
     }
 }
 
-fn should_destruct_on_fail_without_leaking() {
+/*fn should_destruct_on_fail_without_leaking() {
     #[test];
     #[should_fail];
 
@@ -404,3 +404,4 @@ fn should_be_able_to_create_instances_in_multiple_threads() {
     }
 }
 
+*/
