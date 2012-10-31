@@ -46,12 +46,14 @@ enum InlineSpacerSide {
 
 priv fn simulate_UA_display_rules(node: Node) -> CSSDisplay {
 
-    let resolved = do node.aux |nd| {
+    // FIXME
+    /*let resolved = do node.aux |nd| {
         match nd.style.display_type {
             Inherit | Initial => DisplayInline, // TODO: remove once resolve works
             Specified(v) => v
         }
-    };
+    };*/
+    let resolved = DisplayInline;
     if (resolved == DisplayNone) { return resolved; }
 
     do node.read |n| {

@@ -5,7 +5,7 @@ use std::arc::{ARC, get, clone};
 
 use core::dvec::DVec;
 use newcss::values::*;
-use newcss::SelectCtx;
+use newcss::{SelectCtx, SelectResults};
 use dom::element::{HTMLDivElement, HTMLHeadElement, HTMLImageElement, UnknownElement, HTMLScriptElement};
 use dom::node::{Comment, Doctype, Element, Text,
                 Node, NodeKind, NodeTree, LayoutData};
@@ -105,7 +105,7 @@ fn empty_style_for_node_kind(kind: &NodeKind) -> SpecifiedStyle {
 trait StyleMethods {
     fn initialize_layout_data() -> Option<@LayoutData>;
 
-    fn style() -> &self/SpecifiedStyle;
+    fn style() -> &self/SelectResults;
     fn initialize_style_for_subtree(ctx: &LayoutContext, refs: &DVec<@LayoutData>);
     fn recompute_style_for_subtree(ctx: &LayoutContext, styles : &SelectCtx);
 }
@@ -117,9 +117,8 @@ impl Node : StyleMethods {
     fn initialize_layout_data() -> Option<@LayoutData> {
         match self.has_aux() {
             false => {
-                let node_kind = self.read(|n| copy *n.kind);
                 let data = @LayoutData({
-                    mut style : ~empty_style_for_node_kind(&node_kind),
+                    mut style : None,
                     mut flow  : None
                 });
                 self.set_aux(data); Some(data)
@@ -130,15 +129,21 @@ impl Node : StyleMethods {
         
     /** 
      * Provides the computed style for the given node. If CSS selector
+     * Returns the style results for the given node. If CSS selector
      * matching has not yet been performed, fails.
      * FIXME: This isn't completely memory safe since the style is
      * stored in a box that can be overwritten
      */
-    fn style() -> &self/SpecifiedStyle {
+    fn style() -> &self/SelectResults {
         if !self.has_aux() {
-            fail ~"get_style() called on a node without a style!";
+            fail ~"style() called on a node without aux data!";
         }
-        unsafe { &*self.aux( |x| ptr::to_unsafe_ptr(&*x.style) ) }
+        unsafe { &*self.aux( |x| {
+            match x.style {
+                Some(ref style) => ptr::to_unsafe_ptr(style),
+                None => fail ~"style() called on node without a style!"
+            }
+        })}
     }
 
     /**

@@ -385,22 +385,7 @@ impl RenderBox : RenderBoxMethods {
                           offset: &Point2D<Au>, list: &mut DisplayList) {
 
         let style = self.d().node.style();
-        let box_bounds : Rect<Au> = match style.position {
-            Specified(PosAbsolute) => {
-                let x_offset = match style.left {
-                    Specified(Px(px)) => au::from_frac_px(px),
-                    _ => self.d().position.origin.x
-                };
-                let y_offset = match style.top {
-                    Specified(Px(px)) => au::from_frac_px(px),
-                    _ => self.d().position.origin.y
-                };
-                Rect(Point2D(x_offset, y_offset), copy self.d().position.size)
-            }
-            _ => {
-                self.d().position
-            }
-        };
+        let box_bounds = self.d().position;
 
         let abs_box_bounds = box_bounds.translate(offset);
         debug!("RenderBox::build_display_list at rel=%?, abs=%?: %s", 
@@ -443,19 +428,21 @@ impl RenderBox : RenderBoxMethods {
 
     fn add_bgcolor_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
         use std::cmp::FuzzyEq;
-        // TODO: shouldn't need to unbox CSSValue by now
-        let boxed_bgcolor = self.d().node.style().background_color;
+        // FIXME
+        /*let boxed_bgcolor = self.d().node.style().background_color;
         let bgcolor = match boxed_bgcolor {
             Specified(BgColor(c)) => c,
             Specified(BgColorTransparent) | _ => rgba(0,0,0,0.0)
-        };
+        };*/
+        let bgcolor = rgba(0,0,0,0.0);
         if !bgcolor.alpha.fuzzy_eq(&0.0) {
             list.append_item(~DisplayItem::new_SolidColor(abs_bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
         }
     }
 
     fn add_border_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
-        let style = self.d().node.style();
+        // FIXME
+        /*let style = self.d().node.style();
         match style.border_width {
             Specified(Px(copy px)) => {
                 // If there's a border, let's try to display *something*
@@ -478,7 +465,7 @@ impl RenderBox : RenderBoxMethods {
                                                           color.green, color.blue));
             }
             _ => () // TODO
-        }
+        }*/
     }
 }
 

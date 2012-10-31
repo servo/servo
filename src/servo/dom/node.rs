@@ -1,6 +1,5 @@
 /* The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements. */
-use css::styles::SpecifiedStyle;
-use newcss::values::Stylesheet;
+use newcss::SelectResults;
 use dom::bindings;
 use dom::document::Document;
 use dom::element::{Attr, ElementData};
@@ -113,7 +112,7 @@ fn define_bindings(compartment: &bare_compartment, doc: @Document,
 
    Note that there may be multiple boxes per DOM node. */
 enum LayoutData = {
-    mut style: ~SpecifiedStyle,
+    mut style: Option<SelectResults>,
     mut flow:  Option<@FlowContext>
 };
 

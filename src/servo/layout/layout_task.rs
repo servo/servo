@@ -228,24 +228,25 @@ impl Layout {
                     reply_chan: comm::Chan<LayoutQueryResponse>) {
         match query {
             ContentBox(node) => {
-                // TODO: extract me to a method when I get sibling arms
-                let response = match node.aux(|a| copy *a).flow {
-                    None => Err(()),
-                    Some(flow) => {
-                        let start_val : Option<Rect<Au>> = None;
-                        let rect = do flow.foldl_boxes_for_node(node, start_val) |acc, box| {
-                            match acc {
-                                Some(acc) => Some(acc.union(&box.content_box())),
-                                None => Some(box.content_box())
-                            }
-                        };
-                        
-                        match rect {
-                            None => Err(()),
-                            Some(rect) => {
-                                let size = Size2D(au::to_px(rect.size.width),
-                                                  au::to_px(rect.size.height));
-                                Ok(ContentSize(move size))
+                let response = do node.aux |a| {
+                    match a.flow {
+                        None => Err(()),
+                        Some(flow) => {
+                            let start_val : Option<Rect<Au>> = None;
+                            let rect = do flow.foldl_boxes_for_node(node, start_val) |acc, box| {
+                                match acc {
+                                    Some(acc) => Some(acc.union(&box.content_box())),
+                                    None => Some(box.content_box())
+                                }
+                            };
+                            
+                            match rect {
+                                None => Err(()),
+                                Some(rect) => {
+                                    let size = Size2D(au::to_px(rect.size.width),
+                                                      au::to_px(rect.size.height));
+                                    Ok(ContentSize(move size))
+                                }
                             }
                         }
                     }
