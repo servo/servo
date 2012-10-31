@@ -104,8 +104,6 @@ fn empty_style_for_node_kind(kind: &NodeKind) -> SpecifiedStyle {
 
 trait StyleMethods {
     fn initialize_layout_data() -> Option<@LayoutData>;
-
-    fn style() -> &self/SelectResults;
     fn initialize_style_for_subtree(ctx: &LayoutContext, refs: &DVec<@LayoutData>);
     fn recompute_style_for_subtree(ctx: &LayoutContext, styles : &SelectCtx);
 }
@@ -125,25 +123,6 @@ impl Node : StyleMethods {
             },
             true => None
         }
-    }
-        
-    /** 
-     * Provides the computed style for the given node. If CSS selector
-     * Returns the style results for the given node. If CSS selector
-     * matching has not yet been performed, fails.
-     * FIXME: This isn't completely memory safe since the style is
-     * stored in a box that can be overwritten
-     */
-    fn style() -> &self/SelectResults {
-        if !self.has_aux() {
-            fail ~"style() called on a node without aux data!";
-        }
-        unsafe { &*self.aux( |x| {
-            match x.style {
-                Some(ref style) => ptr::to_unsafe_ptr(style),
-                None => fail ~"style() called on node without a style!"
-            }
-        })}
     }
 
     /**

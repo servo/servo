@@ -50,6 +50,7 @@ pub mod css {
     mod matching;
     priv mod select_handler;
     pub mod compute;
+    priv mod node_util;
 }
 
 pub mod layout {

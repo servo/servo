@@ -9,7 +9,7 @@ use newcss::values::*;
 use newcss::{SelectCtx, SelectResults};
 use styles::{SpecifiedStyle};
 use select_handler::NodeSelectHandler;
-use std::cell::Cell;
+use node_util::NodeUtil;
 
 /** 
    Check if a CSS attribute matches the attribute of an HTML element.
@@ -168,22 +168,6 @@ impl Node : PrivMatchingMethods {
     }
 }
 
-trait PrivStyleMethods {
-    fn update_style(decl : SelectResults);
-}
-
-impl Node : PrivStyleMethods {
-    /**
-    Update the computed style of an HTML element with a style specified by CSS.
-    */
-    fn update_style(decl : SelectResults) {
-        let decl = Cell(move decl);
-        do self.aux |data| {
-            data.style = Some(decl.take())
-        }
-    }
-}
-
 trait MatchingMethods {
     fn match_css_style(select_ctx : &SelectCtx);
 }
@@ -204,7 +188,7 @@ impl Node : MatchingMethods {
             node: self
         };
         let style = select_ctx.select_style(&self, &select_handler);
-        self.update_style(move style);
+        self.set_style(move style);
     }
 }
 

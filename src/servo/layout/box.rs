@@ -385,7 +385,6 @@ impl RenderBox : RenderBoxMethods {
     fn build_display_list(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>,
                           offset: &Point2D<Au>, list: &mut DisplayList) {
 
-        let style = self.d().node.style();
         let box_bounds = self.d().position;
 
         let abs_box_bounds = box_bounds.translate(offset);
