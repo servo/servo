@@ -9,6 +9,7 @@ use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
 use css::styles::SpecifiedStyle;
+use css::compute::ComputeStyles;
 use newcss::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent};
 use newcss::values::{BdrColor, PosAbsolute};
 use newcss::color::{Color, rgba};
@@ -428,13 +429,7 @@ impl RenderBox : RenderBoxMethods {
 
     fn add_bgcolor_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
         use std::cmp::FuzzyEq;
-        // FIXME
-        /*let boxed_bgcolor = self.d().node.style().background_color;
-        let bgcolor = match boxed_bgcolor {
-            Specified(BgColor(c)) => c,
-            Specified(BgColorTransparent) | _ => rgba(0,0,0,0.0)
-        };*/
-        let bgcolor = rgba(0,0,0,0.0);
+        let bgcolor = self.d().node.compute_background_color();
         if !bgcolor.alpha.fuzzy_eq(&0.0) {
             list.append_item(~DisplayItem::new_SolidColor(abs_bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
         }

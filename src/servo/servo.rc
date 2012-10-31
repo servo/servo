@@ -49,6 +49,7 @@ pub mod css {
     mod apply;
     mod matching;
     priv mod select_handler;
+    pub mod compute;
 }
 
 pub mod layout {
