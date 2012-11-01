@@ -173,7 +173,7 @@ impl Layout {
 
         let layout_root: @FlowContext = do time("layout: tree construction") {
             // TODO: this is dumb. we don't need 2 separate traversals.
-            node.initialize_style_for_subtree(&layout_ctx, &self.layout_refs);
+            node.initialize_style_for_subtree(&self.layout_refs);
             do self.css_select_ctx.borrow_imm |ctx| {
                 node.recompute_style_for_subtree(&layout_ctx, ctx);
             }

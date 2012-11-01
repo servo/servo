@@ -64,6 +64,7 @@ pub mod layout {
     pub mod root;
     pub mod text;
     pub mod traverse;
+    mod aux;
 }
 
 pub mod gfx {
