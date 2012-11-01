@@ -175,7 +175,7 @@ impl Layout {
             // TODO: this is dumb. we don't need 2 separate traversals.
             node.initialize_style_for_subtree(&self.layout_refs);
             do self.css_select_ctx.borrow_imm |ctx| {
-                node.restyle_subtree(&layout_ctx, ctx);
+                node.restyle_subtree(ctx);
             }
             
             let builder = LayoutTreeBuilder::new();

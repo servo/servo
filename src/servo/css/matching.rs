@@ -8,7 +8,7 @@ use layout::context::LayoutContext;
 use select_handler::NodeSelectHandler;
 
 trait MatchMethods {
-    fn restyle_subtree(ctx: &LayoutContext, select_ctx: &SelectCtx);
+    fn restyle_subtree(select_ctx: &SelectCtx);
 }
 
 impl Node : MatchMethods {
@@ -19,12 +19,12 @@ impl Node : MatchMethods {
      * the node (the reader-auxiliary box in the COW model) with the
      * computed style.
      */
-    fn restyle_subtree(ctx: &LayoutContext, select_ctx: &SelectCtx) {
+    fn restyle_subtree(select_ctx: &SelectCtx) {
         let mut i = 0u;
         
         for NodeTree.each_child(&self) |kid| {
             i = i + 1u;
-            kid.restyle_subtree(ctx, select_ctx); 
+            kid.restyle_subtree(select_ctx); 
         }
 
         let select_handler = NodeSelectHandler {
