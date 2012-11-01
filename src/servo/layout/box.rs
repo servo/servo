@@ -8,7 +8,6 @@ use au::Au;
 use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
-use css::styles::SpecifiedStyle;
 use css::compute::ComputeStyles;
 use newcss::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent};
 use newcss::values::{BdrColor, PosAbsolute};

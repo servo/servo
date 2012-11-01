@@ -7,7 +7,6 @@ use au = gfx::geometry;
 use au::Au;
 use content::content_task;
 use core::dvec::DVec;
-use css::styles::apply_style;
 use newcss::Stylesheet;
 use dl = gfx::display_list;
 use dom::event::{Event, ReflowEvent};
@@ -173,13 +172,11 @@ impl Layout {
         };
 
         let layout_root: @FlowContext = do time("layout: tree construction") {
-            // TODO: this is dumb. we don't need 3 separate traversals.
+            // TODO: this is dumb. we don't need 2 separate traversals.
             node.initialize_style_for_subtree(&layout_ctx, &self.layout_refs);
             do self.css_select_ctx.borrow_imm |ctx| {
                 node.recompute_style_for_subtree(&layout_ctx, ctx);
             }
-            /* resolve styles (convert relative values) down the node tree */
-            apply_style(&layout_ctx, *node);
             
             let builder = LayoutTreeBuilder::new();
             let layout_root: @FlowContext = match builder.construct_trees(&layout_ctx,

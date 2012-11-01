@@ -1,7 +1,6 @@
 /** Creates CSS boxes from a DOM. */
 use au = gfx::geometry;
 use core::dvec::DVec;
-use css::styles::{SpecifiedStyle, empty_style_for_node_kind};
 use newcss::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayInlineBlock, DisplayNone};
 use newcss::values::{Inherit, Initial, Specified};
 use dom::element::*;
