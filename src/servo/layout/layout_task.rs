@@ -171,13 +171,18 @@ impl Layout {
             screen_size: Rect(Point2D(Au(0), Au(0)), screen_size)
         };
 
-        let layout_root: @FlowContext = do time("layout: tree construction") {
-            // TODO: this is dumb. we don't need 2 separate traversals.
+        do time("layout: aux initialization") {
+            // TODO: this is dumb. we don't need an entire traversal to do this
             node.initialize_style_for_subtree(&self.layout_refs);
+        }
+
+        do time("layout: selector matching") {
             do self.css_select_ctx.borrow_imm |ctx| {
                 node.restyle_subtree(ctx);
             }
-            
+        }
+
+        let layout_root: @FlowContext = do time("layout: tree construction") {
             let builder = LayoutTreeBuilder::new();
             let layout_root: @FlowContext = match builder.construct_trees(&layout_ctx,
                                                                           *node) {
@@ -217,7 +222,6 @@ impl Layout {
 
         // Tell content we're done
         data.content_join_chan.send(());
-
     }
 
 
