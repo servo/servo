@@ -82,3 +82,6 @@
 [submodule "src/rust-css"]
 	path = src/rust-css
 	url = git://github.com/mozilla-servo/rust-css.git
+[submodule "src/skia"]
+	path = src/skia
+	url = git://github.com/mozilla-servo/skia.git
