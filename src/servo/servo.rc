@@ -15,7 +15,6 @@ extern mod http_client;
 extern mod hubbub;
 extern mod js;
 extern mod layers;
-extern mod netsurfcss;
 extern mod opengles;
 extern mod sharegl;
 extern mod stb_image;
