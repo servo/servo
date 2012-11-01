@@ -6,7 +6,9 @@
 
 DEPS_rust-azure += \
 	rust-geom \
-	rust-cairo
+	rust-cairo \
+	skia \
+	$(NULL)
 
 DEPS_rust-glut += \
 	rust-opengles
