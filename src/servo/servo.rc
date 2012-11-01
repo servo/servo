@@ -45,7 +45,7 @@ pub mod content {
 }
 
 pub mod css {
-    pub mod styles;
+    pub mod matching;
     pub mod compute;
     priv mod select_handler;
     priv mod node_util;
