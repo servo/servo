@@ -30,20 +30,11 @@ impl RenderContext  {
         &self.canvas.draw_target
     }
 
-    pub fn draw_solid_color(&self, bounds: &Rect<Au>, r: u8, g: u8, b: u8) {
-        let color = Color(r.to_float() as AzFloat,
-                          g.to_float() as AzFloat,
-                          b.to_float() as AzFloat,
-                          1f as AzFloat);
-
+    pub fn draw_solid_color(&self, bounds: &Rect<Au>, color: Color) {
         self.canvas.draw_target.fill_rect(&bounds.to_azure_rect(), &ColorPattern(color));
     }
 
-    pub fn draw_border(&self, bounds: &Rect<Au>, width: Au, r: u8, g: u8, b: u8) {
-        let color = Color(r.to_float() as AzFloat,
-                          g.to_float() as AzFloat,
-                          b.to_float() as AzFloat,
-                          1f as AzFloat);
+    pub fn draw_border(&self, bounds: &Rect<Au>, width: Au, color: Color) {
         let pattern = ColorPattern(color);
         let stroke_fields = 2; // CAP_SQUARE
         let width_px = au::to_px(width);

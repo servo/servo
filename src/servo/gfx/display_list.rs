@@ -8,6 +8,7 @@ use render_context::RenderContext;
 use servo_text::text_run;
 use text::text_run::SendableTextRun;
 use util::range::Range;
+use color::{Color, rgb};
 
 use std::arc::ARC;
 use clone_arc = std::arc::clone;
@@ -26,28 +27,28 @@ impl DisplayItemData {
 }
 
 pub enum DisplayItem {
-    SolidColor(DisplayItemData, u8, u8, u8),
+    SolidColor(DisplayItemData, Color),
     // TODO: need to provide spacing data for text run.
     // (i.e, to support rendering of CSS 'word-spacing' and 'letter-spacing')
     // TODO: don't copy text runs, ever.
     Text(DisplayItemData, ~SendableTextRun, Range),
     Image(DisplayItemData, ARC<~image::base::Image>),
-    Border(DisplayItemData, Au, u8, u8, u8)
+    Border(DisplayItemData, Au, Color)
 }
 
 impl DisplayItem {
     pure fn d(&self) -> &self/DisplayItemData {
         match *self {
-            SolidColor(ref d, _, _, _) => d,
+            SolidColor(ref d, _) => d,
             Text(ref d, _, _) => d,
             Image(ref d, _) => d,
-            Border(ref d, _, _, _, _) => d
+            Border(ref d, _, _) => d
         }
     }
     
     fn draw_into_context(&self, ctx: &RenderContext) {
         match *self {
-            SolidColor(_, r,g,b) => ctx.draw_solid_color(&self.d().bounds, r, g, b),
+            SolidColor(_, color) => ctx.draw_solid_color(&self.d().bounds, color),
             Text(_, run, range) => {
                 let new_run = @run.deserialize(ctx.font_cache);
                 let font = new_run.font;
@@ -56,20 +57,20 @@ impl DisplayItem {
                 font.draw_text_into_context(ctx, new_run, range, baseline_origin);
             },
             Image(_, ref img) => ctx.draw_image(self.d().bounds, clone_arc(img)),
-            Border(_, width, r, g, b) => ctx.draw_border(&self.d().bounds, width, r, g, b),
+            Border(_, width, color) => ctx.draw_border(&self.d().bounds, width, color),
         }
 
         debug!("%?", {
-        ctx.draw_border(&self.d().bounds, au::from_px(1), 150, 150, 150);
+        ctx.draw_border(&self.d().bounds, au::from_px(1), rgb(150, 150, 150));
         () });
     }
 
-    static pure fn new_SolidColor(bounds: &Rect<Au>, r: u8, g: u8, b: u8) -> DisplayItem {
-        SolidColor(DisplayItemData::new(bounds), r, g, b)
+    static pure fn new_SolidColor(bounds: &Rect<Au>, color: Color) -> DisplayItem {
+        SolidColor(DisplayItemData::new(bounds), color)
     }
 
-    static pure fn new_Border(bounds: &Rect<Au>, width: Au, r: u8, g: u8, b: u8) -> DisplayItem {
-        Border(DisplayItemData::new(bounds), width, r, g, b)
+    static pure fn new_Border(bounds: &Rect<Au>, width: Au, color: Color) -> DisplayItem {
+        Border(DisplayItemData::new(bounds), width, color)
     }
 
     static pure fn new_Text(bounds: &Rect<Au>, run: ~SendableTextRun, range: Range) -> DisplayItem {

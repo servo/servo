@@ -68,6 +68,7 @@ pub mod layout {
 }
 
 pub mod gfx {
+    pub mod color;
     pub mod geometry;
     pub mod surface;
     pub mod render_task;

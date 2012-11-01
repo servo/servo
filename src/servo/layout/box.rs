@@ -407,7 +407,8 @@ impl RenderBox : RenderBoxMethods {
                                                         d.range));
                 // debug frames for text box bounds
                 debug!("%?", { 
-                    list.append_item(~DisplayItem::new_Border(&abs_box_bounds, au::from_px(1), 0, 0, 200))
+                    list.append_item(~DisplayItem::new_Border(&abs_box_bounds, au::from_px(1),
+                                                              rgb(0, 0, 200).to_gfx_color()))
                 ; ()});
             },
             // TODO: items for background, border, outline
@@ -429,7 +430,7 @@ impl RenderBox : RenderBoxMethods {
         use std::cmp::FuzzyEq;
         let bgcolor = self.d().node.compute_background_color();
         if !bgcolor.alpha.fuzzy_eq(&0.0) {
-            list.append_item(~DisplayItem::new_SolidColor(abs_bounds, bgcolor.red, bgcolor.green, bgcolor.blue));
+            list.append_item(~DisplayItem::new_SolidColor(abs_bounds, bgcolor.to_gfx_color()));
         }
     }
 
@@ -487,5 +488,19 @@ impl RenderBox : BoxedDebugMethods {
         };
 
         fmt!("box b%?: %?", self.d().id, repr)
+    }
+}
+
+// FIXME: This belongs somewhere else
+trait ToGfxColor {
+    fn to_gfx_color(&self) -> gfx::color::Color;
+}
+
+impl Color: ToGfxColor {
+    fn to_gfx_color(&self) -> gfx::color::Color {
+        gfx::color::rgba(self.red,
+                         self.green,
+                         self.blue,
+                         self.alpha)
     }
 }
