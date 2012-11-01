@@ -434,7 +434,7 @@ impl RenderBox : RenderBoxMethods {
         }
     }
 
-    fn add_border_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
+    fn add_border_to_list(_list: &mut DisplayList, _abs_bounds: &Rect<Au>) {
         // FIXME
         /*let style = self.d().node.style();
         match style.border_width {
