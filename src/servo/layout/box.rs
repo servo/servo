@@ -451,7 +451,6 @@ impl RenderBox : RenderBoxMethods {
 
                 if all_widths_equal {
                     let border_width = top_au;
-                    error!("%? %?", top, border_width);
                     let bounds = Rect {
                         origin: Point2D {
                             x: abs_bounds.origin.x - border_width / Au(2),
