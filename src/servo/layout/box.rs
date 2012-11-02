@@ -463,7 +463,7 @@ impl RenderBox : RenderBoxMethods {
                         }
                     };
                     let color = rgb(0, 128, 255).to_gfx_color(); // FIXME
-                    list.append_item(~DisplayItem::new_Border(&bounds, border_width, color));
+                    //list.append_item(~DisplayItem::new_Border(&bounds, border_width, color));
                     
                 } else {
                     fail ~"unimplemented border widths";
