@@ -189,7 +189,7 @@ impl TextRunScanner {
 
         // helper functions
         pure fn can_coalesce_text_nodes(boxes: &[@RenderBox], left_i: uint, right_i: uint) -> bool {
-            assert left_i >= 0 && left_i < boxes.len();
+            assert left_i < boxes.len();
             assert right_i > 0 && right_i < boxes.len();
             assert left_i != right_i;
 
