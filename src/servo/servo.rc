@@ -48,6 +48,7 @@ pub mod css {
     pub mod compute;
     priv mod select_handler;
     priv mod node_util;
+    priv mod node_void_ptr;
 }
 
 pub mod layout {
