@@ -1,28 +1,48 @@
 /*!
-Calculate styles for Nodes based on SelectResults
+Calculate styles for Nodes based on SelectResults, resolving inherited values
 */
 
 use dom::node::Node;
 use newcss::color::{Color, rgba};
-use newcss::values::{CSSValue, Specified, Inherit};
+use newcss::values::{CSSValue, Specified, Inherit, Length, Px};
 use newcss::ComputedStyle;
 
 pub trait ComputeStyles {
     fn compute_background_color(&self) -> Color;
+    fn compute_border_top_width(&self) -> Length;
+    fn compute_border_right_width(&self) -> Length;
+    fn compute_border_bottom_width(&self) -> Length;
+    fn compute_border_left_width(&self) -> Length;
 }
 
 impl Node: ComputeStyles {
     fn compute_background_color(&self) -> Color {
-        compute(self, |cs| cs.background_color(), rgba(0, 0, 0, 0.0))
+        compute(self, rgba(0, 0, 0, 0.0), |cs| cs.background_color() )
+    }
+
+    fn compute_border_top_width(&self) -> Length {
+        compute(self, Px(0.0), |cs| cs.border_top_width() )
+    }
+
+    fn compute_border_right_width(&self) -> Length {
+        compute(self, Px(0.0), |cs| cs.border_right_width() )
+    }
+
+    fn compute_border_bottom_width(&self) -> Length {
+        compute(self, Px(0.0), |cs| cs.border_bottom_width() )
+    }
+
+    fn compute_border_left_width(&self) -> Length {
+        compute(self, Px(0.0), |cs| cs.border_left_width() )
     }
 }
 
-fn compute<T>(node: &Node, get: &fn(cs: ComputedStyle) -> CSSValue<T>, default: T) -> T {
+fn compute<T>(node: &Node, default: T, get: &fn(cs: ComputedStyle) -> CSSValue<T>) -> T {
     let style = node.get_style();
     let computed = style.computed_style();
     let value = get(computed);
     match move value {
-        Inherit => /* FIXME */ move default,
+        Inherit => /* FIXME: need inheritance */ move default,
         Specified(move value) => move value,
         _ => fail
     }

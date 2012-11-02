@@ -434,7 +434,44 @@ impl RenderBox : RenderBoxMethods {
         }
     }
 
-    fn add_border_to_list(_list: &mut DisplayList, _abs_bounds: &Rect<Au>) {
+    fn add_border_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
+        let top_width = self.d().node.compute_border_top_width();
+        let right_width = self.d().node.compute_border_right_width();
+        let bottom_width = self.d().node.compute_border_bottom_width();
+        let left_width = self.d().node.compute_border_left_width();
+
+        match (top_width, right_width, bottom_width, left_width) {
+            (Px(top), Px(right), Px(bottom), Px(left)) => {
+                let top_au = au::from_frac_px(top);
+                let right_au = au::from_frac_px(right);
+                let bottom_au = au::from_frac_px(bottom);
+                let left_au = au::from_frac_px(left);
+
+                let all_widths_equal = [top_au, right_au, bottom_au].all(|a| *a == left_au);
+
+                if all_widths_equal {
+                    let border_width = top_au;
+                    error!("%? %?", top, border_width);
+                    let bounds = Rect {
+                        origin: Point2D {
+                            x: abs_bounds.origin.x - border_width / Au(2),
+                            y: abs_bounds.origin.y - border_width / Au(2),
+                        },
+                        size: Size2D {
+                            width: abs_bounds.size.width + border_width,
+                            height: abs_bounds.size.height + border_width
+                        }
+                    };
+                    let color = rgb(0, 128, 255).to_gfx_color(); // FIXME
+                    list.append_item(~DisplayItem::new_Border(&bounds, border_width, color));
+                    
+                } else {
+                    fail ~"unimplemented border widths";
+                }
+            }
+            _ => fail ~"unimplemented border widths"
+        }
+
         // FIXME
         /*let style = self.d().node.style();
         match style.border_width {
