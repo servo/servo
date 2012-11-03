@@ -48,6 +48,8 @@ use ct::font::{
     CTFontGetUnderlinePosition,
     CTFontGetUnderlineThickness,
     CTFontGetXHeight,
+};
+use ct::font_descriptor::{
     kCTFontDefaultOrientation,
 };
 
