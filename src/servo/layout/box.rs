@@ -465,7 +465,9 @@ impl RenderBox : RenderBoxMethods {
                             height: abs_bounds.size.height + border_width
                         }
                     };
-                    let color = rgb(0, 128, 255).to_gfx_color(); // FIXME
+
+                    let top_color = self.d().node.compute_border_top_color();
+                    let color = top_color.to_gfx_color(); // FIXME
                     list.append_item(~DisplayItem::new_Border(&bounds, border_width, color));
                     
                 } else {

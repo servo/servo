@@ -16,6 +16,10 @@ pub trait ComputeStyles {
     fn compute_border_right_width(&self) -> CSSBorderWidth;
     fn compute_border_bottom_width(&self) -> CSSBorderWidth;
     fn compute_border_left_width(&self) -> CSSBorderWidth;
+    fn compute_border_top_color(&self) -> Color;
+    fn compute_border_right_color(&self) -> Color;
+    fn compute_border_bottom_color(&self) -> Color;
+    fn compute_border_left_color(&self) -> Color;
 }
 
 impl Node: ComputeStyles {
@@ -38,6 +42,23 @@ impl Node: ComputeStyles {
     fn compute_border_left_width(&self) -> CSSBorderWidth {
         resolve(self, BdrWidthLength(Px(0.0)), |cs| cs.border_left_width() )
     }
+
+    fn compute_border_top_color(&self) -> Color {
+        resolve(self, rgba(255, 255, 255, 0.0), |cs| cs.border_top_color() )
+    }
+
+    fn compute_border_right_color(&self) -> Color {
+        resolve(self, rgba(255, 255, 255, 0.0), |cs| cs.border_right_color() )
+    }
+
+    fn compute_border_bottom_color(&self) -> Color {
+        resolve(self, rgba(255, 255, 255, 0.0), |cs| cs.border_bottom_color() )
+    }
+
+    fn compute_border_left_color(&self) -> Color {
+        resolve(self, rgba(255, 255, 255, 0.0), |cs| cs.border_left_color() )
+    }
+
 }
 
 fn resolve<T>(node: &Node, default: T, get: &fn(cs: ComputedStyle) -> CSSValue<T>) -> T {
