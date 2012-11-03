@@ -11,6 +11,7 @@ use core::rand;
 use css::compute::ComputeStyles;
 use newcss::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent};
 use newcss::values::{BdrColor, PosAbsolute};
+use newcss::values::{BdrWidthLength, BdrWidthMedium};
 use newcss::color::{Color, rgba};
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
@@ -441,7 +442,10 @@ impl RenderBox : RenderBoxMethods {
         let left_width = self.d().node.compute_border_left_width();
 
         match (top_width, right_width, bottom_width, left_width) {
-            (Px(top), Px(right), Px(bottom), Px(left)) => {
+            (BdrWidthLength(Px(top)),
+             BdrWidthLength(Px(right)),
+             BdrWidthLength(Px(bottom)),
+             BdrWidthLength(Px(left))) => {
                 let top_au = au::from_frac_px(top);
                 let right_au = au::from_frac_px(right);
                 let bottom_au = au::from_frac_px(bottom);
@@ -462,11 +466,18 @@ impl RenderBox : RenderBoxMethods {
                         }
                     };
                     let color = rgb(0, 128, 255).to_gfx_color(); // FIXME
-                    //list.append_item(~DisplayItem::new_Border(&bounds, border_width, color));
+                    list.append_item(~DisplayItem::new_Border(&bounds, border_width, color));
                     
                 } else {
                     fail ~"unimplemented border widths";
                 }
+            }
+            (BdrWidthMedium,
+             BdrWidthMedium,
+             BdrWidthMedium,
+             BdrWidthMedium) => {
+                // FIXME: This seems to be the default for non-root nodes. For now we'll ignore it
+                warn!("ignoring medium border widths");
             }
             _ => fail ~"unimplemented border widths"
         }
