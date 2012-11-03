@@ -481,32 +481,6 @@ impl RenderBox : RenderBoxMethods {
             }
             _ => fail ~"unimplemented border widths"
         }
-
-        // FIXME
-        /*let style = self.d().node.style();
-        match style.border_width {
-            Specified(Px(copy px)) => {
-                // If there's a border, let's try to display *something*
-                let border_width = au::from_frac_px(px);
-                let abs_bounds = Rect {
-                    origin: Point2D {
-                        x: abs_bounds.origin.x - border_width / Au(2),
-                        y: abs_bounds.origin.y - border_width / Au(2),
-                    },
-                    size: Size2D {
-                        width: abs_bounds.size.width + border_width,
-                        height: abs_bounds.size.height + border_width
-                    }
-                };
-                let color = match style.border_color {
-                    Specified(BdrColor(color)) => color,
-                    _ => rgb(0, 0, 0) // FIXME
-                };
-                list.append_item(~DisplayItem::new_Border(&abs_bounds, border_width, color.red,
-                                                          color.green, color.blue));
-            }
-            _ => () // TODO
-        }*/
     }
 }
 
