@@ -1,6 +1,6 @@
 use au = gfx::geometry;
 use content::content_task::ContentTask;
-use newcss::Stylesheet;
+use newcss::stylesheet::Stylesheet;
 use dom::cow;
 use dom::element::*;
 use dom::event::{Event, ReflowEvent};

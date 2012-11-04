@@ -1,4 +1,4 @@
-use newcss::values::Stylesheet;
+use newcss::stylesheet::Stylesheet;
 use dom::node::{NodeScope, Node};
 use std::arc::ARC;
 

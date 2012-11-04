@@ -9,9 +9,10 @@ use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
 use css::compute::ComputeStyles;
-use newcss::values::{BoxSizing, Length, Px, CSSDisplay, Specified, BgColor, BgColorTransparent};
-use newcss::values::{BdrColor, PosAbsolute};
-use newcss::values::{BdrWidthLength, BdrWidthMedium};
+use newcss::units::{BoxSizing, Length, Px};
+use newcss::values::{CSSDisplay, Specified, CSSBackgroundColorColor, CSSBackgroundColorTransparent};
+use newcss::values::{CSSBorderColor, CSSPositionAbsolute};
+use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium};
 use newcss::color::{Color, rgba};
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
@@ -442,10 +443,10 @@ impl RenderBox : RenderBoxMethods {
         let left_width = self.d().node.compute_border_left_width();
 
         match (top_width, right_width, bottom_width, left_width) {
-            (BdrWidthLength(Px(top)),
-             BdrWidthLength(Px(right)),
-             BdrWidthLength(Px(bottom)),
-             BdrWidthLength(Px(left))) => {
+            (CSSBorderWidthLength(Px(top)),
+             CSSBorderWidthLength(Px(right)),
+             CSSBorderWidthLength(Px(bottom)),
+             CSSBorderWidthLength(Px(left))) => {
                 let top_au = au::from_frac_px(top);
                 let right_au = au::from_frac_px(right);
                 let bottom_au = au::from_frac_px(bottom);
@@ -474,10 +475,10 @@ impl RenderBox : RenderBoxMethods {
                     fail ~"unimplemented border widths";
                 }
             }
-            (BdrWidthMedium,
-             BdrWidthMedium,
-             BdrWidthMedium,
-             BdrWidthMedium) => {
+            (CSSBorderWidthMedium,
+             CSSBorderWidthMedium,
+             CSSBorderWidthMedium,
+             CSSBorderWidthMedium) => {
                 // FIXME: This seems to be the default for non-root nodes. For now we'll ignore it
                 warn!("ignoring medium border widths");
             }

@@ -23,7 +23,7 @@ use layout::layout_task;
 use layout_task::{LayoutTask, BuildMsg, BuildData, AddStylesheet};
 use resource::image_cache_task::ImageCacheTask;
 
-use newcss::Stylesheet;
+use newcss::stylesheet::Stylesheet;
 
 use jsrt = js::rust::rt;
 use js::rust::{cx, methods};

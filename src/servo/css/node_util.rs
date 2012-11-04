@@ -1,5 +1,5 @@
 use dom::node::Node;
-use newcss::SelectResults;
+use newcss::select::SelectResults;
 use std::cell::Cell;
 
 trait NodeUtil {

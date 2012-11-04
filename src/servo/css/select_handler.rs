@@ -1,5 +1,5 @@
 use dom::node::{Node, NodeData, NodeTree, Doctype, Comment, Element, Text};
-use newcss::SelectHandler;
+use newcss::select::SelectHandler;
 use util::tree;
 
 pub struct NodeSelectHandler {

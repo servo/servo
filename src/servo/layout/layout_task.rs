@@ -7,7 +7,7 @@ use au = gfx::geometry;
 use au::Au;
 use content::content_task;
 use core::dvec::DVec;
-use newcss::Stylesheet;
+use newcss::stylesheet::Stylesheet;
 use dl = gfx::display_list;
 use dom::event::{Event, ReflowEvent};
 use dom::node::{Node, LayoutData};
@@ -36,7 +36,7 @@ use layout::traverse::*;
 use comm::*;
 use task::*;
 use core::mutable::Mut;
-use newcss::SelectCtx;
+use newcss::select::SelectCtx;
 
 pub type LayoutTask = comm::Chan<Msg>;
 

@@ -3,7 +3,7 @@
  */
 use std::arc::{ARC, get, clone};
 use dom::node::{Node, NodeTree};
-use newcss::{SelectCtx, SelectResults};
+use newcss::select::{SelectCtx, SelectResults};
 use layout::context::LayoutContext;
 use select_handler::NodeSelectHandler;
 

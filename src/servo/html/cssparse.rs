@@ -5,7 +5,7 @@ Some little helpers for hooking up the HTML parser with the CSS parser
 use std::net::url::Url;
 use std::cell::Cell;
 use resource::resource_task::{ResourceTask, ProgressMsg, Load, Payload, Done};
-use newcss::Stylesheet;
+use newcss::stylesheet::Stylesheet;
 use newcss::util::DataStream;
 
 pub fn spawn_css_parser(url: Url, resource_task: ResourceTask) -> comm::Port<Stylesheet> {

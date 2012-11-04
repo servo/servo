@@ -1,8 +1,8 @@
 /** Creates CSS boxes from a DOM. */
 use au = gfx::geometry;
 use core::dvec::DVec;
-use newcss::values::{CSSDisplay, DisplayBlock, DisplayInline, DisplayInlineBlock, DisplayNone};
-use newcss::values::{Inherit, Initial, Specified};
+use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock, CSSDisplayNone};
+use newcss::values::{Inherit, Specified};
 use dom::element::*;
 use dom::node::{Comment, Doctype, Element, Text, Node, LayoutData};
 use image::holder::ImageHolder;
@@ -52,23 +52,23 @@ priv fn simulate_UA_display_rules(node: Node) -> CSSDisplay {
             Specified(v) => v
         }
     };*/
-    let resolved = DisplayInline;
-    if (resolved == DisplayNone) { return resolved; }
+    let resolved = CSSDisplayInline;
+    if (resolved == CSSDisplayNone) { return resolved; }
 
     do node.read |n| {
         match n.kind {
-            ~Doctype(*) | ~Comment(*) => DisplayNone,
-            ~Text(*) => DisplayInline,
+            ~Doctype(*) | ~Comment(*) => CSSDisplayNone,
+            ~Text(*) => CSSDisplayInline,
             ~Element(e) => match e.kind {
-                ~HTMLHeadElement(*) => DisplayNone,
-                ~HTMLScriptElement(*) => DisplayNone,
-                ~HTMLParagraphElement(*) => DisplayBlock,
-                ~HTMLDivElement(*) => DisplayBlock,
-                ~HTMLBodyElement(*) => DisplayBlock,
-                ~HTMLHeadingElement(*) => DisplayBlock,
-                ~HTMLHtmlElement(*) => DisplayBlock,
-                ~HTMLUListElement(*) => DisplayBlock,
-                ~HTMLOListElement(*) => DisplayBlock,
+                ~HTMLHeadElement(*) => CSSDisplayNone,
+                ~HTMLScriptElement(*) => CSSDisplayNone,
+                ~HTMLParagraphElement(*) => CSSDisplayBlock,
+                ~HTMLDivElement(*) => CSSDisplayBlock,
+                ~HTMLBodyElement(*) => CSSDisplayBlock,
+                ~HTMLHeadingElement(*) => CSSDisplayBlock,
+                ~HTMLHtmlElement(*) => CSSDisplayBlock,
+                ~HTMLUListElement(*) => CSSDisplayBlock,
+                ~HTMLOListElement(*) => CSSDisplayBlock,
                 _ => resolved
             }
         }
@@ -223,15 +223,15 @@ impl BuilderContext {
     fn containing_context_for_display(display: CSSDisplay,
                                       builder: &LayoutTreeBuilder) -> BuilderContext {
         match (display, self.default_collector.flow) { 
-            (DisplayBlock, @RootFlow(*)) => self.create_child_flow_of_type(Flow_Block, builder),
-            (DisplayBlock, @BlockFlow(*)) => {
+            (CSSDisplayBlock, @RootFlow(*)) => self.create_child_flow_of_type(Flow_Block, builder),
+            (CSSDisplayBlock, @BlockFlow(*)) => {
                 self.clear_inline_collector();
                 self.create_child_flow_of_type(Flow_Block, builder)
             },
-            (DisplayInline, @InlineFlow(*)) => self.clone(),
-            (DisplayInlineBlock, @InlineFlow(*)) => self.clone(),
-            (DisplayInline, @BlockFlow(*)) => self.get_inline_collector(builder),
-            (DisplayInlineBlock, @BlockFlow(*)) => self.get_inline_collector(builder),
+            (CSSDisplayInline, @InlineFlow(*)) => self.clone(),
+            (CSSDisplayInlineBlock, @InlineFlow(*)) => self.clone(),
+            (CSSDisplayInline, @BlockFlow(*)) => self.get_inline_collector(builder),
+            (CSSDisplayInlineBlock, @BlockFlow(*)) => self.get_inline_collector(builder),
             _ => self.clone()
         }
     }
@@ -251,7 +251,7 @@ impl LayoutTreeBuilder {
         // TODO: remove this once UA styles work
         // TODO: handle interactions with 'float', 'position' (CSS 2.1, Section 9.7)
         let simulated_display = match simulate_UA_display_rules(cur_node) {
-            DisplayNone => return, // tree ends here if 'display: none'
+            CSSDisplayNone => return, // tree ends here if 'display: none'
             v => v
         };
 
