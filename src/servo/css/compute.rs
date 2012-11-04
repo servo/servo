@@ -9,11 +9,16 @@ use dom::node::Node;
 use newcss::color::{Color, rgba};
 use newcss::units::{Length, Px};
 use newcss::values::{CSSValue, Specified, Inherit};
+use newcss::values::{CSSMargin, CSSMarginLength};
 use newcss::values::{CSSBorderWidth, CSSBorderWidthLength};
 use newcss::computed::ComputedStyle;
 
 pub trait ComputeStyles {
     fn compute_background_color(&self) -> Color;
+    fn compute_margin_top(&self) -> CSSMargin;
+    fn compute_margin_right(&self) -> CSSMargin;
+    fn compute_margin_bottom(&self) -> CSSMargin;
+    fn compute_margin_left(&self) -> CSSMargin;
     fn compute_border_top_width(&self) -> CSSBorderWidth;
     fn compute_border_right_width(&self) -> CSSBorderWidth;
     fn compute_border_bottom_width(&self) -> CSSBorderWidth;
@@ -27,6 +32,22 @@ pub trait ComputeStyles {
 impl Node: ComputeStyles {
     fn compute_background_color(&self) -> Color {
         resolve(self, rgba(0, 0, 0, 0.0), |cs| cs.background_color() )
+    }
+
+    fn compute_margin_top(&self) -> CSSMargin {
+        resolve(self, CSSMarginLength(Px(0.0)), |cs| cs.margin_top() )
+    }
+
+    fn compute_margin_right(&self) -> CSSMargin {
+        resolve(self, CSSMarginLength(Px(0.0)), |cs| cs.margin_right() )
+    }
+
+    fn compute_margin_bottom(&self) -> CSSMargin {
+        resolve(self, CSSMarginLength(Px(0.0)), |cs| cs.margin_bottom() )
+    }
+
+    fn compute_margin_left(&self) -> CSSMargin {
+        resolve(self, CSSMarginLength(Px(0.0)), |cs| cs.margin_left() )
     }
 
     fn compute_border_top_width(&self) -> CSSBorderWidth {
