@@ -22,7 +22,11 @@ fn test_image_bin() -> ~[u8] {
 }
 
 pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
-    do stb_image::load_from_memory(buffer).map |image| {
+
+    // Can't remember why we do this. Maybe it's what cairo wants
+    const FORCE_DEPTH: uint = 4;
+
+    do stb_image::load_from_memory_with_depth(buffer, FORCE_DEPTH).map |image| {
 
         assert image.depth == 4;
         // Do color space conversion :(
