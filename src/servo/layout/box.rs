@@ -8,7 +8,7 @@ use au::Au;
 use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
-use css::compute::ComputeStyles;
+use css::node_style::{NodeStyle, StyledNode};
 use newcss::units::{BoxSizing, Length, Px};
 use newcss::values::{CSSDisplay, Specified, CSSBackgroundColorColor, CSSBackgroundColorTransparent};
 use newcss::values::{CSSBorderColor, CSSPositionAbsolute};
@@ -365,6 +365,11 @@ impl RenderBox : RenderBoxMethods {
         self.content_box()
     }
 
+    fn style(&self) -> NodeStyle/&self {
+        let d: &self/RenderBoxData = self.d();
+        d.node.style()
+    }
+
     // TODO: to implement stacking contexts correctly, we need to
     // create a set of display lists, one per each layer of a stacking
     // context. (CSS 2.1, Section 9.9.1). Each box is passed the list
@@ -430,17 +435,17 @@ impl RenderBox : RenderBoxMethods {
 
     fn add_bgcolor_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
         use std::cmp::FuzzyEq;
-        let bgcolor = self.d().node.compute_background_color();
+        let bgcolor = self.style().background_color();
         if !bgcolor.alpha.fuzzy_eq(&0.0) {
             list.append_item(~DisplayItem::new_SolidColor(abs_bounds, bgcolor.to_gfx_color()));
         }
     }
 
     fn add_border_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
-        let top_width = self.d().node.compute_border_top_width();
-        let right_width = self.d().node.compute_border_right_width();
-        let bottom_width = self.d().node.compute_border_bottom_width();
-        let left_width = self.d().node.compute_border_left_width();
+        let top_width = self.style().border_top_width();
+        let right_width = self.style().border_right_width();
+        let bottom_width = self.style().border_bottom_width();
+        let left_width = self.style().border_left_width();
 
         match (top_width, right_width, bottom_width, left_width) {
             (CSSBorderWidthLength(Px(top)),
@@ -467,7 +472,7 @@ impl RenderBox : RenderBoxMethods {
                         }
                     };
 
-                    let top_color = self.d().node.compute_border_top_color();
+                    let top_color = self.style().border_top_color();
                     let color = top_color.to_gfx_color(); // FIXME
                     list.append_item(~DisplayItem::new_Border(&bounds, border_width, color));
                     

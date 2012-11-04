@@ -31,6 +31,6 @@ impl Node : MatchMethods {
             node: self
         };
         let style = select_ctx.select_style(&self, &select_handler);
-        self.set_style(move style);
+        self.set_css_select_results(move style);
     }
 }

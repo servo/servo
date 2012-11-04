@@ -3,8 +3,8 @@ use newcss::select::SelectResults;
 use std::cell::Cell;
 
 trait NodeUtil {
-    fn get_style() -> &self/SelectResults;
-    fn set_style(decl : SelectResults);
+    fn get_css_select_results() -> &self/SelectResults;
+    fn set_css_select_results(decl : SelectResults);
 }
 
 impl Node: NodeUtil {
@@ -15,7 +15,7 @@ impl Node: NodeUtil {
      * FIXME: This isn't completely memory safe since the style is
      * stored in a box that can be overwritten
      */
-    fn get_style() -> &self/SelectResults {
+    fn get_css_select_results() -> &self/SelectResults {
         if !self.has_aux() {
             fail ~"style() called on a node without aux data!";
         }
@@ -30,7 +30,7 @@ impl Node: NodeUtil {
     /**
     Update the computed style of an HTML element with a style specified by CSS.
     */
-    fn set_style(decl : SelectResults) {
+    fn set_css_select_results(decl : SelectResults) {
         let decl = Cell(move decl);
         do self.aux |data| {
             data.style = Some(decl.take())
