@@ -11,6 +11,11 @@ use newcss::units::{Length, Px};
 use newcss::values::{CSSValue, Specified, Inherit};
 use newcss::values::{CSSMargin, CSSMarginLength};
 use newcss::values::{CSSBorderWidth, CSSBorderWidthLength};
+use newcss::values::{CSSDisplay, CSSDisplayBlock};
+use newcss::values::{CSSPosition, CSSPositionRelative};
+use newcss::values::{CSSFloat, CSSFloatNone};
+use newcss::values::{CSSWidth, CSSWidthLength};
+use newcss::values::{CSSHeight, CSSHeightLength};
 use newcss::computed::ComputedStyle;
 
 /// Node mixin providing `style` method that returns a `NodeStyle`
@@ -37,9 +42,7 @@ impl NodeStyle {
         }
     }
 
-    fn background_color(&self) -> Color {
-        resolve(self, rgba(0, 0, 0, 0.0), |cs| cs.background_color() )
-    }
+    // CSS 2.1, Section 8 - Box model
 
     fn margin_top(&self) -> CSSMargin {
         resolve(self, CSSMarginLength(Px(0.0)), |cs| cs.margin_top() )
@@ -88,6 +91,51 @@ impl NodeStyle {
     fn border_left_color(&self) -> Color {
         resolve(self, rgba(255, 255, 255, 0.0), |cs| cs.border_left_color() )
     }
+
+    // CSS 2.1, Section 9 - Visual formatting model
+
+    fn display(&self) -> CSSDisplay {
+        // FIXME: Shouldn't be passing false here
+        resolve(self, CSSDisplayBlock, |cs| cs.display(false) )
+    }
+
+    fn position(&self) -> CSSPosition {
+        resolve(self, CSSPositionRelative, |cs| cs.position() )
+    }
+
+    fn float(&self) -> CSSFloat {
+        resolve(self, CSSFloatNone, |cs| cs.float() )
+    }
+
+    // CSS 2.1, Section 10 - Visual formatting model details
+
+    fn width(&self) -> CSSWidth {
+        resolve(self, CSSWidthLength(Px(0.0)), |cs| cs.width() )
+    }
+
+    fn height(&self) -> CSSHeight {
+        resolve(self, CSSHeightLength(Px(0.0)), |cs| cs.height() )
+    }
+
+    // CSS 2.1, Section 11 - Visual effects
+
+    // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
+
+    // CSS 2.1, Section 13 - Paged media
+
+    // CSS 2.1, Section 14 - Colors and Backgrounds
+
+    fn background_color(&self) -> Color {
+        resolve(self, rgba(0, 0, 0, 0.0), |cs| cs.background_color() )
+    }
+
+    // CSS 2.1, Section 15 - Fonts
+
+    // CSS 2.1, Section 16 - Text
+
+    // CSS 2.1, Section 17 - Tables
+
+    // CSS 2.1, Section 18 - User interface
 
 }
 
