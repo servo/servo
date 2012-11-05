@@ -121,5 +121,6 @@ DEPS_rust-azure += \
 DEPS_rust-layers += \
 	rust-freetype \
 	rust-fontconfig \
+	rust-xlib \
 	$(NULL)
 endif
