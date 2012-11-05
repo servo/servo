@@ -11,7 +11,8 @@ DEPS_rust-azure += \
 	$(NULL)
 
 DEPS_rust-glut += \
-	rust-opengles
+	rust-opengles \
+	$(NULL)
 
 DEPS_rust-layers += \
 	rust-azure \
@@ -23,57 +24,77 @@ DEPS_rust-layers += \
 
 DEPS_sharegl += \
 	rust-geom \
-	rust-opengles
+	rust-opengles \
+	$(NULL)
 
 DEPS_rust-hubbub += \
-	libhubbub
+	libhubbub \
+	$(NULL)
 
 DEPS_rust-netsurfcss += \
 	libcss \
-	rust-wapcaplet
+	rust-wapcaplet \
+	$(NULL)
 
 DEPS_rust-wapcaplet += \
-	libwapcaplet
+	libwapcaplet \
+	$(NULL)
 
 CFLAGS_rust-wapcaplet += \
-	"-I$(S)src/libwapcaplet/include"
+	"-I$(S)src/libwapcaplet/include" \
+	$(NULL)
 
 DEPS_rust-css += \
 	rust-netsurfcss \
-	rust-wapcaplet
+	rust-wapcaplet \
+	$(NULL)
 
 CFLAGS_mozjs += \
-	"-I../mozjs/dist/include"
+	"-I../mozjs/dist/include" \
+	$(NULL)
 
 DEPS_rust-mozjs += \
-	mozjs
+	mozjs \
+	$(NULL)
 
 CFLAGS_rust-mozjs += \
-	"-I../mozjs/dist/include"
+	"-I../mozjs/dist/include" \
+	$(NULL)
 
 DEPS_libcss += \
 	libwapcaplet \
-	libparserutils
+	libparserutils \
+	$(NULL)
 
 # Platform-specific dependencies
 ifeq ($(CFG_OSTYPE),darwin)
 DEPS_rust-azure += \
 	rust-core-graphics \
-	rust-core-foundation
+	rust-core-foundation \
+	$(NULL)
 
 DEPS_rust-cairo += \
-	rust-core-graphics
+	rust-core-graphics \
+	$(NULL)
 
 DEPS_rust-io-surface += \
-	rust-core-foundation
+	rust-core-foundation \
+	$(NULL)
 
 DEPS_sharegl += \
 	rust-core-foundation \
-	rust-io-surface
+	rust-io-surface \
+	$(NULL)
 
 DEPS_rust-core-text += \
 	rust-core-foundation \
-	rust-core-graphics
+	rust-core-graphics \
+	$(NULL)
+
+DEPS_rust-layers += \
+	rust-core-graphics \
+	$(NULL)
+
 endif
 
 ifeq ($(CFG_OSTYPE),linux)
@@ -82,17 +103,17 @@ DEPS_rust-cairo += \
 	rust-freetype \
 	rust-fontconfig \
 	rust-xlib \
-	$(NONE)
+	$(NULL)
 
 DEPS_rust-azure += \
 	rust-freetype \
 	rust-fontconfig \
 	rust-xlib \
-	$(NONE)
+	$(NULL)
 
 # See note at top of file
 DEPS_rust-layers += \
 	rust-freetype \
 	rust-fontconfig \
-	$(NONE)
+	$(NULL)
 endif
