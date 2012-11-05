@@ -1,3 +1,9 @@
+# Tests for these submodules will not be run by the default `make check` target.
+SLOW_TESTS += \
+	mozjs \
+	$(NULL)
+
+
 # NOTE: the make magic can only compute transitive build dependencies,
 # not transitive link flags. So, if A -> B -> C, must add A as a dep
 # of C so the correct -L/path/to/A flag is generated for building C.
