@@ -1,5 +1,3 @@
-pub use font_cache::FontCache;
-
 use au = gfx::geometry;
 use au::Au;
 use azure::{
@@ -7,15 +5,12 @@ use azure::{
     AzScaledFontRef,
 };
 use core::dvec::DVec;
-use gfx::render_context::RenderContext;
+use gfx::RenderContext;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use glyph::{GlyphStore, GlyphIndex};
-use native_font::NativeFont;
 use servo_util::range::Range;
-use shaper::Shaper;
-use text::text_run::TextRun;
 
 // Used to abstract over the shaper's choice of fixed int representation.
 type FractionalPixel = float;

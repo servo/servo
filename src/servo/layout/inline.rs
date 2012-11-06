@@ -13,10 +13,9 @@ use layout::context::LayoutContext;
 use layout::flow::{FlowContext, InlineFlow};
 use layout::text::TextBoxData;
 use num::Num;
-use servo_text::text_run::TextRun;
-use servo_text::util::*;
 use std::arc;
 use util::range::{MutableRange, Range};
+use util::text::*;
 use util::tree;
 
 /*
@@ -270,7 +269,7 @@ impl TextRunScanner {
                 // create the run, then make new boxes with the run and adjusted text indices
 
                 // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
-                let run = @TextRun::new(ctx.font_cache.get_test_font(), move run_str);
+                let run = @gfx::TextRun::new(ctx.font_cache.get_test_font(), move run_str);
                 debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
                 for self.clump.eachi |i| {
                     let range = new_ranges[i - self.clump.begin()];

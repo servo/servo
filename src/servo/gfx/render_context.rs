@@ -1,9 +1,10 @@
 use au = geometry;
-
 use compositor::LayerBuffer;
-use text::font::Font;
-use text::text_run::TextRun;
-use text::font_cache::FontCache;
+use gfx::{
+    Font,
+    FontCache,
+    TextRun,
+};
 use image::base::Image;
 use au::Au;
 use util::range::Range;

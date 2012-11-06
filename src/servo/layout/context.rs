@@ -1,8 +1,10 @@
-use resource::local_image_cache::LocalImageCache;
-use servo_text::font_cache::FontCache;
-use std::net::url::Url;
 use geom::rect::Rect;
-use gfx::geometry::Au;
+use gfx::{
+    Au,
+    FontCache,
+};
+use resource::local_image_cache::LocalImageCache;
+use std::net::url::Url;
 
 /* Represents layout task context. */
 

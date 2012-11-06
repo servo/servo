@@ -16,7 +16,6 @@ use layout::box::{RenderBox, TextBox};
 use layout::context::LayoutContext;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
-use servo_text::text_run::TextRun;
 use util::tree;
 use vec::push;
 

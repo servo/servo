@@ -3,10 +3,9 @@ use au = gfx::geometry;
 use au::Au;
 use geom::rect::Rect;
 use geom::point::Point2D;
+use gfx::SendableTextRun;
 use image::base::Image;
 use render_context::RenderContext;
-use servo_text::text_run;
-use text::text_run::SendableTextRun;
 use util::range::Range;
 use color::{Color, rgb};
 

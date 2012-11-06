@@ -16,40 +16,41 @@ extern mod hubbub;
 extern mod js;
 extern mod layers;
 extern mod opengles;
+extern mod newcss (name = "css");
 extern mod sharegl;
 extern mod stb_image;
 extern mod std;
-extern mod newcss (name = "css");
-
-pub mod engine;
-
-pub mod dom {
-    pub mod bindings {
-        pub mod document;
-        pub mod element;
-        pub mod utils;
-        pub mod node;
-        pub mod window;
-    }
-    pub mod document;
-    pub mod element;
-    pub mod event;
-    pub mod node;
-    pub mod cow;
-    pub mod window;
-}
 
 pub mod content {
     pub mod content_task;
 }
 
 pub mod css {
-    pub mod node_style;
-    pub mod matching;
     priv mod select_handler;
     priv mod node_util;
     priv mod node_void_ptr;
+
+    pub mod matching;
+    pub mod node_style;
 }
+
+pub mod dom {
+    pub mod bindings {
+        pub mod document;
+        pub mod element;
+        pub mod node;
+        pub mod utils;
+        pub mod window;
+    }
+    pub mod cow;
+    pub mod document;
+    pub mod element;
+    pub mod event;
+    pub mod node;
+    pub mod window;
+}
+
+pub mod engine;
 
 pub mod layout {
     pub mod block;
@@ -68,48 +69,32 @@ pub mod layout {
 }
 
 pub mod gfx {
+    priv mod render_context;
+
+    // rendering
     pub mod color;
-    pub mod geometry;
-    pub mod surface;
-    pub mod render_task;
     pub mod compositor;
     pub mod display_list;
+    pub mod geometry;
     pub mod render_layers;
-    priv mod render_context;
-}
+    pub mod render_task;
+    pub mod surface;
 
-pub mod image {
-    pub mod base;
-    pub mod holder;
-    pub mod encode {
-        pub mod tga;
-    }
-}
-
-pub mod html {
-    pub mod hubbub_html_parser;
-    pub mod cssparse;
-}
-
-pub mod platform {
-    pub mod base;
-    pub mod osmain;
-    priv mod resize_rate_limiter;
-}
-
-pub mod text {
+    // fonts
     pub mod font;
     pub mod font_cache;
     pub mod font_matcher;
     pub mod glyph;
     pub mod text_run;
-    pub mod util;
 
-    // platform and library-specific implementations.
+    // Typedefs and pub-uses for multiple implementations. If prefixed
+    // with 'native', then the specific implementataion is composed by
+    // a non-prefixed version, listed above.
     pub mod font_context;
     pub mod native_font;
     pub mod shaper;
 
+    // Below are the actual platform-specific parts.
     pub mod harfbuzz {
         pub mod shaper;
     }
@@ -127,24 +112,43 @@ pub mod text {
     }
 }
 
+pub mod image {
+    pub mod base;
+    pub mod encode {
+        pub mod tga;
+    }
+    pub mod holder;
+}
+
+pub mod html {
+    pub mod cssparse;
+    pub mod hubbub_html_parser;
+}
+
+pub mod platform {
+    pub mod base;
+    pub mod osmain;
+    priv mod resize_rate_limiter;
+}
+
 pub mod resource {
-    pub mod resource_task;
     pub mod file_loader;
     pub mod http_loader;
     pub mod image_cache_task;
     pub mod local_image_cache;
+    pub mod resource_task;
 }
 
 pub mod util {
-    pub mod tree;
+    pub mod actor;
+    pub mod range;
+    pub mod text;
     pub mod time;
+    pub mod tree;
     pub mod url;
     pub mod vec;
-    pub mod range;
-    pub mod actor;
 }
 
 pub mod opts;
 
 use servo_util = util;
-use servo_text = text;

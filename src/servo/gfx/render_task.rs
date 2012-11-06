@@ -1,21 +1,27 @@
-use au = gfx::geometry;
-use au::Au;
-use azure::AzFloat;
 use comm::*;
-use compositor::{Compositor, LayerBufferSet};
-use dl = display_list;
-use geom::matrix2d::Matrix2D;
-use gfx::render_layers::RenderLayer;
 use libc::size_t;
 use libc::types::common::c99::uint16_t;
-use mod gfx::render_layers;
 use pipes::{Port, Chan};
-use platform::osmain;
-use render_context::RenderContext;
-use render_layers::render_layers;
 use std::cell::Cell;
-use text::font_cache::FontCache;
-use text::font_context::FontContext;
+
+use azure::AzFloat;
+use geom::matrix2d::Matrix2D;
+
+use dl = display_list;
+use gfx::{
+    FontCache,
+    FontContext,
+    RenderContext,
+    RenderLayer,
+};
+use gfx::compositor::{
+    Compositor,
+    LayerBufferSet,
+};
+use mod gfx::render_layers;
+use platform::osmain;
+use render_layers::render_layers;
+
 
 pub enum Msg {
     RenderMsg(RenderLayer),

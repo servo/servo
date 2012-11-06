@@ -40,8 +40,6 @@ impl SendableTextRun {
 
 impl TextRun {
     static fn new(font: @Font, text: ~str) -> TextRun {
-        use shaper::Shaper;
-
         let glyph_store = font.shape_text(text);
         let run = TextRun {
             text: move text,

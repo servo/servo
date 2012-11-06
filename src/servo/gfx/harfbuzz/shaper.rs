@@ -1,17 +1,20 @@
 extern mod harfbuzz;
 
-use font::Font;
-use font_cache::FontCache;
+use gfx::{
+    au,
 
-use au = gfx::geometry;
-use au::Au;
+    Au,
+    Font,
+    FontCache,
+};
+
 use geom::point::Point2D;
 use glyph::{GlyphStore, GlyphIndex, GlyphData};
 use libc::types::common::c99::int32_t;
 use libc::{c_uint, c_int, c_void, c_char};
 use ptr::{null, to_unsafe_ptr, offset};
 use std::arc;
-use util::*;
+use util = util::text;
 
 use harfbuzz::{HB_MEMORY_MODE_READONLY,
                   HB_DIRECTION_LTR};

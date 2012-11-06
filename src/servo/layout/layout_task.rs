@@ -3,20 +3,24 @@
     rendered.
 */
 
-use au = gfx::geometry;
-use au::Au;
 use content::content_task;
 use core::dvec::DVec;
 use newcss::stylesheet::Stylesheet;
-use dl = gfx::display_list;
 use dom::event::{Event, ReflowEvent};
 use dom::node::{Node, LayoutData};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::display_list::DisplayList;
+use gfx::{
+    au, dl,
+    Au,
+    DisplayList,
+    FontCache,
+    FontContext,
+    FontMatcher,
+    RenderLayer,
+};
 use gfx::render_task;
-use gfx::render_layers::RenderLayer;
 use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
@@ -24,9 +28,6 @@ use opt = core::option;
 use render_task::RenderTask;
 use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use resource::local_image_cache::LocalImageCache;
-use servo_text::font_context::FontContext;
-use servo_text::font_cache::FontCache;
-use servo_text::font_matcher::FontMatcher;
 use std::arc::ARC;
 use std::net::url::Url;
 use core::util::replace;
