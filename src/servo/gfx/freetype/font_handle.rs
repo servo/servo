@@ -31,7 +31,7 @@ fn fixed_to_float_ft(f: i32) -> float {
     fixed_to_float(6, f)
 }
 
-pub struct FreeTypeNativeFont {
+pub struct FreeTypeFontHandle {
     /// The font binary. This must stay valid for the lifetime of the font
     buf: @~[u8],
     face: FT_Face,
@@ -44,9 +44,9 @@ pub struct FreeTypeNativeFont {
     }
 }
 
-pub impl FreeTypeNativeFont {
+pub impl FreeTypeFontHandle {
     static pub fn new(fctx: &FreeTypeFontContext,
-                      buf: @~[u8], pt_size: float) -> Result<FreeTypeNativeFont, ()> {
+                      buf: @~[u8], pt_size: float) -> Result<FreeTypeFontHandle, ()> {
         let ft_ctx = fctx.ctx;
         assert ft_ctx.is_not_null();
         let face: FT_Face = null();
@@ -59,7 +59,7 @@ pub impl FreeTypeNativeFont {
                                            72, // horiz. DPI
                                            72); // vert. DPI
                 if !res.succeeded() { fail ~"unable to set font char size" }
-                Ok(FreeTypeNativeFont { face: face, buf: buf })
+                Ok(FreeTypeFontHandle { face: face, buf: buf })
             } else {
                 Err(())
             }

@@ -14,7 +14,6 @@ pub use font_cache::FontCache;
 pub use font_context::FontContext;
 pub use font_matcher::FontMatcher;
 pub use geometry::Au;
-pub use native_font::NativeFont;
 pub use shaper::Shaper;
 pub use text_run::TextRun;
 pub use text_run::SendableTextRun;

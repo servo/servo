@@ -53,7 +53,7 @@ use ct::font_descriptor::{
     kCTFontDefaultOrientation,
 };
 
-pub struct QuartzNativeFont {
+pub struct QuartzFontHandle {
     fontprov: CGDataProviderRef,
     cgfont: CGFontRef,
     ctfont: CTFontRef,
@@ -69,8 +69,8 @@ pub struct QuartzNativeFont {
     }
 }
 
-pub impl QuartzNativeFont {
-    static pub fn new(_fctx: &QuartzFontContext, buf: @~[u8], pt_size: float) -> Result<QuartzNativeFont, ()> {
+pub impl QuartzFontHandle {
+    static pub fn new(_fctx: &QuartzFontContext, buf: @~[u8], pt_size: float) -> Result<QuartzFontHandle, ()> {
         let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
             CGDataProviderCreateWithData(
                 null(),
@@ -86,7 +86,7 @@ pub impl QuartzNativeFont {
         let ctfont = ctfont_from_cgfont(cgfont, pt_size);
         if ctfont.is_null() { return Err(()); }
 
-        Ok(QuartzNativeFont {
+        Ok(QuartzFontHandle {
             fontprov : fontprov,
             cgfont : cgfont,
             ctfont : ctfont,

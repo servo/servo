@@ -88,11 +88,11 @@ pub mod gfx {
     pub mod glyph;
     pub mod text_run;
 
-    // Typedefs and pub-uses for multiple implementations. If prefixed
-    // with 'native', then the specific implementataion is composed by
-    // a non-prefixed version, listed above.
+    // Typedefs and pub-uses for multiple implementations.
+    // native contains redirects, so one can write native::FontHandle.
+    pub mod native;
     pub mod font_context;
-    pub mod native_font;
+    pub mod font_handle;
     pub mod shaper;
 
     // Below are the actual platform-specific parts.
@@ -103,13 +103,13 @@ pub mod gfx {
     #[cfg(target_os = "macos")]
     pub mod quartz {
         pub mod font_context;
-        pub mod native_font;
+        pub mod font_handle;
     }
 
     #[cfg(target_os = "linux")]
     pub mod freetype {
         pub mod font_context;
-        pub mod native_font;
+        pub mod font_handle;
     }
 }
 

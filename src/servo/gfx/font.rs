@@ -10,6 +10,8 @@ use geom::{Point2D, Rect, Size2D};
 use glyph::{GlyphStore, GlyphIndex};
 use servo_util::range::Range;
 
+use native::FontHandle;
+
 // Used to abstract over the shaper's choice of fixed int representation.
 type FractionalPixel = float;
 
@@ -72,7 +74,7 @@ and the renderer can use it to render text.
 */
 struct Font {
     priv fontbuf: @~[u8],
-    priv native_font: NativeFont,
+    priv handle: FontHandle,
     priv mut azure_font: Option<AzScaledFontRef>,
     priv mut shaper: Option<@Shaper>,
     style: FontStyle,
@@ -86,12 +88,12 @@ struct Font {
 
 impl Font {
     // TODO: who should own fontbuf?
-    static fn new(fontbuf: @~[u8], native_font: NativeFont, style: FontStyle) -> Font {
-        let metrics = native_font.get_metrics();
+    static fn new(fontbuf: @~[u8], handle: FontHandle, style: FontStyle) -> Font {
+        let metrics = handle.get_metrics();
 
         Font {
             fontbuf : fontbuf,
-            native_font : move native_font,
+            handle : move handle,
             azure_font: None,
             shaper: None,
             style: move style,
@@ -151,7 +153,7 @@ impl Font {
         fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
             use cairo::cairo_ft::bindgen::{cairo_ft_font_face_create_for_ft_face};
 
-            let ftface = font.native_font.face;
+            let ftface = font.handle.face;
             let cface = cairo_ft_font_face_create_for_ft_face(ftface, 0 as c_int);
             // FIXME: error handling
             return cface;
@@ -161,7 +163,7 @@ impl Font {
         fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
             use cairo::cairo_quartz::bindgen::cairo_quartz_font_face_create_for_cgfont;
 
-            let cgfont = font.native_font.cgfont;
+            let cgfont = font.handle.cgfont;
             let face = cairo_quartz_font_face_create_for_cgfont(cgfont);
             // FIXME: error handling
             return face;
@@ -318,11 +320,11 @@ pub impl Font : FontMethods {
     }
 
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
-        self.native_font.glyph_index(codepoint)
+        self.handle.glyph_index(codepoint)
     }
 
     fn glyph_h_advance(glyph: GlyphIndex) -> FractionalPixel {
-        match self.native_font.glyph_h_advance(glyph) {
+        match self.handle.glyph_h_advance(glyph) {
           Some(adv) => adv,
           None => /* FIXME: Need fallback strategy */ 10f as FractionalPixel
         }
