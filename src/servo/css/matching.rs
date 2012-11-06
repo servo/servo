@@ -4,6 +4,7 @@
 use std::arc::{ARC, get, clone};
 use dom::node::{Node, NodeTree};
 use newcss::select::{SelectCtx, SelectResults};
+use newcss::complete::CompleteSelectResults;
 use layout::context::LayoutContext;
 use select_handler::NodeSelectHandler;
 
@@ -20,20 +21,48 @@ impl Node : MatchMethods {
      * computed style.
      */
     fn restyle_subtree(select_ctx: &SelectCtx) {
-        let mut i = 0u;
-        
-        for NodeTree.each_child(&self) |kid| {
-            i = i + 1u;
-            kid.restyle_subtree(select_ctx); 
-        }
 
         // Only elements have styles
         if self.is_element() {
             let select_handler = NodeSelectHandler {
                 node: self
             };
-            let style = select_ctx.select_style(&self, &select_handler);
-            self.set_css_select_results(move style);
+            let incomplete_results = select_ctx.select_style(&self, &select_handler);
+            // Combine this node's results with its parent's to resolve all inherited values
+            let complete_results = compose_results(&self, move incomplete_results);
+            self.set_css_select_results(move complete_results);
         }
+
+        let mut i = 0u;
+        
+        for NodeTree.each_child(&self) |kid| {
+            i = i + 1u;
+            kid.restyle_subtree(select_ctx); 
+        }
+    }
+}
+
+fn compose_results(node: &Node, results: SelectResults) -> CompleteSelectResults {
+    match find_parent_element_node(node) {
+        None => CompleteSelectResults::new_root(move results),
+        Some(parent_node) => {
+            let parent_results = parent_node.get_css_select_results();
+            CompleteSelectResults::new_from_parent(parent_results, move results)
+        }
+    }    
+}
+
+fn find_parent_element_node(node: &Node) -> Option<Node> {
+    use util::tree::parent;
+
+    match parent(&NodeTree, node) {
+        Some(ref parent) => {
+            if parent.is_element() {
+                Some(*parent)
+            } else {
+                find_parent_element_node(parent)
+            }
+        }
+        None => None
     }
 }

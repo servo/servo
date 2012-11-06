@@ -8,7 +8,8 @@ use au::Au;
 use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
-use css::node_style::{NodeStyle, StyledNode};
+use css::node_style::StyledNode;
+use newcss::complete::CompleteStyle;
 use newcss::units::{BoxSizing, Length, Px};
 use newcss::values::{CSSDisplay, Specified, CSSBackgroundColorColor, CSSBackgroundColorTransparent};
 use newcss::values::{CSSBorderColor, CSSPositionAbsolute};
@@ -364,7 +365,7 @@ impl RenderBox : RenderBoxMethods {
         self.content_box()
     }
 
-    fn style(&self) -> NodeStyle/&self {
+    fn style(&self) -> CompleteStyle/&self {
         let d: &self/RenderBoxData = self.d();
         d.node.style()
     }
