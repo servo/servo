@@ -25,6 +25,7 @@ trait StyledNode {
 
 impl Node: StyledNode {
     fn style(&self) -> NodeStyle/&self {
+        assert self.is_element(); // Only elements can have styles
         NodeStyle::new(self)
     }
 }

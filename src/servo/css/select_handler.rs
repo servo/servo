@@ -6,17 +6,10 @@ pub struct NodeSelectHandler {
     node: Node
 }
 
-/// Placeholder names
-fn unnamed_node(name: &str) -> ~str {
-    fmt!("unnamed-%s", name)
-}
-
 fn node_name(data: &NodeData) -> ~str {
     match *data.kind {
-        Doctype(*) => unnamed_node("doctype"),
-        Comment(*) => unnamed_node("comment"),
         Element(ref data) => copy data.tag_name,
-        Text(*) => unnamed_node("text")
+        _ => fail ~"attempting to style non-element node"
     }
 }
 

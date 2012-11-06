@@ -435,6 +435,9 @@ impl RenderBox : RenderBoxMethods {
 
     fn add_bgcolor_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
         use std::cmp::FuzzyEq;
+
+        if !self.d().node.is_element() { return }
+
         let bgcolor = self.style().background_color();
         if !bgcolor.alpha.fuzzy_eq(&0.0) {
             list.append_item(~DisplayItem::new_SolidColor(abs_bounds, bgcolor.to_gfx_color()));
@@ -442,6 +445,8 @@ impl RenderBox : RenderBoxMethods {
     }
 
     fn add_border_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
+        if !self.d().node.is_element() { return }
+
         let top_width = self.style().border_top_width();
         let right_width = self.style().border_right_width();
         let bottom_width = self.style().border_bottom_width();

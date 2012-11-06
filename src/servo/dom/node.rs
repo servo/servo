@@ -71,6 +71,12 @@ impl Node : DebugMethods {
     }
 }
 
+impl Node {
+    fn is_element(&self) -> bool {
+        self.read(|n| match *n.kind { Element(*) => true, _ => false } )
+    }
+}
+
 pub enum NodeKind {
     Doctype(DoctypeData),
     Comment(~str),

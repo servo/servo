@@ -27,10 +27,13 @@ impl Node : MatchMethods {
             kid.restyle_subtree(select_ctx); 
         }
 
-        let select_handler = NodeSelectHandler {
-            node: self
-        };
-        let style = select_ctx.select_style(&self, &select_handler);
-        self.set_css_select_results(move style);
+        // Only elements have styles
+        if self.is_element() {
+            let select_handler = NodeSelectHandler {
+                node: self
+            };
+            let style = select_ctx.select_style(&self, &select_handler);
+            self.set_css_select_results(move style);
+        }
     }
 }
