@@ -6,9 +6,7 @@ use azure::{
 };
 use core::dvec::DVec;
 use gfx::RenderContext;
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::size::Size2D;
+use geom::{Point2D, Rect, Size2D};
 use glyph::{GlyphStore, GlyphIndex};
 use servo_util::range::Range;
 
