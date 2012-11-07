@@ -5,11 +5,11 @@ use font_context::FreeTypeFontContext;
 
 use gfx::geometry;
 use gfx::geometry::Au;
-use util::*;
 use vec_as_buf = vec::as_imm_buf;
 use ptr::{addr_of, null};
 use cast::reinterpret_cast;
 use glyph::GlyphIndex;
+use servo_util::text::{float_to_fixed, fixed_to_float};
 
 use freetype::{ FT_Error, FT_Library, FT_Face, FT_Long, FT_ULong, FT_Size, FT_SizeRec,
                FT_UInt, FT_GlyphSlot, FT_Size_Metrics, FT_FaceRec, FT_F26Dot6 };
