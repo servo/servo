@@ -49,7 +49,7 @@ impl DisplayItem {
         match *self {
             SolidColor(_, color) => ctx.draw_solid_color(&self.d().bounds, color),
             Text(_, run, range) => {
-                let new_run = @run.deserialize(ctx.font_cache);
+                let new_run = @run.deserialize(ctx.font_ctx);
                 let font = new_run.font;
                 let origin = self.d().bounds.origin;
                 let baseline_origin = Point2D(origin.x, origin.y + font.metrics.ascent);

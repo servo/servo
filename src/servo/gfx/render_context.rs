@@ -1,12 +1,12 @@
-use au = geometry;
 use compositor::LayerBuffer;
+use gfx::au;
 use gfx::{
+    Au,
     Font,
-    FontCache,
+    FontContext,
     TextRun,
 };
 use image::base::Image;
-use au::Au;
 use util::range::Range;
 
 use cairo::cairo_hl::ImageSurface;
@@ -23,7 +23,7 @@ use azure::azure_hl::{DrawTarget, Linear};
 
 struct RenderContext {
     canvas: &LayerBuffer,
-    font_cache: @FontCache,
+    font_ctx: @FontContext,
 }
 
 impl RenderContext  {

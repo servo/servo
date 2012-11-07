@@ -1,11 +1,9 @@
 extern mod harfbuzz;
 
+use gfx::au;
 use gfx::{
-    au,
-
     Au,
     Font,
-    FontCache,
 };
 
 use geom::point::Point2D;

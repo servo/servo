@@ -409,9 +409,7 @@ impl RenderBox : RenderBoxMethods {
         match *self {
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
             TextBox(_,d) => {
-                list.append_item(~DisplayItem::new_Text(&abs_box_bounds, 
-                                                        ~d.run.serialize(builder.ctx.font_cache),
-                                                        d.range));
+                list.append_item(~DisplayItem::new_Text(&abs_box_bounds, ~d.run.serialize(), d.range));
                 // debug frames for text box bounds
                 debug!("%?", { 
                     list.append_item(~DisplayItem::new_Border(&abs_box_bounds, au::from_px(1),

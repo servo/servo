@@ -10,7 +10,11 @@ pub use dl = display_list;
 
 pub use display_list::DisplayList;
 pub use font::Font;
-pub use font_cache::FontCache;
+pub use font::FontDescriptor;
+pub use font::FontGroup;
+pub use font::FontSelector;
+pub use font::FontStyle;
+pub use font::RunMetrics;
 pub use font_context::FontContext;
 pub use font_matcher::FontMatcher;
 pub use geometry::Au;

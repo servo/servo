@@ -11,11 +11,10 @@ use dom::node::{Node, LayoutData};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use gfx::{au, dl};
 use gfx::{
-    au, dl,
     Au,
     DisplayList,
-    FontCache,
     FontContext,
     FontMatcher,
     RenderLayer,
@@ -81,7 +80,7 @@ struct Layout {
     local_image_cache: @LocalImageCache,
     from_content: comm::Port<Msg>,
 
-    font_cache: @FontCache,
+    font_ctx: @FontContext,
     font_matcher: @FontMatcher,
     // This is used to root auxilliary RCU reader data
     layout_refs: DVec<@LayoutData>,
@@ -100,7 +99,7 @@ fn Layout(render_task: RenderTask,
         local_image_cache: @LocalImageCache(move image_cache_task),
         from_content: from_content,
         font_matcher: @FontMatcher::new(fctx),
-        font_cache: @FontCache::new(fctx),
+        font_ctx: fctx,
         layout_refs: DVec(),
         css_select_ctx: Mut(new_css_select_ctx())
     }
@@ -169,7 +168,7 @@ impl Layout {
 
         let layout_ctx = LayoutContext {
             image_cache: self.local_image_cache,
-            font_cache: self.font_cache,
+            font_ctx: self.font_ctx,
             doc_url: move doc_url,
             screen_size: Rect(Point2D(Au(0), Au(0)), screen_size)
         };

@@ -1,11 +1,15 @@
 use arc = std::arc;
 use arc::ARC;
-use au = gfx::geometry;
-use font::{RunMetrics, Font};
-use font_cache::FontCache;
 use geom::point::Point2D;
 use geom::size::Size2D;
-use gfx::geometry::Au;
+use gfx::au;
+use gfx::{
+    Au,
+    Font,
+    FontContext,
+    FontDescriptor,
+    RunMetrics,
+};
 use glyph::GlyphStore;
 use layout::context::LayoutContext;
 use libc::{c_void};
@@ -23,16 +27,20 @@ pub struct TextRun {
 // we instead use ARC<TextRun> everywhere.
 pub struct SendableTextRun {
     text: ~str,
-    font_descriptor: (),
+    font: FontDescriptor,
     priv glyphs: GlyphStore,
 }
 
 impl SendableTextRun {
-    pub fn deserialize(&self, cache: @FontCache) -> TextRun {
+    pub fn deserialize(&self, fctx: @FontContext) -> TextRun {
+        let font = match fctx.get_font_by_descriptor(&self.font) {
+            Ok(f) => f,
+            Err(_) => fail fmt!("Font descriptor deserialization failed! desc=%?", self.font)
+        };
+
         TextRun {
             text: copy self.text,
-            // TODO: actually deserialize a font descriptor thingy
-            font: cache.get_test_font(),
+            font: font,
             glyphs: copy self.glyphs
         }
     }
@@ -49,11 +57,10 @@ impl TextRun {
         return move run;
     }
 
-    pub pure fn serialize(&self, _cache: @FontCache) -> SendableTextRun {
+    pub fn serialize(&self) -> SendableTextRun {
         SendableTextRun {
             text: copy self.text,
-            // TODO: actually serialize a font descriptor thingy
-            font_descriptor: (),
+            font: self.font.get_descriptor(),
             glyphs: copy self.glyphs,
         }
     }

@@ -9,7 +9,6 @@ use geom::matrix2d::Matrix2D;
 
 use dl = display_list;
 use gfx::{
-    FontCache,
     FontContext,
     RenderContext,
     RenderLayer,
@@ -42,7 +41,7 @@ pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
             port: po,
             compositor: move compositor,
             mut layer_buffer_set_port: Cell(move layer_buffer_set_port),
-            font_cache: @FontCache::new(@FontContext::new()),
+            font_ctx: @FontContext::new(),
         }.start();
     }
 }
@@ -51,7 +50,7 @@ priv struct Renderer<C: Compositor Send> {
     port: comm::Port<Msg>,
     compositor: C,
     layer_buffer_set_port: Cell<pipes::Port<LayerBufferSet>>,
-    font_cache: @FontCache
+    font_ctx: @FontContext
 }
 
 impl<C: Compositor Send> Renderer<C> {
@@ -97,7 +96,7 @@ impl<C: Compositor Send> Renderer<C> {
                     |render_layer, layer_buffer| {
                 let ctx = RenderContext {
                     canvas: layer_buffer,
-                    font_cache: self.font_cache
+                    font_ctx: self.font_ctx
                 };
 
                 // Apply the translation to render the tile we want.

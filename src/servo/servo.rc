@@ -142,6 +142,7 @@ pub mod resource {
 
 pub mod util {
     pub mod actor;
+    pub mod cache;
     pub mod range;
     pub mod text;
     pub mod time;

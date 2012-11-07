@@ -162,7 +162,7 @@ fn test_transform_discard_newline() {
                                    ~"foo bar baz",
                                    ~"foobarbaz"];
 
-    assert core::vec::same_length(test_strs, oracle_strs);
+    assert test_strs.len() == oracle_strs.len();
     let mode = DiscardNewline;
 
     for uint::range(0, test_strs.len()) |i| {
@@ -188,7 +188,7 @@ fn test_transform_compress_whitespace() {
                                  ~"foo bar baz",
                                  ~"foobarbaz\n\n"];
 
-    assert core::vec::same_length(test_strs, oracle_strs);
+    assert test_strs.len() == oracle_strs.len();
     let mode = CompressWhitespace;
 
     for uint::range(0, test_strs.len()) |i| {
@@ -214,7 +214,7 @@ fn test_transform_compress_whitespace_newline() {
                                  ~"foo bar baz",
                                  ~"foobarbaz "];
 
-    assert core::vec::same_length(test_strs, oracle_strs);
+    assert test_strs.len() == oracle_strs.len();
     let mode = CompressWhitespaceNewline;
 
     for uint::range(0, test_strs.len()) |i| {

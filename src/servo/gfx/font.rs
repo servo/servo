@@ -38,23 +38,147 @@ enum CSSFontWeight {
     FontWeight800,
     FontWeight900,
 }
+pub impl CSSFontWeight : cmp::Eq;
 
-struct FontStyle {
+// TODO: eventually this will be split into the specified and used
+// font styles.  specified contains uninterpreted CSS font property
+// values, while 'used' is attached to gfx::Font to descript the
+// instance's properties.
+//
+// For now, the cases are differentiated with a typedef
+pub struct FontStyle {
     pt_size: float,
     weight: CSSFontWeight,
     italic: bool,
     oblique: bool,
+    families: ~str,
+    // TODO: font-stretch, text-decoration, font-variant, size-adjust
 }
 
-struct FontFaceProperties {
+// TODO(Issue #181): use deriving for trivial cmp::Eq implementations
+pub impl FontStyle : cmp::Eq {
+    pure fn eq(other: &FontStyle) -> bool {
+        use std::cmp::FuzzyEq;
+
+        self.pt_size.fuzzy_eq(&other.pt_size) &&
+            self.weight == other.weight &&
+            self.italic == other.italic &&
+            self.oblique == other.oblique &&
+            self.families == other.families
+    }
+    pure fn ne(other: &FontStyle) -> bool { !self.eq(other) }
+}
+
+pub type SpecifiedFontStyle = FontStyle;
+pub type UsedFontStyle = FontStyle;
+
+// TODO: move me to layout
+struct ResolvedFont {
+    group: @FontGroup,
+    style: SpecifiedFontStyle,
+}
+
+// FontDescriptor serializes a specific font and used font style
+// options, such as point size.
+
+// It's used to swizzle/unswizzle gfx::Font instances when
+// communicating across tasks, such as the display list between layout
+// and render tasks.
+pub struct FontDescriptor {
+    style: UsedFontStyle,
+    selector: FontSelector,
+}
+
+
+// TODO(Issue #181): use deriving for trivial cmp::Eq implementations
+pub impl FontDescriptor : cmp::Eq {
+    pure fn eq(other: &FontDescriptor) -> bool {
+        self.style == other.style &&
+            self.selector == other.selector
+    }
+    pure fn ne(other: &FontDescriptor) -> bool { !self.eq(other) }
+}
+
+pub impl FontDescriptor {
+    static pure fn new(style: &UsedFontStyle, selector: &FontSelector) -> FontDescriptor {
+        FontDescriptor {
+            style: copy *style,
+            selector: copy *selector,
+        }
+    }
+}
+
+// A FontSelector is a platform-specific strategy for serializing face names.
+pub enum FontSelector {
+    SelectorPlatformName(~str),
+    SelectorStubDummy, // aka, use Josephin Sans
+}
+
+// TODO(Issue #181): use deriving for trivial cmp::Eq implementations
+pub impl FontSelector : cmp::Eq {
+    pure fn eq(other: &FontSelector) -> bool {
+        match (self, *other) {
+            (SelectorStubDummy, SelectorStubDummy) => true,
+            (SelectorPlatformName(a), SelectorPlatformName(b)) => a == b,
+            _ => false
+        }
+    }
+    pure fn ne(other: &FontSelector) -> bool { !self.eq(other) }
+}
+
+// Holds a specific font family, and the various 
+pub struct FontFamily {
     family_name: @str,
-    face_name: ~str,
-    priv weight: u16,
-    priv italic: bool,
+    entries: ~[@FontEntry],
 }
 
-impl FontFaceProperties {
-    pure fn is_bold() -> bool { self.weight >= (500 as u16) }
+// This struct is the result of mapping a specified FontStyle into the
+// available fonts on the system. It contains an ordered list of font
+// instances to be used in case the prior font cannot be used for
+// rendering the specified language.
+
+// The ordering of font instances is mainly decided by the CSS
+// 'font-family' property. The last font is a system fallback font.
+pub struct FontGroup {
+    families: @str,
+    // style of the first western font in group, which is
+    // used for purposes of calculating text run metrics.
+    style: UsedFontStyle,
+    fonts: ~[@Font],
+}
+
+pub impl FontGroup {
+    static fn new(families: @str, style: &UsedFontStyle, fonts: ~[@Font]) -> FontGroup {
+        FontGroup {
+            families: families,
+            style: copy *style,
+            fonts: move fonts,
+        }
+    }
+}
+
+
+// This struct summarizes an available font's features. In the future,
+// this will include fiddly settings such as special font table handling.
+
+// In the common case, each FontFamily will have a singleton FontEntry, or
+// it will have the standard four faces: Normal, Bold, Italic, BoldItalic.
+struct FontEntry {
+    family: @FontFamily,
+    face_name: ~str,
+    priv weight: CSSFontWeight,
+    priv italic: bool,
+    // TODO: array of OpenType features, etc.
+}
+
+impl FontEntry {
+    pure fn is_bold() -> bool { 
+        match self.weight {
+            FontWeight900 | FontWeight800 | FontWeight700 | FontWeight600 => true,
+            _ => false
+        }
+    }
+
     pure fn is_italic() -> bool { self.italic }
 }
 
@@ -69,7 +193,7 @@ struct RunMetrics {
 }
 
 /**
-A font handle. Layout can use this to calculate glyph metrics
+A font instance. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
 */
 struct Font {
@@ -77,7 +201,7 @@ struct Font {
     priv handle: FontHandle,
     priv mut azure_font: Option<AzScaledFontRef>,
     priv mut shaper: Option<@Shaper>,
-    style: FontStyle,
+    style: UsedFontStyle,
     metrics: FontMetrics,
 
     drop {
@@ -88,7 +212,7 @@ struct Font {
 
 impl Font {
     // TODO: who should own fontbuf?
-    static fn new(fontbuf: @~[u8], handle: FontHandle, style: FontStyle) -> Font {
+    static fn new(fontbuf: @~[u8], handle: FontHandle, style: UsedFontStyle) -> Font {
         let metrics = handle.get_metrics();
 
         Font {
@@ -214,6 +338,7 @@ pub trait FontMethods {
     fn draw_text_into_context(rctx: &RenderContext, run: &TextRun, range: Range, baseline_origin: Point2D<Au>);
     fn measure_text(&TextRun, Range) -> RunMetrics;
     fn shape_text(@self, &str) -> GlyphStore;
+    fn get_descriptor() -> FontDescriptor;
 
     fn buf(&self) -> @~[u8];
     // these are used to get glyphs and advances in the case that the
@@ -313,6 +438,12 @@ pub impl Font : FontMethods {
         let shaper = self.get_shaper();
         shaper.shape_text(text, &store);
         return move store;
+    }
+
+    fn get_descriptor() -> FontDescriptor {
+        // TODO(Issue #174): implement by-platform-name FontSelectors,
+        // probably by adding such an API to FontHandle.
+        FontDescriptor::new(&font_context::dummy_style(), &SelectorStubDummy)
     }
 
     fn buf(&self) -> @~[u8] {

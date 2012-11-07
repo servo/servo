@@ -20,14 +20,14 @@ pub type FontHandle/& = freetype::font_handle::FreeTypeFontHandle;
 // to conditionally define the entire impl.
 #[cfg(target_os = "macos")]
 impl FontHandle {
-    static pub fn new(fctx: &native::FontContext, buf: @~[u8], pt_size: float) -> Result<FontHandle, ()> {
+    static pub fn new(fctx: &native::FontContextHandle, buf: @~[u8], pt_size: float) -> Result<FontHandle, ()> {
         quartz::font_handle::QuartzFontHandle::new(fctx, buf, pt_size)
     }
 }
 
 #[cfg(target_os = "linux")]
 impl FontHandle {
-    static pub fn new(fctx: &native::FontContext, buf: @~[u8], pt_size: float) -> Result<FontHandle, ()> {
+    static pub fn new(fctx: &native::FontContextHandle, buf: @~[u8], pt_size: float) -> Result<FontHandle, ()> {
         freetype::font_handle::FreeTypeFontHandle::new(fctx, buf, pt_size)
     }
 }
