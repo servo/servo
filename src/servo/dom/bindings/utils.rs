@@ -95,7 +95,7 @@ extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *JSVal, bp: *mut JSB
     return 1;
 }
 
-pub fn prototype_jsclass(name: ~str) -> fn(compartment: &bare_compartment) -> JSClass {
+pub fn prototype_jsclass(name: ~str) -> @fn(compartment: &bare_compartment) -> JSClass {
     |compartment: &bare_compartment, move name| {
         {name: compartment.add_name(copy name),
          flags: 0,
@@ -124,7 +124,7 @@ pub fn prototype_jsclass(name: ~str) -> fn(compartment: &bare_compartment) -> JS
 }
 
 pub fn instance_jsclass(name: ~str, finalize: *u8)
-    -> fn(compartment: &bare_compartment) -> JSClass {
+    -> @fn(compartment: &bare_compartment) -> JSClass {
     |compartment: &bare_compartment, move name| {
         {name: compartment.add_name(copy name),
          flags: JSCLASS_HAS_RESERVED_SLOTS(1),
