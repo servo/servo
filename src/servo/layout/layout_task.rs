@@ -16,7 +16,6 @@ use gfx::{
     Au,
     DisplayList,
     FontContext,
-    FontMatcher,
     RenderLayer,
 };
 use gfx::render_task;
@@ -81,7 +80,6 @@ struct Layout {
     from_content: comm::Port<Msg>,
 
     font_ctx: @FontContext,
-    font_matcher: @FontMatcher,
     // This is used to root auxilliary RCU reader data
     layout_refs: DVec<@LayoutData>,
     css_select_ctx: Mut<SelectCtx>,
@@ -98,7 +96,6 @@ fn Layout(render_task: RenderTask,
         image_cache_task: image_cache_task.clone(),
         local_image_cache: @LocalImageCache(move image_cache_task),
         from_content: from_content,
-        font_matcher: @FontMatcher::new(fctx),
         font_ctx: fctx,
         layout_refs: DVec(),
         css_select_ctx: Mut(new_css_select_ctx())

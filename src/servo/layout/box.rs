@@ -2,7 +2,6 @@
 
 use geom::{Rect, Size2D, Point2D};
 
-use css::node_style::{NodeStyle, StyledNode};
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
 use gfx::{au, dl};
@@ -18,6 +17,7 @@ use layout::display_list_builder::DisplayListBuilder;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
 use newcss::color::{Color, rgba, rgb};
+use newcss::complete::CompleteStyle;
 use newcss::units::{BoxSizing, Length, Px};
 use newcss::values::{CSSBorderColor, CSSPositionAbsolute};
 use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium};

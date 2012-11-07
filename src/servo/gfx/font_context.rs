@@ -36,22 +36,22 @@ pub fn dummy_style() -> FontStyle {
 // to conditionally define the entire impl.
 
 #[cfg(target_os = "macos")]
-type FontContextHandle/& = quartz::font_context::QuartzFontContext;
+type FontContextHandle/& = quartz::font_context::QuartzFontContextHandle;
 
 #[cfg(target_os = "linux")]
-type FontContextHandle/& = freetype::font_context::FreeTypeFontContext;
+type FontContextHandle/& = freetype::font_context::FreeTypeFontContextHandle;
 
 #[cfg(target_os = "macos")]
 pub impl FontContextHandle {
     static pub fn new() -> FontContextHandle {
-        quartz::font_context::QuartzFontContext::new()
+        quartz::font_context::QuartzFontContextHandle::new()
     }
 }
 
 #[cfg(target_os = "linux")]
 pub impl FontContextHandle {
     static pub fn new() -> FontContextHandle {
-        freetype::font_context::FreeTypeFontContext::new()
+        freetype::font_context::FreeTypeFontContextHandle::new()
     }
 }
 

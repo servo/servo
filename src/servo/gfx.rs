@@ -17,7 +17,6 @@ pub use font::FontSelector;
 pub use font::FontStyle;
 pub use font::RunMetrics;
 pub use font_context::FontContext;
-pub use font_matcher::FontMatcher;
 pub use geometry::Au;
 
 pub use render_context::RenderContext;

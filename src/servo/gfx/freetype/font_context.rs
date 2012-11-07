@@ -10,7 +10,7 @@ use freetype::bindgen::{
 };
 
 
-pub struct FreeTypeFontContext {
+pub struct FreeTypeFontContextHandle {
     ctx: FT_Library,
 
     drop {
@@ -19,8 +19,8 @@ pub struct FreeTypeFontContext {
     }
 }
 
-pub impl FreeTypeFontContext {
-    static pub fn new() -> FreeTypeFontContext {
+pub impl FreeTypeFontContextHandle {
+    static pub fn new() -> FreeTypeFontContextHandle {
         let lib: FT_Library = ptr::null();
         let res = FT_Init_FreeType(ptr::addr_of(&lib));
         // FIXME: error handling

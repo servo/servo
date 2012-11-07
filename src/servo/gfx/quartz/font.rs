@@ -2,9 +2,9 @@ extern mod core_foundation;
 extern mod core_graphics;
 extern mod core_text;
 
-use font::{FontMetrics, FractionalPixel};
-use font_context::QuartzFontContext;
+use font_context::QuartzFontContextHandle;
 use gfx::au;
+use gfx::font::{FontMetrics, FractionalPixel};
 use text::glyph::GlyphIndex;
 
 use libc::size_t;
@@ -68,7 +68,7 @@ pub struct QuartzFontHandle {
 }
 
 pub impl QuartzFontHandle {
-    static pub fn new(_fctx: &QuartzFontContext, buf: @~[u8], pt_size: float) -> Result<QuartzFontHandle, ()> {
+    static pub fn new(_fctx: &QuartzFontContextHandle, buf: @~[u8], pt_size: float) -> Result<QuartzFontHandle, ()> {
         let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
             CGDataProviderCreateWithData(
                 ptr::null(),

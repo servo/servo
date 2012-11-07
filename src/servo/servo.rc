@@ -83,25 +83,29 @@ pub mod gfx {
 
     // fonts
     pub mod font;
-    pub mod font_cache;
-    pub mod font_matcher;
+    pub mod font_context; 
+    pub mod font_list;
 
-    // Typedefs and pub-uses for multiple implementations.
-    // native contains redirects, so one can write native::FontHandle.
+    // Pub-uses for multiple implementations. Platform selection happens in
+    // font.rs, font_list.rs, font_context.rs
     pub mod native;
-    pub mod font_context;
-    pub mod font_handle;
 
     #[cfg(target_os = "macos")]
     pub mod quartz {
+        pub mod font;
         pub mod font_context;
-        pub mod font_handle;
+        pub mod font_list;
     }
 
     #[cfg(target_os = "linux")]
     pub mod freetype {
+        pub mod font;
         pub mod font_context;
-        pub mod font_handle;
+    }
+
+    #[cfg(target_os = "linux")]
+    pub mod fontconfig {
+        pub mod font_list;
     }
 }
 
