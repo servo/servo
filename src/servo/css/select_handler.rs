@@ -39,4 +39,8 @@ impl NodeSelectHandler: SelectHandler<Node> {
     fn parent_node(node: &Node) -> Option<Node> {
         tree::parent(&NodeTree, node)
     }
+
+    fn node_is_root(node: &Node) -> bool {
+        self.parent_node(node).is_none()
+    }
 }

@@ -30,6 +30,7 @@ pub mod css {
     priv mod node_util;
     priv mod node_void_ptr;
 
+    pub mod select;
     pub mod matching;
     pub mod node_style;
 }

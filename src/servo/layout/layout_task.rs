@@ -38,6 +38,8 @@ use comm::*;
 use task::*;
 use core::mutable::Mut;
 use newcss::select::SelectCtx;
+use newcss::types::OriginAuthor;
+use css::select::new_css_select_ctx;
 
 pub type LayoutTask = comm::Chan<Msg>;
 
@@ -100,7 +102,7 @@ fn Layout(render_task: RenderTask,
         font_matcher: @FontMatcher::new(fctx),
         font_cache: @FontCache::new(fctx),
         layout_refs: DVec(),
-        css_select_ctx: Mut(SelectCtx::new())
+        css_select_ctx: Mut(new_css_select_ctx())
     }
 }
 
@@ -143,7 +145,7 @@ impl Layout {
     fn handle_add_stylesheet(sheet: Stylesheet) {
         let sheet = Cell(move sheet);
         do self.css_select_ctx.borrow_mut |ctx| {
-            ctx.append_sheet(sheet.take());
+            ctx.append_sheet(sheet.take(), OriginAuthor);
         }
     }
 
