@@ -31,17 +31,13 @@ pub type FontHandle/& = freetype::font::FreeTypeFontHandle;
 // TODO(Issue #163): this is a workaround for static methods and
 // typedefs not working well together. It should be removed.
 
-// TODO(Rust #1723): #cfg doesn't work for impl methods, so we have
-// to conditionally define the entire impl.
-#[cfg(target_os = "macos")]
 impl FontHandle {
+    #[cfg(target_os = "macos")]
     static pub fn new(fctx: &native::FontContextHandle, buf: @~[u8], pt_size: float) -> Result<FontHandle, ()> {
         quartz::font::QuartzFontHandle::new(fctx, buf, pt_size)
     }
-}
 
-#[cfg(target_os = "linux")]
-impl FontHandle {
+    #[cfg(target_os = "linux")]
     static pub fn new(fctx: &native::FontContextHandle, buf: @~[u8], pt_size: float) -> Result<FontHandle, ()> {
         freetype::font::FreeTypeFontHandle::new(fctx, buf, pt_size)
     }
