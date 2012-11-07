@@ -8,6 +8,7 @@ servo.rc. This is not ideal and may be changed in the future. */
 pub use au = geometry;
 pub use dl = display_list;
 
+pub use display_list::DisplayItem;
 pub use display_list::DisplayList;
 pub use font::Font;
 pub use font::FontDescriptor;
@@ -18,9 +19,6 @@ pub use font::RunMetrics;
 pub use font_context::FontContext;
 pub use font_matcher::FontMatcher;
 pub use geometry::Au;
-pub use shaper::Shaper;
-pub use text_run::TextRun;
-pub use text_run::SendableTextRun;
 
 pub use render_context::RenderContext;
 pub use render_layers::RenderLayer;

@@ -1,23 +1,25 @@
 use au = gfx::geometry;
-use core::dlist::DList;
-use core::dvec::DVec;
-use newcss::values::{BoxAuto, BoxLength, Px};
+use geom::{Point2D, Rect, Size2D};
+
 use dom::node::Node;
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::size::Size2D;
-use gfx::display_list::{DisplayList, DisplayListBuilder};
-use gfx::font::FontStyle;
-use gfx::geometry::Au;
+use gfx::dl;
+use gfx::{
+    Au,
+    FontStyle,
+};
 use layout::box::*;
 use layout::context::LayoutContext;
 use layout::flow::{FlowContext, InlineFlow};
 use layout::text::TextBoxData;
+use newcss::values::{BoxAuto, BoxLength, Px};
+use servo_text::util::*;
+use util::range::{MutableRange, Range};
+use util::tree;
+
+use core::dlist::DList;
+use core::dvec::DVec;
 use num::Num;
 use std::arc;
-use util::range::{MutableRange, Range};
-use util::text::*;
-use util::tree;
 
 /*
 Lineboxes are represented as offsets into the child list, rather than

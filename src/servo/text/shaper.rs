@@ -4,7 +4,7 @@ Uniscribe, Pango, or Coretext.
 
 Currently, only harfbuzz bindings are implemented.
 */
-use font::Font;
+use gfx::Font;
 
 pub type Shaper/& = harfbuzz::shaper::HarfbuzzShaper;
 

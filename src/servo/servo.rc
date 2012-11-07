@@ -85,20 +85,12 @@ pub mod gfx {
     pub mod font;
     pub mod font_cache;
     pub mod font_matcher;
-    pub mod glyph;
-    pub mod text_run;
 
     // Typedefs and pub-uses for multiple implementations.
     // native contains redirects, so one can write native::FontHandle.
     pub mod native;
     pub mod font_context;
     pub mod font_handle;
-    pub mod shaper;
-
-    // Below are the actual platform-specific parts.
-    pub mod harfbuzz {
-        pub mod shaper;
-    }
 
     #[cfg(target_os = "macos")]
     pub mod quartz {
@@ -140,11 +132,22 @@ pub mod resource {
     pub mod resource_task;
 }
 
+pub mod text {
+    pub mod glyph;
+    pub mod text_run;
+    pub mod util;
+    pub mod shaper;
+
+    // Below are the actual platform-specific parts.
+    pub mod harfbuzz {
+        pub mod shaper;
+    }
+}
+
 pub mod util {
     pub mod actor;
     pub mod cache;
     pub mod range;
-    pub mod text;
     pub mod time;
     pub mod tree;
     pub mod url;
@@ -154,3 +157,4 @@ pub mod util {
 pub mod opts;
 
 use servo_util = util;
+use servo_text = text;

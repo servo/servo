@@ -1,6 +1,6 @@
 /** Text layout. */
 
-use gfx::TextRun;
+use servo_text::TextRun;
 use layout::box::{TextBox, RenderBox, RenderBoxData, UnscannedTextBox};
 use util::range::Range;
 

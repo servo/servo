@@ -1,13 +1,14 @@
 use azure::azure_hl::DrawTarget;
-use au = gfx::geometry;
-use au::Au;
-use geom::rect::Rect;
-use geom::point::Point2D;
-use gfx::SendableTextRun;
+
+use geom::Rect;
+use geom::Point2D;
+
+use gfx::{au, Au};
+use color::{Color, rgb};
 use image::base::Image;
 use render_context::RenderContext;
+use text::SendableTextRun;
 use util::range::Range;
-use color::{Color, rgb};
 
 use std::arc::ARC;
 use clone_arc = std::arc::clone;

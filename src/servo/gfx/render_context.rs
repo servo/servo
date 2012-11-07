@@ -4,9 +4,9 @@ use gfx::{
     Au,
     Font,
     FontContext,
-    TextRun,
 };
 use image::base::Image;
+use text::TextRun;
 use util::range::Range;
 
 use cairo::cairo_hl::ImageSurface;

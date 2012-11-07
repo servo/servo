@@ -4,12 +4,10 @@ extern mod core_text;
 
 use font::{FontMetrics, FractionalPixel};
 use font_context::QuartzFontContext;
+use gfx::au;
+use text::glyph::GlyphIndex;
 
-use au = gfx::geometry;
-use cast::transmute;
-use glyph::GlyphIndex;
 use libc::size_t;
-use ptr::null;
 
 use cf = core_foundation;
 use cf::base::{
@@ -73,10 +71,10 @@ pub impl QuartzFontHandle {
     static pub fn new(_fctx: &QuartzFontContext, buf: @~[u8], pt_size: float) -> Result<QuartzFontHandle, ()> {
         let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
             CGDataProviderCreateWithData(
-                null(),
-                unsafe { transmute(copy cbuf) },
+                ptr::null(),
+                unsafe { cast::transmute(copy cbuf) },
                 len as size_t,
-                null())
+                ptr::null())
         });
         if fontprov.is_null() { return Err(()); }
 
@@ -120,7 +118,7 @@ pub impl QuartzFontHandle {
 
         let glyphs = ~[glyph as CGGlyph];
         let advance = do vec::as_imm_buf(glyphs) |glyph_buf, _l| {
-            CTFontGetAdvancesForGlyphs(self.ctfont, kCTFontDefaultOrientation, glyph_buf, null(), 1)
+            CTFontGetAdvancesForGlyphs(self.ctfont, kCTFontDefaultOrientation, glyph_buf, ptr::null(), 1)
         };
 
         return Some(advance as FractionalPixel);
@@ -156,5 +154,5 @@ pub impl QuartzFontHandle {
 fn ctfont_from_cgfont(cgfont: CGFontRef, pt_size: float) -> CTFontRef {
     assert cgfont.is_not_null();
 
-    CTFontCreateWithGraphicsFont(cgfont, pt_size as CGFloat, null(), null())
+    CTFontCreateWithGraphicsFont(cgfont, pt_size as CGFloat, ptr::null(), ptr::null())
 }

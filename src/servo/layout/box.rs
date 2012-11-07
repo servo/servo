@@ -1,36 +1,38 @@
 /* Fundamental layout structures and algorithms. */
 
-use newcss::color::rgb;
-use arc = std::arc;
-use arc::ARC;
-use au = gfx::geometry;
-use au::Au;
-use core::dvec::DVec;
-use core::to_str::ToStr;
-use core::rand;
-use css::node_style::StyledNode;
-use newcss::complete::CompleteStyle;
-use newcss::units::{BoxSizing, Length, Px};
-use newcss::values::{CSSDisplay, Specified, CSSBackgroundColorColor, CSSBackgroundColorTransparent};
-use newcss::values::{CSSBorderColor, CSSPositionAbsolute};
-use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium};
-use newcss::color::{Color, rgba};
+use geom::{Rect, Size2D, Point2D};
+
+use css::node_style::{NodeStyle, StyledNode};
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
-use geom::rect::Rect;
-use geom::size::Size2D;
-use geom::point::Point2D;
-use gfx::display_list::{DisplayItem, DisplayList, DisplayListBuilder};
+use gfx::{au, dl};
+use gfx::{
+    Au,
+    DisplayItem,
+    DisplayList,
+};
 use image::{Image, ImageHolder};
 use layout::context::LayoutContext;
 use layout::debug::BoxedDebugMethods;
+use layout::display_list_builder::DisplayListBuilder;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
-use gfx::TextRun;
-use std::net::url::Url;
-use task::spawn;
+use newcss::color::{Color, rgba, rgb};
+use newcss::units::{BoxSizing, Length, Px};
+use newcss::values::{CSSBorderColor, CSSPositionAbsolute};
+use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium};
+use newcss::values::{CSSDisplay, Specified, CSSBackgroundColorColor, CSSBackgroundColorTransparent};
+use servo_text::TextRun;
 use util::range::*;
 use util::tree;
+
+use arc = std::arc;
+use arc::ARC;
+use core::dvec::DVec;
+use core::to_str::ToStr;
+use core::rand;
+use std::net::url::Url;
+use task::spawn;
 
 /** 
 Render boxes (`struct RenderBox`) are the leafs of the layout

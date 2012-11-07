@@ -1,14 +1,19 @@
-use au = gfx::geometry;
-use au::Au;
 use azure::{
     AzFloat,
     AzScaledFontRef,
 };
-use core::dvec::DVec;
-use gfx::RenderContext;
+
+use gfx::au;
+use gfx::{Au, RenderContext};
 use geom::{Point2D, Rect, Size2D};
-use glyph::{GlyphStore, GlyphIndex};
-use servo_util::range::Range;
+use util::range::Range;
+use text::glyph::{GlyphStore, GlyphIndex};
+use text::{
+    Shaper,
+    TextRun,
+};
+
+use core::dvec::DVec;
 
 use native::FontHandle;
 
