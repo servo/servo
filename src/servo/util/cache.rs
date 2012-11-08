@@ -49,11 +49,11 @@ fn test_monocache() {
     let cache = cache::new::<uint, @str, MonoCache<uint, @str>>(10);
     let one = @"one";
     let two = @"two";
-    cache.insert(1, one);
+    cache.insert(&1, one);
 
-    assert cache.find(1).is_some();
-    assert cache.find(2).is_none();
-    cache.find_or_create(2, |_v| { two });
-    assert cache.find(2).is_some();
-    assert cache.find(1).is_none();
+    assert cache.find(&1).is_some();
+    assert cache.find(&2).is_none();
+    cache.find_or_create(&2, |_v| { two });
+    assert cache.find(&2).is_some();
+    assert cache.find(&1).is_none();
 }
