@@ -6,3 +6,4 @@ servo.rc. This is not ideal and may be changed in the future. */
 
 pub use font::FontHandle;
 pub use font_context::FontContextHandle;
+pub use font_list::FontListHandle;

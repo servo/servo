@@ -89,7 +89,7 @@ fn Layout(render_task: RenderTask,
          image_cache_task: ImageCacheTask,
          from_content: comm::Port<Msg>) -> Layout {
 
-    let fctx = @FontContext::new();
+    let fctx = @FontContext::new(true);
 
     Layout {
         render_task: render_task,

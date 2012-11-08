@@ -3,6 +3,7 @@ use dvec::DVec;
 use util::cache;
 use gfx::{
     FontDescriptor,
+    FontList,
     FontSelector,
     FontStyle,
 };
@@ -51,15 +52,19 @@ pub impl FontContextHandle {
 
 pub struct FontContext {
     instance_cache: cache::MonoCache<FontDescriptor, @Font>,
+    font_list: Option<FontList>, // only needed by layout
     handle: FontContextHandle,
 }
 
 pub impl FontContext {
-    static fn new() -> FontContext {
+    static fn new(needs_font_list: bool) -> FontContext {
+        let handle = FontContextHandle::new();
+        let font_list = if needs_font_list { Some(FontList::new(&handle)) } else { None };
         FontContext { 
             // TODO(Rust #3902): remove extraneous type parameters once they are inferred correctly.
             instance_cache: cache::new::<FontDescriptor, @Font, cache::MonoCache<FontDescriptor, @Font>>(10),
-            handle: FontContextHandle::new()
+            font_list: move font_list,
+            handle: move handle,
         }
     }
 

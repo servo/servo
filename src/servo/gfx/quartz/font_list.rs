@@ -5,7 +5,11 @@ use cf = core_foundation;
 use cf::array::CFArray;
 use ct = core_text;
 use ct::font_collection::CTFontCollection;
-use ct::font_descriptor::{CTFontDescriptor, CTFontDescriptorRef};
+use ct::font_descriptor::{
+    CTFontDescriptor,
+    CTFontDescriptorRef,
+    debug_descriptor,
+};
 
 use gfx::font::FontFamily;
 
@@ -16,15 +20,16 @@ pub struct QuartzFontListHandle {
 }
 
 pub impl QuartzFontListHandle {
-    static pub fn new() -> QuartzFontListHandle {
+    static pub fn new(_fctx: &native::FontContextHandle) -> QuartzFontListHandle {
         QuartzFontListHandle { collection: CTFontCollection::new() }
     }
 
-    fn get_available_families(_fctx: FontContext) -> ~[@FontFamily] {
+    fn get_available_families(_fctx: &native::FontContextHandle) -> ~[@FontFamily] {
         // TODO: make a hashtable from family name to DVec<FontEntry>
         let descriptors : CFArray<CTFontDescriptorRef, CTFontDescriptor>;
         descriptors = self.collection.get_descriptors();
         for descriptors.each |desc: &CTFontDescriptor| {
+            debug!("%?", { debug_descriptor(desc); () });
             // TODO: for each descriptor, make a FontEntry.
             // TODO: append FontEntry to hashtable value
         }

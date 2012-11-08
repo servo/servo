@@ -148,9 +148,9 @@ pub enum FontSelector {
 // TODO(Issue #181): use deriving for trivial cmp::Eq implementations
 pub impl FontSelector : cmp::Eq {
     pure fn eq(other: &FontSelector) -> bool {
-        match (self, *other) {
-            (SelectorStubDummy, SelectorStubDummy) => true,
-            (SelectorPlatformName(a), SelectorPlatformName(b)) => a == b,
+        match (&self, other) {
+            (&SelectorStubDummy, &SelectorStubDummy) => true,
+            (&SelectorPlatformName(a), &SelectorPlatformName(b)) => a == b,
             _ => false
         }
     }

@@ -41,7 +41,7 @@ pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
             port: po,
             compositor: move compositor,
             mut layer_buffer_set_port: Cell(move layer_buffer_set_port),
-            font_ctx: @FontContext::new(),
+            font_ctx: @FontContext::new(false),
         }.start();
     }
 }
