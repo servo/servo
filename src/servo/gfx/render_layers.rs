@@ -63,9 +63,39 @@ pub fn render_layers(layer: &RenderLayer,
             } else {
                 // Create a new buffer.
                 debug!("creating tile, (%u, %u)", x, y);
+
                 let size = Size2D(stride as i32, height as i32);
+
+                let mut data: ~[u8] = ~[0];
+                let offset;
+                unsafe {
+                    // FIXME: Evil black magic to ensure that we don't perform a slow memzero
+                    // of this buffer. This should be made safe.
+
+                    let align = 256;
+
+                    let len = ((size.width * size.height * 4) as uint) + align;
+                    vec::reserve(&mut data, len);
+                    vec::raw::set_len(&mut data, len);
+
+                    // Round up to the nearest 32-byte-aligned address for DMA on the Mac.
+                    let addr: uint = cast::transmute(ptr::to_unsafe_ptr(&data[0]));
+                    if addr % align == 0 {
+                        offset = 0;
+                    } else {
+                        offset = align - addr % align;
+                    }
+
+                    debug!("tile offset is %u, expected addr is %x", offset, addr + offset);
+                }
+
                 buffer = LayerBuffer {
-                    draw_target: DrawTarget::new(opts.render_backend, size, B8G8R8A8),
+                    draw_target: DrawTarget::new_with_data(opts.render_backend,
+                                                           move data,
+                                                           offset,
+                                                           size,
+                                                           size.width * 4,
+                                                           B8G8R8A8),
                     rect: tile_rect,
                     stride: stride
                 };
