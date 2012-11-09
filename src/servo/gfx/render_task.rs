@@ -1,26 +1,18 @@
-use comm::*;
-use libc::size_t;
-use libc::types::common::c99::uint16_t;
-use pipes::{Port, Chan};
-use std::cell::Cell;
-
-use azure::AzFloat;
-use geom::matrix2d::Matrix2D;
-
 use dl = display_list;
-use gfx::{
-    FontContext,
-    RenderContext,
-    RenderLayer,
-};
-use gfx::compositor::{
-    Compositor,
-    LayerBufferSet,
-};
-use mod gfx::render_layers;
+use gfx::{FontContext, RenderContext, RenderLayer};
+use gfx::compositor::{Compositor, LayerBufferSet};
+use gfx::render_layers;
+use opts::Opts;
 use platform::osmain;
 use render_layers::render_layers;
 
+use azure::AzFloat;
+use core::comm::*;
+use core::libc::size_t;
+use core::libc::types::common::c99::uint16_t;
+use core::pipes::{Port, Chan};
+use geom::matrix2d::Matrix2D;
+use std::cell::Cell;
 
 pub enum Msg {
     RenderMsg(RenderLayer),
@@ -29,9 +21,10 @@ pub enum Msg {
 
 pub type RenderTask = comm::Chan<Msg>;
 
-pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
+pub fn RenderTask<C: Compositor Send>(compositor: C, opts: Opts) -> RenderTask {
     let compositor_cell = Cell(move compositor);
-    do task::spawn_listener |po: comm::Port<Msg>, move compositor_cell| {
+    let opts_cell = Cell(move opts);
+    do task::spawn_listener |po: comm::Port<Msg>, move compositor_cell, move opts_cell| {
         let (layer_buffer_channel, layer_buffer_set_port) = pipes::stream();
 
         let compositor = compositor_cell.take();
@@ -41,7 +34,8 @@ pub fn RenderTask<C: Compositor Send>(compositor: C) -> RenderTask {
             port: po,
             compositor: move compositor,
             mut layer_buffer_set_port: Cell(move layer_buffer_set_port),
-            font_ctx: @FontContext::new(false),
+            font_ctx: @FontContext::new(opts_cell.with_ref(|o| o.render_backend), false),
+            opts: opts_cell.take()
         }.start();
     }
 }
@@ -50,7 +44,8 @@ priv struct Renderer<C: Compositor Send> {
     port: comm::Port<Msg>,
     compositor: C,
     layer_buffer_set_port: Cell<pipes::Port<LayerBufferSet>>,
-    font_ctx: @FontContext
+    font_ctx: @FontContext,
+    opts: Opts
 }
 
 impl<C: Compositor Send> Renderer<C> {
@@ -92,11 +87,14 @@ impl<C: Compositor Send> Renderer<C> {
             let layer_buffer_set = layer_buffer_set_cell.take();
             let layer_buffer_set_channel = layer_buffer_set_channel_cell.take();
 
-            let layer_buffer_set = for render_layers(&render_layer, move layer_buffer_set)
+            let layer_buffer_set = for render_layers(&render_layer,
+                                                     move layer_buffer_set,
+                                                     &self.opts)
                     |render_layer, layer_buffer| {
                 let ctx = RenderContext {
                     canvas: layer_buffer,
-                    font_ctx: self.font_ctx
+                    font_ctx: self.font_ctx,
+                    opts: &self.opts
                 };
 
                 // Apply the translation to render the tile we want.

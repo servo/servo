@@ -4,40 +4,37 @@
 */
 
 use content::content_task;
-use core::dvec::DVec;
-use newcss::stylesheet::Stylesheet;
+use css::select::new_css_select_ctx;
 use dom::event::{Event, ReflowEvent};
 use dom::node::{Node, LayoutData};
-use geom::point::Point2D;
-use geom::rect::Rect;
-use geom::size::Size2D;
-use gfx::{au, dl};
-use gfx::{
-    Au,
-    DisplayList,
-    FontContext,
-    RenderLayer,
-};
 use gfx::render_task;
+use gfx::{Au, DisplayList, FontContext, RenderLayer};
+use gfx::{au, dl};
 use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
+use layout::traverse::*;
 use opt = core::option;
+use opts::Opts;
 use render_task::RenderTask;
 use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use resource::local_image_cache::LocalImageCache;
-use std::arc::ARC;
-use std::net::url::Url;
-use core::util::replace;
 use util::time::time;
-use std::cell::Cell;
-use layout::traverse::*;
-use comm::*;
-use task::*;
+
+use core::comm::*;
+use core::dvec::DVec;
 use core::mutable::Mut;
+use core::task::*;
+use core::util::replace;
+use geom::point::Point2D;
+use geom::rect::Rect;
+use geom::size::Size2D;
 use newcss::select::SelectCtx;
+use newcss::stylesheet::Stylesheet;
 use newcss::types::OriginAuthor;
-use css::select::new_css_select_ctx;
+use std::arc::ARC;
+use std::cell::Cell;
+use std::net::url::Url;
 
 pub type LayoutTask = comm::Chan<Msg>;
 
@@ -67,9 +64,10 @@ struct BuildData {
 }
 
 fn LayoutTask(render_task: RenderTask,
-              img_cache_task: ImageCacheTask) -> LayoutTask {
-    do spawn_listener::<Msg> |from_content, move img_cache_task| {
-        Layout(render_task, img_cache_task.clone(), from_content).start();
+              img_cache_task: ImageCacheTask,
+              opts: Opts) -> LayoutTask {
+    do spawn_listener::<Msg> |from_content, move img_cache_task, move opts| {
+        Layout(render_task, img_cache_task.clone(), from_content, &opts).start();
     }
 }
 
@@ -86,10 +84,11 @@ struct Layout {
 }
 
 fn Layout(render_task: RenderTask, 
-         image_cache_task: ImageCacheTask,
-         from_content: comm::Port<Msg>) -> Layout {
+          image_cache_task: ImageCacheTask,
+          from_content: comm::Port<Msg>,
+          opts: &Opts) -> Layout {
 
-    let fctx = @FontContext::new(true);
+    let fctx = @FontContext::new(opts.render_backend, true);
 
     Layout {
         render_task: render_task,

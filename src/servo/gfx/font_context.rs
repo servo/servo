@@ -1,14 +1,10 @@
-use dvec::DVec;
-
-use util::cache;
-use gfx::{
-    FontDescriptor,
-    FontList,
-    FontSelector,
-    FontStyle,
-};
+use gfx::{FontDescriptor, FontList, FontSelector, FontStyle};
 use gfx::font::{SelectorPlatformName, SelectorStubDummy, SpecifiedFontStyle};
 use gfx::native::FontHandle;
+use util::cache;
+
+use azure::azure_hl::BackendType;
+use core::dvec::DVec;
 
 // TODO(Issue #164): delete, and get default font from font list
 const TEST_FONT: [u8 * 33004] = #include_bin("JosefinSans-SemiBold.ttf");
@@ -54,10 +50,11 @@ pub struct FontContext {
     instance_cache: cache::MonoCache<FontDescriptor, @Font>,
     font_list: Option<FontList>, // only needed by layout
     handle: FontContextHandle,
+    backend: BackendType,
 }
 
 pub impl FontContext {
-    static fn new(needs_font_list: bool) -> FontContext {
+    static fn new(backend: BackendType, needs_font_list: bool) -> FontContext {
         let handle = FontContextHandle::new();
         let font_list = if needs_font_list { Some(FontList::new(&handle)) } else { None };
         FontContext { 
@@ -65,6 +62,7 @@ pub impl FontContext {
             instance_cache: cache::new::<FontDescriptor, @Font, cache::MonoCache<FontDescriptor, @Font>>(10),
             font_list: move font_list,
             handle: move handle,
+            backend: backend
         }
     }
 
@@ -116,7 +114,7 @@ pub impl FontContext {
                     return Err(handle.get_err());
                 };
                 
-                return Ok(@Font::new(font_bin, move handle, copy desc.style));
+                return Ok(@Font::new(font_bin, move handle, copy desc.style, self.backend));
             },
             // TODO(Issue #174): implement by-platform-name font selectors.
             SelectorPlatformName(_) => { fail ~"FontContext::create_font_instance() can't yet handle SelectorPlatformName." }

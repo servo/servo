@@ -24,24 +24,23 @@ fn main() {
 #[allow(non_implicitly_copyable_typarams)]
 fn run(opts: &Opts) {
     match opts.render_mode {
-      Screen => run_pipeline_screen(opts.urls),
+      Screen => run_pipeline_screen(opts),
       Png(outfile) => {
         assert opts.urls.is_not_empty();
         if opts.urls.len() > 1u {
             fail ~"servo asks that you stick to a single URL in PNG output mode"
         }
-        run_pipeline_png(opts.urls.head(), outfile)
+        run_pipeline_png(opts, outfile)
       }
     }
 }
 
-fn run_pipeline_screen(urls: &[~str]) {
-
+fn run_pipeline_screen(opts: &Opts) {
     let (dom_event_chan, dom_event_port) = pipes::stream();
     let dom_event_chan = pipes::SharedChan(move dom_event_chan);
 
     // The platform event handler thread
-    let osmain = OSMain(dom_event_chan.clone());
+    let osmain = OSMain(dom_event_chan.clone(), copy *opts);
 
     // Send each file to render then wait for keypress
     let (keypress_to_engine, keypress_from_osmain) = pipes::stream();
@@ -50,10 +49,10 @@ fn run_pipeline_screen(urls: &[~str]) {
     // Create a servo instance
     let resource_task = ResourceTask();
     let image_cache_task = ImageCacheTask(copy resource_task);
-    let engine_task = Engine(osmain, move dom_event_port, move dom_event_chan, move resource_task,
-                             move image_cache_task);
+    let engine_task = Engine(osmain, opts, move dom_event_port, move dom_event_chan,
+                             move resource_task, move image_cache_task);
 
-    for urls.each |filename| {
+    for opts.urls.each |filename| {
         let url = make_url(copy *filename, None);
         #debug["master: Sending url `%s`", url.to_str()];
         engine_task.send(LoadURLMsg(move url));
@@ -74,7 +73,7 @@ fn run_pipeline_screen(urls: &[~str]) {
     osmain.send(osmain::Exit);
 }
 
-fn run_pipeline_png(_url: ~str, _outfile: &str) {
+fn run_pipeline_png(_opts: &Opts, _outfile: &str) {
     fail ~"PNG compositor is broken";
 }
 

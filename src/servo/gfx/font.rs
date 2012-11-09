@@ -13,7 +13,7 @@ use text::{
     TextRun,
 };
 
-use azure::azure_hl::CairoBackend;
+use azure::azure_hl::BackendType;
 use core::dvec::DVec;
 
 // FontHandle encapsulates access to the platform's font API,
@@ -256,6 +256,7 @@ struct Font {
     priv mut shaper: Option<@Shaper>,
     style: UsedFontStyle,
     metrics: FontMetrics,
+    backend: BackendType,
 
     drop {
         use azure::bindgen::AzReleaseScaledFont;
@@ -265,7 +266,10 @@ struct Font {
 
 impl Font {
     // TODO: who should own fontbuf?
-    static fn new(fontbuf: @~[u8], handle: FontHandle, style: UsedFontStyle) -> Font {
+    static fn new(fontbuf: @~[u8],
+                  handle: FontHandle,
+                  style: UsedFontStyle,
+                  backend: BackendType) -> Font {
         let metrics = handle.get_metrics();
 
         Font {
@@ -275,6 +279,7 @@ impl Font {
             shaper: None,
             style: move style,
             metrics: move metrics,
+            backend: backend
         }
     }
 
@@ -299,7 +304,7 @@ impl Font {
 
         let ct_font = &self.handle.ctfont;
         let size = self.style.pt_size as AzFloat;
-        let scaled_font = azure::scaled_font::ScaledFont::new(CairoBackend, ct_font, size);
+        let scaled_font = azure::scaled_font::ScaledFont::new(self.backend, ct_font, size);
 
         let azure_scaled_font;
         unsafe {

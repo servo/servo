@@ -1,8 +1,9 @@
 use gfx::display_list::DisplayList;
 use gfx::compositor::{LayerBuffer, LayerBufferSet};
+use opts::Opts;
 
 use azure::AzFloat;
-use azure::azure_hl::{B8G8R8A8, CairoBackend, DrawTarget};
+use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use core::libc::c_int;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -23,6 +24,7 @@ pub struct RenderLayer {
 /// might be the old layer buffer if it had the appropriate size and format).
 pub fn render_layers(layer: &RenderLayer,
                      buffer_set: LayerBufferSet,
+                     opts: &Opts,
                      f: &fn(layer: &RenderLayer, buffer: &LayerBuffer) -> bool) -> LayerBufferSet {
     let mut buffers = match move buffer_set { LayerBufferSet { buffers: move b } => move b };
 
@@ -61,7 +63,7 @@ pub fn render_layers(layer: &RenderLayer,
                 debug!("creating tile, (%u, %u)", x, y);
                 let size = Size2D(stride as i32, height as i32);
                 buffer = LayerBuffer {
-                    draw_target: DrawTarget::new(CairoBackend, size, B8G8R8A8),
+                    draw_target: DrawTarget::new(opts.render_backend, size, B8G8R8A8),
                     rect: tile_rect,
                     stride: stride
                 };

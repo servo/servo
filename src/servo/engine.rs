@@ -1,19 +1,20 @@
+use content::content_task::{ContentTask, ExecuteMsg, ParseMsg, ExitMsg};
+use content::content_task;
+use dom::event::Event;
 use gfx::compositor::Compositor;
-use mod gfx::render_task;
 use gfx::render_task::RenderTask;
-use task::spawn_listener;
+use gfx::render_task;
 use layout::layout_task;
 use layout_task::LayoutTask;
-use mod content::content_task;
-use content::content_task::{ContentTask, ExecuteMsg, ParseMsg, ExitMsg};
-use resource::resource_task;
+use opts::Opts;
+use resource::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use resource::resource_task::ResourceTask;
-use std::net::url::Url;
-use resource::image_cache_task;
-use image_cache_task::{ImageCacheTask, image_cache_task, ImageCacheTaskClient};
-use pipes::{Port, Chan};
-use dom::event::Event;
+use resource::resource_task;
+
+use core::pipes::{Port, Chan};
+use core::task::spawn_listener;
 use std::cell::Cell;
+use std::net::url::Url;
 
 pub type EngineTask = comm::Chan<Msg>;
 
@@ -33,6 +34,7 @@ struct Engine<C:Compositor Send Copy> {
 }
 
 fn Engine<C:Compositor Send Copy>(compositor: C,
+                                  opts: &Opts,
                                   dom_event_port: pipes::Port<Event>,
                                   dom_event_chan: pipes::SharedChan<Event>,
                                   resource_task: ResourceTask,
@@ -41,10 +43,11 @@ fn Engine<C:Compositor Send Copy>(compositor: C,
     let dom_event_port = Cell(move dom_event_port);
     let dom_event_chan = Cell(move dom_event_chan);
 
+    let opts = Cell(copy *opts);
     do spawn_listener::<Msg> |request, move dom_event_port, move dom_event_chan,
-                              move image_cache_task| {
-        let render_task = RenderTask(compositor);
-        let layout_task = LayoutTask(render_task, image_cache_task.clone());
+                              move image_cache_task, move opts| {
+        let render_task = RenderTask(compositor, opts.with_ref(|o| copy *o));
+        let layout_task = LayoutTask(render_task, image_cache_task.clone(), opts.take());
         let content_task = ContentTask(layout_task,
                                        dom_event_port.take(), dom_event_chan.take(),
                                        resource_task, image_cache_task.clone());

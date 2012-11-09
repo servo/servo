@@ -1,28 +1,26 @@
 use compositor::LayerBuffer;
 use gfx::au;
-use gfx::{
-    Au,
-    Font,
-    FontContext,
-};
+use gfx::{Au, Font, FontContext};
 use image::base::Image;
+use opts::Opts;
 use text::TextRun;
 use util::range::Range;
 
+use azure::azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions};
+use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, Linear, StrokeOptions};
+use azure::{AzDrawOptions, AzFloat};
+use core::dvec::DVec;
 use core::libc::types::common::c99::uint16_t;
 use core::ptr::to_unsafe_ptr;
-use core::dvec::DVec;
-use std::arc::ARC;
-use geom::size::Size2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
-use azure::{AzDrawOptions, AzFloat};
-use azure::azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions, StrokeOptions};
-use azure::azure_hl::{DrawTarget, Linear};
+use geom::size::Size2D;
+use std::arc::ARC;
 
 struct RenderContext {
     canvas: &LayerBuffer,
     font_ctx: @FontContext,
+    opts: &Opts
 }
 
 impl RenderContext  {

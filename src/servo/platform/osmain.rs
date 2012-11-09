@@ -1,22 +1,22 @@
 use ShareGlContext = sharegl::platform::Context;
-use azure::azure_hl;
-use azure::azure_hl::{B8G8R8A8, CairoBackend, DataSourceSurface, DrawTarget};
-use azure::azure_hl::{SourceSurfaceMethods};
-use core::util::replace;
 use dom::event::{Event, ResizeEvent};
-use dvec::DVec;
+use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
+use layers::ImageLayer;
+use opts::Opts;
+use resize_rate_limiter::ResizeRateLimiter;
+use util::time;
+
+use azure::azure_hl::{BackendType, B8G8R8A8, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
+use core::dvec::DVec;
+use core::pipes::Chan;
+use core::task::TaskBuilder;
+use core::util;
 use geom::matrix::{Matrix4, identity};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
-use layers::ImageLayer;
-use pipes::Chan;
-use resize_rate_limiter::ResizeRateLimiter;
 use std::cell::Cell;
 use std::cmp::FuzzyEq;
-use task::TaskBuilder;
-use vec::push;
 
 pub type OSMain = comm::Chan<Msg>;
 
@@ -38,9 +38,9 @@ pub enum Msg {
     Exit
 }
 
-fn OSMain(dom_event_chan: pipes::SharedChan<Event>) -> OSMain {
+fn OSMain(dom_event_chan: pipes::SharedChan<Event>, opts: Opts) -> OSMain {
     let dom_event_chan = Cell(move dom_event_chan);
-    do on_osmain::<Msg> |po, move dom_event_chan| {
+    do on_osmain::<Msg> |po, move dom_event_chan, move opts| {
         do platform::runmain {
             #debug("preparing to enter main loop");
 
@@ -51,7 +51,7 @@ fn OSMain(dom_event_chan: pipes::SharedChan<Event>) -> OSMain {
 				None => mode = GlutMode
 			}
 
-	        mainloop(mode, po, dom_event_chan.take());
+	        mainloop(mode, po, dom_event_chan.take(), &opts);
         }
     }
 }
@@ -77,8 +77,10 @@ impl AzureDrawTargetImageData : layers::layers::ImageData {
     }
 }
 
-fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<Event>) {
-
+fn mainloop(mode: Mode,
+            po: comm::Port<Msg>,
+            dom_event_chan: pipes::SharedChan<Event>,
+            opts: &Opts) {
     let key_handlers: @DVec<pipes::Chan<()>> = @DVec();
 
 	let window;
@@ -97,7 +99,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
 		}
 	}
 
-    let surfaces = @SurfaceSet();
+    let surfaces = @SurfaceSet(opts.render_backend);
 
     let context = layers::rendergl::init_render_context();
 
@@ -137,7 +139,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
                     let mut current_layer_child = root_layer.first_child;
 
                     // Replace the image layer data with the buffer data.
-                    let buffers = replace(&mut surfaces.front.layer_buffer_set.buffers, ~[]);
+                    let buffers = util::replace(&mut surfaces.front.layer_buffer_set.buffers, ~[]);
                     for buffers.each |buffer| {
                         let width = buffer.rect.size.width as uint;
                         let height = buffer.rect.size.height as uint;
@@ -204,7 +206,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
     let composite: fn@() = || {
         //#debug("osmain: drawing to screen");
 
-        do util::time::time(~"compositing") {
+        do time::time(~"compositing") {
             adjust_for_window_resizing();
             layers::rendergl::render_scene(context, scene);
         }
@@ -236,7 +238,7 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
         ShareWindow(share_context) => {
             loop {
                 check_for_messages();
-                do util::time::time(~"compositing") {
+                do time::time(~"compositing") {
                     layers::rendergl::render_scene(context, scene);
                 }
 
@@ -268,7 +270,7 @@ fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBufferSet>) {
     // We are in a position to lend out the surface?
     assert surfaces.front.have;
     // Ok then take it
-    let old_layer_buffers = replace(&mut surfaces.front.layer_buffer_set.buffers, ~[]);
+    let old_layer_buffers = util::replace(&mut surfaces.front.layer_buffer_set.buffers, ~[]);
     let new_layer_buffers = do old_layer_buffers.map |layer_buffer| {
         let draw_target_ref = &layer_buffer.draw_target;
         let layer_buffer = LayerBuffer {
@@ -303,8 +305,8 @@ fn return_surface(surfaces: &SurfaceSet, layer_buffer_set: LayerBufferSet) {
     surfaces.back.have = true;
 }
 
-fn SurfaceSet() -> SurfaceSet {
-    SurfaceSet { front: Surface(), back: Surface() }
+fn SurfaceSet(backend: BackendType) -> SurfaceSet {
+    SurfaceSet { front: Surface(backend), back: Surface(backend) }
 }
 
 struct Surface {
@@ -312,9 +314,9 @@ struct Surface {
     mut have: bool,
 }
 
-fn Surface() -> Surface {
+fn Surface(backend: BackendType) -> Surface {
     let layer_buffer = LayerBuffer {
-        draw_target: DrawTarget::new(CairoBackend, Size2D(800i32, 600i32), B8G8R8A8),
+        draw_target: DrawTarget::new(backend, Size2D(800i32, 600i32), B8G8R8A8),
         rect: Rect(Point2D(0u, 0u), Size2D(800u, 600u)),
         stride: 800
     };
