@@ -4,6 +4,10 @@ extern mod core_text;
 use cf = core_foundation;
 use cf::array::CFArray;
 use ct = core_text;
+use ct::font::{
+    CTFont,
+    debug_font_names,
+};
 use ct::font_collection::CTFontCollection;
 use ct::font_descriptor::{
     CTFontDescriptor,
@@ -24,13 +28,15 @@ pub impl QuartzFontListHandle {
         QuartzFontListHandle { collection: CTFontCollection::new() }
     }
 
-    fn get_available_families(_fctx: &native::FontContextHandle) -> ~[@FontFamily] {
+    fn get_available_families(fctx: &native::FontContextHandle) -> ~[@FontFamily] {
         // TODO: make a hashtable from family name to DVec<FontEntry>
         let descriptors : CFArray<CTFontDescriptorRef, CTFontDescriptor>;
         descriptors = self.collection.get_descriptors();
         for descriptors.each |desc: &CTFontDescriptor| {
-            debug!("%?", { debug_descriptor(desc); () });
+            //debug!("%?", { debug_descriptor(desc); () });
             // TODO: for each descriptor, make a FontEntry.
+            let font = CTFont::new_from_descriptor(desc, 0.0);
+            debug!("%s", { debug_font_names(&font); ~"--- DEBUG CTFONT NAMES ---" });
             // TODO: append FontEntry to hashtable value
         }
 

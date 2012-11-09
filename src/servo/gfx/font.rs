@@ -26,7 +26,17 @@ pub type FontHandle/& = quartz::font::QuartzFontHandle;
 #[cfg(target_os = "linux")]
 pub type FontHandle/& = freetype::font::FreeTypeFontHandle;
 
-// TODO: `new` should be part of trait FontHandle
+pub trait FontHandleMethods {
+    pure fn face_name() -> ~str;
+    pure fn is_italic() -> bool;
+    pure fn boldness() -> CSSFontWeight;
+
+    fn glyph_index(codepoint: char) -> Option<GlyphIndex>;
+    fn glyph_h_advance(GlyphIndex) -> Option<FractionalPixel>;
+    fn get_metrics() -> FontMetrics;
+}
+
+// TODO: `new` should be part of trait FontHandleMethods
 
 // TODO(Issue #163): this is a workaround for static methods and
 // typedefs not working well together. It should be removed.
@@ -199,10 +209,21 @@ struct FontEntry {
     face_name: ~str,
     priv weight: CSSFontWeight,
     priv italic: bool,
+    handle: FontHandle,
     // TODO: array of OpenType features, etc.
 }
 
 impl FontEntry {
+    static fn new(family: @FontFamily, handle: FontHandle) -> FontEntry {
+        FontEntry {
+            family: family,
+            face_name: handle.face_name(),
+            weight: handle.boldness(),
+            italic: handle.is_italic(),
+            handle: move handle
+        }
+    }
+
     pure fn is_bold() -> bool { 
         match self.weight {
             FontWeight900 | FontWeight800 | FontWeight700 | FontWeight600 => true,

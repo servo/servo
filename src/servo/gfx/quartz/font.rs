@@ -4,7 +4,13 @@ extern mod core_text;
 
 use font_context::QuartzFontContextHandle;
 use gfx::au;
-use gfx::font::{FontMetrics, FractionalPixel};
+use gfx::font::{
+    CSSFontWeight,
+    FontHandleMethods,
+    FontMetrics,
+    FontWeight500,
+    FractionalPixel
+};
 use text::glyph::GlyphIndex;
 
 use libc::size_t;
@@ -74,6 +80,22 @@ pub impl QuartzFontHandle {
         
         return move result;
     }
+}
+
+pub impl QuartzFontHandle : FontHandleMethods {
+    
+    pure fn face_name() -> ~str {
+        self.ctfont.face_name()
+    }
+
+    pure fn is_italic() -> bool {
+        false // FIXME
+    }
+
+    pure fn boldness() -> CSSFontWeight {
+        FontWeight500 // FIXME
+    }
+
 
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
         let characters: ~[UniChar] = ~[codepoint as UniChar];
