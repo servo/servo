@@ -103,15 +103,19 @@ fn mainloop(mode: Mode,
 
     let context = layers::rendergl::init_render_context();
 
-    let image_data = @layers::layers::BasicImageData::new(
-        Size2D(0u, 0u), 0, layers::layers::RGB24Format, ~[]);
-    let image = @layers::layers::Image::new(image_data as @layers::layers::ImageData);
-    let image_layer = @layers::layers::ImageLayer(image);
-    let original_layer_transform = image_layer.common.transform;
-    image_layer.common.set_transform(original_layer_transform.scale(&800.0f32, &600.0f32, &1f32));
-
     let root_layer = @layers::layers::ContainerLayer();
-    root_layer.add_child(layers::layers::ImageLayerKind(image_layer));
+    let original_layer_transform;
+    {
+        let image_data = @layers::layers::BasicImageData::new(
+            Size2D(0u, 0u), 0, layers::layers::RGB24Format, ~[]);
+        let image = @layers::layers::Image::new(image_data as @layers::layers::ImageData);
+        let image_layer = @layers::layers::ImageLayer(image);
+        original_layer_transform = image_layer.common.transform;
+        image_layer.common.set_transform(original_layer_transform.scale(&800.0f32, &600.0f32,
+                                                                        &1f32));
+        root_layer.add_child(layers::layers::ImageLayerKind(image_layer));
+    }
+
 
     let scene = @layers::scene::Scene(layers::layers::ContainerLayerKind(root_layer),
                                       Size2D(800.0f32, 600.0f32),

@@ -50,6 +50,8 @@ pub fn render_layers(layer: &RenderLayer,
             assert stride % 32 == 0;
             assert stride >= width;
 
+            debug!("tile stride %u", stride);
+
             let tile_rect = Rect(Point2D(x, y), Size2D(width, height));
 
             let buffer;
