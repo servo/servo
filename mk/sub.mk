@@ -3,6 +3,15 @@ SLOW_TESTS += \
 	mozjs \
 	$(NULL)
 
+# These submodules will not be cleaned by the `make clean-fast` target.
+SLOW_BUILDS += \
+	libcss \
+	libparserutils \
+	libwapcaplet \
+	mozjs \
+	sharegl \
+	skia \
+	$(NULL)
 
 # NOTE: the make magic can only compute transitive build dependencies,
 # not transitive link flags. So, if A -> B -> C, must add A as a dep

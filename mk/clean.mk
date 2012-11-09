@@ -6,15 +6,24 @@ clean-$(1) :
 	$$(Q)$$(MAKE) -C $$(B)src/$(1) clean
 
 # add these targets to meta-targets
-DEPS_CLEAN += clean-$(1)
+DEPS_CLEAN_ALL += $(1)
 endef
 
 $(foreach submodule,$(CFG_SUBMODULES),\
 $(eval $(call DEF_SUBMODULE_CLEAN_RULES,$(submodule))))
 
-.PHONY:	clean $(DEPS_CLEAN)
+DEPS_CLEAN_TARGETS_ALL = $(addprefix clean-,$(DEPS_CLEAN_ALL))
+DEPS_CLEAN_TARGETS_FAST = $(addprefix clean-,$(filter-out $(SLOW_BUILDS),$(DEPS_CLEAN_ALL)))
 
-clean: $(DEPS_CLEAN) clean-servo
+.PHONY:	clean $(DEPS_CLEAN_TARGETS_ALL)
+
+clean: $(DEPS_CLEAN_TARGETS_ALL) clean-servo
+	$(Q)echo "Cleaning targets:"
+	$(Q)echo "$(DEPS_CLEAN_ALL)"
+
+clean-fast: $(DEPS_CLEAN_TARGETS_FAST) clean-servo
+	$(Q)echo "Cleaning targets:"
+	$(Q)echo "$(filter-out $(SLOW_BUILDS),$(DEPS_CLEAN_ALL))"
 
 clean-servo:
 	rm -f servo servo-test
