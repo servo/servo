@@ -13,6 +13,7 @@ use text::{
     TextRun,
 };
 
+use azure::azure_hl::CairoBackend;
 use core::dvec::DVec;
 
 // FontHandle encapsulates access to the platform's font API,
@@ -290,38 +291,25 @@ impl Font {
     }
 
     priv fn get_azure_font() -> AzScaledFontRef {
-        use libc::{c_int, c_double};
-        use azure::{
-            AzNativeFont,
-            AZ_NATIVE_FONT_CAIRO_FONT_FACE
-        };
-        use azure::bindgen::AzCreateScaledFontWithCairo;
-        use cairo::{cairo_font_face_t, cairo_scaled_font_t};
-        use cairo::bindgen::cairo_scaled_font_destroy;
-
         // fast path: we've already created the azure font resource
         match self.azure_font {
-            Some(azfont) => { return azfont; },
+            Some(azfont) => return azfont,
             None => {}
         }
-        
-        let nfont: AzNativeFont = {
-            mType: AZ_NATIVE_FONT_CAIRO_FONT_FACE,
-            mFont: ptr::null()
-        };
 
-        // TODO(Issue #64): we should be able to remove cairo stepping
-        // stones and manual memory management, and put them inside of
-        // azure_hl.rs and elsewhere instead.
-        let cfont = get_cairo_font(&self);
-        // TODO: This should probably not even use cairo
-        let azfont = AzCreateScaledFontWithCairo(ptr::to_unsafe_ptr(&nfont), 1f as AzFloat, cfont);
-        assert azfont.is_not_null();
-        cairo_scaled_font_destroy(cfont);
+        let ct_font = &self.handle.ctfont;
+        let size = self.style.pt_size as AzFloat;
+        let scaled_font = azure::scaled_font::ScaledFont::new(CairoBackend, ct_font, size);
 
-        self.azure_font = Some(azfont);
-        return azfont;
+        let azure_scaled_font;
+        unsafe {
+            azure_scaled_font = scaled_font.azure_scaled_font;
+            cast::forget(move scaled_font);
+        }
 
+        self.azure_font = Some(azure_scaled_font);
+        azure_scaled_font
+        /*
         // TODO: these cairo-related things should be in rust-cairo.
         // creating a cairo font/face from a native font resource
         // should be part of the NativeFont API, not exposed here.
@@ -334,54 +322,7 @@ impl Font {
             // FIXME: error handling
             return cface;
         }
-
-        #[cfg(target_os = "macos")]
-        fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
-            use cairo::cairo_quartz::bindgen::cairo_quartz_font_face_create_for_cgfont;
-
-            let cgfont = font.handle.cgfont;
-            let face = cairo_quartz_font_face_create_for_cgfont(cgfont);
-            // FIXME: error handling
-            return face;
-        }
-
-        fn get_cairo_font(font: &Font) -> *cairo_scaled_font_t {
-            use cairo::cairo_matrix_t;
-            use cairo::bindgen::{cairo_matrix_init_identity,
-                                 cairo_matrix_scale,
-                                 cairo_font_options_create,
-                                 cairo_scaled_font_create,
-                                 cairo_font_options_destroy,
-                                 cairo_font_face_destroy};
-
-            // FIXME: error handling
-
-            let face = get_cairo_face(font);
-
-            let idmatrix: cairo_matrix_t = {
-                xx: 0 as c_double,
-                yx: 0 as c_double,
-                xy: 0 as c_double,
-                yy: 0 as c_double,
-                x0: 0 as c_double,
-                y0: 0 as c_double
-            };
-            cairo_matrix_init_identity(ptr::to_unsafe_ptr(&idmatrix));
-
-            let fontmatrix = idmatrix;
-            cairo_matrix_scale(ptr::to_unsafe_ptr(&fontmatrix),
-                               font.style.pt_size as c_double, 
-                               font.style.pt_size as c_double);
-            let options = cairo_font_options_create();
-            let cfont = cairo_scaled_font_create(face, 
-                                                 ptr::to_unsafe_ptr(&fontmatrix),
-                                                 ptr::to_unsafe_ptr(&idmatrix), 
-                                                 options);
-            cairo_font_options_destroy(options);
-            cairo_font_face_destroy(face);
-
-            return cfont;
-        }
+        */
     }
 }
 

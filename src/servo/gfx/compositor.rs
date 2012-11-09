@@ -1,5 +1,4 @@
 use azure::azure_hl::{DrawTarget};
-use cairo::cairo_hl::ImageSurface;
 use dom::event::Event;
 use geom::rect::Rect;
 

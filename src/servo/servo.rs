@@ -1,3 +1,8 @@
+#[cfg(target_os="macos")]
+extern mod core_graphics;
+#[cfg(target_os="macos")]
+extern mod core_text;
+
 use comm::*;
 use option::swap_unwrap;
 use platform::osmain;

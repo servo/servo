@@ -75,8 +75,10 @@ DEPS_libcss += \
 # Platform-specific dependencies
 ifeq ($(CFG_OSTYPE),darwin)
 DEPS_rust-azure += \
-	rust-core-foundation \
 	rust-core-graphics \
+	rust-core-text \
+	rust-core-foundation \
+    skia \
 	$(NULL)
 
 DEPS_rust-cairo += \
@@ -105,6 +107,7 @@ DEPS_rust-core-text += \
 DEPS_rust-layers += \
 	rust-core-foundation \
 	rust-core-graphics \
+	rust-core-text \
 	$(NULL)
 
 endif

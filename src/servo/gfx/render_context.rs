@@ -9,7 +9,6 @@ use image::base::Image;
 use text::TextRun;
 use util::range::Range;
 
-use cairo::cairo_hl::ImageSurface;
 use core::libc::types::common::c99::uint16_t;
 use core::ptr::to_unsafe_ptr;
 use core::dvec::DVec;

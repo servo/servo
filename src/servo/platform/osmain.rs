@@ -1,8 +1,7 @@
 use ShareGlContext = sharegl::platform::Context;
 use azure::azure_hl;
-use azure::azure_hl::{B8G8R8A8, CairoBackend, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
-use cairo::cairo_hl::ImageSurface;
-use cairo::cairo_surface_t;
+use azure::azure_hl::{B8G8R8A8, CairoBackend, DataSourceSurface, DrawTarget};
+use azure::azure_hl::{SourceSurfaceMethods};
 use core::util::replace;
 use dom::event::{Event, ResizeEvent};
 use dvec::DVec;
