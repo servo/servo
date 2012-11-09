@@ -1,6 +1,6 @@
 use ShareGlContext = sharegl::platform::Context;
 use azure::azure_hl;
-use azure::azure_hl::DrawTarget;
+use azure::azure_hl::{B8G8R8A8, CairoBackend, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
 use cairo::cairo_hl::ImageSurface;
 use cairo::cairo_surface_t;
 use core::util::replace;
@@ -57,17 +57,25 @@ fn OSMain(dom_event_chan: pipes::SharedChan<Event>) -> OSMain {
     }
 }
 
-/// Cairo surface wrapping to work with layers
-struct CairoSurfaceImageData {
-    cairo_surface: ImageSurface,
+/// Azure surface wrapping to work with the layers infrastructure.
+struct AzureDrawTargetImageData {
+    draw_target: DrawTarget,
+    data_source_surface: DataSourceSurface,
     size: Size2D<uint>
 }
 
-impl CairoSurfaceImageData : layers::layers::ImageData {
+impl AzureDrawTargetImageData : layers::layers::ImageData {
     fn size() -> Size2D<uint> { self.size }
-    fn stride() -> uint { self.cairo_surface.width() as uint }
-    fn format() -> layers::layers::Format { layers::layers::ARGB32Format }
-    fn with_data(f: layers::layers::WithDataFn) { f(self.cairo_surface.data()) }
+    fn stride() -> uint { self.data_source_surface.get_size().width as uint }
+    fn format() -> layers::layers::Format {
+        // FIXME: This is not always correct. We should query the Azure draw target for the format.
+        layers::layers::ARGB32Format
+    }
+    fn with_data(f: layers::layers::WithDataFn) { 
+        do self.data_source_surface.with_data |data| {
+            f(data);
+        }
+    }
 }
 
 fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<Event>) {
@@ -121,9 +129,9 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
             match po.recv() {
                 AddKeyHandler(move key_ch) => key_handlers.push(move key_ch),
                 BeginDrawing(move sender) => lend_surface(surfaces, move sender),
-                Draw(move sender, move dt) => {
+                Draw(move sender, move draw_target) => {
                     #debug("osmain: received new frame");
-                    return_surface(surfaces, move dt);
+                    return_surface(surfaces, move draw_target);
                     lend_surface(surfaces, move sender);
 
                     // Iterate over the children of the container layer.
@@ -135,12 +143,11 @@ fn mainloop(mode: Mode, po: comm::Port<Msg>, dom_event_chan: pipes::SharedChan<E
                         let width = buffer.rect.size.width as uint;
                         let height = buffer.rect.size.height as uint;
 
-                        debug!("osmain: compositing buffer rect %?, cairo surface %?",
-                               &buffer.rect,
-                               &buffer.cairo_surface);
+                        debug!("osmain: compositing buffer rect %?", &buffer.rect);
 
-                        let image_data = @CairoSurfaceImageData {
-                            cairo_surface: buffer.cairo_surface.clone(),
+                        let image_data = @AzureDrawTargetImageData {
+                            draw_target: buffer.draw_target.clone(),
+                            data_source_surface: buffer.draw_target.snapshot().get_data_surface(),
                             size: Size2D(width, height)
                         };
                         let image = @layers::layers::Image::new(
@@ -266,7 +273,6 @@ fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBufferSet>) {
     let new_layer_buffers = do old_layer_buffers.map |layer_buffer| {
         let draw_target_ref = &layer_buffer.draw_target;
         let layer_buffer = LayerBuffer {
-            cairo_surface: layer_buffer.cairo_surface.clone(),
             draw_target: draw_target_ref.clone(),
             rect: copy layer_buffer.rect,
             stride: layer_buffer.stride
@@ -308,11 +314,8 @@ struct Surface {
 }
 
 fn Surface() -> Surface {
-    let cairo_surface = ImageSurface(cairo::CAIRO_FORMAT_RGB24, 800, 600);
-    let draw_target = DrawTarget(&cairo_surface);
     let layer_buffer = LayerBuffer {
-        cairo_surface: move cairo_surface,
-        draw_target: move draw_target,
+        draw_target: DrawTarget::new(CairoBackend, Size2D(800i32, 600i32), B8G8R8A8),
         rect: Rect(Point2D(0u, 0u), Size2D(800u, 600u)),
         stride: 800
     };

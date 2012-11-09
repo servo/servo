@@ -4,10 +4,6 @@ use dom::event::Event;
 use geom::rect::Rect;
 
 struct LayerBuffer {
-    // TODO: We should not be coupled to Cairo this tightly. Instead we should pull the buffer out
-    // of the draw target with the Azure API.
-    cairo_surface: ImageSurface,
-
     draw_target: DrawTarget,
 
     // The rect in the containing RenderLayer that this represents.

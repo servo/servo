@@ -2,9 +2,7 @@ use gfx::display_list::DisplayList;
 use gfx::compositor::{LayerBuffer, LayerBufferSet};
 
 use azure::AzFloat;
-use azure::azure_hl::DrawTarget;
-use cairo::CAIRO_FORMAT_RGB24;
-use cairo::cairo_hl::ImageSurface;
+use azure::azure_hl::{B8G8R8A8, CairoBackend, DrawTarget};
 use core::libc::c_int;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -61,14 +59,9 @@ pub fn render_layers(layer: &RenderLayer,
             } else {
                 // Create a new buffer.
                 debug!("creating tile, (%u, %u)", x, y);
-
-                let cairo_surface = ImageSurface(
-                    CAIRO_FORMAT_RGB24, stride as c_int, height as c_int);
-                let draw_target = DrawTarget(&cairo_surface);
-
+                let size = Size2D(stride as i32, height as i32);
                 buffer = LayerBuffer {
-                    cairo_surface: move cairo_surface,
-                    draw_target: move draw_target,
+                    draw_target: DrawTarget::new(CairoBackend, size, B8G8R8A8),
                     rect: tile_rect,
                     stride: stride
                 };
