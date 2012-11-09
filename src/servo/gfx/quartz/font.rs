@@ -20,9 +20,7 @@ use cf::string::UniChar;
 use cg = core_graphics;
 use cg::base::{CGFloat, CGAffineTransform};
 use cg::data_provider::{
-    CGDataProviderCreateWithData,
-    CGDataProviderRef,
-    CGDataProviderRelease,
+    CGDataProviderRef, CGDataProvider
 };
 use cg::font::{
     CGFontCreateWithDataProvider,
@@ -52,43 +50,36 @@ use ct::font_descriptor::{
 };
 
 pub struct QuartzFontHandle {
-    fontprov: CGDataProviderRef,
     cgfont: CGFontRef,
     ctfont: CTFontRef,
 
     drop {
         assert self.ctfont.is_not_null();
         assert self.cgfont.is_not_null();
-        assert self.fontprov.is_not_null();
 
         CFRelease(self.ctfont as CFTypeRef);
         CGFontRelease(self.cgfont);
-        CGDataProviderRelease(self.fontprov);
     }
 }
 
 pub impl QuartzFontHandle {
-    static pub fn new(_fctx: &QuartzFontContextHandle, buf: @~[u8], pt_size: float) -> Result<QuartzFontHandle, ()> {
+    static pub fn new_from_buffer(_fctx: &QuartzFontContextHandle, buf: @~[u8], pt_size: float) -> Result<QuartzFontHandle, ()> {
         let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
-            CGDataProviderCreateWithData(
-                ptr::null(),
-                unsafe { cast::transmute(copy cbuf) },
-                len as size_t,
-                ptr::null())
+            CGDataProvider::new_from_buffer(cbuf, len)
         });
-        if fontprov.is_null() { return Err(()); }
 
-        let cgfont = CGFontCreateWithDataProvider(fontprov);
+        let cgfont = CGFontCreateWithDataProvider(fontprov.get_ref());
         if cgfont.is_null() { return Err(()); }
 
         let ctfont = ctfont_from_cgfont(cgfont, pt_size);
         if ctfont.is_null() { return Err(()); }
 
-        Ok(QuartzFontHandle {
-            fontprov : fontprov,
+        let result = Ok(QuartzFontHandle {
             cgfont : cgfont,
             ctfont : ctfont,
-        })
+        });
+
+        return move result;
     }
 
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {

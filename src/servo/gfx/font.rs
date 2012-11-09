@@ -34,7 +34,7 @@ pub type FontHandle/& = freetype::font::FreeTypeFontHandle;
 impl FontHandle {
     #[cfg(target_os = "macos")]
     static pub fn new(fctx: &native::FontContextHandle, buf: @~[u8], pt_size: float) -> Result<FontHandle, ()> {
-        quartz::font::QuartzFontHandle::new(fctx, buf, pt_size)
+        quartz::font::QuartzFontHandle::new_from_buffer(fctx, buf, pt_size)
     }
 
     #[cfg(target_os = "linux")]
