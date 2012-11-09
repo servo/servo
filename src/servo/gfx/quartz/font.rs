@@ -31,39 +31,23 @@ use cg::font::{
 use cg::geometry::CGRect;
 
 use ct = core_text;
-use ct::font::{
-    CTFontCreateWithGraphicsFont,
-    CTFontRef,
-    CTFontGetAdvancesForGlyphs,
-    CTFontGetAscent,
-    CTFontGetBoundingBox,
-    CTFontGetDescent,
-    CTFontGetGlyphsForCharacters,
-    CTFontGetLeading,
-    CTFontGetSize,
-    CTFontGetUnderlinePosition,
-    CTFontGetUnderlineThickness,
-    CTFontGetXHeight,
-};
+use ct::font::CTFont;
 use ct::font_descriptor::{
     kCTFontDefaultOrientation,
 };
 
 pub struct QuartzFontHandle {
     cgfont: CGFontRef,
-    ctfont: CTFontRef,
+    ctfont: CTFont,
 
     drop {
-        assert self.ctfont.is_not_null();
         assert self.cgfont.is_not_null();
-
-        CFRelease(self.ctfont as CFTypeRef);
         CGFontRelease(self.cgfont);
     }
 }
 
 pub impl QuartzFontHandle {
-    static pub fn new_from_buffer(_fctx: &QuartzFontContextHandle, buf: @~[u8], pt_size: float) -> Result<QuartzFontHandle, ()> {
+    static fn new_from_buffer(_fctx: &QuartzFontContextHandle, buf: @~[u8], pt_size: float) -> Result<QuartzFontHandle, ()> {
         let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
             CGDataProvider::new_from_buffer(cbuf, len)
         });
@@ -71,27 +55,34 @@ pub impl QuartzFontHandle {
         let cgfont = CGFontCreateWithDataProvider(fontprov.get_ref());
         if cgfont.is_null() { return Err(()); }
 
-        let ctfont = ctfont_from_cgfont(cgfont, pt_size);
-        if ctfont.is_null() { return Err(()); }
+        let ctfont = CTFont::new_from_CGFont(cgfont, pt_size);
 
         let result = Ok(QuartzFontHandle {
             cgfont : cgfont,
-            ctfont : ctfont,
+            ctfont : move ctfont,
         });
 
         return move result;
     }
 
-    fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
-        assert self.ctfont.is_not_null();
+    static fn new_from_CTFont(_fctx: &QuartzFontContextHandle, ctfont: CTFont) -> Result<QuartzFontHandle, ()> {
+        let cgfont = ctfont.copy_to_CGFont();
+        let result = Ok(QuartzFontHandle {
+            cgfont: cgfont,
+            ctfont: move ctfont,
+        });
+        
+        return move result;
+    }
 
+    fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
         let characters: ~[UniChar] = ~[codepoint as UniChar];
         let glyphs: ~[mut CGGlyph] = ~[mut 0 as CGGlyph];
         let count: CFIndex = 1;
 
         let result = do vec::as_imm_buf(characters) |character_buf, _l| {
             do vec::as_imm_buf(glyphs) |glyph_buf, _l| {
-                CTFontGetGlyphsForCharacters(self.ctfont, character_buf, glyph_buf, count)
+                self.ctfont.get_glyphs_for_characters(character_buf, glyph_buf, count)
             }
         };
 
@@ -105,45 +96,35 @@ pub impl QuartzFontHandle {
     }
 
     fn glyph_h_advance(glyph: GlyphIndex) -> Option<FractionalPixel> {
-        assert self.ctfont.is_not_null();
-
         let glyphs = ~[glyph as CGGlyph];
         let advance = do vec::as_imm_buf(glyphs) |glyph_buf, _l| {
-            CTFontGetAdvancesForGlyphs(self.ctfont, kCTFontDefaultOrientation, glyph_buf, ptr::null(), 1)
+            self.ctfont.get_advances_for_glyphs(kCTFontDefaultOrientation, glyph_buf, ptr::null(), 1)
         };
 
         return Some(advance as FractionalPixel);
     }
 
     fn get_metrics() -> FontMetrics {
-        let ctfont = self.ctfont;
-        assert ctfont.is_not_null();
-
-        let bounding_rect: CGRect = CTFontGetBoundingBox(ctfont);
-        let ascent = au::from_pt(CTFontGetAscent(ctfont) as float);
-        let descent = au::from_pt(CTFontGetDescent(ctfont) as float);
+        let bounding_rect: CGRect = self.ctfont.bounding_box();
+        let ascent = au::from_pt(self.ctfont.ascent() as float);
+        let descent = au::from_pt(self.ctfont.descent() as float);
 
         let metrics =  FontMetrics {
-            underline_size:   au::from_pt(CTFontGetUnderlineThickness(ctfont) as float),
+            underline_size:   au::from_pt(self.ctfont.underline_thickness() as float),
             // TODO: underline metrics are not reliable. Have to pull out of font table directly.
             // see also: https://bugs.webkit.org/show_bug.cgi?id=16768
             // see also: https://bugreports.qt-project.org/browse/QTBUG-13364
-            underline_offset: au::from_pt(CTFontGetUnderlinePosition(ctfont) as float),
-            leading:          au::from_pt(CTFontGetLeading(ctfont) as float),
-            x_height:         au::from_pt(CTFontGetXHeight(ctfont) as float),
+            underline_offset: au::from_pt(self.ctfont.underline_position() as float),
+            leading:          au::from_pt(self.ctfont.leading() as float),
+            x_height:         au::from_pt(self.ctfont.x_height() as float),
             em_size:          ascent + descent,
             ascent:           ascent,
             descent:          descent,
             max_advance:      au::from_pt(bounding_rect.size.width as float)
         };
 
-        debug!("Font metrics (@%f pt): %?", CTFontGetSize(ctfont) as float, metrics);
+        debug!("Font metrics (@%f pt): %?", self.ctfont.pt_size() as float, metrics);
         return metrics;
     }
 }
 
-fn ctfont_from_cgfont(cgfont: CGFontRef, pt_size: float) -> CTFontRef {
-    assert cgfont.is_not_null();
-
-    CTFontCreateWithGraphicsFont(cgfont, pt_size as CGFloat, ptr::null(), ptr::null())
-}
