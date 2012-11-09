@@ -75,11 +75,12 @@ DEPS_libcss += \
 # Platform-specific dependencies
 ifeq ($(CFG_OSTYPE),darwin)
 DEPS_rust-azure += \
-	rust-core-graphics \
 	rust-core-foundation \
+	rust-core-graphics \
 	$(NULL)
 
 DEPS_rust-cairo += \
+	rust-core-foundation \
 	rust-core-graphics \
 	$(NULL)
 
@@ -92,12 +93,17 @@ DEPS_sharegl += \
 	rust-io-surface \
 	$(NULL)
 
+DEPS_rust-core-graphics += \
+	rust-core-foundation \
+	$(NULL)
+
 DEPS_rust-core-text += \
 	rust-core-foundation \
 	rust-core-graphics \
 	$(NULL)
 
 DEPS_rust-layers += \
+	rust-core-foundation \
 	rust-core-graphics \
 	$(NULL)
 
