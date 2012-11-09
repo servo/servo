@@ -78,7 +78,7 @@ DEPS_rust-azure += \
 	rust-core-graphics \
 	rust-core-text \
 	rust-core-foundation \
-    skia \
+	skia \
 	$(NULL)
 
 DEPS_rust-cairo += \
