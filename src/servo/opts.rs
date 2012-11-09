@@ -1,10 +1,10 @@
 //! Configuration options for a single run of the servo application. Created
 //! from command line arguments.
 
-pub type Opts = {
+pub struct Opts {
     urls: ~[~str],
     render_mode: RenderMode
-};
+}
 
 pub enum RenderMode {
     Screen,
@@ -37,7 +37,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
       None => { Screen }
     };
 
-    {
+    Opts {
         urls: move urls,
         render_mode: move render_mode
     }
