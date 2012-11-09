@@ -8,7 +8,7 @@ against a released version of Rust will not work, nor will the Rust
 'master' branch. The commit below will *probably* work. If it does not
 then the topic in #servo might know better.
 
-* Last known-good Rust commit: 13c01dd
+* Last known-good Rust commit: 17020244e4
 
 [rust]: http://www.rust-lang.org
 
