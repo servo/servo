@@ -7,6 +7,7 @@ use ct = core_text;
 use ct::font::{
     CTFont,
     debug_font_names,
+    debug_font_traits,
 };
 use ct::font_collection::CTFontCollection;
 use ct::font_descriptor::{
@@ -36,7 +37,9 @@ pub impl QuartzFontListHandle {
             //debug!("%?", { debug_descriptor(desc); () });
             // TODO: for each descriptor, make a FontEntry.
             let font = CTFont::new_from_descriptor(desc, 0.0);
-            debug!("%s", { debug_font_names(&font); ~"--- DEBUG CTFONT NAMES ---" });
+            debug!("family: %s", font.family_name());
+            debug!("face: %s", font.face_name());
+            debug!("%s", { debug_font_traits(&font); ~"--- DEBUG CTFONT TRAITS ---" });
             // TODO: append FontEntry to hashtable value
         }
 
