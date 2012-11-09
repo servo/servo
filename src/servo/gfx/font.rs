@@ -368,7 +368,7 @@ pub impl Font : FontMethods {
 
         let options: AzDrawOptions = {
             mAlpha: 1f as AzFloat,
-            fields: 0 as uint16_t
+            fields: 0x0200 as uint16_t
         };
 
         let mut origin = copy baseline_origin;
