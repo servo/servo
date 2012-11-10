@@ -171,7 +171,16 @@ pub impl FontSelector : cmp::Eq {
 // Holds a specific font family, and the various 
 pub struct FontFamily {
     family_name: @str,
-    entries: ~[@FontEntry],
+    entries: DVec<@FontEntry>,
+}
+
+pub impl FontFamily {
+    static fn new(family_name: &str) -> FontFamily {
+        FontFamily {
+            family_name: str::from_slice(family_name).to_managed(),
+            entries: DVec(),
+        }
+    }
 }
 
 // This struct is the result of mapping a specified FontStyle into the

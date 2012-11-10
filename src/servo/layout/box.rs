@@ -390,7 +390,7 @@ impl RenderBox : RenderBoxMethods {
     * `origin` - Total offset from display list root flow to this box's owning flow
     * `list` - List to which items should be appended
     */
-    fn build_display_list(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>,
+    fn build_display_list(@self, _builder: &DisplayListBuilder, dirty: &Rect<Au>,
                           offset: &Point2D<Au>, list: &mut DisplayList) {
 
         let box_bounds = self.d().position;

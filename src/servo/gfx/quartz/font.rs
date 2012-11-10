@@ -8,7 +8,15 @@ use gfx::font::{
     CSSFontWeight,
     FontHandleMethods,
     FontMetrics,
+    FontWeight100,
+    FontWeight200,
+    FontWeight300,
+    FontWeight400,
     FontWeight500,
+    FontWeight600,
+    FontWeight700,
+    FontWeight800,
+    FontWeight900,
     FractionalPixel
 };
 use text::glyph::GlyphIndex;
@@ -40,15 +48,20 @@ use ct = core_text;
 use ct::font::CTFont;
 use ct::font_descriptor::{
     kCTFontDefaultOrientation,
+    CTFontSymbolicTraits,
+    SymbolicTraitAccessors,
 };
 
 pub struct QuartzFontHandle {
-    cgfont: CGFontRef,
+    priv mut cgfont: Option<CGFontRef>,
     ctfont: CTFont,
 
     drop {
-        assert self.cgfont.is_not_null();
-        CGFontRelease(self.cgfont);
+        // TODO(Issue #152): use a wrapped CGFont.
+        do (copy self.cgfont).iter |cgfont| {
+            assert cgfont.is_not_null();
+            CGFontRelease(*cgfont);
+        }
     }
 }
 
@@ -64,7 +77,7 @@ pub impl QuartzFontHandle {
         let ctfont = CTFont::new_from_CGFont(cgfont, pt_size);
 
         let result = Ok(QuartzFontHandle {
-            cgfont : cgfont,
+            cgfont : Some(cgfont),
             ctfont : move ctfont,
         });
 
@@ -72,28 +85,53 @@ pub impl QuartzFontHandle {
     }
 
     static fn new_from_CTFont(_fctx: &QuartzFontContextHandle, ctfont: CTFont) -> Result<QuartzFontHandle, ()> {
-        let cgfont = ctfont.copy_to_CGFont();
         let result = Ok(QuartzFontHandle {
-            cgfont: cgfont,
+            mut cgfont: None,
             ctfont: move ctfont,
         });
         
         return move result;
     }
+
+    fn get_CGFont() -> CGFontRef {
+        match self.cgfont {
+            Some(cg) => cg,
+            None => {
+                let cgfont = self.ctfont.copy_to_CGFont();
+                self.cgfont = Some(cgfont);
+                cgfont
+            }
+        }
+    }
 }
 
 pub impl QuartzFontHandle : FontHandleMethods {
+    pure fn family_name() -> ~str {
+        self.ctfont.family_name()
+    }
     
     pure fn face_name() -> ~str {
         self.ctfont.face_name()
     }
 
     pure fn is_italic() -> bool {
-        false // FIXME
+        self.ctfont.symbolic_traits().is_italic()
     }
 
     pure fn boldness() -> CSSFontWeight {
-        FontWeight500 // FIXME
+        // -1.0 to 1.0
+        let normalized = unsafe { self.ctfont.all_traits().normalized_weight() };
+        // 0.0 to 9.0
+        let normalized = (normalized + 1.0) / 2.0 * 9.0;
+        if normalized < 1.0 { return FontWeight100; }
+        if normalized < 2.0 { return FontWeight200; }
+        if normalized < 3.0 { return FontWeight300; }
+        if normalized < 4.0 { return FontWeight400; }
+        if normalized < 5.0 { return FontWeight500; }
+        if normalized < 6.0 { return FontWeight600; }
+        if normalized < 7.0 { return FontWeight700; }
+        if normalized < 8.0 { return FontWeight800; }
+        else { return FontWeight900; }
     }
 
 

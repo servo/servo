@@ -3,6 +3,7 @@ use gfx::{
 };
 
 use dvec::DVec;
+use send_map::{linear, SendMap};
 
 #[cfg(target_os = "macos")]
 type FontListHandle/& = quartz::font_list::QuartzFontListHandle;
@@ -22,9 +23,11 @@ pub impl FontListHandle {
     }
 }
 
+type FontFamilyMap = linear::LinearMap<~str, @FontFamily>;
+
 pub struct FontList {
-    families: DVec<@FontFamily>,
-    handle: FontListHandle,
+    mut family_map: FontFamilyMap,
+    mut handle: FontListHandle,
 }
 
 pub impl FontList {
@@ -32,18 +35,17 @@ pub impl FontList {
         let handle = result::unwrap(FontListHandle::new(fctx));
         let list = FontList {
             handle: move handle,
-            families: DVec(),
+            family_map: linear::LinearMap(),
         };
         list.refresh(fctx);
         return move list;
     }
 
     priv fn refresh(fctx: &native::FontContextHandle) {
-        // TODO: don't refresh unless something actually changed.
-        // Does OSX have a notification for this event?
-        // It would be better to do piecemeal.
-        do self.families.swap |_old_families: ~[@FontFamily]| {
-            self.handle.get_available_families(fctx)
+        // TODO(Issue #186): don't refresh unless something actually
+        // changed.  Does OSX have a notification for this event?
+        do util::time::time("gfx::font_list: regenerating available font families and faces") {
+            self.family_map = self.handle.get_available_families(fctx);
         }
     }
 }
