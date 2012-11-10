@@ -65,7 +65,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
 
     let n_render_threads: uint = match getopts::opt_maybe_str(move opt_match, ~"t") {
         Some(move n_render_threads_str) => from_str::from_str(n_render_threads_str).get(),
-        None => 2,      // FIXME: Number of cores.
+        None => 1,      // FIXME: Number of cores.
     };
 
     Opts {
