@@ -1,25 +1,24 @@
 use au = gfx::geometry;
 use content::content_task::ContentTask;
-use newcss::stylesheet::Stylesheet;
 use dom::cow;
 use dom::element::*;
 use dom::event::{Event, ReflowEvent};
-use dom::node::{Comment, Doctype, DoctypeData, Text,
-                Element, Node, NodeScope};
+use dom::node::{Comment, Doctype, DoctypeData, Element, Node, NodeScope, Text};
 use resource::image_cache_task::ImageCacheTask;
 use resource::image_cache_task;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
 
+use core::comm::{Chan, Port};
+use cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use hubbub::Attribute;
-
-use comm::{Chan, Port};
+use newcss::stylesheet::Stylesheet;
 use std::net::url::Url;
-use cssparse::spawn_css_parser;
+use std::net::url;
 
 type JSResult = ~[~[u8]];
 
 enum CSSMessage {
-    CSSTaskNewFile(Url),
+    CSSTaskNewFile(StylesheetProvenance),
     CSSTaskExit   
 }
 
@@ -49,14 +48,15 @@ spawned, collates them, and sends them to the given result channel.
 * `from_parent` - A port on which to receive new links.
 
 */
-fn css_link_listener(to_parent : comm::Chan<Option<Stylesheet>>, from_parent : comm::Port<CSSMessage>,
+fn css_link_listener(to_parent : comm::Chan<Option<Stylesheet>>,
+                     from_parent : comm::Port<CSSMessage>,
                      resource_task: ResourceTask) {
     let mut result_vec = ~[];
 
     loop {
         match from_parent.recv() {
-            CSSTaskNewFile(move url) => {
-                result_vec.push(spawn_css_parser(move url, copy resource_task));
+            CSSTaskNewFile(move provenance) => {
+                result_vec.push(spawn_css_parser(move provenance, copy resource_task));
             }
             CSSTaskExit => {
                 break;
@@ -184,6 +184,31 @@ pub fn parse_html(scope: NodeScope,
     debug!("created parser");
     parser.set_document_node(cast::transmute(cow::unwrap(root)));
     parser.enable_scripting(true);
+
+    // Performs various actions necessary after appending has taken place. Currently, this consists
+    // of processing inline stylesheets, but in the future it might perform prefetching, etc.
+    let append_hook: @fn(Node, Node) = |parent_node, child_node| {
+        do scope.read(&parent_node) |parent_node_contents| {
+            do scope.read(&child_node) |child_node_contents| {
+                match (parent_node_contents.kind, child_node_contents.kind) {
+                    (~Element(ref element), ~Text(ref data)) => {
+                        match element.kind {
+                            ~HTMLStyleElement => {
+                                debug!("found inline CSS stylesheet");
+                                let url = url::from_str("http://example.com/"); // FIXME
+                                let provenance = InlineProvenance(result::unwrap(move url),
+                                                                  copy *data);
+                                css_chan.send(CSSTaskNewFile(provenance));
+                            }
+                            _ => {} // Nothing to do.
+                        }
+                    }
+                    _ => {} // Nothing to do.
+                }
+            }
+        }
+    };
+
     parser.set_tree_handler(@hubbub::TreeHandler {
         create_comment: |data: ~str| {
             debug!("create comment");
@@ -227,8 +252,8 @@ pub fn parse_html(scope: NodeScope,
                         (Some(move rel), Some(move href)) => {
                             if rel == ~"stylesheet" {
                                 debug!("found CSS stylesheet: %s", href);
-                                css_chan.send(CSSTaskNewFile(make_url(move href,
-                                                                      Some(copy *url))));
+                                css_chan.send(CSSTaskNewFile(UrlProvenance(make_url(move href,
+                                                                           Some(copy *url)))));
                             }
                         }
                         _ => {}
@@ -262,6 +287,7 @@ pub fn parse_html(scope: NodeScope,
                 let p: Node = cow::wrap(cast::transmute(parent));
                 let c: Node = cow::wrap(cast::transmute(child));
                 scope.add_child(p, c);
+                append_hook(p, c);
             }
             child
         },
