@@ -10,8 +10,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 
-// FIXME: Tiles are busted. Disable them for now.
-const TILE_SIZE: uint = 4096;
+const TILE_SIZE: uint = 512;
 
 pub struct RenderLayer {
     display_list: DisplayList,
@@ -57,10 +56,10 @@ pub fn render_layers(layer: &RenderLayer,
             let buffer;
             // FIXME: Try harder to search for a matching tile.
             // FIXME: Don't use shift; it's bad for perf. Maybe reverse and pop.
-            if buffers.len() != 0 && buffers[0].rect == tile_rect {
+            /*if buffers.len() != 0 && buffers[0].rect == tile_rect {
                 debug!("reusing tile, (%u, %u)", x, y);
                 buffer = buffers.shift();
-            } else {
+            } else {*/
                 // Create a new buffer.
                 debug!("creating tile, (%u, %u)", x, y);
 
@@ -99,7 +98,7 @@ pub fn render_layers(layer: &RenderLayer,
                     rect: tile_rect,
                     stride: stride
                 };
-            }
+            //}
 
             let _ = f(layer, &buffer);
             new_buffers.push(move buffer);
