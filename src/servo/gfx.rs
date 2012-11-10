@@ -12,12 +12,12 @@ pub use display_list::DisplayItem;
 pub use display_list::DisplayList;
 pub use font::Font;
 pub use font::FontDescriptor;
-pub use font::FontFamily;
 pub use font::FontGroup;
 pub use font::FontSelector;
 pub use font::FontStyle;
 pub use font::RunMetrics;
 pub use font_context::FontContext;
+pub use font_list::FontFamily;
 pub use font_list::FontList;
 pub use geometry::Au;
 

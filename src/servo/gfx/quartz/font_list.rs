@@ -16,11 +16,8 @@ use ct::font_descriptor::{
     debug_descriptor,
 };
 
-use gfx::font::{
-    FontEntry,
-    FontFamily,
-    FontHandle,
-};
+use gfx::font::FontHandle;
+use gfx::font_list::FontEntry;
 
 use font::{QuartzFontHandle};
 

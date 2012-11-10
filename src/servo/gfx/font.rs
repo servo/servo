@@ -82,6 +82,15 @@ enum CSSFontWeight {
 }
 pub impl CSSFontWeight : cmp::Eq;
 
+pub impl CSSFontWeight {
+    pub pure fn is_bold() -> bool {
+        match self {
+            FontWeight900 | FontWeight800 | FontWeight700 | FontWeight600 => true,
+            _ => false
+        }
+    }
+}
+
 // TODO: eventually this will be split into the specified and used
 // font styles.  specified contains uninterpreted CSS font property
 // values, while 'used' is attached to gfx::Font to descript the
@@ -168,21 +177,6 @@ pub impl FontSelector : cmp::Eq {
     pure fn ne(other: &FontSelector) -> bool { !self.eq(other) }
 }
 
-// Holds a specific font family, and the various 
-pub struct FontFamily {
-    family_name: @str,
-    entries: DVec<@FontEntry>,
-}
-
-pub impl FontFamily {
-    static fn new(family_name: &str) -> FontFamily {
-        FontFamily {
-            family_name: str::from_slice(family_name).to_managed(),
-            entries: DVec(),
-        }
-    }
-}
-
 // This struct is the result of mapping a specified FontStyle into the
 // available fonts on the system. It contains an ordered list of font
 // instances to be used in case the prior font cannot be used for
@@ -206,42 +200,6 @@ pub impl FontGroup {
             fonts: move fonts,
         }
     }
-}
-
-
-// This struct summarizes an available font's features. In the future,
-// this will include fiddly settings such as special font table handling.
-
-// In the common case, each FontFamily will have a singleton FontEntry, or
-// it will have the standard four faces: Normal, Bold, Italic, BoldItalic.
-struct FontEntry {
-    family: @FontFamily,
-    face_name: ~str,
-    priv weight: CSSFontWeight,
-    priv italic: bool,
-    handle: FontHandle,
-    // TODO: array of OpenType features, etc.
-}
-
-impl FontEntry {
-    static fn new(family: @FontFamily, handle: FontHandle) -> FontEntry {
-        FontEntry {
-            family: family,
-            face_name: handle.face_name(),
-            weight: handle.boldness(),
-            italic: handle.is_italic(),
-            handle: move handle
-        }
-    }
-
-    pure fn is_bold() -> bool { 
-        match self.weight {
-            FontWeight900 | FontWeight800 | FontWeight700 | FontWeight600 => true,
-            _ => false
-        }
-    }
-
-    pure fn is_italic() -> bool { self.italic }
 }
 
 struct RunMetrics {
