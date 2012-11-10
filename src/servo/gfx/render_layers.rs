@@ -10,6 +10,8 @@ use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use std::arc::ARC;
+use std::arc;
 
 const TILE_SIZE: uint = 512;
 
@@ -18,13 +20,15 @@ pub struct RenderLayer {
     size: Size2D<uint>
 }
 
-type RenderFn = &fn(layer: &RenderLayer, buffer: LayerBuffer, return_buffer: Chan<LayerBuffer>);
+type RenderFn = &fn(layer: *RenderLayer,
+                    buffer: LayerBuffer,
+                    return_buffer: Chan<LayerBuffer>);
 
 /// Given a layer and a buffer, either reuses the buffer (if it's of the right size and format)
 /// or creates a new buffer (if it's not of the appropriate size and format) and invokes the
 /// given callback with the render layer and the buffer. Returns the resulting layer buffer (which
 /// might be the old layer buffer if it had the appropriate size and format).
-pub fn render_layers(layer: &RenderLayer,
+pub fn render_layers(layer_ref: *RenderLayer,
                      buffer_set: LayerBufferSet,
                      opts: &Opts,
                      f: RenderFn) -> LayerBufferSet {
@@ -34,6 +38,7 @@ pub fn render_layers(layer: &RenderLayer,
     let new_buffer_ports = dvec::DVec();
 
     // Divide up the layer into tiles.
+    let layer: &RenderLayer = unsafe { cast::transmute(layer_ref) };
     let mut y = 0;
     while y < layer.size.height {
         let mut x = 0;
@@ -107,7 +112,8 @@ pub fn render_layers(layer: &RenderLayer,
             let (new_buffer_chan, new_buffer_port) = pipes::stream();
 
             // Send the buffer to the child.
-            f(layer, move buffer, move new_buffer_chan);
+            // FIXME: Don't copy the RenderLayer.
+            f(layer_ref, move buffer, move new_buffer_chan);
 
             // Enqueue the port.
             new_buffer_ports.push(move new_buffer_port);
