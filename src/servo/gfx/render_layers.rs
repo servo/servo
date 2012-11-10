@@ -5,6 +5,7 @@ use opts::Opts;
 use azure::AzFloat;
 use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use core::libc::c_int;
+use core::pipes::Chan;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -17,6 +18,8 @@ pub struct RenderLayer {
     size: Size2D<uint>
 }
 
+type RenderFn = &fn(layer: &RenderLayer, buffer: LayerBuffer, return_buffer: Chan<LayerBuffer>);
+
 /// Given a layer and a buffer, either reuses the buffer (if it's of the right size and format)
 /// or creates a new buffer (if it's not of the appropriate size and format) and invokes the
 /// given callback with the render layer and the buffer. Returns the resulting layer buffer (which
@@ -24,11 +27,11 @@ pub struct RenderLayer {
 pub fn render_layers(layer: &RenderLayer,
                      buffer_set: LayerBufferSet,
                      opts: &Opts,
-                     f: &fn(layer: &RenderLayer, buffer: &LayerBuffer) -> bool) -> LayerBufferSet {
+                     f: RenderFn) -> LayerBufferSet {
     let mut buffers = match move buffer_set { LayerBufferSet { buffers: move b } => move b };
 
     // FIXME: Try not to create a new array here.
-    let new_buffers = dvec::DVec();
+    let new_buffer_ports = dvec::DVec();
 
     // Divide up the layer into tiles.
     let mut y = 0;
@@ -100,12 +103,24 @@ pub fn render_layers(layer: &RenderLayer,
                 };
             //}
 
-            let _ = f(layer, &buffer);
-            new_buffers.push(move buffer);
+            // Create a port and channel pair to receive the new buffer.
+            let (new_buffer_chan, new_buffer_port) = pipes::stream();
+
+            // Send the buffer to the child.
+            f(layer, move buffer, move new_buffer_chan);
+
+            // Enqueue the port.
+            new_buffer_ports.push(move new_buffer_port);
 
             x += TILE_SIZE;
         }
         y += TILE_SIZE;
+    }
+
+    debug!("servo::gfx::render_layers: waiting on ports...");
+    let new_buffers = dvec::DVec();
+    for new_buffer_ports.each |new_buffer_port| {
+        new_buffers.push(new_buffer_port.recv());
     }
 
     return LayerBufferSet { buffers: move dvec::unwrap(move new_buffers) };

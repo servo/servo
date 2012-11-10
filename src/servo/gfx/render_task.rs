@@ -87,25 +87,33 @@ impl<C: Compositor Send> Renderer<C> {
             let layer_buffer_set = layer_buffer_set_cell.take();
             let layer_buffer_set_channel = layer_buffer_set_channel_cell.take();
 
-            let layer_buffer_set = for render_layers(&render_layer,
-                                                     move layer_buffer_set,
-                                                     &self.opts)
-                    |render_layer, layer_buffer| {
-                let ctx = RenderContext {
-                    canvas: layer_buffer,
-                    font_ctx: self.font_ctx,
-                    opts: &self.opts
-                };
+            let layer_buffer_set = do render_layers(&render_layer,
+                                                    move layer_buffer_set,
+                                                    &self.opts)
+                    |render_layer, layer_buffer, buffer_chan| {
+                {
+                    // Build the render context.
+                    let ctx = RenderContext {
+                        canvas: &layer_buffer,
+                        font_ctx: self.font_ctx,
+                        opts: &self.opts
+                    };
 
-                // Apply the translation to render the tile we want.
-                let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
-                let matrix = matrix.translate(&-(layer_buffer.rect.origin.x as AzFloat),
-                                              &-(layer_buffer.rect.origin.y as AzFloat));
-                layer_buffer.draw_target.set_transform(&matrix);
+                    // Apply the translation to render the tile we want.
+                    let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
+                    let matrix = matrix.translate(&-(layer_buffer.rect.origin.x as AzFloat),
+                                                  &-(layer_buffer.rect.origin.y as AzFloat));
+                    layer_buffer.draw_target.set_transform(&matrix);
 
-                ctx.clear();
+                    // Clear the buffer.
+                    ctx.clear();
 
-                render_layer.display_list.draw_into_context(&ctx);
+                    // Draw the display list.
+                    render_layer.display_list.draw_into_context(&ctx);
+                }
+
+                // Send back the buffer.
+                buffer_chan.send(move layer_buffer);
             };
 
             #debug("renderer: returning surface");
