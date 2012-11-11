@@ -25,6 +25,7 @@ use newcss::values::{CSSDisplay, Specified, CSSBackgroundColorColor, CSSBackgrou
 use servo_text::TextRun;
 use util::range::*;
 use util::tree;
+use util::tree::ReadMethods;
 
 use arc = std::arc;
 use arc::ARC;
@@ -411,10 +412,16 @@ impl RenderBox : RenderBoxMethods {
         match *self {
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
             TextBox(_,d) => {
-                list.append_item(~DisplayItem::new_Text(&abs_box_bounds, ~d.run.serialize(), d.range));
+                let nearest_element = self.nearest_element();
+                let color = nearest_element.style().color().to_gfx_color();
+                list.append_item(~DisplayItem::new_Text(&abs_box_bounds,
+                                                        ~d.run.serialize(),
+                                                        d.range,
+                                                        color));
                 // debug frames for text box bounds
                 debug!("%?", { 
-                    list.append_item(~DisplayItem::new_Border(&abs_box_bounds, au::from_px(1),
+                    list.append_item(~DisplayItem::new_Border(&abs_box_bounds,
+                                                              au::from_px(1),
                                                               rgb(0, 0, 200).to_gfx_color()))
                 ; ()});
             },
@@ -423,7 +430,8 @@ impl RenderBox : RenderBoxMethods {
             },
             ImageBox(_,i) => {
                 match i.get_image() {
-                    Some(image) => list.append_item(~DisplayItem::new_Image(&abs_box_bounds, arc::clone(&image))),
+                    Some(image) => list.append_item(~DisplayItem::new_Image(&abs_box_bounds,
+                                                                            arc::clone(&image))),
                     /* No image data at all? Okay, add some fallback content instead. */
                     None => ()
                 }
@@ -522,6 +530,21 @@ impl RenderBox : BoxedDebugMethods {
         };
 
         fmt!("box b%?: %?", self.d().id, repr)
+    }
+}
+
+// Other methods
+impl RenderBox {
+    /// Returns the nearest ancestor-or-self node. Infallible.
+    fn nearest_element(@self) -> Node {
+        let mut node = self.d().node;
+        while !node.is_element() {
+            match NodeTree.get_parent(&node) {
+                None => fail ~"no nearest element?!",
+                Some(move parent) => node = move parent,
+            }
+        }
+        node
     }
 }
 

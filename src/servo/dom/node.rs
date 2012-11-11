@@ -29,6 +29,10 @@ impl NodeTree : tree::ReadMethods<Node> {
         tree::each_child(&self, node, f)
     }
 
+    fn get_parent(node: &Node) -> Option<Node> {
+        tree::get_parent(&self, node)
+    }
+
     fn with_tree_fields<R>(n: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {
         n.read(|n| f(&n.tree))
     }

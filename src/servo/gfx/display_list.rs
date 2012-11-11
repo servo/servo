@@ -31,7 +31,7 @@ pub enum DisplayItem {
     // TODO: need to provide spacing data for text run.
     // (i.e, to support rendering of CSS 'word-spacing' and 'letter-spacing')
     // TODO: don't copy text runs, ever.
-    Text(DisplayItemData, ~SendableTextRun, Range),
+    Text(DisplayItemData, ~SendableTextRun, Range, Color),
     Image(DisplayItemData, ARC<~image::base::Image>),
     Border(DisplayItemData, Au, Color)
 }
@@ -40,7 +40,7 @@ impl DisplayItem {
     pure fn d(&self) -> &self/DisplayItemData {
         match *self {
             SolidColor(ref d, _) => d,
-            Text(ref d, _, _) => d,
+            Text(ref d, _, _, _) => d,
             Image(ref d, _) => d,
             Border(ref d, _, _) => d
         }
@@ -49,12 +49,12 @@ impl DisplayItem {
     fn draw_into_context(&self, ctx: &RenderContext) {
         match *self {
             SolidColor(_, color) => ctx.draw_solid_color(&self.d().bounds, color),
-            Text(_, run, range) => {
+            Text(_, run, range, color) => {
                 let new_run = @run.deserialize(ctx.font_ctx);
                 let font = new_run.font;
                 let origin = self.d().bounds.origin;
                 let baseline_origin = Point2D(origin.x, origin.y + font.metrics.ascent);
-                font.draw_text_into_context(ctx, new_run, range, baseline_origin);
+                font.draw_text_into_context(ctx, new_run, range, baseline_origin, color);
             },
             Image(_, ref img) => ctx.draw_image(self.d().bounds, clone_arc(img)),
             Border(_, width, color) => ctx.draw_border(&self.d().bounds, width, color),
@@ -73,8 +73,11 @@ impl DisplayItem {
         Border(DisplayItemData::new(bounds), width, color)
     }
 
-    static pure fn new_Text(bounds: &Rect<Au>, run: ~SendableTextRun, range: Range) -> DisplayItem {
-        Text(DisplayItemData::new(bounds), move run, range)
+    static pure fn new_Text(bounds: &Rect<Au>,
+                            run: ~SendableTextRun,
+                            range: Range,
+                            color: Color) -> DisplayItem {
+        Text(DisplayItemData::new(bounds), move run, range, color)
     }
 
     // ARC should be cloned into ImageData, but Images are not sendable

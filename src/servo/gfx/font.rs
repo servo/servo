@@ -1,8 +1,4 @@
-use azure::{
-    AzFloat,
-    AzScaledFontRef,
-};
-
+use color::Color;
 use gfx::au;
 use gfx::{Au, RenderContext};
 use geom::{Point2D, Rect, Size2D};
@@ -13,7 +9,8 @@ use text::{
     TextRun,
 };
 
-use azure::azure_hl::BackendType;
+use azure::{AzFloat, AzScaledFontRef};
+use azure::azure_hl::{BackendType, ColorPattern};
 use core::dvec::DVec;
 
 // FontHandle encapsulates access to the platform's font API,
@@ -300,7 +297,11 @@ impl Font {
 
 // Public API
 pub trait FontMethods {
-    fn draw_text_into_context(rctx: &RenderContext, run: &TextRun, range: Range, baseline_origin: Point2D<Au>);
+    fn draw_text_into_context(rctx: &RenderContext,
+                              run: &TextRun,
+                              range: Range,
+                              baseline_origin: Point2D<Au>,
+                              color: Color);
     fn measure_text(&TextRun, Range) -> RunMetrics;
     fn shape_text(@self, &str) -> GlyphStore;
     fn get_descriptor() -> FontDescriptor;
@@ -313,7 +314,11 @@ pub trait FontMethods {
 }
 
 pub impl Font : FontMethods {
-    fn draw_text_into_context(rctx: &RenderContext, run: &TextRun, range: Range, baseline_origin: Point2D<Au>) {
+    fn draw_text_into_context(rctx: &RenderContext,
+                              run: &TextRun,
+                              range: Range,
+                              baseline_origin: Point2D<Au>,
+                              color: Color) {
         use libc::types::common::c99::{uint16_t, uint32_t};
         use azure::{AzDrawOptions,
                     AzGlyph,
@@ -324,14 +329,9 @@ pub impl Font : FontMethods {
 
         let target = rctx.get_draw_target();
         let azfont = self.get_azure_font();
-        let color = {
-            r: 0f as AzFloat,
-            g: 0f as AzFloat,
-            b: 0f as AzFloat,
-            a: 1f as AzFloat
-        };
-        let pattern = AzCreateColorPattern(ptr::to_unsafe_ptr(&color));
-        assert pattern.is_not_null();
+        let pattern = ColorPattern(color);
+        let azure_pattern = pattern.azure_color_pattern;
+        assert azure_pattern.is_not_null();
 
         let options: AzDrawOptions = {
             mAlpha: 1f as AzFloat,
@@ -365,10 +365,12 @@ pub impl Font : FontMethods {
         }};
 
         // TODO: this call needs to move into azure_hl.rs
-        AzDrawTargetFillGlyphs(target.azure_draw_target, azfont,
-                               ptr::to_unsafe_ptr(&glyphbuf), pattern, ptr::to_unsafe_ptr(&options), ptr::null());
-
-        AzReleaseColorPattern(pattern);
+        AzDrawTargetFillGlyphs(target.azure_draw_target,
+                               azfont,
+                               ptr::to_unsafe_ptr(&glyphbuf),
+                               azure_pattern,
+                               ptr::to_unsafe_ptr(&options),
+                               ptr::null());
     }
 
     fn measure_text(run: &TextRun, range: Range) -> RunMetrics {
