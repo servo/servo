@@ -40,6 +40,29 @@ impl NodeSelectHandler: SelectHandler<Node> {
         tree::parent(&NodeTree, node)
     }
 
+    // TODO: Use a Bloom filter.
+    fn named_ancestor_node(node: &Node, name: &str) -> Option<Node> {
+        let mut node = *node;
+        loop {
+            let parent = tree::parent(&NodeTree, &node);
+            match parent {
+                Some(parent) => {
+                    let mut found = false;
+                    do parent.read |data| {
+                        if name == node_name(data) {
+                            found = true;
+                        }
+                    }
+                    if found {
+                        return Some(parent);
+                    }
+                    node = parent;
+                }
+                None => return None
+            }
+        }
+    }
+
     fn node_is_root(node: &Node) -> bool {
         self.parent_node(node).is_none()
     }
