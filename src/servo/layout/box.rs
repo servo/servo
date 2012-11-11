@@ -490,7 +490,7 @@ impl RenderBox : RenderBoxMethods {
                     list.append_item(~DisplayItem::new_Border(&bounds, border_width, color));
                     
                 } else {
-                    fail ~"unimplemented border widths";
+                    warn!("ignoring unimplemented border widths");
                 }
             }
             (CSSBorderWidthMedium,
@@ -500,7 +500,7 @@ impl RenderBox : RenderBoxMethods {
                 // FIXME: This seems to be the default for non-root nodes. For now we'll ignore it
                 warn!("ignoring medium border widths");
             }
-            _ => fail ~"unimplemented border widths"
+            _ => warn!("ignoring unimplemented border widths")
         }
     }
 }
