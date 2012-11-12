@@ -22,6 +22,7 @@ pub type FontHandle/& = quartz::font::QuartzFontHandle;
 pub type FontHandle/& = freetype::font::FreeTypeFontHandle;
 
 pub trait FontHandleMethods {
+    pure fn family_name() -> ~str;
     pure fn face_name() -> ~str;
     pure fn is_italic() -> bool;
     pure fn boldness() -> CSSFontWeight;
@@ -30,6 +31,7 @@ pub trait FontHandleMethods {
     fn glyph_index(codepoint: char) -> Option<GlyphIndex>;
     fn glyph_h_advance(GlyphIndex) -> Option<FractionalPixel>;
     fn get_metrics() -> FontMetrics;
+    fn get_table_for_tag(FontTableTag) -> Option<~[u8]>;
 }
 
 // TODO: `new` should be part of trait FontHandleMethods
@@ -51,6 +53,22 @@ impl FontHandle {
 
 // Used to abstract over the shaper's choice of fixed int representation.
 type FractionalPixel = float;
+
+pub type FontTableTag = u32;
+
+trait FontTableTagConversions {
+    pub pure fn tag_to_str() -> ~str;
+}
+
+impl FontTableTag : FontTableTagConversions {
+    pub pure fn tag_to_str() -> ~str unsafe {
+        let reversed = str::raw::from_buf_len(cast::transmute(&self), 4);
+        return str::from_chars([reversed.char_at(3),
+                                reversed.char_at(2),
+                                reversed.char_at(1),
+                                reversed.char_at(0)]);
+    }
+}
 
 struct FontMetrics {
     underline_size:   Au,
@@ -288,6 +306,17 @@ impl Font {
         let shaper = @Shaper::new(self);
         self.shaper = Some(shaper);
         shaper
+    }
+
+    fn get_table_for_tag(tag: FontTableTag) -> Option<~[u8]> {
+        let result = self.handle.get_table_for_tag(tag);
+        let status = if result.is_some() { "Found" } else { "Didn't find" };
+
+        debug!("%s font table[%s] with family=%s, face=%s",
+               status, tag.tag_to_str(),
+               self.handle.family_name(), self.handle.face_name());
+
+        return move result;
     }
 
     priv fn get_azure_font() -> AzScaledFontRef {

@@ -8,6 +8,7 @@ use gfx::font::{
     CSSFontWeight,
     FontHandleMethods,
     FontMetrics,
+    FontTableTag,
     FontWeight100,
     FontWeight200,
     FontWeight300,
@@ -23,7 +24,12 @@ use gfx::font::{
 use text::glyph::GlyphIndex;
 
 use cf = core_foundation;
-use cf::base::{CFIndex, CFRelease, CFTypeRef};
+use cf::base::{
+    CFIndex,
+    CFRelease,
+    CFTypeRef
+};
+use cf::data::CFData;
 use cf::string::UniChar;
 use cg = core_graphics;
 use cg::base::{CGFloat, CGAffineTransform};
@@ -174,6 +180,13 @@ pub impl QuartzFontHandle : FontHandleMethods {
 
         debug!("Font metrics (@%f pt): %?", self.ctfont.pt_size() as float, metrics);
         return metrics;
+    }
+
+    fn get_table_for_tag(tag: FontTableTag) -> Option<~[u8]> {
+        let result = self.ctfont.get_font_table(tag);
+        return option::chain(move result, |data| {
+            Some(data.copy_to_buf())
+        });
     }
 }
 

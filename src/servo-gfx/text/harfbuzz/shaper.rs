@@ -1,6 +1,14 @@
 extern mod harfbuzz;
 
-use geometry::Au;
+use geom::Point2D;
+
+use gfx::au;
+use gfx::{
+    Au,
+    Font,
+};
+use gfx::font::FontTableTag;
+
 use glyph::{GlyphStore, GlyphIndex, GlyphData};
 use servo_gfx_font::Font;
 
@@ -20,17 +28,33 @@ use harfbuzz::bindgen::{hb_font_set_funcs, hb_font_funcs_set_glyph_h_advance_fun
 use harfbuzz::bindgen::{hb_font_funcs_set_glyph_func, hb_font_funcs_set_glyph_h_kerning_func};
 use std::arc;
 
+use harfbuzz::{HB_MEMORY_MODE_READONLY,
+                  HB_DIRECTION_LTR};
+use harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_font_funcs_t, hb_buffer_t,
+                  hb_codepoint_t, hb_bool_t, hb_glyph_position_t,
+		  hb_glyph_info_t, hb_var_int_t, hb_position_t, hb_tag_t};
+use harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
+                           hb_face_create_for_tables, hb_face_destroy,
+                           hb_font_create, hb_font_destroy,
+                           hb_buffer_create, hb_buffer_destroy,
+                           hb_buffer_add_utf8, hb_shape,
+                           hb_buffer_get_glyph_infos,
+                           hb_buffer_get_glyph_positions,
+                           hb_font_set_ppem, hb_font_set_scale,
+                           hb_buffer_set_direction,
+                           hb_font_funcs_create, hb_font_funcs_destroy,
+                           hb_font_set_funcs,
+                           hb_font_funcs_set_glyph_h_advance_func,
+                           hb_font_funcs_set_glyph_func,
+                           hb_font_funcs_set_glyph_h_kerning_func};
+
 pub struct HarfbuzzShaper {
-    priv font: @Font,
-    priv hb_blob: *hb_blob_t,
+    font: @Font,
     priv hb_face: *hb_face_t,
     priv hb_font: *hb_font_t,
     priv hb_funcs: *hb_font_funcs_t,
 
     drop {
-        assert self.hb_blob.is_not_null();
-        hb_blob_destroy(self.hb_blob);
-
         assert self.hb_face.is_not_null();
         hb_face_destroy(self.hb_face);
 
@@ -44,16 +68,7 @@ pub struct HarfbuzzShaper {
 
 pub impl HarfbuzzShaper {
     static pub fn new(font: @Font) -> HarfbuzzShaper {
-        // TODO(Issue #92): font tables should be stored in Font object and cached per-task
-        let hb_blob: *hb_blob_t = vec::as_imm_buf(*(font).buf(), |buf: *u8, len: uint| {
-            hb_blob_create(buf as *c_char,
-                           len as c_uint,
-                           HB_MEMORY_MODE_READONLY,
-                           null(),
-                           null())
-        });
-
-        let hb_face: *hb_face_t = hb_face_create(hb_blob, 0 as c_uint);
+        let hb_face: *hb_face_t = hb_face_create_for_tables(get_font_table_func, ptr::to_unsafe_ptr(font) as *c_void, ptr::null());
         let hb_font: *hb_font_t = hb_font_create(hb_face);
         // Set points-per-em. if zero, performs no hinting in that direction.
         let pt_size = font.style.pt_size;
@@ -75,7 +90,6 @@ pub impl HarfbuzzShaper {
 
         HarfbuzzShaper { 
             font: font,
-            hb_blob: hb_blob,
             hb_face: hb_face,
             hb_font: hb_font,
             hb_funcs: hb_funcs,
@@ -174,4 +188,23 @@ extern fn glyph_h_advance_func(_font: *hb_font_t,
 
     let advance = (*font).glyph_h_advance(glyph as GlyphIndex);
     HarfbuzzShaper::float_to_fixed(advance)
+}
+
+// Callback to get a font table out of a font.
+extern fn get_font_table_func(_face: *hb_face_t, tag: hb_tag_t, user_data: *c_void) -> *hb_blob_t unsafe {
+    let font: *Font = user_data as *Font;
+    assert font.is_not_null();
+
+    // TODO(Issue #197): reuse font table data, which will change return type here.
+    // it will also require us to provide deletion callbacks to hb_blob_create, so
+    // that refcounts of shared blobs can be managed.
+    match (*font).get_table_for_tag(tag as FontTableTag) {
+        None => return ptr::null(),
+        Some(table_buffer) => {
+            let blob: *hb_blob_t = vec::as_imm_buf(table_buffer, |buf: *u8, len: uint| {
+                hb_blob_create(buf as *c_char, len as c_uint, HB_MEMORY_MODE_READONLY, null(), null())
+            });
+            return blob;
+        }
+    }
 }
