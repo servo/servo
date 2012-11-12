@@ -412,8 +412,8 @@ impl RenderBox : RenderBoxMethods {
         match *self {
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
             TextBox(_,d) => {
-                let nearest_element = self.nearest_element();
-                let color = nearest_element.style().color().to_gfx_color();
+                let nearest_ancestor_element = self.nearest_ancestor_element();
+                let color = nearest_ancestor_element.style().color().to_gfx_color();
                 list.append_item(~DisplayItem::new_Text(&abs_box_bounds,
                                                         ~d.run.serialize(),
                                                         d.range,
@@ -441,12 +441,16 @@ impl RenderBox : RenderBoxMethods {
         self.add_border_to_list(list, &abs_box_bounds);
     }
 
-    fn add_bgcolor_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
+    fn add_bgcolor_to_list(@self, list: &mut DisplayList, abs_bounds: &Rect<Au>) {
         use std::cmp::FuzzyEq;
 
-        if !self.d().node.is_element() { return }
+        // FIXME: This causes a lot of background colors to be displayed when they are clearly not
+        // needed. We could use display list optimization to clean this up, but it still seems
+        // inefficient. What we really want is something like "nearest ancestor element that
+        // doesn't have a RenderBox".
+        let nearest_ancestor_element = self.nearest_ancestor_element();
 
-        let bgcolor = self.style().background_color();
+        let bgcolor = nearest_ancestor_element.style().background_color();
         if !bgcolor.alpha.fuzzy_eq(&0.0) {
             list.append_item(~DisplayItem::new_SolidColor(abs_bounds, bgcolor.to_gfx_color()));
         }
@@ -535,8 +539,8 @@ impl RenderBox : BoxedDebugMethods {
 
 // Other methods
 impl RenderBox {
-    /// Returns the nearest ancestor-or-self node. Infallible.
-    fn nearest_element(@self) -> Node {
+    /// Returns the nearest ancestor-or-self element node. Infallible.
+    fn nearest_ancestor_element(@self) -> Node {
         let mut node = self.d().node;
         while !node.is_element() {
             match NodeTree.get_parent(&node) {
