@@ -56,9 +56,9 @@ pub struct QuartzFontHandle {
 }
 
 pub impl QuartzFontHandle {
-    static fn new_from_buffer(_fctx: &QuartzFontContextHandle, buf: @~[u8],
+    static fn new_from_buffer(_fctx: &QuartzFontContextHandle, buf: ~[u8],
                               style: &SpecifiedFontStyle) -> Result<QuartzFontHandle, ()> {
-        let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
+        let fontprov = vec::as_imm_buf(buf, |cbuf, len| {
             CGDataProvider::new_from_buffer(cbuf, len)
         });
 

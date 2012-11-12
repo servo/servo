@@ -31,8 +31,10 @@ fn fixed_to_float_ft(f: i32) -> float {
 }
 
 pub struct FreeTypeFontHandle {
-    /// The font binary. This must stay valid for the lifetime of the font
-    buf: @~[u8],
+    // The font binary. This must stay valid for the lifetime of the font,
+    // if the font is created using FT_Memory_Face.
+    // TODO: support both FT_Memory_Face (from memory) and FT_Face (from file)
+    buf: ~[u8],
     face: FT_Face,
 
     drop {
@@ -45,11 +47,10 @@ pub struct FreeTypeFontHandle {
 
 pub impl FreeTypeFontHandle {
     static pub fn new(fctx: &FreeTypeFontContext,
-                      buf: @~[u8], pt_size: float) -> Result<FreeTypeFontHandle, ()> {
+                      buf: ~[u8], pt_size: float) -> Result<FreeTypeFontHandle, ()> {
         let ft_ctx = fctx.ctx;
         assert ft_ctx.is_not_null();
-        let face: FT_Face = null();
-        return vec_as_buf(*buf, |cbuf, _len| {
+        let face_result: Result<FT_Face,()> = vec_as_buf(buf, |cbuf, _len| {
             if FT_New_Memory_Face(ft_ctx, cbuf, (*buf).len() as FT_Long,
                                   0 as FT_Long, addr_of(&face)).succeeded() {
                 let res = FT_Set_Char_Size(face, // the face
@@ -58,11 +59,14 @@ pub impl FreeTypeFontHandle {
                                            72, // horiz. DPI
                                            72); // vert. DPI
                 if !res.succeeded() { fail ~"unable to set font char size" }
-                Ok(FreeTypeFontHandle { face: face, buf: buf })
+                Ok(face)
             } else {
                 Err(())
             }
-        })
+        });
+        return do result::chain(face_result) |face| {
+            Ok(FreeTypeFontHandle { face: face, buf: move buf })
+        };
     }
 
     pub fn glyph_index(codepoint: char) -> Option<GlyphIndex> {

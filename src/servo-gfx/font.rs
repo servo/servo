@@ -42,13 +42,13 @@ pub trait FontHandleMethods {
 
 impl FontHandle {
     #[cfg(target_os = "macos")]
-    static pub fn new(fctx: &native::FontContextHandle, buf: @~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
-        quartz::font::QuartzFontHandle::new_from_buffer(fctx, buf, style)
+    static pub fn new(fctx: &native::FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
+        quartz::font::QuartzFontHandle::new_from_buffer(fctx, move buf, style)
     }
 
     #[cfg(target_os = "linux")]
-    static pub fn new(fctx: &native::FontContextHandle, buf: @~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
-        freetype::font::FreeTypeFontHandle::new(fctx, buf, style)
+    static pub fn new(fctx: &native::FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
+        freetype::font::FreeTypeFontHandle::new(fctx, move buf, style)
     }
 }
 
@@ -238,7 +238,6 @@ A font instance. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
 */
 pub struct Font {
-    priv mut fontbuf: Option<@~[u8]>,
     priv handle: FontHandle,
     priv mut azure_font: Option<AzScaledFontRef>,
     priv mut shaper: Option<@Shaper>,
@@ -253,10 +252,10 @@ pub struct Font {
 }
 
 impl Font {
-    static fn new_from_buffer(ctx: &FontContext, buffer: @~[u8],
+    static fn new_from_buffer(ctx: &FontContext, buffer: ~[u8],
                               style: &SpecifiedFontStyle, backend: BackendType) -> Result<@Font, ()> {
 
-        let handle = FontHandle::new(&ctx.handle, buffer, style);
+        let handle = FontHandle::new(&ctx.handle, move buffer, style);
         let handle = if handle.is_ok() {
             result::unwrap(move handle)
         } else {
@@ -267,7 +266,6 @@ impl Font {
         // TODO(Issue #179): convert between specified and used font style here?
 
         return Ok(@Font {
-            fontbuf : Some(buffer),
             handle : move handle,
             azure_font: None,
             shaper: None,
@@ -287,7 +285,6 @@ impl Font {
         };
 
         return Ok(@Font {
-            fontbuf : None,
             handle : move styled_handle,
             azure_font: None,
             shaper: None,
@@ -353,7 +350,6 @@ pub trait FontMethods {
     fn shape_text(@self, &str) -> GlyphStore;
     fn get_descriptor() -> FontDescriptor;
 
-    fn buf(&self) -> @~[u8];
     // these are used to get glyphs and advances in the case that the
     // shaper can't figure it out.
     fn glyph_index(char) -> Option<GlyphIndex>;
@@ -459,10 +455,6 @@ pub impl Font : FontMethods {
         // TODO(Issue #174): implement by-platform-name FontSelectors,
         // probably by adding such an API to FontHandle.
         FontDescriptor::new(&font_context::dummy_style(), &SelectorStubDummy)
-    }
-
-    fn buf(&self) -> @~[u8] {
-        option::expect(self.fontbuf, ~"This font has no buffer")
     }
 
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {

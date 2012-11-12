@@ -125,7 +125,7 @@ pub impl FontContext {
     priv fn create_font_instance(desc: &FontDescriptor) -> Result<@Font, ()> {
         return match desc.selector {
             SelectorStubDummy => {
-                Font::new_from_buffer(&self, @test_font_bin(), &desc.style, self.backend)
+                Font::new_from_buffer(&self, test_font_bin(), &desc.style, self.backend)
             },
             // TODO(Issue #174): implement by-platform-name font selectors.
             SelectorPlatformName(_) => { fail ~"FontContext::create_font_instance() can't yet handle SelectorPlatformName." }
