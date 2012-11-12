@@ -91,3 +91,4 @@ pub mod util {
     pub mod vec;
 }
 
+use gfx_font = font;

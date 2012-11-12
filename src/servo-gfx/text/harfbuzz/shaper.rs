@@ -2,15 +2,15 @@ extern mod harfbuzz;
 
 use geom::Point2D;
 
-use gfx::au;
-use gfx::{
-    Au,
+use au = geometry;
+use au::Au;
+
+use font::{
     Font,
+    FontTableTag,
 };
-use gfx::font::FontTableTag;
 
 use glyph::{GlyphStore, GlyphIndex, GlyphData};
-use servo_gfx_font::Font;
 
 use core::libc::types::common::c99::int32_t;
 use core::libc::{c_uint, c_int, c_void, c_char};

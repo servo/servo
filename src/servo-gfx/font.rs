@@ -1,4 +1,5 @@
 use color::Color;
+use font_context::FontContext;
 use geometry::Au;
 use render_context::RenderContext;
 use util::range::Range;

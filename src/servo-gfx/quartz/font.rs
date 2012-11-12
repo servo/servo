@@ -3,8 +3,8 @@ extern mod core_graphics;
 extern mod core_text;
 
 use font_context::QuartzFontContextHandle;
-use gfx::au;
-use gfx::font::{
+use geometry::Au;
+use gfx_font::{
     CSSFontWeight,
     FontHandleMethods,
     FontMetrics,
