@@ -7,21 +7,16 @@ use content::content_task;
 use css::select::new_css_select_ctx;
 use dom::event::{Event, ReflowEvent};
 use dom::node::{Node, LayoutData};
-use gfx::render_task;
-use gfx::{Au, DisplayList, FontContext, RenderLayer};
-use gfx::{au, dl};
 use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
+use layout::display_list_builder::DisplayListBuilder;
 use layout::traverse::*;
-use opt = core::option;
-use opts::Opts;
-use render_task::RenderTask;
 use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use resource::local_image_cache::LocalImageCache;
 use util::time::time;
 
-use core::comm::*;
+use core::comm::*;  // FIXME: Bad! Pipe-ify me.
 use core::dvec::DVec;
 use core::mutable::Mut;
 use core::task::*;
@@ -29,9 +24,16 @@ use core::util::replace;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use gfx::display_list::DisplayList;
+use gfx::font_context::FontContext;
+use gfx::geometry::Au;
+use gfx::opts::Opts;
+use gfx::render_layers::RenderLayer;
+use gfx::render_task::{RenderMsg, RenderTask};
 use newcss::select::SelectCtx;
 use newcss::stylesheet::Stylesheet;
 use newcss::types::OriginAuthor;
+use opt = core::option;
 use std::arc::ARC;
 use std::cell::Cell;
 use std::net::url::Url;
@@ -159,8 +161,8 @@ impl Layout {
         // Reset the image cache
         self.local_image_cache.next_round(self.make_on_image_available_cb(move dom_event_chan));
 
-        let screen_size = Size2D(au::from_px(data.window_size.width as int),
-                                 au::from_px(data.window_size.height as int));
+        let screen_size = Size2D(Au::from_px(data.window_size.width as int),
+                                 Au::from_px(data.window_size.height as int));
 
         let layout_ctx = LayoutContext {
             image_cache: self.local_image_cache,
@@ -202,20 +204,20 @@ impl Layout {
         }
 
         do time("layout: display list building") {
-            let builder = dl::DisplayListBuilder {
+            let builder = DisplayListBuilder {
                 ctx: &layout_ctx,
             };
             let mut render_layer = RenderLayer {
                 display_list: DisplayList::new(),
-                size: Size2D(au::to_px(screen_size.width) as uint,
-                             au::to_px(screen_size.height) as uint)
+                size: Size2D(screen_size.width.to_px() as uint,
+                             screen_size.height.to_px() as uint)
             };
 
             // TODO: set options on the builder before building
             // TODO: be smarter about what needs painting
             layout_root.build_display_list(&builder, &copy layout_root.d().position,
                                            &mut render_layer.display_list);
-            self.render_task.send(render_task::RenderMsg(move render_layer));
+            self.render_task.send(RenderMsg(move render_layer));
         } // time(layout: display list building)
 
         // Tell content we're done
@@ -242,8 +244,8 @@ impl Layout {
                             match rect {
                                 None => Err(()),
                                 Some(rect) => {
-                                    let size = Size2D(au::to_px(rect.size.width),
-                                                      au::to_px(rect.size.height));
+                                    let size = Size2D(rect.size.width.to_px(),
+                                                      rect.size.height.to_px());
                                     Ok(ContentSize(move size))
                                 }
                             }

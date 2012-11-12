@@ -1,39 +1,34 @@
 /* Fundamental layout structures and algorithms. */
 
-use geom::{Rect, Size2D, Point2D};
-
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
-use gfx::{au, dl};
-use gfx::{
-    Au,
-    DisplayItem,
-    DisplayList,
-};
-use image::{Image, ImageHolder};
 use layout::context::LayoutContext;
 use layout::debug::BoxedDebugMethods;
 use layout::display_list_builder::DisplayListBuilder;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
-use newcss::color::{Color, rgba, rgb};
-use newcss::complete::CompleteStyle;
-use newcss::units::{BoxSizing, Length, Px};
-use newcss::values::{CSSBorderColor, CSSPositionAbsolute};
-use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium};
-use newcss::values::{CSSDisplay, Specified, CSSBackgroundColorColor, CSSBackgroundColorTransparent};
-use servo_text::TextRun;
-use util::range::*;
-use util::tree;
 use util::tree::ReadMethods;
 
 use arc = std::arc;
-use arc::ARC;
 use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
+use core::task::spawn;
+use geom::{Point2D, Rect, Size2D};
+use gfx::display_list::{DisplayItem, DisplayList};
+use gfx::geometry::Au;
+use gfx::image::base::Image;
+use gfx::image::holder::ImageHolder;
+use gfx::text::text_run::TextRun;
+use gfx::util::range::*;
+use newcss::color::{Color, rgba, rgb};
+use newcss::complete::CompleteStyle;
+use newcss::units::{BoxSizing, Length, Px};
+use newcss::values::{CSSBackgroundColorColor, CSSBackgroundColorTransparent, CSSBorderColor};
+use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium, CSSDisplay, CSSPositionAbsolute};
+use newcss::values::{Specified};
+use std::arc::ARC;
 use std::net::url::Url;
-use task::spawn;
 
 /** 
 Render boxes (`struct RenderBox`) are the leafs of the layout
@@ -131,7 +126,7 @@ fn RenderBoxData(node: Node, ctx: @FlowContext, id: int) -> RenderBoxData {
     RenderBoxData {
         node : node,
         mut ctx  : ctx,
-        mut position : au::zero_rect(),
+        mut position : Au::zero_rect(),
         font_size: Px(0.0),
         id : id
     }
@@ -187,7 +182,7 @@ impl RenderBox : RenderBoxMethods {
 
                 let mut pieces_processed_count : uint = 0;
                 let mut remaining_width : Au = max_width;
-                let left_range = MutableRange(data.range.begin(), 0);
+                let left_range = MutableRange::new(data.range.begin(), 0);
                 let mut right_range : Option<Range> = None;
                 debug!("split_to_width: splitting text box (strlen=%u, range=%?, avail_width=%?)",
                        data.run.text.len(), data.range, max_width);
@@ -264,7 +259,7 @@ impl RenderBox : RenderBoxMethods {
             GenericBox(*) => Au(0),
             // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult 'width'.
-            ImageBox(_,i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
+            ImageBox(_,i) => Au::from_px(i.get_size().get_default(Size2D(0,0)).width),
             TextBox(_,d) => d.run.min_width_for_range(d.range),
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
         }
@@ -278,7 +273,7 @@ impl RenderBox : RenderBoxMethods {
             // FlowContext will combine the width of this element and
             // that of its children to arrive at the context width.
             GenericBox(*) => Au(0),
-            ImageBox(_,i) => au::from_px(i.get_size().get_default(Size2D(0,0)).width),
+            ImageBox(_,i) => Au::from_px(i.get_size().get_default(Size2D(0,0)).width),
 
             // a text box cannot span lines, so assume that this is an unsplit text box.
 
@@ -293,7 +288,7 @@ impl RenderBox : RenderBoxMethods {
                     for d.run.glyphs.iter_glyphs_for_range(line_range) |_char_i, glyph| {
                         line_width += glyph.advance()
                     }
-                    max_line_width = au::max(max_line_width, line_width);
+                    max_line_width = Au::max(max_line_width, line_width);
                 }
 
                 max_line_width
@@ -328,8 +323,8 @@ impl RenderBox : RenderBoxMethods {
                 let size = i.size();
                 Rect {
                     origin: copy self.d().position.origin,
-                    size:   Size2D(au::from_px(size.width),
-                                   au::from_px(size.height))
+                    size:   Size2D(Au::from_px(size.width),
+                                   Au::from_px(size.height))
                 }
             },
             GenericBox(*) => {
@@ -421,7 +416,7 @@ impl RenderBox : RenderBoxMethods {
                 // debug frames for text box bounds
                 debug!("%?", { 
                     list.append_item(~DisplayItem::new_Border(&abs_box_bounds,
-                                                              au::from_px(1),
+                                                              Au::from_px(1),
                                                               rgb(0, 0, 200).to_gfx_color()))
                 ; ()});
             },
@@ -469,10 +464,10 @@ impl RenderBox : RenderBoxMethods {
              CSSBorderWidthLength(Px(right)),
              CSSBorderWidthLength(Px(bottom)),
              CSSBorderWidthLength(Px(left))) => {
-                let top_au = au::from_frac_px(top);
-                let right_au = au::from_frac_px(right);
-                let bottom_au = au::from_frac_px(bottom);
-                let left_au = au::from_frac_px(left);
+                let top_au = Au::from_frac_px(top);
+                let right_au = Au::from_frac_px(right);
+                let bottom_au = Au::from_frac_px(bottom);
+                let left_au = Au::from_frac_px(left);
 
                 let all_widths_equal = [top_au, right_au, bottom_au].all(|a| *a == left_au);
 

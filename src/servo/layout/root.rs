@@ -2,11 +2,12 @@ use au = gfx::geometry;
 use newcss::values::*;
 use geom::point::Point2D;
 use geom::rect::Rect;
-use gfx::display_list::{DisplayList, DisplayListBuilder};
+use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
 use layout::flow::{FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
+use layout::display_list_builder::DisplayListBuilder;
 use util::tree;
 
 struct RootFlowData {

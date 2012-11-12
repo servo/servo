@@ -81,6 +81,16 @@ DEPS_libcss += \
 	libparserutils \
 	$(NULL)
 
+DEPS_servo-gfx += \
+	rust-azure \
+	rust-cairo \
+	rust-freetype \
+	rust-geom \
+	rust-harfbuzz \
+	rust-http-client \
+	rust-stb-image \
+	$(NULL)
+
 # Platform-specific dependencies
 ifeq ($(CFG_OSTYPE),darwin)
 DEPS_rust-azure += \
@@ -114,6 +124,12 @@ DEPS_rust-core-text += \
 	$(NULL)
 
 DEPS_rust-layers += \
+	rust-core-foundation \
+	rust-core-graphics \
+	rust-core-text \
+	$(NULL)
+
+DEPS_servo-gfx += \
 	rust-core-foundation \
 	rust-core-graphics \
 	rust-core-text \

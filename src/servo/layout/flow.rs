@@ -1,19 +1,19 @@
-use au = gfx::geometry;
-use au::Au;
-use core::dvec::DVec;
 use dom::node::Node;
-use geom::rect::Rect;
-use geom::point::Point2D;
-use gfx::display_list::{DisplayList, DisplayListBuilder};
-// TODO: pub-use these
 use layout::block::BlockFlowData;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
 use layout::debug::BoxedDebugMethods;
+use layout::display_list_builder::DisplayListBuilder;
 use layout::inline::{InlineFlowData, NodeRange};
 use layout::root::RootFlowData;
-use util::range::{Range, MutableRange};
 use util::tree;
+
+use core::dvec::DVec;
+use geom::rect::Rect;
+use geom::point::Point2D;
+use gfx::display_list::DisplayList;
+use gfx::geometry::Au;
+use gfx::util::range::{Range, MutableRange};
 
 /** Servo's experimental layout system builds a tree of FlowContexts
 and RenderBoxes, and figures out positions and display attributes of
@@ -103,7 +103,7 @@ fn FlowData(id: int) -> FlowData {
 
         min_width: Au(0),
         pref_width: Au(0),
-        position: au::zero_rect()
+        position: Au::zero_rect()
     }
 }
 

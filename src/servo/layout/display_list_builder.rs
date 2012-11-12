@@ -11,13 +11,14 @@ use either::{Left, Right};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::display_list::DisplayList;
 use layout::box::{RenderBox, TextBox};
 use layout::context::LayoutContext;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
 use util::tree;
 use vec::push;
+
+use gfx::display_list::DisplayList;
 
 /** A builder object that manages display list builder should mainly
  hold information about the initial request and desired result---for

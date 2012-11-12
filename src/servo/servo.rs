@@ -3,22 +3,23 @@ extern mod core_graphics;
 #[cfg(target_os="macos")]
 extern mod core_text;
 
-use comm::*;
-use option::swap_unwrap;
-use platform::osmain;
-use osmain::{OSMain, AddKeyHandler};
-use opts::{Opts, Screen, Png};
-use engine::{Engine, ExitMsg, LoadURLMsg};
-use resource::image_cache_task::ImageCacheTask;
-use resource::resource_task::ResourceTask;
+use engine::{Engine, ExitMsg, LoadURLMsg};  // FIXME: "ExitMsg" is pollution.
+use platform::osmain::{AddKeyHandler, OSMain};
 
-use util::url::make_url;
+use core::comm::*;  // FIXME: Bad!
+use core::option::swap_unwrap;
+use core::pipes::{Port, Chan};
 
-use pipes::{Port, Chan};
+pub use gfx::opts::{Opts, Png, Screen};  // FIXME: Do we really want "Screen" and "Png" visible?
+pub use gfx::resource;
+pub use gfx::resource::image_cache_task::ImageCacheTask;
+pub use gfx::resource::resource_task::ResourceTask;
+pub use gfx::text;
+pub use gfx::util::url::make_url;
 
 fn main() {
     let args = os::args();
-    run(&opts::from_cmdline_args(args))
+    run(&gfx::opts::from_cmdline_args(args))
 }
 
 #[allow(non_implicitly_copyable_typarams)]
@@ -44,7 +45,7 @@ fn run_pipeline_screen(opts: &Opts) {
 
     // Send each file to render then wait for keypress
     let (keypress_to_engine, keypress_from_osmain) = pipes::stream();
-    osmain.send(AddKeyHandler(move keypress_to_engine));
+    osmain.chan.send(AddKeyHandler(move keypress_to_engine));
 
     // Create a servo instance
     let resource_task = ResourceTask();
@@ -70,7 +71,7 @@ fn run_pipeline_screen(opts: &Opts) {
     engine_task.send(engine::ExitMsg(move exit_chan));
     exit_response_from_engine.recv();
 
-    osmain.send(osmain::Exit);
+    osmain.chan.send(platform::osmain::Exit);
 }
 
 fn run_pipeline_png(_opts: &Opts, _outfile: &str) {

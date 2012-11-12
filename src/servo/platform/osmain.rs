@@ -1,10 +1,6 @@
 use ShareGlContext = sharegl::platform::Context;
 use dom::event::{Event, ResizeEvent};
-use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
-use layers::ImageLayer;
-use opts::Opts;
 use resize_rate_limiter::ResizeRateLimiter;
-use util::time;
 
 use azure::azure_hl::{BackendType, B8G8R8A8, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
 use core::dvec::DVec;
@@ -15,10 +11,16 @@ use geom::matrix::{Matrix4, identity};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
+use gfx::opts::Opts;
+use gfx::util::time;
+use layers::ImageLayer;
 use std::cell::Cell;
 use std::cmp::FuzzyEq;
 
-pub type OSMain = comm::Chan<Msg>;
+pub struct OSMain {
+    chan: comm::Chan<Msg>
+}
 
 // FIXME: Move me over to opts.rs.
 enum Mode {
@@ -40,18 +42,20 @@ pub enum Msg {
 
 fn OSMain(dom_event_chan: pipes::SharedChan<Event>, opts: Opts) -> OSMain {
     let dom_event_chan = Cell(move dom_event_chan);
-    do on_osmain::<Msg> |po, move dom_event_chan, move opts| {
-        do platform::runmain {
-            #debug("preparing to enter main loop");
+    OSMain {
+        chan: do on_osmain::<Msg> |po, move dom_event_chan, move opts| {
+            do platform::runmain {
+                #debug("preparing to enter main loop");
 
-            // FIXME: Use the servo options.
-			let mode;
-			match os::getenv("SERVO_SHARE") {
-				Some(_) => mode = ShareMode,
-				None => mode = GlutMode
-			}
+                // FIXME: Use the servo options.
+                let mode;
+                match os::getenv("SERVO_SHARE") {
+                    Some(_) => mode = ShareMode,
+                    None => mode = GlutMode
+                }
 
-	        mainloop(mode, po, dom_event_chan.take(), &opts);
+                mainloop(mode, po, dom_event_chan.take(), &opts);
+            }
         }
     }
 }
@@ -258,10 +262,10 @@ compositor for the renderer
 */
 impl OSMain : Compositor {
     fn begin_drawing(next_dt: pipes::Chan<LayerBufferSet>) {
-        self.send(BeginDrawing(move next_dt))
+        self.chan.send(BeginDrawing(move next_dt))
     }
     fn draw(next_dt: pipes::Chan<LayerBufferSet>, draw_me: LayerBufferSet) {
-        self.send(Draw(move next_dt, move draw_me))
+        self.chan.send(Draw(move next_dt, move draw_me))
     }
 }
 

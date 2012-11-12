@@ -1,19 +1,20 @@
 /** Creates CSS boxes from a DOM. */
-use au = gfx::geometry;
-use core::dvec::DVec;
-use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock, CSSDisplayNone};
-use newcss::values::{Inherit, Specified};
+
 use dom::element::*;
 use dom::node::{Comment, Doctype, Element, Text, Node, LayoutData};
-use image::holder::ImageHolder;
 use layout::box::*;
 use layout::block::BlockFlowData;
 use layout::context::LayoutContext;
 use layout::flow::*;
 use layout::inline::InlineFlowData;
 use layout::root::RootFlowData;
-use option::is_none;
 use util::tree;
+
+use core::dvec::DVec;
+use gfx::image::holder::ImageHolder;
+use gfx::util::range::MutableRange;
+use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
+use newcss::values::{CSSDisplayNone, Inherit, Specified};
 
 pub struct LayoutTreeBuilder {
     mut root_flow: Option<@FlowContext>,
@@ -150,7 +151,7 @@ impl BoxGenerator {
                         self.flow.inline().boxes.push(*spacer);
                     }
                 }
-                let node_range : MutableRange = MutableRange(self.range_stack.pop(), 0);
+                let node_range: MutableRange = MutableRange::new(self.range_stack.pop(), 0);
                 node_range.extend_to(self.flow.inline().boxes.len());
                 assert node_range.length() > 0;
 
@@ -393,8 +394,8 @@ impl LayoutTreeBuilder {
                         // TODO: this could be written as a pattern guard, but it triggers
                         // an ICE (mozilla/rust issue #3601)
                         if d.image.is_some() {
-                            let holder = ImageHolder({copy *d.image.get_ref()},
-                                                     layout_ctx.image_cache);
+                            let holder = ImageHolder::new({copy *d.image.get_ref()},
+                                                           layout_ctx.image_cache);
 
                             @ImageBox(RenderBoxData(node, ctx, self.next_box_id()), move holder)
                         } else {

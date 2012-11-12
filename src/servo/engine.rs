@@ -1,18 +1,18 @@
 use content::content_task::{ContentTask, ExecuteMsg, ParseMsg, ExitMsg};
 use content::content_task;
 use dom::event::Event;
-use gfx::compositor::Compositor;
-use gfx::render_task::RenderTask;
-use gfx::render_task;
 use layout::layout_task;
 use layout_task::LayoutTask;
-use opts::Opts;
 use resource::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use resource::resource_task::ResourceTask;
 use resource::resource_task;
 
 use core::pipes::{Port, Chan};
 use core::task::spawn_listener;
+use gfx::compositor::Compositor;
+use gfx::opts::Opts;
+use gfx::render_task::RenderTask;
+use gfx::render_task;
 use std::cell::Cell;
 use std::net::url::Url;
 

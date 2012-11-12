@@ -3,51 +3,36 @@ The content task is the main task that runs JavaScript and spawns layout
 tasks.
 */
 
-export Content, ContentTask;
-export ControlMsg, ExecuteMsg, ParseMsg, ExitMsg, Timer;
-export PingMsg, PongMsg;
-export task_from_context;
-
-use core::util::replace;
-use std::arc::{ARC, clone};
-use comm::{Port, Chan, listen, select2};
-use task::{spawn, spawn_listener};
-use io::{read_whole_file, println};
-
+use dom::bindings::utils::rust_box;
 use dom::document::Document;
 use dom::node::{Node, NodeScope, define_bindings};
 use dom::event::{Event, ResizeEvent, ReflowEvent};
 use dom::window::Window;
-use geom::size::Size2D;
 use layout::layout_task;
-use layout_task::{LayoutTask, BuildMsg, BuildData, AddStylesheet};
-use resource::image_cache_task::ImageCacheTask;
+use layout::layout_task::{AddStylesheet, BuildData, BuildMsg, LayoutTask};
 
-use newcss::stylesheet::Stylesheet;
-
-use jsrt = js::rust::rt;
-use js::rust::{cx, methods};
-use js::global::{global_class, debug_fns};
-
-use either::{Either, Left, Right};
-
-use dom::bindings::utils::rust_box;
-use js::rust::compartment;
-
-use resource::resource_task;
-use resource_task::{ResourceTask};
-
-use std::net::url::Url;
-use url_to_str = std::net::url::to_str;
-use util::url::make_url;
-use task::{task, SingleThreaded};
-use std::cell::Cell;
-
-use js::glue::bindgen::RUST_JSVAL_TO_OBJECT;
+use core::comm::{Port, Chan, listen, select2};
+use core::either;
+use core::task::{SingleThreaded, spawn, spawn_listener, task};
+use core::io::{println, read_whole_file};
+use core::ptr::null;
+use core::util::replace;
+use geom::size::Size2D;
+use gfx::resource::image_cache_task::ImageCacheTask;
+use gfx::resource::resource_task::ResourceTask;
+use gfx::util::url::make_url;
 use js::JSVAL_NULL;
+use js::global::{global_class, debug_fns};
+use js::glue::bindgen::RUST_JSVAL_TO_OBJECT;
 use js::jsapi::{JSContext, JSVal};
 use js::jsapi::bindgen::{JS_CallFunctionValue, JS_GetContextPrivate};
-use ptr::null;
+use js::rust::{compartment, cx, methods};
+use jsrt = js::rust::rt;
+use newcss::stylesheet::Stylesheet;
+use std::arc::{ARC, clone};
+use std::cell::Cell;
+use std::net::url::Url;
+use url_to_str = std::net::url::to_str;
 
 pub enum ControlMsg {
     ParseMsg(Url),
@@ -89,7 +74,7 @@ fn ContentTask(layout_task: LayoutTask,
     return move control_chan;
 }
 
-struct Content {
+pub struct Content {
     layout_task: LayoutTask,
     mut layout_join_port: Option<pipes::Port<()>>,
 
@@ -159,7 +144,7 @@ fn Content(layout_task: LayoutTask,
     content
 }
 
-fn task_from_context(cx: *JSContext) -> *Content unsafe {
+pub fn task_from_context(cx: *JSContext) -> *Content unsafe {
     cast::reinterpret_cast(&JS_GetContextPrivate(cx))
 }
 

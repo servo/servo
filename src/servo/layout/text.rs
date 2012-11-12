@@ -1,8 +1,9 @@
 /** Text layout. */
 
-use servo_text::TextRun;
 use layout::box::{TextBox, RenderBox, RenderBoxData, UnscannedTextBox};
-use util::range::Range;
+
+use gfx::text::text_run::TextRun;
+use gfx::util::range::Range;
 
 pub struct TextBoxData {
     run: @TextRun,

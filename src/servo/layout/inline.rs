@@ -1,24 +1,19 @@
-use au = gfx::geometry;
-use geom::{Point2D, Rect, Size2D};
-
 use dom::node::Node;
-use gfx::dl;
-use gfx::{
-    Au,
-    FontStyle,
-};
 use layout::box::*;
 use layout::context::LayoutContext;
 use layout::flow::{FlowContext, InlineFlow};
 use layout::text::TextBoxData;
-use newcss::values::{BoxAuto, BoxLength, Px};
-use servo_text::util::*;
-use util::range::{MutableRange, Range};
 use util::tree;
 
 use core::dlist::DList;
 use core::dvec::DVec;
-use num::Num;
+use core::num::Num;
+use geom::{Point2D, Rect, Size2D};
+use gfx::font::FontStyle;
+use gfx::geometry::Au;
+use gfx::text::util::*;
+use gfx::util::range::{MutableRange, Range};
+use newcss::values::{BoxAuto, BoxLength, Px};
 use std::arc;
 
 /*
@@ -158,7 +153,7 @@ struct TextRunScanner {
 
 fn TextRunScanner(flow: @FlowContext) -> TextRunScanner {
     TextRunScanner {
-        clump: util::range::empty_mut(),
+        clump: MutableRange::empty(),
         flow: flow,
     }
 }
@@ -333,7 +328,7 @@ fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
         flow: inline,
         new_boxes: DVec(),
         work_list: DList(),
-        pending_line: {range: util::range::empty_mut(), mut width: Au(0)},
+        pending_line: {range: MutableRange::empty(), mut width: Au(0)},
         line_spans: DVec()
     }
 }
@@ -567,8 +562,8 @@ impl FlowContext : InlineLayout {
 
         for self.inline().boxes.each |box| {
             debug!("FlowContext[%d]: measuring %s", self.d().id, box.debug_str());
-            min_width = au::max(min_width, box.get_min_width(ctx));
-            pref_width = au::max(pref_width, box.get_pref_width(ctx));
+            min_width = Au::max(min_width, box.get_min_width(ctx));
+            pref_width = Au::max(pref_width, box.get_pref_width(ctx));
         }
 
         self.d().min_width = min_width;
@@ -586,11 +581,11 @@ impl FlowContext : InlineLayout {
         // over the box list, and/or put into RenderBox.
         for self.inline().boxes.each |box| {
             box.d().position.size.width = match *box {
-                @ImageBox(_,img) => au::from_px(img.get_size().get_default(Size2D(0,0)).width),
+                @ImageBox(_,img) => Au::from_px(img.get_size().get_default(Size2D(0,0)).width),
                 @TextBox(*) => { /* text boxes are initialized with dimensions */
                                    box.d().position.size.width
                 },
-                @GenericBox(*) => au::from_px(45), /* TODO: should use CSS 'width'? */
+                @GenericBox(*) => Au::from_px(45), /* TODO: should use CSS 'width'? */
                 _ => fail fmt!("Tried to assign width to unknown Box variant: %?", box)
             };
         } // for boxes.each |box|
@@ -609,24 +604,24 @@ impl FlowContext : InlineLayout {
 
     fn assign_height_inline(@self, _ctx: &LayoutContext) {
         // TODO: get from CSS 'line-height' property
-        let line_height = au::from_px(20);
+        let line_height = Au::from_px(20);
         let mut cur_y = Au(0);
 
         for self.inline().lines.eachi |i, line_span| {
             debug!("assign_height_inline: processing line %u with box span: %?", i, line_span);
             // coords relative to left baseline
-            let mut linebox_bounding_box = au::zero_rect();
+            let mut linebox_bounding_box = Au::zero_rect();
             let boxes = &self.inline().boxes;
             for line_span.eachi |box_i| {
                 let cur_box = boxes[box_i];
 
                 // compute box height.
                 cur_box.d().position.size.height = match cur_box {
-                    @ImageBox(_,img) => au::from_px(img.size().height),
+                    @ImageBox(_,img) => Au::from_px(img.size().height),
                     @TextBox(*) => { /* text boxes are initialized with dimensions */
                         cur_box.d().position.size.height
                     },
-                    @GenericBox(*) => au::from_px(30), /* TODO: should use CSS 'height'? */
+                    @GenericBox(*) => Au::from_px(30), /* TODO: should use CSS 'height'? */
                     _ => fail fmt!("Tried to assign height to unknown Box variant: %s", cur_box.debug_str())
                 };
 
@@ -654,7 +649,7 @@ impl FlowContext : InlineLayout {
                 debug!("assign_height_inline: linebox bounding box = %?", linebox_bounding_box);
             }
             let linebox_height = linebox_bounding_box.size.height;
-            cur_y += au::max(line_height, linebox_height);
+            cur_y += Au::max(line_height, linebox_height);
         } // /lines.each |line_span|
 
         self.d().position.size.height = cur_y;

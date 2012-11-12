@@ -10,6 +10,7 @@
 extern mod azure;
 extern mod cairo;
 extern mod geom;
+extern mod gfx (name = "servo_gfx");
 extern mod glut;
 extern mod http_client;
 extern mod hubbub;
@@ -69,54 +70,6 @@ pub mod layout {
     mod aux;
 }
 
-pub mod gfx {
-    priv mod render_context;
-
-    // rendering
-    pub mod color;
-    pub mod compositor;
-    pub mod display_list;
-    pub mod geometry;
-    pub mod render_layers;
-    pub mod render_task;
-    pub mod surface;
-
-    // fonts
-    pub mod font;
-    pub mod font_context; 
-    pub mod font_list;
-
-    // Pub-uses for multiple implementations. Platform selection happens in
-    // font.rs, font_list.rs, font_context.rs
-    pub mod native;
-
-    #[cfg(target_os = "macos")]
-    pub mod quartz {
-        pub mod font;
-        pub mod font_context;
-        pub mod font_list;
-    }
-
-    #[cfg(target_os = "linux")]
-    pub mod freetype {
-        pub mod font;
-        pub mod font_context;
-    }
-
-    #[cfg(target_os = "linux")]
-    pub mod fontconfig {
-        pub mod font_list;
-    }
-}
-
-pub mod image {
-    pub mod base;
-    pub mod encode {
-        pub mod tga;
-    }
-    pub mod holder;
-}
-
 pub mod html {
     pub mod cssparse;
     pub mod hubbub_html_parser;
@@ -128,37 +81,9 @@ pub mod platform {
     priv mod resize_rate_limiter;
 }
 
-pub mod resource {
-    pub mod file_loader;
-    pub mod http_loader;
-    pub mod image_cache_task;
-    pub mod local_image_cache;
-    pub mod resource_task;
-}
-
-pub mod text {
-    pub mod glyph;
-    pub mod text_run;
-    pub mod util;
-    pub mod shaper;
-
-    // Below are the actual platform-specific parts.
-    pub mod harfbuzz {
-        pub mod shaper;
-    }
-}
-
 pub mod util {
     pub mod actor;
-    pub mod cache;
-    pub mod range;
-    pub mod time;
     pub mod tree;
-    pub mod url;
-    pub mod vec;
 }
 
-pub mod opts;
-
 use servo_util = util;
-use servo_text = text;
