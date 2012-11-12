@@ -436,8 +436,7 @@ pub impl Font : FontMethods {
 
     fn measure_text(run: &TextRun, range: Range) -> RunMetrics {
         //assert range.is_valid_for_string(run.text);
-
-		debug!("measuring text range '%s'", run.text.substr(range.begin(), range.length()));
+	//debug!("measuring text range '%s'", run.text.substr(range.begin(), range.length()));
 
         // TODO: alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
@@ -457,8 +456,8 @@ pub impl Font : FontMethods {
                                   ascent: self.metrics.ascent,
                                   descent: self.metrics.descent,
                                  };
-        debug!("Measured text range '%s' with metrics:", run.text.substr(range.begin(), range.length()));
-        debug!("%?", metrics);
+        //debug!("Measured text range '%s' with metrics:", run.text.substr(range.begin(), range.length()));
+        //debug!("%?", metrics);
 
         return metrics;
     }
