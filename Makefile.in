@@ -133,13 +133,13 @@ $(eval $(call DEF_SUBMODULE_RULES,$(submodule))))
 DONE_SUBMODULES = $(foreach dep,$(DEPS_SUBMODULES),$(DONE_$(dep)))
 
 RFLAGS_servo_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
-SRC_servo_gfx = $(call rwildcard,$(S)src/servo-gfx-2/,*.rs)
-CRATE_servo_gfx = $(S)src/servo-gfx-2/servo_gfx.rc
-DONE_servo_gfx = $(B)src/servo-gfx-2/libservogfx.dummy
+SRC_servo_gfx = $(call rwildcard,$(S)src/servo-gfx/,*.rs)
+CRATE_servo_gfx = $(S)src/servo-gfx/servo_gfx.rc
+DONE_servo_gfx = $(B)src/servo-gfx/libservogfx.dummy
 
 DEPS_servo_gfx = $(CRATE_servo_gfx) $(SRC_servo_gfx) $(DONE_SUBMODULES)
 
-RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-gfx-2
+RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-gfx
 SRC_servo = $(call rwildcard,$(S)src/servo/,*.rs)
 CRATE_servo = $(S)src/servo/servo.rc
 

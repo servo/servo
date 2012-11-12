@@ -95,7 +95,7 @@ DEPS_rust-cairo += \
 	rust-core-graphics \
 	$(NULL)
 
-dEPS_rust-io-surface += \
+DEPS_rust-io-surface += \
 	rust-core-foundation \
 	$(NULL)
 
