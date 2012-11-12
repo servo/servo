@@ -85,6 +85,3 @@
 [submodule "src/skia"]
 	path = src/skia
 	url = git://github.com/mozilla-servo/skia.git
-[submodule "src/servo-gfx"]
-	path = src/servo-gfx
-	url = git://github.com/mozilla-servo/servo-gfx.git

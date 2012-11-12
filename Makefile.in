@@ -130,12 +130,20 @@ endef
 $(foreach submodule,$(CFG_SUBMODULES),\
 $(eval $(call DEF_SUBMODULE_RULES,$(submodule))))
 
-RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
-SRC_servo = $(call rwildcard,$(S)src/servo/,*.rs)
-CRATE_servo = $(S)src/servo/servo.rc
 DONE_SUBMODULES = $(foreach dep,$(DEPS_SUBMODULES),$(DONE_$(dep)))
 
-DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES)
+RFLAGS_servo_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
+SRC_servo_gfx = $(call rwildcard,$(S)src/servo-gfx-2/,*.rs)
+CRATE_servo_gfx = $(S)src/servo-gfx-2/servo_gfx.rc
+DONE_servo_gfx = $(B)src/servo-gfx-2/libservogfx.dummy
+
+DEPS_servo_gfx = $(CRATE_servo_gfx) $(SRC_servo_gfx) $(DONE_SUBMODULES)
+
+RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-gfx-2
+SRC_servo = $(call rwildcard,$(S)src/servo/,*.rs)
+CRATE_servo = $(S)src/servo/servo.rc
+
+DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_servo_gfx)
 
 # rules that depend on having correct meta-target vars (DEPS_CLEAN, DEPS_servo, etc)
 include $(S)mk/check.mk
@@ -144,6 +152,11 @@ include $(S)mk/clean.mk
 .DEFAULT_GOAL := all
 .PHONY:	all
 all:    servo package
+
+# Servo helper libraries
+
+$(DONE_servo_gfx):	$(DEPS_servo_gfx)
+	$(RUSTC) $(RFLAGS_servo_gfx) -o $@ $< && touch $@
 
 # Servo binaries
 

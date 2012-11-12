@@ -344,7 +344,7 @@ step_msg "running submodule autoconf scripts"
 
 (cd ${CFG_SRC_DIR}src/mozjs/js/src && "${CFG_AUTOCONF213}") || exit $?
 
-CFG_SUBMODULES="libwapcaplet rust-wapcaplet rust-harfbuzz rust-opengles skia rust-azure rust-cairo rust-stb-image rust-geom rust-glut rust-layers rust-http-client libparserutils libhubbub libcss rust-netsurfcss rust-css rust-hubbub sharegl rust-mozjs mozjs servo-gfx"
+CFG_SUBMODULES="libwapcaplet rust-wapcaplet rust-harfbuzz rust-opengles skia rust-azure rust-cairo rust-stb-image rust-geom rust-glut rust-layers rust-http-client libparserutils libhubbub libcss rust-netsurfcss rust-css rust-hubbub sharegl rust-mozjs mozjs"
 
 if [ $CFG_OSTYPE = "darwin" ]
 then
@@ -365,6 +365,7 @@ do
     make_dir ${CFG_BUILD_DIR}src/${i}
 done
 
+make_dir ${CFG_BUILD_DIR}src/servo-gfx-2
 make_dir src/test/ref
 
 # TODO: don't run configure on submodules unless necessary. For an example,
