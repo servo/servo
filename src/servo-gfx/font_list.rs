@@ -53,6 +53,8 @@ pub impl FontList {
         let family = self.find_family(family_name);
         let mut result : Option<@FontEntry> = None;
 
+        // TODO(Issue #192: handle generic font families, like 'serif' and 'sans-serif'.
+
         // if such family exists, try to match style to a font
         do family.iter |fam| {
             result = fam.find_font_for_style(style);

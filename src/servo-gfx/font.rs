@@ -26,6 +26,7 @@ pub trait FontHandleMethods {
     pure fn is_italic() -> bool;
     pure fn boldness() -> CSSFontWeight;
 
+    fn clone_with_style(fctx: &native::FontContextHandle, style: &UsedFontStyle) -> Result<FontHandle, ()>;
     fn glyph_index(codepoint: char) -> Option<GlyphIndex>;
     fn glyph_h_advance(GlyphIndex) -> Option<FractionalPixel>;
     fn get_metrics() -> FontMetrics;
@@ -38,13 +39,13 @@ pub trait FontHandleMethods {
 
 impl FontHandle {
     #[cfg(target_os = "macos")]
-    static pub fn new(fctx: &native::FontContextHandle, buf: @~[u8], pt_size: float) -> Result<FontHandle, ()> {
-        quartz::font::QuartzFontHandle::new_from_buffer(fctx, buf, pt_size)
+    static pub fn new(fctx: &native::FontContextHandle, buf: @~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
+        quartz::font::QuartzFontHandle::new_from_buffer(fctx, buf, style)
     }
 
     #[cfg(target_os = "linux")]
-    static pub fn new(fctx: &native::FontContextHandle, buf: @~[u8], pt_size: float) -> Result<FontHandle, ()> {
-        freetype::font::FreeTypeFontHandle::new(fctx, buf, pt_size)
+    static pub fn new(fctx: &native::FontContextHandle, buf: @~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
+        freetype::font::FreeTypeFontHandle::new(fctx, buf, style)
     }
 }
 
@@ -194,6 +195,13 @@ pub impl FontGroup {
             fonts: move fonts,
         }
     }
+
+    fn create_textrun(text: ~str) -> TextRun {
+        assert self.fonts.len() > 0;
+
+        // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
+        return TextRun::new(self.fonts[0], move text);
+    }
 }
 
 struct RunMetrics {
@@ -211,7 +219,7 @@ A font instance. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
 */
 pub struct Font {
-    priv fontbuf: @~[u8],
+    priv mut fontbuf: Option<@~[u8]>,
     priv handle: FontHandle,
     priv mut azure_font: Option<AzScaledFontRef>,
     priv mut shaper: Option<@Shaper>,
@@ -226,22 +234,48 @@ pub struct Font {
 }
 
 impl Font {
-    // TODO: who should own fontbuf?
-    static fn new(fontbuf: @~[u8],
-                  handle: FontHandle,
-                  style: UsedFontStyle,
-                  backend: BackendType) -> Font {
-        let metrics = handle.get_metrics();
+    static fn new_from_buffer(ctx: &FontContext, buffer: @~[u8],
+                              style: &SpecifiedFontStyle, backend: BackendType) -> Result<@Font, ()> {
 
-        Font {
-            fontbuf : fontbuf,
+        let handle = FontHandle::new(&ctx.handle, buffer, style);
+        let handle = if handle.is_ok() {
+            result::unwrap(move handle)
+        } else {
+            return Err(handle.get_err());
+        };
+        
+        let metrics = handle.get_metrics();
+        // TODO(Issue #179): convert between specified and used font style here?
+
+        return Ok(@Font {
+            fontbuf : Some(buffer),
             handle : move handle,
             azure_font: None,
             shaper: None,
-            style: move style,
+            style: copy *style,
             metrics: move metrics,
-            backend: backend
-        }
+            backend: backend,
+        });
+    }
+
+    static fn new_from_handle(fctx: &FontContext, handle: &FontHandle,
+                              style: &SpecifiedFontStyle, backend: BackendType) -> Result<@Font,()> {
+
+        // TODO(Issue #179): convert between specified and used font style here?
+        let styled_handle = match handle.clone_with_style(&fctx.handle, style) {
+            Ok(move result) => move result,
+            Err(()) => return Err(())
+        };
+
+        return Ok(@Font {
+            fontbuf : None,
+            handle : move styled_handle,
+            azure_font: None,
+            shaper: None,
+            style: copy *style,
+            metrics: handle.get_metrics(),
+            backend: backend,
+        });
     }
 
     priv fn get_shaper(@self) -> @Shaper {
@@ -413,7 +447,7 @@ pub impl Font : FontMethods {
     }
 
     fn buf(&self) -> @~[u8] {
-        self.fontbuf
+        option::expect(self.fontbuf, ~"This font has no buffer")
     }
 
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {

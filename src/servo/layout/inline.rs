@@ -239,7 +239,7 @@ impl TextRunScanner {
                 // this is probably achieved by creating fontgroup above, and then letting FontGroup decide
                 // which Font to stick into the TextRun.
                 let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&gfx::font_context::dummy_style());
-                let run = @TextRun::new(fontgroup.fonts[0], move transformed_text);
+                let run = @fontgroup.create_textrun(move transformed_text);
                 debug!("TextRunScanner: pushing single text box in range: %?", self.clump);
                 let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump.begin()].d(), run,
                                                                      Range(0, run.text.len()));

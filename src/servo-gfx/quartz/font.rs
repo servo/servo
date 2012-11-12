@@ -3,10 +3,23 @@ extern mod core_graphics;
 extern mod core_text;
 
 use font_context::QuartzFontContextHandle;
-use geometry::Au;
-use servo_gfx_font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontWeight100, FontWeight200};
-use servo_gfx_font::{FontWeight300, FontWeight400, FontWeight500, FontWeight600, FontWeight700};
-use servo_gfx_font::{FontWeight800, FontWeight900, FractionalPixel};
+use gfx::au;
+use gfx::font::{
+    CSSFontWeight,
+    FontHandleMethods,
+    FontMetrics,
+    FontWeight100,
+    FontWeight200,
+    FontWeight300,
+    FontWeight400,
+    FontWeight500,
+    FontWeight600,
+    FontWeight700,
+    FontWeight800,
+    FontWeight900,
+    FractionalPixel,
+    SpecifiedFontStyle,
+};
 use text::glyph::GlyphIndex;
 
 use cf = core_foundation;
@@ -37,7 +50,8 @@ pub struct QuartzFontHandle {
 }
 
 pub impl QuartzFontHandle {
-    static fn new_from_buffer(_fctx: &QuartzFontContextHandle, buf: @~[u8], pt_size: float) -> Result<QuartzFontHandle, ()> {
+    static fn new_from_buffer(_fctx: &QuartzFontContextHandle, buf: @~[u8],
+                              style: &SpecifiedFontStyle) -> Result<QuartzFontHandle, ()> {
         let fontprov = vec::as_imm_buf(*buf, |cbuf, len| {
             CGDataProvider::new_from_buffer(cbuf, len)
         });
@@ -45,7 +59,7 @@ pub impl QuartzFontHandle {
         let cgfont = CGFontCreateWithDataProvider(fontprov.get_ref());
         if cgfont.is_null() { return Err(()); }
 
-        let ctfont = CTFont::new_from_CGFont(cgfont, pt_size);
+        let ctfont = CTFont::new_from_CGFont(cgfont, style.pt_size);
 
         let result = Ok(QuartzFontHandle {
             cgfont : Some(cgfont),
@@ -105,6 +119,10 @@ pub impl QuartzFontHandle : FontHandleMethods {
         else { return FontWeight900; }
     }
 
+    fn clone_with_style(fctx: &QuartzFontContextHandle, style: &SpecifiedFontStyle) -> Result<QuartzFontHandle,()> {
+        let new_font = self.ctfont.clone_with_font_size(style.pt_size);
+        return QuartzFontHandle::new_from_CTFont(fctx, move new_font);
+    }
 
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
         let characters: ~[UniChar] = ~[codepoint as UniChar];
