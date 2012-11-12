@@ -102,10 +102,6 @@ pub impl HarfbuzzShaper {
     */
     pub fn shape_text(text: &str, glyphs: &GlyphStore) {
         debug!("shaping text '%s'", text);
-
-        // TODO(Issue #94): harfbuzz fonts and faces should be cached on the 
-        // Shaper object, which is owned by the Font instance.
-
         let hb_buffer: *hb_buffer_t = hb_buffer_create();
         hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
 
@@ -140,7 +136,7 @@ pub impl HarfbuzzShaper {
                                        Au::from_frac_px(HarfbuzzShaper::fixed_to_float(y))))
             };
             // TODO: convert pos.y_advance into offset adjustment
-            // TODO: handle multiple glyphs per char, ligatures, etc.
+            // TODO(Issue #93, #95): handle multiple glyphs per char, ligatures, etc.
             // NB. this debug statement is commented out, as it must be checked for every shaped char.
             //debug!("glyph %?: index %?, advance %?, offset %?", i, codepoint, advance, offset);
 

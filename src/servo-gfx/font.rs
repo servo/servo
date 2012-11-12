@@ -35,10 +35,10 @@ pub trait FontHandleMethods {
     fn get_table_for_tag(FontTableTag) -> Option<~[u8]>;
 }
 
-// TODO: `new` should be part of trait FontHandleMethods
-
 // TODO(Issue #163): this is a workaround for static methods and
 // typedefs not working well together. It should be removed.
+//
+// `new` should be part of trait FontHandleMethods.
 
 impl FontHandle {
     #[cfg(target_os = "macos")]
@@ -82,7 +82,7 @@ struct FontMetrics {
     max_advance:      Au
 }
 
-// TODO: use enum from CSS bindings
+// TODO(Issue #200): use enum from CSS bindings for 'font-weight'
 enum CSSFontWeight {
     FontWeight100,
     FontWeight200,
@@ -105,10 +105,10 @@ pub impl CSSFontWeight {
     }
 }
 
-// TODO: eventually this will be split into the specified and used
-// font styles.  specified contains uninterpreted CSS font property
-// values, while 'used' is attached to gfx::Font to descript the
-// instance's properties.
+// TODO(Issue #179): eventually this will be split into the specified
+// and used font styles.  specified contains uninterpreted CSS font
+// property values, while 'used' is attached to gfx::Font to descript
+// the instance's properties.
 //
 // For now, the cases are differentiated with a typedef
 pub struct FontStyle {
@@ -117,7 +117,7 @@ pub struct FontStyle {
     italic: bool,
     oblique: bool,
     families: ~str,
-    // TODO: font-stretch, text-decoration, font-variant, size-adjust
+    // TODO(Issue #198): font-stretch, text-decoration, font-variant, size-adjust
 }
 
 // TODO(Issue #181): use deriving for trivial cmp::Eq implementations
@@ -137,7 +137,7 @@ pub impl FontStyle : cmp::Eq {
 pub type SpecifiedFontStyle = FontStyle;
 pub type UsedFontStyle = FontStyle;
 
-// TODO: move me to layout
+// FIXME: move me to layout
 struct ResolvedFont {
     group: @FontGroup,
     style: SpecifiedFontStyle,
@@ -339,20 +339,6 @@ impl Font {
 
         self.azure_font = Some(azure_scaled_font);
         azure_scaled_font
-        /*
-        // TODO: these cairo-related things should be in rust-cairo.
-        // creating a cairo font/face from a native font resource
-        // should be part of the NativeFont API, not exposed here.
-        #[cfg(target_os = "linux")]
-        fn get_cairo_face(font: &Font) -> *cairo_font_face_t {
-            use cairo::cairo_ft::bindgen::{cairo_ft_font_face_create_for_ft_face};
-
-            let ftface = font.handle.face;
-            let cface = cairo_ft_font_face_create_for_ft_face(ftface, 0 as c_int);
-            // FIXME: error handling
-            return cface;
-        }
-        */
     }
 }
 
@@ -425,7 +411,7 @@ pub impl Font : FontMethods {
             mNumGlyphs: azglyph_buf_len as uint32_t            
         }};
 
-        // TODO: this call needs to move into azure_hl.rs
+        // TODO(Issue #64): this call needs to move into azure_hl.rs
         AzDrawTargetFillGlyphs(target.azure_draw_target,
                                azfont,
                                ptr::to_unsafe_ptr(&glyphbuf),
@@ -438,7 +424,7 @@ pub impl Font : FontMethods {
         //assert range.is_valid_for_string(run.text);
 	//debug!("measuring text range '%s'", run.text.substr(range.begin(), range.length()));
 
-        // TODO: alter advance direction for RTL
+        // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
         for run.glyphs.iter_glyphs_for_range(range) |_i, glyph| {

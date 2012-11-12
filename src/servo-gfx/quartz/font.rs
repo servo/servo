@@ -166,7 +166,7 @@ pub impl QuartzFontHandle : FontHandleMethods {
 
         let metrics =  FontMetrics {
             underline_size:   Au::from_pt(self.ctfont.underline_thickness() as float),
-            // TODO: underline metrics are not reliable. Have to pull out of font table directly.
+            // TODO(Issue #201): underline metrics are not reliable. Have to pull out of font table directly.
             // see also: https://bugs.webkit.org/show_bug.cgi?id=16768
             // see also: https://bugreports.qt-project.org/browse/QTBUG-13364
             underline_offset: Au::from_pt(self.ctfont.underline_position() as float),
