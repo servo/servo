@@ -154,18 +154,19 @@ pure fn MissingGlyphsEntry(glyphCount: uint) -> GlyphEntry {
 // because GlyphEntry is immutable and only a u32 in size.
 impl GlyphEntry {
     // getter methods
+    #[inline(always)]
     pure fn advance() -> Au {
-        assert self.is_simple();
+        //assert self.is_simple();
         from_int(((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) as int)
     }
 
     pure fn index() -> GlyphIndex {
-        assert self.is_simple();
+        //assert self.is_simple();
         self.value & GLYPH_ID_MASK
     }
 
     pure fn offset() -> Point2D<Au> {
-        assert self.is_simple();
+        //assert self.is_simple();
         Point2D(Au(0), Au(0))
     }
     
@@ -206,6 +207,7 @@ impl GlyphEntry {
         GlyphEntry(self.value | FLAG_CHAR_IS_TAB)
     }
 
+    #[inline(always)]
     pure fn set_char_is_newline() -> GlyphEntry {
         assert !self.is_simple();
         GlyphEntry(self.value | FLAG_CHAR_IS_NEWLINE)
@@ -230,10 +232,12 @@ impl GlyphEntry {
         ((self.value & GLYPH_COUNT_MASK) >> GLYPH_COUNT_SHIFT) as u16
     }
 
+    #[inline(always)]
     pure fn is_simple() -> bool {
         self.has_flag(FLAG_IS_SIMPLE_GLYPH)
     }
 
+    #[inline(always)]
     /*priv*/ pure fn has_flag(flag: u32) -> bool {
         (self.value & flag) != 0
     }
@@ -428,6 +432,7 @@ impl GlyphInfo {
         }
     }
 
+    #[inline(always)]
     fn advance() -> Au {
         match self {
             SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i].advance(),
@@ -534,13 +539,13 @@ impl GlyphStore {
         match entry.is_simple() {
             true => { 
                 let proxy = SimpleGlyphInfo(self, i);
-                if !cb(i, proxy) { return false; }
+                cb(i, move proxy);
             },
             false => {
                 let glyphs = self.detail_store.get_detailed_glyphs_for_entry(i, entry.glyph_count());
                 for uint::range(0, glyphs.len()) |j| {
                     let proxy = DetailGlyphInfo(self, i, j as u16);
-                    cb(i, proxy);
+                    cb(i, move proxy);
                 }
             }
         }

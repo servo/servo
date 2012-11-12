@@ -371,7 +371,7 @@ pub impl Font : FontMethods {
     }
 
     fn measure_text(run: &TextRun, range: Range) -> RunMetrics {
-        assert range.is_valid_for_string(run.text);
+        //assert range.is_valid_for_string(run.text);
 
 		debug!("measuring text range '%s'", run.text.substr(range.begin(), range.length()));
 
@@ -389,7 +389,7 @@ pub impl Font : FontMethods {
         // looking at actual glyph extents can yield a tighter box.
 
         let metrics = RunMetrics { advance_width: advance,
-                                  bounding_box: bounds,
+                                  bounding_box: move bounds,
                                   ascent: self.metrics.ascent,
                                   descent: self.metrics.descent,
                                  };
