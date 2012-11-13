@@ -23,6 +23,8 @@ pub type FontHandle/& = quartz::font::QuartzFontHandle;
 pub type FontHandle/& = freetype::font::FreeTypeFontHandle;
 
 pub trait FontHandleMethods {
+    // an identifier usable by FontContextHandle to recreate this FontHandle.
+    pure fn face_identifier() -> ~str;
     pure fn family_name() -> ~str;
     pure fn face_name() -> ~str;
     pure fn is_italic() -> bool;
@@ -165,17 +167,17 @@ pub impl FontDescriptor : cmp::Eq {
 }
 
 pub impl FontDescriptor {
-    static pure fn new(style: &UsedFontStyle, selector: &FontSelector) -> FontDescriptor {
+    static pure fn new(style: UsedFontStyle, selector: FontSelector) -> FontDescriptor {
         FontDescriptor {
-            style: copy *style,
-            selector: copy *selector,
+            style: move style,
+            selector: move selector,
         }
     }
 }
 
 // A FontSelector is a platform-specific strategy for serializing face names.
 pub enum FontSelector {
-    SelectorPlatformName(~str),
+    SelectorPlatformIdentifier(~str),
     SelectorStubDummy, // aka, use Josephin Sans
 }
 
@@ -183,8 +185,8 @@ pub enum FontSelector {
 pub impl FontSelector : cmp::Eq {
     pure fn eq(other: &FontSelector) -> bool {
         match (&self, other) {
+            (&SelectorPlatformIdentifier(a), &SelectorPlatformIdentifier(b)) => a == b,
             (&SelectorStubDummy, &SelectorStubDummy) => true,
-            (&SelectorPlatformName(a), &SelectorPlatformName(b)) => a == b,
             _ => false
         }
     }
@@ -275,7 +277,21 @@ impl Font {
         });
     }
 
-    static fn new_from_handle(fctx: &FontContext, handle: &FontHandle,
+    static fn new_from_adopted_handle(_fctx: &FontContext, handle: FontHandle,
+                                      style: &SpecifiedFontStyle, backend: BackendType) -> @Font {
+        let metrics = handle.get_metrics();
+
+        @Font {
+            handle : move handle,
+            azure_font: None,
+            shaper: None,
+            style: copy *style,
+            metrics: move metrics,
+            backend: backend,
+        }
+    }
+
+    static fn new_from_existing_handle(fctx: &FontContext, handle: &FontHandle,
                               style: &SpecifiedFontStyle, backend: BackendType) -> Result<@Font,()> {
 
         // TODO(Issue #179): convert between specified and used font style here?
@@ -284,14 +300,7 @@ impl Font {
             Err(()) => return Err(())
         };
 
-        return Ok(@Font {
-            handle : move styled_handle,
-            azure_font: None,
-            shaper: None,
-            style: copy *style,
-            metrics: handle.get_metrics(),
-            backend: backend,
-        });
+        return Ok(Font::new_from_adopted_handle(fctx, move styled_handle, style, backend));
     }
 
     priv fn get_shaper(@self) -> @Shaper {
@@ -454,7 +463,7 @@ pub impl Font : FontMethods {
     fn get_descriptor() -> FontDescriptor {
         // TODO(Issue #174): implement by-platform-name FontSelectors,
         // probably by adding such an API to FontHandle.
-        FontDescriptor::new(&font_context::dummy_style(), &SelectorStubDummy)
+        FontDescriptor::new(copy self.style, SelectorPlatformIdentifier(self.handle.face_identifier()))
     }
 
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {

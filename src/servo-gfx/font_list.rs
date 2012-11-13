@@ -1,4 +1,4 @@
-use font::{CSSFontWeight, SpecifiedFontStyle};
+use font::{CSSFontWeight, SpecifiedFontStyle, UsedFontStyle};
 use native::FontHandle;
 
 use dvec::DVec;
@@ -59,12 +59,19 @@ pub impl FontList {
         do family.iter |fam| {
             result = fam.find_font_for_style(style);
         }
+
+        let decision = if result.is_some() { "Found" } else { "Couldn't find" };
+        debug!("FontList: %s font face in family[%?] matching style: %?", decision, style, family_name);
+
         return result;
     }
 
     priv fn find_family(family_name: &str) -> Option<@FontFamily> {
         // look up canonical name
         let family = self.family_map.find(&str::from_slice(family_name));
+
+        let decision = if family.is_some() { "Found" } else { "Couldn't find" };
+        debug!("FontList: %s font family with name=%s", decision, family_name);
 
         // TODO(Issue #188): look up localized font family names if canonical name not found
         return family;

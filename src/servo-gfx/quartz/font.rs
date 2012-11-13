@@ -188,5 +188,9 @@ pub impl QuartzFontHandle : FontHandleMethods {
             Some(data.copy_to_buf())
         });
     }
+
+    pure fn face_identifier() -> ~str {
+        self.ctfont.postscript_name()
+    }
 }
 
