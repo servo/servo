@@ -25,5 +25,8 @@ clean-fast: $(DEPS_CLEAN_TARGETS_FAST) clean-servo
 	$(Q)echo "Cleaning targets:"
 	$(Q)echo "$(filter-out $(SLOW_BUILDS),$(DEPS_CLEAN_ALL))"
 
-clean-servo:
+clean-servo-gfx:
+	cd $(B)/src/servo-gfx/ && rm -rf libservo_gfx*.dylib $(DONE_servo_gfx)
+
+clean-servo: clean-servo-gfx
 	rm -f servo servo-test
