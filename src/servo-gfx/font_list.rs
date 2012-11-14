@@ -61,7 +61,7 @@ pub impl FontList {
         }
 
         let decision = if result.is_some() { "Found" } else { "Couldn't find" };
-        debug!("FontList: %s font face in family[%?] matching style: %?", decision, style, family_name);
+        debug!("FontList: %s font face in family[%s] matching style", decision, family_name);
 
         return result;
     }
