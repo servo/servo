@@ -1,6 +1,7 @@
 extern mod freetype;
 
 use freetype::{
+    FTErrorMethods,
     FT_Error,
     FT_Library,
 };
@@ -9,6 +10,11 @@ use freetype::bindgen::{
     FT_Done_FreeType
 };
 
+use gfx_font::{
+    FontHandle,
+    UsedFontStyle,
+};
+use gfx_font_context::FontContextHandleMethods;
 
 pub struct FreeTypeFontContextHandle {
     ctx: FT_Library,
@@ -21,13 +27,21 @@ pub struct FreeTypeFontContextHandle {
 
 pub impl FreeTypeFontContextHandle {
     static pub fn new() -> FreeTypeFontContextHandle {
-        let lib: FT_Library = ptr::null();
-        let res = FT_Init_FreeType(ptr::addr_of(&lib));
-        // FIXME: error handling
-        assert res == 0 as FT_Error;
+        let ctx: FT_Library = ptr::null();
+        let result = FT_Init_FreeType(ptr::to_unsafe_ptr(&ctx));
+        if !result.succeeded() { fail; }
 
-        FreeTypeFontContext { 
-            ctx: lib,
+        FreeTypeFontContextHandle { 
+            ctx: ctx,
         }
     }
 }
+
+pub impl FreeTypeFontContextHandle : FontContextHandleMethods {
+    fn create_font_from_identifier(_identifier: ~str, _style: UsedFontStyle)
+        -> Result<FontHandle, ()> {
+
+        fail;
+    }
+}
+

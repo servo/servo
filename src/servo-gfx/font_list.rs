@@ -8,7 +8,7 @@ use send_map::{linear, SendMap};
 type FontListHandle/& = quartz::font_list::QuartzFontListHandle;
 
 #[cfg(target_os = "linux")]
-type FontListHandle/& = freetype::font_list::FreeTypeFontListHandle;
+type FontListHandle/& = fontconfig::font_list::FontconfigFontListHandle;
 
 pub impl FontListHandle {
     #[cfg(target_os = "macos")]
@@ -18,7 +18,7 @@ pub impl FontListHandle {
 
     #[cfg(target_os = "linux")]
     static pub fn new(fctx: &native::FontContextHandle) -> Result<FontListHandle, ()> {
-        Ok(freetype::font_list::FreeTypeFontListHandle::new(fctx))
+        Ok(fontconfig::font_list::FontconfigFontListHandle::new(fctx))
     }
 }
 

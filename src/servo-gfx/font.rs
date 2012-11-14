@@ -7,6 +7,7 @@ use text::glyph::{GlyphStore, GlyphIndex};
 use text::{Shaper, TextRun};
 
 use azure::{AzFloat, AzScaledFontRef};
+use azure::scaled_font::ScaledFont;
 use azure::azure_hl::{BackendType, ColorPattern};
 use core::dvec::DVec;
 use geom::{Point2D, Rect, Size2D};
@@ -44,13 +45,13 @@ pub trait FontHandleMethods {
 
 impl FontHandle {
     #[cfg(target_os = "macos")]
-    static pub fn new(fctx: &native::FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
+    static pub fn new_from_buffer(fctx: &native::FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
         quartz::font::QuartzFontHandle::new_from_buffer(fctx, move buf, style)
     }
 
     #[cfg(target_os = "linux")]
-    static pub fn new(fctx: &native::FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
-        freetype::font::FreeTypeFontHandle::new(fctx, move buf, style)
+    static pub fn new_from_buffer(fctx: &native::FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
+        freetype::font::FreeTypeFontHandle::new_from_buffer(fctx, move buf, style)
     }
 }
 
@@ -241,23 +242,18 @@ and the renderer can use it to render text.
 */
 pub struct Font {
     priv handle: FontHandle,
-    priv mut azure_font: Option<AzScaledFontRef>,
+    priv mut azure_font: Option<ScaledFont>,
     priv mut shaper: Option<@Shaper>,
     style: UsedFontStyle,
     metrics: FontMetrics,
     backend: BackendType,
-
-    drop {
-        use azure::bindgen::AzReleaseScaledFont;
-        do (copy self.azure_font).iter |fontref| { AzReleaseScaledFont(*fontref); }
-    }
 }
 
 impl Font {
     static fn new_from_buffer(ctx: &FontContext, buffer: ~[u8],
                               style: &SpecifiedFontStyle, backend: BackendType) -> Result<@Font, ()> {
 
-        let handle = FontHandle::new(&ctx.handle, move buffer, style);
+        let handle = FontHandle::new_from_buffer(&ctx.handle, move buffer, style);
         let handle = if handle.is_ok() {
             result::unwrap(move handle)
         } else {
@@ -326,25 +322,34 @@ impl Font {
         return move result;
     }
 
-    priv fn get_azure_font() -> AzScaledFontRef {
+    // TODO: this should return a borrowed pointer, but I can't figure
+    // out why borrowck doesn't like my implementation.
+
+    priv fn get_azure_font(&self) -> AzScaledFontRef {
         // fast path: we've already created the azure font resource
         match self.azure_font {
-            Some(azfont) => return azfont,
+            Some(ref azfont) => return azfont.get_ref(),
             None => {}
         }
 
+        let mut scaled_font = self.create_azure_font();
+        self.azure_font = Some(move scaled_font);
+        // try again.
+        return self.get_azure_font();
+    }
+
+    #[cfg(target_os="macos")]
+    priv fn create_azure_font() -> ScaledFont {
         let ct_font = &self.handle.ctfont;
         let size = self.style.pt_size as AzFloat;
-        let scaled_font = azure::scaled_font::ScaledFont::new(self.backend, ct_font, size);
+        ScaledFont::new(self.backend, ct_font, size)
+    }
 
-        let azure_scaled_font;
-        unsafe {
-            azure_scaled_font = scaled_font.azure_scaled_font;
-            cast::forget(move scaled_font);
-        }
-
-        self.azure_font = Some(azure_scaled_font);
-        azure_scaled_font
+    #[cfg(target_os="linux")]
+    priv fn create_azure_font() -> ScaledFont {
+        let cairo_font = self.handle.face;
+        let size = self.style.pt_size as AzFloat;
+        ScaledFont::new(self.backend, cairo_font, size)
     }
 }
 
@@ -380,7 +385,7 @@ pub impl Font : FontMethods {
                              AzReleaseColorPattern};
 
         let target = rctx.get_draw_target();
-        let azfont = self.get_azure_font();
+        let azfontref = self.get_azure_font();
         let pattern = ColorPattern(color);
         let azure_pattern = pattern.azure_color_pattern;
         assert azure_pattern.is_not_null();
@@ -418,7 +423,7 @@ pub impl Font : FontMethods {
 
         // TODO(Issue #64): this call needs to move into azure_hl.rs
         AzDrawTargetFillGlyphs(target.azure_draw_target,
-                               azfont,
+                               azfontref,
                                ptr::to_unsafe_ptr(&glyphbuf),
                                azure_pattern,
                                ptr::to_unsafe_ptr(&options),
