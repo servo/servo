@@ -23,6 +23,10 @@ pub impl QuartzFontContextHandle {
 }
 
 pub impl QuartzFontContextHandle : FontContextHandleMethods {
+    pure fn clone(&const self) -> QuartzFontContextHandle {
+        QuartzFontContextHandle { ctx: self.ctx }
+    }
+
     fn create_font_from_identifier(name: ~str, style: UsedFontStyle) -> Result<FontHandle, ()> {
         let ctfont_result = CTFont::new_from_name(move name, style.pt_size);
         do result::chain(move ctfont_result) |ctfont| {

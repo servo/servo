@@ -34,6 +34,7 @@ type FontContextHandle/& = quartz::font_context::QuartzFontContextHandle;
 type FontContextHandle/& = freetype::font_context::FreeTypeFontContextHandle;
 
 trait FontContextHandleMethods {
+    pure fn clone(&const self) -> FontContextHandle;
     fn create_font_from_identifier(~str, UsedFontStyle) -> Result<FontHandle, ()>;
 }
 

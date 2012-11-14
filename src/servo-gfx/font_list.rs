@@ -24,9 +24,14 @@ pub impl FontListHandle {
 
 type FontFamilyMap = linear::LinearMap<~str, @FontFamily>;
 
+trait FontListHandleMethods {
+    fn get_available_families(&const self, fctx: &native::FontContextHandle) -> FontFamilyMap;
+    fn load_variations_for_family(&const self, family: @FontFamily);
+}
+
 pub struct FontList {
     mut family_map: FontFamilyMap,
-    mut handle: FontListHandle,
+    handle: FontListHandle,
 }
 
 pub impl FontList {
@@ -40,11 +45,13 @@ pub impl FontList {
         return move list;
     }
 
-    priv fn refresh(fctx: &native::FontContextHandle) {
+    priv fn refresh(_fctx: &native::FontContextHandle) {
         // TODO(Issue #186): don't refresh unless something actually
         // changed.  Does OSX have a notification for this event?
+        //
+        // Should font families with entries be invalidated/refreshed too?
         do util::time::time("gfx::font_list: regenerating available font families and faces") {
-            self.family_map = self.handle.get_available_families(fctx);
+            self.family_map = self.handle.get_available_families();
         }
     }
 
@@ -57,7 +64,7 @@ pub impl FontList {
 
         // if such family exists, try to match style to a font
         do family.iter |fam| {
-            result = fam.find_font_for_style(style);
+            result = fam.find_font_for_style(&self.handle, style);
         }
 
         let decision = if result.is_some() { "Found" } else { "Couldn't find" };
@@ -80,20 +87,27 @@ pub impl FontList {
 
 // Holds a specific font family, and the various 
 pub struct FontFamily {
-    family_name: @str,
+    family_name: ~str,
     entries: DVec<@FontEntry>,
 }
 
 pub impl FontFamily {
     static fn new(family_name: &str) -> FontFamily {
         FontFamily {
-            family_name: str::from_slice(family_name).to_managed(),
+            family_name: str::from_slice(family_name),
             entries: DVec(),
         }
     }
 
-    pure fn find_font_for_style(style: &SpecifiedFontStyle) -> Option<@FontEntry> {
+    priv fn load_family_variations(@self, list: &native::FontListHandle) {
+        if self.entries.len() > 0 { return; }
+        list.load_variations_for_family(self);
         assert self.entries.len() > 0;
+    }
+
+    fn find_font_for_style(@self, list: &native::FontListHandle, style: &SpecifiedFontStyle) -> Option<@FontEntry> {
+
+        self.load_family_variations(list);
 
         // TODO(Issue #189): optimize lookup for
         // regular/bold/italic/bolditalic with fixed offsets and a
