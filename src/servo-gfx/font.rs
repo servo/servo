@@ -441,8 +441,7 @@ pub impl Font : FontMethods {
     }
 
     fn measure_text(run: &TextRun, range: Range) -> RunMetrics {
-        //assert range.is_valid_for_string(run.text);
-	//debug!("measuring text range '%s'", run.text.substr(range.begin(), range.length()));
+        assert range.is_valid_for_string(run.text);
 
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
@@ -457,15 +456,12 @@ pub impl Font : FontMethods {
         // ascent+descent and advance is sometimes too generous and
         // looking at actual glyph extents can yield a tighter box.
 
-        let metrics = RunMetrics { advance_width: advance,
-                                  bounding_box: move bounds,
-                                  ascent: self.metrics.ascent,
-                                  descent: self.metrics.descent,
-                                 };
-        //debug!("Measured text range '%s' with metrics:", run.text.substr(range.begin(), range.length()));
-        //debug!("%?", metrics);
-
-        return metrics;
+        RunMetrics { 
+            advance_width: advance,
+            bounding_box: move bounds,
+            ascent: self.metrics.ascent,
+            descent: self.metrics.descent,
+        }
     }
 
     fn shape_text(@self, text: &str) -> GlyphStore {
@@ -476,8 +472,6 @@ pub impl Font : FontMethods {
     }
 
     fn get_descriptor() -> FontDescriptor {
-        // TODO(Issue #174): implement by-platform-name FontSelectors,
-        // probably by adding such an API to FontHandle.
         FontDescriptor::new(copy self.style, SelectorPlatformIdentifier(self.handle.face_identifier()))
     }
 
