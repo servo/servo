@@ -35,7 +35,7 @@ pub trait FontHandleMethods {
     fn glyph_index(codepoint: char) -> Option<GlyphIndex>;
     fn glyph_h_advance(GlyphIndex) -> Option<FractionalPixel>;
     fn get_metrics() -> FontMetrics;
-    fn get_table_for_tag(FontTableTag) -> Option<~[u8]>;
+    fn get_table_for_tag(FontTableTag) -> Option<FontTable>;
 }
 
 // TODO(Issue #163): this is a workaround for static methods and
@@ -72,6 +72,16 @@ impl FontTableTag : FontTableTagConversions {
                                 reversed.char_at(1),
                                 reversed.char_at(0)]);
     }
+}
+
+#[cfg(target_os = "macos")]
+pub type FontTable/& = quartz::font::QuartzFontTable;
+
+#[cfg(target_os = "linux")]
+pub type FontTable/& = freetype::font::FreeTypeFontTable;
+
+trait FontTableMethods {
+    fn with_buffer(fn&(*u8, uint));
 }
 
 struct FontMetrics {
@@ -311,7 +321,7 @@ impl Font {
         shaper
     }
 
-    fn get_table_for_tag(tag: FontTableTag) -> Option<~[u8]> {
+    fn get_table_for_tag(tag: FontTableTag) -> Option<FontTable> {
         let result = self.handle.get_table_for_tag(tag);
         let status = if result.is_some() { "Found" } else { "Didn't find" };
 

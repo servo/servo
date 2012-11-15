@@ -7,6 +7,7 @@ use au::Au;
 
 use font::{
     Font,
+    FontTable,
     FontTableTag,
 };
 
@@ -191,16 +192,31 @@ extern fn get_font_table_func(_face: *hb_face_t, tag: hb_tag_t, user_data: *c_vo
     let font: *Font = user_data as *Font;
     assert font.is_not_null();
 
-    // TODO(Issue #197): reuse font table data, which will change return type here.
-    // it will also require us to provide deletion callbacks to hb_blob_create, so
-    // that refcounts of shared blobs can be managed.
+    // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
     match (*font).get_table_for_tag(tag as FontTableTag) {
         None => return ptr::null(),
-        Some(table_buffer) => {
-            let blob: *hb_blob_t = vec::as_imm_buf(table_buffer, |buf: *u8, len: uint| {
-                hb_blob_create(buf as *c_char, len as c_uint, HB_MEMORY_MODE_READONLY, null(), null())
+        Some(ref font_table) => {
+            let skinny_font_table = ~font_table;
+            let skinny_font_table_ptr = ptr::to_unsafe_ptr(skinny_font_table);
+            let mut blob: *hb_blob_t = ptr::null();
+            (*skinny_font_table_ptr).with_buffer(|buf: *u8, len: uint| {
+                blob = hb_blob_create(buf as *c_char,
+                                      len as c_uint,
+                                      HB_MEMORY_MODE_READONLY,
+                                      cast::transmute(skinny_font_table_ptr), // private context for below.
+                                      destroy_blob_func); // HarfBuzz calls this when blob not needed.
             });
+            assert blob.is_not_null();
             return blob;
         }
     }
+}
+
+// TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
+// In particular, we'll need to cast to a boxed, rather than owned, FontTable.
+
+// even better, should cache the harfbuzz blobs directly instead of recreating a lot.
+extern fn destroy_blob_func(user_data: *c_void) unsafe {
+    // this will cause drop to run.
+    let _wrapper : &~FontTable = cast::transmute(user_data);
 }

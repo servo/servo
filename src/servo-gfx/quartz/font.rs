@@ -2,12 +2,35 @@ extern mod core_foundation;
 extern mod core_graphics;
 extern mod core_text;
 
+use cf = core_foundation;
+use cf::base::{
+    CFIndex,
+    CFRelease,
+    CFTypeOps,
+    CFTypeRef,
+};
+use cf::data::{CFData, CFDataRef};
+use cf::string::UniChar;
+use cg = core_graphics;
+
+use cg::base::{CGFloat, CGAffineTransform};
+use cg::data_provider::{CGDataProviderRef, CGDataProvider};
+use cg::font::{CGFontCreateWithDataProvider, CGFontRef, CGFontRelease, CGGlyph};
+use cg::geometry::CGRect;
+
+use ct = core_text;
+use ct::font::CTFont;
+use ct::font_descriptor::{kCTFontDefaultOrientation, CTFontSymbolicTraits};
+use ct::font_descriptor::{SymbolicTraitAccessors};
+
 use font_context::QuartzFontContextHandle;
 use geometry::Au;
 use gfx_font::{
     CSSFontWeight,
     FontHandleMethods,
     FontMetrics,
+    FontTable,
+    FontTableMethods,
     FontTableTag,
     FontWeight100,
     FontWeight200,
@@ -23,24 +46,25 @@ use gfx_font::{
 };
 use text::glyph::GlyphIndex;
 
-use cf = core_foundation;
-use cf::base::{
-    CFIndex,
-    CFRelease,
-    CFTypeRef
-};
-use cf::data::CFData;
-use cf::string::UniChar;
-use cg = core_graphics;
-use cg::base::{CGFloat, CGAffineTransform};
-use cg::data_provider::{CGDataProviderRef, CGDataProvider};
-use cg::font::{CGFontCreateWithDataProvider, CGFontRef, CGFontRelease, CGGlyph};
-use cg::geometry::CGRect;
 use core::libc::size_t;
-use ct = core_text;
-use ct::font::CTFont;
-use ct::font_descriptor::{kCTFontDefaultOrientation, CTFontSymbolicTraits};
-use ct::font_descriptor::{SymbolicTraitAccessors};
+
+struct QuartzFontTable {
+    data: CFData,
+
+    drop {  }
+}
+
+pub impl QuartzFontTable {
+    static fn wrap(data: CFData) -> QuartzFontTable {
+        QuartzFontTable { data: move data }
+    }
+}
+
+pub impl QuartzFontTable : FontTableMethods {
+    fn with_buffer(blk: fn&(*u8, uint)) {
+        blk(self.data.bytes(), self.data.len());
+    }
+}
 
 pub struct QuartzFontHandle {
     priv mut cgfont: Option<CGFontRef>,
@@ -182,10 +206,10 @@ pub impl QuartzFontHandle : FontHandleMethods {
         return metrics;
     }
 
-    fn get_table_for_tag(tag: FontTableTag) -> Option<~[u8]> {
-        let result = self.ctfont.get_font_table(tag);
+    fn get_table_for_tag(tag: FontTableTag) -> Option<FontTable> {
+        let result : Option<CFData> = self.ctfont.get_font_table(tag);
         return option::chain(move result, |data| {
-            Some(data.copy_to_buf())
+            Some(QuartzFontTable::wrap(move data))
         });
     }
 
