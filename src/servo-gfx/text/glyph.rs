@@ -307,6 +307,8 @@ impl DetailedGlyphStore {
             detail_offset: self.detail_buffer.len()
         };
 
+        debug!("Adding entry[off=%u] for detailed glyphs: %?", entry_offset, glyphs);
+
         /* TODO: don't actually assert this until asserts are compiled
         in/out based on severity, debug/release, etc. This assertion
         would wreck the complexity of the lookup.
@@ -325,6 +327,8 @@ impl DetailedGlyphStore {
 
     // not pure; may perform a deferred sort.
     fn get_detailed_glyphs_for_entry(&self, entry_offset: uint, count: u16) -> &[DetailedGlyph] {
+        debug!("Requesting detailed glyphs[n=%u] for entry[off=%u]", count as uint, entry_offset);
+
         assert count > 0;
         assert (count as uint) <= self.detail_buffer.len();
         self.ensure_sorted();
@@ -503,6 +507,8 @@ impl GlyphStore {
             }
         };
 
+        //debug!("Adding single glyph[idx=%u]: %?", i, entry);
+
         self.entry_buffer.set_elt(i, entry);
     }
 
@@ -528,6 +534,8 @@ impl GlyphStore {
                                   glyph_count)
             }
         };
+
+        debug!("Adding multiple glyphs[idx=%u, count=%u]: %?", i, glyph_count, entry);
 
         self.entry_buffer.set_elt(i, entry);
     }

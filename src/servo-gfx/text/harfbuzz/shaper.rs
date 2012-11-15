@@ -102,7 +102,6 @@ pub impl HarfbuzzShaper {
     when rendered in a specific font.
     */
     pub fn shape_text(text: &str, glyphs: &GlyphStore) {
-        debug!("shaping text '%s'", text);
         let hb_buffer: *hb_buffer_t = hb_buffer_create();
         hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
 
@@ -123,6 +122,11 @@ pub impl HarfbuzzShaper {
         let pos_buf_len = 0 as c_uint;
         let pos_buf = hb_buffer_get_glyph_positions(hb_buffer, to_unsafe_ptr(&pos_buf_len));
         assert pos_buf.is_not_null();
+
+        debug!("Shaped text[len=%u], got back %u glyph info records.", text.len(), info_buf_len as uint);
+        if text.len() != info_buf_len as uint {
+            debug!("Since these are not equal, we probably have been given some complex glyphs!");
+        }
 
         assert info_buf_len == pos_buf_len;
 
