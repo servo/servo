@@ -28,7 +28,7 @@ pub impl QuartzFontContextHandle : FontContextHandleMethods {
     }
 
     fn create_font_from_identifier(name: ~str, style: UsedFontStyle) -> Result<FontHandle, ()> {
-        let ctfont_result = CTFont::new_from_name(move name, style.pt_size);
+        let ctfont_result = ct::font::new_from_name(move name, style.pt_size);
         do result::chain(move ctfont_result) |ctfont| {
             QuartzFontHandle::new_from_CTFont(&self, move ctfont)
         }

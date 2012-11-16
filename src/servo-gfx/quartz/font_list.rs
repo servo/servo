@@ -3,7 +3,8 @@ extern mod core_text;
 
 use cf = core_foundation;
 use cf::array::CFArray;
-use cf::string::CFString;
+use cf::base::CFWrapper;
+use cf::string::{CFString, CFStringRef};
 
 use ct = core_text;
 use ct::font::{CTFont, debug_font_names, debug_font_traits};
@@ -28,10 +29,10 @@ pub impl QuartzFontListHandle {
     }
 
     fn get_available_families() -> FontFamilyMap {
-        let family_names = CTFontCollection::get_family_names();
+        let family_names = ct::font_collection::get_family_names();
         let mut family_map : FontFamilyMap = linear::LinearMap();
-        for family_names.each |family_name_cfstr: &CFString| {
-            let family_name = family_name_cfstr.to_str();
+        for family_names.each |strref: &CFStringRef| {
+            let family_name = CFWrapper::wrap_shared(*strref).to_str();
             debug!("Creating new FontFamily for family: %s", family_name);
 
             let new_family = @FontFamily::new(family_name);
@@ -44,9 +45,10 @@ pub impl QuartzFontListHandle {
         let family_name = &family.family_name;
         debug!("Looking for faces of family: %s", *family_name);
 
-        let family_collection = CTFontCollection::create_for_family(*family_name);
-        for family_collection.get_descriptors().each |desc: &CTFontDescriptor| {
-            let font = CTFont::new_from_descriptor(desc, 0.0);
+        let family_collection = ct::font_collection::create_for_family(*family_name);
+        for family_collection.get_descriptors().each |descref: &CTFontDescriptorRef| {
+            let desc = CFWrapper::wrap_shared(*descref);
+            let font = ct::font::new_from_descriptor(&desc, 0.0);
             let handle = result::unwrap(QuartzFontHandle::new_from_CTFont(&self.fctx, move font));
 
             debug!("Creating new FontEntry for face: %s", handle.face_name());

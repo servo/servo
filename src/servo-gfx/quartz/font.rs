@@ -5,8 +5,6 @@ extern mod core_text;
 use cf = core_foundation;
 use cf::base::{
     CFIndex,
-    CFRelease,
-    CFTypeOps,
     CFTypeRef,
 };
 use cf::data::{CFData, CFDataRef};
@@ -83,13 +81,13 @@ pub impl QuartzFontHandle {
     static fn new_from_buffer(_fctx: &QuartzFontContextHandle, buf: ~[u8],
                               style: &SpecifiedFontStyle) -> Result<QuartzFontHandle, ()> {
         let fontprov = vec::as_imm_buf(buf, |cbuf, len| {
-            CGDataProvider::new_from_buffer(cbuf, len)
+            cg::data_provider::new_from_buffer(cbuf, len)
         });
 
-        let cgfont = CGFontCreateWithDataProvider(fontprov.get_ref());
+        let cgfont = CGFontCreateWithDataProvider(*fontprov.borrow_ref());
         if cgfont.is_null() { return Err(()); }
 
-        let ctfont = CTFont::new_from_CGFont(cgfont, style.pt_size);
+        let ctfont = ct::font::new_from_CGFont(cgfont, style.pt_size);
 
         let result = Ok(QuartzFontHandle {
             cgfont : Some(cgfont),
