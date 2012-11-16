@@ -1,11 +1,14 @@
-use font::{Font, FontDescriptor, FontGroup, FontStyle, SelectorPlatformIdentifier, SelectorStubDummy};
-use font::{SpecifiedFontStyle, UsedFontStyle};
+use font::{Font, FontDescriptor, FontGroup, FontStyle, SelectorPlatformIdentifier};
+use font::{SelectorStubDummy, SpecifiedFontStyle, UsedFontStyle};
 use font_list::FontList;
 use native::FontHandle;
 use util::cache;
+use util::cache::MonoCache;
 
 use azure::azure_hl::BackendType;
 use core::dvec::DVec;
+use core::send_map::linear::LinearMap;
+use core::send_map::linear;
 
 // TODO(Issue #164): delete, and get default font from font list
 const TEST_FONT: [u8 * 33004] = #include_bin("JosefinSans-SemiBold.ttf");
@@ -23,7 +26,7 @@ pub fn dummy_style() -> FontStyle {
         weight: FontWeight300,
         italic: false,
         oblique: false,
-        families: ~"Helvetica, serif",
+        families: ~"serif, sans-serif",
     }
 }
 
@@ -57,18 +60,29 @@ pub struct FontContext {
     font_list: Option<FontList>, // only needed by layout
     handle: FontContextHandle,
     backend: BackendType,
+    generic_fonts: LinearMap<~str,~str>,
 }
 
 pub impl FontContext {
     static fn new(backend: BackendType, needs_font_list: bool) -> FontContext {
         let handle = FontContextHandle::new();
         let font_list = if needs_font_list { Some(FontList::new(&handle)) } else { None };
+
+        // TODO: Allow users to specify these.
+        let mut generic_fonts = linear::linear_map_with_capacity(5);
+        generic_fonts.insert(~"serif", ~"Times");
+        generic_fonts.insert(~"sans-serif", ~"Arial");
+        generic_fonts.insert(~"cursive", ~"Apple Chancery");
+        generic_fonts.insert(~"fantasy", ~"Papyrus");
+        generic_fonts.insert(~"monospace", ~"Menlo");
+
         FontContext { 
             // TODO(Rust #3902): remove extraneous type parameters once they are inferred correctly.
-            instance_cache: cache::new::<FontDescriptor, @Font, cache::MonoCache<FontDescriptor, @Font>>(10),
+            instance_cache: cache::new::<FontDescriptor,@Font,MonoCache<FontDescriptor,@Font>>(10),
             font_list: move font_list,
             handle: move handle,
-            backend: backend
+            backend: backend,
+            generic_fonts: move generic_fonts,
         }
     }
 
@@ -96,21 +110,42 @@ pub impl FontContext {
         }
     }
 
+    priv fn transform_family(&self, family: &str) -> ~str {
+        // FIXME: Need a find_like() in LinearMap.
+        let family = family.to_str();
+        debug!("(transform family) searching for `%s`", family);
+        match self.generic_fonts.find_ref(&family) {
+            None => move family,
+            Some(move mapped_family) => copy *mapped_family
+        }
+    }
+
     // TODO:(Issue #196): cache font groups on the font context.
     priv fn create_font_group(style: &SpecifiedFontStyle) -> @FontGroup {
         let fonts = DVec();
 
+        debug!("(create font group) --- starting ---");
+
         // TODO(Issue #193): make iteration over 'font-family' more robust.
         for str::split_char_each(style.families, ',') |family| {
             let family_name = str::trim(family);
+            let transformed_family_name = self.transform_family(family_name);
+            debug!("(create font group) transformed family is `%s`", transformed_family_name);
+
             let list = self.get_font_list();
 
-            let result = list.find_font_in_family(family_name, style);
+            let result = list.find_font_in_family(transformed_family_name, style);
+            let mut found = false;
             do result.iter |font_entry| {
+                found = true;
                 // TODO(Issue #203): route this instantion through FontContext's Font instance cache.
                 let instance = Font::new_from_existing_handle(&self, &font_entry.handle, style, self.backend);
                 do result::iter(&instance) |font: &@Font| { fonts.push(*font); }
             };
+
+            if !found {
+                debug!("(create font group) didn't find `%s`", transformed_family_name);
+            }
         }
 
         // TODO(Issue #194): *always* attach a fallback font to the
@@ -119,6 +154,7 @@ pub impl FontContext {
         // assert fonts.len() > 0;
         if fonts.len() == 0 {
             let desc = FontDescriptor::new(font_context::dummy_style(), SelectorStubDummy);
+            debug!("(create font group) trying descriptor `%?`", desc);
             match self.get_font_by_descriptor(&desc) {
                 Ok(instance) => fonts.push(instance),
                 Err(()) => {}
@@ -127,6 +163,8 @@ pub impl FontContext {
         assert fonts.len() > 0;
         // TODO(Issue #179): Split FontStyle into specified and used styles
         let used_style = copy *style;
+
+        debug!("(create font group) --- finished ---");
 
         @FontGroup::new(style.families.to_managed(), &used_style, dvec::unwrap(move fonts))
     }
