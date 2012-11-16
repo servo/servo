@@ -14,7 +14,7 @@ use geom::matrix2d::Matrix2D;
 use std::arc::ARC;
 use std::arc;
 use std::cell::Cell;
-use std::thread_pool::ThreadPool;
+use std::task_pool::TaskPool;
 
 pub enum Msg {
     RenderMsg(RenderLayer),
@@ -37,7 +37,7 @@ pub fn RenderTask<C: Compositor Send>(compositor: C, opts: Opts) -> RenderTask {
         let n_threads = opts.n_render_threads;
         let new_opts_cell = Cell(move opts);
 
-        let thread_pool = do ThreadPool::new(n_threads, Some(SingleThreaded))
+        let thread_pool = do TaskPool::new(n_threads, Some(SingleThreaded))
                 |move new_opts_cell| {
             let opts_cell = Cell(new_opts_cell.with_ref(|o| copy *o));
             let f: ~fn(uint) -> ThreadRenderContext = |thread_index, move opts_cell| {
@@ -71,7 +71,7 @@ priv struct Renderer<C: Compositor Send> {
     port: comm::Port<Msg>,
     compositor: C,
     layer_buffer_set_port: Cell<pipes::Port<LayerBufferSet>>,
-    thread_pool: ThreadPool<ThreadRenderContext>,
+    thread_pool: TaskPool<ThreadRenderContext>,
     opts: Opts,
 }
 

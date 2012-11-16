@@ -33,7 +33,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
                      f: RenderFn) -> LayerBufferSet {
     let tile_size = opts.tile_size;
 
-    let mut buffers = match move buffer_set { LayerBufferSet { buffers: move b } => move b };
+    let mut _buffers = match move buffer_set { LayerBufferSet { buffers: move b } => move b };
 
     // FIXME: Try not to create a new array here.
     let new_buffer_ports = dvec::DVec();
