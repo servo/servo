@@ -125,6 +125,9 @@ pure fn SimpleGlyphEntry(index: GlyphIndex, advance: Au) -> GlyphEntry {
 pure fn ComplexGlyphEntry(startsCluster: bool, startsLigature: bool, glyphCount: uint) -> GlyphEntry {
     assert glyphCount <= u16::max_value as uint;
 
+    debug!("Creating complex glyph entry: startsCluster=%?, startsLigature=%?, glyphCount=%?",
+           startsCluster, startsLigature, glyphCount);
+
     let mut val = FLAG_NOT_MISSING;
 
     if !startsCluster {
@@ -330,6 +333,7 @@ impl DetailedGlyphStore {
         debug!("Requesting detailed glyphs[n=%u] for entry[off=%u]", count as uint, entry_offset);
 
         // FIXME: Is this right? --pcwalton
+        // TODO: should fix this somewhere else
         if count == 0 {
             let result =  do self.detail_buffer.borrow |glyphs: &[DetailedGlyph]| {
                 vec::view(glyphs, 0, 0)
@@ -543,6 +547,16 @@ impl GlyphStore {
         };
 
         debug!("Adding multiple glyphs[idx=%u, count=%u]: %?", i, glyph_count, entry);
+
+        self.entry_buffer.set_elt(i, entry);
+    }
+
+    // used when a character index has no associated glyph---for example, a ligature continuation.
+    fn add_nonglyph_for_index(&self, i: uint, cluster_start: bool, ligature_start: bool) {
+        assert i < self.entry_buffer.len();
+
+        let entry = ComplexGlyphEntry(cluster_start, ligature_start, 0);
+        debug!("adding spacer for chracter without associated glyph[idx=%u]", i);
 
         self.entry_buffer.set_elt(i, entry);
     }
