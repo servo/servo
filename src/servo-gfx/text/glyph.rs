@@ -329,7 +329,14 @@ impl DetailedGlyphStore {
     fn get_detailed_glyphs_for_entry(&self, entry_offset: uint, count: u16) -> &[DetailedGlyph] {
         debug!("Requesting detailed glyphs[n=%u] for entry[off=%u]", count as uint, entry_offset);
 
-        assert count > 0;
+        // FIXME: Is this right? --pcwalton
+        if count == 0 {
+            let result =  do self.detail_buffer.borrow |glyphs: &[DetailedGlyph]| {
+                vec::view(glyphs, 0, 0)
+            };
+            return result;
+        }
+
         assert (count as uint) <= self.detail_buffer.len();
         self.ensure_sorted();
 
