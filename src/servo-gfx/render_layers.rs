@@ -14,8 +14,6 @@ use geom::size::Size2D;
 use std::arc::ARC;
 use std::arc;
 
-const TILE_SIZE: uint = 512;
-
 pub struct RenderLayer {
     display_list: DisplayList,
     size: Size2D<uint>
@@ -33,6 +31,8 @@ pub fn render_layers(layer_ref: *RenderLayer,
                      buffer_set: LayerBufferSet,
                      opts: &Opts,
                      f: RenderFn) -> LayerBufferSet {
+    let tile_size = opts.tile_size;
+
     let mut buffers = match move buffer_set { LayerBufferSet { buffers: move b } => move b };
 
     // FIXME: Try not to create a new array here.
@@ -46,8 +46,8 @@ pub fn render_layers(layer_ref: *RenderLayer,
             let mut x = 0;
             while x < layer.size.width {
                 // Figure out the dimension of this tile.
-                let right = uint::min(x + TILE_SIZE, layer.size.width);
-                let bottom = uint::min(y + TILE_SIZE, layer.size.height);
+                let right = uint::min(x + tile_size, layer.size.width);
+                let bottom = uint::min(y + tile_size, layer.size.height);
                 let width = right - x;
                 let height = bottom - y;
 
@@ -119,9 +119,9 @@ pub fn render_layers(layer_ref: *RenderLayer,
                 // Enqueue the port.
                 new_buffer_ports.push(move new_buffer_port);
 
-                x += TILE_SIZE;
+                x += tile_size;
             }
-            y += TILE_SIZE;
+            y += tile_size;
         }
     }
 

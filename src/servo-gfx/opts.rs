@@ -9,6 +9,7 @@ pub struct Opts {
     render_mode: RenderMode,
     render_backend: BackendType,
     n_render_threads: uint,
+    tile_size: uint,
 }
 
 pub enum RenderMode {
@@ -23,9 +24,10 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
     let args = args.tail();
 
     let opts = ~[
-        getopts::optopt(~"o"),
-        getopts::optopt(~"r"),
-        getopts::optopt(~"t"),
+        getopts::optopt(~"o"),  // output file
+        getopts::optopt(~"r"),  // rendering backend
+        getopts::optopt(~"s"),  // size of tiles
+        getopts::optopt(~"t"),  // threads to render with
     ];
 
     let opt_match = match getopts::getopts(args, opts) {
@@ -63,6 +65,11 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         None => CairoBackend
     };
 
+    let tile_size: uint = match getopts::opt_maybe_str(copy opt_match, ~"s") {
+        Some(move tile_size_str) => from_str::from_str(tile_size_str).get(),
+        None => 512,
+    };
+
     let n_render_threads: uint = match getopts::opt_maybe_str(move opt_match, ~"t") {
         Some(move n_render_threads_str) => from_str::from_str(n_render_threads_str).get(),
         None => 1,      // FIXME: Number of cores.
@@ -73,5 +80,6 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         render_mode: move render_mode,
         render_backend: move render_backend,
         n_render_threads: n_render_threads,
+        tile_size: tile_size,
     }
 }
