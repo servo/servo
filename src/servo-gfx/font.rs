@@ -107,7 +107,12 @@ enum CSSFontWeight {
     FontWeight800,
     FontWeight900,
 }
-pub impl CSSFontWeight : cmp::Eq;
+pub impl CSSFontWeight : cmp::Eq {
+    pure fn eq(other: &CSSFontWeight) -> bool {
+        (self as uint) == (*other as uint)
+    }
+    pure fn ne(other: &CSSFontWeight) -> bool { !self.eq(other) }
+}
 
 pub impl CSSFontWeight {
     pub pure fn is_bold() -> bool {

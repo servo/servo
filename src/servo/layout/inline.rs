@@ -13,7 +13,7 @@ use gfx::font::FontStyle;
 use gfx::geometry::Au;
 use gfx::text::util::*;
 use gfx::util::range::{MutableRange, Range};
-use newcss::values::{BoxAuto, BoxLength, Px};
+use newcss::units::{BoxAuto, BoxLength, Px};
 use std::arc;
 
 /*
