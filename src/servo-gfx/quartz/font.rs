@@ -6,6 +6,7 @@ use cf = core_foundation;
 use cf::base::{
     CFIndex,
     CFTypeRef,
+    CFWrapper,
 };
 use cf::data::{CFData, CFDataRef};
 use cf::string::UniChar;
@@ -13,7 +14,7 @@ use cg = core_graphics;
 
 use cg::base::{CGFloat, CGAffineTransform};
 use cg::data_provider::{CGDataProviderRef, CGDataProvider};
-use cg::font::{CGFontCreateWithDataProvider, CGFontRef, CGFontRelease, CGGlyph};
+use cg::font::{CGFont, CGFontRef, CGGlyph};
 use cg::geometry::CGRect;
 
 use ct = core_text;
@@ -65,32 +66,24 @@ pub impl QuartzFontTable : FontTableMethods {
 }
 
 pub struct QuartzFontHandle {
-    priv mut cgfont: Option<CGFontRef>,
+    priv mut cgfont: Option<CGFont>,
     ctfont: CTFont,
 
-    drop {
-        // TODO(Issue #152): use a wrapped CGFont.
-        do (copy self.cgfont).iter |cgfont| {
-            assert cgfont.is_not_null();
-            CGFontRelease(*cgfont);
-        }
-    }
+    drop { }
 }
 
 pub impl QuartzFontHandle {
     static fn new_from_buffer(_fctx: &QuartzFontContextHandle, buf: ~[u8],
                               style: &SpecifiedFontStyle) -> Result<QuartzFontHandle, ()> {
-        let fontprov = vec::as_imm_buf(buf, |cbuf, len| {
+        let fontprov : CGDataProvider = vec::as_imm_buf(buf, |cbuf, len| {
             cg::data_provider::new_from_buffer(cbuf, len)
         });
 
-        let cgfont = CGFontCreateWithDataProvider(*fontprov.borrow_ref());
-        if cgfont.is_null() { return Err(()); }
-
-        let ctfont = ct::font::new_from_CGFont(cgfont, style.pt_size);
+        let cgfont = cg::font::create_with_data_provider(&fontprov);
+        let ctfont = ct::font::new_from_CGFont(&cgfont, style.pt_size);
 
         let result = Ok(QuartzFontHandle {
-            cgfont : Some(cgfont),
+            cgfont : Some(move cgfont),
             ctfont : move ctfont,
         });
 
@@ -106,13 +99,13 @@ pub impl QuartzFontHandle {
         return move result;
     }
 
-    fn get_CGFont() -> CGFontRef {
+    fn get_CGFont() -> CGFont {
         match self.cgfont {
-            Some(cg) => cg,
+            Some(ref font) => move CFWrapper::wrap_shared(*font.borrow_ref()),
             None => {
                 let cgfont = self.ctfont.copy_to_CGFont();
-                self.cgfont = Some(cgfont);
-                cgfont
+                self.cgfont = Some(CFWrapper::clone(&cgfont));
+                move cgfont
             }
         }
     }

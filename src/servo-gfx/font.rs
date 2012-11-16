@@ -355,9 +355,9 @@ impl Font {
 
     #[cfg(target_os="macos")]
     priv fn create_azure_font() -> ScaledFont {
-        let ct_font = &self.handle.ctfont;
+        let cg_font = self.handle.get_CGFont();
         let size = self.style.pt_size as AzFloat;
-        ScaledFont::new(self.backend, ct_font, size)
+        ScaledFont::new(self.backend, &cg_font, size)
     }
 
     #[cfg(target_os="linux")]
