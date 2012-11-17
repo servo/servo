@@ -24,11 +24,12 @@ use gfx::text::text_run::TextRun;
 use gfx::util::range::*;
 use newcss::color::{Color, rgba, rgb};
 use newcss::complete::CompleteStyle;
-use newcss::units::{BoxSizing, Cursive, Fantasy, Length, Monospace, Px, SansSerif, Serif};
+use newcss::units::{BoxSizing, Cursive, Em, Fantasy, Length, Monospace, Pt, Px, SansSerif, Serif};
 use newcss::values::{CSSBackgroundColorColor, CSSBackgroundColorTransparent, CSSBorderColor};
 use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium, CSSDisplay};
 use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily, CSSPositionAbsolute};
-use newcss::values::{Specified};
+use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
+use newcss::values::{CSSFontStyleOblique, Specified};
 use std::arc::ARC;
 use std::net::url::Url;
 
@@ -534,14 +535,28 @@ impl RenderBox : RenderBoxMethods {
                 }
             };
             let font_families = str::connect(font_families, ~", ");
-
             debug!("(font style) font families: `%s`", font_families);
 
+            let font_size = match my_style.font_size() {
+                CSSFontSizeLength(Px(l)) |
+                CSSFontSizeLength(Pt(l)) |
+                CSSFontSizeLength(Em(l)) => l,
+                _ => 12f
+            };
+            debug!("(font style) font size: `%f`", font_size);
+
+            let italic, oblique;
+            match my_style.font_style() {
+                CSSFontStyleNormal  => { italic = false; oblique = false; }
+                CSSFontStyleItalic  => { italic = true;  oblique = false; }
+                CSSFontStyleOblique => { italic = false; oblique = true;  }
+            }
+
             FontStyle {
-                pt_size: 20f,
+                pt_size: font_size,
                 weight: FontWeight300,
-                italic: false,
-                oblique: false,
+                italic: italic,
+                oblique: oblique,
                 families: move font_families,
             }
         }
