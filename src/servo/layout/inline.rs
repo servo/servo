@@ -212,7 +212,8 @@ impl TextRunScanner {
     // recursively borrow or swap the flow's dvec of boxes. When all
     // boxes are appended, the caller swaps the flow's box list.
     fn flush_clump_to_list(ctx: &LayoutContext, 
-                           in_boxes: &[@RenderBox], out_boxes: &DVec<@RenderBox>) {
+                           in_boxes: &[@RenderBox],
+                           out_boxes: &DVec<@RenderBox>) {
         assert self.clump.length() > 0;
 
         debug!("TextRunScanner: flushing boxes in range=%?", self.clump);
@@ -228,8 +229,10 @@ impl TextRunScanner {
                 debug!("TextRunScanner: pushing single non-text box in range: %?", self.clump);
                 out_boxes.push(in_boxes[self.clump.begin()]);
             },
-            (true, true)  => { 
-                let text = in_boxes[self.clump.begin()].raw_text();
+            (true, true)  => {
+                let old_box = in_boxes[self.clump.begin()];
+                let text = old_box.raw_text();
+                let font_style = old_box.font_style();
                 // TODO(Issue #115): use actual CSS 'white-space' property of relevant style.
                 let compression = CompressWhitespaceNewline;
                 let transformed_text = transform_text(text, compression);
@@ -238,10 +241,11 @@ impl TextRunScanner {
                 // TODO(Issue #177): text run creation must account for text-renderability by fontgroup fonts.
                 // this is probably achieved by creating fontgroup above, and then letting FontGroup decide
                 // which Font to stick into the TextRun.
-                let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&gfx::font_context::dummy_style());
+                let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
                 let run = @fontgroup.create_textrun(move transformed_text);
                 debug!("TextRunScanner: pushing single text box in range: %?", self.clump);
-                let new_box = layout::text::adapt_textbox_with_range(in_boxes[self.clump.begin()].d(), run,
+                let new_box = layout::text::adapt_textbox_with_range(old_box.d(),
+                                                                     run,
                                                                      Range(0, run.text.len()));
                 out_boxes.push(new_box);
             },
@@ -275,7 +279,9 @@ impl TextRunScanner {
                 // TODO(Issue #177): text run creation must account for text-renderability by fontgroup fonts.
                 // this is probably achieved by creating fontgroup above, and then letting FontGroup decide
                 // which Font to stick into the TextRun.
-                let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&gfx::font_context::dummy_style());
+                // FIXME: Is this right? --pcwalton
+                let font_style = in_boxes[self.clump.begin()].font_style();
+                let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
                 let run = @TextRun::new(fontgroup.fonts[0], move run_str);
                 debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
                 for self.clump.eachi |i| {

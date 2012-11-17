@@ -16,6 +16,7 @@ use core::rand;
 use core::task::spawn;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{DisplayItem, DisplayList};
+use gfx::font::{FontStyle, FontWeight300};
 use gfx::geometry::Au;
 use gfx::image::base::Image;
 use gfx::image::holder::ImageHolder;
@@ -23,9 +24,10 @@ use gfx::text::text_run::TextRun;
 use gfx::util::range::*;
 use newcss::color::{Color, rgba, rgb};
 use newcss::complete::CompleteStyle;
-use newcss::units::{BoxSizing, Length, Px};
+use newcss::units::{BoxSizing, Cursive, Fantasy, Length, Monospace, Px, SansSerif, Serif};
 use newcss::values::{CSSBackgroundColorColor, CSSBackgroundColorTransparent, CSSBorderColor};
-use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium, CSSDisplay, CSSPositionAbsolute};
+use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium, CSSDisplay};
+use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily, CSSPositionAbsolute};
 use newcss::values::{Specified};
 use std::arc::ARC;
 use std::net::url::Url;
@@ -118,8 +120,12 @@ trait RenderBoxMethods {
     fn get_pref_width(&LayoutContext) -> Au;
     fn get_used_width() -> (Au, Au);
     fn get_used_height() -> (Au, Au);
-    fn build_display_list(@self, &DisplayListBuilder, dirty: &Rect<Au>, 
-                          offset: &Point2D<Au>, dl: &mut DisplayList);
+
+    fn build_display_list(@self,
+                          builder: &DisplayListBuilder,
+                          dirty: &Rect<Au>,
+                          offset: &Point2D<Au>,
+                          dl: &mut DisplayList);
 }
 
 fn RenderBoxData(node: Node, ctx: @FlowContext, id: int) -> RenderBoxData {
@@ -368,6 +374,14 @@ impl RenderBox : RenderBoxMethods {
         d.node.style()
     }
 
+    fn with_style_of_nearest_element<R>(@self, f: &fn(CompleteStyle) -> R) -> R {
+        let mut node = self.d().node;
+        while !node.is_element() {
+            node = NodeTree.get_parent(&node).get();
+        }
+        f(node.style())
+    }
+
     // TODO: to implement stacking contexts correctly, we need to
     // create a set of display lists, one per each layer of a stacking
     // context. (CSS 2.1, Section 9.9.1). Each box is passed the list
@@ -500,6 +514,36 @@ impl RenderBox : RenderBoxMethods {
                 warn!("ignoring medium border widths");
             }
             _ => warn!("ignoring unimplemented border widths")
+        }
+    }
+
+    // Converts this node's ComputedStyle to a font style used in the graphics code.
+    //
+    // FIXME: Do we really need two structures here? Perhaps we can just use the structures from
+    // rust-css in the graphics code.
+    fn font_style(@self) -> FontStyle {
+        do self.with_style_of_nearest_element |my_style| {
+            let font_families = do my_style.font_family().map |family| {
+                match *family {
+                    CSSFontFamilyFamilyName(ref family_str) => copy *family_str,
+                    CSSFontFamilyGenericFamily(Serif)       => ~"serif",
+                    CSSFontFamilyGenericFamily(SansSerif)   => ~"sans-serif",
+                    CSSFontFamilyGenericFamily(Cursive)     => ~"cursive",
+                    CSSFontFamilyGenericFamily(Fantasy)     => ~"fantasy",
+                    CSSFontFamilyGenericFamily(Monospace)   => ~"monospace",
+                }
+            };
+            let font_families = str::connect(font_families, ~", ");
+
+            debug!("(font style) font families: `%s`", font_families);
+
+            FontStyle {
+                pt_size: 20f,
+                weight: FontWeight300,
+                italic: false,
+                oblique: false,
+                families: move font_families,
+            }
         }
     }
 }
