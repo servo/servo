@@ -13,6 +13,7 @@ use gfx::font::FontStyle;
 use gfx::geometry::Au;
 use gfx::text::util::*;
 use gfx::util::range::{MutableRange, Range};
+use newcss::values::{CSSTextAlignCenter, CSSTextAlignJustify, CSSTextAlignLeft, CSSTextAlignRight};
 use newcss::units::{BoxAuto, BoxLength, Px};
 use std::arc;
 
@@ -417,26 +418,29 @@ impl LineboxScanner {
         debug!("LineboxScanner: Setting horizontal offsets for boxes in line %u range: %?",
                self.line_spans.len(), line_range);
 
-        // TODO: use actual text align from box.style
-        enum CSSTextAlign {
-            AlignLeft,
-            AlignCenter,
-            AlignRight,
-            AlignJustify,
-        };
-        let linebox_align = AlignRight;
+        // Get the text alignment.
+        let linebox_align;
+        if self.pending_line.range.begin() < self.new_boxes.len() {
+            let first_box = self.new_boxes[self.pending_line.range.begin()];
+            linebox_align = first_box.text_align();
+        } else {
+            // Nothing to lay out, so assume left alignment.
+            // TODO: Is this a necessary check? --pcwalton
+            linebox_align = CSSTextAlignLeft;
+        }
+
         let slack_width = self.flow.d().position.size.width - self.pending_line.width;
         match linebox_align {
             // So sorry, but justified text is more complicated than shuffling linebox coordinates.
             // TODO(Issue #213): implement `text-align: justify`
-            AlignLeft | AlignJustify => {
+            CSSTextAlignLeft | CSSTextAlignJustify => {
                 for line_range.eachi |i| {
                     let box_data = &self.new_boxes[i].d();
                     box_data.position.origin.x = offset_x;
                     offset_x += box_data.position.size.width;
                 }
             },
-            AlignCenter => {
+            CSSTextAlignCenter => {
                 offset_x = slack_width.scale_by(0.5f);
                 for line_range.eachi |i| {
                     let box_data = &self.new_boxes[i].d();
@@ -444,7 +448,7 @@ impl LineboxScanner {
                     offset_x += box_data.position.size.width;
                 }
             },
-            AlignRight => {
+            CSSTextAlignRight => {
                 offset_x = slack_width;
                 for line_range.eachi |i| {
                     let box_data = &self.new_boxes[i].d();

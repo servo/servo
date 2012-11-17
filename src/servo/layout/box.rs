@@ -29,7 +29,7 @@ use newcss::values::{CSSBackgroundColorColor, CSSBackgroundColorTransparent, CSS
 use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium, CSSDisplay};
 use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily, CSSPositionAbsolute};
 use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
-use newcss::values::{CSSFontStyleOblique, Specified};
+use newcss::values::{CSSFontStyleOblique, CSSTextAlign, Specified};
 use std::arc::ARC;
 use std::net::url::Url;
 
@@ -559,6 +559,13 @@ impl RenderBox : RenderBoxMethods {
                 oblique: oblique,
                 families: move font_families,
             }
+        }
+    }
+
+    // Converts this node's ComputedStyle to a text alignment used in the inline layout code.
+    fn text_align(@self) -> CSSTextAlign {
+        do self.with_style_of_nearest_element |my_style| {
+            my_style.text_align()
         }
     }
 }
