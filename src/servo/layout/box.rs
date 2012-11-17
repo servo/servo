@@ -539,9 +539,9 @@ impl RenderBox : RenderBoxMethods {
 
             let font_size = match my_style.font_size() {
                 CSSFontSizeLength(Px(l)) |
-                CSSFontSizeLength(Pt(l)) |
+                CSSFontSizeLength(Pt(l)) => l,
                 CSSFontSizeLength(Em(l)) => l,
-                _ => 12f
+                _ => 16f
             };
             debug!("(font style) font size: `%f`", font_size);
 
