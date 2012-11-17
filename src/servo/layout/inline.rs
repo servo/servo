@@ -413,16 +413,46 @@ impl LineboxScanner {
         // set box horizontal offsets
         let line_range = self.pending_line.range.as_immutable();
         let mut offset_x = Au(0);
-        // TODO: interpretation of CSS 'text-direction' and 'text-align' 
-        // will change from which side we start laying out the line.
+        // TODO(Issue #199): interpretation of CSS 'direction' will change how boxes are positioned.
         debug!("LineboxScanner: Setting horizontal offsets for boxes in line %u range: %?",
                self.line_spans.len(), line_range);
-        for line_range.eachi |i| {
-            let box_data = &self.new_boxes[i].d();
-            box_data.position.origin.x = offset_x;
-            offset_x += box_data.position.size.width;
-        }
 
+        // TODO: use actual text align from box.style
+        enum CSSTextAlign {
+            AlignLeft,
+            AlignCenter,
+            AlignRight,
+            AlignJustify,
+        };
+        let linebox_align = AlignRight;
+        let slack_width = self.flow.d().position.size.width - self.pending_line.width;
+        match linebox_align {
+            // So sorry, but justified text is more complicated than shuffling linebox coordinates.
+            // TODO(Issue #213): implement `text-align: justify`
+            AlignLeft | AlignJustify => {
+                for line_range.eachi |i| {
+                    let box_data = &self.new_boxes[i].d();
+                    box_data.position.origin.x = offset_x;
+                    offset_x += box_data.position.size.width;
+                }
+            },
+            AlignCenter => {
+                offset_x = slack_width.scale_by(0.5f);
+                for line_range.eachi |i| {
+                    let box_data = &self.new_boxes[i].d();
+                    box_data.position.origin.x = offset_x;
+                    offset_x += box_data.position.size.width;
+                }
+            },
+            AlignRight => {
+                offset_x = slack_width;
+                for line_range.eachi |i| {
+                    let box_data = &self.new_boxes[i].d();
+                    box_data.position.origin.x = offset_x;
+                    offset_x += box_data.position.size.width;
+                }
+            },
+        }
         // clear line and add line mapping
         debug!("LineboxScanner: Saving information for flushed line %u.", self.line_spans.len());
         self.line_spans.push(move line_range);
