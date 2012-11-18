@@ -51,6 +51,78 @@ use harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
                            hb_font_funcs_set_glyph_func,
                            hb_font_funcs_set_glyph_h_kerning_func};
 
+pub struct ShapedGlyphData {
+    count: uint,
+    glyph_infos: *hb_glyph_info_t,
+    pos_infos: *hb_glyph_position_t,
+}
+
+pub struct ShapedGlyphEntry {
+    cluster: uint,
+    codepoint: GlyphIndex,
+    advance: Au,
+    offset: Option<Point2D<Au>>,
+}
+
+pub impl ShapedGlyphData {
+    static pure fn new(buffer: *hb_buffer_t) -> ShapedGlyphData unsafe {
+        let glyph_count = 0 as c_uint;
+        let glyph_infos = hb_buffer_get_glyph_infos(buffer, ptr::to_unsafe_ptr(&glyph_count));
+        let glyph_count = glyph_count as uint;
+        assert glyph_infos.is_not_null();
+        let pos_count = 0 as c_uint;
+        let pos_infos = hb_buffer_get_glyph_positions(buffer, ptr::to_unsafe_ptr(&pos_count));
+        assert pos_infos.is_not_null();
+        assert glyph_count == pos_count as uint;
+
+        ShapedGlyphData {
+            count: glyph_count,
+            glyph_infos: glyph_infos,
+            pos_infos: pos_infos,
+        }
+    }
+
+    #[inline(always)]
+    pure fn get_cluster_for_glyph(i: uint) -> uint unsafe {
+        assert i < self.count;
+
+        let glyph_info_i = ptr::offset(self.glyph_infos, i);
+        return (*glyph_info_i).cluster as uint;
+    }
+
+    pure fn len() -> uint { self.count }
+
+    // Returns shaped glyph data for one glyph, and updates the y-position of the pen.
+    fn get_entry_for_glyph(i: uint, y_pos: &mut Au) -> ShapedGlyphEntry unsafe {
+        assert i < self.count;
+
+        let glyph_info_i = ptr::offset(self.glyph_infos, i);
+        let pos_info_i = ptr::offset(self.pos_infos, i);
+        let x_offset = unsafe { Au::from_frac_px(HarfbuzzShaper::fixed_to_float((*pos_info_i).x_offset)) };
+        let y_offset = unsafe { Au::from_frac_px(HarfbuzzShaper::fixed_to_float((*pos_info_i).y_offset)) };
+        let x_advance = unsafe { Au::from_frac_px(HarfbuzzShaper::fixed_to_float((*pos_info_i).x_advance)) };
+        let y_advance = unsafe { Au::from_frac_px(HarfbuzzShaper::fixed_to_float((*pos_info_i).y_advance)) };
+        let offset = if x_offset == Au(0)
+                     && y_offset == Au(0)
+                     && y_advance == Au(0) { None }
+                     else {
+                         // adjust the pen..
+                         if y_advance > Au(0) {
+                             *y_pos -= y_advance;
+                         }
+
+                         Some(Point2D(x_offset, y_pos - y_offset))
+                     };
+
+        ShapedGlyphEntry {
+            cluster: (*glyph_info_i).cluster as uint, 
+            codepoint: (*glyph_info_i).codepoint as GlyphIndex, 
+            advance: x_advance,
+            offset: move offset,
+        }
+    }
+}
+
 pub struct HarfbuzzShaper {
     font: @Font,
     priv hb_face: *hb_face_t,
@@ -126,35 +198,25 @@ pub impl HarfbuzzShaper {
         // correctly in this routine.  it will probably explode with
         // multi-byte utf8 codepoints.
 
+        let glyph_data = ShapedGlyphData::new(buffer);
+        let glyph_count = glyph_data.len();
         let char_max = str::char_len(text);
 
-        // get the results out of the hb_buffer_t
-        let glyph_count = 0 as c_uint;
-        let glyph_infos = hb_buffer_get_glyph_infos(buffer, ptr::to_unsafe_ptr(&glyph_count));
-        let glyph_count = glyph_count as uint;
-        assert glyph_infos.is_not_null();
-        let pos_count = 0 as c_uint;
-        let pos_infos = hb_buffer_get_glyph_positions(buffer, ptr::to_unsafe_ptr(&pos_count));
-        assert pos_infos.is_not_null();
-        assert glyph_count == pos_count as uint;
-
-        // wohoo
         debug!("Shaped text[char count=%u], got back %u glyph info records.", char_max, glyph_count);
         if char_max != glyph_count {
-            debug!("Since these are not equal, we probably have been given some complex glyphs!");
+            debug!("NOTE: Since these are not equal, we probably have been given some complex glyphs.");
         }
 
         // make map of what chars have glyphs
         const NO_GLYPH : i32 = -1;
         let mut charToGlyph : ~[i32] = vec::from_elem(char_max, NO_GLYPH);
         debug!("(glyph idx) -> (char cluster)");
-        for i32::range(0, glyph_count as i32) |i| {
-            let info_i = ptr::offset(glyph_infos, i as uint);
+        for uint::range(0, glyph_data.len()) |i| {
             // loc refers to a *byte* offset within the utf8 string.
-            let loc: uint = unsafe { (*info_i).cluster as uint };
-            debug!("%u -> %u", i as uint, loc);
-            if loc < char_max { charToGlyph[loc] = i; }
-            else { debug!("Tried to set out of range charToGlyph: idx=%u, glyph idx=%u", loc, i as uint); }
+            let loc = glyph_data.get_cluster_for_glyph(i);
+            debug!("%u -> %u", i, loc);
+            if loc < char_max { charToGlyph[loc] = i as i32; }
+            else { debug!("ERROR: tried to set out of range charToGlyph: idx=%u, glyph idx=%u", loc, i); }
         }
 
         debug!("text: %s", text);
@@ -175,10 +237,7 @@ pub impl HarfbuzzShaper {
             glyph_span.extend_by(1);
             debug!("Processing glyph at idx=%u", glyph_span.begin());
 
-            let glyph_info_i = ptr::offset(glyph_infos, glyph_span.begin());
-            let pos_info_i = ptr::offset(pos_infos, glyph_span.begin());
-            let char_end = unsafe { (*glyph_info_i).cluster as uint };
-
+            let char_end = glyph_data.get_cluster_for_glyph(glyph_span.begin());
             char_span.extend_to(char_end);
 
             // find a range of chars corresponding to this glyph, plus
@@ -219,10 +278,9 @@ pub impl HarfbuzzShaper {
                 debug!("Complex (multi-glyph to multi-char) association found. This case probably doesn't work.");
 
                 let mut all_glyphs_are_within_cluster: bool = true;
-                do char_span.eachi |j| {
-                    let glyph_info_j = ptr::offset(glyph_infos, j);
-                    let cluster_idx = unsafe { (*glyph_info_j).cluster as uint };
-                    if cluster_idx < char_span.begin() || cluster_idx > char_span.end() {
+                do glyph_span.eachi |j| {
+                    let loc = glyph_data.get_cluster_for_glyph(j);
+                    if !char_span.contains(loc) {
                         all_glyphs_are_within_cluster = false;
                     }
                     all_glyphs_are_within_cluster // if true, keep checking. else, stop.
@@ -264,20 +322,7 @@ pub impl HarfbuzzShaper {
             }
 
             // clamp to end of text. (I don't think this will be necessary, but..)
-            let covered_end = uint::min(chars_covered_span.end(), char_max);
-            chars_covered_span.extend_to(covered_end);
-
-            // TODO: extract this into a struct passed by reference to helper function
-            let mut codepoint = unsafe { (*glyph_info_i).codepoint as GlyphIndex };
-            let mut x_offset = unsafe { Au::from_frac_px(HarfbuzzShaper::fixed_to_float((*pos_info_i).x_offset)) };
-            let mut y_offset = unsafe { Au::from_frac_px(HarfbuzzShaper::fixed_to_float((*pos_info_i).y_offset)) };
-            let mut x_advance = unsafe { Au::from_frac_px(HarfbuzzShaper::fixed_to_float((*pos_info_i).x_advance)) };
-            let mut y_advance = unsafe { Au::from_frac_px(HarfbuzzShaper::fixed_to_float((*pos_info_i).y_advance)) };
-            let mut offset = Point2D(x_offset, y_pos - y_offset);
-            // adjust our pen..
-            if y_advance > Au(0) {
-                y_pos -= y_advance;
-            }
+            chars_covered_span.extend_to(uint::min(chars_covered_span.end(), char_max));
 
             // fast path: 1-to-1 mapping of single char and single glyph.
             if glyph_span.length() == 1 {
@@ -285,45 +330,26 @@ pub impl HarfbuzzShaper {
                 // shaping, and then consulted here.
                 // for now, just pretend that every character is a cluster start.
                 // (i.e., pretend there are no combining character sequences)
-                let used_offset = if offset == Au::zero_point() { None } else { Some(offset) };
-                let data = GlyphData(codepoint, x_advance, used_offset, false, true, true);
+                let shape = glyph_data.get_entry_for_glyph(glyph_span.begin(), &mut y_pos);
+                let data = GlyphData(shape.codepoint, shape.advance, shape.offset, false, true, true);
                 glyphs.add_glyph_for_index(glyph_span.begin(), &data);
             } else {
                 // collect all glyphs to be assigned to the first character.
                 let datas = DVec();
 
-                // there is at least one, and its advance was already
-                // measured. So, the loop condition is placed weirdly.
-                loop {
-                    let used_offset = if offset == Au::zero_point() { None } else { Some(offset) };
-                    datas.push(GlyphData(codepoint, x_advance, used_offset, false, true, true));
-
+                while glyph_span.length() > 0 {
+                    let shape = glyph_data.get_entry_for_glyph(glyph_span.begin(), &mut y_pos);
+                    datas.push(GlyphData(shape.codepoint, shape.advance, shape.offset, false, true, true));
                     glyph_span.adjust_by(1,-1);
-                    if glyph_span.length() == 0 { break; }
-
-                    let glyph_info_j = ptr::offset(glyph_infos, glyph_span.begin());
-                    let pos_info_j = ptr::offset(pos_infos, glyph_span.begin());
-                    codepoint = unsafe { (*glyph_info_j).codepoint as GlyphIndex };
-                    x_offset = unsafe { Au::from_frac_px(HarfbuzzShaper::fixed_to_float((*pos_info_j).x_offset)) };
-                    y_offset = unsafe { Au::from_frac_px(HarfbuzzShaper::fixed_to_float((*pos_info_j).y_offset)) };
-                    x_advance = unsafe { Au::from_frac_px(HarfbuzzShaper::fixed_to_float((*pos_info_j).x_advance)) };
-                    y_advance = unsafe { Au::from_frac_px(HarfbuzzShaper::fixed_to_float((*pos_info_j).y_advance)) };
-                    offset = Point2D(x_offset, y_pos - y_offset);
-                    // adjust our pen..
-                    if y_advance > Au(0) {
-                        y_pos -= y_advance;
-                    }
                 }
 
-                // now add the actual entry.
+                // now add the detailed glyph entry.
                 glyphs.add_glyphs_for_index(glyph_span.begin(), dvec::unwrap(move datas));
                 
-                chars_covered_span.adjust_by(1, -1);
                 // set the other chars, who have no glyphs
-                for chars_covered_span.eachi |covered_j| {
+                for uint::range(chars_covered_span.begin()+1, chars_covered_span.end()) |covered_j| {
                     glyphs.add_nonglyph_for_index(covered_j, false, false);
                 }
-
             }
 
             // shift up our working spans past things we just handled.
@@ -331,26 +357,6 @@ pub impl HarfbuzzShaper {
             char_span.reset(char_span.end(), 0);
         }
     }
-
-/*
-        for uint::range(0u, glyph_count as uint) |i| { unsafe {
-            let hb_info: hb_glyph_info_t = *ptr::offset(glyph_infos, i);
-            let hb_pos: hb_glyph_position_t = *ptr::offset(pos_infos, i);
-            let codepoint = hb_info.codepoint as GlyphIndex;
-            let advance: Au = Au::from_frac_px(HarfbuzzShaper::fixed_to_float(hb_pos.x_advance));
-            let offset = match (hb_pos.x_offset, hb_pos.y_offset) {
-                (0, 0) => None,
-                (x, y) => Some(Point2D(Au::from_frac_px(HarfbuzzShaper::fixed_to_float(x)),
-                                       Au::from_frac_px(HarfbuzzShaper::fixed_to_float(y))))
-            };
-            // TODO: convert pos.y_advance into offset adjustment
-            // TODO(#95): handle multiple glyphs per char, ligatures, etc.
-            // NB. this debug statement is commented out, as it must be checked for every shaped char.
-            debug!("glyph %?: index %?, advance %?, offset %?", i, codepoint, advance, offset);
-
-            let data = GlyphData(codepoint, advance, offset, false, false, false);
-            glyphs.add_glyph_for_index(i, &data);
-} } */
 
     static priv fn float_to_fixed(f: float) -> i32 {
         util::float_to_fixed(16, f)

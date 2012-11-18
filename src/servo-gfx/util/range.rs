@@ -128,6 +128,10 @@ impl MutableRange {
         do uint::range(self.off, self.off + self.len) |i| { cb(i) }
     }
 
+    pub pure fn contains(i: uint) -> bool {
+        i >= self.begin() && i < self.end()
+    }
+
     fn relation_to_range(&self, other: &MutableRange) -> RangeRelation {
         self.as_immutable().relation_to_range(other.as_immutable())
     }
