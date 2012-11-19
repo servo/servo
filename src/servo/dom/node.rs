@@ -52,11 +52,11 @@ impl Node {
 
 impl Node : DebugMethods {
     /* Dumps the subtree rooted at this node, for debugging. */
-    fn dump(&self) {
+    pure fn dump(&self) {
         self.dump_indent(0u);
     }
     /* Dumps the node tree, for debugging, with indentation. */
-    fn dump_indent(&self, indent: uint) {
+    pure fn dump_indent(&self, indent: uint) {
         let mut s = ~"";
         for uint::range(0u, indent) |_i| {
             s += ~"    ";
@@ -65,12 +65,15 @@ impl Node : DebugMethods {
         s += self.debug_str();
         debug!("%s", s);
 
-        for NodeTree.each_child(self) |kid| {
-            kid.dump_indent(indent + 1u) 
+        // FIXME: this should have a pure version?
+        unsafe {
+            for NodeTree.each_child(self) |kid| {
+                kid.dump_indent(indent + 1u) 
+            }
         }
     }
 
-    fn debug_str(&self) -> ~str {
+    pure fn debug_str(&self) -> ~str unsafe {
         do self.read |n| { fmt!("%?", n.kind) }
     }
 }

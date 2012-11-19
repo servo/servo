@@ -242,12 +242,12 @@ impl FlowTree : tree::WriteMethods<@FlowContext> {
 
 
 impl FlowContext : BoxedDebugMethods {
-    fn dump(@self) {
+    pure fn dump(@self) {
         self.dump_indent(0u);
     }
 
     /** Dumps the flow tree, for debugging, with indentation. */
-    fn dump_indent(@self, indent: uint) {
+    pure fn dump_indent(@self, indent: uint) {
         let mut s = ~"|";
         for uint::range(0u, indent) |_i| {
             s += ~"---- ";
@@ -256,12 +256,15 @@ impl FlowContext : BoxedDebugMethods {
         s += self.debug_str();
         debug!("%s", s);
 
-        for FlowTree.each_child(self) |child| {
-            child.dump_indent(indent + 1u) 
+        // FIXME: this should have a pure/const version?
+        unsafe {
+            for FlowTree.each_child(self) |child| {
+                child.dump_indent(indent + 1u) 
+            }
         }
     }
     
-    fn debug_str(@self) -> ~str {
+    pure fn debug_str(@self) -> ~str {
         let repr = match *self {
             InlineFlow(*) => {
                 let mut s = self.inline().boxes.foldl(~"InlineFlow(children=", |s, box| {

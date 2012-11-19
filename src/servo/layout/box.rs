@@ -576,12 +576,12 @@ impl RenderBox : RenderBoxMethods {
 }
 
 impl RenderBox : BoxedDebugMethods {
-    fn dump(@self) {
+    pure fn dump(@self) {
         self.dump_indent(0u);
     }
 
     /* Dumps the node tree, for debugging, with indentation. */
-    fn dump_indent(@self, indent: uint) {
+    pure fn dump_indent(@self, indent: uint) {
         let mut s = ~"";
         for uint::range(0u, indent) |_i| {
             s += ~"    ";
@@ -591,7 +591,7 @@ impl RenderBox : BoxedDebugMethods {
         debug!("%s", s);
     }
 
-    fn debug_str(@self) -> ~str {
+    pure fn debug_str(@self) -> ~str {
         let repr = match self {
             @GenericBox(*) => ~"GenericBox",
             @ImageBox(*) => ~"ImageBox",
