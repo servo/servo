@@ -470,7 +470,7 @@ pub impl Font : FontMethods {
     }
 
     fn shape_text(@self, text: &str) -> GlyphStore {
-        let store = GlyphStore(text.len());
+        let store = GlyphStore(str::char_len(text));
         let shaper = self.get_shaper();
         shaper.shape_text(text, &store);
         return move store;

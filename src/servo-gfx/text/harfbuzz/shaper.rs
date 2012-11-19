@@ -17,8 +17,9 @@ use range::MutableRange;
 
 use core::libc::types::common::c99::int32_t;
 use core::libc::{c_uint, c_int, c_void, c_char};
-use std::arc;
+use core::util::ignore;
 use dvec::DVec;
+use std::arc;
 
 use harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR, hb_blob_t, hb_face_t, hb_font_t};
 use harfbuzz::{hb_font_funcs_t, hb_buffer_t, hb_codepoint_t, hb_bool_t, hb_glyph_position_t};
@@ -83,7 +84,7 @@ pub impl ShapedGlyphData {
     }
 
     #[inline(always)]
-    pure fn get_cluster_for_glyph(i: uint) -> uint unsafe {
+    pure fn byte_offset_of_glyph(i: uint) -> uint unsafe {
         assert i < self.count;
 
         let glyph_info_i = ptr::offset(self.glyph_infos, i);
@@ -194,13 +195,15 @@ pub impl HarfbuzzShaper {
     }
 
     priv fn save_glyph_results(text: &str, glyphs: &GlyphStore, buffer: *hb_buffer_t) {
-        // TODO: We probably aren't handling bytes-to-chars mapping
-        // correctly in this routine.  it will probably explode with
-        // multi-byte utf8 codepoints.
-
         let glyph_data = ShapedGlyphData::new(buffer);
         let glyph_count = glyph_data.len();
+        let byte_max = text.len();
         let char_max = str::char_len(text);
+        // GlyphStore records are indexed by character, not byte offset.
+        // so, we must be careful to increment this when saving glyph entries.
+        let mut char_idx = 0;
+
+        assert glyph_count <= char_max;
 
         debug!("Shaped text[char count=%u], got back %u glyph info records.", char_max, glyph_count);
         if char_max != glyph_count {
@@ -209,25 +212,48 @@ pub impl HarfbuzzShaper {
 
         // make map of what chars have glyphs
         const NO_GLYPH : i32 = -1;
-        let mut charToGlyph : ~[i32] = vec::from_elem(char_max, NO_GLYPH);
-        debug!("(glyph idx) -> (char cluster)");
+        const CONTINUATION_BYTE : i32 = -2;
+        let mut byteToGlyph : ~[i32];
+
+        // fast path: all chars are single-byte.
+        if byte_max == char_max {
+            byteToGlyph = vec::from_elem(byte_max, NO_GLYPH);
+        } else {
+            byteToGlyph = vec::from_elem(byte_max, CONTINUATION_BYTE);
+            let mut i = 0u;
+            while i < byte_max {
+                byteToGlyph[i] = NO_GLYPH;
+                let {ch, next} = str::char_range_at(text, i); ignore(ch);
+                i = next;
+            }
+        }
+        
+        debug!("(glyph idx) -> (text byte offset)");
         for uint::range(0, glyph_data.len()) |i| {
             // loc refers to a *byte* offset within the utf8 string.
-            let loc = glyph_data.get_cluster_for_glyph(i);
+            let loc = glyph_data.byte_offset_of_glyph(i);
+            if loc < byte_max {
+                assert byteToGlyph[loc] != CONTINUATION_BYTE;
+                byteToGlyph[loc] = i as i32;
+            }
+            else { debug!("ERROR: tried to set out of range byteToGlyph: idx=%u, glyph idx=%u", loc, i); }
             debug!("%u -> %u", i, loc);
-            if loc < char_max { charToGlyph[loc] = i as i32; }
-            else { debug!("ERROR: tried to set out of range charToGlyph: idx=%u, glyph idx=%u", loc, i); }
         }
 
         debug!("text: %s", text);
         debug!("(char idx): char->(glyph index):");
-        for str::each_chari(text) |i, ch| {
-            debug!("%u: %? --> %d", i, ch, charToGlyph[i] as int);
+        let mut i = 0u;
+        while i < byte_max {
+            let {ch, next} = str::char_range_at(text, i);
+            debug!("%u: %? --> %d", i, ch, byteToGlyph[i] as int);
+            i = next;
         }
 
         // some helpers
         let glyph_span : MutableRange = range::empty_mut();
-        let char_span : MutableRange = range::empty_mut();
+        // this span contains first byte of first char, to last byte of last char in range.
+        // so, end() points to first byte of last+1 char, if it's less than byte_max.
+        let char_byte_span : MutableRange = range::empty_mut();
         let mut y_pos = Au(0);
 
         // main loop over each glyph. each iteration usually processes 1 glyph and 1+ chars.
@@ -237,34 +263,36 @@ pub impl HarfbuzzShaper {
             glyph_span.extend_by(1);
             debug!("Processing glyph at idx=%u", glyph_span.begin());
 
-            let char_end = glyph_data.get_cluster_for_glyph(glyph_span.begin());
-            char_span.extend_to(char_end);
+            let char_byte_start = glyph_data.byte_offset_of_glyph(glyph_span.begin());
+            char_byte_span.reset(char_byte_start, 0);
 
             // find a range of chars corresponding to this glyph, plus
             // any trailing chars that do not have associated glyphs.
-            while char_span.end() < char_max {
-                char_span.extend_by(1);
+            while char_byte_span.end() < byte_max {
+                let {ch, next} = str::char_range_at(text, char_byte_span.end()); ignore(ch);
+                char_byte_span.extend_to(next);
 
-                debug!("Processing char span: off=%u, len=%u for glyph idx=%u",
-                       char_span.begin(), char_span.length(), glyph_span.begin());
+                debug!("Processing char byte span: off=%u, len=%u for glyph idx=%u",
+                       char_byte_span.begin(), char_byte_span.length(), glyph_span.begin());
 
-                while char_span.end() != char_max && charToGlyph[char_span.end()] == NO_GLYPH {
-                    debug!("Extending char span to include char idx=%u with no associated glyph", char_span.end());
-                    char_span.extend_by(1);
+                while char_byte_span.end() != byte_max && byteToGlyph[char_byte_span.end()] == NO_GLYPH {
+                    debug!("Extending char byte span to include byte offset=%u with no associated glyph", char_byte_span.end());
+                    let {ch, next} = str::char_range_at(text, char_byte_span.end()); ignore(ch);
+                    char_byte_span.extend_to(next);
                 }
 
                 // extend glyph range to max glyph index covered by char_span,
                 // in cases where one char made several glyphs and left some unassociated chars.
                 let mut max_glyph_idx = glyph_span.end();
-                for char_span.eachi |i| {
-                    if charToGlyph[i] != NO_GLYPH {
-                        max_glyph_idx = uint::max(charToGlyph[i] as uint, max_glyph_idx);
+                for char_byte_span.eachi |i| {
+                    if byteToGlyph[i] > NO_GLYPH {
+                        max_glyph_idx = uint::max(byteToGlyph[i] as uint, max_glyph_idx);
                     }
                 }
 
                 if max_glyph_idx > glyph_span.end() {
                     glyph_span.extend_to(max_glyph_idx);
-                    debug!("Extended glyph span (off=%u, len=%u) to cover char span's max glyph index",
+                    debug!("Extended glyph span (off=%u, len=%u) to cover char byte span's max glyph index",
                            glyph_span.begin(), glyph_span.length());
                 }
 
@@ -272,28 +300,28 @@ pub impl HarfbuzzShaper {
                 // if there's just one glyph, then we don't need further checks.
                 if glyph_span.length() == 1 { break; }
 
-                // if no glyphs were found yet, extend the char range more.
+                // if no glyphs were found yet, extend the char byte range more.
                 if glyph_span.length() == 0 { loop; }
 
                 debug!("Complex (multi-glyph to multi-char) association found. This case probably doesn't work.");
 
                 let mut all_glyphs_are_within_cluster: bool = true;
                 do glyph_span.eachi |j| {
-                    let loc = glyph_data.get_cluster_for_glyph(j);
-                    if !char_span.contains(loc) {
+                    let loc = glyph_data.byte_offset_of_glyph(j);
+                    if !char_byte_span.contains(loc) {
                         all_glyphs_are_within_cluster = false;
                     }
                     all_glyphs_are_within_cluster // if true, keep checking. else, stop.
                 }
 
-                debug!("All glyphs within char_span cluster?: %?", all_glyphs_are_within_cluster);
+                debug!("All glyphs within char_byte_span cluster?: %?", all_glyphs_are_within_cluster);
 
                 // found a valid range; stop extending char_span.
                 if all_glyphs_are_within_cluster { break; }
             }
 
             // character/glyph clump must contain characters.
-            assert char_span.length() > 0;
+            assert char_byte_span.length() > 0;
             // character/glyph clump must contain glyphs.
             assert glyph_span.length() > 0;
 
@@ -308,21 +336,22 @@ pub impl HarfbuzzShaper {
             // gspan:  [-]
             // cspan:  [-]
             // covsp:  [---------------]
-            let chars_covered_span = copy char_span;
+            let covered_byte_span = copy char_byte_span;
             // extend, clipping at end of text range.
-            while chars_covered_span.end() < char_max 
-                && charToGlyph[chars_covered_span.end()] == NO_GLYPH {
-                chars_covered_span.extend_by(1);
+            while covered_byte_span.end() < byte_max 
+                && byteToGlyph[covered_byte_span.end()] == NO_GLYPH {
+                let {ch, next} = str::char_range_at(text, covered_byte_span.end()); ignore(ch);
+                covered_byte_span.extend_to(next);
             }
 
-            if chars_covered_span.begin() >= char_max {
+            if covered_byte_span.begin() >= byte_max {
                 // oops, out of range. clip and forget this clump.
                 glyph_span.reset(glyph_span.end(), 0);
-                char_span.reset(char_span.end(), 0);
+                char_byte_span.reset(char_byte_span.end(), 0);
             }
 
             // clamp to end of text. (I don't think this will be necessary, but..)
-            chars_covered_span.extend_to(uint::min(chars_covered_span.end(), char_max));
+            covered_byte_span.extend_to(uint::min(covered_byte_span.end(), byte_max));
 
             // fast path: 1-to-1 mapping of single char and single glyph.
             if glyph_span.length() == 1 {
@@ -332,7 +361,7 @@ pub impl HarfbuzzShaper {
                 // (i.e., pretend there are no combining character sequences)
                 let shape = glyph_data.get_entry_for_glyph(glyph_span.begin(), &mut y_pos);
                 let data = GlyphData(shape.codepoint, shape.advance, shape.offset, false, true, true);
-                glyphs.add_glyph_for_index(glyph_span.begin(), &data);
+                glyphs.add_glyph_for_index(char_idx, &data);
             } else {
                 // collect all glyphs to be assigned to the first character.
                 let datas = DVec();
@@ -344,17 +373,23 @@ pub impl HarfbuzzShaper {
                 }
 
                 // now add the detailed glyph entry.
-                glyphs.add_glyphs_for_index(glyph_span.begin(), dvec::unwrap(move datas));
+                glyphs.add_glyphs_for_index(char_idx, dvec::unwrap(move datas));
                 
                 // set the other chars, who have no glyphs
-                for uint::range(chars_covered_span.begin()+1, chars_covered_span.end()) |covered_j| {
-                    glyphs.add_nonglyph_for_index(covered_j, false, false);
+                let mut i = covered_byte_span.begin();
+                loop {
+                    let {ch, next} = str::char_range_at(text, i); ignore(ch);
+                    i = next;
+                    if i >= covered_byte_span.end() { break; }
+                    char_idx += 1;
+                    glyphs.add_nonglyph_for_index(char_idx, false, false);
                 }
             }
 
             // shift up our working spans past things we just handled.
             glyph_span.reset(glyph_span.end(), 0);
-            char_span.reset(char_span.end(), 0);
+            char_byte_span.reset(char_byte_span.end(), 0);
+            char_idx += 1;
         }
     }
 
