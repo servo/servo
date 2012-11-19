@@ -71,10 +71,10 @@ impl NodeSelectHandler: SelectHandler<Node> {
         self.parent_node(node).is_none()
     }
 
-    fn node_id(node: &Node) -> Option<~str> {
+    fn with_node_id<R>(node: &Node, f: &fn(Option<&str>) -> R) -> R {
         do node.read |data| {
             match *data.kind {
-                Element(ref data) => data.get_attr("id"),
+                Element(ref data) => data.with_attr("id", f),
                 _ => fail ~"attempting to style non-element node"
             }
         }

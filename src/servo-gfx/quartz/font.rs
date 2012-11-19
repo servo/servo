@@ -146,15 +146,13 @@ pub impl QuartzFontHandle : FontHandleMethods {
     }
 
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
-        let characters: ~[UniChar] = ~[codepoint as UniChar];
-        let glyphs: ~[mut CGGlyph] = ~[mut 0 as CGGlyph];
+        let characters: [UniChar * 1] = [codepoint as UniChar];
+        let glyphs: [mut CGGlyph * 1] = [mut 0 as CGGlyph];
         let count: CFIndex = 1;
 
-        let result = do vec::as_imm_buf(characters) |character_buf, _l| {
-            do vec::as_imm_buf(glyphs) |glyph_buf, _l| {
-                self.ctfont.get_glyphs_for_characters(character_buf, glyph_buf, count)
-            }
-        };
+        let result = self.ctfont.get_glyphs_for_characters(ptr::to_unsafe_ptr(&characters[0]),
+                                                           ptr::to_unsafe_ptr(&glyphs[0]),
+                                                           count);
 
         if !result {
             // No glyph for this character
@@ -166,12 +164,14 @@ pub impl QuartzFontHandle : FontHandleMethods {
     }
 
     fn glyph_h_advance(glyph: GlyphIndex) -> Option<FractionalPixel> {
-        let glyphs = ~[glyph as CGGlyph];
-        let advance = do vec::as_imm_buf(glyphs) |glyph_buf, _l| {
-            self.ctfont.get_advances_for_glyphs(kCTFontDefaultOrientation, glyph_buf, ptr::null(), 1)
-        };
-
-        return Some(advance as FractionalPixel);
+        let glyphs = [glyph as CGGlyph];
+        unsafe {
+            let advance = self.ctfont.get_advances_for_glyphs(kCTFontDefaultOrientation,
+                                                              ptr::to_unsafe_ptr(&glyphs[0]),
+                                                              ptr::null(),
+                                                              1);
+            return Some(advance as FractionalPixel);
+        }
     }
 
     fn get_metrics() -> FontMetrics {
