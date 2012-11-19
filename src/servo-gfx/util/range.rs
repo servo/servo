@@ -52,55 +52,6 @@ pub impl Range {
     pub pure fn adjust_by(off_i: int, len_i: int) -> Range {
         Range(((self.off as int) + off_i) as uint, ((self.len as int) + len_i) as uint)
     }
-      
-    /// Computes the relationship between two ranges (`self` and `other`),
-    /// from the point of view of `self`. So, 'EntirelyBefore' means
-    /// that the `self` range is entirely before `other` range.
-    fn relation_to_range(&self, other: Range) -> RangeRelation {
-        if other.begin() > self.end() {
-            return EntirelyBefore;
-        }
-        if self.begin() > other.end() {
-            return EntirelyAfter;
-        } 
-        if self.begin() == other.begin() && self.end() == other.end() {
-            return Coincides;
-        }
-        if self.begin() <= other.begin() && self.end() >= other.end() {
-            return Contains;
-        }
-        if self.begin() >= other.begin() && self.end() <= other.end() {
-            return ContainedBy;
-        }
-        if self.begin() < other.begin() && self.end() < other.end() {
-            let overlap = self.end() - other.begin();
-            return OverlapsBegin(overlap);
-        }
-        if self.begin() > other.begin() && self.end() > other.end() {
-            let overlap = other.end() - self.begin();
-            return OverlapsEnd(overlap);
-        }
-        fail fmt!("relation_to_range(): didn't classify self=%?, other=%?",
-                  self, other);
-    }
-
-    fn repair_after_coalesced_range(&self, other: Range) -> Range {
-        let relation = self.relation_to_range(other);
-        debug!("repair_after_coalesced_range: possibly repairing range %?", self);
-        debug!("repair_after_coalesced_range: relation of original range and coalesced range(%?): %?",
-               other, relation);
-        let new_range = match relation {
-            EntirelyBefore => { *self },
-            EntirelyAfter =>  { self.shift_by(-(other.length() as int)) },
-            Coincides | ContainedBy =>   { Range(other.begin(), 1) },
-            Contains =>      { self.extend_by(-(other.length() as int)) },
-            OverlapsBegin(overlap) => { self.extend_by(1 - (overlap as int)) },
-            OverlapsEnd(overlap) => 
-            { Range(other.begin(), self.length() - overlap + 1) }
-        };
-        debug!("repair_after_coalesced_range: new range: ---- %?", new_range);
-        new_range
-    }
 }
 
 pub pure fn empty_mut() -> MutableRange { MutableRange::new(0, 0) }
@@ -132,10 +83,6 @@ pub impl MutableRange {
         i >= self.begin() && i < self.end()
     }
 
-    fn relation_to_range(&const self, other: &MutableRange) -> RangeRelation {
-        self.as_immutable().relation_to_range(other.as_immutable())
-    }
-
     pure fn as_immutable(&const self) -> Range {
         Range(self.begin(), self.length())
     }
@@ -164,5 +111,53 @@ pub impl MutableRange {
     fn reset(&mut self, off_i: uint, len_i: uint) {
         self.off = off_i;
         self.len = len_i;
+    }
+
+    /// Computes the relationship between two ranges (`self` and `other`),
+    /// from the point of view of `self`. So, 'EntirelyBefore' means
+    /// that the `self` range is entirely before `other` range.
+    pure fn relation_to_range(&const self, other: &const MutableRange) -> RangeRelation {
+        if other.begin() > self.end() {
+            return EntirelyBefore;
+        }
+        if self.begin() > other.end() {
+            return EntirelyAfter;
+        } 
+        if self.begin() == other.begin() && self.end() == other.end() {
+            return Coincides;
+        }
+        if self.begin() <= other.begin() && self.end() >= other.end() {
+            return Contains;
+        }
+        if self.begin() >= other.begin() && self.end() <= other.end() {
+            return ContainedBy;
+        }
+        if self.begin() < other.begin() && self.end() < other.end() {
+            let overlap = self.end() - other.begin();
+            return OverlapsBegin(overlap);
+        }
+        if self.begin() > other.begin() && self.end() > other.end() {
+            let overlap = other.end() - self.begin();
+            return OverlapsEnd(overlap);
+        }
+        fail fmt!("relation_to_range(): didn't classify self=%?, other=%?",
+                  self, other);
+    }
+
+    fn repair_after_coalesced_range(&mut self, other: &const MutableRange) {
+        let relation = self.relation_to_range(other);
+        debug!("repair_after_coalesced_range: possibly repairing range %?", self);
+        debug!("repair_after_coalesced_range: relation of original range and coalesced range(%?): %?",
+               other, relation);
+        match relation {
+            EntirelyBefore => { },
+            EntirelyAfter =>  { self.shift_by(-(other.length() as int)); },
+            Coincides | ContainedBy =>   { self.reset(other.begin(), 1); },
+            Contains =>      { self.extend_by(-(other.length() as int)); },
+            OverlapsBegin(overlap) => { self.extend_by(1 - (overlap as int)); },
+            OverlapsEnd(overlap) => 
+            { self.reset(other.begin(), self.length() - overlap + 1); }
+        };
+        debug!("repair_after_coalesced_range: new range: ---- %?", self);
     }
 }
