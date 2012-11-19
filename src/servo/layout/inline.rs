@@ -186,14 +186,13 @@ priv impl TextRunScanner {
         }
 
         // helper functions
-        pure fn can_coalesce_text_nodes(boxes: &[@RenderBox], left_i: uint, right_i: uint) -> bool {
+        fn can_coalesce_text_nodes(boxes: &[@RenderBox], left_i: uint, right_i: uint) -> bool {
             assert left_i < boxes.len();
             assert right_i > 0 && right_i < boxes.len();
             assert left_i != right_i;
 
             let (left, right) = (boxes[left_i], boxes[right_i]);
             match (left, right) {
-                // TODO(Issue #117): check whether text styles, fonts are the same.
                 (@UnscannedTextBox(*), @UnscannedTextBox(*)) => left.can_merge_with_box(right),
                 (_, _) => false
             }
@@ -239,8 +238,6 @@ priv impl TextRunScanner {
                 // TODO(Issue #115): use actual CSS 'white-space' property of relevant style.
                 let compression = CompressWhitespaceNewline;
                 let transformed_text = transform_text(text, compression);
-                // TODO(Issue #116): use actual font and style for corresponding 
-                // DOM node to create text run.
                 // TODO(Issue #177): text run creation must account for text-renderability by fontgroup fonts.
                 // this is probably achieved by creating fontgroup above, and then letting FontGroup decide
                 // which Font to stick into the TextRun.
@@ -278,11 +275,9 @@ priv impl TextRunScanner {
 
                 // create the run, then make new boxes with the run and adjusted text indices
 
-                // TODO(Issue #116): use actual font for corresponding DOM node to create text run.
                 // TODO(Issue #177): text run creation must account for text-renderability by fontgroup fonts.
                 // this is probably achieved by creating fontgroup above, and then letting FontGroup decide
                 // which Font to stick into the TextRun.
-                // FIXME: Is this right? --pcwalton
                 let font_style = in_boxes[self.clump.begin()].font_style();
                 let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
                 let run = @TextRun::new(fontgroup.fonts[0], move run_str);

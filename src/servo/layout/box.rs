@@ -111,7 +111,8 @@ trait RenderBoxMethods {
     pure fn is_replaced() -> bool;
     pure fn can_split() -> bool;
     pure fn is_whitespace_only() -> bool;
-    pure fn can_merge_with_box(@self, other: @RenderBox) -> bool;
+    // TODO(Issue #220): this should be a pure/const method
+    fn can_merge_with_box(@self, other: @RenderBox) -> bool;
     pure fn content_box() -> Rect<Au>;
     pure fn border_box() -> Rect<Au>;
     pure fn margin_box() -> Rect<Au>;
@@ -170,11 +171,13 @@ impl RenderBox : RenderBoxMethods {
         }
     }
 
-    pure fn can_merge_with_box(@self, other: @RenderBox) -> bool {
+    fn can_merge_with_box(@self, other: @RenderBox) -> bool {
         assert !core::box::ptr_eq(self, other);
 
         match (self, other) {
-            (@UnscannedTextBox(*), @UnscannedTextBox(*)) => true,
+            (@UnscannedTextBox(*), @UnscannedTextBox(*)) => {
+                self.font_style() == other.font_style()
+            },
             (@TextBox(_,d1), @TextBox(_,d2)) => { core::box::ptr_eq(d1.run, d2.run) }
             (_, _) => false
         }
@@ -524,9 +527,6 @@ impl RenderBox : RenderBoxMethods {
     }
 
     // Converts this node's ComputedStyle to a font style used in the graphics code.
-    //
-    // FIXME: Do we really need two structures here? Perhaps we can just use the structures from
-    // rust-css in the graphics code.
     fn font_style(@self) -> FontStyle {
         do self.with_style_of_nearest_element |my_style| {
             let font_families = do my_style.font_family().map |family| {
