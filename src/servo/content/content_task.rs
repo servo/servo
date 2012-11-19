@@ -9,7 +9,8 @@ use dom::node::{Node, NodeScope, define_bindings};
 use dom::event::{Event, ResizeEvent, ReflowEvent};
 use dom::window::Window;
 use layout::layout_task;
-use layout::layout_task::{AddStylesheet, BuildData, BuildMsg, LayoutTask};
+use layout::layout_task::{AddStylesheet, BuildData, BuildMsg, Damage, LayoutTask};
+use layout::layout_task::{MatchSelectorsDamage, NoDamage, ReflowDamage};
 
 use core::comm::{Port, Chan, listen, select2};
 use core::either;
@@ -96,6 +97,9 @@ pub struct Content {
     resource_task: ResourceTask,
 
     compartment: Option<compartment>,
+
+    // What parts of layout are dirty.
+    mut damage: Damage,
 }
 
 fn Content(layout_task: LayoutTask, 
@@ -136,7 +140,9 @@ fn Content(layout_task: LayoutTask,
         window_size : Size2D(800u, 600u),
 
         resource_task : resource_task,
-        compartment : compartment
+        compartment : compartment,
+
+        damage : MatchSelectorsDamage,
     };
 
     cx.set_cx_private(ptr::to_unsafe_ptr(&*content) as *());
@@ -196,7 +202,10 @@ impl Content {
 
             let document = Document(root, self.scope);
             let window   = Window(self.control_chan.clone());
+
+            self.damage.add(MatchSelectorsDamage);
             self.relayout(&document, &url);
+
             self.document = Some(@move document);
             self.window   = Some(@move window);
             self.doc_url = Some(move url);
@@ -302,7 +311,8 @@ impl Content {
             url: copy *doc_url,
             dom_event_chan: self.event_chan.clone(),
             window_size: self.window_size,
-            content_join_chan: move join_chan
+            content_join_chan: move join_chan,
+            damage: replace(&mut self.damage, NoDamage),
         };
 
         self.layout_task.send(BuildMsg(move data));
@@ -331,6 +341,7 @@ impl Content {
         match event {
           ResizeEvent(new_width, new_height, response_chan) => {
             debug!("content got resize event: %u, %u", new_width, new_height);
+            self.damage.add(ReflowDamage);
             self.window_size = Size2D(new_width, new_height);
             match copy self.document {
                 None => {
@@ -346,6 +357,7 @@ impl Content {
           }
           ReflowEvent => {
             debug!("content got reflow event");
+            self.damage.add(MatchSelectorsDamage);
             match copy self.document {
                 None => {
                     // Nothing to do.

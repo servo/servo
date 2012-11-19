@@ -57,12 +57,31 @@ pub enum Msg {
     ExitMsg
 }
 
+// Dirty bits for layout.
+pub enum Damage {
+    NoDamage,               // Document is clean; do nothing.
+    ReflowDamage,           // Reflow; don't perform CSS selector matching.
+    MatchSelectorsDamage,   // Perform CSS selector matching and reflow.
+}
+
+impl Damage {
+    fn add(&mut self, new_damage: Damage) {
+        match (*self, new_damage) {
+            (NoDamage, _) => *self = new_damage,
+            (ReflowDamage, NoDamage) => *self = ReflowDamage,
+            (ReflowDamage, new_damage) => *self = new_damage,
+            (MatchSelectorsDamage, _) => *self = MatchSelectorsDamage
+        }
+    }
+}
+
 struct BuildData {
     node: Node,
     url: Url,
     dom_event_chan: pipes::SharedChan<Event>,
     window_size: Size2D<uint>,
-    content_join_chan: pipes::Chan<()>
+    content_join_chan: pipes::Chan<()>,
+    damage: Damage,
 }
 
 fn LayoutTask(render_task: RenderTask,
@@ -147,7 +166,6 @@ impl Layout {
     }
 
     fn handle_build(data: BuildData) {
-
         let node = &data.node;
         // FIXME: Bad copy
         let doc_url = copy data.url;
@@ -155,6 +173,7 @@ impl Layout {
         let dom_event_chan = data.dom_event_chan.clone();
 
         debug!("layout: received layout request for: %s", doc_url.to_str());
+        debug!("layout: damage is %?", data.damage);
         debug!("layout: parsed Node tree");
         debug!("%?", node.dump());
 
@@ -176,9 +195,15 @@ impl Layout {
             node.initialize_style_for_subtree(&self.layout_refs);
         }
 
-        do time("layout: selector matching") {
-            do self.css_select_ctx.borrow_imm |ctx| {
-                node.restyle_subtree(ctx);
+        // Perform CSS selector matching if necessary.
+        match data.damage {
+            NoDamage | ReflowDamage => {}
+            MatchSelectorsDamage => {
+                do time("layout: selector matching") {
+                    do self.css_select_ctx.borrow_imm |ctx| {
+                        node.restyle_subtree(ctx);
+                    }
+                }
             }
         }
 
