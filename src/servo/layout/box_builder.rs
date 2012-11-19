@@ -156,7 +156,7 @@ impl BoxGenerator {
                 assert node_range.length() > 0;
 
                 debug!("BoxGenerator: adding element range=%?", node_range);
-                self.flow.inline().elems.add_mapping(node, node_range.as_immutable());
+                self.flow.inline().elems.add_mapping(node, &const node_range);
             },
             @BlockFlow(*) | @RootFlow(*) => {
                 assert self.range_stack.len() == 0;

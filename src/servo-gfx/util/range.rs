@@ -83,10 +83,6 @@ pub impl MutableRange {
         i >= self.begin() && i < self.end()
     }
 
-    pure fn as_immutable(&const self) -> Range {
-        Range(self.begin(), self.length())
-    }
-
     pure fn is_valid_for_string(&const self, s: &str) -> bool {
         self.begin() < s.len() && self.end() <= s.len() && self.length() <= s.len()
     }

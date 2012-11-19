@@ -2,7 +2,7 @@ use color::Color;
 use font_context::FontContext;
 use geometry::Au;
 use render_context::RenderContext;
-use util::range::Range;
+use util::range::{Range, MutableRange};
 use text::glyph::{GlyphStore, GlyphIndex};
 use text::{Shaper, TextRun};
 
@@ -372,10 +372,10 @@ impl Font {
 pub trait FontMethods {
     fn draw_text_into_context(rctx: &RenderContext,
                               run: &TextRun,
-                              range: Range,
+                              range: &MutableRange,
                               baseline_origin: Point2D<Au>,
                               color: Color);
-    fn measure_text(&TextRun, Range) -> RunMetrics;
+    fn measure_text(&TextRun, &const MutableRange) -> RunMetrics;
     fn shape_text(@self, &str) -> GlyphStore;
     fn get_descriptor() -> FontDescriptor;
 
@@ -388,7 +388,7 @@ pub trait FontMethods {
 pub impl Font : FontMethods {
     fn draw_text_into_context(rctx: &RenderContext,
                               run: &TextRun,
-                              range: Range,
+                              range: &const MutableRange,
                               baseline_origin: Point2D<Au>,
                               color: Color) {
         use libc::types::common::c99::{uint16_t, uint32_t};
@@ -445,7 +445,7 @@ pub impl Font : FontMethods {
                                ptr::null());
     }
 
-    fn measure_text(run: &TextRun, range: Range) -> RunMetrics {
+    fn measure_text(run: &TextRun, range: &const MutableRange) -> RunMetrics {
         assert range.is_valid_for_string(run.text);
 
         // TODO(Issue #199): alter advance direction for RTL

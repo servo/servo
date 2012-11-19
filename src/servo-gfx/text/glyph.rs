@@ -1,6 +1,6 @@
 use au = geometry;
 use au::Au;
-use servo_gfx_util::range::Range;
+use servo_gfx_util::range::MutableRange;
 use servo_gfx_util::vec::*;
 
 use core::cmp::{Ord, Eq};
@@ -582,7 +582,7 @@ impl GlyphStore {
 		return true;
     }
 
-    fn iter_glyphs_for_range(&self, range: Range, cb: fn&(uint, GlyphInfo/&) -> bool) {
+    fn iter_glyphs_for_range(&self, range: &const MutableRange, cb: fn&(uint, GlyphInfo/&) -> bool) {
         assert range.begin() < self.entry_buffer.len();
         assert range.end() <= self.entry_buffer.len();
 

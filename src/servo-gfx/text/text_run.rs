@@ -60,7 +60,7 @@ impl TextRun {
 
     pure fn glyphs(&self) -> &self/GlyphStore { &self.glyphs }
 
-    pure fn range_is_trimmable_whitespace(&self, range: Range) -> bool {
+    pure fn range_is_trimmable_whitespace(&self, range: &const MutableRange) -> bool {
         let mut i = range.begin();
         while i < range.end() {
             // jump i to each new char
@@ -74,11 +74,11 @@ impl TextRun {
         return true;
     }
 
-    fn metrics_for_range(&self, range: Range) -> RunMetrics {
+    fn metrics_for_range(&self, range: &const MutableRange) -> RunMetrics {
         self.font.measure_text(self, range)
     }
 
-    fn min_width_for_range(&self, range: Range) -> Au {
+    fn min_width_for_range(&self, range: &const MutableRange) -> Au {
         assert range.is_valid_for_string(self.text);
 
         let mut max_piece_width = Au(0);
@@ -89,7 +89,7 @@ impl TextRun {
         return max_piece_width;
     }
 
-    fn iter_natural_lines_for_range(&self, range: Range, f: fn(Range) -> bool) {
+    fn iter_natural_lines_for_range(&self, range: &const MutableRange, f: fn(&const MutableRange) -> bool) {
         assert range.is_valid_for_string(self.text);
 
         let mut clump = MutableRange::new(range.begin(), 0);
@@ -105,7 +105,7 @@ impl TextRun {
                     in_clump = false;
                     // don't include the linebreak 'glyph'
                     // (we assume there's one GlyphEntry for a newline, and no actual glyphs)
-                    if !f(clump.as_immutable()) { break }
+                    if !f(&const clump) { break }
                 }
             }
         }
@@ -113,11 +113,11 @@ impl TextRun {
         // flush any remaining chars as a line
         if in_clump {
             clump.extend_to(range.end());
-            f(clump.as_immutable());
+            f(&const clump);
         }
     }
 
-    fn iter_indivisible_pieces_for_range(&self, range: Range, f: fn(Range) -> bool) {
+    fn iter_indivisible_pieces_for_range(&self, range: &const MutableRange, f: fn(&const MutableRange) -> bool) {
         assert range.is_valid_for_string(self.text);
 
         let mut clump = MutableRange::new(range.begin(), 0);
@@ -126,14 +126,14 @@ impl TextRun {
             match str::find_between(self.text, clump.begin(), range.end(), |c| !char::is_whitespace(c)) {
                 Some(nonws_char_offset) => {
                     clump.extend_to(nonws_char_offset);
-                    if !f(clump.as_immutable()) { break }
+                    if !f(&const clump) { break }
                     clump.reset(clump.end(), 0);
                 },
                 None => {
                     // nothing left, flush last piece containing only whitespace
                     if clump.end() < range.end() {
                         clump.extend_to(range.end());
-                        f(clump.as_immutable());
+                        f(&const clump);
                         break;
                     }
                 }
@@ -143,14 +143,14 @@ impl TextRun {
             match str::find_between(self.text, clump.begin(), range.end(), |c| char::is_whitespace(c)) {
                 Some(ws_char_offset) => {
                     clump.extend_to(ws_char_offset);
-                    if !f(clump.as_immutable()) { break }
+                    if !f(&const clump) { break }
                     clump.reset(clump.end(), 0);
                 }
                 None => {
                     // nothing left, flush last piece containing only non-whitespaces
                     if clump.end() < range.end() {
                         clump.extend_to(range.end());
-                        f(clump.as_immutable());
+                        f(&const clump);
                         break;
                     }
                 }

@@ -41,12 +41,12 @@ hard to try out that alternative.
 
 struct NodeRange {
     node: Node,
-    mut range: Range,
+    range: MutableRange,
 }
 
 impl NodeRange {
-    static pure fn new(node: Node, range: Range) -> NodeRange {
-        NodeRange { node: node, range: range }
+    static pure fn new(node: Node, range: &const MutableRange) -> NodeRange {
+        NodeRange { node: node, range: copy *range }
     }
 }
 
@@ -59,7 +59,7 @@ impl ElementMapping {
         ElementMapping { entries: DVec() }
     }
 
-    fn add_mapping(node: Node, range: Range) {
+    fn add_mapping(node: Node, range: &const MutableRange) {
         self.entries.push(NodeRange::new(node, range))
     }
 
@@ -103,7 +103,7 @@ impl ElementMapping {
         };
         let repair_stack : DVec<WorkItem> = DVec();
 
-        do self.entries.borrow |entries: &[NodeRange]| {
+        do self.entries.borrow_mut |entries: &[mut NodeRange]| {
             // index into entries
             let mut entries_k = 0;
 
@@ -133,7 +133,7 @@ impl ElementMapping {
                     let item = repair_stack.pop();
                     debug!("repair_for_box_changes: Set range for %u to %?",
                            item.entry_idx, Range(item.begin_idx, new_j - item.begin_idx));
-                    entries[item.entry_idx].range = Range(item.begin_idx, new_j - item.begin_idx);
+                    entries[item.entry_idx].range = MutableRange::new(item.begin_idx, new_j - item.begin_idx);
                 }
             }
         }
@@ -249,7 +249,7 @@ priv impl TextRunScanner {
                 debug!("TextRunScanner: pushing single text box in range: %?", self.clump);
                 let new_box = layout::text::adapt_textbox_with_range(old_box.d(),
                                                                      run,
-                                                                     Range(0, run.text.len()));
+                                                                     &const MutableRange::new(0, run.text.len()));
                 out_boxes.push(new_box);
             },
             (false, true) => {
@@ -270,9 +270,9 @@ priv impl TextRunScanner {
 
                 // TODO(Issue #118): use a rope, simply give ownership of  nonzero strs to rope
                 let mut run_str : ~str = ~"";
-                let new_ranges : DVec<Range> = DVec();
+                let new_ranges : DVec<MutableRange> = DVec();
                 for uint::range(0, transformed_strs.len()) |i| {
-                    new_ranges.push(Range(run_str.len(), transformed_strs[i].len()));
+                    new_ranges.push(MutableRange::new(run_str.len(), transformed_strs[i].len()));
                     str::push_str(&mut run_str, transformed_strs[i]);
                 }
 
@@ -289,7 +289,7 @@ priv impl TextRunScanner {
                 debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
                 let clump = self.clump;
                 for clump.eachi |i| {
-                    let range = new_ranges[i - self.clump.begin()];
+                    let range = &const new_ranges[i - self.clump.begin()];
                     if range.length() == 0 { 
                         error!("Elided an UnscannedTextbox because it was zero-length after compression; %s",
                               in_boxes[i].debug_str());
@@ -328,7 +328,7 @@ struct LineboxScanner {
     new_boxes: DVec<@RenderBox>,
     work_list: DList<@RenderBox>,
     pending_line: {mut range: MutableRange, mut width: Au},
-    line_spans: DVec<Range>,
+    line_spans: DVec<MutableRange>,
 }
 
 fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
@@ -415,7 +415,7 @@ impl LineboxScanner {
         debug!("LineboxScanner: Flushing line %u: %?",
                self.line_spans.len(), self.pending_line);
         // set box horizontal offsets
-        let line_range = self.pending_line.range.as_immutable();
+        let line_range = self.pending_line.range;
         let mut offset_x = Au(0);
         // TODO(Issue #199): interpretation of CSS 'direction' will change how boxes are positioned.
         debug!("LineboxScanner: Setting horizontal offsets for boxes in line %u range: %?",
@@ -566,7 +566,7 @@ struct InlineFlowData {
     boxes: DVec<@RenderBox>,
     // vec of ranges into boxes that represents line positions.
     // these ranges are disjoint, and are the result of inline layout.
-    lines: DVec<Range>,
+    lines: DVec<MutableRange>,
     // vec of ranges into boxes that represent elements. These ranges
     // must be well-nested, and are only related to the content of
     // boxes (not lines). Ranges are only kept for non-leaf elements.
@@ -681,7 +681,7 @@ impl FlowContext : InlineLayout {
                     // adjust bounding box metric to box's horizontal offset
                     // TODO: can we trust the leading provided by font metrics?
                     @TextBox(_, data) => { 
-                        let text_bounds = data.run.metrics_for_range(data.range).bounding_box;
+                        let text_bounds = data.run.metrics_for_range(&const data.range).bounding_box;
                         text_bounds.translate(&Point2D(cur_box.d().position.origin.x, Au(0)))
                     },
                     _ => fail fmt!("Tried to compute bounding box of unknown Box variant: %s", cur_box.debug_str())

@@ -190,10 +190,10 @@ impl RenderBox : RenderBoxMethods {
                 let mut pieces_processed_count : uint = 0;
                 let mut remaining_width : Au = max_width;
                 let mut left_range = MutableRange::new(data.range.begin(), 0);
-                let mut right_range : Option<Range> = None;
+                let mut right_range : Option<MutableRange> = None;
                 debug!("split_to_width: splitting text box (strlen=%u, range=%?, avail_width=%?)",
                        data.run.text.len(), data.range, max_width);
-                do data.run.iter_indivisible_pieces_for_range(data.range) |piece_range| {
+                do data.run.iter_indivisible_pieces_for_range(&const data.range) |piece_range| {
                     debug!("split_to_width: considering piece (range=%?, remain_width=%?)",
                            piece_range, remaining_width);
                     let metrics = data.run.metrics_for_range(piece_range);
@@ -218,15 +218,15 @@ impl RenderBox : RenderBoxMethods {
                             // if there are still things after the trimmable whitespace, create right chunk
                             if piece_range.end() < data.range.end() {
                                 debug!("split_to_width: case=skipping trimmable trailing whitespace, then split remainder");
-                                right_range = Some(Range(piece_range.end(),
-                                                             data.range.end() - piece_range.end()));
+                                right_range = Some(MutableRange::new(piece_range.end(),
+                                                                     data.range.end() - piece_range.end()));
                             } else {
                                 debug!("split_to_width: case=skipping trimmable trailing whitespace");
                             }
                         } else if piece_range.begin() < data.range.end() {
                             // still things left, create right chunk
-                            right_range = Some(Range(piece_range.begin(),
-                                                         data.range.end() - piece_range.begin()));
+                            right_range = Some(MutableRange::new(piece_range.begin(),
+                                                                 data.range.end() - piece_range.begin()));
                             debug!("split_to_width: case=splitting remainder with right range=%?",
                                    right_range);
                         }
@@ -236,11 +236,11 @@ impl RenderBox : RenderBoxMethods {
                 }
 
                 let left_box = if left_range.length() > 0 {
-                    Some(layout::text::adapt_textbox_with_range(self.d(), data.run, left_range.as_immutable()))
+                    Some(layout::text::adapt_textbox_with_range(self.d(), data.run, &const left_range))
                 } else { None };
 
-                let right_box = option::map_default(&right_range, None, |range: &Range| {
-                    Some(layout::text::adapt_textbox_with_range(self.d(), data.run, *range))
+                let right_box = option::map_default(&right_range, None, |range: &const MutableRange| {
+                    Some(layout::text::adapt_textbox_with_range(self.d(), data.run, range))
                 });
                 
                 return if pieces_processed_count == 1 || left_box.is_none() {
@@ -267,7 +267,7 @@ impl RenderBox : RenderBoxMethods {
             // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult 'width'.
             ImageBox(_,i) => Au::from_px(i.get_size().get_default(Size2D(0,0)).width),
-            TextBox(_,d) => d.run.min_width_for_range(d.range),
+            TextBox(_,d) => d.run.min_width_for_range(&const d.range),
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
         }
     }
@@ -290,7 +290,7 @@ impl RenderBox : RenderBoxMethods {
             // factor in min/pref widths of any text runs that it owns.
             TextBox(_,d) => {
                 let mut max_line_width: Au = Au(0);
-                for d.run.iter_natural_lines_for_range(d.range) |line_range| {
+                for d.run.iter_natural_lines_for_range(&const d.range) |line_range| {
                     let mut line_width: Au = Au(0);
                     for d.run.glyphs.iter_glyphs_for_range(line_range) |_char_i, glyph| {
                         line_width += glyph.advance()

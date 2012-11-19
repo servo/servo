@@ -3,22 +3,22 @@
 use layout::box::{TextBox, RenderBox, RenderBoxData, UnscannedTextBox};
 
 use gfx::text::text_run::TextRun;
-use gfx::util::range::Range;
+use gfx::util::range::MutableRange;
 
 pub struct TextBoxData {
     run: @TextRun,
-    range: Range,
+    range: MutableRange,
 }
 
-pub fn TextBoxData(run: @TextRun, range: Range) -> TextBoxData {
+pub fn TextBoxData(run: @TextRun, range: &const MutableRange) -> TextBoxData {
     TextBoxData {
         run: run,
-        range: range,
+        range: copy *range,
     }
 }
 
 pub fn adapt_textbox_with_range(box_data: &RenderBoxData, run: @TextRun, 
-                                range: Range) -> @RenderBox {
+                                range: &const MutableRange) -> @RenderBox {
     debug!("Creating textbox with span: (strlen=%u, off=%u, len=%u) of textrun: %s",
            run.text.len(), range.begin(), range.length(), run.text);
     let new_box_data = copy *box_data;

@@ -3,7 +3,7 @@ use geometry::Au;
 use image::base::Image;
 use render_context::RenderContext;
 use text::SendableTextRun;
-use util::range::Range;
+use util::range::MutableRange;
 
 use azure::azure_hl::DrawTarget;
 use core::dvec::DVec;
@@ -27,7 +27,7 @@ pub enum DisplayItem {
     // TODO: need to provide spacing data for text run.
     // (i.e, to support rendering of CSS 'word-spacing' and 'letter-spacing')
     // TODO: don't copy text runs, ever.
-    Text(DisplayItemData, ~SendableTextRun, Range, Color),
+    Text(DisplayItemData, ~SendableTextRun, MutableRange, Color),
     Image(DisplayItemData, ARC<~image::base::Image>),
     Border(DisplayItemData, Au, Color)
 }
@@ -45,7 +45,7 @@ impl DisplayItem {
     fn draw_into_context(&self, ctx: &RenderContext) {
         match *self {
             SolidColor(_, color) => ctx.draw_solid_color(&self.d().bounds, color),
-            Text(_, run, range, color) => {
+            Text(_, run, ref range, color) => {
                 let new_run = @run.deserialize(ctx.font_ctx);
                 let font = new_run.font;
                 let origin = self.d().bounds.origin;
@@ -71,9 +71,9 @@ impl DisplayItem {
 
     static pure fn new_Text(bounds: &Rect<Au>,
                             run: ~SendableTextRun,
-                            range: Range,
+                            range: MutableRange,
                             color: Color) -> DisplayItem {
-        Text(DisplayItemData::new(bounds), move run, range, color)
+        Text(DisplayItemData::new(bounds), move run, move range, color)
     }
 
     // ARC should be cloned into ImageData, but Images are not sendable
