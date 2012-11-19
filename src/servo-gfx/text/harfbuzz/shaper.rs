@@ -250,10 +250,10 @@ pub impl HarfbuzzShaper {
         }
 
         // some helpers
-        let glyph_span : MutableRange = range::empty_mut();
+        let mut glyph_span : MutableRange = range::empty_mut();
         // this span contains first byte of first char, to last byte of last char in range.
         // so, end() points to first byte of last+1 char, if it's less than byte_max.
-        let char_byte_span : MutableRange = range::empty_mut();
+        let mut char_byte_span : MutableRange = range::empty_mut();
         let mut y_pos = Au(0);
 
         // main loop over each glyph. each iteration usually processes 1 glyph and 1+ chars.
@@ -336,7 +336,7 @@ pub impl HarfbuzzShaper {
             // gspan:  [-]
             // cspan:  [-]
             // covsp:  [---------------]
-            let covered_byte_span = copy char_byte_span;
+            let mut covered_byte_span = copy char_byte_span;
             // extend, clipping at end of text range.
             while covered_byte_span.end() < byte_max 
                 && byteToGlyph[covered_byte_span.end()] == NO_GLYPH {

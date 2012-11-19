@@ -189,7 +189,7 @@ impl RenderBox : RenderBoxMethods {
 
                 let mut pieces_processed_count : uint = 0;
                 let mut remaining_width : Au = max_width;
-                let left_range = MutableRange::new(data.range.begin(), 0);
+                let mut left_range = MutableRange::new(data.range.begin(), 0);
                 let mut right_range : Option<Range> = None;
                 debug!("split_to_width: splitting text box (strlen=%u, range=%?, avail_width=%?)",
                        data.run.text.len(), data.range, max_width);

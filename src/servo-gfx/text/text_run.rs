@@ -92,7 +92,7 @@ impl TextRun {
     fn iter_natural_lines_for_range(&self, range: Range, f: fn(Range) -> bool) {
         assert range.is_valid_for_string(self.text);
 
-        let clump = MutableRange::new(range.begin(), 0);
+        let mut clump = MutableRange::new(range.begin(), 0);
         let mut in_clump = false;
 
         // clump non-linebreaks of nonzero length
@@ -120,7 +120,7 @@ impl TextRun {
     fn iter_indivisible_pieces_for_range(&self, range: Range, f: fn(Range) -> bool) {
         assert range.is_valid_for_string(self.text);
 
-        let clump = MutableRange::new(range.begin(), 0);
+        let mut clump = MutableRange::new(range.begin(), 0);
         loop {
             // find next non-whitespace byte index, then clump all whitespace before it.
             match str::find_between(self.text, clump.begin(), range.end(), |c| !char::is_whitespace(c)) {

@@ -151,7 +151,7 @@ impl BoxGenerator {
                         self.flow.inline().boxes.push(*spacer);
                     }
                 }
-                let node_range: MutableRange = MutableRange::new(self.range_stack.pop(), 0);
+                let mut node_range: MutableRange = MutableRange::new(self.range_stack.pop(), 0);
                 node_range.extend_to(self.flow.inline().boxes.len());
                 assert node_range.length() > 0;
 

@@ -147,36 +147,36 @@ impl ElementMapping {
 
 // stack-allocated object for scanning an inline flow into
 // TextRun-containing TextBoxes.
-struct TextRunScanner {
+priv struct TextRunScanner {
     clump: MutableRange,
-    flow: @FlowContext,
 }
 
-fn TextRunScanner(flow: @FlowContext) -> TextRunScanner {
-    TextRunScanner {
-        clump: MutableRange::empty(),
-        flow: flow,
+priv impl TextRunScanner {
+    static fn new() -> TextRunScanner {
+        TextRunScanner {
+            clump: MutableRange::empty(),
+        }
     }
 }
 
-impl TextRunScanner {
-    fn scan_for_runs(ctx: &LayoutContext) {
-        assert self.flow.inline().boxes.len() > 0;
+priv impl TextRunScanner {
+    fn scan_for_runs(&mut self, ctx: &LayoutContext, flow: @FlowContext) {
+        assert flow.inline().boxes.len() > 0;
 
-        do self.flow.inline().boxes.swap |in_boxes| {
+        do flow.inline().boxes.swap |in_boxes| {
             debug!("TextRunScanner: scanning %u boxes for text runs...", in_boxes.len());
             let out_boxes = DVec();
 
             for uint::range(0, in_boxes.len()) |box_i| {
                 debug!("TextRunScanner: considering box: %?", in_boxes[box_i].debug_str());
                 if box_i > 0 && !can_coalesce_text_nodes(in_boxes, box_i-1, box_i) {
-                    self.flush_clump_to_list(ctx, in_boxes, &out_boxes);
+                    self.flush_clump_to_list(ctx, flow, in_boxes, &out_boxes);
                 }
                 self.clump.extend_by(1);
             }
             // handle remaining clumps
             if self.clump.length() > 0 {
-                self.flush_clump_to_list(ctx, in_boxes, &out_boxes);
+                self.flush_clump_to_list(ctx, flow, in_boxes, &out_boxes);
             }
 
             debug!("TextRunScanner: swapping out boxes.");
@@ -212,7 +212,9 @@ impl TextRunScanner {
     // N.B. in_boxes is passed by reference, since we cannot
     // recursively borrow or swap the flow's dvec of boxes. When all
     // boxes are appended, the caller swaps the flow's box list.
-    fn flush_clump_to_list(ctx: &LayoutContext, 
+    fn flush_clump_to_list(&mut self,
+                           ctx: &LayoutContext, 
+                           flow: @FlowContext,
                            in_boxes: &[@RenderBox],
                            out_boxes: &DVec<@RenderBox>) {
         assert self.clump.length() > 0;
@@ -285,7 +287,8 @@ impl TextRunScanner {
                 let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
                 let run = @TextRun::new(fontgroup.fonts[0], move run_str);
                 debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
-                for self.clump.eachi |i| {
+                let clump = self.clump;
+                for clump.eachi |i| {
                     let range = new_ranges[i - self.clump.begin()];
                     if range.length() == 0 { 
                         error!("Elided an UnscannedTextbox because it was zero-length after compression; %s",
@@ -311,7 +314,7 @@ impl TextRunScanner {
         debug!("------------------");
 
         debug!("--- Elem ranges: ---");
-        for self.flow.inline().elems.eachi_mut |i: uint, nr: &NodeRange| {
+        for flow.inline().elems.eachi_mut |i: uint, nr: &NodeRange| {
             debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str()); ()
         }
         debug!("--------------------");
@@ -324,7 +327,7 @@ struct LineboxScanner {
     flow: @FlowContext,
     new_boxes: DVec<@RenderBox>,
     work_list: DList<@RenderBox>,
-    pending_line: {range: MutableRange, mut width: Au},
+    pending_line: {mut range: MutableRange, mut width: Au},
     line_spans: DVec<Range>,
 }
 
@@ -335,7 +338,7 @@ fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
         flow: inline,
         new_boxes: DVec(),
         work_list: DList(),
-        pending_line: {range: MutableRange::empty(), mut width: Au(0)},
+        pending_line: {mut range: MutableRange::empty(), mut width: Au(0)},
         line_spans: DVec()
     }
 }
@@ -594,8 +597,8 @@ impl FlowContext : InlineLayout {
     fn bubble_widths_inline(@self, ctx: &LayoutContext) {
         assert self.starts_inline_flow();
 
-        let scanner = TextRunScanner(self);
-        scanner.scan_for_runs(ctx);
+        let mut scanner = TextRunScanner::new();
+        scanner.scan_for_runs(ctx, self);
 
         let mut min_width = Au(0);
         let mut pref_width = Au(0);
@@ -630,7 +633,7 @@ impl FlowContext : InlineLayout {
             };
         } // for boxes.each |box|
 
-        let scanner = LineboxScanner(self);
+        let mut scanner = LineboxScanner(self);
         scanner.scan_for_lines(ctx);
    
         /* There are no child contexts, so stop here. */

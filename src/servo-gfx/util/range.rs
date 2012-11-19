@@ -106,8 +106,8 @@ pub impl Range {
 pub pure fn empty_mut() -> MutableRange { MutableRange::new(0, 0) }
 
 pub struct MutableRange {
-    priv mut off: uint,
-    priv mut len: uint
+    priv off: uint,
+    priv len: uint
 }
 
 pub impl MutableRange {
@@ -120,48 +120,48 @@ pub impl MutableRange {
     }
 }
 
-impl MutableRange {
-    pub pure fn begin() -> uint { self.off  }
-    pub pure fn length() -> uint { self.len }
-    pub pure fn end() -> uint { self.off + self.len }
-    pub pure fn eachi(cb: fn&(uint) -> bool) {
+pub impl MutableRange {
+    pure fn begin(&const self) -> uint { self.off  }
+    pure fn length(&const self) -> uint { self.len }
+    pure fn end(&const self) -> uint { self.off + self.len }
+    pure fn eachi(&const self, cb: fn&(uint) -> bool) {
         do uint::range(self.off, self.off + self.len) |i| { cb(i) }
     }
 
-    pub pure fn contains(i: uint) -> bool {
+    pure fn contains(&const self, i: uint) -> bool {
         i >= self.begin() && i < self.end()
     }
 
-    fn relation_to_range(&self, other: &MutableRange) -> RangeRelation {
+    fn relation_to_range(&const self, other: &MutableRange) -> RangeRelation {
         self.as_immutable().relation_to_range(other.as_immutable())
     }
 
-    pub pure fn as_immutable() -> Range {
+    pure fn as_immutable(&const self) -> Range {
         Range(self.begin(), self.length())
     }
 
-    pub pure fn is_valid_for_string(s: &str) -> bool {
+    pure fn is_valid_for_string(&const self, s: &str) -> bool {
         self.begin() < s.len() && self.end() <= s.len() && self.length() <= s.len()
     }
 
-    pub fn shift_by(i: int) { 
+    fn shift_by(&mut self, i: int) { 
         self.off = ((self.off as int) + i) as uint;
     }
 
-    pub fn extend_by(i: int) { 
+    fn extend_by(&mut self, i: int) { 
         self.len = ((self.len as int) + i) as uint;
     }
 
-    pub fn extend_to(i: uint) { 
+    fn extend_to(&mut self, i: uint) { 
         self.len = i - self.off;
     }
 
-    pub fn adjust_by(off_i: int, len_i: int) {
+    fn adjust_by(&mut self, off_i: int, len_i: int) {
         self.off = ((self.off as int) + off_i) as uint;
         self.len = ((self.len as int) + len_i) as uint;
     }
 
-    pub fn reset(off_i: uint, len_i: uint) {
+    fn reset(&mut self, off_i: uint, len_i: uint) {
         self.off = off_i;
         self.len = len_i;
     }
