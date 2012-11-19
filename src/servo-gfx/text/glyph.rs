@@ -583,8 +583,14 @@ impl GlyphStore {
     }
 
     fn iter_glyphs_for_range(&self, range: &const Range, cb: fn&(uint, GlyphInfo/&) -> bool) {
-        assert range.begin() < self.entry_buffer.len();
-        assert range.end() <= self.entry_buffer.len();
+        if range.begin() >= self.entry_buffer.len() {
+            error!("iter_glyphs_for_range: range.begin beyond length!");
+            return;
+        }
+        if range.end() > self.entry_buffer.len() {
+            error!("iter_glyphs_for_range: range.end beyond length!");
+            return;
+        }
 
         for range.eachi |i| {
 	    if !self.iter_glyphs_for_index(i, cb) { break; }
@@ -609,8 +615,12 @@ impl GlyphStore {
     }
 
     fn char_is_newline(i: uint) -> bool {
-        assert i < self.entry_buffer.len();
-        self.entry_buffer[i].char_is_newline()
+        if i >= self.entry_buffer.len() {
+            error!("char_is_newline: beyond entry buffer!");
+            false
+        } else {
+            self.entry_buffer[i].char_is_newline()
+        }
     }
 
     fn is_ligature_start(i: uint) -> bool {

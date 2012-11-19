@@ -20,6 +20,20 @@ impl ElementData {
         }
     }
 
+    // Gets an attribute without copying.
+    //
+    // FIXME: Should not take a closure, but we need covariant type parameters for
+    // that.
+    fn with_attr<R>(name: &str, f: &fn(Option<&str>) -> R) -> R {
+        for self.attrs.each |attr| {
+            if name == attr.name {
+                let value: &str = attr.value;
+                return f(Some(value));
+            }
+        }
+        f(None)
+    }
+
     fn set_attr(name: &str, value: ~str) {
         let idx = do self.attrs.position |attr| { name == attr.name };
         match idx {

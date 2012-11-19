@@ -84,9 +84,11 @@ impl NodeSelectHandler: SelectHandler<Node> {
         do node.read |data| {
             match *data.kind {
                 Element(ref data) => {
-                    match data.get_attr("id") {
-                        None => false,
-                        Some(existing_id) => str::eq_slice(id, existing_id)
+                    do data.with_attr("id") |existing_id_opt| {
+                        match existing_id_opt {
+                            None => false,
+                            Some(existing_id) => str::eq_slice(id, existing_id)
+                        }
                     }
                 }
                 _ => fail ~"attempting to style non-element node"
