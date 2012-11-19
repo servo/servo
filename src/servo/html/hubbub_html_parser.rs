@@ -239,7 +239,7 @@ pub fn parse_html(scope: NodeScope,
             let elem_kind = build_element_kind(tag.name);
             let elem = ElementData(copy tag.name, move elem_kind);
 
-            debug!("attach attrs");
+            debug!("-- attach attrs");
             for tag.attributes.each |attr| {
                 elem.attrs.push(~Attr(copy attr.name, copy attr.value));
             }
@@ -282,7 +282,7 @@ pub fn parse_html(scope: NodeScope,
         ref_node: |_node| {},
         unref_node: |_node| {},
         append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| unsafe {
-            debug!("append child");
+            debug!("append child %x %x", cast::transmute(parent), cast::transmute(child));
             unsafe {
                 let p: Node = cow::wrap(cast::transmute(parent));
                 let c: Node = cow::wrap(cast::transmute(child));
@@ -299,9 +299,15 @@ pub fn parse_html(scope: NodeScope,
             debug!("remove child");
             0u
         },
-        clone_node: |_node, _deep| {
+        clone_node: |node, deep| {
             debug!("clone node");
-            0u
+            unsafe {
+                if deep { error!("-- deep clone unimplemented"); }
+                let n: Node = cow::wrap(cast::transmute(node));
+                let data = n.read(|read_data| copy *read_data.kind);
+                let new_node = scope.new_node(move data);
+                unsafe { cast::transmute(cow::unwrap(new_node)) }
+            }
         },
         reparent_children: |_node, _new_parent| {
             debug!("reparent children");
