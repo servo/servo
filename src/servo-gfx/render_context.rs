@@ -4,7 +4,6 @@ use geometry::Au;
 use image::base::Image;
 use opts::Opts;
 use text::TextRun;
-use util::range::Range;
 
 use azure::azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, Linear, StrokeOptions};

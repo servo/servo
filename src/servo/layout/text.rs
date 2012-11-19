@@ -3,14 +3,14 @@
 use layout::box::{TextBox, RenderBox, RenderBoxData, UnscannedTextBox};
 
 use gfx::text::text_run::TextRun;
-use gfx::util::range::MutableRange;
+use gfx::util::range::Range;
 
 pub struct TextBoxData {
     run: @TextRun,
-    range: MutableRange,
+    range: Range,
 }
 
-pub fn TextBoxData(run: @TextRun, range: &const MutableRange) -> TextBoxData {
+pub fn TextBoxData(run: @TextRun, range: &const Range) -> TextBoxData {
     TextBoxData {
         run: run,
         range: copy *range,
@@ -18,7 +18,7 @@ pub fn TextBoxData(run: @TextRun, range: &const MutableRange) -> TextBoxData {
 }
 
 pub fn adapt_textbox_with_range(box_data: &RenderBoxData, run: @TextRun, 
-                                range: &const MutableRange) -> @RenderBox {
+                                range: &const Range) -> @RenderBox {
     debug!("Creating textbox with span: (strlen=%u, off=%u, len=%u) of textrun: %s",
            run.text.len(), range.begin(), range.length(), run.text);
     let new_box_data = copy *box_data;

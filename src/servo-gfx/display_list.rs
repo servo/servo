@@ -3,7 +3,7 @@ use geometry::Au;
 use image::base::Image;
 use render_context::RenderContext;
 use text::SendableTextRun;
-use util::range::MutableRange;
+use util::range::Range;
 
 use azure::azure_hl::DrawTarget;
 use core::dvec::DVec;
@@ -27,7 +27,7 @@ pub enum DisplayItem {
     // TODO: need to provide spacing data for text run.
     // (i.e, to support rendering of CSS 'word-spacing' and 'letter-spacing')
     // TODO: don't copy text runs, ever.
-    Text(DisplayItemData, ~SendableTextRun, MutableRange, Color),
+    Text(DisplayItemData, ~SendableTextRun, Range, Color),
     Image(DisplayItemData, ARC<~image::base::Image>),
     Border(DisplayItemData, Au, Color)
 }
@@ -71,7 +71,7 @@ impl DisplayItem {
 
     static pure fn new_Text(bounds: &Rect<Au>,
                             run: ~SendableTextRun,
-                            range: MutableRange,
+                            range: Range,
                             color: Color) -> DisplayItem {
         Text(DisplayItemData::new(bounds), move run, move range, color)
     }

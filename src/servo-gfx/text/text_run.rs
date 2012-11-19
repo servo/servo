@@ -2,7 +2,7 @@ use font_context::FontContext;
 use geometry::Au;
 use glyph::GlyphStore;
 use servo_gfx_font::{Font, FontDescriptor, RunMetrics};
-use servo_gfx_util::range::{Range, MutableRange};
+use servo_gfx_util::range::Range;
 
 use core::libc::{c_void};
 use geom::point::Point2D;
@@ -60,7 +60,7 @@ impl TextRun {
 
     pure fn glyphs(&self) -> &self/GlyphStore { &self.glyphs }
 
-    pure fn range_is_trimmable_whitespace(&self, range: &const MutableRange) -> bool {
+    pure fn range_is_trimmable_whitespace(&self, range: &const Range) -> bool {
         let mut i = range.begin();
         while i < range.end() {
             // jump i to each new char
@@ -74,11 +74,11 @@ impl TextRun {
         return true;
     }
 
-    fn metrics_for_range(&self, range: &const MutableRange) -> RunMetrics {
+    fn metrics_for_range(&self, range: &const Range) -> RunMetrics {
         self.font.measure_text(self, range)
     }
 
-    fn min_width_for_range(&self, range: &const MutableRange) -> Au {
+    fn min_width_for_range(&self, range: &const Range) -> Au {
         assert range.is_valid_for_string(self.text);
 
         let mut max_piece_width = Au(0);
@@ -89,10 +89,10 @@ impl TextRun {
         return max_piece_width;
     }
 
-    fn iter_natural_lines_for_range(&self, range: &const MutableRange, f: fn(&const MutableRange) -> bool) {
+    fn iter_natural_lines_for_range(&self, range: &const Range, f: fn(&const Range) -> bool) {
         assert range.is_valid_for_string(self.text);
 
-        let mut clump = MutableRange::new(range.begin(), 0);
+        let mut clump = Range::new(range.begin(), 0);
         let mut in_clump = false;
 
         // clump non-linebreaks of nonzero length
@@ -117,10 +117,10 @@ impl TextRun {
         }
     }
 
-    fn iter_indivisible_pieces_for_range(&self, range: &const MutableRange, f: fn(&const MutableRange) -> bool) {
+    fn iter_indivisible_pieces_for_range(&self, range: &const Range, f: fn(&const Range) -> bool) {
         assert range.is_valid_for_string(self.text);
 
-        let mut clump = MutableRange::new(range.begin(), 0);
+        let mut clump = Range::new(range.begin(), 0);
         loop {
             // find next non-whitespace byte index, then clump all whitespace before it.
             match str::find_between(self.text, clump.begin(), range.end(), |c| !char::is_whitespace(c)) {

@@ -13,7 +13,7 @@ use font::{
 
 use glyph::{GlyphStore, GlyphIndex, GlyphData};
 use servo_util::range;
-use range::MutableRange;
+use range::Range;
 
 use core::libc::types::common::c99::int32_t;
 use core::libc::{c_uint, c_int, c_void, c_char};
@@ -250,10 +250,10 @@ pub impl HarfbuzzShaper {
         }
 
         // some helpers
-        let mut glyph_span : MutableRange = range::empty_mut();
+        let mut glyph_span : Range = Range::empty();
         // this span contains first byte of first char, to last byte of last char in range.
         // so, end() points to first byte of last+1 char, if it's less than byte_max.
-        let mut char_byte_span : MutableRange = range::empty_mut();
+        let mut char_byte_span : Range = Range::empty();
         let mut y_pos = Au(0);
 
         // main loop over each glyph. each iteration usually processes 1 glyph and 1+ chars.

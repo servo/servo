@@ -1,20 +1,3 @@
-pub struct Range {
-    priv off: u16,
-    priv len: u16
-}
-
-pub pure fn Range(off: uint, len: uint) -> Range {
-    assert off <= u16::max_value as uint;
-    assert len <= u16::max_value as uint;
-
-    Range {
-        off: off as u16,
-        len: len as u16
-    }
-}
-
-pub pure fn empty() -> Range { Range(0,0) }
-
 enum RangeRelation {
     OverlapsBegin(/* overlap */ uint),
     OverlapsEnd(/* overlap */ uint),
@@ -25,53 +8,22 @@ enum RangeRelation {
     EntirelyAfter
 }
 
-pub impl Range {
-    pub pure fn begin() -> uint { self.off as uint }
-    pub pure fn length() -> uint { self.len as uint }
-    pub pure fn end() -> uint { (self.off as uint) + (self.len as uint) }
-
-    pub pure fn eachi(cb: fn&(uint) -> bool) {
-        do uint::range(self.off as uint, 
-                       (self.off as uint) + (self.len as uint)) |i| {
-            cb(i)
-        }
-    }
-
-    pub pure fn is_valid_for_string(s: &str) -> bool {
-        self.begin() < s.len() && self.end() <= s.len() && self.length() <= s.len()
-    }
-
-    pub pure fn shift_by(i: int) -> Range { 
-        Range(((self.off as int) + i) as uint, self.len as uint)
-    }
-
-    pub pure fn extend_by(i: int) -> Range { 
-        Range(self.off as uint, ((self.len as int) + i) as uint)
-    }
-
-    pub pure fn adjust_by(off_i: int, len_i: int) -> Range {
-        Range(((self.off as int) + off_i) as uint, ((self.len as int) + len_i) as uint)
-    }
-}
-
-pub pure fn empty_mut() -> MutableRange { MutableRange::new(0, 0) }
-
-pub struct MutableRange {
+pub struct Range {
     priv off: uint,
     priv len: uint
 }
 
-pub impl MutableRange {
-    static pub pure fn new(off: uint, len: uint) -> MutableRange {
-        MutableRange { off: off, len: len }
+pub impl Range {
+    static pub pure fn new(off: uint, len: uint) -> Range {
+        Range { off: off, len: len }
     }
 
-    static pub pure fn empty() -> MutableRange {
-        MutableRange::new(0, 0)
+    static pub pure fn empty() -> Range {
+        Range::new(0, 0)
     }
 }
 
-pub impl MutableRange {
+pub impl Range {
     pure fn begin(&const self) -> uint { self.off  }
     pure fn length(&const self) -> uint { self.len }
     pure fn end(&const self) -> uint { self.off + self.len }
@@ -112,7 +64,7 @@ pub impl MutableRange {
     /// Computes the relationship between two ranges (`self` and `other`),
     /// from the point of view of `self`. So, 'EntirelyBefore' means
     /// that the `self` range is entirely before `other` range.
-    pure fn relation_to_range(&const self, other: &const MutableRange) -> RangeRelation {
+    pure fn relation_to_range(&const self, other: &const Range) -> RangeRelation {
         if other.begin() > self.end() {
             return EntirelyBefore;
         }
@@ -140,7 +92,7 @@ pub impl MutableRange {
                   self, other);
     }
 
-    fn repair_after_coalesced_range(&mut self, other: &const MutableRange) {
+    fn repair_after_coalesced_range(&mut self, other: &const Range) {
         let relation = self.relation_to_range(other);
         debug!("repair_after_coalesced_range: possibly repairing range %?", self);
         debug!("repair_after_coalesced_range: relation of original range and coalesced range(%?): %?",

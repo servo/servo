@@ -12,7 +12,7 @@ use util::tree;
 
 use core::dvec::DVec;
 use gfx::image::holder::ImageHolder;
-use gfx::util::range::MutableRange;
+use gfx::util::range::Range;
 use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
 use newcss::values::{CSSDisplayNone, Inherit, Specified};
 
@@ -151,7 +151,7 @@ impl BoxGenerator {
                         self.flow.inline().boxes.push(*spacer);
                     }
                 }
-                let mut node_range: MutableRange = MutableRange::new(self.range_stack.pop(), 0);
+                let mut node_range: Range = Range::new(self.range_stack.pop(), 0);
                 node_range.extend_to(self.flow.inline().boxes.len());
                 assert node_range.length() > 0;
 

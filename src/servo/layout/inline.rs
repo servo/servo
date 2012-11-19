@@ -12,7 +12,7 @@ use geom::{Point2D, Rect, Size2D};
 use gfx::font::FontStyle;
 use gfx::geometry::Au;
 use gfx::text::util::*;
-use gfx::util::range::{MutableRange, Range};
+use gfx::util::range::Range;
 use newcss::values::{CSSTextAlignCenter, CSSTextAlignJustify, CSSTextAlignLeft, CSSTextAlignRight};
 use newcss::units::{BoxAuto, BoxLength, Px};
 use std::arc;
@@ -41,11 +41,11 @@ hard to try out that alternative.
 
 struct NodeRange {
     node: Node,
-    range: MutableRange,
+    range: Range,
 }
 
 impl NodeRange {
-    static pure fn new(node: Node, range: &const MutableRange) -> NodeRange {
+    static pure fn new(node: Node, range: &const Range) -> NodeRange {
         NodeRange { node: node, range: copy *range }
     }
 }
@@ -59,7 +59,7 @@ impl ElementMapping {
         ElementMapping { entries: DVec() }
     }
 
-    fn add_mapping(node: Node, range: &const MutableRange) {
+    fn add_mapping(node: Node, range: &const Range) {
         self.entries.push(NodeRange::new(node, range))
     }
 
@@ -132,8 +132,8 @@ impl ElementMapping {
                 while repair_stack.len() > 0 && old_i == entries[repair_stack.last().entry_idx].range.end() {
                     let item = repair_stack.pop();
                     debug!("repair_for_box_changes: Set range for %u to %?",
-                           item.entry_idx, Range(item.begin_idx, new_j - item.begin_idx));
-                    entries[item.entry_idx].range = MutableRange::new(item.begin_idx, new_j - item.begin_idx);
+                           item.entry_idx, Range::new(item.begin_idx, new_j - item.begin_idx));
+                    entries[item.entry_idx].range = Range::new(item.begin_idx, new_j - item.begin_idx);
                 }
             }
         }
@@ -148,13 +148,13 @@ impl ElementMapping {
 // stack-allocated object for scanning an inline flow into
 // TextRun-containing TextBoxes.
 priv struct TextRunScanner {
-    clump: MutableRange,
+    clump: Range,
 }
 
 priv impl TextRunScanner {
     static fn new() -> TextRunScanner {
         TextRunScanner {
-            clump: MutableRange::empty(),
+            clump: Range::empty(),
         }
     }
 }
@@ -249,7 +249,7 @@ priv impl TextRunScanner {
                 debug!("TextRunScanner: pushing single text box in range: %?", self.clump);
                 let new_box = layout::text::adapt_textbox_with_range(old_box.d(),
                                                                      run,
-                                                                     &const MutableRange::new(0, run.text.len()));
+                                                                     &const Range::new(0, run.text.len()));
                 out_boxes.push(new_box);
             },
             (false, true) => {
@@ -270,9 +270,9 @@ priv impl TextRunScanner {
 
                 // TODO(Issue #118): use a rope, simply give ownership of  nonzero strs to rope
                 let mut run_str : ~str = ~"";
-                let new_ranges : DVec<MutableRange> = DVec();
+                let new_ranges : DVec<Range> = DVec();
                 for uint::range(0, transformed_strs.len()) |i| {
-                    new_ranges.push(MutableRange::new(run_str.len(), transformed_strs[i].len()));
+                    new_ranges.push(Range::new(run_str.len(), transformed_strs[i].len()));
                     str::push_str(&mut run_str, transformed_strs[i]);
                 }
 
@@ -327,8 +327,8 @@ struct LineboxScanner {
     flow: @FlowContext,
     new_boxes: DVec<@RenderBox>,
     work_list: DList<@RenderBox>,
-    pending_line: {mut range: MutableRange, mut width: Au},
-    line_spans: DVec<MutableRange>,
+    pending_line: {mut range: Range, mut width: Au},
+    line_spans: DVec<Range>,
 }
 
 fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
@@ -338,7 +338,7 @@ fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
         flow: inline,
         new_boxes: DVec(),
         work_list: DList(),
-        pending_line: {mut range: MutableRange::empty(), mut width: Au(0)},
+        pending_line: {mut range: Range::empty(), mut width: Au(0)},
         line_spans: DVec()
     }
 }
@@ -566,7 +566,7 @@ struct InlineFlowData {
     boxes: DVec<@RenderBox>,
     // vec of ranges into boxes that represents line positions.
     // these ranges are disjoint, and are the result of inline layout.
-    lines: DVec<MutableRange>,
+    lines: DVec<Range>,
     // vec of ranges into boxes that represent elements. These ranges
     // must be well-nested, and are only related to the content of
     // boxes (not lines). Ranges are only kept for non-leaf elements.
