@@ -361,7 +361,7 @@ pub impl HarfbuzzShaper {
                 // (i.e., pretend there are no combining character sequences)
                 let shape = glyph_data.get_entry_for_glyph(glyph_span.begin(), &mut y_pos);
                 let data = GlyphData(shape.codepoint, shape.advance, shape.offset, false, true, true);
-                glyphs.add_glyph_for_index(char_idx, &data);
+                glyphs.add_glyph_for_char_index(char_idx, &data);
             } else {
                 // collect all glyphs to be assigned to the first character.
                 let datas = DVec();
@@ -373,7 +373,7 @@ pub impl HarfbuzzShaper {
                 }
 
                 // now add the detailed glyph entry.
-                glyphs.add_glyphs_for_index(char_idx, dvec::unwrap(move datas));
+                glyphs.add_glyphs_for_char_index(char_idx, dvec::unwrap(move datas));
                 
                 // set the other chars, who have no glyphs
                 let mut i = covered_byte_span.begin();
@@ -382,7 +382,7 @@ pub impl HarfbuzzShaper {
                     i = next;
                     if i >= covered_byte_span.end() { break; }
                     char_idx += 1;
-                    glyphs.add_nonglyph_for_index(char_idx, false, false);
+                    glyphs.add_nonglyph_for_char_index(char_idx, false, false);
                 }
             }
 

@@ -292,7 +292,7 @@ impl RenderBox : RenderBoxMethods {
                 let mut max_line_width: Au = Au(0);
                 for d.run.iter_natural_lines_for_range(&const d.range) |line_range| {
                     let mut line_width: Au = Au(0);
-                    for d.run.glyphs.iter_glyphs_for_range(line_range) |_char_i, glyph| {
+                    for d.run.glyphs.iter_glyphs_for_byte_range(line_range) |_char_i, glyph| {
                         line_width += glyph.advance()
                     }
                     max_line_width = Au::max(max_line_width, line_width);

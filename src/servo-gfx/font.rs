@@ -414,7 +414,7 @@ pub impl Font : FontMethods {
         let azglyphs = DVec();
         azglyphs.reserve(range.length());
 
-        for run.glyphs.iter_glyphs_for_range(range) |_i, glyph| {
+        for run.glyphs.iter_glyphs_for_byte_range(range) |_i, glyph| {
             let glyph_advance = glyph.advance();
             let glyph_offset = glyph.offset().get_default(Au::zero_point());
 
@@ -453,7 +453,7 @@ pub impl Font : FontMethods {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
-        for run.glyphs.iter_glyphs_for_range(range) |_i, glyph| {
+        for run.glyphs.iter_glyphs_for_byte_range(range) |_i, glyph| {
             advance += glyph.advance();
         }
         let mut bounds = Rect(Point2D(Au(0), -self.metrics.ascent),

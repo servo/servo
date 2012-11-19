@@ -498,7 +498,7 @@ fn GlyphStore(length: uint) -> GlyphStore {
 }
 
 impl GlyphStore {
-    fn add_glyph_for_index(i: uint, data: &GlyphData) {
+    fn add_glyph_for_char_index(i: uint, data: &GlyphData) {
 
         pure fn glyph_is_compressible(data: &GlyphData) -> bool {
             is_simple_glyph_id(data.index)
@@ -523,7 +523,7 @@ impl GlyphStore {
         self.entry_buffer.set_elt(i, entry);
     }
 
-    fn add_glyphs_for_index(i: uint, data_for_glyphs: &[GlyphData]) {
+    fn add_glyphs_for_char_index(i: uint, data_for_glyphs: &[GlyphData]) {
         assert i < self.entry_buffer.len();
         assert data_for_glyphs.len() > 0;
 
@@ -552,7 +552,7 @@ impl GlyphStore {
     }
 
     // used when a character index has no associated glyph---for example, a ligature continuation.
-    fn add_nonglyph_for_index(&self, i: uint, cluster_start: bool, ligature_start: bool) {
+    fn add_nonglyph_for_char_index(&self, i: uint, cluster_start: bool, ligature_start: bool) {
         assert i < self.entry_buffer.len();
 
         let entry = ComplexGlyphEntry(cluster_start, ligature_start, 0);
@@ -561,7 +561,7 @@ impl GlyphStore {
         self.entry_buffer.set_elt(i, entry);
     }
 
-    fn iter_glyphs_for_index(&self, i: uint, cb: fn&(uint, GlyphInfo/&) -> bool) -> bool {
+    fn iter_glyphs_for_char_index(&self, i: uint, cb: fn&(uint, GlyphInfo/&) -> bool) -> bool {
         assert i < self.entry_buffer.len();
 
         let entry = &self.entry_buffer[i];
@@ -582,7 +582,7 @@ impl GlyphStore {
 		return true;
     }
 
-    fn iter_glyphs_for_range(&self, range: &const Range, cb: fn&(uint, GlyphInfo/&) -> bool) {
+    fn iter_glyphs_for_byte_range(&self, range: &const Range, cb: fn&(uint, GlyphInfo/&) -> bool) {
         if range.begin() >= self.entry_buffer.len() {
             error!("iter_glyphs_for_range: range.begin beyond length!");
             return;
@@ -592,14 +592,16 @@ impl GlyphStore {
             return;
         }
 
-        for range.eachi |i| {
-	    if !self.iter_glyphs_for_index(i, cb) { break; }
+        // TODO: actually compute char indexes from byte indexes.
+        let char_range = copy *range;
+        for char_range.eachi |i| {
+	    if !self.iter_glyphs_for_char_index(i, cb) { break; }
 	}
     }
 
     fn iter_all_glyphs(cb: fn&(uint, GlyphInfo/&) -> bool) {
         for uint::range(0, self.entry_buffer.len()) |i| {
-            if !self.iter_glyphs_for_index(i, cb) { break; }
+            if !self.iter_glyphs_for_char_index(i, cb) { break; }
         }
     }
 
