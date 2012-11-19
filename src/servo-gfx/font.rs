@@ -430,6 +430,8 @@ pub impl Font : FontMethods {
         };
 
         let azglyph_buf_len = azglyphs.len();
+        if azglyph_buf_len == 0 { return; } // Otherwise the Quartz backend will assert.
+
         let azglyph_buf = dvec::unwrap(move azglyphs);
         let glyphbuf: AzGlyphBuffer = unsafe {{
             mGlyphs: vec::raw::to_ptr(azglyph_buf),
