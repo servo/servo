@@ -6,17 +6,17 @@ pub struct NodeSelectHandler {
     node: Node
 }
 
-fn node_name(data: &NodeData) -> ~str {
+fn with_node_name<R>(data: &NodeData, f: &fn(&str) -> R) -> R {
     match *data.kind {
-        Element(ref data) => copy data.tag_name,
+        Element(ref data) => f(data.tag_name),
         _ => fail ~"attempting to style non-element node"
     }
 }
 
 impl NodeSelectHandler: SelectHandler<Node> {
-    fn node_name(node: &Node) -> ~str {
+    fn with_node_name<R>(node: &Node, f: &fn(&str) -> R) -> R {
         do node.read |data| {
-            node_name(data)
+            with_node_name(data, f)
         }
     }
 
@@ -25,10 +25,12 @@ impl NodeSelectHandler: SelectHandler<Node> {
         match parent {
             Some(parent) => {
                 do parent.read |data| {
-                    if name == node_name(data) {
-                        Some(parent)
-                    } else {
-                        None
+                    do with_node_name(data) |node_name| {
+                        if name == node_name {
+                            Some(parent)
+                        } else {
+                            None
+                        }
                     }
                 }
             }
@@ -49,8 +51,10 @@ impl NodeSelectHandler: SelectHandler<Node> {
                 Some(parent) => {
                     let mut found = false;
                     do parent.read |data| {
-                        if name == node_name(data) {
-                            found = true;
+                        do with_node_name(data) |node_name| {
+                            if name == node_name {
+                                found = true;
+                            }
                         }
                     }
                     if found {
