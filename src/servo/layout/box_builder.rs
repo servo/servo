@@ -227,10 +227,27 @@ impl BuilderContext {
         self.inline_collector = None;
     }
 
-    fn containing_context_for_display(display: CSSDisplay,
-                                      builder: &LayoutTreeBuilder) -> BuilderContext {
-        match (display, self.default_collector.flow) { 
-            (CSSDisplayBlock, @RootFlow(*)) => self.create_child_flow_of_type(Flow_Block, builder),
+    // returns a context for the current node, or None if the document subtree rooted
+    // by the node should not generate a layout tree. For example, nodes with style 'display:none'
+    // should just not generate any flows or boxes.
+    fn containing_context_for_node(node: Node,
+                                   builder: &LayoutTreeBuilder) -> Option<BuilderContext> {
+        // TODO: remove this once UA styles work
+        // TODO: handle interactions with 'float', 'position' (CSS 2.1, Section 9.7)
+        let simulated_display = match simulate_UA_display_rules(node) {
+            CSSDisplayNone => return None, // tree ends here if 'display: none'
+            v => v
+        };
+
+        let containing_context = match (simulated_display, self.default_collector.flow) { 
+            (CSSDisplayBlock, @RootFlow(*)) => {
+                // If this is the root node, then use the root flow's
+                // context. Otherwise, make a child block context.
+                match NodeTree.get_parent(&node) {
+                    Some(_) => { self.create_child_flow_of_type(Flow_Block, builder) }
+                    None => { self.clone() },
+                }
+            },
             (CSSDisplayBlock, @BlockFlow(*)) => {
                 self.clear_inline_collector();
                 self.create_child_flow_of_type(Flow_Block, builder)
@@ -240,7 +257,9 @@ impl BuilderContext {
             (CSSDisplayInline, @BlockFlow(*)) => self.get_inline_collector(builder),
             (CSSDisplayInlineBlock, @BlockFlow(*)) => self.get_inline_collector(builder),
             _ => self.clone()
-        }
+        };
+
+        Some(move containing_context)
     }
 }
 
@@ -252,17 +271,12 @@ impl LayoutTreeBuilder {
     /** Creates necessary box(es) and flow context(s) for the current DOM node,
     and recurses on its children. */
     fn construct_recursively(layout_ctx: &LayoutContext, cur_node: Node, parent_ctx: &BuilderContext) {
-        // DEBUG
         debug!("Considering node: %?", fmt!("%?", cur_node.read(|n| copy n.kind )));
 
-        // TODO: remove this once UA styles work
-        // TODO: handle interactions with 'float', 'position' (CSS 2.1, Section 9.7)
-        let simulated_display = match simulate_UA_display_rules(cur_node) {
-            CSSDisplayNone => return, // tree ends here if 'display: none'
-            v => v
+        let this_ctx = match move parent_ctx.containing_context_for_node(cur_node, &self) {
+            Some(move ctx) => move ctx,
+            None => { return; } // no context because of display: none. Stop building subtree. 
         };
-
-        let this_ctx = parent_ctx.containing_context_for_display(simulated_display, &self);
         this_ctx.default_collector.push_node(layout_ctx, &self, cur_node);
 
         // recurse on child nodes.
