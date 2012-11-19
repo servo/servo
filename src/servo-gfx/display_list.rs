@@ -52,7 +52,10 @@ impl DisplayItem {
                 let baseline_origin = Point2D(origin.x, origin.y + font.metrics.ascent);
                 font.draw_text_into_context(ctx, new_run, range, baseline_origin, color);
             },
-            Image(_, ref img) => ctx.draw_image(self.d().bounds, clone_arc(img)),
+            Image(_, ref img) => {
+                debug!("drawing image at %?", self.d().bounds);
+                ctx.draw_image(self.d().bounds, clone_arc(img));
+            }
             Border(_, width, color) => ctx.draw_border(&self.d().bounds, width, color),
         }
 

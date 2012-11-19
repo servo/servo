@@ -259,7 +259,7 @@ pub fn parse_html(scope: NodeScope,
                         _ => {}
                     }
                 },
-                ~HTMLImageElement(copy d) => {  // FIXME: Bad copy.
+                ~HTMLImageElement(ref d) => {
                     do elem.get_attr(~"src").iter |img_url_str| {
                         let img_url = make_url(copy *img_url_str, Some(copy *url));
                         d.image = Some(copy img_url);

@@ -440,10 +440,15 @@ impl RenderBox : RenderBoxMethods {
             },
             ImageBox(_,i) => {
                 match i.get_image() {
-                    Some(image) => list.append_item(~DisplayItem::new_Image(&abs_box_bounds,
-                                                                            arc::clone(&image))),
-                    /* No image data at all? Okay, add some fallback content instead. */
-                    None => ()
+                    Some(image) => {
+                        debug!("(building display list) building image box");
+                        list.append_item(~DisplayItem::new_Image(&abs_box_bounds,
+                                                                 arc::clone(&image)));
+                    }
+                    None => {
+                        /* No image data at all? Okay, add some fallback content instead. */
+                        debug!("(building display list) no image :(");
+                    }
                 }
             }
         }
