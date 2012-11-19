@@ -48,20 +48,37 @@ impl FlowContext : RootLayout {
     fn assign_widths_root(@self, ctx: &LayoutContext) { 
         assert self.starts_root_flow();
 
-        self.d().position = copy ctx.screen_size;
+        self.d().position.origin = Au::zero_point();
+        self.d().position.size.width = ctx.screen_size.size.width;
+
         self.assign_widths_block(ctx)
     }
 
     fn assign_height_root(@self, ctx: &LayoutContext) {
         assert self.starts_root_flow();
 
-        self.assign_height_block(ctx);
+        // this is essentially the same as assign_height_block(), except
+        // the root adjusts self height to at least cover the viewport.
+        let mut cur_y = Au(0);
+
+        for FlowTree.each_child(self) |child_ctx| {
+            child_ctx.d().position.origin.y = cur_y;
+            cur_y += child_ctx.d().position.size.height;
+        }
+
+        self.d().position.size.height = Au::max(ctx.screen_size.size.height, cur_y);
+
+        do self.with_block_box |box| {
+            box.d().position.origin.y = Au(0);
+            box.d().position.size.height = Au::max(ctx.screen_size.size.height, cur_y);
+            let (_used_top, _used_bot) = box.get_used_height();
+        }
     }
 
     fn build_display_list_root(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
                                offset: &Point2D<Au>, list: &mut DisplayList) {
         assert self.starts_root_flow();
-        
+
         self.build_display_list_block(builder, dirty, offset, list);
     }
 }
