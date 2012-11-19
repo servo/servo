@@ -127,11 +127,17 @@ impl BoxGenerator {
             },
             @BlockFlow(*) => {
                 let new_box = builder.make_box(ctx, box_type, node, self.flow);
+                debug!("BoxGenerator[f%d]: attaching box[b%d] to block flow (node: %s)",
+                       self.flow.d().id, new_box.d().id, node.debug_str());
+
                 assert self.flow.block().box.is_none();
                 self.flow.block().box = Some(new_box);
             },
             @RootFlow(*) => {
                 let new_box = builder.make_box(ctx, box_type, node, self.flow);
+                debug!("BoxGenerator[f%d]: attaching box[b%d] to root flow (node: %s)",
+                       self.flow.d().id, new_box.d().id, node.debug_str());
+
                 assert self.flow.root().box.is_none();
                 self.flow.root().box = Some(new_box);
             },
