@@ -424,18 +424,28 @@ impl RenderBox : RenderBoxMethods {
 
         match *self {
             UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
-            TextBox(_,d) => {
+            TextBox(_,data) => {
                 let nearest_ancestor_element = self.nearest_ancestor_element();
                 let color = nearest_ancestor_element.style().color().to_gfx_color();
                 list.append_item(~DisplayItem::new_Text(&abs_box_bounds,
-                                                        ~d.run.serialize(),
-                                                        d.range,
+                                                        ~data.run.serialize(),
+                                                        data.range,
                                                         color));
                 // debug frames for text box bounds
                 debug!("%?", { 
+                    // text box bounds
                     list.append_item(~DisplayItem::new_Border(&abs_box_bounds,
                                                               Au::from_px(1),
-                                                              rgb(0, 0, 200).to_gfx_color()))
+                                                              rgb(0, 0, 200).to_gfx_color()));
+                    // baseline "rect"
+                    // TODO(Issue #221): create and use a Line display item for baseline.
+                    let ascent = data.run.metrics_for_range(&data.range).ascent;
+                    let baseline = Rect(abs_box_bounds.origin + Point2D(Au(0),ascent),
+                                        Size2D(abs_box_bounds.size.width, Au(0)));
+                    
+                    list.append_item(~DisplayItem::new_Border(&baseline,
+                                                              Au::from_px(1),
+                                                              rgb(0, 200, 0).to_gfx_color()));
                 ; ()});
             },
             // TODO: items for background, border, outline
