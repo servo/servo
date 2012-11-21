@@ -417,13 +417,14 @@ impl LineboxScanner {
                self.line_spans.len(), line_range);
 
         // Get the text alignment.
+        // TODO(Issue #222): use 'text-align' property from InlineFlow's 
+        // block container, not from the style of the first box child.
         let linebox_align;
         if self.pending_line.range.begin() < self.new_boxes.len() {
             let first_box = self.new_boxes[self.pending_line.range.begin()];
             linebox_align = first_box.text_align();
         } else {
             // Nothing to lay out, so assume left alignment.
-            // TODO: Is this a necessary check? --pcwalton
             linebox_align = CSSTextAlignLeft;
         }
 
@@ -478,7 +479,7 @@ impl LineboxScanner {
 
         if !in_box.can_split() {
             // force it onto the line anyway, if its otherwise empty
-            // TODO: signal that horizontal overflow happened?
+            // TODO(Issue #224): signal that horizontal overflow happened?
             if line_is_empty {
                 debug!("LineboxScanner: case=box can't split and line %u is empty, so overflowing.",
                       self.line_spans.len());
@@ -515,7 +516,7 @@ impl LineboxScanner {
                 if line_is_empty {
                     debug!("LineboxScanner: case=split box didn't fit and line %u is empty, so overflowing and deferring remainder box.",
                           self.line_spans.len());
-                    // TODO: signal that horizontal overflow happened?
+                    // TODO(Issue #224): signal that horizontal overflow happened?
                     match (left, right) {
                         (Some(left_box), Some(right_box)) => {
                             self.push_box_to_line(left_box);
@@ -623,7 +624,8 @@ impl FlowContext : InlineLayout {
                 @TextBox(*) => { /* text boxes are initialized with dimensions */
                                    box.d().position.size.width
                 },
-                @GenericBox(*) => Au::from_px(45), /* TODO: should use CSS 'width'? */
+                // TODO(Issue #225): different cases for 'inline-block', other replaced content
+                @GenericBox(*) => Au::from_px(45), 
                 _ => fail fmt!("Tried to assign width to unknown Box variant: %?", box)
             };
         } // for boxes.each |box|
@@ -633,7 +635,7 @@ impl FlowContext : InlineLayout {
    
         /* There are no child contexts, so stop here. */
 
-        // TODO: once there are 'inline-block' elements, this won't be
+        // TODO(Issue #225): once there are 'inline-block' elements, this won't be
         // true.  In that case, set the InlineBlockBox's width to the
         // shrink-to-fit width, perform inline flow, and set the block
         // flow context's width as the assigned width of the
@@ -641,7 +643,10 @@ impl FlowContext : InlineLayout {
     }
 
     fn assign_height_inline(@self, _ctx: &LayoutContext) {
-        // TODO: get from CSS 'line-height' property
+        // TODO(Issue #226): get CSS 'line-height' property from
+        // containing block's style to determine minimum linebox height.
+        // TODO(Issue #226): get CSS 'line-height' property from each non-replaced
+        // inline element to determine its height for computing linebox height.
         let line_height = Au::from_px(20);
         let mut cur_y = Au(0);
 
@@ -659,7 +664,8 @@ impl FlowContext : InlineLayout {
                     @TextBox(*) => { /* text boxes are initialized with dimensions */
                         cur_box.d().position.size.height
                     },
-                    @GenericBox(*) => Au::from_px(30), /* TODO: should use CSS 'height'? */
+                    // TODO(Issue #225): different cases for 'inline-block', other replaced content
+                    @GenericBox(*) => Au::from_px(30),
                     _ => fail fmt!("Tried to assign height to unknown Box variant: %s", cur_box.debug_str())
                 };
 
@@ -668,25 +674,40 @@ impl FlowContext : InlineLayout {
                 // and then using the union of all these rects.
                 let bounding_box = match cur_box {
                     // adjust to baseline coords
-                    // TODO: account for padding, margin, border in bounding box?
+                    // TODO(Issue #227): use left/right margins, border, padding for nonreplaced content,
+                    // and also use top/bottom  margins, border, padding for replaced or inline-block content.
+                    // TODO(Issue #225): use height, width for 'inline-block', other replaced content
                     @ImageBox(*) | @GenericBox(*) => {
                         let box_bounds = cur_box.d().position;
                         box_bounds.translate(&Point2D(Au(0), -cur_box.d().position.size.height))
                     },
                     // adjust bounding box metric to box's horizontal offset
-                    // TODO: can we trust the leading provided by font metrics?
+                    // TODO: we can use font metrics directly instead of re-measuring for the bounding box.
                     @TextBox(_, data) => { 
                         let text_bounds = data.run.metrics_for_range(&const data.range).bounding_box;
                         text_bounds.translate(&Point2D(cur_box.d().position.origin.x, Au(0)))
                     },
                     _ => fail fmt!("Tried to compute bounding box of unknown Box variant: %s", cur_box.debug_str())
                 };
-                cur_box.d().position.origin.y = cur_y;
                 debug!("assign_height_inline: bounding box for box b%d = %?", cur_box.d().id, bounding_box);
                 linebox_bounding_box = linebox_bounding_box.union(&bounding_box);
                 debug!("assign_height_inline: linebox bounding box = %?", linebox_bounding_box);
             }
             let linebox_height = linebox_bounding_box.size.height;
+            let baseline_offset = -linebox_bounding_box.origin.y;
+            // now go back and adjust y coordinates to match determined baseline
+            for line_span.eachi |box_i| {
+                let cur_box = boxes[box_i];
+                // TODO(Issue #226): this is completely wrong. Need to use element's 
+                // 'line-height' when calculating linebox height. Then, go back over 
+                // and set y offsets according to 'vertical-align' property of containing block.
+                let halfleading = match cur_box {
+                    @TextBox(_, data) => { (data.run.font.metrics.em_size - line_height).scale_by(0.5f) },
+                    _ => { Au(0) }
+                };
+                cur_box.d().position.origin.y = cur_y + halfleading + (baseline_offset - cur_box.d().position.size.height);
+            }
+            
             cur_y += Au::max(line_height, linebox_height);
         } // /lines.each |line_span|
 
@@ -698,10 +719,7 @@ impl FlowContext : InlineLayout {
 
         assert self.starts_inline_flow();
 
-        // TODO: if the CSS box introducing this inline context is *not* anonymous,
-        // we need to draw it too, in a way similar to BlockFlowContext
-
-        // TODO: once we form line boxes and have their cached bounds, we can be 
+        // TODO(Issue #228): once we form line boxes and have their cached bounds, we can be 
         // smarter and not recurse on a line if nothing in it can intersect dirty
         debug!("FlowContext[%d]: building display list for %u inline boxes",
                self.d().id, self.inline().boxes.len());
@@ -709,11 +727,8 @@ impl FlowContext : InlineLayout {
             box.build_display_list(builder, dirty, offset, list)
         }
 
-        // TODO: should inline-block elements have flows as children
-        // of the inline flow, or should the flow be nested inside the
-        // box somehow? Maybe it's best to unify flows and boxes into
-        // the same enum, so inline-block flows are normal
-        // (indivisible) children in the inline flow child list.
+        // TODO(Issue #225): should inline-block elements have flows as children
+        // of the inline flow, or should the flow be nested inside the box somehow?
     }
 
 } // @FlowContext : InlineLayout
