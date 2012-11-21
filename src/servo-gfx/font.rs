@@ -416,7 +416,7 @@ pub impl Font : FontMethods {
         let azglyphs = DVec();
         azglyphs.reserve(range.length());
 
-        for run.glyphs.iter_glyphs_for_byte_range(range) |_i, glyph| {
+        for run.glyphs.iter_glyphs_for_char_range(range) |_i, glyph| {
             let glyph_advance = glyph.advance();
             let glyph_offset = glyph.offset().get_default(Au::zero_point());
 

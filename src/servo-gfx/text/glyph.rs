@@ -214,10 +214,12 @@ impl GlyphEntry {
     }
 
     // setter methods
+    #[inline(always)]
     pure fn set_char_is_space() -> GlyphEntry {
         GlyphEntry(self.value | FLAG_CHAR_IS_SPACE)
     }
 
+    #[inline(always)]
     pure fn set_char_is_tab() -> GlyphEntry {
         assert !self.is_simple();
         GlyphEntry(self.value | FLAG_CHAR_IS_TAB)
@@ -229,16 +231,10 @@ impl GlyphEntry {
         GlyphEntry(self.value | FLAG_CHAR_IS_NEWLINE)
     }
 
-    // returns a glyph entry only if the setting had changed.
-    pure fn set_can_break_before(e: BreakType) -> Option<GlyphEntry> {
-        let flag = break_enum_to_flag(e);
-        let mask = (flag as u32) << FLAG_CAN_BREAK_SHIFT;
-        let toggle = mask ^ (self.value & FLAG_CAN_BREAK_MASK);
-
-        match (toggle as bool) {
-            true  => Some(GlyphEntry(self.value ^ toggle)),
-            false => None
-        }
+    #[inline(always)]
+    pure fn set_can_break_before(e: BreakType) -> GlyphEntry {
+        let flag = (break_enum_to_flag(e) as u32) << FLAG_CAN_BREAK_SHIFT;
+        GlyphEntry(self.value | flag)
     }
 
     // helper methods
@@ -599,12 +595,10 @@ impl GlyphStore {
                 }
             }
         }
-
-		return true;
+	return true;
     }
 
-    pure fn iter_glyphs_for_byte_range(range: &const Range, cb: fn&(uint, GlyphInfo/&) -> bool) {
-        warn!("Using deprecated iter_glyphs_for_byte_range API!");
+    pure fn iter_glyphs_for_char_range(range: &const Range, cb: fn&(uint, GlyphInfo/&) -> bool) {
         if range.begin() >= self.entry_buffer.len() {
             error!("iter_glyphs_for_range: range.begin beyond length!");
             return;
@@ -614,10 +608,6 @@ impl GlyphStore {
             return;
         }
 
-        self.iter_glyphs_for_char_range(range, cb)
-    }
-
-    pure fn iter_glyphs_for_char_range(range: &const Range, cb: fn&(uint, GlyphInfo/&) -> bool) {
         for range.eachi |i| {
 	    if !self.iter_glyphs_for_char_index(i, cb) { break; }
 	}
@@ -686,9 +676,6 @@ impl GlyphStore {
     fn set_can_break_before(&mut self, i: uint, t: BreakType) {
         assert i < self.entry_buffer.len();
         let entry = self.entry_buffer[i];
-        match entry.set_can_break_before(t) {
-            Some(e) => self.entry_buffer[i] = e,
-            None => {}
-        };
+        self.entry_buffer[i] = entry.set_can_break_before(t);
     }
 }
