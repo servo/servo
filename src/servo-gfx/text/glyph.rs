@@ -38,15 +38,28 @@ enum BreakType {
     BreakTypeHyphen
 }
 
+impl BreakType : Eq {
+    pure fn eq(other: &BreakType) -> bool {
+        match (self, *other) {
+            (BreakTypeNone, BreakTypeNone) => true,
+            (BreakTypeNormal, BreakTypeNormal) => true,
+            (BreakTypeHyphen, BreakTypeHyphen) => true,
+            (_,_) => false,
+        }
+    }
+    pure fn ne(other: &BreakType) -> bool {
+        !self.eq(other)
+    }
+}
+
 const BREAK_TYPE_NONE   : u8 = 0x0u8;
 const BREAK_TYPE_NORMAL : u8 = 0x1u8;
 const BREAK_TYPE_HYPHEN  : u8 = 0x2u8;
 
 pure fn break_flag_to_enum(flag: u8) -> BreakType {
-    if (flag & BREAK_TYPE_NONE) as bool   { return BreakTypeNone; }
-    if (flag & BREAK_TYPE_NORMAL) as bool { return BreakTypeNormal; }
-    if (flag & BREAK_TYPE_HYPHEN) as bool { return  BreakTypeHyphen; }
-    fail ~"Unknown break setting"
+    if (flag & BREAK_TYPE_NORMAL) != 0  { return BreakTypeNormal; }
+    if (flag & BREAK_TYPE_HYPHEN) != 0  { return BreakTypeHyphen; }
+    BreakTypeNone
 }
 
 pure fn break_enum_to_flag(e: BreakType) -> u8 {
@@ -243,6 +256,11 @@ impl GlyphEntry {
     #[inline(always)]
     /*priv*/ pure fn has_flag(flag: u32) -> bool {
         (self.value & flag) != 0
+    }
+
+    #[inline(always)]
+    pure fn adapt_character_flags_of_entry(other: &GlyphEntry) -> GlyphEntry {
+        GlyphEntry { value: self.value | other.value }
     }
 }
 
@@ -504,8 +522,10 @@ impl GlyphStore {
             is_simple_glyph_id(data.index)
                 && is_simple_advance(data.advance)
                 && data.offset == au::zero_point()
+                && data.cluster_start  // others are stored in detail buffer
         }
 
+        assert data.ligature_start; // can't compress ligature continuation glyphs.
         assert i < self.entry_buffer.len();
 
         let entry = match (data.is_missing, glyph_is_compressible(data)) {
@@ -516,7 +536,7 @@ impl GlyphStore {
                 self.detail_store.add_detailed_glyphs_for_entry(i, glyph);
                 ComplexGlyphEntry(data.cluster_start, data.ligature_start, 1)
             }
-        };
+        }.adapt_character_flags_of_entry(&self.entry_buffer[i]);
 
         //debug!("Adding single glyph[idx=%u]: %?", i, entry);
 
@@ -544,7 +564,7 @@ impl GlyphStore {
                                   first_glyph_data.ligature_start,
                                   glyph_count)
             }
-        };
+        }.adapt_character_flags_of_entry(&self.entry_buffer[i]);
 
         debug!("Adding multiple glyphs[idx=%u, count=%u]: %?", i, glyph_count, entry);
 

@@ -358,7 +358,8 @@ pub impl HarfbuzzShaper {
                 // TODO(Issue #214): cluster ranges need to be computed before
                 // shaping, and then consulted here.
                 // for now, just pretend that every character is a cluster start.
-                // (i.e., pretend there are no combining character sequences)
+                // (i.e., pretend there are no combining character sequences).
+                // 1-to-1 mapping of character to glyph also treated as ligature start.
                 let shape = glyph_data.get_entry_for_glyph(glyph_span.begin(), &mut y_pos);
                 let data = GlyphData(shape.codepoint, shape.advance, shape.offset, false, true, true);
                 glyphs.add_glyph_for_char_index(char_idx, &data);
@@ -366,9 +367,14 @@ pub impl HarfbuzzShaper {
                 // collect all glyphs to be assigned to the first character.
                 let datas = DVec();
 
-                while glyph_span.length() > 0 {
-                    let shape = glyph_data.get_entry_for_glyph(glyph_span.begin(), &mut y_pos);
-                    datas.push(GlyphData(shape.codepoint, shape.advance, shape.offset, false, true, true));
+                for glyph_span.eachi |glyph_i| {
+                    let shape = glyph_data.get_entry_for_glyph(glyph_i, &mut y_pos);
+                    datas.push(GlyphData(shape.codepoint, 
+                                         shape.advance, 
+                                         shape.offset,
+                                         false, // not missing
+                                         true,  // treat as cluster start
+                                         glyph_i > glyph_span.begin())); // all but first are ligature continuations
                     glyph_span.adjust_by(1,-1);
                 }
 
