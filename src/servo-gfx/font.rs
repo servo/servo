@@ -376,7 +376,7 @@ pub trait FontMethods {
                               baseline_origin: Point2D<Au>,
                               color: Color);
     fn measure_text(&TextRun, &const Range) -> RunMetrics;
-    fn shape_text(@self, &str) -> GlyphStore;
+    fn shape_text(@self, &str, &mut GlyphStore);
     fn get_descriptor() -> FontDescriptor;
 
     // these are used to get glyphs and advances in the case that the
@@ -471,11 +471,11 @@ pub impl Font : FontMethods {
         }
     }
 
-    fn shape_text(@self, text: &str) -> GlyphStore {
-        let store = GlyphStore(str::char_len(text));
+    fn shape_text(@self, text: &str, store: &mut GlyphStore) {
+        // TODO(Issue #229): use a more efficient strategy for repetitive shaping.
+        // For example, Gecko uses a per-"word" hashtable of shaper results.
         let shaper = self.get_shaper();
-        shaper.shape_text(text, &store);
-        return move store;
+        shaper.shape_text(text, store);
     }
 
     fn get_descriptor() -> FontDescriptor {

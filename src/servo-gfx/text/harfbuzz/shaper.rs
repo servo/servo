@@ -12,6 +12,8 @@ use font::{
 };
 
 use glyph::{GlyphStore, GlyphIndex, GlyphData};
+use text::shaper::ShaperMethods;
+
 use servo_util::range;
 use range::Range;
 
@@ -84,7 +86,7 @@ pub impl ShapedGlyphData {
     }
 
     #[inline(always)]
-    pure fn byte_offset_of_glyph(i: uint) -> uint unsafe {
+    priv pure fn byte_offset_of_glyph(&const self, i: uint) -> uint unsafe {
         assert i < self.count;
 
         let glyph_info_i = ptr::offset(self.glyph_infos, i);
@@ -171,12 +173,26 @@ pub impl HarfbuzzShaper {
             hb_funcs: hb_funcs,
         }
     }
-    
+
+    static priv fn float_to_fixed(f: float) -> i32 {
+        util::float_to_fixed(16, f)
+    }
+
+    static priv fn fixed_to_float(i: hb_position_t) -> float {
+        util::fixed_to_float(16, i)
+    }
+
+    static priv fn fixed_to_rounded_int(f: hb_position_t) -> int {
+        util::fixed_to_rounded_int(16, f)
+    }
+}
+
+pub impl HarfbuzzShaper : ShaperMethods {    
     /**
     Calculate the layout metrics associated with a some given text
     when rendered in a specific font.
     */
-    pub fn shape_text(text: &str, glyphs: &GlyphStore) {
+    fn shape_text(text: &str, glyphs: &mut GlyphStore) {
         let hb_buffer: *hb_buffer_t = hb_buffer_create();
         hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
 
@@ -194,7 +210,7 @@ pub impl HarfbuzzShaper {
         hb_buffer_destroy(hb_buffer);
     }
 
-    priv fn save_glyph_results(text: &str, glyphs: &GlyphStore, buffer: *hb_buffer_t) {
+    priv fn save_glyph_results(text: &str, glyphs: &mut GlyphStore, buffer: *hb_buffer_t) {
         let glyph_data = ShapedGlyphData::new(buffer);
         let glyph_count = glyph_data.len();
         let byte_max = text.len();
@@ -397,18 +413,10 @@ pub impl HarfbuzzShaper {
             char_byte_span.reset(char_byte_span.end(), 0);
             char_idx += 1;
         }
-    }
 
-    static priv fn float_to_fixed(f: float) -> i32 {
-        util::float_to_fixed(16, f)
-    }
-
-    static priv fn fixed_to_float(i: hb_position_t) -> float {
-        util::fixed_to_float(16, i)
-    }
-
-    static priv fn fixed_to_rounded_int(f: hb_position_t) -> int {
-        util::fixed_to_rounded_int(16, f)
+        // this must be called after adding all glyph data; it sorts the
+        // lookup table for finding detailed glyphs by associated char index.
+        glyphs.finalize_changes();
     }
 }
 

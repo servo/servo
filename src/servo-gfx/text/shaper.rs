@@ -4,9 +4,15 @@ Uniscribe, Pango, or Coretext.
 
 Currently, only harfbuzz bindings are implemented.
 */
-use servo_gfx_font::Font;
+use gfx_font::Font;
+use text::glyph::GlyphStore;
 
 pub type Shaper/& = harfbuzz::shaper::HarfbuzzShaper;
+
+trait ShaperMethods {
+    fn shape_text(text: &str, glyphs: &mut GlyphStore);
+
+}
 
 // TODO(Issue #163): this is a workaround for static methods and
 // typedefs not working well together. It should be removed.

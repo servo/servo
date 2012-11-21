@@ -41,7 +41,9 @@ impl SendableTextRun {
 
 impl TextRun {
     static fn new(font: @Font, text: ~str) -> TextRun {
-        let glyph_store = font.shape_text(text);
+        let mut glyph_store = GlyphStore::new(str::char_len(text));
+        font.shape_text(text, &mut glyph_store);
+
         let run = TextRun {
             text: move text,
             font: font,

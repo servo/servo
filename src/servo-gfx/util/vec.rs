@@ -1,13 +1,11 @@
 use core::cmp::{Ord, Eq};
 
-export BinarySearchMethods, binary_search, binary_search_index;
-
-trait BinarySearchMethods<T: Ord Eq> {
+pub trait BinarySearchMethods<T: Ord Eq> {
     pure fn binary_search(&self, key: &T) -> Option<&self/T>;
     pure fn binary_search_index(&self, key: &T) -> Option<uint>;
 }
 
-impl<T: Ord Eq> &[T]: BinarySearchMethods<T> {
+pub impl<T: Ord Eq> &[T]: BinarySearchMethods<T> {
     pure fn binary_search(&self, key: &T) -> Option<&self/T> {
         match self.binary_search_index(key) {
             None => None,
