@@ -1,6 +1,9 @@
 use font_context::FontContext;
 use geometry::Au;
-use glyph::GlyphStore;
+use glyph::{
+    BreakTypeNormal,
+    GlyphStore,
+};
 use servo_gfx_font::{Font, FontDescriptor, RunMetrics};
 use servo_gfx_util::range::Range;
 
@@ -42,6 +45,7 @@ impl SendableTextRun {
 impl TextRun {
     static fn new(font: @Font, text: ~str) -> TextRun {
         let mut glyph_store = GlyphStore::new(str::char_len(text));
+        TextRun::compute_potential_breaks(text, &mut glyph_store);
         font.shape_text(text, &mut glyph_store);
 
         let run = TextRun {
@@ -50,6 +54,44 @@ impl TextRun {
             glyphs: move glyph_store,
         };
         return move run;
+    }
+
+    static fn compute_potential_breaks(text: &str, glyphs: &mut GlyphStore) {
+        // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
+
+        let mut i = 0u;
+        let mut prev_is_whitespace = false;
+        while i < text.len() {
+            let {ch, next} = str::char_range_at(text, i);
+            // set char properties.
+            match ch {
+                ' '  => { glyphs.set_char_is_space(i); },
+                '\t' => { glyphs.set_char_is_tab(i); },
+                '\n' => { glyphs.set_char_is_newline(i); },
+                _ => {}
+            }
+
+            // set line break opportunities at whitespace/non-whitespace boundaries.
+            if prev_is_whitespace {
+                match ch {
+                    ' ' | '\t' | '\n' => {},
+                    _ => {
+                        glyphs.set_can_break_before(i, BreakTypeNormal);
+                        prev_is_whitespace = false;
+                    }
+                }
+            } else {
+                match ch {
+                    ' ' | '\t' | '\n' => {
+                        glyphs.set_can_break_before(i, BreakTypeNormal);
+                        prev_is_whitespace = true;
+                    },
+                    _ => { }
+                }
+            }
+
+            i = next;
+        }
     }
 
     pub fn serialize(&self) -> SendableTextRun {

@@ -375,6 +375,8 @@ pub trait FontMethods {
                               range: &Range,
                               baseline_origin: Point2D<Au>,
                               color: Color);
+    // This calculates run metrics for the specified character range
+    // within the provided textrun.
     fn measure_text(&TextRun, &const Range) -> RunMetrics;
     fn shape_text(@self, &str, &mut GlyphStore);
     fn get_descriptor() -> FontDescriptor;
@@ -448,12 +450,10 @@ pub impl Font : FontMethods {
     }
 
     fn measure_text(run: &TextRun, range: &const Range) -> RunMetrics {
-        assert range.is_valid_for_string(run.text);
-
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
-        for run.glyphs.iter_glyphs_for_byte_range(range) |_i, glyph| {
+        for run.glyphs.iter_glyphs_for_char_range(range) |_i, glyph| {
             advance += glyph.advance();
         }
         let mut bounds = Rect(Point2D(Au(0), -self.metrics.ascent),

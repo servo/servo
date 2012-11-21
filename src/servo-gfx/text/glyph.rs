@@ -604,6 +604,7 @@ impl GlyphStore {
     }
 
     pure fn iter_glyphs_for_byte_range(range: &const Range, cb: fn&(uint, GlyphInfo/&) -> bool) {
+        warn!("Using deprecated iter_glyphs_for_byte_range API!");
         if range.begin() >= self.entry_buffer.len() {
             error!("iter_glyphs_for_range: range.begin beyond length!");
             return;
@@ -613,9 +614,11 @@ impl GlyphStore {
             return;
         }
 
-        // TODO: actually compute char indexes from byte indexes.
-        let char_range = copy *range;
-        for char_range.eachi |i| {
+        self.iter_glyphs_for_char_range(range, cb)
+    }
+
+    pure fn iter_glyphs_for_char_range(range: &const Range, cb: fn&(uint, GlyphInfo/&) -> bool) {
+        for range.eachi |i| {
 	    if !self.iter_glyphs_for_char_index(i, cb) { break; }
 	}
     }
