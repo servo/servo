@@ -52,6 +52,12 @@ impl Au {
         (**self / 60) as int
     }
 
+    pub pure fn to_snapped(&const self) -> Au {
+        let res = **self % 60i32;
+        return if res >= 30i32 { return Au(**self - res + 60i32) }
+                       else { return Au(**self - res) };
+    }
+
     static pub pure fn zero_point() -> Point2D<Au> {
         Point2D(Au(0), Au(0))
     }
