@@ -19,8 +19,12 @@ pub fn TextBoxData(run: @TextRun, range: &const Range) -> TextBoxData {
 
 pub fn adapt_textbox_with_range(box_data: &RenderBoxData, run: @TextRun, 
                                 range: &const Range) -> @RenderBox {
+    assert range.begin() < run.char_len();
+    assert range.end() <= run.char_len();
+    assert range.length() > 0;
+
     debug!("Creating textbox with span: (strlen=%u, off=%u, len=%u) of textrun: %s",
-           run.text.len(), range.begin(), range.length(), run.text);
+           run.char_len(), range.begin(), range.length(), run.text);
     let new_box_data = copy *box_data;
     let new_text_data = TextBoxData(run, range);
     let metrics = run.metrics_for_range(range);

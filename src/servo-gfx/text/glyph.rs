@@ -631,12 +631,8 @@ impl GlyphStore {
     }
 
     pure fn char_is_newline(i: uint) -> bool {
-        if i >= self.entry_buffer.len() {
-            error!("char_is_newline: beyond entry buffer!");
-            false
-        } else {
-            self.entry_buffer[i].char_is_newline()
-        }
+        assert i < self.entry_buffer.len();
+        self.entry_buffer[i].char_is_newline()
     }
 
     pure fn is_ligature_start(i: uint) -> bool {

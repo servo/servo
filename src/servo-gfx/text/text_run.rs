@@ -59,15 +59,16 @@ impl TextRun {
     static fn compute_potential_breaks(text: &str, glyphs: &mut GlyphStore) {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
 
-        let mut i = 0u;
+        let mut byte_i = 0u;
+        let mut char_j = 0u;
         let mut prev_is_whitespace = false;
-        while i < text.len() {
-            let {ch, next} = str::char_range_at(text, i);
+        while byte_i < text.len() {
+            let {ch, next} = str::char_range_at(text, byte_i);
             // set char properties.
             match ch {
-                ' '  => { glyphs.set_char_is_space(i); },
-                '\t' => { glyphs.set_char_is_tab(i); },
-                '\n' => { glyphs.set_char_is_newline(i); },
+                ' '  => { glyphs.set_char_is_space(char_j); },
+                '\t' => { glyphs.set_char_is_tab(char_j); },
+                '\n' => { glyphs.set_char_is_newline(char_j); },
                 _ => {}
             }
 
@@ -76,21 +77,22 @@ impl TextRun {
                 match ch {
                     ' ' | '\t' | '\n' => {},
                     _ => {
-                        glyphs.set_can_break_before(i, BreakTypeNormal);
+                        glyphs.set_can_break_before(char_j, BreakTypeNormal);
                         prev_is_whitespace = false;
                     }
                 }
             } else {
                 match ch {
                     ' ' | '\t' | '\n' => {
-                        glyphs.set_can_break_before(i, BreakTypeNormal);
+                        glyphs.set_can_break_before(char_j, BreakTypeNormal);
                         prev_is_whitespace = true;
                     },
                     _ => { }
                 }
             }
 
-            i = next;
+            byte_i = next;
+            char_j += 1;
         }
     }
 
@@ -102,18 +104,14 @@ impl TextRun {
         }
     }
 
+    pure fn char_len() -> uint { self.glyphs.entry_buffer.len() }
     pure fn glyphs(&self) -> &self/GlyphStore { &self.glyphs }
 
     pure fn range_is_trimmable_whitespace(&self, range: &const Range) -> bool {
-        let mut i = range.begin();
-        while i < range.end() {
-            // jump i to each new char
-            let {ch, next} = str::char_range_at(self.text, i);
-            match ch {
-                ' ' | '\t' | '\r'  => {},
-                _ => { return false; }
-            }
-            i = next;
+        for range.eachi |i| {
+            if  !self.glyphs.char_is_space(i) &&
+                !self.glyphs.char_is_tab(i)   &&
+                !self.glyphs.char_is_newline(i) { return false; }
         }
         return true;
     }
@@ -124,7 +122,9 @@ impl TextRun {
 
     fn min_width_for_range(&self, range: &const Range) -> Au {
         let mut max_piece_width = Au(0);
+        debug!("iterating outer range %?", range);
         for self.iter_indivisible_pieces_for_range(range) |piece_range| {
+            debug!("iterated on %?", piece_range);
             let metrics = self.font.measure_text(self, piece_range);
             max_piece_width = Au::max(max_piece_width, metrics.advance_width);
         }

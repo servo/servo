@@ -246,7 +246,7 @@ priv impl TextRunScanner {
                 debug!("TextRunScanner: pushing single text box in range: %?", self.clump);
                 let new_box = layout::text::adapt_textbox_with_range(old_box.d(),
                                                                      run,
-                                                                     &const Range::new(0, run.text.len()));
+                                                                     &const Range::new(0, run.char_len()));
                 out_boxes.push(new_box);
             },
             (false, true) => {
@@ -263,14 +263,15 @@ priv impl TextRunScanner {
                     transform_text(in_boxes[idx].raw_text(), compression)
                 });
 
-                // next, concatenate all of the transformed strings together, saving the new text indices
-
-                // TODO(Issue #118): use a rope, simply give ownership of  nonzero strs to rope
+                // next, concatenate all of the transformed strings together, saving the new char indices
                 let mut run_str : ~str = ~"";
                 let new_ranges : DVec<Range> = DVec();
+                let mut char_total = 0u;
                 for uint::range(0, transformed_strs.len()) |i| {
-                    new_ranges.push(Range::new(run_str.len(), transformed_strs[i].len()));
+                    let added_chars = str::char_len(transformed_strs[i]);
+                    new_ranges.push(Range::new(char_total, added_chars));
                     str::push_str(&mut run_str, transformed_strs[i]);
+                    char_total += added_chars;
                 }
 
                 // create the run, then make new boxes with the run and adjusted text indices
