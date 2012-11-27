@@ -24,8 +24,9 @@ pub enum ProgressMsg {
 }
 
 impl ProgressMsg: cmp::Eq {
-    pure fn eq(other: &ProgressMsg) -> bool {
-        match (copy self, copy *other) {
+    pure fn eq(&self, other: &ProgressMsg) -> bool {
+		// FIXME: Bad copies
+        match (copy *self, copy *other) {
           (Payload(a), Payload(b)) => a == b,
           (Done(a), Done(b)) => a == b,
 
@@ -33,8 +34,8 @@ impl ProgressMsg: cmp::Eq {
           | (Done(*), _) => false
         }
     }
-    pure fn ne(other: &ProgressMsg) -> bool {
-        return !self.eq(other);
+    pure fn ne(&self, other: &ProgressMsg) -> bool {
+        return !(*self).eq(other);
     }
 }
 

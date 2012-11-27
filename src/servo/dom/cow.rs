@@ -134,8 +134,8 @@ impl<T:Send,A> Handle<T,A> {
 }
 
 impl <T: Send,A> Handle<T,A> : cmp::Eq {
-    pure fn eq(other: &Handle<T,A>) -> bool { *self == **other }
-    pure fn ne(other: &Handle<T,A>) -> bool { *self != **other }
+    pure fn eq(&self, other: &Handle<T,A>) -> bool { **self == **other }
+    pure fn ne(&self, other: &Handle<T,A>) -> bool { **self != **other }
 }
 
 // Private methods

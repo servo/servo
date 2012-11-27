@@ -6,8 +6,8 @@ enum CompressionMode {
 }
 
 impl CompressionMode : cmp::Eq {
-    pure fn eq(other: &CompressionMode) -> bool {
-        match (self, *other) {
+    pure fn eq(&self, other: &CompressionMode) -> bool {
+        match (*self, *other) {
             (CompressNone, CompressNone) => true,
             (CompressWhitespace, CompressWhitespace) => true,
             (CompressWhitespaceNewline, CompressWhitespaceNewline) => true,
@@ -15,8 +15,8 @@ impl CompressionMode : cmp::Eq {
             _ => false
         }
     }
-    pure fn ne(other: &CompressionMode) -> bool {
-        !self.eq(other)
+    pure fn ne(&self, other: &CompressionMode) -> bool {
+        !(*self).eq(other)
     }
 }
 

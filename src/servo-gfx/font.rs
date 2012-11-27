@@ -108,10 +108,8 @@ enum CSSFontWeight {
     FontWeight900,
 }
 pub impl CSSFontWeight : cmp::Eq {
-    pure fn eq(other: &CSSFontWeight) -> bool {
-        (self as uint) == (*other as uint)
-    }
-    pure fn ne(other: &CSSFontWeight) -> bool { !self.eq(other) }
+    pure fn eq(&self, other: &CSSFontWeight) -> bool { (*self as uint) == (*other as uint) }
+    pure fn ne(&self, other: &CSSFontWeight) -> bool { !(*self).eq(other) }
 }
 
 pub impl CSSFontWeight {
@@ -140,7 +138,7 @@ pub struct FontStyle {
 
 // TODO(Issue #181): use deriving for trivial cmp::Eq implementations
 pub impl FontStyle : cmp::Eq {
-    pure fn eq(other: &FontStyle) -> bool {
+    pure fn eq(&self, other: &FontStyle) -> bool {
         use std::cmp::FuzzyEq;
 
         self.pt_size.fuzzy_eq(&other.pt_size) &&
@@ -149,7 +147,7 @@ pub impl FontStyle : cmp::Eq {
             self.oblique == other.oblique &&
             self.families == other.families
     }
-    pure fn ne(other: &FontStyle) -> bool { !self.eq(other) }
+    pure fn ne(&self, other: &FontStyle) -> bool { !(*self).eq(other) }
 }
 
 pub type SpecifiedFontStyle = FontStyle;
@@ -175,11 +173,11 @@ pub struct FontDescriptor {
 
 // TODO(Issue #181): use deriving for trivial cmp::Eq implementations
 pub impl FontDescriptor : cmp::Eq {
-    pure fn eq(other: &FontDescriptor) -> bool {
+    pure fn eq(&self, other: &FontDescriptor) -> bool {
         self.style == other.style &&
             self.selector == other.selector
     }
-    pure fn ne(other: &FontDescriptor) -> bool { !self.eq(other) }
+    pure fn ne(&self, other: &FontDescriptor) -> bool { !(*self).eq(other) }
 }
 
 pub impl FontDescriptor {
@@ -199,14 +197,14 @@ pub enum FontSelector {
 
 // TODO(Issue #181): use deriving for trivial cmp::Eq implementations
 pub impl FontSelector : cmp::Eq {
-    pure fn eq(other: &FontSelector) -> bool {
-        match (&self, other) {
+    pure fn eq(&self, other: &FontSelector) -> bool {
+        match (self, other) {
             (&SelectorPlatformIdentifier(a), &SelectorPlatformIdentifier(b)) => a == b,
             (&SelectorStubDummy, &SelectorStubDummy) => true,
             _ => false
         }
     }
-    pure fn ne(other: &FontSelector) -> bool { !self.eq(other) }
+    pure fn ne(&self, other: &FontSelector) -> bool { !(*self).eq(other) }
 }
 
 // This struct is the result of mapping a specified FontStyle into the

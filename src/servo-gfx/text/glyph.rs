@@ -39,16 +39,16 @@ enum BreakType {
 }
 
 impl BreakType : Eq {
-    pure fn eq(other: &BreakType) -> bool {
-        match (self, *other) {
+    pure fn eq(&self, other: &BreakType) -> bool {
+        match (*self, *other) {
             (BreakTypeNone, BreakTypeNone) => true,
             (BreakTypeNormal, BreakTypeNormal) => true,
             (BreakTypeHyphen, BreakTypeHyphen) => true,
             (_,_) => false,
         }
     }
-    pure fn ne(other: &BreakType) -> bool {
-        !self.eq(other)
+    pure fn ne(&self, other: &BreakType) -> bool {
+        !(*self).eq(other)
     }
 }
 
@@ -288,15 +288,27 @@ struct DetailedGlyphRecord {
 }
 
 impl DetailedGlyphRecord : Ord {
-    pure fn lt(other: &DetailedGlyphRecord) -> bool { self.entry_offset <  other.entry_offset }
-    pure fn le(other: &DetailedGlyphRecord) -> bool { self.entry_offset <= other.entry_offset }
-    pure fn ge(other: &DetailedGlyphRecord) -> bool { self.entry_offset >= other.entry_offset }
-    pure fn gt(other: &DetailedGlyphRecord) -> bool { self.entry_offset >  other.entry_offset }
+    pure fn lt(&self, other: &DetailedGlyphRecord) -> bool {
+		self.entry_offset <  other.entry_offset
+	}
+    pure fn le(&self, other: &DetailedGlyphRecord) -> bool {
+		self.entry_offset <= other.entry_offset
+	}
+    pure fn ge(&self, other: &DetailedGlyphRecord) -> bool {
+		self.entry_offset >= other.entry_offset
+	}
+    pure fn gt(&self, other: &DetailedGlyphRecord) -> bool {
+		self.entry_offset >  other.entry_offset
+	}
 }
 
 impl DetailedGlyphRecord : Eq {
-    pure fn eq(other : &DetailedGlyphRecord) -> bool { self.entry_offset == other.entry_offset }
-    pure fn ne(other : &DetailedGlyphRecord) -> bool { self.entry_offset != other.entry_offset }
+    pure fn eq(&self, other : &DetailedGlyphRecord) -> bool {
+		self.entry_offset == other.entry_offset
+	}
+    pure fn ne(&self, other : &DetailedGlyphRecord) -> bool {
+		self.entry_offset != other.entry_offset
+	}
 }
 
 // Manages the lookup table for detailed glyphs. Sorting is deferred

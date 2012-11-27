@@ -6,12 +6,12 @@ pub enum format {
 }
 
 impl format: cmp::Eq {
-    pure fn eq(other: &format) -> bool {
-        match (self, *other) {
+    pure fn eq(&self, other: &format) -> bool {
+        match (*self, *other) {
           (fo_rgba_8888, fo_rgba_8888) => true,
        }
     }
-    pure fn ne(other: &format) -> bool {
+    pure fn ne(&self, other: &format) -> bool {
         return !self.eq(other);
     }
 }

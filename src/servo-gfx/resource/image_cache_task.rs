@@ -58,7 +58,7 @@ impl ImageResponseMsg {
 }
 
 impl ImageResponseMsg: cmp::Eq {
-    pure fn eq(other: &ImageResponseMsg) -> bool {
+    pure fn eq(&self, other: &ImageResponseMsg) -> bool {
         // FIXME: Bad copies
         match (self.clone(), other.clone()) {
           (ImageReady(*), ImageReady(*)) => fail ~"unimplemented comparison",
@@ -70,8 +70,8 @@ impl ImageResponseMsg: cmp::Eq {
           | (ImageFailed, _) => false
         }
     }
-    pure fn ne(other: &ImageResponseMsg) -> bool {
-        return !self.eq(other);
+    pure fn ne(&self, other: &ImageResponseMsg) -> bool {
+        return !(*self).eq(other);
     }
 }
 
