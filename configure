@@ -383,9 +383,16 @@ do
     if [ $i = mozjs ]; then
 	CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/js/src/configure"
     fi
+
+	# needed because Azure's configure wants "--enable-cairo --enable-skia"
+	CONFIGURE_ARGS=""
+	if [ $i = "rust-azure" ]; then
+		CONFIGURE_ARGS="--enable-cairo --enable-skia"
+	fi
+
     if [ -f ${CONFIGURE_SCRIPT} ]
     then
-	sh ${CONFIGURE_SCRIPT}
+		sh ${CONFIGURE_SCRIPT} ${CONFIGURE_ARGS}
     fi
 done
 
