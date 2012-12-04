@@ -48,7 +48,7 @@ pub enum PingMsg {
 
 pub type ContentTask = pipes::SharedChan<ControlMsg>;
 
-fn ContentTask(layout_task: LayoutTask,
+pub fn ContentTask(layout_task: LayoutTask,
                dom_event_port: pipes::Port<Event>,
                dom_event_chan: pipes::SharedChan<Event>,
                resource_task: ResourceTask,
@@ -102,7 +102,7 @@ pub struct Content {
     mut damage: Damage,
 }
 
-fn Content(layout_task: LayoutTask, 
+pub fn Content(layout_task: LayoutTask, 
            control_port: pipes::Port<ControlMsg>,
            control_chan: pipes::SharedChan<ControlMsg>,
            resource_task: ResourceTask,

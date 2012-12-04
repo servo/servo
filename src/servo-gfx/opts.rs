@@ -41,12 +41,12 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         copy opt_match.free
     };
 
-    let render_mode = match getopts::opt_maybe_str(copy opt_match, ~"o") {
+    let render_mode = match getopts::opt_maybe_str(&opt_match, ~"o") {
       Some(move output_file) => { Png(move output_file) }
       None => { Screen }
     };
 
-    let render_backend = match getopts::opt_maybe_str(copy opt_match, ~"r") {
+    let render_backend = match getopts::opt_maybe_str(&opt_match, ~"r") {
         Some(move backend_str) => {
             if backend_str == ~"direct2d" {
                 Direct2DBackend
@@ -65,12 +65,12 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         None => CairoBackend
     };
 
-    let tile_size: uint = match getopts::opt_maybe_str(copy opt_match, ~"s") {
+    let tile_size: uint = match getopts::opt_maybe_str(&opt_match, ~"s") {
         Some(move tile_size_str) => from_str::from_str(tile_size_str).get(),
         None => 512,
     };
 
-    let n_render_threads: uint = match getopts::opt_maybe_str(move opt_match, ~"t") {
+    let n_render_threads: uint = match getopts::opt_maybe_str(&opt_match, ~"t") {
         Some(move n_render_threads_str) => from_str::from_str(n_render_threads_str).get(),
         None => 1,      // FIXME: Number of cores.
     };

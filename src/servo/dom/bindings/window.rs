@@ -57,7 +57,7 @@ unsafe fn unwrap(obj: *JSObject) -> *rust_box<Window> {
 }
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
-    #debug("finalize!");
+    debug!("finalize!");
     unsafe {
         let val = JS_GetReservedSlot(obj, 0);
         let _: @Window = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));

@@ -2,12 +2,12 @@ use newcss::stylesheet::Stylesheet;
 use dom::node::{NodeScope, Node};
 use std::arc::ARC;
 
-struct Document {
+pub struct Document {
     root: Node,
     scope: NodeScope,
 }
 
-fn Document(root: Node, scope: NodeScope) -> Document {
+pub fn Document(root: Node, scope: NodeScope) -> Document {
     Document {
         root : root,
         scope : scope,

@@ -71,7 +71,7 @@ padding, backgrounds. It is analogous to a CSS nonreplaced content box.
 
    It also holds data specific to different box types, such as text.
 */
-struct RenderBoxData {
+pub struct RenderBoxData {
     /* originating DOM node */
     node : Node,
     /* reference to containing flow context, which this box
@@ -105,32 +105,7 @@ pub enum SplitBoxResult {
     SplitDidNotFit(Option<@RenderBox>, Option<@RenderBox>)
 }
 
-trait RenderBoxMethods {
-    pure fn d(&self) -> &self/RenderBoxData;
-
-    pure fn is_replaced() -> bool;
-    pure fn can_split() -> bool;
-    pure fn is_whitespace_only() -> bool;
-    // TODO(Issue #220): this should be a pure/const method
-    fn can_merge_with_box(@self, other: @RenderBox) -> bool;
-    pure fn content_box() -> Rect<Au>;
-    pure fn border_box() -> Rect<Au>;
-    pure fn margin_box() -> Rect<Au>;
-
-    fn split_to_width(@self, &LayoutContext, Au, starts_line: bool) -> SplitBoxResult;
-    fn get_min_width(&LayoutContext) -> Au;
-    fn get_pref_width(&LayoutContext) -> Au;
-    fn get_used_width() -> (Au, Au);
-    fn get_used_height() -> (Au, Au);
-
-    fn build_display_list(@self,
-                          builder: &DisplayListBuilder,
-                          dirty: &Rect<Au>,
-                          offset: &Point2D<Au>,
-                          dl: &mut DisplayList);
-}
-
-fn RenderBoxData(node: Node, ctx: @FlowContext, id: int) -> RenderBoxData {
+pub fn RenderBoxData(node: Node, ctx: @FlowContext, id: int) -> RenderBoxData {
     RenderBoxData {
         node : node,
         mut ctx  : ctx,
@@ -140,7 +115,7 @@ fn RenderBoxData(node: Node, ctx: @FlowContext, id: int) -> RenderBoxData {
     }
 }
 
-impl RenderBox : RenderBoxMethods {
+impl RenderBox  {
     pure fn d(&self) -> &self/RenderBoxData {
         match *self {
             GenericBox(ref d)  => d,

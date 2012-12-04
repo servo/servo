@@ -7,3 +7,14 @@ servo.rc. This is not ideal and may be changed in the future. */
 pub use shaper::Shaper;
 pub use text_run::TextRun;
 pub use text_run::SendableTextRun;
+
+pub mod glyph;
+pub mod text_run;
+pub mod util;
+pub mod shaper;
+
+// Below are the actual platform-specific parts.
+pub mod harfbuzz {
+    #[path = "harfbuzz/shaper.rs"]
+    pub mod shaper;
+}

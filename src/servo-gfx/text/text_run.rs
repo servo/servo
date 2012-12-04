@@ -42,7 +42,7 @@ impl SendableTextRun {
     }
 }
 
-impl TextRun {
+pub impl TextRun {
     static fn new(font: @Font, text: ~str) -> TextRun {
         let mut glyph_store = GlyphStore::new(str::char_len(text));
         TextRun::compute_potential_breaks(text, &mut glyph_store);
@@ -63,7 +63,9 @@ impl TextRun {
         let mut char_j = 0u;
         let mut prev_is_whitespace = false;
         while byte_i < text.len() {
-            let {ch, next} = str::char_range_at(text, byte_i);
+            let range = str::char_range_at(text, byte_i);
+            let ch = range.ch;
+            let next = range.next;
             // set char properties.
             match ch {
                 ' '  => { glyphs.set_char_is_space(char_j); },

@@ -4,7 +4,7 @@ use dvec::DVec;
 use geom::size::Size2D;
 use std::net::url::Url;
 
-struct ElementData {
+pub struct ElementData {
     tag_name: ~str,
     kind: ~ElementKind,
     attrs: DVec<~Attr>,
@@ -43,7 +43,7 @@ impl ElementData {
     }
 }
 
-fn ElementData(tag_name: ~str, kind: ~ElementKind) -> ElementData {
+pub fn ElementData(tag_name: ~str, kind: ~ElementKind) -> ElementData {
     ElementData {
         tag_name : move tag_name,
         kind : move kind,
@@ -51,29 +51,29 @@ fn ElementData(tag_name: ~str, kind: ~ElementKind) -> ElementData {
     }
 }
 
-struct Attr {
+pub struct Attr {
     name: ~str,
     value: ~str,
 }
 
-fn Attr(name: ~str, value: ~str) -> Attr {
+pub fn Attr(name: ~str, value: ~str) -> Attr {
     Attr {
         name : move name,
         value : move value,
     }
 }
 
-fn HTMLImageData() -> HTMLImageData {
+pub fn HTMLImageData() -> HTMLImageData {
     HTMLImageData {
         image: None
     }
 }
 
-struct HTMLImageData {
+pub struct HTMLImageData {
     mut image: Option<Url>
 }
 
-enum HeadingLevel {
+pub enum HeadingLevel {
     Heading1,
     Heading2,
     Heading3,
@@ -82,7 +82,7 @@ enum HeadingLevel {
     Heading6,
 }
 
-enum ElementKind {
+pub enum ElementKind {
     HTMLAnchorElement,
     HTMLAsideElement,
     HTMLBRElement,

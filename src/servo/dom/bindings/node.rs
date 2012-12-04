@@ -61,19 +61,19 @@ pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
     }
 }
 
-struct NodeBundle {
+pub struct NodeBundle {
     node: Node,
     scope: NodeScope,
 }
 
-fn NodeBundle(n: Node, s: NodeScope) -> NodeBundle {
+pub fn NodeBundle(n: Node, s: NodeScope) -> NodeBundle {
     NodeBundle {
         node : n,
         scope : s
     }
 }
 
-unsafe fn unwrap(obj: *JSObject) -> *rust_box<NodeBundle> {
+pub unsafe fn unwrap(obj: *JSObject) -> *rust_box<NodeBundle> {
     let val = js::GetReservedSlot(obj, 0);
     cast::reinterpret_cast(&JSVAL_TO_PRIVATE(val))
 }

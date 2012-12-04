@@ -23,7 +23,7 @@ pub enum Msg {
     ExitMsg(Chan<()>)
 }
 
-struct Engine<C:Compositor Send Copy> {
+pub struct Engine<C:Compositor Send Copy> {
     request_port: comm::Port<Msg>,
     compositor: C,
     render_task: RenderTask,
@@ -33,7 +33,7 @@ struct Engine<C:Compositor Send Copy> {
     content_task: ContentTask
 }
 
-fn Engine<C:Compositor Send Copy>(compositor: C,
+pub fn Engine<C:Compositor Send Copy>(compositor: C,
                                   opts: &Opts,
                                   dom_event_port: pipes::Port<Event>,
                                   dom_event_chan: pipes::SharedChan<Event>,

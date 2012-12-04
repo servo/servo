@@ -12,27 +12,27 @@ use js::glue::bindgen::*;
 use ptr::null;
 use content::content_task::{Content, task_from_context};
 
-enum DOMString {
+pub enum DOMString {
     str(~str),
     null_string
 }
 
-type rust_box<T> = {rc: uint, td: *sys::TypeDesc, next: *(), prev: *(), payload: T};
+pub type rust_box<T> = {rc: uint, td: *sys::TypeDesc, next: *(), prev: *(), payload: T};
 
-unsafe fn squirrel_away<T>(x: @T) -> *rust_box<T> {
+pub unsafe fn squirrel_away<T>(x: @T) -> *rust_box<T> {
     let y: *rust_box<T> = cast::reinterpret_cast(&x);
     cast::forget(x);
     y
 }
 
-unsafe fn squirrel_away_unique<T>(x: ~T) -> *rust_box<T> {
+pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *rust_box<T> {
     let y: *rust_box<T> = cast::reinterpret_cast(&x);
     cast::forget(move x);
     y
 }
 
 //XXX very incomplete
-fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
+pub fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
     let jsstr;
     if RUST_JSVAL_IS_STRING(v) == 1 {
         jsstr = RUST_JSVAL_TO_STRING(v)
@@ -55,7 +55,7 @@ fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
     }
 }
 
-unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
+pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
     match *string {
       null_string => {
         JSVAL_NULL

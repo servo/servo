@@ -81,7 +81,7 @@ unsafe fn unwrap(obj: *JSObject) -> *rust_box<Document> {
 }
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
-    #debug("document finalize!");
+    debug!("document finalize!");
     unsafe {
         let val = JS_GetReservedSlot(obj, 0);
         let _doc: @Document = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));

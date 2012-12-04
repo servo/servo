@@ -23,7 +23,7 @@ use node::unwrap;
 
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
-    #debug("element finalize!");
+    debug!("element finalize!");
     unsafe {
         let val = JS_GetReservedSlot(obj, 0);
         let _node: ~NodeBundle = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));

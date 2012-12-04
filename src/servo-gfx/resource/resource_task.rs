@@ -100,11 +100,11 @@ impl ResourceManager {
 
         match self.get_loader_factory(&url) {
             Some(loader_factory) => {
-                #debug("resource_task: loading url: %s", to_str(copy url));
+                debug!("resource_task: loading url: %s", to_str(copy url));
                 loader_factory(move url, progress_chan);
             }
             None => {
-                #debug("resource_task: no loader for scheme %s", url.scheme);
+                debug!("resource_task: no loader for scheme %s", url.scheme);
                 progress_chan.send(Done(Err(())));
             }
         }

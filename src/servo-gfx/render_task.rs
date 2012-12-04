@@ -106,7 +106,7 @@ impl<C: Compositor Send> Renderer<C> {
         let layer_buffer_set_cell = Cell(move layer_buffer_set);
         let layer_buffer_set_channel_cell = Cell(move layer_buffer_set_channel);
 
-        #debug("renderer: rendering");
+        debug!("renderer: rendering");
 
         do util::time::time(~"rendering") {
             let layer_buffer_set = layer_buffer_set_cell.take();
@@ -150,7 +150,7 @@ impl<C: Compositor Send> Renderer<C> {
                 }
             };
 
-            #debug("renderer: returning surface");
+            debug!("renderer: returning surface");
             self.compositor.draw(move layer_buffer_set_channel, move layer_buffer_set);
         }
     }

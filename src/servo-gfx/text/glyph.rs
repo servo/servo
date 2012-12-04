@@ -29,10 +29,10 @@ struct GlyphEntry {
 pure fn GlyphEntry(value: u32) -> GlyphEntry { GlyphEntry { value: value } }
 
 /// The index of a particular glyph within a font
-type GlyphIndex = u32;
+pub type GlyphIndex = u32;
 
 // TODO: unify with bit flags?
-enum BreakType {
+pub enum BreakType {
     BreakTypeNone,
     BreakTypeNormal,
     BreakTypeHyphen
@@ -426,7 +426,7 @@ impl DetailedGlyphStore {
 
 // This struct is used by GlyphStore clients to provide new glyph data.
 // It should be allocated on the stack and passed by reference to GlyphStore.
-struct GlyphData {
+pub struct GlyphData {
     index: GlyphIndex,
     advance: Au,
     offset: Point2D<Au>,
@@ -435,7 +435,7 @@ struct GlyphData {
     ligature_start: bool,
 }
 
-pure fn GlyphData(index: GlyphIndex, 
+pub pure fn GlyphData(index: GlyphIndex, 
                    advance: Au,
                    offset: Option<Point2D<Au>>,
                    is_missing: bool,
@@ -505,13 +505,13 @@ impl GlyphInfo {
 }
 
 // Public data structure and API for storing and retrieving glyph data
-struct GlyphStore {
+pub struct GlyphStore {
     // we use a DVec here instead of a mut vec, since this is much safer.
     entry_buffer: ~[GlyphEntry],
     detail_store: DetailedGlyphStore,
 }
 
-impl GlyphStore {
+pub impl GlyphStore {
     // Initializes the glyph store, but doesn't actually shape anything.
     // Use the set_glyph, set_glyphs() methods to store glyph data.
     static fn new(length: uint) -> GlyphStore {

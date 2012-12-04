@@ -209,6 +209,9 @@ pub impl HarfbuzzShaper : ShaperMethods {
         self.save_glyph_results(text, glyphs, hb_buffer);
         hb_buffer_destroy(hb_buffer);
     }
+}
+
+pub impl HarfbuzzShaper {
 
     priv fn save_glyph_results(text: &str, glyphs: &mut GlyphStore, buffer: *hb_buffer_t) {
         let glyph_data = ShapedGlyphData::new(buffer);
@@ -239,8 +242,9 @@ pub impl HarfbuzzShaper : ShaperMethods {
             let mut i = 0u;
             while i < byte_max {
                 byteToGlyph[i] = NO_GLYPH;
-                let {ch, next} = str::char_range_at(text, i); ignore(ch);
-                i = next;
+                let range = str::char_range_at(text, i);
+                ignore(range.ch);
+                i = range.next;
             }
         }
         
@@ -260,9 +264,9 @@ pub impl HarfbuzzShaper : ShaperMethods {
         debug!("(char idx): char->(glyph index):");
         let mut i = 0u;
         while i < byte_max {
-            let {ch, next} = str::char_range_at(text, i);
-            debug!("%u: %? --> %d", i, ch, byteToGlyph[i] as int);
-            i = next;
+            let range = str::char_range_at(text, i);
+            debug!("%u: %? --> %d", i, range.ch, byteToGlyph[i] as int);
+            i = range.next;
         }
 
         // some helpers
@@ -285,16 +289,18 @@ pub impl HarfbuzzShaper : ShaperMethods {
             // find a range of chars corresponding to this glyph, plus
             // any trailing chars that do not have associated glyphs.
             while char_byte_span.end() < byte_max {
-                let {ch, next} = str::char_range_at(text, char_byte_span.end()); ignore(ch);
-                char_byte_span.extend_to(next);
+                let range = str::char_range_at(text, char_byte_span.end());
+                ignore(range.ch);
+                char_byte_span.extend_to(range.next);
 
                 debug!("Processing char byte span: off=%u, len=%u for glyph idx=%u",
                        char_byte_span.begin(), char_byte_span.length(), glyph_span.begin());
 
                 while char_byte_span.end() != byte_max && byteToGlyph[char_byte_span.end()] == NO_GLYPH {
                     debug!("Extending char byte span to include byte offset=%u with no associated glyph", char_byte_span.end());
-                    let {ch, next} = str::char_range_at(text, char_byte_span.end()); ignore(ch);
-                    char_byte_span.extend_to(next);
+                    let range = str::char_range_at(text, char_byte_span.end());
+                    ignore(range.ch);
+                    char_byte_span.extend_to(range.next);
                 }
 
                 // extend glyph range to max glyph index covered by char_span,
@@ -356,8 +362,9 @@ pub impl HarfbuzzShaper : ShaperMethods {
             // extend, clipping at end of text range.
             while covered_byte_span.end() < byte_max 
                 && byteToGlyph[covered_byte_span.end()] == NO_GLYPH {
-                let {ch, next} = str::char_range_at(text, covered_byte_span.end()); ignore(ch);
-                covered_byte_span.extend_to(next);
+                let range = str::char_range_at(text, covered_byte_span.end());
+                ignore(range.ch);
+                covered_byte_span.extend_to(range.next);
             }
 
             if covered_byte_span.begin() >= byte_max {
@@ -400,8 +407,9 @@ pub impl HarfbuzzShaper : ShaperMethods {
                 // set the other chars, who have no glyphs
                 let mut i = covered_byte_span.begin();
                 loop {
-                    let {ch, next} = str::char_range_at(text, i); ignore(ch);
-                    i = next;
+                    let range = str::char_range_at(text, i);
+                    ignore(range.ch);
+                    i = range.next;
                     if i >= covered_byte_span.end() { break; }
                     char_idx += 1;
                     glyphs.add_nonglyph_for_char_index(char_idx, false, false);

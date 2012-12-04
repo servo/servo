@@ -6,7 +6,7 @@ use std::net::url::Url;
 
 /* Represents layout task context. */
 
-struct LayoutContext {
+pub struct LayoutContext {
     font_ctx: @FontContext,
     image_cache: @LocalImageCache,
     doc_url: Url,

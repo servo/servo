@@ -1,7 +1,7 @@
 use azure::azure_hl::{DrawTarget};
 use geom::rect::Rect;
 
-struct LayerBuffer {
+pub struct LayerBuffer {
     draw_target: DrawTarget,
 
     // The rect in the containing RenderLayer that this represents.
@@ -13,7 +13,7 @@ struct LayerBuffer {
 
 /// A set of layer buffers. This is an atomic unit used to switch between the front and back
 /// buffers.
-struct LayerBufferSet {
+pub struct LayerBufferSet {
     buffers: ~[LayerBuffer]
 }
 
@@ -21,7 +21,7 @@ struct LayerBufferSet {
 The interface used to by the renderer to aquire draw targets for
 each rendered frame and submit them to be drawn to the display
 */
-trait Compositor {
+pub trait Compositor {
     fn begin_drawing(next_dt: pipes::Chan<LayerBufferSet>);
     fn draw(next_dt: pipes::Chan<LayerBufferSet>, +draw_me: LayerBufferSet);
 }

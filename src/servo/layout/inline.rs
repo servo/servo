@@ -39,12 +39,12 @@ serve as the starting point, but the current design doesn't make it
 hard to try out that alternative.
 */
 
-struct NodeRange {
+pub struct NodeRange {
     node: Node,
     range: Range,
 }
 
-impl NodeRange {
+pub impl NodeRange {
     static pure fn new(node: Node, range: &const Range) -> NodeRange {
         NodeRange { node: node, range: copy *range }
     }
@@ -557,7 +557,7 @@ impl LineboxScanner {
     }
 }
 
-struct InlineFlowData {
+pub struct InlineFlowData {
     // A vec of all inline render boxes. Several boxes may
     // correspond to one Node/Element.
     boxes: DVec<@RenderBox>,
@@ -570,7 +570,7 @@ struct InlineFlowData {
     elems: ElementMapping
 }
 
-fn InlineFlowData() -> InlineFlowData {
+pub fn InlineFlowData() -> InlineFlowData {
     InlineFlowData {
         boxes: DVec(),
         lines: DVec(),

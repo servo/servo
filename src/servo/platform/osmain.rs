@@ -14,9 +14,10 @@ use geom::size::Size2D;
 use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
 use gfx::opts::Opts;
 use gfx::util::time;
-use layers::ImageLayer;
+use layers::layers::ImageLayer;
 use std::cell::Cell;
 use std::cmp::FuzzyEq;
+use glut::glut;
 
 pub struct OSMain {
     chan: comm::Chan<Msg>
@@ -40,12 +41,12 @@ pub enum Msg {
     Exit
 }
 
-fn OSMain(dom_event_chan: pipes::SharedChan<Event>, opts: Opts) -> OSMain {
+pub fn OSMain(dom_event_chan: pipes::SharedChan<Event>, opts: Opts) -> OSMain {
     let dom_event_chan = Cell(move dom_event_chan);
     OSMain {
         chan: do on_osmain::<Msg> |po, move dom_event_chan, move opts| {
             do platform::runmain {
-                #debug("preparing to enter main loop");
+                debug!("preparing to enter main loop");
 
                 // FIXME: Use the servo options.
                 let mode;
@@ -139,7 +140,7 @@ fn mainloop(mode: Mode,
                 AddKeyHandler(move key_ch) => key_handlers.push(move key_ch),
                 BeginDrawing(move sender) => lend_surface(surfaces, move sender),
                 Draw(move sender, move draw_target) => {
-                    #debug("osmain: received new frame");
+                    debug!("osmain: received new frame");
                     return_surface(surfaces, move draw_target);
                     lend_surface(surfaces, move sender);
 
@@ -226,7 +227,7 @@ fn mainloop(mode: Mode,
     match window {
         GlutWindow(window) => {
             do glut::reshape_func(window) |width, height| {
-                #debug("osmain: window resized to %d,%d", width as int, height as int);
+                debug!("osmain: window resized to %d,%d", width as int, height as int);
                 check_for_messages();
                 resize_rate_limiter.window_resized(width as uint, height as uint);
                 //composite();
@@ -286,7 +287,7 @@ fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBufferSet>) {
             rect: copy layer_buffer.rect,
             stride: layer_buffer.stride
         };
-        #debug("osmain: lending surface %?", layer_buffer);
+        debug!("osmain: lending surface %?", layer_buffer);
         move layer_buffer
     };
     surfaces.front.layer_buffer_set.buffers = move old_layer_buffers;

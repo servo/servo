@@ -10,6 +10,7 @@ use resource::resource_task::{Done, Load, Payload, ResourceTask};
 
 use core::comm::{Chan, Port};
 use cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
+use hubbub::hubbub;
 use hubbub::Attribute;
 use newcss::stylesheet::Stylesheet;
 use std::net::url::Url;
@@ -97,7 +98,7 @@ fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port
                                 break;
                             }
                             Done(Err(*)) => {
-                                #error("error loading script %s", url.to_str());
+                                error!("error loading script %s", url.to_str());
                             }
                         }
                     }

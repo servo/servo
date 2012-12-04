@@ -43,7 +43,7 @@ pub trait FontHandleMethods {
 //
 // `new` should be part of trait FontHandleMethods.
 
-impl FontHandle {
+pub impl FontHandle {
     #[cfg(target_os = "macos")]
     static pub fn new_from_buffer(fctx: &native::FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
         quartz::font::QuartzFontHandle::new_from_buffer(fctx, move buf, style)
@@ -56,7 +56,7 @@ impl FontHandle {
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
-type FractionalPixel = float;
+pub type FractionalPixel = float;
 
 pub type FontTableTag = u32;
 
@@ -80,11 +80,11 @@ pub type FontTable/& = quartz::font::QuartzFontTable;
 #[cfg(target_os = "linux")]
 pub type FontTable/& = freetype::font::FreeTypeFontTable;
 
-trait FontTableMethods {
+pub trait FontTableMethods {
     fn with_buffer(fn&(*u8, uint));
 }
 
-struct FontMetrics {
+pub struct FontMetrics {
     underline_size:   Au,
     underline_offset: Au,
     leading:          Au,
@@ -96,7 +96,7 @@ struct FontMetrics {
 }
 
 // TODO(Issue #200): use enum from CSS bindings for 'font-weight'
-enum CSSFontWeight {
+pub enum CSSFontWeight {
     FontWeight100,
     FontWeight200,
     FontWeight300,
@@ -239,7 +239,7 @@ pub impl FontGroup {
     }
 }
 
-struct RunMetrics {
+pub struct RunMetrics {
     // may be negative due to negative width (i.e., kerning of '.' in 'P.T.')
     advance_width: Au,
     ascent: Au, // nonzero
@@ -262,7 +262,7 @@ pub struct Font {
     backend: BackendType,
 }
 
-impl Font {
+pub impl Font {
     static fn new_from_buffer(ctx: &FontContext, buffer: ~[u8],
                               style: &SpecifiedFontStyle, backend: BackendType) -> Result<@Font, ()> {
 
@@ -395,9 +395,9 @@ pub impl Font : FontMethods {
         use azure::{AzDrawOptions,
                     AzGlyph,
                     AzGlyphBuffer};
-        use azure::bindgen::{AzCreateColorPattern,
-                             AzDrawTargetFillGlyphs,
-                             AzReleaseColorPattern};
+        use azure::azure::bindgen::{AzCreateColorPattern,
+                                    AzDrawTargetFillGlyphs,
+                                    AzReleaseColorPattern};
 
         let target = rctx.get_draw_target();
         let azfontref = self.get_azure_font();

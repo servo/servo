@@ -75,7 +75,7 @@ impl Damage {
     }
 }
 
-struct BuildData {
+pub struct BuildData {
     node: Node,
     url: Url,
     dom_event_chan: pipes::SharedChan<Event>,
@@ -84,7 +84,7 @@ struct BuildData {
     damage: Damage,
 }
 
-fn LayoutTask(render_task: RenderTask,
+pub fn LayoutTask(render_task: RenderTask,
               img_cache_task: ImageCacheTask,
               opts: Opts) -> LayoutTask {
     do spawn_listener::<Msg> |from_content, move img_cache_task, move opts| {

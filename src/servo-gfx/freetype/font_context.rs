@@ -1,11 +1,11 @@
 extern mod freetype;
 
-use freetype::{
+use freetype::freetype::{
     FTErrorMethods,
     FT_Error,
     FT_Library,
 };
-use freetype::bindgen::{
+use freetype::freetype::bindgen::{
     FT_Init_FreeType, 
     FT_Done_FreeType
 };
@@ -38,6 +38,10 @@ pub impl FreeTypeFontContextHandle {
 }
 
 pub impl FreeTypeFontContextHandle : FontContextHandleMethods {
+    pure fn clone(&const self) -> FreeTypeFontContextHandle {
+        fail
+    }
+
     fn create_font_from_identifier(_identifier: ~str, _style: UsedFontStyle)
         -> Result<FontHandle, ()> {
 

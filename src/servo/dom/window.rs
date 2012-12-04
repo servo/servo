@@ -3,13 +3,13 @@ use content::content_task::{ControlMsg, Timer, ExitMsg};
 use js::jsapi::JSVal;
 use dvec::DVec;
 
-enum TimerControlMsg {
+pub enum TimerControlMsg {
     TimerMessage_Fire(~TimerData),
     TimerMessage_Close,
     TimerMessage_TriggerExit //XXXjdm this is just a quick hack to talk to the content task
 }
 
-struct Window {
+pub struct Window {
     timer_chan: Chan<TimerControlMsg>,
 
     drop {
@@ -63,7 +63,7 @@ impl Window {
     }
 }
 
-fn Window(content_chan: pipes::SharedChan<ControlMsg>) -> Window {
+pub fn Window(content_chan: pipes::SharedChan<ControlMsg>) -> Window {
         
     Window {
         timer_chan: do task::spawn_listener |timer_port: Port<TimerControlMsg>,

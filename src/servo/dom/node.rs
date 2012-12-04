@@ -16,15 +16,15 @@ use ptr::null;
 use std::arc::ARC;
 use util::tree;
 
-enum NodeData = {
+pub enum NodeData = {
     tree: tree::Tree<Node>,
     kind: ~NodeKind,
 };
 
 /* The tree holding Nodes (read-only) */
-enum NodeTree { NodeTree }
+pub enum NodeTree { NodeTree }
 
-impl NodeTree : tree::ReadMethods<Node> {
+impl NodeTree {
     fn each_child(node: &Node, f: fn(&Node) -> bool) {
         tree::each_child(&self, node, f)
     }
@@ -32,7 +32,9 @@ impl NodeTree : tree::ReadMethods<Node> {
     fn get_parent(node: &Node) -> Option<Node> {
         tree::get_parent(&self, node)
     }
+}
 
+impl NodeTree : tree::ReadMethods<Node> {
     fn with_tree_fields<R>(n: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {
         n.read(|n| f(&n.tree))
     }
@@ -91,14 +93,14 @@ pub enum NodeKind {
     Text(~str)
 }
 
-struct DoctypeData {
+pub struct DoctypeData {
     name: ~str,
     public_id: Option<~str>,
     system_id: Option<~str>,
     force_quirks: bool
 }
 
-fn DoctypeData(name: ~str, public_id: Option<~str>,
+pub fn DoctypeData(name: ~str, public_id: Option<~str>,
                system_id: Option<~str>, force_quirks: bool) -> DoctypeData {
     DoctypeData {
         name : move name,
@@ -110,7 +112,7 @@ fn DoctypeData(name: ~str, public_id: Option<~str>,
 
 
 
-fn define_bindings(compartment: &bare_compartment, doc: @Document,
+pub fn define_bindings(compartment: &bare_compartment, doc: @Document,
                    win: @Window) {
     bindings::window::init(compartment, win);
     bindings::document::init(compartment, doc);
@@ -129,11 +131,11 @@ enum LayoutData = {
     mut flow:  Option<@FlowContext>
 };
 
-type Node = cow::Handle<NodeData, LayoutData>;
+pub type Node = cow::Handle<NodeData, LayoutData>;
 
-type NodeScope = cow::Scope<NodeData, LayoutData>;
+pub type NodeScope = cow::Scope<NodeData, LayoutData>;
 
-fn NodeScope() -> NodeScope {
+pub fn NodeScope() -> NodeScope {
     cow::Scope()
 }
 
@@ -148,8 +150,7 @@ impl NodeScope : NodeScopeExtensions {
     }
 }
 
-#[allow(non_implicitly_copyable_typarams)]
-impl NodeScope : tree::ReadMethods<Node> {
+impl NodeScope {
     fn each_child(node: &Node, f: fn(&Node) -> bool) {
         tree::each_child(&self, node, f)
     }
@@ -157,18 +158,23 @@ impl NodeScope : tree::ReadMethods<Node> {
     fn get_parent(node: &Node) -> Option<Node> {
         tree::get_parent(&self, node)
     }
+}
 
+#[allow(non_implicitly_copyable_typarams)]
+impl NodeScope : tree::ReadMethods<Node> {
     fn with_tree_fields<R>(node: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {
         self.read(node, |n| f(&n.tree))
     }
 }
 
-#[allow(non_implicitly_copyable_typarams)]
-impl NodeScope : tree::WriteMethods<Node> {
+impl NodeScope {
     fn add_child(node: Node, child: Node) {
         tree::add_child(&self, node, child)
     }
+}
 
+#[allow(non_implicitly_copyable_typarams)]
+impl NodeScope : tree::WriteMethods<Node> {
     pure fn eq(a: &Node, b: &Node) -> bool { a == b }
 
     fn with_tree_fields<R>(node: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {

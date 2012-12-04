@@ -11,11 +11,11 @@ use layout::display_list_builder::DisplayListBuilder;
 use layout::flow::{FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
 use util::tree;
 
-struct BlockFlowData {
+pub struct BlockFlowData {
     mut box: Option<@RenderBox>
 }
 
-fn BlockFlowData() -> BlockFlowData {
+pub fn BlockFlowData() -> BlockFlowData {
     BlockFlowData {
         box: None
     }

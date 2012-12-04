@@ -22,7 +22,7 @@ pub impl FontListHandle {
     }
 }
 
-type FontFamilyMap = linear::LinearMap<~str, @FontFamily>;
+pub type FontFamilyMap = linear::LinearMap<~str, @FontFamily>;
 
 trait FontListHandleMethods {
     fn get_available_families(&const self, fctx: &native::FontContextHandle) -> FontFamilyMap;
@@ -132,7 +132,7 @@ pub impl FontFamily {
 
 // In the common case, each FontFamily will have a singleton FontEntry, or
 // it will have the standard four faces: Normal, Bold, Italic, BoldItalic.
-struct FontEntry {
+pub struct FontEntry {
     family: @FontFamily,
     face_name: ~str,
     priv weight: CSSFontWeight,
@@ -141,7 +141,7 @@ struct FontEntry {
     // TODO: array of OpenType features, etc.
 }
 
-impl FontEntry {
+pub impl FontEntry {
     static fn new(family: @FontFamily, handle: FontHandle) -> FontEntry {
         FontEntry {
             family: family,

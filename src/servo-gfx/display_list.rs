@@ -95,7 +95,7 @@ trait DisplayListMethods {
     fn draw_into_context(ctx: &RenderContext);
 }
 
-impl DisplayList {
+pub impl DisplayList {
     static fn new() -> DisplayList {
         DisplayList { list: ~[] }
     }

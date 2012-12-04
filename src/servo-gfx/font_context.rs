@@ -36,7 +36,7 @@ type FontContextHandle/& = quartz::font_context::QuartzFontContextHandle;
 #[cfg(target_os = "linux")]
 type FontContextHandle/& = freetype::font_context::FreeTypeFontContextHandle;
 
-trait FontContextHandleMethods {
+pub trait FontContextHandleMethods {
     pure fn clone(&const self) -> FontContextHandle;
     fn create_font_from_identifier(~str, UsedFontStyle) -> Result<FontHandle, ()>;
 }

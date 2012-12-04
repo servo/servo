@@ -22,7 +22,7 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
             ~"file://" + os::getcwd().push(str_url).to_str()
         } else {
             let current_url = current_url.get();
-            #debug("make_url: current_url: %?", current_url);
+            debug!("make_url: current_url: %?", current_url);
             if current_url.path.is_empty() || current_url.path.ends_with("/") {
                 current_url.scheme + "://" + current_url.host + "/" + str_url
             } else {
@@ -47,7 +47,7 @@ mod make_url_tests {
     fn should_create_absolute_file_url_if_current_url_is_none_and_str_url_looks_filey() {
         let file = ~"local.html";
         let url = make_url(move file, None);
-        #debug("url: %?", url);
+        debug!("url: %?", url);
         assert url.scheme == ~"file";
         assert url.path.contains(os::getcwd().to_str());
     }

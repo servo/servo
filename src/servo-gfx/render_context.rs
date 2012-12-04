@@ -16,7 +16,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use std::arc::ARC;
 
-struct RenderContext {
+pub struct RenderContext {
     canvas: &LayerBuffer,
     font_ctx: @FontContext,
     opts: &Opts

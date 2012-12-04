@@ -22,7 +22,7 @@ pub struct LayoutTreeBuilder {
     mut next_cid: int
 }
 
-impl LayoutTreeBuilder {
+pub impl LayoutTreeBuilder {
     static pure fn new() -> LayoutTreeBuilder {
         LayoutTreeBuilder {
             root_flow: None,

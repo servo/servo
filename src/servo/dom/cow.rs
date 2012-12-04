@@ -224,7 +224,7 @@ impl<T:Copy Send,A> Scope<T,A> {
         let const_read_ptr = ptr::const_offset(h.read_ptr(), 0);
         let const_write_ptr = ptr::const_offset(h.write_ptr(), 0);
         if self.d.layout_active && const_read_ptr == const_write_ptr {
-            #debug["marking handle %? as dirty", h];
+            debug!("marking handle %? as dirty", h);
             h.set_write_ptr(cast::reinterpret_cast(&self.clone(h.read_ptr())));
             h.set_next_dirty(self.d.first_dirty);
             self.d.first_dirty = *h;

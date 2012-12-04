@@ -6,6 +6,8 @@ use gfx_font::{
     FontHandle,
     FontHandleMethods,
     FontMetrics,
+    FontTable,
+    FontTableMethods,
     FontTableTag,
     FractionalPixel,
     SpecifiedFontStyle,
@@ -15,7 +17,7 @@ use geometry::Au;
 use text::glyph::GlyphIndex;
 use text::util::{float_to_fixed, fixed_to_float};
 
-use freetype::{
+use freetype::freetype::{
     FTErrorMethods,
     FT_Error,
     FT_F26Dot6,
@@ -30,7 +32,7 @@ use freetype::{
     FT_UInt,
     FT_Size_Metrics,
 };
-use freetype::bindgen::{
+use freetype::freetype::bindgen::{
     FT_Init_FreeType,
     FT_Done_FreeType,
     FT_New_Memory_Face,
@@ -46,6 +48,16 @@ fn float_to_fixed_ft(f: float) -> i32 {
 
 fn fixed_to_float_ft(f: i32) -> float {
     fixed_to_float(6, f)
+}
+
+pub struct FreeTypeFontTable {
+    bogus: ()
+}
+
+pub impl FreeTypeFontTable : FontTableMethods {
+    fn with_buffer(blk: fn&(*u8, uint)) {
+        fail
+    }
 }
 
 pub struct FreeTypeFontHandle {
@@ -184,7 +196,7 @@ pub impl FreeTypeFontHandle : FontHandleMethods {
         }
     }
 
-    fn get_table_for_tag(_tag: FontTableTag) -> Option<~[u8]> {
+    fn get_table_for_tag(_tag: FontTableTag) -> Option<FontTable> {
         fail;
     }
 }

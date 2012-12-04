@@ -178,7 +178,7 @@ impl ImageCache {
 
             for msg_handlers.each |handler| { (*handler)(&msg) }
 
-            #debug("image_cache_task: received: %?", msg);
+            debug!("image_cache_task: received: %?", msg);
 
             match move msg {
                 Prefetch(move url) => self.prefetch(move url),
@@ -249,7 +249,7 @@ impl ImageCache {
 
             do spawn |move to_cache, move url_cell| {
                 let url = url_cell.take();
-                #debug("image_cache_task: started fetch for %s", url.to_str());
+                debug!("image_cache_task: started fetch for %s", url.to_str());
 
                 let image = load_image_data(copy url, resource_task);
 
@@ -259,7 +259,7 @@ impl ImageCache {
                     Err(())
                 };
                 to_cache.send(StorePrefetchedImageData(copy url, move result));
-                #debug("image_cache_task: ended fetch for %s", (copy url).to_str());
+                debug!("image_cache_task: ended fetch for %s", (copy url).to_str());
             }
 
             self.set_state(move url, Prefetching(DoNotDecode));
@@ -327,7 +327,7 @@ impl ImageCache {
 
                 do spawn |move url_cell, move decode, move data, move to_cache| {
                     let url = url_cell.take();
-                    #debug("image_cache_task: started image decode for %s", url.to_str());
+                    debug!("image_cache_task: started image decode for %s", url.to_str());
                     let image = decode(data);
                     let image = if image.is_some() {
                         Some(ARC(~option::unwrap(move image)))
@@ -335,7 +335,7 @@ impl ImageCache {
                         None
                     };
                     to_cache.send(StoreImage(copy url, move image));
-                    #debug("image_cache_task: ended image decode for %s", url.to_str());
+                    debug!("image_cache_task: ended image decode for %s", url.to_str());
                 }
 
                 self.set_state(move url, Decoding);
