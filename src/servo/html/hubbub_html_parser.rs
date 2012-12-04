@@ -191,15 +191,15 @@ pub fn parse_html(scope: NodeScope,
     let append_hook: @fn(Node, Node) = |parent_node, child_node| {
         do scope.read(&parent_node) |parent_node_contents| {
             do scope.read(&child_node) |child_node_contents| {
-                match (parent_node_contents.kind, child_node_contents.kind) {
-                    (~Element(ref element), ~Text(ref data)) => {
+                match (&parent_node_contents.kind, &child_node_contents.kind) {
+                    (&~Element(ref element), &~Text(ref data)) => {
                         match element.kind {
                             ~HTMLStyleElement => {
                                 debug!("found inline CSS stylesheet");
                                 let url = url::from_str("http://example.com/"); // FIXME
                                 let provenance = InlineProvenance(result::unwrap(move url),
                                                                   copy *data);
-                                css_chan.send(CSSTaskNewFile(provenance));
+                                css_chan.send(CSSTaskNewFile(move provenance));
                             }
                             _ => {} // Nothing to do.
                         }
