@@ -147,13 +147,13 @@ impl RenderBox  {
     }
 
     fn can_merge_with_box(@self, other: @RenderBox) -> bool {
-        assert !core::box::ptr_eq(self, other);
+        assert !core::managed::ptr_eq(self, other);
 
         match (self, other) {
             (@UnscannedTextBox(*), @UnscannedTextBox(*)) => {
                 self.font_style() == other.font_style()
             },
-            (@TextBox(_,d1), @TextBox(_,d2)) => { core::box::ptr_eq(d1.run, d2.run) }
+            (@TextBox(_,d1), @TextBox(_,d2)) => core::managed::ptr_eq(d1.run, d2.run),
             (_, _) => false
         }
     }

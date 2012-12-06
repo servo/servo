@@ -6,14 +6,14 @@ use num::{Num, from_int};
 pub enum Au = i32;
 
 impl Au : Num {
-    pure fn add(other: &Au) -> Au        { Au(*self + **other) }
-    pure fn sub(other: &Au) -> Au        { Au(*self - **other) }
-    pure fn mul(other: &Au) -> Au        { Au(*self * **other) }
-    pure fn div(other: &Au) -> Au        { Au(*self / **other) }
-    pure fn modulo(other: &Au) -> Au     { Au(*self % **other) }
-    pure fn neg() -> Au                   { Au(-*self)         }
+    pure fn add(&self, other: &Au) -> Au    { Au(**self + **other) }
+    pure fn sub(&self, other: &Au) -> Au    { Au(**self - **other) }
+    pure fn mul(&self, other: &Au) -> Au    { Au(**self * **other) }
+    pure fn div(&self, other: &Au) -> Au    { Au(**self / **other) }
+    pure fn modulo(&self, other: &Au) -> Au { Au(**self % **other) }
+    pure fn neg(&self) -> Au                { Au(-**self)         }
 
-    pure fn to_int() -> int               { *self as int       }
+    pure fn to_int(&self) -> int            { **self as int       }
 
     static pure fn from_int(n: int) -> Au {
         Au((n & (i32::max_value as int)) as i32)

@@ -224,7 +224,7 @@ impl FlowTree {
 
 impl FlowTree : tree::WriteMethods<@FlowContext> {
 
-    pure fn eq(a: &@FlowContext, b: &@FlowContext) -> bool { core::box::ptr_eq(*a, *b) }
+    pure fn eq(a: &@FlowContext, b: &@FlowContext) -> bool { core::managed::ptr_eq(*a, *b) }
 
     fn with_tree_fields<R>(box: &@FlowContext, f: fn(&tree::Tree<@FlowContext>) -> R) -> R {
         f(&box.d().tree)

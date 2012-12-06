@@ -323,7 +323,7 @@ impl ImageCache {
                 let data = data_cell.take();
                 let to_cache = self.chan.clone();
                 let url_cell = Cell(copy url);
-                let decode = self.decoder_factory();
+                let decode = (self.decoder_factory)();
 
                 do spawn |move url_cell, move decode, move data, move to_cache| {
                     let url = url_cell.take();
