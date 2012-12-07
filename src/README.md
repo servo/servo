@@ -7,15 +7,14 @@ These are the main servo projects, as well as projects that are pure Rust (not b
 
 * _rust-css_ - A CSS parsing and selector matching library, based on libcss and currently
     using libcss for the implementation, but not exposing any libcss internals
-* _rust-geom_ - Generic math library
+* _rust-geom_ - Generic linear algebra library
 * _rust-http-client_ - An HTTP library in Rust, using libuv via the Rust standard library
-* _rust-io-surface_ - OS X implementation of cross-process surface sharing. Used by sharegl
 * _rust-layers_ - A simple GPU-accelerated 2D scene graph library
 * _servo_ - The Servo web browser engine
 * _servo-gfx_ - Servo's graphics subsystem
 * _sharegl_ - A library for sharing 3D textures between processes
 
-## Bindings
+## Third-party projects
 
 * _libcss_ - The CSS library from the NetSurf web browser. We are using this for parsing
     and selector matching until we have a Rust solution
@@ -25,6 +24,13 @@ These are the main servo projects, as well as projects that are pure Rust (not b
 * _libwapcaplet_ - A string internment library used by libcss and libhubbub
 * _mozjs_ - The SpiderMonkey JavaScript engine, forked from mozilla-central
 * _rust-azure_ - mozilla-central's 2D vector graphics abstraction layer and bindings
+* _rust-harfbuzz_ - The harfbuzz text shaping library and bindings
+* _rust-stb-image_ - The stb_image library and bindings. We are using this for image decoding
+    until we have a higher-performance and/or Rust solution
+* _skia_ - The Skia drawing library, a backend for Azure
+
+## Library bindings
+
 * _rust-cairo_ - Bindings to the cairo drawing library, a backend for Azure
 * _rust-cocoa_ - Bindings to OS X's Cocoa framework
 * _rust-core-foundation_ - Bindings to OS X's Core Foundation framework
@@ -33,15 +39,13 @@ These are the main servo projects, as well as projects that are pure Rust (not b
 * _rust-fontconfig_ - Bindings to fontconfig
 * _rust-freetype_ - Bindings to FreeType
 * _rust-glut_ - Bindings to GLUT
-* _rust-harfbuzz_ - The harfbuzz text shaping library and bindings
 * _rust-hubbub_ - Bindings to libhubbub
+* _rust-io-surface_ - OS X implementation of cross-process surface sharing. Used by sharegl
 * _rust-mozjs_ - Bindings to SpiderMonkey
 * _rust-netsurfcss_ - Bindings to libcss
 * _rust-opengles_ - Bindings to OpenGL ES
-* _rust-stb-image_ - The stb_image library and bindings
 * _rust-wapcaplet_ - Bindings to libwapcaplet
 * _rust-xlib_ - Bindings to xlib
-* _skia_ - The Skia drawing library, a backend for Azure
 
 ## Other
 
