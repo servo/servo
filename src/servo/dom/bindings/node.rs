@@ -10,7 +10,8 @@ use js::jsapi::bindgen::*;
 use js::glue::bindgen::*;
 
 use dom::node::{Node, NodeScope, Text, Doctype, Comment, Element};
-use utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval, str};
+use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval};
+use dom::bindings::utils::{str};
 use libc::c_uint;
 use ptr::null;
 

@@ -1,5 +1,4 @@
-use au = geometry;
-use au::Au;
+use geometry::Au;
 use servo_gfx_util::range::Range;
 use servo_gfx_util::vec::*;
 
@@ -443,7 +442,7 @@ pub pure fn GlyphData(index: GlyphIndex,
                    ligature_start: bool) -> GlyphData {
     
     let _offset = match offset {
-        None => au::zero_point(),
+        None => geometry::zero_point(),
         Some(o) => o
     };
 
@@ -532,7 +531,7 @@ pub impl GlyphStore {
         pure fn glyph_is_compressible(data: &GlyphData) -> bool {
             is_simple_glyph_id(data.index)
                 && is_simple_advance(data.advance)
-                && data.offset == au::zero_point()
+                && data.offset == geometry::zero_point()
                 && data.cluster_start  // others are stored in detail buffer
         }
 

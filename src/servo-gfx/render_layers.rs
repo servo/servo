@@ -111,7 +111,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
                 //}
 
                 // Create a port and channel pair to receive the new buffer.
-                let (new_buffer_chan, new_buffer_port) = pipes::stream();
+                let (new_buffer_port, new_buffer_chan) = pipes::stream();
 
                 // Send the buffer to the child.
                 f(layer_ref, move buffer, move new_buffer_chan);

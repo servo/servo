@@ -43,20 +43,20 @@ impl DisplayItem {
     }
     
     fn draw_into_context(&self, ctx: &RenderContext) {
-        match *self {
-            SolidColor(_, color) => ctx.draw_solid_color(&self.d().bounds, color),
-            Text(_, run, ref range, color) => {
+        match self {
+            &SolidColor(_, color) => ctx.draw_solid_color(&self.d().bounds, color),
+            &Text(_, run, ref range, color) => {
                 let new_run = @run.deserialize(ctx.font_ctx);
                 let font = new_run.font;
                 let origin = self.d().bounds.origin;
                 let baseline_origin = Point2D(origin.x, origin.y + font.metrics.ascent);
                 font.draw_text_into_context(ctx, new_run, range, baseline_origin, color);
             },
-            Image(_, ref img) => {
+            &Image(_, ref img) => {
                 debug!("drawing image at %?", self.d().bounds);
                 ctx.draw_image(self.d().bounds, clone_arc(img));
             }
-            Border(_, width, color) => ctx.draw_border(&self.d().bounds, width, color),
+            &Border(_, width, color) => ctx.draw_border(&self.d().bounds, width, color),
         }
 
         debug!("%?", {

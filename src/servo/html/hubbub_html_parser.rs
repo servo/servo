@@ -9,9 +9,9 @@ use resource::image_cache_task;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
 
 use core::comm::{Chan, Port};
-use cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
+use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
+use hubbub::hubbub::Attribute;
 use hubbub::hubbub;
-use hubbub::Attribute;
 use newcss::stylesheet::Stylesheet;
 use std::net::url::Url;
 use std::net::url;
@@ -220,13 +220,13 @@ pub fn parse_html(scope: NodeScope,
             debug!("create doctype");
             // TODO: remove copying here by using struct pattern matching to 
             // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
-            let public_id = match doctype.public_id {
-                None => None,
-                Some(id) => Some(copy id)
+            let public_id = match &doctype.public_id {
+                &None => None,
+                &Some(id) => Some(copy id)
             };
-            let system_id = match doctype.system_id {
-                None => None,
-                Some(id) => Some(copy id)
+            let system_id = match &doctype.system_id {
+                &None => None,
+                &Some(id) => Some(copy id)
             };
             let data = DoctypeData(copy doctype.name, move public_id, move system_id,
                                    copy doctype.force_quirks);

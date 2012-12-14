@@ -140,8 +140,8 @@ impl RenderBox  {
     }
 
     pure fn is_whitespace_only() -> bool {
-        match self {
-            UnscannedTextBox(_, raw_text) => raw_text.is_whitespace(),
+        match &self {
+            &UnscannedTextBox(_, raw_text) => raw_text.is_whitespace(),
             _ => false
         }
     }
@@ -235,30 +235,30 @@ impl RenderBox  {
      * holder.get_image()
     */
     fn get_min_width(_ctx: &LayoutContext) -> Au {
-        match self {
+        match &self {
             // TODO: this should account for min/pref widths of the
             // box element in isolation. That includes
             // border/margin/padding but not child widths. The block
             // FlowContext will combine the width of this element and
             // that of its children to arrive at the context width.
-            GenericBox(*) => Au(0),
+            &GenericBox(*) => Au(0),
             // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult 'width'.
-            ImageBox(_,i) => Au::from_px(i.get_size().get_default(Size2D(0,0)).width),
-            TextBox(_,d) => d.run.min_width_for_range(&const d.range),
-            UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
+            &ImageBox(_,i) => Au::from_px(i.get_size().get_default(Size2D(0,0)).width),
+            &TextBox(_,d) => d.run.min_width_for_range(&const d.range),
+            &UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
         }
     }
 
     fn get_pref_width(_ctx: &LayoutContext) -> Au {
-        match self {
+        match &self {
             // TODO: this should account for min/pref widths of the
             // box element in isolation. That includes
             // border/margin/padding but not child widths. The block
             // FlowContext will combine the width of this element and
             // that of its children to arrive at the context width.
-            GenericBox(*) => Au(0),
-            ImageBox(_,i) => Au::from_px(i.get_size().get_default(Size2D(0,0)).width),
+            &GenericBox(*) => Au(0),
+            &ImageBox(_,i) => Au::from_px(i.get_size().get_default(Size2D(0,0)).width),
 
             // a text box cannot span lines, so assume that this is an unsplit text box.
 
@@ -266,7 +266,7 @@ impl RenderBox  {
             // they could report a smaller pref width during incremental reflow.
             // maybe text boxes should report nothing, and the parent flow could
             // factor in min/pref widths of any text runs that it owns.
-            TextBox(_,d) => {
+            &TextBox(_,d) => {
                 let mut max_line_width: Au = Au(0);
                 for d.run.iter_natural_lines_for_range(&const d.range) |line_range| {
                     let mut line_width: Au = Au(0);
@@ -278,7 +278,7 @@ impl RenderBox  {
 
                 max_line_width
             },
-            UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
+            &UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
         }
     }
 
@@ -303,8 +303,8 @@ impl RenderBox  {
     /* The box formed by the content edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
     pure fn content_box() -> Rect<Au> {
-        match self {
-            ImageBox(_,i) => {
+        match &self {
+            &ImageBox(_,i) => {
                 let size = i.size();
                 Rect {
                     origin: copy self.d().position.origin,
@@ -312,7 +312,7 @@ impl RenderBox  {
                                    Au::from_px(size.height))
                 }
             },
-            GenericBox(*) => {
+            &GenericBox(*) => {
                 copy self.d().position
                 /* FIXME: The following hits an ICE for whatever reason
 
@@ -327,10 +327,10 @@ impl RenderBox  {
                                    size.height - (offset_top + offset_bottom))
                 }*/
             },
-            TextBox(*) => {
+            &TextBox(*) => {
                 copy self.d().position
             },
-            UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
+            &UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
         }
     }
 
@@ -397,9 +397,9 @@ impl RenderBox  {
 
         self.add_bgcolor_to_list(list, &abs_box_bounds); 
 
-        match *self {
-            UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
-            TextBox(_,data) => {
+        match self {
+            @UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
+            @TextBox(_,data) => {
                 let nearest_ancestor_element = self.nearest_ancestor_element();
                 let color = nearest_ancestor_element.style().color().to_gfx_color();
                 list.append_item(~DisplayItem::new_Text(&abs_box_bounds,
@@ -424,9 +424,9 @@ impl RenderBox  {
                 ; ()});
             },
             // TODO: items for background, border, outline
-            GenericBox(_) => {
+            @GenericBox(_) => {
             },
-            ImageBox(_,i) => {
+            @ImageBox(_,i) => {
                 match i.get_image() {
                     Some(image) => {
                         debug!("(building display list) building image box");

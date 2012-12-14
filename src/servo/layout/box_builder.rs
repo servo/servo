@@ -57,20 +57,24 @@ priv fn simulate_UA_display_rules(node: Node) -> CSSDisplay {
     if (resolved == CSSDisplayNone) { return resolved; }
 
     do node.read |n| {
-        match n.kind {
-            ~Doctype(*) | ~Comment(*) => CSSDisplayNone,
-            ~Text(*) => CSSDisplayInline,
-            ~Element(e) => match e.kind {
-                ~HTMLHeadElement(*) => CSSDisplayNone,
-                ~HTMLScriptElement(*) => CSSDisplayNone,
-                ~HTMLParagraphElement(*) => CSSDisplayBlock,
-                ~HTMLDivElement(*) => CSSDisplayBlock,
-                ~HTMLBodyElement(*) => CSSDisplayBlock,
-                ~HTMLHeadingElement(*) => CSSDisplayBlock,
-                ~HTMLHtmlElement(*) => CSSDisplayBlock,
-                ~HTMLUListElement(*) => CSSDisplayBlock,
-                ~HTMLOListElement(*) => CSSDisplayBlock,
-                _ => resolved
+        let kind: &dom::node::NodeKind = n.kind;
+        match kind {
+            &Doctype(*) | &Comment(*) => CSSDisplayNone,
+            &Text(*) => CSSDisplayInline,
+            &Element(ref e) => {
+                let kind: &dom::element::ElementKind = e.kind;
+                match kind {
+                    &HTMLHeadElement(*) => CSSDisplayNone,
+                    &HTMLScriptElement(*) => CSSDisplayNone,
+                    &HTMLParagraphElement(*) => CSSDisplayBlock,
+                    &HTMLDivElement(*) => CSSDisplayBlock,
+                    &HTMLBodyElement(*) => CSSDisplayBlock,
+                    &HTMLHeadingElement(*) => CSSDisplayBlock,
+                    &HTMLHtmlElement(*) => CSSDisplayBlock,
+                    &HTMLUListElement(*) => CSSDisplayBlock,
+                    &HTMLOListElement(*) => CSSDisplayBlock,
+                    _ => resolved
+                }
             }
         }
     }
@@ -104,6 +108,8 @@ impl BoxGenerator {
         // TODO: remove this once UA styles work
         let box_type = builder.decide_box_type(node, simulated_display);
 
+        debug!("BoxGenerator[f%d]: point a", self.flow.d().id);
+
         // depending on flow, make a box for this node.
         match self.flow {
             @InlineFlow(*) => {
@@ -126,6 +132,7 @@ impl BoxGenerator {
                 // TODO: cases for inline-block, etc.
             },
             @BlockFlow(*) => {
+                debug!("BoxGenerator[f%d]: point b", self.flow.d().id);
                 let new_box = builder.make_box(ctx, box_type, node, self.flow);
                 debug!("BoxGenerator[f%d]: attaching box[b%d] to block flow (node: %s)",
                        self.flow.d().id, new_box.d().id, node.debug_str());
@@ -134,7 +141,9 @@ impl BoxGenerator {
                 self.flow.block().box = Some(new_box);
             },
             @RootFlow(*) => {
+                debug!("BoxGenerator[f%d]: point c", self.flow.d().id);
                 let new_box = builder.make_box(ctx, box_type, node, self.flow);
+                debug!("BoxGenerator[f%d]: (node is: %s)", self.flow.d().id, node.debug_str());
                 debug!("BoxGenerator[f%d]: attaching box[b%d] to root flow (node: %s)",
                        self.flow.d().id, new_box.d().id, node.debug_str());
 
@@ -271,13 +280,15 @@ impl LayoutTreeBuilder {
     /** Creates necessary box(es) and flow context(s) for the current DOM node,
     and recurses on its children. */
     fn construct_recursively(layout_ctx: &LayoutContext, cur_node: Node, parent_ctx: &BuilderContext) {
-        debug!("Considering node: %?", fmt!("%?", cur_node.read(|n| copy n.kind )));
+        debug!("Considering node: %s", cur_node.debug_str());
 
         let this_ctx = match move parent_ctx.containing_context_for_node(cur_node, &self) {
             Some(move ctx) => move ctx,
             None => { return; } // no context because of display: none. Stop building subtree. 
         };
+        debug!("point a: %s", cur_node.debug_str());
         this_ctx.default_collector.push_node(layout_ctx, &self, cur_node);
+        debug!("point b: %s", cur_node.debug_str());
 
         // recurse on child nodes.
         for tree::each_child(&NodeTree, &cur_node) |child_node| {
@@ -403,7 +414,7 @@ impl LayoutTreeBuilder {
     }
 
     fn make_generic_box(_layout_ctx: &LayoutContext, node: Node, ctx: @FlowContext) -> @RenderBox {
-        @GenericBox(RenderBoxData(node, ctx, self.next_box_id()))
+        @GenericBox(RenderBoxData(copy node, ctx, self.next_box_id()))
     }
 
     fn make_image_box(layout_ctx: &LayoutContext, node: Node, ctx: @FlowContext) -> @RenderBox {

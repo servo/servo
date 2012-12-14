@@ -2,27 +2,20 @@ extern mod core_foundation;
 extern mod core_graphics;
 extern mod core_text;
 
-use cf = core_foundation;
-use cf::base::{
-    CFIndex,
-    CFTypeRef,
-    CFWrapper,
-};
-use cf::data::{CFData, CFDataRef};
-use cf::string::UniChar;
-use cg = core_graphics;
+use quartz::font::core_foundation::base::{CFIndex, CFTypeRef, CFWrapper};
+use quartz::font::core_foundation::data::{CFData, CFDataRef};
+use quartz::font::core_foundation::string::UniChar;
 
-use cg::base::{CGFloat, CGAffineTransform};
-use cg::data_provider::{CGDataProviderRef, CGDataProvider};
-use cg::font::{CGFont, CGFontRef, CGGlyph};
-use cg::geometry::CGRect;
+use quartz::font::core_graphics::base::{CGFloat, CGAffineTransform};
+use quartz::font::core_graphics::data_provider::{CGDataProviderRef, CGDataProvider};
+use quartz::font::core_graphics::font::{CGFont, CGFontRef, CGGlyph};
+use quartz::font::core_graphics::geometry::CGRect;
 
-use ct = core_text;
-use ct::font::CTFont;
-use ct::font_descriptor::{kCTFontDefaultOrientation, CTFontSymbolicTraits};
-use ct::font_descriptor::{SymbolicTraitAccessors};
+use quartz::font::core_text::font::CTFont;
+use quartz::font::core_text::font_descriptor::{kCTFontDefaultOrientation, CTFontSymbolicTraits};
+use quartz::font::core_text::font_descriptor::{SymbolicTraitAccessors};
 
-use font_context::QuartzFontContextHandle;
+use quartz::font_context::QuartzFontContextHandle;
 use geometry::Au;
 use gfx_font::{
     CSSFontWeight,
@@ -76,11 +69,11 @@ pub impl QuartzFontHandle {
     static fn new_from_buffer(_fctx: &QuartzFontContextHandle, buf: ~[u8],
                               style: &SpecifiedFontStyle) -> Result<QuartzFontHandle, ()> {
         let fontprov : CGDataProvider = vec::as_imm_buf(buf, |cbuf, len| {
-            cg::data_provider::new_from_buffer(cbuf, len)
+            quartz::font::core_graphics::data_provider::new_from_buffer(cbuf, len)
         });
 
-        let cgfont = cg::font::create_with_data_provider(&fontprov);
-        let ctfont = ct::font::new_from_CGFont(&cgfont, style.pt_size);
+        let cgfont = quartz::font::core_graphics::font::create_with_data_provider(&fontprov);
+        let ctfont = quartz::font::core_text::font::new_from_CGFont(&cgfont, style.pt_size);
 
         let result = Ok(QuartzFontHandle {
             cgfont : Some(move cgfont),

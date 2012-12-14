@@ -2,7 +2,7 @@ export factory;
 
 use comm::Chan;
 use task::spawn;
-use resource_task::{ProgressMsg, Payload, Done};
+use resource::resource_task::{ProgressMsg, Payload, Done};
 use std::net::url::Url;
 use http_client::{uv_http_request};
 

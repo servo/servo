@@ -1,7 +1,5 @@
 export DisplayListBuilder;
 
-use au = gfx::geometry;
-use au::Au;
 use newcss::values::Specified;
 use newcss::values::{CSSBackgroundColorColor, CSSBackgroundColorTransparent};
 use dom::node::{Text, NodeScope};
@@ -19,6 +17,7 @@ use util::tree;
 use vec::push;
 
 use gfx::display_list::DisplayList;
+use gfx::geometry::Au;
 
 /** A builder object that manages display list builder should mainly
  hold information about the initial request and desired result---for
@@ -42,7 +41,7 @@ trait FlowDisplayListBuilderMethods {
 impl FlowContext: FlowDisplayListBuilderMethods {
     fn build_display_list(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>,
                           list: &mut DisplayList) {
-        let zero = au::zero_point();
+        let zero = gfx::geometry::zero_point();
         self.build_display_list_recurse(builder, dirty, &zero, list);
     }
 

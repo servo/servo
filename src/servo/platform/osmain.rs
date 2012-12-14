@@ -1,6 +1,6 @@
 use ShareGlContext = sharegl::platform::Context;
 use dom::event::{Event, ResizeEvent};
-use resize_rate_limiter::ResizeRateLimiter;
+use platform::resize_rate_limiter::ResizeRateLimiter;
 
 use azure::azure_hl::{BackendType, B8G8R8A8, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
 use core::dvec::DVec;
@@ -334,7 +334,7 @@ fn Surface(backend: BackendType) -> Surface {
 }
 
 /// A function for spawning into the platform's main thread
-fn on_osmain<T: Send>(f: fn~(po: comm::Port<T>)) -> comm::Chan<T> {
+fn on_osmain<T: Owned>(f: fn~(po: comm::Port<T>)) -> comm::Chan<T> {
     task::task().sched_mode(task::PlatformThread).spawn_listener(move f)
 }
 

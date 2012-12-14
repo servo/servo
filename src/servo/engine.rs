@@ -2,7 +2,7 @@ use content::content_task::{ContentTask, ExecuteMsg, ParseMsg, ExitMsg};
 use content::content_task;
 use dom::event::Event;
 use layout::layout_task;
-use layout_task::LayoutTask;
+use layout::layout_task::LayoutTask;
 use resource::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use resource::resource_task::ResourceTask;
 use resource::resource_task;
@@ -23,7 +23,7 @@ pub enum Msg {
     ExitMsg(Chan<()>)
 }
 
-pub struct Engine<C:Compositor Send Copy> {
+pub struct Engine<C:Compositor Owned Copy> {
     request_port: comm::Port<Msg>,
     compositor: C,
     render_task: RenderTask,
@@ -33,12 +33,12 @@ pub struct Engine<C:Compositor Send Copy> {
     content_task: ContentTask
 }
 
-pub fn Engine<C:Compositor Send Copy>(compositor: C,
-                                  opts: &Opts,
-                                  dom_event_port: pipes::Port<Event>,
-                                  dom_event_chan: pipes::SharedChan<Event>,
-                                  resource_task: ResourceTask,
-                                  image_cache_task: ImageCacheTask) -> EngineTask {
+pub fn Engine<C:Compositor Owned Copy>(compositor: C,
+                                       opts: &Opts,
+                                       dom_event_port: pipes::Port<Event>,
+                                       dom_event_chan: pipes::SharedChan<Event>,
+                                       resource_task: ResourceTask,
+                                       image_cache_task: ImageCacheTask) -> EngineTask {
 
     let dom_event_port = Cell(move dom_event_port);
     let dom_event_chan = Cell(move dom_event_chan);
@@ -64,7 +64,7 @@ pub fn Engine<C:Compositor Send Copy>(compositor: C,
     }
 }
 
-impl<C: Compositor Copy Send> Engine<C> {
+impl<C: Compositor Copy Owned> Engine<C> {
     fn run() {
         while self.handle_request(self.request_port.recv()) {
             // Go on...
@@ -86,7 +86,7 @@ impl<C: Compositor Copy Send> Engine<C> {
             self.content_task.send(content_task::ExitMsg);
             self.layout_task.send(layout_task::ExitMsg);
             
-            let (response_chan, response_port) = pipes::stream();
+            let (response_port, response_chan) = pipes::stream();
 
             self.render_task.send(render_task::ExitMsg(move response_chan));
             response_port.recv();

@@ -2,20 +2,15 @@ extern mod harfbuzz;
 
 use geom::Point2D;
 
-use au = geometry;
-use au::Au;
+use geometry::Au;
 
-use font::{
-    Font,
-    FontTable,
-    FontTableTag,
-};
+use font::{Font, FontTable, FontTableTag};
 
-use glyph::{GlyphStore, GlyphIndex, GlyphData};
+use text::glyph::{GlyphStore, GlyphIndex, GlyphData};
 use text::shaper::ShaperMethods;
 
 use servo_util::range;
-use range::Range;
+use util::range::Range;
 
 use core::libc::types::common::c99::int32_t;
 use core::libc::{c_uint, c_int, c_void, c_char};
@@ -23,36 +18,48 @@ use core::util::ignore;
 use dvec::DVec;
 use std::arc;
 
-use harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR, hb_blob_t, hb_face_t, hb_font_t};
-use harfbuzz::{hb_font_funcs_t, hb_buffer_t, hb_codepoint_t, hb_bool_t, hb_glyph_position_t};
-use harfbuzz::{hb_glyph_info_t, hb_var_int_t, hb_position_t};
-use harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy, hb_face_create, hb_face_destroy};
-use harfbuzz::bindgen::{hb_font_create, hb_font_destroy, hb_buffer_create, hb_buffer_destroy};
-use harfbuzz::bindgen::{hb_buffer_add_utf8, hb_shape, hb_buffer_get_glyph_infos};
-use harfbuzz::bindgen::{hb_buffer_get_glyph_positions, hb_font_set_ppem, hb_font_set_scale};
-use harfbuzz::bindgen::{hb_buffer_set_direction, hb_font_funcs_create, hb_font_funcs_destroy};
-use harfbuzz::bindgen::{hb_font_set_funcs, hb_font_funcs_set_glyph_h_advance_func};
-use harfbuzz::bindgen::{hb_font_funcs_set_glyph_func, hb_font_funcs_set_glyph_h_kerning_func};
+use text::harfbuzz::shaper::harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR, hb_blob_t};
+use text::harfbuzz::shaper::harfbuzz::{hb_face_t, hb_font_t};
+use text::harfbuzz::shaper::harfbuzz::{hb_font_funcs_t, hb_buffer_t, hb_codepoint_t, hb_bool_t};
+use text::harfbuzz::shaper::harfbuzz::{hb_glyph_position_t};
+use text::harfbuzz::shaper::harfbuzz::{hb_glyph_info_t, hb_var_int_t, hb_position_t};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_face_create, hb_face_destroy};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_create, hb_font_destroy};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_buffer_create};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_buffer_destroy};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_buffer_add_utf8, hb_shape};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_buffer_get_glyph_infos};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_buffer_get_glyph_positions};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_set_ppem};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_set_scale};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_buffer_set_direction};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_funcs_create};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_funcs_destroy};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_set_funcs};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_funcs_set_glyph_h_advance_func};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_funcs_set_glyph_func};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_funcs_set_glyph_h_kerning_func};
 
-use harfbuzz::{HB_MEMORY_MODE_READONLY,
-                  HB_DIRECTION_LTR};
-use harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_font_funcs_t, hb_buffer_t,
-                  hb_codepoint_t, hb_bool_t, hb_glyph_position_t,
-		  hb_glyph_info_t, hb_var_int_t, hb_position_t, hb_tag_t};
-use harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
-                           hb_face_create_for_tables, hb_face_destroy,
-                           hb_font_create, hb_font_destroy,
-                           hb_buffer_create, hb_buffer_destroy,
-                           hb_buffer_add_utf8, hb_shape,
-                           hb_buffer_get_glyph_infos,
-                           hb_buffer_get_glyph_positions,
-                           hb_font_set_ppem, hb_font_set_scale,
-                           hb_buffer_set_direction,
-                           hb_font_funcs_create, hb_font_funcs_destroy,
-                           hb_font_set_funcs,
-                           hb_font_funcs_set_glyph_h_advance_func,
-                           hb_font_funcs_set_glyph_func,
-                           hb_font_funcs_set_glyph_h_kerning_func};
+use text::harfbuzz::shaper::harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR};
+use text::harfbuzz::shaper::harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_font_funcs_t};
+use text::harfbuzz::shaper::harfbuzz::{hb_buffer_t, hb_codepoint_t, hb_bool_t};
+use text::harfbuzz::shaper::harfbuzz::{hb_glyph_position_t, hb_glyph_info_t, hb_var_int_t};
+use text::harfbuzz::shaper::harfbuzz::{hb_position_t, hb_tag_t};
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
+                                                hb_face_create_for_tables, hb_face_destroy,
+                                                hb_font_create, hb_font_destroy,
+                                                hb_buffer_create, hb_buffer_destroy,
+                                                hb_buffer_add_utf8, hb_shape,
+                                                hb_buffer_get_glyph_infos,
+                                                hb_buffer_get_glyph_positions,
+                                                hb_font_set_ppem, hb_font_set_scale,
+                                                hb_buffer_set_direction,
+                                                hb_font_funcs_create, hb_font_funcs_destroy,
+                                                hb_font_set_funcs,
+                                                hb_font_funcs_set_glyph_h_advance_func,
+                                                hb_font_funcs_set_glyph_func,
+                                                hb_font_funcs_set_glyph_h_kerning_func};
 
 pub struct ShapedGlyphData {
     count: uint,

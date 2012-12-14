@@ -54,7 +54,7 @@ pub fn ContentTask(layout_task: LayoutTask,
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask) -> ContentTask {
 
-    let (control_chan, control_port) = pipes::stream();
+    let (control_port, control_chan) = pipes::stream();
 
     let control_chan = pipes::SharedChan(move control_chan);
     let control_chan_copy = control_chan.clone();
@@ -301,7 +301,7 @@ impl Content {
         self.join_layout();
 
         // Layout will let us know when it's done
-        let (join_chan, join_port) = pipes::stream();
+        let (join_port, join_chan) = pipes::stream();
         self.layout_join_port = move Some(move join_port);
 
         // Send new document and relevant styles to layout

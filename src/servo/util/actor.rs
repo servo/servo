@@ -11,11 +11,11 @@ Actors are only referred to by opaque handles parameterized
 over the actor's message type, which can be considered the
 actor's interface.
 */
-struct ActorRef<M: Send> {
+struct ActorRef<M: Owned> {
     chan: Chan<M>,
 }
 
-impl<M: Send> ActorRef<M> {
+impl<M: Owned> ActorRef<M> {
     fn send(&self, msg: M) {
         self.chan.send(move msg);
     }
@@ -27,8 +27,8 @@ trait Actor<M> {
 }
 
 /// A helper function used by actor constructors
-fn spawn<A: Actor<M>, M: Send>(f: ~fn() -> A) -> ActorRef<M> {
-    let (chan, port) = stream();
+fn spawn<A: Actor<M>, M: Owned>(f: ~fn() -> A) -> ActorRef<M> {
+    let (port, chan) = stream();
     do task::spawn |move f, move port| {
         let actor = f();
         loop {
@@ -44,11 +44,11 @@ fn spawn<A: Actor<M>, M: Send>(f: ~fn() -> A) -> ActorRef<M> {
     }
 }
 
-struct SharedActorRef<M: Send> {
+struct SharedActorRef<M: Owned> {
     chan: SharedChan<M>
 }
 
-impl<M: Send> SharedActorRef<M> {
+impl<M: Owned> SharedActorRef<M> {
     fn send(&self, msg: M) {
         self.chan.send(move msg);
     }
@@ -60,7 +60,7 @@ impl<M: Send> SharedActorRef<M> {
     }
 }
 
-fn SharedActorRef<M: Send>(actor: ActorRef<M>) -> SharedActorRef<M> {
+fn SharedActorRef<M: Owned>(actor: ActorRef<M>) -> SharedActorRef<M> {
     let chan = match move actor {
         ActorRef {
             chan: move chan
@@ -112,7 +112,7 @@ mod test {
     #[test]
     fn test_exit() {
         let actor = HelloActor(~"bob");
-        let (chan, port) = stream();
+        let (port, chan) = stream();
         actor.send(Exit(move chan));
         port.recv();
     }
@@ -123,15 +123,15 @@ mod test {
         let actor1 = SharedActorRef(move actor);
         let actor2 = actor1.clone();
 
-        let (chan1, port1) = stream();
+        let (port1, chan1) = stream();
         actor1.send(GetName(move chan1));
-        let (chan2, port2) = stream();
+        let (port2, chan2) = stream();
         actor2.send(GetName(move chan2));
 
         assert port1.recv() == ~"bob";
         assert port2.recv() == ~"bob";
 
-        let (chan, port) = stream();
+        let (port, chan) = stream();
         actor1.send(Exit(move chan));
         port.recv();
     }

@@ -1,9 +1,6 @@
 use font_context::FontContext;
 use geometry::Au;
-use glyph::{
-    BreakTypeNormal,
-    GlyphStore,
-};
+use text::glyph::{BreakTypeNormal, GlyphStore};
 use servo_gfx_font::{Font, FontDescriptor, RunMetrics};
 use servo_gfx_util::range::Range;
 
@@ -16,7 +13,7 @@ use std::arc::ARC;
 pub struct TextRun {
     text: ~str,
     font: @Font,
-    priv glyphs: GlyphStore,
+    glyphs: GlyphStore,
 }
 
 // This is a hack until TextRuns are normally sendable, or

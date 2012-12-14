@@ -9,7 +9,7 @@ pub fn Image(width: uint, height: uint, depth: uint, data: ~[u8]) -> Image {
     stb_image::new_image(width, height, depth, move data)
 }
 
-const TEST_IMAGE: [u8 * 4962] = #include_bin("test.jpeg");
+const TEST_IMAGE: [u8 * 4962] = include_bin!("test.jpeg");
 
 pub fn test_image_bin() -> ~[u8] {
     return vec::from_fn(4962, |i| TEST_IMAGE[i]);

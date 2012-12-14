@@ -6,7 +6,7 @@ use dom::node::{Node, NodeTree};
 use newcss::select::{SelectCtx, SelectResults};
 use newcss::complete::CompleteSelectResults;
 use layout::context::LayoutContext;
-use select_handler::NodeSelectHandler;
+use css::select_handler::NodeSelectHandler;
 
 trait MatchMethods {
     fn restyle_subtree(select_ctx: &SelectCtx);

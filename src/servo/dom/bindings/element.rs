@@ -1,5 +1,3 @@
-use au = gfx::geometry;
-use au::au;
 use js::rust::{bare_compartment, methods, jsobj};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
@@ -15,11 +13,12 @@ use content::content_task::{Content, task_from_context};
 use layout::layout_task;
 use dom::node::{Node, NodeScope, Element};
 use dom::element::*;
-use node::NodeBundle;
-use utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval, str};
+use dom::bindings::node::NodeBundle;
+use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval};
+use dom::bindings::utils::{str};
 use libc::c_uint;
 use ptr::null;
-use node::unwrap;
+use dom::bindings::node::unwrap;
 
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {

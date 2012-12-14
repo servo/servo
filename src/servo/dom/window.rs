@@ -45,7 +45,7 @@ pub fn TimerData(argc: libc::c_uint, argv: *JSVal) -> TimerData unsafe {
 impl Window {
     fn alert(s: &str) {
         // Right now, just print to the console
-        io::println(#fmt("ALERT: %s", s));
+        io::println(fmt!("ALERT: %s", s));
     }
 
     fn close() {

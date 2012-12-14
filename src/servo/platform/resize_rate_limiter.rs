@@ -59,7 +59,7 @@ impl ResizeRateLimiter {
     }
 
     priv fn send_event(width: uint, height: uint) {
-        let (chan, port) = pipes::stream();
+        let (port, chan) = pipes::stream();
         self.dom_event_chan.send(ResizeEvent(width, height, move chan));
         self.last_response_port = Some(move port);
     }

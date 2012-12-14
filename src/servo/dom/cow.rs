@@ -63,13 +63,13 @@ use core::libc::types::os::arch::c95::size_t;
 use ptr::Ptr;
 use vec::push;
 
-type ScopeData<T:Send,A> = {
+type ScopeData<T,A> = {
     mut layout_active: bool,
     mut free_list: ~[Handle<T,A>],
     mut first_dirty: Handle<T,A>
 };
 
-struct ScopeResource<T:Send,A> {
+struct ScopeResource<T,A> {
     d : ScopeData<T,A>,
 
     drop unsafe {
@@ -77,22 +77,22 @@ struct ScopeResource<T:Send,A> {
     }
 }
 
-fn ScopeResource<T:Send,A>(d : ScopeData<T,A>) -> ScopeResource<T,A> {
+fn ScopeResource<T:Owned,A>(d : ScopeData<T,A>) -> ScopeResource<T,A> {
     ScopeResource { d: move d }
 }
 
-pub type Scope<T:Send,A> = @ScopeResource<T,A>;
+pub type Scope<T,A> = @ScopeResource<T,A>;
 
-type HandleData<T:Send,A> = {mut read_ptr: *T,
-                             mut write_ptr: *mut T,
-                             mut read_aux: *A,
-                             mut next_dirty: Handle<T,A>};
-pub enum Handle<T:Send,A> {
+type HandleData<T,A> = {mut read_ptr: *T,
+                        mut write_ptr: *mut T,
+                        mut read_aux: *A,
+                        mut next_dirty: Handle<T,A>};
+pub enum Handle<T,A> {
     _Handle(*HandleData<T,A>)
 }
 
 // Private methods
-impl<T:Send,A> Handle<T,A> {
+impl<T,A> Handle<T,A> {
     fn read_ptr() -> *T unsafe            { (**self).read_ptr   }
     fn write_ptr() -> *mut T unsafe       { (**self).write_ptr  }
     fn read_aux() -> *A unsafe            { (**self).read_aux   }
@@ -107,7 +107,7 @@ impl<T:Send,A> Handle<T,A> {
     fn is_not_null() -> bool { (*self).is_not_null() }
 }
 
-impl<T:Send,A> Handle<T,A> {
+impl<T:Owned,A> Handle<T,A> {
     /// Access the reader's view of the handle's data
     fn read<U>(f: fn(&T) -> U) -> U unsafe {
         f(&*self.read_ptr())
@@ -133,13 +133,13 @@ impl<T:Send,A> Handle<T,A> {
     }
 }
 
-impl <T: Send,A> Handle<T,A> : cmp::Eq {
+impl <T: Owned,A> Handle<T,A> : cmp::Eq {
     pure fn eq(&self, other: &Handle<T,A>) -> bool { **self == **other }
     pure fn ne(&self, other: &Handle<T,A>) -> bool { **self != **other }
 }
 
 // Private methods
-impl<T: Copy Send,A> Scope<T,A> {
+impl<T: Copy Owned,A> Scope<T,A> {
     fn clone(v: *T) -> *T unsafe {
         let n: *mut T =
             cast::reinterpret_cast(&libc::calloc(sys::size_of::<T>() as size_t, 1u as size_t));
@@ -153,38 +153,38 @@ impl<T: Copy Send,A> Scope<T,A> {
     }
 }
 
-unsafe fn free<T:Send>(t: *T) {
+unsafe fn free<T>(t: *T) {
     let _x = move *cast::reinterpret_cast::<*T,*mut T>(&t);
     libc::free(cast::reinterpret_cast(&t));
 }
 
-unsafe fn free_handle<T:Send,A>(h: Handle<T,A>) {
+unsafe fn free_handle<T,A>(h: Handle<T,A>) {
     free(h.read_ptr());
     if h.write_ptr() != cast::reinterpret_cast(&h.read_ptr()) {
         free(cast::reinterpret_cast::<*mut T,*T>(&h.write_ptr()));
     }
 }
 
-pub unsafe fn unwrap<T:Send, A>(handle: Handle<T,A>) -> *HandleData<T,A> {
+pub unsafe fn unwrap<T:Owned, A>(handle: Handle<T,A>) -> *HandleData<T,A> {
     *handle
 }
 
-pub unsafe fn wrap<T:Send, A>(data: *HandleData<T,A>) -> Handle<T,A> {
+pub unsafe fn wrap<T:Owned, A>(data: *HandleData<T,A>) -> Handle<T,A> {
     _Handle(data)
 }
 
-fn null_handle<T:Send,A>() -> Handle<T,A> {
+fn null_handle<T:Owned,A>() -> Handle<T,A> {
     _Handle(ptr::null())
 }
 
-pub fn Scope<T:Send,A>() -> Scope<T,A> {
+pub fn Scope<T:Owned,A>() -> Scope<T,A> {
     @ScopeResource({mut layout_active: false,
                     mut free_list: ~[],
                     mut first_dirty: null_handle()})
 }
 
 // Writer methods
-impl<T:Copy Send,A> Scope<T,A> {
+impl<T:Copy Owned,A> Scope<T,A> {
     fn is_reader_forked() -> bool {
         self.d.layout_active
     }

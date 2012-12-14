@@ -1,6 +1,6 @@
 use image::base::{Image, load_from_memory, test_image_bin};
 use resource::resource_task;
-use resource_task::ResourceTask;
+use resource::resource_task::ResourceTask;
 use util::url::{make_url, UrlMap, url_map};
 
 use clone_arc = std::arc::clone;
@@ -49,10 +49,10 @@ pub enum ImageResponseMsg {
 
 impl ImageResponseMsg {
     pure fn clone() -> ImageResponseMsg {
-        match self {
-          ImageReady(img) => ImageReady(unsafe { clone_arc(&img) }),
-          ImageNotReady => ImageNotReady,
-          ImageFailed => ImageFailed
+        match &self {
+          &ImageReady(img) => ImageReady(unsafe { clone_arc(&img) }),
+          &ImageNotReady => ImageNotReady,
+          &ImageFailed => ImageFailed
         }
     }
 }
@@ -89,7 +89,7 @@ pub fn ImageCacheTask_(resource_task: ResourceTask, decoder_factory: DecoderFact
     // copy unsoundly
     let decoder_factory_cell = Cell(move decoder_factory);
 
-    let (chan, port) = stream();
+    let (port, chan) = stream();
     let chan = SharedChan(move chan);
     let port_cell = Cell(move port);
     let chan_cell = Cell(chan.clone());
@@ -110,7 +110,7 @@ pub fn ImageCacheTask_(resource_task: ResourceTask, decoder_factory: DecoderFact
 }
 
 fn SyncImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
-    let (chan, port) = stream();
+    let (port, chan) = stream();
     let port_cell = Cell(move port);
 
     do spawn |move port_cell, move resource_task| {
@@ -451,7 +451,7 @@ trait ImageCacheTaskClient {
 impl ImageCacheTask: ImageCacheTaskClient {
 
     fn exit() {
-        let (response_chan, response_port) = stream();
+        let (response_port, response_chan) = stream();
         self.send(Exit(move response_chan));
         response_port.recv();
     }

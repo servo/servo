@@ -23,11 +23,11 @@ pub enum Msg {
 
 pub type RenderTask = comm::Chan<Msg>;
 
-pub fn RenderTask<C: Compositor Send>(compositor: C, opts: Opts) -> RenderTask {
+pub fn RenderTask<C: Compositor Owned>(compositor: C, opts: Opts) -> RenderTask {
     let compositor_cell = Cell(move compositor);
     let opts_cell = Cell(move opts);
     do task::spawn_listener |po: comm::Port<Msg>, move compositor_cell, move opts_cell| {
-        let (layer_buffer_channel, layer_buffer_set_port) = pipes::stream();
+        let (layer_buffer_set_port, layer_buffer_channel) = pipes::stream();
 
         let compositor = compositor_cell.take();
         compositor.begin_drawing(move layer_buffer_channel);
@@ -67,7 +67,7 @@ priv struct ThreadRenderContext {
     opts: Opts,
 }
 
-priv struct Renderer<C: Compositor Send> {
+priv struct Renderer<C: Compositor Owned> {
     port: comm::Port<Msg>,
     compositor: C,
     layer_buffer_set_port: Cell<pipes::Port<LayerBufferSet>>,
@@ -75,7 +75,7 @@ priv struct Renderer<C: Compositor Send> {
     opts: Opts,
 }
 
-impl<C: Compositor Send> Renderer<C> {
+impl<C: Compositor Owned> Renderer<C> {
     fn start() {
         debug!("renderer: beginning rendering loop");
 
@@ -100,7 +100,7 @@ impl<C: Compositor Send> Renderer<C> {
         }
 
         let layer_buffer_set = layer_buffer_set_port.recv();
-        let (layer_buffer_set_channel, new_layer_buffer_set_port) = pipes::stream();
+        let (new_layer_buffer_set_port, layer_buffer_set_channel) = pipes::stream();
         self.layer_buffer_set_port.put_back(move new_layer_buffer_set_port);
 
         let layer_buffer_set_cell = Cell(move layer_buffer_set);

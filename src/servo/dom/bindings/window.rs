@@ -11,11 +11,11 @@ use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_Con
 use js::glue::bindgen::RUST_JSVAL_TO_INT;
 use ptr::null;
 use libc::c_uint;
-use utils::{rust_box, squirrel_away, jsval_to_str};
-use bindings::node::create;
+use dom::bindings::utils::{rust_box, squirrel_away, jsval_to_str};
+use dom::bindings::node::create;
 use dom::window::{Window, TimerMessage_Fire};
 use dom::node::Node;
-use dvec::DVec;
+use core::dvec::DVec;
 
 extern fn alert(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
   unsafe {

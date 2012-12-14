@@ -38,8 +38,8 @@ trait UnscannedMethods {
 
 impl RenderBox : UnscannedMethods {
     pure fn raw_text() -> ~str {
-        match self {
-            UnscannedTextBox(_, s) => copy s,
+        match &self {
+            &UnscannedTextBox(_, s) => copy s,
             _ => fail ~"unsupported operation: box.raw_text() on non-unscanned text box."
         }
     }

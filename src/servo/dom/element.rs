@@ -1,6 +1,4 @@
-use au = gfx::geometry;
-use au::au;
-use dvec::DVec;
+use core::dvec::DVec;
 use geom::size::Size2D;
 use std::net::url::Url;
 

@@ -148,9 +148,9 @@ fn main() {
 
 #[allow(non_implicitly_copyable_typarams)]
 fn run(opts: &Opts) {
-    match opts.render_mode {
-      Screen => run_pipeline_screen(opts),
-      Png(outfile) => {
+    match &opts.render_mode {
+      &Screen => run_pipeline_screen(opts),
+      &Png(outfile) => {
         assert opts.urls.is_not_empty();
         if opts.urls.len() > 1u {
             fail ~"servo asks that you stick to a single URL in PNG output mode"
@@ -161,14 +161,14 @@ fn run(opts: &Opts) {
 }
 
 fn run_pipeline_screen(opts: &Opts) {
-    let (dom_event_chan, dom_event_port) = pipes::stream();
+    let (dom_event_port, dom_event_chan) = pipes::stream();
     let dom_event_chan = pipes::SharedChan(move dom_event_chan);
 
     // The platform event handler thread
     let osmain = OSMain(dom_event_chan.clone(), copy *opts);
 
     // Send each file to render then wait for keypress
-    let (keypress_to_engine, keypress_from_osmain) = pipes::stream();
+    let (keypress_from_osmain, keypress_to_engine) = pipes::stream();
     osmain.chan.send(AddKeyHandler(move keypress_to_engine));
 
     // Create a servo instance
@@ -191,7 +191,7 @@ fn run_pipeline_screen(opts: &Opts) {
 
     // Shut everything down
     debug!("master: Shut down");
-    let (exit_chan, exit_response_from_engine) = pipes::stream();
+    let (exit_response_from_engine, exit_chan) = pipes::stream();
     engine_task.send(engine::ExitMsg(move exit_chan));
     exit_response_from_engine.recv();
 
@@ -212,7 +212,7 @@ fn run_pipeline_png(url: ~str, outfile: &str) {
     use resource::image_cache_task::SyncImageCacheTask;
 
     listen(|pngdata_from_compositor| {
-        let (dom_event_chan, dom_event_port) = pipes::stream();
+        let (dom_event_port, dom_event_chan) = pipes::stream();
         let dom_event_chan = pipes::SharedChan(move dom_event_chan);
 
         let compositor = PngCompositor(pngdata_from_compositor);
