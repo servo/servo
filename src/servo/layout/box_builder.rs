@@ -420,8 +420,8 @@ impl LayoutTreeBuilder {
     fn make_image_box(layout_ctx: &LayoutContext, node: Node, ctx: @FlowContext) -> @RenderBox {
         do node.read |n| {
             match n.kind {
-                ~Element(ed) => match ed.kind {
-                    ~HTMLImageElement(d) => {
+                ~Element(ref ed) => match ed.kind {
+                    ~HTMLImageElement(ref d) => {
                         // TODO: this could be written as a pattern guard, but it triggers
                         // an ICE (mozilla/rust issue #3601)
                         if d.image.is_some() {
@@ -445,7 +445,7 @@ impl LayoutTreeBuilder {
     fn make_text_box(_layout_ctx: &LayoutContext, node: Node, ctx: @FlowContext) -> @RenderBox {
         do node.read |n| {
             match n.kind {
-                ~Text(string) => @UnscannedTextBox(RenderBoxData(node, ctx, self.next_box_id()), copy string),
+                ~Text(ref string) => @UnscannedTextBox(RenderBoxData(node, ctx, self.next_box_id()), copy *string),
                 _ => fail ~"WAT error: why couldn't we make a text box?"
             }
         }
@@ -456,10 +456,9 @@ impl LayoutTreeBuilder {
             match n.kind {
                 ~Doctype(*) | ~Comment(*) => fail ~"Hey, doctypes and comments shouldn't get here! They are display:none!",
                 ~Text(*) => RenderBox_Text,
-                ~Element(element) => {
-                    // FIXME: Bad copy
-                    match (copy element.kind, display) {
-                        (~HTMLImageElement(d), _) if d.image.is_some() => RenderBox_Image,
+                ~Element(ref element) => {
+                    match (&element.kind, display) {
+                        (&~HTMLImageElement(d), _) if d.image.is_some() => RenderBox_Image,
 //                      (_, Specified(_)) => GenericBox,
                         (_, _) => RenderBox_Generic // TODO: replace this with the commented lines
 //                      (_, _) => fail ~"Can't create box for Node with non-specified 'display' type"

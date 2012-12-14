@@ -108,7 +108,7 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
     let bundle = unwrap(obj);
     do (*bundle).payload.scope.write(&(*bundle).payload.node) |nd| {
         match nd.kind {
-          ~Element(ed) => {
+          ~Element(ref ed) => {
             match ed.kind {
               ~HTMLImageElement(*) => {
                 let arg = ptr::offset(JS_ARGV(cx, cast::reinterpret_cast(&vp)), 0);
@@ -135,7 +135,7 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
         let bundle = unwrap(obj);
         do (*bundle).payload.scope.write(&(*bundle).payload.node) |nd| {
             match nd.kind {
-              ~Element(ed) => {
+              ~Element(ref ed) => {
                 let s = str(copy ed.tag_name);
                 *vp = domstring_to_jsval(cx, &s);
               }

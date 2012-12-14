@@ -340,7 +340,7 @@ pub fn parse_html(scope: NodeScope,
             fn complete_script(scope: &NodeScope, script: hubbub::NodeDataPtr, url: &Url, js_chan: &comm::Chan<JSMessage>) unsafe {
                 do scope.read(&cow::wrap(cast::transmute(script))) |node_contents| {
                     match *node_contents.kind {
-                        Element(element) if element.tag_name == ~"script" => {
+                        Element(ref element) if element.tag_name == ~"script" => {
                             match element.get_attr(~"src") {
                                 Some(move src) => {
                                     debug!("found script: %s", src);
