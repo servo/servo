@@ -60,8 +60,8 @@ pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
       &null_string => {
         JSVAL_NULL
       }
-      &str(s) => {
-        str::as_buf(s, |buf, len| {
+      &str(ref s) => {
+        str::as_buf(*s, |buf, len| {
             let cbuf = cast::reinterpret_cast(&buf);
             RUST_STRING_TO_JSVAL(JS_NewStringCopyN(cx, cbuf, len as libc::size_t))
         })

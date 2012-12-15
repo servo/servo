@@ -621,7 +621,9 @@ impl FlowContext : InlineLayout {
         // over the box list, and/or put into RenderBox.
         for self.inline().boxes.each |box| {
             box.d().position.size.width = match *box {
-                @ImageBox(_,img) => Au::from_px(img.get_size().get_default(Size2D(0,0)).width),
+                @ImageBox(_, ref img) => {
+                    Au::from_px(img.get_size().get_default(Size2D(0,0)).width)
+                }
                 @TextBox(*) => { /* text boxes are initialized with dimensions */
                                    box.d().position.size.width
                 },
@@ -661,7 +663,7 @@ impl FlowContext : InlineLayout {
 
                 // compute box height.
                 cur_box.d().position.size.height = match cur_box {
-                    @ImageBox(_,img) => Au::from_px(img.size().height),
+                    @ImageBox(_, ref img) => Au::from_px(img.size().height),
                     @TextBox(*) => { /* text boxes are initialized with dimensions */
                         cur_box.d().position.size.height
                     },

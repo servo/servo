@@ -175,10 +175,14 @@ pub impl FontContext {
                 Font::new_from_buffer(&self, test_font_bin(), &desc.style, self.backend)
             },
             // TODO(Issue #174): implement by-platform-name font selectors.
-            &SelectorPlatformIdentifier(identifier) => { 
-                let result_handle = self.handle.create_font_from_identifier(copy identifier, copy desc.style);
+            &SelectorPlatformIdentifier(ref identifier) => { 
+                let result_handle = self.handle.create_font_from_identifier(copy *identifier,
+                                                                            copy desc.style);
                 result::chain(move result_handle, |handle| {
-                    Ok(Font::new_from_adopted_handle(&self, move handle, &desc.style, self.backend))
+                    Ok(Font::new_from_adopted_handle(&self,
+                                                     move handle,
+                                                     &desc.style,
+                                                     self.backend))
                 })
             }
         };

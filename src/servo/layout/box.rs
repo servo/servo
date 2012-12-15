@@ -141,7 +141,7 @@ impl RenderBox  {
 
     pure fn is_whitespace_only() -> bool {
         match &self {
-            &UnscannedTextBox(_, raw_text) => raw_text.is_whitespace(),
+            &UnscannedTextBox(_, ref raw_text) => raw_text.is_whitespace(),
             _ => false
         }
     }
@@ -153,7 +153,7 @@ impl RenderBox  {
             (@UnscannedTextBox(*), @UnscannedTextBox(*)) => {
                 self.font_style() == other.font_style()
             },
-            (@TextBox(_,d1), @TextBox(_,d2)) => core::managed::ptr_eq(d1.run, d2.run),
+            (@TextBox(_, ref d1), @TextBox(_, ref d2)) => core::managed::ptr_eq(d1.run, d2.run),
             (_, _) => false
         }
     }
@@ -244,7 +244,7 @@ impl RenderBox  {
             &GenericBox(*) => Au(0),
             // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult 'width'.
-            &ImageBox(_,i) => Au::from_px(i.get_size().get_default(Size2D(0,0)).width),
+            &ImageBox(_, ref i) => Au::from_px(i.get_size().get_default(Size2D(0,0)).width),
             &TextBox(_,d) => d.run.min_width_for_range(&const d.range),
             &UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
         }
@@ -258,7 +258,7 @@ impl RenderBox  {
             // FlowContext will combine the width of this element and
             // that of its children to arrive at the context width.
             &GenericBox(*) => Au(0),
-            &ImageBox(_,i) => Au::from_px(i.get_size().get_default(Size2D(0,0)).width),
+            &ImageBox(_, ref i) => Au::from_px(i.get_size().get_default(Size2D(0,0)).width),
 
             // a text box cannot span lines, so assume that this is an unsplit text box.
 
@@ -304,7 +304,7 @@ impl RenderBox  {
        Coordinates are relative to the owning flow. */
     pure fn content_box() -> Rect<Au> {
         match &self {
-            &ImageBox(_,i) => {
+            &ImageBox(_, ref i) => {
                 let size = i.size();
                 Rect {
                     origin: copy self.d().position.origin,
@@ -426,7 +426,7 @@ impl RenderBox  {
             // TODO: items for background, border, outline
             @GenericBox(_) => {
             },
-            @ImageBox(_,i) => {
+            @ImageBox(_, ref i) => {
                 match i.get_image() {
                     Some(image) => {
                         debug!("(building display list) building image box");
@@ -581,7 +581,7 @@ impl RenderBox : BoxedDebugMethods {
             @GenericBox(*) => ~"GenericBox",
             @ImageBox(*) => ~"ImageBox",
             @TextBox(_,d) => fmt!("TextBox(text=%s)", str::substr(d.run.text, d.range.begin(), d.range.length())),
-            @UnscannedTextBox(_,s) => fmt!("UnscannedTextBox(%s)", s)
+            @UnscannedTextBox(_, ref s) => fmt!("UnscannedTextBox(%s)", *s)
         };
 
         fmt!("box b%?: %?", self.d().id, repr)

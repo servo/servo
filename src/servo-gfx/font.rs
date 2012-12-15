@@ -199,7 +199,7 @@ pub enum FontSelector {
 pub impl FontSelector : cmp::Eq {
     pure fn eq(&self, other: &FontSelector) -> bool {
         match (self, other) {
-            (&SelectorPlatformIdentifier(a), &SelectorPlatformIdentifier(b)) => a == b,
+            (&SelectorPlatformIdentifier(ref a), &SelectorPlatformIdentifier(ref b)) => a == b,
             (&SelectorStubDummy, &SelectorStubDummy) => true,
             _ => false
         }

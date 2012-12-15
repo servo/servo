@@ -458,7 +458,7 @@ impl LayoutTreeBuilder {
                 ~Text(*) => RenderBox_Text,
                 ~Element(ref element) => {
                     match (&element.kind, display) {
-                        (&~HTMLImageElement(d), _) if d.image.is_some() => RenderBox_Image,
+                        (&~HTMLImageElement(ref d), _) if d.image.is_some() => RenderBox_Image,
 //                      (_, Specified(_)) => GenericBox,
                         (_, _) => RenderBox_Generic // TODO: replace this with the commented lines
 //                      (_, _) => fail ~"Can't create box for Node with non-specified 'display' type"

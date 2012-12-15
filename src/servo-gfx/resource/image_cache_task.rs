@@ -50,7 +50,7 @@ pub enum ImageResponseMsg {
 impl ImageResponseMsg {
     pure fn clone() -> ImageResponseMsg {
         match &self {
-          &ImageReady(img) => ImageReady(unsafe { clone_arc(&img) }),
+          &ImageReady(ref img) => ImageReady(unsafe { clone_arc(img) }),
           &ImageNotReady => ImageNotReady,
           &ImageFailed => ImageFailed
         }
@@ -376,10 +376,15 @@ impl ImageCache {
 
     priv fn purge_waiters(url: Url, f: fn() -> ImageResponseMsg) {
         match self.wait_map.find(copy url) {
-          Some(@waiters) => {
-            for waiters.each |response| {
+          Some(@ref mut waiters) => {
+            let mut new_waiters = ~[];
+            new_waiters <-> *waiters;
+
+            for new_waiters.each |response| {
                 response.send(f());
             }
+
+            *waiters <-> new_waiters;
             self.wait_map.remove(move url);
           }
           None => ()

@@ -222,11 +222,11 @@ pub fn parse_html(scope: NodeScope,
             // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
             let public_id = match &doctype.public_id {
                 &None => None,
-                &Some(id) => Some(copy id)
+                &Some(ref id) => Some(copy *id)
             };
             let system_id = match &doctype.system_id {
                 &None => None,
-                &Some(id) => Some(copy id)
+                &Some(ref id) => Some(copy *id)
             };
             let data = DoctypeData(copy doctype.name, move public_id, move system_id,
                                    copy doctype.force_quirks);

@@ -45,7 +45,7 @@ impl DisplayItem {
     fn draw_into_context(&self, ctx: &RenderContext) {
         match self {
             &SolidColor(_, color) => ctx.draw_solid_color(&self.d().bounds, color),
-            &Text(_, run, ref range, color) => {
+            &Text(_, ref run, ref range, color) => {
                 let new_run = @run.deserialize(ctx.font_ctx);
                 let font = new_run.font;
                 let origin = self.d().bounds.origin;
