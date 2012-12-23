@@ -6,9 +6,9 @@ use layout::layout_task::LayoutTask;
 use resource::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use resource::resource_task::ResourceTask;
 use resource::resource_task;
+use util::task::spawn_listener;
 
 use core::pipes::{Port, Chan};
-use core::task::spawn_listener;
 use gfx::compositor::Compositor;
 use gfx::opts::Opts;
 use gfx::render_task::RenderTask;
@@ -16,7 +16,7 @@ use gfx::render_task;
 use std::cell::Cell;
 use std::net::url::Url;
 
-pub type EngineTask = comm::Chan<Msg>;
+pub type EngineTask = oldcomm::Chan<Msg>;
 
 pub enum Msg {
     LoadURLMsg(Url),
@@ -24,7 +24,7 @@ pub enum Msg {
 }
 
 pub struct Engine<C:Compositor Owned Copy> {
-    request_port: comm::Port<Msg>,
+    request_port: oldcomm::Port<Msg>,
     compositor: C,
     render_task: RenderTask,
     resource_task: ResourceTask,

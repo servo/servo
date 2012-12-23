@@ -15,8 +15,9 @@ use layout::traverse::*;
 use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use resource::local_image_cache::LocalImageCache;
 use util::time::time;
+use util::task::spawn_listener;
 
-use core::comm::*;  // FIXME: Bad! Pipe-ify me.
+use core::oldcomm::*;  // FIXME: Bad! Pipe-ify me.
 use core::dvec::DVec;
 use core::mutable::Mut;
 use core::task::*;
@@ -38,7 +39,7 @@ use std::arc::ARC;
 use std::cell::Cell;
 use std::net::url::Url;
 
-pub type LayoutTask = comm::Chan<Msg>;
+pub type LayoutTask = oldcomm::Chan<Msg>;
 
 pub enum LayoutQuery {
     ContentBox(Node)
@@ -53,7 +54,7 @@ enum LayoutQueryResponse_ {
 pub enum Msg {
     AddStylesheet(Stylesheet),
     BuildMsg(BuildData),
-    QueryMsg(LayoutQuery, comm::Chan<LayoutQueryResponse>),
+    QueryMsg(LayoutQuery, oldcomm::Chan<LayoutQueryResponse>),
     ExitMsg
 }
 
@@ -96,7 +97,7 @@ struct Layout {
     render_task: RenderTask,
     image_cache_task: ImageCacheTask,
     local_image_cache: @LocalImageCache,
-    from_content: comm::Port<Msg>,
+    from_content: oldcomm::Port<Msg>,
 
     font_ctx: @FontContext,
     // This is used to root auxilliary RCU reader data
@@ -106,7 +107,7 @@ struct Layout {
 
 fn Layout(render_task: RenderTask, 
           image_cache_task: ImageCacheTask,
-          from_content: comm::Port<Msg>,
+          from_content: oldcomm::Port<Msg>,
           opts: &Opts) -> Layout {
 
     let fctx = @FontContext::new(opts.render_backend, true);
@@ -251,7 +252,7 @@ impl Layout {
 
 
     fn handle_query(query: LayoutQuery, 
-                    reply_chan: comm::Chan<LayoutQueryResponse>) {
+                    reply_chan: oldcomm::Chan<LayoutQueryResponse>) {
         match query {
             ContentBox(node) => {
                 let response = do node.aux |a| {

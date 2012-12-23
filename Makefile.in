@@ -29,7 +29,7 @@ B := $(CFG_BUILD_DIR)
 
 MKFILE_DEPS := config.stamp $(call rwildcard,$(S)mk/,*)
 
-CFG_RUSTC_FLAGS := $(RUSTFLAGS)
+CFG_RUSTC_FLAGS := $(RUSTFLAGS) -A default_methods
 
 ifdef CFG_DISABLE_OPTIMIZE
   $(info cfg: disabling rustc optimization (CFG_DISABLE_OPTIMIZE))

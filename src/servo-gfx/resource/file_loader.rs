@@ -1,6 +1,6 @@
 export factory;
 
-use comm::Chan;
+use oldcomm::Chan;
 use task::spawn;
 use resource::resource_task::{ProgressMsg, Payload, Done};
 use std::net::url::Url;

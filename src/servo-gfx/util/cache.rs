@@ -1,6 +1,6 @@
 use core::cmp::*;
 
-trait Cache<K: Copy Eq, V: Copy> {
+pub trait Cache<K: Copy Eq, V: Copy> {
     static fn new(size: uint) -> self;
     fn insert(key: &K, value: V);
     fn find(key: &K) -> Option<V>;

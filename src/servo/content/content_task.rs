@@ -11,10 +11,11 @@ use dom::window::Window;
 use layout::layout_task;
 use layout::layout_task::{AddStylesheet, BuildData, BuildMsg, Damage, LayoutTask};
 use layout::layout_task::{MatchSelectorsDamage, NoDamage, ReflowDamage};
+use util::task::spawn_listener;
 
-use core::comm::{Port, Chan, listen, select2};
+use core::oldcomm::{Port, Chan, listen, select2};
 use core::either;
-use core::task::{SingleThreaded, spawn, spawn_listener, task};
+use core::task::{SingleThreaded, spawn, task};
 use core::io::{println, read_whole_file};
 use core::ptr::null;
 use core::util::replace;
@@ -234,7 +235,7 @@ impl Content {
             //TODO: support extra args. requires passing a *JSVal argv
             JS_CallFunctionValue(self.cx.ptr, thisValue, timerData.funval,
                                  0, null(), ptr::to_unsafe_ptr(&rval));
-            self.relayout(self.document.get(), &self.doc_url.get());
+            self.relayout(self.document.get(), &(copy self.doc_url).get());
             return true;
           }
 
@@ -325,7 +326,7 @@ impl Content {
     }
 
      fn query_layout(query: layout_task::LayoutQuery) -> layout_task::LayoutQueryResponse {
-         self.relayout(self.document.get(), &self.doc_url.get());
+         self.relayout(self.document.get(), &(copy self.doc_url).get());
          self.join_layout();
          
          let response_port = Port();
@@ -349,7 +350,7 @@ impl Content {
                 }
                 Some(document) => {
                     assert self.doc_url.is_some();
-                    self.relayout(document, &self.doc_url.get());
+                    self.relayout(document, &(copy self.doc_url).get());
                 }
             }
             response_chan.send(());
@@ -364,7 +365,7 @@ impl Content {
                 }
                 Some(document) => {
                     assert self.doc_url.is_some();
-                    self.relayout(document, &self.doc_url.get());
+                    self.relayout(document, &(copy self.doc_url).get());
                 }
             }
             return true;

@@ -18,9 +18,9 @@ pub enum StylesheetProvenance {
 }
 
 pub fn spawn_css_parser(provenance: StylesheetProvenance,
-                        resource_task: ResourceTask) -> comm::Port<Stylesheet> {
-    let result_port = comm::Port();
-    let result_chan = comm::Chan(&result_port);
+                        resource_task: ResourceTask) -> oldcomm::Port<Stylesheet> {
+    let result_port = oldcomm::Port();
+    let result_chan = oldcomm::Chan(&result_port);
 
     let provenance_cell = Cell(move provenance);
     do task::spawn |move provenance_cell, copy resource_task| {
@@ -51,7 +51,7 @@ fn data_stream(provenance: StylesheetProvenance, resource_task: ResourceTask) ->
     }
 }
 
-fn resource_port_to_data_stream(input_port: comm::Port<ProgressMsg>) -> DataStream {
+fn resource_port_to_data_stream(input_port: oldcomm::Port<ProgressMsg>) -> DataStream {
     return || {
         match input_port.recv() {
             Payload(move data) => Some(move data),

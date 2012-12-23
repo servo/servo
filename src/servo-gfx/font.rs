@@ -21,7 +21,7 @@ use geom::{Point2D, Rect, Size2D};
 pub type FontHandle/& = quartz::font::QuartzFontHandle;
 
 #[cfg(target_os = "linux")]
-pub type FontHandle/& = freetype::font::FreeTypeFontHandle;
+pub type FontHandle/& = freetype_impl::font::FreeTypeFontHandle;
 
 pub trait FontHandleMethods {
     // an identifier usable by FontContextHandle to recreate this FontHandle.
@@ -51,7 +51,7 @@ pub impl FontHandle {
 
     #[cfg(target_os = "linux")]
     static pub fn new_from_buffer(fctx: &native::FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
-        freetype::font::FreeTypeFontHandle::new_from_buffer(fctx, move buf, style)
+        freetype_impl::font::FreeTypeFontHandle::new_from_buffer(fctx, move buf, style)
     }
 }
 
@@ -78,7 +78,7 @@ impl FontTableTag : FontTableTagConversions {
 pub type FontTable/& = quartz::font::QuartzFontTable;
 
 #[cfg(target_os = "linux")]
-pub type FontTable/& = freetype::font::FreeTypeFontTable;
+pub type FontTable/& = freetype_impl::font::FreeTypeFontTable;
 
 pub trait FontTableMethods {
     fn with_buffer(fn&(*u8, uint));

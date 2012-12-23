@@ -66,12 +66,12 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
     };
 
     let tile_size: uint = match getopts::opt_maybe_str(&opt_match, ~"s") {
-        Some(move tile_size_str) => from_str::from_str(tile_size_str).get(),
+        Some(move tile_size_str) => uint::from_str(tile_size_str).get(),
         None => 512,
     };
 
     let n_render_threads: uint = match getopts::opt_maybe_str(&opt_match, ~"t") {
-        Some(move n_render_threads_str) => from_str::from_str(n_render_threads_str).get(),
+        Some(move n_render_threads_str) => uint::from_str(n_render_threads_str).get(),
         None => 1,      // FIXME: Number of cores.
     };
 

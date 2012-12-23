@@ -4,8 +4,8 @@ A task that takes a URL and streams back the binary data
 
 */
 
-use comm::{Chan, Port};
-use task::{spawn, spawn_listener};
+use oldcomm::{Chan, Port};
+use resource::util::spawn_listener;
 use std::net::url;
 use std::net::url::{Url, to_str};
 

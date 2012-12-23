@@ -1,7 +1,8 @@
-use comm::{Port, Chan};
+use oldcomm::{Port, Chan};
 use content::content_task::{ControlMsg, Timer, ExitMsg};
 use js::jsapi::JSVal;
 use dvec::DVec;
+use util::task::spawn_listener;
 
 pub enum TimerControlMsg {
     TimerMessage_Fire(~TimerData),
@@ -66,8 +67,8 @@ impl Window {
 pub fn Window(content_chan: pipes::SharedChan<ControlMsg>) -> Window {
         
     Window {
-        timer_chan: do task::spawn_listener |timer_port: Port<TimerControlMsg>,
-                                             move content_chan| {
+        timer_chan: do spawn_listener |timer_port: Port<TimerControlMsg>,
+                                       move content_chan| {
             loop {
                 match move timer_port.recv() {
                     TimerMessage_Close => break,

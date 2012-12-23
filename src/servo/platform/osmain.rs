@@ -20,7 +20,7 @@ use std::cmp::FuzzyEq;
 use glut::glut;
 
 pub struct OSMain {
-    chan: comm::Chan<Msg>
+    chan: oldcomm::Chan<Msg>
 }
 
 // FIXME: Move me over to opts.rs.
@@ -83,7 +83,7 @@ impl AzureDrawTargetImageData : layers::layers::ImageData {
 }
 
 fn mainloop(mode: Mode,
-            po: comm::Port<Msg>,
+            po: oldcomm::Port<Msg>,
             dom_event_chan: pipes::SharedChan<Event>,
             opts: &Opts) {
     let key_handlers: @DVec<pipes::Chan<()>> = @DVec();
@@ -98,7 +98,7 @@ fn mainloop(mode: Mode,
 			window = GlutWindow(move glut_window);
 		}
 		ShareMode => {
-			let share_context: ShareGlContext = sharegl::base::new(Size2D(800, 600));
+			let share_context: ShareGlContext = sharegl::base::ShareContext::new(Size2D(800, 600));
 			io::println(fmt!("Sharing ID is %d", share_context.id()));
 			window = ShareWindow(move share_context);
 		}
@@ -334,8 +334,16 @@ fn Surface(backend: BackendType) -> Surface {
 }
 
 /// A function for spawning into the platform's main thread
-fn on_osmain<T: Owned>(f: fn~(po: comm::Port<T>)) -> comm::Chan<T> {
-    task::task().sched_mode(task::PlatformThread).spawn_listener(move f)
+fn on_osmain<T: Owned>(f: fn~(po: oldcomm::Port<T>)) -> oldcomm::Chan<T> {
+    let setup_po = oldcomm::Port();
+    let setup_ch = oldcomm::Chan(&setup_po);
+    do task::task().sched_mode(task::PlatformThread).spawn |move f| {
+        let po = oldcomm::Port();
+        let ch = oldcomm::Chan(&po);
+        oldcomm::send(setup_ch, ch);
+        f(move po);
+    }
+    oldcomm::recv(setup_po)
 }
 
 // #[cfg(target_os = "linux")]

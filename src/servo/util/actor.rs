@@ -3,6 +3,7 @@ An actor type
 */
 
 use pipes::{Port, Chan, SharedChan, stream};
+use core::task;
 
 /**
 The client reference to an actor

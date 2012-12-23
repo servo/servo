@@ -1,11 +1,11 @@
 extern mod freetype;
 
-use freetype::freetype::{
+use self::freetype::freetype::{
     FTErrorMethods,
     FT_Error,
     FT_Library,
 };
-use freetype::freetype::bindgen::{
+use self::freetype::freetype::bindgen::{
     FT_Init_FreeType, 
     FT_Done_FreeType
 };
@@ -14,7 +14,7 @@ use gfx_font::{
     FontHandle,
     UsedFontStyle,
 };
-use gfx_font_context::FontContextHandleMethods;
+use font_context::FontContextHandleMethods;
 
 pub struct FreeTypeFontContextHandle {
     ctx: FT_Library,

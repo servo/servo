@@ -5,7 +5,8 @@ use util::url::{make_url, UrlMap, url_map};
 
 use clone_arc = std::arc::clone;
 use core::pipes::{Chan, Port, SharedChan, stream};
-use core::task::{spawn, spawn_listener};
+use core::task::spawn;
+use resource::util::spawn_listener;
 use core::to_str::ToStr;
 use core::util::replace;
 use std::arc::ARC;
@@ -464,7 +465,7 @@ impl ImageCacheTask: ImageCacheTaskClient {
 }
 
 fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
-    let response_port = comm::Port();
+    let response_port = oldcomm::Port();
     resource_task.send(resource_task::Load(move url, response_port.chan()));
 
     let mut image_data = ~[];
@@ -489,8 +490,8 @@ fn default_decoder_factory() -> ~fn(&[u8]) -> Option<Image> {
 }
 
 #[cfg(test)]
-fn mock_resource_task(on_load: ~fn(resource: comm::Chan<resource_task::ProgressMsg>)) -> ResourceTask {
-    do spawn_listener |port: comm::Port<resource_task::ControlMsg>, move on_load| {
+fn mock_resource_task(on_load: ~fn(resource: oldcomm::Chan<resource_task::ProgressMsg>)) -> ResourceTask {
+    do spawn_listener |port: oldcomm::Port<resource_task::ControlMsg>, move on_load| {
         loop {
             match port.recv() {
               resource_task::Load(_, response) => {
@@ -530,7 +531,7 @@ fn should_fail_if_unprefetched_image_is_requested() {
 
 #[test]
 fn should_request_url_from_resource_task_on_prefetch() {
-    let url_requested = comm::Port();
+    let url_requested = oldcomm::Port();
     let url_requested_chan = url_requested.chan();
 
     let mock_resource_task = do mock_resource_task |response| {

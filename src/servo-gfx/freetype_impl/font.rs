@@ -1,6 +1,6 @@
 extern mod freetype;
 
-use font_context::FreeTypeFontContextHandle;
+use freetype_impl::font_context::FreeTypeFontContextHandle;
 use gfx_font::{
     CSSFontWeight,
     FontHandle,
@@ -17,7 +17,7 @@ use geometry::Au;
 use text::glyph::GlyphIndex;
 use text::util::{float_to_fixed, fixed_to_float};
 
-use freetype::freetype::{
+use self::freetype::freetype::{
     FTErrorMethods,
     FT_Error,
     FT_F26Dot6,
@@ -32,7 +32,7 @@ use freetype::freetype::{
     FT_UInt,
     FT_Size_Metrics,
 };
-use freetype::freetype::bindgen::{
+use self::freetype::freetype::bindgen::{
     FT_Init_FreeType,
     FT_Done_FreeType,
     FT_New_Memory_Face,

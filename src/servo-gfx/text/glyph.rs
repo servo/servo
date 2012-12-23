@@ -4,10 +4,10 @@ use servo_gfx_util::vec::*;
 
 use core::cmp::{Ord, Eq};
 use core::dvec::DVec;
-use core::num::from_int;
 use core::u16;
 use geom::point::Point2D;
 use std::sort;
+use num::Num;
 
 
 // GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing
@@ -172,7 +172,7 @@ impl GlyphEntry {
     #[inline(always)]
     pure fn advance() -> Au {
         //assert self.is_simple();
-        from_int(((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) as int)
+        Num::from_int(((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) as int)
     }
 
     pure fn index() -> GlyphIndex {

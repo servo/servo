@@ -7,8 +7,9 @@ use dom::node::{Comment, Doctype, DoctypeData, Element, Node, NodeScope, Text};
 use resource::image_cache_task::ImageCacheTask;
 use resource::image_cache_task;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
+use util::task::{spawn_listener, spawn_conversation};
 
-use core::comm::{Chan, Port};
+use core::oldcomm::{Chan, Port};
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use hubbub::hubbub::Attribute;
 use hubbub::hubbub;
@@ -30,8 +31,8 @@ enum JSMessage {
 
 struct HtmlParserResult {
     root: Node,
-    style_port: comm::Port<Option<Stylesheet>>,
-    js_port: comm::Port<JSResult>,
+    style_port: oldcomm::Port<Option<Stylesheet>>,
+    js_port: oldcomm::Port<JSResult>,
 }
 
 /**
@@ -49,8 +50,8 @@ spawned, collates them, and sends them to the given result channel.
 * `from_parent` - A port on which to receive new links.
 
 */
-fn css_link_listener(to_parent : comm::Chan<Option<Stylesheet>>,
-                     from_parent : comm::Port<CSSMessage>,
+fn css_link_listener(to_parent : oldcomm::Chan<Option<Stylesheet>>,
+                     from_parent : oldcomm::Port<CSSMessage>,
                      resource_task: ResourceTask) {
     let mut result_vec = ~[];
 
@@ -73,15 +74,15 @@ fn css_link_listener(to_parent : comm::Chan<Option<Stylesheet>>,
     to_parent.send(None);
 }
 
-fn js_script_listener(to_parent : comm::Chan<~[~[u8]]>, from_parent : comm::Port<JSMessage>,
+fn js_script_listener(to_parent : oldcomm::Chan<~[~[u8]]>, from_parent : oldcomm::Port<JSMessage>,
                       resource_task: ResourceTask) {
     let mut result_vec = ~[];
 
     loop {
         match from_parent.recv() {
             JSTaskNewFile(move url) => {
-                let result_port = comm::Port();
-                let result_chan = comm::Chan(&result_port);
+                let result_port = oldcomm::Port();
+                let result_chan = oldcomm::Chan(&result_port);
                 do task::spawn |move url| {
                     let input_port = Port();
                     // TODO: change copy to move once we can move into closures
@@ -163,16 +164,16 @@ pub fn parse_html(scope: NodeScope,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask) -> HtmlParserResult unsafe {
     // Spawn a CSS parser to receive links to CSS style sheets.
-    let (css_port, css_chan): (comm::Port<Option<Stylesheet>>, comm::Chan<CSSMessage>) =
-            do task::spawn_conversation |css_port: comm::Port<CSSMessage>,
-                                         css_chan: comm::Chan<Option<Stylesheet>>| {
+    let (css_port, css_chan): (oldcomm::Port<Option<Stylesheet>>, oldcomm::Chan<CSSMessage>) =
+            do spawn_conversation |css_port: oldcomm::Port<CSSMessage>,
+                                   css_chan: oldcomm::Chan<Option<Stylesheet>>| {
         css_link_listener(css_chan, css_port, resource_task);
     };
 
     // Spawn a JS parser to receive JavaScript.
-    let (js_port, js_chan): (comm::Port<JSResult>, comm::Chan<JSMessage>) =
-            do task::spawn_conversation |js_port: comm::Port<JSMessage>,
-                                         js_chan: comm::Chan<JSResult>| {
+    let (js_port, js_chan): (oldcomm::Port<JSResult>, oldcomm::Chan<JSMessage>) =
+            do spawn_conversation |js_port: oldcomm::Port<JSMessage>,
+                                   js_chan: oldcomm::Chan<JSResult>| {
         js_script_listener(js_chan, js_port, resource_task);
     };
 
@@ -337,7 +338,7 @@ pub fn parse_html(scope: NodeScope,
         complete_script: |script| {
             // A little function for holding this lint attr
             #[allow(non_implicitly_copyable_typarams)]
-            fn complete_script(scope: &NodeScope, script: hubbub::NodeDataPtr, url: &Url, js_chan: &comm::Chan<JSMessage>) unsafe {
+            fn complete_script(scope: &NodeScope, script: hubbub::NodeDataPtr, url: &Url, js_chan: &oldcomm::Chan<JSMessage>) unsafe {
                 do scope.read(&cow::wrap(cast::transmute(script))) |node_contents| {
                     match *node_contents.kind {
                         Element(ref element) if element.tag_name == ~"script" => {

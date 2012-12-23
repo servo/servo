@@ -2,7 +2,7 @@ use font::{Font, FontDescriptor, FontGroup, FontStyle, SelectorPlatformIdentifie
 use font::{SelectorStubDummy, SpecifiedFontStyle, UsedFontStyle};
 use font_list::FontList;
 use native::FontHandle;
-use util::cache;
+use util::cache::Cache;
 use util::cache::MonoCache;
 
 use azure::azure_hl::BackendType;
@@ -34,7 +34,7 @@ pub fn dummy_style() -> FontStyle {
 type FontContextHandle/& = quartz::font_context::QuartzFontContextHandle;
 
 #[cfg(target_os = "linux")]
-type FontContextHandle/& = freetype::font_context::FreeTypeFontContextHandle;
+type FontContextHandle/& = freetype_impl::font_context::FreeTypeFontContextHandle;
 
 pub trait FontContextHandleMethods {
     pure fn clone(&const self) -> FontContextHandle;
@@ -51,12 +51,12 @@ pub impl FontContextHandle {
 
     #[cfg(target_os = "linux")]
     static pub fn new() -> FontContextHandle {
-        freetype::font_context::FreeTypeFontContextHandle::new()
+        freetype_impl::font_context::FreeTypeFontContextHandle::new()
     }
 }
 
 pub struct FontContext {
-    instance_cache: cache::MonoCache<FontDescriptor, @Font>,
+    instance_cache: MonoCache<FontDescriptor, @Font>,
     font_list: Option<FontList>, // only needed by layout
     handle: FontContextHandle,
     backend: BackendType,
@@ -78,7 +78,7 @@ pub impl FontContext {
 
         FontContext { 
             // TODO(Rust #3902): remove extraneous type parameters once they are inferred correctly.
-            instance_cache: cache::new::<FontDescriptor,@Font,MonoCache<FontDescriptor,@Font>>(10),
+            instance_cache: Cache::new::<FontDescriptor,@Font,MonoCache<FontDescriptor,@Font>>(10),
             font_list: move font_list,
             handle: move handle,
             backend: backend,

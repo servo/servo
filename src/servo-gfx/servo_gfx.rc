@@ -36,37 +36,28 @@ pub mod native;
 
 #[cfg(target_os = "macos")]
 pub mod quartz {
-    #[path = "quartz/font.rs"]
     pub mod font;
-    #[path = "quartz/font_context.rs"]
     pub mod font_context;
-    #[path = "quartz/font_list.rs"]
     pub mod font_list;
 }
 
 #[cfg(target_os = "linux")]
-pub mod freetype {
-    #[path = "freetype/font.rs"]
+pub mod freetype_impl {
     pub mod font;
-    #[path = "freetype/font_context.rs"]
     pub mod font_context;
 }
 
 #[cfg(target_os = "linux")]
 pub mod fontconfig {
-    #[path = "fontconfig/font_list.rs"]
     pub mod font_list;
 }
 
 // Images
 pub mod image {
-    #[path = "image/base.rs"]
     pub mod base;
     pub mod encode {
-        #[path = "image/encode/tga.rs"]
         pub mod tga;
     }
-    #[path = "image/holder.rs"]
     pub mod holder;
 }
 
@@ -76,28 +67,19 @@ pub mod text;
 
 // FIXME: Blech. This does not belong in the GFX module.
 pub mod resource {
-    #[path = "resource/file_loader.rs"]
     pub mod file_loader;
-    #[path = "resource/http_loader.rs"]
     pub mod http_loader;
-    #[path = "resource/image_cache_task.rs"]
     pub mod image_cache_task;
-    #[path = "resource/local_image_cache.rs"]
     pub mod local_image_cache;
-    #[path = "resource/resource_task.rs"]
     pub mod resource_task;
+    pub mod util;
 }
 
 pub mod util {
-    #[path = "util/cache.rs"]
     pub mod cache;
-    #[path = "util/range.rs"]
     pub mod range;
-    #[path = "util/time.rs"]
     pub mod time;
-    #[path = "util/url.rs"]
     pub mod url;
-    #[path = "util/vec.rs"]
     pub mod vec;
 }
 

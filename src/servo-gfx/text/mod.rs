@@ -15,6 +15,5 @@ pub mod shaper;
 
 // Below are the actual platform-specific parts.
 pub mod harfbuzz {
-    #[path = "harfbuzz/shaper.rs"]
     pub mod shaper;
 }

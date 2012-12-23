@@ -23,97 +23,61 @@ extern mod stb_image;
 extern mod std;
 
 pub mod content {
-    #[path = "content/content_task.rs"]
     pub mod content_task;
 }
 
 pub mod css {
-    #[path = "css/select_handler.rs"]
     priv mod select_handler;
-    #[path = "css/node_util.rs"]
     priv mod node_util;
-    #[path = "css/node_void_ptr.rs"]
     priv mod node_void_ptr;
 
-    #[path = "css/select.rs"]
     pub mod select;
-    #[path = "css/matching.rs"]
     pub mod matching;
-    #[path = "css/node_style.rs"]
     pub mod node_style;
 }
 
 pub mod dom {
     pub mod bindings {
-        #[path = "dom/bindings/document.rs"]
         pub mod document;
-        #[path = "dom/bindings/element.rs"]
         pub mod element;
-        #[path = "dom/bindings/node.rs"]
         pub mod node;
-        #[path = "dom/bindings/utils.rs"]
         pub mod utils;
-        #[path = "dom/bindings/window.rs"]
         pub mod window;
     }
-    #[path = "dom/cow.rs"]
     pub mod cow;
-    #[path = "dom/document.rs"]
     pub mod document;
-    #[path = "dom/element.rs"]
     pub mod element;
-    #[path = "dom/event.rs"]
     pub mod event;
-    #[path = "dom/node.rs"]
     pub mod node;
-    #[path = "dom/window.rs"]
     pub mod window;
 }
 
 pub mod engine;
 
 pub mod layout {
-    #[path = "layout/block.rs"]
     pub mod block;
-    #[path = "layout/box.rs"]
     pub mod box;
-    #[path = "layout/box_builder.rs"]
     pub mod box_builder;
-    #[path = "layout/context.rs"]
     pub mod context;
-    #[path = "layout/debug.rs"]
     pub mod debug;
-    #[path = "layout/display_list_builder.rs"]
     pub mod display_list_builder;
-    #[path = "layout/flow.rs"]
     pub mod flow;
-    #[path = "layout/layout_task.rs"]
     pub mod layout_task;
-    #[path = "layout/inline.rs"]
     pub mod inline;
-    #[path = "layout/root.rs"]
     pub mod root;
-    #[path = "layout/text.rs"]
     pub mod text;
-    #[path = "layout/traverse.rs"]
     pub mod traverse;
-    #[path = "layout/aux.rs"]
     mod aux;
 }
 
 pub mod html {
-    #[path = "html/cssparse.rs"]
     pub mod cssparse;
-    #[path = "html/hubbub_html_parser.rs"]
     pub mod hubbub_html_parser;
 }
 
 pub mod platform {
-    #[path = "platform/base.rs"]
     pub mod base;
-    #[path = "platform/osmain.rs"]
     pub mod osmain;
-    #[path = "platform/resize_rate_limiter.rs"]
     priv mod resize_rate_limiter;
 }
 
@@ -130,7 +94,7 @@ extern mod core_text;
 use engine::{Engine, ExitMsg, LoadURLMsg};  // FIXME: "ExitMsg" is pollution.
 use platform::osmain::{AddKeyHandler, OSMain};
 
-use core::comm::*;  // FIXME: Bad!
+use core::oldcomm::*;  // FIXME: Bad!
 use core::option::swap_unwrap;
 use core::pipes::{Port, Chan};
 

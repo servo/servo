@@ -3,9 +3,10 @@ use font_context::FontContext;
 use opts::Opts;
 use render_context::RenderContext;
 use render_layers::{RenderLayer, render_layers};
+use resource::util::spawn_listener;
 
 use azure::AzFloat;
-use core::comm::*;
+use core::oldcomm::*;
 use core::libc::size_t;
 use core::libc::types::common::c99::uint16_t;
 use core::pipes::{Port, Chan};
@@ -21,12 +22,12 @@ pub enum Msg {
     ExitMsg(pipes::Chan<()>)
 }
 
-pub type RenderTask = comm::Chan<Msg>;
+pub type RenderTask = oldcomm::Chan<Msg>;
 
 pub fn RenderTask<C: Compositor Owned>(compositor: C, opts: Opts) -> RenderTask {
     let compositor_cell = Cell(move compositor);
     let opts_cell = Cell(move opts);
-    do task::spawn_listener |po: comm::Port<Msg>, move compositor_cell, move opts_cell| {
+    do spawn_listener |po: oldcomm::Port<Msg>, move compositor_cell, move opts_cell| {
         let (layer_buffer_set_port, layer_buffer_channel) = pipes::stream();
 
         let compositor = compositor_cell.take();
@@ -68,7 +69,7 @@ priv struct ThreadRenderContext {
 }
 
 priv struct Renderer<C: Compositor Owned> {
-    port: comm::Port<Msg>,
+    port: oldcomm::Port<Msg>,
     compositor: C,
     layer_buffer_set_port: Cell<pipes::Port<LayerBufferSet>>,
     thread_pool: TaskPool<ThreadRenderContext>,

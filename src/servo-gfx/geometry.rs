@@ -1,7 +1,7 @@
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use num::{Num, from_int};
+use num::Num;
 
 pub enum Au = i32;
 
@@ -45,7 +45,7 @@ impl Au {
     }
 
     static pub pure fn from_px(i: int) -> Au {
-        from_int(i * 60)
+        Num::from_int(i * 60)
     }
 
     pub pure fn to_px(&const self) -> int {
@@ -98,7 +98,7 @@ pub pure fn from_frac_px(f: float) -> Au {
 }
 
 pub pure fn from_px(i: int) -> Au {
-    from_int(i * 60)
+    Num::from_int(i * 60)
 }
 
 pub pure fn to_px(au: Au) -> int {
