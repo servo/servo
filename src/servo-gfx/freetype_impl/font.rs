@@ -71,7 +71,7 @@ pub struct FreeTypeFontTable {
 }
 
 pub impl FreeTypeFontTable : FontTableMethods {
-    fn with_buffer(blk: fn&(*u8, uint)) {
+    fn with_buffer(_blk: fn&(*u8, uint)) {
         fail
     }
 }

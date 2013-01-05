@@ -55,6 +55,7 @@ pub impl FontContextHandle {
     }
 }
 
+#[allow(non_implicitly_copyable_typarams)]
 pub struct FontContext {
     instance_cache: MonoCache<FontDescriptor, @Font>,
     font_list: Option<FontList>, // only needed by layout
@@ -63,6 +64,7 @@ pub struct FontContext {
     generic_fonts: LinearMap<~str,~str>,
 }
 
+#[allow(non_implicitly_copyable_typarams)]
 pub impl FontContext {
     static fn new(backend: BackendType, needs_font_list: bool) -> FontContext {
         let handle = FontContextHandle::new();

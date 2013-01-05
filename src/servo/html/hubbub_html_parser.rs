@@ -159,6 +159,7 @@ fn build_element_kind(tag: &str) -> ~ElementKind {
     else { ~UnknownElement }
 }
 
+#[allow(non_implicitly_copyable_typarams)]
 pub fn parse_html(scope: NodeScope,
                   url: Url,
                   resource_task: ResourceTask,
