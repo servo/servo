@@ -122,6 +122,25 @@ pub impl FreeTypeFontHandle {
             Err(())
         }
     }
+
+    static pub fn new_from_file_unstyled(fctx: &FreeTypeFontContextHandle, file: ~str)
+        -> Result<FreeTypeFontHandle, ()> {
+        let ft_ctx: FT_Library = fctx.ctx.ctx;
+        if ft_ctx.is_null() { return Err(()); }
+
+        let mut face: FT_Face = ptr::null();
+        let face_index = 0 as FT_Long;
+        do str::as_c_str(file) |file_str| {
+            FT_New_Face(ft_ctx, file_str,
+                        face_index, ptr::to_unsafe_ptr(&face));
+        }
+        if face.is_null() {
+            return Err(());
+        }
+
+        Ok(FreeTypeFontHandle { buf: ~[], face: face })
+    }
+
     static pub fn new_from_buffer(fctx: &FreeTypeFontContextHandle,
                       buf: ~[u8], style: &SpecifiedFontStyle) -> Result<FreeTypeFontHandle, ()> {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
