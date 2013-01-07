@@ -76,11 +76,15 @@ pub impl FreeTypeFontTable : FontTableMethods {
     }
 }
 
+enum FontSource {
+    FontSourceMem(@~[u8]),
+    FontSourceFile(~str)
+}
+
 pub struct FreeTypeFontHandle {
     // The font binary. This must stay valid for the lifetime of the font,
     // if the font is created using FT_Memory_Face.
-    // TODO: support both FT_Memory_Face (from memory) and FT_Face (from file)
-    buf: ~[u8],
+    source: FontSource,
     face: FT_Face,
 
     drop {
@@ -117,7 +121,7 @@ pub impl FreeTypeFontHandle {
             return Err(());
         }
         if FreeTypeFontHandle::set_char_size(face, style.pt_size).is_ok() {
-            Ok(FreeTypeFontHandle { buf: ~[], face: face })
+            Ok(FreeTypeFontHandle { source: FontSourceFile(file), face: face })
         } else {
             Err(())
         }
@@ -138,15 +142,15 @@ pub impl FreeTypeFontHandle {
             return Err(());
         }
 
-        Ok(FreeTypeFontHandle { buf: ~[], face: face })
+        Ok(FreeTypeFontHandle { source: FontSourceFile(file), face: face })
     }
 
     static pub fn new_from_buffer(fctx: &FreeTypeFontContextHandle,
-                      buf: ~[u8], style: &SpecifiedFontStyle) -> Result<FreeTypeFontHandle, ()> {
+                      buf: @~[u8], style: &SpecifiedFontStyle) -> Result<FreeTypeFontHandle, ()> {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
 
-        let face_result = do vec::as_imm_buf(buf) |bytes: *u8, len: uint| {
+        let face_result = do vec::as_imm_buf(*buf) |bytes: *u8, len: uint| {
             create_face_from_buffer(ft_ctx, bytes, len, style.pt_size)
         };
 
@@ -154,7 +158,7 @@ pub impl FreeTypeFontHandle {
         // and moving buf into the struct ctor, but cant' move out of
         // captured binding.
         return match face_result {
-            Ok(face) => Ok(FreeTypeFontHandle { face: face, buf: move buf }),
+            Ok(face) => Ok(FreeTypeFontHandle { face: face, source: FontSourceMem(buf) }),
             Err(()) => Err(())
         };
 
@@ -223,9 +227,16 @@ pub impl FreeTypeFontHandle : FontHandleMethods {
         }
     }
 
-    fn clone_with_style(_fctx: &native::FontContextHandle,
-                        _style: &UsedFontStyle) -> Result<FontHandle, ()> {
-        fail;
+    fn clone_with_style(fctx: &native::FontContextHandle,
+                        style: &UsedFontStyle) -> Result<FreeTypeFontHandle, ()> {
+        match self.source {
+            FontSourceMem(buf) => {
+                FreeTypeFontHandle::new_from_buffer(fctx, buf, style)
+            }
+            FontSourceFile(copy file) => {
+                FreeTypeFontHandle::new_from_file(fctx, file, style)
+            }
+        }
     }
 
     pub fn glyph_index(codepoint: char) -> Option<GlyphIndex> {

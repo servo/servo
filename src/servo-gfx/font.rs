@@ -51,7 +51,7 @@ pub impl FontHandle {
 
     #[cfg(target_os = "linux")]
     static pub fn new_from_buffer(fctx: &native::FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
-        freetype_impl::font::FreeTypeFontHandle::new_from_buffer(fctx, move buf, style)
+        freetype_impl::font::FreeTypeFontHandle::new_from_buffer(fctx, @move buf, style)
     }
 }
 
