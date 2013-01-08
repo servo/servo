@@ -72,7 +72,7 @@ pub impl FontContext {
 
         // TODO: Allow users to specify these.
         let mut generic_fonts = linear::linear_map_with_capacity(5);
-        generic_fonts.insert(~"serif", ~"Times");
+        generic_fonts.insert(~"serif", ~"Times New Roman");
         generic_fonts.insert(~"sans-serif", ~"Arial");
         generic_fonts.insert(~"cursive", ~"Apple Chancery");
         generic_fonts.insert(~"fantasy", ~"Papyrus");
