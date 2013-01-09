@@ -85,3 +85,6 @@
 [submodule "src/skia"]
 	path = src/skia
 	url = git://github.com/mozilla-servo/skia.git
+[submodule "src/rust"]
+	path = src/rust
+	url = git://github.com/mozilla/rust.git
