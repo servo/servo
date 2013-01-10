@@ -88,3 +88,9 @@
 [submodule "src/rust"]
 	path = src/rust
 	url = git://github.com/mozilla/rust.git
+[submodule "src/cairo"]
+	path = src/cairo
+	url = git://github.com/mozilla-servo/cairo.git
+[submodule "src/pixman"]
+	path = src/pixman
+	url = git://github.com/mozilla-servo/pixman.git
