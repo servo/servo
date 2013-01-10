@@ -3,19 +3,7 @@
 Servo is a prototype web browser engine written in the [Rust]
 language. It is currently developed on OS X and Linux.
 
-**Note:** Servo always requires a specific version of Rust - building
-against a released version of Rust will not work, nor will the Rust
-'master' branch. The commit below will *probably* work. If it does not
-then the topic in #servo might know better.
-
-* Last known-good Rust commit: 3ee1d3ebb81de199fc630a86933ac18c0a869482
-
-[rust]: http://www.rust-lang.org
-
 ## Prerequisites
-
-First, you need the Rust compiler, built from the exact commit listed
-above.
 
 On OS X (homebrew):
 
@@ -30,6 +18,9 @@ On Debian-based Linuxes:
 
     sudo apt-get install libcairo2-dev libpango1.0-dev autoconf2.13 freeglut3-dev
 
+Servo builds its own copy of Rust, so there is no need to provide a Rust
+compiler.
+
 ## Building
 
     git clone git://github.com/mozilla/servo.git
@@ -38,9 +29,6 @@ On Debian-based Linuxes:
     ../configure
     make check-servo && make
     ./servo ../src/test/hello.html
-
-If `rustc` is not installed then add `RUSTC=/path/to/rustc` to your
-`make` commands.
 
 
 ## Build Workarounds

@@ -82,7 +82,7 @@ DEPS_libcss += \
 	$(NULL)
 
 # Platform-specific dependencies
-ifeq ($(CFG_OSTYPE),darwin)
+ifeq ($(CFG_OSTYPE),apple-darwin)
 DEPS_rust-azure += \
 	rust-core-graphics \
 	rust-core-text \
@@ -121,7 +121,7 @@ DEPS_rust-layers += \
 
 endif
 
-ifeq ($(CFG_OSTYPE),linux)
+ifeq ($(CFG_OSTYPE),unknown-linux-gnu)
 
 DEPS_rust-cairo += \
 	rust-freetype \

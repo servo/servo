@@ -46,7 +46,6 @@ else
   CFG_GCCISH_CFLAGS += -DRUST_NDEBUG
 endif
 
-
 export CFG_RUSTC
 export CFG_RUSTC_FLAGS
 export RUSTC=$(CFG_RUSTC)
@@ -75,6 +74,9 @@ $(S)config.stamp : $(S)configure $(S)Makefile.in
 	@$(call E, cfg: reconfiguring)
 	$(Q)$(S)configure $(CFG_CONFIGURE_ARGS)
 
+# Build the compiler
+$(CFG_RUSTC):
+	$(MAKE) -C "$(CFG_BUILD_DIR)src/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS=""
 
 define DEF_SUBMODULE_VARS
 DEPS_$(1) =
@@ -109,7 +111,7 @@ ROUGH_DEPS_$(1)=$$(call rwildcard,$$(S)src/$(1),*h *c *cpp *rs *rc)
 DONE_DEPS_$(1)=$$(foreach dep,$$(DEPS_$(1)),$$(DONE_$$(dep)))
 # the main target for a submodule
 # --
-$$(DONE_$(1)) : $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1))
+$$(DONE_$(1)) : $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1)) $$(CFG_RUSTC)
 #	@$$(call E, make: $(1))
 #	@$$(call E, $(1) deps= $$(DEPS_$(1)))
 #	@$$(call E, $(1) done_deps= $$(DONE_DEPS_$(1)))
@@ -165,7 +167,7 @@ servo:	$(DEPS_servo)
 
 # Darwin app packaging
 
-ifeq ($(OSTYPE),darwin)
+ifeq ($(OSTYPE),apple-darwin)
 
 package: servo
 	mkdir -p Servo.app/Contents/MacOS/src/rust-cocoa
