@@ -383,14 +383,15 @@ step_msg "running submodule autoconf scripts"
 
 if [ $CFG_OSTYPE = "apple-darwin" ]
 then
+    OSX_PKG_CONFIG_M4_MACROS="-I/usr/local/share/aclocal"
     LIBTOOLIZE=glibtoolize
 else
+    OSX_PKG_CONFIG_M4_MACROS=""
     LIBTOOLIZE=libtoolize
 fi
 
-OSX_PKG_CONFIG_M4_MACROS="/usr/local/share/aclocal"
-PIXMAN_ACLOCALCMD="aclocal -I${OSX_PKG_CONFIG_M4_MACROS} --install"
-CAIRO_ACLOCALCMD="aclocal -I${OSX_PKG_CONFIG_M4_MACROS} -Ibuild --install"
+PIXMAN_ACLOCALCMD="aclocal ${OSX_PKG_CONFIG_M4_MACROS}"
+CAIRO_ACLOCALCMD="aclocal ${OSX_PKG_CONFIG_M4_MACROS} -Ibuild"
 AUTOCMD="${LIBTOOLIZE} && autoconf && autoheader && automake --add-missing --copy --no-force"
 CAIRO_BOILERPLATE="touch boilerplate/Makefile.am.features && touch src/Makefile.am.features"
 PIXMAN_AUTOCMD="${PIXMAN_ACLOCALCMD} && ${AUTOCMD}"
@@ -479,7 +480,7 @@ do
 	fi
 	# libpng isn't available by default on OS X so don't make it required for cairo
 	# png is in turn required for the svg backend
-	if [ $i = "cairo" -a ${CFG_OSTYPE} == "apple-darwin" ]; then
+	if [ $i = "cairo" -a ${CFG_OSTYPE} = "apple-darwin" ]; then
 		CONFIGURE_ARGS="--enable-png=no --enable-svg=no --enable-ft=no --enable-xlib=no"
 	fi
 
