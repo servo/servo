@@ -11,6 +11,20 @@ SLOW_BUILDS += \
 	mozjs \
 	sharegl \
 	skia \
+	pixman \
+	cairo \
+	$(NULL)
+
+# Builds that do not require rustc
+NATIVE_BUILDS += \
+	libcss \
+	libhubbub \
+	libparserutils \
+	libwapcaplet \
+	mozjs \
+	skia \
+	pixman \
+	cairo \
 	$(NULL)
 
 # NOTE: the make magic can only compute transitive build dependencies,
@@ -18,6 +32,10 @@ SLOW_BUILDS += \
 # of C so the correct -L/path/to/A flag is generated for building C.
 
 # NB. This should not be a problem once a real package system exists.
+
+DEPS_rust-cairo += \
+	cairo \
+	$(NULL)
 
 DEPS_rust-azure += \
 	rust-geom \
@@ -79,6 +97,14 @@ CFLAGS_rust-mozjs += \
 DEPS_libcss += \
 	libwapcaplet \
 	libparserutils \
+	$(NULL)
+
+DONE_pixman = "$(B)src/pixman/pixman/.libs/libpixman-1.a"
+
+DONE_cairo = "$(B)src/cairo/src/.libs/libcairo.a"
+
+DEPS_cairo += \
+	pixman \
 	$(NULL)
 
 # Platform-specific dependencies

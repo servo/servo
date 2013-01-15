@@ -16,7 +16,7 @@ On OS X (MacPorts):
     
 On Debian-based Linuxes:
 
-    sudo apt-get install libcairo2-dev libpango1.0-dev autoconf2.13 freeglut3-dev
+    sudo apt-get install libcairo2-dev libpango1.0-dev autoconf2.13 freeglut3-dev libtool
 
 Servo builds its own copy of Rust, so there is no need to provide a Rust
 compiler.

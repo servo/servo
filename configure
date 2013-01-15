@@ -381,9 +381,26 @@ fi
 
 step_msg "running submodule autoconf scripts"
 
-(cd ${CFG_SRC_DIR}src/mozjs/js/src && "${CFG_AUTOCONF213}") || exit $?
+if [ $CFG_OSTYPE = "apple-darwin" ]
+then
+    LIBTOOLIZE=glibtoolize
+else
+    LIBTOOLIZE=libtoolize
+fi
 
-CFG_SUBMODULES="libwapcaplet rust-wapcaplet rust-harfbuzz rust-opengles skia rust-azure rust-cairo rust-stb-image rust-geom rust-glut rust-layers rust-http-client libparserutils libhubbub libcss rust-netsurfcss rust-css rust-hubbub sharegl rust-mozjs mozjs"
+OSX_PKG_CONFIG_M4_MACROS="/usr/local/share/aclocal"
+PIXMAN_ACLOCALCMD="aclocal -I${OSX_PKG_CONFIG_M4_MACROS} --install"
+CAIRO_ACLOCALCMD="aclocal -I${OSX_PKG_CONFIG_M4_MACROS} -Ibuild --install"
+AUTOCMD="${LIBTOOLIZE} && autoconf && autoheader && automake --add-missing --copy --no-force"
+CAIRO_BOILERPLATE="touch boilerplate/Makefile.am.features && touch src/Makefile.am.features"
+PIXMAN_AUTOCMD="${PIXMAN_ACLOCALCMD} && ${AUTOCMD}"
+CAIRO_AUTOCMD="${CAIRO_BOILERPLATE} && ${CAIRO_ACLOCALCMD} && ${AUTOCMD}"
+
+(cd ${CFG_SRC_DIR}src/mozjs/js/src && "${CFG_AUTOCONF213}") || exit $?
+(cd ${CFG_SRC_DIR}src/pixman && eval ${PIXMAN_AUTOCMD}) || exit $?
+(cd ${CFG_SRC_DIR}src/cairo && eval ${CAIRO_AUTOCMD}) || exit $?
+
+CFG_SUBMODULES="libwapcaplet rust-wapcaplet rust-harfbuzz rust-opengles skia rust-azure rust-cairo rust-stb-image rust-geom rust-glut rust-layers rust-http-client libparserutils libhubbub libcss rust-netsurfcss rust-css rust-hubbub sharegl rust-mozjs mozjs pixman cairo"
 
 if [ $CFG_OSTYPE = "apple-darwin" ]
 then
@@ -433,6 +450,15 @@ then
     cd ${CFG_BUILD_DIR}
 fi
 
+# Cairo expects to use an installed pixman, but we want to override that
+# behavior to use our version
+export pixman_CFLAGS="-I${CFG_SRC_DIR}src/pixman/pixman -I${CFG_BUILD_DIR}src/pixman/pixman"
+export pixman_LDFLAGS="-I${CFG_BUILD_DIR}src/pixman/pixman/.libs"
+
+# PIC all the things
+export CFLAGS="${CFLAGS} -fPIC"
+export LDFLAGS="${CFLAGS} -fPIC"
+
 for i in ${CFG_SUBMODULES}
 do
     if [ -d ${CFG_BUILD_DIR}src/${i} ]
@@ -447,13 +473,26 @@ do
 
 	# needed because Azure's configure wants "--enable-cairo --enable-skia"
 	CONFIGURE_ARGS=""
+	ENV_VARS=""
 	if [ $i = "rust-azure" ]; then
 		CONFIGURE_ARGS="--enable-cairo --enable-skia"
+	fi
+	# libpng isn't available by default on OS X so don't make it required for cairo
+	# png is in turn required for the svg backend
+	if [ $i = "cairo" -a ${CFG_OSTYPE} == "apple-darwin" ]; then
+		CONFIGURE_ARGS="--enable-png=no --enable-svg=no --enable-ft=no --enable-xlib=no"
+	fi
+
+	# Tell pkg-config where pixman is
+	if [ $i = "cairo" ]; then
+	    export PKG_CONFIG_PATH=../pixman
+	else
+	    export PKG_CONFIG_PATH=
 	fi
 
     if [ -f ${CONFIGURE_SCRIPT} ]
     then
-		sh ${CONFIGURE_SCRIPT} ${CONFIGURE_ARGS}
+	(sh ${CONFIGURE_SCRIPT} ${CONFIGURE_ARGS}) || exit $?
     fi
 done
 

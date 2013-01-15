@@ -111,7 +111,13 @@ ROUGH_DEPS_$(1)=$$(call rwildcard,$$(S)src/$(1),*h *c *cpp *rs *rc)
 DONE_DEPS_$(1)=$$(foreach dep,$$(DEPS_$(1)),$$(DONE_$$(dep)))
 # the main target for a submodule
 # --
-$$(DONE_$(1)) : $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1)) $$(CFG_RUSTC)
+
+# Native builds do not depend on the rust compiler, so we can build them in parallel with rustc
+ifneq "$$(filter $(1),$$(NATIVE_BUILDS))" "$(1)"
+RUSTC_DEP_$(1)=$$(CFG_RUSTC)
+endif
+
+$$(DONE_$(1)) : $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1)) $$(RUSTC_DEP_$(1))
 #	@$$(call E, make: $(1))
 #	@$$(call E, $(1) deps= $$(DEPS_$(1)))
 #	@$$(call E, $(1) done_deps= $$(DONE_DEPS_$(1)))
