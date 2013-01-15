@@ -16,6 +16,7 @@ These are the main servo projects, as well as projects that are pure Rust (not b
 
 ## Third-party projects
 
+* _cairo_ - The cairo rendering library
 * _libcss_ - The CSS library from the NetSurf web browser. We are using this for parsing
     and selector matching until we have a Rust solution
 * _libhubbub_ - The HTML parser from the NetSurf web browser. We are using this for parsing
@@ -23,6 +24,7 @@ These are the main servo projects, as well as projects that are pure Rust (not b
 * _libparserutils_ - A parsing library used by libcss and libhubbub
 * _libwapcaplet_ - A string internment library used by libcss and libhubbub
 * _mozjs_ - The SpiderMonkey JavaScript engine, forked from mozilla-central
+* _pixman_ - Pixel manipulation library (used by cairo)
 * _rust-azure_ - mozilla-central's 2D vector graphics abstraction layer and bindings
 * _rust-harfbuzz_ - The harfbuzz text shaping library and bindings
 * _rust-stb-image_ - The stb_image library and bindings. We are using this for image decoding
