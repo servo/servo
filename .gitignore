@@ -6,9 +6,12 @@
 *.dSYM
 *.dll
 *.dummy
+*.pkl
+*.pyc
 servo-test
 Makefile
 Servo.app
 build
 config.mk
 config.stamp
+parser.out

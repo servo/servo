@@ -10,7 +10,6 @@ class Configuration:
     the configuration file.
     """
     def __init__(self, filename, parseData):
-
         # Read the configuration file.
         glbl = {}
         execfile(filename, glbl)
@@ -140,6 +139,7 @@ class Descriptor(DescriptorProvider):
                 nativeTypeDefault = "mozilla::dom::" + ifaceName
 
         self.nativeType = desc.get('nativeType', nativeTypeDefault)
+        self.pointerType = desc.get('pointerType', '@')
         self.hasInstanceInterface = desc.get('hasInstanceInterface', None)
 
         # Do something sane for JSObject

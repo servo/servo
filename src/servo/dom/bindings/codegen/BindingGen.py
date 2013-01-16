@@ -2,11 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import sys
+sys.path.append("./parser/")
+sys.path.append("./ply/")
 import os
 import cPickle
 import WebIDL
 from Configuration import *
-from Codegen import CGBindingRoot, replaceFileIfChanged
+from CodegenRust import CGBindingRoot, replaceFileIfChanged
 # import Codegen in general, so we can set a variable on it
 import Codegen
 
@@ -32,6 +35,19 @@ def generate_binding_cpp(config, outputprefix, webidlfile):
     if replaceFileIfChanged(filename, root.define()):
         print "Generating binding implementation: %s" % (filename)
 
+def generate_binding_rs(config, outputprefix, webidlfile):
+    """
+    |config| Is the configuration object.
+    |outputprefix| is a prefix to use for the header guards and filename.
+    """
+
+    filename = outputprefix + ".rs"
+    root = CGBindingRoot(config, outputprefix, webidlfile)
+    #root2 = CGBindingRoot(config, outputprefix, webidlfile)
+    #if replaceFileIfChanged(filename, root.declare() + root2.define()):
+    if replaceFileIfChanged(filename, root.define()):
+        print "Generating binding implementation: %s" % (filename)
+
 def main():
 
     # Parse arguments.
@@ -42,7 +58,7 @@ def main():
                  help="When an error happens, display the Python traceback.")
     (options, args) = o.parse_args()
 
-    if len(args) != 4 or (args[0] != "header" and args[0] != "cpp"):
+    if len(args) != 4 or (args[0] != "header" and args[0] != "cpp" and args[0] != "rs"):
         o.error(usagestring)
     buildTarget = args[0]
     configFile = os.path.normpath(args[1])
@@ -62,6 +78,8 @@ def main():
         generate_binding_header(config, outputPrefix, webIDLFile);
     elif buildTarget == "cpp":
         generate_binding_cpp(config, outputPrefix, webIDLFile);
+    elif buildTarget == "rs":
+        generate_binding_rs(config, outputPrefix, webIDLFile);
     else:
         assert False # not reached
 

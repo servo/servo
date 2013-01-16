@@ -5,6 +5,9 @@
 # We do one global pass over all the WebIDL to generate our prototype enum
 # and generate information for subsequent phases.
 
+import sys
+sys.path.append("./parser/")
+sys.path.append("./ply/")
 import os
 import cStringIO
 import WebIDL
