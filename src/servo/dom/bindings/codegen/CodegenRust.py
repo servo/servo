@@ -80,8 +80,8 @@ class CastableObjectUnwrapper():
     def __init__(self, descriptor, source, target, codeOnFailure):
         assert descriptor.castable
 
-        self.substitution = { "type" : descriptor.nativeType,
-                              "protoID" : "prototypes::id::" + descriptor.name,
+        self.substitution = { "type" : descriptor.pointerType + descriptor.nativeType,
+                              "protoID" : 0, #"prototypes::id::" + descriptor.name,
                               "source" : source,
                               "target" : target,
                               "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define() }
@@ -105,7 +105,7 @@ class CastableObjectUnwrapper():
 
     def __str__(self):
         return string.Template(
-"""${target} = unwrap<${type}>(${source});
+"""${target} = unwrap::<${type}>(${source});
 """).substitute(self.substitution)
 #"""{
 #  nsresult rv = UnwrapObject<${protoID}, ${type}>(cx, ${source}, ${target});
@@ -119,6 +119,7 @@ class FakeCastableDescriptor():
         self.castable = True
         self.workers = descriptor.workers
         self.nativeType = descriptor.nativeType
+        self.pointerType = descriptor.pointerType
         self.name = descriptor.name
         self.hasXPConnectImpls = descriptor.hasXPConnectImpls
 
@@ -316,19 +317,19 @@ if (!%(resultStr)s) {
     
     if tag in [IDLType.Tags.int8, IDLType.Tags.uint8, IDLType.Tags.int16,
                IDLType.Tags.uint16, IDLType.Tags.int32]:
-        return (setValue("INT_TO_JSVAL(int32_t(%s))" % result), True)
+        return (setValue("RUST_INT_TO_JSVAL(%s as i32)" % result), True)
 
     elif tag in [IDLType.Tags.int64, IDLType.Tags.uint64, IDLType.Tags.float,
                  IDLType.Tags.double]:
         # XXXbz will cast to double do the "even significand" thing that webidl
         # calls for for 64-bit ints?  Do we care?
-        return (setValue("JS_NumberValue(%s as f64)" % result), True)
+        return (setValue("RUST_JS_NumberValue(%s as f64)" % result), True)
 
     elif tag == IDLType.Tags.uint32:
-        return (setValue("UINT_TO_JSVAL(%s)" % result), True)
+        return (setValue("RUST_UINT_TO_JSVAL(%s)" % result), True)
 
     elif tag == IDLType.Tags.bool:
-        return (setValue("BOOLEAN_TO_JSVAL(%s)" % result), True)
+        return (setValue("RUST_BOOLEAN_TO_JSVAL(%s)" % result), True)
 
     else:
         raise TypeError("Need to learn to wrap primitive: %s" % type)
@@ -410,7 +411,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
         # nullable for now.
         return CGGeneric("*JSObject"), False
     if returnType.isAny():
-        return CGGeneric("jsval"), False
+        return CGGeneric("JSVal"), False
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
         return CGGeneric("*JSObject"), False
     if returnType.isSequence():
@@ -837,7 +838,7 @@ class CGPerSignatureCall(CGThing):
     def getArgv(self):
         return "argv" if self.argCount > 0 else ""
     def getArgvDecl(self):
-        return "\nargv: *jsval = JS_ARGV(cx, vp);\n"
+        return "\nargv: *JSVal = JS_ARGV(cx, vp);\n"
     def getArgc(self):
         return "argc"
     def getArguments(self):
@@ -924,7 +925,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
                       "  return false as JSBool;\n"
                       "}\n"
                       "\n"
-                      "let self: *%s;" % self.descriptor.nativeType))
+                      "let self: %s;" % (self.descriptor.pointerType + self.descriptor.nativeType)))
 
     def generate_code(self):
         assert(False) # Override me
@@ -935,13 +936,13 @@ class CGGenericMethod(CGAbstractBindingMethod):
     """
     def __init__(self, descriptor):
         args = [Argument('*JSContext', 'cx'), Argument('uint', 'argc'),
-                Argument('*jsval', 'vp')]
+                Argument('*JSVal', 'vp')]
         CGAbstractBindingMethod.__init__(self, descriptor, 'genericMethod', args)
 
     def generate_code(self):
         return CGIndenter(CGGeneric(
-            "let info: *JSJitInfo = FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "let method: JSJitMethodOp = (*info).op;\n"
+            "let _info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
+            "let method: JSJitMethodOp = (*_info).op;\n"
             "return method(cx, obj, self, argc, vp);"))
 
 class CGGenericGetter(CGAbstractBindingMethod):
@@ -950,7 +951,7 @@ class CGGenericGetter(CGAbstractBindingMethod):
     """
     def __init__(self, descriptor, lenientThis=False):
         args = [Argument('*JSContext', 'cx'), Argument('uint', 'argc'),
-                Argument('*jsval', 'vp')]
+                Argument('*JSVal', 'vp')]
         if lenientThis:
             name = "genericLenientGetter"
             unwrapFailureCode = (
@@ -965,9 +966,9 @@ class CGGenericGetter(CGAbstractBindingMethod):
 
     def generate_code(self):
         return CGIndenter(CGGeneric(
-            "let info: *JSJitInfo = FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "let getter: JSJitPropertyOp = (*info).op;\n"
-            "return getter(cx, obj, self, vp);"))
+            "let _info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
+            "let tmp: *rust_box<%s> = cast::reinterpret_cast(&self);\n"
+            "return CallJitPropertyOp(_info, cx, obj, ptr::addr_of(&(*tmp).payload) as *libc::c_void, vp);" % self.descriptor.nativeType))
 
 class CGSpecializedGetter(CGAbstractExternMethod):
     """
@@ -980,7 +981,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         args = [ Argument('*JSContext', 'cx'),
                  Argument('*JSObject', 'obj'),
                  Argument('*%s' % descriptor.nativeType, 'self'),
-                 Argument('*mut jsval', 'vp') ]
+                 Argument('*mut JSVal', 'vp') ]
         CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args)
 
     def definition_body(self):
@@ -1025,11 +1026,11 @@ class CGMemberJITInfo(CGThing):
         return ""
 
     def defineJitInfo(self, infoName, opName, infallible):
-        protoID = "prototypes::id::%s" % self.descriptor.name
-        depth = "PrototypeTraits<%s>::Depth" % protoID
+        protoID = 0 # "prototypes::id::%s" % self.descriptor.name
+        depth = 0 # "PrototypeTraits<%s>::Depth" % protoID
         failstr = "true" if infallible else "false"
         return ("\n"
-                "const %s: JSJitInfo = {\n"
+                "const %s: JSJitInfo = JSJitInfo {\n"
                 "  op: %s,\n"
                 "  protoID: %s,\n"
                 "  depth: %s,\n"
@@ -1082,8 +1083,9 @@ class CGAbstractClassHook(CGAbstractExternMethod):
                                         args)
 
     def definition_body_prologue(self):
+        return "" #XXXjdm we may want to do a proper unwrap here
         return """
-  %s* self = unwrap<%s>(obj);
+  let self: *%s = &(unwrap::<*rust_box<%s>>(obj).payload);
 """ % (self.descriptor.nativeType, self.descriptor.nativeType)
 
     def definition_body(self):
@@ -1100,7 +1102,8 @@ def finalizeHook(descriptor, hookName, context):
 }""" % (hookName, context)
     #clearWrapper = "ClearWrapper(self, self);\n" if descriptor.wrapperCache else ""
     if descriptor.workers:
-        release = "self->Release();"
+        #release = "self->Release();"
+        pass
     else:
         assert descriptor.nativeIsISupports
         release = """let val = JS_GetReservedSlot(obj, 0);
@@ -1276,8 +1279,11 @@ class CGBindingRoot(CGThing):
                          ['js::*',
                           'js::jsapi::*',
                           'js::jsapi::bindgen::*',
+                          'js::jsfriendapi::bindgen::*',
                           'js::glue::bindgen::*',
-                          'dom::bindings::utils::*'],
+                          'dom::bindings::utils::*',
+                          'dom::bindings::clientrect::*' #XXXjdm
+                         ], 
                          curr)
 
         # Add the auto-generated comment.

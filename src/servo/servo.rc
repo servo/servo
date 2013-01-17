@@ -45,6 +45,7 @@ pub mod dom {
         pub mod node;
         pub mod utils;
         pub mod window;
+        pub mod clientrect;
         pub mod ClientRectBinding;
     }
     pub mod document;

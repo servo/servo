@@ -27,6 +27,11 @@ pub struct rust_box<T> {
     payload: T
 }
 
+pub unsafe fn unwrap<T>(obj: *JSObject) -> T {
+    let val = JS_GetReservedSlot(obj, 0);
+    cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val))
+}
+
 pub unsafe fn squirrel_away<T>(x: @T) -> *rust_box<T> {
     let y: *rust_box<T> = cast::reinterpret_cast(&x);
     cast::forget(x);
