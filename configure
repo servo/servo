@@ -381,8 +381,16 @@ fi
 
 step_msg "running submodule autoconf scripts"
 
+# Run the SpiderMonkey autoconf using autoconf 2.13
+(cd ${CFG_SRC_DIR}src/mozjs/js/src && "${CFG_AUTOCONF213}") || exit $?
+
+# Pixman and cairo require some care to autoconf correctly for our in-tree build.
+# The normal autogen.sh files mostly just run autoreconfig but we need more fine control
+
 if [ $CFG_OSTYPE = "apple-darwin" ]
 then
+    # pkg-config is installed in a different place on mac (via homebrew? not sure)
+    # and the way to set this seems to be calling aclocal by hand (instead of via autoreconf)
     OSX_PKG_CONFIG_M4_MACROS="-I/usr/local/share/aclocal"
     LIBTOOLIZE=glibtoolize
 else
@@ -393,11 +401,11 @@ fi
 PIXMAN_ACLOCALCMD="aclocal ${OSX_PKG_CONFIG_M4_MACROS}"
 CAIRO_ACLOCALCMD="aclocal ${OSX_PKG_CONFIG_M4_MACROS} -Ibuild"
 AUTOCMD="${LIBTOOLIZE} && autoconf && autoheader && automake --add-missing --copy --no-force"
+# Copied from cairo's autogen.sh. Build fails without
 CAIRO_BOILERPLATE="touch boilerplate/Makefile.am.features && touch src/Makefile.am.features"
 PIXMAN_AUTOCMD="${PIXMAN_ACLOCALCMD} && ${AUTOCMD}"
 CAIRO_AUTOCMD="${CAIRO_BOILERPLATE} && ${CAIRO_ACLOCALCMD} && ${AUTOCMD}"
 
-(cd ${CFG_SRC_DIR}src/mozjs/js/src && "${CFG_AUTOCONF213}") || exit $?
 (cd ${CFG_SRC_DIR}src/pixman && eval ${PIXMAN_AUTOCMD}) || exit $?
 (cd ${CFG_SRC_DIR}src/cairo && eval ${CAIRO_AUTOCMD}) || exit $?
 
@@ -484,7 +492,7 @@ do
 		CONFIGURE_ARGS="--enable-png=no --enable-svg=no --enable-ft=no --enable-xlib=no"
 	fi
 
-	# Tell pkg-config where pixman is
+	# Tell pkg-config that the pixman library is in-tree
 	if [ $i = "cairo" ]; then
 	    export PKG_CONFIG_PATH=../pixman
 	else
