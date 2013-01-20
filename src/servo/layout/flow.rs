@@ -1,3 +1,4 @@
+use core;
 use dom::node::Node;
 use layout::block::BlockFlowData;
 use layout::box::RenderBox;
@@ -7,7 +8,7 @@ use layout::display_list_builder::DisplayListBuilder;
 use layout::inline::{InlineFlowData, NodeRange};
 use layout::root::RootFlowData;
 use util::tree;
-
+use core::mutable::Mut;
 use core::dvec::DVec;
 use geom::rect::Rect;
 use geom::point::Point2D;
@@ -154,7 +155,7 @@ impl FlowContext  {
     }
 
     fn build_display_list_recurse(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>,
-                                  offset: &Point2D<Au>, list: &mut DisplayList) {
+                                  offset: &Point2D<Au>, list: &Mut<DisplayList>) {
         debug!("FlowContext::build_display_list at %?: %s", self.d().position, self.debug_str());
 
         match self {
@@ -224,7 +225,7 @@ impl FlowTree {
 
 impl FlowTree : tree::WriteMethods<@FlowContext> {
 
-    pure fn eq(a: &@FlowContext, b: &@FlowContext) -> bool { core::managed::ptr_eq(*a, *b) }
+    pure fn tree_eq(a: &@FlowContext, b: &@FlowContext) -> bool { core::managed::ptr_eq(*a, *b) }
 
     fn with_tree_fields<R>(box: &@FlowContext, f: fn(&tree::Tree<@FlowContext>) -> R) -> R {
         f(&box.d().tree)

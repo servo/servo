@@ -2,6 +2,8 @@ use geometry::Au;
 use servo_gfx_util::range::Range;
 use servo_gfx_util::vec::*;
 
+use geometry;
+use core;
 use core::cmp::{Ord, Eq};
 use core::dvec::DVec;
 use core::u16;

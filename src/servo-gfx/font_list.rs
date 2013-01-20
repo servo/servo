@@ -2,7 +2,12 @@ use font::{CSSFontWeight, SpecifiedFontStyle, UsedFontStyle};
 use native::FontHandle;
 
 use dvec::DVec;
-use send_map::{linear, SendMap};
+use core::send_map::{linear, SendMap};
+
+#[cfg(target_os = "linux")]
+use fontconfig;
+use native;
+use util::time::time;
 
 #[cfg(target_os = "macos")]
 type FontListHandle/& = quartz::font_list::QuartzFontListHandle;
@@ -50,7 +55,7 @@ pub impl FontList {
         // changed.  Does OSX have a notification for this event?
         //
         // Should font families with entries be invalidated/refreshed too?
-        do util::time::time("gfx::font_list: regenerating available font families and faces") {
+        do time("gfx::font_list: regenerating available font families and faces") {
             self.family_map = self.handle.get_available_families();
         }
     }

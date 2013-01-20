@@ -6,6 +6,7 @@ Currently, only harfbuzz bindings are implemented.
 */
 use gfx_font::Font;
 use text::glyph::GlyphStore;
+use harfbuzz;
 
 pub type Shaper/& = harfbuzz::shaper::HarfbuzzShaper;
 

@@ -29,11 +29,12 @@ fn default_url(name: &str) -> Url {
 
 fn style_stream(style: &str) -> DataStream {
     let style = Cell(str::to_bytes(style));
-    |move style| if !style.is_empty() {
+    let d: DataStream = |move style| if !style.is_empty() {
         Some(style.take())
     } else {
         None
-    }
+    };
+    return d;
 }
 
 fn html4_default_style_str() -> ~str {

@@ -61,6 +61,8 @@ use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
                                                 hb_font_funcs_set_glyph_func,
                                                 hb_font_funcs_set_glyph_h_kerning_func};
 
+use text::util::{float_to_fixed, fixed_to_float, fixed_to_rounded_int};
+
 pub struct ShapedGlyphData {
     count: uint,
     glyph_infos: *hb_glyph_info_t,
@@ -169,7 +171,7 @@ pub impl HarfbuzzShaper {
         hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, ptr::null(), ptr::null());
         hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, ptr::null(), ptr::null());
         unsafe {
-            let font_data: *c_void = core::ptr::addr_of(font) as *c_void;
+            let font_data: *c_void = ptr::addr_of(font) as *c_void;
             hb_font_set_funcs(hb_font, hb_funcs, font_data, ptr::null());
         };
 
@@ -182,15 +184,15 @@ pub impl HarfbuzzShaper {
     }
 
     static priv fn float_to_fixed(f: float) -> i32 {
-        util::float_to_fixed(16, f)
+        float_to_fixed(16, f)
     }
 
     static priv fn fixed_to_float(i: hb_position_t) -> float {
-        util::fixed_to_float(16, i)
+        fixed_to_float(16, i)
     }
 
     static priv fn fixed_to_rounded_int(f: hb_position_t) -> int {
-        util::fixed_to_rounded_int(16, f)
+        fixed_to_rounded_int(16, f)
     }
 }
 

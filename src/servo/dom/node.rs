@@ -15,6 +15,7 @@ use layout::flow::FlowContext;
 use ptr::null;
 use std::arc::ARC;
 use util::tree;
+use super::cow;
 
 pub enum NodeData = {
     tree: tree::Tree<Node>,
@@ -175,7 +176,7 @@ impl NodeScope {
 
 #[allow(non_implicitly_copyable_typarams)]
 impl NodeScope : tree::WriteMethods<Node> {
-    pure fn eq(a: &Node, b: &Node) -> bool { a == b }
+    pure fn tree_eq(a: &Node, b: &Node) -> bool { a == b }
 
     fn with_tree_fields<R>(node: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {
         self.write(node, |n| f(&n.tree))

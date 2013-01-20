@@ -1,4 +1,5 @@
 use io::WriterUtil;
+use surface;
 
 fn encode(writer: io::Writer, surface: &surface::image_surface) {
     assert surface.format == surface::fo_rgba_8888;

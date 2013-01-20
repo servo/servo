@@ -12,6 +12,12 @@ use azure::azure_hl::{BackendType, ColorPattern};
 use core::dvec::DVec;
 use geom::{Point2D, Rect, Size2D};
 
+#[cfg(target_os = "macos")]
+use quartz;
+#[cfg(target_os = "linux")]
+use freetype_impl;
+use native;
+
 // FontHandle encapsulates access to the platform's font API,
 // e.g. quartz, FreeType. It provides access to metrics and tables
 // needed by the text shaper as well as access to the underlying font
@@ -416,7 +422,7 @@ pub impl Font : FontMethods {
 
         for run.glyphs.iter_glyphs_for_char_range(range) |_i, glyph| {
             let glyph_advance = glyph.advance();
-            let glyph_offset = glyph.offset().get_default(Au::zero_point());
+            let glyph_offset = glyph.offset().get_or_default(Au::zero_point());
 
             let azglyph: AzGlyph = {
                 mIndex: glyph.index() as uint32_t,

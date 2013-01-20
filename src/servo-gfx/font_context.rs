@@ -10,6 +10,12 @@ use core::dvec::DVec;
 use core::send_map::linear::LinearMap;
 use core::send_map::linear;
 
+#[cfg(target_os = "macos")]
+use quartz;
+#[cfg(target_os = "linux")]
+use freetype_impl;
+use font_context;
+
 // TODO(Issue #164): delete, and get default font from font list
 const TEST_FONT: [u8 * 33004] = include_bin!("JosefinSans-SemiBold.ttf");
 

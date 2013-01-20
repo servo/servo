@@ -15,9 +15,10 @@ use layout::flow::FlowContext;
 use layout::text::TextBoxData;
 use util::tree;
 use vec::push;
-
+use gfx;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
+use core::mutable::Mut;
 
 /** A builder object that manages display list builder should mainly
  hold information about the initial request and desired result---for
@@ -32,15 +33,15 @@ pub struct DisplayListBuilder {
 
 
 trait FlowDisplayListBuilderMethods {
-    fn build_display_list(@self, a: &DisplayListBuilder, b: &Rect<Au>, c: &mut DisplayList);
+    fn build_display_list(@self, a: &DisplayListBuilder, b: &Rect<Au>, c: &Mut<DisplayList>);
 
     fn build_display_list_for_child(@self, a: &DisplayListBuilder, b: @FlowContext,
-                                    c: &Rect<Au>, d: &Point2D<Au>, e: &mut DisplayList);
+                                    c: &Rect<Au>, d: &Point2D<Au>, e: &Mut<DisplayList>);
 }
 
 impl FlowContext: FlowDisplayListBuilderMethods {
     fn build_display_list(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>,
-                          list: &mut DisplayList) {
+                          list: &Mut<DisplayList>) {
         let zero = gfx::geometry::zero_point();
         self.build_display_list_recurse(builder, dirty, &zero, list);
     }
@@ -49,7 +50,7 @@ impl FlowContext: FlowDisplayListBuilderMethods {
                                     builder: &DisplayListBuilder,
                                     child_flow: @FlowContext,
                                     dirty: &Rect<Au>, offset: &Point2D<Au>,
-                                    list: &mut DisplayList) {
+                                    list: &Mut<DisplayList>) {
 
         // adjust the dirty rect to child flow context coordinates
         let abs_flow_bounds = child_flow.d().position.translate(offset);

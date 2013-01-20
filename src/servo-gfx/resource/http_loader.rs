@@ -4,6 +4,7 @@ use oldcomm::Chan;
 use task::spawn;
 use resource::resource_task::{ProgressMsg, Payload, Done};
 use std::net::url::Url;
+use http_client;
 use http_client::{uv_http_request};
 
 pub fn factory(url: Url, progress_chan: Chan<ProgressMsg>) {

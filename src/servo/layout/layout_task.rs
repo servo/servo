@@ -233,16 +233,20 @@ impl Layout {
             let builder = DisplayListBuilder {
                 ctx: &layout_ctx,
             };
-            let mut render_layer = RenderLayer {
-                display_list: DisplayList::new(),
+
+            let display_list = Mut(DisplayList::new());
+            
+            // TODO: set options on the builder before building
+            // TODO: be smarter about what needs painting
+            layout_root.build_display_list(&builder, &copy layout_root.d().position,
+                                           &display_list);
+
+            let render_layer = RenderLayer {
+                display_list: display_list.unwrap(),
                 size: Size2D(screen_size.width.to_px() as uint,
                              screen_size.height.to_px() as uint)
             };
 
-            // TODO: set options on the builder before building
-            // TODO: be smarter about what needs painting
-            layout_root.build_display_list(&builder, &copy layout_root.d().position,
-                                           &mut render_layer.display_list);
             self.render_task.send(RenderMsg(move render_layer));
         } // time(layout: display list building)
 

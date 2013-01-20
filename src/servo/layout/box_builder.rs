@@ -1,5 +1,6 @@
 /** Creates CSS boxes from a DOM. */
 
+use dom;
 use dom::element::*;
 use dom::node::{Comment, Doctype, Element, Text, Node, LayoutData};
 use layout::box::*;

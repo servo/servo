@@ -1,3 +1,4 @@
+use js;
 use js::rust::{compartment, bare_compartment, methods};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL};
@@ -96,7 +97,7 @@ extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *JSVal, bp: *mut JSB
 }
 
 pub fn prototype_jsclass(name: ~str) -> @fn(compartment: &bare_compartment) -> JSClass {
-    |compartment: &bare_compartment, move name| {
+    let f: @fn(&bare_compartment) -> JSClass = |compartment: &bare_compartment, move name| {
         {name: compartment.add_name(copy name),
          flags: 0,
          addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -120,11 +121,13 @@ pub fn prototype_jsclass(name: ~str) -> @fn(compartment: &bare_compartment) -> J
                     null(), null(), null(), null(), null(),  // 30
                     null(), null(), null(), null(), null(),  // 35
                     null(), null(), null(), null(), null())} // 40
-    }
+    };
+    return f;
 }
 
 pub fn instance_jsclass(name: ~str, finalize: *u8)
     -> @fn(compartment: &bare_compartment) -> JSClass {
+    let f: @fn(&bare_compartment) -> JSClass =
     |compartment: &bare_compartment, move name| {
         {name: compartment.add_name(copy name),
          flags: JSCLASS_HAS_RESERVED_SLOTS(1),
@@ -149,13 +152,14 @@ pub fn instance_jsclass(name: ~str, finalize: *u8)
                     null(), null(), null(), null(), null(),  // 30
                     null(), null(), null(), null(), null(),  // 35
                     null(), null(), null(), null(), null())} // 40
-    }
+    };
+    return f;
 }
 
 // FIXME: A lot of string copies here
 pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: &bare_compartment)
     -> js::rust::jsobj {
-    compartment.register_class(utils::prototype_jsclass(copy name));
+    compartment.register_class(prototype_jsclass(copy name));
 
     //TODO error checking
     let obj = result::unwrap(

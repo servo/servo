@@ -14,6 +14,7 @@ use core::ptr::to_unsafe_ptr;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use std::arc;
 use std::arc::ARC;
 
 pub struct RenderContext {
@@ -48,7 +49,7 @@ impl RenderContext  {
     }
 
     pub fn draw_image(&self, bounds: Rect<Au>, image: ARC<~Image>) {
-        let image = std::arc::get(&image);
+        let image = arc::get(&image);
         let size = Size2D(image.width as i32, image.height as i32);
         let stride = image.width * 4;
 

@@ -10,6 +10,7 @@ use layout::context::LayoutContext;
 use layout::display_list_builder::DisplayListBuilder;
 use layout::flow::{FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
 use util::tree;
+use core::mutable::Mut;
 
 pub struct BlockFlowData {
     mut box: Option<@RenderBox>
@@ -29,7 +30,7 @@ trait BlockLayout {
     fn assign_widths_block(@self, ctx: &LayoutContext);
     fn assign_height_block(@self, ctx: &LayoutContext);
     fn build_display_list_block(@self, a: &DisplayListBuilder, b: &Rect<Au>,
-                                c: &Point2D<Au>, d: &mut DisplayList);
+                                c: &Point2D<Au>, d: &Mut<DisplayList>);
 }
 
 impl FlowContext : BlockLayout {
@@ -143,7 +144,7 @@ impl FlowContext : BlockLayout {
     }
 
     fn build_display_list_block(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
-                                offset: &Point2D<Au>, list: &mut DisplayList) {
+                                offset: &Point2D<Au>, list: &Mut<DisplayList>) {
 
         assert self.starts_block_flow();
         

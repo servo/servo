@@ -3,6 +3,8 @@ use content::content_task::{ControlMsg, Timer, ExitMsg};
 use js::jsapi::JSVal;
 use dvec::DVec;
 use util::task::spawn_listener;
+use std::timer;
+use std::uv_global_loop;
 
 pub enum TimerControlMsg {
     TimerMessage_Fire(~TimerData),
@@ -58,9 +60,9 @@ impl Window {
 
         // Post a delayed message to the per-window timer task; it will dispatch it
         // to the relevant content handler that will deal with it.
-        std::timer::delayed_send(std::uv_global_loop::get(),
-                                 timeout, self.timer_chan,
-                                 TimerMessage_Fire(~TimerData(argc, argv)));
+        timer::delayed_send(uv_global_loop::get(),
+                            timeout, self.timer_chan,
+                            TimerMessage_Fire(~TimerData(argc, argv)));
     }
 }
 

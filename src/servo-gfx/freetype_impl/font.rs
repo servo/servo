@@ -1,5 +1,6 @@
 extern mod freetype;
 
+use native;
 use freetype_impl::font_context::FreeTypeFontContextHandle;
 use gfx_font::{
     CSSFontWeight,
@@ -22,6 +23,7 @@ use gfx_font::{
     FontWeight800,
     FontWeight900,
 };
+use geometry;
 use geometry::Au;
 use text::glyph::GlyphIndex;
 use text::util::{float_to_fixed, fixed_to_float};

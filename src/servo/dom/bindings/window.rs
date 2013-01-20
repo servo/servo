@@ -16,6 +16,7 @@ use dom::bindings::node::create;
 use dom::window::{Window, TimerMessage_Fire};
 use dom::node::Node;
 use core::dvec::DVec;
+use super::utils;
 
 extern fn alert(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
   unsafe {

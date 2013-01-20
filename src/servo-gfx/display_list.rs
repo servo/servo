@@ -28,7 +28,7 @@ pub enum DisplayItem {
     // (i.e, to support rendering of CSS 'word-spacing' and 'letter-spacing')
     // TODO: don't copy text runs, ever.
     Text(DisplayItemData, ~SendableTextRun, Range, Color),
-    Image(DisplayItemData, ARC<~image::base::Image>),
+    Image(DisplayItemData, ARC<~Image>),
     Border(DisplayItemData, Au, Color)
 }
 
@@ -80,7 +80,7 @@ impl DisplayItem {
     }
 
     // ARC should be cloned into ImageData, but Images are not sendable
-    static pure fn new_Image(bounds: &Rect<Au>, image: ARC<~image::base::Image>) -> DisplayItem {
+    static pure fn new_Image(bounds: &Rect<Au>, image: ARC<~Image>) -> DisplayItem {
         Image(DisplayItemData::new(bounds), move image)
     }
 }

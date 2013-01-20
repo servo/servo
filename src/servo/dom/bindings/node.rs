@@ -14,6 +14,9 @@ use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment, doms
 use dom::bindings::utils::{str};
 use libc::c_uint;
 use ptr::null;
+use super::utils;
+use super::element;
+use js;
 
 pub fn init(compartment: &bare_compartment) {
     let obj = utils::define_empty_prototype(~"Node", None, compartment);

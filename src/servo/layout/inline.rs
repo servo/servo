@@ -1,3 +1,4 @@
+use core;
 use dom::node::Node;
 use layout::box::*;
 use layout::context::LayoutContext;
@@ -585,7 +586,7 @@ trait InlineLayout {
     fn assign_widths_inline(@self, ctx: &LayoutContext);
     fn assign_height_inline(@self, ctx: &LayoutContext);
     fn build_display_list_inline(@self, a: &DisplayListBuilder, b: &Rect<Au>, c: &Point2D<Au>,
-                                 d: &mut DisplayList);
+                                 d: &Mut<DisplayList>);
 }
 
 impl FlowContext : InlineLayout {
@@ -622,7 +623,7 @@ impl FlowContext : InlineLayout {
         for self.inline().boxes.each |box| {
             box.d().position.size.width = match *box {
                 @ImageBox(_, ref img) => {
-                    Au::from_px(img.get_size().get_default(Size2D(0,0)).width)
+                    Au::from_px(img.get_size().get_or_default(Size2D(0,0)).width)
                 }
                 @TextBox(*) => { /* text boxes are initialized with dimensions */
                                    box.d().position.size.width
@@ -718,7 +719,7 @@ impl FlowContext : InlineLayout {
     }
 
     fn build_display_list_inline(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
-                                 offset: &Point2D<Au>, list: &mut DisplayList) {
+                                 offset: &Point2D<Au>, list: &Mut<DisplayList>) {
 
         assert self.starts_inline_flow();
 

@@ -25,6 +25,7 @@ use core::dvec::DVec;
 use core::send_map::{linear, SendMap};
 use libc::c_int;
 use ptr::Ptr;
+use native;
 
 pub struct FontconfigFontListHandle {
     fctx: FreeTypeFontContextHandle,

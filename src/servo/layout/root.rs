@@ -9,6 +9,7 @@ use layout::context::LayoutContext;
 use layout::flow::{FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
 use layout::display_list_builder::DisplayListBuilder;
 use util::tree;
+use core::mutable::Mut;
 
 pub struct RootFlowData {
     mut box: Option<@RenderBox>
@@ -27,7 +28,7 @@ trait RootLayout {
     fn assign_widths_root(@self, ctx: &LayoutContext);
     fn assign_height_root(@self, ctx: &LayoutContext);
     fn build_display_list_root(@self, a: &DisplayListBuilder, b: &Rect<Au>,
-                               c: &Point2D<Au>, d: &mut DisplayList);
+                               c: &Point2D<Au>, d: &Mut<DisplayList>);
 }
 
 impl FlowContext : RootLayout {
@@ -76,7 +77,7 @@ impl FlowContext : RootLayout {
     }
 
     fn build_display_list_root(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
-                               offset: &Point2D<Au>, list: &mut DisplayList) {
+                               offset: &Point2D<Au>, list: &Mut<DisplayList>) {
         assert self.starts_root_flow();
 
         self.build_display_list_block(builder, dirty, offset, list);

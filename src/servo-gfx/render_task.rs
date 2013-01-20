@@ -4,7 +4,7 @@ use opts::Opts;
 use render_context::RenderContext;
 use render_layers::{RenderLayer, render_layers};
 use resource::util::spawn_listener;
-
+use util::time::time;
 use azure::AzFloat;
 use core::oldcomm::*;
 use core::libc::size_t;
@@ -109,7 +109,7 @@ impl<C: Compositor Owned> Renderer<C> {
 
         debug!("renderer: rendering");
 
-        do util::time::time(~"rendering") {
+        do time(~"rendering") {
             let layer_buffer_set = layer_buffer_set_cell.take();
             let layer_buffer_set_channel = layer_buffer_set_channel_cell.take();
 

@@ -18,7 +18,7 @@ pub trait ReadMethods<T> {
 
 pub trait WriteMethods<T> {
     fn with_tree_fields<R>(&T, f: fn(&Tree<T>) -> R) -> R;
-    pure fn eq(&T, &T) -> bool;
+    pure fn tree_eq(&T, &T) -> bool;
 }
 
 pub fn each_child<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T, f: fn(&T) -> bool) {
@@ -35,7 +35,7 @@ pub fn each_child<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T, f: fn(&T) -> bool)
 }
 
 pub fn is_leaf<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T) -> bool {
-    tree::first_child(ops, node).is_none()
+    first_child(ops, node).is_none()
 }
 
 pub fn first_child<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T) -> Option<T> {
@@ -67,7 +67,7 @@ pub fn empty<T>() -> Tree<T> {
 }
 
 pub fn add_child<T:Copy,O:WriteMethods<T>>(ops: &O, parent: T, child: T) {
-    assert !ops.eq(&parent, &child);
+    assert !ops.tree_eq(&parent, &child);
 
     ops.with_tree_fields(&child, |child_tf| {
         match child_tf.parent {
@@ -102,13 +102,13 @@ pub fn remove_child<T:Copy,O:WriteMethods<T>>(ops: &O, parent: T, child: T) {
         match copy child_tf.parent {
             None => { fail ~"Not a child"; }
             Some(parent_n) => {
-                assert ops.eq(&parent, &parent_n);
+                assert ops.tree_eq(&parent, &parent_n);
 
                 // adjust parent fields
                 do ops.with_tree_fields(&parent) |parent_tf| {
                     match copy parent_tf.first_child {
                         None => { fail ~"parent had no first child??" },
-                        Some(first_child) if ops.eq(&child, &first_child) => {
+                        Some(first_child) if ops.tree_eq(&child, &first_child) => {
                             parent_tf.first_child = child_tf.next_sibling;
                         },
                         Some(_) => {}
@@ -116,7 +116,7 @@ pub fn remove_child<T:Copy,O:WriteMethods<T>>(ops: &O, parent: T, child: T) {
                     
                     match copy parent_tf.last_child {
                         None => { fail ~"parent had no last child??" },
-                        Some(last_child) if ops.eq(&child, &last_child) => {
+                        Some(last_child) if ops.tree_eq(&child, &last_child) => {
                             parent_tf.last_child = child_tf.prev_sibling;
                         },
                         Some(_) => {}

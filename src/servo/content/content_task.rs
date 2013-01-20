@@ -35,6 +35,8 @@ use std::arc::{ARC, clone};
 use std::cell::Cell;
 use std::net::url::Url;
 use url_to_str = std::net::url::to_str;
+use dom;
+use html;
 
 pub enum ControlMsg {
     ParseMsg(Url),
@@ -174,7 +176,7 @@ impl Content {
     fn handle_control_msg(control_msg: ControlMsg) -> bool {
         match move control_msg {
           ParseMsg(move url) => {
-            debug!("content: Received url `%s` to parse", url_to_str(copy url));
+            debug!("content: Received url `%s` to parse", url_to_str(&url));
 
             // Note: we can parse the next document in parallel
             // with any previous documents.
@@ -241,11 +243,11 @@ impl Content {
 
 
           ExecuteMsg(url) => {
-            debug!("content: Received url `%s` to execute", url_to_str(copy url));
+            debug!("content: Received url `%s` to execute", url_to_str(&url));
 
             match read_whole_file(&Path(url.path)) {
               Err(msg) => {
-                println(fmt!("Error opening %s: %s", url_to_str(copy url), msg));
+                println(fmt!("Error opening %s: %s", url_to_str(&url), msg));
               }
               Ok(move bytes) => {
                 let compartment = option::expect(self.compartment, ~"TODO error checking");

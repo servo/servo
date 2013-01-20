@@ -1,3 +1,4 @@
+use gfx::util::url::make_url;
 use au = gfx::geometry;
 use content::content_task::ContentTask;
 use dom::cow;

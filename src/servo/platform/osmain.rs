@@ -18,6 +18,9 @@ use layers::layers::ImageLayer;
 use std::cell::Cell;
 use std::cmp::FuzzyEq;
 use glut::glut;
+use layers;
+use sharegl;
+use sharegl::ShareGlContext;
 
 pub struct OSMain {
     chan: oldcomm::Chan<Msg>

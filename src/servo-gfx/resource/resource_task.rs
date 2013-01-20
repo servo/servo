@@ -8,6 +8,7 @@ use oldcomm::{Chan, Port};
 use resource::util::spawn_listener;
 use std::net::url;
 use std::net::url::{Url, to_str};
+use super::{file_loader, http_loader};
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
@@ -52,9 +53,11 @@ type LoaderTaskFactory = fn~(url: Url, Chan<ProgressMsg>);
 
 /// Create a ResourceTask with the default loaders
 pub fn ResourceTask() -> ResourceTask {
+    let file_loader_factory: LoaderTaskFactory = file_loader::factory;
+    let http_loader_factory: LoaderTaskFactory = http_loader::factory;
     let loaders = ~[
-        (~"file", file_loader::factory),
-        (~"http", http_loader::factory)
+        (~"file", file_loader_factory),
+        (~"http", http_loader_factory)
     ];
     create_resource_task_with_loaders(move loaders)
 }
@@ -100,7 +103,7 @@ impl ResourceManager {
 
         match self.get_loader_factory(&url) {
             Some(loader_factory) => {
-                debug!("resource_task: loading url: %s", to_str(copy url));
+                debug!("resource_task: loading url: %s", to_str(&url));
                 loader_factory(move url, progress_chan);
             }
             None => {

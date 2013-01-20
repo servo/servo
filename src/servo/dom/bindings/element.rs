@@ -19,7 +19,7 @@ use dom::bindings::utils::{str};
 use libc::c_uint;
 use ptr::null;
 use dom::bindings::node::unwrap;
-
+use super::utils;
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("element finalize!");
@@ -75,10 +75,10 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
     let node = (*bundle).payload.node;
     let scope = (*bundle).payload.scope;
     let width = scope.write(&node, |nd| {
-        match nd.kind {
-            ~Element(ed) => {
-                match ed.kind {
-                    ~HTMLImageElement(*) => {
+        match &nd.kind {
+            &~Element(ref ed) => {
+                match &ed.kind {
+                    &~HTMLImageElement(*) => {
                         let content = task_from_context(cx);
                         match (*content).query_layout(layout_task::ContentBox(node)) {
                             Ok(rect) => rect.width,
@@ -152,13 +152,13 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
 #[allow(non_implicitly_copyable_typarams)]
 pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
     let proto = scope.write(&node, |nd| {
-        match nd.kind {
-          ~Element(ed) => {
-            match ed.kind {
-              ~HTMLDivElement(*) => ~"HTMLDivElement",
-              ~HTMLHeadElement(*) => ~"HTMLHeadElement",
-              ~HTMLImageElement(*) => ~"HTMLImageElement",
-              ~HTMLScriptElement(*) => ~"HTMLScriptElement",
+        match &nd.kind {
+          &~Element(ref ed) => {
+            match &ed.kind {
+              &~HTMLDivElement(*) => ~"HTMLDivElement",
+              &~HTMLHeadElement(*) => ~"HTMLHeadElement",
+              &~HTMLImageElement(*) => ~"HTMLImageElement",
+              &~HTMLScriptElement(*) => ~"HTMLScriptElement",
               _ => ~"HTMLElement"
             }
           }

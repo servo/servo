@@ -14,6 +14,8 @@ use dom::bindings::utils::{DOMString, domstring_to_jsval, rust_box, squirrel_awa
 use dom::bindings::node::create;
 
 use dom::document::Document;
+use dom::bindings::node;
+use dom::bindings::utils;
 
 enum DOMException {
     INVALID_CHARACTER_ERR

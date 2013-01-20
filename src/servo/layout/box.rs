@@ -7,14 +7,17 @@ use layout::debug::BoxedDebugMethods;
 use layout::display_list_builder::DisplayListBuilder;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
+use layout;
 use util::tree::ReadMethods;
-
+use core::mutable::Mut;
 use arc = std::arc;
+use core::managed;
 use core::dvec::DVec;
 use core::to_str::ToStr;
 use core::rand;
 use core::task::spawn;
 use geom::{Point2D, Rect, Size2D};
+use gfx;
 use gfx::display_list::{DisplayItem, DisplayList};
 use gfx::font::{FontStyle, FontWeight300};
 use gfx::geometry::Au;
@@ -147,13 +150,13 @@ impl RenderBox  {
     }
 
     fn can_merge_with_box(@self, other: @RenderBox) -> bool {
-        assert !core::managed::ptr_eq(self, other);
+        assert !managed::ptr_eq(self, other);
 
         match (self, other) {
             (@UnscannedTextBox(*), @UnscannedTextBox(*)) => {
                 self.font_style() == other.font_style()
             },
-            (@TextBox(_, ref d1), @TextBox(_, ref d2)) => core::managed::ptr_eq(d1.run, d2.run),
+            (@TextBox(_, ref d1), @TextBox(_, ref d2)) => managed::ptr_eq(d1.run, d2.run),
             (_, _) => false
         }
     }
@@ -244,7 +247,7 @@ impl RenderBox  {
             &GenericBox(*) => Au(0),
             // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult 'width'.
-            &ImageBox(_, ref i) => Au::from_px(i.get_size().get_default(Size2D(0,0)).width),
+            &ImageBox(_, ref i) => Au::from_px(i.get_size().get_or_default(Size2D(0,0)).width),
             &TextBox(_,d) => d.run.min_width_for_range(&const d.range),
             &UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
         }
@@ -258,7 +261,7 @@ impl RenderBox  {
             // FlowContext will combine the width of this element and
             // that of its children to arrive at the context width.
             &GenericBox(*) => Au(0),
-            &ImageBox(_, ref i) => Au::from_px(i.get_size().get_default(Size2D(0,0)).width),
+            &ImageBox(_, ref i) => Au::from_px(i.get_size().get_or_default(Size2D(0,0)).width),
 
             // a text box cannot span lines, so assume that this is an unsplit text box.
 
@@ -380,7 +383,7 @@ impl RenderBox  {
     * `list` - List to which items should be appended
     */
     fn build_display_list(@self, _builder: &DisplayListBuilder, dirty: &Rect<Au>,
-                          offset: &Point2D<Au>, list: &mut DisplayList) {
+                          offset: &Point2D<Au>, list: &Mut<DisplayList>) {
 
         let box_bounds = self.d().position;
 
@@ -400,28 +403,30 @@ impl RenderBox  {
         match self {
             @UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
             @TextBox(_,data) => {
-                let nearest_ancestor_element = self.nearest_ancestor_element();
-                let color = nearest_ancestor_element.style().color().to_gfx_color();
-                list.append_item(~DisplayItem::new_Text(&abs_box_bounds,
-                                                        ~data.run.serialize(),
-                                                        data.range,
-                                                        color));
-                // debug frames for text box bounds
-                debug!("%?", { 
-                    // text box bounds
-                    list.append_item(~DisplayItem::new_Border(&abs_box_bounds,
-                                                              Au::from_px(1),
-                                                              rgb(0, 0, 200).to_gfx_color()));
-                    // baseline "rect"
-                    // TODO(Issue #221): create and use a Line display item for baseline.
-                    let ascent = data.run.metrics_for_range(&data.range).ascent;
-                    let baseline = Rect(abs_box_bounds.origin + Point2D(Au(0),ascent),
-                                        Size2D(abs_box_bounds.size.width, Au(0)));
-                    
-                    list.append_item(~DisplayItem::new_Border(&baseline,
-                                                              Au::from_px(1),
-                                                              rgb(0, 200, 0).to_gfx_color()));
-                ; ()});
+                do list.borrow_mut |list| {
+                    let nearest_ancestor_element = self.nearest_ancestor_element();
+                    let color = nearest_ancestor_element.style().color().to_gfx_color();
+                    list.append_item(~DisplayItem::new_Text(&abs_box_bounds,
+                                                            ~data.run.serialize(),
+                                                            data.range,
+                                                            color));
+                    // debug frames for text box bounds
+                    debug!("%?", { 
+                        // text box bounds
+                        list.append_item(~DisplayItem::new_Border(&abs_box_bounds,
+                                                                  Au::from_px(1),
+                                                                  rgb(0, 0, 200).to_gfx_color()));
+                        // baseline "rect"
+                        // TODO(Issue #221): create and use a Line display item for baseline.
+                        let ascent = data.run.metrics_for_range(&data.range).ascent;
+                        let baseline = Rect(abs_box_bounds.origin + Point2D(Au(0),ascent),
+                                            Size2D(abs_box_bounds.size.width, Au(0)));
+                        
+                        list.append_item(~DisplayItem::new_Border(&baseline,
+                                                                  Au::from_px(1),
+                                                                  rgb(0, 200, 0).to_gfx_color()));
+                        ; ()});
+                }
             },
             // TODO: items for background, border, outline
             @GenericBox(_) => {
@@ -429,9 +434,11 @@ impl RenderBox  {
             @ImageBox(_, ref i) => {
                 match i.get_image() {
                     Some(image) => {
-                        debug!("(building display list) building image box");
-                        list.append_item(~DisplayItem::new_Image(&abs_box_bounds,
-                                                                 arc::clone(&image)));
+                        do list.borrow_mut |list| {
+                            debug!("(building display list) building image box");
+                            list.append_item(~DisplayItem::new_Image(&abs_box_bounds,
+                                                                     arc::clone(&image)));
+                        }
                     }
                     None => {
                         /* No image data at all? Okay, add some fallback content instead. */
@@ -444,7 +451,7 @@ impl RenderBox  {
         self.add_border_to_list(list, &abs_box_bounds);
     }
 
-    fn add_bgcolor_to_list(@self, list: &mut DisplayList, abs_bounds: &Rect<Au>) {
+    fn add_bgcolor_to_list(@self, list: &Mut<DisplayList>, abs_bounds: &Rect<Au>) {
         use std::cmp::FuzzyEq;
 
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
@@ -455,11 +462,13 @@ impl RenderBox  {
 
         let bgcolor = nearest_ancestor_element.style().background_color();
         if !bgcolor.alpha.fuzzy_eq(&0.0) {
-            list.append_item(~DisplayItem::new_SolidColor(abs_bounds, bgcolor.to_gfx_color()));
+            do list.borrow_mut |list| {
+                list.append_item(~DisplayItem::new_SolidColor(abs_bounds, bgcolor.to_gfx_color()));
+            }
         }
     }
 
-    fn add_border_to_list(list: &mut DisplayList, abs_bounds: &Rect<Au>) {
+    fn add_border_to_list(list: &Mut<DisplayList>, abs_bounds: &Rect<Au>) {
         if !self.d().node.is_element() { return }
 
         let top_width = self.style().border_top_width();
@@ -494,7 +503,9 @@ impl RenderBox  {
 
                     let top_color = self.style().border_top_color();
                     let color = top_color.to_gfx_color(); // FIXME
-                    list.append_item(~DisplayItem::new_Border(&bounds, border_width, color));
+                    do list.borrow_mut |list| {
+                        list.append_item(~DisplayItem::new_Border(&bounds, border_width, color));
+                    }
                     
                 } else {
                     warn!("ignoring unimplemented border widths");

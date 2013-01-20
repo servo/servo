@@ -78,6 +78,11 @@ $(S)config.stamp : $(S)configure $(S)Makefile.in
 $(CFG_RUSTC):
 	$(MAKE) -C "$(CFG_BUILD_DIR)src/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS=""
 
+rust: $(CFG_RUSTC)
+
+clean-rust:
+	$(MAKE) -C "$(CFG_BUILD_DIR)src/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS="" clean
+
 define DEF_SUBMODULE_VARS
 DEPS_$(1) =
 CFLAGS_$(1) = -O2
