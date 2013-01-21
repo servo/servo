@@ -6,6 +6,8 @@ use core::send_map::{linear, SendMap};
 
 #[cfg(target_os = "linux")]
 use fontconfig;
+#[cfg(target_os = "macos")]
+use quartz;
 use native;
 use util::time::time;
 

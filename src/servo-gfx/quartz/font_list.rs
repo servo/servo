@@ -1,6 +1,8 @@
 extern mod core_foundation;
 extern mod core_text;
 
+use native;
+use quartz;
 use quartz::font_list::core_foundation::array::CFArray;
 use quartz::font_list::core_foundation::base::CFWrapper;
 use quartz::font_list::core_foundation::string::{CFString, CFStringRef};

@@ -2,6 +2,7 @@ extern mod core_foundation;
 extern mod core_graphics;
 extern mod core_text;
 
+use quartz;
 use quartz::font::core_foundation::base::{CFIndex, CFTypeRef, CFWrapper};
 use quartz::font::core_foundation::data::{CFData, CFDataRef};
 use quartz::font::core_foundation::string::UniChar;

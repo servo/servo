@@ -2,6 +2,7 @@ extern mod core_foundation;
 extern mod core_graphics;
 extern mod core_text;
 
+use quartz;
 use quartz::font::QuartzFontHandle;
 use quartz::font_context::core_text::font::CTFont;
 
