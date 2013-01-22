@@ -255,6 +255,9 @@ impl<T:Copy Owned,A> Scope<T,A> {
 #[cfg(test)]
 #[allow(non_implicitly_copyable_typarams)]
 mod test {
+    use pipes::stream;
+    use super::Scope;
+
     type animal = {name: ~str, species: species};
     enum species {
         chicken(~chicken),
@@ -275,16 +278,16 @@ mod test {
     }
 
     fn mutate(a: &animal) {
-        match a.species {
-          chicken(c) => c.eggs_per_day += 1u,
-          bull(c) => c.horns += 1u
+        match &a.species {
+          &chicken(ref c) => c.eggs_per_day += 1u,
+          &bull(ref c) => c.horns += 1u
         }
     }
 
     fn read_characteristic(a: &animal) -> uint {
-        match a.species {
-          chicken(c) => c.eggs_per_day,
-          bull(c) => c.horns
+        match &a.species {
+          &chicken(ref c) => c.eggs_per_day,
+          &bull(ref c) => c.horns
         }
     }
 
@@ -300,19 +303,21 @@ mod test {
 
         let iter1 = 3u;
         let iter2 = 22u;
-        let read_port = comm::Port();
-        let read_chan = comm::Chan(&read_port);
+        let read_port = oldcomm::Port();
+        let read_chan = oldcomm::Chan(&read_port);
 
         // fire up a reader task
         for uint::range(0u, iter1) |i| {
             s.reader_forked();
-            let wait_chan = task::spawn_listener(|wait_port| {
+            let (wait_port, wait_chan) = stream();
+
+            do task::spawn {
                 for uint::range(0u, iter2) |_i| {
-                    comm::send(read_chan, henrietta.read(read_characteristic));
-                    comm::send(read_chan, ferdinand.read(read_characteristic));
-                    comm::recv(wait_port);
+                    oldcomm::send(read_chan, henrietta.read(read_characteristic));
+                    oldcomm::send(read_chan, ferdinand.read(read_characteristic));
+                    wait_port.recv();
                 }
-            });
+            }
 
             let hrc = henrietta.read(read_characteristic);
             assert hrc == (i * iter2);
@@ -321,11 +326,11 @@ mod test {
             assert frc == i * iter2;
 
             for uint::range(0u, iter2) |_i| {
-                assert hrc == comm::recv(read_port);
+                assert hrc == oldcomm::recv(read_port);
                 s.write(&henrietta, mutate);
-                assert frc == comm::recv(read_port);
+                assert frc == oldcomm::recv(read_port);
                 s.write(&ferdinand, mutate);
-                comm::send(wait_chan, ());
+                wait_chan.send(());
             }
             s.reader_joined();
         }

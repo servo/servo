@@ -156,6 +156,9 @@ pub fn get_parent<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T) -> Option<T> {
 
 #[cfg(test)]
 mod test {
+    use super::*;
+    use core::managed::ptr_eq;
+
     enum dummy = {
         fields: Tree<@dummy>,
         value: uint
@@ -173,7 +176,7 @@ mod test {
         fn with_tree_fields<R>(d: &@dummy, f: fn(&Tree<@dummy>) -> R) -> R {
             f(&d.fields)
         }
-        pure fn eq(a: &@dummy, b: &@dummy) -> bool { core::box::ptr_eq(*a, *b) }
+        pure fn tree_eq(a: &@dummy, b: &@dummy) -> bool { ptr_eq(*a, *b) }
     }
 
     fn new_dummy(v: uint) -> @dummy {

@@ -1,6 +1,8 @@
 # Tests for these submodules will not be run by the default `make check` target.
 SLOW_TESTS += \
 	mozjs \
+	pixman \
+	cairo \
 	$(NULL)
 
 # These submodules will not be cleaned by the `make clean-fast` target.
