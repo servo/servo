@@ -50,7 +50,7 @@ pub impl FreeTypeFontContextHandle : FontContextHandleMethods {
     }
 
     fn create_font_from_identifier(name: ~str, style: UsedFontStyle)
-        -> Result<FontHandle, ()> unsafe {
+        -> Result<FontHandle, ()> {
         debug!("Creating font handle for %s", name);
         do path_from_identifier(name).chain |file_name| {
             debug!("Opening font face %s", file_name);

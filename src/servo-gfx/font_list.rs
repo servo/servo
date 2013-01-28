@@ -2,7 +2,7 @@ use font::{CSSFontWeight, SpecifiedFontStyle, UsedFontStyle};
 use native::FontHandle;
 
 use dvec::DVec;
-use core::send_map::{linear, SendMap};
+use core::hashmap::linear;
 
 #[cfg(target_os = "linux")]
 use fontconfig;
@@ -46,7 +46,7 @@ pub impl FontList {
         let handle = result::unwrap(FontListHandle::new(fctx));
         let list = FontList {
             handle: move handle,
-            family_map: linear::LinearMap(),
+            family_map: linear::LinearMap::new(),
         };
         list.refresh(fctx);
         return move list;
@@ -82,7 +82,7 @@ pub impl FontList {
 
     priv fn find_family(family_name: &str) -> Option<@FontFamily> {
         // look up canonical name
-        let family = self.family_map.find(&str::from_slice(family_name));
+        let family = self.family_map.find_copy(&str::from_slice(family_name));
 
         let decision = if family.is_some() { "Found" } else { "Couldn't find" };
         debug!("FontList: %s font family with name=%s", decision, family_name);

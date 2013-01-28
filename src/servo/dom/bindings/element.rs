@@ -65,62 +65,66 @@ pub fn init(compartment: &bare_compartment) {
 
 #[allow(non_implicitly_copyable_typarams)]
 extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
-    -> JSBool unsafe {
-    let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
-    if obj.is_null() {
-        return 0;
-    }
-
-    let bundle = unwrap(obj);
-    let node = (*bundle).payload.node;
-    let scope = (*bundle).payload.scope;
-    let width = scope.write(&node, |nd| {
-        match &nd.kind {
-            &~Element(ref ed) => {
-                match &ed.kind {
-                    &~HTMLImageElement(*) => {
-                        let content = task_from_context(cx);
-                        match (*content).query_layout(layout_task::ContentBox(node)) {
-                            Ok(rect) => rect.width,
-                            Err(()) => 0,
-                        }
-                        // TODO: if nothing is being rendered(?), return zero dimensions
-                    }
-                    _ => fail ~"why is this not an image element?"
-                }
-            },
-            _ => fail ~"why is this not an element?"
+    -> JSBool {
+    unsafe {
+        let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
+        if obj.is_null() {
+            return 0;
         }
-    });
-    *vp = RUST_INT_TO_JSVAL(
-              (width & (i32::max_value as int)) as libc::c_int);
-    return 1;
+
+        let bundle = unwrap(obj);
+        let node = (*bundle).payload.node;
+        let scope = (*bundle).payload.scope;
+        let width = scope.write(&node, |nd| {
+            match &nd.kind {
+                &~Element(ref ed) => {
+                    match &ed.kind {
+                        &~HTMLImageElement(*) => {
+                            let content = task_from_context(cx);
+                            match (*content).query_layout(layout_task::ContentBox(node)) {
+                                Ok(rect) => rect.width,
+                                Err(()) => 0,
+                            }
+                            // TODO: if nothing is being rendered(?), return zero dimensions
+                        }
+                        _ => fail ~"why is this not an image element?"
+                    }
+                }
+                _ => fail ~"why is this not an element?"
+            }
+        });
+        *vp = RUST_INT_TO_JSVAL(
+                (width & (i32::max_value as int)) as libc::c_int);
+        return 1;
+    }
 }
 
 #[allow(non_implicitly_copyable_typarams)]
 extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
-    -> JSBool unsafe {
-    let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
-    if obj.is_null() {
-        return 0;
-    }
-
-    let bundle = unwrap(obj);
-    do (*bundle).payload.scope.write(&(*bundle).payload.node) |nd| {
-        match nd.kind {
-          ~Element(ref ed) => {
-            match ed.kind {
-              ~HTMLImageElement(*) => {
-                let arg = ptr::offset(JS_ARGV(cx, cast::reinterpret_cast(&vp)), 0);
-                ed.set_attr(~"width", int::str(RUST_JSVAL_TO_INT(*arg) as int))
-              },
-              _ => fail ~"why is this not an image element?"
-            }
-          }
-          _ => fail ~"why is this not an element?"
+    -> JSBool {
+    unsafe {
+        let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
+        if obj.is_null() {
+            return 0;
         }
-    };
-    return 1;
+
+        let bundle = unwrap(obj);
+        do (*bundle).payload.scope.write(&(*bundle).payload.node) |nd| {
+            match nd.kind {
+                ~Element(ref ed) => {
+                    match ed.kind {
+                        ~HTMLImageElement(*) => {
+                            let arg = ptr::offset(JS_ARGV(cx, cast::reinterpret_cast(&vp)), 0);
+                            ed.set_attr(~"width", int::str(RUST_JSVAL_TO_INT(*arg) as int))
+                        }
+                        _ => fail ~"why is this not an image element?"
+                    }
+                }
+                _ => fail ~"why is this not an element?"
+            }
+        };
+        return 1;
+    }
 }
 
 #[allow(non_implicitly_copyable_typarams)]
@@ -150,7 +154,7 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
+pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj {
     let proto = scope.write(&node, |nd| {
         match &nd.kind {
           &~Element(ref ed) => {

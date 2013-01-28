@@ -22,7 +22,7 @@ use self::fontconfig::fontconfig::bindgen::{
 };
 
 use core::dvec::DVec;
-use core::send_map::{linear, SendMap};
+use core::hashmap::linear;
 use libc::c_int;
 use ptr::Ptr;
 use native;
@@ -37,7 +37,7 @@ pub impl FontconfigFontListHandle {
     }
 
     fn get_available_families() -> FontFamilyMap {
-        let mut family_map : FontFamilyMap = linear::LinearMap();
+        let mut family_map : FontFamilyMap = linear::LinearMap::new();
         unsafe {
             let config = FcConfigGetCurrent();
             let fontSet = FcConfigGetFonts(config, FcSetSystem);
@@ -122,38 +122,40 @@ pub impl FontconfigFontListHandle {
     }
 }
 
-pub fn path_from_identifier(name: ~str) -> Result<~str, ()> unsafe {
-    let config = FcConfigGetCurrent();
-    let pattern = FcPatternCreate();
-    let res = do str::as_c_str("family") |FC_FAMILY| {
-        do str::as_c_str(name) |family| {
-            FcPatternAddString(pattern, FC_FAMILY, family as *FcChar8)
+pub fn path_from_identifier(name: ~str) -> Result<~str, ()> {
+    unsafe {
+        let config = FcConfigGetCurrent();
+        let pattern = FcPatternCreate();
+        let res = do str::as_c_str("family") |FC_FAMILY| {
+            do str::as_c_str(name) |family| {
+                FcPatternAddString(pattern, FC_FAMILY, family as *FcChar8)
+            }
+        };
+        if res != 1 {
+            debug!("adding family to pattern failed");
+            return Err(());
         }
-    };
-    if res != 1 {
-        debug!("adding family to pattern failed");
-        return Err(());
-    }
 
-    if FcConfigSubstitute(config, pattern, FcMatchPattern) != 1 {
-        debug!("substitution failed");
-        return Err(());
-    }
-    FcDefaultSubstitute(pattern);
-    let result = FcResultNoMatch;
-    let result_pattern = FcFontMatch(config, pattern, &result);
-    if result != FcResultMatch && result_pattern.is_null() {
-        debug!("obtaining match to pattern failed");
-        return Err(());
-    }
+        if FcConfigSubstitute(config, pattern, FcMatchPattern) != 1 {
+            debug!("substitution failed");
+            return Err(());
+        }
+        FcDefaultSubstitute(pattern);
+        let result = FcResultNoMatch;
+        let result_pattern = FcFontMatch(config, pattern, &result);
+        if result != FcResultMatch && result_pattern.is_null() {
+            debug!("obtaining match to pattern failed");
+            return Err(());
+        }
 
-    let file: *FcChar8 = ptr::null();
-    let res = do str::as_c_str("file") |FC_FILE| {
-        FcPatternGetString(result_pattern, FC_FILE, 0, &file)
-    };
-    if res != FcResultMatch {
-        debug!("getting filename for font failed");
-        return Err(());
+        let file: *FcChar8 = ptr::null();
+        let res = do str::as_c_str("file") |FC_FILE| {
+            FcPatternGetString(result_pattern, FC_FILE, 0, &file)
+        };
+        if res != FcResultMatch {
+            debug!("getting filename for font failed");
+            return Err(());
+        }
+        Ok(str::raw::from_buf(file as *u8))
     }
-    Ok(str::raw::from_buf(file as *u8))
 }

@@ -72,8 +72,10 @@ type ScopeData<T,A> = {
 struct ScopeResource<T,A> {
     d : ScopeData<T,A>,
 
-    drop unsafe {
-        for self.d.free_list.each |h| { free_handle(*h); }
+    drop {
+        unsafe {
+            for self.d.free_list.each |h| { free_handle(*h); }
+        }
     }
 }
 
@@ -93,15 +95,15 @@ pub enum Handle<T,A> {
 
 // Private methods
 impl<T,A> Handle<T,A> {
-    fn read_ptr() -> *T unsafe            { (**self).read_ptr   }
-    fn write_ptr() -> *mut T unsafe       { (**self).write_ptr  }
-    fn read_aux() -> *A unsafe            { (**self).read_aux   }
-    fn next_dirty() -> Handle<T,A> unsafe { (**self).next_dirty }
+    fn read_ptr() -> *T            { unsafe { (**self).read_ptr }   }
+    fn write_ptr() -> *mut T       { unsafe { (**self).write_ptr }  }
+    fn read_aux() -> *A            { unsafe { (**self).read_aux }   }
+    fn next_dirty() -> Handle<T,A> { unsafe { (**self).next_dirty } }
 
-    fn set_read_ptr(t: *T) unsafe             { (**self).read_ptr = t;   }
-    fn set_write_ptr(t: *mut T) unsafe        { (**self).write_ptr = t;  }
-    fn set_read_aux(t: *A) unsafe             { (**self).read_aux = t;   }
-    fn set_next_dirty(h: Handle<T,A>) unsafe { (**self).next_dirty = h; }
+    fn set_read_ptr(t: *T)            { unsafe { (**self).read_ptr = t; }   }
+    fn set_write_ptr(t: *mut T)       { unsafe { (**self).write_ptr = t; }  }
+    fn set_read_aux(t: *A)            { unsafe { (**self).read_aux = t; }   }
+    fn set_next_dirty(h: Handle<T,A>) { unsafe { (**self).next_dirty = h; } }
 
     pure fn is_null() -> bool { (*self).is_null() }
     fn is_not_null() -> bool { (*self).is_not_null() }
@@ -109,27 +111,35 @@ impl<T,A> Handle<T,A> {
 
 impl<T:Owned,A> Handle<T,A> {
     /// Access the reader's view of the handle's data
-    fn read<U>(f: fn(&T) -> U) -> U unsafe {
-        f(&*self.read_ptr())
+    fn read<U>(f: fn(&T) -> U) -> U {
+        unsafe {
+            f(&*self.read_ptr())
+        }
     }
 
     /// True if auxiliary data is associated with this handle
-    fn has_aux() -> bool unsafe {
-        self.read_aux().is_not_null()
+    fn has_aux() -> bool {
+        unsafe {
+            self.read_aux().is_not_null()
+        }
     }
 
     /** Set the auxiliary data associated with this handle.
 
     **Warning:** the reader is responsible for keeping this data live!
     */
-    fn set_aux(p: @A) unsafe {
-        (**self).read_aux = ptr::to_unsafe_ptr(&*p);
+    fn set_aux(p: @A) {
+        unsafe {
+            (**self).read_aux = ptr::to_unsafe_ptr(&*p);
+        }
     }
 
     /// Access the auxiliary data associated with this handle
-    fn aux<U>(f: fn(&A) -> U) -> U unsafe {
-        assert self.has_aux();
-        f(&*self.read_aux())
+    fn aux<U>(f: fn(&A) -> U) -> U {
+        unsafe {
+            assert self.has_aux();
+            f(&*self.read_aux())
+        }
     }
 }
 
@@ -140,16 +150,18 @@ impl <T: Owned,A> Handle<T,A> : cmp::Eq {
 
 // Private methods
 impl<T: Copy Owned,A> Scope<T,A> {
-    fn clone(v: *T) -> *T unsafe {
-        let n: *mut T =
-            cast::reinterpret_cast(&libc::calloc(sys::size_of::<T>() as size_t, 1u as size_t));
+    fn clone(v: *T) -> *T {
+        unsafe {
+            let n: *mut T =
+                cast::reinterpret_cast(&libc::calloc(sys::size_of::<T>() as size_t, 1u as size_t));
 
-        // n.b.: this assignment will run the drop glue for <T,A>. *Hopefully* the fact that
-        // everything is initialized to NULL by calloc will make this ok.  We may have to make the
-        // take glue be tolerant of this.
-        *n = unsafe{*v};
+            // n.b.: this assignment will run the drop glue for <T,A>. *Hopefully* the fact that
+            // everything is initialized to NULL by calloc will make this ok.  We may have to make the
+            // take glue be tolerant of this.
+            *n = unsafe{*v};
 
-        return cast::reinterpret_cast(&n);
+            return cast::reinterpret_cast(&n);
+        }
     }
 }
 
@@ -195,18 +207,20 @@ impl<T:Copy Owned,A> Scope<T,A> {
         self.d.layout_active = true;
     }
 
-    fn reader_joined() unsafe {
+    fn reader_joined() {
         assert self.d.layout_active;
 
-        if self.d.first_dirty.is_not_null() {
+        if (/*bad*/copy self.d.first_dirty).is_not_null() {
             let mut handle = self.d.first_dirty;
             while (*handle).is_not_null() {
-                free(handle.read_ptr());
+                unsafe {
+                    free(handle.read_ptr());
 
-                handle.set_read_ptr(cast::reinterpret_cast(&handle.write_ptr()));
-                let next_handle = handle.next_dirty();
-                handle.set_next_dirty(null_handle());
-                handle = next_handle;
+                    handle.set_read_ptr(cast::reinterpret_cast(&handle.write_ptr()));
+                    let next_handle = handle.next_dirty();
+                    handle.set_next_dirty(null_handle());
+                    handle = next_handle;
+                }
             }
             self.d.first_dirty = null_handle();
         }
@@ -215,40 +229,46 @@ impl<T:Copy Owned,A> Scope<T,A> {
         self.d.layout_active = false;
     }
 
-    fn read<U>(h: &Handle<T,A>, f: fn(&T) -> U) -> U unsafe {
+    fn read<U>(h: &Handle<T,A>, f: fn(&T) -> U) -> U {
         // Use the write_ptr, which may be more up to date than the read_ptr or may not
-        f(&*h.write_ptr())
+        unsafe {
+            f(&*h.write_ptr())
+        }
     }
 
-    fn write<U>(h: &Handle<T,A>, f: fn(&T) -> U) -> U unsafe {
-        let const_read_ptr = ptr::const_offset(h.read_ptr(), 0);
-        let const_write_ptr = ptr::const_offset(h.write_ptr(), 0);
-        if self.d.layout_active && const_read_ptr == const_write_ptr {
-            debug!("marking handle %? as dirty", h);
-            h.set_write_ptr(cast::reinterpret_cast(&self.clone(h.read_ptr())));
-            h.set_next_dirty(self.d.first_dirty);
-            self.d.first_dirty = *h;
+    fn write<U>(h: &Handle<T,A>, f: fn(&T) -> U) -> U {
+        unsafe {
+            let const_read_ptr = ptr::const_offset(h.read_ptr(), 0);
+            let const_write_ptr = ptr::const_offset(h.write_ptr(), 0);
+            if self.d.layout_active && const_read_ptr == const_write_ptr {
+                debug!("marking handle %? as dirty", h);
+                h.set_write_ptr(cast::reinterpret_cast(&self.clone(h.read_ptr())));
+                h.set_next_dirty(self.d.first_dirty);
+                self.d.first_dirty = *h;
+            }
+            f(&*h.write_ptr())
         }
-        f(&*h.write_ptr())
     }
 
     // FIXME: This could avoid a deep copy by taking ownership of `v`
     #[allow(non_implicitly_copyable_typarams)]
-    fn handle(v: &T) -> Handle<T,A> unsafe {
-        debug!("vv: %?", *v);
-        let d: *HandleData<T,A> =
-            cast::reinterpret_cast(
-                &libc::malloc(sys::size_of::<HandleData<T,A>>() as size_t));
-        (*d).read_ptr = self.clone(ptr::to_unsafe_ptr(v));
-        (*d).write_ptr = cast::reinterpret_cast(&(*d).read_ptr);
-        (*d).read_aux = ptr::null();
-        (*d).next_dirty = null_handle();
-        let h = _Handle(d);
-        push(&mut self.d.free_list, h);
-        do self.read(&h) |v| {
+    fn handle(v: &T) -> Handle<T,A> {
+        unsafe {
             debug!("vv: %?", *v);
+            let d: *HandleData<T,A> =
+                cast::reinterpret_cast(
+                    &libc::malloc(sys::size_of::<HandleData<T,A>>() as size_t));
+            (*d).read_ptr = self.clone(ptr::to_unsafe_ptr(v));
+            (*d).write_ptr = cast::reinterpret_cast(&(*d).read_ptr);
+            (*d).read_aux = ptr::null();
+            (*d).next_dirty = null_handle();
+            let h = _Handle(d);
+            push(&mut self.d.free_list, h);
+            do self.read(&h) |v| {
+                debug!("vv: %?", *v);
+            }
+            return h;
         }
-        return h;
     }
 }
 

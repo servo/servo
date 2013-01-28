@@ -71,12 +71,14 @@ trait FontTableTagConversions {
 }
 
 impl FontTableTag : FontTableTagConversions {
-    pub pure fn tag_to_str() -> ~str unsafe {
-        let reversed = str::raw::from_buf_len(cast::transmute(&self), 4);
-        return str::from_chars([reversed.char_at(3),
-                                reversed.char_at(2),
-                                reversed.char_at(1),
-                                reversed.char_at(0)]);
+    pub pure fn tag_to_str() -> ~str {
+        unsafe {
+            let reversed = str::raw::from_buf_len(cast::transmute(&self), 4);
+            return str::from_chars([reversed.char_at(3),
+                                    reversed.char_at(2),
+                                    reversed.char_at(1),
+                                    reversed.char_at(0)]);
+        }
     }
 }
 

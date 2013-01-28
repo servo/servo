@@ -7,8 +7,8 @@ use util::cache::MonoCache;
 
 use azure::azure_hl::BackendType;
 use core::dvec::DVec;
-use core::send_map::linear::LinearMap;
-use core::send_map::linear;
+use core::hashmap::linear::LinearMap;
+use core::hashmap::linear;
 
 #[cfg(target_os = "macos")]
 use quartz;
@@ -122,7 +122,7 @@ pub impl FontContext {
         // FIXME: Need a find_like() in LinearMap.
         let family = family.to_str();
         debug!("(transform family) searching for `%s`", family);
-        match self.generic_fonts.find_ref(&family) {
+        match self.generic_fonts.find(&family) {
             None => move family,
             Some(move mapped_family) => copy *mapped_family
         }

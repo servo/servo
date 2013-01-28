@@ -77,35 +77,39 @@ pub struct ShapedGlyphEntry {
 }
 
 pub impl ShapedGlyphData {
-    static pure fn new(buffer: *hb_buffer_t) -> ShapedGlyphData unsafe {
-        let glyph_count = 0 as c_uint;
-        let glyph_infos = hb_buffer_get_glyph_infos(buffer, ptr::to_unsafe_ptr(&glyph_count));
-        let glyph_count = glyph_count as uint;
-        assert glyph_infos.is_not_null();
-        let pos_count = 0 as c_uint;
-        let pos_infos = hb_buffer_get_glyph_positions(buffer, ptr::to_unsafe_ptr(&pos_count));
-        assert pos_infos.is_not_null();
-        assert glyph_count == pos_count as uint;
+    static pure fn new(buffer: *hb_buffer_t) -> ShapedGlyphData {
+        unsafe {
+            let glyph_count = 0 as c_uint;
+            let glyph_infos = hb_buffer_get_glyph_infos(buffer, ptr::to_unsafe_ptr(&glyph_count));
+            let glyph_count = glyph_count as uint;
+            assert glyph_infos.is_not_null();
+            let pos_count = 0 as c_uint;
+            let pos_infos = hb_buffer_get_glyph_positions(buffer, ptr::to_unsafe_ptr(&pos_count));
+            assert pos_infos.is_not_null();
+            assert glyph_count == pos_count as uint;
 
-        ShapedGlyphData {
-            count: glyph_count,
-            glyph_infos: glyph_infos,
-            pos_infos: pos_infos,
+            ShapedGlyphData {
+                count: glyph_count,
+                glyph_infos: glyph_infos,
+                pos_infos: pos_infos,
+            }
         }
     }
 
     #[inline(always)]
-    priv pure fn byte_offset_of_glyph(&const self, i: uint) -> uint unsafe {
+    priv pure fn byte_offset_of_glyph(&const self, i: uint) -> uint {
         assert i < self.count;
 
         let glyph_info_i = ptr::offset(self.glyph_infos, i);
-        return (*glyph_info_i).cluster as uint;
+        unsafe {
+            (*glyph_info_i).cluster as uint
+        }
     }
 
     pure fn len() -> uint { self.count }
 
     // Returns shaped glyph data for one glyph, and updates the y-position of the pen.
-    fn get_entry_for_glyph(i: uint, y_pos: &mut Au) -> ShapedGlyphEntry unsafe {
+    fn get_entry_for_glyph(i: uint, y_pos: &mut Au) -> ShapedGlyphEntry {
         assert i < self.count;
 
         let glyph_info_i = ptr::offset(self.glyph_infos, i);
@@ -126,11 +130,13 @@ pub impl ShapedGlyphData {
                          Some(Point2D(x_offset, y_pos - y_offset))
                      };
 
-        ShapedGlyphEntry {
-            cluster: (*glyph_info_i).cluster as uint, 
-            codepoint: (*glyph_info_i).codepoint as GlyphIndex, 
-            advance: x_advance,
-            offset: move offset,
+        unsafe {
+            ShapedGlyphEntry {
+                cluster: (*glyph_info_i).cluster as uint, 
+                codepoint: (*glyph_info_i).codepoint as GlyphIndex, 
+                advance: x_advance,
+                offset: move offset,
+            }
         }
     }
 }
@@ -443,47 +449,53 @@ extern fn glyph_func(_font: *hb_font_t,
                      unicode: hb_codepoint_t,
                      _variant_selector: hb_codepoint_t,
                      glyph: *mut hb_codepoint_t,
-                     _user_data: *c_void) -> hb_bool_t unsafe {
+                     _user_data: *c_void) -> hb_bool_t {
     let font: *Font = font_data as *Font;
     assert font.is_not_null();
-    return match (*font).glyph_index(unicode as char) {
-        Some(g) => { *glyph = g as hb_codepoint_t; true },
-        None => false
-    } as hb_bool_t;
+    unsafe {
+        return match (*font).glyph_index(unicode as char) {
+          Some(g) => { *glyph = g as hb_codepoint_t; true },
+          None => false
+        } as hb_bool_t;
+    }
 }
 
 extern fn glyph_h_advance_func(_font: *hb_font_t,
                                font_data: *c_void,
                                glyph: hb_codepoint_t,
-                               _user_data: *c_void) -> hb_position_t unsafe {
+                               _user_data: *c_void) -> hb_position_t {
     let font: *Font = font_data as *Font;
     assert font.is_not_null();
 
-    let advance = (*font).glyph_h_advance(glyph as GlyphIndex);
-    HarfbuzzShaper::float_to_fixed(advance)
+    unsafe {
+        let advance = (*font).glyph_h_advance(glyph as GlyphIndex);
+        HarfbuzzShaper::float_to_fixed(advance)
+    }
 }
 
 // Callback to get a font table out of a font.
-extern fn get_font_table_func(_face: *hb_face_t, tag: hb_tag_t, user_data: *c_void) -> *hb_blob_t unsafe {
-    let font: *Font = user_data as *Font;
-    assert font.is_not_null();
+extern fn get_font_table_func(_face: *hb_face_t, tag: hb_tag_t, user_data: *c_void) -> *hb_blob_t {
+    unsafe {
+        let font: *Font = user_data as *Font;
+        assert font.is_not_null();
 
-    // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
-    match (*font).get_table_for_tag(tag as FontTableTag) {
-        None => return ptr::null(),
-        Some(ref font_table) => {
-            let skinny_font_table = ~font_table;
-            let skinny_font_table_ptr = ptr::to_unsafe_ptr(skinny_font_table);
-            let mut blob: *hb_blob_t = ptr::null();
-            (*skinny_font_table_ptr).with_buffer(|buf: *u8, len: uint| {
-                blob = hb_blob_create(buf as *c_char,
-                                      len as c_uint,
-                                      HB_MEMORY_MODE_READONLY,
-                                      cast::transmute(skinny_font_table_ptr), // private context for below.
-                                      destroy_blob_func); // HarfBuzz calls this when blob not needed.
-            });
-            assert blob.is_not_null();
-            return blob;
+        // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
+        match (*font).get_table_for_tag(tag as FontTableTag) {
+            None => return ptr::null(),
+            Some(ref font_table) => {
+                let skinny_font_table = ~font_table;
+                let skinny_font_table_ptr = ptr::to_unsafe_ptr(skinny_font_table);
+                let mut blob: *hb_blob_t = ptr::null();
+                (*skinny_font_table_ptr).with_buffer(|buf: *u8, len: uint| {
+                    blob = hb_blob_create(buf as *c_char,
+                                          len as c_uint,
+                                          HB_MEMORY_MODE_READONLY,
+                                          cast::transmute(skinny_font_table_ptr), // private context for below.
+                                          destroy_blob_func); // HarfBuzz calls this when blob not needed.
+                });
+                assert blob.is_not_null();
+                return blob;
+            }
         }
     }
 }
@@ -492,7 +504,7 @@ extern fn get_font_table_func(_face: *hb_face_t, tag: hb_tag_t, user_data: *c_vo
 // In particular, we'll need to cast to a boxed, rather than owned, FontTable.
 
 // even better, should cache the harfbuzz blobs directly instead of recreating a lot.
-extern fn destroy_blob_func(user_data: *c_void) unsafe {
+extern fn destroy_blob_func(user_data: *c_void) {
     // this will cause drop to run.
-    let _wrapper : &~FontTable = cast::transmute(user_data);
+    let _wrapper : &~FontTable = unsafe { cast::transmute(user_data) };
 }

@@ -323,7 +323,7 @@ priv impl TextRunScanner {
 struct LineboxScanner {
     flow: @FlowContext,
     new_boxes: DVec<@RenderBox>,
-    work_list: DList<@RenderBox>,
+    work_list: @DList<@RenderBox>,
     pending_line: {mut range: Range, mut width: Au},
     line_spans: DVec<Range>,
 }

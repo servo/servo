@@ -301,8 +301,10 @@ pub impl FreeTypeFontHandle : FontHandleMethods {
 }
 
 pub impl FreeTypeFontHandle {
-    priv fn get_face_rec() -> &self/FT_FaceRec unsafe {
-        &(*self.face)
+    priv fn get_face_rec() -> &self/FT_FaceRec {
+        unsafe {
+            &(*self.face)
+        }
     }
 
     priv fn font_units_to_au(value: float) -> Au {

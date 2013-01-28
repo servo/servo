@@ -164,7 +164,7 @@ fn build_element_kind(tag: &str) -> ~ElementKind {
 pub fn parse_html(scope: NodeScope,
                   url: Url,
                   resource_task: ResourceTask,
-                  image_cache_task: ImageCacheTask) -> HtmlParserResult unsafe {
+                  image_cache_task: ImageCacheTask) -> HtmlParserResult {
     // Spawn a CSS parser to receive links to CSS style sheets.
     let (css_port, css_chan): (oldcomm::Port<Option<Stylesheet>>, oldcomm::Chan<CSSMessage>) =
             do spawn_conversation |css_port: oldcomm::Port<CSSMessage>,
@@ -181,206 +181,210 @@ pub fn parse_html(scope: NodeScope,
 
     let (scope, url) = (@copy scope, @move url);
 
-    // Build the root node.
-    let root = scope.new_node(Element(ElementData(~"html", ~HTMLDivElement)));
-    debug!("created new node");
-    let parser = hubbub::Parser("UTF-8", false);
-    debug!("created parser");
-    parser.set_document_node(cast::transmute(cow::unwrap(root)));
-    parser.enable_scripting(true);
+    unsafe {
+        // Build the root node.
+        let root = scope.new_node(Element(ElementData(~"html", ~HTMLDivElement)));
+        debug!("created new node");
+        let parser = hubbub::Parser("UTF-8", false);
+        debug!("created parser");
+        parser.set_document_node(cast::transmute(cow::unwrap(root)));
+        parser.enable_scripting(true);
 
-    // Performs various actions necessary after appending has taken place. Currently, this consists
-    // of processing inline stylesheets, but in the future it might perform prefetching, etc.
-    let append_hook: @fn(Node, Node) = |parent_node, child_node| {
-        do scope.read(&parent_node) |parent_node_contents| {
-            do scope.read(&child_node) |child_node_contents| {
-                match (&parent_node_contents.kind, &child_node_contents.kind) {
-                    (&~Element(ref element), &~Text(ref data)) => {
-                        match element.kind {
-                            ~HTMLStyleElement => {
-                                debug!("found inline CSS stylesheet");
-                                let url = url::from_str("http://example.com/"); // FIXME
-                                let provenance = InlineProvenance(result::unwrap(move url),
-                                                                  copy *data);
-                                css_chan.send(CSSTaskNewFile(move provenance));
-                            }
-                            _ => {} // Nothing to do.
-                        }
-                    }
-                    _ => {} // Nothing to do.
-                }
-            }
-        }
-    };
-
-    parser.set_tree_handler(@hubbub::TreeHandler {
-        create_comment: |data: ~str| {
-            debug!("create comment");
-            let new_node = scope.new_node(Comment(move data));
-            unsafe { cast::transmute(cow::unwrap(new_node)) }
-        },
-        create_doctype: |doctype: ~hubbub::Doctype| {
-            debug!("create doctype");
-            // TODO: remove copying here by using struct pattern matching to 
-            // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
-            let public_id = match &doctype.public_id {
-                &None => None,
-                &Some(ref id) => Some(copy *id)
-            };
-            let system_id = match &doctype.system_id {
-                &None => None,
-                &Some(ref id) => Some(copy *id)
-            };
-            let data = DoctypeData(copy doctype.name, move public_id, move system_id,
-                                   copy doctype.force_quirks);
-            let new_node = scope.new_node(Doctype(move data));
-            unsafe { cast::transmute(cow::unwrap(new_node)) }
-        },
-        create_element: |tag: ~hubbub::Tag, move image_cache_task| {
-            debug!("create element");
-            // TODO: remove copying here by using struct pattern matching to 
-            // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
-            let elem_kind = build_element_kind(tag.name);
-            let elem = ElementData(copy tag.name, move elem_kind);
-
-            debug!("-- attach attrs");
-            for tag.attributes.each |attr| {
-                elem.attrs.push(~Attr(copy attr.name, copy attr.value));
-            }
-
-            // Spawn additional parsing, network loads, etc. from tag and attrs
-            match elem.kind {
-                //Handle CSS style sheets from <link> elements
-                ~HTMLLinkElement => {
-                    match (elem.get_attr(~"rel"), elem.get_attr(~"href")) {
-                        (Some(move rel), Some(move href)) => {
-                            if rel == ~"stylesheet" {
-                                debug!("found CSS stylesheet: %s", href);
-                                css_chan.send(CSSTaskNewFile(UrlProvenance(make_url(move href,
-                                                                           Some(copy *url)))));
-                            }
-                        }
-                        _ => {}
-                    }
-                },
-                ~HTMLImageElement(ref d) => {
-                    do elem.get_attr(~"src").iter |img_url_str| {
-                        let img_url = make_url(copy *img_url_str, Some(copy *url));
-                        d.image = Some(copy img_url);
-                        // inform the image cache to load this, but don't store a handle.
-                        // TODO (Issue #84): don't prefetch if we are within a <noscript> tag.
-                        image_cache_task.send(image_cache_task::Prefetch(move img_url));
-                    }
-                }
-                //TODO (Issue #86): handle inline styles ('style' attr)
-                _ => {}
-            }
-            let node = scope.new_node(Element(move elem));
-            unsafe { cast::transmute(cow::unwrap(node)) }
-        },
-        create_text: |data: ~str| {
-            debug!("create text");
-            let new_node = scope.new_node(Text(move data));
-            unsafe { cast::transmute(cow::unwrap(new_node)) }
-        },
-        ref_node: |_node| {},
-        unref_node: |_node| {},
-        append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| unsafe {
-            debug!("append child %x %x", cast::transmute(parent), cast::transmute(child));
-            unsafe {
-                let p: Node = cow::wrap(cast::transmute(parent));
-                let c: Node = cow::wrap(cast::transmute(child));
-                scope.add_child(p, c);
-                append_hook(p, c);
-            }
-            child
-        },
-        insert_before: |_parent, _child| {
-            debug!("insert before");
-            0u
-        },
-        remove_child: |_parent, _child| {
-            debug!("remove child");
-            0u
-        },
-        clone_node: |node, deep| {
-            debug!("clone node");
-            unsafe {
-                if deep { error!("-- deep clone unimplemented"); }
-                let n: Node = cow::wrap(cast::transmute(node));
-                let data = n.read(|read_data| copy *read_data.kind);
-                let new_node = scope.new_node(move data);
-                unsafe { cast::transmute(cow::unwrap(new_node)) }
-            }
-        },
-        reparent_children: |_node, _new_parent| {
-            debug!("reparent children");
-            0u
-        },
-        get_parent: |_node, _element_only| {
-            debug!("get parent");
-            0u
-        },
-        has_children: |_node| {
-            debug!("has children");
-            false
-        },
-        form_associate: |_form, _node| {
-            debug!("form associate");
-        },
-        add_attributes: |_node, _attributes| {
-            debug!("add attributes");
-        },
-        set_quirks_mode: |_mode| {
-            debug!("set quirks mode");
-        },
-        encoding_change: |_encname| {
-            debug!("encoding change");
-        },
-        complete_script: |script| {
-            // A little function for holding this lint attr
-            #[allow(non_implicitly_copyable_typarams)]
-            fn complete_script(scope: &NodeScope, script: hubbub::NodeDataPtr, url: &Url, js_chan: &oldcomm::Chan<JSMessage>) unsafe {
-                do scope.read(&cow::wrap(cast::transmute(script))) |node_contents| {
-                    match *node_contents.kind {
-                        Element(ref element) if element.tag_name == ~"script" => {
-                            match element.get_attr(~"src") {
-                                Some(move src) => {
-                                    debug!("found script: %s", src);
-                                    let new_url = make_url(move src, Some(copy *url));
-                                    js_chan.send(JSTaskNewFile(move new_url));
+        // Performs various actions necessary after appending has taken place. Currently, this consists
+        // of processing inline stylesheets, but in the future it might perform prefetching, etc.
+        let append_hook: @fn(Node, Node) = |parent_node, child_node| {
+            do scope.read(&parent_node) |parent_node_contents| {
+                do scope.read(&child_node) |child_node_contents| {
+                    match (&parent_node_contents.kind, &child_node_contents.kind) {
+                        (&~Element(ref element), &~Text(ref data)) => {
+                            match element.kind {
+                                ~HTMLStyleElement => {
+                                    debug!("found inline CSS stylesheet");
+                                    let url = url::from_str("http://example.com/"); // FIXME
+                                    let provenance = InlineProvenance(result::unwrap(move url),
+                                                                      copy *data);
+                                    css_chan.send(CSSTaskNewFile(move provenance));
                                 }
-                                None => {}
+                                _ => {} // Nothing to do.
                             }
-                        }
-                        _ => {}
+                         }
+                         _ => {} // Nothing to do.
                     }
                 }
             }
-            complete_script(scope, script, url, &js_chan);
-            debug!("complete script");
-        }
-    });
-    debug!("set tree handler");
+        };
 
-    let input_port = Port();
-    resource_task.send(Load(copy *url, input_port.chan()));
-    debug!("loaded page");
-    loop {
-        match input_port.recv() {
-            Payload(data) => {
-                debug!("received data");
-                parser.parse_chunk(data);
+        parser.set_tree_handler(@hubbub::TreeHandler {
+            create_comment: |data: ~str| {
+                debug!("create comment");
+                let new_node = scope.new_node(Comment(move data));
+                unsafe { cast::transmute(cow::unwrap(new_node)) }
+            },
+            create_doctype: |doctype: ~hubbub::Doctype| {
+                debug!("create doctype");
+                // TODO: remove copying here by using struct pattern matching to 
+                // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
+                let public_id = match &doctype.public_id {
+                  &None => None,
+                  &Some(ref id) => Some(copy *id)
+                };
+                let system_id = match &doctype.system_id {
+                  &None => None,
+                  &Some(ref id) => Some(copy *id)
+                };
+                let data = DoctypeData(copy doctype.name, move public_id, move system_id,
+                                       copy doctype.force_quirks);
+                let new_node = scope.new_node(Doctype(move data));
+                unsafe { cast::transmute(cow::unwrap(new_node)) }
+            },
+            create_element: |tag: ~hubbub::Tag, move image_cache_task| {
+                debug!("create element");
+                // TODO: remove copying here by using struct pattern matching to 
+                // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
+                let elem_kind = build_element_kind(tag.name);
+                let elem = ElementData(copy tag.name, move elem_kind);
+
+                debug!("-- attach attrs");
+                for tag.attributes.each |attr| {
+                    elem.attrs.push(~Attr(copy attr.name, copy attr.value));
+                }
+
+                // Spawn additional parsing, network loads, etc. from tag and attrs
+                match elem.kind {
+                    //Handle CSS style sheets from <link> elements
+                    ~HTMLLinkElement => {
+                        match (elem.get_attr(~"rel"), elem.get_attr(~"href")) {
+                            (Some(move rel), Some(move href)) => {
+                                if rel == ~"stylesheet" {
+                                    debug!("found CSS stylesheet: %s", href);
+                                    css_chan.send(CSSTaskNewFile(UrlProvenance(make_url(move href,
+                                                                                        Some(copy *url)))));
+                                }
+                            }
+                            _ => {}
+                        }
+                    },
+                    ~HTMLImageElement(ref d) => {
+                        do elem.get_attr(~"src").iter |img_url_str| {
+                            let img_url = make_url(copy *img_url_str, Some(copy *url));
+                            d.image = Some(copy img_url);
+                            // inform the image cache to load this, but don't store a handle.
+                            // TODO (Issue #84): don't prefetch if we are within a <noscript> tag.
+                            image_cache_task.send(image_cache_task::Prefetch(move img_url));
+                        }
+                    }
+                    //TODO (Issue #86): handle inline styles ('style' attr)
+                    _ => {}
+                }
+                let node = scope.new_node(Element(move elem));
+                unsafe { cast::transmute(cow::unwrap(node)) }
+            },
+            create_text: |data: ~str| {
+                debug!("create text");
+                let new_node = scope.new_node(Text(move data));
+                unsafe { cast::transmute(cow::unwrap(new_node)) }
+            },
+            ref_node: |_node| {},
+            unref_node: |_node| {},
+            append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
+                unsafe {
+                    debug!("append child %x %x", cast::transmute(parent), cast::transmute(child));
+                    let p: Node = cow::wrap(cast::transmute(parent));
+                    let c: Node = cow::wrap(cast::transmute(child));
+                    scope.add_child(p, c);
+                    append_hook(p, c);
+                }
+                child
+            },
+            insert_before: |_parent, _child| {
+                debug!("insert before");
+                0u
+            },
+            remove_child: |_parent, _child| {
+                debug!("remove child");
+                0u
+            },
+            clone_node: |node, deep| {
+                debug!("clone node");
+                unsafe {
+                    if deep { error!("-- deep clone unimplemented"); }
+                    let n: Node = cow::wrap(cast::transmute(node));
+                    let data = n.read(|read_data| copy *read_data.kind);
+                    let new_node = scope.new_node(move data);
+                    cast::transmute(cow::unwrap(new_node))
+                }
+            },
+            reparent_children: |_node, _new_parent| {
+                debug!("reparent children");
+                0u
+            },
+            get_parent: |_node, _element_only| {
+                debug!("get parent");
+                0u
+            },
+            has_children: |_node| {
+                debug!("has children");
+                false
+            },
+            form_associate: |_form, _node| {
+                debug!("form associate");
+            },
+            add_attributes: |_node, _attributes| {
+                debug!("add attributes");
+            },
+            set_quirks_mode: |_mode| {
+                debug!("set quirks mode");
+            },
+            encoding_change: |_encname| {
+                debug!("encoding change");
+            },
+            complete_script: |script| {
+                // A little function for holding this lint attr
+                #[allow(non_implicitly_copyable_typarams)]
+                fn complete_script(scope: &NodeScope, script: hubbub::NodeDataPtr, url: &Url, js_chan: &oldcomm::Chan<JSMessage>) {
+                    unsafe {
+                        do scope.read(&cow::wrap(cast::transmute(script))) |node_contents| {
+                            match *node_contents.kind {
+                                Element(ref element) if element.tag_name == ~"script" => {
+                                    match element.get_attr(~"src") {
+                                        Some(move src) => {
+                                            debug!("found script: %s", src);
+                                            let new_url = make_url(move src, Some(copy *url));
+                                            js_chan.send(JSTaskNewFile(move new_url));
+                                        }
+                                        None => {}
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                complete_script(scope, script, url, &js_chan);
+                debug!("complete script");
             }
-            Done(*) => {
-                break;
+        });
+        debug!("set tree handler");
+
+        let input_port = Port();
+        resource_task.send(Load(copy *url, input_port.chan()));
+        debug!("loaded page");
+        loop {
+            match input_port.recv() {
+                Payload(data) => {
+                    debug!("received data");
+                    parser.parse_chunk(data);
+                }
+                Done(*) => {
+                    break;
+                }
             }
         }
+
+        css_chan.send(CSSTaskExit);
+        js_chan.send(JSTaskExit);
+
+        return HtmlParserResult { root: root, style_port: css_port, js_port: js_port };
     }
-
-    css_chan.send(CSSTaskExit);
-    js_chan.send(JSTaskExit);
-
-    return HtmlParserResult { root: root, style_port: css_port, js_port: js_port };
 }
 

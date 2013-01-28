@@ -63,17 +63,19 @@ enum Element = int;
 }*/
 
 extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
-    -> JSBool unsafe {
-    let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
-    if obj.is_null() {
-        return 0;
-    }
+    -> JSBool {
+    unsafe {
+        let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
+        if obj.is_null() {
+            return 0;
+        }
 
-    let box = unwrap(obj);
-    let node = (*box).payload.root;
-    let scope = (*box).payload.scope;
-    *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, node, scope).ptr);
-    return 1;
+        let box = unwrap(obj);
+        let node = (*box).payload.root;
+        let scope = (*box).payload.scope;
+        *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, node, scope).ptr);
+        return 1;
+    }
 }
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Document> {

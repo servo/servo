@@ -153,8 +153,10 @@ pub fn Content(layout_task: LayoutTask,
     content
 }
 
-pub fn task_from_context(cx: *JSContext) -> *Content unsafe {
-    cast::reinterpret_cast(&JS_GetContextPrivate(cx))
+pub fn task_from_context(cx: *JSContext) -> *Content {
+    unsafe {
+        cast::reinterpret_cast(&JS_GetContextPrivate(cx))
+    }
 }
 
 #[allow(non_implicitly_copyable_typarams)]

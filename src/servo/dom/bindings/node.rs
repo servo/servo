@@ -46,7 +46,7 @@ pub fn init(compartment: &bare_compartment) {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj unsafe {
+pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj {
     do scope.write(&node) |nd| {
         match nd.kind {
             ~Element(*) => {

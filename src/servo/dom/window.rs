@@ -28,19 +28,21 @@ pub struct TimerData {
     args: DVec<JSVal>,
 }
 
-pub fn TimerData(argc: libc::c_uint, argv: *JSVal) -> TimerData unsafe {
-    let data = TimerData {
-        funval : *argv,
-        args : DVec(),
-    };
+pub fn TimerData(argc: libc::c_uint, argv: *JSVal) -> TimerData {
+    unsafe {
+        let data = TimerData {
+            funval : *argv,
+            args : DVec(),
+        };
 
-    let mut i = 2;
-    while i < argc as uint {
-        data.args.push(*ptr::offset(argv, i));
-        i += 1;
-    };
+        let mut i = 2;
+        while i < argc as uint {
+            data.args.push(*ptr::offset(argv, i));
+            i += 1;
+        };
 
-    move data
+        move data
+    }
 }
 
 // FIXME: delayed_send shouldn't require Copy

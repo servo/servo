@@ -32,24 +32,28 @@ extern fn alert(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
   1_i32
 }
 
-extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool unsafe {
-    let argv = JS_ARGV(cx, vp);
-    assert (argc >= 2);
+extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
+    unsafe {
+        let argv = JS_ARGV(cx, vp);
+        assert (argc >= 2);
 
-    //TODO: don't crash when passed a non-integer value for the timeout
+        //TODO: don't crash when passed a non-integer value for the timeout
 
-    (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.setTimeout(
-        RUST_JSVAL_TO_INT(*ptr::offset(argv, 1)) as int,
-        argc, argv);
+        (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.setTimeout(
+            RUST_JSVAL_TO_INT(*ptr::offset(argv, 1)) as int,
+            argc, argv);
 
-    JS_SET_RVAL(cx, vp, JSVAL_NULL);
-    return 1;
+        JS_SET_RVAL(cx, vp, JSVAL_NULL);
+        return 1;
+    }
 }
 
-extern fn close(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool unsafe {
-    (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.close();
-    JS_SET_RVAL(cx, vp, JSVAL_NULL);
-    return 1;
+extern fn close(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
+    unsafe {
+        (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.close();
+        JS_SET_RVAL(cx, vp, JSVAL_NULL);
+        return 1;
+    }
 }
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Window> {

@@ -76,8 +76,10 @@ impl Node : DebugMethods {
         }
     }
 
-    pure fn debug_str(&self) -> ~str unsafe {
-        do self.read |n| { fmt!("%?", n.kind) }
+    pure fn debug_str(&self) -> ~str {
+        unsafe {
+            do self.read |n| { fmt!("%?", n.kind) }
+        }
     }
 }
 

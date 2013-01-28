@@ -416,9 +416,9 @@ impl DetailedGlyphStore {
         // Thar be dragons here. You have been warned. (Tips accepted.)
         let mut unsorted_records : ~[DetailedGlyphRecord] = ~[];
         core::util::swap(&mut self.detail_lookup, &mut unsorted_records);
-        let mut_records : ~[mut DetailedGlyphRecord] = vec::to_mut(move unsorted_records);
+        let mut_records : ~[mut DetailedGlyphRecord] = vec::cast_to_mut(move unsorted_records);
         sort::quick_sort3(mut_records);
-        let mut sorted_records = vec::from_mut(move mut_records);
+        let mut sorted_records = vec::cast_from_mut(move mut_records);
         core::util::swap(&mut self.detail_lookup, &mut sorted_records);
 
         self.lookup_is_sorted = true;
