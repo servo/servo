@@ -18,7 +18,7 @@ use gfx_font::FontHandle;
 use gfx_font_list::{FontEntry, FontFamily, FontFamilyMap};
 
 use core::dvec::DVec;
-use core::send_map::{linear, SendMap};
+use core::hashmap::linear::LinearMap;
 
 pub struct QuartzFontListHandle {
     fctx: QuartzFontContextHandle,
@@ -31,7 +31,7 @@ pub impl QuartzFontListHandle {
 
     fn get_available_families() -> FontFamilyMap {
         let family_names = quartz::font_list::core_text::font_collection::get_family_names();
-        let mut family_map : FontFamilyMap = linear::LinearMap();
+        let mut family_map : FontFamilyMap = LinearMap::new();
         for family_names.each |strref: &CFStringRef| {
             let family_name = CFWrapper::wrap_shared(*strref).to_str();
             debug!("Creating new FontFamily for family: %s", family_name);
