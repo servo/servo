@@ -26,5 +26,5 @@ compiler.
     cd servo
     mkdir -p build && cd build
     ../configure
-    make check-servo && make
-    ./servo ../src/test/hello.html
+    make && make check
+    ./servo ../src/test/about-mozilla.html
