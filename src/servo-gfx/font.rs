@@ -4,9 +4,11 @@ use geometry::Au;
 use render_context::RenderContext;
 use util::range::Range;
 use text::glyph::{GlyphStore, GlyphIndex};
+use text::shaper::ShaperMethods;
 use text::{Shaper, TextRun};
 
-use azure::{AzFloat, AzScaledFontRef};
+use azure::{AzFloat, AzScaledFontRef, struct__AzDrawOptions, struct__AzGlyph};
+use azure::{struct__AzGlyphBuffer, struct__AzPoint};
 use azure::scaled_font::ScaledFont;
 use azure::azure_hl::{BackendType, ColorPattern};
 use core::dvec::DVec;
@@ -374,26 +376,8 @@ pub impl Font {
     }
 }
 
-// Public API
-pub trait FontMethods {
-    fn draw_text_into_context(rctx: &RenderContext,
-                              run: &TextRun,
-                              range: &Range,
-                              baseline_origin: Point2D<Au>,
-                              color: Color);
-    // This calculates run metrics for the specified character range
-    // within the provided textrun.
-    fn measure_text(&TextRun, &const Range) -> RunMetrics;
-    fn shape_text(@self, &str, &mut GlyphStore);
-    fn get_descriptor() -> FontDescriptor;
 
-    // these are used to get glyphs and advances in the case that the
-    // shaper can't figure it out.
-    fn glyph_index(char) -> Option<GlyphIndex>;
-    fn glyph_h_advance(GlyphIndex) -> FractionalPixel;
-}
-
-pub impl Font : FontMethods {
+pub impl Font {
     fn draw_text_into_context(rctx: &RenderContext,
                               run: &TextRun,
                               range: &const Range,
@@ -413,7 +397,7 @@ pub impl Font : FontMethods {
         let azure_pattern = pattern.azure_color_pattern;
         assert azure_pattern.is_not_null();
 
-        let options: AzDrawOptions = {
+        let options = struct__AzDrawOptions {
             mAlpha: 1f as AzFloat,
             fields: 0x0200 as uint16_t
         };
@@ -426,9 +410,9 @@ pub impl Font : FontMethods {
             let glyph_advance = glyph.advance();
             let glyph_offset = glyph.offset().get_or_default(Au::zero_point());
 
-            let azglyph: AzGlyph = {
+            let azglyph = struct__AzGlyph {
                 mIndex: glyph.index() as uint32_t,
-                mPosition: {
+                mPosition: struct__AzPoint {
                     x: (origin.x + glyph_offset.x).to_px() as AzFloat,
                     y: (origin.y + glyph_offset.y).to_px() as AzFloat
                 }
@@ -441,10 +425,12 @@ pub impl Font : FontMethods {
         if azglyph_buf_len == 0 { return; } // Otherwise the Quartz backend will assert.
 
         let azglyph_buf = dvec::unwrap(move azglyphs);
-        let glyphbuf: AzGlyphBuffer = unsafe {{
-            mGlyphs: vec::raw::to_ptr(azglyph_buf),
-            mNumGlyphs: azglyph_buf_len as uint32_t            
-        }};
+        let glyphbuf = unsafe {
+            struct__AzGlyphBuffer {
+                mGlyphs: vec::raw::to_ptr(azglyph_buf),
+                mNumGlyphs: azglyph_buf_len as uint32_t            
+            }
+        };
 
         // TODO(Issue #64): this call needs to move into azure_hl.rs
         AzDrawTargetFillGlyphs(target.azure_draw_target,

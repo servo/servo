@@ -1,5 +1,5 @@
 use js;
-use js::rust::{compartment, bare_compartment, methods};
+use js::rust::Compartment;
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL};
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp};
@@ -70,7 +70,7 @@ pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
     }
 }
 
-pub fn get_compartment(cx: *JSContext) -> compartment {
+pub fn get_compartment(cx: *JSContext) -> @mut Compartment {
     unsafe {
         let content = task_from_context(cx);
         let compartment = option::expect((*content).compartment,
@@ -96,68 +96,71 @@ extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *JSVal, bp: *mut JSB
     return 1;
 }
 
-pub fn prototype_jsclass(name: ~str) -> @fn(compartment: &bare_compartment) -> JSClass {
-    let f: @fn(&bare_compartment) -> JSClass = |compartment: &bare_compartment, move name| {
-        {name: compartment.add_name(copy name),
-         flags: 0,
-         addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-         delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-         getProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-         setProperty: GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
-         enumerate: GetJSClassHookStubPointer(ENUMERATE_STUB) as *u8,
-         resolve: GetJSClassHookStubPointer(RESOLVE_STUB) as *u8,
-         convert: GetJSClassHookStubPointer(CONVERT_STUB) as *u8,
-         finalize: null(),
-         checkAccess: null(),
-         call: null(),
-         hasInstance: has_instance,
-         construct: null(),
-         trace: null(),
-         reserved: (null(), null(), null(), null(), null(),  // 05
-                    null(), null(), null(), null(), null(),  // 10
-                    null(), null(), null(), null(), null(),  // 15
-                    null(), null(), null(), null(), null(),  // 20
-                    null(), null(), null(), null(), null(),  // 25
-                    null(), null(), null(), null(), null(),  // 30
-                    null(), null(), null(), null(), null(),  // 35
-                    null(), null(), null(), null(), null())} // 40
+pub fn prototype_jsclass(name: ~str) -> @fn(compartment: @mut Compartment) -> JSClass {
+    let f: @fn(@mut Compartment) -> JSClass = |compartment: @mut Compartment, move name| {
+        JSClass {
+            name: compartment.add_name(copy name),
+            flags: 0,
+            addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+            delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+            getProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+            setProperty: GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
+            enumerate: GetJSClassHookStubPointer(ENUMERATE_STUB) as *u8,
+            resolve: GetJSClassHookStubPointer(RESOLVE_STUB) as *u8,
+            convert: GetJSClassHookStubPointer(CONVERT_STUB) as *u8,
+            finalize: null(),
+            checkAccess: null(),
+            call: null(),
+            hasInstance: has_instance,
+            construct: null(),
+            trace: null(),
+            reserved: (null(), null(), null(), null(), null(),  // 05
+                       null(), null(), null(), null(), null(),  // 10
+                       null(), null(), null(), null(), null(),  // 15
+                       null(), null(), null(), null(), null(),  // 20
+                       null(), null(), null(), null(), null(),  // 25
+                       null(), null(), null(), null(), null(),  // 30
+                       null(), null(), null(), null(), null(),  // 35
+                       null(), null(), null(), null(), null())  // 40
+        }
     };
     return f;
 }
 
 pub fn instance_jsclass(name: ~str, finalize: *u8)
-    -> @fn(compartment: &bare_compartment) -> JSClass {
-    let f: @fn(&bare_compartment) -> JSClass =
-    |compartment: &bare_compartment, move name| {
-        {name: compartment.add_name(copy name),
-         flags: JSCLASS_HAS_RESERVED_SLOTS(1),
-         addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-         delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-         getProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-         setProperty: GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
-         enumerate: GetJSClassHookStubPointer(ENUMERATE_STUB) as *u8,
-         resolve: GetJSClassHookStubPointer(RESOLVE_STUB) as *u8,
-         convert: GetJSClassHookStubPointer(CONVERT_STUB) as *u8,
-         finalize: finalize,
-         checkAccess: null(),
-         call: null(),
-         hasInstance: has_instance,
-         construct: null(),
-         trace: null(),
-         reserved: (null(), null(), null(), null(), null(),  // 05
-                    null(), null(), null(), null(), null(),  // 10
-                    null(), null(), null(), null(), null(),  // 15
-                    null(), null(), null(), null(), null(),  // 20
-                    null(), null(), null(), null(), null(),  // 25
-                    null(), null(), null(), null(), null(),  // 30
-                    null(), null(), null(), null(), null(),  // 35
-                    null(), null(), null(), null(), null())} // 40
+                     -> @fn(compartment: @mut Compartment) -> JSClass {
+    let f: @fn(@mut Compartment) -> JSClass = |compartment: @mut Compartment, move name| {
+        JSClass {
+            name: compartment.add_name(copy name),
+            flags: JSCLASS_HAS_RESERVED_SLOTS(1),
+            addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+            delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+            getProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+            setProperty: GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
+            enumerate: GetJSClassHookStubPointer(ENUMERATE_STUB) as *u8,
+            resolve: GetJSClassHookStubPointer(RESOLVE_STUB) as *u8,
+            convert: GetJSClassHookStubPointer(CONVERT_STUB) as *u8,
+            finalize: finalize,
+            checkAccess: null(),
+            call: null(),
+            hasInstance: has_instance,
+            construct: null(),
+            trace: null(),
+            reserved: (null(), null(), null(), null(), null(),  // 05
+                       null(), null(), null(), null(), null(),  // 10
+                       null(), null(), null(), null(), null(),  // 15
+                       null(), null(), null(), null(), null(),  // 20
+                       null(), null(), null(), null(), null(),  // 25
+                       null(), null(), null(), null(), null(),  // 30
+                       null(), null(), null(), null(), null(),  // 35
+                       null(), null(), null(), null(), null())  // 40
+        }
     };
     return f;
 }
 
 // FIXME: A lot of string copies here
-pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: &bare_compartment)
+pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: @mut Compartment)
     -> js::rust::jsobj {
     compartment.register_class(prototype_jsclass(copy name));
 

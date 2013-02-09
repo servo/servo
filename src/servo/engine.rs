@@ -16,15 +16,15 @@ use gfx::render_task;
 use std::cell::Cell;
 use std::net::url::Url;
 
-pub type EngineTask = oldcomm::Chan<Msg>;
+pub type EngineTask = Chan<Msg>;
 
 pub enum Msg {
     LoadURLMsg(Url),
     ExitMsg(Chan<()>)
 }
 
-pub struct Engine<C:Compositor Owned Copy> {
-    request_port: oldcomm::Port<Msg>,
+pub struct Engine<C> {
+    request_port: Port<Msg>,
     compositor: C,
     render_task: RenderTask,
     resource_task: ResourceTask,
@@ -33,30 +33,31 @@ pub struct Engine<C:Compositor Owned Copy> {
     content_task: ContentTask
 }
 
-pub fn Engine<C:Compositor Owned Copy>(compositor: C,
-                                       opts: &Opts,
-                                       dom_event_port: pipes::Port<Event>,
-                                       dom_event_chan: pipes::SharedChan<Event>,
-                                       resource_task: ResourceTask,
-                                       image_cache_task: ImageCacheTask) -> EngineTask {
-
-    let dom_event_port = Cell(move dom_event_port);
-    let dom_event_chan = Cell(move dom_event_chan);
+pub fn Engine<C:Compositor + Owned + Clone>(compositor: C,
+                                            opts: &Opts,
+                                            dom_event_port: pipes::Port<Event>,
+                                            dom_event_chan: pipes::SharedChan<Event>,
+                                            resource_task: ResourceTask,
+                                            image_cache_task: ImageCacheTask)
+                                         -> EngineTask {
+    let dom_event_port = Cell(dom_event_port);
+    let dom_event_chan = Cell(dom_event_chan);
 
     let opts = Cell(copy *opts);
-    do spawn_listener::<Msg> |request, move dom_event_port, move dom_event_chan,
-                              move image_cache_task, move opts| {
-        let render_task = RenderTask(compositor, opts.with_ref(|o| copy *o));
-        let layout_task = LayoutTask(render_task, image_cache_task.clone(), opts.take());
-        let content_task = ContentTask(layout_task,
-                                       dom_event_port.take(), dom_event_chan.take(),
-                                       resource_task, image_cache_task.clone());
+    do spawn_listener::<Msg> |request| {
+        let render_task = RenderTask(compositor.clone(), opts.with_ref(|o| copy *o));
+        let layout_task = LayoutTask(render_task.clone(), image_cache_task.clone(), opts.take());
+        let content_task = ContentTask(layout_task.clone(),
+                                       dom_event_port.take(),
+                                       dom_event_chan.take(),
+                                       resource_task.clone(),
+                                       image_cache_task.clone());
 
         Engine {
             request_port: request,
-            compositor: compositor,
+            compositor: compositor.clone(),
             render_task: render_task,
-            resource_task: resource_task,
+            resource_task: resource_task.clone(),
             image_cache_task: image_cache_task.clone(),
             layout_task: move layout_task,
             content_task: move content_task
@@ -64,7 +65,7 @@ pub fn Engine<C:Compositor Owned Copy>(compositor: C,
     }
 }
 
-impl<C: Compositor Copy Owned> Engine<C> {
+impl<C:Compositor + Owned + Clone> Engine<C> {
     fn run() {
         while self.handle_request(self.request_port.recv()) {
             // Go on...

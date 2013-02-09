@@ -1,7 +1,7 @@
 use core::path::Path;
-use std::map::HashMap;
 use std::net::url;
 use std::net::url::Url;
+use std::oldmap::HashMap;
 
 /**
 Create a URL object from a string. Does various helpful browsery things like
@@ -98,7 +98,7 @@ mod make_url_tests {
 
 }
 
-pub type UrlMap<T: Copy> = HashMap<Url, T>;
+pub type UrlMap<T> = HashMap<Url, T>;
 
 pub fn url_map<T: Copy>() -> UrlMap<T> {
     use core::to_str::ToStr;

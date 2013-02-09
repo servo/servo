@@ -2,13 +2,13 @@ use core;
 use dom::node::Node;
 use layout::box::*;
 use layout::context::LayoutContext;
+use layout::debug::{BoxedDebugMethods, DebugMethods};
 use layout::flow::{FlowContext, InlineFlow};
-use layout::text::TextBoxData;
+use layout::text::{TextBoxData, UnscannedMethods};
 use util::tree;
 
 use core::dlist::DList;
 use core::dvec::DVec;
-use core::num::Num;
 use geom::{Point2D, Rect, Size2D};
 use gfx::font::FontStyle;
 use gfx::geometry::Au;
@@ -227,7 +227,9 @@ priv impl TextRunScanner {
         };
 
         match (is_singleton, is_text_clump) {
-            (false, false) => fail ~"WAT: can't coalesce non-text nodes in flush_clump_to_list()!",
+            (false, false) => {
+                fail!(~"WAT: can't coalesce non-text nodes in flush_clump_to_list()!")
+            }
             (true, false) => { 
                 debug!("TextRunScanner: pushing single non-text box in range: %?", self.clump);
                 out_boxes.push(in_boxes[self.clump.begin()]);
@@ -323,7 +325,7 @@ priv impl TextRunScanner {
 struct LineboxScanner {
     flow: @FlowContext,
     new_boxes: DVec<@RenderBox>,
-    work_list: @DList<@RenderBox>,
+    work_list: @mut DList<@RenderBox>,
     pending_line: {mut range: Range, mut width: Au},
     line_spans: DVec<Range>,
 }
@@ -341,19 +343,19 @@ fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
 }
 
 impl LineboxScanner {
-    priv fn reset_scanner() {
+    priv fn reset_scanner(&mut self) {
         debug!("Resetting line box scanner's state for flow f%d.", self.flow.d().id);
         self.line_spans.set(~[]);
         self.new_boxes.set(~[]);
         self.reset_linebox();
     }
 
-    priv fn reset_linebox() {
+    priv fn reset_linebox(&mut self) {
         self.pending_line.range.reset(0,0);
         self.pending_line.width = Au(0);
     }
 
-    pub fn scan_for_lines(ctx: &LayoutContext) {
+    pub fn scan_for_lines(&mut self, ctx: &LayoutContext) {
         self.reset_scanner();
         
         let boxes = &self.flow.inline().boxes;
@@ -362,7 +364,7 @@ impl LineboxScanner {
         loop {
             // acquire the next box to lay out from work list or box list
             let cur_box = match self.work_list.pop() {
-                Some(box) => { 
+                Some(box) => {
                     debug!("LineboxScanner: Working with box from work list: b%d", box.d().id);
                     box
                 },
@@ -394,7 +396,7 @@ impl LineboxScanner {
         self.swap_out_results();
     }
 
-    priv fn swap_out_results() {
+    priv fn swap_out_results(&mut self) {
         debug!("LineboxScanner: Propagating scanned lines[n=%u] to inline flow f%d", 
                self.line_spans.len(), self.flow.d().id);
 
@@ -408,7 +410,7 @@ impl LineboxScanner {
         };
     }
 
-    priv fn flush_current_line() {
+    priv fn flush_current_line(&mut self) {
         debug!("LineboxScanner: Flushing line %u: %?",
                self.line_spans.len(), self.pending_line);
         // set box horizontal offsets
@@ -465,7 +467,7 @@ impl LineboxScanner {
     }
 
     // return value: whether any box was appended.
-    priv fn try_append_to_line(ctx: &LayoutContext, in_box: @RenderBox) -> bool {
+    priv fn try_append_to_line(&mut self, ctx: &LayoutContext, in_box: @RenderBox) -> bool {
         let remaining_width = self.flow.d().position.size.width - self.pending_line.width;
         let in_box_width = in_box.d().position.size.width;
         let line_is_empty: bool = self.pending_line.range.length() == 0;
@@ -545,7 +547,7 @@ impl LineboxScanner {
     }
 
     // unconditional push
-    priv fn push_box_to_line(box: @RenderBox) {
+    priv fn push_box_to_line(&mut self, box: @RenderBox) {
         debug!("LineboxScanner: Pushing box b%d to line %u", box.d().id, self.line_spans.len());
 
         if self.pending_line.range.length() == 0 {
@@ -579,7 +581,7 @@ pub fn InlineFlowData() -> InlineFlowData {
     }
 }
 
-trait InlineLayout {
+pub trait InlineLayout {
     pure fn starts_inline_flow() -> bool;
 
     fn bubble_widths_inline(@self, ctx: &LayoutContext);
@@ -630,7 +632,7 @@ impl FlowContext : InlineLayout {
                 },
                 // TODO(Issue #225): different cases for 'inline-block', other replaced content
                 @GenericBox(*) => Au::from_px(45), 
-                _ => fail fmt!("Tried to assign width to unknown Box variant: %?", box)
+                _ => fail!(fmt!("Tried to assign width to unknown Box variant: %?", box))
             };
         } // for boxes.each |box|
 
@@ -670,7 +672,10 @@ impl FlowContext : InlineLayout {
                     },
                     // TODO(Issue #225): different cases for 'inline-block', other replaced content
                     @GenericBox(*) => Au::from_px(30),
-                    _ => fail fmt!("Tried to assign height to unknown Box variant: %s", cur_box.debug_str())
+                    _ => {
+                        fail!(fmt!("Tried to assign height to unknown Box variant: %s",
+                                   cur_box.debug_str()))
+                    }
                 };
 
                 // compute bounding rect, with left baseline as origin.
@@ -691,7 +696,10 @@ impl FlowContext : InlineLayout {
                         let text_bounds = data.run.metrics_for_range(&const data.range).bounding_box;
                         text_bounds.translate(&Point2D(cur_box.d().position.origin.x, Au(0)))
                     },
-                    _ => fail fmt!("Tried to compute bounding box of unknown Box variant: %s", cur_box.debug_str())
+                    _ => {
+                        fail!(fmt!("Tried to compute bounding box of unknown Box variant: %s",
+                                   cur_box.debug_str()))
+                    }
                 };
                 debug!("assign_height_inline: bounding box for box b%d = %?", cur_box.d().id, bounding_box);
                 linebox_bounding_box = linebox_bounding_box.union(&bounding_box);

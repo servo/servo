@@ -4,7 +4,7 @@ use platform::resize_rate_limiter::ResizeRateLimiter;
 
 use azure::azure_hl::{BackendType, B8G8R8A8, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
 use core::dvec::DVec;
-use core::pipes::Chan;
+use core::pipes::{Chan, SharedChan, Port};
 use core::task::TaskBuilder;
 use core::util;
 use geom::matrix::{Matrix4, identity};
@@ -23,7 +23,15 @@ use sharegl;
 use sharegl::ShareGlContext;
 
 pub struct OSMain {
-    chan: oldcomm::Chan<Msg>
+    chan: SharedChan<Msg>
+}
+
+impl Clone for OSMain {
+    fn clone(&self) -> OSMain {
+        OSMain {
+            chan: self.chan.clone()
+        }
+    }
 }
 
 // FIXME: Move me over to opts.rs.
@@ -45,9 +53,10 @@ pub enum Msg {
 }
 
 pub fn OSMain(dom_event_chan: pipes::SharedChan<Event>, opts: Opts) -> OSMain {
-    let dom_event_chan = Cell(move dom_event_chan);
+    let dom_event_chan = Cell(dom_event_chan);
     OSMain {
-        chan: do on_osmain::<Msg> |po, move dom_event_chan, move opts| {
+        chan: SharedChan(on_osmain::<Msg>(|po, move dom_event_chan, move opts| {
+            let po = Cell(po);
             do platform::runmain {
                 debug!("preparing to enter main loop");
 
@@ -58,9 +67,9 @@ pub fn OSMain(dom_event_chan: pipes::SharedChan<Event>, opts: Opts) -> OSMain {
                     None => mode = GlutMode
                 }
 
-                mainloop(mode, po, dom_event_chan.take(), &opts);
+                mainloop(mode, po.take(), dom_event_chan.take(), &opts);
             }
-        }
+        }))
     }
 }
 
@@ -86,10 +95,10 @@ impl AzureDrawTargetImageData : layers::layers::ImageData {
 }
 
 fn mainloop(mode: Mode,
-            po: oldcomm::Port<Msg>,
-            dom_event_chan: pipes::SharedChan<Event>,
+            po: Port<Msg>,
+            dom_event_chan: SharedChan<Event>,
             opts: &Opts) {
-    let key_handlers: @DVec<pipes::Chan<()>> = @DVec();
+    let key_handlers: @DVec<Chan<()>> = @DVec();
 
 	let window;
 	match mode {
@@ -101,7 +110,8 @@ fn mainloop(mode: Mode,
 			window = GlutWindow(move glut_window);
 		}
 		ShareMode => {
-			let share_context: ShareGlContext = sharegl::base::ShareContext::new(Size2D(800, 600));
+            let size = Size2D(800, 600);
+			let share_context: ShareGlContext = sharegl::base::ShareContext::new(size);
 			io::println(fmt!("Sharing ID is %d", share_context.id()));
 			window = ShareWindow(move share_context);
 		}
@@ -114,20 +124,21 @@ fn mainloop(mode: Mode,
     let root_layer = @layers::layers::ContainerLayer();
     let original_layer_transform;
     {
-        let image_data = @layers::layers::BasicImageData::new(
-            Size2D(0u, 0u), 0, layers::layers::RGB24Format, ~[]);
+        let image_data = @layers::layers::BasicImageData::new(Size2D(0u, 0u),
+                                                              0,
+                                                              layers::layers::RGB24Format,
+                                                              ~[]);
         let image = @layers::layers::Image::new(image_data as @layers::layers::ImageData);
         let image_layer = @layers::layers::ImageLayer(image);
         original_layer_transform = image_layer.common.transform;
-        image_layer.common.set_transform(original_layer_transform.scale(&800.0f32, &600.0f32,
-                                                                        &1f32));
+        image_layer.common.set_transform(original_layer_transform.scale(800.0, 600.0, 1.0));
         root_layer.add_child(layers::layers::ImageLayerKind(image_layer));
     }
 
 
     let scene = @layers::scene::Scene(layers::layers::ContainerLayerKind(root_layer),
-                                      Size2D(800.0f32, 600.0f32),
-                                      identity(0.0f32));
+                                      Size2D(800.0, 600.0),
+                                      identity());
 
     let done = @mut false;
     let resize_rate_limiter = @ResizeRateLimiter(move dom_event_chan);
@@ -185,7 +196,7 @@ fn mainloop(mode: Mode,
                                 }
                             }
                             Some(_) => {
-                                fail ~"found unexpected layer kind"
+                                fail!(~"found unexpected layer kind")
                             }
                         };
 
@@ -193,8 +204,8 @@ fn mainloop(mode: Mode,
                         let x = buffer.rect.origin.x as f32;
                         let y = buffer.rect.origin.y as f32;
                         image_layer.common.set_transform(
-                            original_layer_transform.translate(&x, &y, &0.0f32)
-                                .scale(&(width as f32), &(height as f32), &1.0f32));
+                            original_layer_transform.translate(x, y, 0.0)
+                                .scale(width as f32, height as f32, 1.0));
                     }
                     surfaces.front.layer_buffer_set.buffers = move buffers;
                 }
@@ -264,7 +275,7 @@ fn mainloop(mode: Mode,
 Implementation to allow the osmain channel to be used as a graphics
 compositor for the renderer
 */
-impl OSMain : Compositor {
+impl Compositor for OSMain {
     fn begin_drawing(next_dt: pipes::Chan<LayerBufferSet>) {
         self.chan.send(BeginDrawing(move next_dt))
     }
@@ -337,16 +348,14 @@ fn Surface(backend: BackendType) -> Surface {
 }
 
 /// A function for spawning into the platform's main thread
-fn on_osmain<T: Owned>(f: fn~(po: oldcomm::Port<T>)) -> oldcomm::Chan<T> {
-    let setup_po = oldcomm::Port();
-    let setup_ch = oldcomm::Chan(&setup_po);
+fn on_osmain<T: Owned>(f: fn~(po: Port<T>)) -> Chan<T> {
+    let (setup_po, setup_ch) = pipes::stream();
     do task::task().sched_mode(task::PlatformThread).spawn |move f| {
-        let po = oldcomm::Port();
-        let ch = oldcomm::Chan(&po);
-        oldcomm::send(setup_ch, ch);
+        let (po, ch) = pipes::stream();
+        setup_ch.send(ch);
         f(move po);
     }
-    oldcomm::recv(setup_po)
+    setup_po.recv()
 }
 
 // #[cfg(target_os = "linux")]

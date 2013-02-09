@@ -4,13 +4,14 @@ Some little helpers for hooking up the HTML parser with the CSS parser
 
 use resource::resource_task::{ResourceTask, ProgressMsg, Load, Payload, Done};
 
+use core::pipes::{Port, Chan};
+use core::pipes;
 use core::str;
 use newcss::stylesheet::Stylesheet;
 use newcss::util::DataStream;
 use std::cell::Cell;
 use std::net::url::Url;
 use std::net::url;
-use core::oldcomm::{Port, Chan};
 
 /// Where a style sheet comes from.
 pub enum StylesheetProvenance {
@@ -19,9 +20,9 @@ pub enum StylesheetProvenance {
 }
 
 pub fn spawn_css_parser(provenance: StylesheetProvenance,
-                        resource_task: ResourceTask) -> oldcomm::Port<Stylesheet> {
-    let result_port = oldcomm::Port();
-    let result_chan = oldcomm::Chan(&result_port);
+                        resource_task: ResourceTask)
+                     -> Port<Stylesheet> {
+    let (result_port, result_chan) = pipes::stream();
 
     let provenance_cell = Cell(move provenance);
     do task::spawn |move provenance_cell, copy resource_task| {
@@ -32,8 +33,9 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
             }
         };
 
-        let sheet = Stylesheet::new(move url, data_stream(provenance_cell.take(), resource_task));
-        result_chan.send(move sheet);
+        let sheet = Stylesheet::new(url, data_stream(provenance_cell.take(),
+                                                     resource_task.clone()));
+        result_chan.send(sheet);
     }
 
     return result_port;
@@ -42,8 +44,8 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
 fn data_stream(provenance: StylesheetProvenance, resource_task: ResourceTask) -> DataStream {
     match move provenance {
         UrlProvenance(move url) => {
-            let input_port = Port();
-            resource_task.send(Load(move url, input_port.chan()));
+            let (input_port, input_chan) = pipes::stream();
+            resource_task.send(Load(move url, input_chan));
             resource_port_to_data_stream(input_port)
         }
         InlineProvenance(_, move data) => {
@@ -52,7 +54,7 @@ fn data_stream(provenance: StylesheetProvenance, resource_task: ResourceTask) ->
     }
 }
 
-fn resource_port_to_data_stream(input_port: oldcomm::Port<ProgressMsg>) -> DataStream {
+fn resource_port_to_data_stream(input_port: Port<ProgressMsg>) -> DataStream {
     return || {
         match input_port.recv() {
             Payload(move data) => Some(move data),

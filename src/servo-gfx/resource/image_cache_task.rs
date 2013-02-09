@@ -62,7 +62,7 @@ impl ImageResponseMsg: cmp::Eq {
     pure fn eq(&self, other: &ImageResponseMsg) -> bool {
         // FIXME: Bad copies
         match (self.clone(), other.clone()) {
-          (ImageReady(*), ImageReady(*)) => fail ~"unimplemented comparison",
+          (ImageReady(*), ImageReady(*)) => fail!(~"unimplemented comparison"),
           (ImageNotReady, ImageNotReady) => true,
           (ImageFailed, ImageFailed) => true,
 
@@ -84,7 +84,9 @@ pub fn ImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
     ImageCacheTask_(resource_task, default_decoder_factory)
 }
 
-pub fn ImageCacheTask_(resource_task: ResourceTask, decoder_factory: DecoderFactory) -> ImageCacheTask {
+pub fn ImageCacheTask_(resource_task: ResourceTask,
+                       decoder_factory: DecoderFactory)
+                    -> ImageCacheTask {
     // FIXME: Doing some dancing to avoid copying decoder_factory, our test
     // version of which contains an uncopyable type which rust will currently
     // copy unsoundly
@@ -95,9 +97,9 @@ pub fn ImageCacheTask_(resource_task: ResourceTask, decoder_factory: DecoderFact
     let port_cell = Cell(move port);
     let chan_cell = Cell(chan.clone());
 
-    do spawn |move port_cell, move chan_cell, move decoder_factory_cell| {
+    do spawn {
         ImageCache {
-            resource_task: resource_task,
+            resource_task: resource_task.clone(),
             decoder_factory: decoder_factory_cell.take(),
             port: port_cell.take(),
             chan: chan_cell.take(),
@@ -114,9 +116,9 @@ fn SyncImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
     let (port, chan) = stream();
     let port_cell = Cell(move port);
 
-    do spawn |move port_cell, move resource_task| {
+    do spawn {
         let port = port_cell.take();
-        let inner_cache = ImageCacheTask(resource_task);
+        let inner_cache = ImageCacheTask(resource_task.clone());
 
         loop {
             let msg: Msg = port.recv();
@@ -177,7 +179,9 @@ impl ImageCache {
         loop {
             let msg = self.port.recv();
 
-            for msg_handlers.each |handler| { (*handler)(&msg) }
+            for msg_handlers.each |handler| {
+                (*handler)(&msg)
+            }
 
             debug!("image_cache_task: received: %?", msg);
 
@@ -192,7 +196,7 @@ impl ImageCache {
                 WaitForImage(move url, move response) => {
                     self.wait_for_image(move url, move response)
                 }
-                OnMsg(move handler) => msg_handlers += [move handler],
+                OnMsg(move handler) => msg_handlers.push(handler),
                 Exit(move response) => {
                     assert self.need_exit.is_none();
                     self.need_exit = Some(move response);
@@ -207,14 +211,11 @@ impl ImageCache {
                 // before exiting
                 let mut can_exit = true;
                 for self.state_map.each_value |state| {
-                    match state {
-                      Prefetching(*) => can_exit = false,
-                      Decoding => can_exit = false,
+                    match *state {
+                        Prefetching(*) => can_exit = false,
+                        Decoding => can_exit = false,
 
-                      Init
-                      | Prefetched(*)
-                      | Decoded(*)
-                      | Failed => ()
+                        Init | Prefetched(*) | Decoded(*) | Failed => ()
                     }
                 }
 
@@ -231,7 +232,7 @@ impl ImageCache {
     }
 
     priv fn get_state(url: Url) -> ImageState {
-        match move self.state_map.find(move url) {
+        match move self.state_map.find(&url) {
             Some(move state) => move state,
             None => Init
         }
@@ -243,36 +244,32 @@ impl ImageCache {
 
     priv fn prefetch(url: Url) {
         match self.get_state(copy url) {
-          Init => {
-            let to_cache = self.chan.clone();
-            let resource_task = self.resource_task;
-            let url_cell = Cell(copy url);
+            Init => {
+                let to_cache = self.chan.clone();
+                let resource_task = self.resource_task.clone();
+                let url_cell = Cell(copy url);
 
-            do spawn |move to_cache, move url_cell| {
-                let url = url_cell.take();
-                debug!("image_cache_task: started fetch for %s", url.to_str());
+                do spawn {
+                    let url = url_cell.take();
+                    debug!("image_cache_task: started fetch for %s", url.to_str());
 
-                let image = load_image_data(copy url, resource_task);
+                    let image = load_image_data(copy url, resource_task.clone());
 
-                let result = if image.is_ok() {
-                    Ok(Cell(result::unwrap(move image)))
-                } else {
-                    Err(())
-                };
-                to_cache.send(StorePrefetchedImageData(copy url, move result));
-                debug!("image_cache_task: ended fetch for %s", (copy url).to_str());
+                    let result = if image.is_ok() {
+                        Ok(Cell(result::unwrap(move image)))
+                    } else {
+                        Err(())
+                    };
+                    to_cache.send(StorePrefetchedImageData(copy url, move result));
+                    debug!("image_cache_task: ended fetch for %s", (copy url).to_str());
+                }
+
+                self.set_state(move url, Prefetching(DoNotDecode));
             }
 
-            self.set_state(move url, Prefetching(DoNotDecode));
-          }
-
-          Prefetching(*)
-          | Prefetched(*)
-          | Decoding
-          | Decoded(*)
-          | Failed => {
-            // We've already begun working on this image
-          }
+            Prefetching(*) | Prefetched(*) | Decoding | Decoded(*) | Failed => {
+                // We've already begun working on this image
+            }
         }
     }
 
@@ -300,14 +297,14 @@ impl ImageCache {
           | Decoding
           | Decoded(*)
           | Failed => {
-            fail ~"wrong state for storing prefetched image"
+            fail!(~"wrong state for storing prefetched image")
           }
         }
     }
 
     priv fn decode(url: Url) {
         match self.get_state(copy url) {
-            Init => fail ~"decoding image before prefetch",
+            Init => fail!(~"decoding image before prefetch"),
 
             Prefetching(DoNotDecode) => {
                 // We don't have the data yet, queue up the decode
@@ -369,14 +366,13 @@ impl ImageCache {
           | Prefetched(*)
           | Decoded(*)
           | Failed => {
-            fail ~"incorrect state in store_image"
+            fail!(~"incorrect state in store_image")
           }
         }
 
     }
 
     priv fn purge_waiters(url: Url, f: fn() -> ImageResponseMsg) {
-        match self.wait_map.find(copy url) {
           Some(waiters) => {
             let waiters = &mut *waiters;
             let mut new_waiters = ~[];
@@ -387,7 +383,7 @@ impl ImageCache {
             }
 
             *waiters <-> new_waiters;
-            self.wait_map.remove(move url);
+            self.wait_map.remove(&url);
           }
           None => ()
         }
@@ -395,16 +391,15 @@ impl ImageCache {
 
 
     priv fn get_image(url: Url, response: Chan<ImageResponseMsg>) {
-
         match self.get_state(copy url) {
-          Init => fail ~"request for image before prefetch",
+          Init => fail!(~"request for image before prefetch"),
 
           Prefetching(DoDecode) => {
             response.send(ImageNotReady);
           }
 
           Prefetching(DoNotDecode)
-          | Prefetched(*) => fail ~"request for image before decode",
+          | Prefetched(*) => fail!(~"request for image before decode"),
 
           Decoding => {
             response.send(ImageNotReady)
@@ -422,13 +417,13 @@ impl ImageCache {
 
     priv fn wait_for_image(url: Url, response: Chan<ImageResponseMsg>) {
         match self.get_state(copy url) {
-            Init => fail ~"request for image before prefetch",
+            Init => fail!(~"request for image before prefetch"),
 
-            Prefetching(DoNotDecode) | Prefetched(*) => fail ~"request for image before decode",
+            Prefetching(DoNotDecode) | Prefetched(*) => fail!(~"request for image before decode"),
 
             Prefetching(DoDecode) | Decoding => {
                 // We don't have this image yet
-                match self.wait_map.find(copy url) {
+                match self.wait_map.find(&url) {
                     Some(waiters) => {
                         vec::push(&mut *waiters, move response);
                     }
@@ -466,8 +461,8 @@ impl ImageCacheTask: ImageCacheTaskClient {
 }
 
 fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
-    let response_port = oldcomm::Port();
-    resource_task.send(resource_task::Load(move url, response_port.chan()));
+    let (response_port, response_chan) = stream();
+    resource_task.send(resource_task::Load(move url, response_chan));
 
     let mut image_data = ~[];
 
@@ -491,8 +486,8 @@ fn default_decoder_factory() -> ~fn(&[u8]) -> Option<Image> {
 }
 
 #[cfg(test)]
-fn mock_resource_task(on_load: ~fn(resource: oldcomm::Chan<resource_task::ProgressMsg>)) -> ResourceTask {
-    do spawn_listener |port: oldcomm::Port<resource_task::ControlMsg>, move on_load| {
+fn mock_resource_task(on_load: ~fn(resource: Chan<resource_task::ProgressMsg>)) -> ResourceTask {
+    do spawn_listener |port: Port<resource_task::ControlMsg>, move on_load| {
         loop {
             match port.recv() {
               resource_task::Load(_, response) => {
@@ -532,7 +527,7 @@ fn should_fail_if_unprefetched_image_is_requested() {
 
 #[test]
 fn should_request_url_from_resource_task_on_prefetch() {
-    let url_requested = oldcomm::Port();
+    let url_requested = Port();
     let url_requested_chan = url_requested.chan();
 
     let mock_resource_task = do mock_resource_task |response| {

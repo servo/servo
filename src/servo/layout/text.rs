@@ -32,15 +32,15 @@ pub fn adapt_textbox_with_range(box_data: &RenderBoxData, run: @TextRun,
     @TextBox(move new_box_data, move new_text_data)
 }
 
-trait UnscannedMethods {
-    pure fn raw_text() -> ~str;
+pub trait UnscannedMethods {
+    pure fn raw_text(&self) -> ~str;
 }
 
 impl RenderBox : UnscannedMethods {
-    pure fn raw_text() -> ~str {
-        match &self {
+    pure fn raw_text(&self) -> ~str {
+        match self {
             &UnscannedTextBox(_, ref s) => copy *s,
-            _ => fail ~"unsupported operation: box.raw_text() on non-unscanned text box."
+            _ => fail!(~"unsupported operation: box.raw_text() on non-unscanned text box.")
         }
     }
 }

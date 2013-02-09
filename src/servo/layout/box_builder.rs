@@ -6,6 +6,7 @@ use dom::node::{Comment, Doctype, Element, Text, Node, LayoutData};
 use layout::box::*;
 use layout::block::BlockFlowData;
 use layout::context::LayoutContext;
+use layout::debug::{BoxedDebugMethods, DebugMethods};
 use layout::flow::*;
 use layout::inline::InlineFlowData;
 use layout::root::RootFlowData;
@@ -370,7 +371,7 @@ impl LayoutTreeBuilder {
 
     fn fixup_split_inline(_foo: @FlowContext) {
         // TODO: finish me. 
-        fail ~"TODO: handle case where an inline is split by a block"
+        fail!(~"TODO: handle case where an inline is split by a block")
     }
 
     /** entry point for box creation. Should only be 
@@ -435,9 +436,9 @@ impl LayoutTreeBuilder {
                             self.make_generic_box(layout_ctx, node, ctx)
                         }
                     },
-                    _ => fail ~"WAT error: why couldn't we make an image box?"
+                    _ => fail!(~"WAT error: why couldn't we make an image box?")
                 },
-                _ => fail ~"WAT error: why couldn't we make an image box?"
+                _ => fail!(~"WAT error: why couldn't we make an image box?")
             }
         }
 
@@ -447,7 +448,7 @@ impl LayoutTreeBuilder {
         do node.read |n| {
             match n.kind {
                 ~Text(ref string) => @UnscannedTextBox(RenderBoxData(node, ctx, self.next_box_id()), copy *string),
-                _ => fail ~"WAT error: why couldn't we make a text box?"
+                _ => fail!(~"WAT error: why couldn't we make a text box?")
             }
         }
     }
@@ -455,14 +456,19 @@ impl LayoutTreeBuilder {
     fn decide_box_type(node: Node, display: CSSDisplay) -> RenderBoxType {
         do node.read |n| {
             match n.kind {
-                ~Doctype(*) | ~Comment(*) => fail ~"Hey, doctypes and comments shouldn't get here! They are display:none!",
+                ~Doctype(*) | ~Comment(*) => {
+                    fail!(~"Hey, doctypes and comments shouldn't get here! \
+                            They are display:none!")
+                }
                 ~Text(*) => RenderBox_Text,
                 ~Element(ref element) => {
                     match (&element.kind, display) {
                         (&~HTMLImageElement(ref d), _) if d.image.is_some() => RenderBox_Image,
 //                      (_, Specified(_)) => GenericBox,
                         (_, _) => RenderBox_Generic // TODO: replace this with the commented lines
-//                      (_, _) => fail ~"Can't create box for Node with non-specified 'display' type"
+                        //(_, _) => {
+                        //  fail!(~"Can't create box for Node with non-specified 'display' type")
+                        //}
                     }
                 }
             }

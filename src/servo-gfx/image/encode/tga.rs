@@ -1,7 +1,7 @@
 use io::WriterUtil;
 use surface;
 
-fn encode(writer: io::Writer, surface: &surface::image_surface) {
+fn encode(writer: io::Writer, surface: &surface::ImageSurface) {
     assert surface.format == surface::fo_rgba_8888;
 
     writer.write_u8(0u8);                               // identsize

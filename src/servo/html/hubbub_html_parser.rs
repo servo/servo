@@ -4,13 +4,14 @@ use content::content_task::ContentTask;
 use dom::cow;
 use dom::element::*;
 use dom::event::{Event, ReflowEvent};
-use dom::node::{Comment, Doctype, DoctypeData, Element, Node, NodeScope, Text};
+use dom::node::{Comment, Doctype, DoctypeData, Element, Node, NodeScope, NodeScopeExtensions};
+use dom::node::{Text};
 use resource::image_cache_task::ImageCacheTask;
 use resource::image_cache_task;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
 use util::task::{spawn_listener, spawn_conversation};
 
-use core::oldcomm::{Chan, Port};
+use core::pipes::{Chan, Port, SharedChan};
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use hubbub::hubbub::Attribute;
 use hubbub::hubbub;
@@ -32,8 +33,8 @@ enum JSMessage {
 
 struct HtmlParserResult {
     root: Node,
-    style_port: oldcomm::Port<Option<Stylesheet>>,
-    js_port: oldcomm::Port<JSResult>,
+    style_port: Port<Option<Stylesheet>>,
+    js_port: Port<JSResult>,
 }
 
 /**
@@ -51,15 +52,15 @@ spawned, collates them, and sends them to the given result channel.
 * `from_parent` - A port on which to receive new links.
 
 */
-fn css_link_listener(to_parent : oldcomm::Chan<Option<Stylesheet>>,
-                     from_parent : oldcomm::Port<CSSMessage>,
+fn css_link_listener(to_parent: Chan<Option<Stylesheet>>,
+                     from_parent: Port<CSSMessage>,
                      resource_task: ResourceTask) {
     let mut result_vec = ~[];
 
     loop {
         match from_parent.recv() {
-            CSSTaskNewFile(move provenance) => {
-                result_vec.push(spawn_css_parser(move provenance, copy resource_task));
+            CSSTaskNewFile(provenance) => {
+                result_vec.push(spawn_css_parser(provenance, resource_task.clone()));
             }
             CSSTaskExit => {
                 break;
@@ -75,19 +76,20 @@ fn css_link_listener(to_parent : oldcomm::Chan<Option<Stylesheet>>,
     to_parent.send(None);
 }
 
-fn js_script_listener(to_parent : oldcomm::Chan<~[~[u8]]>, from_parent : oldcomm::Port<JSMessage>,
+fn js_script_listener(to_parent: Chan<~[~[u8]]>,
+                      from_parent: Port<JSMessage>,
                       resource_task: ResourceTask) {
     let mut result_vec = ~[];
 
     loop {
         match from_parent.recv() {
             JSTaskNewFile(move url) => {
-                let result_port = oldcomm::Port();
-                let result_chan = oldcomm::Chan(&result_port);
-                do task::spawn |move url| {
-                    let input_port = Port();
+                let (result_port, result_chan) = pipes::stream();
+                let resource_task = resource_task.clone();
+                do task::spawn {
+                    let (input_port, input_chan) = pipes::stream();
                     // TODO: change copy to move once we can move into closures
-                    resource_task.send(Load(copy url, input_port.chan()));
+                    resource_task.send(Load(copy url, input_chan));
 
                     let mut buf = ~[];
                     loop {
@@ -166,18 +168,22 @@ pub fn parse_html(scope: NodeScope,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask) -> HtmlParserResult {
     // Spawn a CSS parser to receive links to CSS style sheets.
-    let (css_port, css_chan): (oldcomm::Port<Option<Stylesheet>>, oldcomm::Chan<CSSMessage>) =
-            do spawn_conversation |css_port: oldcomm::Port<CSSMessage>,
-                                   css_chan: oldcomm::Chan<Option<Stylesheet>>| {
-        css_link_listener(css_chan, css_port, resource_task);
+    let resource_task2 = resource_task.clone();
+    let (css_port, css_chan): (Port<Option<Stylesheet>>, Chan<CSSMessage>) =
+            do spawn_conversation |css_port: Port<CSSMessage>,
+                                   css_chan: Chan<Option<Stylesheet>>| {
+        css_link_listener(css_chan, css_port, resource_task2.clone());
     };
+    let css_chan = SharedChan(css_chan);
 
     // Spawn a JS parser to receive JavaScript.
-    let (js_port, js_chan): (oldcomm::Port<JSResult>, oldcomm::Chan<JSMessage>) =
-            do spawn_conversation |js_port: oldcomm::Port<JSMessage>,
-                                   js_chan: oldcomm::Chan<JSResult>| {
-        js_script_listener(js_chan, js_port, resource_task);
+    let resource_task2 = resource_task.clone();
+    let (js_port, js_chan): (Port<JSResult>, Chan<JSMessage>) =
+            do spawn_conversation |js_port: Port<JSMessage>,
+                                   js_chan: Chan<JSResult>| {
+        js_script_listener(js_chan, js_port, resource_task2.clone());
     };
+    let js_chan = SharedChan(js_chan);
 
     let (scope, url) = (@copy scope, @move url);
 
@@ -192,6 +198,7 @@ pub fn parse_html(scope: NodeScope,
 
         // Performs various actions necessary after appending has taken place. Currently, this consists
         // of processing inline stylesheets, but in the future it might perform prefetching, etc.
+        let css_chan2 = css_chan.clone();
         let append_hook: @fn(Node, Node) = |parent_node, child_node| {
             do scope.read(&parent_node) |parent_node_contents| {
                 do scope.read(&child_node) |child_node_contents| {
@@ -203,7 +210,7 @@ pub fn parse_html(scope: NodeScope,
                                     let url = url::from_str("http://example.com/"); // FIXME
                                     let provenance = InlineProvenance(result::unwrap(move url),
                                                                       copy *data);
-                                    css_chan.send(CSSTaskNewFile(move provenance));
+                                    css_chan2.send(CSSTaskNewFile(move provenance));
                                 }
                                 _ => {} // Nothing to do.
                             }
@@ -214,6 +221,7 @@ pub fn parse_html(scope: NodeScope,
             }
         };
 
+        let (css_chan2, js_chan2) = (css_chan.clone(), js_chan.clone());
         parser.set_tree_handler(@hubbub::TreeHandler {
             create_comment: |data: ~str| {
                 debug!("create comment");
@@ -257,8 +265,8 @@ pub fn parse_html(scope: NodeScope,
                             (Some(move rel), Some(move href)) => {
                                 if rel == ~"stylesheet" {
                                     debug!("found CSS stylesheet: %s", href);
-                                    css_chan.send(CSSTaskNewFile(UrlProvenance(make_url(move href,
-                                                                                        Some(copy *url)))));
+                                    css_chan2.send(CSSTaskNewFile(UrlProvenance(make_url(
+                                        href, Some(copy *url)))));
                                 }
                             }
                             _ => {}
@@ -341,7 +349,10 @@ pub fn parse_html(scope: NodeScope,
             complete_script: |script| {
                 // A little function for holding this lint attr
                 #[allow(non_implicitly_copyable_typarams)]
-                fn complete_script(scope: &NodeScope, script: hubbub::NodeDataPtr, url: &Url, js_chan: &oldcomm::Chan<JSMessage>) {
+                fn complete_script(scope: &NodeScope,
+                                   script: hubbub::NodeDataPtr,
+                                   url: &Url,
+                                   js_chan: SharedChan<JSMessage>) {
                     unsafe {
                         do scope.read(&cow::wrap(cast::transmute(script))) |node_contents| {
                             match *node_contents.kind {
@@ -360,14 +371,14 @@ pub fn parse_html(scope: NodeScope,
                         }
                     }
                 }
-                complete_script(scope, script, url, &js_chan);
+                complete_script(scope, script, url, js_chan2.clone());
                 debug!("complete script");
             }
         });
         debug!("set tree handler");
 
-        let input_port = Port();
-        resource_task.send(Load(copy *url, input_port.chan()));
+        let (input_port, input_chan) = pipes::stream();
+        resource_task.send(Load(copy *url, input_chan));
         debug!("loaded page");
         loop {
             match input_port.recv() {

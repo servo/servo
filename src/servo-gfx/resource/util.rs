@@ -1,12 +1,12 @@
-pub fn spawn_listener<A: Owned>(
-    f: fn~(oldcomm::Port<A>)) -> oldcomm::Chan<A> {
-    let setup_po = oldcomm::Port();
-    let setup_ch = oldcomm::Chan(&setup_po);
+use core::pipes::{Chan, Port};
+use core::pipes;
+
+pub fn spawn_listener<A: Owned>(f: ~fn(Port<A>)) -> Chan<A> {
+    let (setup_po, setup_ch) = pipes::stream();
     do task::spawn |move f| {
-        let po = oldcomm::Port();
-        let ch = oldcomm::Chan(&po);
-        oldcomm::send(setup_ch, ch);
+        let (po, ch) = pipes::stream();
+        setup_ch.send(ch);
         f(move po);
     }
-    oldcomm::recv(setup_po)
+    setup_po.recv()
 }

@@ -13,7 +13,7 @@ use layout::layout_task::{AddStylesheet, BuildData, BuildMsg, Damage, LayoutTask
 use layout::layout_task::{MatchSelectorsDamage, NoDamage, ReflowDamage};
 use util::task::spawn_listener;
 
-use core::oldcomm::{Port, Chan, listen, select2};
+use core::pipes::{Port, Chan, SharedChan, select2};
 use core::either;
 use core::task::{SingleThreaded, spawn, task};
 use core::io::{println, read_whole_file};
@@ -28,7 +28,7 @@ use js::global::{global_class, debug_fns};
 use js::glue::bindgen::RUST_JSVAL_TO_OBJECT;
 use js::jsapi::{JSContext, JSVal};
 use js::jsapi::bindgen::{JS_CallFunctionValue, JS_GetContextPrivate};
-use js::rust::{compartment, cx, methods};
+use js::rust::{Compartment, Cx};
 use jsrt = js::rust::rt;
 use newcss::stylesheet::Stylesheet;
 use std::arc::{ARC, clone};
@@ -49,29 +49,30 @@ pub enum PingMsg {
     PongMsg
 }
 
-pub type ContentTask = pipes::SharedChan<ControlMsg>;
+pub type ContentTask = SharedChan<ControlMsg>;
 
 pub fn ContentTask(layout_task: LayoutTask,
-               dom_event_port: pipes::Port<Event>,
-               dom_event_chan: pipes::SharedChan<Event>,
-               resource_task: ResourceTask,
-               img_cache_task: ImageCacheTask) -> ContentTask {
-
+                   dom_event_port: Port<Event>,
+                   dom_event_chan: SharedChan<Event>,
+                   resource_task: ResourceTask,
+                   img_cache_task: ImageCacheTask)
+                -> ContentTask {
     let (control_port, control_chan) = pipes::stream();
 
-    let control_chan = pipes::SharedChan(move control_chan);
+    let control_chan = SharedChan(control_chan);
     let control_chan_copy = control_chan.clone();
-    let control_port = Cell(move control_port);
-    let dom_event_port = Cell(move dom_event_port);
-    let dom_event_chan = Cell(move dom_event_chan);
+    let control_port = Cell(control_port);
+    let dom_event_port = Cell(dom_event_port);
+    let dom_event_chan = Cell(dom_event_chan);
 
-    do task().sched_mode(SingleThreaded).spawn |move layout_task, move control_port,
-                                                move control_chan_copy, move resource_task,
-                                                move img_cache_task, move dom_event_port,
-                                                move dom_event_chan| {
-        let content = Content(layout_task, control_port.take(), control_chan_copy.clone(),
-                              resource_task, img_cache_task.clone(),
-                              dom_event_port.take(), dom_event_chan.take());
+    do task().sched_mode(SingleThreaded).spawn {
+        let content = Content(layout_task.clone(),
+                              control_port.take(),
+                              control_chan_copy.clone(),
+                              resource_task.clone(),
+                              img_cache_task.clone(),
+                              dom_event_port.take(),
+                              dom_event_chan.take());
         content.start();
     }
 
@@ -90,7 +91,7 @@ pub struct Content {
 
     scope: NodeScope,
     jsrt: jsrt,
-    cx: cx,
+    cx: @Cx,
 
     mut document: Option<@Document>,
     mut window:   Option<@Window>,
@@ -99,20 +100,20 @@ pub struct Content {
 
     resource_task: ResourceTask,
 
-    compartment: Option<compartment>,
+    compartment: Option<@mut Compartment>,
 
     // What parts of layout are dirty.
     mut damage: Damage,
 }
 
 pub fn Content(layout_task: LayoutTask, 
-           control_port: pipes::Port<ControlMsg>,
-           control_chan: pipes::SharedChan<ControlMsg>,
-           resource_task: ResourceTask,
-           img_cache_task: ImageCacheTask,
-           event_port: pipes::Port<Event>,
-           event_chan: pipes::SharedChan<Event>) -> @Content {
-
+               control_port: pipes::Port<ControlMsg>,
+               control_chan: pipes::SharedChan<ControlMsg>,
+               resource_task: ResourceTask,
+               img_cache_task: ImageCacheTask,
+               event_port: pipes::Port<Event>,
+               event_chan: pipes::SharedChan<Event>)
+            -> @Content {
     let jsrt = jsrt();
     let cx = jsrt.cx();
 
@@ -161,7 +162,6 @@ pub fn task_from_context(cx: *JSContext) -> *Content {
 
 #[allow(non_implicitly_copyable_typarams)]
 impl Content {
-
     fn start() {
         while self.handle_msg() {
             // Go on ...
@@ -185,7 +185,7 @@ impl Content {
 
             let result = html::hubbub_html_parser::parse_html(self.scope,
                                                               copy url,
-                                                              self.resource_task,
+                                                              self.resource_task.clone(),
                                                               self.image_cache_task.clone());
 
             let root = result.root;
@@ -286,7 +286,7 @@ impl Content {
                     join_port.recv();
                     debug!("content: layout joined");
                 }
-                None => fail ~"reader forked but no join port?"
+                None => fail!(~"reader forked but no join port?")
             }
 
             self.scope.reader_joined();
@@ -332,9 +332,9 @@ impl Content {
      fn query_layout(query: layout_task::LayoutQuery) -> layout_task::LayoutQueryResponse {
          self.relayout(self.document.get(), &(copy self.doc_url).get());
          self.join_layout();
-         
-         let response_port = Port();
-         self.layout_task.send(layout_task::QueryMsg(query, response_port.chan()));
+
+         let (response_port, response_chan) = pipes::stream();
+         self.layout_task.send(layout_task::QueryMsg(query, response_chan));
          return response_port.recv()
     }
 

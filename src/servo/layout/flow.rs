@@ -1,12 +1,12 @@
 use core;
 use dom::node::Node;
-use layout::block::BlockFlowData;
+use layout::block::{BlockFlowData, BlockLayout};
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
 use layout::debug::BoxedDebugMethods;
 use layout::display_list_builder::DisplayListBuilder;
-use layout::inline::{InlineFlowData, NodeRange};
-use layout::root::RootFlowData;
+use layout::inline::{InlineFlowData, InlineLayout, NodeRange};
+use layout::root::{RootFlowData, RootLayout};
 use util::tree;
 use core::mutable::Mut;
 use core::dvec::DVec;
@@ -109,21 +109,21 @@ impl FlowContext  {
     pure fn inline(&self) -> &self/InlineFlowData {
         match *self {
             InlineFlow(_, ref i) => i,
-            _ => fail fmt!("Tried to access inline data of non-inline: f%d", self.d().id)
+            _ => fail!(fmt!("Tried to access inline data of non-inline: f%d", self.d().id))
         }
     }
 
     pure fn block(&self) -> &self/BlockFlowData {
         match *self {
             BlockFlow(_, ref b) => b,
-            _ => fail fmt!("Tried to access block data of non-block: f%d", self.d().id)
+            _ => fail!(fmt!("Tried to access block data of non-block: f%d", self.d().id))
         }
     }
 
     pure fn root(&self) -> &self/RootFlowData {
         match *self {
             RootFlow(_, ref r) => r,
-            _ => fail fmt!("Tried to access root data of non-root: f%d", self.d().id)
+            _ => fail!(fmt!("Tried to access root data of non-root: f%d", self.d().id))
         }
     }
 
@@ -132,7 +132,7 @@ impl FlowContext  {
             @BlockFlow(*)  => self.bubble_widths_block(ctx),
             @InlineFlow(*) => self.bubble_widths_inline(ctx),
             @RootFlow(*)   => self.bubble_widths_root(ctx),
-            _ => fail fmt!("Tried to bubble_widths of flow: f%d", self.d().id)
+            _ => fail!(fmt!("Tried to bubble_widths of flow: f%d", self.d().id))
         }
     }
 
@@ -141,7 +141,7 @@ impl FlowContext  {
             @BlockFlow(*)  => self.assign_widths_block(ctx),
             @InlineFlow(*) => self.assign_widths_inline(ctx),
             @RootFlow(*)   => self.assign_widths_root(ctx),
-            _ => fail fmt!("Tried to assign_widths of flow: f%d", self.d().id)
+            _ => fail!(fmt!("Tried to assign_widths of flow: f%d", self.d().id))
         }
     }
 
@@ -150,7 +150,7 @@ impl FlowContext  {
             @BlockFlow(*)  => self.assign_height_block(ctx),
             @InlineFlow(*) => self.assign_height_inline(ctx),
             @RootFlow(*)   => self.assign_height_root(ctx),
-            _ => fail fmt!("Tried to assign_height of flow: f%d", self.d().id)
+            _ => fail!(fmt!("Tried to assign_height of flow: f%d", self.d().id))
         }
     }
 
@@ -162,7 +162,7 @@ impl FlowContext  {
             @RootFlow(*) => self.build_display_list_root(builder, dirty, offset, list),
             @BlockFlow(*) => self.build_display_list_block(builder, dirty, offset, list),
             @InlineFlow(*) => self.build_display_list_inline(builder, dirty, offset, list),
-            _ => fail fmt!("Tried to build_display_list_recurse of flow: %?", self)
+            _ => fail!(fmt!("Tried to build_display_list_recurse of flow: %?", self))
         }
     }
 
@@ -173,7 +173,7 @@ impl FlowContext  {
             RootFlow(*)   => option::map_default(&self.root().box, seed, |box| { cb(seed, *box) }),
             BlockFlow(*)  => option::map_default(&self.block().box, seed, |box| { cb(seed, *box) }),
             InlineFlow(*) => do self.inline().boxes.foldl(seed) |acc, box| { cb(*acc, *box) },
-            _ => fail fmt!("Don't know how to iterate node's RenderBoxes for %?", self)
+            _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self))
         }
     }
 
@@ -190,7 +190,7 @@ impl FlowContext  {
             RootFlow(*)   => do self.root().box.iter |box| { cb(*box); },
             BlockFlow(*)  => do self.block().box.iter |box| { cb(*box); },
             InlineFlow(*) => for self.inline().boxes.each |box| { cb(*box); },
-            _ => fail fmt!("Don't know how to iterate node's RenderBoxes for %?", self)
+            _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self))
         }
     }
 

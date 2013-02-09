@@ -1,14 +1,14 @@
 use core::cmp::*;
 
 pub trait Cache<K: Copy Eq, V: Copy> {
-    static fn new(size: uint) -> self;
+    static fn new(size: uint) -> Self;
     fn insert(key: &K, value: V);
     fn find(key: &K) -> Option<V>;
     fn find_or_create(key: &K, blk: pure fn&(&K) -> V) -> V;
     fn evict_all();
 }
 
-pub struct MonoCache<K: Copy Eq, V: Copy> {
+pub struct MonoCache<K, V> {
     mut entry: Option<(K,V)>,
 }
 

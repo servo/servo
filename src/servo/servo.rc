@@ -7,6 +7,8 @@
 #[license = "MPL"];
 #[crate_type = "lib"];
 
+#[legacy_records];
+
 extern mod azure;
 extern mod cairo;
 extern mod geom;
@@ -94,7 +96,6 @@ extern mod core_text;
 use engine::{Engine, ExitMsg, LoadURLMsg};  // FIXME: "ExitMsg" is pollution.
 use platform::osmain::{AddKeyHandler, OSMain};
 
-use core::oldcomm::*;  // FIXME: Bad!
 use core::option::swap_unwrap;
 use core::pipes::{Port, Chan};
 
@@ -115,9 +116,9 @@ fn run(opts: &Opts) {
     match &opts.render_mode {
       &Screen => run_pipeline_screen(opts),
       &Png(ref outfile) => {
-        assert opts.urls.is_not_empty();
+        assert !opts.urls.is_empty();
         if opts.urls.len() > 1u {
-            fail ~"servo asks that you stick to a single URL in PNG output mode"
+            fail!(~"servo asks that you stick to a single URL in PNG output mode")
         }
         run_pipeline_png(opts, *outfile)
       }
@@ -137,9 +138,13 @@ fn run_pipeline_screen(opts: &Opts) {
 
     // Create a servo instance
     let resource_task = ResourceTask();
-    let image_cache_task = ImageCacheTask(copy resource_task);
-    let engine_task = Engine(osmain, opts, move dom_event_port, move dom_event_chan,
-                             move resource_task, move image_cache_task);
+    let image_cache_task = ImageCacheTask(resource_task.clone());
+    let engine_task = Engine(osmain.clone(),
+                             opts,
+                             dom_event_port,
+                             dom_event_chan,
+                             resource_task,
+                             image_cache_task);
 
     for opts.urls.each |filename| {
         let url = make_url(copy *filename, None);
@@ -163,7 +168,7 @@ fn run_pipeline_screen(opts: &Opts) {
 }
 
 fn run_pipeline_png(_opts: &Opts, _outfile: &str) {
-    fail ~"PNG compositor is broken";
+    fail!(~"PNG compositor is broken");
 }
 
 #[cfg(broken)]
@@ -190,7 +195,7 @@ fn run_pipeline_png(url: ~str, outfile: &str) {
 
         match buffered_file_writer(&Path(outfile)) {
           Ok(writer) => writer.write(pngdata_from_compositor.recv()),
-          Err(e) => fail e
+          Err(e) => fail!(e)
         }
 
         let (exit_chan, exit_response_from_engine) = pipes::stream();

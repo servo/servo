@@ -4,7 +4,7 @@ use geom::Point2D;
 
 use geometry::Au;
 
-use font::{Font, FontTable, FontTableTag};
+use font::{Font, FontTable, FontTableMethods, FontTableTag};
 
 use text::glyph::{GlyphStore, GlyphIndex, GlyphData};
 use text::shaper::ShaperMethods;
@@ -202,7 +202,7 @@ pub impl HarfbuzzShaper {
     }
 }
 
-pub impl HarfbuzzShaper : ShaperMethods {    
+impl ShaperMethods for HarfbuzzShaper {    
     /**
     Calculate the layout metrics associated with a some given text
     when rendered in a specific font.

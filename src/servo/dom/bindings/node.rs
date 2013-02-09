@@ -1,4 +1,4 @@
-use js::rust::{bare_compartment, methods, jsobj};
+use js::rust::{Compartment, jsobj};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
@@ -18,7 +18,7 @@ use super::utils;
 use super::element;
 use js;
 
-pub fn init(compartment: &bare_compartment) {
+pub fn init(compartment: @mut Compartment) {
     let obj = utils::define_empty_prototype(~"Node", None, compartment);
 
     let attrs = @~[
@@ -49,18 +49,10 @@ pub fn init(compartment: &bare_compartment) {
 pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj {
     do scope.write(&node) |nd| {
         match nd.kind {
-            ~Element(*) => {
-              element::create(cx, node, scope)
-            }
-            ~Text(*) => {
-              fail ~"no text node bindings yet";
-            }
-            ~Comment(*) => {
-              fail ~"no comment node bindings yet";
-            }
-            ~Doctype(*) => {
-              fail ~"no doctype node bindings yet";
-            }
+            ~Element(*) => element::create(cx, node, scope),
+            ~Text(*) => fail!(~"no text node bindings yet"),
+            ~Comment(*) => fail!(~"no comment node bindings yet"),
+            ~Doctype(*) => fail!(~"no doctype node bindings yet")
         }
     }
 }

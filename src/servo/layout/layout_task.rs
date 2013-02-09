@@ -1,23 +1,24 @@
-/**
-    The layout task. Performs layout on the DOM, builds display lists and sends them to be
-    rendered.
-*/
+/// The layout task. Performs layout on the DOM, builds display lists and sends them to be
+/// rendered.
 
 use content::content_task;
+use css::matching::MatchMethods;
 use css::select::new_css_select_ctx;
 use dom::event::{Event, ReflowEvent};
 use dom::node::{Node, LayoutData};
+use layout::aux::LayoutAuxMethods;
 use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
-use layout::display_list_builder::DisplayListBuilder;
+use layout::debug::{BoxedDebugMethods, DebugMethods};
+use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
 use layout::traverse::*;
 use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use resource::local_image_cache::LocalImageCache;
-use util::time::time;
 use util::task::spawn_listener;
+use util::time::time;
 
-use core::oldcomm::*;  // FIXME: Bad! Pipe-ify me.
+use core::pipes::{Chan, Port, SharedChan};
 use core::dvec::DVec;
 use core::mutable::Mut;
 use core::task::*;
@@ -34,12 +35,11 @@ use gfx::render_task::{RenderMsg, RenderTask};
 use newcss::select::SelectCtx;
 use newcss::stylesheet::Stylesheet;
 use newcss::types::OriginAuthor;
-use opt = core::option;
 use std::arc::ARC;
 use std::cell::Cell;
 use std::net::url::Url;
 
-pub type LayoutTask = oldcomm::Chan<Msg>;
+pub type LayoutTask = SharedChan<Msg>;
 
 pub enum LayoutQuery {
     ContentBox(Node)
@@ -54,7 +54,7 @@ enum LayoutQueryResponse_ {
 pub enum Msg {
     AddStylesheet(Stylesheet),
     BuildMsg(BuildData),
-    QueryMsg(LayoutQuery, oldcomm::Chan<LayoutQueryResponse>),
+    QueryMsg(LayoutQuery, Chan<LayoutQueryResponse>),
     ExitMsg
 }
 
@@ -86,18 +86,18 @@ pub struct BuildData {
 }
 
 pub fn LayoutTask(render_task: RenderTask,
-              img_cache_task: ImageCacheTask,
-              opts: Opts) -> LayoutTask {
-    do spawn_listener::<Msg> |from_content, move img_cache_task, move opts| {
-        Layout(render_task, img_cache_task.clone(), from_content, &opts).start();
-    }
+                  img_cache_task: ImageCacheTask,
+                  opts: Opts) -> LayoutTask {
+    SharedChan(spawn_listener::<Msg>(|from_content| {
+        Layout(render_task.clone(), img_cache_task.clone(), from_content, &opts).start();
+    }))
 }
 
 struct Layout {
     render_task: RenderTask,
     image_cache_task: ImageCacheTask,
     local_image_cache: @LocalImageCache,
-    from_content: oldcomm::Port<Msg>,
+    from_content: Port<Msg>,
 
     font_ctx: @FontContext,
     // This is used to root auxilliary RCU reader data
@@ -107,9 +107,9 @@ struct Layout {
 
 fn Layout(render_task: RenderTask, 
           image_cache_task: ImageCacheTask,
-          from_content: oldcomm::Port<Msg>,
-          opts: &Opts) -> Layout {
-
+          from_content: Port<Msg>,
+          opts: &Opts)
+       -> Layout {
     let fctx = @FontContext::new(opts.render_backend, true);
 
     Layout {
@@ -146,8 +146,9 @@ impl Layout {
 
             }
             QueryMsg(query, chan) => {
+                let chan = Cell(chan);
                 do time("layout: querying layout") {
-                    self.handle_query(query, chan)
+                    self.handle_query(query, chan.take())
                 }
             }
             ExitMsg => {
@@ -213,7 +214,7 @@ impl Layout {
             let layout_root: @FlowContext = match builder.construct_trees(&layout_ctx,
                                                                           *node) {
                 Ok(root) => root,
-                Err(*) => fail ~"Root flow should always exist"
+                Err(*) => fail!(~"Root flow should always exist")
             };
 
             debug!("layout: constructed Flow tree");
@@ -238,7 +239,8 @@ impl Layout {
             
             // TODO: set options on the builder before building
             // TODO: be smarter about what needs painting
-            layout_root.build_display_list(&builder, &copy layout_root.d().position,
+            layout_root.build_display_list(&builder,
+                                           &copy layout_root.d().position,
                                            &display_list);
 
             let render_layer = RenderLayer {
@@ -256,7 +258,7 @@ impl Layout {
 
 
     fn handle_query(query: LayoutQuery, 
-                    reply_chan: oldcomm::Chan<LayoutQueryResponse>) {
+                    reply_chan: Chan<LayoutQueryResponse>) {
         match query {
             ContentBox(node) => {
                 let response = do node.aux |a| {

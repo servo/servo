@@ -1,17 +1,19 @@
+// The task that handles all rendering/painting.
+
+use azure::AzFloat;
 use compositor::{Compositor, LayerBufferSet};
 use font_context::FontContext;
+use geom::matrix2d::Matrix2D;
 use opts::Opts;
 use render_context::RenderContext;
 use render_layers::{RenderLayer, render_layers};
 use resource::util::spawn_listener;
 use util::time::time;
-use azure::AzFloat;
-use core::oldcomm::*;
+
 use core::libc::size_t;
 use core::libc::types::common::c99::uint16_t;
-use core::pipes::{Port, Chan};
+use core::pipes::{Chan, Port, SharedChan};
 use core::task::SingleThreaded;
-use geom::matrix2d::Matrix2D;
 use std::arc::ARC;
 use std::arc;
 use std::cell::Cell;
@@ -22,12 +24,12 @@ pub enum Msg {
     ExitMsg(pipes::Chan<()>)
 }
 
-pub type RenderTask = oldcomm::Chan<Msg>;
+pub type RenderTask = SharedChan<Msg>;
 
-pub fn RenderTask<C: Compositor Owned>(compositor: C, opts: Opts) -> RenderTask {
+pub fn RenderTask<C:Compositor + Owned>(compositor: C, opts: Opts) -> RenderTask {
     let compositor_cell = Cell(move compositor);
     let opts_cell = Cell(move opts);
-    do spawn_listener |po: oldcomm::Port<Msg>, move compositor_cell, move opts_cell| {
+    let render_task = do spawn_listener |po: Port<Msg>| {
         let (layer_buffer_set_port, layer_buffer_channel) = pipes::stream();
 
         let compositor = compositor_cell.take();
@@ -58,7 +60,8 @@ pub fn RenderTask<C: Compositor Owned>(compositor: C, opts: Opts) -> RenderTask 
             thread_pool: move thread_pool,
             opts: opts_cell.take()
         }.start();
-    }
+    };
+    SharedChan(render_task)
 }
 
 /// Data that needs to be kept around for each render thread.
@@ -68,8 +71,8 @@ priv struct ThreadRenderContext {
     opts: Opts,
 }
 
-priv struct Renderer<C: Compositor Owned> {
-    port: oldcomm::Port<Msg>,
+priv struct Renderer<C> {
+    port: Port<Msg>,
     compositor: C,
     layer_buffer_set_port: Cell<pipes::Port<LayerBufferSet>>,
     thread_pool: TaskPool<ThreadRenderContext>,

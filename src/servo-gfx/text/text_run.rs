@@ -28,7 +28,7 @@ impl SendableTextRun {
     pub fn deserialize(&self, fctx: @FontContext) -> TextRun {
         let font = match fctx.get_font_by_descriptor(&self.font) {
             Ok(f) => f,
-            Err(_) => fail fmt!("Font descriptor deserialization failed! desc=%?", self.font)
+            Err(_) => fail!(fmt!("Font descriptor deserialization failed! desc=%?", self.font))
         };
 
         TextRun {

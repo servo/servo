@@ -1,26 +1,10 @@
 use geom::size::Size2D;
 
+#[deriving_eq]
 pub enum format {
     fo_rgba_8888
     // TODO: RGB 565, others?
 }
-
-impl format: cmp::Eq {
-    pure fn eq(&self, other: &format) -> bool {
-        match (*self, *other) {
-          (fo_rgba_8888, fo_rgba_8888) => true,
-       }
-    }
-    pure fn ne(&self, other: &format) -> bool {
-        return !self.eq(other);
-    }
-}
-
-pub type image_surface = {
-    size: Size2D<int>,
-    format: format,
-    buffer: ~[u8]
-};
 
 impl format {
     fn bpp() -> uint {
@@ -30,11 +14,19 @@ impl format {
     }
 }
 
-pub fn image_surface(size: Size2D<int>, format: format) -> image_surface {
-    {
-        size: copy size,
-        format: format,
-        buffer: vec::from_elem((size.area() as uint) * format.bpp(), 0u8)
-    }
+pub struct ImageSurface {
+    size: Size2D<int>,
+    format: format,
+    buffer: ~[u8]
+}
+
+impl ImageSurface {
+	static pub fn new(size: Size2D<int>, format: format) -> ImageSurface {
+		ImageSurface {
+			size: copy size,
+			format: format,
+			buffer: vec::from_elem((size.area() as uint) * format.bpp(), 0u8)
+		}
+	}
 }
 

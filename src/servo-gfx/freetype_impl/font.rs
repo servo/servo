@@ -92,7 +92,7 @@ pub struct FreeTypeFontHandle {
     drop {
         assert self.face.is_not_null();
         if !FT_Done_Face(self.face).succeeded() {
-            fail ~"FT_Done_Face failed";
+            fail!(~"FT_Done_Face failed");
         }
     }
 }
@@ -186,7 +186,6 @@ pub impl FreeTypeFontHandle {
 }
 
 pub impl FreeTypeFontHandle : FontHandleMethods {
-
     // an identifier usable by FontContextHandle to recreate this FontHandle.
     pure fn face_identifier() -> ~str {
         /* FT_Get_Postscript_Name seems like a better choice here, but it

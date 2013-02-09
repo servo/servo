@@ -1,4 +1,5 @@
 use font::{CSSFontWeight, SpecifiedFontStyle, UsedFontStyle};
+use gfx_font::FontHandleMethods;
 use native::FontHandle;
 
 use dvec::DVec;
@@ -82,13 +83,13 @@ pub impl FontList {
 
     priv fn find_family(family_name: &str) -> Option<@FontFamily> {
         // look up canonical name
-        let family = self.family_map.find_copy(&str::from_slice(family_name));
+        let family = self.family_map.find(&str::from_slice(family_name));
 
         let decision = if family.is_some() { "Found" } else { "Couldn't find" };
         debug!("FontList: %s font family with name=%s", decision, family_name);
 
         // TODO(Issue #188): look up localized font family names if canonical name not found
-        return family;
+        return family.map(|f| **f);
     }
 }
 

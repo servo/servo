@@ -4,8 +4,9 @@ A task that takes a URL and streams back the binary data
 
 */
 
-use oldcomm::{Chan, Port};
+use pipes::{Chan, Port, SharedChan};
 use resource::util::spawn_listener;
+use std::cell::Cell;
 use std::net::url;
 use std::net::url::{Url, to_str};
 use super::{file_loader, http_loader};
@@ -17,6 +18,7 @@ pub enum ControlMsg {
 }
 
 /// Messages sent in response to a `Load` message
+#[deriving_eq]
 pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(~[u8]),
@@ -24,24 +26,8 @@ pub enum ProgressMsg {
     Done(Result<(), ()>)
 }
 
-impl ProgressMsg: cmp::Eq {
-    pure fn eq(&self, other: &ProgressMsg) -> bool {
-		// FIXME: Bad copies
-        match (copy *self, copy *other) {
-          (Payload(a), Payload(b)) => a == b,
-          (Done(a), Done(b)) => a == b,
-
-          (Payload(*), _)
-          | (Done(*), _) => false
-        }
-    }
-    pure fn ne(&self, other: &ProgressMsg) -> bool {
-        return !(*self).eq(other);
-    }
-}
-
 /// Handle to a resource task
-pub type ResourceTask = Chan<ControlMsg>;
+pub type ResourceTask = SharedChan<ControlMsg>;
 
 /**
 Creates a task to load a specific resource
@@ -49,7 +35,9 @@ Creates a task to load a specific resource
 The ResourceManager delegates loading to a different type of loader task for
 each URL scheme
 */
-type LoaderTaskFactory = fn~(url: Url, Chan<ProgressMsg>);
+type LoaderTaskFactory = ~fn() -> ~fn(url: Url, Chan<ProgressMsg>);
+
+pub type LoaderTask = ~fn(url: Url, Chan<ProgressMsg>);
 
 /// Create a ResourceTask with the default loaders
 pub fn ResourceTask() -> ResourceTask {
@@ -63,10 +51,12 @@ pub fn ResourceTask() -> ResourceTask {
 }
 
 fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
-    do spawn_listener |from_client, move loaders| {
+	let loaders_cell = Cell(loaders);
+    let chan = do spawn_listener |from_client| {
         // TODO: change copy to move once we can move out of closures
-        ResourceManager(from_client, copy loaders).start()
-    }
+        ResourceManager(from_client, loaders_cell.take()).start()
+    };
+	SharedChan(chan)
 }
 
 pub struct ResourceManager {
@@ -113,12 +103,15 @@ impl ResourceManager {
         }
     }
 
-    fn get_loader_factory(url: &Url) -> Option<LoaderTaskFactory> {
+    fn get_loader_factory(url: &Url) -> Option<LoaderTask> {
         for self.loaders.each |scheme_loader| {
-            let (scheme, loader_factory) = copy *scheme_loader;
-            if scheme == url.scheme {
-                return Some(move loader_factory);
-            }
+			match *scheme_loader {
+				(ref scheme, ref loader_factory) => {
+					if (*scheme) == url.scheme {
+						return Some((*loader_factory)());
+					}
+				}
+			}
         }
         return None;
     }

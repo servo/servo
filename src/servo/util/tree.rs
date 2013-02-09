@@ -71,7 +71,7 @@ pub fn add_child<T:Copy,O:WriteMethods<T>>(ops: &O, parent: T, child: T) {
 
     ops.with_tree_fields(&child, |child_tf| {
         match child_tf.parent {
-          Some(_) => { fail ~"Already has a parent"; }
+          Some(_) => { fail!(~"Already has a parent"); }
           None => { child_tf.parent = Some(parent); }
         }
 
@@ -100,14 +100,14 @@ pub fn add_child<T:Copy,O:WriteMethods<T>>(ops: &O, parent: T, child: T) {
 pub fn remove_child<T:Copy,O:WriteMethods<T>>(ops: &O, parent: T, child: T) {
     do ops.with_tree_fields(&child) |child_tf| {
         match copy child_tf.parent {
-            None => { fail ~"Not a child"; }
+            None => { fail!(~"Not a child"); }
             Some(parent_n) => {
                 assert ops.tree_eq(&parent, &parent_n);
 
                 // adjust parent fields
                 do ops.with_tree_fields(&parent) |parent_tf| {
                     match copy parent_tf.first_child {
-                        None => { fail ~"parent had no first child??" },
+                        None => { fail!(~"parent had no first child??") },
                         Some(first_child) if ops.tree_eq(&child, &first_child) => {
                             parent_tf.first_child = child_tf.next_sibling;
                         },
@@ -115,7 +115,7 @@ pub fn remove_child<T:Copy,O:WriteMethods<T>>(ops: &O, parent: T, child: T) {
                     };
                     
                     match copy parent_tf.last_child {
-                        None => { fail ~"parent had no last child??" },
+                        None => { fail!(~"parent had no last child??") },
                         Some(last_child) if ops.tree_eq(&child, &last_child) => {
                             parent_tf.last_child = child_tf.prev_sibling;
                         },

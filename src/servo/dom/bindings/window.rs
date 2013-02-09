@@ -1,22 +1,28 @@
-use js::rust::{bare_compartment, methods};
-use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
-            JS_THIS_OBJECT, JS_SET_RVAL};
-use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp};
-use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
-                            JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
-    JS_DefineFunctions, JS_DefineProperty, JS_DefineProperties, JS_EncodeString, JS_free};
-use js::glue::bindgen::*;
-use js::global::jsval_to_rust_str;
-use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub, JS_ResolveStub};
-use js::glue::bindgen::RUST_JSVAL_TO_INT;
-use ptr::null;
-use libc::c_uint;
-use dom::bindings::utils::{rust_box, squirrel_away, jsval_to_str};
+// DOM bindings for the Window object.
+
 use dom::bindings::node::create;
-use dom::window::{Window, TimerMessage_Fire};
+use dom::bindings::utils::{rust_box, squirrel_away, jsval_to_str};
 use dom::node::Node;
-use core::dvec::DVec;
+use dom::window::{Window, TimerMessage_Fire};
 use super::utils;
+
+use core::dvec::DVec;
+use core::libc::c_uint;
+use core::ptr::null;
+use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub};
+use js::crust::{JS_ResolveStub};
+use js::global::jsval_to_rust_str;
+use js::glue::bindgen::*;
+use js::glue::bindgen::RUST_JSVAL_TO_INT;
+use js::jsapi::bindgen::{JS_DefineFunctions, JS_DefineProperty, JS_DefineProperties};
+use js::jsapi::bindgen::{JS_EncodeString, JS_free};
+use js::jsapi::bindgen::{JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN};
+use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSFunctionSpec};
+use js::jsapi::{JSNativeWrapper};
+use js::rust::Compartment;
+use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
+use js::{JS_THIS_OBJECT, JS_SET_RVAL};
 
 extern fn alert(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
   unsafe {
@@ -69,7 +75,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-pub fn init(compartment: &bare_compartment, win: @Window) {
+pub fn init(compartment: @mut Compartment, win: @Window) {
     let proto = utils::define_empty_prototype(~"Window", None, compartment);
     compartment.register_class(utils::instance_jsclass(~"WindowInstance", finalize));
 
@@ -78,27 +84,40 @@ pub fn init(compartment: &bare_compartment, win: @Window) {
                                                    ~"Window", null()));
 
     /* Define methods on a window */
-    let methods = ~[{name: compartment.add_name(~"alert"),
-                     call: {op: alert, info: null()},
-                     nargs: 1,
-                     flags: 0,
-                     selfHostedName: null()},
-                    {name: compartment.add_name(~"setTimeout"),
-                     call: {op: setTimeout, info: null()},
-                     nargs: 2,
-                     flags: 0,
-                     selfHostedName: null()},
-                    {name: compartment.add_name(~"close"),
-                     call: {op: close, info: null()},
-                     nargs: 2,
-                     flags: 0,
-                     selfHostedName: null()}];
-
-    vec::as_imm_buf(methods, |fns, _len| {
-        JS_DefineFunctions(compartment.cx.ptr, proto.ptr, fns);
-    });
+    let methods = [
+        JSFunctionSpec {
+            name: compartment.add_name(~"alert"),
+            call: JSNativeWrapper { op: alert, info: null() },
+            nargs: 1,
+            flags: 0,
+            selfHostedName: null()
+        },
+        JSFunctionSpec {
+            name: compartment.add_name(~"setTimeout"),
+            call: JSNativeWrapper { op: setTimeout, info: null() },
+            nargs: 2,
+            flags: 0,
+            selfHostedName: null()
+        },
+        JSFunctionSpec {
+            name: compartment.add_name(~"close"),
+            call: JSNativeWrapper { op: close, info: null() },
+            nargs: 2,
+            flags: 0,
+            selfHostedName: null()
+        },
+        JSFunctionSpec {
+            name: null(),
+            call: JSNativeWrapper { op: null(), info: null() },
+            nargs: 0,
+            flags: 0,
+            selfHostedName: null()
+        }
+    ];
 
     unsafe {
+        JS_DefineFunctions(compartment.cx.ptr, proto.ptr, &methods[0]);
+
         let raw_ptr: *libc::c_void = cast::reinterpret_cast(&squirrel_away(win));
         JS_SetReservedSlot(obj.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }

@@ -391,7 +391,7 @@ if [ $CFG_OSTYPE = "apple-darwin" ]
 then
     # pkg-config is installed in a different place on mac (via homebrew? not sure)
     # and the way to set this seems to be calling aclocal by hand (instead of via autoreconf)
-    OSX_PKG_CONFIG_M4_MACROS="-I/usr/local/share/aclocal"
+    OSX_PKG_CONFIG_M4_MACROS="-I/usr/share/aclocal -I/usr/local/share/aclocal"
     LIBTOOLIZE=glibtoolize
 else
     OSX_PKG_CONFIG_M4_MACROS=""
@@ -400,7 +400,7 @@ fi
 
 PIXMAN_ACLOCALCMD="aclocal ${OSX_PKG_CONFIG_M4_MACROS}"
 CAIRO_ACLOCALCMD="aclocal ${OSX_PKG_CONFIG_M4_MACROS} -Ibuild"
-AUTOCMD="${LIBTOOLIZE} && autoconf && autoheader && automake --add-missing --copy --no-force"
+AUTOCMD="${LIBTOOLIZE} && autoconf && autoheader && automake --add-missing --copy --force"
 # Copied from cairo's autogen.sh. Build fails without
 CAIRO_BOILERPLATE="touch boilerplate/Makefile.am.features && touch src/Makefile.am.features"
 PIXMAN_AUTOCMD="${PIXMAN_ACLOCALCMD} && ${AUTOCMD}"

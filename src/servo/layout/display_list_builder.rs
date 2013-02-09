@@ -1,5 +1,3 @@
-export DisplayListBuilder;
-
 use newcss::values::Specified;
 use newcss::values::{CSSBackgroundColorColor, CSSBackgroundColorTransparent};
 use dom::node::{Text, NodeScope};
@@ -31,16 +29,20 @@ pub struct DisplayListBuilder {
     ctx:  &LayoutContext,
 }
 
-
-trait FlowDisplayListBuilderMethods {
+pub trait FlowDisplayListBuilderMethods {
     fn build_display_list(@self, a: &DisplayListBuilder, b: &Rect<Au>, c: &Mut<DisplayList>);
-
-    fn build_display_list_for_child(@self, a: &DisplayListBuilder, b: @FlowContext,
-                                    c: &Rect<Au>, d: &Point2D<Au>, e: &Mut<DisplayList>);
+    fn build_display_list_for_child(@self,
+                                    a: &DisplayListBuilder,
+                                    b: @FlowContext,
+                                    c: &Rect<Au>,
+                                    d: &Point2D<Au>,
+                                    e: &Mut<DisplayList>);
 }
 
-impl FlowContext: FlowDisplayListBuilderMethods {
-    fn build_display_list(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>,
+impl FlowDisplayListBuilderMethods for FlowContext {
+    fn build_display_list(@self,
+                          builder: &DisplayListBuilder,
+                          dirty: &Rect<Au>,
                           list: &Mut<DisplayList>) {
         let zero = gfx::geometry::zero_point();
         self.build_display_list_recurse(builder, dirty, &zero, list);

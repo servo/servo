@@ -8,7 +8,7 @@ use geom::size::Size2D;
 use js::crust::*;
 use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
 use js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, JSVal, JSBool};
-use js::rust::{bare_compartment, compartment, methods};
+use js::rust::Compartment;
 use js::{JSPROP_ENUMERATE, JSPROP_SHARED};
 use layout::debug::DebugMethods;
 use layout::flow::FlowContext;
@@ -115,8 +115,7 @@ pub fn DoctypeData(name: ~str, public_id: Option<~str>,
 
 
 
-pub fn define_bindings(compartment: &bare_compartment, doc: @Document,
-                   win: @Window) {
+pub fn define_bindings(compartment: @mut Compartment, doc: @Document, win: @Window) {
     bindings::window::init(compartment, win);
     bindings::document::init(compartment, doc);
     bindings::node::init(compartment);
@@ -142,7 +141,7 @@ pub fn NodeScope() -> NodeScope {
     cow::Scope()
 }
 
-trait NodeScopeExtensions {
+pub trait NodeScopeExtensions {
     fn new_node(+k: NodeKind) -> Node;
 }
 

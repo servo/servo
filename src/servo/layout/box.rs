@@ -1,5 +1,6 @@
 /* Fundamental layout structures and algorithms. */
 
+use css::node_style::StyledNode;
 use dom::element::{ElementKind, HTMLDivElement, HTMLImageElement};
 use dom::node::{Element, Node, NodeData, NodeKind, NodeTree};
 use layout::context::LayoutContext;
@@ -8,23 +9,6 @@ use layout::display_list_builder::DisplayListBuilder;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
 use layout;
-use util::tree::ReadMethods;
-use core::mutable::Mut;
-use arc = std::arc;
-use core::managed;
-use core::dvec::DVec;
-use core::to_str::ToStr;
-use core::rand;
-use core::task::spawn;
-use geom::{Point2D, Rect, Size2D};
-use gfx;
-use gfx::display_list::{DisplayItem, DisplayList};
-use gfx::font::{FontStyle, FontWeight300};
-use gfx::geometry::Au;
-use gfx::image::base::Image;
-use gfx::image::holder::ImageHolder;
-use gfx::text::text_run::TextRun;
-use gfx::util::range::*;
 use newcss::color::{Color, rgba, rgb};
 use newcss::complete::CompleteStyle;
 use newcss::units::{BoxSizing, Cursive, Em, Fantasy, Length, Monospace, Pt, Px, SansSerif, Serif};
@@ -33,7 +17,25 @@ use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium, CSSDisplay};
 use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily, CSSPositionAbsolute};
 use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
 use newcss::values::{CSSFontStyleOblique, CSSTextAlign, Specified};
+use util::tree::ReadMethods;
+
+use core::dvec::DVec;
+use core::managed;
+use core::mutable::Mut;
+use core::rand;
+use core::task::spawn;
+use core::to_str::ToStr;
+use geom::{Point2D, Rect, Size2D};
+use gfx::display_list::{DisplayItem, DisplayList};
+use gfx::font::{FontStyle, FontWeight300};
+use gfx::geometry::Au;
+use gfx::image::base::Image;
+use gfx::image::holder::ImageHolder;
+use gfx::text::text_run::TextRun;
+use gfx::util::range::*;
+use gfx;
 use std::arc::ARC;
+use std::arc;
 use std::net::url::Url;
 
 /** 
@@ -165,7 +167,7 @@ impl RenderBox  {
         match self {
             @GenericBox(*) => CannotSplit(self),
             @ImageBox(*) => CannotSplit(self),
-            @UnscannedTextBox(*) => fail ~"WAT: shouldn't be an unscanned text box here.",
+            @UnscannedTextBox(*) => fail!(~"WAT: shouldn't be an unscanned text box here."),
             @TextBox(_,data) => {
 
                 let mut pieces_processed_count : uint = 0;
@@ -249,7 +251,7 @@ impl RenderBox  {
             // TODO: If image isn't available, consult 'width'.
             &ImageBox(_, ref i) => Au::from_px(i.get_size().get_or_default(Size2D(0,0)).width),
             &TextBox(_,d) => d.run.min_width_for_range(&const d.range),
-            &UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
+            &UnscannedTextBox(*) => fail!(~"Shouldn't see unscanned boxes here.")
         }
     }
 
@@ -281,7 +283,7 @@ impl RenderBox  {
 
                 max_line_width
             },
-            &UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
+            &UnscannedTextBox(*) => fail!(~"Shouldn't see unscanned boxes here.")
         }
     }
 
@@ -333,7 +335,7 @@ impl RenderBox  {
             &TextBox(*) => {
                 copy self.d().position
             },
-            &UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here."
+            &UnscannedTextBox(*) => fail!(~"Shouldn't see unscanned boxes here.")
         }
     }
 
@@ -401,7 +403,7 @@ impl RenderBox  {
         self.add_bgcolor_to_list(list, &abs_box_bounds); 
 
         match self {
-            @UnscannedTextBox(*) => fail ~"Shouldn't see unscanned boxes here.",
+            @UnscannedTextBox(*) => fail!(~"Shouldn't see unscanned boxes here."),
             @TextBox(_,data) => {
                 do list.borrow_mut |list| {
                     let nearest_ancestor_element = self.nearest_ancestor_element();
@@ -606,7 +608,7 @@ impl RenderBox {
         let mut node = self.d().node;
         while !node.is_element() {
             match NodeTree.get_parent(&node) {
-                None => fail ~"no nearest element?!",
+                None => fail!(~"no nearest element?!"),
                 Some(move parent) => node = move parent,
             }
         }

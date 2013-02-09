@@ -1,8 +1,11 @@
+// Style retrieval from DOM elements.
+
+use css::node_util::NodeUtil;
 use dom::node::Node;
 use newcss::complete::CompleteStyle;
 
 /// Node mixin providing `style` method that returns a `NodeStyle`
-trait StyledNode {
+pub trait StyledNode {
     fn style(&self) -> CompleteStyle/&self;
 }
 

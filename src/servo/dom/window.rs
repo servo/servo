@@ -1,4 +1,4 @@
-use oldcomm::{Port, Chan};
+use core::pipes::{Port, Chan};
 use content::content_task::{ControlMsg, Timer, ExitMsg};
 use js::jsapi::JSVal;
 use dvec::DVec;
@@ -62,8 +62,9 @@ impl Window {
 
         // Post a delayed message to the per-window timer task; it will dispatch it
         // to the relevant content handler that will deal with it.
-        timer::delayed_send(uv_global_loop::get(),
-                            timeout, self.timer_chan,
+        timer::delayed_send(&uv_global_loop::get(),
+                            timeout,
+                            &self.timer_chan,
                             TimerMessage_Fire(~TimerData(argc, argv)));
     }
 }

@@ -32,11 +32,11 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
 
     let opt_match = match getopts::getopts(args, opts) {
       result::Ok(m) => { copy m }
-      result::Err(f) => { fail getopts::fail_str(copy f) }
+      result::Err(f) => { fail!(getopts::fail_str(copy f)) }
     };
 
     let urls = if opt_match.free.is_empty() {
-        fail ~"servo asks that you provide 1 or more URLs"
+        fail!(~"servo asks that you provide 1 or more URLs")
     } else {
         copy opt_match.free
     };
@@ -59,7 +59,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
             } else if backend_str == ~"skia" {
                 SkiaBackend
             } else {
-                fail ~"unknown backend type"
+                fail!(~"unknown backend type")
             }
         }
         None => CairoBackend

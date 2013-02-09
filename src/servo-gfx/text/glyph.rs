@@ -6,10 +6,10 @@ use geometry;
 use core;
 use core::cmp::{Ord, Eq};
 use core::dvec::DVec;
+use core::num::NumCast;
 use core::u16;
 use geom::point::Point2D;
 use std::sort;
-use num::Num;
 
 
 // GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing
@@ -174,7 +174,7 @@ impl GlyphEntry {
     #[inline(always)]
     pure fn advance() -> Au {
         //assert self.is_simple();
-        Num::from_int(((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) as int)
+        NumCast::from((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT)
     }
 
     pure fn index() -> GlyphIndex {
@@ -375,7 +375,7 @@ impl DetailedGlyphStore {
         // FIXME: This is a workaround for borrow of self.detail_lookup not getting inferred.
         let records : &[DetailedGlyphRecord] = self.detail_lookup;
         match records.binary_search_index(&key) {
-            None => fail ~"Invalid index not found in detailed glyph lookup table!",
+            None => fail!(~"Invalid index not found in detailed glyph lookup table!"),
             Some(i) => {
                 assert i + (count as uint) <= self.detail_buffer.len();
                 // return a view into the buffer
@@ -384,7 +384,10 @@ impl DetailedGlyphStore {
         }
     }
 
-    pure fn get_detailed_glyph_with_index(&self, entry_offset: uint, detail_offset: u16) -> &self/DetailedGlyph {
+    pure fn get_detailed_glyph_with_index(&self,
+                                          entry_offset: uint,
+                                          detail_offset: u16)
+                                       -> &self/DetailedGlyph {
         assert (detail_offset as uint) <= self.detail_buffer.len();
         assert self.lookup_is_sorted;
 
@@ -396,7 +399,7 @@ impl DetailedGlyphStore {
         // FIXME: This is a workaround for borrow of self.detail_lookup not getting inferred.
         let records : &[DetailedGlyphRecord] = self.detail_lookup;
         match records.binary_search_index(&key) {
-            None => fail ~"Invalid index not found in detailed glyph lookup table!",
+            None => fail!(~"Invalid index not found in detailed glyph lookup table!"),
             Some(i) => {
                 assert i + (detail_offset as uint)  < self.detail_buffer.len();
                 &self.detail_buffer[i+(detail_offset as uint)]

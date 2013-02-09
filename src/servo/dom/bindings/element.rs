@@ -1,4 +1,4 @@
-use js::rust::{bare_compartment, methods, jsobj};
+use js::rust::{Compartment, jsobj};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
@@ -29,7 +29,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-pub fn init(compartment: &bare_compartment) {
+pub fn init(compartment: @mut Compartment) {
     let obj = utils::define_empty_prototype(~"Element", Some(~"Node"), compartment);
     let attrs = @~[
         {name: compartment.add_name(~"tagName"),
@@ -87,10 +87,10 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
                             }
                             // TODO: if nothing is being rendered(?), return zero dimensions
                         }
-                        _ => fail ~"why is this not an image element?"
+                        _ => fail!(~"why is this not an image element?")
                     }
                 }
-                _ => fail ~"why is this not an element?"
+                _ => fail!(~"why is this not an element?")
             }
         });
         *vp = RUST_INT_TO_JSVAL(
@@ -117,10 +117,10 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
                             let arg = ptr::offset(JS_ARGV(cx, cast::reinterpret_cast(&vp)), 0);
                             ed.set_attr(~"width", int::str(RUST_JSVAL_TO_INT(*arg) as int))
                         }
-                        _ => fail ~"why is this not an image element?"
+                        _ => fail!(~"why is this not an image element?")
                     }
                 }
-                _ => fail ~"why is this not an element?"
+                _ => fail!(~"why is this not an element?")
             }
         };
         return 1;
@@ -166,7 +166,7 @@ pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj {
               _ => ~"HTMLElement"
             }
           }
-          _ => fail ~"element::create only handles elements"
+          _ => fail!(~"element::create only handles elements")
         }
     });   
 

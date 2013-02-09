@@ -14,7 +14,8 @@ use quartz::font_list::core_text::font_descriptor::{debug_descriptor};
 
 use quartz::font::QuartzFontHandle;
 use quartz::font_context::QuartzFontContextHandle;
-use gfx_font::FontHandle;
+use gfx_font::{FontHandle, FontHandleMethods};
+use gfx_font_context::FontContextHandleMethods;
 use gfx_font_list::{FontEntry, FontFamily, FontFamilyMap};
 
 use core::dvec::DVec;

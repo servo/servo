@@ -2,12 +2,12 @@ use dom::node::Node;
 use newcss::complete::CompleteSelectResults;
 use std::cell::Cell;
 
-trait NodeUtil {
+pub trait NodeUtil {
     fn get_css_select_results() -> &self/CompleteSelectResults;
     fn set_css_select_results(decl : CompleteSelectResults);
 }
 
-impl Node: NodeUtil {
+impl NodeUtil for Node {
     /** 
      * Provides the computed style for the given node. If CSS selector
      * Returns the style results for the given node. If CSS selector
@@ -17,12 +17,12 @@ impl Node: NodeUtil {
      */
     fn get_css_select_results() -> &self/CompleteSelectResults {
         if !self.has_aux() {
-            fail ~"style() called on a node without aux data!";
+            fail!(~"style() called on a node without aux data!");
         }
         unsafe { &*self.aux( |x| {
             match x.style {
                 Some(ref style) => ptr::to_unsafe_ptr(style),
-                None => fail ~"style() called on node without a style!"
+                None => fail!(~"style() called on node without a style!")
             }
         })}
     }

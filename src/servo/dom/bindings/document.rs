@@ -1,4 +1,4 @@
-use js::rust::{compartment, bare_compartment, methods, jsobj};
+use js::rust::{Compartment, jsobj};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED,
             JSVAL_NULL, JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp};
@@ -62,8 +62,7 @@ enum Element = int;
     return 1;
 }*/
 
-extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
-    -> JSBool {
+extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
         if obj.is_null() {
@@ -92,7 +91,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-pub fn init(compartment: &bare_compartment, doc: @Document) {
+pub fn init(compartment: @mut Compartment, doc: @Document) {
     let obj = utils::define_empty_prototype(~"Document", None, compartment);
 
     let attrs = @~[

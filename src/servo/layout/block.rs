@@ -1,16 +1,20 @@
-use au = gfx::geometry;
+// Block layout.
+
+use layout::box::{RenderBox};
+use layout::context::LayoutContext;
+use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
+use layout::flow::{FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
+use layout::inline::InlineLayout;
 use newcss::values::*;
+use util::tree;
+
+use au = gfx::geometry;
+use core::mutable::Mut;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
-use layout::box::{RenderBox};
-use layout::context::LayoutContext;
-use layout::display_list_builder::DisplayListBuilder;
-use layout::flow::{FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
-use util::tree;
-use core::mutable::Mut;
 
 pub struct BlockFlowData {
     mut box: Option<@RenderBox>
@@ -22,15 +26,18 @@ pub fn BlockFlowData() -> BlockFlowData {
     }
 }
 
-trait BlockLayout {
+pub trait BlockLayout {
     pure fn starts_block_flow() -> bool;
     pure fn with_block_box(@self, fn(box: &@RenderBox) -> ()) -> ();
 
     fn bubble_widths_block(@self, ctx: &LayoutContext);
     fn assign_widths_block(@self, ctx: &LayoutContext);
     fn assign_height_block(@self, ctx: &LayoutContext);
-    fn build_display_list_block(@self, a: &DisplayListBuilder, b: &Rect<Au>,
-                                c: &Point2D<Au>, d: &Mut<DisplayList>);
+    fn build_display_list_block(@self,
+                                a: &DisplayListBuilder,
+                                b: &Rect<Au>,
+                                c: &Point2D<Au>,
+                                d: &Mut<DisplayList>);
 }
 
 impl FlowContext : BlockLayout {
@@ -54,7 +61,7 @@ impl FlowContext : BlockLayout {
                 let mut box = self.root().box;
                 box.iter(cb);
             },
-            _  => fail fmt!("Tried to do something with_block_box(), but this is a %?", self)
+            _  => fail!(fmt!("Tried to do something with_block_box(), but this is a %?", self))
         }
     }
 

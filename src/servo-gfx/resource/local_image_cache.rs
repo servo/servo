@@ -133,7 +133,7 @@ pub impl LocalImageCache {
     }
 
     priv fn get_state(url: &Url) -> @ImageState {
-        match self.state_map.find(copy *url) {
+        match self.state_map.find(url) {
             Some(state) => state,
             None => {
                 let new_state = @ImageState {

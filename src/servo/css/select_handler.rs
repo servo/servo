@@ -9,7 +9,7 @@ pub struct NodeSelectHandler {
 fn with_node_name<R>(data: &NodeData, f: &fn(&str) -> R) -> R {
     match *data.kind {
         Element(ref data) => f(data.tag_name),
-        _ => fail ~"attempting to style non-element node"
+        _ => fail!(~"attempting to style non-element node")
     }
 }
 
@@ -75,7 +75,7 @@ impl NodeSelectHandler: SelectHandler<Node> {
         do node.read |data| {
             match *data.kind {
                 Element(ref data) => data.with_attr("id", f),
-                _ => fail ~"attempting to style non-element node"
+                _ => fail!(~"attempting to style non-element node")
             }
         }
     }
@@ -91,7 +91,7 @@ impl NodeSelectHandler: SelectHandler<Node> {
                         }
                     }
                 }
-                _ => fail ~"attempting to style non-element node"
+                _ => fail!(~"attempting to style non-element node")
             }
         }
     }

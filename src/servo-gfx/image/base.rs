@@ -32,7 +32,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                     1 => image.data[pixel * 4 + 1],
                     2 => image.data[pixel * 4 + 0],
                     3 => 0xffu8,
-                    _ => fail
+                    _ => fail!()
                 }
             };
 
@@ -40,7 +40,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
 
             Some(Image(image.width, image.height, image.depth, move data))
         }
-        stb_image::ImageF32(_image) => fail ~"HDR images not implemented",
+        stb_image::ImageF32(_image) => fail!(~"HDR images not implemented"),
         stb_image::Error => None
     }
 }

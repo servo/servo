@@ -4,6 +4,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
+use layout::block::BlockLayout;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
 use layout::flow::{FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
@@ -21,7 +22,7 @@ pub fn RootFlowData() -> RootFlowData {
     }
 }
 
-trait RootLayout {
+pub trait RootLayout {
     pure fn starts_root_flow() -> bool;
 
     fn bubble_widths_root(@self, ctx: &LayoutContext);

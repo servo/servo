@@ -88,8 +88,8 @@ pub impl Range {
             let overlap = other.end() - self.begin();
             return OverlapsEnd(overlap);
         }
-        fail fmt!("relation_to_range(): didn't classify self=%?, other=%?",
-                  self, other);
+        fail!(fmt!("relation_to_range(): didn't classify self=%?, other=%?",
+                  self, other));
     }
 
     fn repair_after_coalesced_range(&mut self, other: &const Range) {
@@ -103,8 +103,10 @@ pub impl Range {
             Coincides | ContainedBy =>   { self.reset(other.begin(), 1); },
             Contains =>      { self.extend_by(-(other.length() as int)); },
             OverlapsBegin(overlap) => { self.extend_by(1 - (overlap as int)); },
-            OverlapsEnd(overlap) => 
-            { self.reset(other.begin(), self.length() - overlap + 1); }
+            OverlapsEnd(overlap) => {
+                let len = self.length() - overlap + 1;
+                self.reset(other.begin(), len);
+            }
         };
         debug!("repair_after_coalesced_range: new range: ---- %?", self);
     }
