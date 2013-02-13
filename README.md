@@ -8,6 +8,7 @@ language. It is currently developed on OS X and Linux.
 On OS X (homebrew):
 
     brew install https://raw.github.com/Homebrew/homebrew-versions/master/autoconf213.rb
+    brew install automake
 
 On OS X (MacPorts):
 
