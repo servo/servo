@@ -51,12 +51,12 @@ pub fn ResourceTask() -> ResourceTask {
 }
 
 fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
-	let loaders_cell = Cell(loaders);
+    let loaders_cell = Cell(loaders);
     let chan = do spawn_listener |from_client| {
         // TODO: change copy to move once we can move out of closures
         ResourceManager(from_client, loaders_cell.take()).start()
     };
-	SharedChan(chan)
+    SharedChan(chan)
 }
 
 pub struct ResourceManager {
@@ -105,13 +105,13 @@ impl ResourceManager {
 
     fn get_loader_factory(&self, url: &Url) -> Option<LoaderTask> {
         for self.loaders.each |scheme_loader| {
-			match *scheme_loader {
-				(ref scheme, ref loader_factory) => {
-					if (*scheme) == url.scheme {
-						return Some((*loader_factory)());
-					}
-				}
-			}
+            match *scheme_loader {
+                (ref scheme, ref loader_factory) => {
+	            if (*scheme) == url.scheme {
+                        return Some((*loader_factory)());
+                    }
+	        }
+            }
         }
         return None;
     }

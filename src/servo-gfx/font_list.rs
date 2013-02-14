@@ -1,6 +1,7 @@
 use font::{CSSFontWeight, SpecifiedFontStyle, UsedFontStyle};
 use gfx_font::FontHandleMethods;
 use native::FontHandle;
+use gfx_font::FontHandleMethods;
 
 use core::hashmap::linear;
 

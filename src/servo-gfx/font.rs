@@ -6,6 +6,7 @@ use util::range::Range;
 use text::glyph::{GlyphStore, GlyphIndex};
 use text::shaper::ShaperMethods;
 use text::{Shaper, TextRun};
+use text::shaper::ShaperMethods;
 
 use azure::{AzFloat, AzScaledFontRef, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint};
@@ -356,7 +357,13 @@ pub impl Font {
                               baseline_origin: Point2D<Au>,
                               color: Color) {
         use core::libc::types::common::c99::{uint16_t, uint32_t};
-        use azure::{AzDrawOptions, AzGlyph, AzGlyphBuffer};
+        use azure::{AzDrawOptions,
+                    struct__AzDrawOptions,
+                    AzGlyph,
+                    struct__AzGlyph,
+                    AzGlyphBuffer,
+                    struct__AzGlyphBuffer,
+                    struct__AzPoint};
         use azure::azure::bindgen::{AzCreateColorPattern};
         use azure::azure::bindgen::{AzDrawTargetFillGlyphs};
         use azure::azure::bindgen::{AzReleaseColorPattern};

@@ -8,6 +8,7 @@ use font::{Font, FontTable, FontTableMethods, FontTableTag};
 
 use text::glyph::{GlyphStore, GlyphIndex, GlyphData};
 use text::shaper::ShaperMethods;
+use gfx_font::{FontHandleMethods, FontTableMethods};
 
 use servo_util::range;
 use util::range::Range;

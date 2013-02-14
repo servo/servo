@@ -221,6 +221,7 @@ pub fn parse_html(url: Url,
     };
     let css_chan = SharedChan(css_chan);
 
+    let resource_task2 = resource_task.clone();
     // Spawn a JS parser to receive JavaScript.
     let resource_task2 = resource_task.clone();
     let (js_port, js_chan): (Port<JSResult>, Chan<JSMessage>) =

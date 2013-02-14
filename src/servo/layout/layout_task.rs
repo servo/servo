@@ -99,7 +99,6 @@ struct Layout {
     image_cache_task: ImageCacheTask,
     local_image_cache: @mut LocalImageCache,
     from_content: Port<Msg>,
-
     font_ctx: @mut FontContext,
     // This is used to root reader data
     layout_refs: ~[@mut LayoutData],

@@ -1,7 +1,7 @@
 use font_context::FontContext;
 use geometry::Au;
 use text::glyph::{BreakTypeNormal, GlyphStore};
-use servo_gfx_font::{Font, FontDescriptor, RunMetrics};
+use servo_gfx_font::{Font, FontDescriptor, RunMetrics, FontHandleMethods};
 use servo_gfx_util::range::Range;
 
 use core::libc::{c_void};
