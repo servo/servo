@@ -2,7 +2,8 @@ use js;
 use js::rust::Compartment;
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL};
-use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSNative,
+                JSFunctionSpec, JSPropertySpec, JSVal};
 use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
                             JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate,
@@ -197,6 +198,11 @@ pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: @mut
 // globals and non-globals.
 const DOM_OBJECT_SLOT: uint = 0;
 
+// NOTE: This is baked into the Ion JIT as 0 in codegen for LGetDOMProperty and
+// LSetDOMProperty. Those constants need to be changed accordingly if this value
+// changes.
+const DOM_PROTO_INSTANCE_CLASS_SLOT: u32 = 0;
+
 // All DOM globals must have a slot at DOM_PROTOTYPE_SLOT. We have to
 // start at 1 past JSCLASS_GLOBAL_SLOT_COUNT because XPConnect uses
 // that one.
@@ -207,7 +213,28 @@ const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT + 1;
 // changes.
 const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
 
-struct NativePropertyHooks {
+pub struct NativeProperties {
+    staticMethods: *JSFunctionSpec,
+    staticMethodIds: *jsid,
+    staticMethodsSpecs: *JSFunctionSpec,
+    staticAttributes: *JSPropertySpec,
+    staticAttributeIds: *jsid,
+    staticAttributeSpecs: *JSPropertySpec,
+    methods: *JSFunctionSpec,
+    methodIds: *jsid,
+    methodsSpecs: *JSFunctionSpec,
+    attributes: *JSPropertySpec,
+    attributeIds: *jsid,
+    attributeSpecs: *JSPropertySpec,
+    unforgeableAttributes: *JSPropertySpec,
+    unforgeableAttributeIds: *jsid,
+    unforgeableAttributeSpecs: *JSPropertySpec,
+    constants: *ConstantSpec,
+    constantIds: *jsid,
+    constantSpecs: *ConstantSpec
+}
+
+pub struct NativePropertyHooks {
     resolve_own_property: *u8,
     resolve_property: *u8,
     enumerate_own_properties: *u8,
@@ -215,7 +242,17 @@ struct NativePropertyHooks {
     proto_hooks: *NativePropertyHooks
 }
 
-struct DOMClass {
+pub struct JSNativeHolder {
+    native: js::jsapi::JSNative,
+    propertyHooks: *NativePropertyHooks
+}
+
+pub struct ConstantSpec {
+    name: &str,
+    value: JSVal
+}
+
+pub struct DOMClass {
     // A list of interfaces that this object implements, in order of decreasing
     // derivedness.
     interface_chain: [prototypes::id::Prototype * 1 /*prototypes::id::_ID_Count*/],
@@ -224,7 +261,7 @@ struct DOMClass {
     native_hooks: *NativePropertyHooks
 }
 
-struct DOMJSClass {
+pub struct DOMJSClass {
     base: JSClass,
     dom_class: DOMClass
 }
@@ -243,4 +280,54 @@ mod prototypes {
             _ID_Count
         }
     }
+}
+
+pub fn CreateInterfaceObjects2(cx: *JSContext, global: *JSObject, receiver: *JSObject,
+                               protoProto: *JSObject, protoClass: *JSClass,
+                               constructorClass: *JSClass, constructor: JSNative,
+                               ctorNargs: uint,
+                               domClass: *DOMClass,
+                               methods: *JSFunctionSpec,
+                               properties: *JSPropertySpec,
+                               constants: *ConstantSpec,
+                               staticMethods: *JSFunctionSpec,
+                               name: &str) -> *JSObject {
+    unsafe {
+        let mut proto = ptr::null();
+        if protoClass.is_not_null() {
+            proto = /*CreateInterfacePrototypeObject(cx, global, protoProto,
+                                                   protoClass,
+                                                   regularProperties,
+                                                   chromeOnlyProperties);*/ptr::null();
+            if proto.is_null() {
+                return ptr::null();
+            }
+            
+            JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
+                               RUST_PRIVATE_TO_JSVAL(domClass as *libc::c_void));
+        }
+
+        let mut interface = ptr::null();
+        if constructorClass.is_not_null() || constructor.is_not_null() {
+            interface = do str::as_c_str(name) |s| {
+                /*CreateInterfaceObject(cx, global, constructorClass, constructor,
+                                              ctorNargs, proto, properties,
+                                              chromeOnlyProperties, s)*/ptr::null()
+            };
+            if interface.is_null() {
+                return ptr::null();
+            }
+        }
+
+        if protoClass.is_not_null() {
+            proto
+        } else {
+            interface
+        }
+    }
+}
+
+pub extern fn ThrowingConstructor(cx: *JSContext, argc: uint, vp: *JSVal) -> JSBool {
+    //XXX should trigger exception here
+    return 0;
 }

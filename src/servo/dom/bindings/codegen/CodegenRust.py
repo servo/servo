@@ -556,7 +556,7 @@ class PropertyDefiner:
         specs.append(specTerminator)
         prefableSpecs.append("  { false, NULL }");
 
-        arrays = (("const %s_specs: [%s * %i] = [\n" +
+        arrays = (("const %s: [%s * %i] = [\n" +
                    ',\n'.join(specs) + "\n" +
                    "];\n\n") % (name, specType, len(specs)))
                    #+
@@ -1199,7 +1199,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         idsToInit = []
         # There is no need to init any IDs in workers, because worker bindings
         # don't have Xrays.
-        if not self.descriptor.workers:
+        if False and not self.descriptor.workers: #XXXjdm punt on the interned string optimization
             for var in self.properties.xrayRelevantArrayNames():
                 props = getattr(self.properties, var)
                 # We only have non-chrome ids to init if we have no chrome ids.
@@ -1262,16 +1262,16 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             if self.descriptor.proxy:
                 domClass = "&Class"
             else:
-                domClass = "&Class.mClass"
+                domClass = "&Class.dom_class"
         else:
             domClass = "ptr::null()"
 
-        call = """return dom::CreateInterfaceObjects(aCx, aGlobal, aReceiver, parentProto,
-                                   %s, %s, %s, %d,
-                                   %s,
-                                   %%(methods)s, %%(attrs)s,
-                                   %%(consts)s, %%(staticMethods)s,
-                                   %s);""" % (
+        call = """return CreateInterfaceObjects2(aCx, aGlobal, aReceiver, parentProto,
+                               %s, %s, %s, %d,
+                               %s,
+                               %%(methods)s, ptr::to_unsafe_ptr(&%%(attrs)s[0]),
+                               %%(consts)s, %%(staticMethods)s,
+                               %s);""" % (
             "&PrototypeClass" if needInterfacePrototypeObject else "ptr::null()",
             "&InterfaceObjectClass" if needInterfaceObjectClass else "ptr::null()",
             constructHook if needConstructor else "ptr::null()",
@@ -1293,7 +1293,8 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             [CGGeneric(getParentProto), initIds, prefCache, chrome,
              CGGeneric(call % self.properties.variableNames(False))],
             "\n\n")
-        return CGIndenter(CGWrapper(functionBody, pre="/*", post="*/return ptr::null()")).define()
+        #return CGIndenter(CGWrapper(functionBody, pre="/*", post="*/return ptr::null()")).define()
+        return CGIndenter(functionBody).define()
 
 class CGGetPerInterfaceObject(CGAbstractMethod):
     """
@@ -1738,7 +1739,7 @@ class CGMemberJITInfo(CGThing):
         return ""
 
     def defineJitInfo(self, infoName, opName, infallible):
-        protoID =  "prototypes::id::%s as uint" % self.descriptor.name
+        protoID =  "prototypes::id::%s as u32" % self.descriptor.name
         depth = self.descriptor.interface.inheritanceDepth()
         failstr = "true" if infallible else "false"
         return ("\n"
