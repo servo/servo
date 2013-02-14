@@ -373,6 +373,7 @@ impl ImageCache {
     }
 
     priv fn purge_waiters(url: Url, f: fn() -> ImageResponseMsg) {
+        match self.wait_map.find(copy url) {
           Some(waiters) => {
             let waiters = &mut *waiters;
             let mut new_waiters = ~[];
