@@ -430,35 +430,305 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
     raise TypeError("Don't know how to declare return value for %s" %
                     returnType)
 
-class PropertyArrays():
-    def __init__(self, descriptor):
-        #self.staticMethods = MethodDefiner(descriptor, "StaticMethods", True)
-        #self.methods = MethodDefiner(descriptor, "Methods", False)
-        #self.attrs = AttrDefiner(descriptor, "Attributes")
-        #self.consts = ConstDefiner(descriptor, "Constants")
-        pass
+def isChromeOnly(m):
+    return m.getExtendedAttribute("ChromeOnly")
 
-    @staticmethod
-    def arrayNames():
-        return [ "staticMethods", "methods", "attrs", "consts" ]
+class PropertyDefiner:
+    """
+    A common superclass for defining things on prototype objects.
 
-    @staticmethod
-    def xrayRelevantArrayNames():
-        return [ "methods", "attrs", "consts" ]
-
+    Subclasses should implement generateArray to generate the actual arrays of
+    things we're defining.  They should also set self.chrome to the list of
+    things exposed to chrome and self.regular to the list of things exposed to
+    web pages.  self.chrome must be a superset of self.regular but also include
+    all the ChromeOnly stuff.
+    """
+    def __init__(self, descriptor, name):
+        self.descriptor = descriptor
+        self.name = name
+        # self.prefCacheData will store an array of (prefname, bool*)
+        # pairs for our bool var caches.  generateArray will fill it
+        # in as needed.
+        self.prefCacheData = []
     def hasChromeOnly(self):
-        return reduce(lambda b, a: b or getattr(self, a).hasChromeOnly(),
-                      self.arrayNames(), False)
-    def variableNames(self, chrome):
-        names = {}
-        for array in self.arrayNames():
-            names[array] = getattr(self, array).variableName(chrome)
-        return names
+        return len(self.chrome) > len(self.regular)
+    def hasNonChromeOnly(self):
+        return len(self.regular) > 0
+    def variableName(self, chrome):
+        if chrome and self.hasChromeOnly():
+            return "sChrome" + self.name
+        if self.hasNonChromeOnly():
+            return "s" + self.name
+        return "ptr::null()"
+    def usedForXrays(self, chrome):
+        # We only need Xrays for methods, attributes and constants.  And we only
+        # need them for the non-chrome ones if we have no chromeonly things.
+        # Otherwise (we have chromeonly attributes) we need Xrays for the chrome
+        # methods/attributes/constants.  Finally, in workers there are no Xrays.
+        return ((self.name is "Methods" or self.name is "Attributes" or
+                 self.name is "Constants") and
+                chrome == self.hasChromeOnly() and
+                not self.descriptor.workers)
+
     def __str__(self):
-        define = ""
-        for array in self.arrayNames():
-            define += str(getattr(self, array))
-        return define
+        # We only need to generate id arrays for things that will end
+        # up used via ResolveProperty or EnumerateProperties.
+        str = self.generateArray(self.regular, self.variableName(False),
+                                 self.usedForXrays(False))
+        if self.hasChromeOnly():
+            str += self.generateArray(self.chrome, self.variableName(True),
+                                      self.usedForXrays(True))
+        return str
+
+    @staticmethod
+    def getControllingPref(interfaceMember):
+        prefName = interfaceMember.getExtendedAttribute("Pref")
+        if prefName is None:
+            return None
+        # It's a list of strings
+        assert(len(prefName) is 1)
+        assert(prefName[0] is not None)
+        return prefName[0]
+
+    def generatePrefableArray(self, array, name, specTemplate, specTerminator,
+                              specType, getPref, getDataTuple, doIdArrays):
+        """
+        This method generates our various arrays.
+
+        array is an array of interface members as passed to generateArray
+
+        name is the name as passed to generateArray
+
+        specTemplate is a template for each entry of the spec array
+
+        specTerminator is a terminator for the spec array (inserted every time
+          our controlling pref changes and at the end of the array)
+
+        specType is the actual typename of our spec
+
+        getPref is a callback function that takes an array entry and returns
+          the corresponding pref value.
+
+        getDataTuple is a callback function that takes an array entry and
+          returns a tuple suitable for substitution into specTemplate.
+        """
+
+        # We want to generate a single list of specs, but with specTerminator
+        # inserted at every point where the pref name controlling the member
+        # changes.  That will make sure the order of the properties as exposed
+        # on the interface and interface prototype objects does not change when
+        # pref control is added to members while still allowing us to define all
+        # the members in the smallest number of JSAPI calls.
+        assert(len(array) is not 0)
+        lastPref = getPref(array[0]) # So we won't put a specTerminator
+                                     # at the very front of the list.
+        specs = []
+        prefableSpecs = []
+        if doIdArrays:
+            prefableIds = []
+
+        prefableTemplate = '  { true, &%s[%d] }'
+        prefCacheTemplate = '&%s[%d].enabled'
+        def switchToPref(props, pref):
+            # Remember the info about where our pref-controlled
+            # booleans live.
+            if pref is not None:
+                props.prefCacheData.append(
+                    (pref, prefCacheTemplate % (name, len(prefableSpecs)))
+                    )
+            # Set up pointers to the new sets of specs and ids
+            # inside prefableSpecs and prefableIds
+            prefableSpecs.append(prefableTemplate %
+                                 (name + "_specs", len(specs)))
+
+        switchToPref(self, lastPref)
+
+        for member in array:
+            curPref = getPref(member)
+            if lastPref != curPref:
+                # Terminate previous list
+                specs.append(specTerminator)
+                # And switch to our new pref
+                switchToPref(self, curPref)
+                lastPref = curPref
+            # And the actual spec
+            specs.append(specTemplate % getDataTuple(member))
+        specs.append(specTerminator)
+        prefableSpecs.append("  { false, NULL }");
+
+        arrays = (("const %s_specs: [%s * %i] = [\n" +
+                   ',\n'.join(specs) + "\n" +
+                   "];\n\n") % (name, specType, len(specs)))
+                   #+
+                   #"static Prefable<%s> %s[] = [\n" +
+                   #',\n'.join(prefableSpecs) + "\n" +
+                   #"];\n\n")
+        #if doIdArrays:
+        #    arrays += ("const %s_ids: [jsid * %i] = [" % (name, len(specs))) + ", ".join(["JSID_VOID"] * len(specs)) + "];\n\n"
+        return arrays
+
+class MethodDefiner(PropertyDefiner):
+    """
+    A class for defining methods on a prototype object.
+    """
+    def __init__(self, descriptor, name, static):
+        PropertyDefiner.__init__(self, descriptor, name)
+
+        # FIXME https://bugzilla.mozilla.org/show_bug.cgi?id=772822
+        #       We should be able to check for special operations without an
+        #       identifier. For now we check if the name starts with __
+        methods = [m for m in descriptor.interface.members if
+                   m.isMethod() and m.isStatic() == static and
+                   not m.isIdentifierLess()]
+        self.chrome = [{"name": m.identifier.name,
+                        "length": methodLength(m),
+                        "flags": "JSPROP_ENUMERATE",
+                        "pref": PropertyDefiner.getControllingPref(m) }
+                       for m in methods]
+        self.regular = [{"name": m.identifier.name,
+                         "length": methodLength(m),
+                         "flags": "JSPROP_ENUMERATE",
+                         "pref": PropertyDefiner.getControllingPref(m) }
+                        for m in methods if not isChromeOnly(m)]
+
+        # FIXME Check for an existing iterator on the interface first.
+        if any(m.isGetter() and m.isIndexed() for m in methods):
+            self.chrome.append({"name": 'iterator',
+                                "methodInfo": False,
+                                "nativeName": "JS_ArrayIterator",
+                                "length": 0,
+                                "flags": "JSPROP_ENUMERATE",
+                                "pref": None })
+            self.regular.append({"name": 'iterator',
+                                 "methodInfo": False,
+                                 "nativeName": "JS_ArrayIterator",
+                                 "length": 0,
+                                 "flags": "JSPROP_ENUMERATE",
+                                 "pref": None })
+
+        #if not descriptor.interface.parent and not static and not descriptor.workers:
+        #    self.chrome.append({"name": 'QueryInterface',
+        #                        "methodInfo": False,
+        #                        "length": 1,
+        #                        "flags": "0",
+        #                        "pref": None })
+
+        if static:
+            if not descriptor.interface.hasInterfaceObject():
+                # static methods go on the interface object
+                assert not self.hasChromeOnly() and not self.hasNonChromeOnly()
+        else:
+            if not descriptor.interface.hasInterfacePrototypeObject():
+                # non-static methods go on the interface prototype object
+                assert not self.hasChromeOnly() and not self.hasNonChromeOnly()
+
+    def generateArray(self, array, name, doIdArrays):
+        if len(array) == 0:
+            return ""
+
+        def pref(m):
+            return m["pref"]
+
+        def specData(m):
+            if m.get("methodInfo", True):
+                jitinfo = ("&%s_methodinfo" % m["name"])
+                accessor = "genericMethod"
+            else:
+                jitinfo = "0 as *JSJitInfo"
+                accessor = m.get("nativeName", m["name"])
+            return (m["name"], accessor, jitinfo, m["length"], m["flags"])
+
+        def stringDecl(m):
+            return "const %s_name: [u8 * %i] = %s;\n" % (m["name"], len(m["name"]) + 1,
+                                                         str_to_const_array(m["name"]))
+        
+        decls = ''.join([stringDecl(m) for m in array])
+        return decls + self.generatePrefableArray(
+            array, name,
+            '  {name: &%s_name as *u8 as *libc::c_char, call: {op: %s, info: %s}, nargs: %s, flags: %s}',
+            '  {name: 0 as *libc::c_char, call: {op: 0 as JSNative, info: 0 as *JSJitInfo}, nargs: 0, flags: 0}',
+            'JSFunctionSpec',
+            pref, specData, doIdArrays)
+
+class AttrDefiner(PropertyDefiner):
+    def __init__(self, descriptor, name):
+        PropertyDefiner.__init__(self, descriptor, name)
+        self.name = name
+        self.chrome = [m for m in descriptor.interface.members if m.isAttr()]
+        self.regular = [m for m in self.chrome if not isChromeOnly(m)]
+
+    def generateArray(self, array, name, doIdArrays):
+        if len(array) == 0:
+            return ""
+
+        def flags(attr):
+            return "JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS"
+
+        def getter(attr):
+            native = ("genericLenientGetter" if attr.hasLenientThis()
+                      else "genericGetter")
+            return ("{op: %(native)s, info: &%(name)s_getterinfo as *JSJitInfo}"
+                    % {"name" : attr.identifier.name,
+                       "native" : native})
+
+        def setter(attr):
+            if attr.readonly:
+                return "{op: 0 as *u8, info: 0 as *JSJitInfo}"
+            native = ("genericLenientSetter" if attr.hasLenientThis()
+                      else "genericSetter")
+            return ("{op: %(native)s, info: &%(name)s_setterinfo as *JSJitInfo}"
+                    % {"name" : attr.identifier.name,
+                       "native" : native})
+
+        def specData(attr):
+            return (attr.identifier.name, flags(attr), getter(attr),
+                    setter(attr))
+
+        def stringDecl(attr):
+            name = attr.identifier.name
+            return "const %s_name: [u8 * %i] = %s;\n" % (name, len(name) + 1,
+                                                         str_to_const_array(name))
+        
+        decls = ''.join([stringDecl(m) for m in array])
+
+        return decls + self.generatePrefableArray(
+            array, name,
+            '  { name: &%s_name as *u8 as *libc::c_char, tinyid: 0, flags: ((%s) & 0xFF) as u8, getter: %s, setter: %s }',
+            '  { name: 0 as *libc::c_char, tinyid: 0, flags: 0, getter: {op: 0 as *u8, info: 0 as *JSJitInfo}, setter: {op: 0 as *u8, info: 0 as *JSJitInfo} }',
+            'JSPropertySpec',
+            PropertyDefiner.getControllingPref, specData, doIdArrays)
+
+class ConstDefiner(PropertyDefiner):
+    """
+    A class for definining constants on the interface object
+    """
+    def __init__(self, descriptor, name):
+        PropertyDefiner.__init__(self, descriptor, name)
+        self.name = name
+        self.chrome = [m for m in descriptor.interface.members if m.isConst()]
+        self.regular = [m for m in self.chrome if not isChromeOnly(m)]
+
+    def generateArray(self, array, name, doIdArrays):
+        if len(array) == 0:
+            return ""
+
+        def specData(const):
+            return (const.identifier.name,
+                    convertConstIDLValueToJSVal(const.value))
+
+        def stringDecl(const):
+            name = const.identifier.name
+            return "const %s_name: [u8 * %i] = %s;\n" % (name, len(name) + 1,
+                                                         str_to_const_array(name))
+        
+        decls = ''.join([stringDecl(m) for m in array])
+
+        return decls + self.generatePrefableArray(
+            array, name,
+            '  { &%s_name as *u8 as *libc::c_char, %s }',
+            '  { 0, JSVAL_VOID }',
+            'ConstantSpec',
+            PropertyDefiner.getControllingPref, specData, doIdArrays)
 
 class CGThing():
     """
@@ -472,6 +742,33 @@ class CGThing():
     def define(self):
         """Produce code for a cpp file."""
         assert(False) # Override me!
+
+class CGNativePropertyHooks(CGThing):
+    """
+    Generate a NativePropertyHooks for a given descriptor
+    """
+    def __init__(self, descriptor):
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+    def declare(self):
+        if self.descriptor.workers:
+            return ""
+        #return "extern const NativePropertyHooks NativeHooks;\n"
+        return ""
+    def define(self):
+        if self.descriptor.workers:
+            return ""
+        if self.descriptor.concrete and self.descriptor.proxy:
+            resolveOwnProperty = "ResolveOwnProperty"
+            enumerateOwnProperties = "EnumerateOwnProperties"
+        else:
+            enumerateOwnProperties = resolveOwnProperty = "0 as *u8"
+        parent = self.descriptor.interface.parent
+        parentHooks = ("&" + toBindingNamespace(parent.identifier.name) + "::NativeHooks"
+                       if parent else '0 as *NativePropertyHooks')
+        return """
+const NativeHooks: NativePropertyHooks = NativePropertyHooks { resolve_own_property: %s, resolve_property: /*ResolveProperty*/ 0 as *u8, enumerate_own_properties: %s, enumerate_properties: /*EnumerateProperties*/ 0 as *u8, proto_hooks: %s };
+""" % (resolveOwnProperty, enumerateOwnProperties, parentHooks)
 
 # We'll want to insert the indent at the beginnings of lines, but we
 # don't want to indent empty lines.  So only indent lines that have a
@@ -571,6 +868,141 @@ class CGNamespace(CGWrapper):
             return CGWrapper(child, declareOnly=declareOnly)
         inner = CGNamespace.build(namespaces[1:], child, declareOnly=declareOnly)
         return CGNamespace(namespaces[0], inner, declareOnly=declareOnly)
+
+def DOMClass(descriptor):
+        protoList = ['prototypes::id::' + proto for proto in descriptor.prototypeChain]
+        # Pad out the list to the right length with _ID_Count so we
+        # guarantee that all the lists are the same length.  _ID_Count
+        # is never the ID of any prototype, so it's safe to use as
+        # padding.
+        protoList.extend(['prototypes::id::_ID_Count'] * (descriptor.config.maxProtoChainLength - len(protoList)))
+        prototypeChainString = ', '.join(protoList)
+        nativeHooks = "0 as *NativePropertyHooks" if descriptor.workers else "&NativeHooks as *NativePropertyHooks"
+        return """DOMClass {
+  interface_chain: [ %s ] ,
+  unused: %s, native_hooks: %s
+}""" % (prototypeChainString, "false", #toStringBool(descriptor.nativeIsISupports),
+          nativeHooks)
+
+class CGDOMJSClass(CGThing):
+    """
+    Generate a DOMJSClass for a given descriptor
+    """
+    def __init__(self, descriptor):
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+    def declare(self):
+        #return "extern DOMJSClass Class;\n"
+        return ""
+    def define(self):
+        traceHook = TRACE_HOOK_NAME if self.descriptor.customTrace else '0 as *u8'
+        return """
+const Class_name: [u8 * %i] = %s;
+const Class: DOMJSClass = DOMJSClass {
+  base: JSClass { name: &Class_name as *u8 as *libc::c_char,
+    flags: JSCLASS_IS_DOMJSCLASS | ((1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT), //JSCLASS_HAS_RESERVED_SLOTS(1),
+    addProperty: %s, /* addProperty */
+    delProperty: crust::JS_PropertyStub,       /* delProperty */
+    getProperty: crust::JS_PropertyStub,       /* getProperty */
+    setProperty: crust::JS_StrictPropertyStub, /* setProperty */
+    enumerate: crust::JS_EnumerateStub,
+    resolve: crust::JS_ResolveStub,
+    convert: crust::JS_ConvertStub,
+    finalize: %s, /* finalize */
+    checkAccess: 0 as *u8,                  /* checkAccess */
+    call: 0 as *u8,                  /* call */
+    hasInstance: 0 as *u8,                  /* hasInstance */
+    construct: 0 as *u8,                  /* construct */
+    trace: %s, /* trace */
+    reserved: (0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 05
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 10
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 15
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 20
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 25
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 30
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 35
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void)  // 40
+  },
+  dom_class: %s
+};
+""" % (len(self.descriptor.interface.identifier.name) + 1,
+       str_to_const_array(self.descriptor.interface.identifier.name),
+       #ADDPROPERTY_HOOK_NAME if self.descriptor.concrete and not self.descriptor.workers and self.descriptor.wrapperCache else 'crust::JS_PropertyStub',
+       'crust::JS_PropertyStub',
+       FINALIZE_HOOK_NAME, traceHook,
+       CGIndenter(CGGeneric(DOMClass(self.descriptor))).define())
+
+def str_to_const_array(s):
+    return "[" + (", ".join(map(lambda x: "'" + x + "' as u8", list(s)) + ['0 as u8'])) + "]"
+
+class CGPrototypeJSClass(CGThing):
+    def __init__(self, descriptor):
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+    def declare(self):
+        # We're purely for internal consumption
+        return ""
+    def define(self):
+        return """const PrototypeClassName__: [u8 * %s] = %s;
+const PrototypeClass: JSClass = JSClass {
+  name: &PrototypeClassName__ as *u8 as *libc::c_char,
+  flags: (1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT, //JSCLASS_HAS_RESERVED_SLOTS(1)
+  addProperty: crust::JS_PropertyStub,       /* addProperty */
+  delProperty: crust::JS_PropertyStub,       /* delProperty */
+  getProperty: crust::JS_PropertyStub,       /* getProperty */
+  setProperty: crust::JS_StrictPropertyStub, /* setProperty */
+  enumerate: crust::JS_EnumerateStub,
+  resolve: crust::JS_ResolveStub,
+  convert: crust::JS_ConvertStub,
+  finalize: 0 as *u8,                  /* finalize */
+  checkAccess: 0 as *u8,                  /* checkAccess */
+  call: 0 as *u8,                  /* call */
+  hasInstance: 0 as *u8,                  /* hasInstance */
+  construct: 0 as *u8,                  /* construct */
+  trace: 0 as *u8,                  /* trace */
+  reserved: (0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 05
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 10
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 15
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 20
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 25
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 30
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 35
+                    0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void)  // 40
+};
+""" % (len(self.descriptor.interface.identifier.name + "Prototype") + 1,
+       str_to_const_array(self.descriptor.interface.identifier.name + "Prototype"))
+
+class CGInterfaceObjectJSClass(CGThing):
+    def __init__(self, descriptor):
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+    def declare(self):
+        # We're purely for internal consumption
+        return ""
+    def define(self):
+        if not self.descriptor.hasInstanceInterface:
+            return ""
+        ctorname = "0 as *u8" if not self.descriptor.interface.ctor() else CONSTRUCT_HOOK_NAME
+        hasinstance = HASINSTANCE_HOOK_NAME
+        return """
+const InterfaceObjectClass: JSClass = {
+  %s, 0,
+  crust::JS_PropertyStub,       /* addProperty */
+  crust::JS_PropertyStub,       /* delProperty */
+  crust::JS_PropertyStub,       /* getProperty */
+  crust::JS_StrictPropertyStub, /* setProperty */
+  crust::JS_EnumerateStub,
+  crust::JS_ResolveStub,
+  crust::JS_ConvertStub,
+  0 as *u8,                  /* finalize */
+  0 as *u8,                  /* checkAccess */
+  %s, /* call */
+  %s, /* hasInstance */
+  %s, /* construct */
+  0 as *u8,                  /* trace */
+  JSCLASS_NO_INTERNAL_MEMBERS
+};
+""" % (str_to_const_array("Function", ctorname, hasinstance, ctorname))
 
 class CGList(CGThing):
     """
@@ -680,17 +1112,19 @@ class CGAbstractMethod(CGThing):
     def declare(self):
         if self.inline:
             return self._define()
-        return "%sfn %s%s(%s)%s;\n" % (self._decorators(), self.name, self._template(),
-                                       self.name, self._argstring(), self._returnType())
+        #return "%sfn %s%s(%s)%s;\n" % (self._decorators(), self.name, self._template(),
+        #                               self._argstring(), self._returnType())
+        return ""
+
     def _define(self):
         return self.definition_prologue() + "\n" + self.definition_body() + self.definition_epilogue()
     def define(self):
         return "" if self.inline else self._define()
     def definition_prologue(self):
-        return "%sfn %s%s(%s)%s unsafe {" % (self._decorators(), self.name, self._template(), 
-                                             self._argstring(), self._returnType())
+        return "%sfn %s%s(%s)%s {\n  unsafe {" % (self._decorators(), self.name, self._template(), 
+                                                  self._argstring(), self._returnType())
     def definition_epilogue(self):
-        return "\n}\n"
+        return "\n  }\n}\n"
     def definition_body(self):
         assert(False) # Override me!
 
@@ -705,6 +1139,284 @@ class CGAbstractExternMethod(CGAbstractMethod):
     def declare(self):
         # We only have implementation
         return ""
+
+class PropertyArrays():
+    def __init__(self, descriptor):
+        self.staticMethods = MethodDefiner(descriptor, "StaticMethods", True)
+        self.methods = MethodDefiner(descriptor, "Methods", False)
+        self.attrs = AttrDefiner(descriptor, "Attributes")
+        self.consts = ConstDefiner(descriptor, "Constants")
+        pass
+
+    @staticmethod
+    def arrayNames():
+        return [ "staticMethods", "methods", "attrs", "consts" ]
+
+    @staticmethod
+    def xrayRelevantArrayNames():
+        return [ "methods", "attrs", "consts" ]
+
+    def hasChromeOnly(self):
+        return reduce(lambda b, a: b or getattr(self, a).hasChromeOnly(),
+                      self.arrayNames(), False)
+    def variableNames(self, chrome):
+        names = {}
+        for array in self.arrayNames():
+            names[array] = getattr(self, array).variableName(chrome)
+        return names
+    def __str__(self):
+        define = ""
+        for array in self.arrayNames():
+            define += str(getattr(self, array))
+        return define
+
+class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
+    """
+    Generate the CreateInterfaceObjects method for an interface descriptor.
+
+    properties should be a PropertyArrays instance.
+    """
+    def __init__(self, descriptor, properties):
+        args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aGlobal'),
+                Argument('*JSObject', 'aReceiver')]
+        CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', '*JSObject', args)
+        self.properties = properties
+    def definition_body(self):
+        protoChain = self.descriptor.prototypeChain
+        if len(protoChain) == 1:
+            getParentProto = "JS_GetObjectPrototype(aCx, aGlobal)"
+        else:
+            parentProtoName = self.descriptor.prototypeChain[-2]
+            getParentProto = ("%s::GetProtoObject(aCx, aGlobal, aReceiver)" %
+                              toBindingNamespace(parentProtoName))
+
+        needInterfaceObject = self.descriptor.interface.hasInterfaceObject()
+        needInterfacePrototypeObject = self.descriptor.interface.hasInterfacePrototypeObject()
+
+        # if we don't need to create anything, why are we generating this?
+        assert needInterfaceObject or needInterfacePrototypeObject
+
+        idsToInit = []
+        # There is no need to init any IDs in workers, because worker bindings
+        # don't have Xrays.
+        if not self.descriptor.workers:
+            for var in self.properties.xrayRelevantArrayNames():
+                props = getattr(self.properties, var)
+                # We only have non-chrome ids to init if we have no chrome ids.
+                if props.hasChromeOnly():
+                    idsToInit.append(props.variableName(True))
+                elif props.hasNonChromeOnly():
+                    idsToInit.append(props.variableName(False))
+        if len(idsToInit) > 0:
+            initIds = CGList(
+                [CGGeneric("!InitIds(aCx, %s, %s_ids)" % (varname, varname)) for
+                 varname in idsToInit], ' ||\n')
+            if len(idsToInit) > 1:
+                initIds = CGWrapper(initIds, pre="(", post=")", reindent=True)
+            initIds = CGList(
+                [CGGeneric("%s_ids[0] == JSID_VOID &&" % idsToInit[0]), initIds],
+                "\n")
+            initIds = CGWrapper(initIds, pre="if ", post=" {", reindent=True)
+            initIds = CGList(
+                [initIds,
+                 CGGeneric(("  %s_ids[0] = JSID_VOID;\n"
+                            "  return ptr::null();") % idsToInit[0]),
+                 CGGeneric("}")],
+                "\n")
+        else:
+            initIds = None
+
+        prefCacheData = []
+        for var in self.properties.arrayNames():
+            props = getattr(self.properties, var)
+            prefCacheData.extend(props.prefCacheData)
+        if len(prefCacheData) is not 0:
+            prefCacheData = [
+                CGGeneric('Preferences::AddBoolVarCache(%s, "%s");' % (ptr, pref)) for
+                (pref, ptr) in prefCacheData]
+            prefCache = CGWrapper(CGIndenter(CGList(prefCacheData, "\n")),
+                                  pre=("static bool sPrefCachesInited = false;\n"
+                                       "if (!sPrefCachesInited) {\n"
+                                       "  sPrefCachesInited = true;\n"),
+                                  post="\n}")
+        else:
+            prefCache = None
+            
+        getParentProto = ("let parentProto: *JSObject = %s;\n" +
+                          "if parentProto.is_null() {\n" +
+                          "  return ptr::null();\n" +
+                          "}\n") % getParentProto
+
+        needInterfaceObjectClass = (needInterfaceObject and
+                                    self.descriptor.hasInstanceInterface)
+        needConstructor = (needInterfaceObject and
+                           not self.descriptor.hasInstanceInterface)
+        if self.descriptor.interface.ctor():
+            constructHook = CONSTRUCT_HOOK_NAME
+            constructArgs = methodLength(self.descriptor.interface.ctor())
+        else:
+            constructHook = "ThrowingConstructor"
+            constructArgs = 0
+
+        if self.descriptor.concrete:
+            if self.descriptor.proxy:
+                domClass = "&Class"
+            else:
+                domClass = "&Class.mClass"
+        else:
+            domClass = "ptr::null()"
+
+        call = """return dom::CreateInterfaceObjects(aCx, aGlobal, aReceiver, parentProto,
+                                   %s, %s, %s, %d,
+                                   %s,
+                                   %%(methods)s, %%(attrs)s,
+                                   %%(consts)s, %%(staticMethods)s,
+                                   %s);""" % (
+            "&PrototypeClass" if needInterfacePrototypeObject else "ptr::null()",
+            "&InterfaceObjectClass" if needInterfaceObjectClass else "ptr::null()",
+            constructHook if needConstructor else "ptr::null()",
+            constructArgs,
+            domClass,
+            '"' + self.descriptor.interface.identifier.name + '"' if needInterfaceObject else "ptr::null()")
+        if self.properties.hasChromeOnly():
+            if self.descriptor.workers:
+                accessCheck = "mozilla::dom::workers::GetWorkerPrivateFromContext(aCx)->IsChromeWorker()"
+            else:
+                accessCheck = "xpc::AccessCheck::isChrome(js::GetObjectCompartment(aGlobal))"
+            chrome = CGIfWrapper(CGGeneric(call % self.properties.variableNames(True)),
+                                 accessCheck)
+            chrome = CGWrapper(chrome, pre="\n\n")
+        else:
+            chrome = None
+
+        functionBody = CGList(
+            [CGGeneric(getParentProto), initIds, prefCache, chrome,
+             CGGeneric(call % self.properties.variableNames(False))],
+            "\n\n")
+        return CGIndenter(CGWrapper(functionBody, pre="/*", post="*/return ptr::null()")).define()
+
+class CGGetPerInterfaceObject(CGAbstractMethod):
+    """
+    A method for getting a per-interface object (a prototype object or interface
+    constructor object).
+    """
+    def __init__(self, descriptor, name, idPrefix=""):
+        args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aGlobal'),
+                Argument('*JSObject', 'aReceiver')]
+        CGAbstractMethod.__init__(self, descriptor, name,
+                                  '*JSObject', args, inline=True)
+        self.id = idPrefix + "id::" + self.descriptor.name
+    def definition_body(self):
+        return """
+
+  /* aGlobal and aReceiver are usually the same, but they can be different
+     too. For example a sandbox often has an xray wrapper for a window as the
+     prototype of the sandbox's global. In that case aReceiver is the xray
+     wrapper and aGlobal is the sandbox's global.
+   */
+
+  /* Make sure our global is sane.  Hopefully we can remove this sometime */
+  if ((*JS_GetClass(aGlobal)).flags & JSCLASS_DOM_GLOBAL) == 0 {
+    return ptr::null();
+  }
+  /* Check to see whether the interface objects are already installed */
+  let protoOrIfaceArray: *mut *JSObject = cast::transmute(GetProtoOrIfaceArray(aGlobal));
+  let cachedObject: *JSObject = *protoOrIfaceArray.offset(%s as uint);
+  if cachedObject.is_null() {
+    let tmp: *JSObject = CreateInterfaceObjects(aCx, aGlobal, aReceiver);
+    *protoOrIfaceArray.offset(%s as uint) = tmp;
+    tmp
+  } else {
+    cachedObject
+  }""" % (self.id, self.id)
+
+class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
+    """
+    A method for getting the interface prototype object.
+    """
+    def __init__(self, descriptor):
+        CGGetPerInterfaceObject.__init__(self, descriptor, "GetProtoObject",
+                                         "prototypes::")
+    def definition_body(self):
+        return """
+  /* Get the interface prototype object for this class.  This will create the
+     object as needed. */""" + CGGetPerInterfaceObject.definition_body(self)
+
+class CGGetConstructorObjectMethod(CGGetPerInterfaceObject):
+    """
+    A method for getting the interface constructor object.
+    """
+    def __init__(self, descriptor):
+        CGGetPerInterfaceObject.__init__(self, descriptor, "GetConstructorObject",
+                                         "constructors::")
+    def definition_body(self):
+        return """
+  /* Get the interface object for this class.  This will create the object as
+     needed. */""" + CGGetPerInterfaceObject.definition_body(self)
+
+def CheckPref(descriptor, globalName, varName, retval, wrapperCache = None):
+    """
+    Check whether bindings should be enabled for this descriptor.  If not, set
+    varName to false and return retval.
+    """
+    if not descriptor.prefable:
+        return ""
+
+    if wrapperCache:
+       wrapperCache = "      %s->ClearIsDOMBinding();\n" % (wrapperCache)
+    else:
+        wrapperCache = ""
+
+    failureCode = ("      %s = false;\n" +
+                   "      return %s;") % (varName, retval)
+    return """
+  {
+    XPCWrappedNativeScope* scope =
+      XPCWrappedNativeScope::FindInJSObjectScope(aCx, %s);
+    if (!scope) {
+%s
+    }
+
+    if (!scope->ExperimentalBindingsEnabled()) {
+%s%s
+    }
+  }
+""" % (globalName, failureCode, wrapperCache, failureCode)
+
+class CGDefineDOMInterfaceMethod(CGAbstractMethod):
+    """
+    A method for resolve hooks to try to lazily define the interface object for
+    a given interface.
+    """
+    def __init__(self, descriptor):
+        args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aReceiver'),
+                Argument('*mut bool', 'aEnabled')]
+        CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface', 'bool', args)
+
+    def declare(self):
+        if self.descriptor.workers:
+            return ''
+        #return CGAbstractMethod.declare(self)
+        return ""
+
+    def define(self):
+        if self.descriptor.workers:
+            return ''
+        return CGAbstractMethod.define(self)
+
+    def definition_body(self):
+        if self.descriptor.interface.hasInterfacePrototypeObject():
+            # We depend on GetProtoObject defining an interface constructor
+            # object as needed.
+            getter = "GetProtoObject"
+        else:
+            getter = "GetConstructorObject"
+
+        return ("  let global: *JSObject = JS_GetGlobalForObject(aCx, aReceiver);\n" +
+                CheckPref(self.descriptor, "global", "*aEnabled", "false") + 
+                """
+  *aEnabled = true;
+  return %s(aCx, global, aReceiver).is_not_null();""" % (getter))
 
 class CGCallGenerator(CGThing):
     """
@@ -1073,6 +1785,18 @@ class CGMemberJITInfo(CGThing):
             return result
         raise TypeError("Illegal member type to CGPropertyJITInfo")
 
+class CGAbstractStaticMethod(CGAbstractMethod):
+    """
+    Abstract base class for codegen of implementation-only (no
+    declaration) static methods.
+    """
+    def __init__(self, descriptor, name, returnType, args):
+        CGAbstractMethod.__init__(self, descriptor, name, returnType, args,
+                                  inline=False, static=True)
+    def declare(self):
+        # We only have implementation
+        return ""
+
 class CGAbstractClassHook(CGAbstractExternMethod):
     """
     Meant for implementing JSClass hooks, like Finalize or Trace. Does very raw
@@ -1111,6 +1835,102 @@ let _: %s = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
 """ % (descriptor.pointerType + descriptor.nativeType)
     #return clearWrapper + release
     return release
+
+class CGClassConstructHook(CGAbstractStaticMethod):
+    """
+    JS-visible constructor for our objects
+    """
+    def __init__(self, descriptor):
+        args = [Argument('*JSContext', 'cx'), Argument('unsigned', 'argc'), Argument('*jsval', 'vp')]
+        CGAbstractStaticMethod.__init__(self, descriptor, CONSTRUCT_HOOK_NAME,
+                                        'JSBool', args)
+        self._ctor = self.descriptor.interface.ctor()
+
+    def define(self):
+        if not self._ctor:
+            return ""
+        return CGAbstractStaticMethod.define(self)
+
+    def definition_body(self):
+        return self.generate_code()
+
+    def generate_code(self):
+        preamble = """
+  JSObject* obj = JS_GetGlobalForObject(cx, JSVAL_TO_OBJECT(JS_CALLEE(cx, vp)));
+"""
+        if self.descriptor.workers:
+            preArgs = ["cx", "obj"]
+        else:
+            preamble += """
+  nsISupports* global;
+  xpc_qsSelfRef globalRef;
+  {
+    nsresult rv;
+    JS::Value val = OBJECT_TO_JSVAL(obj);
+    rv = xpc_qsUnwrapArg<nsISupports>(cx, val, &global, &globalRef.ptr, &val);
+    if (NS_FAILED(rv)) {
+      return Throw<true>(cx, NS_ERROR_XPC_BAD_CONVERT_JS);
+    }
+  }
+"""
+            preArgs = ["global"]
+
+        name = self._ctor.identifier.name
+        nativeName = MakeNativeName(self.descriptor.binaryNames.get(name, name))
+        callGenerator = CGMethodCall(preArgs, nativeName, True,
+                                     self.descriptor, self._ctor)
+        return preamble + callGenerator.define();
+
+class CGClassHasInstanceHook(CGAbstractStaticMethod):
+    def __init__(self, descriptor):
+        args = [Argument('*JSContext', 'cx'), Argument('JSHandleObject', 'obj'),
+                Argument('JSMutableHandleValue', 'vp'), Argument('*JSBool', 'bp')]
+        CGAbstractStaticMethod.__init__(self, descriptor, HASINSTANCE_HOOK_NAME,
+                                        'JSBool', args)
+
+    def define(self):
+        if not self.descriptor.hasInstanceInterface:
+            return ""
+        return CGAbstractStaticMethod.define(self)
+
+    def definition_body(self):
+        return self.generate_code()
+
+    def generate_code(self):
+        return """  if (!vp.isObject()) {
+    *bp = false;
+    return true;
+  }
+
+  jsval protov;
+  if (!JS_GetProperty(cx, obj, "prototype", &protov))
+    return false;
+  if (!protov.isObject()) {
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_PROTOTYPE,
+                         "%s");
+    return false;
+  }
+  JSObject *objProto = &protov.toObject();
+
+  JSObject* instance = &vp.toObject();
+  JSObject* proto;
+  if (!JS_GetPrototype(cx, instance, &proto))
+    return false;
+  while (proto) {
+    if (proto == objProto) {
+      *bp = true;
+      return true;
+    }
+    if (!JS_GetPrototype(cx, proto, &proto))
+      return false;
+  }
+
+  nsISupports* native =
+    nsContentUtils::XPConnect()->GetNativeOfWrapper(cx, instance);
+  nsCOMPtr<%s> qiResult = do_QueryInterface(native);
+  *bp = !!qiResult;
+  return true;
+""" % (self.descriptor.name, self.descriptor.hasInstanceInterface)
 
 class CGClassFinalizeHook(CGAbstractClassHook):
     """
@@ -1175,23 +1995,23 @@ class CGDescriptor(CGThing):
                 pass
 
         if descriptor.interface.hasInterfaceObject():
-            #cgThings.append(CGClassConstructHook(descriptor))
-            #cgThings.append(CGClassHasInstanceHook(descriptor))
-            #cgThings.append(CGInterfaceObjectJSClass(descriptor))
+            cgThings.append(CGClassConstructHook(descriptor))
+            cgThings.append(CGClassHasInstanceHook(descriptor))
+            cgThings.append(CGInterfaceObjectJSClass(descriptor))
             pass
 
         if descriptor.interface.hasInterfacePrototypeObject():
-            #cgThings.append(CGPrototypeJSClass(descriptor))
+            cgThings.append(CGPrototypeJSClass(descriptor))
             pass
 
         properties = PropertyArrays(descriptor)
-        #cgThings.append(CGGeneric(define=str(properties)))
-        #cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
+        cgThings.append(CGGeneric(define=str(properties)))
+        cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
         if descriptor.interface.hasInterfacePrototypeObject():
-            #cgThings.append(CGGetProtoObjectMethod(descriptor))
+            cgThings.append(CGGetProtoObjectMethod(descriptor))
             pass
         else:
-            #cgThings.append(CGGetConstructorObjectMethod(descriptor))
+            cgThings.append(CGGetConstructorObjectMethod(descriptor))
             pass
 
         # Set up our Xray callbacks as needed.  Note that we don't need to do
@@ -1206,7 +2026,7 @@ class CGDescriptor(CGThing):
             #cgThings.append(CGEnumerateProperties(descriptor, properties))
 
         if descriptor.interface.hasInterfaceObject():
-            #cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
+            cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
             if (not descriptor.interface.isExternal() and
                 # Workers stuff is never pref-controlled
                 not descriptor.workers and
@@ -1215,7 +2035,7 @@ class CGDescriptor(CGThing):
                 pass
 
         if descriptor.interface.hasInterfacePrototypeObject():
-            #cgThings.append(CGNativePropertyHooks(descriptor))
+            cgThings.append(CGNativePropertyHooks(descriptor))
             pass
 
         if descriptor.concrete:
@@ -1227,7 +2047,7 @@ class CGDescriptor(CGThing):
                 #cgThings.append(CGIsMethod(descriptor))
                 pass
             else:
-                #cgThings.append(CGDOMJSClass(descriptor))
+                cgThings.append(CGDOMJSClass(descriptor))
                 pass
 
             if descriptor.wrapperCache:

@@ -192,3 +192,55 @@ pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: @mut
     compartment.stash_global_proto(name, obj);
     return obj;
 }
+
+// We use slot 0 for holding the raw object.  This is safe for both
+// globals and non-globals.
+const DOM_OBJECT_SLOT: uint = 0;
+
+// All DOM globals must have a slot at DOM_PROTOTYPE_SLOT. We have to
+// start at 1 past JSCLASS_GLOBAL_SLOT_COUNT because XPConnect uses
+// that one.
+const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT + 1;
+
+// NOTE: This is baked into the Ion JIT as 0 in codegen for LGetDOMProperty and
+// LSetDOMProperty. Those constants need to be changed accordingly if this value
+// changes.
+const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
+
+struct NativePropertyHooks {
+    resolve_own_property: *u8,
+    resolve_property: *u8,
+    enumerate_own_properties: *u8,
+    enumerate_properties: *u8,
+    proto_hooks: *NativePropertyHooks
+}
+
+struct DOMClass {
+    // A list of interfaces that this object implements, in order of decreasing
+    // derivedness.
+    interface_chain: [prototypes::id::Prototype * 1 /*prototypes::id::_ID_Count*/],
+
+    unused: bool, // DOMObjectIsISupports (always false)
+    native_hooks: *NativePropertyHooks
+}
+
+struct DOMJSClass {
+    base: JSClass,
+    dom_class: DOMClass
+}
+
+fn GetProtoOrIfaceArray(global: *JSObject) -> **JSObject {
+    unsafe {
+        assert ((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0;
+        cast::reinterpret_cast(&JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT))
+    }
+}
+
+mod prototypes {
+    mod id {
+        pub enum Prototype {
+            ClientRect,
+            _ID_Count
+        }
+    }
+}
