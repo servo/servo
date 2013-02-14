@@ -31,14 +31,15 @@ pub impl QuartzFontListHandle {
     }
 
     fn get_available_families() -> FontFamilyMap {
-        let family_names = quartz::font_list::core_text::font_collection::get_family_names();
+        let family_names: CFArray<CFStringRef> =
+            quartz::font_list::core_text::font_collection::get_family_names();
         let mut family_map : FontFamilyMap = LinearMap::new();
         for family_names.each |strref: &CFStringRef| {
-            let family_name = CFWrapper::wrap_shared(*strref).to_str();
+            /*let family_name = CFWrapper::wrap_shared(strref).to_str();
             debug!("Creating new FontFamily for family: %s", family_name);
 
             let new_family = @FontFamily::new(family_name);
-            family_map.insert(move family_name, new_family);
+            family_map.insert(move family_name, new_family);*/
         }
         return move family_map;
     }

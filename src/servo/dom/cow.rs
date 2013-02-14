@@ -275,7 +275,7 @@ impl<T:Copy Owned,A> Scope<T,A> {
 #[cfg(test)]
 #[allow(non_implicitly_copyable_typarams)]
 mod test {
-    use pipes::stream;
+    use pipes::{SharedChan, stream};
     use super::Scope;
 
     type animal = {name: ~str, species: species};
@@ -323,18 +323,20 @@ mod test {
 
         let iter1 = 3u;
         let iter2 = 22u;
-        let read_port = oldcomm::Port();
-        let read_chan = oldcomm::Chan(&read_port);
+        let (read_port, read_chan) = stream();
+        let read_chan = SharedChan(read_chan);
 
         // fire up a reader task
         for uint::range(0u, iter1) |i| {
             s.reader_forked();
             let (wait_port, wait_chan) = stream();
 
+            let read_chan = read_chan.clone();
             do task::spawn {
+                let read_chan = read_chan.clone();
                 for uint::range(0u, iter2) |_i| {
-                    oldcomm::send(read_chan, henrietta.read(read_characteristic));
-                    oldcomm::send(read_chan, ferdinand.read(read_characteristic));
+                    read_chan.send(henrietta.read(read_characteristic));
+                    read_chan.send(ferdinand.read(read_characteristic));
                     wait_port.recv();
                 }
             }
@@ -346,9 +348,9 @@ mod test {
             assert frc == i * iter2;
 
             for uint::range(0u, iter2) |_i| {
-                assert hrc == oldcomm::recv(read_port);
+                assert hrc == read_port.recv();
                 s.write(&henrietta, mutate);
-                assert frc == oldcomm::recv(read_port);
+                assert frc == read_port.recv();
                 s.write(&ferdinand, mutate);
                 wait_chan.send(());
             }
