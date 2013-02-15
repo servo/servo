@@ -1,5 +1,5 @@
 use core;
-use dom::node::Node;
+use dom::node::AbstractNode;
 use layout::box::*;
 use layout::context::LayoutContext;
 use layout::debug::{BoxedDebugMethods, DebugMethods};
@@ -41,12 +41,12 @@ hard to try out that alternative.
 */
 
 pub struct NodeRange {
-    node: Node,
+    node: AbstractNode,
     range: Range,
 }
 
 pub impl NodeRange {
-    static pure fn new(node: Node, range: &const Range) -> NodeRange {
+    static pure fn new(node: AbstractNode, range: &const Range) -> NodeRange {
         NodeRange { node: node, range: copy *range }
     }
 }
@@ -60,7 +60,7 @@ impl ElementMapping {
         ElementMapping { entries: DVec() }
     }
 
-    fn add_mapping(node: Node, range: &const Range) {
+    fn add_mapping(node: AbstractNode, range: &const Range) {
         self.entries.push(NodeRange::new(node, range))
     }
 

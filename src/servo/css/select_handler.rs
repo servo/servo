@@ -1,36 +1,38 @@
-use dom::node::{Node, NodeData, NodeTree, Doctype, Comment, Element, Text};
+///
+/// Implementation of the callbacks that the CSS selector engine uses to query the DOM.
+///
+
+use dom::node::AbstractNode;
 use newcss::select::SelectHandler;
-use util::tree;
+
+use core::str::eq_slice;
 
 pub struct NodeSelectHandler {
-    node: Node
+    node: AbstractNode
 }
 
-fn with_node_name<R>(data: &NodeData, f: &fn(&str) -> R) -> R {
-    match *data.kind {
-        Element(ref data) => f(data.tag_name),
-        _ => fail!(~"attempting to style non-element node")
+fn with_node_name<R>(node: AbstractNode, f: &fn(&str) -> R) -> R {
+    if !node.is_element() {
+        fail!(~"attempting to style non-element node");
+    }
+    do node.with_imm_element |element_n| {
+        f(element_n.tag_name)
     }
 }
 
-impl SelectHandler<Node> for NodeSelectHandler {
-    fn with_node_name<R>(node: &Node, f: &fn(&str) -> R) -> R {
-        do node.read |data| {
-            with_node_name(data, f)
-        }
+impl SelectHandler<AbstractNode> for NodeSelectHandler {
+    fn with_node_name<R>(node: &AbstractNode, f: &fn(&str) -> R) -> R {
+        with_node_name(*node, f)
     }
 
-    fn named_parent_node(node: &Node, name: &str) -> Option<Node> {
-        let parent = tree::parent(&NodeTree, node);
-        match parent {
+    fn named_parent_node(node: &AbstractNode, name: &str) -> Option<AbstractNode> {
+        match node.parent_node() {
             Some(parent) => {
-                do parent.read |data| {
-                    do with_node_name(data) |node_name| {
-                        if name == node_name {
-                            Some(parent)
-                        } else {
-                            None
-                        }
+                do with_node_name(parent) |node_name| {
+                    if eq_slice(name, node_name) {
+                        Some(parent)
+                    } else {
+                        None
                     }
                 }
             }
@@ -38,23 +40,21 @@ impl SelectHandler<Node> for NodeSelectHandler {
         }
     }
 
-    fn parent_node(node: &Node) -> Option<Node> {
-        tree::parent(&NodeTree, node)
+    fn parent_node(node: &AbstractNode) -> Option<AbstractNode> {
+        node.parent_node()
     }
 
     // TODO: Use a Bloom filter.
-    fn named_ancestor_node(node: &Node, name: &str) -> Option<Node> {
+    fn named_ancestor_node(node: &AbstractNode, name: &str) -> Option<AbstractNode> {
         let mut node = *node;
         loop {
-            let parent = tree::parent(&NodeTree, &node);
+            let parent = node.parent_node();
             match parent {
                 Some(parent) => {
                     let mut found = false;
-                    do parent.read |data| {
-                        do with_node_name(data) |node_name| {
-                            if name == node_name {
-                                found = true;
-                            }
+                    do with_node_name(parent) |node_name| {
+                        if eq_slice(name, node_name) {
+                            found = true;
                         }
                     }
                     if found {
@@ -67,31 +67,27 @@ impl SelectHandler<Node> for NodeSelectHandler {
         }
     }
 
-    fn node_is_root(node: &Node) -> bool {
+    fn node_is_root(node: &AbstractNode) -> bool {
         self.parent_node(node).is_none()
     }
 
-    fn with_node_id<R>(node: &Node, f: &fn(Option<&str>) -> R) -> R {
-        do node.read |data| {
-            match *data.kind {
-                Element(ref data) => data.with_attr("id", f),
-                _ => fail!(~"attempting to style non-element node")
-            }
+    fn with_node_id<R>(node: &AbstractNode, f: &fn(Option<&str>) -> R) -> R {
+        if !node.is_element() {
+            fail!(~"attempting to style non-element node");
+        }
+        do node.with_imm_element() |element_n| {
+            f(element_n.get_attr("id"))
         }
     }
 
-    fn node_has_id(node: &Node, id: &str) -> bool {
-        do node.read |data| {
-            match *data.kind {
-                Element(ref data) => {
-                    do data.with_attr("id") |existing_id_opt| {
-                        match existing_id_opt {
-                            None => false,
-                            Some(existing_id) => str::eq_slice(id, existing_id)
-                        }
-                    }
-                }
-                _ => fail!(~"attempting to style non-element node")
+    fn node_has_id(node: &AbstractNode, id: &str) -> bool {
+        if !node.is_element() {
+            fail!(~"attempting to style non-element node");
+        }
+        do node.with_imm_element |element_n| {
+            match element_n.get_attr("id") {
+                None => false,
+                Some(existing_id) => id == existing_id
             }
         }
     }

@@ -1,15 +1,14 @@
+use dom::node::AbstractNode;
 use newcss::stylesheet::Stylesheet;
-use dom::node::{NodeScope, Node};
+
 use std::arc::ARC;
 
 pub struct Document {
-    root: Node,
-    scope: NodeScope,
+    root: AbstractNode,
 }
 
-pub fn Document(root: Node, scope: NodeScope) -> Document {
+pub fn Document(root: AbstractNode) -> Document {
     Document {
-        root : root,
-        scope : scope,
+        root: root,
     }
 }

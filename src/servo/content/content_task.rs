@@ -5,7 +5,7 @@ tasks.
 
 use dom::bindings::utils::rust_box;
 use dom::document::Document;
-use dom::node::{Node, NodeScope, define_bindings};
+use dom::node::define_bindings;
 use dom::event::{Event, ResizeEvent, ReflowEvent};
 use dom::window::Window;
 use layout::layout_task;
@@ -90,7 +90,6 @@ pub struct Content {
     event_port: comm::Port<Event>,
     event_chan: comm::SharedChan<Event>,
 
-    scope: NodeScope,
     jsrt: jsrt,
     cx: @Cx,
 
@@ -135,19 +134,18 @@ pub fn Content(layout_task: LayoutTask,
         event_port: event_port,
         event_chan: event_chan,
 
-        scope: NodeScope(),
-        jsrt: jsrt,
-        cx: cx,
+        jsrt : jsrt,
+        cx : cx,
 
-        document:    None,
-        window:      None,
-        doc_url:     None,
-        window_size: Size2D(800u, 600u),
+        document    : None,
+        window      : None,
+        doc_url     : None,
+        window_size : Size2D(800u, 600u),
 
-        resource_task: resource_task,
-        compartment:   compartment,
+        resource_task : resource_task,
+        compartment : compartment,
 
-        damage: MatchSelectorsDamage,
+        damage : MatchSelectorsDamage,
     };
 
     cx.set_cx_private(ptr::to_unsafe_ptr(&*content) as *());
@@ -184,8 +182,7 @@ impl Content {
             // Note: we can parse the next document in parallel
             // with any previous documents.
 
-            let result = html::hubbub_html_parser::parse_html(self.scope,
-                                                              copy url,
+            let result = html::hubbub_html_parser::parse_html(copy url,
                                                               self.resource_task.clone(),
                                                               self.image_cache_task.clone());
 
@@ -206,7 +203,7 @@ impl Content {
             let js_scripts = result.js_port.recv();
             debug!("js_scripts: %?", js_scripts);
 
-            let document = Document(root, self.scope);
+            let document = Document(root);
             let window   = Window(self.control_chan.clone());
 
             self.damage.add(MatchSelectorsDamage);
@@ -272,13 +269,9 @@ impl Content {
        Sends a ping to layout and waits for the response (i.e., it has finished any
        pending layout request messages).
     */
-    fn join_layout() {
-        assert self.scope.is_reader_forked() == self.layout_join_port.is_some();
-
-        if self.scope.is_reader_forked() {
-
+    fn join_layout(&self) {
+        if self.layout_join_port.is_some() {
             let join_port = replace(&mut self.layout_join_port, None);
-
             match join_port {
                 Some(ref join_port) => {
                     if !join_port.peek() {
@@ -289,8 +282,6 @@ impl Content {
                 }
                 None => fail!(~"reader forked but no join port?")
             }
-
-            self.scope.reader_joined();
         }
     }
 
@@ -312,7 +303,7 @@ impl Content {
 
         // Send new document and relevant styles to layout
 
-        let data = BuildData {
+        let data = ~BuildData {
             node: document.root,
             url: copy *doc_url,
             dom_event_chan: self.event_chan.clone(),
@@ -322,10 +313,6 @@ impl Content {
         };
 
         self.layout_task.send(BuildMsg(data));
-
-        // Indicate that reader was forked so any further
-        // changes will be isolated.
-        self.scope.reader_forked();
 
         debug!("content: layout forked");
     }

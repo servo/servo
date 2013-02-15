@@ -1,23 +1,49 @@
-use gfx::util::url::make_url;
-use au = gfx::geometry;
 use content::content_task::ContentTask;
-use dom::cow;
 use dom::element::*;
 use dom::event::{Event, ReflowEvent};
-use dom::node::{Comment, Doctype, DoctypeData, Element, Node, NodeScope, NodeScopeExtensions};
-use dom::node::{Text};
+use dom::node::{AbstractNode, Comment, Doctype, Element, ElementNodeTypeId, Node, Text};
+use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
+use newcss::stylesheet::Stylesheet;
 use resource::image_cache_task::ImageCacheTask;
 use resource::image_cache_task;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
 use util::task::{spawn_listener, spawn_conversation};
 
 use core::comm::{Chan, Port, SharedChan};
-use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
+use core::str::eq_slice;
+use gfx::util::url::make_url;
 use hubbub::hubbub::Attribute;
 use hubbub::hubbub;
-use newcss::stylesheet::Stylesheet;
+use std::cell::Cell;
 use std::net::url::Url;
 use std::net::url;
+
+macro_rules! handle_element(
+    ($tag:expr, $string:expr, $ctor:ident, $type_id:expr) => (
+        if eq_slice($tag, $string) {
+            let element = ~$ctor {
+                parent: Element::new($type_id, ($tag).to_str())
+            };
+            unsafe {
+                return Node::as_abstract_node(element);
+            }
+        }
+    )
+)
+
+macro_rules! handle_heading_element(
+    ($tag:expr, $string:expr, $ctor:ident, $type_id:expr, $level:expr) => (
+        if eq_slice($tag, $string) {
+            let element = ~HTMLHeadingElement {
+                parent: Element::new($type_id, ($tag).to_str()),
+                level: $level
+            };
+            unsafe {
+                return Node::as_abstract_node(element);
+            }
+        }
+    )
+)
 
 type JSResult = ~[~[u8]];
 
@@ -32,9 +58,23 @@ enum JSMessage {
 }
 
 struct HtmlParserResult {
-    root: Node,
+    root: AbstractNode,
     style_port: Port<Option<Stylesheet>>,
     js_port: Port<JSResult>,
+}
+
+trait NodeWrapping {
+    unsafe fn to_hubbub_node(self) -> hubbub::NodeDataPtr;
+    static unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> Self;
+}
+
+impl NodeWrapping for AbstractNode {
+    unsafe fn to_hubbub_node(self) -> hubbub::NodeDataPtr {
+        cast::transmute(self)
+    }
+    static unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> AbstractNode {
+        cast::transmute(n)
+    }
 }
 
 /**
@@ -119,52 +159,57 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
     to_parent.send(js_scripts);
 }
 
-fn build_element_kind(tag: &str) -> ~ElementKind {
+// Silly macros to handle constructing DOM nodes. This produces bad code and should be optimized
+// via atomization (issue #85).
+
+fn build_element_from_tag(tag: &str) -> AbstractNode {
     // TODO (Issue #85): use atoms
-    if      tag == ~"a" { ~HTMLAnchorElement }
-    else if tag == ~"aside" { ~HTMLAsideElement }
-    else if tag == ~"br" { ~HTMLBRElement }
-    else if tag == ~"body" { ~HTMLBodyElement }
-    else if tag == ~"bold" { ~HTMLBoldElement }
-    else if tag == ~"div" { ~HTMLDivElement }
-    else if tag == ~"font" { ~HTMLFontElement }
-    else if tag == ~"form" { ~HTMLFormElement }
-    else if tag == ~"hr" { ~HTMLHRElement }
-    else if tag == ~"head" { ~HTMLHeadElement }
-    else if tag == ~"h1" { ~HTMLHeadingElement(Heading1) }
-    else if tag == ~"h2" { ~HTMLHeadingElement(Heading2) }
-    else if tag == ~"h3" { ~HTMLHeadingElement(Heading3) }
-    else if tag == ~"h4" { ~HTMLHeadingElement(Heading4) }
-    else if tag == ~"h5" { ~HTMLHeadingElement(Heading5) }
-    else if tag == ~"h6" { ~HTMLHeadingElement(Heading6) }
-    else if tag == ~"html" { ~HTMLHtmlElement }
-    else if tag == ~"img" { ~HTMLImageElement(HTMLImageData()) }
-    else if tag == ~"input" { ~HTMLInputElement }
-    else if tag == ~"i" { ~HTMLItalicElement }
-    else if tag == ~"link" { ~HTMLLinkElement }
-    else if tag == ~"li" { ~HTMLListItemElement }
-    else if tag == ~"meta" { ~HTMLMetaElement }
-    else if tag == ~"ol" { ~HTMLOListElement }
-    else if tag == ~"option" { ~HTMLOptionElement }
-    else if tag == ~"p" { ~HTMLParagraphElement }
-    else if tag == ~"script" { ~HTMLScriptElement }
-    else if tag == ~"section" { ~HTMLSectionElement }
-    else if tag == ~"select" { ~HTMLSelectElement }
-    else if tag == ~"small" { ~HTMLSmallElement }
-    else if tag == ~"span" { ~HTMLSpanElement }
-    else if tag == ~"style" { ~HTMLStyleElement }
-    else if tag == ~"tbody" { ~HTMLTableBodyElement }
-    else if tag == ~"td" { ~HTMLTableCellElement }
-    else if tag == ~"table" { ~HTMLTableElement }
-    else if tag == ~"tr" { ~HTMLTableRowElement }
-    else if tag == ~"title" { ~HTMLTitleElement }
-    else if tag == ~"ul" { ~HTMLUListElement }
-    else { ~UnknownElement }
+    handle_element!(tag, "a",       HTMLAnchorElement,      HTMLAnchorElementTypeId);
+    handle_element!(tag, "aside",   HTMLAsideElement,       HTMLAsideElementTypeId);
+    handle_element!(tag, "br",      HTMLBRElement,          HTMLBRElementTypeId);
+    handle_element!(tag, "body",    HTMLBodyElement,        HTMLBodyElementTypeId);
+    handle_element!(tag, "bold",    HTMLBoldElement,        HTMLBoldElementTypeId);
+    handle_element!(tag, "div",     HTMLDivElement,         HTMLDivElementTypeId);
+    handle_element!(tag, "font",    HTMLFontElement,        HTMLFontElementTypeId);
+    handle_element!(tag, "form",    HTMLFormElement,        HTMLFormElementTypeId);
+    handle_element!(tag, "hr",      HTMLHRElement,          HTMLHRElementTypeId);
+    handle_element!(tag, "head",    HTMLHeadElement,        HTMLHeadElementTypeId);
+    handle_element!(tag, "html",    HTMLHtmlElement,        HTMLHtmlElementTypeId);
+    handle_element!(tag, "input",   HTMLInputElement,       HTMLInputElementTypeId);
+    handle_element!(tag, "i",       HTMLItalicElement,      HTMLItalicElementTypeId);
+    handle_element!(tag, "link",    HTMLLinkElement,        HTMLLinkElementTypeId);
+    handle_element!(tag, "li",      HTMLListItemElement,    HTMLListItemElementTypeId);
+    handle_element!(tag, "meta",    HTMLMetaElement,        HTMLMetaElementTypeId);
+    handle_element!(tag, "ol",      HTMLOListElement,       HTMLOListElementTypeId);
+    handle_element!(tag, "option",  HTMLOptionElement,      HTMLOptionElementTypeId);
+    handle_element!(tag, "p",       HTMLParagraphElement,   HTMLParagraphElementTypeId);
+    handle_element!(tag, "script",  HTMLScriptElement,      HTMLScriptElementTypeId);
+    handle_element!(tag, "section", HTMLSectionElement,     HTMLSectionElementTypeId);
+    handle_element!(tag, "select",  HTMLSelectElement,      HTMLSelectElementTypeId);
+    handle_element!(tag, "small",   HTMLSmallElement,       HTMLSmallElementTypeId);
+    handle_element!(tag, "span",    HTMLSpanElement,        HTMLSpanElementTypeId);
+    handle_element!(tag, "style",   HTMLStyleElement,       HTMLStyleElementTypeId);
+    handle_element!(tag, "tbody",   HTMLTableBodyElement,   HTMLTableBodyElementTypeId);
+    handle_element!(tag, "td",      HTMLTableCellElement,   HTMLTableCellElementTypeId);
+    handle_element!(tag, "table",   HTMLTableElement,       HTMLTableElementTypeId);
+    handle_element!(tag, "tr",      HTMLTableRowElement,    HTMLTableRowElementTypeId);
+    handle_element!(tag, "title",   HTMLTitleElement,       HTMLTitleElementTypeId);
+    handle_element!(tag, "ul",      HTMLUListElement,       HTMLUListElementTypeId);
+
+    handle_heading_element!(tag, "h1", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading1);
+    handle_heading_element!(tag, "h2", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading2);
+    handle_heading_element!(tag, "h3", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading3);
+    handle_heading_element!(tag, "h4", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading4);
+    handle_heading_element!(tag, "h5", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading5);
+    handle_heading_element!(tag, "h6", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading6);
+
+    unsafe {
+        Node::as_abstract_node(~Element::new(UnknownElementTypeId, tag.to_str()))
+    }
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub fn parse_html(scope: NodeScope,
-                  url: Url,
+pub fn parse_html(url: Url,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask) -> HtmlParserResult {
     // Spawn a CSS parser to receive links to CSS style sheets.
@@ -185,38 +230,31 @@ pub fn parse_html(scope: NodeScope,
     };
     let js_chan = SharedChan(js_chan);
 
-    let (scope, url) = (@copy scope, @url);
+    let url = @url;
 
     unsafe {
         // Build the root node.
-        let root = scope.new_node(Element(ElementData(~"html", ~HTMLDivElement)));
+        let root = ~HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
+        let root = unsafe { Node::as_abstract_node(root) };
         debug!("created new node");
         let parser = hubbub::Parser("UTF-8", false);
         debug!("created parser");
-        parser.set_document_node(cast::transmute(cow::unwrap(root)));
+        parser.set_document_node(root.to_hubbub_node());
         parser.enable_scripting(true);
 
-        // Performs various actions necessary after appending has taken place. Currently, this consists
-        // of processing inline stylesheets, but in the future it might perform prefetching, etc.
+        // Performs various actions necessary after appending has taken place. Currently, this
+        // consists of processing inline stylesheets, but in the future it might perform
+        // prefetching, etc.
         let css_chan2 = css_chan.clone();
-        let append_hook: @fn(Node, Node) = |parent_node, child_node| {
-            do scope.read(&parent_node) |parent_node_contents| {
-                do scope.read(&child_node) |child_node_contents| {
-                    match (&parent_node_contents.kind, &child_node_contents.kind) {
-                        (&~Element(ref element), &~Text(ref data)) => {
-                            match element.kind {
-                                ~HTMLStyleElement => {
-                                    debug!("found inline CSS stylesheet");
-                                    let url = url::from_str("http://example.com/"); // FIXME
-                                    let provenance = InlineProvenance(result::unwrap(url),
-                                                                      copy *data);
-                                    css_chan2.send(CSSTaskNewFile(provenance));
-                                }
-                                _ => {} // Nothing to do.
-                            }
-                         }
-                         _ => {} // Nothing to do.
-                    }
+        let append_hook: @fn(AbstractNode, AbstractNode) = |parent_node, child_node| {
+            if parent_node.is_style_element() && child_node.is_text() {
+                debug!("found inline CSS stylesheet");
+                let url = url::from_str("http://example.com/"); // FIXME
+                let url_cell = Cell(url);
+                do child_node.with_imm_text |text_node| {
+                    let data = text_node.text.to_str();  // FIXME: Bad copy.
+                    let provenance = InlineProvenance(result::unwrap(url_cell.take()), data);
+                    css_chan2.send(CSSTaskNewFile(provenance));
                 }
             }
         };
@@ -225,8 +263,9 @@ pub fn parse_html(scope: NodeScope,
         parser.set_tree_handler(@hubbub::TreeHandler {
             create_comment: |data: ~str| {
                 debug!("create comment");
-                let new_node = scope.new_node(Comment(data));
-                unsafe { cast::transmute(cow::unwrap(new_node)) }
+                unsafe {
+                    Node::as_abstract_node(~Comment::new(data)).to_hubbub_node()
+                }
             },
             create_doctype: |doctype: ~hubbub::Doctype| {
                 debug!("create doctype");
@@ -240,69 +279,83 @@ pub fn parse_html(scope: NodeScope,
                   &None => None,
                   &Some(ref id) => Some(copy *id)
                 };
-                let data = DoctypeData(copy doctype.name,
-                                       public_id,
-                                       system_id,
-                                       copy doctype.force_quirks);
-                let new_node = scope.new_node(Doctype(data));
-                unsafe { cast::transmute(cow::unwrap(new_node)) }
+                let node = ~Doctype::new(copy doctype.name,
+                                         public_id,
+                                         system_id,
+                                         doctype.force_quirks);
+                unsafe {
+                    Node::as_abstract_node(node).to_hubbub_node()
+                }
             },
             create_element: |tag: ~hubbub::Tag| {
                 debug!("create element");
                 // TODO: remove copying here by using struct pattern matching to 
                 // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
-                let elem_kind = build_element_kind(tag.name);
-                let elem = ElementData(copy tag.name, elem_kind);
+                let node = build_element_from_tag(tag.name);
 
                 debug!("-- attach attrs");
-                for tag.attributes.each |attr| {
-                    elem.attrs.push(~Attr(copy attr.name, copy attr.value));
+                do node.as_mut_element |element| {
+                    for tag.attributes.each |attr| {
+                        element.attrs.push(Attr::new(copy attr.name, copy attr.value));
+                    }
                 }
 
                 // Spawn additional parsing, network loads, etc. from tag and attrs
-                match elem.kind {
-                    //Handle CSS style sheets from <link> elements
-                    ~HTMLLinkElement => {
-                        match (elem.get_attr(~"rel"), elem.get_attr(~"href")) {
-                            (Some(rel), Some(href)) => {
-                                if rel == ~"stylesheet" {
-                                    debug!("found CSS stylesheet: %s", href);
-                                    css_chan2.send(CSSTaskNewFile(UrlProvenance(make_url(
-                                        href, Some(copy *url)))));
+                match node.type_id() {
+                    // Handle CSS style sheets from <link> elements
+                    ElementNodeTypeId(HTMLLinkElementTypeId) => {
+                        do node.with_imm_element |element| {
+                            match (element.get_attr(~"rel"), element.get_attr(~"href")) {
+                                (Some(rel), Some(href)) => {
+                                    if rel == ~"stylesheet" {
+                                        debug!("found CSS stylesheet: %s", href);
+                                        let url = make_url(href.to_str(), Some(copy *url));
+                                        css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
+                                    }
                                 }
+                                _ => {}
                             }
-                            _ => {}
                         }
                     },
-                    ~HTMLImageElement(ref d) => {
-                        do elem.get_attr(~"src").iter |img_url_str| {
-                            let img_url = make_url(copy *img_url_str, Some(copy *url));
-                            d.image = Some(copy img_url);
-                            // inform the image cache to load this, but don't store a handle.
-                            // TODO (Issue #84): don't prefetch if we are within a <noscript> tag.
-                            image_cache_task.send(image_cache_task::Prefetch(img_url));
+                    ElementNodeTypeId(HTMLImageElementTypeId) => {
+                        do node.with_mut_image_element |image_element| {
+                            let src_opt = image_element.parent.get_attr(~"src").map(|x| x.to_str());
+                            match src_opt {
+                                None => {}
+                                Some(src) => {
+                                    let img_url = make_url(src, Some(copy *url));
+                                    image_element.image = Some(copy img_url);
+                                    // inform the image cache to load this, but don't store a handle.
+                                    // TODO (Issue #84): don't prefetch if we are within a <noscript>
+                                    // tag.
+                                    image_cache_task.send(image_cache_task::Prefetch(img_url));
+                                }
+                            }
                         }
                     }
                     //TODO (Issue #86): handle inline styles ('style' attr)
                     _ => {}
                 }
-                let node = scope.new_node(Element(elem));
-                unsafe { cast::transmute(cow::unwrap(node)) }
+
+                unsafe {
+                    node.to_hubbub_node()
+                }
             },
             create_text: |data: ~str| {
                 debug!("create text");
-                let new_node = scope.new_node(Text(data));
-                unsafe { cast::transmute(cow::unwrap(new_node)) }
+                unsafe {
+                    Node::as_abstract_node(~Text::new(data)).to_hubbub_node()
+                }
             },
-            ref_node: |_node| {},
-            unref_node: |_node| {},
+            ref_node: |_| {},
+            unref_node: |_| {},
             append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
                 unsafe {
                     debug!("append child %x %x", cast::transmute(parent), cast::transmute(child));
-                    let p: Node = cow::wrap(cast::transmute(parent));
-                    let c: Node = cow::wrap(cast::transmute(child));
-                    scope.add_child(p, c);
-                    append_hook(p, c);
+                    let parent: AbstractNode = NodeWrapping::from_hubbub_node(parent);
+                    let child: AbstractNode = NodeWrapping::from_hubbub_node(child);
+                    parent.append_child(child);
+                    append_hook(parent, child);
                 }
                 child
             },
@@ -318,10 +371,7 @@ pub fn parse_html(scope: NodeScope,
                 debug!("clone node");
                 unsafe {
                     if deep { error!("-- deep clone unimplemented"); }
-                    let n: Node = cow::wrap(cast::transmute(node));
-                    let data = n.read(|read_data| copy *read_data.kind);
-                    let new_node = scope.new_node(data);
-                    cast::transmute(cow::unwrap(new_node))
+                    fail!(~"clone node unimplemented")
                 }
             },
             reparent_children: |_node, _new_parent| {
@@ -351,29 +401,24 @@ pub fn parse_html(scope: NodeScope,
             complete_script: |script| {
                 // A little function for holding this lint attr
                 #[allow(non_implicitly_copyable_typarams)]
-                fn complete_script(scope: &NodeScope,
-                                   script: hubbub::NodeDataPtr,
+                fn complete_script(script: hubbub::NodeDataPtr,
                                    url: &Url,
                                    js_chan: SharedChan<JSMessage>) {
                     unsafe {
-                        do scope.read(&cow::wrap(cast::transmute(script))) |node_contents| {
-                            match *node_contents.kind {
-                                Element(ref element) if element.tag_name == ~"script" => {
-                                    match element.get_attr(~"src") {
-                                        Some(src) => {
-                                            debug!("found script: %s", src);
-                                            let new_url = make_url(src, Some(copy *url));
-                                            js_chan.send(JSTaskNewFile(new_url));
-                                        }
-                                        None => {}
-                                    }
+                        let script: AbstractNode = NodeWrapping::from_hubbub_node(script);
+                        do script.with_imm_element |script| {
+                            match script.get_attr(~"src") {
+                                Some(src) => {
+                                    debug!("found script: %s", src);
+                                    let new_url = make_url(src.to_str(), Some(copy *url));
+                                    js_chan.send(JSTaskNewFile(new_url));
                                 }
-                                _ => {}
+                                None => {}
                             }
                         }
                     }
                 }
-                complete_script(scope, script, url, js_chan2.clone());
+                complete_script(script, url, js_chan2.clone());
                 debug!("complete script");
             }
         });

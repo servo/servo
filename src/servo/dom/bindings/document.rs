@@ -64,6 +64,7 @@ enum Element = int;
 }*/
 
 extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
+    /*
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
         if obj.is_null() {
@@ -75,7 +76,8 @@ extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> J
         let scope = (*box).payload.scope;
         *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, node, scope).ptr);
         return 1;
-    }
+    }*/
+    return 1;
 }
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Document> {
@@ -85,14 +87,17 @@ unsafe fn unwrap(obj: *JSObject) -> *rust_box<Document> {
 }
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
+    /*
     debug!("document finalize!");
     unsafe {
         let val = JS_GetReservedSlot(obj, 0);
         let _doc: @Document = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
     }
+    */
 }
 
 pub fn init(compartment: @mut Compartment, doc: @Document) {
+    /*
     let obj = utils::define_empty_prototype(~"Document", None, compartment);
 
     let attrs = @~[
@@ -128,4 +133,5 @@ pub fn init(compartment: @mut Compartment, doc: @Document) {
                                 GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
                                 GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
                                 JSPROP_ENUMERATE);
+    */
 }

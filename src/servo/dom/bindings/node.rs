@@ -1,25 +1,27 @@
-use js::rust::{Compartment, jsobj};
-use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
-            JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
-use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec,
-                JSPropertyOpWrapper, JSStrictPropertyOpWrapper};
-use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
-                            JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
-                            JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate};
-use js::jsval::{INT_TO_JSVAL, JSVAL_TO_PRIVATE};
-use js::jsapi::bindgen::*;
-use js::glue::bindgen::*;
-
-use dom::node::{Node, NodeScope, Text, Doctype, Comment, Element};
 use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval};
 use dom::bindings::utils::{str};
-use libc::c_uint;
-use ptr::null;
-use super::utils;
+use dom::node::{AbstractNode, Node};
 use super::element;
+use super::utils;
+
+use core::cast::transmute;
+use core::libc::c_uint;
+use core::ptr::null;
+use js::glue::bindgen::*;
+use js::jsapi::bindgen::*;
+use js::jsapi::bindgen::{JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate};
+use js::jsapi::bindgen::{JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN};
+use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
+use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper};
+use js::jsval::{INT_TO_JSVAL, JSVAL_TO_PRIVATE};
+use js::rust::{Compartment, jsobj};
+use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
+use js::{JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
 use js;
 
 pub fn init(compartment: @mut Compartment) {
+/*
     let obj = utils::define_empty_prototype(~"Node", None, compartment);
 
     let attrs = @~[
@@ -53,11 +55,12 @@ pub fn init(compartment: @mut Compartment) {
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
-    });
+    });*/
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj {
+pub fn create(cx: *JSContext, node: Node) -> jsobj {
+    /*
     do scope.write(&node) |nd| {
         match nd.kind {
             ~Element(*) => element::create(cx, node, scope),
@@ -66,17 +69,19 @@ pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj {
             ~Doctype(*) => fail!(~"no doctype node bindings yet")
         }
     }
+    */
+    unsafe {
+        transmute(0)
+    }
 }
 
 pub struct NodeBundle {
-    node: Node,
-    scope: NodeScope,
+    node: AbstractNode,
 }
 
-pub fn NodeBundle(n: Node, s: NodeScope) -> NodeBundle {
+pub fn NodeBundle(n: AbstractNode) -> NodeBundle {
     NodeBundle {
-        node : n,
-        scope : s
+        node: n,
     }
 }
 
@@ -87,6 +92,7 @@ pub unsafe fn unwrap(obj: *JSObject) -> *rust_box<NodeBundle> {
 
 #[allow(non_implicitly_copyable_typarams)]
 extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
+    /*
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
         if obj.is_null() {
@@ -105,12 +111,13 @@ extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool
               }
             }
         };
-    }
+    }*/
     return 1;
 }
 
 #[allow(non_implicitly_copyable_typarams)]
 extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
+    /*
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
         if obj.is_null() {
@@ -129,12 +136,13 @@ extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBoo
               }
             }
         };
-    }
+    }*/
     return 1;
 }
 
 impl NodeBundle {
     fn getNodeType() -> i32 {
+        /*
         do self.node.read |nd| {
             match nd.kind {
               ~Element(*) => 1,
@@ -142,11 +150,13 @@ impl NodeBundle {
               ~Comment(*) => 8,
               ~Doctype(*) => 10
             }
-        }
+        }*/
+        0
     }
 }
 
 extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
+    /*
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
         if obj.is_null() {
@@ -156,6 +166,6 @@ extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
         let bundle = unwrap(obj);
         let nodeType = (*bundle).payload.getNodeType();
         *vp = INT_TO_JSVAL(nodeType);
-    }
+    }*/
     return 1;
 }

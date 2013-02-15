@@ -5,7 +5,7 @@ use content::content_task;
 use css::matching::MatchMethods;
 use css::select::new_css_select_ctx;
 use dom::event::{Event, ReflowEvent};
-use dom::node::{Node, LayoutData};
+use dom::node::{AbstractNode, LayoutData};
 use layout::aux::LayoutAuxMethods;
 use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
@@ -42,7 +42,7 @@ use std::net::url::Url;
 pub type LayoutTask = SharedChan<Msg>;
 
 pub enum LayoutQuery {
-    ContentBox(Node)
+    ContentBox(AbstractNode)
 }
 
 pub type LayoutQueryResponse = Result<LayoutQueryResponse_, ()>;
@@ -53,7 +53,7 @@ enum LayoutQueryResponse_ {
 
 pub enum Msg {
     AddStylesheet(Stylesheet),
-    BuildMsg(BuildData),
+    BuildMsg(~BuildData),
     QueryMsg(LayoutQuery, Chan<LayoutQueryResponse>),
     ExitMsg
 }
@@ -77,7 +77,7 @@ impl Damage {
 }
 
 pub struct BuildData {
-    node: Node,
+    node: AbstractNode,
     url: Url,
     dom_event_chan: comm::SharedChan<Event>,
     window_size: Size2D<uint>,
@@ -100,8 +100,8 @@ struct Layout {
     from_content: Port<Msg>,
 
     font_ctx: @FontContext,
-    // This is used to root auxilliary RCU reader data
-    layout_refs: DVec<@LayoutData>,
+    // This is used to root reader data
+    layout_refs: DVec<@mut LayoutData>,
     css_select_ctx: Mut<SelectCtx>,
 }
 
@@ -167,7 +167,7 @@ impl Layout {
         }
     }
 
-    fn handle_build(data: BuildData) {
+    fn handle_build(data: &BuildData) {
         let node = &data.node;
         // FIXME: Bad copy
         let doc_url = copy data.url;
@@ -261,25 +261,23 @@ impl Layout {
                     reply_chan: Chan<LayoutQueryResponse>) {
         match query {
             ContentBox(node) => {
-                let response = do node.aux |a| {
-                    match a.flow {
-                        None => Err(()),
-                        Some(flow) => {
-                            let start_val : Option<Rect<Au>> = None;
-                            let rect = do flow.foldl_boxes_for_node(node, start_val) |acc, box| {
-                                match acc {
-                                    Some(acc) => Some(acc.union(&box.content_box())),
-                                    None => Some(box.content_box())
-                                }
-                            };
-                            
-                            match rect {
-                                None => Err(()),
-                                Some(rect) => {
-                                    let size = Size2D(rect.size.width.to_px(),
-                                                      rect.size.height.to_px());
-                                    Ok(ContentSize(size))
-                                }
+                let response = match node.layout_data().flow {
+                    None => Err(()),
+                    Some(flow) => {
+                        let start_val: Option<Rect<Au>> = None;
+                        let rect = do flow.foldl_boxes_for_node(node, start_val) |acc, box| {
+                            match acc {
+                                Some(acc) => Some(acc.union(&box.content_box())),
+                                None => Some(box.content_box())
+                            }
+                        };
+                        
+                        match rect {
+                            None => Err(()),
+                            Some(rect) => {
+                                let size = Size2D(rect.size.width.to_px(),
+                                                  rect.size.height.to_px());
+                                Ok(ContentSize(size))
                             }
                         }
                     }

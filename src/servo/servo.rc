@@ -46,7 +46,6 @@ pub mod dom {
         pub mod utils;
         pub mod window;
     }
-    pub mod cow;
     pub mod document;
     pub mod element;
     pub mod event;

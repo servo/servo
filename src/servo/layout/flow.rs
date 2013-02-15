@@ -1,5 +1,5 @@
 use core;
-use dom::node::Node;
+use dom::node::AbstractNode;
 use layout::block::{BlockFlowData, BlockLayout};
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
@@ -67,7 +67,7 @@ enum FlowContextType {
 /* A particular kind of layout context. It manages the positioning of
    render boxes within the context.  */
 struct FlowData {
-    mut node: Option<Node>,
+    mut node: Option<AbstractNode>,
     /* reference to parent, children flow contexts */
     tree: tree::Tree<@FlowContext>,
     /* TODO (Issue #87): debug only */
@@ -177,8 +177,10 @@ impl FlowContext  {
         }
     }
 
-    pure fn foldl_boxes_for_node<B: Copy>(node: Node, seed: B, 
-                                          cb: pure fn&(a: B,@RenderBox) -> B) -> B {
+    pure fn foldl_boxes_for_node<B: Copy>(node: AbstractNode,
+                                          seed: B, 
+                                          cb: pure fn&(a: B,@RenderBox) -> B)
+                                       -> B {
         do self.foldl_all_boxes(seed) |acc, box| {
             if box.d().node == node { cb(acc, box) }
             else { acc }
@@ -194,7 +196,7 @@ impl FlowContext  {
         }
     }
 
-    pure fn iter_boxes_for_node<T>(node: Node,
+    pure fn iter_boxes_for_node<T>(node: AbstractNode,
                                    cb: pure fn&(@RenderBox) -> T) {
         do self.iter_all_boxes |box| {
             if box.d().node == node { cb(box); }

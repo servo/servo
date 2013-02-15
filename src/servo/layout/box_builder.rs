@@ -1,10 +1,11 @@
 /** Creates CSS boxes from a DOM. */
 
-use dom;
 use dom::element::*;
-use dom::node::{Comment, Doctype, Element, Text, Node, LayoutData};
-use layout::box::*;
+use dom::node::{AbstractNode, Comment, CommentNodeTypeId, Doctype, DoctypeNodeTypeId, Element};
+use dom::node::{ElementNodeTypeId, Node, Text, TextNodeTypeId};
+use dom;
 use layout::block::BlockFlowData;
+use layout::box::*;
 use layout::context::LayoutContext;
 use layout::debug::{BoxedDebugMethods, DebugMethods};
 use layout::flow::*;
@@ -46,8 +47,7 @@ enum InlineSpacerSide {
     LogicalAfter,
 }
 
-priv fn simulate_UA_display_rules(node: Node) -> CSSDisplay {
-
+priv fn simulate_UA_display_rules(node: AbstractNode) -> CSSDisplay {
     // FIXME
     /*let resolved = do node.aux |nd| {
         match nd.style.display_type {
@@ -55,28 +55,25 @@ priv fn simulate_UA_display_rules(node: Node) -> CSSDisplay {
             Specified(v) => v
         }
     };*/
+
     let resolved = CSSDisplayInline;
     if (resolved == CSSDisplayNone) { return resolved; }
 
-    do node.read |n| {
-        let kind: &dom::node::NodeKind = n.kind;
-        match kind {
-            &Doctype(*) | &Comment(*) => CSSDisplayNone,
-            &Text(*) => CSSDisplayInline,
-            &Element(ref e) => {
-                let kind: &dom::element::ElementKind = e.kind;
-                match kind {
-                    &HTMLHeadElement(*) => CSSDisplayNone,
-                    &HTMLScriptElement(*) => CSSDisplayNone,
-                    &HTMLParagraphElement(*) => CSSDisplayBlock,
-                    &HTMLDivElement(*) => CSSDisplayBlock,
-                    &HTMLBodyElement(*) => CSSDisplayBlock,
-                    &HTMLHeadingElement(*) => CSSDisplayBlock,
-                    &HTMLHtmlElement(*) => CSSDisplayBlock,
-                    &HTMLUListElement(*) => CSSDisplayBlock,
-                    &HTMLOListElement(*) => CSSDisplayBlock,
-                    _ => resolved
-                }
+    match node.type_id() {
+        DoctypeNodeTypeId | CommentNodeTypeId => CSSDisplayNone,
+        TextNodeTypeId => CSSDisplayInline,
+        ElementNodeTypeId(element_type_id) => {
+            match element_type_id {
+                HTMLHeadElementTypeId |
+                HTMLScriptElementTypeId => CSSDisplayNone,
+                HTMLParagraphElementTypeId |
+                HTMLDivElementTypeId |
+                HTMLBodyElementTypeId |
+                HTMLHeadingElementTypeId |
+                HTMLHtmlElementTypeId |
+                HTMLUListElementTypeId |
+                HTMLOListElementTypeId => CSSDisplayBlock,
+                _ => resolved
             }
         }
     }
@@ -92,17 +89,19 @@ impl BoxGenerator {
     }
 
     /* Whether "spacer" boxes are needed to stand in for this DOM node */
-    pure fn inline_spacers_needed_for_node(_node: Node) -> bool {
+    pure fn inline_spacers_needed_for_node(_: AbstractNode) -> bool {
         return false;
     }
 
     // TODO: implement this, generating spacer 
-    fn make_inline_spacer_for_node_side(_ctx: &LayoutContext, _node: Node,
-                                        _side: InlineSpacerSide) -> Option<@RenderBox> {
+    fn make_inline_spacer_for_node_side(_: &LayoutContext,
+                                        _: AbstractNode,
+                                        _: InlineSpacerSide)
+                                     -> Option<@RenderBox> {
         None
     }
 
-    pub fn push_node(ctx: &LayoutContext, builder: &LayoutTreeBuilder, node: Node) {
+    pub fn push_node(ctx: &LayoutContext, builder: &LayoutTreeBuilder, node: AbstractNode) {
         debug!("BoxGenerator[f%d]: pushing node: %s", self.flow.d().id, node.debug_str());
 
         // first, determine the box type, based on node characteristics
@@ -122,12 +121,13 @@ impl BoxGenerator {
                 self.range_stack.push(node_range_start);
 
                 // if a leaf, make a box.
-                if tree::is_leaf(&NodeTree, &node) {
+                if node.is_leaf() {
                     let new_box = builder.make_box(ctx, box_type, node, self.flow);
                     self.flow.inline().boxes.push(new_box);
-                } // else, maybe make a spacer for "left" margin, border, padding
-                else if self.inline_spacers_needed_for_node(node) {
-                    do self.make_inline_spacer_for_node_side(ctx, node, LogicalBefore).iter |spacer: &@RenderBox| {
+                } else if self.inline_spacers_needed_for_node(node) {
+                    // else, maybe make a spacer for "left" margin, border, padding
+                    do self.make_inline_spacer_for_node_side(ctx, node, LogicalBefore).iter
+                            |spacer: &@RenderBox| {
                         self.flow.inline().boxes.push(*spacer);
                     }
                 }
@@ -156,7 +156,7 @@ impl BoxGenerator {
         }
     }
 
-    pub fn pop_node(ctx: &LayoutContext, _builder: &LayoutTreeBuilder, node: Node) {
+    pub fn pop_node(ctx: &LayoutContext, _builder: &LayoutTreeBuilder, node: AbstractNode) {
         debug!("BoxGenerator[f%d]: popping node: %s", self.flow.d().id, node.debug_str());
 
         match self.flow {
@@ -241,8 +241,9 @@ impl BuilderContext {
     // returns a context for the current node, or None if the document subtree rooted
     // by the node should not generate a layout tree. For example, nodes with style 'display:none'
     // should just not generate any flows or boxes.
-    fn containing_context_for_node(node: Node,
-                                   builder: &LayoutTreeBuilder) -> Option<BuilderContext> {
+    fn containing_context_for_node(node: AbstractNode,
+                                   builder: &LayoutTreeBuilder)
+                                -> Option<BuilderContext> {
         // TODO: remove this once UA styles work
         // TODO: handle interactions with 'float', 'position' (CSS 2.1, Section 9.7)
         let simulated_display = match simulate_UA_display_rules(node) {
@@ -254,7 +255,7 @@ impl BuilderContext {
             (CSSDisplayBlock, @RootFlow(*)) => {
                 // If this is the root node, then use the root flow's
                 // context. Otherwise, make a child block context.
-                match NodeTree.get_parent(&node) {
+                match node.parent_node() {
                     Some(_) => { self.create_child_flow_of_type(Flow_Block, builder) }
                     None => { self.clone() },
                 }
@@ -276,28 +277,31 @@ impl BuilderContext {
 
 impl LayoutTreeBuilder {
     /* Debug-only ids */
-    fn next_box_id() -> int { self.next_bid += 1; self.next_bid }
-    fn next_flow_id() -> int { self.next_cid += 1; self.next_cid }
+    fn next_box_id(&self) -> int { self.next_bid += 1; self.next_bid }
+    fn next_flow_id(&self) -> int { self.next_cid += 1; self.next_cid }
 
     /** Creates necessary box(es) and flow context(s) for the current DOM node,
     and recurses on its children. */
-    fn construct_recursively(layout_ctx: &LayoutContext, cur_node: Node, parent_ctx: &BuilderContext) {
+    fn construct_recursively(&self,
+                             layout_ctx: &LayoutContext,
+                             cur_node: AbstractNode,
+                             parent_ctx: &BuilderContext) {
         debug!("Considering node: %s", cur_node.debug_str());
 
-        let this_ctx = match parent_ctx.containing_context_for_node(cur_node, &self) {
+        let this_ctx = match parent_ctx.containing_context_for_node(cur_node, self) {
             Some(ctx) => ctx,
             None => { return; } // no context because of display: none. Stop building subtree. 
         };
         debug!("point a: %s", cur_node.debug_str());
-        this_ctx.default_collector.push_node(layout_ctx, &self, cur_node);
+        this_ctx.default_collector.push_node(layout_ctx, self, cur_node);
         debug!("point b: %s", cur_node.debug_str());
 
         // recurse on child nodes.
-        for tree::each_child(&NodeTree, &cur_node) |child_node| {
-            self.construct_recursively(layout_ctx, *child_node, &this_ctx);
+        for cur_node.each_child |child_node| {
+            self.construct_recursively(layout_ctx, child_node, &this_ctx);
         }
 
-        this_ctx.default_collector.pop_node(layout_ctx, &self, cur_node);
+        this_ctx.default_collector.pop_node(layout_ctx, self, cur_node);
         self.simplify_children_of_flow(layout_ctx, &this_ctx);
 
         // store reference to the flow context which contains any
@@ -306,8 +310,8 @@ impl LayoutTreeBuilder {
         // nodes and FlowContexts should not change during layout.
         for tree::each_child(&FlowTree, &this_ctx.default_collector.flow) |child_flow: &@FlowContext| {
             do (copy child_flow.d().node).iter |node| {
-                assert node.has_aux();
-                do node.aux |data| { data.flow = Some(*child_flow) }
+                assert node.has_layout_data();
+                node.layout_data().flow = Some(*child_flow);
             }
         }
     }
@@ -321,7 +325,7 @@ impl LayoutTreeBuilder {
     // The latter can only be done immediately adjacent to, or at the
     // beginning or end of a block flow. Otherwise, the whitespace
     // might affect whitespace collapsing with adjacent text.
-    fn simplify_children_of_flow(_layout_ctx: &LayoutContext, parent_ctx: &BuilderContext) {
+    fn simplify_children_of_flow(&self, _: &LayoutContext, parent_ctx: &BuilderContext) {
         match *parent_ctx.default_collector.flow {
             InlineFlow(*) => {
                 let mut found_child_inline = false;
@@ -369,14 +373,15 @@ impl LayoutTreeBuilder {
         }
     }
 
-    fn fixup_split_inline(_foo: @FlowContext) {
+    fn fixup_split_inline(&self, _: @FlowContext) {
         // TODO: finish me. 
         fail!(~"TODO: handle case where an inline is split by a block")
     }
 
     /** entry point for box creation. Should only be 
     called on root DOM element. */
-    fn construct_trees(layout_ctx: &LayoutContext, root: Node) -> Result<@FlowContext, ()> {
+    fn construct_trees(&self, layout_ctx: &LayoutContext, root: AbstractNode)
+                    -> Result<@FlowContext, ()> {
         let new_flow = self.make_flow(Flow_Root);
         let new_generator = @BoxGenerator::new(new_flow);
         let root_ctx = BuilderContext::new(new_generator);
@@ -386,7 +391,7 @@ impl LayoutTreeBuilder {
         return Ok(new_flow)
     }
 
-    fn make_flow(ty : FlowContextType) -> @FlowContext {
+    fn make_flow(&self, ty: FlowContextType) -> @FlowContext {
         let data = FlowData(self.next_flow_id());
         let ret = match ty {
             Flow_Absolute    => @AbsoluteFlow(data),
@@ -405,7 +410,12 @@ impl LayoutTreeBuilder {
        disambiguate between different methods here instead of inlining, since each
        case has very different complexity 
     */
-    fn make_box(layout_ctx: &LayoutContext, ty: RenderBoxType, node: Node, ctx: @FlowContext) -> @RenderBox {
+    fn make_box(&self,
+                layout_ctx: &LayoutContext,
+                ty: RenderBoxType,
+                node: AbstractNode,
+                ctx: @FlowContext)
+             -> @RenderBox {
         let ret = match ty {
             RenderBox_Generic => self.make_generic_box(layout_ctx, node, ctx),
             RenderBox_Text    => self.make_text_box(layout_ctx, node, ctx),
@@ -415,63 +425,65 @@ impl LayoutTreeBuilder {
         ret
     }
 
-    fn make_generic_box(_layout_ctx: &LayoutContext, node: Node, ctx: @FlowContext) -> @RenderBox {
+    fn make_generic_box(&self,
+                        _: &LayoutContext,
+                        node: AbstractNode,
+                        ctx: @FlowContext)
+                     -> @RenderBox {
         @GenericBox(RenderBoxData(copy node, ctx, self.next_box_id()))
     }
 
-    fn make_image_box(layout_ctx: &LayoutContext, node: Node, ctx: @FlowContext) -> @RenderBox {
-        do node.read |n| {
-            match n.kind {
-                ~Element(ref ed) => match ed.kind {
-                    ~HTMLImageElement(ref d) => {
-                        // TODO: this could be written as a pattern guard, but it triggers
-                        // an ICE (mozilla/rust issue #3601)
-                        if d.image.is_some() {
-                            let holder = ImageHolder::new({copy *d.image.get_ref()},
-                                                           layout_ctx.image_cache);
-
-                            @ImageBox(RenderBoxData(node, ctx, self.next_box_id()), holder)
-                        } else {
-                            info!("Tried to make image box, but couldn't find image. Made generic box instead.");
-                            self.make_generic_box(layout_ctx, node, ctx)
-                        }
-                    },
-                    _ => fail!(~"WAT error: why couldn't we make an image box?")
-                },
-                _ => fail!(~"WAT error: why couldn't we make an image box?")
-            }
+    fn make_image_box(&self,
+                      layout_ctx: &LayoutContext,
+                      node: AbstractNode,
+                      ctx: @FlowContext)
+                   -> @RenderBox {
+        if !node.is_image_element() {
+            fail!(~"WAT error: why couldn't we make an image box?");
         }
 
-    }
-
-    fn make_text_box(_layout_ctx: &LayoutContext, node: Node, ctx: @FlowContext) -> @RenderBox {
-        do node.read |n| {
-            match n.kind {
-                ~Text(ref string) => @UnscannedTextBox(RenderBoxData(node, ctx, self.next_box_id()), copy *string),
-                _ => fail!(~"WAT error: why couldn't we make a text box?")
+        do node.with_imm_image_element |image_element| {
+            if image_element.image.is_some() {
+                let holder = ImageHolder::new(copy *image_element.image.get_ref(),
+                                              layout_ctx.image_cache);
+                @ImageBox(RenderBoxData(node, ctx, self.next_box_id()), holder)
+            } else {
+                info!("Tried to make image box, but couldn't find image. Made generic box instead.");
+                self.make_generic_box(layout_ctx, node, ctx)
             }
         }
     }
 
-    fn decide_box_type(node: Node, display: CSSDisplay) -> RenderBoxType {
-        do node.read |n| {
-            match n.kind {
-                ~Doctype(*) | ~Comment(*) => {
-                    fail!(~"Hey, doctypes and comments shouldn't get here! \
-                            They are display:none!")
-                }
-                ~Text(*) => RenderBox_Text,
-                ~Element(ref element) => {
-                    match (&element.kind, display) {
-                        (&~HTMLImageElement(ref d), _) if d.image.is_some() => RenderBox_Image,
-//                      (_, Specified(_)) => GenericBox,
-                        (_, _) => RenderBox_Generic // TODO: replace this with the commented lines
-                        //(_, _) => {
-                        //  fail!(~"Can't create box for Node with non-specified 'display' type")
-                        //}
-                    }
+    fn make_text_box(&self,
+                     _: &LayoutContext,
+                     node: AbstractNode,
+                     ctx: @FlowContext)
+                  -> @RenderBox {
+        if !node.is_text() {
+            fail!(~"WAT error: why couldn't we make a text box?");
+        }
+
+        // FIXME: Don't copy text. I guess it should be atomically reference counted?
+        do node.with_imm_text |text_node| {
+            let string = text_node.text.to_str();
+            @UnscannedTextBox(RenderBoxData(node, ctx, self.next_box_id()), string)
+        }
+    }
+
+    fn decide_box_type(&self, node: AbstractNode, display: CSSDisplay) -> RenderBoxType {
+        if node.is_text() {
+            RenderBox_Text
+        } else if node.is_image_element() {
+            do node.with_imm_image_element |image_element| {
+                match image_element.image {
+                    Some(_) => RenderBox_Image,
+                    None => RenderBox_Generic,
                 }
             }
+        } else if node.is_element() {
+            RenderBox_Generic
+        } else {
+            fail!(~"Hey, doctypes and comments shouldn't get here! They are display:none!")
         }
     }
 }
