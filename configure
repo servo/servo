@@ -391,7 +391,14 @@ if [ $CFG_OSTYPE = "apple-darwin" ]
 then
     # pkg-config is installed in a different place on mac (via homebrew? not sure)
     # and the way to set this seems to be calling aclocal by hand (instead of via autoreconf)
-    OSX_PKG_CONFIG_M4_MACROS="-I/usr/share/aclocal -I/usr/local/share/aclocal"
+    if [ -d "/usr/local/share/aclocal" ]
+    then
+        OSX_PKG_CONFIG_M4_MACROS="-I/usr/local/share/aclocal"
+    fi
+    if [ -d "/usr/share/aclocal" ]
+    then
+        OSX_PKG_CONFIG_M4_MACROS="-I/usr/share/aclocal"
+    fi
     LIBTOOLIZE=glibtoolize
 else
     OSX_PKG_CONFIG_M4_MACROS=""
