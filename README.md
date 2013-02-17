@@ -9,6 +9,7 @@ On OS X (homebrew):
 
     brew install https://raw.github.com/Homebrew/homebrew-versions/master/autoconf213.rb
     brew install automake
+    brew install pkg-config
 
 On OS X (MacPorts):
 
