@@ -7,7 +7,7 @@ pub enum format {
 }
 
 impl format {
-    fn bpp() -> uint {
+    fn bpp(self) -> uint {
         match self {
             fo_rgba_8888 => 32u 
         }

@@ -53,7 +53,7 @@ pub impl FontList {
         return move list;
     }
 
-    priv fn refresh(_fctx: &native::FontContextHandle) {
+    priv fn refresh(&self, _fctx: &native::FontContextHandle) {
         // TODO(Issue #186): don't refresh unless something actually
         // changed.  Does OSX have a notification for this event?
         //
@@ -63,7 +63,7 @@ pub impl FontList {
         }
     }
 
-    fn find_font_in_family(family_name: &str, 
+    fn find_font_in_family(&self, family_name: &str, 
                            style: &SpecifiedFontStyle) -> Option<@FontEntry> {
         let family = self.find_family(family_name);
         let mut result : Option<@FontEntry> = None;
@@ -81,7 +81,7 @@ pub impl FontList {
         return result;
     }
 
-    priv fn find_family(family_name: &str) -> Option<@FontFamily> {
+    priv fn find_family(&self, family_name: &str) -> Option<@FontFamily> {
         // look up canonical name
         let family = self.family_map.find(&str::from_slice(family_name));
 
@@ -160,9 +160,9 @@ pub impl FontEntry {
         }
     }
 
-    pure fn is_bold() -> bool { 
+    pure fn is_bold(&self) -> bool { 
         self.weight.is_bold()
     }
 
-    pure fn is_italic() -> bool { self.italic }
+    pure fn is_italic(&self) -> bool { self.italic }
 }

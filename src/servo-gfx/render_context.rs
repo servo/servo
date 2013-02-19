@@ -76,27 +76,27 @@ impl RenderContext  {
 }
 
 trait to_float {
-    fn to_float() -> float;
+    fn to_float(self) -> float;
 }
 
 impl u8 : to_float {
-    fn to_float() -> float {
+    fn to_float(self) -> float {
         (self as float) / 255f
     }
 }
 
 trait ToAzureRect {
-    fn to_azure_rect() -> Rect<AzFloat>;
-    fn to_azure_snapped_rect() -> Rect<AzFloat>;
+    fn to_azure_rect(&self) -> Rect<AzFloat>;
+    fn to_azure_snapped_rect(&self) -> Rect<AzFloat>;
 }
 
 impl Rect<Au> : ToAzureRect {
-    fn to_azure_rect() -> Rect<AzFloat> {
+    fn to_azure_rect(&self) -> Rect<AzFloat> {
         Rect(Point2D(self.origin.x.to_px() as AzFloat, self.origin.y.to_px() as AzFloat),
              Size2D(self.size.width.to_px() as AzFloat, self.size.height.to_px() as AzFloat))
     }
 
-    fn to_azure_snapped_rect() -> Rect<AzFloat> {
+    fn to_azure_snapped_rect(&self) -> Rect<AzFloat> {
         Rect(Point2D(self.origin.x.to_px() as AzFloat + 0.5f as AzFloat,
 					 self.origin.y.to_px() as AzFloat + 0.5f as AzFloat),
              Size2D(self.size.width.to_px() as AzFloat,

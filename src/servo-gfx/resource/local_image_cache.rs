@@ -39,12 +39,12 @@ pub impl LocalImageCache {
     /// The local cache will only do a single remote request for a given
     /// URL in each 'round'. Layout should call this each time it begins
     // FIXME: 'pub' is an unexpected token?
-    /* pub */ fn next_round(on_image_available: @fn() -> ~fn(ImageResponseMsg)) {
+    /* pub */ fn next_round(&self, on_image_available: @fn() -> ~fn(ImageResponseMsg)) {
         self.round_number += 1;
         self.on_image_available = Some(move on_image_available);
     }
 
-    pub fn prefetch(url: &Url) {
+    pub fn prefetch(&self, url: &Url) {
         let state = self.get_state(url);
         if !state.prefetched {
             self.image_cache_task.send(Prefetch(copy *url));
@@ -52,7 +52,7 @@ pub impl LocalImageCache {
         }
     }
 
-    pub fn decode(url: &Url) {
+    pub fn decode(&self, url: &Url) {
         let state = self.get_state(url);
         if !state.decoded {
             self.image_cache_task.send(Decode(copy *url));
@@ -61,7 +61,7 @@ pub impl LocalImageCache {
     }
 
     // FIXME: Should return a Future
-    pub fn get_image(url: &Url) -> Port<ImageResponseMsg> {
+    pub fn get_image(&self, url: &Url) -> Port<ImageResponseMsg> {
         let state = self.get_state(url);
 
         // Save the previous round number for comparison
@@ -132,7 +132,7 @@ pub impl LocalImageCache {
         return move port;
     }
 
-    priv fn get_state(url: &Url) -> @ImageState {
+    priv fn get_state(&self, url: &Url) -> @ImageState {
         match self.state_map.find(url) {
             Some(state) => state,
             None => {

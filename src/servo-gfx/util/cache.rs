@@ -2,10 +2,10 @@ use core::cmp::*;
 
 pub trait Cache<K: Copy Eq, V: Copy> {
     static fn new(size: uint) -> Self;
-    fn insert(key: &K, value: V);
-    fn find(key: &K) -> Option<V>;
-    fn find_or_create(key: &K, blk: pure fn&(&K) -> V) -> V;
-    fn evict_all();
+    fn insert(&self, key: &K, value: V);
+    fn find(&self, key: &K) -> Option<V>;
+    fn find_or_create(&self, key: &K, blk: pure fn&(&K) -> V) -> V;
+    fn evict_all(&self);
 }
 
 pub struct MonoCache<K, V> {
@@ -17,18 +17,18 @@ pub impl<K: Copy Eq, V: Copy> MonoCache<K,V> : Cache<K,V> {
         MonoCache { entry: None }
     }
 
-    fn insert(key: &K, value: V) {
+    fn insert(&self, key: &K, value: V) {
         self.entry = Some((copy *key, value));
     }
 
-    fn find(key: &K) -> Option<V> {
+    fn find(&self, key: &K) -> Option<V> {
         match self.entry {
             None => None,
             Some((ref k,v)) => if *k == *key { Some(v) } else { None }
         }
     }
 
-    fn find_or_create(key: &K, blk: pure fn&(&K) -> V) -> V {
+    fn find_or_create(&self, key: &K, blk: pure fn&(&K) -> V) -> V {
         return match self.find(key) {
             None => { 
                 let value = blk(key);
@@ -38,7 +38,7 @@ pub impl<K: Copy Eq, V: Copy> MonoCache<K,V> : Cache<K,V> {
             Some(v) => v
         };
     }
-    fn evict_all() {
+    fn evict_all(&self) {
         self.entry = None;
     }
 }

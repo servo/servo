@@ -106,10 +106,10 @@ pub impl ShapedGlyphData {
         }
     }
 
-    pure fn len() -> uint { self.count }
+    pure fn len(&self) -> uint { self.count }
 
     // Returns shaped glyph data for one glyph, and updates the y-position of the pen.
-    fn get_entry_for_glyph(i: uint, y_pos: &mut Au) -> ShapedGlyphEntry {
+    fn get_entry_for_glyph(&self, i: uint, y_pos: &mut Au) -> ShapedGlyphEntry {
         assert i < self.count;
 
         let glyph_info_i = ptr::offset(self.glyph_infos, i);
@@ -207,7 +207,7 @@ impl ShaperMethods for HarfbuzzShaper {
     Calculate the layout metrics associated with a some given text
     when rendered in a specific font.
     */
-    fn shape_text(text: &str, glyphs: &mut GlyphStore) {
+    fn shape_text(&self, text: &str, glyphs: &mut GlyphStore) {
         let hb_buffer: *hb_buffer_t = hb_buffer_create();
         hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
 
@@ -228,7 +228,7 @@ impl ShaperMethods for HarfbuzzShaper {
 
 pub impl HarfbuzzShaper {
 
-    priv fn save_glyph_results(text: &str, glyphs: &mut GlyphStore, buffer: *hb_buffer_t) {
+    priv fn save_glyph_results(&self, text: &str, glyphs: &mut GlyphStore, buffer: *hb_buffer_t) {
         let glyph_data = ShapedGlyphData::new(buffer);
         let glyph_count = glyph_data.len();
         let byte_max = text.len();

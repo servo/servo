@@ -76,7 +76,7 @@ pub fn ResourceManager(from_client: Port<ControlMsg>,
 
 
 impl ResourceManager {
-    fn start() {
+    fn start(&self) {
         loop {
             match self.from_client.recv() {
               Load(url, progress_chan) => {
@@ -89,7 +89,7 @@ impl ResourceManager {
         }
     }
 
-    fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
+    fn load(&self, url: Url, progress_chan: Chan<ProgressMsg>) {
 
         match self.get_loader_factory(&url) {
             Some(loader_factory) => {
@@ -103,7 +103,7 @@ impl ResourceManager {
         }
     }
 
-    fn get_loader_factory(url: &Url) -> Option<LoaderTask> {
+    fn get_loader_factory(&self, url: &Url) -> Option<LoaderTask> {
         for self.loaders.each |scheme_loader| {
             match *scheme_loader {
                 (ref scheme, ref loader_factory) => {

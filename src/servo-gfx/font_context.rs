@@ -44,7 +44,7 @@ type FontContextHandle/& = freetype_impl::font_context::FreeTypeFontContextHandl
 
 pub trait FontContextHandleMethods {
     pure fn clone(&const self) -> FontContextHandle;
-    fn create_font_from_identifier(~str, UsedFontStyle) -> Result<FontHandle, ()>;
+    fn create_font_from_identifier(&self, ~str, UsedFontStyle) -> Result<FontHandle, ()>;
 }
 
 // TODO(Issue #163): this is a workaround for static methods, traits,
@@ -98,12 +98,12 @@ pub impl FontContext {
         option::get_ref(&self.font_list)
     }
 
-    fn get_resolved_font_for_style(style: &SpecifiedFontStyle) -> @FontGroup {
+    fn get_resolved_font_for_style(&self, style: &SpecifiedFontStyle) -> @FontGroup {
         // TODO(Issue #178, E): implement a cache of FontGroup instances.
         self.create_font_group(style)
     }
 
-    fn get_font_by_descriptor(desc: &FontDescriptor) -> Result<@Font, ()> {
+    fn get_font_by_descriptor(&self, desc: &FontDescriptor) -> Result<@Font, ()> {
         match self.instance_cache.find(desc) {
             Some(f) => Ok(f),
             None => { 
@@ -129,7 +129,7 @@ pub impl FontContext {
     }
 
     // TODO:(Issue #196): cache font groups on the font context.
-    priv fn create_font_group(style: &SpecifiedFontStyle) -> @FontGroup {
+    priv fn create_font_group(&self, style: &SpecifiedFontStyle) -> @FontGroup {
         let fonts = DVec();
 
         debug!("(create font group) --- starting ---");
@@ -147,7 +147,7 @@ pub impl FontContext {
             do result.iter |font_entry| {
                 found = true;
                 // TODO(Issue #203): route this instantion through FontContext's Font instance cache.
-                let instance = Font::new_from_existing_handle(&self, &font_entry.handle, style, self.backend);
+                let instance = Font::new_from_existing_handle(self, &font_entry.handle, style, self.backend);
                 do result::iter(&instance) |font: &@Font| { fonts.push(*font); }
             };
 
@@ -177,17 +177,17 @@ pub impl FontContext {
         @FontGroup::new(style.families.to_managed(), &used_style, dvec::unwrap(move fonts))
     }
 
-    priv fn create_font_instance(desc: &FontDescriptor) -> Result<@Font, ()> {
+    priv fn create_font_instance(&self, desc: &FontDescriptor) -> Result<@Font, ()> {
         return match &desc.selector {
             &SelectorStubDummy => {
-                Font::new_from_buffer(&self, test_font_bin(), &desc.style, self.backend)
+                Font::new_from_buffer(self, test_font_bin(), &desc.style, self.backend)
             },
             // TODO(Issue #174): implement by-platform-name font selectors.
             &SelectorPlatformIdentifier(ref identifier) => { 
                 let result_handle = self.handle.create_font_from_identifier(copy *identifier,
                                                                             copy desc.style);
                 result::chain(move result_handle, |handle| {
-                    Ok(Font::new_from_adopted_handle(&self,
+                    Ok(Font::new_from_adopted_handle(self,
                                                      move handle,
                                                      &desc.style,
                                                      self.backend))

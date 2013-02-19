@@ -33,17 +33,17 @@ pub type FontHandle/& = freetype_impl::font::FreeTypeFontHandle;
 
 pub trait FontHandleMethods {
     // an identifier usable by FontContextHandle to recreate this FontHandle.
-    pure fn face_identifier() -> ~str;
-    pure fn family_name() -> ~str;
-    pure fn face_name() -> ~str;
-    pure fn is_italic() -> bool;
-    pure fn boldness() -> CSSFontWeight;
+    pure fn face_identifier(&self) -> ~str;
+    pure fn family_name(&self) -> ~str;
+    pure fn face_name(&self) -> ~str;
+    pure fn is_italic(&self) -> bool;
+    pure fn boldness(&self) -> CSSFontWeight;
 
-    fn clone_with_style(fctx: &native::FontContextHandle, style: &UsedFontStyle) -> Result<FontHandle, ()>;
-    fn glyph_index(codepoint: char) -> Option<GlyphIndex>;
-    fn glyph_h_advance(GlyphIndex) -> Option<FractionalPixel>;
-    fn get_metrics() -> FontMetrics;
-    fn get_table_for_tag(FontTableTag) -> Option<FontTable>;
+    fn clone_with_style(&self, fctx: &native::FontContextHandle, style: &UsedFontStyle) -> Result<FontHandle, ()>;
+    fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex>;
+    fn glyph_h_advance(&self, GlyphIndex) -> Option<FractionalPixel>;
+    fn get_metrics(&self) -> FontMetrics;
+    fn get_table_for_tag(&self, FontTableTag) -> Option<FontTable>;
 }
 
 // TODO(Issue #163): this is a workaround for static methods and
@@ -69,11 +69,11 @@ pub type FractionalPixel = float;
 pub type FontTableTag = u32;
 
 trait FontTableTagConversions {
-    pub pure fn tag_to_str() -> ~str;
+    pub pure fn tag_to_str(&self) -> ~str;
 }
 
 impl FontTableTag : FontTableTagConversions {
-    pub pure fn tag_to_str() -> ~str {
+    pub pure fn tag_to_str(&self) -> ~str {
         unsafe {
             let reversed = str::raw::from_buf_len(cast::transmute(&self), 4);
             return str::from_chars([reversed.char_at(3),
@@ -91,7 +91,7 @@ pub type FontTable/& = quartz::font::QuartzFontTable;
 pub type FontTable/& = freetype_impl::font::FreeTypeFontTable;
 
 pub trait FontTableMethods {
-    fn with_buffer(fn&(*u8, uint));
+    fn with_buffer(&self, fn&(*u8, uint));
 }
 
 pub struct FontMetrics {
@@ -123,7 +123,7 @@ pub impl CSSFontWeight : cmp::Eq {
 }
 
 pub impl CSSFontWeight {
-    pub pure fn is_bold() -> bool {
+    pub pure fn is_bold(self) -> bool {
         match self {
             FontWeight900 | FontWeight800 | FontWeight700 | FontWeight600 => true,
             _ => false
@@ -241,7 +241,7 @@ pub impl FontGroup {
         }
     }
 
-    fn create_textrun(text: ~str) -> TextRun {
+    fn create_textrun(&self, text: ~str) -> TextRun {
         assert self.fonts.len() > 0;
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
@@ -334,7 +334,7 @@ pub impl Font {
         shaper
     }
 
-    fn get_table_for_tag(tag: FontTableTag) -> Option<FontTable> {
+    fn get_table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let result = self.handle.get_table_for_tag(tag);
         let status = if result.is_some() { "Found" } else { "Didn't find" };
 
@@ -362,14 +362,14 @@ pub impl Font {
     }
 
     #[cfg(target_os="macos")]
-    priv fn create_azure_font() -> ScaledFont {
+    priv fn create_azure_font(&self) -> ScaledFont {
         let cg_font = self.handle.get_CGFont();
         let size = self.style.pt_size as AzFloat;
         ScaledFont::new(self.backend, &cg_font, size)
     }
 
     #[cfg(target_os="linux")]
-    priv fn create_azure_font() -> ScaledFont {
+    priv fn create_azure_font(&self) -> ScaledFont {
         let cairo_font = self.handle.face;
         let size = self.style.pt_size as AzFloat;
         ScaledFont::new(self.backend, cairo_font, size)
@@ -378,7 +378,8 @@ pub impl Font {
 
 
 pub impl Font {
-    fn draw_text_into_context(rctx: &RenderContext,
+    fn draw_text_into_context(&self,
+                              rctx: &RenderContext,
                               run: &TextRun,
                               range: &const Range,
                               baseline_origin: Point2D<Au>,
@@ -441,7 +442,7 @@ pub impl Font {
                                ptr::null());
     }
 
-    fn measure_text(run: &TextRun, range: &const Range) -> RunMetrics {
+    fn measure_text(&self, run: &TextRun, range: &const Range) -> RunMetrics {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
@@ -470,15 +471,15 @@ pub impl Font {
         shaper.shape_text(text, store);
     }
 
-    fn get_descriptor() -> FontDescriptor {
+    fn get_descriptor(&self) -> FontDescriptor {
         FontDescriptor::new(copy self.style, SelectorPlatformIdentifier(self.handle.face_identifier()))
     }
 
-    fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
+    fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex> {
         self.handle.glyph_index(codepoint)
     }
 
-    fn glyph_h_advance(glyph: GlyphIndex) -> FractionalPixel {
+    fn glyph_h_advance(&self, glyph: GlyphIndex) -> FractionalPixel {
         match self.handle.glyph_h_advance(glyph) {
           Some(adv) => adv,
           None => /* FIXME: Need fallback strategy */ 10f as FractionalPixel

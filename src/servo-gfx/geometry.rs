@@ -70,8 +70,8 @@ pub fn box<T:Copy + Ord + Add<T,T> + Sub<T,T>>(x: T, y: T, w: T, h: T) -> Rect<T
 }
 
 pub impl Au {
-    pub pure fn scale_by(factor: float) -> Au {
-        Au(((*self as float) * factor) as i32)
+    pub pure fn scale_by(&const self, factor: float) -> Au {
+        Au(((**self as float) * factor) as i32)
     }
 
     static pub pure fn from_px(i: int) -> Au {

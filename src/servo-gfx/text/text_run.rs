@@ -103,7 +103,7 @@ pub impl TextRun {
         }
     }
 
-    pure fn char_len() -> uint { self.glyphs.entry_buffer.len() }
+    pure fn char_len(&self) -> uint { self.glyphs.entry_buffer.len() }
     pure fn glyphs(&self) -> &self/GlyphStore { &self.glyphs }
 
     pure fn range_is_trimmable_whitespace(&self, range: &const Range) -> bool {

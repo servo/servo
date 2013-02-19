@@ -36,7 +36,7 @@ pub impl FontconfigFontListHandle {
         FontconfigFontListHandle { fctx: fctx.clone() }
     }
 
-    fn get_available_families() -> FontFamilyMap {
+    fn get_available_families(&self) -> FontFamilyMap {
         let mut family_map : FontFamilyMap = linear::LinearMap::new();
         unsafe {
             let config = FcConfigGetCurrent();
@@ -59,7 +59,7 @@ pub impl FontconfigFontListHandle {
         return family_map;
     }
 
-    fn load_variations_for_family(family: @FontFamily) {
+    fn load_variations_for_family(&self, family: @FontFamily) {
         debug!("getting variations for %?", family);
         let config = FcConfigGetCurrent();
         let font_set = FcConfigGetFonts(config, FcSetSystem);
