@@ -147,7 +147,7 @@ pub impl TextRun {
                 }
             }
         }
-        
+
         // flush any remaining chars as a line
         if in_clump {
             clump.extend_to(range.end());
@@ -160,7 +160,7 @@ pub impl TextRun {
 
         loop {
             // extend clump to non-break-before characters.
-            while clump.end() < range.end() 
+            while clump.end() < range.end()
                 && self.glyphs.can_break_before(clump.end()) != BreakTypeNormal {
 
                 clump.extend_by(1);

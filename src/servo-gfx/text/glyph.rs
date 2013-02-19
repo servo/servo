@@ -186,7 +186,7 @@ impl GlyphEntry {
         //assert self.is_simple();
         Point2D(Au(0), Au(0))
     }
-    
+
     pure fn is_ligature_start() -> bool {
         self.has_flag(!FLAG_NOT_LIGATURE_GROUP_START)
     }
@@ -194,7 +194,7 @@ impl GlyphEntry {
     pure fn is_cluster_start() -> bool {
         self.has_flag(!FLAG_NOT_CLUSTER_START)
     }
-    
+
     // True if original char was normal (U+0020) space. Other chars may
     // map to space glyph, but this does not account for them.
     pure fn char_is_space() -> bool {
@@ -290,26 +290,26 @@ struct DetailedGlyphRecord {
 
 impl DetailedGlyphRecord : Ord {
     pure fn lt(&self, other: &DetailedGlyphRecord) -> bool {
-		self.entry_offset <  other.entry_offset
-	}
+        self.entry_offset <  other.entry_offset
+    }
     pure fn le(&self, other: &DetailedGlyphRecord) -> bool {
-		self.entry_offset <= other.entry_offset
-	}
+        self.entry_offset <= other.entry_offset
+    }
     pure fn ge(&self, other: &DetailedGlyphRecord) -> bool {
-		self.entry_offset >= other.entry_offset
-	}
+        self.entry_offset >= other.entry_offset
+    }
     pure fn gt(&self, other: &DetailedGlyphRecord) -> bool {
-		self.entry_offset >  other.entry_offset
-	}
+        self.entry_offset >  other.entry_offset
+    }
 }
 
 impl DetailedGlyphRecord : Eq {
     pure fn eq(&self, other : &DetailedGlyphRecord) -> bool {
-		self.entry_offset == other.entry_offset
-	}
+        self.entry_offset == other.entry_offset
+    }
     pure fn ne(&self, other : &DetailedGlyphRecord) -> bool {
-		self.entry_offset != other.entry_offset
-	}
+        self.entry_offset != other.entry_offset
+    }
 }
 
 // Manages the lookup table for detailed glyphs. Sorting is deferred
@@ -439,13 +439,13 @@ pub struct GlyphData {
     ligature_start: bool,
 }
 
-pub pure fn GlyphData(index: GlyphIndex, 
-                   advance: Au,
-                   offset: Option<Point2D<Au>>,
-                   is_missing: bool,
-                   cluster_start: bool,
-                   ligature_start: bool) -> GlyphData {
-    
+pub pure fn GlyphData(index: GlyphIndex,
+                      advance: Au,
+                      offset: Option<Point2D<Au>>,
+                      is_missing: bool,
+                      cluster_start: bool,
+                      ligature_start: bool) -> GlyphData {
+
     let _offset = match offset {
         None => geometry::zero_point(),
         Some(o) => o
@@ -599,7 +599,7 @@ pub impl GlyphStore {
 
         let entry = &self.entry_buffer[i];
         match entry.is_simple() {
-            true => { 
+            true => {
                 let proxy = SimpleGlyphInfo(&self, i);
                 cb(i, move proxy);
             },
@@ -611,7 +611,7 @@ pub impl GlyphStore {
                 }
             }
         }
-	return true;
+        return true;
     }
 
     pure fn iter_glyphs_for_char_range(range: &const Range, cb: fn&(uint, GlyphInfo/&) -> bool) {
@@ -625,8 +625,8 @@ pub impl GlyphStore {
         }
 
         for range.eachi |i| {
-	    if !self.iter_glyphs_for_char_index(i, cb) { break; }
-	}
+            if !self.iter_glyphs_for_char_index(i, cb) { break; }
+        }
     }
 
     pure fn iter_all_glyphs(cb: fn&(uint, GlyphInfo/&) -> bool) {

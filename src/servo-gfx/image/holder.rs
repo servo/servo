@@ -23,25 +23,25 @@ pub struct ImageHolder {
 }
 
 impl ImageHolder {
-	static pub fn new(url: Url, local_image_cache: @LocalImageCache) -> ImageHolder {
-		debug!("ImageHolder::new() %?", url.to_str());
-		let holder = ImageHolder {
-			url: move url,
-			image: None,
-			cached_size: Size2D(0,0),
-			local_image_cache: local_image_cache,
-		};
+    static pub fn new(url: Url, local_image_cache: @LocalImageCache) -> ImageHolder {
+        debug!("ImageHolder::new() %?", url.to_str());
+        let holder = ImageHolder {
+            url: move url,
+            image: None,
+            cached_size: Size2D(0,0),
+            local_image_cache: local_image_cache,
+        };
 
-		// Tell the image cache we're going to be interested in this url
-		// FIXME: These two messages must be sent to prep an image for use
-		// but they are intended to be spread out in time. Ideally prefetch
-		// should be done as early as possible and decode only once we
-		// are sure that the image will be used.
-		local_image_cache.prefetch(&holder.url);
-		local_image_cache.decode(&holder.url);
+        // Tell the image cache we're going to be interested in this url
+        // FIXME: These two messages must be sent to prep an image for use
+        // but they are intended to be spread out in time. Ideally prefetch
+        // should be done as early as possible and decode only once we
+        // are sure that the image will be used.
+        local_image_cache.prefetch(&holder.url);
+        local_image_cache.decode(&holder.url);
 
-		move holder
-	}
+        move holder
+    }
 
     /**
     This version doesn't perform any computation, but may be stale w.r.t.
@@ -53,12 +53,12 @@ impl ImageHolder {
     pure fn size() -> Size2D<int> {
         self.cached_size
     }
-    
+
     /** Query and update current image size */
     fn get_size() -> Option<Size2D<int>> {
         debug!("get_size() %?", self.url);
         match self.get_image() {
-            Some(img) => { 
+            Some(img) => {
                 let img_ref = get(&img);
                 self.cached_size = Size2D(img_ref.width as int,
                                           img_ref.height as int);
