@@ -4,6 +4,9 @@ extern mod fontconfig;
 use fc = fontconfig;
 use ft = freetype;
 
+use font_context::FontContextHandleMethods;
+use font::FontHandleMethods;
+
 use gfx_font::FontHandle;
 use gfx_font_list::{FontEntry, FontFamily, FontFamilyMap};
 use freetype_impl::font_context::FreeTypeFontContextHandle;
