@@ -80,7 +80,7 @@ priv struct Renderer<C> {
 }
 
 impl<C: Compositor Owned> Renderer<C> {
-    fn start() {
+    fn start(&self) {
         debug!("renderer: beginning rendering loop");
 
         loop {
@@ -94,7 +94,7 @@ impl<C: Compositor Owned> Renderer<C> {
         }
     }
 
-    fn render(render_layer: RenderLayer) {
+    fn render(&self, render_layer: RenderLayer) {
         debug!("renderer: got render request");
 
         let layer_buffer_set_port = self.layer_buffer_set_port.take();

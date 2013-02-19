@@ -101,7 +101,7 @@ pub impl DisplayList {
         self.list.push(move item);
     }
 
-    fn draw_into_context(ctx: &RenderContext) {
+    fn draw_into_context(&self, ctx: &RenderContext) {
         debug!("beginning display list");
         for self.list.each |item| {
             // FIXME(Issue #150): crashes

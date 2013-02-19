@@ -11,7 +11,7 @@ use harfbuzz;
 pub type Shaper/& = harfbuzz::shaper::HarfbuzzShaper;
 
 pub trait ShaperMethods {
-    fn shape_text(text: &str, glyphs: &mut GlyphStore);
+    fn shape_text(&self, text: &str, glyphs: &mut GlyphStore);
 }
 
 // TODO(Issue #163): this is a workaround for static methods and

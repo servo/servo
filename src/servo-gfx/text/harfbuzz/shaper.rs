@@ -106,10 +106,10 @@ pub impl ShapedGlyphData {
         }
     }
 
-    pure fn len() -> uint { self.count }
+    pure fn len(&self) -> uint { self.count }
 
     // Returns shaped glyph data for one glyph, and updates the y-position of the pen.
-    fn get_entry_for_glyph(i: uint, y_pos: &mut Au) -> ShapedGlyphEntry {
+    fn get_entry_for_glyph(&self, i: uint, y_pos: &mut Au) -> ShapedGlyphEntry {
         assert i < self.count;
 
         let glyph_info_i = ptr::offset(self.glyph_infos, i);
@@ -132,8 +132,8 @@ pub impl ShapedGlyphData {
 
         unsafe {
             ShapedGlyphEntry {
-                cluster: (*glyph_info_i).cluster as uint, 
-                codepoint: (*glyph_info_i).codepoint as GlyphIndex, 
+                cluster: (*glyph_info_i).cluster as uint,
+                codepoint: (*glyph_info_i).codepoint as GlyphIndex,
                 advance: x_advance,
                 offset: move offset,
             }
@@ -167,7 +167,7 @@ pub impl HarfbuzzShaper {
         let pt_size = font.style.pt_size;
         hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
         // Set scaling. Note that this takes 16.16 fixed point.
-        hb_font_set_scale(hb_font, 
+        hb_font_set_scale(hb_font,
                           HarfbuzzShaper::float_to_fixed(pt_size) as c_int,
                           HarfbuzzShaper::float_to_fixed(pt_size) as c_int);
 
@@ -181,7 +181,7 @@ pub impl HarfbuzzShaper {
             hb_font_set_funcs(hb_font, hb_funcs, font_data, ptr::null());
         };
 
-        HarfbuzzShaper { 
+        HarfbuzzShaper {
             font: font,
             hb_face: hb_face,
             hb_font: hb_font,
@@ -202,18 +202,18 @@ pub impl HarfbuzzShaper {
     }
 }
 
-impl ShaperMethods for HarfbuzzShaper {    
+impl ShaperMethods for HarfbuzzShaper {
     /**
     Calculate the layout metrics associated with a some given text
     when rendered in a specific font.
     */
-    fn shape_text(text: &str, glyphs: &mut GlyphStore) {
+    fn shape_text(&self, text: &str, glyphs: &mut GlyphStore) {
         let hb_buffer: *hb_buffer_t = hb_buffer_create();
         hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
 
         // Using as_buf because it never does a copy - we don't need the trailing null
         str::as_buf(text, |ctext: *u8, _l: uint| {
-            hb_buffer_add_utf8(hb_buffer, 
+            hb_buffer_add_utf8(hb_buffer,
                                ctext as *c_char,
                                text.len() as c_int,
                                0 as c_uint,
@@ -228,7 +228,7 @@ impl ShaperMethods for HarfbuzzShaper {
 
 pub impl HarfbuzzShaper {
 
-    priv fn save_glyph_results(text: &str, glyphs: &mut GlyphStore, buffer: *hb_buffer_t) {
+    priv fn save_glyph_results(&self, text: &str, glyphs: &mut GlyphStore, buffer: *hb_buffer_t) {
         let glyph_data = ShapedGlyphData::new(buffer);
         let glyph_count = glyph_data.len();
         let byte_max = text.len();
@@ -262,7 +262,7 @@ pub impl HarfbuzzShaper {
                 i = range.next;
             }
         }
-        
+
         debug!("(glyph idx) -> (text byte offset)");
         for uint::range(0, glyph_data.len()) |i| {
             // loc refers to a *byte* offset within the utf8 string.
@@ -333,7 +333,7 @@ pub impl HarfbuzzShaper {
                            glyph_span.begin(), glyph_span.length());
                 }
 
-            
+
                 // if there's just one glyph, then we don't need further checks.
                 if glyph_span.length() == 1 { break; }
 
@@ -367,7 +367,7 @@ pub impl HarfbuzzShaper {
             //and set glyph info for those and empty infos for the chars that are continuations.
 
             // a simple example:
-            // chars:  'f'     't'   't'   
+            // chars:  'f'     't'   't'
             // glyphs: 'ftt'   ''    ''
             // cgmap:  t        f     f
             // gspan:  [-]
@@ -375,7 +375,7 @@ pub impl HarfbuzzShaper {
             // covsp:  [---------------]
             let mut covered_byte_span = copy char_byte_span;
             // extend, clipping at end of text range.
-            while covered_byte_span.end() < byte_max 
+            while covered_byte_span.end() < byte_max
                 && byteToGlyph[covered_byte_span.end()] == NO_GLYPH {
                 let range = str::char_range_at(text, covered_byte_span.end());
                 ignore(range.ch);
@@ -407,8 +407,8 @@ pub impl HarfbuzzShaper {
 
                 for glyph_span.eachi |glyph_i| {
                     let shape = glyph_data.get_entry_for_glyph(glyph_i, &mut y_pos);
-                    datas.push(GlyphData(shape.codepoint, 
-                                         shape.advance, 
+                    datas.push(GlyphData(shape.codepoint,
+                                         shape.advance,
                                          shape.offset,
                                          false, // not missing
                                          true,  // treat as cluster start
@@ -418,7 +418,7 @@ pub impl HarfbuzzShaper {
 
                 // now add the detailed glyph entry.
                 glyphs.add_glyphs_for_char_index(char_idx, dvec::unwrap(move datas));
-                
+
                 // set the other chars, who have no glyphs
                 let mut i = covered_byte_span.begin();
                 loop {
@@ -454,8 +454,8 @@ extern fn glyph_func(_font: *hb_font_t,
     assert font.is_not_null();
     unsafe {
         return match (*font).glyph_index(unicode as char) {
-          Some(g) => { *glyph = g as hb_codepoint_t; true },
-          None => false
+            Some(g) => { *glyph = g as hb_codepoint_t; true },
+            None => false
         } as hb_bool_t;
     }
 }

@@ -49,12 +49,12 @@ pub impl FreeTypeFontContextHandle : FontContextHandleMethods {
         FreeTypeFontContextHandle { ctx: self.ctx }
     }
 
-    fn create_font_from_identifier(name: ~str, style: UsedFontStyle)
+    fn create_font_from_identifier(&self, name: ~str, style: UsedFontStyle)
         -> Result<FontHandle, ()> {
         debug!("Creating font handle for %s", name);
         do path_from_identifier(name).chain |file_name| {
             debug!("Opening font face %s", file_name);
-            FreeTypeFontHandle::new_from_file(&self, file_name, &style)
+            FreeTypeFontHandle::new_from_file(self, file_name, &style)
         }
     }
 }

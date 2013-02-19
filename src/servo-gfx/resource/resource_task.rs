@@ -51,12 +51,12 @@ pub fn ResourceTask() -> ResourceTask {
 }
 
 fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
-	let loaders_cell = Cell(loaders);
+    let loaders_cell = Cell(loaders);
     let chan = do spawn_listener |from_client| {
         // TODO: change copy to move once we can move out of closures
         ResourceManager(from_client, loaders_cell.take()).start()
     };
-	SharedChan(chan)
+    SharedChan(chan)
 }
 
 pub struct ResourceManager {
@@ -66,7 +66,7 @@ pub struct ResourceManager {
 }
 
 
-pub fn ResourceManager(from_client: Port<ControlMsg>, 
+pub fn ResourceManager(from_client: Port<ControlMsg>,
                        loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceManager {
     ResourceManager {
         from_client : move from_client,
@@ -76,7 +76,7 @@ pub fn ResourceManager(from_client: Port<ControlMsg>,
 
 
 impl ResourceManager {
-    fn start() {
+    fn start(&self) {
         loop {
             match self.from_client.recv() {
               Load(url, progress_chan) => {
@@ -89,7 +89,7 @@ impl ResourceManager {
         }
     }
 
-    fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
+    fn load(&self, url: Url, progress_chan: Chan<ProgressMsg>) {
 
         match self.get_loader_factory(&url) {
             Some(loader_factory) => {
@@ -103,15 +103,15 @@ impl ResourceManager {
         }
     }
 
-    fn get_loader_factory(url: &Url) -> Option<LoaderTask> {
+    fn get_loader_factory(&self, url: &Url) -> Option<LoaderTask> {
         for self.loaders.each |scheme_loader| {
-			match *scheme_loader {
-				(ref scheme, ref loader_factory) => {
-					if (*scheme) == url.scheme {
-						return Some((*loader_factory)());
-					}
-				}
-			}
+            match *scheme_loader {
+                (ref scheme, ref loader_factory) => {
+                    if (*scheme) == url.scheme {
+                        return Some((*loader_factory)());
+                    }
+                }
+            }
         }
         return None;
     }
@@ -130,8 +130,8 @@ fn test_bad_scheme() {
     let progress = Port();
     resource_task.send(Load(url::from_str(~"bogus://whatever").get(), progress.chan()));
     match progress.recv() {
-      Done(result) => { assert result.is_err() }
-      _ => fail
+        Done(result) => { assert result.is_err() }
+        _ => fail
     }
     resource_task.send(Exit);
 }
