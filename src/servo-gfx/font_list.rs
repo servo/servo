@@ -46,11 +46,11 @@ pub impl FontList {
     static fn new(fctx: &native::FontContextHandle) -> FontList {
         let handle = result::unwrap(FontListHandle::new(fctx));
         let list = FontList {
-            handle: move handle,
+            handle: handle,
             family_map: linear::LinearMap::new(),
         };
         list.refresh(fctx);
-        return move list;
+        return list;
     }
 
     priv fn refresh(_fctx: &native::FontContextHandle) {
@@ -156,7 +156,7 @@ pub impl FontEntry {
             face_name: handle.face_name(),
             weight: handle.boldness(),
             italic: handle.is_italic(),
-            handle: move handle
+            handle: handle
         }
     }
 

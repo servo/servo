@@ -44,13 +44,12 @@ pub impl FreeTypeFontContextHandle {
     }
 }
 
-pub impl FreeTypeFontContextHandle : FontContextHandleMethods {
+pub impl FontContextHandleMethods for FreeTypeFontContextHandle {
     pure fn clone(&const self) -> FreeTypeFontContextHandle {
         FreeTypeFontContextHandle { ctx: self.ctx }
     }
 
-    fn create_font_from_identifier(name: ~str, style: UsedFontStyle)
-        -> Result<FontHandle, ()> {
+    fn create_font_from_identifier(name: ~str, style: UsedFontStyle) -> Result<FontHandle, ()> {
         debug!("Creating font handle for %s", name);
         do path_from_identifier(name).chain |file_name| {
             debug!("Opening font face %s", file_name);

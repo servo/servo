@@ -47,7 +47,7 @@ pub fn ResourceTask() -> ResourceTask {
         (~"file", file_loader_factory),
         (~"http", http_loader_factory)
     ];
-    create_resource_task_with_loaders(move loaders)
+    create_resource_task_with_loaders(loaders)
 }
 
 fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
@@ -69,8 +69,8 @@ pub struct ResourceManager {
 pub fn ResourceManager(from_client: Port<ControlMsg>, 
                        loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceManager {
     ResourceManager {
-        from_client : move from_client,
-        loaders : move loaders,
+        from_client: from_client,
+        loaders: loaders,
     }
 }
 
@@ -94,7 +94,7 @@ impl ResourceManager {
         match self.get_loader_factory(&url) {
             Some(loader_factory) => {
                 debug!("resource_task: loading url: %s", to_str(&url));
-                loader_factory(move url, progress_chan);
+                loader_factory(url, progress_chan);
             }
             None => {
                 debug!("resource_task: no loader for scheme %s", url.scheme);
@@ -144,11 +144,11 @@ fn should_delegate_to_scheme_loader() {
         progress_chan.send(Payload(copy payload));
         progress_chan.send(Done(Ok(())));
     };
-    let loader_factories = ~[(~"snicklefritz", move loader_factory)];
-    let resource_task = create_resource_task_with_loaders(move loader_factories);
+    let loader_factories = ~[(~"snicklefritz", loader_factory)];
+    let resource_task = create_resource_task_with_loaders(loader_factories);
     let progress = Port();
     resource_task.send(Load(url::from_str(~"snicklefritz://heya").get(), progress.chan()));
-    assert progress.recv() == Payload(move payload);
+    assert progress.recv() == Payload(payload);
     assert progress.recv() == Done(Ok(()));
     resource_task.send(Exit);
 }

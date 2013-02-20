@@ -72,9 +72,9 @@ pub struct FreeTypeFontTable {
     bogus: ()
 }
 
-pub impl FreeTypeFontTable : FontTableMethods {
+pub impl FontTableMethods for FreeTypeFontTable {
     fn with_buffer(_blk: fn&(*u8, uint)) {
-        fail
+        fail!()
     }
 }
 
@@ -185,7 +185,7 @@ pub impl FreeTypeFontHandle {
     }
 }
 
-pub impl FreeTypeFontHandle : FontHandleMethods {
+pub impl FontHandleMethods for FreeTypeFontHandle {
     // an identifier usable by FontContextHandle to recreate this FontHandle.
     pure fn face_identifier() -> ~str {
         /* FT_Get_Postscript_Name seems like a better choice here, but it

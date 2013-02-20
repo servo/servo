@@ -5,7 +5,7 @@ enum CompressionMode {
     DiscardNewline
 }
 
-impl CompressionMode : cmp::Eq {
+impl Eq for CompressionMode {
     pure fn eq(&self, other: &CompressionMode) -> bool {
         match (*self, *other) {
             (CompressNone, CompressNone) => true,
@@ -81,7 +81,7 @@ pub fn transform_text(text: &str, mode: CompressionMode) -> ~str {
         } 
     }
 
-    return move out_str;
+    return out_str;
 
     fn is_discardable_char(ch: char, mode: CompressionMode) -> bool {
         if is_always_discardable_char(ch) {

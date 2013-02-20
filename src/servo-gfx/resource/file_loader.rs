@@ -15,7 +15,7 @@ pub fn factory() -> LoaderTask {
 				Ok(reader) => {
 					while !reader.eof() {
 						let data = reader.read_bytes(READ_SIZE);
-						progress_chan.send(Payload(move data));
+						progress_chan.send(Payload(data));
 					}
 					progress_chan.send(Done(Ok(())));
 				}

@@ -46,6 +46,7 @@ impl DisplayItem {
         match self {
             &SolidColor(_, color) => ctx.draw_solid_color(&self.d().bounds, color),
             &Text(_, ref run, ref range, color) => {
+                debug!("drawing text at %?", self.d().bounds);
                 let new_run = @run.deserialize(ctx.font_ctx);
                 let font = new_run.font;
                 let origin = self.d().bounds.origin;
@@ -76,12 +77,12 @@ impl DisplayItem {
                             run: ~SendableTextRun,
                             range: Range,
                             color: Color) -> DisplayItem {
-        Text(DisplayItemData::new(bounds), move run, move range, color)
+        Text(DisplayItemData::new(bounds), run, range, color)
     }
 
     // ARC should be cloned into ImageData, but Images are not sendable
     static pure fn new_Image(bounds: &Rect<Au>, image: ARC<~Image>) -> DisplayItem {
-        Image(DisplayItemData::new(bounds), move image)
+        Image(DisplayItemData::new(bounds), image)
     }
 }
 
@@ -98,7 +99,7 @@ pub impl DisplayList {
     fn append_item(&mut self, item: ~DisplayItem) {
         // FIXME(Issue #150): crashes
         //debug!("Adding display item %u: %?", self.len(), item);
-        self.list.push(move item);
+        self.list.push(item);
     }
 
     fn draw_into_context(ctx: &RenderContext) {

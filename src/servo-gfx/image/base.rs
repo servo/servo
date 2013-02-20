@@ -6,7 +6,7 @@ use stb_image = stb_image::image;
 pub type Image = stb_image::Image<u8>;
 
 pub fn Image(width: uint, height: uint, depth: uint, data: ~[u8]) -> Image {
-    stb_image::new_image(width, height, depth, move data)
+    stb_image::new_image(width, height, depth, data)
 }
 
 const TEST_IMAGE: [u8 * 4962] = include_bin!("test.jpeg");
@@ -38,7 +38,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
 
             assert image.data.len() == data.len();
 
-            Some(Image(image.width, image.height, image.depth, move data))
+            Some(Image(image.width, image.height, image.depth, data))
         }
         stb_image::ImageF32(_image) => fail!(~"HDR images not implemented"),
         stb_image::Error => None

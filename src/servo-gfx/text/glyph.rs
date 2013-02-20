@@ -33,24 +33,11 @@ pure fn GlyphEntry(value: u32) -> GlyphEntry { GlyphEntry { value: value } }
 pub type GlyphIndex = u32;
 
 // TODO: unify with bit flags?
+#[deriving_eq]
 pub enum BreakType {
     BreakTypeNone,
     BreakTypeNormal,
     BreakTypeHyphen
-}
-
-impl BreakType : Eq {
-    pure fn eq(&self, other: &BreakType) -> bool {
-        match (*self, *other) {
-            (BreakTypeNone, BreakTypeNone) => true,
-            (BreakTypeNormal, BreakTypeNormal) => true,
-            (BreakTypeHyphen, BreakTypeHyphen) => true,
-            (_,_) => false,
-        }
-    }
-    pure fn ne(&self, other: &BreakType) -> bool {
-        !(*self).eq(other)
-    }
 }
 
 const BREAK_TYPE_NONE   : u8 = 0x0u8;
@@ -281,6 +268,7 @@ fn DetailedGlyph(index: GlyphIndex,
     }
 }
 
+#[deriving_eq]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: uint,
@@ -288,7 +276,7 @@ struct DetailedGlyphRecord {
     detail_offset: uint
 }
 
-impl DetailedGlyphRecord : Ord {
+impl Ord for DetailedGlyphRecord {
     pure fn lt(&self, other: &DetailedGlyphRecord) -> bool {
 		self.entry_offset <  other.entry_offset
 	}
@@ -300,15 +288,6 @@ impl DetailedGlyphRecord : Ord {
 	}
     pure fn gt(&self, other: &DetailedGlyphRecord) -> bool {
 		self.entry_offset >  other.entry_offset
-	}
-}
-
-impl DetailedGlyphRecord : Eq {
-    pure fn eq(&self, other : &DetailedGlyphRecord) -> bool {
-		self.entry_offset == other.entry_offset
-	}
-    pure fn ne(&self, other : &DetailedGlyphRecord) -> bool {
-		self.entry_offset != other.entry_offset
 	}
 }
 
@@ -361,7 +340,7 @@ impl DetailedGlyphStore {
         // FIXME: Is this right? --pcwalton
         // TODO: should fix this somewhere else
         if count == 0 {
-            return vec::view(self.detail_buffer, 0, 0);
+            return vec::slice(self.detail_buffer, 0, 0);
         }
 
         assert (count as uint) <= self.detail_buffer.len();
@@ -378,8 +357,8 @@ impl DetailedGlyphStore {
             None => fail!(~"Invalid index not found in detailed glyph lookup table!"),
             Some(i) => {
                 assert i + (count as uint) <= self.detail_buffer.len();
-                // return a view into the buffer
-                vec::view(self.detail_buffer, i, i + count as uint)
+                // return a slice into the buffer
+                vec::slice(self.detail_buffer, i, i + count as uint)
             }
         }
     }
@@ -419,9 +398,9 @@ impl DetailedGlyphStore {
         // Thar be dragons here. You have been warned. (Tips accepted.)
         let mut unsorted_records : ~[DetailedGlyphRecord] = ~[];
         core::util::swap(&mut self.detail_lookup, &mut unsorted_records);
-        let mut_records : ~[mut DetailedGlyphRecord] = vec::cast_to_mut(move unsorted_records);
+        let mut_records : ~[mut DetailedGlyphRecord] = vec::cast_to_mut(unsorted_records);
         sort::quick_sort3(mut_records);
-        let mut sorted_records = vec::cast_from_mut(move mut_records);
+        let mut sorted_records = vec::cast_from_mut(mut_records);
         core::util::swap(&mut self.detail_lookup, &mut sorted_records);
 
         self.lookup_is_sorted = true;
@@ -601,13 +580,14 @@ pub impl GlyphStore {
         match entry.is_simple() {
             true => { 
                 let proxy = SimpleGlyphInfo(&self, i);
-                cb(i, move proxy);
+                cb(i, proxy);
             },
             false => {
-                let glyphs = self.detail_store.get_detailed_glyphs_for_entry(i, entry.glyph_count());
+                let glyphs = self.detail_store.get_detailed_glyphs_for_entry(i,
+                                                                             entry.glyph_count());
                 for uint::range(0, glyphs.len()) |j| {
                     let proxy = DetailGlyphInfo(&self, i, j as u16);
-                    cb(i, move proxy);
+                    cb(i, proxy);
                 }
             }
         }

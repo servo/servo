@@ -42,12 +42,12 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
     };
 
     let render_mode = match getopts::opt_maybe_str(&opt_match, ~"o") {
-      Some(move output_file) => { Png(move output_file) }
-      None => { Screen }
+      Some(output_file) => Png(output_file),
+      None => Screen,
     };
 
     let render_backend = match getopts::opt_maybe_str(&opt_match, ~"r") {
-        Some(move backend_str) => {
+        Some(backend_str) => {
             if backend_str == ~"direct2d" {
                 Direct2DBackend
             } else if backend_str == ~"core-graphics" {
@@ -66,19 +66,19 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
     };
 
     let tile_size: uint = match getopts::opt_maybe_str(&opt_match, ~"s") {
-        Some(move tile_size_str) => uint::from_str(tile_size_str).get(),
+        Some(tile_size_str) => uint::from_str(tile_size_str).get(),
         None => 512,
     };
 
     let n_render_threads: uint = match getopts::opt_maybe_str(&opt_match, ~"t") {
-        Some(move n_render_threads_str) => uint::from_str(n_render_threads_str).get(),
+        Some(n_render_threads_str) => uint::from_str(n_render_threads_str).get(),
         None => 1,      // FIXME: Number of cores.
     };
 
     Opts {
-        urls: move urls,
-        render_mode: move render_mode,
-        render_backend: move render_backend,
+        urls: urls,
+        render_mode: render_mode,
+        render_backend: render_backend,
         n_render_threads: n_render_threads,
         tile_size: tile_size,
     }

@@ -33,7 +33,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
                      f: RenderFn) -> LayerBufferSet {
     let tile_size = opts.tile_size;
 
-    let mut _buffers = match move buffer_set { LayerBufferSet { buffers: move b } => move b };
+    let mut _buffers = match buffer_set { LayerBufferSet { buffers: b } => b };
 
     // FIXME: Try not to create a new array here.
     let new_buffer_ports = dvec::DVec();
@@ -100,7 +100,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
 
                     buffer = LayerBuffer {
                         draw_target: DrawTarget::new_with_data(opts.render_backend,
-                                                               move data,
+                                                               data,
                                                                offset,
                                                                size,
                                                                size.width * 4,
@@ -114,10 +114,10 @@ pub fn render_layers(layer_ref: *RenderLayer,
                 let (new_buffer_port, new_buffer_chan) = pipes::stream();
 
                 // Send the buffer to the child.
-                f(layer_ref, move buffer, move new_buffer_chan);
+                f(layer_ref, buffer, new_buffer_chan);
 
                 // Enqueue the port.
-                new_buffer_ports.push(move new_buffer_port);
+                new_buffer_ports.push(new_buffer_port);
 
                 x += tile_size;
             }
@@ -132,6 +132,6 @@ pub fn render_layers(layer_ref: *RenderLayer,
         }
     }
 
-    return LayerBufferSet { buffers: move dvec::unwrap(move new_buffers) };
+    return LayerBufferSet { buffers: dvec::unwrap(new_buffers) };
 }
 

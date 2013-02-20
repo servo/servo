@@ -135,7 +135,7 @@ pub impl ShapedGlyphData {
                 cluster: (*glyph_info_i).cluster as uint, 
                 codepoint: (*glyph_info_i).codepoint as GlyphIndex, 
                 advance: x_advance,
-                offset: move offset,
+                offset: offset,
             }
         }
     }
@@ -417,7 +417,7 @@ pub impl HarfbuzzShaper {
                 }
 
                 // now add the detailed glyph entry.
-                glyphs.add_glyphs_for_char_index(char_idx, dvec::unwrap(move datas));
+                glyphs.add_glyphs_for_char_index(char_idx, dvec::unwrap(datas));
                 
                 // set the other chars, who have no glyphs
                 let mut i = covered_byte_span.begin();

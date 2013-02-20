@@ -86,11 +86,12 @@ pub impl FontContext {
 
         FontContext { 
             // TODO(Rust #3902): remove extraneous type parameters once they are inferred correctly.
-            instance_cache: Cache::new::<FontDescriptor,@Font,MonoCache<FontDescriptor,@Font>>(10),
-            font_list: move font_list,
-            handle: move handle,
+            instance_cache:
+                Cache::new::<FontDescriptor,@Font,MonoCache<FontDescriptor,@Font>>(10),
+            font_list: font_list,
+            handle: handle,
             backend: backend,
-            generic_fonts: move generic_fonts,
+            generic_fonts: generic_fonts,
         }
     }
 
@@ -123,8 +124,8 @@ pub impl FontContext {
         let family = family.to_str();
         debug!("(transform family) searching for `%s`", family);
         match self.generic_fonts.find(&family) {
-            None => move family,
-            Some(move mapped_family) => copy *mapped_family
+            None => family,
+            Some(mapped_family) => copy *mapped_family
         }
     }
 
@@ -174,7 +175,7 @@ pub impl FontContext {
 
         debug!("(create font group) --- finished ---");
 
-        @FontGroup::new(style.families.to_managed(), &used_style, dvec::unwrap(move fonts))
+        @FontGroup::new(style.families.to_managed(), &used_style, dvec::unwrap(fonts))
     }
 
     priv fn create_font_instance(desc: &FontDescriptor) -> Result<@Font, ()> {
@@ -186,11 +187,8 @@ pub impl FontContext {
             &SelectorPlatformIdentifier(ref identifier) => { 
                 let result_handle = self.handle.create_font_from_identifier(copy *identifier,
                                                                             copy desc.style);
-                result::chain(move result_handle, |handle| {
-                    Ok(Font::new_from_adopted_handle(&self,
-                                                     move handle,
-                                                     &desc.style,
-                                                     self.backend))
+                result::chain(result_handle, |handle| {
+                    Ok(Font::new_from_adopted_handle(&self, handle, &desc.style, self.backend))
                 })
             }
         };

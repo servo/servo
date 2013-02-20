@@ -53,13 +53,19 @@ pub trait FontHandleMethods {
 
 pub impl FontHandle {
     #[cfg(target_os = "macos")]
-    static pub fn new_from_buffer(fctx: &native::FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
-        quartz::font::QuartzFontHandle::new_from_buffer(fctx, move buf, style)
+    static pub fn new_from_buffer(fctx: &native::FontContextHandle,
+                                  buf: ~[u8],
+                                  style: &SpecifiedFontStyle)
+                               -> Result<FontHandle, ()> {
+        quartz::font::QuartzFontHandle::new_from_buffer(fctx, buf, style)
     }
 
     #[cfg(target_os = "linux")]
-    static pub fn new_from_buffer(fctx: &native::FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
-        freetype_impl::font::FreeTypeFontHandle::new_from_buffer(fctx, @move buf, style)
+    static pub fn new_from_buffer(fctx: &native::FontContextHandle,
+                                  buf: ~[u8],
+                                  style: &SpecifiedFontStyle)
+                               -> Result<FontHandle, ()> {
+        freetype_impl::font::FreeTypeFontHandle::new_from_buffer(fctx, @buf, style)
     }
 }
 
@@ -72,7 +78,7 @@ trait FontTableTagConversions {
     pub pure fn tag_to_str() -> ~str;
 }
 
-impl FontTableTag : FontTableTagConversions {
+impl FontTableTagConversions for FontTableTag {
     pub pure fn tag_to_str() -> ~str {
         unsafe {
             let reversed = str::raw::from_buf_len(cast::transmute(&self), 4);
@@ -106,6 +112,7 @@ pub struct FontMetrics {
 }
 
 // TODO(Issue #200): use enum from CSS bindings for 'font-weight'
+#[deriving_eq]
 pub enum CSSFontWeight {
     FontWeight100,
     FontWeight200,
@@ -116,10 +123,6 @@ pub enum CSSFontWeight {
     FontWeight700,
     FontWeight800,
     FontWeight900,
-}
-pub impl CSSFontWeight : cmp::Eq {
-    pure fn eq(&self, other: &CSSFontWeight) -> bool { (*self as uint) == (*other as uint) }
-    pure fn ne(&self, other: &CSSFontWeight) -> bool { !(*self).eq(other) }
 }
 
 pub impl CSSFontWeight {
@@ -137,6 +140,7 @@ pub impl CSSFontWeight {
 // the instance's properties.
 //
 // For now, the cases are differentiated with a typedef
+#[deriving_eq]
 pub struct FontStyle {
     pt_size: float,
     weight: CSSFontWeight,
@@ -144,20 +148,6 @@ pub struct FontStyle {
     oblique: bool,
     families: ~str,
     // TODO(Issue #198): font-stretch, text-decoration, font-variant, size-adjust
-}
-
-// TODO(Issue #181): use deriving for trivial cmp::Eq implementations
-pub impl FontStyle : cmp::Eq {
-    pure fn eq(&self, other: &FontStyle) -> bool {
-        use std::cmp::FuzzyEq;
-
-        self.pt_size.fuzzy_eq(&other.pt_size) &&
-            self.weight == other.weight &&
-            self.italic == other.italic &&
-            self.oblique == other.oblique &&
-            self.families == other.families
-    }
-    pure fn ne(&self, other: &FontStyle) -> bool { !(*self).eq(other) }
 }
 
 pub type SpecifiedFontStyle = FontStyle;
@@ -175,46 +165,26 @@ struct ResolvedFont {
 // It's used to swizzle/unswizzle gfx::Font instances when
 // communicating across tasks, such as the display list between layout
 // and render tasks.
+#[deriving_eq]
 pub struct FontDescriptor {
     style: UsedFontStyle,
     selector: FontSelector,
 }
 
-
-// TODO(Issue #181): use deriving for trivial cmp::Eq implementations
-pub impl FontDescriptor : cmp::Eq {
-    pure fn eq(&self, other: &FontDescriptor) -> bool {
-        self.style == other.style &&
-            self.selector == other.selector
-    }
-    pure fn ne(&self, other: &FontDescriptor) -> bool { !(*self).eq(other) }
-}
-
 pub impl FontDescriptor {
     static pure fn new(style: UsedFontStyle, selector: FontSelector) -> FontDescriptor {
         FontDescriptor {
-            style: move style,
-            selector: move selector,
+            style: style,
+            selector: selector,
         }
     }
 }
 
 // A FontSelector is a platform-specific strategy for serializing face names.
+#[deriving_eq]
 pub enum FontSelector {
     SelectorPlatformIdentifier(~str),
     SelectorStubDummy, // aka, use Josephin Sans
-}
-
-// TODO(Issue #181): use deriving for trivial cmp::Eq implementations
-pub impl FontSelector : cmp::Eq {
-    pure fn eq(&self, other: &FontSelector) -> bool {
-        match (self, other) {
-            (&SelectorPlatformIdentifier(ref a), &SelectorPlatformIdentifier(ref b)) => a == b,
-            (&SelectorStubDummy, &SelectorStubDummy) => true,
-            _ => false
-        }
-    }
-    pure fn ne(&self, other: &FontSelector) -> bool { !(*self).eq(other) }
 }
 
 // This struct is the result of mapping a specified FontStyle into the
@@ -237,7 +207,7 @@ pub impl FontGroup {
         FontGroup {
             families: families,
             style: copy *style,
-            fonts: move fonts,
+            fonts: fonts,
         }
     }
 
@@ -245,7 +215,7 @@ pub impl FontGroup {
         assert self.fonts.len() > 0;
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
-        return TextRun::new(self.fonts[0], move text);
+        return TextRun::new(self.fonts[0], text);
     }
 }
 
@@ -273,12 +243,14 @@ pub struct Font {
 }
 
 pub impl Font {
-    static fn new_from_buffer(ctx: &FontContext, buffer: ~[u8],
-                              style: &SpecifiedFontStyle, backend: BackendType) -> Result<@Font, ()> {
-
-        let handle = FontHandle::new_from_buffer(&ctx.handle, move buffer, style);
+    static fn new_from_buffer(ctx: &FontContext,
+                              buffer: ~[u8],
+                              style: &SpecifiedFontStyle,
+                              backend: BackendType)
+                           -> Result<@Font, ()> {
+        let handle = FontHandle::new_from_buffer(&ctx.handle, buffer, style);
         let handle = if handle.is_ok() {
-            result::unwrap(move handle)
+            result::unwrap(handle)
         } else {
             return Err(handle.get_err());
         };
@@ -287,11 +259,11 @@ pub impl Font {
         // TODO(Issue #179): convert between specified and used font style here?
 
         return Ok(@Font {
-            handle : move handle,
+            handle: handle,
             azure_font: None,
             shaper: None,
             style: copy *style,
-            metrics: move metrics,
+            metrics: metrics,
             backend: backend,
         });
     }
@@ -301,11 +273,11 @@ pub impl Font {
         let metrics = handle.get_metrics();
 
         @Font {
-            handle : move handle,
+            handle: handle,
             azure_font: None,
             shaper: None,
             style: copy *style,
-            metrics: move metrics,
+            metrics: metrics,
             backend: backend,
         }
     }
@@ -315,11 +287,11 @@ pub impl Font {
 
         // TODO(Issue #179): convert between specified and used font style here?
         let styled_handle = match handle.clone_with_style(&fctx.handle, style) {
-            Ok(move result) => move result,
+            Ok(result) => result,
             Err(()) => return Err(())
         };
 
-        return Ok(Font::new_from_adopted_handle(fctx, move styled_handle, style, backend));
+        return Ok(Font::new_from_adopted_handle(fctx, styled_handle, style, backend));
     }
 
     priv fn get_shaper(@self) -> @Shaper {
@@ -342,7 +314,7 @@ pub impl Font {
                status, tag.tag_to_str(),
                self.handle.family_name(), self.handle.face_name());
 
-        return move result;
+        return result;
     }
 
     // TODO: this should return a borrowed pointer, but I can't figure
@@ -356,7 +328,7 @@ pub impl Font {
         }
 
         let mut scaled_font = self.create_azure_font();
-        self.azure_font = Some(move scaled_font);
+        self.azure_font = Some(scaled_font);
         // try again.
         return self.get_azure_font();
     }
@@ -418,13 +390,13 @@ pub impl Font {
                 }
             };
             origin = Point2D(origin.x + glyph_advance, origin.y);
-            azglyphs.push(move azglyph)
+            azglyphs.push(azglyph)
         };
 
         let azglyph_buf_len = azglyphs.len();
         if azglyph_buf_len == 0 { return; } // Otherwise the Quartz backend will assert.
 
-        let azglyph_buf = dvec::unwrap(move azglyphs);
+        let azglyph_buf = dvec::unwrap(azglyphs);
         let glyphbuf = unsafe {
             struct__AzGlyphBuffer {
                 mGlyphs: vec::raw::to_ptr(azglyph_buf),
@@ -457,7 +429,7 @@ pub impl Font {
 
         RunMetrics { 
             advance_width: advance,
-            bounding_box: move bounds,
+            bounding_box: bounds,
             ascent: self.metrics.ascent,
             descent: self.metrics.descent,
         }
@@ -526,8 +498,8 @@ fn should_get_glyph_advance_stress() {
 
     for iter::repeat(100) {
         let (chan, port) = pipes::stream();
-        ports += [@move port];
-        do task::spawn |move chan| {
+        ports += [@port];
+        do task::spawn {
             let fctx = @FontContext();
             let matcher = @FontMatcher(fctx);
             let _font = matcher.get_test_font();

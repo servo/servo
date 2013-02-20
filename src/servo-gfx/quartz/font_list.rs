@@ -39,9 +39,9 @@ pub impl QuartzFontListHandle {
             debug!("Creating new FontFamily for family: %s", family_name);
 
             let new_family = @FontFamily::new(family_name);
-            family_map.insert(move family_name, new_family);*/
+            family_map.insert(family_name, new_family);*/
         }
-        return move family_map;
+        return family_map;
     }
 
     fn load_variations_for_family(family: @FontFamily) {
@@ -53,10 +53,10 @@ pub impl QuartzFontListHandle {
         for family_collection.get_descriptors().each |descref: &CTFontDescriptorRef| {
             let desc = CFWrapper::wrap_shared(*descref);
             let font = quartz::font_list::core_text::font::new_from_descriptor(&desc, 0.0);
-            let handle = result::unwrap(QuartzFontHandle::new_from_CTFont(&self.fctx, move font));
+            let handle = result::unwrap(QuartzFontHandle::new_from_CTFont(&self.fctx, font));
 
             debug!("Creating new FontEntry for face: %s", handle.face_name());
-            let entry = @FontEntry::new(family, move handle);
+            let entry = @FontEntry::new(family, handle);
             family.entries.push(entry);
         }
     }

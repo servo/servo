@@ -12,7 +12,7 @@ pub struct MonoCache<K, V> {
     mut entry: Option<(K,V)>,
 }
 
-pub impl<K: Copy Eq, V: Copy> MonoCache<K,V> : Cache<K,V> {
+pub impl<K: Copy Eq, V: Copy> Cache<K,V> for MonoCache<K,V> {
     static fn new(_size: uint) -> MonoCache<K,V> {
         MonoCache { entry: None }
     }
@@ -33,7 +33,7 @@ pub impl<K: Copy Eq, V: Copy> MonoCache<K,V> : Cache<K,V> {
             None => { 
                 let value = blk(key);
                 self.entry = Some((copy *key, copy value));
-                move value
+                value
             },
             Some(v) => v
         };

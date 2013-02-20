@@ -49,11 +49,11 @@ struct QuartzFontTable {
 
 pub impl QuartzFontTable {
     static fn wrap(data: CFData) -> QuartzFontTable {
-        QuartzFontTable { data: move data }
+        QuartzFontTable { data: data }
     }
 }
 
-pub impl QuartzFontTable : FontTableMethods {
+pub impl FontTableMethods for QuartzFontTable {
     fn with_buffer(blk: fn&(*u8, uint)) {
         blk(self.data.bytes(), self.data.len());
     }
@@ -77,35 +77,35 @@ pub impl QuartzFontHandle {
         let ctfont = quartz::font::core_text::font::new_from_CGFont(&cgfont, style.pt_size);
 
         let result = Ok(QuartzFontHandle {
-            cgfont : Some(move cgfont),
-            ctfont : move ctfont,
+            cgfont: Some(cgfont),
+            ctfont: ctfont,
         });
 
-        return move result;
+        return result;
     }
 
     static fn new_from_CTFont(_fctx: &QuartzFontContextHandle, ctfont: CTFont) -> Result<QuartzFontHandle, ()> {
         let result = Ok(QuartzFontHandle {
             mut cgfont: None,
-            ctfont: move ctfont,
+            ctfont: ctfont,
         });
         
-        return move result;
+        return result;
     }
 
     fn get_CGFont() -> CGFont {
         match self.cgfont {
-            Some(ref font) => move CFWrapper::wrap_shared(*font.borrow_ref()),
+            Some(ref font) => CFWrapper::wrap_shared(*font.borrow_ref()),
             None => {
                 let cgfont = self.ctfont.copy_to_CGFont();
                 self.cgfont = Some(CFWrapper::clone(&cgfont));
-                move cgfont
+                cgfont
             }
         }
     }
 }
 
-pub impl QuartzFontHandle : FontHandleMethods {
+pub impl FontHandleMethods for QuartzFontHandle {
     pure fn family_name() -> ~str {
         self.ctfont.family_name()
     }
@@ -136,7 +136,7 @@ pub impl QuartzFontHandle : FontHandleMethods {
 
     fn clone_with_style(fctx: &QuartzFontContextHandle, style: &SpecifiedFontStyle) -> Result<QuartzFontHandle,()> {
         let new_font = self.ctfont.clone_with_font_size(style.pt_size);
-        return QuartzFontHandle::new_from_CTFont(fctx, move new_font);
+        return QuartzFontHandle::new_from_CTFont(fctx, new_font);
     }
 
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
@@ -193,8 +193,8 @@ pub impl QuartzFontHandle : FontHandleMethods {
 
     fn get_table_for_tag(tag: FontTableTag) -> Option<FontTable> {
         let result : Option<CFData> = self.ctfont.get_font_table(tag);
-        return option::chain(move result, |data| {
-            Some(QuartzFontTable::wrap(move data))
+        return option::chain(result, |data| {
+            Some(QuartzFontTable::wrap(data))
         });
     }
 

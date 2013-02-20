@@ -61,12 +61,15 @@ impl RenderContext  {
         let dest_rect = bounds.to_azure_rect();
         let draw_surface_options = DrawSurfaceOptions(Linear, true);
         let draw_options = DrawOptions(1.0f as AzFloat, 0);
-        draw_target_ref.draw_surface(move azure_surface, dest_rect, source_rect,
-                                     draw_surface_options, draw_options);
+        draw_target_ref.draw_surface(azure_surface,
+                                     dest_rect,
+                                     source_rect,
+                                     draw_surface_options,
+                                     draw_options);
     }
 
     fn clear(&self) {
-        let pattern = ColorPattern(Color(1f as AzFloat, 1f as AzFloat, 1f as AzFloat, 1f as AzFloat));
+        let pattern = ColorPattern(Color(1.0, 1.0, 1.0, 1.0));
         let rect = Rect(Point2D(self.canvas.rect.origin.x as AzFloat,
                                 self.canvas.rect.origin.y as AzFloat),
                         Size2D(self.canvas.rect.size.width as AzFloat,
@@ -79,7 +82,7 @@ trait to_float {
     fn to_float() -> float;
 }
 
-impl u8 : to_float {
+impl to_float for u8 {
     fn to_float() -> float {
         (self as float) / 255f
     }
@@ -90,7 +93,7 @@ trait ToAzureRect {
     fn to_azure_snapped_rect() -> Rect<AzFloat>;
 }
 
-impl Rect<Au> : ToAzureRect {
+impl ToAzureRect for Rect<Au> {
     fn to_azure_rect() -> Rect<AzFloat> {
         Rect(Point2D(self.origin.x.to_px() as AzFloat, self.origin.y.to_px() as AzFloat),
              Size2D(self.size.width.to_px() as AzFloat, self.size.height.to_px() as AzFloat))

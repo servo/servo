@@ -9,7 +9,7 @@ pub fn time<T>(msg: &str, callback: fn() -> T) -> T{
     if ms >= 5 {
         debug!("%s took %u ms", msg, ms);
     }
-    return move val;
+    return val;
 }
 
 

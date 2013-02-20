@@ -26,7 +26,7 @@ impl ImageHolder {
 	static pub fn new(url: Url, local_image_cache: @LocalImageCache) -> ImageHolder {
 		debug!("ImageHolder::new() %?", url.to_str());
 		let holder = ImageHolder {
-			url: move url,
+			url: url,
 			image: None,
 			cached_size: Size2D(0,0),
 			local_image_cache: local_image_cache,
@@ -40,7 +40,7 @@ impl ImageHolder {
 		local_image_cache.prefetch(&holder.url);
 		local_image_cache.decode(&holder.url);
 
-		move holder
+		holder
 	}
 
     /**
@@ -75,8 +75,8 @@ impl ImageHolder {
         // the image and store it for the future
         if self.image.is_none() {
             match self.local_image_cache.get_image(&self.url).recv() {
-                ImageReady(move image) => {
-                    self.image = Some(move image);
+                ImageReady(image) => {
+                    self.image = Some(image);
                 }
                 ImageNotReady => {
                     debug!("image not ready for %s", self.url.to_str());
@@ -95,8 +95,8 @@ impl ImageHolder {
             None => None
         };
 
-        replace(&mut self.image, move image);
+        replace(&mut self.image, image);
 
-        return move result;
+        return result;
     }
 }

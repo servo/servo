@@ -27,37 +27,36 @@ pub enum Msg {
 pub type RenderTask = SharedChan<Msg>;
 
 pub fn RenderTask<C:Compositor + Owned>(compositor: C, opts: Opts) -> RenderTask {
-    let compositor_cell = Cell(move compositor);
-    let opts_cell = Cell(move opts);
+    let compositor_cell = Cell(compositor);
+    let opts_cell = Cell(opts);
     let render_task = do spawn_listener |po: Port<Msg>| {
         let (layer_buffer_set_port, layer_buffer_channel) = pipes::stream();
 
         let compositor = compositor_cell.take();
-        compositor.begin_drawing(move layer_buffer_channel);
+        compositor.begin_drawing(layer_buffer_channel);
 
         // FIXME: Annoying three-cell dance here. We need one-shot closures.
         let opts = opts_cell.with_ref(|o| copy *o);
         let n_threads = opts.n_render_threads;
-        let new_opts_cell = Cell(move opts);
+        let new_opts_cell: Cell<Opts> = Cell(opts);
 
-        let thread_pool = do TaskPool::new(n_threads, Some(SingleThreaded))
-                |move new_opts_cell| {
-            let opts_cell = Cell(new_opts_cell.with_ref(|o| copy *o));
-            let f: ~fn(uint) -> ThreadRenderContext = |thread_index, move opts_cell| {
+        let thread_pool = do TaskPool::new(n_threads, Some(SingleThreaded)) {
+            let opts_cell: Cell<Opts> = Cell(new_opts_cell.with_ref(|o| copy *o));
+            let f: ~fn(uint) -> ThreadRenderContext = |thread_index| {
                 ThreadRenderContext {
                     thread_index: thread_index,
                     font_ctx: @FontContext::new(opts_cell.with_ref(|o| o.render_backend), false),
                     opts: opts_cell.with_ref(|o| copy *o),
                 }
             };
-            move f
+            f
         };
 
         Renderer {
             port: po,
-            compositor: move compositor,
-            mut layer_buffer_set_port: Cell(move layer_buffer_set_port),
-            thread_pool: move thread_pool,
+            compositor: compositor,
+            mut layer_buffer_set_port: Cell(layer_buffer_set_port),
+            thread_pool: thread_pool,
             opts: opts_cell.take()
         }.start();
     };
@@ -85,7 +84,7 @@ impl<C: Compositor Owned> Renderer<C> {
 
         loop {
             match self.port.recv() {
-                RenderMsg(move render_layer) => self.render(move render_layer),
+                RenderMsg(render_layer) => self.render(render_layer),
                 ExitMsg(response_ch) => {
                     response_ch.send(());
                     break;
@@ -105,10 +104,10 @@ impl<C: Compositor Owned> Renderer<C> {
 
         let layer_buffer_set = layer_buffer_set_port.recv();
         let (new_layer_buffer_set_port, layer_buffer_set_channel) = pipes::stream();
-        self.layer_buffer_set_port.put_back(move new_layer_buffer_set_port);
+        self.layer_buffer_set_port.put_back(new_layer_buffer_set_port);
 
-        let layer_buffer_set_cell = Cell(move layer_buffer_set);
-        let layer_buffer_set_channel_cell = Cell(move layer_buffer_set_channel);
+        let layer_buffer_set_cell = Cell(layer_buffer_set);
+        let layer_buffer_set_channel_cell = Cell(layer_buffer_set_channel);
 
         debug!("renderer: rendering");
 
@@ -116,15 +115,10 @@ impl<C: Compositor Owned> Renderer<C> {
             let layer_buffer_set = layer_buffer_set_cell.take();
             let layer_buffer_set_channel = layer_buffer_set_channel_cell.take();
 
-            let layer_buffer_set = do render_layers(ptr::to_unsafe_ptr(&render_layer),
-                                                    move layer_buffer_set,
-                                                    &self.opts)
+            let layer_buffer_set = do render_layers(&render_layer, layer_buffer_set, &self.opts)
                     |render_layer_ref, layer_buffer, buffer_chan| {
-                let layer_buffer_cell = Cell(move layer_buffer);
-                do self.thread_pool.execute |thread_render_context,
-                                             move render_layer_ref,
-                                             move buffer_chan,
-                                             move layer_buffer_cell| {
+                let layer_buffer_cell = Cell(layer_buffer);
+                do self.thread_pool.execute |thread_render_context| {
                     do layer_buffer_cell.with_ref |layer_buffer| {
                         // Build the render context.
                         let ctx = RenderContext {
@@ -155,7 +149,7 @@ impl<C: Compositor Owned> Renderer<C> {
             };
 
             debug!("renderer: returning surface");
-            self.compositor.draw(move layer_buffer_set_channel, move layer_buffer_set);
+            self.compositor.draw(layer_buffer_set_channel, layer_buffer_set);
         }
     }
 }

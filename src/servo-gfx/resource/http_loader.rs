@@ -26,7 +26,7 @@ pub fn factory() -> LoaderTask {
 							debug!("http_loader: got data from %?", url);
 							let mut junk = None;
 							*data <-> junk;
-							progress_chan.send(Payload(option::unwrap(move junk)));
+							progress_chan.send(Payload(option::unwrap(junk)));
 						}
 						http_client::Error(*) => {
 							debug!("http_loader: error loading %?", url);

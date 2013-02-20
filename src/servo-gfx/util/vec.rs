@@ -5,7 +5,7 @@ pub trait BinarySearchMethods<T: Ord Eq> {
     pure fn binary_search_index(&self, key: &T) -> Option<uint>;
 }
 
-pub impl<T: Ord Eq> &[T]: BinarySearchMethods<T> {
+pub impl<T: Ord Eq> BinarySearchMethods<T> for &[T] {
     pure fn binary_search(&self, key: &T) -> Option<&self/T> {
         match self.binary_search_index(key) {
             None => None,

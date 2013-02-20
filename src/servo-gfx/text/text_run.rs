@@ -46,11 +46,11 @@ pub impl TextRun {
         font.shape_text(text, &mut glyph_store);
 
         let run = TextRun {
-            text: move text,
+            text: text,
             font: font,
-            glyphs: move glyph_store,
+            glyphs: glyph_store,
         };
-        return move run;
+        return run;
     }
 
     static fn compute_potential_breaks(text: &str, glyphs: &mut GlyphStore) {
