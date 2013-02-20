@@ -1073,7 +1073,7 @@ class CGAbstractMethod(CGThing):
     template arguments, and the function will be templatized using those
     arguments.
     """
-    def __init__(self, descriptor, name, returnType, args, inline=False, alwaysInline=False, static=False, extern=False, templateArgs=None):
+    def __init__(self, descriptor, name, returnType, args, inline=False, alwaysInline=False, static=False, extern=False, pub=False, templateArgs=None):
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.name = name
@@ -1084,6 +1084,7 @@ class CGAbstractMethod(CGThing):
         self.static = static
         self.extern = extern
         self.templateArgs = templateArgs
+        self.pub = pub;
     def _argstring(self):
         return ', '.join([str(a) for a in self.args])
     def _template(self):
@@ -1102,6 +1103,8 @@ class CGAbstractMethod(CGThing):
         if self.static:
             #decorators.append('static')
             pass
+        if self.pub:
+            decorators.append('pub')
         if not decorators:
             return ''
         #maybeNewline = " " if self.inline else "\n"
@@ -1317,9 +1320,9 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
    */
 
   /* Make sure our global is sane.  Hopefully we can remove this sometime */
-  if ((*JS_GetClass(aGlobal)).flags & JSCLASS_DOM_GLOBAL) == 0 {
+  /*if ((*JS_GetClass(aGlobal)).flags & JSCLASS_DOM_GLOBAL) == 0 {
     return ptr::null();
-  }
+  }*/
   /* Check to see whether the interface objects are already installed */
   let protoOrIfaceArray: *mut *JSObject = cast::transmute(GetProtoOrIfaceArray(aGlobal));
   let cachedObject: *JSObject = *protoOrIfaceArray.offset(%s as uint);
@@ -1392,7 +1395,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aReceiver'),
                 Argument('*mut bool', 'aEnabled')]
-        CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface', 'bool', args)
+        CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface', 'bool', args, pub=True)
 
     def declare(self):
         if self.descriptor.workers:

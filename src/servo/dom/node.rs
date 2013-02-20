@@ -15,6 +15,9 @@ use core::cast::transmute;
 use core::ptr::null;
 use geom::size::Size2D;
 use js::crust::*;
+use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
+use js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, JSVal, JSBool};
+use js::jsapi::bindgen::JS_SetReservedSlot;
 use js::rust::Compartment;
 use std::arc::ARC;
 
@@ -371,4 +374,9 @@ pub fn define_bindings(compartment: @mut Compartment, doc: @Document, win: @Wind
     bindings::document::init(compartment, doc);
     bindings::node::init(compartment);
     bindings::element::init(compartment);
+    bindings::utils::initialize_global(compartment.global_obj.ptr);
+    let unused = false;
+    assert bindings::ClientRectBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                           compartment.global_obj.ptr,
+                                                           ptr::mut_addr_of(&unused));
 }

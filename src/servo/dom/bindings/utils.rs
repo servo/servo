@@ -1,7 +1,8 @@
 use js;
 use js::rust::Compartment;
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
-         JS_THIS_OBJECT, JS_SET_RVAL, JSFUN_CONSTRUCTOR, JS_CALLEE};
+         JS_THIS_OBJECT, JS_SET_RVAL, JSFUN_CONSTRUCTOR, JS_CALLEE, JSPROP_READONLY,
+         JSPROP_PERMANENT};
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSNative,
                 JSFunctionSpec, JSPropertySpec, JSVal, JSString};
 use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
@@ -10,7 +11,7 @@ use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_Repor
                          JS_GetClass, JS_GetPrototype, JS_LinkConstructorAndPrototype,
                          JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction,
                          JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject,
-                         JS_GetInternedStringCharsAndLength};
+                         JS_GetInternedStringCharsAndLength, JS_DefineProperties};
 use js::jsfriendapi::bindgen::{DefineFunctionWithReserved, GetObjectJSClass,
                                JS_NewObjectWithUniqueType};
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB,
@@ -248,7 +249,7 @@ const DOM_PROTO_INSTANCE_CLASS_SLOT: u32 = 0;
 // All DOM globals must have a slot at DOM_PROTOTYPE_SLOT. We have to
 // start at 1 past JSCLASS_GLOBAL_SLOT_COUNT because XPConnect uses
 // that one.
-const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT + 1;
+pub const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT + 1;
 
 // NOTE: This is baked into the Ion JIT as 0 in codegen for LGetDOMProperty and
 // LSetDOMProperty. Those constants need to be changed accordingly if this value
@@ -290,7 +291,7 @@ pub struct JSNativeHolder {
 }
 
 pub struct ConstantSpec {
-    name: &str,
+    name: *libc::c_char,
     value: JSVal
 }
 
@@ -310,8 +311,8 @@ pub struct DOMJSClass {
 
 fn GetProtoOrIfaceArray(global: *JSObject) -> **JSObject {
     unsafe {
-        assert ((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0;
-        cast::reinterpret_cast(&JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT))
+        /*assert ((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0;*/
+        cast::transmute(RUST_JSVAL_TO_PRIVATE(JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT)))
     }
 }
 
@@ -397,8 +398,8 @@ fn CreateInterfaceObject(cx: *JSContext, global: *JSObject, receiver: *JSObject,
         return ptr::null();
     }
 
-    if staticMethods.is_not_null() /*&&
-       !DefinePrefable(cx, constructor, staticMethods)*/ {
+    if staticMethods.is_not_null() &&
+       !DefineMethods(cx, constructor, staticMethods) {
         return ptr::null();
     }
 
@@ -423,8 +424,8 @@ fn CreateInterfaceObject(cx: *JSContext, global: *JSObject, receiver: *JSObject,
                                   &RUST_STRING_TO_JSVAL(s));
     }
 
-    if constants.is_not_null() /*&&
-       !DefinePrefable(cx, constructor, constants)*/ {
+    if constants.is_not_null() &&
+       !DefineConstants(cx, constructor, constants) {
         return ptr::null();
     }
 
@@ -447,6 +448,34 @@ fn CreateInterfaceObject(cx: *JSContext, global: *JSObject, receiver: *JSObject,
   }
 }
 
+fn DefineConstants(cx: *JSContext, obj: *JSObject, constants: *ConstantSpec) -> bool {
+    let mut i = 0;
+    loop {
+        unsafe {
+            let spec = *constants.offset(i);
+            if spec.name.is_null() {
+                return true;
+            }
+            if JS_DefineProperty(cx, obj, spec.name,
+                                 spec.value, ptr::null(),
+                                 ptr::null(),
+                                 JSPROP_ENUMERATE | JSPROP_READONLY |
+                                 JSPROP_PERMANENT) == 0 {
+                return false;
+            }
+        }
+        i += 1;
+    }
+}
+
+fn DefineMethods(cx: *JSContext, obj: *JSObject, methods: *JSFunctionSpec) -> bool {
+    unsafe { JS_DefineFunctions(cx, obj, methods) != 0 }
+}
+
+fn DefineProperties(cx: *JSContext, obj: *JSObject, properties: *JSPropertySpec) -> bool {
+    unsafe { JS_DefineProperties(cx, obj, properties) != 0 }
+}
+
 fn CreateInterfacePrototypeObject(cx: *JSContext, global: *JSObject,
                                   parentProto: *JSObject, protoClass: *JSClass,
                                   methods: *JSFunctionSpec,
@@ -457,15 +486,15 @@ fn CreateInterfacePrototypeObject(cx: *JSContext, global: *JSObject,
         return ptr::null();
     }
 
-    if methods.is_not_null() /*&& !DefinePrefable(cx, ourProto, methods)*/ {
+    if methods.is_not_null() && !DefineMethods(cx, ourProto, methods) {
         return ptr::null();
     }
 
-    if properties.is_not_null() /*&& !DefinePrefable(cx, ourProto, properties)*/ {
+    if properties.is_not_null() && !DefineProperties(cx, ourProto, properties) {
         return ptr::null();
     }
 
-    if constants.is_not_null() /*&& !DefinePrefable(cx, ourProto, constants)*/ {
+    if constants.is_not_null() && !DefineConstants(cx, ourProto, constants) {
         return ptr::null();
     }
 
@@ -475,4 +504,15 @@ fn CreateInterfacePrototypeObject(cx: *JSContext, global: *JSObject,
 pub extern fn ThrowingConstructor(cx: *JSContext, argc: uint, vp: *JSVal) -> JSBool {
     //XXX should trigger exception here
     return 0;
+}
+
+pub fn initialize_global(global: *JSObject) {
+    let protoArray = @[0 as *JSObject, ..1]; //XXXjdm number of constructors
+    unsafe {
+        let box = squirrel_away(protoArray);
+        let inner = ptr::to_unsafe_ptr(&(*box).payload);
+        JS_SetReservedSlot(global,
+                           DOM_PROTOTYPE_SLOT,
+                           RUST_PRIVATE_TO_JSVAL(inner as *libc::c_void));
+    }
 }
