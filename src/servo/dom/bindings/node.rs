@@ -38,6 +38,12 @@ pub fn init(compartment: @mut Compartment) {
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: {op: getNodeType, info: null()},
+         setter: {op: null(), info: null()}},
+        
+        {name: null(),
+         tinyid: 0,
+         flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
+         getter: {op: null(), info: null()},
          setter: {op: null(), info: null()}}];
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {

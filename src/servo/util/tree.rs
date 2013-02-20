@@ -166,13 +166,13 @@ mod test {
 
     enum dtree { dtree }
 
-    impl dtree : ReadMethods<@dummy> {
+    impl ReadMethods<@dummy> for dtree {
         fn with_tree_fields<R>(d: &@dummy, f: fn(&Tree<@dummy>) -> R) -> R {
             f(&d.fields)
         }
     }
 
-    impl dtree : WriteMethods<@dummy> {
+    impl WriteMethods<@dummy> for dtree {
         fn with_tree_fields<R>(d: &@dummy, f: fn(&Tree<@dummy>) -> R) -> R {
             f(&d.fields)
         }
@@ -193,7 +193,7 @@ mod test {
             add_child(&dtree, p, *c);
         }
 
-        return {p: p, children: move children};
+        return {p: p, children: children};
     }
 
     #[test]

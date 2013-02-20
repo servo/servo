@@ -211,7 +211,7 @@ impl FlowTree {
     }
 }
 
-impl FlowTree : tree::ReadMethods<@FlowContext> {
+impl tree::ReadMethods<@FlowContext> for FlowTree {
     fn with_tree_fields<R>(box: &@FlowContext, f: fn(&tree::Tree<@FlowContext>) -> R) -> R {
         f(&box.d().tree)
     }
@@ -223,8 +223,7 @@ impl FlowTree {
     }
 }
 
-impl FlowTree : tree::WriteMethods<@FlowContext> {
-
+impl tree::WriteMethods<@FlowContext> for FlowTree {
     pure fn tree_eq(a: &@FlowContext, b: &@FlowContext) -> bool { core::managed::ptr_eq(*a, *b) }
 
     fn with_tree_fields<R>(box: &@FlowContext, f: fn(&tree::Tree<@FlowContext>) -> R) -> R {
@@ -233,7 +232,7 @@ impl FlowTree : tree::WriteMethods<@FlowContext> {
 }
 
 
-impl FlowContext : BoxedDebugMethods {
+impl BoxedDebugMethods for FlowContext {
     pure fn dump(@self) {
         self.dump_indent(0u);
     }
@@ -263,7 +262,7 @@ impl FlowContext : BoxedDebugMethods {
                     fmt!("%s b%d", *s, box.d().id)
                 });
                 s += ~")";
-                move s
+                s
             },
             BlockFlow(*) => {
                 match self.block().box {

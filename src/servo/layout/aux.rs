@@ -10,7 +10,7 @@ pub trait LayoutAuxMethods {
     fn initialize_style_for_subtree(refs: &DVec<@LayoutData>);
 }
 
-impl Node : LayoutAuxMethods {
+impl LayoutAuxMethods for Node {
     /** If none exists, creates empty layout data for the node (the reader-auxiliary
      * box in the COW model) and populates it with an empty style object.
      */

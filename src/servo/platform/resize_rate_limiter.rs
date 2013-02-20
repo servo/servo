@@ -18,7 +18,7 @@ pub struct ResizeRateLimiter {
 
 pub fn ResizeRateLimiter(dom_event_chan: pipes::SharedChan<Event>) -> ResizeRateLimiter {
     ResizeRateLimiter {
-        dom_event_chan: move dom_event_chan,
+        dom_event_chan: dom_event_chan,
         last_response_port: None,
         next_resize_event: None
     }
@@ -60,7 +60,7 @@ impl ResizeRateLimiter {
 
     priv fn send_event(width: uint, height: uint) {
         let (port, chan) = pipes::stream();
-        self.dom_event_chan.send(ResizeEvent(width, height, move chan));
-        self.last_response_port = Some(move port);
+        self.dom_event_chan.send(ResizeEvent(width, height, chan));
+        self.last_response_port = Some(port);
     }
 }

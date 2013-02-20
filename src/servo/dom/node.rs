@@ -35,7 +35,7 @@ impl NodeTree {
     }
 }
 
-impl NodeTree : tree::ReadMethods<Node> {
+impl tree::ReadMethods<Node> for NodeTree {
     fn with_tree_fields<R>(n: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {
         n.read(|n| f(&n.tree))
     }
@@ -53,7 +53,7 @@ impl Node {
     }
 }
 
-impl Node : DebugMethods {
+impl DebugMethods for Node {
     /* Dumps the subtree rooted at this node, for debugging. */
     pure fn dump(&self) {
         self.dump_indent(0u);
@@ -106,9 +106,9 @@ pub struct DoctypeData {
 pub fn DoctypeData(name: ~str, public_id: Option<~str>,
                system_id: Option<~str>, force_quirks: bool) -> DoctypeData {
     DoctypeData {
-        name : move name,
-        public_id : move public_id,
-        system_id : move system_id,
+        name : name,
+        public_id : public_id,
+        system_id : system_id,
         force_quirks : force_quirks,
     }
 }
@@ -146,9 +146,9 @@ pub trait NodeScopeExtensions {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-impl NodeScope : NodeScopeExtensions {
+impl NodeScopeExtensions for NodeScope {
     fn new_node(k: NodeKind) -> Node {
-        self.handle(&NodeData({tree: tree::empty(), kind: ~move k}))
+        self.handle(&NodeData({tree: tree::empty(), kind: ~k}))
     }
 }
 
@@ -163,7 +163,7 @@ impl NodeScope {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-impl NodeScope : tree::ReadMethods<Node> {
+impl tree::ReadMethods<Node> for NodeScope {
     fn with_tree_fields<R>(node: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {
         self.read(node, |n| f(&n.tree))
     }
@@ -176,7 +176,7 @@ impl NodeScope {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-impl NodeScope : tree::WriteMethods<Node> {
+impl tree::WriteMethods<Node> for NodeScope {
     pure fn tree_eq(a: &Node, b: &Node) -> bool { a == b }
 
     fn with_tree_fields<R>(node: &Node, f: fn(&tree::Tree<Node>) -> R) -> R {

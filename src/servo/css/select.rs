@@ -10,7 +10,7 @@ pub fn new_css_select_ctx() -> SelectCtx {
     let mut ctx = SelectCtx::new();
     ctx.append_sheet(html4_default_style(), OriginUA);
     ctx.append_sheet(servo_default_style(), OriginUA);
-    return move ctx;
+    return ctx;
 }
 
 fn html4_default_style() -> Stylesheet {
@@ -29,7 +29,7 @@ fn default_url(name: &str) -> Url {
 
 fn style_stream(style: &str) -> DataStream {
     let style = Cell(str::to_bytes(style));
-    let d: DataStream = |move style| if !style.is_empty() {
+    let d: DataStream = || if !style.is_empty() {
         Some(style.take())
     } else {
         None

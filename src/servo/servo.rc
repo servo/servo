@@ -127,14 +127,14 @@ fn run(opts: &Opts) {
 
 fn run_pipeline_screen(opts: &Opts) {
     let (dom_event_port, dom_event_chan) = pipes::stream();
-    let dom_event_chan = pipes::SharedChan(move dom_event_chan);
+    let dom_event_chan = pipes::SharedChan(dom_event_chan);
 
     // The platform event handler thread
     let osmain = OSMain(dom_event_chan.clone(), copy *opts);
 
     // Send each file to render then wait for keypress
     let (keypress_from_osmain, keypress_to_engine) = pipes::stream();
-    osmain.chan.send(AddKeyHandler(move keypress_to_engine));
+    osmain.chan.send(AddKeyHandler(keypress_to_engine));
 
     // Create a servo instance
     let resource_task = ResourceTask();
@@ -149,7 +149,7 @@ fn run_pipeline_screen(opts: &Opts) {
     for opts.urls.each |filename| {
         let url = make_url(copy *filename, None);
         debug!("master: Sending url `%s`", url.to_str());
-        engine_task.send(LoadURLMsg(move url));
+        engine_task.send(LoadURLMsg(url));
         debug!("master: Waiting for keypress");
 
         match keypress_from_osmain.try_recv() {
@@ -161,7 +161,7 @@ fn run_pipeline_screen(opts: &Opts) {
     // Shut everything down
     debug!("master: Shut down");
     let (exit_response_from_engine, exit_chan) = pipes::stream();
-    engine_task.send(engine::ExitMsg(move exit_chan));
+    engine_task.send(engine::ExitMsg(exit_chan));
     exit_response_from_engine.recv();
 
     osmain.chan.send(platform::osmain::Exit);
@@ -182,15 +182,18 @@ fn run_pipeline_png(url: ~str, outfile: &str) {
 
     listen(|pngdata_from_compositor| {
         let (dom_event_port, dom_event_chan) = pipes::stream();
-        let dom_event_chan = pipes::SharedChan(move dom_event_chan);
+        let dom_event_chan = pipes::SharedChan(dom_event_chan);
 
         let compositor = PngCompositor(pngdata_from_compositor);
         let resource_task = ResourceTask();
         // For the PNG pipeline we are using a synchronous image task so that all images will be
         // fulfilled before the first paint.
         let image_cache_task = SyncImageCacheTask(resource_task);
-        let engine_task = Engine(copy compositor, move dom_event_port, move dom_event_chan,
-                                 move resource_task, move image_cache_task);
+        let engine_task = Engine(copy compositor,
+                                 dom_event_port,
+                                 dom_event_chan,
+                                 resource_task,
+                                 image_cache_task);
         engine_task.send(LoadURLMsg(make_url(copy url, None)));
 
         match buffered_file_writer(&Path(outfile)) {
@@ -199,7 +202,7 @@ fn run_pipeline_png(url: ~str, outfile: &str) {
         }
 
         let (exit_chan, exit_response_from_engine) = pipes::stream();
-        engine_task.send(engine::ExitMsg(move exit_chan));
+        engine_task.send(engine::ExitMsg(exit_chan));
         exit_response_from_engine.recv();
         compositor.send(png_compositor::Exit);
     })

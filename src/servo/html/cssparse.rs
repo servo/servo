@@ -24,12 +24,12 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
                      -> Port<Stylesheet> {
     let (result_port, result_chan) = pipes::stream();
 
-    let provenance_cell = Cell(move provenance);
-    do task::spawn |move provenance_cell, copy resource_task| {
+    let provenance_cell = Cell(provenance);
+    do task::spawn |copy resource_task| {
         let url = do provenance_cell.with_ref |p| {
             match *p {
-                UrlProvenance(copy the_url) => move the_url,
-                InlineProvenance(copy the_url, _) => move the_url
+                UrlProvenance(copy the_url) => the_url,
+                InlineProvenance(copy the_url, _) => the_url
             }
         };
 
@@ -42,14 +42,14 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
 }
 
 fn data_stream(provenance: StylesheetProvenance, resource_task: ResourceTask) -> DataStream {
-    match move provenance {
-        UrlProvenance(move url) => {
+    match provenance {
+        UrlProvenance(url) => {
             let (input_port, input_chan) = pipes::stream();
-            resource_task.send(Load(move url, input_chan));
+            resource_task.send(Load(url, input_chan));
             resource_port_to_data_stream(input_port)
         }
-        InlineProvenance(_, move data) => {
-            data_to_data_stream(move data)
+        InlineProvenance(_, data) => {
+            data_to_data_stream(data)
         }
     }
 }
@@ -57,15 +57,15 @@ fn data_stream(provenance: StylesheetProvenance, resource_task: ResourceTask) ->
 fn resource_port_to_data_stream(input_port: Port<ProgressMsg>) -> DataStream {
     return || {
         match input_port.recv() {
-            Payload(move data) => Some(move data),
+            Payload(data) => Some(data),
             Done(*) => None
         }
     }
 }
 
 fn data_to_data_stream(data: ~str) -> DataStream {
-    let data_cell = Cell(move data);
-    return |move data_cell| {
+    let data_cell = Cell(data);
+    return || {
         if data_cell.is_empty() {
             None
         } else {

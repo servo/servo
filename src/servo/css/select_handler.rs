@@ -13,7 +13,7 @@ fn with_node_name<R>(data: &NodeData, f: &fn(&str) -> R) -> R {
     }
 }
 
-impl NodeSelectHandler: SelectHandler<Node> {
+impl SelectHandler<Node> for NodeSelectHandler {
     fn with_node_name<R>(node: &Node, f: &fn(&str) -> R) -> R {
         do node.read |data| {
             with_node_name(data, f)

@@ -6,7 +6,7 @@ trait FlowContextTraversals {
     fn traverse_postorder(postorder_cb: &fn(@FlowContext));
 }
 
-impl @FlowContext : FlowContextTraversals {
+impl FlowContextTraversals for @FlowContext {
     fn traverse_preorder(preorder_cb: &fn(@FlowContext)) {
         preorder_cb(self);
         do FlowTree.each_child(self) |child| { child.traverse_preorder(preorder_cb); true }

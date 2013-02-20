@@ -41,7 +41,7 @@ pub fn TimerData(argc: libc::c_uint, argv: *JSVal) -> TimerData {
             i += 1;
         };
 
-        move data
+        data
     }
 }
 
@@ -72,13 +72,12 @@ impl Window {
 pub fn Window(content_chan: pipes::SharedChan<ControlMsg>) -> Window {
         
     Window {
-        timer_chan: do spawn_listener |timer_port: Port<TimerControlMsg>,
-                                       move content_chan| {
+        timer_chan: do spawn_listener |timer_port: Port<TimerControlMsg>| {
             loop {
-                match move timer_port.recv() {
+                match timer_port.recv() {
                     TimerMessage_Close => break,
-                    TimerMessage_Fire(move td) => {
-                        content_chan.send(Timer(move td));
+                    TimerMessage_Fire(td) => {
+                        content_chan.send(Timer(td));
                     }
                     TimerMessage_TriggerExit => content_chan.send(ExitMsg)
                 }

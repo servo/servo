@@ -32,8 +32,7 @@ pub trait RootLayout {
                                c: &Point2D<Au>, d: &Mut<DisplayList>);
 }
 
-impl FlowContext : RootLayout {
-
+impl RootLayout for FlowContext {
     pure fn starts_root_flow() -> bool {
         match self {
             RootFlow(*) => true,

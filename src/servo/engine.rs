@@ -59,8 +59,8 @@ pub fn Engine<C:Compositor + Owned + Clone>(compositor: C,
             render_task: render_task,
             resource_task: resource_task.clone(),
             image_cache_task: image_cache_task.clone(),
-            layout_task: move layout_task,
-            content_task: move content_task
+            layout_task: layout_task,
+            content_task: content_task
         }.run();
     }
 }
@@ -73,23 +73,23 @@ impl<C:Compositor + Owned + Clone> Engine<C> {
     }
 
     fn handle_request(request: Msg) -> bool {
-        match move request {
-          LoadURLMsg(move url) => {
+        match request {
+          LoadURLMsg(url) => {
             if url.path.ends_with(".js") {
-                self.content_task.send(ExecuteMsg(move url))
+                self.content_task.send(ExecuteMsg(url))
             } else {
-                self.content_task.send(ParseMsg(move url))
+                self.content_task.send(ParseMsg(url))
             }
             return true;
           }
 
-          ExitMsg(move sender) => {
+          ExitMsg(sender) => {
             self.content_task.send(content_task::ExitMsg);
             self.layout_task.send(layout_task::ExitMsg);
             
             let (response_port, response_chan) = pipes::stream();
 
-            self.render_task.send(render_task::ExitMsg(move response_chan));
+            self.render_task.send(render_task::ExitMsg(response_chan));
             response_port.recv();
 
             self.image_cache_task.exit();

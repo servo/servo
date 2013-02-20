@@ -40,8 +40,7 @@ pub trait BlockLayout {
                                 d: &Mut<DisplayList>);
 }
 
-impl FlowContext : BlockLayout {
-
+impl BlockLayout for FlowContext {
     pure fn starts_block_flow() -> bool {
         match self {
             RootFlow(*) | BlockFlow(*) | InlineBlockFlow(*) => true,

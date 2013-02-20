@@ -13,7 +13,7 @@ pub trait MatchMethods {
     fn restyle_subtree(select_ctx: &SelectCtx);
 }
 
-impl Node : MatchMethods {
+impl MatchMethods for Node {
     /**
      * Performs CSS selector matching on a subtree.
 
@@ -30,8 +30,8 @@ impl Node : MatchMethods {
             };
             let incomplete_results = select_ctx.select_style(&self, &select_handler);
             // Combine this node's results with its parent's to resolve all inherited values
-            let complete_results = compose_results(&self, move incomplete_results);
-            self.set_css_select_results(move complete_results);
+            let complete_results = compose_results(&self, incomplete_results);
+            self.set_css_select_results(complete_results);
         }
 
         let mut i = 0u;
@@ -45,10 +45,10 @@ impl Node : MatchMethods {
 
 fn compose_results(node: &Node, results: SelectResults) -> CompleteSelectResults {
     match find_parent_element_node(node) {
-        None => CompleteSelectResults::new_root(move results),
+        None => CompleteSelectResults::new_root(results),
         Some(parent_node) => {
             let parent_results = parent_node.get_css_select_results();
-            CompleteSelectResults::new_from_parent(parent_results, move results)
+            CompleteSelectResults::new_from_parent(parent_results, results)
         }
     }    
 }

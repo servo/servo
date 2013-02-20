@@ -31,7 +31,7 @@ impl NodeUtil for Node {
     Update the computed style of an HTML element with a style specified by CSS.
     */
     fn set_css_select_results(decl : CompleteSelectResults) {
-        let decl = Cell(move decl);
+        let decl = Cell(decl);
         do self.aux |data| {
             data.style = Some(decl.take())
         }

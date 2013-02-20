@@ -28,7 +28,7 @@ pub unsafe fn squirrel_away<T>(x: @T) -> *rust_box<T> {
 
 pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *rust_box<T> {
     let y: *rust_box<T> = cast::reinterpret_cast(&x);
-    cast::forget(move x);
+    cast::forget(x);
     y
 }
 
@@ -97,7 +97,7 @@ extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *JSVal, bp: *mut JSB
 }
 
 pub fn prototype_jsclass(name: ~str) -> @fn(compartment: @mut Compartment) -> JSClass {
-    let f: @fn(@mut Compartment) -> JSClass = |compartment: @mut Compartment, move name| {
+    let f: @fn(@mut Compartment) -> JSClass = |compartment: @mut Compartment| {
         JSClass {
             name: compartment.add_name(copy name),
             flags: 0,
@@ -129,7 +129,7 @@ pub fn prototype_jsclass(name: ~str) -> @fn(compartment: @mut Compartment) -> JS
 
 pub fn instance_jsclass(name: ~str, finalize: *u8)
                      -> @fn(compartment: @mut Compartment) -> JSClass {
-    let f: @fn(@mut Compartment) -> JSClass = |compartment: @mut Compartment, move name| {
+    let f: @fn(@mut Compartment) -> JSClass = |compartment: @mut Compartment| {
         JSClass {
             name: compartment.add_name(copy name),
             flags: JSCLASS_HAS_RESERVED_SLOTS(1),
@@ -166,9 +166,10 @@ pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: @mut
 
     //TODO error checking
     let obj = result::unwrap(
-        match move proto {
-            Some(move s) => compartment.new_object_with_proto(copy name, move s, 
-                                                        compartment.global_obj.ptr),
+        match proto {
+            Some(s) => compartment.new_object_with_proto(copy name,
+                                                         s, 
+                                                         compartment.global_obj.ptr),
             None => compartment.new_object(copy name, null(), compartment.global_obj.ptr)
         });
 
@@ -176,6 +177,6 @@ pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: @mut
                                 GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
                                 GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
                                 JSPROP_ENUMERATE);
-    compartment.stash_global_proto(move name, obj);
+    compartment.stash_global_proto(name, obj);
     return obj;
 }

@@ -70,7 +70,7 @@ fn css_link_listener(to_parent: Chan<Option<Stylesheet>>,
 
     // Send the sheets back in order
     // FIXME: Shouldn't wait until after we've recieved CSSTaskExit to start sending these
-    do vec::consume(move result_vec) |_i, port| {
+    do vec::consume(result_vec) |_i, port| {
         to_parent.send(Some(port.recv()));
     }
     to_parent.send(None);
@@ -83,7 +83,7 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
 
     loop {
         match from_parent.recv() {
-            JSTaskNewFile(move url) => {
+            JSTaskNewFile(url) => {
                 let (result_port, result_chan) = pipes::stream();
                 let resource_task = resource_task.clone();
                 do task::spawn {
@@ -94,11 +94,11 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
                     let mut buf = ~[];
                     loop {
                         match input_port.recv() {
-                            Payload(move data) => {
+                            Payload(data) => {
                                 buf += data;
                             }
                             Done(Ok(*)) => {
-                                result_chan.send(move buf);
+                                result_chan.send(buf);
                                 break;
                             }
                             Done(Err(*)) => {
@@ -116,7 +116,7 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
     }
 
     let js_scripts = vec::map(result_vec, |result_port| result_port.recv());
-    to_parent.send(move js_scripts);
+    to_parent.send(js_scripts);
 }
 
 fn build_element_kind(tag: &str) -> ~ElementKind {
@@ -185,7 +185,7 @@ pub fn parse_html(scope: NodeScope,
     };
     let js_chan = SharedChan(js_chan);
 
-    let (scope, url) = (@copy scope, @move url);
+    let (scope, url) = (@copy scope, @url);
 
     unsafe {
         // Build the root node.
@@ -208,9 +208,9 @@ pub fn parse_html(scope: NodeScope,
                                 ~HTMLStyleElement => {
                                     debug!("found inline CSS stylesheet");
                                     let url = url::from_str("http://example.com/"); // FIXME
-                                    let provenance = InlineProvenance(result::unwrap(move url),
+                                    let provenance = InlineProvenance(result::unwrap(url),
                                                                       copy *data);
-                                    css_chan2.send(CSSTaskNewFile(move provenance));
+                                    css_chan2.send(CSSTaskNewFile(provenance));
                                 }
                                 _ => {} // Nothing to do.
                             }
@@ -225,7 +225,7 @@ pub fn parse_html(scope: NodeScope,
         parser.set_tree_handler(@hubbub::TreeHandler {
             create_comment: |data: ~str| {
                 debug!("create comment");
-                let new_node = scope.new_node(Comment(move data));
+                let new_node = scope.new_node(Comment(data));
                 unsafe { cast::transmute(cow::unwrap(new_node)) }
             },
             create_doctype: |doctype: ~hubbub::Doctype| {
@@ -240,17 +240,19 @@ pub fn parse_html(scope: NodeScope,
                   &None => None,
                   &Some(ref id) => Some(copy *id)
                 };
-                let data = DoctypeData(copy doctype.name, move public_id, move system_id,
+                let data = DoctypeData(copy doctype.name,
+                                       public_id,
+                                       system_id,
                                        copy doctype.force_quirks);
-                let new_node = scope.new_node(Doctype(move data));
+                let new_node = scope.new_node(Doctype(data));
                 unsafe { cast::transmute(cow::unwrap(new_node)) }
             },
-            create_element: |tag: ~hubbub::Tag, move image_cache_task| {
+            create_element: |tag: ~hubbub::Tag| {
                 debug!("create element");
                 // TODO: remove copying here by using struct pattern matching to 
                 // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
                 let elem_kind = build_element_kind(tag.name);
-                let elem = ElementData(copy tag.name, move elem_kind);
+                let elem = ElementData(copy tag.name, elem_kind);
 
                 debug!("-- attach attrs");
                 for tag.attributes.each |attr| {
@@ -262,7 +264,7 @@ pub fn parse_html(scope: NodeScope,
                     //Handle CSS style sheets from <link> elements
                     ~HTMLLinkElement => {
                         match (elem.get_attr(~"rel"), elem.get_attr(~"href")) {
-                            (Some(move rel), Some(move href)) => {
+                            (Some(rel), Some(href)) => {
                                 if rel == ~"stylesheet" {
                                     debug!("found CSS stylesheet: %s", href);
                                     css_chan2.send(CSSTaskNewFile(UrlProvenance(make_url(
@@ -278,18 +280,18 @@ pub fn parse_html(scope: NodeScope,
                             d.image = Some(copy img_url);
                             // inform the image cache to load this, but don't store a handle.
                             // TODO (Issue #84): don't prefetch if we are within a <noscript> tag.
-                            image_cache_task.send(image_cache_task::Prefetch(move img_url));
+                            image_cache_task.send(image_cache_task::Prefetch(img_url));
                         }
                     }
                     //TODO (Issue #86): handle inline styles ('style' attr)
                     _ => {}
                 }
-                let node = scope.new_node(Element(move elem));
+                let node = scope.new_node(Element(elem));
                 unsafe { cast::transmute(cow::unwrap(node)) }
             },
             create_text: |data: ~str| {
                 debug!("create text");
-                let new_node = scope.new_node(Text(move data));
+                let new_node = scope.new_node(Text(data));
                 unsafe { cast::transmute(cow::unwrap(new_node)) }
             },
             ref_node: |_node| {},
@@ -318,7 +320,7 @@ pub fn parse_html(scope: NodeScope,
                     if deep { error!("-- deep clone unimplemented"); }
                     let n: Node = cow::wrap(cast::transmute(node));
                     let data = n.read(|read_data| copy *read_data.kind);
-                    let new_node = scope.new_node(move data);
+                    let new_node = scope.new_node(data);
                     cast::transmute(cow::unwrap(new_node))
                 }
             },
@@ -358,10 +360,10 @@ pub fn parse_html(scope: NodeScope,
                             match *node_contents.kind {
                                 Element(ref element) if element.tag_name == ~"script" => {
                                     match element.get_attr(~"src") {
-                                        Some(move src) => {
+                                        Some(src) => {
                                             debug!("found script: %s", src);
-                                            let new_url = make_url(move src, Some(copy *url));
-                                            js_chan.send(JSTaskNewFile(move new_url));
+                                            let new_url = make_url(src, Some(copy *url));
+                                            js_chan.send(JSTaskNewFile(new_url));
                                         }
                                         None => {}
                                     }

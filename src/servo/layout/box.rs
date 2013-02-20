@@ -560,7 +560,7 @@ impl RenderBox  {
                 weight: FontWeight300,
                 italic: italic,
                 oblique: oblique,
-                families: move font_families,
+                families: font_families,
             }
         }
     }
@@ -573,7 +573,7 @@ impl RenderBox  {
     }
 }
 
-impl RenderBox : BoxedDebugMethods {
+impl BoxedDebugMethods for RenderBox {
     pure fn dump(@self) {
         self.dump_indent(0u);
     }
@@ -609,7 +609,7 @@ impl RenderBox {
         while !node.is_element() {
             match NodeTree.get_parent(&node) {
                 None => fail!(~"no nearest element?!"),
-                Some(move parent) => node = move parent,
+                Some(parent) => node = parent,
             }
         }
         node
@@ -621,7 +621,7 @@ trait ToGfxColor {
     fn to_gfx_color(&self) -> gfx::color::Color;
 }
 
-impl Color: ToGfxColor {
+impl ToGfxColor for Color {
     fn to_gfx_color(&self) -> gfx::color::Color {
         gfx::color::rgba(self.red,
                          self.green,

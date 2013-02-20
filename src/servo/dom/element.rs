@@ -35,7 +35,7 @@ impl ElementData {
     fn set_attr(name: &str, value: ~str) {
         let idx = do self.attrs.position |attr| { name == attr.name };
         match idx {
-            Some(idx) => self.attrs.set_elt(idx, ~Attr(name.to_str(), move value)),
+            Some(idx) => self.attrs.set_elt(idx, ~Attr(name.to_str(), value)),
             None => {}
         }
     }
@@ -43,8 +43,8 @@ impl ElementData {
 
 pub fn ElementData(tag_name: ~str, kind: ~ElementKind) -> ElementData {
     ElementData {
-        tag_name : move tag_name,
-        kind : move kind,
+        tag_name : tag_name,
+        kind : kind,
         attrs : DVec(),
     }
 }
@@ -56,8 +56,8 @@ pub struct Attr {
 
 pub fn Attr(name: ~str, value: ~str) -> Attr {
     Attr {
-        name : move name,
-        value : move value,
+        name : name,
+        value : value,
     }
 }
 

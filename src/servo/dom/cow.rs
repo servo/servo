@@ -80,7 +80,7 @@ struct ScopeResource<T,A> {
 }
 
 fn ScopeResource<T:Owned,A>(d : ScopeData<T,A>) -> ScopeResource<T,A> {
-    ScopeResource { d: move d }
+    ScopeResource { d: d }
 }
 
 pub type Scope<T,A> = @ScopeResource<T,A>;
@@ -143,7 +143,7 @@ impl<T:Owned,A> Handle<T,A> {
     }
 }
 
-impl <T: Owned,A> Handle<T,A> : cmp::Eq {
+impl<T:Owned,A> cmp::Eq for Handle<T,A> {
     pure fn eq(&self, other: &Handle<T,A>) -> bool { **self == **other }
     pure fn ne(&self, other: &Handle<T,A>) -> bool { **self != **other }
 }
@@ -166,7 +166,7 @@ impl<T: Copy Owned,A> Scope<T,A> {
 }
 
 unsafe fn free<T>(t: *T) {
-    let _x = move *cast::reinterpret_cast::<*T,*mut T>(&t);
+    let _x = *cast::reinterpret_cast::<*T,*mut T>(&t);
     libc::free(cast::reinterpret_cast(&t));
 }
 

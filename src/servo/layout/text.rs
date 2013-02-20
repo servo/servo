@@ -29,14 +29,14 @@ pub fn adapt_textbox_with_range(box_data: &RenderBoxData, run: @TextRun,
     let new_text_data = TextBoxData(run, range);
     let metrics = run.metrics_for_range(range);
     new_box_data.position.size = metrics.bounding_box.size;
-    @TextBox(move new_box_data, move new_text_data)
+    @TextBox(new_box_data, new_text_data)
 }
 
 pub trait UnscannedMethods {
     pure fn raw_text(&self) -> ~str;
 }
 
-impl RenderBox : UnscannedMethods {
+impl UnscannedMethods for RenderBox {
     pure fn raw_text(&self) -> ~str {
         match self {
             &UnscannedTextBox(_, ref s) => copy *s,

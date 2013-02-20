@@ -270,7 +270,7 @@ impl BuilderContext {
             _ => self.clone()
         };
 
-        Some(move containing_context)
+        Some(containing_context)
     }
 }
 
@@ -284,8 +284,8 @@ impl LayoutTreeBuilder {
     fn construct_recursively(layout_ctx: &LayoutContext, cur_node: Node, parent_ctx: &BuilderContext) {
         debug!("Considering node: %s", cur_node.debug_str());
 
-        let this_ctx = match move parent_ctx.containing_context_for_node(cur_node, &self) {
-            Some(move ctx) => move ctx,
+        let this_ctx = match parent_ctx.containing_context_for_node(cur_node, &self) {
+            Some(ctx) => ctx,
             None => { return; } // no context because of display: none. Stop building subtree. 
         };
         debug!("point a: %s", cur_node.debug_str());
@@ -389,13 +389,13 @@ impl LayoutTreeBuilder {
     fn make_flow(ty : FlowContextType) -> @FlowContext {
         let data = FlowData(self.next_flow_id());
         let ret = match ty {
-            Flow_Absolute    => @AbsoluteFlow(move data),
-            Flow_Block       => @BlockFlow(move data, BlockFlowData()),
-            Flow_Float       => @FloatFlow(move data),
-            Flow_InlineBlock => @InlineBlockFlow(move data),
-            Flow_Inline      => @InlineFlow(move data, InlineFlowData()),
-            Flow_Root        => @RootFlow(move data, RootFlowData()),
-            Flow_Table       => @TableFlow(move data)
+            Flow_Absolute    => @AbsoluteFlow(data),
+            Flow_Block       => @BlockFlow(data, BlockFlowData()),
+            Flow_Float       => @FloatFlow(data),
+            Flow_InlineBlock => @InlineBlockFlow(data),
+            Flow_Inline      => @InlineFlow(data, InlineFlowData()),
+            Flow_Root        => @RootFlow(data, RootFlowData()),
+            Flow_Table       => @TableFlow(data)
         };
         debug!("LayoutTreeBuilder: created flow: %s", ret.debug_str());
         ret
@@ -430,7 +430,7 @@ impl LayoutTreeBuilder {
                             let holder = ImageHolder::new({copy *d.image.get_ref()},
                                                            layout_ctx.image_cache);
 
-                            @ImageBox(RenderBoxData(node, ctx, self.next_box_id()), move holder)
+                            @ImageBox(RenderBoxData(node, ctx, self.next_box_id()), holder)
                         } else {
                             info!("Tried to make image box, but couldn't find image. Made generic box instead.");
                             self.make_generic_box(layout_ctx, node, ctx)

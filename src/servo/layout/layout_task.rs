@@ -115,7 +115,7 @@ fn Layout(render_task: RenderTask,
     Layout {
         render_task: render_task,
         image_cache_task: image_cache_task.clone(),
-        local_image_cache: @LocalImageCache(move image_cache_task),
+        local_image_cache: @LocalImageCache(image_cache_task),
         from_content: from_content,
         font_ctx: fctx,
         layout_refs: DVec(),
@@ -134,11 +134,11 @@ impl Layout {
     fn handle_request() -> bool {
 
         match self.from_content.recv() {
-            AddStylesheet(move sheet) => {
-                self.handle_add_stylesheet(move sheet);
+            AddStylesheet(sheet) => {
+                self.handle_add_stylesheet(sheet);
             }
-            BuildMsg(move data) => {
-                let data = Cell(move data);
+            BuildMsg(data) => {
+                let data = Cell(data);
 
                 do time("layout: performing layout") {
                     self.handle_build(data.take());
@@ -161,7 +161,7 @@ impl Layout {
     }
 
     fn handle_add_stylesheet(sheet: Stylesheet) {
-        let sheet = Cell(move sheet);
+        let sheet = Cell(sheet);
         do self.css_select_ctx.borrow_mut |ctx| {
             ctx.append_sheet(sheet.take(), OriginAuthor);
         }
@@ -180,7 +180,7 @@ impl Layout {
         debug!("%?", node.dump());
 
         // Reset the image cache
-        self.local_image_cache.next_round(self.make_on_image_available_cb(move dom_event_chan));
+        self.local_image_cache.next_round(self.make_on_image_available_cb(dom_event_chan));
 
         let screen_size = Size2D(Au::from_px(data.window_size.width as int),
                                  Au::from_px(data.window_size.height as int));
@@ -188,7 +188,7 @@ impl Layout {
         let layout_ctx = LayoutContext {
             image_cache: self.local_image_cache,
             font_ctx: self.font_ctx,
-            doc_url: move doc_url,
+            doc_url: doc_url,
             screen_size: Rect(Point2D(Au(0), Au(0)), screen_size)
         };
 
@@ -249,7 +249,7 @@ impl Layout {
                              screen_size.height.to_px() as uint)
             };
 
-            self.render_task.send(RenderMsg(move render_layer));
+            self.render_task.send(RenderMsg(render_layer));
         } // time(layout: display list building)
 
         // Tell content we're done
@@ -278,7 +278,7 @@ impl Layout {
                                 Some(rect) => {
                                     let size = Size2D(rect.size.width.to_px(),
                                                       rect.size.height.to_px());
-                                    Ok(ContentSize(move size))
+                                    Ok(ContentSize(size))
                                 }
                             }
                         }
@@ -300,12 +300,12 @@ impl Layout {
         // make multiple copies of the callback, and the dom event
         // channel is not a copyable type, so this is actually a
         // little factory to produce callbacks
-        let f: @fn() -> ~fn(ImageResponseMsg) = |move dom_event_chan| {
+        let f: @fn() -> ~fn(ImageResponseMsg) = || {
             let dom_event_chan = dom_event_chan.clone();
-            let f: ~fn(ImageResponseMsg) = |_msg, move dom_event_chan| {
+            let f: ~fn(ImageResponseMsg) = |_| {
                 dom_event_chan.send(ReflowEvent)
             };
-            move f
+            f
         };
         return f;
     }

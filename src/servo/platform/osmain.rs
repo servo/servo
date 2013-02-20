@@ -55,7 +55,7 @@ pub enum Msg {
 pub fn OSMain(dom_event_chan: pipes::SharedChan<Event>, opts: Opts) -> OSMain {
     let dom_event_chan = Cell(dom_event_chan);
     OSMain {
-        chan: SharedChan(on_osmain::<Msg>(|po, move dom_event_chan, move opts| {
+        chan: SharedChan(on_osmain::<Msg>(|po| {
             let po = Cell(po);
             do platform::runmain {
                 debug!("preparing to enter main loop");
@@ -80,7 +80,7 @@ struct AzureDrawTargetImageData {
     size: Size2D<uint>
 }
 
-impl AzureDrawTargetImageData : layers::layers::ImageData {
+impl layers::layers::ImageData for AzureDrawTargetImageData {
     fn size() -> Size2D<uint> { self.size }
     fn stride() -> uint { self.data_source_surface.get_size().width as uint }
     fn format() -> layers::layers::Format {
@@ -107,13 +107,13 @@ fn mainloop(mode: Mode,
 			glut::init_display_mode(glut::DOUBLE);
 			let glut_window = glut::create_window(~"Servo");
 			glut::reshape_window(glut_window, 800, 600);
-			window = GlutWindow(move glut_window);
+			window = GlutWindow(glut_window);
 		}
 		ShareMode => {
             let size = Size2D(800, 600);
 			let share_context: ShareGlContext = sharegl::base::ShareContext::new(size);
 			io::println(fmt!("Sharing ID is %d", share_context.id()));
-			window = ShareWindow(move share_context);
+			window = ShareWindow(share_context);
 		}
 	}
 
@@ -141,7 +141,7 @@ fn mainloop(mode: Mode,
                                       identity());
 
     let done = @mut false;
-    let resize_rate_limiter = @ResizeRateLimiter(move dom_event_chan);
+    let resize_rate_limiter = @ResizeRateLimiter(dom_event_chan);
     let check_for_messages = fn@() {
 
         // Periodically check if content responded to our last resize event
@@ -151,12 +151,12 @@ fn mainloop(mode: Mode,
         //#debug("osmain: peeking");
         while po.peek() {
             match po.recv() {
-                AddKeyHandler(move key_ch) => key_handlers.push(move key_ch),
-                BeginDrawing(move sender) => lend_surface(surfaces, move sender),
-                Draw(move sender, move draw_target) => {
+                AddKeyHandler(key_ch) => key_handlers.push(key_ch),
+                BeginDrawing(sender) => lend_surface(surfaces, sender),
+                Draw(sender, draw_target) => {
                     debug!("osmain: received new frame");
-                    return_surface(surfaces, move draw_target);
-                    lend_surface(surfaces, move sender);
+                    return_surface(surfaces, draw_target);
+                    lend_surface(surfaces, sender);
 
                     // Iterate over the children of the container layer.
                     let mut current_layer_child = root_layer.first_child;
@@ -207,7 +207,7 @@ fn mainloop(mode: Mode,
                             original_layer_transform.translate(x, y, 0.0)
                                 .scale(width as f32, height as f32, 1.0));
                     }
-                    surfaces.front.layer_buffer_set.buffers = move buffers;
+                    surfaces.front.layer_buffer_set.buffers = buffers;
                 }
                 Exit => {
                     *done = true;
@@ -277,10 +277,10 @@ compositor for the renderer
 */
 impl Compositor for OSMain {
     fn begin_drawing(next_dt: pipes::Chan<LayerBufferSet>) {
-        self.chan.send(BeginDrawing(move next_dt))
+        self.chan.send(BeginDrawing(next_dt))
     }
     fn draw(next_dt: pipes::Chan<LayerBufferSet>, draw_me: LayerBufferSet) {
-        self.chan.send(Draw(move next_dt, move draw_me))
+        self.chan.send(Draw(next_dt, draw_me))
     }
 }
 
@@ -302,12 +302,12 @@ fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBufferSet>) {
             stride: layer_buffer.stride
         };
         debug!("osmain: lending surface %?", layer_buffer);
-        move layer_buffer
+        layer_buffer
     };
-    surfaces.front.layer_buffer_set.buffers = move old_layer_buffers;
+    surfaces.front.layer_buffer_set.buffers = old_layer_buffers;
 
-    let new_layer_buffer_set = LayerBufferSet { buffers: move new_layer_buffers };
-    receiver.send(move new_layer_buffer_set);
+    let new_layer_buffer_set = LayerBufferSet { buffers: new_layer_buffers };
+    receiver.send(new_layer_buffer_set);
     // Now we don't have it
     surfaces.front.have = false;
     // But we (hopefully) have another!
@@ -322,7 +322,7 @@ fn return_surface(surfaces: &SurfaceSet, layer_buffer_set: LayerBufferSet) {
     assert surfaces.front.have;
     assert !surfaces.back.have;
 
-    surfaces.back.layer_buffer_set = move layer_buffer_set;
+    surfaces.back.layer_buffer_set = layer_buffer_set;
 
     // Now we have it again
     surfaces.back.have = true;
@@ -343,17 +343,17 @@ fn Surface(backend: BackendType) -> Surface {
         rect: Rect(Point2D(0u, 0u), Size2D(800u, 600u)),
         stride: 800
     };
-    let layer_buffer_set = LayerBufferSet { buffers: ~[ move layer_buffer ] };
-    Surface { layer_buffer_set: move layer_buffer_set, have: true }
+    let layer_buffer_set = LayerBufferSet { buffers: ~[ layer_buffer ] };
+    Surface { layer_buffer_set: layer_buffer_set, have: true }
 }
 
 /// A function for spawning into the platform's main thread
 fn on_osmain<T: Owned>(f: fn~(po: Port<T>)) -> Chan<T> {
     let (setup_po, setup_ch) = pipes::stream();
-    do task::task().sched_mode(task::PlatformThread).spawn |move f| {
+    do task::task().sched_mode(task::PlatformThread).spawn {
         let (po, ch) = pipes::stream();
         setup_ch.send(ch);
-        f(move po);
+        f(po);
     }
     setup_po.recv()
 }

@@ -9,7 +9,7 @@ pub trait StyledNode {
     fn style(&self) -> CompleteStyle/&self;
 }
 
-impl Node: StyledNode {
+impl StyledNode for Node {
     fn style(&self) -> CompleteStyle/&self {
         assert self.is_element(); // Only elements can have styles
         let results = self.get_css_select_results();

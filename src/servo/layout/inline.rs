@@ -183,7 +183,7 @@ priv impl TextRunScanner {
             debug!("TextRunScanner: swapping out boxes.");
             // swap out old and new box list of flow, by supplying
             // temp boxes as return value to boxes.swap |...|
-            dvec::unwrap(move out_boxes)
+            dvec::unwrap(out_boxes)
         }
 
         // helper functions
@@ -245,7 +245,7 @@ priv impl TextRunScanner {
                 // this is probably achieved by creating fontgroup above, and then letting FontGroup decide
                 // which Font to stick into the TextRun.
                 let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
-                let run = @fontgroup.create_textrun(move transformed_text);
+                let run = @fontgroup.create_textrun(transformed_text);
                 debug!("TextRunScanner: pushing single text box in range: %?", self.clump);
                 let new_box = layout::text::adapt_textbox_with_range(old_box.d(),
                                                                      run,
@@ -284,7 +284,7 @@ priv impl TextRunScanner {
                 // which Font to stick into the TextRun.
                 let font_style = in_boxes[self.clump.begin()].font_style();
                 let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
-                let run = @TextRun::new(fontgroup.fonts[0], move run_str);
+                let run = @TextRun::new(fontgroup.fonts[0], run_str);
                 debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
                 let clump = self.clump;
                 for clump.eachi |i| {
@@ -401,11 +401,11 @@ impl LineboxScanner {
                self.line_spans.len(), self.flow.d().id);
 
         do self.new_boxes.swap |boxes| {
-            self.flow.inline().boxes.set(move boxes);
+            self.flow.inline().boxes.set(boxes);
             ~[]
         };
         do self.line_spans.swap |boxes| {
-            self.flow.inline().lines.set(move boxes);
+            self.flow.inline().lines.set(boxes);
             ~[]
         };
     }
@@ -462,7 +462,7 @@ impl LineboxScanner {
         }
         // clear line and add line mapping
         debug!("LineboxScanner: Saving information for flushed line %u.", self.line_spans.len());
-        self.line_spans.push(move line_range);
+        self.line_spans.push(line_range);
         self.reset_linebox();
     }
 
@@ -591,7 +591,7 @@ pub trait InlineLayout {
                                  d: &Mut<DisplayList>);
 }
 
-impl FlowContext : InlineLayout {
+impl InlineLayout for FlowContext {
     pure fn starts_inline_flow() -> bool { match self { InlineFlow(*) => true, _ => false } }
 
     fn bubble_widths_inline(@self, ctx: &LayoutContext) {

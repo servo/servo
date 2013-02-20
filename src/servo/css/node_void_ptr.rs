@@ -6,7 +6,7 @@ use dom::node::Node;
 extern mod netsurfcss;
 use css::node_void_ptr::netsurfcss::util::VoidPtrLike;
 
-impl Node: VoidPtrLike {
+impl VoidPtrLike for Node {
     static fn from_void_ptr(node: *libc::c_void) -> Node {
         assert node.is_not_null();
         unsafe { cast::reinterpret_cast(&node) }

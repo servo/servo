@@ -36,6 +36,11 @@ pub fn init(compartment: @mut Compartment) {
          tinyid: 0,
          flags: (JSPROP_ENUMERATE | JSPROP_SHARED | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: {op: getTagName, info: null()},
+         setter: {op: null(), info: null()}},
+        {name: null(),
+         tinyid: 0,
+         flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
+         getter: {op: null(), info: null()},
          setter: {op: null(), info: null()}}];
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
@@ -56,7 +61,12 @@ pub fn init(compartment: @mut Compartment) {
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: {op: HTMLImageElement_getWidth, info: null()},
-         setter: {op: HTMLImageElement_setWidth, info: null()}}];
+         setter: {op: HTMLImageElement_setWidth, info: null()}},
+        {name: null(),
+         tinyid: 0,
+         flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
+         getter: {op: null(), info: null()},
+         setter: {op: null(), info: null()}}];
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
@@ -173,9 +183,9 @@ pub fn create(cx: *JSContext, node: Node, scope: NodeScope) -> jsobj {
     //XXXjdm the parent should probably be the node parent instead of the global
     //TODO error checking
     let compartment = utils::get_compartment(cx);
-    let obj = result::unwrap(
-        compartment.new_object_with_proto(~"GenericElementInstance", move proto,
-                                          compartment.global_obj.ptr));
+    let obj = result::unwrap(compartment.new_object_with_proto(~"GenericElementInstance",
+                                                               proto,
+                                                               compartment.global_obj.ptr));
  
     unsafe {
         let raw_ptr: *libc::c_void =

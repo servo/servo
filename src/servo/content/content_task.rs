@@ -76,7 +76,7 @@ pub fn ContentTask(layout_task: LayoutTask,
         content.start();
     }
 
-    return move control_chan;
+    return control_chan;
 }
 
 pub struct Content {
@@ -126,27 +126,27 @@ pub fn Content(layout_task: LayoutTask,
     };
 
     let content = @Content {
-        layout_task : move layout_task,
-        layout_join_port : None,
-        image_cache_task : move img_cache_task,
-        control_port : move control_port,
-        control_chan : move control_chan,
-        event_port : move event_port,
-        event_chan : move event_chan,
+        layout_task: layout_task,
+        layout_join_port: None,
+        image_cache_task: img_cache_task,
+        control_port: control_port,
+        control_chan: control_chan,
+        event_port: event_port,
+        event_chan: event_chan,
 
-        scope : NodeScope(),
-        jsrt : jsrt,
-        cx : cx,
+        scope: NodeScope(),
+        jsrt: jsrt,
+        cx: cx,
 
-        document    : None,
-        window      : None,
-        doc_url     : None,
-        window_size : Size2D(800u, 600u),
+        document:    None,
+        window:      None,
+        doc_url:     None,
+        window_size: Size2D(800u, 600u),
 
-        resource_task : resource_task,
-        compartment : compartment,
+        resource_task: resource_task,
+        compartment:   compartment,
 
-        damage : MatchSelectorsDamage,
+        damage: MatchSelectorsDamage,
     };
 
     cx.set_cx_private(ptr::to_unsafe_ptr(&*content) as *());
@@ -176,8 +176,8 @@ impl Content {
     }
 
     fn handle_control_msg(control_msg: ControlMsg) -> bool {
-        match move control_msg {
-          ParseMsg(move url) => {
+        match control_msg {
+          ParseMsg(url) => {
             debug!("content: Received url `%s` to parse", url_to_str(&url));
 
             // Note: we can parse the next document in parallel
@@ -195,8 +195,8 @@ impl Content {
               // and do not need to stop here in the content task
               loop {
                   match result.style_port.recv() {
-                      Some(move sheet) => {
-                          self.layout_task.send(AddStylesheet(move sheet));
+                      Some(sheet) => {
+                          self.layout_task.send(AddStylesheet(sheet));
                       }
                       None => break
                   }
@@ -211,9 +211,9 @@ impl Content {
             self.damage.add(MatchSelectorsDamage);
             self.relayout(&document, &url);
 
-            self.document = Some(@move document);
-            self.window   = Some(@move window);
-            self.doc_url = Some(move url);
+            self.document = Some(@document);
+            self.window   = Some(@window);
+            self.doc_url = Some(url);
 
             let compartment = option::expect(self.compartment, ~"TODO error checking");
             compartment.define_functions(debug_fns);
@@ -221,8 +221,8 @@ impl Content {
                             option::get(self.document),
                             option::get(self.window));
 
-            do vec::consume(move js_scripts) |_i, bytes| {
-                self.cx.evaluate_script(compartment.global_obj, move bytes, ~"???", 1u);
+            do vec::consume(js_scripts) |_i, bytes| {
+                self.cx.evaluate_script(compartment.global_obj, bytes, ~"???", 1u);
             }
 
             return true;
@@ -251,10 +251,10 @@ impl Content {
               Err(msg) => {
                 println(fmt!("Error opening %s: %s", url_to_str(&url), msg));
               }
-              Ok(move bytes) => {
+              Ok(bytes) => {
                 let compartment = option::expect(self.compartment, ~"TODO error checking");
                 compartment.define_functions(debug_fns);
-                self.cx.evaluate_script(compartment.global_obj, move bytes, copy url.path, 1u);
+                self.cx.evaluate_script(compartment.global_obj, bytes, copy url.path, 1u);
               }
             }
             return true;
@@ -307,7 +307,7 @@ impl Content {
 
         // Layout will let us know when it's done
         let (join_port, join_chan) = pipes::stream();
-        self.layout_join_port = move Some(move join_port);
+        self.layout_join_port = Some(join_port);
 
         // Send new document and relevant styles to layout
 
@@ -316,11 +316,11 @@ impl Content {
             url: copy *doc_url,
             dom_event_chan: self.event_chan.clone(),
             window_size: self.window_size,
-            content_join_chan: move join_chan,
+            content_join_chan: join_chan,
             damage: replace(&mut self.damage, NoDamage),
         };
 
-        self.layout_task.send(BuildMsg(move data));
+        self.layout_task.send(BuildMsg(data));
 
         // Indicate that reader was forked so any further
         // changes will be isolated.
