@@ -1,4 +1,5 @@
 #include "ClientRectBinding.h"
+#include "ClientRectListBinding.h"
 #include "nsScriptNameSpaceManager.h"
 
 namespace mozilla {
@@ -11,6 +12,7 @@ Register(nsScriptNameSpaceManager* aNameSpaceManager)
   aNameSpaceManager->RegisterDefineDOMInterface(NS_LITERAL_STRING(#_dom_class), _dom_class##Binding::DefineDOMInterface, _pref_check);
 
 REGISTER_PROTO(ClientRect, nullptr);
+REGISTER_PROTO(ClientRectList, nullptr);
 
 #undef REGISTER_PROTO
 }

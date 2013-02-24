@@ -1,7 +1,7 @@
 // DOM bindings for the Window object.
 
 use dom::bindings::node::create;
-use dom::bindings::utils::{rust_box, squirrel_away, jsval_to_str};
+use dom::bindings::utils::{rust_box, squirrel_away, jsval_to_str, CacheableWrapper};
 use dom::node::Node;
 use dom::window::{Window, TimerMessage_Fire};
 use super::utils;
@@ -127,4 +127,20 @@ pub fn init(compartment: @mut Compartment, win: @Window) {
     compartment.define_property(~"window", RUST_OBJECT_TO_JSVAL(obj.ptr),
                                 JS_PropertyStub, JS_StrictPropertyStub,
                                 JSPROP_ENUMERATE);
+
+    win.set_wrapper(obj.ptr);
+}
+
+pub impl CacheableWrapper for Window {
+    fn get_wrapper(@self) -> *JSObject {
+        self.wrapper
+    }
+
+    fn set_wrapper(@self, wrapper: *JSObject) {
+        self.wrapper = wrapper;
+    }
+
+    fn wrap_object(@self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+        fail!(~"should this be called?");
+    }
 }

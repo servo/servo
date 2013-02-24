@@ -11,7 +11,8 @@ use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_Repor
                          JS_GetClass, JS_GetPrototype, JS_LinkConstructorAndPrototype,
                          JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction,
                          JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject,
-                         JS_GetInternedStringCharsAndLength, JS_DefineProperties};
+                         JS_GetInternedStringCharsAndLength, JS_DefineProperties,
+                         JS_WrapValue};
 use js::jsfriendapi::bindgen::{DefineFunctionWithReserved, GetObjectJSClass,
                                JS_NewObjectWithUniqueType};
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB,
@@ -39,11 +40,11 @@ extern fn InterfaceObjectToString(cx: *JSContext, argc: uint, vp: *mut JSVal) ->
     let clasp: *JSClass = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(*v));
 
     let v = GetFunctionNativeReserved(callee, TOSTRING_NAME_RESERVED_SLOT);
-    let jsname: *JSString = RUST_JSVAL_TO_STRING(*v);
-    let length = 0;
-    let name = JS_GetInternedStringCharsAndLength(jsname, &length);
 
     if GetObjectJSClass(obj) != clasp {
+      /*let jsname: *JSString = RUST_JSVAL_TO_STRING(*v);
+      let length = 0;
+      let name = JS_GetInternedStringCharsAndLength(jsname, &length);*/
         //XXXjdm figure out JSMSG madness
         /*JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INCOMPATIBLE_PROTO,
                              NS_ConvertUTF16toUTF8(name).get(), "toString",
@@ -320,6 +321,7 @@ mod prototypes {
     mod id {
         pub enum Prototype {
             ClientRect,
+            ClientRectList,
             _ID_Count
         }
     }
@@ -507,12 +509,60 @@ pub extern fn ThrowingConstructor(cx: *JSContext, argc: uint, vp: *JSVal) -> JSB
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = @[0 as *JSObject, ..1]; //XXXjdm number of constructors
+    let protoArray = @[0 as *JSObject, ..2]; //XXXjdm number of constructors
     unsafe {
         let box = squirrel_away(protoArray);
         let inner = ptr::to_unsafe_ptr(&(*box).payload);
-        JS_SetReservedSlot(global,
-                           DOM_PROTOTYPE_SLOT,
+        JS_SetReservedSlot(global,                           DOM_PROTOTYPE_SLOT,
                            RUST_PRIVATE_TO_JSVAL(inner as *libc::c_void));
     }
+}
+
+pub trait CacheableWrapper {
+    fn get_wrapper(@self) -> *JSObject;
+    fn set_wrapper(@self, wrapper: *JSObject);
+    fn wrap_object(@self, cx: *JSContext, scope: *JSObject) -> *JSObject;
+}
+
+pub struct WrapperCache {
+    wrapper: *mut JSObject
+}
+
+pub fn WrapNewBindingObject<T: CacheableWrapper>(cx: *JSContext, scope: *JSObject,
+                                                 value: @T, vp: *mut JSVal) -> bool {
+  unsafe {
+    let obj = value.get_wrapper();
+    if obj.is_not_null() /*&& js::GetObjectCompartment(obj) == js::GetObjectCompartment(scope)*/ {
+        *vp = RUST_OBJECT_TO_JSVAL(obj);
+        return true;
+    }
+
+    let obj = if obj.is_not_null() {
+        obj
+    } else {
+        value.wrap_object(cx, scope)
+    };
+
+    if obj.is_null() {
+        return false;
+    }
+
+    //  MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
+    *vp = RUST_OBJECT_TO_JSVAL(obj);
+    return JS_WrapValue(cx, cast::transmute(vp)) != 0;
+  }
+}
+
+pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, p: @CacheableWrapper)
+    -> *JSObject {
+    let obj = p.get_wrapper();
+    if obj.is_not_null() {
+        return obj;
+    }
+
+    return ptr::null();
+}
+
+pub trait BindingObject {
+    fn GetParentObject(@self, cx: *JSContext) -> @CacheableWrapper;
 }

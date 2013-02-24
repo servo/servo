@@ -21,6 +21,7 @@ use core::task::{SingleThreaded, spawn, task};
 use core::io::{println, read_whole_file};
 use core::ptr::null;
 use core::util::replace;
+use core::hashmap::linear;
 use geom::size::Size2D;
 use gfx::resource::image_cache_task::ImageCacheTask;
 use gfx::resource::resource_task::ResourceTask;
@@ -92,6 +93,7 @@ pub struct Content {
 
     jsrt: jsrt,
     cx: @Cx,
+    mut proxy_handlers: linear::LinearMap<uint, *libc::c_void>,
 
     document: Option<@Document>,
     window:   Option<@Window>,
@@ -136,6 +138,7 @@ pub fn Content(layout_task: LayoutTask,
 
         jsrt : jsrt,
         cx : cx,
+        proxy_handlers: linear::LinearMap::new(),
 
         document    : None,
         window      : None,

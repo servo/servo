@@ -375,8 +375,11 @@ pub fn define_bindings(compartment: @mut Compartment, doc: @Document, win: @Wind
     bindings::node::init(compartment);
     bindings::element::init(compartment);
     bindings::utils::initialize_global(compartment.global_obj.ptr);
-    let unused = false;
+    let mut unused = false;
     assert bindings::ClientRectBinding::DefineDOMInterface(compartment.cx.ptr,
                                                            compartment.global_obj.ptr,
-                                                           ptr::mut_addr_of(&unused));
+                                                           &mut unused);
+    assert bindings::ClientRectListBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                               compartment.global_obj.ptr,
+                                                               &mut unused);
 }

@@ -1,3 +1,7 @@
+use dom::bindings::utils::{CacheableWrapper, WrapperCache};
+use dom::bindings::ClientRectBinding;
+use js::jsapi::{JSObject, JSContext};
+
 pub trait ClientRect {
     fn Top() -> f32;
     fn Bottom() -> f32;
@@ -7,14 +11,15 @@ pub trait ClientRect {
     fn Height() -> f32;
 }
 
-struct ClientRectImpl {
+pub struct ClientRectImpl {
+    mut wrapper: ~WrapperCache,
     top: f32,
     bottom: f32,
     left: f32,
     right: f32,
 }
 
-impl ClientRectImpl: ClientRect {
+pub impl ClientRect for ClientRectImpl {
     fn Top() -> f32 {
         self.top
     }
@@ -37,5 +42,20 @@ impl ClientRectImpl: ClientRect {
 
     fn Height() -> f32 {
         f32::abs(self.bottom - self.top)
+    }
+}
+
+pub impl CacheableWrapper for ClientRectImpl {
+    fn get_wrapper(@self) -> *JSObject {
+        unsafe { cast::transmute(self.wrapper.wrapper) }
+    }
+
+    fn set_wrapper(@self, wrapper: *JSObject) {
+        unsafe { self.wrapper.wrapper = cast::transmute(wrapper); }
+    }
+
+    fn wrap_object(@self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+        let mut unused = false;
+        ClientRectBinding::Wrap(cx, scope, self, &mut unused)
     }
 }

@@ -1,6 +1,7 @@
 use content::content_task::{Content, task_from_context};
 use dom::bindings::node::unwrap;
-use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval};
+use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment};
+use dom::bindings::utils::{domstring_to_jsval, WrapNewBindingObject};
 use dom::bindings::utils::{str};
 use dom::element::*;
 use dom::node::{AbstractNode, Node, Element, ElementNodeTypeId};
@@ -46,6 +47,15 @@ pub fn init(compartment: @mut Compartment) {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
     });
 
+    let methods = @~[JSFunctionSpec {name: compartment.add_name(~"getClientRects"),
+                                     call: JSNativeWrapper {op: getClientRects, info: null()},
+                                     nargs: 0,
+                                     flags: 0,
+                                     selfHostedName: null()}];
+    vec::as_imm_buf(*methods, |fns, _len| {
+        JS_DefineFunctions(compartment.cx.ptr, obj.ptr, fns);
+    });
+
     compartment.register_class(utils::instance_jsclass(~"GenericElementInstance",
                                                        finalize));
 
@@ -71,6 +81,25 @@ pub fn init(compartment: @mut Compartment) {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
     });
 }
+
+/*trait Element: utils::CacheableWrapper {
+    fn getClientRects() -> Option<@ClientRectListImpl>;
+}*/
+
+/*extern fn getClientRects(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
+  unsafe {
+    let self: @Element =
+        cast::reinterpret_cast(&utils::unwrap::<ElementData>(JS_THIS_OBJECT(cx, vp)));
+    let rval = self.getClientRects();
+    if rval.is_none() {
+      JS_SET_RVAL(cx, vp, JSVAL_NULL);
+    } else {
+      assert WrapNewBindingObject(cx, (self as utils::CacheableWrapper).get_wrapper(), rval.get(), cast::transmute(vp));
+    }
+    cast::forget(self);
+    return 1;
+  }
+}*/
 
 #[allow(non_implicitly_copyable_typarams)]
 extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
