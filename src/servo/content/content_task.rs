@@ -13,7 +13,8 @@ use layout::layout_task::{AddStylesheet, BuildData, BuildMsg, Damage, LayoutTask
 use layout::layout_task::{MatchSelectorsDamage, NoDamage, ReflowDamage};
 use util::task::spawn_listener;
 
-use core::pipes::{Port, Chan, SharedChan, select2};
+use core::comm::{Port, Chan, SharedChan};
+use core::pipes::select2i;
 use core::either;
 use core::task::{SingleThreaded, spawn, task};
 use core::io::{println, read_whole_file};
@@ -57,7 +58,7 @@ pub fn ContentTask(layout_task: LayoutTask,
                    resource_task: ResourceTask,
                    img_cache_task: ImageCacheTask)
                 -> ContentTask {
-    let (control_port, control_chan) = pipes::stream();
+    let (control_port, control_chan) = comm::stream();
 
     let control_chan = SharedChan(control_chan);
     let control_chan_copy = control_chan.clone();
@@ -81,13 +82,13 @@ pub fn ContentTask(layout_task: LayoutTask,
 
 pub struct Content {
     layout_task: LayoutTask,
-    mut layout_join_port: Option<pipes::Port<()>>,
+    mut layout_join_port: Option<comm::Port<()>>,
 
     image_cache_task: ImageCacheTask,
-    control_port: pipes::Port<ControlMsg>,
-    control_chan: pipes::SharedChan<ControlMsg>,
-    event_port: pipes::Port<Event>,
-    event_chan: pipes::SharedChan<Event>,
+    control_port: comm::Port<ControlMsg>,
+    control_chan: comm::SharedChan<ControlMsg>,
+    event_port: comm::Port<Event>,
+    event_chan: comm::SharedChan<Event>,
 
     scope: NodeScope,
     jsrt: jsrt,
@@ -107,12 +108,12 @@ pub struct Content {
 }
 
 pub fn Content(layout_task: LayoutTask, 
-               control_port: pipes::Port<ControlMsg>,
-               control_chan: pipes::SharedChan<ControlMsg>,
+               control_port: comm::Port<ControlMsg>,
+               control_chan: comm::SharedChan<ControlMsg>,
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask,
-               event_port: pipes::Port<Event>,
-               event_chan: pipes::SharedChan<Event>)
+               event_port: comm::Port<Event>,
+               event_chan: comm::SharedChan<Event>)
             -> @Content {
     let jsrt = jsrt();
     let cx = jsrt.cx();
@@ -169,7 +170,7 @@ impl Content {
     }
 
     fn handle_msg() -> bool {
-        match pipes::select2i(&self.control_port, &self.event_port) {
+        match select2i(&self.control_port, &self.event_port) {
             either::Left(*) => self.handle_control_msg(self.control_port.recv()),
             either::Right(*) => self.handle_event(self.event_port.recv())
         }
@@ -306,7 +307,7 @@ impl Content {
         self.join_layout();
 
         // Layout will let us know when it's done
-        let (join_port, join_chan) = pipes::stream();
+        let (join_port, join_chan) = comm::stream();
         self.layout_join_port = Some(join_port);
 
         // Send new document and relevant styles to layout
@@ -333,7 +334,7 @@ impl Content {
          self.relayout(self.document.get(), &(copy self.doc_url).get());
          self.join_layout();
 
-         let (response_port, response_chan) = pipes::stream();
+         let (response_port, response_chan) = comm::stream();
          self.layout_task.send(layout_task::QueryMsg(query, response_chan));
          return response_port.recv()
     }

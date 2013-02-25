@@ -17,10 +17,10 @@ use std::arc::ARC;
 use util::tree;
 use super::cow;
 
-pub enum NodeData = {
+pub struct NodeData {
     tree: tree::Tree<Node>,
     kind: ~NodeKind,
-};
+}
 
 /* The tree holding Nodes (read-only) */
 pub enum NodeTree { NodeTree }
@@ -124,14 +124,14 @@ pub fn define_bindings(compartment: @mut Compartment, doc: @Document, win: @Wind
 
 
 /** The COW rd_aux data is a (weak) pointer to the layout data,
-   defined by this `LayoutData` enum. It contains the CSS style object
+   defined by this `LayoutData` struct. It contains the CSS style object
    as well as the primary `RenderBox`.
 
    Note that there may be multiple boxes per DOM node. */
-enum LayoutData = {
+pub struct LayoutData {
     mut style: Option<CompleteSelectResults>,
     mut flow:  Option<@FlowContext>
-};
+}
 
 pub type Node = cow::Handle<NodeData, LayoutData>;
 
@@ -148,7 +148,7 @@ pub trait NodeScopeExtensions {
 #[allow(non_implicitly_copyable_typarams)]
 impl NodeScopeExtensions for NodeScope {
     fn new_node(k: NodeKind) -> Node {
-        self.handle(&NodeData({tree: tree::empty(), kind: ~k}))
+        self.handle(&NodeData {tree: tree::empty(), kind: ~k})
     }
 }
 

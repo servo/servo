@@ -1,4 +1,4 @@
-use pipes::{Chan, SharedChan};
+use comm::{Chan, SharedChan};
 use task::spawn;
 use resource::resource_task::{ProgressMsg, Payload, Done, LoaderTask};
 use std::cell::Cell;

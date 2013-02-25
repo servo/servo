@@ -188,7 +188,10 @@ pub impl FontContext {
                 let result_handle = self.handle.create_font_from_identifier(copy *identifier,
                                                                             copy desc.style);
                 result::chain(result_handle, |handle| {
-                    Ok(Font::new_from_adopted_handle(&self, handle, &desc.style, self.backend))
+                    Ok(Font::new_from_adopted_handle(&self,
+                                                     handle,
+                                                     &desc.style,
+                                                     self.backend))
                 })
             }
         };

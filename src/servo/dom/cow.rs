@@ -63,11 +63,11 @@ use core::libc::types::os::arch::c95::size_t;
 use ptr::Ptr;
 use vec::push;
 
-type ScopeData<T,A> = {
+struct ScopeData<T,A> {
     mut layout_active: bool,
     mut free_list: ~[Handle<T,A>],
     mut first_dirty: Handle<T,A>
-};
+}
 
 struct ScopeResource<T,A> {
     d : ScopeData<T,A>,
@@ -149,7 +149,7 @@ impl<T:Owned,A> cmp::Eq for Handle<T,A> {
 }
 
 // Private methods
-impl<T: Copy Owned,A> Scope<T,A> {
+impl<T: Copy + Owned,A> Scope<T,A> {
     fn clone(v: *T) -> *T {
         unsafe {
             let n: *mut T =
@@ -190,13 +190,16 @@ fn null_handle<T:Owned,A>() -> Handle<T,A> {
 }
 
 pub fn Scope<T:Owned,A>() -> Scope<T,A> {
-    @ScopeResource({mut layout_active: false,
-                    mut free_list: ~[],
-                    mut first_dirty: null_handle()})
+    @ScopeResource(
+        ScopeData {
+            mut layout_active: false,
+            mut free_list: ~[],
+            mut first_dirty: null_handle()
+        })
 }
 
 // Writer methods
-impl<T:Copy Owned,A> Scope<T,A> {
+impl<T:Copy + Owned,A> Scope<T,A> {
     fn is_reader_forked() -> bool {
         self.d.layout_active
     }

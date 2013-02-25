@@ -9,14 +9,14 @@ use dom::event::{Event, ResizeEvent};
 
 pub struct ResizeRateLimiter {
     /// The channel we send resize events on
-    /* priv */ dom_event_chan: pipes::SharedChan<Event>,
+    /* priv */ dom_event_chan: comm::SharedChan<Event>,
     /// The port we are waiting on for a response to the last resize event
-    /* priv */ mut last_response_port: Option<pipes::Port<()>>,
+    /* priv */ mut last_response_port: Option<comm::Port<()>>,
     /// The next window resize event we should fire
     /* priv */ mut next_resize_event: Option<(uint, uint)>
 }
 
-pub fn ResizeRateLimiter(dom_event_chan: pipes::SharedChan<Event>) -> ResizeRateLimiter {
+pub fn ResizeRateLimiter(dom_event_chan: comm::SharedChan<Event>) -> ResizeRateLimiter {
     ResizeRateLimiter {
         dom_event_chan: dom_event_chan,
         last_response_port: None,
@@ -59,7 +59,7 @@ impl ResizeRateLimiter {
     }
 
     priv fn send_event(width: uint, height: uint) {
-        let (port, chan) = pipes::stream();
+        let (port, chan) = comm::stream();
         self.dom_event_chan.send(ResizeEvent(width, height, chan));
         self.last_response_port = Some(port);
     }

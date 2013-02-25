@@ -4,7 +4,7 @@ Some little helpers for hooking up the HTML parser with the CSS parser
 
 use resource::resource_task::{ResourceTask, ProgressMsg, Load, Payload, Done};
 
-use core::pipes::{Port, Chan};
+use core::comm::{Port, Chan};
 use core::pipes;
 use core::str;
 use newcss::stylesheet::Stylesheet;
@@ -22,10 +22,10 @@ pub enum StylesheetProvenance {
 pub fn spawn_css_parser(provenance: StylesheetProvenance,
                         resource_task: ResourceTask)
                      -> Port<Stylesheet> {
-    let (result_port, result_chan) = pipes::stream();
+    let (result_port, result_chan) = comm::stream();
 
     let provenance_cell = Cell(provenance);
-    do task::spawn |copy resource_task| {
+    do task::spawn {
         let url = do provenance_cell.with_ref |p| {
             match *p {
                 UrlProvenance(copy the_url) => the_url,
@@ -44,7 +44,7 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
 fn data_stream(provenance: StylesheetProvenance, resource_task: ResourceTask) -> DataStream {
     match provenance {
         UrlProvenance(url) => {
-            let (input_port, input_chan) = pipes::stream();
+            let (input_port, input_chan) = comm::stream();
             resource_task.send(Load(url, input_chan));
             resource_port_to_data_stream(input_port)
         }

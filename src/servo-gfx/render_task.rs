@@ -12,7 +12,7 @@ use util::time::time;
 
 use core::libc::size_t;
 use core::libc::types::common::c99::uint16_t;
-use core::pipes::{Chan, Port, SharedChan};
+use core::comm::{Chan, Port, SharedChan};
 use core::task::SingleThreaded;
 use std::arc::ARC;
 use std::arc;
@@ -21,7 +21,7 @@ use std::task_pool::TaskPool;
 
 pub enum Msg {
     RenderMsg(RenderLayer),
-    ExitMsg(pipes::Chan<()>)
+    ExitMsg(comm::Chan<()>)
 }
 
 pub type RenderTask = SharedChan<Msg>;
@@ -30,7 +30,7 @@ pub fn RenderTask<C:Compositor + Owned>(compositor: C, opts: Opts) -> RenderTask
     let compositor_cell = Cell(compositor);
     let opts_cell = Cell(opts);
     let render_task = do spawn_listener |po: Port<Msg>| {
-        let (layer_buffer_set_port, layer_buffer_channel) = pipes::stream();
+        let (layer_buffer_set_port, layer_buffer_channel) = comm::stream();
 
         let compositor = compositor_cell.take();
         compositor.begin_drawing(layer_buffer_channel);
@@ -38,10 +38,10 @@ pub fn RenderTask<C:Compositor + Owned>(compositor: C, opts: Opts) -> RenderTask
         // FIXME: Annoying three-cell dance here. We need one-shot closures.
         let opts = opts_cell.with_ref(|o| copy *o);
         let n_threads = opts.n_render_threads;
-        let new_opts_cell: Cell<Opts> = Cell(opts);
+        let new_opts_cell = Cell(opts);
 
         let thread_pool = do TaskPool::new(n_threads, Some(SingleThreaded)) {
-            let opts_cell: Cell<Opts> = Cell(new_opts_cell.with_ref(|o| copy *o));
+            let opts_cell = Cell(new_opts_cell.with_ref(|o| copy *o));
             let f: ~fn(uint) -> ThreadRenderContext = |thread_index| {
                 ThreadRenderContext {
                     thread_index: thread_index,
@@ -73,12 +73,12 @@ priv struct ThreadRenderContext {
 priv struct Renderer<C> {
     port: Port<Msg>,
     compositor: C,
-    layer_buffer_set_port: Cell<pipes::Port<LayerBufferSet>>,
+    layer_buffer_set_port: Cell<comm::Port<LayerBufferSet>>,
     thread_pool: TaskPool<ThreadRenderContext>,
     opts: Opts,
 }
 
-impl<C: Compositor Owned> Renderer<C> {
+impl<C: Compositor + Owned> Renderer<C> {
     fn start() {
         debug!("renderer: beginning rendering loop");
 
@@ -103,7 +103,7 @@ impl<C: Compositor Owned> Renderer<C> {
         }
 
         let layer_buffer_set = layer_buffer_set_port.recv();
-        let (new_layer_buffer_set_port, layer_buffer_set_channel) = pipes::stream();
+        let (new_layer_buffer_set_port, layer_buffer_set_channel) = comm::stream();
         self.layer_buffer_set_port.put_back(new_layer_buffer_set_port);
 
         let layer_buffer_set_cell = Cell(layer_buffer_set);

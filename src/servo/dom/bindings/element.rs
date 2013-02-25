@@ -1,7 +1,8 @@
 use js::rust::{Compartment, jsobj};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
-use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec,
+                JSPropertyOpWrapper, JSStrictPropertyOpWrapper};
 use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
                             JS_DefineFunctions, JS_DefineProperty};
@@ -32,16 +33,18 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
 pub fn init(compartment: @mut Compartment) {
     let obj = utils::define_empty_prototype(~"Element", Some(~"Node"), compartment);
     let attrs = @~[
-        {name: compartment.add_name(~"tagName"),
+        JSPropertySpec {
+         name: compartment.add_name(~"tagName"),
          tinyid: 0,
          flags: (JSPROP_ENUMERATE | JSPROP_SHARED | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: {op: getTagName, info: null()},
-         setter: {op: null(), info: null()}},
-        {name: null(),
+         getter: JSPropertyOpWrapper {op: getTagName, info: null()},
+         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
+        JSPropertySpec {
+         name: null(),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: {op: null(), info: null()},
-         setter: {op: null(), info: null()}}];
+         getter: JSPropertyOpWrapper {op: null(), info: null()},
+         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
@@ -57,16 +60,16 @@ pub fn init(compartment: @mut Compartment) {
 
     let obj = utils::define_empty_prototype(~"HTMLImageElement", Some(~"HTMLElement"), compartment);
     let attrs = @~[
-        {name: compartment.add_name(~"width"),
+        JSPropertySpec {name: compartment.add_name(~"width"),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: {op: HTMLImageElement_getWidth, info: null()},
-         setter: {op: HTMLImageElement_setWidth, info: null()}},
-        {name: null(),
+         getter: JSPropertyOpWrapper {op: HTMLImageElement_getWidth, info: null()},
+         setter: JSStrictPropertyOpWrapper {op: HTMLImageElement_setWidth, info: null()}},
+        JSPropertySpec {name: null(),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: {op: null(), info: null()},
-         setter: {op: null(), info: null()}}];
+         getter: JSPropertyOpWrapper {op: null(), info: null()},
+         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);

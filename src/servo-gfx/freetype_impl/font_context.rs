@@ -36,7 +36,7 @@ pub impl FreeTypeFontContextHandle {
     static pub fn new() -> FreeTypeFontContextHandle {
         let ctx: FT_Library = ptr::null();
         let result = FT_Init_FreeType(ptr::to_unsafe_ptr(&ctx));
-        if !result.succeeded() { fail; }
+        if !result.succeeded() { fail!(); }
 
         FreeTypeFontContextHandle { 
             ctx: @FreeTypeLibraryHandle { ctx: ctx },

@@ -8,7 +8,7 @@ use resource::resource_task::ResourceTask;
 use resource::resource_task;
 use util::task::spawn_listener;
 
-use core::pipes::{Port, Chan};
+use core::comm::{Port, Chan};
 use gfx::compositor::Compositor;
 use gfx::opts::Opts;
 use gfx::render_task::RenderTask;
@@ -35,8 +35,8 @@ pub struct Engine<C> {
 
 pub fn Engine<C:Compositor + Owned + Clone>(compositor: C,
                                             opts: &Opts,
-                                            dom_event_port: pipes::Port<Event>,
-                                            dom_event_chan: pipes::SharedChan<Event>,
+                                            dom_event_port: comm::Port<Event>,
+                                            dom_event_chan: comm::SharedChan<Event>,
                                             resource_task: ResourceTask,
                                             image_cache_task: ImageCacheTask)
                                          -> EngineTask {
@@ -87,7 +87,7 @@ impl<C:Compositor + Owned + Clone> Engine<C> {
             self.content_task.send(content_task::ExitMsg);
             self.layout_task.send(layout_task::ExitMsg);
             
-            let (response_port, response_chan) = pipes::stream();
+            let (response_port, response_chan) = comm::stream();
 
             self.render_task.send(render_task::ExitMsg(response_chan));
             response_port.recv();

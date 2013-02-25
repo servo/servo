@@ -11,7 +11,7 @@ use resource::image_cache_task;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
 use util::task::{spawn_listener, spawn_conversation};
 
-use core::pipes::{Chan, Port, SharedChan};
+use core::comm::{Chan, Port, SharedChan};
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use hubbub::hubbub::Attribute;
 use hubbub::hubbub;
@@ -84,10 +84,10 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
     loop {
         match from_parent.recv() {
             JSTaskNewFile(url) => {
-                let (result_port, result_chan) = pipes::stream();
+                let (result_port, result_chan) = comm::stream();
                 let resource_task = resource_task.clone();
                 do task::spawn {
-                    let (input_port, input_chan) = pipes::stream();
+                    let (input_port, input_chan) = comm::stream();
                     // TODO: change copy to move once we can move into closures
                     resource_task.send(Load(copy url, input_chan));
 
@@ -379,7 +379,7 @@ pub fn parse_html(scope: NodeScope,
         });
         debug!("set tree handler");
 
-        let (input_port, input_chan) = pipes::stream();
+        let (input_port, input_chan) = comm::stream();
         resource_task.send(Load(copy *url, input_chan));
         debug!("loaded page");
         loop {

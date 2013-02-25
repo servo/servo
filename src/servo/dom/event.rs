@@ -1,5 +1,5 @@
 pub enum Event {
-    ResizeEvent(uint, uint, pipes::Chan<()>),
+    ResizeEvent(uint, uint, comm::Chan<()>),
     ReflowEvent        
 }
 

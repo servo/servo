@@ -1,11 +1,11 @@
 use core::cmp::{Ord, Eq};
 
-pub trait BinarySearchMethods<T: Ord Eq> {
+pub trait BinarySearchMethods<T: Ord + Eq> {
     pure fn binary_search(&self, key: &T) -> Option<&self/T>;
     pure fn binary_search_index(&self, key: &T) -> Option<uint>;
 }
 
-pub impl<T: Ord Eq> BinarySearchMethods<T> for &[T] {
+pub impl<T: Ord + Eq> BinarySearchMethods<T> for &[T] {
     pure fn binary_search(&self, key: &T) -> Option<&self/T> {
         match self.binary_search_index(key) {
             None => None,
@@ -38,7 +38,7 @@ pub impl<T: Ord Eq> BinarySearchMethods<T> for &[T] {
     }
 }
 
-fn test_find_all_elems<T: Eq Ord>(arr: &[T]) {
+fn test_find_all_elems<T: Eq + Ord>(arr: &[T]) {
     let mut i = 0;
     while i < arr.len() {
         assert test_match(&arr[i], arr.binary_search(&arr[i]));
@@ -46,7 +46,7 @@ fn test_find_all_elems<T: Eq Ord>(arr: &[T]) {
     }
 }
 
-fn test_miss_all_elems<T: Eq Ord>(arr: &[T], misses: &[T]) {
+fn test_miss_all_elems<T: Eq + Ord>(arr: &[T], misses: &[T]) {
     let mut i = 0;
     while i < misses.len() {
         let res = arr.binary_search(&misses[i]);

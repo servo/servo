@@ -18,7 +18,7 @@ use resource::local_image_cache::LocalImageCache;
 use util::task::spawn_listener;
 use util::time::time;
 
-use core::pipes::{Chan, Port, SharedChan};
+use core::comm::{Chan, Port, SharedChan};
 use core::dvec::DVec;
 use core::mutable::Mut;
 use core::task::*;
@@ -79,9 +79,9 @@ impl Damage {
 pub struct BuildData {
     node: Node,
     url: Url,
-    dom_event_chan: pipes::SharedChan<Event>,
+    dom_event_chan: comm::SharedChan<Event>,
     window_size: Size2D<uint>,
-    content_join_chan: pipes::Chan<()>,
+    content_join_chan: comm::Chan<()>,
     damage: Damage,
 }
 
@@ -295,7 +295,7 @@ impl Layout {
     // to the content task, and ultimately cause the image to be
     // re-requested. We probably don't need to go all the way back to
     // the content task for this.
-    fn make_on_image_available_cb(dom_event_chan: pipes::SharedChan<Event>) -> @fn() -> ~fn(ImageResponseMsg) {
+    fn make_on_image_available_cb(dom_event_chan: comm::SharedChan<Event>) -> @fn() -> ~fn(ImageResponseMsg) {
         // This has a crazy signature because the image cache needs to
         // make multiple copies of the callback, and the dom event
         // channel is not a copyable type, so this is actually a

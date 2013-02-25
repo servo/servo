@@ -4,13 +4,13 @@ use core::vec;
 //
 // TODO: Use traits.
 
-pub type Tree<T> = {
+pub struct Tree<T> {
     mut parent: Option<T>,
     mut first_child: Option<T>,
     mut last_child: Option<T>,
     mut prev_sibling: Option<T>,
     mut next_sibling: Option<T>
-};
+}
 
 pub trait ReadMethods<T> {
     fn with_tree_fields<R>(&T, f: fn(&Tree<T>) -> R) -> R;
@@ -59,11 +59,13 @@ pub fn parent<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T) -> Option<T> {
 }
 
 pub fn empty<T>() -> Tree<T> {
-    {mut parent: None,
-     mut first_child: None,
-     mut last_child: None,
-     mut prev_sibling: None,
-     mut next_sibling: None}
+    Tree {
+        mut parent: None,
+        mut first_child: None,
+        mut last_child: None,
+        mut prev_sibling: None,
+        mut next_sibling: None
+    }
 }
 
 pub fn add_child<T:Copy,O:WriteMethods<T>>(ops: &O, parent: T, child: T) {

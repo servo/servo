@@ -1,6 +1,6 @@
 use core::cmp::*;
 
-pub trait Cache<K: Copy Eq, V: Copy> {
+pub trait Cache<K: Copy + Eq, V: Copy> {
     static fn new(size: uint) -> Self;
     fn insert(key: &K, value: V);
     fn find(key: &K) -> Option<V>;
@@ -12,7 +12,7 @@ pub struct MonoCache<K, V> {
     mut entry: Option<(K,V)>,
 }
 
-pub impl<K: Copy Eq, V: Copy> Cache<K,V> for MonoCache<K,V> {
+pub impl<K: Copy + Eq, V: Copy> Cache<K,V> for MonoCache<K,V> {
     static fn new(_size: uint) -> MonoCache<K,V> {
         MonoCache { entry: None }
     }

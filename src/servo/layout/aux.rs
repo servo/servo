@@ -17,10 +17,10 @@ impl LayoutAuxMethods for Node {
     fn initialize_layout_data() -> Option<@LayoutData> {
         match self.has_aux() {
             false => {
-                let data = @LayoutData({
+                let data = @LayoutData {
                     mut style : None,
                     mut flow  : None
-                });
+                };
                 self.set_aux(data); Some(data)
             },
             true => None

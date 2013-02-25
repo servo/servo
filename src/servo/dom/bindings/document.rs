@@ -1,7 +1,8 @@
 use js::rust::{Compartment, jsobj};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED,
             JSVAL_NULL, JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
-use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp,
+                JSPropertySpec, JSPropertyOpWrapper, JSStrictPropertyOpWrapper};
 use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
                             JS_DefineFunctions, JS_DefineProperty, JS_DefineProperties};
@@ -95,16 +96,18 @@ pub fn init(compartment: @mut Compartment, doc: @Document) {
     let obj = utils::define_empty_prototype(~"Document", None, compartment);
 
     let attrs = @~[
-        {name: compartment.add_name(~"documentElement"),
+        JSPropertySpec {
+         name: compartment.add_name(~"documentElement"),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: {op: getDocumentElement, info: null()},
-         setter: {op: null(), info: null()}},
-        {name: null(),
+         getter: JSPropertyOpWrapper {op: getDocumentElement, info: null()},
+         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
+        JSPropertySpec {
+         name: null(),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: {op: null(), info: null()},
-         setter: {op: null(), info: null()}}];
+         getter: JSPropertyOpWrapper {op: null(), info: null()},
+         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
         assert JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs) == 1;

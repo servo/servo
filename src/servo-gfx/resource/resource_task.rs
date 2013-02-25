@@ -4,7 +4,7 @@ A task that takes a URL and streams back the binary data
 
 */
 
-use pipes::{Chan, Port, SharedChan};
+use comm::{Chan, Port, SharedChan};
 use resource::util::spawn_listener;
 use std::cell::Cell;
 use std::net::url;
@@ -69,8 +69,8 @@ pub struct ResourceManager {
 pub fn ResourceManager(from_client: Port<ControlMsg>, 
                        loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceManager {
     ResourceManager {
-        from_client: from_client,
-        loaders: loaders,
+        from_client : from_client,
+        loaders : loaders,
     }
 }
 

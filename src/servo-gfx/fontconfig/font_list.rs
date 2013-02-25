@@ -4,8 +4,9 @@ extern mod fontconfig;
 use fc = fontconfig;
 use ft = freetype;
 
-use gfx_font::FontHandle;
+use gfx_font::{FontHandle, FontHandleMethods};
 use gfx_font_list::{FontEntry, FontFamily, FontFamilyMap};
+use gfx_font_context::FontContextHandleMethods;
 use freetype_impl::font_context::FreeTypeFontContextHandle;
 use freetype_impl::font::FreeTypeFontHandle;
 use self::fontconfig::fontconfig::{FcConfig, FcFontSet, FcChar8,
@@ -90,7 +91,7 @@ pub impl FontconfigFontListHandle {
                             if FcPatternGetString(*font, FC_FILE, 0, &file) == FcResultMatch {
                                 str::raw::from_c_str(file as *libc::c_char)
                             } else {
-                                fail;
+                                fail!();
                             }
                         };
                         let index = do str::as_c_str("index") |FC_INDEX| {
@@ -98,7 +99,7 @@ pub impl FontconfigFontListHandle {
                             if FcPatternGetInteger(*font, FC_INDEX, 0, &index) == FcResultMatch {
                                 index
                             } else {
-                                fail;
+                                fail!();
                             }
                         };
 

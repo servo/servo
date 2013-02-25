@@ -1,4 +1,4 @@
-use core::pipes::{Port, Chan};
+use core::comm::{Port, Chan};
 use content::content_task::{ControlMsg, Timer, ExitMsg};
 use js::jsapi::JSVal;
 use dvec::DVec;
@@ -69,7 +69,7 @@ impl Window {
     }
 }
 
-pub fn Window(content_chan: pipes::SharedChan<ControlMsg>) -> Window {
+pub fn Window(content_chan: comm::SharedChan<ControlMsg>) -> Window {
         
     Window {
         timer_chan: do spawn_listener |timer_port: Port<TimerControlMsg>| {

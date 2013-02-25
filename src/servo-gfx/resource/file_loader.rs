@@ -1,4 +1,4 @@
-use pipes::Chan;
+use comm::Chan;
 use task::spawn;
 use resource::resource_task::{ProgressMsg, Payload, Done, LoaderTask};
 use std::net::url::Url;

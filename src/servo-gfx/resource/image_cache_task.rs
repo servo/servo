@@ -4,7 +4,7 @@ use resource::resource_task::ResourceTask;
 use util::url::{make_url, UrlMap, url_map};
 
 use clone_arc = std::arc::clone;
-use core::pipes::{Chan, Port, SharedChan, stream};
+use core::comm::{Chan, Port, SharedChan, stream};
 use core::task::spawn;
 use resource::util::spawn_listener;
 use core::to_str::ToStr;

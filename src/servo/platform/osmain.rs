@@ -4,7 +4,7 @@ use platform::resize_rate_limiter::ResizeRateLimiter;
 
 use azure::azure_hl::{BackendType, B8G8R8A8, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
 use core::dvec::DVec;
-use core::pipes::{Chan, SharedChan, Port};
+use core::comm::{Chan, SharedChan, Port};
 use core::task::TaskBuilder;
 use core::util;
 use geom::matrix::{Matrix4, identity};
@@ -46,13 +46,13 @@ enum Window {
 }
 
 pub enum Msg {
-    BeginDrawing(pipes::Chan<LayerBufferSet>),
-    Draw(pipes::Chan<LayerBufferSet>, LayerBufferSet),
-    AddKeyHandler(pipes::Chan<()>),
+    BeginDrawing(comm::Chan<LayerBufferSet>),
+    Draw(comm::Chan<LayerBufferSet>, LayerBufferSet),
+    AddKeyHandler(comm::Chan<()>),
     Exit
 }
 
-pub fn OSMain(dom_event_chan: pipes::SharedChan<Event>, opts: Opts) -> OSMain {
+pub fn OSMain(dom_event_chan: comm::SharedChan<Event>, opts: Opts) -> OSMain {
     let dom_event_chan = Cell(dom_event_chan);
     OSMain {
         chan: SharedChan(on_osmain::<Msg>(|po| {
@@ -276,10 +276,10 @@ Implementation to allow the osmain channel to be used as a graphics
 compositor for the renderer
 */
 impl Compositor for OSMain {
-    fn begin_drawing(next_dt: pipes::Chan<LayerBufferSet>) {
+    fn begin_drawing(next_dt: comm::Chan<LayerBufferSet>) {
         self.chan.send(BeginDrawing(next_dt))
     }
-    fn draw(next_dt: pipes::Chan<LayerBufferSet>, draw_me: LayerBufferSet) {
+    fn draw(next_dt: comm::Chan<LayerBufferSet>, draw_me: LayerBufferSet) {
         self.chan.send(Draw(next_dt, draw_me))
     }
 }
@@ -289,7 +289,7 @@ struct SurfaceSet {
     mut back: Surface,
 }
 
-fn lend_surface(surfaces: &SurfaceSet, receiver: pipes::Chan<LayerBufferSet>) {
+fn lend_surface(surfaces: &SurfaceSet, receiver: comm::Chan<LayerBufferSet>) {
     // We are in a position to lend out the surface?
     assert surfaces.front.have;
     // Ok then take it
@@ -349,9 +349,9 @@ fn Surface(backend: BackendType) -> Surface {
 
 /// A function for spawning into the platform's main thread
 fn on_osmain<T: Owned>(f: fn~(po: Port<T>)) -> Chan<T> {
-    let (setup_po, setup_ch) = pipes::stream();
+    let (setup_po, setup_ch) = comm::stream();
     do task::task().sched_mode(task::PlatformThread).spawn {
-        let (po, ch) = pipes::stream();
+        let (po, ch) = comm::stream();
         setup_ch.send(ch);
         f(po);
     }

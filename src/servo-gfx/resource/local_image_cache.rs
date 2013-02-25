@@ -6,7 +6,7 @@ multiple times and thus triggering reflows multiple times.
 
 use clone_arc = std::arc::clone;
 use std::net::url::Url;
-use pipes::{Port, Chan, stream};
+use comm::{Port, Chan, stream};
 use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg, Prefetch, Decode, GetImage};
 use resource::image_cache_task::{ WaitForImage, ImageReady, ImageNotReady, ImageFailed};
 use util::url::{UrlMap, url_map};
@@ -73,14 +73,14 @@ pub impl LocalImageCache {
             ImageReady(ref image) => {
                 // FIXME: appease borrowck
                 unsafe {
-                    let (port, chan) = pipes::stream();
+                    let (port, chan) = comm::stream();
                     chan.send(ImageReady(clone_arc(image)));
                     return port;
                 }
             }
             ImageNotReady => {
                 if last_round == self.round_number {
-                    let (port, chan) = pipes::stream();
+                    let (port, chan) = comm::stream();
                     chan.send(ImageNotReady);
                     return port;
                 } else {
@@ -89,13 +89,13 @@ pub impl LocalImageCache {
                 }
             }
             ImageFailed => {
-                let (port, chan) = pipes::stream();
+                let (port, chan) = comm::stream();
                 chan.send(ImageFailed);
                 return port;
             }
         }
 
-        let (response_port, response_chan) = pipes::stream();
+        let (response_port, response_chan) = comm::stream();
         self.image_cache_task.send(GetImage(copy *url, response_chan));
 
         let response = response_port.recv();
@@ -111,7 +111,7 @@ pub impl LocalImageCache {
                 let on_image_available = self.on_image_available.get()();
                 let url = copy *url;
                 do task::spawn {
-                    let (response_port, response_chan) = pipes::stream();
+                    let (response_port, response_chan) = comm::stream();
                     image_cache_task.send(WaitForImage(copy url, response_chan));
                     on_image_available(response_port.recv());
                 }
@@ -127,7 +127,7 @@ pub impl LocalImageCache {
         };
         state.last_response = response_copy;
 
-        let (port, chan) = pipes::stream();
+        let (port, chan) = comm::stream();
         chan.send(response);
         return port;
     }

@@ -6,7 +6,7 @@ use util::time;
 use azure::AzFloat;
 use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use core::libc::c_int;
-use core::pipes::Chan;
+use core::comm::Chan;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -111,7 +111,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
                 //}
 
                 // Create a port and channel pair to receive the new buffer.
-                let (new_buffer_port, new_buffer_chan) = pipes::stream();
+                let (new_buffer_port, new_buffer_chan) = comm::stream();
 
                 // Send the buffer to the child.
                 f(layer_ref, buffer, new_buffer_chan);

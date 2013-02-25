@@ -1,7 +1,8 @@
 use js::rust::{Compartment, jsobj};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
             JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
-use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec,
+                JSPropertyOpWrapper, JSStrictPropertyOpWrapper};
 use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                             JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
                             JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate};
@@ -22,29 +23,33 @@ pub fn init(compartment: @mut Compartment) {
     let obj = utils::define_empty_prototype(~"Node", None, compartment);
 
     let attrs = @~[
-        {name: compartment.add_name(~"firstChild"),
+        JSPropertySpec {
+         name: compartment.add_name(~"firstChild"),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: {op: getFirstChild, info: null()},
-         setter: {op: null(), info: null()}},
+         getter: JSPropertyOpWrapper {op: getFirstChild, info: null()},
+         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
 
-        {name: compartment.add_name(~"nextSibling"),
+        JSPropertySpec {
+         name: compartment.add_name(~"nextSibling"),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: {op: getNextSibling, info: null()},
-         setter: {op: null(), info: null()}},
+         getter: JSPropertyOpWrapper {op: getNextSibling, info: null()},
+         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
 
-        {name: compartment.add_name(~"nodeType"),
+        JSPropertySpec {
+         name: compartment.add_name(~"nodeType"),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: {op: getNodeType, info: null()},
-         setter: {op: null(), info: null()}},
+         getter: JSPropertyOpWrapper {op: getNodeType, info: null()},
+         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
         
-        {name: null(),
+        JSPropertySpec {
+         name: null(),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: {op: null(), info: null()},
-         setter: {op: null(), info: null()}}];
+         getter: JSPropertyOpWrapper {op: null(), info: null()},
+         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);

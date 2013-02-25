@@ -322,11 +322,16 @@ priv impl TextRunScanner {
     } /* /fn flush_clump_to_list */
 }
 
+struct PendingLine {
+    mut range: Range,
+    mut width: Au
+}
+
 struct LineboxScanner {
     flow: @FlowContext,
     new_boxes: DVec<@RenderBox>,
     work_list: @mut DList<@RenderBox>,
-    pending_line: {mut range: Range, mut width: Au},
+    pending_line: PendingLine,
     line_spans: DVec<Range>,
 }
 
@@ -337,7 +342,7 @@ fn LineboxScanner(inline: @FlowContext) -> LineboxScanner {
         flow: inline,
         new_boxes: DVec(),
         work_list: DList(),
-        pending_line: {mut range: Range::empty(), mut width: Au(0)},
+        pending_line: PendingLine {mut range: Range::empty(), mut width: Au(0)},
         line_spans: DVec()
     }
 }

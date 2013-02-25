@@ -97,7 +97,7 @@ use engine::{Engine, ExitMsg, LoadURLMsg};  // FIXME: "ExitMsg" is pollution.
 use platform::osmain::{AddKeyHandler, OSMain};
 
 use core::option::swap_unwrap;
-use core::pipes::{Port, Chan};
+use core::comm::{Port, Chan};
 
 pub use gfx::opts::{Opts, Png, Screen};  // FIXME: Do we really want "Screen" and "Png" visible?
 pub use gfx::resource;
@@ -126,14 +126,14 @@ fn run(opts: &Opts) {
 }
 
 fn run_pipeline_screen(opts: &Opts) {
-    let (dom_event_port, dom_event_chan) = pipes::stream();
-    let dom_event_chan = pipes::SharedChan(dom_event_chan);
+    let (dom_event_port, dom_event_chan) = comm::stream();
+    let dom_event_chan = comm::SharedChan(dom_event_chan);
 
     // The platform event handler thread
     let osmain = OSMain(dom_event_chan.clone(), copy *opts);
 
     // Send each file to render then wait for keypress
-    let (keypress_from_osmain, keypress_to_engine) = pipes::stream();
+    let (keypress_from_osmain, keypress_to_engine) = comm::stream();
     osmain.chan.send(AddKeyHandler(keypress_to_engine));
 
     // Create a servo instance
@@ -160,7 +160,7 @@ fn run_pipeline_screen(opts: &Opts) {
 
     // Shut everything down
     debug!("master: Shut down");
-    let (exit_response_from_engine, exit_chan) = pipes::stream();
+    let (exit_response_from_engine, exit_chan) = comm::stream();
     engine_task.send(engine::ExitMsg(exit_chan));
     exit_response_from_engine.recv();
 
@@ -181,8 +181,8 @@ fn run_pipeline_png(url: ~str, outfile: &str) {
     use resource::image_cache_task::SyncImageCacheTask;
 
     listen(|pngdata_from_compositor| {
-        let (dom_event_port, dom_event_chan) = pipes::stream();
-        let dom_event_chan = pipes::SharedChan(dom_event_chan);
+        let (dom_event_port, dom_event_chan) = comm::stream();
+        let dom_event_chan = comm::SharedChan(dom_event_chan);
 
         let compositor = PngCompositor(pngdata_from_compositor);
         let resource_task = ResourceTask();
@@ -201,7 +201,7 @@ fn run_pipeline_png(url: ~str, outfile: &str) {
           Err(e) => fail!(e)
         }
 
-        let (exit_chan, exit_response_from_engine) = pipes::stream();
+        let (exit_chan, exit_response_from_engine) = comm::stream();
         engine_task.send(engine::ExitMsg(exit_chan));
         exit_response_from_engine.recv();
         compositor.send(png_compositor::Exit);
