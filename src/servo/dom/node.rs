@@ -212,7 +212,7 @@ impl AbstractNode {
             return false;
         }
         for self.each_child |kid| {
-            if !f(kid) {
+            if !kid.traverse_preorder(f) {
                 return false;
             }
         }
@@ -221,7 +221,7 @@ impl AbstractNode {
 
     fn traverse_postorder(self, f: &fn(AbstractNode) -> bool) -> bool {
         for self.each_child |kid| {
-            if !f(kid) {
+            if !kid.traverse_postorder(f) {
                 return false;
             }
         }
@@ -232,16 +232,26 @@ impl AbstractNode {
     // Downcasting borrows
     //
 
-    fn with_imm_node<R>(self, f: &fn(&Node) -> R) -> R {
+    fn transmute<T, R>(self, f: &fn(&T) -> R) -> R {
         unsafe {
-            f(transmute(self.obj))
+            let box: *bindings::utils::rust_box<T> = transmute(self.obj);
+            f(&(*box).payload)
         }
     }
 
-    fn with_mut_node<R>(self, f: &fn(&mut Node) -> R) -> R {
+    fn transmute_mut<T, R>(self, f: &fn(&mut T) -> R) -> R {
         unsafe {
-            f(transmute(self.obj))
+            let box: *bindings::utils::rust_box<T> = transmute(self.obj);
+            f(cast::transmute(&(*box).payload))
         }
+    }
+
+    fn with_imm_node<R>(self, f: &fn(&Node) -> R) -> R {
+        self.transmute(f)
+    }
+
+    fn with_mut_node<R>(self, f: &fn(&mut Node) -> R) -> R {
+        self.transmute_mut(f)
     }
 
     fn is_text(self) -> bool { self.type_id() == TextNodeTypeId }
@@ -251,9 +261,7 @@ impl AbstractNode {
         if !self.is_text() {
             fail!(~"node is not text");
         }
-        unsafe {
-            f(transmute(self.obj))
-        }
+        self.transmute(f)
     }
 
     fn is_element(self) -> bool {
@@ -268,9 +276,7 @@ impl AbstractNode {
         if !self.is_element() {
             fail!(~"node is not an element");
         }
-        unsafe {
-            f(transmute(self.obj))
-        }
+        self.transmute(f)
     }
 
     // FIXME: This should be doing dynamic borrow checking for safety.
@@ -278,9 +284,7 @@ impl AbstractNode {
         if !self.is_element() {
             fail!(~"node is not an element");
         }
-        unsafe {
-            f(transmute(self.obj))
-        }
+        self.transmute_mut(f)
     }
 
     fn is_image_element(self) -> bool {
@@ -291,18 +295,14 @@ impl AbstractNode {
         if !self.is_image_element() {
             fail!(~"node is not an image element");
         }
-        unsafe {
-            f(transmute(self.obj))
-        }
+        self.transmute(f)
     }
 
     fn with_mut_image_element<R>(self, f: &fn(&mut HTMLImageElement) -> R) -> R {
         if !self.is_image_element() {
             fail!(~"node is not an image element");
         }
-        unsafe {
-            f(transmute(self.obj))
-        }
+        self.transmute_mut(f)
     }
 
     fn is_style_element(self) -> bool {
