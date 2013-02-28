@@ -44,7 +44,9 @@ impl DisplayItem {
     
     fn draw_into_context(&self, ctx: &RenderContext) {
         match self {
-            &SolidColor(_, color) => ctx.draw_solid_color(&self.d().bounds, color),
+            &SolidColor(_, color) => {
+                ctx.draw_solid_color(&self.d().bounds, color)
+            }
             &Text(_, ref run, ref range, color) => {
                 debug!("drawing text at %?", self.d().bounds);
                 let new_run = @run.deserialize(ctx.font_ctx);
@@ -57,7 +59,9 @@ impl DisplayItem {
                 debug!("drawing image at %?", self.d().bounds);
                 ctx.draw_image(self.d().bounds, clone_arc(img));
             }
-            &Border(_, width, color) => ctx.draw_border(&self.d().bounds, width, color),
+            &Border(_, width, color) => {
+                ctx.draw_border(&self.d().bounds, width, color)
+            }
         }
 
         debug!("%?", {

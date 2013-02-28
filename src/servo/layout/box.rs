@@ -430,8 +430,7 @@ impl RenderBox  {
                 }
             },
             // TODO: items for background, border, outline
-            @GenericBox(_) => {
-            },
+            @GenericBox(_) => {}
             @ImageBox(_, ref i) => {
                 match i.get_image() {
                     Some(image) => {

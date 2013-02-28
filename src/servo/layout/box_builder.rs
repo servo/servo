@@ -280,8 +280,8 @@ impl LayoutTreeBuilder {
     fn next_box_id(&self) -> int { self.next_bid += 1; self.next_bid }
     fn next_flow_id(&self) -> int { self.next_cid += 1; self.next_cid }
 
-    /** Creates necessary box(es) and flow context(s) for the current DOM node,
-    and recurses on its children. */
+    /// Creates necessary box(es) and flow context(s) for the current DOM node,
+    /// and recurses on its children.
     fn construct_recursively(&self,
                              layout_ctx: &LayoutContext,
                              cur_node: AbstractNode,

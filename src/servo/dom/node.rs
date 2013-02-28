@@ -124,7 +124,7 @@ pub struct Text {
 impl Text {
     static pub fn new(text: ~str) -> Text {
         Text {
-            parent: Node::new(CommentNodeTypeId),
+            parent: Node::new(TextNodeTypeId),
             text: text
         }
     }
@@ -186,6 +186,7 @@ impl AbstractNode {
                 }
 
                 child_n.prev_sibling = parent_n.last_child;
+                parent_n.last_child = Some(child);
             }
         }
     }
