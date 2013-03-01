@@ -1,6 +1,7 @@
-use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval};
-use dom::bindings::utils::{str};
-use dom::node::{AbstractNode, Node};
+use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment};
+use dom::bindings::utils::{str, domstring_to_jsval};
+use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
+use dom::node::{DoctypeNodeTypeId};
 use super::element;
 use super::utils;
 
@@ -21,7 +22,6 @@ use js::{JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
 use js;
 
 pub fn init(compartment: @mut Compartment) {
-/*
     let obj = utils::define_empty_prototype(~"Node", None, compartment);
 
     let attrs = @~[
@@ -55,117 +55,101 @@ pub fn init(compartment: @mut Compartment) {
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
-    });*/
+    });
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub fn create(cx: *JSContext, node: Node) -> jsobj {
-    /*
-    do scope.write(&node) |nd| {
-        match nd.kind {
-            ~Element(*) => element::create(cx, node, scope),
-            ~Text(*) => fail!(~"no text node bindings yet"),
-            ~Comment(*) => fail!(~"no comment node bindings yet"),
-            ~Doctype(*) => fail!(~"no doctype node bindings yet")
-        }
-    }
-    */
-    unsafe {
-        transmute(0)
-    }
+pub fn create(cx: *JSContext, node: AbstractNode) -> jsobj {
+    match node.type_id() {
+        ElementNodeTypeId(_) => element::create(cx, node),
+        TextNodeTypeId    => fail!(~"no text node bindings yet"),
+        CommentNodeTypeId => fail!(~"no comment node bindings yet"),
+        DoctypeNodeTypeId => fail!(~"no doctype node bindings yet")
+     }
 }
 
-pub struct NodeBundle {
-    node: AbstractNode,
-}
-
-pub fn NodeBundle(n: AbstractNode) -> NodeBundle {
-    NodeBundle {
-        node: n,
-    }
-}
-
-pub unsafe fn unwrap(obj: *JSObject) -> *rust_box<NodeBundle> {
+pub unsafe fn unwrap(obj: *JSObject) -> *rust_box<AbstractNode> {
     let val = js::GetReservedSlot(obj, 0);
     cast::reinterpret_cast(&JSVAL_TO_PRIVATE(val))
 }
 
 #[allow(non_implicitly_copyable_typarams)]
 extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
-    /*
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
         if obj.is_null() {
             return 0;
         }
 
-        let bundle = unwrap(obj);
-        do (*bundle).payload.scope.write(&(*bundle).payload.node) |nd| {
-            match nd.tree.first_child {
-              Some(n) => {
-                let obj = create(cx, n, (*bundle).payload.scope).ptr;
-                *vp = RUST_OBJECT_TO_JSVAL(obj);
-              }
-              None => {
-                *vp = JSVAL_NULL;
-              }
-            }
+        let node = &(*unwrap(obj)).payload;
+        let rval = do node.with_imm_node |node| {
+            node.getFirstChild()
         };
-    }*/
+        match rval {
+            Some(n) => {
+                let obj = create(cx, n).ptr;
+                *vp = RUST_OBJECT_TO_JSVAL(obj)
+            }
+            None => *vp = JSVAL_NULL
+        };
+    }
     return 1;
 }
 
 #[allow(non_implicitly_copyable_typarams)]
 extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
-    /*
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
         if obj.is_null() {
             return 0;
         }
 
-        let bundle = unwrap(obj);
-        do (*bundle).payload.scope.write(&(*bundle).payload.node) |nd| {
-            match nd.tree.next_sibling {
-              Some(n) => {
-                let obj = create(cx, n, (*bundle).payload.scope).ptr;
-                *vp = RUST_OBJECT_TO_JSVAL(obj);
-              }
-              None => {
-                *vp = JSVAL_NULL;
-              }
-            }
+        let node = &(*unwrap(obj)).payload;
+        let rval = do node.with_imm_node |node| {
+            node.getNextSibling()
         };
-    }*/
+        match rval {
+            Some(n) => {
+                let obj = create(cx, n).ptr;
+                *vp = RUST_OBJECT_TO_JSVAL(obj)
+            }
+            None => *vp = JSVAL_NULL
+        }
+    }
     return 1;
 }
 
-impl NodeBundle {
-    fn getNodeType() -> i32 {
-        /*
-        do self.node.read |nd| {
-            match nd.kind {
-              ~Element(*) => 1,
-              ~Text(*)    => 3,
-              ~Comment(*) => 8,
-              ~Doctype(*) => 10
-            }
-        }*/
-        0
+impl Node {
+    fn getNodeType(&self) -> i32 {
+        match self.type_id {
+            ElementNodeTypeId(_) => 1,
+            TextNodeTypeId       => 3,
+            CommentNodeTypeId    => 8,
+            DoctypeNodeTypeId    => 10
+        }
     }
-}
+
+    fn getNextSibling(&self) -> Option<AbstractNode> {
+        self.next_sibling
+    }
+
+    fn getFirstChild(&self) -> Option<AbstractNode> {
+        self.first_child
+     }
+ }
 
 extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
-    /*
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
         if obj.is_null() {
             return 0;
         }
 
-        let bundle = unwrap(obj);
-        let nodeType = (*bundle).payload.getNodeType();
-        *vp = INT_TO_JSVAL(nodeType);
-    }*/
+        let node = &(*unwrap(obj)).payload;
+        let rval = do node.with_imm_node |node| {
+            node.getNodeType()
+        };
+        *vp = INT_TO_JSVAL(rval);
+    }
     return 1;
 }

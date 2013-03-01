@@ -1,9 +1,9 @@
 use content::content_task::{Content, task_from_context};
-use dom::bindings::node::{NodeBundle, unwrap};
+use dom::bindings::node::unwrap;
 use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment, domstring_to_jsval};
 use dom::bindings::utils::{str};
 use dom::element::*;
-use dom::node::{Node, Element};
+use dom::node::{AbstractNode, Node, Element, ElementNodeTypeId};
 use layout::layout_task;
 use super::utils;
 
@@ -19,17 +19,14 @@ use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, J
 use js::{JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
-/*
     debug!("element finalize!");
     unsafe {
         let val = JS_GetReservedSlot(obj, 0);
-        let _node: ~NodeBundle = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
+        let _node: ~AbstractNode = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
     }
-    */
 }
 
 pub fn init(compartment: @mut Compartment) {
-/*
     let obj = utils::define_empty_prototype(~"Element", Some(~"Node"), compartment);
     let attrs = @~[
         JSPropertySpec {
@@ -73,118 +70,87 @@ pub fn init(compartment: @mut Compartment) {
     vec::as_imm_buf(*attrs, |specs, _len| {
         JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
     });
-    */
 }
 
 #[allow(non_implicitly_copyable_typarams)]
 extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
-    /*
     unsafe {
-        let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
+        let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));
         if obj.is_null() {
             return 0;
         }
 
-        let bundle = unwrap(obj);
-        let node = (*bundle).payload.node;
-        let scope = (*bundle).payload.scope;
-        let width = scope.write(&node, |nd| {
-            match &nd.kind {
-                &~Element(ref ed) => {
-                    match &ed.kind {
-                        &~HTMLImageElement(*) => {
-                            let content = task_from_context(cx);
-                            match (*content).query_layout(layout_task::ContentBox(node)) {
-                                Ok(rect) => rect.width,
-                                Err(()) => 0,
-                            }
-                            // TODO: if nothing is being rendered(?), return zero dimensions
-                        }
-                        _ => fail!(~"why is this not an image element?")
-                    }
+        let node = &(*unwrap(obj)).payload;
+        let width = match node.type_id() {
+            ElementNodeTypeId(HTMLImageElementTypeId) => {
+                let content = task_from_context(cx);
+                let node = Node::as_abstract_node(~*node);
+                match (*content).query_layout(layout_task::ContentBox(node)) {
+                    Ok(rect) => rect.width,
+                    Err(()) => 0
                 }
-                _ => fail!(~"why is this not an element?")
+                // TODO: if nothing is being rendered(?), return zero dimensions
             }
-        });
+            ElementNodeTypeId(_) => fail!(~"why is this not an image element?"),
+            _ => fail!(~"why is this not an element?")
+        };
+
         *vp = RUST_INT_TO_JSVAL(
                 (width & (i32::max_value as int)) as libc::c_int);
         return 1;
-    }*/
-    return 0;
+    }
 }
 
 #[allow(non_implicitly_copyable_typarams)]
 extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
-    /*
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
         if obj.is_null() {
             return 0;
         }
 
-        let bundle = unwrap(obj);
-        do (*bundle).payload.scope.write(&(*bundle).payload.node) |nd| {
-            match nd.kind {
-                ~Element(ref ed) => {
-                    match ed.kind {
-                        ~HTMLImageElement(*) => {
-                            let arg = ptr::offset(JS_ARGV(cx, cast::reinterpret_cast(&vp)), 0);
-                            ed.set_attr(~"width", int::str(RUST_JSVAL_TO_INT(*arg) as int))
-                        }
-                        _ => fail!(~"why is this not an image element?")
-                    }
+        let node = &(*unwrap(obj)).payload;
+        match node.type_id() {
+            ElementNodeTypeId(HTMLImageElementTypeId) => {
+                do node.as_mut_element |elem| {
+                    let arg = ptr::offset(JS_ARGV(cx, cast::reinterpret_cast(&vp)), 0);
+                    elem.set_attr(~"width", int::str(RUST_JSVAL_TO_INT(*arg) as int))
                 }
-                _ => fail!(~"why is this not an element?")
             }
+            ElementNodeTypeId(_) => fail!(~"why is this not an image element?"),
+            _ => fail!(~"why is this not an element?")
         };
         return 1;
-    }*/
-    return 0;
+    }
 }
 
 #[allow(non_implicitly_copyable_typarams)]
 extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
-/*
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
         if obj.is_null() {
             return 0;
         }
 
-        let bundle = unwrap(obj);
-        do (*bundle).payload.scope.write(&(*bundle).payload.node) |nd| {
-            match nd.kind {
-              ~Element(ref ed) => {
-                let s = str(copy ed.tag_name);
-                *vp = domstring_to_jsval(cx, &s);
-              }
-              _ => {
-                //XXXjdm should probably read the spec to figure out what to do here
-                *vp = JSVAL_NULL;
-              }
-            }
-        };
-    }*/
+        let node = &(*unwrap(obj)).payload;
+        do node.with_imm_element |elem| {
+            let s = str(copy elem.tag_name);
+            *vp = domstring_to_jsval(cx, &s);            
+        }
+    }
     return 1;
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub fn create(cx: *JSContext, node: Node) -> jsobj {
-    /*
-    let proto = scope.write(&node, |nd| {
-        match &nd.kind {
-          &~Element(ref ed) => {
-            match &ed.kind {
-              &~HTMLDivElement(*) => ~"HTMLDivElement",
-              &~HTMLHeadElement(*) => ~"HTMLHeadElement",
-              &~HTMLImageElement(*) => ~"HTMLImageElement",
-              &~HTMLScriptElement(*) => ~"HTMLScriptElement",
-              _ => ~"HTMLElement"
-            }
-          }
-          _ => fail!(~"element::create only handles elements")
-        }
-    });   
+pub fn create(cx: *JSContext, node: AbstractNode) -> jsobj {
+    let proto = match node.type_id() {
+        ElementNodeTypeId(HTMLDivElementTypeId) => ~"HTMLDivElement",
+        ElementNodeTypeId(HTMLHeadElementTypeId) => ~"HTMLHeadElement",
+        ElementNodeTypeId(HTMLImageElementTypeId) => ~"HTMLImageElement",
+        ElementNodeTypeId(HTMLScriptElementTypeId) => ~"HTMLScriptElement",
+        ElementNodeTypeId(_) => ~"HTMLElement",
+        _ => fail!(~"element::create only handles elements")
+    };
 
     //XXXjdm the parent should probably be the node parent instead of the global
     //TODO error checking
@@ -195,10 +161,9 @@ pub fn create(cx: *JSContext, node: Node) -> jsobj {
  
     unsafe {
         let raw_ptr: *libc::c_void =
-            cast::reinterpret_cast(&squirrel_away_unique(~NodeBundle(node, scope)));
+            cast::reinterpret_cast(&squirrel_away_unique(~node));
         JS_SetReservedSlot(obj.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
     
-    return obj;*/
-    fail!(~"stub");
+    return obj;
 }
