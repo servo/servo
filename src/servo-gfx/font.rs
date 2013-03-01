@@ -355,13 +355,11 @@ pub impl Font {
                               range: &const Range,
                               baseline_origin: Point2D<Au>,
                               color: Color) {
-        use libc::types::common::c99::{uint16_t, uint32_t};
-        use azure::{AzDrawOptions,
-                    AzGlyph,
-                    AzGlyphBuffer};
-        use azure::azure::bindgen::{AzCreateColorPattern,
-                                    AzDrawTargetFillGlyphs,
-                                    AzReleaseColorPattern};
+        use core::libc::types::common::c99::{uint16_t, uint32_t};
+        use azure::{AzDrawOptions, AzGlyph, AzGlyphBuffer};
+        use azure::azure::bindgen::{AzCreateColorPattern};
+        use azure::azure::bindgen::{AzDrawTargetFillGlyphs};
+        use azure::azure::bindgen::{AzReleaseColorPattern};
 
         let target = rctx.get_draw_target();
         let azfontref = self.get_azure_font();

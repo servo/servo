@@ -1,51 +1,37 @@
+/// Implementation of Quartz (CoreGraphics) fonts.
+
 extern mod core_foundation;
 extern mod core_graphics;
 extern mod core_text;
 
-use quartz;
+use geometry::Au;
+use gfx_font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTable, FontTableMethods};
+use gfx_font::{FontTableTag, FontWeight100, FontWeight200, FontWeight300, FontWeight400};
+use gfx_font::{FontWeight500, FontWeight600, FontWeight700, FontWeight800, FontWeight900};
+use gfx_font::{FractionalPixel, SpecifiedFontStyle};
 use quartz::font::core_foundation::base::{CFIndex, CFTypeRef, CFWrapper};
 use quartz::font::core_foundation::data::{CFData, CFDataRef};
 use quartz::font::core_foundation::string::UniChar;
-
 use quartz::font::core_graphics::base::{CGFloat, CGAffineTransform};
 use quartz::font::core_graphics::data_provider::{CGDataProviderRef, CGDataProvider};
 use quartz::font::core_graphics::font::{CGFont, CGFontRef, CGGlyph};
 use quartz::font::core_graphics::geometry::CGRect;
-
 use quartz::font::core_text::font::CTFont;
-use quartz::font::core_text::font_descriptor::{kCTFontDefaultOrientation, CTFontSymbolicTraits};
 use quartz::font::core_text::font_descriptor::{SymbolicTraitAccessors};
-
+use quartz::font::core_text::font_descriptor::{kCTFontDefaultOrientation, CTFontSymbolicTraits};
 use quartz::font_context::QuartzFontContextHandle;
-use geometry::Au;
-use gfx_font::{
-    CSSFontWeight,
-    FontHandleMethods,
-    FontMetrics,
-    FontTable,
-    FontTableMethods,
-    FontTableTag,
-    FontWeight100,
-    FontWeight200,
-    FontWeight300,
-    FontWeight400,
-    FontWeight500,
-    FontWeight600,
-    FontWeight700,
-    FontWeight800,
-    FontWeight900,
-    FractionalPixel,
-    SpecifiedFontStyle,
-};
+use quartz;
 use text::glyph::GlyphIndex;
 
 use core::libc::size_t;
 
 struct QuartzFontTable {
     data: CFData,
-
-    drop {  }
 }
+
+
+// Noncopyable.
+impl Drop for QuartzFontTable { fn finalize(&self) {} }
 
 pub impl QuartzFontTable {
     static fn wrap(data: CFData) -> QuartzFontTable {
@@ -105,7 +91,7 @@ pub impl QuartzFontHandle {
     }
 }
 
-pub impl FontHandleMethods for QuartzFontHandle {
+impl FontHandleMethods for QuartzFontHandle {
     pure fn family_name() -> ~str {
         self.ctfont.family_name()
     }
@@ -131,10 +117,12 @@ pub impl FontHandleMethods for QuartzFontHandle {
         if normalized < 6.0 { return FontWeight600; }
         if normalized < 7.0 { return FontWeight700; }
         if normalized < 8.0 { return FontWeight800; }
-        else { return FontWeight900; }
+        return FontWeight900;
     }
 
-    fn clone_with_style(fctx: &QuartzFontContextHandle, style: &SpecifiedFontStyle) -> Result<QuartzFontHandle,()> {
+    fn clone_with_style(fctx: &QuartzFontContextHandle,
+                        style: &SpecifiedFontStyle)
+                     -> Result<QuartzFontHandle,()> {
         let new_font = self.ctfont.clone_with_font_size(style.pt_size);
         return QuartzFontHandle::new_from_CTFont(fctx, new_font);
     }
@@ -161,7 +149,7 @@ pub impl FontHandleMethods for QuartzFontHandle {
         let glyphs = [glyph as CGGlyph];
         unsafe {
             let advance = self.ctfont.get_advances_for_glyphs(kCTFontDefaultOrientation,
-                                                              ptr::to_unsafe_ptr(&glyphs[0]),
+                                                              &glyphs[0],
                                                               ptr::null(),
                                                               1);
             return Some(advance as FractionalPixel);
@@ -175,7 +163,9 @@ pub impl FontHandleMethods for QuartzFontHandle {
 
         let metrics =  FontMetrics {
             underline_size:   Au::from_pt(self.ctfont.underline_thickness() as float),
-            // TODO(Issue #201): underline metrics are not reliable. Have to pull out of font table directly.
+            // TODO(Issue #201): underline metrics are not reliable. Have to pull out of font table
+            // directly.
+            //
             // see also: https://bugs.webkit.org/show_bug.cgi?id=16768
             // see also: https://bugreports.qt-project.org/browse/QTBUG-13364
             underline_offset: Au::from_pt(self.ctfont.underline_position() as float),
