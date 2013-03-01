@@ -2,9 +2,9 @@ use js;
 use js::rust::Compartment;
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL,
          JS_THIS_OBJECT, JS_SET_RVAL, JSFUN_CONSTRUCTOR, JS_CALLEE, JSPROP_READONLY,
-         JSPROP_PERMANENT};
+         JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER, JSPROP_SETTER};
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSNative,
-                JSFunctionSpec, JSPropertySpec, JSVal, JSString};
+                JSFunctionSpec, JSPropertySpec, JSVal, JSString, JSPropertyDescriptor};
 use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
                          JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
                          JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate,
@@ -12,7 +12,8 @@ use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_Repor
                          JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction,
                          JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject,
                          JS_GetInternedStringCharsAndLength, JS_DefineProperties,
-                         JS_WrapValue};
+                         JS_WrapValue, JS_GetObjectPrototype, JS_ForwardGetPropertyTo,
+                         JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
 use js::jsfriendapi::bindgen::{DefineFunctionWithReserved, GetObjectJSClass,
                                JS_NewObjectWithUniqueType};
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB,
@@ -22,8 +23,22 @@ use core::ptr::null;
 use core::cast;
 use content::content_task::{Content, task_from_context};
 
+use core::hashmap::linear;
+
 const TOSTRING_CLASS_RESERVED_SLOT: u64 = 0;
 const TOSTRING_NAME_RESERVED_SLOT: u64 = 1;
+
+struct GlobalStaticData {
+    mut proxy_handlers: linear::LinearMap<uint, *libc::c_void>,
+    mut attribute_ids: linear::LinearMap<uint, ~[mut jsid]>
+}
+
+pub fn GlobalStaticData() -> GlobalStaticData {
+    GlobalStaticData {
+        proxy_handlers: linear::LinearMap::new(),
+        attribute_ids: linear::LinearMap::new()
+    }
+}
 
 extern fn InterfaceObjectToString(cx: *JSContext, argc: uint, vp: *mut JSVal) -> JSBool {
   unsafe {
@@ -72,9 +87,20 @@ pub struct rust_box<T> {
     payload: T
 }
 
+fn is_dom_class(clasp: *JSClass) -> bool {
+    unsafe {
+        ((*clasp).flags & js::JSCLASS_IS_DOMJSCLASS) != 0
+    }
+}
+
 pub unsafe fn unwrap<T>(obj: *JSObject) -> T {
-    let val = JS_GetReservedSlot(obj, 0);
-    cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val))
+    let slot = if is_dom_class(JS_GetClass(obj)) {
+        DOM_OBJECT_SLOT
+    } else {
+        DOM_PROXY_OBJECT_SLOT
+    } as u32;
+    let val = JS_GetReservedSlot(obj, slot);
+    cast::transmute(RUST_JSVAL_TO_PRIVATE(val))
 }
 
 pub unsafe fn squirrel_away<T>(x: @T) -> *rust_box<T> {
@@ -189,7 +215,7 @@ pub fn instance_jsclass(name: ~str, finalize: *u8)
     let f: @fn(@mut Compartment) -> JSClass = |compartment: @mut Compartment| {
         JSClass {
             name: compartment.add_name(copy name),
-            flags: JSCLASS_HAS_RESERVED_SLOTS(1),
+            flags: JSCLASS_HAS_RESERVED_SLOTS(1) | js::JSCLASS_IS_DOMJSCLASS,
             addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
             delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
             getProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -240,7 +266,8 @@ pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: @mut
 
 // We use slot 0 for holding the raw object.  This is safe for both
 // globals and non-globals.
-const DOM_OBJECT_SLOT: uint = 0;
+pub const DOM_OBJECT_SLOT: uint = 0;
+const DOM_PROXY_OBJECT_SLOT: uint = js::JSSLOT_PROXY_PRIVATE as uint;
 
 // NOTE: This is baked into the Ion JIT as 0 in codegen for LGetDOMProperty and
 // LSetDOMProperty. Those constants need to be changed accordingly if this value
@@ -511,27 +538,45 @@ pub extern fn ThrowingConstructor(cx: *JSContext, argc: uint, vp: *JSVal) -> JSB
 pub fn initialize_global(global: *JSObject) {
     let protoArray = @[0 as *JSObject, ..2]; //XXXjdm number of constructors
     unsafe {
+        //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);
         let inner = ptr::to_unsafe_ptr(&(*box).payload);
-        JS_SetReservedSlot(global,                           DOM_PROTOTYPE_SLOT,
+        JS_SetReservedSlot(global,
+                           DOM_PROTOTYPE_SLOT,
                            RUST_PRIVATE_TO_JSVAL(inner as *libc::c_void));
     }
 }
 
 pub trait CacheableWrapper {
-    fn get_wrapper(@self) -> *JSObject;
-    fn set_wrapper(@self, wrapper: *JSObject);
-    fn wrap_object(@self, cx: *JSContext, scope: *JSObject) -> *JSObject;
+    fn get_wrappercache(&self) -> &WrapperCache;
+    fn wrap_object_unique(~self, cx: *JSContext, scope: *JSObject) -> *JSObject;
+    fn wrap_object_shared(@self, cx: *JSContext, scope: *JSObject) -> *JSObject;
 }
 
 pub struct WrapperCache {
-    wrapper: *mut JSObject
+    mut wrapper: *JSObject
+}
+
+impl WrapperCache {
+    fn get_wrapper(&self) -> *JSObject {
+        unsafe { cast::transmute(self.wrapper) }
+    }
+
+    fn set_wrapper(&self, wrapper: *JSObject) {
+        unsafe { self.wrapper = wrapper; }
+    }
+
+    static fn new() -> WrapperCache {
+        WrapperCache {
+            wrapper: ptr::null()
+        }
+    }
 }
 
 pub fn WrapNewBindingObject<T: CacheableWrapper>(cx: *JSContext, scope: *JSObject,
-                                                 value: @T, vp: *mut JSVal) -> bool {
+                                                 value: ~T, vp: *mut JSVal) -> bool {
   unsafe {
-    let obj = value.get_wrapper();
+    let obj = value.get_wrappercache().get_wrapper();
     if obj.is_not_null() /*&& js::GetObjectCompartment(obj) == js::GetObjectCompartment(scope)*/ {
         *vp = RUST_OBJECT_TO_JSVAL(obj);
         return true;
@@ -540,7 +585,7 @@ pub fn WrapNewBindingObject<T: CacheableWrapper>(cx: *JSContext, scope: *JSObjec
     let obj = if obj.is_not_null() {
         obj
     } else {
-        value.wrap_object(cx, scope)
+        value.wrap_object_unique(cx, scope)
     };
 
     if obj.is_null() {
@@ -553,16 +598,173 @@ pub fn WrapNewBindingObject<T: CacheableWrapper>(cx: *JSContext, scope: *JSObjec
   }
 }
 
-pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, p: @CacheableWrapper)
-    -> *JSObject {
-    let obj = p.get_wrapper();
-    if obj.is_not_null() {
-        return obj;
-    }
+pub struct OpaqueBindingReference(Either<~CacheableWrapper, @CacheableWrapper>);
 
-    return ptr::null();
+pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, p: OpaqueBindingReference) -> *JSObject {
+    match p {
+      OpaqueBindingReference(Left(p)) => {
+        let obj = p.get_wrappercache().get_wrapper();
+        if obj.is_not_null() {
+            return obj;
+        }
+        p.wrap_object_unique(cx, scope)
+      }
+      OpaqueBindingReference(Right(p)) => {
+        let obj = p.get_wrappercache().get_wrapper();
+        if obj.is_not_null() {
+            return obj;
+        }
+        p.wrap_object_shared(cx, scope)
+      }
+    }
 }
 
+pub struct BindingReference<T>(Either<~T, @T>);
+
 pub trait BindingObject {
-    fn GetParentObject(@self, cx: *JSContext) -> @CacheableWrapper;
+    fn GetParentObject(&self, cx: *JSContext) -> OpaqueBindingReference;
+}
+
+pub impl<T: BindingObject + CacheableWrapper> BindingReference<T> {
+    fn GetParentObject(&self, cx: *JSContext) -> OpaqueBindingReference {
+        match **self {
+          Left(ref obj) => obj.GetParentObject(cx),
+          Right(ref obj) => obj.GetParentObject(cx)
+        }
+    }
+
+    fn get_wrappercache(&self) -> &self/WrapperCache {
+        match **self {
+          Left(ref obj) => obj.get_wrappercache(),
+          Right(ref obj) => obj.get_wrappercache()
+        }
+    }
+}
+
+pub fn squirrel_away_ref<R>(obj: BindingReference<R>) -> *rust_box<R> {
+    unsafe {
+        match obj {
+            BindingReference(Left(obj)) => squirrel_away_unique(obj),
+            BindingReference(Right(obj)) => squirrel_away(obj)
+        }
+    }
+}
+
+pub fn GetPropertyOnPrototype(cx: *JSContext, proxy: *JSObject, id: jsid, found: *mut bool,
+                              vp: *JSVal) -> bool {
+    unsafe {
+      //let proto = GetObjectProto(proxy);
+      let proto = JS_GetPrototype(proxy);
+      if proto.is_null() {
+          *found = false;
+          return true;
+      }
+      let hasProp = 0;
+      if JS_HasPropertyById(cx, proto, id, ptr::to_unsafe_ptr(&hasProp)) == 0 {
+          return false;
+      }
+      *found = hasProp != 0;
+      let no_output = vp.is_null();
+      if hasProp == 0 || no_output {
+          return true;
+      }
+
+      JS_ForwardGetPropertyTo(cx, proto, id, proxy, vp) != 0
+  }
+}
+
+pub fn GetArrayIndexFromId(cx: *JSContext, id: jsid) -> Option<u32> {
+    if RUST_JSID_IS_INT(id) != 0 {
+        return Some(RUST_JSID_TO_INT(id) as u32);
+    }
+    return None;
+    // if id is length atom, -1, otherwise
+    /*return if JSID_IS_ATOM(id) {
+        let atom = JSID_TO_ATOM(id);
+        //let s = *GetAtomChars(id);
+        if s > 'a' && s < 'z' {
+            return -1;
+        }
+
+        let i = 0;
+        let str = AtomToLinearString(JSID_TO_ATOM(id));
+        return if StringIsArray(str, &mut i) != 0 { i } else { -1 }
+    } else {
+        IdToInt32(cx, id);
+    }*/
+}
+
+pub fn XrayResolveProperty(cx: *JSContext,
+                           wrapper: *JSObject,
+                           id: jsid,
+                           desc: *mut JSPropertyDescriptor,
+                           methods: Option<~[(JSFunctionSpec, jsid)]>,
+                           attributes: Option<~[(JSPropertySpec, jsid)]>,
+                           constants: Option<~[(ConstantSpec, jsid)]>) -> bool
+{
+  unsafe {
+    match attributes {
+        Some(attrs) => {
+            for attrs.each |&elem| {
+                let (attr, attr_id) = elem;
+                if attr_id == JSID_VOID || attr_id != id {
+                    loop;
+                }
+
+                (*desc).attrs = (attr.flags & !(JSPROP_NATIVE_ACCESSORS as u8)) as u32;
+                let global = JS_GetGlobalForObject(cx, wrapper);
+                let fun = JS_NewFunction(cx, attr.getter.op, 0, 0, global, ptr::null());
+                if fun.is_null() {
+                    return false;
+                }
+
+                RUST_SET_JITINFO(fun, attr.getter.info);
+                let funobj = JS_GetFunctionObject(fun);
+                (*desc).getter = funobj as *u8;
+                (*desc).attrs |= JSPROP_GETTER;
+                if attr.setter.op.is_not_null() {
+                    let fun = JS_NewFunction(cx, attr.setter.op, 1, 0, global, ptr::null());
+                    if fun.is_null() {
+                        return false
+                    }
+
+                    RUST_SET_JITINFO(fun, attr.setter.info);
+                    let funobj = JS_GetFunctionObject(fun);
+                    (*desc).setter = funobj as *u8;
+                    (*desc).attrs |= JSPROP_SETTER;
+                } else {
+                    (*desc).setter = ptr::null();
+                }
+            }
+        }
+        None => ()
+    }
+    return true;
+  }
+}
+
+fn InternJSString(cx: *JSContext, chars: *libc::c_char) -> Option<jsid> {
+    let s = JS_InternString(cx, chars);
+    if s.is_not_null() {
+        Some(RUST_INTERNED_STRING_TO_JSID(cx, s))
+    } else {
+        None
+    }
+}
+
+pub fn InitIds(cx: *JSContext, specs: &[JSPropertySpec], ids: &[mut jsid]) -> bool {
+    let mut rval = true;
+    for specs.eachi |i, spec| {
+        if spec.name.is_null() == true {
+            break;
+        }
+        match InternJSString(cx, spec.name) {
+            Some(id) => ids[i] = id,
+            None => {
+                rval = false;
+                return false;
+            }
+        }
+    }
+    rval
 }

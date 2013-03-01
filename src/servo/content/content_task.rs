@@ -4,6 +4,8 @@ tasks.
 */
 
 use dom::bindings::utils::rust_box;
+use dom::bindings::utils::CacheableWrapper;
+use dom::bindings::utils::GlobalStaticData;
 use dom::document::Document;
 use dom::node::define_bindings;
 use dom::event::{Event, ResizeEvent, ReflowEvent};
@@ -21,7 +23,6 @@ use core::task::{SingleThreaded, spawn, task};
 use core::io::{println, read_whole_file};
 use core::ptr::null;
 use core::util::replace;
-use core::hashmap::linear;
 use geom::size::Size2D;
 use gfx::resource::image_cache_task::ImageCacheTask;
 use gfx::resource::resource_task::ResourceTask;
@@ -93,7 +94,7 @@ pub struct Content {
 
     jsrt: jsrt,
     cx: @Cx,
-    mut proxy_handlers: linear::LinearMap<uint, *libc::c_void>,
+    dom_static: GlobalStaticData,
 
     document: Option<@Document>,
     window:   Option<@Window>,
@@ -138,7 +139,7 @@ pub fn Content(layout_task: LayoutTask,
 
         jsrt : jsrt,
         cx : cx,
-        proxy_handlers: linear::LinearMap::new(),
+        dom_static: GlobalStaticData(),
 
         document    : None,
         window      : None,
@@ -158,7 +159,7 @@ pub fn Content(layout_task: LayoutTask,
 
 pub fn task_from_context(cx: *JSContext) -> *mut Content {
     unsafe {
-        cast::reinterpret_cast(&JS_GetContextPrivate(cx))
+        JS_GetContextPrivate(cx) as *Content
     }
 }
 
@@ -212,21 +213,19 @@ pub impl Content {
             let js_scripts = result.js_port.recv();
             debug!("js_scripts: %?", js_scripts);
 
-            let document = Document(root);
-            let window   = Window(self.control_chan.clone());
+            let document = @Document(root);
+            let window   = @Window(self.control_chan.clone());
 
             self.damage.add(MatchSelectorsDamage);
-            self.relayout(&document, &url);
+            self.relayout(document, &url);
 
-            self.document = Some(@document);
-            self.window   = Some(@window);
+            self.document = Some(document);
+            self.window   = Some(window);
             self.doc_url = Some(url);
 
             let compartment = option::expect(self.compartment, ~"TODO error checking");
             compartment.define_functions(debug_fns);
-            define_bindings(compartment,
-                            option::get(self.document),
-                            option::get(self.window));
+            define_bindings(compartment, document, window);
 
             do vec::consume(js_scripts) |_i, bytes| {
                 self.cx.evaluate_script(compartment.global_obj, bytes, ~"???", 1u);

@@ -2,7 +2,9 @@ use content::content_task::{Content, task_from_context};
 use dom::bindings::node::unwrap;
 use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment};
 use dom::bindings::utils::{domstring_to_jsval, WrapNewBindingObject};
-use dom::bindings::utils::{str};
+use dom::bindings::utils::{str, CacheableWrapper, DOM_OBJECT_SLOT};
+use dom::bindings::utils;
+use dom::bindings::clientrectlist::ClientRectListImpl;
 use dom::element::*;
 use dom::node::{AbstractNode, Node, Element, ElementNodeTypeId};
 use layout::layout_task;
@@ -14,7 +16,8 @@ use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_Con
 use js::glue::bindgen::*;
 use js::jsapi::bindgen::*;
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
-use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper};
+use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper, JSFunctionSpec};
+use js::jsapi::JSNativeWrapper;
 use js::rust::{Compartment, jsobj};
 use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
 use js::{JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
@@ -22,7 +25,7 @@ use js::{JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("element finalize!");
     unsafe {
-        let val = JS_GetReservedSlot(obj, 0);
+        let val = JS_GetReservedSlot(obj, DOM_OBJECT_SLOT as u32);
         let _node: ~AbstractNode = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
     }
 }
@@ -49,6 +52,11 @@ pub fn init(compartment: @mut Compartment) {
 
     let methods = @~[JSFunctionSpec {name: compartment.add_name(~"getClientRects"),
                                      call: JSNativeWrapper {op: getClientRects, info: null()},
+                                     nargs: 0,
+                                     flags: 0,
+                                     selfHostedName: null()},
+                     JSFunctionSpec {name: null(),
+                                     call: JSNativeWrapper {op: null(), info: null()},
                                      nargs: 0,
                                      flags: 0,
                                      selfHostedName: null()}];
@@ -82,24 +90,25 @@ pub fn init(compartment: @mut Compartment) {
     });
 }
 
-/*trait Element: utils::CacheableWrapper {
-    fn getClientRects() -> Option<@ClientRectListImpl>;
-}*/
-
-/*extern fn getClientRects(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
+extern fn getClientRects(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
   unsafe {
-    let self: @Element =
-        cast::reinterpret_cast(&utils::unwrap::<ElementData>(JS_THIS_OBJECT(cx, vp)));
-    let rval = self.getClientRects();
-    if rval.is_none() {
-      JS_SET_RVAL(cx, vp, JSVAL_NULL);
-    } else {
-      assert WrapNewBindingObject(cx, (self as utils::CacheableWrapper).get_wrapper(), rval.get(), cast::transmute(vp));
-    }
-    cast::forget(self);
-    return 1;
+      let obj = JS_THIS_OBJECT(cx, vp);
+      let box = utils::unwrap::<*rust_box<AbstractNode>>(obj);
+      let node = &(*box).payload;
+      let rval = do node.with_imm_element |elem| {
+          elem.getClientRects()
+      };
+      if rval.is_none() {
+          JS_SET_RVAL(cx, vp, JSVAL_NULL);
+      } else {
+          let cache = node.get_wrappercache();
+          assert WrapNewBindingObject(cx, cache.get_wrapper(),
+                                      rval.get(),
+                                      cast::transmute(vp));
+      }
+      return 1;
   }
-}*/
+}
 
 #[allow(non_implicitly_copyable_typarams)]
 extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
@@ -149,6 +158,7 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
             ElementNodeTypeId(_) => fail!(~"why is this not an image element?"),
             _ => fail!(~"why is this not an element?")
         };
+
         return 1;
     }
 }
@@ -187,12 +197,13 @@ pub fn create(cx: *JSContext, node: AbstractNode) -> jsobj {
     let obj = result::unwrap(compartment.new_object_with_proto(~"GenericElementInstance",
                                                                proto,
                                                                compartment.global_obj.ptr));
- 
+
+    node.get_wrappercache().set_wrapper(obj.ptr);
+
     unsafe {
-        let raw_ptr: *libc::c_void =
-            cast::reinterpret_cast(&squirrel_away_unique(~node));
-        JS_SetReservedSlot(obj.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
+        let raw_ptr = squirrel_away_unique(~node) as *libc::c_void;
+        JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT as u32, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
-    
+
     return obj;
 }

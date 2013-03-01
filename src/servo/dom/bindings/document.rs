@@ -72,8 +72,8 @@ extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> J
 
         let doc = &(*unwrap(obj)).payload;
         *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, doc.root).ptr);
+        return 1;
     }
-    return 1;
 }
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Document> {

@@ -3,6 +3,7 @@
 //
 
 use dom::bindings;
+use dom::bindings::utils::WrapperCache;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
@@ -30,7 +31,8 @@ use std::arc::ARC;
 ///
 /// FIXME: This should be replaced with a trait once they can inherit from structs.
 pub struct AbstractNode {
-    priv obj: *mut Node
+    priv obj: *mut Node,
+    //wrapper: WrapperCache
 }
 
 impl Eq for AbstractNode {
@@ -39,6 +41,7 @@ impl Eq for AbstractNode {
 }
 
 pub struct Node {
+    wrapper: WrapperCache,
     type_id: NodeTypeId,
 
     parent_node: Option<AbstractNode>,
@@ -350,12 +353,14 @@ impl Node {
     static pub unsafe fn as_abstract_node<N>(node: ~N) -> AbstractNode {
         // This surrenders memory management of the node!
         AbstractNode {
-            obj: transmute(node)
+            obj: transmute(node),
+            //wrapper: WrapperCache::new()
         }
     }
 
     static pub fn new(type_id: NodeTypeId) -> Node {
         Node {
+            wrapper: WrapperCache::new(),
             type_id: type_id,
 
             parent_node: None,

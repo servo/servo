@@ -3,6 +3,7 @@
 //
 
 use dom::node::{ElementNodeTypeId, Node};
+use dom::bindings::clientrectlist::ClientRectListImpl;
 
 use core::str::eq_slice;
 use core::cell::Cell;
@@ -137,6 +138,10 @@ pub impl Element {
             }
         }
         self.attrs.push(Attr::new(name.to_str(), value_cell.take()));
+    }
+
+    fn getClientRects(&self) -> Option<~ClientRectListImpl> {
+        Some(~ClientRectListImpl::new())
     }
 }
 

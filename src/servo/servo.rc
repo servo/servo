@@ -46,6 +46,7 @@ pub mod dom {
         pub mod utils;
         pub mod conversions;
         pub mod window;
+        pub mod proxyhandler;
         pub mod clientrect;
         pub mod clientrectlist;
         pub mod ClientRectBinding;

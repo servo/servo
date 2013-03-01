@@ -2,6 +2,7 @@
 
 use dom::bindings::node::create;
 use dom::bindings::utils::{rust_box, squirrel_away, jsval_to_str, CacheableWrapper};
+use dom::bindings::utils::{WrapperCache};
 use dom::node::Node;
 use dom::window::{Window, TimerMessage_Fire};
 use super::utils;
@@ -115,6 +116,8 @@ pub fn init(compartment: @mut Compartment, win: @Window) {
         }
     ];
 
+    win.get_wrappercache().set_wrapper(obj.ptr);
+
     unsafe {
         JS_DefineFunctions(compartment.cx.ptr, proto.ptr, &methods[0]);
 
@@ -127,20 +130,18 @@ pub fn init(compartment: @mut Compartment, win: @Window) {
     compartment.define_property(~"window", RUST_OBJECT_TO_JSVAL(obj.ptr),
                                 JS_PropertyStub, JS_StrictPropertyStub,
                                 JSPROP_ENUMERATE);
-
-    win.set_wrapper(obj.ptr);
 }
 
 pub impl CacheableWrapper for Window {
-    fn get_wrapper(@self) -> *JSObject {
-        self.wrapper
+    fn get_wrappercache(&self) -> &WrapperCache {
+        unsafe { cast::transmute(&self.wrapper) }
     }
 
-    fn set_wrapper(@self, wrapper: *JSObject) {
-        self.wrapper = wrapper;
+    fn wrap_object_unique(~self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+        fail!(~"should this be called?");
     }
 
-    fn wrap_object(@self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+    fn wrap_object_shared(@self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         fail!(~"should this be called?");
     }
 }

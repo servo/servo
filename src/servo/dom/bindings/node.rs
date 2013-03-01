@@ -1,5 +1,6 @@
 use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment};
-use dom::bindings::utils::{str, domstring_to_jsval};
+use dom::bindings::utils::{str, domstring_to_jsval, CacheableWrapper, WrapperCache};
+use dom::bindings::utils::{DOM_OBJECT_SLOT};
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId};
 use super::element;
@@ -69,8 +70,8 @@ pub fn create(cx: *JSContext, node: AbstractNode) -> jsobj {
 }
 
 pub unsafe fn unwrap(obj: *JSObject) -> *rust_box<AbstractNode> {
-    let val = js::GetReservedSlot(obj, 0);
-    cast::reinterpret_cast(&JSVAL_TO_PRIVATE(val))
+    let val = js::GetReservedSlot(obj, DOM_OBJECT_SLOT as u64);
+    cast::transmute(JSVAL_TO_PRIVATE(val))
 }
 
 #[allow(non_implicitly_copyable_typarams)]
@@ -107,6 +108,7 @@ extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBoo
         let node = &(*unwrap(obj)).payload;
         let rval = do node.with_imm_node |node| {
             node.getNextSibling()
+<<<<<<< HEAD
         };
         match rval {
             Some(n) => {
@@ -115,6 +117,16 @@ extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBoo
             }
             None => *vp = JSVAL_NULL
         }
+=======
+        };
+        match rval {
+            Some(n) => {
+                let obj = create(cx, n).ptr;
+                *vp = RUST_OBJECT_TO_JSVAL(obj)
+            }
+            None => *vp = JSVAL_NULL
+        };
+>>>>>>> Generate working ClientRectList and ClientRect bindings that can wrap, call methods, and access properties.
     }
     return 1;
 }
@@ -131,6 +143,13 @@ impl Node {
 
     fn getNextSibling(&self) -> Option<AbstractNode> {
         self.next_sibling
+<<<<<<< HEAD
+=======
+    }
+
+    fn getFirstChild(&self) -> Option<AbstractNode> {
+        self.first_child
+>>>>>>> Generate working ClientRectList and ClientRect bindings that can wrap, call methods, and access properties.
     }
 
     fn getFirstChild(&self) -> Option<AbstractNode> {
@@ -152,4 +171,20 @@ extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
         *vp = INT_TO_JSVAL(rval);
     }
     return 1;
+}
+
+impl CacheableWrapper for AbstractNode {
+    fn get_wrappercache(&self) -> &WrapperCache {
+        do self.with_imm_node |n| {
+            unsafe { cast::transmute(&n.wrapper) }
+        }
+    }
+
+    fn wrap_object_unique(~self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+        fail!(~"need to implement wrapping");
+    }
+
+    fn wrap_object_shared(@self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+        fail!(~"need to implement wrapping");
+    }
 }

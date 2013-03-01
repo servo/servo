@@ -1,4 +1,5 @@
-use dom::bindings::utils::{CacheableWrapper, WrapperCache};
+use content::content_task::task_from_context;
+use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, OpaqueBindingReference};
 use dom::bindings::ClientRectBinding;
 use js::jsapi::{JSObject, JSContext};
 
@@ -12,7 +13,7 @@ pub trait ClientRect {
 }
 
 pub struct ClientRectImpl {
-    mut wrapper: ~WrapperCache,
+    wrapper: WrapperCache,
     top: f32,
     bottom: f32,
     left: f32,
@@ -45,17 +46,31 @@ pub impl ClientRect for ClientRectImpl {
     }
 }
 
+pub fn ClientRect(top: f32, bottom: f32, left: f32, right: f32) -> ClientRectImpl {
+    ClientRectImpl {
+        top: top, bottom: bottom, left: left, right: right,
+        wrapper: WrapperCache::new()
+    }
+}
+
 pub impl CacheableWrapper for ClientRectImpl {
-    fn get_wrapper(@self) -> *JSObject {
-        unsafe { cast::transmute(self.wrapper.wrapper) }
+    fn get_wrappercache(&self) -> &WrapperCache {
+        unsafe { cast::transmute(&self.wrapper) }
     }
 
-    fn set_wrapper(@self, wrapper: *JSObject) {
-        unsafe { self.wrapper.wrapper = cast::transmute(wrapper); }
-    }
-
-    fn wrap_object(@self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+    fn wrap_object_unique(~self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         let mut unused = false;
         ClientRectBinding::Wrap(cx, scope, self, &mut unused)
+    }
+
+    fn wrap_object_shared(@self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+        fail!(~"nyi")
+    }
+}
+
+impl BindingObject for ClientRectImpl {
+    fn GetParentObject(&self, cx: *JSContext) -> OpaqueBindingReference {
+        let content = task_from_context(cx);
+        unsafe { OpaqueBindingReference(Right((*content).window.get() as @CacheableWrapper)) }
     }
 }

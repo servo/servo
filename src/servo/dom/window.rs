@@ -1,4 +1,5 @@
 use content::content_task::{ControlMsg, Timer, ExitMsg};
+use dom::bindings::utils::WrapperCache;
 use js::jsapi::{JSVal, JSObject};
 use util::task::spawn_listener;
 
@@ -14,7 +15,7 @@ pub enum TimerControlMsg {
 
 pub struct Window {
     timer_chan: Chan<TimerControlMsg>,
-    mut wrapper: *JSObject
+    wrapper: WrapperCache
 }
 
 impl Drop for Window {
@@ -75,7 +76,7 @@ pub impl Window {
 pub fn Window(content_chan: comm::SharedChan<ControlMsg>) -> Window {
         
     Window {
-        wrapper: ptr::null(),
+        wrapper: WrapperCache::new(),
         timer_chan: do spawn_listener |timer_port: Port<TimerControlMsg>| {
             loop {
                 match timer_port.recv() {
