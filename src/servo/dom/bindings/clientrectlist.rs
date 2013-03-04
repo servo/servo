@@ -1,6 +1,6 @@
 use content::content_task::task_from_context;
 use dom::bindings::clientrect::{ClientRect, ClientRectImpl};
-use dom::bindings::ClientRectListBinding;
+use dom::bindings::codegen::ClientRectListBinding;
 use dom::bindings::utils::{WrapperCache, CacheableWrapper, BindingObject, OpaqueBindingReference};
 use dom::window::Window;
 use dom::bindings::window::Window;

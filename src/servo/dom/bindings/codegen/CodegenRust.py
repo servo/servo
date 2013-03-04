@@ -69,6 +69,14 @@ builtinNames = {
     IDLType.Tags.double: 'f64'
 }
 
+numericTags = [
+    IDLType.Tags.int8, IDLType.Tags.uint8,
+    IDLType.Tags.int16, IDLType.Tags.uint16,
+    IDLType.Tags.int32, IDLType.Tags.uint32,
+    IDLType.Tags.int64, IDLType.Tags.uint64,
+    IDLType.Tags.float, IDLType.Tags.double
+    ]
+
 class CastableObjectUnwrapper():
     """
     A class for unwrapping an object named by the "source" argument
@@ -193,11 +201,15 @@ class CGMethodCall(CGThing):
                     signature[1][argCount].optional and
                     (argCount+1) in allowedArgCounts and
                     len(method.signaturesForArgCount(argCount+1)) == 1):
-                    argCountCases.append(
-                        CGCase(str(argCount), None, True))
+                    #XXXjdm unfinished
+                    pass
+                    #argCountCases.append(
+                    #    CGCase(str(argCount), None, True))
                 else:
-                    argCountCases.append(
-                        CGCase(str(argCount), getPerSignatureCall(signature)))
+                    pass
+                    #XXXjdm unfinished
+                    #argCountCases.append(
+                    #    CGCase(str(argCount), getPerSignatureCall(signature)))
                 continue
 
             distinguishingIndex = method.distinguishingIndexForArgCount(argCount)
@@ -342,17 +354,19 @@ class CGMethodCall(CGThing):
                 caseBody.append(CGGeneric("return Throw<%s>(cx, NS_ERROR_XPC_BAD_CONVERT_JS);" %
                                           toStringBool(not descriptor.workers)))
 
-            argCountCases.append(CGCase(str(argCount),
-                                        CGList(caseBody, "\n")))
+            #XXXjdm unfinished
+            #argCountCases.append(CGCase(str(argCount),
+            #                            CGList(caseBody, "\n")))
 
         overloadCGThings = []
         overloadCGThings.append(
             CGGeneric("unsigned argcount = NS_MIN(argc, %du);" %
                       maxArgCount))
-        overloadCGThings.append(
-            CGSwitch("argcount",
-                     argCountCases,
-                     CGGeneric("return ThrowErrorMessage(cx, MSG_MISSING_ARGUMENTS, %s);\n" % methodName)))
+        #XXXjdm unfinished
+        #overloadCGThings.append(
+        #    CGSwitch("argcount",
+        #             argCountCases,
+        #             CGGeneric("return ThrowErrorMessage(cx, MSG_MISSING_ARGUMENTS, %s);\n" % methodName)))
         overloadCGThings.append(
             CGGeneric('MOZ_NOT_REACHED("We have an always-returning default case");\n'
                       'return false;'))
@@ -370,6 +384,27 @@ class FakeCastableDescriptor():
         self.pointerType = descriptor.pointerType
         self.name = descriptor.name
         self.hasXPConnectImpls = descriptor.hasXPConnectImpls
+
+def dictionaryHasSequenceMember(dictionary):
+    return (any(typeIsSequenceOrHasSequenceMember(m.type) for m in
+                dictionary.members) or
+            (dictionary.parent and
+             dictionaryHasSequenceMember(dictionary.parent)))
+
+def typeIsSequenceOrHasSequenceMember(type):
+    if type.nullable():
+        type = type.inner
+    if type.isSequence():
+        return True
+    if  type.isArray():
+        elementType = type.inner
+        return typeIsSequenceOrHasSequenceMember(elementType)
+    if type.isDictionary():
+        return dictionaryHasSequenceMember(type.inner)
+    if type.isUnion():
+        return any(typeIsSequenceOrHasSequenceMember(m.type) for m in
+                   type.flatMemberTypes)
+    return False
 
 def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     isDefinitelyObject=False,
@@ -871,11 +906,14 @@ for (uint32_t i = 0; i < length; ++i) {
                         "${declName}",
                         failureCode))
             else:
-                templateBody += str(FailureFatalCastableObjectUnwrapper(
-                        descriptor,
-                        "&${val}.toObject()",
-                        "${declName}"))
-        elif descriptor.interface.isCallback():
+                pass
+                #XXXjdm unfinished
+                #templateBody += str(FailureFatalCastableObjectUnwrapper(
+                #        descriptor,
+                #        "&${val}.toObject()",
+                #        "${declName}"))
+        elif descriptor.interface.isCallback() and False:
+            #XXXjdm unfinished
             templateBody += str(CallbackObjectUnwrapper(
                     descriptor,
                     "&${val}.toObject()",
@@ -1077,10 +1115,11 @@ for (uint32_t i = 0; i < length; ++i) {
 
         if defaultValue is not None:
             assert(defaultValue.type.tag() == IDLType.Tags.domstring)
-            template = handleDefault(template,
-                                     ("${declName} = %sValues::%s" %
-                                      (enum,
-                                       getEnumValueName(defaultValue.value))))
+            template = "" #XXXjdm unfinished
+            #template = handleDefault(template,
+            #                         ("${declName} = %sValues::%s" %
+            #                          (enum,
+            #                           getEnumValueName(defaultValue.value))))
         return (template, CGGeneric(enum), None, isOptional)
 
     if type.isCallback():
@@ -1139,8 +1178,9 @@ for (uint32_t i = 0; i < length; ++i) {
         # should be able to assume not isOptional here.
         assert not isOptional
 
-        typeName = CGDictionary.makeDictionaryName(type.inner,
-                                                   descriptorProvider.workers)
+        typeName = "" #XXXjdm unfinished
+        #typeName = CGDictionary.makeDictionaryName(type.inner,
+        #                                           descriptorProvider.workers)
         actualTypeName = typeName
         selfRef = "${declName}"
 
@@ -2550,7 +2590,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         idsToInit = []
         # There is no need to init any IDs in workers, because worker bindings
         # don't have Xrays.
-        if not self.descriptor.workers:
+        if False and not self.descriptor.workers: #XXXjdm don't need xray stuff yet
             for var in self.properties.xrayRelevantArrayNames():
                 props = getattr(self.properties, var)
                 # We only have non-chrome ids to init if we have no chrome ids.
@@ -2559,6 +2599,8 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 elif props.hasNonChromeOnly():
                     idsToInit.append(props.variableName(False))
         if len(idsToInit) > 0:
+            setup = CGList([CGGeneric("let content = task_from_context(aCx);"),
+                            CGList([CGGeneric("let %s_ids_mut = (*content).dom_static.attribute_ids.get(&(prototypes::id::%s as uint));" % (varname, self.descriptor.name)) for varname in idsToInit], '\n')], '\n')
             initIds = CGList(
                 [CGGeneric("!InitIds(aCx, %s, *%s_ids_mut)" % (varname, varname)) for
                  varname in idsToInit], ' ||\n')
@@ -2569,8 +2611,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 "\n")
             initIds = CGWrapper(initIds, pre="if ", post=" {", reindent=True)
             initIds = CGList(
-                [CGGeneric("let content = task_from_context(aCx);\n" +
-"let sAttributes_ids_mut = (*content).dom_static.attribute_ids.get(&(prototypes::id::%s as uint));" % self.descriptor.name),
+                [setup,
                  initIds,
                  CGGeneric(("  %s_ids_mut[0] = JSID_VOID;\n"
                             "  return ptr::null();") % idsToInit[0]),
@@ -2816,6 +2857,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
             body += """  (*content).dom_static.attribute_ids.insert(prototypes::id::%s as uint,
                                              vec::cast_to_mut(vec::from_slice(sAttributes_ids)));
 """ % self.descriptor.name
+            body = "" #XXXjdm xray stuff isn't necessary yet
 
         return (body + "  let global: *JSObject = JS_GetGlobalForObject(aCx, aReceiver);\n" +
                 CheckPref(self.descriptor, "global", "*aEnabled", "false") + 
@@ -3247,8 +3289,8 @@ class CGXrayHelper(CGAbstractExternMethod):
 
         methods = self.properties.methods
         if methods.hasNonChromeOnly() or methods.hasChromeOnly():
-            methodArgs = """// %(methods)s has an end-of-list marker at the end that we ignore
-%(methods)s, %(methods)s_ids, %(methods)s_specs, ArrayLength(%(methods)s) - 1""" % varNames
+            methodArgs = "Some(vec::zip_slice(%(methods)s, *method_ids))" % varNames
+            setup += "let method_ids = (*content).dom_static.method_ids.get(&(prototypes::id::ClientRect as uint));\n"
         else:
             methodArgs = "None"
         methodArgs = CGGeneric(methodArgs)
@@ -3263,8 +3305,8 @@ class CGXrayHelper(CGAbstractExternMethod):
 
         consts = self.properties.consts
         if consts.hasNonChromeOnly() or consts.hasChromeOnly():
-            constArgs = """// %(consts)s has an end-of-list marker at the end that we ignore
-%(consts)s, %(consts)s_ids, %(consts)s_specs, ArrayLength(%(consts)s) - 1""" % varNames
+            constArgs = "Some(vec::zip_slice(%(consts)s, *const_ids))" % varNames
+            setup += "let const_ids = (*content).dom_static.const_ids.get(&(prototypes::id::ClientRect as uint));\n"
         else:
             constArgs = "None"
         constArgs = CGGeneric(constArgs)
@@ -3414,7 +3456,7 @@ if expando.is_not_null() {
             getIndexedOrExpando = getFromExpando + "\n"
 
         namedGetter = self.descriptor.operations['NamedGetter']
-        if namedGetter:
+        if namedGetter and False: #XXXjdm unfinished
             getNamed = ("if (JSID_IS_STRING(id)) {\n" +
                         "  JS::Value nameVal = STRING_TO_JSVAL(JSID_TO_STRING(id));\n" +
                         "  FakeDependentString name;\n"

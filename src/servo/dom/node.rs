@@ -3,6 +3,7 @@
 //
 
 use dom::bindings;
+use dom::bindings::codegen;
 use dom::bindings::utils::WrapperCache;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId};
@@ -381,10 +382,10 @@ pub fn define_bindings(compartment: @mut Compartment, doc: @Document, win: @Wind
     bindings::element::init(compartment);
     bindings::utils::initialize_global(compartment.global_obj.ptr);
     let mut unused = false;
-    assert bindings::ClientRectBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                           compartment.global_obj.ptr,
-                                                           &mut unused);
-    assert bindings::ClientRectListBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                               compartment.global_obj.ptr,
-                                                               &mut unused);
+    assert codegen::ClientRectBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                          compartment.global_obj.ptr,
+                                                          &mut unused);
+    assert codegen::ClientRectListBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                              compartment.global_obj.ptr,
+                                                              &mut unused);
 }

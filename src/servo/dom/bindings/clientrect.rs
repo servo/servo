@@ -1,6 +1,6 @@
 use content::content_task::task_from_context;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, OpaqueBindingReference};
-use dom::bindings::ClientRectBinding;
+use dom::bindings::codegen::ClientRectBinding;
 use js::jsapi::{JSObject, JSContext};
 
 pub trait ClientRect {

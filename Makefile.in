@@ -154,7 +154,9 @@ DEPS_servo_gfx = $(CRATE_servo_gfx) $(SRC_servo_gfx) $(DONE_SUBMODULES)
 
 RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-gfx
 
-SRC_servo = $(call rwildcard,$(S)src/servo/,*.rs)
+WEBIDL_servo = $(call rwildcard,$(S)src/servo/,*.webidl)
+AUTOGEN_SRC_servo = $(patsubst %.webidl, %Binding.rs, $(WEBIDL_servo))
+SRC_servo = $(call rwildcard,$(S)src/servo/,*.rs) $(AUTOGEN_SRC_servo)
 CRATE_servo = $(S)src/servo/servo.rc
 
 DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_servo_gfx)
@@ -171,6 +173,35 @@ all:    servo package
 
 $(DONE_servo_gfx):	$(DEPS_servo_gfx)
 	$(RUSTC) $(RFLAGS_servo_gfx) -o $@ $< && touch $@
+
+BINDINGS_SRC = $(S)/src/servo/dom/bindings/codegen
+
+CACHE_DIR = $(BINDINGS_SRC)/_cache
+
+bindinggen_dependencies := $(addprefix $(BINDINGS_SRC)/, BindingGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py ParserResults.pkl)
+
+$(AUTOGEN_SRC_servo): %Binding.rs: $(bindinggen_dependencies) \
+                                   %.webidl
+	PYTHONDONTWRITEBYTECODE=1 python $(BINDINGS_SRC)/pythonpath.py \
+	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
+	  -D$(BINDINGS_SRC) \
+	  $(BINDINGS_SRC)/BindingGen.py rs \
+	  $(BINDINGS_SRC)/Bindings.conf $*Binding $*.webidl
+
+globalgen_dependencies := $(addprefix $(BINDINGS_SRC)/, GlobalGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py) $(CACHE_DIR)/.done
+
+$(CACHE_DIR)/.done:
+	mkdir -p $(CACHE_DIR)
+	@touch $@
+
+$(BINDINGS_SRC)/ParserResults.pkl: $(globalgen_dependencies) \
+                                   $(WEBIDL_servo)
+	PYTHONDONTWRITEBYTECODE=1 python $(BINDINGS_SRC)/pythonpath.py \
+	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
+	  -D$(BINDINGS_SRC) \
+	  $(BINDINGS_SRC)/GlobalGen.py $(BINDINGS_SRC)/Bindings.conf . \
+	  --cachedir=$(CACHE_DIR) \
+	  $(WEBIDL_servo)
 
 # Servo binaries
 

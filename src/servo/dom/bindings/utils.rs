@@ -30,13 +30,17 @@ const TOSTRING_NAME_RESERVED_SLOT: u64 = 1;
 
 struct GlobalStaticData {
     mut proxy_handlers: linear::LinearMap<uint, *libc::c_void>,
-    mut attribute_ids: linear::LinearMap<uint, ~[mut jsid]>
+    mut attribute_ids: linear::LinearMap<uint, ~[mut jsid]>,
+    mut method_ids: linear::LinearMap<uint, ~[mut jsid]>,
+    mut constant_ids: linear::LinearMap<uint, ~[mut jsid]>
 }
 
 pub fn GlobalStaticData() -> GlobalStaticData {
     GlobalStaticData {
         proxy_handlers: linear::LinearMap::new(),
-        attribute_ids: linear::LinearMap::new()
+        attribute_ids: linear::LinearMap::new(),
+        method_ids: linear::LinearMap::new(),
+        constant_ids: linear::LinearMap::new()
     }
 }
 
@@ -326,7 +330,7 @@ pub struct ConstantSpec {
 pub struct DOMClass {
     // A list of interfaces that this object implements, in order of decreasing
     // derivedness.
-    interface_chain: [prototypes::id::Prototype * 1 /*prototypes::id::_ID_Count*/],
+    interface_chain: [prototypes::id::Prototype * 2 /*prototypes::id::_ID_Count*/],
 
     unused: bool, // DOMObjectIsISupports (always false)
     native_hooks: *NativePropertyHooks
