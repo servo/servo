@@ -10,14 +10,16 @@ use layout::aux::LayoutAuxMethods;
 use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
-use layout::debug::{BoxedDebugMethods, DebugMethods};
+use layout::debug::{BoxedMutDebugMethods, DebugMethods};
 use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
+use layout::flow::FlowContext;
 use layout::traverse::*;
 use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use resource::local_image_cache::LocalImageCache;
 use util::task::spawn_listener;
 use util::time::time;
 
+use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
 use core::dvec::DVec;
 use core::mutable::Mut;
@@ -36,7 +38,6 @@ use newcss::select::SelectCtx;
 use newcss::stylesheet::Stylesheet;
 use newcss::types::OriginAuthor;
 use std::arc::ARC;
-use std::cell::Cell;
 use std::net::url::Url;
 
 pub type LayoutTask = SharedChan<Msg>;
@@ -89,17 +90,18 @@ pub fn LayoutTask(render_task: RenderTask,
                   img_cache_task: ImageCacheTask,
                   opts: Opts) -> LayoutTask {
     SharedChan(spawn_listener::<Msg>(|from_content| {
-        Layout(render_task.clone(), img_cache_task.clone(), from_content, &opts).start();
+        let mut layout = Layout(render_task.clone(), img_cache_task.clone(), from_content, &opts);
+        layout.start();
     }))
 }
 
 struct Layout {
     render_task: RenderTask,
     image_cache_task: ImageCacheTask,
-    local_image_cache: @LocalImageCache,
+    local_image_cache: @mut LocalImageCache,
     from_content: Port<Msg>,
 
-    font_ctx: @FontContext,
+    font_ctx: @mut FontContext,
     // This is used to root reader data
     layout_refs: DVec<@mut LayoutData>,
     css_select_ctx: Mut<SelectCtx>,
@@ -110,12 +112,12 @@ fn Layout(render_task: RenderTask,
           from_content: Port<Msg>,
           opts: &Opts)
        -> Layout {
-    let fctx = @FontContext::new(opts.render_backend, true);
+    let fctx = @mut FontContext::new(opts.render_backend, true);
 
     Layout {
         render_task: render_task,
         image_cache_task: image_cache_task.clone(),
-        local_image_cache: @LocalImageCache(image_cache_task),
+        local_image_cache: @mut LocalImageCache(image_cache_task),
         from_content: from_content,
         font_ctx: fctx,
         layout_refs: DVec(),
@@ -125,13 +127,13 @@ fn Layout(render_task: RenderTask,
 
 impl Layout {
 
-    fn start() {
+    fn start(&mut self) {
         while self.handle_request() {
             // loop indefinitely
         }
     }
 
-    fn handle_request() -> bool {
+    fn handle_request(&mut self) -> bool {
 
         match self.from_content.recv() {
             AddStylesheet(sheet) => {
@@ -167,7 +169,7 @@ impl Layout {
         }
     }
 
-    fn handle_build(data: &BuildData) {
+    fn handle_build(&mut self, data: &BuildData) {
         let node = &data.node;
         // FIXME: Bad copy
         let doc_url = copy data.url;
@@ -185,7 +187,7 @@ impl Layout {
         let screen_size = Size2D(Au::from_px(data.window_size.width as int),
                                  Au::from_px(data.window_size.height as int));
 
-        let layout_ctx = LayoutContext {
+        let mut layout_ctx = LayoutContext {
             image_cache: self.local_image_cache,
             font_ctx: self.font_ctx,
             doc_url: doc_url,
@@ -209,10 +211,10 @@ impl Layout {
             }
         }
 
-        let layout_root: @FlowContext = do time("layout: tree construction") {
-            let builder = LayoutTreeBuilder::new();
-            let layout_root: @FlowContext = match builder.construct_trees(&layout_ctx,
-                                                                          *node) {
+        let layout_root: @mut FlowContext = do time("layout: tree construction") {
+            let mut builder = LayoutTreeBuilder::new();
+            let layout_root: @mut FlowContext = match builder.construct_trees(&layout_ctx,
+                                                                              *node) {
                 Ok(root) => root,
                 Err(*) => fail!(~"Root flow should always exist")
             };
@@ -225,9 +227,9 @@ impl Layout {
 
         do time("layout: main layout") {
             /* perform layout passes over the flow tree */
-            do layout_root.traverse_postorder |f| { f.bubble_widths(&layout_ctx) }
-            do layout_root.traverse_preorder  |f| { f.assign_widths(&layout_ctx) }
-            do layout_root.traverse_postorder |f| { f.assign_height(&layout_ctx) }
+            do layout_root.traverse_postorder |f| { f.bubble_widths(&mut layout_ctx) }
+            do layout_root.traverse_preorder  |f| { f.assign_widths(&mut layout_ctx) }
+            do layout_root.traverse_postorder |f| { f.assign_height(&mut layout_ctx) }
         }
 
         do time("layout: display list building") {

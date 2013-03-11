@@ -15,7 +15,7 @@ use util::range::Range;
 use core::libc::types::common::c99::int32_t;
 use core::libc::{c_uint, c_int, c_void, c_char};
 use core::util::ignore;
-use dvec::DVec;
+//use dvec::DVec;
 use std::arc;
 
 use text::harfbuzz::shaper::harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR, hb_blob_t};
@@ -106,10 +106,10 @@ pub impl ShapedGlyphData {
         }
     }
 
-    pure fn len() -> uint { self.count }
+    pure fn len(&self) -> uint { self.count }
 
     // Returns shaped glyph data for one glyph, and updates the y-position of the pen.
-    fn get_entry_for_glyph(i: uint, y_pos: &mut Au) -> ShapedGlyphEntry {
+    fn get_entry_for_glyph(&self, i: uint, y_pos: &mut Au) -> ShapedGlyphEntry {
         assert i < self.count;
 
         let glyph_info_i = ptr::offset(self.glyph_infos, i);
@@ -142,7 +142,7 @@ pub impl ShapedGlyphData {
 }
 
 pub struct HarfbuzzShaper {
-    font: @Font,
+    font: @mut Font,
     priv hb_face: *hb_face_t,
     priv hb_font: *hb_font_t,
     priv hb_funcs: *hb_font_funcs_t,
@@ -160,7 +160,7 @@ pub struct HarfbuzzShaper {
 }
 
 pub impl HarfbuzzShaper {
-    static pub fn new(font: @Font) -> HarfbuzzShaper {
+    static pub fn new(font: @mut Font) -> HarfbuzzShaper {
         let hb_face: *hb_face_t = hb_face_create_for_tables(get_font_table_func, ptr::to_unsafe_ptr(font) as *c_void, ptr::null());
         let hb_font: *hb_font_t = hb_font_create(hb_face);
         // Set points-per-em. if zero, performs no hinting in that direction.
@@ -207,7 +207,7 @@ impl ShaperMethods for HarfbuzzShaper {
     Calculate the layout metrics associated with a some given text
     when rendered in a specific font.
     */
-    fn shape_text(text: &str, glyphs: &mut GlyphStore) {
+    fn shape_text(&self, text: &str, glyphs: &mut GlyphStore) {
         let hb_buffer: *hb_buffer_t = hb_buffer_create();
         hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
 
@@ -228,7 +228,7 @@ impl ShaperMethods for HarfbuzzShaper {
 
 pub impl HarfbuzzShaper {
 
-    priv fn save_glyph_results(text: &str, glyphs: &mut GlyphStore, buffer: *hb_buffer_t) {
+    priv fn save_glyph_results(&self, text: &str, glyphs: &mut GlyphStore, buffer: *hb_buffer_t) {
         let glyph_data = ShapedGlyphData::new(buffer);
         let glyph_count = glyph_data.len();
         let byte_max = text.len();
@@ -403,7 +403,7 @@ pub impl HarfbuzzShaper {
                 glyphs.add_glyph_for_char_index(char_idx, &data);
             } else {
                 // collect all glyphs to be assigned to the first character.
-                let datas = DVec();
+                let mut datas = ~[];
 
                 for glyph_span.eachi |glyph_i| {
                     let shape = glyph_data.get_entry_for_glyph(glyph_i, &mut y_pos);
@@ -417,7 +417,7 @@ pub impl HarfbuzzShaper {
                 }
 
                 // now add the detailed glyph entry.
-                glyphs.add_glyphs_for_char_index(char_idx, dvec::unwrap(datas));
+                glyphs.add_glyphs_for_char_index(char_idx, datas);
                 
                 // set the other chars, who have no glyphs
                 let mut i = covered_byte_span.begin();

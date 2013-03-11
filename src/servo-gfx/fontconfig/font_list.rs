@@ -1,9 +1,6 @@
 extern mod freetype;
 extern mod fontconfig;
 
-use fc = fontconfig;
-use ft = freetype;
-
 use gfx_font::{FontHandle, FontHandleMethods};
 use gfx_font_list::{FontEntry, FontFamily, FontFamilyMap};
 use gfx_font_context::FontContextHandleMethods;
@@ -24,8 +21,8 @@ use self::fontconfig::fontconfig::bindgen::{
 
 use core::dvec::DVec;
 use core::hashmap::linear;
-use libc::c_int;
-use ptr::Ptr;
+use core::libc::c_int;
+use core::ptr::Ptr;
 use native;
 
 pub struct FontconfigFontListHandle {
@@ -37,7 +34,7 @@ pub impl FontconfigFontListHandle {
         FontconfigFontListHandle { fctx: fctx.clone() }
     }
 
-    fn get_available_families() -> FontFamilyMap {
+    fn get_available_families(&self) -> FontFamilyMap {
         let mut family_map : FontFamilyMap = linear::LinearMap::new();
         unsafe {
             let config = FcConfigGetCurrent();
@@ -50,7 +47,7 @@ pub impl FontconfigFontListHandle {
                     while FcPatternGetString(*font, FC_FAMILY, v, &family) == FcResultMatch {
                         let family_name = str::raw::from_buf(family as *u8);
                         debug!("Creating new FontFamily for family: %s", family_name);
-                        let new_family = @FontFamily::new(family_name);
+                        let new_family = @mut FontFamily::new(family_name);
                         family_map.insert(family_name, new_family);
                         v += 1;
                     }
@@ -60,7 +57,7 @@ pub impl FontconfigFontListHandle {
         return family_map;
     }
 
-    fn load_variations_for_family(family: @FontFamily) {
+    fn load_variations_for_family(&self, family: @mut FontFamily) {
         debug!("getting variations for %?", family);
         let config = FcConfigGetCurrent();
         let font_set = FcConfigGetFonts(config, FcSetSystem);

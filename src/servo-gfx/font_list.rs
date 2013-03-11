@@ -2,7 +2,6 @@ use font::{CSSFontWeight, SpecifiedFontStyle, UsedFontStyle};
 use gfx_font::FontHandleMethods;
 use native::FontHandle;
 
-use dvec::DVec;
 use core::hashmap::linear;
 
 #[cfg(target_os = "linux")]
@@ -30,22 +29,22 @@ pub impl FontListHandle {
     }
 }
 
-pub type FontFamilyMap = linear::LinearMap<~str, @FontFamily>;
+pub type FontFamilyMap = linear::LinearMap<~str, @mut FontFamily>;
 
 trait FontListHandleMethods {
     fn get_available_families(&const self, fctx: &native::FontContextHandle) -> FontFamilyMap;
-    fn load_variations_for_family(&const self, family: @FontFamily);
+    fn load_variations_for_family(&const self, family: @mut FontFamily);
 }
 
 pub struct FontList {
-    mut family_map: FontFamilyMap,
+    family_map: FontFamilyMap,
     handle: FontListHandle,
 }
 
 pub impl FontList {
     static fn new(fctx: &native::FontContextHandle) -> FontList {
         let handle = result::unwrap(FontListHandle::new(fctx));
-        let list = FontList {
+        let mut list = FontList {
             handle: handle,
             family_map: linear::LinearMap::new(),
         };
@@ -53,7 +52,7 @@ pub impl FontList {
         return list;
     }
 
-    priv fn refresh(_fctx: &native::FontContextHandle) {
+    priv fn refresh(&mut self, _fctx: &native::FontContextHandle) {
         // TODO(Issue #186): don't refresh unless something actually
         // changed.  Does OSX have a notification for this event?
         //
@@ -63,7 +62,8 @@ pub impl FontList {
         }
     }
 
-    fn find_font_in_family(family_name: &str, 
+    fn find_font_in_family(&self,
+                           family_name: &str, 
                            style: &SpecifiedFontStyle) -> Option<@FontEntry> {
         let family = self.find_family(family_name);
         let mut result : Option<@FontEntry> = None;
@@ -71,7 +71,7 @@ pub impl FontList {
         // TODO(Issue #192: handle generic font families, like 'serif' and 'sans-serif'.
 
         // if such family exists, try to match style to a font
-        do family.iter |fam| {
+        for family.each |fam| {
             result = fam.find_font_for_style(&self.handle, style);
         }
 
@@ -81,7 +81,7 @@ pub impl FontList {
         return result;
     }
 
-    priv fn find_family(family_name: &str) -> Option<@FontFamily> {
+    priv fn find_family(&self, family_name: &str) -> Option<@mut FontFamily> {
         // look up canonical name
         let family = self.family_map.find(&str::from_slice(family_name));
 
@@ -96,24 +96,24 @@ pub impl FontList {
 // Holds a specific font family, and the various 
 pub struct FontFamily {
     family_name: ~str,
-    entries: DVec<@FontEntry>,
+    entries: ~[@FontEntry],
 }
 
 pub impl FontFamily {
     static fn new(family_name: &str) -> FontFamily {
         FontFamily {
             family_name: str::from_slice(family_name),
-            entries: DVec(),
+            entries: ~[],
         }
     }
 
-    priv fn load_family_variations(@self, list: &native::FontListHandle) {
+    priv fn load_family_variations(@mut self, list: &native::FontListHandle) {
         if self.entries.len() > 0 { return; }
         list.load_variations_for_family(self);
         assert self.entries.len() > 0;
     }
 
-    fn find_font_for_style(@self, list: &native::FontListHandle, style: &SpecifiedFontStyle) -> Option<@FontEntry> {
+    fn find_font_for_style(@mut self, list: &native::FontListHandle, style: &SpecifiedFontStyle) -> Option<@FontEntry> {
 
         self.load_family_variations(list);
 
@@ -141,7 +141,7 @@ pub impl FontFamily {
 // In the common case, each FontFamily will have a singleton FontEntry, or
 // it will have the standard four faces: Normal, Bold, Italic, BoldItalic.
 pub struct FontEntry {
-    family: @FontFamily,
+    family: @mut FontFamily,
     face_name: ~str,
     priv weight: CSSFontWeight,
     priv italic: bool,
@@ -150,7 +150,7 @@ pub struct FontEntry {
 }
 
 pub impl FontEntry {
-    static fn new(family: @FontFamily, handle: FontHandle) -> FontEntry {
+    static fn new(family: @mut FontFamily, handle: FontHandle) -> FontEntry {
         FontEntry {
             family: family,
             face_name: handle.face_name(),
@@ -160,9 +160,9 @@ pub impl FontEntry {
         }
     }
 
-    pure fn is_bold() -> bool { 
+    pure fn is_bold(&self) -> bool { 
         self.weight.is_bold()
     }
 
-    pure fn is_italic() -> bool { self.italic }
+    pure fn is_italic(&self) -> bool { self.italic }
 }

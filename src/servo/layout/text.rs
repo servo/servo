@@ -17,27 +17,27 @@ pub fn TextBoxData(run: @TextRun, range: &const Range) -> TextBoxData {
     }
 }
 
-pub fn adapt_textbox_with_range(box_data: &RenderBoxData, run: @TextRun, 
-                                range: &const Range) -> @RenderBox {
+pub fn adapt_textbox_with_range(box_data: &mut RenderBoxData, run: @TextRun, 
+                                range: &const Range) -> @mut RenderBox {
     assert range.begin() < run.char_len();
     assert range.end() <= run.char_len();
     assert range.length() > 0;
 
     debug!("Creating textbox with span: (strlen=%u, off=%u, len=%u) of textrun: %s",
            run.char_len(), range.begin(), range.length(), run.text);
-    let new_box_data = copy *box_data;
+    let mut new_box_data = copy *box_data;
     let new_text_data = TextBoxData(run, range);
     let metrics = run.metrics_for_range(range);
     new_box_data.position.size = metrics.bounding_box.size;
-    @TextBox(new_box_data, new_text_data)
+    @mut TextBox(new_box_data, new_text_data)
 }
 
 pub trait UnscannedMethods {
-    pure fn raw_text(&self) -> ~str;
+    pure fn raw_text(&mut self) -> ~str;
 }
 
 impl UnscannedMethods for RenderBox {
-    pure fn raw_text(&self) -> ~str {
+    pure fn raw_text(&mut self) -> ~str {
         match self {
             &UnscannedTextBox(_, ref s) => copy *s,
             _ => fail!(~"unsupported operation: box.raw_text() on non-unscanned text box.")

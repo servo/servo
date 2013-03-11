@@ -72,8 +72,8 @@ pub struct FreeTypeFontTable {
     bogus: ()
 }
 
-pub impl FontTableMethods for FreeTypeFontTable {
-    fn with_buffer(_blk: fn&(*u8, uint)) {
+impl FontTableMethods for FreeTypeFontTable {
+    fn with_buffer(&self, _blk: &fn(*u8, uint)) {
         fail!()
     }
 }
@@ -185,23 +185,23 @@ pub impl FreeTypeFontHandle {
     }
 }
 
-pub impl FontHandleMethods for FreeTypeFontHandle {
+impl FontHandleMethods for FreeTypeFontHandle {
     // an identifier usable by FontContextHandle to recreate this FontHandle.
-    pure fn face_identifier() -> ~str {
+    pure fn face_identifier(&self) -> ~str {
         /* FT_Get_Postscript_Name seems like a better choice here, but it
            doesn't give usable results for fontconfig when deserializing. */
         unsafe { str::raw::from_c_str((*self.face).family_name) }
     }
-    pure fn family_name() -> ~str {
+    pure fn family_name(&self) -> ~str {
         unsafe { str::raw::from_c_str((*self.face).family_name) }
     }
-    pure fn face_name() -> ~str {
+    pure fn face_name(&self) -> ~str {
         unsafe { str::raw::from_c_str(FT_Get_Postscript_Name(self.face)) }
     }
-    pure fn is_italic() -> bool {
+    pure fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC != 0 }
     }
-    pure fn boldness() -> CSSFontWeight {
+    pure fn boldness(&self) -> CSSFontWeight {
         let default_weight = FontWeight400;
         if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD == 0 } {
             default_weight
@@ -228,7 +228,8 @@ pub impl FontHandleMethods for FreeTypeFontHandle {
         }
     }
 
-    fn clone_with_style(fctx: &native::FontContextHandle,
+    fn clone_with_style(&self,
+                        fctx: &native::FontContextHandle,
                         style: &UsedFontStyle) -> Result<FreeTypeFontHandle, ()> {
         match self.source {
             FontSourceMem(buf) => {
@@ -240,7 +241,8 @@ pub impl FontHandleMethods for FreeTypeFontHandle {
         }
     }
 
-    pub fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
+    pub fn glyph_index(&self,
+                       codepoint: char) -> Option<GlyphIndex> {
         assert self.face.is_not_null();
         let idx = FT_Get_Char_Index(self.face, codepoint as FT_ULong);
         return if idx != 0 as FT_UInt {
@@ -251,7 +253,8 @@ pub impl FontHandleMethods for FreeTypeFontHandle {
         };
     }
 
-    pub fn glyph_h_advance(glyph: GlyphIndex) -> Option<FractionalPixel> {
+    pub fn glyph_h_advance(&self,
+                           glyph: GlyphIndex) -> Option<FractionalPixel> {
         assert self.face.is_not_null();
         let res =  FT_Load_Glyph(self.face, glyph as FT_UInt, 0);
         if res.succeeded() {
@@ -271,7 +274,7 @@ pub impl FontHandleMethods for FreeTypeFontHandle {
         }
     }
 
-    pub fn get_metrics() -> FontMetrics {
+    pub fn get_metrics(&self) -> FontMetrics {
         /* TODO(Issue #76): complete me */
         let face = self.get_face_rec();
 
@@ -294,19 +297,19 @@ pub impl FontHandleMethods for FreeTypeFontHandle {
         }
     }
 
-    fn get_table_for_tag(_tag: FontTableTag) -> Option<FontTable> {
+    fn get_table_for_tag(&self, _tag: FontTableTag) -> Option<FontTable> {
         None
     }
 }
 
 pub impl FreeTypeFontHandle {
-    priv fn get_face_rec() -> &self/FT_FaceRec {
+    priv fn get_face_rec(&self) -> &self/FT_FaceRec {
         unsafe {
             &(*self.face)
         }
     }
 
-    priv fn font_units_to_au(value: float) -> Au {
+    priv fn font_units_to_au(&self, value: float) -> Au {
 
         let face = self.get_face_rec();
 

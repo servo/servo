@@ -1,7 +1,7 @@
-use comm::{Chan, SharedChan};
-use task::spawn;
+use core::comm::{Chan, SharedChan};
+use core::task::spawn;
 use resource::resource_task::{ProgressMsg, Payload, Done, LoaderTask};
-use std::cell::Cell;
+use core::cell::Cell;
 use std::net::url::Url;
 use http_client;
 use http_client::{uv_http_request};
@@ -13,7 +13,7 @@ pub fn factory() -> LoaderTask {
 		let progress_chan = SharedChan(progress_chan);
 		do spawn {
 			debug!("http_loader: requesting via http: %?", copy url);
-			let request = uv_http_request(copy url);
+			let mut request = uv_http_request(copy url);
 			let errored = @mut false;
 			let url = copy url;
 			{
@@ -24,9 +24,8 @@ pub fn factory() -> LoaderTask {
 						http_client::Status(*) => { }
 						http_client::Payload(data) => {
 							debug!("http_loader: got data from %?", url);
-							let mut junk = None;
-							*data <-> junk;
-							progress_chan.send(Payload(option::unwrap(junk)));
+							let data = data.take();
+							progress_chan.send(Payload(data));
 						}
 						http_client::Error(*) => {
 							debug!("http_loader: error loading %?", url);

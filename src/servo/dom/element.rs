@@ -5,7 +5,7 @@
 use dom::node::{ElementNodeTypeId, Node};
 
 use core::str::eq_slice;
-use std::cell::Cell;
+use core::cell::Cell;
 use std::net::url::Url;
 
 pub struct Element {
@@ -107,7 +107,7 @@ pub struct HTMLImageElement {
 // Element methods
 //
 
-impl Element {
+pub impl Element {
     static pub fn new(type_id: ElementTypeId, tag_name: ~str) -> Element {
         Element {
             parent: Node::new(ElementNodeTypeId(type_id)),

@@ -12,7 +12,7 @@ use std::arc::ARC;
 
 pub struct TextRun {
     text: ~str,
-    font: @Font,
+    font: @mut Font,
     glyphs: GlyphStore,
 }
 
@@ -25,7 +25,7 @@ pub struct SendableTextRun {
 }
 
 impl SendableTextRun {
-    pub fn deserialize(&self, fctx: @FontContext) -> TextRun {
+    pub fn deserialize(&self, fctx: @mut FontContext) -> TextRun {
         let font = match fctx.get_font_by_descriptor(&self.font) {
             Ok(f) => f,
             Err(_) => fail!(fmt!("Font descriptor deserialization failed! desc=%?", self.font))
@@ -40,7 +40,7 @@ impl SendableTextRun {
 }
 
 pub impl TextRun {
-    static fn new(font: @Font, text: ~str) -> TextRun {
+    static fn new(font: @mut Font, text: ~str) -> TextRun {
         let mut glyph_store = GlyphStore::new(str::char_len(text));
         TextRun::compute_potential_breaks(text, &mut glyph_store);
         font.shape_text(text, &mut glyph_store);
@@ -103,7 +103,7 @@ pub impl TextRun {
         }
     }
 
-    pure fn char_len() -> uint { self.glyphs.entry_buffer.len() }
+    pure fn char_len(&self) -> uint { self.glyphs.entry_buffer.len() }
     pure fn glyphs(&self) -> &self/GlyphStore { &self.glyphs }
 
     pure fn range_is_trimmable_whitespace(&self, range: &const Range) -> bool {

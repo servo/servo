@@ -6,38 +6,38 @@ use core::num::NumCast;
 
 pub struct Au(i32);
 
-pub impl Add<Au,Au> for Au {
+impl Add<Au,Au> for Au {
     pure fn add(&self, other: &Au) -> Au { Au(**self + **other) }
 }
 
-pub impl Sub<Au,Au> for Au {
+impl Sub<Au,Au> for Au {
     pure fn sub(&self, other: &Au) -> Au { Au(**self - **other) }
 }
 
-pub impl Mul<Au,Au> for Au {
+impl Mul<Au,Au> for Au {
     pure fn mul(&self, other: &Au) -> Au { Au(**self * **other) }
 }
 
-pub impl Div<Au,Au> for Au {
+impl Div<Au,Au> for Au {
     pure fn div(&self, other: &Au) -> Au { Au(**self / **other) }
 }
 
-pub impl Modulo<Au,Au> for Au {
+impl Modulo<Au,Au> for Au {
     pure fn modulo(&self, other: &Au) -> Au { Au(**self % **other) }
 }
 
-pub impl Neg<Au> for Au {
+impl Neg<Au> for Au {
     pure fn neg(&self) -> Au { Au(-**self) }
 }
 
-pub impl cmp::Ord for Au {
+impl cmp::Ord for Au {
     pure fn lt(&self, other: &Au) -> bool { **self <  **other }
     pure fn le(&self, other: &Au) -> bool { **self <= **other }
     pure fn ge(&self, other: &Au) -> bool { **self >= **other }
     pure fn gt(&self, other: &Au) -> bool { **self >  **other }
 }
 
-pub impl cmp::Eq for Au {
+impl cmp::Eq for Au {
     pure fn eq(&self, other: &Au) -> bool { **self == **other }
     pure fn ne(&self, other: &Au) -> bool { **self != **other }
 }
@@ -70,7 +70,7 @@ pub fn box<T:Copy + Ord + Add<T,T> + Sub<T,T>>(x: T, y: T, w: T, h: T) -> Rect<T
 }
 
 pub impl Au {
-    pub pure fn scale_by(factor: float) -> Au {
+    pub pure fn scale_by(self, factor: float) -> Au {
         Au(((*self as float) * factor) as i32)
     }
 

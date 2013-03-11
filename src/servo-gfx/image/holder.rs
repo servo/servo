@@ -17,13 +17,13 @@ use std::arc::{ARC, clone, get};
  */
 pub struct ImageHolder {
     url: Url,
-    mut image: Option<ARC<~Image>>,
-    mut cached_size: Size2D<int>,
-    local_image_cache: @LocalImageCache,
+    image: Option<ARC<~Image>>,
+    cached_size: Size2D<int>,
+    local_image_cache: @mut LocalImageCache,
 }
 
-impl ImageHolder {
-	static pub fn new(url: Url, local_image_cache: @LocalImageCache) -> ImageHolder {
+pub impl ImageHolder {
+	static pub fn new(url: Url, local_image_cache: @mut LocalImageCache) -> ImageHolder {
 		debug!("ImageHolder::new() %?", url.to_str());
 		let holder = ImageHolder {
 			url: url,
@@ -50,12 +50,12 @@ impl ImageHolder {
     The intent is that the impure version is used during layout when
     dimensions are used for computing layout.
     */
-    pure fn size() -> Size2D<int> {
+    pure fn size(&self) -> Size2D<int> {
         self.cached_size
     }
     
     /** Query and update current image size */
-    fn get_size() -> Option<Size2D<int>> {
+    fn get_size(&mut self) -> Option<Size2D<int>> {
         debug!("get_size() %?", self.url);
         match self.get_image() {
             Some(img) => { 
@@ -68,7 +68,7 @@ impl ImageHolder {
         }
     }
 
-    fn get_image() -> Option<ARC<~Image>> {
+    fn get_image(&mut self) -> Option<ARC<~Image>> {
         debug!("get_image() %?", self.url);
 
         // If this is the first time we've called this function, load

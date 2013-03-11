@@ -22,7 +22,7 @@ pub impl QuartzFontContextHandle {
     }
 }
 
-pub impl FontContextHandleMethods for QuartzFontContextHandle {
+impl FontContextHandleMethods for QuartzFontContextHandle {
     pure fn clone(&const self) -> QuartzFontContextHandle {
         QuartzFontContextHandle { ctx: self.ctx }
     }

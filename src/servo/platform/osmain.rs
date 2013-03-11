@@ -15,12 +15,13 @@ use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
 use gfx::opts::Opts;
 use gfx::util::time;
 use layers::layers::ImageLayer;
-use std::cell::Cell;
+use core::cell::Cell;
 use std::cmp::FuzzyEq;
 use glut::glut;
 use layers;
 use sharegl;
 use sharegl::ShareGlContext;
+use sharegl::base::ShareContext;
 
 pub struct OSMain {
     chan: SharedChan<Msg>
@@ -81,13 +82,13 @@ struct AzureDrawTargetImageData {
 }
 
 impl layers::layers::ImageData for AzureDrawTargetImageData {
-    fn size() -> Size2D<uint> { self.size }
-    fn stride() -> uint { self.data_source_surface.get_size().width as uint }
-    fn format() -> layers::layers::Format {
+    fn size(&self) -> Size2D<uint> { self.size }
+    fn stride(&self) -> uint { self.data_source_surface.get_size().width as uint }
+    fn format(&self) -> layers::layers::Format {
         // FIXME: This is not always correct. We should query the Azure draw target for the format.
         layers::layers::ARGB32Format
     }
-    fn with_data(f: layers::layers::WithDataFn) { 
+    fn with_data(&self, f: layers::layers::WithDataFn) { 
         do self.data_source_surface.with_data |data| {
             f(data);
         }
@@ -117,19 +118,21 @@ fn mainloop(mode: Mode,
 		}
 	}
 
-    let surfaces = @SurfaceSet(opts.render_backend);
+    let surfaces = @mut SurfaceSet(opts.render_backend);
 
     let context = layers::rendergl::init_render_context();
 
-    let root_layer = @layers::layers::ContainerLayer();
+    let root_layer = @mut layers::layers::ContainerLayer();
     let original_layer_transform;
     {
-        let image_data = @layers::layers::BasicImageData::new(Size2D(0u, 0u),
+        let mut image_data = @mut layers::layers::BasicImageData::new(Size2D(0u, 0u),
                                                               0,
                                                               layers::layers::RGB24Format,
                                                               ~[]);
-        let image = @layers::layers::Image::new(image_data as @layers::layers::ImageData);
-        let image_layer = @layers::layers::ImageLayer(image);
+        //XXXjdm How can we obtain a @mut @ImageData without transmute?
+        let image_data: @mut @layers::layers::ImageData = unsafe { cast::transmute(image_data) };
+        let image = @mut layers::layers::Image::new(image_data);
+        let image_layer = @mut layers::layers::ImageLayer(image);
         original_layer_transform = image_layer.common.transform;
         image_layer.common.set_transform(original_layer_transform.scale(800.0, 600.0, 1.0));
         root_layer.add_child(layers::layers::ImageLayerKind(image_layer));
@@ -141,8 +144,8 @@ fn mainloop(mode: Mode,
                                       identity());
 
     let done = @mut false;
-    let resize_rate_limiter = @ResizeRateLimiter(dom_event_chan);
-    let check_for_messages = fn@() {
+    let resize_rate_limiter = @mut ResizeRateLimiter(dom_event_chan);
+    let check_for_messages: @fn() = || {
 
         // Periodically check if content responded to our last resize event
         resize_rate_limiter.check_resize_response();
@@ -169,20 +172,21 @@ fn mainloop(mode: Mode,
 
                         debug!("osmain: compositing buffer rect %?", &buffer.rect);
 
-                        let image_data = @AzureDrawTargetImageData {
+                        let image_data = @mut AzureDrawTargetImageData {
                             draw_target: buffer.draw_target.clone(),
                             data_source_surface: buffer.draw_target.snapshot().get_data_surface(),
                             size: Size2D(width, height)
                         };
-                        let image = @layers::layers::Image::new(
-                            image_data as @layers::layers::ImageData);
+                        //XXXjdm How can we extract a @mut @ImageData without transmute?
+                        let image_data: @mut @layers::layers::ImageData = unsafe { cast::transmute(image_data) };
+                        let image = @mut layers::layers::Image::new(image_data);
 
                         // Find or create an image layer.
                         let image_layer;
                         current_layer_child = match current_layer_child {
                             None => {
                                 debug!("osmain: adding new image layer");
-                                image_layer = @layers::layers::ImageLayer(image);
+                                image_layer = @mut layers::layers::ImageLayer(image);
                                 root_layer.add_child(layers::layers::ImageLayerKind(image_layer));
                                 None
                             }
@@ -216,7 +220,7 @@ fn mainloop(mode: Mode,
         }
     };
 
-    let adjust_for_window_resizing: fn@() = || {
+    let adjust_for_window_resizing: @fn() = || {
         let window_width = glut::get(glut::WindowWidth) as uint;
         let window_height = glut::get(glut::WindowHeight) as uint;
 
@@ -226,7 +230,7 @@ fn mainloop(mode: Mode,
         *size = Size2D(window_width as f32, window_height as f32);
     };
 
-    let composite: fn@() = || {
+    let composite: @fn() = || {
         //#debug("osmain: drawing to screen");
 
         do time::time(~"compositing") {
@@ -276,20 +280,20 @@ Implementation to allow the osmain channel to be used as a graphics
 compositor for the renderer
 */
 impl Compositor for OSMain {
-    fn begin_drawing(next_dt: comm::Chan<LayerBufferSet>) {
+    fn begin_drawing(&self, next_dt: comm::Chan<LayerBufferSet>) {
         self.chan.send(BeginDrawing(next_dt))
     }
-    fn draw(next_dt: comm::Chan<LayerBufferSet>, draw_me: LayerBufferSet) {
+    fn draw(&self, next_dt: comm::Chan<LayerBufferSet>, draw_me: LayerBufferSet) {
         self.chan.send(Draw(next_dt, draw_me))
     }
 }
 
 struct SurfaceSet {
-    mut front: Surface,
-    mut back: Surface,
+    front: Surface,
+    back: Surface,
 }
 
-fn lend_surface(surfaces: &SurfaceSet, receiver: comm::Chan<LayerBufferSet>) {
+fn lend_surface(surfaces: &mut SurfaceSet, receiver: comm::Chan<LayerBufferSet>) {
     // We are in a position to lend out the surface?
     assert surfaces.front.have;
     // Ok then take it
@@ -316,7 +320,7 @@ fn lend_surface(surfaces: &SurfaceSet, receiver: comm::Chan<LayerBufferSet>) {
     assert surfaces.front.have;
 }
 
-fn return_surface(surfaces: &SurfaceSet, layer_buffer_set: LayerBufferSet) {
+fn return_surface(surfaces: &mut SurfaceSet, layer_buffer_set: LayerBufferSet) {
     //#debug("osmain: returning surface %?", layer_buffer_set);
     // We have room for a return
     assert surfaces.front.have;
@@ -334,7 +338,7 @@ fn SurfaceSet(backend: BackendType) -> SurfaceSet {
 
 struct Surface {
     layer_buffer_set: LayerBufferSet,
-    mut have: bool,
+    have: bool,
 }
 
 fn Surface(backend: BackendType) -> Surface {
@@ -348,7 +352,7 @@ fn Surface(backend: BackendType) -> Surface {
 }
 
 /// A function for spawning into the platform's main thread
-fn on_osmain<T: Owned>(f: fn~(po: Port<T>)) -> Chan<T> {
+fn on_osmain<T: Owned>(f: ~fn(po: Port<T>)) -> Chan<T> {
     let (setup_po, setup_ch) = comm::stream();
     do task::task().sched_mode(task::PlatformThread).spawn {
         let (po, ch) = comm::stream();

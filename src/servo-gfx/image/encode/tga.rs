@@ -1,4 +1,4 @@
-use io::WriterUtil;
+use core::io::WriterUtil;
 use surface;
 
 fn encode(writer: io::Writer, surface: &surface::ImageSurface) {

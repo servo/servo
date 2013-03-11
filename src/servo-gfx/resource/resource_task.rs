@@ -4,9 +4,9 @@ A task that takes a URL and streams back the binary data
 
 */
 
-use comm::{Chan, Port, SharedChan};
+use core::cell::Cell;
+use core::comm::{Chan, Port, SharedChan};
 use resource::util::spawn_listener;
-use std::cell::Cell;
 use std::net::url;
 use std::net::url::{Url, to_str};
 use super::{file_loader, http_loader};
@@ -76,7 +76,7 @@ pub fn ResourceManager(from_client: Port<ControlMsg>,
 
 
 impl ResourceManager {
-    fn start() {
+    fn start(&self) {
         loop {
             match self.from_client.recv() {
               Load(url, progress_chan) => {
@@ -89,7 +89,7 @@ impl ResourceManager {
         }
     }
 
-    fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
+    fn load(&self, url: Url, progress_chan: Chan<ProgressMsg>) {
 
         match self.get_loader_factory(&url) {
             Some(loader_factory) => {
@@ -103,7 +103,7 @@ impl ResourceManager {
         }
     }
 
-    fn get_loader_factory(url: &Url) -> Option<LoaderTask> {
+    fn get_loader_factory(&self, url: &Url) -> Option<LoaderTask> {
         for self.loaders.each |scheme_loader| {
 			match *scheme_loader {
 				(ref scheme, ref loader_factory) => {
@@ -140,7 +140,7 @@ fn test_bad_scheme() {
 #[allow(non_implicitly_copyable_typarams)]
 fn should_delegate_to_scheme_loader() {
     let payload = ~[1, 2, 3];
-    let loader_factory = fn~(_url: Url, progress_chan: Chan<ProgressMsg>, copy payload) {
+    let loader_factory = |_url: Url, progress_chan: Chan<ProgressMsg>| {
         progress_chan.send(Payload(copy payload));
         progress_chan.send(Done(Ok(())));
     };

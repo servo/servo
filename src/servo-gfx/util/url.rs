@@ -28,7 +28,7 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
             } else {
                 let path = str::split_char(current_url.path, '/');
                 let path = path.init();
-                let path = str::connect(path + ~[str_url], "/");
+                let path = str::connect(path.map(|x| copy *x) + ~[str_url], "/");
 
                 current_url.scheme + "://" + current_url.host + path
             }

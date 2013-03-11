@@ -44,7 +44,7 @@ type FontContextHandle/& = freetype_impl::font_context::FreeTypeFontContextHandl
 
 pub trait FontContextHandleMethods {
     pure fn clone(&const self) -> FontContextHandle;
-    fn create_font_from_identifier(~str, UsedFontStyle) -> Result<FontHandle, ()>;
+    fn create_font_from_identifier(&self, ~str, UsedFontStyle) -> Result<FontHandle, ()>;
 }
 
 // TODO(Issue #163): this is a workaround for static methods, traits,
@@ -63,7 +63,7 @@ pub impl FontContextHandle {
 
 #[allow(non_implicitly_copyable_typarams)]
 pub struct FontContext {
-    instance_cache: MonoCache<FontDescriptor, @Font>,
+    instance_cache: MonoCache<FontDescriptor, @mut Font>,
     font_list: Option<FontList>, // only needed by layout
     handle: FontContextHandle,
     backend: BackendType,
@@ -87,7 +87,7 @@ pub impl FontContext {
         FontContext { 
             // TODO(Rust #3902): remove extraneous type parameters once they are inferred correctly.
             instance_cache:
-                Cache::new::<FontDescriptor,@Font,MonoCache<FontDescriptor,@Font>>(10),
+                Cache::new::<FontDescriptor,@mut Font,MonoCache<FontDescriptor,@mut Font>>(10),
             font_list: font_list,
             handle: handle,
             backend: backend,
@@ -99,12 +99,12 @@ pub impl FontContext {
         option::get_ref(&self.font_list)
     }
 
-    fn get_resolved_font_for_style(style: &SpecifiedFontStyle) -> @FontGroup {
+    fn get_resolved_font_for_style(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
         // TODO(Issue #178, E): implement a cache of FontGroup instances.
         self.create_font_group(style)
     }
 
-    fn get_font_by_descriptor(desc: &FontDescriptor) -> Result<@Font, ()> {
+    fn get_font_by_descriptor(&mut self, desc: &FontDescriptor) -> Result<@mut Font, ()> {
         match self.instance_cache.find(desc) {
             Some(f) => Ok(f),
             None => { 
@@ -130,7 +130,7 @@ pub impl FontContext {
     }
 
     // TODO:(Issue #196): cache font groups on the font context.
-    priv fn create_font_group(style: &SpecifiedFontStyle) -> @FontGroup {
+    priv fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
         let fonts = DVec();
 
         debug!("(create font group) --- starting ---");
@@ -145,11 +145,11 @@ pub impl FontContext {
 
             let result = list.find_font_in_family(transformed_family_name, style);
             let mut found = false;
-            do result.iter |font_entry| {
+            for result.each |font_entry| {
                 found = true;
                 // TODO(Issue #203): route this instantion through FontContext's Font instance cache.
-                let instance = Font::new_from_existing_handle(&self, &font_entry.handle, style, self.backend);
-                do result::iter(&instance) |font: &@Font| { fonts.push(*font); }
+                let instance = Font::new_from_existing_handle(self, &font_entry.handle, style, self.backend);
+                do result::iter(&instance) |font: &@mut Font| { fonts.push(*font); }
             };
 
             if !found {
@@ -178,17 +178,17 @@ pub impl FontContext {
         @FontGroup::new(style.families.to_managed(), &used_style, dvec::unwrap(fonts))
     }
 
-    priv fn create_font_instance(desc: &FontDescriptor) -> Result<@Font, ()> {
+    priv fn create_font_instance(&self, desc: &FontDescriptor) -> Result<@mut Font, ()> {
         return match &desc.selector {
             &SelectorStubDummy => {
-                Font::new_from_buffer(&self, test_font_bin(), &desc.style, self.backend)
+                Font::new_from_buffer(self, test_font_bin(), &desc.style, self.backend)
             },
             // TODO(Issue #174): implement by-platform-name font selectors.
             &SelectorPlatformIdentifier(ref identifier) => { 
                 let result_handle = self.handle.create_font_from_identifier(copy *identifier,
                                                                             copy desc.style);
                 result::chain(result_handle, |handle| {
-                    Ok(Font::new_from_adopted_handle(&self,
+                    Ok(Font::new_from_adopted_handle(self,
                                                      handle,
                                                      &desc.style,
                                                      self.backend))

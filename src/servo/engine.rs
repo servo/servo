@@ -8,12 +8,12 @@ use resource::resource_task::ResourceTask;
 use resource::resource_task;
 use util::task::spawn_listener;
 
+use core::cell::Cell;
 use core::comm::{Port, Chan};
 use gfx::compositor::Compositor;
 use gfx::opts::Opts;
 use gfx::render_task::RenderTask;
 use gfx::render_task;
-use std::cell::Cell;
 use std::net::url::Url;
 
 pub type EngineTask = Chan<Msg>;

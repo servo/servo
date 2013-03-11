@@ -10,7 +10,8 @@ use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_Repor
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB,
                   RESOLVE_STUB};
 use js::glue::bindgen::*;
-use ptr::null;
+use core::ptr::null;
+use core::cast;
 use content::content_task::{Content, task_from_context};
 
 pub enum DOMString {

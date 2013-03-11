@@ -9,12 +9,12 @@ use resource::image_cache_task;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
 use util::task::{spawn_listener, spawn_conversation};
 
+use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
 use core::str::eq_slice;
 use gfx::util::url::make_url;
 use hubbub::hubbub::Attribute;
 use hubbub::hubbub;
-use std::cell::Cell;
 use std::net::url::Url;
 use std::net::url;
 
@@ -237,7 +237,7 @@ pub fn parse_html(url: Url,
         let root = ~HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
         let root = unsafe { Node::as_abstract_node(root) };
         debug!("created new node");
-        let parser = hubbub::Parser("UTF-8", false);
+        let mut parser = hubbub::Parser("UTF-8", false);
         debug!("created parser");
         parser.set_document_node(root.to_hubbub_node());
         parser.enable_scripting(true);

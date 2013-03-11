@@ -12,11 +12,11 @@ use util::time::time;
 
 use core::libc::size_t;
 use core::libc::types::common::c99::uint16_t;
+use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
 use core::task::SingleThreaded;
 use std::arc::ARC;
 use std::arc;
-use std::cell::Cell;
 use std::task_pool::TaskPool;
 
 pub enum Msg {
@@ -45,7 +45,7 @@ pub fn RenderTask<C:Compositor + Owned>(compositor: C, opts: Opts) -> RenderTask
             let f: ~fn(uint) -> ThreadRenderContext = |thread_index| {
                 ThreadRenderContext {
                     thread_index: thread_index,
-                    font_ctx: @FontContext::new(opts_cell.with_ref(|o| o.render_backend), false),
+                    font_ctx: @mut FontContext::new(opts_cell.with_ref(|o| o.render_backend), false),
                     opts: opts_cell.with_ref(|o| copy *o),
                 }
             };
@@ -66,7 +66,7 @@ pub fn RenderTask<C:Compositor + Owned>(compositor: C, opts: Opts) -> RenderTask
 /// Data that needs to be kept around for each render thread.
 priv struct ThreadRenderContext {
     thread_index: uint,
-    font_ctx: @FontContext,
+    font_ctx: @mut FontContext,
     opts: Opts,
 }
 
@@ -79,7 +79,7 @@ priv struct Renderer<C> {
 }
 
 impl<C: Compositor + Owned> Renderer<C> {
-    fn start() {
+    fn start(&self) {
         debug!("renderer: beginning rendering loop");
 
         loop {
@@ -93,7 +93,7 @@ impl<C: Compositor + Owned> Renderer<C> {
         }
     }
 
-    fn render(render_layer: RenderLayer) {
+    fn render(&self, render_layer: RenderLayer) {
         debug!("renderer: got render request");
 
         let layer_buffer_set_port = self.layer_buffer_set_port.take();

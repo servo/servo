@@ -11,9 +11,9 @@ pub struct ResizeRateLimiter {
     /// The channel we send resize events on
     /* priv */ dom_event_chan: comm::SharedChan<Event>,
     /// The port we are waiting on for a response to the last resize event
-    /* priv */ mut last_response_port: Option<comm::Port<()>>,
+    /* priv */ last_response_port: Option<comm::Port<()>>,
     /// The next window resize event we should fire
-    /* priv */ mut next_resize_event: Option<(uint, uint)>
+    /* priv */ next_resize_event: Option<(uint, uint)>
 }
 
 pub fn ResizeRateLimiter(dom_event_chan: comm::SharedChan<Event>) -> ResizeRateLimiter {
@@ -24,8 +24,8 @@ pub fn ResizeRateLimiter(dom_event_chan: comm::SharedChan<Event>) -> ResizeRateL
     }
 }
 
-impl ResizeRateLimiter {
-    fn window_resized(width: uint, height: uint) {
+pub impl ResizeRateLimiter {
+    fn window_resized(&mut self, width: uint, height: uint) {
         match self.last_response_port {
             None => {
                 assert self.next_resize_event.is_none();
@@ -45,7 +45,7 @@ impl ResizeRateLimiter {
         }
     }
 
-    fn check_resize_response() {
+    fn check_resize_response(&mut self) {
         match self.next_resize_event {
             Some((copy width, copy height)) => {
                 assert self.last_response_port.is_some();
@@ -58,7 +58,7 @@ impl ResizeRateLimiter {
         }
     }
 
-    priv fn send_event(width: uint, height: uint) {
+    priv fn send_event(&mut self, width: uint, height: uint) {
         let (port, chan) = comm::stream();
         self.dom_event_chan.send(ResizeEvent(width, height, chan));
         self.last_response_port = Some(port);

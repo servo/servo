@@ -9,6 +9,7 @@ use super::utils;
 use core::dvec::DVec;
 use core::libc::c_uint;
 use core::ptr::null;
+use core::ptr;
 use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub};
 use js::crust::{JS_ResolveStub};
 use js::global::jsval_to_rust_str;

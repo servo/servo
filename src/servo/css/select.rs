@@ -1,6 +1,6 @@
 use std::net::url::Url;
 use url_from_str = std::net::url::from_str;
-use std::cell::Cell;
+use core::cell::Cell;
 use newcss::stylesheet::Stylesheet;
 use newcss::select::SelectCtx;
 use newcss::types::OriginUA;

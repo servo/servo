@@ -19,9 +19,9 @@ pub struct RenderLayer {
     size: Size2D<uint>
 }
 
-type RenderFn = &fn(layer: *RenderLayer,
-                    buffer: LayerBuffer,
-                    return_buffer: Chan<LayerBuffer>);
+type RenderFn = &'self fn(layer: *RenderLayer,
+                          buffer: LayerBuffer,
+                          return_buffer: Chan<LayerBuffer>);
 
 /// Given a layer and a buffer, either reuses the buffer (if it's of the right size and format)
 /// or creates a new buffer (if it's not of the appropriate size and format) and invokes the

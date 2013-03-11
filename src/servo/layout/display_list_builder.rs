@@ -29,21 +29,21 @@ use gfx;
  Right now, the builder isn't used for much, but it  establishes the
  pattern we'll need once we support DL-based hit testing &c.  */
 pub struct DisplayListBuilder {
-    ctx:  &LayoutContext,
+    ctx:  &'self LayoutContext,
 }
 
 pub trait FlowDisplayListBuilderMethods {
-    fn build_display_list(@self, a: &DisplayListBuilder, b: &Rect<Au>, c: &Mut<DisplayList>);
-    fn build_display_list_for_child(@self,
+    fn build_display_list(@mut self, a: &DisplayListBuilder, b: &Rect<Au>, c: &Mut<DisplayList>);
+    fn build_display_list_for_child(@mut self,
                                     a: &DisplayListBuilder,
-                                    b: @FlowContext,
+                                    b: @mut FlowContext,
                                     c: &Rect<Au>,
                                     d: &Point2D<Au>,
                                     e: &Mut<DisplayList>);
 }
 
 impl FlowDisplayListBuilderMethods for FlowContext {
-    fn build_display_list(@self,
+    fn build_display_list(@mut self,
                           builder: &DisplayListBuilder,
                           dirty: &Rect<Au>,
                           list: &Mut<DisplayList>) {
@@ -51,9 +51,9 @@ impl FlowDisplayListBuilderMethods for FlowContext {
         self.build_display_list_recurse(builder, dirty, &zero, list);
     }
 
-    fn build_display_list_for_child(@self,
+    fn build_display_list_for_child(@mut self,
                                     builder: &DisplayListBuilder,
-                                    child_flow: @FlowContext,
+                                    child_flow: @mut FlowContext,
                                     dirty: &Rect<Au>, offset: &Point2D<Au>,
                                     list: &Mut<DisplayList>) {
 

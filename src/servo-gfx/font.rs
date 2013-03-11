@@ -33,17 +33,17 @@ pub type FontHandle/& = freetype_impl::font::FreeTypeFontHandle;
 
 pub trait FontHandleMethods {
     // an identifier usable by FontContextHandle to recreate this FontHandle.
-    pure fn face_identifier() -> ~str;
-    pure fn family_name() -> ~str;
-    pure fn face_name() -> ~str;
-    pure fn is_italic() -> bool;
-    pure fn boldness() -> CSSFontWeight;
+    pure fn face_identifier(&self) -> ~str;
+    pure fn family_name(&self) -> ~str;
+    pure fn face_name(&self) -> ~str;
+    pure fn is_italic(&self) -> bool;
+    pure fn boldness(&self) -> CSSFontWeight;
 
-    fn clone_with_style(fctx: &native::FontContextHandle, style: &UsedFontStyle) -> Result<FontHandle, ()>;
-    fn glyph_index(codepoint: char) -> Option<GlyphIndex>;
-    fn glyph_h_advance(GlyphIndex) -> Option<FractionalPixel>;
-    fn get_metrics() -> FontMetrics;
-    fn get_table_for_tag(FontTableTag) -> Option<FontTable>;
+    fn clone_with_style(&self, fctx: &native::FontContextHandle, style: &UsedFontStyle) -> Result<FontHandle, ()>;
+    fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex>;
+    fn glyph_h_advance(&self, GlyphIndex) -> Option<FractionalPixel>;
+    fn get_metrics(&self) -> FontMetrics;
+    fn get_table_for_tag(&self, FontTableTag) -> Option<FontTable>;
 }
 
 // TODO(Issue #163): this is a workaround for static methods and
@@ -75,13 +75,13 @@ pub type FractionalPixel = float;
 pub type FontTableTag = u32;
 
 trait FontTableTagConversions {
-    pub pure fn tag_to_str() -> ~str;
+    pub pure fn tag_to_str(&self) -> ~str;
 }
 
 impl FontTableTagConversions for FontTableTag {
-    pub pure fn tag_to_str() -> ~str {
+    pub pure fn tag_to_str(&self) -> ~str {
         unsafe {
-            let reversed = str::raw::from_buf_len(cast::transmute(&self), 4);
+            let reversed = str::raw::from_buf_len(cast::transmute(self), 4);
             return str::from_chars([reversed.char_at(3),
                                     reversed.char_at(2),
                                     reversed.char_at(1),
@@ -97,7 +97,7 @@ pub type FontTable/& = quartz::font::QuartzFontTable;
 pub type FontTable/& = freetype_impl::font::FreeTypeFontTable;
 
 pub trait FontTableMethods {
-    fn with_buffer(fn&(*u8, uint));
+    fn with_buffer(&self, &fn(*u8, uint));
 }
 
 pub struct FontMetrics {
@@ -126,7 +126,7 @@ pub enum CSSFontWeight {
 }
 
 pub impl CSSFontWeight {
-    pub pure fn is_bold() -> bool {
+    pub pure fn is_bold(self) -> bool {
         match self {
             FontWeight900 | FontWeight800 | FontWeight700 | FontWeight600 => true,
             _ => false
@@ -199,11 +199,11 @@ pub struct FontGroup {
     // style of the first western font in group, which is
     // used for purposes of calculating text run metrics.
     style: UsedFontStyle,
-    fonts: ~[@Font],
+    fonts: ~[@mut Font],
 }
 
 pub impl FontGroup {
-    static fn new(families: @str, style: &UsedFontStyle, fonts: ~[@Font]) -> FontGroup {
+    static fn new(families: @str, style: &UsedFontStyle, fonts: ~[@mut Font]) -> FontGroup {
         FontGroup {
             families: families,
             style: copy *style,
@@ -211,7 +211,7 @@ pub impl FontGroup {
         }
     }
 
-    fn create_textrun(text: ~str) -> TextRun {
+    fn create_textrun(&self, text: ~str) -> TextRun {
         assert self.fonts.len() > 0;
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
@@ -235,8 +235,8 @@ and the renderer can use it to render text.
 */
 pub struct Font {
     priv handle: FontHandle,
-    priv mut azure_font: Option<ScaledFont>,
-    priv mut shaper: Option<@Shaper>,
+    priv azure_font: Option<ScaledFont>,
+    priv shaper: Option<@Shaper>,
     style: UsedFontStyle,
     metrics: FontMetrics,
     backend: BackendType,
@@ -247,7 +247,7 @@ pub impl Font {
                               buffer: ~[u8],
                               style: &SpecifiedFontStyle,
                               backend: BackendType)
-                           -> Result<@Font, ()> {
+                           -> Result<@mut Font, ()> {
         let handle = FontHandle::new_from_buffer(&ctx.handle, buffer, style);
         let handle = if handle.is_ok() {
             result::unwrap(handle)
@@ -258,7 +258,7 @@ pub impl Font {
         let metrics = handle.get_metrics();
         // TODO(Issue #179): convert between specified and used font style here?
 
-        return Ok(@Font {
+        return Ok(@mut Font {
             handle: handle,
             azure_font: None,
             shaper: None,
@@ -269,10 +269,10 @@ pub impl Font {
     }
 
     static fn new_from_adopted_handle(_fctx: &FontContext, handle: FontHandle,
-                                      style: &SpecifiedFontStyle, backend: BackendType) -> @Font {
+                                      style: &SpecifiedFontStyle, backend: BackendType) -> @mut Font {
         let metrics = handle.get_metrics();
 
-        @Font {
+        @mut Font {
             handle: handle,
             azure_font: None,
             shaper: None,
@@ -283,7 +283,7 @@ pub impl Font {
     }
 
     static fn new_from_existing_handle(fctx: &FontContext, handle: &FontHandle,
-                              style: &SpecifiedFontStyle, backend: BackendType) -> Result<@Font,()> {
+                              style: &SpecifiedFontStyle, backend: BackendType) -> Result<@mut Font,()> {
 
         // TODO(Issue #179): convert between specified and used font style here?
         let styled_handle = match handle.clone_with_style(&fctx.handle, style) {
@@ -294,7 +294,7 @@ pub impl Font {
         return Ok(Font::new_from_adopted_handle(fctx, styled_handle, style, backend));
     }
 
-    priv fn get_shaper(@self) -> @Shaper {
+    priv fn get_shaper(@mut self) -> @Shaper {
         // fast path: already created a shaper
         match self.shaper {
             Some(shaper) => { return shaper; },
@@ -306,7 +306,7 @@ pub impl Font {
         shaper
     }
 
-    fn get_table_for_tag(tag: FontTableTag) -> Option<FontTable> {
+    fn get_table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let result = self.handle.get_table_for_tag(tag);
         let status = if result.is_some() { "Found" } else { "Didn't find" };
 
@@ -320,7 +320,7 @@ pub impl Font {
     // TODO: this should return a borrowed pointer, but I can't figure
     // out why borrowck doesn't like my implementation.
 
-    priv fn get_azure_font(&self) -> AzScaledFontRef {
+    priv fn get_azure_font(&mut self) -> AzScaledFontRef {
         // fast path: we've already created the azure font resource
         match self.azure_font {
             Some(ref azfont) => return azfont.get_ref(),
@@ -341,7 +341,7 @@ pub impl Font {
     }
 
     #[cfg(target_os="linux")]
-    priv fn create_azure_font() -> ScaledFont {
+    priv fn create_azure_font(&self) -> ScaledFont {
         let cairo_font = self.handle.face;
         let size = self.style.pt_size as AzFloat;
         ScaledFont::new(self.backend, cairo_font, size)
@@ -350,7 +350,8 @@ pub impl Font {
 
 
 pub impl Font {
-    fn draw_text_into_context(rctx: &RenderContext,
+    fn draw_text_into_context(&mut self,
+                              rctx: &RenderContext,
                               run: &TextRun,
                               range: &const Range,
                               baseline_origin: Point2D<Au>,
@@ -411,7 +412,7 @@ pub impl Font {
                                ptr::null());
     }
 
-    fn measure_text(run: &TextRun, range: &const Range) -> RunMetrics {
+    fn measure_text(&self, run: &TextRun, range: &const Range) -> RunMetrics {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
@@ -433,22 +434,22 @@ pub impl Font {
         }
     }
 
-    fn shape_text(@self, text: &str, store: &mut GlyphStore) {
+    fn shape_text(@mut self, text: &str, store: &mut GlyphStore) {
         // TODO(Issue #229): use a more efficient strategy for repetitive shaping.
         // For example, Gecko uses a per-"word" hashtable of shaper results.
         let shaper = self.get_shaper();
         shaper.shape_text(text, store);
     }
 
-    fn get_descriptor() -> FontDescriptor {
+    fn get_descriptor(&self) -> FontDescriptor {
         FontDescriptor::new(copy self.style, SelectorPlatformIdentifier(self.handle.face_identifier()))
     }
 
-    fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
+    fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex> {
         self.handle.glyph_index(codepoint)
     }
 
-    fn glyph_h_advance(glyph: GlyphIndex) -> FractionalPixel {
+    fn glyph_h_advance(&self, glyph: GlyphIndex) -> FractionalPixel {
         match self.handle.glyph_h_advance(glyph) {
           Some(adv) => adv,
           None => /* FIXME: Need fallback strategy */ 10f as FractionalPixel

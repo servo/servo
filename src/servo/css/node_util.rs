@@ -8,7 +8,7 @@ pub trait NodeUtil {
     fn set_css_select_results(self, decl: CompleteSelectResults);
 }
 
-impl NodeUtil for AbstractNode {
+impl<'self> NodeUtil<'self> for AbstractNode {
     /** 
      * Provides the computed style for the given node. If CSS selector
      * Returns the style results for the given node. If CSS selector

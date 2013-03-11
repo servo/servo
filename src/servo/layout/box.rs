@@ -3,7 +3,7 @@
 use css::node_style::StyledNode;
 use dom::node::AbstractNode;
 use layout::context::LayoutContext;
-use layout::debug::BoxedDebugMethods;
+use layout::debug::BoxedMutDebugMethods;
 use layout::display_list_builder::DisplayListBuilder;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
@@ -80,15 +80,15 @@ pub struct RenderBoxData {
     node : AbstractNode,
     /* reference to containing flow context, which this box
        participates in */
-    ctx  : @FlowContext,
+    ctx  : @mut FlowContext,
     /* position of this box relative to owning flow */
-    mut position : Rect<Au>,
+    position : Rect<Au>,
     font_size : Length,
     /* TODO (Issue #87): debug only */
-    mut id: int
+    id: int
 }
 
-enum RenderBoxType {
+pub enum RenderBoxType {
     RenderBox_Generic,
     RenderBox_Image,
     RenderBox_Text,
@@ -102,31 +102,35 @@ pub enum RenderBox {
 }
 
 pub enum SplitBoxResult {
-    CannotSplit(@RenderBox),
+    CannotSplit(@mut RenderBox),
     // in general, when splitting the left or right side can
     // be zero length, due to leading/trailing trimmable whitespace
-    SplitDidFit(Option<@RenderBox>, Option<@RenderBox>),
-    SplitDidNotFit(Option<@RenderBox>, Option<@RenderBox>)
+    SplitDidFit(Option<@mut RenderBox>, Option<@mut RenderBox>),
+    SplitDidNotFit(Option<@mut RenderBox>, Option<@mut RenderBox>)
 }
 
-pub fn RenderBoxData(node: AbstractNode, ctx: @FlowContext, id: int) -> RenderBoxData {
+pub fn RenderBoxData(node: AbstractNode, ctx: @mut FlowContext, id: int) -> RenderBoxData {
     RenderBoxData {
         node : node,
-        mut ctx  : ctx,
-        mut position : Au::zero_rect(),
+        ctx  : ctx,
+        position : Au::zero_rect(),
         font_size: Px(0.0),
         id : id
     }
 }
 
 impl RenderBox  {
-    pure fn d(&self) -> &self/RenderBoxData {
-        match *self {
-            GenericBox(ref d)  => d,
-            ImageBox(ref d, _) => d,
-            TextBox(ref d, _)  => d,
-            UnscannedTextBox(ref d, _) => d,
+    pure fn d(&mut self) -> &self/mut RenderBoxData {
+      unsafe {
+        //Rust #5074 - we can't take mutable references to the
+        //             data that needs to be returned right now.
+        match self {
+            &GenericBox(ref d)  => cast::transmute(d),
+            &ImageBox(ref d, _) => cast::transmute(d),
+            &TextBox(ref d, _)  => cast::transmute(d),
+            &UnscannedTextBox(ref d, _) => cast::transmute(d),
         }
+      }
     }
 
     pure fn is_replaced() -> bool {
@@ -150,8 +154,8 @@ impl RenderBox  {
         }
     }
 
-    fn can_merge_with_box(@self, other: @RenderBox) -> bool {
-        assert !managed::ptr_eq(self, other);
+    fn can_merge_with_box(@mut self, other: @mut RenderBox) -> bool {
+        assert !managed::mut_ptr_eq(self, other);
 
         match (self, other) {
             (@UnscannedTextBox(*), @UnscannedTextBox(*)) => {
@@ -162,7 +166,7 @@ impl RenderBox  {
         }
     }
 
-    fn split_to_width(@self, _ctx: &LayoutContext, max_width: Au, starts_line: bool) -> SplitBoxResult {
+    fn split_to_width(@mut self, _ctx: &LayoutContext, max_width: Au, starts_line: bool) -> SplitBoxResult {
         match self {
             @GenericBox(*) => CannotSplit(self),
             @ImageBox(*) => CannotSplit(self),
@@ -238,31 +242,31 @@ impl RenderBox  {
      * may cause glyphs to be allocated. For now, it's impure because of 
      * holder.get_image()
     */
-    fn get_min_width(_ctx: &LayoutContext) -> Au {
-        match &self {
+    fn get_min_width(&mut self, _ctx: &LayoutContext) -> Au {
+        match *self {
             // TODO: this should account for min/pref widths of the
             // box element in isolation. That includes
             // border/margin/padding but not child widths. The block
             // FlowContext will combine the width of this element and
             // that of its children to arrive at the context width.
-            &GenericBox(*) => Au(0),
+            GenericBox(*) => Au(0),
             // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult 'width'.
-            &ImageBox(_, ref i) => Au::from_px(i.get_size().get_or_default(Size2D(0,0)).width),
-            &TextBox(_,d) => d.run.min_width_for_range(&const d.range),
-            &UnscannedTextBox(*) => fail!(~"Shouldn't see unscanned boxes here.")
+            ImageBox(_, ref mut i) => Au::from_px(i.get_size().get_or_default(Size2D(0,0)).width),
+            TextBox(_,d) => d.run.min_width_for_range(&const d.range),
+            UnscannedTextBox(*) => fail!(~"Shouldn't see unscanned boxes here.")
         }
     }
 
-    fn get_pref_width(_ctx: &LayoutContext) -> Au {
-        match &self {
+    fn get_pref_width(&mut self, _ctx: &LayoutContext) -> Au {
+        match self {
             // TODO: this should account for min/pref widths of the
             // box element in isolation. That includes
             // border/margin/padding but not child widths. The block
             // FlowContext will combine the width of this element and
             // that of its children to arrive at the context width.
             &GenericBox(*) => Au(0),
-            &ImageBox(_, ref i) => Au::from_px(i.get_size().get_or_default(Size2D(0,0)).width),
+            &ImageBox(_, ref mut i) => Au::from_px(i.get_size().get_or_default(Size2D(0,0)).width),
 
             // a text box cannot span lines, so assume that this is an unsplit text box.
 
@@ -306,12 +310,13 @@ impl RenderBox  {
 
     /* The box formed by the content edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
-    pure fn content_box() -> Rect<Au> {
-        match &self {
-            &ImageBox(_, ref i) => {
+    pure fn content_box(&mut self) -> Rect<Au> {
+        let origin = {copy self.d().position.origin};
+        match self {
+            &ImageBox(_, ref mut i) => {
                 let size = i.size();
                 Rect {
-                    origin: copy self.d().position.origin,
+                    origin: origin,
                     size:   Size2D(Au::from_px(size.width),
                                    Au::from_px(size.height))
                 }
@@ -340,24 +345,24 @@ impl RenderBox  {
 
     /* The box formed by the border edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
-    pure fn border_box() -> Rect<Au> {
+    pure fn border_box(&mut self) -> Rect<Au> {
         // TODO: actually compute content_box + padding + border
         self.content_box()
     }
 
     /* The box fromed by the margin edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
-    pure fn margin_box() -> Rect<Au> {
+    pure fn margin_box(&mut self) -> Rect<Au> {
         // TODO: actually compute content_box + padding + border + margin
         self.content_box()
     }
 
-    fn style(&self) -> CompleteStyle/&self {
-        let d: &self/RenderBoxData = self.d();
+    fn style(&mut self) -> CompleteStyle/&self {
+        let d: &self/mut RenderBoxData = self.d();
         d.node.style()
     }
 
-    fn with_style_of_nearest_element<R>(@self, f: &fn(CompleteStyle) -> R) -> R {
+    fn with_style_of_nearest_element<R>(@mut self, f: &fn(CompleteStyle) -> R) -> R {
         let mut node = self.d().node;
         while !node.is_element() {
             node = node.parent_node().get();
@@ -383,7 +388,7 @@ impl RenderBox  {
     * `origin` - Total offset from display list root flow to this box's owning flow
     * `list` - List to which items should be appended
     */
-    fn build_display_list(@self, _builder: &DisplayListBuilder, dirty: &Rect<Au>,
+    fn build_display_list(@mut self, _builder: &DisplayListBuilder, dirty: &Rect<Au>,
                           offset: &Point2D<Au>, list: &Mut<DisplayList>) {
 
         let box_bounds = self.d().position;
@@ -401,9 +406,10 @@ impl RenderBox  {
 
         self.add_bgcolor_to_list(list, &abs_box_bounds); 
 
-        match self {
-            @UnscannedTextBox(*) => fail!(~"Shouldn't see unscanned boxes here."),
-            @TextBox(_,data) => {
+        let m = &mut *self;
+        match m {
+            &UnscannedTextBox(*) => fail!(~"Shouldn't see unscanned boxes here."),
+            &TextBox(_,data) => {
                 do list.borrow_mut |list| {
                     let nearest_ancestor_element = self.nearest_ancestor_element();
                     let color = nearest_ancestor_element.style().color().to_gfx_color();
@@ -430,8 +436,9 @@ impl RenderBox  {
                 }
             },
             // TODO: items for background, border, outline
-            @GenericBox(_) => {}
-            @ImageBox(_, ref i) => {
+            &GenericBox(_) => {}
+            &ImageBox(_, ref mut i) => {
+                //let i: &mut ImageHolder = unsafe { cast::transmute(i) }; // Rust #5074
                 match i.get_image() {
                     Some(image) => {
                         do list.borrow_mut |list| {
@@ -451,7 +458,7 @@ impl RenderBox  {
         self.add_border_to_list(list, &abs_box_bounds);
     }
 
-    fn add_bgcolor_to_list(@self, list: &Mut<DisplayList>, abs_bounds: &Rect<Au>) {
+    fn add_bgcolor_to_list(&mut self, list: &Mut<DisplayList>, abs_bounds: &Rect<Au>) {
         use std::cmp::FuzzyEq;
 
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
@@ -468,7 +475,7 @@ impl RenderBox  {
         }
     }
 
-    fn add_border_to_list(list: &Mut<DisplayList>, abs_bounds: &Rect<Au>) {
+    fn add_border_to_list(&mut self, list: &Mut<DisplayList>, abs_bounds: &Rect<Au>) {
         if !self.d().node.is_element() { return }
 
         let top_width = self.style().border_top_width();
@@ -523,7 +530,7 @@ impl RenderBox  {
     }
 
     // Converts this node's ComputedStyle to a font style used in the graphics code.
-    fn font_style(@self) -> FontStyle {
+    fn font_style(@mut self) -> FontStyle {
         do self.with_style_of_nearest_element |my_style| {
             let font_families = do my_style.font_family().map |family| {
                 match *family {
@@ -564,20 +571,20 @@ impl RenderBox  {
     }
 
     // Converts this node's ComputedStyle to a text alignment used in the inline layout code.
-    fn text_align(@self) -> CSSTextAlign {
+    fn text_align(@mut self) -> CSSTextAlign {
         do self.with_style_of_nearest_element |my_style| {
             my_style.text_align()
         }
     }
 }
 
-impl BoxedDebugMethods for RenderBox {
-    pure fn dump(@self) {
+impl BoxedMutDebugMethods for RenderBox {
+    pure fn dump(@mut self) {
         self.dump_indent(0u);
     }
 
     /* Dumps the node tree, for debugging, with indentation. */
-    pure fn dump_indent(@self, indent: uint) {
+    pure fn dump_indent(@mut self, indent: uint) {
         let mut s = ~"";
         for uint::range(0u, indent) |_i| {
             s += ~"    ";
@@ -587,7 +594,7 @@ impl BoxedDebugMethods for RenderBox {
         debug!("%s", s);
     }
 
-    pure fn debug_str(@self) -> ~str {
+    pure fn debug_str(@mut self) -> ~str {
         let repr = match self {
             @GenericBox(*) => ~"GenericBox",
             @ImageBox(*) => ~"ImageBox",
@@ -602,7 +609,7 @@ impl BoxedDebugMethods for RenderBox {
 // Other methods
 impl RenderBox {
     /// Returns the nearest ancestor-or-self element node. Infallible.
-    fn nearest_ancestor_element(@self) -> AbstractNode {
+    fn nearest_ancestor_element(&mut self) -> AbstractNode {
         let mut node = self.d().node;
         while !node.is_element() {
             match node.parent_node() {

@@ -1,8 +1,9 @@
-use core::comm::{Port, Chan};
 use content::content_task::{ControlMsg, Timer, ExitMsg};
 use js::jsapi::JSVal;
-use dvec::DVec;
 use util::task::spawn_listener;
+
+use core::comm::{Port, Chan};
+use core::dvec::DVec;
 use std::timer;
 use std::uv_global_loop;
 
@@ -47,7 +48,7 @@ pub fn TimerData(argc: libc::c_uint, argv: *JSVal) -> TimerData {
 
 // FIXME: delayed_send shouldn't require Copy
 #[allow(non_implicitly_copyable_typarams)]
-impl Window {
+pub impl Window {
     fn alert(s: &str) {
         // Right now, just print to the console
         io::println(fmt!("ALERT: %s", s));

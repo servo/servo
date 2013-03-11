@@ -1,8 +1,8 @@
-use comm::Chan;
-use task::spawn;
+use core::comm::Chan;
+use core::task::spawn;
 use resource::resource_task::{ProgressMsg, Payload, Done, LoaderTask};
 use std::net::url::Url;
-use io::{file_reader, ReaderUtil};
+use core::io::{file_reader, ReaderUtil};
 
 const READ_SIZE: uint = 1024;
 

@@ -13,7 +13,7 @@ use util::tree;
 use core::mutable::Mut;
 
 pub struct RootFlowData {
-    mut box: Option<@RenderBox>
+    box: Option<@mut RenderBox>
 }
 
 pub fn RootFlowData() -> RootFlowData {
@@ -25,10 +25,10 @@ pub fn RootFlowData() -> RootFlowData {
 pub trait RootLayout {
     pure fn starts_root_flow() -> bool;
 
-    fn bubble_widths_root(@self, ctx: &LayoutContext);
-    fn assign_widths_root(@self, ctx: &LayoutContext);
-    fn assign_height_root(@self, ctx: &LayoutContext);
-    fn build_display_list_root(@self, a: &DisplayListBuilder, b: &Rect<Au>,
+    fn bubble_widths_root(@mut self, ctx: &LayoutContext);
+    fn assign_widths_root(@mut self, ctx: &LayoutContext);
+    fn assign_height_root(@mut self, ctx: &LayoutContext);
+    fn build_display_list_root(@mut self, a: &DisplayListBuilder, b: &Rect<Au>,
                                c: &Point2D<Au>, d: &Mut<DisplayList>);
 }
 
@@ -41,12 +41,12 @@ impl RootLayout for FlowContext {
     }
 
     /* defer to the block algorithm */
-    fn bubble_widths_root(@self, ctx: &LayoutContext) {
+    fn bubble_widths_root(@mut self, ctx: &LayoutContext) {
         assert self.starts_root_flow();
         self.bubble_widths_block(ctx)
     }
  
-    fn assign_widths_root(@self, ctx: &LayoutContext) { 
+    fn assign_widths_root(@mut self, ctx: &LayoutContext) { 
         assert self.starts_root_flow();
 
         self.d().position.origin = Au::zero_point();
@@ -55,7 +55,7 @@ impl RootLayout for FlowContext {
         self.assign_widths_block(ctx)
     }
 
-    fn assign_height_root(@self, ctx: &LayoutContext) {
+    fn assign_height_root(@mut self, ctx: &LayoutContext) {
         assert self.starts_root_flow();
 
         // this is essentially the same as assign_height_block(), except
@@ -76,7 +76,7 @@ impl RootLayout for FlowContext {
         }
     }
 
-    fn build_display_list_root(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
+    fn build_display_list_root(@mut self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
                                offset: &Point2D<Au>, list: &Mut<DisplayList>) {
         assert self.starts_root_flow();
 

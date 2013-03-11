@@ -11,7 +11,7 @@ use core::to_str::ToStr;
 use core::util::replace;
 use std::arc::ARC;
 use std::net::url::Url;
-use std::cell::Cell;
+use core::cell::Cell;
 
 pub enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted
@@ -36,7 +36,7 @@ pub enum Msg {
     pub WaitForImage(Url, Chan<ImageResponseMsg>),
 
     /// For testing
-    priv OnMsg(fn~(msg: &Msg)),
+    priv OnMsg(~fn(msg: &Msg)),
 
     /// Clients must wait for a response before shutting down the ResourceTask
     pub Exit(Chan<()>)
@@ -49,11 +49,11 @@ pub enum ImageResponseMsg {
 }
 
 impl ImageResponseMsg {
-    pure fn clone() -> ImageResponseMsg {
-        match &self {
-          &ImageReady(ref img) => ImageReady(unsafe { clone_arc(img) }),
-          &ImageNotReady => ImageNotReady,
-          &ImageFailed => ImageFailed
+    pure fn clone(&self) -> ImageResponseMsg {
+        match *self {
+          ImageReady(ref img) => ImageReady(unsafe { clone_arc(img) }),
+          ImageNotReady => ImageNotReady,
+          ImageFailed => ImageFailed
         }
     }
 }
@@ -98,7 +98,7 @@ pub fn ImageCacheTask_(resource_task: ResourceTask,
     let chan_cell = Cell(chan.clone());
 
     do spawn {
-        ImageCache {
+        let mut cache = ImageCache {
             resource_task: resource_task.clone(),
             decoder_factory: decoder_factory_cell.take(),
             port: port_cell.take(),
@@ -106,7 +106,8 @@ pub fn ImageCacheTask_(resource_task: ResourceTask,
             state_map: url_map(),
             wait_map: url_map(),
             need_exit: None
-        }.run();
+        };
+        cache.run();
     }
 
     chan
@@ -152,7 +153,7 @@ struct ImageCache {
     state_map: UrlMap<ImageState>,
     /// List of clients waiting on a WaitForImage response
     wait_map: UrlMap<@mut ~[Chan<ImageResponseMsg>]>,
-    mut need_exit: Option<Chan<()>>,
+    need_exit: Option<Chan<()>>,
 }
 
 enum ImageState {
@@ -172,9 +173,9 @@ enum AfterPrefetch {
 #[allow(non_implicitly_copyable_typarams)]
 impl ImageCache {
 
-    pub fn run() {
+    pub fn run(&mut self) {
 
-        let mut msg_handlers: ~[fn~(msg: &Msg)] = ~[];
+        let mut msg_handlers: ~[~fn(msg: &Msg)] = ~[];
 
         loop {
             let msg = self.port.recv();
@@ -231,18 +232,18 @@ impl ImageCache {
         }
     }
 
-    priv fn get_state(url: Url) -> ImageState {
+    priv fn get_state(&self, url: Url) -> ImageState {
         match self.state_map.find(&url) {
             Some(state) => state,
             None => Init
         }
     }
 
-    priv fn set_state(url: Url, state: ImageState) {
+    priv fn set_state(&self, url: Url, state: ImageState) {
         self.state_map.insert(url, state);
     }
 
-    priv fn prefetch(url: Url) {
+    priv fn prefetch(&self, url: Url) {
         match self.get_state(copy url) {
             Init => {
                 let to_cache = self.chan.clone();
@@ -273,7 +274,7 @@ impl ImageCache {
         }
     }
 
-    priv fn store_prefetched_image_data(url: Url, data: Result<Cell<~[u8]>, ()>) {
+    priv fn store_prefetched_image_data(&self, url: Url, data: Result<Cell<~[u8]>, ()>) {
         match self.get_state(copy url) {
           Prefetching(next_step) => {
             match data {
@@ -302,7 +303,7 @@ impl ImageCache {
         }
     }
 
-    priv fn decode(url: Url) {
+    priv fn decode(&self, url: Url) {
         match self.get_state(copy url) {
             Init => fail!(~"decoding image before prefetch"),
 
@@ -345,7 +346,7 @@ impl ImageCache {
         }
     }
 
-    priv fn store_image(url: Url, image: Option<ARC<~Image>>) {
+    priv fn store_image(&self, url: Url, image: Option<ARC<~Image>>) {
 
         match self.get_state(copy url) {
           Decoding => {
@@ -372,7 +373,7 @@ impl ImageCache {
 
     }
 
-    priv fn purge_waiters(url: Url, f: fn() -> ImageResponseMsg) {
+    priv fn purge_waiters(&self, url: Url, f: fn() -> ImageResponseMsg) {
         match self.wait_map.find(&url) {
           Some(waiters) => {
             let waiters = &mut *waiters;
@@ -391,7 +392,7 @@ impl ImageCache {
     }
 
 
-    priv fn get_image(url: Url, response: Chan<ImageResponseMsg>) {
+    priv fn get_image(&self, url: Url, response: Chan<ImageResponseMsg>) {
         match self.get_state(copy url) {
           Init => fail!(~"request for image before prefetch"),
 
@@ -416,7 +417,7 @@ impl ImageCache {
         }
     }
 
-    priv fn wait_for_image(url: Url, response: Chan<ImageResponseMsg>) {
+    priv fn wait_for_image(&self, url: Url, response: Chan<ImageResponseMsg>) {
         match self.get_state(copy url) {
             Init => fail!(~"request for image before prefetch"),
 
@@ -448,11 +449,11 @@ impl ImageCache {
 
 
 trait ImageCacheTaskClient {
-    fn exit();
+    fn exit(&self);
 }
 
 impl ImageCacheTaskClient for ImageCacheTask {
-    fn exit() {
+    fn exit(&self) {
         let (response_port, response_chan) = stream();
         self.send(Exit(response_chan));
         response_port.recv();
@@ -481,7 +482,8 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
 }
 
 fn default_decoder_factory() -> ~fn(&[u8]) -> Option<Image> {
-    fn~(data: &[u8]) -> Option<Image> { load_from_memory(data) }
+    let foo: ~fn(&[u8]) -> Option<Image> = |data: &[u8]| { load_from_memory(data) };
+    foo
 }
 
 #[cfg(test)]
@@ -892,9 +894,9 @@ fn should_return_not_ready_if_image_is_still_decoding() {
     };
 
     let wait_to_decode_port_cell = Cell(wait_to_decode_port);
-    let decoder_factory = fn~() -> ~fn(&[u8]) -> Option<Image> {
+    let decoder_factory = || {
         let wait_to_decode_port = wait_to_decode_port_cell.take();
-        fn~(data: &[u8]) -> Option<Image> {
+        |data: &[u8]| {
             // Don't decode until after the client requests the image
             wait_to_decode_port.recv();
             load_from_memory(data)

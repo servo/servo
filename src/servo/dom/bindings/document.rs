@@ -9,8 +9,8 @@ use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_Repor
 use js::glue::bindgen::*;
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB};
 use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub, JS_ResolveStub};
-use ptr::null;
-use libc::c_uint;
+use core::ptr::null;
+use core::libc::c_uint;
 use dom::bindings::utils::{DOMString, domstring_to_jsval, rust_box, squirrel_away, str};
 use dom::bindings::node::create;
 

@@ -62,7 +62,7 @@ pub enum NodeTypeId {
 
 pub struct LayoutData {
     style: Option<CompleteSelectResults>,
-    flow: Option<@FlowContext>,
+    flow: Option<@mut FlowContext>,
 }
 
 impl LayoutData {
@@ -130,7 +130,7 @@ impl Text {
     }
 }
 
-impl AbstractNode {
+pub impl AbstractNode {
     //
     // Convenience accessors
     //

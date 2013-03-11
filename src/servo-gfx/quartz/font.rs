@@ -39,8 +39,8 @@ pub impl QuartzFontTable {
     }
 }
 
-pub impl FontTableMethods for QuartzFontTable {
-    fn with_buffer(blk: fn&(*u8, uint)) {
+impl FontTableMethods for QuartzFontTable {
+    fn with_buffer(blk: &fn(*u8, uint)) {
         blk(self.data.bytes(), self.data.len());
     }
 }
@@ -129,7 +129,7 @@ impl FontHandleMethods for QuartzFontHandle {
 
     fn glyph_index(codepoint: char) -> Option<GlyphIndex> {
         let characters: [UniChar * 1] = [codepoint as UniChar];
-        let glyphs: [mut CGGlyph * 1] = [mut 0 as CGGlyph];
+        let glyphs: [CGGlyph * 1] = [0 as CGGlyph];
         let count: CFIndex = 1;
 
         let result = self.ctfont.get_glyphs_for_characters(ptr::to_unsafe_ptr(&characters[0]),

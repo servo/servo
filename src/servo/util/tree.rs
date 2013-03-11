@@ -5,19 +5,19 @@ use core::vec;
 // TODO: Use traits.
 
 pub struct Tree<T> {
-    mut parent: Option<T>,
-    mut first_child: Option<T>,
-    mut last_child: Option<T>,
-    mut prev_sibling: Option<T>,
-    mut next_sibling: Option<T>
+    parent: Option<T>,
+    first_child: Option<T>,
+    last_child: Option<T>,
+    prev_sibling: Option<T>,
+    next_sibling: Option<T>
 }
 
 pub trait ReadMethods<T> {
-    fn with_tree_fields<R>(&T, f: fn(&Tree<T>) -> R) -> R;
+    fn with_tree_fields<R>(&T, f: fn(&mut Tree<T>) -> R) -> R;
 }
 
 pub trait WriteMethods<T> {
-    fn with_tree_fields<R>(&T, f: fn(&Tree<T>) -> R) -> R;
+    fn with_tree_fields<R>(&T, f: fn(&mut Tree<T>) -> R) -> R;
     pure fn tree_eq(&T, &T) -> bool;
 }
 
@@ -161,10 +161,10 @@ mod test {
     use super::*;
     use core::managed::ptr_eq;
 
-    enum dummy = {
+    struct dummy {
         fields: Tree<@dummy>,
         value: uint
-    };
+    }
 
     enum dtree { dtree }
 
@@ -182,10 +182,10 @@ mod test {
     }
 
     fn new_dummy(v: uint) -> @dummy {
-        @dummy({fields: empty(), value: v})
+        @dummy {fields: empty(), value: v}
     }
 
-    fn parent_with_3_children() -> {p: @dummy, children: ~[@dummy]} {
+    fn parent_with_3_children() -> (@dummy, ~[@dummy]) {
         let children = ~[new_dummy(0u),
                          new_dummy(1u),
                          new_dummy(2u)];
@@ -195,12 +195,12 @@ mod test {
             add_child(&dtree, p, *c);
         }
 
-        return {p: p, children: children};
+        return (p, children);
     }
 
     #[test]
     fn add_child_0() {
-        let {p, children} = parent_with_3_children();
+        let (p, children) = parent_with_3_children();
         let mut i = 0u;
         for each_child(&dtree, &p) |c| {
             assert c.value == i;
@@ -211,7 +211,7 @@ mod test {
 
     #[test]
     fn add_child_break() {
-        let {p, _} = parent_with_3_children();
+        let (p, _) = parent_with_3_children();
         let mut i = 0u;
         for each_child(&dtree, &p) |_c| {
             i += 1u;
@@ -222,7 +222,7 @@ mod test {
 
     #[test]
     fn remove_first_child() {
-        let {p, children} = parent_with_3_children();
+        let (p, children) = parent_with_3_children();
         remove_child(&dtree, p, children[0]);
 
         let mut i = 0;
@@ -234,7 +234,7 @@ mod test {
 
     #[test]
     fn remove_last_child() {
-        let {p, children} = parent_with_3_children();
+        let (p, children) = parent_with_3_children();
         remove_child(&dtree, p, children[2]);
 
         let mut i = 0;
@@ -246,7 +246,7 @@ mod test {
 
     #[test]
     fn remove_middle_child() {
-        let {p, children} = parent_with_3_children();
+        let (p, children) = parent_with_3_children();
         remove_child(&dtree, p, children[1]);
 
         let mut i = 0;
@@ -258,7 +258,7 @@ mod test {
 
     #[test]
     fn remove_all_child() {
-        let {p, children} = parent_with_3_children();
+        let (p, children) = parent_with_3_children();
         remove_child(&dtree, p, children[0]);
         remove_child(&dtree, p, children[1]);
         remove_child(&dtree, p, children[2]);

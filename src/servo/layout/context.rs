@@ -7,8 +7,8 @@ use std::net::url::Url;
 /* Represents layout task context. */
 
 pub struct LayoutContext {
-    font_ctx: @FontContext,
-    image_cache: @LocalImageCache,
+    font_ctx: @mut FontContext,
+    image_cache: @mut LocalImageCache,
     doc_url: Url,
     screen_size: Rect<Au>
 }

@@ -114,7 +114,7 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 do node.as_mut_element |elem| {
                     let arg = ptr::offset(JS_ARGV(cx, cast::reinterpret_cast(&vp)), 0);
-                    elem.set_attr(~"width", int::str(RUST_JSVAL_TO_INT(*arg) as int))
+                    elem.set_attr(~"width", (RUST_JSVAL_TO_INT(*arg) as int).to_str())
                 }
             }
             ElementNodeTypeId(_) => fail!(~"why is this not an image element?"),

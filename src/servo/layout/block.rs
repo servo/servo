@@ -17,7 +17,7 @@ use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
 
 pub struct BlockFlowData {
-    mut box: Option<@RenderBox>
+    box: Option<@mut RenderBox>
 }
 
 pub fn BlockFlowData() -> BlockFlowData {
@@ -28,12 +28,12 @@ pub fn BlockFlowData() -> BlockFlowData {
 
 pub trait BlockLayout {
     pure fn starts_block_flow() -> bool;
-    pure fn with_block_box(@self, fn(box: &@RenderBox) -> ()) -> ();
+    pure fn with_block_box(@mut self, fn(box: &@mut RenderBox) -> ()) -> ();
 
-    fn bubble_widths_block(@self, ctx: &LayoutContext);
-    fn assign_widths_block(@self, ctx: &LayoutContext);
-    fn assign_height_block(@self, ctx: &LayoutContext);
-    fn build_display_list_block(@self,
+    fn bubble_widths_block(@mut self, ctx: &LayoutContext);
+    fn assign_widths_block(@mut self, ctx: &LayoutContext);
+    fn assign_height_block(@mut self, ctx: &LayoutContext);
+    fn build_display_list_block(@mut self,
                                 a: &DisplayListBuilder,
                                 b: &Rect<Au>,
                                 c: &Point2D<Au>,
@@ -50,15 +50,15 @@ impl BlockLayout for FlowContext {
 
     /* Get the current flow's corresponding block box, if it exists, and do something with it. 
        This works on both BlockFlow and RootFlow, since they are mostly the same. */
-    pure fn with_block_box(@self, cb: fn(box: &@RenderBox) -> ()) -> () {
+    pure fn with_block_box(@mut self, cb: fn(box: &@mut RenderBox) -> ()) -> () {
         match *self {
             BlockFlow(*) => {
-                let mut box = self.block().box;
-                box.iter(cb);
+                let box = self.block().box;
+                for box.each |b| { cb(b); }
             },                
             RootFlow(*) => {
                 let mut box = self.root().box;
-                box.iter(cb);
+                for box.each |b| { cb(b); }
             },
             _  => fail!(fmt!("Tried to do something with_block_box(), but this is a %?", self))
         }
@@ -73,7 +73,7 @@ impl BlockLayout for FlowContext {
     /* TODO: floats */
     /* TODO: absolute contexts */
     /* TODO: inline-blocks */
-    fn bubble_widths_block(@self, ctx: &LayoutContext) {
+    fn bubble_widths_block(@mut self, ctx: &LayoutContext) {
         assert self.starts_block_flow();
 
         let mut min_width = Au(0);
@@ -105,7 +105,7 @@ impl BlockLayout for FlowContext {
     Dual boxes consume some width first, and the remainder is assigned to
     all child (block) contexts. */
 
-    fn assign_widths_block(@self, _ctx: &LayoutContext) { 
+    fn assign_widths_block(@mut self, _ctx: &LayoutContext) { 
         assert self.starts_block_flow();
 
         let mut remaining_width = self.d().position.size.width;
@@ -127,7 +127,7 @@ impl BlockLayout for FlowContext {
         }
     }
 
-    fn assign_height_block(@self, _ctx: &LayoutContext) {
+    fn assign_height_block(@mut self, _ctx: &LayoutContext) {
         assert self.starts_block_flow();
 
         let mut cur_y = Au(0);
@@ -149,7 +149,7 @@ impl BlockLayout for FlowContext {
         }
     }
 
-    fn build_display_list_block(@self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
+    fn build_display_list_block(@mut self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
                                 offset: &Point2D<Au>, list: &Mut<DisplayList>) {
 
         assert self.starts_block_flow();

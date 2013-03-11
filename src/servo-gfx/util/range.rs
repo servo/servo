@@ -27,7 +27,7 @@ pub impl Range {
     pure fn begin(&const self) -> uint { self.off  }
     pure fn length(&const self) -> uint { self.len }
     pure fn end(&const self) -> uint { self.off + self.len }
-    pure fn eachi(&const self, cb: fn&(uint) -> bool) {
+    pure fn eachi(&const self, cb: &fn(uint) -> bool) {
         do uint::range(self.off, self.off + self.len) |i| { cb(i) }
     }
 

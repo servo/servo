@@ -13,6 +13,7 @@ use layout::layout_task::{AddStylesheet, BuildData, BuildMsg, Damage, LayoutTask
 use layout::layout_task::{MatchSelectorsDamage, NoDamage, ReflowDamage};
 use util::task::spawn_listener;
 
+use core::cell::Cell;
 use core::comm::{Port, Chan, SharedChan};
 use core::pipes::select2i;
 use core::either;
@@ -33,7 +34,6 @@ use js::rust::{Compartment, Cx};
 use jsrt = js::rust::rt;
 use newcss::stylesheet::Stylesheet;
 use std::arc::{ARC, clone};
-use std::cell::Cell;
 use std::net::url::Url;
 use url_to_str = std::net::url::to_str;
 use dom;
@@ -82,7 +82,7 @@ pub fn ContentTask(layout_task: LayoutTask,
 
 pub struct Content {
     layout_task: LayoutTask,
-    mut layout_join_port: Option<comm::Port<()>>,
+    layout_join_port: Option<comm::Port<()>>,
 
     image_cache_task: ImageCacheTask,
     control_port: comm::Port<ControlMsg>,
@@ -93,17 +93,17 @@ pub struct Content {
     jsrt: jsrt,
     cx: @Cx,
 
-    mut document: Option<@Document>,
-    mut window:   Option<@Window>,
-    mut doc_url: Option<Url>,
-    mut window_size: Size2D<uint>,
+    document: Option<@Document>,
+    window:   Option<@Window>,
+    doc_url: Option<Url>,
+    window_size: Size2D<uint>,
 
     resource_task: ResourceTask,
 
     compartment: Option<@mut Compartment>,
 
     // What parts of layout are dirty.
-    mut damage: Damage,
+    damage: Damage,
 }
 
 pub fn Content(layout_task: LayoutTask, 
@@ -113,7 +113,7 @@ pub fn Content(layout_task: LayoutTask,
                img_cache_task: ImageCacheTask,
                event_port: comm::Port<Event>,
                event_chan: comm::SharedChan<Event>)
-            -> @Content {
+            -> @mut Content {
     let jsrt = jsrt();
     let cx = jsrt.cx();
 
@@ -125,7 +125,7 @@ pub fn Content(layout_task: LayoutTask,
           Err(()) => None
     };
 
-    let content = @Content {
+    let content = @mut Content {
         layout_task: layout_task,
         layout_join_port: None,
         image_cache_task: img_cache_task,
@@ -153,28 +153,34 @@ pub fn Content(layout_task: LayoutTask,
     content
 }
 
-pub fn task_from_context(cx: *JSContext) -> *Content {
+pub fn task_from_context(cx: *JSContext) -> *mut Content {
     unsafe {
         cast::reinterpret_cast(&JS_GetContextPrivate(cx))
     }
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-impl Content {
-    fn start() {
+pub impl Content {
+    fn start(&mut self) {
         while self.handle_msg() {
             // Go on ...
         }
     }
 
-    fn handle_msg() -> bool {
+    fn handle_msg(&mut self) -> bool {
         match select2i(&self.control_port, &self.event_port) {
-            either::Left(*) => self.handle_control_msg(self.control_port.recv()),
-            either::Right(*) => self.handle_event(self.event_port.recv())
+            either::Left(*) => {
+                let msg = self.control_port.recv();
+                self.handle_control_msg(msg)
+            }
+            either::Right(*) => {
+                let ev = self.event_port.recv();
+                self.handle_event(ev)
+            }
         }
     }
 
-    fn handle_control_msg(control_msg: ControlMsg) -> bool {
+    fn handle_control_msg(&mut self, control_msg: ControlMsg) -> bool {
         match control_msg {
           ParseMsg(url) => {
             debug!("content: Received url `%s` to parse", url_to_str(&url));
@@ -269,7 +275,7 @@ impl Content {
        Sends a ping to layout and waits for the response (i.e., it has finished any
        pending layout request messages).
     */
-    fn join_layout(&self) {
+    fn join_layout(&mut self) {
         if self.layout_join_port.is_some() {
             let join_port = replace(&mut self.layout_join_port, None);
             match join_port {
@@ -290,7 +296,7 @@ impl Content {
        join the layout task, and then request a new layout run. It won't wait for the
        new layout computation to finish.
     */
-    fn relayout(document: &Document, doc_url: &Url) {
+    fn relayout(&mut self, document: &Document, doc_url: &Url) {
         debug!("content: performing relayout");
 
         // Now, join the layout so that they will see the latest
@@ -317,7 +323,7 @@ impl Content {
         debug!("content: layout forked");
     }
 
-     fn query_layout(query: layout_task::LayoutQuery) -> layout_task::LayoutQueryResponse {
+     fn query_layout(&mut self, query: layout_task::LayoutQuery) -> layout_task::LayoutQueryResponse {
          self.relayout(self.document.get(), &(copy self.doc_url).get());
          self.join_layout();
 
@@ -330,7 +336,7 @@ impl Content {
        This is the main entry point for receiving and dispatching DOM events.
     */
     // TODO: actually perform DOM event dispatch.
-    fn handle_event(event: Event) -> bool {
+    fn handle_event(&mut self, event: Event) -> bool {
         match event {
           ResizeEvent(new_width, new_height, response_chan) => {
             debug!("content got resize event: %u, %u", new_width, new_height);

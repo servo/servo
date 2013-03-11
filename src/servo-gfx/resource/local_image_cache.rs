@@ -6,7 +6,7 @@ multiple times and thus triggering reflows multiple times.
 
 use clone_arc = std::arc::clone;
 use std::net::url::Url;
-use comm::{Port, Chan, stream};
+use core::comm::{Port, Chan, stream};
 use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg, Prefetch, Decode, GetImage};
 use resource::image_cache_task::{ WaitForImage, ImageReady, ImageNotReady, ImageFailed};
 use util::url::{UrlMap, url_map};
@@ -22,16 +22,16 @@ pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
 
 pub struct LocalImageCache {
     priv image_cache_task: ImageCacheTask,
-    priv mut round_number: uint,
-    priv mut on_image_available: Option<@fn() -> ~fn(ImageResponseMsg)>,
-    priv state_map: UrlMap<@ImageState>
+    priv round_number: uint,
+    priv on_image_available: Option<@fn() -> ~fn(ImageResponseMsg)>,
+    priv state_map: UrlMap<@mut ImageState>
 }
 
 priv struct ImageState {
-    mut prefetched: bool,
-    mut decoded: bool,
-    mut last_request_round: uint,
-    mut last_response: ImageResponseMsg
+    prefetched: bool,
+    decoded: bool,
+    last_request_round: uint,
+    last_response: ImageResponseMsg
 }
 
 #[allow(non_implicitly_copyable_typarams)] // Using maps of Urls
@@ -39,12 +39,12 @@ pub impl LocalImageCache {
     /// The local cache will only do a single remote request for a given
     /// URL in each 'round'. Layout should call this each time it begins
     // FIXME: 'pub' is an unexpected token?
-    /* pub */ fn next_round(on_image_available: @fn() -> ~fn(ImageResponseMsg)) {
+    /* pub */ fn next_round(&mut self, on_image_available: @fn() -> ~fn(ImageResponseMsg)) {
         self.round_number += 1;
         self.on_image_available = Some(on_image_available);
     }
 
-    pub fn prefetch(url: &Url) {
+    pub fn prefetch(&self, url: &Url) {
         let state = self.get_state(url);
         if !state.prefetched {
             self.image_cache_task.send(Prefetch(copy *url));
@@ -52,7 +52,7 @@ pub impl LocalImageCache {
         }
     }
 
-    pub fn decode(url: &Url) {
+    pub fn decode(&self, url: &Url) {
         let state = self.get_state(url);
         if !state.decoded {
             self.image_cache_task.send(Decode(copy *url));
@@ -61,7 +61,7 @@ pub impl LocalImageCache {
     }
 
     // FIXME: Should return a Future
-    pub fn get_image(url: &Url) -> Port<ImageResponseMsg> {
+    pub fn get_image(&self, url: &Url) -> Port<ImageResponseMsg> {
         let state = self.get_state(url);
 
         // Save the previous round number for comparison
@@ -132,11 +132,11 @@ pub impl LocalImageCache {
         return port;
     }
 
-    priv fn get_state(url: &Url) -> @ImageState {
+    priv fn get_state(&self, url: &Url) -> @mut ImageState {
         match self.state_map.find(url) {
             Some(state) => state,
             None => {
-                let new_state = @ImageState {
+                let new_state = @mut ImageState {
                     prefetched: false,
                     decoded: false,
                     last_request_round: 0,
