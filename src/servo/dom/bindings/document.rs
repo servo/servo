@@ -17,6 +17,7 @@ use dom::bindings::node::create;
 use dom::document::Document;
 use dom::bindings::node;
 use dom::bindings::utils;
+use dom::node::Node;
 
 enum DOMException {
     INVALID_CHARACTER_ERR
@@ -70,16 +71,16 @@ extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> J
             return 0;
         }
 
-        let doc = &(*unwrap(obj)).payload;
-        *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, doc.root).ptr);
+        let doc = &mut (*unwrap(obj)).payload;
+        *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, &mut doc.root).ptr);
         return 1;
     }
 }
 
-unsafe fn unwrap(obj: *JSObject) -> *rust_box<Document> {
+unsafe fn unwrap(obj: *JSObject) -> *mut rust_box<Document> {
     //TODO: some kind of check if this is a Document object
     let val = JS_GetReservedSlot(obj, 0);
-    cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val))
+    RUST_JSVAL_TO_PRIVATE(val) as *mut rust_box<Document>
 }
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
@@ -90,7 +91,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-pub fn init(compartment: @mut Compartment, doc: @Document) {
+pub fn init(compartment: @mut Compartment, doc: @mut Document) {
     let obj = utils::define_empty_prototype(~"Document", None, compartment);
 
     let attrs = @~[

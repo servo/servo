@@ -76,7 +76,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-pub fn init(compartment: @mut Compartment, win: @Window) {
+pub fn init(compartment: @mut Compartment, win: @mut Window) {
     let proto = utils::define_empty_prototype(~"Window", None, compartment);
     compartment.register_class(utils::instance_jsclass(~"WindowInstance", finalize));
 
@@ -132,8 +132,8 @@ pub fn init(compartment: @mut Compartment, win: @Window) {
                                 JSPROP_ENUMERATE);
 }
 
-pub impl CacheableWrapper for Window {
-    fn get_wrappercache(&self) -> &WrapperCache {
+impl CacheableWrapper for Window {
+    fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe { cast::transmute(&self.wrapper) }
     }
 

@@ -1,5 +1,4 @@
 use content::content_task::{Content, task_from_context};
-use dom::bindings::node::unwrap;
 use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment};
 use dom::bindings::utils::{domstring_to_jsval, WrapNewBindingObject};
 use dom::bindings::utils::{str, CacheableWrapper, DOM_OBJECT_SLOT};
@@ -26,7 +25,8 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("element finalize!");
     unsafe {
         let val = JS_GetReservedSlot(obj, DOM_OBJECT_SLOT as u32);
-        let _node: ~AbstractNode = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
+        let node: AbstractNode = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
+        let elem: ~Element = cast::transmute(node.raw_object());
     }
 }
 
@@ -93,8 +93,8 @@ pub fn init(compartment: @mut Compartment) {
 extern fn getClientRects(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
   unsafe {
       let obj = JS_THIS_OBJECT(cx, vp);
-      let box = utils::unwrap::<*rust_box<AbstractNode>>(obj);
-      let node = &(*box).payload;
+      let mut box = utils::unwrap::<*mut AbstractNode>(obj);
+      let node = &mut *box;
       let rval = do node.with_imm_element |elem| {
           elem.getClientRects()
       };
@@ -102,9 +102,9 @@ extern fn getClientRects(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
           JS_SET_RVAL(cx, vp, JSVAL_NULL);
       } else {
           let cache = node.get_wrappercache();
-          assert WrapNewBindingObject(cx, cache.get_wrapper(),
-                                      rval.get(),
-                                      cast::transmute(vp));
+          fail_unless!(WrapNewBindingObject(cx, cache.get_wrapper(),
+                                            rval.get(),
+                                            cast::transmute(vp)));
       }
       return 1;
   }
@@ -118,7 +118,8 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
             return 0;
         }
 
-        let node = &(*unwrap(obj)).payload;
+        let mut box = utils::unwrap::<*mut AbstractNode>(obj);
+        let node = &mut *box;
         let width = match node.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 let content = task_from_context(cx);
@@ -147,7 +148,8 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
             return 0;
         }
 
-        let node = &(*unwrap(obj)).payload;
+        let mut box = utils::unwrap::<*mut AbstractNode>(obj);
+        let node = &mut *box;
         match node.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 do node.as_mut_element |elem| {
@@ -171,7 +173,8 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
             return 0;
         }
 
-        let node = &(*unwrap(obj)).payload;
+        let mut box = utils::unwrap::<*mut AbstractNode>(obj);
+        let node = &mut *box;
         do node.with_imm_element |elem| {
             let s = str(copy elem.tag_name);
             *vp = domstring_to_jsval(cx, &s);            
@@ -181,7 +184,7 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub fn create(cx: *JSContext, node: AbstractNode) -> jsobj {
+pub fn create(cx: *JSContext, node: &mut AbstractNode) -> jsobj {
     let proto = match node.type_id() {
         ElementNodeTypeId(HTMLDivElementTypeId) => ~"HTMLDivElement",
         ElementNodeTypeId(HTMLHeadElementTypeId) => ~"HTMLHeadElement",
@@ -201,7 +204,7 @@ pub fn create(cx: *JSContext, node: AbstractNode) -> jsobj {
     node.get_wrappercache().set_wrapper(obj.ptr);
 
     unsafe {
-        let raw_ptr = squirrel_away_unique(~node) as *libc::c_void;
+        let raw_ptr = ptr::addr_of(node) as *libc::c_void;
         JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT as u32, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
 

@@ -6,7 +6,7 @@ pub trait JSValConvertible<T> {
     static fn from_jsval(val: JSVal) -> Option<T>;
 }
 
-pub impl JSValConvertible<u32> for u32 {
+impl JSValConvertible<u32> for u32 {
     fn to_jsval(&self) -> JSVal {
         RUST_INT_TO_JSVAL(*self as i32)
     }

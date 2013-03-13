@@ -60,7 +60,7 @@ pub fn init(compartment: @mut Compartment) {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub fn create(cx: *JSContext, node: AbstractNode) -> jsobj {
+pub fn create(cx: *JSContext, node: &mut AbstractNode) -> jsobj {
     match node.type_id() {
         ElementNodeTypeId(_) => element::create(cx, node),
         TextNodeTypeId    => fail!(~"no text node bindings yet"),
@@ -69,7 +69,7 @@ pub fn create(cx: *JSContext, node: AbstractNode) -> jsobj {
      }
 }
 
-pub unsafe fn unwrap(obj: *JSObject) -> *rust_box<AbstractNode> {
+pub unsafe fn unwrap(obj: *JSObject) -> *AbstractNode {
     let val = js::GetReservedSlot(obj, DOM_OBJECT_SLOT as u64);
     cast::transmute(JSVAL_TO_PRIVATE(val))
 }
@@ -82,8 +82,8 @@ extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool
             return 0;
         }
 
-        let node = &(*unwrap(obj)).payload;
-        let rval = do node.with_imm_node |node| {
+        let node = *unwrap(obj);
+        let rval = do node.with_mut_node |node| {
             node.getFirstChild()
         };
         match rval {
@@ -105,19 +105,9 @@ extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBoo
             return 0;
         }
 
-        let node = &(*unwrap(obj)).payload;
-        let rval = do node.with_imm_node |node| {
+        let node = *unwrap(obj);
+        let rval = do node.with_mut_node |node| {
             node.getNextSibling()
-<<<<<<< HEAD
-        };
-        match rval {
-            Some(n) => {
-                let obj = create(cx, n).ptr;
-                *vp = RUST_OBJECT_TO_JSVAL(obj)
-            }
-            None => *vp = JSVAL_NULL
-        }
-=======
         };
         match rval {
             Some(n) => {
@@ -126,7 +116,6 @@ extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBoo
             }
             None => *vp = JSVAL_NULL
         };
->>>>>>> Generate working ClientRectList and ClientRect bindings that can wrap, call methods, and access properties.
     }
     return 1;
 }
@@ -141,20 +130,23 @@ impl Node {
         }
     }
 
-    fn getNextSibling(&self) -> Option<AbstractNode> {
-        self.next_sibling
-<<<<<<< HEAD
-=======
+    fn getNextSibling(&mut self) -> Option<&mut AbstractNode> {
+        match self.next_sibling {
+          // transmute because the compiler can't deduce that the reference
+          // is safe outside of with_mut_node blocks.
+          Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
+          None => None
+        }
     }
 
-    fn getFirstChild(&self) -> Option<AbstractNode> {
-        self.first_child
->>>>>>> Generate working ClientRectList and ClientRect bindings that can wrap, call methods, and access properties.
+    fn getFirstChild(&mut self) -> Option<&mut AbstractNode> {
+        match self.first_child {
+          // transmute because the compiler can't deduce that the reference
+          // is safe outside of with_mut_node blocks.
+          Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
+          None => None
+        }
     }
-
-    fn getFirstChild(&self) -> Option<AbstractNode> {
-        self.first_child
-     }
  }
 
 extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
@@ -164,7 +156,7 @@ extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
             return 0;
         }
 
-        let node = &(*unwrap(obj)).payload;
+        let node = *unwrap(obj);
         let rval = do node.with_imm_node |node| {
             node.getNodeType()
         };
@@ -174,8 +166,8 @@ extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
 }
 
 impl CacheableWrapper for AbstractNode {
-    fn get_wrappercache(&self) -> &WrapperCache {
-        do self.with_imm_node |n| {
+    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+        do self.with_mut_node |n| {
             unsafe { cast::transmute(&n.wrapper) }
         }
     }

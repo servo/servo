@@ -96,8 +96,8 @@ pub struct Content {
     cx: @Cx,
     dom_static: GlobalStaticData,
 
-    document: Option<@Document>,
-    window:   Option<@Window>,
+    document: Option<@mut Document>,
+    window:   Option<@mut Window>,
     doc_url: Option<Url>,
     window_size: Size2D<uint>,
 
@@ -159,7 +159,7 @@ pub fn Content(layout_task: LayoutTask,
 
 pub fn task_from_context(cx: *JSContext) -> *mut Content {
     unsafe {
-        JS_GetContextPrivate(cx) as *Content
+        JS_GetContextPrivate(cx) as *mut Content
     }
 }
 
@@ -213,8 +213,8 @@ pub impl Content {
             let js_scripts = result.js_port.recv();
             debug!("js_scripts: %?", js_scripts);
 
-            let document = @Document(root);
-            let window   = @Window(self.control_chan.clone());
+            let document = @mut Document(root);
+            let window   = @mut Window(self.control_chan.clone());
 
             self.damage.add(MatchSelectorsDamage);
             self.relayout(document, &url);

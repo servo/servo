@@ -2424,7 +2424,7 @@ class CGAbstractMethod(CGThing):
 
 def CreateBindingJSObject(descriptor, parent):
     if descriptor.proxy:
-        handler = """  let cache = ptr::to_unsafe_ptr(aObject.get_wrappercache());
+        handler = """  //let cache = ptr::to_unsafe_ptr(aObject.get_wrappercache());
 
   let content = task_from_context(aCx);
   let handler = (*content).dom_static.proxy_handlers.get(&(prototypes::id::%s as uint));
@@ -2453,7 +2453,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('BindingReference<' + descriptor.nativeType + '>', 'aObject'),
+                Argument('&mut BindingReference<' + descriptor.nativeType + '>', 'aObject'),
                 Argument('*mut bool', 'aTriedToWrap')]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap_', '*JSObject', args)
 
@@ -2463,8 +2463,8 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
   return aObject->GetJSObject();"""
 
         return """  *aTriedToWrap = true;
-
-  let parent = WrapNativeParent(aCx, aScope, aObject.GetParentObject(aCx));
+  let mut parent = aObject.GetParentObject(aCx);
+  let parent = WrapNativeParent(aCx, aScope, &mut parent);
   if parent.is_null() {
     return ptr::null();
   }
@@ -2477,7 +2477,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
     return ptr::null();
   }
 
-  let cache = ptr::to_unsafe_ptr(aObject.get_wrappercache());
+  let cache = ptr::to_mut_unsafe_ptr(aObject.get_wrappercache());
 
 %s
   //NS_ADDREF(aObject);
@@ -2496,7 +2496,8 @@ class CGWrapMethod(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', '*JSObject', args, inline=True, pub=True)
 
     def definition_body(self):
-        return "  return Wrap_(aCx, aScope, BindingReference(Left(aObject)), aTriedToWrap);"
+        return "  let mut binding = BindingReference(Left(aObject)); \
+  return Wrap_(aCx, aScope, &mut binding, aTriedToWrap);"
 
 class CGWrapNonWrapperCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
@@ -3848,6 +3849,7 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::clientrect::*', #XXXjdm
                           'dom::bindings::clientrectlist::*', #XXXjdm
                           'dom::bindings::proxyhandler::*',
+                          'content::content_task::task_from_context'
                          ], 
                          curr)
 

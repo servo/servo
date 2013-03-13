@@ -33,7 +33,6 @@ use std::arc::ARC;
 /// FIXME: This should be replaced with a trait once they can inherit from structs.
 pub struct AbstractNode {
     priv obj: *mut Node,
-    //wrapper: WrapperCache
 }
 
 impl Eq for AbstractNode {
@@ -316,6 +315,10 @@ pub impl AbstractNode {
     fn is_style_element(self) -> bool {
         self.type_id() == ElementNodeTypeId(HTMLStyleElementTypeId)
     }
+
+    unsafe fn raw_object(self) -> *mut Node {
+        self.obj
+    }
 }
 
 impl DebugMethods for AbstractNode {
@@ -355,7 +358,6 @@ impl Node {
         // This surrenders memory management of the node!
         AbstractNode {
             obj: transmute(node),
-            //wrapper: WrapperCache::new()
         }
     }
 
@@ -375,17 +377,17 @@ impl Node {
     }
 }
 
-pub fn define_bindings(compartment: @mut Compartment, doc: @Document, win: @Window) {
+pub fn define_bindings(compartment: @mut Compartment, doc: @mut Document, win: @mut Window) {
     bindings::window::init(compartment, win);
     bindings::document::init(compartment, doc);
     bindings::node::init(compartment);
     bindings::element::init(compartment);
     bindings::utils::initialize_global(compartment.global_obj.ptr);
     let mut unused = false;
-    assert codegen::ClientRectBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                          compartment.global_obj.ptr,
-                                                          &mut unused);
-    assert codegen::ClientRectListBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                              compartment.global_obj.ptr,
-                                                              &mut unused);
+    fail_unless!(codegen::ClientRectBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                                compartment.global_obj.ptr,
+                                                                &mut unused));
+    fail_unless!(codegen::ClientRectListBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                                    compartment.global_obj.ptr,
+                                                                    &mut unused));
 }

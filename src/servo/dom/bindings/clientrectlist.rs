@@ -46,8 +46,8 @@ impl ClientRectListImpl {
     }
 }
 
-pub impl CacheableWrapper for ClientRectListImpl {
-    fn get_wrappercache(&self) -> &WrapperCache {
+impl CacheableWrapper for ClientRectListImpl {
+    fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe { cast::transmute(&self.wrapper) }
     }
 

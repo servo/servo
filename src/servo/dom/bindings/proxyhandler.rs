@@ -8,7 +8,7 @@ use core::sys::size_of;
 
 type c_bool = libc::c_int;
 
-extern fn getPropertyDescriptor(cx: *JSContext, proxy: *JSObject, id: jsid,
+pub extern fn getPropertyDescriptor(cx: *JSContext, proxy: *JSObject, id: jsid,
                                 set: c_bool, desc: *mut JSPropertyDescriptor) -> c_bool {
   unsafe {
     if _getOwnPropertyDescriptor(cx, proxy, id, set, desc) == 0 {
@@ -50,12 +50,12 @@ fn _getOwnPropertyDescriptor(cx: *JSContext, proxy: *JSObject, id: jsid,
   }
 }
 
-extern fn getOwnPropertyDescriptor(cx: *JSContext, proxy: *JSObject, id: jsid,
+pub extern fn getOwnPropertyDescriptor(cx: *JSContext, proxy: *JSObject, id: jsid,
                                    set: c_bool, desc: *mut JSPropertyDescriptor) -> c_bool {
     _getOwnPropertyDescriptor(cx, proxy, id, set, desc)
 }
 
-fn _obj_toString(cx: *JSContext, className: *libc::c_char) -> *JSString {
+pub fn _obj_toString(cx: *JSContext, className: *libc::c_char) -> *JSString {
   unsafe {
     let name = str::raw::from_buf(className as *u8);
     let nchars = "[object ]".len() + name.len();

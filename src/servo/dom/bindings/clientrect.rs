@@ -20,7 +20,7 @@ pub struct ClientRectImpl {
     right: f32,
 }
 
-pub impl ClientRect for ClientRectImpl {
+impl ClientRect for ClientRectImpl {
     fn Top() -> f32 {
         self.top
     }
@@ -53,8 +53,8 @@ pub fn ClientRect(top: f32, bottom: f32, left: f32, right: f32) -> ClientRectImp
     }
 }
 
-pub impl CacheableWrapper for ClientRectImpl {
-    fn get_wrappercache(&self) -> &WrapperCache {
+impl CacheableWrapper for ClientRectImpl {
+    fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe { cast::transmute(&self.wrapper) }
     }
 
