@@ -11,6 +11,11 @@ On OS X (homebrew):
     brew install automake libtool
     brew install pkg-config
 
+Note, there is an [issue][] on homebrew which requires the following manual
+configuration as well:
+
+    sudo sh -c 'echo /usr/local/share/aclocal >> /usr/share/aclocal/dirlist'
+
 On OS X (MacPorts):
 
     sudo port install autoconf213
@@ -30,3 +35,5 @@ compiler.
     ../configure
     make && make check
     ./servo ../src/test/about-mozilla.html
+
+[issue]: https://github.com/mxcl/homebrew/issues/5117
