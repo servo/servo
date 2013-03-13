@@ -130,7 +130,7 @@ pub impl TextRun {
         return max_piece_width;
     }
 
-    fn iter_natural_lines_for_range(&self, range: &const Range, f: fn(&const Range) -> bool) {
+    fn iter_natural_lines_for_range(&self, range: &const Range, f: &fn(&const Range) -> bool) {
         let mut clump = Range::new(range.begin(), 0);
         let mut in_clump = false;
 
@@ -155,7 +155,7 @@ pub impl TextRun {
         }
     }
 
-    fn iter_indivisible_pieces_for_range(&self, range: &const Range, f: fn(&const Range) -> bool) {
+    fn iter_indivisible_pieces_for_range(&self, range: &const Range, f: &fn(&const Range) -> bool) {
         let mut clump = Range::new(range.begin(), 0);
 
         loop {

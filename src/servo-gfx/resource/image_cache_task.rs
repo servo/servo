@@ -199,7 +199,7 @@ impl ImageCache {
                 }
                 OnMsg(handler) => msg_handlers.push(handler),
                 Exit(response) => {
-                    assert self.need_exit.is_none();
+                    fail_unless!(self.need_exit.is_none());
                     self.need_exit = Some(response);
                 }
             }
@@ -317,7 +317,7 @@ impl ImageCache {
             }
 
             Prefetched(data_cell) => {
-                assert !data_cell.is_empty();
+                fail_unless!(!data_cell.is_empty());
 
                 let data = data_cell.take();
                 let to_cache = self.chan.clone();
@@ -373,7 +373,7 @@ impl ImageCache {
 
     }
 
-    priv fn purge_waiters(&self, url: Url, f: fn() -> ImageResponseMsg) {
+    priv fn purge_waiters(&self, url: Url, f: &fn() -> ImageResponseMsg) {
         match self.wait_map.find(&url) {
           Some(waiters) => {
             let waiters = &mut *waiters;
@@ -598,7 +598,7 @@ fn should_not_request_url_from_resource_task_on_multiple_prefetches() {
     url_requested.recv();
     image_cache_task.exit();
     mock_resource_task.send(resource_task::Exit);
-    assert !url_requested.peek()
+    fail_unless!(!url_requested.peek())
 }
 
 #[test]
@@ -621,7 +621,7 @@ fn should_return_image_not_ready_if_data_has_not_arrived() {
     image_cache_task.send(Decode(copy url));
     let (response_chan, response_port) = stream();
     image_cache_task.send(GetImage(url, response_chan));
-    assert response_port.recv() == ImageNotReady;
+    fail_unless!(response_port.recv() == ImageNotReady);
     wait_chan.send(());
     image_cache_task.exit();
     mock_resource_task.send(resource_task::Exit);
@@ -747,7 +747,7 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
 
     // Our resource task should not have received another request for the image
     // because it's already cached
-    assert !image_bin_sent.peek();
+    fail_unless!(!image_bin_sent.peek());
 }
 
 #[test]
@@ -794,7 +794,7 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
 
     // Our resource task should not have received another request for the image
     // because it's already cached
-    assert !image_bin_sent.peek();
+    fail_unless!(!image_bin_sent.peek());
 }
 
 #[test]

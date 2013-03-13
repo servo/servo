@@ -130,7 +130,7 @@ fn test_bad_scheme() {
     let progress = Port();
     resource_task.send(Load(url::from_str(~"bogus://whatever").get(), progress.chan()));
     match progress.recv() {
-      Done(result) => { assert result.is_err() }
+      Done(result) => { fail_unless!(result.is_err()) }
       _ => fail
     }
     resource_task.send(Exit);
@@ -148,7 +148,7 @@ fn should_delegate_to_scheme_loader() {
     let resource_task = create_resource_task_with_loaders(loader_factories);
     let progress = Port();
     resource_task.send(Load(url::from_str(~"snicklefritz://heya").get(), progress.chan()));
-    assert progress.recv() == Payload(payload);
-    assert progress.recv() == Done(Ok(()));
+    fail_unless!(progress.recv() == Payload(payload));
+    fail_unless!(progress.recv() == Done(Ok(())));
     resource_task.send(Exit);
 }

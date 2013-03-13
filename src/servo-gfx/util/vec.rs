@@ -41,7 +41,7 @@ impl<'self, T: Ord + Eq> BinarySearchMethods<T> for &'self [T] {
 fn test_find_all_elems<T: Eq + Ord>(arr: &[T]) {
     let mut i = 0;
     while i < arr.len() {
-        assert test_match(&arr[i], arr.binary_search(&arr[i]));
+        fail_unless!(test_match(&arr[i], arr.binary_search(&arr[i])));
         i += 1;
     }
 }
@@ -51,7 +51,7 @@ fn test_miss_all_elems<T: Eq + Ord>(arr: &[T], misses: &[T]) {
     while i < misses.len() {
         let res = arr.binary_search(&misses[i]);
         debug!("%? == %? ?", misses[i], res);
-        assert !test_match(&misses[i], arr.binary_search(&misses[i]));
+        fail_unless!(!test_match(&misses[i], arr.binary_search(&misses[i])));
         i += 1;
     }
 }

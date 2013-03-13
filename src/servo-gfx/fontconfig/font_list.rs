@@ -19,7 +19,6 @@ use self::fontconfig::fontconfig::bindgen::{
     FcPatternGetInteger
 };
 
-use core::dvec::DVec;
 use core::hashmap::linear;
 use core::libc::c_int;
 use core::ptr::Ptr;
@@ -66,13 +65,13 @@ pub impl FontconfigFontListHandle {
             do str::as_c_str("family") |FC_FAMILY| {
                 do str::as_c_str(family.family_name) |family_name| {
                     let pattern = FcPatternCreate();
-                    assert pattern.is_not_null();
+                    fail_unless!(pattern.is_not_null());
                     let family_name = family_name as *FcChar8;
                     let ok = FcPatternAddString(pattern, FC_FAMILY, family_name);
-                    assert ok != 0;
+                    fail_unless!(ok != 0);
 
                     let object_set = FcObjectSetCreate();
-                    assert object_set.is_not_null();
+                    fail_unless!(object_set.is_not_null());
 
                     str::as_c_str("file", |FC_FILE| FcObjectSetAdd(object_set, FC_FILE) );
                     str::as_c_str("index", |FC_INDEX| FcObjectSetAdd(object_set, FC_INDEX) );

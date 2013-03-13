@@ -115,7 +115,7 @@ fn run(opts: &Opts) {
     match &opts.render_mode {
       &Screen => run_pipeline_screen(opts),
       &Png(ref outfile) => {
-        assert !opts.urls.is_empty();
+        fail_unless!(!opts.urls.is_empty());
         if opts.urls.len() > 1u {
             fail!(~"servo asks that you stick to a single URL in PNG output mode")
         }

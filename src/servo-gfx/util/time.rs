@@ -1,7 +1,7 @@
 // Timing functions.
 use std::time::precise_time_ns;
 
-pub fn time<T>(msg: &str, callback: fn() -> T) -> T{
+pub fn time<T>(msg: &str, callback: &fn() -> T) -> T{
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();

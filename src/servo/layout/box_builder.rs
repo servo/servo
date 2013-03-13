@@ -13,7 +13,6 @@ use layout::inline::{InlineFlowData, InlineLayout};
 use layout::root::RootFlowData;
 use util::tree;
 
-use core::dvec::DVec;
 use gfx::image::holder::ImageHolder;
 use gfx::util::range::Range;
 use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
@@ -39,7 +38,7 @@ pub impl LayoutTreeBuilder {
 // mapping between DOM nodes and boxes.
 struct BoxGenerator {
     flow: @mut FlowContext,
-    range_stack: DVec<uint>,
+    range_stack: ~[uint],
 }
 
 enum InlineSpacerSide {
@@ -84,24 +83,25 @@ impl BoxGenerator {
         unsafe { debug!("Creating box generator for flow: %s", flow.debug_str()); }
         BoxGenerator {
             flow: flow,
-            range_stack: DVec()
+            range_stack: ~[]
         }
     }
 
     /* Whether "spacer" boxes are needed to stand in for this DOM node */
-    pure fn inline_spacers_needed_for_node(_: AbstractNode) -> bool {
+    pure fn inline_spacers_needed_for_node(&self, _: AbstractNode) -> bool {
         return false;
     }
 
     // TODO: implement this, generating spacer 
-    fn make_inline_spacer_for_node_side(_: &LayoutContext,
+    fn make_inline_spacer_for_node_side(&self,
+                                        _: &LayoutContext,
                                         _: AbstractNode,
                                         _: InlineSpacerSide)
                                      -> Option<@mut RenderBox> {
         None
     }
 
-    pub fn push_node(&mut self, ctx: &LayoutContext, builder: &mut LayoutTreeBuilder, node: AbstractNode) {
+    pub fn push_node(@mut self, ctx: &LayoutContext, builder: &mut LayoutTreeBuilder, node: AbstractNode) {
         debug!("BoxGenerator[f%d]: pushing node: %s", self.flow.d().id, node.debug_str());
 
         // first, determine the box type, based on node characteristics
@@ -141,8 +141,10 @@ impl BoxGenerator {
                 debug!("BoxGenerator[f%d]: attaching box[b%d] to block flow (node: %s)",
                        self.flow.d().id, new_box.d().id, node.debug_str());
 
-                assert self.flow.block().box.is_none();
-                self.flow.block().box = Some(new_box);
+                fail_unless!(self.flow.block().box.is_none());
+                //XXXjdm We segfault when returning without this temporary.
+                let block = self.flow.block();
+                block.box = Some(new_box);
             },
             @RootFlow(*) => {
                 debug!("BoxGenerator[f%d]: point c", self.flow.d().id);
@@ -151,8 +153,10 @@ impl BoxGenerator {
                 debug!("BoxGenerator[f%d]: attaching box[b%d] to root flow (node: %s)",
                        self.flow.d().id, new_box.d().id, node.debug_str());
 
-                assert self.flow.root().box.is_none();
-                self.flow.root().box = Some(new_box);
+                fail_unless!(self.flow.root().box.is_none());
+                //XXXjdm We segfault when returning without this temporary.
+                let root = self.flow.root();
+                root.box = Some(new_box);
             },
             _ => { warn!("push_node() not implemented for flow f%d", self.flow.d().id) }
         }
@@ -173,14 +177,14 @@ impl BoxGenerator {
                 }
                 let mut node_range: Range = Range::new(self.range_stack.pop(), 0);
                 node_range.extend_to(self.flow.inline().boxes.len());
-                assert node_range.length() > 0;
+                fail_unless!(node_range.length() > 0);
 
                 debug!("BoxGenerator: adding element range=%?", node_range);
                 let elems = &mut self.flow.inline().elems;
                 elems.add_mapping(node, &const node_range);
             },
             @BlockFlow(*) | @RootFlow(*) => {
-                assert self.range_stack.len() == 0;
+                fail_unless!(self.range_stack.len() == 0);
             },
             _ => { warn!("pop_node() not implemented for flow %?", self.flow.d().id) }
         }
@@ -201,18 +205,19 @@ impl BuilderContext {
         }
     }
 
-    fn clone() -> BuilderContext {
+    fn clone(self) -> BuilderContext {
         debug!("BuilderContext: cloning context");
         copy self
     }
     
-    priv fn attach_child_flow(child: @mut FlowContext) {
+    priv fn attach_child_flow(&self, child: @mut FlowContext) {
         debug!("BuilderContext: Adding child flow f%? of f%?",
                self.default_collector.flow.d().id, child.d().id);
         tree::add_child(&FlowTree, self.default_collector.flow, child);
     }
     
-    priv fn create_child_flow_of_type(flow_type: FlowContextType,
+    priv fn create_child_flow_of_type(&self,
+                                      flow_type: FlowContextType,
                                       builder: &mut LayoutTreeBuilder) -> BuilderContext {
         let new_flow = builder.make_flow(flow_type);
         self.attach_child_flow(new_flow);
@@ -316,7 +321,7 @@ pub impl LayoutTreeBuilder {
         let flow = &mut this_ctx.default_collector.flow;
         for tree::each_child(&FlowTree, flow) |child_flow: &@mut FlowContext| {
             for (copy child_flow.d().node).each |node| {
-                assert node.has_layout_data();
+                fail_unless!(node.has_layout_data());
                 node.layout_data().flow = Some(*child_flow);
             }
         }

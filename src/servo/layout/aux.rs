@@ -3,11 +3,10 @@ Code for managing the DOM aux pointer
 */
 
 use dom::node::{AbstractNode, LayoutData};
-use core::dvec::DVec;
 
 pub trait LayoutAuxMethods {
     fn initialize_layout_data(self) -> Option<@mut LayoutData>;
-    fn initialize_style_for_subtree(self, refs: &DVec<@mut LayoutData>);
+    fn initialize_style_for_subtree(self, refs: &mut ~[@mut LayoutData]);
 }
 
 impl LayoutAuxMethods for AbstractNode {
@@ -25,7 +24,7 @@ impl LayoutAuxMethods for AbstractNode {
 
     /// Initializes layout data and styles for a Node tree, if any nodes do not have
     /// this data already. Append created layout data to the task's GC roots.
-    fn initialize_style_for_subtree(self, refs: &DVec<@mut LayoutData>) {
+    fn initialize_style_for_subtree(self, refs: &mut ~[@mut LayoutData]) {
         let _ = for self.traverse_preorder |n| {
             match n.initialize_layout_data() {
                 Some(r) => refs.push(r),

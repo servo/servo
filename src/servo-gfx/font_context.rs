@@ -6,7 +6,6 @@ use util::cache::Cache;
 use util::cache::MonoCache;
 
 use azure::azure_hl::BackendType;
-use core::dvec::DVec;
 use core::hashmap::linear::LinearMap;
 use core::hashmap::linear;
 
@@ -131,7 +130,7 @@ pub impl FontContext {
 
     // TODO:(Issue #196): cache font groups on the font context.
     priv fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
-        let fonts = DVec();
+        let mut fonts = ~[];
 
         debug!("(create font group) --- starting ---");
 
@@ -169,13 +168,13 @@ pub impl FontContext {
                 Err(()) => {}
             }
         }
-        assert fonts.len() > 0;
+        fail_unless!(fonts.len() > 0);
         // TODO(Issue #179): Split FontStyle into specified and used styles
         let used_style = copy *style;
 
         debug!("(create font group) --- finished ---");
 
-        @FontGroup::new(style.families.to_managed(), &used_style, dvec::unwrap(fonts))
+        @FontGroup::new(style.families.to_managed(), &used_style, fonts)
     }
 
     priv fn create_font_instance(&self, desc: &FontDescriptor) -> Result<@mut Font, ()> {

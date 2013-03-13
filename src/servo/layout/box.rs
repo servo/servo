@@ -18,7 +18,6 @@ use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
 use newcss::values::{CSSFontStyleOblique, CSSTextAlign, Specified};
 use util::tree::ReadMethods;
 
-use core::dvec::DVec;
 use core::managed;
 use core::mutable::Mut;
 use core::rand;
@@ -133,7 +132,7 @@ impl RenderBox  {
       }
     }
 
-    pure fn is_replaced() -> bool {
+    pure fn is_replaced(self) -> bool {
         match self {
            ImageBox(*) => true, // TODO: form elements, etc
             _ => false
@@ -155,7 +154,7 @@ impl RenderBox  {
     }
 
     fn can_merge_with_box(@mut self, other: @mut RenderBox) -> bool {
-        assert !managed::mut_ptr_eq(self, other);
+        fail_unless!(!managed::mut_ptr_eq(self, other));
 
         match (self, other) {
             (@UnscannedTextBox(*), @UnscannedTextBox(*)) => {
@@ -292,7 +291,7 @@ impl RenderBox  {
 
     /* Returns the amount of left, right "fringe" used by this
     box. This should be based on margin, border, padding, width. */
-    fn get_used_width() -> (Au, Au) {
+    fn get_used_width(&self) -> (Au, Au) {
         // TODO: this should actually do some computation!
         // See CSS 2.1, Section 10.3, 10.4.
 
@@ -301,7 +300,7 @@ impl RenderBox  {
     
     /* Returns the amount of left, right "fringe" used by this
     box. This should be based on margin, border, padding, width. */
-    fn get_used_height() -> (Au, Au) {
+    fn get_used_height(&self) -> (Au, Au) {
         // TODO: this should actually do some computation!
         // See CSS 2.1, Section 10.5, 10.6.
 

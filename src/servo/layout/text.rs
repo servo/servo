@@ -19,9 +19,9 @@ pub fn TextBoxData(run: @TextRun, range: &const Range) -> TextBoxData {
 
 pub fn adapt_textbox_with_range(box_data: &mut RenderBoxData, run: @TextRun, 
                                 range: &const Range) -> @mut RenderBox {
-    assert range.begin() < run.char_len();
-    assert range.end() <= run.char_len();
-    assert range.length() > 0;
+    fail_unless!(range.begin() < run.char_len());
+    fail_unless!(range.end() <= run.char_len());
+    fail_unless!(range.length() > 0);
 
     debug!("Creating textbox with span: (strlen=%u, off=%u, len=%u) of textrun: %s",
            run.char_len(), range.begin(), range.length(), run.text);

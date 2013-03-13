@@ -55,6 +55,7 @@ DEPS_rust-layers += \
 	rust-geom \
 	rust-glut \
 	rust-opengles \
+	skia \
 	$(NULL)
 
 DEPS_sharegl += \

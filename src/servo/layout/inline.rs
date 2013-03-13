@@ -9,7 +9,6 @@ use layout::text::{TextBoxData, UnscannedMethods, adapt_textbox_with_range};
 use util::tree;
 
 use core::dlist::DList;
-use core::dvec::DVec;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayList;
 use gfx::font::FontStyle;
@@ -22,6 +21,7 @@ use newcss::values::{CSSTextAlignCenter, CSSTextAlignJustify, CSSTextAlignLeft, 
 use newcss::units::{BoxAuto, BoxLength, Px};
 use std::arc;
 use core::mutable::Mut;
+use core::util;
 
 /*
 Lineboxes are represented as offsets into the child list, rather than
@@ -57,31 +57,33 @@ pub impl NodeRange {
 }
 
 struct ElementMapping {
-    priv entries: DVec<NodeRange>,
+    priv entries: ~[NodeRange],
 }
 
 pub impl ElementMapping {
     static pure fn new() -> ElementMapping {
-        ElementMapping { entries: DVec() }
+        ElementMapping { entries: ~[] }
     }
 
-    fn add_mapping(node: AbstractNode, range: &const Range) {
+    fn add_mapping(&mut self, node: AbstractNode, range: &const Range) {
         self.entries.push(NodeRange::new(node, range))
     }
 
-    fn each(cb: &pure fn(nr: &NodeRange) -> bool) {
+    fn each(&self, cb: &pure fn(nr: &NodeRange) -> bool) {
         do self.entries.each |nr| { cb(nr) }
     }
 
-    fn eachi(cb: &pure fn(i: uint, nr: &NodeRange) -> bool) {
+    fn eachi(&self, cb: &pure fn(i: uint, nr: &NodeRange) -> bool) {
         do self.entries.eachi |i, nr| { cb(i, nr) }
     }
 
-    fn eachi_mut(cb: &fn(i: uint, nr: &NodeRange) -> bool) {
+    fn eachi_mut(&self, cb: &fn(i: uint, nr: &NodeRange) -> bool) {
         do self.entries.eachi |i, nr| { cb(i, nr) }
     }
 
-    fn repair_for_box_changes(old_boxes: &DVec<@mut RenderBox>, new_boxes: &DVec<@mut RenderBox>) {
+    fn repair_for_box_changes(&mut self, old_boxes: &[@mut RenderBox], new_boxes: &[@mut RenderBox]) {
+        let entries = &mut self.entries;
+
         debug!("--- Old boxes: ---");
         for old_boxes.eachi |i, box| {
             debug!("%u --> %s", i, box.debug_str());
@@ -95,7 +97,7 @@ pub impl ElementMapping {
         debug!("------------------");
 
         debug!("--- Elem ranges before repair: ---");
-        for self.entries.eachi |i: uint, nr: &NodeRange| {
+        for entries.eachi |i: uint, nr: &NodeRange| {
             debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str());
         }
         debug!("----------------------------------");
@@ -107,9 +109,8 @@ pub impl ElementMapping {
             begin_idx: uint,
             entry_idx: uint,
         };
-        let repair_stack : DVec<WorkItem> = DVec();
+        let mut repair_stack : ~[WorkItem] = ~[];
 
-        do self.entries.borrow_mut |entries: &mut [NodeRange]| {
             // index into entries
             let mut entries_k = 0;
 
@@ -142,9 +143,8 @@ pub impl ElementMapping {
                     entries[item.entry_idx].range = Range::new(item.begin_idx, new_j - item.begin_idx);
                 }
             }
-        }
         debug!("--- Elem ranges after repair: ---");
-        for self.entries.eachi |i: uint, nr: &NodeRange| {
+        for entries.eachi |i: uint, nr: &NodeRange| {
             debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str());
         }
         debug!("----------------------------------");
@@ -167,36 +167,36 @@ priv impl TextRunScanner {
 
 priv impl TextRunScanner {
     fn scan_for_runs(&mut self, ctx: &mut LayoutContext, flow: @mut FlowContext) {
-        assert flow.inline().boxes.len() > 0;
+        fail_unless!(flow.inline().boxes.len() > 0);
 
-        let boxes = &mut flow.inline().boxes;
-        do boxes.swap |in_boxes| {
+        let in_boxes = &mut flow.inline().boxes;
+        //do boxes.swap |in_boxes| {
             debug!("TextRunScanner: scanning %u boxes for text runs...", in_boxes.len());
-            let out_boxes = DVec();
+            let mut out_boxes = ~[];
 
             for uint::range(0, in_boxes.len()) |box_i| {
                 debug!("TextRunScanner: considering box: %?", in_boxes[box_i].debug_str());
-                if box_i > 0 && !can_coalesce_text_nodes(in_boxes, box_i-1, box_i) {
-                    self.flush_clump_to_list(ctx, flow, in_boxes, &out_boxes);
+                if box_i > 0 && !can_coalesce_text_nodes(*in_boxes, box_i-1, box_i) {
+                    self.flush_clump_to_list(ctx, flow, *in_boxes, &mut out_boxes);
                 }
                 self.clump.extend_by(1);
             }
             // handle remaining clumps
             if self.clump.length() > 0 {
-                self.flush_clump_to_list(ctx, flow, in_boxes, &out_boxes);
+                self.flush_clump_to_list(ctx, flow, *in_boxes, &mut out_boxes);
             }
 
             debug!("TextRunScanner: swapping out boxes.");
             // swap out old and new box list of flow, by supplying
             // temp boxes as return value to boxes.swap |...|
-            dvec::unwrap(out_boxes)
-        }
+        util::swap(in_boxes, &mut out_boxes);
+        //}
 
         // helper functions
         fn can_coalesce_text_nodes(boxes: &[@mut RenderBox], left_i: uint, right_i: uint) -> bool {
-            assert left_i < boxes.len();
-            assert right_i > 0 && right_i < boxes.len();
-            assert left_i != right_i;
+            fail_unless!(left_i < boxes.len());
+            fail_unless!(right_i > 0 && right_i < boxes.len());
+            fail_unless!(left_i != right_i);
 
             let (left, right) = (boxes[left_i], boxes[right_i]);
             match (left, right) {
@@ -222,8 +222,8 @@ priv impl TextRunScanner {
                            ctx: &mut LayoutContext, 
                            flow: @mut FlowContext,
                            in_boxes: &[@mut RenderBox],
-                           out_boxes: &DVec<@mut RenderBox>) {
-        assert self.clump.length() > 0;
+                           out_boxes: &mut ~[@mut RenderBox]) {
+        fail_unless!(self.clump.length() > 0);
 
         debug!("TextRunScanner: flushing boxes in range=%?", self.clump);
         let is_singleton = self.clump.length() == 1;
@@ -274,7 +274,7 @@ priv impl TextRunScanner {
 
                 // next, concatenate all of the transformed strings together, saving the new char indices
                 let mut run_str : ~str = ~"";
-                let new_ranges : DVec<Range> = DVec();
+                let mut new_ranges : ~[Range] = ~[];
                 let mut char_total = 0u;
                 for uint::range(0, transformed_strs.len()) |i| {
                     let added_chars = str::char_len(transformed_strs[i]);
@@ -336,29 +336,29 @@ struct PendingLine {
 
 struct LineboxScanner {
     flow: @mut FlowContext,
-    new_boxes: DVec<@mut RenderBox>,
+    new_boxes: ~[@mut RenderBox],
     work_list: @mut DList<@mut RenderBox>,
     pending_line: PendingLine,
-    line_spans: DVec<Range>,
+    line_spans: ~[Range],
 }
 
 fn LineboxScanner(inline: @mut FlowContext) -> LineboxScanner {
-    assert inline.starts_inline_flow();
+    fail_unless!(inline.starts_inline_flow());
 
     LineboxScanner {
         flow: inline,
-        new_boxes: DVec(),
+        new_boxes: ~[],
         work_list: DList(),
         pending_line: PendingLine {mut range: Range::empty(), mut width: Au(0)},
-        line_spans: DVec()
+        line_spans: ~[]
     }
 }
 
 impl LineboxScanner {
     priv fn reset_scanner(&mut self) {
         debug!("Resetting line box scanner's state for flow f%d.", self.flow.d().id);
-        self.line_spans.set(~[]);
-        self.new_boxes.set(~[]);
+        self.line_spans = ~[];
+        self.new_boxes = ~[];
         self.reset_linebox();
     }
 
@@ -406,7 +406,7 @@ impl LineboxScanner {
 
         let boxes = &mut self.flow.inline().boxes;
         let elems = &mut self.flow.inline().elems;
-        elems.repair_for_box_changes(boxes, &self.new_boxes);
+        elems.repair_for_box_changes(*boxes, self.new_boxes);
         self.swap_out_results();
     }
 
@@ -414,16 +414,18 @@ impl LineboxScanner {
         debug!("LineboxScanner: Propagating scanned lines[n=%u] to inline flow f%d", 
                self.line_spans.len(), self.flow.d().id);
 
-        do self.new_boxes.swap |boxes| {
+        //do self.new_boxes.swap |boxes| {
             let inline_boxes = &mut self.flow.inline().boxes;
-            inline_boxes.set(boxes);
-            ~[]
-        };
-        do self.line_spans.swap |boxes| {
+        util::swap(inline_boxes, &mut self.new_boxes);
+            //inline_boxes = boxes;
+        //    ~[]
+        //};
+        //do self.line_spans.swap |boxes| {
             let lines = &mut self.flow.inline().lines;
-            lines.set(boxes);
-            ~[]
-        };
+        util::swap(lines, &mut self.line_spans);
+         //   lines = boxes;
+        //    ~[]
+        //};
     }
 
     priv fn flush_current_line(&mut self) {
@@ -567,7 +569,7 @@ impl LineboxScanner {
         debug!("LineboxScanner: Pushing box b%d to line %u", box.d().id, self.line_spans.len());
 
         if self.pending_line.range.length() == 0 {
-            assert self.new_boxes.len() <= (core::u16::max_value as uint);
+            fail_unless!(self.new_boxes.len() <= (core::u16::max_value as uint));
             self.pending_line.range.reset(self.new_boxes.len(), 0);
         }
         self.pending_line.range.extend_by(1);
@@ -579,10 +581,10 @@ impl LineboxScanner {
 pub struct InlineFlowData {
     // A vec of all inline render boxes. Several boxes may
     // correspond to one Node/Element.
-    boxes: DVec<@mut RenderBox>,
+    boxes: ~[@mut RenderBox],
     // vec of ranges into boxes that represents line positions.
     // these ranges are disjoint, and are the result of inline layout.
-    lines: DVec<Range>,
+    lines: ~[Range],
     // vec of ranges into boxes that represent elements. These ranges
     // must be well-nested, and are only related to the content of
     // boxes (not lines). Ranges are only kept for non-leaf elements.
@@ -591,8 +593,8 @@ pub struct InlineFlowData {
 
 pub fn InlineFlowData() -> InlineFlowData {
     InlineFlowData {
-        boxes: DVec(),
-        lines: DVec(),
+        boxes: ~[],
+        lines: ~[],
         elems: ElementMapping::new(),
     }
 }
@@ -611,7 +613,7 @@ impl InlineLayout for FlowContext {
     pure fn starts_inline_flow() -> bool { match self { InlineFlow(*) => true, _ => false } }
 
     fn bubble_widths_inline(@mut self, ctx: &mut LayoutContext) {
-        assert self.starts_inline_flow();
+        fail_unless!(self.starts_inline_flow());
 
         let mut scanner = TextRunScanner::new();
         scanner.scan_for_runs(ctx, self);
@@ -634,7 +636,7 @@ impl InlineLayout for FlowContext {
     contexts and boxes. When called on this context, the context has
     had its width set by the parent context. */
     fn assign_widths_inline(@mut self, ctx: &mut LayoutContext) {
-        assert self.starts_inline_flow();
+        fail_unless!(self.starts_inline_flow());
 
         // initialize (content) box widths, if they haven't been
         // already. This could be combined with LineboxScanner's walk
@@ -750,7 +752,7 @@ impl InlineLayout for FlowContext {
     fn build_display_list_inline(@mut self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
                                  offset: &Point2D<Au>, list: &Mut<DisplayList>) {
 
-        assert self.starts_inline_flow();
+        fail_unless!(self.starts_inline_flow());
 
         // TODO(Issue #228): once we form line boxes and have their cached bounds, we can be 
         // smarter and not recurse on a line if nothing in it can intersect dirty

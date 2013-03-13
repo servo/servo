@@ -21,7 +21,6 @@ use util::time::time;
 
 use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
-use core::dvec::DVec;
 use core::mutable::Mut;
 use core::task::*;
 use core::util::replace;
@@ -103,7 +102,7 @@ struct Layout {
 
     font_ctx: @mut FontContext,
     // This is used to root reader data
-    layout_refs: DVec<@mut LayoutData>,
+    layout_refs: ~[@mut LayoutData],
     css_select_ctx: Mut<SelectCtx>,
 }
 
@@ -120,7 +119,7 @@ fn Layout(render_task: RenderTask,
         local_image_cache: @mut LocalImageCache(image_cache_task),
         from_content: from_content,
         font_ctx: fctx,
-        layout_refs: DVec(),
+        layout_refs: ~[],
         css_select_ctx: Mut(new_css_select_ctx())
     }
 }
@@ -162,7 +161,7 @@ impl Layout {
         true
     }
 
-    fn handle_add_stylesheet(sheet: Stylesheet) {
+    fn handle_add_stylesheet(&self, sheet: Stylesheet) {
         let sheet = Cell(sheet);
         do self.css_select_ctx.borrow_mut |ctx| {
             ctx.append_sheet(sheet.take(), OriginAuthor);
@@ -196,7 +195,7 @@ impl Layout {
 
         do time("layout: aux initialization") {
             // TODO: this is dumb. we don't need an entire traversal to do this
-            node.initialize_style_for_subtree(&self.layout_refs);
+            node.initialize_style_for_subtree(&mut self.layout_refs);
         }
 
         // Perform CSS selector matching if necessary.
@@ -295,7 +294,7 @@ impl Layout {
     // to the content task, and ultimately cause the image to be
     // re-requested. We probably don't need to go all the way back to
     // the content task for this.
-    fn make_on_image_available_cb(dom_event_chan: comm::SharedChan<Event>) -> @fn() -> ~fn(ImageResponseMsg) {
+    fn make_on_image_available_cb(&self, dom_event_chan: comm::SharedChan<Event>) -> @fn() -> ~fn(ImageResponseMsg) {
         // This has a crazy signature because the image cache needs to
         // make multiple copies of the callback, and the dom event
         // channel is not a copyable type, so this is actually a

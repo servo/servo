@@ -235,7 +235,7 @@ pub impl Content {
           Timer(timerData) => {
             let compartment = option::expect(self.compartment, ~"TODO error checking");
             let thisValue = if timerData.args.len() > 0 {
-                RUST_JSVAL_TO_OBJECT(unsafe { timerData.args.shift() })
+                RUST_JSVAL_TO_OBJECT(timerData.args[0])
             } else {
                 compartment.global_obj.ptr
             };
@@ -347,7 +347,7 @@ pub impl Content {
                     // Nothing to do.
                 }
                 Some(document) => {
-                    assert self.doc_url.is_some();
+                    fail_unless!(self.doc_url.is_some());
                     self.relayout(document, &(copy self.doc_url).get());
                 }
             }
@@ -362,7 +362,7 @@ pub impl Content {
                     // Nothing to do.
                 }
                 Some(document) => {
-                    assert self.doc_url.is_some();
+                    fail_unless!(self.doc_url.is_some());
                     self.relayout(document, &(copy self.doc_url).get());
                 }
             }

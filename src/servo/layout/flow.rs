@@ -9,7 +9,6 @@ use layout::inline::{InlineFlowData, InlineLayout, NodeRange};
 use layout::root::{RootFlowData, RootLayout};
 use util::tree;
 use core::mutable::Mut;
-use core::dvec::DVec;
 use geom::rect::Rect;
 use geom::point::Point2D;
 use gfx::display_list::DisplayList;
@@ -213,20 +212,20 @@ pub impl FlowContext  {
 pub enum FlowTree { FlowTree }
 
 impl FlowTree {
-    fn each_child(ctx: @mut FlowContext, f: fn(box: @mut FlowContext) -> bool) {
+    fn each_child(ctx: @mut FlowContext, f: &fn(box: @mut FlowContext) -> bool) {
         tree::each_child(&self, &ctx, |box| f(*box) )
     }
 }
 
 impl tree::ReadMethods<@mut FlowContext> for FlowTree {
-    fn with_tree_fields<R>(box: &@mut FlowContext, f: fn(&mut tree::Tree<@mut FlowContext>) -> R) -> R {
+    fn with_tree_fields<R>(box: &@mut FlowContext, f: &fn(&mut tree::Tree<@mut FlowContext>) -> R) -> R {
         let tree = &mut box.d().tree;
         f(tree)
     }
 }
 
 impl FlowTree {
-    fn add_child(parent: @mut FlowContext, child: @mut FlowContext) {
+    fn add_child(self, parent: @mut FlowContext, child: @mut FlowContext) {
         tree::add_child(&self, parent, child)
     }
 }
@@ -234,7 +233,7 @@ impl FlowTree {
 impl tree::WriteMethods<@mut FlowContext> for FlowTree {
     pure fn tree_eq(a: &@mut FlowContext, b: &@mut FlowContext) -> bool { core::managed::mut_ptr_eq(*a, *b) }
 
-    fn with_tree_fields<R>(box: &@mut FlowContext, f: fn(&mut tree::Tree<@mut FlowContext>) -> R) -> R {
+    fn with_tree_fields<R>(box: &@mut FlowContext, f: &fn(&mut tree::Tree<@mut FlowContext>) -> R) -> R {
         let tree = &mut box.d().tree;
         f(tree)
     }

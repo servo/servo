@@ -3,7 +3,6 @@ use dom::event::{Event, ResizeEvent};
 use platform::resize_rate_limiter::ResizeRateLimiter;
 
 use azure::azure_hl::{BackendType, B8G8R8A8, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
-use core::dvec::DVec;
 use core::comm::{Chan, SharedChan, Port};
 use core::task::TaskBuilder;
 use core::util;
@@ -99,7 +98,7 @@ fn mainloop(mode: Mode,
             po: Port<Msg>,
             dom_event_chan: SharedChan<Event>,
             opts: &Opts) {
-    let key_handlers: @DVec<Chan<()>> = @DVec();
+    let key_handlers: @mut ~[Chan<()>] = @mut ~[];
 
 	let window;
 	match mode {
@@ -125,13 +124,11 @@ fn mainloop(mode: Mode,
     let root_layer = @mut layers::layers::ContainerLayer();
     let original_layer_transform;
     {
-        let mut image_data = @mut layers::layers::BasicImageData::new(Size2D(0u, 0u),
+        let image_data = @layers::layers::BasicImageData::new(Size2D(0u, 0u),
                                                               0,
                                                               layers::layers::RGB24Format,
                                                               ~[]);
-        //XXXjdm How can we obtain a @mut @ImageData without transmute?
-        let image_data: @mut @layers::layers::ImageData = unsafe { cast::transmute(image_data) };
-        let image = @mut layers::layers::Image::new(image_data);
+        let image = @mut layers::layers::Image::new(image_data as @layers::layers::ImageData);
         let image_layer = @mut layers::layers::ImageLayer(image);
         original_layer_transform = image_layer.common.transform;
         image_layer.common.set_transform(original_layer_transform.scale(800.0, 600.0, 1.0));
@@ -172,14 +169,12 @@ fn mainloop(mode: Mode,
 
                         debug!("osmain: compositing buffer rect %?", &buffer.rect);
 
-                        let image_data = @mut AzureDrawTargetImageData {
+                        let image_data = @AzureDrawTargetImageData {
                             draw_target: buffer.draw_target.clone(),
                             data_source_surface: buffer.draw_target.snapshot().get_data_surface(),
                             size: Size2D(width, height)
                         };
-                        //XXXjdm How can we extract a @mut @ImageData without transmute?
-                        let image_data: @mut @layers::layers::ImageData = unsafe { cast::transmute(image_data) };
-                        let image = @mut layers::layers::Image::new(image_data);
+                        let image = @mut layers::layers::Image::new(image_data as @layers::layers::ImageData);
 
                         // Find or create an image layer.
                         let image_layer;
@@ -295,7 +290,7 @@ struct SurfaceSet {
 
 fn lend_surface(surfaces: &mut SurfaceSet, receiver: comm::Chan<LayerBufferSet>) {
     // We are in a position to lend out the surface?
-    assert surfaces.front.have;
+    fail_unless!(surfaces.front.have);
     // Ok then take it
     let old_layer_buffers = util::replace(&mut surfaces.front.layer_buffer_set.buffers, ~[]);
     let new_layer_buffers = do old_layer_buffers.map |layer_buffer| {
@@ -317,14 +312,14 @@ fn lend_surface(surfaces: &mut SurfaceSet, receiver: comm::Chan<LayerBufferSet>)
     // But we (hopefully) have another!
     surfaces.front <-> surfaces.back;
     // Let's look
-    assert surfaces.front.have;
+    fail_unless!(surfaces.front.have);
 }
 
 fn return_surface(surfaces: &mut SurfaceSet, layer_buffer_set: LayerBufferSet) {
     //#debug("osmain: returning surface %?", layer_buffer_set);
     // We have room for a return
-    assert surfaces.front.have;
-    assert !surfaces.back.have;
+    fail_unless!(surfaces.front.have);
+    fail_unless!(!surfaces.back.have);
 
     surfaces.back.layer_buffer_set = layer_buffer_set;
 
@@ -364,7 +359,7 @@ fn on_osmain<T: Owned>(f: ~fn(po: Port<T>)) -> Chan<T> {
 
 // #[cfg(target_os = "linux")]
 mod platform {
-    pub fn runmain(f: fn()) {
+    pub fn runmain(f: &fn()) {
         f()
     }
 }

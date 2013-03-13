@@ -82,11 +82,11 @@ pub impl ShapedGlyphData {
             let glyph_count = 0 as c_uint;
             let glyph_infos = hb_buffer_get_glyph_infos(buffer, ptr::to_unsafe_ptr(&glyph_count));
             let glyph_count = glyph_count as uint;
-            assert glyph_infos.is_not_null();
+            fail_unless!(glyph_infos.is_not_null());
             let pos_count = 0 as c_uint;
             let pos_infos = hb_buffer_get_glyph_positions(buffer, ptr::to_unsafe_ptr(&pos_count));
-            assert pos_infos.is_not_null();
-            assert glyph_count == pos_count as uint;
+            fail_unless!(pos_infos.is_not_null());
+            fail_unless!(glyph_count == pos_count as uint);
 
             ShapedGlyphData {
                 count: glyph_count,
@@ -98,7 +98,7 @@ pub impl ShapedGlyphData {
 
     #[inline(always)]
     priv pure fn byte_offset_of_glyph(&const self, i: uint) -> uint {
-        assert i < self.count;
+        fail_unless!(i < self.count);
 
         let glyph_info_i = ptr::offset(self.glyph_infos, i);
         unsafe {
@@ -110,7 +110,7 @@ pub impl ShapedGlyphData {
 
     // Returns shaped glyph data for one glyph, and updates the y-position of the pen.
     fn get_entry_for_glyph(&self, i: uint, y_pos: &mut Au) -> ShapedGlyphEntry {
-        assert i < self.count;
+        fail_unless!(i < self.count);
 
         let glyph_info_i = ptr::offset(self.glyph_infos, i);
         let pos_info_i = ptr::offset(self.pos_infos, i);
@@ -146,15 +146,17 @@ pub struct HarfbuzzShaper {
     priv hb_face: *hb_face_t,
     priv hb_font: *hb_font_t,
     priv hb_funcs: *hb_font_funcs_t,
+}
 
-    drop {
-        assert self.hb_face.is_not_null();
+impl Drop for HarfbuzzShaper {
+    fn finalize(&self) {
+        fail_unless!(self.hb_face.is_not_null());
         hb_face_destroy(self.hb_face);
 
-        assert self.hb_font.is_not_null();
+        fail_unless!(self.hb_font.is_not_null());
         hb_font_destroy(self.hb_font);
 
-        assert self.hb_funcs.is_not_null();
+        fail_unless!(self.hb_funcs.is_not_null());
         hb_font_funcs_destroy(self.hb_funcs);
     }
 }
@@ -237,7 +239,7 @@ pub impl HarfbuzzShaper {
         // so, we must be careful to increment this when saving glyph entries.
         let mut char_idx = 0;
 
-        assert glyph_count <= char_max;
+        fail_unless!(glyph_count <= char_max);
 
         debug!("Shaped text[char count=%u], got back %u glyph info records.", char_max, glyph_count);
         if char_max != glyph_count {
@@ -268,7 +270,7 @@ pub impl HarfbuzzShaper {
             // loc refers to a *byte* offset within the utf8 string.
             let loc = glyph_data.byte_offset_of_glyph(i);
             if loc < byte_max {
-                assert byteToGlyph[loc] != CONTINUATION_BYTE;
+                fail_unless!(byteToGlyph[loc] != CONTINUATION_BYTE);
                 byteToGlyph[loc] = i as i32;
             }
             else { debug!("ERROR: tried to set out of range byteToGlyph: idx=%u, glyph idx=%u", loc, i); }
@@ -358,9 +360,9 @@ pub impl HarfbuzzShaper {
             }
 
             // character/glyph clump must contain characters.
-            assert char_byte_span.length() > 0;
+            fail_unless!(char_byte_span.length() > 0);
             // character/glyph clump must contain glyphs.
-            assert glyph_span.length() > 0;
+            fail_unless!(glyph_span.length() > 0);
 
             // now char_span is a ligature clump, formed by the glyphs in glyph_span.
             // we need to find the chars that correspond to actual glyphs (char_extended_span),
@@ -451,7 +453,7 @@ extern fn glyph_func(_font: *hb_font_t,
                      glyph: *mut hb_codepoint_t,
                      _user_data: *c_void) -> hb_bool_t {
     let font: *Font = font_data as *Font;
-    assert font.is_not_null();
+    fail_unless!(font.is_not_null());
     unsafe {
         return match (*font).glyph_index(unicode as char) {
           Some(g) => { *glyph = g as hb_codepoint_t; true },
@@ -465,7 +467,7 @@ extern fn glyph_h_advance_func(_font: *hb_font_t,
                                glyph: hb_codepoint_t,
                                _user_data: *c_void) -> hb_position_t {
     let font: *Font = font_data as *Font;
-    assert font.is_not_null();
+    fail_unless!(font.is_not_null());
 
     unsafe {
         let advance = (*font).glyph_h_advance(glyph as GlyphIndex);
@@ -477,7 +479,7 @@ extern fn glyph_h_advance_func(_font: *hb_font_t,
 extern fn get_font_table_func(_face: *hb_face_t, tag: hb_tag_t, user_data: *c_void) -> *hb_blob_t {
     unsafe {
         let font: *Font = user_data as *Font;
-        assert font.is_not_null();
+        fail_unless!(font.is_not_null());
 
         // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
         match (*font).get_table_for_tag(tag as FontTableTag) {
@@ -493,7 +495,7 @@ extern fn get_font_table_func(_face: *hb_face_t, tag: hb_tag_t, user_data: *c_vo
                                           cast::transmute(skinny_font_table_ptr), // private context for below.
                                           destroy_blob_func); // HarfBuzz calls this when blob not needed.
                 });
-                assert blob.is_not_null();
+                fail_unless!(blob.is_not_null());
                 return blob;
             }
         }

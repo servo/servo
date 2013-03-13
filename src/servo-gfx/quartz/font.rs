@@ -141,7 +141,7 @@ impl FontHandleMethods for QuartzFontHandle {
             return None;
         }
 
-        assert glyphs[0] != 0; // FIXME: error handling
+        fail_unless!(glyphs[0] != 0); // FIXME: error handling
         return Some(glyphs[0] as GlyphIndex);
     }
 

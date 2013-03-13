@@ -10,7 +10,7 @@ use css::node_void_ptr::netsurfcss::util::VoidPtrLike;
 
 impl VoidPtrLike for AbstractNode {
     static fn from_void_ptr(node: *libc::c_void) -> AbstractNode {
-        assert node.is_not_null();
+        fail_unless!(node.is_not_null());
         unsafe {
             cast::transmute(node)
         }

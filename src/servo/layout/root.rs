@@ -42,12 +42,12 @@ impl RootLayout for FlowContext {
 
     /* defer to the block algorithm */
     fn bubble_widths_root(@mut self, ctx: &LayoutContext) {
-        assert self.starts_root_flow();
+        fail_unless!(self.starts_root_flow());
         self.bubble_widths_block(ctx)
     }
  
     fn assign_widths_root(@mut self, ctx: &LayoutContext) { 
-        assert self.starts_root_flow();
+        fail_unless!(self.starts_root_flow());
 
         self.d().position.origin = Au::zero_point();
         self.d().position.size.width = ctx.screen_size.size.width;
@@ -56,7 +56,7 @@ impl RootLayout for FlowContext {
     }
 
     fn assign_height_root(@mut self, ctx: &LayoutContext) {
-        assert self.starts_root_flow();
+        fail_unless!(self.starts_root_flow());
 
         // this is essentially the same as assign_height_block(), except
         // the root adjusts self height to at least cover the viewport.
@@ -78,7 +78,7 @@ impl RootLayout for FlowContext {
 
     fn build_display_list_root(@mut self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
                                offset: &Point2D<Au>, list: &Mut<DisplayList>) {
-        assert self.starts_root_flow();
+        fail_unless!(self.starts_root_flow());
 
         self.build_display_list_block(builder, dirty, offset, list);
     }

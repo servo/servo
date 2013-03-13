@@ -11,7 +11,7 @@ pub trait StyledNode {
 
 impl StyledNode for AbstractNode {
     fn style(&self) -> CompleteStyle/&self {
-        assert self.is_element(); // Only elements can have styles
+        fail_unless!(self.is_element()); // Only elements can have styles
         let results = self.get_css_select_results();
         results.computed_style()
     }

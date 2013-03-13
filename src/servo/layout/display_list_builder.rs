@@ -10,7 +10,6 @@ use newcss::values::Specified;
 use newcss::values::{CSSBackgroundColorColor, CSSBackgroundColorTransparent};
 use util::tree;
 
-use core::dvec::DVec;
 use core::either::{Left, Right};
 use core::mutable::Mut;
 use core::vec::push;

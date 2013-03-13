@@ -21,9 +21,11 @@ use freetype_impl::font::FreeTypeFontHandle;
 
 struct FreeTypeLibraryHandle {
     ctx: FT_Library,
+}
 
-    drop {
-        assert self.ctx.is_not_null();
+impl Drop for FreeTypeLibraryHandle {
+    fn finalize(&self) {
+        fail_unless!(self.ctx.is_not_null());
         FT_Done_FreeType(self.ctx);
     }
 }

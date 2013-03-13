@@ -107,7 +107,7 @@ pub impl LocalImageCache {
                 // the compositor should be resonsible for waiting
                 // on the image to load and triggering layout
                 let image_cache_task = self.image_cache_task.clone();
-                assert self.on_image_available.is_some();
+                fail_unless!(self.on_image_available.is_some());
                 let on_image_available = self.on_image_available.get()();
                 let url = copy *url;
                 do task::spawn {

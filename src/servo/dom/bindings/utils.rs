@@ -19,7 +19,13 @@ pub enum DOMString {
     null_string
 }
 
-pub type rust_box<T> = {rc: uint, td: *sys::TypeDesc, next: *(), prev: *(), payload: T};
+pub struct rust_box<T> {
+    rc: uint,
+    td: *sys::TypeDesc,
+    next: *(),
+    prev: *(),
+    payload: T
+}
 
 pub unsafe fn squirrel_away<T>(x: @T) -> *rust_box<T> {
     let y: *rust_box<T> = cast::reinterpret_cast(&x);
@@ -77,7 +83,7 @@ pub fn get_compartment(cx: *JSContext) -> @mut Compartment {
         let compartment = option::expect((*content).compartment,
                                          ~"Should always have compartment when \
                                            executing JS code");
-        assert cx == compartment.cx.ptr;
+        fail_unless!(cx == compartment.cx.ptr);
         compartment
     }
 }

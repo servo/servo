@@ -36,7 +36,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
     let mut _buffers = match buffer_set { LayerBufferSet { buffers: b } => b };
 
     // FIXME: Try not to create a new array here.
-    let new_buffer_ports = dvec::DVec();
+    let mut new_buffer_ports = ~[];
 
     // Divide up the layer into tiles.
     do time::time("rendering: preparing buffers") {
@@ -56,8 +56,8 @@ pub fn render_layers(layer_ref: *RenderLayer,
                 if stride % 32 != 0 {
                     stride = (stride & !(32 - 1)) + 32;
                 }
-                assert stride % 32 == 0;
-                assert stride >= width;
+                fail_unless!(stride % 32 == 0);
+                fail_unless!(stride >= width);
 
                 debug!("tile stride %u", stride);
 
@@ -125,13 +125,13 @@ pub fn render_layers(layer_ref: *RenderLayer,
         }
     }
 
-    let new_buffers = dvec::DVec();
+    let mut new_buffers = ~[];
     do time::time("rendering: waiting on subtasks") {
         for new_buffer_ports.each |new_buffer_port| {
             new_buffers.push(new_buffer_port.recv());
         }
     }
 
-    return LayerBufferSet { buffers: dvec::unwrap(new_buffers) };
+    return LayerBufferSet { buffers: new_buffers };
 }
 

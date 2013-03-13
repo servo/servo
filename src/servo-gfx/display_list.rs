@@ -6,7 +6,6 @@ use text::SendableTextRun;
 use util::range::Range;
 
 use azure::azure_hl::DrawTarget;
-use core::dvec::DVec;
 use clone_arc = std::arc::clone;
 use geom::Rect;
 use geom::Point2D;

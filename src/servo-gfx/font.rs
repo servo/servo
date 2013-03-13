@@ -11,7 +11,6 @@ use azure::{AzFloat, AzScaledFontRef, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint};
 use azure::scaled_font::ScaledFont;
 use azure::azure_hl::{BackendType, ColorPattern};
-use core::dvec::DVec;
 use geom::{Point2D, Rect, Size2D};
 
 #[cfg(target_os = "macos")]
@@ -212,7 +211,7 @@ pub impl FontGroup {
     }
 
     fn create_textrun(&self, text: ~str) -> TextRun {
-        assert self.fonts.len() > 0;
+        fail_unless!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
         return TextRun::new(self.fonts[0], text);
@@ -366,7 +365,7 @@ pub impl Font {
         let azfontref = self.get_azure_font();
         let pattern = ColorPattern(color);
         let azure_pattern = pattern.azure_color_pattern;
-        assert azure_pattern.is_not_null();
+        fail_unless!(azure_pattern.is_not_null());
 
         let options = struct__AzDrawOptions {
             mAlpha: 1f as AzFloat,
@@ -374,8 +373,8 @@ pub impl Font {
         };
 
         let mut origin = copy baseline_origin;
-        let azglyphs = DVec();
-        azglyphs.reserve(range.length());
+        let mut azglyphs = ~[];
+        vec::reserve(&mut azglyphs, range.length());
 
         for run.glyphs.iter_glyphs_for_char_range(range) |_i, glyph| {
             let glyph_advance = glyph.advance();
@@ -395,10 +394,9 @@ pub impl Font {
         let azglyph_buf_len = azglyphs.len();
         if azglyph_buf_len == 0 { return; } // Otherwise the Quartz backend will assert.
 
-        let azglyph_buf = dvec::unwrap(azglyphs);
         let glyphbuf = unsafe {
             struct__AzGlyphBuffer {
-                mGlyphs: vec::raw::to_ptr(azglyph_buf),
+                mGlyphs: vec::raw::to_ptr(azglyphs),
                 mNumGlyphs: azglyph_buf_len as uint32_t            
             }
         };
@@ -474,7 +472,7 @@ fn should_get_glyph_indexes() {
     let matcher = @FontMatcher(fctx);
     let font = matcher.get_test_font();
     let glyph_idx = font.glyph_index('w');
-    assert glyph_idx == Some(40u as GlyphIndex);
+    fail_unless!(glyph_idx == Some(40u as GlyphIndex));
 }
 
 fn should_get_glyph_advance() {
@@ -485,7 +483,7 @@ fn should_get_glyph_advance() {
     let matcher = @FontMatcher(fctx);
     let font = matcher.get_test_font();
     let x = font.glyph_h_advance(40u as GlyphIndex);
-    assert x == 15f || x == 16f;
+    fail_unless!(x == 15f || x == 16f);
 }
 
 // Testing thread safety
@@ -503,7 +501,7 @@ fn should_get_glyph_advance_stress() {
             let matcher = @FontMatcher(fctx);
             let _font = matcher.get_test_font();
             let x = font.glyph_h_advance(40u as GlyphIndex);
-            assert x == 15f || x == 16f;
+            fail_unless!(x == 15f || x == 16f);
             chan.send(());
         }
     }

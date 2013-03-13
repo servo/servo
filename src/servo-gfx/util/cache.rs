@@ -51,9 +51,9 @@ fn test_monocache() {
     let two = @"two";
     cache.insert(&1, one);
 
-    assert cache.find(&1).is_some();
-    assert cache.find(&2).is_none();
+    fail_unless!(cache.find(&1).is_some());
+    fail_unless!(cache.find(&2).is_none());
     cache.find_or_create(&2, |_v| { two });
-    assert cache.find(&2).is_some();
-    assert cache.find(&1).is_none();
+    fail_unless!(cache.find(&2).is_some());
+    fail_unless!(cache.find(&1).is_none());
 }

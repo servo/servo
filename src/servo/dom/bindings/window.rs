@@ -6,7 +6,6 @@ use dom::node::Node;
 use dom::window::{Window, TimerMessage_Fire};
 use super::utils;
 
-use core::dvec::DVec;
 use core::libc::c_uint;
 use core::ptr::null;
 use core::ptr;
@@ -28,7 +27,7 @@ use js::{JS_THIS_OBJECT, JS_SET_RVAL};
 extern fn alert(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
   unsafe {
     let argv = JS_ARGV(cx, vp);
-    assert (argc == 1);
+    fail_unless!(argc == 1);
     // Abstract this pattern and use it in debug, too?
     let jsstr = JS_ValueToString(cx, *ptr::offset(argv, 0));
     
@@ -42,7 +41,7 @@ extern fn alert(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
 extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
     unsafe {
         let argv = JS_ARGV(cx, vp);
-        assert (argc >= 2);
+        fail_unless!(argc >= 2);
 
         //TODO: don't crash when passed a non-integer value for the timeout
 

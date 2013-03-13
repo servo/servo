@@ -88,9 +88,11 @@ pub struct FreeTypeFontHandle {
     // if the font is created using FT_Memory_Face.
     source: FontSource,
     face: FT_Face,
+}
 
-    drop {
-        assert self.face.is_not_null();
+impl Drop for FreeTypeFontHandle {
+    fn finalize(&self) {
+        fail_unless!(self.face.is_not_null());
         if !FT_Done_Face(self.face).succeeded() {
             fail!(~"FT_Done_Face failed");
         }
@@ -243,7 +245,7 @@ impl FontHandleMethods for FreeTypeFontHandle {
 
     pub fn glyph_index(&self,
                        codepoint: char) -> Option<GlyphIndex> {
-        assert self.face.is_not_null();
+        fail_unless!(self.face.is_not_null());
         let idx = FT_Get_Char_Index(self.face, codepoint as FT_ULong);
         return if idx != 0 as FT_UInt {
             Some(idx as GlyphIndex)
@@ -255,13 +257,13 @@ impl FontHandleMethods for FreeTypeFontHandle {
 
     pub fn glyph_h_advance(&self,
                            glyph: GlyphIndex) -> Option<FractionalPixel> {
-        assert self.face.is_not_null();
+        fail_unless!(self.face.is_not_null());
         let res =  FT_Load_Glyph(self.face, glyph as FT_UInt, 0);
         if res.succeeded() {
             unsafe {
                 let void_glyph = (*self.face).glyph;
                 let slot: FT_GlyphSlot = cast::transmute(void_glyph);
-                assert slot.is_not_null();
+                fail_unless!(slot.is_not_null());
                 debug!("metrics: %?", (*slot).metrics);
                 let advance = (*slot).metrics.horiAdvance;
                 debug!("h_advance for %? is %?", glyph, advance);
@@ -322,7 +324,7 @@ pub impl FreeTypeFontHandle {
         let x_scale = (metrics.x_ppem as float) / em_size as float;
 
         // If this isn't true then we're scaling one of the axes wrong
-        assert metrics.x_ppem == metrics.y_ppem;
+        fail_unless!(metrics.x_ppem == metrics.y_ppem);
 
         return geometry::from_frac_px(value * x_scale);
     }

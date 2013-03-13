@@ -165,13 +165,13 @@ pub impl AbstractNode {
 
     // Invariant: `child` is disconnected from the document.
     fn append_child(self, child: AbstractNode) {
-        assert self != child;
+        fail_unless!(self != child);
 
         do self.with_mut_node |parent_n| {
             do child.with_mut_node |child_n| {
-                assert child_n.parent_node.is_none();
-                assert child_n.prev_sibling.is_none();
-                assert child_n.next_sibling.is_none();
+                fail_unless!(child_n.parent_node.is_none());
+                fail_unless!(child_n.prev_sibling.is_none());
+                fail_unless!(child_n.next_sibling.is_none());
 
                 child_n.parent_node = Some(self);
 
@@ -179,7 +179,7 @@ pub impl AbstractNode {
                     None => parent_n.first_child = Some(child),
                     Some(last_child) => {
                         do last_child.with_mut_node |last_child_n| {
-                            assert last_child_n.next_sibling.is_none();
+                            fail_unless!(last_child_n.next_sibling.is_none());
                             last_child_n.next_sibling = Some(child);
                         }
                     }

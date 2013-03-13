@@ -8,7 +8,7 @@ use http_client::{uv_http_request};
 
 pub fn factory() -> LoaderTask {
 	let f: LoaderTask = |url, progress_chan| {
-		assert url.scheme == ~"http";
+		fail_unless!(url.scheme == ~"http");
 
 		let progress_chan = SharedChan(progress_chan);
 		do spawn {

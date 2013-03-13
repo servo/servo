@@ -110,7 +110,7 @@ pub impl FontFamily {
     priv fn load_family_variations(@mut self, list: &native::FontListHandle) {
         if self.entries.len() > 0 { return; }
         list.load_variations_for_family(self);
-        assert self.entries.len() > 0;
+        fail_unless!(self.entries.len() > 0);
     }
 
     fn find_font_for_style(@mut self, list: &native::FontListHandle, style: &SpecifiedFontStyle) -> Option<@FontEntry> {

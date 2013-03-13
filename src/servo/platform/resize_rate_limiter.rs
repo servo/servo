@@ -28,7 +28,7 @@ pub impl ResizeRateLimiter {
     fn window_resized(&mut self, width: uint, height: uint) {
         match self.last_response_port {
             None => {
-                assert self.next_resize_event.is_none();
+                fail_unless!(self.next_resize_event.is_none());
                 self.send_event(width, height);
             }
             Some(*) => {
@@ -48,7 +48,7 @@ pub impl ResizeRateLimiter {
     fn check_resize_response(&mut self) {
         match self.next_resize_event {
             Some((copy width, copy height)) => {
-                assert self.last_response_port.is_some();
+                fail_unless!(self.last_response_port.is_some());
                 if self.last_response_port.get_ref().peek() {
                     self.send_event(width, height);
                     self.next_resize_event = None;

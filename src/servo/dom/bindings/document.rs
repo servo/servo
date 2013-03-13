@@ -22,7 +22,7 @@ enum DOMException {
     INVALID_CHARACTER_ERR
 }
 
-enum Element = int;
+struct Element(int);
 
 /*extern fn getElementById(cx: *JSContext, argc: c_uint, vp: *jsval) -> JSBool {
     //XXX check if actually document object
@@ -108,7 +108,7 @@ pub fn init(compartment: @mut Compartment, doc: @Document) {
          setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
-        assert JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs) == 1;
+        fail_unless!(JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs) == 1);
     });
 
     compartment.register_class(utils::instance_jsclass(~"DocumentInstance", finalize));

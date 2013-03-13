@@ -8,7 +8,6 @@ use text::TextRun;
 use azure::azure_hl::{AsAzureRect, B8G8R8A8, Color, ColorPattern, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, Linear, StrokeOptions};
 use azure::{AzDrawOptions, AzFloat};
-use core::dvec::DVec;
 use core::libc::types::common::c99::uint16_t;
 use core::ptr::to_unsafe_ptr;
 use geom::point::Point2D;

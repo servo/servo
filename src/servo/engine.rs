@@ -66,13 +66,13 @@ pub fn Engine<C:Compositor + Owned + Clone>(compositor: C,
 }
 
 impl<C:Compositor + Owned + Clone> Engine<C> {
-    fn run() {
+    fn run(&self) {
         while self.handle_request(self.request_port.recv()) {
             // Go on...
         }
     }
 
-    fn handle_request(request: Msg) -> bool {
+    fn handle_request(&self, request: Msg) -> bool {
         match request {
           LoadURLMsg(url) => {
             if url.path.ends_with(".js") {

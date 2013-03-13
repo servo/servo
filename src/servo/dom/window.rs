@@ -3,7 +3,6 @@ use js::jsapi::JSVal;
 use util::task::spawn_listener;
 
 use core::comm::{Port, Chan};
-use core::dvec::DVec;
 use std::timer;
 use std::uv_global_loop;
 
@@ -15,8 +14,10 @@ pub enum TimerControlMsg {
 
 pub struct Window {
     timer_chan: Chan<TimerControlMsg>,
+}
 
-    drop {
+impl Drop for Window {
+    fn finalize(&self) {
         self.timer_chan.send(TimerMessage_Close);
     }
 }
@@ -26,35 +27,35 @@ pub struct Window {
 //      to the function when calling it)
 pub struct TimerData {
     funval: JSVal,
-    args: DVec<JSVal>,
+    args: ~[JSVal],
 }
 
 pub fn TimerData(argc: libc::c_uint, argv: *JSVal) -> TimerData {
     unsafe {
-        let data = TimerData {
-            funval : *argv,
-            args : DVec(),
-        };
+        let mut args = ~[];
 
         let mut i = 2;
         while i < argc as uint {
-            data.args.push(*ptr::offset(argv, i));
+            args.push(*ptr::offset(argv, i));
             i += 1;
         };
 
-        data
+        TimerData {
+            funval : *argv,
+            args : args,
+        }
     }
 }
 
 // FIXME: delayed_send shouldn't require Copy
 #[allow(non_implicitly_copyable_typarams)]
 pub impl Window {
-    fn alert(s: &str) {
+    fn alert(&self, s: &str) {
         // Right now, just print to the console
         io::println(fmt!("ALERT: %s", s));
     }
 
-    fn close() {
+    fn close(&self) {
         self.timer_chan.send(TimerMessage_TriggerExit);
     }
 

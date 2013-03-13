@@ -123,7 +123,7 @@ pub fn true_type_tag(a: char, b: char, c: char, d: char) -> u32 {
 
 #[test]
 fn test_true_type_tag() {
-    assert true_type_tag('c', 'm', 'a', 'p') == 0x_63_6D_61_70_u32;
+    fail_unless!(true_type_tag('c', 'm', 'a', 'p') == 0x_63_6D_61_70_u32);
 }
 
 #[test]
@@ -139,7 +139,7 @@ fn test_transform_compress_none() {
     let mode = CompressNone;
 
     for uint::range(0, test_strs.len()) |i| {
-        assert transform_text(test_strs[i], mode) == test_strs[i];
+        fail_unless!(transform_text(test_strs[i], mode) == test_strs[i]);
     }
 }
 
@@ -162,11 +162,11 @@ fn test_transform_discard_newline() {
                                    ~"foo bar baz",
                                    ~"foobarbaz"];
 
-    assert test_strs.len() == oracle_strs.len();
+    fail_unless!(test_strs.len() == oracle_strs.len());
     let mode = DiscardNewline;
 
     for uint::range(0, test_strs.len()) |i| {
-        assert transform_text(test_strs[i], mode) == oracle_strs[i];
+        fail_unless!(transform_text(test_strs[i], mode) == oracle_strs[i]);
     }
 }
 
@@ -188,11 +188,11 @@ fn test_transform_compress_whitespace() {
                                  ~"foo bar baz",
                                  ~"foobarbaz\n\n"];
 
-    assert test_strs.len() == oracle_strs.len();
+    fail_unless!(test_strs.len() == oracle_strs.len());
     let mode = CompressWhitespace;
 
     for uint::range(0, test_strs.len()) |i| {
-        assert transform_text(test_strs[i], mode) == oracle_strs[i];
+        fail_unless!(transform_text(test_strs[i], mode) == oracle_strs[i]);
     }
 }
 
@@ -214,10 +214,10 @@ fn test_transform_compress_whitespace_newline() {
                                  ~"foo bar baz",
                                  ~"foobarbaz "];
 
-    assert test_strs.len() == oracle_strs.len();
+    fail_unless!(test_strs.len() == oracle_strs.len());
     let mode = CompressWhitespaceNewline;
 
     for uint::range(0, test_strs.len()) |i| {
-        assert transform_text(test_strs[i], mode) == oracle_strs[i];
+        fail_unless!(transform_text(test_strs[i], mode) == oracle_strs[i]);
     }
 }

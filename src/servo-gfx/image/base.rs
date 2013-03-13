@@ -22,7 +22,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
 
     match stb_image::load_from_memory_with_depth(buffer, FORCE_DEPTH, true) {
         stb_image::ImageU8(image) => {
-            assert image.depth == 4;
+            fail_unless!(image.depth == 4);
             // Do color space conversion :(
             let data = do vec::from_fn(image.width * image.height * 4) |i| {
                 let color = i % 4;
@@ -36,7 +36,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                 }
             };
 
-            assert image.data.len() == data.len();
+            fail_unless!(image.data.len() == data.len());
 
             Some(Image(image.width, image.height, image.depth, data))
         }
