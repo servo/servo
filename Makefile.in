@@ -48,6 +48,7 @@ endif
 
 export CFG_RUSTC
 export CFG_RUSTC_FLAGS
+export CFG_LOCAL_RUSTC
 export RUSTC=$(CFG_RUSTC)
 export RUSTFLAGS=$(CFG_RUSTC_FLAGS)
 
@@ -75,13 +76,20 @@ $(S)config.stamp : $(S)configure $(S)Makefile.in
 	$(Q)$(S)configure $(CFG_CONFIGURE_ARGS)
 
 # Build the compiler
+ifneq ($(CFG_LOCAL_RUSTC),1)
 $(CFG_RUSTC):
 	$(MAKE) -C "$(CFG_BUILD_DIR)src/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS=""
 
-rust: $(CFG_RUSTC)
-
 clean-rust:
 	$(MAKE) -C "$(CFG_BUILD_DIR)src/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS="" clean
+else
+$(CFG_RUSTC):
+
+clean-rust:
+
+endif
+
+rust: $(CFG_RUSTC)
 
 define DEF_SUBMODULE_VARS
 DEPS_$(1) =

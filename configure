@@ -285,7 +285,7 @@ opt optimize 1 "build optimized rust code"
 opt optimize-cxx 1 "build optimized C++ code"
 opt manage-submodules 1 "let the build manage the git submodules"
 opt fast-make 0 "use .gitmodules as timestamp for submodule deps"
-valopt local-rust-root "/usr/local" "set prefix for local rust binary"
+valopt local-rust-root "" "set prefix for local rust binary"
 
 if [ $HELP -eq 1 ]
 then
@@ -306,18 +306,19 @@ probe_need CFG_AUTOCONF213 autoconf213  \
 
 if [ ! -z "$CFG_LOCAL_RUST_ROOT" ]
 then
-    if [ ! -f ${CFG_LOCAL_RUST_ROOT}/bin/rustc ]
+    if [ -f ${CFG_LOCAL_RUST_ROOT}/bin/rustc ]
     then
-        msg "using in-tree rust compiler"
-        # The Rust compiler we're going to build
-        CFG_RUSTC="${CFG_BUILD_DIR}src/rust/${DEFAULT_HOST_TRIPLE}/stage2/bin/rustc"
-    else
         LRV=`${CFG_LOCAL_RUST_ROOT}/bin/rustc --version`
         step_msg "using rustc at: ${CFG_LOCAL_RUST_ROOT} with version: " $LRV
-	CFG_RUSTC=${CFG_LOCAL_RUST_ROOT}/bin/rustc
+        CFG_RUSTC=${CFG_LOCAL_RUST_ROOT}/bin/rustc
+        CFG_LOCAL_RUSTC=1
+    else
+        err "No rustc found at ${CFG_LOCAL_RUST_ROOT}/bin/rustc"
     fi
 else
-    probe_need CFG_RUSTC rustc
+    step_msg "using in-tree rust compiler"
+    # The Rust compiler we're going to build
+    CFG_RUSTC="${CFG_BUILD_DIR}src/rust/${DEFAULT_HOST_TRIPLE}/stage2/bin/rustc"
 fi
 
 if [ ! -z "$CFG_ENABLE_CLANG" ]
@@ -524,6 +525,7 @@ putvar CFG_C_COMPILER
 putvar CFG_SUBMODULES
 putvar CFG_DISABLE_MANAGE_SUBMODULES
 putvar CFG_RUSTC
+putvar CFG_LOCAL_RUSTC
 
 msg
 copy_if_changed ${CFG_SRC_DIR}Makefile.in ${CFG_BUILD_DIR}Makefile
