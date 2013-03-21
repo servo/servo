@@ -390,4 +390,7 @@ pub fn define_bindings(compartment: @mut Compartment, doc: @mut Document, win: @
     fail_unless!(codegen::ClientRectListBinding::DefineDOMInterface(compartment.cx.ptr,
                                                                     compartment.global_obj.ptr,
                                                                     &mut unused));
+    fail_unless!(codegen::HTMLCollectionBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                                    compartment.global_obj.ptr,
+                                                                    &mut unused));
 }

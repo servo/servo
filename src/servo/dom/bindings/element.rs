@@ -2,7 +2,6 @@ use content::content_task::{Content, task_from_context};
 use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment};
 use dom::bindings::utils::{domstring_to_jsval, WrapNewBindingObject};
 use dom::bindings::utils::{str, CacheableWrapper, DOM_OBJECT_SLOT};
-use dom::bindings::utils;
 use dom::bindings::clientrectlist::ClientRectListImpl;
 use dom::element::*;
 use dom::node::{AbstractNode, Node, Element, ElementNodeTypeId};
@@ -22,7 +21,7 @@ use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, J
 use js::{JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
-    debug!("element finalize!");
+    debug!("element finalize: %?!", obj as uint);
     unsafe {
         let val = JS_GetReservedSlot(obj, DOM_OBJECT_SLOT as u32);
         let node: AbstractNode = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
@@ -123,8 +122,7 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
         let width = match node.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 let content = task_from_context(cx);
-                let node = Node::as_abstract_node(~*node);
-                match (*content).query_layout(layout_task::ContentBox(node)) {
+                match (*content).query_layout(layout_task::ContentBox(*node)) {
                     Ok(rect) => rect.width,
                     Err(()) => 0
                 }

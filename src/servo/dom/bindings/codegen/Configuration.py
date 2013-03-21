@@ -139,7 +139,7 @@ class Descriptor(DescriptorProvider):
                 nativeTypeDefault = "mozilla::dom::" + ifaceName
 
         self.nativeType = desc.get('nativeType', nativeTypeDefault)
-        self.pointerType = desc.get('pointerType', '@')
+        self.pointerType = desc.get('pointerType', '~')
         self.hasInstanceInterface = desc.get('hasInstanceInterface', None)
 
         # Do something sane for JSObject

@@ -49,9 +49,11 @@ pub mod dom {
         pub mod proxyhandler;
         pub mod clientrect;
         pub mod clientrectlist;
+        pub mod htmlcollection;
         pub mod codegen {
             pub mod ClientRectBinding;
             pub mod ClientRectListBinding;
+            pub mod HTMLCollectionBinding;
         }
     }
     pub mod document;

@@ -1041,10 +1041,16 @@ for (uint32_t i = 0; i < length; ++i) {
         undefinedBehavior = treatAs[treatUndefinedAs]
 
         def getConversionCode(varName):
+            #conversionCode = (
+            #    "if (!ConvertJSValueToString(cx, ${val}, ${valPtr}, %s, %s, %s)) {\n"
+            #    "  return false;\n"
+            #    "}" % (nullBehavior, undefinedBehavior, varName))
             conversionCode = (
-                "if (!ConvertJSValueToString(cx, ${val}, ${valPtr}, %s, %s, %s)) {\n"
-                "  return false;\n"
-                "}" % (nullBehavior, undefinedBehavior, varName))
+                "let strval = jsval_to_str(cx, ${val});\n"
+                "if strval.is_err() {\n"
+                "  return 0;\n"
+                "}\n"
+                "%s = str(strval.get());" % varName)
             if defaultValue is None:
                 return conversionCode
 
@@ -1072,15 +1078,15 @@ for (uint32_t i = 0; i < length; ++i) {
                 declType, None, isOptional)
 
         if isOptional:
-            declType = "Optional<nsAString>"
+            declType = "Option<DOMString>"
         else:
-            declType = "NonNull<nsAString>"
+            declType = "DOMString"
 
         return (
-            "%s\n"
-            "const_cast<%s&>(${declName}) = &${holderName};" %
-            (getConversionCode("${holderName}"), declType),
-            CGGeneric("const " + declType), CGGeneric("FakeDependentString"),
+            "%s\n" %
+            #"const_cast<%s&>(${declName}) = &${holderName};" %
+            (getConversionCode("${declName}")),
+            CGGeneric(declType), None, #CGGeneric("FakeDependentString"),
             # No need to deal with Optional here; we have handled it already
             False)
 
@@ -1441,7 +1447,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
                     "}\n" +
                     successCode)
         else:
-            tail = "return JS_WrapValue(cx, ${jsvalPtr});"
+            tail = "return JS_WrapValue(cx, cast::transmute(${jsvalPtr}));"
         return ("${jsvalRef} = %s;\n" +
                 tail) % (value)
 
@@ -1511,7 +1517,8 @@ for (uint32_t i = 0; i < length; ++i) {
         if type.nullable():
             wrappingCode = ("if %s.is_none() {\n" % (result) +
                             CGIndenter(CGGeneric(setValue("JSVAL_NULL"))).define() + "\n" +
-                            "}\n")
+                            "}\n" +
+                            "let mut %s = %s.get();\n" % (result, result))
         else:
             wrappingCode = ""
         if (not descriptor.interface.isExternal() and
@@ -1522,7 +1529,7 @@ for (uint32_t i = 0; i < length; ++i) {
                 if not isCreator:
                     raise MethodNotCreatorError(descriptor.interface.identifier.name)
                 wrapMethod = "WrapNewBindingNonWrapperCachedObject"
-            wrap = "%s(cx, ${obj}, %s.get(), ${jsvalPtr})" % (wrapMethod, result)
+            wrap = "%s(cx, ${obj}, %s, ${jsvalPtr})" % (wrapMethod, result)
             # We don't support prefable stuff in workers.
             assert(not descriptor.prefable or not descriptor.workers)
             if not descriptor.prefable:
@@ -1544,7 +1551,8 @@ for (uint32_t i = 0; i < length; ++i) {
                 getIID = "&NS_GET_IID(%s), " % descriptor.nativeType
             else:
                 getIID = ""
-            wrap = "WrapObject(cx, ${obj}, %s, %s${jsvalPtr})" % (result, getIID)
+            #wrap = "WrapObject(cx, ${obj}, %s, %s${jsvalPtr})" % (result, getIID)
+            wrap = "%s.wrap(cx, ${obj}, %s${jsvalPtr})" % (result, getIID)
             wrappingCode += wrapAndSetPtr(wrap)
         return (wrappingCode, False)
 
@@ -1587,7 +1595,7 @@ if (!%(resultStr)s) {
         # See comments in WrapNewBindingObject explaining why we need
         # to wrap here.
         if type.nullable():
-            toValue = "JS::ObjectOrNullValue(%s)"
+            toValue = "RUST_OBJECT_TO_JSVAL(%s)"
         else:
             toValue = "JS::ObjectValue(*%s)"
         # NB: setValue(..., True) calls JS_WrapValue(), so is fallible
@@ -1690,10 +1698,11 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
             raise TypeError("We don't support nullable enum return values")
         return CGGeneric(returnType.inner.identifier.name), False
     if returnType.isGeckoInterface():
-        result = CGGeneric(descriptorProvider.getDescriptor(
-            returnType.unroll().inner.identifier.name).nativeType)
+        descriptor = descriptorProvider.getDescriptor(
+            returnType.unroll().inner.identifier.name)
+        result = CGGeneric(descriptor.nativeType)
         if resultAlreadyAddRefed:
-            result = CGWrapper(result, pre="Option<~", post=">")
+            result = CGWrapper(result, pre=("Option<" + descriptor.pointerType), post=">")
         else:
             result = CGWrapper(result, post="*")
         return result, False
@@ -2901,7 +2910,7 @@ class CGCallGenerator(CGThing):
         if resultOutParam:
             args.append(CGGeneric("result"))
         if isFallible:
-            args.append(CGGeneric("rv"))
+            args.append(CGGeneric("&mut rv"))
 
         needsCx = (typeNeedsCx(returnType, True) or
                    any(typeNeedsCx(a.type) for (a, _) in arguments) or
@@ -2930,8 +2939,8 @@ class CGCallGenerator(CGThing):
         self.cgRoot.append(call)
 
         if isFallible:
-            self.cgRoot.prepend(CGGeneric("ErrorResult rv;"))
-            self.cgRoot.append(CGGeneric("if (rv.Failed()) {"))
+            self.cgRoot.prepend(CGGeneric("let mut rv: ErrorResult = Ok(());"))
+            self.cgRoot.append(CGGeneric("if (rv.is_err()) {"))
             self.cgRoot.append(CGIndenter(errorReport))
             self.cgRoot.append(CGGeneric("}"))
 
@@ -3031,10 +3040,11 @@ class CGPerSignatureCall(CGThing):
                              self.idlNode.identifier.name))
 
     def getErrorReport(self):
-        return CGGeneric('return ThrowMethodFailedWithDetails<%s>(cx, rv, "%s", "%s");'
-                         % (toStringBool(not self.descriptor.workers),
-                            self.descriptor.interface.identifier.name,
-                            self.idlNode.identifier.name))
+        #return CGGeneric('return ThrowMethodFailedWithDetails<%s>(cx, rv, "%s", "%s");'
+        #                 % (toStringBool(not self.descriptor.workers),
+        #                    self.descriptor.interface.identifier.name,
+        #                    self.idlNode.identifier.name))
+        return CGGeneric('return 0'); #XXXjdm
 
     def define(self):
         return (self.cgRoot.define() + "\n" + self.wrap_return_value())
@@ -3844,10 +3854,12 @@ class CGBindingRoot(CGThing):
                           'js::jsfriendapi::bindgen::*',
                           'js::glue::bindgen::*',
                           'js::glue::*',
+                          'dom::node::AbstractNode',
                           'dom::bindings::utils::*',
                           'dom::bindings::conversions::*',
                           'dom::bindings::clientrect::*', #XXXjdm
                           'dom::bindings::clientrectlist::*', #XXXjdm
+                          'dom::bindings::htmlcollection::*', #XXXjdm
                           'dom::bindings::proxyhandler::*',
                           'content::content_task::task_from_context'
                          ], 

@@ -13,9 +13,10 @@ use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_Repor
                          JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject,
                          JS_GetInternedStringCharsAndLength, JS_DefineProperties,
                          JS_WrapValue, JS_GetObjectPrototype, JS_ForwardGetPropertyTo,
-                         JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
+                         JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject,
+                         JS_EncodeString, JS_free};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
-use js::glue::bindgen::{DefineFunctionWithReserved, GetObjectJSClass};
+use js::glue::bindgen::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB,
                   RESOLVE_STUB};
 use js::glue::bindgen::*;
@@ -24,6 +25,9 @@ use core::cast;
 use content::content_task::{Content, task_from_context};
 
 use core::hashmap::linear;
+
+use dom::bindings::node;
+use dom::node::AbstractNode;
 
 const TOSTRING_CLASS_RESERVED_SLOT: u64 = 0;
 const TOSTRING_NAME_RESERVED_SLOT: u64 = 1;
@@ -131,15 +135,11 @@ pub fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
         }
     }
 
-    let len = 0;
-    let chars = JS_GetStringCharsZAndLength(cx, jsstr, ptr::to_unsafe_ptr(&len));
-    return if chars.is_null() {
-        Err(())
-    } else {
-        unsafe {
-            let buf = vec::raw::from_buf_raw(chars as *u8, len as uint);
-            Ok(str::from_bytes(buf))
-        }
+    unsafe {
+        let strbuf = JS_EncodeString(cx, jsstr);
+        let buf = str::raw::from_buf(strbuf as *u8);
+        JS_free(cx, strbuf as *libc::c_void);
+        Ok(buf)
     }
 }
 
@@ -330,7 +330,7 @@ pub struct ConstantSpec {
 pub struct DOMClass {
     // A list of interfaces that this object implements, in order of decreasing
     // derivedness.
-    interface_chain: [prototypes::id::Prototype * 2 /*prototypes::id::_ID_Count*/],
+    interface_chain: [prototypes::id::Prototype * 2 /*max prototype chain length*/],
 
     unused: bool, // DOMObjectIsISupports (always false)
     native_hooks: *NativePropertyHooks
@@ -353,6 +353,7 @@ pub mod prototypes {
         pub enum Prototype {
             ClientRect,
             ClientRectList,
+            HTMLCollection,
             _ID_Count
         }
     }
@@ -540,7 +541,7 @@ pub extern fn ThrowingConstructor(cx: *JSContext, argc: uint, vp: *JSVal) -> JSB
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = @mut [0 as *JSObject, ..2]; //XXXjdm number of constructors
+    let protoArray = @mut [0 as *JSObject, ..3]; //XXXjdm prototypes::_ID_COUNT
     unsafe {
         //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);
@@ -778,3 +779,26 @@ pub fn InitIds(cx: *JSContext, specs: &[JSPropertySpec], ids: &mut [jsid]) -> bo
     }
     rval
 }
+
+pub trait DerivedWrapper {
+    fn wrap(&mut self, cx: *JSContext, scope: *JSObject, vp: *mut JSVal) -> i32;
+}
+
+impl DerivedWrapper for AbstractNode {
+    fn wrap(&mut self, cx: *JSContext, scope: *JSObject, vp: *mut JSVal) -> i32 {
+        let cache = self.get_wrappercache();
+        let wrapper = cache.get_wrapper();
+        if wrapper.is_not_null() {
+            unsafe { *vp = RUST_OBJECT_TO_JSVAL(wrapper) };
+            return 1;
+        }
+        unsafe { *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, self).ptr) };
+        return 1;
+    }
+}
+
+pub enum Error {
+    FailureUnknown
+}
+
+pub type ErrorResult = Result<(), Error>;

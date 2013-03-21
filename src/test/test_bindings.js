@@ -23,3 +23,12 @@ window.alert(rect.right);
 window.alert(rect.width);
 window.alert(rect.height);
 
+window.alert("HTMLCollection:");
+let tags = document.getElementsByTagName("head");
+//let tag = tags[0];
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0]);
+window.alert(tags[1]);
+window.alert(tags[2]);
+window.alert(tags[3]);
