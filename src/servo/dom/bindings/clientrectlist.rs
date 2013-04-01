@@ -5,13 +5,13 @@
 use content::content_task::task_from_context;
 use dom::bindings::clientrect::{ClientRect, ClientRectImpl};
 use dom::bindings::codegen::ClientRectListBinding;
-use dom::bindings::utils::{WrapperCache, CacheableWrapper, BindingObject, OpaqueBindingReference};
+use dom::bindings::utils::{WrapperCache, CacheableWrapper, BindingObject};
 use js::jsapi::{JSObject, JSContext};
 
 pub trait ClientRectList {
     fn Length(&self) -> u32;
-    fn Item(&self, index: u32) -> Option<~ClientRectImpl>;
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<~ClientRectImpl>;
+    fn Item(&self, index: u32) -> Option<@mut ClientRectImpl>;
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<@mut ClientRectImpl>;
 }
 
 pub struct ClientRectListImpl {
@@ -24,16 +24,16 @@ impl ClientRectList for ClientRectListImpl {
         self.rects.len() as u32
     }
 
-    fn Item(&self, index: u32) -> Option<~ClientRectImpl> {
+    fn Item(&self, index: u32) -> Option<@mut ClientRectImpl> {
         if index < self.rects.len() as u32 {
             let (top, bottom, left, right) = self.rects[index];
-            Some(~ClientRect(top, bottom, left, right))
+            Some(@mut ClientRect(top, bottom, left, right))
         } else {
             None
         }
     }
 
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<~ClientRectImpl> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<@mut ClientRectImpl> {
         *found = index < self.rects.len() as u32;
         self.Item(index)
     }
@@ -53,19 +53,19 @@ impl CacheableWrapper for ClientRectListImpl {
         unsafe { cast::transmute(&self.wrapper) }
     }
 
-    fn wrap_object_unique(~self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        ClientRectListBinding::Wrap(cx, scope, self, &mut unused)
+    fn wrap_object_unique(~self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        fail!(~"nyi")
     }
 
-    fn wrap_object_shared(@self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"nyi")
+    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+        let mut unused = false;
+        ClientRectListBinding::Wrap(cx, scope, self, &mut unused)
     }
 }
 
 impl BindingObject for ClientRectListImpl {
-    fn GetParentObject(&self, cx: *JSContext) -> OpaqueBindingReference {
+    fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
         let content = task_from_context(cx);
-        unsafe { OpaqueBindingReference(Right((*content).window.get() as @CacheableWrapper)) }
+        unsafe { (*content).window.get() as @mut CacheableWrapper }
     }
 }

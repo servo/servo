@@ -5,7 +5,7 @@
 use content::content_task::task_from_context;
 use dom::node::AbstractNode;
 use dom::bindings::codegen::HTMLCollectionBinding;
-use dom::bindings::utils::{DOMString, ErrorResult, OpaqueBindingReference};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use js::jsapi::{JSObject, JSContext};
 
@@ -46,9 +46,9 @@ pub impl HTMLCollection {
 }
 
 impl BindingObject for HTMLCollection {
-    fn GetParentObject(&self, cx: *JSContext) -> OpaqueBindingReference {
+    fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
         let content = task_from_context(cx);
-        unsafe { OpaqueBindingReference(Right((*content).window.get() as @CacheableWrapper)) }
+        unsafe { (*content).window.get() as @mut CacheableWrapper }
     }
 }
 
@@ -57,12 +57,12 @@ impl CacheableWrapper for HTMLCollection {
         unsafe { cast::transmute(&self.wrapper) }
     }
 
-    fn wrap_object_unique(~self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        HTMLCollectionBinding::Wrap(cx, scope, self, &mut unused)
+    fn wrap_object_unique(~self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        fail!(~"nyi")
     }
 
-    fn wrap_object_shared(@self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"nyi")
+    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+        let mut unused = false;
+        HTMLCollectionBinding::Wrap(cx, scope, self, &mut unused)
     }
 }

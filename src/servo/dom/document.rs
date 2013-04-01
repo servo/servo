@@ -20,7 +20,7 @@ pub fn Document(root: AbstractNode) -> Document {
 }
 
 pub impl Document {
-    fn getElementsByTagName(&self, tag: DOMString) -> Option<~HTMLCollection> {
+    fn getElementsByTagName(&self, tag: DOMString) -> Option<@mut HTMLCollection> {
         let mut elements = ~[];
         let tag = match tag {
           str(s) => s,
@@ -35,6 +35,6 @@ pub impl Document {
                 }
             }
         };
-        Some(~HTMLCollection::new(elements))
+        Some(@mut HTMLCollection::new(elements))
     }
 }

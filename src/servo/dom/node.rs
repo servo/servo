@@ -385,4 +385,7 @@ pub fn define_bindings(compartment: @mut Compartment, doc: @mut Document, win: @
     assert!(codegen::HTMLCollectionBinding::DefineDOMInterface(compartment.cx.ptr,
                                                                compartment.global_obj.ptr,
                                                                &mut unused));
+    assert!(codegen::DOMParserBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                          compartment.global_obj.ptr,
+                                                          &mut unused));
 }

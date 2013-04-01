@@ -141,7 +141,7 @@ impl CacheableWrapper for Window {
         fail!(~"should this be called?");
     }
 
-    fn wrap_object_shared(@self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"should this be called?");
     }
 }

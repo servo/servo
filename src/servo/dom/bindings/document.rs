@@ -14,6 +14,7 @@ use js::glue::bindgen::*;
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB};
 use core::ptr::null;
 use core::libc::c_uint;
+use content::content_task::task_from_context;
 use dom::bindings::utils::{DOMString, rust_box, squirrel_away, str};
 use dom::bindings::utils::{jsval_to_str, WrapNewBindingObject, CacheableWrapper};
 use dom::bindings::utils::WrapperCache;
@@ -50,15 +51,16 @@ extern fn getElementsByTagName(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSB
         arg0 = str(strval.get());
 
         let doc = &mut (*unwrap(obj)).payload;
-        let rval: Option<~HTMLCollection>;
+        let rval: Option<@mut HTMLCollection>;
         rval = doc.getElementsByTagName(arg0);
         if rval.is_none() {
             JS_SET_RVAL(cx, vp, JSVAL_NULL);
         } else {
             let cache = doc.get_wrappercache();
+            let rval = rval.get() as @mut CacheableWrapper;
             assert!(WrapNewBindingObject(cx, cache.get_wrapper(),
-                                              rval.get(),
-                                              cast::transmute(vp)));
+                                         rval,
+                                         cast::transmute(vp)));
         }
         return 1;
     }
@@ -115,6 +117,15 @@ pub fn init(compartment: @mut Compartment, doc: @mut Document) {
 
     compartment.register_class(utils::instance_jsclass(~"DocumentInstance", finalize));
 
+    let ptr = create(compartment, doc);
+
+    compartment.define_property(~"document", RUST_OBJECT_TO_JSVAL(ptr),
+                                GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+                                GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
+                                JSPROP_ENUMERATE);
+}
+
+pub fn create(compartment: @mut Compartment, doc: @mut Document) -> *JSObject {
     let instance : jsobj = result::unwrap(
         compartment.new_object_with_proto(~"DocumentInstance", ~"Document",
                                           compartment.global_obj.ptr));
@@ -124,11 +135,7 @@ pub fn init(compartment: @mut Compartment, doc: @mut Document) {
         let raw_ptr: *libc::c_void = cast::reinterpret_cast(&squirrel_away(doc));
         JS_SetReservedSlot(instance.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
-
-    compartment.define_property(~"document", RUST_OBJECT_TO_JSVAL(instance.ptr),
-                                GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-                                GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
-                                JSPROP_ENUMERATE);
+    instance.ptr
 }
 
 impl CacheableWrapper for Document {
@@ -140,7 +147,8 @@ impl CacheableWrapper for Document {
         fail!(~"need to implement wrapping");
     }
 
-    fn wrap_object_shared(@self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"need to implement wrapping");
+    fn wrap_object_shared(@mut self, cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        let content = task_from_context(cx);
+        unsafe { create((*content).compartment.get(), self) }
     }
 }

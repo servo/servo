@@ -32,3 +32,9 @@ window.alert(tags[0]);
 window.alert(tags[1]);
 window.alert(tags[2]);
 window.alert(tags[3]);
+
+window.alert("DOMParser:");
+window.alert(DOMParser);
+let parser = new DOMParser();
+window.alert(parser);
+window.alert(parser.parseFromString("<html></html>", "text/html"));

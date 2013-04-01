@@ -102,9 +102,10 @@ extern fn getClientRects(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
           JS_SET_RVAL(cx, vp, JSVAL_NULL);
       } else {
           let cache = node.get_wrappercache();
+            let rval = rval.get() as @mut CacheableWrapper;
           assert!(WrapNewBindingObject(cx, cache.get_wrapper(),
-                                            rval.get(),
-                                            cast::transmute(vp)));
+                                       rval,
+                                       cast::transmute(vp)));
       }
       return 1;
   }

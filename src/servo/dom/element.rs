@@ -144,8 +144,8 @@ pub impl<'self> Element {
         self.attrs.push(Attr::new(name.to_str(), value_cell.take()));
     }
 
-    fn getClientRects(&self) -> Option<~ClientRectListImpl> {
-        Some(~ClientRectListImpl::new())
+    fn getClientRects(&self) -> Option<@mut ClientRectListImpl> {
+        Some(@mut ClientRectListImpl::new())
     }
 }
 
