@@ -1856,7 +1856,7 @@ class PropertyDefiner:
         specs.append(specTerminator)
         prefableSpecs.append("  { false, NULL }");
 
-        arrays = (("const %s: [%s * %i] = [\n" +
+        arrays = (("static %s: [%s, ..%i] = [\n" +
                    ',\n'.join(specs) + "\n" +
                    "];\n\n") % (name, specType, len(specs)))
                    #+
@@ -1864,7 +1864,7 @@ class PropertyDefiner:
                    #',\n'.join(prefableSpecs) + "\n" +
                    #"];\n\n")
         if doIdArrays:
-            arrays += ("const %s_ids: [jsid * %i] = [" % (name, len(specs))) + ", ".join(["JSID_VOID"] * len(specs)) + "];\n\n"
+            arrays += ("static %s_ids: [jsid, ..%i] = [" % (name, len(specs))) + ", ".join(["JSID_VOID"] * len(specs)) + "];\n\n"
         return arrays
 
 # The length of a method is the maximum of the lengths of the
@@ -1945,7 +1945,7 @@ class MethodDefiner(PropertyDefiner):
             return (m["name"], accessor, jitinfo, m["length"], m["flags"])
 
         def stringDecl(m):
-            return "const %s_name: [u8 * %i] = %s;\n" % (m["name"], len(m["name"]) + 1,
+            return "static %s_name: [u8, ..%i] = %s;\n" % (m["name"], len(m["name"]) + 1,
                                                          str_to_const_array(m["name"]))
         
         decls = ''.join([stringDecl(m) for m in array])
@@ -1992,7 +1992,7 @@ class AttrDefiner(PropertyDefiner):
 
         def stringDecl(attr):
             name = attr.identifier.name
-            return "const %s_name: [u8 * %i] = %s;\n" % (name, len(name) + 1,
+            return "static %s_name: [u8, ..%i] = %s;\n" % (name, len(name) + 1,
                                                          str_to_const_array(name))
         
         decls = ''.join([stringDecl(m) for m in array])
@@ -2024,7 +2024,7 @@ class ConstDefiner(PropertyDefiner):
 
         def stringDecl(const):
             name = const.identifier.name
-            return "const %s_name: [u8 * %i] = %s;\n" % (name, len(name) + 1,
+            return "static %s_name: [u8, ..%i] = %s;\n" % (name, len(name) + 1,
                                                          str_to_const_array(name))
         
         decls = ''.join([stringDecl(m) for m in array])
@@ -2060,7 +2060,7 @@ class CGNativePropertyHooks(CGThing):
         parentHooks = ("&" + toBindingNamespace(parent.identifier.name) + "::NativeHooks"
                        if parent else '0 as *NativePropertyHooks')
         return """
-const NativeHooks: NativePropertyHooks = NativePropertyHooks { resolve_own_property: /*%s*/ 0 as *u8, resolve_property: ResolveProperty, enumerate_own_properties: /*%s*/ 0 as *u8, enumerate_properties: /*EnumerateProperties*/ 0 as *u8, proto_hooks: %s };
+static NativeHooks: NativePropertyHooks = NativePropertyHooks { resolve_own_property: /*%s*/ 0 as *u8, resolve_property: ResolveProperty, enumerate_own_properties: /*%s*/ 0 as *u8, enumerate_properties: /*EnumerateProperties*/ 0 as *u8, proto_hooks: %s };
 """ % (resolveOwnProperty, enumerateOwnProperties, parentHooks)
 
 # We'll want to insert the indent at the beginnings of lines, but we
@@ -2142,9 +2142,9 @@ class CGImports(CGWrapper):
         # TODO imports to cover descriptors, etc.
 
         def _useString(imports):
-            return ''.join(['use %s;\n' % i for i in imports]) + '\n'
+            return '#[allow(unused_imports)];' + ''.join(['use %s;\n' % i for i in imports]) + '\n'
         CGWrapper.__init__(self, child,
-                           definePre=_useString(sorted(defineImports)))
+                           declarePre=_useString(sorted(declareImports)))
 
 class CGIfWrapper(CGWrapper):
     def __init__(self, child, condition):
@@ -2197,8 +2197,8 @@ class CGDOMJSClass(CGThing):
     def define(self):
         traceHook = TRACE_HOOK_NAME if self.descriptor.customTrace else '0 as *u8'
         return """
-const Class_name: [u8 * %i] = %s;
-const Class: DOMJSClass = DOMJSClass {
+static Class_name: [u8, ..%i] = %s;
+static Class: DOMJSClass = DOMJSClass {
   base: JSClass { name: &Class_name as *u8 as *libc::c_char,
     flags: JSCLASS_IS_DOMJSCLASS | ((1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT), //JSCLASS_HAS_RESERVED_SLOTS(1),
     addProperty: %s, /* addProperty */
@@ -2243,8 +2243,9 @@ class CGPrototypeJSClass(CGThing):
         # We're purely for internal consumption
         return ""
     def define(self):
-        return """const PrototypeClassName__: [u8 * %s] = %s;
-const PrototypeClass: JSClass = JSClass {
+        return """
+static PrototypeClassName__: [u8, ..%s] = %s;
+static PrototypeClass: JSClass = JSClass {
   name: &PrototypeClassName__ as *u8 as *libc::c_char,
   flags: (1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT, //JSCLASS_HAS_RESERVED_SLOTS(1)
   addProperty: crust::JS_PropertyStub,       /* addProperty */
@@ -2285,7 +2286,7 @@ class CGInterfaceObjectJSClass(CGThing):
         ctorname = "0 as *u8" if not self.descriptor.interface.ctor() else CONSTRUCT_HOOK_NAME
         hasinstance = HASINSTANCE_HOOK_NAME
         return """
-const InterfaceObjectClass: JSClass = {
+static InterfaceObjectClass: JSClass = {
   %s, 0,
   crust::JS_PropertyStub,       /* addProperty */
   crust::JS_PropertyStub,       /* delProperty */
@@ -3149,7 +3150,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
     def __init__(self, descriptor, method):
         self.method = method
         name = method.identifier.name
-        args = [Argument('*JSContext', 'cx'), Argument('JSHandleObject', '++obj'),
+        args = [Argument('*JSContext', 'cx'), Argument('JSHandleObject', 'obj'),
                 Argument('*%s' % descriptor.nativeType, 'self'),
                 Argument('libc::c_uint', 'argc'), Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'JSBool', args)
@@ -3194,7 +3195,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         self.attr = attr
         name = 'get_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
-                 Argument('JSHandleObject', '++obj'),
+                 Argument('JSHandleObject', 'obj'),
                  Argument('*%s' % descriptor.nativeType, 'self'),
                  Argument('*mut JSVal', 'vp') ]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
@@ -3245,7 +3246,7 @@ class CGMemberJITInfo(CGThing):
         depth = self.descriptor.interface.inheritanceDepth()
         failstr = "true" if infallible else "false"
         return ("\n"
-                "const %s: JSJitInfo = JSJitInfo {\n"
+                "static %s: JSJitInfo = JSJitInfo {\n"
                 "  op: %s,\n"
                 "  protoID: %s,\n"
                 "  depth: %s,\n"
@@ -3690,7 +3691,7 @@ class CGDOMJSProxyHandlerDOMClass(CGThing):
         return ""
     def define(self):
         return """
-const Class: DOMClass = """ + DOMClass(self.descriptor) + """;
+static Class: DOMClass = """ + DOMClass(self.descriptor) + """;
 
 """
 
@@ -3847,7 +3848,6 @@ class CGBindingRoot(CGThing):
         # Add imports
         curr = CGImports(descriptors,
                          dictionaries,
-                         [],
                          ['js::*',
                           'js::jsapi::*',
                           'js::jsapi::bindgen::*',
@@ -3863,6 +3863,7 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::proxyhandler::*',
                           'content::content_task::task_from_context'
                          ], 
+                         [],
                          curr)
 
         # Add the auto-generated comment.

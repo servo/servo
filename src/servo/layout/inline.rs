@@ -1,26 +1,22 @@
 use core;
+use core::cell::Cell;
 use dom::node::AbstractNode;
 use layout::box::*;
 use layout::context::LayoutContext;
 use layout::debug::{BoxedDebugMethods, BoxedMutDebugMethods, DebugMethods};
 use layout::display_list_builder::DisplayListBuilder;
 use layout::flow::{FlowContext, InlineFlow};
-use layout::text::{TextBoxData, UnscannedMethods, adapt_textbox_with_range};
-use util::tree;
+use layout::text::{UnscannedMethods, adapt_textbox_with_range};
 
-use core::dlist::DList;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayList;
-use gfx::font::FontStyle;
 use gfx::geometry::Au;
 use gfx::image::holder;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::*;
 use gfx::util::range::Range;
 use newcss::values::{CSSTextAlignCenter, CSSTextAlignJustify, CSSTextAlignLeft, CSSTextAlignRight};
-use newcss::units::{BoxAuto, BoxLength, Px};
-use std::arc;
-use core::mutable::Mut;
+use std::deque::Deque;
 use core::util;
 
 /*
@@ -51,7 +47,7 @@ pub struct NodeRange {
 }
 
 pub impl NodeRange {
-    static pure fn new(node: AbstractNode, range: &const Range) -> NodeRange {
+    fn new(node: AbstractNode, range: &Range) -> NodeRange {
         NodeRange { node: node, range: copy *range }
     }
 }
@@ -61,19 +57,19 @@ struct ElementMapping {
 }
 
 pub impl ElementMapping {
-    static pure fn new() -> ElementMapping {
+    fn new() -> ElementMapping {
         ElementMapping { entries: ~[] }
     }
 
-    fn add_mapping(&mut self, node: AbstractNode, range: &const Range) {
+    fn add_mapping(&mut self, node: AbstractNode, range: &Range) {
         self.entries.push(NodeRange::new(node, range))
     }
 
-    fn each(&self, cb: &pure fn(nr: &NodeRange) -> bool) {
+    fn each(&self, cb: &fn(nr: &NodeRange) -> bool) {
         do self.entries.each |nr| { cb(nr) }
     }
 
-    fn eachi(&self, cb: &pure fn(i: uint, nr: &NodeRange) -> bool) {
+    fn eachi(&self, cb: &fn(i: uint, nr: &NodeRange) -> bool) {
         do self.entries.eachi |i, nr| { cb(i, nr) }
     }
 
@@ -158,7 +154,7 @@ priv struct TextRunScanner {
 }
 
 priv impl TextRunScanner {
-    static fn new() -> TextRunScanner {
+    fn new() -> TextRunScanner {
         TextRunScanner {
             clump: Range::empty(),
         }
@@ -167,7 +163,8 @@ priv impl TextRunScanner {
 
 priv impl TextRunScanner {
     fn scan_for_runs(&mut self, ctx: &mut LayoutContext, flow: @mut FlowContext) {
-        fail_unless!(flow.inline().boxes.len() > 0);
+        let inline = flow.inline();
+        assert!(inline.boxes.len() > 0);
 
         let in_boxes = &mut flow.inline().boxes;
         //do boxes.swap |in_boxes| {
@@ -194,9 +191,9 @@ priv impl TextRunScanner {
 
         // helper functions
         fn can_coalesce_text_nodes(boxes: &[@mut RenderBox], left_i: uint, right_i: uint) -> bool {
-            fail_unless!(left_i < boxes.len());
-            fail_unless!(right_i > 0 && right_i < boxes.len());
-            fail_unless!(left_i != right_i);
+            assert!(left_i < boxes.len());
+            assert!(right_i > 0 && right_i < boxes.len());
+            assert!(left_i != right_i);
 
             let (left, right) = (boxes[left_i], boxes[right_i]);
             match (left, right) {
@@ -223,7 +220,7 @@ priv impl TextRunScanner {
                            flow: @mut FlowContext,
                            in_boxes: &[@mut RenderBox],
                            out_boxes: &mut ~[@mut RenderBox]) {
-        fail_unless!(self.clump.length() > 0);
+        assert!(self.clump.length() > 0);
 
         debug!("TextRunScanner: flushing boxes in range=%?", self.clump);
         let is_singleton = self.clump.length() == 1;
@@ -255,7 +252,7 @@ priv impl TextRunScanner {
                 debug!("TextRunScanner: pushing single text box in range: %?", self.clump);
                 let new_box = adapt_textbox_with_range(old_box.d(),
                                                        run,
-                                                       &const Range::new(0, run.char_len()));
+                                                       &Range::new(0, run.char_len()));
                 out_boxes.push(new_box);
             },
             (false, true) => {
@@ -294,7 +291,7 @@ priv impl TextRunScanner {
                 debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
                 let clump = self.clump;
                 for clump.eachi |i| {
-                    let range = &const new_ranges[i - self.clump.begin()];
+                    let range = &new_ranges[i - self.clump.begin()];
                     if range.length() == 0 { 
                         error!("Elided an UnscannedTextbox because it was zero-length after compression; %s",
                               in_boxes[i].debug_str());
@@ -325,7 +322,8 @@ priv impl TextRunScanner {
         }
         debug!("--------------------");
 
-        self.clump.reset(self.clump.end(), 0);
+        let end = self.clump.end(); // FIXME: borrow checker workaround
+        self.clump.reset(end, 0);
     } /* /fn flush_clump_to_list */
 }
 
@@ -337,18 +335,18 @@ struct PendingLine {
 struct LineboxScanner {
     flow: @mut FlowContext,
     new_boxes: ~[@mut RenderBox],
-    work_list: @mut DList<@mut RenderBox>,
+    work_list: @mut Deque<@mut RenderBox>,
     pending_line: PendingLine,
     line_spans: ~[Range],
 }
 
 fn LineboxScanner(inline: @mut FlowContext) -> LineboxScanner {
-    fail_unless!(inline.starts_inline_flow());
+    assert!(inline.starts_inline_flow());
 
     LineboxScanner {
         flow: inline,
         new_boxes: ~[],
-        work_list: DList(),
+        work_list: @mut Deque::new(),
         pending_line: PendingLine {mut range: Range::empty(), mut width: Au(0)},
         line_spans: ~[]
     }
@@ -375,17 +373,15 @@ impl LineboxScanner {
 
         loop {
             // acquire the next box to lay out from work list or box list
-            let cur_box = match self.work_list.pop() {
-                Some(box) => {
-                    debug!("LineboxScanner: Working with box from work list: b%d", box.d().id);
-                    box
-                },
-                None => { 
-                    if i == boxes.len() { break; }
-                    let box = boxes[i]; i += 1;
-                    debug!("LineboxScanner: Working with box from box list: b%d", box.d().id);
-                    box
-                }
+            let cur_box = if self.work_list.is_empty() {
+                if i == boxes.len() { break; }
+                let box = boxes[i]; i += 1;
+                debug!("LineboxScanner: Working with box from box list: b%d", box.d().id);
+                box
+            } else {
+                let box = self.work_list.pop_front();
+                debug!("LineboxScanner: Working with box from work list: b%d", box.d().id);
+                box
             };
 
             let box_was_appended = self.try_append_to_line(ctx, cur_box);
@@ -524,7 +520,7 @@ impl LineboxScanner {
                 match (left, right) {
                     (Some(left_box), Some(right_box)) => {
                         self.push_box_to_line(left_box);
-                        self.work_list.push_head(right_box);
+                        self.work_list.add_front(right_box);
                     },
                     (Some(left_box), None) =>  { self.push_box_to_line(left_box); }
                     (None, Some(right_box)) => { self.push_box_to_line(right_box); }
@@ -542,7 +538,7 @@ impl LineboxScanner {
                     match (left, right) {
                         (Some(left_box), Some(right_box)) => {
                             self.push_box_to_line(left_box);
-                            self.work_list.push_head(right_box);
+                            self.work_list.add_front(right_box);
                         },
                         (Some(left_box), None) => {
                             self.push_box_to_line(left_box);
@@ -557,7 +553,7 @@ impl LineboxScanner {
                     return true;
                 } else {
                     debug!("LineboxScanner: case=split box didn't fit, not appending and deferring original box.");
-                    self.work_list.push_head(in_box);
+                    self.work_list.add_front(in_box);
                     return false;
                 }
             }
@@ -569,7 +565,7 @@ impl LineboxScanner {
         debug!("LineboxScanner: Pushing box b%d to line %u", box.d().id, self.line_spans.len());
 
         if self.pending_line.range.length() == 0 {
-            fail_unless!(self.new_boxes.len() <= (core::u16::max_value as uint));
+            assert!(self.new_boxes.len() <= (core::u16::max_value as uint));
             self.pending_line.range.reset(self.new_boxes.len(), 0);
         }
         self.pending_line.range.extend_by(1);
@@ -600,20 +596,20 @@ pub fn InlineFlowData() -> InlineFlowData {
 }
 
 pub trait InlineLayout {
-    pure fn starts_inline_flow() -> bool;
+    fn starts_inline_flow(&self) -> bool;
 
     fn bubble_widths_inline(@mut self, ctx: &mut LayoutContext);
     fn assign_widths_inline(@mut self, ctx: &mut LayoutContext);
     fn assign_height_inline(@mut self, ctx: &mut LayoutContext);
     fn build_display_list_inline(@mut self, a: &DisplayListBuilder, b: &Rect<Au>, c: &Point2D<Au>,
-                                 d: &Mut<DisplayList>);
+                                 d: &Cell<DisplayList>);
 }
 
 impl InlineLayout for FlowContext {
-    pure fn starts_inline_flow() -> bool { match self { InlineFlow(*) => true, _ => false } }
+    fn starts_inline_flow(&self) -> bool { match *self { InlineFlow(*) => true, _ => false } }
 
     fn bubble_widths_inline(@mut self, ctx: &mut LayoutContext) {
-        fail_unless!(self.starts_inline_flow());
+        assert!(self.starts_inline_flow());
 
         let mut scanner = TextRunScanner::new();
         scanner.scan_for_runs(ctx, self);
@@ -636,7 +632,7 @@ impl InlineLayout for FlowContext {
     contexts and boxes. When called on this context, the context has
     had its width set by the parent context. */
     fn assign_widths_inline(@mut self, ctx: &mut LayoutContext) {
-        fail_unless!(self.starts_inline_flow());
+        assert!(self.starts_inline_flow());
 
         // initialize (content) box widths, if they haven't been
         // already. This could be combined with LineboxScanner's walk
@@ -685,17 +681,22 @@ impl InlineLayout for FlowContext {
             let mut linebox_bounding_box = Au::zero_rect();
             let boxes = &mut self.inline().boxes;
             for line_span.eachi |box_i| {
-                let mut cur_box = boxes[box_i];
+                let cur_box : &mut RenderBox = boxes[box_i]; // FIXME: borrow checker workaround
 
                 // compute box height.
-                cur_box.d().position.size.height = match cur_box {
-                    @ImageBox(_, ref img) => Au::from_px(img.size().height),
-                    @TextBox(*) => { /* text boxes are initialized with dimensions */
-                        cur_box.d().position.size.height
+                let d = cur_box.d(); // FIXME: borrow checker workaround
+                let cur_box : &mut RenderBox = boxes[box_i]; // FIXME: borrow checker workaround
+                d.position.size.height = match *cur_box {
+                    ImageBox(_, ref img) => {
+                        Au::from_px(img.size().height)
+                    }
+                    TextBox(*) => { /* text boxes are initialized with dimensions */
+                        d.position.size.height
                     },
                     // TODO(Issue #225): different cases for 'inline-block', other replaced content
-                    @GenericBox(*) => Au::from_px(30),
+                    GenericBox(*) => Au::from_px(30),
                     _ => {
+                        let cur_box = boxes[box_i]; // FIXME: borrow checker workaround
                         fail!(fmt!("Tried to assign height to unknown Box variant: %s",
                                    cur_box.debug_str()))
                     }
@@ -704,22 +705,23 @@ impl InlineLayout for FlowContext {
                 // compute bounding rect, with left baseline as origin.
                 // so, linebox height is a matter of lining up ideal baselines,
                 // and then using the union of all these rects.
-                let bounding_box = match cur_box {
+                let bounding_box = match *cur_box {
                     // adjust to baseline coords
                     // TODO(Issue #227): use left/right margins, border, padding for nonreplaced content,
                     // and also use top/bottom  margins, border, padding for replaced or inline-block content.
                     // TODO(Issue #225): use height, width for 'inline-block', other replaced content
-                    @ImageBox(*) | @GenericBox(*) => {
-                        let box_bounds = cur_box.d().position;
-                        box_bounds.translate(&Point2D(Au(0), -cur_box.d().position.size.height))
+                    ImageBox(*) | GenericBox(*) => {
+                        let box_bounds = d.position;
+                        box_bounds.translate(&Point2D(Au(0), -d.position.size.height))
                     },
                     // adjust bounding box metric to box's horizontal offset
                     // TODO: we can use font metrics directly instead of re-measuring for the bounding box.
-                    @TextBox(_, data) => { 
-                        let text_bounds = data.run.metrics_for_range(&const data.range).bounding_box;
-                        text_bounds.translate(&Point2D(cur_box.d().position.origin.x, Au(0)))
+                    TextBox(_, data) => {
+                        let text_bounds = data.run.metrics_for_range(&data.range).bounding_box;
+                        text_bounds.translate(&Point2D(d.position.origin.x, Au(0)))
                     },
                     _ => {
+                        let cur_box = boxes[box_i]; // FIXME: borrow checker workaround
                         fail!(fmt!("Tried to compute bounding box of unknown Box variant: %s",
                                    cur_box.debug_str()))
                     }
@@ -750,14 +752,15 @@ impl InlineLayout for FlowContext {
     }
 
     fn build_display_list_inline(@mut self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
-                                 offset: &Point2D<Au>, list: &Mut<DisplayList>) {
+                                 offset: &Point2D<Au>, list: &Cell<DisplayList>) {
 
-        fail_unless!(self.starts_inline_flow());
+        assert!(self.starts_inline_flow());
 
         // TODO(Issue #228): once we form line boxes and have their cached bounds, we can be 
         // smarter and not recurse on a line if nothing in it can intersect dirty
+        let inline = self.inline(); // FIXME: borrow checker workaround
         debug!("FlowContext[%d]: building display list for %u inline boxes",
-               self.d().id, self.inline().boxes.len());
+               self.d().id, inline.boxes.len());
         let boxes = &mut self.inline().boxes;
         for boxes.each |box| {
             box.build_display_list(builder, dirty, offset, list)

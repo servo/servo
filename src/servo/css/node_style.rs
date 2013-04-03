@@ -6,12 +6,12 @@ use newcss::complete::CompleteStyle;
 
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {
-    fn style(&self) -> CompleteStyle/&self;
+    fn style(&self) -> CompleteStyle<'self>;
 }
 
 impl StyledNode for AbstractNode {
-    fn style(&self) -> CompleteStyle/&self {
-        fail_unless!(self.is_element()); // Only elements can have styles
+    fn style(&self) -> CompleteStyle<'self> {
+        assert!(self.is_element()); // Only elements can have styles
         let results = self.get_css_select_results();
         results.computed_style()
     }

@@ -1,6 +1,6 @@
 use content::content_task::{ControlMsg, Timer, ExitMsg};
 use dom::bindings::utils::WrapperCache;
-use js::jsapi::{JSVal, JSObject};
+use js::jsapi::JSVal;
 use util::task::spawn_listener;
 
 use core::comm::{Port, Chan};

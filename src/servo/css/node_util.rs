@@ -3,8 +3,8 @@ use newcss::complete::CompleteSelectResults;
 
 use core::cast::transmute;
 
-pub trait NodeUtil {
-    fn get_css_select_results(self) -> &self/CompleteSelectResults;
+pub trait NodeUtil<'self> {
+    fn get_css_select_results(self) -> &'self CompleteSelectResults;
     fn set_css_select_results(self, decl: CompleteSelectResults);
 }
 
@@ -16,7 +16,7 @@ impl<'self> NodeUtil<'self> for AbstractNode {
      * FIXME: This isn't completely memory safe since the style is
      * stored in a box that can be overwritten
      */
-    fn get_css_select_results(self) -> &self/CompleteSelectResults {
+    fn get_css_select_results(self) -> &'self CompleteSelectResults {
         if !self.has_layout_data() {
             fail!(~"style() called on a node without aux data!");
         }

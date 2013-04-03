@@ -1,5 +1,4 @@
 use content::content_task::task_from_context;
-use dom::element::Element;
 use dom::node::AbstractNode;
 use dom::bindings::codegen::HTMLCollectionBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, OpaqueBindingReference};
@@ -12,7 +11,7 @@ pub struct HTMLCollection {
 }
 
 pub impl HTMLCollection {
-    static fn new(elements: ~[AbstractNode]) -> HTMLCollection {
+    fn new(elements: ~[AbstractNode]) -> HTMLCollection {
         HTMLCollection {
             elements: elements,
             wrapper: WrapperCache::new()
@@ -31,7 +30,7 @@ pub impl HTMLCollection {
         }
     }
 
-    fn NamedItem(&self, cx: *JSContext, name: DOMString, rv: &mut ErrorResult) -> *JSObject {
+    fn NamedItem(&self, _cx: *JSContext, _name: DOMString, rv: &mut ErrorResult) -> *JSObject {
         *rv = Ok(());
         ptr::null()
     }
@@ -59,7 +58,7 @@ impl CacheableWrapper for HTMLCollection {
         HTMLCollectionBinding::Wrap(cx, scope, self, &mut unused)
     }
 
-    fn wrap_object_shared(@self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+    fn wrap_object_shared(@self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"nyi")
     }
 }

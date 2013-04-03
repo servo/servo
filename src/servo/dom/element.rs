@@ -15,7 +15,7 @@ pub struct Element {
     attrs: ~[Attr],
 }
 
-#[deriving_eq]
+#[deriving(Eq)]
 pub enum ElementTypeId {
     HTMLAnchorElementTypeId,
     HTMLAsideElementTypeId,
@@ -109,7 +109,7 @@ pub struct HTMLImageElement {
 //
 
 pub impl Element {
-    static pub fn new(type_id: ElementTypeId, tag_name: ~str) -> Element {
+    pub fn new(type_id: ElementTypeId, tag_name: ~str) -> Element {
         Element {
             parent: Node::new(ElementNodeTypeId(type_id)),
             tag_name: tag_name,
@@ -117,7 +117,7 @@ pub impl Element {
         }
     }
 
-    fn get_attr(&self, name: &str) -> Option<&self/str> {
+    fn get_attr(&self, name: &str) -> Option<&'self str> {
         // FIXME: Need an each() that links lifetimes in Rust.
         for uint::range(0, self.attrs.len()) |i| {
             if eq_slice(self.attrs[i].name, name) {
@@ -151,7 +151,7 @@ pub struct Attr {
 }
 
 impl Attr {
-    static pub fn new(name: ~str, value: ~str) -> Attr {
+    pub fn new(name: ~str, value: ~str) -> Attr {
         Attr {
             name: name,
             value: value

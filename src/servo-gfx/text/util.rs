@@ -6,7 +6,7 @@ enum CompressionMode {
 }
 
 impl Eq for CompressionMode {
-    pure fn eq(&self, other: &CompressionMode) -> bool {
+    fn eq(&self, other: &CompressionMode) -> bool {
         match (*self, *other) {
             (CompressNone, CompressNone) => true,
             (CompressWhitespace, CompressWhitespace) => true,
@@ -15,7 +15,7 @@ impl Eq for CompressionMode {
             _ => false
         }
     }
-    pure fn ne(&self, other: &CompressionMode) -> bool {
+    fn ne(&self, other: &CompressionMode) -> bool {
         !(*self).eq(other)
     }
 }

@@ -1,14 +1,12 @@
-use core::comm::Chan;
 use core::task::spawn;
-use resource::resource_task::{ProgressMsg, Payload, Done, LoaderTask};
-use std::net::url::Url;
+use resource::resource_task::{Payload, Done, LoaderTask};
 use core::io::{file_reader, ReaderUtil};
 
-const READ_SIZE: uint = 1024;
+static READ_SIZE: uint = 1024;
 
 pub fn factory() -> LoaderTask {
 	let f: LoaderTask = |url, progress_chan| {
-		fail_unless!(url.scheme == ~"file");
+		assert!(url.scheme == ~"file");
 		do spawn {
 			// FIXME: Resolve bug prevents us from moving the path out of the URL.
 			match file_reader(&Path(url.path)) {

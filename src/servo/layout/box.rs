@@ -8,33 +8,24 @@ use layout::display_list_builder::DisplayListBuilder;
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
 use layout;
-use newcss::color::{Color, rgba, rgb};
+use newcss::color::{Color, rgb};
 use newcss::complete::CompleteStyle;
-use newcss::units::{BoxSizing, Cursive, Em, Fantasy, Length, Monospace, Pt, Px, SansSerif, Serif};
-use newcss::values::{CSSBackgroundColorColor, CSSBackgroundColorTransparent, CSSBorderColor};
-use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium, CSSDisplay};
-use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily, CSSPositionAbsolute};
+use newcss::units::{Cursive, Em, Fantasy, Length, Monospace, Pt, Px, SansSerif, Serif};
+use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium};
+use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily};
 use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
-use newcss::values::{CSSFontStyleOblique, CSSTextAlign, Specified};
-use util::tree::ReadMethods;
+use newcss::values::{CSSFontStyleOblique, CSSTextAlign};
 
 use core::managed;
-use core::mutable::Mut;
-use core::rand;
-use core::task::spawn;
-use core::to_str::ToStr;
+use core::cell::Cell;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{DisplayItem, DisplayList};
 use gfx::font::{FontStyle, FontWeight300};
 use gfx::geometry::Au;
-use gfx::image::base::Image;
 use gfx::image::holder::ImageHolder;
-use gfx::text::text_run::TextRun;
 use gfx::util::range::*;
 use gfx;
-use std::arc::ARC;
 use std::arc;
-use std::net::url::Url;
 
 /** 
 Render boxes (`struct RenderBox`) are the leafs of the layout
@@ -118,8 +109,8 @@ pub fn RenderBoxData(node: AbstractNode, ctx: @mut FlowContext, id: int) -> Rend
     }
 }
 
-impl RenderBox  {
-    pure fn d(&mut self) -> &self/mut RenderBoxData {
+impl RenderBox {
+    fn d(&mut self) -> &'self mut RenderBoxData {
       unsafe {
         //Rust #5074 - we can't take mutable references to the
         //             data that needs to be returned right now.
@@ -132,35 +123,35 @@ impl RenderBox  {
       }
     }
 
-    pure fn is_replaced(self) -> bool {
+    fn is_replaced(self) -> bool {
         match self {
            ImageBox(*) => true, // TODO: form elements, etc
             _ => false
         }
     }
 
-    pure fn can_split() -> bool {
-        match self {
+    fn can_split(&self) -> bool {
+        match *self {
             TextBox(*) => true,
             _ => false
         }
     }
 
-    pure fn is_whitespace_only() -> bool {
-        match &self {
-            &UnscannedTextBox(_, ref raw_text) => raw_text.is_whitespace(),
+    fn is_whitespace_only(&self) -> bool {
+        match *self {
+            UnscannedTextBox(_, ref raw_text) => raw_text.is_whitespace(),
             _ => false
         }
     }
 
     fn can_merge_with_box(@mut self, other: @mut RenderBox) -> bool {
-        fail_unless!(!managed::mut_ptr_eq(self, other));
+        assert!(!managed::mut_ptr_eq(self, other));
 
         match (self, other) {
             (@UnscannedTextBox(*), @UnscannedTextBox(*)) => {
                 self.font_style() == other.font_style()
             },
-            (@TextBox(_, ref d1), @TextBox(_, ref d2)) => managed::ptr_eq(d1.run, d2.run),
+            (@TextBox(_, d1), @TextBox(_, d2)) => managed::ptr_eq(d1.run, d2.run),
             (_, _) => false
         }
     }
@@ -178,7 +169,7 @@ impl RenderBox  {
                 let mut right_range : Option<Range> = None;
                 debug!("split_to_width: splitting text box (strlen=%u, range=%?, avail_width=%?)",
                        data.run.text.len(), data.range, max_width);
-                do data.run.iter_indivisible_pieces_for_range(&const data.range) |piece_range| {
+                do data.run.iter_indivisible_pieces_for_range(&data.range) |piece_range| {
                     debug!("split_to_width: considering piece (range=%?, remain_width=%?)",
                            piece_range, remaining_width);
                     let metrics = data.run.metrics_for_range(piece_range);
@@ -221,10 +212,10 @@ impl RenderBox  {
                 }
 
                 let left_box = if left_range.length() > 0 {
-                    Some(layout::text::adapt_textbox_with_range(self.d(), data.run, &const left_range))
+                    Some(layout::text::adapt_textbox_with_range(self.d(), data.run, &left_range))
                 } else { None };
 
-                let right_box = option::map_default(&right_range, None, |range: &const Range| {
+                let right_box = right_range.map_default(None, |range: &Range| {
                     Some(layout::text::adapt_textbox_with_range(self.d(), data.run, range))
                 });
                 
@@ -252,7 +243,7 @@ impl RenderBox  {
             // TODO: consult CSS 'width', margin, border.
             // TODO: If image isn't available, consult 'width'.
             ImageBox(_, ref mut i) => Au::from_px(i.get_size().get_or_default(Size2D(0,0)).width),
-            TextBox(_,d) => d.run.min_width_for_range(&const d.range),
+            TextBox(_,d) => d.run.min_width_for_range(&d.range),
             UnscannedTextBox(*) => fail!(~"Shouldn't see unscanned boxes here.")
         }
     }
@@ -275,7 +266,7 @@ impl RenderBox  {
             // factor in min/pref widths of any text runs that it owns.
             &TextBox(_,d) => {
                 let mut max_line_width: Au = Au(0);
-                for d.run.iter_natural_lines_for_range(&const d.range) |line_range| {
+                for d.run.iter_natural_lines_for_range(&d.range) |line_range| {
                     let mut line_width: Au = Au(0);
                     for d.run.glyphs.iter_glyphs_for_char_range(line_range) |_char_i, glyph| {
                         line_width += glyph.advance()
@@ -309,7 +300,7 @@ impl RenderBox  {
 
     /* The box formed by the content edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
-    pure fn content_box(&mut self) -> Rect<Au> {
+    fn content_box(&mut self) -> Rect<Au> {
         let origin = {copy self.d().position.origin};
         match self {
             &ImageBox(_, ref mut i) => {
@@ -344,20 +335,20 @@ impl RenderBox  {
 
     /* The box formed by the border edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
-    pure fn border_box(&mut self) -> Rect<Au> {
+    fn border_box(&mut self) -> Rect<Au> {
         // TODO: actually compute content_box + padding + border
         self.content_box()
     }
 
     /* The box fromed by the margin edge, as defined in CSS 2.1 Section 8.1.
        Coordinates are relative to the owning flow. */
-    pure fn margin_box(&mut self) -> Rect<Au> {
+    fn margin_box(&mut self) -> Rect<Au> {
         // TODO: actually compute content_box + padding + border + margin
         self.content_box()
     }
 
-    fn style(&mut self) -> CompleteStyle/&self {
-        let d: &self/mut RenderBoxData = self.d();
+    fn style(&mut self) -> CompleteStyle<'self> {
+        let d: &'self mut RenderBoxData = self.d();
         d.node.style()
     }
 
@@ -388,7 +379,7 @@ impl RenderBox  {
     * `list` - List to which items should be appended
     */
     fn build_display_list(@mut self, _builder: &DisplayListBuilder, dirty: &Rect<Au>,
-                          offset: &Point2D<Au>, list: &Mut<DisplayList>) {
+                          offset: &Point2D<Au>, list: &Cell<DisplayList>) {
 
         let box_bounds = self.d().position;
 
@@ -409,30 +400,32 @@ impl RenderBox  {
         match m {
             &UnscannedTextBox(*) => fail!(~"Shouldn't see unscanned boxes here."),
             &TextBox(_,data) => {
-                do list.borrow_mut |list| {
-                    let nearest_ancestor_element = self.nearest_ancestor_element();
-                    let color = nearest_ancestor_element.style().color().to_gfx_color();
-                    list.append_item(~DisplayItem::new_Text(&abs_box_bounds,
-                                                            ~data.run.serialize(),
-                                                            data.range,
-                                                            color));
-                    // debug frames for text box bounds
-                    debug!("%?", { 
-                        // text box bounds
-                        list.append_item(~DisplayItem::new_Border(&abs_box_bounds,
-                                                                  Au::from_px(1),
-                                                                  rgb(0, 0, 200).to_gfx_color()));
-                        // baseline "rect"
-                        // TODO(Issue #221): create and use a Line display item for baseline.
-                        let ascent = data.run.metrics_for_range(&data.range).ascent;
-                        let baseline = Rect(abs_box_bounds.origin + Point2D(Au(0),ascent),
-                                            Size2D(abs_box_bounds.size.width, Au(0)));
-                        
-                        list.append_item(~DisplayItem::new_Border(&baseline,
-                                                                  Au::from_px(1),
-                                                                  rgb(0, 200, 0).to_gfx_color()));
-                        ; ()});
-                }
+                let nearest_ancestor_element = self.nearest_ancestor_element();
+                let color = nearest_ancestor_element.style().color().to_gfx_color();
+                let mut l = list.take(); // FIXME: this should use with_mut_ref when that appears
+                l.append_item(~DisplayItem::new_Text(&abs_box_bounds,
+                                                     ~data.run.serialize(),
+                                                     data.range,
+                                                     color));
+
+                // debug frames for text box bounds
+                debug!("%?", { 
+                    // text box bounds
+                    let mut l = list.take(); // FIXME: use with_mut_ref when that appears
+                    l.append_item(~DisplayItem::new_Border(&abs_box_bounds,
+                                                           Au::from_px(1),
+                                                           rgb(0, 0, 200).to_gfx_color()));
+                    // baseline "rect"
+                    // TODO(Issue #221): create and use a Line display item for baseline.
+                    let ascent = data.run.metrics_for_range(&data.range).ascent;
+                    let baseline = Rect(abs_box_bounds.origin + Point2D(Au(0),ascent),
+                                        Size2D(abs_box_bounds.size.width, Au(0)));
+
+                    l.append_item(~DisplayItem::new_Border(&baseline,
+                                                           Au::from_px(1),
+                                                           rgb(0, 200, 0).to_gfx_color()));
+                    list.put_back(l);
+                    ; ()});
             },
             // TODO: items for background, border, outline
             &GenericBox(_) => {}
@@ -440,11 +433,11 @@ impl RenderBox  {
                 //let i: &mut ImageHolder = unsafe { cast::transmute(i) }; // Rust #5074
                 match i.get_image() {
                     Some(image) => {
-                        do list.borrow_mut |list| {
-                            debug!("(building display list) building image box");
-                            list.append_item(~DisplayItem::new_Image(&abs_box_bounds,
-                                                                     arc::clone(&image)));
-                        }
+                        debug!("(building display list) building image box");
+                        let mut l = list.take(); // FIXME: use with_mut_ref when available
+                        l.append_item(~DisplayItem::new_Image(&abs_box_bounds,
+                                                              arc::clone(&image)));
+                        list.put_back(l);
                     }
                     None => {
                         /* No image data at all? Okay, add some fallback content instead. */
@@ -457,7 +450,7 @@ impl RenderBox  {
         self.add_border_to_list(list, &abs_box_bounds);
     }
 
-    fn add_bgcolor_to_list(&mut self, list: &Mut<DisplayList>, abs_bounds: &Rect<Au>) {
+    fn add_bgcolor_to_list(&mut self, list: &Cell<DisplayList>, abs_bounds: &Rect<Au>) {
         use std::cmp::FuzzyEq;
 
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
@@ -468,13 +461,13 @@ impl RenderBox  {
 
         let bgcolor = nearest_ancestor_element.style().background_color();
         if !bgcolor.alpha.fuzzy_eq(&0.0) {
-            do list.borrow_mut |list| {
-                list.append_item(~DisplayItem::new_SolidColor(abs_bounds, bgcolor.to_gfx_color()));
-            }
+            let mut l = list.take(); // FIXME: use with_mut_ref when available
+            l.append_item(~DisplayItem::new_SolidColor(abs_bounds, bgcolor.to_gfx_color()));
+            list.put_back(l);
         }
     }
 
-    fn add_border_to_list(&mut self, list: &Mut<DisplayList>, abs_bounds: &Rect<Au>) {
+    fn add_border_to_list(&mut self, list: &Cell<DisplayList>, abs_bounds: &Rect<Au>) {
         if !self.d().node.is_element() { return }
 
         let top_width = self.style().border_top_width();
@@ -509,10 +502,9 @@ impl RenderBox  {
 
                     let top_color = self.style().border_top_color();
                     let color = top_color.to_gfx_color(); // FIXME
-                    do list.borrow_mut |list| {
-                        list.append_item(~DisplayItem::new_Border(&bounds, border_width, color));
-                    }
-                    
+                    let mut l = list.take(); // FIXME: use with_mut_ref when available
+                    l.append_item(~DisplayItem::new_Border(&bounds, border_width, color));
+                    list.put_back(l);
                 } else {
                     warn!("ignoring unimplemented border widths");
                 }
@@ -578,12 +570,12 @@ impl RenderBox  {
 }
 
 impl BoxedMutDebugMethods for RenderBox {
-    pure fn dump(@mut self) {
+    fn dump(@mut self) {
         self.dump_indent(0u);
     }
 
     /* Dumps the node tree, for debugging, with indentation. */
-    pure fn dump_indent(@mut self, indent: uint) {
+    fn dump_indent(@mut self, indent: uint) {
         let mut s = ~"";
         for uint::range(0u, indent) |_i| {
             s += ~"    ";
@@ -593,15 +585,21 @@ impl BoxedMutDebugMethods for RenderBox {
         debug!("%s", s);
     }
 
-    pure fn debug_str(@mut self) -> ~str {
-        let repr = match self {
-            @GenericBox(*) => ~"GenericBox",
-            @ImageBox(*) => ~"ImageBox",
-            @TextBox(_,d) => fmt!("TextBox(text=%s)", str::substr(d.run.text, d.range.begin(), d.range.length())),
-            @UnscannedTextBox(_, ref s) => fmt!("UnscannedTextBox(%s)", *s)
+    fn debug_str(@mut self) -> ~str {
+        let borrowed_self : &mut RenderBox = self; // FIXME: borrow checker workaround
+        let repr = match borrowed_self {
+            &GenericBox(*) => ~"GenericBox",
+            &ImageBox(*) => ~"ImageBox",
+            &TextBox(_,d) => fmt!("TextBox(text=%s)", str::substr(d.run.text, d.range.begin(), d.range.length())),
+            &UnscannedTextBox(_, ref s) => {
+                let s = s;
+                fmt!("UnscannedTextBox(%s)", *s)
+            }
         };
 
-        fmt!("box b%?: %?", self.d().id, repr)
+        let borrowed_self : &mut RenderBox = self; // FIXME: borrow checker workaround
+        let id = borrowed_self.d().id;
+        fmt!("box b%?: %?", id, repr)
     }
 }
 

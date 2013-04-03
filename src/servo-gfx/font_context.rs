@@ -6,8 +6,7 @@ use util::cache::Cache;
 use util::cache::MonoCache;
 
 use azure::azure_hl::BackendType;
-use core::hashmap::linear::LinearMap;
-use core::hashmap::linear;
+use core::hashmap::HashMap;
 
 #[cfg(target_os = "macos")]
 use quartz;
@@ -16,7 +15,7 @@ use freetype_impl;
 use font_context;
 
 // TODO(Issue #164): delete, and get default font from font list
-const TEST_FONT: [u8 * 33004] = include_bin!("JosefinSans-SemiBold.ttf");
+static TEST_FONT: [u8, ..33004] = include_bin!("JosefinSans-SemiBold.ttf");
 
 fn test_font_bin() -> ~[u8] {
     return vec::from_fn(33004, |i| TEST_FONT[i]);
@@ -36,13 +35,13 @@ pub fn dummy_style() -> FontStyle {
 }
 
 #[cfg(target_os = "macos")]
-type FontContextHandle/& = quartz::font_context::QuartzFontContextHandle;
+type FontContextHandle = quartz::font_context::QuartzFontContextHandle;
 
 #[cfg(target_os = "linux")]
-type FontContextHandle/& = freetype_impl::font_context::FreeTypeFontContextHandle;
+type FontContextHandle = freetype_impl::font_context::FreeTypeFontContextHandle;
 
 pub trait FontContextHandleMethods {
-    pure fn clone(&const self) -> FontContextHandle;
+    fn clone(&self) -> FontContextHandle;
     fn create_font_from_identifier(&self, ~str, UsedFontStyle) -> Result<FontHandle, ()>;
 }
 
@@ -50,12 +49,12 @@ pub trait FontContextHandleMethods {
 // and typedefs not working well together. It should be removed.
 pub impl FontContextHandle {
     #[cfg(target_os = "macos")]
-    static pub fn new() -> FontContextHandle {
+    pub fn new() -> FontContextHandle {
         quartz::font_context::QuartzFontContextHandle::new()
     }
 
     #[cfg(target_os = "linux")]
-    static pub fn new() -> FontContextHandle {
+    pub fn new() -> FontContextHandle {
         freetype_impl::font_context::FreeTypeFontContextHandle::new()
     }
 }
@@ -66,17 +65,17 @@ pub struct FontContext {
     font_list: Option<FontList>, // only needed by layout
     handle: FontContextHandle,
     backend: BackendType,
-    generic_fonts: LinearMap<~str,~str>,
+    generic_fonts: HashMap<~str,~str>,
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub impl FontContext {
-    static fn new(backend: BackendType, needs_font_list: bool) -> FontContext {
+pub impl<'self> FontContext {
+    fn new(backend: BackendType, needs_font_list: bool) -> FontContext {
         let handle = FontContextHandle::new();
         let font_list = if needs_font_list { Some(FontList::new(&handle)) } else { None };
 
         // TODO: Allow users to specify these.
-        let mut generic_fonts = linear::linear_map_with_capacity(5);
+        let mut generic_fonts = HashMap::with_capacity(5);
         generic_fonts.insert(~"serif", ~"Times New Roman");
         generic_fonts.insert(~"sans-serif", ~"Arial");
         generic_fonts.insert(~"cursive", ~"Apple Chancery");
@@ -94,11 +93,11 @@ pub impl FontContext {
         }
     }
 
-    priv pure fn get_font_list(&self) -> &self/FontList {
-        option::get_ref(&self.font_list)
+    priv fn get_font_list(&self) -> &'self FontList {
+        self.font_list.get_ref()
     }
 
-    fn get_resolved_font_for_style(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
+    fn get_resolved_font_for_style(@mut self, style: &SpecifiedFontStyle) -> @FontGroup {
         // TODO(Issue #178, E): implement a cache of FontGroup instances.
         self.create_font_group(style)
     }
@@ -119,7 +118,7 @@ pub impl FontContext {
     }
 
     priv fn transform_family(&self, family: &str) -> ~str {
-        // FIXME: Need a find_like() in LinearMap.
+        // FIXME: Need a find_like() in HashMap.
         let family = family.to_str();
         debug!("(transform family) searching for `%s`", family);
         match self.generic_fonts.find(&family) {
@@ -129,13 +128,13 @@ pub impl FontContext {
     }
 
     // TODO:(Issue #196): cache font groups on the font context.
-    priv fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
+    priv fn create_font_group(@mut self, style: &SpecifiedFontStyle) -> @FontGroup {
         let mut fonts = ~[];
 
         debug!("(create font group) --- starting ---");
 
         // TODO(Issue #193): make iteration over 'font-family' more robust.
-        for str::split_char_each(style.families, ',') |family| {
+        for str::each_split_char(style.families, ',') |family| {
             let family_name = str::trim(family);
             let transformed_family_name = self.transform_family(family_name);
             debug!("(create font group) transformed family is `%s`", transformed_family_name);
@@ -168,7 +167,7 @@ pub impl FontContext {
                 Err(()) => {}
             }
         }
-        fail_unless!(fonts.len() > 0);
+        assert!(fonts.len() > 0);
         // TODO(Issue #179): Split FontStyle into specified and used styles
         let used_style = copy *style;
 

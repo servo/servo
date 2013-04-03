@@ -1,21 +1,18 @@
 use ShareGlContext = sharegl::platform::Context;
-use dom::event::{Event, ResizeEvent};
+use dom::event::Event;
 use platform::resize_rate_limiter::ResizeRateLimiter;
 
 use azure::azure_hl::{BackendType, B8G8R8A8, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
 use core::comm::{Chan, SharedChan, Port};
-use core::task::TaskBuilder;
 use core::util;
-use geom::matrix::{Matrix4, identity};
+use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
 use gfx::opts::Opts;
 use gfx::util::time;
-use layers::layers::ImageLayer;
 use core::cell::Cell;
-use std::cmp::FuzzyEq;
 use glut::glut;
 use layers;
 use sharegl;
@@ -290,7 +287,7 @@ struct SurfaceSet {
 
 fn lend_surface(surfaces: &mut SurfaceSet, receiver: comm::Chan<LayerBufferSet>) {
     // We are in a position to lend out the surface?
-    fail_unless!(surfaces.front.have);
+    assert!(surfaces.front.have);
     // Ok then take it
     let old_layer_buffers = util::replace(&mut surfaces.front.layer_buffer_set.buffers, ~[]);
     let new_layer_buffers = do old_layer_buffers.map |layer_buffer| {
@@ -312,14 +309,14 @@ fn lend_surface(surfaces: &mut SurfaceSet, receiver: comm::Chan<LayerBufferSet>)
     // But we (hopefully) have another!
     surfaces.front <-> surfaces.back;
     // Let's look
-    fail_unless!(surfaces.front.have);
+    assert!(surfaces.front.have);
 }
 
 fn return_surface(surfaces: &mut SurfaceSet, layer_buffer_set: LayerBufferSet) {
     //#debug("osmain: returning surface %?", layer_buffer_set);
     // We have room for a return
-    fail_unless!(surfaces.front.have);
-    fail_unless!(!surfaces.back.have);
+    assert!(surfaces.front.have);
+    assert!(!surfaces.back.have);
 
     surfaces.back.layer_buffer_set = layer_buffer_set;
 

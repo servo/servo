@@ -35,7 +35,7 @@ pub struct FreeTypeFontContextHandle {
 }
 
 pub impl FreeTypeFontContextHandle {
-    static pub fn new() -> FreeTypeFontContextHandle {
+    pub fn new() -> FreeTypeFontContextHandle {
         let ctx: FT_Library = ptr::null();
         let result = FT_Init_FreeType(ptr::to_unsafe_ptr(&ctx));
         if !result.succeeded() { fail!(); }
@@ -47,7 +47,7 @@ pub impl FreeTypeFontContextHandle {
 }
 
 impl FontContextHandleMethods for FreeTypeFontContextHandle {
-    pure fn clone(&const self) -> FreeTypeFontContextHandle {
+    fn clone(&self) -> FreeTypeFontContextHandle {
         FreeTypeFontContextHandle { ctx: self.ctx }
     }
 

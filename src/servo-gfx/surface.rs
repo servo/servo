@@ -1,6 +1,6 @@
 use geom::size::Size2D;
 
-#[deriving_eq]
+#[deriving(Eq)]
 pub enum format {
     fo_rgba_8888
     // TODO: RGB 565, others?
@@ -21,12 +21,12 @@ pub struct ImageSurface {
 }
 
 impl ImageSurface {
-	static pub fn new(size: Size2D<int>, format: format) -> ImageSurface {
-		ImageSurface {
-			size: copy size,
-			format: format,
-			buffer: vec::from_elem((size.area() as uint) * format.bpp(), 0u8)
-		}
+    pub fn new(size: Size2D<int>, format: format) -> ImageSurface {
+	ImageSurface {
+	    size: copy size,
+	    format: format,
+	    buffer: vec::from_elem((size.area() as uint) * format.bpp(), 0u8)
 	}
+    }
 }
 

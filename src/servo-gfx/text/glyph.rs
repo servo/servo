@@ -26,30 +26,30 @@ struct GlyphEntry {
     value : u32
 }
 
-pure fn GlyphEntry(value: u32) -> GlyphEntry { GlyphEntry { value: value } }
+fn GlyphEntry(value: u32) -> GlyphEntry { GlyphEntry { value: value } }
 
 /// The index of a particular glyph within a font
 pub type GlyphIndex = u32;
 
 // TODO: unify with bit flags?
-#[deriving_eq]
+#[deriving(Eq)]
 pub enum BreakType {
     BreakTypeNone,
     BreakTypeNormal,
     BreakTypeHyphen
 }
 
-const BREAK_TYPE_NONE   : u8 = 0x0u8;
-const BREAK_TYPE_NORMAL : u8 = 0x1u8;
-const BREAK_TYPE_HYPHEN  : u8 = 0x2u8;
+static BREAK_TYPE_NONE   : u8 = 0x0u8;
+static BREAK_TYPE_NORMAL : u8 = 0x1u8;
+static BREAK_TYPE_HYPHEN  : u8 = 0x2u8;
 
-pure fn break_flag_to_enum(flag: u8) -> BreakType {
+fn break_flag_to_enum(flag: u8) -> BreakType {
     if (flag & BREAK_TYPE_NORMAL) != 0  { return BreakTypeNormal; }
     if (flag & BREAK_TYPE_HYPHEN) != 0  { return BreakTypeHyphen; }
     BreakTypeNone
 }
 
-pure fn break_enum_to_flag(e: BreakType) -> u8 {
+fn break_enum_to_flag(e: BreakType) -> u8 {
     match e {
         BreakTypeNone => BREAK_TYPE_NONE,
         BreakTypeNormal => BREAK_TYPE_NORMAL,
@@ -59,16 +59,16 @@ pure fn break_enum_to_flag(e: BreakType) -> u8 {
 
 // TODO: make this more type-safe.
 
-const FLAG_CHAR_IS_SPACE : u32             = 0x10000000u32;
+static FLAG_CHAR_IS_SPACE : u32             = 0x10000000u32;
 // These two bits store some BREAK_TYPE_* flags
-const FLAG_CAN_BREAK_MASK : u32            = 0x60000000u32;
-const FLAG_CAN_BREAK_SHIFT : u32           = 29;
-const FLAG_IS_SIMPLE_GLYPH : u32           = 0x80000000u32;
+static FLAG_CAN_BREAK_MASK : u32            = 0x60000000u32;
+static FLAG_CAN_BREAK_SHIFT : u32           = 29;
+static FLAG_IS_SIMPLE_GLYPH : u32           = 0x80000000u32;
 
 // glyph advance; in Au's.
-const GLYPH_ADVANCE_MASK : u32             = 0x0FFF0000u32;
-const GLYPH_ADVANCE_SHIFT : u32            = 16;
-const GLYPH_ID_MASK : u32                  = 0x0000FFFFu32;
+static GLYPH_ADVANCE_MASK : u32             = 0x0FFF0000u32;
+static GLYPH_ADVANCE_SHIFT : u32            = 16;
+static GLYPH_ID_MASK : u32                  = 0x0000FFFFu32;
 
 // Non-simple glyphs (more than one glyph per char; missing glyph,
 // newline, tab, large advance, or nonzero x/y offsets) may have one
@@ -79,38 +79,38 @@ const GLYPH_ID_MASK : u32                  = 0x0000FFFFu32;
 // The number of detailed glyphs for this char. If the char couldn't
 // be mapped to a glyph (!FLAG_NOT_MISSING), then this actually holds
 // the UTF8 code point instead.
-const GLYPH_COUNT_MASK : u32               = 0x00FFFF00u32;
-const GLYPH_COUNT_SHIFT : u32              = 8;
+static GLYPH_COUNT_MASK : u32               = 0x00FFFF00u32;
+static GLYPH_COUNT_SHIFT : u32              = 8;
 // N.B. following Gecko, these are all inverted so that a lot of
 // missing chars can be memset with zeros in one fell swoop.
-const FLAG_NOT_MISSING : u32               = 0x00000001u32;
-const FLAG_NOT_CLUSTER_START : u32         = 0x00000002u32;
-const FLAG_NOT_LIGATURE_GROUP_START : u32  = 0x00000004u32;
+static FLAG_NOT_MISSING : u32               = 0x00000001u32;
+static FLAG_NOT_CLUSTER_START : u32         = 0x00000002u32;
+static FLAG_NOT_LIGATURE_GROUP_START : u32  = 0x00000004u32;
  
-const FLAG_CHAR_IS_TAB : u32               = 0x00000008u32;
-const FLAG_CHAR_IS_NEWLINE : u32           = 0x00000010u32;
-const FLAG_CHAR_IS_LOW_SURROGATE : u32     = 0x00000020u32;
-const CHAR_IDENTITY_FLAGS_MASK : u32       = 0x00000038u32;
+static FLAG_CHAR_IS_TAB : u32               = 0x00000008u32;
+static FLAG_CHAR_IS_NEWLINE : u32           = 0x00000010u32;
+static FLAG_CHAR_IS_LOW_SURROGATE : u32     = 0x00000020u32;
+static CHAR_IDENTITY_FLAGS_MASK : u32       = 0x00000038u32;
 
-pure fn is_simple_glyph_id(glyphId: GlyphIndex) -> bool {
+fn is_simple_glyph_id(glyphId: GlyphIndex) -> bool {
     ((glyphId as u32) & GLYPH_ID_MASK) == glyphId
 }
 
-pure fn is_simple_advance(advance: Au) -> bool {
+fn is_simple_advance(advance: Au) -> bool {
     let unsignedAu = advance.to_int() as u32;
     (unsignedAu & (GLYPH_ADVANCE_MASK >> GLYPH_ADVANCE_SHIFT)) == unsignedAu
 }
 
 type DetailedGlyphCount = u16;
 
-pure fn InitialGlyphEntry() -> GlyphEntry {
+fn InitialGlyphEntry() -> GlyphEntry {
     GlyphEntry { value: 0 }
 }
 
 // Creates a GlyphEntry for the common case
-pure fn SimpleGlyphEntry(index: GlyphIndex, advance: Au) -> GlyphEntry {
-    fail_unless!(is_simple_glyph_id(index));
-    fail_unless!(is_simple_advance(advance));
+fn SimpleGlyphEntry(index: GlyphIndex, advance: Au) -> GlyphEntry {
+    assert!(is_simple_glyph_id(index));
+    assert!(is_simple_advance(advance));
 
     let index_mask = index as u32;
     let advance_mask = (*advance as u32) << GLYPH_ADVANCE_SHIFT;
@@ -122,8 +122,8 @@ pure fn SimpleGlyphEntry(index: GlyphIndex, advance: Au) -> GlyphEntry {
 
 // Create a GlyphEntry for uncommon case; should be accompanied by
 // initialization of the actual DetailedGlyph data in DetailedGlyphStore
-pure fn ComplexGlyphEntry(startsCluster: bool, startsLigature: bool, glyphCount: uint) -> GlyphEntry {
-    fail_unless!(glyphCount <= u16::max_value as uint);
+fn ComplexGlyphEntry(startsCluster: bool, startsLigature: bool, glyphCount: uint) -> GlyphEntry {
+    assert!(glyphCount <= u16::max_value as uint);
 
     debug!("Creating complex glyph entry: startsCluster=%?, startsLigature=%?, glyphCount=%?",
            startsCluster, startsLigature, glyphCount);
@@ -145,8 +145,8 @@ pure fn ComplexGlyphEntry(startsCluster: bool, startsLigature: bool, glyphCount:
 
 // Create a GlyphEntry for the case where glyphs couldn't be found
 // for the specified character.
-pure fn MissingGlyphsEntry(glyphCount: uint) -> GlyphEntry {
-    fail_unless!(glyphCount <= u16::max_value as uint);
+fn MissingGlyphsEntry(glyphCount: uint) -> GlyphEntry {
+    assert!(glyphCount <= u16::max_value as uint);
 
     GlyphEntry {
         value: (glyphCount as u32) << GLYPH_COUNT_SHIFT
@@ -158,91 +158,91 @@ pure fn MissingGlyphsEntry(glyphCount: uint) -> GlyphEntry {
 impl GlyphEntry {
     // getter methods
     #[inline(always)]
-    pure fn advance(&self) -> Au {
-        //fail_unless!(self.is_simple());
+    fn advance(&self) -> Au {
+        //assert!(self.is_simple());
         NumCast::from((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT)
     }
 
-    pure fn index(&self) -> GlyphIndex {
-        //fail_unless!(self.is_simple());
+    fn index(&self) -> GlyphIndex {
+        //assert!(self.is_simple());
         self.value & GLYPH_ID_MASK
     }
 
-    pure fn offset(&self) -> Point2D<Au> {
-        //fail_unless!(self.is_simple());
+    fn offset(&self) -> Point2D<Au> {
+        //assert!(self.is_simple());
         Point2D(Au(0), Au(0))
     }
     
-    pure fn is_ligature_start(&self) -> bool {
+    fn is_ligature_start(&self) -> bool {
         self.has_flag(!FLAG_NOT_LIGATURE_GROUP_START)
     }
 
-    pure fn is_cluster_start(&self) -> bool {
+    fn is_cluster_start(&self) -> bool {
         self.has_flag(!FLAG_NOT_CLUSTER_START)
     }
     
     // True if original char was normal (U+0020) space. Other chars may
     // map to space glyph, but this does not account for them.
-    pure fn char_is_space(&self) -> bool {
+    fn char_is_space(&self) -> bool {
         self.has_flag(FLAG_CHAR_IS_SPACE)
     }
 
-    pure fn char_is_tab(&self) -> bool {
+    fn char_is_tab(&self) -> bool {
         !self.is_simple() && self.has_flag(FLAG_CHAR_IS_TAB)
     }
 
-    pure fn char_is_newline(&self) -> bool {
+    fn char_is_newline(&self) -> bool {
         !self.is_simple() && self.has_flag(FLAG_CHAR_IS_NEWLINE)
     }
 
-    pure fn can_break_before(&self) -> BreakType {
+    fn can_break_before(&self) -> BreakType {
         let flag = ((self.value & FLAG_CAN_BREAK_MASK) >> FLAG_CAN_BREAK_SHIFT) as u8;
         break_flag_to_enum(flag)
     }
 
     // setter methods
     #[inline(always)]
-    pure fn set_char_is_space(&self) -> GlyphEntry {
+    fn set_char_is_space(&self) -> GlyphEntry {
         GlyphEntry(self.value | FLAG_CHAR_IS_SPACE)
     }
 
     #[inline(always)]
-    pure fn set_char_is_tab(&self) -> GlyphEntry {
-        fail_unless!(!self.is_simple());
+    fn set_char_is_tab(&self) -> GlyphEntry {
+        assert!(!self.is_simple());
         GlyphEntry(self.value | FLAG_CHAR_IS_TAB)
     }
 
     #[inline(always)]
-    pure fn set_char_is_newline(&self) -> GlyphEntry {
-        fail_unless!(!self.is_simple());
+    fn set_char_is_newline(&self) -> GlyphEntry {
+        assert!(!self.is_simple());
         GlyphEntry(self.value | FLAG_CHAR_IS_NEWLINE)
     }
 
     #[inline(always)]
-    pure fn set_can_break_before(&self, e: BreakType) -> GlyphEntry {
+    fn set_can_break_before(&self, e: BreakType) -> GlyphEntry {
         let flag = (break_enum_to_flag(e) as u32) << FLAG_CAN_BREAK_SHIFT;
         GlyphEntry(self.value | flag)
     }
 
     // helper methods
 
-    /*priv*/ pure fn glyph_count(&self) -> u16 {
-        fail_unless!(!self.is_simple());
+    /*priv*/ fn glyph_count(&self) -> u16 {
+        assert!(!self.is_simple());
         ((self.value & GLYPH_COUNT_MASK) >> GLYPH_COUNT_SHIFT) as u16
     }
 
     #[inline(always)]
-    pure fn is_simple(&self) -> bool {
+    fn is_simple(&self) -> bool {
         self.has_flag(FLAG_IS_SIMPLE_GLYPH)
     }
 
     #[inline(always)]
-    /*priv*/ pure fn has_flag(&self, flag: u32) -> bool {
+    /*priv*/ fn has_flag(&self, flag: u32) -> bool {
         (self.value & flag) != 0
     }
 
     #[inline(always)]
-    pure fn adapt_character_flags_of_entry(&self, other: GlyphEntry) -> GlyphEntry {
+    fn adapt_character_flags_of_entry(&self, other: GlyphEntry) -> GlyphEntry {
         GlyphEntry { value: self.value | other.value }
     }
 }
@@ -267,7 +267,7 @@ fn DetailedGlyph(index: GlyphIndex,
     }
 }
 
-#[deriving_eq]
+#[deriving(Eq)]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: uint,
@@ -276,16 +276,16 @@ struct DetailedGlyphRecord {
 }
 
 impl Ord for DetailedGlyphRecord {
-    pure fn lt(&self, other: &DetailedGlyphRecord) -> bool {
+    fn lt(&self, other: &DetailedGlyphRecord) -> bool {
 		self.entry_offset <  other.entry_offset
 	}
-    pure fn le(&self, other: &DetailedGlyphRecord) -> bool {
+    fn le(&self, other: &DetailedGlyphRecord) -> bool {
 		self.entry_offset <= other.entry_offset
 	}
-    pure fn ge(&self, other: &DetailedGlyphRecord) -> bool {
+    fn ge(&self, other: &DetailedGlyphRecord) -> bool {
 		self.entry_offset >= other.entry_offset
 	}
-    pure fn gt(&self, other: &DetailedGlyphRecord) -> bool {
+    fn gt(&self, other: &DetailedGlyphRecord) -> bool {
 		self.entry_offset >  other.entry_offset
 	}
 }
@@ -333,7 +333,7 @@ impl DetailedGlyphStore {
         self.lookup_is_sorted = false;
     }
 
-    pure fn get_detailed_glyphs_for_entry(&self, entry_offset: uint, count: u16) -> &self/[DetailedGlyph] {
+    fn get_detailed_glyphs_for_entry(&self, entry_offset: uint, count: u16) -> &'self [DetailedGlyph] {
         debug!("Requesting detailed glyphs[n=%u] for entry[off=%u]", count as uint, entry_offset);
 
         // FIXME: Is this right? --pcwalton
@@ -342,8 +342,8 @@ impl DetailedGlyphStore {
             return vec::slice(self.detail_buffer, 0, 0);
         }
 
-        fail_unless!((count as uint) <= self.detail_buffer.len());
-        fail_unless!(self.lookup_is_sorted);
+        assert!((count as uint) <= self.detail_buffer.len());
+        assert!(self.lookup_is_sorted);
 
         let key = DetailedGlyphRecord {
             entry_offset: entry_offset,
@@ -355,19 +355,19 @@ impl DetailedGlyphStore {
         match records.binary_search_index(&key) {
             None => fail!(~"Invalid index not found in detailed glyph lookup table!"),
             Some(i) => {
-                fail_unless!(i + (count as uint) <= self.detail_buffer.len());
+                assert!(i + (count as uint) <= self.detail_buffer.len());
                 // return a slice into the buffer
                 vec::slice(self.detail_buffer, i, i + count as uint)
             }
         }
     }
 
-    pure fn get_detailed_glyph_with_index(&self,
-                                          entry_offset: uint,
-                                          detail_offset: u16)
-                                       -> &self/DetailedGlyph {
-        fail_unless!((detail_offset as uint) <= self.detail_buffer.len());
-        fail_unless!(self.lookup_is_sorted);
+    fn get_detailed_glyph_with_index(&self,
+                                     entry_offset: uint,
+                                     detail_offset: u16)
+            -> &'self DetailedGlyph {
+        assert!((detail_offset as uint) <= self.detail_buffer.len());
+        assert!(self.lookup_is_sorted);
 
         let key = DetailedGlyphRecord {
             entry_offset: entry_offset,
@@ -379,7 +379,7 @@ impl DetailedGlyphStore {
         match records.binary_search_index(&key) {
             None => fail!(~"Invalid index not found in detailed glyph lookup table!"),
             Some(i) => {
-                fail_unless!(i + (detail_offset as uint)  < self.detail_buffer.len());
+                assert!(i + (detail_offset as uint)  < self.detail_buffer.len());
                 &self.detail_buffer[i+(detail_offset as uint)]
             }
         }
@@ -417,13 +417,12 @@ pub struct GlyphData {
     ligature_start: bool,
 }
 
-pub pure fn GlyphData(index: GlyphIndex, 
-                   advance: Au,
-                   offset: Option<Point2D<Au>>,
-                   is_missing: bool,
-                   cluster_start: bool,
-                   ligature_start: bool) -> GlyphData {
-    
+pub fn GlyphData(index: GlyphIndex,
+                 advance: Au,
+                 offset: Option<Point2D<Au>>,
+                 is_missing: bool,
+                 cluster_start: bool,
+                 ligature_start: bool) -> GlyphData {
     let _offset = match offset {
         None => geometry::zero_point(),
         Some(o) => o
@@ -443,7 +442,7 @@ pub pure fn GlyphData(index: GlyphIndex,
 // through glyphs (either for a particular TextRun offset, or all glyphs).
 // Rather than eagerly assembling and copying glyph data, it only retrieves
 // values as they are needed from the GlyphStore, using provided offsets.
-enum GlyphInfo {
+enum GlyphInfo<'self> {
     SimpleGlyphInfo(&'self GlyphStore, uint),
     DetailGlyphInfo(&'self GlyphStore, uint, u16)
 }
@@ -496,8 +495,8 @@ pub struct GlyphStore {
 pub impl GlyphStore {
     // Initializes the glyph store, but doesn't actually shape anything.
     // Use the set_glyph, set_glyphs() methods to store glyph data.
-    static fn new(length: uint) -> GlyphStore {
-        fail_unless!(length > 0);
+    fn new(length: uint) -> GlyphStore {
+        assert!(length > 0);
 
         GlyphStore {
             entry_buffer: vec::from_elem(length, InitialGlyphEntry()),
@@ -511,15 +510,15 @@ pub impl GlyphStore {
 
     fn add_glyph_for_char_index(&mut self, i: uint, data: &GlyphData) {
 
-        pure fn glyph_is_compressible(data: &GlyphData) -> bool {
+        fn glyph_is_compressible(data: &GlyphData) -> bool {
             is_simple_glyph_id(data.index)
                 && is_simple_advance(data.advance)
                 && data.offset == geometry::zero_point()
                 && data.cluster_start  // others are stored in detail buffer
         }
 
-        fail_unless!(data.ligature_start); // can't compress ligature continuation glyphs.
-        fail_unless!(i < self.entry_buffer.len());
+        assert!(data.ligature_start); // can't compress ligature continuation glyphs.
+        assert!(i < self.entry_buffer.len());
 
         let entry = match (data.is_missing, glyph_is_compressible(data)) {
             (true, _) => MissingGlyphsEntry(1),
@@ -535,8 +534,8 @@ pub impl GlyphStore {
     }
 
     fn add_glyphs_for_char_index(&mut self, i: uint, data_for_glyphs: &[GlyphData]) {
-        fail_unless!(i < self.entry_buffer.len());
-        fail_unless!(data_for_glyphs.len() > 0);
+        assert!(i < self.entry_buffer.len());
+        assert!(data_for_glyphs.len() > 0);
 
         let glyph_count = data_for_glyphs.len();
 
@@ -564,7 +563,7 @@ pub impl GlyphStore {
 
     // used when a character index has no associated glyph---for example, a ligature continuation.
     fn add_nonglyph_for_char_index(&mut self, i: uint, cluster_start: bool, ligature_start: bool) {
-        fail_unless!(i < self.entry_buffer.len());
+        assert!(i < self.entry_buffer.len());
 
         let entry = ComplexGlyphEntry(cluster_start, ligature_start, 0);
         debug!("adding spacer for chracter without associated glyph[idx=%u]", i);
@@ -572,20 +571,20 @@ pub impl GlyphStore {
         self.entry_buffer[i] = entry;
     }
 
-    pure fn iter_glyphs_for_char_index(&self, i: uint, cb: &fn(uint, GlyphInfo/&self) -> bool) -> bool {
-        fail_unless!(i < self.entry_buffer.len());
+    fn iter_glyphs_for_char_index(&self, i: uint, cb: &fn(uint, &GlyphInfo<'self>) -> bool) -> bool {
+        assert!(i < self.entry_buffer.len());
 
         let entry = &self.entry_buffer[i];
         match entry.is_simple() {
             true => { 
-                let proxy = SimpleGlyphInfo(self, i);
+                let proxy = &SimpleGlyphInfo(self, i);
                 cb(i, proxy);
             },
             false => {
                 let glyphs = self.detail_store.get_detailed_glyphs_for_entry(i,
                                                                              entry.glyph_count());
                 for uint::range(0, glyphs.len()) |j| {
-                    let proxy = DetailGlyphInfo(self, i, j as u16);
+                    let proxy = &DetailGlyphInfo(self, i, j as u16);
                     cb(i, proxy);
                 }
             }
@@ -593,7 +592,7 @@ pub impl GlyphStore {
 	return true;
     }
 
-    pure fn iter_glyphs_for_char_range(&self, range: &const Range, cb: &fn(uint, GlyphInfo/&self) -> bool) {
+    fn iter_glyphs_for_char_range(&self, range: &Range, cb: &fn(uint, &GlyphInfo<'self>) -> bool) {
         if range.begin() >= self.entry_buffer.len() {
             error!("iter_glyphs_for_range: range.begin beyond length!");
             return;
@@ -608,64 +607,64 @@ pub impl GlyphStore {
 	}
     }
 
-    pure fn iter_all_glyphs(&self, cb: &fn(uint, GlyphInfo/&self) -> bool) {
+    fn iter_all_glyphs(&self, cb: &fn(uint, &GlyphInfo<'self>) -> bool) {
         for uint::range(0, self.entry_buffer.len()) |i| {
             if !self.iter_glyphs_for_char_index(i, cb) { break; }
         }
     }
 
     // getter methods
-    pure fn char_is_space(&self, i: uint) -> bool {
-        fail_unless!(i < self.entry_buffer.len());
+    fn char_is_space(&self, i: uint) -> bool {
+        assert!(i < self.entry_buffer.len());
         self.entry_buffer[i].char_is_space()
     }
 
-    pure fn char_is_tab(&self, i: uint) -> bool {
-        fail_unless!(i < self.entry_buffer.len());
+    fn char_is_tab(&self, i: uint) -> bool {
+        assert!(i < self.entry_buffer.len());
         self.entry_buffer[i].char_is_tab()
     }
 
-    pure fn char_is_newline(&self, i: uint) -> bool {
-        fail_unless!(i < self.entry_buffer.len());
+    fn char_is_newline(&self, i: uint) -> bool {
+        assert!(i < self.entry_buffer.len());
         self.entry_buffer[i].char_is_newline()
     }
 
-    pure fn is_ligature_start(&self, i: uint) -> bool {
-        fail_unless!(i < self.entry_buffer.len());
+    fn is_ligature_start(&self, i: uint) -> bool {
+        assert!(i < self.entry_buffer.len());
         self.entry_buffer[i].is_ligature_start()
     }
 
-    pure fn is_cluster_start(&self, i: uint) -> bool {
-        fail_unless!(i < self.entry_buffer.len());
+    fn is_cluster_start(&self, i: uint) -> bool {
+        assert!(i < self.entry_buffer.len());
         self.entry_buffer[i].is_cluster_start()
     }
 
-    pure fn can_break_before(&self, i: uint) -> BreakType {
-        fail_unless!(i < self.entry_buffer.len());
+    fn can_break_before(&self, i: uint) -> BreakType {
+        assert!(i < self.entry_buffer.len());
         self.entry_buffer[i].can_break_before()
     }
 
     // setter methods
     fn set_char_is_space(&mut self, i: uint) {
-        fail_unless!(i < self.entry_buffer.len());
+        assert!(i < self.entry_buffer.len());
         let entry = self.entry_buffer[i];
         self.entry_buffer[i] = entry.set_char_is_space();
     }
 
     fn set_char_is_tab(&mut self, i: uint) {
-        fail_unless!(i < self.entry_buffer.len());
+        assert!(i < self.entry_buffer.len());
         let entry = self.entry_buffer[i];
         self.entry_buffer[i] = entry.set_char_is_tab();
     }
 
     fn set_char_is_newline(&mut self, i: uint) {
-        fail_unless!(i < self.entry_buffer.len());
+        assert!(i < self.entry_buffer.len());
         let entry = self.entry_buffer[i];
         self.entry_buffer[i] = entry.set_char_is_newline();
     }
 
     fn set_can_break_before(&mut self, i: uint, t: BreakType) {
-        fail_unless!(i < self.entry_buffer.len());
+        assert!(i < self.entry_buffer.len());
         let entry = self.entry_buffer[i];
         self.entry_buffer[i] = entry.set_can_break_before(t);
     }

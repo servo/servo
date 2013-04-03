@@ -1,5 +1,4 @@
-use au = gfx::geometry;
-use newcss::values::*;
+use core::cell::Cell;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
@@ -7,10 +6,8 @@ use gfx::geometry::Au;
 use layout::block::BlockLayout;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
-use layout::flow::{FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
+use layout::flow::{FlowContext, FlowTree, RootFlow};
 use layout::display_list_builder::DisplayListBuilder;
-use util::tree;
-use core::mutable::Mut;
 
 pub struct RootFlowData {
     box: Option<@mut RenderBox>
@@ -23,18 +20,18 @@ pub fn RootFlowData() -> RootFlowData {
 }
 
 pub trait RootLayout {
-    pure fn starts_root_flow() -> bool;
+    fn starts_root_flow(&self) -> bool;
 
     fn bubble_widths_root(@mut self, ctx: &LayoutContext);
     fn assign_widths_root(@mut self, ctx: &LayoutContext);
     fn assign_height_root(@mut self, ctx: &LayoutContext);
     fn build_display_list_root(@mut self, a: &DisplayListBuilder, b: &Rect<Au>,
-                               c: &Point2D<Au>, d: &Mut<DisplayList>);
+                               c: &Point2D<Au>, d: &Cell<DisplayList>);
 }
 
 impl RootLayout for FlowContext {
-    pure fn starts_root_flow() -> bool {
-        match self {
+    fn starts_root_flow(&self) -> bool {
+        match *self {
             RootFlow(*) => true,
             _ => false 
         }
@@ -42,12 +39,12 @@ impl RootLayout for FlowContext {
 
     /* defer to the block algorithm */
     fn bubble_widths_root(@mut self, ctx: &LayoutContext) {
-        fail_unless!(self.starts_root_flow());
+        assert!(self.starts_root_flow());
         self.bubble_widths_block(ctx)
     }
  
     fn assign_widths_root(@mut self, ctx: &LayoutContext) { 
-        fail_unless!(self.starts_root_flow());
+        assert!(self.starts_root_flow());
 
         self.d().position.origin = Au::zero_point();
         self.d().position.size.width = ctx.screen_size.size.width;
@@ -56,7 +53,7 @@ impl RootLayout for FlowContext {
     }
 
     fn assign_height_root(@mut self, ctx: &LayoutContext) {
-        fail_unless!(self.starts_root_flow());
+        assert!(self.starts_root_flow());
 
         // this is essentially the same as assign_height_block(), except
         // the root adjusts self height to at least cover the viewport.
@@ -77,8 +74,8 @@ impl RootLayout for FlowContext {
     }
 
     fn build_display_list_root(@mut self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
-                               offset: &Point2D<Au>, list: &Mut<DisplayList>) {
-        fail_unless!(self.starts_root_flow());
+                               offset: &Point2D<Au>, list: &Cell<DisplayList>) {
+        assert!(self.starts_root_flow());
 
         self.build_display_list_block(builder, dirty, offset, list);
     }

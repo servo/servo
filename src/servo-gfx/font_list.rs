@@ -1,9 +1,9 @@
-use font::{CSSFontWeight, SpecifiedFontStyle, UsedFontStyle};
+use font::{CSSFontWeight, SpecifiedFontStyle};
 use gfx_font::FontHandleMethods;
 use native::FontHandle;
 use gfx_font::FontHandleMethods;
 
-use core::hashmap::linear;
+use core::hashmap::HashMap;
 
 #[cfg(target_os = "linux")]
 use fontconfig;
@@ -13,28 +13,28 @@ use native;
 use util::time::time;
 
 #[cfg(target_os = "macos")]
-type FontListHandle/& = quartz::font_list::QuartzFontListHandle;
+type FontListHandle = quartz::font_list::QuartzFontListHandle;
 
 #[cfg(target_os = "linux")]
-type FontListHandle/& = fontconfig::font_list::FontconfigFontListHandle;
+type FontListHandle = fontconfig::font_list::FontconfigFontListHandle;
 
 pub impl FontListHandle {
     #[cfg(target_os = "macos")]
-    static pub fn new(fctx: &native::FontContextHandle) -> Result<FontListHandle, ()> {
+    pub fn new(fctx: &native::FontContextHandle) -> Result<FontListHandle, ()> {
         Ok(quartz::font_list::QuartzFontListHandle::new(fctx))
     }
 
     #[cfg(target_os = "linux")]
-    static pub fn new(fctx: &native::FontContextHandle) -> Result<FontListHandle, ()> {
+    pub fn new(fctx: &native::FontContextHandle) -> Result<FontListHandle, ()> {
         Ok(fontconfig::font_list::FontconfigFontListHandle::new(fctx))
     }
 }
 
-pub type FontFamilyMap = linear::LinearMap<~str, @mut FontFamily>;
+pub type FontFamilyMap = HashMap<~str, @mut FontFamily>;
 
 trait FontListHandleMethods {
-    fn get_available_families(&const self, fctx: &native::FontContextHandle) -> FontFamilyMap;
-    fn load_variations_for_family(&const self, family: @mut FontFamily);
+    fn get_available_families(&self, fctx: &native::FontContextHandle) -> FontFamilyMap;
+    fn load_variations_for_family(&self, family: @mut FontFamily);
 }
 
 pub struct FontList {
@@ -43,11 +43,11 @@ pub struct FontList {
 }
 
 pub impl FontList {
-    static fn new(fctx: &native::FontContextHandle) -> FontList {
+    fn new(fctx: &native::FontContextHandle) -> FontList {
         let handle = result::unwrap(FontListHandle::new(fctx));
         let mut list = FontList {
             handle: handle,
-            family_map: linear::LinearMap::new(),
+            family_map: HashMap::new(),
         };
         list.refresh(fctx);
         return list;
@@ -90,7 +90,7 @@ pub impl FontList {
         debug!("FontList: %s font family with name=%s", decision, family_name);
 
         // TODO(Issue #188): look up localized font family names if canonical name not found
-        return family.map(|f| **f);
+        family.map(|f| **f)
     }
 }
 
@@ -101,7 +101,7 @@ pub struct FontFamily {
 }
 
 pub impl FontFamily {
-    static fn new(family_name: &str) -> FontFamily {
+    fn new(family_name: &str) -> FontFamily {
         FontFamily {
             family_name: str::from_slice(family_name),
             entries: ~[],
@@ -109,9 +109,10 @@ pub impl FontFamily {
     }
 
     priv fn load_family_variations(@mut self, list: &native::FontListHandle) {
-        if self.entries.len() > 0 { return; }
+        let this : &mut FontFamily = self; // FIXME: borrow checker workaround
+        if this.entries.len() > 0 { return; }
         list.load_variations_for_family(self);
-        fail_unless!(self.entries.len() > 0);
+        assert!(this.entries.len() > 0);
     }
 
     fn find_font_for_style(@mut self, list: &native::FontListHandle, style: &SpecifiedFontStyle) -> Option<@FontEntry> {
@@ -124,7 +125,8 @@ pub impl FontFamily {
 
         // TODO(Issue #190): if not in the fast path above, do
         // expensive matching of weights, etc.
-        for self.entries.each |entry| {
+        let this : &mut FontFamily = self; // FIXME: borrow checker workaround
+        for this.entries.each |entry| {
             if (style.weight.is_bold() == entry.is_bold()) && 
                (style.italic == entry.is_italic()) {
 
@@ -151,7 +153,7 @@ pub struct FontEntry {
 }
 
 pub impl FontEntry {
-    static fn new(family: @mut FontFamily, handle: FontHandle) -> FontEntry {
+    fn new(family: @mut FontFamily, handle: FontHandle) -> FontEntry {
         FontEntry {
             family: family,
             face_name: handle.face_name(),
@@ -161,9 +163,9 @@ pub impl FontEntry {
         }
     }
 
-    pure fn is_bold(&self) -> bool { 
+    fn is_bold(&self) -> bool {
         self.weight.is_bold()
     }
 
-    pure fn is_italic(&self) -> bool { self.italic }
+    fn is_italic(&self) -> bool { self.italic }
 }

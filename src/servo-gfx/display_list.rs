@@ -5,7 +5,6 @@ use render_context::RenderContext;
 use text::SendableTextRun;
 use util::range::Range;
 
-use azure::azure_hl::DrawTarget;
 use clone_arc = std::arc::clone;
 use geom::Rect;
 use geom::Point2D;
@@ -15,8 +14,8 @@ struct DisplayItemData {
     bounds : Rect<Au>, // TODO: whose coordinate system should this use?
 }
 
-impl DisplayItemData {
-    static pure fn new(bounds: &Rect<Au>) -> DisplayItemData {
+pub impl DisplayItemData {
+    fn new(bounds: &Rect<Au>) -> DisplayItemData {
         DisplayItemData { bounds: copy *bounds }
     }
 }
@@ -31,8 +30,8 @@ pub enum DisplayItem {
     Border(DisplayItemData, Au, Color)
 }
 
-impl DisplayItem {
-    pure fn d(&self) -> &self/DisplayItemData {
+pub impl DisplayItem {
+    fn d(&self) -> &'self DisplayItemData {
         match *self {
             SolidColor(ref d, _) => d,
             Text(ref d, _, _, _) => d,
@@ -68,23 +67,23 @@ impl DisplayItem {
         () });
     }
 
-    static pure fn new_SolidColor(bounds: &Rect<Au>, color: Color) -> DisplayItem {
+    fn new_SolidColor(bounds: &Rect<Au>, color: Color) -> DisplayItem {
         SolidColor(DisplayItemData::new(bounds), color)
     }
 
-    static pure fn new_Border(bounds: &Rect<Au>, width: Au, color: Color) -> DisplayItem {
+    fn new_Border(bounds: &Rect<Au>, width: Au, color: Color) -> DisplayItem {
         Border(DisplayItemData::new(bounds), width, color)
     }
 
-    static pure fn new_Text(bounds: &Rect<Au>,
-                            run: ~SendableTextRun,
-                            range: Range,
-                            color: Color) -> DisplayItem {
+    fn new_Text(bounds: &Rect<Au>,
+                run: ~SendableTextRun,
+                range: Range,
+                color: Color) -> DisplayItem {
         Text(DisplayItemData::new(bounds), run, range, color)
     }
 
     // ARC should be cloned into ImageData, but Images are not sendable
-    static pure fn new_Image(bounds: &Rect<Au>, image: ARC<~Image>) -> DisplayItem {
+    fn new_Image(bounds: &Rect<Au>, image: ARC<~Image>) -> DisplayItem {
         Image(DisplayItemData::new(bounds), image)
     }
 }
@@ -95,7 +94,7 @@ pub struct DisplayList {
 }
 
 pub impl DisplayList {
-    static fn new() -> DisplayList {
+    fn new() -> DisplayList {
         DisplayList { list: ~[] }
     }
 

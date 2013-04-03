@@ -12,16 +12,9 @@ use dom::window::Window;
 use layout::debug::DebugMethods;
 use layout::flow::FlowContext;
 use newcss::complete::CompleteSelectResults;
+use js::rust::Compartment;
 
 use core::cast::transmute;
-use core::ptr::null;
-use geom::size::Size2D;
-use js::crust::*;
-use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
-use js::jsapi::{JSClass, JSObject, JSPropertySpec, JSContext, jsid, JSVal, JSBool};
-use js::jsapi::bindgen::JS_SetReservedSlot;
-use js::rust::Compartment;
-use std::arc::ARC;
 
 //
 // The basic Node structure
@@ -36,8 +29,8 @@ pub struct AbstractNode {
 }
 
 impl Eq for AbstractNode {
-    pure fn eq(&self, other: &AbstractNode) -> bool { self.obj == other.obj }
-    pure fn ne(&self, other: &AbstractNode) -> bool { self.obj != other.obj }
+    fn eq(&self, other: &AbstractNode) -> bool { self.obj == other.obj }
+    fn ne(&self, other: &AbstractNode) -> bool { self.obj != other.obj }
 }
 
 pub struct Node {
@@ -54,7 +47,7 @@ pub struct Node {
     priv layout_data: Option<@mut LayoutData>
 }
 
-#[deriving_eq]
+#[deriving(Eq)]
 pub enum NodeTypeId {
     DoctypeNodeTypeId,
     CommentNodeTypeId,
@@ -72,7 +65,7 @@ pub struct LayoutData {
 }
 
 impl LayoutData {
-    static pub fn new() -> LayoutData {
+    pub fn new() -> LayoutData {
         LayoutData {
             style: None,
             flow: None,
@@ -93,11 +86,11 @@ pub struct Doctype {
 }
 
 impl Doctype {
-    static pub fn new(name: ~str,
-                      public_id: Option<~str>,
-                      system_id: Option<~str>,
-                      force_quirks: bool)
-                   -> Doctype {
+    pub fn new(name: ~str,
+               public_id: Option<~str>,
+               system_id: Option<~str>,
+               force_quirks: bool)
+            -> Doctype {
         Doctype {
             parent: Node::new(DoctypeNodeTypeId),
             name: name,
@@ -114,7 +107,7 @@ pub struct Comment {
 }
 
 impl Comment {
-    static pub fn new(text: ~str) -> Comment {
+    pub fn new(text: ~str) -> Comment {
         Comment {
             parent: Node::new(CommentNodeTypeId),
             text: text
@@ -128,7 +121,7 @@ pub struct Text {
 }
 
 impl Text {
-    static pub fn new(text: ~str) -> Text {
+    pub fn new(text: ~str) -> Text {
         Text {
             parent: Node::new(TextNodeTypeId),
             text: text
@@ -171,13 +164,13 @@ pub impl AbstractNode {
 
     // Invariant: `child` is disconnected from the document.
     fn append_child(self, child: AbstractNode) {
-        fail_unless!(self != child);
+        assert!(self != child);
 
         do self.with_mut_node |parent_n| {
             do child.with_mut_node |child_n| {
-                fail_unless!(child_n.parent_node.is_none());
-                fail_unless!(child_n.prev_sibling.is_none());
-                fail_unless!(child_n.next_sibling.is_none());
+                assert!(child_n.parent_node.is_none());
+                assert!(child_n.prev_sibling.is_none());
+                assert!(child_n.next_sibling.is_none());
 
                 child_n.parent_node = Some(self);
 
@@ -185,7 +178,7 @@ pub impl AbstractNode {
                     None => parent_n.first_child = Some(child),
                     Some(last_child) => {
                         do last_child.with_mut_node |last_child_n| {
-                            fail_unless!(last_child_n.next_sibling.is_none());
+                            assert!(last_child_n.next_sibling.is_none());
                             last_child_n.next_sibling = Some(child);
                         }
                     }
@@ -323,12 +316,12 @@ pub impl AbstractNode {
 
 impl DebugMethods for AbstractNode {
     // Dumps the subtree rooted at this node, for debugging.
-    pure fn dump(&self) {
+    fn dump(&self) {
         self.dump_indent(0);
     }
 
     // Dumps the node tree, for debugging, with indentation.
-    pure fn dump_indent(&self, indent: uint) {
+    fn dump_indent(&self, indent: uint) {
         let mut s = ~"";
         for uint::range(0u, indent) |_i| {
             s += ~"    ";
@@ -345,7 +338,7 @@ impl DebugMethods for AbstractNode {
         }
     }
 
-    pure fn debug_str(&self) -> ~str {
+    fn debug_str(&self) -> ~str {
         // Unsafe due to the call to type_id().
         unsafe {
             fmt!("%?", self.type_id())
@@ -354,14 +347,14 @@ impl DebugMethods for AbstractNode {
 }
 
 impl Node {
-    static pub unsafe fn as_abstract_node<N>(node: ~N) -> AbstractNode {
+    pub unsafe fn as_abstract_node<N>(node: ~N) -> AbstractNode {
         // This surrenders memory management of the node!
         AbstractNode {
             obj: transmute(node),
         }
     }
 
-    static pub fn new(type_id: NodeTypeId) -> Node {
+    pub fn new(type_id: NodeTypeId) -> Node {
         Node {
             wrapper: WrapperCache::new(),
             type_id: type_id,
@@ -384,13 +377,13 @@ pub fn define_bindings(compartment: @mut Compartment, doc: @mut Document, win: @
     bindings::element::init(compartment);
     bindings::utils::initialize_global(compartment.global_obj.ptr);
     let mut unused = false;
-    fail_unless!(codegen::ClientRectBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                                compartment.global_obj.ptr,
-                                                                &mut unused));
-    fail_unless!(codegen::ClientRectListBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                                    compartment.global_obj.ptr,
-                                                                    &mut unused));
-    fail_unless!(codegen::HTMLCollectionBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                                    compartment.global_obj.ptr,
-                                                                    &mut unused));
+    assert!(codegen::ClientRectBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                           compartment.global_obj.ptr,
+                                                           &mut unused));
+    assert!(codegen::ClientRectListBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                               compartment.global_obj.ptr,
+                                                               &mut unused));
+    assert!(codegen::HTMLCollectionBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                               compartment.global_obj.ptr,
+                                                               &mut unused));
 }

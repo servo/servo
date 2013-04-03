@@ -1,23 +1,20 @@
-use content::content_task::{Content, task_from_context};
-use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment};
+use content::content_task::task_from_context;
 use dom::bindings::utils::{domstring_to_jsval, WrapNewBindingObject};
 use dom::bindings::utils::{str, CacheableWrapper, DOM_OBJECT_SLOT};
-use dom::bindings::clientrectlist::ClientRectListImpl;
 use dom::element::*;
-use dom::node::{AbstractNode, Node, Element, ElementNodeTypeId};
+use dom::node::{AbstractNode, Element, ElementNodeTypeId};
 use layout::layout_task;
 use super::utils;
 
 use core::libc::c_uint;
 use core::ptr::null;
-use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub};
 use js::glue::bindgen::*;
 use js::jsapi::bindgen::*;
-use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp, JSPropertySpec};
 use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper, JSFunctionSpec};
 use js::jsapi::JSNativeWrapper;
 use js::rust::{Compartment, jsobj};
-use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
+use js::{JS_ARGV, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
 use js::{JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
@@ -25,7 +22,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     unsafe {
         let val = JS_GetReservedSlot(obj, DOM_OBJECT_SLOT as u32);
         let node: AbstractNode = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
-        let elem: ~Element = cast::transmute(node.raw_object());
+        let _elem: ~Element = cast::transmute(node.raw_object());
     }
 }
 
@@ -89,7 +86,7 @@ pub fn init(compartment: @mut Compartment) {
     });
 }
 
-extern fn getClientRects(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
+extern fn getClientRects(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
   unsafe {
       let obj = JS_THIS_OBJECT(cx, vp);
       let mut box = utils::unwrap::<*mut AbstractNode>(obj);
@@ -101,7 +98,7 @@ extern fn getClientRects(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
           JS_SET_RVAL(cx, vp, JSVAL_NULL);
       } else {
           let cache = node.get_wrappercache();
-          fail_unless!(WrapNewBindingObject(cx, cache.get_wrapper(),
+          assert!(WrapNewBindingObject(cx, cache.get_wrapper(),
                                             rval.get(),
                                             cast::transmute(vp)));
       }

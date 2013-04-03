@@ -2,8 +2,6 @@ use content::content_task::task_from_context;
 use dom::bindings::clientrect::{ClientRect, ClientRectImpl};
 use dom::bindings::codegen::ClientRectListBinding;
 use dom::bindings::utils::{WrapperCache, CacheableWrapper, BindingObject, OpaqueBindingReference};
-use dom::window::Window;
-use dom::bindings::window::Window;
 use js::jsapi::{JSObject, JSContext};
 
 pub trait ClientRectList {
@@ -37,8 +35,8 @@ impl ClientRectList for ClientRectListImpl {
     }
 }
 
-impl ClientRectListImpl {
-    static fn new() -> ClientRectListImpl {
+pub impl ClientRectListImpl {
+    fn new() -> ClientRectListImpl {
         ClientRectListImpl {
             wrapper: WrapperCache::new(),
             rects: ~[(5.6, 80.2, 3.7, 4.8), (800.1, 8001.1, -50.000001, -45.01)]
@@ -56,7 +54,7 @@ impl CacheableWrapper for ClientRectListImpl {
         ClientRectListBinding::Wrap(cx, scope, self, &mut unused)
     }
 
-    fn wrap_object_shared(@self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+    fn wrap_object_shared(@self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"nyi")
     }
 }
