@@ -22,11 +22,10 @@ pub struct ImageSurface {
 
 impl ImageSurface {
     pub fn new(size: Size2D<int>, format: format) -> ImageSurface {
-	ImageSurface {
-	    size: copy size,
-	    format: format,
-	    buffer: vec::from_elem((size.area() as uint) * format.bpp(), 0u8)
-	}
+        ImageSurface {
+            size: copy size,
+            format: format,
+            buffer: vec::from_elem((size.area() as uint) * format.bpp(), 0u8)
+        }
     }
 }
-

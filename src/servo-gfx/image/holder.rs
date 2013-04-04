@@ -23,23 +23,23 @@ pub struct ImageHolder {
 
 pub impl ImageHolder {
     pub fn new(url: Url, local_image_cache: @mut LocalImageCache) -> ImageHolder {
-	debug!("ImageHolder::new() %?", url.to_str());
-	let holder = ImageHolder {
-	    url: url,
-	    image: None,
-	    cached_size: Size2D(0,0),
-	    local_image_cache: local_image_cache,
-	};
+        debug!("ImageHolder::new() %?", url.to_str());
+        let holder = ImageHolder {
+            url: url,
+            image: None,
+            cached_size: Size2D(0,0),
+            local_image_cache: local_image_cache,
+        };
 
-	// Tell the image cache we're going to be interested in this url
-	// FIXME: These two messages must be sent to prep an image for use
-	// but they are intended to be spread out in time. Ideally prefetch
-	// should be done as early as possible and decode only once we
-	// are sure that the image will be used.
-	local_image_cache.prefetch(&holder.url);
-	local_image_cache.decode(&holder.url);
+        // Tell the image cache we're going to be interested in this url
+        // FIXME: These two messages must be sent to prep an image for use
+        // but they are intended to be spread out in time. Ideally prefetch
+        // should be done as early as possible and decode only once we
+        // are sure that the image will be used.
+        local_image_cache.prefetch(&holder.url);
+        local_image_cache.decode(&holder.url);
 
-	holder
+        holder
     }
 
     /**
