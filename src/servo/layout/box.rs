@@ -592,7 +592,7 @@ impl BoxedMutDebugMethods for RenderBox {
             &ImageBox(*) => ~"ImageBox",
             &TextBox(_,d) => fmt!("TextBox(text=%s)", str::substr(d.run.text, d.range.begin(), d.range.length())),
             &UnscannedTextBox(_, ref s) => {
-                let s = s;
+                let s = s; // FIXME: borrow checker workaround
                 fmt!("UnscannedTextBox(%s)", *s)
             }
         };
