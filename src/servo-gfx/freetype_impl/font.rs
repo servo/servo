@@ -4,7 +4,6 @@ use native;
 use freetype_impl::font_context::FreeTypeFontContextHandle;
 use gfx_font::{
     CSSFontWeight,
-    FontHandle,
     FontHandleMethods,
     FontMetrics,
     FontTable,
@@ -30,7 +29,6 @@ use text::util::{float_to_fixed, fixed_to_float};
 
 use self::freetype::freetype::{
     FTErrorMethods,
-    FT_Error,
     FT_F26Dot6,
     FT_Face, 
     FT_FaceRec, 
@@ -38,7 +36,6 @@ use self::freetype::freetype::{
     FT_Library,
     FT_Long,
     FT_ULong,
-    FT_Size,
     FT_SizeRec,
     FT_UInt,
     FT_Size_Metrics,
@@ -47,8 +44,6 @@ use self::freetype::freetype::{
     ft_sfnt_os2
 };
 use self::freetype::freetype::bindgen::{
-    FT_Init_FreeType,
-    FT_Done_FreeType,
     FT_New_Memory_Face,
     FT_Done_Face,
     FT_Get_Char_Index,
@@ -90,9 +85,10 @@ pub struct FreeTypeFontHandle {
     face: FT_Face,
 }
 
+#[unsafe_destructor]
 impl Drop for FreeTypeFontHandle {
     fn finalize(&self) {
-        fail_unless!(self.face.is_not_null());
+        assert!(self.face.is_not_null());
         if !FT_Done_Face(self.face).succeeded() {
             fail!(~"FT_Done_Face failed");
         }
@@ -245,7 +241,7 @@ impl FontHandleMethods for FreeTypeFontHandle {
 
     pub fn glyph_index(&self,
                        codepoint: char) -> Option<GlyphIndex> {
-        fail_unless!(self.face.is_not_null());
+        assert!(self.face.is_not_null());
         let idx = FT_Get_Char_Index(self.face, codepoint as FT_ULong);
         return if idx != 0 as FT_UInt {
             Some(idx as GlyphIndex)
@@ -257,13 +253,13 @@ impl FontHandleMethods for FreeTypeFontHandle {
 
     pub fn glyph_h_advance(&self,
                            glyph: GlyphIndex) -> Option<FractionalPixel> {
-        fail_unless!(self.face.is_not_null());
+        assert!(self.face.is_not_null());
         let res =  FT_Load_Glyph(self.face, glyph as FT_UInt, 0);
         if res.succeeded() {
             unsafe {
                 let void_glyph = (*self.face).glyph;
                 let slot: FT_GlyphSlot = cast::transmute(void_glyph);
-                fail_unless!(slot.is_not_null());
+                assert!(slot.is_not_null());
                 debug!("metrics: %?", (*slot).metrics);
                 let advance = (*slot).metrics.horiAdvance;
                 debug!("h_advance for %? is %?", glyph, advance);
@@ -324,7 +320,7 @@ pub impl FreeTypeFontHandle {
         let x_scale = (metrics.x_ppem as float) / em_size as float;
 
         // If this isn't true then we're scaling one of the axes wrong
-        fail_unless!(metrics.x_ppem == metrics.y_ppem);
+        assert!(metrics.x_ppem == metrics.y_ppem);
 
         return geometry::from_frac_px(value * x_scale);
     }

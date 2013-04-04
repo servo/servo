@@ -3,7 +3,6 @@ extern mod fontconfig;
 
 use self::freetype::freetype::{
     FTErrorMethods,
-    FT_Error,
     FT_Library,
 };
 use self::freetype::freetype::bindgen::{
@@ -25,7 +24,7 @@ struct FreeTypeLibraryHandle {
 
 impl Drop for FreeTypeLibraryHandle {
     fn finalize(&self) {
-        fail_unless!(self.ctx.is_not_null());
+        assert!(self.ctx.is_not_null());
         FT_Done_FreeType(self.ctx);
     }
 }

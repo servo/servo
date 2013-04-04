@@ -1,25 +1,22 @@
 extern mod freetype;
 extern mod fontconfig;
 
-use gfx_font::{FontHandle, FontHandleMethods};
+use gfx_font::FontHandleMethods;
 use gfx_font_list::{FontEntry, FontFamily, FontFamilyMap};
 use gfx_font_context::FontContextHandleMethods;
 use freetype_impl::font_context::FreeTypeFontContextHandle;
 use freetype_impl::font::FreeTypeFontHandle;
-use self::fontconfig::fontconfig::{FcConfig, FcFontSet, FcChar8,
-                                   FcResultMatch, FcSetSystem, FcPattern,
+use self::fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem,
                                    FcResultNoMatch, FcMatchPattern};
 use self::fontconfig::fontconfig::bindgen::{
     FcConfigGetCurrent, FcConfigGetFonts, FcPatternGetString,
-    FcInitReinitialize, FcPatternDestroy, FcPatternReference,
-    FcFontSetDestroy, FcCharSetDestroy, FcConfigSubstitute,
+    FcPatternDestroy, FcFontSetDestroy, FcConfigSubstitute,
     FcDefaultSubstitute, FcPatternCreate, FcPatternAddString,
-    FcFontMatch, FcFontSetCreate, FcFontSetList, FcPatternPrint,
-    FcObjectSetCreate, FcObjectSetDestroy, FcObjectSetAdd,
-    FcPatternGetInteger
+    FcFontMatch, FcFontSetList, FcObjectSetCreate, FcObjectSetDestroy,
+    FcObjectSetAdd, FcPatternGetInteger
 };
 
-use core::hashmap::linear;
+use core::hashmap::HashMap;
 use core::libc::c_int;
 use core::ptr::Ptr;
 use native;
@@ -34,7 +31,7 @@ pub impl FontconfigFontListHandle {
     }
 
     fn get_available_families(&self) -> FontFamilyMap {
-        let mut family_map : FontFamilyMap = linear::LinearMap::new();
+        let mut family_map : FontFamilyMap = HashMap::new();
         unsafe {
             let config = FcConfigGetCurrent();
             let fontSet = FcConfigGetFonts(config, FcSetSystem);
@@ -65,13 +62,13 @@ pub impl FontconfigFontListHandle {
             do str::as_c_str("family") |FC_FAMILY| {
                 do str::as_c_str(family.family_name) |family_name| {
                     let pattern = FcPatternCreate();
-                    fail_unless!(pattern.is_not_null());
+                    assert!(pattern.is_not_null());
                     let family_name = family_name as *FcChar8;
                     let ok = FcPatternAddString(pattern, FC_FAMILY, family_name);
-                    fail_unless!(ok != 0);
+                    assert!(ok != 0);
 
                     let object_set = FcObjectSetCreate();
-                    fail_unless!(object_set.is_not_null());
+                    assert!(object_set.is_not_null());
 
                     str::as_c_str("file", |FC_FILE| FcObjectSetAdd(object_set, FC_FILE) );
                     str::as_c_str("index", |FC_INDEX| FcObjectSetAdd(object_set, FC_INDEX) );
