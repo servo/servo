@@ -407,6 +407,7 @@ impl RenderBox {
                                                      ~data.run.serialize(),
                                                      data.range,
                                                      color));
+                list.put_back(l);
 
                 // debug frames for text box bounds
                 debug!("%?", { 
