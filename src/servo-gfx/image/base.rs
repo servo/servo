@@ -9,7 +9,7 @@ pub fn Image(width: uint, height: uint, depth: uint, data: ~[u8]) -> Image {
     stb_image::new_image(width, height, depth, data)
 }
 
-const TEST_IMAGE: [u8 * 4962] = include_bin!("test.jpeg");
+static TEST_IMAGE: [u8, ..4962] = include_bin!("test.jpeg");
 
 pub fn test_image_bin() -> ~[u8] {
     return vec::from_fn(4962, |i| TEST_IMAGE[i]);
@@ -18,11 +18,11 @@ pub fn test_image_bin() -> ~[u8] {
 pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
 
     // Can't remember why we do this. Maybe it's what cairo wants
-    const FORCE_DEPTH: uint = 4;
+    static FORCE_DEPTH: uint = 4;
 
     match stb_image::load_from_memory_with_depth(buffer, FORCE_DEPTH, true) {
         stb_image::ImageU8(image) => {
-            fail_unless!(image.depth == 4);
+            assert!(image.depth == 4);
             // Do color space conversion :(
             let data = do vec::from_fn(image.width * image.height * 4) |i| {
                 let color = i % 4;
@@ -36,7 +36,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                 }
             };
 
-            fail_unless!(image.data.len() == data.len());
+            assert!(image.data.len() == data.len());
 
             Some(Image(image.width, image.height, image.depth, data))
         }

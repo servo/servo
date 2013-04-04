@@ -3,8 +3,6 @@ The content task is the main task that runs JavaScript and spawns layout
 tasks.
 */
 
-use dom::bindings::utils::rust_box;
-use dom::bindings::utils::CacheableWrapper;
 use dom::bindings::utils::GlobalStaticData;
 use dom::document::Document;
 use dom::node::define_bindings;
@@ -13,29 +11,25 @@ use dom::window::Window;
 use layout::layout_task;
 use layout::layout_task::{AddStylesheet, BuildData, BuildMsg, Damage, LayoutTask};
 use layout::layout_task::{MatchSelectorsDamage, NoDamage, ReflowDamage};
-use util::task::spawn_listener;
 
 use core::cell::Cell;
-use core::comm::{Port, Chan, SharedChan};
+use core::comm::{Port, SharedChan};
 use core::pipes::select2i;
 use core::either;
-use core::task::{SingleThreaded, spawn, task};
+use core::task::{SingleThreaded, task};
 use core::io::{println, read_whole_file};
 use core::ptr::null;
 use core::util::replace;
 use geom::size::Size2D;
 use gfx::resource::image_cache_task::ImageCacheTask;
 use gfx::resource::resource_task::ResourceTask;
-use gfx::util::url::make_url;
 use js::JSVAL_NULL;
 use js::global::{global_class, debug_fns};
 use js::glue::bindgen::RUST_JSVAL_TO_OBJECT;
-use js::jsapi::{JSContext, JSVal};
+use js::jsapi::JSContext;
 use js::jsapi::bindgen::{JS_CallFunctionValue, JS_GetContextPrivate};
 use js::rust::{Compartment, Cx};
 use jsrt = js::rust::rt;
-use newcss::stylesheet::Stylesheet;
-use std::arc::{ARC, clone};
 use std::net::url::Url;
 use url_to_str = std::net::url::to_str;
 use dom;
@@ -223,7 +217,7 @@ pub impl Content {
             self.window   = Some(window);
             self.doc_url = Some(url);
 
-            let compartment = option::expect(self.compartment, ~"TODO error checking");
+            let compartment = self.compartment.expect(~"TODO error checking");
             compartment.define_functions(debug_fns);
             define_bindings(compartment, document, window);
 
@@ -235,7 +229,7 @@ pub impl Content {
           }
 
           Timer(timerData) => {
-            let compartment = option::expect(self.compartment, ~"TODO error checking");
+            let compartment = self.compartment.expect(~"TODO error checking");
             let thisValue = if timerData.args.len() > 0 {
                 RUST_JSVAL_TO_OBJECT(timerData.args[0])
             } else {
@@ -258,7 +252,7 @@ pub impl Content {
                 println(fmt!("Error opening %s: %s", url_to_str(&url), msg));
               }
               Ok(bytes) => {
-                let compartment = option::expect(self.compartment, ~"TODO error checking");
+                let compartment = self.compartment.expect(~"TODO error checking");
                 compartment.define_functions(debug_fns);
                 self.cx.evaluate_script(compartment.global_obj, bytes, copy url.path, 1u);
               }
@@ -349,7 +343,7 @@ pub impl Content {
                     // Nothing to do.
                 }
                 Some(document) => {
-                    fail_unless!(self.doc_url.is_some());
+                    assert!(self.doc_url.is_some());
                     self.relayout(document, &(copy self.doc_url).get());
                 }
             }
@@ -364,7 +358,7 @@ pub impl Content {
                     // Nothing to do.
                 }
                 Some(document) => {
-                    fail_unless!(self.doc_url.is_some());
+                    assert!(self.doc_url.is_some());
                     self.relayout(document, &(copy self.doc_url).get());
                 }
             }

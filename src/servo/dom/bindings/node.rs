@@ -1,25 +1,20 @@
-use dom::bindings::utils::{rust_box, squirrel_away_unique, get_compartment};
-use dom::bindings::utils::{str, domstring_to_jsval, CacheableWrapper, WrapperCache};
+use dom::bindings::utils::{CacheableWrapper, WrapperCache};
 use dom::bindings::utils::{DOM_OBJECT_SLOT};
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId};
 use super::element;
 use super::utils;
 
-use core::cast::transmute;
 use core::libc::c_uint;
 use core::ptr::null;
 use js::glue::bindgen::*;
 use js::jsapi::bindgen::*;
-use js::jsapi::bindgen::{JS_DefineFunctions, JS_DefineProperty, JS_GetContextPrivate};
-use js::jsapi::bindgen::{JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN};
-use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError};
-use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp, JSPropertySpec};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSPropertySpec};
 use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper};
 use js::jsval::{INT_TO_JSVAL, JSVAL_TO_PRIVATE};
 use js::rust::{Compartment, jsobj};
-use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
-use js::{JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
+use js::{JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
+use js::{JS_THIS_OBJECT, JSPROP_NATIVE_ACCESSORS};
 use js;
 
 pub fn init(compartment: @mut Compartment) {
@@ -172,11 +167,11 @@ impl CacheableWrapper for AbstractNode {
         }
     }
 
-    fn wrap_object_unique(~self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+    fn wrap_object_unique(~self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"need to implement wrapping");
     }
 
-    fn wrap_object_shared(@self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+    fn wrap_object_shared(@self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"need to implement wrapping");
     }
 }

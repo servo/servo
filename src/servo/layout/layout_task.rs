@@ -1,13 +1,11 @@
 /// The layout task. Performs layout on the DOM, builds display lists and sends them to be
 /// rendered.
 
-use content::content_task;
 use css::matching::MatchMethods;
 use css::select::new_css_select_ctx;
 use dom::event::{Event, ReflowEvent};
 use dom::node::{AbstractNode, LayoutData};
 use layout::aux::LayoutAuxMethods;
-use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
 use layout::debug::{BoxedMutDebugMethods, DebugMethods};
@@ -21,9 +19,6 @@ use util::time::time;
 
 use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
-use core::mutable::Mut;
-use core::task::*;
-use core::util::replace;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -36,7 +31,6 @@ use gfx::render_task::{RenderMsg, RenderTask};
 use newcss::select::SelectCtx;
 use newcss::stylesheet::Stylesheet;
 use newcss::types::OriginAuthor;
-use std::arc::ARC;
 use std::net::url::Url;
 
 pub type LayoutTask = SharedChan<Msg>;
@@ -102,7 +96,7 @@ struct Layout {
     font_ctx: @mut FontContext,
     // This is used to root reader data
     layout_refs: ~[@mut LayoutData],
-    css_select_ctx: Mut<SelectCtx>,
+    css_select_ctx: @mut SelectCtx,
 }
 
 fn Layout(render_task: RenderTask, 
@@ -119,7 +113,7 @@ fn Layout(render_task: RenderTask,
         from_content: from_content,
         font_ctx: fctx,
         layout_refs: ~[],
-        css_select_ctx: Mut(new_css_select_ctx())
+        css_select_ctx: @mut new_css_select_ctx()
     }
 }
 
@@ -162,9 +156,7 @@ impl Layout {
 
     fn handle_add_stylesheet(&self, sheet: Stylesheet) {
         let sheet = Cell(sheet);
-        do self.css_select_ctx.borrow_mut |ctx| {
-            ctx.append_sheet(sheet.take(), OriginAuthor);
-        }
+        self.css_select_ctx.append_sheet(sheet.take(), OriginAuthor);
     }
 
     fn handle_build(&mut self, data: &BuildData) {
@@ -202,9 +194,7 @@ impl Layout {
             NoDamage | ReflowDamage => {}
             MatchSelectorsDamage => {
                 do time("layout: selector matching") {
-                    do self.css_select_ctx.borrow_imm |ctx| {
-                        node.restyle_subtree(ctx);
-                    }
+                    node.restyle_subtree(self.css_select_ctx);
                 }
             }
         }
@@ -235,16 +225,16 @@ impl Layout {
                 ctx: &layout_ctx,
             };
 
-            let display_list = Mut(DisplayList::new());
+            let display_list = @Cell(DisplayList::new());
             
             // TODO: set options on the builder before building
             // TODO: be smarter about what needs painting
             layout_root.build_display_list(&builder,
                                            &copy layout_root.d().position,
-                                           &display_list);
+                                           display_list);
 
             let render_layer = RenderLayer {
-                display_list: display_list.unwrap(),
+                display_list: display_list.take(),
                 size: Size2D(screen_size.width.to_px() as uint,
                              screen_size.height.to_px() as uint)
             };
@@ -257,7 +247,7 @@ impl Layout {
     }
 
 
-    fn handle_query(query: LayoutQuery, 
+    fn handle_query(&self, query: LayoutQuery, 
                     reply_chan: Chan<LayoutQueryResponse>) {
         match query {
             ContentBox(node) => {

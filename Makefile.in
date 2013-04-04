@@ -230,6 +230,8 @@ package: servo
 
 else
 
+bindings: $(AUTOGEN_SRC_servo)
+
 .PHONY: package
 package:
 

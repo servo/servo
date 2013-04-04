@@ -1,7 +1,6 @@
-use core::path::Path;
 use std::net::url;
 use std::net::url::Url;
-use std::oldmap::HashMap;
+use core::hashmap::HashMap;
 
 /**
 Create a URL object from a string. Does various helpful browsery things like
@@ -26,7 +25,11 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
             if current_url.path.is_empty() || current_url.path.ends_with("/") {
                 current_url.scheme + "://" + current_url.host + "/" + str_url
             } else {
-                let path = str::split_char(current_url.path, '/');
+                let mut path = ~[];
+                for str::each_split_char(current_url.path, '/') |p| {
+                    path.push(p.to_str());
+                }
+                let path = path; // FIXME: borrow checker workaround
                 let path = path.init();
                 let path = str::connect(path.map(|x| copy *x) + ~[str_url], "/");
 
@@ -98,10 +101,8 @@ mod make_url_tests {
 
 }
 
-pub type UrlMap<T> = HashMap<Url, T>;
+pub type UrlMap<T> = @mut HashMap<Url, T>;
 
 pub fn url_map<T: Copy>() -> UrlMap<T> {
-    use core::to_str::ToStr;
-
-    HashMap::<Url, T>()
+    @mut HashMap::new()
 }

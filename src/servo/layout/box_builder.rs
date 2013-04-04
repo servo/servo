@@ -1,9 +1,8 @@
 /** Creates CSS boxes from a DOM. */
 
 use dom::element::*;
-use dom::node::{AbstractNode, Comment, CommentNodeTypeId, Doctype, DoctypeNodeTypeId, Element};
-use dom::node::{ElementNodeTypeId, Node, Text, TextNodeTypeId};
-use dom;
+use dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
+use dom::node::{ElementNodeTypeId, TextNodeTypeId};
 use layout::block::BlockFlowData;
 use layout::box::*;
 use layout::context::LayoutContext;
@@ -16,7 +15,7 @@ use util::tree;
 use gfx::image::holder::ImageHolder;
 use gfx::util::range::Range;
 use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
-use newcss::values::{CSSDisplayNone, Inherit, Specified};
+use newcss::values::{CSSDisplayNone};
 
 pub struct LayoutTreeBuilder {
     root_flow: Option<@mut FlowContext>,
@@ -25,7 +24,7 @@ pub struct LayoutTreeBuilder {
 }
 
 pub impl LayoutTreeBuilder {
-    static pure fn new() -> LayoutTreeBuilder {
+    fn new() -> LayoutTreeBuilder {
         LayoutTreeBuilder {
             root_flow: None,
             next_bid: -1,
@@ -79,7 +78,7 @@ priv fn simulate_UA_display_rules(node: AbstractNode) -> CSSDisplay {
 }
 
 impl BoxGenerator {
-    static pure fn new(flow: @mut FlowContext) -> BoxGenerator {
+    fn new(flow: @mut FlowContext) -> BoxGenerator {
         unsafe { debug!("Creating box generator for flow: %s", flow.debug_str()); }
         BoxGenerator {
             flow: flow,
@@ -88,7 +87,7 @@ impl BoxGenerator {
     }
 
     /* Whether "spacer" boxes are needed to stand in for this DOM node */
-    pure fn inline_spacers_needed_for_node(&self, _: AbstractNode) -> bool {
+    fn inline_spacers_needed_for_node(&self, _: AbstractNode) -> bool {
         return false;
     }
 
@@ -115,7 +114,10 @@ impl BoxGenerator {
         match self.flow {
             @InlineFlow(*) => {
                 let node_range_start = match self.flow {
-                    @InlineFlow(*) => self.flow.inline().boxes.len(),
+                    @InlineFlow(*) => {
+                        let inline_flow = self.flow.inline();
+                        inline_flow.boxes.len()
+                    }
                     _ => 0
                 };
                 self.range_stack.push(node_range_start);
@@ -141,7 +143,7 @@ impl BoxGenerator {
                 debug!("BoxGenerator[f%d]: attaching box[b%d] to block flow (node: %s)",
                        self.flow.d().id, new_box.d().id, node.debug_str());
 
-                fail_unless!(self.flow.block().box.is_none());
+                assert!(self.flow.block().box.is_none());
                 //XXXjdm We segfault when returning without this temporary.
                 let block = self.flow.block();
                 block.box = Some(new_box);
@@ -153,7 +155,7 @@ impl BoxGenerator {
                 debug!("BoxGenerator[f%d]: attaching box[b%d] to root flow (node: %s)",
                        self.flow.d().id, new_box.d().id, node.debug_str());
 
-                fail_unless!(self.flow.root().box.is_none());
+                assert!(self.flow.root().box.is_none());
                 //XXXjdm We segfault when returning without this temporary.
                 let root = self.flow.root();
                 root.box = Some(new_box);
@@ -176,17 +178,21 @@ impl BoxGenerator {
                     }
                 }
                 let mut node_range: Range = Range::new(self.range_stack.pop(), 0);
-                node_range.extend_to(self.flow.inline().boxes.len());
-                fail_unless!(node_range.length() > 0);
+                let inline_flow = self.flow.inline(); // FIXME: borrow checker workaround
+                node_range.extend_to(inline_flow.boxes.len());
+                assert!(node_range.length() > 0);
 
                 debug!("BoxGenerator: adding element range=%?", node_range);
-                let elems = &mut self.flow.inline().elems;
-                elems.add_mapping(node, &const node_range);
+                let elems = &mut inline_flow.elems;
+                elems.add_mapping(node, &node_range);
             },
             @BlockFlow(*) | @RootFlow(*) => {
-                fail_unless!(self.range_stack.len() == 0);
+                assert!(self.range_stack.len() == 0);
             },
-            _ => { warn!("pop_node() not implemented for flow %?", self.flow.d().id) }
+            _ => { 
+                let d = self.flow.d(); // FIXME: borrow checker workaround
+                warn!("pop_node() not implemented for flow %?", d.id)
+            }
         }
     }
 }
@@ -197,7 +203,7 @@ struct BuilderContext {
 }
 
 impl BuilderContext {
-    static pure fn new(collector: @mut BoxGenerator) -> BuilderContext {
+    fn new(collector: @mut BoxGenerator) -> BuilderContext {
         unsafe { debug!("Creating new BuilderContext for flow: %s", collector.flow.debug_str()); }
         BuilderContext {
             default_collector: collector,
@@ -211,8 +217,10 @@ impl BuilderContext {
     }
     
     priv fn attach_child_flow(&self, child: @mut FlowContext) {
+        let d = self.default_collector.flow.d(); // FIXME: borrow checker workaround
+        let cd = child.d(); // FIXME: borrow checker workaround
         debug!("BuilderContext: Adding child flow f%? of f%?",
-               self.default_collector.flow.d().id, child.d().id);
+               d.id, cd.id);
         tree::add_child(&FlowTree, self.default_collector.flow, child);
     }
     
@@ -321,7 +329,7 @@ pub impl LayoutTreeBuilder {
         let flow = &mut this_ctx.default_collector.flow;
         for tree::each_child(&FlowTree, flow) |child_flow: &@mut FlowContext| {
             for (copy child_flow.d().node).each |node| {
-                fail_unless!(node.has_layout_data());
+                assert!(node.has_layout_data());
                 node.layout_data().flow = Some(*child_flow);
             }
         }
@@ -482,7 +490,7 @@ pub impl LayoutTreeBuilder {
         }
     }
 
-    fn decide_box_type(&self, node: AbstractNode, display: CSSDisplay) -> RenderBoxType {
+    fn decide_box_type(&self, node: AbstractNode, _display: CSSDisplay) -> RenderBoxType {
         if node.is_text() {
             RenderBox_Text
         } else if node.is_image_element() {

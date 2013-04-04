@@ -14,28 +14,28 @@ pub struct Range {
 }
 
 pub impl Range {
-    static pub pure fn new(off: uint, len: uint) -> Range {
+    pub fn new(off: uint, len: uint) -> Range {
         Range { off: off, len: len }
     }
 
-    static pub pure fn empty() -> Range {
+    pub fn empty() -> Range {
         Range::new(0, 0)
     }
 }
 
 pub impl Range {
-    pure fn begin(&const self) -> uint { self.off  }
-    pure fn length(&const self) -> uint { self.len }
-    pure fn end(&const self) -> uint { self.off + self.len }
-    pure fn eachi(&const self, cb: &fn(uint) -> bool) {
+    fn begin(&self) -> uint { self.off  }
+    fn length(&self) -> uint { self.len }
+    fn end(&self) -> uint { self.off + self.len }
+    fn eachi(&self, cb: &fn(uint) -> bool) {
         do uint::range(self.off, self.off + self.len) |i| { cb(i) }
     }
 
-    pure fn contains(&const self, i: uint) -> bool {
+    fn contains(&self, i: uint) -> bool {
         i >= self.begin() && i < self.end()
     }
 
-    pure fn is_valid_for_string(&const self, s: &str) -> bool {
+    fn is_valid_for_string(&self, s: &str) -> bool {
         self.begin() < s.len() && self.end() <= s.len() && self.length() <= s.len()
     }
 
@@ -64,7 +64,7 @@ pub impl Range {
     /// Computes the relationship between two ranges (`self` and `other`),
     /// from the point of view of `self`. So, 'EntirelyBefore' means
     /// that the `self` range is entirely before `other` range.
-    pure fn relation_to_range(&const self, other: &const Range) -> RangeRelation {
+    fn relation_to_range(&self, other: &Range) -> RangeRelation {
         if other.begin() > self.end() {
             return EntirelyBefore;
         }
@@ -92,7 +92,7 @@ pub impl Range {
                   self, other));
     }
 
-    fn repair_after_coalesced_range(&mut self, other: &const Range) {
+    fn repair_after_coalesced_range(&mut self, other: &Range) {
         let relation = self.relation_to_range(other);
         debug!("repair_after_coalesced_range: possibly repairing range %?", self);
         debug!("repair_after_coalesced_range: relation of original range and coalesced range(%?): %?",

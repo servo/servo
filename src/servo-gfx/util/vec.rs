@@ -1,19 +1,19 @@
 use core::cmp::{Ord, Eq};
 
 pub trait BinarySearchMethods<T: Ord + Eq> {
-    pure fn binary_search(&self, key: &T) -> Option<&self/T>;
-    pure fn binary_search_index(&self, key: &T) -> Option<uint>;
+    fn binary_search(&self, key: &T) -> Option<&'self T>;
+    fn binary_search_index(&self, key: &T) -> Option<uint>;
 }
 
 impl<'self, T: Ord + Eq> BinarySearchMethods<T> for &'self [T] {
-    pure fn binary_search(&self, key: &T) -> Option<&self/T> {
+    fn binary_search(&self, key: &T) -> Option<&'self T> {
         match self.binary_search_index(key) {
             None => None,
             Some(i) => Some(&self[i])
         }
     }
 
-    pure fn binary_search_index(&self, key: &T) -> Option<uint> {
+    fn binary_search_index(&self, key: &T) -> Option<uint> {
         if self.len() == 0 {
             return None;
         }
@@ -41,7 +41,7 @@ impl<'self, T: Ord + Eq> BinarySearchMethods<T> for &'self [T] {
 fn test_find_all_elems<T: Eq + Ord>(arr: &[T]) {
     let mut i = 0;
     while i < arr.len() {
-        fail_unless!(test_match(&arr[i], arr.binary_search(&arr[i])));
+        assert!(test_match(&arr[i], arr.binary_search(&arr[i])));
         i += 1;
     }
 }
@@ -51,7 +51,7 @@ fn test_miss_all_elems<T: Eq + Ord>(arr: &[T], misses: &[T]) {
     while i < misses.len() {
         let res = arr.binary_search(&misses[i]);
         debug!("%? == %? ?", misses[i], res);
-        fail_unless!(!test_match(&misses[i], arr.binary_search(&misses[i])));
+        assert!(!test_match(&misses[i], arr.binary_search(&misses[i])));
         i += 1;
     }
 }

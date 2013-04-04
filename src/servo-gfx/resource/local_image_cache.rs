@@ -6,7 +6,7 @@ multiple times and thus triggering reflows multiple times.
 
 use clone_arc = std::arc::clone;
 use std::net::url::Url;
-use core::comm::{Port, Chan, stream};
+use core::comm::Port;
 use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg, Prefetch, Decode, GetImage};
 use resource::image_cache_task::{ WaitForImage, ImageReady, ImageNotReady, ImageFailed};
 use util::url::{UrlMap, url_map};
@@ -107,7 +107,7 @@ pub impl LocalImageCache {
                 // the compositor should be resonsible for waiting
                 // on the image to load and triggering layout
                 let image_cache_task = self.image_cache_task.clone();
-                fail_unless!(self.on_image_available.is_some());
+                assert!(self.on_image_available.is_some());
                 let on_image_available = self.on_image_available.get()();
                 let url = copy *url;
                 do task::spawn {
@@ -134,7 +134,7 @@ pub impl LocalImageCache {
 
     priv fn get_state(&self, url: &Url) -> @mut ImageState {
         match self.state_map.find(url) {
-            Some(state) => state,
+            Some(state) => *state,
             None => {
                 let new_state = @mut ImageState {
                     prefetched: false,

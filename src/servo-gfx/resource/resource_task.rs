@@ -7,7 +7,6 @@ A task that takes a URL and streams back the binary data
 use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
 use resource::util::spawn_listener;
-use std::net::url;
 use std::net::url::{Url, to_str};
 use super::{file_loader, http_loader};
 
@@ -18,7 +17,7 @@ pub enum ControlMsg {
 }
 
 /// Messages sent in response to a `Load` message
-#[deriving_eq]
+#[deriving(Eq)]
 pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(~[u8]),
@@ -80,7 +79,7 @@ impl ResourceManager {
         loop {
             match self.from_client.recv() {
               Load(url, progress_chan) => {
-                self.load(copy url, progress_chan)
+                self.load(url.clone(), progress_chan)
               }
               Exit => {
                 break
@@ -130,7 +129,7 @@ fn test_bad_scheme() {
     let progress = Port();
     resource_task.send(Load(url::from_str(~"bogus://whatever").get(), progress.chan()));
     match progress.recv() {
-      Done(result) => { fail_unless!(result.is_err()) }
+      Done(result) => { assert!(result.is_err()) }
       _ => fail
     }
     resource_task.send(Exit);
@@ -148,7 +147,7 @@ fn should_delegate_to_scheme_loader() {
     let resource_task = create_resource_task_with_loaders(loader_factories);
     let progress = Port();
     resource_task.send(Load(url::from_str(~"snicklefritz://heya").get(), progress.chan()));
-    fail_unless!(progress.recv() == Payload(payload));
-    fail_unless!(progress.recv() == Done(Ok(())));
+    assert!(progress.recv() == Payload(payload));
+    assert!(progress.recv() == Done(Ok(())));
     resource_task.send(Exit);
 }

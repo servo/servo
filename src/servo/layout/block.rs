@@ -1,18 +1,16 @@
 // Block layout.
 
+use core::cell::Cell;
+
 use layout::box::{RenderBox};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
 use layout::flow::{FlowContext, FlowTree, InlineBlockFlow, BlockFlow, RootFlow};
 use layout::inline::InlineLayout;
-use newcss::values::*;
-use util::tree;
 
 use au = gfx::geometry;
-use core::mutable::Mut;
 use geom::point::Point2D;
 use geom::rect::Rect;
-use geom::size::Size2D;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
 
@@ -27,8 +25,8 @@ pub fn BlockFlowData() -> BlockFlowData {
 }
 
 pub trait BlockLayout {
-    pure fn starts_block_flow() -> bool;
-    pure fn with_block_box(@mut self, &fn(box: &@mut RenderBox) -> ()) -> ();
+    fn starts_block_flow(&self) -> bool;
+    fn with_block_box(@mut self, &fn(box: &@mut RenderBox) -> ()) -> ();
 
     fn bubble_widths_block(@mut self, ctx: &LayoutContext);
     fn assign_widths_block(@mut self, ctx: &LayoutContext);
@@ -37,12 +35,12 @@ pub trait BlockLayout {
                                 a: &DisplayListBuilder,
                                 b: &Rect<Au>,
                                 c: &Point2D<Au>,
-                                d: &Mut<DisplayList>);
+                                d: &Cell<DisplayList>);
 }
 
 impl BlockLayout for FlowContext {
-    pure fn starts_block_flow() -> bool {
-        match self {
+    fn starts_block_flow(&self) -> bool {
+        match *self {
             RootFlow(*) | BlockFlow(*) | InlineBlockFlow(*) => true,
             _ => false 
         }
@@ -50,7 +48,7 @@ impl BlockLayout for FlowContext {
 
     /* Get the current flow's corresponding block box, if it exists, and do something with it. 
        This works on both BlockFlow and RootFlow, since they are mostly the same. */
-    pure fn with_block_box(@mut self, cb: &fn(box: &@mut RenderBox) -> ()) -> () {
+    fn with_block_box(@mut self, cb: &fn(box: &@mut RenderBox) -> ()) -> () {
         match *self {
             BlockFlow(*) => {
                 let box = self.block().box;
@@ -74,14 +72,14 @@ impl BlockLayout for FlowContext {
     /* TODO: absolute contexts */
     /* TODO: inline-blocks */
     fn bubble_widths_block(@mut self, ctx: &LayoutContext) {
-        fail_unless!(self.starts_block_flow());
+        assert!(self.starts_block_flow());
 
         let mut min_width = Au(0);
         let mut pref_width = Au(0);
 
         /* find max width from child block contexts */
         for FlowTree.each_child(self) |child_ctx| {
-            fail_unless!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
+            assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
 
             min_width  = au::max(min_width, child_ctx.d().min_width);
             pref_width = au::max(pref_width, child_ctx.d().pref_width);
@@ -106,7 +104,7 @@ impl BlockLayout for FlowContext {
     all child (block) contexts. */
 
     fn assign_widths_block(@mut self, _ctx: &LayoutContext) { 
-        fail_unless!(self.starts_block_flow());
+        assert!(self.starts_block_flow());
 
         let mut remaining_width = self.d().position.size.width;
         let mut _right_used = Au(0);
@@ -121,14 +119,14 @@ impl BlockLayout for FlowContext {
         }
 
         for FlowTree.each_child(self) |child_ctx| {
-            fail_unless!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
+            assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
             child_ctx.d().position.origin.x = left_used;
             child_ctx.d().position.size.width = remaining_width;
         }
     }
 
     fn assign_height_block(@mut self, _ctx: &LayoutContext) {
-        fail_unless!(self.starts_block_flow());
+        assert!(self.starts_block_flow());
 
         let mut cur_y = Au(0);
 
@@ -150,9 +148,9 @@ impl BlockLayout for FlowContext {
     }
 
     fn build_display_list_block(@mut self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
-                                offset: &Point2D<Au>, list: &Mut<DisplayList>) {
+                                offset: &Point2D<Au>, list: &Cell<DisplayList>) {
 
-        fail_unless!(self.starts_block_flow());
+        assert!(self.starts_block_flow());
         
         // add box that starts block context
         do self.with_block_box |box| {
