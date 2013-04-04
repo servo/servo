@@ -1,6 +1,5 @@
 use js::jsapi::{JSContext, jsid, JSPropertyDescriptor, JSObject, JSString, jschar};
-use js::jsapi::bindgen::{JS_GetPropertyDescriptorById, JS_GetPrototype};
-use js::jsapi::bindgen::{JS_NewUCString, JS_malloc, JS_free};
+use js::jsapi::bindgen::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};
 use js::glue::bindgen::{RUST_JSVAL_IS_VOID, RUST_JSVAL_TO_OBJECT, GetProxyExtra};
 use js::glue::bindgen::{GetObjectProto};
 
@@ -31,7 +30,7 @@ pub extern fn getPropertyDescriptor(cx: *JSContext, proxy: *JSObject, id: jsid,
 }
 
 fn _getOwnPropertyDescriptor(cx: *JSContext, proxy: *JSObject, id: jsid,
-                             set: c_bool, desc: *mut JSPropertyDescriptor) -> c_bool {
+                             _set: c_bool, desc: *mut JSPropertyDescriptor) -> c_bool {
   unsafe {
     let v = GetProxyExtra(proxy, 0 /*JSPROXYSLOT_EXPANDO*/);
     if RUST_JSVAL_IS_VOID(v) == 0 {
@@ -77,6 +76,6 @@ pub fn _obj_toString(cx: *JSContext, className: *libc::c_char) -> *JSString {
   }
 }
 
-pub fn GetExpandoObject(proxy: *JSObject) -> *JSObject {
+pub fn GetExpandoObject(_proxy: *JSObject) -> *JSObject {
     ptr::null()
 }

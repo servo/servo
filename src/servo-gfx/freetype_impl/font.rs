@@ -100,7 +100,7 @@ impl Drop for FreeTypeFontHandle {
 }
 
 pub impl FreeTypeFontHandle {
-    static priv fn set_char_size(face: FT_Face, pt_size: float) -> Result<(), ()>{
+    priv fn set_char_size(face: FT_Face, pt_size: float) -> Result<(), ()>{
         let char_width = float_to_fixed_ft(pt_size) as FT_F26Dot6;
         let char_height = float_to_fixed_ft(pt_size) as FT_F26Dot6;
         let h_dpi = 72;
@@ -110,8 +110,8 @@ pub impl FreeTypeFontHandle {
         if result.succeeded() { Ok(()) } else { Err(()) }
     }
 
-    static pub fn new_from_file(fctx: &FreeTypeFontContextHandle, file: ~str,
-                                style: &SpecifiedFontStyle) -> Result<FreeTypeFontHandle, ()> {
+    pub fn new_from_file(fctx: &FreeTypeFontContextHandle, file: ~str,
+                         style: &SpecifiedFontStyle) -> Result<FreeTypeFontHandle, ()> {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
 
@@ -131,7 +131,7 @@ pub impl FreeTypeFontHandle {
         }
     }
 
-    static pub fn new_from_file_unstyled(fctx: &FreeTypeFontContextHandle, file: ~str)
+    pub fn new_from_file_unstyled(fctx: &FreeTypeFontContextHandle, file: ~str)
         -> Result<FreeTypeFontHandle, ()> {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
@@ -149,8 +149,8 @@ pub impl FreeTypeFontHandle {
         Ok(FreeTypeFontHandle { source: FontSourceFile(file), face: face })
     }
 
-    static pub fn new_from_buffer(fctx: &FreeTypeFontContextHandle,
-                      buf: @~[u8], style: &SpecifiedFontStyle) -> Result<FreeTypeFontHandle, ()> {
+    pub fn new_from_buffer(fctx: &FreeTypeFontContextHandle,
+                           buf: @~[u8], style: &SpecifiedFontStyle) -> Result<FreeTypeFontHandle, ()> {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
 
@@ -189,21 +189,21 @@ pub impl FreeTypeFontHandle {
 
 impl FontHandleMethods for FreeTypeFontHandle {
     // an identifier usable by FontContextHandle to recreate this FontHandle.
-    pure fn face_identifier(&self) -> ~str {
+    fn face_identifier(&self) -> ~str {
         /* FT_Get_Postscript_Name seems like a better choice here, but it
            doesn't give usable results for fontconfig when deserializing. */
         unsafe { str::raw::from_c_str((*self.face).family_name) }
     }
-    pure fn family_name(&self) -> ~str {
+    fn family_name(&self) -> ~str {
         unsafe { str::raw::from_c_str((*self.face).family_name) }
     }
-    pure fn face_name(&self) -> ~str {
+    fn face_name(&self) -> ~str {
         unsafe { str::raw::from_c_str(FT_Get_Postscript_Name(self.face)) }
     }
-    pure fn is_italic(&self) -> bool {
+    fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC != 0 }
     }
-    pure fn boldness(&self) -> CSSFontWeight {
+    fn boldness(&self) -> CSSFontWeight {
         let default_weight = FontWeight400;
         if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD == 0 } {
             default_weight
@@ -305,7 +305,7 @@ impl FontHandleMethods for FreeTypeFontHandle {
 }
 
 pub impl FreeTypeFontHandle {
-    priv fn get_face_rec(&self) -> &self/FT_FaceRec {
+    priv fn get_face_rec(&self) -> &'self FT_FaceRec {
         unsafe {
             &(*self.face)
         }

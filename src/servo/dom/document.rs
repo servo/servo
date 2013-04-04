@@ -1,9 +1,7 @@
 use dom::bindings::htmlcollection::HTMLCollection;
 use dom::bindings::utils::{DOMString, WrapperCache, str};
 use dom::node::AbstractNode;
-use newcss::stylesheet::Stylesheet;
 
-use std::arc::ARC;
 
 pub struct Document {
     root: AbstractNode,

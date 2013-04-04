@@ -1,4 +1,4 @@
-use content::content_task::{ContentTask, ExecuteMsg, ParseMsg, ExitMsg};
+use content::content_task::{ContentTask, ExecuteMsg, ParseMsg};
 use content::content_task;
 use dom::event::Event;
 use layout::layout_task;

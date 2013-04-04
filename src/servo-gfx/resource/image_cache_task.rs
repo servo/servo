@@ -1,12 +1,11 @@
-use image::base::{Image, load_from_memory, test_image_bin};
+use image::base::{Image, load_from_memory};
 use resource::resource_task;
 use resource::resource_task::ResourceTask;
-use util::url::{make_url, UrlMap, url_map};
+use util::url::{UrlMap, url_map};
 
 use clone_arc = std::arc::clone;
 use core::comm::{Chan, Port, SharedChan, stream};
 use core::task::spawn;
-use resource::util::spawn_listener;
 use core::to_str::ToStr;
 use core::util::replace;
 use std::arc::ARC;
@@ -49,7 +48,7 @@ pub enum ImageResponseMsg {
 }
 
 impl ImageResponseMsg {
-    pure fn clone(&self) -> ImageResponseMsg {
+    fn clone(&self) -> ImageResponseMsg {
         match *self {
           ImageReady(ref img) => ImageReady(unsafe { clone_arc(img) }),
           ImageNotReady => ImageNotReady,
@@ -59,7 +58,7 @@ impl ImageResponseMsg {
 }
 
 impl Eq for ImageResponseMsg {
-    pure fn eq(&self, other: &ImageResponseMsg) -> bool {
+    fn eq(&self, other: &ImageResponseMsg) -> bool {
         // FIXME: Bad copies
         match (self.clone(), other.clone()) {
           (ImageReady(*), ImageReady(*)) => fail!(~"unimplemented comparison"),
@@ -71,7 +70,7 @@ impl Eq for ImageResponseMsg {
           | (ImageFailed, _) => false
         }
     }
-    pure fn ne(&self, other: &ImageResponseMsg) -> bool {
+    fn ne(&self, other: &ImageResponseMsg) -> bool {
         return !(*self).eq(other);
     }
 }
@@ -199,7 +198,7 @@ impl ImageCache {
                 }
                 OnMsg(handler) => msg_handlers.push(handler),
                 Exit(response) => {
-                    fail_unless!(self.need_exit.is_none());
+                    assert!(self.need_exit.is_none());
                     self.need_exit = Some(response);
                 }
             }
@@ -234,7 +233,7 @@ impl ImageCache {
 
     priv fn get_state(&self, url: Url) -> ImageState {
         match self.state_map.find(&url) {
-            Some(state) => state,
+            Some(state) => *state,
             None => Init
         }
     }
@@ -317,7 +316,7 @@ impl ImageCache {
             }
 
             Prefetched(data_cell) => {
-                fail_unless!(!data_cell.is_empty());
+                assert!(!data_cell.is_empty());
 
                 let data = data_cell.take();
                 let to_cache = self.chan.clone();
@@ -329,7 +328,7 @@ impl ImageCache {
                     debug!("image_cache_task: started image decode for %s", url.to_str());
                     let image = decode(data);
                     let image = if image.is_some() {
-                        Some(ARC(~option::unwrap(image)))
+                        Some(ARC(~image.unwrap()))
                     } else {
                         None
                     };
@@ -376,7 +375,7 @@ impl ImageCache {
     priv fn purge_waiters(&self, url: Url, f: &fn() -> ImageResponseMsg) {
         match self.wait_map.find(&url) {
           Some(waiters) => {
-            let waiters = &mut *waiters;
+            let waiters = *waiters;
             let mut new_waiters = ~[];
             new_waiters <-> *waiters;
 
@@ -427,7 +426,7 @@ impl ImageCache {
                 // We don't have this image yet
                 match self.wait_map.find(&url) {
                     Some(waiters) => {
-                        vec::push(&mut *waiters, response);
+                        vec::push(*waiters, response);
                     }
                     None => {
                         self.wait_map.insert(url, @mut ~[response]);
@@ -598,7 +597,7 @@ fn should_not_request_url_from_resource_task_on_multiple_prefetches() {
     url_requested.recv();
     image_cache_task.exit();
     mock_resource_task.send(resource_task::Exit);
-    fail_unless!(!url_requested.peek())
+    assert!(!url_requested.peek())
 }
 
 #[test]
@@ -621,7 +620,7 @@ fn should_return_image_not_ready_if_data_has_not_arrived() {
     image_cache_task.send(Decode(copy url));
     let (response_chan, response_port) = stream();
     image_cache_task.send(GetImage(url, response_chan));
-    fail_unless!(response_port.recv() == ImageNotReady);
+    assert!(response_port.recv() == ImageNotReady);
     wait_chan.send(());
     image_cache_task.exit();
     mock_resource_task.send(resource_task::Exit);
@@ -747,7 +746,7 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
 
     // Our resource task should not have received another request for the image
     // because it's already cached
-    fail_unless!(!image_bin_sent.peek());
+    assert!(!image_bin_sent.peek());
 }
 
 #[test]
@@ -794,7 +793,7 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
 
     // Our resource task should not have received another request for the image
     // because it's already cached
-    fail_unless!(!image_bin_sent.peek());
+    assert!(!image_bin_sent.peek());
 }
 
 #[test]

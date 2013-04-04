@@ -10,13 +10,9 @@ use render_layers::{RenderLayer, render_layers};
 use resource::util::spawn_listener;
 use util::time::time;
 
-use core::libc::size_t;
-use core::libc::types::common::c99::uint16_t;
 use core::cell::Cell;
-use core::comm::{Chan, Port, SharedChan};
+use core::comm::{Port, SharedChan};
 use core::task::SingleThreaded;
-use std::arc::ARC;
-use std::arc;
 use std::task_pool::TaskPool;
 
 pub enum Msg {

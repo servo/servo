@@ -1,14 +1,8 @@
 use font_context::FontContext;
 use geometry::Au;
 use text::glyph::{BreakTypeNormal, GlyphStore};
-use servo_gfx_font::{Font, FontDescriptor, RunMetrics, FontHandleMethods};
+use servo_gfx_font::{Font, FontDescriptor, RunMetrics};
 use servo_gfx_util::range::Range;
-
-use core::libc::{c_void};
-use geom::point::Point2D;
-use geom::size::Size2D;
-use std::arc;
-use std::arc::ARC;
 
 pub struct TextRun {
     text: ~str,
@@ -40,7 +34,7 @@ impl SendableTextRun {
 }
 
 pub impl TextRun {
-    static fn new(font: @mut Font, text: ~str) -> TextRun {
+    fn new(font: @mut Font, text: ~str) -> TextRun {
         let mut glyph_store = GlyphStore::new(str::char_len(text));
         TextRun::compute_potential_breaks(text, &mut glyph_store);
         font.shape_text(text, &mut glyph_store);
@@ -53,7 +47,7 @@ pub impl TextRun {
         return run;
     }
 
-    static fn compute_potential_breaks(text: &str, glyphs: &mut GlyphStore) {
+    fn compute_potential_breaks(text: &str, glyphs: &mut GlyphStore) {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
 
         let mut byte_i = 0u;
@@ -103,10 +97,10 @@ pub impl TextRun {
         }
     }
 
-    pure fn char_len(&self) -> uint { self.glyphs.entry_buffer.len() }
-    pure fn glyphs(&self) -> &self/GlyphStore { &self.glyphs }
+    fn char_len(&self) -> uint { self.glyphs.entry_buffer.len() }
+    fn glyphs(&self) -> &'self GlyphStore { &self.glyphs }
 
-    pure fn range_is_trimmable_whitespace(&self, range: &const Range) -> bool {
+    fn range_is_trimmable_whitespace(&self, range: &Range) -> bool {
         for range.eachi |i| {
             if  !self.glyphs.char_is_space(i) &&
                 !self.glyphs.char_is_tab(i)   &&
@@ -115,11 +109,11 @@ pub impl TextRun {
         return true;
     }
 
-    fn metrics_for_range(&self, range: &const Range) -> RunMetrics {
+    fn metrics_for_range(&self, range: &Range) -> RunMetrics {
         self.font.measure_text(self, range)
     }
 
-    fn min_width_for_range(&self, range: &const Range) -> Au {
+    fn min_width_for_range(&self, range: &Range) -> Au {
         let mut max_piece_width = Au(0);
         debug!("iterating outer range %?", range);
         for self.iter_indivisible_pieces_for_range(range) |piece_range| {
@@ -130,7 +124,7 @@ pub impl TextRun {
         return max_piece_width;
     }
 
-    fn iter_natural_lines_for_range(&self, range: &const Range, f: &fn(&const Range) -> bool) {
+    fn iter_natural_lines_for_range(&self, range: &Range, f: &fn(&Range) -> bool) {
         let mut clump = Range::new(range.begin(), 0);
         let mut in_clump = false;
 
@@ -143,7 +137,7 @@ pub impl TextRun {
                 (true, true)  => {
                     in_clump = false;
                     // don't include the linebreak character itself in the clump.
-                    if !f(&const clump) { break }
+                    if !f(&clump) { break }
                 }
             }
         }
@@ -151,11 +145,11 @@ pub impl TextRun {
         // flush any remaining chars as a line
         if in_clump {
             clump.extend_to(range.end());
-            f(&const clump);
+            f(&clump);
         }
     }
 
-    fn iter_indivisible_pieces_for_range(&self, range: &const Range, f: &fn(&const Range) -> bool) {
+    fn iter_indivisible_pieces_for_range(&self, range: &Range, f: &fn(&Range) -> bool) {
         let mut clump = Range::new(range.begin(), 0);
 
         loop {
@@ -167,10 +161,11 @@ pub impl TextRun {
             }
 
             // now clump.end() is break-before or range.end()
-            if !f(&const clump) || clump.end() == range.end() { break; }
+            if !f(&clump) || clump.end() == range.end() { break; }
 
             // now clump includes one break-before character, or starts from range.end()
-            clump.reset(clump.end(), 1);
+            let end = clump.end(); // FIXME: borrow checker workaround
+            clump.reset(end, 1);
         }
     }
 }

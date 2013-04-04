@@ -10,22 +10,18 @@ use text::glyph::{GlyphStore, GlyphIndex, GlyphData};
 use text::shaper::ShaperMethods;
 use gfx_font::{FontHandleMethods, FontTableMethods};
 
-use servo_util::range;
 use util::range::Range;
 
-use core::libc::types::common::c99::int32_t;
 use core::libc::{c_uint, c_int, c_void, c_char};
 use core::util::ignore;
-//use dvec::DVec;
-use std::arc;
 
 use text::harfbuzz::shaper::harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR, hb_blob_t};
 use text::harfbuzz::shaper::harfbuzz::{hb_face_t, hb_font_t};
 use text::harfbuzz::shaper::harfbuzz::{hb_font_funcs_t, hb_buffer_t, hb_codepoint_t, hb_bool_t};
 use text::harfbuzz::shaper::harfbuzz::{hb_glyph_position_t};
-use text::harfbuzz::shaper::harfbuzz::{hb_glyph_info_t, hb_var_int_t, hb_position_t};
-use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy};
-use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_face_create, hb_face_destroy};
+use text::harfbuzz::shaper::harfbuzz::{hb_glyph_info_t, hb_position_t};
+use text::harfbuzz::shaper::harfbuzz::bindgen::hb_blob_create;
+use text::harfbuzz::shaper::harfbuzz::bindgen::hb_face_destroy;
 use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_create, hb_font_destroy};
 use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_buffer_create};
 use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_buffer_destroy};
@@ -40,14 +36,13 @@ use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_funcs_destroy};
 use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_set_funcs};
 use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_funcs_set_glyph_h_advance_func};
 use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_funcs_set_glyph_func};
-use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_font_funcs_set_glyph_h_kerning_func};
 
 use text::harfbuzz::shaper::harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR};
 use text::harfbuzz::shaper::harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_font_funcs_t};
 use text::harfbuzz::shaper::harfbuzz::{hb_buffer_t, hb_codepoint_t, hb_bool_t};
-use text::harfbuzz::shaper::harfbuzz::{hb_glyph_position_t, hb_glyph_info_t, hb_var_int_t};
+use text::harfbuzz::shaper::harfbuzz::{hb_glyph_position_t, hb_glyph_info_t};
 use text::harfbuzz::shaper::harfbuzz::{hb_position_t, hb_tag_t};
-use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
+use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_blob_create,
                                                 hb_face_create_for_tables, hb_face_destroy,
                                                 hb_font_create, hb_font_destroy,
                                                 hb_buffer_create, hb_buffer_destroy,
@@ -59,8 +54,7 @@ use text::harfbuzz::shaper::harfbuzz::bindgen::{hb_blob_create, hb_blob_destroy,
                                                 hb_font_funcs_create, hb_font_funcs_destroy,
                                                 hb_font_set_funcs,
                                                 hb_font_funcs_set_glyph_h_advance_func,
-                                                hb_font_funcs_set_glyph_func,
-                                                hb_font_funcs_set_glyph_h_kerning_func};
+                                                hb_font_funcs_set_glyph_func};
 
 use text::util::{float_to_fixed, fixed_to_float, fixed_to_rounded_int};
 
@@ -78,16 +72,16 @@ pub struct ShapedGlyphEntry {
 }
 
 pub impl ShapedGlyphData {
-    static pure fn new(buffer: *hb_buffer_t) -> ShapedGlyphData {
+    fn new(buffer: *hb_buffer_t) -> ShapedGlyphData {
         unsafe {
             let glyph_count = 0 as c_uint;
             let glyph_infos = hb_buffer_get_glyph_infos(buffer, ptr::to_unsafe_ptr(&glyph_count));
             let glyph_count = glyph_count as uint;
-            fail_unless!(glyph_infos.is_not_null());
+            assert!(glyph_infos.is_not_null());
             let pos_count = 0 as c_uint;
             let pos_infos = hb_buffer_get_glyph_positions(buffer, ptr::to_unsafe_ptr(&pos_count));
-            fail_unless!(pos_infos.is_not_null());
-            fail_unless!(glyph_count == pos_count as uint);
+            assert!(pos_infos.is_not_null());
+            assert!(glyph_count == pos_count as uint);
 
             ShapedGlyphData {
                 count: glyph_count,
@@ -98,8 +92,8 @@ pub impl ShapedGlyphData {
     }
 
     #[inline(always)]
-    priv pure fn byte_offset_of_glyph(&const self, i: uint) -> uint {
-        fail_unless!(i < self.count);
+    priv fn byte_offset_of_glyph(&self, i: uint) -> uint {
+        assert!(i < self.count);
 
         let glyph_info_i = ptr::offset(self.glyph_infos, i);
         unsafe {
@@ -107,11 +101,11 @@ pub impl ShapedGlyphData {
         }
     }
 
-    pure fn len(&self) -> uint { self.count }
+    fn len(&self) -> uint { self.count }
 
     // Returns shaped glyph data for one glyph, and updates the y-position of the pen.
     fn get_entry_for_glyph(&self, i: uint, y_pos: &mut Au) -> ShapedGlyphEntry {
-        fail_unless!(i < self.count);
+        assert!(i < self.count);
 
         let glyph_info_i = ptr::offset(self.glyph_infos, i);
         let pos_info_i = ptr::offset(self.pos_infos, i);
@@ -128,7 +122,7 @@ pub impl ShapedGlyphData {
                              *y_pos -= y_advance;
                          }
 
-                         Some(Point2D(x_offset, y_pos - y_offset))
+                         Some(Point2D(x_offset, *y_pos - y_offset))
                      };
 
         unsafe {
@@ -149,21 +143,22 @@ pub struct HarfbuzzShaper {
     priv hb_funcs: *hb_font_funcs_t,
 }
 
+#[unsafe_destructor]
 impl Drop for HarfbuzzShaper {
     fn finalize(&self) {
-        fail_unless!(self.hb_face.is_not_null());
+        assert!(self.hb_face.is_not_null());
         hb_face_destroy(self.hb_face);
 
-        fail_unless!(self.hb_font.is_not_null());
+        assert!(self.hb_font.is_not_null());
         hb_font_destroy(self.hb_font);
 
-        fail_unless!(self.hb_funcs.is_not_null());
+        assert!(self.hb_funcs.is_not_null());
         hb_font_funcs_destroy(self.hb_funcs);
     }
 }
 
 pub impl HarfbuzzShaper {
-    static pub fn new(font: @mut Font) -> HarfbuzzShaper {
+    pub fn new(font: @mut Font) -> HarfbuzzShaper {
         let hb_face: *hb_face_t = hb_face_create_for_tables(get_font_table_func, ptr::to_unsafe_ptr(font) as *c_void, ptr::null());
         let hb_font: *hb_font_t = hb_font_create(hb_face);
         // Set points-per-em. if zero, performs no hinting in that direction.
@@ -192,15 +187,15 @@ pub impl HarfbuzzShaper {
         }
     }
 
-    static priv fn float_to_fixed(f: float) -> i32 {
+    priv fn float_to_fixed(f: float) -> i32 {
         float_to_fixed(16, f)
     }
 
-    static priv fn fixed_to_float(i: hb_position_t) -> float {
+    priv fn fixed_to_float(i: hb_position_t) -> float {
         fixed_to_float(16, i)
     }
 
-    static priv fn fixed_to_rounded_int(f: hb_position_t) -> int {
+    priv fn fixed_to_rounded_int(f: hb_position_t) -> int {
         fixed_to_rounded_int(16, f)
     }
 }
@@ -240,7 +235,7 @@ pub impl HarfbuzzShaper {
         // so, we must be careful to increment this when saving glyph entries.
         let mut char_idx = 0;
 
-        fail_unless!(glyph_count <= char_max);
+        assert!(glyph_count <= char_max);
 
         debug!("Shaped text[char count=%u], got back %u glyph info records.", char_max, glyph_count);
         if char_max != glyph_count {
@@ -248,8 +243,8 @@ pub impl HarfbuzzShaper {
         }
 
         // make map of what chars have glyphs
-        const NO_GLYPH : i32 = -1;
-        const CONTINUATION_BYTE : i32 = -2;
+        static NO_GLYPH : i32 = -1;
+        static CONTINUATION_BYTE : i32 = -2;
         let mut byteToGlyph : ~[i32];
 
         // fast path: all chars are single-byte.
@@ -271,7 +266,7 @@ pub impl HarfbuzzShaper {
             // loc refers to a *byte* offset within the utf8 string.
             let loc = glyph_data.byte_offset_of_glyph(i);
             if loc < byte_max {
-                fail_unless!(byteToGlyph[loc] != CONTINUATION_BYTE);
+                assert!(byteToGlyph[loc] != CONTINUATION_BYTE);
                 byteToGlyph[loc] = i as i32;
             }
             else { debug!("ERROR: tried to set out of range byteToGlyph: idx=%u, glyph idx=%u", loc, i); }
@@ -361,9 +356,9 @@ pub impl HarfbuzzShaper {
             }
 
             // character/glyph clump must contain characters.
-            fail_unless!(char_byte_span.length() > 0);
+            assert!(char_byte_span.length() > 0);
             // character/glyph clump must contain glyphs.
-            fail_unless!(glyph_span.length() > 0);
+            assert!(glyph_span.length() > 0);
 
             // now char_span is a ligature clump, formed by the glyphs in glyph_span.
             // we need to find the chars that correspond to actual glyphs (char_extended_span),
@@ -387,12 +382,15 @@ pub impl HarfbuzzShaper {
 
             if covered_byte_span.begin() >= byte_max {
                 // oops, out of range. clip and forget this clump.
-                glyph_span.reset(glyph_span.end(), 0);
-                char_byte_span.reset(char_byte_span.end(), 0);
+                let end = glyph_span.end(); // FIXME: borrow checker workaround
+                glyph_span.reset(end, 0);
+                let end = char_byte_span.end(); // FIXME: borrow checker workaround
+                char_byte_span.reset(end, 0);
             }
 
             // clamp to end of text. (I don't think this will be necessary, but..)
-            covered_byte_span.extend_to(uint::min(covered_byte_span.end(), byte_max));
+            let end = covered_byte_span.end(); // FIXME: borrow checker workaround
+            covered_byte_span.extend_to(uint::min(end, byte_max));
 
             // fast path: 1-to-1 mapping of single char and single glyph.
             if glyph_span.length() == 1 {
@@ -416,7 +414,6 @@ pub impl HarfbuzzShaper {
                                          false, // not missing
                                          true,  // treat as cluster start
                                          glyph_i > glyph_span.begin())); // all but first are ligature continuations
-                    glyph_span.adjust_by(1,-1);
                 }
 
                 // now add the detailed glyph entry.
@@ -435,8 +432,10 @@ pub impl HarfbuzzShaper {
             }
 
             // shift up our working spans past things we just handled.
-            glyph_span.reset(glyph_span.end(), 0);
-            char_byte_span.reset(char_byte_span.end(), 0);
+            let end = glyph_span.end(); // FIXME: borrow checker workaround
+            glyph_span.reset(end, 0);
+            let end = char_byte_span.end();; // FIXME: borrow checker workaround
+            char_byte_span.reset(end, 0);
             char_idx += 1;
         }
 
@@ -454,7 +453,7 @@ extern fn glyph_func(_font: *hb_font_t,
                      glyph: *mut hb_codepoint_t,
                      _user_data: *c_void) -> hb_bool_t {
     let font: *Font = font_data as *Font;
-    fail_unless!(font.is_not_null());
+    assert!(font.is_not_null());
     unsafe {
         return match (*font).glyph_index(unicode as char) {
           Some(g) => { *glyph = g as hb_codepoint_t; true },
@@ -468,7 +467,7 @@ extern fn glyph_h_advance_func(_font: *hb_font_t,
                                glyph: hb_codepoint_t,
                                _user_data: *c_void) -> hb_position_t {
     let font: *Font = font_data as *Font;
-    fail_unless!(font.is_not_null());
+    assert!(font.is_not_null());
 
     unsafe {
         let advance = (*font).glyph_h_advance(glyph as GlyphIndex);
@@ -480,7 +479,7 @@ extern fn glyph_h_advance_func(_font: *hb_font_t,
 extern fn get_font_table_func(_face: *hb_face_t, tag: hb_tag_t, user_data: *c_void) -> *hb_blob_t {
     unsafe {
         let font: *Font = user_data as *Font;
-        fail_unless!(font.is_not_null());
+        assert!(font.is_not_null());
 
         // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
         match (*font).get_table_for_tag(tag as FontTableTag) {
@@ -496,7 +495,7 @@ extern fn get_font_table_func(_face: *hb_face_t, tag: hb_tag_t, user_data: *c_vo
                                           cast::transmute(skinny_font_table_ptr), // private context for below.
                                           destroy_blob_func); // HarfBuzz calls this when blob not needed.
                 });
-                fail_unless!(blob.is_not_null());
+                assert!(blob.is_not_null());
                 return blob;
             }
         }

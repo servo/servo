@@ -3,11 +3,8 @@
 use css::node_util::NodeUtil;
 use css::select_handler::NodeSelectHandler;
 use dom::node::AbstractNode;
-use layout::context::LayoutContext;
 use newcss::complete::CompleteSelectResults;
 use newcss::select::{SelectCtx, SelectResults};
-
-use std::arc::{ARC, get, clone};
 
 pub trait MatchMethods {
     fn restyle_subtree(&self, select_ctx: &SelectCtx);

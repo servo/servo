@@ -1,14 +1,14 @@
 use core;
+use core::cell::Cell;
 use dom::node::AbstractNode;
 use layout::block::{BlockFlowData, BlockLayout};
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
 use layout::debug::BoxedMutDebugMethods;
 use layout::display_list_builder::DisplayListBuilder;
-use layout::inline::{InlineFlowData, InlineLayout, NodeRange};
+use layout::inline::{InlineFlowData, InlineLayout};
 use layout::root::{RootFlowData, RootLayout};
 use util::tree;
-use core::mutable::Mut;
 use geom::rect::Rect;
 use geom::point::Point2D;
 use gfx::display_list::DisplayList;
@@ -92,8 +92,8 @@ pub fn FlowData(id: int) -> FlowData {
     }
 }
 
-pub impl FlowContext  {
-    pure fn d(&mut self) -> &self/mut FlowData {
+pub impl FlowContext {
+    fn d(&mut self) -> &'self mut FlowData {
       unsafe {
         match *self {
             AbsoluteFlow(ref d)    => cast::transmute(d),
@@ -107,21 +107,21 @@ pub impl FlowContext  {
       }
     }
 
-    pure fn inline(&mut self) -> &self/mut InlineFlowData {
+    fn inline(&mut self) -> &'self mut InlineFlowData {
         match self {
             &InlineFlow(_, ref i) => unsafe { cast::transmute(i) },
             _ => fail!(fmt!("Tried to access inline data of non-inline: f%d", self.d().id))
         }
     }
 
-    pure fn block(&mut self) -> &self/mut BlockFlowData {
+    fn block(&mut self) -> &'self mut BlockFlowData {
         match self {
             &BlockFlow(_, ref mut b) => unsafe { cast::transmute(b) },
             _ => fail!(fmt!("Tried to access block data of non-block: f%d", self.d().id))
         }
     }
 
-    pure fn root(&mut self) -> &self/mut RootFlowData {
+    fn root(&mut self) -> &'self mut RootFlowData {
         match self {
             &RootFlow(_, ref r) => unsafe { cast::transmute(r) },
             _ => fail!(fmt!("Tried to access root data of non-root: f%d", self.d().id))
@@ -156,8 +156,9 @@ pub impl FlowContext  {
     }
 
     fn build_display_list_recurse(@mut self, builder: &DisplayListBuilder, dirty: &Rect<Au>,
-                                  offset: &Point2D<Au>, list: &Mut<DisplayList>) {
-        debug!("FlowContext::build_display_list at %?: %s", self.d().position, self.debug_str());
+                                  offset: &Point2D<Au>, list: &Cell<DisplayList>) {
+        let d = self.d(); // FIXME: borrow checker workaround
+        debug!("FlowContext::build_display_list at %?: %s", d.position, self.debug_str());
 
         match self {
             @RootFlow(*) => self.build_display_list_root(builder, dirty, offset, list),
@@ -168,40 +169,58 @@ pub impl FlowContext  {
     }
 
     // Actual methods that do not require much flow-specific logic
-    pure fn foldl_all_boxes<B: Copy>(&mut self,
-                                     seed: B, 
-                                     cb: &pure fn(a: B,@mut RenderBox) -> B) -> B {
+    fn foldl_all_boxes<B: Copy>(&mut self,
+                                seed: B,
+                                cb: &fn(a: B, b: @mut RenderBox) -> B) -> B {
         match self {
-            &RootFlow(*)   => option::map_default(&self.root().box, seed, |box| { cb(seed, *box) }),
-            &BlockFlow(*)  => option::map_default(&self.block().box, seed, |box| { cb(seed, *box) }),
-            &InlineFlow(*) => do self.inline().boxes.foldl(seed) |acc, box| { cb(*acc, *box) },
+            &RootFlow(*)   => {
+                let root = self.root(); // FIXME: borrow checker workaround
+                root.box.map_default(seed, |box| { cb(seed, *box) })
+            }
+            &BlockFlow(*)  => {
+                let block = self.block(); // FIXME: borrow checker workaround
+                block.box.map_default(seed, |box| { cb(seed, *box) })
+            }
+            &InlineFlow(*) => {
+                let inline = self.inline(); // FIXME: borrow checker workaround
+                inline.boxes.foldl(seed, |acc, box| { cb(*acc, *box) })
+            }
             _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self))
         }
     }
 
-    pure fn foldl_boxes_for_node<B: Copy>(&mut self,
-                                          node: AbstractNode,
-                                          seed: B, 
-                                          cb: &pure fn(a: B,@mut RenderBox) -> B)
-                                       -> B {
+    fn foldl_boxes_for_node<B: Copy>(&mut self,
+                                     node: AbstractNode,
+                                     seed: B,
+                                     cb: &fn(a: B,@mut RenderBox) -> B)
+            -> B {
         do self.foldl_all_boxes(seed) |acc, box| {
             if box.d().node == node { cb(acc, box) }
             else { acc }
         }
     }
 
-    pure fn iter_all_boxes<T>(&mut self, cb: &pure fn(@mut RenderBox) -> T) {
+    fn iter_all_boxes<T>(&mut self, cb: &fn(@mut RenderBox) -> T) {
         match self {
-            &RootFlow(*)   => for self.root().box.each |box| { cb(*box); },
-            &BlockFlow(*)  => for self.block().box.each |box| { cb(*box); },
-            &InlineFlow(*) => for self.inline().boxes.each |box| { cb(*box); },
+            &RootFlow(*)   => {
+                let root = self.root(); // FIXME: borrow checker workaround
+                for root.box.each |box| { cb(*box); }
+            }
+            &BlockFlow(*)  => {
+                let block = self.block(); // FIXME: borrow checker workaround
+                for block.box.each |box| { cb(*box); }
+            }
+            &InlineFlow(*) => {
+                let inline = self.inline(); // FIXME: borrow checker workaround
+                for inline.boxes.each |box| { cb(*box); }
+            }
             _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self))
         }
     }
 
-    pure fn iter_boxes_for_node<T>(&mut self,
-                                   node: AbstractNode,
-                                   cb: &pure fn(@mut RenderBox) -> T) {
+    fn iter_boxes_for_node<T>(&mut self,
+                              node: AbstractNode,
+                              cb: &fn(@mut RenderBox) -> T) {
         do self.iter_all_boxes |box| {
             if box.d().node == node { cb(box); }
         }
@@ -212,13 +231,13 @@ pub impl FlowContext  {
 pub enum FlowTree { FlowTree }
 
 impl FlowTree {
-    fn each_child(ctx: @mut FlowContext, f: &fn(box: @mut FlowContext) -> bool) {
-        tree::each_child(&self, &ctx, |box| f(*box) )
+    fn each_child(&self, ctx: @mut FlowContext, f: &fn(box: @mut FlowContext) -> bool) {
+        tree::each_child(self, &ctx, |box| f(*box) )
     }
 }
 
 impl tree::ReadMethods<@mut FlowContext> for FlowTree {
-    fn with_tree_fields<R>(box: &@mut FlowContext, f: &fn(&mut tree::Tree<@mut FlowContext>) -> R) -> R {
+    fn with_tree_fields<R>(&self, box: &@mut FlowContext, f: &fn(&mut tree::Tree<@mut FlowContext>) -> R) -> R {
         let tree = &mut box.d().tree;
         f(tree)
     }
@@ -231,9 +250,9 @@ impl FlowTree {
 }
 
 impl tree::WriteMethods<@mut FlowContext> for FlowTree {
-    pure fn tree_eq(a: &@mut FlowContext, b: &@mut FlowContext) -> bool { core::managed::mut_ptr_eq(*a, *b) }
+    fn tree_eq(&self, a: &@mut FlowContext, b: &@mut FlowContext) -> bool { core::managed::mut_ptr_eq(*a, *b) }
 
-    fn with_tree_fields<R>(box: &@mut FlowContext, f: &fn(&mut tree::Tree<@mut FlowContext>) -> R) -> R {
+    fn with_tree_fields<R>(&self, box: &@mut FlowContext, f: &fn(&mut tree::Tree<@mut FlowContext>) -> R) -> R {
         let tree = &mut box.d().tree;
         f(tree)
     }
@@ -241,12 +260,12 @@ impl tree::WriteMethods<@mut FlowContext> for FlowTree {
 
 
 impl BoxedMutDebugMethods for FlowContext {
-    pure fn dump(@mut self) {
+    fn dump(@mut self) {
         self.dump_indent(0u);
     }
 
     /** Dumps the flow tree, for debugging, with indentation. */
-    pure fn dump_indent(@mut self, indent: uint) {
+    fn dump_indent(@mut self, indent: uint) {
         let mut s = ~"|";
         for uint::range(0u, indent) |_i| {
             s += ~"---- ";
@@ -263,10 +282,11 @@ impl BoxedMutDebugMethods for FlowContext {
         }
     }
     
-    pure fn debug_str(@mut self) -> ~str {
+    fn debug_str(@mut self) -> ~str {
         let repr = match *self {
             InlineFlow(*) => {
-                let mut s = self.inline().boxes.foldl(~"InlineFlow(children=", |s, box| {
+                let inline = self.inline(); // FIXME: borrow checker workaround
+                let mut s = inline.boxes.foldl(~"InlineFlow(children=", |s, box| {
                     fmt!("%s b%d", *s, box.d().id)
                 });
                 s += ~")";
@@ -286,7 +306,8 @@ impl BoxedMutDebugMethods for FlowContext {
             },
             _ => ~"(Unknown flow)"
         };
-            
-        fmt!("f%? %?", self.d().id, repr)
+
+        let d = self.d(); // FIXME: borrow checker workaround
+        fmt!("f%? %?", d.id, repr)
     }
 }

@@ -1,8 +1,8 @@
 use core::io::WriterUtil;
 use surface;
 
-fn encode(writer: io::Writer, surface: &surface::ImageSurface) {
-    fail_unless!(surface.format == surface::fo_rgba_8888);
+fn encode(writer: @io::Writer, surface: &surface::ImageSurface) {
+    assert!(surface.format == surface::fo_rgba_8888);
 
     writer.write_u8(0u8);                               // identsize
     writer.write_u8(0u8);                               // colourmaptype

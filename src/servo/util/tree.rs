@@ -1,5 +1,3 @@
-use core::vec;
-
 // A generic tree datatype.
 //
 // TODO: Use traits.
@@ -13,12 +11,12 @@ pub struct Tree<T> {
 }
 
 pub trait ReadMethods<T> {
-    fn with_tree_fields<R>(&T, f: &fn(&mut Tree<T>) -> R) -> R;
+    fn with_tree_fields<R>(&self, &T, f: &fn(&mut Tree<T>) -> R) -> R;
 }
 
 pub trait WriteMethods<T> {
-    fn with_tree_fields<R>(&T, f: &fn(&mut Tree<T>) -> R) -> R;
-    pure fn tree_eq(&T, &T) -> bool;
+    fn with_tree_fields<R>(&self, &T, f: &fn(&mut Tree<T>) -> R) -> R;
+    fn tree_eq(&self, &T, &T) -> bool;
 }
 
 pub fn each_child<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T, f: &fn(&T) -> bool) {
@@ -69,7 +67,7 @@ pub fn empty<T>() -> Tree<T> {
 }
 
 pub fn add_child<T:Copy,O:WriteMethods<T>>(ops: &O, parent: T, child: T) {
-    fail_unless!(!ops.tree_eq(&parent, &child));
+    assert!(!ops.tree_eq(&parent, &child));
 
     ops.with_tree_fields(&child, |child_tf| {
         match child_tf.parent {
@@ -77,8 +75,8 @@ pub fn add_child<T:Copy,O:WriteMethods<T>>(ops: &O, parent: T, child: T) {
           None => { child_tf.parent = Some(parent); }
         }
 
-        fail_unless!(child_tf.prev_sibling.is_none());
-        fail_unless!(child_tf.next_sibling.is_none());
+        assert!(child_tf.prev_sibling.is_none());
+        assert!(child_tf.next_sibling.is_none());
 
         ops.with_tree_fields(&parent, |parent_tf| {
             match copy parent_tf.last_child {
@@ -87,7 +85,7 @@ pub fn add_child<T:Copy,O:WriteMethods<T>>(ops: &O, parent: T, child: T) {
               }
               Some(lc) => {
                 ops.with_tree_fields(&lc, |lc_tf| {
-                    fail_unless!(lc_tf.next_sibling.is_none());
+                    assert!(lc_tf.next_sibling.is_none());
                     lc_tf.next_sibling = Some(child);
                 });
                 child_tf.prev_sibling = Some(lc);
@@ -104,7 +102,7 @@ pub fn remove_child<T:Copy,O:WriteMethods<T>>(ops: &O, parent: T, child: T) {
         match copy child_tf.parent {
             None => { fail!(~"Not a child"); }
             Some(parent_n) => {
-                fail_unless!(ops.tree_eq(&parent, &parent_n));
+                assert!(ops.tree_eq(&parent, &parent_n));
 
                 // adjust parent fields
                 do ops.with_tree_fields(&parent) |parent_tf| {
@@ -159,33 +157,33 @@ pub fn get_parent<T:Copy,O:ReadMethods<T>>(ops: &O, node: &T) -> Option<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use core::managed::ptr_eq;
+    use core::managed::mut_ptr_eq;
 
     struct dummy {
-        fields: Tree<@dummy>,
+        fields: Tree<@mut dummy>,
         value: uint
     }
 
     enum dtree { dtree }
 
-    impl ReadMethods<@dummy> for dtree {
-        fn with_tree_fields<R>(d: &@dummy, f: &fn(&Tree<@dummy>) -> R) -> R {
-            f(&d.fields)
+    impl ReadMethods<@mut dummy> for dtree {
+        fn with_tree_fields<R>(&self, d: &@mut dummy, f: &fn(&mut Tree<@mut dummy>) -> R) -> R {
+            f(&mut d.fields)
         }
     }
 
-    impl WriteMethods<@dummy> for dtree {
-        fn with_tree_fields<R>(d: &@dummy, f: &fn(&Tree<@dummy>) -> R) -> R {
-            f(&d.fields)
+    impl WriteMethods<@mut dummy> for dtree {
+        fn with_tree_fields<R>(&self, d: &@mut dummy, f: &fn(&mut Tree<@mut dummy>) -> R) -> R {
+            f(&mut d.fields)
         }
-        pure fn tree_eq(a: &@dummy, b: &@dummy) -> bool { ptr_eq(*a, *b) }
+        fn tree_eq(&self, a: &@mut dummy, b: &@mut dummy) -> bool { mut_ptr_eq(*a, *b) }
     }
 
-    fn new_dummy(v: uint) -> @dummy {
-        @dummy {fields: empty(), value: v}
+    fn new_dummy(v: uint) -> @mut dummy {
+        @mut dummy {fields: empty(), value: v}
     }
 
-    fn parent_with_3_children() -> (@dummy, ~[@dummy]) {
+    fn parent_with_3_children() -> (@mut dummy, ~[@mut dummy]) {
         let children = ~[new_dummy(0u),
                          new_dummy(1u),
                          new_dummy(2u)];
@@ -203,10 +201,10 @@ mod test {
         let (p, children) = parent_with_3_children();
         let mut i = 0u;
         for each_child(&dtree, &p) |c| {
-            fail_unless!(c.value == i);
+            assert!(c.value == i);
             i += 1u;
         }
-        fail_unless!(i == children.len());
+        assert!(i == children.len());
     }
 
     #[test]
@@ -217,7 +215,7 @@ mod test {
             i += 1u;
             break;
         }
-        fail_unless!(i == 1u);
+        assert!(i == 1u);
     }
 
     #[test]
@@ -229,7 +227,7 @@ mod test {
         for each_child(&dtree, &p) |_c| {
             i += 1;
         }
-        fail_unless!(i == 2);
+        assert!(i == 2);
     }
 
     #[test]
@@ -241,7 +239,7 @@ mod test {
         for each_child(&dtree, &p) |_c| {
             i += 1;
         }
-        fail_unless!(i == 2);
+        assert!(i == 2);
     }
 
     #[test]
@@ -253,7 +251,7 @@ mod test {
         for each_child(&dtree, &p) |_c| {
             i += 1;
         }
-        fail_unless!(i == 2);
+        assert!(i == 2);
     }
 
     #[test]
@@ -267,6 +265,6 @@ mod test {
         for each_child(&dtree, &p) |_c| {
             i += 1;
         }
-        fail_unless!(i == 0);
+        assert!(i == 0);
     }
 }

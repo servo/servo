@@ -4,12 +4,12 @@ use dom::bindings::codegen::ClientRectBinding;
 use js::jsapi::{JSObject, JSContext};
 
 pub trait ClientRect {
-    fn Top() -> f32;
-    fn Bottom() -> f32;
-    fn Left() -> f32;
-    fn Right() -> f32;
-    fn Width() -> f32;
-    fn Height() -> f32;
+    fn Top(&self) -> f32;
+    fn Bottom(&self) -> f32;
+    fn Left(&self) -> f32;
+    fn Right(&self) -> f32;
+    fn Width(&self) -> f32;
+    fn Height(&self) -> f32;
 }
 
 pub struct ClientRectImpl {
@@ -21,27 +21,27 @@ pub struct ClientRectImpl {
 }
 
 impl ClientRect for ClientRectImpl {
-    fn Top() -> f32 {
+    fn Top(&self) -> f32 {
         self.top
     }
 
-    fn Bottom() -> f32 {
+    fn Bottom(&self) -> f32 {
         self.bottom
     }
 
-    fn Left() -> f32 {
+    fn Left(&self) -> f32 {
         self.left
     }
 
-    fn Right() -> f32 {
+    fn Right(&self) -> f32 {
         self.right
     }
 
-    fn Width() -> f32 {
+    fn Width(&self) -> f32 {
         f32::abs(self.right - self.left)
     }
 
-    fn Height() -> f32 {
+    fn Height(&self) -> f32 {
         f32::abs(self.bottom - self.top)
     }
 }
@@ -63,7 +63,7 @@ impl CacheableWrapper for ClientRectImpl {
         ClientRectBinding::Wrap(cx, scope, self, &mut unused)
     }
 
-    fn wrap_object_shared(@self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+    fn wrap_object_shared(@self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"nyi")
     }
 }

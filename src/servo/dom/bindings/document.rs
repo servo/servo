@@ -1,27 +1,23 @@
 use js::rust::{Compartment, jsobj};
-use js::{JS_ARGV, JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSPROP_SHARED,
+use js::{JS_ARGV, JSPROP_ENUMERATE, JSPROP_SHARED,
             JSVAL_NULL, JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
-use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSFreeOp,
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp,
                 JSPropertySpec, JSPropertyOpWrapper, JSStrictPropertyOpWrapper,
                 JSNativeWrapper, JSFunctionSpec};
-use js::jsapi::bindgen::{JS_ValueToString, JS_GetStringCharsZAndLength, JS_ReportError,
-                            JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
-                            JS_DefineFunctions, JS_DefineProperty, JS_DefineProperties};
+use js::jsapi::bindgen::{JS_GetReservedSlot, JS_SetReservedSlot,
+                         JS_DefineFunctions, JS_DefineProperties};
 use js::glue::bindgen::*;
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB};
-use js::crust::{JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ConvertStub, JS_ResolveStub};
 use core::ptr::null;
 use core::libc::c_uint;
-use dom::bindings::utils::{DOMString, domstring_to_jsval, rust_box, squirrel_away, str};
+use dom::bindings::utils::{DOMString, rust_box, squirrel_away, str};
 use dom::bindings::utils::{jsval_to_str, WrapNewBindingObject, CacheableWrapper};
 use dom::bindings::utils::WrapperCache;
-use dom::bindings::node::create;
 
 use dom::document::Document;
 use dom::bindings::htmlcollection::HTMLCollection;
 use dom::bindings::node;
 use dom::bindings::utils;
-use dom::node::Node;
 
 extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
@@ -36,7 +32,7 @@ extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> J
     }
 }
 
-extern fn getElementsByTagName(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
+extern fn getElementsByTagName(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
     unsafe {
         let obj = JS_THIS_OBJECT(cx, vp);
 
@@ -56,7 +52,7 @@ extern fn getElementsByTagName(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBo
             JS_SET_RVAL(cx, vp, JSVAL_NULL);
         } else {
             let cache = doc.get_wrappercache();
-            fail_unless!(WrapNewBindingObject(cx, cache.get_wrapper(),
+            assert!(WrapNewBindingObject(cx, cache.get_wrapper(),
                                               rval.get(),
                                               cast::transmute(vp)));
         }
@@ -96,7 +92,7 @@ pub fn init(compartment: @mut Compartment, doc: @mut Document) {
          setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
-        fail_unless!(JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs) == 1);
+        assert!(JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs) == 1);
     });
 
     let methods = @~[JSFunctionSpec {name: compartment.add_name(~"getElementsByTagName"),
@@ -136,11 +132,11 @@ impl CacheableWrapper for Document {
         unsafe { cast::transmute(&self.wrapper) }
     }
 
-    fn wrap_object_unique(~self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+    fn wrap_object_unique(~self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"need to implement wrapping");
     }
 
-    fn wrap_object_shared(@self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+    fn wrap_object_shared(@self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"need to implement wrapping");
     }
 }

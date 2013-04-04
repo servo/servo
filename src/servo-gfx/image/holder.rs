@@ -1,6 +1,5 @@
 use image::base::Image;
-use resource::image_cache_task::{ImageCacheTask, ImageReady, ImageNotReady, ImageFailed};
-use resource::image_cache_task;
+use resource::image_cache_task::{ImageReady, ImageNotReady, ImageFailed};
 use resource::local_image_cache::LocalImageCache;
 
 use core::util::replace;
@@ -23,25 +22,25 @@ pub struct ImageHolder {
 }
 
 pub impl ImageHolder {
-	static pub fn new(url: Url, local_image_cache: @mut LocalImageCache) -> ImageHolder {
-		debug!("ImageHolder::new() %?", url.to_str());
-		let holder = ImageHolder {
-			url: url,
-			image: None,
-			cached_size: Size2D(0,0),
-			local_image_cache: local_image_cache,
-		};
+    pub fn new(url: Url, local_image_cache: @mut LocalImageCache) -> ImageHolder {
+        debug!("ImageHolder::new() %?", url.to_str());
+        let holder = ImageHolder {
+            url: url,
+            image: None,
+            cached_size: Size2D(0,0),
+            local_image_cache: local_image_cache,
+        };
 
-		// Tell the image cache we're going to be interested in this url
-		// FIXME: These two messages must be sent to prep an image for use
-		// but they are intended to be spread out in time. Ideally prefetch
-		// should be done as early as possible and decode only once we
-		// are sure that the image will be used.
-		local_image_cache.prefetch(&holder.url);
-		local_image_cache.decode(&holder.url);
+        // Tell the image cache we're going to be interested in this url
+        // FIXME: These two messages must be sent to prep an image for use
+        // but they are intended to be spread out in time. Ideally prefetch
+        // should be done as early as possible and decode only once we
+        // are sure that the image will be used.
+        local_image_cache.prefetch(&holder.url);
+        local_image_cache.decode(&holder.url);
 
-		holder
-	}
+        holder
+    }
 
     /**
     This version doesn't perform any computation, but may be stale w.r.t.
@@ -50,7 +49,7 @@ pub impl ImageHolder {
     The intent is that the impure version is used during layout when
     dimensions are used for computing layout.
     */
-    pure fn size(&self) -> Size2D<int> {
+    fn size(&self) -> Size2D<int> {
         self.cached_size
     }
     

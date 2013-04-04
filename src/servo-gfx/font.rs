@@ -8,8 +8,7 @@ use text::shaper::ShaperMethods;
 use text::{Shaper, TextRun};
 use text::shaper::ShaperMethods;
 
-use azure::{AzFloat, AzScaledFontRef, struct__AzDrawOptions, struct__AzGlyph};
-use azure::{struct__AzGlyphBuffer, struct__AzPoint};
+use azure::{AzFloat, AzScaledFontRef};
 use azure::scaled_font::ScaledFont;
 use azure::azure_hl::{BackendType, ColorPattern};
 use geom::{Point2D, Rect, Size2D};
@@ -26,18 +25,18 @@ use native;
 // resources needed by the graphics layer to draw glyphs.
 
 #[cfg(target_os = "macos")]
-pub type FontHandle/& = quartz::font::QuartzFontHandle;
+pub type FontHandle = quartz::font::QuartzFontHandle;
 
 #[cfg(target_os = "linux")]
-pub type FontHandle/& = freetype_impl::font::FreeTypeFontHandle;
+pub type FontHandle = freetype_impl::font::FreeTypeFontHandle;
 
 pub trait FontHandleMethods {
     // an identifier usable by FontContextHandle to recreate this FontHandle.
-    pure fn face_identifier(&self) -> ~str;
-    pure fn family_name(&self) -> ~str;
-    pure fn face_name(&self) -> ~str;
-    pure fn is_italic(&self) -> bool;
-    pure fn boldness(&self) -> CSSFontWeight;
+    fn face_identifier(&self) -> ~str;
+    fn family_name(&self) -> ~str;
+    fn face_name(&self) -> ~str;
+    fn is_italic(&self) -> bool;
+    fn boldness(&self) -> CSSFontWeight;
 
     fn clone_with_style(&self, fctx: &native::FontContextHandle, style: &UsedFontStyle) -> Result<FontHandle, ()>;
     fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex>;
@@ -53,18 +52,18 @@ pub trait FontHandleMethods {
 
 pub impl FontHandle {
     #[cfg(target_os = "macos")]
-    static pub fn new_from_buffer(fctx: &native::FontContextHandle,
-                                  buf: ~[u8],
-                                  style: &SpecifiedFontStyle)
-                               -> Result<FontHandle, ()> {
+    pub fn new_from_buffer(fctx: &native::FontContextHandle,
+                           buf: ~[u8],
+                           style: &SpecifiedFontStyle)
+            -> Result<FontHandle, ()> {
         quartz::font::QuartzFontHandle::new_from_buffer(fctx, buf, style)
     }
 
     #[cfg(target_os = "linux")]
-    static pub fn new_from_buffer(fctx: &native::FontContextHandle,
-                                  buf: ~[u8],
-                                  style: &SpecifiedFontStyle)
-                               -> Result<FontHandle, ()> {
+    pub fn new_from_buffer(fctx: &native::FontContextHandle,
+                           buf: ~[u8],
+                           style: &SpecifiedFontStyle)
+            -> Result<FontHandle, ()> {
         freetype_impl::font::FreeTypeFontHandle::new_from_buffer(fctx, @buf, style)
     }
 }
@@ -75,11 +74,11 @@ pub type FractionalPixel = float;
 pub type FontTableTag = u32;
 
 trait FontTableTagConversions {
-    pub pure fn tag_to_str(&self) -> ~str;
+    pub fn tag_to_str(&self) -> ~str;
 }
 
 impl FontTableTagConversions for FontTableTag {
-    pub pure fn tag_to_str(&self) -> ~str {
+    pub fn tag_to_str(&self) -> ~str {
         unsafe {
             let reversed = str::raw::from_buf_len(cast::transmute(self), 4);
             return str::from_chars([reversed.char_at(3),
@@ -91,10 +90,10 @@ impl FontTableTagConversions for FontTableTag {
 }
 
 #[cfg(target_os = "macos")]
-pub type FontTable/& = quartz::font::QuartzFontTable;
+pub type FontTable = quartz::font::QuartzFontTable;
 
 #[cfg(target_os = "linux")]
-pub type FontTable/& = freetype_impl::font::FreeTypeFontTable;
+pub type FontTable = freetype_impl::font::FreeTypeFontTable;
 
 pub trait FontTableMethods {
     fn with_buffer(&self, &fn(*u8, uint));
@@ -112,7 +111,7 @@ pub struct FontMetrics {
 }
 
 // TODO(Issue #200): use enum from CSS bindings for 'font-weight'
-#[deriving_eq]
+#[deriving(Eq)]
 pub enum CSSFontWeight {
     FontWeight100,
     FontWeight200,
@@ -126,7 +125,7 @@ pub enum CSSFontWeight {
 }
 
 pub impl CSSFontWeight {
-    pub pure fn is_bold(self) -> bool {
+    pub fn is_bold(self) -> bool {
         match self {
             FontWeight900 | FontWeight800 | FontWeight700 | FontWeight600 => true,
             _ => false
@@ -140,7 +139,7 @@ pub impl CSSFontWeight {
 // the instance's properties.
 //
 // For now, the cases are differentiated with a typedef
-#[deriving_eq]
+#[deriving(Eq)]
 pub struct FontStyle {
     pt_size: float,
     weight: CSSFontWeight,
@@ -165,14 +164,14 @@ struct ResolvedFont {
 // It's used to swizzle/unswizzle gfx::Font instances when
 // communicating across tasks, such as the display list between layout
 // and render tasks.
-#[deriving_eq]
+#[deriving(Eq)]
 pub struct FontDescriptor {
     style: UsedFontStyle,
     selector: FontSelector,
 }
 
 pub impl FontDescriptor {
-    static pure fn new(style: UsedFontStyle, selector: FontSelector) -> FontDescriptor {
+    fn new(style: UsedFontStyle, selector: FontSelector) -> FontDescriptor {
         FontDescriptor {
             style: style,
             selector: selector,
@@ -181,7 +180,7 @@ pub impl FontDescriptor {
 }
 
 // A FontSelector is a platform-specific strategy for serializing face names.
-#[deriving_eq]
+#[deriving(Eq)]
 pub enum FontSelector {
     SelectorPlatformIdentifier(~str),
     SelectorStubDummy, // aka, use Josephin Sans
@@ -203,7 +202,7 @@ pub struct FontGroup {
 }
 
 pub impl FontGroup {
-    static fn new(families: @str, style: &UsedFontStyle, fonts: ~[@mut Font]) -> FontGroup {
+    fn new(families: @str, style: &UsedFontStyle, fonts: ~[@mut Font]) -> FontGroup {
         FontGroup {
             families: families,
             style: copy *style,
@@ -212,7 +211,7 @@ pub impl FontGroup {
     }
 
     fn create_textrun(&self, text: ~str) -> TextRun {
-        fail_unless!(self.fonts.len() > 0);
+        assert!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
         return TextRun::new(self.fonts[0], text);
@@ -243,11 +242,11 @@ pub struct Font {
 }
 
 pub impl Font {
-    static fn new_from_buffer(ctx: &FontContext,
-                              buffer: ~[u8],
-                              style: &SpecifiedFontStyle,
-                              backend: BackendType)
-                           -> Result<@mut Font, ()> {
+    fn new_from_buffer(ctx: &FontContext,
+                       buffer: ~[u8],
+                       style: &SpecifiedFontStyle,
+                       backend: BackendType)
+            -> Result<@mut Font, ()> {
         let handle = FontHandle::new_from_buffer(&ctx.handle, buffer, style);
         let handle = if handle.is_ok() {
             result::unwrap(handle)
@@ -268,8 +267,8 @@ pub impl Font {
         });
     }
 
-    static fn new_from_adopted_handle(_fctx: &FontContext, handle: FontHandle,
-                                      style: &SpecifiedFontStyle, backend: BackendType) -> @mut Font {
+    fn new_from_adopted_handle(_fctx: &FontContext, handle: FontHandle,
+                               style: &SpecifiedFontStyle, backend: BackendType) -> @mut Font {
         let metrics = handle.get_metrics();
 
         @mut Font {
@@ -282,8 +281,8 @@ pub impl Font {
         }
     }
 
-    static fn new_from_existing_handle(fctx: &FontContext, handle: &FontHandle,
-                              style: &SpecifiedFontStyle, backend: BackendType) -> Result<@mut Font,()> {
+    fn new_from_existing_handle(fctx: &FontContext, handle: &FontHandle,
+                                style: &SpecifiedFontStyle, backend: BackendType) -> Result<@mut Font,()> {
 
         // TODO(Issue #179): convert between specified and used font style here?
         let styled_handle = match handle.clone_with_style(&fctx.handle, style) {
@@ -334,7 +333,7 @@ pub impl Font {
     }
 
     #[cfg(target_os="macos")]
-    priv fn create_azure_font() -> ScaledFont {
+    priv fn create_azure_font(&mut self) -> ScaledFont {
         let cg_font = self.handle.get_CGFont();
         let size = self.style.pt_size as AzFloat;
         ScaledFont::new(self.backend, &cg_font, size)
@@ -353,26 +352,21 @@ pub impl Font {
     fn draw_text_into_context(&mut self,
                               rctx: &RenderContext,
                               run: &TextRun,
-                              range: &const Range,
+                              range: &Range,
                               baseline_origin: Point2D<Au>,
                               color: Color) {
         use core::libc::types::common::c99::{uint16_t, uint32_t};
-        use azure::{AzDrawOptions,
-                    struct__AzDrawOptions,
-                    AzGlyph,
+        use azure::{struct__AzDrawOptions,
                     struct__AzGlyph,
-                    AzGlyphBuffer,
                     struct__AzGlyphBuffer,
                     struct__AzPoint};
-        use azure::azure::bindgen::{AzCreateColorPattern};
         use azure::azure::bindgen::{AzDrawTargetFillGlyphs};
-        use azure::azure::bindgen::{AzReleaseColorPattern};
 
         let target = rctx.get_draw_target();
         let azfontref = self.get_azure_font();
         let pattern = ColorPattern(color);
         let azure_pattern = pattern.azure_color_pattern;
-        fail_unless!(azure_pattern.is_not_null());
+        assert!(azure_pattern.is_not_null());
 
         let options = struct__AzDrawOptions {
             mAlpha: 1f as AzFloat,
@@ -417,7 +411,7 @@ pub impl Font {
                                ptr::null());
     }
 
-    fn measure_text(&self, run: &TextRun, range: &const Range) -> RunMetrics {
+    fn measure_text(&self, run: &TextRun, range: &Range) -> RunMetrics {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
@@ -479,7 +473,7 @@ fn should_get_glyph_indexes() {
     let matcher = @FontMatcher(fctx);
     let font = matcher.get_test_font();
     let glyph_idx = font.glyph_index('w');
-    fail_unless!(glyph_idx == Some(40u as GlyphIndex));
+    assert!(glyph_idx == Some(40u as GlyphIndex));
 }
 
 fn should_get_glyph_advance() {
@@ -490,7 +484,7 @@ fn should_get_glyph_advance() {
     let matcher = @FontMatcher(fctx);
     let font = matcher.get_test_font();
     let x = font.glyph_h_advance(40u as GlyphIndex);
-    fail_unless!(x == 15f || x == 16f);
+    assert!(x == 15f || x == 16f);
 }
 
 // Testing thread safety
@@ -508,7 +502,7 @@ fn should_get_glyph_advance_stress() {
             let matcher = @FontMatcher(fctx);
             let _font = matcher.get_test_font();
             let x = font.glyph_h_advance(40u as GlyphIndex);
-            fail_unless!(x == 15f || x == 16f);
+            assert!(x == 15f || x == 16f);
             chan.send(());
         }
     }

@@ -1,19 +1,16 @@
-use content::content_task::ContentTask;
 use dom::element::*;
-use dom::event::{Event, ReflowEvent};
 use dom::node::{AbstractNode, Comment, Doctype, Element, ElementNodeTypeId, Node, Text};
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use newcss::stylesheet::Stylesheet;
 use resource::image_cache_task::ImageCacheTask;
 use resource::image_cache_task;
 use resource::resource_task::{Done, Load, Payload, ResourceTask};
-use util::task::{spawn_listener, spawn_conversation};
+use util::task::spawn_conversation;
 
 use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
 use core::str::eq_slice;
 use gfx::util::url::make_url;
-use hubbub::hubbub::Attribute;
 use hubbub::hubbub;
 use std::net::url::Url;
 use std::net::url;
@@ -21,11 +18,11 @@ use std::net::url;
 macro_rules! handle_element(
     ($tag:expr, $string:expr, $ctor:ident, $type_id:expr) => (
         if eq_slice($tag, $string) {
-            let element = ~$ctor {
+            let _element = ~$ctor {
                 parent: Element::new($type_id, ($tag).to_str())
             };
             unsafe {
-                return Node::as_abstract_node(element);
+                return Node::as_abstract_node(_element);
             }
         }
     )
@@ -34,12 +31,12 @@ macro_rules! handle_element(
 macro_rules! handle_heading_element(
     ($tag:expr, $string:expr, $ctor:ident, $type_id:expr, $level:expr) => (
         if eq_slice($tag, $string) {
-            let element = ~HTMLHeadingElement {
+            let _element = ~HTMLHeadingElement {
                 parent: Element::new($type_id, ($tag).to_str()),
                 level: $level
             };
             unsafe {
-                return Node::as_abstract_node(element);
+                return Node::as_abstract_node(_element);
             }
         }
     )
@@ -65,14 +62,14 @@ struct HtmlParserResult {
 
 trait NodeWrapping {
     unsafe fn to_hubbub_node(self) -> hubbub::NodeDataPtr;
-    static unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> Self;
+    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> Self;
 }
 
 impl NodeWrapping for AbstractNode {
     unsafe fn to_hubbub_node(self) -> hubbub::NodeDataPtr {
         cast::transmute(self)
     }
-    static unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> AbstractNode {
+    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> AbstractNode {
         cast::transmute(n)
     }
 }
@@ -221,7 +218,6 @@ pub fn parse_html(url: Url,
     };
     let css_chan = SharedChan(css_chan);
 
-    let resource_task2 = resource_task.clone();
     // Spawn a JS parser to receive JavaScript.
     let resource_task2 = resource_task.clone();
     let (js_port, js_chan): (Port<JSResult>, Chan<JSMessage>) =
@@ -231,7 +227,7 @@ pub fn parse_html(url: Url,
     };
     let js_chan = SharedChan(js_chan);
 
-    let url = @url;
+    let url2 = url.clone(), url3 = url.clone();
 
     unsafe {
         // Build the root node.
@@ -247,7 +243,7 @@ pub fn parse_html(url: Url,
         // consists of processing inline stylesheets, but in the future it might perform
         // prefetching, etc.
         let css_chan2 = css_chan.clone();
-        let append_hook: @fn(AbstractNode, AbstractNode) = |parent_node, child_node| {
+        let append_hook: ~fn(AbstractNode, AbstractNode) = |parent_node, child_node| {
             if parent_node.is_style_element() && child_node.is_text() {
                 debug!("found inline CSS stylesheet");
                 let url = url::from_str("http://example.com/"); // FIXME
@@ -261,7 +257,7 @@ pub fn parse_html(url: Url,
         };
 
         let (css_chan2, js_chan2) = (css_chan.clone(), js_chan.clone());
-        parser.set_tree_handler(@hubbub::TreeHandler {
+        parser.set_tree_handler(~hubbub::TreeHandler {
             create_comment: |data: ~str| {
                 debug!("create comment");
                 unsafe {
@@ -310,7 +306,7 @@ pub fn parse_html(url: Url,
                                 (Some(rel), Some(href)) => {
                                     if rel == ~"stylesheet" {
                                         debug!("found CSS stylesheet: %s", href);
-                                        let url = make_url(href.to_str(), Some(copy *url));
+                                        let url = make_url(href.to_str(), Some(url2.clone()));
                                         css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
                                     }
                                 }
@@ -324,7 +320,7 @@ pub fn parse_html(url: Url,
                             match src_opt {
                                 None => {}
                                 Some(src) => {
-                                    let img_url = make_url(src, Some(copy *url));
+                                    let img_url = make_url(src, Some(url2.clone()));
                                     image_element.image = Some(copy img_url);
                                     // inform the image cache to load this, but don't store a handle.
                                     // TODO (Issue #84): don't prefetch if we are within a <noscript>
@@ -368,7 +364,7 @@ pub fn parse_html(url: Url,
                 debug!("remove child");
                 0u
             },
-            clone_node: |node, deep| {
+            clone_node: |_node, deep| {
                 debug!("clone node");
                 unsafe {
                     if deep { error!("-- deep clone unimplemented"); }
@@ -403,7 +399,7 @@ pub fn parse_html(url: Url,
                 // A little function for holding this lint attr
                 #[allow(non_implicitly_copyable_typarams)]
                 fn complete_script(script: hubbub::NodeDataPtr,
-                                   url: &Url,
+                                   url: Url,
                                    js_chan: SharedChan<JSMessage>) {
                     unsafe {
                         let script: AbstractNode = NodeWrapping::from_hubbub_node(script);
@@ -411,7 +407,7 @@ pub fn parse_html(url: Url,
                             match script.get_attr(~"src") {
                                 Some(src) => {
                                     debug!("found script: %s", src);
-                                    let new_url = make_url(src.to_str(), Some(copy *url));
+                                    let new_url = make_url(src.to_str(), Some(url.clone()));
                                     js_chan.send(JSTaskNewFile(new_url));
                                 }
                                 None => {}
@@ -419,14 +415,14 @@ pub fn parse_html(url: Url,
                         }
                     }
                 }
-                complete_script(script, url, js_chan2.clone());
+                complete_script(script, url3.clone(), js_chan2.clone());
                 debug!("complete script");
             }
         });
         debug!("set tree handler");
 
         let (input_port, input_chan) = comm::stream();
-        resource_task.send(Load(copy *url, input_chan));
+        resource_task.send(Load(url.clone(), input_chan));
         debug!("loaded page");
         loop {
             match input_port.recv() {

@@ -3,25 +3,20 @@ use display_list::DisplayList;
 use opts::Opts;
 use util::time;
 
-use azure::AzFloat;
 use azure::azure_hl::{B8G8R8A8, DrawTarget};
-use core::libc::c_int;
 use core::comm::Chan;
-use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use std::arc::ARC;
-use std::arc;
 
 pub struct RenderLayer {
     display_list: DisplayList,
     size: Size2D<uint>
 }
 
-type RenderFn = &'self fn(layer: *RenderLayer,
-                          buffer: LayerBuffer,
-                          return_buffer: Chan<LayerBuffer>);
+type RenderFn<'self> = &'self fn(layer: *RenderLayer,
+                                 buffer: LayerBuffer,
+                                 return_buffer: Chan<LayerBuffer>);
 
 /// Given a layer and a buffer, either reuses the buffer (if it's of the right size and format)
 /// or creates a new buffer (if it's not of the appropriate size and format) and invokes the
@@ -56,8 +51,8 @@ pub fn render_layers(layer_ref: *RenderLayer,
                 if stride % 32 != 0 {
                     stride = (stride & !(32 - 1)) + 32;
                 }
-                fail_unless!(stride % 32 == 0);
-                fail_unless!(stride >= width);
+                assert!(stride % 32 == 0);
+                assert!(stride >= width);
 
                 debug!("tile stride %u", stride);
 

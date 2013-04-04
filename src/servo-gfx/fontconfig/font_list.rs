@@ -29,7 +29,7 @@ pub struct FontconfigFontListHandle {
 }
 
 pub impl FontconfigFontListHandle {
-    static pub fn new(fctx: &native::FontContextHandle) -> FontconfigFontListHandle {
+    pub fn new(fctx: &native::FontContextHandle) -> FontconfigFontListHandle {
         FontconfigFontListHandle { fctx: fctx.clone() }
     }
 
