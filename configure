@@ -414,18 +414,10 @@ else
     LIBTOOLIZE=libtoolize
 fi
 
-PIXMAN_ACLOCALCMD="aclocal ${OSX_PKG_CONFIG_M4_MACROS}"
-CAIRO_ACLOCALCMD="aclocal ${OSX_PKG_CONFIG_M4_MACROS} -Ibuild"
 AUTOCMD="${LIBTOOLIZE} && autoconf && autoheader && automake --add-missing --copy --force"
 # Copied from cairo's autogen.sh. Build fails without
-CAIRO_BOILERPLATE="touch boilerplate/Makefile.am.features && touch src/Makefile.am.features"
-PIXMAN_AUTOCMD="${PIXMAN_ACLOCALCMD} && ${AUTOCMD}"
-CAIRO_AUTOCMD="${CAIRO_BOILERPLATE} && ${CAIRO_ACLOCALCMD} && ${AUTOCMD}"
 
-(cd ${CFG_SRC_DIR}src/pixman && eval ${PIXMAN_AUTOCMD}) || exit $?
-(cd ${CFG_SRC_DIR}src/cairo && eval ${CAIRO_AUTOCMD}) || exit $?
-
-CFG_SUBMODULES="libwapcaplet rust-wapcaplet rust-harfbuzz rust-opengles skia rust-azure rust-cairo rust-stb-image rust-geom rust-glut rust-layers rust-http-client libparserutils libhubbub libcss rust-netsurfcss rust-css rust-hubbub sharegl rust-mozjs mozjs pixman cairo"
+CFG_SUBMODULES="libwapcaplet rust-wapcaplet rust-harfbuzz rust-opengles skia rust-azure rust-stb-image rust-geom rust-glut rust-layers rust-http-client libparserutils libhubbub libcss rust-netsurfcss rust-css rust-hubbub sharegl rust-mozjs mozjs"
 
 if [ $CFG_OSTYPE = "apple-darwin" ]
 then
@@ -496,23 +488,11 @@ do
 	CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/js/src/configure"
     fi
 
-	# needed because Azure's configure wants "--enable-cairo --enable-skia"
+	# needed because Azure's configure wants "--enable-skia"
 	CONFIGURE_ARGS=""
 	ENV_VARS=""
 	if [ $i = "rust-azure" ]; then
-		CONFIGURE_ARGS="--enable-cairo --enable-skia"
-	fi
-	# libpng isn't available by default on OS X so don't make it required for cairo
-	# png is in turn required for the svg backend
-	if [ $i = "cairo" -a ${CFG_OSTYPE} = "apple-darwin" ]; then
-		CONFIGURE_ARGS="--enable-png=no --enable-svg=no --enable-ft=no --enable-xlib=no"
-	fi
-
-	# Tell pkg-config that the pixman library is in-tree
-	if [ $i = "cairo" ]; then
-	    export PKG_CONFIG_PATH=../pixman
-	else
-	    export PKG_CONFIG_PATH=
+		CONFIGURE_ARGS="--enable-skia"
 	fi
 
     if [ -f ${CONFIGURE_SCRIPT} ]
