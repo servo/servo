@@ -44,17 +44,6 @@ pub mod native;
 #[path="platform/mod.rs"]
 pub mod platform;
 
-#[cfg(target_os = "linux")]
-pub mod freetype_impl {
-    pub mod font;
-    pub mod font_context;
-}
-
-#[cfg(target_os = "linux")]
-pub mod fontconfig {
-    pub mod font_list;
-}
-
 // Images
 pub mod image {
     pub mod base;

@@ -4,20 +4,17 @@ use font::{CSSFontWeight, SpecifiedFontStyle};
 use gfx_font::FontHandleMethods;
 use gfx_font::FontHandleMethods;
 use native::FontHandle;
+use native;
 use platform;
 use util::time::time;
 
 use core::hashmap::HashMap;
 
-#[cfg(target_os = "linux")]
-use fontconfig;
-use native;
-
 #[cfg(target_os = "macos")]
 type FontListHandle = platform::font_list::QuartzFontListHandle;
 
 #[cfg(target_os = "linux")]
-type FontListHandle = fontconfig::font_list::FontconfigFontListHandle;
+type FontListHandle = platform::font_list::FontconfigFontListHandle;
 
 pub impl FontListHandle {
     #[cfg(target_os = "macos")]
@@ -27,7 +24,7 @@ pub impl FontListHandle {
 
     #[cfg(target_os = "linux")]
     pub fn new(fctx: &native::FontContextHandle) -> Result<FontListHandle, ()> {
-        Ok(fontconfig::font_list::FontconfigFontListHandle::new(fctx))
+        Ok(platform::font_list::FontconfigFontListHandle::new(fctx))
     }
 }
 

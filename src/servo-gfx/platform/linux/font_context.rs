@@ -1,22 +1,13 @@
 extern mod freetype;
 extern mod fontconfig;
 
-use self::freetype::freetype::{
-    FTErrorMethods,
-    FT_Library,
-};
-use self::freetype::freetype::bindgen::{
-    FT_Init_FreeType, 
-    FT_Done_FreeType
-};
-use fontconfig::font_list::path_from_identifier;
+use gfx_font::{FontHandle, UsedFontStyle};
+use platform::font::FreeTypeFontHandle;
+use platform::font_context::FontContextHandleMethods;
+use platform::font_list::path_from_identifier;
 
-use gfx_font::{
-    FontHandle,
-    UsedFontStyle,
-};
-use font_context::FontContextHandleMethods;
-use freetype_impl::font::FreeTypeFontHandle;
+use platform::font_context::freetype::freetype::{FTErrorMethods, FT_Library};
+use platform::font_context::freetype::freetype::bindgen::{FT_Done_FreeType, FT_Init_FreeType};
 
 struct FreeTypeLibraryHandle {
     ctx: FT_Library,
@@ -50,7 +41,8 @@ impl FontContextHandleMethods for FreeTypeFontContextHandle {
         FreeTypeFontContextHandle { ctx: self.ctx }
     }
 
-    fn create_font_from_identifier(&self, name: ~str, style: UsedFontStyle) -> Result<FontHandle, ()> {
+    fn create_font_from_identifier(&self, name: ~str, style: UsedFontStyle)
+                                -> Result<FontHandle, ()> {
         debug!("Creating font handle for %s", name);
         do path_from_identifier(name).chain |file_name| {
             debug!("Opening font face %s", file_name);

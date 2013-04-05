@@ -16,8 +16,6 @@ use azure::scaled_font::ScaledFont;
 use azure::azure_hl::{BackendType, ColorPattern};
 use geom::{Point2D, Rect, Size2D};
 
-#[cfg(target_os = "linux")]
-use freetype_impl;
 use native;
 
 // FontHandle encapsulates access to the platform's font API,
@@ -29,7 +27,7 @@ use native;
 pub type FontHandle = platform::font::QuartzFontHandle;
 
 #[cfg(target_os = "linux")]
-pub type FontHandle = freetype_impl::font::FreeTypeFontHandle;
+pub type FontHandle = platform::font::FreeTypeFontHandle;
 
 pub trait FontHandleMethods {
     // an identifier usable by FontContextHandle to recreate this FontHandle.
@@ -65,7 +63,7 @@ pub impl FontHandle {
                            buf: ~[u8],
                            style: &SpecifiedFontStyle)
             -> Result<FontHandle, ()> {
-        freetype_impl::font::FreeTypeFontHandle::new_from_buffer(fctx, @buf, style)
+        platform::font::FreeTypeFontHandle::new_from_buffer(fctx, @buf, style)
     }
 }
 
@@ -94,7 +92,7 @@ impl FontTableTagConversions for FontTableTag {
 pub type FontTable = platform::font::QuartzFontTable;
 
 #[cfg(target_os = "linux")]
-pub type FontTable = freetype_impl::font::FreeTypeFontTable;
+pub type FontTable = platform::font::FreeTypeFontTable;
 
 pub trait FontTableMethods {
     fn with_buffer(&self, &fn(*u8, uint));

@@ -1,59 +1,28 @@
+//! Linux (FreeType) representation of fonts.
+
 extern mod freetype;
 
-use native;
-use freetype_impl::font_context::FreeTypeFontContextHandle;
-use gfx_font::{
-    CSSFontWeight,
-    FontHandleMethods,
-    FontMetrics,
-    FontTable,
-    FontTableMethods,
-    FontTableTag,
-    FractionalPixel,
-    SpecifiedFontStyle,
-    UsedFontStyle,
-    FontWeight100,
-    FontWeight200,
-    FontWeight300,
-    FontWeight400,
-    FontWeight500,
-    FontWeight600,
-    FontWeight700,
-    FontWeight800,
-    FontWeight900,
-};
-use geometry;
 use geometry::Au;
+use geometry;
+use gfx_font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTable, FontTableMethods};
+use gfx_font::{FontTableTag, FractionalPixel, SpecifiedFontStyle, UsedFontStyle, FontWeight100};
+use gfx_font::{FontWeight200, FontWeight300, FontWeight400, FontWeight500, FontWeight600};
+use gfx_font::{FontWeight700, FontWeight800, FontWeight900};
+use native;
+use platform::font_context::FreeTypeFontContextHandle;
 use text::glyph::GlyphIndex;
 use text::util::{float_to_fixed, fixed_to_float};
 
-use self::freetype::freetype::{
-    FTErrorMethods,
-    FT_F26Dot6,
-    FT_Face, 
-    FT_FaceRec, 
-    FT_GlyphSlot, 
-    FT_Library,
-    FT_Long,
-    FT_ULong,
-    FT_SizeRec,
-    FT_UInt,
-    FT_Size_Metrics,
-    FT_STYLE_FLAG_ITALIC,
-    FT_STYLE_FLAG_BOLD,
-    ft_sfnt_os2
-};
-use self::freetype::freetype::bindgen::{
-    FT_New_Memory_Face,
-    FT_Done_Face,
-    FT_Get_Char_Index,
-    FT_Get_Postscript_Name,
-    FT_Load_Glyph,
-    FT_Set_Char_Size,
-    FT_New_Face,
-    FT_Get_Sfnt_Table
-};
-use self::freetype::tt_os2::TT_OS2;
+use platform::font::freetype::freetype::bindgen::{FT_Get_Char_Index, FT_Get_Postscript_Name};
+use platform::font::freetype::freetype::bindgen::{FT_Load_Glyph, FT_Set_Char_Size};
+use platform::font::freetype::freetype::bindgen::{FT_New_Face, FT_Get_Sfnt_Table};
+use platform::font::freetype::freetype::bindgen::{FT_New_Memory_Face, FT_Done_Face};
+use platform::font::freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
+use platform::font::freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
+use platform::font::freetype::freetype::{FT_STYLE_FLAG_ITALIC, FT_STYLE_FLAG_BOLD};
+use platform::font::freetype::freetype::{FT_SizeRec, FT_UInt, FT_Size_Metrics};
+use platform::font::freetype::freetype::{ft_sfnt_os2};
+use platform::font::freetype::tt_os2::TT_OS2;
 
 fn float_to_fixed_ft(f: float) -> i32 {
     float_to_fixed(6, f)

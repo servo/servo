@@ -1,5 +1,8 @@
+//! The font context.
+
 use font::{Font, FontDescriptor, FontGroup, FontStyle, SelectorPlatformIdentifier};
 use font::{SelectorStubDummy, SpecifiedFontStyle, UsedFontStyle};
+use font_context;
 use font_list::FontList;
 use native::FontHandle;
 use platform;
@@ -8,10 +11,6 @@ use util::cache::MonoCache;
 
 use azure::azure_hl::BackendType;
 use core::hashmap::HashMap;
-
-#[cfg(target_os = "linux")]
-use freetype_impl;
-use font_context;
 
 // TODO(Issue #164): delete, and get default font from font list
 static TEST_FONT: [u8, ..33004] = include_bin!("JosefinSans-SemiBold.ttf");
@@ -37,7 +36,7 @@ pub fn dummy_style() -> FontStyle {
 type FontContextHandle = platform::font_context::QuartzFontContextHandle;
 
 #[cfg(target_os = "linux")]
-type FontContextHandle = freetype_impl::font_context::FreeTypeFontContextHandle;
+type FontContextHandle = platform::font_context::FreeTypeFontContextHandle;
 
 pub trait FontContextHandleMethods {
     fn clone(&self) -> FontContextHandle;
@@ -54,7 +53,7 @@ pub impl FontContextHandle {
 
     #[cfg(target_os = "linux")]
     pub fn new() -> FontContextHandle {
-        freetype_impl::font_context::FreeTypeFontContextHandle::new()
+        platform::font_context::FreeTypeFontContextHandle::new()
     }
 }
 
