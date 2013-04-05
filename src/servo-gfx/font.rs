@@ -3,10 +3,10 @@
 use color::Color;
 use font_context::FontContext;
 use geometry::Au;
-use platform;
+use platform::font_context::FontContextHandle;
+use platform::font::{FontHandle, FontTable};
 use render_context::RenderContext;
 use text::glyph::{GlyphStore, GlyphIndex};
-use text::shaper::ShaperMethods;
 use text::shaper::ShaperMethods;
 use text::{Shaper, TextRun};
 use util::range::Range;
@@ -16,20 +16,15 @@ use azure::scaled_font::ScaledFont;
 use azure::azure_hl::{BackendType, ColorPattern};
 use geom::{Point2D, Rect, Size2D};
 
-use native;
-
 // FontHandle encapsulates access to the platform's font API,
 // e.g. quartz, FreeType. It provides access to metrics and tables
 // needed by the text shaper as well as access to the underlying font
 // resources needed by the graphics layer to draw glyphs.
 
-#[cfg(target_os = "macos")]
-pub type FontHandle = platform::font::QuartzFontHandle;
-
-#[cfg(target_os = "linux")]
-pub type FontHandle = platform::font::FreeTypeFontHandle;
-
 pub trait FontHandleMethods {
+    fn new_from_buffer(fctx: &FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle)
+                    -> Result<Self,()>;
+
     // an identifier usable by FontContextHandle to recreate this FontHandle.
     fn face_identifier(&self) -> ~str;
     fn family_name(&self) -> ~str;
@@ -37,34 +32,12 @@ pub trait FontHandleMethods {
     fn is_italic(&self) -> bool;
     fn boldness(&self) -> CSSFontWeight;
 
-    fn clone_with_style(&self, fctx: &native::FontContextHandle, style: &UsedFontStyle) -> Result<FontHandle, ()>;
+    fn clone_with_style(&self, fctx: &FontContextHandle, style: &UsedFontStyle)
+                     -> Result<FontHandle, ()>;
     fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex>;
     fn glyph_h_advance(&self, GlyphIndex) -> Option<FractionalPixel>;
     fn get_metrics(&self) -> FontMetrics;
     fn get_table_for_tag(&self, FontTableTag) -> Option<FontTable>;
-}
-
-// TODO(Issue #163): this is a workaround for static methods and
-// typedefs not working well together. It should be removed.
-//
-// `new` should be part of trait FontHandleMethods.
-
-pub impl FontHandle {
-    #[cfg(target_os = "macos")]
-    pub fn new_from_buffer(fctx: &native::FontContextHandle,
-                           buf: ~[u8],
-                           style: &SpecifiedFontStyle)
-            -> Result<FontHandle, ()> {
-        platform::font::QuartzFontHandle::new_from_buffer(fctx, buf, style)
-    }
-
-    #[cfg(target_os = "linux")]
-    pub fn new_from_buffer(fctx: &native::FontContextHandle,
-                           buf: ~[u8],
-                           style: &SpecifiedFontStyle)
-            -> Result<FontHandle, ()> {
-        platform::font::FreeTypeFontHandle::new_from_buffer(fctx, @buf, style)
-    }
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
@@ -87,12 +60,6 @@ impl FontTableTagConversions for FontTableTag {
         }
     }
 }
-
-#[cfg(target_os = "macos")]
-pub type FontTable = platform::font::QuartzFontTable;
-
-#[cfg(target_os = "linux")]
-pub type FontTable = platform::font::FreeTypeFontTable;
 
 pub trait FontTableMethods {
     fn with_buffer(&self, &fn(*u8, uint));
@@ -246,8 +213,8 @@ pub impl Font {
                        style: &SpecifiedFontStyle,
                        backend: BackendType)
             -> Result<@mut Font, ()> {
-        let handle = FontHandle::new_from_buffer(&ctx.handle, buffer, style);
-        let handle = if handle.is_ok() {
+        let handle = FontHandleMethods::new_from_buffer(&ctx.handle, buffer, style);
+        let handle: FontHandle = if handle.is_ok() {
             result::unwrap(handle)
         } else {
             return Err(handle.get_err());

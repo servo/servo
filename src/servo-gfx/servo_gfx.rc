@@ -37,10 +37,7 @@ pub mod font_list;
 // Misc.
 pub mod opts;
 
-// Pub-uses for multiple implementations. Platform selection happens in
-// font.rs, font_list.rs, font_context.rs
-pub mod native;
-
+// Platform-specific implementations.
 #[path="platform/mod.rs"]
 pub mod platform;
 

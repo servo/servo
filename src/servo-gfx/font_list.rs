@@ -2,36 +2,17 @@
 
 use font::{CSSFontWeight, SpecifiedFontStyle};
 use gfx_font::FontHandleMethods;
-use gfx_font::FontHandleMethods;
-use native::FontHandle;
-use native;
-use platform;
+use platform::font::FontHandle;
+use platform::font_context::FontContextHandle;
+use platform::font_list::FontListHandle;
 use util::time::time;
 
 use core::hashmap::HashMap;
 
-#[cfg(target_os = "macos")]
-type FontListHandle = platform::font_list::QuartzFontListHandle;
-
-#[cfg(target_os = "linux")]
-type FontListHandle = platform::font_list::FontconfigFontListHandle;
-
-pub impl FontListHandle {
-    #[cfg(target_os = "macos")]
-    pub fn new(fctx: &native::FontContextHandle) -> Result<FontListHandle, ()> {
-        Ok(platform::font_list::QuartzFontListHandle::new(fctx))
-    }
-
-    #[cfg(target_os = "linux")]
-    pub fn new(fctx: &native::FontContextHandle) -> Result<FontListHandle, ()> {
-        Ok(platform::font_list::FontconfigFontListHandle::new(fctx))
-    }
-}
-
 pub type FontFamilyMap = HashMap<~str, @mut FontFamily>;
 
 trait FontListHandleMethods {
-    fn get_available_families(&self, fctx: &native::FontContextHandle) -> FontFamilyMap;
+    fn get_available_families(&self, fctx: &FontContextHandle) -> FontFamilyMap;
     fn load_variations_for_family(&self, family: @mut FontFamily);
 }
 
@@ -41,8 +22,8 @@ pub struct FontList {
 }
 
 pub impl FontList {
-    fn new(fctx: &native::FontContextHandle) -> FontList {
-        let handle = result::unwrap(FontListHandle::new(fctx));
+    fn new(fctx: &FontContextHandle) -> FontList {
+        let handle = FontListHandle::new(fctx);
         let mut list = FontList {
             handle: handle,
             family_map: HashMap::new(),
@@ -51,7 +32,7 @@ pub impl FontList {
         return list;
     }
 
-    priv fn refresh(&mut self, _fctx: &native::FontContextHandle) {
+    priv fn refresh(&mut self, _: &FontContextHandle) {
         // TODO(Issue #186): don't refresh unless something actually
         // changed.  Does OSX have a notification for this event?
         //
@@ -106,15 +87,15 @@ pub impl FontFamily {
         }
     }
 
-    priv fn load_family_variations(@mut self, list: &native::FontListHandle) {
+    priv fn load_family_variations(@mut self, list: &FontListHandle) {
         let this : &mut FontFamily = self; // FIXME: borrow checker workaround
         if this.entries.len() > 0 { return; }
         list.load_variations_for_family(self);
         assert!(this.entries.len() > 0);
     }
 
-    fn find_font_for_style(@mut self, list: &native::FontListHandle, style: &SpecifiedFontStyle) -> Option<@FontEntry> {
-
+    fn find_font_for_style(@mut self, list: &FontListHandle, style: &SpecifiedFontStyle)
+                        -> Option<@FontEntry> {
         self.load_family_variations(list);
 
         // TODO(Issue #189): optimize lookup for
@@ -165,5 +146,8 @@ pub impl FontEntry {
         self.weight.is_bold()
     }
 
-    fn is_italic(&self) -> bool { self.italic }
+    fn is_italic(&self) -> bool {
+        self.italic
+    }
 }
+

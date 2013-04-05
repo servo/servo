@@ -8,8 +8,7 @@ use gfx_font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTable, FontTab
 use gfx_font::{FontTableTag, FractionalPixel, SpecifiedFontStyle, UsedFontStyle, FontWeight100};
 use gfx_font::{FontWeight200, FontWeight300, FontWeight400, FontWeight500, FontWeight600};
 use gfx_font::{FontWeight700, FontWeight800, FontWeight900};
-use native;
-use platform::font_context::FreeTypeFontContextHandle;
+use platform::font_context::{FreeTypeFontContextHandle, FontContextHandle};
 use text::glyph::GlyphIndex;
 use text::util::{float_to_fixed, fixed_to_float};
 
@@ -23,6 +22,9 @@ use platform::font::freetype::freetype::{FT_STYLE_FLAG_ITALIC, FT_STYLE_FLAG_BOL
 use platform::font::freetype::freetype::{FT_SizeRec, FT_UInt, FT_Size_Metrics};
 use platform::font::freetype::freetype::{ft_sfnt_os2};
 use platform::font::freetype::tt_os2::TT_OS2;
+
+pub use FontHandle = platform::linux::font::FreeTypeFontHandle;
+pub use FontTable = platform::linux::font::FreeTypeFontTable;
 
 fn float_to_fixed_ft(f: float) -> i32 {
     float_to_fixed(6, f)
@@ -113,9 +115,15 @@ pub impl FreeTypeFontHandle {
 
         Ok(FreeTypeFontHandle { source: FontSourceFile(file), face: face })
     }
+}
 
+impl FontHandleMethods for FreeTypeFontHandle {
     pub fn new_from_buffer(fctx: &FreeTypeFontContextHandle,
-                           buf: @~[u8], style: &SpecifiedFontStyle) -> Result<FreeTypeFontHandle, ()> {
+                           buf: ~[u8],
+                           style: &SpecifiedFontStyle)
+                        -> Result<FreeTypeFontHandle, ()> {
+        let buf = @buf;
+
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
 
@@ -150,9 +158,7 @@ pub impl FreeTypeFontHandle {
              }
          }
     }
-}
 
-impl FontHandleMethods for FreeTypeFontHandle {
     // an identifier usable by FontContextHandle to recreate this FontHandle.
     fn face_identifier(&self) -> ~str {
         /* FT_Get_Postscript_Name seems like a better choice here, but it
@@ -196,7 +202,7 @@ impl FontHandleMethods for FreeTypeFontHandle {
     }
 
     fn clone_with_style(&self,
-                        fctx: &native::FontContextHandle,
+                        fctx: &FontContextHandle,
                         style: &UsedFontStyle) -> Result<FreeTypeFontHandle, ()> {
         match self.source {
             FontSourceMem(buf) => {

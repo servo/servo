@@ -4,7 +4,8 @@ use geom::Point2D;
 
 use geometry::Au;
 
-use font::{Font, FontTable, FontTableMethods, FontTableTag};
+use font::{Font, FontTableMethods, FontTableTag};
+use platform::font::FontTable;
 
 use text::glyph::{GlyphStore, GlyphIndex, GlyphData};
 use text::shaper::ShaperMethods;

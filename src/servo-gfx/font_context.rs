@@ -4,8 +4,8 @@ use font::{Font, FontDescriptor, FontGroup, FontStyle, SelectorPlatformIdentifie
 use font::{SelectorStubDummy, SpecifiedFontStyle, UsedFontStyle};
 use font_context;
 use font_list::FontList;
-use native::FontHandle;
-use platform;
+use platform::font::FontHandle;
+use platform::font_context::FontContextHandle;
 use util::cache::Cache;
 use util::cache::MonoCache;
 
@@ -32,29 +32,9 @@ pub fn dummy_style() -> FontStyle {
     }
 }
 
-#[cfg(target_os = "macos")]
-type FontContextHandle = platform::font_context::QuartzFontContextHandle;
-
-#[cfg(target_os = "linux")]
-type FontContextHandle = platform::font_context::FreeTypeFontContextHandle;
-
 pub trait FontContextHandleMethods {
     fn clone(&self) -> FontContextHandle;
     fn create_font_from_identifier(&self, ~str, UsedFontStyle) -> Result<FontHandle, ()>;
-}
-
-// TODO(Issue #163): this is a workaround for static methods, traits,
-// and typedefs not working well together. It should be removed.
-pub impl FontContextHandle {
-    #[cfg(target_os = "macos")]
-    pub fn new() -> FontContextHandle {
-        platform::font_context::QuartzFontContextHandle::new()
-    }
-
-    #[cfg(target_os = "linux")]
-    pub fn new() -> FontContextHandle {
-        platform::font_context::FreeTypeFontContextHandle::new()
-    }
 }
 
 #[allow(non_implicitly_copyable_typarams)]

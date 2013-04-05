@@ -5,9 +5,8 @@ use gfx_font::FontHandleMethods;
 use gfx_font_context::FontContextHandleMethods;
 use gfx_font_list::{FontEntry, FontFamily, FontFamilyMap};
 
-use native;
-use platform::macos::font::QuartzFontHandle;
-use platform::macos::font_context::QuartzFontContextHandle;
+use platform::macos::font::FontHandle;
+use platform::macos::font_context::FontContextHandle;
 use platform::macos::font_list::core_foundation::array::CFArray;
 use platform::macos::font_list::core_foundation::base::CFWrapper;
 use platform::macos::font_list::core_foundation::string::{CFString, CFStringRef};
@@ -17,13 +16,15 @@ use platform;
 
 use core::hashmap::HashMap;
 
-pub struct QuartzFontListHandle {
-    fctx: QuartzFontContextHandle,
+pub struct FontListHandle {
+    fctx: FontContextHandle,
 }
 
-pub impl QuartzFontListHandle {
-    fn new(fctx: &native::FontContextHandle) -> QuartzFontListHandle {
-        QuartzFontListHandle { fctx: fctx.clone() }
+pub impl FontListHandle {
+    fn new(fctx: &FontContextHandle) -> FontListHandle {
+        FontListHandle {
+            fctx: fctx.clone()
+        }
     }
 
     fn get_available_families(&self) -> FontFamilyMap {
@@ -52,7 +53,7 @@ pub impl QuartzFontListHandle {
             let desc = CFWrapper::wrap_shared(*descref);
             let font = platform::macos::font_list::core_text::font::new_from_descriptor(&desc,
                                                                                         0.0);
-            let handle = result::unwrap(QuartzFontHandle::new_from_CTFont(&self.fctx, font));
+            let handle = result::unwrap(FontHandle::new_from_CTFont(&self.fctx, font));
 
             debug!("Creating new FontEntry for face: %s", handle.face_name());
             let entry = @FontEntry::new(family, handle);

@@ -2,26 +2,28 @@ extern mod core_foundation;
 extern mod core_graphics;
 extern mod core_text;
 
-use gfx_font::{FontHandle, UsedFontStyle};
+use gfx_font::UsedFontStyle;
 use gfx_font_context::FontContextHandleMethods;
 
-use platform::macos::font::QuartzFontHandle;
+use platform::macos::font::FontHandle;
 use platform;
 
-pub struct QuartzFontContextHandle {
+pub struct FontContextHandle {
     ctx: ()
 }
 
-pub impl QuartzFontContextHandle {
+pub impl FontContextHandle {
     // this is a placeholder until NSFontManager or whatever is bound in here.
-    pub fn new() -> QuartzFontContextHandle {
-        QuartzFontContextHandle { ctx: () }
+    pub fn new() -> FontContextHandle {
+        FontContextHandle { ctx: () }
     }
 }
 
-impl FontContextHandleMethods for QuartzFontContextHandle {
-    fn clone(&self) -> QuartzFontContextHandle {
-        QuartzFontContextHandle { ctx: self.ctx }
+impl FontContextHandleMethods for FontContextHandle {
+    fn clone(&self) -> FontContextHandle {
+        FontContextHandle {
+            ctx: self.ctx
+        }
     }
 
     fn create_font_from_identifier(&self,
@@ -32,7 +34,7 @@ impl FontContextHandleMethods for QuartzFontContextHandle {
             name,
             style.pt_size);
         do result::chain(ctfont_result) |ctfont| {
-            QuartzFontHandle::new_from_CTFont(self, ctfont)
+            FontHandle::new_from_CTFont(self, ctfont)
         }
     }
 }

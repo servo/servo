@@ -9,6 +9,8 @@ use platform::font_list::path_from_identifier;
 use platform::font_context::freetype::freetype::{FTErrorMethods, FT_Library};
 use platform::font_context::freetype::freetype::bindgen::{FT_Done_FreeType, FT_Init_FreeType};
 
+pub use FontContextHandle = platform::linux::FreeTypeFontContextHandle;
+
 struct FreeTypeLibraryHandle {
     ctx: FT_Library,
 }

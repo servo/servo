@@ -6,9 +6,8 @@ extern mod fontconfig;
 use gfx_font::FontHandleMethods;
 use gfx_font_context::FontContextHandleMethods;
 use gfx_font_list::{FontEntry, FontFamily, FontFamilyMap};
-use native;
 use platform::font::FreeTypeFontHandle;
-use platform::font_context::FreeTypeFontContextHandle;
+use platform::font_context::{FontContextHandle, FreeTypeFontContextHandle};
 
 use core::hashmap::HashMap;
 use core::libc::c_int;
@@ -35,7 +34,7 @@ pub struct FontconfigFontListHandle {
 }
 
 pub impl FontconfigFontListHandle {
-    pub fn new(fctx: &native::FontContextHandle) -> FontconfigFontListHandle {
+    pub fn new(fctx: &FontContextHandle) -> FontconfigFontListHandle {
         FontconfigFontListHandle { fctx: fctx.clone() }
     }
 
