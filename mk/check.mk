@@ -31,9 +31,9 @@ DEPS_CHECK_TARGETS_FAST = $(addprefix check-,$(filter-out $(SLOW_TESTS),$(DEPS_C
 
 .PHONY: check $(DEPS_CHECK_TARGETS_ALL)
 
-check: $(DEPS_CHECK_TARGETS_FAST) check-servo
+check: $(DEPS_CHECK_TARGETS_FAST) check-servo tidy
 
-check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo
+check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo tidy
 
 check-servo: servo-test
 	./servo-test $(TESTNAME)
@@ -43,3 +43,6 @@ check-ref: reftest
 
 check-content: contenttest
 	./contenttest --source-dir=$(S)/src/test/content $(TESTNAME)
+
+tidy: 
+	python $(S)/src/etc/tidy.py $(S)/src
