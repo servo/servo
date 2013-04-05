@@ -50,9 +50,12 @@ license4 = """\
 licenses = [license0, license1, license2, license3, license4]
 
 exceptions = [
-    "rust-http-client/http_parser.c", # Joyent, BSD
-    "rust-http-client/http_parser.h", # Joyent, BSD
-    "rust-opengles/gl2.h", # Khronos, SGI Free Software B License Version 2.0
+    "rust-http-client/http_parser.c", # BSD, Joyent
+    "rust-http-client/http_parser.h", # BSD, Joyent
+    "rust-opengles/gl2.h", # SGI Free Software B License Version 2.0, Khronos Group
+    "servo/dom/bindings/codegen/ply/ply/yacc.py", # BSD
+    "servo/dom/bindings/codegen/ply/ply/__init__.py", # BSD
+    "servo/dom/bindings/codegen/ply/ply/lex.py", # BSD
 ]
 
 def check_license(name, contents):
