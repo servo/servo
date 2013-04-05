@@ -62,7 +62,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
                 fail!(~"unknown backend type")
             }
         }
-        None => CairoBackend
+        None => SkiaBackend
     };
 
     let tile_size: uint = match getopts::opt_maybe_str(&opt_match, ~"s") {

@@ -5,7 +5,6 @@
 #[crate_type = "lib"];
 
 extern mod azure;
-extern mod cairo;
 extern mod geom;
 extern mod http_client;
 extern mod stb_image;

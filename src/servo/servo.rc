@@ -10,7 +10,6 @@
 #[legacy_records];
 
 extern mod azure;
-extern mod cairo;
 extern mod geom;
 extern mod gfx (name = "servo_gfx");
 extern mod glut;
