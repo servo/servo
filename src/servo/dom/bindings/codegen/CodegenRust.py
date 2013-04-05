@@ -3166,7 +3166,7 @@ class CGGenericGetter(CGAbstractBindingMethod):
     A class for generating the C++ code for an IDL attribute getter.
     """
     def __init__(self, descriptor, lenientThis=False):
-        args = [Argument('*JSContext', 'cx'), Argument('uint', 'argc'),
+        args = [Argument('*JSContext', 'cx'), Argument('uint', '_argc'),
                 Argument('*JSVal', 'vp')]
         if lenientThis:
             name = "genericLenientGetter"
@@ -3193,8 +3193,8 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     def __init__(self, descriptor, attr):
         self.attr = attr
         name = 'get_' + attr.identifier.name
-        args = [ Argument('*JSContext', 'cx'),
-                 Argument('JSHandleObject', 'obj'),
+        args = [ Argument('*JSContext', '_cx'),
+                 Argument('JSHandleObject', '_obj'),
                  Argument('*%s' % descriptor.nativeType, 'self'),
                  Argument('*mut JSVal', 'vp') ]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
@@ -3373,7 +3373,7 @@ class CGXrayHelper(CGAbstractExternMethod):
 class CGResolveProperty(CGXrayHelper):
     def __init__(self, descriptor, properties):
         args = [Argument('*JSContext', 'cx'), Argument('*JSObject', 'wrapper'),
-                Argument('jsid', 'id'), Argument('bool', 'set'),
+                Argument('jsid', 'id'), Argument('bool', '_set'),
                 Argument('*mut JSPropertyDescriptor', 'desc')]
         CGXrayHelper.__init__(self, descriptor, "ResolveProperty", args,
                               properties)
@@ -3470,7 +3470,7 @@ class CGProxyUnwrap(CGAbstractMethod):
 class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*JSContext', 'cx'), Argument('*JSObject', 'proxy'),
-                Argument('*JSObject', 'receiver'), Argument('jsid', 'id'),
+                Argument('*JSObject', '_receiver'), Argument('jsid', 'id'),
                 Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, "get", "JSBool", args)
         self.descriptor = descriptor
@@ -3543,7 +3543,7 @@ return 1;""" % (getIndexedOrExpando, getNamed)
 
 class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
     def __init__(self, descriptor):
-        args = [Argument('*JSContext', 'cx'), Argument('*JSObject', 'proxy')]
+        args = [Argument('*JSContext', 'cx'), Argument('*JSObject', '_proxy')]
         CGAbstractExternMethod.__init__(self, descriptor, "obj_toString", "*JSString", args)
         self.descriptor = descriptor
     def getBody(self):
@@ -3618,7 +3618,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
     JS-visible constructor for our objects
     """
     def __init__(self, descriptor):
-        args = [Argument('*JSContext', 'cx'), Argument('u32', 'argc'), Argument('*mut JSVal', 'vp')]
+        args = [Argument('*JSContext', 'cx'), Argument('u32', '_argc'), Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, CONSTRUCT_HOOK_NAME,
                                         'JSBool', args)
         self._ctor = self.descriptor.interface.ctor()
@@ -3710,7 +3710,7 @@ class CGClassFinalizeHook(CGAbstractClassHook):
     A hook for finalize, used to release our native object.
     """
     def __init__(self, descriptor):
-        args = [Argument('*JSFreeOp', 'fop'), Argument('*JSObject', 'obj')]
+        args = [Argument('*JSFreeOp', '_fop'), Argument('*JSObject', 'obj')]
         CGAbstractClassHook.__init__(self, descriptor, FINALIZE_HOOK_NAME,
                                      'void', args)
 
