@@ -1,8 +1,6 @@
 # Tests for these submodules will not be run by the default `make check` target.
 SLOW_TESTS += \
 	mozjs \
-	pixman \
-	cairo \
 	$(NULL)
 
 # These submodules will not be cleaned by the `make clean-fast` target.
@@ -13,8 +11,6 @@ SLOW_BUILDS += \
 	mozjs \
 	sharegl \
 	skia \
-	pixman \
-	cairo \
 	$(NULL)
 
 # Builds that do not require rustc
@@ -25,8 +21,6 @@ NATIVE_BUILDS += \
 	libwapcaplet \
 	mozjs \
 	skia \
-	pixman \
-	cairo \
 	$(NULL)
 
 # NOTE: the make magic can only compute transitive build dependencies,
@@ -35,13 +29,8 @@ NATIVE_BUILDS += \
 
 # NB. This should not be a problem once a real package system exists.
 
-DEPS_rust-cairo += \
-	cairo \
-	$(NULL)
-
 DEPS_rust-azure += \
 	rust-geom \
-	rust-cairo \
 	skia \
 	$(NULL)
 
@@ -51,7 +40,6 @@ DEPS_rust-glut += \
 
 DEPS_rust-layers += \
 	rust-azure \
-	rust-cairo \
 	rust-geom \
 	rust-glut \
 	rust-opengles \
@@ -102,14 +90,6 @@ DEPS_libcss += \
 	libparserutils \
 	$(NULL)
 
-DONE_pixman = "$(B)src/pixman/pixman/.libs/libpixman-1.a"
-
-DONE_cairo = "$(B)src/cairo/src/.libs/libcairo.a"
-
-DEPS_cairo += \
-	pixman \
-	$(NULL)
-
 # Platform-specific dependencies
 ifeq ($(CFG_OSTYPE),apple-darwin)
 DEPS_rust-azure += \
@@ -117,11 +97,6 @@ DEPS_rust-azure += \
 	rust-core-text \
 	rust-core-foundation \
 	skia \
-	$(NULL)
-
-DEPS_rust-cairo += \
-	rust-core-foundation \
-	rust-core-graphics \
 	$(NULL)
 
 DEPS_rust-io-surface += \
@@ -151,12 +126,6 @@ DEPS_rust-layers += \
 endif
 
 ifeq ($(CFG_OSTYPE),unknown-linux-gnu)
-
-DEPS_rust-cairo += \
-	rust-freetype \
-	rust-fontconfig \
-	rust-xlib \
-	$(NULL)
 
 DEPS_rust-azure += \
 	rust-freetype \
