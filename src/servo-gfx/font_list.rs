@@ -1,19 +1,20 @@
+//! Implementation of the list of fonts.
+
 use font::{CSSFontWeight, SpecifiedFontStyle};
 use gfx_font::FontHandleMethods;
-use native::FontHandle;
 use gfx_font::FontHandleMethods;
+use native::FontHandle;
+use platform;
+use util::time::time;
 
 use core::hashmap::HashMap;
 
 #[cfg(target_os = "linux")]
 use fontconfig;
-#[cfg(target_os = "macos")]
-use quartz;
 use native;
-use util::time::time;
 
 #[cfg(target_os = "macos")]
-type FontListHandle = quartz::font_list::QuartzFontListHandle;
+type FontListHandle = platform::font_list::QuartzFontListHandle;
 
 #[cfg(target_os = "linux")]
 type FontListHandle = fontconfig::font_list::FontconfigFontListHandle;
@@ -21,7 +22,7 @@ type FontListHandle = fontconfig::font_list::FontconfigFontListHandle;
 pub impl FontListHandle {
     #[cfg(target_os = "macos")]
     pub fn new(fctx: &native::FontContextHandle) -> Result<FontListHandle, ()> {
-        Ok(quartz::font_list::QuartzFontListHandle::new(fctx))
+        Ok(platform::font_list::QuartzFontListHandle::new(fctx))
     }
 
     #[cfg(target_os = "linux")]

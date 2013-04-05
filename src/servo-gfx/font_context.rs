@@ -2,14 +2,13 @@ use font::{Font, FontDescriptor, FontGroup, FontStyle, SelectorPlatformIdentifie
 use font::{SelectorStubDummy, SpecifiedFontStyle, UsedFontStyle};
 use font_list::FontList;
 use native::FontHandle;
+use platform;
 use util::cache::Cache;
 use util::cache::MonoCache;
 
 use azure::azure_hl::BackendType;
 use core::hashmap::HashMap;
 
-#[cfg(target_os = "macos")]
-use quartz;
 #[cfg(target_os = "linux")]
 use freetype_impl;
 use font_context;
@@ -35,7 +34,7 @@ pub fn dummy_style() -> FontStyle {
 }
 
 #[cfg(target_os = "macos")]
-type FontContextHandle = quartz::font_context::QuartzFontContextHandle;
+type FontContextHandle = platform::font_context::QuartzFontContextHandle;
 
 #[cfg(target_os = "linux")]
 type FontContextHandle = freetype_impl::font_context::FreeTypeFontContextHandle;
@@ -50,7 +49,7 @@ pub trait FontContextHandleMethods {
 pub impl FontContextHandle {
     #[cfg(target_os = "macos")]
     pub fn new() -> FontContextHandle {
-        quartz::font_context::QuartzFontContextHandle::new()
+        platform::font_context::QuartzFontContextHandle::new()
     }
 
     #[cfg(target_os = "linux")]

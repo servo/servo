@@ -41,12 +41,8 @@ pub mod opts;
 // font.rs, font_list.rs, font_context.rs
 pub mod native;
 
-#[cfg(target_os = "macos")]
-pub mod quartz {
-    pub mod font;
-    pub mod font_context;
-    pub mod font_list;
-}
+#[path="platform/mod.rs"]
+pub mod platform;
 
 #[cfg(target_os = "linux")]
 pub mod freetype_impl {

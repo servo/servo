@@ -1,20 +1,21 @@
+//! Fonts.
+
 use color::Color;
 use font_context::FontContext;
 use geometry::Au;
+use platform;
 use render_context::RenderContext;
-use util::range::Range;
 use text::glyph::{GlyphStore, GlyphIndex};
 use text::shaper::ShaperMethods;
-use text::{Shaper, TextRun};
 use text::shaper::ShaperMethods;
+use text::{Shaper, TextRun};
+use util::range::Range;
 
 use azure::{AzFloat, AzScaledFontRef};
 use azure::scaled_font::ScaledFont;
 use azure::azure_hl::{BackendType, ColorPattern};
 use geom::{Point2D, Rect, Size2D};
 
-#[cfg(target_os = "macos")]
-use quartz;
 #[cfg(target_os = "linux")]
 use freetype_impl;
 use native;
@@ -25,7 +26,7 @@ use native;
 // resources needed by the graphics layer to draw glyphs.
 
 #[cfg(target_os = "macos")]
-pub type FontHandle = quartz::font::QuartzFontHandle;
+pub type FontHandle = platform::font::QuartzFontHandle;
 
 #[cfg(target_os = "linux")]
 pub type FontHandle = freetype_impl::font::FreeTypeFontHandle;
@@ -56,7 +57,7 @@ pub impl FontHandle {
                            buf: ~[u8],
                            style: &SpecifiedFontStyle)
             -> Result<FontHandle, ()> {
-        quartz::font::QuartzFontHandle::new_from_buffer(fctx, buf, style)
+        platform::font::QuartzFontHandle::new_from_buffer(fctx, buf, style)
     }
 
     #[cfg(target_os = "linux")]
@@ -90,7 +91,7 @@ impl FontTableTagConversions for FontTableTag {
 }
 
 #[cfg(target_os = "macos")]
-pub type FontTable = quartz::font::QuartzFontTable;
+pub type FontTable = platform::font::QuartzFontTable;
 
 #[cfg(target_os = "linux")]
 pub type FontTable = freetype_impl::font::FreeTypeFontTable;

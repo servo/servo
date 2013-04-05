@@ -1,4 +1,4 @@
-/// Implementation of Quartz (CoreGraphics) fonts.
+//! Implementation of Quartz (CoreGraphics) fonts.
 
 extern mod core_foundation;
 extern mod core_graphics;
@@ -9,17 +9,18 @@ use gfx_font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTable, FontTab
 use gfx_font::{FontTableTag, FontWeight100, FontWeight200, FontWeight300, FontWeight400};
 use gfx_font::{FontWeight500, FontWeight600, FontWeight700, FontWeight800, FontWeight900};
 use gfx_font::{FractionalPixel, SpecifiedFontStyle};
-use quartz::font::core_foundation::base::{CFIndex, CFWrapper};
-use quartz::font::core_foundation::data::CFData;
-use quartz::font::core_foundation::string::UniChar;
-use quartz::font::core_graphics::data_provider::CGDataProvider;
-use quartz::font::core_graphics::font::{CGFont, CGGlyph};
-use quartz::font::core_graphics::geometry::CGRect;
-use quartz::font::core_text::font::{CTFont, CTFontMethods, CTFontMethodsPrivate};
-use quartz::font::core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
-use quartz::font::core_text::font_descriptor::kCTFontDefaultOrientation;
-use quartz::font_context::QuartzFontContextHandle;
-use quartz;
+use platform::macos::font::core_foundation::base::{CFIndex, CFWrapper};
+use platform::macos::font::core_foundation::data::CFData;
+use platform::macos::font::core_foundation::string::UniChar;
+use platform::macos::font::core_graphics::data_provider::CGDataProvider;
+use platform::macos::font::core_graphics::font::{CGFont, CGGlyph};
+use platform::macos::font::core_graphics::geometry::CGRect;
+use platform::macos::font::core_text::font::{CTFont, CTFontMethods, CTFontMethodsPrivate};
+use platform::macos::font::core_text::font_descriptor::{SymbolicTraitAccessors};
+use platform::macos::font::core_text::font_descriptor::{TraitAccessors};
+use platform::macos::font::core_text::font_descriptor::{kCTFontDefaultOrientation};
+use platform::macos::font_context::QuartzFontContextHandle;
+use platform;
 use text::glyph::GlyphIndex;
 
 struct QuartzFontTable {
@@ -51,11 +52,13 @@ pub impl QuartzFontHandle {
     fn new_from_buffer(_fctx: &QuartzFontContextHandle, buf: ~[u8],
                        style: &SpecifiedFontStyle) -> Result<QuartzFontHandle, ()> {
         let fontprov : CGDataProvider = vec::as_imm_buf(buf, |cbuf, len| {
-            quartz::font::core_graphics::data_provider::new_from_buffer(cbuf, len)
+            platform::macos::font::core_graphics::data_provider::new_from_buffer(cbuf, len)
         });
 
-        let cgfont = quartz::font::core_graphics::font::create_with_data_provider(&fontprov);
-        let ctfont = quartz::font::core_text::font::new_from_CGFont(&cgfont, style.pt_size);
+        let cgfont = platform::macos::font::core_graphics::font::create_with_data_provider(
+            &fontprov);
+        let ctfont = platform::macos::font::core_text::font::new_from_CGFont(&cgfont,
+                                                                             style.pt_size);
 
         let result = Ok(QuartzFontHandle {
             cgfont: Some(cgfont),
@@ -65,13 +68,13 @@ pub impl QuartzFontHandle {
         return result;
     }
 
-    fn new_from_CTFont(_fctx: &QuartzFontContextHandle, ctfont: CTFont) -> Result<QuartzFontHandle, ()> {
-        let result = Ok(QuartzFontHandle {
+    fn new_from_CTFont(_: &QuartzFontContextHandle,
+                       ctfont: CTFont)
+                    -> Result<QuartzFontHandle, ()> {
+        Ok(QuartzFontHandle {
             mut cgfont: None,
             ctfont: ctfont,
-        });
-        
-        return result;
+        })
     }
 
     fn get_CGFont(&mut self) -> CGFont {
@@ -177,7 +180,7 @@ impl FontHandleMethods for QuartzFontHandle {
     }
 
     fn get_table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
-        let result : Option<CFData> = self.ctfont.get_font_table(tag);
+        let result: Option<CFData> = self.ctfont.get_font_table(tag);
         result.chain(|data| {
             Some(QuartzFontTable::wrap(data))
         })
