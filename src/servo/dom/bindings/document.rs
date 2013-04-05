@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use js::rust::{Compartment, jsobj};
 use js::{JS_ARGV, JSPROP_ENUMERATE, JSPROP_SHARED,
             JSVAL_NULL, JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
