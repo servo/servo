@@ -400,7 +400,12 @@ pub impl HarfbuzzShaper {
                 // (i.e., pretend there are no combining character sequences).
                 // 1-to-1 mapping of character to glyph also treated as ligature start.
                 let shape = glyph_data.get_entry_for_glyph(glyph_span.begin(), &mut y_pos);
-                let data = GlyphData(shape.codepoint, shape.advance, shape.offset, false, true, true);
+                let data = GlyphData::new(shape.codepoint,
+                                          shape.advance,
+                                          shape.offset,
+                                          false,
+                                          true,
+                                          true);
                 glyphs.add_glyph_for_char_index(char_idx, &data);
             } else {
                 // collect all glyphs to be assigned to the first character.
@@ -408,12 +413,13 @@ pub impl HarfbuzzShaper {
 
                 for glyph_span.eachi |glyph_i| {
                     let shape = glyph_data.get_entry_for_glyph(glyph_i, &mut y_pos);
-                    datas.push(GlyphData(shape.codepoint, 
-                                         shape.advance, 
-                                         shape.offset,
-                                         false, // not missing
-                                         true,  // treat as cluster start
-                                         glyph_i > glyph_span.begin())); // all but first are ligature continuations
+                    datas.push(GlyphData::new(shape.codepoint, 
+                                              shape.advance, 
+                                              shape.offset,
+                                              false, // not missing
+                                              true,  // treat as cluster start
+                                              glyph_i > glyph_span.begin()));
+                                              // all but first are ligature continuations
                 }
 
                 // now add the detailed glyph entry.

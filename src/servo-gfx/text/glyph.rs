@@ -5,29 +5,79 @@ use geometry;
 use util::range::Range;
 use util::vec::*;
 
-use core;
 use core::cmp::{Ord, Eq};
 use core::num::NumCast;
 use core::u16;
+use core;
 use geom::point::Point2D;
 use std::sort;
 
-/// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing
-/// glyph data compactly.
+/// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing glyph data compactly.
 ///
-/// In the common case (reasonable glyph advances, no offsets from the
-/// font em-box, and one glyph per character), we pack glyph advance,
-/// glyph id, and some flags into a single u32.
+/// In the common case (reasonable glyph advances, no offsets from the font em-box, and one glyph
+/// per character), we pack glyph advance, glyph id, and some flags into a single u32.
 ///
-/// In the uncommon case (multiple glyphs per unicode character, large
-/// glyph index/advance, or glyph offsets), we pack the glyph count
-/// into GlyphEntry, and store the other glyph information in
-/// DetailedGlyphStore.
+/// In the uncommon case (multiple glyphs per unicode character, large glyph index/advance, or
+/// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
+/// in DetailedGlyphStore.
 struct GlyphEntry {
     value: u32
 }
 
-fn GlyphEntry(value: u32) -> GlyphEntry { GlyphEntry { value: value } }
+impl GlyphEntry {
+    fn new(value: u32) -> GlyphEntry {
+        GlyphEntry {
+            value: value
+        }
+    }
+
+    fn initial() -> GlyphEntry {
+        GlyphEntry::new(0)
+    }
+
+    // Creates a GlyphEntry for the common case
+    fn simple(index: GlyphIndex, advance: Au) -> GlyphEntry {
+        assert!(is_simple_glyph_id(index));
+        assert!(is_simple_advance(advance));
+
+        let index_mask = index as u32;
+        let advance_mask = (*advance as u32) << GLYPH_ADVANCE_SHIFT;
+
+        GlyphEntry::new(index_mask | advance_mask | FLAG_IS_SIMPLE_GLYPH)
+    }
+
+    // Create a GlyphEntry for uncommon case; should be accompanied by
+    // initialization of the actual DetailedGlyph data in DetailedGlyphStore
+    fn complex(starts_cluster: bool, starts_ligature: bool, glyph_count: uint) -> GlyphEntry {
+        assert!(glyph_count <= u16::max_value as uint);
+
+        debug!("creating complex glyph entry: starts_cluster=%?, starts_ligature=%?, \
+                glyph_count=%?",
+               starts_cluster,
+               starts_ligature,
+               glyph_count);
+
+        let mut val = FLAG_NOT_MISSING;
+
+        if !starts_cluster {
+            val |= FLAG_NOT_CLUSTER_START;
+        }
+        if !starts_ligature {
+            val |= FLAG_NOT_LIGATURE_GROUP_START;
+        }
+        val |= (glyph_count as u32) << GLYPH_COUNT_SHIFT;
+
+        GlyphEntry::new(val)
+    }
+
+    /// Create a GlyphEntry for the case where glyphs couldn't be found for the specified
+    /// character.
+    fn missing(glyph_count: uint) -> GlyphEntry {
+        assert!(glyph_count <= u16::max_value as uint);
+
+        GlyphEntry::new((glyph_count as u32) << GLYPH_COUNT_SHIFT)
+    }
+}
 
 /// The index of a particular glyph within a font
 pub type GlyphIndex = u32;
@@ -40,19 +90,23 @@ pub enum BreakType {
     BreakTypeHyphen
 }
 
-static BREAK_TYPE_NONE   : u8 = 0x0u8;
-static BREAK_TYPE_NORMAL : u8 = 0x1u8;
-static BREAK_TYPE_HYPHEN  : u8 = 0x2u8;
+static BREAK_TYPE_NONE:   u8 = 0x0;
+static BREAK_TYPE_NORMAL: u8 = 0x1;
+static BREAK_TYPE_HYPHEN: u8 = 0x2;
 
 fn break_flag_to_enum(flag: u8) -> BreakType {
-    if (flag & BREAK_TYPE_NORMAL) != 0  { return BreakTypeNormal; }
-    if (flag & BREAK_TYPE_HYPHEN) != 0  { return BreakTypeHyphen; }
+    if (flag & BREAK_TYPE_NORMAL) != 0 {
+        return BreakTypeNormal;
+    }
+    if (flag & BREAK_TYPE_HYPHEN) != 0 {
+        return BreakTypeHyphen;
+    }
     BreakTypeNone
 }
 
 fn break_enum_to_flag(e: BreakType) -> u8 {
     match e {
-        BreakTypeNone => BREAK_TYPE_NONE,
+        BreakTypeNone   => BREAK_TYPE_NONE,
         BreakTypeNormal => BREAK_TYPE_NORMAL,
         BreakTypeHyphen => BREAK_TYPE_HYPHEN,
     }
@@ -60,16 +114,16 @@ fn break_enum_to_flag(e: BreakType) -> u8 {
 
 // TODO: make this more type-safe.
 
-static FLAG_CHAR_IS_SPACE : u32             = 0x10000000u32;
+static FLAG_CHAR_IS_SPACE: u32      = 0x10000000;
 // These two bits store some BREAK_TYPE_* flags
-static FLAG_CAN_BREAK_MASK : u32            = 0x60000000u32;
-static FLAG_CAN_BREAK_SHIFT : u32           = 29;
-static FLAG_IS_SIMPLE_GLYPH : u32           = 0x80000000u32;
+static FLAG_CAN_BREAK_MASK: u32     = 0x60000000;
+static FLAG_CAN_BREAK_SHIFT: u32    = 29;
+static FLAG_IS_SIMPLE_GLYPH: u32    = 0x80000000;
 
 // glyph advance; in Au's.
-static GLYPH_ADVANCE_MASK : u32             = 0x0FFF0000u32;
-static GLYPH_ADVANCE_SHIFT : u32            = 16;
-static GLYPH_ID_MASK : u32                  = 0x0000FFFFu32;
+static GLYPH_ADVANCE_MASK: u32      = 0x0FFF0000;
+static GLYPH_ADVANCE_SHIFT: u32     = 16;
+static GLYPH_ID_MASK: u32           = 0x0000FFFF;
 
 // Non-simple glyphs (more than one glyph per char; missing glyph,
 // newline, tab, large advance, or nonzero x/y offsets) may have one
@@ -80,18 +134,18 @@ static GLYPH_ID_MASK : u32                  = 0x0000FFFFu32;
 // The number of detailed glyphs for this char. If the char couldn't
 // be mapped to a glyph (!FLAG_NOT_MISSING), then this actually holds
 // the UTF8 code point instead.
-static GLYPH_COUNT_MASK : u32               = 0x00FFFF00u32;
-static GLYPH_COUNT_SHIFT : u32              = 8;
+static GLYPH_COUNT_MASK:              u32 = 0x00FFFF00;
+static GLYPH_COUNT_SHIFT:             u32 = 8;
 // N.B. following Gecko, these are all inverted so that a lot of
 // missing chars can be memset with zeros in one fell swoop.
-static FLAG_NOT_MISSING : u32               = 0x00000001u32;
-static FLAG_NOT_CLUSTER_START : u32         = 0x00000002u32;
-static FLAG_NOT_LIGATURE_GROUP_START : u32  = 0x00000004u32;
+static FLAG_NOT_MISSING:              u32 = 0x00000001;
+static FLAG_NOT_CLUSTER_START:        u32 = 0x00000002;
+static FLAG_NOT_LIGATURE_GROUP_START: u32 = 0x00000004;
  
-static FLAG_CHAR_IS_TAB : u32               = 0x00000008u32;
-static FLAG_CHAR_IS_NEWLINE : u32           = 0x00000010u32;
-static FLAG_CHAR_IS_LOW_SURROGATE : u32     = 0x00000020u32;
-static CHAR_IDENTITY_FLAGS_MASK : u32       = 0x00000038u32;
+static FLAG_CHAR_IS_TAB:              u32 = 0x00000008;
+static FLAG_CHAR_IS_NEWLINE:          u32 = 0x00000010;
+static FLAG_CHAR_IS_LOW_SURROGATE:    u32 = 0x00000020;
+static CHAR_IDENTITY_FLAGS_MASK:      u32 = 0x00000038;
 
 fn is_simple_glyph_id(glyphId: GlyphIndex) -> bool {
     ((glyphId as u32) & GLYPH_ID_MASK) == glyphId
@@ -104,73 +158,20 @@ fn is_simple_advance(advance: Au) -> bool {
 
 type DetailedGlyphCount = u16;
 
-fn InitialGlyphEntry() -> GlyphEntry {
-    GlyphEntry { value: 0 }
-}
-
-// Creates a GlyphEntry for the common case
-fn SimpleGlyphEntry(index: GlyphIndex, advance: Au) -> GlyphEntry {
-    assert!(is_simple_glyph_id(index));
-    assert!(is_simple_advance(advance));
-
-    let index_mask = index as u32;
-    let advance_mask = (*advance as u32) << GLYPH_ADVANCE_SHIFT;
-
-    GlyphEntry {
-        value: index_mask | advance_mask | FLAG_IS_SIMPLE_GLYPH
-    }
-}
-
-// Create a GlyphEntry for uncommon case; should be accompanied by
-// initialization of the actual DetailedGlyph data in DetailedGlyphStore
-fn ComplexGlyphEntry(startsCluster: bool, startsLigature: bool, glyphCount: uint) -> GlyphEntry {
-    assert!(glyphCount <= u16::max_value as uint);
-
-    debug!("Creating complex glyph entry: startsCluster=%?, startsLigature=%?, glyphCount=%?",
-           startsCluster, startsLigature, glyphCount);
-
-    let mut val = FLAG_NOT_MISSING;
-
-    if !startsCluster {
-        val |= FLAG_NOT_CLUSTER_START;
-    }
-    if !startsLigature {
-        val |= FLAG_NOT_LIGATURE_GROUP_START;
-    }
-    val |= (glyphCount as u32) << GLYPH_COUNT_SHIFT;
-
-    GlyphEntry {
-        value: val
-    }
-}
-
-// Create a GlyphEntry for the case where glyphs couldn't be found
-// for the specified character.
-fn MissingGlyphsEntry(glyphCount: uint) -> GlyphEntry {
-    assert!(glyphCount <= u16::max_value as uint);
-
-    GlyphEntry {
-        value: (glyphCount as u32) << GLYPH_COUNT_SHIFT
-    }
-}
-
 // Getters and setters for GlyphEntry. Setter methods are functional,
 // because GlyphEntry is immutable and only a u32 in size.
 impl GlyphEntry {
     // getter methods
     #[inline(always)]
     fn advance(&self) -> Au {
-        //assert!(self.is_simple());
         NumCast::from((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT)
     }
 
     fn index(&self) -> GlyphIndex {
-        //assert!(self.is_simple());
         self.value & GLYPH_ID_MASK
     }
 
     fn offset(&self) -> Point2D<Au> {
-        //assert!(self.is_simple());
         Point2D(Au(0), Au(0))
     }
     
@@ -204,30 +205,30 @@ impl GlyphEntry {
     // setter methods
     #[inline(always)]
     fn set_char_is_space(&self) -> GlyphEntry {
-        GlyphEntry(self.value | FLAG_CHAR_IS_SPACE)
+        GlyphEntry::new(self.value | FLAG_CHAR_IS_SPACE)
     }
 
     #[inline(always)]
     fn set_char_is_tab(&self) -> GlyphEntry {
         assert!(!self.is_simple());
-        GlyphEntry(self.value | FLAG_CHAR_IS_TAB)
+        GlyphEntry::new(self.value | FLAG_CHAR_IS_TAB)
     }
 
     #[inline(always)]
     fn set_char_is_newline(&self) -> GlyphEntry {
         assert!(!self.is_simple());
-        GlyphEntry(self.value | FLAG_CHAR_IS_NEWLINE)
+        GlyphEntry::new(self.value | FLAG_CHAR_IS_NEWLINE)
     }
 
     #[inline(always)]
     fn set_can_break_before(&self, e: BreakType) -> GlyphEntry {
         let flag = (break_enum_to_flag(e) as u32) << FLAG_CAN_BREAK_SHIFT;
-        GlyphEntry(self.value | flag)
+        GlyphEntry::new(self.value | flag)
     }
 
     // helper methods
 
-    /*priv*/ fn glyph_count(&self) -> u16 {
+    fn glyph_count(&self) -> u16 {
         assert!(!self.is_simple());
         ((self.value & GLYPH_COUNT_MASK) >> GLYPH_COUNT_SHIFT) as u16
     }
@@ -238,7 +239,7 @@ impl GlyphEntry {
     }
 
     #[inline(always)]
-    /*priv*/ fn has_flag(&self, flag: u32) -> bool {
+    fn has_flag(&self, flag: u32) -> bool {
         (self.value & flag) != 0
     }
 
@@ -258,13 +259,13 @@ struct DetailedGlyph {
     offset: Point2D<Au>
 }
 
-
-fn DetailedGlyph(index: GlyphIndex,
-                 advance: Au, offset: Point2D<Au>) -> DetailedGlyph {
-    DetailedGlyph {
-        index: index,
-        advance: advance,
-        offset: offset
+impl DetailedGlyph {
+    fn new(index: GlyphIndex, advance: Au, offset: Point2D<Au>) -> DetailedGlyph {
+        DetailedGlyph {
+            index: index,
+            advance: advance,
+            offset: offset
+        }
     }
 }
 
@@ -301,15 +302,15 @@ struct DetailedGlyphStore {
     lookup_is_sorted: bool,
 }
 
-fn DetailedGlyphStore() -> DetailedGlyphStore {
-    DetailedGlyphStore {
-        detail_buffer: ~[], // TODO: default size?
-        detail_lookup: ~[],
-        lookup_is_sorted: false
-    }
-}
-
 impl DetailedGlyphStore {
+    fn new() -> DetailedGlyphStore {
+        DetailedGlyphStore {
+            detail_buffer: ~[], // TODO: default size?
+            detail_lookup: ~[],
+            lookup_is_sorted: false
+        }
+    }
+
     fn add_detailed_glyphs_for_entry(&mut self, entry_offset: uint, glyphs: &[DetailedGlyph]) {
         let entry = DetailedGlyphRecord {
             entry_offset: entry_offset,
@@ -334,7 +335,8 @@ impl DetailedGlyphStore {
         self.lookup_is_sorted = false;
     }
 
-    fn get_detailed_glyphs_for_entry(&self, entry_offset: uint, count: u16) -> &'self [DetailedGlyph] {
+    fn get_detailed_glyphs_for_entry(&self, entry_offset: uint, count: u16)
+                                  -> &'self [DetailedGlyph] {
         debug!("Requesting detailed glyphs[n=%u] for entry[off=%u]", count as uint, entry_offset);
 
         // FIXME: Is this right? --pcwalton
@@ -376,7 +378,7 @@ impl DetailedGlyphStore {
         };
 
         // FIXME: This is a workaround for borrow of self.detail_lookup not getting inferred.
-        let records : &[DetailedGlyphRecord] = self.detail_lookup;
+        let records: &[DetailedGlyphRecord] = self.detail_lookup;
         match records.binary_search_index(&key) {
             None => fail!(~"Invalid index not found in detailed glyph lookup table!"),
             Some(i) => {
@@ -396,7 +398,7 @@ impl DetailedGlyphStore {
         // immutable locations thus don't play well with freezing.
 
         // Thar be dragons here. You have been warned. (Tips accepted.)
-        let mut unsorted_records : ~[DetailedGlyphRecord] = ~[];
+        let mut unsorted_records: ~[DetailedGlyphRecord] = ~[];
         core::util::swap(&mut self.detail_lookup, &mut unsorted_records);
         let mut mut_records : ~[DetailedGlyphRecord] = unsorted_records;
         sort::quick_sort3(mut_records);
@@ -418,24 +420,27 @@ pub struct GlyphData {
     ligature_start: bool,
 }
 
-pub fn GlyphData(index: GlyphIndex,
-                 advance: Au,
-                 offset: Option<Point2D<Au>>,
-                 is_missing: bool,
-                 cluster_start: bool,
-                 ligature_start: bool) -> GlyphData {
-    let _offset = match offset {
-        None => geometry::zero_point(),
-        Some(o) => o
-    };
+impl GlyphData {
+    pub fn new(index: GlyphIndex,
+               advance: Au,
+               offset: Option<Point2D<Au>>,
+               is_missing: bool,
+               cluster_start: bool,
+               ligature_start: bool)
+            -> GlyphData {
+        let offset = match offset {
+            None => geometry::zero_point(),
+            Some(o) => o
+        };
 
-    GlyphData {
-        index: index,
-        advance: advance,
-        offset: _offset,
-        is_missing: is_missing,
-        cluster_start: cluster_start,
-        ligature_start: ligature_start,
+        GlyphData {
+            index: index,
+            advance: advance,
+            offset: offset,
+            is_missing: is_missing,
+            cluster_start: cluster_start,
+            ligature_start: ligature_start,
+        }
     }
 }
 
@@ -452,7 +457,9 @@ impl<'self> GlyphInfo<'self> {
     fn index(self) -> GlyphIndex {
         match self {
             SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i].index(),
-            DetailGlyphInfo(store, entry_i, detail_j) => store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).index
+            DetailGlyphInfo(store, entry_i, detail_j) => {
+                store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).index
+            }
         }
     }
 
@@ -460,14 +467,18 @@ impl<'self> GlyphInfo<'self> {
     fn advance(self) -> Au {
         match self {
             SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i].advance(),
-            DetailGlyphInfo(store, entry_i, detail_j) => store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).advance
+            DetailGlyphInfo(store, entry_i, detail_j) => {
+                store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).advance
+            }
         }
     }
 
     fn offset(self) -> Option<Point2D<Au>> {
         match self {
             SimpleGlyphInfo(_, _) => None,
-            DetailGlyphInfo(store, entry_i, detail_j) => Some(store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).offset)
+            DetailGlyphInfo(store, entry_i, detail_j) => {
+                Some(store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).offset)
+            }
         }
     }
 
@@ -488,7 +499,6 @@ impl<'self> GlyphInfo<'self> {
 
 // Public data structure and API for storing and retrieving glyph data
 pub struct GlyphStore {
-    // we use a DVec here instead of a mut vec, since this is much safer.
     entry_buffer: ~[GlyphEntry],
     detail_store: DetailedGlyphStore,
 }
@@ -500,8 +510,8 @@ pub impl GlyphStore {
         assert!(length > 0);
 
         GlyphStore {
-            entry_buffer: vec::from_elem(length, InitialGlyphEntry()),
-            detail_store: DetailedGlyphStore(),
+            entry_buffer: vec::from_elem(length, GlyphEntry::initial()),
+            detail_store: DetailedGlyphStore::new(),
         }
     }
 
@@ -510,7 +520,6 @@ pub impl GlyphStore {
     }
 
     fn add_glyph_for_char_index(&mut self, i: uint, data: &GlyphData) {
-
         fn glyph_is_compressible(data: &GlyphData) -> bool {
             is_simple_glyph_id(data.index)
                 && is_simple_advance(data.advance)
@@ -522,12 +531,12 @@ pub impl GlyphStore {
         assert!(i < self.entry_buffer.len());
 
         let entry = match (data.is_missing, glyph_is_compressible(data)) {
-            (true, _) => MissingGlyphsEntry(1),
-            (false, true) => { SimpleGlyphEntry(data.index, data.advance) },
+            (true, _) => GlyphEntry::missing(1),
+            (false, true) => GlyphEntry::simple(data.index, data.advance),
             (false, false) => {
-                let glyph = [DetailedGlyph(data.index, data.advance, data.offset)];
+                let glyph = [DetailedGlyph::new(data.index, data.advance, data.offset)];
                 self.detail_store.add_detailed_glyphs_for_entry(i, glyph);
-                ComplexGlyphEntry(data.cluster_start, data.ligature_start, 1)
+                GlyphEntry::complex(data.cluster_start, data.ligature_start, 1)
             }
         }.adapt_character_flags_of_entry(self.entry_buffer[i]);
 
@@ -542,18 +551,18 @@ pub impl GlyphStore {
 
         let first_glyph_data = data_for_glyphs[0];
         let entry = match first_glyph_data.is_missing {
-            true  => MissingGlyphsEntry(glyph_count),
+            true  => GlyphEntry::missing(glyph_count),
             false => {
                 let glyphs_vec = vec::from_fn(glyph_count, |i| {
-                    DetailedGlyph(data_for_glyphs[i].index,
-                                  data_for_glyphs[i].advance,
-                                  data_for_glyphs[i].offset)
+                    DetailedGlyph::new(data_for_glyphs[i].index,
+                                       data_for_glyphs[i].advance,
+                                       data_for_glyphs[i].offset)
                 });
 
                 self.detail_store.add_detailed_glyphs_for_entry(i, glyphs_vec);
-                ComplexGlyphEntry(first_glyph_data.cluster_start,
-                                  first_glyph_data.ligature_start,
-                                  glyph_count)
+                GlyphEntry::complex(first_glyph_data.cluster_start,
+                                    first_glyph_data.ligature_start,
+                                    glyph_count)
             }
         }.adapt_character_flags_of_entry(self.entry_buffer[i]);
 
@@ -566,13 +575,16 @@ pub impl GlyphStore {
     fn add_nonglyph_for_char_index(&mut self, i: uint, cluster_start: bool, ligature_start: bool) {
         assert!(i < self.entry_buffer.len());
 
-        let entry = ComplexGlyphEntry(cluster_start, ligature_start, 0);
+        let entry = GlyphEntry::complex(cluster_start, ligature_start, 0);
         debug!("adding spacer for chracter without associated glyph[idx=%u]", i);
 
         self.entry_buffer[i] = entry;
     }
 
-    fn iter_glyphs_for_char_index(&self, i: uint, cb: &fn(uint, &GlyphInfo<'self>) -> bool) -> bool {
+    fn iter_glyphs_for_char_index(&self,
+                                  i: uint,
+                                  cb: &fn(uint, &GlyphInfo<'self>) -> bool)
+                               -> bool {
         assert!(i < self.entry_buffer.len());
 
         let entry = &self.entry_buffer[i];
@@ -590,7 +602,7 @@ pub impl GlyphStore {
                 }
             }
         }
-	return true;
+        true
     }
 
     fn iter_glyphs_for_char_range(&self, range: &Range, cb: &fn(uint, &GlyphInfo<'self>) -> bool) {
@@ -604,13 +616,17 @@ pub impl GlyphStore {
         }
 
         for range.eachi |i| {
-	    if !self.iter_glyphs_for_char_index(i, cb) { break; }
-	}
+            if !self.iter_glyphs_for_char_index(i, cb) {
+                break;
+            }
+        }
     }
 
     fn iter_all_glyphs(&self, cb: &fn(uint, &GlyphInfo<'self>) -> bool) {
         for uint::range(0, self.entry_buffer.len()) |i| {
-            if !self.iter_glyphs_for_char_index(i, cb) { break; }
+            if !self.iter_glyphs_for_char_index(i, cb) {
+                break;
+            }
         }
     }
 
