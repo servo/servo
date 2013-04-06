@@ -2,9 +2,8 @@ extern mod core_foundation;
 extern mod core_graphics;
 extern mod core_text;
 
-use gfx_font::UsedFontStyle;
-use gfx_font_context::FontContextHandleMethods;
-
+use font::UsedFontStyle;
+use font_context::FontContextHandleMethods;
 use platform::macos::font::FontHandle;
 use platform;
 

@@ -4,12 +4,11 @@ use geom::Point2D;
 
 use geometry::Au;
 
-use font::{Font, FontTableMethods, FontTableTag};
+use font::{Font, FontHandleMethods, FontTableMethods, FontTableTag};
 use platform::font::FontTable;
 
 use text::glyph::{GlyphStore, GlyphIndex, GlyphData};
 use text::shaper::ShaperMethods;
-use gfx_font::{FontHandleMethods, FontTableMethods};
 
 use util::range::Range;
 

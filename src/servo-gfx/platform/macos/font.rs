@@ -4,11 +4,15 @@ extern mod core_foundation;
 extern mod core_graphics;
 extern mod core_text;
 
+use font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTableMethods};
+use font::{FontTableTag, FontWeight100, FontWeight200, FontWeight300, FontWeight400};
+use font::{FontWeight500, FontWeight600, FontWeight700, FontWeight800, FontWeight900};
+use font::{FractionalPixel, SpecifiedFontStyle};
 use geometry::Au;
-use gfx_font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTableMethods};
-use gfx_font::{FontTableTag, FontWeight100, FontWeight200, FontWeight300, FontWeight400};
-use gfx_font::{FontWeight500, FontWeight600, FontWeight700, FontWeight800, FontWeight900};
-use gfx_font::{FractionalPixel, SpecifiedFontStyle};
+use platform::macos::font_context::FontContextHandle;
+use platform;
+use text::glyph::GlyphIndex;
+
 use platform::macos::font::core_foundation::base::{CFIndex, CFWrapper};
 use platform::macos::font::core_foundation::data::CFData;
 use platform::macos::font::core_foundation::string::UniChar;
@@ -19,9 +23,6 @@ use platform::macos::font::core_text::font::{CTFont, CTFontMethods, CTFontMethod
 use platform::macos::font::core_text::font_descriptor::{SymbolicTraitAccessors};
 use platform::macos::font::core_text::font_descriptor::{TraitAccessors};
 use platform::macos::font::core_text::font_descriptor::{kCTFontDefaultOrientation};
-use platform::macos::font_context::FontContextHandle;
-use platform;
-use text::glyph::GlyphIndex;
 
 pub struct FontTable {
     data: CFData,

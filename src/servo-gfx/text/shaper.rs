@@ -1,10 +1,9 @@
-/**
-Shaper encapsulates a specific shaper, such as Harfbuzz, 
-Uniscribe, Pango, or Coretext.
+//! Shaper encapsulates a specific shaper, such as Harfbuzz, 
+/// Uniscribe, Pango, or Coretext.
+///
+/// Currently, only harfbuzz bindings are implemented.
 
-Currently, only harfbuzz bindings are implemented.
-*/
-use gfx_font::Font;
+use font::Font;
 use text::glyph::GlyphStore;
 use text::harfbuzz;
 

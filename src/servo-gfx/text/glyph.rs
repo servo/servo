@@ -1,8 +1,10 @@
-use geometry::Au;
-use servo_gfx_util::range::Range;
-use servo_gfx_util::vec::*;
+//! A platform-independent representation of a glyph.
 
+use geometry::Au;
 use geometry;
+use util::range::Range;
+use util::vec::*;
+
 use core;
 use core::cmp::{Ord, Eq};
 use core::num::NumCast;
@@ -10,20 +12,19 @@ use core::u16;
 use geom::point::Point2D;
 use std::sort;
 
-
-// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing
-// glyph data compactly.
-//
-// In the common case (reasonable glyph advances, no offsets from the
-// font em-box, and one glyph per character), we pack glyph advance,
-// glyph id, and some flags into a single u32.
-//
-// In the uncommon case (multiple glyphs per unicode character, large
-// glyph index/advance, or glyph offsets), we pack the glyph count
-// into GlyphEntry, and store the other glyph information in
-// DetailedGlyphStore.
+/// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing
+/// glyph data compactly.
+///
+/// In the common case (reasonable glyph advances, no offsets from the
+/// font em-box, and one glyph per character), we pack glyph advance,
+/// glyph id, and some flags into a single u32.
+///
+/// In the uncommon case (multiple glyphs per unicode character, large
+/// glyph index/advance, or glyph offsets), we pack the glyph count
+/// into GlyphEntry, and store the other glyph information in
+/// DetailedGlyphStore.
 struct GlyphEntry {
-    value : u32
+    value: u32
 }
 
 fn GlyphEntry(value: u32) -> GlyphEntry { GlyphEntry { value: value } }

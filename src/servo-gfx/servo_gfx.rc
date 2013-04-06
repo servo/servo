@@ -1,3 +1,5 @@
+//! Graphics and resource loading module for Servo.
+
 #[link(name = "servo_gfx",
        vers = "0.1",
        uuid = "0106bb54-6ea9-45bf-a39e-a738621f15e5",
@@ -9,14 +11,6 @@ extern mod geom;
 extern mod http_client;
 extern mod stb_image;
 extern mod std;
-
-pub use servo_util = util;
-pub use gfx_font = font;
-pub use gfx_font_context = font_context;
-pub use gfx_font_list = font_list;
-pub use servo_gfx_font = font;
-pub use servo_gfx_font_list = font_list;
-pub use servo_gfx_util = util;
 
 priv mod render_context;
 
@@ -71,3 +65,4 @@ pub mod util {
     pub mod url;
     pub mod vec;
 }
+

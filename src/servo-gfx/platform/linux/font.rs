@@ -2,12 +2,12 @@
 
 extern mod freetype;
 
+use font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTable, FontTableMethods};
+use font::{FontTableTag, FractionalPixel, SpecifiedFontStyle, UsedFontStyle, FontWeight100};
+use font::{FontWeight200, FontWeight300, FontWeight400, FontWeight500, FontWeight600};
+use font::{FontWeight700, FontWeight800, FontWeight900};
 use geometry::Au;
 use geometry;
-use gfx_font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTable, FontTableMethods};
-use gfx_font::{FontTableTag, FractionalPixel, SpecifiedFontStyle, UsedFontStyle, FontWeight100};
-use gfx_font::{FontWeight200, FontWeight300, FontWeight400, FontWeight500, FontWeight600};
-use gfx_font::{FontWeight700, FontWeight800, FontWeight900};
 use platform::font_context::{FreeTypeFontContextHandle, FontContextHandle};
 use text::glyph::GlyphIndex;
 use text::util::{float_to_fixed, fixed_to_float};
@@ -99,7 +99,7 @@ pub impl FreeTypeFontHandle {
     }
 
     pub fn new_from_file_unstyled(fctx: &FreeTypeFontContextHandle, file: ~str)
-        -> Result<FreeTypeFontHandle, ()> {
+                               -> Result<FreeTypeFontHandle, ()> {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
 
@@ -270,7 +270,7 @@ impl FontHandleMethods for FreeTypeFontHandle {
         }
     }
 
-    fn get_table_for_tag(&self, _tag: FontTableTag) -> Option<FontTable> {
+    fn get_table_for_tag(&self, _: FontTableTag) -> Option<FontTable> {
         None
     }
 }
@@ -283,7 +283,6 @@ pub impl FreeTypeFontHandle {
     }
 
     priv fn font_units_to_au(&self, value: float) -> Au {
-
         let face = self.get_face_rec();
 
         // face.size is a *c_void in the bindings, presumably to avoid
@@ -300,3 +299,4 @@ pub impl FreeTypeFontHandle {
         return geometry::from_frac_px(value * x_scale);
     }
 }
+

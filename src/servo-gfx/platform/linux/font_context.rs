@@ -1,7 +1,7 @@
 extern mod freetype;
 extern mod fontconfig;
 
-use gfx_font::{FontHandle, UsedFontStyle};
+use font::{FontHandle, UsedFontStyle};
 use platform::font::FreeTypeFontHandle;
 use platform::font_context::FontContextHandleMethods;
 use platform::font_list::path_from_identifier;

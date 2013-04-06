@@ -1,7 +1,6 @@
 //! Implementation of the list of fonts.
 
-use font::{CSSFontWeight, SpecifiedFontStyle};
-use gfx_font::FontHandleMethods;
+use font::{CSSFontWeight, FontHandleMethods, SpecifiedFontStyle};
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 use platform::font_list::FontListHandle;
@@ -16,6 +15,7 @@ trait FontListHandleMethods {
     fn load_variations_for_family(&self, family: @mut FontFamily);
 }
 
+/// The platform-independent font list abstraction.
 pub struct FontList {
     family_map: FontFamilyMap,
     handle: FontListHandle,
@@ -29,7 +29,7 @@ pub impl FontList {
             family_map: HashMap::new(),
         };
         list.refresh(fctx);
-        return list;
+        list
     }
 
     priv fn refresh(&mut self, _: &FontContextHandle) {
@@ -46,19 +46,24 @@ pub impl FontList {
                            family_name: &str, 
                            style: &SpecifiedFontStyle) -> Option<@FontEntry> {
         let family = self.find_family(family_name);
-        let mut result : Option<@FontEntry> = None;
 
         // TODO(Issue #192: handle generic font families, like 'serif' and 'sans-serif'.
 
         // if such family exists, try to match style to a font
+        let mut result: Option<@FontEntry> = None;
         for family.each |fam| {
             result = fam.find_font_for_style(&self.handle, style);
         }
 
-        let decision = if result.is_some() { "Found" } else { "Couldn't find" };
+        let decision = if result.is_some() {
+            "Found"
+        } else {
+            "Couldn't find"
+        };
+
         debug!("FontList: %s font face in family[%s] matching style", decision, family_name);
 
-        return result;
+        result
     }
 
     priv fn find_family(&self, family_name: &str) -> Option<@mut FontFamily> {
@@ -79,23 +84,23 @@ pub struct FontFamily {
     entries: ~[@FontEntry],
 }
 
-pub impl FontFamily {
-    fn new(family_name: &str) -> FontFamily {
+impl FontFamily {
+    pub fn new(family_name: &str) -> FontFamily {
         FontFamily {
             family_name: str::from_slice(family_name),
             entries: ~[],
         }
     }
 
-    priv fn load_family_variations(@mut self, list: &FontListHandle) {
+    fn load_family_variations(@mut self, list: &FontListHandle) {
         let this : &mut FontFamily = self; // FIXME: borrow checker workaround
         if this.entries.len() > 0 { return; }
         list.load_variations_for_family(self);
         assert!(this.entries.len() > 0);
     }
 
-    fn find_font_for_style(@mut self, list: &FontListHandle, style: &SpecifiedFontStyle)
-                        -> Option<@FontEntry> {
+    pub fn find_font_for_style(@mut self, list: &FontListHandle, style: &SpecifiedFontStyle)
+                            -> Option<@FontEntry> {
         self.load_family_variations(list);
 
         // TODO(Issue #189): optimize lookup for
@@ -104,7 +109,7 @@ pub impl FontFamily {
 
         // TODO(Issue #190): if not in the fast path above, do
         // expensive matching of weights, etc.
-        let this : &mut FontFamily = self; // FIXME: borrow checker workaround
+        let this: &mut FontFamily = self; // FIXME: borrow checker workaround
         for this.entries.each |entry| {
             if (style.weight.is_bold() == entry.is_bold()) && 
                (style.italic == entry.is_italic()) {
@@ -113,15 +118,15 @@ pub impl FontFamily {
             }
         }
 
-        return None;
+        None
     }
 }
 
-// This struct summarizes an available font's features. In the future,
-// this will include fiddly settings such as special font table handling.
-
-// In the common case, each FontFamily will have a singleton FontEntry, or
-// it will have the standard four faces: Normal, Bold, Italic, BoldItalic.
+/// This struct summarizes an available font's features. In the future, this will include fiddly
+/// settings such as special font table handling.
+///
+/// In the common case, each FontFamily will have a singleton FontEntry, or it will have the
+/// standard four faces: Normal, Bold, Italic, BoldItalic.
 pub struct FontEntry {
     family: @mut FontFamily,
     face_name: ~str,
@@ -131,8 +136,8 @@ pub struct FontEntry {
     // TODO: array of OpenType features, etc.
 }
 
-pub impl FontEntry {
-    fn new(family: @mut FontFamily, handle: FontHandle) -> FontEntry {
+impl FontEntry {
+    pub fn new(family: @mut FontFamily, handle: FontHandle) -> FontEntry {
         FontEntry {
             family: family,
             face_name: handle.face_name(),
@@ -142,11 +147,11 @@ pub impl FontEntry {
         }
     }
 
-    fn is_bold(&self) -> bool {
+    pub fn is_bold(&self) -> bool {
         self.weight.is_bold()
     }
 
-    fn is_italic(&self) -> bool {
+    pub fn is_italic(&self) -> bool {
         self.italic
     }
 }
