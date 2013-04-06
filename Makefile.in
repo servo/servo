@@ -190,7 +190,7 @@ bindinggen_dependencies := $(addprefix $(BINDINGS_SRC)/, BindingGen.py Bindings.
 
 $(AUTOGEN_SRC_servo): %Binding.rs: $(bindinggen_dependencies) \
                                    %.webidl
-	PYTHONDONTWRITEBYTECODE=1 python $(BINDINGS_SRC)/pythonpath.py \
+	PYTHONDONTWRITEBYTECODE=1 python2 $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
 	  $(BINDINGS_SRC)/BindingGen.py rs \
@@ -204,7 +204,7 @@ $(CACHE_DIR)/.done:
 
 $(BINDINGS_SRC)/ParserResults.pkl: $(globalgen_dependencies) \
                                    $(WEBIDL_servo)
-	PYTHONDONTWRITEBYTECODE=1 python $(BINDINGS_SRC)/pythonpath.py \
+	PYTHONDONTWRITEBYTECODE=1 python2 $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
 	  $(BINDINGS_SRC)/GlobalGen.py $(BINDINGS_SRC)/Bindings.conf . \
