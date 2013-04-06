@@ -51,9 +51,6 @@ pub mod platform;
 // Images
 pub mod image {
     pub mod base;
-    pub mod encode {
-        pub mod tga;
-    }
     pub mod holder;
 }
 
