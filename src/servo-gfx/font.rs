@@ -7,7 +7,7 @@ use platform::font_context::FontContextHandle;
 use platform::font::{FontHandle, FontTable};
 use render_context::RenderContext;
 use text::glyph::{GlyphStore, GlyphIndex};
-use text::shaper::ShaperMethods;
+use text::shaping::ShaperMethods;
 use text::{Shaper, TextRun};
 use util::range::Range;
 
