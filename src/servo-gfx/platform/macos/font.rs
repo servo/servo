@@ -1,28 +1,24 @@
 //! Implementation of Quartz (CoreGraphics) fonts.
 
-extern mod core_foundation;
-extern mod core_graphics;
-extern mod core_text;
-
 use font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FontWeight100, FontWeight200, FontWeight300, FontWeight400};
 use font::{FontWeight500, FontWeight600, FontWeight700, FontWeight800, FontWeight900};
 use font::{FractionalPixel, SpecifiedFontStyle};
 use geometry::Au;
 use platform::macos::font_context::FontContextHandle;
-use platform;
 use text::glyph::GlyphIndex;
 
-use platform::macos::font::core_foundation::base::{CFIndex, CFWrapper};
-use platform::macos::font::core_foundation::data::CFData;
-use platform::macos::font::core_foundation::string::UniChar;
-use platform::macos::font::core_graphics::data_provider::CGDataProvider;
-use platform::macos::font::core_graphics::font::{CGFont, CGGlyph};
-use platform::macos::font::core_graphics::geometry::CGRect;
-use platform::macos::font::core_text::font::{CTFont, CTFontMethods, CTFontMethodsPrivate};
-use platform::macos::font::core_text::font_descriptor::{SymbolicTraitAccessors};
-use platform::macos::font::core_text::font_descriptor::{TraitAccessors};
-use platform::macos::font::core_text::font_descriptor::{kCTFontDefaultOrientation};
+use core_foundation::base::{CFIndex, CFWrapper};
+use core_foundation::data::CFData;
+use core_foundation::string::UniChar;
+use core_graphics::data_provider::CGDataProvider;
+use core_graphics::font::{CGFont, CGGlyph};
+use core_graphics::geometry::CGRect;
+use core_graphics;
+use core_text::font::{CTFont, CTFontMethods, CTFontMethodsPrivate};
+use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
+use core_text::font_descriptor::{kCTFontDefaultOrientation};
+use core_text;
 
 pub struct FontTable {
     data: CFData,
@@ -74,13 +70,11 @@ impl FontHandleMethods for FontHandle {
     fn new_from_buffer(_: &FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle)
                     -> Result<FontHandle, ()> {
         let fontprov : CGDataProvider = vec::as_imm_buf(buf, |cbuf, len| {
-            platform::macos::font::core_graphics::data_provider::new_from_buffer(cbuf, len)
+            core_graphics::data_provider::new_from_buffer(cbuf, len)
         });
 
-        let cgfont = platform::macos::font::core_graphics::font::create_with_data_provider(
-            &fontprov);
-        let ctfont = platform::macos::font::core_text::font::new_from_CGFont(&cgfont,
-                                                                             style.pt_size);
+        let cgfont = core_graphics::font::create_with_data_provider(&fontprov);
+        let ctfont = core_text::font::new_from_CGFont(&cgfont, style.pt_size);
 
         let result = Ok(FontHandle {
             cgfont: Some(cgfont),

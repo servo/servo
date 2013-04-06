@@ -1,18 +1,17 @@
-extern mod core_foundation;
-extern mod core_text;
+//! Mac OS-specific bindings to the native font list (called a "font collection" in Core Text).
 
 use font::FontHandleMethods;
 use font_context::FontContextHandleMethods;
 use font_list::{FontEntry, FontFamily, FontFamilyMap};
-
 use platform::macos::font::FontHandle;
 use platform::macos::font_context::FontContextHandle;
-use platform::macos::font_list::core_foundation::array::CFArray;
-use platform::macos::font_list::core_foundation::base::CFWrapper;
-use platform::macos::font_list::core_foundation::string::{CFString, CFStringRef};
-use platform::macos::font_list::core_text::font_collection::CTFontCollectionMethods;
-use platform::macos::font_list::core_text::font_descriptor::CTFontDescriptorRef;
-use platform;
+
+use core_foundation::array::CFArray;
+use core_foundation::base::CFWrapper;
+use core_foundation::string::{CFString, CFStringRef};
+use core_text::font_collection::CTFontCollectionMethods;
+use core_text::font_descriptor::CTFontDescriptorRef;
+use core_text;
 
 use core::hashmap::HashMap;
 
@@ -28,8 +27,7 @@ pub impl FontListHandle {
     }
 
     fn get_available_families(&self) -> FontFamilyMap {
-        let family_names: CFArray<CFStringRef> =
-            platform::macos::font_list::core_text::font_collection::get_family_names();
+        let family_names: CFArray<CFStringRef> = core_text::font_collection::get_family_names();
         let mut family_map : FontFamilyMap = HashMap::new();
         for family_names.each |&strref: &CFStringRef| {
             let family_name = CFString::wrap_extern(strref).to_str();
@@ -46,13 +44,10 @@ pub impl FontListHandle {
         let family_name = &fam.family_name;
         debug!("Looking for faces of family: %s", *family_name);
 
-        let family_collection =
-            platform::macos::font_list::core_text::font_collection::create_for_family(
-                *family_name);
+        let family_collection = core_text::font_collection::create_for_family(*family_name);
         for family_collection.get_descriptors().each |descref: &CTFontDescriptorRef| {
             let desc = CFWrapper::wrap_shared(*descref);
-            let font = platform::macos::font_list::core_text::font::new_from_descriptor(&desc,
-                                                                                        0.0);
+            let font = core_text::font::new_from_descriptor(&desc, 0.0);
             let handle = result::unwrap(FontHandle::new_from_CTFont(&self.fctx, font));
 
             debug!("Creating new FontEntry for face: %s", handle.face_name());

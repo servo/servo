@@ -1,7 +1,5 @@
 //! Linux (FreeType) representation of fonts.
 
-extern mod freetype;
-
 use font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTable, FontTableMethods};
 use font::{FontTableTag, FractionalPixel, SpecifiedFontStyle, UsedFontStyle, FontWeight100};
 use font::{FontWeight200, FontWeight300, FontWeight400, FontWeight500, FontWeight600};
@@ -12,16 +10,16 @@ use platform::font_context::{FreeTypeFontContextHandle, FontContextHandle};
 use text::glyph::GlyphIndex;
 use text::util::{float_to_fixed, fixed_to_float};
 
-use platform::font::freetype::freetype::bindgen::{FT_Get_Char_Index, FT_Get_Postscript_Name};
-use platform::font::freetype::freetype::bindgen::{FT_Load_Glyph, FT_Set_Char_Size};
-use platform::font::freetype::freetype::bindgen::{FT_New_Face, FT_Get_Sfnt_Table};
-use platform::font::freetype::freetype::bindgen::{FT_New_Memory_Face, FT_Done_Face};
-use platform::font::freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
-use platform::font::freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
-use platform::font::freetype::freetype::{FT_STYLE_FLAG_ITALIC, FT_STYLE_FLAG_BOLD};
-use platform::font::freetype::freetype::{FT_SizeRec, FT_UInt, FT_Size_Metrics};
-use platform::font::freetype::freetype::{ft_sfnt_os2};
-use platform::font::freetype::tt_os2::TT_OS2;
+use freetype::freetype::bindgen::{FT_Get_Char_Index, FT_Get_Postscript_Name};
+use freetype::freetype::bindgen::{FT_Load_Glyph, FT_Set_Char_Size};
+use freetype::freetype::bindgen::{FT_New_Face, FT_Get_Sfnt_Table};
+use freetype::freetype::bindgen::{FT_New_Memory_Face, FT_Done_Face};
+use freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
+use freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
+use freetype::freetype::{FT_STYLE_FLAG_ITALIC, FT_STYLE_FLAG_BOLD};
+use freetype::freetype::{FT_SizeRec, FT_UInt, FT_Size_Metrics};
+use freetype::freetype::{ft_sfnt_os2};
+use freetype::tt_os2::TT_OS2;
 
 pub use FontHandle = platform::linux::font::FreeTypeFontHandle;
 pub use FontTable = platform::linux::font::FreeTypeFontTable;

@@ -1,13 +1,10 @@
-extern mod freetype;
-extern mod fontconfig;
-
 use font::{FontHandle, UsedFontStyle};
 use platform::font::FreeTypeFontHandle;
 use platform::font_context::FontContextHandleMethods;
 use platform::font_list::path_from_identifier;
 
-use platform::font_context::freetype::freetype::{FTErrorMethods, FT_Library};
-use platform::font_context::freetype::freetype::bindgen::{FT_Done_FreeType, FT_Init_FreeType};
+use freetype::freetype::{FTErrorMethods, FT_Library};
+use freetype::freetype::bindgen::{FT_Done_FreeType, FT_Init_FreeType};
 
 pub use FontContextHandle = platform::linux::FreeTypeFontContextHandle;
 

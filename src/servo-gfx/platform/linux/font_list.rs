@@ -1,7 +1,5 @@
 //! Font list implementation for Linux (fontconfig).
 
-extern mod freetype;
-extern mod fontconfig;
 
 use font::FontHandleMethods;
 use font_context::FontContextHandleMethods;
@@ -12,22 +10,22 @@ use platform::font_context::{FontContextHandle, FreeTypeFontContextHandle};
 use core::hashmap::HashMap;
 use core::libc::c_int;
 use core::ptr::Ptr;
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcConfigGetCurrent};
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcConfigGetFonts};
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcDefaultSubstitute};
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcPatternCreate};
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcFontSetDestroy};
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcConfigSubstitute};
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcFontSetList};
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcObjectSetCreate};
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcObjectSetDestroy};
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcObjectSetAdd};
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcPatternAddString, FcFontMatch};
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcPatternGetInteger};
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcPatternGetString};
-use platform::font_context::fontconfig::fontconfig::bindgen::{FcPatternDestroy};
-use platform::font_context::fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem};
-use platform::font_context::fontconfig::fontconfig::{FcMatchPattern, FcResultNoMatch};
+use fontconfig::fontconfig::bindgen::{FcConfigGetCurrent};
+use fontconfig::fontconfig::bindgen::{FcConfigGetFonts};
+use fontconfig::fontconfig::bindgen::{FcDefaultSubstitute};
+use fontconfig::fontconfig::bindgen::{FcPatternCreate};
+use fontconfig::fontconfig::bindgen::{FcFontSetDestroy};
+use fontconfig::fontconfig::bindgen::{FcConfigSubstitute};
+use fontconfig::fontconfig::bindgen::{FcFontSetList};
+use fontconfig::fontconfig::bindgen::{FcObjectSetCreate};
+use fontconfig::fontconfig::bindgen::{FcObjectSetDestroy};
+use fontconfig::fontconfig::bindgen::{FcObjectSetAdd};
+use fontconfig::fontconfig::bindgen::{FcPatternAddString, FcFontMatch};
+use fontconfig::fontconfig::bindgen::{FcPatternGetInteger};
+use fontconfig::fontconfig::bindgen::{FcPatternGetString};
+use fontconfig::fontconfig::bindgen::{FcPatternDestroy};
+use fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem};
+use fontconfig::fontconfig::{FcMatchPattern, FcResultNoMatch};
 
 pub struct FontconfigFontListHandle {
     fctx: FreeTypeFontContextHandle,

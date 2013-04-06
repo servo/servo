@@ -12,6 +12,19 @@ extern mod http_client;
 extern mod stb_image;
 extern mod std;
 
+// Eventually we would like the shaper to be pluggable, as many operating systems have their own
+// shapers. For now, however, this is a hard dependency.
+extern mod harfbuzz;
+
+// Linux-specific library dependencies
+#[cfg(target_os="linux")] extern mod fontconfig;
+#[cfg(target_os="linux")] extern mod freetype;
+
+// Mac OS-specific library dependencies
+#[cfg(target_os="macos")] extern mod core_foundation;
+#[cfg(target_os="macos")] extern mod core_graphics;
+#[cfg(target_os="macos")] extern mod core_text;
+
 priv mod render_context;
 
 // Rendering

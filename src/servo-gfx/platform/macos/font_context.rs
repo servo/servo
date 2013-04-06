@@ -1,11 +1,8 @@
-extern mod core_foundation;
-extern mod core_graphics;
-extern mod core_text;
-
 use font::UsedFontStyle;
 use font_context::FontContextHandleMethods;
 use platform::macos::font::FontHandle;
-use platform;
+
+use core_text;
 
 pub struct FontContextHandle {
     ctx: ()
@@ -29,9 +26,7 @@ impl FontContextHandleMethods for FontContextHandle {
                                    name: ~str,
                                    style: UsedFontStyle)
                                 -> Result<FontHandle, ()> {
-        let ctfont_result = platform::macos::font_context::core_text::font::new_from_name(
-            name,
-            style.pt_size);
+        let ctfont_result = core_text::font::new_from_name(name, style.pt_size);
         do result::chain(ctfont_result) |ctfont| {
             FontHandle::new_from_CTFont(self, ctfont)
         }
