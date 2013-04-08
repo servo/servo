@@ -6,13 +6,15 @@
 // The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 //
 
+use content::content_task::global_content;
 use dom::bindings;
 use dom::bindings::codegen;
+use dom::bindings::node;
 use dom::bindings::utils::WrapperCache;
+use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
-use dom::window::Window;
 use layout::debug::DebugMethods;
 use layout::flow::FlowContext;
 use newcss::complete::CompleteSelectResults;
@@ -46,6 +48,8 @@ pub struct Node {
     last_child: Option<AbstractNode>,
     next_sibling: Option<AbstractNode>,
     prev_sibling: Option<AbstractNode>,
+
+    owner_doc: Option<@mut Document>,
 
     // You must not touch this if you are not layout.
     priv layout_data: Option<@mut LayoutData>
@@ -106,29 +110,25 @@ impl Doctype {
 }
 
 pub struct Comment {
-    parent: Node,
-    text: ~str,
+    parent: CharacterData,
 }
 
 impl Comment {
     pub fn new(text: ~str) -> Comment {
         Comment {
-            parent: Node::new(CommentNodeTypeId),
-            text: text
+            parent: CharacterData::new(CommentNodeTypeId, text)
         }
     }
 }
 
 pub struct Text {
-    parent: Node,
-    text: ~str,
+    parent: CharacterData,
 }
 
 impl Text {
     pub fn new(text: ~str) -> Text {
         Text {
-            parent: Node::new(TextNodeTypeId),
-            text: text
+            parent: CharacterData::new(TextNodeTypeId, text)
         }
     }
 }
@@ -316,6 +316,12 @@ pub impl AbstractNode {
     unsafe fn raw_object(self) -> *mut Node {
         self.obj
     }
+
+    fn from_raw(raw: *mut Node) -> AbstractNode {
+        AbstractNode {
+            obj: raw
+        }
+    }
 }
 
 impl DebugMethods for AbstractNode {
@@ -348,8 +354,25 @@ impl DebugMethods for AbstractNode {
 impl Node {
     pub unsafe fn as_abstract_node<N>(node: ~N) -> AbstractNode {
         // This surrenders memory management of the node!
-        AbstractNode {
+        let mut node = AbstractNode {
             obj: transmute(node),
+        };
+        let cx = global_content().compartment.get().cx.ptr;
+        node::create(cx, &mut node);
+        node
+    }
+
+    pub fn add_to_doc(&mut self, doc: @mut Document) {
+        self.owner_doc = Some(doc);
+        let mut node = self.first_child;
+        while node.is_some() {
+            node.get().traverse_preorder(|n| {
+                do n.with_mut_node |n| {
+                    n.owner_doc = Some(doc);
+                }
+                true
+            });
+            node = node.get().next_sibling();
         }
     }
 
@@ -364,16 +387,19 @@ impl Node {
             next_sibling: None,
             prev_sibling: None,
 
+            owner_doc: None,
+
             layout_data: None,
         }
     }
 }
 
-pub fn define_bindings(compartment: @mut Compartment, doc: @mut Document, win: @mut Window) {
-    bindings::window::init(compartment, win);
-    bindings::document::init(compartment, doc);
+pub fn define_bindings(compartment: @mut Compartment) {
+    bindings::window::init(compartment);
+    bindings::document::init(compartment);
     bindings::node::init(compartment);
     bindings::element::init(compartment);
+    bindings::text::init(compartment);
     bindings::utils::initialize_global(compartment.global_obj.ptr);
     let mut unused = false;
     assert!(codegen::ClientRectBinding::DefineDOMInterface(compartment.cx.ptr,

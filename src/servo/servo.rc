@@ -62,6 +62,7 @@ pub mod dom {
         pub mod document;
         pub mod element;
         pub mod node;
+        pub mod text;
         pub mod utils;
         pub mod conversions;
         pub mod window;
@@ -77,10 +78,14 @@ pub mod dom {
             pub mod HTMLCollectionBinding;
         }
     }
+    pub mod characterdata;
+    pub mod clientrect;
+    pub mod clientrectlist;
     pub mod document;
     pub mod domparser;
     pub mod element;
     pub mod event;
+    pub mod htmlcollection;
     pub mod node;
     pub mod window;
 }

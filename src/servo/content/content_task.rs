@@ -151,12 +151,28 @@ pub fn Content(layout_task: LayoutTask,
     };
 
     cx.set_cx_private(ptr::to_unsafe_ptr(&*content) as *());
+    unsafe { task::local_data::local_data_set(global_content_key, cast::transmute(content)); }
 
     content
 }
 
+fn global_content_key(_: @Content) {}
+
+pub fn global_content() -> @Content {
+    unsafe {
+        return task::local_data::local_data_get(global_content_key).get();
+    }
+}
+
 pub fn task_from_context(cx: *JSContext) -> *mut Content {
     JS_GetContextPrivate(cx) as *mut Content
+}
+
+#[unsafe_destructor]
+impl Drop for Content {
+    fn finalize(&self) {
+        unsafe { task::local_data::local_data_pop(global_content_key) };
+    }
 }
 
 #[allow(non_implicitly_copyable_typarams)]
@@ -185,6 +201,8 @@ pub impl Content {
           ParseMsg(url) => {
             debug!("content: Received url `%s` to parse", url_to_str(&url));
 
+            define_bindings(self.compartment.get());
+
             // Note: we can parse the next document in parallel
             // with any previous documents.
 
@@ -209,8 +227,13 @@ pub impl Content {
             let js_scripts = result.js_port.recv();
             debug!("js_scripts: %?", js_scripts);
 
-            let document = @mut Document(root);
-            let window   = @mut Window(self.control_chan.clone());
+            let window   = Window(self.control_chan.clone(),
+                                  self.event_chan.clone());
+            let document = Document(root, Some(window));
+
+            do root.with_mut_node |node| {
+                node.add_to_doc(document);
+            }
 
             self.damage.add(MatchSelectorsDamage);
             self.relayout(document, &url);
@@ -221,7 +244,6 @@ pub impl Content {
 
             let compartment = self.compartment.expect(~"TODO error checking");
             compartment.define_functions(debug_fns);
-            define_bindings(compartment, document, window);
 
             do vec::consume(js_scripts) |_i, bytes| {
                 self.cx.evaluate_script(compartment.global_obj, bytes, ~"???", 1u);

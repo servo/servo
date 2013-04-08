@@ -3,6 +3,7 @@
 
 window.alert("1");
 let elem = document.documentElement;
+window.alert(elem.nodeType);
 window.alert(elem);
 window.alert("2");
 var rects = elem.getClientRects();
@@ -24,11 +25,13 @@ window.alert(rect.width);
 window.alert(rect.height);
 
 window.alert("HTMLCollection:");
-let tags = document.getElementsByTagName("head");
+let tags = document.getElementsByTagName("div");
 //let tag = tags[0];
 window.alert(tags);
 window.alert(tags.length);
 window.alert(tags[0]);
+window.alert(tags[0].tagName);
+window.alert(tags[0].getClientRects());
 window.alert(tags[1]);
 window.alert(tags[2]);
 window.alert(tags[3]);

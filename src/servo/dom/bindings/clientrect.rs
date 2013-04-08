@@ -2,63 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use content::content_task::task_from_context;
+use content::content_task::{task_from_context, global_content};
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
 use dom::bindings::codegen::ClientRectBinding;
+use dom::clientrect::ClientRect;
 use js::jsapi::{JSObject, JSContext, JSVal};
 use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
 
-pub trait ClientRect {
-    fn Top(&self) -> f32;
-    fn Bottom(&self) -> f32;
-    fn Left(&self) -> f32;
-    fn Right(&self) -> f32;
-    fn Width(&self) -> f32;
-    fn Height(&self) -> f32;
-}
-
-pub struct ClientRectImpl {
-    wrapper: WrapperCache,
-    top: f32,
-    bottom: f32,
-    left: f32,
-    right: f32,
-}
-
-impl ClientRect for ClientRectImpl {
-    fn Top(&self) -> f32 {
-        self.top
-    }
-
-    fn Bottom(&self) -> f32 {
-        self.bottom
-    }
-
-    fn Left(&self) -> f32 {
-        self.left
-    }
-
-    fn Right(&self) -> f32 {
-        self.right
-    }
-
-    fn Width(&self) -> f32 {
-        f32::abs(self.right - self.left)
-    }
-
-    fn Height(&self) -> f32 {
-        f32::abs(self.bottom - self.top)
+pub impl ClientRect {
+    pub fn init_wrapper(@mut self) {
+        let content = global_content();
+        let cx = content.compartment.get().cx.ptr;
+        let owner = content.window.get();
+        let cache = owner.get_wrappercache();
+        let scope = cache.get_wrapper();
+        self.wrap_object_shared(cx, scope);
     }
 }
 
-pub fn ClientRect(top: f32, bottom: f32, left: f32, right: f32) -> ClientRectImpl {
-    ClientRectImpl {
-        top: top, bottom: bottom, left: left, right: right,
-        wrapper: WrapperCache::new()
-    }
-}
-
-impl CacheableWrapper for ClientRectImpl {
+impl CacheableWrapper for ClientRect {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe { cast::transmute(&self.wrapper) }
     }
@@ -73,14 +35,14 @@ impl CacheableWrapper for ClientRectImpl {
     }
 }
 
-impl BindingObject for ClientRectImpl {
+impl BindingObject for ClientRect {
     fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
         let content = task_from_context(cx);
         unsafe { (*content).window.get() as @mut CacheableWrapper }
     }
 }
 
-impl DerivedWrapper for ClientRectImpl {
+impl DerivedWrapper for ClientRect {
     fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
         fail!(~"nyi")
     }

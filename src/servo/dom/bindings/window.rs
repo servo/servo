@@ -76,13 +76,9 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-pub fn init(compartment: @mut Compartment, win: @mut Window) {
+pub fn init(compartment: @mut Compartment) {
     let proto = utils::define_empty_prototype(~"Window", None, compartment);
-    compartment.register_class(utils::instance_jsclass(~"WindowInstance", finalize));
-
-    let obj = result::unwrap(
-                 compartment.new_object_with_proto(~"WindowInstance",
-                                                   ~"Window", null()));
+    compartment.register_class(utils::instance_jsclass(~"WindowInstance", finalize, null()));
 
     /* Define methods on a window */
     let methods = [
@@ -116,11 +112,19 @@ pub fn init(compartment: @mut Compartment, win: @mut Window) {
         }
     ];
 
+    unsafe {
+        JS_DefineFunctions(compartment.cx.ptr, proto.ptr, &methods[0]);
+    }
+}
+
+pub fn create(compartment: @mut Compartment, win: @mut Window) {
+    let obj = result::unwrap(
+                 compartment.new_object_with_proto(~"WindowInstance",
+                                                   ~"Window", null()));
+
     win.get_wrappercache().set_wrapper(obj.ptr);
 
     unsafe {
-        JS_DefineFunctions(compartment.cx.ptr, proto.ptr, &methods[0]);
-
         let raw_ptr: *libc::c_void = cast::reinterpret_cast(&squirrel_away(win));
         JS_SetReservedSlot(obj.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }

@@ -7,7 +7,8 @@
 //
 
 use dom::node::{ElementNodeTypeId, Node};
-use dom::bindings::clientrectlist::ClientRectListImpl;
+use dom::clientrectlist::ClientRectList;
+use dom::bindings::utils::DOMString;
 
 use core::str::eq_slice;
 use core::cell::Cell;
@@ -17,6 +18,13 @@ pub struct Element {
     parent: Node,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
     attrs: ~[Attr],
+}
+
+#[unsafe_destructor]
+impl Drop for Element {
+    fn finalize(&self) {
+        fail!(~"uh oh");
+    }
 }
 
 #[deriving(Eq)]
@@ -132,20 +140,31 @@ pub impl<'self> Element {
         return None;
     }
 
-    fn set_attr(&mut self, name: &str, value: ~str) {
+    fn set_attr(&mut self, name: &DOMString, value: &DOMString) {
+        let name = name.to_str();
+        let value = value.to_str();
         // FIXME: We need a better each_mut in Rust; this is ugly.
         let value_cell = Cell(value);
+        let mut found = false;
         for uint::range(0, self.attrs.len()) |i| {
             if eq_slice(self.attrs[i].name, name) {
-                self.attrs[i].value = value_cell.take();
-                return;
+                self.attrs[i].value = value_cell.take().clone();
+                found = true;
+                break;
             }
         }
-        self.attrs.push(Attr::new(name.to_str(), value_cell.take()));
+        if !found {
+            self.attrs.push(Attr::new(name.to_str(), value_cell.take().clone()));
+        }
+
+        match self.parent.owner_doc {
+            Some(owner) => owner.content_changed(),
+            None => {}
+        }
     }
 
-    fn getClientRects(&self) -> Option<@mut ClientRectListImpl> {
-        Some(@mut ClientRectListImpl::new())
+    fn getClientRects(&self) -> Option<@mut ClientRectList> {
+        Some(ClientRectList::new())
     }
 }
 

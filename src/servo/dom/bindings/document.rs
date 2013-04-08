@@ -17,11 +17,10 @@ use core::libc::c_uint;
 use content::content_task::task_from_context;
 use dom::bindings::utils::{DOMString, rust_box, squirrel_away, str};
 use dom::bindings::utils::{jsval_to_str, WrapNewBindingObject, CacheableWrapper};
-use dom::bindings::utils::WrapperCache;
+use dom::bindings::utils::{WrapperCache, DerivedWrapper};
 
 use dom::document::Document;
-use dom::bindings::htmlcollection::HTMLCollection;
-use dom::bindings::node;
+use dom::htmlcollection::HTMLCollection;
 use dom::bindings::utils;
 
 extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
@@ -32,7 +31,9 @@ extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> J
         }
 
         let doc = &mut (*unwrap(obj)).payload;
-        *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, &mut doc.root).ptr);
+        let root = &mut doc.root;
+        assert!(root.is_element());
+        root.wrap(cx, ptr::null(), vp); //XXXjdm proper scope at some point
         return 1;
     }
 }
@@ -80,7 +81,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-pub fn init(compartment: @mut Compartment, doc: @mut Document) {
+pub fn init(compartment: @mut Compartment) {
     let obj = utils::define_empty_prototype(~"Document", None, compartment);
 
     let attrs = @~[
@@ -115,14 +116,9 @@ pub fn init(compartment: @mut Compartment, doc: @mut Document) {
         JS_DefineFunctions(compartment.cx.ptr, obj.ptr, fns);
     });
 
-    compartment.register_class(utils::instance_jsclass(~"DocumentInstance", finalize));
-
-    let ptr = create(compartment, doc);
-
-    compartment.define_property(~"document", RUST_OBJECT_TO_JSVAL(ptr),
-                                GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-                                GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
-                                JSPROP_ENUMERATE);
+    compartment.register_class(utils::instance_jsclass(~"DocumentInstance",
+                                                       finalize,
+                                                       ptr::null()));
 }
 
 pub fn create(compartment: @mut Compartment, doc: @mut Document) -> *JSObject {
@@ -135,6 +131,12 @@ pub fn create(compartment: @mut Compartment, doc: @mut Document) -> *JSObject {
         let raw_ptr: *libc::c_void = cast::reinterpret_cast(&squirrel_away(doc));
         JS_SetReservedSlot(instance.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
+
+    compartment.define_property(~"document", RUST_OBJECT_TO_JSVAL(instance.ptr),
+                                GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+                                GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
+                                JSPROP_ENUMERATE);
+
     instance.ptr
 }
 

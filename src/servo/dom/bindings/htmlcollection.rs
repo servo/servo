@@ -2,46 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use content::content_task::task_from_context;
-use dom::node::AbstractNode;
+use content::content_task::{task_from_context, global_content};
 use dom::bindings::codegen::HTMLCollectionBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
+use dom::htmlcollection::HTMLCollection;
 use js::jsapi::{JSObject, JSContext};
 
-pub struct HTMLCollection {
-    elements: ~[AbstractNode],
-    wrapper: WrapperCache
-}
-
 pub impl HTMLCollection {
-    fn new(elements: ~[AbstractNode]) -> HTMLCollection {
-        HTMLCollection {
-            elements: elements,
-            wrapper: WrapperCache::new()
-        }
-    }
-    
-    fn Length(&self) -> u32 {
-        self.elements.len() as u32
-    }
-
-    fn Item(&self, index: u32) -> Option<AbstractNode> {
-        if index < self.Length() {
-            Some(self.elements[index])
-        } else {
-            None
-        }
-    }
-
-    fn NamedItem(&self, _cx: *JSContext, _name: DOMString, rv: &mut ErrorResult) -> *JSObject {
-        *rv = Ok(());
-        ptr::null()
-    }
-
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<AbstractNode> {
-        *found = true;
-        self.Item(index)
+    fn init_wrapper(@mut self) {
+        let content = global_content();
+        let cx = content.compartment.get().cx.ptr;
+        let owner = content.window.get();
+        let cache = owner.get_wrappercache();
+        let scope = cache.get_wrapper();
+        self.wrap_object_shared(cx, scope);
     }
 }
 

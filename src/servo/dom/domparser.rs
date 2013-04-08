@@ -1,4 +1,5 @@
-use dom::bindings::utils::{DOMString, ErrorResult, WrapperCache};
+use content::content_task::global_content;
+use dom::bindings::utils::{DOMString, ErrorResult, WrapperCache, CacheableWrapper};
 use dom::bindings::codegen::DOMParserBinding;
 use dom::document::Document;
 use dom::element::{Element, HTMLHtmlElement, HTMLHtmlElementTypeId};
@@ -11,20 +12,25 @@ pub struct DOMParser {
 }
 
 pub impl DOMParser {
-    fn new(owner: @mut Window) -> DOMParser {
-        DOMParser {
+    fn new(owner: @mut Window) -> @mut DOMParser {
+        let parser = @mut DOMParser {
             owner: owner,
             wrapper: WrapperCache::new()
-        }
+        };
+        let cx = global_content().compartment.get().cx.ptr;
+        let cache = owner.get_wrappercache();
+        let scope = cache.get_wrapper();
+        parser.wrap_object_shared(cx, scope);
+        parser
     }
 
     fn Constructor(owner: @mut Window, _rv: &mut ErrorResult) -> @mut DOMParser {
-        @mut DOMParser::new(owner)
+        DOMParser::new(owner)
     }
 
     fn ParseFromString(&self, _s: DOMString, _type_: DOMParserBinding::SupportedType, _rv: &mut ErrorResult) -> @mut Document {
         let root = ~HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
         let root = unsafe { Node::as_abstract_node(root) };
-        @mut Document(root)
+        Document(root, None)
     }
 }

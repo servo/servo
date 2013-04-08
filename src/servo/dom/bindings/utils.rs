@@ -30,9 +30,7 @@ use content::content_task::task_from_context;
 
 use core::hashmap::HashMap;
 
-use dom::bindings::document;
 use dom::bindings::node;
-use dom::document::Document;
 use dom::node::AbstractNode;
 
 static TOSTRING_CLASS_RESERVED_SLOT: u64 = 0;
@@ -91,6 +89,15 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: uint, vp: *mut JSVal) -
 pub enum DOMString {
     str(~str),
     null_string
+}
+
+pub impl DOMString {
+    fn to_str(&self) -> ~str {
+        match *self {
+          str(ref s) => s.clone(),
+          null_string => ~""
+        }
+    }
 }
 
 pub struct rust_box<T> {
@@ -219,7 +226,7 @@ pub fn prototype_jsclass(name: ~str) -> @fn(compartment: @mut Compartment) -> JS
     return f;
 }
 
-pub fn instance_jsclass(name: ~str, finalize: *u8)
+pub fn instance_jsclass(name: ~str, finalize: *u8, trace: *u8)
                      -> @fn(compartment: @mut Compartment) -> JSClass {
     let f: @fn(@mut Compartment) -> JSClass = |compartment: @mut Compartment| {
         JSClass {
@@ -237,7 +244,7 @@ pub fn instance_jsclass(name: ~str, finalize: *u8)
             call: null(),
             hasInstance: has_instance,
             construct: null(),
-            trace: null(),
+            trace: trace,
             reserved: (null(), null(), null(), null(), null(),  // 05
                        null(), null(), null(), null(), null(),  // 10
                        null(), null(), null(), null(), null(),  // 15
@@ -785,40 +792,6 @@ impl DerivedWrapper for AbstractNode {
 
     fn wrap_shared(@mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
         fail!(~"nyi")
-    }
-}
-
-/*impl DerivedWrapper for Document {
-    fn wrap(&mut self, cx: *JSContext, scope: *JSObject, vp: *mut JSVal) -> i32 {
-        let cache = self.get_wrappercache();
-        let wrapper = cache.get_wrapper();
-        if wrapper.is_not_null() {
-            unsafe { *vp = RUST_OBJECT_TO_JSVAL(wrapper) };
-            return 1;
-        }
-        let content = task_from_context(cx);
-        unsafe {
-            let compartment = (*content).compartment.get();
-            *vp = RUST_OBJECT_TO_JSVAL(document::create(compartment, self));
-        }
-        return 1;
-    }
-}*/
-
-pub impl Document {
-    fn wrap(@mut self, cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
-        let cache = self.get_wrappercache();
-        let wrapper = cache.get_wrapper();
-        if wrapper.is_not_null() {
-            unsafe { *vp = RUST_OBJECT_TO_JSVAL(wrapper) };
-            return 1;
-        }
-        let content = task_from_context(cx);
-        unsafe {
-            let compartment = (*content).compartment.get();
-            *vp = RUST_OBJECT_TO_JSVAL(document::create(compartment, self));
-        }
-        return 1;
     }
 }
 

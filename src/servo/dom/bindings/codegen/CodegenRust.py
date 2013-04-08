@@ -3906,9 +3906,9 @@ class CGBindingRoot(CGThing):
                           'dom::document::Document', #XXXjdm
                           'dom::bindings::utils::*',
                           'dom::bindings::conversions::*',
-                          'dom::bindings::clientrect::*', #XXXjdm
-                          'dom::bindings::clientrectlist::*', #XXXjdm
-                          'dom::bindings::htmlcollection::*', #XXXjdm
+                          'dom::clientrect::*', #XXXjdm
+                          'dom::clientrectlist::*', #XXXjdm
+                          'dom::htmlcollection::*', #XXXjdm
                           'dom::bindings::proxyhandler::*',
                           'dom::domparser::*', #XXXjdm
                           'content::content_task::task_from_context',

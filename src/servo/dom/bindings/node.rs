@@ -2,24 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{CacheableWrapper, WrapperCache};
-use dom::bindings::utils::{DOM_OBJECT_SLOT};
+use dom::bindings::element;
+use dom::bindings::text;
+use dom::bindings::utils;
+use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId};
-use super::element;
-use super::utils;
 
 use core::libc::c_uint;
 use core::ptr::null;
-use js::glue::bindgen::*;
 use js::jsapi::bindgen::*;
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSPropertySpec};
 use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper};
-use js::jsval::{INT_TO_JSVAL, JSVAL_TO_PRIVATE};
+use js::jsval::{INT_TO_JSVAL};
 use js::rust::{Compartment, jsobj};
 use js::{JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
 use js::{JS_THIS_OBJECT, JSPROP_NATIVE_ACCESSORS};
-use js;
 
 pub fn init(compartment: @mut Compartment) {
     let obj = utils::define_empty_prototype(~"Node", None, compartment);
@@ -62,15 +60,15 @@ pub fn init(compartment: @mut Compartment) {
 pub fn create(cx: *JSContext, node: &mut AbstractNode) -> jsobj {
     match node.type_id() {
         ElementNodeTypeId(_) => element::create(cx, node),
-        TextNodeTypeId    => fail!(~"no text node bindings yet"),
-        CommentNodeTypeId => fail!(~"no comment node bindings yet"),
-        DoctypeNodeTypeId => fail!(~"no doctype node bindings yet")
+        TextNodeTypeId |
+        CommentNodeTypeId |
+        DoctypeNodeTypeId => text::create(cx, node),
      }
 }
 
-pub unsafe fn unwrap(obj: *JSObject) -> *AbstractNode {
-    let val = js::GetReservedSlot(obj, DOM_OBJECT_SLOT as u64);
-    cast::transmute(JSVAL_TO_PRIVATE(val))
+pub unsafe fn unwrap(obj: *JSObject) -> AbstractNode {
+    let raw = unsafe { utils::unwrap::<*mut Node>(obj) };
+    AbstractNode::from_raw(raw)
 }
 
 #[allow(non_implicitly_copyable_typarams)]
@@ -81,14 +79,13 @@ extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool
             return 0;
         }
 
-        let node = *unwrap(obj);
+        let node = unwrap(obj);
         let rval = do node.with_mut_node |node| {
             node.getFirstChild()
         };
         match rval {
             Some(n) => {
-                let obj = create(cx, n).ptr;
-                *vp = RUST_OBJECT_TO_JSVAL(obj)
+                n.wrap(cx, ptr::null(), vp); //XXXjdm pass a real scope
             }
             None => *vp = JSVAL_NULL
         };
@@ -104,14 +101,13 @@ extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBoo
             return 0;
         }
 
-        let node = *unwrap(obj);
+        let node = unwrap(obj);
         let rval = do node.with_mut_node |node| {
             node.getNextSibling()
         };
         match rval {
             Some(n) => {
-                let obj = create(cx, n).ptr;
-                *vp = RUST_OBJECT_TO_JSVAL(obj)
+                n.wrap(cx, ptr::null(), vp); //XXXjdm pass a real scope
             }
             None => *vp = JSVAL_NULL
         };
@@ -155,7 +151,7 @@ extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
             return 0;
         }
 
-        let node = *unwrap(obj);
+        let node = unwrap(obj);
         let rval = do node.with_imm_node |node| {
             node.getNodeType()
         };

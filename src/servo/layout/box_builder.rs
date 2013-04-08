@@ -489,7 +489,7 @@ pub impl LayoutTreeBuilder {
 
         // FIXME: Don't copy text. I guess it should be atomically reference counted?
         do node.with_imm_text |text_node| {
-            let string = text_node.text.to_str();
+            let string = text_node.parent.data.to_str();
             @mut UnscannedTextBox(RenderBoxData(node, ctx, self.next_box_id()), string)
         }
     }
