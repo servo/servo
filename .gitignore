@@ -14,6 +14,7 @@ Servo.app
 build
 config.mk
 config.stamp
+config.tmp
 parser.out
 src/servo/dom/bindings/codegen/*.rs
 src/servo/dom/bindings/codegen/_cache/
