@@ -310,7 +310,7 @@ then
     if [ -f ${CFG_LOCAL_RUST_ROOT}/bin/rustc ]
     then
         LRV=`${CFG_LOCAL_RUST_ROOT}/bin/rustc --version`
-        step_msg "using rustc at: ${CFG_LOCAL_RUST_ROOT} with version: " $LRV
+        step_msg "using rustc at: ${CFG_LOCAL_RUST_ROOT} with version: $LRV"
         CFG_RUSTC=${CFG_LOCAL_RUST_ROOT}/bin/rustc
         CFG_LOCAL_RUSTC=1
     else
