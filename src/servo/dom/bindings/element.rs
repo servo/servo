@@ -32,10 +32,10 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-pub extern fn trace(tracer: *JSTracer, obj: *JSObject) {
+pub extern fn trace(tracer: *mut JSTracer, obj: *JSObject) {
     let node = unsafe { unwrap(obj) };
 
-    fn trace_node(tracer: *JSTracer, node: Option<AbstractNode>, name: &str) {
+    fn trace_node(tracer: *mut JSTracer, node: Option<AbstractNode>, name: &str) {
         if node.is_none() {
             return;
         }
@@ -45,7 +45,12 @@ pub extern fn trace(tracer: *JSTracer, obj: *JSObject) {
         let wrapper = cache.get_wrapper();
         assert!(wrapper.is_not_null());
         unsafe {
-            JS_CallTracer(tracer, wrapper, JSTRACE_OBJECT as u32);
+            (*tracer).debugPrinter = ptr::null();
+            (*tracer).debugPrintIndex = -1;
+            do str::as_c_str(name) |name| {
+                (*tracer).debugPrintArg = name as *libc::c_void;
+                JS_CallTracer(cast::transmute(tracer), wrapper, JSTRACE_OBJECT as u32);
+            }
         }
     }
     error!("tracing %?:", obj as uint);

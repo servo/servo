@@ -290,10 +290,8 @@ static DOM_PROXY_OBJECT_SLOT: uint = js::JSSLOT_PROXY_PRIVATE as uint;
 // changes.
 static DOM_PROTO_INSTANCE_CLASS_SLOT: u32 = 0;
 
-// All DOM globals must have a slot at DOM_PROTOTYPE_SLOT. We have to
-// start at 1 past JSCLASS_GLOBAL_SLOT_COUNT because XPConnect uses
-// that one.
-pub static DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT + 1;
+// All DOM globals must have a slot at DOM_PROTOTYPE_SLOT.
+pub static DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
 
 // NOTE: This is baked into the Ion JIT as 0 in codegen for LGetDOMProperty and
 // LSetDOMProperty. Those constants need to be changed accordingly if this value
@@ -578,6 +576,10 @@ pub impl WrapperCache {
 
     fn set_wrapper(&mut self, wrapper: *JSObject) {
         self.wrapper = wrapper;
+    }
+
+    fn get_rootable(&self) -> **JSObject {
+        return ptr::addr_of(&self.wrapper);
     }
 
     fn new() -> WrapperCache {

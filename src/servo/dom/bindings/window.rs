@@ -16,7 +16,7 @@ use js::crust::{JS_PropertyStub, JS_StrictPropertyStub};
 use js::global::jsval_to_rust_str;
 use js::glue::bindgen::*;
 use js::glue::bindgen::RUST_JSVAL_TO_INT;
-use js::jsapi::bindgen::{JS_DefineFunctions};
+use js::jsapi::bindgen::{JS_DefineFunctions, JS_GC, JS_GetRuntime};
 use js::jsapi::bindgen::{JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::bindgen::{JS_ValueToString};
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp, JSFunctionSpec};
@@ -31,12 +31,15 @@ extern fn alert(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
     assert!(argc == 1);
     // Abstract this pattern and use it in debug, too?
     let jsstr = JS_ValueToString(cx, *ptr::offset(argv, 0));
+    if jsstr.is_null() {
+        return 0;
+    }
     
     (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.alert(jsval_to_rust_str(cx, jsstr));
 
     JS_SET_RVAL(cx, vp, JSVAL_NULL);
+    return 1;
   }
-  1_i32
 }
 
 extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
@@ -59,6 +62,14 @@ extern fn close(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
     unsafe {
         (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.close();
         JS_SET_RVAL(cx, vp, JSVAL_NULL);
+        return 1;
+    }
+}
+
+extern fn gc(cx: *JSContext, _argc: c_uint, _vp: *JSVal) -> JSBool {
+    unsafe {
+        let runtime = JS_GetRuntime(cx);
+        JS_GC(runtime);
         return 1;
     }
 }
@@ -99,7 +110,14 @@ pub fn init(compartment: @mut Compartment) {
         JSFunctionSpec {
             name: compartment.add_name(~"close"),
             call: JSNativeWrapper { op: close, info: null() },
-            nargs: 2,
+            nargs: 0,
+            flags: 0,
+            selfHostedName: null()
+        },
+        JSFunctionSpec {
+            name: compartment.add_name(~"_trigger_gc"),
+            call: JSNativeWrapper { op: gc, info: null() },
+            nargs: 0,
             flags: 0,
             selfHostedName: null()
         },

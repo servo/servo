@@ -20,13 +20,6 @@ pub struct Element {
     attrs: ~[Attr],
 }
 
-#[unsafe_destructor]
-impl Drop for Element {
-    fn finalize(&self) {
-        fail!(~"uh oh");
-    }
-}
-
 #[deriving(Eq)]
 pub enum ElementTypeId {
     HTMLAnchorElementTypeId,
