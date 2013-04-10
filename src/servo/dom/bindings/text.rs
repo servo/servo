@@ -1,19 +1,19 @@
 use dom::bindings::element;
+use dom::bindings::node::unwrap;
 use dom::bindings::utils;
 use dom::bindings::utils::{DOM_OBJECT_SLOT, CacheableWrapper};
 use dom::node::{AbstractNode, Text, Comment, Doctype, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId};
 
 use js::jsapi::{JSFreeOp, JSObject, JSContext};
-use js::jsapi::bindgen::{JS_GetReservedSlot, JS_SetReservedSlot};
-use js::glue::bindgen::{RUST_JSVAL_TO_PRIVATE, RUST_PRIVATE_TO_JSVAL};
+use js::jsapi::bindgen::{JS_SetReservedSlot};
+use js::glue::bindgen::{RUST_PRIVATE_TO_JSVAL};
 use js::rust::{Compartment, jsobj};
 
 extern fn finalize_text(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("text finalize: %?!", obj as uint);
     unsafe {
-        let val = JS_GetReservedSlot(obj, DOM_OBJECT_SLOT as u32);
-        let node: AbstractNode = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
+        let node: AbstractNode = unwrap(obj);
         let _elem: ~Text = cast::transmute(node.raw_object());
     }
 }
@@ -21,8 +21,7 @@ extern fn finalize_text(_fop: *JSFreeOp, obj: *JSObject) {
 extern fn finalize_comment(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("comment finalize: %?!", obj as uint);
     unsafe {
-        let val = JS_GetReservedSlot(obj, DOM_OBJECT_SLOT as u32);
-        let node: AbstractNode = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
+        let node: AbstractNode = unwrap(obj);
         let _elem: ~Comment = cast::transmute(node.raw_object());
     }
 }
@@ -30,8 +29,7 @@ extern fn finalize_comment(_fop: *JSFreeOp, obj: *JSObject) {
 extern fn finalize_doctype(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("doctype finalize: %?!", obj as uint);
     unsafe {
-        let val = JS_GetReservedSlot(obj, DOM_OBJECT_SLOT as u32);
-        let node: AbstractNode = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
+        let node: AbstractNode = unwrap(obj);
         let _elem: ~Doctype = cast::transmute(node.raw_object());
     }
 }
@@ -82,7 +80,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode) -> jsobj {
     cache.set_wrapper(obj.ptr);
 
     unsafe {
-        let raw_ptr = ptr::to_unsafe_ptr(node) as *libc::c_void;
+        let raw_ptr = node.raw_object() as *libc::c_void;
         JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT as u32, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
 
