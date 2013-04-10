@@ -167,10 +167,6 @@ impl CacheableWrapper for AbstractNode {
         }
     }
 
-    fn wrap_object_unique(~self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"need to implement wrapping");
-    }
-
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"need to implement wrapping");
     }

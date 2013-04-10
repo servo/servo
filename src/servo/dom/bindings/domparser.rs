@@ -11,10 +11,6 @@ impl CacheableWrapper for DOMParser {
         unsafe { cast::transmute(&self.wrapper) }
     }
 
-    fn wrap_object_unique(~self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"need to implement wrapping");
-    }
-
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
         let mut unused = false;
         DOMParserBinding::Wrap(cx, scope, self, &mut unused)

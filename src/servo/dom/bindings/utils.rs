@@ -130,12 +130,6 @@ pub unsafe fn squirrel_away<T>(x: @mut T) -> *rust_box<T> {
     y
 }
 
-pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *rust_box<T> {
-    let y: *rust_box<T> = cast::reinterpret_cast(&x);
-    cast::forget(x);
-    y
-}
-
 //XXX very incomplete
 pub fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
     let jsstr;
@@ -561,7 +555,6 @@ pub fn initialize_global(global: *JSObject) {
 
 pub trait CacheableWrapper {
     fn get_wrappercache(&mut self) -> &mut WrapperCache;
-    fn wrap_object_unique(~self, cx: *JSContext, scope: *JSObject) -> *JSObject;
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject;
 }
 
@@ -623,37 +616,8 @@ pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, mut p: @mut CacheableW
     wrapper
 }
 
-pub struct BindingReference<T>(Either<~T, @mut T>);
-
 pub trait BindingObject {
     fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper;
-}
-
-pub impl<T: BindingObject + CacheableWrapper> BindingReference<T> {
-    fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
-        match **self {
-          Left(ref obj) => obj.GetParentObject(cx),
-          Right(ref obj) => obj.GetParentObject(cx)
-        }
-    }
-
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        match **self {
-          Left(ref mut obj) => obj.get_wrappercache(),
-          Right(ref mut obj) => obj.get_wrappercache()
-        }
-    }
-}
-
-pub fn squirrel_away_ref<R>(obj: &mut BindingReference<R>) -> *rust_box<R> {
-    let mut tmp: BindingReference<R> = unstable::intrinsics::init();
-    tmp <-> *obj;
-    unsafe {
-        match tmp {
-            BindingReference(Left(obj)) => squirrel_away_unique(obj),
-            BindingReference(Right(obj)) => squirrel_away(obj)
-        }
-    }
 }
 
 pub fn GetPropertyOnPrototype(cx: *JSContext, proxy: *JSObject, id: jsid, found: *mut bool,

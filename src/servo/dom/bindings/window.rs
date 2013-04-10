@@ -159,10 +159,6 @@ impl CacheableWrapper for Window {
         unsafe { cast::transmute(&self.wrapper) }
     }
 
-    fn wrap_object_unique(~self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"should this be called?");
-    }
-
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"should this be called?");
     }

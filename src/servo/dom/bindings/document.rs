@@ -145,10 +145,6 @@ impl CacheableWrapper for Document {
         unsafe { cast::transmute(&self.wrapper) }
     }
 
-    fn wrap_object_unique(~self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"need to implement wrapping");
-    }
-
     fn wrap_object_shared(@mut self, cx: *JSContext, _scope: *JSObject) -> *JSObject {
         let content = task_from_context(cx);
         unsafe { create((*content).compartment.get(), self) }

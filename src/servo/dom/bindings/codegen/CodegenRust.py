@@ -2439,7 +2439,7 @@ def CreateBindingJSObject(descriptor, parent):
   let handler = (*content).dom_static.proxy_handlers.get(&(prototypes::id::%s as uint));
 """ % descriptor.name
         create = handler + """  let obj = NewProxyObject(aCx, *handler,
-                           ptr::addr_of(&RUST_PRIVATE_TO_JSVAL(squirrel_away_ref(aObject) as *libc::c_void)),
+                           ptr::addr_of(&RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void)),
                            proto, %s,
                            ptr::null(), ptr::null());
   if obj.is_null() {
@@ -2454,7 +2454,7 @@ def CreateBindingJSObject(descriptor, parent):
   }
 
   JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
-                     RUST_PRIVATE_TO_JSVAL(squirrel_away_ref(aObject) as *libc::c_void));
+                     RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void));
 """
     return create % parent
 
@@ -2462,7 +2462,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('&mut BindingReference<' + descriptor.nativeType + '>', 'aObject'),
+                Argument('@mut ' + descriptor.nativeType, 'aObject'),
                 Argument('*mut bool', 'aTriedToWrap')]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap_', '*JSObject', args)
 
@@ -2505,8 +2505,7 @@ class CGWrapMethod(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', '*JSObject', args, inline=True, pub=True)
 
     def definition_body(self):
-        return "  let mut binding = BindingReference(Right(aObject)); \
-  return Wrap_(aCx, aScope, &mut binding, aTriedToWrap);"
+        return "return Wrap_(aCx, aScope, aObject, aTriedToWrap);"
 
 class CGWrapNonWrapperCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
