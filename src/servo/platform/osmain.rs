@@ -37,13 +37,13 @@ impl Clone for OSMain {
 
 // FIXME: Move me over to opts.rs.
 enum Mode {
-	GlutMode,
-	ShareMode
+    GlutMode,
+    ShareMode
 }
 
 enum Window {
-	GlutWindow(glut::Window),
-	ShareWindow(ShareGlContext)
+    GlutWindow(glut::Window),
+    ShareWindow(ShareGlContext)
 }
 
 pub enum Msg {
@@ -101,22 +101,22 @@ fn mainloop(mode: Mode,
             opts: &Opts) {
     let key_handlers: @mut ~[Chan<()>] = @mut ~[];
 
-	let window;
-	match mode {
-		GlutMode => {
-			glut::init();
-			glut::init_display_mode(glut::DOUBLE);
-			let glut_window = glut::create_window(~"Servo");
-			glut::reshape_window(glut_window, 800, 600);
-			window = GlutWindow(glut_window);
-		}
-		ShareMode => {
+    let window;
+    match mode {
+        GlutMode => {
+            glut::init();
+            glut::init_display_mode(glut::DOUBLE);
+            let glut_window = glut::create_window(~"Servo");
+            glut::reshape_window(glut_window, 800, 600);
+            window = GlutWindow(glut_window);
+        }
+        ShareMode => {
             let size = Size2D(800, 600);
-			let share_context: ShareGlContext = sharegl::base::ShareContext::new(size);
-			io::println(fmt!("Sharing ID is %d", share_context.id()));
-			window = ShareWindow(share_context);
-		}
-	}
+            let share_context: ShareGlContext = sharegl::base::ShareContext::new(size);
+            io::println(fmt!("Sharing ID is %d", share_context.id()));
+            window = ShareWindow(share_context);
+        }
+    }
 
     let surfaces = @mut SurfaceSet(opts.render_backend);
 
