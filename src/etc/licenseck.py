@@ -59,6 +59,7 @@ exceptions = [
     "rust-http-client/http_parser.c", # BSD, Joyent
     "rust-http-client/http_parser.h", # BSD, Joyent
     "rust-opengles/gl2.h", # SGI Free Software B License Version 2.0, Khronos Group
+    "rust-stb-image/stb_image.c", # Public domain
     "servo/dom/bindings/codegen/ply/ply/yacc.py", # BSD
     "servo/dom/bindings/codegen/ply/ply/__init__.py", # BSD
     "servo/dom/bindings/codegen/ply/ply/lex.py", # BSD
