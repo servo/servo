@@ -22,7 +22,7 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
         if current_url.is_none() {
             // Assume we've been given a file path. If it's absolute just return
             // it, otherwise make it absolute with the cwd.
-            if str_url[0] == "/"[0] {
+            if str_url.starts_with("/") {
                 ~"file://" + str_url
             } else {
                 ~"file://" + os::getcwd().push(str_url).to_str()
