@@ -45,8 +45,6 @@ exceptions = [
     "src/rust-harfbuzz/harfbuzz", # Upstream
     "src/skia", # Upstream
     "src/servo/dom/bindings/codegen", # Generated and upstream code combined with our own. Could use cleanup
-    "src/rust-opengles", # Need to contact copyright holders
-    "src/rust-stb-image", # "
 ]
 
 def should_check(name):
