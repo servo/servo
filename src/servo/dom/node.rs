@@ -43,6 +43,8 @@ pub struct Node {
     wrapper: WrapperCache,
     type_id: NodeTypeId,
 
+    abstract: Option<AbstractNode>,
+
     parent_node: Option<AbstractNode>,
     first_child: Option<AbstractNode>,
     last_child: Option<AbstractNode>,
@@ -238,15 +240,27 @@ pub impl AbstractNode {
 
     fn transmute<T, R>(self, f: &fn(&T) -> R) -> R {
         unsafe {
+            let node_box: *mut bindings::utils::rust_box<Node> = transmute(self.obj);
+            let node = &mut (*node_box).payload;
+            let old = node.abstract;
+            node.abstract = Some(self);
             let box: *bindings::utils::rust_box<T> = transmute(self.obj);
-            f(&(*box).payload)
+            let rv = f(&(*box).payload);
+            node.abstract = old;
+            rv
         }
     }
 
     fn transmute_mut<T, R>(self, f: &fn(&mut T) -> R) -> R {
         unsafe {
+            let node_box: *mut bindings::utils::rust_box<Node> = transmute(self.obj);
+            let node = &mut (*node_box).payload;
+            let old = node.abstract;
+            node.abstract = Some(self);
             let box: *bindings::utils::rust_box<T> = transmute(self.obj);
-            f(cast::transmute(&(*box).payload))
+            let rv = f(cast::transmute(&(*box).payload));
+            node.abstract = old;
+            rv
         }
     }
 
@@ -380,6 +394,8 @@ impl Node {
         Node {
             wrapper: WrapperCache::new(),
             type_id: type_id,
+
+            abstract: None,
 
             parent_node: None,
             first_child: None,

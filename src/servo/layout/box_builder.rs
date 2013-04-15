@@ -230,16 +230,17 @@ impl BuilderContext {
     
     priv fn create_child_flow_of_type(&self,
                                       flow_type: FlowContextType,
-                                      builder: &mut LayoutTreeBuilder) -> BuilderContext {
-        let new_flow = builder.make_flow(flow_type);
+                                      builder: &mut LayoutTreeBuilder,
+                                      node: AbstractNode) -> BuilderContext {
+        let new_flow = builder.make_flow(flow_type, node);
         self.attach_child_flow(new_flow);
 
         BuilderContext::new(@mut BoxGenerator::new(new_flow))
     }
         
-    priv fn make_inline_collector(&mut self, builder: &mut LayoutTreeBuilder) -> BuilderContext {
+    priv fn make_inline_collector(&mut self, builder: &mut LayoutTreeBuilder, node: AbstractNode) -> BuilderContext {
         debug!("BuilderContext: making new inline collector flow");
-        let new_flow = builder.make_flow(Flow_Inline);
+        let new_flow = builder.make_flow(Flow_Inline, node);
         let new_generator = @mut BoxGenerator::new(new_flow);
 
         self.inline_collector = Some(new_generator);
@@ -248,10 +249,10 @@ impl BuilderContext {
         BuilderContext::new(new_generator)
     }
 
-    priv fn get_inline_collector(&mut self, builder: &mut LayoutTreeBuilder) -> BuilderContext {
+    priv fn get_inline_collector(&mut self, builder: &mut LayoutTreeBuilder, node: AbstractNode) -> BuilderContext {
         match copy self.inline_collector {
             Some(collector) => BuilderContext::new(collector),
-            None => self.make_inline_collector(builder)
+            None => self.make_inline_collector(builder, node)
         }
     }
 
@@ -278,18 +279,18 @@ impl BuilderContext {
                 // If this is the root node, then use the root flow's
                 // context. Otherwise, make a child block context.
                 match node.parent_node() {
-                    Some(_) => { self.create_child_flow_of_type(Flow_Block, builder) }
+                    Some(_) => { self.create_child_flow_of_type(Flow_Block, builder, node) }
                     None => { self.clone() },
                 }
             },
             (CSSDisplayBlock, @BlockFlow(*)) => {
                 self.clear_inline_collector();
-                self.create_child_flow_of_type(Flow_Block, builder)
+                self.create_child_flow_of_type(Flow_Block, builder, node)
             },
             (CSSDisplayInline, @InlineFlow(*)) => self.clone(),
             (CSSDisplayInlineBlock, @InlineFlow(*)) => self.clone(),
-            (CSSDisplayInline, @BlockFlow(*)) => self.get_inline_collector(builder),
-            (CSSDisplayInlineBlock, @BlockFlow(*)) => self.get_inline_collector(builder),
+            (CSSDisplayInline, @BlockFlow(*)) => self.get_inline_collector(builder, node),
+            (CSSDisplayInlineBlock, @BlockFlow(*)) => self.get_inline_collector(builder, node),
             _ => self.clone()
         };
 
@@ -332,10 +333,9 @@ pub impl LayoutTreeBuilder {
         // nodes and FlowContexts should not change during layout.
         let flow = &mut this_ctx.default_collector.flow;
         for tree::each_child(&FlowTree, flow) |child_flow: &@mut FlowContext| {
-            for (copy child_flow.d().node).each |node| {
-                assert!(node.has_layout_data());
-                node.layout_data().flow = Some(*child_flow);
-            }
+            let node = child_flow.d().node;
+            assert!(node.has_layout_data());
+            node.layout_data().flow = Some(*child_flow);
         }
     }
 
@@ -406,7 +406,7 @@ pub impl LayoutTreeBuilder {
     called on root DOM element. */
     fn construct_trees(&mut self, layout_ctx: &LayoutContext, root: AbstractNode)
                     -> Result<@mut FlowContext, ()> {
-        let new_flow = self.make_flow(Flow_Root);
+        let new_flow = self.make_flow(Flow_Root, root);
         let new_generator = @mut BoxGenerator::new(new_flow);
         let mut root_ctx = BuilderContext::new(new_generator);
 
@@ -415,8 +415,8 @@ pub impl LayoutTreeBuilder {
         return Ok(new_flow)
     }
 
-    fn make_flow(&mut self, ty: FlowContextType) -> @mut FlowContext {
-        let data = FlowData(self.next_flow_id());
+    fn make_flow(&mut self, ty: FlowContextType, node: AbstractNode) -> @mut FlowContext {
+        let data = FlowData(self.next_flow_id(), node);
         let ret = match ty {
             Flow_Absolute    => @mut AbsoluteFlow(data),
             Flow_Block       => @mut BlockFlow(data, BlockFlowData()),

@@ -228,7 +228,8 @@ pub impl Content {
             debug!("js_scripts: %?", js_scripts);
 
             let window   = Window(self.control_chan.clone(),
-                                  self.event_chan.clone());
+                                  self.event_chan.clone(),
+                                  ptr::to_mut_unsafe_ptr(&mut *self)); //FIXME store this safely
             let document = Document(root, Some(window));
 
             do root.with_mut_node |node| {
@@ -344,7 +345,7 @@ pub impl Content {
     }
 
      fn query_layout(&mut self, query: layout_task::LayoutQuery) -> layout_task::LayoutQueryResponse {
-         self.relayout(self.document.get(), &(copy self.doc_url).get());
+         //self.relayout(self.document.get(), &(copy self.doc_url).get());
          self.join_layout();
 
          let (response_port, response_chan) = comm::stream();

@@ -7,8 +7,11 @@
 //
 
 use dom::node::{ElementNodeTypeId, Node};
+use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::bindings::utils::DOMString;
+
+use layout::layout_task;
 
 use core::str::eq_slice;
 use core::cell::Cell;
@@ -157,7 +160,80 @@ pub impl<'self> Element {
     }
 
     fn getClientRects(&self) -> Option<@mut ClientRectList> {
-        Some(ClientRectList::new())
+        let rects = match self.parent.owner_doc {
+            Some(doc) => {
+                match doc.window {
+                    Some(win) => {
+                        let node = self.parent.abstract.get();
+                        assert!(node.is_element());
+                        let content = unsafe { &mut *win.content_task };
+                        match content.query_layout(layout_task::ContentBoxes(node)) {
+                            Ok(rects) => match rects {
+                                layout_task::ContentRects(rects) =>
+                                    do rects.map |r| {
+                                        ClientRect::new(
+                                             r.origin.y.to_f32(),
+                                             (r.origin.y + r.size.height).to_f32(),
+                                             r.origin.x.to_f32(),
+                                             (r.origin.x + r.size.width).to_f32())
+                                    },
+                                _ => fail!(~"unexpected layout reply")
+                            },
+                            Err(()) => {
+                                debug!("layout query error");
+                                ~[]
+                            }
+                        }
+                    }
+                    None => {
+                        debug!("no window");
+                        ~[]
+                    }
+                }
+            }
+            None => {
+                debug!("no document");
+                ~[]
+            }
+        };
+        Some(ClientRectList::new(rects))
+    }
+
+    fn getBoundingClientRect(&self) -> Option<@mut ClientRect> {
+        match self.parent.owner_doc {
+            Some(doc) => {
+                match doc.window {
+                    Some(win) => {
+                        let node = self.parent.abstract.get();
+                        assert!(node.is_element());
+                        let content = unsafe { &mut *win.content_task };
+                        match content.query_layout(layout_task::ContentBox(node)) {
+                            Ok(rect) => match rect {
+                                layout_task::ContentRect(rect) =>
+                                    Some(ClientRect::new(
+                                             rect.origin.y.to_f32(),
+                                             (rect.origin.y + rect.size.height).to_f32(),
+                                             rect.origin.x.to_f32(),
+                                             (rect.origin.x + rect.size.width).to_f32())),
+                                _ => fail!(~"unexpected layout result")
+                            },
+                            Err(()) => {
+                                debug!("error querying layout");
+                                None
+                            }
+                        }
+                    }
+                    None => {
+                        debug!("no window");
+                        None
+                    }
+                }
+            }
+            None => {
+                debug!("no document");
+                None
+            }
+        }
     }
 }
 

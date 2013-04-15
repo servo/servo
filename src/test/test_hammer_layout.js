@@ -1,6 +1,12 @@
 var divs = document.getElementsByTagName("div");
 var div = divs[0];
-for (var i = 0; i < 1000000; i++) {
-  div.setAttribute('id', 'styled');
-}
 
+var count = 1000000;
+var start = new Date();
+for (var i = 0; i < count; i++) {
+  div.setAttribute('id', 'styled');
+  div.getBoundingClientRect();
+  window.alert(i);
+}
+var stop = new Date();
+window.alert((stop - start) / count * 1e6);

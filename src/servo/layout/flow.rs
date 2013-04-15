@@ -70,7 +70,7 @@ pub enum FlowContextType {
 /* A particular kind of layout context. It manages the positioning of
    render boxes within the context.  */
 pub struct FlowData {
-    node: Option<AbstractNode>,
+    node: AbstractNode,
     /* reference to parent, children flow contexts */
     tree: tree::Tree<@mut FlowContext>,
     /* TODO (Issue #87): debug only */
@@ -84,9 +84,9 @@ pub struct FlowData {
     position: Rect<Au>,
 }
 
-pub fn FlowData(id: int) -> FlowData {
+pub fn FlowData(id: int, node: AbstractNode) -> FlowData {
     FlowData {
-        node: None,
+        node: node,
         tree: tree::empty(),
         id: id,
 

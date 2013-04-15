@@ -86,6 +86,11 @@ pub fn init(compartment: @mut Compartment) {
                                      nargs: 0,
                                      flags: 0,
                                      selfHostedName: null()},
+                     JSFunctionSpec {name: compartment.add_name(~"getBoundingClientRect"),
+                                     call: JSNativeWrapper {op: getBoundingClientRect, info: null()},
+                                     nargs: 0,
+                                     flags: 0,
+                                     selfHostedName: null()},
                      JSFunctionSpec {name: compartment.add_name(~"setAttribute"),
                                      call: JSNativeWrapper {op: setAttribute, info: null()},
                                      nargs: 0,
@@ -137,7 +142,27 @@ extern fn getClientRects(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
           JS_SET_RVAL(cx, vp, JSVAL_NULL);
       } else {
           let cache = node.get_wrappercache();
-            let rval = rval.get() as @mut CacheableWrapper;
+          let rval = rval.get() as @mut CacheableWrapper;
+          assert!(WrapNewBindingObject(cx, cache.get_wrapper(),
+                                       rval,
+                                       cast::transmute(vp)));
+      }
+      return 1;
+  }
+}
+
+extern fn getBoundingClientRect(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
+  unsafe {
+      let obj = JS_THIS_OBJECT(cx, vp);
+      let mut node = unwrap(obj);
+      let rval = do node.with_imm_element |elem| {
+          elem.getBoundingClientRect()
+      };
+      if rval.is_none() {
+          JS_SET_RVAL(cx, vp, JSVAL_NULL);
+      } else {
+          let cache = node.get_wrappercache();
+          let rval = rval.get() as @mut CacheableWrapper;
           assert!(WrapNewBindingObject(cx, cache.get_wrapper(),
                                        rval,
                                        cast::transmute(vp)));
@@ -192,7 +217,12 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 let content = task_from_context(cx);
                 match (*content).query_layout(layout_task::ContentBox(node)) {
-                    Ok(rect) => rect.width,
+                    Ok(rect) => {
+                        match rect {
+                            layout_task::ContentRect(rect) => rect.size.width.to_px(),
+                            _ => fail!(~"unexpected layout reply")
+                        }
+                    }
                     Err(()) => 0
                 }
                 // TODO: if nothing is being rendered(?), return zero dimensions
