@@ -1,5 +1,5 @@
 diff --git a/js/src/jsapi.cpp b/js/src/jsapi.cpp
-index 5571fc0..df2fabd 100644
+index 5571fc0..7e1e30d 100644
 --- a/js/src/jsapi.cpp
 +++ b/js/src/jsapi.cpp
 @@ -735,6 +735,7 @@ JSRuntime::JSRuntime()
@@ -10,22 +10,27 @@ index 5571fc0..df2fabd 100644
      nativeStackQuota(0),
      interpreterFrames(NULL),
      cxCallback(NULL),
-@@ -7084,6 +7085,13 @@ JS_SetRuntimeThread(JSRuntime *rt)
+@@ -7084,6 +7085,18 @@ JS_SetRuntimeThread(JSRuntime *rt)
  #endif
  }
  
 +extern JS_PUBLIC_API(void)
-+JS_SetNativeStackBounds(JSRuntime *rt, uintptr_t stackBase, uintptr_t stackEnd)
++JS_SetNativeStackBounds(JSRuntime *rt, uintptr_t minValue, uintptr_t maxValue)
 +{
-+    rt->nativeStackBase = stackBase;
-+    rt->nativeStackEnd = stackEnd;
++#if JS_STACK_GROWTH_DIRECTION < 0
++    rt->nativeStackBase = maxValue;
++    rt->nativeStackEnd = minValue;
++#else
++    rt->nativeStackBase = minValue;
++    rt->nativeStackEnd = maxValue;
++#endif
 +}
 +
  extern JS_NEVER_INLINE JS_PUBLIC_API(void)
  JS_AbortIfWrongThread(JSRuntime *rt)
  {
 diff --git a/js/src/jsapi.h b/js/src/jsapi.h
-index c8ab0f0..0edb722 100644
+index c8ab0f0..9ac582e 100644
 --- a/js/src/jsapi.h
 +++ b/js/src/jsapi.h
 @@ -6248,6 +6248,9 @@ JS_ClearRuntimeThread(JSRuntime *rt);
@@ -33,7 +38,7 @@ index c8ab0f0..0edb722 100644
  JS_SetRuntimeThread(JSRuntime *rt);
  
 +extern JS_PUBLIC_API(void)
-+JS_SetNativeStackBounds(JSRuntime *rt, uintptr_t stackBase, uintptr_t stackEnd);
++JS_SetNativeStackBounds(JSRuntime *rt, uintptr_t minValue, uintptr_t maxValue);
 +
  #ifdef __cplusplus
  JS_END_EXTERN_C
