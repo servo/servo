@@ -496,6 +496,11 @@ do
 	if [ $i = "rust-azure" ]; then
 		CONFIGURE_ARGS="--enable-skia"
 	fi
+        if [ $i = mozjs ]; then
+            if [ ! -z $CFG_ENABLE_DEBUG ]; then
+                CONFIGURE_ARGS="--enable-debug"
+            fi
+        fi
 
     if [ -f ${CONFIGURE_SCRIPT} ]
     then
@@ -516,6 +521,7 @@ putvar CFG_SUBMODULES
 putvar CFG_DISABLE_MANAGE_SUBMODULES
 putvar CFG_RUSTC
 putvar CFG_LOCAL_RUSTC
+putvar CFG_ENABLE_DEBUG
 
 msg
 copy_if_changed ${CFG_SRC_DIR}Makefile.in ${CFG_BUILD_DIR}Makefile
