@@ -20,24 +20,13 @@ use std::net::url::Url;
 use std::net::url;
 
 macro_rules! handle_element(
-    ($tag:expr, $string:expr, $ctor:ident, $type_id:expr) => (
+    ($tag:expr, $string:expr, $type_id:expr, $ctor:ident, [ $(($field:ident : $field_init:expr)),* ]) => (
         if eq_slice($tag, $string) {
             let _element = ~$ctor {
-                parent: Element::new($type_id, ($tag).to_str())
-            };
-            unsafe {
-                return Node::as_abstract_node(_element);
-            }
-        }
-    )
-)
-
-macro_rules! handle_heading_element(
-    ($tag:expr, $string:expr, $ctor:ident, $type_id:expr, $level:expr) => (
-        if eq_slice($tag, $string) {
-            let _element = ~HTMLHeadingElement {
                 parent: Element::new($type_id, ($tag).to_str()),
-                level: $level
+                $(
+                    $field: $field_init,
+                )*
             };
             unsafe {
                 return Node::as_abstract_node(_element);
@@ -165,44 +154,46 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
 
 fn build_element_from_tag(tag: &str) -> AbstractNode {
     // TODO (Issue #85): use atoms
-    handle_element!(tag, "a",       HTMLAnchorElement,      HTMLAnchorElementTypeId);
-    handle_element!(tag, "aside",   HTMLAsideElement,       HTMLAsideElementTypeId);
-    handle_element!(tag, "br",      HTMLBRElement,          HTMLBRElementTypeId);
-    handle_element!(tag, "body",    HTMLBodyElement,        HTMLBodyElementTypeId);
-    handle_element!(tag, "bold",    HTMLBoldElement,        HTMLBoldElementTypeId);
-    handle_element!(tag, "div",     HTMLDivElement,         HTMLDivElementTypeId);
-    handle_element!(tag, "font",    HTMLFontElement,        HTMLFontElementTypeId);
-    handle_element!(tag, "form",    HTMLFormElement,        HTMLFormElementTypeId);
-    handle_element!(tag, "hr",      HTMLHRElement,          HTMLHRElementTypeId);
-    handle_element!(tag, "head",    HTMLHeadElement,        HTMLHeadElementTypeId);
-    handle_element!(tag, "html",    HTMLHtmlElement,        HTMLHtmlElementTypeId);
-    handle_element!(tag, "input",   HTMLInputElement,       HTMLInputElementTypeId);
-    handle_element!(tag, "i",       HTMLItalicElement,      HTMLItalicElementTypeId);
-    handle_element!(tag, "link",    HTMLLinkElement,        HTMLLinkElementTypeId);
-    handle_element!(tag, "li",      HTMLListItemElement,    HTMLListItemElementTypeId);
-    handle_element!(tag, "meta",    HTMLMetaElement,        HTMLMetaElementTypeId);
-    handle_element!(tag, "ol",      HTMLOListElement,       HTMLOListElementTypeId);
-    handle_element!(tag, "option",  HTMLOptionElement,      HTMLOptionElementTypeId);
-    handle_element!(tag, "p",       HTMLParagraphElement,   HTMLParagraphElementTypeId);
-    handle_element!(tag, "script",  HTMLScriptElement,      HTMLScriptElementTypeId);
-    handle_element!(tag, "section", HTMLSectionElement,     HTMLSectionElementTypeId);
-    handle_element!(tag, "select",  HTMLSelectElement,      HTMLSelectElementTypeId);
-    handle_element!(tag, "small",   HTMLSmallElement,       HTMLSmallElementTypeId);
-    handle_element!(tag, "span",    HTMLSpanElement,        HTMLSpanElementTypeId);
-    handle_element!(tag, "style",   HTMLStyleElement,       HTMLStyleElementTypeId);
-    handle_element!(tag, "tbody",   HTMLTableBodyElement,   HTMLTableBodyElementTypeId);
-    handle_element!(tag, "td",      HTMLTableCellElement,   HTMLTableCellElementTypeId);
-    handle_element!(tag, "table",   HTMLTableElement,       HTMLTableElementTypeId);
-    handle_element!(tag, "tr",      HTMLTableRowElement,    HTMLTableRowElementTypeId);
-    handle_element!(tag, "title",   HTMLTitleElement,       HTMLTitleElementTypeId);
-    handle_element!(tag, "ul",      HTMLUListElement,       HTMLUListElementTypeId);
+    handle_element!(tag, "a",        HTMLAnchorElementTypeId, HTMLAnchorElement, []);
+    handle_element!(tag, "aside",   HTMLAsideElementTypeId, HTMLAsideElement, []);
+    handle_element!(tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
+    handle_element!(tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
+    handle_element!(tag, "bold",    HTMLBoldElementTypeId, HTMLBoldElement, []);
+    handle_element!(tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
+    handle_element!(tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
+    handle_element!(tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);
+    handle_element!(tag, "hr",      HTMLHRElementTypeId, HTMLHRElement, []);
+    handle_element!(tag, "head",    HTMLHeadElementTypeId, HTMLHeadElement, []);
+    handle_element!(tag, "html",    HTMLHtmlElementTypeId, HTMLHtmlElement, []);
+    handle_element!(tag, "input",   HTMLInputElementTypeId, HTMLInputElement, []);
+    handle_element!(tag, "i",       HTMLItalicElementTypeId, HTMLItalicElement, []);
+    handle_element!(tag, "link",    HTMLLinkElementTypeId, HTMLLinkElement, []);
+    handle_element!(tag, "li",      HTMLListItemElementTypeId, HTMLListItemElement, []);
+    handle_element!(tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
+    handle_element!(tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
+    handle_element!(tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);
+    handle_element!(tag, "p",       HTMLParagraphElementTypeId, HTMLParagraphElement, []);
+    handle_element!(tag, "script",  HTMLScriptElementTypeId, HTMLScriptElement, []);
+    handle_element!(tag, "section", HTMLSectionElementTypeId, HTMLSectionElement, []);
+    handle_element!(tag, "select",  HTMLSelectElementTypeId, HTMLSelectElement, []);
+    handle_element!(tag, "small",   HTMLSmallElementTypeId, HTMLSmallElement, []);
+    handle_element!(tag, "span",    HTMLSpanElementTypeId, HTMLSpanElement, []);
+    handle_element!(tag, "style",   HTMLStyleElementTypeId, HTMLStyleElement, []);
+    handle_element!(tag, "tbody",   HTMLTableBodyElementTypeId, HTMLTableBodyElement, []);
+    handle_element!(tag, "td",      HTMLTableCellElementTypeId, HTMLTableCellElement, []);
+    handle_element!(tag, "table",   HTMLTableElementTypeId, HTMLTableElement, []);
+    handle_element!(tag, "tr",      HTMLTableRowElementTypeId, HTMLTableRowElement, []);
+    handle_element!(tag, "title",   HTMLTitleElementTypeId, HTMLTitleElement, []);
+    handle_element!(tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
 
-    handle_heading_element!(tag, "h1", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading1);
-    handle_heading_element!(tag, "h2", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading2);
-    handle_heading_element!(tag, "h3", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading3);
-    handle_heading_element!(tag, "h4", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading4);
-    handle_heading_element!(tag, "h5", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading5);
-    handle_heading_element!(tag, "h6", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading6);
+    handle_element!(tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
+
+    handle_element!(tag, "h1", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading1)]);
+    handle_element!(tag, "h2", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading2)]);
+    handle_element!(tag, "h3", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading3)]);
+    handle_element!(tag, "h4", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading4)]);
+    handle_element!(tag, "h5", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading5)]);
+    handle_element!(tag, "h6", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading6)]);
 
     unsafe {
         Node::as_abstract_node(~Element::new(UnknownElementTypeId, tag.to_str()))
