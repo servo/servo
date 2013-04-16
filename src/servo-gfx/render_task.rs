@@ -12,7 +12,7 @@ use opts::Opts;
 use render_context::RenderContext;
 use render_layers::{RenderLayer, render_layers};
 use resource::util::spawn_listener;
-use util::time::time;
+use servo_util::time::time;
 
 use core::cell::Cell;
 use core::comm::{Port, SharedChan};

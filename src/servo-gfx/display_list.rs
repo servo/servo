@@ -7,7 +7,7 @@ use geometry::Au;
 use image::base::Image;
 use render_context::RenderContext;
 use text::SendableTextRun;
-use util::range::Range;
+use servo_util::range::Range;
 
 use clone_arc = std::arc::clone;
 use geom::Rect;

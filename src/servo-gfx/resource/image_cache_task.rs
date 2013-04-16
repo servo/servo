@@ -5,7 +5,7 @@
 use image::base::{Image, load_from_memory};
 use resource::resource_task;
 use resource::resource_task::ResourceTask;
-use util::url::{UrlMap, url_map};
+use servo_util::url::{UrlMap, url_map};
 
 use clone_arc = std::arc::clone;
 use core::comm::{Chan, Port, SharedChan, stream};
