@@ -7,7 +7,7 @@
 use layout::box::{TextBox, RenderBox, RenderBoxData, UnscannedTextBox};
 
 use gfx::text::text_run::TextRun;
-use gfx::util::range::Range;
+use servo_util::range::Range;
 
 pub struct TextBoxData {
     run: @TextRun,

@@ -6,7 +6,7 @@ use font_context::FontContext;
 use geometry::Au;
 use text::glyph::{BreakTypeNormal, GlyphStore};
 use servo_gfx_font::{Font, FontDescriptor, RunMetrics};
-use servo_gfx_util::range::Range;
+use servo_util::range::Range;
 
 pub struct TextRun {
     text: ~str,

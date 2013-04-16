@@ -13,7 +13,7 @@ use std::net::url::Url;
 use core::comm::Port;
 use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg, Prefetch, Decode, GetImage};
 use resource::image_cache_task::{ WaitForImage, ImageReady, ImageNotReady, ImageFailed};
-use util::url::{UrlMap, url_map};
+use servo_util::url::{UrlMap, url_map};
 
 pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
     LocalImageCache {

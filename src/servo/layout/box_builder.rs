@@ -17,7 +17,7 @@ use layout::root::RootFlowData;
 use util::tree;
 
 use gfx::image::holder::ImageHolder;
-use gfx::util::range::Range;
+use servo_util::range::Range;
 use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
 use newcss::values::{CSSDisplayNone};
 

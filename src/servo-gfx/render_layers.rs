@@ -5,7 +5,7 @@
 use compositor::{LayerBuffer, LayerBufferSet};
 use display_list::DisplayList;
 use opts::Opts;
-use util::time;
+use servo_util::time;
 
 use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use core::comm::Chan;
