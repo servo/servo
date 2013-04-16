@@ -14,7 +14,7 @@ use util::task::spawn_conversation;
 use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
 use core::str::eq_slice;
-use gfx::util::url::make_url;
+use servo_util::url::make_url;
 use hubbub::hubbub;
 use std::net::url::Url;
 use std::net::url;

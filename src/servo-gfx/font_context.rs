@@ -6,8 +6,8 @@ use font::{Font, FontDescriptor, FontGroup, FontStyle, SelectorPlatformIdentifie
 use font::{SelectorStubDummy, SpecifiedFontStyle, UsedFontStyle};
 use font_list::FontList;
 use native::FontHandle;
-use util::cache::Cache;
-use util::cache::MonoCache;
+use servo_util::cache::Cache;
+use servo_util::cache::MonoCache;
 
 use azure::azure_hl::BackendType;
 use core::hashmap::HashMap;

@@ -18,7 +18,7 @@ use gfx::geometry::Au;
 use gfx::image::holder;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::*;
-use gfx::util::range::Range;
+use servo_util::range::Range;
 use newcss::values::{CSSTextAlignCenter, CSSTextAlignJustify, CSSTextAlignLeft, CSSTextAlignRight};
 use std::deque::Deque;
 use core::util;

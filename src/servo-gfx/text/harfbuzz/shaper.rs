@@ -14,7 +14,7 @@ use text::glyph::{GlyphStore, GlyphIndex, GlyphData};
 use text::shaper::ShaperMethods;
 use gfx_font::{FontHandleMethods, FontTableMethods};
 
-use util::range::Range;
+use servo_util::range::Range;
 
 use core::libc::{c_uint, c_int, c_void, c_char};
 use core::util::ignore;

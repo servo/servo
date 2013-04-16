@@ -15,7 +15,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
 use gfx::opts::Opts;
-use gfx::util::time;
+use servo_util::time;
 use core::cell::Cell;
 use glut::glut;
 use layers;

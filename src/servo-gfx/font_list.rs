@@ -14,7 +14,7 @@ use fontconfig;
 #[cfg(target_os = "macos")]
 use quartz;
 use native;
-use util::time::time;
+use servo_util::time::time;
 
 #[cfg(target_os = "macos")]
 type FontListHandle = quartz::font_list::QuartzFontListHandle;

@@ -27,7 +27,7 @@ use gfx::display_list::{DisplayItem, DisplayList};
 use gfx::font::{FontStyle, FontWeight300};
 use gfx::geometry::Au;
 use gfx::image::holder::ImageHolder;
-use gfx::util::range::*;
+use servo_util::range::*;
 use gfx;
 use std::arc;
 

@@ -153,21 +153,28 @@ $(eval $(call DEF_SUBMODULE_RULES,$(submodule))))
 
 DONE_SUBMODULES = $(foreach dep,$(DEPS_SUBMODULES),$(DONE_$(dep)))
 
-RFLAGS_servo_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
+RFLAGS_servo_util = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
+SRC_servo_util = $(call rwildcard,$(S)src/servo-util/,*.rs)
+CRATE_servo_util = $(S)src/servo-util/servo_util.rc
+DONE_servo_util = $(B)src/servo-util/libservoutil.dummy
+
+DEPS_servo_util = $(CRATE_servo_util) $(SRC_servo_util) $(DONE_SUBMODULES)
+
+RFLAGS_servo_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-util
 SRC_servo_gfx = $(call rwildcard,$(S)src/servo-gfx/,*.rs)
 CRATE_servo_gfx = $(S)src/servo-gfx/servo_gfx.rc
 DONE_servo_gfx = $(B)src/servo-gfx/libservogfx.dummy
 
-DEPS_servo_gfx = $(CRATE_servo_gfx) $(SRC_servo_gfx) $(DONE_SUBMODULES)
+DEPS_servo_gfx = $(CRATE_servo_gfx) $(SRC_servo_gfx) $(DONE_SUBMODULES) $(DONE_servo_util)
 
-RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-gfx
+RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-gfx -L $(B)src/servo-util
 
 WEBIDL_servo = $(call rwildcard,$(S)src/servo/,*.webidl)
 AUTOGEN_SRC_servo = $(patsubst %.webidl, %Binding.rs, $(WEBIDL_servo))
 SRC_servo = $(call rwildcard,$(S)src/servo/,*.rs) $(AUTOGEN_SRC_servo)
 CRATE_servo = $(S)src/servo/servo.rc
 
-DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_servo_gfx)
+DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_servo_util) $(DONE_servo_gfx)
 
 # rules that depend on having correct meta-target vars (DEPS_CLEAN, DEPS_servo, etc)
 include $(S)mk/check.mk
@@ -178,6 +185,9 @@ include $(S)mk/clean.mk
 all:    servo package
 
 # Servo helper libraries
+
+$(DONE_servo_util):	$(DEPS_servo_util)
+	$(RUSTC) $(RFLAGS_servo_util) -o $@ $< && touch $@
 
 $(DONE_servo_gfx):	$(DEPS_servo_gfx)
 	$(RUSTC) $(RFLAGS_servo_gfx) -o $@ $< && touch $@

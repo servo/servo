@@ -16,6 +16,7 @@
 extern mod azure;
 extern mod geom;
 extern mod gfx (name = "servo_gfx");
+extern mod servo_util (name = "servo_util");
 extern mod glut;
 extern mod http_client;
 extern mod hubbub;
@@ -40,7 +41,7 @@ pub use gfx::resource;
 pub use gfx::resource::image_cache_task::ImageCacheTask;
 pub use gfx::resource::resource_task::ResourceTask;
 pub use gfx::text;
-pub use gfx::util::url::make_url;
+pub use servo_util::url::make_url;
 
 pub mod content {
     pub mod content_task;

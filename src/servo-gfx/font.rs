@@ -6,7 +6,7 @@ use color::Color;
 use font_context::FontContext;
 use geometry::Au;
 use render_context::RenderContext;
-use util::range::Range;
+use servo_util::range::Range;
 use text::glyph::{GlyphStore, GlyphIndex};
 use text::shaper::ShaperMethods;
 use text::{Shaper, TextRun};
