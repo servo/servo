@@ -32,6 +32,20 @@ macro_rules! handle_element(
     )
 )
 
+macro_rules! handle_image_element(
+    ($tag:expr, $string:expr, $ctor:ident, $type_id:expr) => (
+        if eq_slice($tag, $string) {
+            let _element = ~HTMLImageElement {
+                parent: Element::new($type_id, ($tag).to_str()),
+                image: None
+            };
+            unsafe {
+                return Node::as_abstract_node(_element);
+            }
+        }
+    )
+)
+
 macro_rules! handle_heading_element(
     ($tag:expr, $string:expr, $ctor:ident, $type_id:expr, $level:expr) => (
         if eq_slice($tag, $string) {
@@ -196,6 +210,8 @@ fn build_element_from_tag(tag: &str) -> AbstractNode {
     handle_element!(tag, "tr",      HTMLTableRowElement,    HTMLTableRowElementTypeId);
     handle_element!(tag, "title",   HTMLTitleElement,       HTMLTitleElementTypeId);
     handle_element!(tag, "ul",      HTMLUListElement,       HTMLUListElementTypeId);
+
+    handle_image_element!(tag, "img",      HTMLImageElement,       HTMLImageElementTypeId);
 
     handle_heading_element!(tag, "h1", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading1);
     handle_heading_element!(tag, "h2", HTMLHeadingElement, HTMLHeadingElementTypeId, Heading2);
