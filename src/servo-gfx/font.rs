@@ -345,9 +345,9 @@ pub impl Font {
 
     #[cfg(target_os="linux")]
     priv fn create_azure_font(&self) -> ScaledFont {
-        let cairo_font = self.handle.face;
+        let freetype_font = self.handle.face;
         let size = self.style.pt_size as AzFloat;
-        ScaledFont::new(self.backend, cairo_font, size)
+        ScaledFont::new(self.backend, freetype_font, size)
     }
 }
 
