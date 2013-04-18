@@ -15,6 +15,19 @@ extern mod stb_image;
 extern mod std;
 extern mod servo_util (name = "servo_util");
 
+// Eventually we would like the shaper to be pluggable, as many operating systems have their own
+// shapers. For now, however, this is a hard dependency.
+extern mod harfbuzz;
+
+// Linux-specific library dependencies
+#[cfg(target_os="linux")] extern mod fontconfig;
+#[cfg(target_os="linux")] extern mod freetype;
+
+// Mac OS-specific library dependencies
+#[cfg(target_os="macos")] extern mod core_foundation;
+#[cfg(target_os="macos")] extern mod core_graphics;
+#[cfg(target_os="macos")] extern mod core_text;
+
 pub use gfx_font = font;
 pub use gfx_font_context = font_context;
 pub use gfx_font_list = font_list;
@@ -40,34 +53,13 @@ pub mod font_list;
 // Misc.
 pub mod opts;
 
-// Pub-uses for multiple implementations. Platform selection happens in
-// font.rs, font_list.rs, font_context.rs
-pub mod native;
-
-#[cfg(target_os = "macos")]
-pub mod quartz {
-    pub mod font;
-    pub mod font_context;
-    pub mod font_list;
-}
-
-#[cfg(target_os = "linux")]
-pub mod freetype_impl {
-    pub mod font;
-    pub mod font_context;
-}
-
-#[cfg(target_os = "linux")]
-pub mod fontconfig {
-    pub mod font_list;
-}
+// Platform-specific implementations.
+#[path="platform/mod.rs"]
+pub mod platform;
 
 // Images
 pub mod image {
     pub mod base;
-    pub mod encode {
-        pub mod tga;
-    }
     pub mod holder;
 }
 
@@ -84,4 +76,3 @@ pub mod resource {
     pub mod resource_task;
     pub mod util;
 }
-

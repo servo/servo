@@ -4,60 +4,27 @@
 
 extern mod freetype;
 
-use native;
 use freetype_impl::font_context::FreeTypeFontContextHandle;
-use gfx_font::{
-    CSSFontWeight,
-    FontHandleMethods,
-    FontMetrics,
-    FontTable,
-    FontTableMethods,
-    FontTableTag,
-    FractionalPixel,
-    SpecifiedFontStyle,
-    UsedFontStyle,
-    FontWeight100,
-    FontWeight200,
-    FontWeight300,
-    FontWeight400,
-    FontWeight500,
-    FontWeight600,
-    FontWeight700,
-    FontWeight800,
-    FontWeight900,
-};
-use geometry;
+use font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTableMethods};
+use font::{FontTableTag, FractionalPixel, SpecifiedFontStyle, UsedFontStyle, FontWeight100};
+use font::{FontWeight200, FontWeight300, FontWeight400, FontWeight500, FontWeight600};
+use font::{FontWeight700, FontWeight800, FontWeight900};
 use geometry::Au;
+use geometry;
+use platform::font_context::FontContextHandle;
 use text::glyph::GlyphIndex;
 use text::util::{float_to_fixed, fixed_to_float};
 
-use self::freetype::freetype::{
-    FTErrorMethods,
-    FT_F26Dot6,
-    FT_Face, 
-    FT_FaceRec, 
-    FT_GlyphSlot, 
-    FT_Library,
-    FT_Long,
-    FT_ULong,
-    FT_SizeRec,
-    FT_UInt,
-    FT_Size_Metrics,
-    FT_STYLE_FLAG_ITALIC,
-    FT_STYLE_FLAG_BOLD,
-    ft_sfnt_os2
-};
-use self::freetype::freetype::bindgen::{
-    FT_New_Memory_Face,
-    FT_Done_Face,
-    FT_Get_Char_Index,
-    FT_Get_Postscript_Name,
-    FT_Load_Glyph,
-    FT_Set_Char_Size,
-    FT_New_Face,
-    FT_Get_Sfnt_Table
-};
-use self::freetype::tt_os2::TT_OS2;
+use freetype::freetype::bindgen::{FT_Get_Char_Index, FT_Get_Postscript_Name};
+use freetype::freetype::bindgen::{FT_Load_Glyph, FT_Set_Char_Size};
+use freetype::freetype::bindgen::{FT_New_Face, FT_Get_Sfnt_Table};
+use freetype::freetype::bindgen::{FT_New_Memory_Face, FT_Done_Face};
+use freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
+use freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
+use freetype::freetype::{FT_STYLE_FLAG_ITALIC, FT_STYLE_FLAG_BOLD};
+use freetype::freetype::{FT_SizeRec, FT_UInt, FT_Size_Metrics};
+use freetype::freetype::{ft_sfnt_os2};
+use freetype::tt_os2::TT_OS2;
 
 fn float_to_fixed_ft(f: float) -> i32 {
     float_to_fixed(6, f)
@@ -67,22 +34,22 @@ fn fixed_to_float_ft(f: i32) -> float {
     fixed_to_float(6, f)
 }
 
-pub struct FreeTypeFontTable {
+pub struct FontTable {
     bogus: ()
 }
 
-impl FontTableMethods for FreeTypeFontTable {
+impl FontTableMethods for FontTable {
     fn with_buffer(&self, _blk: &fn(*u8, uint)) {
         fail!()
     }
 }
 
 enum FontSource {
-    FontSourceMem(@~[u8]),
+    FontSourceMem(~[u8]),
     FontSourceFile(~str)
 }
 
-pub struct FreeTypeFontHandle {
+pub struct FontHandle {
     // The font binary. This must stay valid for the lifetime of the font,
     // if the font is created using FT_Memory_Face.
     source: FontSource,
@@ -90,7 +57,7 @@ pub struct FreeTypeFontHandle {
 }
 
 #[unsafe_destructor]
-impl Drop for FreeTypeFontHandle {
+impl Drop for FontHandle {
     fn finalize(&self) {
         assert!(self.face.is_not_null());
         if !FT_Done_Face(self.face).succeeded() {
@@ -99,62 +66,15 @@ impl Drop for FreeTypeFontHandle {
     }
 }
 
-pub impl FreeTypeFontHandle {
-    priv fn set_char_size(face: FT_Face, pt_size: float) -> Result<(), ()>{
-        let char_width = float_to_fixed_ft(pt_size) as FT_F26Dot6;
-        let char_height = float_to_fixed_ft(pt_size) as FT_F26Dot6;
-        let h_dpi = 72;
-        let v_dpi = 72;
-
-        let result = FT_Set_Char_Size(face, char_width, char_height, h_dpi, v_dpi);
-        if result.succeeded() { Ok(()) } else { Err(()) }
-    }
-
-    pub fn new_from_file(fctx: &FreeTypeFontContextHandle, file: ~str,
-                         style: &SpecifiedFontStyle) -> Result<FreeTypeFontHandle, ()> {
+impl FontHandleMethods for FontHandle {
+    pub fn new_from_buffer(fctx: &FontContextHandle,
+                           buf: ~[u8],
+                           style: &SpecifiedFontStyle)
+                        -> Result<FontHandle, ()> {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
 
-        let mut face: FT_Face = ptr::null();
-        let face_index = 0 as FT_Long;
-        do str::as_c_str(file) |file_str| {
-            FT_New_Face(ft_ctx, file_str,
-                        face_index, ptr::to_unsafe_ptr(&face));
-        }
-        if face.is_null() {
-            return Err(());
-        }
-        if FreeTypeFontHandle::set_char_size(face, style.pt_size).is_ok() {
-            Ok(FreeTypeFontHandle { source: FontSourceFile(file), face: face })
-        } else {
-            Err(())
-        }
-    }
-
-    pub fn new_from_file_unstyled(fctx: &FreeTypeFontContextHandle, file: ~str)
-        -> Result<FreeTypeFontHandle, ()> {
-        let ft_ctx: FT_Library = fctx.ctx.ctx;
-        if ft_ctx.is_null() { return Err(()); }
-
-        let mut face: FT_Face = ptr::null();
-        let face_index = 0 as FT_Long;
-        do str::as_c_str(file) |file_str| {
-            FT_New_Face(ft_ctx, file_str,
-                        face_index, ptr::to_unsafe_ptr(&face));
-        }
-        if face.is_null() {
-            return Err(());
-        }
-
-        Ok(FreeTypeFontHandle { source: FontSourceFile(file), face: face })
-    }
-
-    pub fn new_from_buffer(fctx: &FreeTypeFontContextHandle,
-                           buf: @~[u8], style: &SpecifiedFontStyle) -> Result<FreeTypeFontHandle, ()> {
-        let ft_ctx: FT_Library = fctx.ctx.ctx;
-        if ft_ctx.is_null() { return Err(()); }
-
-        let face_result = do vec::as_imm_buf(*buf) |bytes: *u8, len: uint| {
+        let face_result = do vec::as_imm_buf(buf) |bytes: *u8, len: uint| {
             create_face_from_buffer(ft_ctx, bytes, len, style.pt_size)
         };
 
@@ -162,7 +82,7 @@ pub impl FreeTypeFontHandle {
         // and moving buf into the struct ctor, but cant' move out of
         // captured binding.
         return match face_result {
-            Ok(face) => Ok(FreeTypeFontHandle { face: face, source: FontSourceMem(buf) }),
+            Ok(face) => Ok(FontHandle { face: face, source: FontSourceMem(buf) }),
             Err(()) => Err(())
         };
 
@@ -178,16 +98,14 @@ pub impl FreeTypeFontHandle {
              if !result.succeeded() || face.is_null() {
                  return Err(());
              }
-             if FreeTypeFontHandle::set_char_size(face, pt_size).is_ok() {
+             if FontHandle::set_char_size(face, pt_size).is_ok() {
                  Ok(face)
              } else {
                  Err(())
              }
          }
     }
-}
 
-impl FontHandleMethods for FreeTypeFontHandle {
     // an identifier usable by FontContextHandle to recreate this FontHandle.
     fn face_identifier(&self) -> ~str {
         /* FT_Get_Postscript_Name seems like a better choice here, but it
@@ -231,14 +149,14 @@ impl FontHandleMethods for FreeTypeFontHandle {
     }
 
     fn clone_with_style(&self,
-                        fctx: &native::FontContextHandle,
-                        style: &UsedFontStyle) -> Result<FreeTypeFontHandle, ()> {
+                        fctx: &FontContextHandle,
+                        style: &UsedFontStyle) -> Result<FontHandle, ()> {
         match self.source {
-            FontSourceMem(buf) => {
-                FreeTypeFontHandle::new_from_buffer(fctx, buf, style)
+            FontSourceMem(ref buf) => {
+                FontHandleMethods::new_from_buffer(fctx, buf.clone(), style)
             }
             FontSourceFile(copy file) => {
-                FreeTypeFontHandle::new_from_file(fctx, file, style)
+                FontHandle::new_from_file(fctx, file, style)
             }
         }
     }
@@ -299,12 +217,61 @@ impl FontHandleMethods for FreeTypeFontHandle {
         }
     }
 
-    fn get_table_for_tag(&self, _tag: FontTableTag) -> Option<FontTable> {
+    fn get_table_for_tag(&self, _: FontTableTag) -> Option<FontTable> {
         None
     }
 }
 
-pub impl FreeTypeFontHandle {
+pub impl FontHandle {
+    priv fn set_char_size(face: FT_Face, pt_size: float) -> Result<(), ()>{
+        let char_width = float_to_fixed_ft(pt_size) as FT_F26Dot6;
+        let char_height = float_to_fixed_ft(pt_size) as FT_F26Dot6;
+        let h_dpi = 72;
+        let v_dpi = 72;
+
+        let result = FT_Set_Char_Size(face, char_width, char_height, h_dpi, v_dpi);
+        if result.succeeded() { Ok(()) } else { Err(()) }
+    }
+
+    pub fn new_from_file(fctx: &FontContextHandle, file: ~str,
+                         style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
+        let ft_ctx: FT_Library = fctx.ctx.ctx;
+        if ft_ctx.is_null() { return Err(()); }
+
+        let mut face: FT_Face = ptr::null();
+        let face_index = 0 as FT_Long;
+        do str::as_c_str(file) |file_str| {
+            FT_New_Face(ft_ctx, file_str,
+                        face_index, ptr::to_unsafe_ptr(&face));
+        }
+        if face.is_null() {
+            return Err(());
+        }
+        if FontHandle::set_char_size(face, style.pt_size).is_ok() {
+            Ok(FontHandle { source: FontSourceFile(file), face: face })
+        } else {
+            Err(())
+        }
+    }
+
+    pub fn new_from_file_unstyled(fctx: &FontContextHandle, file: ~str)
+                               -> Result<FontHandle, ()> {
+        let ft_ctx: FT_Library = fctx.ctx.ctx;
+        if ft_ctx.is_null() { return Err(()); }
+
+        let mut face: FT_Face = ptr::null();
+        let face_index = 0 as FT_Long;
+        do str::as_c_str(file) |file_str| {
+            FT_New_Face(ft_ctx, file_str,
+                        face_index, ptr::to_unsafe_ptr(&face));
+        }
+        if face.is_null() {
+            return Err(());
+        }
+
+        Ok(FontHandle { source: FontSourceFile(file), face: face })
+    }
+
     priv fn get_face_rec(&self) -> &'self FT_FaceRec {
         unsafe {
             &(*self.face)
@@ -312,7 +279,6 @@ pub impl FreeTypeFontHandle {
     }
 
     priv fn font_units_to_au(&self, value: float) -> Au {
-
         let face = self.get_face_rec();
 
         // face.size is a *c_void in the bindings, presumably to avoid
@@ -329,3 +295,4 @@ pub impl FreeTypeFontHandle {
         return geometry::from_frac_px(value * x_scale);
     }
 }
+

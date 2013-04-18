@@ -5,9 +5,6 @@
 extern mod freetype;
 extern mod fontconfig;
 
-use gfx_font::FontHandleMethods;
-use gfx_font_list::{FontEntry, FontFamily, FontFamilyMap};
-use gfx_font_context::FontContextHandleMethods;
 use freetype_impl::font_context::FreeTypeFontContextHandle;
 use freetype_impl::font::FreeTypeFontHandle;
 use self::fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem,
@@ -20,18 +17,40 @@ use self::fontconfig::fontconfig::bindgen::{
     FcObjectSetAdd, FcPatternGetInteger
 };
 
+
+use font::FontHandleMethods;
+use font_context::FontContextHandleMethods;
+use font_list::{FontEntry, FontFamily, FontFamilyMap};
+use platform::font::FontHandle;
+use platform::font_context::FontContextHandle;
+
 use core::hashmap::HashMap;
 use core::libc::c_int;
 use core::ptr::Ptr;
-use native;
+use fontconfig::fontconfig::bindgen::{FcConfigGetCurrent};
+use fontconfig::fontconfig::bindgen::{FcConfigGetFonts};
+use fontconfig::fontconfig::bindgen::{FcDefaultSubstitute};
+use fontconfig::fontconfig::bindgen::{FcPatternCreate};
+use fontconfig::fontconfig::bindgen::{FcFontSetDestroy};
+use fontconfig::fontconfig::bindgen::{FcConfigSubstitute};
+use fontconfig::fontconfig::bindgen::{FcFontSetList};
+use fontconfig::fontconfig::bindgen::{FcObjectSetCreate};
+use fontconfig::fontconfig::bindgen::{FcObjectSetDestroy};
+use fontconfig::fontconfig::bindgen::{FcObjectSetAdd};
+use fontconfig::fontconfig::bindgen::{FcPatternAddString, FcFontMatch};
+use fontconfig::fontconfig::bindgen::{FcPatternGetInteger};
+use fontconfig::fontconfig::bindgen::{FcPatternGetString};
+use fontconfig::fontconfig::bindgen::{FcPatternDestroy};
+use fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem};
+use fontconfig::fontconfig::{FcMatchPattern, FcResultNoMatch};
 
-pub struct FontconfigFontListHandle {
-    fctx: FreeTypeFontContextHandle,
+pub struct FontListHandle {
+    fctx: FontContextHandle,
 }
 
-pub impl FontconfigFontListHandle {
-    pub fn new(fctx: &native::FontContextHandle) -> FontconfigFontListHandle {
-        FontconfigFontListHandle { fctx: fctx.clone() }
+pub impl FontListHandle {
+    pub fn new(fctx: &FontContextHandle) -> FontListHandle {
+        FontListHandle { fctx: fctx.clone() }
     }
 
     fn get_available_families(&self) -> FontFamilyMap {
@@ -103,7 +122,8 @@ pub impl FontconfigFontListHandle {
                         debug!("variation file: %?", file);
                         debug!("variation index: %?", index);
 
-                        let font_handle = FreeTypeFontHandle::new_from_file_unstyled(&self.fctx, file);
+                        let font_handle = FontHandle::new_from_file_unstyled(&self.fctx,
+                                                                             file);
                         let font_handle = font_handle.unwrap();
 
                         debug!("Creating new FontEntry for face: %s", font_handle.face_name());

@@ -4,19 +4,15 @@
 
 use font::{Font, FontDescriptor, FontGroup, FontStyle, SelectorPlatformIdentifier};
 use font::{SelectorStubDummy, SpecifiedFontStyle, UsedFontStyle};
+use font_context;
 use font_list::FontList;
-use native::FontHandle;
 use servo_util::cache::Cache;
 use servo_util::cache::MonoCache;
+use platform::font::FontHandle;
+use platform::font_context::FontContextHandle;
 
 use azure::azure_hl::BackendType;
 use core::hashmap::HashMap;
-
-#[cfg(target_os = "macos")]
-use quartz;
-#[cfg(target_os = "linux")]
-use freetype_impl;
-use font_context;
 
 // TODO(Issue #164): delete, and get default font from font list
 static TEST_FONT: [u8, ..33004] = include_bin!("JosefinSans-SemiBold.ttf");
@@ -38,29 +34,9 @@ pub fn dummy_style() -> FontStyle {
     }
 }
 
-#[cfg(target_os = "macos")]
-type FontContextHandle = quartz::font_context::QuartzFontContextHandle;
-
-#[cfg(target_os = "linux")]
-type FontContextHandle = freetype_impl::font_context::FreeTypeFontContextHandle;
-
 pub trait FontContextHandleMethods {
     fn clone(&self) -> FontContextHandle;
     fn create_font_from_identifier(&self, ~str, UsedFontStyle) -> Result<FontHandle, ()>;
-}
-
-// TODO(Issue #163): this is a workaround for static methods, traits,
-// and typedefs not working well together. It should be removed.
-pub impl FontContextHandle {
-    #[cfg(target_os = "macos")]
-    pub fn new() -> FontContextHandle {
-        quartz::font_context::QuartzFontContextHandle::new()
-    }
-
-    #[cfg(target_os = "linux")]
-    pub fn new() -> FontContextHandle {
-        freetype_impl::font_context::FreeTypeFontContextHandle::new()
-    }
 }
 
 #[allow(non_implicitly_copyable_typarams)]
