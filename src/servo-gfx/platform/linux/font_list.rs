@@ -5,8 +5,6 @@
 extern mod freetype;
 extern mod fontconfig;
 
-use freetype_impl::font_context::FreeTypeFontContextHandle;
-use freetype_impl::font::FreeTypeFontHandle;
 use self::fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem,
                                    FcResultNoMatch, FcMatchPattern};
 use self::fontconfig::fontconfig::bindgen::{
