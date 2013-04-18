@@ -4,8 +4,8 @@
 use font::FontHandleMethods;
 use font_context::FontContextHandleMethods;
 use font_list::{FontEntry, FontFamily, FontFamilyMap};
-use platform::font::FreeTypeFontHandle;
-use platform::font_context::{FontContextHandle, FreeTypeFontContextHandle};
+use platform::font::FontHandle;
+use platform::font_context::FontContextHandle;
 
 use core::hashmap::HashMap;
 use core::libc::c_int;
@@ -27,13 +27,13 @@ use fontconfig::fontconfig::bindgen::{FcPatternDestroy};
 use fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem};
 use fontconfig::fontconfig::{FcMatchPattern, FcResultNoMatch};
 
-pub struct FontconfigFontListHandle {
-    fctx: FreeTypeFontContextHandle,
+pub struct FontListHandle {
+    fctx: FontContextHandle,
 }
 
-pub impl FontconfigFontListHandle {
-    pub fn new(fctx: &FontContextHandle) -> FontconfigFontListHandle {
-        FontconfigFontListHandle { fctx: fctx.clone() }
+pub impl FontListHandle {
+    pub fn new(fctx: &FontContextHandle) -> FontListHandle {
+        FontListHandle { fctx: fctx.clone() }
     }
 
     fn get_available_families(&self) -> FontFamilyMap {
@@ -105,8 +105,8 @@ pub impl FontconfigFontListHandle {
                         debug!("variation file: %?", file);
                         debug!("variation index: %?", index);
 
-                        let font_handle = FreeTypeFontHandle::new_from_file_unstyled(&self.fctx,
-                                                                                     file);
+                        let font_handle = FontHandle::new_from_file_unstyled(&self.fctx,
+                                                                             file);
                         let font_handle = font_handle.unwrap();
 
                         debug!("Creating new FontEntry for face: %s", font_handle.face_name());
