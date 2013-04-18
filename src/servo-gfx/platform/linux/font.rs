@@ -4,7 +4,6 @@
 
 extern mod freetype;
 
-use freetype_impl::font_context::FreeTypeFontContextHandle;
 use font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel, SpecifiedFontStyle, UsedFontStyle, FontWeight100};
 use font::{FontWeight200, FontWeight300, FontWeight400, FontWeight500, FontWeight600};
