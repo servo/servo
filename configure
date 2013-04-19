@@ -323,31 +323,6 @@ else
     CFG_RUSTC="${CFG_BUILD_DIR}src/rust/${DEFAULT_HOST_TRIPLE}/stage2/bin/rustc"
 fi
 
-if [ ! -z "$CFG_ENABLE_CLANG" ]
-then
-    if [ -z "$CFG_CLANG" ]
-    then
-	err "clang requested but not found"
-    fi
-    CFG_CLANG_VERSION=$("$CFG_CLANG" \
-                      --version \
-                      | grep version \
-                      | sed 's/.*\(version .*\)/\1/' \
-                      | cut -d ' ' -f 2)
-
-    case $CFG_CLANG_VERSION in
-        (3.0svn | 3.0 | 3.1 | 4.0)
-        step_msg "found ok version of CLANG: $CFG_CLANG_VERSION"
-        CFG_C_COMPILER="clang"
-        ;;
-        (*)
-        err "bad CLANG version: $CFG_CLANG_VERSION, need >=3.0svn"
-        ;;
-    esac
-else
-    CFG_C_COMPILER="gcc"
-fi
-
 if [ -z "$CFG_ENABLE_CLANG" -a -z "$CFG_GCC" ]
 then
     err "either clang or gcc is required"
@@ -520,7 +495,6 @@ putvar CFG_OSTYPE
 putvar CFG_SRC_DIR
 putvar CFG_BUILD_DIR
 putvar CFG_CONFIGURE_ARGS
-putvar CFG_C_COMPILER
 putvar CFG_SUBMODULES
 putvar CFG_DISABLE_MANAGE_SUBMODULES
 putvar CFG_RUSTC
