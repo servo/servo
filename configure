@@ -392,8 +392,11 @@ fi
 
 step_msg "running submodule autoconf scripts"
 
+msg "configuring src/mozjs"
+
+AUTOCONF213_M4_MACROS="$(dirname ${CFG_AUTOCONF213})/../share/$(basename ${CFG_AUTOCONF213})/"
 # Run the SpiderMonkey autoconf using autoconf 2.13
-(cd ${CFG_SRC_DIR}src/mozjs/js/src && "${CFG_AUTOCONF213}") || exit $?
+(cd ${CFG_SRC_DIR}src/mozjs/js/src && "${CFG_AUTOCONF213}" -l "${AUTOCONF213_M4_MACROS}") || exit $?
 
 # Pixman and cairo require some care to autoconf correctly for our in-tree build.
 # The normal autogen.sh files mostly just run autoreconfig but we need more fine control
