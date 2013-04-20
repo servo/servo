@@ -2142,7 +2142,7 @@ class CGImports(CGWrapper):
         # TODO imports to cover descriptors, etc.
 
         def _useString(imports):
-            return '#[allow(unused_imports)];' + ''.join(['use %s;\n' % i for i in imports]) + '\n'
+            return '#[allow(unused_imports,unused_variable)];' + ''.join(['use %s;\n' % i for i in imports]) + '\n'
         CGWrapper.__init__(self, child,
                            declarePre=_useString(sorted(declareImports)))
 
