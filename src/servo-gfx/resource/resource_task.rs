@@ -59,7 +59,7 @@ fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> R
         // TODO: change copy to move once we can move out of closures
         ResourceManager(from_client, loaders_cell.take()).start()
     };
-    SharedChan(chan)
+    SharedChan::new(chan)
 }
 
 pub struct ResourceManager {

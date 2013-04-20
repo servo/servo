@@ -56,7 +56,7 @@ pub enum Msg {
 pub fn OSMain(dom_event_chan: comm::SharedChan<Event>, opts: Opts) -> OSMain {
     let dom_event_chan = Cell(dom_event_chan);
     OSMain {
-        chan: SharedChan(on_osmain::<Msg>(|po| {
+        chan: SharedChan::new(on_osmain::<Msg>(|po| {
             let po = Cell(po);
             do platform::runmain {
                 debug!("preparing to enter main loop");

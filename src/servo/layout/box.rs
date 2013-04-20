@@ -113,8 +113,8 @@ pub fn RenderBoxData(node: AbstractNode, ctx: @mut FlowContext, id: int) -> Rend
     }
 }
 
-impl RenderBox {
-    fn d(&mut self) -> &'self mut RenderBoxData {
+impl<'self> RenderBox {
+    fn d(&'self mut self) -> &'self mut RenderBoxData {
       unsafe {
         //Rust #5074 - we can't take mutable references to the
         //             data that needs to be returned right now.
@@ -351,7 +351,7 @@ impl RenderBox {
         self.content_box()
     }
 
-    fn style(&mut self) -> CompleteStyle<'self> {
+    fn style(&'self mut self) -> CompleteStyle<'self> {
         let d: &'self mut RenderBoxData = self.d();
         d.node.style()
     }

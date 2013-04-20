@@ -4,12 +4,12 @@
 
 use core::cmp::{Ord, Eq};
 
-pub trait BinarySearchMethods<T: Ord + Eq> {
+pub trait BinarySearchMethods<'self, T: Ord + Eq> {
     fn binary_search(&self, key: &T) -> Option<&'self T>;
     fn binary_search_index(&self, key: &T) -> Option<uint>;
 }
 
-impl<'self, T: Ord + Eq> BinarySearchMethods<T> for &'self [T] {
+impl<'self, T: Ord + Eq> BinarySearchMethods<'self, T> for &'self [T] {
     fn binary_search(&self, key: &T) -> Option<&'self T> {
         match self.binary_search_index(key) {
             None => None,

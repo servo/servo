@@ -135,7 +135,7 @@ fn run(opts: &Opts) {
 
 fn run_pipeline_screen(opts: &Opts) {
     let (dom_event_port, dom_event_chan) = comm::stream();
-    let dom_event_chan = comm::SharedChan(dom_event_chan);
+    let dom_event_chan = comm::SharedChan::new(dom_event_chan);
 
     // The platform event handler thread
     let osmain = OSMain(dom_event_chan.clone(), copy *opts);

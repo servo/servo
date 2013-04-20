@@ -73,7 +73,7 @@ pub impl<'self> FontContext {
         }
     }
 
-    priv fn get_font_list(&self) -> &'self FontList {
+    priv fn get_font_list(&'self self) -> &'self FontList {
         self.font_list.get_ref()
     }
 
