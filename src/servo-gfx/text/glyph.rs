@@ -306,7 +306,7 @@ struct DetailedGlyphStore {
     lookup_is_sorted: bool,
 }
 
-impl DetailedGlyphStore {
+impl<'self> DetailedGlyphStore {
     fn new() -> DetailedGlyphStore {
         DetailedGlyphStore {
             detail_buffer: ~[], // TODO: default size?
@@ -339,7 +339,7 @@ impl DetailedGlyphStore {
         self.lookup_is_sorted = false;
     }
 
-    fn get_detailed_glyphs_for_entry(&self, entry_offset: uint, count: u16)
+    fn get_detailed_glyphs_for_entry(&'self self, entry_offset: uint, count: u16)
                                   -> &'self [DetailedGlyph] {
         debug!("Requesting detailed glyphs[n=%u] for entry[off=%u]", count as uint, entry_offset);
 
@@ -369,7 +369,7 @@ impl DetailedGlyphStore {
         }
     }
 
-    fn get_detailed_glyph_with_index(&self,
+    fn get_detailed_glyph_with_index(&'self self,
                                      entry_offset: uint,
                                      detail_offset: u16)
             -> &'self DetailedGlyph {
@@ -507,7 +507,7 @@ pub struct GlyphStore {
     detail_store: DetailedGlyphStore,
 }
 
-pub impl GlyphStore {
+pub impl<'self> GlyphStore {
     // Initializes the glyph store, but doesn't actually shape anything.
     // Use the set_glyph, set_glyphs() methods to store glyph data.
     fn new(length: uint) -> GlyphStore {
@@ -585,7 +585,7 @@ pub impl GlyphStore {
         self.entry_buffer[i] = entry;
     }
 
-    fn iter_glyphs_for_char_index(&self,
+    fn iter_glyphs_for_char_index(&'self self,
                                   i: uint,
                                   cb: &fn(uint, &GlyphInfo<'self>) -> bool)
                                -> bool {
@@ -609,7 +609,8 @@ pub impl GlyphStore {
         true
     }
 
-    fn iter_glyphs_for_char_range(&self, range: &Range, cb: &fn(uint, &GlyphInfo<'self>) -> bool) {
+    fn iter_glyphs_for_char_range(&'self self, range: &Range,
+                                  cb: &fn(uint, &GlyphInfo<'self>) -> bool) {
         if range.begin() >= self.entry_buffer.len() {
             error!("iter_glyphs_for_range: range.begin beyond length!");
             return;
@@ -626,7 +627,7 @@ pub impl GlyphStore {
         }
     }
 
-    fn iter_all_glyphs(&self, cb: &fn(uint, &GlyphInfo<'self>) -> bool) {
+    fn iter_all_glyphs(&'self self, cb: &fn(uint, &GlyphInfo<'self>) -> bool) {
         for uint::range(0, self.entry_buffer.len()) |i| {
             if !self.iter_glyphs_for_char_index(i, cb) {
                 break;

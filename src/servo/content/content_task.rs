@@ -60,7 +60,7 @@ pub fn ContentTask(layout_task: LayoutTask,
                 -> ContentTask {
     let (control_port, control_chan) = comm::stream();
 
-    let control_chan = SharedChan(control_chan);
+    let control_chan = SharedChan::new(control_chan);
     let control_chan_copy = control_chan.clone();
     let control_port = Cell(control_port);
     let dom_event_port = Cell(dom_event_port);

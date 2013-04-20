@@ -34,8 +34,8 @@ pub enum DisplayItem {
     Border(DisplayItemData, Au, Color)
 }
 
-pub impl DisplayItem {
-    fn d(&self) -> &'self DisplayItemData {
+pub impl<'self> DisplayItem {
+    fn d(&'self self) -> &'self DisplayItemData {
         match *self {
             SolidColor(ref d, _) => d,
             Text(ref d, _, _, _) => d,

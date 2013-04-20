@@ -52,15 +52,17 @@ pub fn RenderTask<C:Compositor + Owned>(compositor: C, opts: Opts) -> RenderTask
             f
         };
 
-        Renderer {
+        // FIXME: rust/#5967
+        let mut r = Renderer {
             port: po,
             compositor: compositor,
-            mut layer_buffer_set_port: Cell(layer_buffer_set_port),
+            layer_buffer_set_port: Cell(layer_buffer_set_port),
             thread_pool: thread_pool,
             opts: opts_cell.take()
-        }.start();
+        };
+        r.start();
     };
-    SharedChan(render_task)
+    SharedChan::new(render_task)
 }
 
 /// Data that needs to be kept around for each render thread.
@@ -79,7 +81,7 @@ priv struct Renderer<C> {
 }
 
 impl<C: Compositor + Owned> Renderer<C> {
-    fn start(&self) {
+    fn start(&mut self) {
         debug!("renderer: beginning rendering loop");
 
         loop {
@@ -93,7 +95,7 @@ impl<C: Compositor + Owned> Renderer<C> {
         }
     }
 
-    fn render(&self, render_layer: RenderLayer) {
+    fn render(&mut self, render_layer: RenderLayer) {
         debug!("renderer: got render request");
 
         let layer_buffer_set_port = self.layer_buffer_set_port.take();

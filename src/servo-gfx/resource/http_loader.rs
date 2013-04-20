@@ -12,7 +12,7 @@ pub fn factory() -> LoaderTask {
 	let f: LoaderTask = |url, progress_chan| {
 		assert!(url.scheme == ~"http");
 
-		let progress_chan = SharedChan(progress_chan);
+		let progress_chan = SharedChan::new(progress_chan);
 		do spawn {
 			debug!("http_loader: requesting via http: %?", url.clone());
 			let mut request = uv_http_request(url.clone());

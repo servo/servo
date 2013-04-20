@@ -37,7 +37,7 @@ impl SendableTextRun {
     }
 }
 
-pub impl TextRun {
+pub impl<'self> TextRun {
     fn new(font: @mut Font, text: ~str) -> TextRun {
         let mut glyph_store = GlyphStore::new(str::char_len(text));
         TextRun::compute_potential_breaks(text, &mut glyph_store);
@@ -102,7 +102,7 @@ pub impl TextRun {
     }
 
     fn char_len(&self) -> uint { self.glyphs.entry_buffer.len() }
-    fn glyphs(&self) -> &'self GlyphStore { &self.glyphs }
+    fn glyphs(&'self self) -> &'self GlyphStore { &self.glyphs }
 
     fn range_is_trimmable_whitespace(&self, range: &Range) -> bool {
         for range.eachi |i| {
