@@ -86,7 +86,7 @@ pub struct BuildData {
 pub fn LayoutTask(render_task: RenderTask,
                   img_cache_task: ImageCacheTask,
                   opts: Opts) -> LayoutTask {
-    SharedChan(spawn_listener::<Msg>(|from_content| {
+    SharedChan::new(spawn_listener::<Msg>(|from_content| {
         let mut layout = Layout(render_task.clone(), img_cache_task.clone(), from_content, &opts);
         layout.start();
     }))

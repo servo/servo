@@ -112,7 +112,7 @@ pub struct HTMLImageElement {
 // Element methods
 //
 
-pub impl Element {
+pub impl<'self> Element {
     pub fn new(type_id: ElementTypeId, tag_name: ~str) -> Element {
         Element {
             parent: Node::new(ElementNodeTypeId(type_id)),
@@ -121,7 +121,7 @@ pub impl Element {
         }
     }
 
-    fn get_attr(&self, name: &str) -> Option<&'self str> {
+    fn get_attr(&'self self, name: &str) -> Option<&'self str> {
         // FIXME: Need an each() that links lifetimes in Rust.
         for uint::range(0, self.attrs.len()) |i| {
             if eq_slice(self.attrs[i].name, name) {

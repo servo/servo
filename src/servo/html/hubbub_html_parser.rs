@@ -211,7 +211,7 @@ pub fn parse_html(url: Url,
                                    css_chan: Chan<Option<Stylesheet>>| {
         css_link_listener(css_chan, css_port, resource_task2.clone());
     };
-    let css_chan = SharedChan(css_chan);
+    let css_chan = SharedChan::new(css_chan);
 
     // Spawn a JS parser to receive JavaScript.
     let resource_task2 = resource_task.clone();
@@ -220,7 +220,7 @@ pub fn parse_html(url: Url,
                                    js_chan: Chan<JSResult>| {
         js_script_listener(js_chan, js_port, resource_task2.clone());
     };
-    let js_chan = SharedChan(js_chan);
+    let js_chan = SharedChan::new(js_chan);
 
     let url2 = url.clone(), url3 = url.clone();
 

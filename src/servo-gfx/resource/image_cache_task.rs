@@ -96,7 +96,7 @@ pub fn ImageCacheTask_(resource_task: ResourceTask,
     let decoder_factory_cell = Cell(decoder_factory);
 
     let (port, chan) = stream();
-    let chan = SharedChan(chan);
+    let chan = SharedChan::new(chan);
     let port_cell = Cell(port);
     let chan_cell = Cell(chan.clone());
 
@@ -140,7 +140,7 @@ fn SyncImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
         }
     }
 
-    return SharedChan(chan);
+    return SharedChan::new(chan);
 }
 
 struct ImageCache {

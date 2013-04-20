@@ -96,8 +96,8 @@ pub fn FlowData(id: int) -> FlowData {
     }
 }
 
-pub impl FlowContext {
-    fn d(&mut self) -> &'self mut FlowData {
+pub impl<'self> FlowContext {
+    fn d(&'self mut self) -> &'self mut FlowData {
       unsafe {
         match *self {
             AbsoluteFlow(ref d)    => cast::transmute(d),
@@ -111,21 +111,21 @@ pub impl FlowContext {
       }
     }
 
-    fn inline(&mut self) -> &'self mut InlineFlowData {
+    fn inline(&'self mut self) -> &'self mut InlineFlowData {
         match self {
             &InlineFlow(_, ref i) => unsafe { cast::transmute(i) },
             _ => fail!(fmt!("Tried to access inline data of non-inline: f%d", self.d().id))
         }
     }
 
-    fn block(&mut self) -> &'self mut BlockFlowData {
+    fn block(&'self mut self) -> &'self mut BlockFlowData {
         match self {
             &BlockFlow(_, ref mut b) => unsafe { cast::transmute(b) },
             _ => fail!(fmt!("Tried to access block data of non-block: f%d", self.d().id))
         }
     }
 
-    fn root(&mut self) -> &'self mut RootFlowData {
+    fn root(&'self mut self) -> &'self mut RootFlowData {
         match self {
             &RootFlow(_, ref r) => unsafe { cast::transmute(r) },
             _ => fail!(fmt!("Tried to access root data of non-root: f%d", self.d().id))
