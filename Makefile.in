@@ -92,8 +92,16 @@ endif
 rust: $(CFG_RUSTC)
 
 define DEF_SUBMODULE_VARS
+
+#defaults 
 DEPS_$(1) =
-CFLAGS_$(1) = $$(CFLAGS) 
+CFLAGS_$(1) = -O2
+
+#if global cflags set, inherit that
+ifneq ($$(CFLAGS),)
+	CFLAGS_$(1) = $$(CFLAGS) 
+endif
+
 # any "done" dummy files must be named libSOMETHING.dummy. 
 #
 # We can't auto-compute this, because some modules have lib* prefix in
