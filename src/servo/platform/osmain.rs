@@ -83,7 +83,7 @@ struct AzureDrawTargetImageData {
 
 impl layers::layers::ImageData for AzureDrawTargetImageData {
     fn size(&self) -> Size2D<uint> { self.size }
-    fn stride(&self) -> uint { self.data_source_surface.get_size().width as uint }
+    fn stride(&self) -> uint { self.data_source_surface.stride() as uint }
     fn format(&self) -> layers::layers::Format {
         // FIXME: This is not always correct. We should query the Azure draw target for the format.
         layers::layers::ARGB32Format
@@ -341,7 +341,7 @@ fn Surface(backend: BackendType) -> Surface {
     let layer_buffer = LayerBuffer {
         draw_target: DrawTarget::new(backend, Size2D(800i32, 600i32), B8G8R8A8),
         rect: Rect(Point2D(0u, 0u), Size2D(800u, 600u)),
-        stride: 800
+        stride: 800 * 4 
     };
     let layer_buffer_set = LayerBufferSet { buffers: ~[ layer_buffer ] };
     Surface { layer_buffer_set: layer_buffer_set, have: true }
