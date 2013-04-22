@@ -221,7 +221,7 @@ impl FontHandleMethods for FontHandle {
     }
 }
 
-pub impl FontHandle {
+pub impl<'self> FontHandle {
     priv fn set_char_size(face: FT_Face, pt_size: float) -> Result<(), ()>{
         let char_width = float_to_fixed_ft(pt_size) as FT_F26Dot6;
         let char_height = float_to_fixed_ft(pt_size) as FT_F26Dot6;
@@ -271,7 +271,7 @@ pub impl FontHandle {
         Ok(FontHandle { source: FontSourceFile(file), face: face })
     }
 
-    priv fn get_face_rec(&self) -> &'self FT_FaceRec {
+    priv fn get_face_rec(&'self self) -> &'self FT_FaceRec {
         unsafe {
             &(*self.face)
         }
