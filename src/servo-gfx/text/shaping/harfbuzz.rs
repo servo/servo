@@ -74,21 +74,19 @@ pub struct ShapedGlyphEntry {
 
 impl ShapedGlyphData {
     pub fn new(buffer: *hb_buffer_t) -> ShapedGlyphData {
-        unsafe {
-            let glyph_count = 0;
-            let glyph_infos = hb_buffer_get_glyph_infos(buffer, &glyph_count);
-            let glyph_count = glyph_count as uint;
-            assert!(glyph_infos.is_not_null());
-            let pos_count = 0;
-            let pos_infos = hb_buffer_get_glyph_positions(buffer, &pos_count);
-            assert!(pos_infos.is_not_null());
-            assert!(glyph_count == pos_count as uint);
+        let glyph_count = 0;
+        let glyph_infos = hb_buffer_get_glyph_infos(buffer, &glyph_count);
+        let glyph_count = glyph_count as uint;
+        assert!(glyph_infos.is_not_null());
+        let pos_count = 0;
+        let pos_infos = hb_buffer_get_glyph_positions(buffer, &pos_count);
+        assert!(pos_infos.is_not_null());
+        assert!(glyph_count == pos_count as uint);
 
-            ShapedGlyphData {
-                count: glyph_count,
-                glyph_infos: glyph_infos,
-                pos_infos: pos_infos,
-            }
+        ShapedGlyphData {
+            count: glyph_count,
+            glyph_infos: glyph_infos,
+            pos_infos: pos_infos,
         }
     }
 
@@ -167,35 +165,33 @@ impl Drop for Shaper {
 
 impl Shaper {
     pub fn new(font: @mut Font) -> Shaper {
-        unsafe {
-            let font_ptr: *mut Font = &mut *font;
-            let hb_face: *hb_face_t = hb_face_create_for_tables(get_font_table_func,
-                                                                font_ptr as *c_void,
-                                                                null());
-            let hb_font: *hb_font_t = hb_font_create(hb_face);
+        let font_ptr: *mut Font = &mut *font;
+        let hb_face: *hb_face_t = hb_face_create_for_tables(get_font_table_func,
+                                                            font_ptr as *c_void,
+                                                            null());
+        let hb_font: *hb_font_t = hb_font_create(hb_face);
 
-            // Set points-per-em. if zero, performs no hinting in that direction.
-            let pt_size = font.style.pt_size;
-            hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
+        // Set points-per-em. if zero, performs no hinting in that direction.
+        let pt_size = font.style.pt_size;
+        hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
 
-            // Set scaling. Note that this takes 16.16 fixed point.
-            hb_font_set_scale(hb_font, 
-                              Shaper::float_to_fixed(pt_size) as c_int,
-                              Shaper::float_to_fixed(pt_size) as c_int);
+        // Set scaling. Note that this takes 16.16 fixed point.
+        hb_font_set_scale(hb_font, 
+                          Shaper::float_to_fixed(pt_size) as c_int,
+                          Shaper::float_to_fixed(pt_size) as c_int);
 
-            // configure static function callbacks.
-            // NB. This funcs structure could be reused globally, as it never changes.
-            let hb_funcs: *hb_font_funcs_t = hb_font_funcs_create();
-            hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, null(), null());
-            hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, null(), null());
-            hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *c_void, null());
+        // configure static function callbacks.
+        // NB. This funcs structure could be reused globally, as it never changes.
+        let hb_funcs: *hb_font_funcs_t = hb_font_funcs_create();
+        hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, null(), null());
+        hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, null(), null());
+        hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *c_void, null());
 
-            Shaper { 
-                font: font,
-                hb_face: hb_face,
-                hb_font: hb_font,
-                hb_funcs: hb_funcs,
-            }
+        Shaper { 
+            font: font,
+            hb_face: hb_face,
+            hb_font: hb_font,
+            hb_funcs: hb_funcs,
         }
     }
 

@@ -335,18 +335,13 @@ impl DebugMethods for AbstractNode {
         debug!("%s", s);
 
         // FIXME: this should have a pure version?
-        unsafe {
-            for self.each_child() |kid| {
-                kid.dump_indent(indent + 1u) 
-            }
+        for self.each_child() |kid| {
+            kid.dump_indent(indent + 1u)
         }
     }
 
     fn debug_str(&self) -> ~str {
-        // Unsafe due to the call to type_id().
-        unsafe {
-            fmt!("%?", self.type_id())
-        }
+        fmt!("%?", self.type_id())
     }
 }
 

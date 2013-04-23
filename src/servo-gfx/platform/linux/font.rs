@@ -125,7 +125,7 @@ impl FontHandleMethods for FontHandle {
         if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD == 0 } {
             default_weight
         } else {
-            let os2 = unsafe { FT_Get_Sfnt_Table(self.face, ft_sfnt_os2) as *TT_OS2 };
+            let os2 = FT_Get_Sfnt_Table(self.face, ft_sfnt_os2) as *TT_OS2;
             let valid = os2.is_not_null() && unsafe { (*os2).version != 0xffff };
             if valid {
                 let weight = unsafe { (*os2).usWeightClass };
@@ -283,7 +283,7 @@ pub impl<'self> FontHandle {
         // face.size is a *c_void in the bindings, presumably to avoid
         // recursive structural types
         let size: &FT_SizeRec = unsafe { cast::transmute(&(*face.size)) };
-        let metrics: &FT_Size_Metrics = unsafe { &((*size).metrics) };
+        let metrics: &FT_Size_Metrics = &(*size).metrics;
 
         let em_size = face.units_per_EM as float;
         let x_scale = (metrics.x_ppem as float) / em_size as float;

@@ -372,37 +372,35 @@ pub fn CreateInterfaceObjects2(cx: *JSContext, global: *JSObject, receiver: *JSO
                                constants: *ConstantSpec,
                                staticMethods: *JSFunctionSpec,
                                name: &str) -> *JSObject {
-    unsafe {
-        let mut proto = ptr::null();
-        if protoClass.is_not_null() {
-            proto = CreateInterfacePrototypeObject(cx, global, protoProto,
-                                                   protoClass, methods,
-                                                   properties, constants);
-            if proto.is_null() {
-                return ptr::null();
-            }
-            
-            JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
-                               RUST_PRIVATE_TO_JSVAL(domClass as *libc::c_void));
+    let mut proto = ptr::null();
+    if protoClass.is_not_null() {
+        proto = CreateInterfacePrototypeObject(cx, global, protoProto,
+                                               protoClass, methods,
+                                               properties, constants);
+        if proto.is_null() {
+            return ptr::null();
         }
 
-        let mut interface = ptr::null();
-        if constructorClass.is_not_null() || constructor.is_not_null() {
-            interface = do str::as_c_str(name) |s| {
-                CreateInterfaceObject(cx, global, receiver, constructorClass,
-                                      constructor, ctorNargs, proto,
-                                      staticMethods, constants, s)
-            };
-            if interface.is_null() {
-                return ptr::null();
-            }
-        }
+        JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
+                           RUST_PRIVATE_TO_JSVAL(domClass as *libc::c_void));
+    }
 
-        if protoClass.is_not_null() {
-            proto
-        } else {
-            interface
+    let mut interface = ptr::null();
+    if constructorClass.is_not_null() || constructor.is_not_null() {
+        interface = do str::as_c_str(name) |s| {
+            CreateInterfaceObject(cx, global, receiver, constructorClass,
+                                  constructor, ctorNargs, proto,
+                                  staticMethods, constants, s)
+        };
+        if interface.is_null() {
+            return ptr::null();
         }
+    }
+
+    if protoClass.is_not_null() {
+        proto
+    } else {
+        interface
     }
 }
 
@@ -412,7 +410,6 @@ fn CreateInterfaceObject(cx: *JSContext, global: *JSObject, receiver: *JSObject,
                          staticMethods: *JSFunctionSpec,
                          constants: *ConstantSpec,
                          name: *libc::c_char) -> *JSObject {
-  unsafe {
     let constructor = if constructorClass.is_not_null() {
         let functionProto = JS_GetFunctionPrototype(cx, global);
         if functionProto.is_null() {
@@ -482,7 +479,6 @@ fn CreateInterfaceObject(cx: *JSContext, global: *JSObject, receiver: *JSObject,
     }
 
     return constructor;
-  }
 }
 
 fn DefineConstants(cx: *JSContext, obj: *JSObject, constants: *ConstantSpec) -> bool {
@@ -506,11 +502,11 @@ fn DefineConstants(cx: *JSContext, obj: *JSObject, constants: *ConstantSpec) -> 
 }
 
 fn DefineMethods(cx: *JSContext, obj: *JSObject, methods: *JSFunctionSpec) -> bool {
-    unsafe { JS_DefineFunctions(cx, obj, methods) != 0 }
+    JS_DefineFunctions(cx, obj, methods) != 0
 }
 
 fn DefineProperties(cx: *JSContext, obj: *JSObject, properties: *JSPropertySpec) -> bool {
-    unsafe { JS_DefineProperties(cx, obj, properties) != 0 }
+    JS_DefineProperties(cx, obj, properties) != 0
 }
 
 fn CreateInterfacePrototypeObject(cx: *JSContext, global: *JSObject,
@@ -571,7 +567,7 @@ pub impl WrapperCache {
     }
 
     fn set_wrapper(&mut self, wrapper: *JSObject) {
-        unsafe { self.wrapper = wrapper; }
+        self.wrapper = wrapper;
     }
 
     fn new() -> WrapperCache {
