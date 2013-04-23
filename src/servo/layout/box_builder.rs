@@ -83,7 +83,7 @@ priv fn simulate_UA_display_rules(node: AbstractNode) -> CSSDisplay {
 
 impl BoxGenerator {
     fn new(flow: @mut FlowContext) -> BoxGenerator {
-        unsafe { debug!("Creating box generator for flow: %s", flow.debug_str()); }
+        debug!("Creating box generator for flow: %s", flow.debug_str());
         BoxGenerator {
             flow: flow,
             range_stack: ~[]
@@ -208,7 +208,7 @@ struct BuilderContext {
 
 impl BuilderContext {
     fn new(collector: @mut BoxGenerator) -> BuilderContext {
-        unsafe { debug!("Creating new BuilderContext for flow: %s", collector.flow.debug_str()); }
+        debug!("Creating new BuilderContext for flow: %s", collector.flow.debug_str());
         BuilderContext {
             default_collector: collector,
             inline_collector: None,

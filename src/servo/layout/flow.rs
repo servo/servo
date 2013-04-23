@@ -279,10 +279,8 @@ impl BoxedMutDebugMethods for FlowContext {
         debug!("%s", s);
 
         // FIXME: this should have a pure/const version?
-        unsafe {
-            for FlowTree.each_child(self) |child| {
-                child.dump_indent(indent + 1u) 
-            }
+        for FlowTree.each_child(self) |child| {
+            child.dump_indent(indent + 1u)
         }
     }
     

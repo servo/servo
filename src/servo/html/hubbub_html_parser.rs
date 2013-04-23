@@ -224,217 +224,211 @@ pub fn parse_html(url: Url,
 
     let url2 = url.clone(), url3 = url.clone();
 
-    unsafe {
-        // Build the root node.
-        let root = ~HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
-        let root = unsafe { Node::as_abstract_node(root) };
-        debug!("created new node");
-        let mut parser = hubbub::Parser("UTF-8", false);
-        debug!("created parser");
-        parser.set_document_node(root.to_hubbub_node());
-        parser.enable_scripting(true);
+    // Build the root node.
+    let root = ~HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
+    let root = unsafe { Node::as_abstract_node(root) };
+    debug!("created new node");
+    let mut parser = hubbub::Parser("UTF-8", false);
+    debug!("created parser");
+    parser.set_document_node(root.to_hubbub_node());
+    parser.enable_scripting(true);
 
-        // Performs various actions necessary after appending has taken place. Currently, this
-        // consists of processing inline stylesheets, but in the future it might perform
-        // prefetching, etc.
-        let css_chan2 = css_chan.clone();
-        let append_hook: ~fn(AbstractNode, AbstractNode) = |parent_node, child_node| {
-            if parent_node.is_style_element() && child_node.is_text() {
-                debug!("found inline CSS stylesheet");
-                let url = url::from_str("http://example.com/"); // FIXME
-                let url_cell = Cell(url);
-                do child_node.with_imm_text |text_node| {
-                    let data = text_node.text.to_str();  // FIXME: Bad copy.
-                    let provenance = InlineProvenance(result::unwrap(url_cell.take()), data);
-                    css_chan2.send(CSSTaskNewFile(provenance));
-                }
-            }
-        };
-
-        let (css_chan2, js_chan2) = (css_chan.clone(), js_chan.clone());
-        parser.set_tree_handler(~hubbub::TreeHandler {
-            create_comment: |data: ~str| {
-                debug!("create comment");
-                unsafe {
-                    Node::as_abstract_node(~Comment::new(data)).to_hubbub_node()
-                }
-            },
-            create_doctype: |doctype: ~hubbub::Doctype| {
-                debug!("create doctype");
-                // TODO: remove copying here by using struct pattern matching to 
-                // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
-                let public_id = match &doctype.public_id {
-                  &None => None,
-                  &Some(ref id) => Some(copy *id)
-                };
-                let system_id = match &doctype.system_id {
-                  &None => None,
-                  &Some(ref id) => Some(copy *id)
-                };
-                let node = ~Doctype::new(copy doctype.name,
-                                         public_id,
-                                         system_id,
-                                         doctype.force_quirks);
-                unsafe {
-                    Node::as_abstract_node(node).to_hubbub_node()
-                }
-            },
-            create_element: |tag: ~hubbub::Tag| {
-                debug!("create element");
-                // TODO: remove copying here by using struct pattern matching to 
-                // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
-                let node = build_element_from_tag(tag.name);
-
-                debug!("-- attach attrs");
-                do node.as_mut_element |element| {
-                    for tag.attributes.each |attr| {
-                        element.attrs.push(Attr::new(copy attr.name, copy attr.value));
-                    }
-                }
-
-                // Spawn additional parsing, network loads, etc. from tag and attrs
-                match node.type_id() {
-                    // Handle CSS style sheets from <link> elements
-                    ElementNodeTypeId(HTMLLinkElementTypeId) => {
-                        do node.with_imm_element |element| {
-                            match (element.get_attr(~"rel"), element.get_attr(~"href")) {
-                                (Some(rel), Some(href)) => {
-                                    if rel == ~"stylesheet" {
-                                        debug!("found CSS stylesheet: %s", href);
-                                        let url = make_url(href.to_str(), Some(url2.clone()));
-                                        css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
-                                    }
-                                }
-                                _ => {}
-                            }
-                        }
-                    },
-                    ElementNodeTypeId(HTMLImageElementTypeId) => {
-                        do node.with_mut_image_element |image_element| {
-                            let src_opt = image_element.parent.get_attr(~"src").map(|x| x.to_str());
-                            match src_opt {
-                                None => {}
-                                Some(src) => {
-                                    let img_url = make_url(src, Some(url2.clone()));
-                                    image_element.image = Some(copy img_url);
-                                    // inform the image cache to load this, but don't store a handle.
-                                    // TODO (Issue #84): don't prefetch if we are within a <noscript>
-                                    // tag.
-                                    image_cache_task.send(image_cache_task::Prefetch(img_url));
-                                }
-                            }
-                        }
-                    }
-                    //TODO (Issue #86): handle inline styles ('style' attr)
-                    _ => {}
-                }
-
-                unsafe {
-                    node.to_hubbub_node()
-                }
-            },
-            create_text: |data: ~str| {
-                debug!("create text");
-                unsafe {
-                    Node::as_abstract_node(~Text::new(data)).to_hubbub_node()
-                }
-            },
-            ref_node: |_| {},
-            unref_node: |_| {},
-            append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
-                unsafe {
-                    debug!("append child %x %x", cast::transmute(parent), cast::transmute(child));
-                    let parent: AbstractNode = NodeWrapping::from_hubbub_node(parent);
-                    let child: AbstractNode = NodeWrapping::from_hubbub_node(child);
-                    parent.append_child(child);
-                    append_hook(parent, child);
-                }
-                child
-            },
-            insert_before: |_parent, _child| {
-                debug!("insert before");
-                0u
-            },
-            remove_child: |_parent, _child| {
-                debug!("remove child");
-                0u
-            },
-            clone_node: |_node, deep| {
-                debug!("clone node");
-                unsafe {
-                    if deep { error!("-- deep clone unimplemented"); }
-                    fail!(~"clone node unimplemented")
-                }
-            },
-            reparent_children: |_node, _new_parent| {
-                debug!("reparent children");
-                0u
-            },
-            get_parent: |_node, _element_only| {
-                debug!("get parent");
-                0u
-            },
-            has_children: |_node| {
-                debug!("has children");
-                false
-            },
-            form_associate: |_form, _node| {
-                debug!("form associate");
-            },
-            add_attributes: |_node, _attributes| {
-                debug!("add attributes");
-            },
-            set_quirks_mode: |_mode| {
-                debug!("set quirks mode");
-            },
-            encoding_change: |_encname| {
-                debug!("encoding change");
-            },
-            complete_script: |script| {
-                // A little function for holding this lint attr
-                #[allow(non_implicitly_copyable_typarams)]
-                fn complete_script(script: hubbub::NodeDataPtr,
-                                   url: Url,
-                                   js_chan: SharedChan<JSMessage>) {
-                    unsafe {
-                        let script: AbstractNode = NodeWrapping::from_hubbub_node(script);
-                        do script.with_imm_element |script| {
-                            match script.get_attr(~"src") {
-                                Some(src) => {
-                                    debug!("found script: %s", src);
-                                    let new_url = make_url(src.to_str(), Some(url.clone()));
-                                    js_chan.send(JSTaskNewFile(new_url));
-                                }
-                                None => {}
-                            }
-                        }
-                    }
-                }
-                complete_script(script, url3.clone(), js_chan2.clone());
-                debug!("complete script");
-            }
-        });
-        debug!("set tree handler");
-
-        let (input_port, input_chan) = comm::stream();
-        resource_task.send(Load(url.clone(), input_chan));
-        debug!("loaded page");
-        loop {
-            match input_port.recv() {
-                Payload(data) => {
-                    debug!("received data");
-                    parser.parse_chunk(data);
-                }
-                Done(*) => {
-                    break;
-                }
+    // Performs various actions necessary after appending has taken place. Currently, this
+    // consists of processing inline stylesheets, but in the future it might perform
+    // prefetching, etc.
+    let css_chan2 = css_chan.clone();
+    let append_hook: ~fn(AbstractNode, AbstractNode) = |parent_node, child_node| {
+        if parent_node.is_style_element() && child_node.is_text() {
+            debug!("found inline CSS stylesheet");
+            let url = url::from_str("http://example.com/"); // FIXME
+            let url_cell = Cell(url);
+            do child_node.with_imm_text |text_node| {
+                let data = text_node.text.to_str();  // FIXME: Bad copy.
+                let provenance = InlineProvenance(result::unwrap(url_cell.take()), data);
+                css_chan2.send(CSSTaskNewFile(provenance));
             }
         }
+    };
 
-        css_chan.send(CSSTaskExit);
-        js_chan.send(JSTaskExit);
+    let (css_chan2, js_chan2) = (css_chan.clone(), js_chan.clone());
+    parser.set_tree_handler(~hubbub::TreeHandler {
+        create_comment: |data: ~str| {
+            debug!("create comment");
+            unsafe {
+                Node::as_abstract_node(~Comment::new(data)).to_hubbub_node()
+            }
+        },
+        create_doctype: |doctype: ~hubbub::Doctype| {
+            debug!("create doctype");
+            // TODO: remove copying here by using struct pattern matching to
+            // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
+            let public_id = match &doctype.public_id {
+                &None => None,
+                &Some(ref id) => Some(copy *id)
+            };
+            let system_id = match &doctype.system_id {
+                &None => None,
+                &Some(ref id) => Some(copy *id)
+            };
+            let node = ~Doctype::new(copy doctype.name,
+                                     public_id,
+                                     system_id,
+                                     doctype.force_quirks);
+            unsafe {
+                Node::as_abstract_node(node).to_hubbub_node()
+            }
+        },
+        create_element: |tag: ~hubbub::Tag| {
+            debug!("create element");
+            // TODO: remove copying here by using struct pattern matching to
+            // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
+            let node = build_element_from_tag(tag.name);
 
-        return HtmlParserResult { root: root, style_port: css_port, js_port: js_port };
+            debug!("-- attach attrs");
+            do node.as_mut_element |element| {
+                for tag.attributes.each |attr| {
+                    element.attrs.push(Attr::new(copy attr.name, copy attr.value));
+                }
+            }
+
+            // Spawn additional parsing, network loads, etc. from tag and attrs
+            match node.type_id() {
+                // Handle CSS style sheets from <link> elements
+                ElementNodeTypeId(HTMLLinkElementTypeId) => {
+                    do node.with_imm_element |element| {
+                        match (element.get_attr(~"rel"), element.get_attr(~"href")) {
+                            (Some(rel), Some(href)) => {
+                                if rel == ~"stylesheet" {
+                                    debug!("found CSS stylesheet: %s", href);
+                                    let url = make_url(href.to_str(), Some(url2.clone()));
+                                    css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                },
+                ElementNodeTypeId(HTMLImageElementTypeId) => {
+                    do node.with_mut_image_element |image_element| {
+                        let src_opt = image_element.parent.get_attr(~"src").map(|x| x.to_str());
+                        match src_opt {
+                            None => {}
+                            Some(src) => {
+                                let img_url = make_url(src, Some(url2.clone()));
+                                image_element.image = Some(copy img_url);
+                                // inform the image cache to load this, but don't store a handle.
+                                // TODO (Issue #84): don't prefetch if we are within a <noscript>
+                                // tag.
+                                image_cache_task.send(image_cache_task::Prefetch(img_url));
+                            }
+                        }
+                    }
+                }
+                //TODO (Issue #86): handle inline styles ('style' attr)
+                _ => {}
+            }
+
+            node.to_hubbub_node()
+        },
+        create_text: |data: ~str| {
+            debug!("create text");
+            unsafe {
+                Node::as_abstract_node(~Text::new(data)).to_hubbub_node()
+            }
+        },
+        ref_node: |_| {},
+        unref_node: |_| {},
+        append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
+            unsafe {
+                debug!("append child %x %x", cast::transmute(parent), cast::transmute(child));
+                let parent: AbstractNode = NodeWrapping::from_hubbub_node(parent);
+                let child: AbstractNode = NodeWrapping::from_hubbub_node(child);
+                parent.append_child(child);
+                append_hook(parent, child);
+            }
+            child
+        },
+        insert_before: |_parent, _child| {
+            debug!("insert before");
+            0u
+        },
+        remove_child: |_parent, _child| {
+            debug!("remove child");
+            0u
+        },
+        clone_node: |_node, deep| {
+            debug!("clone node");
+            if deep { error!("-- deep clone unimplemented"); }
+            fail!(~"clone node unimplemented")
+        },
+        reparent_children: |_node, _new_parent| {
+            debug!("reparent children");
+            0u
+        },
+        get_parent: |_node, _element_only| {
+            debug!("get parent");
+            0u
+        },
+        has_children: |_node| {
+            debug!("has children");
+            false
+        },
+        form_associate: |_form, _node| {
+            debug!("form associate");
+        },
+        add_attributes: |_node, _attributes| {
+            debug!("add attributes");
+        },
+        set_quirks_mode: |_mode| {
+            debug!("set quirks mode");
+        },
+        encoding_change: |_encname| {
+            debug!("encoding change");
+        },
+        complete_script: |script| {
+            // A little function for holding this lint attr
+            #[allow(non_implicitly_copyable_typarams)]
+            fn complete_script(script: hubbub::NodeDataPtr,
+                               url: Url,
+                               js_chan: SharedChan<JSMessage>) {
+                unsafe {
+                    let script: AbstractNode = NodeWrapping::from_hubbub_node(script);
+                    do script.with_imm_element |script| {
+                        match script.get_attr(~"src") {
+                            Some(src) => {
+                                debug!("found script: %s", src);
+                                let new_url = make_url(src.to_str(), Some(url.clone()));
+                                js_chan.send(JSTaskNewFile(new_url));
+                            }
+                            None => {}
+                        }
+                    }
+                }
+            }
+            complete_script(script, url3.clone(), js_chan2.clone());
+            debug!("complete script");
+        }
+    });
+    debug!("set tree handler");
+
+    let (input_port, input_chan) = comm::stream();
+    resource_task.send(Load(url.clone(), input_chan));
+    debug!("loaded page");
+    loop {
+        match input_port.recv() {
+            Payload(data) => {
+                debug!("received data");
+                parser.parse_chunk(data);
+            }
+            Done(*) => {
+                break;
+            }
+        }
     }
+
+    css_chan.send(CSSTaskExit);
+    js_chan.send(JSTaskExit);
+
+    return HtmlParserResult { root: root, style_port: css_port, js_port: js_port };
 }
 
