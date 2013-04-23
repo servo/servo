@@ -5,18 +5,20 @@
 extern mod freetype;
 extern mod fontconfig;
 
-use self::fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem,
-                                   FcResultNoMatch, FcMatchPattern};
-use self::fontconfig::fontconfig::bindgen::{
+use fontconfig::fontconfig::{
+    FcChar8, FcResultMatch, FcSetSystem,
+    FcResultNoMatch, FcMatchPattern, FC_SLANT_ITALIC, FC_WEIGHT_BOLD
+};
+use fontconfig::fontconfig::bindgen::{
     FcConfigGetCurrent, FcConfigGetFonts, FcPatternGetString,
     FcPatternDestroy, FcFontSetDestroy, FcConfigSubstitute,
-    FcDefaultSubstitute, FcPatternCreate, FcPatternAddString,
+    FcDefaultSubstitute, FcPatternCreate, FcPatternAddString, FcPatternAddInteger,
     FcFontMatch, FcFontSetList, FcObjectSetCreate, FcObjectSetDestroy,
     FcObjectSetAdd, FcPatternGetInteger
 };
 
 
-use font::FontHandleMethods;
+use font::{FontHandleMethods, UsedFontStyle};
 use font_context::FontContextHandleMethods;
 use font_list::{FontEntry, FontFamily, FontFamilyMap};
 use platform::font::FontHandle;
@@ -25,22 +27,6 @@ use platform::font_context::FontContextHandle;
 use core::hashmap::HashMap;
 use core::libc::c_int;
 use core::ptr::Ptr;
-use fontconfig::fontconfig::bindgen::{FcConfigGetCurrent};
-use fontconfig::fontconfig::bindgen::{FcConfigGetFonts};
-use fontconfig::fontconfig::bindgen::{FcDefaultSubstitute};
-use fontconfig::fontconfig::bindgen::{FcPatternCreate};
-use fontconfig::fontconfig::bindgen::{FcFontSetDestroy};
-use fontconfig::fontconfig::bindgen::{FcConfigSubstitute};
-use fontconfig::fontconfig::bindgen::{FcFontSetList};
-use fontconfig::fontconfig::bindgen::{FcObjectSetCreate};
-use fontconfig::fontconfig::bindgen::{FcObjectSetDestroy};
-use fontconfig::fontconfig::bindgen::{FcObjectSetAdd};
-use fontconfig::fontconfig::bindgen::{FcPatternAddString, FcFontMatch};
-use fontconfig::fontconfig::bindgen::{FcPatternGetInteger};
-use fontconfig::fontconfig::bindgen::{FcPatternGetString};
-use fontconfig::fontconfig::bindgen::{FcPatternDestroy};
-use fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem};
-use fontconfig::fontconfig::{FcMatchPattern, FcResultNoMatch};
 
 pub struct FontListHandle {
     fctx: FontContextHandle,
@@ -138,7 +124,7 @@ pub impl FontListHandle {
     }
 }
 
-pub fn path_from_identifier(name: ~str) -> Result<~str, ()> {
+pub fn path_from_identifier(name: ~str, style: &UsedFontStyle) -> Result<~str, ()> {
     unsafe {
         let config = FcConfigGetCurrent();
         let pattern = FcPatternCreate();
@@ -150,6 +136,25 @@ pub fn path_from_identifier(name: ~str) -> Result<~str, ()> {
         if res != 1 {
             debug!("adding family to pattern failed");
             return Err(());
+        }
+
+        if style.italic {
+            let res = do str::as_c_str("slant") |FC_SLANT| {
+                FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ITALIC)
+            };
+            if res != 1 {
+                debug!("adding slant to pattern failed");
+                return Err(());
+            }
+        }
+        if style.weight.is_bold() {
+            let res = do str::as_c_str("weight") |FC_WEIGHT| {
+                FcPatternAddInteger(pattern, FC_WEIGHT, FC_WEIGHT_BOLD)
+            };
+            if res != 1 {
+                debug!("adding weight to pattern failed");
+                return Err(());
+            }
         }
 
         if FcConfigSubstitute(config, pattern, FcMatchPattern) != 1 {
