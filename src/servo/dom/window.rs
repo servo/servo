@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use content::content_task::{ControlMsg, Timer, ExitMsg};
+use content::content_task::{ControlMsg, Timer, ExitMsg, global_content, Content};
 use dom::bindings::utils::WrapperCache;
+use dom::bindings::window;
+use dom::event::Event;
 use js::jsapi::JSVal;
 use util::task::spawn_listener;
 
-use core::comm::{Port, Chan};
+use core::comm::{Port, Chan, SharedChan};
 use std::timer;
 use std::uv_global_loop;
 
@@ -17,8 +19,12 @@ pub enum TimerControlMsg {
     TimerMessage_TriggerExit //XXXjdm this is just a quick hack to talk to the content task
 }
 
+//FIXME If we're going to store the content task, find a way to do so safely. Currently it's
+//      only used for querying layout from arbitrary content.
 pub struct Window {
     timer_chan: Chan<TimerControlMsg>,
+    dom_event_chan: SharedChan<Event>,
+    content_task: *mut Content,
     wrapper: WrapperCache
 }
 
@@ -77,10 +83,13 @@ pub impl Window {
     }
 }
 
-pub fn Window(content_chan: comm::SharedChan<ControlMsg>) -> Window {
+pub fn Window(content_chan: comm::SharedChan<ControlMsg>,
+              dom_event_chan: comm::SharedChan<Event>,
+              content_task: *mut Content) -> @mut Window {
         
-    Window {
+    let win = @mut Window {
         wrapper: WrapperCache::new(),
+        dom_event_chan: dom_event_chan,
         timer_chan: do spawn_listener |timer_port: Port<TimerControlMsg>| {
             loop {
                 match timer_port.recv() {
@@ -91,6 +100,10 @@ pub fn Window(content_chan: comm::SharedChan<ControlMsg>) -> Window {
                     TimerMessage_TriggerExit => content_chan.send(ExitMsg)
                 }
             }
-        }
-    }
+        },
+        content_task: content_task
+    };
+    let compartment = global_content().compartment.get();
+    window::create(compartment, win);
+    win
 }
