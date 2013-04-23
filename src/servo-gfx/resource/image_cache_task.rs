@@ -54,7 +54,7 @@ pub enum ImageResponseMsg {
 impl ImageResponseMsg {
     fn clone(&self) -> ImageResponseMsg {
         match *self {
-          ImageReady(ref img) => ImageReady(unsafe { clone_arc(img) }),
+          ImageReady(ref img) => ImageReady(clone_arc(img)),
           ImageNotReady => ImageNotReady,
           ImageFailed => ImageFailed
         }

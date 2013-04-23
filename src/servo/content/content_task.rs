@@ -156,9 +156,7 @@ pub fn Content(layout_task: LayoutTask,
 }
 
 pub fn task_from_context(cx: *JSContext) -> *mut Content {
-    unsafe {
-        JS_GetContextPrivate(cx) as *mut Content
-    }
+    JS_GetContextPrivate(cx) as *mut Content
 }
 
 #[allow(non_implicitly_copyable_typarams)]

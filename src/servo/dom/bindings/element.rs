@@ -202,10 +202,8 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode) -> jsobj {
 
     node.get_wrappercache().set_wrapper(obj.ptr);
 
-    unsafe {
-        let raw_ptr = ptr::addr_of(node) as *libc::c_void;
-        JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT as u32, RUST_PRIVATE_TO_JSVAL(raw_ptr));
-    }
+    let raw_ptr = ptr::addr_of(node) as *libc::c_void;
+    JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT as u32, RUST_PRIVATE_TO_JSVAL(raw_ptr));
 
     return obj;
 }
