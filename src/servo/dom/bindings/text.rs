@@ -79,10 +79,8 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode) -> jsobj {
     assert!(cache.get_wrapper().is_null());
     cache.set_wrapper(obj.ptr);
 
-    unsafe {
-        let raw_ptr = node.raw_object() as *libc::c_void;
-        JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT as u32, RUST_PRIVATE_TO_JSVAL(raw_ptr));
-    }
+    let raw_ptr = node.raw_object() as *libc::c_void;
+    JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT as u32, RUST_PRIVATE_TO_JSVAL(raw_ptr));
 
     return obj;
 }

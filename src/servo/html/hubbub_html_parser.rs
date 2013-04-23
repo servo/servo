@@ -243,7 +243,7 @@ pub fn parse_html(url: Url,
             let url = url::from_str("http://example.com/"); // FIXME
             let url_cell = Cell(url);
             do child_node.with_imm_text |text_node| {
-                let data = text_node.text.to_str();  // FIXME: Bad copy.
+                let data = text_node.parent.data.to_str();  // FIXME: Bad copy.
                 let provenance = InlineProvenance(result::unwrap(url_cell.take()), data);
                 css_chan2.send(CSSTaskNewFile(provenance));
             }

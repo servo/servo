@@ -67,11 +67,9 @@ extern fn close(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
 }
 
 extern fn gc(cx: *JSContext, _argc: c_uint, _vp: *JSVal) -> JSBool {
-    unsafe {
-        let runtime = JS_GetRuntime(cx);
-        JS_GC(runtime);
-        return 1;
-    }
+    let runtime = JS_GetRuntime(cx);
+    JS_GC(runtime);
+    return 1;
 }
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Window> {
@@ -130,9 +128,7 @@ pub fn init(compartment: @mut Compartment) {
         }
     ];
 
-    unsafe {
-        JS_DefineFunctions(compartment.cx.ptr, proto.ptr, &methods[0]);
-    }
+    JS_DefineFunctions(compartment.cx.ptr, proto.ptr, &methods[0]);
 }
 
 pub fn create(compartment: @mut Compartment, win: @mut Window) {

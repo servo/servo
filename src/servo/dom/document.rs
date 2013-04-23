@@ -29,7 +29,7 @@ pub fn Document(root: AbstractNode,
     do root.with_imm_node |node| {
         assert!(node.wrapper.get_wrapper().is_not_null());
         let rootable = node.wrapper.get_rootable();
-        unsafe { JS_AddObjectRoot(compartment.cx.ptr, rootable); }
+        JS_AddObjectRoot(compartment.cx.ptr, rootable);
     }
     document::create(compartment, doc);
     doc
@@ -42,7 +42,7 @@ impl Drop for Document {
         do self.root.with_imm_node |node| {
             assert!(node.wrapper.get_wrapper().is_not_null());
             let rootable = node.wrapper.get_rootable();
-            unsafe { JS_RemoveObjectRoot(compartment.cx.ptr, rootable); }
+            JS_RemoveObjectRoot(compartment.cx.ptr, rootable);
         }
     }
 }
