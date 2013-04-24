@@ -10,7 +10,7 @@ use js::{JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSVAL_NULL,
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSNative,
                 JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsapi::bindgen::{JS_ValueToString,
-                         JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
+                         JS_SetReservedSlot, JS_NewStringCopyN,
                          JS_DefineFunctions, JS_DefineProperty,
                          JS_GetClass, JS_GetPrototype, JS_LinkConstructorAndPrototype,
                          JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction,
@@ -20,7 +20,7 @@ use js::jsapi::bindgen::{JS_ValueToString,
                          JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject,
                          JS_EncodeString, JS_free};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
-use js::glue::bindgen::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
+use js::glue::bindgen::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL, GetReservedSlot};
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB,
                   RESOLVE_STUB};
 use js::glue::bindgen::*;
@@ -111,7 +111,7 @@ pub unsafe fn unwrap<T>(obj: *JSObject) -> T {
     } else {
         DOM_PROXY_OBJECT_SLOT
     } as u32;
-    let val = JS_GetReservedSlot(obj, slot);
+    let val = GetReservedSlot(obj, slot);
     cast::transmute(RUST_JSVAL_TO_PRIVATE(val))
 }
 
@@ -347,7 +347,7 @@ pub struct DOMJSClass {
 pub fn GetProtoOrIfaceArray(global: *JSObject) -> **JSObject {
     unsafe {
         /*assert ((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0;*/
-        cast::transmute(RUST_JSVAL_TO_PRIVATE(JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT)))
+        cast::transmute(RUST_JSVAL_TO_PRIVATE(GetReservedSlot(global, DOM_PROTOTYPE_SLOT)))
     }
 }
 
