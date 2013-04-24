@@ -16,7 +16,7 @@ use js::crust::{JS_PropertyStub, JS_StrictPropertyStub};
 use js::global::jsval_to_rust_str;
 use js::glue::bindgen::*;
 use js::glue::bindgen::RUST_JSVAL_TO_INT;
-use js::jsapi::bindgen::{JS_DefineFunctions};
+use js::jsapi::bindgen::{JS_DefineFunctions, JS_GC, JS_GetRuntime};
 use js::jsapi::bindgen::{JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::bindgen::{JS_ValueToString};
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp, JSFunctionSpec};
@@ -31,12 +31,15 @@ extern fn alert(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
     assert!(argc == 1);
     // Abstract this pattern and use it in debug, too?
     let jsstr = JS_ValueToString(cx, *ptr::offset(argv, 0));
+    if jsstr.is_null() {
+        return 0;
+    }
     
     (*unwrap(JS_THIS_OBJECT(cx, vp))).payload.alert(jsval_to_rust_str(cx, jsstr));
 
     JS_SET_RVAL(cx, vp, JSVAL_NULL);
+    return 1;
   }
-  1_i32
 }
 
 extern fn setTimeout(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
@@ -63,6 +66,12 @@ extern fn close(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
     }
 }
 
+extern fn gc(cx: *JSContext, _argc: c_uint, _vp: *JSVal) -> JSBool {
+    let runtime = JS_GetRuntime(cx);
+    JS_GC(runtime);
+    return 1;
+}
+
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Window> {
     let val = JS_GetReservedSlot(obj, 0);
     cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val))
@@ -76,13 +85,9 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     }
 }
 
-pub fn init(compartment: @mut Compartment, win: @mut Window) {
+pub fn init(compartment: @mut Compartment) {
     let proto = utils::define_empty_prototype(~"Window", None, compartment);
-    compartment.register_class(utils::instance_jsclass(~"WindowInstance", finalize));
-
-    let obj = result::unwrap(
-                 compartment.new_object_with_proto(~"WindowInstance",
-                                                   ~"Window", null()));
+    compartment.register_class(utils::instance_jsclass(~"WindowInstance", finalize, null()));
 
     /* Define methods on a window */
     let methods = [
@@ -103,7 +108,14 @@ pub fn init(compartment: @mut Compartment, win: @mut Window) {
         JSFunctionSpec {
             name: compartment.add_name(~"close"),
             call: JSNativeWrapper { op: close, info: null() },
-            nargs: 2,
+            nargs: 0,
+            flags: 0,
+            selfHostedName: null()
+        },
+        JSFunctionSpec {
+            name: compartment.add_name(~"_trigger_gc"),
+            call: JSNativeWrapper { op: gc, info: null() },
+            nargs: 0,
             flags: 0,
             selfHostedName: null()
         },
@@ -116,11 +128,17 @@ pub fn init(compartment: @mut Compartment, win: @mut Window) {
         }
     ];
 
+    JS_DefineFunctions(compartment.cx.ptr, proto.ptr, &methods[0]);
+}
+
+pub fn create(compartment: @mut Compartment, win: @mut Window) {
+    let obj = result::unwrap(
+                 compartment.new_object_with_proto(~"WindowInstance",
+                                                   ~"Window", null()));
+
     win.get_wrappercache().set_wrapper(obj.ptr);
 
     unsafe {
-        JS_DefineFunctions(compartment.cx.ptr, proto.ptr, &methods[0]);
-
         let raw_ptr: *libc::c_void = cast::reinterpret_cast(&squirrel_away(win));
         JS_SetReservedSlot(obj.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
@@ -137,11 +155,7 @@ impl CacheableWrapper for Window {
         unsafe { cast::transmute(&self.wrapper) }
     }
 
-    fn wrap_object_unique(~self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"should this be called?");
-    }
-
-    fn wrap_object_shared(@self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"should this be called?");
     }
 }

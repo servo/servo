@@ -18,7 +18,7 @@ use js::jsapi::bindgen::{JS_ValueToString,
                          JS_DefineProperties,
                          JS_WrapValue, JS_ForwardGetPropertyTo,
                          JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject,
-                         JS_EncodeString, JS_free};
+                         JS_EncodeString, JS_free, JS_GetStringCharsAndLength};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::glue::bindgen::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB,
@@ -91,6 +91,15 @@ pub enum DOMString {
     null_string
 }
 
+pub impl DOMString {
+    fn to_str(&self) -> ~str {
+        match *self {
+          str(ref s) => s.clone(),
+          null_string => ~""
+        }
+    }
+}
+
 pub struct rust_box<T> {
     rc: uint,
     td: *sys::TypeDesc,
@@ -116,12 +125,6 @@ pub unsafe fn unwrap<T>(obj: *JSObject) -> T {
 }
 
 pub unsafe fn squirrel_away<T>(x: @mut T) -> *rust_box<T> {
-    let y: *rust_box<T> = cast::reinterpret_cast(&x);
-    cast::forget(x);
-    y
-}
-
-pub unsafe fn squirrel_away_unique<T>(x: ~T) -> *rust_box<T> {
     let y: *rust_box<T> = cast::reinterpret_cast(&x);
     cast::forget(x);
     y
@@ -217,7 +220,7 @@ pub fn prototype_jsclass(name: ~str) -> @fn(compartment: @mut Compartment) -> JS
     return f;
 }
 
-pub fn instance_jsclass(name: ~str, finalize: *u8)
+pub fn instance_jsclass(name: ~str, finalize: *u8, trace: *u8)
                      -> @fn(compartment: @mut Compartment) -> JSClass {
     let f: @fn(@mut Compartment) -> JSClass = |compartment: @mut Compartment| {
         JSClass {
@@ -235,7 +238,7 @@ pub fn instance_jsclass(name: ~str, finalize: *u8)
             call: null(),
             hasInstance: has_instance,
             construct: null(),
-            trace: null(),
+            trace: trace,
             reserved: (null(), null(), null(), null(), null(),  // 05
                        null(), null(), null(), null(), null(),  // 10
                        null(), null(), null(), null(), null(),  // 15
@@ -281,10 +284,8 @@ static DOM_PROXY_OBJECT_SLOT: uint = js::JSSLOT_PROXY_PRIVATE as uint;
 // changes.
 static DOM_PROTO_INSTANCE_CLASS_SLOT: u32 = 0;
 
-// All DOM globals must have a slot at DOM_PROTOTYPE_SLOT. We have to
-// start at 1 past JSCLASS_GLOBAL_SLOT_COUNT because XPConnect uses
-// that one.
-pub static DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT + 1;
+// All DOM globals must have a slot at DOM_PROTOTYPE_SLOT.
+pub static DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
 
 // NOTE: This is baked into the Ion JIT as 0 in codegen for LGetDOMProperty and
 // LSetDOMProperty. Those constants need to be changed accordingly if this value
@@ -356,6 +357,7 @@ pub mod prototypes {
         pub enum Prototype {
             ClientRect,
             ClientRectList,
+            DOMParser,
             HTMLCollection,
             _ID_Count
         }
@@ -540,7 +542,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: uint, _vp: *JSVal) -> 
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = @mut ([0 as *JSObject, ..3]); //XXXjdm prototypes::_ID_COUNT
+    let protoArray = @mut ([0 as *JSObject, ..4]); //XXXjdm prototypes::_ID_COUNT
     unsafe {
         //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);
@@ -553,8 +555,7 @@ pub fn initialize_global(global: *JSObject) {
 
 pub trait CacheableWrapper {
     fn get_wrappercache(&mut self) -> &mut WrapperCache;
-    fn wrap_object_unique(~self, cx: *JSContext, scope: *JSObject) -> *JSObject;
-    fn wrap_object_shared(@self, cx: *JSContext, scope: *JSObject) -> *JSObject;
+    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject;
 }
 
 pub struct WrapperCache {
@@ -570,6 +571,10 @@ pub impl WrapperCache {
         self.wrapper = wrapper;
     }
 
+    fn get_rootable(&self) -> **JSObject {
+        return ptr::addr_of(&self.wrapper);
+    }
+
     fn new() -> WrapperCache {
         WrapperCache {
             wrapper: ptr::null()
@@ -577,87 +582,42 @@ pub impl WrapperCache {
     }
 }
 
-pub fn WrapNewBindingObject<T: CacheableWrapper>(cx: *JSContext, scope: *JSObject,
-                                                 mut value: ~T, vp: *mut JSVal) -> bool {
+pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
+                            mut value: @mut CacheableWrapper,
+                            vp: *mut JSVal) -> bool {
   unsafe {
-    let obj = value.get_wrappercache().get_wrapper();
+    let mut cache = value.get_wrappercache();
+    let mut obj = cache.get_wrapper();
     if obj.is_not_null() /*&& js::GetObjectCompartment(obj) == js::GetObjectCompartment(scope)*/ {
         *vp = RUST_OBJECT_TO_JSVAL(obj);
         return true;
     }
 
-    let obj = if obj.is_not_null() {
-        obj
-    } else {
-        value.wrap_object_unique(cx, scope)
-    };
-
+    let obj = value.wrap_object_shared(cx, scope);
     if obj.is_null() {
         return false;
     }
 
     //  MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
+      cache.set_wrapper(obj);
     *vp = RUST_OBJECT_TO_JSVAL(obj);
     return JS_WrapValue(cx, cast::transmute(vp)) != 0;
   }
 }
 
-pub struct OpaqueBindingReference(Either<~CacheableWrapper, @CacheableWrapper>);
-
-pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, p: &mut OpaqueBindingReference) -> *JSObject {
-    match p {
-      &OpaqueBindingReference(Left(ref mut p)) => {
-        let cache = p.get_wrappercache();
-        let obj = cache.get_wrapper();
-        if obj.is_not_null() {
-            return obj;
-        }
-        let mut tmp: ~CacheableWrapper = unstable::intrinsics::init();
-        tmp <-> *p;
-        tmp.wrap_object_unique(cx, scope)
-      }
-      &OpaqueBindingReference(Right(ref mut p)) => {
-        let cache = p.get_wrappercache();
-        let obj = cache.get_wrapper();
-        if obj.is_not_null() {
-            return obj;
-        }
-        p.wrap_object_shared(cx, scope)
-      }
+pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, mut p: @mut CacheableWrapper) -> *JSObject {
+    let cache = p.get_wrappercache();
+    let wrapper = cache.get_wrapper();
+    if wrapper.is_not_null() {
+        return wrapper;
     }
+    let wrapper = p.wrap_object_shared(cx, scope);
+    cache.set_wrapper(wrapper);
+    wrapper
 }
-
-pub struct BindingReference<T>(Either<~T, @mut T>);
 
 pub trait BindingObject {
-    fn GetParentObject(&self, cx: *JSContext) -> OpaqueBindingReference;
-}
-
-pub impl<T: BindingObject + CacheableWrapper> BindingReference<T> {
-    fn GetParentObject(&self, cx: *JSContext) -> OpaqueBindingReference {
-        match **self {
-          Left(ref obj) => obj.GetParentObject(cx),
-          Right(ref obj) => obj.GetParentObject(cx)
-        }
-    }
-
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        match **self {
-          Left(ref mut obj) => obj.get_wrappercache(),
-          Right(ref mut obj) => obj.get_wrappercache()
-        }
-    }
-}
-
-pub fn squirrel_away_ref<R>(obj: &mut BindingReference<R>) -> *rust_box<R> {
-    let mut tmp: BindingReference<R> = unstable::intrinsics::init();
-    tmp <-> *obj;
-    unsafe {
-        match tmp {
-            BindingReference(Left(obj)) => squirrel_away_unique(obj),
-            BindingReference(Right(obj)) => squirrel_away(obj)
-        }
-    }
+    fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper;
 }
 
 pub fn GetPropertyOnPrototype(cx: *JSContext, proxy: *JSObject, id: jsid, found: *mut bool,
@@ -781,6 +741,7 @@ pub fn InitIds(cx: *JSContext, specs: &[JSPropertySpec], ids: &mut [jsid]) -> bo
 
 pub trait DerivedWrapper {
     fn wrap(&mut self, cx: *JSContext, scope: *JSObject, vp: *mut JSVal) -> i32;
+    fn wrap_shared(@mut self, cx: *JSContext, scope: *JSObject, vp: *mut JSVal) -> i32;
 }
 
 impl DerivedWrapper for AbstractNode {
@@ -794,6 +755,10 @@ impl DerivedWrapper for AbstractNode {
         unsafe { *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, self).ptr) };
         return 1;
     }
+
+    fn wrap_shared(@mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
+        fail!(~"nyi")
+    }
 }
 
 pub enum Error {
@@ -801,3 +766,42 @@ pub enum Error {
 }
 
 pub type ErrorResult = Result<(), Error>;
+
+pub struct EnumEntry {
+    value: &'static str,
+    length: uint
+}
+
+pub fn FindEnumStringIndex(cx: *JSContext,
+                           v: JSVal,
+                           values: &[EnumEntry]) -> Result<uint, ()> {
+    unsafe {
+        let jsstr = JS_ValueToString(cx, v);
+        if jsstr.is_null() {
+            return Err(());
+        }
+        let length = 0;
+        let chars = JS_GetStringCharsAndLength(cx, jsstr, ptr::to_unsafe_ptr(&length));
+        if chars.is_null() {
+            return Err(());
+        }
+        for values.eachi |i, value| {
+            if value.length != length as uint {
+                loop;
+            }
+            let mut equal = true;
+            for uint::iterate(0, length as uint) |j| {
+                if value.value[j] as u16 != *chars.offset(j) {
+                    equal = false;
+                    break;
+                }
+            };
+
+            if equal {
+                return Ok(i);
+            }
+        }
+
+        return Err(()); //XXX pass in behaviour for value not found
+    }
+}

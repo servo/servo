@@ -7,7 +7,11 @@
 //
 
 use dom::node::{ElementNodeTypeId, Node};
-use dom::bindings::clientrectlist::ClientRectListImpl;
+use dom::clientrect::ClientRect;
+use dom::clientrectlist::ClientRectList;
+use dom::bindings::utils::DOMString;
+
+use layout::layout_task;
 
 use core::str::eq_slice;
 use core::cell::Cell;
@@ -132,20 +136,104 @@ pub impl<'self> Element {
         return None;
     }
 
-    fn set_attr(&mut self, name: &str, value: ~str) {
+    fn set_attr(&mut self, name: &DOMString, value: &DOMString) {
+        let name = name.to_str();
+        let value = value.to_str();
         // FIXME: We need a better each_mut in Rust; this is ugly.
         let value_cell = Cell(value);
+        let mut found = false;
         for uint::range(0, self.attrs.len()) |i| {
             if eq_slice(self.attrs[i].name, name) {
-                self.attrs[i].value = value_cell.take();
-                return;
+                self.attrs[i].value = value_cell.take().clone();
+                found = true;
+                break;
             }
         }
-        self.attrs.push(Attr::new(name.to_str(), value_cell.take()));
+        if !found {
+            self.attrs.push(Attr::new(name.to_str(), value_cell.take().clone()));
+        }
+
+        match self.parent.owner_doc {
+            Some(owner) => owner.content_changed(),
+            None => {}
+        }
     }
 
-    fn getClientRects(&self) -> Option<~ClientRectListImpl> {
-        Some(~ClientRectListImpl::new())
+    fn getClientRects(&self) -> Option<@mut ClientRectList> {
+        let rects = match self.parent.owner_doc {
+            Some(doc) => {
+                match doc.window {
+                    Some(win) => {
+                        let node = self.parent.abstract.get();
+                        assert!(node.is_element());
+                        let content = unsafe { &mut *win.content_task };
+                        match content.query_layout(layout_task::ContentBoxes(node)) {
+                            Ok(rects) => match rects {
+                                layout_task::ContentRects(rects) =>
+                                    do rects.map |r| {
+                                        ClientRect::new(
+                                             r.origin.y.to_f32(),
+                                             (r.origin.y + r.size.height).to_f32(),
+                                             r.origin.x.to_f32(),
+                                             (r.origin.x + r.size.width).to_f32())
+                                    },
+                                _ => fail!(~"unexpected layout reply")
+                            },
+                            Err(()) => {
+                                debug!("layout query error");
+                                ~[]
+                            }
+                        }
+                    }
+                    None => {
+                        debug!("no window");
+                        ~[]
+                    }
+                }
+            }
+            None => {
+                debug!("no document");
+                ~[]
+            }
+        };
+        Some(ClientRectList::new(rects))
+    }
+
+    fn getBoundingClientRect(&self) -> Option<@mut ClientRect> {
+        match self.parent.owner_doc {
+            Some(doc) => {
+                match doc.window {
+                    Some(win) => {
+                        let node = self.parent.abstract.get();
+                        assert!(node.is_element());
+                        let content = unsafe { &mut *win.content_task };
+                        match content.query_layout(layout_task::ContentBox(node)) {
+                            Ok(rect) => match rect {
+                                layout_task::ContentRect(rect) =>
+                                    Some(ClientRect::new(
+                                             rect.origin.y.to_f32(),
+                                             (rect.origin.y + rect.size.height).to_f32(),
+                                             rect.origin.x.to_f32(),
+                                             (rect.origin.x + rect.size.width).to_f32())),
+                                _ => fail!(~"unexpected layout result")
+                            },
+                            Err(()) => {
+                                debug!("error querying layout");
+                                None
+                            }
+                        }
+                    }
+                    None => {
+                        debug!("no window");
+                        None
+                    }
+                }
+            }
+            None => {
+                debug!("no document");
+                None
+            }
+        }
     }
 }
 

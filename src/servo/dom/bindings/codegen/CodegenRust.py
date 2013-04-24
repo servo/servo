@@ -1098,22 +1098,19 @@ for (uint32_t i = 0; i < length; ++i) {
                             "yet")
         enum = type.inner.identifier.name
         if invalidEnumValueFatal:
-            handleInvalidEnumValueCode = "  MOZ_ASSERT(index >= 0);\n"
+            handleInvalidEnumValueCode = "    return 0;\n"
         else:
-            handleInvalidEnumValueCode = (
-                "  if (index < 0) {\n"
-                "    return true;\n"
-                "  }\n")
+            handleInvalidEnumValueCode = "    return 1;\n"
             
         template = (
             "{\n"
-            "  bool ok;\n"
-            "  int index = FindEnumStringIndex<%(invalidEnumValueFatal)s>(cx, ${val}, %(values)s, \"%(enumtype)s\", &ok);\n"
-            "  if (!ok) {\n"
-            "    return false;\n"
-            "  }\n"
+            #"  int index = FindEnumStringIndex<%(invalidEnumValueFatal)s>(cx, ${val}, %(values)s, \"%(enumtype)s\", &ok);\n"
+            "  let result = FindEnumStringIndex(cx, ${val}, %(values)s);\n"
+            "  if result.is_err() {\n"
             "%(handleInvalidEnumValueCode)s"
-            "  ${declName} = static_cast<%(enumtype)s>(index);\n"
+            "  }\n"
+            "  let index = result.get();\n"
+            "  ${declName} = cast::transmute(index); //XXXjdm need some range checks up in here\n"
             "}" % { "enumtype" : enum,
                       "values" : enum + "Values::strings",
        "invalidEnumValueFatal" : toStringBool(invalidEnumValueFatal),
@@ -1529,7 +1526,7 @@ for (uint32_t i = 0; i < length; ++i) {
                 if not isCreator:
                     raise MethodNotCreatorError(descriptor.interface.identifier.name)
                 wrapMethod = "WrapNewBindingNonWrapperCachedObject"
-            wrap = "%s(cx, ${obj}, %s, ${jsvalPtr})" % (wrapMethod, result)
+            wrap = "%s(cx, ${obj}, %s as @mut CacheableWrapper, ${jsvalPtr})" % (wrapMethod, result)
             # We don't support prefable stuff in workers.
             assert(not descriptor.prefable or not descriptor.workers)
             if not descriptor.prefable:
@@ -1547,12 +1544,11 @@ for (uint32_t i = 0; i < length; ++i) {
                 failed = wrapAndSetPtr("HandleNewBindingWrappingFailure(cx, ${obj}, %s, ${jsvalPtr})" % result)
             wrappingCode += wrapAndSetPtr(wrap, failed)
         else:
-            if descriptor.notflattened:
-                getIID = "&NS_GET_IID(%s), " % descriptor.nativeType
-            else:
-                getIID = ""
             #wrap = "WrapObject(cx, ${obj}, %s, %s${jsvalPtr})" % (result, getIID)
-            wrap = "%s.wrap(cx, ${obj}, %s${jsvalPtr})" % (result, getIID)
+            if descriptor.pointerType == '':
+                wrap = "%s.wrap(cx, ${obj}, ${jsvalPtr})" % result
+            else:
+                wrap = "if WrapNewBindingObject(cx, ${obj}, %s as @mut CacheableWrapper, ${jsvalPtr}) { 1 } else { 0 };" % result
             wrappingCode += wrapAndSetPtr(wrap)
         return (wrappingCode, False)
 
@@ -1701,10 +1697,10 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
         descriptor = descriptorProvider.getDescriptor(
             returnType.unroll().inner.identifier.name)
         result = CGGeneric(descriptor.nativeType)
-        if resultAlreadyAddRefed:
+        if returnType.nullable():
             result = CGWrapper(result, pre=("Option<" + descriptor.pointerType), post=">")
         else:
-            result = CGWrapper(result, post="*")
+            result = CGWrapper(result, pre=descriptor.pointerType)
         return result, False
     if returnType.isCallback():
         # XXXbz we're going to assume that callback types are always
@@ -2154,20 +2150,23 @@ class CGIfWrapper(CGWrapper):
                            post="\n}")
 
 class CGNamespace(CGWrapper):
-    def __init__(self, namespace, child, declareOnly=False):
-        pre = "mod %s {\n" % namespace
+    def __init__(self, namespace, child, declareOnly=False, public=False):
+        pre = "%smod %s {\n" % ("pub " if public else "", namespace)
         post = "} // mod %s\n" % namespace
         CGWrapper.__init__(self, child, pre=pre, post=post,
                            declareOnly=declareOnly)
     @staticmethod
-    def build(namespaces, child, declareOnly=False):
+    def build(namespaces, child, declareOnly=False, public=False):
         """
         Static helper method to build multiple wrapped namespaces.
         """
         if not namespaces:
             return CGWrapper(child, declareOnly=declareOnly)
-        inner = CGNamespace.build(namespaces[1:], child, declareOnly=declareOnly)
-        return CGNamespace(namespaces[0], inner, declareOnly=declareOnly)
+        inner = CGNamespace.build(namespaces[1:], child, declareOnly=declareOnly, public=public)
+        return CGNamespace(namespaces[0], inner, declareOnly=declareOnly, public=public)
+
+    def declare(self):
+        return ""
 
 def DOMClass(descriptor):
         protoList = ['prototypes::id::' + proto for proto in descriptor.prototypeChain]
@@ -2440,7 +2439,7 @@ def CreateBindingJSObject(descriptor, parent):
   let handler = (*content).dom_static.proxy_handlers.get(&(prototypes::id::%s as uint));
 """ % descriptor.name
         create = handler + """  let obj = NewProxyObject(aCx, *handler,
-                           ptr::addr_of(&RUST_PRIVATE_TO_JSVAL(squirrel_away_ref(aObject) as *libc::c_void)),
+                           ptr::addr_of(&RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void)),
                            proto, %s,
                            ptr::null(), ptr::null());
   if obj.is_null() {
@@ -2455,7 +2454,7 @@ def CreateBindingJSObject(descriptor, parent):
   }
 
   JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
-                     RUST_PRIVATE_TO_JSVAL(squirrel_away_ref(aObject) as *libc::c_void));
+                     RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void));
 """
     return create % parent
 
@@ -2463,7 +2462,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('&mut BindingReference<' + descriptor.nativeType + '>', 'aObject'),
+                Argument('@mut ' + descriptor.nativeType, 'aObject'),
                 Argument('*mut bool', 'aTriedToWrap')]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap_', '*JSObject', args)
 
@@ -2474,7 +2473,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
 
         return """  *aTriedToWrap = true;
   let mut parent = aObject.GetParentObject(aCx);
-  let parent = WrapNativeParent(aCx, aScope, &mut parent);
+  let parent = WrapNativeParent(aCx, aScope, parent);
   if parent.is_null() {
     return ptr::null();
   }
@@ -2502,12 +2501,11 @@ class CGWrapMethod(CGAbstractMethod):
         # XXX can we wrap if we don't have an interface prototype object?
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('~' + descriptor.nativeType, 'aObject'), Argument('*mut bool', 'aTriedToWrap')]
+                Argument(descriptor.pointerType + descriptor.nativeType, 'aObject'), Argument('*mut bool', 'aTriedToWrap')]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', '*JSObject', args, inline=True, pub=True)
 
     def definition_body(self):
-        return "  let mut binding = BindingReference(Left(aObject)); \
-  return Wrap_(aCx, aScope, &mut binding, aTriedToWrap);"
+        return "return Wrap_(aCx, aScope, aObject, aTriedToWrap);"
 
 class CGWrapNonWrapperCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
@@ -3167,7 +3165,7 @@ class CGGenericGetter(CGAbstractBindingMethod):
     A class for generating the C++ code for an IDL attribute getter.
     """
     def __init__(self, descriptor, lenientThis=False):
-        args = [Argument('*JSContext', 'cx'), Argument('uint', 'argc'),
+        args = [Argument('*JSContext', 'cx'), Argument('uint', '_argc'),
                 Argument('*JSVal', 'vp')]
         if lenientThis:
             name = "genericLenientGetter"
@@ -3194,8 +3192,8 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     def __init__(self, descriptor, attr):
         self.attr = attr
         name = 'get_' + attr.identifier.name
-        args = [ Argument('*JSContext', 'cx'),
-                 Argument('JSHandleObject', 'obj'),
+        args = [ Argument('*JSContext', '_cx'),
+                 Argument('JSHandleObject', '_obj'),
                  Argument('*%s' % descriptor.nativeType, 'self'),
                  Argument('*mut JSVal', 'vp') ]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
@@ -3289,6 +3287,46 @@ class CGMemberJITInfo(CGThing):
             return result
         raise TypeError("Illegal member type to CGPropertyJITInfo")
 
+def getEnumValueName(value):
+    # Some enum values can be empty strings.  Others might have weird
+    # characters in them.  Deal with the former by returning "_empty",
+    # deal with possible name collisions from that by throwing if the
+    # enum value is actually "_empty", and throw on any value
+    # containing non-ASCII chars for now. Replace all chars other than
+    # [0-9A-Za-z_] with '_'.
+    if re.match("[^\x20-\x7E]", value):
+        raise SyntaxError('Enum value "' + value + '" contains non-ASCII characters')
+    if re.match("^[0-9]", value):
+        raise SyntaxError('Enum value "' + value + '" starts with a digit')
+    value = re.sub(r'[^0-9A-Za-z_]', '_', value)
+    if re.match("^_[A-Z]|__", value):
+        raise SyntaxError('Enum value "' + value + '" is reserved by the C++ spec')
+    if value == "_empty":
+        raise SyntaxError('"_empty" is not an IDL enum value we support yet')
+    if value == "":
+        return "_empty"
+    return MakeNativeName(value)
+
+class CGEnum(CGThing):
+    def __init__(self, enum):
+        CGThing.__init__(self)
+        self.enum = enum
+
+    def declare(self):
+        return ""
+
+    def define(self):
+        return """
+  pub enum valuelist {
+    %s
+  }
+
+  pub static strings: &'static [EnumEntry] = &[
+    %s,
+  ];
+""" % (",\n    ".join(map(getEnumValueName, self.enum.values())),
+       ",\n    ".join(['EnumEntry {value: &"' + val + '", length: ' + str(len(val)) + '}' for val in self.enum.values()]))
+
 class CGXrayHelper(CGAbstractExternMethod):
     def __init__(self, descriptor, name, args, properties):
         CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args)
@@ -3334,7 +3372,7 @@ class CGXrayHelper(CGAbstractExternMethod):
 class CGResolveProperty(CGXrayHelper):
     def __init__(self, descriptor, properties):
         args = [Argument('*JSContext', 'cx'), Argument('*JSObject', 'wrapper'),
-                Argument('jsid', 'id'), Argument('bool', 'set'),
+                Argument('jsid', 'id'), Argument('bool', '_set'),
                 Argument('*mut JSPropertyDescriptor', 'desc')]
         CGXrayHelper.__init__(self, descriptor, "ResolveProperty", args,
                               properties)
@@ -3431,7 +3469,7 @@ class CGProxyUnwrap(CGAbstractMethod):
 class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*JSContext', 'cx'), Argument('*JSObject', 'proxy'),
-                Argument('*JSObject', 'receiver'), Argument('jsid', 'id'),
+                Argument('*JSObject', '_receiver'), Argument('jsid', 'id'),
                 Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, "get", "JSBool", args)
         self.descriptor = descriptor
@@ -3504,7 +3542,7 @@ return 1;""" % (getIndexedOrExpando, getNamed)
 
 class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
     def __init__(self, descriptor):
-        args = [Argument('*JSContext', 'cx'), Argument('*JSObject', 'proxy')]
+        args = [Argument('*JSContext', 'cx'), Argument('*JSObject', '_proxy')]
         CGAbstractExternMethod.__init__(self, descriptor, "obj_toString", "*JSString", args)
         self.descriptor = descriptor
     def getBody(self):
@@ -3574,42 +3612,38 @@ let _: %s = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
     #return clearWrapper + release
     return release
 
-class CGClassConstructHook(CGAbstractStaticMethod):
+class CGClassConstructHook(CGAbstractExternMethod):
     """
     JS-visible constructor for our objects
     """
     def __init__(self, descriptor):
-        args = [Argument('*JSContext', 'cx'), Argument('unsigned', 'argc'), Argument('*jsval', 'vp')]
-        CGAbstractStaticMethod.__init__(self, descriptor, CONSTRUCT_HOOK_NAME,
+        args = [Argument('*JSContext', 'cx'), Argument('u32', '_argc'), Argument('*mut JSVal', 'vp')]
+        CGAbstractExternMethod.__init__(self, descriptor, CONSTRUCT_HOOK_NAME,
                                         'JSBool', args)
         self._ctor = self.descriptor.interface.ctor()
 
     def define(self):
         if not self._ctor:
             return ""
-        return CGAbstractStaticMethod.define(self)
+        return CGAbstractExternMethod.define(self)
 
     def definition_body(self):
         return self.generate_code()
 
     def generate_code(self):
         preamble = """
-  JSObject* obj = JS_GetGlobalForObject(cx, JSVAL_TO_OBJECT(JS_CALLEE(cx, vp)));
+  //JSObject* obj = JS_GetGlobalForObject(cx, JSVAL_TO_OBJECT(JS_CALLEE(cx, vp)));
 """
         if self.descriptor.workers:
             preArgs = ["cx", "obj"]
         else:
             preamble += """
-  nsISupports* global;
-  xpc_qsSelfRef globalRef;
-  {
-    nsresult rv;
-    JS::Value val = OBJECT_TO_JSVAL(obj);
-    rv = xpc_qsUnwrapArg<nsISupports>(cx, val, &global, &globalRef.ptr, &val);
-    if (NS_FAILED(rv)) {
-      return Throw<true>(cx, NS_ERROR_XPC_BAD_CONVERT_JS);
-    }
-  }
+  //XXXjdm Gecko obtains a GlobalObject from the global (maybe from the private value,
+  //       or through unwrapping a slot or something). We'll punt and get the Window
+  //       from the context for now. 
+  let content = task_from_context(cx);
+  let global = (*content).window.get();
+  let obj = global.get_wrappercache().get_wrapper();
 """
             preArgs = ["global"]
 
@@ -3675,7 +3709,7 @@ class CGClassFinalizeHook(CGAbstractClassHook):
     A hook for finalize, used to release our native object.
     """
     def __init__(self, descriptor):
-        args = [Argument('*JSFreeOp', 'fop'), Argument('*JSObject', 'obj')]
+        args = [Argument('*JSFreeOp', '_fop'), Argument('*JSObject', 'obj')]
         CGAbstractClassHook.__init__(self, descriptor, FINALIZE_HOOK_NAME,
                                      'void', args)
 
@@ -3835,6 +3869,17 @@ class CGBindingRoot(CGThing):
 
         cgthings = []
 
+        # Do codegen for all the enums
+        def makeEnum(e):
+            return CGNamespace.build([e.identifier.name + "Values"],
+                                     CGList([CGGeneric("  use dom::bindings::utils::EnumEntry;"),
+                                             CGEnum(e)]), public=True)
+        def makeEnumTypedef(e):
+            return CGGeneric(declare=("pub type %s = self::%sValues::valuelist;\n" %
+                                      (e.identifier.name, e.identifier.name)))
+        cgthings = [ fun(e) for e in config.getEnums(webIDLFile)
+                     for fun in [makeEnum, makeEnumTypedef] ]
+
         # Do codegen for all the descriptors
         cgthings.extend([CGDescriptor(x) for x in descriptors])
 
@@ -3846,6 +3891,8 @@ class CGBindingRoot(CGThing):
         #                         CGWrapper(curr, pre="\n"))
 
         # Add imports
+        #XXXjdm This should only import the namespace for the current binding,
+        #       not every binding ever.
         curr = CGImports(descriptors,
                          dictionaries,
                          ['js::*',
@@ -3854,14 +3901,17 @@ class CGBindingRoot(CGThing):
                           'js::jsfriendapi::bindgen::*',
                           'js::glue::bindgen::*',
                           'js::glue::*',
-                          'dom::node::AbstractNode',
+                          'dom::node::AbstractNode', #XXXjdm
+                          'dom::document::Document', #XXXjdm
                           'dom::bindings::utils::*',
                           'dom::bindings::conversions::*',
-                          'dom::bindings::clientrect::*', #XXXjdm
-                          'dom::bindings::clientrectlist::*', #XXXjdm
-                          'dom::bindings::htmlcollection::*', #XXXjdm
+                          'dom::clientrect::*', #XXXjdm
+                          'dom::clientrectlist::*', #XXXjdm
+                          'dom::htmlcollection::*', #XXXjdm
                           'dom::bindings::proxyhandler::*',
-                          'content::content_task::task_from_context'
+                          'dom::domparser::*', #XXXjdm
+                          'content::content_task::task_from_context',
+                          'dom::bindings::utils::EnumEntry',
                          ], 
                          [],
                          curr)

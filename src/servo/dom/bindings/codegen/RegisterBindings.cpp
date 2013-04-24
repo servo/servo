@@ -1,5 +1,6 @@
 #include "ClientRectBinding.h"
 #include "ClientRectListBinding.h"
+#include "DOMParserBinding.h"
 #include "HTMLCollectionBinding.h"
 #include "nsScriptNameSpaceManager.h"
 
@@ -14,6 +15,7 @@ Register(nsScriptNameSpaceManager* aNameSpaceManager)
 
 REGISTER_PROTO(ClientRect, nullptr);
 REGISTER_PROTO(ClientRectList, nullptr);
+REGISTER_PROTO(DOMParser, nullptr);
 REGISTER_PROTO(HTMLCollection, nullptr);
 
 #undef REGISTER_PROTO

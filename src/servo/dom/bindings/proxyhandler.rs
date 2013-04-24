@@ -62,7 +62,7 @@ pub fn _obj_toString(cx: *JSContext, className: *libc::c_char) -> *JSString {
   unsafe {
     let name = str::raw::from_buf(className as *u8);
     let nchars = "[object ]".len() + name.len();
-    let chars: *mut jschar = cast::transmute(JS_malloc(cx, nchars as u64 * (size_of::<jschar>() as u64)));
+    let chars: *mut jschar = cast::transmute(JS_malloc(cx, (nchars + 1) as u64 * (size_of::<jschar>() as u64)));
     if chars.is_null() {
         return ptr::null();
     }
