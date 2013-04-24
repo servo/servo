@@ -17,7 +17,7 @@ use js::global::jsval_to_rust_str;
 use js::glue::bindgen::*;
 use js::glue::bindgen::RUST_JSVAL_TO_INT;
 use js::jsapi::bindgen::{JS_DefineFunctions};
-use js::jsapi::bindgen::{JS_GetReservedSlot, JS_SetReservedSlot};
+use js::jsapi::bindgen::{JS_SetReservedSlot};
 use js::jsapi::bindgen::{JS_ValueToString};
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp, JSFunctionSpec};
 use js::jsapi::{JSNativeWrapper};
@@ -64,14 +64,14 @@ extern fn close(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
 }
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Window> {
-    let val = JS_GetReservedSlot(obj, 0);
+    let val = GetReservedSlot(obj, 0);
     cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val))
 }
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("finalize!");
     unsafe {
-        let val = JS_GetReservedSlot(obj, 0);
+        let val = GetReservedSlot(obj, 0);
         let _: @Window = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
     }
 }

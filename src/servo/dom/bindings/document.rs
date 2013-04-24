@@ -8,7 +8,7 @@ use js::{JS_ARGV, JSPROP_ENUMERATE, JSPROP_SHARED,
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp,
                 JSPropertySpec, JSPropertyOpWrapper, JSStrictPropertyOpWrapper,
                 JSNativeWrapper, JSFunctionSpec};
-use js::jsapi::bindgen::{JS_GetReservedSlot, JS_SetReservedSlot,
+use js::jsapi::bindgen::{JS_SetReservedSlot,
                          JS_DefineFunctions, JS_DefineProperties};
 use js::glue::bindgen::*;
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB};
@@ -66,14 +66,14 @@ extern fn getElementsByTagName(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSB
 
 unsafe fn unwrap(obj: *JSObject) -> *mut rust_box<Document> {
     //TODO: some kind of check if this is a Document object
-    let val = JS_GetReservedSlot(obj, 0);
+    let val = GetReservedSlot(obj, 0);
     RUST_JSVAL_TO_PRIVATE(val) as *mut rust_box<Document>
 }
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("document finalize!");
     unsafe {
-        let val = JS_GetReservedSlot(obj, 0);
+        let val = GetReservedSlot(obj, 0);
         let _doc: @Document = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
     }
 }

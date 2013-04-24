@@ -3568,7 +3568,7 @@ def finalizeHook(descriptor, hookName, context):
         pass
     else:
         assert descriptor.nativeIsISupports
-        release = """let val = JS_GetReservedSlot(obj, 0);
+        release = """let val = GetReservedSlot(obj, 0);
 let _: %s = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
 """ % (descriptor.pointerType + descriptor.nativeType)
     #return clearWrapper + release

@@ -24,7 +24,7 @@ use js::{JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("element finalize: %?!", obj as uint);
     unsafe {
-        let val = JS_GetReservedSlot(obj, DOM_OBJECT_SLOT as u32);
+        let val = GetReservedSlot(obj, DOM_OBJECT_SLOT as u32);
         let node: AbstractNode = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
         let _elem: ~Element = cast::transmute(node.raw_object());
     }
