@@ -50,17 +50,18 @@ pub fn render_layers(layer_ref: *RenderLayer,
                 let width = right - x;
                 let height = bottom - y;
 
-                // Round the width up the nearest 32 pixels for DMA on the Mac.
-                let mut stride = width;
-                if stride % 32 != 0 {
-                    stride = (stride & !(32 - 1)) + 32;
-                }
-                assert!(stride % 32 == 0);
-                assert!(stride >= width);
-
-                debug!("tile stride %u", stride);
-
                 let tile_rect = Rect(Point2D(x, y), Size2D(width, height));
+
+                // Round the width up the nearest 32 pixels for DMA on the Mac.
+                let aligned_width = if width % 32 == 0 {
+                    width
+                } else {
+                    (width & !(32 - 1)) + 32
+                };
+                assert!(aligned_width % 32 == 0);
+                assert!(aligned_width >= width);
+
+                debug!("tile aligned_width %u", aligned_width);
 
                 let buffer;
                 // FIXME: Try harder to search for a matching tile.
@@ -72,7 +73,9 @@ pub fn render_layers(layer_ref: *RenderLayer,
                     // Create a new buffer.
                     debug!("creating tile, (%u, %u)", x, y);
 
-                    let size = Size2D(stride as i32, height as i32);
+                    let size = Size2D(aligned_width as i32, height as i32);
+                    // FIXME: This may not be always true.
+                    let stride = size.width * 4;
 
                     let mut data: ~[u8] = ~[0];
                     let offset;
@@ -82,7 +85,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
 
                         let align = 256;
 
-                        let len = ((size.width * size.height * 4) as uint) + align;
+                        let len = ((stride * size.height) as uint) + align;
                         vec::reserve(&mut data, len);
                         vec::raw::set_len(&mut data, len);
 
@@ -102,10 +105,10 @@ pub fn render_layers(layer_ref: *RenderLayer,
                                                                data,
                                                                offset,
                                                                size,
-                                                               size.width * 4,
+                                                               stride,
                                                                B8G8R8A8),
                         rect: tile_rect,
-                        stride: stride
+                        stride: stride as uint
                     };
                 //}
 
