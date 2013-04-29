@@ -15,8 +15,11 @@ extern mod alert;
 extern mod azure;
 extern mod geom;
 extern mod gfx (name = "gfx");
+#[cfg(not(target_os="android"))]
 extern mod glfw;
 //extern mod http_client;
+#[cfg(target_os="android")]
+extern mod glut;
 extern mod js;
 extern mod layers;
 extern mod newcss (name = "css");
