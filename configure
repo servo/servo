@@ -182,6 +182,82 @@ opt() {
      fi
 }
 
+split_triple() {
+    local TRIPLE=$1
+    local ARCH=$2
+    local VENDOR=$3
+    local OS=$4
+
+    eval $ARCH=$(echo "$TRIPLE" | cut -d'-' -f1)
+    eval $VENDOR=$(echo "$TRIPLE" | cut -d'-' -f2)
+    eval $OS=$(echo "$TRIPLE" | cut -d'-' -f3)
+
+        if [ $(echo "$TRIPLE" | cut -d'-' -f3) = "androideabi" ]
+        then
+            eval $OS="android"
+        fi
+}
+
+os_type() {
+    # The goal here is to come up with the same triple as LLVM would,
+    # at least for the subset of platforms we're willing to target.
+
+    local OP=$1
+    local OSTYPE=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+    local V="${OP}"
+
+    case $OSTYPE in
+
+        linux)
+            eval $V=unknown-linux-gnu
+            ;;
+
+        freebsd)
+            eval $V=unknown-freebsd
+            ;;
+
+        darwin)
+            eval $V=apple-darwin
+            ;;
+
+        mingw32*)
+            eval $V=pc-mingw32
+            ;;
+
+        android)
+            eval $V=linux-androideabi
+            ;;
+
+        *)
+            err "unknown OS type: $OSTYPE"
+            ;;
+    esac
+}
+
+cpu_type() {
+    local OP=$1
+    local CPUTYPE=$2
+    local V="${OP}"
+
+    case $CPUTYPE in
+
+        i386 | i486 | i686 | i786 | x86)
+            eval $V=i686
+            ;;
+
+        xscale | arm)
+            eval $V=arm
+            ;;
+
+        x86_64 | x86-64 | x64 | amd64)
+            eval $V=x86_64
+            ;;
+
+        *)
+            err "unknown CPU type: $CPUTYPE"
+    esac
+}
+
 msg "looking for configure programs"
 need_cmd cmp
 need_cmd mkdir
@@ -198,70 +274,29 @@ need_cmd sed
 
 msg "inspecting environment"
 
-CFG_OSTYPE=$(uname -s)
-CFG_CPUTYPE=$(uname -m)
+OSTYPE=$(uname -s)
+CPUTYPE=$(uname -m)
 
-if [ $CFG_OSTYPE = Darwin -a $CFG_CPUTYPE = i386 ]
+if [ $OSTYPE = Darwin -a $CPUTYPE = i386 ]
 then
     # Darwin's `uname -m` lies and always returns i386. We have to use sysctl
     # instead.
     if sysctl hw.optional.x86_64 | grep -q ': 1'
     then
-        CFG_CPUTYPE=x86_64
+        CPUTYPE=x86_64
     fi
 fi
 
-# The goal here is to come up with the same triple as LLVM would,
-# at least for the subset of platforms we're willing to target.
+os_type CFG_BUILD_OSTYPE ${OSTYPE}
+cpu_type CFG_BUILD_CPUTYPE ${CPUTYPE}
 
-case $CFG_OSTYPE in
-
-    Linux)
-        CFG_OSTYPE=unknown-linux-gnu
-        ;;
-
-    FreeBSD)
-        CFG_OSTYPE=unknown-freebsd
-        ;;
-
-    Darwin)
-        CFG_OSTYPE=apple-darwin
-        ;;
-
-    MINGW32*)
-        CFG_OSTYPE=pc-mingw32
-        ;;
-
-    *)
-        err "unknown OS type: $CFG_OSTYPE"
-        ;;
-esac
-
-
-case $CFG_CPUTYPE in
-
-    i386 | i486 | i686 | i786 | x86)
-        CFG_CPUTYPE=i686
-        ;;
-
-    xscale | arm)
-        CFG_CPUTYPE=arm
-        ;;
-
-    x86_64 | x86-64 | x64 | amd64)
-        CFG_CPUTYPE=x86_64
-        ;;
-
-    *)
-        err "unknown CPU type: $CFG_CPUTYPE"
-esac
-
-DEFAULT_HOST_TRIPLE="${CFG_CPUTYPE}-${CFG_OSTYPE}"
+DEFAULT_TARGET_TRIPLE="${CFG_BUILD_CPUTYPE}-${CFG_BUILD_OSTYPE}"
 
 CFG_SRC_DIR="$(cd $(dirname $0) && pwd)/"
-CFG_BUILD_DIR="$(pwd)/"
+CFG_BUILD_HOME="$(pwd)/"
 CFG_SELF=${CFG_SRC_DIR}$(basename $0)
 CFG_CONFIGURE_ARGS="$@"
+CFG_PATH=$PATH
 
 OPTIONS=""
 HELP=0
@@ -287,6 +322,12 @@ opt manage-submodules 1 "let the build manage the git submodules"
 opt fast-make 0 "use .gitmodules as timestamp for submodule deps"
 opt debug 0 "use debugging symbols"
 valopt local-rust-root "" "set prefix for local rust binary"
+valopt target-triples "${DEFAULT_TARGET_TRIPLE}" "target triple to be compiled"
+valopt android-cross-path "/opt/ndk_standalone" "Android NDK cross compiler path"
+valopt android-ndk-path "/opt/android-ndk" "Android NDK path"
+valopt android-sdk-path "/opt/android-sdk" "Android SDK path"
+valopt android-font-path "/system/fonts" "Android Font path"
+valopt android-resource-path "/sdcard/servo" "Android Resource path"
 
 if [ $HELP -eq 1 ]
 then
@@ -294,17 +335,46 @@ then
     exit 0
 fi
 
+# Split target triple
+split_triple "${CFG_TARGET_TRIPLES}" TARGET_CPUTYPE TARGET_VENDOR TARGET_OSTYPE
+# Set target os and cpu type
+os_type CFG_OSTYPE ${TARGET_OSTYPE}
+cpu_type CFG_CPUTYPE ${TARGET_CPUTYPE}
+
 step_msg "looking for build programs"
+case ${TARGET_OSTYPE} in
+    android)
+        CFG_PATH="${CFG_ANDROID_CROSS_PATH}/bin":$PATH
+        export PATH=${CFG_PATH}
+
+        probe CFG_CC               arm-linux-androideabi-gcc
+        probe CFG_CXX              arm-linux-androideabi-g++
+        probe CFG_LD               arm-linux-androideabi-ld
+        probe CFG_AR               arm-linux-androideabi-ar
+        probe CFG_RANLIB	   arm-linux-androideabi-ranlib
+        CFG_RUSTC_FLAGS="--target=${CFG_TARGET_TRIPLES} --android-cross-path=${CFG_ANDROID_CROSS_PATH}"
+        ;;
+    *)
+        CFG_PATH=$PATH
+        probe CFG_CC               gcc
+        probe CFG_CXX              g++
+        probe CFG_LD               ld
+        probe CFG_AR               ar
+        probe CFG_RANLIB	   ranlib
+        CFG_RUSTC_FLAGS=""
+        ;;
+esac
 
 probe_need CFG_GIT         git
 probe_need CFG_PYTHON2     python2 python2.7 python
 probe CFG_CLANG            clang++
-probe CFG_GCC              gcc
-probe CFG_LD               ld
 # Spidermonkey requires autoconf 2.13 exactly
 probe_need CFG_AUTOCONF213 autoconf213  \
                            autoconf2.13 \
                            autoconf-2.13
+
+CFG_BUILD_DIR="${CFG_BUILD_HOME}${CFG_TARGET_TRIPLES}/"
+make_dir "${CFG_BUILD_DIR}"
 
 if [ ! -z "$CFG_LOCAL_RUST_ROOT" ]
 then
@@ -313,6 +383,7 @@ then
         LRV=`${CFG_LOCAL_RUST_ROOT}/bin/rustc --version`
         step_msg "using rustc at: ${CFG_LOCAL_RUST_ROOT} with version: $LRV"
         CFG_RUSTC=${CFG_LOCAL_RUST_ROOT}/bin/rustc
+        CFG_RUST_HOME=${CFG_LOCAL_RUST_ROOT}
         CFG_LOCAL_RUSTC=1
     else
         err "No rustc found at ${CFG_LOCAL_RUST_ROOT}/bin/rustc"
@@ -320,10 +391,11 @@ then
 else
     step_msg "using in-tree rust compiler"
     # The Rust compiler we're going to build
-    CFG_RUSTC="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_HOST_TRIPLE}/stage2/bin/rustc"
+    CFG_RUSTC="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_TARGET_TRIPLE}/stage2/bin/rustc"
+    CFG_RUST_HOME="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_TARGET_TRIPLE}/stage2"
 fi
 
-if [ -z "$CFG_ENABLE_CLANG" -a -z "$CFG_GCC" ]
+if [ -z "$CFG_ENABLE_CLANG" -a -z "$CFG_CC" ]
 then
     err "either clang or gcc is required"
 fi
@@ -372,7 +444,11 @@ msg "configuring src/mozjs"
 AUTOCONF213_M4_MACROS="$(dirname ${CFG_AUTOCONF213})/../share/$(basename ${CFG_AUTOCONF213})/"
 # Run the SpiderMonkey autoconf using autoconf 2.13
 (cd ${CFG_SRC_DIR}src/support/spidermonkey/mozjs/js/src && "${CFG_AUTOCONF213}" -l "${AUTOCONF213_M4_MACROS}") || exit $?
-
+if [ $CFG_OSTYPE = "linux-androideabi" ]
+then
+    msg "configuring src/libexpat"
+    (cd ${CFG_SRC_DIR}src/platform/android/libexpat/expat && sh "buildconf.sh") || exit $?
+fi
 # Pixman and cairo require some care to autoconf correctly for our in-tree build.
 # The normal autogen.sh files mostly just run autoreconfig but we need more fine control
 
@@ -403,8 +479,6 @@ CFG_SUBMODULES="\
     support/css/rust-css \
     support/css/rust-cssparser \
     support/geom/rust-geom \
-    support/glfw/glfw \
-    support/glfw/glfw-rs \
     support/harfbuzz/rust-harfbuzz \
     support/hubbub/libhubbub \
     support/hubbub/rust-hubbub \
@@ -428,6 +502,8 @@ CFG_SUBMODULES="\
 if [ $CFG_OSTYPE = "apple-darwin" ]
 then
 CFG_SUBMODULES="\
+    support/glfw/glfw \
+    support/glfw/glfw-rs \
     platform/macos/rust-cocoa \
     platform/macos/rust-core-foundation \
     platform/macos/rust-core-graphics \
@@ -439,11 +515,53 @@ fi
 if [ $CFG_OSTYPE = "unknown-linux-gnu" ]
 then
 CFG_SUBMODULES="\
+    support/glfw/glfw \
+    support/glfw/glfw-rs \
     platform/linux/rust-fontconfig \
     platform/linux/rust-freetype \
     platform/linux/rust-xlib \
     ${CFG_SUBMODULES}"
 fi
+
+if [ $CFG_OSTYPE = "linux-androideabi" ]
+then
+CFG_SUBMODULES="\
+    support/glut/rust-glut \
+    platform/android/libexpat \
+    platform/android/libfreetype2 \
+    platform/android/fontconfig \
+    platform/linux/rust-fontconfig \
+    platform/linux/rust-freetype \
+    ${CFG_SUBMODULES}"
+fi
+
+step_msg "writing configuration"
+
+putvar CFG_TARGET_TRIPLES
+putvar CFG_CPUTYPE
+putvar CFG_OSTYPE
+putvar CFG_SRC_DIR
+putvar CFG_BUILD_HOME
+putvar CFG_BUILD_DIR
+putvar CFG_CONFIGURE_ARGS
+putvar CFG_SUBMODULES
+putvar CFG_DISABLE_MANAGE_SUBMODULES
+putvar CFG_RUSTC
+putvar CFG_RUSTC_FLAGS
+putvar CFG_RUST_HOME
+putvar CFG_PATH
+putvar CFG_LOCAL_RUSTC
+putvar CFG_LOCAL_RUST_ROOT
+putvar CFG_ENABLE_DEBUG
+
+msg
+copy_if_changed ${CFG_SRC_DIR}Makefile.in ${CFG_BUILD_HOME}Makefile
+move_if_changed ${CFG_SRC_DIR}config.tmp ${CFG_SRC_DIR}config.mk
+copy_if_changed ${CFG_SRC_DIR}config.mk ${CFG_BUILD_HOME}config.mk
+rm -f ${CFG_SRC_DIR}config.tmp
+touch ${CFG_SRC_DIR}config.stamp
+
+export CFG_CONFIG_MK="${CFG_BUILD_HOME}config.mk"
 
 step_msg "making build directories"
 
@@ -484,13 +602,32 @@ done
 if [ ${do_reconfigure} -ne 0 ]
 then
     cd ${CFG_BUILD_DIR}src/compiler/rust
-    ${CFG_SRC_DIR}src/compiler/rust/configure
+    RUST_CONFIGURE_ARGS=""
+    if [ $CFG_OSTYPE = "linux-androideabi" ]; then
+        RUST_CONFIGURE_ARGS="--target-triples=arm-linux-androideabi --android-cross-path=${CFG_ANDROID_CROSS_PATH}"
+    fi
+    ${CFG_SRC_DIR}src/compiler/rust/configure ${RUST_CONFIGURE_ARGS}
     cd ${CFG_BUILD_DIR}
+fi
+
+#fontconfig expects to use an installed freetype, but we want to override that behavior to use our version
+if [ $CFG_OSTYPE = "linux-androideabi" ]
+then
+    export FREETYPE_CFLAGS="-I${CFG_SRC_DIR}src/platform/android/libfreetype2/include -I${CFG_BUILD_DIR}src/platform/android/libfreetype2/include"
+    export FREETYPE_LIBS="-L${CFG_BUILD_DIR}src/platform/android/libfreetype2/.libs -lfreetype"
 fi
 
 # PIC all the things
 export CFLAGS="${CFLAGS} -fPIC"
 export LDFLAGS="${CFLAGS} -fPIC"
+
+# cross compile configurations
+
+export CC="${CFG_CC}"
+export CXX="${CFG_CXX}"
+export LD="${CFG_LD}"
+export AR="${CFG_AR}"
+export RANLIB="${CFG_RANLIB}"
 
 for i in ${CFG_SUBMODULES}
 do
@@ -499,51 +636,70 @@ do
 	cd ${CFG_BUILD_DIR}src/${i}
     fi
     CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/configure"
-    # needed because Spidermonkey configure is in non-standard location
-    if [ $i = "support/spidermonkey/mozjs" ]; then
-	CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/js/src/configure"
+    CONFIGURE_ARGS=""
+    ENV_VARS=""
+
+    if [ ! -z $CFG_ENABLE_DEBUG ]; then
+        CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-debug"
     fi
 
-	# needed because Azure's configure wants "--enable-skia"
-	CONFIGURE_ARGS=""
-	ENV_VARS=""
-	if [ $i = "support/azure/rust-azure" ]; then
-		CONFIGURE_ARGS="--enable-skia"
-	fi
-	if [ $i = "support/nss/nspr" ]; then
-		CONFIGURE_ARGS="--enable-64bit"
-	fi
-    if [ $i = "support/spidermonkey/mozjs" ]; then
-        if [ ! -z $CFG_ENABLE_DEBUG ]; then
-            CONFIGURE_ARGS="--enable-debug"
-        fi
-    fi
+    case $i in
+        support/nss/nspr)
+            if [ ${CFG_OSTYPE} = "linux-androideabi" ]; then
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --target=arm-linux-androideabi"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-ndk=${CFG_ANDROID_NDK_PATH}"
+            else
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-64bit"
+            fi
+            ;;
+        support/nss/nss)
+            if [ ${CFG_OSTYPE} = "linux-androideabi" ]; then
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux-androideabi"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --android-ndk-path=${CFG_ANDROID_NDK_PATH}"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --android-api-version=14"
+            fi
+            ;;
+        platform/android/libexpat)
+            CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/expat/configure"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux-androideabi"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-sysroot=${CFG_ANDROID_CROSS_PATH}/sysroot"
+            ;;
+        platform/android/libfreetype2)
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-sysroot=${CFG_ANDROID_CROSS_PATH}/sysroot"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --without-zlib"
+            ;;
+        platform/android/fontconfig)
+            CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/autogen.sh"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux-androideabi"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-arch=arm"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-expat-includes=${CFG_SRC_DIR}src/platform/android/libexpat/expat/lib"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-expat-lib=${CFG_BUILD_DIR}src/platform/android/libexpat/.libs"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-sysroot=${CFG_ANDROID_CROSS_PATH}/sysroot"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-cache-dir=${CFG_ANDROID_RESOURCE_PATH}/.fccache"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-confdir=${CFG_ANDROID_RESOURCE_PATH}/.fcconfig"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-default-fonts=${CFG_ANDROID_FONT_PATH}"
+            ;;
+        support/spidermonkey/mozjs)
+            # needed because Spidermonkey configure is in non-standard location
+                CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/js/src/configure"
+            if [ ${CFG_OSTYPE} = "linux-androideabi" ]; then
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --target=arm-linux-androideabi"
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-ndk=${CFG_ANDROID_NDK_PATH}"
+            fi
+            ;;
+        support/azure/rust-azure)
+                # needed because Azure's configure wants "--enable-skia"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-skia"
+            ;;
+        *)
+            ;;
+    esac
 
     if [ -f ${CONFIGURE_SCRIPT} ]
     then
 	(sh ${CONFIGURE_SCRIPT} ${CONFIGURE_ARGS}) || exit $?
     fi
 done
-
-step_msg "writing configuration"
-
-putvar DEFAULT_HOST_TRIPLE
-putvar CFG_CPUTYPE
-putvar CFG_OSTYPE
-putvar CFG_SRC_DIR
-putvar CFG_BUILD_DIR
-putvar CFG_CONFIGURE_ARGS
-putvar CFG_SUBMODULES
-putvar CFG_DISABLE_MANAGE_SUBMODULES
-putvar CFG_RUSTC
-putvar CFG_LOCAL_RUSTC
-putvar CFG_ENABLE_DEBUG
-
-msg
-copy_if_changed ${CFG_SRC_DIR}Makefile.in ${CFG_BUILD_DIR}Makefile
-move_if_changed ${CFG_SRC_DIR}config.tmp ${CFG_SRC_DIR}config.mk
-copy_if_changed ${CFG_SRC_DIR}config.mk ${CFG_BUILD_DIR}config.mk
-rm -f ${CFG_SRC_DIR}config.tmp
-touch ${CFG_SRC_DIR}config.stamp
 
 step_msg "complete"

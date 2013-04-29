@@ -157,3 +157,51 @@ DEPS_rust-layers += \
 	$(NULL)
 endif
 
+ifeq ($(CFG_OSTYPE),linux-androideabi)
+DEPS_rust-azure += \
+	rust-freetype \
+	rust-fontconfig \
+	fontconfig \
+	libfreetype2 \
+	libexpat \
+	$(NULL)
+
+# See note at top of file
+DEPS_rust-layers += \
+	rust-freetype \
+	rust-fontconfig \
+	$(NULL)
+
+DEPS_rust-fontconfig += \
+	fontconfig \
+	rust-freetype \
+	$(NULL)
+
+DEPS_rust-freetype += \
+	libfreetype2 \
+	$(NULL)
+
+DEPS_fontconfig += \
+	libexpat \
+	libfreetype2 \
+	$(NULL)
+
+CFLAGS_fontconfig += \
+	"-I$(S)src/platform/android/libexpat/expat/lib" \
+	"-I$(S)src/platform/android/libfreetype2/include" \
+    $(NULL)
+endif
+
+DEPS_skia += \
+	libfreetype2 \
+	$(NULL)
+
+CXXFLAGS_skia += \
+	-I$(S)src/platform/android/libfreetype2/include \
+	$(NULL)
+
+NATIVE_BUILD += \
+	libfreetype2 \
+	libexpat \
+	fontconfig \
+	$(NULL)
