@@ -353,6 +353,7 @@ impl Font {
     }
 
     #[cfg(target_os="linux")]
+    #[cfg(target_os="android")]
     fn create_azure_font(&self) -> ScaledFont {
         let freetype_font = self.handle.face;
         let size = self.style.pt_size as AzFloat;
