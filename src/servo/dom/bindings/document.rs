@@ -25,7 +25,7 @@ use dom::bindings::utils;
 
 extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
-        let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
+        let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));
         if obj.is_null() {
             return 0;
         }
@@ -77,7 +77,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("document finalize!");
     unsafe {
         let val = JS_GetReservedSlot(obj, 0);
-        let _doc: @Document = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
+        let _doc: @Document = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
     }
 }
 
@@ -128,7 +128,7 @@ pub fn create(compartment: @mut Compartment, doc: @mut Document) -> *JSObject {
     doc.wrapper.set_wrapper(instance.ptr);
 
     unsafe {
-        let raw_ptr: *libc::c_void = cast::reinterpret_cast(&squirrel_away(doc));
+        let raw_ptr: *libc::c_void = cast::transmute(squirrel_away(doc));
         JS_SetReservedSlot(instance.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
     }
 

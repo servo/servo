@@ -2439,7 +2439,7 @@ def CreateBindingJSObject(descriptor, parent):
   let handler = (*content).dom_static.proxy_handlers.get(&(prototypes::id::%s as uint));
 """ % descriptor.name
         create = handler + """  let obj = NewProxyObject(aCx, *handler,
-                           ptr::addr_of(&RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void)),
+                           ptr::to_unsafe_ptr(&RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void)),
                            proto, %s,
                            ptr::null(), ptr::null());
   if obj.is_null() {
@@ -2859,7 +2859,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     getPrototypeOf: ptr::null()
   };
   (*content).dom_static.proxy_handlers.insert(prototypes::id::%s as uint,
-                                              CreateProxyHandler(ptr::addr_of(&traps)));
+                                              CreateProxyHandler(ptr::to_unsafe_ptr(&traps)));
 
 """ % self.descriptor.name
         else:
@@ -3607,7 +3607,7 @@ def finalizeHook(descriptor, hookName, context):
     else:
         assert descriptor.nativeIsISupports
         release = """let val = JS_GetReservedSlot(obj, 0);
-let _: %s = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(val));
+let _: %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
 """ % (descriptor.pointerType + descriptor.nativeType)
     #return clearWrapper + release
     return release

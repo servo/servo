@@ -74,7 +74,7 @@ pub unsafe fn unwrap(obj: *JSObject) -> AbstractNode {
 #[allow(non_implicitly_copyable_typarams)]
 extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
-        let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
+        let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));
         if obj.is_null() {
             return 0;
         }
@@ -96,7 +96,7 @@ extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool
 #[allow(non_implicitly_copyable_typarams)]
 extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
-        let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
+        let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));
         if obj.is_null() {
             return 0;
         }
@@ -146,7 +146,7 @@ impl Node {
 
 extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
-        let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
+        let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));
         if obj.is_null() {
             return 0;
         }
