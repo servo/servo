@@ -64,10 +64,10 @@ pub impl FontHandle {
 
     fn get_CGFont(&mut self) -> CGFont {
         match self.cgfont {
-            Some(ref font) => CFWrapper::wrap_shared(*(font.borrow_ref())),
+            Some(ref font) => font.clone(),
             None => {
                 let cgfont = self.ctfont.copy_to_CGFont();
-                self.cgfont = Some(CFWrapper::clone(&cgfont));
+                self.cgfont = Some(cgfont.clone());
                 cgfont
             }
         }

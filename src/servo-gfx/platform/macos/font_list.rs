@@ -30,9 +30,9 @@ pub impl FontListHandle {
 
     fn get_available_families(&self) -> FontFamilyMap {
         let family_names: CFArray<CFStringRef> = core_text::font_collection::get_family_names();
-        let mut family_map : FontFamilyMap = HashMap::new();
+        let mut family_map: FontFamilyMap = HashMap::new();
         for family_names.each |&strref: &CFStringRef| {
-            let family_name = CFString::wrap_extern(strref).to_str();
+            let family_name = CFString::wrap_shared(strref).to_str();
             debug!("Creating new FontFamily for family: %s", family_name);
 
             let new_family = @mut FontFamily::new(family_name);
@@ -42,7 +42,7 @@ pub impl FontListHandle {
     }
 
     fn load_variations_for_family(&self, family: @mut FontFamily) {
-        let fam : &mut FontFamily = family; // FIXME: borrow checker workaround
+        let fam: &mut FontFamily = family; // FIXME: borrow checker workaround
         let family_name = &fam.family_name;
         debug!("Looking for faces of family: %s", *family_name);
 
