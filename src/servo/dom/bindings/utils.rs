@@ -29,6 +29,7 @@ use core::cast;
 use content::content_task::task_from_context;
 
 use core::hashmap::HashMap;
+use core::ptr::to_unsafe_ptr;
 
 use dom::bindings::node;
 use dom::node::AbstractNode;
@@ -64,7 +65,7 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: uint, vp: *mut JSVal) -
     }
 
     let v = GetFunctionNativeReserved(callee, TOSTRING_CLASS_RESERVED_SLOT);
-    let clasp: *JSClass = cast::reinterpret_cast(&RUST_JSVAL_TO_PRIVATE(*v));
+    let clasp: *JSClass = cast::transmute(RUST_JSVAL_TO_PRIVATE(*v));
 
     let v = GetFunctionNativeReserved(callee, TOSTRING_NAME_RESERVED_SLOT);
 
@@ -125,7 +126,7 @@ pub unsafe fn unwrap<T>(obj: *JSObject) -> T {
 }
 
 pub unsafe fn squirrel_away<T>(x: @mut T) -> *rust_box<T> {
-    let y: *rust_box<T> = cast::reinterpret_cast(&x);
+    let y: *rust_box<T> = cast::transmute(x);
     cast::forget(x);
     y
 }
@@ -157,7 +158,7 @@ pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
       }
       &str(ref s) => {
         str::as_buf(*s, |buf, len| {
-            let cbuf = cast::reinterpret_cast(&buf);
+            let cbuf = cast::transmute(buf);
             RUST_STRING_TO_JSVAL(JS_NewStringCopyN(cx, cbuf, len as libc::size_t))
         })
       }
@@ -572,7 +573,7 @@ pub impl WrapperCache {
     }
 
     fn get_rootable(&self) -> **JSObject {
-        return ptr::addr_of(&self.wrapper);
+        return to_unsafe_ptr(&self.wrapper);
     }
 
     fn new() -> WrapperCache {

@@ -240,7 +240,7 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
 #[allow(non_implicitly_copyable_typarams)]
 extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
-        let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
+        let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));
         if obj.is_null() {
             return 0;
         }
@@ -249,7 +249,7 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
         match node.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 do node.as_mut_element |elem| {
-                    let arg = ptr::offset(JS_ARGV(cx, cast::reinterpret_cast(&vp)), 0);
+                    let arg = ptr::offset(JS_ARGV(cx, cast::transmute(vp)), 0);
                     elem.set_attr(&str(~"width"),
                                   &str((RUST_JSVAL_TO_INT(*arg) as int).to_str()))
                 }
@@ -264,7 +264,7 @@ extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
 
 extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
-        let obj = JS_THIS_OBJECT(cx, cast::reinterpret_cast(&vp));
+        let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));
         if obj.is_null() {
             return 0;
         }
