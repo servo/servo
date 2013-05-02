@@ -151,7 +151,6 @@ pub impl FontDescriptor {
 #[deriving(Eq)]
 pub enum FontSelector {
     SelectorPlatformIdentifier(~str),
-    SelectorStubDummy, // aka, use Josephin Sans
 }
 
 // This struct is the result of mapping a specified FontStyle into the
