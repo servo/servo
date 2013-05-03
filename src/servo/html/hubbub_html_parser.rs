@@ -260,20 +260,14 @@ pub fn parse_html(url: Url,
         },
         create_doctype: |doctype: ~hubbub::Doctype| {
             debug!("create doctype");
-            // TODO: remove copying here by using struct pattern matching to
-            // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
-            let public_id = match &doctype.public_id {
-                &None => None,
-                &Some(ref id) => Some(copy *id)
-            };
-            let system_id = match &doctype.system_id {
-                &None => None,
-                &Some(ref id) => Some(copy *id)
-            };
-            let node = ~Doctype::new(copy doctype.name,
+            let ~hubbub::Doctype {name: name,
+                                public_id: public_id,
+                                system_id: system_id,
+                                force_quirks: force_quirks } = doctype;
+            let node = ~Doctype::new(name,
                                      public_id,
                                      system_id,
-                                     doctype.force_quirks);
+                                     force_quirks);
             unsafe {
                 Node::as_abstract_node(node).to_hubbub_node()
             }
