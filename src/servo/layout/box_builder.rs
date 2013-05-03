@@ -14,7 +14,6 @@ use layout::debug::{BoxedMutDebugMethods, DebugMethods};
 use layout::flow::*;
 use layout::inline::{InlineFlowData, InlineLayout};
 use layout::root::RootFlowData;
-use util::tree;
 
 use gfx::image::holder::ImageHolder;
 use servo_util::range::Range;
@@ -223,9 +222,8 @@ impl BuilderContext {
     priv fn attach_child_flow(&self, child: @mut FlowContext) {
         let d = self.default_collector.flow.d(); // FIXME: borrow checker workaround
         let cd = child.d(); // FIXME: borrow checker workaround
-        debug!("BuilderContext: Adding child flow f%? of f%?",
-               d.id, cd.id);
-        tree::add_child(&FlowTree, self.default_collector.flow, child);
+        debug!("BuilderContext: Adding child flow f%? of f%?", d.id, cd.id);
+        self.default_collector.flow.add_child(child);
     }
     
     priv fn create_child_flow_of_type(&self,
@@ -332,10 +330,10 @@ pub impl LayoutTreeBuilder {
         // eventually be elided or split, but the mapping between
         // nodes and FlowContexts should not change during layout.
         let flow = &mut this_ctx.default_collector.flow;
-        for tree::each_child(&FlowTree, flow) |child_flow: &@mut FlowContext| {
+        for flow.each_child |child_flow: @mut FlowContext| {
             let node = child_flow.d().node;
             assert!(node.has_layout_data());
-            node.layout_data().flow = Some(*child_flow);
+            node.layout_data().flow = Some(child_flow);
         }
     }
 
@@ -355,8 +353,8 @@ pub impl LayoutTreeBuilder {
                 let mut found_child_block = false;
 
                 let flow = &mut parent_ctx.default_collector.flow;
-                for tree::each_child(&FlowTree, flow) |child_ctx: &@mut FlowContext| {
-                    match **child_ctx {
+                for flow.each_child |child_ctx: @mut FlowContext| {
+                    match *child_ctx {
                         InlineFlow(*) | InlineBlockFlow(*) => found_child_inline = true,
                         BlockFlow(*) => found_child_block = true,
                         _ => {}
@@ -371,24 +369,36 @@ pub impl LayoutTreeBuilder {
                 // FIXME: this will create refcounted cycles between the removed flow and any
                 // of its RenderBox or FlowContext children, and possibly keep alive other junk
                 let parent_flow = parent_ctx.default_collector.flow;
+
+                // FIXME: Workaround for the borrow check.
+                let (first_child, last_child) = {
+                    let parent_flow: &mut FlowContext = parent_flow;
+                    let parent_flow_data = parent_flow.d();
+                    (parent_flow_data.first_child, parent_flow_data.last_child)
+                };
+
                 // check first/last child for whitespace-ness
-                for tree::first_child(&FlowTree, &parent_flow).each |first_flow: &@mut FlowContext| {
+                for first_child.each |first_flow: &@mut FlowContext| {
                     if first_flow.starts_inline_flow() {
                         let boxes = &mut first_flow.inline().boxes;
                         if boxes.len() == 1 && boxes[0].is_whitespace_only() {
-                            debug!("LayoutTreeBuilder: pruning whitespace-only first child flow f%d from parent f%d", 
-                                   first_flow.d().id, parent_flow.d().id);
-                            tree::remove_child(&FlowTree, parent_flow, *first_flow);
+                            debug!("LayoutTreeBuilder: pruning whitespace-only first child flow \
+                                    f%d from parent f%d", 
+                                   first_flow.d().id,
+                                   parent_flow.d().id);
+                            parent_flow.remove_child(*first_flow);
                         }
                     }
                 }
-                for tree::last_child(&FlowTree, &parent_flow).each |last_flow: &@mut FlowContext| {
+                for last_child.each |last_flow: &@mut FlowContext| {
                     if last_flow.starts_inline_flow() {
                         let boxes = &mut last_flow.inline().boxes;
                         if boxes.len() == 1 && boxes.last().is_whitespace_only() {
-                            debug!("LayoutTreeBuilder: pruning whitespace-only last child flow f%d from parent f%d", 
-                                   last_flow.d().id, parent_flow.d().id);
-                            tree::remove_child(&FlowTree, parent_flow, *last_flow);
+                            debug!("LayoutTreeBuilder: pruning whitespace-only last child flow \
+                                    f%d from parent f%d", 
+                                   last_flow.d().id,
+                                   parent_flow.d().id);
+                            parent_flow.remove_child(*last_flow);
                         }
                     }
                 }
@@ -416,7 +426,7 @@ pub impl LayoutTreeBuilder {
     }
 
     fn make_flow(&mut self, ty: FlowContextType, node: AbstractNode) -> @mut FlowContext {
-        let data = FlowData(self.next_flow_id(), node);
+        let data = FlowData::new(self.next_flow_id(), node);
         let ret = match ty {
             Flow_Absolute    => @mut AbsoluteFlow(data),
             Flow_Block       => @mut BlockFlow(data, BlockFlowData()),
