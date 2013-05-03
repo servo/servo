@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use layout::flow::{FlowContext, FlowTree};
+use layout::flow::FlowContext;
 
-/** Trait for running tree-based traversals over layout contexts */
+/// A trait for running tree-based traversals over flows contexts.
 pub trait FlowContextTraversals {
     fn traverse_preorder(@mut self, preorder_cb: &fn(@mut FlowContext));
     fn traverse_postorder(@mut self, postorder_cb: &fn(@mut FlowContext));
@@ -13,11 +13,15 @@ pub trait FlowContextTraversals {
 impl FlowContextTraversals for FlowContext {
     fn traverse_preorder(@mut self, preorder_cb: &fn(@mut FlowContext)) {
         preorder_cb(self);
-        do FlowTree.each_child(self) |child| { child.traverse_preorder(preorder_cb); true }
+        for self.each_child |child| {
+            child.traverse_preorder(preorder_cb);
+        }
     }
 
     fn traverse_postorder(@mut self, postorder_cb: &fn(@mut FlowContext)) {
-        do FlowTree.each_child(self) |child| { child.traverse_postorder(postorder_cb); true }
+        for self.each_child |child| {
+            child.traverse_postorder(postorder_cb);
+        }
         postorder_cb(self);
     }
 }
