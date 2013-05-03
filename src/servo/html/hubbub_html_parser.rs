@@ -274,14 +274,13 @@ pub fn parse_html(url: Url,
         },
         create_element: |tag: ~hubbub::Tag| {
             debug!("create element");
-            // TODO: remove copying here by using struct pattern matching to
-            // move all ~strs at once (blocked on Rust #3845, #3846, #3847)
             let node = build_element_from_tag(tag.name);
 
             debug!("-- attach attrs");
             do node.as_mut_element |element| {
                 for tag.attributes.each |attr| {
-                    element.attrs.push(Attr::new(copy attr.name, copy attr.value));
+                    let &hubbub::Attribute {name: name, value: value, _} = attr;
+                    element.attrs.push(Attr::new(name, value));
                 }
             }
 
