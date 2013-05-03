@@ -10,7 +10,7 @@ use gfx::geometry::Au;
 use layout::block::BlockLayout;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
-use layout::flow::{FlowContext, FlowTree, RootFlow};
+use layout::flow::{FlowContext, RootFlow};
 use layout::display_list_builder::DisplayListBuilder;
 
 pub struct RootFlowData {
@@ -63,7 +63,7 @@ impl RootLayout for FlowContext {
         // the root adjusts self height to at least cover the viewport.
         let mut cur_y = Au(0);
 
-        for FlowTree.each_child(self) |child_ctx| {
+        for self.each_child |child_ctx| {
             child_ctx.d().position.origin.y = cur_y;
             cur_y += child_ctx.d().position.size.height;
         }
