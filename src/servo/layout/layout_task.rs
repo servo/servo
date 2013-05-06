@@ -205,10 +205,9 @@ impl Layout {
             }
         }
 
-        let layout_root: @mut FlowContext = do time("layout: tree construction") {
+        let layout_root: FlowContext = do time("layout: tree construction") {
             let mut builder = LayoutTreeBuilder::new();
-            let layout_root: @mut FlowContext = match builder.construct_trees(&layout_ctx,
-                                                                              *node) {
+            let layout_root: FlowContext = match builder.construct_trees(&layout_ctx, *node) {
                 Ok(root) => root,
                 Err(*) => fail!(~"Root flow should always exist")
             };
@@ -235,9 +234,11 @@ impl Layout {
             
             // TODO: set options on the builder before building
             // TODO: be smarter about what needs painting
-            layout_root.build_display_list(&builder,
-                                           &copy layout_root.d().position,
-                                           display_list);
+            do layout_root.with_common_info |layout_root_info| {
+                layout_root.build_display_list(&builder,
+                                               &copy layout_root_info.position,
+                                               display_list);
+            }
 
             let render_layer = RenderLayer {
                 display_list: display_list.take(),

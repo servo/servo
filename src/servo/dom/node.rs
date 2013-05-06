@@ -71,7 +71,7 @@ pub enum NodeTypeId {
 
 pub struct LayoutData {
     style: Option<CompleteSelectResults>,
-    flow: Option<@mut FlowContext>,
+    flow: Option<FlowContext>,
 }
 
 impl LayoutData {

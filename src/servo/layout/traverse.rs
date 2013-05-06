@@ -6,22 +6,22 @@ use layout::flow::FlowContext;
 
 /// A trait for running tree-based traversals over flows contexts.
 pub trait FlowContextTraversals {
-    fn traverse_preorder(@mut self, preorder_cb: &fn(@mut FlowContext));
-    fn traverse_postorder(@mut self, postorder_cb: &fn(@mut FlowContext));
+    fn traverse_preorder(&self, preorder_cb: &fn(FlowContext));
+    fn traverse_postorder(&self, postorder_cb: &fn(FlowContext));
 }
 
 impl FlowContextTraversals for FlowContext {
-    fn traverse_preorder(@mut self, preorder_cb: &fn(@mut FlowContext)) {
-        preorder_cb(self);
+    fn traverse_preorder(&self, preorder_cb: &fn(FlowContext)) {
+        preorder_cb(*self);
         for self.each_child |child| {
             child.traverse_preorder(preorder_cb);
         }
     }
 
-    fn traverse_postorder(@mut self, postorder_cb: &fn(@mut FlowContext)) {
+    fn traverse_postorder(&self, postorder_cb: &fn(FlowContext)) {
         for self.each_child |child| {
             child.traverse_postorder(postorder_cb);
         }
-        postorder_cb(self);
+        postorder_cb(*self);
     }
 }

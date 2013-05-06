@@ -71,13 +71,13 @@ padding, backgrounds. It is analogous to a CSS nonreplaced content box.
 */
 pub struct RenderBoxData {
     /* originating DOM node */
-    node : AbstractNode,
+    node: AbstractNode,
     /* reference to containing flow context, which this box
        participates in */
-    ctx  : @mut FlowContext,
+    ctx: FlowContext,
     /* position of this box relative to owning flow */
-    position : Rect<Au>,
-    font_size : Length,
+    position: Rect<Au>,
+    font_size: Length,
     /* TODO (Issue #87): debug only */
     id: int
 }
@@ -103,7 +103,7 @@ pub enum SplitBoxResult {
     SplitDidNotFit(Option<@mut RenderBox>, Option<@mut RenderBox>)
 }
 
-pub fn RenderBoxData(node: AbstractNode, ctx: @mut FlowContext, id: int) -> RenderBoxData {
+pub fn RenderBoxData(node: AbstractNode, ctx: FlowContext, id: int) -> RenderBoxData {
     RenderBoxData {
         node : node,
         ctx  : ctx,
