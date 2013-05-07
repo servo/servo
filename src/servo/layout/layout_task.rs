@@ -245,18 +245,13 @@ impl Layout {
 
             let display_list = @Cell(DisplayList::new());
             
-            // TODO: set options on the builder before building
-            // TODO: be smarter about what needs painting
-            do layout_root.with_common_info |layout_root_info| {
-                layout_root.build_display_list(&builder,
-                                               &copy layout_root_info.position,
-                                               display_list);
-            }
+            // TODO: Set options on the builder before building.
+            // TODO: Be smarter about what needs painting.
+            layout_root.build_display_list(&builder, &layout_root.position(), display_list);
 
             let render_layer = RenderLayer {
                 display_list: display_list.take(),
-                size: Size2D(screen_size.width.to_px() as uint,
-                             screen_size.height.to_px() as uint)
+                size: Size2D(screen_size.width.to_px() as uint, screen_size.height.to_px() as uint)
             };
 
             self.render_task.send(RenderMsg(render_layer));

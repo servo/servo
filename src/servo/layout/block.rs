@@ -16,7 +16,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
-use servo_util::tree::TreeUtils;
+use servo_util::tree::{TreeNodeRef, TreeUtils};
 
 pub struct BlockFlowData {
     /// Data common to all flows.
@@ -99,9 +99,9 @@ impl BlockLayout for FlowContext {
         for self.each_child |child_ctx| {
             assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
 
-            do child_ctx.with_common_info |child_info| {
-                min_width = au::max(min_width, child_info.min_width);
-                pref_width = au::max(pref_width, child_info.pref_width);
+            do child_ctx.with_immutable_node |child_node| {
+                min_width = au::max(min_width, child_node.min_width);
+                pref_width = au::max(pref_width, child_node.pref_width);
             }
         }
 
@@ -112,39 +112,37 @@ impl BlockLayout for FlowContext {
             pref_width = pref_width.add(&box.get_pref_width(ctx));
         }
 
-        do self.with_common_info |info| {
-            info.min_width = min_width;
-            info.pref_width = pref_width;
+        do self.with_mutable_node |this_node| {
+            this_node.min_width = min_width;
+            this_node.pref_width = pref_width;
         }
     }
  
-    /* Recursively (top-down) determines the actual width of child
-    contexts and boxes. When called on this context, the context has
-    had its width set by the parent context.
-
-    Dual boxes consume some width first, and the remainder is assigned to
-    all child (block) contexts. */
-
-    fn assign_widths_block(&self, _ctx: &LayoutContext) { 
+    /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
+    /// on this context, the context has had its width set by the parent context.
+    ///
+    /// Dual boxes consume some width first, and the remainder is assigned to all child (block)
+    /// contexts.
+    fn assign_widths_block(&self, _: &LayoutContext) { 
         assert!(self.starts_block_flow());
 
-        let mut remaining_width = self.with_common_info(|info| info.position.size.width);
+        let mut remaining_width = self.with_immutable_node(|this| this.position.size.width);
         let mut _right_used = Au(0);
         let mut left_used = Au(0);
 
-        /* Let the box consume some width. It will return the amount remaining
-           for its children. */
+        // Let the box consume some width. It will return the amount remaining for its children.
         do self.with_block_box |box| {
             box.d().position.size.width = remaining_width;
             let (left_used, right_used) = box.get_used_width();
             remaining_width -= left_used.add(&right_used);
         }
 
-        for self.each_child |child_ctx| {
-            assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
-            do child_ctx.with_common_info |child_info| {
-                child_info.position.origin.x = left_used;
-                child_info.position.size.width = remaining_width;
+        for self.each_child |kid| {
+            assert!(kid.starts_block_flow() || kid.starts_inline_flow());
+
+            do kid.with_mutable_node |child_node| {
+                child_node.position.origin.x = left_used;
+                child_node.position.size.width = remaining_width;
             }
         }
     }
@@ -154,15 +152,15 @@ impl BlockLayout for FlowContext {
 
         let mut cur_y = Au(0);
 
-        for self.each_child |child_ctx| {
-            do child_ctx.with_common_info |child_info| {
-                child_info.position.origin.y = cur_y;
-                cur_y += child_info.position.size.height;
+        for self.each_child |kid| {
+            do kid.with_mutable_node |child_node| {
+                child_node.position.origin.y = cur_y;
+                cur_y += child_node.position.size.height;
             }
         }
 
-        do self.with_common_info |info| {
-            info.position.size.height = cur_y;
+        do self.with_mutable_node |this_node| {
+            this_node.position.size.height = cur_y;
         }
 
         let _used_top = Au(0);

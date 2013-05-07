@@ -16,14 +16,14 @@ use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
 use gfx;
+use servo_util::tree::TreeNodeRef;
 
-/** A builder object that manages display list builder should mainly
- hold information about the initial request and desired result---for
- example, whether the DisplayList to be used for painting or hit
- testing. This can affect which boxes are created.
-
- Right now, the builder isn't used for much, but it  establishes the
- pattern we'll need once we support DL-based hit testing &c.  */
+/// A builder object that manages display list builder should mainly hold information about the
+/// initial request and desired result--for example, whether the `DisplayList` is to be used for
+/// painting or hit testing. This can affect which boxes are created.
+///
+/// Right now, the builder isn't used for much, but it establishes the pattern we'll need once we
+/// support display-list-based hit testing and so forth.
 pub struct DisplayListBuilder<'self> {
     ctx:  &'self LayoutContext,
 }
@@ -53,13 +53,13 @@ impl FlowDisplayListBuilderMethods for FlowContext {
                                     dirty: &Rect<Au>,
                                     offset: &Point2D<Au>,
                                     list: &Cell<DisplayList>) {
-        // adjust the dirty rect to child flow context coordinates
-        do child_flow.with_common_info |child_flow_info| {
-            let abs_flow_bounds = child_flow_info.position.translate(offset);
-            let adj_offset = offset.add(&child_flow_info.position.origin);
+        // Adjust the dirty rect to child flow context coordinates.
+        do child_flow.with_immutable_node |child_node| {
+            let abs_flow_bounds = child_node.position.translate(offset);
+            let adj_offset = offset.add(&child_node.position.origin);
 
             debug!("build_display_list_for_child: rel=%?, abs=%?",
-                   child_flow_info.position,
+                   child_node.position,
                    abs_flow_bounds);
             debug!("build_display_list_for_child: dirty=%?, offset=%?", dirty, offset);
 

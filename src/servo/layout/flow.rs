@@ -73,10 +73,44 @@ impl Clone for FlowContext {
 
 impl TreeNodeRef<FlowData> for FlowContext {
     fn with_immutable_node<R>(&self, callback: &fn(&FlowData) -> R) -> R {
-        self.with_common_imm_info(callback)
+        match *self {
+            AbsoluteFlow(info) => callback(info),
+            BlockFlow(info) => {
+                let info = &*info;  // FIXME: Borrow check workaround.
+                callback(&info.common)
+            }
+            FloatFlow(info) => callback(info),
+            InlineBlockFlow(info) => callback(info),
+            InlineFlow(info) => {
+                let info = &*info;  // FIXME: Borrow check workaround.
+                callback(&info.common)
+            }
+            RootFlow(info) => {
+                let info = &*info;  // FIXME: Borrow check workaround.
+                callback(&info.common)
+            }
+            TableFlow(info) => callback(info),
+        }
     }
     fn with_mutable_node<R>(&self, callback: &fn(&mut FlowData) -> R) -> R {
-        self.with_common_info(callback)
+        match *self {
+            AbsoluteFlow(info) => callback(info),
+            BlockFlow(info) => {
+                let info = &mut *info;  // FIXME: Borrow check workaround.
+                callback(&mut info.common)
+            }
+            FloatFlow(info) => callback(info),
+            InlineBlockFlow(info) => callback(info),
+            InlineFlow(info) => {
+                let info = &mut *info;  // FIXME: Borrow check workaround.
+                callback(&mut info.common)
+            }
+            RootFlow(info) => {
+                let info = &mut *info;  // FIXME: Borrow check workaround.
+                callback(&mut info.common)
+            }
+            TableFlow(info) => callback(info),
+        }
     }
 }
 
@@ -167,62 +201,20 @@ impl FlowData {
 }
 
 impl<'self> FlowContext {
-    // FIXME: This method is a duplicate of `with_immutable_node`; fix this.
+    /// A convenience method to return the position of this flow. Fails if the flow is currently
+    /// being borrowed mutably.
     #[inline(always)]
-    pub fn with_common_imm_info<R>(&self, block: &fn(&FlowData) -> R) -> R {
-        match *self {
-            AbsoluteFlow(info) => block(info),
-            BlockFlow(info) => {
-                let info = &*info;  // FIXME: Borrow check workaround.
-                block(&info.common)
-            }
-            FloatFlow(info) => block(info),
-            InlineBlockFlow(info) => block(info),
-            InlineFlow(info) => {
-                let info = &*info;  // FIXME: Borrow check workaround.
-                block(&info.common)
-            }
-            RootFlow(info) => {
-                let info = &*info;  // FIXME: Borrow check workaround.
-                block(&info.common)
-            }
-            TableFlow(info) => block(info),
-        }
-    }
-
-    // FIXME: This method is a duplicate of `with_mutable_node`; fix this.
-    #[inline(always)]
-    pub fn with_common_info<R>(&self, block: &fn(&mut FlowData) -> R) -> R {
-        match *self {
-            AbsoluteFlow(info) => block(info),
-            BlockFlow(info) => {
-                let info = &mut *info;  // FIXME: Borrow check workaround.
-                block(&mut info.common)
-            }
-            FloatFlow(info) => block(info),
-            InlineBlockFlow(info) => block(info),
-            InlineFlow(info) => {
-                let info = &mut *info;  // FIXME: Borrow check workaround.
-                block(&mut info.common)
-            }
-            RootFlow(info) => {
-                let info = &mut *info;  // FIXME: Borrow check workaround.
-                block(&mut info.common)
-            }
-            TableFlow(info) => block(info),
-        }
-    }
-
     pub fn position(&self) -> Rect<Au> {
-        do self.with_common_info |common_info| {
+        do self.with_immutable_node |common_info| {
             common_info.position
         }
     }
 
-    /// Returns the ID of this flow.
+    /// A convenience method to return the ID of this flow. Fails if the flow is currently being
+    /// borrowed mutably.
     #[inline(always)]
     pub fn id(&self) -> int {
-        do self.with_common_info |info| {
+        do self.with_immutable_node |info| {
             info.id
         }
     }
@@ -280,7 +272,7 @@ impl<'self> FlowContext {
                                       dirty: &Rect<Au>,
                                       offset: &Point2D<Au>,
                                       list: &Cell<DisplayList>) {
-        do self.with_common_info |info| {
+        do self.with_immutable_node |info| {
             debug!("FlowContext::build_display_list at %?: %s", info.position, self.debug_str());
         }
 
@@ -414,8 +406,8 @@ impl DebugMethods for FlowContext {
             _ => ~"(Unknown flow)"
         };
 
-        do self.with_common_info |info| {
-            fmt!("f%? %?", info.id, repr)
+        do self.with_immutable_node |this_node| {
+            fmt!("f%? %?", this_node.id, repr)
         }
     }
 }

@@ -13,7 +13,7 @@ use layout::context::LayoutContext;
 use layout::flow::{FlowContext, FlowData, RootFlow};
 use layout::display_list_builder::DisplayListBuilder;
 
-use servo_util::tree::TreeUtils;
+use servo_util::tree::{TreeNodeRef, TreeUtils};
 
 pub struct RootFlowData {
     /// Data common to all flows.
@@ -64,9 +64,9 @@ impl RootFlowData {
         let mut cur_y = Au(0);
 
         for RootFlow(self).each_child |child_flow| {
-            do child_flow.with_common_info |child_common_info| {
-                child_common_info.position.origin.y = cur_y;
-                cur_y += child_common_info.position.size.height;
+            do child_flow.with_mutable_node |child_node| {
+                child_node.position.origin.y = cur_y;
+                cur_y += child_node.position.size.height;
             }
         }
 

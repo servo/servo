@@ -19,7 +19,7 @@ use gfx::image::holder::ImageHolder;
 use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
 use newcss::values::{CSSDisplayNone};
 use servo_util::range::Range;
-use servo_util::tree::TreeUtils;
+use servo_util::tree::{TreeNodeRef, TreeUtils};
 
 pub struct LayoutTreeBuilder {
     root_flow: Option<FlowContext>,
@@ -122,7 +122,6 @@ impl BoxGenerator {
         // depending on flow, make a box for this node.
         match self.flow {
             InlineFlow(inline) => {
-
                 let mut inline = &mut *inline;
                 let node_range_start = inline.boxes.len();
                 self.range_stack.push(node_range_start);
@@ -140,42 +139,31 @@ impl BoxGenerator {
                 }
                 // TODO: cases for inline-block, etc.
             },
-            BlockFlow(*) => {
-                do self.flow.with_common_info |flow_info| {
-                    debug!("BoxGenerator[f%d]: point b", flow_info.id);
-                    let new_box = builder.make_box(ctx, box_type, node, self.flow);
-                    debug!("BoxGenerator[f%d]: attaching box[b%d] to block flow (node: %s)",
-                           flow_info.id,
-                           new_box.d().id,
-                           node.debug_str());
+            BlockFlow(block) => {
+                debug!("BoxGenerator[f%d]: point b", block.common.id);
+                let new_box = builder.make_box(ctx, box_type, node, self.flow);
 
-                    assert!(self.flow.block().box.is_none());
-                    //XXXjdm We segfault when returning without this temporary.
-                    let block = self.flow.block();
-                    block.box = Some(new_box);
-                }
-            },
-            RootFlow(*) => {
-                do self.flow.with_common_info |info| {
-                    debug!("BoxGenerator[f%d]: point c", info.id);
-                    let new_box = builder.make_box(ctx, box_type, node, self.flow);
-                    debug!("BoxGenerator[f%d]: (node is: %s)", info.id, node.debug_str());
-                    debug!("BoxGenerator[f%d]: attaching box[b%d] to root flow (node: %s)",
-                           info.id,
-                           new_box.d().id,
-                           node.debug_str());
+                debug!("BoxGenerator[f%d]: attaching box[b%d] to block flow (node: %s)",
+                       block.common.id,
+                       new_box.d().id,
+                       node.debug_str());
 
-                    assert!(self.flow.root().box.is_none());
-                    //XXXjdm We segfault when returning without this temporary.
-                    let root = self.flow.root();
-                    root.box = Some(new_box);
-                }
+                assert!(block.box.is_none());
+                block.box = Some(new_box);
             },
-            _ => {
-                do self.flow.with_common_info |flow_info| {
-                    warn!("push_node() not implemented for flow f%d", flow_info.id)
-                }
-            }
+            RootFlow(root) => {
+                debug!("BoxGenerator[f%d]: point c", root.common.id);
+                let new_box = builder.make_box(ctx, box_type, node, self.flow);
+                debug!("BoxGenerator[f%d]: (node is: %s)", root.common.id, node.debug_str());
+                debug!("BoxGenerator[f%d]: attaching box[b%d] to root flow (node: %s)",
+                       root.common.id,
+                       new_box.d().id,
+                       node.debug_str());
+
+                assert!(root.box.is_none());
+                root.box = Some(new_box);
+            },
+            _ => warn!("push_node() not implemented for flow f%d", self.flow.id()),
         }
     }
 
@@ -236,14 +224,10 @@ impl BuilderContext {
     
     priv fn attach_child_flow(&self, child: FlowContext) {
         let default_collector = &mut *self.default_collector;
-        do default_collector.flow.with_common_info |flow_info| {
-            do child.with_common_info |child_flow_info| {
-                debug!("BuilderContext: Adding child flow f%? of f%?",
-                       flow_info.id,
-                       child_flow_info.id);
-                default_collector.flow.add_child(child);
-            }
-        }
+        debug!("BuilderContext: Adding child flow f%? of f%?",
+               default_collector.flow.id(),
+               child.id());
+        default_collector.flow.add_child(child);
     }
     
     priv fn create_child_flow_of_type(&self,
@@ -352,23 +336,22 @@ pub impl LayoutTreeBuilder {
         let flow = &mut this_ctx.default_collector.flow;
         let flow: &FlowContext = flow;
         for flow.each_child |child_flow| {
-            do child_flow.with_common_info |child_flow_info| {
-                let node = child_flow_info.node;
-                assert!(node.has_layout_data());
-                node.layout_data().flow = Some(child_flow);
+            do child_flow.with_immutable_node |child_node| {
+                let dom_node = child_node.node;
+                assert!(dom_node.has_layout_data());
+                dom_node.layout_data().flow = Some(child_flow);
             }
         }
     }
 
-    // Fixup any irregularities such as:
-    //
-    // * split inlines (CSS 2.1 Section 9.2.1.1)
-    // * elide non-preformatted whitespace-only text boxes and their
-    //   flows (CSS 2.1 Section 9.2.2.1).
-    //
-    // The latter can only be done immediately adjacent to, or at the
-    // beginning or end of a block flow. Otherwise, the whitespace
-    // might affect whitespace collapsing with adjacent text.
+    /// Fix up any irregularities such as:
+    ///
+    /// * split inlines (CSS 2.1 Section 9.2.1.1)
+    /// * elide non-preformatted whitespace-only text boxes and their flows (CSS 2.1 Section
+    ///   9.2.2.1).
+    ///
+    /// The latter can only be done immediately adjacent to, or at the beginning or end of a block
+    /// flow. Otherwise, the whitespace might affect whitespace collapsing with adjacent text.
     fn simplify_children_of_flow(&self, _: &LayoutContext, parent_ctx: &BuilderContext) {
         match parent_ctx.default_collector.flow {
             InlineFlow(*) => {
@@ -394,10 +377,9 @@ pub impl LayoutTreeBuilder {
                 // of its RenderBox or FlowContext children, and possibly keep alive other junk
                 let parent_flow = parent_ctx.default_collector.flow;
 
-                let (first_child, last_child) =
-                    do parent_flow.with_common_info |parent_flow_info| {
-                        (parent_flow_info.first_child, parent_flow_info.last_child)
-                    };
+                let (first_child, last_child) = do parent_flow.with_immutable_node |parent_node| {
+                    (parent_node.first_child, parent_node.last_child)
+                };
 
                 // check first/last child for whitespace-ness
                 for first_child.each |first_flow| {
