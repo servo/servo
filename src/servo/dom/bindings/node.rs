@@ -18,6 +18,7 @@ use js::jsval::{INT_TO_JSVAL};
 use js::rust::{Compartment, jsobj};
 use js::{JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
 use js::{JS_THIS_OBJECT, JSPROP_NATIVE_ACCESSORS};
+use servo_util::tree::TreeNodeRef;
 
 pub fn init(compartment: @mut Compartment) {
     let obj = utils::define_empty_prototype(~"Node", None, compartment);
@@ -80,7 +81,7 @@ extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool
         }
 
         let node = unwrap(obj);
-        let rval = do node.with_mut_node |node| {
+        let rval = do node.with_mutable_node |node| {
             node.getFirstChild()
         };
         match rval {
@@ -102,7 +103,7 @@ extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBoo
         }
 
         let node = unwrap(obj);
-        let rval = do node.with_mut_node |node| {
+        let rval = do node.with_mutable_node |node| {
             node.getNextSibling()
         };
         match rval {
@@ -127,19 +128,19 @@ impl Node {
 
     fn getNextSibling(&mut self) -> Option<&mut AbstractNode> {
         match self.next_sibling {
-          // transmute because the compiler can't deduce that the reference
-          // is safe outside of with_mut_node blocks.
-          Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
-          None => None
+            // transmute because the compiler can't deduce that the reference
+            // is safe outside of with_mutable_node blocks.
+            Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
+            None => None
         }
     }
 
     fn getFirstChild(&mut self) -> Option<&mut AbstractNode> {
         match self.first_child {
-          // transmute because the compiler can't deduce that the reference
-          // is safe outside of with_mut_node blocks.
-          Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
-          None => None
+            // transmute because the compiler can't deduce that the reference
+            // is safe outside of with_mutable_node blocks.
+            Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
+            None => None
         }
     }
  }
@@ -152,7 +153,7 @@ extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
         }
 
         let node = unwrap(obj);
-        let rval = do node.with_imm_node |node| {
+        let rval = do node.with_immutable_node |node| {
             node.getNodeType()
         };
         *vp = INT_TO_JSVAL(rval);
@@ -162,8 +163,10 @@ extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
 
 impl CacheableWrapper for AbstractNode {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        do self.with_mut_node |n| {
-            unsafe { cast::transmute(&n.wrapper) }
+        do self.with_mutable_node |node| {
+            unsafe {
+                cast::transmute(&node.wrapper)
+            }
         }
     }
 

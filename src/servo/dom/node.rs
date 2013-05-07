@@ -205,13 +205,13 @@ impl TreeNode<AbstractNode> for Node {
 }
 
 impl TreeNodeRef<Node> for AbstractNode {
-    // FIXME: The duplication between `with_imm_node` and `with_immutable_node` is ugly.
+    // FIXME: The duplication between `with_immutable_node` and `with_immutable_node` is ugly.
     fn with_immutable_node<R>(&self, callback: &fn(&Node) -> R) -> R {
-        self.with_imm_node(callback)
+        self.transmute(callback)
     }
 
     fn with_mutable_node<R>(&self, callback: &fn(&mut Node) -> R) -> R {
-        self.with_mut_node(callback)
+        self.transmute_mut(callback)
     }
 }
 
@@ -220,44 +220,44 @@ impl AbstractNode {
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
     pub fn type_id(self) -> NodeTypeId {
-        self.with_imm_node(|n| n.type_id)
+        self.with_immutable_node(|n| n.type_id)
     }
 
     /// Returns the parent node of this node. Fails if this node is borrowed mutably.
     pub fn parent_node(self) -> Option<AbstractNode> {
-        self.with_imm_node(|n| n.parent_node)
+        self.with_immutable_node(|n| n.parent_node)
     }
 
     /// Returns the first child of this node. Fails if this node is borrowed mutably.
     pub fn first_child(self) -> Option<AbstractNode> {
-        self.with_imm_node(|n| n.first_child)
+        self.with_immutable_node(|n| n.first_child)
     }
 
     /// Returns the last child of this node. Fails if this node is borrowed mutably.
     pub fn last_child(self) -> Option<AbstractNode> {
-        self.with_imm_node(|n| n.last_child)
+        self.with_immutable_node(|n| n.last_child)
     }
 
     /// Returns the previous sibling of this node. Fails if this node is borrowed mutably.
     pub fn prev_sibling(self) -> Option<AbstractNode> {
-        self.with_imm_node(|n| n.prev_sibling)
+        self.with_immutable_node(|n| n.prev_sibling)
     }
 
     /// Returns the next sibling of this node. Fails if this node is borrowed mutably.
     pub fn next_sibling(self) -> Option<AbstractNode> {
-        self.with_imm_node(|n| n.next_sibling)
+        self.with_immutable_node(|n| n.next_sibling)
     }
 
     // NB: You must not call these if you are not layout. We should do something with scoping to
     // ensure this.
     pub fn layout_data(self) -> @mut LayoutData {
-        self.with_imm_node(|n| n.layout_data.get())
+        self.with_immutable_node(|n| n.layout_data.get())
     }
     pub fn has_layout_data(self) -> bool {
-        self.with_imm_node(|n| n.layout_data.is_some())
+        self.with_immutable_node(|n| n.layout_data.is_some())
     }
     pub fn set_layout_data(self, data: @mut LayoutData) {
-        self.with_mut_node(|n| n.layout_data = Some(data))
+        self.with_mutable_node(|n| n.layout_data = Some(data))
     }
 
     //
@@ -288,14 +288,6 @@ impl AbstractNode {
             node.abstract = old;
             rv
         }
-    }
-
-    pub fn with_imm_node<R>(self, f: &fn(&Node) -> R) -> R {
-        self.transmute(f)
-    }
-
-    pub fn with_mut_node<R>(self, f: &fn(&mut Node) -> R) -> R {
-        self.transmute_mut(f)
     }
 
     pub fn is_text(self) -> bool {
@@ -408,12 +400,11 @@ impl Node {
         self.owner_doc = Some(doc);
         let mut node = self.first_child;
         while node.is_some() {
-            node.get().traverse_preorder(|n| {
-                do n.with_mut_node |n| {
-                    n.owner_doc = Some(doc);
+            for node.get().traverse_preorder |node| {
+                do node.with_mutable_node |node_data| {
+                    node_data.owner_doc = Some(doc);
                 }
-                true
-            });
+            };
             node = node.get().next_sibling();
         }
     }
