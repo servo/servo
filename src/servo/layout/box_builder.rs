@@ -121,6 +121,8 @@ impl BoxGenerator {
         // depending on flow, make a box for this node.
         match self.flow {
             InlineFlow(inline) => {
+                use servo_util::tree::TreeUtils;    // For `is_leaf()`.
+
                 let mut inline = &mut *inline;
                 let node_range_start = inline.boxes.len();
                 self.range_stack.push(node_range_start);
@@ -336,8 +338,12 @@ pub impl LayoutTreeBuilder {
         debug!("point b: %s", cur_node.debug_str());
 
         // recurse on child nodes.
-        for cur_node.each_child |child_node| {
-            self.construct_recursively(layout_ctx, child_node, &mut this_ctx);
+        {
+            use servo_util::tree::TreeUtils;    // For `each_child()`.
+
+            for cur_node.each_child |child_node| {
+                self.construct_recursively(layout_ctx, child_node, &mut this_ctx);
+            }
         }
 
         this_ctx.default_collector.pop_node(layout_ctx, self, cur_node);
