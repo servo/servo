@@ -13,6 +13,8 @@ use layout::context::LayoutContext;
 use layout::flow::{FlowContext, FlowData, RootFlow};
 use layout::display_list_builder::DisplayListBuilder;
 
+use servo_util::tree::TreeUtils;
+
 pub struct RootFlowData {
     /// Data common to all flows.
     common: FlowData,

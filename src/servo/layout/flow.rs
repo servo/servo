@@ -41,6 +41,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
+use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
 
 /// The type of the formatting context and data specific to each context, such as line box
 /// structures or float lists.
@@ -62,6 +63,21 @@ pub enum FlowContextType {
     Flow_Inline,
     Flow_Root,
     Flow_Table
+}
+
+impl Clone for FlowContext {
+    fn clone(&self) -> FlowContext {
+        *self
+    }
+}
+
+impl TreeNodeRef<FlowData> for FlowContext {
+    fn with_immutable_node<R>(&self, callback: &fn(&FlowData) -> R) -> R {
+        self.with_common_imm_info(callback)
+    }
+    fn with_mutable_node<R>(&self, callback: &fn(&mut FlowData) -> R) -> R {
+        self.with_common_info(callback)
+    }
 }
 
 /// Data common to all flows.
@@ -88,6 +104,48 @@ pub struct FlowData {
     position: Rect<Au>,
 }
 
+impl TreeNode<FlowContext> for FlowData {
+    fn parent_node(&self) -> Option<FlowContext> {
+        self.parent
+    }
+
+    fn first_child(&self) -> Option<FlowContext> {
+        self.first_child
+    }
+
+    fn last_child(&self) -> Option<FlowContext> {
+        self.last_child
+    }
+
+    fn prev_sibling(&self) -> Option<FlowContext> {
+        self.prev_sibling
+    }
+
+    fn next_sibling(&self) -> Option<FlowContext> {
+        self.next_sibling
+    }
+
+    fn set_parent_node(&mut self, new_parent_node: Option<FlowContext>) {
+        self.parent = new_parent_node
+    }
+
+    fn set_first_child(&mut self, new_first_child: Option<FlowContext>) {
+        self.first_child = new_first_child
+    }
+
+    fn set_last_child(&mut self, new_last_child: Option<FlowContext>) {
+        self.last_child = new_last_child
+    }
+
+    fn set_prev_sibling(&mut self, new_prev_sibling: Option<FlowContext>) {
+        self.prev_sibling = new_prev_sibling
+    }
+
+    fn set_next_sibling(&mut self, new_next_sibling: Option<FlowContext>) {
+        self.next_sibling = new_next_sibling
+    }
+}
+
 impl FlowData {
     pub fn new(id: int, node: AbstractNode) -> FlowData {
         FlowData {
@@ -109,6 +167,30 @@ impl FlowData {
 }
 
 impl<'self> FlowContext {
+    // FIXME: This method is a duplicate of `with_immutable_node`; fix this.
+    #[inline(always)]
+    pub fn with_common_imm_info<R>(&self, block: &fn(&FlowData) -> R) -> R {
+        match *self {
+            AbsoluteFlow(info) => block(info),
+            BlockFlow(info) => {
+                let info = &*info;  // FIXME: Borrow check workaround.
+                block(&info.common)
+            }
+            FloatFlow(info) => block(info),
+            InlineBlockFlow(info) => block(info),
+            InlineFlow(info) => {
+                let info = &*info;  // FIXME: Borrow check workaround.
+                block(&info.common)
+            }
+            RootFlow(info) => {
+                let info = &*info;  // FIXME: Borrow check workaround.
+                block(&info.common)
+            }
+            TableFlow(info) => block(info),
+        }
+    }
+
+    // FIXME: This method is a duplicate of `with_mutable_node`; fix this.
     #[inline(always)]
     pub fn with_common_info<R>(&self, block: &fn(&mut FlowData) -> R) -> R {
         match *self {
@@ -142,87 +224,6 @@ impl<'self> FlowContext {
     pub fn id(&self) -> int {
         do self.with_common_info |info| {
             info.id
-        }
-    }
-
-    /// Iterates over the immediate children of this flow.
-    ///
-    /// TODO: Fold me into `util::tree`.
-    pub fn each_child(&self, f: &fn(FlowContext) -> bool) {
-        let mut current_opt = self.with_common_info(|info| info.first_child);
-        while !current_opt.is_none() {
-            let current = current_opt.get();
-            if !f(current) {
-                break;
-            }
-            current_opt = current.with_common_info(|info| info.next_sibling);
-        }
-    }
-
-    /// Adds the given flow to the end of the list of this flow's children. The new child must be
-    /// detached from the tree before calling this method.
-    ///
-    /// TODO: Fold me into `util::tree`.
-    pub fn add_child(&self, child: FlowContext) {
-        do self.with_common_info |self_info| {
-            do child.with_common_info |child_info| {
-                assert!(child_info.parent.is_none());
-                assert!(child_info.prev_sibling.is_none());
-                assert!(child_info.next_sibling.is_none());
-
-                match self_info.last_child {
-                    None => {
-                        self_info.first_child = Some(child);
-                    }
-                    Some(last_child) => {
-                        do last_child.with_common_info |last_child_info| {
-                            assert!(last_child_info.next_sibling.is_none());
-                            last_child_info.next_sibling = Some(child);
-                            child_info.prev_sibling = Some(last_child);
-                        }
-                    }
-                }
-
-                self_info.last_child = Some(child);
-                child_info.parent = Some(*self);
-            }
-        }
-    }
-
-    /// Removes the given flow from the tree.
-    ///
-    /// TODO: Fold me into `util::tree`.
-    pub fn remove_child(&self, child: FlowContext) {
-        do self.with_common_info |self_info| {
-            do child.with_common_info |child_info| {
-                assert!(child_info.parent.is_some());
-
-                match child_info.prev_sibling {
-                    None => self_info.first_child = child_info.next_sibling,
-                    Some(prev_sibling) => {
-                        do prev_sibling.with_common_info |prev_sibling_info| {
-                            prev_sibling_info.next_sibling = child_info.next_sibling;
-                            child_info.prev_sibling = None;
-                        }
-                    }
-                }
-
-                match child_info.next_sibling {
-                    None => {
-                        do child.with_common_info |child_info| {
-                            self_info.last_child = child_info.prev_sibling;
-                        }
-                    }
-                    Some(next_sibling) => {
-                        do next_sibling.with_common_info |next_sibling_info| {
-                            next_sibling_info.prev_sibling = Some(next_sibling);
-                            child_info.next_sibling = None;
-                        }
-                    }
-                }
-
-                child_info.parent = None;
-            }
         }
     }
 

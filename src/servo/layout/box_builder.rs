@@ -19,6 +19,7 @@ use gfx::image::holder::ImageHolder;
 use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
 use newcss::values::{CSSDisplayNone};
 use servo_util::range::Range;
+use servo_util::tree::TreeUtils;
 
 pub struct LayoutTreeBuilder {
     root_flow: Option<FlowContext>,
@@ -121,7 +122,6 @@ impl BoxGenerator {
         // depending on flow, make a box for this node.
         match self.flow {
             InlineFlow(inline) => {
-                use servo_util::tree::TreeUtils;    // For `is_leaf()`.
 
                 let mut inline = &mut *inline;
                 let node_range_start = inline.boxes.len();
@@ -338,12 +338,8 @@ pub impl LayoutTreeBuilder {
         debug!("point b: %s", cur_node.debug_str());
 
         // recurse on child nodes.
-        {
-            use servo_util::tree::TreeUtils;    // For `each_child()`.
-
-            for cur_node.each_child |child_node| {
-                self.construct_recursively(layout_ctx, child_node, &mut this_ctx);
-            }
+        for cur_node.each_child |child_node| {
+            self.construct_recursively(layout_ctx, child_node, &mut this_ctx);
         }
 
         this_ctx.default_collector.pop_node(layout_ctx, self, cur_node);
@@ -354,6 +350,7 @@ pub impl LayoutTreeBuilder {
         // eventually be elided or split, but the mapping between
         // nodes and FlowContexts should not change during layout.
         let flow = &mut this_ctx.default_collector.flow;
+        let flow: &FlowContext = flow;
         for flow.each_child |child_flow| {
             do child_flow.with_common_info |child_flow_info| {
                 let node = child_flow_info.node;
@@ -379,6 +376,7 @@ pub impl LayoutTreeBuilder {
                 let mut found_child_block = false;
 
                 let flow = &mut parent_ctx.default_collector.flow;
+                let flow: &FlowContext = flow;
                 for flow.each_child |child_ctx| {
                     match child_ctx {
                         InlineFlow(*) | InlineBlockFlow(*) => found_child_inline = true,
