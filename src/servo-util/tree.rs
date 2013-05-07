@@ -7,10 +7,10 @@
 /// The basic trait. This function is meant to encapsulate a clonable reference to a tree node.
 pub trait TreeNodeRef<N> : Clone {
     /// Borrows this node as immutable.
-    fn with_immutable_node<R>(&self, callback: &fn(&N) -> R) -> R;
+    fn with_imm_node<R>(&self, callback: &fn(&N) -> R) -> R;
 
     /// Borrows this node as mutable.
-    fn with_mutable_node<R>(&self, callback: &fn(&mut N) -> R) -> R;
+    fn with_mut_node<R>(&self, callback: &fn(&mut N) -> R) -> R;
 }
 
 /// The contents of a tree node.
@@ -73,14 +73,14 @@ pub trait TreeUtils {
 
 impl<NR:TreeNodeRef<N>,N:TreeNode<NR>> TreeUtils for NR {
     fn is_leaf(&self) -> bool {
-        do self.with_immutable_node |this_node| {
+        do self.with_imm_node |this_node| {
             this_node.first_child().is_none()
         }
     }
 
     fn add_child(&self, new_child: NR) {
-        do self.with_mutable_node |this_node| {
-            do new_child.with_mutable_node |new_child_node| {
+        do self.with_mut_node |this_node| {
+            do new_child.with_mut_node |new_child_node| {
                 assert!(new_child_node.parent_node().is_none());
                 assert!(new_child_node.prev_sibling().is_none());
                 assert!(new_child_node.next_sibling().is_none());
@@ -88,7 +88,7 @@ impl<NR:TreeNodeRef<N>,N:TreeNode<NR>> TreeUtils for NR {
                 match this_node.last_child() {
                     None => this_node.set_first_child(Some(new_child.clone())),
                     Some(last_child) => {
-                        do last_child.with_mutable_node |last_child_node| {
+                        do last_child.with_mut_node |last_child_node| {
                             assert!(last_child_node.next_sibling().is_none());
                             last_child_node.set_next_sibling(Some(new_child.clone()));
                             new_child_node.set_prev_sibling(Some(last_child.clone()));
@@ -103,14 +103,14 @@ impl<NR:TreeNodeRef<N>,N:TreeNode<NR>> TreeUtils for NR {
     }
 
     fn remove_child(&self, child: NR) {
-        do self.with_mutable_node |this_node| {
-            do child.with_mutable_node |child_node| {
+        do self.with_mut_node |this_node| {
+            do child.with_mut_node |child_node| {
                 assert!(child_node.parent_node().is_some());
 
                 match child_node.prev_sibling() {
                     None => this_node.set_first_child(child_node.next_sibling()),
                     Some(prev_sibling) => {
-                        do prev_sibling.with_mutable_node |prev_sibling_node| {
+                        do prev_sibling.with_mut_node |prev_sibling_node| {
                             prev_sibling_node.set_next_sibling(child_node.next_sibling());
                         }
                     }
@@ -119,7 +119,7 @@ impl<NR:TreeNodeRef<N>,N:TreeNode<NR>> TreeUtils for NR {
                 match child_node.next_sibling() {
                     None => this_node.set_last_child(child_node.prev_sibling()),
                     Some(next_sibling) => {
-                        do next_sibling.with_mutable_node |next_sibling_node| {
+                        do next_sibling.with_mut_node |next_sibling_node| {
                             next_sibling_node.set_prev_sibling(child_node.prev_sibling());
                         }
                     }
@@ -133,14 +133,14 @@ impl<NR:TreeNodeRef<N>,N:TreeNode<NR>> TreeUtils for NR {
     }
 
     fn each_child(&self, callback: &fn(NR) -> bool) {
-        let mut maybe_current = self.with_immutable_node(|n| n.first_child());
+        let mut maybe_current = self.with_imm_node(|n| n.first_child());
         while !maybe_current.is_none() {
             let current = maybe_current.get_ref().clone();
             if !callback(current.clone()) {
                 break;
             }
 
-            maybe_current = current.with_immutable_node(|n| n.next_sibling());
+            maybe_current = current.with_imm_node(|n| n.next_sibling());
         }
     }
 

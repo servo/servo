@@ -99,7 +99,7 @@ impl BlockLayout for FlowContext {
         for self.each_child |child_ctx| {
             assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
 
-            do child_ctx.with_immutable_node |child_node| {
+            do child_ctx.with_imm_node |child_node| {
                 min_width = au::max(min_width, child_node.min_width);
                 pref_width = au::max(pref_width, child_node.pref_width);
             }
@@ -112,7 +112,7 @@ impl BlockLayout for FlowContext {
             pref_width = pref_width.add(&box.get_pref_width(ctx));
         }
 
-        do self.with_mutable_node |this_node| {
+        do self.with_mut_node |this_node| {
             this_node.min_width = min_width;
             this_node.pref_width = pref_width;
         }
@@ -126,7 +126,7 @@ impl BlockLayout for FlowContext {
     fn assign_widths_block(&self, _: &LayoutContext) { 
         assert!(self.starts_block_flow());
 
-        let mut remaining_width = self.with_immutable_node(|this| this.position.size.width);
+        let mut remaining_width = self.with_imm_node(|this| this.position.size.width);
         let mut _right_used = Au(0);
         let mut left_used = Au(0);
 
@@ -140,7 +140,7 @@ impl BlockLayout for FlowContext {
         for self.each_child |kid| {
             assert!(kid.starts_block_flow() || kid.starts_inline_flow());
 
-            do kid.with_mutable_node |child_node| {
+            do kid.with_mut_node |child_node| {
                 child_node.position.origin.x = left_used;
                 child_node.position.size.width = remaining_width;
             }
@@ -153,13 +153,13 @@ impl BlockLayout for FlowContext {
         let mut cur_y = Au(0);
 
         for self.each_child |kid| {
-            do kid.with_mutable_node |child_node| {
+            do kid.with_mut_node |child_node| {
                 child_node.position.origin.y = cur_y;
                 cur_y += child_node.position.size.height;
             }
         }
 
-        do self.with_mutable_node |this_node| {
+        do self.with_mut_node |this_node| {
             this_node.position.size.height = cur_y;
         }
 

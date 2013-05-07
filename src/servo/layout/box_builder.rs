@@ -336,7 +336,7 @@ pub impl LayoutTreeBuilder {
         let flow = &mut this_ctx.default_collector.flow;
         let flow: &FlowContext = flow;
         for flow.each_child |child_flow| {
-            do child_flow.with_immutable_node |child_node| {
+            do child_flow.with_imm_node |child_node| {
                 let dom_node = child_node.node;
                 assert!(dom_node.has_layout_data());
                 dom_node.layout_data().flow = Some(child_flow);
@@ -377,7 +377,7 @@ pub impl LayoutTreeBuilder {
                 // of its RenderBox or FlowContext children, and possibly keep alive other junk
                 let parent_flow = parent_ctx.default_collector.flow;
 
-                let (first_child, last_child) = do parent_flow.with_immutable_node |parent_node| {
+                let (first_child, last_child) = do parent_flow.with_imm_node |parent_node| {
                     (parent_node.first_child, parent_node.last_child)
                 };
 

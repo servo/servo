@@ -64,7 +64,7 @@ impl RootFlowData {
         let mut cur_y = Au(0);
 
         for RootFlow(self).each_child |child_flow| {
-            do child_flow.with_mutable_node |child_node| {
+            do child_flow.with_mut_node |child_node| {
                 child_node.position.origin.y = cur_y;
                 cur_y += child_node.position.size.height;
             }

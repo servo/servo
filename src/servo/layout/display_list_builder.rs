@@ -54,7 +54,7 @@ impl FlowDisplayListBuilderMethods for FlowContext {
                                     offset: &Point2D<Au>,
                                     list: &Cell<DisplayList>) {
         // Adjust the dirty rect to child flow context coordinates.
-        do child_flow.with_immutable_node |child_node| {
+        do child_flow.with_imm_node |child_node| {
             let abs_flow_bounds = child_node.position.translate(offset);
             let adj_offset = offset.add(&child_node.position.origin);
 
