@@ -7,20 +7,21 @@
 //
 
 use content::content_task::global_content;
-use dom::bindings;
 use dom::bindings::codegen;
 use dom::bindings::node;
 use dom::bindings::utils::WrapperCache;
+use dom::bindings;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
+use js::rust::Compartment;
 use layout::debug::DebugMethods;
 use layout::flow::FlowContext;
 use newcss::complete::CompleteSelectResults;
-use js::rust::Compartment;
 
 use core::cast::transmute;
+use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
 
 //
 // The basic Node structure
@@ -135,17 +136,76 @@ impl Text {
     }
 }
 
-pub impl AbstractNode {
-    //
-    // Convenience accessors
-    //
-    // FIXME: Fold these into util::tree.
+impl Clone for AbstractNode {
+    fn clone(&self) -> AbstractNode {
+        *self
+    }
+}
 
+impl TreeNode<AbstractNode> for Node {
+    fn parent_node(&self) -> Option<AbstractNode> {
+        self.parent_node
+    }
+    fn first_child(&self) -> Option<AbstractNode> {
+        self.first_child
+    }
+    fn last_child(&self) -> Option<AbstractNode> {
+        self.last_child
+    }
+    fn prev_sibling(&self) -> Option<AbstractNode> {
+        self.prev_sibling
+    }
+    fn next_sibling(&self) -> Option<AbstractNode> {
+        self.next_sibling
+    }
+
+    fn set_parent_node(&mut self, new_parent_node: Option<AbstractNode>) {
+        self.parent_node = new_parent_node
+    }
+    fn set_first_child(&mut self, new_first_child: Option<AbstractNode>) {
+        self.first_child = new_first_child
+    }
+    fn set_last_child(&mut self, new_last_child: Option<AbstractNode>) {
+        self.last_child = new_last_child
+    }
+    fn set_prev_sibling(&mut self, new_prev_sibling: Option<AbstractNode>) {
+        self.prev_sibling = new_prev_sibling
+    }
+    fn set_next_sibling(&mut self, new_next_sibling: Option<AbstractNode>) {
+        self.next_sibling = new_next_sibling
+    }
+}
+
+impl TreeNodeRef<Node> for AbstractNode {
+    // FIXME: The duplication between `with_imm_node` and `with_immutable_node` is ugly.
+    fn with_immutable_node<R>(&self, callback: &fn(&Node) -> R) -> R {
+        self.with_imm_node(callback)
+    }
+
+    fn with_mutable_node<R>(&self, callback: &fn(&mut Node) -> R) -> R {
+        self.with_mut_node(callback)
+    }
+}
+
+pub impl AbstractNode {
+    // Convenience accessors
+
+    /// Returns the type ID of this node.
     fn type_id(self)         -> NodeTypeId           { self.with_imm_node(|n| n.type_id)      }
+
+    /// Returns the parent node of this node.
     fn parent_node(self)     -> Option<AbstractNode> { self.with_imm_node(|n| n.parent_node)  }
+
+    /// Returns the first child of this node.
     fn first_child(self)     -> Option<AbstractNode> { self.with_imm_node(|n| n.first_child)  }
+
+    /// Returns the last child of this node.
     fn last_child(self)      -> Option<AbstractNode> { self.with_imm_node(|n| n.last_child)   }
+
+    /// Returns the previous sibling of this node.
     fn prev_sibling(self)    -> Option<AbstractNode> { self.with_imm_node(|n| n.prev_sibling) }
+
+    /// Returns the next sibling of this node.
     fn next_sibling(self)    -> Option<AbstractNode> { self.with_imm_node(|n| n.next_sibling) }
 
     // NB: You must not call these if you are not layout. We should do something with scoping to

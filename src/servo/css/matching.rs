@@ -10,6 +10,8 @@ use dom::node::AbstractNode;
 use newcss::complete::CompleteSelectResults;
 use newcss::select::{SelectCtx, SelectResults};
 
+use servo_util::tree::TreeUtils;
+
 pub trait MatchMethods {
     fn restyle_subtree(&self, select_ctx: &SelectCtx);
 }

@@ -11,6 +11,7 @@ use dom::node::AbstractNode;
 use dom::window::Window;
 
 use js::jsapi::bindgen::{JS_AddObjectRoot, JS_RemoveObjectRoot};
+use servo_util::tree::TreeUtils;
 
 pub struct Document {
     root: AbstractNode,
