@@ -10,27 +10,30 @@ use gfx::geometry::Au;
 use layout::block::BlockLayout;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
-use layout::flow::{FlowContext, RootFlow};
+use layout::flow::{FlowContext, FlowData, RootFlow};
 use layout::display_list_builder::DisplayListBuilder;
 
+use servo_util::tree::{TreeNodeRef, TreeUtils};
+
 pub struct RootFlowData {
+    /// Data common to all flows.
+    common: FlowData,
+
+    /// The render box at the root of the tree.
     box: Option<@mut RenderBox>
 }
 
-pub fn RootFlowData() -> RootFlowData {
-    RootFlowData {
-        box: None
+impl RootFlowData {
+    pub fn new(common: FlowData) -> RootFlowData {
+        RootFlowData {
+            common: common,
+            box: None,
+        }
     }
 }
 
 pub trait RootLayout {
     fn starts_root_flow(&self) -> bool;
-
-    fn bubble_widths_root(@mut self, ctx: &LayoutContext);
-    fn assign_widths_root(@mut self, ctx: &LayoutContext);
-    fn assign_height_root(@mut self, ctx: &LayoutContext);
-    fn build_display_list_root(@mut self, a: &DisplayListBuilder, b: &Rect<Au>,
-                               c: &Point2D<Au>, d: &Cell<DisplayList>);
 }
 
 impl RootLayout for FlowContext {
@@ -40,47 +43,47 @@ impl RootLayout for FlowContext {
             _ => false 
         }
     }
+}
 
-    /* defer to the block algorithm */
-    fn bubble_widths_root(@mut self, ctx: &LayoutContext) {
-        assert!(self.starts_root_flow());
-        self.bubble_widths_block(ctx)
+impl RootFlowData {
+    /// Defer to the block algorithm.
+    pub fn bubble_widths_root(@mut self, ctx: &LayoutContext) {
+        RootFlow(self).bubble_widths_block(ctx)
     }
  
-    fn assign_widths_root(@mut self, ctx: &LayoutContext) { 
-        assert!(self.starts_root_flow());
+    pub fn assign_widths_root(@mut self, ctx: &LayoutContext) { 
+        self.common.position.origin = Au::zero_point();
+        self.common.position.size.width = ctx.screen_size.size.width;
 
-        self.d().position.origin = Au::zero_point();
-        self.d().position.size.width = ctx.screen_size.size.width;
-
-        self.assign_widths_block(ctx)
+        RootFlow(self).assign_widths_block(ctx)
     }
 
-    fn assign_height_root(@mut self, ctx: &LayoutContext) {
-        assert!(self.starts_root_flow());
-
+    pub fn assign_height_root(@mut self, ctx: &LayoutContext) {
         // this is essentially the same as assign_height_block(), except
         // the root adjusts self height to at least cover the viewport.
         let mut cur_y = Au(0);
 
-        for self.each_child |child_ctx| {
-            child_ctx.d().position.origin.y = cur_y;
-            cur_y += child_ctx.d().position.size.height;
+        for RootFlow(self).each_child |child_flow| {
+            do child_flow.with_mut_node |child_node| {
+                child_node.position.origin.y = cur_y;
+                cur_y += child_node.position.size.height;
+            }
         }
 
-        self.d().position.size.height = Au::max(ctx.screen_size.size.height, cur_y);
+        self.common.position.size.height = Au::max(ctx.screen_size.size.height, cur_y);
 
-        do self.with_block_box |box| {
+        do RootFlow(self).with_block_box |box| {
             box.d().position.origin.y = Au(0);
             box.d().position.size.height = Au::max(ctx.screen_size.size.height, cur_y);
             let (_used_top, _used_bot) = box.get_used_height();
         }
     }
 
-    fn build_display_list_root(@mut self, builder: &DisplayListBuilder, dirty: &Rect<Au>, 
-                               offset: &Point2D<Au>, list: &Cell<DisplayList>) {
-        assert!(self.starts_root_flow());
-
-        self.build_display_list_block(builder, dirty, offset, list);
+    pub fn build_display_list_root(@mut self,
+                                   builder: &DisplayListBuilder,
+                                   dirty: &Rect<Au>, 
+                                   offset: &Point2D<Au>,
+                                   list: &Cell<DisplayList>) {
+        RootFlow(self).build_display_list_block(builder, dirty, offset, list);
     }
 }

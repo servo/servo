@@ -14,8 +14,9 @@ use util::task::spawn_conversation;
 use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
 use core::str::eq_slice;
-use servo_util::url::make_url;
 use hubbub::hubbub;
+use servo_util::tree::TreeUtils;
+use servo_util::url::make_url;
 use std::net::url::Url;
 use std::net::url;
 
@@ -336,7 +337,7 @@ pub fn parse_html(url: Url,
                 debug!("append child %x %x", cast::transmute(parent), cast::transmute(child));
                 let parent: AbstractNode = NodeWrapping::from_hubbub_node(parent);
                 let child: AbstractNode = NodeWrapping::from_hubbub_node(child);
-                parent.append_child(child);
+                parent.add_child(child);
                 append_hook(parent, child);
             }
             child

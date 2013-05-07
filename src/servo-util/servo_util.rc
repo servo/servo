@@ -13,6 +13,7 @@ extern mod std;
 pub mod cache;
 pub mod range;
 pub mod time;
+pub mod tree;
 pub mod url;
 pub mod vec;
 

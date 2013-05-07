@@ -15,7 +15,6 @@ use layout::context::LayoutContext;
 use layout::debug::{BoxedMutDebugMethods, DebugMethods};
 use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
 use layout::flow::FlowContext;
-use layout::traverse::*;
 use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use resource::local_image_cache::LocalImageCache;
 use util::task::spawn_listener;
@@ -35,6 +34,7 @@ use gfx::render_task::{RenderMsg, RenderTask};
 use newcss::select::SelectCtx;
 use newcss::stylesheet::Stylesheet;
 use newcss::types::OriginAuthor;
+use servo_util::tree::TreeUtils;
 use std::net::url::Url;
 
 pub type LayoutTask = SharedChan<Msg>;
@@ -165,11 +165,12 @@ impl Layout {
         self.css_select_ctx.append_sheet(sheet.take(), OriginAuthor);
     }
 
+    /// The high-level routine that performs layout tasks.
     fn handle_build(&mut self, data: &BuildData) {
         let node = &data.node;
-        // FIXME: Bad copy
+        // FIXME: Bad copy!
         let doc_url = copy data.url;
-        // FIXME: Bad clone
+        // FIXME: Bad clone!
         let dom_event_chan = data.dom_event_chan.clone();
 
         debug!("layout: received layout request for: %s", doc_url.to_str());
@@ -177,12 +178,13 @@ impl Layout {
         debug!("layout: parsed Node tree");
         debug!("%?", node.dump());
 
-        // Reset the image cache
+        // Reset the image cache.
         self.local_image_cache.next_round(self.make_on_image_available_cb(dom_event_chan));
 
         let screen_size = Size2D(Au::from_px(data.window_size.width as int),
                                  Au::from_px(data.window_size.height as int));
 
+        // Create a layout context for use throughout the following passes.
         let mut layout_ctx = LayoutContext {
             image_cache: self.local_image_cache,
             font_ctx: self.font_ctx,
@@ -190,8 +192,10 @@ impl Layout {
             screen_size: Rect(Point2D(Au(0), Au(0)), screen_size)
         };
 
+        // Initialize layout data for each node.
+        //
+        // FIXME: This is inefficient. We don't need an entire traversal to do this!
         do time("layout: aux initialization") {
-            // TODO: this is dumb. we don't need an entire traversal to do this
             node.initialize_style_for_subtree(&mut self.layout_refs);
         }
 
@@ -205,10 +209,10 @@ impl Layout {
             }
         }
 
-        let layout_root: @mut FlowContext = do time("layout: tree construction") {
+        // Construct the flow tree.
+        let layout_root: FlowContext = do time("layout: tree construction") {
             let mut builder = LayoutTreeBuilder::new();
-            let layout_root: @mut FlowContext = match builder.construct_trees(&layout_ctx,
-                                                                              *node) {
+            let layout_root: FlowContext = match builder.construct_trees(&layout_ctx, *node) {
                 Ok(root) => root,
                 Err(*) => fail!(~"Root flow should always exist")
             };
@@ -219,13 +223,21 @@ impl Layout {
             layout_root
         };
 
+        // Perform the primary layout passes over the flow tree to compute the locations of all
+        // the boxes.
         do time("layout: main layout") {
-            /* perform layout passes over the flow tree */
-            do layout_root.traverse_postorder |f| { f.bubble_widths(&mut layout_ctx) }
-            do layout_root.traverse_preorder  |f| { f.assign_widths(&mut layout_ctx) }
-            do layout_root.traverse_postorder |f| { f.assign_height(&mut layout_ctx) }
+            for layout_root.traverse_postorder |flow| {
+                flow.bubble_widths(&mut layout_ctx);
+            };
+            for layout_root.traverse_preorder |flow| {
+                flow.assign_widths(&mut layout_ctx);
+            };
+            for layout_root.traverse_postorder |flow| {
+                flow.assign_height(&mut layout_ctx);
+            };
         }
 
+        // Build the display list, and send it to the renderer.
         do time("layout: display list building") {
             let builder = DisplayListBuilder {
                 ctx: &layout_ctx,
@@ -233,28 +245,25 @@ impl Layout {
 
             let display_list = @Cell(DisplayList::new());
             
-            // TODO: set options on the builder before building
-            // TODO: be smarter about what needs painting
-            layout_root.build_display_list(&builder,
-                                           &copy layout_root.d().position,
-                                           display_list);
+            // TODO: Set options on the builder before building.
+            // TODO: Be smarter about what needs painting.
+            layout_root.build_display_list(&builder, &layout_root.position(), display_list);
 
             let render_layer = RenderLayer {
                 display_list: display_list.take(),
-                size: Size2D(screen_size.width.to_px() as uint,
-                             screen_size.height.to_px() as uint)
+                size: Size2D(screen_size.width.to_px() as uint, screen_size.height.to_px() as uint)
             };
 
             self.render_task.send(RenderMsg(render_layer));
         } // time(layout: display list building)
 
-        // Tell content we're done
+        // Tell content that we're done.
         data.content_join_chan.send(());
     }
 
-
-    fn handle_query(&self, query: LayoutQuery, 
-                    reply_chan: Chan<LayoutQueryResponse>) {
+    /// Handles a query from the script task. This is the main routine that DOM functions like
+    /// `getClientRects()` or `getBoundingClientRect()` ultimately invoke.
+    fn handle_query(&self, query: LayoutQuery, reply_chan: Chan<LayoutQueryResponse>) {
         match query {
             ContentBox(node) => {
                 let response = match node.layout_data().flow {
