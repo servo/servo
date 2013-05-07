@@ -2,31 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*!
-The content task is the main task that runs JavaScript and spawns layout
-tasks.
-*/
+/// The content task (also called the script task) is the main task that owns the DOM in memory,
+/// runs JavaScript, and spawns parsing and layout tasks.
 
 use dom::bindings::utils::GlobalStaticData;
 use dom::document::Document;
-use dom::node::define_bindings;
 use dom::event::{Event, ResizeEvent, ReflowEvent};
+use dom::node::define_bindings;
 use dom::window::Window;
-use layout::layout_task;
 use layout::layout_task::{AddStylesheet, BuildData, BuildMsg, Damage, LayoutTask};
 use layout::layout_task::{MatchSelectorsDamage, NoDamage, ReflowDamage};
+use layout::layout_task;
 
 use core::cell::Cell;
 use core::comm::{Port, SharedChan};
-use core::pipes::select2i;
 use core::either;
-use core::task::{SingleThreaded, task};
 use core::io::{println, read_whole_file};
+use core::pipes::select2i;
 use core::ptr::null;
+use core::task::{SingleThreaded, task};
 use core::util::replace;
+use dom;
 use geom::size::Size2D;
 use gfx::resource::image_cache_task::ImageCacheTask;
 use gfx::resource::resource_task::ResourceTask;
+use html;
 use js::JSVAL_NULL;
 use js::global::{global_class, debug_fns};
 use js::glue::bindgen::RUST_JSVAL_TO_OBJECT;
@@ -34,10 +34,9 @@ use js::jsapi::JSContext;
 use js::jsapi::bindgen::{JS_CallFunctionValue, JS_GetContextPrivate};
 use js::rust::{Compartment, Cx};
 use jsrt = js::rust::rt;
+use servo_util::tree::TreeNodeRef;
 use std::net::url::Url;
 use url_to_str = std::net::url::to_str;
-use dom;
-use html;
 
 pub enum ControlMsg {
     ParseMsg(Url),
@@ -312,24 +311,20 @@ pub impl Content {
         }
     }
 
-    /**
-       This method will wait until the layout task has completed its current action,
-       join the layout task, and then request a new layout run. It won't wait for the
-       new layout computation to finish.
-    */
+    /// This method will wait until the layout task has completed its current action, join the
+    /// layout task, and then request a new layout run. It won't wait for the new layout
+    /// computation to finish.
     fn relayout(&mut self, document: &Document, doc_url: &Url) {
         debug!("content: performing relayout");
 
-        // Now, join the layout so that they will see the latest
-        // changes we have made.
+        // Now, join the layout so that they will see the latest changes we have made.
         self.join_layout();
 
-        // Layout will let us know when it's done
+        // Layout will let us know when it's done.
         let (join_port, join_chan) = comm::stream();
         self.layout_join_port = Some(join_port);
 
-        // Send new document and relevant styles to layout
-
+        // Send new document and relevant styles to layout.
         let data = ~BuildData {
             node: document.root,
             url: copy *doc_url,
@@ -344,7 +339,8 @@ pub impl Content {
         debug!("content: layout forked");
     }
 
-     fn query_layout(&mut self, query: layout_task::LayoutQuery) -> layout_task::LayoutQueryResponse {
+     fn query_layout(&mut self, query: layout_task::LayoutQuery)
+                     -> layout_task::LayoutQueryResponse {
          //self.relayout(self.document.get(), &(copy self.doc_url).get());
          self.join_layout();
 
@@ -378,7 +374,7 @@ pub impl Content {
           ReflowEvent => {
             debug!("content got reflow event");
             self.damage.add(MatchSelectorsDamage);
-            match copy self.document {
+            match /*bad*/ copy self.document {
                 None => {
                     // Nothing to do.
                 }

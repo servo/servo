@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/**
-Code for managing the DOM aux pointer
-*/
+//! Code for managing the layout data in the DOM.
 
 use dom::node::{AbstractNode, LayoutData};
+
+use servo_util::tree::TreeUtils;
 
 pub trait LayoutAuxMethods {
     fn initialize_layout_data(self) -> Option<@mut LayoutData>;
@@ -36,5 +36,5 @@ impl LayoutAuxMethods for AbstractNode {
             }
         };
     }
-
 }
+

@@ -104,7 +104,6 @@ pub mod layout {
     pub mod inline;
     pub mod root;
     pub mod text;
-    pub mod traverse;
     mod aux;
 }
 
