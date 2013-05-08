@@ -10,11 +10,11 @@ use newcss::complete::CompleteStyle;
 
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {
-    fn style<'a>(&'a self) -> CompleteStyle<'a>;
+    fn style(&self) -> CompleteStyle;
 }
 
 impl StyledNode for AbstractNode {
-    fn style<'a>(&'a self) -> CompleteStyle<'a> {
+    fn style(&self) -> CompleteStyle {
         assert!(self.is_element()); // Only elements can have styles
         let results = self.get_css_select_results();
         results.computed_style()

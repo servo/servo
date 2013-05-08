@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/** Text layout. */
+//! Text layout.
 
-use layout::box::{TextBox, RenderBox, RenderBoxData, UnscannedTextBox};
+use layout::box::{RenderBox, RenderBoxBase, TextRenderBox, UnscannedTextRenderBoxClass};
 
 use gfx::text::text_run::TextRun;
 use servo_util::range::Range;
@@ -14,37 +14,47 @@ pub struct TextBoxData {
     range: Range,
 }
 
-pub fn TextBoxData(run: @TextRun, range: &Range) -> TextBoxData {
-    TextBoxData {
-        run: run,
-        range: copy *range,
+impl TextBoxData {
+    pub fn new(run: @TextRun, range: Range) -> TextBoxData {
+        TextBoxData {
+            run: run,
+            range: range,
+        }
     }
 }
 
-pub fn adapt_textbox_with_range(box_data: &mut RenderBoxData, run: @TextRun, 
-                                range: &Range) -> @mut RenderBox {
+pub fn adapt_textbox_with_range(mut base: RenderBoxBase, run: @TextRun, range: Range)
+                                -> TextRenderBox {
     assert!(range.begin() < run.char_len());
     assert!(range.end() <= run.char_len());
     assert!(range.length() > 0);
 
     debug!("Creating textbox with span: (strlen=%u, off=%u, len=%u) of textrun: %s",
-           run.char_len(), range.begin(), range.length(), run.text);
-    let mut new_box_data = copy *box_data;
-    let new_text_data = TextBoxData(run, range);
-    let metrics = run.metrics_for_range(range);
-    new_box_data.position.size = metrics.bounding_box.size;
-    @mut TextBox(new_box_data, new_text_data)
+           run.char_len(),
+           range.begin(),
+           range.length(),
+           run.text);
+    let new_text_data = TextBoxData::new(run, range);
+    let metrics = run.metrics_for_range(&range);
+
+    base.position.size = metrics.bounding_box.size;
+
+    TextRenderBox {
+        base: base,
+        text_data: new_text_data,
+    }
 }
 
 pub trait UnscannedMethods {
-    fn raw_text(&mut self) -> ~str;
+    /// Copies out the text from an unscanned text box. Fails if this is not an unscanned text box.
+    fn raw_text(&self) -> ~str;
 }
 
 impl UnscannedMethods for RenderBox {
-    fn raw_text(&mut self) -> ~str {
-        match self {
-            &UnscannedTextBox(_, ref s) => copy *s,
-            _ => fail!(~"unsupported operation: box.raw_text() on non-unscanned text box.")
+    fn raw_text(&self) -> ~str {
+        match *self {
+            UnscannedTextRenderBoxClass(text_box) => copy text_box.text,
+            _ => fail!(~"unsupported operation: box.raw_text() on non-unscanned text box."),
         }
     }
 }

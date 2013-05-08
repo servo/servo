@@ -23,7 +23,7 @@ pub struct BlockFlowData {
     common: FlowData,
 
     /// The associated render box.
-    box: Option<@mut RenderBox>
+    box: Option<RenderBox>
 }
 
 impl BlockFlowData {
@@ -40,7 +40,7 @@ impl BlockFlowData {
 /// merged into this.
 pub trait BlockLayout {
     fn starts_block_flow(&self) -> bool;
-    fn with_block_box(&self, &fn(box: &@mut RenderBox) -> ()) -> ();
+    fn with_block_box(&self, &fn(box: RenderBox) -> ()) -> ();
 
     fn bubble_widths_block(&self, ctx: &LayoutContext);
     fn assign_widths_block(&self, ctx: &LayoutContext);
@@ -62,17 +62,17 @@ impl BlockLayout for FlowContext {
 
     /// Get the current flow's corresponding block box, if it exists, and do something with it. 
     /// This works on both BlockFlow and RootFlow, since they are mostly the same.
-    fn with_block_box(&self, callback: &fn(box: &@mut RenderBox) -> ()) -> () {
+    fn with_block_box(&self, callback: &fn(box: RenderBox) -> ()) -> () {
         match *self {
             BlockFlow(*) => {
                 let box = self.block().box;
-                for box.each |b| {
+                for box.each |&b| {
                     callback(b);
                 }
             },                
             RootFlow(*) => {
                 let mut box = self.root().box;
-                for box.each |b| {
+                for box.each |&b| {
                     callback(b);
                 }
             },
@@ -132,9 +132,12 @@ impl BlockLayout for FlowContext {
 
         // Let the box consume some width. It will return the amount remaining for its children.
         do self.with_block_box |box| {
-            box.d().position.size.width = remaining_width;
-            let (left_used, right_used) = box.get_used_width();
-            remaining_width -= left_used.add(&right_used);
+            do box.with_mut_base |base| {
+                base.position.size.width = remaining_width;
+
+                let (left_used, right_used) = box.get_used_width();
+                remaining_width -= left_used.add(&right_used);
+            }
         }
 
         for self.each_child |kid| {
@@ -167,9 +170,11 @@ impl BlockLayout for FlowContext {
         let _used_bot = Au(0);
         
         do self.with_block_box |box| {
-            box.d().position.origin.y = Au(0);
-            box.d().position.size.height = cur_y;
-            let (_used_top, _used_bot) = box.get_used_height();
+            do box.with_mut_base |base| {
+                base.position.origin.y = Au(0);
+                base.position.size.height = cur_y;
+                let (_used_top, _used_bot) = box.get_used_height();
+            }
         }
     }
 
