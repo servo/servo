@@ -33,8 +33,8 @@ extern mod core_graphics;
 #[cfg(target_os="macos")]
 extern mod core_text;
 
+use compositing::{AddKeyHandler, OSMain};
 use engine::{Engine, LoadURLMsg};
-use platform::osmain::{AddKeyHandler, OSMain};
 
 pub use gfx::opts::{Opts, Png, Screen};  // FIXME: Do we really want "Screen" and "Png" visible?
 pub use gfx::resource;
@@ -42,6 +42,9 @@ pub use gfx::resource::image_cache_task::ImageCacheTask;
 pub use gfx::resource::resource_task::ResourceTask;
 pub use gfx::text;
 pub use servo_util::url::make_url;
+
+#[path="compositing/mod.rs"]
+pub mod compositing;
 
 pub mod content {
     pub mod content_task;
@@ -112,12 +115,6 @@ pub mod html {
     pub mod hubbub_html_parser;
 }
 
-pub mod platform {
-    pub mod base;
-    pub mod osmain;
-    priv mod resize_rate_limiter;
-}
-
 #[path = "util/mod.rs"]
 pub mod util;
 
@@ -179,7 +176,7 @@ fn run_pipeline_screen(opts: &Opts) {
     engine_task.send(engine::ExitMsg(exit_chan));
     exit_response_from_engine.recv();
 
-    osmain.chan.send(platform::osmain::Exit);
+    osmain.chan.send(compositing::Exit);
 }
 
 fn run_pipeline_png(_opts: &Opts, _outfile: &str) {
