@@ -16,6 +16,7 @@ use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
 use gfx;
+use newcss;
 use servo_util::tree::TreeNodeRef;
 
 /// A builder object that manages display list builder should mainly hold information about the
@@ -70,6 +71,22 @@ impl FlowDisplayListBuilderMethods for FlowContext {
                 debug!("build_display_list_for_child: Did not intersect...");
             }
         }
+    }
+}
+
+//
+// Miscellaneous useful routines
+//
+
+/// Allows a CSS color to be converted into a graphics color.
+pub trait ToGfxColor {
+    /// Converts a CSS color to a graphics color.
+    fn to_gfx_color(&self) -> gfx::color::Color;
+}
+
+impl ToGfxColor for newcss::color::Color {
+    fn to_gfx_color(&self) -> gfx::color::Color {
+        gfx::color::rgba(self.red, self.green, self.blue, self.alpha)
     }
 }
 

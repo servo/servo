@@ -20,7 +20,7 @@ pub struct RootFlowData {
     common: FlowData,
 
     /// The render box at the root of the tree.
-    box: Option<@mut RenderBox>
+    box: Option<RenderBox>
 }
 
 impl RootFlowData {
@@ -73,9 +73,11 @@ impl RootFlowData {
         self.common.position.size.height = Au::max(ctx.screen_size.size.height, cur_y);
 
         do RootFlow(self).with_block_box |box| {
-            box.d().position.origin.y = Au(0);
-            box.d().position.size.height = Au::max(ctx.screen_size.size.height, cur_y);
-            let (_used_top, _used_bot) = box.get_used_height();
+            do box.with_mut_base |base| {
+                base.position.origin.y = Au(0);
+                base.position.size.height = Au::max(ctx.screen_size.size.height, cur_y);
+                let (_used_top, _used_bot) = box.get_used_height();
+            }
         }
     }
 
