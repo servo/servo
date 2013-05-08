@@ -61,6 +61,8 @@ pub mod dom {
     pub mod bindings {
         pub mod document;
         pub mod element;
+        pub mod event;
+        pub mod eventtarget;
         pub mod node;
         pub mod text;
         pub mod utils;
@@ -75,6 +77,8 @@ pub mod dom {
             pub mod ClientRectBinding;
             pub mod ClientRectListBinding;
             pub mod DOMParserBinding;
+            pub mod EventBinding;
+            pub mod EventTargetBinding;
             pub mod HTMLCollectionBinding;
         }
     }
@@ -85,6 +89,7 @@ pub mod dom {
     pub mod domparser;
     pub mod element;
     pub mod event;
+    pub mod eventtarget;
     pub mod htmlcollection;
     pub mod node;
     pub mod window;

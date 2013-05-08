@@ -49,3 +49,11 @@ window.alert(DOMParser);
 let parser = new DOMParser();
 window.alert(parser);
 //window.alert(parser.parseFromString("<html></html>", "text/html"));
+
+window.alert("Event:");
+window.alert(Event);
+let ev = new Event("foopy");
+window.alert(ev.type);
+window.alert(ev.defaultPrevented);
+ev.preventDefault();
+window.alert(ev.defaultPrevented);
