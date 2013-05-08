@@ -285,31 +285,37 @@ impl<'self> FlowContext {
     }
 
     // Actual methods that do not require much flow-specific logic
-    pub fn foldl_all_boxes<B:Copy>(&self, seed: B, cb: &fn(a: B, b: @mut RenderBox) -> B) -> B {
+    pub fn foldl_all_boxes<B:Copy>(&self, seed: B, cb: &fn(a: B, b: RenderBox) -> B) -> B {
         match *self {
             RootFlow(root) => {
                 let root = &mut *root;
-                root.box.map_default(seed, |box| { cb(seed, *box) })
+                do root.box.map_default(seed) |box| {
+                    cb(seed, *box)
+                }
             }
             BlockFlow(block) => {
                 let block = &mut *block;
-                block.box.map_default(seed, |box| { cb(seed, *box) })
+                do block.box.map_default(seed) |box| {
+                    cb(seed, *box)
+                }
             }
             InlineFlow(inline) => {
                 let inline = &mut *inline;
-                inline.boxes.foldl(seed, |acc, box| { cb(*acc, *box) })
+                do inline.boxes.foldl(seed) |acc, box| {
+                    cb(*acc, *box)
+                }
             }
-            _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self))
+            _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self)),
         }
     }
 
     pub fn foldl_boxes_for_node<B:Copy>(&self,
                                         node: AbstractNode,
                                         seed: B,
-                                        callback: &fn(a: B, @mut RenderBox) -> B)
+                                        callback: &fn(a: B, RenderBox) -> B)
                                         -> B {
         do self.foldl_all_boxes(seed) |acc, box| {
-            if box.d().node == node {
+            if box.node() == node {
                 callback(acc, box)
             } else {
                 acc
@@ -317,7 +323,7 @@ impl<'self> FlowContext {
         }
     }
 
-    pub fn iter_all_boxes(&self, cb: &fn(@mut RenderBox) -> bool) {
+    pub fn iter_all_boxes(&self, cb: &fn(RenderBox) -> bool) {
         match *self {
             RootFlow(root) => {
                 let root = &mut *root;
@@ -347,9 +353,9 @@ impl<'self> FlowContext {
         }
     }
 
-    pub fn iter_boxes_for_node(&self, node: AbstractNode, callback: &fn(@mut RenderBox) -> bool) {
+    pub fn iter_boxes_for_node(&self, node: AbstractNode, callback: &fn(RenderBox) -> bool) {
         for self.iter_all_boxes |box| {
-            if box.d().node == node {
+            if box.node() == node {
                 if !callback(box) {
                     break;
                 }
@@ -384,7 +390,7 @@ impl DebugMethods for FlowContext {
             InlineFlow(inline) => {
                 let inline = &mut *inline;
                 let mut s = inline.boxes.foldl(~"InlineFlow(children=", |s, box| {
-                    fmt!("%s b%d", *s, box.d().id)
+                    fmt!("%s b%d", *s, box.id())
                 });
                 s += ~")";
                 s
@@ -392,14 +398,14 @@ impl DebugMethods for FlowContext {
             BlockFlow(block) => {
                 let block = &mut *block;
                 match block.box {
-                    Some(box) => fmt!("BlockFlow(box=b%d)", box.d().id),
+                    Some(box) => fmt!("BlockFlow(box=b%d)", box.id()),
                     None => ~"BlockFlow",
                 }
             },
             RootFlow(root) => {
                 let root = &mut *root;
                 match root.box {
-                    Some(box) => fmt!("RootFlo(box=b%d)", box.d().id),
+                    Some(box) => fmt!("RootFlow(box=b%d)", box.id()),
                     None => ~"RootFlow",
                 }
             },

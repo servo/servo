@@ -8,10 +8,15 @@ use dom::element::*;
 use dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use dom::node::{ElementNodeTypeId, TextNodeTypeId};
 use layout::block::BlockFlowData;
-use layout::box::*;
+use layout::box::{GenericRenderBoxClass, ImageRenderBox, ImageRenderBoxClass, RenderBox};
+use layout::box::{RenderBoxBase, RenderBoxType, RenderBox_Generic, RenderBox_Image};
+use layout::box::{RenderBox_Text, TextRenderBox, UnscannedTextRenderBox};
+use layout::box::{UnscannedTextRenderBoxClass};
 use layout::context::LayoutContext;
 use layout::debug::{BoxedMutDebugMethods, DebugMethods};
-use layout::flow::*;
+use layout::flow::{AbsoluteFlow, BlockFlow, FloatFlow, Flow_Absolute, Flow_Block, Flow_Float};
+use layout::flow::{Flow_Inline, Flow_InlineBlock, Flow_Root, Flow_Table, FlowContext};
+use layout::flow::{FlowContextType, FlowData, InlineBlockFlow, InlineFlow, RootFlow, TableFlow};
 use layout::inline::{InlineFlowData, InlineLayout};
 use layout::root::RootFlowData;
 
@@ -102,7 +107,7 @@ impl BoxGenerator {
                                         _: &LayoutContext,
                                         _: AbstractNode,
                                         _: InlineSpacerSide)
-                                        -> Option<@mut RenderBox> {
+                                        -> Option<RenderBox> {
         None
     }
 
@@ -133,7 +138,7 @@ impl BoxGenerator {
                 } else if self.inline_spacers_needed_for_node(node) {
                     // else, maybe make a spacer for "left" margin, border, padding
                     for self.make_inline_spacer_for_node_side(ctx, node, LogicalBefore).each
-                            |spacer: &@mut RenderBox| {
+                            |spacer: &RenderBox| {
                         inline.boxes.push(*spacer);
                     }
                 }
@@ -145,7 +150,7 @@ impl BoxGenerator {
 
                 debug!("BoxGenerator[f%d]: attaching box[b%d] to block flow (node: %s)",
                        block.common.id,
-                       new_box.d().id,
+                       new_box.id(),
                        node.debug_str());
 
                 assert!(block.box.is_none());
@@ -157,7 +162,7 @@ impl BoxGenerator {
                 debug!("BoxGenerator[f%d]: (node is: %s)", root.common.id, node.debug_str());
                 debug!("BoxGenerator[f%d]: attaching box[b%d] to root flow (node: %s)",
                        root.common.id,
-                       new_box.d().id,
+                       new_box.id(),
                        node.debug_str());
 
                 assert!(root.box.is_none());
@@ -450,55 +455,40 @@ pub impl LayoutTreeBuilder {
                 layout_ctx: &LayoutContext,
                 ty: RenderBoxType,
                 node: AbstractNode,
-                ctx: FlowContext)
-                -> @mut RenderBox {
+                flow_context: FlowContext)
+                -> RenderBox {
+        let base = RenderBoxBase::new(node, flow_context, self.next_box_id());
         let result = match ty {
-            RenderBox_Generic => self.make_generic_box(layout_ctx, node, ctx),
-            RenderBox_Text    => self.make_text_box(layout_ctx, node, ctx),
-            RenderBox_Image   => self.make_image_box(layout_ctx, node, ctx),
+            RenderBox_Generic => GenericRenderBoxClass(@mut base),
+            RenderBox_Text => UnscannedTextRenderBoxClass(@mut UnscannedTextRenderBox::new(base)),
+            RenderBox_Image => self.make_image_box(layout_ctx, node, flow_context, base),
         };
         debug!("LayoutTreeBuilder: created box: %s", result.debug_str());
         result
     }
 
-    fn make_generic_box(&mut self, _: &LayoutContext, node: AbstractNode, ctx: FlowContext)
-                        -> @mut RenderBox {
-        @mut GenericBox(RenderBoxData(copy node, ctx, self.next_box_id()))
-    }
-
-    fn make_image_box(&mut self, layout_ctx: &LayoutContext, node: AbstractNode, ctx: FlowContext)
-                      -> @mut RenderBox {
-        if !node.is_image_element() {
-            fail!(~"WAT error: why couldn't we make an image box?");
-        }
+    fn make_image_box(&mut self,
+                      layout_ctx: &LayoutContext,
+                      node: AbstractNode,
+                      flow_context: FlowContext,
+                      base: RenderBoxBase)
+                      -> RenderBox {
+        assert!(node.is_image_element());
 
         do node.with_imm_image_element |image_element| {
             if image_element.image.is_some() {
-                let holder = ImageHolder::new(copy *image_element.image.get_ref(),
-                                              layout_ctx.image_cache);
-                @mut ImageBox(RenderBoxData(node, ctx, self.next_box_id()), holder)
+                // FIXME(pcwalton): Don't copy URLs.
+                let url = copy *image_element.image.get_ref();
+                ImageRenderBoxClass(@mut ImageRenderBox::new(base, url, layout_ctx.image_cache))
             } else {
                 info!("Tried to make image box, but couldn't find image. Made generic box \
                        instead.");
-                self.make_generic_box(layout_ctx, node, ctx)
+                GenericRenderBoxClass(@mut base)
             }
         }
     }
 
-    fn make_text_box(&mut self, _: &LayoutContext, node: AbstractNode, ctx: FlowContext)
-                     -> @mut RenderBox {
-        if !node.is_text() {
-            fail!(~"WAT error: why couldn't we make a text box?");
-        }
-
-        // FIXME: Don't copy text. I guess it should be atomically reference counted?
-        do node.with_imm_text |text_node| {
-            let string = text_node.parent.data.to_str();
-            @mut UnscannedTextBox(RenderBoxData(node, ctx, self.next_box_id()), string)
-        }
-    }
-
-    fn decide_box_type(&self, node: AbstractNode, _display: CSSDisplay) -> RenderBoxType {
+    fn decide_box_type(&self, node: AbstractNode, _: CSSDisplay) -> RenderBoxType {
         if node.is_text() {
             RenderBox_Text
         } else if node.is_image_element() {
