@@ -254,3 +254,16 @@ bindings: $(AUTOGEN_SRC_servo)
 package:
 
 endif
+
+# Build commands for backing up and restoring the Rust build.
+# Because Rust takes a very long time to build and changes infrequently,
+# the bots want to reuse it between builds. They can do so by running
+# `make backup-rust` and `make restore-rust`.
+
+.PHONY: backup-rust restore-rust
+backup-rust:
+	mv src/rust ..
+
+restore-rust:
+	rm -rf src/rust
+	mv ../rust src/
