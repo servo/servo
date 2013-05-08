@@ -449,4 +449,10 @@ pub fn define_bindings(compartment: @mut Compartment) {
     assert!(codegen::DOMParserBinding::DefineDOMInterface(compartment.cx.ptr,
                                                           compartment.global_obj.ptr,
                                                           &mut unused));
+    assert!(codegen::EventBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                      compartment.global_obj.ptr,
+                                                      &mut unused));
+    assert!(codegen::EventTargetBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                            compartment.global_obj.ptr,
+                                                            &mut unused));
 }

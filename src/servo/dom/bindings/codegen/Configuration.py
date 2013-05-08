@@ -134,12 +134,12 @@ class Descriptor(DescriptorProvider):
                 nativeTypeDefault = "nsIDOM" + ifaceName
         else:
             if self.workers:
-                nativeTypeDefault = "mozilla::dom::workers::" + ifaceName
+                nativeTypeDefault = "workers::" + ifaceName
             else:
-                nativeTypeDefault = "mozilla::dom::" + ifaceName
+                nativeTypeDefault = ifaceName
 
         self.nativeType = desc.get('nativeType', nativeTypeDefault)
-        self.pointerType = desc.get('pointerType', '~')
+        self.pointerType = desc.get('pointerType', '@mut ')
         self.hasInstanceInterface = desc.get('hasInstanceInterface', None)
 
         # Do something sane for JSObject

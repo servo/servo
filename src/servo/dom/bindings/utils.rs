@@ -6,7 +6,8 @@ use js;
 use js::rust::Compartment;
 use js::{JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSVAL_NULL,
          JS_THIS_OBJECT, JSFUN_CONSTRUCTOR, JS_CALLEE, JSPROP_READONLY,
-         JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER, JSPROP_SETTER};
+         JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER,
+         JSPROP_SETTER, JSVAL_VOID, JSVAL_TRUE, JSVAL_FALSE};
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSNative,
                 JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsapi::bindgen::{JS_ValueToString,
@@ -327,9 +328,18 @@ pub struct JSNativeHolder {
     propertyHooks: *NativePropertyHooks
 }
 
+pub enum ConstantVal {
+    IntVal(i32),
+    UintVal(u32),
+    DoubleVal(f64),
+    BoolVal(bool),
+    NullVal,
+    VoidVal
+}
+
 pub struct ConstantSpec {
     name: *libc::c_char,
-    value: JSVal
+    value: ConstantVal
 }
 
 pub struct DOMClass {
@@ -360,6 +370,8 @@ pub mod prototypes {
             ClientRectList,
             DOMParser,
             HTMLCollection,
+            Event,
+            EventTarget,
             _ID_Count
         }
     }
@@ -492,8 +504,17 @@ fn DefineConstants(cx: *JSContext, obj: *JSObject, constants: *ConstantSpec) -> 
             if spec.name.is_null() {
                 return true;
             }
+            let jsval = match spec.value {
+                NullVal => JSVAL_NULL,
+                IntVal(i) => RUST_INT_TO_JSVAL(i),
+                UintVal(u) => RUST_UINT_TO_JSVAL(u),
+                DoubleVal(d) => RUST_DOUBLE_TO_JSVAL(d),
+                BoolVal(b) if b => JSVAL_TRUE,
+                BoolVal(_) => JSVAL_FALSE,
+                VoidVal => JSVAL_VOID
+            };
             if JS_DefineProperty(cx, obj, spec.name,
-                                 spec.value, ptr::null(),
+                                 jsval, ptr::null(),
                                  ptr::null(),
                                  JSPROP_ENUMERATE | JSPROP_READONLY |
                                  JSPROP_PERMANENT) == 0 {
@@ -543,7 +564,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: uint, _vp: *JSVal) -> 
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = @mut ([0 as *JSObject, ..4]); //XXXjdm prototypes::_ID_COUNT
+    let protoArray = @mut ([0 as *JSObject, ..6]); //XXXjdm prototypes::_ID_COUNT
     unsafe {
         //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);
