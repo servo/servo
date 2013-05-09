@@ -115,6 +115,9 @@ pub mod html {
     pub mod hubbub_html_parser;
 }
 
+#[path="platform/mod.rs"]
+pub mod platform;
+
 #[path = "util/mod.rs"]
 pub mod util;
 
