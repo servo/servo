@@ -10,8 +10,7 @@ use dom::node::{ElementNodeTypeId, TextNodeTypeId};
 use layout::block::BlockFlowData;
 use layout::box::{GenericRenderBoxClass, ImageRenderBox, ImageRenderBoxClass, RenderBox};
 use layout::box::{RenderBoxBase, RenderBoxType, RenderBox_Generic, RenderBox_Image};
-use layout::box::{RenderBox_Text, TextRenderBox, UnscannedTextRenderBox};
-use layout::box::{UnscannedTextRenderBoxClass};
+use layout::box::{RenderBox_Text, UnscannedTextRenderBox, UnscannedTextRenderBoxClass};
 use layout::context::LayoutContext;
 use layout::debug::{BoxedMutDebugMethods, DebugMethods};
 use layout::flow::{AbsoluteFlow, BlockFlow, FloatFlow, Flow_Absolute, Flow_Block, Flow_Float};
@@ -20,7 +19,6 @@ use layout::flow::{FlowContextType, FlowData, InlineBlockFlow, InlineFlow, RootF
 use layout::inline::{InlineFlowData, InlineLayout};
 use layout::root::RootFlowData;
 
-use gfx::image::holder::ImageHolder;
 use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
 use newcss::values::{CSSDisplayNone};
 use servo_util::range::Range;
@@ -461,7 +459,7 @@ pub impl LayoutTreeBuilder {
         let result = match ty {
             RenderBox_Generic => GenericRenderBoxClass(@mut base),
             RenderBox_Text => UnscannedTextRenderBoxClass(@mut UnscannedTextRenderBox::new(base)),
-            RenderBox_Image => self.make_image_box(layout_ctx, node, flow_context, base),
+            RenderBox_Image => self.make_image_box(layout_ctx, node, base),
         };
         debug!("LayoutTreeBuilder: created box: %s", result.debug_str());
         result
@@ -470,7 +468,6 @@ pub impl LayoutTreeBuilder {
     fn make_image_box(&mut self,
                       layout_ctx: &LayoutContext,
                       node: AbstractNode,
-                      flow_context: FlowContext,
                       base: RenderBoxBase)
                       -> RenderBox {
         assert!(node.is_image_element());

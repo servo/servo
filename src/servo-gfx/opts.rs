@@ -10,15 +10,9 @@ use azure::azure_hl::{CoreGraphicsAcceleratedBackend, Direct2DBackend, SkiaBacke
 
 pub struct Opts {
     urls: ~[~str],
-    render_mode: RenderMode,
     render_backend: BackendType,
     n_render_threads: uint,
     tile_size: uint,
-}
-
-pub enum RenderMode {
-    Screen,
-    Png(~str)
 }
 
 #[allow(non_implicitly_copyable_typarams)]
@@ -43,11 +37,6 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         fail!(~"servo asks that you provide 1 or more URLs")
     } else {
         copy opt_match.free
-    };
-
-    let render_mode = match getopts::opt_maybe_str(&opt_match, ~"o") {
-      Some(output_file) => Png(output_file),
-      None => Screen,
     };
 
     let render_backend = match getopts::opt_maybe_str(&opt_match, ~"r") {
@@ -81,7 +70,6 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
 
     Opts {
         urls: urls,
-        render_mode: render_mode,
         render_backend: render_backend,
         n_render_threads: n_render_threads,
         tile_size: tile_size,

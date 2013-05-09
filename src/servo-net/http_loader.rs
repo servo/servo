@@ -2,18 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use resource_task::{Payload, Done, LoaderTask};
+
 use core::comm::SharedChan;
-use core::task::spawn;
-use resource::resource_task::{Payload, Done, LoaderTask};
+use core::task;
+use http_client::uv_http_request;
 use http_client;
-use http_client::{uv_http_request};
 
 pub fn factory() -> LoaderTask {
 	let f: LoaderTask = |url, progress_chan| {
 		assert!(url.scheme == ~"http");
 
 		let progress_chan = SharedChan::new(progress_chan);
-		do spawn {
+		do task::spawn {
 			debug!("http_loader: requesting via http: %?", url.clone());
 			let mut request = uv_http_request(url.clone());
 			let errored = @mut false;

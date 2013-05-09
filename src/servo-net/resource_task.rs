@@ -2,17 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*!
+//! A task that takes a URL and streams back the binary data.
 
-A task that takes a URL and streams back the binary data
-
-*/
+use file_loader;
+use http_loader;
 
 use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
-use resource::util::spawn_listener;
 use std::net::url::{Url, to_str};
-use super::{file_loader, http_loader};
+use util::spawn_listener;
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL

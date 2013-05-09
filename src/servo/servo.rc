@@ -11,19 +11,18 @@
 #[license = "MPL"];
 #[crate_type = "lib"];
 
-#[legacy_records];
-
 extern mod azure;
 extern mod geom;
 extern mod gfx (name = "servo_gfx");
-extern mod servo_util (name = "servo_util");
 extern mod glut;
 extern mod http_client;
 extern mod hubbub;
 extern mod js;
 extern mod layers;
-extern mod opengles;
 extern mod newcss (name = "css");
+extern mod opengles;
+extern mod servo_net;
+extern mod servo_util (name = "servo_util");
 extern mod sharegl;
 extern mod stb_image;
 extern mod std;
@@ -33,15 +32,20 @@ extern mod core_graphics;
 #[cfg(target_os="macos")]
 extern mod core_text;
 
-use engine::{Engine, LoadURLMsg};
-use platform::osmain::{AddKeyHandler, OSMain};
+use compositing::{AddKeyHandler, CompositorImpl};
+use engine::{Engine, LoadUrlMsg};
 
-pub use gfx::opts::{Opts, Png, Screen};  // FIXME: Do we really want "Screen" and "Png" visible?
-pub use gfx::resource;
-pub use gfx::resource::image_cache_task::ImageCacheTask;
-pub use gfx::resource::resource_task::ResourceTask;
+use core::comm::SharedChan;
+use gfx::opts;
+use servo_net::image_cache_task::ImageCacheTask;
+use servo_net::resource_task::ResourceTask;
+
+pub use gfx::opts::Opts;
 pub use gfx::text;
 pub use servo_util::url::make_url;
+
+#[path="compositing/mod.rs"]
+pub mod compositing;
 
 pub mod content {
     pub mod content_task;
@@ -117,65 +121,50 @@ pub mod html {
     pub mod hubbub_html_parser;
 }
 
-pub mod platform {
-    pub mod base;
-    pub mod osmain;
-    priv mod resize_rate_limiter;
-}
+pub mod windowing;
+
+#[path="platform/mod.rs"]
+pub mod platform;
 
 #[path = "util/mod.rs"]
 pub mod util;
 
 fn main() {
-    let args = os::args();
-    run(&gfx::opts::from_cmdline_args(args))
+    run(&opts::from_cmdline_args(os::args()))
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 fn run(opts: &Opts) {
-    match &opts.render_mode {
-      &Screen => run_pipeline_screen(opts),
-      &Png(ref outfile) => {
-        assert!(!opts.urls.is_empty());
-        if opts.urls.len() > 1u {
-            fail!(~"servo asks that you stick to a single URL in PNG output mode")
-        }
-        run_pipeline_png(opts, *outfile)
-      }
-    }
-}
-
-fn run_pipeline_screen(opts: &Opts) {
     let (dom_event_port, dom_event_chan) = comm::stream();
-    let dom_event_chan = comm::SharedChan::new(dom_event_chan);
+    let dom_event_chan = SharedChan::new(dom_event_chan);
 
     // The platform event handler thread
-    let osmain = OSMain(dom_event_chan.clone(), copy *opts);
+    let compositor = CompositorImpl::new(dom_event_chan.clone(), copy *opts);
 
     // Send each file to render then wait for keypress
-    let (keypress_from_osmain, keypress_to_engine) = comm::stream();
-    osmain.chan.send(AddKeyHandler(keypress_to_engine));
+    let (keypress_from_compositor, keypress_to_engine) = comm::stream();
+    compositor.chan.send(AddKeyHandler(keypress_to_engine));
 
     // Create a servo instance
     let resource_task = ResourceTask();
     let image_cache_task = ImageCacheTask(resource_task.clone());
-    let engine_task = Engine(osmain.clone(),
-                             opts,
-                             dom_event_port,
-                             dom_event_chan,
-                             resource_task,
-                             image_cache_task);
+    let engine_task = Engine::start(compositor.clone(),
+                                    opts,
+                                    dom_event_port,
+                                    dom_event_chan,
+                                    resource_task,
+                                    image_cache_task);
 
     for opts.urls.each |filename| {
         let url = make_url(copy *filename, None);
-        debug!("master: Sending url `%s`", url.to_str());
-        engine_task.send(LoadURLMsg(url));
-        debug!("master: Waiting for keypress");
 
-        match keypress_from_osmain.try_recv() {
-          Some(*) => { }
-          None => { error!("keypress stream closed unexpectedly") }
-        };
+        debug!("master: Sending url `%s`", url.to_str());
+        engine_task.send(LoadUrlMsg(url));
+
+        debug!("master: Waiting for keypress");
+        match keypress_from_compositor.try_recv() {
+            Some(*) => {}
+            None => error!("keypress stream closed unexpectedly"),
+        }
     }
 
     // Shut everything down
@@ -184,46 +173,6 @@ fn run_pipeline_screen(opts: &Opts) {
     engine_task.send(engine::ExitMsg(exit_chan));
     exit_response_from_engine.recv();
 
-    osmain.chan.send(platform::osmain::Exit);
+    compositor.chan.send(compositing::Exit);
 }
 
-fn run_pipeline_png(_opts: &Opts, _outfile: &str) {
-    fail!(~"PNG compositor is broken");
-}
-
-#[cfg(broken)]
-fn run_pipeline_png(url: ~str, outfile: &str) {
-    // Use a PNG encoder as the graphics compositor
-    use gfx::png_compositor;
-    use png_compositor::PngCompositor;
-    use io::{Writer, buffered_file_writer};
-    use resource::resource_task::ResourceTask;
-    use resource::image_cache_task::SyncImageCacheTask;
-
-    listen(|pngdata_from_compositor| {
-        let (dom_event_port, dom_event_chan) = comm::stream();
-        let dom_event_chan = comm::SharedChan(dom_event_chan);
-
-        let compositor = PngCompositor(pngdata_from_compositor);
-        let resource_task = ResourceTask();
-        // For the PNG pipeline we are using a synchronous image task so that all images will be
-        // fulfilled before the first paint.
-        let image_cache_task = SyncImageCacheTask(resource_task);
-        let engine_task = Engine(copy compositor,
-                                 dom_event_port,
-                                 dom_event_chan,
-                                 resource_task,
-                                 image_cache_task);
-        engine_task.send(LoadURLMsg(make_url(copy url, None)));
-
-        match buffered_file_writer(&Path(outfile)) {
-          Ok(writer) => writer.write(pngdata_from_compositor.recv()),
-          Err(e) => fail!(e)
-        }
-
-        let (exit_chan, exit_response_from_engine) = comm::stream();
-        engine_task.send(engine::ExitMsg(exit_chan));
-        exit_response_from_engine.recv();
-        compositor.send(png_compositor::Exit);
-    })
-}

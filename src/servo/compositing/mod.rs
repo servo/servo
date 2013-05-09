@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use ShareGlContext = sharegl::platform::Context;
+use compositing::resize_rate_limiter::ResizeRateLimiter;
 use dom::event::Event;
-use platform::resize_rate_limiter::ResizeRateLimiter;
+use platform::{Application, Window};
+use windowing::{ApplicationMethods, WindowMethods};
 
 use azure::azure_hl::{BackendType, B8G8R8A8, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
+use core::cell::Cell;
 use core::comm::{Chan, SharedChan, Port};
 use core::util;
 use geom::matrix::identity;
@@ -15,63 +17,38 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
 use gfx::opts::Opts;
-use servo_util::time;
-use core::cell::Cell;
-use glut::glut;
 use layers;
-use sharegl;
-use sharegl::ShareGlContext;
-use sharegl::base::ShareContext;
+use servo_util::time;
 
-pub struct OSMain {
+mod resize_rate_limiter;
+
+/// The implementation of the layers-based compositor.
+#[deriving(Clone)]
+pub struct CompositorImpl {
     chan: SharedChan<Msg>
 }
 
-impl Clone for OSMain {
-    fn clone(&self) -> OSMain {
-        OSMain {
-            chan: self.chan.clone()
+impl CompositorImpl {
+    /// Creates a new compositor instance.
+    pub fn new(dom_event_chan: SharedChan<Event>, opts: Opts) -> CompositorImpl {
+        let dom_event_chan = Cell(dom_event_chan);
+        let chan: Chan<Msg> = do on_osmain |port| {
+            debug!("preparing to enter main loop");
+            mainloop(port, dom_event_chan.take(), &opts);
+        };
+
+        CompositorImpl {
+            chan: SharedChan::new(chan)
         }
     }
 }
 
-// FIXME: Move me over to opts.rs.
-enum Mode {
-    GlutMode,
-    ShareMode
-}
-
-enum Window {
-    GlutWindow(glut::Window),
-    ShareWindow(ShareGlContext)
-}
-
+/// Messages to the compositor.
 pub enum Msg {
-    BeginDrawing(comm::Chan<LayerBufferSet>),
-    Draw(comm::Chan<LayerBufferSet>, LayerBufferSet),
-    AddKeyHandler(comm::Chan<()>),
+    BeginDrawing(Chan<LayerBufferSet>),
+    Draw(Chan<LayerBufferSet>, LayerBufferSet),
+    AddKeyHandler(Chan<()>),
     Exit
-}
-
-pub fn OSMain(dom_event_chan: comm::SharedChan<Event>, opts: Opts) -> OSMain {
-    let dom_event_chan = Cell(dom_event_chan);
-    OSMain {
-        chan: SharedChan::new(on_osmain::<Msg>(|po| {
-            let po = Cell(po);
-            do platform::runmain {
-                debug!("preparing to enter main loop");
-
-                // FIXME: Use the servo options.
-                let mode;
-                match os::getenv("SERVO_SHARE") {
-                    Some(_) => mode = ShareMode,
-                    None => mode = GlutMode
-                }
-
-                mainloop(mode, po.take(), dom_event_chan.take(), &opts);
-            }
-        }))
-    }
 }
 
 /// Azure surface wrapping to work with the layers infrastructure.
@@ -82,8 +59,12 @@ struct AzureDrawTargetImageData {
 }
 
 impl layers::layers::ImageData for AzureDrawTargetImageData {
-    fn size(&self) -> Size2D<uint> { self.size }
-    fn stride(&self) -> uint { self.data_source_surface.stride() as uint }
+    fn size(&self) -> Size2D<uint> {
+        self.size
+    }
+    fn stride(&self) -> uint {
+        self.data_source_surface.stride() as uint
+    }
     fn format(&self) -> layers::layers::Format {
         // FIXME: This is not always correct. We should query the Azure draw target for the format.
         layers::layers::ARGB32Format
@@ -95,33 +76,20 @@ impl layers::layers::ImageData for AzureDrawTargetImageData {
     }
 }
 
-fn mainloop(mode: Mode,
-            po: Port<Msg>,
-            dom_event_chan: SharedChan<Event>,
-            opts: &Opts) {
+fn mainloop(po: Port<Msg>, dom_event_chan: SharedChan<Event>, opts: &Opts) {
     let key_handlers: @mut ~[Chan<()>] = @mut ~[];
 
-    let window;
-    match mode {
-        GlutMode => {
-            glut::init();
-            glut::init_display_mode(glut::DOUBLE);
-            let glut_window = glut::create_window(~"Servo");
-            glut::reshape_window(glut_window, 800, 600);
-            window = GlutWindow(glut_window);
-        }
-        ShareMode => {
-            let size = Size2D(800, 600);
-            let share_context: ShareGlContext = sharegl::base::ShareContext::new(size);
-            io::println(fmt!("Sharing ID is %d", share_context.id()));
-            window = ShareWindow(share_context);
-        }
-    }
+    let app: Application = ApplicationMethods::new();
+    let window: @mut Window = WindowMethods::new(&app);
 
     let surfaces = @mut SurfaceSet(opts.render_backend);
 
     let context = layers::rendergl::init_render_context();
 
+    // Create an initial layer tree.
+    //
+    // TODO: There should be no initial layer tree until the renderer creates one from the display
+    // list. This is only here because we don't have that logic in the renderer yet.
     let root_layer = @mut layers::layers::ContainerLayer();
     let original_layer_transform;
     {
@@ -137,19 +105,17 @@ fn mainloop(mode: Mode,
     }
 
 
-    let scene = @layers::scene::Scene(layers::layers::ContainerLayerKind(root_layer),
-                                      Size2D(800.0, 600.0),
-                                      identity());
+    let scene = @mut layers::scene::Scene(layers::layers::ContainerLayerKind(root_layer),
+                                          Size2D(800.0, 600.0),
+                                          identity());
 
     let done = @mut false;
     let resize_rate_limiter = @mut ResizeRateLimiter(dom_event_chan);
     let check_for_messages: @fn() = || {
-
         // Periodically check if content responded to our last resize event
         resize_rate_limiter.check_resize_response();
 
         // Handle messages
-        //#debug("osmain: peeking");
         while po.peek() {
             match po.recv() {
                 AddKeyHandler(key_ch) => key_handlers.push(key_ch),
@@ -195,9 +161,7 @@ fn mainloop(mode: Mode,
                                     common.next_sibling
                                 }
                             }
-                            Some(_) => {
-                                fail!(~"found unexpected layer kind")
-                            }
+                            Some(_) => fail!(~"found unexpected layer kind"),
                         };
 
                         // Set the layer's transform.
@@ -216,70 +180,39 @@ fn mainloop(mode: Mode,
         }
     };
 
-    let adjust_for_window_resizing: @fn() = || {
-        let window_width = glut::get(glut::WindowWidth) as uint;
-        let window_height = glut::get(glut::WindowHeight) as uint;
-
-        // FIXME: Cross-crate struct mutability is broken.
-        let size: &mut Size2D<f32>;
-        unsafe { size = cast::transmute(&scene.size); }
-        *size = Size2D(window_width as f32, window_height as f32);
-    };
-
-    let composite: @fn() = || {
-        //#debug("osmain: drawing to screen");
-
+    do window.set_composite_callback {
         do time::time(~"compositing") {
-            adjust_for_window_resizing();
+            // Adjust the layer dimensions as necessary to correspond to the size of the window.
+            scene.size = window.size();
+
+            // Render the scene.
             layers::rendergl::render_scene(context, scene);
         }
 
-        glut::swap_buffers();
-        glut::post_redisplay();
-    };
+        window.present();
+    }
 
-    match window {
-        GlutWindow(window) => {
-            do glut::reshape_func(window) |width, height| {
-                debug!("osmain: window resized to %d,%d", width as int, height as int);
-                check_for_messages();
-                resize_rate_limiter.window_resized(width as uint, height as uint);
-                //composite();
-            }
+    do window.set_resize_callback |width, height| {
+        debug!("osmain: window resized to %ux%u", width, height);
+        resize_rate_limiter.window_resized(width, height);
+    }
 
-            do glut::display_func() {
-                //debug!("osmain: display func");
-                check_for_messages();
-                composite();
-            }
+    // Enter the main event loop.
+    while !*done {
+        // Check for new messages coming from the rendering task.
+        check_for_messages();
 
-            while !*done {
-                //#debug("osmain: running GLUT check loop");
-                glut::check_loop();
-            }
-        }
-        ShareWindow(share_context) => {
-            loop {
-                check_for_messages();
-                do time::time(~"compositing") {
-                    layers::rendergl::render_scene(context, scene);
-                }
-
-                share_context.flush();
-            }
-        }
+        // Check for messages coming from the windowing system.
+        window.check_loop();
     }
 }
 
-/**
-Implementation to allow the osmain channel to be used as a graphics
-compositor for the renderer
-*/
-impl Compositor for OSMain {
-    fn begin_drawing(&self, next_dt: comm::Chan<LayerBufferSet>) {
+/// Implementation of the abstract `Compositor` interface.
+impl Compositor for CompositorImpl {
+    fn begin_drawing(&self, next_dt: Chan<LayerBufferSet>) {
         self.chan.send(BeginDrawing(next_dt))
     }
-    fn draw(&self, next_dt: comm::Chan<LayerBufferSet>, draw_me: LayerBufferSet) {
+    fn draw(&self, next_dt: Chan<LayerBufferSet>, draw_me: LayerBufferSet) {
         self.chan.send(Draw(next_dt, draw_me))
     }
 }
@@ -289,7 +222,7 @@ struct SurfaceSet {
     back: Surface,
 }
 
-fn lend_surface(surfaces: &mut SurfaceSet, receiver: comm::Chan<LayerBufferSet>) {
+fn lend_surface(surfaces: &mut SurfaceSet, receiver: Chan<LayerBufferSet>) {
     // We are in a position to lend out the surface?
     assert!(surfaces.front.have);
     // Ok then take it
@@ -343,11 +276,16 @@ fn Surface(backend: BackendType) -> Surface {
         rect: Rect(Point2D(0u, 0u), Size2D(800u, 600u)),
         stride: 800 * 4
     };
-    let layer_buffer_set = LayerBufferSet { buffers: ~[ layer_buffer ] };
-    Surface { layer_buffer_set: layer_buffer_set, have: true }
+    let layer_buffer_set = LayerBufferSet {
+        buffers: ~[ layer_buffer ]
+    };
+    Surface {
+        layer_buffer_set: layer_buffer_set,
+        have: true
+    }
 }
 
-/// A function for spawning into the platform's main thread
+/// A function for spawning into the platform's main thread.
 fn on_osmain<T: Owned>(f: ~fn(po: Port<T>)) -> Chan<T> {
     let (setup_po, setup_ch) = comm::stream();
     do task::task().sched_mode(task::PlatformThread).spawn {
@@ -356,12 +294,5 @@ fn on_osmain<T: Owned>(f: ~fn(po: Port<T>)) -> Chan<T> {
         f(po);
     }
     setup_po.recv()
-}
-
-// #[cfg(target_os = "linux")]
-mod platform {
-    pub fn runmain(f: &fn()) {
-        f()
-    }
 }
 

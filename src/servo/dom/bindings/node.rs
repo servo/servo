@@ -68,7 +68,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode) -> jsobj {
 }
 
 pub unsafe fn unwrap(obj: *JSObject) -> AbstractNode {
-    let raw = unsafe { utils::unwrap::<*mut Node>(obj) };
+    let raw = utils::unwrap::<*mut Node>(obj);
     AbstractNode::from_raw(raw)
 }
 
