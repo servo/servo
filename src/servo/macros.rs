@@ -4,11 +4,11 @@
 
 {
     macro_rules! move_ref(
-        { $x:expr } => { unsafe { let y <- *ptr::addr_of(*$x); y } }
+        { $x:expr } => { unsafe { let y <- *ptr::to_unsafe_ptr(*$x); y } }
     )
 
     macro_rules! move_val(
-        { $x:expr } => { unsafe { let y <- *ptr::addr_of(*$x); y } }
+        { $x:expr } => { unsafe { let y <- *ptr::to_unsafe_ptr(*$x); y } }
     )
 
     // select!
