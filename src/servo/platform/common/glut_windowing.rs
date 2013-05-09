@@ -7,7 +7,7 @@
 /// GLUT is a very old and bare-bones toolkit. However, it has good cross-platform support, at
 /// least on desktops. It is designed for testing Servo without the need of a UI.
 
-use compositing::{CompositeCallback, ResizeCallback};
+use windowing::{ApplicationMethods, CompositeCallback, ResizeCallback, WindowMethods};
 
 use geom::size::Size2D;
 use glut::glut::{DOUBLE, WindowHeight, WindowWidth};
@@ -16,7 +16,7 @@ use glut::glut;
 /// A structure responsible for setting up and tearing down the entire windowing system.
 pub struct Application;
 
-impl Application {
+impl ApplicationMethods for Application {
     pub fn new() -> Application {
         glut::init();
         glut::init_display_mode(DOUBLE);
@@ -31,7 +31,7 @@ pub struct Window {
     resize_callback: Option<ResizeCallback>,
 }
 
-impl Window {
+impl WindowMethods<Application> for Window {
     /// Creates a new window.
     pub fn new(_: &Application) -> @mut Window {
         // Create the GLUT window.
@@ -64,7 +64,7 @@ impl Window {
     }
 
     /// Returns the size of the window.
-    pub fn size(&mut self) -> Size2D<f32> {
+    pub fn size(&self) -> Size2D<f32> {
         Size2D(glut::get(WindowWidth) as f32, glut::get(WindowHeight) as f32)
     }
 

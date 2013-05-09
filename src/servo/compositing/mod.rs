@@ -5,6 +5,7 @@
 use compositing::resize_rate_limiter::ResizeRateLimiter;
 use dom::event::Event;
 use platform::{Application, Window};
+use windowing::{ApplicationMethods, WindowMethods};
 
 use azure::azure_hl::{BackendType, B8G8R8A8, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
 use core::cell::Cell;
@@ -20,12 +21,6 @@ use layers;
 use servo_util::time;
 
 mod resize_rate_limiter;
-
-/// Type of the function that is called when the screen is to be redisplayed.
-pub type CompositeCallback = @fn();
-
-/// Type of the function that is called when the window is resized.
-pub type ResizeCallback = @fn(uint, uint);
 
 /// The implementation of the layers-based compositor.
 #[deriving(Clone)]
@@ -84,8 +79,8 @@ impl layers::layers::ImageData for AzureDrawTargetImageData {
 fn mainloop(po: Port<Msg>, dom_event_chan: SharedChan<Event>, opts: &Opts) {
     let key_handlers: @mut ~[Chan<()>] = @mut ~[];
 
-    let app = Application::new();
-    let window = Window::new(&app);
+    let app: Application = ApplicationMethods::new();
+    let window: @mut Window = WindowMethods::new(&app);
 
     let surfaces = @mut SurfaceSet(opts.render_backend);
 

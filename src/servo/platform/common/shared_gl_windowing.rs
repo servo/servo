@@ -11,7 +11,7 @@
 /// along with the Servo process or trusted. If the OpenGL driver itself is untrusted, then this
 /// windowing implementation is not appropriate.
 
-use compositing::{CompositeCallback, ResizeCallback};
+use windowing::{CompositeCallback, ResizeCallback};
 
 use geom::size::Size2D;
 use sharegl::base::ShareContext;
@@ -20,7 +20,7 @@ use sharegl::platform::Context;
 /// A structure responsible for setting up and tearing down the entire windowing system.
 pub struct Application;
 
-impl Application {
+impl ApplicationMethods for Application {
     pub fn new() -> Application {
         Application
     }
@@ -29,7 +29,7 @@ impl Application {
 /// The type of a window.
 pub struct Window(Context);
 
-impl Window {
+impl WindowingMethods<Application> for Window {
     /// Creates a new window.
     pub fn new(_: &Application) -> @mut Window {
         let share_context: Context = ShareContext::new(Size2D(800, 600));
