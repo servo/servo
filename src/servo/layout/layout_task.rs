@@ -15,8 +15,6 @@ use layout::context::LayoutContext;
 use layout::debug::{BoxedMutDebugMethods, DebugMethods};
 use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
 use layout::flow::FlowContext;
-use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg};
-use resource::local_image_cache::LocalImageCache;
 use util::task::spawn_listener;
 use util::time::time;
 
@@ -34,6 +32,8 @@ use gfx::render_task::{RenderMsg, RenderTask};
 use newcss::select::SelectCtx;
 use newcss::stylesheet::Stylesheet;
 use newcss::types::OriginAuthor;
+use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
+use servo_net::local_image_cache::LocalImageCache;
 use servo_util::tree::TreeUtils;
 use std::net::url::Url;
 

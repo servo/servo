@@ -13,6 +13,7 @@ extern mod geom;
 extern mod http_client;
 extern mod stb_image;
 extern mod std;
+extern mod servo_net;
 extern mod servo_util (name = "servo_util");
 
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
@@ -57,22 +58,7 @@ pub mod opts;
 #[path="platform/mod.rs"]
 pub mod platform;
 
-// Images
-pub mod image {
-    pub mod base;
-    pub mod holder;
-}
-
 // Text
 #[path = "text/mod.rs"]
 pub mod text;
 
-// FIXME: Blech. This does not belong in the GFX module.
-pub mod resource {
-    pub mod file_loader;
-    pub mod http_loader;
-    pub mod image_cache_task;
-    pub mod local_image_cache;
-    pub mod resource_task;
-    pub mod util;
-}

@@ -8,12 +8,13 @@ extra message traffic, it also avoids waiting on the same image
 multiple times and thus triggering reflows multiple times.
 */
 
+use image_cache_task::{Decode, GetImage, ImageCacheTask, ImageFailed, ImageNotReady, ImageReady};
+use image_cache_task::{ImageResponseMsg, Prefetch, WaitForImage};
+
 use clone_arc = std::arc::clone;
-use std::net::url::Url;
 use core::comm::Port;
-use resource::image_cache_task::{ImageCacheTask, ImageResponseMsg, Prefetch, Decode, GetImage};
-use resource::image_cache_task::{ WaitForImage, ImageReady, ImageNotReady, ImageFailed};
 use servo_util::url::{UrlMap, url_map};
+use std::net::url::Url;
 
 pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
     LocalImageCache {

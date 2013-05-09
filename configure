@@ -419,6 +419,7 @@ do
 done
 
 make_dir ${CFG_BUILD_DIR}src/servo-util
+make_dir ${CFG_BUILD_DIR}src/servo-net
 make_dir ${CFG_BUILD_DIR}src/servo-gfx
 make_dir src/test/ref
 make_dir src/rust

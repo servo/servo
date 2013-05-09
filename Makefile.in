@@ -168,21 +168,28 @@ DONE_servo_util = $(B)src/servo-util/libservoutil.dummy
 
 DEPS_servo_util = $(CRATE_servo_util) $(SRC_servo_util) $(DONE_SUBMODULES)
 
-RFLAGS_servo_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-util
+RFLAGS_servo_net = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-util
+SRC_servo_net = $(call rwildcard,$(S)src/servo-net/,*.rs)
+CRATE_servo_net = $(S)src/servo-net/servo_net.rc
+DONE_servo_net = $(B)src/servo-net/libservonet.dummy
+
+DEPS_servo_net = $(CRATE_servo_net) $(SRC_servo_net) $(DONE_SUBMODULES) $(DONE_servo_util)
+
+RFLAGS_servo_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-util -L $(B)src/servo-net
 SRC_servo_gfx = $(call rwildcard,$(S)src/servo-gfx/,*.rs)
 CRATE_servo_gfx = $(S)src/servo-gfx/servo_gfx.rc
 DONE_servo_gfx = $(B)src/servo-gfx/libservogfx.dummy
 
-DEPS_servo_gfx = $(CRATE_servo_gfx) $(SRC_servo_gfx) $(DONE_SUBMODULES) $(DONE_servo_util)
+DEPS_servo_gfx = $(CRATE_servo_gfx) $(SRC_servo_gfx) $(DONE_SUBMODULES) $(DONE_servo_util) $(DONE_servo_net)
 
-RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-gfx -L $(B)src/servo-util
+RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-gfx -L $(B)src/servo-util -L $(B)src/servo-net
 
 WEBIDL_servo = $(call rwildcard,$(S)src/servo/,*.webidl)
 AUTOGEN_SRC_servo = $(patsubst %.webidl, %Binding.rs, $(WEBIDL_servo))
 SRC_servo = $(call rwildcard,$(S)src/servo/,*.rs) $(AUTOGEN_SRC_servo)
 CRATE_servo = $(S)src/servo/servo.rc
 
-DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_servo_util) $(DONE_servo_gfx)
+DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_servo_util) $(DONE_servo_gfx) $(DONE_servo_net)
 
 # rules that depend on having correct meta-target vars (DEPS_CLEAN, DEPS_servo, etc)
 include $(S)mk/check.mk
@@ -196,6 +203,9 @@ all:    servo package
 
 $(DONE_servo_util):	$(DEPS_servo_util)
 	$(RUSTC) $(RFLAGS_servo_util) -o $@ $< && touch $@
+
+$(DONE_servo_net):	$(DEPS_servo_net)
+	$(RUSTC) $(RFLAGS_servo_net) -o $@ $< && touch $@
 
 $(DONE_servo_gfx):	$(DEPS_servo_gfx)
 	$(RUSTC) $(RFLAGS_servo_gfx) -o $@ $< && touch $@

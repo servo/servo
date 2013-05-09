@@ -8,9 +8,6 @@ use content::content_task;
 use dom::event::Event;
 use layout::layout_task;
 use layout::layout_task::LayoutTask;
-use resource::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
-use resource::resource_task::ResourceTask;
-use resource::resource_task;
 use util::task::spawn_listener;
 
 use core::cell::Cell;
@@ -18,6 +15,9 @@ use core::comm::{Chan, Port, SharedChan};
 use gfx::opts::Opts;
 use gfx::render_task::RenderTask;
 use gfx::render_task;
+use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
+use servo_net::resource_task::ResourceTask;
+use servo_net::resource_task;
 use std::net::url::Url;
 
 pub type EngineTask = Chan<Msg>;

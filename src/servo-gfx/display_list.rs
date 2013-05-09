@@ -4,15 +4,15 @@
 
 use color::{Color, rgb};
 use geometry::Au;
-use image::base::Image;
 use render_context::RenderContext;
 use text::SendableTextRun;
-use servo_util::range::Range;
 
 use clone_arc = std::arc::clone;
 use geom::Rect;
 use geom::Point2D;
 use std::arc::ARC;
+use servo_net::image::base::Image;
+use servo_util::range::Range;
 
 struct DisplayItemData {
     bounds : Rect<Au>, // TODO: whose coordinate system should this use?

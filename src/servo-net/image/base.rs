@@ -20,7 +20,6 @@ pub fn test_image_bin() -> ~[u8] {
 }
 
 pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
-
     // Can't remember why we do this. Maybe it's what cairo wants
     static FORCE_DEPTH: uint = 4;
 
