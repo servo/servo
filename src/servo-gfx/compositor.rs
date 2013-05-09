@@ -21,10 +21,8 @@ pub struct LayerBufferSet {
     buffers: ~[LayerBuffer]
 }
 
-/**
-The interface used to by the renderer to aquire draw targets for
-each rendered frame and submit them to be drawn to the display
-*/
+/// The interface used to by the renderer to acquire draw targets for each rendered frame and
+/// submit them to be drawn to the display.
 pub trait Compositor {
     fn begin_drawing(&self, next_dt: comm::Chan<LayerBufferSet>);
     fn draw(&self, next_dt: comm::Chan<LayerBufferSet>, +draw_me: LayerBufferSet);

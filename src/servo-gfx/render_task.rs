@@ -11,13 +11,13 @@ use geom::matrix2d::Matrix2D;
 use opts::Opts;
 use render_context::RenderContext;
 use render_layers::{RenderLayer, render_layers};
-use resource::util::spawn_listener;
-use servo_util::time::time;
 
 use core::cell::Cell;
 use core::comm::{Port, SharedChan};
 use core::task::SingleThreaded;
 use std::task_pool::TaskPool;
+use servo_net::util::spawn_listener;
+use servo_util::time::time;
 
 pub enum Msg {
     RenderMsg(RenderLayer),

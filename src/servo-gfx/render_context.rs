@@ -5,7 +5,6 @@
 use compositor::LayerBuffer;
 use font_context::FontContext;
 use geometry::Au;
-use image::base::Image;
 use opts::Opts;
 
 use azure::azure_hl::{B8G8R8A8, Color, ColorPattern, DrawOptions};
@@ -15,6 +14,7 @@ use core::libc::types::common::c99::uint16_t;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use servo_net::image::base::Image;
 use std::arc;
 use std::arc::ARC;
 

@@ -3,46 +3,46 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use image::base::{Image, load_from_memory};
-use resource::resource_task;
-use resource::resource_task::ResourceTask;
+use resource_task;
+use resource_task::ResourceTask;
 use servo_util::url::{UrlMap, url_map};
 
 use clone_arc = std::arc::clone;
+use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan, stream};
 use core::task::spawn;
 use core::to_str::ToStr;
 use core::util::replace;
 use std::arc::ARC;
 use std::net::url::Url;
-use core::cell::Cell;
 
 pub enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted
     /// before Decode
-    pub Prefetch(Url),
+    Prefetch(Url),
 
     // FIXME: We can probably get rid of this Cell now
     /// Used be the prefetch tasks to post back image binaries
     priv StorePrefetchedImageData(Url, Result<Cell<~[u8]>, ()>),
 
     /// Tell the cache to decode an image. Must be posted before GetImage/WaitForImage
-    pub Decode(Url),
+    Decode(Url),
 
     /// Used by the decoder tasks to post decoded images back to the cache
     priv StoreImage(Url, Option<ARC<~Image>>),
 
     /// Request an Image object for a URL. If the image is not is not immediately
     /// available then ImageNotReady is returned.
-    pub GetImage(Url, Chan<ImageResponseMsg>),
+    GetImage(Url, Chan<ImageResponseMsg>),
 
     /// Wait for an image to become available (or fail to load).
-    pub WaitForImage(Url, Chan<ImageResponseMsg>),
+    WaitForImage(Url, Chan<ImageResponseMsg>),
 
     /// For testing
     priv OnMsg(~fn(msg: &Msg)),
 
     /// Clients must wait for a response before shutting down the ResourceTask
-    pub Exit(Chan<()>)
+    Exit(Chan<()>),
 }
 
 pub enum ImageResponseMsg {
@@ -54,9 +54,9 @@ pub enum ImageResponseMsg {
 impl ImageResponseMsg {
     fn clone(&self) -> ImageResponseMsg {
         match *self {
-          ImageReady(ref img) => ImageReady(clone_arc(img)),
-          ImageNotReady => ImageNotReady,
-          ImageFailed => ImageFailed
+            ImageReady(ref img) => ImageReady(clone_arc(img)),
+            ImageNotReady => ImageNotReady,
+            ImageFailed => ImageFailed,
         }
     }
 }
@@ -65,17 +65,16 @@ impl Eq for ImageResponseMsg {
     fn eq(&self, other: &ImageResponseMsg) -> bool {
         // FIXME: Bad copies
         match (self.clone(), other.clone()) {
-          (ImageReady(*), ImageReady(*)) => fail!(~"unimplemented comparison"),
-          (ImageNotReady, ImageNotReady) => true,
-          (ImageFailed, ImageFailed) => true,
+            (ImageReady(*), ImageReady(*)) => fail!(~"unimplemented comparison"),
+            (ImageNotReady, ImageNotReady) => true,
+            (ImageFailed, ImageFailed) => true,
 
-          (ImageReady(*), _)
-          | (ImageNotReady, _)
-          | (ImageFailed, _) => false
+            (ImageReady(*), _) | (ImageNotReady, _) | (ImageFailed, _) => false
         }
     }
+
     fn ne(&self, other: &ImageResponseMsg) -> bool {
-        return !(*self).eq(other);
+        !(*self).eq(other)
     }
 }
 
@@ -87,9 +86,8 @@ pub fn ImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
     ImageCacheTask_(resource_task, default_decoder_factory)
 }
 
-pub fn ImageCacheTask_(resource_task: ResourceTask,
-                       decoder_factory: DecoderFactory)
-                    -> ImageCacheTask {
+pub fn ImageCacheTask_(resource_task: ResourceTask, decoder_factory: DecoderFactory)
+                       -> ImageCacheTask {
     // FIXME: Doing some dancing to avoid copying decoder_factory, our test
     // version of which contains an uncopyable type which rust will currently
     // copy unsoundly
@@ -140,7 +138,7 @@ fn SyncImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
         }
     }
 
-    return SharedChan::new(chan);
+    SharedChan::new(chan)
 }
 
 struct ImageCache {
@@ -175,9 +173,7 @@ enum AfterPrefetch {
 
 #[allow(non_implicitly_copyable_typarams)]
 impl ImageCache {
-
     pub fn run(&mut self) {
-
         let mut msg_handlers: ~[~fn(msg: &Msg)] = ~[];
 
         loop {
@@ -397,26 +393,12 @@ impl ImageCache {
 
     priv fn get_image(&self, url: Url, response: Chan<ImageResponseMsg>) {
         match self.get_state(copy url) {
-          Init => fail!(~"request for image before prefetch"),
-
-          Prefetching(DoDecode) => {
-            response.send(ImageNotReady);
-          }
-
-          Prefetching(DoNotDecode)
-          | Prefetched(*) => fail!(~"request for image before decode"),
-
-          Decoding => {
-            response.send(ImageNotReady)
-          }
-
-          Decoded(image) => {
-            response.send(ImageReady(clone_arc(image)));
-          }
-
-          Failed => {
-            response.send(ImageFailed);
-          }
+            Init => fail!(~"request for image before prefetch"),
+            Prefetching(DoDecode) => response.send(ImageNotReady),
+            Prefetching(DoNotDecode) | Prefetched(*) => fail!(~"request for image before decode"),
+            Decoding => response.send(ImageNotReady),
+            Decoded(image) => response.send(ImageReady(clone_arc(image))),
+            Failed => response.send(ImageFailed),
         }
     }
 
@@ -505,7 +487,6 @@ fn mock_resource_task(on_load: ~fn(resource: Chan<resource_task::ProgressMsg>)) 
 
 #[test]
 fn should_exit_on_request() {
-
     let mock_resource_task = mock_resource_task(|_response| () );
 
     let image_cache_task = ImageCacheTask(mock_resource_task);
@@ -518,7 +499,6 @@ fn should_exit_on_request() {
 #[test]
 #[should_fail]
 fn should_fail_if_unprefetched_image_is_requested() {
-
     let mock_resource_task = mock_resource_task(|_response| () );
 
     let image_cache_task = ImageCacheTask(mock_resource_task);
@@ -552,7 +532,6 @@ fn should_request_url_from_resource_task_on_prefetch() {
 #[test]
 #[should_fail]
 fn should_fail_if_requesting_decode_of_an_unprefetched_image() {
-
     let mock_resource_task = mock_resource_task(|_response| () );
 
     let image_cache_task = ImageCacheTask(mock_resource_task);
@@ -565,7 +544,6 @@ fn should_fail_if_requesting_decode_of_an_unprefetched_image() {
 #[test]
 #[should_fail]
 fn should_fail_if_requesting_image_before_requesting_decode() {
-
     let mock_resource_task = do mock_resource_task |response| {
         response.send(resource_task::Done(result::Ok(())));
     };
@@ -606,7 +584,6 @@ fn should_not_request_url_from_resource_task_on_multiple_prefetches() {
 
 #[test]
 fn should_return_image_not_ready_if_data_has_not_arrived() {
-
     let (wait_chan, wait_port) = pipes::stream();
 
     let mock_resource_task = do mock_resource_task |response| {
@@ -632,7 +609,6 @@ fn should_return_image_not_ready_if_data_has_not_arrived() {
 
 #[test]
 fn should_return_decoded_image_data_if_data_has_arrived() {
-
     let mock_resource_task = do mock_resource_task |response| {
         response.send(resource_task::Payload(test_image_bin()));
         response.send(resource_task::Done(result::Ok(())));
@@ -670,7 +646,6 @@ fn should_return_decoded_image_data_if_data_has_arrived() {
 
 #[test]
 fn should_return_decoded_image_data_for_multiple_requests() {
-
     let mock_resource_task = do mock_resource_task |response| {
         response.send(resource_task::Payload(test_image_bin()));
         response.send(resource_task::Done(result::Ok(())));
@@ -710,7 +685,6 @@ fn should_return_decoded_image_data_for_multiple_requests() {
 
 #[test]
 fn should_not_request_image_from_resource_task_if_image_is_already_available() {
-
     let image_bin_sent = comm::Port();
     let image_bin_sent_chan = image_bin_sent.chan();
 
@@ -755,7 +729,6 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
 
 #[test]
 fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
-
     let image_bin_sent = comm::Port();
     let image_bin_sent_chan = image_bin_sent.chan();
 
@@ -802,7 +775,6 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
 
 #[test]
 fn should_return_failed_if_image_bin_cannot_be_fetched() {
-
     let mock_resource_task = do mock_resource_task |response| {
         response.send(resource_task::Payload(test_image_bin()));
         // ERROR fetching image
@@ -841,7 +813,6 @@ fn should_return_failed_if_image_bin_cannot_be_fetched() {
 
 #[test]
 fn should_return_failed_for_multiple_get_image_requests_if_image_bin_cannot_be_fetched() {
-
     let mock_resource_task = do mock_resource_task |response | {
         response.send(resource_task::Payload(test_image_bin()));
         // ERROR fetching image
@@ -888,7 +859,6 @@ fn should_return_failed_for_multiple_get_image_requests_if_image_bin_cannot_be_f
 
 #[test]
 fn should_return_not_ready_if_image_is_still_decoding() {
-
     let (wait_to_decode_chan, wait_to_decode_port) = pipes::stream();
 
     let mock_resource_task = do mock_resource_task |response| {
@@ -943,7 +913,6 @@ fn should_return_not_ready_if_image_is_still_decoding() {
 
 #[test]
 fn should_return_failed_if_image_decode_fails() {
-
     let mock_resource_task = do mock_resource_task |response| {
         // Bogus data
         response.send(resource_task::Payload(~[]));
@@ -984,7 +953,6 @@ fn should_return_failed_if_image_decode_fails() {
 
 #[test]
 fn should_return_image_on_wait_if_image_is_already_loaded() {
-
     let mock_resource_task = do mock_resource_task |response| {
         response.send(resource_task::Payload(test_image_bin()));
         response.send(resource_task::Done(result::Ok(())));
@@ -1022,7 +990,6 @@ fn should_return_image_on_wait_if_image_is_already_loaded() {
 
 #[test]
 fn should_return_image_on_wait_if_image_is_not_yet_loaded() {
-
     let (wait_chan, wait_port) = pipes::stream();
 
     let mock_resource_task = do mock_resource_task |response| {
@@ -1053,7 +1020,6 @@ fn should_return_image_on_wait_if_image_is_not_yet_loaded() {
 
 #[test]
 fn should_return_image_failed_on_wait_if_image_fails_to_load() {
-
     let (wait_chan, wait_port) = pipes::stream();
 
     let mock_resource_task = do mock_resource_task |response| {
@@ -1105,3 +1071,4 @@ fn sync_cache_should_wait_for_images() {
     image_cache_task.exit();
     mock_resource_task.send(resource_task::Exit);
 }
+

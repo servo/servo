@@ -3,21 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use image::base::Image;
-use resource::image_cache_task::{ImageReady, ImageNotReady, ImageFailed};
-use resource::local_image_cache::LocalImageCache;
+use image_cache_task::{ImageReady, ImageNotReady, ImageFailed};
+use local_image_cache::LocalImageCache;
 
 use core::util::replace;
 use geom::size::Size2D;
 use std::net::url::Url;
 use std::arc::{ARC, clone, get};
 
-// FIXME: Nasty coupling to resource here. This should probably be factored out into an interface
-// and use dependency injection.
+// FIXME: Nasty coupling here This will be a problem if we want to factor out image handling from
+// the network stack. This should probably be factored out into an interface and use dependency
+// injection.
 
-/** A struct to store image data. The image will be loaded once, the
-    first time it is requested, and an arc will be stored.  Clones of
-    this arc are given out on demand.
- */
+/// A struct to store image data. The image will be loaded once the first time it is requested,
+/// and an ARC will be stored.  Clones of this ARC are given out on demand.
 pub struct ImageHolder {
     url: Url,
     image: Option<ARC<~Image>>,
@@ -46,18 +45,16 @@ pub impl ImageHolder {
         holder
     }
 
-    /**
-    This version doesn't perform any computation, but may be stale w.r.t.
-    newly-available image data that determines size.
-
-    The intent is that the impure version is used during layout when
-    dimensions are used for computing layout.
-    */
+    /// This version doesn't perform any computation, but may be stale w.r.t. newly-available image
+    /// data that determines size.
+    ///
+    /// The intent is that the impure version is used during layout when dimensions are used for
+    /// computing layout.
     fn size(&self) -> Size2D<int> {
         self.cached_size
     }
     
-    /** Query and update current image size */
+    /// Query and update the current image size.
     fn get_size(&mut self) -> Option<Size2D<int>> {
         debug!("get_size() %?", self.url);
         match self.get_image() {
@@ -103,3 +100,4 @@ pub impl ImageHolder {
         return result;
     }
 }
+

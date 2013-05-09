@@ -6,15 +6,15 @@ use dom::element::*;
 use dom::node::{AbstractNode, Comment, Doctype, Element, ElementNodeTypeId, Node, Text};
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use newcss::stylesheet::Stylesheet;
-use resource::image_cache_task::ImageCacheTask;
-use resource::image_cache_task;
-use resource::resource_task::{Done, Load, Payload, ResourceTask};
 use util::task::spawn_conversation;
 
 use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
 use core::str::eq_slice;
 use hubbub::hubbub;
+use servo_net::image_cache_task::ImageCacheTask;
+use servo_net::image_cache_task;
+use servo_net::resource_task::{Done, Load, Payload, ResourceTask};
 use servo_util::tree::TreeUtils;
 use servo_util::url::make_url;
 use std::net::url::Url;
