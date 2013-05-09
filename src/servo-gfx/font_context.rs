@@ -4,7 +4,6 @@
 
 use font::{Font, FontDescriptor, FontGroup, FontStyle, SelectorPlatformIdentifier};
 use font::{SpecifiedFontStyle, UsedFontStyle};
-use font_context;
 use font_list::FontList;
 use servo_util::cache::Cache;
 use servo_util::cache::MonoCache;

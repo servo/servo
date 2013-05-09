@@ -32,7 +32,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
                      f: RenderFn) -> LayerBufferSet {
     let tile_size = opts.tile_size;
 
-    let mut _buffers = match buffer_set { LayerBufferSet { buffers: b } => b };
+    let _buffers = match buffer_set { LayerBufferSet { buffers: b } => b };
 
     // FIXME: Try not to create a new array here.
     let mut new_buffer_ports = ~[];
