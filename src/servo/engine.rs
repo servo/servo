@@ -15,7 +15,6 @@ use util::task::spawn_listener;
 
 use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
-use gfx::compositor::Compositor;
 use gfx::opts::Opts;
 use gfx::render_task::RenderTask;
 use gfx::render_task;

@@ -17,7 +17,6 @@ use core::util;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
-use gfx::image::holder;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::*;
 use newcss::values::{CSSTextAlignCenter, CSSTextAlignJustify, CSSTextAlignLeft};
@@ -674,7 +673,7 @@ impl InlineFlowData {
                         let width = Au::from_px(size.get_or_default(Size2D(0, 0)).width);
                         image_box.base.position.size.width = width;
                     }
-                    TextRenderBoxClass(text_box) => {
+                    TextRenderBoxClass(_) => {
                         // Text boxes are preinitialized.
                     }
                     GenericRenderBoxClass(generic_box) => {

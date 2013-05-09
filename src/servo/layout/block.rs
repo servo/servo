@@ -127,8 +127,7 @@ impl BlockLayout for FlowContext {
         assert!(self.starts_block_flow());
 
         let mut remaining_width = self.with_imm_node(|this| this.position.size.width);
-        let mut _right_used = Au(0);
-        let mut left_used = Au(0);
+        let left_used = Au(0);
 
         // Let the box consume some width. It will return the amount remaining for its children.
         do self.with_block_box |box| {
