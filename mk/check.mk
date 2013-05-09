@@ -45,4 +45,4 @@ check-content: contenttest
 	./contenttest --source-dir=$(S)/src/test/content $(TESTNAME)
 
 tidy: 
-	python $(S)/src/etc/tidy.py $(S)/src
+	python $(S)src/etc/tidy.py $(S)src
