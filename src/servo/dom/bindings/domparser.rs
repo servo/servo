@@ -1,3 +1,4 @@
+// xfail-license
 use dom::bindings::codegen::DOMParserBinding;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache};
 use dom::bindings::utils::{BindingObject, DerivedWrapper};

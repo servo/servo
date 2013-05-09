@@ -1,3 +1,4 @@
+// xfail-license
 use dom::clientrect::ClientRect;
 use dom::bindings::utils::WrapperCache;
 
