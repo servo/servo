@@ -33,8 +33,8 @@ extern mod core_graphics;
 #[cfg(target_os="macos")]
 extern mod core_text;
 
-use compositing::{AddKeyHandler, OSMain};
-use engine::{Engine, LoadURLMsg};
+use compositing::{AddKeyHandler, CompositorImpl};
+use engine::{Engine, LoadUrlMsg};
 
 pub use gfx::opts::{Opts, Png, Screen};  // FIXME: Do we really want "Screen" and "Png" visible?
 pub use gfx::resource;
@@ -145,29 +145,29 @@ fn run_pipeline_screen(opts: &Opts) {
     let dom_event_chan = comm::SharedChan::new(dom_event_chan);
 
     // The platform event handler thread
-    let osmain = OSMain(dom_event_chan.clone(), copy *opts);
+    let compositor = CompositorImpl::new(dom_event_chan.clone(), copy *opts);
 
     // Send each file to render then wait for keypress
-    let (keypress_from_osmain, keypress_to_engine) = comm::stream();
-    osmain.chan.send(AddKeyHandler(keypress_to_engine));
+    let (keypress_from_compositor, keypress_to_engine) = comm::stream();
+    compositor.chan.send(AddKeyHandler(keypress_to_engine));
 
     // Create a servo instance
     let resource_task = ResourceTask();
     let image_cache_task = ImageCacheTask(resource_task.clone());
-    let engine_task = Engine(osmain.clone(),
-                             opts,
-                             dom_event_port,
-                             dom_event_chan,
-                             resource_task,
-                             image_cache_task);
+    let engine_task = Engine::start(compositor.clone(),
+                                    opts,
+                                    dom_event_port,
+                                    dom_event_chan,
+                                    resource_task,
+                                    image_cache_task);
 
     for opts.urls.each |filename| {
         let url = make_url(copy *filename, None);
         debug!("master: Sending url `%s`", url.to_str());
-        engine_task.send(LoadURLMsg(url));
+        engine_task.send(LoadUrlMsg(url));
         debug!("master: Waiting for keypress");
 
-        match keypress_from_osmain.try_recv() {
+        match keypress_from_compositor.try_recv() {
           Some(*) => { }
           None => { error!("keypress stream closed unexpectedly") }
         };
@@ -179,7 +179,7 @@ fn run_pipeline_screen(opts: &Opts) {
     engine_task.send(engine::ExitMsg(exit_chan));
     exit_response_from_engine.recv();
 
-    osmain.chan.send(compositing::Exit);
+    compositor.chan.send(compositing::Exit);
 }
 
 fn run_pipeline_png(_opts: &Opts, _outfile: &str) {
@@ -209,7 +209,7 @@ fn run_pipeline_png(url: ~str, outfile: &str) {
                                  dom_event_chan,
                                  resource_task,
                                  image_cache_task);
-        engine_task.send(LoadURLMsg(make_url(copy url, None)));
+        engine_task.send(LoadUrlMsg(make_url(copy url, None)));
 
         match buffered_file_writer(&Path(outfile)) {
           Ok(writer) => writer.write(pngdata_from_compositor.recv()),
