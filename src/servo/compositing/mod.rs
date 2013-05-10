@@ -288,7 +288,10 @@ fn Surface(backend: BackendType) -> Surface {
 /// A function for spawning into the platform's main thread.
 fn on_osmain<T: Owned>(f: ~fn(po: Port<T>)) -> Chan<T> {
     let (setup_po, setup_ch) = comm::stream();
-    do task::task().sched_mode(task::PlatformThread).spawn {
+    // FIXME: rust#6399
+    let mut main_task = task::task();
+    main_task.sched_mode(task::PlatformThread);
+    do main_task.spawn {
         let (po, ch) = comm::stream();
         setup_ch.send(ch);
         f(po);

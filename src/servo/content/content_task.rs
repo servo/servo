@@ -65,7 +65,10 @@ pub fn ContentTask(layout_task: LayoutTask,
     let dom_event_port = Cell(dom_event_port);
     let dom_event_chan = Cell(dom_event_chan);
 
-    do task().sched_mode(SingleThreaded).spawn {
+    // FIXME: rust#6399
+    let mut the_task = task();
+    the_task.sched_mode(SingleThreaded);
+    do the_task.spawn {
         let content = Content(layout_task.clone(),
                               control_port.take(),
                               control_chan_copy.clone(),
