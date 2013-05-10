@@ -293,7 +293,7 @@ pub impl Font {
             None => {}
         }
 
-        let mut scaled_font = self.create_azure_font();
+        let scaled_font = self.create_azure_font();
         self.azure_font = Some(scaled_font);
         // try again.
         return self.get_azure_font();
@@ -385,7 +385,7 @@ pub impl Font {
         for run.glyphs.iter_glyphs_for_char_range(range) |_i, glyph| {
             advance += glyph.advance();
         }
-        let mut bounds = Rect(Point2D(Au(0), -self.metrics.ascent),
+        let bounds = Rect(Point2D(Au(0), -self.metrics.ascent),
                               Size2D(advance, self.metrics.ascent + self.metrics.descent));
 
         // TODO(Issue #125): support loose and tight bounding boxes; using the

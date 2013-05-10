@@ -27,12 +27,9 @@ type RenderFn<'self> = &'self fn(layer: *RenderLayer,
 /// given callback with the render layer and the buffer. Returns the resulting layer buffer (which
 /// might be the old layer buffer if it had the appropriate size and format).
 pub fn render_layers(layer_ref: *RenderLayer,
-                     buffer_set: LayerBufferSet,
                      opts: &Opts,
                      f: RenderFn) -> LayerBufferSet {
     let tile_size = opts.tile_size;
-
-    let mut _buffers = match buffer_set { LayerBufferSet { buffers: b } => b };
 
     // FIXME: Try not to create a new array here.
     let mut new_buffer_ports = ~[];
