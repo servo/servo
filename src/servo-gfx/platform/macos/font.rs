@@ -16,7 +16,7 @@ use geometry::Au;
 use platform::macos::font_context::FontContextHandle;
 use text::glyph::GlyphIndex;
 
-use core_foundation::base::{CFIndex, CFWrapper};
+use core_foundation::base::CFIndex;
 use core_foundation::data::CFData;
 use core_foundation::string::UniChar;
 use core_graphics::data_provider::CGDataProvider;
@@ -106,7 +106,7 @@ impl FontHandleMethods for FontHandle {
 
     fn boldness(&self) -> CSSFontWeight {
         // -1.0 to 1.0
-        let normalized = unsafe { self.ctfont.all_traits().normalized_weight() };
+        let normalized = self.ctfont.all_traits().normalized_weight();
         // 0.0 to 9.0
         let normalized = (normalized + 1.0) / 2.0 * 9.0;
         if normalized < 1.0 { return FontWeight100; }
@@ -146,13 +146,11 @@ impl FontHandleMethods for FontHandle {
 
     fn glyph_h_advance(&self, glyph: GlyphIndex) -> Option<FractionalPixel> {
         let glyphs = [glyph as CGGlyph];
-        unsafe {
-            let advance = self.ctfont.get_advances_for_glyphs(kCTFontDefaultOrientation,
-                                                              &glyphs[0],
-                                                              ptr::null(),
-                                                              1);
-            return Some(advance as FractionalPixel);
-        }
+        let advance = self.ctfont.get_advances_for_glyphs(kCTFontDefaultOrientation,
+                                                          &glyphs[0],
+                                                          ptr::null(),
+                                                          1);
+        Some(advance as FractionalPixel)
     }
 
     fn get_metrics(&self) -> FontMetrics {

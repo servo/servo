@@ -76,12 +76,9 @@ pub impl LocalImageCache {
 
         match state.last_response {
             ImageReady(ref image) => {
-                // FIXME: appease borrowck
-                unsafe {
-                    let (port, chan) = comm::stream();
-                    chan.send(ImageReady(clone_arc(image)));
-                    return port;
-                }
+                let (port, chan) = comm::stream();
+                chan.send(ImageReady(clone_arc(image)));
+                return port;
             }
             ImageNotReady => {
                 if last_round == self.round_number {
@@ -138,18 +135,14 @@ pub impl LocalImageCache {
     }
 
     priv fn get_state(&self, url: &Url) -> @mut ImageState {
-        match self.state_map.find(url) {
-            Some(state) => *state,
-            None => {
-                let new_state = @mut ImageState {
-                    prefetched: false,
-                    decoded: false,
-                    last_request_round: 0,
-                    last_response: ImageNotReady
-                };
-                self.state_map.insert(copy *url, new_state);
-                self.get_state(url)
-            }
+        *do self.state_map.find_or_insert_with(url.clone()) |_| {
+            let new_state = @mut ImageState {
+                prefetched: false,
+                decoded: false,
+                last_request_round: 0,
+                last_response: ImageNotReady
+            };
+            new_state
         }
     }
 }

@@ -96,10 +96,9 @@ impl FontFamily {
     }
 
     fn load_family_variations(@mut self, list: &FontListHandle) {
-        let this : &mut FontFamily = self; // FIXME: borrow checker workaround
-        if this.entries.len() > 0 { return; }
+        if self.entries.len() > 0 { return; }
         list.load_variations_for_family(self);
-        assert!(this.entries.len() > 0);
+        assert!(self.entries.len() > 0);
     }
 
     pub fn find_font_for_style(@mut self, list: &FontListHandle, style: &SpecifiedFontStyle)
