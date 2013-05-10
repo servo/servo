@@ -30,7 +30,7 @@ use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::range::*;
 use std::arc;
-use std::cmp::FuzzyEq;
+use core::cmp::ApproxEq;
 use std::net::url::Url;
 
 /// Render boxes (`struct RenderBox`) are the leaves of the layout tree. They cannot position
@@ -650,7 +650,7 @@ pub impl RenderBox {
         let nearest_ancestor_element = self.nearest_ancestor_element();
 
         let bgcolor = nearest_ancestor_element.style().background_color();
-        if !bgcolor.alpha.fuzzy_eq(&0.0) {
+        if !bgcolor.alpha.approx_eq(&0.0) {
             let mut l = list.take(); // FIXME: use with_mut_ref when available
             l.append_item(~DisplayItem::new_SolidColor(absolute_bounds, bgcolor.to_gfx_color()));
             list.put_back(l);
