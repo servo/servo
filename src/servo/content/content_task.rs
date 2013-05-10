@@ -65,7 +65,10 @@ pub fn ContentTask(layout_task: LayoutTask,
     let dom_event_port = Cell(dom_event_port);
     let dom_event_chan = Cell(dom_event_chan);
 
-    do task().sched_mode(SingleThreaded).spawn {
+    // FIXME: rust#6399
+    let mut the_task = task();
+    the_task.sched_mode(SingleThreaded);
+    do the_task.spawn {
         let content = Content(layout_task.clone(),
                               control_port.take(),
                               control_chan_copy.clone(),
@@ -150,7 +153,7 @@ pub fn Content(layout_task: LayoutTask,
     };
 
     cx.set_cx_private(ptr::to_unsafe_ptr(&*content) as *());
-    unsafe { task::local_data::local_data_set(global_content_key, cast::transmute(content)); }
+    unsafe { local_data::local_data_set(global_content_key, cast::transmute(content)); }
 
     content
 }
@@ -159,7 +162,7 @@ fn global_content_key(_: @Content) {}
 
 pub fn global_content() -> @Content {
     unsafe {
-        return task::local_data::local_data_get(global_content_key).get();
+        return local_data::local_data_get(global_content_key).get();
     }
 }
 
@@ -170,7 +173,7 @@ pub fn task_from_context(cx: *JSContext) -> *mut Content {
 #[unsafe_destructor]
 impl Drop for Content {
     fn finalize(&self) {
-        unsafe { task::local_data::local_data_pop(global_content_key) };
+        unsafe { local_data::local_data_pop(global_content_key) };
     }
 }
 
@@ -183,7 +186,7 @@ pub impl Content {
     }
 
     fn handle_msg(&mut self) -> bool {
-        match select2i(&self.control_port, &self.event_port) {
+        match select2i(&mut self.control_port, &mut self.event_port) {
             either::Left(*) => {
                 let msg = self.control_port.recv();
                 self.handle_control_msg(msg)

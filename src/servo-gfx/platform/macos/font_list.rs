@@ -42,11 +42,9 @@ pub impl FontListHandle {
     }
 
     fn load_variations_for_family(&self, family: @mut FontFamily) {
-        let fam: &mut FontFamily = family; // FIXME: borrow checker workaround
-        let family_name = &fam.family_name;
-        debug!("Looking for faces of family: %s", *family_name);
+        debug!("Looking for faces of family: %s", family.family_name);
 
-        let family_collection = core_text::font_collection::create_for_family(*family_name);
+        let family_collection = core_text::font_collection::create_for_family(family.family_name);
         for family_collection.get_descriptors().each |descref: &CTFontDescriptorRef| {
             let desc = CFWrapper::wrap_shared(*descref);
             let font = core_text::font::new_from_descriptor(&desc, 0.0);

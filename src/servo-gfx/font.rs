@@ -386,7 +386,7 @@ pub impl Font {
             advance += glyph.advance();
         }
         let bounds = Rect(Point2D(Au(0), -self.metrics.ascent),
-                              Size2D(advance, self.metrics.ascent + self.metrics.descent));
+                          Size2D(advance, self.metrics.ascent + self.metrics.descent));
 
         // TODO(Issue #125): support loose and tight bounding boxes; using the
         // ascent+descent and advance is sometimes too generous and
