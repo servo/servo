@@ -608,8 +608,8 @@ pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
                             mut value: @mut CacheableWrapper,
                             vp: *mut JSVal) -> bool {
   unsafe {
-    let mut cache = value.get_wrappercache();
-    let mut obj = cache.get_wrapper();
+    let cache = value.get_wrappercache();
+    let obj = cache.get_wrapper();
     if obj.is_not_null() /*&& js::GetObjectCompartment(obj) == js::GetObjectCompartment(scope)*/ {
         *vp = RUST_OBJECT_TO_JSVAL(obj);
         return true;
