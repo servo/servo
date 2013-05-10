@@ -153,7 +153,7 @@ pub fn Content(layout_task: LayoutTask,
     };
 
     cx.set_cx_private(ptr::to_unsafe_ptr(&*content) as *());
-    unsafe { task::local_data::local_data_set(global_content_key, cast::transmute(content)); }
+    unsafe { local_data::local_data_set(global_content_key, cast::transmute(content)); }
 
     content
 }
@@ -162,7 +162,7 @@ fn global_content_key(_: @Content) {}
 
 pub fn global_content() -> @Content {
     unsafe {
-        return task::local_data::local_data_get(global_content_key).get();
+        return local_data::local_data_get(global_content_key).get();
     }
 }
 
@@ -173,7 +173,7 @@ pub fn task_from_context(cx: *JSContext) -> *mut Content {
 #[unsafe_destructor]
 impl Drop for Content {
     fn finalize(&self) {
-        unsafe { task::local_data::local_data_pop(global_content_key) };
+        unsafe { local_data::local_data_pop(global_content_key) };
     }
 }
 
