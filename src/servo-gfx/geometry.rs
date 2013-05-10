@@ -22,8 +22,8 @@ impl Mul<Au,Au> for Au {
     fn mul(&self, other: &Au) -> Au { Au(**self * **other) }
 }
 
-impl Quot<Au,Au> for Au {
-    fn quot(&self, other: &Au) -> Au { Au(**self / **other) }
+impl Div<Au,Au> for Au {
+    fn div(&self, other: &Au) -> Au { Au(**self / **other) }
 }
 
 impl Rem<Au,Au> for Au {

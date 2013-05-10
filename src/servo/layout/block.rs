@@ -65,14 +65,12 @@ impl BlockLayout for FlowContext {
     fn with_block_box(&self, callback: &fn(box: RenderBox) -> ()) -> () {
         match *self {
             BlockFlow(*) => {
-                let box = self.block().box;
-                for box.each |&b| {
+                for self.block().box.each |&b| {
                     callback(b);
                 }
             },                
             RootFlow(*) => {
-                let mut box = self.root().box;
-                for box.each |&b| {
+                for self.root().box.each |&b| {
                     callback(b);
                 }
             },

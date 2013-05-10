@@ -173,7 +173,7 @@ impl TextRunScanner {
 
 impl TextRunScanner {
     fn scan_for_runs(&mut self, ctx: &mut LayoutContext, flow: FlowContext) {
-        let inline = &mut *flow.inline();
+        let inline = flow.inline();
         assert!(inline.boxes.len() > 0);
         debug!("TextRunScanner: scanning %u boxes for text runs...", inline.boxes.len());
 
@@ -334,8 +334,7 @@ impl TextRunScanner {
         debug!("------------------");
 
         debug!("--- Elem ranges: ---");
-        let elems: &mut ElementMapping = &mut flow.inline().elems;
-        for elems.eachi_mut |i: uint, nr: &NodeRange| {
+        for flow.inline().elems.eachi_mut |i: uint, nr: &NodeRange| {
             debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str()); ()
         }
         debug!("--------------------");
@@ -386,43 +385,46 @@ impl LineboxScanner {
     pub fn scan_for_lines(&mut self, ctx: &LayoutContext) {
         self.reset_scanner();
         
-        let boxes = &mut self.flow.inline().boxes;
-        let mut i = 0u;
+        { // FIXME: manually control borrow length 
+            let inline: &InlineFlowData = self.flow.inline();
+            let mut i = 0u;
 
-        loop {
-            // acquire the next box to lay out from work list or box list
-            let cur_box = if self.work_list.is_empty() {
-                if i == boxes.len() {
-                    break
+            loop {
+                // acquire the next box to lay out from work list or box list
+                let cur_box = if self.work_list.is_empty() {
+                    if i == inline.boxes.len() {
+                        break
+                    }
+                    let box = inline.boxes[i]; i += 1;
+                    debug!("LineboxScanner: Working with box from box list: b%d", box.id());
+                    box
+                } else {
+                    let box = self.work_list.pop_front();
+                    debug!("LineboxScanner: Working with box from work list: b%d", box.id());
+                    box
+                };
+
+                let box_was_appended = self.try_append_to_line(ctx, cur_box);
+                if !box_was_appended {
+                    debug!("LineboxScanner: Box wasn't appended, because line %u was full.",
+                           self.line_spans.len());
+                    self.flush_current_line();
+                } else {
+                    debug!("LineboxScanner: appended a box to line %u", self.line_spans.len());
                 }
-                let box = boxes[i]; i += 1;
-                debug!("LineboxScanner: Working with box from box list: b%d", box.id());
-                box
-            } else {
-                let box = self.work_list.pop_front();
-                debug!("LineboxScanner: Working with box from work list: b%d", box.id());
-                box
-            };
+            }
 
-            let box_was_appended = self.try_append_to_line(ctx, cur_box);
-            if !box_was_appended {
-                debug!("LineboxScanner: Box wasn't appended, because line %u was full.",
+            if self.pending_line.range.length() > 0 {
+                debug!("LineboxScanner: Partially full linebox %u left at end of scanning.",
                        self.line_spans.len());
                 self.flush_current_line();
-            } else {
-                debug!("LineboxScanner: appended a box to line %u", self.line_spans.len());
             }
         }
-
-        if self.pending_line.range.length() > 0 {
-            debug!("LineboxScanner: Partially full linebox %u left at end of scanning.",
-                   self.line_spans.len());
-            self.flush_current_line();
+    
+        { // FIXME: scope the borrow
+            let inline: &mut InlineFlowData = self.flow.inline();
+            inline.elems.repair_for_box_changes(inline.boxes, self.new_boxes);
         }
-
-        let boxes = &mut self.flow.inline().boxes;
-        let elems = &mut self.flow.inline().elems;
-        elems.repair_for_box_changes(*boxes, self.new_boxes);
         self.swap_out_results();
     }
 
@@ -431,10 +433,9 @@ impl LineboxScanner {
                self.line_spans.len(),
                self.flow.id());
 
-        let inline_boxes = &mut self.flow.inline().boxes;
-        util::swap(inline_boxes, &mut self.new_boxes);
-        let lines = &mut self.flow.inline().lines;
-        util::swap(lines, &mut self.line_spans);
+        let inline: &mut InlineFlowData = self.flow.inline();
+        util::swap(&mut inline.boxes, &mut self.new_boxes);
+        util::swap(&mut inline.lines, &mut self.line_spans);
     }
 
     fn flush_current_line(&mut self) {
@@ -763,7 +764,6 @@ impl InlineFlowData {
                     // TODO: We can use font metrics directly instead of re-measuring for the
                     // bounding box.
                     TextRenderBoxClass(text_box) => {
-                        let text_box = &mut *text_box;  // FIXME: borrow check workaround
                         let range = &text_box.text_data.range;
                         let run = &text_box.text_data.run;
                         let text_bounds = run.metrics_for_range(range).bounding_box;
@@ -814,7 +814,7 @@ impl InlineFlowData {
         self.common.position.size.height = cur_y;
     }
 
-    pub fn build_display_list_inline(&mut self,
+    pub fn build_display_list_inline(&self,
                                      builder: &DisplayListBuilder,
                                      dirty: &Rect<Au>, 
                                      offset: &Point2D<Au>,

@@ -373,20 +373,13 @@ impl ImageCache {
     }
 
     priv fn purge_waiters(&self, url: Url, f: &fn() -> ImageResponseMsg) {
-        match self.wait_map.find(&url) {
-          Some(waiters) => {
-            let waiters = *waiters;
-            let mut new_waiters = ~[];
-            new_waiters <-> *waiters;
-
-            for new_waiters.each |response| {
-                response.send(f());
+        match self.wait_map.pop(&url) {
+            Some(waiters) => {
+                for waiters.each |response| {
+                    response.send(f());
+                }
             }
-
-            *waiters <-> new_waiters;
-            self.wait_map.remove(&url);
-          }
-          None => ()
+            None => ()
         }
     }
 
@@ -410,13 +403,11 @@ impl ImageCache {
 
             Prefetching(DoDecode) | Decoding => {
                 // We don't have this image yet
-                match self.wait_map.find(&url) {
-                    Some(waiters) => {
-                        vec::push(*waiters, response);
-                    }
-                    None => {
-                        self.wait_map.insert(url, @mut ~[response]);
-                    }
+                if self.wait_map.contains_key(&url) {
+                    let waiters = self.wait_map.find_mut(&url).unwrap();
+                    waiters.push(response);
+                } else {
+                    self.wait_map.insert(url, @mut ~[response]);
                 }
             }
 
