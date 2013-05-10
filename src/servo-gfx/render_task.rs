@@ -104,20 +104,17 @@ impl<C: Compositor + Owned> Renderer<C> {
             warn!("renderer: waiting on layer buffer");
         }
 
-        let layer_buffer_set = layer_buffer_set_port.recv();
         let (new_layer_buffer_set_port, layer_buffer_set_channel) = comm::stream();
         self.layer_buffer_set_port.put_back(new_layer_buffer_set_port);
 
-        let layer_buffer_set_cell = Cell(layer_buffer_set);
         let layer_buffer_set_channel_cell = Cell(layer_buffer_set_channel);
 
         debug!("renderer: rendering");
 
         do time(~"rendering") {
-            let layer_buffer_set = layer_buffer_set_cell.take();
             let layer_buffer_set_channel = layer_buffer_set_channel_cell.take();
 
-            let layer_buffer_set = do render_layers(&render_layer, layer_buffer_set, &self.opts)
+            let layer_buffer_set = do render_layers(&render_layer, &self.opts)
                     |render_layer_ref, layer_buffer, buffer_chan| {
                 let layer_buffer_cell = Cell(layer_buffer);
                 do self.thread_pool.execute |thread_render_context| {
