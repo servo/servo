@@ -186,7 +186,7 @@ pub impl Content {
     }
 
     fn handle_msg(&mut self) -> bool {
-        match select2i(&self.control_port, &self.event_port) {
+        match select2i(&mut self.control_port, &mut self.event_port) {
             either::Left(*) => {
                 let msg = self.control_port.recv();
                 self.handle_control_msg(msg)

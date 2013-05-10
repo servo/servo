@@ -125,7 +125,6 @@ impl BoxGenerator {
         // depending on flow, make a box for this node.
         match self.flow {
             InlineFlow(inline) => {
-                let mut inline = &mut *inline;
                 let node_range_start = inline.boxes.len();
                 self.range_stack.push(node_range_start);
 
@@ -387,24 +386,38 @@ pub impl LayoutTreeBuilder {
                 // check first/last child for whitespace-ness
                 for first_child.each |first_flow| {
                     if first_flow.starts_inline_flow() {
-                        let boxes = &mut first_flow.inline().boxes;
+                        // FIXME: workaround for rust#6393
+                        let mut do_remove = false;
+                        {
+                        let boxes = &first_flow.inline().boxes;
                         if boxes.len() == 1 && boxes[0].is_whitespace_only() {
                             debug!("LayoutTreeBuilder: pruning whitespace-only first child flow \
                                     f%d from parent f%d", 
                                    first_flow.id(),
                                    parent_flow.id());
+                            do_remove = true;
+                        }
+                        }
+                        if (do_remove) { 
                             parent_flow.remove_child(*first_flow);
                         }
                     }
                 }
                 for last_child.each |last_flow| {
                     if last_flow.starts_inline_flow() {
-                        let boxes = &mut last_flow.inline().boxes;
+                        // FIXME: workaround for rust#6393
+                        let mut do_remove = false;
+                        {
+                        let boxes = &last_flow.inline().boxes;
                         if boxes.len() == 1 && boxes.last().is_whitespace_only() {
                             debug!("LayoutTreeBuilder: pruning whitespace-only last child flow \
                                     f%d from parent f%d", 
                                    last_flow.id(),
                                    parent_flow.id());
+                            do_remove = true;
+                        }
+                        }
+                        if (do_remove) {
                             parent_flow.remove_child(*last_flow);
                         }
                     }

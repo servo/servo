@@ -76,17 +76,14 @@ impl TreeNodeRef<FlowData> for FlowContext {
         match *self {
             AbsoluteFlow(info) => callback(info),
             BlockFlow(info) => {
-                let info = &*info;  // FIXME: Borrow check workaround.
                 callback(&info.common)
             }
             FloatFlow(info) => callback(info),
             InlineBlockFlow(info) => callback(info),
             InlineFlow(info) => {
-                let info = &*info;  // FIXME: Borrow check workaround.
                 callback(&info.common)
             }
             RootFlow(info) => {
-                let info = &*info;  // FIXME: Borrow check workaround.
                 callback(&info.common)
             }
             TableFlow(info) => callback(info),
@@ -96,17 +93,14 @@ impl TreeNodeRef<FlowData> for FlowContext {
         match *self {
             AbsoluteFlow(info) => callback(info),
             BlockFlow(info) => {
-                let info = &mut *info;  // FIXME: Borrow check workaround.
                 callback(&mut info.common)
             }
             FloatFlow(info) => callback(info),
             InlineBlockFlow(info) => callback(info),
             InlineFlow(info) => {
-                let info = &mut *info;  // FIXME: Borrow check workaround.
                 callback(&mut info.common)
             }
             RootFlow(info) => {
-                let info = &mut *info;  // FIXME: Borrow check workaround.
                 callback(&mut info.common)
             }
             TableFlow(info) => callback(info),
@@ -388,7 +382,6 @@ impl DebugMethods for FlowContext {
     fn debug_str(&self) -> ~str {
         let repr = match *self {
             InlineFlow(inline) => {
-                let inline = &mut *inline;
                 let mut s = inline.boxes.foldl(~"InlineFlow(children=", |s, box| {
                     fmt!("%s b%d", *s, box.id())
                 });
@@ -396,14 +389,12 @@ impl DebugMethods for FlowContext {
                 s
             },
             BlockFlow(block) => {
-                let block = &mut *block;
                 match block.box {
                     Some(box) => fmt!("BlockFlow(box=b%d)", box.id()),
                     None => ~"BlockFlow",
                 }
             },
             RootFlow(root) => {
-                let root = &mut *root;
                 match root.box {
                     Some(box) => fmt!("RootFlow(box=b%d)", box.id()),
                     None => ~"RootFlow",

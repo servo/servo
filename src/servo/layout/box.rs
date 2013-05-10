@@ -168,15 +168,12 @@ pub impl RenderBox {
         match *self {
             GenericRenderBoxClass(generic_box) => callback(generic_box),
             ImageRenderBoxClass(image_box) => {
-                let image_box = &*image_box;  // FIXME: Borrow check workaround.
                 callback(&image_box.base)
             }
             TextRenderBoxClass(text_box) => {
-                let text_box = &*text_box;  // FIXME: Borrow check workaround.
                 callback(&text_box.base)
             }
             UnscannedTextRenderBoxClass(unscanned_text_box) => {
-                let unscanned_text_box = &*unscanned_text_box;  // FIXME: Borrow check workaround.
                 callback(&unscanned_text_box.base)
             }
         }
@@ -188,16 +185,12 @@ pub impl RenderBox {
         match *self {
             GenericRenderBoxClass(generic_box) => callback(generic_box),
             ImageRenderBoxClass(image_box) => {
-                let image_box = &mut *image_box;  // FIXME: Borrow check workaround.
                 callback(&mut image_box.base)
             }
             TextRenderBoxClass(text_box) => {
-                let text_box = &mut *text_box;  // FIXME: Borrow check workaround.
                 callback(&mut text_box.base)
             }
             UnscannedTextRenderBoxClass(unscanned_text_box) => {
-                // FIXME: Borrow check workaround.
-                let unscanned_text_box = &mut *unscanned_text_box;
                 callback(&mut unscanned_text_box.base)
             }
         }
@@ -238,7 +231,6 @@ pub impl RenderBox {
     fn is_whitespace_only(&self) -> bool {
         match *self {
             UnscannedTextRenderBoxClass(unscanned_text_box) => {
-                let mut unscanned_text_box = &mut *unscanned_text_box;  // FIXME: Borrow check.
                 unscanned_text_box.text.is_whitespace()
             }
             _ => false
@@ -269,8 +261,6 @@ pub impl RenderBox {
             }
 
             TextRenderBoxClass(text_box) => {
-                let text_box = &mut *text_box;  // FIXME: Borrow check.
-
                 let mut pieces_processed_count: uint = 0;
                 let mut remaining_width: Au = max_width;
                 let mut left_range = Range::new(text_box.text_data.range.begin(), 0);
@@ -379,7 +369,6 @@ pub impl RenderBox {
             }
 
             TextRenderBoxClass(text_box) => {
-                let mut text_box = &mut *text_box;  // FIXME: Borrow check.
                 text_box.text_data.run.min_width_for_range(&text_box.text_data.range)
             }
 
@@ -401,8 +390,6 @@ pub impl RenderBox {
             }
 
             TextRenderBoxClass(text_box) => {
-                let mut text_box = &mut *text_box;  // FIXME: Borrow check bug.
-
                 // A text box cannot span lines, so assume that this is an unsplit text box.
                 //
                 // TODO: If text boxes have been split to wrap lines, then they could report a
@@ -567,8 +554,6 @@ pub impl RenderBox {
         match *self {
             UnscannedTextRenderBoxClass(*) => fail!(~"Shouldn't see unscanned boxes here."),
             TextRenderBoxClass(text_box) => {
-                let text_box = &mut *text_box;  // FIXME: Borrow check bug.
-
                 let nearest_ancestor_element = self.nearest_ancestor_element();
                 let color = nearest_ancestor_element.style().color().to_gfx_color();
 
@@ -783,13 +768,11 @@ impl DebugMethods for RenderBox {
             GenericRenderBoxClass(*) => ~"GenericRenderBox",
             ImageRenderBoxClass(*) => ~"ImageRenderBox",
             TextRenderBoxClass(text_box) => {
-                let mut text_box = &mut *text_box;  // FIXME: Borrow check bug.
                 fmt!("TextRenderBox(text=%s)", str::substr(text_box.text_data.run.text,
                                                            text_box.text_data.range.begin(),
                                                            text_box.text_data.range.length()))
             }
             UnscannedTextRenderBoxClass(text_box) => {
-                let mut text_box = &mut *text_box;  // FIXME: Borrow check bug.
                 fmt!("UnscannedTextRenderBox(%s)", text_box.text)
             }
         };
