@@ -234,8 +234,8 @@ pub impl Content {
                                   ptr::to_mut_unsafe_ptr(&mut *self)); //FIXME store this safely
             let document = Document(root, Some(window));
 
-            do root.with_mut_node |node| {
-                node.add_to_doc(document);
+            do root.with_mut_base |base| {
+                base.add_to_doc(document);
             }
 
             self.damage.add(MatchSelectorsDamage);

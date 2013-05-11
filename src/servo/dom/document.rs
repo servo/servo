@@ -27,9 +27,9 @@ pub fn Document(root: AbstractNode,
         window: window
     };
     let compartment = global_content().compartment.get();
-    do root.with_imm_node |node| {
-        assert!(node.wrapper.get_wrapper().is_not_null());
-        let rootable = node.wrapper.get_rootable();
+    do root.with_base |base| {
+        assert!(base.wrapper.get_wrapper().is_not_null());
+        let rootable = base.wrapper.get_rootable();
         JS_AddObjectRoot(compartment.cx.ptr, rootable);
     }
     document::create(compartment, doc);
@@ -40,9 +40,9 @@ pub fn Document(root: AbstractNode,
 impl Drop for Document {
     fn finalize(&self) {
         let compartment = global_content().compartment.get();
-        do self.root.with_imm_node |node| {
-            assert!(node.wrapper.get_wrapper().is_not_null());
-            let rootable = node.wrapper.get_rootable();
+        do self.root.with_base |base| {
+            assert!(base.wrapper.get_wrapper().is_not_null());
+            let rootable = base.wrapper.get_rootable();
             JS_RemoveObjectRoot(compartment.cx.ptr, rootable);
         }
     }
