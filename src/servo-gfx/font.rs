@@ -312,6 +312,13 @@ pub impl Font {
         let size = self.style.pt_size as AzFloat;
         ScaledFont::new(self.backend, freetype_font, size)
     }
+
+    #[cfg(target_os="android")]
+    priv fn create_azure_font(&self) -> ScaledFont {
+        let freetype_font = self.handle.face;
+        let size = self.style.pt_size as AzFloat;
+        ScaledFont::new(self.backend, freetype_font, size)
+    }
 }
 
 

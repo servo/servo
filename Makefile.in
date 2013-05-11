@@ -29,7 +29,7 @@ B := $(CFG_BUILD_DIR)
 
 MKFILE_DEPS := config.stamp $(call rwildcard,$(S)mk/,*)
 
-CFG_RUSTC_FLAGS := $(RUSTFLAGS) -A default_methods
+CFG_RUSTC_FLAGS += -A default_methods
 
 ifdef CFG_DISABLE_OPTIMIZE
   $(info cfg: disabling rustc optimization (CFG_DISABLE_OPTIMIZE))
@@ -40,17 +40,24 @@ endif
 
 ifdef CFG_ENABLE_DEBUG
   $(info cfg: enabling more debugging (CFG_ENABLE_DEBUG))
-  CFG_RUSTC_FLAGS +=
+  CFG_RUSTC_FLAGS += -cfg debug
   CFG_GCCISH_CFLAGS += -DRUST_DEBUG
 else
   CFG_GCCISH_CFLAGS += -DRUST_NDEBUG
 endif
 
-export CFG_RUSTC
-export CFG_RUSTC_FLAGS
-export CFG_LOCAL_RUSTC
+export CFLAGS="-fPIC"
+export LDFLAGS="-fPIC"
 export RUSTC=$(CFG_RUSTC)
 export RUSTFLAGS=$(CFG_RUSTC_FLAGS)
+export CC=$(CFG_CC)
+export CXX=$(CFG_CXX)
+export LD=$(CFG_LD)
+export AR=$(CFG_AR)
+export RANLIB=$(CFG_RANLIB)
+export CFG_OSTYPE
+export CFG_CPUTYPE
+export CFG_TARGET_TRIPLE
 
 ######################################################################
 # Re-configuration
@@ -246,7 +253,7 @@ servo:	$(DEPS_servo)
 
 # Darwin app packaging
 
-ifeq ($(OSTYPE),apple-darwin)
+ifeq ($(CFG_OSTYPE),apple-darwin)
 
 package: servo
 	mkdir -p Servo.app/Contents/MacOS/src/rust-cocoa
@@ -256,8 +263,12 @@ package: servo
 	cp src/rust-cocoa/lib*.dylib Servo.app/Contents/MacOS/src/rust-cocoa/
 	cp src/rust-azure/lib*.dylib Servo.app/Contents/MacOS/src/rust-azure/
 
-else
+else ifeq ($(CFG_OSTYPE),linux-androideabi)
 
+package: $(DEPS_servo)
+	$(RUSTC) $(RUSTFLAGS) -o libservo.so $< --lib
+
+else
 bindings: $(AUTOGEN_SRC_servo)
 
 .PHONY: package

@@ -126,7 +126,6 @@ DEPS_rust-layers += \
 endif
 
 ifeq ($(CFG_OSTYPE),unknown-linux-gnu)
-
 DEPS_rust-azure += \
 	rust-freetype \
 	rust-fontconfig \
@@ -139,4 +138,35 @@ DEPS_rust-layers += \
 	rust-fontconfig \
 	rust-xlib \
 	$(NULL)
+endif
+
+ifeq ($(CFG_OSTYPE),linux-androideabi)
+DEPS_rust-azure += \
+    rust-freetype \
+    rust-fontconfig \
+    $(NULL)
+
+DEPS_rust-layers += \
+    rust-freetype \
+    rust-fontconfig \
+   $(NULL)
+
+DEPS_rust-fontconfig += \
+    fontconfig \
+    $(NULL)
+
+DEPS_fontconfig += \
+    libexpat \
+    libfreetype2 \
+    $(NULL)
+
+DONE_libexpat = "$(B)src/libexpat/.libs/libexpat.so"
+DONE_libfreetype2 = "$(B)src/libfreetype2/.libs/libfreetype.so"
+DONE_fontconfig = "$(B)src/fontconfig/src/.libs/libfontconfig.so"
+
+NATIVE_BUILDS += \
+    libfreetype2 \
+    libexpat \
+    fontconfig \
+    $(NULL)
 endif
