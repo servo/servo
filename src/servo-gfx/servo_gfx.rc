@@ -29,6 +29,10 @@ extern mod harfbuzz;
 #[cfg(target_os="macos")] extern mod core_graphics;
 #[cfg(target_os="macos")] extern mod core_text;
 
+// android-specific library dependencies
+#[cfg(target_os="android")] extern mod fontconfig;
+#[cfg(target_os="android")] extern mod freetype;
+
 pub use gfx_font = font;
 pub use gfx_font_context = font_context;
 pub use gfx_font_list = font_list;
