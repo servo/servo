@@ -28,5 +28,11 @@ clean-fast: $(DEPS_CLEAN_TARGETS_FAST) clean-servo
 clean-servo-gfx:
 	cd $(B)/src/servo-gfx/ && rm -rf libservo_gfx*.dylib $(DONE_servo_gfx)
 
-clean-servo: clean-servo-gfx
+clean-servo-net:
+	cd $(B)/src/servo-net/ && rm -rf libservo_net*.dylib $(DONE_servo_net)
+
+clean-servo-util:
+	cd $(B)/src/servo-util/ && rm -rf libservo_util*.dylib $(DONE_servo_util)
+
+clean-servo: clean-servo-gfx clean-servo-net clean-servo-util
 	rm -f servo servo-test
