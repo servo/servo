@@ -7,7 +7,7 @@
 use layout::box::{RenderBox};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
-use layout::flow::{BlockFlow, FlowContext, FlowData, InlineBlockFlow, RootFlow};
+use layout::flow::{BlockFlow, FlowContext, FlowData, InlineBlockFlow};
 use layout::inline::InlineLayout;
 
 use au = gfx::geometry;
@@ -23,7 +23,10 @@ pub struct BlockFlowData {
     common: FlowData,
 
     /// The associated render box.
-    box: Option<RenderBox>
+    box: Option<RenderBox>,
+
+    /// Whether this block flow is the root flow.
+    is_root: bool
 }
 
 impl BlockFlowData {
@@ -31,53 +34,41 @@ impl BlockFlowData {
         BlockFlowData {
             common: common,
             box: None,
+            is_root: false
+        }
+    }
+
+    pub fn new_root(common: FlowData) -> BlockFlowData {
+        BlockFlowData {
+            common: common,
+            box: None,
+            is_root: true
         }
     }
 }
 
-/// NB: These are part of FlowContext, not part of BlockFlowData, because the root flow calls these
-/// as well. It is not clear to me whether this needs to be the case, or whether `RootFlow` can be
-/// merged into this.
 pub trait BlockLayout {
+    fn starts_root_flow(&self) -> bool;
     fn starts_block_flow(&self) -> bool;
-    fn with_block_box(&self, &fn(box: RenderBox) -> ()) -> ();
-
-    fn bubble_widths_block(&self, ctx: &LayoutContext);
-    fn assign_widths_block(&self, ctx: &LayoutContext);
-    fn assign_height_block(&self, ctx: &LayoutContext);
-    fn build_display_list_block(&self,
-                                a: &DisplayListBuilder,
-                                b: &Rect<Au>,
-                                c: &Point2D<Au>,
-                                d: &Cell<DisplayList>);
 }
 
 impl BlockLayout for FlowContext {
+    fn starts_root_flow(&self) -> bool {
+        match *self {
+            BlockFlow(info) => info.is_root,
+            _ => false
+        }
+    }
+
     fn starts_block_flow(&self) -> bool {
         match *self {
-            RootFlow(*) | BlockFlow(*) | InlineBlockFlow(*) => true,
+            BlockFlow(*) | InlineBlockFlow(*) => true,
             _ => false 
         }
     }
+}
 
-    /// Get the current flow's corresponding block box, if it exists, and do something with it. 
-    /// This works on both BlockFlow and RootFlow, since they are mostly the same.
-    fn with_block_box(&self, callback: &fn(box: RenderBox) -> ()) -> () {
-        match *self {
-            BlockFlow(*) => {
-                for self.block().box.each |&b| {
-                    callback(b);
-                }
-            },                
-            RootFlow(*) => {
-                for self.root().box.each |&b| {
-                    callback(b);
-                }
-            },
-            _  => fail!(fmt!("Tried to do something with_block_box(), but this is a %?", self))
-        }
-    }
-
+impl BlockFlowData {
     /* Recursively (bottom-up) determine the context's preferred and
     minimum widths.  When called on this context, all child contexts
     have had their min/pref widths set. This function must decide
@@ -87,14 +78,12 @@ impl BlockLayout for FlowContext {
     /* TODO: floats */
     /* TODO: absolute contexts */
     /* TODO: inline-blocks */
-    fn bubble_widths_block(&self, ctx: &LayoutContext) {
-        assert!(self.starts_block_flow());
-
+    pub fn bubble_widths_block(@mut self, ctx: &LayoutContext) {
         let mut min_width = Au(0);
         let mut pref_width = Au(0);
 
         /* find max width from child block contexts */
-        for self.each_child |child_ctx| {
+        for BlockFlow(self).each_child |child_ctx| {
             assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
 
             do child_ctx.with_imm_node |child_node| {
@@ -105,15 +94,13 @@ impl BlockLayout for FlowContext {
 
         /* if not an anonymous block context, add in block box's widths.
            these widths will not include child elements, just padding etc. */
-        do self.with_block_box |box| {
+        self.box.map(|&box| {
             min_width = min_width.add(&box.get_min_width(ctx));
             pref_width = pref_width.add(&box.get_pref_width(ctx));
-        }
+        });
 
-        do self.with_mut_node |this_node| {
-            this_node.min_width = min_width;
-            this_node.pref_width = pref_width;
-        }
+        self.common.min_width = min_width;
+        self.common.pref_width = pref_width;
     }
  
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
@@ -121,23 +108,26 @@ impl BlockLayout for FlowContext {
     ///
     /// Dual boxes consume some width first, and the remainder is assigned to all child (block)
     /// contexts.
-    fn assign_widths_block(&self, _: &LayoutContext) { 
-        assert!(self.starts_block_flow());
+    pub fn assign_widths_block(@mut self, ctx: &LayoutContext) { 
+        if self.is_root {
+            self.common.position.origin = Au::zero_point();
+            self.common.position.size.width = ctx.screen_size.size.width;
+        }
 
-        let mut remaining_width = self.with_imm_node(|this| this.position.size.width);
+        let mut remaining_width = self.common.position.size.width;
         let left_used = Au(0);
 
         // Let the box consume some width. It will return the amount remaining for its children.
-        do self.with_block_box |box| {
+        self.box.map(|&box| {
             do box.with_mut_base |base| {
                 base.position.size.width = remaining_width;
 
                 let (left_used, right_used) = box.get_used_width();
                 remaining_width -= left_used.add(&right_used);
             }
-        }
+        });
 
-        for self.each_child |kid| {
+        for BlockFlow(self).each_child |kid| {
             assert!(kid.starts_block_flow() || kid.starts_inline_flow());
 
             do kid.with_mut_node |child_node| {
@@ -147,51 +137,50 @@ impl BlockLayout for FlowContext {
         }
     }
 
-    fn assign_height_block(&self, _ctx: &LayoutContext) {
-        assert!(self.starts_block_flow());
-
+    pub fn assign_height_block(@mut self, ctx: &LayoutContext) {
         let mut cur_y = Au(0);
 
-        for self.each_child |kid| {
+        for BlockFlow(self).each_child |kid| {
             do kid.with_mut_node |child_node| {
                 child_node.position.origin.y = cur_y;
                 cur_y += child_node.position.size.height;
             }
         }
 
-        do self.with_mut_node |this_node| {
-            this_node.position.size.height = cur_y;
-        }
+        let height = if self.is_root { Au::max(ctx.screen_size.size.height, cur_y) }
+                     else            { cur_y };
+
+        self.common.position.size.height = height;
 
         let _used_top = Au(0);
         let _used_bot = Au(0);
         
-        do self.with_block_box |box| {
+        self.box.map(|&box| {
             do box.with_mut_base |base| {
                 base.position.origin.y = Au(0);
-                base.position.size.height = cur_y;
+                base.position.size.height = height;
                 let (_used_top, _used_bot) = box.get_used_height();
             }
-        }
+        });
     }
 
-    fn build_display_list_block(&self,
+    pub fn build_display_list_block(@mut self,
                                 builder: &DisplayListBuilder,
                                 dirty: &Rect<Au>, 
                                 offset: &Point2D<Au>,
                                 list: &Cell<DisplayList>) {
-        assert!(self.starts_block_flow());
-        
         // add box that starts block context
-        do self.with_block_box |box| {
+        self.box.map(|&box| {
             box.build_display_list(builder, dirty, offset, list)
-        }
+        });
+
 
         // TODO: handle any out-of-flow elements
 
         // go deeper into the flow tree
-        for self.each_child |child| {
-            self.build_display_list_for_child(builder, child, dirty, offset, list)
+        let flow = BlockFlow(self);
+        for flow.each_child |child| {
+            flow.build_display_list_for_child(builder, child, dirty, offset, list)
         }
     }
 }

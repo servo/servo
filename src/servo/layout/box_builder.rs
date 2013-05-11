@@ -15,9 +15,8 @@ use layout::context::LayoutContext;
 use layout::debug::{BoxedMutDebugMethods, DebugMethods};
 use layout::flow::{AbsoluteFlow, BlockFlow, FloatFlow, Flow_Absolute, Flow_Block, Flow_Float};
 use layout::flow::{Flow_Inline, Flow_InlineBlock, Flow_Root, Flow_Table, FlowContext};
-use layout::flow::{FlowContextType, FlowData, InlineBlockFlow, InlineFlow, RootFlow, TableFlow};
+use layout::flow::{FlowContextType, FlowData, InlineBlockFlow, InlineFlow, TableFlow};
 use layout::inline::{InlineFlowData, InlineLayout};
-use layout::root::RootFlowData;
 
 use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
 use newcss::values::{CSSDisplayNone};
@@ -153,18 +152,6 @@ impl BoxGenerator {
                 assert!(block.box.is_none());
                 block.box = Some(new_box);
             },
-            RootFlow(root) => {
-                debug!("BoxGenerator[f%d]: point c", root.common.id);
-                let new_box = builder.make_box(ctx, box_type, node, self.flow);
-                debug!("BoxGenerator[f%d]: (node is: %s)", root.common.id, node.debug_str());
-                debug!("BoxGenerator[f%d]: attaching box[b%d] to root flow (node: %s)",
-                       root.common.id,
-                       new_box.id(),
-                       node.debug_str());
-
-                assert!(root.box.is_none());
-                root.box = Some(new_box);
-            },
             _ => warn!("push_node() not implemented for flow f%d", self.flow.id()),
         }
     }
@@ -195,7 +182,7 @@ impl BoxGenerator {
                 debug!("BoxGenerator: adding element range=%?", node_range);
                 inline.elems.add_mapping(node, &node_range);
             },
-            BlockFlow(*) | RootFlow(*) => assert!(self.range_stack.len() == 0),
+            BlockFlow(*) => assert!(self.range_stack.len() == 0),
             _ => warn!("pop_node() not implemented for flow %?", self.flow.id()),
         }
     }
@@ -279,17 +266,15 @@ impl BuilderContext {
         };
 
         let containing_context = match (simulated_display, self.default_collector.flow) { 
-            (CSSDisplayBlock, RootFlow(*)) => {
+            (CSSDisplayBlock, BlockFlow(info)) => match (info.is_root, node.parent_node()) {
                 // If this is the root node, then use the root flow's
                 // context. Otherwise, make a child block context.
-                match node.parent_node() {
-                    Some(_) => { self.create_child_flow_of_type(Flow_Block, builder, node) }
-                    None => { self.clone() },
+                (true, Some(_)) => { self.create_child_flow_of_type(Flow_Block, builder, node) }
+                (true, None)    => { self.clone() }
+                (false, _)      => {
+                    self.clear_inline_collector();
+                    self.create_child_flow_of_type(Flow_Block, builder, node)
                 }
-            },
-            (CSSDisplayBlock, BlockFlow(*)) => {
-                self.clear_inline_collector();
-                self.create_child_flow_of_type(Flow_Block, builder, node)
             },
             (CSSDisplayInline, InlineFlow(*)) => self.clone(),
             (CSSDisplayInlineBlock, InlineFlow(*)) => self.clone(),
@@ -453,7 +438,7 @@ pub impl LayoutTreeBuilder {
             Flow_Float       => FloatFlow(@mut info),
             Flow_InlineBlock => InlineBlockFlow(@mut info),
             Flow_Inline      => InlineFlow(@mut InlineFlowData::new(info)),
-            Flow_Root        => RootFlow(@mut RootFlowData::new(info)),
+            Flow_Root        => BlockFlow(@mut BlockFlowData::new_root(info)),
             Flow_Table       => TableFlow(@mut info),
         };
         debug!("LayoutTreeBuilder: created flow: %s", result.debug_str());
