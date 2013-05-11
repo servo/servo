@@ -68,7 +68,7 @@ impl Clone for FlowContext {
 }
 
 impl TreeNodeRef<FlowData> for FlowContext {
-    fn with_imm_node<R>(&self, callback: &fn(&FlowData) -> R) -> R {
+    fn with_base<R>(&self, callback: &fn(&FlowData) -> R) -> R {
         match *self {
             AbsoluteFlow(info) => callback(info),
             BlockFlow(info) => {
@@ -82,7 +82,7 @@ impl TreeNodeRef<FlowData> for FlowContext {
             TableFlow(info) => callback(info)
         }
     }
-    fn with_mut_node<R>(&self, callback: &fn(&mut FlowData) -> R) -> R {
+    fn with_mut_base<R>(&self, callback: &fn(&mut FlowData) -> R) -> R {
         match *self {
             AbsoluteFlow(info) => callback(info),
             BlockFlow(info) => {
@@ -189,7 +189,7 @@ impl<'self> FlowContext {
     /// being borrowed mutably.
     #[inline(always)]
     pub fn position(&self) -> Rect<Au> {
-        do self.with_imm_node |common_info| {
+        do self.with_base |common_info| {
             common_info.position
         }
     }
@@ -198,7 +198,7 @@ impl<'self> FlowContext {
     /// borrowed mutably.
     #[inline(always)]
     pub fn id(&self) -> int {
-        do self.with_imm_node |info| {
+        do self.with_base |info| {
             info.id
         }
     }
@@ -253,7 +253,7 @@ impl<'self> FlowContext {
                                       dirty: &Rect<Au>,
                                       offset: &Point2D<Au>,
                                       list: &Cell<DisplayList>) {
-        do self.with_imm_node |info| {
+        do self.with_base |info| {
             debug!("FlowContext::build_display_list at %?: %s", info.position, self.debug_str());
         }
 
@@ -369,8 +369,8 @@ impl DebugMethods for FlowContext {
             _ => ~"(Unknown flow)"
         };
 
-        do self.with_imm_node |this_node| {
-            fmt!("f%? %?", this_node.id, repr)
+        do self.with_base |base| {
+            fmt!("f%? %?", base.id, repr)
         }
     }
 }

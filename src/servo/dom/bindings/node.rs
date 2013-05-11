@@ -81,8 +81,8 @@ extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool
         }
 
         let node = unwrap(obj);
-        let rval = do node.with_mut_node |node| {
-            node.getFirstChild()
+        let rval = do node.with_mut_base |base| {
+            base.getFirstChild()
         };
         match rval {
             Some(n) => {
@@ -103,8 +103,8 @@ extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBoo
         }
 
         let node = unwrap(obj);
-        let rval = do node.with_mut_node |node| {
-            node.getNextSibling()
+        let rval = do node.with_mut_base |base| {
+            base.getNextSibling()
         };
         match rval {
             Some(n) => {
@@ -129,7 +129,7 @@ impl Node {
     fn getNextSibling(&mut self) -> Option<&mut AbstractNode> {
         match self.next_sibling {
             // transmute because the compiler can't deduce that the reference
-            // is safe outside of with_mut_node blocks.
+            // is safe outside of with_mut_base blocks.
             Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
             None => None
         }
@@ -138,7 +138,7 @@ impl Node {
     fn getFirstChild(&mut self) -> Option<&mut AbstractNode> {
         match self.first_child {
             // transmute because the compiler can't deduce that the reference
-            // is safe outside of with_mut_node blocks.
+            // is safe outside of with_mut_base blocks.
             Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
             None => None
         }
@@ -153,8 +153,8 @@ extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
         }
 
         let node = unwrap(obj);
-        let rval = do node.with_imm_node |node| {
-            node.getNodeType()
+        let rval = do node.with_base |base| {
+            base.getNodeType()
         };
         *vp = INT_TO_JSVAL(rval);
     }
@@ -163,9 +163,9 @@ extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
 
 impl CacheableWrapper for AbstractNode {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        do self.with_mut_node |node| {
+        do self.with_mut_base |base| {
             unsafe {
-                cast::transmute(&node.wrapper)
+                cast::transmute(&base.wrapper)
             }
         }
     }

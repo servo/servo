@@ -86,7 +86,7 @@ impl BlockFlowData {
         for BlockFlow(self).each_child |child_ctx| {
             assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
 
-            do child_ctx.with_imm_node |child_node| {
+            do child_ctx.with_base |child_node| {
                 min_width = au::max(min_width, child_node.min_width);
                 pref_width = au::max(pref_width, child_node.pref_width);
             }
@@ -130,7 +130,7 @@ impl BlockFlowData {
         for BlockFlow(self).each_child |kid| {
             assert!(kid.starts_block_flow() || kid.starts_inline_flow());
 
-            do kid.with_mut_node |child_node| {
+            do kid.with_mut_base |child_node| {
                 child_node.position.origin.x = left_used;
                 child_node.position.size.width = remaining_width;
             }
@@ -141,7 +141,7 @@ impl BlockFlowData {
         let mut cur_y = Au(0);
 
         for BlockFlow(self).each_child |kid| {
-            do kid.with_mut_node |child_node| {
+            do kid.with_mut_base |child_node| {
                 child_node.position.origin.y = cur_y;
                 cur_y += child_node.position.size.height;
             }
