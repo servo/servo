@@ -111,7 +111,6 @@ pub mod layout {
     pub mod flow;
     pub mod layout_task;
     pub mod inline;
-    pub mod root;
     pub mod text;
     mod aux;
 }

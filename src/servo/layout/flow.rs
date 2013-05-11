@@ -17,24 +17,21 @@
 /// * `BlockFlow`: A flow that establishes a block context. It has several child flows, each of
 ///   which are positioned according to block formatting context rules (CSS block boxes). Block
 ///   flows also contain a single `GenericBox` to represent their rendered borders, padding, etc.
-///   (In the future, this render box may be folded into `BlockFlow` to save space.)
-///
+///   (In the future, this render box may be folded into `BlockFlow` to save space.) The BlockFlow
+///   at the root of the tree has special behavior: it stretches to the boundaries of the viewport.
+///   
 /// * `InlineFlow`: A flow that establishes an inline context. It has a flat list of child
 ///   boxes/flows that are subject to inline layout and line breaking and structs to represent
 ///   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
 ///   similar methods.
-///
-/// * `RootFlow`: The flow at the root of the tree. This flow behaves like a `BlockFlow`, except
-///   that stretches to the boundaries of the viewport.
 
 use dom::node::AbstractNode;
-use layout::block::{BlockFlowData, BlockLayout};
+use layout::block::{BlockFlowData};
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
 use layout::debug::DebugMethods;
 use layout::display_list_builder::DisplayListBuilder;
 use layout::inline::{InlineFlowData};
-use layout::root::{RootFlowData};
 
 use core::cell::Cell;
 use geom::point::Point2D;
@@ -51,7 +48,6 @@ pub enum FlowContext {
     FloatFlow(@mut FlowData),
     InlineBlockFlow(@mut FlowData),
     InlineFlow(@mut InlineFlowData),
-    RootFlow(@mut RootFlowData),
     TableFlow(@mut FlowData),
 }
 
@@ -83,10 +79,7 @@ impl TreeNodeRef<FlowData> for FlowContext {
             InlineFlow(info) => {
                 callback(&info.common)
             }
-            RootFlow(info) => {
-                callback(&info.common)
-            }
-            TableFlow(info) => callback(info),
+            TableFlow(info) => callback(info)
         }
     }
     fn with_mut_node<R>(&self, callback: &fn(&mut FlowData) -> R) -> R {
@@ -98,9 +91,6 @@ impl TreeNodeRef<FlowData> for FlowContext {
             FloatFlow(info) => callback(info),
             InlineBlockFlow(info) => callback(info),
             InlineFlow(info) => {
-                callback(&mut info.common)
-            }
-            RootFlow(info) => {
                 callback(&mut info.common)
             }
             TableFlow(info) => callback(info),
@@ -227,36 +217,33 @@ impl<'self> FlowContext {
         }
     }
 
-    pub fn root(&self) -> @mut RootFlowData {
+    pub fn root(&self) -> @mut BlockFlowData {
         match *self {
-            RootFlow(info) => info,
-            _ => fail!(fmt!("Tried to access root data of non-root: f%d", self.id()))
+            BlockFlow(info) if info.is_root => info,
+            _ => fail!(fmt!("Tried to access root block data of non-root: f%d", self.id()))
         }
     }
 
     pub fn bubble_widths(&self, ctx: &mut LayoutContext) {
         match *self {
-            BlockFlow(*)     => self.bubble_widths_block(ctx),
+            BlockFlow(info)  => info.bubble_widths_block(ctx),
             InlineFlow(info) => info.bubble_widths_inline(ctx),
-            RootFlow(info)   => info.bubble_widths_root(ctx),
             _ => fail!(fmt!("Tried to bubble_widths of flow: f%d", self.id()))
         }
     }
 
     pub fn assign_widths(&self, ctx: &mut LayoutContext) {
         match *self {
-            BlockFlow(*)     => self.assign_widths_block(ctx),
+            BlockFlow(info)  => info.assign_widths_block(ctx),
             InlineFlow(info) => info.assign_widths_inline(ctx),
-            RootFlow(info)   => info.assign_widths_root(ctx),
             _ => fail!(fmt!("Tried to assign_widths of flow: f%d", self.id()))
         }
     }
 
     pub fn assign_height(&self, ctx: &mut LayoutContext) {
         match *self {
-            BlockFlow(*)     => self.assign_height_block(ctx),
+            BlockFlow(info)  => info.assign_height_block(ctx),
             InlineFlow(info) => info.assign_height_inline(ctx),
-            RootFlow(info)   => info.assign_height_root(ctx),
             _ => fail!(fmt!("Tried to assign_height of flow: f%d", self.id()))
         }
     }
@@ -271,8 +258,7 @@ impl<'self> FlowContext {
         }
 
         match *self {
-            RootFlow(info) => info.build_display_list_root(builder, dirty, offset, list),
-            BlockFlow(*) => self.build_display_list_block(builder, dirty, offset, list),
+            BlockFlow(info)  => info.build_display_list_block(builder, dirty, offset, list),
             InlineFlow(info) => info.build_display_list_inline(builder, dirty, offset, list),
             _ => fail!(fmt!("Tried to build_display_list_recurse of flow: %?", self))
         }
@@ -281,12 +267,6 @@ impl<'self> FlowContext {
     // Actual methods that do not require much flow-specific logic
     pub fn foldl_all_boxes<B:Copy>(&self, seed: B, cb: &fn(a: B, b: RenderBox) -> B) -> B {
         match *self {
-            RootFlow(root) => {
-                let root = &mut *root;
-                do root.box.map_default(seed) |box| {
-                    cb(seed, *box)
-                }
-            }
             BlockFlow(block) => {
                 let block = &mut *block;
                 do block.box.map_default(seed) |box| {
@@ -319,14 +299,6 @@ impl<'self> FlowContext {
 
     pub fn iter_all_boxes(&self, cb: &fn(RenderBox) -> bool) {
         match *self {
-            RootFlow(root) => {
-                let root = &mut *root;
-                for root.box.each |box| {
-                    if !cb(*box) {
-                        break;
-                    }
-                }
-            }
             BlockFlow(block) => {
                 let block = &mut *block;
                 for block.box.each |box| {
@@ -392,12 +364,6 @@ impl DebugMethods for FlowContext {
                 match block.box {
                     Some(box) => fmt!("BlockFlow(box=b%d)", box.id()),
                     None => ~"BlockFlow",
-                }
-            },
-            RootFlow(root) => {
-                match root.box {
-                    Some(box) => fmt!("RootFlow(box=b%d)", box.id()),
-                    None => ~"RootFlow",
                 }
             },
             _ => ~"(Unknown flow)"
