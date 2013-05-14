@@ -1,87 +1,87 @@
-[submodule "src/rust-azure"]
-	path = src/rust-azure
+[submodule "src/support/azure/rust-azure"]
+	path = src/support/azure/rust-azure
 	url = https://github.com/mozilla-servo/rust-azure.git
-[submodule "src/rust-cocoa"]
-	path = src/rust-cocoa
+[submodule "src/platform/macos/rust-cocoa"]
+	path = src/platform/macos/rust-cocoa
 	url = https://github.com/mozilla-servo/rust-cocoa.git
-[submodule "src/mozjs"]
-	path = src/mozjs
+[submodule "src/support/spidermonkey/mozjs"]
+	path = src/support/spidermonkey/mozjs
 	url = https://github.com/mozilla-servo/mozjs.git
-[submodule "src/rust-mozjs"]
-	path = src/rust-mozjs
+[submodule "src/support/spidermonkey/rust-mozjs"]
+	path = src/support/spidermonkey/rust-mozjs
 	url = https://github.com/mozilla-servo/rust-mozjs.git
-[submodule "src/rust-harfbuzz"]
-	path = src/rust-harfbuzz
+[submodule "src/support/harfbuzz/rust-harfbuzz"]
+	path = src/support/harfbuzz/rust-harfbuzz
 	url = https://github.com/mozilla-servo/rust-harfbuzz.git
-[submodule "src/rust-stb-image"]
-	path = src/rust-stb-image
+[submodule "src/support/stb-image/rust-stb-image"]
+	path = src/support/stb-image/rust-stb-image
 	url = https://github.com/mozilla-servo/rust-stb-image.git
-[submodule "src/rust-geom"]
-	path = src/rust-geom
+[submodule "src/support/geom/rust-geom"]
+	path = src/support/geom/rust-geom
 	url = https://github.com/mozilla-servo/rust-geom.git
-[submodule "src/rust-opengles"]
-	path = src/rust-opengles
+[submodule "src/support/opengles/rust-opengles"]
+	path = src/support/opengles/rust-opengles
 	url = https://github.com/mozilla-servo/rust-opengles.git
-[submodule "src/rust-glut"]
-	path = src/rust-glut
+[submodule "src/support/glut/rust-glut"]
+	path = src/support/glut/rust-glut
 	url = https://github.com/mozilla-servo/rust-glut.git
-[submodule "src/rust-layers"]
-	path = src/rust-layers
+[submodule "src/support/layers/rust-layers"]
+	path = src/support/layers/rust-layers
 	url = https://github.com/mozilla-servo/rust-layers.git
-[submodule "src/rust-http-client"]
-	path = src/rust-http-client
+[submodule "src/support/http-client/rust-http-client"]
+	path = src/support/http-client/rust-http-client
 	url = https://github.com/mozilla-servo/rust-http-client.git
-[submodule "src/libhubbub"]
-	path = src/libhubbub
+[submodule "src/support/hubbub/libhubbub"]
+	path = src/support/hubbub/libhubbub
 	url = https://github.com/mozilla-servo/libhubbub.git
-[submodule "src/libparserutils"]
-	path = src/libparserutils
+[submodule "src/support/libparserutils/libparserutils"]
+	path = src/support/libparserutils/libparserutils
 	url = https://github.com/mozilla-servo/libparserutils.git
-[submodule "src/rust-hubbub"]
-	path = src/rust-hubbub
+[submodule "src/support/hubbub/rust-hubbub"]
+	path = src/support/hubbub/rust-hubbub
 	url = https://github.com/mozilla-servo/rust-hubbub.git
-[submodule "src/rust-core-foundation"]
-	path = src/rust-core-foundation
+[submodule "src/platform/macos/rust-core-foundation"]
+	path = src/platform/macos/rust-core-foundation
 	url = https://github.com/mozilla-servo/rust-core-foundation.git
-[submodule "src/rust-io-surface"]
-	path = src/rust-io-surface
+[submodule "src/platform/macos/rust-io-surface"]
+	path = src/platform/macos/rust-io-surface
 	url = https://github.com/mozilla-servo/rust-io-surface.git
-[submodule "src/sharegl"]
-	path = src/sharegl
+[submodule "src/support/sharegl/sharegl"]
+	path = src/support/sharegl/sharegl
 	url = https://github.com/mozilla-servo/sharegl.git
-[submodule "src/libwapcaplet"]
-    path = src/libwapcaplet
+[submodule "src/support/wapcaplet/libwapcaplet"]
+    path = src/support/wapcaplet/libwapcaplet
     url = https://github.com/mozilla-servo/libwapcaplet.git
-[submodule "src/libcss"]
-    path = src/libcss
+[submodule "src/support/css/libcss"]
+    path = src/support/css/libcss
     url = https://github.com/mozilla-servo/libcss.git
-[submodule "src/rust-netsurfcss"]
-	path = src/rust-netsurfcss
+[submodule "src/support/netsurfcss/rust-netsurfcss"]
+	path = src/support/netsurfcss/rust-netsurfcss
 	url = https://github.com/mozilla-servo/rust-netsurfcss.git
-[submodule "src/rust-wapcaplet"]
-	path = src/rust-wapcaplet
+[submodule "src/support/wapcaplet/rust-wapcaplet"]
+	path = src/support/wapcaplet/rust-wapcaplet
 	url = https://github.com/mozilla-servo/rust-wapcaplet.git
-[submodule "src/rust-core-graphics"]
-	path = src/rust-core-graphics
+[submodule "src/platform/macos/rust-core-graphics"]
+	path = src/platform/macos/rust-core-graphics
 	url = https://github.com/mozilla-servo/rust-core-graphics.git
-[submodule "src/rust-core-text"]
-	path = src/rust-core-text
+[submodule "src/platform/macos/rust-core-text"]
+	path = src/platform/macos/rust-core-text
 	url = https://github.com/mozilla-servo/rust-core-text.git
-[submodule "src/rust-freetype"]
-	path = src/rust-freetype
+[submodule "src/platform/linux/rust-freetype"]
+	path = src/platform/linux/rust-freetype
 	url = https://github.com/mozilla-servo/rust-freetype.git
-[submodule "src/rust-fontconfig"]
-	path = src/rust-fontconfig
+[submodule "src/platform/linux/rust-fontconfig"]
+	path = src/platform/linux/rust-fontconfig
 	url = https://github.com/mozilla-servo/rust-fontconfig.git
-[submodule "src/rust-xlib"]
-	path = src/rust-xlib
+[submodule "src/platform/linux/rust-xlib"]
+	path = src/platform/linux/rust-xlib
 	url = https://github.com/mozilla-servo/rust-xlib.git
-[submodule "src/rust-css"]
-	path = src/rust-css
+[submodule "src/support/css/rust-css"]
+	path = src/support/css/rust-css
 	url = https://github.com/mozilla-servo/rust-css.git
-[submodule "src/skia"]
-	path = src/skia
+[submodule "src/support/skia/skia"]
+	path = src/support/skia/skia
 	url = https://github.com/mozilla-servo/skia.git
-[submodule "src/rust"]
-	path = src/rust
+[submodule "src/compiler/rust"]
+	path = src/compiler/rust
 	url = https://github.com/mozilla/rust.git

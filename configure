@@ -320,7 +320,7 @@ then
 else
     step_msg "using in-tree rust compiler"
     # The Rust compiler we're going to build
-    CFG_RUSTC="${CFG_BUILD_DIR}src/rust/${DEFAULT_HOST_TRIPLE}/stage2/bin/rustc"
+    CFG_RUSTC="${CFG_BUILD_DIR}src/compiler/rust/${DEFAULT_HOST_TRIPLE}/stage2/bin/rustc"
 fi
 
 if [ -z "$CFG_ENABLE_CLANG" -a -z "$CFG_GCC" ]
@@ -371,7 +371,7 @@ msg "configuring src/mozjs"
 
 AUTOCONF213_M4_MACROS="$(dirname ${CFG_AUTOCONF213})/../share/$(basename ${CFG_AUTOCONF213})/"
 # Run the SpiderMonkey autoconf using autoconf 2.13
-(cd ${CFG_SRC_DIR}src/mozjs/js/src && "${CFG_AUTOCONF213}" -l "${AUTOCONF213_M4_MACROS}") || exit $?
+(cd ${CFG_SRC_DIR}src/support/spidermonkey/mozjs/js/src && "${CFG_AUTOCONF213}" -l "${AUTOCONF213_M4_MACROS}") || exit $?
 
 # Pixman and cairo require some care to autoconf correctly for our in-tree build.
 # The normal autogen.sh files mostly just run autoreconfig but we need more fine control
@@ -397,16 +397,46 @@ fi
 AUTOCMD="${LIBTOOLIZE} && autoconf && autoheader && automake --add-missing --copy --force"
 # Copied from cairo's autogen.sh. Build fails without
 
-CFG_SUBMODULES="libwapcaplet rust-wapcaplet rust-harfbuzz rust-opengles skia rust-azure rust-stb-image rust-geom rust-glut rust-layers rust-http-client libparserutils libhubbub libcss rust-netsurfcss rust-css rust-hubbub sharegl rust-mozjs mozjs"
+CFG_SUBMODULES="\
+    support/azure/rust-azure \
+    support/css/rust-css \
+    support/geom/rust-geom \
+    support/glut/rust-glut \
+    support/harfbuzz/rust-harfbuzz \
+    support/http-client/rust-http-client \
+    support/hubbub/libhubbub \
+    support/hubbub/rust-hubbub \
+    support/layers/rust-layers \
+    support/libparserutils/libparserutils \
+    support/netsurfcss/libcss \
+    support/netsurfcss/rust-netsurfcss \
+    support/opengles/rust-opengles \
+    support/sharegl/sharegl \
+    support/skia/skia \
+    support/spidermonkey/mozjs \
+    support/spidermonkey/rust-mozjs \
+    support/stb-image/rust-stb-image \
+    support/wapcaplet/libwapcaplet \
+    support/wapcaplet/rust-wapcaplet"
 
 if [ $CFG_OSTYPE = "apple-darwin" ]
 then
-CFG_SUBMODULES="rust-cocoa rust-io-surface rust-core-foundation rust-core-graphics rust-core-text ${CFG_SUBMODULES}"
+CFG_SUBMODULES="\
+    platform/macos/rust-cocoa \
+    platform/macos/rust-core-foundation \
+    platform/macos/rust-core-graphics \
+    platform/macos/rust-core-text \
+    platform/macos/rust-io-surface \
+    ${CFG_SUBMODULES}"
 fi
 
 if [ $CFG_OSTYPE = "unknown-linux-gnu" ]
 then
-CFG_SUBMODULES="rust-freetype rust-fontconfig rust-xlib ${CFG_SUBMODULES}"
+CFG_SUBMODULES="\
+    platform/linux/rust-fontconfig \
+    platform/linux/rust-freetype \
+    platform/linux/rust-xlib \
+    ${CFG_SUBMODULES}"
 fi
 
 step_msg "making build directories"
@@ -418,11 +448,11 @@ do
     make_dir ${CFG_BUILD_DIR}src/${i}
 done
 
-make_dir ${CFG_BUILD_DIR}src/servo-util
-make_dir ${CFG_BUILD_DIR}src/servo-net
-make_dir ${CFG_BUILD_DIR}src/servo-gfx
+make_dir ${CFG_BUILD_DIR}src/components/servo-util
+make_dir ${CFG_BUILD_DIR}src/components/servo-net
+make_dir ${CFG_BUILD_DIR}src/components/servo-gfx
 make_dir src/test/ref
-make_dir src/rust
+make_dir src/compiler/rust
 
 # TODO: don't run configure on submodules unless necessary. For an example,
 # see how Rust's configure script optionally reconfigures the LLVM module.
@@ -430,11 +460,11 @@ step_msg "running submodule configure scripts"
 
 # Only reconfigure Rust when it changes
 do_reconfigure=1
-index1="${CFG_SRC_DIR}.git/modules/src/rust/index"
-index2="${CFG_SRC_DIR}src/rust/.git/index"
+index1="${CFG_SRC_DIR}.git/modules/src/compiler/rust/index"
+index2="${CFG_SRC_DIR}src/compiler/rust/.git/index"
 for index in ${index1} ${index2}
 do
-    config_stamp="${CFG_BUILD_DIR}src/rust/config.stamp"
+    config_stamp="${CFG_BUILD_DIR}src/compiler/rust/config.stamp"
     if test -e ${index} -a -e ${config_stamp} -a ${config_stamp} -nt ${index}
     then
         msg "not reconfiguring Rust, config.stamp is fresh"
@@ -444,15 +474,10 @@ done
 
 if [ ${do_reconfigure} -ne 0 ]
 then
-    cd ${CFG_BUILD_DIR}src/rust
-    ${CFG_SRC_DIR}src/rust/configure
+    cd ${CFG_BUILD_DIR}src/compiler/rust
+    ${CFG_SRC_DIR}src/compiler/rust/configure
     cd ${CFG_BUILD_DIR}
 fi
-
-# Cairo expects to use an installed pixman, but we want to override that
-# behavior to use our version
-export pixman_CFLAGS="-I${CFG_SRC_DIR}src/pixman/pixman -I${CFG_BUILD_DIR}src/pixman/pixman"
-export pixman_LDFLAGS="-I${CFG_BUILD_DIR}src/pixman/pixman/.libs"
 
 # PIC all the things
 export CFLAGS="${CFLAGS} -fPIC"
@@ -466,7 +491,7 @@ do
     fi
     CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/configure"
     # needed because Spidermonkey configure is in non-standard location
-    if [ $i = mozjs ]; then
+    if [ $i = "support/spidermonkey/mozjs" ]; then
 	CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/js/src/configure"
     fi
 
