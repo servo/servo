@@ -78,10 +78,10 @@ $(S)config.stamp : $(S)configure $(S)Makefile.in
 # Build the compiler
 ifneq ($(CFG_LOCAL_RUSTC),1)
 $(CFG_RUSTC):
-	$(MAKE) -C "$(CFG_BUILD_DIR)src/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS=""
+	$(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS=""
 
 clean-rust:
-	$(MAKE) -C "$(CFG_BUILD_DIR)src/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS="" clean
+	$(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS="" clean
 else
 $(CFG_RUSTC):
 
@@ -90,6 +90,13 @@ clean-rust:
 endif
 
 rust: $(CFG_RUSTC)
+
+# Strip off submodule paths to determine "raw" submodule names.
+SUBMODULES=$(shell echo $(CFG_SUBMODULES) | perl -p -e 's![A-Za-z0-9_-]+/!!g')
+
+# Define e.g. PATH_rust-io-surface = platform/macos/rust-io-surface
+$(foreach submodule,$(CFG_SUBMODULES),\
+$(eval PATH_$(shell echo $(submodule) | perl -p -e 's![A-Za-z0-9_-]+/!!g') = $(submodule)))
 
 define DEF_SUBMODULE_VARS
 
@@ -106,29 +113,34 @@ endif
 #
 # We can't auto-compute this, because some modules have lib* prefix in
 # their name already, while others don't.
-DONE_$(1) = $$(B)src/$(1)/lib*.dummy
-DEPS_SUBMODULES += $(1)
+DONE_$(1) = $$(B)src/$$(PATH_$(1))/lib*.dummy
+DEPS_SUBMODULES += $$(PATH_$(1))
 endef
 
 # these will get populated.
 DEPS_SUBMODULES =
 
-$(foreach submodule,$(CFG_SUBMODULES),\
+$(foreach submodule,$(SUBMODULES),\
 $(eval $(call DEF_SUBMODULE_VARS,$(submodule))))
+
+$(info $(DEPS_SUBMODULES))
 
 # include submodule dependencies configuration
 include $(S)mk/sub.mk
 
 # Define how to make submodule targets
 define DEF_SUBMODULE_RULES
+
+ENV_RLDFLAGS_$(1) = $$(foreach dep,$$(DEPS_$(1)),-L $$(B)src/$$(PATH_$$(dep)))
+
 # variables that depend on dependency definitions from sub.mk!
 ENV_CFLAGS_$(1) = CFLAGS="$$(CFLAGS_$(1))"
-ENV_RFLAGS_$(1) = RUSTFLAGS="$$(strip $$(CFG_RUSTC_FLAGS)) $$(addprefix -L $$(B)src/,$$(DEPS_$(1)))"
+ENV_RFLAGS_$(1) = RUSTFLAGS="$$(strip $$(CFG_RUSTC_FLAGS)) $$(ENV_RLDFLAGS_$(1))"
 
 # use a rough approximation of submodule dependencies to trigger calling submodule make
 # whenever a submodule changes
 # TODO: this may be a bit brutish, but is there a better way?
-ROUGH_DEPS_$(1)=$$(call rwildcard,$$(S)src/$(1),*h *c *cpp *rs *rc)
+ROUGH_DEPS_$(1)=$$(call rwildcard,$$(S)src/$$(PATH_$(1)),*h *c *cpp *rs *rc)
 DONE_DEPS_$(1)=$$(foreach dep,$$(DEPS_$(1)),$$(DONE_$$(dep)))
 # the main target for a submodule
 # --
@@ -148,7 +160,7 @@ $$(DONE_$(1)) : $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1)) $$(RUSTC_DEP_$(1))
 	$$(Q) \
 	$$(ENV_CFLAGS_$(1)) \
 	$$(ENV_RFLAGS_$(1)) \
-	$$(MAKE) -C $$(B)src/$(1) && touch $$(DONE_$(1))
+	$$(MAKE) -C $$(B)src/$$(PATH_$(1)) && touch $$(DONE_$(1))
 
 # main submodule target
 $(1) : $$(DONE_$(1))
@@ -156,38 +168,38 @@ $(1) : $$(DONE_$(1))
 .NOTPARALLEL : $(1)
 endef
 
-$(foreach submodule,$(CFG_SUBMODULES),\
+$(foreach submodule,$(SUBMODULES),\
 $(eval $(call DEF_SUBMODULE_RULES,$(submodule))))
 
-DONE_SUBMODULES = $(foreach dep,$(DEPS_SUBMODULES),$(DONE_$(dep)))
+DONE_SUBMODULES = $(foreach submodule,$(SUBMODULES),$(DONE_$(submodule)))
 
 RFLAGS_servo_util = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
-SRC_servo_util = $(call rwildcard,$(S)src/servo-util/,*.rs)
-CRATE_servo_util = $(S)src/servo-util/servo_util.rc
-DONE_servo_util = $(B)src/servo-util/libservoutil.dummy
+SRC_servo_util = $(call rwildcard,$(S)src/components/servo-util/,*.rs)
+CRATE_servo_util = $(S)src/components/servo-util/servo_util.rc
+DONE_servo_util = $(B)src/components/servo-util/libservoutil.dummy
 
 DEPS_servo_util = $(CRATE_servo_util) $(SRC_servo_util) $(DONE_SUBMODULES)
 
-RFLAGS_servo_net = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-util
-SRC_servo_net = $(call rwildcard,$(S)src/servo-net/,*.rs)
-CRATE_servo_net = $(S)src/servo-net/servo_net.rc
-DONE_servo_net = $(B)src/servo-net/libservonet.dummy
+RFLAGS_servo_net = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/servo-util
+SRC_servo_net = $(call rwildcard,$(S)src/components/servo-net/,*.rs)
+CRATE_servo_net = $(S)src/components/servo-net/servo_net.rc
+DONE_servo_net = $(B)src/components/servo-net/libservonet.dummy
 
 DEPS_servo_net = $(CRATE_servo_net) $(SRC_servo_net) $(DONE_SUBMODULES) $(DONE_servo_util)
 
-RFLAGS_servo_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-util -L $(B)src/servo-net
-SRC_servo_gfx = $(call rwildcard,$(S)src/servo-gfx/,*.rs)
-CRATE_servo_gfx = $(S)src/servo-gfx/servo_gfx.rc
-DONE_servo_gfx = $(B)src/servo-gfx/libservogfx.dummy
+RFLAGS_servo_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/servo-util -L $(B)src/components/servo-net
+SRC_servo_gfx = $(call rwildcard,$(S)src/components/servo-gfx/,*.rs)
+CRATE_servo_gfx = $(S)src/components/servo-gfx/servo_gfx.rc
+DONE_servo_gfx = $(B)src/components/servo-gfx/libservogfx.dummy
 
 DEPS_servo_gfx = $(CRATE_servo_gfx) $(SRC_servo_gfx) $(DONE_SUBMODULES) $(DONE_servo_util) $(DONE_servo_net)
 
-RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/servo-gfx -L $(B)src/servo-util -L $(B)src/servo-net
+RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/servo-gfx -L $(B)src/components/servo-util -L $(B)src/components/servo-net
 
-WEBIDL_servo = $(call rwildcard,$(S)src/servo/,*.webidl)
+WEBIDL_servo = $(call rwildcard,$(S)src/components/servo/,*.webidl)
 AUTOGEN_SRC_servo = $(patsubst %.webidl, %Binding.rs, $(WEBIDL_servo))
-SRC_servo = $(call rwildcard,$(S)src/servo/,*.rs) $(AUTOGEN_SRC_servo)
-CRATE_servo = $(S)src/servo/servo.rc
+SRC_servo = $(call rwildcard,$(S)src/components/servo/,*.rs) $(AUTOGEN_SRC_servo)
+CRATE_servo = $(S)src/components/servo/servo.rc
 
 DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_servo_util) $(DONE_servo_gfx) $(DONE_servo_net)
 
@@ -210,7 +222,7 @@ $(DONE_servo_net):	$(DEPS_servo_net)
 $(DONE_servo_gfx):	$(DEPS_servo_gfx)
 	$(RUSTC) $(RFLAGS_servo_gfx) -o $@ $< && touch $@
 
-BINDINGS_SRC = $(S)/src/servo/dom/bindings/codegen
+BINDINGS_SRC = $(S)/src/components/servo/dom/bindings/codegen
 
 CACHE_DIR = $(BINDINGS_SRC)/_cache
 
@@ -249,12 +261,12 @@ servo:	$(DEPS_servo)
 ifeq ($(OSTYPE),apple-darwin)
 
 package: servo
-	mkdir -p Servo.app/Contents/MacOS/src/rust-cocoa
-	mkdir -p Servo.app/Contents/MacOS/src/rust-azure
+	mkdir -p Servo.app/Contents/MacOS/src/platform/macos/rust-cocoa
+	mkdir -p Servo.app/Contents/MacOS/src/platform/macos/rust-azure
 	cp $(S)/Info.plist Servo.app/Contents/
 	cp servo Servo.app/Contents/MacOS/
-	cp src/rust-cocoa/lib*.dylib Servo.app/Contents/MacOS/src/rust-cocoa/
-	cp src/rust-azure/lib*.dylib Servo.app/Contents/MacOS/src/rust-azure/
+	cp src/platform/macos/rust-cocoa/lib*.dylib Servo.app/Contents/MacOS/src/platform/macos/rust-cocoa/
+	cp src/platform/macos/rust-azure/lib*.dylib Servo.app/Contents/MacOS/src/platform/macos/rust-azure/
 
 else
 
@@ -272,8 +284,8 @@ endif
 
 .PHONY: backup-rust restore-rust
 backup-rust:
-	mv src/rust ..
+	mv src/compiler/rust ..
 
 restore-rust:
-	rm -rf src/rust
+	rm -rf src/compiler/rust
 	mv ../rust src/

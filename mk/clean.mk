@@ -3,13 +3,13 @@ define DEF_SUBMODULE_CLEAN_RULES
 clean-$(1) : 
 	@$$(call E, make clean: $(1))
 	$$(Q)rm -f $$(DONE_$(1))
-	$$(Q)$$(MAKE) -C $$(B)src/$(1) clean
+	$$(Q)$$(MAKE) -C $$(B)src/$$(PATH_$(1)) clean
 
 # add these targets to meta-targets
 DEPS_CLEAN_ALL += $(1)
 endef
 
-$(foreach submodule,$(CFG_SUBMODULES),\
+$(foreach submodule,$(SUBMODULES),\
 $(eval $(call DEF_SUBMODULE_CLEAN_RULES,$(submodule))))
 
 DEPS_CLEAN_TARGETS_ALL = $(addprefix clean-,$(DEPS_CLEAN_ALL))
@@ -25,14 +25,14 @@ clean-fast: $(DEPS_CLEAN_TARGETS_FAST) clean-servo
 	$(Q)echo "Cleaning targets:"
 	$(Q)echo "$(filter-out $(SLOW_BUILDS),$(DEPS_CLEAN_ALL))"
 
-clean-servo-gfx:
-	cd $(B)/src/servo-gfx/ && rm -rf libservo_gfx*.dylib $(DONE_servo_gfx)
+clean-servo-util:
+	cd $(B)/src/components/servo-util/ && rm -rf libservo_util*.dylib $(DONE_servo_util)
 
 clean-servo-net:
-	cd $(B)/src/servo-net/ && rm -rf libservo_net*.dylib $(DONE_servo_net)
+	cd $(B)/src/components/servo-net/ && rm -rf libservo_net*.dylib $(DONE_servo_net)
 
-clean-servo-util:
-	cd $(B)/src/servo-util/ && rm -rf libservo_util*.dylib $(DONE_servo_util)
+clean-servo-gfx:
+	cd $(B)/src/components/servo-gfx/ && rm -rf libservo_gfx*.dylib $(DONE_servo_gfx)
 
-clean-servo: clean-servo-gfx clean-servo-net clean-servo-util
+clean-servo: clean-servo-gfx clean-servo-util clean-servo-net
 	rm -f servo servo-test
