@@ -2435,8 +2435,8 @@ def CreateBindingJSObject(descriptor, parent):
     if descriptor.proxy:
         handler = """  //let cache = ptr::to_unsafe_ptr(aObject.get_wrappercache());
 
-  let content = task_from_context(aCx);
-  let handler = (*content).dom_static.proxy_handlers.get(&(prototypes::id::%s as uint));
+  let script_context = task_from_context(aCx);
+  let handler = (*script_context).dom_static.proxy_handlers.get(&(prototypes::id::%s as uint));
 """ % descriptor.name
         create = handler + """  let obj = NewProxyObject(aCx, *handler,
                            ptr::to_unsafe_ptr(&RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void)),
@@ -2606,8 +2606,8 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 elif props.hasNonChromeOnly():
                     idsToInit.append(props.variableName(False))
         if len(idsToInit) > 0:
-            setup = CGList([CGGeneric("let content = task_from_context(aCx);"),
-                            CGList([CGGeneric("let %s_ids_mut = (*content).dom_static.attribute_ids.get(&(prototypes::id::%s as uint));" % (varname, self.descriptor.name)) for varname in idsToInit], '\n')], '\n')
+            setup = CGList([CGGeneric("let script_context = task_from_context(aCx);"),
+                            CGList([CGGeneric("let %s_ids_mut = (*script_context).dom_static.attribute_ids.get(&(prototypes::id::%s as uint));" % (varname, self.descriptor.name)) for varname in idsToInit], '\n')], '\n')
             initIds = CGList(
                 [CGGeneric("!InitIds(aCx, %s, *%s_ids_mut)" % (varname, varname)) for
                  varname in idsToInit], ' ||\n')
@@ -2795,7 +2795,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         else:
             getter = "GetConstructorObject"
 
-        body = "  let content = task_from_context(aCx);\n"
+        body = "  let script_context = task_from_context(aCx);\n"
         #XXXjdm This self.descriptor.concrete check shouldn't be necessary
         if not self.descriptor.concrete or self.descriptor.proxy:
             body += """  let traps = ProxyTraps {
@@ -2828,12 +2828,12 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     getElementIfPresent: ptr::null(),
     getPrototypeOf: ptr::null()
   };
-  (*content).dom_static.proxy_handlers.insert(prototypes::id::%s as uint,
+  (*script_context).dom_static.proxy_handlers.insert(prototypes::id::%s as uint,
                                               CreateProxyHandler(ptr::to_unsafe_ptr(&traps)));
 
 """ % self.descriptor.name
         else:
-            body += """  (*content).dom_static.attribute_ids.insert(prototypes::id::%s as uint,
+            body += """  (*script_context).dom_static.attribute_ids.insert(prototypes::id::%s as uint,
                                              vec::cast_to_mut(vec::from_slice(sAttributes_ids)));
 """ % self.descriptor.name
             body = "" #XXXjdm xray stuff isn't necessary yet
@@ -3308,12 +3308,12 @@ class CGXrayHelper(CGAbstractExternMethod):
     def definition_body(self):
         varNames = self.properties.variableNames(True)
 
-        setup = "let content = task_from_context(cx);\n"
+        setup = "let script_context = task_from_context(cx);\n"
 
         methods = self.properties.methods
         if methods.hasNonChromeOnly() or methods.hasChromeOnly():
             methodArgs = "Some(vec::zip_slice(%(methods)s, *method_ids))" % varNames
-            setup += "let method_ids = (*content).dom_static.method_ids.get(&(prototypes::id::ClientRect as uint));\n"
+            setup += "let method_ids = (*script_context).dom_static.method_ids.get(&(prototypes::id::ClientRect as uint));\n"
         else:
             methodArgs = "None"
         methodArgs = CGGeneric(methodArgs)
@@ -3321,7 +3321,7 @@ class CGXrayHelper(CGAbstractExternMethod):
         attrs = self.properties.attrs
         if attrs.hasNonChromeOnly() or attrs.hasChromeOnly():
             attrArgs = "Some(vec::zip_slice(%(attrs)s, *attr_ids))" % varNames
-            setup += "let attr_ids = (*content).dom_static.attribute_ids.get(&(prototypes::id::ClientRect as uint));\n"
+            setup += "let attr_ids = (*script_context).dom_static.attribute_ids.get(&(prototypes::id::ClientRect as uint));\n"
         else:
             attrArgs = "None"
         attrArgs = CGGeneric(attrArgs)
@@ -3329,7 +3329,7 @@ class CGXrayHelper(CGAbstractExternMethod):
         consts = self.properties.consts
         if consts.hasNonChromeOnly() or consts.hasChromeOnly():
             constArgs = "Some(vec::zip_slice(%(consts)s, *const_ids))" % varNames
-            setup += "let const_ids = (*content).dom_static.constant_ids.get(&(prototypes::id::ClientRect as uint));\n"
+            setup += "let const_ids = (*script_context).dom_static.constant_ids.get(&(prototypes::id::ClientRect as uint));\n"
         else:
             constArgs = "None"
         constArgs = CGGeneric(constArgs)
@@ -3614,8 +3614,8 @@ class CGClassConstructHook(CGAbstractExternMethod):
   //XXXjdm Gecko obtains a GlobalObject from the global (maybe from the private value,
   //       or through unwrapping a slot or something). We'll punt and get the Window
   //       from the context for now. 
-  let content = task_from_context(cx);
-  let global = (*content).window.get();
+  let script_context = task_from_context(cx);
+  let global = (*script_context).window.get();
   let obj = global.get_wrappercache().get_wrapper();
 """
             preArgs = ["global"]
@@ -4147,7 +4147,7 @@ class CGBindingRoot(CGThing):
                           'dom::domparser::*', #XXXjdm
                           'dom::event::*', #XXXjdm
                           'dom::eventtarget::*', #XXXjdm
-                          'content::content_task::task_from_context',
+                          'scripting::script_task::task_from_context',
                           'dom::bindings::utils::EnumEntry',
                          ], 
                          [],

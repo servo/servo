@@ -112,7 +112,7 @@ fn mainloop(po: Port<Msg>, dom_event_chan: SharedChan<Event>, opts: &Opts) {
     let done = @mut false;
     let resize_rate_limiter = @mut ResizeRateLimiter(dom_event_chan);
     let check_for_messages: @fn() = || {
-        // Periodically check if content responded to our last resize event
+        // Periodically check if the script task responded to our last resize event
         resize_rate_limiter.check_resize_response();
 
         // Handle messages

@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use content::content_task::task_from_context;
 use dom::bindings::node::unwrap;
+use dom::bindings::utils::jsval_to_str;
 use dom::bindings::utils::{domstring_to_jsval, WrapNewBindingObject};
 use dom::bindings::utils::{str, CacheableWrapper, DOM_OBJECT_SLOT, DOMString};
-use dom::bindings::utils::jsval_to_str;
 use dom::element::*;
 use dom::node::{AbstractNode, Element, ElementNodeTypeId};
 use layout::layout_task;
+use scripting::script_task::task_from_context;
 use super::utils;
 
 use core::libc::c_uint;
@@ -17,8 +17,8 @@ use core::ptr::null;
 use js::glue::bindgen::*;
 use js::jsapi::bindgen::*;
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp, JSPropertySpec};
-use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper, JSFunctionSpec};
 use js::jsapi::{JSNativeWrapper, JSTracer, JSTRACE_OBJECT};
+use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper, JSFunctionSpec};
 use js::rust::{Compartment, jsobj};
 use js::{JS_ARGV, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
 use js::{JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
@@ -215,8 +215,8 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
         let node = unwrap(obj);
         let width = match node.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
-                let content = task_from_context(cx);
-                match (*content).query_layout(layout_task::ContentBox(node)) {
+                let script_context = task_from_context(cx);
+                match (*script_context).query_layout(layout_task::ContentBox(node)) {
                     Ok(rect) => {
                         match rect {
                             layout_task::ContentRect(rect) => rect.size.width.to_px(),

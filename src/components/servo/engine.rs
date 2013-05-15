@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use compositing::CompositorImpl;
-use content::content_task::{ContentTask, ExecuteMsg, ParseMsg};
-use content::content_task;
 use dom::event::Event;
-use layout::layout_task;
 use layout::layout_task::LayoutTask;
+use layout::layout_task;
+use scripting::script_task::{ExecuteMsg, ParseMsg, ScriptTask};
+use scripting::script_task;
 use util::task::spawn_listener;
 
 use core::cell::Cell;
@@ -34,7 +34,7 @@ pub struct Engine {
     resource_task: ResourceTask,
     image_cache_task: ImageCacheTask,
     layout_task: LayoutTask,
-    content_task: ContentTask
+    script_task: ScriptTask,
 }
 
 impl Engine {
@@ -55,11 +55,11 @@ impl Engine {
             let opts = opts.take();
             let layout_task = LayoutTask(render_task.clone(), image_cache_task.clone(), opts);
 
-            let content_task = ContentTask(layout_task.clone(),
-                                           dom_event_port.take(),
-                                           dom_event_chan.take(),
-                                           resource_task.clone(),
-                                           image_cache_task.clone());
+            let script_task = ScriptTask(layout_task.clone(),
+                                         dom_event_port.take(),
+                                         dom_event_chan.take(),
+                                         resource_task.clone(),
+                                         image_cache_task.clone());
 
             Engine {
                 request_port: request,
@@ -68,7 +68,7 @@ impl Engine {
                 resource_task: resource_task.clone(),
                 image_cache_task: image_cache_task.clone(),
                 layout_task: layout_task,
-                content_task: content_task,
+                script_task: script_task,
             }.run()
         }
     }
@@ -83,15 +83,15 @@ impl Engine {
         match request {
             LoadUrlMsg(url) => {
                 if url.path.ends_with(".js") {
-                    self.content_task.send(ExecuteMsg(url))
+                    self.script_task.send(ExecuteMsg(url))
                 } else {
-                    self.content_task.send(ParseMsg(url))
+                    self.script_task.send(ParseMsg(url))
                 }
                 return true
             }
 
             ExitMsg(sender) => {
-                self.content_task.send(content_task::ExitMsg);
+                self.script_task.send(script_task::ExitMsg);
                 self.layout_task.send(layout_task::ExitMsg);
 
                 let (response_port, response_chan) = comm::stream();

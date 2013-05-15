@@ -4,7 +4,6 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
-use content::content_task::global_content;
 use dom::bindings::codegen;
 use dom::bindings::node;
 use dom::bindings::utils::WrapperCache;
@@ -13,12 +12,13 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
-use js::rust::Compartment;
 use layout::debug::DebugMethods;
 use layout::flow::FlowContext;
-use newcss::complete::CompleteSelectResults;
+use scripting::script_task::global_script_context;
 
 use core::cast::transmute;
+use js::rust::Compartment;
+use newcss::complete::CompleteSelectResults;
 use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
 
 //
@@ -391,7 +391,7 @@ impl Node {
         let mut node = AbstractNode {
             obj: transmute(node),
         };
-        let cx = global_content().compartment.get().cx.ptr;
+        let cx = global_script_context().compartment.get().cx.ptr;
         node::create(cx, &mut node);
         node
     }

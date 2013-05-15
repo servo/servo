@@ -166,8 +166,10 @@ pub impl<'self> Element {
                     Some(win) => {
                         let node = self.parent.abstract.get();
                         assert!(node.is_element());
-                        let content = unsafe { &mut *win.content_task };
-                        match content.query_layout(layout_task::ContentBoxes(node)) {
+                        let script_context = unsafe {
+                            &mut *win.script_context
+                        };
+                        match script_context.query_layout(layout_task::ContentBoxes(node)) {
                             Ok(rects) => match rects {
                                 layout_task::ContentRects(rects) =>
                                     do rects.map |r| {
@@ -206,8 +208,8 @@ pub impl<'self> Element {
                     Some(win) => {
                         let node = self.parent.abstract.get();
                         assert!(node.is_element());
-                        let content = unsafe { &mut *win.content_task };
-                        match content.query_layout(layout_task::ContentBox(node)) {
+                        let script_context = unsafe { &mut *win.script_context };
+                        match script_context.query_layout(layout_task::ContentBox(node)) {
                             Ok(rect) => match rect {
                                 layout_task::ContentRect(rect) =>
                                     Some(ClientRect::new(

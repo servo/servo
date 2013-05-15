@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*!
-A little class that rate limits the number of resize events sent to the content task
-based on how fast content dispatches those events. It waits until each event is handled
+A little class that rate limits the number of resize events sent to the script task
+based on how fast script dispatches those events. It waits until each event is handled
 before sending the next. If the window is resized multiple times before an event is handled
 then some events will never be sent.
 */
@@ -41,7 +41,7 @@ pub impl ResizeRateLimiter {
                     self.next_resize_event = None;
                 } else {
                     if self.next_resize_event.is_some() {
-                        warn!("osmain: content can't keep up. skipping resize event");
+                        warn!("osmain: script task can't keep up. skipping resize event");
                     }
                     self.next_resize_event = Some((width, height));
                 }
