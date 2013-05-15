@@ -1,54 +1,68 @@
 Descriptions of the Servo source directories. For the most part these represent a single
 crate or library.
 
-## Servo and Rust projects
+## Servo components
 
-These are the main servo projects, as well as projects that are pure Rust (not bindings).
+* `components/contenttest`: JavaScript test runner.
+* `components/reftest`: Reference (layout) test runner.
+* `components/servo`: The top-level Servo crate. Contains compositing, DOM, layout, and script.
+* `components/servo-gfx`: Graphics rendering, fonts, and text shaping.
+* `components/servo-net`: Networking, caching, image decoding.
+* `components/servo-util`: Various utility functions used by other Servo components.
 
-* _rust-css_ - A CSS parsing and selector matching library, based on libcss and currently
-    using libcss for the implementation, but not exposing any libcss internals
-* _rust-geom_ - Generic linear algebra library
-* _rust-http-client_ - An HTTP library in Rust, using libuv via the Rust standard library
-* _rust-layers_ - A simple GPU-accelerated 2D scene graph library
-* _servo_ - The Servo web browser engine
-* _servo-gfx_ - Servo's graphics subsystem
-* _sharegl_ - A library for sharing 3D textures between processes
+## The Rust compiler
 
-## Third-party projects
+* `compiler/rust`: The Rust compiler.
 
-* _libcss_ - The CSS library from the NetSurf web browser. We are using this for parsing
-    and selector matching until we have a Rust solution
-* _libhubbub_ - The HTML parser from the NetSurf web browser. We are using this for parsing
-    until we have a Rust solution
-* _libparserutils_ - A parsing library used by libcss and libhubbub
-* _libwapcaplet_ - A string internment library used by libcss and libhubbub
-* _mozjs_ - The SpiderMonkey JavaScript engine, forked from mozilla-central
-* _rust-azure_ - mozilla-central's 2D vector graphics abstraction layer and bindings
-* _rust-harfbuzz_ - The harfbuzz text shaping library and bindings
-* _rust-stb-image_ - The stb_image library and bindings. We are using this for image decoding
-    until we have a higher-performance and/or Rust solution
-* _skia_ - The Skia drawing library, a backend for Azure
+## Supporting libraries
 
-## Library bindings
+These libraries are used in all Servo ports. In keeping with Servo's philosophy of modularity,
+they are designed to be useful in other Rust projects.
 
-* _rust-cocoa_ - Bindings to OS X's Cocoa framework
-* _rust-core-foundation_ - Bindings to OS X's Core Foundation framework
-* _rust-core-graphics_ - Bindings to OS X's Core Graphics framework, a backend for Azure
-* _rust-core-text_ - Bindings to OS X's Core Text framework
-* _rust-fontconfig_ - Bindings to fontconfig
-* _rust-freetype_ - Bindings to FreeType
-* _rust-glut_ - Bindings to GLUT
-* _rust-hubbub_ - Bindings to libhubbub
-* _rust-io-surface_ - OS X implementation of cross-process surface sharing. Used by sharegl
-* _rust-mozjs_ - Bindings to SpiderMonkey
-* _rust-netsurfcss_ - Bindings to libcss
-* _rust-opengles_ - Bindings to OpenGL ES
-* _rust-wapcaplet_ - Bindings to libwapcaplet
-* _rust-xlib_ - Bindings to xlib
+* `support/azure`: A cross-platform 2D drawing library from the Mozilla project. Azure can render
+  with Direct2D, Core Graphics (Quartz), Skia, and Cairo.
+* `support/css`: A general CSS parsing and selector matching library. This abstraction layer
+  exists to prevent `libcss` internals from leaking into Servo.
+* `support/geom`: A simple Euclidean geometry and linear algebra library.
+* `support/glut`: Bindings to the GLUT windowing framework. This bare-bones windowing framework is
+  useful for testing the engine without browser chrome.
+* `support/harfbuzz`: A mature Unicode- and OpenType-aware text shaping library, used by many
+  rendering engines and toolkits.
+* `support/http-client`: An HTTP client library for Rust.
+* `support/hubbub`: The HTML parser from the NetSurf project. This is a temporary solution for HTML
+  parsing until a pure-Rust solution is available.
+* `support/layers`: A simple GPU-accelerated 2D scene graph library, somewhat similar to libraries
+  like Clutter.
+* `support/libparserutils`: A parsing library used by `hubbub` and `netsurfcss`.
+* `support/netsurfcss`: The CSS library from the NetSurf project. This is a temporary stopgap for
+  CSS parsing until a pure-Rust solution is available.
+* `support/opengles`: Bindings to OpenGL ES 2.0.
+* `support/sharegl`: A library for sharing OpenGL or Direct3D textures between processes.
+* `support/skia`: Google's accelerated 2D rendering library.
+* `support/spidermonkey`: Mozilla's JavaScript engine.
+* `support/stb-image`: A minimalist image decoding library. This is a temporary stopgap for image
+  decoding until a higher-performance solution is available.
+* `support/wapcaplet`: A string storage library used by `hubbub` and `netsurfcss`.
 
-## Other
+## Platform-specfic bindings
 
-* _contenttest_ - Test harness for JavaScript bindings
-* _etc_ - Miscellaneous
-* _reftest_ - Test harness for comparing Servo output to Firefox
-* _test_ - Test cases
+### Linux
+
+* `platform/linux/rust-fontconfig`: Bindings to the freedesktop.org `fontconfig` library.
+* `platform/linux/rust-freetype`: Bindings to the FreeType library.
+* `platform/linux/rust-xlib`: Bindings to the X Window System libraries.
+
+### Mac
+
+* `platform/macos/rust-cocoa`: General Cocoa bindings.
+* `platform/macos/rust-core-foundation`: Bindings to Core Foundation.
+* `platform/macos/rust-core-graphics`: Bindings to Core Graphics/Quartz.
+* `platform/macos/rust-core-text`: Bindings to Core Text.
+* `platform/macos/rust-io-surface`: Bindings to the `IOSurface` library.
+
+## Miscellaneous
+
+* `etc`: Various scripts and files that don't belong anywhere else.
+* `etc/patches`: Patches for upstream libraries.
+* `test`: Test cases.
+
