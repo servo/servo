@@ -52,8 +52,8 @@
 [submodule "src/support/wapcaplet/libwapcaplet"]
     path = src/support/wapcaplet/libwapcaplet
     url = https://github.com/mozilla-servo/libwapcaplet.git
-[submodule "src/support/css/libcss"]
-    path = src/support/css/libcss
+[submodule "src/support/netsurfcss/libcss"]
+    path = src/support/netsurfcss/libcss
     url = https://github.com/mozilla-servo/libcss.git
 [submodule "src/support/netsurfcss/rust-netsurfcss"]
 	path = src/support/netsurfcss/rust-netsurfcss
