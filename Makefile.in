@@ -285,4 +285,4 @@ backup-rust:
 	mv src/compiler/rust ..
 
 restore-rust:
-	if [ -d ../rust ]; then rm -rf src/rust; mv ../rust src/; fi
+	if [ -d ../rust ]; then rm -rf src/compiler/rust; mv ../rust src/compiler/; fi
