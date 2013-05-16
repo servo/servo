@@ -92,7 +92,7 @@ impl FontHandleMethods for FontHandle {
              let mut face: FT_Face = ptr::null();
              let face_index = 0 as FT_Long;
              let result = FT_New_Memory_Face(lib, cbuf, cbuflen as FT_Long,
-                                             face_index, ptr::to_unsafe_ptr(&face));
+                                             face_index, ptr::to_mut_unsafe_ptr(&mut face));
              
              if !result.succeeded() || face.is_null() {
                  return Err(());
@@ -241,7 +241,7 @@ pub impl<'self> FontHandle {
         let face_index = 0 as FT_Long;
         do str::as_c_str(file) |file_str| {
             FT_New_Face(ft_ctx, file_str,
-                        face_index, ptr::to_unsafe_ptr(&face));
+                        face_index, ptr::to_mut_unsafe_ptr(&mut face));
         }
         if face.is_null() {
             return Err(());
@@ -262,7 +262,7 @@ pub impl<'self> FontHandle {
         let face_index = 0 as FT_Long;
         do str::as_c_str(file) |file_str| {
             FT_New_Face(ft_ctx, file_str,
-                        face_index, ptr::to_unsafe_ptr(&face));
+                        face_index, ptr::to_mut_unsafe_ptr(&mut face));
         }
         if face.is_null() {
             return Err(());
