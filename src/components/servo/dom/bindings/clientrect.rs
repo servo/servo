@@ -12,8 +12,8 @@ use scripting::script_task::{task_from_context, global_script_context};
 pub impl ClientRect {
     pub fn init_wrapper(@mut self) {
         let script_context = global_script_context();
-        let cx = script_context.compartment.get().cx.ptr;
-        let owner = script_context.window.get();
+        let cx = script_context.js_compartment.cx.ptr;
+        let owner = script_context.root_frame.get_ref().window;
         let cache = owner.get_wrappercache();
         let scope = cache.get_wrapper();
         self.wrap_object_shared(cx, scope);
@@ -37,7 +37,7 @@ impl BindingObject for ClientRect {
     fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
         let script_context = task_from_context(cx);
         unsafe {
-            (*script_context).window.get() as @mut CacheableWrapper
+            (*script_context).root_frame.get_ref().window as @mut CacheableWrapper
         }
     }
 }

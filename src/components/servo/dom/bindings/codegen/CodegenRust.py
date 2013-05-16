@@ -3615,7 +3615,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
   //       or through unwrapping a slot or something). We'll punt and get the Window
   //       from the context for now. 
   let script_context = task_from_context(cx);
-  let global = (*script_context).window.get();
+  let global = (*script_context).root_frame.get_ref().window;
   let obj = global.get_wrappercache().get_wrapper();
 """
             preArgs = ["global"]
