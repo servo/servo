@@ -12,7 +12,7 @@ use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan, stream};
 use core::task::spawn;
 use core::to_str::ToStr;
-use core::util::{replace, swap};
+use core::util::replace;
 use std::arc::ARC;
 use std::net::url::Url;
 

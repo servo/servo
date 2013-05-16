@@ -123,8 +123,6 @@ DEPS_SUBMODULES =
 $(foreach submodule,$(SUBMODULES),\
 $(eval $(call DEF_SUBMODULE_VARS,$(submodule))))
 
-$(info $(DEPS_SUBMODULES))
-
 # include submodule dependencies configuration
 include $(S)mk/sub.mk
 
