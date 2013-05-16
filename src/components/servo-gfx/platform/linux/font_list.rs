@@ -67,7 +67,6 @@ pub impl FontListHandle {
         let font_set_array_ptr = ptr::to_unsafe_ptr(&font_set);
         unsafe {
             let pattern = FcPatternCreate();
-            let pattern = FcPatternCreate();
             assert!(pattern.is_not_null());
             do str::as_c_str("family") |FC_FAMILY| {
                 do str::as_c_str(family.family_name) |family_name| {
