@@ -5,6 +5,7 @@
 use dom::bindings::codegen::EventTargetBinding;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
 use dom::eventtarget::EventTarget;
+
 use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
 use js::jsapi::{JSObject, JSContext, JSVal};
 use scripting::script_task::{task_from_context, global_script_context};
@@ -12,8 +13,8 @@ use scripting::script_task::{task_from_context, global_script_context};
 pub impl EventTarget {
     pub fn init_wrapper(@mut self) {
         let script_context = global_script_context();
-        let cx = script_context.compartment.get().cx.ptr;
-        let owner = script_context.window.get();
+        let cx = script_context.js_compartment.cx.ptr;
+        let owner = script_context.root_frame.get_ref().window;
         let cache = owner.get_wrappercache();
         let scope = cache.get_wrapper();
         self.wrap_object_shared(cx, scope);
@@ -34,7 +35,9 @@ impl CacheableWrapper for EventTarget {
 impl BindingObject for EventTarget {
     fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
         let script_context = task_from_context(cx);
-        unsafe { (*script_context).window.get() as @mut CacheableWrapper }
+        unsafe {
+            (*script_context).root_frame.get_ref().window as @mut CacheableWrapper
+        }
     }
 }
 
@@ -48,7 +51,9 @@ impl DerivedWrapper for EventTarget {
         if obj.is_null() {
             return 0;
         } else {
-            unsafe { *vp = RUST_OBJECT_TO_JSVAL(obj) };
+            unsafe {
+                *vp = RUST_OBJECT_TO_JSVAL(obj)
+            };
             return 1;
         }
     }

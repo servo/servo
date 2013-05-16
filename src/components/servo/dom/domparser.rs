@@ -22,7 +22,7 @@ impl DOMParser {
             wrapper: WrapperCache::new()
         };
 
-        let cx = global_script_context().compartment.get().cx.ptr;
+        let cx = global_script_context().js_compartment.cx.ptr;
         let cache = owner.get_wrappercache();
         let scope = cache.get_wrapper();
         parser.wrap_object_shared(cx, scope);

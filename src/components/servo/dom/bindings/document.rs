@@ -146,6 +146,9 @@ impl CacheableWrapper for Document {
 
     fn wrap_object_shared(@mut self, cx: *JSContext, _scope: *JSObject) -> *JSObject {
         let script_context = task_from_context(cx);
-        unsafe { create((*script_context).compartment.get(), self) }
+        unsafe {
+            create((*script_context).js_compartment, self)
+        }
     }
 }
+

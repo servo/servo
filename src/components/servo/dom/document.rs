@@ -25,7 +25,7 @@ pub fn Document(root: AbstractNode, window: Option<@mut Window>) -> @mut Documen
         wrapper: WrapperCache::new(),
         window: window
     };
-    let compartment = global_script_context().compartment.get();
+    let compartment = global_script_context().js_compartment;
     do root.with_base |base| {
         assert!(base.wrapper.get_wrapper().is_not_null());
         let rootable = base.wrapper.get_rootable();
@@ -38,7 +38,7 @@ pub fn Document(root: AbstractNode, window: Option<@mut Window>) -> @mut Documen
 #[unsafe_destructor]
 impl Drop for Document {
     fn finalize(&self) {
-        let compartment = global_script_context().compartment.get();
+        let compartment = global_script_context().js_compartment;
         do self.root.with_base |base| {
             assert!(base.wrapper.get_wrapper().is_not_null());
             let rootable = base.wrapper.get_rootable();

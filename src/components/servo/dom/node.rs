@@ -391,7 +391,7 @@ impl Node {
         let mut node = AbstractNode {
             obj: transmute(node),
         };
-        let cx = global_script_context().compartment.get().cx.ptr;
+        let cx = global_script_context().js_compartment.cx.ptr;
         node::create(cx, &mut node);
         node
     }
