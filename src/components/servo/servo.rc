@@ -47,8 +47,8 @@ pub use servo_util::url::make_url;
 #[path="compositing/mod.rs"]
 pub mod compositing;
 
-pub mod content {
-    pub mod content_task;
+pub mod scripting {
+    pub mod script_task;
 }
 
 pub mod css {

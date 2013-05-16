@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/// The content task (also called the script task) is the main task that owns the DOM in memory,
-/// runs JavaScript, and spawns parsing and layout tasks.
+/// The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
+/// and layout tasks.
 
 use dom::bindings::utils::GlobalStaticData;
 use dom::document::Document;
@@ -18,10 +18,10 @@ use core::cell::Cell;
 use core::comm::{Port, SharedChan};
 use core::either;
 use core::io::read_whole_file;
+use core::local_data;
 use core::pipes::select2i;
 use core::ptr::null;
 use core::task::{SingleThreaded, task};
-use core::local_data;
 use core::util::replace;
 use dom;
 use geom::size::Size2D;
@@ -50,14 +50,14 @@ pub enum PingMsg {
     PongMsg
 }
 
-pub type ContentTask = SharedChan<ControlMsg>;
+pub type ScriptTask = SharedChan<ControlMsg>;
 
-pub fn ContentTask(layout_task: LayoutTask,
-                   dom_event_port: Port<Event>,
-                   dom_event_chan: SharedChan<Event>,
-                   resource_task: ResourceTask,
-                   img_cache_task: ImageCacheTask)
-                -> ContentTask {
+pub fn ScriptTask(layout_task: LayoutTask,
+                  dom_event_port: Port<Event>,
+                  dom_event_chan: SharedChan<Event>,
+                  resource_task: ResourceTask,
+                  img_cache_task: ImageCacheTask)
+                  -> ScriptTask {
     let (control_port, control_chan) = comm::stream();
 
     let control_chan = SharedChan::new(control_chan);
@@ -70,20 +70,20 @@ pub fn ContentTask(layout_task: LayoutTask,
     let mut the_task = task();
     the_task.sched_mode(SingleThreaded);
     do the_task.spawn {
-        let content = Content(layout_task.clone(),
-                              control_port.take(),
-                              control_chan_copy.clone(),
-                              resource_task.clone(),
-                              img_cache_task.clone(),
-                              dom_event_port.take(),
-                              dom_event_chan.take());
-        content.start();
+        let script_context = ScriptContext(layout_task.clone(),
+                                    control_port.take(),
+                                    control_chan_copy.clone(),
+                                    resource_task.clone(),
+                                    img_cache_task.clone(),
+                                    dom_event_port.take(),
+                                    dom_event_chan.take());
+        script_context.start();
     }
 
     return control_chan;
 }
 
-pub struct Content {
+pub struct ScriptContext {
     layout_task: LayoutTask,
     layout_join_port: Option<comm::Port<()>>,
 
@@ -110,14 +110,14 @@ pub struct Content {
     damage: Damage,
 }
 
-pub fn Content(layout_task: LayoutTask, 
-               control_port: comm::Port<ControlMsg>,
-               control_chan: comm::SharedChan<ControlMsg>,
-               resource_task: ResourceTask,
-               img_cache_task: ImageCacheTask,
-               event_port: comm::Port<Event>,
-               event_chan: comm::SharedChan<Event>)
-            -> @mut Content {
+pub fn ScriptContext(layout_task: LayoutTask, 
+                     control_port: comm::Port<ControlMsg>,
+                     control_chan: comm::SharedChan<ControlMsg>,
+                     resource_task: ResourceTask,
+                     img_cache_task: ImageCacheTask,
+                     event_port: comm::Port<Event>,
+                     event_chan: comm::SharedChan<Event>)
+                     -> @mut ScriptContext {
     let jsrt = jsrt();
     let cx = jsrt.cx();
 
@@ -129,7 +129,7 @@ pub fn Content(layout_task: LayoutTask,
           Err(()) => None
     };
 
-    let content = @mut Content {
+    let script_context = @mut ScriptContext {
         layout_task: layout_task,
         layout_join_port: None,
         image_cache_task: img_cache_task,
@@ -138,53 +138,55 @@ pub fn Content(layout_task: LayoutTask,
         event_port: event_port,
         event_chan: event_chan,
 
-        jsrt : jsrt,
-        cx : cx,
+        jsrt: jsrt,
+        cx: cx,
         dom_static: GlobalStaticData(),
 
-        document    : None,
-        window      : None,
-        doc_url     : None,
-        window_size : Size2D(800u, 600u),
+        document: None,
+        window: None,
+        doc_url: None,
+        window_size: Size2D(800u, 600u),
 
-        resource_task : resource_task,
-        compartment : compartment,
+        resource_task: resource_task,
+        compartment: compartment,
 
-        damage : MatchSelectorsDamage,
+        damage: MatchSelectorsDamage,
     };
 
-    cx.set_cx_private(ptr::to_unsafe_ptr(&*content) as *());
+    cx.set_cx_private(ptr::to_unsafe_ptr(&*script_context) as *());
     unsafe {
-        local_data::local_data_set(global_content_key, cast::transmute(content));
+        local_data::local_data_set(global_script_context_key, cast::transmute(script_context));
     }
 
-    content
+    script_context
 }
 
-fn global_content_key(_: @Content) {}
+fn global_script_context_key(_: @ScriptContext) {}
 
-pub fn global_content() -> @Content {
+pub fn global_script_context() -> @ScriptContext {
     unsafe {
-        return local_data::local_data_get(global_content_key).get();
+        return local_data::local_data_get(global_script_context_key).get();
     }
 }
 
-pub fn task_from_context(cx: *JSContext) -> *mut Content {
-    JS_GetContextPrivate(cx) as *mut Content
+pub fn task_from_context(cx: *JSContext) -> *mut ScriptContext {
+    JS_GetContextPrivate(cx) as *mut ScriptContext
 }
 
 #[unsafe_destructor]
-impl Drop for Content {
+impl Drop for ScriptContext {
     fn finalize(&self) {
-        unsafe { local_data::local_data_pop(global_content_key) };
+        unsafe {
+            let _ = local_data::local_data_pop(global_script_context_key);
+        }
     }
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub impl Content {
+pub impl ScriptContext {
     fn start(&mut self) {
         while self.handle_msg() {
-            // Go on ...
+            // Go on...
         }
     }
 
@@ -204,7 +206,7 @@ pub impl Content {
     fn handle_control_msg(&mut self, control_msg: ControlMsg) -> bool {
         match control_msg {
           ParseMsg(url) => {
-            debug!("content: Received url `%s` to parse", url_to_str(&url));
+            debug!("script: Received url `%s` to parse", url_to_str(&url));
 
             define_bindings(self.compartment.get());
 
@@ -219,7 +221,7 @@ pub impl Content {
 
               // Send stylesheets over to layout
               // FIXME: Need these should be streamed to layout as they are parsed
-              // and do not need to stop here in the content task
+              // and do not need to stop here in the script task
               loop {
                   match result.style_port.recv() {
                       Some(sheet) => {
@@ -275,7 +277,7 @@ pub impl Content {
 
 
           ExecuteMsg(url) => {
-            debug!("content: Received url `%s` to execute", url_to_str(&url));
+            debug!("script: Received url `%s` to execute", url_to_str(&url));
 
             match read_whole_file(&Path(url.path)) {
               Err(msg) => {
@@ -307,10 +309,10 @@ pub impl Content {
             match join_port {
                 Some(ref join_port) => {
                     if !join_port.peek() {
-                        warn!("content: waiting on layout");
+                        warn!("script: waiting on layout");
                     }
                     join_port.recv();
-                    debug!("content: layout joined");
+                    debug!("script: layout joined");
                 }
                 None => fail!(~"reader forked but no join port?")
             }
@@ -321,7 +323,7 @@ pub impl Content {
     /// layout task, and then request a new layout run. It won't wait for the new layout
     /// computation to finish.
     fn relayout(&mut self, document: &Document, doc_url: &Url) {
-        debug!("content: performing relayout");
+        debug!("script: performing relayout");
 
         // Now, join the layout so that they will see the latest changes we have made.
         self.join_layout();
@@ -336,13 +338,13 @@ pub impl Content {
             url: copy *doc_url,
             dom_event_chan: self.event_chan.clone(),
             window_size: self.window_size,
-            content_join_chan: join_chan,
+            script_join_chan: join_chan,
             damage: replace(&mut self.damage, NoDamage),
         };
 
         self.layout_task.send(BuildMsg(data));
 
-        debug!("content: layout forked");
+        debug!("script: layout forked");
     }
 
      fn query_layout(&mut self, query: layout_task::LayoutQuery)
@@ -362,7 +364,7 @@ pub impl Content {
     fn handle_event(&mut self, event: Event) -> bool {
         match event {
           ResizeEvent(new_width, new_height, response_chan) => {
-            debug!("content got resize event: %u, %u", new_width, new_height);
+            debug!("script got resize event: %u, %u", new_width, new_height);
             self.damage.add(ReflowDamage);
             self.window_size = Size2D(new_width, new_height);
             match copy self.document {
@@ -378,7 +380,7 @@ pub impl Content {
             return true;
           }
           ReflowEvent => {
-            debug!("content got reflow event");
+            debug!("script got reflow event");
             self.damage.add(MatchSelectorsDamage);
             match /*bad*/ copy self.document {
                 None => {

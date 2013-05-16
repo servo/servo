@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use content::content_task::{task_from_context, global_content};
-use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
 use dom::bindings::codegen::EventTargetBinding;
+use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
 use dom::eventtarget::EventTarget;
-use js::jsapi::{JSObject, JSContext, JSVal};
 use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
+use js::jsapi::{JSObject, JSContext, JSVal};
+use scripting::script_task::{task_from_context, global_script_context};
 
 pub impl EventTarget {
     pub fn init_wrapper(@mut self) {
-        let content = global_content();
-        let cx = content.compartment.get().cx.ptr;
-        let owner = content.window.get();
+        let script_context = global_script_context();
+        let cx = script_context.compartment.get().cx.ptr;
+        let owner = script_context.window.get();
         let cache = owner.get_wrappercache();
         let scope = cache.get_wrapper();
         self.wrap_object_shared(cx, scope);
@@ -33,8 +33,8 @@ impl CacheableWrapper for EventTarget {
 
 impl BindingObject for EventTarget {
     fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
-        let content = task_from_context(cx);
-        unsafe { (*content).window.get() as @mut CacheableWrapper }
+        let script_context = task_from_context(cx);
+        unsafe { (*script_context).window.get() as @mut CacheableWrapper }
     }
 }
 

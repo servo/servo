@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use content::content_task::{ControlMsg, Timer, ExitMsg, global_content, Content};
+use scripting::script_task::{ControlMsg, ExitMsg, ScriptContext, Timer, global_script_context};
 use dom::bindings::utils::WrapperCache;
 use dom::bindings::window;
 use dom::event::Event;
@@ -16,15 +16,15 @@ use std::uv_global_loop;
 pub enum TimerControlMsg {
     TimerMessage_Fire(~TimerData),
     TimerMessage_Close,
-    TimerMessage_TriggerExit //XXXjdm this is just a quick hack to talk to the content task
+    TimerMessage_TriggerExit //XXXjdm this is just a quick hack to talk to the script task
 }
 
-//FIXME If we're going to store the content task, find a way to do so safely. Currently it's
-//      only used for querying layout from arbitrary content.
+//FIXME If we're going to store the script task, find a way to do so safely. Currently it's
+//      only used for querying layout from arbitrary script.
 pub struct Window {
     timer_chan: Chan<TimerControlMsg>,
     dom_event_chan: SharedChan<Event>,
-    content_task: *mut Content,
+    script_context: *mut ScriptContext,
     wrapper: WrapperCache
 }
 
@@ -75,7 +75,7 @@ pub impl Window {
         let timeout = int::max(0, timeout) as uint;
 
         // Post a delayed message to the per-window timer task; it will dispatch it
-        // to the relevant content handler that will deal with it.
+        // to the relevant script handler that will deal with it.
         timer::delayed_send(&uv_global_loop::get(),
                             timeout,
                             &self.timer_chan,
@@ -83,10 +83,10 @@ pub impl Window {
     }
 }
 
-pub fn Window(content_chan: comm::SharedChan<ControlMsg>,
+pub fn Window(script_chan: comm::SharedChan<ControlMsg>,
               dom_event_chan: comm::SharedChan<Event>,
-              content_task: *mut Content) -> @mut Window {
-        
+              script_context: *mut ScriptContext)
+              -> @mut Window {
     let win = @mut Window {
         wrapper: WrapperCache::new(),
         dom_event_chan: dom_event_chan,
@@ -95,15 +95,15 @@ pub fn Window(content_chan: comm::SharedChan<ControlMsg>,
                 match timer_port.recv() {
                     TimerMessage_Close => break,
                     TimerMessage_Fire(td) => {
-                        content_chan.send(Timer(td));
+                        script_chan.send(Timer(td));
                     }
-                    TimerMessage_TriggerExit => content_chan.send(ExitMsg)
+                    TimerMessage_TriggerExit => script_chan.send(ExitMsg)
                 }
             }
         },
-        content_task: content_task
+        script_context: script_context
     };
-    let compartment = global_content().compartment.get();
+    let compartment = global_script_context().compartment.get();
     window::create(compartment, win);
     win
 }
