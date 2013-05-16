@@ -2,38 +2,33 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use js;
-use js::rust::Compartment;
-use js::{JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSVAL_NULL,
-         JS_THIS_OBJECT, JSFUN_CONSTRUCTOR, JS_CALLEE, JSPROP_READONLY,
-         JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER,
-         JSPROP_SETTER, JSVAL_VOID, JSVAL_TRUE, JSVAL_FALSE};
-use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSNative,
-                JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
-use js::jsapi::bindgen::{JS_ValueToString,
-                         JS_GetReservedSlot, JS_SetReservedSlot, JS_NewStringCopyN,
-                         JS_DefineFunctions, JS_DefineProperty,
-                         JS_GetClass, JS_GetPrototype, JS_LinkConstructorAndPrototype,
-                         JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction,
-                         JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject,
-                         JS_DefineProperties,
-                         JS_WrapValue, JS_ForwardGetPropertyTo,
-                         JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject,
-                         JS_EncodeString, JS_free, JS_GetStringCharsAndLength};
-use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
-use js::glue::bindgen::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
-use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB,
-                  RESOLVE_STUB};
-use js::glue::bindgen::*;
-use core::ptr::null;
-use core::cast;
-use content::content_task::task_from_context;
-
-use core::hashmap::HashMap;
-use core::ptr::to_unsafe_ptr;
-
 use dom::bindings::node;
 use dom::node::AbstractNode;
+use js::glue::bindgen::*;
+use js::glue::bindgen::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
+use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB, RESOLVE_STUB};
+use js::jsapi::bindgen::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction};
+use js::jsapi::bindgen::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
+use js::jsapi::bindgen::{JS_EncodeString, JS_free, JS_GetStringCharsAndLength};
+use js::jsapi::bindgen::{JS_GetClass, JS_GetPrototype, JS_LinkConstructorAndPrototype};
+use js::jsapi::bindgen::{JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject};
+use js::jsapi::bindgen::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
+use js::jsapi::bindgen::{JS_NewStringCopyN, JS_DefineFunctions, JS_DefineProperty};
+use js::jsapi::bindgen::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSNative};
+use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
+use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
+use js::rust::Compartment;
+use js::{JSCLASS_HAS_RESERVED_SLOTS, JSPROP_ENUMERATE, JSVAL_NULL};
+use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
+use js::{JSPROP_SETTER, JSVAL_VOID, JSVAL_TRUE, JSVAL_FALSE};
+use js::{JS_THIS_OBJECT, JSFUN_CONSTRUCTOR, JS_CALLEE, JSPROP_READONLY};
+use js;
+use scripting::script_task::task_from_context;
+
+use core::cast;
+use core::hashmap::HashMap;
+use core::ptr::{null, to_unsafe_ptr};
 
 static TOSTRING_CLASS_RESERVED_SLOT: u64 = 0;
 static TOSTRING_NAME_RESERVED_SLOT: u64 = 1;
@@ -168,9 +163,9 @@ pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
 
 pub fn get_compartment(cx: *JSContext) -> @mut Compartment {
     unsafe {
-        let content = task_from_context(cx);
-        let compartment = (*content).compartment.expect(~"Should always have compartment when \
-                                                          executing JS code");
+        let script_context = task_from_context(cx);
+        let compartment = (*script_context).compartment.expect(~"Should always have compartment \
+                                                                 when executing JS code");
         assert!(cx == compartment.cx.ptr);
         compartment
     }

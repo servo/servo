@@ -2,26 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use js::rust::{Compartment, jsobj};
-use js::{JS_ARGV, JSPROP_ENUMERATE, JSPROP_SHARED,
-            JSVAL_NULL, JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
-use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp,
-                JSPropertySpec, JSPropertyOpWrapper, JSStrictPropertyOpWrapper,
-                JSNativeWrapper, JSFunctionSpec};
-use js::jsapi::bindgen::{JS_GetReservedSlot, JS_SetReservedSlot,
-                         JS_DefineFunctions, JS_DefineProperties};
-use js::glue::bindgen::*;
-use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB};
-use core::ptr::null;
-use core::libc::c_uint;
-use content::content_task::task_from_context;
 use dom::bindings::utils::{DOMString, rust_box, squirrel_away, str};
-use dom::bindings::utils::{jsval_to_str, WrapNewBindingObject, CacheableWrapper};
 use dom::bindings::utils::{WrapperCache, DerivedWrapper};
-
+use dom::bindings::utils::{jsval_to_str, WrapNewBindingObject, CacheableWrapper};
+use dom::bindings::utils;
 use dom::document::Document;
 use dom::htmlcollection::HTMLCollection;
-use dom::bindings::utils;
+use js::glue::bindgen::*;
+use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB};
+use js::jsapi::bindgen::{JS_DefineProperties};
+use js::jsapi::bindgen::{JS_GetReservedSlot, JS_SetReservedSlot, JS_DefineFunctions};
+use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp, JSPropertySpec, JSPropertyOpWrapper};
+use js::jsapi::{JSStrictPropertyOpWrapper, JSNativeWrapper, JSFunctionSpec};
+use js::rust::{Compartment, jsobj};
+use js::{JSPROP_NATIVE_ACCESSORS};
+use js::{JS_ARGV, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL, JS_THIS_OBJECT, JS_SET_RVAL};
+use scripting::script_task::task_from_context;
+
+use core::libc::c_uint;
+use core::ptr::null;
 
 extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
@@ -146,7 +145,7 @@ impl CacheableWrapper for Document {
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        let content = task_from_context(cx);
-        unsafe { create((*content).compartment.get(), self) }
+        let script_context = task_from_context(cx);
+        unsafe { create((*script_context).compartment.get(), self) }
     }
 }

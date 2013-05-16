@@ -81,15 +81,15 @@ pub struct BuildData {
     url: Url,
     dom_event_chan: comm::SharedChan<Event>,
     window_size: Size2D<uint>,
-    content_join_chan: comm::Chan<()>,
+    script_join_chan: comm::Chan<()>,
     damage: Damage,
 }
 
 pub fn LayoutTask(render_task: RenderTask,
                   img_cache_task: ImageCacheTask,
                   opts: Opts) -> LayoutTask {
-    SharedChan::new(spawn_listener::<Msg>(|from_content| {
-        let mut layout = Layout(render_task.clone(), img_cache_task.clone(), from_content, &opts);
+    SharedChan::new(spawn_listener::<Msg>(|from_script| {
+        let mut layout = Layout(render_task.clone(), img_cache_task.clone(), from_script, &opts);
         layout.start();
     }))
 }
@@ -98,7 +98,7 @@ struct Layout {
     render_task: RenderTask,
     image_cache_task: ImageCacheTask,
     local_image_cache: @mut LocalImageCache,
-    from_content: Port<Msg>,
+    from_script: Port<Msg>,
     font_ctx: @mut FontContext,
     // This is used to root reader data
     layout_refs: ~[@mut LayoutData],
@@ -107,7 +107,7 @@ struct Layout {
 
 fn Layout(render_task: RenderTask, 
           image_cache_task: ImageCacheTask,
-          from_content: Port<Msg>,
+          from_script: Port<Msg>,
           opts: &Opts)
        -> Layout {
     let fctx = @mut FontContext::new(opts.render_backend, true);
@@ -116,7 +116,7 @@ fn Layout(render_task: RenderTask,
         render_task: render_task,
         image_cache_task: image_cache_task.clone(),
         local_image_cache: @mut LocalImageCache(image_cache_task),
-        from_content: from_content,
+        from_script: from_script,
         font_ctx: fctx,
         layout_refs: ~[],
         css_select_ctx: @mut new_css_select_ctx()
@@ -133,7 +133,7 @@ impl Layout {
 
     fn handle_request(&mut self) -> bool {
 
-        match self.from_content.recv() {
+        match self.from_script.recv() {
             AddStylesheet(sheet) => {
                 self.handle_add_stylesheet(sheet);
             }
@@ -257,8 +257,8 @@ impl Layout {
             self.render_task.send(RenderMsg(render_layer));
         } // time(layout: display list building)
 
-        // Tell content that we're done.
-        data.content_join_chan.send(());
+        // Tell script that we're done.
+        data.script_join_chan.send(());
     }
 
     /// Handles a query from the script task. This is the main routine that DOM functions like
@@ -312,9 +312,9 @@ impl Layout {
 
     // When images can't be loaded in time to display they trigger
     // this callback in some task somewhere. This will send a message
-    // to the content task, and ultimately cause the image to be
+    // to the script task, and ultimately cause the image to be
     // re-requested. We probably don't need to go all the way back to
-    // the content task for this.
+    // the script task for this.
     fn make_on_image_available_cb(&self, dom_event_chan: comm::SharedChan<Event>) -> @fn() -> ~fn(ImageResponseMsg) {
         // This has a crazy signature because the image cache needs to
         // make multiple copies of the callback, and the dom event
