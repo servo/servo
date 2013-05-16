@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use scripting::script_task::{ControlMsg, ExitMsg, ScriptContext, Timer, global_script_context};
 use dom::bindings::utils::WrapperCache;
 use dom::bindings::window;
 use dom::event::Event;
-use js::jsapi::JSVal;
+use scripting::script_task::{ControlMsg, ExitMsg, FireTimerMsg, ScriptContext};
+use scripting::script_task::{global_script_context};
 use util::task::spawn_listener;
 
 use core::comm::{Port, Chan, SharedChan};
+use js::jsapi::JSVal;
 use std::timer;
 use std::uv_global_loop;
 
@@ -90,20 +91,21 @@ pub fn Window(script_chan: comm::SharedChan<ControlMsg>,
     let win = @mut Window {
         wrapper: WrapperCache::new(),
         dom_event_chan: dom_event_chan,
-        timer_chan: do spawn_listener |timer_port: Port<TimerControlMsg>| {
-            loop {
-                match timer_port.recv() {
-                    TimerMessage_Close => break,
-                    TimerMessage_Fire(td) => {
-                        script_chan.send(Timer(td));
+        timer_chan: {
+            do spawn_listener |timer_port: Port<TimerControlMsg>| {
+                loop {
+                    match timer_port.recv() {
+                        TimerMessage_Close => break,
+                        TimerMessage_Fire(td) => script_chan.send(FireTimerMsg(td)),
+                        TimerMessage_TriggerExit => script_chan.send(ExitMsg),
                     }
-                    TimerMessage_TriggerExit => script_chan.send(ExitMsg)
                 }
             }
         },
-        script_context: script_context
+        script_context: script_context,
     };
-    let compartment = global_script_context().compartment.get();
+
+    let compartment = global_script_context().js_compartment;
     window::create(compartment, win);
     win
 }

@@ -164,8 +164,7 @@ pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
 pub fn get_compartment(cx: *JSContext) -> @mut Compartment {
     unsafe {
         let script_context = task_from_context(cx);
-        let compartment = (*script_context).compartment.expect(~"Should always have compartment \
-                                                                 when executing JS code");
+        let compartment = (*script_context).js_compartment;
         assert!(cx == compartment.cx.ptr);
         compartment
     }
