@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use compositing::resize_rate_limiter::ResizeRateLimiter;
-use dom::event::Event;
 use platform::{Application, Window};
+use scripting::script_task::ControlMsg;
 use windowing::{ApplicationMethods, WindowMethods};
 
 use azure::azure_hl::{BackendType, B8G8R8A8, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
@@ -30,11 +30,11 @@ pub struct CompositorImpl {
 
 impl CompositorImpl {
     /// Creates a new compositor instance.
-    pub fn new(dom_event_chan: SharedChan<Event>, opts: Opts) -> CompositorImpl {
-        let dom_event_chan = Cell(dom_event_chan);
+    pub fn new(control_chan: SharedChan<ControlMsg>, opts: Opts) -> CompositorImpl {
+        let control_chan = Cell(control_chan);
         let chan: Chan<Msg> = do on_osmain |port| {
             debug!("preparing to enter main loop");
-            mainloop(port, dom_event_chan.take(), &opts);
+            mainloop(port, control_chan.take(), &opts);
         };
 
         CompositorImpl {
@@ -76,7 +76,7 @@ impl layers::layers::ImageData for AzureDrawTargetImageData {
     }
 }
 
-fn mainloop(po: Port<Msg>, dom_event_chan: SharedChan<Event>, opts: &Opts) {
+fn mainloop(po: Port<Msg>, control_chan: SharedChan<ControlMsg>, opts: &Opts) {
     let key_handlers: @mut ~[Chan<()>] = @mut ~[];
 
     let app: Application = ApplicationMethods::new();
@@ -110,7 +110,7 @@ fn mainloop(po: Port<Msg>, dom_event_chan: SharedChan<Event>, opts: &Opts) {
                                           identity());
 
     let done = @mut false;
-    let resize_rate_limiter = @mut ResizeRateLimiter(dom_event_chan);
+    let resize_rate_limiter = @mut ResizeRateLimiter(control_chan);
     let check_for_messages: @fn() = || {
         // Periodically check if the script task responded to our last resize event
         resize_rate_limiter.check_resize_response();
