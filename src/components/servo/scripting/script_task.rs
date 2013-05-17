@@ -121,8 +121,11 @@ pub struct ScriptContext {
     js_context: @Cx,
     /// The JavaScript compartment.
     js_compartment: @mut Compartment,
+
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
+    /// Whether the JS bindings have been initialized.
+    bindings_initialized: bool,
 
     /// The outermost frame. This frame contains the document, window, and page URL.
     root_frame: Option<Frame>,
@@ -189,7 +192,9 @@ impl ScriptContext {
             js_runtime: js_runtime,
             js_context: js_context,
             js_compartment: compartment,
+
             dom_static: GlobalStaticData(),
+            bindings_initialized: false,
 
             root_frame: None,
 
@@ -287,7 +292,12 @@ impl ScriptContext {
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&mut self, url: Url) {
         // Define the script DOM bindings.
-        define_bindings(self.js_compartment);
+        //
+        // FIXME: Can this be done earlier, to save the flag?
+        if !self.bindings_initialized {
+            define_bindings(self.js_compartment);
+            self.bindings_initialized = true
+        }
 
         // Parse HTML.
         //

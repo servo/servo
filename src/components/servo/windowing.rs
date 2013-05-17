@@ -12,6 +12,9 @@ pub type CompositeCallback = @fn();
 /// Type of the function that is called when the window is resized.
 pub type ResizeCallback = @fn(uint, uint);
 
+/// Type of the function that is called when a new URL is to be loaded.
+pub type LoadUrlCallback = @fn(&str);
+
 /// Methods for an abstract Application.
 pub trait ApplicationMethods {
     fn new() -> Self;
@@ -24,10 +27,14 @@ pub trait WindowMethods<A> {
     pub fn size(&self) -> Size2D<f32>;
     /// Presents the window to the screen (perhaps by page flipping).
     pub fn present(&mut self);
+
     /// Registers a callback to run when a composite event occurs.
     pub fn set_composite_callback(&mut self, new_composite_callback: CompositeCallback);
     /// Registers a callback to run when a resize event occurs.
     pub fn set_resize_callback(&mut self, new_resize_callback: ResizeCallback);
+    /// Registers a callback to run when a new URL is to be loaded.
+    pub fn set_load_url_callback(&mut self, new_load_url_callback: LoadUrlCallback);
+
     /// Spins the event loop.
     pub fn check_loop(@mut self);
 }
