@@ -20,7 +20,6 @@ use core::cell::Cell;
 use core::comm::{Port, SharedChan};
 use core::io::read_whole_file;
 use core::local_data;
-use core::pipes::select2i;
 use core::ptr::null;
 use core::task::{SingleThreaded, task};
 use core::util::replace;
@@ -40,12 +39,14 @@ use servo_util::tree::TreeNodeRef;
 use std::net::url::Url;
 use std::net::url;
 
-/// Messages used to control the script task at a high level.
-pub enum ControlMsg {
+/// Messages used to control the script task.
+pub enum ScriptMsg {
     /// Loads a new URL.
     LoadMsg(Url),
     /// Executes a standalone script.
     ExecuteMsg(Url),
+    /// Sends a DOM event.
+    SendEventMsg(Event),
     /// Fires a JavaScript timeout.
     FireTimerMsg(~TimerData),
     /// Exits the engine.
@@ -54,42 +55,34 @@ pub enum ControlMsg {
 
 /// Encapsulates external communication with the script task.
 pub struct ScriptTask {
-    /// The channel used to send control messages to the script task.
-    chan: SharedChan<ControlMsg>,
+    /// The channel used to send messages to the script task.
+    chan: SharedChan<ScriptMsg>,
 }
 
 impl ScriptTask {
     /// Creates a new script task.
-    pub fn new(layout_task: LayoutTask,
-               dom_event_port: Port<Event>,
-               dom_event_chan: SharedChan<Event>,
+    pub fn new(script_port: Port<ScriptMsg>,
+               script_chan: SharedChan<ScriptMsg>,
+               layout_task: LayoutTask,
                resource_task: ResourceTask,
                image_cache_task: ImageCacheTask)
                -> ScriptTask {
-        let (control_port, control_chan) = comm::stream();
-
-        let control_chan = SharedChan::new(control_chan);
-        let control_chan_copy = control_chan.clone();
-        let control_port = Cell(control_port);
-        let dom_event_port = Cell(dom_event_port);
-        let dom_event_chan = Cell(dom_event_chan);
+        let (script_chan_copy, script_port) = (script_chan.clone(), Cell(script_port));
 
         // FIXME: rust#6399
         let mut the_task = task();
         the_task.sched_mode(SingleThreaded);
         do the_task.spawn {
             let script_context = ScriptContext::new(layout_task.clone(),
-                                                    control_port.take(),
-                                                    control_chan_copy.clone(),
+                                                    script_port.take(),
+                                                    script_chan_copy.clone(),
                                                     resource_task.clone(),
-                                                    image_cache_task.clone(),
-                                                    dom_event_port.take(),
-                                                    dom_event_chan.take());
+                                                    image_cache_task.clone());
             script_context.start();
         }
 
         ScriptTask {
-            chan: control_chan
+            chan: script_chan
         }
     }
 }
@@ -116,16 +109,11 @@ pub struct ScriptContext {
     /// The port that we will use to join layout. If this is `None`, then layout is not currently
     /// running.
     layout_join_port: Option<Port<()>>,
-    /// The port on which we receive control messages (load URL, exit, etc.)
-    control_port: Port<ControlMsg>,
-    /// A channel for us to hand out when we want some other task to be able to send us control
+    /// The port on which we receive messages (load URL, exit, etc.)
+    script_port: Port<ScriptMsg>,
+    /// A channel for us to hand out when we want some other task to be able to send us script
     /// messages.
-    control_chan: SharedChan<ControlMsg>,
-    /// The port on which we receive DOM events.
-    event_port: Port<Event>,
-    /// A channel for us to hand out when we want some other task to be able to send us DOM
-    /// events.
-    event_chan: SharedChan<Event>,
+    script_chan: SharedChan<ScriptMsg>,
 
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
@@ -173,12 +161,10 @@ impl Drop for ScriptContext {
 impl ScriptContext {
     /// Creates a new script context.
     pub fn new(layout_task: LayoutTask, 
-               control_port: Port<ControlMsg>,
-               control_chan: SharedChan<ControlMsg>,
+               script_port: Port<ScriptMsg>,
+               script_chan: SharedChan<ScriptMsg>,
                resource_task: ResourceTask,
-               img_cache_task: ImageCacheTask,
-               event_port: Port<Event>,
-               event_chan: SharedChan<Event>)
+               img_cache_task: ImageCacheTask)
                -> @mut ScriptContext {
         let js_runtime = js::rust::rt();
         let js_context = js_runtime.cx();
@@ -197,10 +183,8 @@ impl ScriptContext {
             resource_task: resource_task,
 
             layout_join_port: None,
-            control_port: control_port,
-            control_chan: control_chan,
-            event_port: event_port,
-            event_chan: event_chan,
+            script_port: script_port,
+            script_chan: script_chan,
 
             js_runtime: js_runtime,
             js_context: js_context,
@@ -233,72 +217,70 @@ impl ScriptContext {
 
     /// Handles an incoming control message.
     fn handle_msg(&mut self) -> bool {
-        match select2i(&mut self.control_port, &mut self.event_port) {
-            Left(*) => {
-                let msg = self.control_port.recv();
-                self.handle_control_msg(msg)
-            }
-            Right(*) => {
-                let ev = self.event_port.recv();
-                self.handle_event(ev);
+        match self.script_port.recv() {
+            LoadMsg(url) => {
+                self.load(url);
                 true
+            }
+            ExecuteMsg(url) => {
+                self.handle_execute_msg(url);
+                true
+            }
+            SendEventMsg(event) => {
+                self.handle_event(event);
+                true
+            }
+            FireTimerMsg(timer_data) => {
+                self.handle_fire_timer_msg(timer_data);
+                true
+            }
+            ExitMsg => {
+                self.handle_exit_msg();
+                false
             }
         }
     }
 
-    /// Handles a control message from the compositor/front-end. Returns true if the task is to
-    /// continue and false otherwise.
-    fn handle_control_msg(&mut self, control_msg: ControlMsg) -> bool {
-        match control_msg {
-            LoadMsg(url) => {
-                debug!("script: Received url `%s` to load", url::to_str(&url));
-                self.load(url);
-                true
-            }
+    /// Handles a request to execute a script.
+    fn handle_execute_msg(&self, url: Url) {
+        debug!("script: Received url `%s` to execute", url::to_str(&url));
 
-            FireTimerMsg(timer_data) => {
-                let this_value = if timer_data.args.len() > 0 {
-                    RUST_JSVAL_TO_OBJECT(timer_data.args[0])
-                } else {
-                    self.js_compartment.global_obj.ptr
-                };
+        match read_whole_file(&Path(url.path)) {
+            Err(msg) => println(fmt!("Error opening %s: %s", url::to_str(&url), msg)),
 
-                let rval = JSVAL_NULL;
-                // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
-                JS_CallFunctionValue(self.js_context.ptr,
-                                     this_value,
-                                     timer_data.funval,
-                                     0,
-                                     null(),
-                                     &rval);
-
-                self.relayout();
-                true
-            }
-
-
-            ExecuteMsg(url) => {
-                debug!("script: Received url `%s` to execute", url::to_str(&url));
-
-                match read_whole_file(&Path(url.path)) {
-                    Err(msg) => println(fmt!("Error opening %s: %s", url::to_str(&url), msg)),
-                    Ok(bytes) => {
-                        self.js_compartment.define_functions(debug_fns);
-                        let _ = self.js_context.evaluate_script(self.js_compartment.global_obj,
-                                                                bytes,
-                                                                copy url.path,
-                                                                1);
-                    }
-                }
-
-                true
-            }
-
-            ExitMsg => {
-                self.layout_task.send(layout_task::ExitMsg);
-                false
+            Ok(bytes) => {
+                self.js_compartment.define_functions(debug_fns);
+                let _ = self.js_context.evaluate_script(self.js_compartment.global_obj,
+                                                        bytes,
+                                                        copy url.path,
+                                                        1);
             }
         }
+    }
+
+    /// Handles a timer that fired.
+    fn handle_fire_timer_msg(&mut self, timer_data: ~TimerData) {
+        let this_value = if timer_data.args.len() > 0 {
+            RUST_JSVAL_TO_OBJECT(timer_data.args[0])
+        } else {
+            self.js_compartment.global_obj.ptr
+        };
+
+        // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
+        let rval = JSVAL_NULL;
+        JS_CallFunctionValue(self.js_context.ptr,
+                             this_value,
+                             timer_data.funval,
+                             0,
+                             null(),
+                             &rval);
+
+        self.relayout()
+    }
+
+    /// Handles a request to exit the script task and shut down layout.
+    fn handle_exit_msg(&mut self) {
+        self.layout_task.send(layout_task::ExitMsg)
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
@@ -332,7 +314,7 @@ impl ScriptContext {
         debug!("js_scripts: %?", js_scripts);
 
         // Create the window and document objects.
-        let window = Window(self.control_chan.clone(), self.event_chan.clone(), &mut *self);
+        let window = Window::new(self.script_chan.clone(), &mut *self);
         let document = Document(root_node, Some(window));
 
         // Tie the root into the document.
@@ -405,7 +387,7 @@ impl ScriptContext {
                 let data = ~BuildData {
                     node: root_frame.document.root,
                     url: copy root_frame.url,
-                    dom_event_chan: self.event_chan.clone(),
+                    script_chan: self.script_chan.clone(),
                     window_size: self.window_size,
                     script_join_chan: join_chan,
                     damage: replace(&mut self.damage, NoDamage),

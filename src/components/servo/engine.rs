@@ -3,10 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use compositing::CompositorImpl;
-use dom::event::Event;
 use layout::layout_task::LayoutTask;
 use layout::layout_task;
-use scripting::script_task::{ExecuteMsg, LoadMsg, ScriptTask};
+use scripting::script_task::{ExecuteMsg, LoadMsg, ScriptMsg, ScriptTask};
 use scripting::script_task;
 use util::task::spawn_listener;
 
@@ -40,24 +39,23 @@ pub struct Engine {
 impl Engine {
     pub fn start(compositor: CompositorImpl,
                  opts: &Opts,
-                 dom_event_port: Port<Event>,
-                 dom_event_chan: SharedChan<Event>,
+                 script_port: Port<ScriptMsg>,
+                 script_chan: SharedChan<ScriptMsg>,
                  resource_task: ResourceTask,
                  image_cache_task: ImageCacheTask)
                  -> EngineTask {
-        let dom_event_port = Cell(dom_event_port);
-        let dom_event_chan = Cell(dom_event_chan);
-
+        let (script_port, script_chan) = (Cell(script_port), Cell(script_chan));
         let opts = Cell(copy *opts);
+
         do spawn_listener::<Msg> |request| {
             let render_task = RenderTask(compositor.clone(), opts.with_ref(|o| copy *o));
 
             let opts = opts.take();
             let layout_task = LayoutTask(render_task.clone(), image_cache_task.clone(), opts);
 
-            let script_task = ScriptTask::new(layout_task.clone(),
-                                              dom_event_port.take(),
-                                              dom_event_chan.take(),
+            let script_task = ScriptTask::new(script_port.take(),
+                                              script_chan.take(),
+                                              layout_task.clone(),
                                               resource_task.clone(),
                                               image_cache_task.clone());
 
