@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use compositing::resize_rate_limiter::ResizeRateLimiter;
-use dom::event::Event;
 use platform::{Application, Window};
+use scripting::script_task::{LoadMsg, ScriptMsg};
 use windowing::{ApplicationMethods, WindowMethods};
 
 use azure::azure_hl::{BackendType, B8G8R8A8, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
@@ -30,11 +30,11 @@ pub struct CompositorImpl {
 
 impl CompositorImpl {
     /// Creates a new compositor instance.
-    pub fn new(dom_event_chan: SharedChan<Event>, opts: Opts) -> CompositorImpl {
-        let dom_event_chan = Cell(dom_event_chan);
+    pub fn new(script_chan: SharedChan<ScriptMsg>, opts: Opts) -> CompositorImpl {
+        let script_chan = Cell(script_chan);
         let chan: Chan<Msg> = do on_osmain |port| {
             debug!("preparing to enter main loop");
-            mainloop(port, dom_event_chan.take(), &opts);
+            mainloop(port, script_chan.take(), &opts);
         };
 
         CompositorImpl {
@@ -76,7 +76,7 @@ impl layers::layers::ImageData for AzureDrawTargetImageData {
     }
 }
 
-fn mainloop(po: Port<Msg>, dom_event_chan: SharedChan<Event>, opts: &Opts) {
+fn mainloop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts) {
     let key_handlers: @mut ~[Chan<()>] = @mut ~[];
 
     let app: Application = ApplicationMethods::new();
@@ -110,7 +110,7 @@ fn mainloop(po: Port<Msg>, dom_event_chan: SharedChan<Event>, opts: &Opts) {
                                           identity());
 
     let done = @mut false;
-    let resize_rate_limiter = @mut ResizeRateLimiter(dom_event_chan);
+    let resize_rate_limiter = @mut ResizeRateLimiter(script_chan.clone());
     let check_for_messages: @fn() = || {
         // Periodically check if the script task responded to our last resize event
         resize_rate_limiter.check_resize_response();
@@ -195,6 +195,12 @@ fn mainloop(po: Port<Msg>, dom_event_chan: SharedChan<Event>, opts: &Opts) {
     do window.set_resize_callback |width, height| {
         debug!("osmain: window resized to %ux%u", width, height);
         resize_rate_limiter.window_resized(width, height);
+    }
+
+    // When the user enters a new URL, load it.
+    do window.set_load_url_callback |url_string| {
+        debug!("osmain: loading URL `%s`", url_string);
+        script_chan.send(LoadMsg(url::make_url(url_string.to_str(), None)))
     }
 
     // Enter the main event loop.

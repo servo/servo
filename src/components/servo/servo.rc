@@ -133,11 +133,11 @@ fn main() {
 }
 
 fn run(opts: &Opts) {
-    let (dom_event_port, dom_event_chan) = comm::stream();
-    let dom_event_chan = SharedChan::new(dom_event_chan);
+    let (script_port, script_chan) = comm::stream();
+    let script_chan = SharedChan::new(script_chan);
 
     // The platform event handler thread
-    let compositor = CompositorImpl::new(dom_event_chan.clone(), copy *opts);
+    let compositor = CompositorImpl::new(script_chan.clone(), copy *opts);
 
     // Send each file to render then wait for keypress
     let (keypress_from_compositor, keypress_to_engine) = comm::stream();
@@ -148,8 +148,8 @@ fn run(opts: &Opts) {
     let image_cache_task = ImageCacheTask(resource_task.clone());
     let engine_task = Engine::start(compositor.clone(),
                                     opts,
-                                    dom_event_port,
-                                    dom_event_chan,
+                                    script_port,
+                                    script_chan,
                                     resource_task,
                                     image_cache_task);
 

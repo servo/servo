@@ -4,8 +4,7 @@
 
 use dom::bindings::utils::WrapperCache;
 use dom::bindings::window;
-use dom::event::Event;
-use scripting::script_task::{ControlMsg, ExitMsg, FireTimerMsg, ScriptContext};
+use scripting::script_task::{ExitMsg, FireTimerMsg, ScriptMsg, ScriptContext};
 use scripting::script_task::{global_script_context};
 use util::task::spawn_listener;
 
@@ -24,7 +23,7 @@ pub enum TimerControlMsg {
 //      only used for querying layout from arbitrary script.
 pub struct Window {
     timer_chan: Chan<TimerControlMsg>,
-    dom_event_chan: SharedChan<Event>,
+    script_chan: SharedChan<ScriptMsg>,
     script_context: *mut ScriptContext,
     wrapper: WrapperCache
 }
@@ -82,30 +81,30 @@ pub impl Window {
                             &self.timer_chan,
                             TimerMessage_Fire(~TimerData(argc, argv)));
     }
-}
 
-pub fn Window(script_chan: comm::SharedChan<ControlMsg>,
-              dom_event_chan: comm::SharedChan<Event>,
-              script_context: *mut ScriptContext)
-              -> @mut Window {
-    let win = @mut Window {
-        wrapper: WrapperCache::new(),
-        dom_event_chan: dom_event_chan,
-        timer_chan: {
-            do spawn_listener |timer_port: Port<TimerControlMsg>| {
-                loop {
-                    match timer_port.recv() {
-                        TimerMessage_Close => break,
-                        TimerMessage_Fire(td) => script_chan.send(FireTimerMsg(td)),
-                        TimerMessage_TriggerExit => script_chan.send(ExitMsg),
+    pub fn new(script_chan: SharedChan<ScriptMsg>, script_context: *mut ScriptContext)
+               -> @mut Window {
+        let script_chan_copy = script_chan.clone();
+        let win = @mut Window {
+            wrapper: WrapperCache::new(),
+            script_chan: script_chan,
+            timer_chan: {
+                do spawn_listener |timer_port: Port<TimerControlMsg>| {
+                    loop {
+                        match timer_port.recv() {
+                            TimerMessage_Close => break,
+                            TimerMessage_Fire(td) => script_chan_copy.send(FireTimerMsg(td)),
+                            TimerMessage_TriggerExit => script_chan_copy.send(ExitMsg),
+                        }
                     }
                 }
-            }
-        },
-        script_context: script_context,
-    };
+            },
+            script_context: script_context,
+        };
 
-    let compartment = global_script_context().js_compartment;
-    window::create(compartment, win);
-    win
+        let compartment = global_script_context().js_compartment;
+        window::create(compartment, win);
+        win
+    }
 }
+

@@ -7,7 +7,7 @@
 
 use css::matching::MatchMethods;
 use css::select::new_css_select_ctx;
-use dom::event::{Event, ReflowEvent};
+use dom::event::ReflowEvent;
 use dom::node::{AbstractNode, LayoutData};
 use layout::aux::LayoutAuxMethods;
 use layout::box_builder::LayoutTreeBuilder;
@@ -15,6 +15,7 @@ use layout::context::LayoutContext;
 use layout::debug::{BoxedMutDebugMethods, DebugMethods};
 use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
 use layout::flow::FlowContext;
+use scripting::script_task::{ScriptMsg, SendEventMsg};
 use util::task::spawn_listener;
 use util::time::time;
 
@@ -79,19 +80,19 @@ impl Damage {
 pub struct BuildData {
     node: AbstractNode,
     url: Url,
-    dom_event_chan: comm::SharedChan<Event>,
+    script_chan: SharedChan<ScriptMsg>,
     window_size: Size2D<uint>,
-    script_join_chan: comm::Chan<()>,
+    script_join_chan: Chan<()>,
     damage: Damage,
 }
 
 pub fn LayoutTask(render_task: RenderTask,
                   img_cache_task: ImageCacheTask,
                   opts: Opts) -> LayoutTask {
-    SharedChan::new(spawn_listener::<Msg>(|from_script| {
+    SharedChan::new(do spawn_listener::<Msg> |from_script| {
         let mut layout = Layout(render_task.clone(), img_cache_task.clone(), from_script, &opts);
         layout.start();
-    }))
+    })
 }
 
 struct Layout {
@@ -170,8 +171,7 @@ impl Layout {
         let node = &data.node;
         // FIXME: Bad copy!
         let doc_url = copy data.url;
-        // FIXME: Bad clone!
-        let dom_event_chan = data.dom_event_chan.clone();
+        let script_chan = data.script_chan.clone();
 
         debug!("layout: received layout request for: %s", doc_url.to_str());
         debug!("layout: damage is %?", data.damage);
@@ -179,7 +179,7 @@ impl Layout {
         debug!("%?", node.dump());
 
         // Reset the image cache.
-        self.local_image_cache.next_round(self.make_on_image_available_cb(dom_event_chan));
+        self.local_image_cache.next_round(self.make_on_image_available_cb(script_chan));
 
         let screen_size = Size2D(Au::from_px(data.window_size.width as int),
                                  Au::from_px(data.window_size.height as int));
@@ -315,15 +315,16 @@ impl Layout {
     // to the script task, and ultimately cause the image to be
     // re-requested. We probably don't need to go all the way back to
     // the script task for this.
-    fn make_on_image_available_cb(&self, dom_event_chan: comm::SharedChan<Event>) -> @fn() -> ~fn(ImageResponseMsg) {
+    fn make_on_image_available_cb(&self, script_chan: SharedChan<ScriptMsg>)
+                                  -> @fn() -> ~fn(ImageResponseMsg) {
         // This has a crazy signature because the image cache needs to
         // make multiple copies of the callback, and the dom event
         // channel is not a copyable type, so this is actually a
         // little factory to produce callbacks
         let f: @fn() -> ~fn(ImageResponseMsg) = || {
-            let dom_event_chan = dom_event_chan.clone();
+            let script_chan = script_chan.clone();
             let f: ~fn(ImageResponseMsg) = |_| {
-                dom_event_chan.send(ReflowEvent)
+                script_chan.send(SendEventMsg(ReflowEvent))
             };
             f
         };

@@ -8,7 +8,7 @@ use dom::event::ReflowEvent;
 use dom::htmlcollection::HTMLCollection;
 use dom::node::AbstractNode;
 use dom::window::Window;
-use scripting::script_task::global_script_context;
+use scripting::script_task::{SendEventMsg, global_script_context};
 
 use js::jsapi::bindgen::{JS_AddObjectRoot, JS_RemoveObjectRoot};
 use servo_util::tree::{TreeNodeRef, TreeUtils};
@@ -64,9 +64,9 @@ pub impl Document {
     }
 
     fn content_changed(&self) {
-        do self.window.map |window| {
-            let chan = &mut window.dom_event_chan;
-            chan.send(ReflowEvent)
-        };
+        for self.window.each |window| {
+            window.script_chan.send(SendEventMsg(ReflowEvent))
+        }
     }
 }
+

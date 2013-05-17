@@ -2,27 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*!
-A little class that rate limits the number of resize events sent to the script task
-based on how fast script dispatches those events. It waits until each event is handled
-before sending the next. If the window is resized multiple times before an event is handled
-then some events will never be sent.
-*/
+//! A little class that rate limits the number of resize events sent to the script task
+/// based on how fast script dispatches those events. It waits until each event is handled
+/// before sending the next. If the window is resized multiple times before an event is handled
+/// then some events will never be sent.
 
-use dom::event::{Event, ResizeEvent};
+use dom::event::ResizeEvent;
+use scripting::script_task::{ScriptMsg, SendEventMsg};
+
+use core::comm::{Port, SharedChan};
 
 pub struct ResizeRateLimiter {
     /// The channel we send resize events on
-    /* priv */ dom_event_chan: comm::SharedChan<Event>,
+    priv script_chan: SharedChan<ScriptMsg>,
     /// The port we are waiting on for a response to the last resize event
-    /* priv */ last_response_port: Option<comm::Port<()>>,
+    priv last_response_port: Option<Port<()>>,
     /// The next window resize event we should fire
-    /* priv */ next_resize_event: Option<(uint, uint)>
+    priv next_resize_event: Option<(uint, uint)>
 }
 
-pub fn ResizeRateLimiter(dom_event_chan: comm::SharedChan<Event>) -> ResizeRateLimiter {
+pub fn ResizeRateLimiter(script_chan: SharedChan<ScriptMsg>) -> ResizeRateLimiter {
     ResizeRateLimiter {
-        dom_event_chan: dom_event_chan,
+        script_chan: script_chan,
         last_response_port: None,
         next_resize_event: None
     }
@@ -64,7 +65,7 @@ pub impl ResizeRateLimiter {
 
     priv fn send_event(&mut self, width: uint, height: uint) {
         let (port, chan) = comm::stream();
-        self.dom_event_chan.send(ResizeEvent(width, height, chan));
+        self.script_chan.send(SendEventMsg(ResizeEvent(width, height, chan)));
         self.last_response_port = Some(port);
     }
 }
