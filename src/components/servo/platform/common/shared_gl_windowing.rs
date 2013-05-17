@@ -11,7 +11,7 @@
 /// along with the Servo process or trusted. If the OpenGL driver itself is untrusted, then this
 /// windowing implementation is not appropriate.
 
-use windowing::{CompositeCallback, ResizeCallback};
+use windowing::{CompositeCallback, LoadUrlCallback, ResizeCallback};
 
 use geom::size::Size2D;
 use sharegl::base::ShareContext;
@@ -52,6 +52,9 @@ impl WindowingMethods<Application> for Window {
 
     /// Registers a callback to run when a resize event occurs.
     pub fn set_resize_callback(&mut self, _: ResizeCallback) {}
+
+    /// Registers a callback to run when a new URL is to be loaded.
+    pub fn set_load_url_callback(&mut self, _: LoadUrlCallback) {}
 
     /// Returns the next event.
     pub fn check_loop(@mut self) {}

@@ -7,7 +7,8 @@
 /// GLUT is a very old and bare-bones toolkit. However, it has good cross-platform support, at
 /// least on desktops. It is designed for testing Servo without the need of a UI.
 
-use windowing::{ApplicationMethods, CompositeCallback, ResizeCallback, WindowMethods};
+use windowing::{ApplicationMethods, CompositeCallback, LoadUrlCallback, ResizeCallback};
+use windowing::{WindowMethods};
 
 use geom::size::Size2D;
 use glut::glut::{DOUBLE, WindowHeight, WindowWidth};
@@ -27,8 +28,10 @@ impl ApplicationMethods for Application {
 /// The type of a window.
 pub struct Window {
     glut_window: glut::Window,
+
     composite_callback: Option<CompositeCallback>,
     resize_callback: Option<ResizeCallback>,
+    load_url_callback: Option<LoadUrlCallback>,
 }
 
 impl WindowMethods<Application> for Window {
@@ -41,8 +44,10 @@ impl WindowMethods<Application> for Window {
         // Create our window object.
         let window = @mut Window {
             glut_window: glut_window,
+
             composite_callback: None,
             resize_callback: None,
+            load_url_callback: None,
         };
 
         // Register event handlers.
@@ -51,14 +56,17 @@ impl WindowMethods<Application> for Window {
                 None => {}
                 Some(callback) => callback(width as uint, height as uint),
             }
-        };
+        }
         do glut::display_func {
             // FIXME(pcwalton): This will not work with multiple windows.
             match window.composite_callback {
                 None => {}
                 Some(callback) => callback(),
             }
-        };
+        }
+        do glut::keyboard_func |key, _, _| {
+            window.handle_key(key)
+        }
 
         window
     }
@@ -84,9 +92,32 @@ impl WindowMethods<Application> for Window {
         self.resize_callback = Some(new_resize_callback)
     }
 
+    /// Registers a callback to be run when a new URL is to be loaded.
+    pub fn set_load_url_callback(&mut self, new_load_url_callback: LoadUrlCallback) {
+        self.load_url_callback = Some(new_load_url_callback)
+    }
+
     /// Spins the event loop.
     pub fn check_loop(@mut self) {
         glut::check_loop()
+    }
+}
+
+impl Window {
+    /// Helper function to handle keyboard events.
+    fn handle_key(&self, key: u8) {
+        debug!("got key: %d", key as int);
+        if key == 12 {  // ^L
+            self.load_url()
+        }
+    }
+
+    /// Helper function to pop up an alert box prompting the user to load a URL.
+    fn load_url(&self) {
+        match self.load_url_callback {
+            None => error!("no URL callback registered, doing nothing"),
+            Some(callback) => callback("http://purple.com/"),
+        }
     }
 }
 

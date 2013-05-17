@@ -17,8 +17,9 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
 use gfx::opts::Opts;
+use layers::layers::{Image, ImageData};
 use layers;
-use servo_util::time;
+use servo_util::{time, url};
 
 mod resize_rate_limiter;
 
@@ -97,7 +98,7 @@ fn mainloop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts) {
                                                               0,
                                                               layers::layers::RGB24Format,
                                                               ~[]);
-        let image = @mut layers::layers::Image::new(image_data as @layers::layers::ImageData);
+        let image = @mut Image::new(image_data as @ImageData);
         let image_layer = @mut layers::layers::ImageLayer(image);
         original_layer_transform = image_layer.common.transform;
         image_layer.common.set_transform(original_layer_transform.scale(800.0, 600.0, 1.0));
@@ -141,7 +142,7 @@ fn mainloop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts) {
                             data_source_surface: buffer.draw_target.snapshot().get_data_surface(),
                             size: Size2D(width, height)
                         };
-                        let image = @mut layers::layers::Image::new(image_data as @layers::layers::ImageData);
+                        let image = @mut Image::new(image_data as @ImageData);
 
                         // Find or create an image layer.
                         let image_layer;
@@ -192,6 +193,7 @@ fn mainloop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts) {
         window.present();
     }
 
+    // Hook the windowing system's resize callback up to the resize rate limiter.
     do window.set_resize_callback |width, height| {
         debug!("osmain: window resized to %ux%u", width, height);
         resize_rate_limiter.window_resized(width, height);
