@@ -85,3 +85,6 @@
 [submodule "src/compiler/rust"]
 	path = src/compiler/rust
 	url = https://github.com/mozilla/rust.git
+[submodule "src/support/alert/rust-alert"]
+	path = src/support/alert/rust-alert
+	url = git://github.com/mozilla-servo/rust-alert.git

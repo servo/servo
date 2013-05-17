@@ -10,6 +10,7 @@
 use windowing::{ApplicationMethods, CompositeCallback, LoadUrlCallback, ResizeCallback};
 use windowing::{WindowMethods};
 
+use alert::{Alert, AlertMethods};
 use geom::size::Size2D;
 use glut::glut::{DOUBLE, WindowHeight, WindowWidth};
 use glut::glut;
@@ -116,7 +117,17 @@ impl Window {
     fn load_url(&self) {
         match self.load_url_callback {
             None => error!("no URL callback registered, doing nothing"),
-            Some(callback) => callback("http://purple.com/"),
+            Some(callback) => {
+                let mut alert: Alert = AlertMethods::new("Navigate to:");
+                alert.add_prompt();
+                alert.run();
+                let value = alert.prompt_value();
+                if "" == value {    // To avoid crashing on Linux.
+                    callback("http://purple.com/")
+                } else {
+                    callback(value)
+                }
+            }
         }
     }
 }
