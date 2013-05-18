@@ -106,6 +106,11 @@ fn run_main_loop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts)
     let key_handlers: @mut ~[Chan<()>] = @mut ~[];
     let done = @mut false;
 
+    // FIXME: This should not be a separate offset applied after the fact but rather should be
+    // applied to the layers themselves on a per-layer basis. However, this won't work until scroll
+    // positions are sent to content.
+    let world_offset = @mut Point2D(0f32, 0f32);
+
     let check_for_messages: @fn() = || {
         // Periodically check if the script task responded to our last resize event
         resize_rate_limiter.check_resize_response();
@@ -164,8 +169,11 @@ fn run_main_loop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts)
                         };
 
                         // Set the layer's transform.
-                        let (x, y) = (buffer.rect.origin.x as f32, buffer.rect.origin.y as f32);
-                        let transform = original_layer_transform.translate(x, y, 0.0);
+                        let mut origin = Point2D(buffer.rect.origin.x as f32,
+                                                 buffer.rect.origin.y as f32);
+                        let transform = original_layer_transform.translate(origin.x,
+                                                                           origin.y,
+                                                                           0.0);
                         let transform = transform.scale(width as f32, height as f32, 1.0);
                         image_layer.common.set_transform(transform)
                     }
@@ -178,6 +186,7 @@ fn run_main_loop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts)
 
     do window.set_composite_callback {
         do time::time(~"compositing") {
+            debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             scene.size = window.size();
 
@@ -198,6 +207,19 @@ fn run_main_loop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts)
     do window.set_load_url_callback |url_string| {
         debug!("osmain: loading URL `%s`", url_string);
         script_chan.send(LoadMsg(url::make_url(url_string.to_str(), None)))
+    }
+
+    // When the user scrolls, move the layer around.
+    do window.set_scroll_callback |delta| {
+        // FIXME: Can't use `+=` due to a Rust bug.
+        let world_offset_copy = *world_offset;
+        *world_offset = world_offset_copy + delta;
+
+        debug!("compositor: scrolled to %?", *world_offset);
+
+        root_layer.common.set_transform(identity().translate(world_offset.x, world_offset.y, 0.0));
+
+        window.set_needs_display()
     }
 
     // Enter the main event loop.
