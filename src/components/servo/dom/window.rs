@@ -5,7 +5,7 @@
 use dom::bindings::utils::WrapperCache;
 use dom::bindings::window;
 use scripting::script_task::{ExitMsg, FireTimerMsg, ScriptMsg, ScriptContext};
-use scripting::script_task::{global_script_context};
+use layout::layout_task::MatchSelectorsDamage;
 use util::task::spawn_listener;
 
 use core::comm::{Port, Chan, SharedChan};
@@ -82,6 +82,12 @@ pub impl Window {
                             TimerMessage_Fire(~TimerData(argc, argv)));
     }
 
+    fn content_changed(&self) {
+        unsafe {
+            (*self.script_context).trigger_relayout(MatchSelectorsDamage);
+        }
+    }
+
     pub fn new(script_chan: SharedChan<ScriptMsg>, script_context: *mut ScriptContext)
                -> @mut Window {
         let script_chan_copy = script_chan.clone();
@@ -102,8 +108,10 @@ pub impl Window {
             script_context: script_context,
         };
 
-        let compartment = global_script_context().js_compartment;
-        window::create(compartment, win);
+        unsafe {
+            let compartment = (*script_context).js_compartment;
+            window::create(compartment, win);
+        }
         win
     }
 }
