@@ -13,13 +13,6 @@ brew install automake libtool
 brew install pkg-config
 ```
 
-Note, there is an [issue][] on homebrew which requires the following manual
-configuration as well:
-
-``` sh
-sudo sh -c 'echo /usr/local/share/aclocal >> /usr/share/aclocal/dirlist'
-```
-
 On OS X (MacPorts):
 
 ``` sh
