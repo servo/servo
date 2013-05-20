@@ -5,7 +5,7 @@
 // The task that handles all rendering/painting.
 
 use azure::AzFloat;
-use compositor::{Compositor, LayerBufferSet};
+use compositor::Compositor;
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use opts::Opts;
@@ -13,56 +13,65 @@ use render_context::RenderContext;
 use render_layers::{RenderLayer, render_layers};
 
 use core::cell::Cell;
-use core::comm::{Port, SharedChan};
+use core::comm::{Chan, Port, SharedChan};
 use core::task::SingleThreaded;
 use std::task_pool::TaskPool;
-use servo_net::util::spawn_listener;
 use servo_util::time::time;
 
 pub enum Msg {
     RenderMsg(RenderLayer),
-    ExitMsg(comm::Chan<()>)
+    ExitMsg(Chan<()>),
 }
 
-pub type RenderTask = SharedChan<Msg>;
+#[deriving(Clone)]
+pub struct RenderTask {
+    channel: SharedChan<Msg>,
+}
 
-pub fn RenderTask<C:Compositor + Owned>(compositor: C, opts: Opts) -> RenderTask {
-    let compositor_cell = Cell(compositor);
-    let opts_cell = Cell(opts);
-    let render_task = do spawn_listener |po: Port<Msg>| {
-        let (layer_buffer_set_port, layer_buffer_channel) = comm::stream();
+impl RenderTask {
+    pub fn new<C:Compositor + Owned>(compositor: C, opts: Opts) -> RenderTask {
+        let compositor_cell = Cell(compositor);
+        let opts_cell = Cell(opts);
+        let (port, chan) = comm::stream();
+        let port = Cell(port);
 
-        let compositor = compositor_cell.take();
-        compositor.begin_drawing(layer_buffer_channel);
+        do spawn {
+            let compositor = compositor_cell.take();
 
-        // FIXME: Annoying three-cell dance here. We need one-shot closures.
-        let opts = opts_cell.with_ref(|o| copy *o);
-        let n_threads = opts.n_render_threads;
-        let new_opts_cell = Cell(opts);
+            // FIXME: Annoying three-cell dance here. We need one-shot closures.
+            let opts = opts_cell.with_ref(|o| copy *o);
+            let n_threads = opts.n_render_threads;
+            let new_opts_cell = Cell(opts);
 
-        let thread_pool = do TaskPool::new(n_threads, Some(SingleThreaded)) {
-            let opts_cell = Cell(new_opts_cell.with_ref(|o| copy *o));
-            let f: ~fn(uint) -> ThreadRenderContext = |thread_index| {
-                ThreadRenderContext {
-                    thread_index: thread_index,
-                    font_ctx: @mut FontContext::new(opts_cell.with_ref(|o| o.render_backend), false),
-                    opts: opts_cell.with_ref(|o| copy *o),
-                }
+            let thread_pool = do TaskPool::new(n_threads, Some(SingleThreaded)) {
+                let opts_cell = Cell(new_opts_cell.with_ref(|o| copy *o));
+                let f: ~fn(uint) -> ThreadRenderContext = |thread_index| {
+                    let opts = opts_cell.with_ref(|opts| copy *opts);
+
+                    ThreadRenderContext {
+                        thread_index: thread_index,
+                        font_ctx: @mut FontContext::new(opts.render_backend, false),
+                        opts: opts,
+                    }
+                };
+                f
             };
-            f
-        };
 
-        // FIXME: rust/#5967
-        let mut r = Renderer {
-            port: po,
-            compositor: compositor,
-            layer_buffer_set_port: Cell(layer_buffer_set_port),
-            thread_pool: thread_pool,
-            opts: opts_cell.take()
-        };
-        r.start();
-    };
-    SharedChan::new(render_task)
+            // FIXME: rust/#5967
+            let mut renderer = Renderer {
+                port: port.take(),
+                compositor: compositor,
+                thread_pool: thread_pool,
+                opts: opts_cell.take()
+            };
+
+            renderer.start();
+        }
+
+        RenderTask {
+            channel: SharedChan::new(chan),
+        }
+    }
 }
 
 /// Data that needs to be kept around for each render thread.
@@ -75,7 +84,6 @@ priv struct ThreadRenderContext {
 priv struct Renderer<C> {
     port: Port<Msg>,
     compositor: C,
-    layer_buffer_set_port: Cell<comm::Port<LayerBufferSet>>,
     thread_pool: TaskPool<ThreadRenderContext>,
     opts: Opts,
 }
@@ -96,24 +104,8 @@ impl<C: Compositor + Owned> Renderer<C> {
     }
 
     fn render(&mut self, render_layer: RenderLayer) {
-        debug!("renderer: got render request");
-
-        let layer_buffer_set_port = self.layer_buffer_set_port.take();
-
-        if !layer_buffer_set_port.peek() {
-            warn!("renderer: waiting on layer buffer");
-        }
-
-        let (new_layer_buffer_set_port, layer_buffer_set_channel) = comm::stream();
-        self.layer_buffer_set_port.put_back(new_layer_buffer_set_port);
-
-        let layer_buffer_set_channel_cell = Cell(layer_buffer_set_channel);
-
         debug!("renderer: rendering");
-
-        do time(~"rendering") {
-            let layer_buffer_set_channel = layer_buffer_set_channel_cell.take();
-
+        do time("rendering") {
             let layer_buffer_set = do render_layers(&render_layer, &self.opts)
                     |render_layer_ref, layer_buffer, buffer_chan| {
                 let layer_buffer_cell = Cell(layer_buffer);
@@ -148,7 +140,8 @@ impl<C: Compositor + Owned> Renderer<C> {
             };
 
             debug!("renderer: returning surface");
-            self.compositor.draw(layer_buffer_set_channel, layer_buffer_set);
+            self.compositor.paint(layer_buffer_set);
         }
     }
 }
+
