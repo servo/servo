@@ -375,6 +375,12 @@ impl ScriptContext {
         }
     }
 
+    /// Initiate an asynchronous relayout operation
+    pub fn trigger_relayout(&mut self, damage: Damage) {
+        self.damage.add(damage);
+        self.relayout();
+    }
+
     /// This method will wait until the layout task has completed its current action, join the
     /// layout task, and then request a new layout run. It won't wait for the new layout
     /// computation to finish.
@@ -412,7 +418,6 @@ impl ScriptContext {
 
     /// Sends the given query to layout.
     pub fn query_layout(&mut self, query: LayoutQuery) -> LayoutQueryResponse {
-         //self.relayout();
          self.join_layout();
 
          let (response_port, response_chan) = comm::stream();

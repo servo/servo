@@ -6,7 +6,6 @@ var start = new Date();
 for (var i = 0; i < count; i++) {
   div.setAttribute('id', 'styled');
   div.getBoundingClientRect();
-  window.alert(i);
 }
 var stop = new Date();
 window.alert((stop - start) / count * 1e6);
