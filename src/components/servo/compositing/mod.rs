@@ -7,16 +7,14 @@ use platform::{Application, Window};
 use scripting::script_task::{LoadMsg, ScriptMsg};
 use windowing::{ApplicationMethods, WindowMethods};
 
-use azure::azure_hl::{BackendType, B8G8R8A8, DataSourceSurface, DrawTarget, SourceSurfaceMethods};
+use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods};
 use core::cell::Cell;
 use core::comm::{Chan, SharedChan, Port};
 use core::util;
 use geom::matrix::identity;
 use geom::point::Point2D;
-use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
-use gfx::opts::Opts;
+use gfx::compositor::{Compositor, LayerBufferSet};
 use layers::layers::{ARGB32Format, BasicImageData, ContainerLayer, ContainerLayerKind, Format};
 use layers::layers::{Image, ImageData, ImageLayer, ImageLayerKind, RGB24Format, WithDataFn};
 use layers::rendergl;
@@ -29,33 +27,39 @@ mod resize_rate_limiter;
 
 /// The implementation of the layers-based compositor.
 #[deriving(Clone)]
-pub struct CompositorImpl {
-    chan: SharedChan<Msg>
+pub struct CompositorTask {
+    /// A channel on which messages can be sent to the compositor.
+    chan: SharedChan<Msg>,
 }
 
-impl CompositorImpl {
-    /// Creates a new compositor instance.
+impl CompositorTask {
+    /// Starts the compositor. Returns an interface that can be used to communicate with the
+    /// compositor and a port which allows notification when the compositor shuts down.
     pub fn new(script_chan: SharedChan<ScriptMsg>,
-               opts: Opts,
-               prof_chan: ProfilerChan)
-               -> CompositorImpl {
+               profiler_chan: ProfilerChan)
+               -> (CompositorTask, Port<()>) {
         let script_chan = Cell(script_chan);
+        let (shutdown_port, shutdown_chan) = stream();
+        let shutdown_chan = Cell(shutdown_chan);
+
         let chan: Chan<Msg> = do on_osmain |port| {
             debug!("preparing to enter main loop");
-            run_main_loop(port, script_chan.take(), &opts, prof_chan.clone());
+            run_main_loop(port,
+                          script_chan.take(),
+                          shutdown_chan.take(),
+                          profiler_chan.clone());
         };
 
-        CompositorImpl {
-            chan: SharedChan::new(chan)
-        }
+        let task = CompositorTask {
+            chan: SharedChan::new(chan),
+        };
+        (task, shutdown_port)
     }
 }
 
 /// Messages to the compositor.
 pub enum Msg {
-    BeginDrawing(Chan<LayerBufferSet>),
-    Draw(Chan<LayerBufferSet>, LayerBufferSet),
-    AddKeyHandler(Chan<()>),
+    Paint(LayerBufferSet),
     Exit
 }
 
@@ -84,18 +88,19 @@ impl ImageData for AzureDrawTargetImageData {
     }
 }
 
-fn run_main_loop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts, prof_chan:ProfilerChan) {
+fn run_main_loop(port: Port<Msg>,
+                 script_chan: SharedChan<ScriptMsg>,
+                 shutdown_chan: Chan<()>,
+                 profiler_chan: ProfilerChan) {
     let app: Application = ApplicationMethods::new();
     let window: @mut Window = WindowMethods::new(&app);
     let resize_rate_limiter = @mut ResizeRateLimiter(script_chan.clone());
-
-    let surfaces = @mut SurfaceSet::new(opts.render_backend);
-    let context = rendergl::init_render_context();
 
     // Create an initial layer tree.
     //
     // TODO: There should be no initial layer tree until the renderer creates one from the display
     // list. This is only here because we don't have that logic in the renderer yet.
+    let context = rendergl::init_render_context();
     let root_layer = @mut ContainerLayer();
     let original_layer_transform;
     {
@@ -108,7 +113,6 @@ fn run_main_loop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts,
     }
 
     let scene = @mut Scene(ContainerLayerKind(root_layer), Size2D(800.0, 600.0), identity());
-    let key_handlers: @mut ~[Chan<()>] = @mut ~[];
     let done = @mut false;
 
     // FIXME: This should not be a separate offset applied after the fact but rather should be
@@ -121,24 +125,19 @@ fn run_main_loop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts,
         resize_rate_limiter.check_resize_response();
 
         // Handle messages
-        while po.peek() {
-            match po.recv() {
-                AddKeyHandler(key_ch) => key_handlers.push(key_ch),
-                BeginDrawing(sender) => surfaces.lend(sender),
+        while port.peek() {
+            match port.recv() {
                 Exit => *done = true,
 
-                Draw(sender, draw_target) => {
+                Paint(new_layer_buffer_set) => {
                     debug!("osmain: received new frame");
-
-                    // Perform a buffer swap.
-                    surfaces.put_back(draw_target);
-                    surfaces.lend(sender);
+                    let mut new_layer_buffer_set = new_layer_buffer_set;
 
                     // Iterate over the children of the container layer.
                     let mut current_layer_child = root_layer.first_child;
 
                     // Replace the image layer data with the buffer data.
-                    let buffers = util::replace(&mut surfaces.front.layer_buffer_set.buffers, ~[]);
+                    let buffers = util::replace(&mut new_layer_buffer_set.buffers, ~[]);
                     for buffers.each |buffer| {
                         let width = buffer.rect.size.width as uint;
                         let height = buffer.rect.size.height as uint;
@@ -183,7 +182,8 @@ fn run_main_loop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts,
                         image_layer.common.set_transform(transform)
                     }
 
-                    surfaces.front.layer_buffer_set.buffers = buffers
+                    // TODO: Recycle the old buffers; send them back to the renderer to reuse if
+                    // it wishes.
                 }
             }
         }
@@ -216,7 +216,7 @@ fn run_main_loop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts,
 
     // When the user scrolls, move the layer around.
     do window.set_scroll_callback |delta| {
-        // FIXME: Can't use `+=` due to a Rust bug.
+        // FIXME (Rust #2528): Can't use `+=`.
         let world_offset_copy = *world_offset;
         *world_offset = world_offset_copy + delta;
 
@@ -235,104 +235,28 @@ fn run_main_loop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts,
         // Check for messages coming from the windowing system.
         window.check_loop();
     }
+
+    shutdown_chan.send(())
 }
 
 /// Implementation of the abstract `Compositor` interface.
-impl Compositor for CompositorImpl {
-    fn begin_drawing(&self, next_dt: Chan<LayerBufferSet>) {
-        self.chan.send(BeginDrawing(next_dt))
-    }
-    fn draw(&self, next_dt: Chan<LayerBufferSet>, draw_me: LayerBufferSet) {
-        self.chan.send(Draw(next_dt, draw_me))
-    }
-}
-
-struct SurfaceSet {
-    front: Surface,
-    back: Surface,
-}
-
-impl SurfaceSet {
-    /// Creates a new surface set.
-    fn new(backend: BackendType) -> SurfaceSet {
-        SurfaceSet {
-            front: Surface::new(backend),
-            back: Surface::new(backend),
-        }
-    }
-
-    fn lend(&mut self, receiver: Chan<LayerBufferSet>) {
-        // We are in a position to lend out the surface?
-        assert!(self.front.have);
-        // Ok then take it
-        let old_layer_buffers = util::replace(&mut self.front.layer_buffer_set.buffers, ~[]);
-        let new_layer_buffers = do old_layer_buffers.map |layer_buffer| {
-            let draw_target_ref = &layer_buffer.draw_target;
-            let layer_buffer = LayerBuffer {
-                draw_target: draw_target_ref.clone(),
-                rect: copy layer_buffer.rect,
-                stride: layer_buffer.stride
-            };
-            debug!("osmain: lending surface %?", layer_buffer);
-            layer_buffer
-        };
-        self.front.layer_buffer_set.buffers = old_layer_buffers;
-
-        let new_layer_buffer_set = LayerBufferSet { buffers: new_layer_buffers };
-        receiver.send(new_layer_buffer_set);
-        // Now we don't have it
-        self.front.have = false;
-        // But we (hopefully) have another!
-        util::swap(&mut self.front, &mut self.back);
-        // Let's look
-        assert!(self.front.have);
-    }
-
-    fn put_back(&mut self, layer_buffer_set: LayerBufferSet) {
-        // We have room for a return
-        assert!(self.front.have);
-        assert!(!self.back.have);
-
-        self.back.layer_buffer_set = layer_buffer_set;
-
-        // Now we have it again
-        self.back.have = true;
-    }
-}
-
-struct Surface {
-    layer_buffer_set: LayerBufferSet,
-    have: bool,
-}
-
-impl Surface {
-    fn new(backend: BackendType) -> Surface {
-        let layer_buffer = LayerBuffer {
-            draw_target: DrawTarget::new(backend, Size2D(800, 600), B8G8R8A8),
-            rect: Rect(Point2D(0u, 0u), Size2D(800u, 600u)),
-            stride: 800 * 4
-        };
-        let layer_buffer_set = LayerBufferSet {
-            buffers: ~[ layer_buffer ]
-        };
-        Surface {
-            layer_buffer_set: layer_buffer_set,
-            have: true
-        }
+impl Compositor for CompositorTask {
+    fn paint(&self, layer_buffer_set: LayerBufferSet) {
+        self.chan.send(Paint(layer_buffer_set))
     }
 }
 
 /// A function for spawning into the platform's main thread.
-fn on_osmain<T: Owned>(f: ~fn(po: Port<T>)) -> Chan<T> {
-    let (setup_po, setup_ch) = comm::stream();
+fn on_osmain<T: Owned>(f: ~fn(port: Port<T>)) -> Chan<T> {
+    let (setup_port, setup_chan) = comm::stream();
     // FIXME: rust#6399
     let mut main_task = task::task();
     main_task.sched_mode(task::PlatformThread);
     do main_task.spawn {
-        let (po, ch) = comm::stream();
-        setup_ch.send(ch);
-        f(po);
+        let (port, chan) = comm::stream();
+        setup_chan.send(chan);
+        f(port);
     }
-    setup_po.recv()
+    setup_port.recv()
 }
 

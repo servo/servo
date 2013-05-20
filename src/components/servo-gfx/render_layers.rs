@@ -134,6 +134,8 @@ pub fn render_layers(layer_ref: *RenderLayer,
         }
     }
 
-    return LayerBufferSet { buffers: new_buffers };
+    LayerBufferSet {
+        buffers: new_buffers,
+    }
 }
 

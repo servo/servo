@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::CompositorImpl;
+use compositing::CompositorTask;
 use layout::layout_task::LayoutTask;
 use layout::layout_task;
 use scripting::script_task::{ExecuteMsg, LoadMsg, ScriptMsg, ScriptTask};
@@ -27,12 +27,12 @@ pub type EngineTask = Chan<Msg>;
 
 pub enum Msg {
     LoadUrlMsg(Url),
-    ExitMsg(Chan<()>)
+    ExitMsg(Chan<()>),
 }
 
 pub struct Engine {
     request_port: Port<Msg>,
-    compositor: CompositorImpl,
+    compositor: CompositorTask,
     render_task: RenderTask,
     resource_task: ResourceTask,
     image_cache_task: ImageCacheTask,
@@ -42,24 +42,23 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn start(compositor: CompositorImpl,
+    pub fn start(compositor: CompositorTask,
                  opts: &Opts,
                  script_port: Port<ScriptMsg>,
                  script_chan: SharedChan<ScriptMsg>,
                  resource_task: ResourceTask,
                  image_cache_task: ImageCacheTask,
-                 prof_port: ProfilerPort,
-                 prof_chan: ProfilerChan)
+                 profiler_port: ProfilerPort,
+                 profiler_chan: ProfilerChan)
                  -> EngineTask {
         let (script_port, script_chan) = (Cell(script_port), Cell(script_chan));
-        let prof_port = Cell(prof_port);
+        let profiler_port = Cell(profiler_port);
         let opts = Cell(copy *opts);
 
         do spawn_listener::<Msg> |request| {
-            let profiler_task = time::ProfilerTask::new(prof_port.take(), prof_chan.clone());
-            let render_task = RenderTask(compositor.clone(),
-                                         opts.with_ref(|o| copy *o),
-                                         prof_chan.clone());
+            let render_task = RenderTask::new(compositor.clone(),
+                                              opts.with_ref(|o| copy *o),
+                                              profiler_chan.clone());
 
             let opts = opts.take();
             let layout_task = LayoutTask(render_task.clone(),
@@ -110,7 +109,7 @@ impl Engine {
 
                 let (response_port, response_chan) = comm::stream();
 
-                self.render_task.send(render_task::ExitMsg(response_chan));
+                self.render_task.channel.send(render_task::ExitMsg(response_chan));
                 response_port.recv();
 
                 self.image_cache_task.exit();
