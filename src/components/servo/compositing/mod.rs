@@ -17,8 +17,10 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use gfx::compositor::{Compositor, LayerBuffer, LayerBufferSet};
 use gfx::opts::Opts;
-use layers::layers::{Image, ImageData};
-use layers;
+use layers::layers::{ARGB32Format, BasicImageData, ContainerLayer, ContainerLayerKind, Format};
+use layers::layers::{Image, ImageData, ImageLayer, ImageLayerKind, RGB24Format, WithDataFn};
+use layers::rendergl;
+use layers::scene::Scene;
 use servo_util::{time, url};
 
 mod resize_rate_limiter;
@@ -35,7 +37,7 @@ impl CompositorImpl {
         let script_chan = Cell(script_chan);
         let chan: Chan<Msg> = do on_osmain |port| {
             debug!("preparing to enter main loop");
-            mainloop(port, script_chan.take(), &opts);
+            run_main_loop(port, script_chan.take(), &opts);
         };
 
         CompositorImpl {
@@ -59,59 +61,56 @@ struct AzureDrawTargetImageData {
     size: Size2D<uint>
 }
 
-impl layers::layers::ImageData for AzureDrawTargetImageData {
+impl ImageData for AzureDrawTargetImageData {
     fn size(&self) -> Size2D<uint> {
         self.size
     }
     fn stride(&self) -> uint {
         self.data_source_surface.stride() as uint
     }
-    fn format(&self) -> layers::layers::Format {
+    fn format(&self) -> Format {
         // FIXME: This is not always correct. We should query the Azure draw target for the format.
-        layers::layers::ARGB32Format
+        ARGB32Format
     }
-    fn with_data(&self, f: layers::layers::WithDataFn) { 
+    fn with_data(&self, f: WithDataFn) { 
         do self.data_source_surface.with_data |data| {
             f(data);
         }
     }
 }
 
-fn mainloop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts) {
-    let key_handlers: @mut ~[Chan<()>] = @mut ~[];
-
+fn run_main_loop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts) {
     let app: Application = ApplicationMethods::new();
     let window: @mut Window = WindowMethods::new(&app);
+    let resize_rate_limiter = @mut ResizeRateLimiter(script_chan.clone());
 
-    let surfaces = @mut SurfaceSet(opts.render_backend);
-
-    let context = layers::rendergl::init_render_context();
+    let surfaces = @mut SurfaceSet::new(opts.render_backend);
+    let context = rendergl::init_render_context();
 
     // Create an initial layer tree.
     //
     // TODO: There should be no initial layer tree until the renderer creates one from the display
     // list. This is only here because we don't have that logic in the renderer yet.
-    let root_layer = @mut layers::layers::ContainerLayer();
+    let root_layer = @mut ContainerLayer();
     let original_layer_transform;
     {
-        let image_data = @layers::layers::BasicImageData::new(Size2D(0u, 0u),
-                                                              0,
-                                                              layers::layers::RGB24Format,
-                                                              ~[]);
+        let image_data = @BasicImageData::new(Size2D(0, 0), 0, RGB24Format, ~[]);
         let image = @mut Image::new(image_data as @ImageData);
-        let image_layer = @mut layers::layers::ImageLayer(image);
+        let image_layer = @mut ImageLayer(image);
         original_layer_transform = image_layer.common.transform;
         image_layer.common.set_transform(original_layer_transform.scale(800.0, 600.0, 1.0));
-        root_layer.add_child(layers::layers::ImageLayerKind(image_layer));
+        root_layer.add_child(ImageLayerKind(image_layer));
     }
 
-
-    let scene = @mut layers::scene::Scene(layers::layers::ContainerLayerKind(root_layer),
-                                          Size2D(800.0, 600.0),
-                                          identity());
-
+    let scene = @mut Scene(ContainerLayerKind(root_layer), Size2D(800.0, 600.0), identity());
+    let key_handlers: @mut ~[Chan<()>] = @mut ~[];
     let done = @mut false;
-    let resize_rate_limiter = @mut ResizeRateLimiter(script_chan.clone());
+
+    // FIXME: This should not be a separate offset applied after the fact but rather should be
+    // applied to the layers themselves on a per-layer basis. However, this won't work until scroll
+    // positions are sent to content.
+    let world_offset = @mut Point2D(0f32, 0f32);
+
     let check_for_messages: @fn() = || {
         // Periodically check if the script task responded to our last resize event
         resize_rate_limiter.check_resize_response();
@@ -120,11 +119,15 @@ fn mainloop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts) {
         while po.peek() {
             match po.recv() {
                 AddKeyHandler(key_ch) => key_handlers.push(key_ch),
-                BeginDrawing(sender) => lend_surface(surfaces, sender),
+                BeginDrawing(sender) => surfaces.lend(sender),
+                Exit => *done = true,
+
                 Draw(sender, draw_target) => {
                     debug!("osmain: received new frame");
-                    return_surface(surfaces, draw_target);
-                    lend_surface(surfaces, sender);
+
+                    // Perform a buffer swap.
+                    surfaces.put_back(draw_target);
+                    surfaces.lend(sender);
 
                     // Iterate over the children of the container layer.
                     let mut current_layer_child = root_layer.first_child;
@@ -149,11 +152,11 @@ fn mainloop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts) {
                         current_layer_child = match current_layer_child {
                             None => {
                                 debug!("osmain: adding new image layer");
-                                image_layer = @mut layers::layers::ImageLayer(image);
-                                root_layer.add_child(layers::layers::ImageLayerKind(image_layer));
+                                image_layer = @mut ImageLayer(image);
+                                root_layer.add_child(ImageLayerKind(image_layer));
                                 None
                             }
-                            Some(layers::layers::ImageLayerKind(existing_image_layer)) => {
+                            Some(ImageLayerKind(existing_image_layer)) => {
                                 image_layer = existing_image_layer;
                                 image_layer.set_image(image);
 
@@ -166,16 +169,16 @@ fn mainloop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts) {
                         };
 
                         // Set the layer's transform.
-                        let x = buffer.rect.origin.x as f32;
-                        let y = buffer.rect.origin.y as f32;
-                        image_layer.common.set_transform(
-                            original_layer_transform.translate(x, y, 0.0)
-                                .scale(width as f32, height as f32, 1.0));
+                        let mut origin = Point2D(buffer.rect.origin.x as f32,
+                                                 buffer.rect.origin.y as f32);
+                        let transform = original_layer_transform.translate(origin.x,
+                                                                           origin.y,
+                                                                           0.0);
+                        let transform = transform.scale(width as f32, height as f32, 1.0);
+                        image_layer.common.set_transform(transform)
                     }
-                    surfaces.front.layer_buffer_set.buffers = buffers;
-                }
-                Exit => {
-                    *done = true;
+
+                    surfaces.front.layer_buffer_set.buffers = buffers
                 }
             }
         }
@@ -183,11 +186,12 @@ fn mainloop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts) {
 
     do window.set_composite_callback {
         do time::time(~"compositing") {
+            debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             scene.size = window.size();
 
             // Render the scene.
-            layers::rendergl::render_scene(context, scene);
+            rendergl::render_scene(context, scene);
         }
 
         window.present();
@@ -203,6 +207,19 @@ fn mainloop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts) {
     do window.set_load_url_callback |url_string| {
         debug!("osmain: loading URL `%s`", url_string);
         script_chan.send(LoadMsg(url::make_url(url_string.to_str(), None)))
+    }
+
+    // When the user scrolls, move the layer around.
+    do window.set_scroll_callback |delta| {
+        // FIXME: Can't use `+=` due to a Rust bug.
+        let world_offset_copy = *world_offset;
+        *world_offset = world_offset_copy + delta;
+
+        debug!("compositor: scrolled to %?", *world_offset);
+
+        root_layer.common.set_transform(identity().translate(world_offset.x, world_offset.y, 0.0));
+
+        window.set_needs_display()
     }
 
     // Enter the main event loop.
@@ -230,47 +247,52 @@ struct SurfaceSet {
     back: Surface,
 }
 
-fn lend_surface(surfaces: &mut SurfaceSet, receiver: Chan<LayerBufferSet>) {
-    // We are in a position to lend out the surface?
-    assert!(surfaces.front.have);
-    // Ok then take it
-    let old_layer_buffers = util::replace(&mut surfaces.front.layer_buffer_set.buffers, ~[]);
-    let new_layer_buffers = do old_layer_buffers.map |layer_buffer| {
-        let draw_target_ref = &layer_buffer.draw_target;
-        let layer_buffer = LayerBuffer {
-            draw_target: draw_target_ref.clone(),
-            rect: copy layer_buffer.rect,
-            stride: layer_buffer.stride
+impl SurfaceSet {
+    /// Creates a new surface set.
+    fn new(backend: BackendType) -> SurfaceSet {
+        SurfaceSet {
+            front: Surface::new(backend),
+            back: Surface::new(backend),
+        }
+    }
+
+    fn lend(&mut self, receiver: Chan<LayerBufferSet>) {
+        // We are in a position to lend out the surface?
+        assert!(self.front.have);
+        // Ok then take it
+        let old_layer_buffers = util::replace(&mut self.front.layer_buffer_set.buffers, ~[]);
+        let new_layer_buffers = do old_layer_buffers.map |layer_buffer| {
+            let draw_target_ref = &layer_buffer.draw_target;
+            let layer_buffer = LayerBuffer {
+                draw_target: draw_target_ref.clone(),
+                rect: copy layer_buffer.rect,
+                stride: layer_buffer.stride
+            };
+            debug!("osmain: lending surface %?", layer_buffer);
+            layer_buffer
         };
-        debug!("osmain: lending surface %?", layer_buffer);
-        layer_buffer
-    };
-    surfaces.front.layer_buffer_set.buffers = old_layer_buffers;
+        self.front.layer_buffer_set.buffers = old_layer_buffers;
 
-    let new_layer_buffer_set = LayerBufferSet { buffers: new_layer_buffers };
-    receiver.send(new_layer_buffer_set);
-    // Now we don't have it
-    surfaces.front.have = false;
-    // But we (hopefully) have another!
-    util::swap(&mut surfaces.front, &mut surfaces.back);
-    // Let's look
-    assert!(surfaces.front.have);
-}
+        let new_layer_buffer_set = LayerBufferSet { buffers: new_layer_buffers };
+        receiver.send(new_layer_buffer_set);
+        // Now we don't have it
+        self.front.have = false;
+        // But we (hopefully) have another!
+        util::swap(&mut self.front, &mut self.back);
+        // Let's look
+        assert!(self.front.have);
+    }
 
-fn return_surface(surfaces: &mut SurfaceSet, layer_buffer_set: LayerBufferSet) {
-    //#debug("osmain: returning surface %?", layer_buffer_set);
-    // We have room for a return
-    assert!(surfaces.front.have);
-    assert!(!surfaces.back.have);
+    fn put_back(&mut self, layer_buffer_set: LayerBufferSet) {
+        // We have room for a return
+        assert!(self.front.have);
+        assert!(!self.back.have);
 
-    surfaces.back.layer_buffer_set = layer_buffer_set;
+        self.back.layer_buffer_set = layer_buffer_set;
 
-    // Now we have it again
-    surfaces.back.have = true;
-}
-
-fn SurfaceSet(backend: BackendType) -> SurfaceSet {
-    SurfaceSet { front: Surface(backend), back: Surface(backend) }
+        // Now we have it again
+        self.back.have = true;
+    }
 }
 
 struct Surface {
@@ -278,18 +300,20 @@ struct Surface {
     have: bool,
 }
 
-fn Surface(backend: BackendType) -> Surface {
-    let layer_buffer = LayerBuffer {
-        draw_target: DrawTarget::new(backend, Size2D(800i32, 600i32), B8G8R8A8),
-        rect: Rect(Point2D(0u, 0u), Size2D(800u, 600u)),
-        stride: 800 * 4
-    };
-    let layer_buffer_set = LayerBufferSet {
-        buffers: ~[ layer_buffer ]
-    };
-    Surface {
-        layer_buffer_set: layer_buffer_set,
-        have: true
+impl Surface {
+    fn new(backend: BackendType) -> Surface {
+        let layer_buffer = LayerBuffer {
+            draw_target: DrawTarget::new(backend, Size2D(800, 600), B8G8R8A8),
+            rect: Rect(Point2D(0u, 0u), Size2D(800u, 600u)),
+            stride: 800 * 4
+        };
+        let layer_buffer_set = LayerBufferSet {
+            buffers: ~[ layer_buffer ]
+        };
+        Surface {
+            layer_buffer_set: layer_buffer_set,
+            have: true
+        }
     }
 }
 
