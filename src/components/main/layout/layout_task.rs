@@ -254,7 +254,7 @@ impl Layout {
                 size: Size2D(screen_size.width.to_px() as uint, screen_size.height.to_px() as uint)
             };
 
-            self.render_task.send(RenderMsg(render_layer));
+            self.render_task.channel.send(RenderMsg(render_layer));
         } // time(layout: display list building)
 
         // Tell script that we're done.

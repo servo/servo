@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::CompositorImpl;
+use compositing::CompositorTask;
 use layout::layout_task::LayoutTask;
 use layout::layout_task;
 use scripting::script_task::{ExecuteMsg, LoadMsg, ScriptMsg, ScriptTask};
@@ -23,12 +23,12 @@ pub type EngineTask = Chan<Msg>;
 
 pub enum Msg {
     LoadUrlMsg(Url),
-    ExitMsg(Chan<()>)
+    ExitMsg(Chan<()>),
 }
 
 pub struct Engine {
     request_port: Port<Msg>,
-    compositor: CompositorImpl,
+    compositor: CompositorTask,
     render_task: RenderTask,
     resource_task: ResourceTask,
     image_cache_task: ImageCacheTask,
@@ -37,7 +37,7 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn start(compositor: CompositorImpl,
+    pub fn start(compositor: CompositorTask,
                  opts: &Opts,
                  script_port: Port<ScriptMsg>,
                  script_chan: SharedChan<ScriptMsg>,
@@ -48,7 +48,7 @@ impl Engine {
         let opts = Cell(copy *opts);
 
         do spawn_listener::<Msg> |request| {
-            let render_task = RenderTask(compositor.clone(), opts.with_ref(|o| copy *o));
+            let render_task = RenderTask::new(compositor.clone(), opts.with_ref(|o| copy *o));
 
             let opts = opts.take();
             let layout_task = LayoutTask(render_task.clone(), image_cache_task.clone(), opts);
@@ -94,7 +94,7 @@ impl Engine {
 
                 let (response_port, response_chan) = comm::stream();
 
-                self.render_task.send(render_task::ExitMsg(response_chan));
+                self.render_task.channel.send(render_task::ExitMsg(response_chan));
                 response_port.recv();
 
                 self.image_cache_task.exit();

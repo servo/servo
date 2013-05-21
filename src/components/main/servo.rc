@@ -14,7 +14,7 @@
 extern mod alert;
 extern mod azure;
 extern mod geom;
-extern mod gfx (name = "servo_gfx");
+extern mod gfx (name = "gfx");
 extern mod glut;
 extern mod http_client;
 extern mod hubbub;
@@ -22,8 +22,8 @@ extern mod js;
 extern mod layers;
 extern mod newcss (name = "css");
 extern mod opengles;
-extern mod servo_net;
-extern mod servo_util (name = "servo_util");
+extern mod servo_net (name = "net");
+extern mod servo_util (name = "util");
 extern mod sharegl;
 extern mod stb_image;
 extern mod std;
@@ -33,7 +33,7 @@ extern mod core_graphics;
 #[cfg(target_os="macos")]
 extern mod core_text;
 
-use compositing::{AddKeyHandler, CompositorImpl};
+use compositing::CompositorTask;
 use engine::{Engine, LoadUrlMsg};
 
 use core::comm::SharedChan;
@@ -137,14 +137,10 @@ fn run(opts: &Opts) {
     let (script_port, script_chan) = comm::stream();
     let script_chan = SharedChan::new(script_chan);
 
-    // The platform event handler thread
-    let compositor = CompositorImpl::new(script_chan.clone(), copy *opts);
+    // Create the compositor.
+    let (compositor, shutdown_port) = CompositorTask::new(script_chan.clone());
 
-    // Send each file to render then wait for keypress
-    let (keypress_from_compositor, keypress_to_engine) = comm::stream();
-    compositor.chan.send(AddKeyHandler(keypress_to_engine));
-
-    // Create a servo instance
+    // Create a Servo instance.
     let resource_task = ResourceTask();
     let image_cache_task = ImageCacheTask(resource_task.clone());
     let engine_task = Engine::start(compositor.clone(),
@@ -154,25 +150,18 @@ fn run(opts: &Opts) {
                                     resource_task,
                                     image_cache_task);
 
+    // Send the URL command to the engine task.
     for opts.urls.each |filename| {
-        let url = make_url(copy *filename, None);
-
-        debug!("master: Sending url `%s`", url.to_str());
-        engine_task.send(LoadUrlMsg(url));
-
-        debug!("master: Waiting for keypress");
-        match keypress_from_compositor.try_recv() {
-            Some(*) => {}
-            None => error!("keypress stream closed unexpectedly"),
-        }
+        engine_task.send(LoadUrlMsg(make_url(copy *filename, None)))
     }
 
-    // Shut everything down
+    // Wait for the compositor to shut down.
+    shutdown_port.recv();
+
+    // Shut the engine down.
     debug!("master: Shut down");
     let (exit_response_from_engine, exit_chan) = comm::stream();
     engine_task.send(engine::ExitMsg(exit_chan));
     exit_response_from_engine.recv();
-
-    compositor.chan.send(compositing::Exit);
 }
 
