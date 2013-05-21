@@ -3,12 +3,10 @@ crate or library.
 
 ## Servo components
 
-* `components/contenttest`: JavaScript test runner.
-* `components/reftest`: Reference (layout) test runner.
-* `components/servo`: The top-level Servo crate. Contains compositing, DOM, layout, and script.
-* `components/servo-gfx`: Graphics rendering, fonts, and text shaping.
-* `components/servo-net`: Networking, caching, image decoding.
-* `components/servo-util`: Various utility functions used by other Servo components.
+* `components/gfx`: Graphics rendering, fonts, and text shaping.
+* `components/main`: The top-level Servo crate. Contains compositing, DOM, layout, and script.
+* `components/net`: Networking, caching, image decoding.
+* `components/util`: Various utility functions used by other Servo components.
 
 ## The Rust compiler
 
@@ -60,9 +58,14 @@ they are designed to be useful in other Rust projects.
 * `platform/macos/rust-core-text`: Bindings to Core Text.
 * `platform/macos/rust-io-surface`: Bindings to the `IOSurface` library.
 
+## Tests
+
+* `test/harness/contenttest`: JavaScript test runner.
+* `test/harness/reftest`: Reference (layout) test runner.
+* `test/html`: Test cases.
+
 ## Miscellaneous
 
 * `etc`: Various scripts and files that don't belong anywhere else.
 * `etc/patches`: Patches for upstream libraries.
-* `test`: Test cases.
 
