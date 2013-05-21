@@ -452,7 +452,7 @@ done
 make_dir ${CFG_BUILD_DIR}src/components/servo-util
 make_dir ${CFG_BUILD_DIR}src/components/servo-net
 make_dir ${CFG_BUILD_DIR}src/components/servo-gfx
-make_dir src/test/ref
+make_dir src/test/html/ref
 make_dir src/compiler/rust
 
 # TODO: don't run configure on submodules unless necessary. For an example,
