@@ -22,7 +22,7 @@ sudo port install autoconf213
 On Debian-based Linuxes:
 
 ``` sh
-sudo apt-get install autoconf2.13 curl freeglut3-dev libtool libfreetype6-dev libfontconfig1-dev libglib2.0-dev
+sudo apt-get install autoconf2.13 curl freeglut3-dev libtool libfreetype6-dev libfontconfig1-dev libgl1-mesa-dri libglib2.0-dev
 ```
 
 Servo builds its own copy of Rust, so there is no need to provide a Rust
