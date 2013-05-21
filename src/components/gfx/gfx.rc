@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[link(name = "servo_gfx",
+#[link(name = "gfx",
        vers = "0.1",
        uuid = "0106bb54-6ea9-45bf-a39e-a738621f15e5",
        url = "http://servo.org/")];
@@ -13,8 +13,8 @@ extern mod geom;
 extern mod http_client;
 extern mod stb_image;
 extern mod std;
-extern mod servo_net;
-extern mod servo_util (name = "servo_util");
+extern mod servo_net (name = "net");
+extern mod servo_util (name = "util");
 
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, this is a hard dependency.
