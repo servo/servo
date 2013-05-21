@@ -8,8 +8,11 @@
 /// least on desktops. It is designed for testing Servo without the need of a UI.
 
 use windowing::{ApplicationMethods, CompositeCallback, LoadUrlCallback, ResizeCallback};
-use windowing::{WindowMethods};
+use windowing::{ScrollCallback, WindowMethods};
 
+use alert::{Alert, AlertMethods};
+use core::libc::c_int;
+use geom::point::Point2D;
 use geom::size::Size2D;
 use glut::glut::{DOUBLE, WindowHeight, WindowWidth};
 use glut::glut;
@@ -32,6 +35,9 @@ pub struct Window {
     composite_callback: Option<CompositeCallback>,
     resize_callback: Option<ResizeCallback>,
     load_url_callback: Option<LoadUrlCallback>,
+    scroll_callback: Option<ScrollCallback>,
+
+    drag_origin: Point2D<c_int>,
 }
 
 impl WindowMethods<Application> for Window {
@@ -48,6 +54,9 @@ impl WindowMethods<Application> for Window {
             composite_callback: None,
             resize_callback: None,
             load_url_callback: None,
+            scroll_callback: None,
+
+            drag_origin: Point2D(0, 0),
         };
 
         // Register event handlers.
@@ -66,6 +75,12 @@ impl WindowMethods<Application> for Window {
         }
         do glut::keyboard_func |key, _, _| {
             window.handle_key(key)
+        }
+        do glut::mouse_func |_, _, x, y| {
+            window.start_drag(x, y)
+        }
+        do glut::motion_func |x, y| {
+            window.continue_drag(x, y)
         }
 
         window
@@ -97,9 +112,19 @@ impl WindowMethods<Application> for Window {
         self.load_url_callback = Some(new_load_url_callback)
     }
 
+    /// Registers a callback to be run when the user scrolls.
+    pub fn set_scroll_callback(&mut self, new_scroll_callback: ScrollCallback) {
+        self.scroll_callback = Some(new_scroll_callback)
+    }
+
     /// Spins the event loop.
     pub fn check_loop(@mut self) {
         glut::check_loop()
+    }
+
+    /// Schedules a redisplay.
+    pub fn set_needs_display(@mut self) {
+        glut::post_redisplay()
     }
 }
 
@@ -112,11 +137,38 @@ impl Window {
         }
     }
 
+    /// Helper function to start a drag.
+    fn start_drag(&mut self, x: c_int, y: c_int) {
+        self.drag_origin = Point2D(x, y)
+    }
+
+    /// Helper function to continue a drag.
+    fn continue_drag(&mut self, x: c_int, y: c_int) {
+        let new_point = Point2D(x, y);
+        let delta = new_point - self.drag_origin;
+        self.drag_origin = new_point;
+
+        match self.scroll_callback {
+            None => {}
+            Some(callback) => callback(Point2D(delta.x as f32, delta.y as f32)),
+        }
+    }
+
     /// Helper function to pop up an alert box prompting the user to load a URL.
     fn load_url(&self) {
         match self.load_url_callback {
             None => error!("no URL callback registered, doing nothing"),
-            Some(callback) => callback("http://purple.com/"),
+            Some(callback) => {
+                let mut alert: Alert = AlertMethods::new("Navigate to:");
+                alert.add_prompt();
+                alert.run();
+                let value = alert.prompt_value();
+                if "" == value {    // To avoid crashing on Linux.
+                    callback("http://purple.com/")
+                } else {
+                    callback(value)
+                }
+            }
         }
     }
 }

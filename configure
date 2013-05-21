@@ -398,6 +398,7 @@ AUTOCMD="${LIBTOOLIZE} && autoconf && autoheader && automake --add-missing --cop
 # Copied from cairo's autogen.sh. Build fails without
 
 CFG_SUBMODULES="\
+    support/alert/rust-alert \
     support/azure/rust-azure \
     support/css/rust-css \
     support/geom/rust-geom \

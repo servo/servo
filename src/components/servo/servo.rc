@@ -11,6 +11,7 @@
 #[license = "MPL"];
 #[crate_type = "lib"];
 
+extern mod alert;
 extern mod azure;
 extern mod geom;
 extern mod gfx (name = "servo_gfx");
