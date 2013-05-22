@@ -7,7 +7,7 @@ use dom::bindings::utils::jsval_to_str;
 use dom::bindings::utils::{domstring_to_jsval, WrapNewBindingObject};
 use dom::bindings::utils::{str, CacheableWrapper, DOM_OBJECT_SLOT, DOMString};
 use dom::element::*;
-use dom::node::{AbstractNode, Element, ElementNodeTypeId};
+use dom::node::{AbstractNode, Element, ElementNodeTypeId, ScriptView};
 use layout::layout_task;
 use scripting::script_task::task_from_context;
 use super::utils;
@@ -26,7 +26,7 @@ use js::{JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("element finalize: %x!", obj as uint);
     unsafe {
-        let node: AbstractNode = unwrap(obj);
+        let node: AbstractNode<ScriptView> = unwrap(obj);
         //XXXjdm We need separate finalizers for each specialty element type like headings
         let _elem: ~Element = cast::transmute(node.raw_object());
     }
@@ -35,7 +35,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
 pub extern fn trace(tracer: *mut JSTracer, obj: *JSObject) {
     let node = unsafe { unwrap(obj) };
 
-    fn trace_node(tracer: *mut JSTracer, node: Option<AbstractNode>, name: &str) {
+    fn trace_node(tracer: *mut JSTracer, node: Option<AbstractNode<ScriptView>>, name: &str) {
         if node.is_none() {
             return;
         }
@@ -278,7 +278,7 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     return 1;
 }
 
-pub fn create(cx: *JSContext, node: &mut AbstractNode) -> jsobj {
+pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
     let proto = match node.type_id() {
         ElementNodeTypeId(HTMLDivElementTypeId) => ~"HTMLDivElement",
         ElementNodeTypeId(HTMLHeadElementTypeId) => ~"HTMLHeadElement",

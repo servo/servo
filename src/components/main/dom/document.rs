@@ -5,7 +5,7 @@
 use dom::bindings::document;
 use dom::bindings::utils::{DOMString, WrapperCache};
 use dom::htmlcollection::HTMLCollection;
-use dom::node::AbstractNode;
+use dom::node::{AbstractNode, ScriptView};
 use dom::window::Window;
 use scripting::script_task::global_script_context;
 
@@ -13,12 +13,12 @@ use js::jsapi::bindgen::{JS_AddObjectRoot, JS_RemoveObjectRoot};
 use servo_util::tree::{TreeNodeRef, TreeUtils};
 
 pub struct Document {
-    root: AbstractNode,
+    root: AbstractNode<ScriptView>,
     wrapper: WrapperCache,
     window: Option<@mut Window>,
 }
 
-pub fn Document(root: AbstractNode, window: Option<@mut Window>) -> @mut Document {
+pub fn Document(root: AbstractNode<ScriptView>, window: Option<@mut Window>) -> @mut Document {
     let doc = @mut Document {
         root: root,
         wrapper: WrapperCache::new(),

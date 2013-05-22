@@ -6,7 +6,7 @@
 // Element nodes.
 //
 
-use dom::node::{ElementNodeTypeId, Node};
+use dom::node::{ElementNodeTypeId, Node, ScriptView};
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::bindings::utils::DOMString;
@@ -18,7 +18,7 @@ use core::cell::Cell;
 use std::net::url::Url;
 
 pub struct Element {
-    parent: Node,
+    parent: Node<ScriptView>,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
     attrs: ~[Attr],
 }

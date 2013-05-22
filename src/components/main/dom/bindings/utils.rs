@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::node;
-use dom::node::AbstractNode;
+use dom::node::{AbstractNode, ScriptView};
 use js::glue::bindgen::*;
 use js::glue::bindgen::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB, RESOLVE_STUB};
@@ -760,7 +760,7 @@ pub trait DerivedWrapper {
     fn wrap_shared(@mut self, cx: *JSContext, scope: *JSObject, vp: *mut JSVal) -> i32;
 }
 
-impl DerivedWrapper for AbstractNode {
+impl DerivedWrapper for AbstractNode<ScriptView> {
     fn wrap(&mut self, cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
         let cache = self.get_wrappercache();
         let wrapper = cache.get_wrapper();

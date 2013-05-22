@@ -5,7 +5,7 @@
 //! The `RenderBox` type, which represents the leaves of the layout tree.
 
 use css::node_style::StyledNode;
-use dom::node::AbstractNode;
+use dom::node::{AbstractNode, LayoutView};
 use layout::context::LayoutContext;
 use layout::debug::DebugMethods;
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
@@ -145,7 +145,7 @@ pub enum SplitBoxResult {
 /// Data common to all render boxes.
 pub struct RenderBoxBase {
     /// The DOM node that this `RenderBox` originates from.
-    node: AbstractNode,
+    node: AbstractNode<LayoutView>,
 
     /// The reference to the containing flow context which this box participates in.
     ctx: FlowContext,
@@ -161,7 +161,8 @@ pub struct RenderBoxBase {
 
 impl RenderBoxBase {
     /// Constructs a new `RenderBoxBase` instance.
-    pub fn new(node: AbstractNode, flow_context: FlowContext, id: int) -> RenderBoxBase {
+    pub fn new(node: AbstractNode<LayoutView>, flow_context: FlowContext, id: int)
+               -> RenderBoxBase {
         RenderBoxBase {
             node: node,
             ctx: flow_context,
@@ -501,7 +502,7 @@ pub impl RenderBox {
     }
 
     /// A convenience function to access the DOM node that this render box represents.
-    fn node(&self) -> AbstractNode {
+    fn node(&self) -> AbstractNode<LayoutView> {
         self.with_imm_base(|base| base.node)
     }
 
@@ -509,7 +510,7 @@ pub impl RenderBox {
     /// represents.
     ///
     /// If there is no ancestor-or-self `Element` node, fails.
-    fn nearest_ancestor_element(&self) -> AbstractNode {
+    fn nearest_ancestor_element(&self) -> AbstractNode<LayoutView> {
         do self.with_imm_base |base| {
             let mut node = base.node;
             while !node.is_element() {

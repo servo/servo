@@ -7,7 +7,7 @@ use dom::bindings::node::unwrap;
 use dom::bindings::utils;
 use dom::bindings::utils::{DOM_OBJECT_SLOT, CacheableWrapper};
 use dom::node::{AbstractNode, Text, Comment, Doctype, TextNodeTypeId, CommentNodeTypeId};
-use dom::node::{DoctypeNodeTypeId};
+use dom::node::{DoctypeNodeTypeId, ScriptView};
 
 use js::jsapi::{JSFreeOp, JSObject, JSContext};
 use js::jsapi::bindgen::{JS_SetReservedSlot};
@@ -17,7 +17,7 @@ use js::rust::{Compartment, jsobj};
 extern fn finalize_text(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("text finalize: %?!", obj as uint);
     unsafe {
-        let node: AbstractNode = unwrap(obj);
+        let node: AbstractNode<ScriptView> = unwrap(obj);
         let _elem: ~Text = cast::transmute(node.raw_object());
     }
 }
@@ -25,7 +25,7 @@ extern fn finalize_text(_fop: *JSFreeOp, obj: *JSObject) {
 extern fn finalize_comment(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("comment finalize: %?!", obj as uint);
     unsafe {
-        let node: AbstractNode = unwrap(obj);
+        let node: AbstractNode<ScriptView> = unwrap(obj);
         let _elem: ~Comment = cast::transmute(node.raw_object());
     }
 }
@@ -33,8 +33,8 @@ extern fn finalize_comment(_fop: *JSFreeOp, obj: *JSObject) {
 extern fn finalize_doctype(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("doctype finalize: %?!", obj as uint);
     unsafe {
-        let node: AbstractNode = unwrap(obj);
-        let _elem: ~Doctype = cast::transmute(node.raw_object());
+        let node: AbstractNode<ScriptView> = unwrap(obj);
+        let _elem: ~Doctype<ScriptView> = cast::transmute(node.raw_object());
     }
 }
 
@@ -64,7 +64,7 @@ pub fn init(compartment: @mut Compartment) {
     
 }
 
-pub fn create(cx: *JSContext, node: &mut AbstractNode) -> jsobj {
+pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
     let (proto, instance) = match node.type_id() {
       TextNodeTypeId => (~"TextPrototype", ~"Text"),
       CommentNodeTypeId => (~"CommentPrototype", ~"Comment"),
