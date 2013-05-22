@@ -638,6 +638,14 @@ impl InlineFlowData {
             elems: ElementMapping::new(),
         }
     }
+
+    pub fn teardown(&mut self) {
+        self.common.teardown();
+        for self.boxes.each |box| {
+            box.teardown();
+        }
+        self.boxes = ~[];
+    }
 }
 
 pub trait InlineLayout {

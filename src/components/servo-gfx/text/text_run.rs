@@ -51,6 +51,10 @@ pub impl<'self> TextRun {
         return run;
     }
 
+    fn teardown(&self) {
+        self.font.teardown();
+    }
+
     fn compute_potential_breaks(text: &str, glyphs: &mut GlyphStore) {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
 
