@@ -116,7 +116,7 @@ pub impl FontListHandle {
                 let font_handle = font_handle.unwrap();
 
                 debug!("Creating new FontEntry for face: %s", font_handle.face_name());
-                let entry = @FontEntry::new(family, font_handle);
+                let entry = @FontEntry::new(font_handle);
                 family.entries.push(entry);
             }
 
