@@ -1454,7 +1454,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
         """
         if failureCode is None:
             if not haveSuccessCode:
-                return wrapCall + ";\n" + "return if *vp != 0 { 1 } else { 0 };"
+                return wrapCall + ";\n" + "return if (*vp).v != 0 { 1 } else { 0 };"
             failureCode = "return 0;"
         str = ("if !%s {\n" +
                CGIndenter(CGGeneric(failureCode)).define() + "\n" +
