@@ -4,9 +4,6 @@
 
 //! Creates CSS boxes from a DOM tree.
 
-use dom::element::*;
-use dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
-use dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
 use layout::aux::LayoutAuxMethods;
 use layout::block::BlockFlowData;
 use layout::box::{GenericRenderBoxClass, ImageRenderBox, ImageRenderBoxClass, RenderBox};
@@ -20,6 +17,9 @@ use layout::inline::{InlineFlowData, InlineLayout};
 
 use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
 use newcss::values::{CSSDisplayNone};
+use script::dom::element::*;
+use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
+use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
 use servo_util::range::Range;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
 

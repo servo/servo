@@ -17,7 +17,7 @@ use js::jsapi::{JSStrictPropertyOpWrapper, JSNativeWrapper, JSFunctionSpec};
 use js::rust::{Compartment, jsobj};
 use js::{JSPROP_NATIVE_ACCESSORS};
 use js::{JS_ARGV, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL, JS_THIS_OBJECT, JS_SET_RVAL};
-use scripting::script_task::task_from_context;
+use script_task::task_from_context;
 
 use core::libc::c_uint;
 use core::ptr::null;

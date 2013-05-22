@@ -7,7 +7,7 @@ use dom::bindings::utils::{DOMString, WrapperCache};
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{AbstractNode, ScriptView};
 use dom::window::Window;
-use scripting::script_task::global_script_context;
+use script_task::global_script_context;
 
 use js::jsapi::bindgen::{JS_AddObjectRoot, JS_RemoveObjectRoot};
 use servo_util::tree::{TreeNodeRef, TreeUtils};

@@ -9,7 +9,7 @@ use dom::bindings::utils::{str, CacheableWrapper, DOM_OBJECT_SLOT, DOMString};
 use dom::element::*;
 use dom::node::{AbstractNode, Element, ElementNodeTypeId, ScriptView};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
-use scripting::script_task::task_from_context;
+use script_task::task_from_context;
 use super::utils;
 
 use core::libc::c_uint;

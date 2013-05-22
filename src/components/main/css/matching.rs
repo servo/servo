@@ -6,10 +6,10 @@
 
 use css::node_util::NodeUtil;
 use css::select_handler::NodeSelectHandler;
-use dom::node::{AbstractNode, LayoutView};
+
+use script::dom::node::{AbstractNode, LayoutView};
 use newcss::complete::CompleteSelectResults;
 use newcss::select::{SelectCtx, SelectResults};
-
 use servo_util::tree::TreeUtils;
 
 pub trait MatchMethods {

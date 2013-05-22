@@ -4147,7 +4147,7 @@ class CGBindingRoot(CGThing):
                           'dom::domparser::*', #XXXjdm
                           'dom::event::*', #XXXjdm
                           'dom::eventtarget::*', #XXXjdm
-                          'scripting::script_task::task_from_context',
+                          'script_task::task_from_context',
                           'dom::bindings::utils::EnumEntry',
                           'dom::node::ScriptView',
                          ], 

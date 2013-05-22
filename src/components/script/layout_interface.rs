@@ -7,7 +7,7 @@
 /// from layout.
 
 use dom::node::{AbstractNode, ScriptView};
-use scripting::script_task::ScriptMsg;
+use script_task::ScriptMsg;
 
 use core::comm::{Chan, SharedChan};
 use geom::rect::Rect;

@@ -5,7 +5,6 @@
 //! The `RenderBox` type, which represents the leaves of the layout tree.
 
 use css::node_style::StyledNode;
-use dom::node::{AbstractNode, LayoutView};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
 use layout::flow::FlowContext;
@@ -28,6 +27,7 @@ use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
 use newcss::values::{CSSFontStyleOblique, CSSTextAlign, CSSTextDecoration};
 use newcss::values::{CSSTextDecorationNone, CSSFloatNone, CSSPositionStatic};
 use newcss::values::{CSSDisplayInlineBlock, CSSDisplayInlineTable};
+use script::dom::node::{AbstractNode, LayoutView};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::range::*;

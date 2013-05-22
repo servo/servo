@@ -4,7 +4,7 @@
 
 use compositing::resize_rate_limiter::ResizeRateLimiter;
 use platform::{Application, Window};
-use scripting::script_task::{LoadMsg, ScriptMsg};
+use script::script_task::{LoadMsg, ScriptMsg};
 use windowing::{ApplicationMethods, WindowMethods};
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods};

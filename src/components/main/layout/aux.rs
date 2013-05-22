@@ -4,10 +4,10 @@
 
 //! Code for managing the layout data in the DOM.
 
-use dom::node::{AbstractNode, LayoutView};
 use layout::flow::FlowContext;
 
 use newcss::complete::CompleteSelectResults;
+use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::tree::TreeUtils;
 
 /// Data that layout associates with a node.

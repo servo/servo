@@ -12,10 +12,12 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
-use scripting::script_task::global_script_context;
+use script_task::global_script_context;
 
 use core::cast::transmute;
+use core::libc::c_void;
 use js::rust::Compartment;
+use netsurfcss::util::VoidPtrLike;
 use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
 
 //
@@ -421,6 +423,23 @@ impl Node<ScriptView> {
             owner_doc: None,
 
             layout_data: None,
+        }
+    }
+}
+
+/// The CSS library requires that DOM nodes be convertible to `*c_void` via the `VoidPtrLike`
+/// trait.
+impl VoidPtrLike for AbstractNode<LayoutView> {
+    fn from_void_ptr(node: *c_void) -> AbstractNode<LayoutView> {
+        assert!(node.is_not_null());
+        unsafe {
+            cast::transmute(node)
+        }
+    }
+
+    fn to_void_ptr(&self) -> *c_void {
+        unsafe {
+            cast::transmute(*self)
         }
     }
 }

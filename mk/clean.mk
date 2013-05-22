@@ -34,5 +34,8 @@ clean-net:
 clean-gfx:
 	cd $(B)/src/components/gfx/ && rm -rf libservo_gfx*.dylib $(DONE_servo_gfx)
 
-clean-servo: clean-gfx clean-util clean-net
+clean-script:
+	cd $(B)/src/components/script/ && rm -rf libservo_script*.dylib $(DONE_servo_script)
+
+clean-servo: clean-gfx clean-util clean-net clean-script
 	rm -f servo servo-test

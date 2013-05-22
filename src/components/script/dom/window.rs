@@ -5,10 +5,9 @@
 use dom::bindings::utils::WrapperCache;
 use dom::bindings::window;
 use layout_interface::MatchSelectorsDamage;
-use scripting::script_task::{ExitMsg, FireTimerMsg, ScriptMsg, ScriptContext};
-use util::task::spawn_listener;
+use script_task::{ExitMsg, FireTimerMsg, ScriptMsg, ScriptContext};
 
-use core::comm::{Port, Chan, SharedChan};
+use core::comm::{Chan, SharedChan};
 use js::jsapi::JSVal;
 use std::timer;
 use std::uv_global_loop;
@@ -95,7 +94,8 @@ pub impl Window {
             wrapper: WrapperCache::new(),
             script_chan: script_chan,
             timer_chan: {
-                do spawn_listener |timer_port: Port<TimerControlMsg>| {
+                let (timer_port, timer_chan) = comm::stream::<TimerControlMsg>();
+                do spawn {
                     loop {
                         match timer_port.recv() {
                             TimerMessage_Close => break,
@@ -104,6 +104,7 @@ pub impl Window {
                         }
                     }
                 }
+                timer_chan
             },
             script_context: script_context,
         };
