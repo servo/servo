@@ -132,7 +132,6 @@ impl FontFamily {
 /// In the common case, each FontFamily will have a singleton FontEntry, or it will have the
 /// standard four faces: Normal, Bold, Italic, BoldItalic.
 pub struct FontEntry {
-    family: @mut FontFamily,
     face_name: ~str,
     priv weight: CSSFontWeight,
     priv italic: bool,
@@ -141,9 +140,8 @@ pub struct FontEntry {
 }
 
 impl FontEntry {
-    pub fn new(family: @mut FontFamily, handle: FontHandle) -> FontEntry {
+    pub fn new(handle: FontHandle) -> FontEntry {
         FontEntry {
-            family: family,
             face_name: handle.face_name(),
             weight: handle.boldness(),
             italic: handle.is_italic(),

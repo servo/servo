@@ -34,18 +34,6 @@ pub fn Document(root: AbstractNode, window: Option<@mut Window>) -> @mut Documen
     doc
 }
 
-#[unsafe_destructor]
-impl Drop for Document {
-    fn finalize(&self) {
-        let compartment = global_script_context().js_compartment;
-        do self.root.with_base |base| {
-            assert!(base.wrapper.get_wrapper().is_not_null());
-            let rootable = base.wrapper.get_rootable();
-            JS_RemoveObjectRoot(compartment.cx.ptr, rootable);
-        }
-    }
-}
-
 pub impl Document {
     fn getElementsByTagName(&self, tag: DOMString) -> Option<@mut HTMLCollection> {
         let mut elements = ~[];
@@ -65,6 +53,15 @@ pub impl Document {
     fn content_changed(&self) {
         for self.window.each |window| {
             window.content_changed()
+        }
+    }
+
+    fn teardown(&self) {
+        let compartment = global_script_context().js_compartment;
+        do self.root.with_base |node| {
+            assert!(node.wrapper.get_wrapper().is_not_null());
+            let rootable = node.wrapper.get_rootable();
+            JS_RemoveObjectRoot(compartment.cx.ptr, rootable);
         }
     }
 }

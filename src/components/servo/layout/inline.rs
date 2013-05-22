@@ -316,11 +316,18 @@ impl TextRunScanner {
                 // and then letting `FontGroup` decide which `Font` to stick into the text run.
                 let font_style = in_boxes[self.clump.begin()].font_style();
                 let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
-                let run = @TextRun::new(fontgroup.fonts[0], run_str);
+
+                // TextRuns contain a cycle which is usually resolved by the teardown
+                // sequence. If no clump takes ownership, however, it will leak.
+                let clump = self.clump;
+                let run = if clump.length() != 0 {
+                    Some(@TextRun::new(fontgroup.fonts[0], run_str))
+                } else {
+                    None
+                };
 
                 // Make new boxes with the run and adjusted text indices.
                 debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
-                let clump = self.clump;
                 for clump.eachi |i| {
                     let range = new_ranges[i - self.clump.begin()];
                     if range.length() == 0 { 
@@ -331,7 +338,7 @@ impl TextRunScanner {
                     }
 
                     do in_boxes[i].with_imm_base |base| {
-                        let new_box = @mut adapt_textbox_with_range(*base, run, range);
+                        let new_box = @mut adapt_textbox_with_range(*base, run.get(), range);
                         out_boxes.push(TextRenderBoxClass(new_box));
                     }
                 }
@@ -637,6 +644,14 @@ impl InlineFlowData {
             lines: ~[],
             elems: ElementMapping::new(),
         }
+    }
+
+    pub fn teardown(&mut self) {
+        self.common.teardown();
+        for self.boxes.each |box| {
+            box.teardown();
+        }
+        self.boxes = ~[];
     }
 }
 

@@ -67,6 +67,43 @@ impl Clone for FlowContext {
     }
 }
 
+impl FlowContext {
+    pub fn teardown(&self) {
+        match *self {
+          AbsoluteFlow(data) |
+          FloatFlow(data) |
+          InlineBlockFlow(data) |
+          TableFlow(data) => data.teardown(),
+          BlockFlow(data) => data.teardown(),
+          InlineFlow(data) => data.teardown()
+        }
+    }
+}
+
+impl FlowData {
+    pub fn teardown(&mut self) {
+        // Under the assumption that all flows exist in a tree,
+        // we must restrict ourselves to finalizing flows that
+        // are descendents and subsequent siblings to ourselves,
+        // or we risk dynamic borrow failures.
+        self.parent = None;
+
+        for self.first_child.each |flow| {
+            flow.teardown();
+        }
+        self.first_child = None;
+
+        self.last_child = None;
+
+        for self.next_sibling.each |flow| {
+            flow.teardown();
+        }
+        self.next_sibling = None;
+
+        self.prev_sibling = None;
+    }
+}
+
 impl TreeNodeRef<FlowData> for FlowContext {
     fn with_base<R>(&self, callback: &fn(&FlowData) -> R) -> R {
         match *self {
