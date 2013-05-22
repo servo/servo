@@ -2,19 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//
-// Element nodes.
-//
+//! Element nodes.
 
-use dom::node::{ElementNodeTypeId, Node, ScriptView};
+use dom::bindings::utils::DOMString;
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
-use dom::bindings::utils::DOMString;
+use dom::node::{ElementNodeTypeId, Node, ScriptView};
+use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
+use layout_interface::{ContentBoxesResponse};
 
-use layout::layout_task;
-
-use core::str::eq_slice;
 use core::cell::Cell;
+use core::str::eq_slice;
 use std::net::url::Url;
 
 pub struct Element {
@@ -169,9 +167,9 @@ pub impl<'self> Element {
                         let script_context = unsafe {
                             &mut *win.script_context
                         };
-                        match script_context.query_layout(layout_task::ContentBoxes(node)) {
+                        match script_context.query_layout(ContentBoxesQuery(node)) {
                             Ok(rects) => match rects {
-                                layout_task::ContentRects(rects) =>
+                                ContentBoxesResponse(rects) =>
                                     do rects.map |r| {
                                         ClientRect::new(
                                              r.origin.y.to_f32(),
@@ -209,9 +207,9 @@ pub impl<'self> Element {
                         let node = self.parent.abstract.get();
                         assert!(node.is_element());
                         let script_context = unsafe { &mut *win.script_context };
-                        match script_context.query_layout(layout_task::ContentBox(node)) {
+                        match script_context.query_layout(ContentBoxQuery(node)) {
                             Ok(rect) => match rect {
-                                layout_task::ContentRect(rect) =>
+                                ContentBoxResponse(rect) =>
                                     Some(ClientRect::new(
                                              rect.origin.y.to_f32(),
                                              (rect.origin.y + rect.size.height).to_f32(),

@@ -3,8 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use compositing::CompositorTask;
-use layout::layout_task::LayoutTask;
 use layout::layout_task;
+use layout_interface::LayoutTask;
+use layout_interface;
 use scripting::script_task::{ExecuteMsg, LoadMsg, ScriptMsg, ScriptTask};
 use scripting::script_task;
 use util::task::spawn_listener;
@@ -61,10 +62,10 @@ impl Engine {
                                               profiler_chan.clone());
 
             let opts = opts.take();
-            let layout_task = LayoutTask(render_task.clone(),
-                                         image_cache_task.clone(),
-                                         opts,
-                                         profiler_task.chan.clone());
+            let layout_task = layout_task::create_layout_task(render_task.clone(),
+                                                              image_cache_task.clone(),
+                                                              opts,
+                                                              profiler_task.chan.clone());
 
             let script_task = ScriptTask::new(script_port.take(),
                                               script_chan.take(),
@@ -105,7 +106,7 @@ impl Engine {
 
             ExitMsg(sender) => {
                 self.script_task.chan.send(script_task::ExitMsg);
-                self.layout_task.send(layout_task::ExitMsg);
+                self.layout_task.chan.send(layout_interface::ExitMsg);
 
                 let (response_port, response_chan) = comm::stream();
 
