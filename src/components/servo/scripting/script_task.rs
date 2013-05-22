@@ -285,6 +285,10 @@ impl ScriptContext {
 
     /// Handles a request to exit the script task and shut down layout.
     fn handle_exit_msg(&mut self) {
+        self.join_layout();
+        for self.root_frame.each |frame| {
+            frame.document.teardown();
+        }
         self.layout_task.send(layout_task::ExitMsg)
     }
 

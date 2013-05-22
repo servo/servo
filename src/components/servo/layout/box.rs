@@ -59,6 +59,15 @@ pub enum RenderBox {
     UnscannedTextRenderBoxClass(@mut UnscannedTextRenderBox),
 }
 
+impl RenderBox {
+    pub fn teardown(&self) {
+        match *self {
+            TextRenderBoxClass(box) => box.teardown(),
+            _ => ()
+        }
+    }
+}
+
 /// A box that represents a (replaced content) image and its accompanying borders, shadows, etc.
 pub struct ImageRenderBox {
     base: RenderBoxBase,
@@ -86,6 +95,12 @@ pub struct TextRenderBox {
 
     // TODO: Flatten `TextBoxData` into this type.
     text_data: TextBoxData,
+}
+
+impl TextRenderBox {
+    fn teardown(&self) {
+        self.text_data.teardown();
+    }
 }
 
 /// The data for an unscanned text box.

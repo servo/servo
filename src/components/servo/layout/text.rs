@@ -21,6 +21,10 @@ impl TextBoxData {
             range: range,
         }
     }
+
+    pub fn teardown(&self) {
+        self.run.teardown();
+    }
 }
 
 pub fn adapt_textbox_with_range(mut base: RenderBoxBase, run: @TextRun, range: Range)

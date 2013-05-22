@@ -51,7 +51,7 @@ pub impl FontListHandle {
             let handle = result::unwrap(FontHandle::new_from_CTFont(&self.fctx, font));
 
             debug!("Creating new FontEntry for face: %s", handle.face_name());
-            let entry = @FontEntry::new(family, handle);
+            let entry = @FontEntry::new(handle);
             family.entries.push(entry)
         }
     }

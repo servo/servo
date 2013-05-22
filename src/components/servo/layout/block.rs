@@ -45,6 +45,14 @@ impl BlockFlowData {
             is_root: true
         }
     }
+
+    pub fn teardown(&mut self) {
+        self.common.teardown();
+        for self.box.each |box| {
+            box.teardown();
+        }
+        self.box = None;
+    }
 }
 
 pub trait BlockLayout {
