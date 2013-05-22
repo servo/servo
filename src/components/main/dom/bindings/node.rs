@@ -7,7 +7,7 @@ use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
-use dom::node::{DoctypeNodeTypeId};
+use dom::node::{DoctypeNodeTypeId, ScriptView};
 
 use core::libc::c_uint;
 use core::ptr::null;
@@ -58,7 +58,7 @@ pub fn init(compartment: @mut Compartment) {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub fn create(cx: *JSContext, node: &mut AbstractNode) -> jsobj {
+pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
     match node.type_id() {
         ElementNodeTypeId(_) => element::create(cx, node),
         TextNodeTypeId |
@@ -67,8 +67,8 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode) -> jsobj {
      }
 }
 
-pub unsafe fn unwrap(obj: *JSObject) -> AbstractNode {
-    let raw = utils::unwrap::<*mut Node>(obj);
+pub unsafe fn unwrap(obj: *JSObject) -> AbstractNode<ScriptView> {
+    let raw = utils::unwrap::<*mut Node<ScriptView>>(obj);
     AbstractNode::from_raw(raw)
 }
 
@@ -116,7 +116,7 @@ extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBoo
     return 1;
 }
 
-impl Node {
+impl Node<ScriptView> {
     fn getNodeType(&self) -> i32 {
         match self.type_id {
             ElementNodeTypeId(_) => 1,
@@ -126,7 +126,7 @@ impl Node {
         }
     }
 
-    fn getNextSibling(&mut self) -> Option<&mut AbstractNode> {
+    fn getNextSibling(&mut self) -> Option<&mut AbstractNode<ScriptView>> {
         match self.next_sibling {
             // transmute because the compiler can't deduce that the reference
             // is safe outside of with_mut_base blocks.
@@ -135,7 +135,7 @@ impl Node {
         }
     }
 
-    fn getFirstChild(&mut self) -> Option<&mut AbstractNode> {
+    fn getFirstChild(&mut self) -> Option<&mut AbstractNode<ScriptView>> {
         match self.first_child {
             // transmute because the compiler can't deduce that the reference
             // is safe outside of with_mut_base blocks.
@@ -161,7 +161,7 @@ extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     return 1;
 }
 
-impl CacheableWrapper for AbstractNode {
+impl CacheableWrapper for AbstractNode<ScriptView> {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         do self.with_mut_base |base| {
             unsafe {

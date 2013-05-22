@@ -5,7 +5,8 @@
 // Style retrieval from DOM elements.
 
 use css::node_util::NodeUtil;
-use dom::node::AbstractNode;
+use dom::node::{AbstractNode, LayoutView};
+
 use newcss::complete::CompleteStyle;
 
 /// Node mixin providing `style` method that returns a `NodeStyle`
@@ -13,7 +14,7 @@ pub trait StyledNode {
     fn style(&self) -> CompleteStyle;
 }
 
-impl StyledNode for AbstractNode {
+impl StyledNode for AbstractNode<LayoutView> {
     fn style(&self) -> CompleteStyle {
         assert!(self.is_element()); // Only elements can have styles
         let results = self.get_css_select_results();

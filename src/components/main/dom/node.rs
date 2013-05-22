@@ -13,65 +13,75 @@ use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
 use layout::debug::DebugMethods;
-use layout::flow::FlowContext;
 use scripting::script_task::global_script_context;
 
 use core::cast::transmute;
 use js::rust::Compartment;
-use newcss::complete::CompleteSelectResults;
 use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
 
 //
 // The basic Node structure
 //
 
+/// A phantom type representing the script task's view of this node. Script is able to mutate
+/// nodes but may not access layout data.
+pub struct ScriptView;
+
+/// A phantom type representing the layout task's view of the node. Layout is not allowed to mutate
+/// nodes but may access layout data.
+pub struct LayoutView;
+
 /// This is what a Node looks like if you do not know what kind of node it is. To unpack it, use
 /// downcast().
 ///
 /// FIXME: This should be replaced with a trait once they can inherit from structs.
-pub struct AbstractNode {
-    priv obj: *mut Node,
+pub struct AbstractNode<View> {
+    priv obj: *mut Node<View>,
 }
 
-impl Eq for AbstractNode {
-    fn eq(&self, other: &AbstractNode) -> bool {
+impl<View> Eq for AbstractNode<View> {
+    fn eq(&self, other: &AbstractNode<View>) -> bool {
         self.obj == other.obj
     }
-    fn ne(&self, other: &AbstractNode) -> bool {
+    fn ne(&self, other: &AbstractNode<View>) -> bool {
         self.obj != other.obj
     }
 }
 
 /// An HTML node.
-pub struct Node {
+///
+/// `View` describes extra data associated with this node that this task has access to. For
+/// the script task, this is the unit type `()`. For the layout task, this is
+/// `layout::aux::LayoutData`.
+pub struct Node<View> {
     /// The JavaScript wrapper for this node.
     wrapper: WrapperCache,
 
     /// The type of node that this is.
     type_id: NodeTypeId,
 
-    abstract: Option<AbstractNode>,
+    abstract: Option<AbstractNode<View>>,
 
     /// The parent of this node.
-    parent_node: Option<AbstractNode>,
+    parent_node: Option<AbstractNode<View>>,
 
     /// The first child of this node.
-    first_child: Option<AbstractNode>,
+    first_child: Option<AbstractNode<View>>,
 
     /// The last child of this node.
-    last_child: Option<AbstractNode>,
+    last_child: Option<AbstractNode<View>>,
 
     /// The next sibling of this node.
-    next_sibling: Option<AbstractNode>,
+    next_sibling: Option<AbstractNode<View>>,
 
     /// The previous sibling of this node.
-    prev_sibling: Option<AbstractNode>,
+    prev_sibling: Option<AbstractNode<View>>,
 
     /// The document that this node belongs to.
     owner_doc: Option<@mut Document>,
 
-    /// Layout information. You must not touch this if you are not layout.
-    priv layout_data: Option<@mut LayoutData>
+    /// Layout information. Only the layout task may touch this data.
+    priv layout_data: Option<@mut ()>
 }
 
 /// The different types of nodes.
@@ -84,48 +94,25 @@ pub enum NodeTypeId {
 }
 
 //
-// Auxiliary layout data
-//
-
-/// Data that layout associates with a node.
-pub struct LayoutData {
-    /// The results of CSS styling for this node.
-    style: Option<CompleteSelectResults>,
-
-    /// The CSS flow that this node is associated with.
-    flow: Option<FlowContext>,
-}
-
-impl LayoutData {
-    /// Creates new layout data.
-    pub fn new() -> LayoutData {
-        LayoutData {
-            style: None,
-            flow: None,
-        }
-    }
-}
-
-//
 // Basic node types
 //
 
 /// The `DOCTYPE` tag.
-pub struct Doctype {
-    parent: Node,
+pub struct Doctype<View> {
+    parent: Node<View>,
     name: ~str,
     public_id: Option<~str>,
     system_id: Option<~str>,
     force_quirks: bool
 }
 
-impl Doctype {
+impl Doctype<ScriptView> {
     /// Creates a new `DOCTYPE` tag.
     pub fn new(name: ~str,
                public_id: Option<~str>,
                system_id: Option<~str>,
                force_quirks: bool)
-            -> Doctype {
+            -> Doctype<ScriptView> {
         Doctype {
             parent: Node::new(DoctypeNodeTypeId),
             name: name,
@@ -164,58 +151,81 @@ impl Text {
     }
 }
 
-impl Clone for AbstractNode {
-    fn clone(&self) -> AbstractNode {
+impl<View> Clone for AbstractNode<View> {
+    fn clone(&self) -> AbstractNode<View> {
         *self
     }
 }
 
-impl TreeNode<AbstractNode> for Node {
-    fn parent_node(&self) -> Option<AbstractNode> {
+impl<View> TreeNode<AbstractNode<View>> for Node<View> {
+    fn parent_node(&self) -> Option<AbstractNode<View>> {
         self.parent_node
     }
-    fn first_child(&self) -> Option<AbstractNode> {
+    fn first_child(&self) -> Option<AbstractNode<View>> {
         self.first_child
     }
-    fn last_child(&self) -> Option<AbstractNode> {
+    fn last_child(&self) -> Option<AbstractNode<View>> {
         self.last_child
     }
-    fn prev_sibling(&self) -> Option<AbstractNode> {
+    fn prev_sibling(&self) -> Option<AbstractNode<View>> {
         self.prev_sibling
     }
-    fn next_sibling(&self) -> Option<AbstractNode> {
+    fn next_sibling(&self) -> Option<AbstractNode<View>> {
         self.next_sibling
     }
 
-    fn set_parent_node(&mut self, new_parent_node: Option<AbstractNode>) {
+    fn set_parent_node(&mut self, new_parent_node: Option<AbstractNode<View>>) {
         self.parent_node = new_parent_node
     }
-    fn set_first_child(&mut self, new_first_child: Option<AbstractNode>) {
+    fn set_first_child(&mut self, new_first_child: Option<AbstractNode<View>>) {
         self.first_child = new_first_child
     }
-    fn set_last_child(&mut self, new_last_child: Option<AbstractNode>) {
+    fn set_last_child(&mut self, new_last_child: Option<AbstractNode<View>>) {
         self.last_child = new_last_child
     }
-    fn set_prev_sibling(&mut self, new_prev_sibling: Option<AbstractNode>) {
+    fn set_prev_sibling(&mut self, new_prev_sibling: Option<AbstractNode<View>>) {
         self.prev_sibling = new_prev_sibling
     }
-    fn set_next_sibling(&mut self, new_next_sibling: Option<AbstractNode>) {
+    fn set_next_sibling(&mut self, new_next_sibling: Option<AbstractNode<View>>) {
         self.next_sibling = new_next_sibling
     }
 }
 
-impl TreeNodeRef<Node> for AbstractNode {
+impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
     // FIXME: The duplication between `with_base` and `with_mut_base` is ugly.
-    fn with_base<R>(&self, callback: &fn(&Node) -> R) -> R {
+    fn with_base<R>(&self, callback: &fn(&Node<View>) -> R) -> R {
         self.transmute(callback)
     }
 
-    fn with_mut_base<R>(&self, callback: &fn(&mut Node) -> R) -> R {
+    fn with_mut_base<R>(&self, callback: &fn(&mut Node<View>) -> R) -> R {
         self.transmute_mut(callback)
     }
 }
 
-impl AbstractNode {
+impl<View> AbstractNode<View> {
+    // Unsafe accessors
+
+    /// Returns the layout data, unsafely cast to whatever type layout wishes. Only layout is
+    /// allowed to call this. This is wildly unsafe and is therefore marked as such.
+    pub unsafe fn unsafe_layout_data<T>(self) -> @mut T {
+        do self.with_base |base| {
+            transmute(base.layout_data.get())
+        }
+    }
+    /// Returns true if this node has layout data and false otherwise.
+    pub unsafe fn unsafe_has_layout_data(self) -> bool {
+        do self.with_base |base| {
+            base.layout_data.is_some()
+        }
+    }
+    /// Sets the layout data, unsafely casting the type as layout wishes. Only layout is allowed
+    /// to call this. This is wildly unsafe and is therefore marked as such.
+    pub unsafe fn unsafe_set_layout_data<T>(self, data: @mut T) {
+        do self.with_mut_base |base| {
+            base.layout_data = Some(transmute(data))
+        }
+    }
+
     // Convenience accessors
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
@@ -224,40 +234,28 @@ impl AbstractNode {
     }
 
     /// Returns the parent node of this node. Fails if this node is borrowed mutably.
-    pub fn parent_node(self) -> Option<AbstractNode> {
+    pub fn parent_node(self) -> Option<AbstractNode<View>> {
         self.with_base(|b| b.parent_node)
     }
 
     /// Returns the first child of this node. Fails if this node is borrowed mutably.
-    pub fn first_child(self) -> Option<AbstractNode> {
+    pub fn first_child(self) -> Option<AbstractNode<View>> {
         self.with_base(|b| b.first_child)
     }
 
     /// Returns the last child of this node. Fails if this node is borrowed mutably.
-    pub fn last_child(self) -> Option<AbstractNode> {
+    pub fn last_child(self) -> Option<AbstractNode<View>> {
         self.with_base(|b| b.last_child)
     }
 
     /// Returns the previous sibling of this node. Fails if this node is borrowed mutably.
-    pub fn prev_sibling(self) -> Option<AbstractNode> {
+    pub fn prev_sibling(self) -> Option<AbstractNode<View>> {
         self.with_base(|b| b.prev_sibling)
     }
 
     /// Returns the next sibling of this node. Fails if this node is borrowed mutably.
-    pub fn next_sibling(self) -> Option<AbstractNode> {
+    pub fn next_sibling(self) -> Option<AbstractNode<View>> {
         self.with_base(|b| b.next_sibling)
-    }
-
-    // NB: You must not call these if you are not layout. We should do something with scoping to
-    // ensure this.
-    pub fn layout_data(self) -> @mut LayoutData {
-        self.with_base(|b| b.layout_data.get())
-    }
-    pub fn has_layout_data(self) -> bool {
-        self.with_base(|b| b.layout_data.is_some())
-    }
-    pub fn set_layout_data(self, data: @mut LayoutData) {
-        self.with_mut_base(|b| b.layout_data = Some(data))
     }
 
     //
@@ -266,7 +264,7 @@ impl AbstractNode {
 
     pub fn transmute<T, R>(self, f: &fn(&T) -> R) -> R {
         unsafe {
-            let node_box: *mut bindings::utils::rust_box<Node> = transmute(self.obj);
+            let node_box: *mut bindings::utils::rust_box<Node<View>> = transmute(self.obj);
             let node = &mut (*node_box).payload;
             let old = node.abstract;
             node.abstract = Some(self);
@@ -279,7 +277,7 @@ impl AbstractNode {
 
     pub fn transmute_mut<T, R>(self, f: &fn(&mut T) -> R) -> R {
         unsafe {
-            let node_box: *mut bindings::utils::rust_box<Node> = transmute(self.obj);
+            let node_box: *mut bindings::utils::rust_box<Node<View>> = transmute(self.obj);
             let node = &mut (*node_box).payload;
             let old = node.abstract;
             node.abstract = Some(self);
@@ -347,18 +345,18 @@ impl AbstractNode {
         self.type_id() == ElementNodeTypeId(HTMLStyleElementTypeId)
     }
 
-    pub unsafe fn raw_object(self) -> *mut Node {
+    pub unsafe fn raw_object(self) -> *mut Node<View> {
         self.obj
     }
 
-    pub fn from_raw(raw: *mut Node) -> AbstractNode {
+    pub fn from_raw(raw: *mut Node<View>) -> AbstractNode<View> {
         AbstractNode {
             obj: raw
         }
     }
 }
 
-impl DebugMethods for AbstractNode {
+impl<View> DebugMethods for AbstractNode<View> {
     // Dumps the subtree rooted at this node, for debugging.
     fn dump(&self) {
         self.dump_indent(0);
@@ -385,8 +383,8 @@ impl DebugMethods for AbstractNode {
     }
 }
 
-impl Node {
-    pub unsafe fn as_abstract_node<N>(node: ~N) -> AbstractNode {
+impl Node<ScriptView> {
+    pub unsafe fn as_abstract_node<N>(node: ~N) -> AbstractNode<ScriptView> {
         // This surrenders memory management of the node!
         let mut node = AbstractNode {
             obj: transmute(node),
@@ -409,7 +407,7 @@ impl Node {
         }
     }
 
-    pub fn new(type_id: NodeTypeId) -> Node {
+    pub fn new(type_id: NodeTypeId) -> Node<ScriptView> {
         Node {
             wrapper: WrapperCache::new(),
             type_id: type_id,

@@ -6,7 +6,8 @@
 
 use dom::element::*;
 use dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
-use dom::node::{ElementNodeTypeId, TextNodeTypeId};
+use dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
+use layout::aux::LayoutAuxMethods;
 use layout::block::BlockFlowData;
 use layout::box::{GenericRenderBoxClass, ImageRenderBox, ImageRenderBoxClass, RenderBox};
 use layout::box::{RenderBoxBase, RenderBoxType, RenderBox_Generic, RenderBox_Image};
@@ -51,7 +52,7 @@ enum InlineSpacerSide {
     LogicalAfter,
 }
 
-priv fn simulate_UA_display_rules(node: AbstractNode) -> CSSDisplay {
+priv fn simulate_UA_display_rules(node: AbstractNode<LayoutView>) -> CSSDisplay {
     // FIXME
     /*let resolved = do node.aux |nd| {
         match nd.style.display_type {
@@ -95,14 +96,14 @@ impl BoxGenerator {
     }
 
     /* Whether "spacer" boxes are needed to stand in for this DOM node */
-    fn inline_spacers_needed_for_node(&self, _: AbstractNode) -> bool {
+    fn inline_spacers_needed_for_node(&self, _: AbstractNode<LayoutView>) -> bool {
         return false;
     }
 
     // TODO: implement this, generating spacer 
     fn make_inline_spacer_for_node_side(&self,
                                         _: &LayoutContext,
-                                        _: AbstractNode,
+                                        _: AbstractNode<LayoutView>,
                                         _: InlineSpacerSide)
                                         -> Option<RenderBox> {
         None
@@ -111,7 +112,7 @@ impl BoxGenerator {
     pub fn push_node(&mut self,
                      ctx: &LayoutContext,
                      builder: &mut LayoutTreeBuilder,
-                     node: AbstractNode) {
+                     node: AbstractNode<LayoutView>) {
         debug!("BoxGenerator[f%d]: pushing node: %s", self.flow.id(), node.debug_str());
 
         // first, determine the box type, based on node characteristics
@@ -159,7 +160,7 @@ impl BoxGenerator {
     pub fn pop_node(&mut self,
                     ctx: &LayoutContext,
                     _builder: &LayoutTreeBuilder,
-                    node: AbstractNode) {
+                    node: AbstractNode<LayoutView>) {
         debug!("BoxGenerator[f%d]: popping node: %s", self.flow.id(), node.debug_str());
 
         match self.flow {
@@ -222,14 +223,16 @@ impl BuilderContext {
     priv fn create_child_flow_of_type(&self,
                                       flow_type: FlowContextType,
                                       builder: &mut LayoutTreeBuilder,
-                                      node: AbstractNode) -> BuilderContext {
+                                      node: AbstractNode<LayoutView>) -> BuilderContext {
         let new_flow = builder.make_flow(flow_type, node);
         self.attach_child_flow(new_flow);
 
         BuilderContext::new(@mut BoxGenerator::new(new_flow))
     }
         
-    priv fn make_inline_collector(&mut self, builder: &mut LayoutTreeBuilder, node: AbstractNode)
+    priv fn make_inline_collector(&mut self,
+                                  builder: &mut LayoutTreeBuilder,
+                                  node: AbstractNode<LayoutView>)
                                   -> BuilderContext {
         debug!("BuilderContext: making new inline collector flow");
         let new_flow = builder.make_flow(Flow_Inline, node);
@@ -241,7 +244,9 @@ impl BuilderContext {
         BuilderContext::new(new_generator)
     }
 
-    priv fn get_inline_collector(&mut self, builder: &mut LayoutTreeBuilder, node: AbstractNode)
+    priv fn get_inline_collector(&mut self,
+                                 builder: &mut LayoutTreeBuilder,
+                                 node: AbstractNode<LayoutView>)
                                  -> BuilderContext {
         match copy self.inline_collector {
             Some(collector) => BuilderContext::new(collector),
@@ -256,7 +261,9 @@ impl BuilderContext {
     // returns a context for the current node, or None if the document subtree rooted
     // by the node should not generate a layout tree. For example, nodes with style 'display:none'
     // should just not generate any flows or boxes.
-    fn containing_context_for_node(&mut self, node: AbstractNode, builder: &mut LayoutTreeBuilder)
+    fn containing_context_for_node(&mut self,
+                                   node: AbstractNode<LayoutView>,
+                                   builder: &mut LayoutTreeBuilder)
                                    -> Option<BuilderContext> {
         // TODO: remove this once UA styles work
         // TODO: handle interactions with 'float', 'position' (CSS 2.1, Section 9.7)
@@ -296,7 +303,7 @@ pub impl LayoutTreeBuilder {
     /// and recurses on its children.
     fn construct_recursively(&mut self,
                              layout_ctx: &LayoutContext,
-                             cur_node: AbstractNode,
+                             cur_node: AbstractNode<LayoutView>,
                              parent_ctx: &mut BuilderContext) {
         debug!("Considering node: %s", cur_node.debug_str());
 
@@ -418,7 +425,7 @@ pub impl LayoutTreeBuilder {
     }
 
     /// Entry point for box creation. Should only be called on the root DOM element.
-    fn construct_trees(&mut self, layout_ctx: &LayoutContext, root: AbstractNode)
+    fn construct_trees(&mut self, layout_ctx: &LayoutContext, root: AbstractNode<LayoutView>)
                        -> Result<FlowContext, ()> {
         let new_flow = self.make_flow(Flow_Root, root);
         let new_generator = @mut BoxGenerator::new(new_flow);
@@ -430,7 +437,7 @@ pub impl LayoutTreeBuilder {
     }
 
     /// Creates a flow of the given type for the supplied node.
-    fn make_flow(&mut self, ty: FlowContextType, node: AbstractNode) -> FlowContext {
+    fn make_flow(&mut self, ty: FlowContextType, node: AbstractNode<LayoutView>) -> FlowContext {
         let info = FlowData::new(self.next_flow_id(), node);
         let result = match ty {
             Flow_Absolute    => AbsoluteFlow(@mut info),
@@ -450,7 +457,7 @@ pub impl LayoutTreeBuilder {
     fn make_box(&mut self,
                 layout_ctx: &LayoutContext,
                 ty: RenderBoxType,
-                node: AbstractNode,
+                node: AbstractNode<LayoutView>,
                 flow_context: FlowContext)
                 -> RenderBox {
         let base = RenderBoxBase::new(node, flow_context, self.next_box_id());
@@ -465,7 +472,7 @@ pub impl LayoutTreeBuilder {
 
     fn make_image_box(&mut self,
                       layout_ctx: &LayoutContext,
-                      node: AbstractNode,
+                      node: AbstractNode<LayoutView>,
                       base: RenderBoxBase)
                       -> RenderBox {
         assert!(node.is_image_element());
@@ -483,7 +490,7 @@ pub impl LayoutTreeBuilder {
         }
     }
 
-    fn decide_box_type(&self, node: AbstractNode, _: CSSDisplay) -> RenderBoxType {
+    fn decide_box_type(&self, node: AbstractNode<LayoutView>, _: CSSDisplay) -> RenderBoxType {
         if node.is_text() {
             RenderBox_Text
         } else if node.is_image_element() {

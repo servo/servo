@@ -5,12 +5,12 @@
 //! DOM bindings for `CharacterData`.
 
 use dom::bindings::utils::{DOMString, null_string, str};
-use dom::node::{Node, NodeTypeId};
+use dom::node::{Node, NodeTypeId, ScriptView};
 
 use core::str;
 
 pub struct CharacterData {
-    parent: Node,
+    parent: Node<ScriptView>,
     data: DOMString
 }
 

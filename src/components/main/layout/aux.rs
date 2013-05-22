@@ -4,16 +4,59 @@
 
 //! Code for managing the layout data in the DOM.
 
-use dom::node::{AbstractNode, LayoutData};
+use dom::node::{AbstractNode, LayoutView};
+use layout::flow::FlowContext;
 
+use newcss::complete::CompleteSelectResults;
 use servo_util::tree::TreeUtils;
 
+/// Data that layout associates with a node.
+pub struct LayoutData {
+    /// The results of CSS styling for this node.
+    style: Option<CompleteSelectResults>,
+
+    /// The CSS flow that this node is associated with.
+    flow: Option<FlowContext>,
+}
+
+impl LayoutData {
+    /// Creates new layout data.
+    pub fn new() -> LayoutData {
+        LayoutData {
+            style: None,
+            flow: None,
+        }
+    }
+}
+
+/// Functionality useful for querying the layout-specific data on DOM nodes.
 pub trait LayoutAuxMethods {
+    fn layout_data(self) -> @mut LayoutData;
+    pub fn has_layout_data(self) -> bool;
+    fn set_layout_data(self, data: @mut LayoutData);
+
     fn initialize_layout_data(self) -> Option<@mut LayoutData>;
     fn initialize_style_for_subtree(self, refs: &mut ~[@mut LayoutData]);
 }
 
-impl LayoutAuxMethods for AbstractNode {
+impl LayoutAuxMethods for AbstractNode<LayoutView> {
+    // FIXME (Rust #3080): These unsafe blocks are *not* unused!
+    pub fn layout_data(self) -> @mut LayoutData {
+        unsafe {
+            self.unsafe_layout_data()
+        }
+    }
+    pub fn has_layout_data(self) -> bool {
+        unsafe {
+            self.unsafe_has_layout_data()
+        }
+    }
+    pub fn set_layout_data(self, data: @mut LayoutData) {
+        unsafe {
+            self.unsafe_set_layout_data(data)
+        }
+    }
+
     /// If none exists, creates empty layout data for the node (the reader-auxiliary
     /// box in the COW model) and populates it with an empty style object.
     fn initialize_layout_data(self) -> Option<@mut LayoutData> {

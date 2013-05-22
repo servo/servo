@@ -6,7 +6,7 @@
 
 use css::node_util::NodeUtil;
 use css::select_handler::NodeSelectHandler;
-use dom::node::AbstractNode;
+use dom::node::{AbstractNode, LayoutView};
 use newcss::complete::CompleteSelectResults;
 use newcss::select::{SelectCtx, SelectResults};
 
@@ -16,7 +16,7 @@ pub trait MatchMethods {
     fn restyle_subtree(&self, select_ctx: &SelectCtx);
 }
 
-impl MatchMethods for AbstractNode {
+impl MatchMethods for AbstractNode<LayoutView> {
     /**
      * Performs CSS selector matching on a subtree.
      *
@@ -40,7 +40,8 @@ impl MatchMethods for AbstractNode {
     }
 }
 
-fn compose_results(node: AbstractNode, results: SelectResults) -> CompleteSelectResults {
+fn compose_results(node: AbstractNode<LayoutView>, results: SelectResults)
+                   -> CompleteSelectResults {
     match find_parent_element_node(node) {
         None => CompleteSelectResults::new_root(results),
         Some(parent_node) => {
@@ -50,7 +51,7 @@ fn compose_results(node: AbstractNode, results: SelectResults) -> CompleteSelect
     }    
 }
 
-fn find_parent_element_node(node: AbstractNode) -> Option<AbstractNode> {
+fn find_parent_element_node(node: AbstractNode<LayoutView>) -> Option<AbstractNode<LayoutView>> {
     match node.parent_node() {
         Some(parent) if parent.is_element() => Some(parent),
         Some(parent) => find_parent_element_node(parent),

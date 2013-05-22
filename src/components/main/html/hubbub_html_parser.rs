@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::element::*;
-use dom::node::{AbstractNode, Comment, Doctype, Element, ElementNodeTypeId, Node, Text};
+use dom::node::{AbstractNode, Comment, Doctype, Element, ElementNodeTypeId, Node, ScriptView};
+use dom::node::{Text};
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use newcss::stylesheet::Stylesheet;
 use util::task::spawn_conversation;
@@ -49,7 +50,7 @@ enum JSMessage {
 }
 
 struct HtmlParserResult {
-    root: AbstractNode,
+    root: AbstractNode<ScriptView>,
     style_port: Port<Option<Stylesheet>>,
     js_port: Port<JSResult>,
 }
@@ -59,11 +60,11 @@ trait NodeWrapping {
     unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> Self;
 }
 
-impl NodeWrapping for AbstractNode {
+impl NodeWrapping for AbstractNode<ScriptView> {
     unsafe fn to_hubbub_node(self) -> hubbub::NodeDataPtr {
         cast::transmute(self)
     }
-    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> AbstractNode {
+    unsafe fn from_hubbub_node(n: hubbub::NodeDataPtr) -> AbstractNode<ScriptView> {
         cast::transmute(n)
     }
 }
@@ -153,7 +154,7 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
 // Silly macros to handle constructing DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-fn build_element_from_tag(tag: &str) -> AbstractNode {
+fn build_element_from_tag(tag: &str) -> AbstractNode<ScriptView> {
     // TODO (Issue #85): use atoms
     handle_element!(tag, "a",        HTMLAnchorElementTypeId, HTMLAnchorElement, []);
     handle_element!(tag, "aside",   HTMLAsideElementTypeId, HTMLAsideElement, []);
@@ -238,7 +239,7 @@ pub fn parse_html(url: Url,
     // consists of processing inline stylesheets, but in the future it might perform
     // prefetching, etc.
     let css_chan2 = css_chan.clone();
-    let append_hook: ~fn(AbstractNode, AbstractNode) = |parent_node, child_node| {
+    let append_hook: ~fn(AbstractNode<ScriptView>, AbstractNode<ScriptView>) = |parent_node, child_node| {
         if parent_node.is_style_element() && child_node.is_text() {
             debug!("found inline CSS stylesheet");
             let url = url::from_str("http://example.com/"); // FIXME
@@ -335,8 +336,8 @@ pub fn parse_html(url: Url,
         append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
             unsafe {
                 debug!("append child %x %x", cast::transmute(parent), cast::transmute(child));
-                let parent: AbstractNode = NodeWrapping::from_hubbub_node(parent);
-                let child: AbstractNode = NodeWrapping::from_hubbub_node(child);
+                let parent: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(parent);
+                let child: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(child);
                 parent.add_child(child);
                 append_hook(parent, child);
             }
@@ -386,7 +387,7 @@ pub fn parse_html(url: Url,
                                url: Url,
                                js_chan: SharedChan<JSMessage>) {
                 unsafe {
-                    let script: AbstractNode = NodeWrapping::from_hubbub_node(script);
+                    let script: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(script);
                     do script.with_imm_element |script| {
                         match script.get_attr(~"src") {
                             Some(src) => {

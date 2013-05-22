@@ -25,8 +25,8 @@
 ///   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
 ///   similar methods.
 
-use dom::node::AbstractNode;
-use layout::block::{BlockFlowData};
+use dom::node::{AbstractNode, LayoutView};
+use layout::block::BlockFlowData;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
 use layout::debug::DebugMethods;
@@ -140,7 +140,7 @@ impl TreeNodeRef<FlowData> for FlowContext {
 /// FIXME: We need a naming convention for pseudo-inheritance like this. How about
 /// `CommonFlowInfo`?
 pub struct FlowData {
-    node: AbstractNode,
+    node: AbstractNode<LayoutView>,
 
     parent: Option<FlowContext>,
     first_child: Option<FlowContext>,
@@ -202,7 +202,7 @@ impl TreeNode<FlowContext> for FlowData {
 }
 
 impl FlowData {
-    pub fn new(id: int, node: AbstractNode) -> FlowData {
+    pub fn new(id: int, node: AbstractNode<LayoutView>) -> FlowData {
         FlowData {
             node: node,
 
@@ -321,7 +321,7 @@ impl<'self> FlowContext {
     }
 
     pub fn foldl_boxes_for_node<B:Copy>(&self,
-                                        node: AbstractNode,
+                                        node: AbstractNode<LayoutView>,
                                         seed: B,
                                         callback: &fn(a: B, RenderBox) -> B)
                                         -> B {
@@ -358,7 +358,9 @@ impl<'self> FlowContext {
         true
     }
 
-    pub fn iter_boxes_for_node(&self, node: AbstractNode, callback: &fn(RenderBox) -> bool)
+    pub fn iter_boxes_for_node(&self,
+                               node: AbstractNode<LayoutView>,
+                               callback: &fn(RenderBox) -> bool)
                                -> bool {
         for self.iter_all_boxes |box| {
             if box.node() == node {

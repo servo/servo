@@ -5,15 +5,15 @@
 //! CSS library requires that DOM nodes be convertable to *c_void through this trait
 extern mod netsurfcss;
 
-use dom::node::AbstractNode;
+use dom::node::{AbstractNode, LayoutView};
 
 use core::cast;
 
 // FIXME: Rust #3908. rust-css can't reexport VoidPtrLike
 use css::node_void_ptr::netsurfcss::util::VoidPtrLike;
 
-impl VoidPtrLike for AbstractNode {
-    fn from_void_ptr(node: *libc::c_void) -> AbstractNode {
+impl VoidPtrLike for AbstractNode<LayoutView> {
+    fn from_void_ptr(node: *libc::c_void) -> AbstractNode<LayoutView> {
         assert!(node.is_not_null());
         unsafe {
             cast::transmute(node)

@@ -4,7 +4,7 @@
 
 use core::cell::Cell;
 use core;
-use dom::node::AbstractNode;
+use dom::node::{AbstractNode, LayoutView};
 use layout::box::{CannotSplit, GenericRenderBoxClass, ImageRenderBoxClass, RenderBox};
 use layout::box::{SplitDidFit, SplitDidNotFit, TextRenderBoxClass, UnscannedTextRenderBoxClass};
 use layout::context::LayoutContext;
@@ -49,12 +49,12 @@ hard to try out that alternative.
 */
 
 pub struct NodeRange {
-    node: AbstractNode,
+    node: AbstractNode<LayoutView>,
     range: Range,
 }
 
 pub impl NodeRange {
-    fn new(node: AbstractNode, range: &Range) -> NodeRange {
+    fn new(node: AbstractNode<LayoutView>, range: &Range) -> NodeRange {
         NodeRange { node: node, range: copy *range }
     }
 }
@@ -68,7 +68,7 @@ impl ElementMapping {
         ElementMapping { entries: ~[] }
     }
 
-    pub fn add_mapping(&mut self, node: AbstractNode, range: &Range) {
+    pub fn add_mapping(&mut self, node: AbstractNode<LayoutView>, range: &Range) {
         self.entries.push(NodeRange::new(node, range))
     }
 
