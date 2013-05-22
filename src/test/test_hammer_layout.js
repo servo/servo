@@ -5,7 +5,8 @@ var count = 1000000;
 var start = new Date();
 for (var i = 0; i < count; i++) {
   div.setAttribute('id', 'styled');
-  div.getBoundingClientRect();
+  //div.getBoundingClientRect();
 }
 var stop = new Date();
 window.alert((stop - start) / count * 1e6);
+window.close();
