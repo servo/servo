@@ -53,6 +53,7 @@ pub struct FontHandle {
     // if the font is created using FT_Memory_Face.
     source: FontSource,
     face: FT_Face,
+    handle: FontContextHandle
 }
 
 #[unsafe_destructor]
@@ -81,7 +82,14 @@ impl FontHandleMethods for FontHandle {
         // and moving buf into the struct ctor, but cant' move out of
         // captured binding.
         return match face_result {
-            Ok(face) => Ok(FontHandle { face: face, source: FontSourceMem(buf) }),
+            Ok(face) => {
+              let handle = FontHandle {
+                  face: face,
+                  source: FontSourceMem(buf),
+                  handle: *fctx
+              };
+              Ok(handle)
+            }
             Err(()) => Err(())
         };
 
@@ -247,7 +255,11 @@ pub impl<'self> FontHandle {
             return Err(());
         }
         if FontHandle::set_char_size(face, style.pt_size).is_ok() {
-            Ok(FontHandle { source: FontSourceFile(file), face: face })
+            Ok(FontHandle {
+                source: FontSourceFile(file),
+                face: face,
+                handle: *fctx
+            })
         } else {
             Err(())
         }
@@ -268,7 +280,11 @@ pub impl<'self> FontHandle {
             return Err(());
         }
 
-        Ok(FontHandle { source: FontSourceFile(file), face: face })
+        Ok(FontHandle {
+            source: FontSourceFile(file),
+            face: face,
+            handle: *fctx
+        })
     }
 
     priv fn get_face_rec(&'self self) -> &'self FT_FaceRec {
