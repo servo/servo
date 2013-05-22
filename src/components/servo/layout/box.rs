@@ -26,7 +26,7 @@ use newcss::units::{Cursive, Em, Fantasy, Length, Monospace, Pt, Px, SansSerif, 
 use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium};
 use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily};
 use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
-use newcss::values::{CSSFontStyleOblique, CSSTextAlign};
+use newcss::values::{CSSFontStyleOblique, CSSTextAlign, CSSTextDecoration};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::range::*;
@@ -758,6 +758,11 @@ pub impl RenderBox {
     /// node.
     fn text_align(&self) -> CSSTextAlign {
         self.nearest_ancestor_element().style().text_align()
+    }
+
+    /// Returns the text decoration of the computed style of the nearest `Element` node
+    fn text_decoration(&self) -> CSSTextDecoration {
+        self.nearest_ancestor_element().style().text_decoration()
     }
 }
 
