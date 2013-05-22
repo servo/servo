@@ -7,7 +7,6 @@
 use css::node_style::StyledNode;
 use dom::node::{AbstractNode, LayoutView};
 use layout::context::LayoutContext;
-use layout::debug::DebugMethods;
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
@@ -802,15 +801,14 @@ pub impl RenderBox {
         }
         get_propagated_text_decoration(self.nearest_ancestor_element())
     }
-}
 
-impl DebugMethods for RenderBox {
-    fn dump(&self) {
+    /// Dumps this node, for debugging.
+    pub fn dump(&self) {
         self.dump_indent(0);
     }
 
     /// Dumps a render box for debugging, with indentation.
-    fn dump_indent(&self, indent: uint) {
+    pub fn dump_indent(&self, indent: uint) {
         let mut string = ~"";
         for uint::range(0u, indent) |_i| {
             string += ~"    ";
@@ -821,7 +819,7 @@ impl DebugMethods for RenderBox {
     }
 
     /// Returns a debugging string describing this box.
-    fn debug_str(&self) -> ~str {
+    pub fn debug_str(&self) -> ~str {
         let representation = match *self {
             GenericRenderBoxClass(*) => ~"GenericRenderBox",
             ImageRenderBoxClass(*) => ~"ImageRenderBox",

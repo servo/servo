@@ -107,7 +107,6 @@ pub mod layout {
     pub mod box;
     pub mod box_builder;
     pub mod context;
-    pub mod debug;
     pub mod display_list_builder;
     pub mod flow;
     pub mod layout_task;

@@ -8,7 +8,6 @@ use dom::node::{AbstractNode, LayoutView};
 use layout::box::{CannotSplit, GenericRenderBoxClass, ImageRenderBoxClass, RenderBox};
 use layout::box::{SplitDidFit, SplitDidNotFit, TextRenderBoxClass, UnscannedTextRenderBoxClass};
 use layout::context::LayoutContext;
-use layout::debug::{BoxedDebugMethods, BoxedMutDebugMethods, DebugMethods};
 use layout::display_list_builder::DisplayListBuilder;
 use layout::flow::{FlowContext, FlowData, InlineFlow};
 use layout::text::{UnscannedMethods, adapt_textbox_with_range};

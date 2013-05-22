@@ -12,7 +12,6 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
-use layout::debug::DebugMethods;
 use scripting::script_task::global_script_context;
 
 use core::cast::transmute;
@@ -354,16 +353,14 @@ impl<View> AbstractNode<View> {
             obj: raw
         }
     }
-}
 
-impl<View> DebugMethods for AbstractNode<View> {
-    // Dumps the subtree rooted at this node, for debugging.
-    fn dump(&self) {
+    /// Dumps the subtree rooted at this node, for debugging.
+    pub fn dump(&self) {
         self.dump_indent(0);
     }
 
-    // Dumps the node tree, for debugging, with indentation.
-    fn dump_indent(&self, indent: uint) {
+    /// Dumps the node tree, for debugging, with indentation.
+    pub fn dump_indent(&self, indent: uint) {
         let mut s = ~"";
         for uint::range(0u, indent) |_i| {
             s += ~"    ";
@@ -378,7 +375,8 @@ impl<View> DebugMethods for AbstractNode<View> {
         }
     }
 
-    fn debug_str(&self) -> ~str {
+    /// Returns a string that describes this node.
+    pub fn debug_str(&self) -> ~str {
         fmt!("%?", self.type_id())
     }
 }
