@@ -38,7 +38,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
     let mut new_buffer_ports = ~[];
 
     // Divide up the layer into tiles.
-    do time::profile(time::RenderingPrepBuff, prof_chan.clone()) {
+    do time::profile(time::RenderingPrepBuffCategory, prof_chan.clone()) {
         let layer: &RenderLayer = unsafe { cast::transmute(layer_ref) };
         let mut y = 0;
         while y < layer.size.height {
@@ -128,7 +128,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
     }
 
     let mut new_buffers = ~[];
-    do time::profile(time::RenderingWaitSubtasks, prof_chan.clone()) {
+    do time::profile(time::RenderingWaitSubtasksCategory, prof_chan.clone()) {
         for new_buffer_ports.each |new_buffer_port| {
             new_buffers.push(new_buffer_port.recv());
         }

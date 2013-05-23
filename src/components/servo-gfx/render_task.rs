@@ -123,7 +123,7 @@ impl<C: Compositor + Owned> Renderer<C> {
 
         debug!("renderer: rendering");
 
-        do profile(time::Rendering, self.prof_chan.clone()) {
+        do profile(time::RenderingCategory, self.prof_chan.clone()) {
             let layer_buffer_set_channel = layer_buffer_set_channel_cell.take();
 
             let layer_buffer_set = do render_layers(&render_layer, &self.opts, self.prof_chan.clone())
