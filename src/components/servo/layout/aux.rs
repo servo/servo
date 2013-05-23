@@ -18,6 +18,14 @@ impl LayoutAuxMethods for AbstractNode {
     /// box in the COW model) and populates it with an empty style object.
     fn initialize_layout_data(self) -> Option<@mut LayoutData> {
         if self.has_layout_data() {
+            {
+                let layout_data = &mut self.layout_data().flow;
+                match *layout_data {
+                  Some(ref flow) => flow.teardown(),
+                  None => ()
+                }
+            }
+            self.layout_data().flow = None;
             None
         } else {
             let data = @mut LayoutData::new();

@@ -177,6 +177,10 @@ pub impl FontGroup {
         }
     }
 
+    fn teardown(&mut self) {
+        self.fonts = ~[];
+    }
+
     fn create_textrun(&self, text: ~str) -> TextRun {
         assert!(self.fonts.len() > 0);
 
@@ -281,6 +285,11 @@ pub impl Font {
                self.handle.family_name(), self.handle.face_name());
 
         return result;
+    }
+
+    fn teardown(&mut self) {
+        self.shaper = None;
+        self.azure_font = None;
     }
 
     // TODO: this should return a borrowed pointer, but I can't figure

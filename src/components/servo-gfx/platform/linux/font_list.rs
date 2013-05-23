@@ -6,7 +6,7 @@ extern mod freetype;
 extern mod fontconfig;
 
 use fontconfig::fontconfig::{
-    FcChar8, FcResultMatch, FcSetSystem,
+    FcChar8, FcResultMatch, FcSetSystem, FcPattern,
     FcResultNoMatch, FcMatchPattern, FC_SLANT_ITALIC, FC_WEIGHT_BOLD
 };
 use fontconfig::fontconfig::bindgen::{
@@ -116,7 +116,7 @@ pub impl FontListHandle {
                 let font_handle = font_handle.unwrap();
 
                 debug!("Creating new FontEntry for face: %s", font_handle.face_name());
-                let entry = @FontEntry::new(family, font_handle);
+                let entry = @FontEntry::new(font_handle);
                 family.entries.push(entry);
             }
 
@@ -127,10 +127,21 @@ pub impl FontListHandle {
     }
 }
 
+struct AutoPattern {
+    pattern: *FcPattern
+}
+
+impl Drop for AutoPattern {
+    fn finalize(&self) {
+        FcPatternDestroy(self.pattern);
+    }
+}
+
 pub fn path_from_identifier(name: ~str, style: &UsedFontStyle) -> Result<~str, ()> {
     unsafe {
         let config = FcConfigGetCurrent();
-        let pattern = FcPatternCreate();
+        let wrapper = AutoPattern { pattern: FcPatternCreate() };
+        let pattern = wrapper.pattern;
         let res = do str::as_c_str("family") |FC_FAMILY| {
             do str::as_c_str(name) |family| {
                 FcPatternAddString(pattern, FC_FAMILY, family as *FcChar8)
@@ -166,7 +177,8 @@ pub fn path_from_identifier(name: ~str, style: &UsedFontStyle) -> Result<~str, (
         }
         FcDefaultSubstitute(pattern);
         let result = FcResultNoMatch;
-        let result_pattern = FcFontMatch(config, pattern, &result);
+        let result_wrapper = AutoPattern { pattern: FcFontMatch(config, pattern, &result) };
+        let result_pattern = result_wrapper.pattern;
         if result != FcResultMatch && result_pattern.is_null() {
             debug!("obtaining match to pattern failed");
             return Err(());

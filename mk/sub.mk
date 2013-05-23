@@ -103,6 +103,11 @@ DEPS_rust-io-surface += \
 	rust-core-foundation \
 	$(NULL)
 
+DEPS_rust-alert += \
+	rust-core-foundation \
+	rust-cocoa \
+	$(NULL)
+
 DEPS_sharegl += \
 	rust-core-foundation \
 	rust-io-surface \
