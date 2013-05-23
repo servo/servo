@@ -47,7 +47,7 @@ pub impl FontList {
         // changed.  Does OSX have a notification for this event?
         //
         // Should font families with entries be invalidated/refreshed too?
-        do profile(time::GfxRegenFontFF, self.prof_chan.clone()) {
+        do profile(time::GfxRegenAvailableFontsCategory, self.prof_chan.clone()) {
             self.family_map = self.handle.get_available_families();
         }
     }
