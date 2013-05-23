@@ -17,7 +17,10 @@ use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMet
 use layout::flow::FlowContext;
 use scripting::script_task::{ScriptMsg, SendEventMsg};
 use util::task::spawn_listener;
-use util::time::time;
+use servo_util::time;
+use servo_util::time::time;
+use servo_util::time::profile;
+use servo_util::time::ProfilerChan;
 
 use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
@@ -88,9 +91,15 @@ pub struct BuildData {
 
 pub fn LayoutTask(render_task: RenderTask,
                   img_cache_task: ImageCacheTask,
-                  opts: Opts) -> LayoutTask {
+                  opts: Opts,
+                  prof_chan: ProfilerChan)
+                  -> LayoutTask {
     SharedChan::new(do spawn_listener::<Msg> |from_script| {
-        let mut layout = Layout(render_task.clone(), img_cache_task.clone(), from_script, &opts);
+        let mut layout = Layout(render_task.clone(),
+                         img_cache_task.clone(),
+                         from_script,
+                         &opts,
+                         prof_chan.clone());
         layout.start();
     })
 }
@@ -104,14 +113,16 @@ struct Layout {
     // This is used to root reader data
     layout_refs: ~[@mut LayoutData],
     css_select_ctx: @mut SelectCtx,
+    prof_chan: ProfilerChan,
 }
 
 fn Layout(render_task: RenderTask, 
           image_cache_task: ImageCacheTask,
           from_script: Port<Msg>,
-          opts: &Opts)
+          opts: &Opts,
+          prof_chan: ProfilerChan)
        -> Layout {
-    let fctx = @mut FontContext::new(opts.render_backend, true);
+    let fctx = @mut FontContext::new(opts.render_backend, true, prof_chan.clone());
 
     Layout {
         render_task: render_task,
@@ -120,7 +131,8 @@ fn Layout(render_task: RenderTask,
         from_script: from_script,
         font_ctx: fctx,
         layout_refs: ~[],
-        css_select_ctx: @mut new_css_select_ctx()
+        css_select_ctx: @mut new_css_select_ctx(),
+        prof_chan: prof_chan.clone()
     }
 }
 
@@ -141,14 +153,14 @@ impl Layout {
             BuildMsg(data) => {
                 let data = Cell(data);
 
-                do time("layout: performing layout") {
+                do profile(time::LayoutPerformCategory, self.prof_chan.clone()) {
                     self.handle_build(data.take());
                 }
 
             }
             QueryMsg(query, chan) => {
                 let chan = Cell(chan);
-                do time("layout: querying layout") {
+                do profile(time::LayoutQueryCategory, self.prof_chan.clone()) {
                     self.handle_query(query, chan.take())
                 }
             }
@@ -195,7 +207,7 @@ impl Layout {
         // Initialize layout data for each node.
         //
         // FIXME: This is inefficient. We don't need an entire traversal to do this!
-        do time("layout: aux initialization") {
+        do profile(time::LayoutAuxInitCategory, self.prof_chan.clone()) {
             node.initialize_style_for_subtree(&mut self.layout_refs);
         }
 
@@ -203,14 +215,15 @@ impl Layout {
         match data.damage {
             NoDamage | ReflowDamage => {}
             MatchSelectorsDamage => {
-                do time("layout: selector matching") {
+                do profile(time::LayoutSelectorMatchCategory, self.prof_chan.clone()) {
                     node.restyle_subtree(self.css_select_ctx);
                 }
             }
         }
 
         // Construct the flow tree.
-        let layout_root: FlowContext = do time("layout: tree construction") {
+        let layout_root: FlowContext = do profile(time::LayoutTreeBuilderCategory,
+                                                  self.prof_chan.clone()) {
             let mut builder = LayoutTreeBuilder::new();
             let layout_root: FlowContext = match builder.construct_trees(&layout_ctx, *node) {
                 Ok(root) => root,
@@ -225,7 +238,7 @@ impl Layout {
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
-        do time("layout: main layout") {
+        do profile(time::LayoutMainCategory, self.prof_chan.clone()) {
             for layout_root.traverse_postorder |flow| {
                 flow.bubble_widths(&mut layout_ctx);
             };
@@ -238,7 +251,7 @@ impl Layout {
         }
 
         // Build the display list, and send it to the renderer.
-        do time("layout: display list building") {
+        do profile(time::LayoutDispListBuildCategory, self.prof_chan.clone()) {
             let builder = DisplayListBuilder {
                 ctx: &layout_ctx,
             };

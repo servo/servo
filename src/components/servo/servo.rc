@@ -137,8 +137,11 @@ fn run(opts: &Opts) {
     let (script_port, script_chan) = comm::stream();
     let script_chan = SharedChan::new(script_chan);
 
+    let (prof_port, prof_chan) = comm::stream();
+    let prof_chan = SharedChan::new(prof_chan);
+
     // The platform event handler thread
-    let compositor = CompositorImpl::new(script_chan.clone(), copy *opts);
+    let compositor = CompositorImpl::new(script_chan.clone(), copy *opts, prof_chan.clone());
 
     // Send each file to render then wait for keypress
     let (keypress_from_compositor, keypress_to_engine) = comm::stream();
@@ -152,7 +155,9 @@ fn run(opts: &Opts) {
                                     script_port,
                                     script_chan,
                                     resource_task,
-                                    image_cache_task);
+                                    image_cache_task,
+                                    prof_port,
+                                    prof_chan);
 
     for opts.urls.each |filename| {
         let url = make_url(copy *filename, None);

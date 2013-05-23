@@ -7,7 +7,10 @@ use gfx_font::FontHandleMethods;
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 use platform::font_list::FontListHandle;
+use servo_util::time;
 use servo_util::time::time;
+use servo_util::time::profile;
+use servo_util::time::ProfilerChan;
 
 use core::hashmap::HashMap;
 
@@ -22,14 +25,18 @@ trait FontListHandleMethods {
 pub struct FontList {
     family_map: FontFamilyMap,
     handle: FontListHandle,
+    prof_chan: ProfilerChan,
 }
 
 pub impl FontList {
-    fn new(fctx: &FontContextHandle) -> FontList {
+    fn new(fctx: &FontContextHandle,
+           prof_chan: ProfilerChan)
+           -> FontList {
         let handle = FontListHandle::new(fctx);
         let mut list = FontList {
             handle: handle,
             family_map: HashMap::new(),
+            prof_chan: prof_chan.clone(),
         };
         list.refresh(fctx);
         list
@@ -40,7 +47,7 @@ pub impl FontList {
         // changed.  Does OSX have a notification for this event?
         //
         // Should font families with entries be invalidated/refreshed too?
-        do time("gfx::font_list: regenerating available font families and faces") {
+        do profile(time::GfxRegenAvailableFontsCategory, self.prof_chan.clone()) {
             self.family_map = self.handle.get_available_families();
         }
     }
