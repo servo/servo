@@ -7,6 +7,8 @@ use font::{SpecifiedFontStyle, UsedFontStyle};
 use font_list::FontList;
 use servo_util::cache::Cache;
 use servo_util::cache::MonoCache;
+use servo_util::time::ProfilerChan;
+
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 
@@ -42,9 +44,14 @@ pub struct FontContext {
 
 #[allow(non_implicitly_copyable_typarams)]
 pub impl<'self> FontContext {
-    fn new(backend: BackendType, needs_font_list: bool) -> FontContext {
+    fn new(backend: BackendType,
+           needs_font_list: bool,
+           prof_chan: ProfilerChan)
+           -> FontContext {
         let handle = FontContextHandle::new();
-        let font_list = if needs_font_list { Some(FontList::new(&handle)) } else { None };
+        let font_list = if needs_font_list { 
+                            Some(FontList::new(&handle, prof_chan.clone())) }
+                        else { None };
 
         // TODO: Allow users to specify these.
         let mut generic_fonts = HashMap::with_capacity(5);

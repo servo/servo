@@ -20,6 +20,8 @@ use gfx::opts::Opts;
 use layers::layers::{Image, ImageData};
 use layers;
 use servo_util::{time, url};
+use servo_util::time::profile;
+use servo_util::time::ProfilerChan;
 
 mod resize_rate_limiter;
 
@@ -31,11 +33,14 @@ pub struct CompositorImpl {
 
 impl CompositorImpl {
     /// Creates a new compositor instance.
-    pub fn new(script_chan: SharedChan<ScriptMsg>, opts: Opts) -> CompositorImpl {
+    pub fn new(script_chan: SharedChan<ScriptMsg>,
+               opts: Opts,
+               prof_chan: ProfilerChan)
+               -> CompositorImpl {
         let script_chan = Cell(script_chan);
         let chan: Chan<Msg> = do on_osmain |port| {
             debug!("preparing to enter main loop");
-            mainloop(port, script_chan.take(), &opts);
+            mainloop(port, script_chan.take(), &opts, prof_chan.clone());
         };
 
         CompositorImpl {
@@ -77,7 +82,10 @@ impl layers::layers::ImageData for AzureDrawTargetImageData {
     }
 }
 
-fn mainloop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts) {
+fn mainloop(po: Port<Msg>,
+            script_chan: SharedChan<ScriptMsg>,
+            opts: &Opts,
+            prof_chan: ProfilerChan) {
     let key_handlers: @mut ~[Chan<()>] = @mut ~[];
 
     let app: Application = ApplicationMethods::new();
@@ -182,7 +190,7 @@ fn mainloop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts) {
     };
 
     do window.set_composite_callback {
-        do time::time(~"compositing") {
+        do profile(time::Compositing, prof_chan.clone()) {
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             scene.size = window.size();
 
