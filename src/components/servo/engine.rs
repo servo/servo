@@ -19,6 +19,10 @@ use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
 use std::net::url::Url;
 
+use servo_util::time;
+use servo_util::time::ProfilerChan;
+use servo_util::time::ProfilerPort;
+
 pub type EngineTask = Chan<Msg>;
 
 pub enum Msg {
@@ -34,6 +38,7 @@ pub struct Engine {
     image_cache_task: ImageCacheTask,
     layout_task: LayoutTask,
     script_task: ScriptTask,
+    profiler_task: time::ProfilerTask,
 }
 
 impl Engine {
@@ -42,22 +47,32 @@ impl Engine {
                  script_port: Port<ScriptMsg>,
                  script_chan: SharedChan<ScriptMsg>,
                  resource_task: ResourceTask,
-                 image_cache_task: ImageCacheTask)
+                 image_cache_task: ImageCacheTask,
+                 prof_port: ProfilerPort,
+                 prof_chan: ProfilerChan)
                  -> EngineTask {
         let (script_port, script_chan) = (Cell(script_port), Cell(script_chan));
+        let prof_port = Cell(prof_port);
         let opts = Cell(copy *opts);
 
         do spawn_listener::<Msg> |request| {
-            let render_task = RenderTask(compositor.clone(), opts.with_ref(|o| copy *o));
+            let profiler_task = time::ProfilerTask::new(prof_port.take(), prof_chan.clone());
+            let render_task = RenderTask(compositor.clone(),
+                                         opts.with_ref(|o| copy *o),
+                                         prof_chan.clone());
 
             let opts = opts.take();
-            let layout_task = LayoutTask(render_task.clone(), image_cache_task.clone(), opts);
+            let layout_task = LayoutTask(render_task.clone(),
+                                         image_cache_task.clone(),
+                                         opts,
+                                         profiler_task.chan.clone());
 
             let script_task = ScriptTask::new(script_port.take(),
                                               script_chan.take(),
                                               layout_task.clone(),
                                               resource_task.clone(),
                                               image_cache_task.clone());
+
 
             Engine {
                 request_port: request,
@@ -67,6 +82,7 @@ impl Engine {
                 image_cache_task: image_cache_task.clone(),
                 layout_task: layout_task,
                 script_task: script_task,
+                profiler_task: profiler_task,
             }.run()
         }
     }

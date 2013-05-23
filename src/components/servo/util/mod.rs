@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 pub use servo_util::cache;
-pub use servo_util::time;
 
 pub mod task;
 
