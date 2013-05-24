@@ -12,6 +12,7 @@ use servo_util::range::Range;
 pub struct TextRun {
     text: ~str,
     font: @mut Font,
+    underline: bool,
     glyphs: GlyphStore,
 }
 
@@ -19,6 +20,7 @@ pub struct TextRun {
 pub struct SendableTextRun {
     text: ~str,
     font: FontDescriptor,
+    underline: bool,
     priv glyphs: GlyphStore,
 }
 
@@ -32,13 +34,14 @@ impl SendableTextRun {
         TextRun {
             text: copy self.text,
             font: font,
+            underline: self.underline,
             glyphs: copy self.glyphs
         }
     }
 }
 
 pub impl<'self> TextRun {
-    fn new(font: @mut Font, text: ~str) -> TextRun {
+    fn new(font: @mut Font, text: ~str, underline: bool) -> TextRun {
         let mut glyph_store = GlyphStore::new(str::char_len(text));
         TextRun::compute_potential_breaks(text, &mut glyph_store);
         font.shape_text(text, &mut glyph_store);
@@ -46,6 +49,7 @@ pub impl<'self> TextRun {
         let run = TextRun {
             text: text,
             font: font,
+            underline: underline,
             glyphs: glyph_store,
         };
         return run;
@@ -101,6 +105,7 @@ pub impl<'self> TextRun {
         SendableTextRun {
             text: copy self.text,
             font: self.font.get_descriptor(),
+            underline: self.underline,
             glyphs: copy self.glyphs,
         }
     }
