@@ -245,7 +245,7 @@ impl TextRunScanner {
         let inline = &mut *flow.inline();
         let in_boxes = &inline.boxes;
 
-        fn hasUnderline(decoration: CSSTextDecoration) -> bool{
+        fn has_underline(decoration: CSSTextDecoration) -> bool{
             match decoration {
                 CSSTextDecorationUnderline => true,
                 _ => false
@@ -273,7 +273,7 @@ impl TextRunScanner {
                 let old_box = in_boxes[self.clump.begin()];
                 let text = old_box.raw_text();
                 let font_style = old_box.font_style();
-                let underline = hasUnderline(old_box.text_decoration());
+                let underline = has_underline(old_box.text_decoration());
 
                 // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
                 let compression = CompressWhitespaceNewline;
@@ -326,7 +326,7 @@ impl TextRunScanner {
                 // and then letting `FontGroup` decide which `Font` to stick into the text run.
                 let font_style = in_boxes[self.clump.begin()].font_style();
                 let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
-                let underline = hasUnderline(in_boxes[self.clump.begin()].text_decoration());
+                let underline = has_underline(in_boxes[self.clump.begin()].text_decoration());
 
                 // TextRuns contain a cycle which is usually resolved by the teardown
                 // sequence. If no clump takes ownership, however, it will leak.

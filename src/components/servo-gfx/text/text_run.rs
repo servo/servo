@@ -34,7 +34,7 @@ impl SendableTextRun {
         TextRun {
             text: copy self.text,
             font: font,
-            underline: copy self.underline,
+            underline: self.underline,
             glyphs: copy self.glyphs
         }
     }
@@ -105,7 +105,7 @@ pub impl<'self> TextRun {
         SendableTextRun {
             text: copy self.text,
             font: self.font.get_descriptor(),
-            underline: copy self.underline,
+            underline: self.underline,
             glyphs: copy self.glyphs,
         }
     }
