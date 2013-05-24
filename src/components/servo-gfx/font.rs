@@ -181,11 +181,11 @@ pub impl FontGroup {
         self.fonts = ~[];
     }
 
-    fn create_textrun(&self, text: ~str) -> TextRun {
+    fn create_textrun(&self, text: ~str, underline: bool) -> TextRun {
         assert!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
-        return TextRun::new(self.fonts[0], text);
+        return TextRun::new(self.fonts[0], text, underline);
     }
 }
 

@@ -9,7 +9,7 @@ use text::SendableTextRun;
 
 use clone_arc = std::arc::clone;
 use geom::Rect;
-use geom::Point2D;
+use geom::{Point2D, Size2D};
 use std::arc::ARC;
 use servo_net::image::base::Image;
 use servo_util::range::Range;
@@ -56,6 +56,16 @@ pub impl<'self> DisplayItem {
                 let origin = self.d().bounds.origin;
                 let baseline_origin = Point2D(origin.x, origin.y + font.metrics.ascent);
                 font.draw_text_into_context(ctx, new_run, range, baseline_origin, color);
+                if(new_run.underline){
+                    //TODO: Use the font metrics to properly position the underline bar
+                    let width = self.d().bounds.size.width;
+                    let u_size = font.metrics.underline_size;
+                    let u_bounds = Rect(
+                        Point2D(baseline_origin.x, baseline_origin.y),
+                        Size2D(width, u_size)
+                    );
+                    ctx.draw_solid_color(&u_bounds, color);
+                }
             },
             &Image(_, ref img) => {
                 debug!("drawing image at %?", self.d().bounds);

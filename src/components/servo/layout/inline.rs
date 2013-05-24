@@ -21,6 +21,8 @@ use gfx::text::text_run::TextRun;
 use gfx::text::util::*;
 use newcss::values::{CSSTextAlignCenter, CSSTextAlignJustify, CSSTextAlignLeft};
 use newcss::values::{CSSTextAlignRight};
+use newcss::values::CSSTextDecorationUnderline;
+use newcss::values::CSSTextDecoration;
 use servo_util::range::Range;
 use std::deque::Deque;
 
@@ -243,6 +245,13 @@ impl TextRunScanner {
         let inline = &mut *flow.inline();
         let in_boxes = &inline.boxes;
 
+        fn has_underline(decoration: CSSTextDecoration) -> bool{
+            match decoration {
+                CSSTextDecorationUnderline => true,
+                _ => false
+            }
+        }
+
         assert!(self.clump.length() > 0);
 
         debug!("TextRunScanner: flushing boxes in range=%?", self.clump);
@@ -264,6 +273,7 @@ impl TextRunScanner {
                 let old_box = in_boxes[self.clump.begin()];
                 let text = old_box.raw_text();
                 let font_style = old_box.font_style();
+                let underline = has_underline(old_box.text_decoration());
 
                 // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
                 let compression = CompressWhitespaceNewline;
@@ -274,7 +284,7 @@ impl TextRunScanner {
                 // font group fonts. This is probably achieved by creating the font group above
                 // and then letting `FontGroup` decide which `Font` to stick into the text run.
                 let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
-                let run = @fontgroup.create_textrun(transformed_text);
+                let run = @fontgroup.create_textrun(transformed_text, underline);
 
                 debug!("TextRunScanner: pushing single text box in range: %?", self.clump);
                 let new_box = do old_box.with_imm_base |old_box_base| {
@@ -316,12 +326,13 @@ impl TextRunScanner {
                 // and then letting `FontGroup` decide which `Font` to stick into the text run.
                 let font_style = in_boxes[self.clump.begin()].font_style();
                 let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
+                let underline = has_underline(in_boxes[self.clump.begin()].text_decoration());
 
                 // TextRuns contain a cycle which is usually resolved by the teardown
                 // sequence. If no clump takes ownership, however, it will leak.
                 let clump = self.clump;
                 let run = if clump.length() != 0 {
-                    Some(@TextRun::new(fontgroup.fonts[0], run_str))
+                    Some(@TextRun::new(fontgroup.fonts[0], run_str, underline))
                 } else {
                     None
                 };
