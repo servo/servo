@@ -22,6 +22,7 @@ pub enum ProfilerCategory {
     RenderingWaitSubtasksCategory,
     RenderingCategory,
 }
+// change this whenever buckets are added/rm'd
 static NUM_BUCKETS: uint = 12;
 
 pub type ProfilerChan = SharedChan<(ProfilerCategory, uint)>;
@@ -81,6 +82,7 @@ impl ProfilerContext {
                 let mut i = 0;
                 for self.buckets.each |bucket| {
                     let prof_msg = match i {
+                        // must be in same order as ProfilerCategory
                         0 => CompositingCategory,
                         1 => LayoutPerformCategory,
                         2 => LayoutQueryCategory,
