@@ -766,9 +766,6 @@ pub impl RenderBox {
     fn text_decoration(&self) -> CSSTextDecoration {
         /// Computes the propagated value of text-decoration, as specified in CSS 2.1 § 16.3.1
         /// TODO: make sure this works with anonymous box generation.
-        /// FIXME: this really needs to be done in rust-css. Doing it here means there is no way
-        /// of determining whether text-decoration was set to none or whether it defaulted to
-        /// none.
         fn get_propagated_text_decoration(element: AbstractNode) -> CSSTextDecoration {
             //Skip over non-element nodes in the DOM
             if(!element.is_element()){
