@@ -27,6 +27,8 @@ use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium};
 use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily};
 use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
 use newcss::values::{CSSFontStyleOblique, CSSTextAlign, CSSTextDecoration};
+use newcss::values::{CSSTextDecorationNone, CSSFloatNone, CSSPositionStatic};
+use newcss::values::{CSSDisplayInlineBlock, CSSDisplayInlineTable};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::range::*;
@@ -256,7 +258,7 @@ pub impl RenderBox {
     fn can_merge_with_box(&self, other: RenderBox) -> bool {
         match (self, &other) {
             (&UnscannedTextRenderBoxClass(*), &UnscannedTextRenderBoxClass(*)) => {
-                self.font_style() == other.font_style()
+                self.font_style() == other.font_style() && self.text_decoration() == other.text_decoration()
             },
             (&TextRenderBoxClass(text_box_a), &TextRenderBoxClass(text_box_b)) => {
                 managed::ptr_eq(text_box_a.text_data.run, text_box_b.text_data.run)
@@ -762,7 +764,45 @@ pub impl RenderBox {
 
     /// Returns the text decoration of the computed style of the nearest `Element` node
     fn text_decoration(&self) -> CSSTextDecoration {
-        self.nearest_ancestor_element().style().text_decoration()
+        /// Computes the propagated value of text-decoration, as specified in CSS 2.1 § 16.3.1
+        /// TODO: make sure this works with anonymous box generation.
+        /// FIXME: this really needs to be done in rust-css. Doing it here means there is no way
+        /// of determining whether text-decoration was set to none or whether it defaulted to
+        /// none.
+        fn get_propagated_text_decoration(element: AbstractNode) -> CSSTextDecoration {
+            //Skip over non-element nodes in the DOM
+            if(!element.is_element()){
+                return match element.parent_node() {
+                    None => CSSTextDecorationNone,
+                    Some(parent) => get_propagated_text_decoration(parent),
+                };
+            }
+
+            //FIXME: is the root param on display() important?
+            let display_in_flow = match element.style().display(false) {
+                CSSDisplayInlineTable | CSSDisplayInlineBlock => false,
+                _ => true,
+            };
+
+            let position = element.style().position();
+            let float = element.style().float();
+
+            let in_flow = (position == CSSPositionStatic) && (float == CSSFloatNone) &&
+                display_in_flow;
+
+            let text_decoration = element.style().text_decoration();
+
+            if(text_decoration == CSSTextDecorationNone && in_flow){
+                match element.parent_node() {
+                    None => CSSTextDecorationNone,
+                    Some(parent) => get_propagated_text_decoration(parent),
+                }
+            }
+            else {
+                text_decoration
+            }
+        }
+        get_propagated_text_decoration(self.nearest_ancestor_element())
     }
 }
 
