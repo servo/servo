@@ -17,7 +17,11 @@ use core::comm::{Port, SharedChan};
 use core::task::SingleThreaded;
 use std::task_pool::TaskPool;
 use servo_net::util::spawn_listener;
+
+use servo_util::time;
 use servo_util::time::time;
+use servo_util::time::profile;
+use servo_util::time::ProfilerChan;
 
 pub enum Msg {
     RenderMsg(RenderLayer),
@@ -26,7 +30,9 @@ pub enum Msg {
 
 pub type RenderTask = SharedChan<Msg>;
 
-pub fn RenderTask<C:Compositor + Owned>(compositor: C, opts: Opts) -> RenderTask {
+pub fn RenderTask<C:Compositor + Owned>(compositor: C,
+                                        opts: Opts,
+                                        prof_chan: ProfilerChan) -> RenderTask {
     let compositor_cell = Cell(compositor);
     let opts_cell = Cell(opts);
     let render_task = do spawn_listener |po: Port<Msg>| {
@@ -39,13 +45,17 @@ pub fn RenderTask<C:Compositor + Owned>(compositor: C, opts: Opts) -> RenderTask
         let opts = opts_cell.with_ref(|o| copy *o);
         let n_threads = opts.n_render_threads;
         let new_opts_cell = Cell(opts);
+        let prof_chan2 = prof_chan.clone();
 
         let thread_pool = do TaskPool::new(n_threads, Some(SingleThreaded)) {
             let opts_cell = Cell(new_opts_cell.with_ref(|o| copy *o));
+            let prof_chan = prof_chan2.clone();
             let f: ~fn(uint) -> ThreadRenderContext = |thread_index| {
                 ThreadRenderContext {
                     thread_index: thread_index,
-                    font_ctx: @mut FontContext::new(opts_cell.with_ref(|o| o.render_backend), false),
+                    font_ctx: @mut FontContext::new(opts_cell.with_ref(|o| o.render_backend),
+                                                    false,
+                                                    prof_chan.clone()),
                     opts: opts_cell.with_ref(|o| copy *o),
                 }
             };
@@ -58,7 +68,8 @@ pub fn RenderTask<C:Compositor + Owned>(compositor: C, opts: Opts) -> RenderTask
             compositor: compositor,
             layer_buffer_set_port: Cell(layer_buffer_set_port),
             thread_pool: thread_pool,
-            opts: opts_cell.take()
+            opts: opts_cell.take(),
+            prof_chan: prof_chan.clone()
         };
         r.start();
     };
@@ -78,6 +89,7 @@ priv struct Renderer<C> {
     layer_buffer_set_port: Cell<comm::Port<LayerBufferSet>>,
     thread_pool: TaskPool<ThreadRenderContext>,
     opts: Opts,
+    prof_chan: ProfilerChan,
 }
 
 impl<C: Compositor + Owned> Renderer<C> {
@@ -111,10 +123,10 @@ impl<C: Compositor + Owned> Renderer<C> {
 
         debug!("renderer: rendering");
 
-        do time(~"rendering") {
+        do profile(time::RenderingCategory, self.prof_chan.clone()) {
             let layer_buffer_set_channel = layer_buffer_set_channel_cell.take();
 
-            let layer_buffer_set = do render_layers(&render_layer, &self.opts)
+            let layer_buffer_set = do render_layers(&render_layer, &self.opts, self.prof_chan.clone())
                     |render_layer_ref, layer_buffer, buffer_chan| {
                 let layer_buffer_cell = Cell(layer_buffer);
                 do self.thread_pool.execute |thread_render_context| {

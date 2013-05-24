@@ -6,6 +6,7 @@ use compositor::{LayerBuffer, LayerBufferSet};
 use display_list::DisplayList;
 use opts::Opts;
 use servo_util::time;
+use servo_util::time::ProfilerChan;
 
 use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use core::comm::Chan;
@@ -28,14 +29,16 @@ type RenderFn<'self> = &'self fn(layer: *RenderLayer,
 /// might be the old layer buffer if it had the appropriate size and format).
 pub fn render_layers(layer_ref: *RenderLayer,
                      opts: &Opts,
-                     f: RenderFn) -> LayerBufferSet {
+                     prof_chan: ProfilerChan,
+                     f: RenderFn)
+                     -> LayerBufferSet {
     let tile_size = opts.tile_size;
 
     // FIXME: Try not to create a new array here.
     let mut new_buffer_ports = ~[];
 
     // Divide up the layer into tiles.
-    do time::time("rendering: preparing buffers") {
+    do time::profile(time::RenderingPrepBuffCategory, prof_chan.clone()) {
         let layer: &RenderLayer = unsafe { cast::transmute(layer_ref) };
         let mut y = 0;
         while y < layer.size.height {
@@ -125,7 +128,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
     }
 
     let mut new_buffers = ~[];
-    do time::time("rendering: waiting on subtasks") {
+    do time::profile(time::RenderingWaitSubtasksCategory, prof_chan.clone()) {
         for new_buffer_ports.each |new_buffer_port| {
             new_buffers.push(new_buffer_port.recv());
         }
