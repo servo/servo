@@ -57,8 +57,8 @@ pub impl<'self> DisplayItem {
                 let baseline_origin = Point2D(origin.x, origin.y + font.metrics.ascent);
                 font.draw_text_into_context(ctx, new_run, range, baseline_origin, color);
                 if(new_run.underline){
+                    //TODO: Use the font metrics to properly position the underline bar
                     let width = self.d().bounds.size.width;
-                    let offset = font.metrics.underline_offset;
                     let u_size = font.metrics.underline_size;
                     let u_bounds = Rect(
                         Point2D(baseline_origin.x, baseline_origin.y),
