@@ -28,20 +28,20 @@ use servo_util::range::Range;
 use std::arc::ARC;
 
 /// A list of rendering operations to be performed.
-pub struct DisplayList {
-    priv list: ~[DisplayItem]
+pub struct DisplayList<E> {
+    priv list: ~[DisplayItem<E>]
 }
 
-impl DisplayList {
+impl<E> DisplayList<E> {
     /// Creates a new display list.
-    pub fn new() -> DisplayList {
+    pub fn new() -> DisplayList<E> {
         DisplayList {
             list: ~[]
         }
     }
 
     /// Appends the given item to the display list.
-    pub fn append_item(&mut self, item: DisplayItem) {
+    pub fn append_item(&mut self, item: DisplayItem<E>) {
         // FIXME(Issue #150): crashes
         //debug!("Adding display item %u: %?", self.len(), item);
         self.list.push(item)
@@ -60,51 +60,52 @@ impl DisplayList {
 }
 
 /// One drawing command in the list.
-pub enum DisplayItem {
-    SolidColorDisplayItemClass(~SolidColorDisplayItem),
-    TextDisplayItemClass(~TextDisplayItem),
-    ImageDisplayItemClass(~ImageDisplayItem),
-    BorderDisplayItemClass(~BorderDisplayItem),
+pub enum DisplayItem<E> {
+    SolidColorDisplayItemClass(~SolidColorDisplayItem<E>),
+    TextDisplayItemClass(~TextDisplayItem<E>),
+    ImageDisplayItemClass(~ImageDisplayItem<E>),
+    BorderDisplayItemClass(~BorderDisplayItem<E>),
 }
 
 /// Information common to all display items.
-pub struct BaseDisplayItem {
+pub struct BaseDisplayItem<E> {
     /// The boundaries of the display item.
     ///
     /// TODO: Which coordinate system should this use?
     bounds: Rect<Au>,
+    extra: E,
 }
 
 /// Renders a solid color.
-pub struct SolidColorDisplayItem {
-    base: BaseDisplayItem,
+pub struct SolidColorDisplayItem<E> {
+    base: BaseDisplayItem<E>,
     color: Color,
 }
 
 /// Renders text.
-pub struct TextDisplayItem {
-    base: BaseDisplayItem,
+pub struct TextDisplayItem<E> {
+    base: BaseDisplayItem<E>,
     text_run: ~SendableTextRun,
     range: Range,
     color: Color,
 }
 
 /// Renders an image.
-pub struct ImageDisplayItem {
-    base: BaseDisplayItem,
+pub struct ImageDisplayItem<E> {
+    base: BaseDisplayItem<E>,
     image: ARC<~Image>,
 }
 
 /// Renders a border.
-pub struct BorderDisplayItem {
-    base: BaseDisplayItem,
+pub struct BorderDisplayItem<E> {
+    base: BaseDisplayItem<E>,
     /// The width of the border.
     width: Au,
     /// The color of the border.
     color: Color,
 }
 
-impl DisplayItem {
+impl<E> DisplayItem<E> {
     /// Renders this display item into the given render context.
     fn draw_into_context(&self, render_context: &RenderContext) {
         match *self {

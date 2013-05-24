@@ -28,7 +28,7 @@
 use layout::block::BlockFlowData;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
-use layout::display_list_builder::DisplayListBuilder;
+use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::inline::{InlineFlowData};
 
 use core::cell::Cell;
@@ -284,11 +284,11 @@ impl<'self> FlowContext {
         }
     }
 
-    pub fn build_display_list_recurse(&self,
+    pub fn build_display_list_recurse<E: ExtraDisplayListData>(&self,
                                       builder: &DisplayListBuilder,
                                       dirty: &Rect<Au>,
                                       offset: &Point2D<Au>,
-                                      list: &Cell<DisplayList>) {
+                                      list: &Cell<DisplayList<E>>) {
         do self.with_base |info| {
             debug!("FlowContext::build_display_list at %?: %s", info.position, self.debug_str());
         }
@@ -305,14 +305,14 @@ impl<'self> FlowContext {
         match *self {
             BlockFlow(block) => {
                 let block = &mut *block;
-                do block.box.map_default(seed) |box| {
-                    cb(seed, *box)
+                do block.box.map_default(seed) |&@box| {
+                    cb(seed, box)
                 }
             }
             InlineFlow(inline) => {
                 let inline = &mut *inline;
-                do inline.boxes.foldl(seed) |acc, box| {
-                    cb(*acc, *box)
+                do inline.boxes.foldl(seed) |acc, &@box| {
+                    cb(*acc, box)
                 }
             }
             _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self)),
@@ -338,15 +338,15 @@ impl<'self> FlowContext {
             BlockFlow(block) => {
                 let block = &mut *block;
                 for block.box.each |box| {
-                    if !cb(*box) {
+                    if !cb(**box) {
                         break;
                     }
                 }
             }
             InlineFlow(inline) => {
                 let inline = &mut *inline;
-                for inline.boxes.each |box| {
-                    if !cb(*box) {
+                for inline.boxes.each |&@box| {
+                    if !cb(box) {
                         break;
                     }
                 }

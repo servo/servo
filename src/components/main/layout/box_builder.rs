@@ -104,7 +104,7 @@ impl BoxGenerator {
                                         _: &LayoutContext,
                                         _: AbstractNode<LayoutView>,
                                         _: InlineSpacerSide)
-                                        -> Option<RenderBox> {
+                                        -> Option<@RenderBox> {
         None
     }
 
@@ -129,12 +129,12 @@ impl BoxGenerator {
 
                 // if a leaf, make a box.
                 if node.is_leaf() {
-                    let new_box = builder.make_box(ctx, box_type, node, self.flow);
+                    let new_box = @builder.make_box(ctx, box_type, node, self.flow);
                     inline.boxes.push(new_box);
                 } else if self.inline_spacers_needed_for_node(node) {
                     // else, maybe make a spacer for "left" margin, border, padding
                     for self.make_inline_spacer_for_node_side(ctx, node, LogicalBefore).each
-                            |spacer: &RenderBox| {
+                            |spacer: &@RenderBox| {
                         inline.boxes.push(*spacer);
                     }
                 }
@@ -142,7 +142,7 @@ impl BoxGenerator {
             },
             BlockFlow(block) => {
                 debug!("BoxGenerator[f%d]: point b", block.common.id);
-                let new_box = builder.make_box(ctx, box_type, node, self.flow);
+                let new_box = @builder.make_box(ctx, box_type, node, self.flow);
 
                 debug!("BoxGenerator[f%d]: attaching box[b%d] to block flow (node: %s)",
                        block.common.id,

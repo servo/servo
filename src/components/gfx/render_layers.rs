@@ -15,7 +15,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 
 pub struct RenderLayer {
-    display_list: DisplayList,
+    display_list: DisplayList<()>,
     size: Size2D<uint>
 }
 

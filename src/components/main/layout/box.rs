@@ -6,7 +6,7 @@
 
 use css::node_style::StyledNode;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
+use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
 use layout::flow::FlowContext;
 use layout::text::TextBoxData;
 use layout::text;
@@ -137,11 +137,11 @@ pub enum RenderBoxType {
 
 /// Represents the outcome of attempting to split a render box.
 pub enum SplitBoxResult {
-    CannotSplit(RenderBox),
+    CannotSplit(@RenderBox),
     // in general, when splitting the left or right side can
     // be zero length, due to leading/trailing trimmable whitespace
-    SplitDidFit(Option<RenderBox>, Option<RenderBox>),
-    SplitDidNotFit(Option<RenderBox>, Option<RenderBox>)
+    SplitDidFit(Option<@RenderBox>, Option<@RenderBox>),
+    SplitDidNotFit(Option<@RenderBox>, Option<@RenderBox>)
 }
 
 /// Data common to all render boxes.
@@ -271,10 +271,10 @@ pub impl RenderBox {
 
     /// Attempts to split this box so that its width is no more than `max_width`. Fails if this box
     /// is an unscanned text box.
-    fn split_to_width(&self, _: &LayoutContext, max_width: Au, starts_line: bool)
+    fn split_to_width(@self, _: &LayoutContext, max_width: Au, starts_line: bool)
                       -> SplitBoxResult {
         match *self {
-            GenericRenderBoxClass(*) | ImageRenderBoxClass(*) => CannotSplit(*self),
+            GenericRenderBoxClass(*) | ImageRenderBoxClass(*) => CannotSplit(self),
             UnscannedTextRenderBoxClass(*) => {
                 fail!(~"WAT: shouldn't be an unscanned text box here.")
             }
@@ -351,7 +351,7 @@ pub impl RenderBox {
                     let new_text_box = @mut text::adapt_textbox_with_range(text_box.base,
                                                                            text_box.text_data.run,
                                                                            left_range);
-                    Some(TextRenderBoxClass(new_text_box))
+                    Some(@TextRenderBoxClass(new_text_box))
                 } else {
                     None
                 };
@@ -360,7 +360,7 @@ pub impl RenderBox {
                     let new_text_box = @mut text::adapt_textbox_with_range(text_box.base,
                                                                            text_box.text_data.run,
                                                                            *range);
-                    Some(TextRenderBoxClass(new_text_box))
+                    Some(@TextRenderBoxClass(new_text_box))
                 };
                 
                 if pieces_processed_count == 1 || left_box.is_none() {
@@ -549,11 +549,11 @@ pub impl RenderBox {
     /// representing the box's stacking context. When asked to construct its constituent display
     /// items, each box puts its display items into the correct stack layer according to CSS 2.1
     /// Appendix E. Finally, the builder flattens the list.
-    fn build_display_list(&self,
-                          _: &DisplayListBuilder,
-                          dirty: &Rect<Au>,
-                          offset: &Point2D<Au>,
-                          list: &Cell<DisplayList>) {
+    fn build_display_list<E: ExtraDisplayListData>(@self,
+                                                   _: &DisplayListBuilder,
+                                                   dirty: &Rect<Au>,
+                                                   offset: &Point2D<Au>,
+                                                   list: &Cell<DisplayList<E>>) {
         let box_bounds = self.position();
         let absolute_box_bounds = box_bounds.translate(offset);
         debug!("RenderBox::build_display_list at rel=%?, abs=%?: %s", 
@@ -581,6 +581,7 @@ pub impl RenderBox {
                     let text_display_item = ~TextDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
+                            extra: ExtraDisplayListData::new(self),
                         },
                         // FIXME(pcwalton): Allocation? Why?!
                         text_run: ~text_box.text_data.run.serialize(),
@@ -601,6 +602,7 @@ pub impl RenderBox {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: absolute_box_bounds,
+                                extra: ExtraDisplayListData::new(self),
                             },
                             width: Au::from_px(1),
                             color: rgb(0, 0, 200).to_gfx_color(),
@@ -620,6 +622,7 @@ pub impl RenderBox {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: baseline,
+                                extra: ExtraDisplayListData::new(self),
                             },
                             width: Au::from_px(1),
                             color: rgb(0, 200, 0).to_gfx_color(),
@@ -643,6 +646,7 @@ pub impl RenderBox {
                             let image_display_item = ~ImageDisplayItem {
                                 base: BaseDisplayItem {
                                     bounds: absolute_box_bounds,
+                                    extra: ExtraDisplayListData::new(self),
                                 },
                                 image: image.clone(),
                             };
@@ -667,8 +671,8 @@ pub impl RenderBox {
 
     /// Adds the display items necessary to paint the background of this render box to the display
     /// list if necessary.
-    fn paint_background_if_applicable(&self,
-                                      list: &Cell<DisplayList>,
+    fn paint_background_if_applicable<E: ExtraDisplayListData>(@self,
+                                      list: &Cell<DisplayList<E>>,
                                       absolute_bounds: &Rect<Au>) {
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
         // needed. We could use display list optimization to clean this up, but it still seems
@@ -682,6 +686,7 @@ pub impl RenderBox {
                 let solid_color_display_item = ~SolidColorDisplayItem {
                     base: BaseDisplayItem {
                         bounds: *absolute_bounds,
+                        extra: ExtraDisplayListData::new(self),
                     },
                     color: background_color.to_gfx_color(),
                 };
@@ -693,7 +698,9 @@ pub impl RenderBox {
 
     /// Adds the display items necessary to paint the borders of this render box to the display
     /// list if necessary.
-    fn paint_borders_if_applicable(&self, list: &Cell<DisplayList>, abs_bounds: &Rect<Au>) {
+    fn paint_borders_if_applicable<E: ExtraDisplayListData>(@self,
+                                                            list: &Cell<DisplayList<E>>,
+                                                            abs_bounds: &Rect<Au>) {
         if !self.is_element() {
             return
         }
@@ -733,6 +740,7 @@ pub impl RenderBox {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: bounds,
+                                extra: ExtraDisplayListData::new(self),
                             },
                             width: border_width,
                             color: color,
