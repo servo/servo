@@ -77,7 +77,7 @@ impl ImageData for AzureDrawTargetImageData {
         // FIXME: This is not always correct. We should query the Azure draw target for the format.
         ARGB32Format
     }
-    fn with_data(&self, f: WithDataFn) { 
+    fn with_data(&self, f: WithDataFn) {
         do self.data_source_surface.with_data |data| {
             f(data);
         }
@@ -174,8 +174,8 @@ fn run_main_loop(po: Port<Msg>, script_chan: SharedChan<ScriptMsg>, opts: &Opts,
                         };
 
                         // Set the layer's transform.
-                        let mut origin = Point2D(buffer.rect.origin.x as f32,
-                                                 buffer.rect.origin.y as f32);
+                        let origin = Point2D(buffer.rect.origin.x as f32,
+                                             buffer.rect.origin.y as f32);
                         let transform = original_layer_transform.translate(origin.x,
                                                                            origin.y,
                                                                            0.0);
