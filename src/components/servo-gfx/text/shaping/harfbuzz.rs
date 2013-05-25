@@ -133,8 +133,8 @@ impl ShapedGlyphData {
             };
 
             ShapedGlyphEntry {
-                cluster: (*glyph_info_i).cluster as uint, 
-                codepoint: (*glyph_info_i).codepoint as GlyphIndex, 
+                cluster: (*glyph_info_i).cluster as uint,
+                codepoint: (*glyph_info_i).codepoint as GlyphIndex,
                 advance: x_advance,
                 offset: offset,
             }
@@ -165,7 +165,11 @@ impl Drop for Shaper {
 
 impl Shaper {
     pub fn new(font: @mut Font) -> Shaper {
-        let font_ptr: *mut Font = &mut *font;
+        // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
+        let font_ptr = {
+            let borrowed_font= &mut *font;
+            borrowed_font as *mut Font
+        };
         let hb_face: *hb_face_t = hb_face_create_for_tables(get_font_table_func,
                                                             font_ptr as *c_void,
                                                             null());
@@ -176,7 +180,7 @@ impl Shaper {
         hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
 
         // Set scaling. Note that this takes 16.16 fixed point.
-        hb_font_set_scale(hb_font, 
+        hb_font_set_scale(hb_font,
                           Shaper::float_to_fixed(pt_size) as c_int,
                           Shaper::float_to_fixed(pt_size) as c_int);
 
@@ -187,7 +191,7 @@ impl Shaper {
         hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, null(), null());
         hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *c_void, null());
 
-        Shaper { 
+        Shaper {
             font: font,
             hb_face: hb_face,
             hb_font: hb_font,
@@ -208,7 +212,7 @@ impl Shaper {
     }
 }
 
-impl ShaperMethods for Shaper {    
+impl ShaperMethods for Shaper {
     /// Calculate the layout metrics associated with the given text when rendered in a specific
     /// font.
     fn shape_text(&self, text: &str, glyphs: &mut GlyphStore) {
@@ -217,7 +221,7 @@ impl ShaperMethods for Shaper {
 
         // Using as_buf because it never does a copy - we don't need the trailing null
         do str::as_buf(text) |ctext: *u8, _: uint| {
-            hb_buffer_add_utf8(hb_buffer, 
+            hb_buffer_add_utf8(hb_buffer,
                                ctext as *c_char,
                                text.len() as c_int,
                                0,
@@ -268,7 +272,7 @@ impl Shaper {
                 i = range.next;
             }
         }
-        
+
         debug!("(glyph idx) -> (text byte offset)");
         for uint::range(0, glyph_data.len()) |i| {
             // loc refers to a *byte* offset within the utf8 string.
@@ -346,7 +350,7 @@ impl Shaper {
                            glyph_span.begin(), glyph_span.length());
                 }
 
-            
+
                 // if there's just one glyph, then we don't need further checks.
                 if glyph_span.length() == 1 { break; }
 
@@ -389,7 +393,7 @@ impl Shaper {
             //and set glyph info for those and empty infos for the chars that are continuations.
 
             // a simple example:
-            // chars:  'f'     't'   't'   
+            // chars:  'f'     't'   't'
             // glyphs: 'ftt'   ''    ''
             // cgmap:  t        f     f
             // gspan:  [-]
@@ -398,7 +402,7 @@ impl Shaper {
 
             let mut covered_byte_span = copy char_byte_span;
             // extend, clipping at end of text range.
-            while covered_byte_span.end() < byte_max 
+            while covered_byte_span.end() < byte_max
                     && byteToGlyph[covered_byte_span.end()] == NO_GLYPH {
                 let range = str::char_range_at(text, covered_byte_span.end());
                 ignore(range.ch);
@@ -449,7 +453,7 @@ impl Shaper {
 
                 // now add the detailed glyph entry.
                 glyphs.add_glyphs_for_char_index(char_idx, datas);
-                
+
                 // set the other chars, who have no glyphs
                 let mut i = covered_byte_span.begin();
                 loop {
