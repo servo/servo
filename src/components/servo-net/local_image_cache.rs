@@ -43,8 +43,7 @@ priv struct ImageState {
 pub impl LocalImageCache {
     /// The local cache will only do a single remote request for a given
     /// URL in each 'round'. Layout should call this each time it begins
-    // FIXME: 'pub' is an unexpected token?
-    /* pub */ fn next_round(&mut self, on_image_available: @fn() -> ~fn(ImageResponseMsg)) {
+    pub fn next_round(&mut self, on_image_available: @fn() -> ~fn(ImageResponseMsg)) {
         self.round_number += 1;
         self.on_image_available = Some(on_image_available);
     }
@@ -135,7 +134,7 @@ pub impl LocalImageCache {
     }
 
     priv fn get_state(&self, url: &Url) -> @mut ImageState {
-        *do self.state_map.find_or_insert_with(url.clone()) |_| {
+        let state = do self.state_map.find_or_insert_with(url.clone()) |_| {
             let new_state = @mut ImageState {
                 prefetched: false,
                 decoded: false,
@@ -143,7 +142,8 @@ pub impl LocalImageCache {
                 last_response: ImageNotReady
             };
             new_state
-        }
+        };
+        *state  // Unborrowing the state
     }
 }
 
