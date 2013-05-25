@@ -19,6 +19,7 @@ use geometry::Au;
 use render_context::RenderContext;
 use text::SendableTextRun;
 
+use core::cast::transmute_region;
 use geom::{Point2D, Rect, Size2D};
 use servo_net::image::base::Image;
 use servo_util::range::Range;
@@ -150,6 +151,22 @@ impl<E> DisplayItem<E> {
                 render_context.draw_border(&border.base.bounds, border.width, border.color)
             }
         }
+    }
+
+    fn base<'a>(&'a self) -> &'a BaseDisplayItem<E> {
+        // FIXME(tkuehn): Workaround for Rust region bug.
+        unsafe {
+            match *self {
+                SolidColorDisplayItemClass(ref solid_color) => transmute_region(&solid_color.base),
+                TextDisplayItemClass(ref text) => transmute_region(&text.base),
+                ImageDisplayItemClass(ref image_item) => transmute_region(&image_item.base),
+                BorderDisplayItemClass(ref border) => transmute_region(&border.base)
+            }
+        }
+    }
+
+    fn bounds(&self) -> Rect<Au> {
+        self.base().bounds
     }
 }
 
