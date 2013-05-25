@@ -127,7 +127,7 @@ impl<E> DisplayItem<E> {
                                             new_run,
                                             &text.range,
                                             baseline_origin,
-                                            text.color)
+                                            text.color);
 
                 // Draw the underline if applicable.
                 if new_run.underline {
@@ -135,7 +135,7 @@ impl<E> DisplayItem<E> {
                     let width = text.base.bounds.size.width;
                     let underline_bounds = Rect(Point2D(baseline_origin.x, baseline_origin.y),
                                                 Size2D(width, font.metrics.underline_size));
-                    render_context.draw_solid_color(&underline_bounds, color)
+                    render_context.draw_solid_color(&underline_bounds, text.color)
                 }
             }
 

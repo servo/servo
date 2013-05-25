@@ -305,13 +305,13 @@ impl<'self> FlowContext {
         match *self {
             BlockFlow(block) => {
                 let block = &mut *block;
-                do block.box.map_default(seed) |&@box| {
+                do block.box.map_default(seed) |&box| {
                     cb(seed, box)
                 }
             }
             InlineFlow(inline) => {
                 let inline = &mut *inline;
-                do inline.boxes.foldl(seed) |acc, &@box| {
+                do inline.boxes.foldl(seed) |acc, &box| {
                     cb(*acc, box)
                 }
             }
@@ -338,14 +338,14 @@ impl<'self> FlowContext {
             BlockFlow(block) => {
                 let block = &mut *block;
                 for block.box.each |box| {
-                    if !cb(**box) {
+                    if !cb(*box) {
                         break;
                     }
                 }
             }
             InlineFlow(inline) => {
                 let inline = &mut *inline;
-                for inline.boxes.each |&@box| {
+                for inline.boxes.each |&box| {
                     if !cb(box) {
                         break;
                     }

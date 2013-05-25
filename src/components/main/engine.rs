@@ -18,11 +18,9 @@ use script::script_task;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
-use std::net::url::Url;
-
+use servo_util::time::{ProfilerChan, ProfilerPort, ProfilerTask};
 use servo_util::time;
-use servo_util::time::ProfilerChan;
-use servo_util::time::ProfilerPort;
+use std::net::url::Url;
 
 pub type EngineTask = Chan<Msg>;
 
@@ -65,14 +63,13 @@ impl Engine {
             let layout_task = layout_task::create_layout_task(render_task.clone(),
                                                               image_cache_task.clone(),
                                                               opts,
-                                                              profiler_task.chan.clone());
+                                                              profiler_chan.clone());
 
             let script_task = ScriptTask::new(script_port.take(),
                                               script_chan.take(),
                                               layout_task.clone(),
                                               resource_task.clone(),
                                               image_cache_task.clone());
-
 
             Engine {
                 request_port: request,
@@ -82,7 +79,7 @@ impl Engine {
                 image_cache_task: image_cache_task.clone(),
                 layout_task: layout_task,
                 script_task: script_task,
-                profiler_task: profiler_task,
+                profiler_task: ProfilerTask::new(profiler_port.take(), profiler_chan.clone()),
             }.run()
         }
     }

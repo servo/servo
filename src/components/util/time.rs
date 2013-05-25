@@ -27,8 +27,9 @@ static NUM_BUCKETS: uint = 12;
 
 pub type ProfilerChan = SharedChan<(ProfilerCategory, uint)>;
 pub type ProfilerPort = Port<(ProfilerCategory, uint)>;
+
 pub struct ProfilerTask {
-    chan: ProfilerChan,
+    priv chan: ProfilerChan,
 }
 
 impl ProfilerTask {

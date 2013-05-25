@@ -46,12 +46,14 @@ pub struct FontContext {
 pub impl<'self> FontContext {
     fn new(backend: BackendType,
            needs_font_list: bool,
-           prof_chan: ProfilerChan)
+           profiler_chan: ProfilerChan)
            -> FontContext {
         let handle = FontContextHandle::new();
         let font_list = if needs_font_list { 
-                            Some(FontList::new(&handle, prof_chan.clone())) }
-                        else { None };
+            Some(FontList::new(&handle, profiler_chan.clone()))
+        } else {
+            None
+        };
 
         // TODO: Allow users to specify these.
         let mut generic_fonts = HashMap::with_capacity(5);

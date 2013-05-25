@@ -44,13 +44,17 @@ use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::tree::TreeUtils;
 
-pub fn create_layout_task(render_task: RenderTask, img_cache_task: ImageCacheTask, opts: Opts)
+pub fn create_layout_task(render_task: RenderTask,
+                          img_cache_task: ImageCacheTask,
+                          opts: Opts,
+                          profiler_chan: ProfilerChan)
                           -> LayoutTask {
     let chan = do spawn_listener::<Msg> |from_script| {
         let mut layout = Layout::new(render_task.clone(),
                                      img_cache_task.clone(),
                                      from_script,
-                                     &opts);
+                                     &opts,
+                                     profiler_chan.clone());
         layout.start();
     };
 
@@ -82,7 +86,7 @@ impl Layout {
            opts: &Opts,
            profiler_chan: ProfilerChan)
            -> Layout {
-        let fctx = @mut FontContext::new(opts.render_backend, true);
+        let fctx = @mut FontContext::new(opts.render_backend, true, profiler_chan.clone());
 
         Layout {
             render_task: render_task,
@@ -110,13 +114,13 @@ impl Layout {
             BuildMsg(data) => {
                 let data = Cell(data);
 
-                do profile(time::LayoutPerformCategory, self.prof_chan.clone()) {
+                do profile(time::LayoutPerformCategory, self.profiler_chan.clone()) {
                     self.handle_build(data.take());
                 }
             }
             QueryMsg(query, chan) => {
                 let chan = Cell(chan);
-                do profile(time::LayoutQueryCategory, self.prof_chan.clone()) {
+                do profile(time::LayoutQueryCategory, self.profiler_chan.clone()) {
                     self.handle_query(query, chan.take())
                 }
             }
@@ -167,7 +171,7 @@ impl Layout {
         // Initialize layout data for each node.
         //
         // FIXME: This is inefficient. We don't need an entire traversal to do this!
-        do profile(time::LayoutAuxInitCategory, self.prof_chan.clone()) {
+        do profile(time::LayoutAuxInitCategory, self.profiler_chan.clone()) {
             node.initialize_style_for_subtree(&mut self.layout_refs);
         }
 
@@ -175,7 +179,7 @@ impl Layout {
         match data.damage {
             NoDamage | ReflowDamage => {}
             MatchSelectorsDamage => {
-                do profile(time::LayoutSelectorMatchCategory, self.prof_chan.clone()) {
+                do profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone()) {
                     node.restyle_subtree(self.css_select_ctx);
                 }
             }
@@ -183,7 +187,7 @@ impl Layout {
 
         // Construct the flow tree.
         let layout_root: FlowContext = do profile(time::LayoutTreeBuilderCategory,
-                                                  self.prof_chan.clone()) {
+                                                  self.profiler_chan.clone()) {
             let mut builder = LayoutTreeBuilder::new();
             let layout_root: FlowContext = match builder.construct_trees(&layout_ctx, *node) {
                 Ok(root) => root,
@@ -198,7 +202,7 @@ impl Layout {
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
-        do profile(time::LayoutMainCategory, self.prof_chan.clone()) {
+        do profile(time::LayoutMainCategory, self.profiler_chan.clone()) {
             for layout_root.traverse_postorder |flow| {
                 flow.bubble_widths(&mut layout_ctx);
             };
@@ -211,7 +215,7 @@ impl Layout {
         }
 
         // Build the display list, and send it to the renderer.
-        do profile(time::LayoutDispListBuildCategory, self.prof_chan.clone()) {
+        do profile(time::LayoutDispListBuildCategory, self.profiler_chan.clone()) {
             let builder = DisplayListBuilder {
                 ctx: &layout_ctx,
             };

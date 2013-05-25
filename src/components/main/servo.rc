@@ -106,8 +106,8 @@ fn run(opts: &Opts) {
                                     script_chan,
                                     resource_task,
                                     image_cache_task,
-                                    prof_port,
-                                    prof_chan);
+                                    profiler_port,
+                                    profiler_chan);
 
     // Send the URL command to the engine task.
     for opts.urls.each |filename| {

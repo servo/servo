@@ -23,7 +23,7 @@ pub struct BlockFlowData {
     common: FlowData,
 
     /// The associated render box.
-    box: Option<@RenderBox>,
+    box: Option<RenderBox>,
 
     /// Whether this block flow is the root flow.
     is_root: bool

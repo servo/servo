@@ -96,7 +96,7 @@ impl ElementMapping {
         true
     }
 
-    pub fn repair_for_box_changes(&mut self, old_boxes: &[@RenderBox], new_boxes: &[@RenderBox]) {
+    pub fn repair_for_box_changes(&mut self, old_boxes: &[RenderBox], new_boxes: &[RenderBox]) {
         let entries = &mut self.entries;
 
         debug!("--- Old boxes: ---");
@@ -191,7 +191,7 @@ impl TextRunScanner {
         assert!(inline.boxes.len() > 0);
         debug!("TextRunScanner: scanning %u boxes for text runs...", inline.boxes.len());
 
-        let mut out_boxes: ~[@RenderBox] = ~[];
+        let mut out_boxes: ~[RenderBox] = ~[];
         for uint::range(0, flow.inline().boxes.len()) |box_i| {
             debug!("TextRunScanner: considering box: %?", flow.inline().boxes[box_i].debug_str());
             if box_i > 0 && !can_coalesce_text_nodes(flow.inline().boxes, box_i-1, box_i) {
@@ -210,12 +210,12 @@ impl TextRunScanner {
         flow.inline().boxes = out_boxes;
 
         // A helper function.
-        fn can_coalesce_text_nodes(boxes: &[@RenderBox], left_i: uint, right_i: uint) -> bool {
+        fn can_coalesce_text_nodes(boxes: &[RenderBox], left_i: uint, right_i: uint) -> bool {
             assert!(left_i < boxes.len());
             assert!(right_i > 0 && right_i < boxes.len());
             assert!(left_i != right_i);
 
-            let (@left, @right) = (boxes[left_i], boxes[right_i]);
+            let (left, right) = (boxes[left_i], boxes[right_i]);
             match (left, right) {
                 (UnscannedTextRenderBoxClass(*), UnscannedTextRenderBoxClass(*)) => {
                     left.can_merge_with_box(right)
@@ -238,7 +238,7 @@ impl TextRunScanner {
     fn flush_clump_to_list(&mut self,
                            ctx: &mut LayoutContext, 
                            flow: FlowContext,
-                           out_boxes: &mut ~[@RenderBox]) {
+                           out_boxes: &mut ~[RenderBox]) {
         let inline = &mut *flow.inline();
         let in_boxes = &inline.boxes;
 
@@ -254,7 +254,7 @@ impl TextRunScanner {
         debug!("TextRunScanner: flushing boxes in range=%?", self.clump);
         let is_singleton = self.clump.length() == 1;
         let is_text_clump = match in_boxes[self.clump.begin()] {
-            @UnscannedTextRenderBoxClass(*) => true,
+            UnscannedTextRenderBoxClass(*) => true,
             _ => false
         };
 
@@ -289,7 +289,7 @@ impl TextRunScanner {
                     @mut adapt_textbox_with_range(*old_box_base, run, range)
                 };
 
-                out_boxes.push(@TextRenderBoxClass(new_box));
+                out_boxes.push(TextRenderBoxClass(new_box));
             },
             (false, true) => {
                 // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
@@ -346,8 +346,13 @@ impl TextRunScanner {
                     }
 
                     do in_boxes[i].with_imm_base |base| {
-                        let new_box = @mut adapt_textbox_with_range(*base, run, range);
-                        out_boxes.push(@TextRenderBoxClass(new_box));
+                        match run {
+                            None => {}
+                            Some(run) => {
+                                let new_box = @mut adapt_textbox_with_range(*base, run, range);
+                                out_boxes.push(TextRenderBoxClass(new_box));
+                            }
+                        }
                     }
                 }
             }
@@ -383,8 +388,8 @@ struct PendingLine {
 
 struct LineboxScanner {
     flow: FlowContext,
-    new_boxes: ~[@RenderBox],
-    work_list: @mut Deque<@RenderBox>,
+    new_boxes: ~[RenderBox],
+    work_list: @mut Deque<RenderBox>,
     pending_line: PendingLine,
     line_spans: ~[Range],
 }
@@ -531,7 +536,7 @@ impl LineboxScanner {
     }
 
     // return value: whether any box was appended.
-    fn try_append_to_line(&mut self, ctx: &LayoutContext, in_box: @RenderBox) -> bool {
+    fn try_append_to_line(&mut self, ctx: &LayoutContext, in_box: RenderBox) -> bool {
         let remaining_width = self.flow.position().size.width - self.pending_line.width;
         let in_box_width = in_box.position().size.width;
         let line_is_empty: bool = self.pending_line.range.length() == 0;
@@ -615,7 +620,7 @@ impl LineboxScanner {
     }
 
     // unconditional push
-    fn push_box_to_line(&mut self, box: @RenderBox) {
+    fn push_box_to_line(&mut self, box: RenderBox) {
         debug!("LineboxScanner: Pushing box b%d to line %u", box.id(), self.line_spans.len());
 
         if self.pending_line.range.length() == 0 {
@@ -634,7 +639,7 @@ pub struct InlineFlowData {
 
     // A vec of all inline render boxes. Several boxes may
     // correspond to one Node/Element.
-    boxes: ~[@RenderBox],
+    boxes: ~[RenderBox],
     // vec of ranges into boxes that represents line positions.
     // these ranges are disjoint, and are the result of inline layout.
     lines: ~[Range],
@@ -709,15 +714,15 @@ impl InlineFlowData {
             let this = &mut *self;
             for this.boxes.each |&box| {
                 match box {
-                    @ImageRenderBoxClass(image_box) => {
+                    ImageRenderBoxClass(image_box) => {
                         let size = image_box.image.get_size();
                         let width = Au::from_px(size.get_or_default(Size2D(0, 0)).width);
                         image_box.base.position.size.width = width;
                     }
-                    @TextRenderBoxClass(_) => {
+                    TextRenderBoxClass(_) => {
                         // Text boxes are preinitialized.
                     }
-                    @GenericRenderBoxClass(generic_box) => {
+                    GenericRenderBoxClass(generic_box) => {
                         // TODO(#225): There will be different cases here for `inline-block` and
                         // other replaced content.
                         // FIXME(pcwalton): This seems clownshoes; can we remove?
@@ -762,15 +767,15 @@ impl InlineFlowData {
 
                 // Compute the height of each box.
                 match cur_box {
-                    @ImageRenderBoxClass(image_box) => {
+                    ImageRenderBoxClass(image_box) => {
                         let size = image_box.image.get_size();
                         let height = Au::from_px(size.get_or_default(Size2D(0, 0)).height);
                         image_box.base.position.size.height = height;
                     }
-                    @TextRenderBoxClass(*) => {
+                    TextRenderBoxClass(*) => {
                         // Text boxes are preinitialized.
                     }
-                    @GenericRenderBoxClass(generic_box) => {
+                    GenericRenderBoxClass(generic_box) => {
                         // TODO(Issue #225): There will be different cases here for `inline-block`
                         // and other replaced content.
                         // FIXME(pcwalton): This seems clownshoes; can we remove?
@@ -794,7 +799,7 @@ impl InlineFlowData {
                     // inline-block content.
                     //
                     // TODO(#225): Use height, width for `inline-block` and other replaced content.
-                    @ImageRenderBoxClass(*) | @GenericRenderBoxClass(*) => {
+                    ImageRenderBoxClass(*) | GenericRenderBoxClass(*) => {
                         let height = cur_box.position().size.height;
                         cur_box.position().translate(&Point2D(Au(0), -height))
                     },
@@ -803,7 +808,7 @@ impl InlineFlowData {
                     //
                     // TODO: We can use font metrics directly instead of re-measuring for the
                     // bounding box.
-                    @TextRenderBoxClass(text_box) => {
+                    TextRenderBoxClass(text_box) => {
                         let range = &text_box.text_data.range;
                         let run = &text_box.text_data.run;
                         let text_bounds = run.metrics_for_range(range).bounding_box;
@@ -836,7 +841,7 @@ impl InlineFlowData {
                 // when calculating line box height. Then we should go back over and set Y offsets
                 // according to the `vertical-align` property of the containing block.
                 let halfleading = match cur_box {
-                    @TextRenderBoxClass(text_box) => {
+                    TextRenderBoxClass(text_box) => {
                         (text_box.text_data.run.font.metrics.em_size - line_height).scale_by(0.5)
                     },
                     _ => Au(0),

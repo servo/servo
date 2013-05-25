@@ -21,17 +21,17 @@ use newcss;
 use servo_util::tree::TreeNodeRef;
 
 pub trait ExtraDisplayListData {
-    fn new(box: @RenderBox) -> Self;
+    fn new(box: RenderBox) -> Self;
 }
 
 impl ExtraDisplayListData for () {
-    fn new(box: @RenderBox) -> () {
+    fn new(_: RenderBox) -> () {
         ()
     }
 }
 
-impl ExtraDisplayListData for @RenderBox {
-    fn new(box: @RenderBox) -> @RenderBox {
+impl ExtraDisplayListData for RenderBox {
+    fn new(box: RenderBox) -> RenderBox {
         box
     }
 }
@@ -61,19 +61,19 @@ pub trait FlowDisplayListBuilderMethods {
 
 impl FlowDisplayListBuilderMethods for FlowContext {
     fn build_display_list<E: ExtraDisplayListData>(&self,
-                          builder: &DisplayListBuilder,
-                          dirty: &Rect<Au>,
-                          list: &Cell<DisplayList<E>>) {
+                                                   builder: &DisplayListBuilder,
+                                                   dirty: &Rect<Au>,
+                                                   list: &Cell<DisplayList<E>>) {
         let zero = gfx::geometry::zero_point();
         self.build_display_list_recurse(builder, dirty, &zero, list);
     }
 
     fn build_display_list_for_child<E: ExtraDisplayListData>(&self,
-                                    builder: &DisplayListBuilder,
-                                    child_flow: FlowContext,
-                                    dirty: &Rect<Au>,
-                                    offset: &Point2D<Au>,
-                                    list: &Cell<DisplayList<E>>) {
+                                                             builder: &DisplayListBuilder,
+                                                             child_flow: FlowContext,
+                                                             dirty: &Rect<Au>,
+                                                             offset: &Point2D<Au>,
+                                                             list: &Cell<DisplayList<E>>) {
         // Adjust the dirty rect to child flow context coordinates.
         do child_flow.with_base |child_node| {
             let abs_flow_bounds = child_node.position.translate(offset);
