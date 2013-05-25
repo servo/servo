@@ -163,7 +163,7 @@ impl Drop for ScriptContext {
 
 impl ScriptContext {
     /// Creates a new script context.
-    pub fn new(layout_task: LayoutTask, 
+    pub fn new(layout_task: LayoutTask,
                script_port: Port<ScriptMsg>,
                script_chan: SharedChan<ScriptMsg>,
                resource_task: ResourceTask,
@@ -201,8 +201,11 @@ impl ScriptContext {
             window_size: Size2D(800, 600),
             damage: MatchSelectorsDamage,
         };
-
-        let script_context_ptr: *ScriptContext = &*script_context;
+        // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
+        let script_context_ptr = {
+            let borrowed_ctx= &mut *script_context;
+            borrowed_ctx as *mut ScriptContext
+        };
         js_context.set_cx_private(script_context_ptr as *());
 
         unsafe {
