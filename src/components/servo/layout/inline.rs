@@ -229,7 +229,7 @@ impl TextRunScanner {
     }
 
     /// A "clump" is a range of inline flow leaves that can be merged together into a single
-    /// `RenderBox`. Adjacent text with the same style can be merged, and nothing else can. 
+    /// `RenderBox`. Adjacent text with the same style can be merged, and nothing else can.
     ///
     /// The flow keeps track of the `RenderBox`es contained by all non-leaf DOM nodes. This is
     /// necessary for correct painting order. Since we compress several leaf `RenderBox`es here,
@@ -239,7 +239,7 @@ impl TextRunScanner {
     /// responsible for swapping out the list. It is not clear to me (pcwalton) that this is still
     /// necessary.
     fn flush_clump_to_list(&mut self,
-                           ctx: &mut LayoutContext, 
+                           ctx: &mut LayoutContext,
                            flow: FlowContext,
                            out_boxes: &mut ~[RenderBox]) {
         let inline = &mut *flow.inline();
@@ -265,7 +265,7 @@ impl TextRunScanner {
             (false, false) => {
                 fail!(~"WAT: can't coalesce non-text nodes in flush_clump_to_list()!")
             }
-            (true, false) => { 
+            (true, false) => {
                 debug!("TextRunScanner: pushing single non-text box in range: %?", self.clump);
                 out_boxes.push(in_boxes[self.clump.begin()]);
             },
@@ -341,7 +341,7 @@ impl TextRunScanner {
                 debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
                 for clump.eachi |i| {
                     let range = new_ranges[i - self.clump.begin()];
-                    if range.length() == 0 { 
+                    if range.length() == 0 {
                         error!("Elided an `UnscannedTextbox` because it was zero-length after \
                                 compression; %s",
                                in_boxes[i].debug_str());
@@ -355,7 +355,7 @@ impl TextRunScanner {
                 }
             }
         } // End of match.
-    
+
         debug!("--- In boxes: ---");
         for in_boxes.eachi |i, box| {
             debug!("%u --> %s", i, box.debug_str());
@@ -419,8 +419,8 @@ impl LineboxScanner {
 
     pub fn scan_for_lines(&mut self, ctx: &LayoutContext) {
         self.reset_scanner();
-        
-        { // FIXME: manually control borrow length 
+
+        { // FIXME: manually control borrow length
             let inline: &InlineFlowData = self.flow.inline();
             let mut i = 0u;
 
@@ -455,7 +455,7 @@ impl LineboxScanner {
                 self.flush_current_line();
             }
         }
-    
+
         { // FIXME: scope the borrow
             let inline: &mut InlineFlowData = self.flow.inline();
             inline.elems.repair_for_box_changes(inline.boxes, self.new_boxes);
@@ -464,7 +464,7 @@ impl LineboxScanner {
     }
 
     fn swap_out_results(&mut self) {
-        debug!("LineboxScanner: Propagating scanned lines[n=%u] to inline flow f%d", 
+        debug!("LineboxScanner: Propagating scanned lines[n=%u] to inline flow f%d",
                self.line_spans.len(),
                self.flow.id());
 
@@ -484,7 +484,7 @@ impl LineboxScanner {
                self.line_spans.len(), line_range);
 
         // Get the text alignment.
-        // TODO(Issue #222): use 'text-align' property from InlineFlow's 
+        // TODO(Issue #222): use 'text-align' property from InlineFlow's
         // block container, not from the style of the first box child.
         let linebox_align;
         if self.pending_line.range.begin() < self.new_boxes.len() {
@@ -734,7 +734,7 @@ impl InlineFlowData {
 
         let mut scanner = LineboxScanner::new(InlineFlow(self));
         scanner.scan_for_lines(ctx);
-   
+
         // There are no child contexts, so stop here.
 
         // TODO(Issue #225): once there are 'inline-block' elements, this won't be
@@ -807,8 +807,8 @@ impl InlineFlowData {
                     // TODO: We can use font metrics directly instead of re-measuring for the
                     // bounding box.
                     TextRenderBoxClass(text_box) => {
-                        let range = &text_box.text_data.range;
-                        let run = &text_box.text_data.run;
+                        let range = &text_box.range;
+                        let run = &text_box.run;
                         let text_bounds = run.metrics_for_range(range).bounding_box;
                         text_bounds.translate(&Point2D(text_box.base.position.origin.x, Au(0)))
                     },
@@ -840,7 +840,7 @@ impl InlineFlowData {
                 // according to the `vertical-align` property of the containing block.
                 let halfleading = match cur_box {
                     TextRenderBoxClass(text_box) => {
-                        (text_box.text_data.run.font.metrics.em_size - line_height).scale_by(0.5)
+                        (text_box.run.font.metrics.em_size - line_height).scale_by(0.5)
                     },
                     _ => Au(0),
                 };
@@ -850,7 +850,7 @@ impl InlineFlowData {
                     base.position.origin.y = cur_y + halfleading + baseline_offset - height;
                 }
             }
-            
+
             cur_y += Au::max(line_height, linebox_height);
         } // End of `lines.each` loop.
 
@@ -859,7 +859,7 @@ impl InlineFlowData {
 
     pub fn build_display_list_inline(&self,
                                      builder: &DisplayListBuilder,
-                                     dirty: &Rect<Au>, 
+                                     dirty: &Rect<Au>,
                                      offset: &Point2D<Au>,
                                      list: &Cell<DisplayList>) {
         // TODO(#228): Once we form line boxes and have their cached bounds, we can be smarter and

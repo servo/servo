@@ -10,7 +10,6 @@ use layout::context::LayoutContext;
 use layout::debug::DebugMethods;
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
 use layout::flow::FlowContext;
-use layout::text::TextBoxData;
 use layout::text;
 
 use core::cell::Cell;
@@ -20,9 +19,10 @@ use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{DisplayItem, DisplayList};
 use gfx::font::{FontStyle, FontWeight300};
 use gfx::geometry::Au;
+use gfx::text::text_run::TextRun;
 use newcss::color::rgb;
 use newcss::complete::CompleteStyle;
-use newcss::units::{Cursive, Em, Fantasy, Length, Monospace, Pt, Px, SansSerif, Serif};
+use newcss::units::{Cursive, Em, Fantasy, Monospace, Pt, Px, SansSerif, Serif};
 use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium};
 use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily};
 use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
@@ -94,14 +94,13 @@ impl ImageRenderBox {
 /// `TextRun` object.
 pub struct TextRenderBox {
     base: RenderBoxBase,
-
-    // TODO: Flatten `TextBoxData` into this type.
-    text_data: TextBoxData,
+    run: @TextRun,
+    range: Range,
 }
 
 impl TextRenderBox {
     fn teardown(&self) {
-        self.text_data.teardown();
+        self.run.teardown();
     }
 }
 
@@ -154,11 +153,6 @@ pub struct RenderBoxBase {
     /// The position of this box relative to its owning flow.
     position: Rect<Au>,
 
-    /// The font size.
-    ///
-    /// FIXME(pcwalton): Why is this present on non-text-boxes?
-    font_size: Length,
-
     /// A debug ID.
     ///
     /// TODO(#87) Make this only present in debug builds.
@@ -172,7 +166,6 @@ impl RenderBoxBase {
             node: node,
             ctx: flow_context,
             position: Au::zero_rect(),
-            font_size: Px(0.0),
             id: id,
         }
     }
@@ -261,7 +254,7 @@ pub impl RenderBox {
                 self.font_style() == other.font_style() && self.text_decoration() == other.text_decoration()
             },
             (&TextRenderBoxClass(text_box_a), &TextRenderBoxClass(text_box_b)) => {
-                managed::ptr_eq(text_box_a.text_data.run, text_box_b.text_data.run)
+                managed::ptr_eq(text_box_a.run, text_box_b.run)
             }
             (_, _) => false,
         }
@@ -280,21 +273,21 @@ pub impl RenderBox {
             TextRenderBoxClass(text_box) => {
                 let mut pieces_processed_count: uint = 0;
                 let mut remaining_width: Au = max_width;
-                let mut left_range = Range::new(text_box.text_data.range.begin(), 0);
+                let mut left_range = Range::new(text_box.range.begin(), 0);
                 let mut right_range: Option<Range> = None;
 
                 debug!("split_to_width: splitting text box (strlen=%u, range=%?, avail_width=%?)",
-                       text_box.text_data.run.text.len(),
-                       text_box.text_data.range,
+                       text_box.run.text.len(),
+                       text_box.range,
                        max_width);
 
-                for text_box.text_data.run.iter_indivisible_pieces_for_range(
-                        &text_box.text_data.range) |piece_range| {
+                for text_box.run.iter_indivisible_pieces_for_range(
+                        &text_box.range) |piece_range| {
                     debug!("split_to_width: considering piece (range=%?, remain_width=%?)",
                            piece_range,
                            remaining_width);
 
-                    let metrics = text_box.text_data.run.metrics_for_range(piece_range);
+                    let metrics = text_box.run.metrics_for_range(piece_range);
                     let advance = metrics.advance_width;
                     let should_continue: bool;
 
@@ -303,9 +296,9 @@ pub impl RenderBox {
 
                         if starts_line &&
                                 pieces_processed_count == 0 &&
-                                text_box.text_data.run.range_is_trimmable_whitespace(piece_range) {
+                                text_box.run.range_is_trimmable_whitespace(piece_range) {
                             debug!("split_to_width: case=skipping leading trimmable whitespace");
-                            left_range.shift_by(piece_range.length() as int); 
+                            left_range.shift_by(piece_range.length() as int);
                         } else {
                             debug!("split_to_width: case=enlarging span");
                             remaining_width -= advance;
@@ -314,24 +307,24 @@ pub impl RenderBox {
                     } else {    // The advance is more than the remaining width.
                         should_continue = false;
 
-                        if text_box.text_data.run.range_is_trimmable_whitespace(piece_range) {
+                        if text_box.run.range_is_trimmable_whitespace(piece_range) {
                             // If there are still things after the trimmable whitespace, create the
                             // right chunk.
-                            if piece_range.end() < text_box.text_data.range.end() {
+                            if piece_range.end() < text_box.range.end() {
                                 debug!("split_to_width: case=skipping trimmable trailing \
                                         whitespace, then split remainder");
                                 let right_range_end =
-                                    text_box.text_data.range.end() - piece_range.end();
+                                    text_box.range.end() - piece_range.end();
                                 right_range = Some(Range::new(piece_range.end(), right_range_end));
                             } else {
                                 debug!("split_to_width: case=skipping trimmable trailing \
                                         whitespace");
                             }
-                        } else if piece_range.begin() < text_box.text_data.range.end() {
+                        } else if piece_range.begin() < text_box.range.end() {
                             // There are still some things left over at the end of the line. Create
                             // the right chunk.
                             let right_range_end =
-                                text_box.text_data.range.end() - piece_range.begin();
+                                text_box.range.end() - piece_range.begin();
                             right_range = Some(Range::new(piece_range.begin(), right_range_end));
                             debug!("split_to_width: case=splitting remainder with right range=%?",
                                    right_range);
@@ -347,7 +340,7 @@ pub impl RenderBox {
 
                 let left_box = if left_range.length() > 0 {
                     let new_text_box = @mut text::adapt_textbox_with_range(text_box.base,
-                                                                           text_box.text_data.run,
+                                                                           text_box.run,
                                                                            left_range);
                     Some(TextRenderBoxClass(new_text_box))
                 } else {
@@ -356,11 +349,11 @@ pub impl RenderBox {
 
                 let right_box = do right_range.map_default(None) |range: &Range| {
                     let new_text_box = @mut text::adapt_textbox_with_range(text_box.base,
-                                                                           text_box.text_data.run,
+                                                                           text_box.run,
                                                                            *range);
                     Some(TextRenderBoxClass(new_text_box))
                 };
-                
+
                 if pieces_processed_count == 1 || left_box.is_none() {
                     SplitDidNotFit(left_box, right_box)
                 } else {
@@ -386,7 +379,7 @@ pub impl RenderBox {
             }
 
             TextRenderBoxClass(text_box) => {
-                text_box.text_data.run.min_width_for_range(&text_box.text_data.range)
+                text_box.run.min_width_for_range(&text_box.range)
             }
 
             UnscannedTextRenderBoxClass(*) => fail!(~"Shouldn't see unscanned boxes here.")
@@ -414,10 +407,10 @@ pub impl RenderBox {
                 // report nothing and the parent flow can factor in minimum/preferred widths of any
                 // text runs that it owns.
                 let mut max_line_width = Au(0);
-                for text_box.text_data.run.iter_natural_lines_for_range(&text_box.text_data.range)
+                for text_box.run.iter_natural_lines_for_range(&text_box.range)
                         |line_range| {
                     let mut line_width: Au = Au(0);
-                    for text_box.text_data.run.glyphs.iter_glyphs_for_char_range(line_range)
+                    for text_box.run.glyphs.iter_glyphs_for_char_range(line_range)
                             |_, glyph| {
                         line_width += glyph.advance()
                     }
@@ -438,7 +431,7 @@ pub impl RenderBox {
         // TODO: This should actually do some computation! See CSS 2.1, Sections 10.3 and 10.4.
         (Au(0), Au(0))
     }
-    
+
     /// Returns the amount of left and right "fringe" used by this box. This should be based on
     /// margins, borders, padding, and width.
     fn get_used_height(&self) -> (Au, Au) {
@@ -554,7 +547,7 @@ pub impl RenderBox {
                           list: &Cell<DisplayList>) {
         let box_bounds = self.position();
         let absolute_box_bounds = box_bounds.translate(offset);
-        debug!("RenderBox::build_display_list at rel=%?, abs=%?: %s", 
+        debug!("RenderBox::build_display_list at rel=%?, abs=%?: %s",
                box_bounds, absolute_box_bounds, self.debug_str());
         debug!("RenderBox::build_display_list: dirty=%?, offset=%?", dirty, offset);
 
@@ -566,7 +559,7 @@ pub impl RenderBox {
         }
 
         // Add the background to the list, if applicable.
-        self.paint_background_if_applicable(list, &absolute_box_bounds); 
+        self.paint_background_if_applicable(list, &absolute_box_bounds);
 
         match *self {
             UnscannedTextRenderBoxClass(*) => fail!(~"Shouldn't see unscanned boxes here."),
@@ -577,8 +570,8 @@ pub impl RenderBox {
                 // FIXME: This should use `with_mut_ref` when that appears.
                 let mut this_list = list.take();
                 this_list.append_item(~DisplayItem::new_Text(&absolute_box_bounds,
-                                                             ~text_box.text_data.run.serialize(),
-                                                             text_box.text_data.range,
+                                                             ~text_box.run.serialize(),
+                                                             text_box.range,
                                                              color));
                 list.put_back(this_list);
 
@@ -586,7 +579,7 @@ pub impl RenderBox {
                 //
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
-                debug!("%?", { 
+                debug!("%?", {
                     // Compute the text box bounds.
                     //
                     // FIXME: This should use `with_mut_ref` when that appears.
@@ -598,8 +591,8 @@ pub impl RenderBox {
                     // Draw a rectangle representing the baselines.
                     //
                     // TODO(Issue #221): Create and use a Line display item for the baseline.
-                    let ascent = text_box.text_data.run.metrics_for_range(
-                        &text_box.text_data.range).ascent;
+                    let ascent = text_box.run.metrics_for_range(
+                        &text_box.range).ascent;
                     let baseline = Rect(absolute_box_bounds.origin + Point2D(Au(0), ascent),
                                         Size2D(absolute_box_bounds.size.width, Au(0)));
 
@@ -825,9 +818,9 @@ impl DebugMethods for RenderBox {
             GenericRenderBoxClass(*) => ~"GenericRenderBox",
             ImageRenderBoxClass(*) => ~"ImageRenderBox",
             TextRenderBoxClass(text_box) => {
-                fmt!("TextRenderBox(text=%s)", str::substr(text_box.text_data.run.text,
-                                                           text_box.text_data.range.begin(),
-                                                           text_box.text_data.range.length()))
+                fmt!("TextRenderBox(text=%s)", str::substr(text_box.run.text,
+                                                           text_box.range.begin(),
+                                                           text_box.range.length()))
             }
             UnscannedTextRenderBoxClass(text_box) => {
                 fmt!("UnscannedTextRenderBox(%s)", text_box.text)

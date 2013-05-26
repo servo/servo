@@ -5,28 +5,11 @@
 //! Text layout.
 
 use layout::box::{RenderBox, RenderBoxBase, TextRenderBox, UnscannedTextRenderBoxClass};
-
 use gfx::text::text_run::TextRun;
 use servo_util::range::Range;
 
-pub struct TextBoxData {
-    run: @TextRun,
-    range: Range,
-}
 
-impl TextBoxData {
-    pub fn new(run: @TextRun, range: Range) -> TextBoxData {
-        TextBoxData {
-            run: run,
-            range: range,
-        }
-    }
-
-    pub fn teardown(&self) {
-        self.run.teardown();
-    }
-}
-
+/// Creates a TextRenderBox from a range and a text run.
 pub fn adapt_textbox_with_range(mut base: RenderBoxBase, run: @TextRun, range: Range)
                                 -> TextRenderBox {
     assert!(range.begin() < run.char_len());
@@ -38,14 +21,14 @@ pub fn adapt_textbox_with_range(mut base: RenderBoxBase, run: @TextRun, range: R
            range.begin(),
            range.length(),
            run.text);
-    let new_text_data = TextBoxData::new(run, range);
-    let metrics = run.metrics_for_range(&range);
 
+    let metrics = run.metrics_for_range(&range);
     base.position.size = metrics.bounding_box.size;
 
     TextRenderBox {
         base: base,
-        text_data: new_text_data,
+        run: run,
+        range: range,
     }
 }
 
