@@ -12,7 +12,6 @@ use dom::node::{AbstractNode, LayoutView};
 use layout::aux::{LayoutData, LayoutAuxMethods};
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
-use layout::debug::{BoxedMutDebugMethods, DebugMethods};
 use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
 use layout::flow::FlowContext;
 use layout_interface::{AddStylesheetMsg, BuildData, BuildMsg, ContentBoxQuery, ContentBoxResponse};
