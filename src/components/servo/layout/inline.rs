@@ -840,13 +840,23 @@ impl InlineFlowData {
                 // according to the `vertical-align` property of the containing block.
                 let halfleading = match cur_box {
                     TextRenderBoxClass(text_box) => {
-                        (text_box.run.font.metrics.em_size - line_height).scale_by(0.5)
+                        //ad is the AD height as defined by CSS 2.1 § 10.8.1
+                        let ad = text_box.run.font.metrics.ascent + text_box.run.font.metrics.descent;
+                        (line_height - ad).scale_by(0.5)
                     },
                     _ => Au(0),
                 };
 
+                //FIXME: when line-height is set on an inline element, the half leading
+                //distance can be negative.
+                let halfleading = Au::max(halfleading, Au(0));
+                
+                let height = match cur_box {
+                    TextRenderBoxClass(text_box) => text_box.run.font.metrics.ascent,
+                    _ => cur_box.position().size.height
+                };
+
                 do cur_box.with_mut_base |base| {
-                    let height = base.position.size.height;
                     base.position.origin.y = cur_y + halfleading + baseline_offset - height;
                 }
             }
