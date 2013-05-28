@@ -760,7 +760,7 @@ pub impl RenderBox {
     fn text_decoration(&self) -> CSSTextDecoration {
         /// Computes the propagated value of text-decoration, as specified in CSS 2.1 § 16.3.1
         /// TODO: make sure this works with anonymous box generation.
-        fn get_propagated_text_decoration(element: AbstractNode) -> CSSTextDecoration {
+        fn get_propagated_text_decoration(element: AbstractNode<LayoutView>) -> CSSTextDecoration {
             //Skip over non-element nodes in the DOM
             if(!element.is_element()){
                 return match element.parent_node() {

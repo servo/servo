@@ -17,11 +17,9 @@ use gfx::render_task;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
-use std::net::url::Url;
-
+use servo_util::time::{ProfilerChan, ProfilerPort, ProfilerTask};
 use servo_util::time;
-use servo_util::time::ProfilerChan;
-use servo_util::time::ProfilerPort;
+use std::net::url::Url;
 
 pub type EngineTask = Chan<Msg>;
 
@@ -38,7 +36,7 @@ pub struct Engine {
     image_cache_task: ImageCacheTask,
     layout_task: LayoutTask,
     script_task: ScriptTask,
-    profiler_task: time::ProfilerTask,
+    profiler_task: ProfilerTask,
 }
 
 impl Engine {
@@ -59,6 +57,8 @@ impl Engine {
             let render_task = RenderTask::new(compositor.clone(),
                                               opts.with_ref(|o| copy *o),
                                               profiler_chan.clone());
+
+            let profiler_task = ProfilerTask::new(profiler_port.take(), profiler_chan.clone());
 
             let opts = opts.take();
             let layout_task = LayoutTask(render_task.clone(),

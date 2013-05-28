@@ -34,7 +34,10 @@ pub struct RenderTask {
 }
 
 impl RenderTask {
-    pub fn new<C:Compositor + Owned>(compositor: C, opts: Opts) -> RenderTask {
+    pub fn new<C:Compositor + Owned>(compositor: C,
+                                     opts: Opts,
+                                     profiler_chan: ProfilerChan)
+                                     -> RenderTask {
         let compositor_cell = Cell(compositor);
         let opts_cell = Cell(opts);
         let (port, chan) = comm::stream();
@@ -48,14 +51,21 @@ impl RenderTask {
             let n_threads = opts.n_render_threads;
             let new_opts_cell = Cell(opts);
 
+            let profiler_chan = profiler_chan.clone();
+            let profiler_chan_copy = profiler_chan.clone();
+
             let thread_pool = do TaskPool::new(n_threads, Some(SingleThreaded)) {
                 let opts_cell = Cell(new_opts_cell.with_ref(|o| copy *o));
+                let profiler_chan = Cell(profiler_chan.clone());
+
                 let f: ~fn(uint) -> ThreadRenderContext = |thread_index| {
                     let opts = opts_cell.with_ref(|opts| copy *opts);
 
                     ThreadRenderContext {
                         thread_index: thread_index,
-                        font_ctx: @mut FontContext::new(opts.render_backend, false),
+                        font_ctx: @mut FontContext::new(opts.render_backend,
+                                                        false,
+                                                        profiler_chan.take()),
                         opts: opts,
                     }
                 };
@@ -67,7 +77,8 @@ impl RenderTask {
                 port: port.take(),
                 compositor: compositor,
                 thread_pool: thread_pool,
-                opts: opts_cell.take()
+                opts: opts_cell.take(),
+                profiler_chan: profiler_chan_copy,
             };
 
             renderer.start();
@@ -91,7 +102,9 @@ priv struct Renderer<C> {
     compositor: C,
     thread_pool: TaskPool<ThreadRenderContext>,
     opts: Opts,
-    prof_chan: ProfilerChan,
+
+    /// A channel to the profiler.
+    profiler_chan: ProfilerChan,
 }
 
 impl<C: Compositor + Owned> Renderer<C> {
@@ -112,8 +125,11 @@ impl<C: Compositor + Owned> Renderer<C> {
     fn render(&mut self, render_layer: RenderLayer) {
         debug!("renderer: rendering");
         do time("rendering") {
-            let layer_buffer_set = do render_layers(&render_layer, &self.opts)
-                    |render_layer_ref, layer_buffer, buffer_chan| {
+            let layer_buffer_set = do render_layers(&render_layer,
+                                                    &self.opts,
+                                                    self.profiler_chan.clone()) |render_layer_ref,
+                                                                                 layer_buffer,
+                                                                                 buffer_chan| {
                 let layer_buffer_cell = Cell(layer_buffer);
                 do self.thread_pool.execute |thread_render_context| {
                     do layer_buffer_cell.with_ref |layer_buffer| {

@@ -190,7 +190,7 @@ fn run_main_loop(port: Port<Msg>,
     };
 
     do window.set_composite_callback {
-        do profile(time::CompositingCategory, prof_chan.clone()) {
+        do profile(time::CompositingCategory, profiler_chan.clone()) {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             scene.size = window.size();
