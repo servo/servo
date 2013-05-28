@@ -121,6 +121,7 @@ pub mod html {
     pub mod hubbub_html_parser;
 }
 
+pub mod layout_interface;
 pub mod windowing;
 
 #[path="platform/mod.rs"]

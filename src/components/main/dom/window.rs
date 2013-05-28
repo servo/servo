@@ -4,8 +4,8 @@
 
 use dom::bindings::utils::WrapperCache;
 use dom::bindings::window;
+use layout_interface::MatchSelectorsDamage;
 use scripting::script_task::{ExitMsg, FireTimerMsg, ScriptMsg, ScriptContext};
-use layout::layout_task::MatchSelectorsDamage;
 use util::task::spawn_listener;
 
 use core::comm::{Port, Chan, SharedChan};
