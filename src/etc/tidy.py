@@ -35,7 +35,7 @@ exceptions = [
     "src/support", # Upstream
     "src/platform", # Upstream
     "src/compiler", # Upstream
-    "src/components/servo/dom/bindings/codegen", # Generated and upstream code combined with our own. Could use cleanup
+    "src/components/main/dom/bindings/codegen", # Generated and upstream code combined with our own. Could use cleanup
 ]
 
 def should_check(name):

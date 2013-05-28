@@ -20,10 +20,10 @@ $(eval $(call DEF_SUBMODULE_TEST_RULES,$(submodule))))
 servo-test: $(DEPS_servo)
 	$(RUSTC) $(RFLAGS_servo) --test -o $@ $<
 
-reftest: $(S)src/reftest/reftest.rs servo
+reftest: $(S)src/test/harness/reftest/reftest.rs servo
 	$(RUSTC) $(RFLAGS_servo) -o $@ $< -L .
 
-contenttest: $(S)src/contenttest/contenttest.rs servo
+contenttest: $(S)src/test/harness/contenttest/contenttest.rs servo
 	$(RUSTC) $(RFLAGS_servo) -o $@ $< -L .
 
 DEPS_CHECK_TARGETS_ALL = $(addprefix check-,$(DEPS_CHECK_ALL))
@@ -39,7 +39,7 @@ check-servo: servo-test
 	./servo-test $(TESTNAME)
 
 check-ref: reftest
-	./reftest --source-dir=$(S)/src/test/ref --work-dir=src/test/ref $(TESTNAME)
+	./reftest --source-dir=$(S)/src/test/html/ref --work-dir=src/test/html/ref $(TESTNAME)
 
 check-content: contenttest
 	./contenttest --source-dir=$(S)/src/test/content $(TESTNAME)
