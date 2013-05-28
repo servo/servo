@@ -841,7 +841,7 @@ impl InlineFlowData {
                 let halfleading = match cur_box {
                     TextRenderBoxClass(text_box) => {
                         //ad is the AD height as defined by CSS 2.1 § 10.8.1
-                        let ad = text_box.text_data.run.font.metrics.ascent + text_box.text_data.run.font.metrics.descent;
+                        let ad = text_box.run.font.metrics.ascent + text_box.run.font.metrics.descent;
                         (line_height - ad).scale_by(0.5)
                     },
                     _ => Au(0),
@@ -852,7 +852,7 @@ impl InlineFlowData {
                 let halfleading = Au::max(halfleading, Au(0));
                 
                 let height = match cur_box {
-                    TextRenderBoxClass(text_box) => text_box.text_data.run.font.metrics.ascent,
+                    TextRenderBoxClass(text_box) => text_box.run.font.metrics.ascent,
                     _ => cur_box.position().size.height
                 };
 
