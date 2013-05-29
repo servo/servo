@@ -25,7 +25,6 @@
 ///   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
 ///   similar methods.
 
-use dom::node::{AbstractNode, LayoutView};
 use layout::block::BlockFlowData;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
@@ -37,6 +36,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
+use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
 
 /// The type of the formatting context and data specific to each context, such as line box

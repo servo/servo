@@ -7,7 +7,6 @@ use dom::node::{AbstractNode, Comment, Doctype, Element, ElementNodeTypeId, Node
 use dom::node::{Text};
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use newcss::stylesheet::Stylesheet;
-use util::task::spawn_conversation;
 
 use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
@@ -208,21 +207,27 @@ pub fn parse_html(url: Url,
                   image_cache_task: ImageCacheTask) -> HtmlParserResult {
     // Spawn a CSS parser to receive links to CSS style sheets.
     let resource_task2 = resource_task.clone();
-    let (css_port, css_chan): (Port<Option<Stylesheet>>, Chan<CSSMessage>) =
-            do spawn_conversation |css_port: Port<CSSMessage>,
-                                   css_chan: Chan<Option<Stylesheet>>| {
-        css_link_listener(css_chan, css_port, resource_task2.clone());
-    };
-    let css_chan = SharedChan::new(css_chan);
+
+    let (stylesheet_port, stylesheet_chan) = comm::stream();
+    let stylesheet_chan = Cell(stylesheet_chan);
+    let (css_msg_port, css_msg_chan) = comm::stream();
+    let css_msg_port = Cell(css_msg_port);
+    do spawn {
+        css_link_listener(stylesheet_chan.take(), css_msg_port.take(), resource_task2.clone());
+    }
+
+    let css_chan = SharedChan::new(css_msg_chan);
 
     // Spawn a JS parser to receive JavaScript.
     let resource_task2 = resource_task.clone();
-    let (js_port, js_chan): (Port<JSResult>, Chan<JSMessage>) =
-            do spawn_conversation |js_port: Port<JSMessage>,
-                                   js_chan: Chan<JSResult>| {
-        js_script_listener(js_chan, js_port, resource_task2.clone());
-    };
-    let js_chan = SharedChan::new(js_chan);
+    let (js_result_port, js_result_chan) = comm::stream();
+    let js_result_chan = Cell(js_result_chan);
+    let (js_msg_port, js_msg_chan) = comm::stream();
+    let js_msg_port = Cell(js_msg_port);
+    do spawn {
+        js_script_listener(js_result_chan.take(), js_msg_port.take(), resource_task2.clone());
+    }
+    let js_chan = SharedChan::new(js_msg_chan);
 
     let url2 = url.clone(), url3 = url.clone();
 
@@ -424,6 +429,10 @@ pub fn parse_html(url: Url,
     css_chan.send(CSSTaskExit);
     js_chan.send(JSTaskExit);
 
-    return HtmlParserResult { root: root, style_port: css_port, js_port: js_port };
+    HtmlParserResult {
+        root: root,
+        style_port: stylesheet_port,
+        js_port: js_result_port,
+    }
 }
 

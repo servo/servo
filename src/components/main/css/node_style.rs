@@ -5,9 +5,9 @@
 // Style retrieval from DOM elements.
 
 use css::node_util::NodeUtil;
-use dom::node::{AbstractNode, LayoutView};
 
 use newcss::complete::CompleteStyle;
+use script::dom::node::{AbstractNode, LayoutView};
 
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {
