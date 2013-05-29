@@ -193,10 +193,12 @@ fn run_main_loop(port: Port<Msg>,
                         image_layer.common.set_transform(transform)
                     }
 
-                    *page_size = Size2D(page_width, page_height)
+                    *page_size = Size2D(page_width, page_height);
 
                     // TODO: Recycle the old buffers; send them back to the renderer to reuse if
                     // it wishes.
+
+                    window.set_needs_display()
                 }
             }
         }
