@@ -1,0 +1,19 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#[link(name = "util",
+       vers = "0.1",
+       uuid = "48421f49-17cf-41c5-a68e-ff669ff2ecd5",
+       url = "http://servo.org/")];
+#[crate_type = "lib"];
+
+extern mod std;
+
+pub mod cache;
+pub mod range;
+pub mod time;
+pub mod tree;
+pub mod url;
+pub mod vec;
+
