@@ -10,6 +10,7 @@ use windowing::{ApplicationMethods, WindowMethods};
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods};
 use core::cell::Cell;
 use core::comm::{Chan, SharedChan, Port};
+use core::num::Orderable;
 use core::util;
 use geom::matrix::identity;
 use geom::point::Point2D;
@@ -119,6 +120,8 @@ fn run_main_loop(port: Port<Msg>,
     // applied to the layers themselves on a per-layer basis. However, this won't work until scroll
     // positions are sent to content.
     let world_offset = @mut Point2D(0f32, 0f32);
+    let page_size = @mut Size2D(0f32, 0f32);
+    let window_size = @mut Size2D(800, 600);
 
     let check_for_messages: @fn() = || {
         // Periodically check if the script task responded to our last resize event
@@ -136,8 +139,11 @@ fn run_main_loop(port: Port<Msg>,
                     // Iterate over the children of the container layer.
                     let mut current_layer_child = root_layer.first_child;
 
-                    // Replace the image layer data with the buffer data.
+                    // Replace the image layer data with the buffer data. Also compute the page
+                    // size here.
                     let buffers = util::replace(&mut new_layer_buffer_set.buffers, ~[]);
+                    let mut (page_width, page_height) = (0.0f32, 0.0f32);
+
                     for buffers.each |buffer| {
                         let width = buffer.rect.size.width as uint;
                         let height = buffer.rect.size.height as uint;
@@ -172,15 +178,22 @@ fn run_main_loop(port: Port<Msg>,
                             Some(_) => fail!(~"found unexpected layer kind"),
                         };
 
+                        let origin = buffer.rect.origin;
+                        let origin = Point2D(origin.x as f32, origin.y as f32);
+
+                        // Update the page width and height calculations.
+                        page_width = page_width.max(&(origin.x + (width as f32)));
+                        page_height = page_height.max(&(origin.y + (height as f32)));
+
                         // Set the layer's transform.
-                        let origin = Point2D(buffer.rect.origin.x as f32,
-                                             buffer.rect.origin.y as f32);
                         let transform = original_layer_transform.translate(origin.x,
                                                                            origin.y,
                                                                            0.0);
                         let transform = transform.scale(width as f32, height as f32, 1.0);
                         image_layer.common.set_transform(transform)
                     }
+
+                    *page_size = Size2D(page_width, page_height)
 
                     // TODO: Recycle the old buffers; send them back to the renderer to reuse if
                     // it wishes.
@@ -205,7 +218,8 @@ fn run_main_loop(port: Port<Msg>,
     // Hook the windowing system's resize callback up to the resize rate limiter.
     do window.set_resize_callback |width, height| {
         debug!("osmain: window resized to %ux%u", width, height);
-        resize_rate_limiter.window_resized(width, height);
+        *window_size = Size2D(width, height);
+        resize_rate_limiter.window_resized(width, height)
     }
 
     // When the user enters a new URL, load it.
@@ -216,13 +230,21 @@ fn run_main_loop(port: Port<Msg>,
 
     // When the user scrolls, move the layer around.
     do window.set_scroll_callback |delta| {
-        // FIXME (Rust #2528): Can't use `+=`.
+        // FIXME (Rust #2528): Can't use `-=`.
         let world_offset_copy = *world_offset;
-        *world_offset = world_offset_copy + delta;
+        *world_offset = world_offset_copy - delta;
+
+        // Clamp the world offset to the screen size.
+        let max_x = (page_size.width - window_size.width as f32).max(&0.0);
+        world_offset.x = world_offset.x.clamp(&0.0, &max_x);
+        let max_y = (page_size.height - window_size.height as f32).max(&0.0);
+        world_offset.y = world_offset.y.clamp(&0.0, &max_y);
 
         debug!("compositor: scrolled to %?", *world_offset);
 
-        root_layer.common.set_transform(identity().translate(world_offset.x, world_offset.y, 0.0));
+        root_layer.common.set_transform(identity().translate(-world_offset.x,
+                                                             -world_offset.y,
+                                                             0.0));
 
         window.set_needs_display()
     }
