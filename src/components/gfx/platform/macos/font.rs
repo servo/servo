@@ -157,6 +157,7 @@ impl FontHandleMethods for FontHandle {
         let bounding_rect: CGRect = self.ctfont.bounding_box();
         let ascent = Au::from_pt(self.ctfont.ascent() as float);
         let descent = Au::from_pt(self.ctfont.descent() as float);
+        let em_size = Au::from_pt(self.ctfont.pt_size() as float);
 
         let metrics =  FontMetrics {
             underline_size:   Au::from_pt(self.ctfont.underline_thickness() as float),
@@ -168,9 +169,10 @@ impl FontHandleMethods for FontHandle {
             underline_offset: Au::from_pt(self.ctfont.underline_position() as float),
             leading:          Au::from_pt(self.ctfont.leading() as float),
             x_height:         Au::from_pt(self.ctfont.x_height() as float),
-            em_size:          ascent + descent,
-            ascent:           ascent,
-            descent:          descent,
+            // TODO: the ascent and descent need to be scaled by the pt_size, figure out why
+            em_size:          em_size,
+            ascent:           ascent * em_size / (ascent + descent),
+            descent:          descent * em_size / (ascent + descent),
             max_advance:      Au::from_pt(bounding_rect.size.width as float)
         };
 
