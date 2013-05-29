@@ -10,12 +10,12 @@ use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMet
 use layout::flow::{BlockFlow, FlowContext, FlowData, InlineBlockFlow};
 use layout::inline::InlineLayout;
 
-use au = gfx::geometry;
 use core::cell::Cell;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
+use gfx::geometry;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
 
 pub struct BlockFlowData {
@@ -95,8 +95,8 @@ impl BlockFlowData {
             assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
 
             do child_ctx.with_base |child_node| {
-                min_width = au::max(min_width, child_node.min_width);
-                pref_width = au::max(pref_width, child_node.pref_width);
+                min_width = geometry::max(min_width, child_node.min_width);
+                pref_width = geometry::max(pref_width, child_node.pref_width);
             }
         }
 
@@ -155,8 +155,11 @@ impl BlockFlowData {
             }
         }
 
-        let height = if self.is_root { Au::max(ctx.screen_size.size.height, cur_y) }
-                     else            { cur_y };
+        let height = if self.is_root {
+            Au::max(ctx.screen_size.size.height, cur_y)
+        } else {
+            cur_y
+        };
 
         self.common.position.size.height = height;
 
