@@ -60,8 +60,10 @@ impl CompositorTask {
 
 /// Messages to the compositor.
 pub enum Msg {
-    Paint(LayerBufferSet),
-    Exit
+    /// Requests that the compositor paint the given layer buffer set for the given page size.
+    Paint(LayerBufferSet, Size2D<uint>),
+    /// Requests that the compositor shut down.
+    Exit,
 }
 
 /// Azure surface wrapping to work with the layers infrastructure.
@@ -132,8 +134,11 @@ fn run_main_loop(port: Port<Msg>,
             match port.recv() {
                 Exit => *done = true,
 
-                Paint(new_layer_buffer_set) => {
+                Paint(new_layer_buffer_set, new_size) => {
                     debug!("osmain: received new frame");
+
+                    *page_size = Size2D(new_size.width as f32, new_size.height as f32);
+
                     let mut new_layer_buffer_set = new_layer_buffer_set;
 
                     // Iterate over the children of the container layer.
@@ -142,7 +147,6 @@ fn run_main_loop(port: Port<Msg>,
                     // Replace the image layer data with the buffer data. Also compute the page
                     // size here.
                     let buffers = util::replace(&mut new_layer_buffer_set.buffers, ~[]);
-                    let mut (page_width, page_height) = (0.0f32, 0.0f32);
 
                     for buffers.each |buffer| {
                         let width = buffer.rect.size.width as uint;
@@ -181,10 +185,6 @@ fn run_main_loop(port: Port<Msg>,
                         let origin = buffer.rect.origin;
                         let origin = Point2D(origin.x as f32, origin.y as f32);
 
-                        // Update the page width and height calculations.
-                        page_width = page_width.max(&(origin.x + (width as f32)));
-                        page_height = page_height.max(&(origin.y + (height as f32)));
-
                         // Set the layer's transform.
                         let transform = original_layer_transform.translate(origin.x,
                                                                            origin.y,
@@ -192,8 +192,6 @@ fn run_main_loop(port: Port<Msg>,
                         let transform = transform.scale(width as f32, height as f32, 1.0);
                         image_layer.common.set_transform(transform)
                     }
-
-                    *page_size = Size2D(page_width, page_height);
 
                     // TODO: Recycle the old buffers; send them back to the renderer to reuse if
                     // it wishes.
@@ -265,8 +263,8 @@ fn run_main_loop(port: Port<Msg>,
 
 /// Implementation of the abstract `Compositor` interface.
 impl Compositor for CompositorTask {
-    fn paint(&self, layer_buffer_set: LayerBufferSet) {
-        self.chan.send(Paint(layer_buffer_set))
+    fn paint(&self, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>) {
+        self.chan.send(Paint(layer_buffer_set, new_size))
     }
 }
 
