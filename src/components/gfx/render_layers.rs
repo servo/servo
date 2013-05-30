@@ -14,8 +14,12 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 
+/// The type representing the lack of extra display list data. This is used when sending display
+/// list data off to be rendered.
+pub type Nothing = ();
+
 pub struct RenderLayer {
-    display_list: DisplayList,
+    display_list: DisplayList<Nothing>,
     size: Size2D<uint>
 }
 

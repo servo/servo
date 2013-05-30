@@ -6,7 +6,8 @@
 
 use layout::box::{RenderBox};
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
+use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::display_list_builder::{FlowDisplayListBuilderMethods};
 use layout::flow::{BlockFlow, FlowContext, FlowData, InlineBlockFlow};
 use layout::inline::InlineLayout;
 
@@ -175,11 +176,11 @@ impl BlockFlowData {
         });
     }
 
-    pub fn build_display_list_block(@mut self,
-                                builder: &DisplayListBuilder,
-                                dirty: &Rect<Au>, 
-                                offset: &Point2D<Au>,
-                                list: &Cell<DisplayList>) {
+    pub fn build_display_list_block<E:ExtraDisplayListData>(@mut self,
+                                                            builder: &DisplayListBuilder,
+                                                            dirty: &Rect<Au>, 
+                                                            offset: &Point2D<Au>,
+                                                            list: &Cell<DisplayList<E>>) {
         // add box that starts block context
         self.box.map(|&box| {
             box.build_display_list(builder, dirty, offset, list)
@@ -195,3 +196,4 @@ impl BlockFlowData {
         }
     }
 }
+
