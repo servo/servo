@@ -6,7 +6,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 
-use core::num::NumCast;
+use core::num::{NumCast, One, Zero};
 
 pub struct Au(i32);
 
@@ -45,6 +45,17 @@ impl cmp::Eq for Au {
     fn eq(&self, other: &Au) -> bool { **self == **other }
     fn ne(&self, other: &Au) -> bool { **self != **other }
 }
+
+impl One for Au {
+    fn one() -> Au { Au(1) }
+}
+
+impl Zero for Au {
+    fn zero() -> Au { Au(0) }
+    fn is_zero(&self) -> bool { **self == 0 }
+}
+
+impl Num for Au {}
 
 pub fn min(x: Au, y: Au) -> Au { if x < y { x } else { y } }
 pub fn max(x: Au, y: Au) -> Au { if x > y { x } else { y } }
