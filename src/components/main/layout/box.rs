@@ -14,7 +14,10 @@ use core::cell::Cell;
 use core::cmp::ApproxEq;
 use core::managed;
 use geom::{Point2D, Rect, Size2D};
-use gfx::display_list::{DisplayItem, DisplayList};
+use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
+use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass};
+use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, TextDisplayItem};
+use gfx::display_list::{TextDisplayItemClass};
 use gfx::font::{FontStyle, FontWeight300};
 use gfx::geometry::Au;
 use gfx::text::text_run::TextRun;
@@ -31,7 +34,6 @@ use script::dom::node::{AbstractNode, LayoutView};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::range::*;
-use std::arc;
 use std::net::url::Url;
 
 /// Render boxes (`struct RenderBox`) are the leaves of the layout tree. They cannot position
@@ -567,26 +569,37 @@ pub impl RenderBox {
                 let nearest_ancestor_element = self.nearest_ancestor_element();
                 let color = nearest_ancestor_element.style().color().to_gfx_color();
 
-                // FIXME: This should use `with_mut_ref` when that appears.
-                let mut this_list = list.take();
-                this_list.append_item(~DisplayItem::new_Text(&absolute_box_bounds,
-                                                             ~text_box.run.serialize(),
-                                                             text_box.range,
-                                                             color));
-                list.put_back(this_list);
+                // Create the text box.
+                do list.with_mut_ref |list| {
+                    let text_display_item = ~TextDisplayItem {
+                        base: BaseDisplayItem {
+                            bounds: absolute_box_bounds,
+                        },
+                        // FIXME(pcwalton): Allocation? Why?!
+                        text_run: ~text_box.run.serialize(),
+                        range: text_box.range,
+                        color: color,
+                    };
+
+                    list.append_item(TextDisplayItemClass(text_display_item))
+                }
 
                 // Draw debug frames for text bounds.
                 //
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
-                debug!("%?", {
-                    // Compute the text box bounds.
-                    //
-                    // FIXME: This should use `with_mut_ref` when that appears.
-                    let mut this_list = list.take();
-                    this_list.append_item(~DisplayItem::new_Border(&absolute_box_bounds,
-                                                                   Au::from_px(1),
-                                                                   rgb(0, 0, 200).to_gfx_color()));
+                debug!("%?", { 
+                    // Compute the text box bounds and draw a border surrounding them.
+                    do list.with_mut_ref |list| {
+                        let border_display_item = ~BorderDisplayItem {
+                            base: BaseDisplayItem {
+                                bounds: absolute_box_bounds,
+                            },
+                            width: Au::from_px(1),
+                            color: rgb(0, 0, 200).to_gfx_color(),
+                        };
+                        list.append_item(BorderDisplayItemClass(border_display_item))
+                    }
 
                     // Draw a rectangle representing the baselines.
                     //
@@ -596,10 +609,17 @@ pub impl RenderBox {
                     let baseline = Rect(absolute_box_bounds.origin + Point2D(Au(0), ascent),
                                         Size2D(absolute_box_bounds.size.width, Au(0)));
 
-                    this_list.append_item(~DisplayItem::new_Border(&baseline,
-                                                                   Au::from_px(1),
-                                                                   rgb(0, 200, 0).to_gfx_color()));
-                    list.put_back(this_list);
+                    do list.with_mut_ref |list| {
+                        let border_display_item = ~BorderDisplayItem {
+                            base: BaseDisplayItem {
+                                bounds: baseline,
+                            },
+                            width: Au::from_px(1),
+                            color: rgb(0, 200, 0).to_gfx_color(),
+                        };
+                        list.append_item(BorderDisplayItemClass(border_display_item))
+                    }
+
                     ()
                 });
             },
@@ -611,11 +631,16 @@ pub impl RenderBox {
                     Some(image) => {
                         debug!("(building display list) building image box");
 
-                        // FIXME: This should use `with_mut_ref` when that appears.
-                        let mut this_list = list.take();
-                        this_list.append_item(~DisplayItem::new_Image(&absolute_box_bounds,
-                                                                      arc::clone(&image)));
-                        list.put_back(this_list);
+                        // Place the image into the display list.
+                        do list.with_mut_ref |list| {
+                            let image_display_item = ~ImageDisplayItem {
+                                base: BaseDisplayItem {
+                                    bounds: absolute_box_bounds,
+                                },
+                                image: image.clone(),
+                            };
+                            list.append_item(ImageDisplayItemClass(image_display_item))
+                        }
                     }
                     None => {
                         // No image data at all? Do nothing.
@@ -644,11 +669,18 @@ pub impl RenderBox {
         // doesn't have a render box".
         let nearest_ancestor_element = self.nearest_ancestor_element();
 
-        let bgcolor = nearest_ancestor_element.style().background_color();
-        if !bgcolor.alpha.approx_eq(&0.0) {
-            let mut l = list.take(); // FIXME: use with_mut_ref when available
-            l.append_item(~DisplayItem::new_SolidColor(absolute_bounds, bgcolor.to_gfx_color()));
-            list.put_back(l);
+        let background_color = nearest_ancestor_element.style().background_color();
+        if !background_color.alpha.approx_eq(&0.0) {
+            do list.with_mut_ref |list| {
+                let solid_color_display_item = ~SolidColorDisplayItem {
+                    base: BaseDisplayItem {
+                        bounds: *absolute_bounds,
+                    },
+                    color: background_color.to_gfx_color(),
+                };
+
+                list.append_item(SolidColorDisplayItemClass(solid_color_display_item))
+            }
         }
     }
 
@@ -689,10 +721,18 @@ pub impl RenderBox {
                     let top_color = self.style().border_top_color();
                     let color = top_color.to_gfx_color(); // FIXME
 
-                    // FIXME: Use `with_mut_ref` when that works.
-                    let mut this_list = list.take();
-                    this_list.append_item(~DisplayItem::new_Border(&bounds, border_width, color));
-                    list.put_back(this_list);
+                    // Append the border to the display list.
+                    do list.with_mut_ref |list| {
+                        let border_display_item = ~BorderDisplayItem {
+                            base: BaseDisplayItem {
+                                bounds: bounds,
+                            },
+                            width: border_width,
+                            color: color,
+                        };
+
+                        list.append_item(BorderDisplayItemClass(border_display_item))
+                    }
                 } else {
                     warn!("ignoring unimplemented border widths");
                 }
