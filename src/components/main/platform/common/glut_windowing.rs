@@ -94,7 +94,6 @@ impl WindowMethods<Application> for Window {
     /// Presents the window to the screen (perhaps by page flipping).
     pub fn present(&mut self) {
         glut::swap_buffers();
-        glut::post_redisplay();
     }
 
     /// Registers a callback to run when a composite event occurs.

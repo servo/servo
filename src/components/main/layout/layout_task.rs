@@ -13,10 +13,6 @@ use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
 use layout::flow::FlowContext;
 use util::task::spawn_listener;
-use servo_util::time;
-use servo_util::time::time;
-use servo_util::time::profile;
-use servo_util::time::ProfilerChan;
 
 use core::cast::transmute;
 use core::cell::Cell;
@@ -42,7 +38,9 @@ use script::layout_interface::{MatchSelectorsDamage, Msg, NoDamage, QueryMsg, Re
 use script::script_task::{ScriptMsg, SendEventMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::LocalImageCache;
-use servo_util::tree::TreeUtils;
+use servo_util::tree::{TreeNodeRef, TreeUtils};
+use servo_util::time::{ProfilerChan, profile, time};
+use servo_util::time;
 
 pub fn create_layout_task(render_task: RenderTask,
                           img_cache_task: ImageCacheTask,
@@ -222,9 +220,13 @@ impl Layout {
             // TODO: Be smarter about what needs painting.
             layout_root.build_display_list(&builder, &layout_root.position(), display_list);
 
+            let root_size = do layout_root.with_base |base| {
+                base.position.size
+            };
+
             let render_layer = RenderLayer {
                 display_list: display_list.take(),
-                size: Size2D(screen_size.width.to_px() as uint, screen_size.height.to_px() as uint)
+                size: Size2D(root_size.width.to_px() as uint, root_size.height.to_px() as uint)
             };
 
             self.render_task.channel.send(RenderMsg(render_layer));
