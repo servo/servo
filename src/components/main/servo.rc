@@ -1,0 +1,175 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#[link(name = "servo",
+       vers = "0.1",
+       uuid = "637ffc98-9058-471d-9de7-abfc49ef0549",
+       url = "http://servo.org/")];
+
+#[comment = "The Servo Parallel Browser Project"];
+#[license = "MPL"];
+#[crate_type = "lib"];
+
+extern mod alert;
+extern mod azure;
+extern mod geom;
+extern mod gfx (name = "gfx");
+extern mod glut;
+extern mod http_client;
+extern mod hubbub;
+extern mod js;
+extern mod layers;
+extern mod newcss (name = "css");
+extern mod opengles;
+extern mod servo_net (name = "net");
+extern mod servo_util (name = "util");
+extern mod sharegl;
+extern mod stb_image;
+extern mod std;
+
+#[cfg(target_os="macos")]
+extern mod core_graphics;
+#[cfg(target_os="macos")]
+extern mod core_text;
+
+use compositing::CompositorTask;
+use engine::{Engine, LoadUrlMsg};
+
+use core::comm::SharedChan;
+use gfx::opts;
+use servo_net::image_cache_task::ImageCacheTask;
+use servo_net::resource_task::ResourceTask;
+
+pub use gfx::opts::Opts;
+pub use gfx::text;
+pub use servo_util::url::make_url;
+
+#[path="compositing/mod.rs"]
+pub mod compositing;
+
+pub mod scripting {
+    pub mod script_task;
+}
+
+pub mod css {
+    priv mod select_handler;
+    priv mod node_util;
+    priv mod node_void_ptr;
+
+    pub mod select;
+    pub mod matching;
+    pub mod node_style;
+}
+
+pub mod dom {
+    pub mod bindings {
+        pub mod document;
+        pub mod element;
+        pub mod event;
+        pub mod eventtarget;
+        pub mod node;
+        pub mod text;
+        pub mod utils;
+        pub mod conversions;
+        pub mod window;
+        pub mod proxyhandler;
+        pub mod clientrect;
+        pub mod clientrectlist;
+        pub mod domparser;
+        pub mod htmlcollection;
+        pub mod codegen {
+            pub mod ClientRectBinding;
+            pub mod ClientRectListBinding;
+            pub mod DOMParserBinding;
+            pub mod EventBinding;
+            pub mod EventTargetBinding;
+            pub mod HTMLCollectionBinding;
+        }
+    }
+    pub mod characterdata;
+    pub mod clientrect;
+    pub mod clientrectlist;
+    pub mod document;
+    pub mod domparser;
+    pub mod element;
+    pub mod event;
+    pub mod eventtarget;
+    pub mod htmlcollection;
+    pub mod node;
+    pub mod window;
+}
+
+pub mod engine;
+
+pub mod layout {
+    pub mod block;
+    pub mod box;
+    pub mod box_builder;
+    pub mod context;
+    pub mod debug;
+    pub mod display_list_builder;
+    pub mod flow;
+    pub mod layout_task;
+    pub mod inline;
+    pub mod text;
+    mod aux;
+}
+
+pub mod html {
+    pub mod cssparse;
+    pub mod hubbub_html_parser;
+}
+
+pub mod windowing;
+
+#[path="platform/mod.rs"]
+pub mod platform;
+
+#[path = "util/mod.rs"]
+pub mod util;
+
+fn main() {
+    run(&opts::from_cmdline_args(os::args()))
+}
+
+fn run(opts: &Opts) {
+    // Create the script channel.
+    let (script_port, script_chan) = comm::stream();
+    let script_chan = SharedChan::new(script_chan);
+
+    // Create the profiler channel.
+    let (profiler_port, profiler_chan) = comm::stream();
+    let profiler_chan = SharedChan::new(profiler_chan);
+
+    // Create the compositor.
+    let (compositor, shutdown_port) = CompositorTask::new(script_chan.clone(),
+                                                          profiler_chan.clone());
+
+    // Create a Servo instance.
+    let resource_task = ResourceTask();
+    let image_cache_task = ImageCacheTask(resource_task.clone());
+    let engine_task = Engine::start(compositor.clone(),
+                                    opts,
+                                    script_port,
+                                    script_chan,
+                                    resource_task,
+                                    image_cache_task,
+                                    profiler_port,
+                                    profiler_chan);
+
+    // Send the URL command to the engine task.
+    for opts.urls.each |filename| {
+        engine_task.send(LoadUrlMsg(make_url(copy *filename, None)))
+    }
+
+    // Wait for the compositor to shut down.
+    shutdown_port.recv();
+
+    // Shut the engine down.
+    debug!("master: Shut down");
+    let (exit_response_from_engine, exit_chan) = comm::stream();
+    engine_task.send(engine::ExitMsg(exit_chan));
+    exit_response_from_engine.recv();
+}
+

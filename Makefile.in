@@ -171,35 +171,35 @@ $(eval $(call DEF_SUBMODULE_RULES,$(submodule))))
 
 DONE_SUBMODULES = $(foreach submodule,$(SUBMODULES),$(DONE_$(submodule)))
 
-RFLAGS_servo_util = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
-SRC_servo_util = $(call rwildcard,$(S)src/components/servo-util/,*.rs)
-CRATE_servo_util = $(S)src/components/servo-util/servo_util.rc
-DONE_servo_util = $(B)src/components/servo-util/libservoutil.dummy
+RFLAGS_util = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES))
+SRC_util = $(call rwildcard,$(S)src/components/util/,*.rs)
+CRATE_util = $(S)src/components/util/util.rc
+DONE_util = $(B)src/components/util/libutil.dummy
 
-DEPS_servo_util = $(CRATE_servo_util) $(SRC_servo_util) $(DONE_SUBMODULES)
+DEPS_util = $(CRATE_util) $(SRC_util) $(DONE_SUBMODULES)
 
-RFLAGS_servo_net = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/servo-util
-SRC_servo_net = $(call rwildcard,$(S)src/components/servo-net/,*.rs)
-CRATE_servo_net = $(S)src/components/servo-net/servo_net.rc
-DONE_servo_net = $(B)src/components/servo-net/libservonet.dummy
+RFLAGS_net = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util
+SRC_net = $(call rwildcard,$(S)src/components/net/,*.rs)
+CRATE_net = $(S)src/components/net/net.rc
+DONE_net = $(B)src/components/net/libnet.dummy
 
-DEPS_servo_net = $(CRATE_servo_net) $(SRC_servo_net) $(DONE_SUBMODULES) $(DONE_servo_util)
+DEPS_net = $(CRATE_net) $(SRC_net) $(DONE_SUBMODULES) $(DONE_util)
 
-RFLAGS_servo_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/servo-util -L $(B)src/components/servo-net
-SRC_servo_gfx = $(call rwildcard,$(S)src/components/servo-gfx/,*.rs)
-CRATE_servo_gfx = $(S)src/components/servo-gfx/servo_gfx.rc
-DONE_servo_gfx = $(B)src/components/servo-gfx/libservogfx.dummy
+RFLAGS_gfx = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/net
+SRC_gfx = $(call rwildcard,$(S)src/components/gfx/,*.rs)
+CRATE_gfx = $(S)src/components/gfx/gfx.rc
+DONE_gfx = $(B)src/components/gfx/libgfx.dummy
 
-DEPS_servo_gfx = $(CRATE_servo_gfx) $(SRC_servo_gfx) $(DONE_SUBMODULES) $(DONE_servo_util) $(DONE_servo_net)
+DEPS_gfx = $(CRATE_gfx) $(SRC_gfx) $(DONE_SUBMODULES) $(DONE_util) $(DONE_net)
 
-RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/servo-gfx -L $(B)src/components/servo-util -L $(B)src/components/servo-net
+RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net
 
-WEBIDL_servo = $(call rwildcard,$(S)src/components/servo/,*.webidl)
+WEBIDL_servo = $(call rwildcard,$(S)src/components/main/,*.webidl)
 AUTOGEN_SRC_servo = $(patsubst %.webidl, %Binding.rs, $(WEBIDL_servo))
-SRC_servo = $(call rwildcard,$(S)src/components/servo/,*.rs) $(AUTOGEN_SRC_servo)
-CRATE_servo = $(S)src/components/servo/servo.rc
+SRC_servo = $(call rwildcard,$(S)src/components/main/,*.rs) $(AUTOGEN_SRC_servo)
+CRATE_servo = $(S)src/components/main/servo.rc
 
-DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_servo_util) $(DONE_servo_gfx) $(DONE_servo_net)
+DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_gfx) $(DONE_net)
 
 # rules that depend on having correct meta-target vars (DEPS_CLEAN, DEPS_servo, etc)
 include $(S)mk/check.mk
@@ -211,16 +211,16 @@ all:    servo package
 
 # Servo helper libraries
 
-$(DONE_servo_util):	$(DEPS_servo_util)
-	$(RUSTC) $(RFLAGS_servo_util) -o $@ $< && touch $@
+$(DONE_util):	$(DEPS_util)
+	$(RUSTC) $(RFLAGS_util) -o $@ $< && touch $@
 
-$(DONE_servo_net):	$(DEPS_servo_net)
-	$(RUSTC) $(RFLAGS_servo_net) -o $@ $< && touch $@
+$(DONE_net):	$(DEPS_net)
+	$(RUSTC) $(RFLAGS_net) -o $@ $< && touch $@
 
-$(DONE_servo_gfx):	$(DEPS_servo_gfx)
-	$(RUSTC) $(RFLAGS_servo_gfx) -o $@ $< && touch $@
+$(DONE_gfx):	$(DEPS_gfx)
+	$(RUSTC) $(RFLAGS_gfx) -o $@ $< && touch $@
 
-BINDINGS_SRC = $(S)/src/components/servo/dom/bindings/codegen
+BINDINGS_SRC = $(S)/src/components/main/dom/bindings/codegen
 
 CACHE_DIR = $(BINDINGS_SRC)/_cache
 
