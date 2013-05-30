@@ -8,7 +8,7 @@ use css::node_style::StyledNode;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
 use layout::flow::FlowContext;
-use layout::model::BoxModel;
+use layout::model::{BoxModel,MaybeAuto};
 use layout::text;
 
 use core::cell::Cell;
@@ -374,14 +374,6 @@ pub impl RenderBox {
     fn get_min_width(&self, _: &LayoutContext) -> Au {
         // FIXME(pcwalton): I think we only need to calculate this if the damage says that CSS
         // needs to be restyled.
-        do self.with_mut_base |base| {
-            // TODO(pcwalton): Hmm, it seems wasteful to have the box model stuff inside every
-            // render box if they can only be nonzero if the box is an element.
-            if base.node.is_element() {
-                base.model.populate(base.node.style())
-            }
-        }
-
         match *self {
             // TODO: This should account for the minimum width of the box element in isolation.
             // That includes borders, margins, and padding, but not child widths. The block
@@ -456,37 +448,51 @@ pub impl RenderBox {
         (Au(0), Au(0))
     }
 
+    fn compute_padding(&self, cb_width: Au) {
+        do self.with_imm_base |base| {
+            base.model.compute_padding(self.style(), cb_width);
+        }
+    }
+
+    fn compute_borders(&self){
+        do self.with_imm_base |base| {
+            base.model.compute_borders(self.style());
+        }
+    }
+
+    fn get_noncontent_width(&self) -> Au {
+        do self.with_imm_base |base| {
+            base.model.border.left + base.model.padding.left + base.model.border.right + 
+                base.model.padding.right
+        }
+    }
+
+    fn compute_width (&self, cb_width: Au, 
+                     callback: &fn(MaybeAuto, MaybeAuto, MaybeAuto) -> (Au, Au, Au)) {
+        let computed_width = MaybeAuto::from_width(self.style().width());
+        let computed_margin_left = MaybeAuto::from_margin(self.style().margin_left());
+        let computed_margin_right = MaybeAuto::from_margin(self.style().margin_right());
+
+        let (used_width, used_margin_left, used_margin_right) = 
+            callback(computed_width, computed_margin_left, computed_margin_right);
+
+        do self.with_mut_base |base| {
+            base.model.margin.left = used_margin_left;
+            base.model.margin.right = used_margin_right;
+            base.position.size.width = used_width + self.get_noncontent_width();
+            base.position.origin.x = used_margin_left;
+        }
+    }
+
     /// The box formed by the content edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
     /// the owning flow.
     fn content_box(&self) -> Rect<Au> {
-        let origin = self.position().origin;
-        match *self {
-            ImageRenderBoxClass(image_box) => {
-                Rect {
-                    origin: origin,
-                    size: image_box.base.position.size,
-                }
-            },
-            GenericRenderBoxClass(*) => {
-                self.position()
-
-                // FIXME: The following hits an ICE for whatever reason.
-
-                /*
-                let origin = self.d().position.origin;
-                let size  = self.d().position.size;
-                let (offset_left, offset_right) = self.get_used_width();
-                let (offset_top, offset_bottom) = self.get_used_height();
-
-                Rect {
-                    origin: Point2D(origin.x + offset_left, origin.y + offset_top),
-                    size: Size2D(size.width - (offset_left + offset_right),
-                                 size.height - (offset_top + offset_bottom))
-                }
-                */
-            },
-            TextRenderBoxClass(*) => self.position(),
-            UnscannedTextRenderBoxClass(*) => fail!(~"Shouldn't see unscanned boxes here.")
+        do self.with_imm_base |base| {
+            let origin = Point2D(base.position.origin.x + base.model.border.left + base.model.padding.left, 
+                base.position.origin.y);
+            let size = Size2D(base.position.size.width - self.get_noncontent_width(), 
+                base.position.size.height);
+            Rect(origin, size)
         }
     }
 
