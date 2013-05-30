@@ -3,10 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use compositing::CompositorTask;
-use layout::layout_task::LayoutTask;
 use layout::layout_task;
-use scripting::script_task::{ExecuteMsg, LoadMsg, ScriptMsg, ScriptTask};
-use scripting::script_task;
 use util::task::spawn_listener;
 
 use core::cell::Cell;
@@ -14,11 +11,14 @@ use core::comm::{Chan, Port, SharedChan};
 use gfx::opts::Opts;
 use gfx::render_task::RenderTask;
 use gfx::render_task;
+use script::layout_interface::LayoutTask;
+use script::layout_interface;
+use script::script_task::{ExecuteMsg, LoadMsg, ScriptMsg, ScriptTask};
+use script::script_task;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
 use servo_util::time::{ProfilerChan, ProfilerPort, ProfilerTask};
-use servo_util::time;
 use std::net::url::Url;
 
 pub type EngineTask = Chan<Msg>;
@@ -61,10 +61,10 @@ impl Engine {
             let profiler_task = ProfilerTask::new(profiler_port.take(), profiler_chan.clone());
 
             let opts = opts.take();
-            let layout_task = LayoutTask(render_task.clone(),
-                                         image_cache_task.clone(),
-                                         opts,
-                                         profiler_task.chan.clone());
+            let layout_task = layout_task::create_layout_task(render_task.clone(),
+                                                              image_cache_task.clone(),
+                                                              opts,
+                                                              profiler_task.chan.clone());
 
             let script_task = ScriptTask::new(script_port.take(),
                                               script_chan.take(),
@@ -105,7 +105,7 @@ impl Engine {
 
             ExitMsg(sender) => {
                 self.script_task.chan.send(script_task::ExitMsg);
-                self.layout_task.send(layout_task::ExitMsg);
+                self.layout_task.chan.send(layout_interface::ExitMsg);
 
                 let (response_port, response_chan) = comm::stream();
 

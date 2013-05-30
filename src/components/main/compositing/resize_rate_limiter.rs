@@ -7,10 +7,9 @@
 /// before sending the next. If the window is resized multiple times before an event is handled
 /// then some events will never be sent.
 
-use dom::event::ResizeEvent;
-use scripting::script_task::{ScriptMsg, SendEventMsg};
-
 use core::comm::{Port, SharedChan};
+use script::dom::event::ResizeEvent;
+use script::script_task::{ScriptMsg, SendEventMsg};
 
 pub struct ResizeRateLimiter {
     /// The channel we send resize events on

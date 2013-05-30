@@ -8,7 +8,7 @@ use dom::document::Document;
 use dom::element::{Element, HTMLHtmlElement, HTMLHtmlElementTypeId};
 use dom::node::Node;
 use dom::window::Window;
-use scripting::script_task::global_script_context;
+use script_task::global_script_context;
 
 pub struct DOMParser {
     owner: @mut Window, //XXXjdm Document instead?

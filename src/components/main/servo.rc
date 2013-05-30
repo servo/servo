@@ -17,11 +17,11 @@ extern mod geom;
 extern mod gfx (name = "gfx");
 extern mod glut;
 extern mod http_client;
-extern mod hubbub;
 extern mod js;
 extern mod layers;
 extern mod newcss (name = "css");
 extern mod opengles;
+extern mod script;
 extern mod servo_net (name = "net");
 extern mod servo_util (name = "util");
 extern mod sharegl;
@@ -48,56 +48,13 @@ pub use servo_util::url::make_url;
 #[path="compositing/mod.rs"]
 pub mod compositing;
 
-pub mod scripting {
-    pub mod script_task;
-}
-
 pub mod css {
     priv mod select_handler;
     priv mod node_util;
-    priv mod node_void_ptr;
 
     pub mod select;
     pub mod matching;
     pub mod node_style;
-}
-
-pub mod dom {
-    pub mod bindings {
-        pub mod document;
-        pub mod element;
-        pub mod event;
-        pub mod eventtarget;
-        pub mod node;
-        pub mod text;
-        pub mod utils;
-        pub mod conversions;
-        pub mod window;
-        pub mod proxyhandler;
-        pub mod clientrect;
-        pub mod clientrectlist;
-        pub mod domparser;
-        pub mod htmlcollection;
-        pub mod codegen {
-            pub mod ClientRectBinding;
-            pub mod ClientRectListBinding;
-            pub mod DOMParserBinding;
-            pub mod EventBinding;
-            pub mod EventTargetBinding;
-            pub mod HTMLCollectionBinding;
-        }
-    }
-    pub mod characterdata;
-    pub mod clientrect;
-    pub mod clientrectlist;
-    pub mod document;
-    pub mod domparser;
-    pub mod element;
-    pub mod event;
-    pub mod eventtarget;
-    pub mod htmlcollection;
-    pub mod node;
-    pub mod window;
 }
 
 pub mod engine;
@@ -107,18 +64,12 @@ pub mod layout {
     pub mod box;
     pub mod box_builder;
     pub mod context;
-    pub mod debug;
     pub mod display_list_builder;
     pub mod flow;
     pub mod layout_task;
     pub mod inline;
     pub mod text;
     mod aux;
-}
-
-pub mod html {
-    pub mod cssparse;
-    pub mod hubbub_html_parser;
 }
 
 pub mod windowing;

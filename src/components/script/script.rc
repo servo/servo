@@ -1,0 +1,69 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#[link(name = "script",
+       vers = "0.1",
+       uuid = "536a45e2-b605-4ee0-b54c-466810f1ffc1",
+       url = "http://servo.org/")];
+
+#[comment = "The Servo Parallel Browser Project"];
+#[license = "MPL"];
+#[crate_type = "lib"];
+
+extern mod geom;
+extern mod gfx (name = "gfx");
+extern mod hubbub;
+extern mod js;
+extern mod netsurfcss;
+extern mod newcss (name = "css");
+extern mod servo_net (name = "net");
+extern mod servo_util (name = "util");
+extern mod std;
+
+pub mod dom {
+    pub mod bindings {
+        pub mod document;
+        pub mod element;
+        pub mod event;
+        pub mod eventtarget;
+        pub mod node;
+        pub mod text;
+        pub mod utils;
+        pub mod conversions;
+        pub mod window;
+        pub mod proxyhandler;
+        pub mod clientrect;
+        pub mod clientrectlist;
+        pub mod domparser;
+        pub mod htmlcollection;
+        pub mod codegen {
+            pub mod ClientRectBinding;
+            pub mod ClientRectListBinding;
+            pub mod DOMParserBinding;
+            pub mod EventBinding;
+            pub mod EventTargetBinding;
+            pub mod HTMLCollectionBinding;
+        }
+    }
+    pub mod characterdata;
+    pub mod clientrect;
+    pub mod clientrectlist;
+    pub mod document;
+    pub mod domparser;
+    pub mod element;
+    pub mod event;
+    pub mod eventtarget;
+    pub mod htmlcollection;
+    pub mod node;
+    pub mod window;
+}
+
+pub mod html {
+    pub mod cssparse;
+    pub mod hubbub_html_parser;
+}
+
+pub mod layout_interface;
+pub mod script_task;
+

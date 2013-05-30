@@ -5,8 +5,9 @@
 use dom::bindings::codegen::HTMLCollectionBinding;
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::htmlcollection::HTMLCollection;
+use script_task::{task_from_context, global_script_context};
+
 use js::jsapi::{JSObject, JSContext};
-use scripting::script_task::{task_from_context, global_script_context};
 
 pub impl HTMLCollection {
     fn init_wrapper(@mut self) {

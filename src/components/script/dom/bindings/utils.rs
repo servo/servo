@@ -4,6 +4,11 @@
 
 use dom::bindings::node;
 use dom::node::{AbstractNode, ScriptView};
+use script_task::task_from_context;
+
+use core::cast;
+use core::hashmap::HashMap;
+use core::ptr::{null, to_unsafe_ptr};
 use js::glue::bindgen::*;
 use js::glue::bindgen::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB, RESOLVE_STUB};
@@ -24,11 +29,6 @@ use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
 use js::{JSPROP_SETTER, JSVAL_VOID, JSVAL_TRUE, JSVAL_FALSE};
 use js::{JS_THIS_OBJECT, JSFUN_CONSTRUCTOR, JS_CALLEE, JSPROP_READONLY};
 use js;
-use scripting::script_task::task_from_context;
-
-use core::cast;
-use core::hashmap::HashMap;
-use core::ptr::{null, to_unsafe_ptr};
 
 static TOSTRING_CLASS_RESERVED_SLOT: u64 = 0;
 static TOSTRING_NAME_RESERVED_SLOT: u64 = 1;
