@@ -370,43 +370,46 @@ pub impl LayoutTreeBuilder {
                 // of its RenderBox or FlowContext children, and possibly keep alive other junk
                 let parent_flow = parent_ctx.default_collector.flow;
 
-                let (first_child, last_child) = do parent_flow.with_base |parent_node| {
-                    (parent_node.first_child, parent_node.last_child)
-                };
-
                 // check first/last child for whitespace-ness
+                let first_child = do parent_flow.with_base |parent_node| {
+                    parent_node.first_child
+                };
                 for first_child.each |first_flow| {
                     if first_flow.starts_inline_flow() {
                         // FIXME: workaround for rust#6393
                         let mut do_remove = false;
                         {
-                        let boxes = &first_flow.inline().boxes;
-                        if boxes.len() == 1 && boxes[0].is_whitespace_only() {
-                            debug!("LayoutTreeBuilder: pruning whitespace-only first child flow \
-                                    f%d from parent f%d", 
-                                   first_flow.id(),
-                                   parent_flow.id());
-                            do_remove = true;
-                        }
+                            let boxes = &first_flow.inline().boxes;
+                            if boxes.len() == 1 && boxes[0].is_whitespace_only() {
+                                debug!("LayoutTreeBuilder: pruning whitespace-only first child \
+                                        flow f%d from parent f%d", 
+                                       first_flow.id(),
+                                       parent_flow.id());
+                                do_remove = true;
+                            }
                         }
                         if (do_remove) { 
                             parent_flow.remove_child(*first_flow);
                         }
                     }
                 }
+
+                let last_child = do parent_flow.with_base |parent_node| {
+                    parent_node.last_child
+                };
                 for last_child.each |last_flow| {
                     if last_flow.starts_inline_flow() {
                         // FIXME: workaround for rust#6393
                         let mut do_remove = false;
                         {
-                        let boxes = &last_flow.inline().boxes;
-                        if boxes.len() == 1 && boxes.last().is_whitespace_only() {
-                            debug!("LayoutTreeBuilder: pruning whitespace-only last child flow \
-                                    f%d from parent f%d", 
-                                   last_flow.id(),
-                                   parent_flow.id());
-                            do_remove = true;
-                        }
+                            let boxes = &last_flow.inline().boxes;
+                            if boxes.len() == 1 && boxes.last().is_whitespace_only() {
+                                debug!("LayoutTreeBuilder: pruning whitespace-only last child \
+                                        flow f%d from parent f%d", 
+                                       last_flow.id(),
+                                       parent_flow.id());
+                                do_remove = true;
+                            }
                         }
                         if (do_remove) {
                             parent_flow.remove_child(*last_flow);
