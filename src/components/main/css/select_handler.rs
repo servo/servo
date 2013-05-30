@@ -86,6 +86,16 @@ impl SelectHandler<AbstractNode<LayoutView>> for NodeSelectHandler {
         }
     }
 
+    fn with_node_classes<R>(&self, node: &AbstractNode<LayoutView>, f: &fn(Option<&str>) -> R) -> R {
+        if !node.is_element() {
+            fail!(~"attempting to style non-element node");
+        }
+        do node.with_imm_element() |element_n| {
+            f(element_n.get_attr("class"))
+        }
+    }
+                            
+
     fn with_node_id<R>(&self, node: &AbstractNode<LayoutView>, f: &fn(Option<&str>) -> R) -> R {
         if !node.is_element() {
             fail!(~"attempting to style non-element node");
