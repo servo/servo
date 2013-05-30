@@ -26,7 +26,7 @@ use newcss::units::{Cursive, Em, Fantasy, Monospace, Pt, Px, SansSerif, Serif};
 use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium};
 use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily};
 use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
-use newcss::values::{CSSFontStyleOblique, CSSTextAlign, CSSTextDecoration};
+use newcss::values::{CSSFontStyleOblique, CSSTextAlign, CSSTextDecoration, CSSLineHeight};
 use newcss::values::{CSSTextDecorationNone, CSSFloatNone, CSSPositionStatic};
 use newcss::values::{CSSDisplayInlineBlock, CSSDisplayInlineTable};
 use servo_net::image::holder::ImageHolder;
@@ -559,12 +559,10 @@ pub impl RenderBox {
             return;
         }
 
-        // Add the background to the list, if applicable.
-        self.paint_background_if_applicable(list, &absolute_box_bounds);
-
         match *self {
             UnscannedTextRenderBoxClass(*) => fail!(~"Shouldn't see unscanned boxes here."),
             TextRenderBoxClass(text_box) => {
+
                 let nearest_ancestor_element = self.nearest_ancestor_element();
                 let color = nearest_ancestor_element.style().color().to_gfx_color();
 
@@ -604,10 +602,30 @@ pub impl RenderBox {
                     ()
                 });
             },
+            GenericRenderBoxClass(_) => {
 
-            GenericRenderBoxClass(_) => {}
+                // Add the background to the list, if applicable.
+                self.paint_background_if_applicable(list, &absolute_box_bounds);
 
+                // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
+                // should have a real `SERVO_DEBUG` system.
+                debug!("%?", {
+                    // FIXME: This should use `with_mut_ref` when that appears.
+                    let mut this_list = list.take();
+                    this_list.append_item(~DisplayItem::new_Border(&absolute_box_bounds,
+                                                                   Au::from_px(1),
+                                                                   rgb(0, 0, 200).to_gfx_color()));
+
+                    list.put_back(this_list);
+                    ()
+                });
+
+            },
             ImageRenderBoxClass(image_box) => {
+
+                // Add the background to the list, if applicable.
+                self.paint_background_if_applicable(list, &absolute_box_bounds);
+
                 match image_box.image.get_image() {
                     Some(image) => {
                         debug!("(building display list) building image box");
@@ -713,6 +731,9 @@ pub impl RenderBox {
     fn font_style(&self) -> FontStyle {
         let my_style = self.nearest_ancestor_element().style();
 
+        debug!("(font style) start: %?", self.nearest_ancestor_element().type_id());
+        self.dump();
+
         // FIXME: Too much allocation here.
         let font_families = do my_style.font_family().map |family| {
             match *family {
@@ -728,12 +749,12 @@ pub impl RenderBox {
         debug!("(font style) font families: `%s`", font_families);
 
         let font_size = match my_style.font_size() {
-            CSSFontSizeLength(Px(length)) |
-            CSSFontSizeLength(Pt(length)) |
-            CSSFontSizeLength(Em(length)) => length,
-            _ => 16.0
+            CSSFontSizeLength(Px(length)) => length * 72f / 96f,
+            CSSFontSizeLength(Pt(length)) => length,
+            CSSFontSizeLength(Em(length)) => length * 16f,
+            _ => 12f // pt units
         };
-        debug!("(font style) font size: `%f`", font_size);
+        debug!("(font style) font size: `%fpt`", font_size);
 
         let (italic, oblique) = match my_style.font_style() {
             CSSFontStyleNormal => (false, false),
@@ -754,6 +775,10 @@ pub impl RenderBox {
     /// node.
     fn text_align(&self) -> CSSTextAlign {
         self.nearest_ancestor_element().style().text_align()
+    }
+
+    fn line_height(&self) -> CSSLineHeight {
+        self.nearest_ancestor_element().style().line_height()
     }
 
     /// Returns the text decoration of the computed style of the nearest `Element` node
@@ -824,7 +849,7 @@ impl DebugMethods for RenderBox {
                                                            text_box.range.length()))
             }
             UnscannedTextRenderBoxClass(text_box) => {
-                fmt!("UnscannedTextRenderBox(%s)", text_box.text)
+                fmt!("UnscannedTextRenderBox(%?, %s)", text_box.base.node.type_id(), text_box.text)
             }
         };
 
