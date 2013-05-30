@@ -27,7 +27,7 @@ pub struct BoxModel {
     border: SideOffsets2D<Au>,
     padding: SideOffsets2D<Au>,
     margin: SideOffsets2D<Au>,
-    content_width: Au,
+    cb_width: Au,
 }
 
 /// Useful helper data type when computing values for blocks and positioned elements.
@@ -75,13 +75,12 @@ impl Zero for BoxModel {
             border: Zero::zero(),
             padding: Zero::zero(),
             margin: Zero::zero(),
-            content_width: Zero::zero(),
+            cb_width: Zero::zero(),
         }
     }
 
     fn is_zero(&self) -> bool {
-        self.padding.is_zero() && self.border.is_zero() && self.margin.is_zero() &&
-            self.content_width.is_zero()
+        self.padding.is_zero() && self.border.is_zero() && self.margin.is_zero()
     }
 }
 
@@ -102,8 +101,18 @@ impl BoxModel {
         self.padding.left = self.compute_padding(style.padding_left(), cb_width);
     }
 
+    pub fn noncontent_width(&self) -> Au {
+        let left = self.margin.left + self.border.left + self.padding.left;
+        let right = self.margin.right + self.border.right + self.padding.right;
+        left + right
+    }
+
+    pub fn offset(&self) -> Au {
+        self.margin.left + self.border.left + self.padding.left
+    }
+
     /// Helper function to compute the border width in app units from the CSS border width.
-    fn compute_border_width(&self, width: CSSBorderWidth) -> Au {
+    priv fn compute_border_width(&self, width: CSSBorderWidth) -> Au {
         match width {
             CSSBorderWidthLength(Px(v)) |
             CSSBorderWidthLength(Em(v)) |
@@ -117,7 +126,7 @@ impl BoxModel {
         }
     }
 
-    fn compute_padding(&self, padding: CSSPadding, cb_width: Au) -> Au{
+    priv fn compute_padding(&self, padding: CSSPadding, cb_width: Au) -> Au{
         match padding {
             CSSPaddingLength(Px(v)) |
             CSSPaddingLength(Pt(v)) |
@@ -128,6 +137,7 @@ impl BoxModel {
             CSSPaddingPercentage(p) => cb_width.scale_by(p)
         }
     }
+
 }
 
 //
