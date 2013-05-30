@@ -184,10 +184,13 @@ impl BlockFlowData {
 
         self.box.map(|&box| {
             do box.with_model |model| {
+                //Can compute padding here since we know containing block width
                 model.compute_padding(box.style(), remaining_width);
 
+                //Margins are 0 right now so model.noncontent_width() is just borders + padding.
                 let available_width = remaining_width - model.noncontent_width();
 
+                //Top and bottom margins for blocks are 0 if auto
                 let margin_top = MaybeAuto::from_margin(box.style().margin_top()).spec_or_default(Au(0));
                 let margin_bottom = MaybeAuto::from_margin(box.style().margin_bottom()).spec_or_default(Au(0));
 
@@ -208,11 +211,12 @@ impl BlockFlowData {
             }
 
             do box.with_mut_base |base| {
-                let bp_width = base.model.padding.left + base.model.padding.right + 
-                    base.model.border.left + base.model.border.right;
-
-                base.position.size.width = remaining_width + bp_width;
+                //The associated box is the border box of this flow
                 base.position.origin.x = base.model.margin.left;
+
+                let pb = base.model.padding.left + base.model.padding.right +
+                    base.model.border.left + base.model.border.right;
+                base.position.size.width = remaining_width + pb;
             }
         });
 
@@ -229,6 +233,12 @@ impl BlockFlowData {
     pub fn assign_height_block(@mut self, ctx: &LayoutContext) {
         let mut cur_y = Au(0);
 
+        self.box.map(|&box| {
+            do box.with_model |model| {
+                cur_y += model.margin.top + model.border.top + model.padding.top;
+            }
+        });
+
         for BlockFlow(self).each_child |kid| {
             do kid.with_mut_base |child_node| {
                 child_node.position.origin.y = cur_y;
@@ -239,9 +249,18 @@ impl BlockFlowData {
         let height = if self.is_root { Au::max(ctx.screen_size.size.height, cur_y) }
                      else            { cur_y };
 
+        //TODO(eatkinson): compute heights using the 'height' property.
         self.common.position.size.height = height;
 
         self.box.map(|&box| {
+            do box.with_mut_base |base| {
+                //The associated box is the border box of this flow
+                base.position.origin.y = base.model.margin.top;
+
+                let pb = base.model.padding.top + base.model.padding.bottom +
+                    base.model.border.top + base.model.border.bottom;
+                base.position.size.height = height + pb;
+            }
         });
     }
 
