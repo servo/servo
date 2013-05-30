@@ -4,16 +4,12 @@
 
 //! Creates CSS boxes from a DOM tree.
 
-use dom::element::*;
-use dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
-use dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
 use layout::aux::LayoutAuxMethods;
 use layout::block::BlockFlowData;
 use layout::box::{GenericRenderBoxClass, ImageRenderBox, ImageRenderBoxClass, RenderBox};
 use layout::box::{RenderBoxBase, RenderBoxType, RenderBox_Generic, RenderBox_Image};
 use layout::box::{RenderBox_Text, UnscannedTextRenderBox, UnscannedTextRenderBoxClass};
 use layout::context::LayoutContext;
-use layout::debug::{BoxedMutDebugMethods, DebugMethods};
 use layout::flow::{AbsoluteFlow, BlockFlow, FloatFlow, Flow_Absolute, Flow_Block, Flow_Float};
 use layout::flow::{Flow_Inline, Flow_InlineBlock, Flow_Root, Flow_Table, FlowContext};
 use layout::flow::{FlowContextType, FlowData, InlineBlockFlow, InlineFlow, TableFlow};
@@ -21,6 +17,9 @@ use layout::inline::{InlineFlowData, InlineLayout};
 
 use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
 use newcss::values::{CSSDisplayNone};
+use script::dom::element::*;
+use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
+use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
 use servo_util::range::Range;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
 

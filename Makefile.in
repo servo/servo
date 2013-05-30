@@ -192,14 +192,21 @@ DONE_gfx = $(B)src/components/gfx/libgfx.dummy
 
 DEPS_gfx = $(CRATE_gfx) $(SRC_gfx) $(DONE_SUBMODULES) $(DONE_util) $(DONE_net)
 
-RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net
+RFLAGS_script = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/gfx
+WEBIDL_script = $(call rwildcard,$(S)src/components/script/,*.webidl)
+AUTOGEN_SRC_script = $(patsubst %.webidl, %Binding.rs, $(WEBIDL_script))
+SRC_script = $(call rwildcard,$(S)src/components/script/,*.rs) $(AUTOGEN_SRC_script)
+CRATE_script = $(S)src/components/script/script.rc
+DONE_script = $(B)src/components/script/libscript.dummy
 
-WEBIDL_servo = $(call rwildcard,$(S)src/components/main/,*.webidl)
-AUTOGEN_SRC_servo = $(patsubst %.webidl, %Binding.rs, $(WEBIDL_servo))
-SRC_servo = $(call rwildcard,$(S)src/components/main/,*.rs) $(AUTOGEN_SRC_servo)
+DEPS_script = $(CRATE_script) $(SRC_script) $(DONE_SUBMODULES) $(DONE_util) $(DONE_net)
+
+RFLAGS_servo = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/gfx -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/script
+
+SRC_servo = $(call rwildcard,$(S)src/components/main/,*.rs)
 CRATE_servo = $(S)src/components/main/servo.rc
 
-DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_gfx) $(DONE_net)
+DEPS_servo = $(CRATE_servo) $(SRC_servo) $(DONE_SUBMODULES) $(DONE_util) $(DONE_gfx) $(DONE_script) $(DONE_net)
 
 # rules that depend on having correct meta-target vars (DEPS_CLEAN, DEPS_servo, etc)
 include $(S)mk/check.mk
@@ -220,13 +227,16 @@ $(DONE_net):	$(DEPS_net)
 $(DONE_gfx):	$(DEPS_gfx)
 	$(RUSTC) $(RFLAGS_gfx) -o $@ $< && touch $@
 
-BINDINGS_SRC = $(S)/src/components/main/dom/bindings/codegen
+$(DONE_script):	$(DEPS_script)
+	$(RUSTC) $(RFLAGS_script) -o $@ $< && touch $@
+
+BINDINGS_SRC = $(S)/src/components/script/dom/bindings/codegen
 
 CACHE_DIR = $(BINDINGS_SRC)/_cache
 
 bindinggen_dependencies := $(addprefix $(BINDINGS_SRC)/, BindingGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py ParserResults.pkl)
 
-$(AUTOGEN_SRC_servo): %Binding.rs: $(bindinggen_dependencies) \
+$(AUTOGEN_SRC_script): %Binding.rs: $(bindinggen_dependencies) \
                                    %.webidl
 	PYTHONDONTWRITEBYTECODE=1 $(CFG_PYTHON2) $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
@@ -241,13 +251,13 @@ $(CACHE_DIR)/.done:
 	@touch $@
 
 $(BINDINGS_SRC)/ParserResults.pkl: $(globalgen_dependencies) \
-                                   $(WEBIDL_servo)
+                                   $(WEBIDL_script)
 	PYTHONDONTWRITEBYTECODE=1 $(CFG_PYTHON2) $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
 	  $(BINDINGS_SRC)/GlobalGen.py $(BINDINGS_SRC)/Bindings.conf . \
 	  --cachedir=$(CACHE_DIR) \
-	  $(WEBIDL_servo)
+	  $(WEBIDL_script)
 
 # Servo binaries
 
@@ -268,7 +278,7 @@ package: servo
 
 else
 
-bindings: $(AUTOGEN_SRC_servo)
+bindings: $(AUTOGEN_SRC_script)
 
 .PHONY: package
 package:

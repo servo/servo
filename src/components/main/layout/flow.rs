@@ -25,11 +25,9 @@
 ///   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
 ///   similar methods.
 
-use dom::node::{AbstractNode, LayoutView};
 use layout::block::BlockFlowData;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
-use layout::debug::DebugMethods;
 use layout::display_list_builder::DisplayListBuilder;
 use layout::inline::{InlineFlowData};
 
@@ -38,6 +36,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
+use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
 
 /// The type of the formatting context and data specific to each context, such as line box
@@ -372,15 +371,14 @@ impl<'self> FlowContext {
 
         true
     }
-}
 
-impl DebugMethods for FlowContext {
-    fn dump(&self) {
+    /// Dumps the flow tree for debugging.
+    pub fn dump(&self) {
         self.dump_indent(0);
     }
 
     /// Dumps the flow tree, for debugging, with indentation.
-    fn dump_indent(&self, indent: uint) {
+    pub fn dump_indent(&self, indent: uint) {
         let mut s = ~"|";
         for uint::range(0, indent) |_i| {
             s += ~"---- ";
@@ -395,7 +393,7 @@ impl DebugMethods for FlowContext {
         }
     }
     
-    fn debug_str(&self) -> ~str {
+    pub fn debug_str(&self) -> ~str {
         let repr = match *self {
             InlineFlow(inline) => {
                 let mut s = inline.boxes.foldl(~"InlineFlow(children=", |s, box| {

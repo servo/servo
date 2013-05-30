@@ -8,8 +8,8 @@ use dom::bindings::utils::{domstring_to_jsval, WrapNewBindingObject};
 use dom::bindings::utils::{str, CacheableWrapper, DOM_OBJECT_SLOT, DOMString};
 use dom::element::*;
 use dom::node::{AbstractNode, Element, ElementNodeTypeId, ScriptView};
-use layout::layout_task;
-use scripting::script_task::task_from_context;
+use layout_interface::{ContentBoxQuery, ContentBoxResponse};
+use script_task::task_from_context;
 use super::utils;
 
 use core::libc::c_uint;
@@ -216,10 +216,10 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
         let width = match node.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
                 let script_context = task_from_context(cx);
-                match (*script_context).query_layout(layout_task::ContentBox(node)) {
+                match (*script_context).query_layout(ContentBoxQuery(node)) {
                     Ok(rect) => {
                         match rect {
-                            layout_task::ContentRect(rect) => rect.size.width.to_px(),
+                            ContentBoxResponse(rect) => rect.size.width.to_px(),
                             _ => fail!(~"unexpected layout reply")
                         }
                     }

@@ -5,10 +5,10 @@
 use dom::bindings::codegen::EventTargetBinding;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
 use dom::eventtarget::EventTarget;
+use script_task::{task_from_context, global_script_context};
 
 use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
 use js::jsapi::{JSObject, JSContext, JSVal};
-use scripting::script_task::{task_from_context, global_script_context};
 
 pub impl EventTarget {
     pub fn init_wrapper(@mut self) {
