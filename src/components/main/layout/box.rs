@@ -449,14 +449,14 @@ pub impl RenderBox {
     }
 
     fn compute_padding(&self, cb_width: Au) {
-        do self.with_imm_base |base| {
-            base.model.compute_padding(self.style(), cb_width);
+        do self.with_mut_base |base| {
+            base.model.compute_padding(base.node.style(), cb_width);
         }
     }
 
     fn compute_borders(&self){
-        do self.with_imm_base |base| {
-            base.model.compute_borders(self.style());
+        do self.with_mut_base |base| {
+            base.model.compute_borders(base.node.style());
         }
     }
 
@@ -467,7 +467,8 @@ pub impl RenderBox {
         }
     }
 
-    fn compute_width (&self, cb_width: Au, 
+    fn compute_width(&self,
+                     cb_width: Au,
                      callback: &fn(MaybeAuto, MaybeAuto, MaybeAuto) -> (Au, Au, Au)) {
         let computed_width = MaybeAuto::from_width(self.style().width());
         let computed_margin_left = MaybeAuto::from_margin(self.style().margin_left());
@@ -476,10 +477,12 @@ pub impl RenderBox {
         let (used_width, used_margin_left, used_margin_right) = 
             callback(computed_width, computed_margin_left, computed_margin_right);
 
+        let noncontent_width = self.get_noncontent_width();
+
         do self.with_mut_base |base| {
             base.model.margin.left = used_margin_left;
             base.model.margin.right = used_margin_right;
-            base.position.size.width = used_width + self.get_noncontent_width();
+            base.position.size.width = used_width + noncontent_width;
             base.position.origin.x = used_margin_left;
         }
     }
