@@ -2,15 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-///
-/// Constructs display lists from render boxes.
-///
+//! Constructs display lists from render boxes.
 
-use core::cell::Cell;
-
+use layout::box::RenderBox;
 use layout::context::LayoutContext;
 use layout::flow::FlowContext;
 
+use core::cell::Cell;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
@@ -18,6 +16,28 @@ use gfx::geometry::Au;
 use gfx;
 use newcss;
 use servo_util::tree::TreeNodeRef;
+
+/// Extra display list data is either nothing (if the display list is to be rendered) or the
+/// originating render box (if the display list is generated for hit testing).
+pub trait ExtraDisplayListData {
+    fn new(box: RenderBox) -> Self;
+}
+
+/// The type representing the lack of extra display list data. This is used when sending display
+/// list data off to be rendered.
+pub type Nothing = ();
+
+impl ExtraDisplayListData for Nothing {
+    fn new(_: RenderBox) -> Nothing {
+        ()
+    }
+}
+
+impl ExtraDisplayListData for RenderBox {
+    fn new(box: RenderBox) -> RenderBox {
+        box
+    }
+}
 
 /// A builder object that manages display list builder should mainly hold information about the
 /// initial request and desired result--for example, whether the `DisplayList` is to be used for
@@ -30,30 +50,33 @@ pub struct DisplayListBuilder<'self> {
 }
 
 pub trait FlowDisplayListBuilderMethods {
-    fn build_display_list(&self, a: &DisplayListBuilder, b: &Rect<Au>, c: &Cell<DisplayList>);
-    fn build_display_list_for_child(&self,
-                                    a: &DisplayListBuilder,
-                                    b: FlowContext,
-                                    c: &Rect<Au>,
-                                    d: &Point2D<Au>,
-                                    e: &Cell<DisplayList>);
+    fn build_display_list<E:ExtraDisplayListData>(&self,
+                                                  a: &DisplayListBuilder,
+                                                  b: &Rect<Au>,
+                                                  c: &Cell<DisplayList<E>>);
+    fn build_display_list_for_child<E:ExtraDisplayListData>(&self,
+                                                            a: &DisplayListBuilder,
+                                                            b: FlowContext,
+                                                            c: &Rect<Au>,
+                                                            d: &Point2D<Au>,
+                                                            e: &Cell<DisplayList<E>>);
 }
 
 impl FlowDisplayListBuilderMethods for FlowContext {
-    fn build_display_list(&self,
-                          builder: &DisplayListBuilder,
-                          dirty: &Rect<Au>,
-                          list: &Cell<DisplayList>) {
+    fn build_display_list<E:ExtraDisplayListData>(&self,
+                                                  builder: &DisplayListBuilder,
+                                                  dirty: &Rect<Au>,
+                                                  list: &Cell<DisplayList<E>>) {
         let zero = gfx::geometry::zero_point();
         self.build_display_list_recurse(builder, dirty, &zero, list);
     }
 
-    fn build_display_list_for_child(&self,
-                                    builder: &DisplayListBuilder,
-                                    child_flow: FlowContext,
-                                    dirty: &Rect<Au>,
-                                    offset: &Point2D<Au>,
-                                    list: &Cell<DisplayList>) {
+    fn build_display_list_for_child<E:ExtraDisplayListData>(&self,
+                                                            builder: &DisplayListBuilder,
+                                                            child_flow: FlowContext,
+                                                            dirty: &Rect<Au>,
+                                                            offset: &Point2D<Au>,
+                                                            list: &Cell<DisplayList<E>>) {
         // Adjust the dirty rect to child flow context coordinates.
         do child_flow.with_base |child_node| {
             let abs_flow_bounds = child_node.position.translate(offset);

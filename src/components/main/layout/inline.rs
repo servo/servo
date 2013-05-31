@@ -7,7 +7,7 @@ use core;
 use layout::box::{CannotSplit, GenericRenderBoxClass, ImageRenderBoxClass, RenderBox};
 use layout::box::{SplitDidFit, SplitDidNotFit, TextRenderBoxClass, UnscannedTextRenderBoxClass};
 use layout::context::LayoutContext;
-use layout::display_list_builder::DisplayListBuilder;
+use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{FlowContext, FlowData, InlineFlow};
 use layout::text::{UnscannedMethods, adapt_textbox_with_range};
 
@@ -864,11 +864,11 @@ impl InlineFlowData {
         self.common.position.size.height = cur_y;
     }
 
-    pub fn build_display_list_inline(&self,
-                                     builder: &DisplayListBuilder,
-                                     dirty: &Rect<Au>,
-                                     offset: &Point2D<Au>,
-                                     list: &Cell<DisplayList>) {
+    pub fn build_display_list_inline<E:ExtraDisplayListData>(&self,
+                                                             builder: &DisplayListBuilder,
+                                                             dirty: &Rect<Au>,
+                                                             offset: &Point2D<Au>,
+                                                             list: &Cell<DisplayList<E>>) {
         // TODO(#228): Once we form line boxes and have their cached bounds, we can be smarter and
         // not recurse on a line if nothing in it can intersect the dirty region.
         debug!("FlowContext[%d]: building display list for %u inline boxes",

@@ -14,8 +14,12 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 
+/// The type representing the lack of extra display list data. This is used when sending display
+/// list data off to be rendered.
+pub type Nothing = ();
+
 pub struct RenderLayer {
-    display_list: DisplayList,
+    display_list: DisplayList<Nothing>,
     size: Size2D<uint>
 }
 
@@ -50,8 +54,6 @@ pub fn render_layers(layer_ref: *RenderLayer,
                 let width = right - x;
                 let height = bottom - y;
 
-                let tile_rect = Rect(Point2D(x, y), Size2D(width, height));
-
                 // Round the width up the nearest 32 pixels for DMA on the Mac.
                 let aligned_width = if width % 32 == 0 {
                     width
@@ -62,6 +64,8 @@ pub fn render_layers(layer_ref: *RenderLayer,
                 assert!(aligned_width >= width);
 
                 debug!("tile aligned_width %u", aligned_width);
+
+                let tile_rect = Rect(Point2D(x, y), Size2D(aligned_width, height));
 
                 let buffer;
                 // FIXME: Try harder to search for a matching tile.
@@ -75,7 +79,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
 
                     let size = Size2D(aligned_width as i32, height as i32);
                     // FIXME: This may not be always true.
-                    let stride = size.width * 4;
+                    let stride = (aligned_width as i32) * 4;
 
                     let mut data: ~[u8] = ~[0];
                     let offset;
