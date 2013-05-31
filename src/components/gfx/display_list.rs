@@ -28,7 +28,7 @@ use std::arc;
 
 /// A list of rendering operations to be performed.
 pub struct DisplayList<E> {
-    priv list: ~[DisplayItem<E>]
+    list: ~[DisplayItem<E>]
 }
 
 impl<E> DisplayList<E> {

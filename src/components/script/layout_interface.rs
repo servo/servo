@@ -6,12 +6,13 @@
 /// coupling between these two components, and enables the DOM to be placed in a separate crate
 /// from layout.
 
-use dom::node::{AbstractNode, ScriptView};
+use dom::node::{AbstractNode, ScriptView, LayoutView};
 use script_task::ScriptMsg;
 
 use core::comm::{Chan, SharedChan};
 use geom::rect::Rect;
 use geom::size::Size2D;
+use geom::point::Point2D;
 use gfx::geometry::Au;
 use newcss::stylesheet::Stylesheet;
 use std::net::url::Url;
@@ -43,6 +44,8 @@ pub enum LayoutQuery {
     ContentBoxQuery(AbstractNode<ScriptView>),
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
     ContentBoxesQuery(AbstractNode<ScriptView>),
+    /// Requests the node containing the point of interest
+    HitTestQuery(AbstractNode<ScriptView>, Point2D<f32>),
 }
 
 /// The reply of a synchronous message from script to layout.
@@ -54,6 +57,8 @@ pub enum LayoutResponse {
     ContentBoxResponse(Rect<Au>),
     /// A response to the `ContentBoxesQuery` message.
     ContentBoxesResponse(~[Rect<Au>]),
+    /// A response to the `HitTestQuery` message.
+    HitTestResponse(AbstractNode<LayoutView>),
 }
 
 /// Dirty bits for layout.
