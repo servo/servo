@@ -76,6 +76,10 @@ impl SelectHandler<AbstractNode<LayoutView>> for NodeSelectHandler {
         self.parent_node(node).is_none()
     }
 
+    fn node_is_link(&self, node: &AbstractNode<LayoutView>) -> bool {
+        node.is_anchor_element()
+    }
+
     fn with_node_id<R>(&self, node: &AbstractNode<LayoutView>, f: &fn(Option<&str>) -> R) -> R {
         if !node.is_element() {
             fail!(~"attempting to style non-element node");

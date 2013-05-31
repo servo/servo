@@ -10,7 +10,7 @@ use dom::bindings::utils::WrapperCache;
 use dom::bindings;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId};
+use dom::element::{Element, ElementTypeId, HTMLAnchorElementTypeId, HTMLImageElement, HTMLImageElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
 use script_task::global_script_context;
 
@@ -344,6 +344,10 @@ impl<View> AbstractNode<View> {
 
     pub fn is_style_element(self) -> bool {
         self.type_id() == ElementNodeTypeId(HTMLStyleElementTypeId)
+    }
+
+    pub fn is_anchor_element(self) -> bool {
+        self.type_id() == ElementNodeTypeId(HTMLAnchorElementTypeId)
     }
 
     pub unsafe fn raw_object(self) -> *mut Node<View> {
