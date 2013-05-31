@@ -19,6 +19,7 @@ use geometry::Au;
 use render_context::RenderContext;
 use text::SendableTextRun;
 
+use core::cast::transmute_region;
 use geom::{Point2D, Rect, Size2D};
 use servo_net::image::base::Image;
 use servo_util::range::Range;
@@ -26,20 +27,20 @@ use std::arc::ARC;
 use std::arc;
 
 /// A list of rendering operations to be performed.
-pub struct DisplayList {
-    priv list: ~[DisplayItem]
+pub struct DisplayList<E> {
+    list: ~[DisplayItem<E>]
 }
 
-impl DisplayList {
+impl<E> DisplayList<E> {
     /// Creates a new display list.
-    pub fn new() -> DisplayList {
+    pub fn new() -> DisplayList<E> {
         DisplayList {
             list: ~[]
         }
     }
 
     /// Appends the given item to the display list.
-    pub fn append_item(&mut self, item: DisplayItem) {
+    pub fn append_item(&mut self, item: DisplayItem<E>) {
         // FIXME(Issue #150): crashes
         //debug!("Adding display item %u: %?", self.len(), item);
         self.list.push(item)
@@ -58,51 +59,54 @@ impl DisplayList {
 }
 
 /// One drawing command in the list.
-pub enum DisplayItem {
-    SolidColorDisplayItemClass(~SolidColorDisplayItem),
-    TextDisplayItemClass(~TextDisplayItem),
-    ImageDisplayItemClass(~ImageDisplayItem),
-    BorderDisplayItemClass(~BorderDisplayItem),
+pub enum DisplayItem<E> {
+    SolidColorDisplayItemClass(~SolidColorDisplayItem<E>),
+    TextDisplayItemClass(~TextDisplayItem<E>),
+    ImageDisplayItemClass(~ImageDisplayItem<E>),
+    BorderDisplayItemClass(~BorderDisplayItem<E>),
 }
 
 /// Information common to all display items.
-pub struct BaseDisplayItem {
+pub struct BaseDisplayItem<E> {
     /// The boundaries of the display item.
     ///
     /// TODO: Which coordinate system should this use?
     bounds: Rect<Au>,
+
+    /// Extra data: either the originating flow (for hit testing) or nothing (for rendering).
+    extra: E,
 }
 
 /// Renders a solid color.
-pub struct SolidColorDisplayItem {
-    base: BaseDisplayItem,
+pub struct SolidColorDisplayItem<E> {
+    base: BaseDisplayItem<E>,
     color: Color,
 }
 
 /// Renders text.
-pub struct TextDisplayItem {
-    base: BaseDisplayItem,
+pub struct TextDisplayItem<E> {
+    base: BaseDisplayItem<E>,
     text_run: ~SendableTextRun,
     range: Range,
     color: Color,
 }
 
 /// Renders an image.
-pub struct ImageDisplayItem {
-    base: BaseDisplayItem,
+pub struct ImageDisplayItem<E> {
+    base: BaseDisplayItem<E>,
     image: ARC<~Image>,
 }
 
 /// Renders a border.
-pub struct BorderDisplayItem {
-    base: BaseDisplayItem,
+pub struct BorderDisplayItem<E> {
+    base: BaseDisplayItem<E>,
     /// The width of the border.
     width: Au,
     /// The color of the border.
     color: Color,
 }
 
-impl DisplayItem {
+impl<E> DisplayItem<E> {
     /// Renders this display item into the given render context.
     fn draw_into_context(&self, render_context: &RenderContext) {
         match *self {
@@ -147,6 +151,22 @@ impl DisplayItem {
                 render_context.draw_border(&border.base.bounds, border.width, border.color)
             }
         }
+    }
+
+    fn base<'a>(&'a self) -> &'a BaseDisplayItem<E> {
+        // FIXME(tkuehn): Workaround for Rust region bug.
+        unsafe {
+            match *self {
+                SolidColorDisplayItemClass(ref solid_color) => transmute_region(&solid_color.base),
+                TextDisplayItemClass(ref text) => transmute_region(&text.base),
+                ImageDisplayItemClass(ref image_item) => transmute_region(&image_item.base),
+                BorderDisplayItemClass(ref border) => transmute_region(&border.base)
+            }
+        }
+    }
+
+    fn bounds(&self) -> Rect<Au> {
+        self.base().bounds
     }
 }
 
