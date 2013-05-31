@@ -454,32 +454,14 @@ pub impl RenderBox {
         }
     }
 
-    }
-        do self.with_mut_base |base| {
-            base.model.compute_borders(base.node.style());
-        }
-    }
-    }
-        let computed_margin_left = MaybeAuto::from_margin(self.style().margin_left());
-        let computed_margin_right = MaybeAuto::from_margin(self.style().margin_right());
-
-        let (used_width, used_margin_left, used_margin_right) = 
-            callback(computed_width, computed_margin_left, computed_margin_right);
-
-        let noncontent_width = self.get_noncontent_width();
-
-        do self.with_mut_base |base| {
-            base.model.margin.left = used_margin_left;
-            base.model.margin.right = used_margin_right;
-            base.position.size.width = used_width + noncontent_width;
-            base.position.origin.x = used_margin_left;
     fn content_box(&self) -> Rect<Au> {
         do self.with_imm_base |base| {
             let origin = Point2D(base.position.origin.x + base.model.border.left + base.model.padding.left, 
                 base.position.origin.y);
-            let size = Size2D(base.position.size.width - self.get_noncontent_width(), 
+            let size = Size2D(base.position.size.width, 
                 base.position.size.height);
             Rect(origin, size)
+        }
     }
 
     /// The box formed by the border edge as defined in CSS 2.1 § 8.1. Coordinates are relative to

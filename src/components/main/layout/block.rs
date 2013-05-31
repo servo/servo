@@ -211,6 +211,7 @@ impl BlockFlowData {
                 remaining_width = remaining_width - model.noncontent_width();
             }
 
+            do box.with_mut_base |base| {
                 //The associated box is the border box of this flow
                 base.position.origin.x = base.model.margin.left;
 
