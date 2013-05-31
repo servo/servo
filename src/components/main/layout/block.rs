@@ -6,17 +6,18 @@
 
 use layout::box::{RenderBox};
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
+use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::display_list_builder::{FlowDisplayListBuilderMethods};
 use layout::flow::{BlockFlow, FlowContext, FlowData, InlineBlockFlow};
 use layout::inline::InlineLayout;
 use layout::model::{MaybeAuto, Specified, Auto};
 
-use au = gfx::geometry;
 use core::cell::Cell;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
+use gfx::geometry;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
 
 pub struct BlockFlowData {
@@ -96,8 +97,8 @@ impl BlockFlowData {
             assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
 
             do child_ctx.with_base |child_node| {
-                min_width = au::max(min_width, child_node.min_width);
-                pref_width = au::max(pref_width, child_node.pref_width);
+                min_width = geometry::max(min_width, child_node.min_width);
+                pref_width = geometry::max(pref_width, child_node.pref_width);
             }
         }
 
@@ -210,7 +211,6 @@ impl BlockFlowData {
                 remaining_width = remaining_width - model.noncontent_width();
             }
 
-            do box.with_mut_base |base| {
                 //The associated box is the border box of this flow
                 base.position.origin.x = base.model.margin.left;
 
@@ -218,6 +218,10 @@ impl BlockFlowData {
                     base.model.border.left + base.model.border.right;
                 base.position.size.width = remaining_width + pb;
             }
+
+            let content_box = box.content_box();
+            x_offset = content_box.origin.x;
+            remaining_width = content_box.size.width;
         });
 
         for BlockFlow(self).each_child |kid| {
@@ -246,8 +250,11 @@ impl BlockFlowData {
             }
         }
 
-        let height = if self.is_root { Au::max(ctx.screen_size.size.height, cur_y) }
-                     else            { cur_y };
+        let height = if self.is_root {
+            Au::max(ctx.screen_size.size.height, cur_y)
+        } else {
+            cur_y
+        };
 
         //TODO(eatkinson): compute heights using the 'height' property.
         self.common.position.size.height = height;
@@ -264,11 +271,11 @@ impl BlockFlowData {
         });
     }
 
-    pub fn build_display_list_block(@mut self,
-                                builder: &DisplayListBuilder,
-                                dirty: &Rect<Au>, 
-                                offset: &Point2D<Au>,
-                                list: &Cell<DisplayList>) {
+    pub fn build_display_list_block<E:ExtraDisplayListData>(@mut self,
+                                                            builder: &DisplayListBuilder,
+                                                            dirty: &Rect<Au>, 
+                                                            offset: &Point2D<Au>,
+                                                            list: &Cell<DisplayList<E>>) {
         // add box that starts block context
         self.box.map(|&box| {
             box.build_display_list(builder, dirty, offset, list)
@@ -284,3 +291,4 @@ impl BlockFlowData {
         }
     }
 }
+

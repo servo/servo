@@ -6,7 +6,7 @@
 
 use css::node_style::StyledNode;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
+use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
 use layout::flow::FlowContext;
 use layout::model::{BoxModel};
 use layout::text;
@@ -454,9 +454,32 @@ pub impl RenderBox {
         }
     }
 
-    /// The box formed by the content edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
-    /// the owning flow.
+    }
+        do self.with_mut_base |base| {
+            base.model.compute_borders(base.node.style());
+        }
+    }
+    }
+        let computed_margin_left = MaybeAuto::from_margin(self.style().margin_left());
+        let computed_margin_right = MaybeAuto::from_margin(self.style().margin_right());
+
+        let (used_width, used_margin_left, used_margin_right) = 
+            callback(computed_width, computed_margin_left, computed_margin_right);
+
+        let noncontent_width = self.get_noncontent_width();
+
+        do self.with_mut_base |base| {
+            base.model.margin.left = used_margin_left;
+            base.model.margin.right = used_margin_right;
+            base.position.size.width = used_width + noncontent_width;
+            base.position.origin.x = used_margin_left;
     fn content_box(&self) -> Rect<Au> {
+        do self.with_imm_base |base| {
+            let origin = Point2D(base.position.origin.x + base.model.border.left + base.model.padding.left, 
+                base.position.origin.y);
+            let size = Size2D(base.position.size.width - self.get_noncontent_width(), 
+                base.position.size.height);
+            Rect(origin, size)
     }
 
     /// The box formed by the border edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
@@ -519,11 +542,11 @@ pub impl RenderBox {
     /// representing the box's stacking context. When asked to construct its constituent display
     /// items, each box puts its display items into the correct stack layer according to CSS 2.1
     /// Appendix E. Finally, the builder flattens the list.
-    fn build_display_list(&self,
-                          _: &DisplayListBuilder,
-                          dirty: &Rect<Au>,
-                          offset: &Point2D<Au>,
-                          list: &Cell<DisplayList>) {
+    fn build_display_list<E:ExtraDisplayListData>(&self,
+                                                  _: &DisplayListBuilder,
+                                                  dirty: &Rect<Au>,
+                                                  offset: &Point2D<Au>,
+                                                  list: &Cell<DisplayList<E>>) {
         let box_bounds = self.position();
         let absolute_box_bounds = box_bounds.translate(offset);
         debug!("RenderBox::build_display_list at rel=%?, abs=%?: %s",
@@ -551,6 +574,7 @@ pub impl RenderBox {
                     let text_display_item = ~TextDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
+                            extra: ExtraDisplayListData::new(*self),
                         },
                         // FIXME(pcwalton): Allocation? Why?!
                         text_run: ~text_box.run.serialize(),
@@ -571,6 +595,7 @@ pub impl RenderBox {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: absolute_box_bounds,
+                                extra: ExtraDisplayListData::new(*self),
                             },
                             width: Au::from_px(1),
                             color: rgb(0, 0, 200).to_gfx_color(),
@@ -590,6 +615,7 @@ pub impl RenderBox {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: baseline,
+                                extra: ExtraDisplayListData::new(*self),
                             },
                             width: Au::from_px(1),
                             color: rgb(0, 200, 0).to_gfx_color(),
@@ -613,6 +639,7 @@ pub impl RenderBox {
                             let image_display_item = ~ImageDisplayItem {
                                 base: BaseDisplayItem {
                                     bounds: absolute_box_bounds,
+                                    extra: ExtraDisplayListData::new(*self),
                                 },
                                 image: image.clone(),
                             };
@@ -637,9 +664,9 @@ pub impl RenderBox {
 
     /// Adds the display items necessary to paint the background of this render box to the display
     /// list if necessary.
-    fn paint_background_if_applicable(&self,
-                                      list: &Cell<DisplayList>,
-                                      absolute_bounds: &Rect<Au>) {
+    fn paint_background_if_applicable<E:ExtraDisplayListData>(&self,
+                                                              list: &Cell<DisplayList<E>>,
+                                                              absolute_bounds: &Rect<Au>) {
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
         // needed. We could use display list optimization to clean this up, but it still seems
         // inefficient. What we really want is something like "nearest ancestor element that
@@ -652,6 +679,7 @@ pub impl RenderBox {
                 let solid_color_display_item = ~SolidColorDisplayItem {
                     base: BaseDisplayItem {
                         bounds: *absolute_bounds,
+                        extra: ExtraDisplayListData::new(*self),
                     },
                     color: background_color.to_gfx_color(),
                 };

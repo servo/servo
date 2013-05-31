@@ -4,7 +4,7 @@
 
 //! Borders, padding, and margins.
 
-use layout::display_list_builder::ToGfxColor;
+use layout::display_list_builder::{ExtraDisplayListData, ToGfxColor};
 use layout::box::RenderBox;
 
 use core::cell::Cell;
@@ -95,10 +95,10 @@ impl BoxModel {
     }
 
     pub fn compute_padding(&mut self, style: CompleteStyle, cb_width: Au){
-        self.padding.top = self.compute_padding(style.padding_top(), cb_width);
-        self.padding.right = self.compute_padding(style.padding_right(), cb_width);
-        self.padding.bottom = self.compute_padding(style.padding_bottom(), cb_width);
-        self.padding.left = self.compute_padding(style.padding_left(), cb_width);
+        self.padding.top = self.compute_padding_length(style.padding_top(), cb_width);
+        self.padding.right = self.compute_padding_length(style.padding_right(), cb_width);
+        self.padding.bottom = self.compute_padding_length(style.padding_bottom(), cb_width);
+        self.padding.left = self.compute_padding_length(style.padding_left(), cb_width);
     }
 
     pub fn noncontent_width(&self) -> Au {
@@ -147,7 +147,9 @@ impl BoxModel {
 impl RenderBox {
     /// Adds the display items necessary to paint the borders of this render box to a display list
     /// if necessary.
-    pub fn paint_borders_if_applicable(&self, list: &Cell<DisplayList>, abs_bounds: &Rect<Au>) {
+    pub fn paint_borders_if_applicable<E:ExtraDisplayListData>(&self,
+                                                               list: &Cell<DisplayList<E>>,
+                                                               abs_bounds: &Rect<Au>) {
         // Fast path.
         let border = do self.with_imm_base |base| {
             base.model.border
@@ -180,6 +182,7 @@ impl RenderBox {
                 let border_display_item = ~BorderDisplayItem {
                     base: BaseDisplayItem {
                         bounds: bounds,
+                        extra: ExtraDisplayListData::new(*self),
                     },
                     width: border_width,
                     color: color,
