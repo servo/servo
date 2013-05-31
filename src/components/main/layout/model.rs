@@ -165,12 +165,12 @@ impl RenderBox {
             let border_width = border.top;
             let bounds = Rect {
                 origin: Point2D {
-                    x: abs_bounds.origin.x - border_width / Au(2),
-                    y: abs_bounds.origin.y - border_width / Au(2),
+                    x: abs_bounds.origin.x,
+                    y: abs_bounds.origin.y,
                 },
                 size: Size2D {
-                    width: abs_bounds.size.width + border_width,
-                    height: abs_bounds.size.height + border_width
+                    width: abs_bounds.size.width,
+                    height: abs_bounds.size.height
                 }
             };
 
