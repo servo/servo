@@ -4,8 +4,9 @@
 
 use compositing::resize_rate_limiter::ResizeRateLimiter;
 use platform::{Application, Window};
-use script::script_task::{LoadMsg, ScriptMsg};
+use script::script_task::{LoadMsg, ScriptMsg, SendEventMsg};
 use windowing::{ApplicationMethods, WindowMethods};
+use script::dom::event::ClickEvent;
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods};
 use core::cell::Cell;
@@ -222,10 +223,22 @@ fn run_main_loop(port: Port<Msg>,
         resize_rate_limiter.window_resized(width, height)
     }
 
+    let script_chan_clone = script_chan.clone();
+
     // When the user enters a new URL, load it.
     do window.set_load_url_callback |url_string| {
         debug!("osmain: loading URL `%s`", url_string);
-        script_chan.send(LoadMsg(url::make_url(url_string.to_str(), None)))
+        script_chan_clone.send(LoadMsg(url::make_url(url_string.to_str(), None)))
+    }
+
+    let script_chan_clone = script_chan.clone();
+
+    // When the user clicks, perform hit testing
+    do window.set_click_callback |layer_click_point| {
+        let world_click_point = layer_click_point + *world_offset;
+        debug!("osmain: clicked at %?", world_click_point);
+
+        script_chan_clone.send(SendEventMsg(ClickEvent(world_click_point)));
     }
 
     // When the user scrolls, move the layer around.

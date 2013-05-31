@@ -7,9 +7,12 @@ use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, WrapperCache};
 
+use geom::point::Point2D;
+
 pub enum Event {
     ResizeEvent(uint, uint, comm::Chan<()>),
-    ReflowEvent        
+    ReflowEvent,
+    ClickEvent(Point2D<f32>),
 }
 
 pub struct Event_ {
