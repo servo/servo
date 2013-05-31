@@ -96,10 +96,10 @@ impl BoxModel {
     }
 
     pub fn compute_padding(&mut self, style: CompleteStyle, cb_width: Au){
-        self.padding.top = self.compute_padding(style.padding_top(), cb_width);
-        self.padding.right = self.compute_padding(style.padding_right(), cb_width);
-        self.padding.bottom = self.compute_padding(style.padding_bottom(), cb_width);
-        self.padding.left = self.compute_padding(style.padding_left(), cb_width);
+        self.padding.top = self.compute_padding_length(style.padding_top(), cb_width);
+        self.padding.right = self.compute_padding_length(style.padding_right(), cb_width);
+        self.padding.bottom = self.compute_padding_length(style.padding_bottom(), cb_width);
+        self.padding.left = self.compute_padding_length(style.padding_left(), cb_width);
     }
 
     /// Helper function to compute the border width in app units from the CSS border width.
@@ -117,7 +117,7 @@ impl BoxModel {
         }
     }
 
-    fn compute_padding(&self, padding: CSSPadding, cb_width: Au) -> Au{
+    fn compute_padding_length(&self, padding: CSSPadding, cb_width: Au) -> Au{
         match padding {
             CSSPaddingLength(Px(v)) |
             CSSPaddingLength(Pt(v)) |
