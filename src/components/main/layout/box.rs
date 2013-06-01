@@ -8,7 +8,7 @@ use css::node_style::StyledNode;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
 use layout::flow::FlowContext;
-use layout::model::{BoxModel};
+use layout::model::BoxModel;
 use layout::text;
 
 use core::cell::Cell;
@@ -454,41 +454,15 @@ pub impl RenderBox {
         }
     }
 
-    fn compute_borders(&self){
-        do self.with_mut_base |base| {
-            base.model.compute_borders(base.node.style());
-        }
-    }
-
     fn get_noncontent_width(&self) -> Au {
         do self.with_imm_base |base| {
-            base.model.border.left + base.model.padding.left + base.model.border.right + 
-                base.model.padding.right
-        }
-    }
-
-    fn compute_width(&self,
-                     cb_width: Au,
-                     callback: &fn(MaybeAuto, MaybeAuto, MaybeAuto) -> (Au, Au, Au)) {
-        let computed_width = MaybeAuto::from_width(self.style().width());
-        let computed_margin_left = MaybeAuto::from_margin(self.style().margin_left());
-        let computed_margin_right = MaybeAuto::from_margin(self.style().margin_right());
-
-        let (used_width, used_margin_left, used_margin_right) = 
-            callback(computed_width, computed_margin_left, computed_margin_right);
-
-        let noncontent_width = self.get_noncontent_width();
-
-        do self.with_mut_base |base| {
-            base.model.margin.left = used_margin_left;
-            base.model.margin.right = used_margin_right;
-            base.position.size.width = used_width + noncontent_width;
-            base.position.origin.x = used_margin_left;
+            base.model.border.left + base.model.padding.left +
+            base.model.border.right + base.model.padding.right
         }
     }
 
     fn with_model<R>(&self, callback: &fn(&mut BoxModel) -> R) ->  R {
-        do self.with_imm_base |base| {
+        do self.with_mut_base |base| {
             callback(&mut base.model)
         }
     }
@@ -496,6 +470,15 @@ pub impl RenderBox {
     /// The box formed by the content edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
     /// the owning flow.
     fn content_box(&self) -> Rect<Au> {
+        do self.with_imm_base |base| {
+            let origin = Point2D(base.position.origin.x +
+                                 base.model.border.left +
+                                 base.model.padding.left,
+                                 base.position.origin.y);
+            let size = Size2D(base.position.size.width - self.get_noncontent_width(), 
+                              base.position.size.height);
+            Rect(origin, size)
+        }
     }
 
     /// The box formed by the border edge as defined in CSS 2.1 § 8.1. Coordinates are relative to

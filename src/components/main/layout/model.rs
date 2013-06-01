@@ -31,12 +31,12 @@ pub struct BoxModel {
 }
 
 /// Useful helper data type when computing values for blocks and positioned elements.
-pub enum MaybeAuto{
+pub enum MaybeAuto {
     Auto,
     Specified(Au),
 }
 
-impl MaybeAuto{
+impl MaybeAuto {
     pub fn from_margin(margin: CSSMargin) -> MaybeAuto{
         match margin {
             CSSMarginAuto => Auto,

@@ -106,8 +106,9 @@ impl BlockFlowData {
            these widths will not include child elements, just padding etc. */
         self.box.map(|&box| {
             //Can compute border width here since it doesn't depend on anything
+            let style = box.style();
             do box.with_model |model| {
-                model.compute_borders(box.style())
+                model.compute_borders(style)
             }
             min_width = min_width.add(&box.get_min_width(ctx));
             pref_width = pref_width.add(&box.get_pref_width(ctx));
@@ -184,17 +185,18 @@ impl BlockFlowData {
         let mut x_offset = Au(0);
 
         self.box.map(|&box| {
+            let style = box.style();
             do box.with_model |model| {
-                model.compute_padding(box.style(), remaining_width);
+                model.compute_padding(style, remaining_width);
 
                 let available_width = remaining_width - model.noncontent_width();
 
-                let margin_top = MaybeAuto::from_margin(box.style().margin_top()).spec_or_default(Au(0));
-                let margin_bottom = MaybeAuto::from_margin(box.style().margin_bottom()).spec_or_default(Au(0));
+                let margin_top = MaybeAuto::from_margin(style.margin_top()).spec_or_default(Au(0));
+                let margin_bottom = MaybeAuto::from_margin(style.margin_bottom()).spec_or_default(Au(0));
 
-                let (width, margin_left, margin_right) = (MaybeAuto::from_width(box.style().width()),
-                    MaybeAuto::from_margin(box.style().margin_left()),
-                    MaybeAuto::from_margin(box.style().margin_right()));
+                let (width, margin_left, margin_right) = (MaybeAuto::from_width(style.width()),
+                    MaybeAuto::from_margin(style.margin_left()),
+                    MaybeAuto::from_margin(style.margin_right()));
 
                 let (width, margin_left, margin_right) = 
                     self.compute_horiz(width, margin_left, margin_right, available_width);
