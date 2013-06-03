@@ -126,7 +126,7 @@ impl BoxModel {
         }
     }
 
-    priv fn compute_padding(&self, padding: CSSPadding, cb_width: Au) -> Au{
+    priv fn compute_padding_length(&self, padding: CSSPadding, cb_width: Au) -> Au{
         match padding {
             CSSPaddingLength(Px(v)) |
             CSSPaddingLength(Pt(v)) |

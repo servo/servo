@@ -449,7 +449,7 @@ pub impl RenderBox {
     }
 
     fn with_model<R>(&self, callback: &fn(&mut BoxModel) -> R) ->  R {
-        do self.with_imm_base |base| {
+        do self.with_mut_base |base| {
             callback(&mut base.model)
         }
     }

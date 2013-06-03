@@ -48,6 +48,15 @@ impl SelectHandler<AbstractNode<LayoutView>> for NodeSelectHandler {
         node.parent_node()
     }
 
+    //Stub implementations. TODO: fill out by merging PR 499
+    fn node_has_class(&self, node: &AbstractNode<LayoutView>, class: &str) -> bool{
+        false
+    }
+
+    fn with_node_classes<R>(&self, node: &AbstractNode<LayoutView>, f: &fn(Option<&str>) -> R) -> R{
+        f(Some(""))
+    }
+
     // TODO: Use a Bloom filter.
     fn named_ancestor_node(&self, node: &AbstractNode<LayoutView>, name: &str)
                            -> Option<AbstractNode<LayoutView>> {
