@@ -151,7 +151,7 @@ impl RenderBox {
                                                                list: &Cell<DisplayList<E>>,
                                                                abs_bounds: &Rect<Au>) {
         // Fast path.
-        let border = do self.with_imm_base |base| {
+        let border = do self.with_base |base| {
             base.model.border
         };
         if border.is_zero() {

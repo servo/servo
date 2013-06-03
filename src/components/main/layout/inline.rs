@@ -141,8 +141,8 @@ impl ElementMapping {
                 // XXX: the following loop form causes segfaults; assigning to locals doesn't.
                 // while new_j < new_boxes.len() && old_boxes[old_i].d().node != new_boxes[new_j].d().node {
                 while new_j < new_boxes.len() {
-                    let should_leave = do old_boxes[old_i].with_imm_base |old_box_base| {
-                        do new_boxes[new_j].with_imm_base |new_box_base| {
+                    let should_leave = do old_boxes[old_i].with_base |old_box_base| {
+                        do new_boxes[new_j].with_base |new_box_base| {
                             old_box_base.node != new_box_base.node
                         }
                     };
@@ -284,7 +284,7 @@ impl TextRunScanner {
                 let run = @fontgroup.create_textrun(transformed_text, underline);
 
                 debug!("TextRunScanner: pushing single text box in range: %?", self.clump);
-                let new_box = do old_box.with_imm_base |old_box_base| {
+                let new_box = do old_box.with_base |old_box_base| {
                     let range = Range::new(0, run.char_len());
                     @mut adapt_textbox_with_range(*old_box_base, run, range)
                 };
@@ -345,7 +345,7 @@ impl TextRunScanner {
                         loop
                     }
 
-                    do in_boxes[i].with_imm_base |base| {
+                    do in_boxes[i].with_base |base| {
                         let new_box = @mut adapt_textbox_with_range(*base, run.get(), range);
                         out_boxes.push(TextRenderBoxClass(new_box));
                     }
