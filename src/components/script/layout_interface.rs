@@ -86,11 +86,22 @@ impl Damage {
     }
 }
 
+/// Why we're doing reflow.
+#[deriving(Eq)]
+pub enum ReflowGoal {
+    /// We're reflowing in order to send a display list to the screen.
+    ReflowForDisplay,
+    /// We're reflowing in order to satisfy a script query. No display list will be created.
+    ReflowForScriptQuery,
+}
+
 /// Information needed for a reflow.
 pub struct BuildData {
     node: AbstractNode<ScriptView>,
     /// What reflow needs to be done.
     damage: Damage,
+    /// The goal of reflow: either to render to the screen or to flush layout info for script.
+    goal: ReflowGoal,
     /// The URL of the page.
     url: Url,
     /// The channel through which messages can be sent back to the script task.

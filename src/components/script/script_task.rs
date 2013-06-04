@@ -12,7 +12,7 @@ use dom::node::define_bindings;
 use dom::window::Window;
 use layout_interface::{AddStylesheetMsg, BuildData, BuildMsg, Damage, LayoutQuery, HitTestQuery};
 use layout_interface::{LayoutResponse, HitTestResponse, LayoutTask, MatchSelectorsDamage, NoDamage};
-use layout_interface::{QueryMsg, ReflowDamage};
+use layout_interface::{QueryMsg, ReflowDamage, ReflowForDisplay, ReflowForScriptQuery, ReflowGoal};
 use layout_interface;
 
 use core::cast::transmute;
@@ -283,7 +283,7 @@ impl ScriptContext {
                              null(),
                              &rval);
 
-        self.relayout()
+        self.relayout(ReflowForScriptQuery)
     }
 
     /// Handles a request to exit the script task and shut down layout.
@@ -349,7 +349,7 @@ impl ScriptContext {
 
         // Perform the initial reflow.
         self.damage.add(MatchSelectorsDamage);
-        self.relayout();
+        self.relayout(ReflowForDisplay);
 
         // Define debug functions.
         self.js_compartment.define_functions(debug_fns);
@@ -383,10 +383,10 @@ impl ScriptContext {
         }
     }
 
-    /// Initiate an asynchronous relayout operation
+    /// Initiate an asynchronous relayout operation to handle a script layout query.
     pub fn trigger_relayout(&mut self, damage: Damage) {
         self.damage.add(damage);
-        self.relayout();
+        self.relayout(ReflowForScriptQuery);
     }
 
     /// This method will wait until the layout task has completed its current action, join the
@@ -394,7 +394,7 @@ impl ScriptContext {
     /// computation to finish.
     ///
     /// This function fails if there is no root frame.
-    fn relayout(&mut self) {
+    fn relayout(&mut self, goal: ReflowGoal) {
         debug!("script: performing relayout");
 
         // Now, join the layout so that they will see the latest changes we have made.
@@ -411,6 +411,7 @@ impl ScriptContext {
                 let data = ~BuildData {
                     node: root_frame.document.root,
                     url: copy root_frame.url,
+                    goal: goal,
                     script_chan: self.script_chan.clone(),
                     window_size: self.window_size,
                     script_join_chan: join_chan,
@@ -445,7 +446,7 @@ impl ScriptContext {
                 self.window_size = Size2D(new_width, new_height);
 
                 if self.root_frame.is_some() {
-                    self.relayout()
+                    self.relayout(ReflowForDisplay)
                 }
 
                 response_chan.send(())
@@ -457,7 +458,7 @@ impl ScriptContext {
                 self.damage.add(MatchSelectorsDamage);
 
                 if self.root_frame.is_some() {
-                    self.relayout()
+                    self.relayout(ReflowForDisplay)
                 }
             }
 
