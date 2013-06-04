@@ -37,11 +37,11 @@ pub enum MaybeAuto{
 }
 
 impl MaybeAuto{
-    pub fn from_margin(margin: CSSMargin) -> MaybeAuto{
+    pub fn from_margin(margin: CSSMargin, cb_width: Au) -> MaybeAuto{
         match margin {
             CSSMarginAuto => Auto,
             //FIXME(eatkinson): Compute percents properly
-            CSSMarginPercentage(_) => Specified(Au(0)),
+            CSSMarginPercentage(percent) => Specified(cb_width.scale_by(percent/100.0)),
             //FIXME(eatkinson): Compute pt and em values properly
             CSSMarginLength(Px(v)) | 
             CSSMarginLength(Pt(v)) | 
@@ -49,11 +49,10 @@ impl MaybeAuto{
         }
     }
 
-    pub fn from_width(width: CSSWidth) -> MaybeAuto{
+    pub fn from_width(width: CSSWidth, cb_width: Au) -> MaybeAuto{
         match width{
             CSSWidthAuto => Auto,
-            //FIXME(eatkinson): Compute percents properly
-            CSSWidthPercentage(_) => Specified(Au(0)),
+            CSSWidthPercentage(percent) => Specified(cb_width.scale_by(percent/100.0)),
             //FIXME(eatkinson): Compute pt and em values properly
             CSSWidthLength(Px(v)) | 
             CSSWidthLength(Pt(v)) | 
@@ -165,12 +164,12 @@ impl RenderBox {
             let border_width = border.top;
             let bounds = Rect {
                 origin: Point2D {
-                    x: abs_bounds.origin.x,
-                    y: abs_bounds.origin.y,
+                    x: abs_bounds.origin.x + border_width.scale_by(0.5),
+                    y: abs_bounds.origin.y + border_width.scale_by(0.5),
                 },
                 size: Size2D {
-                    width: abs_bounds.size.width,
-                    height: abs_bounds.size.height
+                    width: abs_bounds.size.width - border_width,
+                    height: abs_bounds.size.height - border_width
                 }
             };
 
