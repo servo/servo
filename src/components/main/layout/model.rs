@@ -22,12 +22,17 @@ use newcss::values::{CSSBorderWidthThick, CSSBorderWidthThin};
 use newcss::values::{CSSWidth, CSSWidthLength, CSSWidthPercentage, CSSWidthAuto};
 use newcss::values::{CSSMargin, CSSMarginLength, CSSMarginPercentage, CSSMarginAuto};
 use newcss::values::{CSSPadding, CSSPaddingLength, CSSPaddingPercentage};
+
 /// Encapsulates the borders, padding, and margins, which we collectively call the "box model".
 pub struct BoxModel {
+    /// The size of the borders.
     border: SideOffsets2D<Au>,
+    /// The size of the padding.
     padding: SideOffsets2D<Au>,
+    /// The size of the margins.
     margin: SideOffsets2D<Au>,
-    cb_width: Au,
+    /// The width of the content box.
+    content_box_width: Au,
 }
 
 /// Useful helper data type when computing values for blocks and positioned elements.
@@ -75,7 +80,7 @@ impl Zero for BoxModel {
             border: Zero::zero(),
             padding: Zero::zero(),
             margin: Zero::zero(),
-            cb_width: Zero::zero(),
+            content_box_width: Zero::zero(),
         }
     }
 
@@ -85,7 +90,7 @@ impl Zero for BoxModel {
 }
 
 impl BoxModel {
-    /// Populates the box model parameters from the given computed style.
+    /// Populates the box model border parameters from the given computed style.
     pub fn compute_borders(&mut self, style: CompleteStyle) {
         // Compute the borders.
         self.border.top = self.compute_border_width(style.border_top_width());
@@ -94,11 +99,16 @@ impl BoxModel {
         self.border.left = self.compute_border_width(style.border_left_width());
     }
 
-    pub fn compute_padding(&mut self, style: CompleteStyle, cb_width: Au){
-        self.padding.top = self.compute_padding_length(style.padding_top(), cb_width);
-        self.padding.right = self.compute_padding_length(style.padding_right(), cb_width);
-        self.padding.bottom = self.compute_padding_length(style.padding_bottom(), cb_width);
-        self.padding.left = self.compute_padding_length(style.padding_left(), cb_width);
+    /// Populates the box model padding parameters from the given computed style.
+    pub fn compute_padding(&mut self, style: CompleteStyle, content_box_width: Au) {
+        self.padding.top = self.compute_padding_length(style.padding_top(),
+                                                       content_box_width);
+        self.padding.right = self.compute_padding_length(style.padding_right(),
+                                                         content_box_width);
+        self.padding.bottom = self.compute_padding_length(style.padding_bottom(),
+                                                          content_box_width);
+        self.padding.left = self.compute_padding_length(style.padding_left(),
+                                                        content_box_width);
     }
 
     pub fn noncontent_width(&self) -> Au {
@@ -112,7 +122,7 @@ impl BoxModel {
     }
 
     /// Helper function to compute the border width in app units from the CSS border width.
-    priv fn compute_border_width(&self, width: CSSBorderWidth) -> Au {
+    fn compute_border_width(&self, width: CSSBorderWidth) -> Au {
         match width {
             CSSBorderWidthLength(Px(v)) |
             CSSBorderWidthLength(Em(v)) |
@@ -126,7 +136,7 @@ impl BoxModel {
         }
     }
 
-    priv fn compute_padding_length(&self, padding: CSSPadding, cb_width: Au) -> Au {
+    fn compute_padding_length(&self, padding: CSSPadding, content_box_width: Au) -> Au {
         match padding {
             CSSPaddingLength(Px(v)) |
             CSSPaddingLength(Pt(v)) |
@@ -134,10 +144,9 @@ impl BoxModel {
                 // FIXME(eatkinson): Handle 'em' and 'pt' correctly
                 Au::from_frac_px(v)
             }
-            CSSPaddingPercentage(p) => cb_width.scale_by(p)
+            CSSPaddingPercentage(p) => content_box_width.scale_by(p)
         }
     }
-
 }
 
 //

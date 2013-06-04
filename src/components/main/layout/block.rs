@@ -102,38 +102,39 @@ impl BlockFlowData {
             }
         }
 
-        /* if not an anonymous block context, add in block box's widths.
-           these widths will not include child elements, just padding etc. */
-        self.box.map(|&box| {
-            //Can compute border width here since it doesn't depend on anything
+        // If not an anonymous block context, add in the block box's widths. These widths will not
+        // include child elements, just padding etc.
+        for self.box.each |&box| {
+            // Can compute border width here since it doesn't depend on anything.
             let style = box.style();
             do box.with_model |model| {
                 model.compute_borders(style)
             }
             min_width = min_width.add(&box.get_min_width(ctx));
             pref_width = pref_width.add(&box.get_pref_width(ctx));
-        });
+        }
 
         self.common.min_width = min_width;
         self.common.pref_width = pref_width;
     }
  
     /// Computes left and right margins and width based on CSS 2.1 secion 10.3.3.
-    /// Requires borders and padding to already be computed
-    priv fn compute_horiz( &self, 
-                            width: MaybeAuto, 
-                            left_margin: MaybeAuto, 
-                            right_margin: MaybeAuto, 
-                            available_width: Au) -> (Au, Au, Au) {
-
-        //If width is not 'auto', and width + margins > available_width, all 'auto' margins are treated as '0'
-        let (left_margin, right_margin) = match width{
+    /// Requires borders and padding to already be computed.
+    fn compute_horiz(&self, 
+                     width: MaybeAuto, 
+                     left_margin: MaybeAuto, 
+                     right_margin: MaybeAuto, 
+                     available_width: Au)
+                     -> (Au, Au, Au) {
+        // If width is not 'auto', and width + margins > available_width, all 'auto' margins are
+        // treated as '0'.
+        let (left_margin, right_margin) = match width {
             Auto => (left_margin, right_margin),
             Specified(width) => {
                 let left = left_margin.spec_or_default(Au(0));
                 let right = right_margin.spec_or_default(Au(0));
                 
-                if((left + right + width) > available_width) {
+                if (left + right + width) > available_width {
                     (Specified(left), Specified(right))
                 } else {
                     (left_margin, right_margin)
@@ -141,31 +142,43 @@ impl BlockFlowData {
             }
         };
 
-        //Invariant: left_margin_Au + width_Au + right_margin_Au == available_width
+        // Invariant: left_margin_Au + width_Au + right_margin_Au == available_width
         let (left_margin_Au, width_Au, right_margin_Au) = match (left_margin, width, right_margin) {
-            //If all have a computed value other than 'auto', the system is over-constrained and we need to discard a margin.
-            //if direction is ltr, ignore the specified right margin and solve for it. If it is rtl, ignore the specified 
-            //left margin. FIXME(eatkinson): this assumes the direction is ltr
-            (Specified(margin_l), Specified(width), Specified(margin_r)) => (margin_l, width, available_width - (margin_l + width )),
+            // If all have a computed value other than 'auto', the system is over-constrained and
+            // we need to discard a margin. If direction is ltr, ignore the specified right margin
+            // and solve for it. If it is rtl, ignore the specified left margin.
+            //
+            // FIXME(eatkinson): this assumes the direction is ltr
+            (Specified(margin_l), Specified(width), Specified(_)) => {
+                (margin_l, width, available_width - (margin_l + width))
+            }
 
-            //If exactly one value is 'auto', solve for it
-            (Auto, Specified(width), Specified(margin_r)) => (available_width - (width + margin_r), width, margin_r),
-            (Specified(margin_l), Auto, Specified(margin_r)) => (margin_l, available_width - (margin_l + margin_r), margin_r),
-            (Specified(margin_l), Specified(width), Auto) => (margin_l, width, available_width - (margin_l + width)),
+            // If exactly one value is 'auto', solve for it
+            (Auto, Specified(width), Specified(margin_r)) => {
+                (available_width - (width + margin_r), width, margin_r)
+            }
+            (Specified(margin_l), Auto, Specified(margin_r)) => {
+                (margin_l, available_width - (margin_l + margin_r), margin_r)
+            }
+            (Specified(margin_l), Specified(width), Auto) => {
+                (margin_l, width, available_width - (margin_l + width))
+            }
 
-            //If width is set to 'auto', any other 'auto' value becomes '0', and width is solved for
+            // If width is set to 'auto', any other 'auto' value becomes '0', and width is solved
+            // for.
             (Auto, Auto, Specified(margin_r)) => (Au(0), available_width - margin_r, margin_r),
             (Specified(margin_l), Auto, Auto) => (margin_l, available_width - margin_l, Au(0)),
             (Auto, Auto, Auto) => (Au(0), available_width, Au(0)),
 
-            //If left and right margins are auto, they become equal
+            // If left and right margins are auto, they become equal.
             (Auto, Specified(width), Auto) => {
                 let margin = (available_width - width).scale_by(0.5);
                 (margin, width, margin)
             }
 
         };
-        //return values in same order as params
+
+        // Return values in same order as params.
         (width_Au, left_margin_Au, right_margin_Au)
     }
 
@@ -184,25 +197,31 @@ impl BlockFlowData {
         let mut remaining_width = self.common.position.size.width;
         let mut x_offset = Au(0);
 
-        self.box.map(|&box| {
+        for self.box.each |&box| {
             let style = box.style();
             do box.with_model |model| {
-                //Can compute padding here since we know containing block width
+                // Can compute padding here since we know containing block width.
                 model.compute_padding(style, remaining_width);
 
-                //Margins are 0 right now so model.noncontent_width() is just borders + padding.
+                // Margins are 0 right now so model.noncontent_width() is just borders + padding.
                 let available_width = remaining_width - model.noncontent_width();
 
-                //Top and bottom margins for blocks are 0 if auto
-                let margin_top = MaybeAuto::from_margin(style.margin_top()).spec_or_default(Au(0));
-                let margin_bottom = MaybeAuto::from_margin(style.margin_bottom()).spec_or_default(Au(0));
+                // Top and bottom margins for blocks are 0 if auto.
+                let margin_top = MaybeAuto::from_margin(style.margin_top());
+                let margin_top = margin_top.spec_or_default(Au(0));
+                let margin_bottom = MaybeAuto::from_margin(style.margin_bottom());
+                let margin_bottom = margin_bottom.spec_or_default(Au(0));
 
-                let (width, margin_left, margin_right) = (MaybeAuto::from_width(style.width()),
-                    MaybeAuto::from_margin(style.margin_left()),
-                    MaybeAuto::from_margin(style.margin_right()));
+                let (width, margin_left, margin_right) =
+                    (MaybeAuto::from_width(style.width()),
+                     MaybeAuto::from_margin(style.margin_left()),
+                     MaybeAuto::from_margin(style.margin_right()));
 
-                let (width, margin_left, margin_right) = 
-                    self.compute_horiz(width, margin_left, margin_right, available_width);
+                // FIXME(pcwalton): We discard the width here. Is that correct?
+                let (_, margin_left, margin_right) = self.compute_horiz(width,
+                                                                        margin_left,
+                                                                        margin_right,
+                                                                        available_width);
 
                 model.margin.top = margin_top;
                 model.margin.right = margin_right;
@@ -221,7 +240,7 @@ impl BlockFlowData {
                     base.model.border.left + base.model.border.right;
                 base.position.size.width = remaining_width + pb;
             }
-        });
+        }
 
         for BlockFlow(self).each_child |kid| {
             assert!(kid.starts_block_flow() || kid.starts_inline_flow());
