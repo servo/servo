@@ -21,6 +21,8 @@ NATIVE_BUILDS += \
 	libwapcaplet \
 	mozjs \
 	skia \
+    nss \
+    nspr \
 	$(NULL)
 
 # NOTE: the make magic can only compute transitive build dependencies,

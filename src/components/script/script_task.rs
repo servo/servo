@@ -7,11 +7,11 @@
 
 use dom::bindings::utils::GlobalStaticData;
 use dom::document::Document;
-use dom::event::{Event, ResizeEvent, ReflowEvent};
+use dom::event::{Event, ResizeEvent, ReflowEvent, ClickEvent};
 use dom::node::define_bindings;
 use dom::window::Window;
-use layout_interface::{AddStylesheetMsg, BuildData, BuildMsg, Damage, LayoutQuery};
-use layout_interface::{LayoutResponse, LayoutTask, MatchSelectorsDamage, NoDamage};
+use layout_interface::{AddStylesheetMsg, BuildData, BuildMsg, Damage, LayoutQuery, HitTestQuery};
+use layout_interface::{LayoutResponse, HitTestResponse, LayoutTask, MatchSelectorsDamage, NoDamage};
 use layout_interface::{QueryMsg, ReflowDamage};
 use layout_interface;
 
@@ -459,6 +459,23 @@ impl ScriptContext {
                 if self.root_frame.is_some() {
                     self.relayout()
                 }
+            }
+
+            ClickEvent(point) => {
+                debug!("ClickEvent: clicked at %?", point);
+                let root = match self.root_frame {
+                    Some(ref frame) => frame.document.root,
+                    None => fail!("root frame is None")
+                };
+                match self.query_layout(HitTestQuery(root, point)) {
+                    Ok(node) => match node {
+                        HitTestResponse(node) => debug!("clicked on %?", node.debug_str()),
+                        _ => fail!(~"unexpected layout reply")
+                    },
+                    Err(()) => {
+                        println(fmt!("layout query error"));
+                    }
+                };
             }
         }
     }

@@ -121,6 +121,9 @@ h1            { page-break-before: always }
 h4, h5, h6    { page-break-after: avoid }
 ul, ol, dl    { page-break-before: avoid }
 }
+
+/* Servo additions */
+:link           { color: blue }
 "
 }
 
