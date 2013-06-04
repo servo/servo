@@ -265,20 +265,22 @@ impl BlockFlowData {
             cur_y - top_offset
         };
         
-        let mut pb = Au(0);
+        let mut noncontent_height = Au(0);
         self.box.map(|&box| {
             do box.with_mut_base |base| {
                 //The associated box is the border box of this flow
                 base.position.origin.y = base.model.margin.top;
 
-                pb = base.model.padding.top + base.model.padding.bottom +
+                noncontent_height = base.model.padding.top + base.model.padding.bottom +
                     base.model.border.top + base.model.border.bottom;
-                base.position.size.height = height + pb;
+                base.position.size.height = height + noncontent_height;
+
+                noncontent_height += base.model.margin.top + base.model.margin.bottom;
             }
         });
 
         //TODO(eatkinson): compute heights using the 'height' property.
-        self.common.position.size.height = height + pb;
+        self.common.position.size.height = height + noncontent_height;
 
     }
 
