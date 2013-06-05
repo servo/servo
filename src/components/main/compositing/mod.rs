@@ -126,6 +126,9 @@ fn run_main_loop(port: Port<Msg>,
     let page_size = @mut Size2D(0f32, 0f32);
     let window_size = @mut Size2D(800, 600);
 
+    // Keeps track of the current zoom factor
+    let world_zoom = @mut 1f32;
+
     let check_for_messages: @fn() = || {
         // Periodically check if the script task responded to our last resize event
         resize_rate_limiter.check_resize_response();
@@ -248,16 +251,65 @@ fn run_main_loop(port: Port<Msg>,
         *world_offset = world_offset_copy - delta;
 
         // Clamp the world offset to the screen size.
-        let max_x = (page_size.width - window_size.width as f32).max(&0.0);
+        let max_x = (page_size.width * *world_zoom - window_size.width as f32).max(&0.0);
         world_offset.x = world_offset.x.clamp(&0.0, &max_x);
-        let max_y = (page_size.height - window_size.height as f32).max(&0.0);
+        let max_y = (page_size.height * *world_zoom - window_size.height as f32).max(&0.0);
         world_offset.y = world_offset.y.clamp(&0.0, &max_y);
 
         debug!("compositor: scrolled to %?", *world_offset);
 
-        root_layer.common.set_transform(identity().translate(-world_offset.x,
-                                                             -world_offset.y,
-                                                             0.0));
+        let mut scroll_transform = identity();
+
+        scroll_transform = scroll_transform.translate(window_size.width as f32 / 2f32 * *world_zoom - world_offset.x,
+                                                  window_size.height as f32 / 2f32 * *world_zoom - world_offset.y,
+                                                  0.0);
+        scroll_transform = scroll_transform.scale(*world_zoom, *world_zoom, 1f32);
+        scroll_transform = scroll_transform.translate(window_size.width as f32 / -2f32,
+                                                  window_size.height as f32 / -2f32,
+                                                  0.0);
+
+        root_layer.common.set_transform(scroll_transform);
+
+        window.set_needs_display()
+    }
+
+
+
+    // When the user pinch-zooms, scale the layer
+    do window.set_zoom_callback |delta| {
+        let zoom_const = 0.01;
+        let old_world_zoom = *world_zoom;
+
+        // Determine zoom amount
+        *world_zoom = (*world_zoom + delta.y * zoom_const).max(&1.0);            
+
+        // Update world offset
+        let corner_to_center_x = world_offset.x + window_size.width as f32 / 2f32;
+        let new_corner_to_center_x = corner_to_center_x * *world_zoom / old_world_zoom;
+        world_offset.x = world_offset.x + new_corner_to_center_x - corner_to_center_x;
+
+        let corner_to_center_y = world_offset.y + window_size.height as f32 / 2f32;
+        let new_corner_to_center_y = corner_to_center_y * *world_zoom / old_world_zoom;
+        world_offset.y = world_offset.y + new_corner_to_center_y - corner_to_center_y;        
+
+        // Clamp to page bounds when zooming out
+        let max_x = (page_size.width * *world_zoom - window_size.width as f32).max(&0.0);
+        world_offset.x = world_offset.x.clamp(&0.0, &max_x);
+        let max_y = (page_size.height * *world_zoom - window_size.height as f32).max(&0.0);
+        world_offset.y = world_offset.y.clamp(&0.0, &max_y);
+
+
+        // Apply transformations
+        let mut zoom_transform = identity();
+        zoom_transform = zoom_transform.translate(window_size.width as f32 / 2f32 * *world_zoom - world_offset.x,
+                                                  window_size.height as f32 / 2f32 * *world_zoom - world_offset.y,
+                                                  0.0);
+        zoom_transform = zoom_transform.scale(*world_zoom, *world_zoom, 1f32);
+        zoom_transform = zoom_transform.translate(window_size.width as f32 / -2f32,
+                                                  window_size.height as f32 / -2f32,
+                                                  0.0);
+        root_layer.common.set_transform(zoom_transform);
+
 
         window.set_needs_display()
     }

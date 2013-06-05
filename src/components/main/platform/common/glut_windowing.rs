@@ -8,7 +8,7 @@
 /// least on desktops. It is designed for testing Servo without the need of a UI.
 
 use windowing::{ApplicationMethods, CompositeCallback, LoadUrlCallback, ClickCallback};
-use windowing::{ResizeCallback, ScrollCallback, WindowMethods};
+use windowing::{ResizeCallback, ScrollCallback, ZoomCallback, WindowMethods};
 
 use alert::{Alert, AlertMethods};
 use core::libc::c_int;
@@ -37,8 +37,10 @@ pub struct Window {
     load_url_callback: Option<LoadUrlCallback>,
     click_callback: Option<ClickCallback>,
     scroll_callback: Option<ScrollCallback>,
+    zoom_callback: Option<ZoomCallback>,
 
     drag_origin: Point2D<c_int>,
+    down_button: c_int
 }
 
 impl WindowMethods<Application> for Window {
@@ -57,9 +59,13 @@ impl WindowMethods<Application> for Window {
             load_url_callback: None,
             click_callback: None,
             scroll_callback: None,
+            zoom_callback: None,
 
             drag_origin: Point2D(0, 0),
+            down_button: 0 // FIXME: Hacky solution to 2 button mouse. 
+                           // Replace with tkuehn's code.
         };
+
 
         // Register event handlers.
         do glut::reshape_func(window.glut_window) |width, height| {
@@ -78,8 +84,9 @@ impl WindowMethods<Application> for Window {
         do glut::keyboard_func |key, _, _| {
             window.handle_key(key)
         }
-        do glut::mouse_func |_, _, x, y| {
+        do glut::mouse_func |button, _, x, y| {
             window.handle_click(x, y);
+            window.down_button = button;
             window.start_drag(x, y)
         }
         do glut::motion_func |x, y| {
@@ -124,6 +131,11 @@ impl WindowMethods<Application> for Window {
         self.scroll_callback = Some(new_scroll_callback)
     }
 
+    /// Registers a zoom to be run when the user zooms.
+    pub fn set_zoom_callback(&mut self, new_zoom_callback: ZoomCallback) {
+        self.zoom_callback = Some(new_zoom_callback)
+    }
+
     /// Spins the event loop.
     pub fn check_loop(@mut self) {
         glut::check_loop()
@@ -163,9 +175,16 @@ impl Window {
         let delta = new_point - self.drag_origin;
         self.drag_origin = new_point;
 
-        match self.scroll_callback {
-            None => {}
-            Some(callback) => callback(Point2D(delta.x as f32, delta.y as f32)),
+        if self.down_button == 2 { 
+            match self.zoom_callback {
+                None => {}
+                Some(callback) => callback(Point2D(delta.x as f32, delta.y as f32)),
+            }
+        } else {
+            match self.scroll_callback {
+                None => {}
+                Some(callback) => callback(Point2D(delta.x as f32, delta.y as f32)),
+            }
         }
     }
 
