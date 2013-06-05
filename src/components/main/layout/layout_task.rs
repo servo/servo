@@ -32,11 +32,12 @@ use newcss::stylesheet::Stylesheet;
 use newcss::types::OriginAuthor;
 use script::dom::event::ReflowEvent;
 use script::dom::node::{AbstractNode, LayoutView};
-use script::layout_interface::{AddStylesheetMsg, BuildData, BuildMsg, ContentBoxQuery};
+use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
 use script::layout_interface::{HitTestQuery, ContentBoxResponse, HitTestResponse};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitMsg, LayoutQuery};
-use script::layout_interface::{LayoutResponse, LayoutTask, MatchSelectorsDamage, Msg, NoDamage};
-use script::layout_interface::{QueryMsg, ReflowDamage, ReflowForDisplay};
+use script::layout_interface::{LayoutResponse, LayoutTask, MatchSelectorsDocumentDamage, Msg};
+use script::layout_interface::{QueryMsg, Reflow, ReflowDocumentDamage, ReflowForDisplay};
+use script::layout_interface::{ReflowMsg};
 use script::script_task::{ScriptMsg, SendEventMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::LocalImageCache;
@@ -126,11 +127,11 @@ impl Layout {
     fn handle_request(&mut self) -> bool {
         match self.from_script.recv() {
             AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet),
-            BuildMsg(data) => {
+            ReflowMsg(data) => {
                 let data = Cell(data);
 
                 do profile(time::LayoutPerformCategory, self.profiler_chan.clone()) {
-                    self.handle_build(data.take());
+                    self.handle_reflow(data.take());
                 }
             }
             QueryMsg(query, chan) => {
@@ -154,10 +155,10 @@ impl Layout {
     }
 
     /// The high-level routine that performs layout tasks.
-    fn handle_build(&mut self, data: &BuildData) {
+    fn handle_reflow(&mut self, data: &Reflow) {
         // FIXME: Isolate this transmutation into a "bridge" module.
         let node: &AbstractNode<LayoutView> = unsafe {
-            transmute(&data.node)
+            transmute(&data.document_root)
         };
 
         // FIXME: Bad copy!
@@ -187,9 +188,9 @@ impl Layout {
         }
 
         // Perform CSS selector matching if necessary.
-        match data.damage {
-            NoDamage | ReflowDamage => {}
-            MatchSelectorsDamage => {
+        match data.damage.level {
+            ReflowDocumentDamage => {}
+            MatchSelectorsDocumentDamage => {
                 do profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone()) {
                     node.restyle_subtree(self.css_select_ctx);
                 }

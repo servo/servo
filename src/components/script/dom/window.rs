@@ -4,7 +4,7 @@
 
 use dom::bindings::utils::WrapperCache;
 use dom::bindings::window;
-use layout_interface::MatchSelectorsDamage;
+use layout_interface::ReflowForScriptQuery;
 use script_task::{ExitMsg, FireTimerMsg, ScriptMsg, ScriptContext};
 
 use core::comm::{Chan, SharedChan};
@@ -83,7 +83,7 @@ pub impl Window {
 
     fn content_changed(&self) {
         unsafe {
-            (*self.script_context).trigger_relayout(MatchSelectorsDamage);
+            (*self.script_context).reflow_all(ReflowForScriptQuery)
         }
     }
 

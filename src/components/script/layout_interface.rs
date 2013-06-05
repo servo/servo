@@ -25,9 +25,7 @@ pub enum Msg {
     AddStylesheetMsg(Stylesheet),
 
     /// Requests a reflow.
-    ///
-    /// FIXME(pcwalton): Call this `reflow` instead?
-    BuildMsg(~BuildData),
+    ReflowMsg(~Reflow),
 
     /// Performs a synchronous layout request.
     ///
@@ -61,29 +59,35 @@ pub enum LayoutResponse {
     HitTestResponse(AbstractNode<LayoutView>),
 }
 
-/// Dirty bits for layout.
-pub enum Damage {
-    /// The document is clean; nothing needs to be done.
-    NoDamage,
-    /// Reflow, but do not perform CSS selector matching.
-    ReflowDamage,
+/// Determines which part of the 
+pub enum DocumentDamageLevel {
     /// Perform CSS selector matching and reflow.
-    MatchSelectorsDamage,
+    MatchSelectorsDocumentDamage,
+    /// Reflow, but do not perform CSS selector matching.
+    ReflowDocumentDamage,
 }
 
-impl Damage {
+impl DocumentDamageLevel {
     /// Sets this damage to the maximum of this damage and the given damage.
     ///
     /// FIXME(pcwalton): This could be refactored to use `max` and the `Ord` trait, and this
     /// function removed.
-    fn add(&mut self, new_damage: Damage) {
+    fn add(&mut self, new_damage: DocumentDamageLevel) {
         match (*self, new_damage) {
-            (NoDamage, _) => *self = new_damage,
-            (ReflowDamage, NoDamage) => *self = ReflowDamage,
-            (ReflowDamage, new_damage) => *self = new_damage,
-            (MatchSelectorsDamage, _) => *self = MatchSelectorsDamage
+            (ReflowDocumentDamage, new_damage) => *self = new_damage,
+            (MatchSelectorsDocumentDamage, _) => *self = MatchSelectorsDocumentDamage,
         }
     }
+}
+
+/// What parts of the document have changed, as far as the script task can tell.
+///
+/// Note that this is fairly coarse-grained and is separate from layout's notion of the document
+pub struct DocumentDamage {
+    /// The topmost node in the tree that has changed.
+    root: AbstractNode<ScriptView>,
+    /// The amount of damage that occurred.
+    level: DocumentDamageLevel,
 }
 
 /// Why we're doing reflow.
@@ -96,10 +100,11 @@ pub enum ReflowGoal {
 }
 
 /// Information needed for a reflow.
-pub struct BuildData {
-    node: AbstractNode<ScriptView>,
-    /// What reflow needs to be done.
-    damage: Damage,
+pub struct Reflow {
+    /// The document node.
+    document_root: AbstractNode<ScriptView>,
+    /// The style changes that need to be done.
+    damage: DocumentDamage,
     /// The goal of reflow: either to render to the screen or to flush layout info for script.
     goal: ReflowGoal,
     /// The URL of the page.
@@ -108,6 +113,7 @@ pub struct BuildData {
     script_chan: SharedChan<ScriptMsg>,
     /// The current window size.
     window_size: Size2D<uint>,
+    /// The channel that we send a notification to.
     script_join_chan: Chan<()>,
 }
 

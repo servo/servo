@@ -8,11 +8,12 @@
 use dom::bindings::utils::GlobalStaticData;
 use dom::document::Document;
 use dom::event::{Event, ResizeEvent, ReflowEvent, ClickEvent};
-use dom::node::define_bindings;
+use dom::node::{AbstractNode, ScriptView, define_bindings};
 use dom::window::Window;
-use layout_interface::{AddStylesheetMsg, BuildData, BuildMsg, Damage, LayoutQuery, HitTestQuery};
-use layout_interface::{LayoutResponse, HitTestResponse, LayoutTask, MatchSelectorsDamage, NoDamage};
-use layout_interface::{QueryMsg, ReflowDamage, ReflowForDisplay, ReflowForScriptQuery, ReflowGoal};
+use layout_interface::{AddStylesheetMsg, DocumentDamage, DocumentDamageLevel, HitTestQuery};
+use layout_interface::{HitTestResponse, LayoutQuery, LayoutResponse, LayoutTask};
+use layout_interface::{MatchSelectorsDocumentDamage, QueryMsg, Reflow, ReflowDocumentDamage};
+use layout_interface::{ReflowForDisplay, ReflowForScriptQuery, ReflowGoal, ReflowMsg};
 use layout_interface;
 
 use core::cast::transmute;
@@ -132,8 +133,8 @@ pub struct ScriptContext {
 
     /// The current size of the window, in pixels.
     window_size: Size2D<uint>,
-    /// What parts of layout are dirty.
-    damage: Damage,
+    /// What parts of the document are dirty, if any.
+    damage: Option<DocumentDamage>,
 }
 
 fn global_script_context_key(_: @ScriptContext) {}
@@ -199,7 +200,7 @@ impl ScriptContext {
             root_frame: None,
 
             window_size: Size2D(800, 600),
-            damage: MatchSelectorsDamage,
+            damage: None,
         };
         // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
         let script_context_ptr = {
@@ -283,7 +284,7 @@ impl ScriptContext {
                              null(),
                              &rval);
 
-        self.relayout(ReflowForScriptQuery)
+        self.reflow(ReflowForScriptQuery)
     }
 
     /// Handles a request to exit the script task and shut down layout.
@@ -348,8 +349,11 @@ impl ScriptContext {
         });
 
         // Perform the initial reflow.
-        self.damage.add(MatchSelectorsDamage);
-        self.relayout(ReflowForDisplay);
+        self.damage = Some(DocumentDamage {
+            root: root_node,
+            level: MatchSelectorsDocumentDamage,
+        });
+        self.reflow(ReflowForDisplay);
 
         // Define debug functions.
         self.js_compartment.define_functions(debug_fns);
@@ -383,19 +387,13 @@ impl ScriptContext {
         }
     }
 
-    /// Initiate an asynchronous relayout operation to handle a script layout query.
-    pub fn trigger_relayout(&mut self, damage: Damage) {
-        self.damage.add(damage);
-        self.relayout(ReflowForScriptQuery);
-    }
-
     /// This method will wait until the layout task has completed its current action, join the
     /// layout task, and then request a new layout run. It won't wait for the new layout
     /// computation to finish.
     ///
     /// This function fails if there is no root frame.
-    fn relayout(&mut self, goal: ReflowGoal) {
-        debug!("script: performing relayout");
+    fn reflow(&mut self, goal: ReflowGoal) {
+        debug!("script: performing reflow");
 
         // Now, join the layout so that they will see the latest changes we have made.
         self.join_layout();
@@ -408,21 +406,34 @@ impl ScriptContext {
             None => fail!(~"Tried to relayout with no root frame!"),
             Some(ref root_frame) => {
                 // Send new document and relevant styles to layout.
-                let data = ~BuildData {
-                    node: root_frame.document.root,
+                let reflow = ~Reflow {
+                    document_root: root_frame.document.root,
                     url: copy root_frame.url,
                     goal: goal,
                     script_chan: self.script_chan.clone(),
                     window_size: self.window_size,
                     script_join_chan: join_chan,
-                    damage: replace(&mut self.damage, NoDamage),
+                    damage: replace(&mut self.damage, None).unwrap(),
                 };
 
-                self.layout_task.chan.send(BuildMsg(data))
+                self.layout_task.chan.send(ReflowMsg(reflow))
             }
         }
 
         debug!("script: layout forked")
+    }
+
+    /// Reflows the entire document.
+    ///
+    /// FIXME: This should basically never be used.
+    pub fn reflow_all(&mut self, goal: ReflowGoal) {
+        for self.root_frame.each |root_frame| {
+            ScriptContext::damage(&mut self.damage,
+                                  root_frame.document.root,
+                                  MatchSelectorsDocumentDamage)
+        }
+
+        self.reflow(goal)
     }
 
     /// Sends the given query to layout.
@@ -434,6 +445,26 @@ impl ScriptContext {
          response_port.recv()
     }
 
+    /// Adds the given damage.
+    fn damage(damage: &mut Option<DocumentDamage>,
+              root: AbstractNode<ScriptView>,
+              level: DocumentDamageLevel) {
+        match *damage {
+            None => {}
+            Some(ref mut damage) => {
+                // FIXME(pcwalton): This is wrong. We should trace up to the nearest ancestor.
+                damage.root = root;
+                damage.level.add(level);
+                return
+            }
+        }
+
+        *damage = Some(DocumentDamage {
+            root: root,
+            level: level,
+        })
+    }
+
     /// This is the main entry point for receiving and dispatching DOM events.
     ///
     /// TODO: Actually perform DOM event dispatch.
@@ -442,23 +473,33 @@ impl ScriptContext {
             ResizeEvent(new_width, new_height, response_chan) => {
                 debug!("script got resize event: %u, %u", new_width, new_height);
 
-                self.damage.add(ReflowDamage);
                 self.window_size = Size2D(new_width, new_height);
 
+                for self.root_frame.each |root_frame| {
+                    ScriptContext::damage(&mut self.damage,
+                                          root_frame.document.root,
+                                          ReflowDocumentDamage);
+                }
+
                 if self.root_frame.is_some() {
-                    self.relayout(ReflowForDisplay)
+                    self.reflow(ReflowForDisplay)
                 }
 
                 response_chan.send(())
             }
 
+            // FIXME(pcwalton): This reflows the entire document and is not incremental-y.
             ReflowEvent => {
                 debug!("script got reflow event");
 
-                self.damage.add(MatchSelectorsDamage);
+                for self.root_frame.each |root_frame| {
+                    ScriptContext::damage(&mut self.damage,
+                                          root_frame.document.root,
+                                          MatchSelectorsDocumentDamage);
+                }
 
                 if self.root_frame.is_some() {
-                    self.relayout(ReflowForDisplay)
+                    self.reflow(ReflowForDisplay)
                 }
             }
 
