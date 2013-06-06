@@ -18,9 +18,7 @@ use core::task::SingleThreaded;
 use std::task_pool::TaskPool;
 use servo_net::util::spawn_listener;
 
-use servo_util::time::ProfilerChan;
-use servo_util::time::profile;
-use servo_util::time::time;
+use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 
 pub enum Msg {
@@ -124,7 +122,7 @@ impl<C: Compositor + Owned> Renderer<C> {
 
     fn render(&mut self, render_layer: RenderLayer) {
         debug!("renderer: rendering");
-        do time("rendering") {
+        do profile(time::RenderingCategory, self.profiler_chan.clone()) {
             let layer_buffer_set = do render_layers(&render_layer,
                                                     &self.opts,
                                                     self.profiler_chan.clone()) |render_layer_ref,

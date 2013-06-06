@@ -24,6 +24,16 @@ fn with_node_name<R>(node: AbstractNode<LayoutView>, f: &fn(&str) -> R) -> R {
 }
 
 impl SelectHandler<AbstractNode<LayoutView>> for NodeSelectHandler {
+    // FIXME(tkuehn): placeholder to get servo to compile
+    fn node_has_class(&self, node: &AbstractNode<LayoutView>, s: &str) -> bool {
+        true
+    }
+
+    // FIXME(tkuehn): placeholder to get servo to compile
+    fn with_node_classes<R>(&self, node: &AbstractNode<LayoutView>, f: &fn(Option<&str>) -> R) -> R {
+        f(None)
+    }
+
     fn with_node_name<R>(&self, node: &AbstractNode<LayoutView>, f: &fn(&str) -> R) -> R {
         with_node_name(*node, f)
     }

@@ -5,8 +5,10 @@
 use compositing::resize_rate_limiter::ResizeRateLimiter;
 use platform::{Application, Window};
 use script::script_task::{LoadMsg, ScriptMsg, SendEventMsg};
-use windowing::{ApplicationMethods, WindowMethods};
-use script::dom::event::ClickEvent;
+use windowing::{ApplicationMethods, WindowMethods, WindowMouseEvent, WindowClickEvent};
+use windowing::{WindowMouseDownEvent, WindowMouseUpEvent};
+
+use script::dom::event::{Event, ClickEvent, MouseDownEvent, MouseUpEvent};
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods};
 use core::cell::Cell;
@@ -233,12 +235,24 @@ fn run_main_loop(port: Port<Msg>,
 
     let script_chan_clone = script_chan.clone();
 
-    // When the user clicks, perform hit testing
-    do window.set_click_callback |layer_click_point| {
-        let world_click_point = layer_click_point + *world_offset;
-        debug!("osmain: clicked at %?", world_click_point);
-
-        script_chan_clone.send(SendEventMsg(ClickEvent(world_click_point)));
+    // When the user triggers a mouse event, perform appropriate hit testing
+    do window.set_mouse_callback |window_mouse_event: WindowMouseEvent| {
+        let event: Event;
+        let world_mouse_point = |layer_mouse_point: Point2D<f32>| {
+            layer_mouse_point + *world_offset
+        };
+        match window_mouse_event {
+            WindowClickEvent(button, layer_mouse_point) => {
+                event = ClickEvent(button, world_mouse_point(layer_mouse_point));
+            }
+            WindowMouseDownEvent(button, layer_mouse_point) => {
+                event = MouseDownEvent(button, world_mouse_point(layer_mouse_point));
+            }
+            WindowMouseUpEvent(button, layer_mouse_point) => {
+                event = MouseUpEvent(button, world_mouse_point(layer_mouse_point));
+            }
+        }
+        script_chan_clone.send(SendEventMsg(event));
     }
 
     // When the user scrolls, move the layer around.

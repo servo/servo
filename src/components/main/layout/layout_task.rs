@@ -342,13 +342,14 @@ impl Layout {
                         flow.build_display_list(&builder,
                                                 &flow.position(),
                                                 display_list);
-                        // iterate in reverse to ensure we have the most recently painted render box
                         let (x, y) = (Au::from_frac_px(point.x as float),
                                       Au::from_frac_px(point.y as float));
                         let mut resp = Err(());
                         let display_list = &display_list.take().list;
+                        // iterate in reverse to ensure we have the most recently painted render box
                         for display_list.each_reverse |display_item| {
                             let bounds = display_item.bounds();
+                            // TODO this check should really be performed by a method of DisplayItem
                             if x <= bounds.origin.x + bounds.size.width &&
                                bounds.origin.x <= x &&
                                y < bounds.origin.y + bounds.size.height &&

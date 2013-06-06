@@ -7,7 +7,8 @@
 
 use dom::bindings::utils::GlobalStaticData;
 use dom::document::Document;
-use dom::event::{Event, ResizeEvent, ReflowEvent, ClickEvent};
+use dom::element::Element;
+use dom::event::{Event, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent};
 use dom::node::{AbstractNode, ScriptView, define_bindings};
 use dom::window::Window;
 use layout_interface::{AddStylesheetMsg, DocumentDamage, DocumentDamageLevel, HitTestQuery};
@@ -37,7 +38,7 @@ use js;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::tree::TreeNodeRef;
-use std::net::url::Url;
+use std::net::url::{Url, from_str};
 use std::net::url;
 
 /// Messages used to control the script task.
@@ -503,7 +504,7 @@ impl ScriptContext {
                 }
             }
 
-            ClickEvent(point) => {
+            ClickEvent(button, point) => {
                 debug!("ClickEvent: clicked at %?", point);
                 let root = match self.root_frame {
                     Some(ref frame) => frame.document.root,
@@ -511,13 +512,50 @@ impl ScriptContext {
                 };
                 match self.query_layout(HitTestQuery(root, point)) {
                     Ok(node) => match node {
-                        HitTestResponse(node) => debug!("clicked on %?", node.debug_str()),
+                        HitTestResponse(node) => {
+                            debug!("clicked on %?", node.debug_str());
+                            let mut node = node;
+                            // traverse node generations until a node that is an element is found
+                            while !node.is_element() {
+                                match node.parent_node() {
+                                    Some(parent) => {
+                                        node = parent;
+                                    }
+                                    None => break
+                                }
+                            }
+                            if node.is_element() {
+                                do node.with_imm_element |element| {
+                                    match element.tag_name {
+                                        ~"a" => self.load_url_from_element(element),
+                                        _ => {}
+                                    }
+                                }
+                            }
+                        }
                         _ => fail!(~"unexpected layout reply")
                     },
                     Err(()) => {
-                        println(fmt!("layout query error"));
+                        debug!(fmt!("layout query error"));
                     }
                 };
+            }
+            MouseDownEvent(*) => {}
+            MouseUpEvent(*) => {}
+        }
+    }
+
+    priv fn load_url_from_element(&self, element: &Element) {
+        // if the node's element is "a," load url from href attr
+        for element.attrs.each |attr| {
+            if attr.name == ~"href" {
+                debug!("clicked on link to %?", attr.value); 
+                let url = from_str(attr.value);
+                match url {
+                    Ok(url) => self.script_chan.send(LoadMsg(url)),
+                    Err(msg) => debug!(msg)
+                };
+                break;
             }
         }
     }
