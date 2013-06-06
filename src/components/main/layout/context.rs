@@ -8,12 +8,10 @@ use geom::rect::Rect;
 use gfx::font_context::FontContext;
 use gfx::geometry::Au;
 use servo_net::local_image_cache::LocalImageCache;
-use std::net::url::Url;
 
 /// Data needed by the layout task.
 pub struct LayoutContext {
     font_ctx: @mut FontContext,
     image_cache: @mut LocalImageCache,
-    doc_url: Url,
     screen_size: Rect<Au>
 }

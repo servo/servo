@@ -116,12 +116,10 @@ impl Layout {
         let image_cache = self.local_image_cache;
         let font_ctx = self.font_ctx;
         let screen_size = self.screen_size.unwrap();
-        let doc_url = self.doc_url.clone();
 
         LayoutContext {
             image_cache: image_cache,
             font_ctx: font_ctx,
-            doc_url: doc_url.unwrap(),
             screen_size: Rect(Point2D(Au(0), Au(0)), screen_size),
         }
     }
