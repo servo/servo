@@ -9,13 +9,13 @@
 
 use windowing::{ApplicationMethods, CompositeCallback, LoadUrlCallback, MouseCallback};
 use windowing::{ResizeCallback, ScrollCallback, WindowMethods, WindowMouseEvent, WindowClickEvent};
-use windowing::{WindowMouseDownEvent, WindowMouseUpEvent};
+use windowing::{WindowMouseDownEvent, WindowMouseUpEvent, ZoomCallback};
 
 use alert::{Alert, AlertMethods};
 use core::libc::c_int;
 use geom::point::Point2D;
 use geom::size::Size2D;
-use glut::glut::{DOUBLE, WindowHeight, WindowWidth};
+use glut::glut::{ACTIVE_CTRL, DOUBLE, WindowHeight, WindowWidth};
 use glut::glut;
 use glut::machack;
 
@@ -39,8 +39,10 @@ pub struct Window {
     load_url_callback: Option<LoadUrlCallback>,
     mouse_callback: Option<MouseCallback>,
     scroll_callback: Option<ScrollCallback>,
+    zoom_callback: Option<ZoomCallback>,
 
     drag_origin: Point2D<c_int>,
+
     mouse_down_button: @mut c_int,
     mouse_down_point: @mut Point2D<c_int>,
 }
@@ -61,11 +63,14 @@ impl WindowMethods<Application> for Window {
             load_url_callback: None,
             mouse_callback: None,
             scroll_callback: None,
+            zoom_callback: None,
 
             drag_origin: Point2D(0, 0),
+
             mouse_down_button: @mut 0,
             mouse_down_point: @mut Point2D(0, 0),
         };
+
 
         // Register event handlers.
         do glut::reshape_func(window.glut_window) |width, height| {
@@ -132,6 +137,11 @@ impl WindowMethods<Application> for Window {
         self.scroll_callback = Some(new_scroll_callback)
     }
 
+    /// Registers a zoom to be run when the user zooms.
+    pub fn set_zoom_callback(&mut self, new_zoom_callback: ZoomCallback) {
+        self.zoom_callback = Some(new_zoom_callback)
+    }
+
     /// Spins the event loop.
     pub fn check_loop(@mut self) {
         glut::check_loop()
@@ -147,8 +157,19 @@ impl Window {
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: u8) {
         debug!("got key: %d", key as int);
-        if key == 12 {  // ^L
-            self.load_url()
+        match key {
+            12 => self.load_url(),                                                      // Ctrl+L
+            k if k == ('=' as u8) && (glut::get_modifiers() & ACTIVE_CTRL) != 0 => {    // Ctrl++
+                for self.zoom_callback.each |&callback| {
+                    callback(Point2D(0.0, 20.0));
+                }
+            }
+            k if k == 31 && (glut::get_modifiers() & ACTIVE_CTRL) != 0 => {             // Ctrl+-
+                for self.zoom_callback.each |&callback| {
+                    callback(Point2D(0.0, -20.0));
+                }
+            }
+            _ => {}
         }
     }
 

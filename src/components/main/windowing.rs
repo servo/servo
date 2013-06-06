@@ -28,6 +28,9 @@ pub type MouseCallback = @fn(WindowMouseEvent);
 /// Type of the function that is called when the user scrolls.
 pub type ScrollCallback = @fn(Point2D<f32>);
 
+///Type of the function that is called when the user zooms.
+pub type ZoomCallback = @fn(Point2D<f32>);
+
 /// Methods for an abstract Application.
 pub trait ApplicationMethods {
     fn new() -> Self;
@@ -51,6 +54,8 @@ pub trait WindowMethods<A> {
     pub fn set_mouse_callback(&mut self, new_mouse_callback: MouseCallback);
     /// Registers a callback to run when the user scrolls.
     pub fn set_scroll_callback(&mut self, new_scroll_callback: ScrollCallback);
+    /// Registers a callback to run when the user zooms.
+    pub fn set_zoom_callback(&mut self, new_zoom_callback: ZoomCallback);
 
     /// Spins the event loop.
     pub fn check_loop(@mut self);
