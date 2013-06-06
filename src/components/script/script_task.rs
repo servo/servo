@@ -39,7 +39,8 @@ use js;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::tree::TreeNodeRef;
-use std::net::url::{Url, from_str};
+use servo_util::url::make_url;
+use std::net::url::Url;
 use std::net::url;
 
 /// Messages used to control the script task.
@@ -559,12 +560,12 @@ impl ScriptContext {
         for element.attrs.each |attr| {
             if attr.name == ~"href" {
                 debug!("clicked on link to %?", attr.value); 
-                let url = from_str(attr.value);
-                match url {
-                    Ok(url) => self.engine_task.send(LoadUrlMsg(url)),
-                    Err(msg) => debug!(msg)
+                let current_url = match self.root_frame {
+                    Some(ref frame) => Some(frame.url.clone()),
+                    None => None
                 };
-                break;
+                let url = make_url(attr.value.clone(), current_url);
+                self.engine_task.send(LoadUrlMsg(url));
             }
         }
     }
