@@ -116,10 +116,12 @@ impl Layout {
         let image_cache = self.local_image_cache;
         let font_ctx = self.font_ctx;
         let screen_size = self.screen_size.unwrap();
+        let doc_url = self.doc_url.clone();
 
         LayoutContext {
             image_cache: image_cache,
             font_ctx: font_ctx,
+            doc_url: doc_url.unwrap(),
             screen_size: Rect(Point2D(Au(0), Au(0)), screen_size),
         }
     }
@@ -347,12 +349,10 @@ impl Layout {
                         let display_list = &display_list.take().list;
                         for display_list.each_reverse |display_item| {
                             let bounds = display_item.bounds();
-
-                            // FIXME(pcwalton): Move this to be a method on Rect.
                             if x <= bounds.origin.x + bounds.size.width &&
-                                    x >= bounds.origin.x &&
-                                    y < bounds.origin.y + bounds.size.height &&
-                                    y >= bounds.origin.y {
+                               bounds.origin.x <= x &&
+                               y < bounds.origin.y + bounds.size.height &&
+                               bounds.origin.y <  y {
                                 resp = Ok(HitTestResponse(display_item.base().extra.node()));
                                 break;
                             }
