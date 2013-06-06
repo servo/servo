@@ -42,6 +42,7 @@ DEPS_rust-glut += \
 
 DEPS_rust-layers += \
 	rust-azure \
+	rust-cocoa \
 	rust-geom \
 	rust-glut \
 	rust-opengles \
@@ -129,6 +130,10 @@ DEPS_rust-layers += \
 	rust-core-graphics \
 	rust-core-text \
 	$(NULL)
+
+DEPS_rust-glut += \
+    rust-cocoa \
+    $(NULL)
 
 endif
 
