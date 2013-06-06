@@ -503,13 +503,13 @@ do
 	# needed because Azure's configure wants "--enable-skia"
 	CONFIGURE_ARGS=""
 	ENV_VARS=""
-	if [ $i = "rust-azure" ]; then
+	if [ $i = "support/azure/rust-azure" ]; then
 		CONFIGURE_ARGS="--enable-skia"
 	fi
-	if [ $i = "nspr" ]; then
+	if [ $i = "support/nss/nspr" ]; then
 		CONFIGURE_ARGS="--enable-64bit"
 	fi
-    if [ $i = mozjs ]; then
+    if [ $i = "support/spidermonkey/mozjs" ]; then
         if [ ! -z $CFG_ENABLE_DEBUG ]; then
             CONFIGURE_ARGS="--enable-debug"
         fi
