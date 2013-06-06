@@ -21,6 +21,8 @@ NATIVE_BUILDS += \
 	libwapcaplet \
 	mozjs \
 	skia \
+    nss \
+    nspr \
 	$(NULL)
 
 # NOTE: the make magic can only compute transitive build dependencies,
@@ -40,6 +42,7 @@ DEPS_rust-glut += \
 
 DEPS_rust-layers += \
 	rust-azure \
+	rust-cocoa \
 	rust-geom \
 	rust-glut \
 	rust-opengles \
@@ -127,6 +130,10 @@ DEPS_rust-layers += \
 	rust-core-graphics \
 	rust-core-text \
 	$(NULL)
+
+DEPS_rust-glut += \
+    rust-cocoa \
+    $(NULL)
 
 endif
 

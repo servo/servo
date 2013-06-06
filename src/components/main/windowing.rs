@@ -16,6 +16,10 @@ pub type ResizeCallback = @fn(uint, uint);
 /// Type of the function that is called when a new URL is to be loaded.
 pub type LoadUrlCallback = @fn(&str);
 
+/// Type of the function that is called when hit testing is to be performed.
+/// FIXME this currently does not discriminate between left and right clicks or any modifiers
+pub type ClickCallback = @fn(Point2D<f32>);
+
 /// Type of the function that is called when the user scrolls.
 pub type ScrollCallback = @fn(Point2D<f32>);
 
@@ -38,6 +42,8 @@ pub trait WindowMethods<A> {
     pub fn set_resize_callback(&mut self, new_resize_callback: ResizeCallback);
     /// Registers a callback to run when a new URL is to be loaded.
     pub fn set_load_url_callback(&mut self, new_load_url_callback: LoadUrlCallback);
+    /// Registers a callback to run when the user clicks.
+    pub fn set_click_callback(&mut self, new_click_callback: ClickCallback);
     /// Registers a callback to run when the user scrolls.
     pub fn set_scroll_callback(&mut self, new_scroll_callback: ScrollCallback);
 
