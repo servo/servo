@@ -5,11 +5,11 @@
 use core::comm::{Chan, Port};
 
 pub fn spawn_listener<A: Owned>(f: ~fn(Port<A>)) -> Chan<A> {
-    let (setup_po, setup_ch) = comm::stream();
+    let (setup_port, setup_chan) = comm::stream();
     do task::spawn {
-        let (po, ch) = comm::stream();
-        setup_ch.send(ch);
-        f(po);
+        let (port, chan) = comm::stream();
+        setup_chan.send(chan);
+        f(port);
     }
-    setup_po.recv()
+    setup_port.recv()
 }

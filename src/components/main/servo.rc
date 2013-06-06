@@ -34,7 +34,8 @@ extern mod core_graphics;
 extern mod core_text;
 
 use compositing::CompositorTask;
-use engine::{Engine, LoadUrlMsg};
+use engine::Engine;
+use script::engine_interface::{ExitMsg, LoadUrlMsg};
 
 use core::comm::SharedChan;
 use gfx::opts;
@@ -121,7 +122,7 @@ fn run(opts: &Opts) {
     // Shut the engine down.
     debug!("master: Shut down");
     let (exit_response_from_engine, exit_chan) = comm::stream();
-    engine_task.send(engine::ExitMsg(exit_chan));
+    engine_task.send(ExitMsg(exit_chan));
     exit_response_from_engine.recv();
 }
 

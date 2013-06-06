@@ -4,13 +4,13 @@
 
 use compositing::CompositorTask;
 use layout::layout_task;
-use util::task::spawn_listener;
 
 use core::cell::Cell;
-use core::comm::{Chan, Port, SharedChan};
+use core::comm::{Port, SharedChan};
 use gfx::opts::Opts;
 use gfx::render_task::RenderTask;
 use gfx::render_task;
+use script::engine_interface::{EngineTask, ExitMsg, LoadUrlMsg, Msg};
 use script::layout_interface::LayoutTask;
 use script::layout_interface;
 use script::script_task::{ExecuteMsg, LoadMsg, ScriptMsg, ScriptTask};
@@ -18,15 +18,7 @@ use script::script_task;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
-use servo_util::time::{profiler_force_print, ProfilerChan, ProfilerPort, ProfilerTask};
-use std::net::url::Url;
-
-pub type EngineTask = Chan<Msg>;
-
-pub enum Msg {
-    LoadUrlMsg(Url),
-    ExitMsg(Chan<()>),
-}
+use servo_util::time::{ProfilerChan, ProfilerPort, ProfilerTask, ForcePrintMsg};
 
 pub struct Engine {
     request_port: Port<Msg>,
@@ -41,7 +33,7 @@ pub struct Engine {
 
 impl Drop for Engine {
     fn finalize(&self) {
-        profiler_force_print(self.profiler_task.chan.clone()); 
+        self.profiler_task.chan.send(ForcePrintMsg);
     }
 }
 
@@ -56,10 +48,13 @@ impl Engine {
                  profiler_chan: ProfilerChan)
                  -> EngineTask {
         let (script_port, script_chan) = (Cell(script_port), Cell(script_chan));
+        let (request_port, request_chan) = comm::stream();
+        let (request_port, request_chan) = (Cell(request_port), SharedChan::new(request_chan));
+        let request_chan_clone = request_chan.clone();
         let profiler_port = Cell(profiler_port);
         let opts = Cell(copy *opts);
 
-        do spawn_listener::<Msg> |request| {
+        do task::spawn {
             let render_task = RenderTask::new(compositor.clone(),
                                               opts.with_ref(|o| copy *o),
                                               profiler_chan.clone());
@@ -77,13 +72,14 @@ impl Engine {
 
             let script_task = ScriptTask::new(script_port.take(),
                                               script_chan.take(),
+                                              request_chan_clone.clone(),
                                               layout_task.clone(),
                                               resource_task.clone(),
                                               image_cache_task.clone());
 
 
             Engine {
-                request_port: request,
+                request_port: request_port.take(),
                 compositor: compositor.clone(),
                 render_task: render_task,
                 resource_task: resource_task.clone(),
@@ -91,8 +87,9 @@ impl Engine {
                 layout_task: layout_task,
                 script_task: script_task,
                 profiler_task: profiler_task,
-            }.run()
+            }.run();
         }
+        request_chan.clone()
     }
 
     fn run(&self) {

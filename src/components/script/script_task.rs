@@ -16,6 +16,7 @@ use layout_interface::{HitTestResponse, LayoutQuery, LayoutResponse, LayoutTask}
 use layout_interface::{MatchSelectorsDocumentDamage, QueryMsg, Reflow, ReflowDocumentDamage};
 use layout_interface::{ReflowForDisplay, ReflowForScriptQuery, ReflowGoal, ReflowMsg};
 use layout_interface;
+use engine_interface::{EngineTask, LoadUrlMsg};
 
 use core::cast::transmute;
 use core::cell::Cell;
@@ -65,6 +66,7 @@ impl ScriptTask {
     /// Creates a new script task.
     pub fn new(script_port: Port<ScriptMsg>,
                script_chan: SharedChan<ScriptMsg>,
+               engine_task: EngineTask,
                layout_task: LayoutTask,
                resource_task: ResourceTask,
                image_cache_task: ImageCacheTask)
@@ -78,6 +80,7 @@ impl ScriptTask {
             let script_context = ScriptContext::new(layout_task.clone(),
                                                     script_port.take(),
                                                     script_chan_copy.clone(),
+                                                    engine_task.clone(),
                                                     resource_task.clone(),
                                                     image_cache_task.clone());
             script_context.start();
@@ -116,6 +119,9 @@ pub struct ScriptContext {
     /// A channel for us to hand out when we want some other task to be able to send us script
     /// messages.
     script_chan: SharedChan<ScriptMsg>,
+
+    /// For communicating load url messages to the engine
+    engine_task: EngineTask,
 
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
@@ -168,6 +174,7 @@ impl ScriptContext {
     pub fn new(layout_task: LayoutTask,
                script_port: Port<ScriptMsg>,
                script_chan: SharedChan<ScriptMsg>,
+               engine_task: EngineTask,
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask)
                -> @mut ScriptContext {
@@ -190,6 +197,8 @@ impl ScriptContext {
             layout_join_port: None,
             script_port: script_port,
             script_chan: script_chan,
+
+            engine_task: engine_task,
 
             js_runtime: js_runtime,
             js_context: js_context,
@@ -552,7 +561,7 @@ impl ScriptContext {
                 debug!("clicked on link to %?", attr.value); 
                 let url = from_str(attr.value);
                 match url {
-                    Ok(url) => self.script_chan.send(LoadMsg(url)),
+                    Ok(url) => self.engine_task.send(LoadUrlMsg(url)),
                     Err(msg) => debug!(msg)
                 };
                 break;

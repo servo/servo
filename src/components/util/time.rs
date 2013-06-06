@@ -8,6 +8,9 @@ use core::cell::Cell;
 use core::comm::{Port, SharedChan};
 use std::sort::tim_sort;
 
+pub type ProfilerChan = SharedChan<ProfilerMsg>;
+pub type ProfilerPort = Port<ProfilerMsg>;
+
 #[deriving(Eq)]
 pub enum ProfilerCategory {
     CompositingCategory,
@@ -25,6 +28,29 @@ pub enum ProfilerCategory {
     RenderingCategory,
     // hackish but helps prevent errors when adding new categories
     NUM_BUCKETS,
+}
+// FIXME(#5873) this should be initialized by a NUM_BUCKETS cast,
+static BUCKETS: uint = 13;
+
+pub enum ProfilerMsg {
+    // Normal message used for reporting time
+    TimeMsg(ProfilerCategory, f64),
+    // Message used to force print the profiling metrics
+    ForcePrintMsg,
+}
+
+// front-end representation of the profiler used to communicate with the profiler context
+pub struct ProfilerTask {
+    chan: ProfilerChan,
+}
+
+// back end of the profiler that handles data aggregation and performance metrics
+pub struct ProfilerContext {
+    port: ProfilerPort,
+    buckets: ~[(ProfilerCategory, ~[f64])],
+    verbose: bool,
+    period: f64,
+    last_print: f64,
 }
 
 impl ProfilerCategory {
@@ -76,20 +102,6 @@ impl ProfilerCategory {
         fmt!("%s%?", padding, self)
     }
 }
-// FIXME(#5873) this should be initialized by a NUM_BUCKETS cast,
-static BUCKETS: uint = 13;
-
-pub enum ProfilerMsg {
-    // Normal message used for reporting time
-    TimeMsg(ProfilerCategory, f64),
-    // Message used to force print the profiling metrics
-    ForcePrintMsg,
-}
-pub type ProfilerChan = SharedChan<ProfilerMsg>;
-pub type ProfilerPort = Port<ProfilerMsg>;
-pub struct ProfilerTask {
-    chan: ProfilerChan,
-}
 
 impl ProfilerTask {
     pub fn new(profiler_port: ProfilerPort,
@@ -107,14 +119,6 @@ impl ProfilerTask {
             chan: profiler_chan
         }
     }
-}
-
-pub struct ProfilerContext {
-    port: ProfilerPort,
-    buckets: ~[(ProfilerCategory, ~[f64])],
-    verbose: bool,
-    period: f64,
-    mut last_print: f64,
 }
 
 impl ProfilerContext {
@@ -195,11 +199,6 @@ pub fn profile<T>(category: ProfilerCategory,
     let ms = ((end_time - start_time) as f64 / 1000000f64);
     profiler_chan.send(TimeMsg(category, ms));
     return val;
-}
-
-
-pub fn profiler_force_print(profiler_chan: ProfilerChan) {
-    profiler_chan.send(ForcePrintMsg);
 }
 
 pub fn time<T>(msg: &str, callback: &fn() -> T) -> T{
