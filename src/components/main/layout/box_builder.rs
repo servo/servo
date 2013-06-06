@@ -177,7 +177,10 @@ impl BoxGenerator {
                 }
                 let mut node_range: Range = Range::new(self.range_stack.pop(), 0);
                 node_range.extend_to(inline.boxes.len());
-                assert!(node_range.length() > 0);
+
+                if node_range.length() == 0 {
+                    warn!("node range length is zero?!")
+                }
 
                 debug!("BoxGenerator: adding element range=%?", node_range);
                 inline.elems.add_mapping(node, &node_range);
