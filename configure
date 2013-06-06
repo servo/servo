@@ -506,11 +506,14 @@ do
 	if [ $i = "rust-azure" ]; then
 		CONFIGURE_ARGS="--enable-skia"
 	fi
-        if [ $i = mozjs ]; then
-            if [ ! -z $CFG_ENABLE_DEBUG ]; then
-                CONFIGURE_ARGS="--enable-debug"
-            fi
+	if [ $i = "nspr" ]; then
+		CONFIGURE_ARGS="--enable-64bit"
+	fi
+    if [ $i = mozjs ]; then
+        if [ ! -z $CFG_ENABLE_DEBUG ]; then
+            CONFIGURE_ARGS="--enable-debug"
         fi
+    fi
 
     if [ -f ${CONFIGURE_SCRIPT} ]
     then
