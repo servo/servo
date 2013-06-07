@@ -763,7 +763,7 @@ pub impl RenderBox {
         };
 
         FontStyle {
-            pt_size: font_size,
+            pt_size: font_size * 96f / 72f, // TODO: scale to pt
             weight: FontWeight300,
             italic: italic,
             oblique: oblique,
