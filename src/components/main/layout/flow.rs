@@ -412,7 +412,7 @@ impl<'self> FlowContext {
         };
 
         do self.with_base |base| {
-            fmt!("f%? %?", base.id, repr)
+            fmt!("f%? %? size %?", base.id, repr, base.position)
         }
     }
 }

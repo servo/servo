@@ -624,7 +624,21 @@ pub impl RenderBox {
                 });
             },
 
-            GenericRenderBoxClass(_) => {}
+            GenericRenderBoxClass(_) => {
+                debug!("%?", { 
+                // Compute the text box bounds and draw a border surrounding them.
+                do list.with_mut_ref |list| {
+                    let border_display_item = ~BorderDisplayItem {
+                        base: BaseDisplayItem {
+                                bounds: absolute_box_bounds,
+                        },
+                        width: Au::from_px(1),
+                        color: rgb(0, 0, 0).to_gfx_color(),
+                    };
+                        list.append_item(BorderDisplayItemClass(border_display_item))
+                }
+                });
+            }
 
             ImageRenderBoxClass(image_box) => {
                 match image_box.image.get_image() {

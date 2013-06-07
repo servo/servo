@@ -117,7 +117,9 @@ impl BlockFlowData {
     /// Dual boxes consume some width first, and the remainder is assigned to all child (block)
     /// contexts.
     pub fn assign_widths_block(@mut self, ctx: &LayoutContext) { 
+        debug!("assign_widths_block: assigning width for flow %?",  self.common.id);
         if self.is_root {
+            debug!("Setting root position");
             self.common.position.origin = Au::zero_point();
             self.common.position.size.width = ctx.screen_size.size.width;
         }
