@@ -5,6 +5,7 @@
 /// The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 /// and layout tasks.
 
+use compositor_interface::{ReadyState, Loading, Rendering, FinishedLoading};
 use dom::bindings::utils::GlobalStaticData;
 use dom::document::Document;
 use dom::element::Element;
@@ -68,12 +69,14 @@ impl ScriptTask {
     pub fn new(script_port: Port<ScriptMsg>,
                script_chan: SharedChan<ScriptMsg>,
                engine_task: EngineTask,
+               //FIXME(rust #5192): workaround for lack of working ~Trait
+               compositor_task: ~fn(ReadyState),
                layout_task: LayoutTask,
                resource_task: ResourceTask,
                image_cache_task: ImageCacheTask)
                -> ScriptTask {
         let (script_chan_copy, script_port) = (script_chan.clone(), Cell(script_port));
-
+        let compositor_task = Cell(compositor_task);
         // FIXME: rust#6399
         let mut the_task = task();
         the_task.sched_mode(SingleThreaded);
@@ -82,6 +85,7 @@ impl ScriptTask {
                                                     script_port.take(),
                                                     script_chan_copy.clone(),
                                                     engine_task.clone(),
+                                                    compositor_task.take(),
                                                     resource_task.clone(),
                                                     image_cache_task.clone());
             script_context.start();
@@ -123,6 +127,8 @@ pub struct ScriptContext {
 
     /// For communicating load url messages to the engine
     engine_task: EngineTask,
+    /// For communicating loading messages to the compositor
+    compositor_task: ~fn(ReadyState),
 
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
@@ -176,6 +182,7 @@ impl ScriptContext {
                script_port: Port<ScriptMsg>,
                script_chan: SharedChan<ScriptMsg>,
                engine_task: EngineTask,
+               compositor_task: ~fn(ReadyState),
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask)
                -> @mut ScriptContext {
@@ -200,6 +207,7 @@ impl ScriptContext {
             script_chan: script_chan,
 
             engine_task: engine_task,
+            compositor_task: compositor_task,
 
             js_runtime: js_runtime,
             js_context: js_context,
@@ -308,6 +316,12 @@ impl ScriptContext {
         self.layout_task.chan.send(layout_interface::ExitMsg)
     }
 
+    // tells the compositor when loading starts and finishes
+    // FIXME ~compositor_interface doesn't work right now, which is why this is necessary
+    fn send_compositor_msg(&self, msg: ReadyState) {
+        (self.compositor_task)(msg);
+    }
+
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&mut self, url: Url) {
@@ -319,6 +333,7 @@ impl ScriptContext {
             self.bindings_initialized = true
         }
 
+        self.send_compositor_msg(Loading);
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
@@ -359,6 +374,7 @@ impl ScriptContext {
             url: url
         });
 
+        self.send_compositor_msg(Rendering);
         // Perform the initial reflow.
         self.damage = Some(DocumentDamage {
             root: root_node,
@@ -376,6 +392,7 @@ impl ScriptContext {
                                                     ~"???",
                                                     1);
         }
+        self.send_compositor_msg(FinishedLoading);
     }
 
     /// Sends a ping to layout and waits for the response. The response will arrive when the

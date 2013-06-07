@@ -61,5 +61,7 @@ pub trait WindowMethods<A> {
     pub fn check_loop(@mut self);
     /// Schedules a redisplay at the next turn of the event loop.
     pub fn set_needs_display(@mut self);
+    /// Sets the title of the window
+    pub fn set_title(@mut self, title: &str);
 }
 

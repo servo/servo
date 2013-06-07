@@ -10,6 +10,7 @@ use core::comm::{Port, SharedChan};
 use gfx::opts::Opts;
 use gfx::render_task::RenderTask;
 use gfx::render_task;
+use script::compositor_interface::{CompositorInterface, ReadyState};
 use script::engine_interface::{EngineTask, ExitMsg, LoadUrlMsg, Msg};
 use script::layout_interface::LayoutTask;
 use script::layout_interface;
@@ -48,13 +49,15 @@ impl Engine {
                  profiler_chan: ProfilerChan)
                  -> EngineTask {
         let (script_port, script_chan) = (Cell(script_port), Cell(script_chan));
-        let (request_port, request_chan) = comm::stream();
-        let (request_port, request_chan) = (Cell(request_port), SharedChan::new(request_chan));
-        let request_chan_clone = request_chan.clone();
+        let (engine_port, engine_chan) = comm::stream();
+        let (engine_port, engine_chan) = (Cell(engine_port), SharedChan::new(engine_chan));
+        let engine_chan_clone = engine_chan.clone();
+        let compositor = Cell(compositor);
         let profiler_port = Cell(profiler_port);
         let opts = Cell(copy *opts);
 
         do task::spawn {
+            let compositor = compositor.take();
             let render_task = RenderTask::new(compositor.clone(),
                                               opts.with_ref(|o| copy *o),
                                               profiler_chan.clone());
@@ -70,16 +73,20 @@ impl Engine {
                                                               opts,
                                                               profiler_task.chan.clone());
 
+            let compositor_clone = compositor.clone();
             let script_task = ScriptTask::new(script_port.take(),
                                               script_chan.take(),
-                                              request_chan_clone.clone(),
+                                              engine_chan_clone.clone(),
+                                              |msg: ReadyState| {
+                                                  compositor_clone.send_compositor_msg(msg)
+                                              },
                                               layout_task.clone(),
                                               resource_task.clone(),
                                               image_cache_task.clone());
 
 
             Engine {
-                request_port: request_port.take(),
+                request_port: engine_port.take(),
                 compositor: compositor.clone(),
                 render_task: render_task,
                 resource_task: resource_task.clone(),
@@ -89,7 +96,7 @@ impl Engine {
                 profiler_task: profiler_task,
             }.run();
         }
-        request_chan.clone()
+        engine_chan.clone()
     }
 
     fn run(&self) {

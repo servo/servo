@@ -9,6 +9,8 @@ use windowing::{ApplicationMethods, WindowMethods, WindowMouseEvent, WindowClick
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent};
 
 use script::dom::event::{Event, ClickEvent, MouseDownEvent, MouseUpEvent};
+use script::compositor_interface::{ReadyState, CompositorInterface};
+use script::compositor_interface;
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods};
 use core::cell::Cell;
@@ -34,6 +36,13 @@ mod resize_rate_limiter;
 pub struct CompositorTask {
     /// A channel on which messages can be sent to the compositor.
     chan: SharedChan<Msg>,
+}
+
+impl CompositorInterface for CompositorTask {
+    fn send_compositor_msg(&self, msg: ReadyState) {
+        let msg = ChangeReadyState(msg);
+        self.chan.send(msg);
+    }
 }
 
 impl CompositorTask {
@@ -63,10 +72,12 @@ impl CompositorTask {
 
 /// Messages to the compositor.
 pub enum Msg {
-    /// Requests that the compositor paint the given layer buffer set for the given page size.
-    Paint(LayerBufferSet, Size2D<uint>),
     /// Requests that the compositor shut down.
     Exit,
+    /// Requests that the compositor paint the given layer buffer set for the given page size.
+    Paint(LayerBufferSet, Size2D<uint>),
+    /// Alerts the compositor to the current status of page loading
+    ChangeReadyState(ReadyState),
 }
 
 /// Azure surface wrapping to work with the layers infrastructure.
@@ -134,11 +145,18 @@ fn run_main_loop(port: Port<Msg>,
     let check_for_messages: @fn() = || {
         // Periodically check if the script task responded to our last resize event
         resize_rate_limiter.check_resize_response();
-
         // Handle messages
         while port.peek() {
             match port.recv() {
                 Exit => *done = true,
+
+                ChangeReadyState(ready_state) => {
+                    let window_title = match ready_state {
+                        compositor_interface::FinishedLoading => ~"Servo",
+                        _ => fmt!("%? — Servo", ready_state),
+                    };
+                    window.set_title(window_title);
+                }
 
                 Paint(new_layer_buffer_set, new_size) => {
                     debug!("osmain: received new frame");

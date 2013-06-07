@@ -162,6 +162,10 @@ impl WindowMethods<Application> for Window {
     pub fn set_needs_display(@mut self) {
         glut::post_redisplay()
     }
+
+    pub fn set_title(@mut self, title: &str) {
+        glut::set_window_title(self.glut_window, title);
+    }
 }
 
 impl Window {
