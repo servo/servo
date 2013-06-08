@@ -40,7 +40,7 @@ type JSResult = ~[~[u8]];
 
 enum CSSMessage {
     CSSTaskNewFile(StylesheetProvenance),
-    CSSTaskExit   
+    CSSTaskExit
 }
 
 enum JSMessage {
@@ -231,13 +231,15 @@ pub fn parse_html(url: Url,
 
     let url2 = url.clone(), url3 = url.clone();
 
-    // Build the root node.
-    let root = ~HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
-    let root = unsafe { Node::as_abstract_node(root) };
-    debug!("created new node");
+    // Build the the document node.
+    // TODO(jj): Since this node is a formality, we should use a different element type
+    // for clarity.
+    let doc_node = ~HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
+    let doc_node = unsafe { Node::as_abstract_node(doc_node) };
+    debug!("created document node");
     let mut parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
-    parser.set_document_node(root.to_hubbub_node());
+    parser.set_document_node(doc_node.to_hubbub_node());
     parser.enable_scripting(true);
 
     // Performs various actions necessary after appending has taken place. Currently, this
@@ -429,10 +431,22 @@ pub fn parse_html(url: Url,
     css_chan.send(CSSTaskExit);
     js_chan.send(JSTaskExit);
 
+    let html_el = get_root_html_node(&doc_node);
+
     HtmlParserResult {
-        root: root,
+        root: html_el,
         style_port: stylesheet_port,
         js_port: js_result_port,
     }
 }
 
+fn get_root_html_node(doc_node: &AbstractNode<ScriptView>) -> AbstractNode<ScriptView> {
+    // We need to look at the children of the document node to find the root html node of the document.
+    // This is a Hubbub approach that looks odd when combined with our usage.
+    for doc_node.each_child |kid| {
+        if kid.is_element() && kid.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) {
+            return kid;
+        }
+    }
+    fail!("The document tree has no root html element!")
+}
