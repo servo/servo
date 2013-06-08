@@ -451,7 +451,7 @@ pub impl LayoutTreeBuilder {
                 let first_child = do parent_flow.with_base |parent_node| {
                     parent_node.first_child
                 };
-                for first_child.each |first_flow| {
+                for first_child.each |&first_flow| {
                     if first_flow.starts_inline_flow() {
                         // FIXME: workaround for rust#6393
                         let mut do_remove = false;
@@ -466,7 +466,7 @@ pub impl LayoutTreeBuilder {
                             }
                         }
                         if (do_remove) { 
-                            (*parent_flow).remove_child(*first_flow);
+                            (*parent_flow).remove_child(first_flow);
                         }
                     }
                 }
@@ -474,7 +474,7 @@ pub impl LayoutTreeBuilder {
                 let last_child = do parent_flow.with_base |parent_node| {
                     parent_node.last_child
                 };
-                for last_child.each |last_flow| {
+                for last_child.each |&last_flow| {
                     if last_flow.starts_inline_flow() {
                         // FIXME: workaround for rust#6393
                         let mut do_remove = false;
@@ -489,7 +489,7 @@ pub impl LayoutTreeBuilder {
                             }
                         }
                         if (do_remove) {
-                            (*parent_flow).remove_child(*last_flow);
+                            (*parent_flow).remove_child(last_flow);
                         }
                     }
                 }

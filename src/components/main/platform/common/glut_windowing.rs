@@ -15,7 +15,7 @@ use alert::{Alert, AlertMethods};
 use core::libc::c_int;
 use geom::point::Point2D;
 use geom::size::Size2D;
-use glut::glut::{ACTIVE_CTRL, DOUBLE, WindowHeight, WindowWidth};
+use glut::glut::{ACTIVE_CTRL, DOUBLE, HAVE_PRECISE_MOUSE_WHEEL, WindowHeight, WindowWidth};
 use glut::glut;
 use glut::machack;
 
@@ -92,9 +92,18 @@ impl WindowMethods<Application> for Window {
         do glut::mouse_func |button, state, x, y| {
             if button < 3 {
                 window.handle_mouse(button, state, x, y);
-            } else {
-                window.handle_scroll(if button == 4 { -30.0 } else { 30.0 });
             }
+        }
+        do glut::mouse_wheel_func |button, direction, x, y| {
+            let delta = if HAVE_PRECISE_MOUSE_WHEEL {
+                (direction as f32) / 10000.0
+            } else {
+                (direction as f32) * 30.0
+            };
+
+            println(fmt!("delta is %f", delta as float));
+
+            window.handle_scroll(delta);
         }
 
         machack::perform_scroll_wheel_hack();
