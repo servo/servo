@@ -150,13 +150,17 @@ impl FontHandleMethods for FontHandle {
                                                           &glyphs[0],
                                                           ptr::null(),
                                                           1);
-        Some(advance as FractionalPixel)
+        // TODO; On mac the font spacing looks a little small. Need to figure out why.
+        Some(advance * 1.08f as FractionalPixel)
     }
 
     fn get_metrics(&self) -> FontMetrics {
         let bounding_rect: CGRect = self.ctfont.bounding_box();
         let ascent = Au::from_pt(self.ctfont.ascent() as float);
         let descent = Au::from_pt(self.ctfont.descent() as float);
+        let em_size = Au::from_frac_px(self.ctfont.pt_size() as float);
+
+        let scale = (self.ctfont.pt_size() as float * 72f / 96f) / (self.ctfont.ascent() as float + self.ctfont.descent() as float);
 
         let metrics =  FontMetrics {
             underline_size:   Au::from_pt(self.ctfont.underline_thickness() as float),
@@ -168,9 +172,9 @@ impl FontHandleMethods for FontHandle {
             underline_offset: Au::from_pt(self.ctfont.underline_position() as float),
             leading:          Au::from_pt(self.ctfont.leading() as float),
             x_height:         Au::from_pt(self.ctfont.x_height() as float),
-            em_size:          ascent + descent,
-            ascent:           ascent,
-            descent:          descent,
+            em_size:          em_size,
+            ascent:           ascent.scale_by(scale),
+            descent:          descent.scale_by(scale),
             max_advance:      Au::from_pt(bounding_rect.size.width as float)
         };
 
