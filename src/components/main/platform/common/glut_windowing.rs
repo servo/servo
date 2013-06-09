@@ -94,16 +94,18 @@ impl WindowMethods<Application> for Window {
                 window.handle_mouse(button, state, x, y);
             }
         }
-        do glut::mouse_wheel_func |button, direction, x, y| {
+        do glut::mouse_wheel_func |wheel, direction, x, y| {
             let delta = if HAVE_PRECISE_MOUSE_WHEEL {
                 (direction as f32) / 10000.0
             } else {
                 (direction as f32) * 30.0
             };
 
-            println(fmt!("delta is %f", delta as float));
-
-            window.handle_scroll(delta);
+            match wheel {
+                1 => window.handle_scroll(Point2D(delta, 0.0)),
+                2 => window.handle_zoom(delta),
+                _ => window.handle_scroll(Point2D(0.0, delta)),
+            }
         }
 
         machack::perform_scroll_wheel_hack();
@@ -170,12 +172,12 @@ impl Window {
             12 => self.load_url(),                                                      // Ctrl+L
             k if k == ('=' as u8) && (glut::get_modifiers() & ACTIVE_CTRL) != 0 => {    // Ctrl++
                 for self.zoom_callback.each |&callback| {
-                    callback(Point2D(0.0, 20.0));
+                    callback(0.1);
                 }
             }
             k if k == 31 && (glut::get_modifiers() & ACTIVE_CTRL) != 0 => {             // Ctrl+-
                 for self.zoom_callback.each |&callback| {
-                    callback(Point2D(0.0, -20.0));
+                    callback(-0.1);
                 }
             }
             _ => {}
@@ -217,10 +219,18 @@ impl Window {
     }
 
     /// Helper function to handle a scroll.
-    fn handle_scroll(&mut self, delta: f32) {
+    fn handle_scroll(&mut self, delta: Point2D<f32>) {
         match self.scroll_callback {
             None => {}
-            Some(callback) => callback(Point2D(0.0, delta)),
+            Some(callback) => callback(delta),
+        }
+    }
+
+    /// Helper function to handle a zoom.
+    fn handle_zoom(&mut self, magnification: f32) {
+        match self.zoom_callback {
+            None => {}
+            Some(callback) => callback(magnification),
         }
     }
 

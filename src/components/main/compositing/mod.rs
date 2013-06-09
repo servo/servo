@@ -290,12 +290,11 @@ fn run_main_loop(port: Port<Msg>,
 
 
     // When the user pinch-zooms, scale the layer
-    do window.set_zoom_callback |delta| {
-        let zoom_const = 0.01;
+    do window.set_zoom_callback |magnification| {
         let old_world_zoom = *world_zoom;
 
         // Determine zoom amount
-        *world_zoom = (*world_zoom + delta.y * zoom_const).max(&1.0);            
+        *world_zoom = (*world_zoom * magnification).max(&1.0);            
 
         // Update world offset
         let corner_to_center_x = world_offset.x + window_size.width as f32 / 2f32;

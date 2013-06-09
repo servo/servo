@@ -29,7 +29,7 @@ pub type MouseCallback = @fn(WindowMouseEvent);
 pub type ScrollCallback = @fn(Point2D<f32>);
 
 ///Type of the function that is called when the user zooms.
-pub type ZoomCallback = @fn(Point2D<f32>);
+pub type ZoomCallback = @fn(f32);
 
 /// Methods for an abstract Application.
 pub trait ApplicationMethods {
