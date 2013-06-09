@@ -336,6 +336,7 @@ impl ScriptContext {
         let document = Document(root_node, Some(window));
 
         // Tie the root into the document.
+        // FIXME(jj): Remove this code? The document is created with a root node.
         do root_node.with_mut_base |base| {
             base.add_to_doc(document)
         }

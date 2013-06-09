@@ -8,6 +8,8 @@ use dom::bindings::utils::{jsval_to_str, WrapNewBindingObject, CacheableWrapper}
 use dom::bindings::utils;
 use dom::document::Document;
 use dom::htmlcollection::HTMLCollection;
+use dom::node::{AbstractNode, ScriptView, ElementNodeTypeId};
+use dom::element::{HTMLHtmlElementTypeId};
 use js::glue::bindgen::*;
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB};
 use js::jsapi::bindgen::{JS_DefineProperties};
@@ -18,6 +20,7 @@ use js::rust::{Compartment, jsobj};
 use js::{JSPROP_NATIVE_ACCESSORS};
 use js::{JS_ARGV, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL, JS_THIS_OBJECT, JS_SET_RVAL};
 use script_task::task_from_context;
+use servo_util::tree::{TreeUtils};
 
 use core::libc::c_uint;
 use core::ptr::null;
@@ -29,12 +32,24 @@ extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> J
             return 0;
         }
 
+        //FIXME(jj): These should not be mutable.
         let doc = &mut (*unwrap(obj)).payload;
         let root = &mut doc.root;
-        assert!(root.is_element());
-        root.wrap(cx, ptr::null(), vp); //XXXjdm proper scope at some point
+        let mut root_el = get_root_html_node(root);
+        root_el.wrap(cx, ptr::null(), vp); //XXXjdm proper scope at some point
         return 1;
     }
+}
+
+// TODO(jj): Handle xml etc.
+fn get_root_html_node(doc_node: &AbstractNode<ScriptView>) -> AbstractNode<ScriptView> {
+    // We need to look at the children of the document node to find the root html node of the document.
+    for doc_node.each_child |kid| {
+        if kid.is_element() && kid.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) {
+            return kid;
+        }
+    }
+    fail!("The document has no root html element!")
 }
 
 extern fn getElementsByTagName(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {

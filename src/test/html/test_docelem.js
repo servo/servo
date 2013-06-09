@@ -13,5 +13,3 @@ debug("elem.firstChild: " + elem.firstChild);
 debug("elem.firstChild.tagName: " + elem.firstChild.tagName);
 debug("elem.firstChild.nextSibling: " + elem.firstChild.nextSibling);
 debug("elem.firstChild.nextSibling.tagName: " + elem.firstChild.nextSibling.tagName);
-debug("elem.nextSibling: " + elem.nextSibling);
-debug("elem.nextSibling.tagName: " + elem.nextSibling.tagName);

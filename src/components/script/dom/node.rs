@@ -88,10 +88,11 @@ pub struct Node<View> {
 /// The different types of nodes.
 #[deriving(Eq)]
 pub enum NodeTypeId {
-    DoctypeNodeTypeId,
-    CommentNodeTypeId,
     ElementNodeTypeId(ElementTypeId),
     TextNodeTypeId,
+    CommentNodeTypeId,
+    DocumentNodeTypeId,
+    DoctypeNodeTypeId,
 }
 
 //
@@ -371,7 +372,6 @@ impl<View> AbstractNode<View> {
         s += self.debug_str();
         debug!("%s", s);
 
-        // FIXME: this should have a pure version?
         for self.each_child() |kid| {
             kid.dump_indent(indent + 1u)
         }

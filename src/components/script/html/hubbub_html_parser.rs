@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::element::*;
-use dom::node::{AbstractNode, Comment, Doctype, Element, ElementNodeTypeId, Node, ScriptView};
-use dom::node::{Text};
+use dom::node::{AbstractNode, Comment, Doctype, Element, Text, Node, ScriptView};
+use dom::node::{ElementNodeTypeId, DocumentNodeTypeId};
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use newcss::stylesheet::Stylesheet;
 
@@ -40,7 +40,7 @@ type JSResult = ~[~[u8]];
 
 enum CSSMessage {
     CSSTaskNewFile(StylesheetProvenance),
-    CSSTaskExit   
+    CSSTaskExit
 }
 
 enum JSMessage {
@@ -231,13 +231,13 @@ pub fn parse_html(url: Url,
 
     let url2 = url.clone(), url3 = url.clone();
 
-    // Build the root node.
-    let root = ~HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
-    let root = unsafe { Node::as_abstract_node(root) };
-    debug!("created new node");
+    // Build the the document node.
+    let doc_node = ~Node::new(DocumentNodeTypeId);
+    let doc_node = unsafe { Node::as_abstract_node(doc_node) };
+    debug!("created document node");
     let mut parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
-    parser.set_document_node(root.to_hubbub_node());
+    parser.set_document_node(doc_node.to_hubbub_node());
     parser.enable_scripting(true);
 
     // Performs various actions necessary after appending has taken place. Currently, this
@@ -430,9 +430,8 @@ pub fn parse_html(url: Url,
     js_chan.send(JSTaskExit);
 
     HtmlParserResult {
-        root: root,
+        root: doc_node,
         style_port: stylesheet_port,
         js_port: js_result_port,
     }
 }
-

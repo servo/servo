@@ -18,7 +18,7 @@ use layout::inline::{InlineFlowData, InlineLayout};
 use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
 use newcss::values::{CSSDisplayNone};
 use script::dom::element::*;
-use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
+use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId, DocumentNodeTypeId};
 use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
 use servo_util::range::Range;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
@@ -66,7 +66,7 @@ priv fn simulate_UA_display_rules(node: AbstractNode<LayoutView>) -> CSSDisplay 
     }
 
     match node.type_id() {
-        DoctypeNodeTypeId | CommentNodeTypeId => CSSDisplayNone,
+        DoctypeNodeTypeId | CommentNodeTypeId | DocumentNodeTypeId => CSSDisplayNone,
         TextNodeTypeId => CSSDisplayInline,
         ElementNodeTypeId(element_type_id) => {
             match element_type_id {
@@ -99,7 +99,7 @@ impl BoxGenerator {
         return false;
     }
 
-    // TODO: implement this, generating spacer 
+    // TODO: implement this, generating spacer
     fn make_inline_spacer_for_node_side(&self,
                                         _: &LayoutContext,
                                         _: AbstractNode<LayoutView>,
@@ -210,7 +210,7 @@ impl BuilderContext {
         debug!("BuilderContext: cloning context");
         copy self
     }
-    
+
     priv fn attach_child_flow(&self, child: FlowContext) {
         let default_collector = &mut *self.default_collector;
         debug!("BuilderContext: Adding child flow f%? of f%?",
@@ -218,7 +218,7 @@ impl BuilderContext {
                child.id());
         default_collector.flow.add_child(child);
     }
-    
+
     priv fn create_child_flow_of_type(&self,
                                       flow_type: FlowContextType,
                                       builder: &mut LayoutTreeBuilder,
@@ -228,7 +228,7 @@ impl BuilderContext {
 
         BuilderContext::new(@mut BoxGenerator::new(new_flow))
     }
-        
+
     priv fn make_inline_collector(&mut self,
                                   builder: &mut LayoutTreeBuilder,
                                   node: AbstractNode<LayoutView>)
@@ -271,7 +271,7 @@ impl BuilderContext {
             v => v
         };
 
-        let containing_context = match (simulated_display, self.default_collector.flow) { 
+        let containing_context = match (simulated_display, self.default_collector.flow) {
             (CSSDisplayBlock, BlockFlow(info)) => match (info.is_root, node.parent_node()) {
                 // If this is the root node, then use the root flow's
                 // context. Otherwise, make a child block context.
@@ -308,7 +308,7 @@ pub impl LayoutTreeBuilder {
 
         let mut this_ctx = match parent_ctx.containing_context_for_node(cur_node, self) {
             Some(ctx) => ctx,
-            None => { return; } // no context because of display: none. Stop building subtree. 
+            None => { return; } // no context because of display: none. Stop building subtree.
         };
         debug!("point a: %s", cur_node.debug_str());
         this_ctx.default_collector.push_node(layout_ctx, self, cur_node);
@@ -383,13 +383,13 @@ pub impl LayoutTreeBuilder {
                         let boxes = &first_flow.inline().boxes;
                         if boxes.len() == 1 && boxes[0].is_whitespace_only() {
                             debug!("LayoutTreeBuilder: pruning whitespace-only first child flow \
-                                    f%d from parent f%d", 
+                                    f%d from parent f%d",
                                    first_flow.id(),
                                    parent_flow.id());
                             do_remove = true;
                         }
                         }
-                        if (do_remove) { 
+                        if (do_remove) {
                             parent_flow.remove_child(*first_flow);
                         }
                     }
@@ -402,7 +402,7 @@ pub impl LayoutTreeBuilder {
                         let boxes = &last_flow.inline().boxes;
                         if boxes.len() == 1 && boxes.last().is_whitespace_only() {
                             debug!("LayoutTreeBuilder: pruning whitespace-only last child flow \
-                                    f%d from parent f%d", 
+                                    f%d from parent f%d",
                                    last_flow.id(),
                                    parent_flow.id());
                             do_remove = true;
@@ -419,7 +419,7 @@ pub impl LayoutTreeBuilder {
     }
 
     fn fixup_split_inline(&self, _: FlowContext) {
-        // TODO: finish me. 
+        // TODO: finish me.
         fail!(~"TODO: handle case where an inline is split by a block")
     }
 
