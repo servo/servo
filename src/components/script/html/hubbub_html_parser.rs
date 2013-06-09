@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::element::*;
-use dom::node::{AbstractNode, Comment, Doctype, Element, ElementNodeTypeId, Node, ScriptView};
-use dom::node::{Text};
+use dom::node::{AbstractNode, Comment, Doctype, Element, Text, Node, ScriptView};
+use dom::node::{ElementNodeTypeId, DocumentNodeTypeId};
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use newcss::stylesheet::Stylesheet;
 
@@ -232,9 +232,7 @@ pub fn parse_html(url: Url,
     let url2 = url.clone(), url3 = url.clone();
 
     // Build the the document node.
-    // TODO(jj): Since this node is a formality, we should use a different element type
-    // for clarity.
-    let doc_node = ~HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
+    let doc_node = ~Node::new(DocumentNodeTypeId);
     let doc_node = unsafe { Node::as_abstract_node(doc_node) };
     debug!("created document node");
     let mut parser = hubbub::Parser("UTF-8", false);
@@ -431,22 +429,9 @@ pub fn parse_html(url: Url,
     css_chan.send(CSSTaskExit);
     js_chan.send(JSTaskExit);
 
-    let html_el = get_root_html_node(&doc_node);
-
     HtmlParserResult {
-        root: html_el,
+        root: doc_node,
         style_port: stylesheet_port,
         js_port: js_result_port,
     }
-}
-
-fn get_root_html_node(doc_node: &AbstractNode<ScriptView>) -> AbstractNode<ScriptView> {
-    // We need to look at the children of the document node to find the root html node of the document.
-    // This is a Hubbub approach that looks odd when combined with our usage.
-    for doc_node.each_child |kid| {
-        if kid.is_element() && kid.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId) {
-            return kid;
-        }
-    }
-    fail!("The document tree has no root html element!")
 }

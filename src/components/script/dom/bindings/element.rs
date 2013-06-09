@@ -7,7 +7,7 @@ use dom::bindings::utils::jsval_to_str;
 use dom::bindings::utils::{domstring_to_jsval, WrapNewBindingObject};
 use dom::bindings::utils::{str, CacheableWrapper, DOM_OBJECT_SLOT, DOMString};
 use dom::element::*;
-use dom::node::{AbstractNode, Element, ElementNodeTypeId, ScriptView};
+use dom::node::{AbstractNode, Element, ElementNodeTypeId, ScriptView, DocumentNodeTypeId};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use script_task::task_from_context;
 use super::utils;
@@ -272,7 +272,7 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
         let node = unwrap(obj);
         do node.with_imm_element |elem| {
             let s = str(copy elem.tag_name);
-            *vp = domstring_to_jsval(cx, &s);            
+            *vp = domstring_to_jsval(cx, &s);
         }
     }
     return 1;
@@ -285,6 +285,10 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
         ElementNodeTypeId(HTMLImageElementTypeId) => ~"HTMLImageElement",
         ElementNodeTypeId(HTMLScriptElementTypeId) => ~"HTMLScriptElement",
         ElementNodeTypeId(_) => ~"HTMLElement",
+        // FIXME(jj): This is gross.
+        // This dummy document element should not be created.
+        // We need a way to combine the document and this node.
+        DocumentNodeTypeId => ~"HTMLElement",
         _ => fail!(~"element::create only handles elements")
     };
 

@@ -7,7 +7,7 @@ use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
-use dom::node::{DoctypeNodeTypeId, ScriptView};
+use dom::node::{DoctypeNodeTypeId, DocumentNodeTypeId, ScriptView};
 
 use core::libc::c_uint;
 use core::ptr::null;
@@ -44,7 +44,7 @@ pub fn init(compartment: @mut Compartment) {
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: JSPropertyOpWrapper {op: getNodeType, info: null()},
          setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
-        
+
         JSPropertySpec {
          name: null(),
          tinyid: 0,
@@ -64,6 +64,10 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
         TextNodeTypeId |
         CommentNodeTypeId |
         DoctypeNodeTypeId => text::create(cx, node),
+        // FIXME(jj): This is gross.
+        // I think we want to somehow create the document along with the document node.
+        // i.e. they should be the same thing.
+        DocumentNodeTypeId => element::create(cx, node),
      }
 }
 
@@ -122,7 +126,8 @@ impl Node<ScriptView> {
             ElementNodeTypeId(_) => 1,
             TextNodeTypeId       => 3,
             CommentNodeTypeId    => 8,
-            DoctypeNodeTypeId    => 10
+            DocumentNodeTypeId   => 9,
+            DoctypeNodeTypeId    => 10,
         }
     }
 
