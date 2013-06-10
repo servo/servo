@@ -129,11 +129,13 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
                                 buf += data;
                             }
                             Done(Ok(*)) => {
-                                result_chan.send(buf);
+                                result_chan.send(Some(buf));
                                 break;
                             }
                             Done(Err(*)) => {
                                 error!("error loading script %s", url.to_str());
+                                result_chan.send(None);
+                                break;
                             }
                         }
                     }
@@ -146,7 +148,7 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
         }
     }
 
-    let js_scripts = vec::map(result_vec, |result_port| result_port.recv());
+    let js_scripts = vec::filter_map(result_vec, |result_port| result_port.recv());
     to_parent.send(js_scripts);
 }
 

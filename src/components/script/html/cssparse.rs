@@ -43,6 +43,7 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
 fn data_stream(provenance: StylesheetProvenance, resource_task: ResourceTask) -> DataStream {
     match provenance {
         UrlProvenance(url) => {
+            debug!("cssparse: loading style sheet at %s", url.to_str());
             let (input_port, input_chan) = comm::stream();
             resource_task.send(Load(url, input_chan));
             resource_port_to_data_stream(input_port)

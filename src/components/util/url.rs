@@ -32,6 +32,8 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
             debug!("make_url: current_url: %?", current_url);
             if current_url.path.is_empty() || current_url.path.ends_with("/") {
                 current_url.scheme + "://" + current_url.host + "/" + str_url
+            } else if str_url.starts_with("//") {
+                current_url.scheme + ":" + str_url
             } else {
                 let mut path = ~[];
                 for str::each_split_char(current_url.path, '/') |p| {
