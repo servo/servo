@@ -19,6 +19,7 @@ pub type FontFamilyMap = HashMap<~str, @mut FontFamily>;
 trait FontListHandleMethods {
     fn get_available_families(&self, fctx: &FontContextHandle) -> FontFamilyMap;
     fn load_variations_for_family(&self, family: @mut FontFamily);
+    fn get_last_resort_font_families() -> ~[~str];
 }
 
 /// The platform-independent font list abstraction.
@@ -85,6 +86,11 @@ pub impl FontList {
 
         // TODO(Issue #188): look up localized font family names if canonical name not found
         family.map(|f| **f)
+    }
+
+    pub fn get_last_resort_font_families() -> ~[~str] {
+        let last_resort = FontListHandle::get_last_resort_font_families();
+        last_resort
     }
 }
 
