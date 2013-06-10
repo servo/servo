@@ -230,6 +230,8 @@ impl Layout {
             self.render_task.channel.send(RenderMsg(render_layer));
         } // time(layout: display list building)
 
+        debug!("%?", layout_root.dump());
+
         // Tell script that we're done.
         data.script_join_chan.send(());
     }
