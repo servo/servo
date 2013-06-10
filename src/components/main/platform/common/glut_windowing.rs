@@ -12,6 +12,7 @@ use windowing::{ResizeCallback, ScrollCallback, WindowMethods, WindowMouseEvent,
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent, ZoomCallback};
 
 use alert::{Alert, AlertMethods};
+use core::cell::Cell;
 use core::libc::c_int;
 use geom::point::Point2D;
 use geom::size::Size2D;
@@ -71,6 +72,15 @@ impl WindowMethods<Application> for Window {
             mouse_down_point: @mut Point2D(0, 0),
         };
 
+        // Spin the event loop every 50 ms to allow the Rust channels to be polled.
+        //
+        // This requirement is pretty much the nail in the coffin for GLUT's usefulness.
+        //
+        // FIXME(pcwalton): What a mess.
+        let register_timer_callback: @mut @fn() = @mut ||{};
+        *register_timer_callback = || {
+            glut::timer_func(50, *register_timer_callback);
+        };
 
         // Register event handlers.
         do glut::reshape_func(window.glut_window) |width, height| {
@@ -107,6 +117,7 @@ impl WindowMethods<Application> for Window {
                 _ => window.handle_scroll(Point2D(0.0, delta)),
             }
         }
+        (*register_timer_callback)();
 
         machack::perform_scroll_wheel_hack();
 
