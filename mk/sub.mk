@@ -3,6 +3,12 @@ SLOW_TESTS += \
 	mozjs \
 	$(NULL)
 
+# Tests for these submodules do not exist.
+NO_TESTS += \
+	nspr \
+	nss \
+	$(NULL)
+
 # These submodules will not be cleaned by the `make clean-fast` target.
 SLOW_BUILDS += \
 	libcss \

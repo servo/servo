@@ -26,8 +26,10 @@ reftest: $(S)src/test/harness/reftest/reftest.rs servo
 contenttest: $(S)src/test/harness/contenttest/contenttest.rs servo
 	$(RUSTC) $(RFLAGS_servo) -o $@ $< -L .
 
-DEPS_CHECK_TARGETS_ALL = $(addprefix check-,$(DEPS_CHECK_ALL))
-DEPS_CHECK_TARGETS_FAST = $(addprefix check-,$(filter-out $(SLOW_TESTS),$(DEPS_CHECK_ALL)))
+
+DEPS_CHECK_TESTABLE = $(filter-out $(NO_TESTS),$(DEPS_CHECK_ALL))
+DEPS_CHECK_TARGETS_ALL = $(addprefix check-,$(DEPS_CHECK_TESTABLE))
+DEPS_CHECK_TARGETS_FAST = $(addprefix check-,$(filter-out $(SLOW_TESTS),$(DEPS_CHECK_TESTABLE)))
 
 .PHONY: check $(DEPS_CHECK_TARGETS_ALL)
 
