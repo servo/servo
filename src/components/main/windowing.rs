@@ -6,6 +6,7 @@
 
 use geom::point::Point2D;
 use geom::size::Size2D;
+use script::compositor_interface::ReadyState;
 
 pub enum WindowMouseEvent {
     WindowClickEvent(uint, Point2D<f32>),
@@ -61,7 +62,7 @@ pub trait WindowMethods<A> {
     pub fn check_loop(@mut self);
     /// Schedules a redisplay at the next turn of the event loop.
     pub fn set_needs_display(@mut self);
-    /// Sets the title of the window
-    pub fn set_title(@mut self, title: &str);
+    /// Sets the ready state of the current page.
+    pub fn set_ready_state(@mut self, ready_state: ReadyState);
 }
 

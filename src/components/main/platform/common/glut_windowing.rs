@@ -19,6 +19,9 @@ use geom::size::Size2D;
 use glut::glut::{ACTIVE_CTRL, DOUBLE, HAVE_PRECISE_MOUSE_WHEEL, WindowHeight, WindowWidth};
 use glut::glut;
 use glut::machack;
+use script::compositor_interface::{FinishedLoading, Loading, Rendering, ReadyState};
+
+static THROBBER: [char, ..8] = [ '⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷' ];
 
 /// A structure responsible for setting up and tearing down the entire windowing system.
 pub struct Application;
@@ -46,6 +49,9 @@ pub struct Window {
 
     mouse_down_button: @mut c_int,
     mouse_down_point: @mut Point2D<c_int>,
+
+    ready_state: ReadyState,
+    throbber_frame: u8,
 }
 
 impl WindowMethods<Application> for Window {
@@ -70,6 +76,9 @@ impl WindowMethods<Application> for Window {
 
             mouse_down_button: @mut 0,
             mouse_down_point: @mut Point2D(0, 0),
+
+            ready_state: FinishedLoading,
+            throbber_frame: 0,
         };
 
         // Spin the event loop every 50 ms to allow the Rust channels to be polled.
@@ -80,6 +89,8 @@ impl WindowMethods<Application> for Window {
         let register_timer_callback: @mut @fn() = @mut ||{};
         *register_timer_callback = || {
             glut::timer_func(50, *register_timer_callback);
+            window.throbber_frame = (window.throbber_frame + 1) % (THROBBER.len() as u8);
+            window.update_window_title()
         };
 
         // Register event handlers.
@@ -174,12 +185,28 @@ impl WindowMethods<Application> for Window {
         glut::post_redisplay()
     }
 
-    pub fn set_title(@mut self, title: &str) {
-        glut::set_window_title(self.glut_window, title);
+    /// Sets the ready state.
+    pub fn set_ready_state(@mut self, ready_state: ReadyState) {
+        self.ready_state = ready_state;
+        self.update_window_title()
     }
 }
 
 impl Window {
+    /// Helper function to set the window title in accordance with the ready state.
+    fn update_window_title(&self) {
+        let throbber = THROBBER[self.throbber_frame];
+        match self.ready_state {
+            Loading => {
+                glut::set_window_title(self.glut_window, fmt!("%c Loading — Servo", throbber))
+            }
+            Rendering => {
+                glut::set_window_title(self.glut_window, fmt!("%c Rendering — Servo", throbber))
+            }
+            FinishedLoading => glut::set_window_title(self.glut_window, "Servo"),
+        }
+    }
+
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: u8) {
         debug!("got key: %d", key as int);

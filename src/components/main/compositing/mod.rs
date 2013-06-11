@@ -150,13 +150,7 @@ fn run_main_loop(port: Port<Msg>,
             match port.recv() {
                 Exit => *done = true,
 
-                ChangeReadyState(ready_state) => {
-                    let window_title = match ready_state {
-                        compositor_interface::FinishedLoading => ~"Servo",
-                        _ => fmt!("%? — Servo", ready_state),
-                    };
-                    window.set_title(window_title);
-                }
+                ChangeReadyState(ready_state) => window.set_ready_state(ready_state),
 
                 Paint(new_layer_buffer_set, new_size) => {
                     debug!("osmain: received new frame");
