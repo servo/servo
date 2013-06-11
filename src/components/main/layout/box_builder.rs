@@ -183,7 +183,10 @@ impl BoxGenerator {
                 }
                 let mut node_range: Range = Range::new(self.range_stack.pop(), 0);
                 node_range.extend_to(inline.boxes.len());
-                assert!(node_range.length() > 0);
+
+                if node_range.length() == 0 {
+                    warn!("node range length is zero?!")
+                }
 
                 debug!("BoxGenerator: adding element range=%?", node_range);
                 inline.elems.add_mapping(node, &node_range);
@@ -444,47 +447,49 @@ pub impl LayoutTreeBuilder {
                 // FIXME: this will create refcounted cycles between the removed flow and any
                 // of its RenderBox or FlowContext children, and possibly keep alive other junk
 
-                let parent_flow = *parent_flow;
-                let (first_child, last_child) = do parent_flow.with_base |parent_node| {
-                    (parent_node.first_child, parent_node.last_child)
-                };
-
                 // check first/last child for whitespace-ness
+                let first_child = do parent_flow.with_base |parent_node| {
+                    parent_node.first_child
+                };
                 for first_child.each |first_flow| {
                     if first_flow.starts_inline_flow() {
                         // FIXME: workaround for rust#6393
                         let mut do_remove = false;
                         {
-                        let boxes = &first_flow.inline().boxes;
-                        if boxes.len() == 1 && boxes[0].is_whitespace_only() {
-                            debug!("LayoutTreeBuilder: pruning whitespace-only first child flow \
-                                    f%d from parent f%d", 
-                                   first_flow.id(),
-                                   parent_flow.id());
-                            do_remove = true;
-                        }
+                            let boxes = &first_flow.inline().boxes;
+                            if boxes.len() == 1 && boxes[0].is_whitespace_only() {
+                                debug!("LayoutTreeBuilder: pruning whitespace-only first child \
+                                        flow f%d from parent f%d", 
+                                       first_flow.id(),
+                                       parent_flow.id());
+                                do_remove = true;
+                            }
                         }
                         if (do_remove) { 
-                            parent_flow.remove_child(*first_flow);
+                            (*parent_flow).remove_child(*first_flow);
                         }
                     }
                 }
+
+                let last_child = do parent_flow.with_base |parent_node| {
+                    parent_node.last_child
+                };
                 for last_child.each |last_flow| {
                     if last_flow.starts_inline_flow() {
                         // FIXME: workaround for rust#6393
                         let mut do_remove = false;
                         {
-                        let boxes = &last_flow.inline().boxes;
-                        if boxes.len() == 1 && boxes.last().is_whitespace_only() {
-                            debug!("LayoutTreeBuilder: pruning whitespace-only last child flow \
-                                    f%d from parent f%d", 
-                                   last_flow.id(),
-                                   parent_flow.id());
-                            do_remove = true;
-                        }
+                            let boxes = &last_flow.inline().boxes;
+                            if boxes.len() == 1 && boxes.last().is_whitespace_only() {
+                                debug!("LayoutTreeBuilder: pruning whitespace-only last child \
+                                        flow f%d from parent f%d", 
+                                       last_flow.id(),
+                                       parent_flow.id());
+                                do_remove = true;
+                            }
                         }
                         if (do_remove) {
-                            parent_flow.remove_child(*last_flow);
+                            (*parent_flow).remove_child(*last_flow);
                         }
                     }
                 }

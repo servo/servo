@@ -411,6 +411,8 @@ CFG_SUBMODULES="\
     support/libparserutils/libparserutils \
     support/netsurfcss/libcss \
     support/netsurfcss/rust-netsurfcss \
+    support/nss/nspr \
+    support/nss/nss \
     support/opengles/rust-opengles \
     support/sharegl/sharegl \
     support/skia/skia \
@@ -501,14 +503,17 @@ do
 	# needed because Azure's configure wants "--enable-skia"
 	CONFIGURE_ARGS=""
 	ENV_VARS=""
-	if [ $i = "rust-azure" ]; then
+	if [ $i = "support/azure/rust-azure" ]; then
 		CONFIGURE_ARGS="--enable-skia"
 	fi
-        if [ $i = mozjs ]; then
-            if [ ! -z $CFG_ENABLE_DEBUG ]; then
-                CONFIGURE_ARGS="--enable-debug"
-            fi
+	if [ $i = "support/nss/nspr" ]; then
+		CONFIGURE_ARGS="--enable-64bit"
+	fi
+    if [ $i = "support/spidermonkey/mozjs" ]; then
+        if [ ! -z $CFG_ENABLE_DEBUG ]; then
+            CONFIGURE_ARGS="--enable-debug"
         fi
+    fi
 
     if [ -f ${CONFIGURE_SCRIPT} ]
     then

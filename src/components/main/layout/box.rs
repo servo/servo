@@ -6,13 +6,15 @@
 
 use css::node_style::StyledNode;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ToGfxColor};
+use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
 use layout::flow::FlowContext;
+use layout::model::BoxModel;
 use layout::text;
 
 use core::cell::Cell;
 use core::cmp::ApproxEq;
 use core::managed;
+use core::num::Zero;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
 use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass};
@@ -24,7 +26,6 @@ use gfx::text::text_run::TextRun;
 use newcss::color::rgb;
 use newcss::complete::CompleteStyle;
 use newcss::units::{Cursive, Em, Fantasy, Monospace, Pt, Px, SansSerif, Serif};
-use newcss::values::{CSSBorderWidthLength, CSSBorderWidthMedium};
 use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily};
 use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
 use newcss::values::{CSSFontStyleOblique, CSSTextAlign, CSSTextDecoration};
@@ -154,6 +155,9 @@ pub struct RenderBoxBase {
     /// The position of this box relative to its owning flow.
     position: Rect<Au>,
 
+    /// The core parameters (border, padding, margin) used by the box model.
+    model: BoxModel,
+
     /// A debug ID.
     ///
     /// TODO(#87) Make this only present in debug builds.
@@ -168,6 +172,7 @@ impl RenderBoxBase {
             node: node,
             ctx: flow_context,
             position: Au::zero_rect(),
+            model: Zero::zero(),
             id: id,
         }
     }
@@ -176,7 +181,7 @@ impl RenderBoxBase {
 pub impl RenderBox {
     /// Borrows this render box immutably in order to work with its common data.
     #[inline(always)]
-    fn with_imm_base<R>(&self, callback: &fn(&RenderBoxBase) -> R) -> R {
+    fn with_base<R>(&self, callback: &fn(&RenderBoxBase) -> R) -> R {
         match *self {
             GenericRenderBoxClass(generic_box) => callback(generic_box),
             ImageRenderBoxClass(image_box) => {
@@ -210,7 +215,7 @@ pub impl RenderBox {
 
     /// A convenience function to return the position of this box.
     fn position(&self) -> Rect<Au> {
-        do self.with_imm_base |base| {
+        do self.with_base |base| {
             base.position
         }
     }
@@ -367,6 +372,8 @@ pub impl RenderBox {
 
     /// Returns the *minimum width* of this render box as defined by the CSS specification.
     fn get_min_width(&self, _: &LayoutContext) -> Au {
+        // FIXME(pcwalton): I think we only need to calculate this if the damage says that CSS
+        // needs to be restyled.
         match *self {
             // TODO: This should account for the minimum width of the box element in isolation.
             // That includes borders, margins, and padding, but not child widths. The block
@@ -441,37 +448,36 @@ pub impl RenderBox {
         (Au(0), Au(0))
     }
 
+    fn compute_padding(&self, cb_width: Au) {
+        do self.with_mut_base |base| {
+            base.model.compute_padding(base.node.style(), cb_width);
+        }
+    }
+
+    fn get_noncontent_width(&self) -> Au {
+        do self.with_base |base| {
+            base.model.border.left + base.model.padding.left +
+            base.model.border.right + base.model.padding.right
+        }
+    }
+
+    fn with_model<R>(&self, callback: &fn(&mut BoxModel) -> R) ->  R {
+        do self.with_mut_base |base| {
+            callback(&mut base.model)
+        }
+    }
+
     /// The box formed by the content edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
     /// the owning flow.
     fn content_box(&self) -> Rect<Au> {
-        let origin = self.position().origin;
-        match *self {
-            ImageRenderBoxClass(image_box) => {
-                Rect {
-                    origin: origin,
-                    size: image_box.base.position.size,
-                }
-            },
-            GenericRenderBoxClass(*) => {
-                self.position()
-
-                // FIXME: The following hits an ICE for whatever reason.
-
-                /*
-                let origin = self.d().position.origin;
-                let size  = self.d().position.size;
-                let (offset_left, offset_right) = self.get_used_width();
-                let (offset_top, offset_bottom) = self.get_used_height();
-
-                Rect {
-                    origin: Point2D(origin.x + offset_left, origin.y + offset_top),
-                    size: Size2D(size.width - (offset_left + offset_right),
-                                 size.height - (offset_top + offset_bottom))
-                }
-                */
-            },
-            TextRenderBoxClass(*) => self.position(),
-            UnscannedTextRenderBoxClass(*) => fail!(~"Shouldn't see unscanned boxes here.")
+        do self.with_base |base| {
+            let origin = Point2D(base.position.origin.x +
+                                 base.model.border.left +
+                                 base.model.padding.left,
+                                 base.position.origin.y);
+            let size = Size2D(base.position.size.width - self.get_noncontent_width(), 
+                              base.position.size.height);
+            Rect(origin, size)
         }
     }
 
@@ -489,22 +495,15 @@ pub impl RenderBox {
         self.content_box()
     }
 
-    /// A convenience function to determine whether this render box represents a DOM element.
-    fn is_element(&self) -> bool {
-        do self.with_imm_base |base| {
-            base.node.is_element()
-        }
-    }
-
     /// A convenience function to access the computed style of the DOM node that this render box
     /// represents.
     fn style(&self) -> CompleteStyle {
-        self.with_imm_base(|base| base.node.style())
+        self.with_base(|base| base.node.style())
     }
 
     /// A convenience function to access the DOM node that this render box represents.
     fn node(&self) -> AbstractNode<LayoutView> {
-        self.with_imm_base(|base| base.node)
+        self.with_base(|base| base.node)
     }
 
     /// Returns the nearest ancestor-or-self `Element` to the DOM node that this render box
@@ -512,7 +511,7 @@ pub impl RenderBox {
     ///
     /// If there is no ancestor-or-self `Element` node, fails.
     fn nearest_ancestor_element(&self) -> AbstractNode<LayoutView> {
-        do self.with_imm_base |base| {
+        do self.with_base |base| {
             let mut node = base.node;
             while !node.is_element() {
                 match node.parent_node() {
@@ -542,11 +541,11 @@ pub impl RenderBox {
     /// representing the box's stacking context. When asked to construct its constituent display
     /// items, each box puts its display items into the correct stack layer according to CSS 2.1
     /// Appendix E. Finally, the builder flattens the list.
-    fn build_display_list(&self,
-                          _: &DisplayListBuilder,
-                          dirty: &Rect<Au>,
-                          offset: &Point2D<Au>,
-                          list: &Cell<DisplayList>) {
+    fn build_display_list<E:ExtraDisplayListData>(&self,
+                                                  _: &DisplayListBuilder,
+                                                  dirty: &Rect<Au>,
+                                                  offset: &Point2D<Au>,
+                                                  list: &Cell<DisplayList<E>>) {
         let box_bounds = self.position();
         let absolute_box_bounds = box_bounds.translate(offset);
         debug!("RenderBox::build_display_list at rel=%?, abs=%?: %s",
@@ -574,6 +573,7 @@ pub impl RenderBox {
                     let text_display_item = ~TextDisplayItem {
                         base: BaseDisplayItem {
                             bounds: absolute_box_bounds,
+                            extra: ExtraDisplayListData::new(*self),
                         },
                         // FIXME(pcwalton): Allocation? Why?!
                         text_run: ~text_box.run.serialize(),
@@ -594,6 +594,7 @@ pub impl RenderBox {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: absolute_box_bounds,
+                                extra: ExtraDisplayListData::new(*self),
                             },
                             width: Au::from_px(1),
                             color: rgb(0, 0, 200).to_gfx_color(),
@@ -613,6 +614,7 @@ pub impl RenderBox {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
                                 bounds: baseline,
+                                extra: ExtraDisplayListData::new(*self),
                             },
                             width: Au::from_px(1),
                             color: rgb(0, 200, 0).to_gfx_color(),
@@ -630,7 +632,8 @@ pub impl RenderBox {
                 do list.with_mut_ref |list| {
                     let border_display_item = ~BorderDisplayItem {
                         base: BaseDisplayItem {
-                                bounds: absolute_box_bounds,
+                            bounds: absolute_box_bounds,
+                            extra: ExtraDisplayListData::new(*self),
                         },
                         width: Au::from_px(1),
                         color: rgb(0, 0, 0).to_gfx_color(),
@@ -650,6 +653,7 @@ pub impl RenderBox {
                             let image_display_item = ~ImageDisplayItem {
                                 base: BaseDisplayItem {
                                     bounds: absolute_box_bounds,
+                                    extra: ExtraDisplayListData::new(*self),
                                 },
                                 image: image.clone(),
                             };
@@ -674,9 +678,9 @@ pub impl RenderBox {
 
     /// Adds the display items necessary to paint the background of this render box to the display
     /// list if necessary.
-    fn paint_background_if_applicable(&self,
-                                      list: &Cell<DisplayList>,
-                                      absolute_bounds: &Rect<Au>) {
+    fn paint_background_if_applicable<E:ExtraDisplayListData>(&self,
+                                                              list: &Cell<DisplayList<E>>,
+                                                              absolute_bounds: &Rect<Au>) {
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
         // needed. We could use display list optimization to clean this up, but it still seems
         // inefficient. What we really want is something like "nearest ancestor element that
@@ -689,76 +693,13 @@ pub impl RenderBox {
                 let solid_color_display_item = ~SolidColorDisplayItem {
                     base: BaseDisplayItem {
                         bounds: *absolute_bounds,
+                        extra: ExtraDisplayListData::new(*self),
                     },
                     color: background_color.to_gfx_color(),
                 };
 
                 list.append_item(SolidColorDisplayItemClass(solid_color_display_item))
             }
-        }
-    }
-
-    /// Adds the display items necessary to paint the borders of this render box to the display
-    /// list if necessary.
-    fn paint_borders_if_applicable(&self, list: &Cell<DisplayList>, abs_bounds: &Rect<Au>) {
-        if !self.is_element() {
-            return
-        }
-
-        let style = self.style();
-        let (top_width, right_width) = (style.border_top_width(), style.border_right_width());
-        let (bottom_width, left_width) = (style.border_bottom_width(), style.border_left_width());
-        match (top_width, right_width, bottom_width, left_width) {
-            (CSSBorderWidthLength(Px(top)),
-             CSSBorderWidthLength(Px(right)),
-             CSSBorderWidthLength(Px(bottom)),
-             CSSBorderWidthLength(Px(left))) => {
-                let top_au = Au::from_frac_px(top);
-                let right_au = Au::from_frac_px(right);
-                let bottom_au = Au::from_frac_px(bottom);
-                let left_au = Au::from_frac_px(left);
-
-                // Are all the widths equal?
-                if [ top_au, right_au, bottom_au ].all(|a| *a == left_au) {
-                    let border_width = top_au;
-                    let bounds = Rect {
-                        origin: Point2D {
-                            x: abs_bounds.origin.x - border_width / Au(2),
-                            y: abs_bounds.origin.y - border_width / Au(2),
-                        },
-                        size: Size2D {
-                            width: abs_bounds.size.width + border_width,
-                            height: abs_bounds.size.height + border_width
-                        }
-                    };
-
-                    let top_color = self.style().border_top_color();
-                    let color = top_color.to_gfx_color(); // FIXME
-
-                    // Append the border to the display list.
-                    do list.with_mut_ref |list| {
-                        let border_display_item = ~BorderDisplayItem {
-                            base: BaseDisplayItem {
-                                bounds: bounds,
-                            },
-                            width: border_width,
-                            color: color,
-                        };
-
-                        list.append_item(BorderDisplayItemClass(border_display_item))
-                    }
-                } else {
-                    warn!("ignoring unimplemented border widths");
-                }
-            }
-            (CSSBorderWidthMedium,
-             CSSBorderWidthMedium,
-             CSSBorderWidthMedium,
-             CSSBorderWidthMedium) => {
-                // FIXME: This seems to be the default for non-root nodes. For now we'll ignore it.
-                warn!("ignoring medium border widths");
-            }
-            _ => warn!("ignoring unimplemented border widths")
         }
     }
 
@@ -883,4 +824,5 @@ pub impl RenderBox {
         fmt!("box b%?: %s", self.id(), representation)
     }
 }
+
 

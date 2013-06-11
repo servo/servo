@@ -7,8 +7,8 @@
 /// GLUT is a very old and bare-bones toolkit. However, it has good cross-platform support, at
 /// least on desktops. It is designed for testing Servo without the need of a UI.
 
-use windowing::{ApplicationMethods, CompositeCallback, LoadUrlCallback, ResizeCallback};
-use windowing::{ScrollCallback, WindowMethods};
+use windowing::{ApplicationMethods, CompositeCallback, LoadUrlCallback, ClickCallback};
+use windowing::{ResizeCallback, ScrollCallback, WindowMethods};
 
 use alert::{Alert, AlertMethods};
 use core::libc::c_int;
@@ -16,6 +16,7 @@ use geom::point::Point2D;
 use geom::size::Size2D;
 use glut::glut::{DOUBLE, WindowHeight, WindowWidth};
 use glut::glut;
+use glut::machack;
 
 /// A structure responsible for setting up and tearing down the entire windowing system.
 pub struct Application;
@@ -35,6 +36,7 @@ pub struct Window {
     composite_callback: Option<CompositeCallback>,
     resize_callback: Option<ResizeCallback>,
     load_url_callback: Option<LoadUrlCallback>,
+    click_callback: Option<ClickCallback>,
     scroll_callback: Option<ScrollCallback>,
 
     drag_origin: Point2D<c_int>,
@@ -54,6 +56,7 @@ impl WindowMethods<Application> for Window {
             composite_callback: None,
             resize_callback: None,
             load_url_callback: None,
+            click_callback: None,
             scroll_callback: None,
 
             drag_origin: Point2D(0, 0),
@@ -76,12 +79,15 @@ impl WindowMethods<Application> for Window {
         do glut::keyboard_func |key, _, _| {
             window.handle_key(key)
         }
-        do glut::mouse_func |_, _, x, y| {
-            window.start_drag(x, y)
+        do glut::mouse_func |button, _, x, y| {
+            if button < 3 {
+                window.handle_click(x, y);
+            } else {
+                window.handle_scroll(if button == 4 { -30.0 } else { 30.0 });
+            }
         }
-        do glut::motion_func |x, y| {
-            window.continue_drag(x, y)
-        }
+
+        machack::perform_scroll_wheel_hack();
 
         window
     }
@@ -94,7 +100,6 @@ impl WindowMethods<Application> for Window {
     /// Presents the window to the screen (perhaps by page flipping).
     pub fn present(&mut self) {
         glut::swap_buffers();
-        glut::post_redisplay();
     }
 
     /// Registers a callback to run when a composite event occurs.
@@ -110,6 +115,11 @@ impl WindowMethods<Application> for Window {
     /// Registers a callback to be run when a new URL is to be loaded.
     pub fn set_load_url_callback(&mut self, new_load_url_callback: LoadUrlCallback) {
         self.load_url_callback = Some(new_load_url_callback)
+    }
+
+    /// Registers a callback to be run when a click event occurs.
+    pub fn set_click_callback(&mut self, new_click_callback: ClickCallback) {
+        self.click_callback = Some(new_click_callback)
     }
 
     /// Registers a callback to be run when the user scrolls.
@@ -137,20 +147,19 @@ impl Window {
         }
     }
 
-    /// Helper function to start a drag.
-    fn start_drag(&mut self, x: c_int, y: c_int) {
-        self.drag_origin = Point2D(x, y)
+    /// Helper function to handle a click
+    fn handle_click(&self, x: c_int, y: c_int) {
+        match self.click_callback {
+            None => {}
+            Some(callback) => callback(Point2D(x as f32, y as f32)),
+        }
     }
 
-    /// Helper function to continue a drag.
-    fn continue_drag(&mut self, x: c_int, y: c_int) {
-        let new_point = Point2D(x, y);
-        let delta = new_point - self.drag_origin;
-        self.drag_origin = new_point;
-
+    /// Helper function to handle a scroll.
+    fn handle_scroll(&mut self, delta: f32) {
         match self.scroll_callback {
             None => {}
-            Some(callback) => callback(Point2D(delta.x as f32, delta.y as f32)),
+            Some(callback) => callback(Point2D(0.0, delta)),
         }
     }
 

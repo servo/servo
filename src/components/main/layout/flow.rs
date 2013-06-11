@@ -28,7 +28,7 @@
 use layout::block::BlockFlowData;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
-use layout::display_list_builder::DisplayListBuilder;
+use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::inline::{InlineFlowData};
 
 use core::cell::Cell;
@@ -284,11 +284,11 @@ impl<'self> FlowContext {
         }
     }
 
-    pub fn build_display_list_recurse(&self,
-                                      builder: &DisplayListBuilder,
-                                      dirty: &Rect<Au>,
-                                      offset: &Point2D<Au>,
-                                      list: &Cell<DisplayList>) {
+    pub fn build_display_list_recurse<E:ExtraDisplayListData>(&self,
+                                                              builder: &DisplayListBuilder,
+                                                              dirty: &Rect<Au>,
+                                                              offset: &Point2D<Au>,
+                                                              list: &Cell<DisplayList<E>>) {
         do self.with_base |info| {
             debug!("FlowContext::build_display_list at %?: %s", info.position, self.debug_str());
         }

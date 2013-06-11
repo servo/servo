@@ -162,7 +162,7 @@ impl<C: Compositor + Owned> Renderer<C> {
             };
 
             debug!("renderer: returning surface");
-            self.compositor.paint(layer_buffer_set);
+            self.compositor.paint(layer_buffer_set, render_layer.size);
         }
     }
 }
