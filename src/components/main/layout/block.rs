@@ -146,7 +146,7 @@ impl BlockFlowData {
             //If all have a computed value other than 'auto', the system is over-constrained and we need to discard a margin.
             //if direction is ltr, ignore the specified right margin and solve for it. If it is rtl, ignore the specified 
             //left margin. FIXME(eatkinson): this assumes the direction is ltr
-            (Specified(margin_l), Specified(width), Specified(margin_r)) => (margin_l, width, available_width - (margin_l + width )),
+            (Specified(margin_l), Specified(width), Specified(_margin_r)) => (margin_l, width, available_width - (margin_l + width )),
 
             //If exactly one value is 'auto', solve for it
             (Auto, Specified(width), Specified(margin_r)) => (available_width - (width + margin_r), width, margin_r),
