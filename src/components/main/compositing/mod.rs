@@ -206,7 +206,7 @@ fn run_main_loop(port: Port<Msg>,
                             Some(_) => fail!(~"found unexpected layer kind"),
                         };
 
-                        let origin = buffer.rect.origin;
+                        let origin = buffer.screen_pos.origin;
                         let origin = Point2D(origin.x as f32, origin.y as f32);
 
                         // Set the layer's transform.

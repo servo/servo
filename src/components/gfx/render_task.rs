@@ -140,17 +140,24 @@ impl<C: Compositor + Owned> Renderer<C> {
 
                         // Apply the translation to render the tile we want.
                         let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
-                        let matrix = matrix.translate(&-(layer_buffer.rect.origin.x as AzFloat),
-                                                      &-(layer_buffer.rect.origin.y as AzFloat));
+                        let scale = thread_render_context.opts.zoom as f32;
+
+                        let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
+                        let matrix = matrix.translate(-(layer_buffer.rect.origin.x as f32) as AzFloat,
+                                                      -(layer_buffer.rect.origin.y as f32) as AzFloat);
+
+
                         layer_buffer.draw_target.set_transform(&matrix);
 
                         // Clear the buffer.
                         ctx.clear();
+                        
 
                         // Draw the display list.
                         let render_layer: &RenderLayer = unsafe {
                             cast::transmute(render_layer_ref)
                         };
+                        
                         render_layer.display_list.draw_into_context(&ctx);
                     }
 
