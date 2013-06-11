@@ -8,15 +8,12 @@
 use css::matching::MatchMethods;
 use css::select::new_css_select_ctx;
 use layout::aux::{LayoutData, LayoutAuxMethods};
+use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
 use layout::flow::FlowContext;
 use util::task::spawn_listener;
-use servo_util::time;
-use servo_util::time::time;
-use servo_util::time::profile;
-use servo_util::time::ProfilerChan;
 
 use core::cast::transmute;
 use core::cell::Cell;
@@ -35,14 +32,19 @@ use newcss::stylesheet::Stylesheet;
 use newcss::types::OriginAuthor;
 use script::dom::event::ReflowEvent;
 use script::dom::node::{AbstractNode, LayoutView};
-use script::layout_interface::{AddStylesheetMsg, BuildData, BuildMsg, ContentBoxQuery};
-use script::layout_interface::{ContentBoxResponse, ContentBoxesQuery, ContentBoxesResponse};
-use script::layout_interface::{ExitMsg, LayoutQuery, LayoutResponse, LayoutTask};
-use script::layout_interface::{MatchSelectorsDamage, Msg, NoDamage, QueryMsg, ReflowDamage};
+use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
+use script::layout_interface::{HitTestQuery, ContentBoxResponse, HitTestResponse};
+use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitMsg, LayoutQuery};
+use script::layout_interface::{LayoutResponse, LayoutTask, MatchSelectorsDocumentDamage, Msg};
+use script::layout_interface::{QueryMsg, Reflow, ReflowDocumentDamage, ReflowForDisplay};
+use script::layout_interface::{ReflowMsg};
 use script::script_task::{ScriptMsg, SendEventMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::LocalImageCache;
-use servo_util::tree::TreeUtils;
+use servo_util::tree::{TreeNodeRef, TreeUtils};
+use servo_util::time::{ProfilerChan, profile, time};
+use servo_util::time;
+use std::net::url::Url;
 
 pub fn create_layout_task(render_task: RenderTask,
                           img_cache_task: ImageCacheTask,
@@ -69,6 +71,8 @@ struct Layout {
     local_image_cache: @mut LocalImageCache,
     from_script: Port<Msg>,
     font_ctx: @mut FontContext,
+    doc_url: Option<Url>,
+    screen_size: Option<Size2D<Au>>,
 
     /// This is used to root reader data.
     layout_refs: ~[@mut LayoutData],
@@ -92,6 +96,9 @@ impl Layout {
             local_image_cache: @mut LocalImageCache(image_cache_task),
             from_script: from_script,
             font_ctx: fctx,
+            doc_url: None,
+            screen_size: None,
+            
             layout_refs: ~[],
             css_select_ctx: @mut new_css_select_ctx(),
             profiler_chan: profiler_chan,
@@ -104,14 +111,27 @@ impl Layout {
         }
     }
 
+    // Create a layout context for use in building display lists, hit testing, &c.
+    fn build_layout_context(&self) -> LayoutContext {
+        let image_cache = self.local_image_cache;
+        let font_ctx = self.font_ctx;
+        let screen_size = self.screen_size.unwrap();
+
+        LayoutContext {
+            image_cache: image_cache,
+            font_ctx: font_ctx,
+            screen_size: Rect(Point2D(Au(0), Au(0)), screen_size),
+        }
+    }
+
     fn handle_request(&mut self) -> bool {
         match self.from_script.recv() {
             AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet),
-            BuildMsg(data) => {
+            ReflowMsg(data) => {
                 let data = Cell(data);
 
                 do profile(time::LayoutPerformCategory, self.profiler_chan.clone()) {
-                    self.handle_build(data.take());
+                    self.handle_reflow(data.take());
                 }
             }
             QueryMsg(query, chan) => {
@@ -135,10 +155,10 @@ impl Layout {
     }
 
     /// The high-level routine that performs layout tasks.
-    fn handle_build(&mut self, data: &BuildData) {
+    fn handle_reflow(&mut self, data: &Reflow) {
         // FIXME: Isolate this transmutation into a "bridge" module.
         let node: &AbstractNode<LayoutView> = unsafe {
-            transmute(&data.node)
+            transmute(&data.document_root)
         };
 
         // FIXME: Bad copy!
@@ -149,20 +169,16 @@ impl Layout {
         debug!("layout: damage is %?", data.damage);
         debug!("layout: parsed Node tree");
         debug!("%?", node.dump());
-
         // Reset the image cache.
         self.local_image_cache.next_round(self.make_on_image_available_cb(script_chan));
 
+        self.doc_url = Some(doc_url);
         let screen_size = Size2D(Au::from_px(data.window_size.width as int),
                                  Au::from_px(data.window_size.height as int));
+        self.screen_size = Some(screen_size);
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_ctx = LayoutContext {
-            image_cache: self.local_image_cache,
-            font_ctx: self.font_ctx,
-            doc_url: doc_url,
-            screen_size: Rect(Point2D(Au(0), Au(0)), screen_size)
-        };
+        let mut layout_ctx = self.build_layout_context();
 
         // Initialize layout data for each node.
         //
@@ -172,9 +188,9 @@ impl Layout {
         }
 
         // Perform CSS selector matching if necessary.
-        match data.damage {
-            NoDamage | ReflowDamage => {}
-            MatchSelectorsDamage => {
+        match data.damage.level {
+            ReflowDocumentDamage => {}
+            MatchSelectorsDocumentDamage => {
                 do profile(time::LayoutSelectorMatchCategory, self.profiler_chan.clone()) {
                     node.restyle_subtree(self.css_select_ctx);
                 }
@@ -210,25 +226,31 @@ impl Layout {
             };
         }
 
-        // Build the display list, and send it to the renderer.
-        do profile(time::LayoutDispListBuildCategory, self.profiler_chan.clone()) {
-            let builder = DisplayListBuilder {
-                ctx: &layout_ctx,
-            };
+        // Build the display list if necessary, and send it to the renderer.
+        if data.goal == ReflowForDisplay {
+            do profile(time::LayoutDispListBuildCategory, self.profiler_chan.clone()) {
+                let builder = DisplayListBuilder {
+                    ctx: &layout_ctx,
+                };
 
-            let display_list = @Cell(DisplayList::new());
-            
-            // TODO: Set options on the builder before building.
-            // TODO: Be smarter about what needs painting.
-            layout_root.build_display_list(&builder, &layout_root.position(), display_list);
+                let display_list = @Cell(DisplayList::new());
 
-            let render_layer = RenderLayer {
-                display_list: display_list.take(),
-                size: Size2D(screen_size.width.to_px() as uint, screen_size.height.to_px() as uint)
-            };
+                // TODO: Set options on the builder before building.
+                // TODO: Be smarter about what needs painting.
+                layout_root.build_display_list(&builder, &layout_root.position(), display_list);
 
-            self.render_task.channel.send(RenderMsg(render_layer));
-        } // time(layout: display list building)
+                let root_size = do layout_root.with_base |base| {
+                    base.position.size
+                };
+
+                let render_layer = RenderLayer {
+                    display_list: display_list.take(),
+                    size: Size2D(root_size.width.to_px() as uint, root_size.height.to_px() as uint)
+                };
+
+                self.render_task.channel.send(RenderMsg(render_layer));
+            } // time(layout: display list building)
+        }
 
         debug!("%?", layout_root.dump());
 
@@ -287,6 +309,55 @@ impl Layout {
                         }
 
                         Ok(ContentBoxesResponse(boxes))
+                    }
+                };
+
+                reply_chan.send(response)
+            }
+            HitTestQuery(node, point) => {
+                // FIXME: Isolate this transmutation into a single "bridge" module.
+                let node: AbstractNode<LayoutView> = unsafe {
+                    transmute(node)
+                };
+                let mut flow_node: AbstractNode<LayoutView> = node;
+                for node.traverse_preorder |node| {
+                    if node.layout_data().flow.is_some() {
+                        flow_node = node;
+                        break;
+                    }
+                };
+
+                let response = match flow_node.layout_data().flow {
+                    None => {
+                        debug!("HitTestQuery: flow is None");
+                        Err(())
+                    }
+                    Some(flow) => {
+                        let layout_ctx = self.build_layout_context();
+                        let builder = DisplayListBuilder {
+                            ctx: &layout_ctx,
+                        };
+                        let display_list: @Cell<DisplayList<RenderBox>> =
+                            @Cell(DisplayList::new());
+                        flow.build_display_list(&builder,
+                                                &flow.position(),
+                                                display_list);
+                        // iterate in reverse to ensure we have the most recently painted render box
+                        let (x, y) = (Au::from_frac_px(point.x as float),
+                                      Au::from_frac_px(point.y as float));
+                        let mut resp = Err(());
+                        let display_list = &display_list.take().list;
+                        for display_list.each_reverse |display_item| {
+                            let bounds = display_item.bounds();
+                            if x <= bounds.origin.x + bounds.size.width &&
+                               bounds.origin.x <= x &&
+                               y < bounds.origin.y + bounds.size.height &&
+                               bounds.origin.y <  y {
+                                resp = Ok(HitTestResponse(display_item.base().extra.node()));
+                                break;
+                            }
+                        }
+                        resp
                     }
                 };
 

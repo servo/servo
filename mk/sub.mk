@@ -3,6 +3,12 @@ SLOW_TESTS += \
 	mozjs \
 	$(NULL)
 
+# Tests for these submodules do not exist.
+NO_TESTS += \
+	nspr \
+	nss \
+	$(NULL)
+
 # These submodules will not be cleaned by the `make clean-fast` target.
 SLOW_BUILDS += \
 	libcss \
@@ -21,6 +27,8 @@ NATIVE_BUILDS += \
 	libwapcaplet \
 	mozjs \
 	skia \
+	nss \
+	nspr \
 	$(NULL)
 
 # NOTE: the make magic can only compute transitive build dependencies,
@@ -40,6 +48,7 @@ DEPS_rust-glut += \
 
 DEPS_rust-layers += \
 	rust-azure \
+	rust-cocoa \
 	rust-geom \
 	rust-glut \
 	rust-opengles \
@@ -127,6 +136,10 @@ DEPS_rust-layers += \
 	rust-core-graphics \
 	rust-core-text \
 	$(NULL)
+
+DEPS_rust-glut += \
+    rust-cocoa \
+    $(NULL)
 
 endif
 
