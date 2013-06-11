@@ -466,7 +466,7 @@ pub impl LayoutTreeBuilder {
                             }
                         }
                         if (do_remove) { 
-                            parent_flow.remove_child(*first_flow);
+                            (*parent_flow).remove_child(*first_flow);
                         }
                     }
                 }
@@ -489,7 +489,7 @@ pub impl LayoutTreeBuilder {
                             }
                         }
                         if (do_remove) {
-                            parent_flow.remove_child(*last_flow);
+                            (*parent_flow).remove_child(*last_flow);
                         }
                     }
                 }
