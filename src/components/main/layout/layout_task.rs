@@ -252,6 +252,8 @@ impl Layout {
             } // time(layout: display list building)
         }
 
+        debug!("%?", layout_root.dump());
+
         // Tell script that we're done.
         data.script_join_chan.send(());
     }
