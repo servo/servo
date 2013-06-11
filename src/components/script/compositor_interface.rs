@@ -8,12 +8,12 @@
 pub enum ReadyState {
     /// Informs the compositor that a page is loading. Used for setting status
     Loading,
-    /// Informs the compositor that a page is rendering. Used for setting status
-    Rendering,
+    /// Informs the compositor that a page is performing layout. Used for setting status
+    PerformingLayout,
     /// Informs the compositor that a page is finished loading. Used for setting status
     FinishedLoading,
 }
 
-pub trait CompositorInterface: Clone {
-    fn send_compositor_msg(&self, ReadyState);
+pub trait CompositorInterface : Clone {
+    fn set_ready_state(&self, ReadyState);
 }

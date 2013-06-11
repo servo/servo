@@ -78,7 +78,7 @@ impl Engine {
                                               script_chan.take(),
                                               engine_chan_clone.clone(),
                                               |msg: ReadyState| {
-                                                  compositor_clone.send_compositor_msg(msg)
+                                                  compositor_clone.set_ready_state(msg)
                                               },
                                               layout_task.clone(),
                                               resource_task.clone(),

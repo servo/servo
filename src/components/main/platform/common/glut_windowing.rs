@@ -16,10 +16,11 @@ use core::cell::Cell;
 use core::libc::c_int;
 use geom::point::Point2D;
 use geom::size::Size2D;
+use gfx::compositor::{IdleRenderState, RenderState, RenderingRenderState};
 use glut::glut::{ACTIVE_CTRL, DOUBLE, HAVE_PRECISE_MOUSE_WHEEL, WindowHeight, WindowWidth};
 use glut::glut;
 use glut::machack;
-use script::compositor_interface::{FinishedLoading, Loading, Rendering, ReadyState};
+use script::compositor_interface::{FinishedLoading, Loading, PerformingLayout, ReadyState};
 
 static THROBBER: [char, ..8] = [ '⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷' ];
 
@@ -51,6 +52,7 @@ pub struct Window {
     mouse_down_point: @mut Point2D<c_int>,
 
     ready_state: ReadyState,
+    render_state: RenderState,
     throbber_frame: u8,
 }
 
@@ -78,6 +80,7 @@ impl WindowMethods<Application> for Window {
             mouse_down_point: @mut Point2D(0, 0),
 
             ready_state: FinishedLoading,
+            render_state: IdleRenderState,
             throbber_frame: 0,
         };
 
@@ -190,6 +193,12 @@ impl WindowMethods<Application> for Window {
         self.ready_state = ready_state;
         self.update_window_title()
     }
+
+    /// Sets the render state.
+    pub fn set_render_state(@mut self, render_state: RenderState) {
+        self.render_state = render_state;
+        self.update_window_title()
+    }
 }
 
 impl Window {
@@ -200,10 +209,19 @@ impl Window {
             Loading => {
                 glut::set_window_title(self.glut_window, fmt!("%c Loading — Servo", throbber))
             }
-            Rendering => {
-                glut::set_window_title(self.glut_window, fmt!("%c Rendering — Servo", throbber))
+            PerformingLayout => {
+                glut::set_window_title(self.glut_window,
+                                       fmt!("%c Performing Layout — Servo", throbber))
             }
-            FinishedLoading => glut::set_window_title(self.glut_window, "Servo"),
+            FinishedLoading => {
+                match self.render_state {
+                    RenderingRenderState => {
+                        glut::set_window_title(self.glut_window,
+                                               fmt!("%c Rendering — Servo", throbber))
+                    }
+                    IdleRenderState => glut::set_window_title(self.glut_window, "Servo"),
+                }
+            }
         }
     }
 

@@ -5,7 +5,7 @@
 // The task that handles all rendering/painting.
 
 use azure::AzFloat;
-use compositor::Compositor;
+use compositor::{Compositor, IdleRenderState, RenderingRenderState};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use opts::Opts;
@@ -122,6 +122,7 @@ impl<C: Compositor + Owned> Renderer<C> {
 
     fn render(&mut self, render_layer: RenderLayer) {
         debug!("renderer: rendering");
+        self.compositor.set_render_state(RenderingRenderState);
         do profile(time::RenderingCategory, self.profiler_chan.clone()) {
             let layer_buffer_set = do render_layers(&render_layer,
                                                     &self.opts,
@@ -168,6 +169,7 @@ impl<C: Compositor + Owned> Renderer<C> {
 
             debug!("renderer: returning surface");
             self.compositor.paint(layer_buffer_set, render_layer.size);
+            self.compositor.set_render_state(IdleRenderState);
         }
     }
 }

@@ -5,7 +5,7 @@
 /// The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 /// and layout tasks.
 
-use compositor_interface::{ReadyState, Loading, Rendering, FinishedLoading};
+use compositor_interface::{ReadyState, Loading, PerformingLayout, FinishedLoading};
 use dom::bindings::utils::GlobalStaticData;
 use dom::document::Document;
 use dom::element::Element;
@@ -54,6 +54,8 @@ pub enum ScriptMsg {
     SendEventMsg(Event),
     /// Fires a JavaScript timeout.
     FireTimerMsg(~TimerData),
+    /// Notifies script that reflow is finished.
+    ReflowCompleteMsg,
     /// Exits the engine.
     ExitMsg,
 }
@@ -262,6 +264,10 @@ impl ScriptContext {
                 self.handle_fire_timer_msg(timer_data);
                 true
             }
+            ReflowCompleteMsg => {
+                self.handle_reflow_complete_msg();
+                true
+            }
             ExitMsg => {
                 self.handle_exit_msg();
                 false
@@ -306,6 +312,12 @@ impl ScriptContext {
         self.reflow(ReflowForScriptQuery)
     }
 
+    /// Handles a notification that reflow completed.
+    fn handle_reflow_complete_msg(&mut self) {
+        self.layout_join_port = None;
+        self.set_ready_state(FinishedLoading)
+    }
+
     /// Handles a request to exit the script task and shut down layout.
     fn handle_exit_msg(&mut self) {
         self.join_layout();
@@ -318,7 +330,7 @@ impl ScriptContext {
 
     // tells the compositor when loading starts and finishes
     // FIXME ~compositor_interface doesn't work right now, which is why this is necessary
-    fn send_compositor_msg(&self, msg: ReadyState) {
+    fn set_ready_state(&self, msg: ReadyState) {
         (self.compositor_task)(msg);
     }
 
@@ -333,7 +345,7 @@ impl ScriptContext {
             self.bindings_initialized = true
         }
 
-        self.send_compositor_msg(Loading);
+        self.set_ready_state(Loading);
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
@@ -374,7 +386,6 @@ impl ScriptContext {
             url: url
         });
 
-        self.send_compositor_msg(Rendering);
         // Perform the initial reflow.
         self.damage = Some(DocumentDamage {
             root: root_node,
@@ -392,7 +403,6 @@ impl ScriptContext {
                                                     ~"???",
                                                     1);
         }
-        self.send_compositor_msg(FinishedLoading);
     }
 
     /// Sends a ping to layout and waits for the response. The response will arrive when the
@@ -426,6 +436,9 @@ impl ScriptContext {
         // Now, join the layout so that they will see the latest changes we have made.
         self.join_layout();
 
+        // Tell the user that we're performing layout.
+        self.set_ready_state(PerformingLayout);
+
         // Layout will let us know when it's done.
         let (join_port, join_chan) = comm::stream();
         self.layout_join_port = Some(join_port);
@@ -438,8 +451,8 @@ impl ScriptContext {
                     document_root: root_frame.document.root,
                     url: copy root_frame.url,
                     goal: goal,
-                    script_chan: self.script_chan.clone(),
                     window_size: self.window_size,
+                    script_chan: self.script_chan.clone(),
                     script_join_chan: join_chan,
                     damage: replace(&mut self.damage, None).unwrap(),
                 };

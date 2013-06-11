@@ -6,6 +6,7 @@
 
 use geom::point::Point2D;
 use geom::size::Size2D;
+use gfx::compositor::RenderState;
 use script::compositor_interface::ReadyState;
 
 pub enum WindowMouseEvent {
@@ -64,5 +65,7 @@ pub trait WindowMethods<A> {
     pub fn set_needs_display(@mut self);
     /// Sets the ready state of the current page.
     pub fn set_ready_state(@mut self, ready_state: ReadyState);
+    /// Sets the render state of the current page.
+    pub fn set_render_state(@mut self, render_state: RenderState);
 }
 
