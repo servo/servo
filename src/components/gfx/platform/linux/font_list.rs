@@ -125,6 +125,10 @@ pub impl FontListHandle {
             FcObjectSetDestroy(object_set);
         }
     }
+
+    fn get_last_resort_font_families() -> ~[~str] {
+        ~[~"Arial"]
+    }
 }
 
 struct AutoPattern {
