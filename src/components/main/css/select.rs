@@ -124,6 +124,8 @@ ul, ol, dl    { page-break-before: avoid }
 
 /* Servo additions */
 :link           { color: blue }
+script          { display: none }
+style           { display: none }
 "
 }
 
