@@ -1,0 +1,212 @@
+use geom::point::Point2D;
+use geom::size::Size2D;
+use geom::rect::Rect;
+use gfx::geometry::{Au, max, min};
+use core::util::replace;
+
+enum FloatType{
+    FloatLeft,
+    FloatRight
+}
+
+priv struct FloatContextBase{
+    float_data: ~[Option<FloatData>],
+    floats_used: uint,
+    max_y : Au,
+    offset: Point2D<Au>
+}
+
+priv struct FloatData{
+    bounds: Rect<Au>,
+    f_type: FloatType
+}
+
+/// All information necessary to place a float
+struct PlacementInfo{
+    width: Au,      // The dimensions of the float
+    height: Au,
+    ceiling: Au,    // The minimum top of the float, as determined by earlier elements
+    max_width: Au,  // The maximum right of the float, generally determined by the contining block
+    f_type: FloatType // left or right
+}
+
+/// Wrappers around float methods. To avoid allocating data we'll never use,
+/// destroy the context on modification.
+enum FloatContext {
+    Invalid,
+    Valid(FloatContextBase)
+}
+
+impl FloatContext {
+    fn new(num_floats: uint) -> FloatContext {
+        Valid(FloatContextBase::new(num_floats))
+    }
+
+    #[inline(always)]
+    priv fn with_base<R>(&mut self, callback: &fn(&mut FloatContextBase) -> R) -> R {
+        match *self {
+            Invalid => fail!("Float context no longer available"),
+            Valid(ref mut base) => callback(base)
+        }
+    }
+
+    #[inline(always)]
+    fn with_base<R>(&self, callback: &fn(&FloatContextBase) -> R) -> R {
+        match *self {
+            Invalid => fail!("Float context no longer available"),
+            Valid(ref base) => callback(base)
+        }
+    }
+
+    #[inline(always)]
+    fn translate(&mut self, trans: Point2D<Au>) -> FloatContext {
+        do self.with_base |base| {
+            base.translate(trans);
+        }
+        replace(self, Invalid)
+    }
+
+    #[inline(always)]
+    fn available_rect(&mut self, top: Au, height: Au, max_x: Au) -> Option<Rect<Au>> {
+        do self.with_base |base| {
+            base.available_rect(top, height, max_x)
+        }
+    }
+
+    #[inline(always)]
+    fn add_float(&mut self, info: &PlacementInfo) -> FloatContext{
+        do self.with_base |base| {
+            base.add_float(info);
+        }
+        replace(self, Invalid)
+    }
+}
+
+impl FloatContextBase{
+    fn new(num_floats: uint) -> FloatContextBase {
+        let new_data = do vec::build_sized(num_floats) |push_fun| {
+            push_fun(None);
+        };
+        FloatContextBase {
+            float_data: new_data,
+            floats_used: 0,
+            max_y: Au(0),
+            offset: Point2D(Au(0), Au(0))
+        }
+    }
+
+    fn translate(&mut self, trans: Point2D<Au>) {
+        self.offset += trans;
+    }
+
+    /// Returns a rectangle that encloses the region from top to top + height,
+    /// with width small enough that it doesn't collide with any floats. max_x
+    /// is the x-coordinate beyond which floats have no effect (generally 
+    /// this is the containing block width).
+    fn available_rect(&self, top: Au, height: Au, max_x: Au) -> Option<Rect<Au>> {
+        fn range_intersect(top_1: Au, bottom_1: Au, top_2: Au, bottom_2: Au) -> (Au, Au) {
+            (max(top_1, top_2), min(bottom_1, bottom_2))
+        }
+
+        // Relevant dimensions for the right-most left float
+        let mut (max_left, l_top, l_bottom) = (Au(0) - self.offset.x, None, None);
+        // Relevant dimensions for the left-most right float
+        let mut (min_right, r_top, r_bottom) = (max_x - self.offset.x, None, None);
+
+        // Find the float collisions for the given vertical range.
+        for self.float_data.each |float| {
+            match *float{
+                None => (),
+                Some(data) => {
+                    let float_pos = data.bounds.origin;
+                    let float_size = data.bounds.size;
+                    match data.f_type {
+                        FloatLeft => {
+                            if(float_pos.x + float_size.width > max_left && 
+                               float_pos.y + float_size.height > top && float_pos.y < top + height) {
+                                max_left = float_pos.x + float_size.width;
+                            
+                                l_top = Some(float_pos.y);
+                                l_bottom = Some(float_pos.y + float_size.height);
+                            }
+                        }
+                        FloatRight => {
+                            if(float_pos.x < min_right && 
+                               float_pos.y + float_size.height > top && float_pos.y < top + height) {
+                                min_right = float_pos.x;
+
+                                r_top = Some(float_pos.y);
+                                r_bottom = Some(float_pos.y + float_size.height);
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        // Extend the vertical range of the rectangle to the closest floats.
+        // If there are floats on both sides, take the intersection of the
+        // two areas.
+        let (top, bottom) = match (r_top, r_bottom, l_top, l_bottom) {
+            (Some(r_top), Some(r_bottom), Some(l_top), Some(l_bottom)) => 
+                range_intersect(r_top, r_bottom, l_top, l_bottom),
+
+            (None, None, Some(l_top), Some(l_bottom)) => (l_top, l_bottom),
+            (Some(r_top), Some(r_bottom), None, None) => (r_top, r_bottom),
+            (None, None, None, None) => return None,
+            _ => fail!("Reached unreachable state when computing float area")
+        };
+        assert!(max_left < min_right, "Float position error");
+        assert!(top < bottom, "Float position error");
+
+        Some(Rect{
+            origin: Point2D(max_left, top) + self.offset,
+            size: Size2D(min_right - max_left, bottom - top)
+        })
+    }
+
+    fn add_float(&mut self, info: &PlacementInfo) {
+        assert!(self.floats_used < self.float_data.len() && 
+                self.float_data[self.floats_used].is_none());
+
+        let new_float = FloatData {    
+            bounds: Rect {
+                origin: self.place_float(info) - self.offset,
+                size: Size2D(info.width, info.height)
+            },
+            f_type: info.f_type
+        };
+        self.float_data[self.floats_used] = Some(new_float);
+    }
+
+    /// Given necessary info, finds the position of the float in
+    /// LOCAL COORDINATES. i.e. must be translated before placed
+    /// in the float list
+    fn place_float(&self, info: &PlacementInfo) -> Point2D<Au>{
+        // Can't go any higher than previous floats or
+        // previous elements in the document.
+        let mut float_y = max(info.ceiling, self.max_y);
+        loop {
+            let maybe_location = self.available_rect(float_y, info.height, info.max_width);
+            match maybe_location {
+                // If there are no floats blocking us, return the current location
+                // TODO(eatknson): integrate with overflow
+                None => return Point2D(Au(0), float_y),
+                Some(rect) => {
+                    assert!(rect.origin.y + rect.size.height != float_y, 
+                            "Non-terminating float placement");
+                    
+                    // Place here if there is enough room
+                    if (rect.size.width >= info.width) {
+                        return Point2D(rect.origin.x, float_y);
+                    }
+
+                    // Try to place at the next-lowest location.
+                    // Need to be careful of fencepost errors.
+                    float_y = rect.origin.y + rect.size.height;
+                }
+            }
+        }
+    }
+}
+
