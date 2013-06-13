@@ -8,7 +8,21 @@
 use core::comm::{Chan, SharedChan};
 use std::net::url::Url;
 
-pub type EngineTask = SharedChan<Msg>;
+#[deriving(Clone)]
+pub struct EngineChan {
+    chan: SharedChan<Msg>,
+}
+
+impl EngineChan {
+    pub fn new(chan: Chan<Msg>) -> EngineChan {
+        EngineChan {
+            chan: SharedChan::new(chan),
+        }
+    }
+    pub fn send(&self, msg: Msg) {
+        self.chan.send(msg);
+    }
+}
 
 pub enum Msg {
     LoadUrlMsg(Url),

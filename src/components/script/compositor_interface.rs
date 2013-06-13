@@ -14,6 +14,6 @@ pub enum ReadyState {
     FinishedLoading,
 }
 
-pub trait CompositorInterface : Clone {
+pub trait ScriptListener : Clone {
     fn set_ready_state(&self, ReadyState);
 }
