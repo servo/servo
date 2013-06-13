@@ -23,3 +23,4 @@ src/components/script/dom/bindings/codegen/test/*.rs
 src/components/script/dom/bindings/codegen/PrototypeList.h
 src/components/script/dom/bindings/codegen/UnionTypes.h
 src/components/script/dom/bindings/codegen/UnionConversions.h
+src/support/nss/dist

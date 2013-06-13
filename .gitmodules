@@ -91,6 +91,8 @@
 [submodule "src/support/nss/nss"]
 	path = src/support/nss/nss
 	url = git://github.com/mozilla-servo/nss.git
+        ignore = untracked
 [submodule "src/support/nss/nspr"]
 	path = src/support/nss/nspr
 	url = git://github.com/mozilla-servo/nspr.git
+        ignore = untracked
