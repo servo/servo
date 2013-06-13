@@ -151,7 +151,6 @@ impl ProfilerContext {
                 match self.buckets[category as uint] {
                     (_, ref mut data) => {
                         data.push(t);
-                        tim_sort(*data);
                     }
                 }
 
@@ -171,17 +170,21 @@ impl ProfilerContext {
         println(fmt!("%31s %15s %15s %15s %15s %15s",
                          "_category (ms)_", "_mean (ms)_", "_median (ms)_",
                          "_min (ms)_", "_max (ms)_", "_bucket size_"));
-        for self.buckets.each |bucket| {
-            let &(category, data) = bucket;
-            let data_len = data.len();
-            if data_len > 0 {
-                let (mean, median, min, max) =
-                    (data.foldl(0f64, |a, b| a + *b) / (data_len as f64),
-                     data[data_len / 2],
-                     data.min(),
-                     data.max());
-                println(fmt!("%-30s: %15.4? %15.4? %15.4? %15.4? %15u",
-                             category.format(), mean, median, min, max, data_len));
+        for vec::each_mut(self.buckets) |bucket| {
+            match *bucket {
+                (category, ref mut data) => {
+                    tim_sort(*data);
+                    let data_len = data.len();
+                    if data_len > 0 {
+                        let (mean, median, min, max) =
+                            (data.foldl(0f64, |a, b| a + *b) / (data_len as f64),
+                             data[data_len / 2],
+                             data.min(),
+                             data.max());
+                        println(fmt!("%-30s: %15.4? %15.4? %15.4? %15.4? %15u",
+                                     category.format(), mean, median, min, max, data_len));
+                    }
+                }
             }
         }
         println("");

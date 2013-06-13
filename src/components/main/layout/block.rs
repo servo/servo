@@ -206,11 +206,10 @@ impl BlockFlowData {
                      MaybeAuto::from_margin(style.margin_left(), remaining_width),
                      MaybeAuto::from_margin(style.margin_right(), remaining_width));
 
-                // FIXME(pcwalton): We discard the width here. Is that correct?
-                let (_, margin_left, margin_right) = self.compute_horiz(width,
-                                                                        margin_left,
-                                                                        margin_right,
-                                                                        available_width);
+                let (width, margin_left, margin_right) = self.compute_horiz(width,
+                                                                            margin_left,
+                                                                            margin_right,
+                                                                            available_width);
 
                 model.margin.top = margin_top;
                 model.margin.right = margin_right;
