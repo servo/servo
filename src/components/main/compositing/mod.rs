@@ -131,8 +131,7 @@ impl CompositorTask {
         }
     }
 
-    /// Starts the compositor. Returns an interface that can be used to communicate with the
-    /// compositor
+    /// Starts the compositor, which listens for messages on the specified port. 
     pub fn create_compositor_task(port: Port<Msg>,
                                   profiler_chan: ProfilerChan,
                                   shutdown_chan: Chan<()>) {
