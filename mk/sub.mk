@@ -38,6 +38,9 @@ NATIVE_BUILDS += \
 # NB. This should not be a problem once a real package system exists.
 
 DEPS_rust-azure += \
+	rust-opengles \
+	rust-layers \
+	rust-glut \
 	rust-geom \
 	skia \
 	$(NULL)
@@ -47,12 +50,9 @@ DEPS_rust-glut += \
 	$(NULL)
 
 DEPS_rust-layers += \
-	rust-azure \
-	rust-cocoa \
 	rust-geom \
 	rust-glut \
 	rust-opengles \
-	skia \
 	$(NULL)
 
 DEPS_sharegl += \
@@ -105,7 +105,7 @@ DEPS_rust-azure += \
 	rust-core-graphics \
 	rust-core-text \
 	rust-core-foundation \
-	skia \
+	rust-cocoa \
 	$(NULL)
 
 DEPS_rust-io-surface += \
@@ -135,6 +135,7 @@ DEPS_rust-layers += \
 	rust-core-foundation \
 	rust-core-graphics \
 	rust-core-text \
+	rust-cocoa \
 	$(NULL)
 
 DEPS_rust-glut += \
