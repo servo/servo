@@ -19,7 +19,7 @@ use script::script_task;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
-use servo_util::time::{ProfilerChan, ForcePrintMsg};
+use servo_util::time::{ProfilerChan};
 
 pub struct Engine {
     request_port: Port<Msg>,
@@ -34,7 +34,7 @@ pub struct Engine {
 
 impl Drop for Engine {
     fn finalize(&self) {
-        self.profiler_chan.send(ForcePrintMsg);
+        //self.profiler_chan.send(ForcePrintMsg);
     }
 }
 

@@ -50,16 +50,14 @@ pub enum ProfilerMsg {
     // Normal message used for reporting time
     TimeMsg(ProfilerCategory, f64),
     // Message used to force print the profiling metrics
-    ForcePrintMsg,
+    PrintMsg,
 }
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct Profiler {
     port: Port<ProfilerMsg>,
     buckets: ~[(ProfilerCategory, ~[f64])],
-    verbose: bool,
-    period: f64,
-    last_print: f64,
+    last_msg: Option<ProfilerMsg>,
 }
 
 impl ProfilerCategory {
@@ -112,25 +110,19 @@ impl ProfilerCategory {
 }
 
 impl Profiler {
-    pub fn create_profiler(port: Port<ProfilerMsg>, period: Option<f64>) {
+    pub fn create_profiler(port: Port<ProfilerMsg>) {
         let port = Cell(port);
         do spawn {
-            let mut profiler = Profiler::new(port.take(), period);
+            let mut profiler = Profiler::new(port.take());
             profiler.start();
         }
     }
 
-    pub fn new(port: Port<ProfilerMsg>, period: Option<f64>) -> Profiler {
-        let (verbose, period) = match period {
-            Some(period) => (true, period),
-            None => (false, 0f64)
-        };
+    pub fn new(port: Port<ProfilerMsg>) -> Profiler {
         Profiler {
             port: port,
             buckets: ProfilerCategory::empty_buckets(),
-            verbose: verbose,
-            period: period,
-            last_print: 0f64,
+            last_msg: None,
         }
     }
 
@@ -143,25 +135,19 @@ impl Profiler {
 
     priv fn handle_msg(&mut self, msg: ProfilerMsg) {
         match msg {
-            TimeMsg(category, t) => {
+            TimeMsg(category, t) => match self.buckets[category as uint] {
                 // FIXME(#3874): this should be a let (cat, ref mut bucket) = ...,
                 // not a match
-                match self.buckets[category as uint] {
-                    (_, ref mut data) => {
-                        data.push(t);
-                    }
+                (_, ref mut data) => {
+                    data.push(t);
                 }
-
-                if self.verbose {
-                    let cur_time = precise_time_ns() as f64 / 1000000000f64;
-                    if cur_time - self.last_print > self.period {
-                        self.last_print = cur_time;
-                        self.print_buckets();
-                    }
-                }
-            }
-            ForcePrintMsg => self.print_buckets(),
+            },
+            PrintMsg => match self.last_msg {
+                Some(TimeMsg(*)) => self.print_buckets(),
+                _ => {}
+            },
         };
+        self.last_msg = Some(msg);
     }
 
     priv fn print_buckets(&mut self) {

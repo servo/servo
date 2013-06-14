@@ -40,7 +40,8 @@ use script::engine_interface::{ExitMsg, LoadUrlMsg};
 use gfx::opts;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
-use servo_util::time::{Profiler, ProfilerChan};
+use servo_util::time::{Profiler, ProfilerChan, PrintMsg};
+use std::uv_global_loop;
 
 pub use gfx::opts::Opts;
 pub use gfx::text;
@@ -92,7 +93,18 @@ fn run(opts: &Opts) {
     // Create the profiler channel.
     let (profiler_port, profiler_chan) = comm::stream();
     let profiler_chan = ProfilerChan::new(profiler_chan);
-    Profiler::create_profiler(profiler_port, opts.profiler_period);
+    Profiler::create_profiler(profiler_port);
+    do opts.profiler_period.map |period| {
+        let profiler_chan = profiler_chan.clone();
+        let period = *period;
+        do spawn {
+            loop {
+                std::timer::sleep(&uv_global_loop::get(),
+                                  (period * 1000f64) as uint);
+                profiler_chan.send(PrintMsg);
+            }
+        }
+    };
 
     // Create the compositor.
     let (compositor_port, compositor_chan) = comm::stream();
