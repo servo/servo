@@ -22,14 +22,10 @@ use newcss::values::{CSSBorderWidthThick, CSSBorderWidthThin};
 use newcss::values::{CSSWidth, CSSWidthLength, CSSWidthPercentage, CSSWidthAuto};
 use newcss::values::{CSSMargin, CSSMarginLength, CSSMarginPercentage, CSSMarginAuto};
 use newcss::values::{CSSPadding, CSSPaddingLength, CSSPaddingPercentage};
-
 /// Encapsulates the borders, padding, and margins, which we collectively call the "box model".
 pub struct BoxModel {
-    /// The size of the borders.
     border: SideOffsets2D<Au>,
-    /// The size of the padding.
     padding: SideOffsets2D<Au>,
-    /// The size of the margins.
     margin: SideOffsets2D<Au>,
     /// The width of the content box.
     content_box_width: Au,
@@ -41,12 +37,12 @@ pub enum MaybeAuto {
     Specified(Au),
 }
 
-impl MaybeAuto {
-    pub fn from_margin(margin: CSSMargin) -> MaybeAuto{
+impl MaybeAuto{
+    pub fn from_margin(margin: CSSMargin, cb_width: Au) -> MaybeAuto{
         match margin {
             CSSMarginAuto => Auto,
             //FIXME(eatkinson): Compute percents properly
-            CSSMarginPercentage(_) => Specified(Au(0)),
+            CSSMarginPercentage(percent) => Specified(cb_width.scale_by(percent/100.0)),
             //FIXME(eatkinson): Compute pt and em values properly
             CSSMarginLength(Px(v)) | 
             CSSMarginLength(Pt(v)) | 
@@ -54,11 +50,10 @@ impl MaybeAuto {
         }
     }
 
-    pub fn from_width(width: CSSWidth) -> MaybeAuto{
+    pub fn from_width(width: CSSWidth, cb_width: Au) -> MaybeAuto{
         match width{
             CSSWidthAuto => Auto,
-            //FIXME(eatkinson): Compute percents properly
-            CSSWidthPercentage(_) => Specified(Au(0)),
+            CSSWidthPercentage(percent) => Specified(cb_width.scale_by(percent/100.0)),
             //FIXME(eatkinson): Compute pt and em values properly
             CSSWidthLength(Px(v)) | 
             CSSWidthLength(Pt(v)) | 
@@ -90,7 +85,7 @@ impl Zero for BoxModel {
 }
 
 impl BoxModel {
-    /// Populates the box model border parameters from the given computed style.
+    /// Populates the box model parameters from the given computed style.
     pub fn compute_borders(&mut self, style: CompleteStyle) {
         // Compute the borders.
         self.border.top = self.compute_border_width(style.border_top_width());
@@ -99,16 +94,11 @@ impl BoxModel {
         self.border.left = self.compute_border_width(style.border_left_width());
     }
 
-    /// Populates the box model padding parameters from the given computed style.
-    pub fn compute_padding(&mut self, style: CompleteStyle, content_box_width: Au) {
-        self.padding.top = self.compute_padding_length(style.padding_top(),
-                                                       content_box_width);
-        self.padding.right = self.compute_padding_length(style.padding_right(),
-                                                         content_box_width);
-        self.padding.bottom = self.compute_padding_length(style.padding_bottom(),
-                                                          content_box_width);
-        self.padding.left = self.compute_padding_length(style.padding_left(),
-                                                        content_box_width);
+    pub fn compute_padding(&mut self, style: CompleteStyle, cb_width: Au){
+        self.padding.top = self.compute_padding_length(style.padding_top(), cb_width);
+        self.padding.right = self.compute_padding_length(style.padding_right(), cb_width);
+        self.padding.bottom = self.compute_padding_length(style.padding_bottom(), cb_width);
+        self.padding.left = self.compute_padding_length(style.padding_left(), cb_width);
     }
 
     pub fn noncontent_width(&self) -> Au {
@@ -122,7 +112,7 @@ impl BoxModel {
     }
 
     /// Helper function to compute the border width in app units from the CSS border width.
-    fn compute_border_width(&self, width: CSSBorderWidth) -> Au {
+    priv fn compute_border_width(&self, width: CSSBorderWidth) -> Au {
         match width {
             CSSBorderWidthLength(Px(v)) |
             CSSBorderWidthLength(Em(v)) |
@@ -144,7 +134,7 @@ impl BoxModel {
                 // FIXME(eatkinson): Handle 'em' and 'pt' correctly
                 Au::from_frac_px(v)
             }
-            CSSPaddingPercentage(p) => content_box_width.scale_by(p)
+            CSSPaddingPercentage(p) => content_box_width.scale_by(p/100.0)
         }
     }
 }
@@ -174,12 +164,12 @@ impl RenderBox {
             let border_width = border.top;
             let bounds = Rect {
                 origin: Point2D {
-                    x: abs_bounds.origin.x,
-                    y: abs_bounds.origin.y,
+                    x: abs_bounds.origin.x + border_width.scale_by(0.5),
+                    y: abs_bounds.origin.y + border_width.scale_by(0.5),
                 },
                 size: Size2D {
-                    width: abs_bounds.size.width,
-                    height: abs_bounds.size.height
+                    width: abs_bounds.size.width - border_width,
+                    height: abs_bounds.size.height - border_width
                 }
             };
 

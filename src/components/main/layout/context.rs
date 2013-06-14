@@ -13,5 +13,5 @@ use servo_net::local_image_cache::LocalImageCache;
 pub struct LayoutContext {
     font_ctx: @mut FontContext,
     image_cache: @mut LocalImageCache,
-    screen_size: Rect<Au>,
+    screen_size: Rect<Au>
 }

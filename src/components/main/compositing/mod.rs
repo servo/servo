@@ -5,8 +5,13 @@
 use compositing::resize_rate_limiter::ResizeRateLimiter;
 use platform::{Application, Window};
 use script::script_task::{LoadMsg, ScriptMsg, SendEventMsg};
-use windowing::{ApplicationMethods, WindowMethods};
-use script::dom::event::ClickEvent;
+use windowing::{ApplicationMethods, WindowMethods, WindowMouseEvent, WindowClickEvent};
+use windowing::{WindowMouseDownEvent, WindowMouseUpEvent};
+
+use gfx::compositor::RenderState;
+use script::dom::event::{Event, ClickEvent, MouseDownEvent, MouseUpEvent};
+use script::compositor_interface::{ReadyState, CompositorInterface};
+use script::compositor_interface;
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods};
 use core::cell::Cell;
@@ -16,7 +21,7 @@ use core::util;
 use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::size::Size2D;
-use gfx::compositor::{Compositor, LayerBufferSet};
+use gfx::compositor::{Compositor, LayerBufferSet, RenderState};
 use layers::layers::{ARGB32Format, BasicImageData, ContainerLayer, ContainerLayerKind, Format};
 use layers::layers::{Image, ImageData, ImageLayer, ImageLayerKind, RGB24Format, WithDataFn};
 use layers::rendergl;
@@ -34,11 +39,17 @@ pub struct CompositorTask {
     chan: SharedChan<Msg>,
 }
 
+impl CompositorInterface for CompositorTask {
+    fn set_ready_state(&self, ready_state: ReadyState) {
+        let msg = ChangeReadyState(ready_state);
+        self.chan.send(msg);
+    }
+}
+
 impl CompositorTask {
     /// Starts the compositor. Returns an interface that can be used to communicate with the
     /// compositor and a port which allows notification when the compositor shuts down.
-    pub fn new(script_chan: SharedChan<ScriptMsg>,
-               profiler_chan: ProfilerChan)
+    pub fn new(script_chan: SharedChan<ScriptMsg>, profiler_chan: ProfilerChan)
                -> (CompositorTask, Port<()>) {
         let script_chan = Cell(script_chan);
         let (shutdown_port, shutdown_chan) = stream();
@@ -61,10 +72,14 @@ impl CompositorTask {
 
 /// Messages to the compositor.
 pub enum Msg {
-    /// Requests that the compositor paint the given layer buffer set for the given page size.
-    Paint(LayerBufferSet, Size2D<uint>),
     /// Requests that the compositor shut down.
     Exit,
+    /// Requests that the compositor paint the given layer buffer set for the given page size.
+    Paint(LayerBufferSet, Size2D<uint>),
+    /// Alerts the compositor to the current status of page loading.
+    ChangeReadyState(ReadyState),
+    /// Alerts the compositor to the current status of rendering.
+    ChangeRenderState(RenderState),
 }
 
 /// Azure surface wrapping to work with the layers infrastructure.
@@ -132,11 +147,13 @@ fn run_main_loop(port: Port<Msg>,
     let check_for_messages: @fn() = || {
         // Periodically check if the script task responded to our last resize event
         resize_rate_limiter.check_resize_response();
-
         // Handle messages
         while port.peek() {
             match port.recv() {
                 Exit => *done = true,
+
+                ChangeReadyState(ready_state) => window.set_ready_state(ready_state),
+                ChangeRenderState(render_state) => window.set_render_state(render_state),
 
                 Paint(new_layer_buffer_set, new_size) => {
                     debug!("osmain: received new frame");
@@ -186,7 +203,7 @@ fn run_main_loop(port: Port<Msg>,
                             Some(_) => fail!(~"found unexpected layer kind"),
                         };
 
-                        let origin = buffer.rect.origin;
+                        let origin = buffer.screen_pos.origin;
                         let origin = Point2D(origin.x as f32, origin.y as f32);
 
                         // Set the layer's transform.
@@ -236,12 +253,24 @@ fn run_main_loop(port: Port<Msg>,
 
     let script_chan_clone = script_chan.clone();
 
-    // When the user clicks, perform hit testing
-    do window.set_click_callback |layer_click_point| {
-        let world_click_point = layer_click_point + *world_offset;
-        debug!("osmain: clicked at %?", world_click_point);
-
-        script_chan_clone.send(SendEventMsg(ClickEvent(world_click_point)));
+    // When the user triggers a mouse event, perform appropriate hit testing
+    do window.set_mouse_callback |window_mouse_event: WindowMouseEvent| {
+        let event: Event;
+        let world_mouse_point = |layer_mouse_point: Point2D<f32>| {
+            layer_mouse_point + *world_offset
+        };
+        match window_mouse_event {
+            WindowClickEvent(button, layer_mouse_point) => {
+                event = ClickEvent(button, world_mouse_point(layer_mouse_point));
+            }
+            WindowMouseDownEvent(button, layer_mouse_point) => {
+                event = MouseDownEvent(button, world_mouse_point(layer_mouse_point));
+            }
+            WindowMouseUpEvent(button, layer_mouse_point) => {
+                event = MouseUpEvent(button, world_mouse_point(layer_mouse_point));
+            }
+        }
+        script_chan_clone.send(SendEventMsg(event));
     }
 
     // When the user scrolls, move the layer around.
@@ -276,12 +305,11 @@ fn run_main_loop(port: Port<Msg>,
 
 
     // When the user pinch-zooms, scale the layer
-    do window.set_zoom_callback |delta| {
-        let zoom_const = 0.01;
+    do window.set_zoom_callback |magnification| {
         let old_world_zoom = *world_zoom;
 
         // Determine zoom amount
-        *world_zoom = (*world_zoom + delta.y * zoom_const).max(&1.0);            
+        *world_zoom = (*world_zoom * magnification).max(&1.0);            
 
         // Update world offset
         let corner_to_center_x = world_offset.x + window_size.width as f32 / 2f32;
@@ -330,6 +358,9 @@ fn run_main_loop(port: Port<Msg>,
 impl Compositor for CompositorTask {
     fn paint(&self, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>) {
         self.chan.send(Paint(layer_buffer_set, new_size))
+    }
+    fn set_render_state(&self, render_state: RenderState) {
+        self.chan.send(ChangeRenderState(render_state))
     }
 }
 

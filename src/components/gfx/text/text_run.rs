@@ -6,6 +6,8 @@ use font_context::FontContext;
 use geometry::Au;
 use text::glyph::{BreakTypeNormal, GlyphStore};
 use font::{Font, FontDescriptor, RunMetrics};
+use servo_util::time;
+use servo_util::time::profile;
 use servo_util::range::Range;
 
 /// A text run.
@@ -44,7 +46,9 @@ pub impl<'self> TextRun {
     fn new(font: @mut Font, text: ~str, underline: bool) -> TextRun {
         let mut glyph_store = GlyphStore::new(str::char_len(text));
         TextRun::compute_potential_breaks(text, &mut glyph_store);
-        font.shape_text(text, &mut glyph_store);
+        do profile(time::LayoutShapingCategory, font.profiler_chan.clone()) {
+            font.shape_text(text, &mut glyph_store);
+        }
 
         let run = TextRun {
             text: text,

@@ -12,6 +12,8 @@ pub struct LayerBuffer {
     // The rect in the containing RenderLayer that this represents.
     rect: Rect<uint>,
 
+    screen_pos: Rect<uint>,
+
     // NB: stride is in pixels, like OpenGL GL_UNPACK_ROW_LENGTH.
     stride: uint
 }
@@ -22,9 +24,17 @@ pub struct LayerBufferSet {
     buffers: ~[LayerBuffer]
 }
 
+/// The status of the renderer.
+#[deriving(Eq)]
+pub enum RenderState {
+    IdleRenderState,
+    RenderingRenderState,
+}
+
 /// The interface used to by the renderer to acquire draw targets for each rendered frame and
 /// submit them to be drawn to the display.
 pub trait Compositor {
     fn paint(&self, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>);
+    fn set_render_state(&self, render_state: RenderState);
 }
 

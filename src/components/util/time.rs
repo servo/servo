@@ -6,62 +6,133 @@
 use std::time::precise_time_ns;
 use core::cell::Cell;
 use core::comm::{Port, SharedChan};
-use core::os::getenv;
+use std::sort::tim_sort;
 
+pub type ProfilerChan = SharedChan<ProfilerMsg>;
+pub type ProfilerPort = Port<ProfilerMsg>;
+
+#[deriving(Eq)]
 pub enum ProfilerCategory {
     CompositingCategory,
-    LayoutPerformCategory,
     LayoutQueryCategory,
+    LayoutPerformCategory,
     LayoutAuxInitCategory,
     LayoutSelectorMatchCategory,
     LayoutTreeBuilderCategory,
     LayoutMainCategory,
+    LayoutShapingCategory,
     LayoutDispListBuildCategory,
     GfxRegenAvailableFontsCategory,
     RenderingPrepBuffCategory,
     RenderingWaitSubtasksCategory,
     RenderingCategory,
+    // hackish but helps prevent errors when adding new categories
+    NUM_BUCKETS,
 }
-// change this whenever buckets are added/rm'd
-static NUM_BUCKETS: uint = 12;
+// FIXME(#5873) this should be initialized by a NUM_BUCKETS cast,
+static BUCKETS: uint = 13;
 
-pub type ProfilerChan = SharedChan<(ProfilerCategory, uint)>;
-pub type ProfilerPort = Port<(ProfilerCategory, uint)>;
+pub enum ProfilerMsg {
+    // Normal message used for reporting time
+    TimeMsg(ProfilerCategory, f64),
+    // Message used to force print the profiling metrics
+    ForcePrintMsg,
+}
+
+// front-end representation of the profiler used to communicate with the profiler context
 pub struct ProfilerTask {
     chan: ProfilerChan,
 }
 
+// back end of the profiler that handles data aggregation and performance metrics
+pub struct ProfilerContext {
+    port: ProfilerPort,
+    buckets: ~[(ProfilerCategory, ~[f64])],
+    verbose: bool,
+    period: f64,
+    last_print: f64,
+}
+
+impl ProfilerCategory {
+
+    // convenience function to not have to cast every time
+    pub fn num_buckets() -> uint {
+        NUM_BUCKETS as uint
+    }
+
+    // enumeration of all ProfilerCategory types
+    // FIXME(tkuehn): this is ugly and error-prone,
+    // but currently we lack better alternatives without an enum enumeration
+    priv fn empty_buckets() -> ~[(ProfilerCategory, ~[f64])] {
+        let mut vec = ~[];
+        vec.push((CompositingCategory, ~[]));
+        vec.push((LayoutQueryCategory, ~[]));
+        vec.push((LayoutPerformCategory, ~[]));
+        vec.push((LayoutAuxInitCategory, ~[]));
+        vec.push((LayoutSelectorMatchCategory, ~[]));
+        vec.push((LayoutTreeBuilderCategory, ~[]));
+        vec.push((LayoutMainCategory, ~[]));
+        vec.push((LayoutShapingCategory, ~[]));
+        vec.push((LayoutDispListBuildCategory, ~[]));
+        vec.push((GfxRegenAvailableFontsCategory, ~[]));
+        vec.push((RenderingPrepBuffCategory, ~[]));
+        vec.push((RenderingWaitSubtasksCategory, ~[]));
+        vec.push((RenderingCategory, ~[]));
+
+        ProfilerCategory::check_order(vec);
+        vec
+    }
+
+    priv fn check_order(vec: &[(ProfilerCategory, ~[f64])]) {
+        for vec.each |&(category, _)| {
+            if category != vec[category as uint].first() {
+                fail!("Enum category does not match bucket index. This is a bug.");
+            }
+        }
+    }
+
+    // some categories are subcategories of LayoutPerformCategory
+    // and should be printed to indicate this
+    pub fn format(self) -> ~str {
+        let padding = match self {
+            LayoutAuxInitCategory | LayoutSelectorMatchCategory | LayoutTreeBuilderCategory |
+            LayoutMainCategory | LayoutDispListBuildCategory | LayoutShapingCategory=> " - ",
+            _ => ""
+        };
+        fmt!("%s%?", padding, self)
+    }
+}
+
 impl ProfilerTask {
-    pub fn new(prof_port: ProfilerPort,
-               prof_chan: ProfilerChan)
+    pub fn new(profiler_port: ProfilerPort,
+               profiler_chan: ProfilerChan,
+               period: Option<f64>)
                -> ProfilerTask {
-        let prof_port = Cell(prof_port);
+        let profiler_port = Cell(profiler_port);
 
         do spawn {
-            let mut profiler_context = ProfilerContext::new(prof_port.take());
+            let mut profiler_context = ProfilerContext::new(profiler_port.take(), period);
             profiler_context.start();
         }
 
         ProfilerTask {
-            chan: prof_chan
+            chan: profiler_chan
         }
     }
 }
 
-pub struct ProfilerContext {
-    port: ProfilerPort,
-    buckets: [~[uint], ..NUM_BUCKETS],
-    verbose: Option<~str>,
-    mut last_print: u64,
-}
-
 impl ProfilerContext {
-    pub fn new(port: ProfilerPort) -> ProfilerContext {
+    pub fn new(port: ProfilerPort, period: Option<f64>) -> ProfilerContext {
+        let (verbose, period) = match period {
+            Some(period) => (true, period),
+            None => (false, 0f64)
+        };
         ProfilerContext {
             port: port,
-            buckets: [~[], ..NUM_BUCKETS],
-            verbose: getenv("SERVO_PROFILER"),
-            last_print: 0,
+            buckets: ProfilerCategory::empty_buckets(),
+            verbose: verbose,
+            period: period,
+            last_print: 0f64,
         }
     }
 
@@ -72,52 +143,64 @@ impl ProfilerContext {
         }
     }
 
-    priv fn handle_msg(&mut self, msg: (ProfilerCategory, uint)) {
-        let (prof_msg, t) = msg;
-        self.buckets[prof_msg as uint].push(t);
-        if self.verbose.is_some() {
-            let cur_time = precise_time_ns() / 1000000000u64;
-            if cur_time - self.last_print > 5 {
-                self.last_print = cur_time;
-                let mut i = 0;
-                for self.buckets.each |bucket| {
-                    let prof_msg = match i {
-                        // must be in same order as ProfilerCategory
-                        0 => CompositingCategory,
-                        1 => LayoutPerformCategory,
-                        2 => LayoutQueryCategory,
-                        3 => LayoutAuxInitCategory,
-                        4 => LayoutSelectorMatchCategory,
-                        5 => LayoutTreeBuilderCategory,
-                        6 => LayoutMainCategory,
-                        7 => LayoutDispListBuildCategory,
-                        8 => GfxRegenAvailableFontsCategory,
-                        9 => RenderingPrepBuffCategory,
-                        10 => RenderingWaitSubtasksCategory,
-                        11 => RenderingCategory,
-                        _ => fail!()
-                    };
-                    io::println(fmt!("%?: %f", prof_msg,
-                                 (bucket.foldl(0 as uint, |a, b| a + *b) as float) / 
-                                 (bucket.len() as float)));
-                    i += 1;
+    priv fn handle_msg(&mut self, msg: ProfilerMsg) {
+        match msg {
+            TimeMsg(category, t) => {
+                // FIXME(#3874): this should be a let (cat, ref mut bucket) = ...,
+                // not a match
+                match self.buckets[category as uint] {
+                    (_, ref mut data) => {
+                        data.push(t);
+                    }
                 }
-                io::println("");
+
+                if self.verbose {
+                    let cur_time = precise_time_ns() as f64 / 1000000000f64;
+                    if cur_time - self.last_print > self.period {
+                        self.last_print = cur_time;
+                        self.print_buckets();
+                    }
+                }
+            }
+            ForcePrintMsg => self.print_buckets(),
+        };
+    }
+
+    priv fn print_buckets(&mut self) {
+        println(fmt!("%31s %15s %15s %15s %15s %15s",
+                         "_category (ms)_", "_mean (ms)_", "_median (ms)_",
+                         "_min (ms)_", "_max (ms)_", "_bucket size_"));
+        for vec::each_mut(self.buckets) |bucket| {
+            match *bucket {
+                (category, ref mut data) => {
+                    tim_sort(*data);
+                    let data_len = data.len();
+                    if data_len > 0 {
+                        let (mean, median, min, max) =
+                            (data.foldl(0f64, |a, b| a + *b) / (data_len as f64),
+                             data[data_len / 2],
+                             data.min(),
+                             data.max());
+                        println(fmt!("%-30s: %15.4? %15.4? %15.4? %15.4? %15u",
+                                     category.format(), mean, median, min, max, data_len));
+                    }
+                }
             }
         }
-
+        println("");
     }
 }
 
-pub fn profile<T>(cat: ProfilerCategory, 
-                  prof_chan: ProfilerChan,
+
+pub fn profile<T>(category: ProfilerCategory, 
+                  profiler_chan: ProfilerChan,
                   callback: &fn() -> T)
                   -> T {
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
-    let ms = ((end_time - start_time) / 1000000u64) as uint;
-    prof_chan.send((cat, ms));
+    let ms = ((end_time - start_time) as f64 / 1000000f64);
+    profiler_chan.send(TimeMsg(category, ms));
     return val;
 }
 
@@ -125,9 +208,9 @@ pub fn time<T>(msg: &str, callback: &fn() -> T) -> T{
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
-    let ms = ((end_time - start_time) / 1000000u64) as uint;
-    if ms >= 5 {
-        debug!("%s took %u ms", msg, ms);
+    let ms = ((end_time - start_time) as f64 / 1000000f64);
+    if ms >= 5f64 {
+        debug!("%s took %? ms", msg, ms);
     }
     return val;
 }
