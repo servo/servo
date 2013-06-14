@@ -17,9 +17,9 @@ config.mk
 config.stamp
 config.tmp
 parser.out
-src/components/servo/dom/bindings/codegen/*.rs
-src/components/servo/dom/bindings/codegen/_cache/
-src/components/servo/dom/bindings/codegen/test/*.rs
-src/components/servo/dom/bindings/codegen/PrototypeList.h
-src/components/servo/dom/bindings/codegen/UnionTypes.h
-src/components/servo/dom/bindings/codegen/UnionConversions.h
+src/components/script/dom/bindings/codegen/*.rs
+src/components/script/dom/bindings/codegen/_cache/
+src/components/script/dom/bindings/codegen/test/*.rs
+src/components/script/dom/bindings/codegen/PrototypeList.h
+src/components/script/dom/bindings/codegen/UnionTypes.h
+src/components/script/dom/bindings/codegen/UnionConversions.h
