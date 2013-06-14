@@ -26,16 +26,16 @@ clean-fast: $(DEPS_CLEAN_TARGETS_FAST) clean-servo
 	$(Q)echo "$(filter-out $(SLOW_BUILDS),$(DEPS_CLEAN_ALL))"
 
 clean-util:
-	cd $(B)/src/components/util/ && rm -rf libservo_util*.dylib $(DONE_servo_util)
+	cd $(B)/src/components/util/ && rm -rf libutil*.dylib $(DONE_util)
 
 clean-net:
-	cd $(B)/src/components/net/ && rm -rf libservo_net*.dylib $(DONE_servo_net)
+	cd $(B)/src/components/net/ && rm -rf libnet*.dylib $(DONE_net)
 
 clean-gfx:
-	cd $(B)/src/components/gfx/ && rm -rf libservo_gfx*.dylib $(DONE_servo_gfx)
+	cd $(B)/src/components/gfx/ && rm -rf libgfx*.dylib $(DONE_gfx)
 
 clean-script:
-	cd $(B)/src/components/script/ && rm -rf libservo_script*.dylib $(DONE_servo_script)
+	cd $(B)/src/components/script/ && rm -rf libscript*.dylib $(DONE_script)
 
 clean-servo: clean-gfx clean-util clean-net clean-script
 	rm -f servo servo-test

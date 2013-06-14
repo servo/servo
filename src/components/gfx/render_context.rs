@@ -30,6 +30,7 @@ pub impl<'self> RenderContext<'self>  {
     }
 
     pub fn draw_solid_color(&self, bounds: &Rect<Au>, color: Color) {
+        self.canvas.draw_target.make_current();
         self.canvas.draw_target.fill_rect(&bounds.to_azure_rect(), &ColorPattern(color));
     }
 
@@ -46,6 +47,7 @@ pub impl<'self> RenderContext<'self>  {
         let stroke_opts = StrokeOptions(width_px as AzFloat, 10 as AzFloat, stroke_fields);
         let draw_opts = DrawOptions(1 as AzFloat, 0 as uint16_t);
 
+        self.canvas.draw_target.make_current();
         self.canvas.draw_target.stroke_rect(&rect, &pattern, &stroke_opts, &draw_opts);
     }
 
@@ -54,6 +56,7 @@ pub impl<'self> RenderContext<'self>  {
         let size = Size2D(image.width as i32, image.height as i32);
         let stride = image.width * 4;
 
+        self.canvas.draw_target.make_current();
         let draw_target_ref = &self.canvas.draw_target;
         let azure_surface = draw_target_ref.create_source_surface_from_data(image.data, size,
                                                                             stride as i32, B8G8R8A8);
@@ -75,6 +78,7 @@ pub impl<'self> RenderContext<'self>  {
                                 self.canvas.rect.origin.y as AzFloat),
                         Size2D(self.canvas.rect.size.width as AzFloat,
                                self.canvas.rect.size.height as AzFloat));
+        self.canvas.draw_target.make_current();
         self.canvas.draw_target.fill_rect(&rect, &pattern);
     }
 }
