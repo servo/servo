@@ -9,6 +9,7 @@ use servo_util::time;
 use servo_util::time::ProfilerChan;
 
 use azure::azure_hl::{B8G8R8A8, DrawTarget};
+use azure::azure::{AzGLContext};
 use core::comm::Chan;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -34,6 +35,7 @@ type RenderFn<'self> = &'self fn(layer: *RenderLayer,
 pub fn render_layers(layer_ref: *RenderLayer,
                      opts: &Opts,
                      prof_chan: ProfilerChan,
+                     share_gl_context: AzGLContext,
                      f: RenderFn)
                      -> LayerBufferSet {
     let tile_size = opts.tile_size;
@@ -55,19 +57,8 @@ pub fn render_layers(layer_ref: *RenderLayer,
                 let width = right - x;
                 let height = bottom - y;
 
-                // Round the width up the nearest 32 pixels for DMA on the Mac.
-                let aligned_width = if width % 32 == 0 {
-                    width
-                } else {
-                    (width & !(32 - 1)) + 32
-                };
-                assert!(aligned_width % 32 == 0);
-                assert!(aligned_width >= width);
-
-                debug!("tile aligned_width %u", aligned_width);
-
-                let tile_rect = Rect(Point2D(x / scale, y / scale), Size2D(aligned_width, height)); //change this
-                let screen_rect = Rect(Point2D(x, y), Size2D(aligned_width, height)); //change this
+                let tile_rect = Rect(Point2D(x / scale, y / scale), Size2D(width, height)); //change this
+                let screen_rect = Rect(Point2D(x, y), Size2D(width, height)); //change this
 
                 let buffer;
                 // FIXME: Try harder to search for a matching tile.
@@ -79,40 +70,14 @@ pub fn render_layers(layer_ref: *RenderLayer,
                     // Create a new buffer.
                     debug!("creating tile, (%u, %u)", x, y);
 
-                    let size = Size2D(aligned_width as i32, height as i32);
                     // FIXME: This may not be always true.
-                    let stride = (aligned_width as i32) * 4;
-
-                    let mut data: ~[u8] = ~[0];
-                    let offset;
-                    unsafe {
-                        // FIXME: Evil black magic to ensure that we don't perform a slow memzero
-                        // of this buffer. This should be made safe.
-
-                        let align = 256;
-
-                        let len = ((stride * size.height) as uint) + align;
-                        vec::reserve(&mut data, len);
-                        vec::raw::set_len(&mut data, len);
-
-                        // Round up to the nearest 32-byte-aligned address for DMA on the Mac.
-                        let addr: uint = cast::transmute(ptr::to_unsafe_ptr(&data[0]));
-                        if addr % align == 0 {
-                            offset = 0;
-                        } else {
-                            offset = align - addr % align;
-                        }
-
-                        debug!("tile offset is %u, expected addr is %x", offset, addr + offset);
-                    }
+                    let stride = width * 4;
 
                     buffer = LayerBuffer {
-                        draw_target: DrawTarget::new_with_data(opts.render_backend,
-                                                               data,
-                                                               offset,
-                                                               size,
-                                                               stride,
-                                                               B8G8R8A8),
+                        draw_target: DrawTarget::new_with_fbo(opts.render_backend,
+                                                              share_gl_context,
+                                                              Size2D(width as i32, height as i32),
+                                                              B8G8R8A8),
                         rect: tile_rect,
                         screen_pos: screen_rect,
                         stride: stride as uint
