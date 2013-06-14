@@ -37,6 +37,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
                      f: RenderFn)
                      -> LayerBufferSet {
     let tile_size = opts.tile_size;
+    let scale = opts.zoom;
 
     // FIXME: Try not to create a new array here.
     let mut new_buffer_ports = ~[];
@@ -45,12 +46,12 @@ pub fn render_layers(layer_ref: *RenderLayer,
     do time::profile(time::RenderingPrepBuffCategory, prof_chan.clone()) {
         let layer: &RenderLayer = unsafe { cast::transmute(layer_ref) };
         let mut y = 0;
-        while y < layer.size.height {
+        while y < layer.size.height * scale {
             let mut x = 0;
-            while x < layer.size.width {
+            while x < layer.size.width * scale {
                 // Figure out the dimension of this tile.
-                let right = uint::min(x + tile_size, layer.size.width);
-                let bottom = uint::min(y + tile_size, layer.size.height);
+                let right = uint::min(x + tile_size, layer.size.width * scale);
+                let bottom = uint::min(y + tile_size, layer.size.height * scale);
                 let width = right - x;
                 let height = bottom - y;
 
@@ -65,7 +66,8 @@ pub fn render_layers(layer_ref: *RenderLayer,
 
                 debug!("tile aligned_width %u", aligned_width);
 
-                let tile_rect = Rect(Point2D(x, y), Size2D(aligned_width, height));
+                let tile_rect = Rect(Point2D(x / scale, y / scale), Size2D(aligned_width, height)); //change this
+                let screen_rect = Rect(Point2D(x, y), Size2D(aligned_width, height)); //change this
 
                 let buffer;
                 // FIXME: Try harder to search for a matching tile.
@@ -112,6 +114,7 @@ pub fn render_layers(layer_ref: *RenderLayer,
                                                                stride,
                                                                B8G8R8A8),
                         rect: tile_rect,
+                        screen_pos: screen_rect,
                         stride: stride as uint
                     };
                 //}

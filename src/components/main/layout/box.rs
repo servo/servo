@@ -627,19 +627,20 @@ pub impl RenderBox {
             },
 
             GenericRenderBoxClass(_) => {
+                // FIXME(pcwalton): This is somewhat of an abuse of the logging system.
                 debug!("%?", { 
-                // Compute the text box bounds and draw a border surrounding them.
-                do list.with_mut_ref |list| {
-                    let border_display_item = ~BorderDisplayItem {
-                        base: BaseDisplayItem {
-                            bounds: absolute_box_bounds,
-                            extra: ExtraDisplayListData::new(*self),
-                        },
-                        width: Au::from_px(1),
-                        color: rgb(0, 0, 0).to_gfx_color(),
-                    };
+                    // Compute the text box bounds and draw a border surrounding them.
+                    do list.with_mut_ref |list| {
+                        let border_display_item = ~BorderDisplayItem {
+                            base: BaseDisplayItem {
+                                    bounds: absolute_box_bounds,
+                                    extra: ExtraDisplayListData::new(*self),
+                            },
+                            width: Au::from_px(1),
+                            color: rgb(0, 0, 0).to_gfx_color(),
+                        };
                         list.append_item(BorderDisplayItemClass(border_display_item))
-                }
+                    }
                 });
             }
 

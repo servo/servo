@@ -40,17 +40,18 @@ pub struct FontContext {
     handle: FontContextHandle,
     backend: BackendType,
     generic_fonts: HashMap<~str,~str>,
+    profiler_chan: ProfilerChan,
 }
 
 #[allow(non_implicitly_copyable_typarams)]
 pub impl<'self> FontContext {
     fn new(backend: BackendType,
            needs_font_list: bool,
-           prof_chan: ProfilerChan)
+           profiler_chan: ProfilerChan)
            -> FontContext {
         let handle = FontContextHandle::new();
         let font_list = if needs_font_list { 
-                            Some(FontList::new(&handle, prof_chan.clone())) }
+                            Some(FontList::new(&handle, profiler_chan.clone())) }
                         else { None };
 
         // TODO: Allow users to specify these.
@@ -69,6 +70,7 @@ pub impl<'self> FontContext {
             handle: handle,
             backend: backend,
             generic_fonts: generic_fonts,
+            profiler_chan: profiler_chan,
         }
     }
 
@@ -125,7 +127,8 @@ pub impl<'self> FontContext {
             for result.each |font_entry| {
                 found = true;
                 // TODO(Issue #203): route this instantion through FontContext's Font instance cache.
-                let instance = Font::new_from_existing_handle(self, &font_entry.handle, style, self.backend);
+                let instance = Font::new_from_existing_handle(self, &font_entry.handle, style, self.backend,
+                                                              self.profiler_chan.clone());
                 do result::iter(&instance) |font: &@mut Font| { fonts.push(*font); }
             };
 
@@ -139,8 +142,14 @@ pub impl<'self> FontContext {
         for last_resort.each |family| {
             let result = list.find_font_in_family(*family,style);
             for result.each |font_entry| {
-                let instance = Font::new_from_existing_handle(self, &font_entry.handle, style, self.backend);
-                do result::iter(&instance) |font: &@mut Font| { fonts.push(*font); }
+                let instance = Font::new_from_existing_handle(self,
+                                                              &font_entry.handle,
+                                                              style,
+                                                              self.backend,
+                                                              self.profiler_chan.clone());
+                do result::iter(&instance) |font: &@mut Font| {
+                    fonts.push(*font);
+                }
             }
         }
 
@@ -163,7 +172,8 @@ pub impl<'self> FontContext {
                     Ok(Font::new_from_adopted_handle(self,
                                                      handle,
                                                      &desc.style,
-                                                     self.backend))
+                                                     self.backend,
+                                                     self.profiler_chan.clone()))
                 })
             }
         };

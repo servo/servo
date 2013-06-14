@@ -38,7 +38,7 @@ use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitMsg,
 use script::layout_interface::{LayoutResponse, LayoutTask, MatchSelectorsDocumentDamage, Msg};
 use script::layout_interface::{QueryMsg, Reflow, ReflowDocumentDamage, ReflowForDisplay};
 use script::layout_interface::{ReflowMsg};
-use script::script_task::{ScriptMsg, SendEventMsg};
+use script::script_task::{ReflowCompleteMsg, ScriptMsg, SendEventMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
@@ -255,7 +255,11 @@ impl Layout {
         debug!("%?", layout_root.dump());
 
         // Tell script that we're done.
+        //
+        // FIXME(pcwalton): This should probably be *one* channel, but we can't fix this without
+        // either select or a filtered recv() that only looks for messages of a given type.
         data.script_join_chan.send(());
+        data.script_chan.send(ReflowCompleteMsg);
     }
 
     /// Handles a query from the script task. This is the main routine that DOM functions like
@@ -342,13 +346,14 @@ impl Layout {
                         flow.build_display_list(&builder,
                                                 &flow.position(),
                                                 display_list);
-                        // iterate in reverse to ensure we have the most recently painted render box
                         let (x, y) = (Au::from_frac_px(point.x as float),
                                       Au::from_frac_px(point.y as float));
                         let mut resp = Err(());
                         let display_list = &display_list.take().list;
+                        // iterate in reverse to ensure we have the most recently painted render box
                         for display_list.each_reverse |display_item| {
                             let bounds = display_item.bounds();
+                            // TODO this check should really be performed by a method of DisplayItem
                             if x <= bounds.origin.x + bounds.size.width &&
                                bounds.origin.x <= x &&
                                y < bounds.origin.y + bounds.size.height &&

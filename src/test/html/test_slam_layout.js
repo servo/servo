@@ -12,3 +12,4 @@ for (var i = 0; i < count; i++) {
 }
 var stop = new Date();
 window.alert((stop - start) / count * 1e6 + " ns/layout");
+window.close();

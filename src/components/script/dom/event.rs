@@ -12,7 +12,9 @@ use geom::point::Point2D;
 pub enum Event {
     ResizeEvent(uint, uint, comm::Chan<()>),
     ReflowEvent,
-    ClickEvent(Point2D<f32>),
+    ClickEvent(uint, Point2D<f32>),
+    MouseDownEvent(uint, Point2D<f32>),
+    MouseUpEvent(uint, Point2D<f32>),
 }
 
 pub struct Event_ {

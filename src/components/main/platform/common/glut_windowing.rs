@@ -7,16 +7,22 @@
 /// GLUT is a very old and bare-bones toolkit. However, it has good cross-platform support, at
 /// least on desktops. It is designed for testing Servo without the need of a UI.
 
-use windowing::{ApplicationMethods, CompositeCallback, LoadUrlCallback, ClickCallback};
-use windowing::{ResizeCallback, ScrollCallback, WindowMethods};
+use windowing::{ApplicationMethods, CompositeCallback, LoadUrlCallback, MouseCallback};
+use windowing::{ResizeCallback, ScrollCallback, WindowMethods, WindowMouseEvent, WindowClickEvent};
+use windowing::{WindowMouseDownEvent, WindowMouseUpEvent, ZoomCallback};
 
 use alert::{Alert, AlertMethods};
+use core::cell::Cell;
 use core::libc::c_int;
 use geom::point::Point2D;
 use geom::size::Size2D;
-use glut::glut::{DOUBLE, WindowHeight, WindowWidth};
+use gfx::compositor::{IdleRenderState, RenderState, RenderingRenderState};
+use glut::glut::{ACTIVE_CTRL, DOUBLE, HAVE_PRECISE_MOUSE_WHEEL, WindowHeight, WindowWidth};
 use glut::glut;
 use glut::machack;
+use script::compositor_interface::{FinishedLoading, Loading, PerformingLayout, ReadyState};
+
+static THROBBER: [char, ..8] = [ '⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷' ];
 
 /// A structure responsible for setting up and tearing down the entire windowing system.
 pub struct Application;
@@ -36,10 +42,18 @@ pub struct Window {
     composite_callback: Option<CompositeCallback>,
     resize_callback: Option<ResizeCallback>,
     load_url_callback: Option<LoadUrlCallback>,
-    click_callback: Option<ClickCallback>,
+    mouse_callback: Option<MouseCallback>,
     scroll_callback: Option<ScrollCallback>,
+    zoom_callback: Option<ZoomCallback>,
 
     drag_origin: Point2D<c_int>,
+
+    mouse_down_button: @mut c_int,
+    mouse_down_point: @mut Point2D<c_int>,
+
+    ready_state: ReadyState,
+    render_state: RenderState,
+    throbber_frame: u8,
 }
 
 impl WindowMethods<Application> for Window {
@@ -56,10 +70,30 @@ impl WindowMethods<Application> for Window {
             composite_callback: None,
             resize_callback: None,
             load_url_callback: None,
-            click_callback: None,
+            mouse_callback: None,
             scroll_callback: None,
+            zoom_callback: None,
 
             drag_origin: Point2D(0, 0),
+
+            mouse_down_button: @mut 0,
+            mouse_down_point: @mut Point2D(0, 0),
+
+            ready_state: FinishedLoading,
+            render_state: IdleRenderState,
+            throbber_frame: 0,
+        };
+
+        // Spin the event loop every 50 ms to allow the Rust channels to be polled.
+        //
+        // This requirement is pretty much the nail in the coffin for GLUT's usefulness.
+        //
+        // FIXME(pcwalton): What a mess.
+        let register_timer_callback: @mut @fn() = @mut ||{};
+        *register_timer_callback = || {
+            glut::timer_func(50, *register_timer_callback);
+            window.throbber_frame = (window.throbber_frame + 1) % (THROBBER.len() as u8);
+            window.update_window_title()
         };
 
         // Register event handlers.
@@ -79,13 +113,25 @@ impl WindowMethods<Application> for Window {
         do glut::keyboard_func |key, _, _| {
             window.handle_key(key)
         }
-        do glut::mouse_func |button, _, x, y| {
+        do glut::mouse_func |button, state, x, y| {
             if button < 3 {
-                window.handle_click(x, y);
-            } else {
-                window.handle_scroll(if button == 4 { -30.0 } else { 30.0 });
+                window.handle_mouse(button, state, x, y);
             }
         }
+        do glut::mouse_wheel_func |wheel, direction, x, y| {
+            let delta = if HAVE_PRECISE_MOUSE_WHEEL {
+                (direction as f32) / 10000.0
+            } else {
+                (direction as f32) * 30.0
+            };
+
+            match wheel {
+                1 => window.handle_scroll(Point2D(delta, 0.0)),
+                2 => window.handle_zoom(delta),
+                _ => window.handle_scroll(Point2D(0.0, delta)),
+            }
+        }
+        (*register_timer_callback)();
 
         machack::perform_scroll_wheel_hack();
 
@@ -117,14 +163,19 @@ impl WindowMethods<Application> for Window {
         self.load_url_callback = Some(new_load_url_callback)
     }
 
-    /// Registers a callback to be run when a click event occurs.
-    pub fn set_click_callback(&mut self, new_click_callback: ClickCallback) {
-        self.click_callback = Some(new_click_callback)
+    /// Registers a callback to be run when a mouse event occurs.
+    pub fn set_mouse_callback(&mut self, new_mouse_callback: MouseCallback) {
+        self.mouse_callback = Some(new_mouse_callback)
     }
 
     /// Registers a callback to be run when the user scrolls.
     pub fn set_scroll_callback(&mut self, new_scroll_callback: ScrollCallback) {
         self.scroll_callback = Some(new_scroll_callback)
+    }
+
+    /// Registers a zoom to be run when the user zooms.
+    pub fn set_zoom_callback(&mut self, new_zoom_callback: ZoomCallback) {
+        self.zoom_callback = Some(new_zoom_callback)
     }
 
     /// Spins the event loop.
@@ -136,30 +187,110 @@ impl WindowMethods<Application> for Window {
     pub fn set_needs_display(@mut self) {
         glut::post_redisplay()
     }
+
+    /// Sets the ready state.
+    pub fn set_ready_state(@mut self, ready_state: ReadyState) {
+        self.ready_state = ready_state;
+        self.update_window_title()
+    }
+
+    /// Sets the render state.
+    pub fn set_render_state(@mut self, render_state: RenderState) {
+        self.render_state = render_state;
+        self.update_window_title()
+    }
 }
 
 impl Window {
+    /// Helper function to set the window title in accordance with the ready state.
+    fn update_window_title(&self) {
+        let throbber = THROBBER[self.throbber_frame];
+        match self.ready_state {
+            Loading => {
+                glut::set_window_title(self.glut_window, fmt!("%c Loading — Servo", throbber))
+            }
+            PerformingLayout => {
+                glut::set_window_title(self.glut_window,
+                                       fmt!("%c Performing Layout — Servo", throbber))
+            }
+            FinishedLoading => {
+                match self.render_state {
+                    RenderingRenderState => {
+                        glut::set_window_title(self.glut_window,
+                                               fmt!("%c Rendering — Servo", throbber))
+                    }
+                    IdleRenderState => glut::set_window_title(self.glut_window, "Servo"),
+                }
+            }
+        }
+    }
+
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: u8) {
         debug!("got key: %d", key as int);
-        if key == 12 {  // ^L
-            self.load_url()
+        match key {
+            12 => self.load_url(),                                                      // Ctrl+L
+            k if k == ('=' as u8) && (glut::get_modifiers() & ACTIVE_CTRL) != 0 => {    // Ctrl++
+                for self.zoom_callback.each |&callback| {
+                    callback(0.1);
+                }
+            }
+            k if k == 31 && (glut::get_modifiers() & ACTIVE_CTRL) != 0 => {             // Ctrl+-
+                for self.zoom_callback.each |&callback| {
+                    callback(-0.1);
+                }
+            }
+            _ => {}
         }
     }
 
     /// Helper function to handle a click
-    fn handle_click(&self, x: c_int, y: c_int) {
-        match self.click_callback {
+    fn handle_mouse(&self, button: c_int, state: c_int, x: c_int, y: c_int) {
+        // FIXME(tkuehn): max pixel dist should be based on pixel density
+        let max_pixel_dist = 10f;
+        match self.mouse_callback {
             None => {}
-            Some(callback) => callback(Point2D(x as f32, y as f32)),
+            Some(callback) => {
+                let event: WindowMouseEvent;
+                match state {
+                    glut::MOUSE_DOWN => {
+                        event = WindowMouseDownEvent(button as uint, Point2D(x as f32, y as f32));
+                        *self.mouse_down_point = Point2D(x, y);
+                        *self.mouse_down_button = button;
+                    }
+                    glut::MOUSE_UP => {
+                        event = WindowMouseUpEvent(button as uint, Point2D(x as f32, y as f32));
+                        if *self.mouse_down_button == button {
+                            let pixel_dist = *self.mouse_down_point - Point2D(x, y);
+                            let pixel_dist = ((pixel_dist.x * pixel_dist.x +
+                                              pixel_dist.y * pixel_dist.y) as float).sqrt();
+                            if pixel_dist < max_pixel_dist {
+                                let click_event = WindowClickEvent(button as uint,
+                                                                   Point2D(x as f32, y as f32));
+                                callback(click_event);
+                            }
+                        }
+                    }
+                    _ => fail!("I cannot recognize the type of mouse action that occured. :-(")
+                };
+                callback(event);
+            }
         }
     }
 
     /// Helper function to handle a scroll.
-    fn handle_scroll(&mut self, delta: f32) {
+    fn handle_scroll(&mut self, delta: Point2D<f32>) {
         match self.scroll_callback {
             None => {}
-            Some(callback) => callback(Point2D(0.0, delta)),
+            Some(callback) => callback(delta),
+        }
+    }
+
+    /// Helper function to handle a zoom.
+    fn handle_zoom(&mut self, magnification: f32) {
+        match self.zoom_callback {
+            None => {}
+            Some(callback) => callback(magnification),
         }
     }
 
