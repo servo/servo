@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use azure::azure_hl::{DrawTarget};
+use azure::azure_hl::DrawTarget;
+use azure::azure::AzGLContext;
 use geom::rect::Rect;
 use geom::size::Size2D;
 
@@ -34,6 +35,7 @@ pub enum RenderState {
 /// The interface used to by the renderer to acquire draw targets for each rendered frame and
 /// submit them to be drawn to the display.
 pub trait Compositor {
+    fn get_gl_context(&self) -> AzGLContext;
     fn paint(&self, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>);
     fn set_render_state(&self, render_state: RenderState);
 }

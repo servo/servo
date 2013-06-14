@@ -60,8 +60,8 @@ impl WindowMethods<Application> for Window {
     /// Creates a new window.
     pub fn new(_: &Application) -> @mut Window {
         // Create the GLUT window.
+        unsafe { glut::bindgen::glutInitWindowSize(800, 600); }
         let glut_window = glut::create_window(~"Servo");
-        glut::reshape_window(glut_window, 800, 600);
 
         // Create our window object.
         let window = @mut Window {

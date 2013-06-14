@@ -4,7 +4,7 @@
 
 // The task that handles all rendering/painting.
 
-use azure::AzFloat;
+use azure::{AzFloat, AzGLContext};
 use compositor::{Compositor, IdleRenderState, RenderingRenderState};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
@@ -16,6 +16,7 @@ use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
 use core::task::SingleThreaded;
 use std::task_pool::TaskPool;
+
 use servo_net::util::spawn_listener;
 
 use servo_util::time::{ProfilerChan, profile};
@@ -43,6 +44,7 @@ impl RenderTask {
 
         do spawn {
             let compositor = compositor_cell.take();
+            let share_gl_context = compositor.get_gl_context();
 
             // FIXME: Annoying three-cell dance here. We need one-shot closures.
             let opts = opts_cell.with_ref(|o| copy *o);
@@ -77,6 +79,7 @@ impl RenderTask {
                 thread_pool: thread_pool,
                 opts: opts_cell.take(),
                 profiler_chan: profiler_chan_copy,
+                share_gl_context: share_gl_context,
             };
 
             renderer.start();
@@ -103,6 +106,8 @@ priv struct Renderer<C> {
 
     /// A channel to the profiler.
     profiler_chan: ProfilerChan,
+
+    share_gl_context: AzGLContext,
 }
 
 impl<C: Compositor + Owned> Renderer<C> {
@@ -126,7 +131,8 @@ impl<C: Compositor + Owned> Renderer<C> {
         do profile(time::RenderingCategory, self.profiler_chan.clone()) {
             let layer_buffer_set = do render_layers(&render_layer,
                                                     &self.opts,
-                                                    self.profiler_chan.clone()) |render_layer_ref,
+                                                    self.profiler_chan.clone(),
+                                                    self.share_gl_context) |render_layer_ref,
                                                                                  layer_buffer,
                                                                                  buffer_chan| {
                 let layer_buffer_cell = Cell(layer_buffer);
@@ -147,7 +153,6 @@ impl<C: Compositor + Owned> Renderer<C> {
                         let matrix = matrix.translate(-(layer_buffer.rect.origin.x as f32) as AzFloat,
                                                       -(layer_buffer.rect.origin.y as f32) as AzFloat);
 
-
                         layer_buffer.draw_target.set_transform(&matrix);
 
                         // Clear the buffer.
@@ -160,6 +165,7 @@ impl<C: Compositor + Owned> Renderer<C> {
                         };
                         
                         render_layer.display_list.draw_into_context(&ctx);
+                        ctx.canvas.draw_target.flush();
                     }
 
                     // Send back the buffer.
