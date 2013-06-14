@@ -198,7 +198,7 @@ pub fn profile<T>(category: ProfilerCategory,
     let val = callback();
     let end_time = precise_time_ns();
     let ms = ((end_time - start_time) as f64 / 1000000f64);
-    profiler_chan.chan.send(TimeMsg(category, ms));
+    profiler_chan.send(TimeMsg(category, ms));
     return val;
 }
 

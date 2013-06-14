@@ -111,7 +111,7 @@ fn run(opts: &Opts) {
 
     // Send the URL command to the engine task.
     for opts.urls.each |filename| {
-        engine_chan.chan.send(LoadUrlMsg(make_url(copy *filename, None)))
+        engine_chan.send(LoadUrlMsg(make_url(copy *filename, None)))
     }
 
     // Wait for the compositor to shut down.
@@ -120,7 +120,7 @@ fn run(opts: &Opts) {
     // Shut the engine down.
     debug!("master: Shut down");
     let (exit_response_from_engine, exit_chan) = comm::stream();
-    engine_chan.chan.send(ExitMsg(exit_chan));
+    engine_chan.send(ExitMsg(exit_chan));
     exit_response_from_engine.recv();
 }
 
