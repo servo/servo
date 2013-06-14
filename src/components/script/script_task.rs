@@ -5,9 +5,11 @@
 /// The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 /// and layout tasks.
 
+use compositor_interface::{ReadyState, Loading, PerformingLayout, FinishedLoading};
 use dom::bindings::utils::GlobalStaticData;
 use dom::document::Document;
-use dom::event::{Event, ResizeEvent, ReflowEvent, ClickEvent};
+use dom::element::Element;
+use dom::event::{Event, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent};
 use dom::node::{AbstractNode, ScriptView, define_bindings};
 use dom::window::Window;
 use layout_interface::{AddStylesheetMsg, DocumentDamage, DocumentDamageLevel, HitTestQuery};
@@ -15,6 +17,7 @@ use layout_interface::{HitTestResponse, LayoutQuery, LayoutResponse, LayoutTask}
 use layout_interface::{MatchSelectorsDocumentDamage, QueryMsg, Reflow, ReflowDocumentDamage};
 use layout_interface::{ReflowForDisplay, ReflowForScriptQuery, ReflowGoal, ReflowMsg};
 use layout_interface;
+use engine_interface::{EngineTask, LoadUrlMsg};
 
 use core::cast::transmute;
 use core::cell::Cell;
@@ -37,6 +40,7 @@ use js;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::tree::TreeNodeRef;
+use servo_util::url::make_url;
 use std::net::url::Url;
 use std::net::url;
 
@@ -50,6 +54,8 @@ pub enum ScriptMsg {
     SendEventMsg(Event),
     /// Fires a JavaScript timeout.
     FireTimerMsg(~TimerData),
+    /// Notifies script that reflow is finished.
+    ReflowCompleteMsg,
     /// Exits the engine.
     ExitMsg,
 }
@@ -64,12 +70,15 @@ impl ScriptTask {
     /// Creates a new script task.
     pub fn new(script_port: Port<ScriptMsg>,
                script_chan: SharedChan<ScriptMsg>,
+               engine_task: EngineTask,
+               //FIXME(rust #5192): workaround for lack of working ~Trait
+               compositor_task: ~fn(ReadyState),
                layout_task: LayoutTask,
                resource_task: ResourceTask,
                image_cache_task: ImageCacheTask)
                -> ScriptTask {
         let (script_chan_copy, script_port) = (script_chan.clone(), Cell(script_port));
-
+        let compositor_task = Cell(compositor_task);
         // FIXME: rust#6399
         let mut the_task = task();
         the_task.sched_mode(SingleThreaded);
@@ -77,6 +86,8 @@ impl ScriptTask {
             let script_context = ScriptContext::new(layout_task.clone(),
                                                     script_port.take(),
                                                     script_chan_copy.clone(),
+                                                    engine_task.clone(),
+                                                    compositor_task.take(),
                                                     resource_task.clone(),
                                                     image_cache_task.clone());
             script_context.start();
@@ -115,6 +126,11 @@ pub struct ScriptContext {
     /// A channel for us to hand out when we want some other task to be able to send us script
     /// messages.
     script_chan: SharedChan<ScriptMsg>,
+
+    /// For communicating load url messages to the engine
+    engine_task: EngineTask,
+    /// For communicating loading messages to the compositor
+    compositor_task: ~fn(ReadyState),
 
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
@@ -167,6 +183,8 @@ impl ScriptContext {
     pub fn new(layout_task: LayoutTask,
                script_port: Port<ScriptMsg>,
                script_chan: SharedChan<ScriptMsg>,
+               engine_task: EngineTask,
+               compositor_task: ~fn(ReadyState),
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask)
                -> @mut ScriptContext {
@@ -189,6 +207,9 @@ impl ScriptContext {
             layout_join_port: None,
             script_port: script_port,
             script_chan: script_chan,
+
+            engine_task: engine_task,
+            compositor_task: compositor_task,
 
             js_runtime: js_runtime,
             js_context: js_context,
@@ -243,6 +264,10 @@ impl ScriptContext {
                 self.handle_fire_timer_msg(timer_data);
                 true
             }
+            ReflowCompleteMsg => {
+                self.handle_reflow_complete_msg();
+                true
+            }
             ExitMsg => {
                 self.handle_exit_msg();
                 false
@@ -287,6 +312,12 @@ impl ScriptContext {
         self.reflow(ReflowForScriptQuery)
     }
 
+    /// Handles a notification that reflow completed.
+    fn handle_reflow_complete_msg(&mut self) {
+        self.layout_join_port = None;
+        self.set_ready_state(FinishedLoading)
+    }
+
     /// Handles a request to exit the script task and shut down layout.
     fn handle_exit_msg(&mut self) {
         self.join_layout();
@@ -295,6 +326,12 @@ impl ScriptContext {
         }
 
         self.layout_task.chan.send(layout_interface::ExitMsg)
+    }
+
+    // tells the compositor when loading starts and finishes
+    // FIXME ~compositor_interface doesn't work right now, which is why this is necessary
+    fn set_ready_state(&self, msg: ReadyState) {
+        (self.compositor_task)(msg);
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
@@ -308,6 +345,7 @@ impl ScriptContext {
             self.bindings_initialized = true
         }
 
+        self.set_ready_state(Loading);
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
@@ -398,6 +436,9 @@ impl ScriptContext {
         // Now, join the layout so that they will see the latest changes we have made.
         self.join_layout();
 
+        // Tell the user that we're performing layout.
+        self.set_ready_state(PerformingLayout);
+
         // Layout will let us know when it's done.
         let (join_port, join_chan) = comm::stream();
         self.layout_join_port = Some(join_port);
@@ -410,8 +451,8 @@ impl ScriptContext {
                     document_root: root_frame.document.root,
                     url: copy root_frame.url,
                     goal: goal,
-                    script_chan: self.script_chan.clone(),
                     window_size: self.window_size,
+                    script_chan: self.script_chan.clone(),
                     script_join_chan: join_chan,
                     damage: replace(&mut self.damage, None).unwrap(),
                 };
@@ -503,7 +544,7 @@ impl ScriptContext {
                 }
             }
 
-            ClickEvent(point) => {
+            ClickEvent(button, point) => {
                 debug!("ClickEvent: clicked at %?", point);
                 let root = match self.root_frame {
                     Some(ref frame) => frame.document.root,
@@ -511,13 +552,50 @@ impl ScriptContext {
                 };
                 match self.query_layout(HitTestQuery(root, point)) {
                     Ok(node) => match node {
-                        HitTestResponse(node) => debug!("clicked on %?", node.debug_str()),
+                        HitTestResponse(node) => {
+                            debug!("clicked on %?", node.debug_str());
+                            let mut node = node;
+                            // traverse node generations until a node that is an element is found
+                            while !node.is_element() {
+                                match node.parent_node() {
+                                    Some(parent) => {
+                                        node = parent;
+                                    }
+                                    None => break
+                                }
+                            }
+                            if node.is_element() {
+                                do node.with_imm_element |element| {
+                                    match element.tag_name {
+                                        ~"a" => self.load_url_from_element(element),
+                                        _ => {}
+                                    }
+                                }
+                            }
+                        }
                         _ => fail!(~"unexpected layout reply")
                     },
                     Err(()) => {
-                        println(fmt!("layout query error"));
+                        debug!(fmt!("layout query error"));
                     }
                 };
+            }
+            MouseDownEvent(*) => {}
+            MouseUpEvent(*) => {}
+        }
+    }
+
+    priv fn load_url_from_element(&self, element: &Element) {
+        // if the node's element is "a," load url from href attr
+        for element.attrs.each |attr| {
+            if attr.name == ~"href" {
+                debug!("clicked on link to %?", attr.value); 
+                let current_url = match self.root_frame {
+                    Some(ref frame) => Some(frame.url.clone()),
+                    None => None
+                };
+                let url = make_url(attr.value.clone(), current_url);
+                self.engine_task.send(LoadUrlMsg(url));
             }
         }
     }

@@ -18,6 +18,8 @@ use azure::scaled_font::ScaledFont;
 use azure::azure_hl::{BackendType, ColorPattern};
 use geom::{Point2D, Rect, Size2D};
 
+use servo_util::time::ProfilerChan;
+
 // FontHandle encapsulates access to the platform's font API,
 // e.g. quartz, FreeType. It provides access to metrics and tables
 // needed by the text shaper as well as access to the underlying font
@@ -210,13 +212,15 @@ pub struct Font {
     style: UsedFontStyle,
     metrics: FontMetrics,
     backend: BackendType,
+    profiler_chan: ProfilerChan,
 }
 
 pub impl Font {
     fn new_from_buffer(ctx: &FontContext,
                        buffer: ~[u8],
                        style: &SpecifiedFontStyle,
-                       backend: BackendType)
+                       backend: BackendType,
+                       profiler_chan: ProfilerChan)
             -> Result<@mut Font, ()> {
         let handle = FontHandleMethods::new_from_buffer(&ctx.handle, buffer, style);
         let handle: FontHandle = if handle.is_ok() {
@@ -235,11 +239,13 @@ pub impl Font {
             style: copy *style,
             metrics: metrics,
             backend: backend,
+            profiler_chan: profiler_chan,
         });
     }
 
     fn new_from_adopted_handle(_fctx: &FontContext, handle: FontHandle,
-                               style: &SpecifiedFontStyle, backend: BackendType) -> @mut Font {
+                               style: &SpecifiedFontStyle, backend: BackendType,
+                               profiler_chan: ProfilerChan) -> @mut Font {
         let metrics = handle.get_metrics();
 
         @mut Font {
@@ -249,11 +255,13 @@ pub impl Font {
             style: copy *style,
             metrics: metrics,
             backend: backend,
+            profiler_chan: profiler_chan,
         }
     }
 
     fn new_from_existing_handle(fctx: &FontContext, handle: &FontHandle,
-                                style: &SpecifiedFontStyle, backend: BackendType) -> Result<@mut Font,()> {
+                                style: &SpecifiedFontStyle, backend: BackendType,
+                                profiler_chan: ProfilerChan) -> Result<@mut Font,()> {
 
         // TODO(Issue #179): convert between specified and used font style here?
         let styled_handle = match handle.clone_with_style(&fctx.handle, style) {
@@ -261,7 +269,7 @@ pub impl Font {
             Err(()) => return Err(())
         };
 
-        return Ok(Font::new_from_adopted_handle(fctx, styled_handle, style, backend));
+        return Ok(Font::new_from_adopted_handle(fctx, styled_handle, style, backend, profiler_chan));
     }
 
     priv fn get_shaper(@mut self) -> @Shaper {

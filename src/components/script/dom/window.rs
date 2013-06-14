@@ -4,6 +4,7 @@
 
 use dom::bindings::utils::WrapperCache;
 use dom::bindings::window;
+
 use layout_interface::ReflowForScriptQuery;
 use script_task::{ExitMsg, FireTimerMsg, ScriptMsg, ScriptContext};
 

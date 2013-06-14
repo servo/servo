@@ -13,6 +13,11 @@ pub struct Opts {
     render_backend: BackendType,
     n_render_threads: uint,
     tile_size: uint,
+    profiler_period: Option<f64>,
+
+    /// A scale factor to apply to tiles, to allow rendering tiles at higher resolutions for
+    /// testing pan and zoom code.
+    zoom: uint,
 }
 
 #[allow(non_implicitly_copyable_typarams)]
@@ -26,13 +31,14 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         getopts::optopt(~"r"),  // rendering backend
         getopts::optopt(~"s"),  // size of tiles
         getopts::optopt(~"t"),  // threads to render with
+        getopts::optflagopt(~"p"),  // profiler flag and output interval
+        getopts::optopt(~"z"),  // zoom level
     ];
 
     let opt_match = match getopts::getopts(args, opts) {
       result::Ok(m) => { copy m }
       result::Err(f) => { fail!(getopts::fail_str(copy f)) }
     };
-
     let urls = if opt_match.free.is_empty() {
         fail!(~"servo asks that you provide 1 or more URLs")
     } else {
@@ -68,10 +74,24 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         None => 1,      // FIXME: Number of cores.
     };
 
+    let profiler_period: Option<f64> =
+        // if only flag is present, default to 5 second period
+        match getopts::opt_default(&opt_match, ~"p", ~"5") {
+        Some(period) => Some(f64::from_str(period).get()),
+        None => None,
+    };
+
+    let zoom: uint = match getopts::opt_maybe_str(&opt_match, ~"z") {
+        Some(zoom_str) => uint::from_str(zoom_str).get(),
+        None => 1,
+    };
+
     Opts {
         urls: urls,
         render_backend: render_backend,
         n_render_threads: n_render_threads,
         tile_size: tile_size,
+        profiler_period: profiler_period,
+        zoom: zoom,
     }
 }

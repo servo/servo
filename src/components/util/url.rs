@@ -30,8 +30,13 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
         } else {
             let current_url = current_url.get();
             debug!("make_url: current_url: %?", current_url);
-            if current_url.path.is_empty() || current_url.path.ends_with("/") {
-                current_url.scheme + "://" + current_url.host + "/" + str_url
+            if str_url.starts_with("//") {
+                current_url.scheme + ":" + str_url
+            } else if current_url.path.is_empty() ||
+                      str_url.starts_with("/") {
+                current_url.scheme + "://" +
+                current_url.host + "/" +
+                str_url.trim_left_chars([ '/' ])
             } else {
                 let mut path = ~[];
                 for str::each_split_char(current_url.path, '/') |p| {
