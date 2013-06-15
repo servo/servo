@@ -93,7 +93,7 @@ fn run(opts: &Opts) {
     // Create the profiler channel.
     let (profiler_port, profiler_chan) = comm::stream();
     let profiler_chan = ProfilerChan::new(profiler_chan);
-    Profiler::create_profiler(profiler_port);
+    Profiler::create(profiler_port);
     do opts.profiler_period.map |period| {
         let profiler_chan = profiler_chan.clone();
         let period = *period;
@@ -109,7 +109,7 @@ fn run(opts: &Opts) {
     // Create the compositor.
     let (compositor_port, compositor_chan) = comm::stream();
     let compositor_chan = CompositorChan::new(compositor_chan);
-    CompositorTask::create_compositor_task(compositor_port, profiler_chan.clone(), shutdown_chan);
+    CompositorTask::create(compositor_port, profiler_chan.clone(), shutdown_chan);
 
     // Create a Servo instance.
 

@@ -110,7 +110,7 @@ impl ProfilerCategory {
 }
 
 impl Profiler {
-    pub fn create_profiler(port: Port<ProfilerMsg>) {
+    pub fn create(port: Port<ProfilerMsg>) {
         let port = Cell(port);
         do spawn {
             let mut profiler = Profiler::new(port.take());

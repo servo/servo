@@ -132,7 +132,7 @@ impl CompositorTask {
     }
 
     /// Starts the compositor, which listens for messages on the specified port. 
-    pub fn create_compositor_task(port: Port<Msg>,
+    pub fn create(port: Port<Msg>,
                                   profiler_chan: ProfilerChan,
                                   shutdown_chan: Chan<()>) {
         let port = Cell(port);

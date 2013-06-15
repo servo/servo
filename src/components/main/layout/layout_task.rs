@@ -5,6 +5,7 @@
 //! The layout task. Performs layout on the DOM, builds display lists and sends them to be
 /// rendered.
 
+use compositing::CompositorChan;
 use css::matching::MatchMethods;
 use css::select::new_css_select_ctx;
 use layout::aux::{LayoutData, LayoutAuxMethods};
@@ -47,7 +48,7 @@ use std::net::url::Url;
 
 pub fn create_layout_task(port: Port<Msg>,
                           script_chan: ScriptChan,
-                          render_chan: RenderChan,
+                          render_chan: RenderChan<CompositorChan>,
                           img_cache_task: ImageCacheTask,
                           opts: Opts,
                           profiler_chan: ProfilerChan) {
@@ -66,7 +67,7 @@ pub fn create_layout_task(port: Port<Msg>,
 struct Layout {
     port: Port<Msg>,
     script_chan: ScriptChan,
-    render_chan: RenderChan,
+    render_chan: RenderChan<CompositorChan>,
     image_cache_task: ImageCacheTask,
     local_image_cache: @mut LocalImageCache,
     font_ctx: @mut FontContext,
@@ -83,7 +84,7 @@ struct Layout {
 impl Layout {
     fn new(port: Port<Msg>,
            script_chan: ScriptChan,
-           render_chan: RenderChan, 
+           render_chan: RenderChan<CompositorChan>, 
            image_cache_task: ImageCacheTask,
            opts: &Opts,
            profiler_chan: ProfilerChan)

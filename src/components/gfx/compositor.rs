@@ -32,7 +32,7 @@ pub enum RenderState {
     RenderingRenderState,
 }
 
-/// The interface used to by the renderer to acquire draw targets for each rendered frame and
+/// The interface used by the renderer to acquire draw targets for each rendered frame and
 /// submit them to be drawn to the display.
 pub trait RenderListener {
     fn get_gl_context(&self) -> AzGLContext;

@@ -22,31 +22,39 @@ use servo_net::util::spawn_listener;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 
-pub enum Msg {
+pub enum Msg<C> {
+    AttachCompositorMsg(C),
     RenderMsg(RenderLayer),
     ExitMsg(Chan<()>),
 }
 
-#[deriving(Clone)]
-pub struct RenderChan {
-    chan: SharedChan<Msg>,
+pub struct RenderChan<C> {
+    chan: SharedChan<Msg<C>>,
 }
 
-impl RenderChan {
-    pub fn new(chan: Chan<Msg>) -> RenderChan {
+impl<C: RenderListener + Owned> Clone for RenderChan<C> {
+    pub fn clone(&self) -> RenderChan<C> {
+        RenderChan {
+            chan: self.chan.clone(),
+        }
+    }
+}
+
+impl<C: RenderListener + Owned> RenderChan<C> {
+    pub fn new(chan: Chan<Msg<C>>) -> RenderChan<C> {
         RenderChan {
             chan: SharedChan::new(chan),
         }
     }
-    pub fn send(&self, msg: Msg) {
+    pub fn send(&self, msg: Msg<C>) {
         self.chan.send(msg);
     }
 }
 
-pub fn create_render_task<C: RenderListener + Owned>(port: Port<Msg>,
-                                                compositor: C,
-                                                opts: Opts,
-                                                profiler_chan: ProfilerChan) {
+pub fn create_render_task<C: RenderListener + Owned>(port: Port<Msg<C>>,
+                                                     compositor: C,
+                                                     opts: Opts,
+                                                     profiler_chan: ProfilerChan) {
     let compositor_cell = Cell(compositor);
     let opts_cell = Cell(opts);
     let port = Cell(port);
@@ -103,7 +111,7 @@ priv struct ThreadRenderContext {
 }
 
 priv struct Renderer<C> {
-    port: Port<Msg>,
+    port: Port<Msg<C>>,
     compositor: C,
     thread_pool: TaskPool<ThreadRenderContext>,
     opts: Opts,
@@ -120,6 +128,7 @@ impl<C: RenderListener + Owned> Renderer<C> {
 
         loop {
             match self.port.recv() {
+                AttachCompositorMsg(compositor) => self.compositor = compositor,
                 RenderMsg(render_layer) => self.render(render_layer),
                 ExitMsg(response_ch) => {
                     response_ch.send(());

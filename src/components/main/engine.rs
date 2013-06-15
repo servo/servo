@@ -24,18 +24,12 @@ use servo_util::time::{ProfilerChan};
 pub struct Engine {
     request_port: Port<Msg>,
     compositor_chan: CompositorChan,
-    render_chan: RenderChan,
+    render_chan: RenderChan<CompositorChan>,
     resource_task: ResourceTask,
     image_cache_task: ImageCacheTask,
     layout_chan: LayoutChan,
     script_chan: ScriptChan,
     profiler_chan: ProfilerChan,
-}
-
-impl Drop for Engine {
-    fn finalize(&self) {
-        //self.profiler_chan.send(ForcePrintMsg);
-    }
 }
 
 impl Engine {
@@ -63,7 +57,9 @@ impl Engine {
         // Create the layout port and channel.
         let (layout_port, layout_chan) = closure_stream!(layout_interface::Msg, LayoutChan);
 
-        let (render_port, render_chan) = closure_stream!(render_task::Msg, RenderChan);
+        let (render_port, render_chan) = comm::stream::<render_task::Msg<CompositorChan>>();
+        let (render_port, render_chan) = (Cell(render_port), RenderChan::new(render_chan));
+
 
         compositor_chan.send(SetLayoutChan(layout_chan.clone()));
         let compositor_chan = Cell(compositor_chan);
