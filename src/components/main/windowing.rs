@@ -9,29 +9,34 @@ use geom::size::Size2D;
 use gfx::compositor::RenderState;
 use script::compositor_interface::ReadyState;
 
-pub enum WindowMouseEvent {
-    WindowClickEvent(uint, Point2D<f32>),
-    WindowMouseDownEvent(uint, Point2D<f32>),
-    WindowMouseUpEvent(uint, Point2D<f32>),
+pub enum MouseWindowEvent {
+    MouseWindowClickEvent(uint, Point2D<f32>),
+    MouseWindowMouseDownEvent(uint, Point2D<f32>),
+    MouseWindowMouseUpEvent(uint, Point2D<f32>),
 }
 
-/// Type of the function that is called when the screen is to be redisplayed.
-pub type CompositeCallback = @fn();
-
-/// Type of the function that is called when the window is resized.
-pub type ResizeCallback = @fn(uint, uint);
-
-/// Type of the function that is called when a new URL is to be loaded.
-pub type LoadUrlCallback = @fn(&str);
-
-/// Type of the function that is called when a mouse hit test is to be performed.
-pub type MouseCallback = @fn(WindowMouseEvent);
-
-/// Type of the function that is called when the user scrolls.
-pub type ScrollCallback = @fn(Point2D<f32>);
-
-///Type of the function that is called when the user zooms.
-pub type ZoomCallback = @fn(f32);
+/// Events that the windowing system sends to Servo.
+pub enum WindowEvent {
+    /// Sent when no message has arrived.
+    ///
+    /// FIXME(pcwalton): This is a bogus event and is only used because we don't have the new
+    /// scheduler integrated with the platform event loop.
+    IdleWindowEvent,
+    /// Sent when the window is to be redisplayed.
+    CompositeWindowEvent,
+    /// Sent when the window is resized.
+    ResizeWindowEvent(Size2D<uint>),
+    /// Sent when a new URL is to be loaded.
+    NavigateWindowEvent(~str),
+    /// Sent when a mouse event occurs.
+    MouseWindowEventClass(MouseWindowEvent),
+    /// Sent when the user scrolls.
+    ScrollWindowEvent(Point2D<f32>),
+    /// Sent when the user zooms.
+    ZoomWindowEvent(f32),
+    /// Sent when the user quits the application.
+    QuitWindowEvent,
+}
 
 /// Methods for an abstract Application.
 pub trait ApplicationMethods {
@@ -46,21 +51,9 @@ pub trait WindowMethods<A> {
     /// Presents the window to the screen (perhaps by page flipping).
     pub fn present(&mut self);
 
-    /// Registers a callback to run when a composite event occurs.
-    pub fn set_composite_callback(&mut self, new_composite_callback: CompositeCallback);
-    /// Registers a callback to run when a resize event occurs.
-    pub fn set_resize_callback(&mut self, new_resize_callback: ResizeCallback);
-    /// Registers a callback to run when a new URL is to be loaded.
-    pub fn set_load_url_callback(&mut self, new_load_url_callback: LoadUrlCallback);
-    /// Registers a callback to run when the user clicks.
-    pub fn set_mouse_callback(&mut self, new_mouse_callback: MouseCallback);
-    /// Registers a callback to run when the user scrolls.
-    pub fn set_scroll_callback(&mut self, new_scroll_callback: ScrollCallback);
-    /// Registers a callback to run when the user zooms.
-    pub fn set_zoom_callback(&mut self, new_zoom_callback: ZoomCallback);
+    /// Spins the event loop and returns the next event.
+    pub fn recv(@mut self) -> WindowEvent;
 
-    /// Spins the event loop.
-    pub fn check_loop(@mut self);
     /// Schedules a redisplay at the next turn of the event loop.
     pub fn set_needs_display(@mut self);
     /// Sets the ready state of the current page.
