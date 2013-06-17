@@ -39,7 +39,6 @@ pub enum ProfilerCategory {
     GfxRegenAvailableFontsCategory,
     RenderingDrawingCategory,
     RenderingPrepBuffCategory,
-    RenderingWaitSubtasksCategory,
     RenderingCategory,
     // hackish but helps prevent errors when adding new categories
     NUM_BUCKETS,
@@ -84,7 +83,6 @@ impl ProfilerCategory {
         vec.push((GfxRegenAvailableFontsCategory, ~[]));
         vec.push((RenderingDrawingCategory, ~[]));
         vec.push((RenderingPrepBuffCategory, ~[]));
-        vec.push((RenderingWaitSubtasksCategory, ~[]));
         vec.push((RenderingCategory, ~[]));
 
         ProfilerCategory::check_order(vec);
