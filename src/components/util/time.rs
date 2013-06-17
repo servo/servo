@@ -37,6 +37,7 @@ pub enum ProfilerCategory {
     LayoutShapingCategory,
     LayoutDispListBuildCategory,
     GfxRegenAvailableFontsCategory,
+    RenderingDrawingCategory,
     RenderingPrepBuffCategory,
     RenderingWaitSubtasksCategory,
     RenderingCategory,
@@ -81,6 +82,7 @@ impl ProfilerCategory {
         vec.push((LayoutShapingCategory, ~[]));
         vec.push((LayoutDispListBuildCategory, ~[]));
         vec.push((GfxRegenAvailableFontsCategory, ~[]));
+        vec.push((RenderingDrawingCategory, ~[]));
         vec.push((RenderingPrepBuffCategory, ~[]));
         vec.push((RenderingWaitSubtasksCategory, ~[]));
         vec.push((RenderingCategory, ~[]));
