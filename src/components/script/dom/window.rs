@@ -6,9 +6,9 @@ use dom::bindings::utils::WrapperCache;
 use dom::bindings::window;
 
 use layout_interface::ReflowForScriptQuery;
-use script_task::{ExitMsg, FireTimerMsg, ScriptMsg, ScriptContext};
+use script_task::{ExitMsg, FireTimerMsg, ScriptChan, ScriptContext};
 
-use core::comm::{Chan, SharedChan};
+use core::comm::Chan;
 use js::jsapi::JSVal;
 use std::timer;
 use std::uv_global_loop;
@@ -23,7 +23,7 @@ pub enum TimerControlMsg {
 //      only used for querying layout from arbitrary script.
 pub struct Window {
     timer_chan: Chan<TimerControlMsg>,
-    script_chan: SharedChan<ScriptMsg>,
+    script_chan: ScriptChan,
     script_context: *mut ScriptContext,
     wrapper: WrapperCache
 }
@@ -88,9 +88,9 @@ pub impl Window {
         }
     }
 
-    pub fn new(script_chan: SharedChan<ScriptMsg>, script_context: *mut ScriptContext)
+    pub fn new(script_chan: ScriptChan, script_context: *mut ScriptContext)
                -> @mut Window {
-        let script_chan_copy = script_chan.clone();
+        let script_chan_clone = script_chan.clone();
         let win = @mut Window {
             wrapper: WrapperCache::new(),
             script_chan: script_chan,
@@ -100,8 +100,8 @@ pub impl Window {
                     loop {
                         match timer_port.recv() {
                             TimerMessage_Close => break,
-                            TimerMessage_Fire(td) => script_chan_copy.send(FireTimerMsg(td)),
-                            TimerMessage_TriggerExit => script_chan_copy.send(ExitMsg),
+                            TimerMessage_Fire(td) => script_chan_clone.chan.send(FireTimerMsg(td)),
+                            TimerMessage_TriggerExit => script_chan_clone.chan.send(ExitMsg),
                         }
                     }
                 }

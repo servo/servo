@@ -8,8 +8,22 @@ use core::cell::Cell;
 use core::comm::{Port, SharedChan};
 use std::sort::tim_sort;
 
-pub type ProfilerChan = SharedChan<ProfilerMsg>;
-pub type ProfilerPort = Port<ProfilerMsg>;
+// front-end representation of the profiler used to communicate with the profiler
+#[deriving(Clone)]
+pub struct ProfilerChan {
+    chan: SharedChan<ProfilerMsg>,
+}
+
+impl ProfilerChan {
+    pub fn new(chan: Chan<ProfilerMsg>) -> ProfilerChan {
+        ProfilerChan {
+            chan: SharedChan::new(chan),
+        }
+    }
+    pub fn send(&self, msg: ProfilerMsg) {
+        self.chan.send(msg);
+    }
+}
 
 #[deriving(Eq)]
 pub enum ProfilerCategory {
@@ -36,25 +50,17 @@ pub enum ProfilerMsg {
     // Normal message used for reporting time
     TimeMsg(ProfilerCategory, f64),
     // Message used to force print the profiling metrics
-    ForcePrintMsg,
-}
-
-// front-end representation of the profiler used to communicate with the profiler context
-pub struct ProfilerTask {
-    chan: ProfilerChan,
+    PrintMsg,
 }
 
 // back end of the profiler that handles data aggregation and performance metrics
-pub struct ProfilerContext {
-    port: ProfilerPort,
+pub struct Profiler {
+    port: Port<ProfilerMsg>,
     buckets: ~[(ProfilerCategory, ~[f64])],
-    verbose: bool,
-    period: f64,
-    last_print: f64,
+    last_msg: Option<ProfilerMsg>,
 }
 
 impl ProfilerCategory {
-
     // convenience function to not have to cast every time
     pub fn num_buckets() -> uint {
         NUM_BUCKETS as uint
@@ -103,36 +109,20 @@ impl ProfilerCategory {
     }
 }
 
-impl ProfilerTask {
-    pub fn new(profiler_port: ProfilerPort,
-               profiler_chan: ProfilerChan,
-               period: Option<f64>)
-               -> ProfilerTask {
-        let profiler_port = Cell(profiler_port);
-
+impl Profiler {
+    pub fn create(port: Port<ProfilerMsg>) {
+        let port = Cell(port);
         do spawn {
-            let mut profiler_context = ProfilerContext::new(profiler_port.take(), period);
-            profiler_context.start();
-        }
-
-        ProfilerTask {
-            chan: profiler_chan
+            let mut profiler = Profiler::new(port.take());
+            profiler.start();
         }
     }
-}
 
-impl ProfilerContext {
-    pub fn new(port: ProfilerPort, period: Option<f64>) -> ProfilerContext {
-        let (verbose, period) = match period {
-            Some(period) => (true, period),
-            None => (false, 0f64)
-        };
-        ProfilerContext {
+    pub fn new(port: Port<ProfilerMsg>) -> Profiler {
+        Profiler {
             port: port,
             buckets: ProfilerCategory::empty_buckets(),
-            verbose: verbose,
-            period: period,
-            last_print: 0f64,
+            last_msg: None,
         }
     }
 
@@ -145,25 +135,19 @@ impl ProfilerContext {
 
     priv fn handle_msg(&mut self, msg: ProfilerMsg) {
         match msg {
-            TimeMsg(category, t) => {
+            TimeMsg(category, t) => match self.buckets[category as uint] {
                 // FIXME(#3874): this should be a let (cat, ref mut bucket) = ...,
                 // not a match
-                match self.buckets[category as uint] {
-                    (_, ref mut data) => {
-                        data.push(t);
-                    }
+                (_, ref mut data) => {
+                    data.push(t);
                 }
-
-                if self.verbose {
-                    let cur_time = precise_time_ns() as f64 / 1000000000f64;
-                    if cur_time - self.last_print > self.period {
-                        self.last_print = cur_time;
-                        self.print_buckets();
-                    }
-                }
-            }
-            ForcePrintMsg => self.print_buckets(),
+            },
+            PrintMsg => match self.last_msg {
+                Some(TimeMsg(*)) => self.print_buckets(),
+                _ => {}
+            },
         };
+        self.last_msg = Some(msg);
     }
 
     priv fn print_buckets(&mut self) {

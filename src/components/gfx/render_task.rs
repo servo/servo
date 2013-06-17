@@ -5,7 +5,7 @@
 // The task that handles all rendering/painting.
 
 use azure::{AzFloat, AzGLContext};
-use compositor::{Compositor, IdleRenderState, RenderingRenderState};
+use compositor::{RenderListener, IdleRenderState, RenderingRenderState};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use opts::Opts;
@@ -22,72 +22,84 @@ use servo_net::util::spawn_listener;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 
-pub enum Msg {
+pub enum Msg<C> {
+    AttachCompositorMsg(C),
     RenderMsg(RenderLayer),
     ExitMsg(Chan<()>),
 }
 
-#[deriving(Clone)]
-pub struct RenderTask {
-    channel: SharedChan<Msg>,
+pub struct RenderChan<C> {
+    chan: SharedChan<Msg<C>>,
 }
 
-impl RenderTask {
-    pub fn new<C:Compositor + Owned>(compositor: C,
-                                     opts: Opts,
-                                     profiler_chan: ProfilerChan)
-                                     -> RenderTask {
-        let compositor_cell = Cell(compositor);
-        let opts_cell = Cell(opts);
-        let (port, chan) = comm::stream();
-        let port = Cell(port);
-
-        do spawn {
-            let compositor = compositor_cell.take();
-            let share_gl_context = compositor.get_gl_context();
-
-            // FIXME: Annoying three-cell dance here. We need one-shot closures.
-            let opts = opts_cell.with_ref(|o| copy *o);
-            let n_threads = opts.n_render_threads;
-            let new_opts_cell = Cell(opts);
-
-            let profiler_chan = profiler_chan.clone();
-            let profiler_chan_copy = profiler_chan.clone();
-
-            let thread_pool = do TaskPool::new(n_threads, Some(SingleThreaded)) {
-                let opts_cell = Cell(new_opts_cell.with_ref(|o| copy *o));
-                let profiler_chan = Cell(profiler_chan.clone());
-
-                let f: ~fn(uint) -> ThreadRenderContext = |thread_index| {
-                    let opts = opts_cell.with_ref(|opts| copy *opts);
-
-                    ThreadRenderContext {
-                        thread_index: thread_index,
-                        font_ctx: @mut FontContext::new(opts.render_backend,
-                                                        false,
-                                                        profiler_chan.take()),
-                        opts: opts,
-                    }
-                };
-                f
-            };
-
-            // FIXME: rust/#5967
-            let mut renderer = Renderer {
-                port: port.take(),
-                compositor: compositor,
-                thread_pool: thread_pool,
-                opts: opts_cell.take(),
-                profiler_chan: profiler_chan_copy,
-                share_gl_context: share_gl_context,
-            };
-
-            renderer.start();
+impl<C: RenderListener + Owned> Clone for RenderChan<C> {
+    pub fn clone(&self) -> RenderChan<C> {
+        RenderChan {
+            chan: self.chan.clone(),
         }
+    }
+}
 
-        RenderTask {
-            channel: SharedChan::new(chan),
+impl<C: RenderListener + Owned> RenderChan<C> {
+    pub fn new(chan: Chan<Msg<C>>) -> RenderChan<C> {
+        RenderChan {
+            chan: SharedChan::new(chan),
         }
+    }
+    pub fn send(&self, msg: Msg<C>) {
+        self.chan.send(msg);
+    }
+}
+
+pub fn create_render_task<C: RenderListener + Owned>(port: Port<Msg<C>>,
+                                                     compositor: C,
+                                                     opts: Opts,
+                                                     profiler_chan: ProfilerChan) {
+    let compositor_cell = Cell(compositor);
+    let opts_cell = Cell(opts);
+    let port = Cell(port);
+
+    do spawn {
+        let compositor = compositor_cell.take();
+        let share_gl_context = compositor.get_gl_context();
+
+        // FIXME: Annoying three-cell dance here. We need one-shot closures.
+        let opts = opts_cell.with_ref(|o| copy *o);
+        let n_threads = opts.n_render_threads;
+        let new_opts_cell = Cell(opts);
+
+        let profiler_chan = profiler_chan.clone();
+        let profiler_chan_copy = profiler_chan.clone();
+
+        let thread_pool = do TaskPool::new(n_threads, Some(SingleThreaded)) {
+            let opts_cell = Cell(new_opts_cell.with_ref(|o| copy *o));
+            let profiler_chan = Cell(profiler_chan.clone());
+
+            let f: ~fn(uint) -> ThreadRenderContext = |thread_index| {
+                let opts = opts_cell.with_ref(|opts| copy *opts);
+
+                ThreadRenderContext {
+                    thread_index: thread_index,
+                    font_ctx: @mut FontContext::new(opts.render_backend,
+                                                    false,
+                                                    profiler_chan.take()),
+                    opts: opts,
+                }
+            };
+            f
+        };
+
+        // FIXME: rust/#5967
+        let mut renderer = Renderer {
+            port: port.take(),
+            compositor: compositor,
+            thread_pool: thread_pool,
+            opts: opts_cell.take(),
+            profiler_chan: profiler_chan_copy,
+            share_gl_context: share_gl_context,
+        };
+
+        renderer.start();
     }
 }
 
@@ -99,7 +111,7 @@ priv struct ThreadRenderContext {
 }
 
 priv struct Renderer<C> {
-    port: Port<Msg>,
+    port: Port<Msg<C>>,
     compositor: C,
     thread_pool: TaskPool<ThreadRenderContext>,
     opts: Opts,
@@ -110,12 +122,13 @@ priv struct Renderer<C> {
     share_gl_context: AzGLContext,
 }
 
-impl<C: Compositor + Owned> Renderer<C> {
+impl<C: RenderListener + Owned> Renderer<C> {
     fn start(&mut self) {
         debug!("renderer: beginning rendering loop");
 
         loop {
             match self.port.recv() {
+                AttachCompositorMsg(compositor) => self.compositor = compositor,
                 RenderMsg(render_layer) => self.render(render_layer),
                 ExitMsg(response_ch) => {
                     response_ch.send(());

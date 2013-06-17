@@ -2,101 +2,112 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::CompositorTask;
+use compositing::{CompositorChan, SetLayoutChan};
 use layout::layout_task;
 
 use core::cell::Cell;
-use core::comm::{Port, SharedChan};
+use core::comm::Port;
 use gfx::opts::Opts;
-use gfx::render_task::RenderTask;
+use gfx::render_task::RenderChan;
 use gfx::render_task;
-use script::compositor_interface::{CompositorInterface, ReadyState};
-use script::engine_interface::{EngineTask, ExitMsg, LoadUrlMsg, Msg};
-use script::layout_interface::LayoutTask;
+use script::compositor_interface::{ScriptListener, ReadyState};
+use script::engine_interface::{EngineChan, ExitMsg, LoadUrlMsg, Msg};
+use script::layout_interface::LayoutChan;
 use script::layout_interface;
-use script::script_task::{ExecuteMsg, LoadMsg, ScriptMsg, ScriptTask};
+use script::script_task::{ExecuteMsg, LoadMsg, ScriptMsg, ScriptContext, ScriptChan};
 use script::script_task;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
-use servo_util::time::{ProfilerChan, ProfilerPort, ProfilerTask, ForcePrintMsg};
+use servo_util::time::{ProfilerChan};
 
 pub struct Engine {
     request_port: Port<Msg>,
-    compositor: CompositorTask,
-    render_task: RenderTask,
+    compositor_chan: CompositorChan,
+    render_chan: RenderChan<CompositorChan>,
     resource_task: ResourceTask,
     image_cache_task: ImageCacheTask,
-    layout_task: LayoutTask,
-    script_task: ScriptTask,
-    profiler_task: ProfilerTask,
-}
-
-impl Drop for Engine {
-    fn finalize(&self) {
-        self.profiler_task.chan.send(ForcePrintMsg);
-    }
+    layout_chan: LayoutChan,
+    script_chan: ScriptChan,
+    profiler_chan: ProfilerChan,
 }
 
 impl Engine {
-    pub fn start(compositor: CompositorTask,
+    pub fn start(compositor_chan: CompositorChan,
                  opts: &Opts,
-                 script_port: Port<ScriptMsg>,
-                 script_chan: SharedChan<ScriptMsg>,
                  resource_task: ResourceTask,
                  image_cache_task: ImageCacheTask,
-                 profiler_port: ProfilerPort,
                  profiler_chan: ProfilerChan)
-                 -> EngineTask {
-        let (script_port, script_chan) = (Cell(script_port), Cell(script_chan));
-        let (engine_port, engine_chan) = comm::stream();
-        let (engine_port, engine_chan) = (Cell(engine_port), SharedChan::new(engine_chan));
-        let engine_chan_clone = engine_chan.clone();
-        let compositor = Cell(compositor);
-        let profiler_port = Cell(profiler_port);
+                 -> EngineChan {
+        macro_rules! closure_stream(
+            ($Msg:ty, $Chan:ident) => (
+                {
+                    let (port, chan) = comm::stream::<$Msg>();
+                    (Cell(port), $Chan::new(chan))
+                }
+            );
+        )
+            
+        // Create the script port and channel.
+        let (script_port, script_chan) = closure_stream!(ScriptMsg, ScriptChan);
+
+        // Create the engine port and channel.
+        let (engine_port, engine_chan) = closure_stream!(Msg, EngineChan);
+        
+        // Create the layout port and channel.
+        let (layout_port, layout_chan) = closure_stream!(layout_interface::Msg, LayoutChan);
+
+        let (render_port, render_chan) = comm::stream::<render_task::Msg<CompositorChan>>();
+        let (render_port, render_chan) = (Cell(render_port), RenderChan::new(render_chan));
+
+
+        compositor_chan.send(SetLayoutChan(layout_chan.clone()));
+        let compositor_chan = Cell(compositor_chan);
+
         let opts = Cell(copy *opts);
 
-        do task::spawn {
-            let compositor = compositor.take();
-            let render_task = RenderTask::new(compositor.clone(),
-                                              opts.with_ref(|o| copy *o),
-                                              profiler_chan.clone());
+        {
+            let engine_chan = engine_chan.clone();
+            do task::spawn {
+                let compositor_chan = compositor_chan.take();
+                render_task::create_render_task(render_port.take(),
+                                                compositor_chan.clone(),
+                                                opts.with_ref(|o| copy *o),
+                                                profiler_chan.clone());
 
-            let opts = opts.take();
+                let opts = opts.take();
 
-            let profiler_task = ProfilerTask::new(profiler_port.take(),
-                                                  profiler_chan.clone(),
-                                                  opts.profiler_period);
+                layout_task::create_layout_task(layout_port.take(),
+                                                script_chan.clone(),
+                                                render_chan.clone(),
+                                                image_cache_task.clone(),
+                                                opts,
+                                                profiler_chan.clone());
 
-            let layout_task = layout_task::create_layout_task(render_task.clone(),
-                                                              image_cache_task.clone(),
-                                                              opts,
-                                                              profiler_task.chan.clone());
+                let compositor_chan_clone = compositor_chan.clone();
+                ScriptContext::create_script_context(layout_chan.clone(),
+                                                     script_port.take(),
+                                                     script_chan.clone(),
+                                                     engine_chan.clone(),
+                                                     |msg: ReadyState| {
+                                                         compositor_chan_clone.set_ready_state(msg)
+                                                     },
+                                                     resource_task.clone(),
+                                                     image_cache_task.clone());
 
-            let compositor_clone = compositor.clone();
-            let script_task = ScriptTask::new(script_port.take(),
-                                              script_chan.take(),
-                                              engine_chan_clone.clone(),
-                                              |msg: ReadyState| {
-                                                  compositor_clone.set_ready_state(msg)
-                                              },
-                                              layout_task.clone(),
-                                              resource_task.clone(),
-                                              image_cache_task.clone());
-
-
-            Engine {
-                request_port: engine_port.take(),
-                compositor: compositor.clone(),
-                render_task: render_task,
-                resource_task: resource_task.clone(),
-                image_cache_task: image_cache_task.clone(),
-                layout_task: layout_task,
-                script_task: script_task,
-                profiler_task: profiler_task,
-            }.run();
+                Engine {
+                    request_port: engine_port.take(),
+                    compositor_chan: compositor_chan.clone(),
+                    render_chan: render_chan.clone(),
+                    resource_task: resource_task.clone(),
+                    image_cache_task: image_cache_task.clone(),
+                    layout_chan: layout_chan.clone(),
+                    script_chan: script_chan.clone(),
+                    profiler_chan: profiler_chan.clone(),
+                }.run();
+            }
         }
-        engine_chan.clone()
+        engine_chan
     }
 
     fn run(&self) {
@@ -109,20 +120,20 @@ impl Engine {
         match request {
             LoadUrlMsg(url) => {
                 if url.path.ends_with(".js") {
-                    self.script_task.chan.send(ExecuteMsg(url))
+                    self.script_chan.send(ExecuteMsg(url))
                 } else {
-                    self.script_task.chan.send(LoadMsg(url))
+                    self.script_chan.send(LoadMsg(url))
                 }
                 return true
             }
 
             ExitMsg(sender) => {
-                self.script_task.chan.send(script_task::ExitMsg);
-                self.layout_task.chan.send(layout_interface::ExitMsg);
+                self.script_chan.send(script_task::ExitMsg);
+                self.layout_chan.send(layout_interface::ExitMsg);
 
                 let (response_port, response_chan) = comm::stream();
 
-                self.render_task.channel.send(render_task::ExitMsg(response_chan));
+                self.render_chan.send(render_task::ExitMsg(response_chan));
                 response_port.recv();
 
                 self.image_cache_task.exit();

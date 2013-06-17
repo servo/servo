@@ -5,6 +5,7 @@
 //! The layout task. Performs layout on the DOM, builds display lists and sends them to be
 /// rendered.
 
+use compositing::CompositorChan;
 use css::matching::MatchMethods;
 use css::select::new_css_select_ctx;
 use layout::aux::{LayoutData, LayoutAuxMethods};
@@ -13,11 +14,10 @@ use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
 use layout::flow::FlowContext;
-use util::task::spawn_listener;
 
 use core::cast::transmute;
 use core::cell::Cell;
-use core::comm::{Chan, Port, SharedChan};
+use core::comm::{Chan, Port};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -26,7 +26,7 @@ use gfx::font_context::FontContext;
 use gfx::geometry::Au;
 use gfx::opts::Opts;
 use gfx::render_layers::RenderLayer;
-use gfx::render_task::{RenderMsg, RenderTask};
+use gfx::render_task::{RenderMsg, RenderChan};
 use newcss::select::SelectCtx;
 use newcss::stylesheet::Stylesheet;
 use newcss::types::OriginAuthor;
@@ -35,10 +35,10 @@ use script::dom::node::{AbstractNode, LayoutView};
 use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
 use script::layout_interface::{HitTestQuery, ContentBoxResponse, HitTestResponse};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitMsg, LayoutQuery};
-use script::layout_interface::{LayoutResponse, LayoutTask, MatchSelectorsDocumentDamage, Msg};
-use script::layout_interface::{QueryMsg, Reflow, ReflowDocumentDamage, ReflowForDisplay};
-use script::layout_interface::{ReflowMsg};
-use script::script_task::{ReflowCompleteMsg, ScriptMsg, SendEventMsg};
+use script::layout_interface::{LayoutResponse, MatchSelectorsDocumentDamage, Msg};
+use script::layout_interface::{QueryMsg, RouteScriptMsg, Reflow, ReflowDocumentDamage};
+use script::layout_interface::{ReflowForDisplay, ReflowMsg};
+use script::script_task::{ReflowCompleteMsg, ScriptChan, ScriptMsg, SendEventMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
@@ -46,30 +46,30 @@ use servo_util::time::{ProfilerChan, profile, time};
 use servo_util::time;
 use std::net::url::Url;
 
-pub fn create_layout_task(render_task: RenderTask,
+pub fn create_layout_task(port: Port<Msg>,
+                          script_chan: ScriptChan,
+                          render_chan: RenderChan<CompositorChan>,
                           img_cache_task: ImageCacheTask,
                           opts: Opts,
-                          profiler_chan: ProfilerChan)
-                          -> LayoutTask {
-    let chan = do spawn_listener::<Msg> |from_script| {
-        let mut layout = Layout::new(render_task.clone(),
+                          profiler_chan: ProfilerChan) {
+    let port = Cell(port);
+    do spawn {
+        let mut layout = Layout::new(port.take(),
+                                     script_chan.clone(),
+                                     render_chan.clone(),
                                      img_cache_task.clone(),
-                                     from_script,
                                      &opts,
                                      profiler_chan.clone());
         layout.start();
     };
-
-    LayoutTask {
-        chan: SharedChan::new(chan),
-    }
 }
 
 struct Layout {
-    render_task: RenderTask,
+    port: Port<Msg>,
+    script_chan: ScriptChan,
+    render_chan: RenderChan<CompositorChan>,
     image_cache_task: ImageCacheTask,
     local_image_cache: @mut LocalImageCache,
-    from_script: Port<Msg>,
     font_ctx: @mut FontContext,
     doc_url: Option<Url>,
     screen_size: Option<Size2D<Au>>,
@@ -82,19 +82,21 @@ struct Layout {
 }
 
 impl Layout {
-    fn new(render_task: RenderTask, 
+    fn new(port: Port<Msg>,
+           script_chan: ScriptChan,
+           render_chan: RenderChan<CompositorChan>, 
            image_cache_task: ImageCacheTask,
-           from_script: Port<Msg>,
            opts: &Opts,
            profiler_chan: ProfilerChan)
            -> Layout {
         let fctx = @mut FontContext::new(opts.render_backend, true, profiler_chan.clone());
 
         Layout {
-            render_task: render_task,
+            port: port,
+            script_chan: script_chan,
+            render_chan: render_chan,
             image_cache_task: image_cache_task.clone(),
             local_image_cache: @mut LocalImageCache(image_cache_task),
-            from_script: from_script,
             font_ctx: fctx,
             doc_url: None,
             screen_size: None,
@@ -125,7 +127,7 @@ impl Layout {
     }
 
     fn handle_request(&mut self) -> bool {
-        match self.from_script.recv() {
+        match self.port.recv() {
             AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet),
             ReflowMsg(data) => {
                 let data = Cell(data);
@@ -137,8 +139,11 @@ impl Layout {
             QueryMsg(query, chan) => {
                 let chan = Cell(chan);
                 do profile(time::LayoutQueryCategory, self.profiler_chan.clone()) {
-                    self.handle_query(query, chan.take())
+                    self.handle_query(query, chan.take());
                 }
+            }
+            RouteScriptMsg(script_msg) => {
+                self.route_script_msg(script_msg);
             }
             ExitMsg => {
                 debug!("layout: ExitMsg received");
@@ -248,7 +253,7 @@ impl Layout {
                     size: Size2D(root_size.width.to_px() as uint, root_size.height.to_px() as uint)
                 };
 
-                self.render_task.channel.send(RenderMsg(render_layer));
+                self.render_chan.send(RenderMsg(render_layer));
             } // time(layout: display list building)
         }
 
@@ -371,12 +376,18 @@ impl Layout {
         }
     }
 
+    // TODO(tkuehn): once there are multiple script tasks, this is where the layout task will
+    // determine which script task should receive the message. The prototype will need to change
+    fn route_script_msg(&self, script_msg: ScriptMsg) {
+        self.script_chan.send(script_msg);
+    }
+
     // When images can't be loaded in time to display they trigger
     // this callback in some task somewhere. This will send a message
     // to the script task, and ultimately cause the image to be
     // re-requested. We probably don't need to go all the way back to
     // the script task for this.
-    fn make_on_image_available_cb(&self, script_chan: SharedChan<ScriptMsg>)
+    fn make_on_image_available_cb(&self, script_chan: ScriptChan)
                                   -> @fn() -> ~fn(ImageResponseMsg) {
         // This has a crazy signature because the image cache needs to
         // make multiple copies of the callback, and the dom event
