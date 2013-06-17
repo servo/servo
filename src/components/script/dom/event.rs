@@ -10,7 +10,7 @@ use dom::bindings::utils::{DOMString, ErrorResult, WrapperCache};
 use geom::point::Point2D;
 
 pub enum Event {
-    ResizeEvent(uint, uint, comm::Chan<()>),
+    ResizeEvent(uint, uint), 
     ReflowEvent,
     ClickEvent(uint, Point2D<f32>),
     MouseDownEvent(uint, Point2D<f32>),

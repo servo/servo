@@ -7,7 +7,7 @@
 /// from layout.
 
 use dom::node::{AbstractNode, ScriptView, LayoutView};
-use script_task::ScriptMsg;
+use script_task::{ScriptMsg, ScriptChan};
 
 use core::comm::{Chan, SharedChan};
 use geom::rect::Rect;
@@ -31,6 +31,9 @@ pub enum Msg {
     ///
     /// FIXME(pcwalton): As noted below, this isn't very type safe.
     QueryMsg(LayoutQuery, Chan<Result<LayoutResponse,()>>),
+
+    /// Routes a message (usually from the compositor) to the appropriate script task
+    RouteScriptMsg(ScriptMsg),
 
     /// Requests that the layout task shut down and exit.
     ExitMsg,
@@ -110,7 +113,7 @@ pub struct Reflow {
     /// The URL of the page.
     url: Url,
     /// The channel through which messages can be sent back to the script task.
-    script_chan: SharedChan<ScriptMsg>,
+    script_chan: ScriptChan,
     /// The current window size.
     window_size: Size2D<uint>,
     /// The channel that we send a notification to.
@@ -119,7 +122,17 @@ pub struct Reflow {
 
 /// Encapsulates a channel to the layout task.
 #[deriving(Clone)]
-pub struct LayoutTask {
+pub struct LayoutChan {
     chan: SharedChan<Msg>,
 }
 
+impl LayoutChan {
+    pub fn new(chan: Chan<Msg>) -> LayoutChan {
+        LayoutChan {
+            chan: SharedChan::new(chan),
+        }
+    }
+    pub fn send(&self, msg: Msg) {
+        self.chan.send(msg);
+    }
+}

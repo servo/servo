@@ -7,20 +7,20 @@
 /// before sending the next. If the window is resized multiple times before an event is handled
 /// then some events will never be sent.
 
-use core::comm::{Port, SharedChan};
+use core::comm::{Port};
 use script::dom::event::ResizeEvent;
-use script::script_task::{ScriptMsg, SendEventMsg};
+use script::script_task::{ScriptChan, ScriptMsg, SendEventMsg};
 
 pub struct ResizeRateLimiter {
     /// The channel we send resize events on
-    priv script_chan: SharedChan<ScriptMsg>,
+    priv script_chan: ScriptChan,
     /// The port we are waiting on for a response to the last resize event
     priv last_response_port: Option<Port<()>>,
     /// The next window resize event we should fire
     priv next_resize_event: Option<(uint, uint)>
 }
 
-pub fn ResizeRateLimiter(script_chan: SharedChan<ScriptMsg>) -> ResizeRateLimiter {
+pub fn ResizeRateLimiter(script_chan: ScriptChan) -> ResizeRateLimiter {
     ResizeRateLimiter {
         script_chan: script_chan,
         last_response_port: None,
