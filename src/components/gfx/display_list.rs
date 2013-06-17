@@ -24,7 +24,6 @@ use geom::{Point2D, Rect, Size2D};
 use servo_net::image::base::Image;
 use servo_util::range::Range;
 use std::arc::ARC;
-use std::arc;
 
 /// A list of rendering operations to be performed.
 pub struct DisplayList<E> {

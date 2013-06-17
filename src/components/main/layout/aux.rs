@@ -42,19 +42,19 @@ pub trait LayoutAuxMethods {
 impl LayoutAuxMethods for AbstractNode<LayoutView> {
     // FIXME (Rust #3080): These unsafe blocks are *not* unused!
     pub fn layout_data(self) -> @mut LayoutData {
-        unsafe {
+        /*unsafe {*/
             self.unsafe_layout_data()
-        }
+        /*}*/
     }
     pub fn has_layout_data(self) -> bool {
-        unsafe {
+        /*unsafe {*/
             self.unsafe_has_layout_data()
-        }
+        /*}*/
     }
     pub fn set_layout_data(self, data: @mut LayoutData) {
-        unsafe {
+        /*unsafe {*/
             self.unsafe_set_layout_data(data)
-        }
+        /*}*/
     }
 
     /// If none exists, creates empty layout data for the node (the reader-auxiliary
