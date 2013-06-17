@@ -12,7 +12,6 @@ use windowing::{ResizeCallback, ScrollCallback, WindowMethods, WindowMouseEvent,
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent, ZoomCallback};
 
 use alert::{Alert, AlertMethods};
-use core::cell::Cell;
 use core::libc::c_int;
 use geom::point::Point2D;
 use geom::size::Size2D;

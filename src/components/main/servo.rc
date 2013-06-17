@@ -33,14 +33,15 @@ extern mod core_graphics;
 #[cfg(target_os="macos")]
 extern mod core_text;
 
-use compositing::CompositorTask;
+use compositing::{CompositorChan, CompositorTask};
 use engine::Engine;
 use script::engine_interface::{ExitMsg, LoadUrlMsg};
 
-use core::comm::SharedChan;
 use gfx::opts;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
+use servo_util::time::{Profiler, ProfilerChan, PrintMsg};
+use std::uv_global_loop;
 
 pub use gfx::opts::Opts;
 pub use gfx::text;
@@ -87,33 +88,42 @@ fn main() {
 }
 
 fn run(opts: &Opts) {
-    // Create the script channel.
-    let (script_port, script_chan) = comm::stream();
-    let script_chan = SharedChan::new(script_chan);
+    let (shutdown_port, shutdown_chan) = comm::stream();
 
     // Create the profiler channel.
     let (profiler_port, profiler_chan) = comm::stream();
-    let profiler_chan = SharedChan::new(profiler_chan);
+    let profiler_chan = ProfilerChan::new(profiler_chan);
+    Profiler::create(profiler_port);
+    do opts.profiler_period.map |period| {
+        let profiler_chan = profiler_chan.clone();
+        let period = *period;
+        do spawn {
+            loop {
+                std::timer::sleep(&uv_global_loop::get(),
+                                  (period * 1000f64) as uint);
+                profiler_chan.send(PrintMsg);
+            }
+        }
+    };
 
     // Create the compositor.
-    let (compositor, shutdown_port) = CompositorTask::new(script_chan.clone(),
-                                                          profiler_chan.clone());
+    let (compositor_port, compositor_chan) = comm::stream();
+    let compositor_chan = CompositorChan::new(compositor_chan);
+    CompositorTask::create(compositor_port, profiler_chan.clone(), shutdown_chan);
 
     // Create a Servo instance.
+
     let resource_task = ResourceTask();
     let image_cache_task = ImageCacheTask(resource_task.clone());
-    let engine_task = Engine::start(compositor.clone(),
+    let engine_chan = Engine::start(compositor_chan.clone(),
                                     opts,
-                                    script_port,
-                                    script_chan,
                                     resource_task,
                                     image_cache_task,
-                                    profiler_port,
-                                    profiler_chan);
+                                    profiler_chan.clone());
 
     // Send the URL command to the engine task.
     for opts.urls.each |filename| {
-        engine_task.send(LoadUrlMsg(make_url(copy *filename, None)))
+        engine_chan.send(LoadUrlMsg(make_url(copy *filename, None)))
     }
 
     // Wait for the compositor to shut down.
@@ -122,7 +132,7 @@ fn run(opts: &Opts) {
     // Shut the engine down.
     debug!("master: Shut down");
     let (exit_response_from_engine, exit_chan) = comm::stream();
-    engine_task.send(ExitMsg(exit_chan));
+    engine_chan.send(ExitMsg(exit_chan));
     exit_response_from_engine.recv();
 }
 

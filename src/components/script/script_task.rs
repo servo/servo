@@ -13,11 +13,11 @@ use dom::event::{Event, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, Mo
 use dom::node::{AbstractNode, ScriptView, define_bindings};
 use dom::window::Window;
 use layout_interface::{AddStylesheetMsg, DocumentDamage, DocumentDamageLevel, HitTestQuery};
-use layout_interface::{HitTestResponse, LayoutQuery, LayoutResponse, LayoutTask};
+use layout_interface::{HitTestResponse, LayoutQuery, LayoutResponse, LayoutChan};
 use layout_interface::{MatchSelectorsDocumentDamage, QueryMsg, Reflow, ReflowDocumentDamage};
 use layout_interface::{ReflowForDisplay, ReflowForScriptQuery, ReflowGoal, ReflowMsg};
 use layout_interface;
-use engine_interface::{EngineTask, LoadUrlMsg};
+use engine_interface::{EngineChan, LoadUrlMsg};
 
 use core::cast::transmute;
 use core::cell::Cell;
@@ -61,41 +61,21 @@ pub enum ScriptMsg {
 }
 
 /// Encapsulates external communication with the script task.
-pub struct ScriptTask {
+#[deriving(Clone)]
+pub struct ScriptChan {
     /// The channel used to send messages to the script task.
     chan: SharedChan<ScriptMsg>,
 }
 
-impl ScriptTask {
+impl ScriptChan {
     /// Creates a new script task.
-    pub fn new(script_port: Port<ScriptMsg>,
-               script_chan: SharedChan<ScriptMsg>,
-               engine_task: EngineTask,
-               //FIXME(rust #5192): workaround for lack of working ~Trait
-               compositor_task: ~fn(ReadyState),
-               layout_task: LayoutTask,
-               resource_task: ResourceTask,
-               image_cache_task: ImageCacheTask)
-               -> ScriptTask {
-        let (script_chan_copy, script_port) = (script_chan.clone(), Cell(script_port));
-        let compositor_task = Cell(compositor_task);
-        // FIXME: rust#6399
-        let mut the_task = task();
-        the_task.sched_mode(SingleThreaded);
-        do the_task.spawn {
-            let script_context = ScriptContext::new(layout_task.clone(),
-                                                    script_port.take(),
-                                                    script_chan_copy.clone(),
-                                                    engine_task.clone(),
-                                                    compositor_task.take(),
-                                                    resource_task.clone(),
-                                                    image_cache_task.clone());
-            script_context.start();
+    pub fn new(chan: Chan<ScriptMsg>) -> ScriptChan {
+        ScriptChan {
+            chan: SharedChan::new(chan)
         }
-
-        ScriptTask {
-            chan: script_chan
-        }
+    }
+    pub fn send(&self, msg: ScriptMsg) {
+        self.chan.send(msg);
     }
 }
 
@@ -112,7 +92,7 @@ pub struct Frame {
 /// FIXME: Rename to `Page`, following WebKit?
 pub struct ScriptContext {
     /// A handle to the layout task.
-    layout_task: LayoutTask,
+    layout_chan: LayoutChan,
     /// A handle to the image cache task.
     image_cache_task: ImageCacheTask,
     /// A handle to the resource task.
@@ -125,10 +105,10 @@ pub struct ScriptContext {
     script_port: Port<ScriptMsg>,
     /// A channel for us to hand out when we want some other task to be able to send us script
     /// messages.
-    script_chan: SharedChan<ScriptMsg>,
+    script_chan: ScriptChan,
 
     /// For communicating load url messages to the engine
-    engine_task: EngineTask,
+    engine_chan: EngineChan,
     /// For communicating loading messages to the compositor
     compositor_task: ~fn(ReadyState),
 
@@ -180,10 +160,10 @@ impl Drop for ScriptContext {
 
 impl ScriptContext {
     /// Creates a new script context.
-    pub fn new(layout_task: LayoutTask,
+    pub fn new(layout_chan: LayoutChan,
                script_port: Port<ScriptMsg>,
-               script_chan: SharedChan<ScriptMsg>,
-               engine_task: EngineTask,
+               script_chan: ScriptChan,
+               engine_chan: EngineChan,
                compositor_task: ~fn(ReadyState),
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask)
@@ -200,7 +180,7 @@ impl ScriptContext {
         };
 
         let script_context = @mut ScriptContext {
-            layout_task: layout_task,
+            layout_chan: layout_chan,
             image_cache_task: img_cache_task,
             resource_task: resource_task,
 
@@ -208,7 +188,7 @@ impl ScriptContext {
             script_port: script_port,
             script_chan: script_chan,
 
-            engine_task: engine_task,
+            engine_chan: engine_chan,
             compositor_task: compositor_task,
 
             js_runtime: js_runtime,
@@ -242,6 +222,30 @@ impl ScriptContext {
     pub fn start(&mut self) {
         while self.handle_msg() {
             // Go on...
+        }
+    }
+
+    pub fn create_script_context(layout_chan: LayoutChan,
+                                 script_port: Port<ScriptMsg>,
+                                 script_chan: ScriptChan,
+                                 engine_chan: EngineChan,
+                                 compositor_task: ~fn(ReadyState),
+                                 resource_task: ResourceTask,
+                                 image_cache_task: ImageCacheTask) {
+        let script_port = Cell(script_port);
+        let compositor_task = Cell(compositor_task);
+        // FIXME: rust#6399
+        let mut the_task = task();
+        the_task.sched_mode(SingleThreaded);
+        do the_task.spawn {
+            let script_context = ScriptContext::new(layout_chan.clone(),
+                                                    script_port.take(),
+                                                    script_chan.clone(),
+                                                    engine_chan.clone(),
+                                                    compositor_task.take(),
+                                                    resource_task.clone(),
+                                                    image_cache_task.clone());
+            script_context.start();
         }
     }
 
@@ -325,7 +329,7 @@ impl ScriptContext {
             frame.document.teardown();
         }
 
-        self.layout_task.chan.send(layout_interface::ExitMsg)
+        self.layout_chan.send(layout_interface::ExitMsg)
     }
 
     // tells the compositor when loading starts and finishes
@@ -361,7 +365,7 @@ impl ScriptContext {
         // in the script task.
         loop {
               match html_parsing_result.style_port.recv() {
-                  Some(sheet) => self.layout_task.chan.send(AddStylesheetMsg(sheet)),
+                  Some(sheet) => self.layout_chan.send(AddStylesheetMsg(sheet)),
                   None => break,
               }
         }
@@ -457,7 +461,7 @@ impl ScriptContext {
                     damage: replace(&mut self.damage, None).unwrap(),
                 };
 
-                self.layout_task.chan.send(ReflowMsg(reflow))
+                self.layout_chan.send(ReflowMsg(reflow))
             }
         }
 
@@ -482,7 +486,7 @@ impl ScriptContext {
          self.join_layout();
 
          let (response_port, response_chan) = comm::stream();
-         self.layout_task.chan.send(QueryMsg(query, response_chan));
+         self.layout_chan.send(QueryMsg(query, response_chan));
          response_port.recv()
     }
 
@@ -511,7 +515,7 @@ impl ScriptContext {
     /// TODO: Actually perform DOM event dispatch.
     fn handle_event(&mut self, event: Event) {
         match event {
-            ResizeEvent(new_width, new_height, response_chan) => {
+            ResizeEvent(new_width, new_height) => {
                 debug!("script got resize event: %u, %u", new_width, new_height);
 
                 self.window_size = Size2D(new_width, new_height);
@@ -525,8 +529,6 @@ impl ScriptContext {
                 if self.root_frame.is_some() {
                     self.reflow(ReflowForDisplay)
                 }
-
-                response_chan.send(())
             }
 
             // FIXME(pcwalton): This reflows the entire document and is not incremental-y.
@@ -595,7 +597,7 @@ impl ScriptContext {
                     None => None
                 };
                 let url = make_url(attr.value.clone(), current_url);
-                self.engine_task.send(LoadUrlMsg(url));
+                self.engine_chan.send(LoadUrlMsg(url));
             }
         }
     }
