@@ -20,6 +20,9 @@ use gfx::text::util::*;
 use newcss::values::{CSSTextAlignCenter, CSSTextAlignJustify, CSSTextAlignLeft};
 use newcss::values::{CSSTextAlignRight, CSSTextDecoration, CSSTextDecorationUnderline};
 use script::dom::node::{AbstractNode, LayoutView};
+use newcss::units::{Em, Px, Pt};
+use newcss::values::{CSSLineHeightNormal, CSSLineHeightNumber, CSSLineHeightLength, CSSLineHeightPercentage};
+
 use servo_util::range::Range;
 use std::deque::Deque;
 
@@ -191,17 +194,18 @@ impl TextRunScanner {
         assert!(inline.boxes.len() > 0);
         debug!("TextRunScanner: scanning %u boxes for text runs...", inline.boxes.len());
 
+        let mut last_whitespace = true;
         let mut out_boxes = ~[];
         for uint::range(0, flow.inline().boxes.len()) |box_i| {
             debug!("TextRunScanner: considering box: %?", flow.inline().boxes[box_i].debug_str());
             if box_i > 0 && !can_coalesce_text_nodes(flow.inline().boxes, box_i-1, box_i) {
-                self.flush_clump_to_list(ctx, flow, &mut out_boxes);
+                last_whitespace = self.flush_clump_to_list(ctx, flow, last_whitespace, &mut out_boxes);
             }
             self.clump.extend_by(1);
         }
         // handle remaining clumps
         if self.clump.length() > 0 {
-            self.flush_clump_to_list(ctx, flow, &mut out_boxes);
+            self.flush_clump_to_list(ctx, flow, last_whitespace, &mut out_boxes);
         }
 
         debug!("TextRunScanner: swapping out boxes.");
@@ -238,7 +242,8 @@ impl TextRunScanner {
     fn flush_clump_to_list(&mut self,
                            ctx: &mut LayoutContext,
                            flow: FlowContext,
-                           out_boxes: &mut ~[RenderBox]) {
+                           last_whitespace: bool,
+                           out_boxes: &mut ~[RenderBox]) -> bool {
         let inline = &mut *flow.inline();
         let in_boxes = &inline.boxes;
 
@@ -258,6 +263,8 @@ impl TextRunScanner {
             _ => false
         };
 
+        let mut new_whitespace = last_whitespace;
+
         match (is_singleton, is_text_clump) {
             (false, false) => {
                 fail!(~"WAT: can't coalesce non-text nodes in flush_clump_to_list()!")
@@ -275,13 +282,15 @@ impl TextRunScanner {
                 // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
                 let compression = CompressWhitespaceNewline;
 
-                let transformed_text = transform_text(text, compression);
+                let (transformed_text, whitespace) = transform_text(text, compression, last_whitespace);
+                new_whitespace = whitespace;
 
-                // TODO(#177): Text run creation must account for the renderability of text by
-                // font group fonts. This is probably achieved by creating the font group above
-                // and then letting `FontGroup` decide which `Font` to stick into the text run.
-                let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
-                let run = @fontgroup.create_textrun(transformed_text, underline);
+                if transformed_text.len() > 0 {
+                    // TODO(#177): Text run creation must account for the renderability of text by
+                    // font group fonts. This is probably achieved by creating the font group above
+                    // and then letting `FontGroup` decide which `Font` to stick into the text run.
+                    let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
+                    let run = @fontgroup.create_textrun(transformed_text, underline);
 
                 debug!("TextRunScanner: pushing single text box in range: %?", self.clump);
                 let new_box = do old_box.with_base |old_box_base| {
@@ -289,21 +298,26 @@ impl TextRunScanner {
                     @mut adapt_textbox_with_range(*old_box_base, run, range)
                 };
 
-                out_boxes.push(TextRenderBoxClass(new_box));
+                    out_boxes.push(TextRenderBoxClass(new_box));
+                }
             },
             (false, true) => {
                 // TODO(#115): Use the actual CSS `white-space` property of the relevant style.
                 let compression = CompressWhitespaceNewline;
 
                 // First, transform/compress text of all the nodes.
+                let mut last_whitespace = true;
                 let transformed_strs: ~[~str] = do vec::from_fn(self.clump.length()) |i| {
                     // TODO(#113): We should be passing the compression context between calls to
                     // `transform_text`, so that boxes starting and/or ending with whitespace can
                     // be compressed correctly with respect to the text run.
                     let idx = i + self.clump.begin();
-                    transform_text(in_boxes[idx].raw_text(), compression)
+                    let (new_str, new_whitespace) = transform_text(in_boxes[idx].raw_text(), compression, last_whitespace);
+                    last_whitespace = new_whitespace;
+                    new_str
                 };
-
+                new_whitespace = last_whitespace;
+                
                 // Next, concatenate all of the transformed strings together, saving the new
                 // character indices.
                 let mut run_str: ~str = ~"";
@@ -328,7 +342,7 @@ impl TextRunScanner {
                 // TextRuns contain a cycle which is usually resolved by the teardown
                 // sequence. If no clump takes ownership, however, it will leak.
                 let clump = self.clump;
-                let run = if clump.length() != 0 {
+                let run = if clump.length() != 0 && run_str.len() > 0 {
                     Some(@TextRun::new(fontgroup.fonts[0], run_str, underline))
                 } else {
                     None
@@ -373,6 +387,8 @@ impl TextRunScanner {
 
         let end = self.clump.end(); // FIXME: borrow checker workaround
         self.clump.reset(end, 0);
+
+        new_whitespace
     } // End of `flush_clump_to_list`.
 }
 
@@ -748,7 +764,6 @@ impl InlineFlowData {
         // TODO(#226): Get the CSS `line-height` property from each non-replaced inline element to
         // determine its height for computing linebox height.
 
-        let line_height = Au::from_px(20);
         let mut cur_y = Au(0);
 
         for self.lines.eachi |i, line_span| {
@@ -756,62 +771,63 @@ impl InlineFlowData {
 
             // These coordinates are relative to the left baseline.
             let mut linebox_bounding_box = Au::zero_rect();
+            let mut linebox_height = Au(0);
+            let mut baseline_offset = Au(0);
+
             let boxes = &mut self.boxes;
+
             for line_span.eachi |box_i| {
                 let cur_box = boxes[box_i]; // FIXME: borrow checker workaround
 
-                // Compute the height of each box.
-                match cur_box {
+                // Compute the height and bounding box of each box.
+                let bounding_box = match cur_box {
                     ImageRenderBoxClass(image_box) => {
                         let size = image_box.image.get_size();
                         let height = Au::from_px(size.get_or_default(Size2D(0, 0)).height);
                         image_box.base.position.size.height = height;
+
+                        image_box.base.position.translate(&Point2D(Au(0), -height))
                     }
-                    TextRenderBoxClass(*) => {
-                        // Text boxes are preinitialized.
+                    TextRenderBoxClass(text_box) => {
+
+                        let range = &text_box.range;
+                        let run = &text_box.run;
+                        
+                        // Compute the height based on the line-height and font size
+                        let text_bounds = run.metrics_for_range(range).bounding_box;
+                        let em_size = text_bounds.size.height;
+                        let line_height = match cur_box.line_height() {
+                            // use the font's leading for normal
+                            CSSLineHeightNormal => text_box.run.font.metrics.leading,
+                            CSSLineHeightNumber(l) => em_size.scale_by(l),
+                            CSSLineHeightLength(Em(l)) => em_size.scale_by(l),
+                            CSSLineHeightLength(Px(l)) => Au::from_frac_px(l),
+                            CSSLineHeightLength(Pt(l)) => Au::from_pt(l),
+                            CSSLineHeightPercentage(p) => em_size.scale_by(p / 100.0f)
+                        };
+
+                        // If this is the current tallest box then use it for baseline
+                        // calculations.
+                        // TODO: this will need to take into account type of line-height
+                        // and the vertical-align value.
+                        if line_height > linebox_height {
+                            linebox_height = line_height;
+                            // Offset from the top of the linebox is 1/2 of the leading + ascent
+                            baseline_offset = text_box.run.font.metrics.ascent +
+                                    (linebox_height - em_size).scale_by(0.5f);
+                        }
+                        text_bounds.translate(&Point2D(text_box.base.position.origin.x, Au(0)))
                     }
                     GenericRenderBoxClass(generic_box) => {
                         // TODO(Issue #225): There will be different cases here for `inline-block`
                         // and other replaced content.
                         // FIXME(pcwalton): This seems clownshoes; can we remove?
                         generic_box.position.size.height = Au::from_px(30);
+                        generic_box.position
                     }
                     // FIXME(pcwalton): This isn't very type safe!
                     _ => {
                         fail!(fmt!("Tried to assign height to unknown Box variant: %s",
-                                   cur_box.debug_str()))
-                    }
-                }
-
-                // Compute the bounding rect with the left baseline as origin. Determining line box
-                // height is a matter of lining up ideal baselines and then taking the union of all
-                // these rects.
-                let bounding_box = match cur_box {
-                    // Adjust to baseline coordinates.
-                    //
-                    // TODO(#227): Use left/right margins, border, padding for nonreplaced content,
-                    // and also use top/bottom margins, border, padding for replaced or
-                    // inline-block content.
-                    //
-                    // TODO(#225): Use height, width for `inline-block` and other replaced content.
-                    ImageRenderBoxClass(*) | GenericRenderBoxClass(*) => {
-                        let height = cur_box.position().size.height;
-                        cur_box.position().translate(&Point2D(Au(0), -height))
-                    },
-
-                    // Adjust the bounding box metric to the box's horizontal offset.
-                    //
-                    // TODO: We can use font metrics directly instead of re-measuring for the
-                    // bounding box.
-                    TextRenderBoxClass(text_box) => {
-                        let range = &text_box.range;
-                        let run = &text_box.run;
-                        let text_bounds = run.metrics_for_range(range).bounding_box;
-                        text_bounds.translate(&Point2D(text_box.base.position.origin.x, Au(0)))
-                    },
-
-                    _ => {
-                        fail!(fmt!("Tried to compute bounding box of unknown Box variant: %s",
                                    cur_box.debug_str()))
                     }
                 };
@@ -825,9 +841,6 @@ impl InlineFlowData {
                 debug!("assign_height_inline: linebox bounding box = %?", linebox_bounding_box);
             }
 
-            let linebox_height = linebox_bounding_box.size.height;
-            let baseline_offset = -linebox_bounding_box.origin.y;
-
             // Now go back and adjust the Y coordinates to match the baseline we determined.
             for line_span.eachi |box_i| {
                 let cur_box = boxes[box_i];
@@ -835,30 +848,19 @@ impl InlineFlowData {
                 // TODO(#226): This is completely wrong. We need to use the element's `line-height`
                 // when calculating line box height. Then we should go back over and set Y offsets
                 // according to the `vertical-align` property of the containing block.
-                let halfleading = match cur_box {
+                let offset = match cur_box {
                     TextRenderBoxClass(text_box) => {
-                        //ad is the AD height as defined by CSS 2.1 § 10.8.1
-                        let ad = text_box.run.font.metrics.ascent + text_box.run.font.metrics.descent;
-                        (line_height - ad).scale_by(0.5)
+                        baseline_offset - text_box.run.font.metrics.ascent
                     },
                     _ => Au(0),
                 };
 
-                //FIXME: when line-height is set on an inline element, the half leading
-                //distance can be negative.
-                let halfleading = Au::max(halfleading, Au(0));
-                
-                let height = match cur_box {
-                    TextRenderBoxClass(text_box) => text_box.run.font.metrics.ascent,
-                    _ => cur_box.position().size.height
-                };
-
                 do cur_box.with_mut_base |base| {
-                    base.position.origin.y = cur_y + halfleading + baseline_offset - height;
+                    base.position.origin.y = offset + cur_y;
                 }
             }
 
-            cur_y += Au::max(line_height, linebox_height);
+            cur_y += linebox_height;
         } // End of `lines.each` loop.
 
         self.common.position.size.height = cur_y;

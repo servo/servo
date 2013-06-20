@@ -219,7 +219,7 @@ impl FontHandleMethods for FontHandle {
             x_height:         geometry::from_pt(0.0), //FIXME
             em_size:          em_size,
             ascent:           ascent,
-            descent:          descent,
+            descent:          -descent, // linux font's seem to use the opposite sign from mac
             max_advance:      max_advance
         }
     }
