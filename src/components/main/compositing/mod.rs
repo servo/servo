@@ -3,14 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use platform::{Application, Window};
+use script::dom::event::{Event, ClickEvent, MouseDownEvent, MouseUpEvent, ResizeEvent};
 use script::script_task::{LoadMsg, SendEventMsg};
+use script::layout_interface::{LayoutChan, RouteScriptMsg};
 use windowing::{ApplicationMethods, WindowMethods, WindowMouseEvent, WindowClickEvent};
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent};
-
-use script::dom::event::{Event, ClickEvent, MouseDownEvent, MouseUpEvent, ResizeEvent};
-use script::compositor_interface::{ReadyState, ScriptListener};
-use script::script_task::{ScriptChan, SendEventMsg};
-use script::layout_interface::{LayoutChan, RouteScriptMsg};
+use servo_msg::compositor::{RenderListener, LayerBufferSet, RenderState};
+use servo_msg::compositor::{ReadyState, ScriptListener};
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods, current_gl_context};
 use azure::azure::AzGLContext;
@@ -21,7 +20,6 @@ use core::util;
 use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::size::Size2D;
-use gfx::compositor::{RenderListener, LayerBufferSet, RenderState};
 use layers::layers::{ARGB32Format, ContainerLayer, ContainerLayerKind, Format};
 use layers::layers::{ImageData, WithDataFn};
 use layers::layers::{TextureLayerKind, TextureLayer, TextureManager};

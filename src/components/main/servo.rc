@@ -23,6 +23,7 @@ extern mod newcss (name = "css");
 extern mod opengles;
 extern mod script;
 extern mod servo_net (name = "net");
+extern mod servo_msg (name = "msg");
 extern mod servo_util (name = "util");
 extern mod sharegl;
 extern mod stb_image;
@@ -35,7 +36,7 @@ extern mod core_text;
 
 use compositing::{CompositorChan, CompositorTask};
 use engine::Engine;
-use script::engine_interface::{ExitMsg, LoadUrlMsg};
+use servo_msg::engine::{ExitMsg, LoadUrlMsg};
 
 use gfx::opts;
 use servo_net::image_cache_task::ImageCacheTask;

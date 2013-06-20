@@ -40,3 +40,17 @@ pub trait RenderListener {
     fn set_render_state(&self, render_state: RenderState);
 }
 
+pub enum ReadyState {
+    /// Informs the compositor that a page is loading. Used for setting status
+    Loading,
+    /// Informs the compositor that a page is performing layout. Used for setting status
+    PerformingLayout,
+    /// Informs the compositor that a page is finished loading. Used for setting status
+    FinishedLoading,
+}
+
+/// The interface used by the script task to tell the compositor to update its ready state,
+/// which is used in displaying the appropriate message in the window's title.
+pub trait ScriptListener : Clone {
+    fn set_ready_state(&self, ReadyState);
+}

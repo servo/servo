@@ -28,6 +28,9 @@ clean-fast: $(DEPS_CLEAN_TARGETS_FAST) clean-servo
 clean-util:
 	cd $(B)/src/components/util/ && rm -rf libutil*.dylib $(DONE_util)
 
+clean-msg:
+	cd $(B)/src/components/msg/ && rm -rf libmsg*.dylib $(DONE_msg)
+
 clean-net:
 	cd $(B)/src/components/net/ && rm -rf libnet*.dylib $(DONE_net)
 
