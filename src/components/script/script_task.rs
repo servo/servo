@@ -5,7 +5,7 @@
 /// The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 /// and layout tasks.
 
-use compositor_interface::{ReadyState, Loading, PerformingLayout, FinishedLoading};
+use servo_msg::compositor::{ReadyState, Loading, PerformingLayout, FinishedLoading};
 use dom::bindings::utils::GlobalStaticData;
 use dom::document::Document;
 use dom::element::Element;
@@ -17,7 +17,7 @@ use layout_interface::{HitTestResponse, LayoutQuery, LayoutResponse, LayoutChan}
 use layout_interface::{MatchSelectorsDocumentDamage, QueryMsg, Reflow, ReflowDocumentDamage};
 use layout_interface::{ReflowForDisplay, ReflowForScriptQuery, ReflowGoal, ReflowMsg};
 use layout_interface;
-use engine_interface::{EngineChan, LoadUrlMsg};
+use servo_msg::engine::{EngineChan, LoadUrlMsg};
 
 use core::cast::transmute;
 use core::cell::Cell;
