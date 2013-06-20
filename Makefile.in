@@ -49,6 +49,7 @@ endif
 export CFG_RUSTC
 export CFG_RUSTC_FLAGS
 export CFG_LOCAL_RUSTC
+export CFG_ENABLE_DEBUG
 export RUSTC=$(CFG_RUSTC)
 export RUSTFLAGS=$(CFG_RUSTC_FLAGS)
 

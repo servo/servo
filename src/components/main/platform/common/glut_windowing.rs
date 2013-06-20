@@ -59,7 +59,8 @@ impl WindowMethods<Application> for Window {
     /// Creates a new window.
     pub fn new(_: &Application) -> @mut Window {
         // Create the GLUT window.
-        unsafe { glut::bindgen::glutInitWindowSize(800, 600); }
+        // FIXME (Rust #3080): These unsafe blocks are *not* unused!
+        /*unsafe { */glut::bindgen::glutInitWindowSize(800, 600);/* }*/
         let glut_window = glut::create_window(~"Servo");
 
         // Create our window object.
@@ -117,7 +118,7 @@ impl WindowMethods<Application> for Window {
                 window.handle_mouse(button, state, x, y);
             }
         }
-        do glut::mouse_wheel_func |wheel, direction, x, y| {
+        do glut::mouse_wheel_func |wheel, direction, _x, _y| {
             let delta = if HAVE_PRECISE_MOUSE_WHEEL {
                 (direction as f32) / 10000.0
             } else {

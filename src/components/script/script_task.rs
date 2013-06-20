@@ -546,7 +546,7 @@ impl ScriptContext {
                 }
             }
 
-            ClickEvent(button, point) => {
+            ClickEvent(_button, point) => {
                 debug!("ClickEvent: clicked at %?", point);
                 let root = match self.root_frame {
                     Some(ref frame) => frame.document.root,
