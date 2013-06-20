@@ -21,14 +21,14 @@ use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass};
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, TextDisplayItem};
 use gfx::display_list::{TextDisplayItemClass};
 use gfx::font::{FontStyle, FontWeight300};
-use gfx::geometry::Au;
+use gfx::geometry::{Au, pt_to_px};
 use gfx::text::text_run::TextRun;
 use newcss::color::rgb;
 use newcss::complete::CompleteStyle;
 use newcss::units::{Cursive, Em, Fantasy, Monospace, Pt, Px, SansSerif, Serif};
 use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily};
 use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
-use newcss::values::{CSSFontStyleOblique, CSSTextAlign, CSSTextDecoration};
+use newcss::values::{CSSFontStyleOblique, CSSTextAlign, CSSTextDecoration, CSSLineHeight};
 use newcss::values::{CSSTextDecorationNone, CSSFloatNone, CSSPositionStatic};
 use newcss::values::{CSSDisplayInlineBlock, CSSDisplayInlineTable};
 use script::dom::node::{AbstractNode, LayoutView};
@@ -559,9 +559,6 @@ pub impl RenderBox {
             return;
         }
 
-        // Add the background to the list, if applicable.
-        self.paint_background_if_applicable(list, &absolute_box_bounds);
-
         match *self {
             UnscannedTextRenderBoxClass(*) => fail!(~"Shouldn't see unscanned boxes here."),
             TextRenderBoxClass(text_box) => {
@@ -625,26 +622,35 @@ pub impl RenderBox {
                     ()
                 });
             },
-
             GenericRenderBoxClass(_) => {
-                // FIXME(pcwalton): This is somewhat of an abuse of the logging system.
-                debug!("%?", { 
-                    // Compute the text box bounds and draw a border surrounding them.
+
+                // Add the background to the list, if applicable.
+                self.paint_background_if_applicable(list, &absolute_box_bounds);
+
+                // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
+                // should have a real `SERVO_DEBUG` system.
+                debug!("%?", {
                     do list.with_mut_ref |list| {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
-                                    bounds: absolute_box_bounds,
-                                    extra: ExtraDisplayListData::new(*self),
+                                bounds: absolute_box_bounds,
+                                extra: ExtraDisplayListData::new(*self),
                             },
                             width: Au::from_px(1),
-                            color: rgb(0, 0, 0).to_gfx_color(),
+                            color: rgb(0, 0, 200).to_gfx_color(),
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
                     }
+                    
+                    ()
                 });
-            }
 
+            },
             ImageRenderBoxClass(image_box) => {
+
+                // Add the background to the list, if applicable.
+                self.paint_background_if_applicable(list, &absolute_box_bounds);
+
                 match image_box.image.get_image() {
                     Some(image) => {
                         debug!("(building display list) building image box");
@@ -708,6 +714,9 @@ pub impl RenderBox {
     fn font_style(&self) -> FontStyle {
         let my_style = self.nearest_ancestor_element().style();
 
+        debug!("(font style) start: %?", self.nearest_ancestor_element().type_id());
+        self.dump();
+
         // FIXME: Too much allocation here.
         let font_families = do my_style.font_family().map |family| {
             match *family {
@@ -723,12 +732,13 @@ pub impl RenderBox {
         debug!("(font style) font families: `%s`", font_families);
 
         let font_size = match my_style.font_size() {
-            CSSFontSizeLength(Px(length)) |
-            CSSFontSizeLength(Pt(length)) |
-            CSSFontSizeLength(Em(length)) => length,
-            _ => 16.0
+            CSSFontSizeLength(Px(length)) => length,
+            CSSFontSizeLength(Pt(length)) => pt_to_px(length),
+            // todo: this is based on a hard coded font size, should be the parent element's font size
+            CSSFontSizeLength(Em(length)) => length * 16f, 
+            _ => 16f // px units
         };
-        debug!("(font style) font size: `%f`", font_size);
+        debug!("(font style) font size: `%fpx`", font_size);
 
         let (italic, oblique) = match my_style.font_style() {
             CSSFontStyleNormal => (false, false),
@@ -749,6 +759,10 @@ pub impl RenderBox {
     /// node.
     fn text_align(&self) -> CSSTextAlign {
         self.nearest_ancestor_element().style().text_align()
+    }
+
+    fn line_height(&self) -> CSSLineHeight {
+        self.nearest_ancestor_element().style().line_height()
     }
 
     /// Returns the text decoration of the computed style of the nearest `Element` node
