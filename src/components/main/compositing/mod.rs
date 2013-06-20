@@ -3,15 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use platform::{Application, Window};
+use script::dom::event::{Event, ClickEvent, MouseDownEvent, MouseUpEvent, ResizeEvent};
 use script::script_task::{LoadMsg, SendEventMsg};
+use script::layout_interface::{LayoutChan, RouteScriptMsg};
+use script::compositor_interface::{ReadyState, ScriptListener};
 use windowing::{ApplicationMethods, WindowMethods, WindowMouseEvent, WindowClickEvent};
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent};
-
-use script::dom::event::{Event, ClickEvent, MouseDownEvent, MouseUpEvent, ResizeEvent};
-use script::compositor_interface::{ReadyState, ScriptListener};
-use script::script_task::{ScriptChan, SendEventMsg};
-use script::layout_interface::{LayoutChan, RouteScriptMsg};
-
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods, current_gl_context};
 use azure::azure::AzGLContext;
 use core::cell::Cell;

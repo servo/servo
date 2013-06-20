@@ -5,22 +5,27 @@
 // The task that handles all rendering/painting.
 
 use azure::{AzFloat, AzGLContext};
-use compositor::{RenderListener, IdleRenderState, RenderingRenderState};
+use azure::azure_hl::{B8G8R8A8, DrawTarget};
+use compositor::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer, LayerBufferSet};
+use display_list::DisplayList;
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
+use geom::point::Point2D;
+use geom::size::Size2D;
+use geom::rect::Rect;
 use opts::Opts;
 use render_context::RenderContext;
-use render_layers::{RenderLayer, render_layers};
 
 use core::cell::Cell;
 use core::comm::{Chan, Port, SharedChan};
-use core::task::SingleThreaded;
-use std::task_pool::TaskPool;
-
-use servo_net::util::spawn_listener;
 
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
+
+pub struct RenderLayer {
+    display_list: DisplayList<()>,
+    size: Size2D<uint>
+}
 
 pub enum Msg<C> {
     AttachCompositorMsg(C),
@@ -62,38 +67,17 @@ pub fn create_render_task<C: RenderListener + Owned>(port: Port<Msg<C>>,
     do spawn {
         let compositor = compositor_cell.take();
         let share_gl_context = compositor.get_gl_context();
-
-        // FIXME: Annoying three-cell dance here. We need one-shot closures.
         let opts = opts_cell.with_ref(|o| copy *o);
-        let n_threads = opts.n_render_threads;
-        let new_opts_cell = Cell(opts);
-
         let profiler_chan = profiler_chan.clone();
         let profiler_chan_copy = profiler_chan.clone();
-
-        let thread_pool = do TaskPool::new(n_threads, Some(SingleThreaded)) {
-            let opts_cell = Cell(new_opts_cell.with_ref(|o| copy *o));
-            let profiler_chan = Cell(profiler_chan.clone());
-
-            let f: ~fn(uint) -> ThreadRenderContext = |thread_index| {
-                let opts = opts_cell.with_ref(|opts| copy *opts);
-
-                ThreadRenderContext {
-                    thread_index: thread_index,
-                    font_ctx: @mut FontContext::new(opts.render_backend,
-                                                    false,
-                                                    profiler_chan.take()),
-                    opts: opts,
-                }
-            };
-            f
-        };
 
         // FIXME: rust/#5967
         let mut renderer = Renderer {
             port: port.take(),
             compositor: compositor,
-            thread_pool: thread_pool,
+            font_ctx: @mut FontContext::new(opts.render_backend,
+                                            false,
+                                            profiler_chan),
             opts: opts_cell.take(),
             profiler_chan: profiler_chan_copy,
             share_gl_context: share_gl_context,
@@ -103,17 +87,10 @@ pub fn create_render_task<C: RenderListener + Owned>(port: Port<Msg<C>>,
     }
 }
 
-/// Data that needs to be kept around for each render thread.
-priv struct ThreadRenderContext {
-    thread_index: uint,
-    font_ctx: @mut FontContext,
-    opts: Opts,
-}
-
 priv struct Renderer<C> {
     port: Port<Msg<C>>,
     compositor: C,
-    thread_pool: TaskPool<ThreadRenderContext>,
+    font_ctx: @mut FontContext,
     opts: Opts,
 
     /// A channel to the profiler.
@@ -142,48 +119,74 @@ impl<C: RenderListener + Owned> Renderer<C> {
         debug!("renderer: rendering");
         self.compositor.set_render_state(RenderingRenderState);
         do profile(time::RenderingCategory, self.profiler_chan.clone()) {
-            let layer_buffer_set = do render_layers(&render_layer,
-                                                    &self.opts,
-                                                    self.profiler_chan.clone(),
-                                                    self.share_gl_context) |render_layer_ref,
-                                                                                 layer_buffer,
-                                                                                 buffer_chan| {
-                let layer_buffer_cell = Cell(layer_buffer);
-                do self.thread_pool.execute |thread_render_context| {
-                    do layer_buffer_cell.with_ref |layer_buffer| {
-                        // Build the render context.
-                        let ctx = RenderContext {
-                            canvas: layer_buffer,
-                            font_ctx: thread_render_context.font_ctx,
-                            opts: &thread_render_context.opts
+            let tile_size = self.opts.tile_size;
+            let scale = self.opts.zoom;
+
+            // FIXME: Try not to create a new array here.
+            let mut new_buffers = ~[];
+
+            // Divide up the layer into tiles.
+            do time::profile(time::RenderingPrepBuffCategory, self.profiler_chan.clone()) {
+                let mut y = 0;
+                while y < render_layer.size.height * scale {
+                    let mut x = 0;
+                    while x < render_layer.size.width * scale {
+                        // Figure out the dimension of this tile.
+                        let right = uint::min(x + tile_size, render_layer.size.width * scale);
+                        let bottom = uint::min(y + tile_size, render_layer.size.height * scale);
+                        let width = right - x;
+                        let height = bottom - y;
+
+                        let tile_rect = Rect(Point2D(x / scale, y / scale), Size2D(width, height)); //change this
+                        let screen_rect = Rect(Point2D(x, y), Size2D(width, height)); //change this
+
+                        let buffer = LayerBuffer {
+                            draw_target: DrawTarget::new_with_fbo(self.opts.render_backend,
+                                                                  self.share_gl_context,
+                                                                  Size2D(width as i32, height as i32),
+                                                                  B8G8R8A8),
+                            rect: tile_rect,
+                            screen_pos: screen_rect,
+                            stride: (width * 4) as uint
                         };
 
-                        // Apply the translation to render the tile we want.
-                        let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
-                        let scale = thread_render_context.opts.zoom as f32;
+                        {
+                            // Build the render context.
+                            let ctx = RenderContext {
+                                canvas: &buffer,
+                                font_ctx: self.font_ctx,
+                                opts: &self.opts
+                            };
 
-                        let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
-                        let matrix = matrix.translate(-(layer_buffer.rect.origin.x as f32) as AzFloat,
-                                                      -(layer_buffer.rect.origin.y as f32) as AzFloat);
+                            // Apply the translation to render the tile we want.
+                            let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
+                            let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
+                            let matrix = matrix.translate(-(buffer.rect.origin.x as f32) as AzFloat,
+                                                          -(buffer.rect.origin.y as f32) as AzFloat);
 
-                        layer_buffer.draw_target.set_transform(&matrix);
+                            ctx.canvas.draw_target.set_transform(&matrix);
 
-                        // Clear the buffer.
-                        ctx.clear();
-                        
+                            // Clear the buffer.
+                            ctx.clear();
 
-                        // Draw the display list.
-                        let render_layer: &RenderLayer = unsafe {
-                            cast::transmute(render_layer_ref)
-                        };
-                        
-                        render_layer.display_list.draw_into_context(&ctx);
-                        ctx.canvas.draw_target.flush();
+                            // Draw the display list.
+                            do profile(time::RenderingDrawingCategory, self.profiler_chan.clone()) {
+                                render_layer.display_list.draw_into_context(&ctx);
+                                ctx.canvas.draw_target.flush();
+                            }
+                        }
+
+                        new_buffers.push(buffer);
+
+                        x += tile_size;
                     }
 
-                    // Send back the buffer.
-                    buffer_chan.send(layer_buffer_cell.take());
+                    y += tile_size;
                 }
+            }
+
+            let layer_buffer_set = LayerBufferSet {
+                buffers: new_buffers,
             };
 
             debug!("renderer: returning surface");

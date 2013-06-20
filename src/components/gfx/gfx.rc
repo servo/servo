@@ -42,7 +42,6 @@ pub mod color;
 pub mod compositor;
 pub mod display_list;
 pub mod geometry;
-pub mod render_layers;
 pub mod render_task;
 pub mod surface;
 
