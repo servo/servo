@@ -452,6 +452,7 @@ do
 done
 
 make_dir ${CFG_BUILD_DIR}src/components/util
+make_dir ${CFG_BUILD_DIR}src/components/msg
 make_dir ${CFG_BUILD_DIR}src/components/net
 make_dir ${CFG_BUILD_DIR}src/components/gfx
 make_dir ${CFG_BUILD_DIR}src/components/script

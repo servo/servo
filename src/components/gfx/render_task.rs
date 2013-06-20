@@ -6,8 +6,9 @@
 
 use azure::{AzFloat, AzGLContext};
 use azure::azure_hl::{B8G8R8A8, DrawTarget};
-use compositor::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer, LayerBufferSet};
 use display_list::DisplayList;
+use servo_msg::compositor::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer};
+use servo_msg::compositor::LayerBufferSet;
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
