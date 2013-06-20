@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use font::{Font, FontDescriptor, FontGroup, FontStyle, SelectorPlatformIdentifier};
+use font::{Font, FontDescriptor, FontGroup, FontHandleMethods, FontStyle,
+           SelectorPlatformIdentifier};
 use font::{SpecifiedFontStyle, UsedFontStyle};
 use font_list::FontList;
 use servo_util::cache::Cache;
-use servo_util::cache::MonoCache;
+use servo_util::cache::LRUCache;
 use servo_util::time::ProfilerChan;
 
 use platform::font::FontHandle;
@@ -35,8 +36,9 @@ pub trait FontContextHandleMethods {
 
 #[allow(non_implicitly_copyable_typarams)]
 pub struct FontContext {
-    instance_cache: MonoCache<FontDescriptor, @mut Font>,
+    instance_cache: LRUCache<FontDescriptor, @mut Font>,
     font_list: Option<FontList>, // only needed by layout
+    group_cache: LRUCache<SpecifiedFontStyle, @FontGroup>,
     handle: FontContextHandle,
     backend: BackendType,
     generic_fonts: HashMap<~str,~str>,
@@ -63,10 +65,9 @@ pub impl<'self> FontContext {
         generic_fonts.insert(~"monospace", ~"Menlo");
 
         FontContext { 
-            // TODO(Rust #3902): remove extraneous type parameters once they are inferred correctly.
-            instance_cache:
-                Cache::new::<FontDescriptor,@mut Font,MonoCache<FontDescriptor,@mut Font>>(10),
+            instance_cache: LRUCache::new(10),
             font_list: font_list,
+            group_cache: LRUCache::new(10),
             handle: handle,
             backend: backend,
             generic_fonts: generic_fonts,
@@ -78,15 +79,29 @@ pub impl<'self> FontContext {
         self.font_list.get_ref()
     }
 
-    fn get_resolved_font_for_style(@mut self, style: &SpecifiedFontStyle) -> @FontGroup {
-        // TODO(Issue #178, E): implement a cache of FontGroup instances.
-        self.create_font_group(style)
+    fn get_resolved_font_for_style(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
+        match self.group_cache.find(style) {
+            Some(fg) => {
+                debug!("font group cache hit");
+                fg
+            },
+            None => {
+                debug!("font group cache miss");
+                let fg = self.create_font_group(style);
+                self.group_cache.insert(style, fg);
+                fg
+            }
+        }
     }
 
     fn get_font_by_descriptor(&mut self, desc: &FontDescriptor) -> Result<@mut Font, ()> {
         match self.instance_cache.find(desc) {
-            Some(f) => Ok(f),
+            Some(f) => {
+                debug!("font cache hit");
+                Ok(f)
+            },
             None => { 
+                debug!("font cache miss");
                 let result = self.create_font_instance(desc);
                 match result {
                     Ok(font) => {
@@ -108,13 +123,10 @@ pub impl<'self> FontContext {
         }
     }
 
-    // TODO:(Issue #196): cache font groups on the font context.
-    priv fn create_font_group(@mut self, style: &SpecifiedFontStyle) -> @FontGroup {
+    priv fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
         let mut fonts = ~[];
 
         debug!("(create font group) --- starting ---");
-
-        let list = self.get_font_list();
 
         // TODO(Issue #193): make iteration over 'font-family' more robust.
         for str::each_split_char(style.families, ',') |family| {
@@ -122,13 +134,23 @@ pub impl<'self> FontContext {
             let transformed_family_name = self.transform_family(family_name);
             debug!("(create font group) transformed family is `%s`", transformed_family_name);
 
-            let result = list.find_font_in_family(transformed_family_name, style);
+            let result = match self.font_list {
+                Some(ref fl) => {
+                    fl.find_font_in_family(transformed_family_name, style)
+                },
+                None => None,
+            };
+
             let mut found = false;
             for result.each |font_entry| {
                 found = true;
-                // TODO(Issue #203): route this instantion through FontContext's Font instance cache.
-                let instance = Font::new_from_existing_handle(self, &font_entry.handle, style, self.backend,
-                                                              self.profiler_chan.clone());
+
+                let font_id =
+                  SelectorPlatformIdentifier(font_entry.handle.face_identifier());
+                let font_desc = FontDescriptor::new(copy *style, font_id);
+
+                let instance = self.get_font_by_descriptor(&font_desc);
+
                 do result::iter(&instance) |font: &@mut Font| { fonts.push(*font); }
             };
 
@@ -140,13 +162,20 @@ pub impl<'self> FontContext {
         let last_resort = FontList::get_last_resort_font_families();
 
         for last_resort.each |family| {
-            let result = list.find_font_in_family(*family,style);
+            let result = match self.font_list {
+                Some(ref fl) => {
+                    fl.find_font_in_family(*family, style)
+                },
+                None => None,
+            };
+
             for result.each |font_entry| {
-                let instance = Font::new_from_existing_handle(self,
-                                                              &font_entry.handle,
-                                                              style,
-                                                              self.backend,
-                                                              self.profiler_chan.clone());
+                let font_id =
+                  SelectorPlatformIdentifier(font_entry.handle.face_identifier());
+                let font_desc = FontDescriptor::new(copy *style, font_id);
+
+                let instance = self.get_font_by_descriptor(&font_desc);
+
                 do result::iter(&instance) |font: &@mut Font| {
                     fonts.push(*font);
                 }
