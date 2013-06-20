@@ -19,6 +19,7 @@ extern mod netsurfcss;
 extern mod newcss (name = "css");
 extern mod servo_net (name = "net");
 extern mod servo_util (name = "util");
+extern mod servo_msg (name = "msg");
 extern mod std;
 
 pub mod dom {
@@ -64,8 +65,6 @@ pub mod html {
     pub mod hubbub_html_parser;
 }
 
-pub mod compositor_interface;
-pub mod engine_interface;
 pub mod layout_interface;
 pub mod script_task;
 
