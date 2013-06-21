@@ -12,7 +12,7 @@ use font::{CSSFontWeight, FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FontWeight100, FontWeight200, FontWeight300, FontWeight400};
 use font::{FontWeight500, FontWeight600, FontWeight700, FontWeight800, FontWeight900};
 use font::{FractionalPixel, SpecifiedFontStyle};
-use geometry::Au;
+use geometry::{Au, px_to_pt};
 use platform::macos::font_context::FontContextHandle;
 use text::glyph::GlyphIndex;
 
@@ -157,6 +157,9 @@ impl FontHandleMethods for FontHandle {
         let bounding_rect: CGRect = self.ctfont.bounding_box();
         let ascent = Au::from_pt(self.ctfont.ascent() as float);
         let descent = Au::from_pt(self.ctfont.descent() as float);
+        let em_size = Au::from_frac_px(self.ctfont.pt_size() as float);
+
+        let scale = px_to_pt(self.ctfont.pt_size() as float) / (self.ctfont.ascent() as float + self.ctfont.descent() as float);
 
         let metrics =  FontMetrics {
             underline_size:   Au::from_pt(self.ctfont.underline_thickness() as float),
@@ -168,9 +171,9 @@ impl FontHandleMethods for FontHandle {
             underline_offset: Au::from_pt(self.ctfont.underline_position() as float),
             leading:          Au::from_pt(self.ctfont.leading() as float),
             x_height:         Au::from_pt(self.ctfont.x_height() as float),
-            em_size:          ascent + descent,
-            ascent:           ascent,
-            descent:          descent,
+            em_size:          em_size,
+            ascent:           ascent.scale_by(scale),
+            descent:          descent.scale_by(scale),
             max_advance:      Au::from_pt(bounding_rect.size.width as float)
         };
 
