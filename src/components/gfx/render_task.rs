@@ -31,6 +31,7 @@ pub struct RenderLayer {
 pub enum Msg<C> {
     AttachCompositorMsg(C),
     RenderMsg(RenderLayer),
+    ReRenderMsg(f32),
     ExitMsg(Chan<()>),
 }
 
@@ -82,6 +83,7 @@ pub fn create_render_task<C: RenderListener + Owned>(port: Port<Msg<C>>,
             opts: opts_cell.take(),
             profiler_chan: profiler_chan_copy,
             share_gl_context: share_gl_context,
+            render_layer: None,
         };
 
         renderer.start();
@@ -98,6 +100,9 @@ priv struct Renderer<C> {
     profiler_chan: ProfilerChan,
 
     share_gl_context: AzGLContext,
+
+    /// The layer to be rendered
+    render_layer: Option<RenderLayer>,
 }
 
 impl<C: RenderListener + Owned> Renderer<C> {
@@ -107,7 +112,13 @@ impl<C: RenderListener + Owned> Renderer<C> {
         loop {
             match self.port.recv() {
                 AttachCompositorMsg(compositor) => self.compositor = compositor,
-                RenderMsg(render_layer) => self.render(render_layer),
+                RenderMsg(render_layer) => {
+                    self.render_layer = Some(render_layer);
+                    self.render(1.0);
+                }
+                ReRenderMsg(scale) => {
+                    self.render(scale);
+                }
                 ExitMsg(response_ch) => {
                     response_ch.send(());
                     break;
@@ -116,12 +127,20 @@ impl<C: RenderListener + Owned> Renderer<C> {
         }
     }
 
-    fn render(&mut self, render_layer: RenderLayer) {
+    fn render(&mut self, scale: f32) {
         debug!("renderer: rendering");
+        
+        let render_layer;
+        match (self.render_layer) {
+            None => return,
+            Some(ref r_layer) => {
+                render_layer = r_layer;
+            }
+        }
+
         self.compositor.set_render_state(RenderingRenderState);
         do profile(time::RenderingCategory, self.profiler_chan.clone()) {
             let tile_size = self.opts.tile_size;
-            let scale = self.opts.zoom;
 
             // FIXME: Try not to create a new array here.
             let mut new_buffers = ~[];
@@ -129,17 +148,17 @@ impl<C: RenderListener + Owned> Renderer<C> {
             // Divide up the layer into tiles.
             do time::profile(time::RenderingPrepBuffCategory, self.profiler_chan.clone()) {
                 let mut y = 0;
-                while y < render_layer.size.height * scale {
+                while y < (render_layer.size.height as f32 * scale).ceil() as uint {
                     let mut x = 0;
-                    while x < render_layer.size.width * scale {
+                    while x < (render_layer.size.width as f32 * scale).ceil() as uint {
                         // Figure out the dimension of this tile.
-                        let right = uint::min(x + tile_size, render_layer.size.width * scale);
-                        let bottom = uint::min(y + tile_size, render_layer.size.height * scale);
+                        let right = uint::min(x + tile_size, (render_layer.size.width as f32 * scale).ceil() as uint);
+                        let bottom = uint::min(y + tile_size, (render_layer.size.height as f32 * scale).ceil() as uint);
                         let width = right - x;
                         let height = bottom - y;
 
-                        let tile_rect = Rect(Point2D(x / scale, y / scale), Size2D(width, height)); //change this
-                        let screen_rect = Rect(Point2D(x, y), Size2D(width, height)); //change this
+                        let tile_rect = Rect(Point2D(x as f32 / scale, y as f32 / scale), Size2D(width as f32, height as f32));
+                        let screen_rect = Rect(Point2D(x, y), Size2D(width, height));
 
                         let buffer = LayerBuffer {
                             draw_target: DrawTarget::new_with_fbo(self.opts.render_backend,
@@ -162,8 +181,8 @@ impl<C: RenderListener + Owned> Renderer<C> {
                             // Apply the translation to render the tile we want.
                             let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
                             let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
-                            let matrix = matrix.translate(-(buffer.rect.origin.x as f32) as AzFloat,
-                                                          -(buffer.rect.origin.y as f32) as AzFloat);
+                            let matrix = matrix.translate(-(buffer.rect.origin.x) as AzFloat,
+                                                          -(buffer.rect.origin.y) as AzFloat);
 
                             ctx.canvas.draw_target.set_transform(&matrix);
 
