@@ -11,8 +11,9 @@ pub struct LayerBuffer {
     draw_target: DrawTarget,
 
     // The rect in the containing RenderLayer that this represents.
-    rect: Rect<uint>,
+    rect: Rect<f32>,
 
+    // The rect in pixels that will be drawn to the screen.
     screen_pos: Rect<uint>,
 
     // NB: stride is in pixels, like OpenGL GL_UNPACK_ROW_LENGTH.

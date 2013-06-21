@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::{CompositorChan, SetLayoutChan};
+use compositing::{CompositorChan, SetLayoutChan, SetRenderChan};
 use layout::layout_task;
 
 use core::cell::Cell;
@@ -62,6 +62,8 @@ impl Engine {
 
 
         compositor_chan.send(SetLayoutChan(layout_chan.clone()));
+        compositor_chan.send(SetRenderChan(render_chan.clone()));
+
         let compositor_chan = Cell(compositor_chan);
 
         let opts = Cell(copy *opts);
