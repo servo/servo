@@ -112,9 +112,8 @@ pub impl Au {
         Rect(Point2D(z, z), Size2D(z, z))
     }
 
-    // assumes 72 points per inch, and 96 px per inch
     pub fn from_pt(f: float) -> Au {
-        from_px((f / 72f * 96f) as int)
+        from_px(pt_to_px(f) as int)
     }
 
     pub fn from_frac_px(f: float) -> Au {
@@ -123,6 +122,16 @@ pub impl Au {
 
     pub fn min(x: Au, y: Au) -> Au { if *x < *y { x } else { y } }
     pub fn max(x: Au, y: Au) -> Au { if *x > *y { x } else { y } }
+}
+
+// assumes 72 points per inch, and 96 px per inch
+pub fn pt_to_px(f: float) -> float {
+    f / 72f * 96f
+}
+
+// assumes 72 points per inch, and 96 px per inch
+pub fn px_to_pt(f: float) -> float {
+    f / 96f * 72f
 }
 
 pub fn zero_rect() -> Rect<Au> {
