@@ -797,8 +797,7 @@ impl InlineFlowData {
                         let text_bounds = run.metrics_for_range(range).bounding_box;
                         let em_size = text_bounds.size.height;
                         let line_height = match cur_box.line_height() {
-                            // use the font's leading for normal
-                            CSSLineHeightNormal => text_box.run.font.metrics.leading,
+                            CSSLineHeightNormal => em_size.scale_by(1.14f),
                             CSSLineHeightNumber(l) => em_size.scale_by(l),
                             CSSLineHeightLength(Em(l)) => em_size.scale_by(l),
                             CSSLineHeightLength(Px(l)) => Au::from_frac_px(l),
