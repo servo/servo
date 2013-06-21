@@ -715,7 +715,6 @@ pub impl RenderBox {
         let my_style = self.nearest_ancestor_element().style();
 
         debug!("(font style) start: %?", self.nearest_ancestor_element().type_id());
-        self.dump();
 
         // FIXME: Too much allocation here.
         let font_families = do my_style.font_family().map |family| {
