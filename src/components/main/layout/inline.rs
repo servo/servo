@@ -786,6 +786,10 @@ impl InlineFlowData {
                         let height = Au::from_px(size.get_or_default(Size2D(0, 0)).height);
                         image_box.base.position.size.height = height;
 
+                        if height > linebox_height {
+                            linebox_height = height;
+                        }
+
                         image_box.base.position.translate(&Point2D(Au(0), -height))
                     }
                     TextRenderBoxClass(text_box) => {
@@ -822,6 +826,9 @@ impl InlineFlowData {
                         // and other replaced content.
                         // FIXME(pcwalton): This seems clownshoes; can we remove?
                         generic_box.position.size.height = Au::from_px(30);
+                        if generic_box.position.size.height > linebox_height {
+                            linebox_height = generic_box.position.size.height;
+                        }
                         generic_box.position
                     }
                     // FIXME(pcwalton): This isn't very type safe!
