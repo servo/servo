@@ -28,15 +28,15 @@ impl Eq for CompressionMode {
 // 
 // High level TODOs:
 //
-// * Issue #113: consider incoming text state (preceding spaces, arabic, etc)
+// * Issue #113: consider incoming text state (arabic, etc)
 //               and propogate outgoing text state (dual of above) 
 //
 // * Issue #114: record skipped and kept chars for mapping original to new text
 //
 // * Untracked: various edge cases for bidi, CJK, etc.
-pub fn transform_text(text: &str, mode: CompressionMode) -> ~str {
+pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bool) -> (~str, bool) {
     let mut out_str: ~str = ~"";
-    match mode {
+    let out_whitespace = match mode {
         CompressNone | DiscardNewline => {
             for str::each_char(text) |ch: char| {
                 if is_discardable_char(ch, mode) {
@@ -49,18 +49,14 @@ pub fn transform_text(text: &str, mode: CompressionMode) -> ~str {
                     str::push_char(&mut out_str, ch);
                 }
             }
+            text.len() > 0 && is_in_whitespace(text.char_at_reverse(0), mode)
         },
 
         CompressWhitespace | CompressWhitespaceNewline => {
-            let mut in_whitespace: bool = false;
+            let mut in_whitespace: bool = incoming_whitespace;
             for str::each_char(text) |ch: char| {
                 // TODO: discard newlines between CJK chars
-                let mut next_in_whitespace: bool = match (ch, mode) {
-                    (' ', _)  => true,
-                    ('\t', _) => true,
-                    ('\n', CompressWhitespaceNewline) => true,
-                    (_, _)    => false
-                };
+                let mut next_in_whitespace: bool = is_in_whitespace(ch, mode);
                 
                 if !next_in_whitespace {
                     if is_always_discardable_char(ch) {
@@ -82,10 +78,20 @@ pub fn transform_text(text: &str, mode: CompressionMode) -> ~str {
                 // save whitespace context for next char
                 in_whitespace = next_in_whitespace;
             } /* /for str::each_char */
+            in_whitespace
         } 
-    }
+    };
 
-    return out_str;
+    return (out_str, out_whitespace);
+
+    fn is_in_whitespace(ch: char, mode: CompressionMode) -> bool {
+        match (ch, mode) {
+            (' ', _)  => true,
+            ('\t', _) => true,
+            ('\n', CompressWhitespaceNewline) => true,
+            (_, _)    => false
+        }
+    }
 
     fn is_discardable_char(ch: char, mode: CompressionMode) -> bool {
         if is_always_discardable_char(ch) {
@@ -143,7 +149,8 @@ fn test_transform_compress_none() {
     let mode = CompressNone;
 
     for uint::range(0, test_strs.len()) |i| {
-        assert!(transform_text(test_strs[i], mode) == test_strs[i]);
+        (trimmed_str, _out) = transform_text(test_strs[i], mode, true);
+        assert!(trimmed_str == test_strs[i])
     }
 }
 
@@ -170,7 +177,8 @@ fn test_transform_discard_newline() {
     let mode = DiscardNewline;
 
     for uint::range(0, test_strs.len()) |i| {
-        assert!(transform_text(test_strs[i], mode) == oracle_strs[i]);
+        (trimmed_str, _out) = transform_text(test_strs[i], mode, true);
+        assert!(trimmed_str == oracle_strs[i])
     }
 }
 
@@ -196,7 +204,8 @@ fn test_transform_compress_whitespace() {
     let mode = CompressWhitespace;
 
     for uint::range(0, test_strs.len()) |i| {
-        assert!(transform_text(test_strs[i], mode) == oracle_strs[i]);
+        (trimmed_str, _out) = transform_text(test_strs[i], mode, true);
+        assert!(trimmed_str == oracle_strs[i])
     }
 }
 
@@ -210,7 +219,7 @@ fn test_transform_compress_whitespace_newline() {
                                  ~"foo bar baz",
                                  ~"foobarbaz\n\n"];
 
-    let oracle_strs : ~[~str] = ~[~" foo bar",
+    let oracle_strs : ~[~str] = ~[~"foo bar",
                                  ~"foo bar ",
                                  ~"foo bar",
                                  ~"foo bar",
@@ -222,6 +231,36 @@ fn test_transform_compress_whitespace_newline() {
     let mode = CompressWhitespaceNewline;
 
     for uint::range(0, test_strs.len()) |i| {
-        assert!(transform_text(test_strs[i], mode) == oracle_strs[i]);
+        (trimmed_str, _out) = transform_text(test_strs[i], mode, true);
+        assert!(trimmed_str == oracle_strs[i])
+    }
+}
+
+#[test]
+fn test_transform_compress_whitespace_newline() {
+    let  test_strs : ~[~str] = ~[~"  foo bar",
+                                 ~"\nfoo bar",
+                                 ~"foo bar  ",
+                                 ~"foo\n bar",
+                                 ~"foo \nbar",
+                                 ~"  foo  bar  \nbaz",
+                                 ~"foo bar baz",
+                                 ~"foobarbaz\n\n"];
+
+    let oracle_strs : ~[~str] = ~[~" foo bar",
+                                 ~" foo bar",
+                                 ~"foo bar ",
+                                 ~"foo bar",
+                                 ~"foo bar",
+                                 ~" foo bar baz",
+                                 ~"foo bar baz",
+                                 ~"foobarbaz "];
+
+    assert!(test_strs.len() == oracle_strs.len());
+    let mode = CompressWhitespaceNewline;
+
+    for uint::range(0, test_strs.len()) |i| {
+        (trimmed_str, _out) = transform_text(test_strs[i], mode, false);
+        assert!(trimmed_str == oracle_strs[i])
     }
 }
