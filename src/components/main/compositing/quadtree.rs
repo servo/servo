@@ -6,13 +6,14 @@
 // been rasterized and which have not.
 
 use geom::point::Point2D;
-use geom::size::Size2D;
-use geom::rect::Rect;
 
-priv enum Quadtype {
-    Empty,
-    Base,
-    Branch,
+pub struct Quadtree<T> {
+    tile: Option<T>,
+    origin: Point2D<f32>,
+    size: f32,
+    quadrants: [Option<~Quadtree<T>>, ..4],
+    scale: @mut f32,
+    max_tile_size: uint,
 }
 
 priv enum Quadrant {
@@ -22,206 +23,146 @@ priv enum Quadrant {
     BR = 3,
 }
 
-
-pub struct Quadtree {
-    quadtype: Quadtype,
-    rect: Rect<uint>,
-    quadrants: [Option<~Quadtree>, ..4],
-}
-
-
-impl Quadtree {
-    pub fn new(x: uint, y: uint, width: uint, height: uint) -> Quadtree {
+impl<T> Quadtree<T> {
+    // Public method to create a new Quadtree
+    pub fn new(x: uint, y: uint, width: uint, height: uint, tile_size: uint, scale: @mut f32) -> Quadtree<T> {
+        if(*scale != 1.0) { 
+            println("Warning: Quadtree: Quadtree initialized while zoomed; this action is unsupported.");
+            println("Please set zoom to 1.0 before creating the Quadtree.");
+        }
+        
+        // Spaces must be squares and powers of 2, so expand the space until it is
+        let longer = width.max(&height);
+        let num_tiles = uint::div_ceil(longer, tile_size);
+        let power_of_two = uint::next_power_of_two(num_tiles);
+        let size = power_of_two * tile_size;
+        
         Quadtree {
-            quadtype: Empty,
-            rect: Rect {
-                origin: Point2D(x, y),
-                size: Size2D(width, height),
-            },
-
+            tile: None,
+            origin: Point2D(x as f32, y as f32),
+            size: size as f32,
             quadrants: [None, None, None, None],
+            scale: scale,
+            max_tile_size: tile_size,
+        }
+    }
+
+    // Private method to create new children
+    fn new_child(&self, x: f32, y: f32, size: f32) -> Quadtree<T> {
+        Quadtree {
+            tile: None,
+            origin: Point2D(x, y),
+            size: size,
+            quadrants: [None, None, None, None],
+            scale: self.scale,
+            max_tile_size: self.max_tile_size,
         }
     }
     
     /// Determine which child contains a given point
-    priv fn get_quadrant(&self, x: uint, y: uint) -> Quadrant {
-        let self_width = self.rect.size.width;
-        let self_height = self.rect.size.height;
-        let self_x = self.rect.origin.x;
-        let self_y = self.rect.origin.y;
-        match (self_width, self_height) {
-            (1, _) => {
-                if y < self_y + self_height / 2 { 
-                    TL
-                } else { 
-                    BR
-                }
+    fn get_quadrant(&self, x: uint, y: uint) -> Quadrant {
+        let self_x = (self.origin.x * *(self.scale)).ceil() as uint;
+        let self_y = (self.origin.y * *(self.scale)).ceil() as uint;
+        let self_size = (self.size * *(self.scale)).ceil() as uint;
+
+        if x < self_x + self_size / 2 {
+            if y < self_y + self_size / 2 { 
+                TL
+            } else { 
+                BL
             }
-            (_, 1) => {
-                if x < self_x + self_width / 2 {
-                    TL
-                } else {
-                    BR
-                }
-            }
-            _ => {
-                if x < self_x + self_width / 2 {
-                    if y < self_y + self_height / 2 { 
-                        TL
-                    } else { 
-                        BL
-                    }
-                } else if y < self_y + self_height / 2 { 
-                    TR
-                } else { 
-                    BR
-                }
-            }
+        } else if y < self_y + self_size / 2 { 
+            TR
+        } else { 
+            BR
         }
     }
-    
-    /// Change a point from Empty to Base
-    pub fn add_region(&mut self, x: uint, y: uint) {
-        let self_x = self.rect.origin.x;
-        let self_y = self.rect.origin.y;
-        let self_width = self.rect.size.width;
-        let self_height = self.rect.size.height;
 
-        debug!("Quadtree: adding: (%?, %?) w:%?, h:%?", self_x, self_y, self_width, self_height);
+    /// Get the lowest-level (highest resolution) tile associated with a certain pixel
+    pub fn get_tile<'r> (&'r self, x: uint, y: uint) -> &'r Option<T> {
+        let self_x = (self.origin.x * *(self.scale)).ceil() as uint;
+        let self_y = (self.origin.y * *(self.scale)).ceil() as uint;
+        let self_size = (self.size * *(self.scale)).ceil() as uint;
 
-        if x >= self_x + self_width || x < self_x
-            || y >= self_y + self_height || y < self_y {
-            return; // Out of bounds
-        }
-        match self.quadtype {
-            Base => return,
-            Empty => {
-                if self_width == 1 && self_height == 1 {
-                    self.quadtype = Base;
-                    return;
-                }
-                self.quadtype = Branch;
-
-                // Initialize children
-                self.quadrants[TL as int] = Some(~Quadtree::new(self_x,
-                                                                self_y,
-                                                                (self_width / 2).max(&1),
-                                                                (self_height / 2).max(&1)));
-                if self_width > 1 && self_height > 1 {
-                    self.quadrants[TR as int] = Some(~Quadtree::new(self_x + self_width / 2,
-                                                                    self_y,
-                                                                    self_width - self_width / 2,
-                                                                    self_height / 2));
-                    self.quadrants[BL as int] = Some(~Quadtree::new(self_x,
-                                                                    self_y + self_height / 2,
-                                                                    self_width / 2,
-                                                                    self_height - self_height / 2));
-                }
-                self.quadrants[BR as int] = Some(~Quadtree::new(self_x + self_width / 2,
-                                                                self_y + self_height / 2,
-                                                                self_width - self_width / 2,
-                                                                self_height - self_height / 2));
-            }
-            Branch => {} // Fall through
+        if x >= self_x + self_size || x < self_x
+            || y >= self_y + self_size || y < self_y {
+            fail!("Quadtree: Tried to get a tile outside of range");
         }
 
-        // If we've made it this far, we know we are a branch and therefore have children
-        let index = self.get_quadrant(x, y) as int;
-        
+        let index = self.get_quadrant(x,y) as int;
         match self.quadrants[index] {
-            None => fail!("Quadtree: child query failure"),
-            Some(ref mut region) => {
-                // Recurse if necessary
-                match region.quadtype {
-                    Empty | Branch => {
-                        region.add_region(x, y);
-                    }
-                    Base => {} // nothing to do
-                }
-            }
+            None => &'r self.tile,
+            Some(ref child) => child.get_tile(x, y),
+        }
+    }    
+
+    
+    /// Add a tile
+    pub fn add_tile(&mut self, x: uint, y: uint, tile: T) {
+        let self_x = (self.origin.x * *(self.scale)).ceil() as uint;
+        let self_y = (self.origin.y * *(self.scale)).ceil() as uint;
+        let self_size = (self.size * *(self.scale)).ceil() as uint;
+
+        debug!("Quadtree: Adding: (%?, %?) size:%?px", self_x, self_y, self_size);
+
+        if x >= self_x + self_size || x < self_x
+            || y >= self_y + self_size || y < self_y {
+            fail!("Quadtree: Tried to add tile to invalid region");
         }
         
-        // FIXME: ideally we could make the assignments in the match,
-        // but borrowed pointers prevent that. So here's a flag instead.
-        let mut base_flag = 0;
-        
-        // If all children are Bases, convert self to Base
-        match (&self.quadrants, self_width, self_height) {
-            (&[Some(ref tl_q), _, _, Some(ref br_q)], 1, _) |
-            (&[Some(ref tl_q), _, _, Some(ref br_q)], _, 1) => {
-                match(tl_q.quadtype, br_q.quadtype) {
-                    (Base, Base) => {
-                        base_flag = 1;
-                    }
-                    _ => {} // nothing to do
-                }
+        if self_size <= self.max_tile_size { // We are the child            
+            self.tile = Some(tile);
+            for vec::each([TL, TR, BL, BR]) |quad| {
+                self.quadrants[*quad as int] = None;
             }
-            (&[Some(ref tl_q), Some(ref tr_q), Some(ref bl_q), Some(ref br_q)], _, _) => {
-                    match (tl_q.quadtype, tr_q.quadtype, bl_q.quadtype, br_q.quadtype) {
-                        (Base, Base, Base, Base) => {
-                            base_flag = 2;
+        } else { //send tile to children            
+            let quad = self.get_quadrant(x, y);
+            match self.quadrants[quad as int] {
+                Some(ref mut child) => child.add_tile(x, y, tile),
+                None => { //make new child      
+                    let new_size = self.size / 2.0;
+                    let new_x = match quad {
+                        TL | BL => self.origin.x,
+                        TR | BR => self.origin.x + new_size,
+                    };
+                    let new_y = match quad {
+                        TL | TR => self.origin.y,
+                        BL | BR => self.origin.y + new_size,
+                    };
+                    let mut c = ~self.new_child(new_x, new_y, new_size);
+                    c.add_tile(x, y, tile);
+                    self.quadrants[quad as int] = Some(c);
+
+                    // If we have 4 children, we probably shouldn't be hanging onto a tile
+                    // Though this isn't always true if we have grandchildren
+                    match self.quadrants {
+                        [Some(_), Some(_), Some(_), Some(_)] => {
+                            self.tile = None;
                         }
-                        _ => {} // nothing to do
+                        _ => {}
                     }
-            }
-            _ => {} // nothing to do
-        }
-        
-        match base_flag {
-            0 => {}
-            1 => {
-                self.quadtype = Base;
-                self.quadrants[TL as int] = None;
-                self.quadrants[BR as int] = None;
-            }
-            2 => {
-                self.quadtype = Base;
-                self.quadrants[TL as int] = None;
-                self.quadrants[TR as int] = None;
-                self.quadrants[BL as int] = None;
-                self.quadrants[BR as int] = None;
-            }
-            _ => fail!("Quadtree: Unknown flag type"),
-        }
-    }
-    
-    /// Check if a point is a Base or Empty.
-    pub fn check_region(&self, x: uint, y: uint) -> bool {
-        let self_x = self.rect.origin.x;
-        let self_y = self.rect.origin.y;
-        let self_width = self.rect.size.width;
-        let self_height = self.rect.size.height;
 
-        if x >= self_x + self_width || x < self_x
-            || y >= self_y + self_height || y < self_y {
-            return false; // out of bounds
-        }
-
-        match self.quadtype {
-            Empty => false,
-            Base => true,
-            Branch => {
-                let index = self.get_quadrant(x,y) as int;
-                match self.quadrants[index] {
-                    None => fail!("Quadtree: child query failed"),
-                    Some(ref region) => region.check_region(x, y)
                 }
             }
         }
     }
     
+
 }
 
 
 #[test]
-fn test_add_region() {
-    let mut t = Quadtree::new(50, 50, 3, 4);
-    assert!(!t.check_region(50, 50));
-    t.add_region(50, 50);
-    assert!(t.check_region(50, 50));
-    assert!(!t.check_region(51, 50));
-    assert!(!t.check_region(50, 51));
-    t.add_region(53, 50);
-    assert!(!t.check_region(53, 50));
-
+fn test_add_tile() {
+    let scale = @mut 1.0;
+    let mut t = Quadtree::new(50, 30, 20, 20, 10, scale);
+    assert!(t.get_tile(50, 30).is_none());
+    t.add_tile(50, 30, 1);
+    assert!(t.get_tile(50, 30).get() == 1);
+    assert!(t.get_tile(59, 39).get() == 1);
+    assert!(t.get_tile(60, 40).is_none());
+    *scale = 2.0;
+    assert!(t.get_tile(110, 70).get() == 1);
+    t.add_tile(100, 60, 2);
+    assert!(t.get_tile(109, 69).get() == 2);
+    assert!(t.get_tile(110, 70).get() == 1);
 }
