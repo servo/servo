@@ -45,6 +45,10 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         copy opt_match.free
     };
 
+    if getopts::opt_present(&opt_match, ~"o") {
+        fail!(~"servo cannot treat 'o' option now.")
+    }
+
     let render_backend = match getopts::opt_maybe_str(&opt_match, ~"r") {
         Some(backend_str) => {
             if backend_str == ~"direct2d" {
