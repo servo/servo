@@ -6,6 +6,7 @@
 
 use layout::aux::LayoutAuxMethods;
 use layout::block::BlockFlowData;
+use layout::float::FloatFlowData;
 use layout::box::{GenericRenderBoxClass, ImageRenderBox, ImageRenderBoxClass, RenderBox};
 use layout::box::{RenderBoxBase, RenderBoxType, RenderBox_Generic, RenderBox_Image};
 use layout::box::{RenderBox_Text, UnscannedTextRenderBox, UnscannedTextRenderBoxClass};
@@ -22,6 +23,7 @@ use newcss::values::{CSSDisplayTableRowGroup, CSSDisplayTableHeaderGroup, CSSDis
 use newcss::values::{CSSDisplayTableRow, CSSDisplayTableColumnGroup, CSSDisplayTableColumn};
 use newcss::values::{CSSDisplayTableCell, CSSDisplayTableCaption};
 use newcss::values::{CSSDisplayNone};
+use newcss::values::{CSSFloatNone};
 use script::dom::element::*;
 use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
@@ -349,8 +351,23 @@ pub impl LayoutTreeBuilder {
             None => None,
             Some(gen) => Some(gen.flow)
         };
+        
+        // TODO(eatkinson): use the value of the float property to
+        // determine whether to float left or right.
+        let is_float = if (node.is_element()) {
+            match node.style().float() {
+                CSSFloatNone => false,
+                _ => true
+            }
+        } else {
+            false
+        };
+        
 
         let new_generator = match (display, parent_generator.flow, sibling_flow) { 
+            (CSSDisplayBlock, BlockFlow(_), _) if is_float => {
+                self.create_child_generator(node, parent_generator, Flow_Float)
+            },
             (CSSDisplayBlock, BlockFlow(info), _) => match (info.is_root, node.parent_node()) {
                 // If this is the root node, then use the root flow's
                 // context. Otherwise, make a child block context.
@@ -383,8 +400,6 @@ pub impl LayoutTreeBuilder {
 
             // TODO(eatkinson): blocks that are children of inlines need
             // to split their parent flows.
-            //
-            // TODO(eatkinson): floats and positioned elements.
             _ => parent_generator
         };
 
@@ -520,7 +535,7 @@ pub impl LayoutTreeBuilder {
         let result = match ty {
             Flow_Absolute    => AbsoluteFlow(@mut info),
             Flow_Block       => BlockFlow(@mut BlockFlowData::new(info)),
-            Flow_Float       => FloatFlow(@mut info),
+            Flow_Float       => FloatFlow(@mut FloatFlowData::new(info)),
             Flow_InlineBlock => InlineBlockFlow(@mut info),
             Flow_Inline      => InlineFlow(@mut InlineFlowData::new(info)),
             Flow_Root        => BlockFlow(@mut BlockFlowData::new_root(info)),

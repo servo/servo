@@ -10,6 +10,7 @@ use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{FlowContext, FlowData, InlineFlow};
 use layout::text::{UnscannedMethods, adapt_textbox_with_range};
+use layout::float_context::FloatContext;
 
 use core::util;
 use geom::{Point2D, Rect, Size2D};
@@ -25,6 +26,7 @@ use newcss::values::{CSSLineHeightNormal, CSSLineHeightNumber, CSSLineHeightLeng
 
 use servo_util::range::Range;
 use std::deque::Deque;
+use servo_util::tree::{TreeNodeRef, TreeUtils};
 
 /*
 Lineboxes are represented as offsets into the child list, rather than
@@ -394,7 +396,7 @@ impl TextRunScanner {
 
 struct PendingLine {
     range: Range,
-    width: Au
+    bounds: Rect<Au>
 }
 
 struct LineboxScanner {
@@ -413,8 +415,8 @@ impl LineboxScanner {
             flow: inline,
             new_boxes: ~[],
             work_list: @mut Deque::new(),
-            pending_line: PendingLine {mut range: Range::empty(), mut width: Au(0)},
-            line_spans: ~[]
+            pending_line: PendingLine {mut range: Range::empty(), mut bounds: Rect(Point2D(Au(0), Au(0)), Size2D(Au(0), Au(0)))},
+            line_spans: ~[],
         }
     }
 
@@ -427,7 +429,7 @@ impl LineboxScanner {
 
     fn reset_linebox(&mut self) {
         self.pending_line.range.reset(0,0);
-        self.pending_line.width = Au(0);
+        self.pending_line.bounds = Rect(Point2D(Au(0), Au(0)), Size2D(Au(0), Au(0)));
     }
 
     pub fn scan_for_lines(&mut self, ctx: &LayoutContext) {
@@ -508,7 +510,7 @@ impl LineboxScanner {
             linebox_align = CSSTextAlignLeft;
         }
 
-        let slack_width = self.flow.position().size.width - self.pending_line.width;
+        let slack_width = self.flow.position().size.width - self.pending_line.bounds.size.width;
         match linebox_align {
             // So sorry, but justified text is more complicated than shuffling linebox coordinates.
             // TODO(Issue #213): implement `text-align: justify`
@@ -548,7 +550,7 @@ impl LineboxScanner {
 
     // return value: whether any box was appended.
     fn try_append_to_line(&mut self, ctx: &LayoutContext, in_box: RenderBox) -> bool {
-        let remaining_width = self.flow.position().size.width - self.pending_line.width;
+        let remaining_width = self.flow.position().size.width - self.pending_line.bounds.size.width;
         let in_box_width = in_box.position().size.width;
         let line_is_empty: bool = self.pending_line.range.length() == 0;
 
@@ -639,7 +641,7 @@ impl LineboxScanner {
             self.pending_line.range.reset(self.new_boxes.len(), 0);
         }
         self.pending_line.range.extend_by(1);
-        self.pending_line.width += box.position().size.width;
+        self.pending_line.bounds.size.width += box.position().size.width;
         self.new_boxes.push(box);
     }
 }
@@ -696,6 +698,15 @@ impl InlineFlowData {
     pub fn bubble_widths_inline(@mut self, ctx: &mut LayoutContext) {
         let mut scanner = TextRunScanner::new();
         scanner.scan_for_runs(ctx, InlineFlow(self));
+        let mut num_floats = 0;
+
+        for InlineFlow(self).each_child |kid| {
+            do kid.with_mut_base |base| {
+                num_floats += base.num_floats;
+                base.floats_in = FloatContext::new(base.num_floats);
+            }
+        }
+
 
         {
             let this = &mut *self;
@@ -711,12 +722,13 @@ impl InlineFlowData {
 
             this.common.min_width = min_width;
             this.common.pref_width = pref_width;
+            this.common.num_floats = num_floats;
         }
     }
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
     /// on this context, the context has had its width set by the parent context.
-    pub fn assign_widths_inline(@mut self, ctx: &mut LayoutContext) {
+    pub fn assign_widths_inline(@mut self, _: &mut LayoutContext) {
         // Initialize content box widths if they haven't been initialized already.
         //
         // TODO: Combine this with `LineboxScanner`'s walk in the box list, or put this into
@@ -745,9 +757,11 @@ impl InlineFlowData {
             } // End of for loop.
         }
 
-        let mut scanner = LineboxScanner::new(InlineFlow(self));
-        scanner.scan_for_lines(ctx);
-
+        for InlineFlow(self).each_child |kid| {
+            do kid.with_mut_base |base| {
+                base.position.size.width = self.common.position.size.width;
+            }
+        }
         // There are no child contexts, so stop here.
 
         // TODO(Issue #225): once there are 'inline-block' elements, this won't be
@@ -757,7 +771,18 @@ impl InlineFlowData {
         // 'inline-block' box that created this flow before recursing.
     }
 
-    pub fn assign_height_inline(&mut self, _: &mut LayoutContext) {
+    pub fn assign_height_inline(@mut self, ctx: &mut LayoutContext) {
+
+        for InlineFlow(self).each_child |kid| {
+            kid.assign_height(ctx);
+        }
+
+
+        // TODO(eatkinson): line boxes need to shrink if there are floats
+        let mut scanner = LineboxScanner::new(InlineFlow(self));
+        scanner.scan_for_lines(ctx);
+        self.common.floats_out = self.common.floats_in.clone();
+
         // TODO(#226): Get the CSS `line-height` property from the containing block's style to
         // determine minimum linebox height.
         //
@@ -774,10 +799,8 @@ impl InlineFlowData {
             let mut linebox_height = Au(0);
             let mut baseline_offset = Au(0);
 
-            let boxes = &mut self.boxes;
-
             for line_span.eachi |box_i| {
-                let cur_box = boxes[box_i]; // FIXME: borrow checker workaround
+                let cur_box = self.boxes[box_i];
 
                 // Compute the height and bounding box of each box.
                 let bounding_box = match cur_box {
@@ -849,7 +872,7 @@ impl InlineFlowData {
 
             // Now go back and adjust the Y coordinates to match the baseline we determined.
             for line_span.eachi |box_i| {
-                let cur_box = boxes[box_i];
+                let cur_box = self.boxes[box_i];
 
                 // TODO(#226): This is completely wrong. We need to use the element's `line-height`
                 // when calculating line box height. Then we should go back over and set Y offsets

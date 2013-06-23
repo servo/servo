@@ -8,9 +8,10 @@ use layout::box::{RenderBox};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::display_list_builder::{FlowDisplayListBuilderMethods};
-use layout::flow::{BlockFlow, FlowContext, FlowData, InlineBlockFlow};
+use layout::flow::{BlockFlow, FlowContext, FlowData, InlineBlockFlow, FloatFlow};
 use layout::inline::InlineLayout;
 use layout::model::{MaybeAuto, Specified, Auto};
+use layout::float_context::FloatContext;
 
 use core::cell::Cell;
 use geom::point::Point2D;
@@ -72,7 +73,7 @@ impl BlockLayout for FlowContext {
 
     fn starts_block_flow(&self) -> bool {
         match *self {
-            BlockFlow(*) | InlineBlockFlow(*) => true,
+            BlockFlow(*) | InlineBlockFlow(*) | FloatFlow(*) => true,
             _ => false 
         }
     }
@@ -91,14 +92,17 @@ impl BlockFlowData {
     pub fn bubble_widths_block(@mut self, ctx: &LayoutContext) {
         let mut min_width = Au(0);
         let mut pref_width = Au(0);
+        let mut num_floats = 0;
 
         /* find max width from child block contexts */
         for BlockFlow(self).each_child |child_ctx| {
             assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
 
-            do child_ctx.with_base |child_node| {
+            do child_ctx.with_mut_base |child_node| {
                 min_width = geometry::max(min_width, child_node.min_width);
                 pref_width = geometry::max(pref_width, child_node.pref_width);
+
+                num_floats = num_floats + child_node.num_floats;
             }
         }
 
@@ -116,6 +120,7 @@ impl BlockFlowData {
 
         self.common.min_width = min_width;
         self.common.pref_width = pref_width;
+        self.common.num_floats = num_floats;
     }
  
     /// Computes left and right margins and width based on CSS 2.1 secion 10.3.3.
@@ -180,6 +185,7 @@ impl BlockFlowData {
             debug!("Setting root position");
             self.common.position.origin = Au::zero_point();
             self.common.position.size.width = ctx.screen_size.size.width;
+            self.common.floats_in = FloatContext::new(self.common.num_floats);
         }
 
         //position was set to the containing block by the flow's parent
@@ -240,7 +246,7 @@ impl BlockFlowData {
         }
     }
 
-    pub fn assign_height_block(@mut self, ctx: &LayoutContext) {
+    pub fn assign_height_block(@mut self, ctx: &mut LayoutContext) {
         let mut cur_y = Au(0);
         let mut top_offset = Au(0);
 
@@ -251,6 +257,28 @@ impl BlockFlowData {
             }
         }
 
+        // TODO(eatkinson): the translation here is probably
+        // totally wrong. We need to do it right or pages
+        // with floats will look very strange.
+
+        // Floats for blocks work like this:
+        // self.floats_in -> child[0].floats_in
+        // visit child[0]
+        // child[i-1].floats_out -> child[i].floats_in
+        // visit child[i]
+        // repeat until all children are visited.
+        // last_child.floats_out -> self.floats_out (done at the end of this function)
+        let mut float_ctx = self.common.floats_in.clone();
+        for BlockFlow(self).each_child |kid| {
+            do kid.with_mut_base |child_node| {
+                child_node.floats_in = float_ctx.clone();
+            }
+            kid.assign_height(ctx);
+            do kid.with_mut_base |child_node| {
+                float_ctx = child_node.floats_out.translate(Point2D(Au(0), -child_node.position.size.height));
+            }
+
+        }
         for BlockFlow(self).each_child |kid| {
             do kid.with_mut_base |child_node| {
                 child_node.position.origin.y = cur_y;
@@ -281,6 +309,8 @@ impl BlockFlowData {
         //TODO(eatkinson): compute heights using the 'height' property.
         self.common.position.size.height = height + noncontent_height;
 
+    
+        self.common.floats_out = float_ctx.translate(Point2D(Au(0), self.common.position.size.height));
     }
 
     pub fn build_display_list_block<E:ExtraDisplayListData>(@mut self,

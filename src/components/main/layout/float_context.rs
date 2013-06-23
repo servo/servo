@@ -1,28 +1,32 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
 use gfx::geometry::{Au, max, min};
 use core::util::replace;
 
-enum FloatType{
+pub enum FloatType{
     FloatLeft,
     FloatRight
 }
 
-priv struct FloatContextBase{
+struct FloatContextBase{
     float_data: ~[Option<FloatData>],
     floats_used: uint,
     max_y : Au,
     offset: Point2D<Au>
 }
 
-priv struct FloatData{
+struct FloatData{
     bounds: Rect<Au>,
     f_type: FloatType
 }
 
 /// All information necessary to place a float
-struct PlacementInfo{
+pub struct PlacementInfo{
     width: Au,      // The dimensions of the float
     height: Au,
     ceiling: Au,    // The minimum top of the float, as determined by earlier elements
@@ -32,18 +36,26 @@ struct PlacementInfo{
 
 /// Wrappers around float methods. To avoid allocating data we'll never use,
 /// destroy the context on modification.
-enum FloatContext {
+pub enum FloatContext {
     Invalid,
     Valid(FloatContextBase)
 }
 
 impl FloatContext {
-    fn new(num_floats: uint) -> FloatContext {
+    pub fn new(num_floats: uint) -> FloatContext {
         Valid(FloatContextBase::new(num_floats))
     }
 
     #[inline(always)]
-    priv fn with_base<R>(&mut self, callback: &fn(&mut FloatContextBase) -> R) -> R {
+    pub fn clone(&mut self) -> FloatContext {
+        match *self {
+            Invalid => fail!("Can't clone an invalid float context"),
+            Valid(_) => replace(self, Invalid)
+        }
+    }
+
+    #[inline(always)]
+    fn with_base<R>(&mut self, callback: &fn(&mut FloatContextBase) -> R) -> R {
         match *self {
             Invalid => fail!("Float context no longer available"),
             Valid(ref mut base) => callback(base)
@@ -51,7 +63,7 @@ impl FloatContext {
     }
 
     #[inline(always)]
-    fn with_base<R>(&self, callback: &fn(&FloatContextBase) -> R) -> R {
+    pub fn with_base<R>(&self, callback: &fn(&FloatContextBase) -> R) -> R {
         match *self {
             Invalid => fail!("Float context no longer available"),
             Valid(ref base) => callback(base)
@@ -59,7 +71,7 @@ impl FloatContext {
     }
 
     #[inline(always)]
-    fn translate(&mut self, trans: Point2D<Au>) -> FloatContext {
+    pub fn translate(&mut self, trans: Point2D<Au>) -> FloatContext {
         do self.with_base |base| {
             base.translate(trans);
         }
@@ -67,14 +79,14 @@ impl FloatContext {
     }
 
     #[inline(always)]
-    fn available_rect(&mut self, top: Au, height: Au, max_x: Au) -> Option<Rect<Au>> {
+    pub fn available_rect(&mut self, top: Au, height: Au, max_x: Au) -> Option<Rect<Au>> {
         do self.with_base |base| {
             base.available_rect(top, height, max_x)
         }
     }
 
     #[inline(always)]
-    fn add_float(&mut self, info: &PlacementInfo) -> FloatContext{
+    pub fn add_float(&mut self, info: &PlacementInfo) -> FloatContext{
         do self.with_base |base| {
             base.add_float(info);
         }
@@ -84,9 +96,8 @@ impl FloatContext {
 
 impl FloatContextBase{
     fn new(num_floats: uint) -> FloatContextBase {
-        let new_data = do vec::build_sized(num_floats) |push_fun| {
-            push_fun(None);
-        };
+        debug!("Creating float context of size %?", num_floats);
+        let new_data = vec::from_elem(num_floats, None);
         FloatContextBase {
             float_data: new_data,
             floats_used: 0,
@@ -166,6 +177,7 @@ impl FloatContextBase{
     }
 
     fn add_float(&mut self, info: &PlacementInfo) {
+        debug!("Floats_used: %?, Floats available: %?", self.floats_used, self.float_data.len());
         assert!(self.floats_used < self.float_data.len() && 
                 self.float_data[self.floats_used].is_none());
 
@@ -177,6 +189,7 @@ impl FloatContextBase{
             f_type: info.f_type
         };
         self.float_data[self.floats_used] = Some(new_float);
+        self.floats_used += 1;
     }
 
     /// Given necessary info, finds the position of the float in

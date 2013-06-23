@@ -112,7 +112,7 @@ impl BoxModel {
     }
 
     /// Helper function to compute the border width in app units from the CSS border width.
-    priv fn compute_border_width(&self, width: CSSBorderWidth) -> Au {
+    pub fn compute_border_width(&self, width: CSSBorderWidth) -> Au {
         match width {
             CSSBorderWidthLength(Px(v)) |
             CSSBorderWidthLength(Em(v)) |
@@ -126,7 +126,7 @@ impl BoxModel {
         }
     }
 
-    fn compute_padding_length(&self, padding: CSSPadding, content_box_width: Au) -> Au {
+    pub fn compute_padding_length(&self, padding: CSSPadding, content_box_width: Au) -> Au {
         match padding {
             CSSPaddingLength(Px(v)) |
             CSSPaddingLength(Pt(v)) |
