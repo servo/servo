@@ -85,7 +85,7 @@ impl FloatFlowData {
     }
 
     pub fn assign_widths_float(@mut self, _: &LayoutContext) { 
-        debug!("assign_widths_block: assigning width for flow %?",  self.common.id);
+        debug!("assign_widths_float: assigning width for flow %?",  self.common.id);
         // position.size.width is set by parent even though we don't know
         // position.origin yet.
         let mut remaining_width = self.common.position.size.width;
@@ -117,13 +117,13 @@ impl FloatFlowData {
 
                 let width = MaybeAuto::from_width(style.width(), 
                                                   remaining_width).spec_or_default(shrink_to_fit);
+                debug!("assign_widths_float -- width: %?", width);
 
                 model.margin.top = margin_top;
                 model.margin.right = margin_right;
                 model.margin.bottom = margin_bottom;
                 model.margin.left = margin_left;
 
-                self.common.position.size.width = width;
                 x_offset = model.offset();
                 remaining_width = width;
             }
@@ -137,6 +137,8 @@ impl FloatFlowData {
                 base.position.size.width = remaining_width + pb;
             }
         }
+
+        self.common.position.size.width = remaining_width;
 
         for FloatFlow(self).each_child |kid| {
             //assert!(kid.starts_block_flow() || kid.starts_inline_flow());
@@ -170,7 +172,7 @@ impl FloatFlowData {
             }
         }
 
-        let height = cur_y - top_offset;
+        let mut height = cur_y - top_offset;
         
         let mut noncontent_height = Au(0);
         self.box.map(|&box| {
@@ -186,12 +188,23 @@ impl FloatFlowData {
             }
         });
 
-        //TODO(eatkinson): compute heights using the 'height' property.
-        self.common.position.size.height = height + noncontent_height;
+        
+        //TODO(eatkinson): compute heights properly using the 'height' property.
+        for self.box.each |&box| {
+
+            let height_prop = 
+                MaybeAuto::from_height(box.style().height(), Au(0)).spec_or_default(Au(0));
+
+            height = geometry::max(height, height_prop) + noncontent_height;
+            debug!("assign_height_float -- height: %?", height);
+            do box.with_mut_base |base| {
+                base.position.size.height = height;
+            }
+        }
 
         let info = PlacementInfo {
             width: self.common.position.size.width,
-            height: self.common.position.size.height,
+            height: height,
             ceiling: Au(0),
             max_width: self.containing_width,
             f_type: FloatLeft,

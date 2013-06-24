@@ -420,11 +420,17 @@ impl<'self> FlowContext {
                     None => ~"BlockFlow",
                 }
             },
+            FloatFlow(float) => {
+                match float.box {
+                    Some(box) => fmt!("FloatFlow(box=b%d)", box.id()),
+                    None => ~"FloatFlow",
+                }
+            },
             _ => ~"(Unknown flow)"
         };
 
         do self.with_base |base| {
-            fmt!("f%? %? floats %?", base.id, repr, base.num_floats)
+            fmt!("f%? %? floats %? size %?", base.id, repr, base.num_floats, base.position)
         }
     }
 }

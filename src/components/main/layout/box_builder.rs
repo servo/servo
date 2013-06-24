@@ -161,6 +161,18 @@ impl BoxGenerator {
                 assert!(block.box.is_none());
                 block.box = Some(new_box);
             },
+            FloatFlow(float) => {
+                debug!("BoxGenerator[f%d]: point b", float.common.id);
+                let new_box = self.make_box(ctx, box_type, node, self.flow, builder);
+
+                debug!("BoxGenerator[f%d]: attaching box[b%d] to float flow (node: %s)",
+                       float.common.id,
+                       new_box.id(),
+                       node.debug_str());
+
+                assert!(float.box.is_none());
+                float.box = Some(new_box);
+            },
             _ => warn!("push_node() not implemented for flow f%d", self.flow.id()),
         }
     }
@@ -384,7 +396,9 @@ pub impl LayoutTreeBuilder {
             // Inlines that are children of blocks create new flows if their
             // previous sibling was a block.
             (CSSDisplayInline, BlockFlow(*), Some(BlockFlow(*))) |
-            (CSSDisplayInlineBlock, BlockFlow(*), Some(BlockFlow(*))) => {
+            (CSSDisplayInlineBlock, BlockFlow(*), Some(BlockFlow(*))) |
+            (CSSDisplayInline, BlockFlow(*), Some(FloatFlow(*))) |
+            (CSSDisplayInlineBlock, BlockFlow(*), Some(FloatFlow(*))) => {
                 self.create_child_generator(node, parent_generator, Flow_Inline)
             }
 

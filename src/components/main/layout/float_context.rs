@@ -55,7 +55,7 @@ impl FloatContext {
     }
 
     #[inline(always)]
-    fn with_base<R>(&mut self, callback: &fn(&mut FloatContextBase) -> R) -> R {
+    fn with_mut_base<R>(&mut self, callback: &fn(&mut FloatContextBase) -> R) -> R {
         match *self {
             Invalid => fail!("Float context no longer available"),
             Valid(ref mut base) => callback(base)
@@ -72,7 +72,7 @@ impl FloatContext {
 
     #[inline(always)]
     pub fn translate(&mut self, trans: Point2D<Au>) -> FloatContext {
-        do self.with_base |base| {
+        do self.with_mut_base |base| {
             base.translate(trans);
         }
         replace(self, Invalid)
@@ -87,10 +87,17 @@ impl FloatContext {
 
     #[inline(always)]
     pub fn add_float(&mut self, info: &PlacementInfo) -> FloatContext{
-        do self.with_base |base| {
+        do self.with_mut_base |base| {
             base.add_float(info);
         }
         replace(self, Invalid)
+    }
+
+    #[inline(always)]
+    pub fn last_float_pos(&mut self) -> Point2D<Au> {
+        do self.with_base |base| {
+            base.last_float_pos()
+        }
     }
 }
 
@@ -108,6 +115,15 @@ impl FloatContextBase{
 
     fn translate(&mut self, trans: Point2D<Au>) {
         self.offset += trans;
+    }
+
+    fn last_float_pos(&self) -> Point2D<Au> {
+        assert!(self.floats_used > 0, "Error: tried to access FloatContext with no floats in it");
+
+        match self.float_data[self.floats_used - 1] {
+            None => fail!("FloatContext error: floats should never be None here"),
+            Some(float) => float.bounds.origin
+        }
     }
 
     /// Returns a rectangle that encloses the region from top to top + height,

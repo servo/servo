@@ -267,7 +267,7 @@ impl BlockFlowData {
         // child[i-1].floats_out -> child[i].floats_in
         // visit child[i]
         // repeat until all children are visited.
-        // last_child.floats_out -> self.floats_out (done at the end of this function)
+        // last_child.floats_out -> self.floats_out (done at the end of this method)
         let mut float_ctx = self.common.floats_in.clone();
         for BlockFlow(self).each_child |kid| {
             do kid.with_mut_base |child_node| {

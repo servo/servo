@@ -20,6 +20,7 @@ use newcss::units::{Em, Pt, Px};
 use newcss::values::{CSSBorderWidth, CSSBorderWidthLength, CSSBorderWidthMedium};
 use newcss::values::{CSSBorderWidthThick, CSSBorderWidthThin};
 use newcss::values::{CSSWidth, CSSWidthLength, CSSWidthPercentage, CSSWidthAuto};
+use newcss::values::{CSSHeight, CSSHeightLength, CSSHeightPercentage, CSSHeightAuto};
 use newcss::values::{CSSMargin, CSSMarginLength, CSSMarginPercentage, CSSMarginAuto};
 use newcss::values::{CSSPadding, CSSPaddingLength, CSSPaddingPercentage};
 /// Encapsulates the borders, padding, and margins, which we collectively call the "box model".
@@ -58,6 +59,17 @@ impl MaybeAuto{
             CSSWidthLength(Px(v)) | 
             CSSWidthLength(Pt(v)) | 
             CSSWidthLength(Em(v)) => Specified(Au::from_frac_px(v)),
+        }
+    }
+
+    pub fn from_height(height: CSSHeight, cb_height: Au) -> MaybeAuto{
+        match height {
+            CSSHeightAuto => Auto,
+            CSSHeightPercentage(percent) => Specified(cb_height.scale_by(percent/100.0)),
+            //FIXME(eatkinson): Compute pt and em values properly
+            CSSHeightLength(Px(v)) | 
+            CSSHeightLength(Pt(v)) | 
+            CSSHeightLength(Em(v)) => Specified(Au::from_frac_px(v)),
         }
     }
 
