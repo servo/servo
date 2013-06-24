@@ -27,6 +27,8 @@ pub struct FloatFlowData {
 
     containing_width: Au,
 
+    /// Parent clobbers our position, so store it separately
+    rel_pos: Point2D<Au>,
 
     /// Index into the box list for inline floats
     index: Option<uint>,
@@ -40,6 +42,7 @@ impl FloatFlowData {
             containing_width: Au(0),
             box: None,
             index: None,
+            rel_pos: Point2D(Au(0), Au(0)),
         }
     }
 
@@ -210,10 +213,10 @@ impl FloatFlowData {
             f_type: FloatLeft,
         };
 
+        // Place the float and return the FloatContext back to the parent flow.
+        // After, grab the position and use that to set our position.
         self.common.floats_out = self.common.floats_in.add_float(&info);
-
-
-
+        self.rel_pos = self.common.floats_out.last_float_pos();
     }
 
     pub fn build_display_list_float<E:ExtraDisplayListData>(@mut self,
@@ -221,15 +224,17 @@ impl FloatFlowData {
                                                             dirty: &Rect<Au>, 
                                                             offset: &Point2D<Au>,
                                                             list: &Cell<DisplayList<E>>) {
+
+        let offset = *offset + self.rel_pos;
         self.box.map(|&box| {
-            box.build_display_list(builder, dirty, offset, list)
+            box.build_display_list(builder, dirty, &offset, list)
         });
 
 
         // go deeper into the flow tree
         let flow = FloatFlow(self);
         for flow.each_child |child| {
-            flow.build_display_list_for_child(builder, child, dirty, offset, list)
+            flow.build_display_list_for_child(builder, child, dirty, &offset, list)
         }
     }
 }

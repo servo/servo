@@ -249,11 +249,13 @@ impl BlockFlowData {
     pub fn assign_height_block(@mut self, ctx: &mut LayoutContext) {
         let mut cur_y = Au(0);
         let mut top_offset = Au(0);
+        let mut left_offset = Au(0);
 
         for self.box.each |&box| {
             do box.with_model |model| {
                 top_offset = model.margin.top + model.border.top + model.padding.top;
                 cur_y += top_offset;
+                left_offset = model.offset();
             }
         }
 
@@ -268,7 +270,7 @@ impl BlockFlowData {
         // visit child[i]
         // repeat until all children are visited.
         // last_child.floats_out -> self.floats_out (done at the end of this method)
-        let mut float_ctx = self.common.floats_in.clone();
+        let mut float_ctx = self.common.floats_in.translate(Point2D(-left_offset, -top_offset));
         for BlockFlow(self).each_child |kid| {
             do kid.with_mut_base |child_node| {
                 child_node.floats_in = float_ctx.clone();
@@ -310,7 +312,7 @@ impl BlockFlowData {
         self.common.position.size.height = height + noncontent_height;
 
     
-        self.common.floats_out = float_ctx.translate(Point2D(Au(0), self.common.position.size.height));
+        self.common.floats_out = float_ctx.translate(Point2D(left_offset, self.common.position.size.height));
     }
 
     pub fn build_display_list_block<E:ExtraDisplayListData>(@mut self,

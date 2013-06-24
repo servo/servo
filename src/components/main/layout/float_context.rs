@@ -122,7 +122,10 @@ impl FloatContextBase{
 
         match self.float_data[self.floats_used - 1] {
             None => fail!("FloatContext error: floats should never be None here"),
-            Some(float) => float.bounds.origin
+            Some(float) => {
+                debug!("Returning float position: %?", float.bounds.origin + self.offset);
+                float.bounds.origin + self.offset
+            }
         }
     }
 
@@ -134,6 +137,10 @@ impl FloatContextBase{
         fn range_intersect(top_1: Au, bottom_1: Au, top_2: Au, bottom_2: Au) -> (Au, Au) {
             (max(top_1, top_2), min(bottom_1, bottom_2))
         }
+
+        debug!("available_rect: trying to find space at %?", top);
+
+        let top = top - self.offset.y;
 
         // Relevant dimensions for the right-most left float
         let mut (max_left, l_top, l_bottom) = (Au(0) - self.offset.x, None, None);
@@ -183,7 +190,15 @@ impl FloatContextBase{
             (None, None, None, None) => return None,
             _ => fail!("Reached unreachable state when computing float area")
         };
-        assert!(max_left < min_right, "Float position error");
+
+        // When the window is smaller than the float, we will return a rect
+        // with negative width.
+        assert!(max_left < min_right 
+                || max_left > max_x - self.offset.x
+                || min_right < Au(0) - self.offset.x
+                ,"Float position error");
+
+        //TODO(eatkinson): do we need to do something similar for heights?
         assert!(top < bottom, "Float position error");
 
         Some(Rect{
@@ -212,11 +227,13 @@ impl FloatContextBase{
     /// LOCAL COORDINATES. i.e. must be translated before placed
     /// in the float list
     fn place_float(&self, info: &PlacementInfo) -> Point2D<Au>{
+        debug!("place_float: Placing float with width %? and height %?", info.width, info.height);
         // Can't go any higher than previous floats or
         // previous elements in the document.
-        let mut float_y = max(info.ceiling, self.max_y);
+        let mut float_y = max(info.ceiling, self.max_y + self.offset.y);
         loop {
             let maybe_location = self.available_rect(float_y, info.height, info.max_width);
+            debug!("place_float: Got available rect: %? for y-pos: %?", maybe_location, float_y);
             match maybe_location {
                 // If there are no floats blocking us, return the current location
                 // TODO(eatknson): integrate with overflow
