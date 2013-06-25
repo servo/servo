@@ -24,7 +24,8 @@ use newcss::values::{CSSDisplayTableRowGroup, CSSDisplayTableHeaderGroup, CSSDis
 use newcss::values::{CSSDisplayTableRow, CSSDisplayTableColumnGroup, CSSDisplayTableColumn};
 use newcss::values::{CSSDisplayTableCell, CSSDisplayTableCaption};
 use newcss::values::{CSSDisplayNone};
-use newcss::values::{CSSFloatNone};
+use newcss::values::{CSSFloatNone, CSSFloatLeft, CSSFloatRight};
+use layout::float_context::{FloatLeft, FloatRight};
 use script::dom::element::*;
 use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
@@ -370,17 +371,18 @@ impl LayoutTreeBuilder {
         // determine whether to float left or right.
         let is_float = if (node.is_element()) {
             match node.style().float() {
-                CSSFloatNone => false,
-                _ => true
+                CSSFloatNone => None,
+                CSSFloatLeft => Some(FloatLeft),
+                CSSFloatRight => Some(FloatRight)
             }
         } else {
-            false
+            None
         };
         
 
         let new_generator = match (display, parent_generator.flow, sibling_flow) { 
-            (CSSDisplayBlock, BlockFlow(_), _) if is_float => {
-                self.create_child_generator(node, parent_generator, Flow_Float)
+            (CSSDisplayBlock, BlockFlow(_), _) if !is_float.is_none() => {
+                self.create_child_generator(node, parent_generator, Flow_Float(is_float.get()))
             }
 
             (CSSDisplayBlock, BlockFlow(info), _) => match (info.is_root, node.parent_node()) {
@@ -574,13 +576,13 @@ impl LayoutTreeBuilder {
     pub fn make_flow(&mut self, ty: FlowContextType, node: AbstractNode<LayoutView>) -> FlowContext {
         let info = FlowData::new(self.next_flow_id(), node);
         let result = match ty {
-            Flow_Absolute    => AbsoluteFlow(@mut info),
-            Flow_Block       => BlockFlow(@mut BlockFlowData::new(info)),
-            Flow_Float       => FloatFlow(@mut FloatFlowData::new(info)),
-            Flow_InlineBlock => InlineBlockFlow(@mut info),
-            Flow_Inline      => InlineFlow(@mut InlineFlowData::new(info)),
-            Flow_Root        => BlockFlow(@mut BlockFlowData::new_root(info)),
-            Flow_Table       => TableFlow(@mut info),
+            Flow_Absolute       => AbsoluteFlow(@mut info),
+            Flow_Block          => BlockFlow(@mut BlockFlowData::new(info)),
+            Flow_Float(f_type)  => FloatFlow(@mut FloatFlowData::new(info, f_type)),
+            Flow_InlineBlock    => InlineBlockFlow(@mut info),
+            Flow_Inline         => InlineFlow(@mut InlineFlowData::new(info)),
+            Flow_Root           => BlockFlow(@mut BlockFlowData::new_root(info)),
+            Flow_Table          => TableFlow(@mut info),
         };
         debug!("LayoutTreeBuilder: created flow: %s", result.debug_str());
         result

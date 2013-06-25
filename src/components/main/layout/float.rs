@@ -8,7 +8,7 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::display_list_builder::{FlowDisplayListBuilderMethods};
 use layout::flow::{FloatFlow, FlowData};
 use layout::model::{MaybeAuto};
-use layout::float_context::{FloatContext, PlacementInfo, FloatLeft};
+use layout::float_context::{FloatContext, PlacementInfo, FloatLeft, FloatType};
 
 use std::cell::Cell;
 use geom::point::Point2D;
@@ -27,8 +27,11 @@ pub struct FloatFlowData {
 
     containing_width: Au,
 
-    /// Parent clobbers our position, so store it separately
+    /// Offset relative to where the parent tried to position this flow
     rel_pos: Point2D<Au>,
+
+    /// Left or right?
+    float_type: FloatType,
 
     /// Index into the box list for inline floats
     index: Option<uint>,
@@ -36,12 +39,13 @@ pub struct FloatFlowData {
 }
 
 impl FloatFlowData {
-    pub fn new(common: FlowData) -> FloatFlowData {
+    pub fn new(common: FlowData, float_type: FloatType) -> FloatFlowData {
         FloatFlowData {
             common: common,
             containing_width: Au(0),
             box: None,
             index: None,
+            float_type: float_type,
             rel_pos: Point2D(Au(0), Au(0)),
         }
     }
@@ -210,7 +214,7 @@ impl FloatFlowData {
             height: height,
             ceiling: Au(0),
             max_width: self.containing_width,
-            f_type: FloatLeft,
+            f_type: self.float_type,
         };
 
         // Place the float and return the FloatContext back to the parent flow.

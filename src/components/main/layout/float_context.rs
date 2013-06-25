@@ -225,6 +225,7 @@ impl FloatContextBase{
             f_type: info.f_type
         };
         self.float_data[self.floats_used] = Some(new_float);
+        self.max_y = max(self.max_y, new_float.bounds.origin.y);
         self.floats_used += 1;
     }
 
@@ -240,16 +241,26 @@ impl FloatContextBase{
             let maybe_location = self.available_rect(float_y, info.height, info.max_width);
             debug!("place_float: Got available rect: %? for y-pos: %?", maybe_location, float_y);
             match maybe_location {
+
                 // If there are no floats blocking us, return the current location
                 // TODO(eatknson): integrate with overflow
-                None => return Point2D(Au(0), float_y),
+                None => return match info.f_type { 
+                    FloatLeft => Point2D(Au(0), float_y),
+                    FloatRight => Point2D(info.max_width - info.width, float_y)
+                },
+
                 Some(rect) => {
                     assert!(rect.origin.y + rect.size.height != float_y, 
                             "Non-terminating float placement");
                     
                     // Place here if there is enough room
                     if (rect.size.width >= info.width) {
-                        return Point2D(rect.origin.x, float_y);
+                        return match info.f_type {
+                            FloatLeft => Point2D(rect.origin.x, float_y),
+                            FloatRight => {
+                                Point2D(rect.origin.x + rect.size.width - info.width, float_y)
+                            }
+                        };
                     }
 
                     // Try to place at the next-lowest location.
