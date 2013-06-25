@@ -10,9 +10,13 @@ use dom::node::{AbstractNode, Text, Comment, Doctype, TextNodeTypeId, CommentNod
 use dom::node::{DoctypeNodeTypeId, ScriptView};
 
 use js::jsapi::{JSFreeOp, JSObject, JSContext};
-use js::jsapi::bindgen::{JS_SetReservedSlot};
-use js::glue::bindgen::{RUST_PRIVATE_TO_JSVAL};
+use js::jsapi::{JS_SetReservedSlot};
+use js::glue::{RUST_PRIVATE_TO_JSVAL};
 use js::rust::{Compartment, jsobj};
+
+use std::cast;
+use std::libc;
+use std::result;
 
 extern fn finalize_text(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("text finalize: %?!", obj as uint);
@@ -83,8 +87,10 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
     assert!(cache.get_wrapper().is_null());
     cache.set_wrapper(obj.ptr);
 
-    let raw_ptr = node.raw_object() as *libc::c_void;
-    JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT as u32, RUST_PRIVATE_TO_JSVAL(raw_ptr));
+    unsafe {
+        let raw_ptr = node.raw_object() as *libc::c_void;
+        JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT as u32, RUST_PRIVATE_TO_JSVAL(raw_ptr));
+    }
 
     return obj;
 }

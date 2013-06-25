@@ -15,9 +15,9 @@ use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
 use layout::flow::FlowContext;
 
-use core::cast::transmute;
-use core::cell::Cell;
-use core::comm::{Chan, Port};
+use std::cast::transmute;
+use std::cell::Cell;
+use std::comm::{Chan, Port};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -43,7 +43,7 @@ use servo_net::local_image_cache::LocalImageCache;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
 use servo_util::time::{ProfilerChan, profile, time};
 use servo_util::time;
-use std::net::url::Url;
+use extra::net::url::Url;
 
 pub fn create_layout_task(port: Port<Msg>,
                           script_chan: ScriptChan,
@@ -51,7 +51,7 @@ pub fn create_layout_task(port: Port<Msg>,
                           img_cache_task: ImageCacheTask,
                           opts: Opts,
                           profiler_chan: ProfilerChan) {
-    let port = Cell(port);
+    let port = Cell::new(port);
     do spawn {
         let mut layout = Layout::new(port.take(),
                                      script_chan.clone(),
@@ -129,14 +129,14 @@ impl Layout {
         match self.port.recv() {
             AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet),
             ReflowMsg(data) => {
-                let data = Cell(data);
+                let data = Cell::new(data);
 
                 do profile(time::LayoutPerformCategory, self.profiler_chan.clone()) {
                     self.handle_reflow(data.take());
                 }
             }
             QueryMsg(query, chan) => {
-                let chan = Cell(chan);
+                let chan = Cell::new(chan);
                 do profile(time::LayoutQueryCategory, self.profiler_chan.clone()) {
                     self.handle_query(query, chan.take());
                 }
@@ -154,7 +154,7 @@ impl Layout {
     }
 
     fn handle_add_stylesheet(&self, sheet: Stylesheet) {
-        let sheet = Cell(sheet);
+        let sheet = Cell::new(sheet);
         self.css_select_ctx.append_sheet(sheet.take(), OriginAuthor);
     }
 
@@ -237,7 +237,7 @@ impl Layout {
                     ctx: &layout_ctx,
                 };
 
-                let display_list = @Cell(DisplayList::new());
+                let display_list = @Cell::new(DisplayList::new());
 
                 // TODO: Set options on the builder before building.
                 // TODO: Be smarter about what needs painting.
@@ -346,7 +346,7 @@ impl Layout {
                             ctx: &layout_ctx,
                         };
                         let display_list: @Cell<DisplayList<RenderBox>> =
-                            @Cell(DisplayList::new());
+                            @Cell::new(DisplayList::new());
                         flow.build_display_list(&builder,
                                                 &flow.position(),
                                                 display_list);
@@ -355,7 +355,7 @@ impl Layout {
                         let mut resp = Err(());
                         let display_list = &display_list.take().list;
                         // iterate in reverse to ensure we have the most recently painted render box
-                        for display_list.each_reverse |display_item| {
+                        for display_list.rev_iter().advance |display_item| {
                             let bounds = display_item.bounds();
                             // TODO this check should really be performed by a method of DisplayItem
                             if x <= bounds.origin.x + bounds.size.width &&

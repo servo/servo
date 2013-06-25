@@ -11,10 +11,11 @@ use layout::flow::FlowContext;
 use layout::model::{BoxModel, MaybeAuto};
 use layout::text;
 
-use core::cell::Cell;
-use core::cmp::ApproxEq;
-use core::managed;
-use core::num::Zero;
+use std::cell::Cell;
+use std::cmp::ApproxEq;
+use std::managed;
+use std::num::Zero;
+use std::uint;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
 use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass};
@@ -35,7 +36,7 @@ use script::dom::node::{AbstractNode, LayoutView};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::range::*;
-use std::net::url::Url;
+use extra::net::url::Url;
 
 /// Render boxes (`struct RenderBox`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, render boxes do not have a simple correspondence with CSS boxes as in
@@ -178,10 +179,10 @@ impl RenderBoxBase {
     }
 }
 
-pub impl RenderBox {
+impl RenderBox {
     /// Borrows this render box immutably in order to work with its common data.
     #[inline(always)]
-    fn with_base<R>(&self, callback: &fn(&RenderBoxBase) -> R) -> R {
+    pub fn with_base<R>(&self, callback: &fn(&RenderBoxBase) -> R) -> R {
         match *self {
             GenericRenderBoxClass(generic_box) => callback(generic_box),
             ImageRenderBoxClass(image_box) => {
@@ -198,7 +199,7 @@ pub impl RenderBox {
 
     /// Borrows this render box mutably in order to work with its common data.
     #[inline(always)]
-    fn with_mut_base<R>(&self, callback: &fn(&mut RenderBoxBase) -> R) -> R {
+    pub fn with_mut_base<R>(&self, callback: &fn(&mut RenderBoxBase) -> R) -> R {
         match *self {
             GenericRenderBoxClass(generic_box) => callback(generic_box),
             ImageRenderBoxClass(image_box) => {
@@ -214,14 +215,14 @@ pub impl RenderBox {
     }
 
     /// A convenience function to return the position of this box.
-    fn position(&self) -> Rect<Au> {
+    pub fn position(&self) -> Rect<Au> {
         do self.with_base |base| {
             base.position
         }
     }
 
     /// A convenience function to return the debugging ID of this box.
-    fn id(&self) -> int {
+    pub fn id(&self) -> int {
         do self.with_mut_base |base| {
             base.id
         }
@@ -229,7 +230,7 @@ pub impl RenderBox {
 
     /// Returns true if this element is replaced content. This is true for images, form elements,
     /// and so on.
-    fn is_replaced(&self) -> bool {
+    pub fn is_replaced(&self) -> bool {
         match *self {
             ImageRenderBoxClass(*) => true,
             _ => false
@@ -237,7 +238,7 @@ pub impl RenderBox {
     }
 
     /// Returns true if this element can be split. This is true for text boxes.
-    fn can_split(&self) -> bool {
+    pub fn can_split(&self) -> bool {
         match *self {
             TextRenderBoxClass(*) => true,
             _ => false
@@ -245,7 +246,7 @@ pub impl RenderBox {
     }
 
     /// Returns true if this element is an unscanned text box that consists entirely of whitespace.
-    fn is_whitespace_only(&self) -> bool {
+    pub fn is_whitespace_only(&self) -> bool {
         match *self {
             UnscannedTextRenderBoxClass(unscanned_text_box) => {
                 unscanned_text_box.text.is_whitespace()
@@ -255,7 +256,7 @@ pub impl RenderBox {
     }
 
     /// Determines whether this box can merge with another render box.
-    fn can_merge_with_box(&self, other: RenderBox) -> bool {
+    pub fn can_merge_with_box(&self, other: RenderBox) -> bool {
         match (self, &other) {
             (&UnscannedTextRenderBoxClass(*), &UnscannedTextRenderBoxClass(*)) => {
                 self.font_style() == other.font_style() && self.text_decoration() == other.text_decoration()
@@ -269,7 +270,7 @@ pub impl RenderBox {
 
     /// Attempts to split this box so that its width is no more than `max_width`. Fails if this box
     /// is an unscanned text box.
-    fn split_to_width(&self, _: &LayoutContext, max_width: Au, starts_line: bool)
+    pub fn split_to_width(&self, _: &LayoutContext, max_width: Au, starts_line: bool)
                       -> SplitBoxResult {
         match *self {
             GenericRenderBoxClass(*) | ImageRenderBoxClass(*) => CannotSplit(*self),
@@ -400,7 +401,7 @@ pub impl RenderBox {
     }
 
     /// Returns the *minimum width* of this render box as defined by the CSS specification.
-    fn get_min_width(&self, _: &LayoutContext) -> Au {
+    pub fn get_min_width(&self, _: &LayoutContext) -> Au {
         // FIXME(pcwalton): I think we only need to calculate this if the damage says that CSS
         // needs to be restyled.
 
@@ -426,7 +427,7 @@ pub impl RenderBox {
     }
 
     /// Returns the *preferred width* of this render box as defined by the CSS specification.
-    fn get_pref_width(&self, _: &LayoutContext) -> Au {
+    pub fn get_pref_width(&self, _: &LayoutContext) -> Au {
         self.guess_width() + match *self {
             // TODO: This should account for the preferred width of the box element in isolation.
             // That includes borders, margins, and padding, but not child widths. The block
@@ -451,7 +452,7 @@ pub impl RenderBox {
                     let mut line_width: Au = Au(0);
                     for text_box.run.glyphs.iter_glyphs_for_char_range(line_range)
                             |_, glyph| {
-                        line_width += glyph.advance()
+                        line_width += glyph.advance_()
                     }
 
                     max_line_width = Au::max(max_line_width, line_width);
@@ -466,32 +467,32 @@ pub impl RenderBox {
 
     /// Returns the amount of left and right "fringe" used by this box. This is based on margins,
     /// borders, padding, and width.
-    fn get_used_width(&self) -> (Au, Au) {
+    pub fn get_used_width(&self) -> (Au, Au) {
         // TODO: This should actually do some computation! See CSS 2.1, Sections 10.3 and 10.4.
         (Au(0), Au(0))
     }
 
     /// Returns the amount of left and right "fringe" used by this box. This should be based on
     /// margins, borders, padding, and width.
-    fn get_used_height(&self) -> (Au, Au) {
+    pub fn get_used_height(&self) -> (Au, Au) {
         // TODO: This should actually do some computation! See CSS 2.1, Sections 10.5 and 10.6.
         (Au(0), Au(0))
     }
 
-    fn compute_padding(&self, cb_width: Au) {
+    pub fn compute_padding(&self, cb_width: Au) {
         do self.with_mut_base |base| {
             base.model.compute_padding(base.node.style(), cb_width);
         }
     }
 
-    fn get_noncontent_width(&self) -> Au {
+    pub fn get_noncontent_width(&self) -> Au {
         do self.with_base |base| {
             base.model.border.left + base.model.padding.left +
             base.model.border.right + base.model.padding.right
         }
     }
 
-    fn with_model<R>(&self, callback: &fn(&mut BoxModel) -> R) ->  R {
+    pub fn with_model<R>(&self, callback: &fn(&mut BoxModel) -> R) ->  R {
         do self.with_mut_base |base| {
             callback(&mut base.model)
         }
@@ -499,7 +500,7 @@ pub impl RenderBox {
 
     /// The box formed by the content edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
     /// the owning flow.
-    fn content_box(&self) -> Rect<Au> {
+    pub fn content_box(&self) -> Rect<Au> {
         do self.with_base |base| {
             let origin = Point2D(base.position.origin.x +
                                  base.model.border.left +
@@ -513,26 +514,26 @@ pub impl RenderBox {
 
     /// The box formed by the border edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
     /// the owning flow.
-    fn border_box(&self) -> Rect<Au> {
+    pub fn border_box(&self) -> Rect<Au> {
         // TODO: Actually compute the content box, padding, and border.
         self.content_box()
     }
 
     /// The box formed by the margin edge as defined in CSS 2.1 § 8.1. Coordinates are relative to
     /// the owning flow.
-    fn margin_box(&self) -> Rect<Au> {
+    pub fn margin_box(&self) -> Rect<Au> {
         // TODO: Actually compute the content_box, padding, border, and margin.
         self.content_box()
     }
 
     /// A convenience function to access the computed style of the DOM node that this render box
     /// represents.
-    fn style(&self) -> CompleteStyle {
+    pub fn style(&self) -> CompleteStyle {
         self.with_base(|base| base.node.style())
     }
 
     /// A convenience function to access the DOM node that this render box represents.
-    fn node(&self) -> AbstractNode<LayoutView> {
+    pub fn node(&self) -> AbstractNode<LayoutView> {
         self.with_base(|base| base.node)
     }
 
@@ -540,7 +541,7 @@ pub impl RenderBox {
     /// represents.
     ///
     /// If there is no ancestor-or-self `Element` node, fails.
-    fn nearest_ancestor_element(&self) -> AbstractNode<LayoutView> {
+    pub fn nearest_ancestor_element(&self) -> AbstractNode<LayoutView> {
         do self.with_base |base| {
             let mut node = base.node;
             while !node.is_element() {
@@ -571,7 +572,7 @@ pub impl RenderBox {
     /// representing the box's stacking context. When asked to construct its constituent display
     /// items, each box puts its display items into the correct stack layer according to CSS 2.1
     /// Appendix E. Finally, the builder flattens the list.
-    fn build_display_list<E:ExtraDisplayListData>(&self,
+    pub fn build_display_list<E:ExtraDisplayListData>(&self,
                                                   _: &DisplayListBuilder,
                                                   dirty: &Rect<Au>,
                                                   offset: &Point2D<Au>,
@@ -715,7 +716,7 @@ pub impl RenderBox {
 
     /// Adds the display items necessary to paint the background of this render box to the display
     /// list if necessary.
-    fn paint_background_if_applicable<E:ExtraDisplayListData>(&self,
+    pub fn paint_background_if_applicable<E:ExtraDisplayListData>(&self,
                                                               list: &Cell<DisplayList<E>>,
                                                               absolute_bounds: &Rect<Au>) {
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
@@ -741,7 +742,7 @@ pub impl RenderBox {
     }
 
     /// Converts this node's computed style to a font style used for rendering.
-    fn font_style(&self) -> FontStyle {
+    pub fn font_style(&self) -> FontStyle {
         let my_style = self.nearest_ancestor_element().style();
 
         debug!("(font style) start: %?", self.nearest_ancestor_element().type_id());
@@ -757,7 +758,7 @@ pub impl RenderBox {
                 CSSFontFamilyGenericFamily(Monospace)   => ~"monospace",
             }
         };
-        let font_families = str::connect(font_families, ~", ");
+        let font_families = font_families.connect(", ");
         debug!("(font style) font families: `%s`", font_families);
 
         let font_size = match my_style.font_size() {
@@ -786,7 +787,7 @@ pub impl RenderBox {
 
     /// Returns the text alignment of the computed style of the nearest ancestor-or-self `Element`
     /// node.
-    fn text_align(&self) -> CSSTextAlign {
+    pub fn text_align(&self) -> CSSTextAlign {
         self.nearest_ancestor_element().style().text_align()
     }
 
@@ -795,7 +796,7 @@ pub impl RenderBox {
     }
 
     /// Returns the text decoration of the computed style of the nearest `Element` node
-    fn text_decoration(&self) -> CSSTextDecoration {
+    pub fn text_decoration(&self) -> CSSTextDecoration {
         /// Computes the propagated value of text-decoration, as specified in CSS 2.1 § 16.3.1
         /// TODO: make sure this works with anonymous box generation.
         fn get_propagated_text_decoration(element: AbstractNode<LayoutView>) -> CSSTextDecoration {
@@ -856,9 +857,10 @@ pub impl RenderBox {
             GenericRenderBoxClass(*) => ~"GenericRenderBox",
             ImageRenderBoxClass(*) => ~"ImageRenderBox",
             TextRenderBoxClass(text_box) => {
-                fmt!("TextRenderBox(text=%s)", str::substr(text_box.run.text,
-                                                           text_box.range.begin(),
-                                                           text_box.range.length()))
+                fmt!("TextRenderBox(text=%s)",
+                     text_box.run.text.slice(
+                         text_box.range.begin(),
+                         text_box.range.begin() + text_box.range.length()))
             }
             UnscannedTextRenderBoxClass(text_box) => {
                 fmt!("UnscannedTextRenderBox(%s)", text_box.text)

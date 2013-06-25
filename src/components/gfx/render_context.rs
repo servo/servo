@@ -10,13 +10,12 @@ use opts::Opts;
 use azure::azure_hl::{B8G8R8A8, Color, ColorPattern, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, Linear, StrokeOptions};
 use azure::AzFloat;
-use core::libc::types::common::c99::uint16_t;
+use std::libc::types::common::c99::uint16_t;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use servo_net::image::base::Image;
-use std::arc;
-use std::arc::ARC;
+use extra::arc::ARC;
 
 pub struct RenderContext<'self> {
     canvas: &'self LayerBuffer,
@@ -24,7 +23,7 @@ pub struct RenderContext<'self> {
     opts: &'self Opts
 }
 
-pub impl<'self> RenderContext<'self>  {
+impl<'self> RenderContext<'self>  {
     pub fn get_draw_target(&self) -> &'self DrawTarget {
         &self.canvas.draw_target
     }
@@ -52,7 +51,7 @@ pub impl<'self> RenderContext<'self>  {
     }
 
     pub fn draw_image(&self, bounds: Rect<Au>, image: ARC<~Image>) {
-        let image = arc::get(&image);
+        let image = image.get();
         let size = Size2D(image.width as i32, image.height as i32);
         let stride = image.width * 4;
 
@@ -72,7 +71,7 @@ pub impl<'self> RenderContext<'self>  {
                                      draw_options);
     }
 
-    fn clear(&self) {
+    pub fn clear(&self) {
         let pattern = ColorPattern(Color(1.0, 1.0, 1.0, 1.0));
         let rect = Rect(Point2D(self.canvas.rect.origin.x as AzFloat,
                                 self.canvas.rect.origin.y as AzFloat),
@@ -84,12 +83,12 @@ pub impl<'self> RenderContext<'self>  {
 }
 
 trait to_float {
-    fn to_float(self) -> float;
+    fn to_float(&self) -> float;
 }
 
 impl to_float for u8 {
-    fn to_float(self) -> float {
-        (self as float) / 255f
+    fn to_float(&self) -> float {
+        (*self as float) / 255f
     }
 }
 

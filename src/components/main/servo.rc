@@ -27,7 +27,7 @@ extern mod servo_msg (name = "msg");
 extern mod servo_util (name = "util");
 extern mod sharegl;
 extern mod stb_image;
-extern mod std;
+extern mod extra;
 
 #[cfg(target_os="macos")]
 extern mod core_graphics;
@@ -42,11 +42,13 @@ use gfx::opts;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::time::{Profiler, ProfilerChan, PrintMsg};
-use std::uv_global_loop;
+use extra::uv_global_loop;
 
 pub use gfx::opts::Opts;
 pub use gfx::text;
 pub use servo_util::url::make_url;
+use std::comm;
+use std::os;
 
 #[path="compositing/mod.rs"]
 pub mod compositing;
@@ -102,7 +104,7 @@ fn run(opts: &Opts) {
         let period = *period;
         do spawn {
             loop {
-                std::timer::sleep(&uv_global_loop::get(),
+                extra::timer::sleep(&uv_global_loop::get(),
                                   (period * 1000f64) as uint);
                 profiler_chan.send(PrintMsg);
             }

@@ -8,7 +8,9 @@ use dom::bindings::utils::{BindingObject, DerivedWrapper};
 use dom::domparser::DOMParser;
 
 use js::jsapi::{JSContext, JSObject, JSVal};
-use js::glue::bindgen::{RUST_OBJECT_TO_JSVAL};
+use js::glue::{RUST_OBJECT_TO_JSVAL};
+
+use std::cast;
 
 impl CacheableWrapper for DOMParser {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {

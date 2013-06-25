@@ -6,8 +6,9 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 
-use core::num::{NumCast, One, Zero};
+use std::num::{NumCast, One, Zero};
 
+#[deriving(Clone)]
 pub struct Au(i32);
 
 impl Add<Au,Au> for Au {
@@ -34,14 +35,14 @@ impl Neg<Au> for Au {
     fn neg(&self) -> Au { Au(-**self) }
 }
 
-impl cmp::Ord for Au {
+impl Ord for Au {
     fn lt(&self, other: &Au) -> bool { **self <  **other }
     fn le(&self, other: &Au) -> bool { **self <= **other }
     fn ge(&self, other: &Au) -> bool { **self >= **other }
     fn gt(&self, other: &Au) -> bool { **self >  **other }
 }
 
-impl cmp::Eq for Au {
+impl Eq for Au {
     fn eq(&self, other: &Au) -> bool { **self == **other }
     fn ne(&self, other: &Au) -> bool { **self != **other }
 }
@@ -80,11 +81,11 @@ impl NumCast for Au {
     fn to_float(&self) -> float { (**self).to_float() }
 }
 
-pub fn box<T:Copy + Ord + Add<T,T> + Sub<T,T>>(x: T, y: T, w: T, h: T) -> Rect<T> {
+pub fn box<T:Clone + Ord + Add<T,T> + Sub<T,T>>(x: T, y: T, w: T, h: T) -> Rect<T> {
     Rect(Point2D(x, y), Size2D(w, h))
 }
 
-pub impl Au {
+impl Au {
     pub fn scale_by(self, factor: float) -> Au {
         Au(((*self as float) * factor) as i32)
     }

@@ -12,7 +12,7 @@ extern mod azure;
 extern mod geom;
 extern mod http_client;
 extern mod stb_image;
-extern mod std;
+extern mod extra;
 extern mod servo_net (name = "net");
 extern mod servo_util (name = "util");
 extern mod servo_msg (name = "msg");

@@ -4,8 +4,8 @@
 
 use resource_task::{Done, LoaderTask, Payload};
 
-use core::io::{ReaderUtil, file_reader};
-use core::task;
+use std::io::{ReaderUtil, file_reader};
+use std::task;
 
 static READ_SIZE: uint = 1024;
 

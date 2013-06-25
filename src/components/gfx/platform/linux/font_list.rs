@@ -9,7 +9,7 @@ use fontconfig::fontconfig::{
     FcChar8, FcResultMatch, FcSetSystem, FcPattern,
     FcResultNoMatch, FcMatchPattern, FC_SLANT_ITALIC, FC_WEIGHT_BOLD
 };
-use fontconfig::fontconfig::bindgen::{
+use fontconfig::fontconfig::{
     FcConfigGetCurrent, FcConfigGetFonts, FcPatternGetString,
     FcPatternDestroy, FcFontSetDestroy, FcConfigSubstitute,
     FcDefaultSubstitute, FcPatternCreate, FcPatternAddString, FcPatternAddInteger,
@@ -24,20 +24,23 @@ use font_list::{FontEntry, FontFamily, FontFamilyMap};
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 
-use core::hashmap::HashMap;
-use core::libc::c_int;
-use core::ptr::Ptr;
+use std::hashmap::HashMap;
+use std::libc;
+use std::libc::c_int;
+use std::ptr;
+use std::str;
+use std::uint;
 
 pub struct FontListHandle {
     fctx: FontContextHandle,
 }
 
-pub impl FontListHandle {
+impl FontListHandle {
     pub fn new(fctx: &FontContextHandle) -> FontListHandle {
         FontListHandle { fctx: fctx.clone() }
     }
 
-    fn get_available_families(&self) -> FontFamilyMap {
+    pub fn get_available_families(&self) -> FontFamilyMap {
         let mut family_map : FontFamilyMap = HashMap::new();
         unsafe {
             let config = FcConfigGetCurrent();
@@ -60,12 +63,12 @@ pub impl FontListHandle {
         return family_map;
     }
 
-    fn load_variations_for_family(&self, family: @mut FontFamily) {
+    pub fn load_variations_for_family(&self, family: @mut FontFamily) {
         debug!("getting variations for %?", family);
-        let config = FcConfigGetCurrent();
-        let font_set = FcConfigGetFonts(config, FcSetSystem);
-        let font_set_array_ptr = ptr::to_unsafe_ptr(&font_set);
         unsafe {
+            let config = FcConfigGetCurrent();
+            let font_set = FcConfigGetFonts(config, FcSetSystem);
+            let font_set_array_ptr = ptr::to_unsafe_ptr(&font_set);
             let pattern = FcPatternCreate();
             assert!(pattern.is_not_null());
             do str::as_c_str("family") |FC_FAMILY| {
@@ -126,7 +129,7 @@ pub impl FontListHandle {
         }
     }
 
-    fn get_last_resort_font_families() -> ~[~str] {
+    pub fn get_last_resort_font_families() -> ~[~str] {
         ~[~"Arial"]
     }
 }
@@ -137,7 +140,9 @@ struct AutoPattern {
 
 impl Drop for AutoPattern {
     fn finalize(&self) {
-        FcPatternDestroy(self.pattern);
+        unsafe {
+            FcPatternDestroy(self.pattern);
+        }
     }
 }
 

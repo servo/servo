@@ -11,16 +11,17 @@ multiple times and thus triggering reflows multiple times.
 use image_cache_task::{Decode, GetImage, ImageCacheTask, ImageFailed, ImageNotReady, ImageReady};
 use image_cache_task::{ImageResponseMsg, Prefetch, WaitForImage};
 
-use clone_arc = std::arc::clone;
-use core::comm::Port;
+use std::comm;
+use std::comm::Port;
+use std::task;
 use servo_util::url::{UrlMap, url_map};
-use std::net::url::Url;
+use extra::net::url::Url;
 
 pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
     LocalImageCache {
         image_cache_task: image_cache_task,
         round_number: 1,
-        mut on_image_available: None,
+        on_image_available: None,
         state_map: url_map()
     }
 }
@@ -40,7 +41,7 @@ priv struct ImageState {
 }
 
 #[allow(non_implicitly_copyable_typarams)] // Using maps of Urls
-pub impl LocalImageCache {
+impl LocalImageCache {
     /// The local cache will only do a single remote request for a given
     /// URL in each 'round'. Layout should call this each time it begins
     pub fn next_round(&mut self, on_image_available: @fn() -> ~fn(ImageResponseMsg)) {
@@ -76,7 +77,7 @@ pub impl LocalImageCache {
         match state.last_response {
             ImageReady(ref image) => {
                 let (port, chan) = comm::stream();
-                chan.send(ImageReady(clone_arc(image)));
+                chan.send(ImageReady(image.clone()));
                 return port;
             }
             ImageNotReady => {
@@ -122,7 +123,7 @@ pub impl LocalImageCache {
 
         // Put a copy of the response in the cache
         let response_copy = match response {
-            ImageReady(ref image) => ImageReady(clone_arc(image)),
+            ImageReady(ref image) => ImageReady(image.clone()),
             ImageNotReady => ImageNotReady,
             ImageFailed => ImageFailed
         };

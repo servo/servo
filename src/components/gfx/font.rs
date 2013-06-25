@@ -9,6 +9,11 @@ use platform::font_context::FontContextHandle;
 use platform::font::{FontHandle, FontTable};
 use render_context::RenderContext;
 use servo_util::range::Range;
+use std::cast;
+use std::result;
+use std::ptr;
+use std::str;
+use std::vec;
 use text::glyph::{GlyphStore, GlyphIndex};
 use text::shaping::ShaperMethods;
 use text::{Shaper, TextRun};
@@ -94,7 +99,7 @@ pub enum CSSFontWeight {
     FontWeight900,
 }
 
-pub impl CSSFontWeight {
+impl CSSFontWeight {
     pub fn is_bold(self) -> bool {
         match self {
             FontWeight900 | FontWeight800 | FontWeight700 | FontWeight600 => true,
@@ -140,8 +145,8 @@ pub struct FontDescriptor {
     selector: FontSelector,
 }
 
-pub impl FontDescriptor {
-    fn new(style: UsedFontStyle, selector: FontSelector) -> FontDescriptor {
+impl FontDescriptor {
+    pub fn new(style: UsedFontStyle, selector: FontSelector) -> FontDescriptor {
         FontDescriptor {
             style: style,
             selector: selector,
@@ -170,8 +175,8 @@ pub struct FontGroup {
     fonts: ~[@mut Font],
 }
 
-pub impl FontGroup {
-    fn new(families: @str, style: &UsedFontStyle, fonts: ~[@mut Font]) -> FontGroup {
+impl FontGroup {
+    pub fn new(families: @str, style: &UsedFontStyle, fonts: ~[@mut Font]) -> FontGroup {
         FontGroup {
             families: families,
             style: copy *style,
@@ -179,11 +184,11 @@ pub impl FontGroup {
         }
     }
 
-    fn teardown(&mut self) {
+    pub fn teardown(&mut self) {
         self.fonts = ~[];
     }
 
-    fn create_textrun(&self, text: ~str, underline: bool) -> TextRun {
+    pub fn create_textrun(&self, text: ~str, underline: bool) -> TextRun {
         assert!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
@@ -215,8 +220,8 @@ pub struct Font {
     profiler_chan: ProfilerChan,
 }
 
-pub impl Font {
-    fn new_from_buffer(ctx: &FontContext,
+impl Font {
+    pub fn new_from_buffer(ctx: &FontContext,
                        buffer: ~[u8],
                        style: &SpecifiedFontStyle,
                        backend: BackendType,
@@ -243,7 +248,7 @@ pub impl Font {
         });
     }
 
-    fn new_from_adopted_handle(_fctx: &FontContext, handle: FontHandle,
+    pub fn new_from_adopted_handle(_fctx: &FontContext, handle: FontHandle,
                                style: &SpecifiedFontStyle, backend: BackendType,
                                profiler_chan: ProfilerChan) -> @mut Font {
         let metrics = handle.get_metrics();
@@ -259,7 +264,7 @@ pub impl Font {
         }
     }
 
-    fn new_from_existing_handle(fctx: &FontContext, handle: &FontHandle,
+    pub fn new_from_existing_handle(fctx: &FontContext, handle: &FontHandle,
                                 style: &SpecifiedFontStyle, backend: BackendType,
                                 profiler_chan: ProfilerChan) -> Result<@mut Font,()> {
 
@@ -284,7 +289,7 @@ pub impl Font {
         shaper
     }
 
-    fn get_table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
+    pub fn get_table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let result = self.handle.get_table_for_tag(tag);
         let status = if result.is_some() { "Found" } else { "Didn't find" };
 
@@ -295,7 +300,7 @@ pub impl Font {
         return result;
     }
 
-    fn teardown(&mut self) {
+    pub fn teardown(&mut self) {
         self.shaper = None;
         self.azure_font = None;
     }
@@ -332,19 +337,19 @@ pub impl Font {
 }
 
 
-pub impl Font {
-    fn draw_text_into_context(&mut self,
+impl Font {
+    pub fn draw_text_into_context(&mut self,
                               rctx: &RenderContext,
                               run: &TextRun,
                               range: &Range,
                               baseline_origin: Point2D<Au>,
                               color: Color) {
-        use core::libc::types::common::c99::{uint16_t, uint32_t};
+        use std::libc::types::common::c99::{uint16_t, uint32_t};
         use azure::{struct__AzDrawOptions,
                     struct__AzGlyph,
                     struct__AzGlyphBuffer,
                     struct__AzPoint};
-        use azure::azure::bindgen::{AzDrawTargetFillGlyphs};
+        use azure::azure::{AzDrawTargetFillGlyphs};
 
         let target = rctx.get_draw_target();
         let azfontref = self.get_azure_font();
@@ -362,7 +367,7 @@ pub impl Font {
         vec::reserve(&mut azglyphs, range.length());
 
         for run.glyphs.iter_glyphs_for_char_range(range) |_i, glyph| {
-            let glyph_advance = glyph.advance();
+            let glyph_advance = glyph.advance_();
             let glyph_offset = glyph.offset().get_or_default(Au::zero_point());
 
             let azglyph = struct__AzGlyph {
@@ -379,28 +384,28 @@ pub impl Font {
         let azglyph_buf_len = azglyphs.len();
         if azglyph_buf_len == 0 { return; } // Otherwise the Quartz backend will assert.
 
-        let glyphbuf = unsafe {
-            struct__AzGlyphBuffer {
-                mGlyphs: vec::raw::to_ptr(azglyphs),
-                mNumGlyphs: azglyph_buf_len as uint32_t            
-            }
+        let glyphbuf = struct__AzGlyphBuffer {
+            mGlyphs: vec::raw::to_ptr(azglyphs),
+            mNumGlyphs: azglyph_buf_len as uint32_t            
         };
 
-        // TODO(Issue #64): this call needs to move into azure_hl.rs
-        AzDrawTargetFillGlyphs(target.azure_draw_target,
-                               azfontref,
-                               ptr::to_unsafe_ptr(&glyphbuf),
-                               azure_pattern,
-                               ptr::to_unsafe_ptr(&options),
-                               ptr::null());
+        unsafe {
+            // TODO(Issue #64): this call needs to move into azure_hl.rs
+            AzDrawTargetFillGlyphs(target.azure_draw_target,
+                                   azfontref,
+                                   ptr::to_unsafe_ptr(&glyphbuf),
+                                   azure_pattern,
+                                   ptr::to_unsafe_ptr(&options),
+                                   ptr::null());
+        }
     }
 
-    fn measure_text(&self, run: &TextRun, range: &Range) -> RunMetrics {
+    pub fn measure_text(&self, run: &TextRun, range: &Range) -> RunMetrics {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
         for run.glyphs.iter_glyphs_for_char_range(range) |_i, glyph| {
-            advance += glyph.advance();
+            advance += glyph.advance_();
         }
         let bounds = Rect(Point2D(Au(0), -self.metrics.ascent),
                           Size2D(advance, self.metrics.ascent + self.metrics.descent));
@@ -417,22 +422,22 @@ pub impl Font {
         }
     }
 
-    fn shape_text(@mut self, text: &str, store: &mut GlyphStore) {
+    pub fn shape_text(@mut self, text: &str, store: &mut GlyphStore) {
         // TODO(Issue #229): use a more efficient strategy for repetitive shaping.
         // For example, Gecko uses a per-"word" hashtable of shaper results.
         let shaper = self.get_shaper();
         shaper.shape_text(text, store);
     }
 
-    fn get_descriptor(&self) -> FontDescriptor {
+    pub fn get_descriptor(&self) -> FontDescriptor {
         FontDescriptor::new(copy self.style, SelectorPlatformIdentifier(self.handle.face_identifier()))
     }
 
-    fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex> {
+    pub fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex> {
         self.handle.glyph_index(codepoint)
     }
 
-    fn glyph_h_advance(&self, glyph: GlyphIndex) -> FractionalPixel {
+    pub fn glyph_h_advance(&self, glyph: GlyphIndex) -> FractionalPixel {
         match self.handle.glyph_h_advance(glyph) {
           Some(adv) => adv,
           None => /* FIXME: Need fallback strategy */ 10f as FractionalPixel

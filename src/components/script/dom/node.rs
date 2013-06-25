@@ -14,8 +14,10 @@ use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTyp
 use dom::element::{HTMLStyleElementTypeId};
 use script_task::global_script_context;
 
-use core::cast::transmute;
-use core::libc::c_void;
+use std::cast;
+use std::cast::transmute;
+use std::libc::c_void;
+use std::uint;
 use js::rust::Compartment;
 use netsurfcss::util::VoidPtrLike;
 use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};

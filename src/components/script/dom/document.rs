@@ -9,7 +9,7 @@ use dom::node::{AbstractNode, ScriptView};
 use dom::window::Window;
 use script_task::global_script_context;
 
-use js::jsapi::bindgen::{JS_AddObjectRoot, JS_RemoveObjectRoot};
+use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot};
 use servo_util::tree::{TreeNodeRef, TreeUtils};
 
 pub struct Document {
@@ -19,23 +19,25 @@ pub struct Document {
 }
 
 pub fn Document(root: AbstractNode<ScriptView>, window: Option<@mut Window>) -> @mut Document {
-    let doc = @mut Document {
-        root: root,
-        wrapper: WrapperCache::new(),
-        window: window
-    };
-    let compartment = global_script_context().js_compartment;
-    do root.with_base |base| {
-        assert!(base.wrapper.get_wrapper().is_not_null());
-        let rootable = base.wrapper.get_rootable();
-        JS_AddObjectRoot(compartment.cx.ptr, rootable);
+    unsafe {
+        let doc = @mut Document {
+            root: root,
+            wrapper: WrapperCache::new(),
+            window: window
+        };
+        let compartment = global_script_context().js_compartment;
+        do root.with_base |base| {
+            assert!(base.wrapper.get_wrapper().is_not_null());
+            let rootable = base.wrapper.get_rootable();
+            JS_AddObjectRoot(compartment.cx.ptr, rootable);
+        }
+        document::create(compartment, doc);
+        doc
     }
-    document::create(compartment, doc);
-    doc
 }
 
-pub impl Document {
-    fn getElementsByTagName(&self, tag: DOMString) -> Option<@mut HTMLCollection> {
+impl Document {
+    pub fn getElementsByTagName(&self, tag: DOMString) -> Option<@mut HTMLCollection> {
         let mut elements = ~[];
         let tag = tag.to_str();
         let _ = for self.root.traverse_preorder |child| {
@@ -50,18 +52,20 @@ pub impl Document {
         Some(HTMLCollection::new(elements))
     }
 
-    fn content_changed(&self) {
-        for self.window.each |window| {
+    pub fn content_changed(&self) {
+        for self.window.iter().advance |window| {
             window.content_changed()
         }
     }
 
-    fn teardown(&self) {
-        let compartment = global_script_context().js_compartment;
-        do self.root.with_base |node| {
-            assert!(node.wrapper.get_wrapper().is_not_null());
-            let rootable = node.wrapper.get_rootable();
-            JS_RemoveObjectRoot(compartment.cx.ptr, rootable);
+    pub fn teardown(&self) {
+        unsafe {
+            let compartment = global_script_context().js_compartment;
+            do self.root.with_base |node| {
+                assert!(node.wrapper.get_wrapper().is_not_null());
+                let rootable = node.wrapper.get_rootable();
+                JS_RemoveObjectRoot(compartment.cx.ptr, rootable);
+            }
         }
     }
 }

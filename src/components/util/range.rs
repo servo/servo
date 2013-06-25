@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::uint;
+
 enum RangeRelation {
     OverlapsBegin(/* overlap */ uint),
     OverlapsEnd(/* overlap */ uint),
@@ -17,7 +19,7 @@ pub struct Range {
     priv len: uint
 }
 
-pub impl Range {
+impl Range {
     pub fn new(off: uint, len: uint) -> Range {
         Range { off: off, len: len }
     }
@@ -27,12 +29,12 @@ pub impl Range {
     }
 }
 
-pub impl Range {
-    fn begin(&self) -> uint { self.off  }
-    fn length(&self) -> uint { self.len }
-    fn end(&self) -> uint { self.off + self.len }
+impl Range {
+    pub fn begin(&self) -> uint { self.off  }
+    pub fn length(&self) -> uint { self.len }
+    pub fn end(&self) -> uint { self.off + self.len }
 
-    fn eachi(&self, callback: &fn(uint) -> bool) -> bool {
+    pub fn eachi(&self, callback: &fn(uint) -> bool) -> bool {
         for uint::range(self.off, self.off + self.len) |i| {
             if !callback(i) {
                 break
@@ -41,32 +43,32 @@ pub impl Range {
         true
     }
 
-    fn contains(&self, i: uint) -> bool {
+    pub fn contains(&self, i: uint) -> bool {
         i >= self.begin() && i < self.end()
     }
 
-    fn is_valid_for_string(&self, s: &str) -> bool {
+    pub fn is_valid_for_string(&self, s: &str) -> bool {
         self.begin() < s.len() && self.end() <= s.len() && self.length() <= s.len()
     }
 
-    fn shift_by(&mut self, i: int) { 
+    pub fn shift_by(&mut self, i: int) { 
         self.off = ((self.off as int) + i) as uint;
     }
 
-    fn extend_by(&mut self, i: int) { 
+    pub fn extend_by(&mut self, i: int) { 
         self.len = ((self.len as int) + i) as uint;
     }
 
-    fn extend_to(&mut self, i: uint) { 
+    pub fn extend_to(&mut self, i: uint) { 
         self.len = i - self.off;
     }
 
-    fn adjust_by(&mut self, off_i: int, len_i: int) {
+    pub fn adjust_by(&mut self, off_i: int, len_i: int) {
         self.off = ((self.off as int) + off_i) as uint;
         self.len = ((self.len as int) + len_i) as uint;
     }
 
-    fn reset(&mut self, off_i: uint, len_i: uint) {
+    pub fn reset(&mut self, off_i: uint, len_i: uint) {
         self.off = off_i;
         self.len = len_i;
     }
@@ -74,7 +76,7 @@ pub impl Range {
     /// Computes the relationship between two ranges (`self` and `other`),
     /// from the point of view of `self`. So, 'EntirelyBefore' means
     /// that the `self` range is entirely before `other` range.
-    fn relation_to_range(&self, other: &Range) -> RangeRelation {
+    pub fn relation_to_range(&self, other: &Range) -> RangeRelation {
         if other.begin() > self.end() {
             return EntirelyBefore;
         }
@@ -102,7 +104,7 @@ pub impl Range {
                   self, other));
     }
 
-    fn repair_after_coalesced_range(&mut self, other: &Range) {
+    pub fn repair_after_coalesced_range(&mut self, other: &Range) {
         let relation = self.relation_to_range(other);
         debug!("repair_after_coalesced_range: possibly repairing range %?", self);
         debug!("repair_after_coalesced_range: relation of original range and coalesced range(%?): %?",

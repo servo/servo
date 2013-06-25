@@ -6,20 +6,26 @@ use dom::bindings::node;
 use dom::node::{AbstractNode, ScriptView};
 use script_task::task_from_context;
 
-use core::cast;
-use core::hashmap::HashMap;
-use core::ptr::{null, to_unsafe_ptr};
-use js::glue::bindgen::*;
-use js::glue::bindgen::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
+use std::cast;
+use std::hashmap::HashMap;
+use std::libc;
+use std::ptr;
+use std::ptr::{null, to_unsafe_ptr};
+use std::result;
+use std::str;
+use std::sys;
+use std::uint;
+use js::glue::*;
+use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB, RESOLVE_STUB};
-use js::jsapi::bindgen::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction};
-use js::jsapi::bindgen::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
-use js::jsapi::bindgen::{JS_EncodeString, JS_free, JS_GetStringCharsAndLength};
-use js::jsapi::bindgen::{JS_GetClass, JS_GetPrototype, JS_LinkConstructorAndPrototype};
-use js::jsapi::bindgen::{JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject};
-use js::jsapi::bindgen::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
-use js::jsapi::bindgen::{JS_NewStringCopyN, JS_DefineFunctions, JS_DefineProperty};
-use js::jsapi::bindgen::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
+use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction};
+use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
+use js::jsapi::{JS_EncodeString, JS_free, JS_GetStringCharsAndLength};
+use js::jsapi::{JS_GetClass, JS_GetPrototype, JS_LinkConstructorAndPrototype};
+use js::jsapi::{JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject};
+use js::jsapi::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
+use js::jsapi::{JS_NewStringCopyN, JS_DefineFunctions, JS_DefineProperty};
+use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSNative};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
@@ -88,8 +94,8 @@ pub enum DOMString {
     null_string
 }
 
-pub impl DOMString {
-    fn to_str(&self) -> ~str {
+impl DOMString {
+    pub fn to_str(&self) -> ~str {
         match *self {
           str(ref s) => s.clone(),
           null_string => ~""
@@ -129,17 +135,17 @@ pub unsafe fn squirrel_away<T>(x: @mut T) -> *rust_box<T> {
 
 //XXX very incomplete
 pub fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
-    let jsstr;
-    if RUST_JSVAL_IS_STRING(v) == 1 {
-        jsstr = RUST_JSVAL_TO_STRING(v)
-    } else {
-        jsstr = JS_ValueToString(cx, v);
-        if jsstr.is_null() {
-            return Err(());
-        }
-    }
-
     unsafe {
+        let jsstr;
+        if RUST_JSVAL_IS_STRING(v) == 1 {
+            jsstr = RUST_JSVAL_TO_STRING(v)
+        } else {
+            jsstr = JS_ValueToString(cx, v);
+            if jsstr.is_null() {
+                return Err(());
+            }
+        }
+
         let strbuf = JS_EncodeString(cx, jsstr);
         let buf = str::raw::from_buf(strbuf as *u8);
         JS_free(cx, strbuf as *libc::c_void);
@@ -172,45 +178,49 @@ pub fn get_compartment(cx: *JSContext) -> @mut Compartment {
 
 extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *JSVal, bp: *mut JSBool) -> JSBool {
     //XXXjdm this is totally broken for non-object values
-    let mut o = RUST_JSVAL_TO_OBJECT(unsafe {*v});
-    let obj = unsafe {*obj};
-    unsafe { *bp = 0; }
-    while o.is_not_null() {
-        if o == obj {
-            unsafe { *bp = 1; }
-            break;
+    unsafe {
+        let mut o = RUST_JSVAL_TO_OBJECT(unsafe {*v});
+        let obj = unsafe {*obj};
+        unsafe { *bp = 0; }
+        while o.is_not_null() {
+            if o == obj {
+                unsafe { *bp = 1; }
+                break;
+            }
+            o = JS_GetPrototype(o);
         }
-        o = JS_GetPrototype(o);
+        return 1;
     }
-    return 1;
 }
 
 pub fn prototype_jsclass(name: ~str) -> @fn(compartment: @mut Compartment) -> JSClass {
     let f: @fn(@mut Compartment) -> JSClass = |compartment: @mut Compartment| {
-        JSClass {
-            name: compartment.add_name(copy name),
-            flags: 0,
-            addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-            delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-            getProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-            setProperty: GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
-            enumerate: GetJSClassHookStubPointer(ENUMERATE_STUB) as *u8,
-            resolve: GetJSClassHookStubPointer(RESOLVE_STUB) as *u8,
-            convert: GetJSClassHookStubPointer(CONVERT_STUB) as *u8,
-            finalize: null(),
-            checkAccess: null(),
-            call: null(),
-            hasInstance: has_instance,
-            construct: null(),
-            trace: null(),
-            reserved: (null(), null(), null(), null(), null(),  // 05
-                       null(), null(), null(), null(), null(),  // 10
-                       null(), null(), null(), null(), null(),  // 15
-                       null(), null(), null(), null(), null(),  // 20
-                       null(), null(), null(), null(), null(),  // 25
-                       null(), null(), null(), null(), null(),  // 30
-                       null(), null(), null(), null(), null(),  // 35
-                       null(), null(), null(), null(), null())  // 40
+        unsafe {
+            JSClass {
+                name: compartment.add_name(copy name),
+                flags: 0,
+                addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+                delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+                getProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+                setProperty: GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
+                enumerate: GetJSClassHookStubPointer(ENUMERATE_STUB) as *u8,
+                resolve: GetJSClassHookStubPointer(RESOLVE_STUB) as *u8,
+                convert: GetJSClassHookStubPointer(CONVERT_STUB) as *u8,
+                finalize: null(),
+                checkAccess: null(),
+                call: null(),
+                hasInstance: has_instance,
+                construct: null(),
+                trace: null(),
+                reserved: (null(), null(), null(), null(), null(),  // 05
+                           null(), null(), null(), null(), null(),  // 10
+                           null(), null(), null(), null(), null(),  // 15
+                           null(), null(), null(), null(), null(),  // 20
+                           null(), null(), null(), null(), null(),  // 25
+                           null(), null(), null(), null(), null(),  // 30
+                           null(), null(), null(), null(), null(),  // 35
+                           null(), null(), null(), null(), null())  // 40
+            }
         }
     };
     return f;
@@ -219,30 +229,32 @@ pub fn prototype_jsclass(name: ~str) -> @fn(compartment: @mut Compartment) -> JS
 pub fn instance_jsclass(name: ~str, finalize: *u8, trace: *u8)
                      -> @fn(compartment: @mut Compartment) -> JSClass {
     let f: @fn(@mut Compartment) -> JSClass = |compartment: @mut Compartment| {
-        JSClass {
-            name: compartment.add_name(copy name),
-            flags: JSCLASS_HAS_RESERVED_SLOTS(1) | js::JSCLASS_IS_DOMJSCLASS,
-            addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-            delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-            getProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-            setProperty: GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
-            enumerate: GetJSClassHookStubPointer(ENUMERATE_STUB) as *u8,
-            resolve: GetJSClassHookStubPointer(RESOLVE_STUB) as *u8,
-            convert: GetJSClassHookStubPointer(CONVERT_STUB) as *u8,
-            finalize: finalize,
-            checkAccess: null(),
-            call: null(),
-            hasInstance: has_instance,
-            construct: null(),
-            trace: trace,
-            reserved: (null(), null(), null(), null(), null(),  // 05
-                       null(), null(), null(), null(), null(),  // 10
-                       null(), null(), null(), null(), null(),  // 15
-                       null(), null(), null(), null(), null(),  // 20
-                       null(), null(), null(), null(), null(),  // 25
-                       null(), null(), null(), null(), null(),  // 30
-                       null(), null(), null(), null(), null(),  // 35
-                       null(), null(), null(), null(), null())  // 40
+        unsafe {
+            JSClass {
+                name: compartment.add_name(copy name),
+                flags: JSCLASS_HAS_RESERVED_SLOTS(1) | js::JSCLASS_IS_DOMJSCLASS,
+                addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+                delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+                getProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+                setProperty: GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
+                enumerate: GetJSClassHookStubPointer(ENUMERATE_STUB) as *u8,
+                resolve: GetJSClassHookStubPointer(RESOLVE_STUB) as *u8,
+                convert: GetJSClassHookStubPointer(CONVERT_STUB) as *u8,
+                finalize: finalize,
+                checkAccess: null(),
+                call: null(),
+                hasInstance: has_instance,
+                construct: null(),
+                trace: trace,
+                reserved: (null(), null(), null(), null(), null(),  // 05
+                           null(), null(), null(), null(), null(),  // 10
+                           null(), null(), null(), null(), null(),  // 15
+                           null(), null(), null(), null(), null(),  // 20
+                           null(), null(), null(), null(), null(),  // 25
+                           null(), null(), null(), null(), null(),  // 30
+                           null(), null(), null(), null(), null(),  // 35
+                           null(), null(), null(), null(), null())  // 40
+            }
         }
     };
     return f;
@@ -262,12 +274,14 @@ pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: @mut
             None => compartment.new_object(copy name, null(), compartment.global_obj.ptr)
         });
 
-    compartment.define_property(copy name, RUST_OBJECT_TO_JSVAL(obj.ptr),
-                                GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-                                GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
-                                JSPROP_ENUMERATE);
-    compartment.stash_global_proto(name, obj);
-    return obj;
+    unsafe {
+        compartment.define_property(copy name, RUST_OBJECT_TO_JSVAL(obj.ptr),
+                                    GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+                                    GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
+                                    JSPROP_ENUMERATE);
+        compartment.stash_global_proto(name, obj);
+        return obj;
+    }
 }
 
 // We use slot 0 for holding the raw object.  This is safe for both
@@ -390,8 +404,10 @@ pub fn CreateInterfaceObjects2(cx: *JSContext, global: *JSObject, receiver: *JSO
             return ptr::null();
         }
 
-        JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
-                           RUST_PRIVATE_TO_JSVAL(domClass as *libc::c_void));
+        unsafe {
+            JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
+                               RUST_PRIVATE_TO_JSVAL(domClass as *libc::c_void));
+        }
     }
 
     let mut interface = ptr::null();
@@ -419,75 +435,77 @@ fn CreateInterfaceObject(cx: *JSContext, global: *JSObject, receiver: *JSObject,
                          staticMethods: *JSFunctionSpec,
                          constants: *ConstantSpec,
                          name: *libc::c_char) -> *JSObject {
-    let constructor = if constructorClass.is_not_null() {
-        let functionProto = JS_GetFunctionPrototype(cx, global);
-        if functionProto.is_null() {
-            ptr::null()
+    unsafe {
+        let constructor = if constructorClass.is_not_null() {
+            let functionProto = JS_GetFunctionPrototype(cx, global);
+            if functionProto.is_null() {
+                ptr::null()
+            } else {
+                JS_NewObject(cx, constructorClass, functionProto, global)
+            }
         } else {
-            JS_NewObject(cx, constructorClass, functionProto, global)
-        }
-    } else {
-        assert!(constructorNative.is_not_null());
-        let fun = JS_NewFunction(cx, constructorNative, ctorNargs,
-                                 JSFUN_CONSTRUCTOR, global, name);
-        if fun.is_null() {
-            ptr::null()
-        } else {
-            JS_GetFunctionObject(fun)
-        }
-    };
-
-    if constructor.is_null() {
-        return ptr::null();
-    }
-
-    if staticMethods.is_not_null() &&
-       !DefineMethods(cx, constructor, staticMethods) {
-        return ptr::null();
-    }
-
-    if constructorClass.is_not_null() {
-        let toString = do str::as_c_str("toString") |s| {
-            DefineFunctionWithReserved(cx, constructor, s,
-                                       InterfaceObjectToString,
-                                       0, 0)
+            assert!(constructorNative.is_not_null());
+            let fun = JS_NewFunction(cx, constructorNative, ctorNargs,
+                                     JSFUN_CONSTRUCTOR, global, name);
+            if fun.is_null() {
+                ptr::null()
+            } else {
+                JS_GetFunctionObject(fun)
+            }
         };
-        if toString.is_null() {
+
+        if constructor.is_null() {
             return ptr::null();
         }
 
-        let toStringObj = JS_GetFunctionObject(toString);
-        SetFunctionNativeReserved(toStringObj, TOSTRING_CLASS_RESERVED_SLOT,
-                                  &RUST_PRIVATE_TO_JSVAL(constructorClass as *libc::c_void));
-        let s = JS_InternString(cx, name);
-        if s.is_null() {
+        if staticMethods.is_not_null() &&
+            !DefineMethods(cx, constructor, staticMethods) {
             return ptr::null();
         }
-        SetFunctionNativeReserved(toStringObj, TOSTRING_NAME_RESERVED_SLOT,
-                                  &RUST_STRING_TO_JSVAL(s));
-    }
 
-    if constants.is_not_null() &&
-       !DefineConstants(cx, constructor, constants) {
-        return ptr::null();
-    }
+        if constructorClass.is_not_null() {
+            let toString = do str::as_c_str("toString") |s| {
+                DefineFunctionWithReserved(cx, constructor, s,
+                                           InterfaceObjectToString,
+                                           0, 0)
+            };
+            if toString.is_null() {
+                return ptr::null();
+            }
 
-    if proto.is_not_null() && JS_LinkConstructorAndPrototype(cx, constructor, proto) == 0 {
-        return ptr::null();
-    }
+            let toStringObj = JS_GetFunctionObject(toString);
+            SetFunctionNativeReserved(toStringObj, TOSTRING_CLASS_RESERVED_SLOT,
+                                      &RUST_PRIVATE_TO_JSVAL(constructorClass as *libc::c_void));
+            let s = JS_InternString(cx, name);
+            if s.is_null() {
+                return ptr::null();
+            }
+            SetFunctionNativeReserved(toStringObj, TOSTRING_NAME_RESERVED_SLOT,
+                                      &RUST_STRING_TO_JSVAL(s));
+        }
 
-    let alreadyDefined = 0;
-    if JS_AlreadyHasOwnProperty(cx, receiver, name, &alreadyDefined) == 0 {
-        return ptr::null();
-    }
+        if constants.is_not_null() &&
+            !DefineConstants(cx, constructor, constants) {
+            return ptr::null();
+        }
 
-    if alreadyDefined == 0 &&
-       JS_DefineProperty(cx, receiver, name, RUST_OBJECT_TO_JSVAL(constructor),
-                         ptr::null(), ptr::null(), 0) == 0 {
-        return ptr::null();
-    }
+        if proto.is_not_null() && JS_LinkConstructorAndPrototype(cx, constructor, proto) == 0 {
+            return ptr::null();
+        }
 
-    return constructor;
+        let alreadyDefined = 0;
+        if JS_AlreadyHasOwnProperty(cx, receiver, name, &alreadyDefined) == 0 {
+            return ptr::null();
+        }
+
+        if alreadyDefined == 0 &&
+            JS_DefineProperty(cx, receiver, name, RUST_OBJECT_TO_JSVAL(constructor),
+                              ptr::null(), ptr::null(), 0) == 0 {
+            return ptr::null();
+        }
+
+        return constructor;
+    }
 }
 
 fn DefineConstants(cx: *JSContext, obj: *JSObject, constants: *ConstantSpec) -> bool {
@@ -520,11 +538,15 @@ fn DefineConstants(cx: *JSContext, obj: *JSObject, constants: *ConstantSpec) -> 
 }
 
 fn DefineMethods(cx: *JSContext, obj: *JSObject, methods: *JSFunctionSpec) -> bool {
-    JS_DefineFunctions(cx, obj, methods) != 0
+    unsafe {
+        JS_DefineFunctions(cx, obj, methods) != 0
+    }
 }
 
 fn DefineProperties(cx: *JSContext, obj: *JSObject, properties: *JSPropertySpec) -> bool {
-    JS_DefineProperties(cx, obj, properties) != 0
+    unsafe {
+        JS_DefineProperties(cx, obj, properties) != 0
+    }
 }
 
 fn CreateInterfacePrototypeObject(cx: *JSContext, global: *JSObject,
@@ -532,24 +554,26 @@ fn CreateInterfacePrototypeObject(cx: *JSContext, global: *JSObject,
                                   methods: *JSFunctionSpec,
                                   properties: *JSPropertySpec,
                                   constants: *ConstantSpec) -> *JSObject {
-    let ourProto = JS_NewObjectWithUniqueType(cx, protoClass, parentProto, global);
-    if ourProto.is_null() {
-        return ptr::null();
-    }
+    unsafe {
+        let ourProto = JS_NewObjectWithUniqueType(cx, protoClass, parentProto, global);
+        if ourProto.is_null() {
+            return ptr::null();
+        }
 
-    if methods.is_not_null() && !DefineMethods(cx, ourProto, methods) {
-        return ptr::null();
-    }
+        if methods.is_not_null() && !DefineMethods(cx, ourProto, methods) {
+            return ptr::null();
+        }
 
-    if properties.is_not_null() && !DefineProperties(cx, ourProto, properties) {
-        return ptr::null();
-    }
+        if properties.is_not_null() && !DefineProperties(cx, ourProto, properties) {
+            return ptr::null();
+        }
 
-    if constants.is_not_null() && !DefineConstants(cx, ourProto, constants) {
-        return ptr::null();
-    }
+        if constants.is_not_null() && !DefineConstants(cx, ourProto, constants) {
+            return ptr::null();
+        }
 
-    return ourProto;
+        return ourProto;
+    }
 }
 
 pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: uint, _vp: *JSVal) -> JSBool {
@@ -578,20 +602,20 @@ pub struct WrapperCache {
     wrapper: *JSObject
 }
 
-pub impl WrapperCache {
-    fn get_wrapper(&self) -> *JSObject {
+impl WrapperCache {
+    pub fn get_wrapper(&self) -> *JSObject {
         unsafe { cast::transmute(self.wrapper) }
     }
 
-    fn set_wrapper(&mut self, wrapper: *JSObject) {
+    pub fn set_wrapper(&mut self, wrapper: *JSObject) {
         self.wrapper = wrapper;
     }
 
-    fn get_rootable(&self) -> **JSObject {
+    pub fn get_rootable(&self) -> **JSObject {
         return to_unsafe_ptr(&self.wrapper);
     }
 
-    fn new() -> WrapperCache {
+    pub fn new() -> WrapperCache {
         WrapperCache {
             wrapper: ptr::null()
         }
@@ -660,10 +684,12 @@ pub fn GetPropertyOnPrototype(cx: *JSContext, proxy: *JSObject, id: jsid, found:
 }
 
 pub fn GetArrayIndexFromId(_cx: *JSContext, id: jsid) -> Option<u32> {
-    if RUST_JSID_IS_INT(id) != 0 {
-        return Some(RUST_JSID_TO_INT(id) as u32);
+    unsafe {
+        if RUST_JSID_IS_INT(id) != 0 {
+            return Some(RUST_JSID_TO_INT(id) as u32);
+        }
+        return None;
     }
-    return None;
     // if id is length atom, -1, otherwise
     /*return if JSID_IS_ATOM(id) {
         let atom = JSID_TO_ATOM(id);
@@ -730,11 +756,13 @@ pub fn XrayResolveProperty(cx: *JSContext,
 }
 
 fn InternJSString(cx: *JSContext, chars: *libc::c_char) -> Option<jsid> {
-    let s = JS_InternString(cx, chars);
-    if s.is_not_null() {
-        Some(RUST_INTERNED_STRING_TO_JSID(cx, s))
-    } else {
-        None
+    unsafe {
+        let s = JS_InternString(cx, chars);
+        if s.is_not_null() {
+            Some(RUST_INTERNED_STRING_TO_JSID(cx, s))
+        } else {
+            None
+        }
     }
 }
 

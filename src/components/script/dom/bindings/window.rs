@@ -9,16 +9,19 @@ use dom::bindings::utils::{WrapperCache};
 use dom::window::Window;
 use super::utils;
 
-use core::libc::c_uint;
-use core::ptr::null;
-use core::ptr;
+use std::cast;
+use std::libc;
+use std::libc::c_uint;
+use std::ptr::null;
+use std::ptr;
+use std::result;
 use js::crust::{JS_PropertyStub, JS_StrictPropertyStub};
 use js::global::jsval_to_rust_str;
-use js::glue::bindgen::*;
-use js::glue::bindgen::RUST_JSVAL_TO_INT;
-use js::jsapi::bindgen::{JS_DefineFunctions, JS_GC, JS_GetRuntime};
-use js::jsapi::bindgen::{JS_GetReservedSlot, JS_SetReservedSlot};
-use js::jsapi::bindgen::{JS_ValueToString};
+use js::glue::*;
+use js::glue::RUST_JSVAL_TO_INT;
+use js::jsapi::{JS_DefineFunctions, JS_GC, JS_GetRuntime};
+use js::jsapi::{JS_GetReservedSlot, JS_SetReservedSlot};
+use js::jsapi::{JS_ValueToString};
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp, JSFunctionSpec};
 use js::jsapi::{JSNativeWrapper};
 use js::rust::Compartment;
@@ -67,9 +70,11 @@ extern fn close(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
 }
 
 extern fn gc(cx: *JSContext, _argc: c_uint, _vp: *JSVal) -> JSBool {
-    let runtime = JS_GetRuntime(cx);
-    JS_GC(runtime);
-    return 1;
+    unsafe {
+        let runtime = JS_GetRuntime(cx);
+        JS_GC(runtime);
+        return 1;
+    }
 }
 
 unsafe fn unwrap(obj: *JSObject) -> *rust_box<Window> {
@@ -128,7 +133,9 @@ pub fn init(compartment: @mut Compartment) {
         }
     ];
 
-    JS_DefineFunctions(compartment.cx.ptr, proto.ptr, &methods[0]);
+    unsafe {
+        JS_DefineFunctions(compartment.cx.ptr, proto.ptr, &methods[0]);
+    }
 }
 
 pub fn create(compartment: @mut Compartment, win: @mut Window) {
@@ -141,13 +148,13 @@ pub fn create(compartment: @mut Compartment, win: @mut Window) {
     unsafe {
         let raw_ptr: *libc::c_void = cast::transmute(squirrel_away(win));
         JS_SetReservedSlot(obj.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
-    }
 
-    //TODO: All properties/methods on Window need to be available on the global
-    //      object as well. We probably want a special JSClass with a resolve hook.
-    compartment.define_property(~"window", RUST_OBJECT_TO_JSVAL(obj.ptr),
-                                JS_PropertyStub, JS_StrictPropertyStub,
-                                JSPROP_ENUMERATE);
+        //TODO: All properties/methods on Window need to be available on the global
+        //      object as well. We probably want a special JSClass with a resolve hook.
+        compartment.define_property(~"window", RUST_OBJECT_TO_JSVAL(obj.ptr),
+                                    JS_PropertyStub, JS_StrictPropertyStub,
+                                    JSPROP_ENUMERATE);
+    }
 }
 
 impl CacheableWrapper for Window {

@@ -15,20 +15,21 @@ use core_text::font_collection::CTFontCollectionMethods;
 use core_text::font_descriptor::CTFontDescriptorRef;
 use core_text;
 
-use core::hashmap::HashMap;
+use std::hashmap::HashMap;
+use std::result;
 
 pub struct FontListHandle {
     fctx: FontContextHandle,
 }
 
-pub impl FontListHandle {
-    fn new(fctx: &FontContextHandle) -> FontListHandle {
+impl FontListHandle {
+    pub fn new(fctx: &FontContextHandle) -> FontListHandle {
         FontListHandle {
             fctx: fctx.clone()
         }
     }
 
-    fn get_available_families(&self) -> FontFamilyMap {
+    pub fn get_available_families(&self) -> FontFamilyMap {
         let family_names: CFArray<CFStringRef> = core_text::font_collection::get_family_names();
         let mut family_map: FontFamilyMap = HashMap::new();
         for family_names.each |&strref: &CFStringRef| {
@@ -41,7 +42,7 @@ pub impl FontListHandle {
         return family_map;
     }
 
-    fn load_variations_for_family(&self, family: @mut FontFamily) {
+    pub fn load_variations_for_family(&self, family: @mut FontFamily) {
         debug!("Looking for faces of family: %s", family.family_name);
 
         let family_collection = core_text::font_collection::create_for_family(family.family_name);
@@ -56,7 +57,7 @@ pub impl FontListHandle {
         }
     }
 
-    fn get_last_resort_font_families() -> ~[~str] {
+    pub fn get_last_resort_font_families() -> ~[~str] {
         ~[~"Arial Unicode MS",~"Arial"]
     }
 }

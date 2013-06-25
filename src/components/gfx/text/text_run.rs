@@ -42,9 +42,9 @@ impl SendableTextRun {
     }
 }
 
-pub impl<'self> TextRun {
-    fn new(font: @mut Font, text: ~str, underline: bool) -> TextRun {
-        let mut glyph_store = GlyphStore::new(str::char_len(text));
+impl<'self> TextRun {
+    pub fn new(font: @mut Font, text: ~str, underline: bool) -> TextRun {
+        let mut glyph_store = GlyphStore::new(text.char_len());
         TextRun::compute_potential_breaks(text, &mut glyph_store);
         do profile(time::LayoutShapingCategory, font.profiler_chan.clone()) {
             font.shape_text(text, &mut glyph_store);
@@ -59,18 +59,18 @@ pub impl<'self> TextRun {
         return run;
     }
 
-    fn teardown(&self) {
+    pub fn teardown(&self) {
         self.font.teardown();
     }
 
-    fn compute_potential_breaks(text: &str, glyphs: &mut GlyphStore) {
+    pub fn compute_potential_breaks(text: &str, glyphs: &mut GlyphStore) {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
 
         let mut byte_i = 0u;
         let mut char_j = 0u;
         let mut prev_is_whitespace = false;
         while byte_i < text.len() {
-            let range = str::char_range_at(text, byte_i);
+            let range = text.char_range_at(byte_i);
             let ch = range.ch;
             let next = range.next;
             // set char properties.
@@ -114,10 +114,10 @@ pub impl<'self> TextRun {
         }
     }
 
-    fn char_len(&self) -> uint { self.glyphs.entry_buffer.len() }
-    fn glyphs(&'self self) -> &'self GlyphStore { &self.glyphs }
+    pub fn char_len(&self) -> uint { self.glyphs.entry_buffer.len() }
+    pub fn glyphs(&'self self) -> &'self GlyphStore { &self.glyphs }
 
-    fn range_is_trimmable_whitespace(&self, range: &Range) -> bool {
+    pub fn range_is_trimmable_whitespace(&self, range: &Range) -> bool {
         for range.eachi |i| {
             if  !self.glyphs.char_is_space(i) &&
                 !self.glyphs.char_is_tab(i)   &&
@@ -126,11 +126,11 @@ pub impl<'self> TextRun {
         return true;
     }
 
-    fn metrics_for_range(&self, range: &Range) -> RunMetrics {
+    pub fn metrics_for_range(&self, range: &Range) -> RunMetrics {
         self.font.measure_text(self, range)
     }
 
-    fn min_width_for_range(&self, range: &Range) -> Au {
+    pub fn min_width_for_range(&self, range: &Range) -> Au {
         let mut max_piece_width = Au(0);
         debug!("iterating outer range %?", range);
         for self.iter_indivisible_pieces_for_range(range) |piece_range| {
@@ -141,7 +141,7 @@ pub impl<'self> TextRun {
         return max_piece_width;
     }
 
-    fn iter_natural_lines_for_range(&self, range: &Range, f: &fn(&Range) -> bool) -> bool {
+    pub fn iter_natural_lines_for_range(&self, range: &Range, f: &fn(&Range) -> bool) -> bool {
         let mut clump = Range::new(range.begin(), 0);
         let mut in_clump = false;
 
@@ -168,7 +168,7 @@ pub impl<'self> TextRun {
         true
     }
 
-    fn iter_indivisible_pieces_for_range(&self, range: &Range, f: &fn(&Range) -> bool) -> bool {
+    pub fn iter_indivisible_pieces_for_range(&self, range: &Range, f: &fn(&Range) -> bool) -> bool {
         let mut clump = Range::new(range.begin(), 0);
 
         loop {

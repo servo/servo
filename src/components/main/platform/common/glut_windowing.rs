@@ -12,7 +12,7 @@ use windowing::{ResizeCallback, ScrollCallback, WindowMethods, WindowMouseEvent,
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent, ZoomCallback};
 
 use alert::{Alert, AlertMethods};
-use core::libc::c_int;
+use std::libc::c_int;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use servo_msg::compositor::{IdleRenderState, RenderState, RenderingRenderState};
@@ -59,8 +59,7 @@ impl WindowMethods<Application> for Window {
     /// Creates a new window.
     pub fn new(_: &Application) -> @mut Window {
         // Create the GLUT window.
-        // FIXME (Rust #3080): These unsafe blocks are *not* unused!
-        /*unsafe { */glut::bindgen::glutInitWindowSize(800, 600);/* }*/
+        unsafe { glut::glutInitWindowSize(800, 600); }
         let glut_window = glut::create_window(~"Servo");
 
         // Create our window object.
@@ -74,10 +73,10 @@ impl WindowMethods<Application> for Window {
             scroll_callback: None,
             zoom_callback: None,
 
-            drag_origin: Point2D(0, 0),
+            drag_origin: Point2D(0 as c_int, 0),
 
             mouse_down_button: @mut 0,
-            mouse_down_point: @mut Point2D(0, 0),
+            mouse_down_point: @mut Point2D(0 as c_int, 0),
 
             ready_state: FinishedLoading,
             render_state: IdleRenderState,
@@ -231,12 +230,12 @@ impl Window {
         match key {
             12 => self.load_url(),                                                      // Ctrl+L
             k if k == ('=' as u8) && (glut::get_modifiers() & ACTIVE_CTRL) != 0 => {    // Ctrl++
-                for self.zoom_callback.each |&callback| {
+                for self.zoom_callback.iter().advance |&callback| {
                     callback(0.1);
                 }
             }
             k if k == 31 && (glut::get_modifiers() & ACTIVE_CTRL) != 0 => {             // Ctrl+-
-                for self.zoom_callback.each |&callback| {
+                for self.zoom_callback.iter().advance |&callback| {
                     callback(-0.1);
                 }
             }

@@ -36,8 +36,8 @@ pub struct LayoutTreeBuilder {
     next_bid: int,
 }
 
-pub impl LayoutTreeBuilder {
-    fn new() -> LayoutTreeBuilder {
+impl LayoutTreeBuilder {
+    pub fn new() -> LayoutTreeBuilder {
         LayoutTreeBuilder {
             root_flow: None,
             next_cid: -1,
@@ -142,7 +142,8 @@ impl BoxGenerator {
                     inline.boxes.push(new_box);
                 } else if self.inline_spacers_needed_for_node(node) {
                     // else, maybe make a spacer for "left" margin, border, padding
-                    for self.make_inline_spacer_for_node_side(ctx, node, LogicalBefore).each
+                    let inline_spacer = self.make_inline_spacer_for_node_side(ctx, node, LogicalBefore);
+                    for inline_spacer.iter().advance
                             |spacer: &RenderBox| {
                         inline.boxes.push(*spacer);
                     }
@@ -190,7 +191,7 @@ impl BoxGenerator {
                     // If this non-leaf box generates extra horizontal spacing, add a SpacerBox for
                     // it.
                     let result = self.make_inline_spacer_for_node_side(ctx, node, LogicalAfter);
-                    for result.each |spacer| {
+                    for result.iter().advance |spacer| {
                         let boxes = &mut self.flow.inline().boxes;
                         boxes.push(*spacer);
                     }
@@ -269,14 +270,14 @@ impl BoxGenerator {
 }
 
 
-pub impl LayoutTreeBuilder {
+impl LayoutTreeBuilder {
     /* Debug-only ids */
-    fn next_flow_id(&mut self) -> int { self.next_cid += 1; self.next_cid }
-    fn next_box_id(&mut self) -> int { self.next_bid += 1; self.next_bid }
+    pub fn next_flow_id(&mut self) -> int { self.next_cid += 1; self.next_cid }
+    pub fn next_box_id(&mut self) -> int { self.next_bid += 1; self.next_bid }
 
     /// Creates necessary box(es) and flow context(s) for the current DOM node,
     /// and recurses on its children.
-    fn construct_recursively(&mut self,
+    pub fn construct_recursively(&mut self,
                              layout_ctx: &LayoutContext,
                              cur_node: AbstractNode<LayoutView>,
                              parent_generator: @mut BoxGenerator,
@@ -319,7 +320,7 @@ pub impl LayoutTreeBuilder {
         Some(this_generator)
     }
 
-    fn box_generator_for_node(&mut self, 
+    pub fn box_generator_for_node(&mut self, 
                               node: AbstractNode<LayoutView>, 
                               parent_generator: @mut BoxGenerator,
                               sibling_generator: Option<@mut BoxGenerator>)
@@ -433,7 +434,7 @@ pub impl LayoutTreeBuilder {
         Some(new_generator)
     }
 
-    fn create_child_generator(&mut self,
+    pub fn create_child_generator(&mut self,
                               node: AbstractNode<LayoutView>,
                               parent_generator: @mut BoxGenerator,
                               ty: FlowContextType)
@@ -445,7 +446,7 @@ pub impl LayoutTreeBuilder {
         @mut BoxGenerator::new(new_flow)
     }
 
-    fn create_child_generator_if_needed(&mut self,
+    pub fn create_child_generator_if_needed(&mut self,
                                         node: AbstractNode<LayoutView>,
                                         parent_generator: @mut BoxGenerator,
                                         maybe_generator: Option<@mut BoxGenerator>,
@@ -466,7 +467,7 @@ pub impl LayoutTreeBuilder {
     ///
     /// The latter can only be done immediately adjacent to, or at the beginning or end of a block
     /// flow. Otherwise, the whitespace might affect whitespace collapsing with adjacent text.
-    fn simplify_children_of_flow(&self, _: &LayoutContext, parent_flow: &mut FlowContext) {
+    pub fn simplify_children_of_flow(&self, _: &LayoutContext, parent_flow: &mut FlowContext) {
         match *parent_flow {
             InlineFlow(*) => {
                 let mut found_child_inline = false;
@@ -493,7 +494,7 @@ pub impl LayoutTreeBuilder {
                 let first_child = do parent_flow.with_base |parent_node| {
                     parent_node.first_child
                 };
-                for first_child.each |&first_flow| {
+                for first_child.iter().advance |&first_flow| {
                     if first_flow.starts_inline_flow() {
                         // FIXME: workaround for rust#6393
                         let mut do_remove = false;
@@ -516,7 +517,7 @@ pub impl LayoutTreeBuilder {
                 let last_child = do parent_flow.with_base |parent_node| {
                     parent_node.last_child
                 };
-                for last_child.each |&last_flow| {
+                for last_child.iter().advance |&last_flow| {
                     if last_flow.starts_inline_flow() {
                         // FIXME: workaround for rust#6393
                         let mut do_remove = false;
@@ -540,13 +541,13 @@ pub impl LayoutTreeBuilder {
         }
     }
 
-    fn fixup_split_inline(&self, _: FlowContext) {
+    pub fn fixup_split_inline(&self, _: FlowContext) {
         // TODO: finish me. 
         fail!(~"TODO: handle case where an inline is split by a block")
     }
 
     /// Entry point for box creation. Should only be called on the root DOM element.
-    fn construct_trees(&mut self, layout_ctx: &LayoutContext, root: AbstractNode<LayoutView>)
+    pub fn construct_trees(&mut self, layout_ctx: &LayoutContext, root: AbstractNode<LayoutView>)
                        -> Result<FlowContext, ()> {
         let new_flow = self.make_flow(Flow_Root, root);
         let new_generator = @mut BoxGenerator::new(new_flow);
@@ -557,7 +558,7 @@ pub impl LayoutTreeBuilder {
     }
 
     /// Creates a flow of the given type for the supplied node.
-    fn make_flow(&mut self, ty: FlowContextType, node: AbstractNode<LayoutView>) -> FlowContext {
+    pub fn make_flow(&mut self, ty: FlowContextType, node: AbstractNode<LayoutView>) -> FlowContext {
         let info = FlowData::new(self.next_flow_id(), node);
         let result = match ty {
             Flow_Absolute    => AbsoluteFlow(@mut info),

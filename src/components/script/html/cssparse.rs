@@ -4,13 +4,15 @@
 
 /// Some little helpers for hooking up the HTML parser with the CSS parser.
 
-use core::cell::Cell;
-use core::comm::Port;
-use core::str;
+use std::cell::Cell;
+use std::comm;
+use std::comm::Port;
+use std::task;
+use std::str;
 use newcss::stylesheet::Stylesheet;
 use newcss::util::DataStream;
 use servo_net::resource_task::{ResourceTask, ProgressMsg, Load, Payload, Done};
-use std::net::url::Url;
+use extra::net::url::Url;
 
 /// Where a style sheet comes from.
 pub enum StylesheetProvenance {
@@ -23,12 +25,12 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
                      -> Port<Stylesheet> {
     let (result_port, result_chan) = comm::stream();
 
-    let provenance_cell = Cell(provenance);
+    let provenance_cell = Cell::new(provenance);
     do task::spawn {
         let url = do provenance_cell.with_ref |p| {
             match *p {
-                UrlProvenance(copy the_url) => the_url,
-                InlineProvenance(copy the_url, _) => the_url
+                UrlProvenance(ref the_url) => copy *the_url,
+                InlineProvenance(ref the_url, _) => copy *the_url
             }
         };
 
@@ -64,13 +66,14 @@ fn resource_port_to_data_stream(input_port: Port<ProgressMsg>) -> DataStream {
 }
 
 fn data_to_data_stream(data: ~str) -> DataStream {
-    let data_cell = Cell(data);
+    let data_cell = Cell::new(data);
     return || {
         if data_cell.is_empty() {
             None
         } else {
             // FIXME: Blech, a copy.
-            Some(str::to_bytes(data_cell.take()))
+            let data = data_cell.take();
+            Some(data.as_bytes().to_owned())
         }
     }
 }

@@ -13,8 +13,8 @@ pub struct MonoCache<K, V> {
     entry: Option<(K,V)>,
 }
 
-pub impl<K: Copy + Eq, V: Copy> MonoCache<K,V> {
-    fn new(_size: uint) -> MonoCache<K,V> {
+impl<K: Copy + Eq, V: Copy> MonoCache<K,V> {
+    pub fn new(_size: uint) -> MonoCache<K,V> {
         MonoCache { entry: None }
     }
 }
@@ -27,7 +27,7 @@ impl<K: Copy + Eq, V: Copy> Cache<K,V> for MonoCache<K,V> {
     fn find(&mut self, key: &K) -> Option<V> {
         match self.entry {
             None => None,
-            Some((ref k,v)) => if *k == *key { Some(v) } else { None }
+            Some((ref k, ref v)) => if *k == *key { Some(copy *v) } else { None }
         }
     }
 
@@ -65,19 +65,19 @@ pub struct LRUCache<K, V> {
     cache_size: uint,
 }
 
-pub impl<K: Copy + Eq, V: Copy> LRUCache<K,V> {
-    fn new(size: uint) -> LRUCache<K, V> {
+impl<K: Copy + Eq, V: Copy> LRUCache<K,V> {
+    pub fn new(size: uint) -> LRUCache<K, V> {
         LRUCache {
           entries: ~[],
           cache_size: size,
         }
     }
 
-    fn touch(&mut self, pos: uint) -> V {
+    pub fn touch(&mut self, pos: uint) -> V {
         let (key, val) = copy self.entries[pos];
         if pos != self.cache_size {
             self.entries.remove(pos);
-            self.entries.push((key, val));
+            self.entries.push((key, copy val));
         }
         val
     }
@@ -103,7 +103,7 @@ impl<K: Copy + Eq, V: Copy> Cache<K,V> for LRUCache<K,V> {
             Some(pos) => self.touch(pos),
             None => {
               let val = blk(key);
-              self.insert(key, val);
+              self.insert(key, copy val);
               val
             }
         }

@@ -38,7 +38,7 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
     let mut out_str: ~str = ~"";
     let out_whitespace = match mode {
         CompressNone | DiscardNewline => {
-            for str::each_char(text) |ch: char| {
+            for text.iter().advance |ch: char| {
                 if is_discardable_char(ch, mode) {
                     // TODO: record skipped char
                 } else {
@@ -46,7 +46,7 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
                     if ch == '\t' {
                         // TODO: set "has tab" flag
                     }
-                    str::push_char(&mut out_str, ch);
+                    out_str.push_char(ch);
                 }
             }
             text.len() > 0 && is_in_whitespace(text.char_at_reverse(0), mode)
@@ -54,7 +54,7 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
 
         CompressWhitespace | CompressWhitespaceNewline => {
             let mut in_whitespace: bool = incoming_whitespace;
-            for str::each_char(text) |ch: char| {
+            for text.iter().advance |ch: char| {
                 // TODO: discard newlines between CJK chars
                 let mut next_in_whitespace: bool = is_in_whitespace(ch, mode);
                 
@@ -65,14 +65,14 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
                         // TODO: record skipped char
                     } else {
                         // TODO: record kept char
-                        str::push_char(&mut out_str, ch);
+                        out_str.push_char(ch);
                     }
                 } else { /* next_in_whitespace; possibly add a space char */
                     if in_whitespace {
                         // TODO: record skipped char
                     } else {
                         // TODO: record kept char
-                        str::push_char(&mut out_str, ' ');
+                        out_str.push_char(' ');
                     }
                 }
                 // save whitespace context for next char

@@ -4,7 +4,7 @@
 
 use layout::aux::LayoutAuxMethods;
 
-use core::cast::transmute;
+use std::cast::transmute;
 use newcss::complete::CompleteSelectResults;
 use script::dom::node::{AbstractNode, LayoutView};
 

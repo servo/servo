@@ -19,30 +19,31 @@ use layout_interface::{ReflowForDisplay, ReflowForScriptQuery, ReflowGoal, Reflo
 use layout_interface;
 use servo_msg::engine::{EngineChan, LoadUrlMsg};
 
-use core::cast::transmute;
-use core::cell::Cell;
-use core::comm::{Port, SharedChan};
-use core::io::read_whole_file;
-use core::local_data;
-use core::ptr::null;
-use core::task::{SingleThreaded, task};
-use core::util::replace;
+use std::cast::transmute;
+use std::cell::Cell;
+use std::comm;
+use std::comm::{Port, SharedChan};
+use std::io::read_whole_file;
+use std::local_data;
+use std::ptr::null;
+use std::task::{SingleThreaded, task};
+use std::util::replace;
 use dom::window::TimerData;
 use geom::size::Size2D;
 use html::hubbub_html_parser;
 use js::JSVAL_NULL;
 use js::global::{global_class, debug_fns};
-use js::glue::bindgen::RUST_JSVAL_TO_OBJECT;
+use js::glue::RUST_JSVAL_TO_OBJECT;
 use js::jsapi::JSContext;
-use js::jsapi::bindgen::{JS_CallFunctionValue, JS_GetContextPrivate};
+use js::jsapi::{JS_CallFunctionValue, JS_GetContextPrivate};
 use js::rust::{Compartment, Cx};
 use js;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::tree::TreeNodeRef;
 use servo_util::url::make_url;
-use std::net::url::Url;
-use std::net::url;
+use extra::net::url::Url;
+use extra::net::url;
 
 /// Messages used to control the script task.
 pub enum ScriptMsg {
@@ -146,7 +147,9 @@ pub fn global_script_context() -> @ScriptContext {
 ///
 /// FIXME: Rename to `script_context_from_js_context`.
 pub fn task_from_context(js_context: *JSContext) -> *mut ScriptContext {
-    JS_GetContextPrivate(js_context) as *mut ScriptContext
+    unsafe {
+        JS_GetContextPrivate(js_context) as *mut ScriptContext
+    }
 }
 
 #[unsafe_destructor]
@@ -200,7 +203,7 @@ impl ScriptContext {
 
             root_frame: None,
 
-            window_size: Size2D(800, 600),
+            window_size: Size2D(800u, 600),
             damage: None,
         };
         // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
@@ -208,9 +211,9 @@ impl ScriptContext {
             let borrowed_ctx= &mut *script_context;
             borrowed_ctx as *mut ScriptContext
         };
-        js_context.set_cx_private(script_context_ptr as *());
 
         unsafe {
+            js_context.set_cx_private(script_context_ptr as *());
             local_data::local_data_set(global_script_context_key, transmute(script_context))
         }
 
@@ -232,8 +235,8 @@ impl ScriptContext {
                                  compositor_task: ~fn(ReadyState),
                                  resource_task: ResourceTask,
                                  image_cache_task: ImageCacheTask) {
-        let script_port = Cell(script_port);
-        let compositor_task = Cell(compositor_task);
+        let script_port = Cell::new(script_port);
+        let compositor_task = Cell::new(compositor_task);
         // FIXME: rust#6399
         let mut the_task = task();
         the_task.sched_mode(SingleThreaded);
@@ -298,22 +301,24 @@ impl ScriptContext {
 
     /// Handles a timer that fired.
     fn handle_fire_timer_msg(&mut self, timer_data: ~TimerData) {
-        let this_value = if timer_data.args.len() > 0 {
-            RUST_JSVAL_TO_OBJECT(timer_data.args[0])
-        } else {
-            self.js_compartment.global_obj.ptr
-        };
+        unsafe {
+            let this_value = if timer_data.args.len() > 0 {
+                RUST_JSVAL_TO_OBJECT(timer_data.args[0])
+            } else {
+                self.js_compartment.global_obj.ptr
+            };
 
-        // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
-        let rval = JSVAL_NULL;
-        JS_CallFunctionValue(self.js_context.ptr,
-                             this_value,
-                             timer_data.funval,
-                             0,
-                             null(),
-                             &rval);
+            // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
+            let rval = JSVAL_NULL;
+            JS_CallFunctionValue(self.js_context.ptr,
+                                 this_value,
+                                 timer_data.funval,
+                                 0,
+                                 null(),
+                                 &rval);
 
-        self.reflow(ReflowForScriptQuery)
+            self.reflow(ReflowForScriptQuery)
+        }
     }
 
     /// Handles a notification that reflow completed.
@@ -325,7 +330,7 @@ impl ScriptContext {
     /// Handles a request to exit the script task and shut down layout.
     fn handle_exit_msg(&mut self) {
         self.join_layout();
-        for self.root_frame.each |frame| {
+        for self.root_frame.iter().advance |frame| {
             frame.document.teardown();
         }
 
@@ -401,7 +406,7 @@ impl ScriptContext {
         self.js_compartment.define_functions(debug_fns);
 
         // Evaluate every script in the document.
-        do vec::consume(js_scripts) |_, bytes| {
+        do js_scripts.consume |_, bytes| {
             let _ = self.js_context.evaluate_script(self.js_compartment.global_obj,
                                                     bytes,
                                                     ~"???",
@@ -472,7 +477,7 @@ impl ScriptContext {
     ///
     /// FIXME: This should basically never be used.
     pub fn reflow_all(&mut self, goal: ReflowGoal) {
-        for self.root_frame.each |root_frame| {
+        for self.root_frame.iter().advance |root_frame| {
             ScriptContext::damage(&mut self.damage,
                                   root_frame.document.root,
                                   MatchSelectorsDocumentDamage)
@@ -520,7 +525,7 @@ impl ScriptContext {
 
                 self.window_size = Size2D(new_width, new_height);
 
-                for self.root_frame.each |root_frame| {
+                for self.root_frame.iter().advance |root_frame| {
                     ScriptContext::damage(&mut self.damage,
                                           root_frame.document.root,
                                           ReflowDocumentDamage);
@@ -535,7 +540,7 @@ impl ScriptContext {
             ReflowEvent => {
                 debug!("script got reflow event");
 
-                for self.root_frame.each |root_frame| {
+                for self.root_frame.iter().advance |root_frame| {
                     ScriptContext::damage(&mut self.damage,
                                           root_frame.document.root,
                                           MatchSelectorsDocumentDamage);

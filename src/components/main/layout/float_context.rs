@@ -6,7 +6,8 @@ use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
 use gfx::geometry::{Au, max, min};
-use core::util::replace;
+use std::util::replace;
+use std::vec;
 
 pub enum FloatType{
     FloatLeft,

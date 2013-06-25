@@ -7,7 +7,7 @@
 use dom::bindings::utils::{DOMString, null_string, str};
 use dom::node::{Node, NodeTypeId, ScriptView};
 
-use core::str;
+use std::str;
 
 pub struct CharacterData {
     parent: Node<ScriptView>,
@@ -46,7 +46,7 @@ impl CharacterData {
 
     pub fn AppendData(&mut self, arg: DOMString) {
         let s = self.data.to_str();
-        self.data = str(str::append(s, arg.to_str()));
+        self.data = str(s.append(arg.to_str()));
     }
 
     pub fn InsertData(&mut self, _offset: u32, _arg: DOMString) {

@@ -8,6 +8,10 @@
 use azure::azure_hl::{BackendType, CairoBackend, CoreGraphicsBackend};
 use azure::azure_hl::{CoreGraphicsAcceleratedBackend, Direct2DBackend, SkiaBackend};
 
+use std::f64;
+use std::result;
+use std::uint;
+
 pub struct Opts {
     urls: ~[~str],
     render_backend: BackendType,
@@ -22,17 +26,17 @@ pub struct Opts {
 
 #[allow(non_implicitly_copyable_typarams)]
 pub fn from_cmdline_args(args: &[~str]) -> Opts {
-    use std::getopts;
+    use extra::getopts;
 
     let args = args.tail();
 
     let opts = ~[
-        getopts::optopt(~"o"),  // output file
-        getopts::optopt(~"r"),  // rendering backend
-        getopts::optopt(~"s"),  // size of tiles
-        getopts::optopt(~"t"),  // threads to render with
-        getopts::optflagopt(~"p"),  // profiler flag and output interval
-        getopts::optopt(~"z"),  // zoom level
+        getopts::optopt("o"),  // output file
+        getopts::optopt("r"),  // rendering backend
+        getopts::optopt("s"),  // size of tiles
+        getopts::optopt("t"),  // threads to render with
+        getopts::optflagopt("p"),  // profiler flag and output interval
+        getopts::optopt("z"),  // zoom level
     ];
 
     let opt_match = match getopts::getopts(args, opts) {
@@ -45,11 +49,11 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         copy opt_match.free
     };
 
-    if getopts::opt_present(&opt_match, ~"o") {
+    if getopts::opt_present(&opt_match, "o") {
         fail!(~"servo cannot treat 'o' option now.")
     }
 
-    let render_backend = match getopts::opt_maybe_str(&opt_match, ~"r") {
+    let render_backend = match getopts::opt_maybe_str(&opt_match, "r") {
         Some(backend_str) => {
             if backend_str == ~"direct2d" {
                 Direct2DBackend
@@ -68,24 +72,24 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         None => SkiaBackend
     };
 
-    let tile_size: uint = match getopts::opt_maybe_str(&opt_match, ~"s") {
+    let tile_size: uint = match getopts::opt_maybe_str(&opt_match, "s") {
         Some(tile_size_str) => uint::from_str(tile_size_str).get(),
         None => 512,
     };
 
-    let n_render_threads: uint = match getopts::opt_maybe_str(&opt_match, ~"t") {
+    let n_render_threads: uint = match getopts::opt_maybe_str(&opt_match, "t") {
         Some(n_render_threads_str) => uint::from_str(n_render_threads_str).get(),
         None => 1,      // FIXME: Number of cores.
     };
 
     let profiler_period: Option<f64> =
         // if only flag is present, default to 5 second period
-        match getopts::opt_default(&opt_match, ~"p", ~"5") {
+        match getopts::opt_default(&opt_match, "p", "5") {
         Some(period) => Some(f64::from_str(period).get()),
         None => None,
     };
 
-    let zoom: uint = match getopts::opt_maybe_str(&opt_match, ~"z") {
+    let zoom: uint = match getopts::opt_maybe_str(&opt_match, "z") {
         Some(zoom_str) => uint::from_str(zoom_str).get(),
         None => 1,
     };

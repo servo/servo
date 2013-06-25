@@ -6,7 +6,8 @@
 /// Implementation of the callbacks that the CSS selector engine uses to query the DOM.
 ///
 
-use core::str::eq_slice;
+use std::str;
+use std::str::eq_slice;
 use newcss::select::SelectHandler;
 use script::dom::node::{AbstractNode, LayoutView};
 
@@ -104,7 +105,7 @@ impl SelectHandler<AbstractNode<LayoutView>> for NodeSelectHandler {
                 None => false,
                 Some(existing_classes) => {
                     let mut ret = false;
-                    for str::each_split_char(existing_classes, ' ') |s| {
+                    for existing_classes.split_iter(' ').advance |s| {
                         if s == class {
                             ret = true;
                             break;
