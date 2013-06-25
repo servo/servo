@@ -225,9 +225,9 @@ impl Layout {
             for layout_root.traverse_preorder |flow| {
                 flow.assign_widths(&mut layout_ctx);
             };
-            for layout_root.traverse_postorder |flow| {
-                flow.assign_height(&mut layout_ctx);
-            };
+
+            // For now, this is an inorder traversal
+            layout_root.assign_height(&mut layout_ctx);
         }
 
         // Build the display list if necessary, and send it to the renderer.

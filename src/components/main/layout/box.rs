@@ -8,7 +8,7 @@ use css::node_style::StyledNode;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
 use layout::flow::FlowContext;
-use layout::model::BoxModel;
+use layout::model::{BoxModel, MaybeAuto};
 use layout::text;
 
 use core::cell::Cell;
@@ -370,11 +370,41 @@ pub impl RenderBox {
         }
     }
 
+    /// Guess the intrinsic width of this box for
+    /// computation of min and preferred widths.
+    //
+    // TODO(eatkinson): this is unspecified in
+    // CSS 2.1, but we need to do something reasonable
+    // here. What this function does currently is
+    // NOT reasonable.
+    //
+    // TODO(eatkinson): integrate with
+    // get_min_width and get_pref_width?
+    priv fn guess_width (&self) -> Au {
+        do self.with_base |base| {
+            if(!base.node.is_element()) {
+                Au(0)
+            } else {
+
+                let w = MaybeAuto::from_width(self.style().width(), Au(0)).spec_or_default(Au(0));
+                let ml = MaybeAuto::from_margin(self.style().margin_left(), Au(0)).spec_or_default(Au(0));
+                let mr = MaybeAuto::from_margin(self.style().margin_right(), Au(0)).spec_or_default(Au(0));
+                let pl = base.model.compute_padding_length(self.style().padding_left(), Au(0));
+                let pr = base.model.compute_padding_length(self.style().padding_right(), Au(0));
+                let bl = base.model.compute_border_width(self.style().border_left_width());
+                let br = base.model.compute_border_width(self.style().border_right_width());
+
+                w + ml + mr + pl + pr + bl + br
+            }
+        }
+    }
+
     /// Returns the *minimum width* of this render box as defined by the CSS specification.
     fn get_min_width(&self, _: &LayoutContext) -> Au {
         // FIXME(pcwalton): I think we only need to calculate this if the damage says that CSS
         // needs to be restyled.
-        match *self {
+
+        self.guess_width() + match *self {
             // TODO: This should account for the minimum width of the box element in isolation.
             // That includes borders, margins, and padding, but not child widths. The block
             // `FlowContext` will combine the width of this element and that of its children to
@@ -397,7 +427,7 @@ pub impl RenderBox {
 
     /// Returns the *preferred width* of this render box as defined by the CSS specification.
     fn get_pref_width(&self, _: &LayoutContext) -> Au {
-        match *self {
+        self.guess_width() + match *self {
             // TODO: This should account for the preferred width of the box element in isolation.
             // That includes borders, margins, and padding, but not child widths. The block
             // `FlowContext` will combine the width of this element and that of its children to

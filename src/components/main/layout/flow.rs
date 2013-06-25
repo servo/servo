@@ -26,10 +26,12 @@
 ///   similar methods.
 
 use layout::block::BlockFlowData;
+use layout::float::FloatFlowData;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::inline::{InlineFlowData};
+use layout::float_context::{FloatContext, Invalid};
 
 use core::cell::Cell;
 use geom::point::Point2D;
@@ -44,7 +46,7 @@ use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
 pub enum FlowContext {
     AbsoluteFlow(@mut FlowData), 
     BlockFlow(@mut BlockFlowData),
-    FloatFlow(@mut FlowData),
+    FloatFlow(@mut FloatFlowData),
     InlineBlockFlow(@mut FlowData),
     InlineFlow(@mut InlineFlowData),
     TableFlow(@mut FlowData),
@@ -70,10 +72,10 @@ impl FlowContext {
     pub fn teardown(&self) {
         match *self {
           AbsoluteFlow(data) |
-          FloatFlow(data) |
           InlineBlockFlow(data) |
           TableFlow(data) => data.teardown(),
           BlockFlow(data) => data.teardown(),
+          FloatFlow(data) => data.teardown(),
           InlineFlow(data) => data.teardown()
         }
     }
@@ -110,7 +112,7 @@ impl TreeNodeRef<FlowData> for FlowContext {
             BlockFlow(info) => {
                 callback(&info.common)
             }
-            FloatFlow(info) => callback(info),
+            FloatFlow(info) => callback(&info.common),
             InlineBlockFlow(info) => callback(info),
             InlineFlow(info) => {
                 callback(&info.common)
@@ -124,7 +126,7 @@ impl TreeNodeRef<FlowData> for FlowContext {
             BlockFlow(info) => {
                 callback(&mut info.common)
             }
-            FloatFlow(info) => callback(info),
+            FloatFlow(info) => callback(&mut info.common),
             InlineBlockFlow(info) => callback(info),
             InlineFlow(info) => {
                 callback(&mut info.common)
@@ -156,6 +158,9 @@ pub struct FlowData {
     min_width: Au,
     pref_width: Au,
     position: Rect<Au>,
+    floats_in: FloatContext,
+    floats_out: FloatContext,
+    num_floats: uint,
 }
 
 impl TreeNode<FlowContext> for FlowData {
@@ -216,6 +221,9 @@ impl FlowData {
             min_width: Au(0),
             pref_width: Au(0),
             position: Au::zero_rect(),
+            floats_in: Invalid,
+            floats_out: Invalid,
+            num_floats: 0,
         }
     }
 }
@@ -264,6 +272,7 @@ impl<'self> FlowContext {
         match *self {
             BlockFlow(info)  => info.bubble_widths_block(ctx),
             InlineFlow(info) => info.bubble_widths_inline(ctx),
+            FloatFlow(info)  => info.bubble_widths_float(ctx),
             _ => fail!(fmt!("Tried to bubble_widths of flow: f%d", self.id()))
         }
     }
@@ -272,6 +281,7 @@ impl<'self> FlowContext {
         match *self {
             BlockFlow(info)  => info.assign_widths_block(ctx),
             InlineFlow(info) => info.assign_widths_inline(ctx),
+            FloatFlow(info)  => info.assign_widths_float(ctx),
             _ => fail!(fmt!("Tried to assign_widths of flow: f%d", self.id()))
         }
     }
@@ -280,6 +290,7 @@ impl<'self> FlowContext {
         match *self {
             BlockFlow(info)  => info.assign_height_block(ctx),
             InlineFlow(info) => info.assign_height_inline(ctx),
+            FloatFlow(info)  => info.assign_height_float(ctx),
             _ => fail!(fmt!("Tried to assign_height of flow: f%d", self.id()))
         }
     }
@@ -296,6 +307,7 @@ impl<'self> FlowContext {
         match *self {
             BlockFlow(info)  => info.build_display_list_block(builder, dirty, offset, list),
             InlineFlow(info) => info.build_display_list_inline(builder, dirty, offset, list),
+            FloatFlow(info)  => info.build_display_list_float(builder, dirty, offset, list),
             _ => fail!(fmt!("Tried to build_display_list_recurse of flow: %?", self))
         }
     }
@@ -408,11 +420,17 @@ impl<'self> FlowContext {
                     None => ~"BlockFlow",
                 }
             },
+            FloatFlow(float) => {
+                match float.box {
+                    Some(box) => fmt!("FloatFlow(box=b%d)", box.id()),
+                    None => ~"FloatFlow",
+                }
+            },
             _ => ~"(Unknown flow)"
         };
 
         do self.with_base |base| {
-            fmt!("f%? %? size %?", base.id, repr, base.position)
+            fmt!("f%? %? floats %? size %?", base.id, repr, base.num_floats, base.position)
         }
     }
 }
