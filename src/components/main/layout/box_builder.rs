@@ -379,7 +379,8 @@ pub impl LayoutTreeBuilder {
         let new_generator = match (display, parent_generator.flow, sibling_flow) { 
             (CSSDisplayBlock, BlockFlow(_), _) if is_float => {
                 self.create_child_generator(node, parent_generator, Flow_Float)
-            },
+            }
+
             (CSSDisplayBlock, BlockFlow(info), _) => match (info.is_root, node.parent_node()) {
                 // If this is the root node, then use the root flow's
                 // context. Otherwise, make a child block context.
@@ -389,6 +390,11 @@ pub impl LayoutTreeBuilder {
                     self.create_child_generator(node, parent_generator, Flow_Block)
                 }
             },
+
+            (CSSDisplayBlock, FloatFlow(*), _) => {
+                self.create_child_generator(node, parent_generator, Flow_Block)
+            }
+
             // Inlines that are children of inlines are part of the same flow
             (CSSDisplayInline, InlineFlow(*), _) => parent_generator,
             (CSSDisplayInlineBlock, InlineFlow(*), _) => parent_generator,
@@ -396,9 +402,16 @@ pub impl LayoutTreeBuilder {
             // Inlines that are children of blocks create new flows if their
             // previous sibling was a block.
             (CSSDisplayInline, BlockFlow(*), Some(BlockFlow(*))) |
-            (CSSDisplayInlineBlock, BlockFlow(*), Some(BlockFlow(*))) |
-            (CSSDisplayInline, BlockFlow(*), Some(FloatFlow(*))) |
-            (CSSDisplayInlineBlock, BlockFlow(*), Some(FloatFlow(*))) => {
+            (CSSDisplayInlineBlock, BlockFlow(*), Some(BlockFlow(*))) => {
+                self.create_child_generator(node, parent_generator, Flow_Inline)
+            }
+
+            // FIXME(eatkinson): this is bogus. Floats should not be able to split
+            // inlines. They should be appended as children of the inline flow.
+            (CSSDisplayInline, _, Some(FloatFlow(*))) |
+            (CSSDisplayInlineBlock, _, Some(FloatFlow(*))) |
+            (CSSDisplayInline, FloatFlow(*), _) |
+            (CSSDisplayInlineBlock, FloatFlow(*), _) => {
                 self.create_child_generator(node, parent_generator, Flow_Inline)
             }
 
