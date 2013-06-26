@@ -86,7 +86,7 @@ pub struct FontMetrics {
 }
 
 // TODO(Issue #200): use enum from CSS bindings for 'font-weight'
-#[deriving(Eq)]
+#[deriving(Clone, Eq)]
 pub enum CSSFontWeight {
     FontWeight100,
     FontWeight200,
@@ -114,7 +114,7 @@ impl CSSFontWeight {
 // the instance's properties.
 //
 // For now, the cases are differentiated with a typedef
-#[deriving(Eq)]
+#[deriving(Clone, Eq)]
 pub struct FontStyle {
     pt_size: float,
     weight: CSSFontWeight,
@@ -139,7 +139,7 @@ struct ResolvedFont {
 // It's used to swizzle/unswizzle gfx::Font instances when
 // communicating across tasks, such as the display list between layout
 // and render tasks.
-#[deriving(Eq)]
+#[deriving(Clone, Eq)]
 pub struct FontDescriptor {
     style: UsedFontStyle,
     selector: FontSelector,
@@ -155,7 +155,7 @@ impl FontDescriptor {
 }
 
 // A FontSelector is a platform-specific strategy for serializing face names.
-#[deriving(Eq)]
+#[deriving(Clone, Eq)]
 pub enum FontSelector {
     SelectorPlatformIdentifier(~str),
 }
