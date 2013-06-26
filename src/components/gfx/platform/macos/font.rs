@@ -28,6 +28,9 @@ use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
 use core_text::font_descriptor::{kCTFontDefaultOrientation};
 use core_text;
 
+use std::ptr;
+use std::vec;
+
 pub struct FontTable {
     data: CFData,
 }
@@ -37,8 +40,8 @@ impl Drop for FontTable {
     fn finalize(&self) {}
 }
 
-pub impl FontTable {
-    fn wrap(data: CFData) -> FontTable {
+impl FontTable {
+    pub fn wrap(data: CFData) -> FontTable {
         FontTable { data: data }
     }
 }
@@ -54,15 +57,15 @@ pub struct FontHandle {
     ctfont: CTFont,
 }
 
-pub impl FontHandle {
-    fn new_from_CTFont(_: &FontContextHandle, ctfont: CTFont) -> Result<FontHandle, ()> {
+impl FontHandle {
+    pub fn new_from_CTFont(_: &FontContextHandle, ctfont: CTFont) -> Result<FontHandle, ()> {
         Ok(FontHandle {
-            mut cgfont: None,
+            cgfont: None,
             ctfont: ctfont,
         })
     }
 
-    fn get_CGFont(&mut self) -> CGFont {
+    pub fn get_CGFont(&mut self) -> CGFont {
         match self.cgfont {
             Some(ref font) => font.clone(),
             None => {

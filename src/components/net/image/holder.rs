@@ -6,10 +6,10 @@ use image::base::Image;
 use image_cache_task::{ImageReady, ImageNotReady, ImageFailed};
 use local_image_cache::LocalImageCache;
 
-use core::util::replace;
+use std::util::replace;
 use geom::size::Size2D;
-use std::net::url::Url;
-use std::arc::{ARC, clone, get};
+use extra::net::url::Url;
+use extra::arc::ARC;
 
 // FIXME: Nasty coupling here This will be a problem if we want to factor out image handling from
 // the network stack. This should probably be factored out into an interface and use dependency
@@ -24,7 +24,7 @@ pub struct ImageHolder {
     local_image_cache: @mut LocalImageCache,
 }
 
-pub impl ImageHolder {
+impl ImageHolder {
     pub fn new(url: Url, local_image_cache: @mut LocalImageCache) -> ImageHolder {
         debug!("ImageHolder::new() %?", url.to_str());
         let holder = ImageHolder {
@@ -50,16 +50,16 @@ pub impl ImageHolder {
     ///
     /// The intent is that the impure version is used during layout when dimensions are used for
     /// computing layout.
-    fn size(&self) -> Size2D<int> {
+    pub fn size(&self) -> Size2D<int> {
         self.cached_size
     }
     
     /// Query and update the current image size.
-    fn get_size(&mut self) -> Option<Size2D<int>> {
+    pub fn get_size(&mut self) -> Option<Size2D<int>> {
         debug!("get_size() %?", self.url);
         match self.get_image() {
             Some(img) => { 
-                let img_ref = get(&img);
+                let img_ref = img.get();
                 self.cached_size = Size2D(img_ref.width as int,
                                           img_ref.height as int);
                 Some(copy self.cached_size)
@@ -68,7 +68,7 @@ pub impl ImageHolder {
         }
     }
 
-    fn get_image(&mut self) -> Option<ARC<~Image>> {
+    pub fn get_image(&mut self) -> Option<ARC<~Image>> {
         debug!("get_image() %?", self.url);
 
         // If this is the first time we've called this function, load
@@ -91,7 +91,7 @@ pub impl ImageHolder {
         let image = replace(&mut self.image, None);
 
         let result = match image {
-            Some(ref image) => Some(clone(image)),
+            Some(ref image) => Some(image.clone()),
             None => None
         };
 

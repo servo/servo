@@ -5,8 +5,10 @@
 use compositing::{CompositorChan, SetLayoutChan, SetRenderChan};
 use layout::layout_task;
 
-use core::cell::Cell;
-use core::comm::Port;
+use std::cell::Cell;
+use std::comm;
+use std::comm::Port;
+use std::task;
 use gfx::opts::Opts;
 use gfx::render_task::RenderChan;
 use gfx::render_task;
@@ -43,7 +45,7 @@ impl Engine {
             ($Msg:ty, $Chan:ident) => (
                 {
                     let (port, chan) = comm::stream::<$Msg>();
-                    (Cell(port), $Chan::new(chan))
+                    (Cell::new(port), $Chan::new(chan))
                 }
             );
         )
@@ -58,15 +60,15 @@ impl Engine {
         let (layout_port, layout_chan) = closure_stream!(layout_interface::Msg, LayoutChan);
 
         let (render_port, render_chan) = comm::stream::<render_task::Msg<CompositorChan>>();
-        let (render_port, render_chan) = (Cell(render_port), RenderChan::new(render_chan));
+        let (render_port, render_chan) = (Cell::new(render_port), RenderChan::new(render_chan));
 
 
         compositor_chan.send(SetLayoutChan(layout_chan.clone()));
         compositor_chan.send(SetRenderChan(render_chan.clone()));
 
-        let compositor_chan = Cell(compositor_chan);
+        let compositor_chan = Cell::new(compositor_chan);
 
-        let opts = Cell(copy *opts);
+        let opts = Cell::new(copy *opts);
 
         {
             let engine_chan = engine_chan.clone();

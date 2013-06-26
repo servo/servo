@@ -7,9 +7,9 @@
 use file_loader;
 use http_loader;
 
-use core::cell::Cell;
-use core::comm::{Chan, Port, SharedChan};
-use std::net::url::{Url, to_str};
+use std::cell::Cell;
+use std::comm::{Chan, Port, SharedChan};
+use extra::net::url::{Url, to_str};
 use util::spawn_listener;
 
 pub enum ControlMsg {
@@ -52,7 +52,7 @@ pub fn ResourceTask() -> ResourceTask {
 }
 
 fn create_resource_task_with_loaders(loaders: ~[(~str, LoaderTaskFactory)]) -> ResourceTask {
-    let loaders_cell = Cell(loaders);
+    let loaders_cell = Cell::new(loaders);
     let chan = do spawn_listener |from_client| {
         // TODO: change copy to move once we can move out of closures
         ResourceManager(from_client, loaders_cell.take()).start()

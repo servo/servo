@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // Timing functions.
-use std::time::precise_time_ns;
-use core::cell::Cell;
-use core::comm::{Port, SharedChan};
-use std::sort::tim_sort;
+use extra::time::precise_time_ns;
+use std::cell::Cell;
+use std::comm::{Port, SharedChan};
+use extra::sort::tim_sort;
 
 // front-end representation of the profiler used to communicate with the profiler
 #[deriving(Clone)]
@@ -111,7 +111,7 @@ impl ProfilerCategory {
 
 impl Profiler {
     pub fn create(port: Port<ProfilerMsg>) {
-        let port = Cell(port);
+        let port = Cell::new(port);
         do spawn {
             let mut profiler = Profiler::new(port.take());
             profiler.start();
@@ -154,7 +154,7 @@ impl Profiler {
         println(fmt!("%31s %15s %15s %15s %15s %15s",
                          "_category (ms)_", "_mean (ms)_", "_median (ms)_",
                          "_min (ms)_", "_max (ms)_", "_bucket size_"));
-        for vec::each_mut(self.buckets) |bucket| {
+        for self.buckets.mut_iter().advance |bucket| {
             match *bucket {
                 (category, ref mut data) => {
                     tim_sort(*data);
@@ -163,8 +163,8 @@ impl Profiler {
                         let (mean, median, min, max) =
                             (data.foldl(0f64, |a, b| a + *b) / (data_len as f64),
                              data[data_len / 2],
-                             data.min(),
-                             data.max());
+                             data.iter().min(),
+                             data.iter().max());
                         println(fmt!("%-30s: %15.4? %15.4? %15.4? %15.4? %15u",
                                      category.format(), mean, median, min, max, data_len));
                     }

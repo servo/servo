@@ -2853,7 +2853,7 @@ class CGCallGenerator(CGThing):
     """
     def __init__(self, errorReport, arguments, argsPre, returnType,
                  extendedAttributes, descriptorProvider, nativeMethodName,
-                 static, object="self", declareResult=True):
+                 static, object="this", declareResult=True):
         CGThing.__init__(self)
 
         assert errorReport is None or isinstance(errorReport, CGThing)
@@ -3070,7 +3070,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
         unwrapThis = CGIndenter(CGGeneric(
             str(CastableObjectUnwrapper(
                         FakeCastableDescriptor(self.descriptor),
-                        "obj", "self", self.unwrapFailureCode))))
+                        "obj", "this", self.unwrapFailureCode))))
         return CGList([ self.getThis(), unwrapThis,
                         self.generate_code() ], "\n").define()
 
@@ -3081,7 +3081,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
                       "  return false as JSBool;\n"
                       "}\n"
                       "\n"
-                      "let self: *rust_box<%s>;" % self.descriptor.nativeType))
+                      "let this: *rust_box<%s>;" % self.descriptor.nativeType))
 
     def generate_code(self):
         assert(False) # Override me
@@ -3098,7 +3098,7 @@ class CGGenericMethod(CGAbstractBindingMethod):
     def generate_code(self):
         return CGIndenter(CGGeneric(
             "let _info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitMethodOp(_info, cx, obj, ptr::to_unsafe_ptr(&(*self).payload) as *libc::c_void, argc, vp);"))
+            "return CallJitMethodOp(_info, cx, obj, ptr::to_unsafe_ptr(&(*this).payload) as *libc::c_void, argc, vp);"))
 
 class CGAbstractStaticMethod(CGAbstractMethod):
     """
@@ -3121,7 +3121,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         self.method = method
         name = method.identifier.name
         args = [Argument('*JSContext', 'cx'), Argument('JSHandleObject', 'obj'),
-                Argument('*mut %s' % descriptor.nativeType, 'self'),
+                Argument('*mut %s' % descriptor.nativeType, 'this'),
                 Argument('libc::c_uint', 'argc'), Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'JSBool', args)
 
@@ -3154,7 +3154,7 @@ class CGGenericGetter(CGAbstractBindingMethod):
     def generate_code(self):
         return CGIndenter(CGGeneric(
             "let _info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitPropertyOp(_info, cx, obj, ptr::to_unsafe_ptr(&(*self).payload) as *libc::c_void, vp);"))
+            "return CallJitPropertyOp(_info, cx, obj, ptr::to_unsafe_ptr(&(*this).payload) as *libc::c_void, vp);"))
 
 class CGSpecializedGetter(CGAbstractExternMethod):
     """
@@ -3166,7 +3166,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         name = 'get_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
                  Argument('JSHandleObject', 'obj'),
-                 Argument('*%s' % descriptor.nativeType, 'self'),
+                 Argument('*%s' % descriptor.nativeType, 'this'),
                  Argument('*mut JSVal', 'vp') ]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -3466,7 +3466,7 @@ if expando.is_not_null() {
             getIndexedOrExpando = ("let index = GetArrayIndexFromId(cx, id);\n" +
                                    "if index.is_some() {\n" +
                                    "  let index = index.get();\n" +
-                                   "  let self = UnwrapProxy(proxy);\n" +
+                                   "  let this = UnwrapProxy(proxy);\n" +
                                    CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define())
             getIndexedOrExpando += """
   // Even if we don't have this index, we don't forward the
@@ -3488,7 +3488,7 @@ if expando.is_not_null() {
                         "    return false;\n" +
                         "  }\n" +
                         "\n" +
-                        "  let self = UnwrapProxy(proxy);\n" +
+                        "  let this = UnwrapProxy(proxy);\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
                         "}\n") % (self.descriptor.nativeType)
         else:
@@ -3558,7 +3558,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
     def definition_body_prologue(self):
         return "" #XXXjdm we may want to do a proper unwrap here
         return """
-  let self: *%s = &(unwrap::<*rust_box<%s>>(obj).payload);
+  let this: *%s = &(unwrap::<*rust_box<%s>>(obj).payload);
 """ % (self.descriptor.nativeType, self.descriptor.nativeType)
 
     def definition_body(self):
@@ -3570,8 +3570,8 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
 def finalizeHook(descriptor, hookName, context):
     if descriptor.customFinalize:
-        return """if (self) {
-  self->%s(%s);
+        return """if (this) {
+  this->%s(%s);
 }""" % (hookName, context)
     #clearWrapper = "ClearWrapper(self, self);\n" if descriptor.wrapperCache else ""
     if descriptor.workers:
@@ -4132,9 +4132,7 @@ class CGBindingRoot(CGThing):
                          dictionaries,
                          ['js::*',
                           'js::jsapi::*',
-                          'js::jsapi::bindgen::*',
                           'js::jsfriendapi::bindgen::*',
-                          'js::glue::bindgen::*',
                           'js::glue::*',
                           'dom::node::AbstractNode', #XXXjdm
                           'dom::document::Document', #XXXjdm
@@ -4150,6 +4148,11 @@ class CGBindingRoot(CGThing):
                           'script_task::task_from_context',
                           'dom::bindings::utils::EnumEntry',
                           'dom::node::ScriptView',
+                          'std::cast',
+                          'std::libc',
+                          'std::ptr',
+                          'std::vec',
+                          'std::str'
                          ], 
                          [],
                          curr)

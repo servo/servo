@@ -4,8 +4,6 @@
 
 extern mod harfbuzz;
 
-use geom::Point2D;
-
 use font::{Font, FontHandleMethods, FontTableMethods, FontTableTag};
 use geometry::Au;
 use platform::font::FontTable;
@@ -14,45 +12,37 @@ use text::shaping::ShaperMethods;
 use servo_util::range::Range;
 use text::util::{float_to_fixed, fixed_to_float, fixed_to_rounded_int};
 
-use core::cast::transmute;
-use core::libc::{c_uint, c_int, c_void, c_char};
-use core::ptr::null;
-use core::util::ignore;
+use std::cast::transmute;
+use std::libc::{c_uint, c_int, c_void, c_char};
+use std::ptr;
+use std::ptr::null;
+use std::str;
+use std::uint;
+use std::util::ignore;
+use std::vec;
 use geom::Point2D;
-use harfbuzz::bindgen::{hb_blob_create, hb_face_create_for_tables};
-use harfbuzz::bindgen::{hb_buffer_add_utf8, hb_shape};
-use harfbuzz::bindgen::{hb_buffer_create};
-use harfbuzz::bindgen::{hb_buffer_destroy, hb_buffer_add_utf8};
-use harfbuzz::bindgen::{hb_buffer_get_glyph_infos};
-use harfbuzz::bindgen::{hb_buffer_get_glyph_positions};
-use harfbuzz::bindgen::{hb_buffer_get_glyph_positions};
-use harfbuzz::bindgen::{hb_buffer_set_direction};
-use harfbuzz::bindgen::{hb_buffer_set_direction};
-use harfbuzz::bindgen::{hb_face_destroy, hb_font_create};
-use harfbuzz::bindgen::{hb_face_destroy};
-use harfbuzz::bindgen::{hb_font_create, hb_font_destroy};
-use harfbuzz::bindgen::{hb_font_destroy, hb_buffer_create};
-use harfbuzz::bindgen::{hb_font_funcs_create, hb_font_funcs_destroy};
-use harfbuzz::bindgen::{hb_font_funcs_create};
-use harfbuzz::bindgen::{hb_font_funcs_destroy};
-use harfbuzz::bindgen::{hb_font_funcs_set_glyph_func};
-use harfbuzz::bindgen::{hb_font_funcs_set_glyph_func};
-use harfbuzz::bindgen::{hb_font_funcs_set_glyph_h_advance_func};
-use harfbuzz::bindgen::{hb_font_funcs_set_glyph_h_advance_func};
-use harfbuzz::bindgen::{hb_font_set_funcs};
-use harfbuzz::bindgen::{hb_font_set_funcs};
-use harfbuzz::bindgen::{hb_font_set_ppem, hb_font_set_scale};
-use harfbuzz::bindgen::{hb_font_set_ppem};
-use harfbuzz::bindgen::{hb_font_set_scale};
-use harfbuzz::bindgen::{hb_shape, hb_buffer_get_glyph_infos};
-use harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR, hb_blob_t};
+use harfbuzz::{hb_blob_create, hb_face_create_for_tables};
+use harfbuzz::{hb_buffer_add_utf8};
+use harfbuzz::{hb_buffer_get_glyph_positions};
+use harfbuzz::{hb_buffer_set_direction};
+use harfbuzz::{hb_buffer_destroy};
+use harfbuzz::{hb_face_destroy};
+use harfbuzz::{hb_font_create};
+use harfbuzz::{hb_font_destroy, hb_buffer_create};
+use harfbuzz::{hb_font_funcs_create};
+use harfbuzz::{hb_font_funcs_destroy};
+use harfbuzz::{hb_font_funcs_set_glyph_func};
+use harfbuzz::{hb_font_funcs_set_glyph_h_advance_func};
+use harfbuzz::{hb_font_set_funcs};
+use harfbuzz::{hb_font_set_ppem};
+use harfbuzz::{hb_font_set_scale};
+use harfbuzz::{hb_shape, hb_buffer_get_glyph_infos};
 use harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR};
-use harfbuzz::{hb_blob_t, hb_face_t, hb_font_t, hb_font_funcs_t};
-use harfbuzz::{hb_buffer_t, hb_codepoint_t, hb_bool_t};
+use harfbuzz::{hb_blob_t};
+use harfbuzz::{hb_bool_t};
 use harfbuzz::{hb_face_t, hb_font_t};
 use harfbuzz::{hb_font_funcs_t, hb_buffer_t, hb_codepoint_t};
-use harfbuzz::{hb_glyph_info_t, hb_position_t};
-use harfbuzz::{hb_glyph_position_t, hb_glyph_info_t};
+use harfbuzz::{hb_glyph_info_t};
 use harfbuzz::{hb_glyph_position_t};
 use harfbuzz::{hb_position_t, hb_tag_t};
 
@@ -74,19 +64,21 @@ pub struct ShapedGlyphEntry {
 
 impl ShapedGlyphData {
     pub fn new(buffer: *hb_buffer_t) -> ShapedGlyphData {
-        let glyph_count = 0;
-        let glyph_infos = hb_buffer_get_glyph_infos(buffer, &glyph_count);
-        let glyph_count = glyph_count as uint;
-        assert!(glyph_infos.is_not_null());
-        let pos_count = 0;
-        let pos_infos = hb_buffer_get_glyph_positions(buffer, &pos_count);
-        assert!(pos_infos.is_not_null());
-        assert!(glyph_count == pos_count as uint);
+        unsafe {
+            let glyph_count = 0;
+            let glyph_infos = hb_buffer_get_glyph_infos(buffer, &glyph_count);
+            let glyph_count = glyph_count as uint;
+            assert!(glyph_infos.is_not_null());
+            let pos_count = 0;
+            let pos_infos = hb_buffer_get_glyph_positions(buffer, &pos_count);
+            assert!(pos_infos.is_not_null());
+            assert!(glyph_count == pos_count as uint);
 
-        ShapedGlyphData {
-            count: glyph_count,
-            glyph_infos: glyph_infos,
-            pos_infos: pos_infos,
+            ShapedGlyphData {
+                count: glyph_count,
+                glyph_infos: glyph_infos,
+                pos_infos: pos_infos,
+            }
         }
     }
 
@@ -152,50 +144,54 @@ pub struct Shaper {
 #[unsafe_destructor]
 impl Drop for Shaper {
     fn finalize(&self) {
-        assert!(self.hb_face.is_not_null());
-        hb_face_destroy(self.hb_face);
+        unsafe {
+            assert!(self.hb_face.is_not_null());
+            hb_face_destroy(self.hb_face);
 
-        assert!(self.hb_font.is_not_null());
-        hb_font_destroy(self.hb_font);
+            assert!(self.hb_font.is_not_null());
+            hb_font_destroy(self.hb_font);
 
-        assert!(self.hb_funcs.is_not_null());
-        hb_font_funcs_destroy(self.hb_funcs);
+            assert!(self.hb_funcs.is_not_null());
+            hb_font_funcs_destroy(self.hb_funcs);
+        }
     }
 }
 
 impl Shaper {
     pub fn new(font: @mut Font) -> Shaper {
-        // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
-        let font_ptr = {
-            let borrowed_font= &mut *font;
-            borrowed_font as *mut Font
-        };
-        let hb_face: *hb_face_t = hb_face_create_for_tables(get_font_table_func,
-                                                            font_ptr as *c_void,
-                                                            null());
-        let hb_font: *hb_font_t = hb_font_create(hb_face);
+        unsafe {
+            // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
+            let font_ptr = {
+                let borrowed_font= &mut *font;
+                borrowed_font as *mut Font
+            };
+            let hb_face: *hb_face_t = hb_face_create_for_tables(get_font_table_func,
+                                                                font_ptr as *c_void,
+                                                                null());
+            let hb_font: *hb_font_t = hb_font_create(hb_face);
 
-        // Set points-per-em. if zero, performs no hinting in that direction.
-        let pt_size = font.style.pt_size;
-        hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
+            // Set points-per-em. if zero, performs no hinting in that direction.
+            let pt_size = font.style.pt_size;
+            hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
 
-        // Set scaling. Note that this takes 16.16 fixed point.
-        hb_font_set_scale(hb_font,
-                          Shaper::float_to_fixed(pt_size) as c_int,
-                          Shaper::float_to_fixed(pt_size) as c_int);
+            // Set scaling. Note that this takes 16.16 fixed point.
+            hb_font_set_scale(hb_font,
+                              Shaper::float_to_fixed(pt_size) as c_int,
+                              Shaper::float_to_fixed(pt_size) as c_int);
 
-        // configure static function callbacks.
-        // NB. This funcs structure could be reused globally, as it never changes.
-        let hb_funcs: *hb_font_funcs_t = hb_font_funcs_create();
-        hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, null(), null());
-        hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, null(), null());
-        hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *c_void, null());
+            // configure static function callbacks.
+            // NB. This funcs structure could be reused globally, as it never changes.
+            let hb_funcs: *hb_font_funcs_t = hb_font_funcs_create();
+            hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, null(), null());
+            hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, null(), null());
+            hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *c_void, null());
 
-        Shaper {
-            font: font,
-            hb_face: hb_face,
-            hb_font: hb_font,
-            hb_funcs: hb_funcs,
+            Shaper {
+                font: font,
+                hb_face: hb_face,
+                hb_font: hb_font,
+                hb_funcs: hb_funcs,
+            }
         }
     }
 
@@ -216,21 +212,23 @@ impl ShaperMethods for Shaper {
     /// Calculate the layout metrics associated with the given text when rendered in a specific
     /// font.
     fn shape_text(&self, text: &str, glyphs: &mut GlyphStore) {
-        let hb_buffer: *hb_buffer_t = hb_buffer_create();
-        hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
+        unsafe {
+            let hb_buffer: *hb_buffer_t = hb_buffer_create();
+            hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
 
-        // Using as_buf because it never does a copy - we don't need the trailing null
-        do str::as_buf(text) |ctext: *u8, _: uint| {
-            hb_buffer_add_utf8(hb_buffer,
-                               ctext as *c_char,
-                               text.len() as c_int,
-                               0,
-                               text.len() as c_int);
+            // Using as_buf because it never does a copy - we don't need the trailing null
+            do str::as_buf(text) |ctext: *u8, _: uint| {
+                hb_buffer_add_utf8(hb_buffer,
+                                   ctext as *c_char,
+                                   text.len() as c_int,
+                                   0,
+                                   text.len() as c_int);
+            }
+
+            hb_shape(self.hb_font, hb_buffer, null(), 0);
+            self.save_glyph_results(text, glyphs, hb_buffer);
+            hb_buffer_destroy(hb_buffer);
         }
-
-        hb_shape(self.hb_font, hb_buffer, null(), 0);
-        self.save_glyph_results(text, glyphs, hb_buffer);
-        hb_buffer_destroy(hb_buffer);
     }
 }
 
@@ -239,7 +237,7 @@ impl Shaper {
         let glyph_data = ShapedGlyphData::new(buffer);
         let glyph_count = glyph_data.len();
         let byte_max = text.len();
-        let char_max = str::char_len(text);
+        let char_max = text.char_len();
 
         // GlyphStore records are indexed by character, not byte offset.
         // so, we must be careful to increment this when saving glyph entries.
@@ -267,7 +265,7 @@ impl Shaper {
             let mut i = 0;
             while i < byte_max {
                 byteToGlyph[i] = NO_GLYPH;
-                let range = str::char_range_at(text, i);
+                let range = text.char_range_at(i);
                 ignore(range.ch);
                 i = range.next;
             }
@@ -292,7 +290,7 @@ impl Shaper {
         debug!("(char idx): char->(glyph index):");
         let mut i = 0u;
         while i < byte_max {
-            let range = str::char_range_at(text, i);
+            let range = text.char_range_at(i);
             debug!("%u: %? --> %d", i, range.ch, byteToGlyph[i] as int);
             i = range.next;
         }
@@ -318,7 +316,7 @@ impl Shaper {
             // find a range of chars corresponding to this glyph, plus
             // any trailing chars that do not have associated glyphs.
             while char_byte_span.end() < byte_max {
-                let range = str::char_range_at(text, char_byte_span.end());
+                let range = text.char_range_at(char_byte_span.end());
                 ignore(range.ch);
                 char_byte_span.extend_to(range.next);
 
@@ -329,7 +327,7 @@ impl Shaper {
                         byteToGlyph[char_byte_span.end()] == NO_GLYPH {
                     debug!("Extending char byte span to include byte offset=%u with no associated \
                             glyph", char_byte_span.end());
-                    let range = str::char_range_at(text, char_byte_span.end());
+                    let range = text.char_range_at(char_byte_span.end());
                     ignore(range.ch);
                     char_byte_span.extend_to(range.next);
                 }
@@ -404,7 +402,7 @@ impl Shaper {
             // extend, clipping at end of text range.
             while covered_byte_span.end() < byte_max
                     && byteToGlyph[covered_byte_span.end()] == NO_GLYPH {
-                let range = str::char_range_at(text, covered_byte_span.end());
+                let range = text.char_range_at(covered_byte_span.end());
                 ignore(range.ch);
                 covered_byte_span.extend_to(range.next);
             }
@@ -457,7 +455,7 @@ impl Shaper {
                 // set the other chars, who have no glyphs
                 let mut i = covered_byte_span.begin();
                 loop {
-                    let range = str::char_range_at(text, i);
+                    let range = text.char_range_at(i);
                     ignore(range.ch);
                     i = range.next;
                     if i >= covered_byte_span.end() { break; }

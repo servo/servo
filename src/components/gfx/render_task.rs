@@ -17,8 +17,9 @@ use geom::rect::Rect;
 use opts::Opts;
 use render_context::RenderContext;
 
-use core::cell::Cell;
-use core::comm::{Chan, Port, SharedChan};
+use std::cell::Cell;
+use std::comm::{Chan, Port, SharedChan};
+use std::uint;
 
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
@@ -62,9 +63,9 @@ pub fn create_render_task<C: RenderListener + Owned>(port: Port<Msg<C>>,
                                                      compositor: C,
                                                      opts: Opts,
                                                      profiler_chan: ProfilerChan) {
-    let compositor_cell = Cell(compositor);
-    let opts_cell = Cell(opts);
-    let port = Cell(port);
+    let compositor_cell = Cell::new(compositor);
+    let opts_cell = Cell::new(opts);
+    let port = Cell::new(port);
 
     do spawn {
         let compositor = compositor_cell.take();

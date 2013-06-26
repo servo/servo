@@ -8,9 +8,11 @@ use dom::clientrect::ClientRect;
 use script_task::{task_from_context, global_script_context};
 
 use js::jsapi::{JSObject, JSContext, JSVal};
-use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
+use js::glue::RUST_OBJECT_TO_JSVAL;
 
-pub impl ClientRect {
+use std::cast;
+
+impl ClientRect {
     pub fn init_wrapper(@mut self) {
         let script_context = global_script_context();
         let cx = script_context.js_compartment.cx.ptr;

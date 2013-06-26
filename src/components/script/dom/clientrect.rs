@@ -4,6 +4,8 @@
 
 use dom::bindings::utils::WrapperCache;
 
+use std::f32;
+
 pub struct ClientRect {
     wrapper: WrapperCache,
     top: f32,

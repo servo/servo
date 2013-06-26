@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use core::cell::Cell;
-use core;
+use std::cell::Cell;
+use std;
 use layout::box::{CannotSplit, GenericRenderBoxClass, ImageRenderBoxClass, RenderBox};
 use layout::box::{SplitDidFit, SplitDidNotFit, TextRenderBoxClass, UnscannedTextRenderBoxClass};
 use layout::context::LayoutContext;
@@ -12,7 +12,10 @@ use layout::flow::{FlowContext, FlowData, InlineFlow};
 use layout::text::{UnscannedMethods, adapt_textbox_with_range};
 use layout::float_context::FloatContext;
 
-use core::util;
+use std::u16;
+use std::uint;
+use std::util;
+use std::vec;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
@@ -25,8 +28,8 @@ use newcss::units::{Em, Px, Pt};
 use newcss::values::{CSSLineHeightNormal, CSSLineHeightNumber, CSSLineHeightLength, CSSLineHeightPercentage};
 
 use servo_util::range::Range;
-use std::deque::Deque;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
+use extra::deque::Deque;
 
 /*
 Lineboxes are represented as offsets into the child list, rather than
@@ -55,8 +58,8 @@ pub struct NodeRange {
     range: Range,
 }
 
-pub impl NodeRange {
-    fn new(node: AbstractNode<LayoutView>, range: &Range) -> NodeRange {
+impl NodeRange {
+    pub fn new(node: AbstractNode<LayoutView>, range: &Range) -> NodeRange {
         NodeRange { node: node, range: copy *range }
     }
 }
@@ -326,9 +329,9 @@ impl TextRunScanner {
                 let mut new_ranges: ~[Range] = ~[];
                 let mut char_total = 0;
                 for uint::range(0, transformed_strs.len()) |i| {
-                    let added_chars = str::char_len(transformed_strs[i]);
+                    let added_chars = transformed_strs[i].char_len();
                     new_ranges.push(Range::new(char_total, added_chars));
-                    str::push_str(&mut run_str, transformed_strs[i]);
+                    run_str.push_str(transformed_strs[i]);
                     char_total += added_chars;
                 }
 
@@ -415,7 +418,7 @@ impl LineboxScanner {
             flow: inline,
             new_boxes: ~[],
             work_list: @mut Deque::new(),
-            pending_line: PendingLine {mut range: Range::empty(), mut bounds: Rect(Point2D(Au(0), Au(0)), Size2D(Au(0), Au(0)))},
+            pending_line: PendingLine {range: Range::empty(), bounds: Rect(Point2D(Au(0), Au(0)), Size2D(Au(0), Au(0)))},
             line_spans: ~[],
         }
     }
@@ -637,7 +640,7 @@ impl LineboxScanner {
         debug!("LineboxScanner: Pushing box b%d to line %u", box.id(), self.line_spans.len());
 
         if self.pending_line.range.length() == 0 {
-            assert!(self.new_boxes.len() <= (core::u16::max_value as uint));
+            assert!(self.new_boxes.len() <= (u16::max_value as uint));
             self.pending_line.range.reset(self.new_boxes.len(), 0);
         }
         self.pending_line.range.extend_by(1);

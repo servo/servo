@@ -3,11 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use js::jsapi::{JSContext, jsid, JSPropertyDescriptor, JSObject, JSString, jschar};
-use js::jsapi::bindgen::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};
-use js::glue::bindgen::{RUST_JSVAL_IS_VOID, RUST_JSVAL_TO_OBJECT, GetProxyExtra};
-use js::glue::bindgen::{GetObjectProto};
+use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};
+use js::glue::{RUST_JSVAL_IS_VOID, RUST_JSVAL_TO_OBJECT, GetProxyExtra};
+use js::glue::{GetObjectProto};
 
-use core::sys::size_of;
+use std::cast;
+use std::libc;
+use std::ptr;
+use std::str;
+use std::sys::size_of;
 
 type c_bool = libc::c_int;
 
@@ -68,7 +72,7 @@ pub fn _obj_toString(cx: *JSContext, className: *libc::c_char) -> *JSString {
     }
 
     let result = ~"[object " + name + ~"]";
-    for result.each_chari |i, c| {
+    for result.iter().enumerate().advance |(i, c)| {
       *chars.offset(i) = c as jschar;
     }
     *chars.offset(nchars) = 0;

@@ -8,7 +8,7 @@ use layout::box::RenderBox;
 use layout::context::LayoutContext;
 use layout::flow::FlowContext;
 
-use core::cell::Cell;
+use std::cell::Cell;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;

@@ -9,8 +9,10 @@ use script_task::{task_from_context, global_script_context};
 
 use js::jsapi::{JSObject, JSContext};
 
-pub impl HTMLCollection {
-    fn init_wrapper(@mut self) {
+use std::cast;
+
+impl HTMLCollection {
+    pub fn init_wrapper(@mut self) {
         let script_context = global_script_context();
         let cx = script_context.js_compartment.cx.ptr;
         let owner = script_context.root_frame.get_ref().window;

@@ -8,11 +8,10 @@ use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 use platform::font_list::FontListHandle;
 use servo_util::time;
-use servo_util::time::time;
 use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
 
-use core::hashmap::HashMap;
+use std::hashmap::HashMap;
 
 pub type FontFamilyMap = HashMap<~str, @mut FontFamily>;
 
@@ -29,8 +28,8 @@ pub struct FontList {
     prof_chan: ProfilerChan,
 }
 
-pub impl FontList {
-    fn new(fctx: &FontContextHandle,
+impl FontList {
+    pub fn new(fctx: &FontContextHandle,
            prof_chan: ProfilerChan)
            -> FontList {
         let handle = FontListHandle::new(fctx);
@@ -53,7 +52,7 @@ pub impl FontList {
         }
     }
 
-    fn find_font_in_family(&self,
+    pub fn find_font_in_family(&self,
                            family_name: &str, 
                            style: &SpecifiedFontStyle) -> Option<@FontEntry> {
         let family = self.find_family(family_name);
@@ -62,7 +61,7 @@ pub impl FontList {
 
         // if such family exists, try to match style to a font
         let mut result: Option<@FontEntry> = None;
-        for family.each |fam| {
+        for family.iter().advance |fam| {
             result = fam.find_font_for_style(&self.handle, style);
         }
 

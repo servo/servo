@@ -4,7 +4,7 @@
 
 use js::jsapi::JSVal;
 use js::{JSVAL_FALSE, JSVAL_TRUE};
-use js::glue::bindgen::{RUST_UINT_TO_JSVAL, RUST_JSVAL_TO_INT};
+use js::glue::{RUST_UINT_TO_JSVAL, RUST_JSVAL_TO_INT};
 
 pub trait JSValConvertible {
     fn to_jsval(&self) -> JSVal;
@@ -13,11 +13,15 @@ pub trait JSValConvertible {
 
 impl JSValConvertible for u32 {
     fn to_jsval(&self) -> JSVal {
-        RUST_UINT_TO_JSVAL(*self)
+        unsafe {
+            RUST_UINT_TO_JSVAL(*self)
+        }
     }
 
     fn from_jsval(val: JSVal) -> Option<u32> {
-        Some(RUST_JSVAL_TO_INT(val) as u32)
+        unsafe {
+            Some(RUST_JSVAL_TO_INT(val) as u32)
+        }
     }
 }
 

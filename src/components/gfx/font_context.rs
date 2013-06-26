@@ -14,7 +14,9 @@ use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 
 use azure::azure_hl::BackendType;
-use core::hashmap::HashMap;
+use std::hashmap::HashMap;
+use std::str;
+use std::result;
 
 // TODO(Rust #3934): creating lots of new dummy styles is a workaround
 // for not being able to store symbolic enums in top-level constants.
@@ -46,8 +48,8 @@ pub struct FontContext {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub impl<'self> FontContext {
-    fn new(backend: BackendType,
+impl<'self> FontContext {
+    pub fn new(backend: BackendType,
            needs_font_list: bool,
            profiler_chan: ProfilerChan)
            -> FontContext {
@@ -79,7 +81,7 @@ pub impl<'self> FontContext {
         self.font_list.get_ref()
     }
 
-    fn get_resolved_font_for_style(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
+    pub fn get_resolved_font_for_style(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
         match self.group_cache.find(style) {
             Some(fg) => {
                 debug!("font group cache hit");
@@ -94,7 +96,7 @@ pub impl<'self> FontContext {
         }
     }
 
-    fn get_font_by_descriptor(&mut self, desc: &FontDescriptor) -> Result<@mut Font, ()> {
+    pub fn get_font_by_descriptor(&mut self, desc: &FontDescriptor) -> Result<@mut Font, ()> {
         match self.instance_cache.find(desc) {
             Some(f) => {
                 debug!("font cache hit");
@@ -129,8 +131,8 @@ pub impl<'self> FontContext {
         debug!("(create font group) --- starting ---");
 
         // TODO(Issue #193): make iteration over 'font-family' more robust.
-        for str::each_split_char(style.families, ',') |family| {
-            let family_name = str::trim(family);
+        for style.families.split_iter(',').advance |family| {
+            let family_name = family.trim();
             let transformed_family_name = self.transform_family(family_name);
             debug!("(create font group) transformed family is `%s`", transformed_family_name);
 
@@ -142,7 +144,7 @@ pub impl<'self> FontContext {
             };
 
             let mut found = false;
-            for result.each |font_entry| {
+            for result.iter().advance |font_entry| {
                 found = true;
 
                 let font_id =
@@ -161,7 +163,7 @@ pub impl<'self> FontContext {
 
         let last_resort = FontList::get_last_resort_font_families();
 
-        for last_resort.each |family| {
+        for last_resort.iter().advance |family| {
             let result = match self.font_list {
                 Some(ref fl) => {
                     fl.find_font_in_family(*family, style)
@@ -169,7 +171,7 @@ pub impl<'self> FontContext {
                 None => None,
             };
 
-            for result.each |font_entry| {
+            for result.iter().advance |font_entry| {
                 let font_id =
                   SelectorPlatformIdentifier(font_entry.handle.face_identifier());
                 let font_desc = FontDescriptor::new(copy *style, font_id);

@@ -33,7 +33,8 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::inline::{InlineFlowData};
 use layout::float_context::{FloatContext, Invalid};
 
-use core::cell::Cell;
+use std::cell::Cell;
+use std::uint;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
@@ -89,14 +90,14 @@ impl FlowData {
         // or we risk dynamic borrow failures.
         self.parent = None;
 
-        for self.first_child.each |flow| {
+        for self.first_child.iter().advance |flow| {
             flow.teardown();
         }
         self.first_child = None;
 
         self.last_child = None;
 
-        for self.next_sibling.each |flow| {
+        for self.next_sibling.iter().advance |flow| {
             flow.teardown();
         }
         self.next_sibling = None;
@@ -317,14 +318,14 @@ impl<'self> FlowContext {
         match *self {
             BlockFlow(block) => {
                 let block = &mut *block;
-                do block.box.map_default(seed) |box| {
-                    cb(seed, *box)
+                do block.box.map_default(copy seed) |box| {
+                    cb(copy seed, *box)
                 }
             }
             InlineFlow(inline) => {
                 let inline = &mut *inline;
                 do inline.boxes.foldl(seed) |acc, box| {
-                    cb(*acc, *box)
+                    cb(copy *acc, *box)
                 }
             }
             _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self)),
@@ -349,7 +350,7 @@ impl<'self> FlowContext {
         match *self {
             BlockFlow(block) => {
                 let block = &mut *block;
-                for block.box.each |box| {
+                for block.box.iter().advance |box| {
                     if !cb(*box) {
                         break;
                     }
@@ -357,7 +358,7 @@ impl<'self> FlowContext {
             }
             InlineFlow(inline) => {
                 let inline = &mut *inline;
-                for inline.boxes.each |box| {
+                for inline.boxes.iter().advance |box| {
                     if !cb(*box) {
                         break;
                     }

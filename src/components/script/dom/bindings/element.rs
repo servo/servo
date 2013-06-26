@@ -12,10 +12,17 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use script_task::task_from_context;
 use super::utils;
 
-use core::libc::c_uint;
-use core::ptr::null;
-use js::glue::bindgen::*;
-use js::jsapi::bindgen::*;
+use std::cast;
+use std::i32;
+use std::libc;
+use std::libc::c_uint;
+use std::ptr;
+use std::ptr::null;
+use std::result;
+use std::str;
+use std::vec;
+use js::glue::*;
+use js::jsapi::*;
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp, JSPropertySpec};
 use js::jsapi::{JSNativeWrapper, JSTracer, JSTRACE_OBJECT};
 use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper, JSFunctionSpec};
@@ -78,7 +85,9 @@ pub fn init(compartment: @mut Compartment) {
          setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
-        JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
+        unsafe {
+            JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
+        }
     });
 
     let methods = @~[JSFunctionSpec {name: compartment.add_name(~"getClientRects"),
@@ -102,7 +111,9 @@ pub fn init(compartment: @mut Compartment) {
                                      flags: 0,
                                      selfHostedName: null()}];
     vec::as_imm_buf(*methods, |fns, _len| {
-        JS_DefineFunctions(compartment.cx.ptr, obj.ptr, fns);
+        unsafe {
+            JS_DefineFunctions(compartment.cx.ptr, obj.ptr, fns);
+        }
     });
 
     compartment.register_class(utils::instance_jsclass(~"GenericElementInstance",
@@ -127,7 +138,9 @@ pub fn init(compartment: @mut Compartment) {
          setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
-        JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
+        unsafe {
+            JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
+        }
     });
 }
 
@@ -299,8 +312,10 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
     assert!(cache.get_wrapper().is_null());
     cache.set_wrapper(obj.ptr);
 
-    let raw_ptr = node.raw_object() as *libc::c_void;
-    JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT as u32, RUST_PRIVATE_TO_JSVAL(raw_ptr));
+    unsafe {
+        let raw_ptr = node.raw_object() as *libc::c_void;
+        JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT as u32, RUST_PRIVATE_TO_JSVAL(raw_ptr));
+    }
 
     return obj;
 }

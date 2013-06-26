@@ -11,9 +11,10 @@ use dom::node::{ElementNodeTypeId, Node, ScriptView};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
 
-use core::cell::Cell;
-use core::str::eq_slice;
-use std::net::url::Url;
+use std::cell::Cell;
+use std::uint;
+use std::str::eq_slice;
+use extra::net::url::Url;
 
 pub struct Element {
     parent: Node<ScriptView>,
@@ -114,7 +115,7 @@ pub struct HTMLImageElement {
 // Element methods
 //
 
-pub impl<'self> Element {
+impl<'self> Element {
     pub fn new(type_id: ElementTypeId, tag_name: ~str) -> Element {
         Element {
             parent: Node::new(ElementNodeTypeId(type_id)),
@@ -123,7 +124,7 @@ pub impl<'self> Element {
         }
     }
 
-    fn get_attr(&'self self, name: &str) -> Option<&'self str> {
+    pub fn get_attr(&'self self, name: &str) -> Option<&'self str> {
         // FIXME: Need an each() that links lifetimes in Rust.
         for uint::range(0, self.attrs.len()) |i| {
             if eq_slice(self.attrs[i].name, name) {
@@ -134,11 +135,11 @@ pub impl<'self> Element {
         return None;
     }
 
-    fn set_attr(&mut self, name: &DOMString, value: &DOMString) {
+    pub fn set_attr(&mut self, name: &DOMString, value: &DOMString) {
         let name = name.to_str();
         let value = value.to_str();
         // FIXME: We need a better each_mut in Rust; this is ugly.
-        let value_cell = Cell(value);
+        let value_cell = Cell::new(value);
         let mut found = false;
         for uint::range(0, self.attrs.len()) |i| {
             if eq_slice(self.attrs[i].name, name) {
@@ -157,7 +158,7 @@ pub impl<'self> Element {
         }
     }
 
-    fn getClientRects(&self) -> Option<@mut ClientRectList> {
+    pub fn getClientRects(&self) -> Option<@mut ClientRectList> {
         let rects = match self.parent.owner_doc {
             Some(doc) => {
                 match doc.window {
@@ -199,7 +200,7 @@ pub impl<'self> Element {
         Some(ClientRectList::new(rects))
     }
 
-    fn getBoundingClientRect(&self) -> Option<@mut ClientRect> {
+    pub fn getBoundingClientRect(&self) -> Option<@mut ClientRect> {
         match self.parent.owner_doc {
             Some(doc) => {
                 match doc.window {

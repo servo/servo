@@ -9,9 +9,12 @@ use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId, ScriptView};
 
-use core::libc::c_uint;
-use core::ptr::null;
-use js::jsapi::bindgen::*;
+use std::cast;
+use std::libc::c_uint;
+use std::ptr;
+use std::ptr::null;
+use std::vec;
+use js::jsapi::*;
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSPropertySpec};
 use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper};
 use js::jsval::{INT_TO_JSVAL};
@@ -53,7 +56,9 @@ pub fn init(compartment: @mut Compartment) {
          setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
     vec::push(&mut compartment.global_props, attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
-        JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
+        unsafe {
+            JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
+        }
     });
 }
 

@@ -8,17 +8,21 @@ use dom::node::{Text};
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use newcss::stylesheet::Stylesheet;
 
-use core::cell::Cell;
-use core::comm::{Chan, Port, SharedChan};
-use core::str::eq_slice;
+use std::cast;
+use std::cell::Cell;
+use std::comm;
+use std::comm::{Chan, Port, SharedChan};
+use std::str::eq_slice;
+use std::result;
+use std::task;
 use hubbub::hubbub;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::image_cache_task;
 use servo_net::resource_task::{Done, Load, Payload, ResourceTask};
 use servo_util::tree::TreeUtils;
 use servo_util::url::make_url;
-use std::net::url::Url;
-use std::net::url;
+use extra::net::url::Url;
+use extra::net::url;
 
 macro_rules! handle_element(
     ($tag:expr, $string:expr, $type_id:expr, $ctor:ident, [ $(($field:ident : $field_init:expr)),* ]) => (
@@ -101,7 +105,7 @@ fn css_link_listener(to_parent: Chan<Option<Stylesheet>>,
 
     // Send the sheets back in order
     // FIXME: Shouldn't wait until after we've recieved CSSTaskExit to start sending these
-    do vec::consume(result_vec) |_i, port| {
+    do result_vec.consume |_i, port| {
         to_parent.send(Some(port.recv()));
     }
     to_parent.send(None);
@@ -140,7 +144,7 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
                         }
                     }
                 }
-                vec::push(&mut result_vec, result_port);
+                result_vec.push(result_port);
             }
             JSTaskExit => {
                 break;
@@ -148,7 +152,7 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
         }
     }
 
-    let js_scripts = vec::filter_map(result_vec, |result_port| result_port.recv());
+    let js_scripts = result_vec.iter().filter_map(|result_port| result_port.recv()).collect();
     to_parent.send(js_scripts);
 }
 
@@ -211,9 +215,9 @@ pub fn parse_html(url: Url,
     let resource_task2 = resource_task.clone();
 
     let (stylesheet_port, stylesheet_chan) = comm::stream();
-    let stylesheet_chan = Cell(stylesheet_chan);
+    let stylesheet_chan = Cell::new(stylesheet_chan);
     let (css_msg_port, css_msg_chan) = comm::stream();
-    let css_msg_port = Cell(css_msg_port);
+    let css_msg_port = Cell::new(css_msg_port);
     do spawn {
         css_link_listener(stylesheet_chan.take(), css_msg_port.take(), resource_task2.clone());
     }
@@ -223,15 +227,16 @@ pub fn parse_html(url: Url,
     // Spawn a JS parser to receive JavaScript.
     let resource_task2 = resource_task.clone();
     let (js_result_port, js_result_chan) = comm::stream();
-    let js_result_chan = Cell(js_result_chan);
+    let js_result_chan = Cell::new(js_result_chan);
     let (js_msg_port, js_msg_chan) = comm::stream();
-    let js_msg_port = Cell(js_msg_port);
+    let js_msg_port = Cell::new(js_msg_port);
     do spawn {
         js_script_listener(js_result_chan.take(), js_msg_port.take(), resource_task2.clone());
     }
     let js_chan = SharedChan::new(js_msg_chan);
 
-    let url2 = url.clone(), url3 = url.clone();
+    let url2 = url.clone();
+    let url3 = url.clone();
 
     // Build the root node.
     let root = ~HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
@@ -239,7 +244,7 @@ pub fn parse_html(url: Url,
     debug!("created new node");
     let mut parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
-    parser.set_document_node(root.to_hubbub_node());
+    parser.set_document_node(unsafe { root.to_hubbub_node() });
     parser.enable_scripting(true);
 
     // Performs various actions necessary after appending has taken place. Currently, this
@@ -250,7 +255,7 @@ pub fn parse_html(url: Url,
         if parent_node.is_style_element() && child_node.is_text() {
             debug!("found inline CSS stylesheet");
             let url = url::from_str("http://example.com/"); // FIXME
-            let url_cell = Cell(url);
+            let url_cell = Cell::new(url);
             do child_node.with_imm_text |text_node| {
                 let data = text_node.parent.data.to_str();  // FIXME: Bad copy.
                 let provenance = InlineProvenance(result::unwrap(url_cell.take()), data);
@@ -330,7 +335,7 @@ pub fn parse_html(url: Url,
                 _ => {}
             }
 
-            node.to_hubbub_node()
+            unsafe { node.to_hubbub_node() }
         },
         create_text: |data: ~str| {
             debug!("create text");
