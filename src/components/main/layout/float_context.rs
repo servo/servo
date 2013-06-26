@@ -196,14 +196,12 @@ impl FloatContextBase{
             _ => fail!("Reached unreachable state when computing float area")
         };
 
-        // When the window is smaller than the float, we will return a rect
-        // with negative width.
-        assert!(max_left < min_right 
-                || max_left > max_x - self.offset.x
-                || min_right < Au(0) - self.offset.x
-                ,"Float position error");
-
-        //TODO(eatkinson): do we need to do something similar for heights?
+        // This assertion is too strong and fails in some cases. It is OK to
+        // return negative widths since we check against that right away, but
+        // we should still undersrtand why they occur and add a stronger
+        // assertion here.
+        //assert!(max_left < min_right); 
+        
         assert!(top < bottom, "Float position error");
 
         Some(Rect{

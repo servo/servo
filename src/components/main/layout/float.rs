@@ -8,7 +8,7 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::display_list_builder::{FlowDisplayListBuilderMethods};
 use layout::flow::{FloatFlow, FlowData};
 use layout::model::{MaybeAuto};
-use layout::float_context::{FloatContext, PlacementInfo, FloatLeft, FloatType};
+use layout::float_context::{FloatContext, PlacementInfo, FloatType};
 
 use std::cell::Cell;
 use geom::point::Point2D;
