@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::net::url;
-use std::net::url::Url;
-use core::hashmap::HashMap;
+use extra::net::url;
+use extra::net::url::Url;
+use std::hashmap::HashMap;
+use std::os;
+use std::result;
 
 /**
 Create a URL object from a string. Does various helpful browsery things like
@@ -36,15 +38,15 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
                       str_url.starts_with("/") {
                 current_url.scheme + "://" +
                 current_url.host + "/" +
-                str_url.trim_left_chars([ '/' ])
+                str_url.trim_left_chars(&'/')
             } else {
                 let mut path = ~[];
-                for str::each_split_char(current_url.path, '/') |p| {
+                for current_url.path.split_iter('/').advance |p| {
                     path.push(p.to_str());
                 }
                 let path = path; // FIXME: borrow checker workaround
                 let path = path.init();
-                let path = str::connect(path.map(|x| copy *x) + ~[str_url], "/");
+                let path = (path.map(|x| copy *x) + [str_url]).connect("/");
 
                 current_url.scheme + "://" + current_url.host + path
             }

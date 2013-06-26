@@ -7,14 +7,14 @@ use resource_task;
 use resource_task::ResourceTask;
 use servo_util::url::{UrlMap, url_map};
 
-use clone_arc = std::arc::clone;
-use core::cell::Cell;
-use core::comm::{Chan, Port, SharedChan, stream};
-use core::task::spawn;
-use core::to_str::ToStr;
-use core::util::replace;
-use std::arc::ARC;
-use std::net::url::Url;
+use std::cell::Cell;
+use std::comm::{Chan, Port, SharedChan, stream};
+use std::task::spawn;
+use std::to_str::ToStr;
+use std::util::replace;
+use std::result;
+use extra::arc::ARC;
+use extra::net::url::Url;
 
 pub enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted
@@ -54,7 +54,7 @@ pub enum ImageResponseMsg {
 impl ImageResponseMsg {
     fn clone(&self) -> ImageResponseMsg {
         match *self {
-            ImageReady(ref img) => ImageReady(clone_arc(img)),
+            ImageReady(ref img) => ImageReady(img.clone()),
             ImageNotReady => ImageNotReady,
             ImageFailed => ImageFailed,
         }
@@ -91,12 +91,12 @@ pub fn ImageCacheTask_(resource_task: ResourceTask, decoder_factory: DecoderFact
     // FIXME: Doing some dancing to avoid copying decoder_factory, our test
     // version of which contains an uncopyable type which rust will currently
     // copy unsoundly
-    let decoder_factory_cell = Cell(decoder_factory);
+    let decoder_factory_cell = Cell::new(decoder_factory);
 
     let (port, chan) = stream();
     let chan = SharedChan::new(chan);
-    let port_cell = Cell(port);
-    let chan_cell = Cell(chan.clone());
+    let port_cell = Cell::new(port);
+    let chan_cell = Cell::new(chan.clone());
 
     do spawn {
         let mut cache = ImageCache {
@@ -116,7 +116,7 @@ pub fn ImageCacheTask_(resource_task: ResourceTask, decoder_factory: DecoderFact
 
 fn SyncImageCacheTask(resource_task: ResourceTask) -> ImageCacheTask {
     let (port, chan) = stream();
-    let port_cell = Cell(port);
+    let port_cell = Cell::new(port);
 
     do spawn {
         let port = port_cell.take();
@@ -247,7 +247,7 @@ impl ImageCache {
             Init => {
                 let to_cache = self.chan.clone();
                 let resource_task = self.resource_task.clone();
-                let url_cell = Cell(copy url);
+                let url_cell = Cell::new(copy url);
 
                 do spawn {
                     let url = url_cell.take();
@@ -256,7 +256,7 @@ impl ImageCache {
                     let image = load_image_data(copy url, resource_task.clone());
 
                     let result = if image.is_ok() {
-                        Ok(Cell(result::unwrap(image)))
+                        Ok(Cell::new(result::unwrap(image)))
                     } else {
                         Err(())
                     };
@@ -279,7 +279,7 @@ impl ImageCache {
             match data {
               Ok(data_cell) => {
                 let data = data_cell.take();
-                self.set_state(copy url, Prefetched(@Cell(data)));
+                self.set_state(copy url, Prefetched(@Cell::new(data)));
                 match next_step {
                   DoDecode => self.decode(url),
                   _ => ()
@@ -320,7 +320,7 @@ impl ImageCache {
 
                 let data = data_cell.take();
                 let to_cache = self.chan.clone();
-                let url_cell = Cell(copy url);
+                let url_cell = Cell::new(copy url);
                 let decode = (self.decoder_factory)();
 
                 do spawn {
@@ -351,8 +351,8 @@ impl ImageCache {
           Decoding => {
             match image {
               Some(image) => {
-                self.set_state(copy url, Decoded(@clone_arc(&image)));
-                self.purge_waiters(url, || ImageReady(clone_arc(&image)) );
+                self.set_state(copy url, Decoded(@image.clone()));
+                self.purge_waiters(url, || ImageReady(image.clone()) );
               }
               None => {
                 self.set_state(copy url, Failed);
@@ -389,7 +389,7 @@ impl ImageCache {
             Prefetching(DoDecode) => response.send(ImageNotReady),
             Prefetching(DoNotDecode) | Prefetched(*) => fail!(~"request for image before decode"),
             Decoding => response.send(ImageNotReady),
-            Decoded(image) => response.send(ImageReady(clone_arc(image))),
+            Decoded(image) => response.send(ImageReady((*image).clone())),
             Failed => response.send(ImageFailed),
         }
     }
@@ -411,7 +411,7 @@ impl ImageCache {
             }
 
             Decoded(image) => {
-                response.send(ImageReady(clone_arc(image)));
+                response.send(ImageReady((*image).clone()));
             }
 
             Failed => {

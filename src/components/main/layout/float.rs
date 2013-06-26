@@ -10,7 +10,7 @@ use layout::flow::{FloatFlow, FlowData};
 use layout::model::{MaybeAuto};
 use layout::float_context::{FloatContext, PlacementInfo, FloatLeft};
 
-use core::cell::Cell;
+use std::cell::Cell;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
@@ -48,7 +48,7 @@ impl FloatFlowData {
 
     pub fn teardown(&mut self) {
         self.common.teardown();
-        for self.box.each |box| {
+        for self.box.iter().advance |box| {
             box.teardown();
         }
         self.box = None;
@@ -95,7 +95,7 @@ impl FloatFlowData {
         self.containing_width = remaining_width;
         let mut x_offset = Au(0);
 
-        for self.box.each |&box| {
+        for self.box.iter().advance |&box| {
             let style = box.style();
             do box.with_model |model| {
                 // Can compute padding here since we know containing block width.
@@ -161,7 +161,7 @@ impl FloatFlowData {
         let mut cur_y = Au(0);
         let mut top_offset = Au(0);
 
-        for self.box.each |&box| {
+        for self.box.iter().advance |&box| {
             do box.with_model |model| {
                 top_offset = model.margin.top + model.border.top + model.padding.top;
                 cur_y += top_offset;
@@ -193,7 +193,7 @@ impl FloatFlowData {
 
         
         //TODO(eatkinson): compute heights properly using the 'height' property.
-        for self.box.each |&box| {
+        for self.box.iter().advance |&box| {
 
             let height_prop = 
                 MaybeAuto::from_height(box.style().height(), Au(0)).spec_or_default(Au(0));

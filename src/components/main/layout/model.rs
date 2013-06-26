@@ -7,8 +7,8 @@
 use layout::display_list_builder::{ExtraDisplayListData, ToGfxColor};
 use layout::box::RenderBox;
 
-use core::cell::Cell;
-use core::num::Zero;
+use std::cell::Cell;
+use std::num::Zero;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -172,7 +172,8 @@ impl RenderBox {
         // Are all the widths equal?
         //
         // FIXME(pcwalton): Obviously this is wrong.
-        if [ border.top, border.right, border.bottom ].all(|a| *a == border.left) {
+        let borders = [ border.top, border.right, border.bottom ];
+        if borders.iter().all(|a| *a == border.left) {
             let border_width = border.top;
             let bounds = Rect {
                 origin: Point2D {

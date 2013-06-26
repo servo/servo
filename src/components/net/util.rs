@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use core::comm::{Chan, Port};
+use std::comm;
+use std::comm::{Chan, Port};
+use std::task;
 
 pub fn spawn_listener<A: Owned>(f: ~fn(Port<A>)) -> Chan<A> {
     let (setup_port, setup_chan) = comm::stream();

@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::cast;
 use dom::bindings::codegen::EventTargetBinding;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
 use dom::eventtarget::EventTarget;
 use script_task::{task_from_context, global_script_context};
 
-use js::glue::bindgen::RUST_OBJECT_TO_JSVAL;
+use js::glue::RUST_OBJECT_TO_JSVAL;
 use js::jsapi::{JSObject, JSContext, JSVal};
 
-pub impl EventTarget {
+impl EventTarget {
     pub fn init_wrapper(@mut self) {
         let script_context = global_script_context();
         let cx = script_context.js_compartment.cx.ptr;

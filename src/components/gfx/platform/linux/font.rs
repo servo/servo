@@ -14,16 +14,21 @@ use platform::font_context::FontContextHandle;
 use text::glyph::GlyphIndex;
 use text::util::{float_to_fixed, fixed_to_float};
 
-use freetype::freetype::bindgen::{FT_Get_Char_Index, FT_Get_Postscript_Name};
-use freetype::freetype::bindgen::{FT_Load_Glyph, FT_Set_Char_Size};
-use freetype::freetype::bindgen::{FT_New_Face, FT_Get_Sfnt_Table};
-use freetype::freetype::bindgen::{FT_New_Memory_Face, FT_Done_Face};
+use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
+use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};
+use freetype::freetype::{FT_New_Face, FT_Get_Sfnt_Table};
+use freetype::freetype::{FT_New_Memory_Face, FT_Done_Face};
 use freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
 use freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
 use freetype::freetype::{FT_STYLE_FLAG_ITALIC, FT_STYLE_FLAG_BOLD};
 use freetype::freetype::{FT_SizeRec, FT_UInt, FT_Size_Metrics};
 use freetype::freetype::{ft_sfnt_os2};
 use freetype::tt_os2::TT_OS2;
+
+use std::cast;
+use std::ptr;
+use std::str;
+use std::vec;
 
 fn float_to_fixed_ft(f: float) -> i32 {
     float_to_fixed(6, f)
@@ -60,8 +65,10 @@ pub struct FontHandle {
 impl Drop for FontHandle {
     fn finalize(&self) {
         assert!(self.face.is_not_null());
-        if !FT_Done_Face(self.face).succeeded() {
-            fail!(~"FT_Done_Face failed");
+        unsafe {
+            if !FT_Done_Face(self.face).succeeded() {
+                fail!(~"FT_Done_Face failed");
+            }
         }
     }
 }
@@ -96,19 +103,21 @@ impl FontHandleMethods for FontHandle {
          fn create_face_from_buffer(lib: FT_Library,
                                     cbuf: *u8, cbuflen: uint, pt_size: float) 
              -> Result<FT_Face, ()> {
-             
-             let mut face: FT_Face = ptr::null();
-             let face_index = 0 as FT_Long;
-             let result = FT_New_Memory_Face(lib, cbuf, cbuflen as FT_Long,
-                                             face_index, ptr::to_mut_unsafe_ptr(&mut face));
-             
-             if !result.succeeded() || face.is_null() {
-                 return Err(());
-             }
-             if FontHandle::set_char_size(face, pt_size).is_ok() {
-                 Ok(face)
-             } else {
-                 Err(())
+
+             unsafe {
+                 let mut face: FT_Face = ptr::null();
+                 let face_index = 0 as FT_Long;
+                 let result = FT_New_Memory_Face(lib, cbuf, cbuflen as FT_Long,
+                                                 face_index, ptr::to_mut_unsafe_ptr(&mut face));
+                 
+                 if !result.succeeded() || face.is_null() {
+                     return Err(());
+                 }
+                 if FontHandle::set_char_size(face, pt_size).is_ok() {
+                     Ok(face)
+                 } else {
+                     Err(())
+                 }
              }
          }
     }
@@ -133,24 +142,26 @@ impl FontHandleMethods for FontHandle {
         if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD == 0 } {
             default_weight
         } else {
-            let os2 = FT_Get_Sfnt_Table(self.face, ft_sfnt_os2) as *TT_OS2;
-            let valid = os2.is_not_null() && unsafe { (*os2).version != 0xffff };
-            if valid {
-                let weight = unsafe { (*os2).usWeightClass };
-                match weight {
-                  1 | 100..199 => FontWeight100,
-                  2 | 200..299 => FontWeight200,
-                  3 | 300..399 => FontWeight300,
-                  4 | 400..499 => FontWeight400,
-                  5 | 500..599 => FontWeight500,
-                  6 | 600..699 => FontWeight600,
-                  7 | 700..799 => FontWeight700,
-                  8 | 800..899 => FontWeight800,
-                  9 | 900..999 => FontWeight900,
-                  _ => default_weight
+            unsafe {
+                let os2 = FT_Get_Sfnt_Table(self.face, ft_sfnt_os2) as *TT_OS2;
+                let valid = os2.is_not_null() && (*os2).version != 0xffff;
+                if valid {
+                    let weight =(*os2).usWeightClass;
+                    match weight {
+                        1 | 100..199 => FontWeight100,
+                        2 | 200..299 => FontWeight200,
+                        3 | 300..399 => FontWeight300,
+                        4 | 400..499 => FontWeight400,
+                        5 | 500..599 => FontWeight500,
+                        6 | 600..699 => FontWeight600,
+                        7 | 700..799 => FontWeight700,
+                        8 | 800..899 => FontWeight800,
+                        9 | 900..999 => FontWeight900,
+                        _ => default_weight
+                    }
+                } else {
+                    default_weight
                 }
-            } else {
-                default_weight
             }
         }
     }
@@ -162,8 +173,8 @@ impl FontHandleMethods for FontHandle {
             FontSourceMem(ref buf) => {
                 FontHandleMethods::new_from_buffer(fctx, buf.clone(), style)
             }
-            FontSourceFile(copy file) => {
-                FontHandle::new_from_file(fctx, file, style)
+            FontSourceFile(ref file) => {
+                FontHandle::new_from_file(fctx, copy *file, style)
             }
         }
     }
@@ -171,21 +182,23 @@ impl FontHandleMethods for FontHandle {
     pub fn glyph_index(&self,
                        codepoint: char) -> Option<GlyphIndex> {
         assert!(self.face.is_not_null());
-        let idx = FT_Get_Char_Index(self.face, codepoint as FT_ULong);
-        return if idx != 0 as FT_UInt {
-            Some(idx as GlyphIndex)
-        } else {
-            debug!("Invalid codepoint: %?", codepoint);
-            None
-        };
+        unsafe {
+            let idx = FT_Get_Char_Index(self.face, codepoint as FT_ULong);
+            return if idx != 0 as FT_UInt {
+                Some(idx as GlyphIndex)
+            } else {
+                debug!("Invalid codepoint: %?", codepoint);
+                None
+            };
+        }
     }
 
     pub fn glyph_h_advance(&self,
                            glyph: GlyphIndex) -> Option<FractionalPixel> {
         assert!(self.face.is_not_null());
-        let res =  FT_Load_Glyph(self.face, glyph as FT_UInt, 0);
-        if res.succeeded() {
-            unsafe {
+        unsafe {
+            let res =  FT_Load_Glyph(self.face, glyph as FT_UInt, 0);
+            if res.succeeded() {
                 let void_glyph = (*self.face).glyph;
                 let slot: FT_GlyphSlot = cast::transmute(void_glyph);
                 assert!(slot.is_not_null());
@@ -194,10 +207,10 @@ impl FontHandleMethods for FontHandle {
                 debug!("h_advance for %? is %?", glyph, advance);
                 let advance = advance as i32;
                 return Some(fixed_to_float_ft(advance) as FractionalPixel);
+            } else {
+                debug!("Unable to load glyph %?. reason: %?", glyph, res);
+                return None;
             }
-        } else {
-            debug!("Unable to load glyph %?. reason: %?", glyph, res);
-            return None;
         }
     }
 
@@ -229,62 +242,68 @@ impl FontHandleMethods for FontHandle {
     }
 }
 
-pub impl<'self> FontHandle {
+impl<'self> FontHandle {
     priv fn set_char_size(face: FT_Face, pt_size: float) -> Result<(), ()>{
         let char_width = float_to_fixed_ft(pt_size) as FT_F26Dot6;
         let char_height = float_to_fixed_ft(pt_size) as FT_F26Dot6;
         let h_dpi = 72;
         let v_dpi = 72;
 
-        let result = FT_Set_Char_Size(face, char_width, char_height, h_dpi, v_dpi);
-        if result.succeeded() { Ok(()) } else { Err(()) }
+        unsafe {
+            let result = FT_Set_Char_Size(face, char_width, char_height, h_dpi, v_dpi);
+            if result.succeeded() { Ok(()) } else { Err(()) }
+        }
     }
 
     pub fn new_from_file(fctx: &FontContextHandle, file: ~str,
                          style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
-        let ft_ctx: FT_Library = fctx.ctx.ctx;
-        if ft_ctx.is_null() { return Err(()); }
+        unsafe {
+            let ft_ctx: FT_Library = fctx.ctx.ctx;
+            if ft_ctx.is_null() { return Err(()); }
 
-        let mut face: FT_Face = ptr::null();
-        let face_index = 0 as FT_Long;
-        do str::as_c_str(file) |file_str| {
-            FT_New_Face(ft_ctx, file_str,
-                        face_index, ptr::to_mut_unsafe_ptr(&mut face));
-        }
-        if face.is_null() {
-            return Err(());
-        }
-        if FontHandle::set_char_size(face, style.pt_size).is_ok() {
-            Ok(FontHandle {
-                source: FontSourceFile(file),
-                face: face,
-                handle: *fctx
-            })
-        } else {
-            Err(())
+            let mut face: FT_Face = ptr::null();
+            let face_index = 0 as FT_Long;
+            do str::as_c_str(file) |file_str| {
+                FT_New_Face(ft_ctx, file_str,
+                            face_index, ptr::to_mut_unsafe_ptr(&mut face));
+            }
+            if face.is_null() {
+                return Err(());
+            }
+            if FontHandle::set_char_size(face, style.pt_size).is_ok() {
+                Ok(FontHandle {
+                    source: FontSourceFile(file),
+                    face: face,
+                    handle: *fctx
+                })
+            } else {
+                Err(())
+            }
         }
     }
 
     pub fn new_from_file_unstyled(fctx: &FontContextHandle, file: ~str)
                                -> Result<FontHandle, ()> {
-        let ft_ctx: FT_Library = fctx.ctx.ctx;
-        if ft_ctx.is_null() { return Err(()); }
+        unsafe {
+            let ft_ctx: FT_Library = fctx.ctx.ctx;
+            if ft_ctx.is_null() { return Err(()); }
 
-        let mut face: FT_Face = ptr::null();
-        let face_index = 0 as FT_Long;
-        do str::as_c_str(file) |file_str| {
-            FT_New_Face(ft_ctx, file_str,
-                        face_index, ptr::to_mut_unsafe_ptr(&mut face));
-        }
-        if face.is_null() {
-            return Err(());
-        }
+            let mut face: FT_Face = ptr::null();
+            let face_index = 0 as FT_Long;
+            do str::as_c_str(file) |file_str| {
+                FT_New_Face(ft_ctx, file_str,
+                            face_index, ptr::to_mut_unsafe_ptr(&mut face));
+            }
+            if face.is_null() {
+                return Err(());
+            }
 
-        Ok(FontHandle {
-            source: FontSourceFile(file),
-            face: face,
-            handle: *fctx
-        })
+            Ok(FontHandle {
+                source: FontSourceFile(file),
+                face: face,
+                handle: *fctx
+            })
+        }
     }
 
     priv fn get_face_rec(&'self self) -> &'self FT_FaceRec {

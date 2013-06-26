@@ -8,8 +8,9 @@ use font_context::FontContextHandleMethods;
 use platform::font_list::path_from_identifier;
 
 use freetype::freetype::{FTErrorMethods, FT_Library};
-use freetype::freetype::bindgen::{FT_Done_FreeType, FT_Init_FreeType};
+use freetype::freetype::{FT_Done_FreeType, FT_Init_FreeType};
 
+use std::ptr;
 
 struct FreeTypeLibraryHandle {
     ctx: FT_Library,
@@ -18,7 +19,9 @@ struct FreeTypeLibraryHandle {
 impl Drop for FreeTypeLibraryHandle {
     fn finalize(&self) {
         assert!(self.ctx.is_not_null());
-        FT_Done_FreeType(self.ctx);
+        unsafe {
+            FT_Done_FreeType(self.ctx);
+        }
     }
 }
 
@@ -26,14 +29,16 @@ pub struct FontContextHandle {
     ctx: @FreeTypeLibraryHandle,
 }
 
-pub impl FontContextHandle {
+impl FontContextHandle {
     pub fn new() -> FontContextHandle {
-        let ctx: FT_Library = ptr::null();
-        let result = FT_Init_FreeType(ptr::to_unsafe_ptr(&ctx));
-        if !result.succeeded() { fail!(); }
+        unsafe {
+            let ctx: FT_Library = ptr::null();
+            let result = FT_Init_FreeType(ptr::to_unsafe_ptr(&ctx));
+            if !result.succeeded() { fail!(); }
 
-        FontContextHandle { 
-            ctx: @FreeTypeLibraryHandle { ctx: ctx },
+            FontContextHandle { 
+                ctx: @FreeTypeLibraryHandle { ctx: ctx },
+            }
         }
     }
 }

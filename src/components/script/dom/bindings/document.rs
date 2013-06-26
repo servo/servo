@@ -2,16 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::cast;
+use std::libc;
+use std::ptr;
+use std::result;
+use std::vec;
 use dom::bindings::utils::{DOMString, rust_box, squirrel_away, str};
 use dom::bindings::utils::{WrapperCache, DerivedWrapper};
 use dom::bindings::utils::{jsval_to_str, WrapNewBindingObject, CacheableWrapper};
 use dom::bindings::utils;
 use dom::document::Document;
 use dom::htmlcollection::HTMLCollection;
-use js::glue::bindgen::*;
+use js::glue::*;
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB};
-use js::jsapi::bindgen::{JS_DefineProperties};
-use js::jsapi::bindgen::{JS_GetReservedSlot, JS_SetReservedSlot, JS_DefineFunctions};
+use js::jsapi::{JS_DefineProperties};
+use js::jsapi::{JS_GetReservedSlot, JS_SetReservedSlot, JS_DefineFunctions};
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp, JSPropertySpec, JSPropertyOpWrapper};
 use js::jsapi::{JSStrictPropertyOpWrapper, JSNativeWrapper, JSFunctionSpec};
 use js::rust::{Compartment, jsobj};
@@ -19,8 +24,8 @@ use js::{JSPROP_NATIVE_ACCESSORS};
 use js::{JS_ARGV, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL, JS_THIS_OBJECT, JS_SET_RVAL};
 use script_task::task_from_context;
 
-use core::libc::c_uint;
-use core::ptr::null;
+use std::libc::c_uint;
+use std::ptr::null;
 
 extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
@@ -96,9 +101,11 @@ pub fn init(compartment: @mut Compartment) {
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: JSPropertyOpWrapper {op: null(), info: null()},
          setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
-    vec::push(&mut compartment.global_props, attrs);
+    compartment.global_props.push(attrs);
     vec::as_imm_buf(*attrs, |specs, _len| {
-        assert!(JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs) == 1);
+        unsafe {
+            assert!(JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs) == 1);
+        }
     });
 
     let methods = @~[JSFunctionSpec {name: compartment.add_name(~"getElementsByTagName"),
@@ -112,7 +119,9 @@ pub fn init(compartment: @mut Compartment) {
                                      flags: 0,
                                      selfHostedName: null()}];
     vec::as_imm_buf(*methods, |fns, _len| {
-        JS_DefineFunctions(compartment.cx.ptr, obj.ptr, fns);
+        unsafe {
+            JS_DefineFunctions(compartment.cx.ptr, obj.ptr, fns);
+        }
     });
 
     compartment.register_class(utils::instance_jsclass(~"DocumentInstance",
@@ -129,12 +138,12 @@ pub fn create(compartment: @mut Compartment, doc: @mut Document) -> *JSObject {
     unsafe {
         let raw_ptr: *libc::c_void = cast::transmute(squirrel_away(doc));
         JS_SetReservedSlot(instance.ptr, 0, RUST_PRIVATE_TO_JSVAL(raw_ptr));
-    }
 
-    compartment.define_property(~"document", RUST_OBJECT_TO_JSVAL(instance.ptr),
-                                GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-                                GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
-                                JSPROP_ENUMERATE);
+        compartment.define_property(~"document", RUST_OBJECT_TO_JSVAL(instance.ptr),
+                                    GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+                                    GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
+                                    JSPROP_ENUMERATE);
+    }
 
     instance.ptr
 }

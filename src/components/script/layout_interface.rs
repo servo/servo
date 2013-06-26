@@ -9,13 +9,13 @@
 use dom::node::{AbstractNode, ScriptView, LayoutView};
 use script_task::{ScriptMsg, ScriptChan};
 
-use core::comm::{Chan, SharedChan};
+use std::comm::{Chan, SharedChan};
 use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::point::Point2D;
 use gfx::geometry::Au;
 use newcss::stylesheet::Stylesheet;
-use std::net::url::Url;
+use extra::net::url::Url;
 
 /// Asynchronous messages that script can send to layout.
 ///

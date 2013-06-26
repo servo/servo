@@ -5,8 +5,8 @@
 //! The high-level interface from script to engine. Using this abstract interface helps reduce
 /// coupling between these two components
 
-use core::comm::{Chan, SharedChan};
-use std::net::url::Url;
+use std::comm::{Chan, SharedChan};
+use extra::net::url::Url;
 
 #[deriving(Clone)]
 pub struct EngineChan {

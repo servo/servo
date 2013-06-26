@@ -4,8 +4,8 @@
 
 use resource_task::{Payload, Done, LoaderTask};
 
-use core::comm::SharedChan;
-use core::task;
+use std::comm::SharedChan;
+use std::task;
 use http_client::uv_http_request;
 use http_client;
 

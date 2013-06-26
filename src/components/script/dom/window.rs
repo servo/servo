@@ -8,10 +8,15 @@ use dom::bindings::window;
 use layout_interface::ReflowForScriptQuery;
 use script_task::{ExitMsg, FireTimerMsg, ScriptChan, ScriptContext};
 
-use core::comm::Chan;
+use std::comm;
+use std::comm::Chan;
+use std::libc;
+use std::int;
+use std::io;
+use std::ptr;
 use js::jsapi::JSVal;
-use std::timer;
-use std::uv_global_loop;
+use extra::timer;
+use extra::uv_global_loop;
 
 pub enum TimerControlMsg {
     TimerMessage_Fire(~TimerData),
@@ -61,17 +66,17 @@ pub fn TimerData(argc: libc::c_uint, argv: *JSVal) -> TimerData {
 
 // FIXME: delayed_send shouldn't require Copy
 #[allow(non_implicitly_copyable_typarams)]
-pub impl Window {
-    fn alert(&self, s: &str) {
+impl Window {
+    pub fn alert(&self, s: &str) {
         // Right now, just print to the console
         io::println(fmt!("ALERT: %s", s));
     }
 
-    fn close(&self) {
+    pub fn close(&self) {
         self.timer_chan.send(TimerMessage_TriggerExit);
     }
 
-    fn setTimeout(&self, timeout: int, argc: libc::c_uint, argv: *JSVal) {
+    pub fn setTimeout(&self, timeout: int, argc: libc::c_uint, argv: *JSVal) {
         let timeout = int::max(0, timeout) as uint;
 
         // Post a delayed message to the per-window timer task; it will dispatch it
@@ -82,7 +87,7 @@ pub impl Window {
                             TimerMessage_Fire(~TimerData(argc, argv)));
     }
 
-    fn content_changed(&self) {
+    pub fn content_changed(&self) {
         unsafe {
             (*self.script_context).reflow_all(ReflowForScriptQuery)
         }

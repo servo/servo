@@ -8,8 +8,8 @@ pub struct EventTarget {
     wrapper: WrapperCache
 }
 
-pub impl EventTarget {
-    fn new() -> ~EventTarget {
+impl EventTarget {
+    pub fn new() -> ~EventTarget {
         ~EventTarget {
             wrapper: WrapperCache::new()
         }

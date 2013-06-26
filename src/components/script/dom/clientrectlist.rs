@@ -10,8 +10,8 @@ pub struct ClientRectList {
     rects: ~[@mut ClientRect]
 }
 
-pub impl ClientRectList {
-    fn new(rects: ~[@mut ClientRect]) -> @mut ClientRectList {
+impl ClientRectList {
+    pub fn new(rects: ~[@mut ClientRect]) -> @mut ClientRectList {
         let list = @mut ClientRectList {
             wrapper: WrapperCache::new(),
             rects: rects
@@ -20,11 +20,11 @@ pub impl ClientRectList {
         list
     }
 
-    fn Length(&self) -> u32 {
+    pub fn Length(&self) -> u32 {
         self.rects.len() as u32
     }
 
-    fn Item(&self, index: u32) -> Option<@mut ClientRect> {
+    pub fn Item(&self, index: u32) -> Option<@mut ClientRect> {
         if index < self.rects.len() as u32 {
             Some(self.rects[index])
         } else {
@@ -32,7 +32,7 @@ pub impl ClientRectList {
         }
     }
 
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<@mut ClientRect> {
+    pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<@mut ClientRect> {
         *found = index < self.rects.len() as u32;
         self.Item(index)
     }
