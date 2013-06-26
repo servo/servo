@@ -14,15 +14,19 @@ use std::result;
 use std::ptr;
 use std::str;
 use std::vec;
+use servo_util::cache::{Cache, HashCache};
 use text::glyph::{GlyphStore, GlyphIndex};
 use text::shaping::ShaperMethods;
 use text::{Shaper, TextRun};
+use extra::arc::ARC;
 
 use azure::{AzFloat, AzScaledFontRef};
 use azure::scaled_font::ScaledFont;
 use azure::azure_hl::{BackendType, ColorPattern};
 use geom::{Point2D, Rect, Size2D};
 
+use servo_util::time;
+use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
 
 // FontHandle encapsulates access to the platform's font API,
@@ -206,6 +210,24 @@ pub struct RunMetrics {
     bounding_box: Rect<Au>
 }
 
+impl RunMetrics {
+    pub fn new(advance: Au, ascent: Au, descent: Au) -> RunMetrics {
+        let bounds = Rect(Point2D(Au(0), -ascent),
+                          Size2D(advance, ascent + descent));
+
+        // TODO(Issue #125): support loose and tight bounding boxes; using the
+        // ascent+descent and advance is sometimes too generous and
+        // looking at actual glyph extents can yield a tighter box.
+
+        RunMetrics { 
+            advance_width: advance,
+            bounding_box: bounds,
+            ascent: ascent,
+            descent: descent,
+        }
+    }
+}
+
 /**
 A font instance. Layout can use this to calculate glyph metrics
 and the renderer can use it to render text.
@@ -218,6 +240,7 @@ pub struct Font {
     metrics: FontMetrics,
     backend: BackendType,
     profiler_chan: ProfilerChan,
+    shape_cache: HashCache<~str, ARC<GlyphStore>>,
 }
 
 impl Font {
@@ -245,6 +268,7 @@ impl Font {
             metrics: metrics,
             backend: backend,
             profiler_chan: profiler_chan,
+            shape_cache: HashCache::new(),
         });
     }
 
@@ -261,6 +285,7 @@ impl Font {
             metrics: metrics,
             backend: backend,
             profiler_chan: profiler_chan,
+            shape_cache: HashCache::new(),
         }
     }
 
@@ -366,20 +391,22 @@ impl Font {
         let mut azglyphs = ~[];
         vec::reserve(&mut azglyphs, range.length());
 
-        for run.glyphs.iter_glyphs_for_char_range(range) |_i, glyph| {
-            let glyph_advance = glyph.advance_();
-            let glyph_offset = glyph.offset().get_or_default(Au::zero_point());
+        for run.iter_slices_for_range(range) |glyphs, _offset, slice_range| {
+            for glyphs.iter_glyphs_for_char_range(slice_range) |_i, glyph| {
+                let glyph_advance = glyph.advance_();
+                let glyph_offset = glyph.offset().get_or_default(Au::zero_point());
 
-            let azglyph = struct__AzGlyph {
-                mIndex: glyph.index() as uint32_t,
-                mPosition: struct__AzPoint {
-                    x: (origin.x + glyph_offset.x).to_px() as AzFloat,
-                    y: (origin.y + glyph_offset.y).to_px() as AzFloat
-                }
+                let azglyph = struct__AzGlyph {
+                    mIndex: glyph.index() as uint32_t,
+                    mPosition: struct__AzPoint {
+                        x: (origin.x + glyph_offset.x).to_px() as AzFloat,
+                        y: (origin.y + glyph_offset.y).to_px() as AzFloat
+                    }
+                };
+                origin = Point2D(origin.x + glyph_advance, origin.y);
+                azglyphs.push(azglyph)
             };
-            origin = Point2D(origin.x + glyph_advance, origin.y);
-            azglyphs.push(azglyph)
-        };
+        }
 
         let azglyph_buf_len = azglyphs.len();
         if azglyph_buf_len == 0 { return; } // Otherwise the Quartz backend will assert.
@@ -404,29 +431,34 @@ impl Font {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
-        for run.glyphs.iter_glyphs_for_char_range(range) |_i, glyph| {
-            advance += glyph.advance_();
+        for run.iter_slices_for_range(range) |glyphs, _offset, slice_range| {
+            for glyphs.iter_glyphs_for_char_range(slice_range) |_i, glyph| {
+                advance += glyph.advance_();
+            }
         }
-        let bounds = Rect(Point2D(Au(0), -self.metrics.ascent),
-                          Size2D(advance, self.metrics.ascent + self.metrics.descent));
-
-        // TODO(Issue #125): support loose and tight bounding boxes; using the
-        // ascent+descent and advance is sometimes too generous and
-        // looking at actual glyph extents can yield a tighter box.
-
-        RunMetrics { 
-            advance_width: advance,
-            bounding_box: bounds,
-            ascent: self.metrics.ascent,
-            descent: self.metrics.descent,
-        }
+        RunMetrics::new(advance, self.metrics.ascent, self.metrics.descent)
     }
 
-    pub fn shape_text(@mut self, text: &str, store: &mut GlyphStore) {
-        // TODO(Issue #229): use a more efficient strategy for repetitive shaping.
-        // For example, Gecko uses a per-"word" hashtable of shaper results.
-        let shaper = self.get_shaper();
-        shaper.shape_text(text, store);
+    pub fn measure_text_for_slice(&self,
+                                  glyphs: &GlyphStore,
+                                  slice_range: &Range)
+                                  -> RunMetrics {
+        let mut advance = Au(0);
+        for glyphs.iter_glyphs_for_char_range(slice_range) |_i, glyph| {
+            advance += glyph.advance_();
+        }
+        RunMetrics::new(advance, self.metrics.ascent, self.metrics.descent)
+    }
+
+    pub fn shape_text(@mut self, text: ~str, is_whitespace: bool) -> ARC<GlyphStore> {
+        do profile(time::LayoutShapingCategory, self.profiler_chan.clone()) {
+            let shaper = self.get_shaper();
+            do self.shape_cache.find_or_create(&text) |txt| {
+                let mut glyphs = GlyphStore::new(text.char_len(), is_whitespace);
+                shaper.shape_text(*txt, &mut glyphs);
+                ARC(glyphs)
+            }
+        }
     }
 
     pub fn get_descriptor(&self) -> FontDescriptor {

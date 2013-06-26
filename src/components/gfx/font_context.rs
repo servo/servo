@@ -14,7 +14,6 @@ use platform::font_context::FontContextHandle;
 
 use azure::azure_hl::BackendType;
 use std::hashmap::HashMap;
-use std::str;
 use std::result;
 
 // TODO(Rust #3934): creating lots of new dummy styles is a workaround

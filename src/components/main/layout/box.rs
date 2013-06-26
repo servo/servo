@@ -289,51 +289,52 @@ impl RenderBox {
                        text_box.range,
                        max_width);
 
-                for text_box.run.iter_indivisible_pieces_for_range(
-                        &text_box.range) |piece_range| {
-                    debug!("split_to_width: considering piece (range=%?, remain_width=%?)",
-                           piece_range,
+                for text_box.run.iter_slices_for_range(&text_box.range)
+                                                        |glyphs, offset, slice_range| {
+                    debug!("split_to_width: considering slice (offset=%?, range=%?, remain_width=%?)",
+                           offset,
+                           slice_range,
                            remaining_width);
 
-                    let metrics = text_box.run.metrics_for_range(piece_range);
+                    let metrics = text_box.run.metrics_for_slice(glyphs, slice_range);
                     let advance = metrics.advance_width;
                     let should_continue: bool;
 
                     if advance <= remaining_width {
                         should_continue = true;
 
-                        if starts_line &&
-                                pieces_processed_count == 0 &&
-                                text_box.run.range_is_trimmable_whitespace(piece_range) {
+                        if starts_line && pieces_processed_count == 0 && glyphs.is_whitespace() {
                             debug!("split_to_width: case=skipping leading trimmable whitespace");
-                            left_range.shift_by(piece_range.length() as int);
+                            left_range.shift_by(slice_range.length() as int);
                         } else {
                             debug!("split_to_width: case=enlarging span");
                             remaining_width -= advance;
-                            left_range.extend_by(piece_range.length() as int);
+                            left_range.extend_by(slice_range.length() as int);
                         }
                     } else {    // The advance is more than the remaining width.
                         should_continue = false;
+                        let slice_begin = offset + slice_range.begin();
+                        let slice_end = offset + slice_range.end();
 
-                        if text_box.run.range_is_trimmable_whitespace(piece_range) {
+                        if glyphs.is_whitespace() {
                             // If there are still things after the trimmable whitespace, create the
                             // right chunk.
-                            if piece_range.end() < text_box.range.end() {
+                            if slice_end < text_box.range.end() {
                                 debug!("split_to_width: case=skipping trimmable trailing \
                                         whitespace, then split remainder");
                                 let right_range_end =
-                                    text_box.range.end() - piece_range.end();
-                                right_range = Some(Range::new(piece_range.end(), right_range_end));
+                                    text_box.range.end() - slice_end;
+                                right_range = Some(Range::new(slice_end, right_range_end));
                             } else {
                                 debug!("split_to_width: case=skipping trimmable trailing \
                                         whitespace");
                             }
-                        } else if piece_range.begin() < text_box.range.end() {
+                        } else if slice_begin < text_box.range.end() {
                             // There are still some things left over at the end of the line. Create
                             // the right chunk.
                             let right_range_end =
-                                text_box.range.end() - piece_range.begin();
-                            right_range = Some(Range::new(piece_range.begin(), right_range_end));
+                                text_box.range.end() - slice_begin;
+                            right_range = Some(Range::new(slice_begin, right_range_end));
                             debug!("split_to_width: case=splitting remainder with right range=%?",
                                    right_range);
                         }
@@ -449,13 +450,8 @@ impl RenderBox {
                 let mut max_line_width = Au(0);
                 for text_box.run.iter_natural_lines_for_range(&text_box.range)
                         |line_range| {
-                    let mut line_width: Au = Au(0);
-                    for text_box.run.glyphs.iter_glyphs_for_char_range(line_range)
-                            |_, glyph| {
-                        line_width += glyph.advance_()
-                    }
-
-                    max_line_width = Au::max(max_line_width, line_width);
+                    let line_metrics = text_box.run.metrics_for_range(line_range);
+                    max_line_width = Au::max(max_line_width, line_metrics.advance_width);
                 }
 
                 max_line_width
@@ -857,10 +853,8 @@ impl RenderBox {
             GenericRenderBoxClass(*) => ~"GenericRenderBox",
             ImageRenderBoxClass(*) => ~"ImageRenderBox",
             TextRenderBoxClass(text_box) => {
-                fmt!("TextRenderBox(text=%s)",
-                     text_box.run.text.slice(
-                         text_box.range.begin(),
-                         text_box.range.begin() + text_box.range.length()))
+                fmt!("TextRenderBox(text=%s)", text_box.run.text.slice_chars(text_box.range.begin(),
+                                                                             text_box.range.end()))
             }
             UnscannedTextRenderBoxClass(text_box) => {
                 fmt!("UnscannedTextRenderBox(%s)", text_box.text)
@@ -870,5 +864,3 @@ impl RenderBox {
         fmt!("box b%?: %s", self.id(), representation)
     }
 }
-
-
