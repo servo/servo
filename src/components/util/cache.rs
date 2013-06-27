@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-pub trait Cache<K: Copy + Eq, V: Copy> {
-    fn insert(&mut self, key: &K, value: V);
+use std::hashmap::HashMap;
+
+pub trait Cache<K: Eq, V: Clone> {
+    fn insert(&mut self, key: K, value: V);
     fn find(&mut self, key: &K) -> Option<V>;
     fn find_or_create(&mut self, key: &K, blk: &fn(&K) -> V) -> V;
     fn evict_all(&mut self);
@@ -13,34 +15,35 @@ pub struct MonoCache<K, V> {
     entry: Option<(K,V)>,
 }
 
-impl<K: Copy + Eq, V: Copy> MonoCache<K,V> {
+impl<K: Clone + Eq, V: Clone> MonoCache<K,V> {
     pub fn new(_size: uint) -> MonoCache<K,V> {
         MonoCache { entry: None }
     }
 }
 
-impl<K: Copy + Eq, V: Copy> Cache<K,V> for MonoCache<K,V> {
-    fn insert(&mut self, key: &K, value: V) {
-        self.entry = Some((copy *key, value));
+impl<K: Clone + Eq, V: Clone> Cache<K,V> for MonoCache<K,V> {
+    fn insert(&mut self, key: K, value: V) {
+        self.entry = Some((key, value));
     }
 
     fn find(&mut self, key: &K) -> Option<V> {
         match self.entry {
             None => None,
-            Some((ref k, ref v)) => if *k == *key { Some(copy *v) } else { None }
+            Some((ref k, ref v)) => if *k == *key { Some(v.clone()) } else { None }
         }
     }
 
     fn find_or_create(&mut self, key: &K, blk: &fn(&K) -> V) -> V {
-        return match self.find(key) {
+        match self.entry {
             None => { 
                 let value = blk(key);
-                self.entry = Some((copy *key, copy value));
+                self.entry = Some((key.clone(), value.clone()));
                 value
             },
-            Some(v) => v
-        };
+            Some((ref _k, ref v)) => v.clone()
+        }
     }
+
     fn evict_all(&mut self) {
         self.entry = None;
     }
@@ -60,12 +63,60 @@ fn test_monocache() {
     assert!(cache.find(&1).is_none());
 }
 
+pub struct HashCache<K, V> {
+    entries: HashMap<K, V>,
+}
+
+impl<K: Clone + Eq + Hash, V: Clone> HashCache<K,V> {
+    pub fn new() -> HashCache<K, V> {
+        HashCache {
+          entries: HashMap::new(),
+        }
+    }
+}
+
+impl<K: Clone + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
+    fn insert(&mut self, key: K, value: V) {
+        self.entries.insert(key, value);
+    }
+
+    fn find(&mut self, key: &K) -> Option<V> {
+        match self.entries.find(key) {
+            Some(v) => Some(v.clone()),
+            None    => None,
+        }
+    }
+
+    fn find_or_create(&mut self, key: &K, blk: &fn(&K) -> V) -> V {
+        self.entries.find_or_insert_with(key.clone(), blk).clone()
+    }
+
+    fn evict_all(&mut self) {
+        self.entries.clear();
+    }
+}
+
+#[test]
+fn test_hashcache() {
+    let cache = HashCache::new();
+    let one = @"one";
+    let two = @"two";
+
+    cache.insert(&1, one);
+    assert!(cache.find(&1).is_some());
+    assert!(cache.find(&2).is_none());
+
+    cache.find_or_create(&2, |_v| { two });
+    assert!(cache.find(&1).is_some());
+    assert!(cache.find(&2).is_some());
+}
+
 pub struct LRUCache<K, V> {
     entries: ~[(K, V)],
     cache_size: uint,
 }
 
-impl<K: Copy + Eq, V: Copy> LRUCache<K,V> {
+impl<K: Clone + Eq, V: Clone> LRUCache<K,V> {
     pub fn new(size: uint) -> LRUCache<K, V> {
         LRUCache {
           entries: ~[],
@@ -74,21 +125,21 @@ impl<K: Copy + Eq, V: Copy> LRUCache<K,V> {
     }
 
     pub fn touch(&mut self, pos: uint) -> V {
-        let (key, val) = copy self.entries[pos];
-        if pos != self.cache_size {
-            self.entries.remove(pos);
-            self.entries.push((key, copy val));
+        let last_index = self.entries.len() - 1;
+        if pos != last_index {
+            let entry = self.entries.remove(pos);
+            self.entries.push(entry);
         }
-        val
+        self.entries[last_index].second_ref().clone()
     }
 }
 
-impl<K: Copy + Eq, V: Copy> Cache<K,V> for LRUCache<K,V> {
-    fn insert(&mut self, key: &K, val: V) {
+impl<K: Clone + Eq, V: Clone> Cache<K,V> for LRUCache<K,V> {
+    fn insert(&mut self, key: K, val: V) {
         if self.entries.len() == self.cache_size {
             self.entries.remove(0);
         }
-        self.entries.push((copy *key, val));
+        self.entries.push((key, val));
     }
 
     fn find(&mut self, key: &K) -> Option<V> {
@@ -102,9 +153,9 @@ impl<K: Copy + Eq, V: Copy> Cache<K,V> for LRUCache<K,V> {
         match self.entries.position(|&(k, _)| k == *key) {
             Some(pos) => self.touch(pos),
             None => {
-              let val = blk(key);
-              self.insert(key, copy val);
-              val
+                let val = blk(key);
+                self.insert(key.clone(), val.clone());
+                val
             }
         }
     }

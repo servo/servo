@@ -507,18 +507,28 @@ impl<'self> GlyphInfo<'self> {
 pub struct GlyphStore {
     entry_buffer: ~[GlyphEntry],
     detail_store: DetailedGlyphStore,
+    is_whitespace: bool,
 }
 
 impl<'self> GlyphStore {
     // Initializes the glyph store, but doesn't actually shape anything.
     // Use the set_glyph, set_glyphs() methods to store glyph data.
-    pub fn new(length: uint) -> GlyphStore {
+    pub fn new(length: uint, is_whitespace: bool) -> GlyphStore {
         assert!(length > 0);
 
         GlyphStore {
             entry_buffer: vec::from_elem(length, GlyphEntry::initial()),
             detail_store: DetailedGlyphStore::new(),
+            is_whitespace: is_whitespace,
         }
+    }
+
+    pub fn char_len(&self) -> uint {
+        self.entry_buffer.len()
+    }
+
+    pub fn is_whitespace(&self) -> bool {
+        self.is_whitespace
     }
 
     pub fn finalize_changes(&mut self) {

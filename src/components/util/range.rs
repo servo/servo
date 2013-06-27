@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::uint;
+use std::cmp::{max, min};
 
 enum RangeRelation {
     OverlapsBegin(/* overlap */ uint),
@@ -51,6 +52,10 @@ impl Range {
         self.begin() < s.len() && self.end() <= s.len() && self.length() <= s.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     pub fn shift_by(&mut self, i: int) { 
         self.off = ((self.off as int) + i) as uint;
     }
@@ -71,6 +76,17 @@ impl Range {
     pub fn reset(&mut self, off_i: uint, len_i: uint) {
         self.off = off_i;
         self.len = len_i;
+    }
+
+    pub fn intersect(&self, other: &Range) -> Range {
+        let begin = max(self.begin(), other.begin());
+        let end = min(self.end(), other.end());
+
+        if end < begin {
+            Range::empty()
+        } else {
+            Range::new(begin, end - begin)
+        }
     }
 
     /// Computes the relationship between two ranges (`self` and `other`),
