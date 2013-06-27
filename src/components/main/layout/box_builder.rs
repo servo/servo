@@ -15,6 +15,7 @@ use layout::flow::{AbsoluteFlow, BlockFlow, FloatFlow, Flow_Absolute, Flow_Block
 use layout::flow::{Flow_Inline, Flow_InlineBlock, Flow_Root, Flow_Table, FlowContext};
 use layout::flow::{FlowContextType, FlowData, InlineBlockFlow, InlineFlow, TableFlow};
 use layout::inline::{InlineFlowData, InlineLayout};
+use layout::text::TextRunScanner;
 use css::node_style::StyledNode;
 
 use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
@@ -467,7 +468,7 @@ impl LayoutTreeBuilder {
     ///
     /// The latter can only be done immediately adjacent to, or at the beginning or end of a block
     /// flow. Otherwise, the whitespace might affect whitespace collapsing with adjacent text.
-    pub fn simplify_children_of_flow(&self, _: &LayoutContext, parent_flow: &mut FlowContext) {
+    pub fn simplify_children_of_flow(&self, ctx: &LayoutContext, parent_flow: &mut FlowContext) {
         match *parent_flow {
             InlineFlow(*) => {
                 let mut found_child_inline = false;
@@ -486,7 +487,7 @@ impl LayoutTreeBuilder {
                     self.fixup_split_inline(*parent_flow)
                 }
             },
-            BlockFlow(*) => {
+            BlockFlow(*) | FloatFlow(*) => {
                 // FIXME: this will create refcounted cycles between the removed flow and any
                 // of its RenderBox or FlowContext children, and possibly keep alive other junk
 
@@ -534,6 +535,18 @@ impl LayoutTreeBuilder {
                         if (do_remove) {
                             (*parent_flow).remove_child(last_flow);
                         }
+                    }
+                }
+
+                // Issue 543: We only need to do this if there are inline child
+                // flows, but there's not a quick way to check at the moment.
+                for (*parent_flow).each_child |child_flow: FlowContext| {
+                    match child_flow {
+                        InlineFlow(*) | InlineBlockFlow(*) => {
+                            let mut scanner = TextRunScanner::new();
+                            scanner.scan_for_runs(ctx, child_flow);
+                        }
+                        _ => {}
                     }
                 }
             },
