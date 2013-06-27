@@ -6,8 +6,7 @@ use font::{Font, FontDescriptor, FontGroup, FontHandleMethods, FontStyle,
            SelectorPlatformIdentifier};
 use font::{SpecifiedFontStyle, UsedFontStyle};
 use font_list::FontList;
-use servo_util::cache::Cache;
-use servo_util::cache::LRUCache;
+use servo_util::cache::{Cache, LRUCache};
 use servo_util::time::ProfilerChan;
 
 use platform::font::FontHandle;
@@ -15,7 +14,6 @@ use platform::font_context::FontContextHandle;
 
 use azure::azure_hl::BackendType;
 use std::hashmap::HashMap;
-use std::str;
 use std::result;
 
 // TODO(Rust #3934): creating lots of new dummy styles is a workaround
@@ -90,7 +88,7 @@ impl<'self> FontContext {
             None => {
                 debug!("font group cache miss");
                 let fg = self.create_font_group(style);
-                self.group_cache.insert(style, fg);
+                self.group_cache.insert(style.clone(), fg);
                 fg
             }
         }
@@ -107,7 +105,7 @@ impl<'self> FontContext {
                 let result = self.create_font_instance(desc);
                 match result {
                     Ok(font) => {
-                        self.instance_cache.insert(desc, font);
+                        self.instance_cache.insert(desc.clone(), font);
                     }, _ => {}
                 };
                 result

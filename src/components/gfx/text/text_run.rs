@@ -4,18 +4,17 @@
 
 use font_context::FontContext;
 use geometry::Au;
-use text::glyph::{BreakTypeNormal, GlyphStore};
+use text::glyph::GlyphStore;
 use font::{Font, FontDescriptor, RunMetrics};
-use servo_util::time;
-use servo_util::time::profile;
 use servo_util::range::Range;
+use extra::arc::ARC;
 
 /// A text run.
 pub struct TextRun {
     text: ~str,
     font: @mut Font,
     underline: bool,
-    glyphs: GlyphStore,
+    glyphs: ~[ARC<GlyphStore>],
 }
 
 /// This is a hack until TextRuns are normally sendable, or we instead use ARC<TextRun> everywhere.
@@ -23,7 +22,7 @@ pub struct SendableTextRun {
     text: ~str,
     font: FontDescriptor,
     underline: bool,
-    priv glyphs: GlyphStore,
+    priv glyphs: ~[ARC<GlyphStore>],
 }
 
 impl SendableTextRun {
@@ -37,24 +36,20 @@ impl SendableTextRun {
             text: copy self.text,
             font: font,
             underline: self.underline,
-            glyphs: copy self.glyphs
+            glyphs: self.glyphs.clone(),
         }
     }
 }
 
 impl<'self> TextRun {
     pub fn new(font: @mut Font, text: ~str, underline: bool) -> TextRun {
-        let mut glyph_store = GlyphStore::new(text.char_len());
-        TextRun::compute_potential_breaks(text, &mut glyph_store);
-        do profile(time::LayoutShapingCategory, font.profiler_chan.clone()) {
-            font.shape_text(text, &mut glyph_store);
-        }
+        let glyphs = TextRun::break_and_shape(font, text);
 
         let run = TextRun {
             text: text,
             font: font,
             underline: underline,
-            glyphs: glyph_store,
+            glyphs: glyphs,
         };
         return run;
     }
@@ -63,46 +58,59 @@ impl<'self> TextRun {
         self.font.teardown();
     }
 
-    pub fn compute_potential_breaks(text: &str, glyphs: &mut GlyphStore) {
+    pub fn break_and_shape(font: @mut Font, text: &str) -> ~[ARC<GlyphStore>] {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
 
+        let mut glyphs = ~[];
         let mut byte_i = 0u;
-        let mut char_j = 0u;
-        let mut prev_is_whitespace = false;
+        let mut cur_slice_is_whitespace = false;
+        let mut byte_last_boundary = 0;
         while byte_i < text.len() {
             let range = text.char_range_at(byte_i);
             let ch = range.ch;
             let next = range.next;
-            // set char properties.
-            match ch {
-                ' '  => { glyphs.set_char_is_space(char_j); },
-                '\t' => { glyphs.set_char_is_tab(char_j); },
-                '\n' => { glyphs.set_char_is_newline(char_j); },
-                _ => {}
-            }
 
-            // set line break opportunities at whitespace/non-whitespace boundaries.
-            if prev_is_whitespace {
+            // Slices alternate between whitespace and non-whitespace,
+            // representing line break opportunities.
+            let can_break_before = if cur_slice_is_whitespace {
                 match ch {
-                    ' ' | '\t' | '\n' => {},
+                    ' ' | '\t' | '\n' => false,
                     _ => {
-                        glyphs.set_can_break_before(char_j, BreakTypeNormal);
-                        prev_is_whitespace = false;
+                        cur_slice_is_whitespace = false;
+                        true
                     }
                 }
             } else {
                 match ch {
                     ' ' | '\t' | '\n' => {
-                        glyphs.set_can_break_before(char_j, BreakTypeNormal);
-                        prev_is_whitespace = true;
+                        cur_slice_is_whitespace = true;
+                        true
                     },
-                    _ => { }
+                    _ => false
                 }
+            };
+
+            // Create a glyph store for this slice if it's nonempty.
+            if can_break_before && byte_i > byte_last_boundary {
+                let slice = text.slice(byte_last_boundary, byte_i).to_owned();
+                debug!("creating glyph store for slice %? (ws? %?), %? - %? in run %?",
+                        slice, !cur_slice_is_whitespace, byte_last_boundary, byte_i, text);
+                glyphs.push(font.shape_text(slice, !cur_slice_is_whitespace));
+                byte_last_boundary = byte_i;
             }
 
             byte_i = next;
-            char_j += 1;
         }
+
+        // Create a glyph store for the final slice if it's nonempty.
+        if byte_i > byte_last_boundary {
+            let slice = text.slice(byte_last_boundary, text.len()).to_owned();
+            debug!("creating glyph store for final slice %? (ws? %?), %? - %? in run %?",
+                slice, cur_slice_is_whitespace, byte_last_boundary, text.len(), text);
+            glyphs.push(font.shape_text(slice, cur_slice_is_whitespace));
+        }
+
+        glyphs
     }
 
     pub fn serialize(&self) -> SendableTextRun {
@@ -110,50 +118,80 @@ impl<'self> TextRun {
             text: copy self.text,
             font: self.font.get_descriptor(),
             underline: self.underline,
-            glyphs: copy self.glyphs,
+            glyphs: self.glyphs.clone(),
         }
     }
 
-    pub fn char_len(&self) -> uint { self.glyphs.entry_buffer.len() }
-    pub fn glyphs(&'self self) -> &'self GlyphStore { &self.glyphs }
+    pub fn char_len(&self) -> uint {
+        do self.glyphs.foldl(0u) |len, slice_glyphs| {
+            len + slice_glyphs.get().char_len()
+        }
+    }
+
+    pub fn glyphs(&'self self) -> &'self ~[ARC<GlyphStore>] { &self.glyphs }
 
     pub fn range_is_trimmable_whitespace(&self, range: &Range) -> bool {
-        for range.eachi |i| {
-            if  !self.glyphs.char_is_space(i) &&
-                !self.glyphs.char_is_tab(i)   &&
-                !self.glyphs.char_is_newline(i) { return false; }
+        for self.iter_slices_for_range(range) |slice_glyphs, _, _| {
+            if !slice_glyphs.is_whitespace() { return false; }
         }
-        return true;
+        true
     }
 
     pub fn metrics_for_range(&self, range: &Range) -> RunMetrics {
         self.font.measure_text(self, range)
     }
 
+    pub fn metrics_for_slice(&self, glyphs: &GlyphStore, slice_range: &Range) -> RunMetrics {
+        self.font.measure_text_for_slice(glyphs, slice_range)
+    }
+
     pub fn min_width_for_range(&self, range: &Range) -> Au {
         let mut max_piece_width = Au(0);
         debug!("iterating outer range %?", range);
-        for self.iter_indivisible_pieces_for_range(range) |piece_range| {
-            debug!("iterated on %?", piece_range);
-            let metrics = self.font.measure_text(self, piece_range);
+        for self.iter_slices_for_range(range) |glyphs, offset, slice_range| {
+            debug!("iterated on %?[%?]", offset, slice_range);
+            let metrics = self.font.measure_text_for_slice(glyphs, slice_range);
             max_piece_width = Au::max(max_piece_width, metrics.advance_width);
         }
-        return max_piece_width;
+        max_piece_width
+    }
+
+    pub fn iter_slices_for_range(&self,
+                                 range: &Range,
+                                 f: &fn(&GlyphStore, uint, &Range) -> bool)
+                                 -> bool {
+        let mut offset = 0;
+        for self.glyphs.each |slice_glyphs| {
+            // Determine the range of this slice that we need.
+            let slice_range = Range::new(offset, slice_glyphs.get().char_len());
+            let mut char_range = range.intersect(&slice_range);
+            char_range.shift_by(-(offset.to_int()));
+
+            let unwrapped_glyphs = slice_glyphs.get();
+            if !char_range.is_empty() {
+                if !f(unwrapped_glyphs, offset, &char_range) { break }
+            }
+            offset += unwrapped_glyphs.char_len();
+        }
+        true
     }
 
     pub fn iter_natural_lines_for_range(&self, range: &Range, f: &fn(&Range) -> bool) -> bool {
         let mut clump = Range::new(range.begin(), 0);
         let mut in_clump = false;
 
-        // clump non-linebreaks of nonzero length
-        for range.eachi |i| {
-            match (self.glyphs.char_is_newline(i), in_clump) {
-                (false, true)  => { clump.extend_by(1); }
-                (false, false) => { in_clump = true; clump.reset(i, 1); }
-                (true, false) => { /* chomp whitespace */ }
-                (true, true)  => {
+        for self.iter_slices_for_range(range) |glyphs, offset, slice_range| {
+            match (glyphs.is_whitespace(), in_clump) {
+                (false, true)  => { clump.extend_by(slice_range.length().to_int()); }
+                (false, false) => {
+                    in_clump = true;
+                    clump = *slice_range;
+                    clump.shift_by(offset.to_int());
+                }
+                (true, false)  => { /* chomp whitespace */ }
+                (true, true)   => {
                     in_clump = false;
-                    // don't include the linebreak character itself in the clump.
+                    // The final whitespace clump is not included.
                     if !f(&clump) { break }
                 }
             }
@@ -163,30 +201,6 @@ impl<'self> TextRun {
         if in_clump {
             clump.extend_to(range.end());
             f(&clump);
-        }
-
-        true
-    }
-
-    pub fn iter_indivisible_pieces_for_range(&self, range: &Range, f: &fn(&Range) -> bool) -> bool {
-        let mut clump = Range::new(range.begin(), 0);
-
-        loop {
-            // extend clump to non-break-before characters.
-            while clump.end() < range.end() 
-                && self.glyphs.can_break_before(clump.end()) != BreakTypeNormal {
-
-                clump.extend_by(1);
-            }
-
-            // now clump.end() is break-before or range.end()
-            if !f(&clump) || clump.end() == range.end() {
-                break
-            }
-
-            // now clump includes one break-before character, or starts from range.end()
-            let end = clump.end(); // FIXME: borrow checker workaround
-            clump.reset(end, 1);
         }
 
         true

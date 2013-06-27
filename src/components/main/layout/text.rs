@@ -21,15 +21,16 @@ use servo_util::range::Range;
 /// Creates a TextRenderBox from a range and a text run.
 pub fn adapt_textbox_with_range(mut base: RenderBoxBase, run: @TextRun, range: Range)
                                 -> TextRenderBox {
-    assert!(range.begin() < run.char_len());
-    assert!(range.end() <= run.char_len());
-    assert!(range.length() > 0);
-
-    debug!("Creating textbox with span: (strlen=%u, off=%u, len=%u) of textrun: %s",
+    debug!("Creating textbox with span: (strlen=%u, off=%u, len=%u) of textrun (%s) (len=%u)",
            run.char_len(),
            range.begin(),
            range.length(),
-           run.text);
+           run.text,
+           run.char_len());
+
+    assert!(range.begin() < run.char_len());
+    assert!(range.end() <= run.char_len());
+    assert!(range.length() > 0);
 
     let metrics = run.metrics_for_range(&range);
     base.position.size = metrics.bounding_box.size;
@@ -170,7 +171,7 @@ impl TextRunScanner {
                     let fontgroup = ctx.font_ctx.get_resolved_font_for_style(&font_style);
                     let run = @fontgroup.create_textrun(transformed_text, underline);
 
-                    debug!("TextRunScanner: pushing single text box in range: %?", self.clump);
+                    debug!("TextRunScanner: pushing single text box in range: %? (%?)", self.clump, text);
                     let new_box = do old_box.with_base |old_box_base| {
                         let range = Range::new(0, run.char_len());
                         @mut adapt_textbox_with_range(*old_box_base, run, range)
