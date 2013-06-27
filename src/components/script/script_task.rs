@@ -5,19 +5,21 @@
 /// The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 /// and layout tasks.
 
-use servo_msg::compositor::{ReadyState, Loading, PerformingLayout, FinishedLoading};
+use servo_msg::compositor::{ScriptListener, Loading, PerformingLayout};
+use servo_msg::compositor::FinishedLoading;
 use dom::bindings::utils::GlobalStaticData;
 use dom::document::Document;
 use dom::element::Element;
 use dom::event::{Event, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent};
 use dom::node::{AbstractNode, ScriptView, define_bindings};
 use dom::window::Window;
-use layout_interface::{AddStylesheetMsg, DocumentDamage, DocumentDamageLevel, HitTestQuery};
-use layout_interface::{HitTestResponse, LayoutQuery, LayoutResponse, LayoutChan};
-use layout_interface::{MatchSelectorsDocumentDamage, QueryMsg, Reflow, ReflowDocumentDamage};
-use layout_interface::{ReflowForDisplay, ReflowForScriptQuery, ReflowGoal, ReflowMsg};
+use layout_interface::{AddStylesheetMsg, DocumentDamage};
+use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery};
+use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg, Reflow};
+use layout_interface::{ReflowDocumentDamage, ReflowForDisplay, ReflowForScriptQuery, ReflowGoal};
+use layout_interface::ReflowMsg;
 use layout_interface;
-use servo_msg::engine::{EngineChan, LoadUrlMsg};
+use servo_msg::engine::{EngineChan, LoadUrlMsg, RendererReadyMsg};
 
 use std::cast::transmute;
 use std::cell::Cell;
@@ -91,7 +93,9 @@ pub struct Frame {
 /// frames.
 ///
 /// FIXME: Rename to `Page`, following WebKit?
-pub struct ScriptContext {
+pub struct ScriptTask {
+    /// A unique identifier to the script's pipeline
+    id: uint,
     /// A handle to the layout task.
     layout_chan: LayoutChan,
     /// A handle to the image cache task.
@@ -110,8 +114,8 @@ pub struct ScriptContext {
 
     /// For communicating load url messages to the engine
     engine_chan: EngineChan,
-    /// For communicating loading messages to the compositor
-    compositor_task: ~fn(ReadyState),
+    /// For permission to communicate ready state messages to the compositor
+    compositor: @ScriptListener,
 
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
@@ -134,26 +138,26 @@ pub struct ScriptContext {
     damage: Option<DocumentDamage>,
 }
 
-fn global_script_context_key(_: @ScriptContext) {}
+fn global_script_context_key(_: @ScriptTask) {}
 
 /// Returns this task's script context singleton.
-pub fn global_script_context() -> @ScriptContext {
+pub fn global_script_context() -> @ScriptTask {
     unsafe {
         local_data::local_data_get(global_script_context_key).get()
     }
 }
 
-/// Returns the script context from the JS Context.
+/// Returns the script task from the JS Context.
 ///
 /// FIXME: Rename to `script_context_from_js_context`.
-pub fn task_from_context(js_context: *JSContext) -> *mut ScriptContext {
+pub fn task_from_context(js_context: *JSContext) -> *mut ScriptTask {
     unsafe {
-        JS_GetContextPrivate(js_context) as *mut ScriptContext
+        JS_GetContextPrivate(js_context) as *mut ScriptTask
     }
 }
 
 #[unsafe_destructor]
-impl Drop for ScriptContext {
+impl Drop for ScriptTask {
     fn finalize(&self) {
         unsafe {
             let _ = local_data::local_data_pop(global_script_context_key);
@@ -161,16 +165,17 @@ impl Drop for ScriptContext {
     }
 }
 
-impl ScriptContext {
-    /// Creates a new script context.
-    pub fn new(layout_chan: LayoutChan,
+impl ScriptTask {
+    /// Creates a new script task.
+    pub fn new(id: uint,
+               compositor: @ScriptListener,
+               layout_chan: LayoutChan,
                script_port: Port<ScriptMsg>,
                script_chan: ScriptChan,
                engine_chan: EngineChan,
-               compositor_task: ~fn(ReadyState),
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask)
-               -> @mut ScriptContext {
+               -> @mut ScriptTask {
         let js_runtime = js::rust::rt();
         let js_context = js_runtime.cx();
 
@@ -182,7 +187,10 @@ impl ScriptContext {
               Err(()) => fail!("Failed to create a compartment"),
         };
 
-        let script_context = @mut ScriptContext {
+        let script_task = @mut ScriptTask {
+            id: id,
+            compositor: compositor,
+
             layout_chan: layout_chan,
             image_cache_task: img_cache_task,
             resource_task: resource_task,
@@ -192,7 +200,6 @@ impl ScriptContext {
             script_chan: script_chan,
 
             engine_chan: engine_chan,
-            compositor_task: compositor_task,
 
             js_runtime: js_runtime,
             js_context: js_context,
@@ -207,17 +214,17 @@ impl ScriptContext {
             damage: None,
         };
         // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
-        let script_context_ptr = {
-            let borrowed_ctx= &mut *script_context;
-            borrowed_ctx as *mut ScriptContext
+        let script_task_ptr = {
+            let borrowed_ctx= &mut *script_task;
+            borrowed_ctx as *mut ScriptTask
         };
 
         unsafe {
-            js_context.set_cx_private(script_context_ptr as *());
-            local_data::local_data_set(global_script_context_key, transmute(script_context))
+            js_context.set_cx_private(script_task_ptr as *());
+            local_data::local_data_set(global_script_context_key, transmute(script_task))
         }
 
-        script_context
+        script_task
     }
 
     /// Starts the script task. After calling this method, the script task will loop receiving
@@ -228,27 +235,29 @@ impl ScriptContext {
         }
     }
 
-    pub fn create_script_context(layout_chan: LayoutChan,
-                                 script_port: Port<ScriptMsg>,
-                                 script_chan: ScriptChan,
-                                 engine_chan: EngineChan,
-                                 compositor_task: ~fn(ReadyState),
-                                 resource_task: ResourceTask,
-                                 image_cache_task: ImageCacheTask) {
+    pub fn create<C: ScriptListener + Owned>(id: uint,
+                  compositor: C,
+                  layout_chan: LayoutChan,
+                  script_port: Port<ScriptMsg>,
+                  script_chan: ScriptChan,
+                  engine_chan: EngineChan,
+                  resource_task: ResourceTask,
+                  image_cache_task: ImageCacheTask) {
+        let compositor = Cell::new(compositor);
         let script_port = Cell::new(script_port);
-        let compositor_task = Cell::new(compositor_task);
         // FIXME: rust#6399
         let mut the_task = task();
         the_task.sched_mode(SingleThreaded);
-        do the_task.spawn {
-            let script_context = ScriptContext::new(layout_chan.clone(),
-                                                    script_port.take(),
-                                                    script_chan.clone(),
-                                                    engine_chan.clone(),
-                                                    compositor_task.take(),
-                                                    resource_task.clone(),
-                                                    image_cache_task.clone());
-            script_context.start();
+        do spawn {
+            let script_task = ScriptTask::new(id,
+                                              @compositor.take() as @ScriptListener,
+                                              layout_chan.clone(),
+                                              script_port.take(),
+                                              script_chan.clone(),
+                                              engine_chan.clone(),
+                                              resource_task.clone(),
+                                              image_cache_task.clone());
+            script_task.start();
         }
     }
 
@@ -324,7 +333,8 @@ impl ScriptContext {
     /// Handles a notification that reflow completed.
     fn handle_reflow_complete_msg(&mut self) {
         self.layout_join_port = None;
-        self.set_ready_state(FinishedLoading)
+        self.engine_chan.send(RendererReadyMsg(self.id));
+        self.compositor.set_ready_state(FinishedLoading);
     }
 
     /// Handles a request to exit the script task and shut down layout.
@@ -335,12 +345,6 @@ impl ScriptContext {
         }
 
         self.layout_chan.send(layout_interface::ExitMsg)
-    }
-
-    // tells the compositor when loading starts and finishes
-    // FIXME ~compositor_interface doesn't work right now, which is why this is necessary
-    fn set_ready_state(&self, msg: ReadyState) {
-        (self.compositor_task)(msg);
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
@@ -354,7 +358,7 @@ impl ScriptContext {
             self.bindings_initialized = true
         }
 
-        self.set_ready_state(Loading);
+        self.compositor.set_ready_state(Loading);
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
@@ -446,7 +450,7 @@ impl ScriptContext {
         self.join_layout();
 
         // Tell the user that we're performing layout.
-        self.set_ready_state(PerformingLayout);
+        self.compositor.set_ready_state(PerformingLayout);
 
         // Layout will let us know when it's done.
         let (join_port, join_chan) = comm::stream();
@@ -478,7 +482,7 @@ impl ScriptContext {
     /// FIXME: This should basically never be used.
     pub fn reflow_all(&mut self, goal: ReflowGoal) {
         for self.root_frame.iter().advance |root_frame| {
-            ScriptContext::damage(&mut self.damage,
+            ScriptTask::damage(&mut self.damage,
                                   root_frame.document.root,
                                   MatchSelectorsDocumentDamage)
         }
@@ -487,12 +491,10 @@ impl ScriptContext {
     }
 
     /// Sends the given query to layout.
-    pub fn query_layout(&mut self, query: LayoutQuery) -> Result<LayoutResponse,()> {
-         self.join_layout();
-
-         let (response_port, response_chan) = comm::stream();
-         self.layout_chan.send(QueryMsg(query, response_chan));
-         response_port.recv()
+    pub fn query_layout<T: Owned>(&mut self, query: LayoutQuery, response_port: Port<Result<T, ()>>) -> Result<T,()> {
+        self.join_layout();
+        self.layout_chan.send(QueryMsg(query));
+        response_port.recv()
     }
 
     /// Adds the given damage.
@@ -526,7 +528,7 @@ impl ScriptContext {
                 self.window_size = Size2D(new_width, new_height);
 
                 for self.root_frame.iter().advance |root_frame| {
-                    ScriptContext::damage(&mut self.damage,
+                    ScriptTask::damage(&mut self.damage,
                                           root_frame.document.root,
                                           ReflowDocumentDamage);
                 }
@@ -541,7 +543,7 @@ impl ScriptContext {
                 debug!("script got reflow event");
 
                 for self.root_frame.iter().advance |root_frame| {
-                    ScriptContext::damage(&mut self.damage,
+                    ScriptTask::damage(&mut self.damage,
                                           root_frame.document.root,
                                           MatchSelectorsDocumentDamage);
                 }
@@ -557,7 +559,8 @@ impl ScriptContext {
                     Some(ref frame) => frame.document.root,
                     None => fail!("root frame is None")
                 };
-                match self.query_layout(HitTestQuery(root, point)) {
+                let (port, chan) = comm::stream();
+                match self.query_layout(HitTestQuery(root, point, chan), port) {
                     Ok(node) => match node {
                         HitTestResponse(node) => {
                             debug!("clicked on %?", node.debug_str());
@@ -580,7 +583,6 @@ impl ScriptContext {
                                 }
                             }
                         }
-                        _ => fail!(~"unexpected layout reply")
                     },
                     Err(()) => {
                         debug!(fmt!("layout query error"));
@@ -594,7 +596,7 @@ impl ScriptContext {
 
     priv fn load_url_from_element(&self, element: &Element) {
         // if the node's element is "a," load url from href attr
-        for element.attrs.each |attr| {
+        for element.attrs.iter().advance |attr| {
             if attr.name == ~"href" {
                 debug!("clicked on link to %?", attr.value); 
                 let current_url = match self.root_frame {

@@ -63,6 +63,7 @@ pub mod css {
 }
 
 pub mod engine;
+pub mod pipeline;
 
 pub mod layout {
     pub mod block;

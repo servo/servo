@@ -12,6 +12,7 @@ use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
 
 use std::cell::Cell;
+use std::comm;
 use std::uint;
 use std::str::eq_slice;
 use extra::net::url::Url;
@@ -165,20 +166,19 @@ impl<'self> Element {
                     Some(win) => {
                         let node = self.parent.abstract.get();
                         assert!(node.is_element());
-                        let script_context = unsafe {
-                            &mut *win.script_context
+                        let script_task = unsafe {
+                            &mut *win.script_task
                         };
-                        match script_context.query_layout(ContentBoxesQuery(node)) {
-                            Ok(rects) => match rects {
-                                ContentBoxesResponse(rects) =>
-                                    do rects.map |r| {
-                                        ClientRect::new(
-                                             r.origin.y.to_f32(),
-                                             (r.origin.y + r.size.height).to_f32(),
-                                             r.origin.x.to_f32(),
-                                             (r.origin.x + r.size.width).to_f32())
-                                    },
-                                _ => fail!(~"unexpected layout reply")
+                        let (port, chan) = comm::stream();
+                        match script_task.query_layout(ContentBoxesQuery(node, chan), port) {
+                            Ok(ContentBoxesResponse(rects)) => {
+                                do rects.map |r| {
+                                    ClientRect::new(
+                                         r.origin.y.to_f32(),
+                                         (r.origin.y + r.size.height).to_f32(),
+                                         r.origin.x.to_f32(),
+                                         (r.origin.x + r.size.width).to_f32())
+                                }
                             },
                             Err(()) => {
                                 debug!("layout query error");
@@ -207,16 +207,15 @@ impl<'self> Element {
                     Some(win) => {
                         let node = self.parent.abstract.get();
                         assert!(node.is_element());
-                        let script_context = unsafe { &mut *win.script_context };
-                        match script_context.query_layout(ContentBoxQuery(node)) {
-                            Ok(rect) => match rect {
-                                ContentBoxResponse(rect) =>
-                                    Some(ClientRect::new(
-                                             rect.origin.y.to_f32(),
-                                             (rect.origin.y + rect.size.height).to_f32(),
-                                             rect.origin.x.to_f32(),
-                                             (rect.origin.x + rect.size.width).to_f32())),
-                                _ => fail!(~"unexpected layout result")
+                        let script_task = unsafe { &mut *win.script_task };
+                        let (port, chan) = comm::stream();
+                        match script_task.query_layout(ContentBoxQuery(node, chan), port) {
+                            Ok(ContentBoxResponse(rect)) => {
+                                Some(ClientRect::new(
+                                         rect.origin.y.to_f32(),
+                                         (rect.origin.y + rect.size.height).to_f32(),
+                                         rect.origin.x.to_f32(),
+                                         (rect.origin.x + rect.size.width).to_f32()))
                             },
                             Err(()) => {
                                 debug!("error querying layout");

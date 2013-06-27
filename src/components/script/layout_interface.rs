@@ -30,7 +30,7 @@ pub enum Msg {
     /// Performs a synchronous layout request.
     ///
     /// FIXME(pcwalton): As noted below, this isn't very type safe.
-    QueryMsg(LayoutQuery, Chan<Result<LayoutResponse,()>>),
+    QueryMsg(LayoutQuery),
 
     /// Routes a message (usually from the compositor) to the appropriate script task
     RouteScriptMsg(ScriptMsg),
@@ -42,25 +42,16 @@ pub enum Msg {
 /// Synchronous messages that script can send to layout.
 pub enum LayoutQuery {
     /// Requests the dimensions of the content box, as in the `getBoundingClientRect()` call.
-    ContentBoxQuery(AbstractNode<ScriptView>),
+    ContentBoxQuery(AbstractNode<ScriptView>, Chan<Result<ContentBoxResponse, ()>>),
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
-    ContentBoxesQuery(AbstractNode<ScriptView>),
+    ContentBoxesQuery(AbstractNode<ScriptView>, Chan<Result<ContentBoxesResponse, ()>>),
     /// Requests the node containing the point of interest
-    HitTestQuery(AbstractNode<ScriptView>, Point2D<f32>),
+    HitTestQuery(AbstractNode<ScriptView>, Point2D<f32>, Chan<Result<HitTestResponse, ()>>),
 }
 
-/// The reply of a synchronous message from script to layout.
-///
-/// FIXME(pcwalton): This isn't very type safe. Maybe `LayoutQuery` objects should include
-/// response channels?
-pub enum LayoutResponse {
-    /// A response to the `ContentBoxQuery` message.
-    ContentBoxResponse(Rect<Au>),
-    /// A response to the `ContentBoxesQuery` message.
-    ContentBoxesResponse(~[Rect<Au>]),
-    /// A response to the `HitTestQuery` message.
-    HitTestResponse(AbstractNode<LayoutView>),
-}
+pub struct ContentBoxResponse(Rect<Au>);
+pub struct ContentBoxesResponse(~[Rect<Au>]);
+pub struct HitTestResponse(AbstractNode<LayoutView>);
 
 /// Determines which part of the 
 pub enum DocumentDamageLevel {

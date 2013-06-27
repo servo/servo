@@ -6,6 +6,7 @@ use azure::azure_hl::DrawTarget;
 use azure::azure::AzGLContext;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use std::util::NonCopyable;
 
 pub struct LayerBuffer {
     draw_target: DrawTarget,
@@ -33,14 +34,6 @@ pub enum RenderState {
     RenderingRenderState,
 }
 
-/// The interface used by the renderer to acquire draw targets for each rendered frame and
-/// submit them to be drawn to the display.
-pub trait RenderListener {
-    fn get_gl_context(&self) -> AzGLContext;
-    fn paint(&self, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>);
-    fn set_render_state(&self, render_state: RenderState);
-}
-
 pub enum ReadyState {
     /// Informs the compositor that a page is loading. Used for setting status
     Loading,
@@ -50,8 +43,30 @@ pub enum ReadyState {
     FinishedLoading,
 }
 
+/// The interface used by the renderer to acquire draw targets for each render frame and
+/// submit them to be drawn to the display.
+pub trait RenderListener {
+    fn get_gl_context(&self) -> AzGLContext;
+    fn paint(&self, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>);
+    fn set_render_state(&self, render_state: RenderState);
+}
+
 /// The interface used by the script task to tell the compositor to update its ready state,
 /// which is used in displaying the appropriate message in the window's title.
 pub trait ScriptListener : Clone {
     fn set_ready_state(&self, ReadyState);
+}
+
+/// Signifies control of the compositor. Only the render task controlling
+/// the compositor token may send paint messages to the compositor
+pub struct CompositorToken {
+    construction_restrictor: NonCopyable,
+}
+
+impl CompositorToken {
+    pub fn new() -> CompositorToken {
+        CompositorToken {
+            construction_restrictor: NonCopyable::new(),
+        }
+    }
 }

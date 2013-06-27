@@ -89,7 +89,7 @@ pub enum Msg {
     /// Sets the channel to the current layout task
     SetLayoutChan(LayoutChan),
     /// Sets the channel to the current renderer
-    SetRenderChan(RenderChan<CompositorChan>),
+    SetRenderChan(RenderChan),
 }
 
 /// Azure surface wrapping to work with the layers infrastructure.
@@ -176,7 +176,7 @@ impl CompositorTask {
         let local_zoom = @mut 1f32;
         // Channel to the current renderer.
         // FIXME: This probably shouldn't be stored like this.
-        let render_chan: @mut Option<RenderChan<CompositorChan>> = @mut None;
+        let render_chan: @mut Option<RenderChan> = @mut None;
 
         let update_layout_callbacks: @fn(LayoutChan) = |layout_chan: LayoutChan| {
             let layout_chan_clone = layout_chan.clone();
@@ -432,3 +432,4 @@ fn on_osmain(f: ~fn()) {
         f();
     }
 }
+

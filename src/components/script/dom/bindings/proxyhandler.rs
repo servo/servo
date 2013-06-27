@@ -71,7 +71,7 @@ pub fn _obj_toString(cx: *JSContext, className: *libc::c_char) -> *JSString {
         return ptr::null();
     }
 
-    let result = ~"[object " + name + ~"]";
+    let result = ~"[object " + name + "]";
     for result.iter().enumerate().advance |(i, c)| {
       *chars.offset(i) = c as jschar;
     }
