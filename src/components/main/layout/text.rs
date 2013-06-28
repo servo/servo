@@ -234,7 +234,7 @@ impl TextRunScanner {
                 for clump.eachi |i| {
                     let range = new_ranges[i - self.clump.begin()];
                     if range.length() == 0 {
-                        error!("Elided an `UnscannedTextbox` because it was zero-length after \
+                        debug!("Elided an `UnscannedTextbox` because it was zero-length after \
                                 compression; %s",
                                in_boxes[i].debug_str());
                         loop

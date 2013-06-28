@@ -19,7 +19,9 @@ use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg, Reflo
 use layout_interface::{ReflowDocumentDamage, ReflowForDisplay, ReflowForScriptQuery, ReflowGoal};
 use layout_interface::ReflowMsg;
 use layout_interface;
-use servo_msg::constellation::{ConstellationChan, LoadUrlMsg, RendererReadyMsg};
+use servo_msg::constellation::{ConstellationChan, LoadUrlMsg, NavigationDirection};
+use servo_msg::constellation::RendererReadyMsg;
+use servo_msg::constellation;
 
 use std::cast::transmute;
 use std::cell::Cell;
@@ -53,6 +55,8 @@ pub enum ScriptMsg {
     LoadMsg(Url),
     /// Executes a standalone script.
     ExecuteMsg(Url),
+    /// Instructs the script task to send a navigate message to the constellation.
+    NavigateMsg(NavigationDirection),
     /// Sends a DOM event.
     SendEventMsg(Event),
     /// Fires a JavaScript timeout.
@@ -136,6 +140,11 @@ pub struct ScriptTask {
     window_size: Size2D<uint>,
     /// What parts of the document are dirty, if any.
     damage: Option<DocumentDamage>,
+
+    /// Cached copy of the most recent url loaded by the script
+    /// TODO(tkuehn): this currently does not follow any particular caching policy
+    /// and simply caches pages forever (!).
+    last_loaded_url: Option<Url>,
 }
 
 fn global_script_context_key(_: @ScriptTask) {}
@@ -212,6 +221,8 @@ impl ScriptTask {
 
             window_size: Size2D(800u, 600),
             damage: None,
+
+            last_loaded_url: None,
         };
         // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
         let script_task_ptr = {
@@ -264,31 +275,18 @@ impl ScriptTask {
     /// Handles an incoming control message.
     fn handle_msg(&mut self) -> bool {
         match self.script_port.recv() {
-            LoadMsg(url) => {
-                self.load(url);
-                true
-            }
-            ExecuteMsg(url) => {
-                self.handle_execute_msg(url);
-                true
-            }
-            SendEventMsg(event) => {
-                self.handle_event(event);
-                true
-            }
-            FireTimerMsg(timer_data) => {
-                self.handle_fire_timer_msg(timer_data);
-                true
-            }
-            ReflowCompleteMsg => {
-                self.handle_reflow_complete_msg();
-                true
-            }
+            LoadMsg(url) => self.load(url),
+            ExecuteMsg(url) => self.handle_execute_msg(url),
+            SendEventMsg(event) => self.handle_event(event),
+            FireTimerMsg(timer_data) => self.handle_fire_timer_msg(timer_data),
+            NavigateMsg(direction) => self.handle_navigate_msg(direction),
+            ReflowCompleteMsg => self.handle_reflow_complete_msg(),
             ExitMsg => {
                 self.handle_exit_msg();
-                false
+                return false
             }
         }
+        true
     }
 
     /// Handles a request to execute a script.
@@ -337,6 +335,11 @@ impl ScriptTask {
         self.compositor.set_ready_state(FinishedLoading);
     }
 
+    /// Handles a navigate forward or backward message.
+    fn handle_navigate_msg(&self, direction: NavigationDirection) {
+        self.constellation_chan.send(constellation::NavigateMsg(direction));
+    }
+
     /// Handles a request to exit the script task and shut down layout.
     fn handle_exit_msg(&mut self) {
         self.join_layout();
@@ -350,6 +353,9 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&mut self, url: Url) {
+        for self.last_loaded_url.iter().advance |&last_loaded_url| {
+            if url == last_loaded_url { return; }
+        }
         // Define the script DOM bindings.
         //
         // FIXME: Can this be done earlier, to save the flag?
@@ -362,7 +368,7 @@ impl ScriptTask {
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
-        let html_parsing_result = hubbub_html_parser::parse_html(copy url,
+        let html_parsing_result = hubbub_html_parser::parse_html(url.clone(),
                                                                  self.resource_task.clone(),
                                                                  self.image_cache_task.clone());
 
@@ -396,7 +402,7 @@ impl ScriptTask {
         self.root_frame = Some(Frame {
             document: document,
             window: window,
-            url: url
+            url: url.clone(),
         });
 
         // Perform the initial reflow.
@@ -416,6 +422,7 @@ impl ScriptTask {
                                                     ~"???",
                                                     1);
         }
+        self.last_loaded_url = Some(url);
     }
 
     /// Sends a ping to layout and waits for the response. The response will arrive when the

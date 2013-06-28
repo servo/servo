@@ -4,12 +4,14 @@
 
 use platform::{Application, Window};
 use script::dom::event::{Event, ClickEvent, MouseDownEvent, MouseUpEvent, ResizeEvent};
-use script::script_task::{LoadMsg, SendEventMsg};
+use script::script_task::{LoadMsg, NavigateMsg, SendEventMsg};
 use script::layout_interface::{LayoutChan, RouteScriptMsg};
 use windowing::{ApplicationMethods, WindowMethods, WindowMouseEvent, WindowClickEvent};
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent};
+
 use servo_msg::compositor::{RenderListener, LayerBufferSet, RenderState};
 use servo_msg::compositor::{ReadyState, ScriptListener};
+use servo_msg::constellation;
 use gfx::render_task::{RenderChan, ReRenderMsg};
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods, current_gl_context};
@@ -32,6 +34,7 @@ use servo_util::{time, url};
 use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
 
+pub use windowing;
 
 /// The implementation of the layers-based compositor.
 #[deriving(Clone)]
@@ -180,13 +183,22 @@ impl CompositorTask {
 
         let update_layout_callbacks: @fn(LayoutChan) = |layout_chan: LayoutChan| {
             let layout_chan_clone = layout_chan.clone();
+            do window.set_navigation_callback |direction| {
+                let direction = match direction {
+                    windowing::Forward => constellation::Forward,
+                    windowing::Back => constellation::Back,
+                };
+                layout_chan_clone.send(RouteScriptMsg(NavigateMsg(direction)));
+            }
+
+            let layout_chan_clone = layout_chan.clone();
             // Hook the windowing system's resize callback up to the resize rate limiter.
             do window.set_resize_callback |width, height| {
                 let new_size = Size2D(width as int, height as int);
                 if *window_size != new_size {
                     debug!("osmain: window resized to %ux%u", width, height);
                     *window_size = new_size;
-                    layout_chan_clone.chan.send(RouteScriptMsg(SendEventMsg(ResizeEvent(width, height))));
+                    layout_chan_clone.send(RouteScriptMsg(SendEventMsg(ResizeEvent(width, height))));
                 } else {
                     debug!("osmain: dropping window resize since size is still %ux%u", width, height);
                 }
@@ -197,7 +209,7 @@ impl CompositorTask {
             // When the user enters a new URL, load it.
             do window.set_load_url_callback |url_string| {
                 debug!("osmain: loading URL `%s`", url_string);
-                layout_chan_clone.chan.send(RouteScriptMsg(LoadMsg(url::make_url(url_string.to_str(), None))));
+                layout_chan_clone.send(RouteScriptMsg(LoadMsg(url::make_url(url_string.to_str(), None))));
             }
 
             let layout_chan_clone = layout_chan.clone();
@@ -229,7 +241,7 @@ impl CompositorTask {
                         event = MouseUpEvent(button, world_mouse_point(layer_mouse_point));
                     }
                 }
-                layout_chan_clone.chan.send(RouteScriptMsg(SendEventMsg(event)));
+                layout_chan_clone.send(RouteScriptMsg(SendEventMsg(event)));
             }
         };
 
@@ -410,6 +422,7 @@ impl CompositorTask {
             
             window.set_needs_display()
         }
+
         // Enter the main event loop.
         while !*done {
             // Check for new messages coming from the rendering task.

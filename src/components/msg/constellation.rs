@@ -27,8 +27,13 @@ impl ConstellationChan {
 
 pub enum Msg {
     LoadUrlMsg(Url),
+    NavigateMsg(NavigationDirection),
     ExitMsg(Chan<()>),
     RendererReadyMsg(uint),
     TokenSurrenderMsg(~CompositorToken),
 }
 
+pub enum NavigationDirection {
+    Forward,
+    Back,
+}

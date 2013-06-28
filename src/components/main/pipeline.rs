@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use extra::net::url::Url;
 use compositing::CompositorChan;
 use gfx::render_task::{RenderChan, RenderTask};
 use gfx::render_task;
 use gfx::opts::Opts;
 use layout::layout_task::LayoutTask;
 use script::layout_interface::LayoutChan;
-use script::layout_interface;
+use script::script_task::LoadMsg;
 use servo_msg::constellation::{ConstellationChan};
 use script::script_task::{ScriptTask, ScriptChan, ScriptMsg};
 use script::script_task;
@@ -23,6 +24,8 @@ pub struct Pipeline {
     script_chan: ScriptChan,
     layout_chan: LayoutChan,
     render_chan: RenderChan,
+    /// The most recently loaded url
+    url: Option<Url>,
 }
 
 impl Pipeline {
@@ -90,12 +93,24 @@ impl Pipeline {
             script_chan: script_chan,
             layout_chan: layout_chan,
             render_chan: render_chan,
+            url: None,
+        }
+    }
+
+    pub fn load(&mut self, url: Url) {
+        self.url = Some(url.clone());
+        self.script_chan.send(LoadMsg(url));
+    }
+
+    pub fn reload(&self) {
+        for self.url.iter().advance |&url| {
+            self.script_chan.send(LoadMsg(url));
         }
     }
 
     pub fn exit(&self) {
+        // Script task handles shutting down layout, as well
         self.script_chan.send(script_task::ExitMsg);
-        self.layout_chan.send(layout_interface::ExitMsg);
 
         let (response_port, response_chan) = comm::stream();
         self.render_chan.send(render_task::ExitMsg(response_chan));

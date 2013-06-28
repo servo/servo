@@ -8,6 +8,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use std::util::NonCopyable;
 
+#[deriving(Clone)]
 pub struct LayerBuffer {
     draw_target: DrawTarget,
 
@@ -23,6 +24,7 @@ pub struct LayerBuffer {
 
 /// A set of layer buffers. This is an atomic unit used to switch between the front and back
 /// buffers.
+#[deriving(Clone)]
 pub struct LayerBufferSet {
     buffers: ~[LayerBuffer]
 }

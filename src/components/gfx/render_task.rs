@@ -21,7 +21,6 @@ use render_context::RenderContext;
 use std::cell::Cell;
 use std::comm::{Chan, Port, SharedChan};
 use std::uint;
-use std::util::replace;
 
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
@@ -73,7 +72,7 @@ priv struct RenderTask<C> {
     /// A token that grants permission to send paint messages to compositor
     compositor_token: Option<~CompositorToken>,
     /// Cached copy of last layers rendered
-    next_paint_msg: Option<(LayerBufferSet, Size2D<uint>)>,
+    last_paint_msg: Option<(LayerBufferSet, Size2D<uint>)>,
 }
 
 impl<C: RenderListener + Owned> RenderTask<C> {
@@ -108,7 +107,7 @@ impl<C: RenderListener + Owned> RenderTask<C> {
 
                 constellation_chan: constellation_chan.take(),
                 compositor_token: None,
-                next_paint_msg: None,
+                last_paint_msg: None,
             };
 
             render_task.start();
@@ -129,11 +128,9 @@ impl<C: RenderListener + Owned> RenderTask<C> {
                 }
                 TokenBestowMsg(token) => {
                     self.compositor_token = Some(token);
-                    let next_paint_msg = replace(&mut self.next_paint_msg, None);
-                    match next_paint_msg {
-                        Some((layer_buffer_set, layer_size)) => {
-                            println("retrieving cached paint msg");
-                            self.compositor.paint(layer_buffer_set, layer_size);
+                    match self.last_paint_msg {
+                        Some((ref layer_buffer_set, ref layer_size)) => {
+                            self.compositor.paint(layer_buffer_set.clone(), *layer_size);
                             self.compositor.set_render_state(IdleRenderState);
                         }
                         None => {}
@@ -162,7 +159,7 @@ impl<C: RenderListener + Owned> RenderTask<C> {
         }
 
         self.compositor.set_render_state(RenderingRenderState);
-        do profile(time::RenderingCategory, self.profiler_chan.clone()) {
+        do time::profile(time::RenderingCategory, self.profiler_chan.clone()) {
             let tile_size = self.opts.tile_size;
 
             // FIXME: Try not to create a new array here.
@@ -235,12 +232,10 @@ impl<C: RenderListener + Owned> RenderTask<C> {
 
             debug!("render_task: returning surface");
             if self.compositor_token.is_some() {
-                self.compositor.paint(layer_buffer_set, render_layer.size);
+                self.compositor.paint(layer_buffer_set.clone(), render_layer.size);
             }
-            else {
-                println("caching paint msg");
-                self.next_paint_msg = Some((layer_buffer_set, render_layer.size));
-            }
+            debug!("caching paint msg");
+            self.last_paint_msg = Some((layer_buffer_set, render_layer.size));
             self.compositor.set_render_state(IdleRenderState);
         }
     }

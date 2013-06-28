@@ -141,6 +141,7 @@ impl LayoutTask {
                 }
             }
             RouteScriptMsg(script_msg) => {
+                debug!("layout: routing %? to script task", script_msg);
                 self.route_script_msg(script_msg);
             }
             ExitMsg => {
