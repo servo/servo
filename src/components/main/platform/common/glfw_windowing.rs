@@ -13,7 +13,7 @@ use std::libc::c_int;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
-use servo_msg::compositor_msg::{FinishedLoading, Loading, PerformingLayout, ReadyState};
+use servo_msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
 
 use glfw;
 
@@ -79,7 +79,7 @@ impl WindowMethods<Application> for Window {
             mouse_down_button: @mut 0,
             mouse_down_point: @mut Point2D(0 as c_int, 0),
 
-            ready_state: FinishedLoading,
+            ready_state: Blank,
             render_state: IdleRenderState,
             throbber_frame: 0,
         };
@@ -168,6 +168,12 @@ impl WindowMethods<Application> for Window {
 
     /// Sets the render state.
     pub fn set_render_state(@mut self, render_state: RenderState) {
+        if self.ready_state == FinishedLoading &&
+            self.render_state == RenderingRenderState &&
+            render_state == IdleRenderState {
+            // page loaded
+        }
+
         self.render_state = render_state;
         self.update_window_title()
     }
@@ -178,6 +184,9 @@ impl Window {
     fn update_window_title(&self) {
         let throbber = THROBBER[self.throbber_frame];
         match self.ready_state {
+            Blank => {
+                self.glfw_window.set_title(fmt!("blank — Servo"));
+            }
             Loading => {
                 self.glfw_window.set_title(fmt!("%c Loading — Servo", throbber))
             }
