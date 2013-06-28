@@ -440,7 +440,7 @@ impl ScriptContext {
     ///
     /// This function fails if there is no root frame.
     fn reflow(&mut self, goal: ReflowGoal) {
-        debug!("script: performing reflow");
+        debug!("script: performing reflow for goal %?", goal);
 
         // Now, join the layout so that they will see the latest changes we have made.
         self.join_layout();

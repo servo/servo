@@ -182,9 +182,14 @@ impl CompositorTask {
             let layout_chan_clone = layout_chan.clone();
             // Hook the windowing system's resize callback up to the resize rate limiter.
             do window.set_resize_callback |width, height| {
-                debug!("osmain: window resized to %ux%u", width, height);
-                *window_size = Size2D(width as int, height as int);
-                layout_chan_clone.chan.send(RouteScriptMsg(SendEventMsg(ResizeEvent(width, height))));
+                let new_size = Size2D(width as int, height as int);
+                if *window_size != new_size {
+                    debug!("osmain: window resized to %ux%u", width, height);
+                    *window_size = new_size;
+                    layout_chan_clone.chan.send(RouteScriptMsg(SendEventMsg(ResizeEvent(width, height))));
+                } else {
+                    debug!("osmain: dropping window resize since size is still %ux%u", width, height);
+                }
             }
 
             let layout_chan_clone = layout_chan.clone();
