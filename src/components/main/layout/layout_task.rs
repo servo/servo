@@ -16,7 +16,7 @@ use layout::flow::FlowContext;
 
 use std::cast::transmute;
 use std::cell::Cell;
-use std::comm::{Chan, Port};
+use std::comm::{Port};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -40,7 +40,7 @@ use script::script_task::{ReflowCompleteMsg, ScriptChan, ScriptMsg, SendEventMsg
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
-use servo_util::time::{ProfilerChan, profile, time};
+use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use extra::net::url::Url;
 

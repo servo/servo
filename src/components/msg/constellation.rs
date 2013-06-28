@@ -2,23 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! The high-level interface from script to engine. Using this abstract interface helps reduce
+//! The high-level interface from script to constellation. Using this abstract interface helps reduce
 /// coupling between these two components
 
 use std::comm::{Chan, SharedChan};
 use extra::net::url::Url;
 use compositor::CompositorToken;
 
-pub use compositor;
-
 #[deriving(Clone)]
-pub struct EngineChan {
+pub struct ConstellationChan {
     chan: SharedChan<Msg>,
 }
 
-impl EngineChan {
-    pub fn new(chan: Chan<Msg>) -> EngineChan {
-        EngineChan {
+impl ConstellationChan {
+    pub fn new(chan: Chan<Msg>) -> ConstellationChan {
+        ConstellationChan {
             chan: SharedChan::new(chan),
         }
     }

@@ -9,7 +9,7 @@ use gfx::opts::Opts;
 use layout::layout_task::LayoutTask;
 use script::layout_interface::LayoutChan;
 use script::layout_interface;
-use servo_msg::engine::{EngineChan};
+use servo_msg::constellation::{ConstellationChan};
 use script::script_task::{ScriptTask, ScriptChan, ScriptMsg};
 use script::script_task;
 use servo_net::image_cache_task::ImageCacheTask;
@@ -28,7 +28,7 @@ pub struct Pipeline {
 impl Pipeline {
     /// Starts a render task, layout task, and script task. Returns the channels wrapped in a struct.
     pub fn create(id: uint,
-                  engine_chan: EngineChan,
+                  constellation_chan: ConstellationChan,
                   compositor_chan: CompositorChan,
                   image_cache_task: ImageCacheTask,
                   resource_task: ResourceTask,
@@ -55,7 +55,7 @@ impl Pipeline {
         RenderTask::create(render_port,
                            compositor_chan.clone(),
                            copy opts,
-                           engine_chan.clone(),
+                           constellation_chan.clone(),
                            profiler_chan.clone());
 
         LayoutTask::create(layout_port,
@@ -70,7 +70,7 @@ impl Pipeline {
                            layout_chan.clone(),
                            script_port,
                            script_chan.clone(),
-                           engine_chan,
+                           constellation_chan,
                            resource_task.clone(),
                            image_cache_task.clone());
 

@@ -840,7 +840,7 @@ impl RenderBox {
     pub fn dump_indent(&self, indent: uint) {
         let mut string = ~"";
         for uint::range(0u, indent) |_i| {
-            string += ~"    ";
+            string += "    ";
         }
 
         string += self.debug_str();

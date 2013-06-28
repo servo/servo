@@ -19,7 +19,7 @@ use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg, Reflo
 use layout_interface::{ReflowDocumentDamage, ReflowForDisplay, ReflowForScriptQuery, ReflowGoal};
 use layout_interface::ReflowMsg;
 use layout_interface;
-use servo_msg::engine::{EngineChan, LoadUrlMsg, RendererReadyMsg};
+use servo_msg::constellation::{ConstellationChan, LoadUrlMsg, RendererReadyMsg};
 
 use std::cast::transmute;
 use std::cell::Cell;
@@ -59,7 +59,7 @@ pub enum ScriptMsg {
     FireTimerMsg(~TimerData),
     /// Notifies script that reflow is finished.
     ReflowCompleteMsg,
-    /// Exits the engine.
+    /// Exits the constellation.
     ExitMsg,
 }
 
@@ -112,8 +112,8 @@ pub struct ScriptTask {
     /// messages.
     script_chan: ScriptChan,
 
-    /// For communicating load url messages to the engine
-    engine_chan: EngineChan,
+    /// For communicating load url messages to the constellation
+    constellation_chan: ConstellationChan,
     /// For permission to communicate ready state messages to the compositor
     compositor: @ScriptListener,
 
@@ -172,7 +172,7 @@ impl ScriptTask {
                layout_chan: LayoutChan,
                script_port: Port<ScriptMsg>,
                script_chan: ScriptChan,
-               engine_chan: EngineChan,
+               constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
                img_cache_task: ImageCacheTask)
                -> @mut ScriptTask {
@@ -199,7 +199,7 @@ impl ScriptTask {
             script_port: script_port,
             script_chan: script_chan,
 
-            engine_chan: engine_chan,
+            constellation_chan: constellation_chan,
 
             js_runtime: js_runtime,
             js_context: js_context,
@@ -240,7 +240,7 @@ impl ScriptTask {
                   layout_chan: LayoutChan,
                   script_port: Port<ScriptMsg>,
                   script_chan: ScriptChan,
-                  engine_chan: EngineChan,
+                  constellation_chan: ConstellationChan,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask) {
         let compositor = Cell::new(compositor);
@@ -254,7 +254,7 @@ impl ScriptTask {
                                               layout_chan.clone(),
                                               script_port.take(),
                                               script_chan.clone(),
-                                              engine_chan.clone(),
+                                              constellation_chan.clone(),
                                               resource_task.clone(),
                                               image_cache_task.clone());
             script_task.start();
@@ -333,7 +333,7 @@ impl ScriptTask {
     /// Handles a notification that reflow completed.
     fn handle_reflow_complete_msg(&mut self) {
         self.layout_join_port = None;
-        self.engine_chan.send(RendererReadyMsg(self.id));
+        self.constellation_chan.send(RendererReadyMsg(self.id));
         self.compositor.set_ready_state(FinishedLoading);
     }
 
@@ -604,7 +604,7 @@ impl ScriptTask {
                     None => None
                 };
                 let url = make_url(attr.value.clone(), current_url);
-                self.engine_chan.send(LoadUrlMsg(url));
+                self.constellation_chan.send(LoadUrlMsg(url));
             }
         }
     }

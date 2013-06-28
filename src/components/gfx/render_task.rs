@@ -9,7 +9,7 @@ use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use display_list::DisplayList;
 use servo_msg::compositor::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer};
 use servo_msg::compositor::{CompositorToken, LayerBufferSet};
-use servo_msg::engine::{EngineChan, TokenSurrenderMsg};
+use servo_msg::constellation::{ConstellationChan, TokenSurrenderMsg};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -68,8 +68,8 @@ priv struct RenderTask<C> {
 
     /// The layer to be rendered
     render_layer: Option<RenderLayer>,
-    /// A channel to the engine task for surrendering token
-    engine_chan: EngineChan,
+    /// A channel to the constellation for surrendering token
+    constellation_chan: ConstellationChan,
     /// A token that grants permission to send paint messages to compositor
     compositor_token: Option<~CompositorToken>,
     /// Cached copy of last layers rendered
@@ -80,12 +80,12 @@ impl<C: RenderListener + Owned> RenderTask<C> {
     pub fn create(port: Port<Msg>,
                   compositor: C,
                   opts: Opts,
-                  engine_chan: EngineChan,
+                  constellation_chan: ConstellationChan,
                   profiler_chan: ProfilerChan) {
         let compositor_cell = Cell::new(compositor);
         let opts_cell = Cell::new(opts);
         let port = Cell::new(port);
-        let engine_chan = Cell::new(engine_chan);
+        let constellation_chan = Cell::new(constellation_chan);
 
         do spawn {
             let compositor = compositor_cell.take();
@@ -106,7 +106,7 @@ impl<C: RenderListener + Owned> RenderTask<C> {
                 share_gl_context: share_gl_context,
                 render_layer: None,
 
-                engine_chan: engine_chan.take(),
+                constellation_chan: constellation_chan.take(),
                 compositor_token: None,
                 next_paint_msg: None,
             };
@@ -140,7 +140,7 @@ impl<C: RenderListener + Owned> RenderTask<C> {
                     }
                 }
                 TokenProcureMsg => {
-                    self.engine_chan.send(TokenSurrenderMsg(self.compositor_token.swap_unwrap()));
+                    self.constellation_chan.send(TokenSurrenderMsg(self.compositor_token.swap_unwrap()));
                 }
                 ExitMsg(response_ch) => {
                     response_ch.send(());
