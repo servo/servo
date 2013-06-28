@@ -296,7 +296,7 @@ impl BlockFlowData {
                 cur_y - top_offset
         };
 
-        for self.box.each |&box| {
+        for self.box.iter().advance |&box| {
             let style = box.style();
             let maybe_height = MaybeAuto::from_height(style.height(), Au(0));
             let maybe_height = maybe_height.spec_or_default(Au(0));

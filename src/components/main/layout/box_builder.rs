@@ -30,7 +30,7 @@ use script::dom::element::*;
 use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
 use servo_util::range::Range;
-use servo_util::tree::{TreeNodeRef, TreeUtils};
+use servo_util::tree::{TreeNodeRef, TreeNode, TreeUtils};
 
 pub struct LayoutTreeBuilder {
     root_flow: Option<FlowContext>,
@@ -166,15 +166,42 @@ impl BoxGenerator {
             },
             FloatFlow(float) => {
                 debug!("BoxGenerator[f%d]: point b", float.common.id);
-                let new_box = self.make_box(ctx, box_type, node, self.flow, builder);
 
-                debug!("BoxGenerator[f%d]: attaching box[b%d] to float flow (node: %s)",
-                       float.common.id,
-                       new_box.id(),
-                       node.debug_str());
+                let mut parent_flow = None;
 
-                assert!(float.box.is_none());
-                float.box = Some(new_box);
+                do self.flow.with_base |base| {
+                    parent_flow = base.parent_node();
+                }
+
+                match parent_flow {
+                    None => fail!("Float flow as root node"),
+                    Some(BlockFlow(*)) |
+                    Some(FloatFlow(*)) => {
+                        let new_box = self.make_box(ctx, box_type, node, self.flow, builder);
+
+                        debug!("BoxGenerator[f%d]: attaching box[b%d] to float flow (node: %s)",
+                                float.common.id,
+                                new_box.id(),
+                                node.debug_str());
+
+                        assert!(float.box.is_none() && float.index.is_none());
+                        float.box = Some(new_box);
+                    }
+                    Some(InlineFlow(inline)) => {
+                        let new_box = self.make_box(ctx, box_type, node, self.flow, builder);
+
+                        debug!("BoxGenerator[f%d]: attaching box[b%d] to float flow (node: %s)",
+                                float.common.id,
+                                new_box.id(),
+                                node.debug_str());
+
+                            
+                        assert!(float.box.is_none() && float.index.is_none());
+                        inline.boxes.push(new_box);
+                        float.index = Some(inline.boxes.len() - 1);
+                    }
+                    _ => warn!("push_node() not implemented for flow f%d", self.flow.id())
+                }
             },
             _ => warn!("push_node() not implemented for flow f%d", self.flow.id()),
         }
@@ -215,7 +242,7 @@ impl BoxGenerator {
 
     /// Disambiguate between different methods here instead of inlining, since each case has very
     /// different complexity.
-    fn make_box(&mut self,
+    fn make_box(&self,
                 layout_ctx: &LayoutContext,
                 ty: RenderBoxType,
                 node: AbstractNode<LayoutView>,
@@ -232,7 +259,7 @@ impl BoxGenerator {
         result
     }
 
-    fn make_image_box(&mut self,
+    fn make_image_box(&self,
                       layout_ctx: &LayoutContext,
                       node: AbstractNode<LayoutView>,
                       base: RenderBoxBase)
@@ -287,10 +314,11 @@ impl LayoutTreeBuilder {
                              -> Option<@mut BoxGenerator> {
         debug!("Considering node: %s", cur_node.debug_str());
 
-        let this_generator = match self.box_generator_for_node(cur_node, 
-                                                                   parent_generator,
-                                                                   prev_sibling_generator) {
-            Some(gen) => gen,
+        // Skip over nodes that don't belong in the flow tree
+        let (this_generator, next_generator) = 
+            match self.box_generator_for_node(cur_node, parent_generator, prev_sibling_generator) {
+
+            Some((gen, n_gen)) => (gen, n_gen),
             None => { return prev_sibling_generator; }
         };
 
@@ -319,14 +347,14 @@ impl LayoutTreeBuilder {
                 dom_node.layout_data().flow = Some(child_flow);
             }
         }
-        Some(this_generator)
+        Some(next_generator)
     }
 
     pub fn box_generator_for_node(&mut self, 
                               node: AbstractNode<LayoutView>, 
                               parent_generator: @mut BoxGenerator,
                               sibling_generator: Option<@mut BoxGenerator>)
-                              -> Option<@mut BoxGenerator> {
+                              -> Option<(@mut BoxGenerator, @mut BoxGenerator)> {
 
         fn is_root(node: AbstractNode<LayoutView>) -> bool {
             match node.parent_node() {
@@ -334,7 +362,7 @@ impl LayoutTreeBuilder {
                 Some(_) => false
             }
         }
-        let display = if (node.is_element()) {
+        let display = if node.is_element() {
             match node.style().display(is_root(node)) {
                 CSSDisplayNone => return None, // tree ends here if 'display: none'
                 // TODO(eatkinson) these are hacks so that the code doesn't crash
@@ -381,7 +409,23 @@ impl LayoutTreeBuilder {
         
 
         let new_generator = match (display, parent_generator.flow, sibling_flow) { 
+            // Floats
             (CSSDisplayBlock, BlockFlow(_), _) if !is_float.is_none() => {
+                self.create_child_generator(node, parent_generator, Flow_Float(is_float.get()))
+            }
+            // If we're placing a float after an inline, append the float to the inline flow,
+            // then continue building from the inline flow in case there are more inlines
+            // afterward.
+            (CSSDisplayBlock, _, Some(InlineFlow(_))) if !is_float.is_none() => {
+                let float_generator = self.create_child_generator(node, 
+                                                                  sibling_generator.get(), 
+                                                                  Flow_Float(is_float.get()));
+                return Some((float_generator, sibling_generator.get()));
+            }
+            // This is a catch-all case for when:
+            // a) sibling_flow is None
+            // b) sibling_flow is a BlockFlow
+            (CSSDisplayBlock, InlineFlow(_), _) if !is_float.is_none() => {
                 self.create_child_generator(node, parent_generator, Flow_Float(is_float.get()))
             }
 
@@ -410,8 +454,8 @@ impl LayoutTreeBuilder {
                 self.create_child_generator(node, parent_generator, Flow_Inline)
             }
 
-            // FIXME(eatkinson): this is bogus. Floats should not be able to split
-            // inlines. They should be appended as children of the inline flow.
+            // The first two cases should only be hit when a FloatFlow
+            // is the first child of a BlockFlow. Other times, we will
             (CSSDisplayInline, _, Some(FloatFlow(*))) |
             (CSSDisplayInlineBlock, _, Some(FloatFlow(*))) |
             (CSSDisplayInline, FloatFlow(*), _) |
@@ -434,7 +478,9 @@ impl LayoutTreeBuilder {
             _ => parent_generator
         };
 
-        Some(new_generator)
+        // Usually, the node we add boxes to will be prev_sibling on the
+        // next call to this function.
+        Some((new_generator, new_generator))
     }
 
     pub fn create_child_generator(&mut self,
