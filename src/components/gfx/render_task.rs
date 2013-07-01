@@ -33,7 +33,7 @@ pub struct RenderLayer {
 
 pub enum Msg {
     RenderMsg(RenderLayer),
-    ReRenderMsg(f32),
+    ReRenderMsg(~Rect<uint>], f32),
     PaintPermissionGranted,
     PaintPermissionRevoked,
     ExitMsg(Chan<()>),
@@ -119,11 +119,11 @@ impl<C: RenderListener + Send> RenderTask<C> {
         loop {
             match self.port.recv() {
                 RenderMsg(render_layer) => {
+                    self.compositor.new_layer(render_layer.size, self.opts.tile_size);
                     self.render_layer = Some(render_layer);
-                    self.render(1.0);
                 }
-                ReRenderMsg(scale) => {
-                    self.render(scale);
+                ReRenderMsg(tiles, scale) => {
+                    self.render(tiles, scale);
                 }
                 PaintPermissionGranted => {
                     self.paint_permission = true;
@@ -146,15 +146,15 @@ impl<C: RenderListener + Send> RenderTask<C> {
         }
     }
 
-    fn render(&mut self, scale: f32) {
+    fn render(&mut self, tiles: ~[Rect<uint>], scale: f32) {
         debug!("render_task: rendering");
         
         let render_layer;
-        match (self.render_layer) {
-            None => return,
+        match self.render_layer {
             Some(ref r_layer) => {
                 render_layer = r_layer;
             }
+            _ => return, // nothing to do
         }
 
         self.compositor.set_render_state(RenderingRenderState);
@@ -166,63 +166,56 @@ impl<C: RenderListener + Send> RenderTask<C> {
 
             // Divide up the layer into tiles.
             do time::profile(time::RenderingPrepBuffCategory, self.profiler_chan.clone()) {
-                let mut y = 0;
-                while y < (render_layer.size.height as f32 * scale).ceil() as uint {
-                    let mut x = 0;
-                    while x < (render_layer.size.width as f32 * scale).ceil() as uint {
-                        // Figure out the dimension of this tile.
-                        let right = uint::min(x + tile_size, (render_layer.size.width as f32 * scale).ceil() as uint);
-                        let bottom = uint::min(y + tile_size, (render_layer.size.height as f32 * scale).ceil() as uint);
-                        let width = right - x;
-                        let height = bottom - y;
-
-                        let tile_rect = Rect(Point2D(x as f32 / scale, y as f32 / scale), Size2D(width as f32, height as f32));
-                        let screen_rect = Rect(Point2D(x, y), Size2D(width, height));
-
-                        let buffer = LayerBuffer {
-                            draw_target: DrawTarget::new_with_fbo(self.opts.render_backend,
-                                                                  self.share_gl_context,
-                                                                  Size2D(width as i32,
-                                                                         height as i32),
-                                                                  B8G8R8A8),
-                            rect: tile_rect,
-                            screen_pos: screen_rect,
-                            stride: (width * 4) as uint
+                for tiles.each |tile_rect| {
+                    let x = tile_rect.origin.x;
+                    let y = tile_rect.origin.y;
+                    let width = tile_rect.size.width;
+                    let height = tile_rect.size.height;
+                    
+                    let rect = Rect(Point2D(x as f32 / scale, y as f32 / scale), Size2D(width as f32, height as f32));
+                    
+                    let buffer = LayerBuffer {
+                        draw_target: DrawTarget::new_with_fbo(self.opts.render_backend,
+                                                              self.share_gl_context,
+                                                              Size2D(width as i32, height as i32),
+                                                              B8G8R8A8),
+                        rect: rect,
+                        screen_pos: *tile_rect,
+                        resolution: scale,
+                        stride: (width * 4) as uint
+                    };
+                    
+                    
+                    {
+                        // Build the render context.
+                        let ctx = RenderContext {
+                            canvas: &buffer,
+                            font_ctx: self.font_ctx,
+                            opts: &self.opts
                         };
-
-                        {
-                            // Build the render context.
-                            let ctx = RenderContext {
-                                canvas: &buffer,
-                                font_ctx: self.font_ctx,
-                                opts: &self.opts
-                            };
-
-                            // Apply the translation to render the tile we want.
-                            let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
-                            let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
-                            let matrix = matrix.translate(-(buffer.rect.origin.x) as AzFloat,
-                                                          -(buffer.rect.origin.y) as AzFloat);
-
-                            ctx.canvas.draw_target.set_transform(&matrix);
-
-                            // Clear the buffer.
-                            ctx.clear();
-
-                            // Draw the display list.
-                            do profile(time::RenderingDrawingCategory, self.profiler_chan.clone()) {
-                                render_layer.display_list.draw_into_context(&ctx);
-                                ctx.canvas.draw_target.flush();
-                            }
+                        
+                        // Apply the translation to render the tile we want.
+                        let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
+                        let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
+                        let matrix = matrix.translate(-(buffer.rect.origin.x) as AzFloat,
+                                                      -(buffer.rect.origin.y) as AzFloat);
+                        
+                        ctx.canvas.draw_target.set_transform(&matrix);
+                        
+                        // Clear the buffer.
+                        ctx.clear();
+                        
+                        // Draw the display list.
+                        do profile(time::RenderingDrawingCategory, self.profiler_chan.clone()) {
+                            render_layer.display_list.draw_into_context(&ctx);
+                            ctx.canvas.draw_target.flush();
                         }
-
-                        new_buffers.push(buffer);
-
-                        x += tile_size;
                     }
-
-                    y += tile_size;
+                    
+                    new_buffers.push(buffer);
+                    
                 }
+
             }
 
             let layer_buffer_set = LayerBufferSet {
