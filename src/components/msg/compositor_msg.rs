@@ -49,7 +49,7 @@ pub enum ReadyState {
 /// submit them to be drawn to the display.
 pub trait RenderListener {
     fn get_gl_context(&self) -> AzGLContext;
-    fn paint(&self, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>);
+    fn paint(&self, id: uint, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>);
     fn set_render_state(&self, render_state: RenderState);
 }
 
@@ -59,8 +59,10 @@ pub trait ScriptListener : Clone {
     fn set_ready_state(&self, ReadyState);
 }
 
-/// Signifies control of the compositor. Only the render task controlling
-/// the compositor token may send paint messages to the compositor
+/// Signifies to the renderer likely control of the compositor. Controlling the compositor token
+/// is necessary but not sufficient for the renderer to successfully send paint messages to the
+/// compositor. Only the render tasks controlling compositor tokens may send messages, and the
+/// compositor is guaranteed to only accept messages from one of those tasks at a time.
 pub struct CompositorToken {
     construction_restrictor: NonCopyable,
 }

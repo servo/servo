@@ -10,13 +10,22 @@ use gfx::opts::Opts;
 use layout::layout_task::LayoutTask;
 use script::layout_interface::LayoutChan;
 use script::script_task::LoadMsg;
-use servo_msg::constellation::{ConstellationChan};
-use script::script_task::{ScriptTask, ScriptChan, ScriptMsg};
+use servo_msg::constellation_msg::{ConstellationChan, NavigationType};
+use script::script_task::{ScriptTask, ScriptChan};
 use script::script_task;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::time::ProfilerChan;
 use std::comm;
+
+macro_rules! special_stream(
+    ($Chan:ident) => (
+        {
+            let (port, chan) = comm::stream::();
+            (port, $Chan::new(chan))
+        }
+    );
+)
 
 /// A uniquely-identifiable pipeline of stript task, layout task, and render task. 
 pub struct Pipeline {
@@ -26,6 +35,7 @@ pub struct Pipeline {
     render_chan: RenderChan,
     /// The most recently loaded url
     url: Option<Url>,
+    navigation_type: Option<NavigationType>,
 }
 
 impl Pipeline {
@@ -38,24 +48,12 @@ impl Pipeline {
                   profiler_chan: ProfilerChan,
                   opts: Opts) -> Pipeline {
         
-        macro_rules! closure_stream(
-            ($Msg:ty, $Chan:ident) => (
-                {
-                    let (port, chan) = comm::stream::<$Msg>();
-                    (port, $Chan::new(chan))
-                }
-            );
-        )
-        // Create the script port and channel.
-        let (script_port, script_chan) = closure_stream!(ScriptMsg, ScriptChan);
+        let (script_port, script_chan) = special_stream!(ScriptChan);
+        let (layout_port, layout_chan) = special_stream!(LayoutChan);
+        let (render_port, render_chan) = special_stream!(RenderChan);
 
-        // Create the layout port and channel.
-        let (layout_port, layout_chan) = closure_stream!(layout_interface::Msg, LayoutChan);
-
-        let (render_port, render_chan) = comm::stream::<render_task::Msg>();
-        let render_chan = RenderChan::new(render_chan);
-
-        RenderTask::create(render_port,
+        RenderTask::create(id,
+                           render_port,
                            compositor_chan.clone(),
                            copy opts,
                            constellation_chan.clone(),
@@ -94,6 +92,7 @@ impl Pipeline {
             layout_chan: layout_chan,
             render_chan: render_chan,
             url: None,
+            navigation_type: None,
         }
     }
 

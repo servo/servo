@@ -5,8 +5,8 @@
 /// The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 /// and layout tasks.
 
-use servo_msg::compositor::{ScriptListener, Loading, PerformingLayout};
-use servo_msg::compositor::FinishedLoading;
+use servo_msg::compositor_msg::{ScriptListener, Loading, PerformingLayout};
+use servo_msg::compositor_msg::FinishedLoading;
 use dom::bindings::utils::GlobalStaticData;
 use dom::document::Document;
 use dom::element::Element;
@@ -19,9 +19,9 @@ use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg, Reflo
 use layout_interface::{ReflowDocumentDamage, ReflowForDisplay, ReflowForScriptQuery, ReflowGoal};
 use layout_interface::ReflowMsg;
 use layout_interface;
-use servo_msg::constellation::{ConstellationChan, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation::RendererReadyMsg;
-use servo_msg::constellation;
+use servo_msg::constellation_msg::{ConstellationChan, LoadUrlMsg, NavigationDirection};
+use servo_msg::constellation_msg::RendererReadyMsg;
+use servo_msg::constellation_msg;
 
 use std::cast::transmute;
 use std::cell::Cell;
@@ -337,7 +337,7 @@ impl ScriptTask {
 
     /// Handles a navigate forward or backward message.
     fn handle_navigate_msg(&self, direction: NavigationDirection) {
-        self.constellation_chan.send(constellation::NavigateMsg(direction));
+        self.constellation_chan.send(constellation_msg::NavigateMsg(direction));
     }
 
     /// Handles a request to exit the script task and shut down layout.
@@ -594,7 +594,7 @@ impl ScriptTask {
                     Err(()) => {
                         debug!(fmt!("layout query error"));
                     }
-                };
+                }
             }
             MouseDownEvent(*) => {}
             MouseUpEvent(*) => {}

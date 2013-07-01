@@ -7,7 +7,6 @@
 
 use std::comm::{Chan, SharedChan};
 use extra::net::url::Url;
-use compositor::CompositorToken;
 
 #[deriving(Clone)]
 pub struct ConstellationChan {
@@ -30,7 +29,13 @@ pub enum Msg {
     NavigateMsg(NavigationDirection),
     ExitMsg(Chan<()>),
     RendererReadyMsg(uint),
-    TokenSurrenderMsg(~CompositorToken),
+    CompositorAck(uint),
+}
+
+/// Represents the two different ways to which a page can be navigated
+enum NavigationType {
+    Load,               // entered or clicked on a url
+    Navigate,           // browser forward/back buttons
 }
 
 pub enum NavigationDirection {

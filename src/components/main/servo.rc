@@ -36,7 +36,7 @@ extern mod core_text;
 
 use compositing::{CompositorChan, CompositorTask};
 use constellation::Constellation;
-use servo_msg::constellation::{ExitMsg, LoadUrlMsg};
+use servo_msg::constellation_msg::{ExitMsg, LoadUrlMsg};
 
 use gfx::opts;
 use servo_net::image_cache_task::ImageCacheTask;

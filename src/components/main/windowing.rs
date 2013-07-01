@@ -6,7 +6,7 @@
 
 use geom::point::Point2D;
 use geom::size::Size2D;
-use servo_msg::compositor::{ReadyState, RenderState};
+use servo_msg::compositor_msg::{ReadyState, RenderState};
 
 pub enum WindowMouseEvent {
     WindowClickEvent(uint, Point2D<f32>),

@@ -7,9 +7,9 @@
 use azure::{AzFloat, AzGLContext};
 use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use display_list::DisplayList;
-use servo_msg::compositor::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer};
-use servo_msg::compositor::{CompositorToken, LayerBufferSet};
-use servo_msg::constellation::{ConstellationChan, TokenSurrenderMsg};
+use servo_msg::compositor_msg::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer};
+use servo_msg::compositor_msg::{CompositorToken, LayerBufferSet};
+use servo_msg::constellation_msg::{ConstellationChan};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -33,8 +33,8 @@ pub struct RenderLayer {
 pub enum Msg {
     RenderMsg(RenderLayer),
     ReRenderMsg(f32),
-    TokenBestowMsg(~CompositorToken),
-    TokenProcureMsg,
+    TokenBestowMsg(CompositorToken),
+    TokenInvalidateMsg,
     ExitMsg(Chan<()>),
 }
 
@@ -55,6 +55,7 @@ impl RenderChan {
 }
 
 priv struct RenderTask<C> {
+    id: uint,
     port: Port<Msg>,
     compositor: C,
     font_ctx: @mut FontContext,
@@ -70,13 +71,14 @@ priv struct RenderTask<C> {
     /// A channel to the constellation for surrendering token
     constellation_chan: ConstellationChan,
     /// A token that grants permission to send paint messages to compositor
-    compositor_token: Option<~CompositorToken>,
+    compositor_token: Option<CompositorToken>,
     /// Cached copy of last layers rendered
     last_paint_msg: Option<(LayerBufferSet, Size2D<uint>)>,
 }
 
 impl<C: RenderListener + Owned> RenderTask<C> {
-    pub fn create(port: Port<Msg>,
+    pub fn create(id: uint,
+                  port: Port<Msg>,
                   compositor: C,
                   opts: Opts,
                   constellation_chan: ConstellationChan,
@@ -95,6 +97,7 @@ impl<C: RenderListener + Owned> RenderTask<C> {
 
             // FIXME: rust/#5967
             let mut render_task = RenderTask {
+                id: id,
                 port: port.take(),
                 compositor: compositor,
                 font_ctx: @mut FontContext::new(opts.render_backend,
@@ -130,14 +133,14 @@ impl<C: RenderListener + Owned> RenderTask<C> {
                     self.compositor_token = Some(token);
                     match self.last_paint_msg {
                         Some((ref layer_buffer_set, ref layer_size)) => {
-                            self.compositor.paint(layer_buffer_set.clone(), *layer_size);
+                            self.compositor.paint(self.id, layer_buffer_set.clone(), *layer_size);
                             self.compositor.set_render_state(IdleRenderState);
                         }
                         None => {}
                     }
                 }
-                TokenProcureMsg => {
-                    self.constellation_chan.send(TokenSurrenderMsg(self.compositor_token.swap_unwrap()));
+                TokenInvalidateMsg => {
+                    self.compositor_token = None;
                 }
                 ExitMsg(response_ch) => {
                     response_ch.send(());
@@ -232,7 +235,7 @@ impl<C: RenderListener + Owned> RenderTask<C> {
 
             debug!("render_task: returning surface");
             if self.compositor_token.is_some() {
-                self.compositor.paint(layer_buffer_set.clone(), render_layer.size);
+                self.compositor.paint(self.id, layer_buffer_set.clone(), render_layer.size);
             }
             debug!("caching paint msg");
             self.last_paint_msg = Some((layer_buffer_set, render_layer.size));
