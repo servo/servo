@@ -44,7 +44,7 @@ check-ref: reftest
 	./reftest --source-dir=$(S)/src/test/html/ref --work-dir=src/test/html/ref $(TESTNAME)
 
 check-content: contenttest
-	./contenttest --source-dir=$(S)/src/test/content $(TESTNAME)
+	./contenttest --source-dir=$(S)/src/test/html/content $(TESTNAME)
 
 tidy: 
 	python $(S)src/etc/tidy.py $(S)src
