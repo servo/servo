@@ -8,7 +8,7 @@ use script::script_task::{LoadMsg, SendEventMsg};
 use script::layout_interface::{LayoutChan, RouteScriptMsg};
 use windowing::{ApplicationMethods, WindowMethods, WindowMouseEvent, WindowClickEvent};
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent};
-use servo_msg::compositor::{RenderListener, LayerBuffer, LayerBufferSet, RenderState}; //eschweic
+use servo_msg::compositor::{RenderListener, LayerBuffer, LayerBufferSet, RenderState};
 use servo_msg::compositor::{ReadyState, ScriptListener};
 use gfx::render_task::{RenderChan, ReRenderMsg};
 
@@ -21,7 +21,6 @@ use core::util;
 use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::size::Size2D;
-use geom::rect::Rect; //eschweic
 use layers::layers::{ARGB32Format, ContainerLayer, ContainerLayerKind, Format};
 use layers::layers::{ImageData, WithDataFn};
 use layers::layers::{TextureLayerKind, TextureLayer, TextureManager};
@@ -31,7 +30,6 @@ use servo_util::{time, url};
 use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
 
-//eschweic
 use compositing::quadtree::Quadtree;
 mod quadtree;
 
@@ -58,7 +56,6 @@ impl RenderListener for CompositorChan {
         port.recv()
     }
 
-    //eschweic
     fn new_layer(&self, page_size: Size2D<uint>, tile_size: uint) {
         self.chan.send(NewLayer(page_size, tile_size))
     }
@@ -95,8 +92,7 @@ pub enum Msg {
     /// Requests the compositors GL context.
     GetGLContext(Chan<AzGLContext>),
 
-    //eschweic
-    // FIXME: Attach layer ids and epochs to these messages
+    // TODO: Attach layer ids and epochs to these messages
     /// Alerts the compositor that there is a new layer to be rendered.
     NewLayer(Size2D<uint>, uint),
     /// Alerts the compositor that the current layer has changed size.
@@ -209,7 +205,9 @@ impl CompositorTask {
         let ask_for_tiles: @fn() = || {
             match *quadtree {
                 Some(ref quad) => {
-                    let mut tile_size = quad.get_tile_size(); // temporary solution
+                    // FIXME: find a better way to get the tile size
+                    // currently tiles that need to be updated can be missed
+                    let mut tile_size = quad.get_tile_size();
                     let mut tile_request = ~[]; //FIXME: try not to allocate if possible
                     
                     let mut y = world_offset.y as uint;
@@ -225,15 +223,15 @@ impl CompositorTask {
                                 }
                                 None => {} // fall through
                             }
-                            let (tile_pos, new_tile_size) = quad.get_tile_rect(x, y, *world_zoom);
-                            tile_size = new_tile_size;
-                            x = tile_pos.x;
-                            y = tile_pos.y;
+                            let (tile_screen_pos, tile_page_pos) = quad.get_tile_rect(x, y, *world_zoom);
+                            tile_size = tile_screen_pos.size.width;
+                            x = tile_screen_pos.origin.x;
+                            y = tile_screen_pos.origin.y;
                             
                             // TODO: clamp tiles to page bounds
                             // TODO: add null buffer/checkerboard tile to stop a flood of requests
-                            println(fmt!("requesting tile: (%?, %?): %?", x, y, tile_size));
-                            tile_request.push(Rect(Point2D(x, y), Size2D(tile_size, tile_size)));
+                            debug!("requesting tile: (%?, %?): %?", x, y, tile_size);
+                            tile_request.push((tile_screen_pos, tile_page_pos));
                             
                             x += tile_size;
                         }
@@ -284,31 +282,13 @@ impl CompositorTask {
                     }
                     WindowMouseDownEvent(button, layer_mouse_point) => {
                         event = MouseDownEvent(button, world_mouse_point(layer_mouse_point));
-                        
-                        //eschweic
-                        match *quadtree {
-                            Some(ref quad) => {
 
-/*                                let wmp = world_mouse_point(layer_mouse_point);
-                                println(fmt!("mouse: (%?, %?):", wmp.x as uint, wmp.y as uint)); 
-                                let buffer = quad.get_tile(wmp.x as uint, wmp.y as uint, *world_zoom);
-                                match *buffer {
-                                    None => println("None"),
-                                    Some(ref buffer) => println(fmt!("Some: (%?, %?), %?, %?", buffer.screen_pos.origin.x, buffer.screen_pos.origin.y, buffer.screen_pos.size.width, buffer.resolution)),
-                               
-                                } */
-
-                                println(quad.get_html());
-                            }
-                            None => {}
-                        }
                     }
                     WindowMouseUpEvent(button, layer_mouse_point) => {
                         
-                        //FIXME: this should not be here eschweic
+                        // FIXME: this should happen on a scroll/zoom event instead,
+                        // but is here temporarily to prevent request floods to the renderer
                         ask_for_tiles();
-
-                        
 
                         event = MouseUpEvent(button, world_mouse_point(layer_mouse_point));
                     }
@@ -337,7 +317,6 @@ impl CompositorTask {
 
                     GetGLContext(chan) => chan.send(current_gl_context()),
                     
-                    //eschweic
                     NewLayer(new_size, tile_size) => {
                         *page_size = Size2D(new_size.width as f32, new_size.height as f32);
                         *quadtree = Some(Quadtree::new(0, 0, new_size.width, new_size.height, tile_size));
@@ -377,8 +356,8 @@ impl CompositorTask {
                         }
                         
                         for quad.get_all_tiles().each |buffer| {
-                            let width = buffer.rect.size.width as uint;
-                            let height = buffer.rect.size.height as uint;
+                            let width = buffer.screen_pos.size.width as uint;
+                            let height = buffer.screen_pos.size.height as uint;
 
                             debug!("osmain: compositing buffer rect %?", &buffer.rect);
                             
@@ -404,11 +383,11 @@ impl CompositorTask {
                                 Some(_) => fail!(~"found unexpected layer kind"),
                             };
 
-                            let origin = buffer.screen_pos.origin;
+                            let origin = buffer.rect.origin;
                             let origin = Point2D(origin.x as f32, origin.y as f32);
 
                             // Set the layer's transform.
-                            let transform = identity().translate(origin.x * *world_zoom / buffer.resolution, origin.y * *world_zoom / buffer.resolution, 0.0);
+                            let transform = identity().translate(origin.x * *world_zoom, origin.y * *world_zoom, 0.0);
                             let transform = transform.scale(width as f32 * *world_zoom / buffer.resolution, height as f32 * *world_zoom / buffer.resolution, 1.0);
                             texture_layer.common.set_transform(transform);
                             

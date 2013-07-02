@@ -17,7 +17,7 @@ pub struct LayerBuffer {
     screen_pos: Rect<uint>,
 
     // The scale at which this tile is rendered
-    resolution: f32, //eschweic
+    resolution: f32,
 
     // NB: stride is in pixels, like OpenGL GL_UNPACK_ROW_LENGTH.
     stride: uint,
@@ -41,7 +41,7 @@ pub enum RenderState {
 /// submit them to be drawn to the display.
 pub trait RenderListener {
     fn get_gl_context(&self) -> AzGLContext;
-    fn new_layer(&self, Size2D<uint>, uint); //eschweic
+    fn new_layer(&self, Size2D<uint>, uint);
     fn resize_layer(&self, Size2D<uint>);
     fn delete_layer(&self);
     fn paint(&self, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>);

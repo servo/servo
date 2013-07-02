@@ -6,6 +6,8 @@
 // been rasterized and which have not.
 
 use geom::point::Point2D;
+use geom::size::Size2D;
+use geom::rect::Rect;
 
 /// Parent to all quadtree nodes. Stores variables needed at all levels. All method calls
 /// at this level are in pixel coordinates.
@@ -65,8 +67,8 @@ impl<T> Quadtree<T> {
     pub fn add_tile(&mut self, x: uint, y: uint, scale: f32, tile: T) {
         self.root.add_tile(x as f32 / scale, y as f32 / scale, tile, self.max_tile_size as f32 / scale);
     }
-    /// Get the tile size/offset for a given pixel position
-    pub fn get_tile_rect(&self, x: uint, y: uint, scale: f32) -> (Point2D<uint>, uint) {
+    /// Get the tile rect in screen and page coordinates for a given pixel position
+    pub fn get_tile_rect(&self, x: uint, y: uint, scale: f32) -> (Rect<uint>, Rect<f32>) {
         self.root.get_tile_rect(x as f32 / scale, y as f32 / scale, scale, self.max_tile_size as f32 / scale)
     }
     /// Get all the tiles in the tree
@@ -191,8 +193,8 @@ impl<T> QuadtreeNode<T> {
         }
     }
 
-    /// Get an origin and a width/height for a future tile for a given position in page coords
-    fn get_tile_rect(&self, x: f32, y: f32, scale: f32, tile_size: f32) -> (Point2D<uint>, uint) {    
+    /// Get a tile rect in screen and page coords for a given position in page coords
+    fn get_tile_rect(&self, x: f32, y: f32, scale: f32, tile_size: f32) -> (Rect<uint>, Rect<f32>) {    
         if x >= self.origin.x + self.size || x < self.origin.x
             || y >= self.origin.y + self.size || y < self.origin.y {
             fail!("Quadtree: Tried to query a tile rect outside of range");
@@ -202,7 +204,8 @@ impl<T> QuadtreeNode<T> {
             let self_x = (self.origin.x * scale).ceil() as uint;
             let self_y = (self.origin.y * scale).ceil() as uint;
             let self_size = (self.size * scale).ceil() as uint;
-            return (Point2D(self_x, self_y), self_size);
+            return (Rect(Point2D(self_x, self_y), Size2D(self_size, self_size)),
+                    Rect(Point2D(self.origin.x, self.origin.y), Size2D(self.size, self.size)));
         }
         
         let index = self.get_quadrant(x,y) as int;
@@ -219,7 +222,8 @@ impl<T> QuadtreeNode<T> {
                 let new_x_pixel = (new_x_page * scale).ceil() as uint;
                 let new_y_pixel = (new_y_page * scale).ceil() as uint;
                 
-                (Point2D(new_x_pixel, new_y_pixel), new_size_pixel)
+                (Rect(Point2D(new_x_pixel, new_y_pixel), Size2D(new_size_pixel, new_size_pixel)),
+                 Rect(Point2D(new_x_page, new_y_page), Size2D(new_size_page, new_size_page)))
             }
             Some(ref child) => child.get_tile_rect(x, y, scale, tile_size),
         }
