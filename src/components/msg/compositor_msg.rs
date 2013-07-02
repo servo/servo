@@ -20,7 +20,7 @@ pub struct LayerBuffer {
     screen_pos: Rect<uint>,
 
     // The scale at which this tile is rendered
-    resolution: f32, //eschweic
+    resolution: f32,
 
     // NB: stride is in pixels, like OpenGL GL_UNPACK_ROW_LENGTH.
     stride: uint,

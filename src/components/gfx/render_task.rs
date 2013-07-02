@@ -11,7 +11,6 @@ use servo_msg::compositor_msg::{RenderListener, IdleRenderState, RenderingRender
 use servo_msg::compositor_msg::{LayerBufferSet};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
-use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
 use opts::Opts;
@@ -33,7 +32,7 @@ pub struct RenderLayer {
 
 pub enum Msg {
     RenderMsg(RenderLayer),
-    ReRenderMsg(~Rect<uint>], f32),
+    ReRenderMsg(~[(Rect<uint>, Rect<f32>)], f32),
     PaintPermissionGranted,
     PaintPermissionRevoked,
     ExitMsg(Chan<()>),
@@ -146,7 +145,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
         }
     }
 
-    fn render(&mut self, tiles: ~[Rect<uint>], scale: f32) {
+    fn render(&mut self, tiles: ~[(Rect<uint>, Rect<f32>)], scale: f32) {
         debug!("render_task: rendering");
         
         let render_layer;
@@ -166,21 +165,18 @@ impl<C: RenderListener + Send> RenderTask<C> {
 
             // Divide up the layer into tiles.
             do time::profile(time::RenderingPrepBuffCategory, self.profiler_chan.clone()) {
-                for tiles.each |tile_rect| {
-                    let x = tile_rect.origin.x;
-                    let y = tile_rect.origin.y;
-                    let width = tile_rect.size.width;
-                    let height = tile_rect.size.height;
-                    
-                    let rect = Rect(Point2D(x as f32 / scale, y as f32 / scale), Size2D(width as f32, height as f32));
+                for tiles.each |tile_rects| {
+                    let (screen_rect, page_rect) = *tile_rects;
+                    let width = screen_rect.size.width;
+                    let height = screen_rect.size.height;
                     
                     let buffer = LayerBuffer {
                         draw_target: DrawTarget::new_with_fbo(self.opts.render_backend,
                                                               self.share_gl_context,
                                                               Size2D(width as i32, height as i32),
                                                               B8G8R8A8),
-                        rect: rect,
-                        screen_pos: *tile_rect,
+                        rect: page_rect,
+                        screen_pos: screen_rect,
                         resolution: scale,
                         stride: (width * 4) as uint
                     };
