@@ -18,15 +18,6 @@ use servo_net::resource_task::ResourceTask;
 use servo_util::time::ProfilerChan;
 use std::comm;
 
-macro_rules! special_stream(
-    ($Chan:ident) => (
-        {
-            let (port, chan) = comm::stream::();
-            (port, $Chan::new(chan))
-        }
-    );
-)
-
 /// A uniquely-identifiable pipeline of stript task, layout task, and render task. 
 pub struct Pipeline {
     id: uint,
@@ -64,16 +55,16 @@ impl Pipeline {
                            render_chan.clone(),
                            image_cache_task.clone(),
                            copy opts,
-                           profiler_chan.clone());
+                           profiler_chan);
 
         ScriptTask::create(id,
-                           compositor_chan.clone(),
+                           compositor_chan,
                            layout_chan.clone(),
                            script_port,
                            script_chan.clone(),
                            constellation_chan,
-                           resource_task.clone(),
-                           image_cache_task.clone());
+                           resource_task,
+                           image_cache_task);
 
         Pipeline::new(id,
                       script_chan,

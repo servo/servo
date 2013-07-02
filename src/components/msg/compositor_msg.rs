@@ -70,6 +70,7 @@ pub struct CompositorToken {
 impl CompositorToken {
     pub fn new() -> CompositorToken {
         CompositorToken {
+            // Of course, this doesn't guarantee that renderers will invalidate their tokens
             construction_restrictor: NonCopyable::new(),
         }
     }

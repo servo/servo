@@ -72,12 +72,14 @@ impl NavigationContext {
         self.current.get()
     }
 
-    pub fn navigate(&mut self, id: uint) {
-        self.next.clear();
+    /// Navigates to a new id, returning all id's evicted from next
+    pub fn navigate(&mut self, id: uint) -> ~[uint] {
+        let evicted = replace(&mut self.next, ~[]);
         do self.current.mutate_default(id) |cur_id| {
             self.previous.push(cur_id);
             id
         }
+        evicted
     }
 }
 
@@ -91,25 +93,29 @@ impl Constellation {
             
         let opts = Cell::new(copy *opts);
 
-        let (constellation_port, constellation_chan) = comm::stream();
-        let (constellation_port, constellation_chan) = (Cell::new(constellation_port),
-                                                        ConstellationChan::new(constellation_chan));
+        let (constellation_port, constellation_chan) = special_stream!(ConstellationChan);
+        let constellation_port = Cell::new(constellation_port);
 
         let compositor_chan = Cell::new(compositor_chan);
         let constellation_chan_clone = Cell::new(constellation_chan.clone());
+
+        let resource_task = Cell::new(resource_task);
+        let image_cache_task = Cell::new(image_cache_task);
+        let profiler_chan = Cell::new(profiler_chan);
+
         do task::spawn {
             let mut constellation = Constellation {
                 chan: constellation_chan_clone.take(),
                 request_port: constellation_port.take(),
                 compositor_chan: compositor_chan.take(),
-                resource_task: resource_task.clone(),
-                image_cache_task: image_cache_task.clone(),
+                resource_task: resource_task.take(),
+                image_cache_task: image_cache_task.take(),
                 pipelines: HashMap::new(),
                 navigation_context: NavigationContext::new(),
                 next_id: 0,
                 current_token_bearer: None,
                 next_token_bearer: None,
-                profiler_chan: profiler_chan.clone(),
+                profiler_chan: profiler_chan.take(),
                 opts: opts.take(),
             };
             constellation.run();
@@ -234,7 +240,14 @@ impl Constellation {
         self.next_token_bearer = None;
         // Don't navigate on Navigate type, because that is handled by forward/back
         match pipeline.navigation_type.get() {
-            constellation_msg::Load => self.navigation_context.navigate(id),
+            constellation_msg::Load => {
+                let evicted = self.navigation_context.navigate(id);
+                /* FIXME(tkuehn): the following code causes a segfault
+                for evicted.iter().advance |id| {
+                    self.pipelines.get(id).exit();
+                }
+                */
+            }
             _ => {}
         }
     }

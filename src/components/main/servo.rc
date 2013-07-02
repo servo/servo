@@ -53,6 +53,8 @@ use std::os;
 #[path="compositing/mod.rs"]
 pub mod compositing;
 
+pub mod macros;
+
 pub mod css {
     priv mod select_handler;
     priv mod node_util;
