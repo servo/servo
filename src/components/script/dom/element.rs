@@ -8,6 +8,7 @@ use dom::bindings::utils::DOMString;
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::node::{ElementNodeTypeId, Node, ScriptView};
+use html::hubbub_html_parser::HtmlParserResult;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
 
@@ -37,6 +38,7 @@ pub enum ElementTypeId {
     HTMLHeadElementTypeId,
     HTMLHeadingElementTypeId,
     HTMLHtmlElementTypeId,
+    HTMLIframeElementTypeId,
     HTMLImageElementTypeId,
     HTMLInputElementTypeId,
     HTMLItalicElementTypeId,
@@ -105,6 +107,12 @@ pub struct UnknownElement       { parent: Element }
 pub struct HTMLHeadingElement {
     parent: Element,
     level: HeadingLevel,
+}
+
+pub struct HTMLIframeElement {
+    parent: Element,
+    frame: Option<Url>,
+    parse_result: Option<Port<HtmlParserResult>>
 }
 
 pub struct HTMLImageElement {

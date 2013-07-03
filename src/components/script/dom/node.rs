@@ -10,7 +10,7 @@ use dom::bindings::utils::WrapperCache;
 use dom::bindings;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId};
+use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLIframeElement};
 use dom::element::{HTMLStyleElementTypeId};
 use script_task::global_script_context;
 
@@ -336,6 +336,24 @@ impl<View> AbstractNode<View> {
     pub fn with_mut_image_element<R>(self, f: &fn(&mut HTMLImageElement) -> R) -> R {
         if !self.is_image_element() {
             fail!(~"node is not an image element");
+        }
+        self.transmute_mut(f)
+    }
+
+    pub fn is_iframe_element(self) -> bool {
+        self.type_id() == ElementNodeTypeId(HTMLIframeElementTypeId)
+    }
+
+    pub fn with_imm_iframe_element<R>(self, f: &fn(&HTMLIframeElement) -> R) -> R {
+        if !self.is_iframe_element() {
+            fail!(~"node is not an iframe element");
+        }
+        self.transmute(f)
+    }
+
+    pub fn with_mut_iframe_element<R>(self, f: &fn(&mut HTMLIframeElement) -> R) -> R {
+        if !self.is_iframe_element() {
+            fail!(~"node is not an iframe element");
         }
         self.transmute_mut(f)
     }
