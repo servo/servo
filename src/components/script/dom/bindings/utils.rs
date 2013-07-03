@@ -21,12 +21,12 @@ use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_EncodeString, JS_free, JS_GetStringCharsAndLength};
-use js::jsapi::{JS_GetClass, JS_GetPrototype, JS_LinkConstructorAndPrototype};
+use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype};
 use js::jsapi::{JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject};
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
 use js::jsapi::{JS_NewStringCopyN, JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
-use js::jsapi::{JSContext, JSVal, JSObject, JSBool, jsid, JSClass, JSNative};
+use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::rust::Compartment;
@@ -83,7 +83,7 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: uint, vp: *mut JSVal) -
     }
 
     let name = jsval_to_str(cx, *v).get();
-    let retval = str(~"function " + name + ~"() {\n    [native code]\n}");
+    let retval = str(~"function " + name + "() {\n    [native code]\n}");
     *vp = domstring_to_jsval(cx, &retval);
     return 1;
   }

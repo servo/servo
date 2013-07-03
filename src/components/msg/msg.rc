@@ -14,5 +14,5 @@ extern mod std;
 extern mod geom;
 extern mod extra;
 
-pub mod compositor;
-pub mod engine;
+pub mod compositor_msg;
+pub mod constellation_msg;

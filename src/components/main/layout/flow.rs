@@ -394,7 +394,7 @@ impl<'self> FlowContext {
     pub fn dump_indent(&self, indent: uint) {
         let mut s = ~"|";
         for uint::range(0, indent) |_i| {
-            s += ~"---- ";
+            s += "---- ";
         }
 
         s += self.debug_str();
@@ -412,7 +412,7 @@ impl<'self> FlowContext {
                 let mut s = inline.boxes.foldl(~"InlineFlow(children=", |s, box| {
                     fmt!("%s b%d", *s, box.id())
                 });
-                s += ~")";
+                s += ")";
                 s
             },
             BlockFlow(block) => {

@@ -6,7 +6,7 @@ use dom::bindings::utils::WrapperCache;
 use dom::bindings::window;
 
 use layout_interface::ReflowForScriptQuery;
-use script_task::{ExitMsg, FireTimerMsg, ScriptChan, ScriptContext};
+use script_task::{ExitMsg, FireTimerMsg, ScriptChan, ScriptTask};
 
 use std::comm;
 use std::comm::Chan;
@@ -29,7 +29,7 @@ pub enum TimerControlMsg {
 pub struct Window {
     timer_chan: Chan<TimerControlMsg>,
     script_chan: ScriptChan,
-    script_context: *mut ScriptContext,
+    script_task: *mut ScriptTask,
     wrapper: WrapperCache
 }
 
@@ -89,11 +89,11 @@ impl Window {
 
     pub fn content_changed(&self) {
         unsafe {
-            (*self.script_context).reflow_all(ReflowForScriptQuery)
+            (*self.script_task).reflow_all(ReflowForScriptQuery)
         }
     }
 
-    pub fn new(script_chan: ScriptChan, script_context: *mut ScriptContext)
+    pub fn new(script_chan: ScriptChan, script_task: *mut ScriptTask)
                -> @mut Window {
         let script_chan_clone = script_chan.clone();
         let win = @mut Window {
@@ -112,11 +112,11 @@ impl Window {
                 }
                 timer_chan
             },
-            script_context: script_context,
+            script_task: script_task,
         };
 
         unsafe {
-            let compartment = (*script_context).js_compartment;
+            let compartment = (*script_task).js_compartment;
             window::create(compartment, win);
         }
         win

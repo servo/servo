@@ -7,8 +7,6 @@
 use dom::bindings::utils::{DOMString, null_string, str};
 use dom::node::{Node, NodeTypeId, ScriptView};
 
-use std::str;
-
 pub struct CharacterData {
     parent: Node<ScriptView>,
     data: DOMString

@@ -35,8 +35,8 @@ extern mod core_graphics;
 extern mod core_text;
 
 use compositing::{CompositorChan, CompositorTask};
-use engine::Engine;
-use servo_msg::engine::{ExitMsg, LoadUrlMsg};
+use constellation::Constellation;
+use servo_msg::constellation_msg::{ExitMsg, LoadUrlMsg};
 
 use gfx::opts;
 use servo_net::image_cache_task::ImageCacheTask;
@@ -53,6 +53,8 @@ use std::os;
 #[path="compositing/mod.rs"]
 pub mod compositing;
 
+pub mod macros;
+
 pub mod css {
     priv mod select_handler;
     priv mod node_util;
@@ -62,7 +64,8 @@ pub mod css {
     pub mod node_style;
 }
 
-pub mod engine;
+pub mod constellation;
+pub mod pipeline;
 
 pub mod layout {
     pub mod block;
@@ -121,24 +124,24 @@ fn run(opts: &Opts) {
 
     let resource_task = ResourceTask();
     let image_cache_task = ImageCacheTask(resource_task.clone());
-    let engine_chan = Engine::start(compositor_chan.clone(),
+    let constellation_chan = Constellation::start(compositor_chan.clone(),
                                     opts,
                                     resource_task,
                                     image_cache_task,
                                     profiler_chan.clone());
 
-    // Send the URL command to the engine task.
+    // Send the URL command to the constellation.
     for opts.urls.each |filename| {
-        engine_chan.send(LoadUrlMsg(make_url(copy *filename, None)))
+        constellation_chan.send(LoadUrlMsg(make_url(copy *filename, None)))
     }
 
     // Wait for the compositor to shut down.
     shutdown_port.recv();
 
-    // Shut the engine down.
+    // Shut the constellation down.
     debug!("master: Shut down");
-    let (exit_response_from_engine, exit_chan) = comm::stream();
-    engine_chan.send(ExitMsg(exit_chan));
-    exit_response_from_engine.recv();
+    let (exit_response_from_constellation, exit_chan) = comm::stream();
+    constellation_chan.send(ExitMsg(exit_chan));
+    exit_response_from_constellation.recv();
 }
 
