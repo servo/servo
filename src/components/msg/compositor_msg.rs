@@ -58,20 +58,3 @@ pub trait RenderListener {
 pub trait ScriptListener : Clone {
     fn set_ready_state(&self, ReadyState);
 }
-
-/// Signifies to the renderer likely control of the compositor. Controlling the compositor token
-/// is necessary but not sufficient for the renderer to successfully send paint messages to the
-/// compositor. Only the render tasks controlling compositor tokens may send messages, and the
-/// compositor is guaranteed to only accept messages from one of those tasks at a time.
-pub struct CompositorToken {
-    construction_restrictor: NonCopyable,
-}
-
-impl CompositorToken {
-    pub fn new() -> CompositorToken {
-        CompositorToken {
-            // Of course, this doesn't guarantee that renderers will invalidate their tokens
-            construction_restrictor: NonCopyable::new(),
-        }
-    }
-}

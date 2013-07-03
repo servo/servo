@@ -8,7 +8,7 @@ use azure::{AzFloat, AzGLContext};
 use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use display_list::DisplayList;
 use servo_msg::compositor_msg::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer};
-use servo_msg::compositor_msg::{CompositorToken, LayerBufferSet};
+use servo_msg::compositor_msg::{LayerBufferSet};
 use servo_msg::constellation_msg::{ConstellationChan};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
@@ -33,8 +33,8 @@ pub struct RenderLayer {
 pub enum Msg {
     RenderMsg(RenderLayer),
     ReRenderMsg(f32),
-    TokenBestowMsg(CompositorToken),
-    TokenInvalidateMsg,
+    PaintPermissionGranted,
+    PaintPermissionRevoked,
     ExitMsg(Chan<()>),
 }
 
@@ -68,10 +68,10 @@ priv struct RenderTask<C> {
 
     /// The layer to be rendered
     render_layer: Option<RenderLayer>,
-    /// A channel to the constellation for surrendering token
+    /// A channel to the constellation for -- just in case
     constellation_chan: ConstellationChan,
-    /// A token that grants permission to send paint messages to compositor
-    compositor_token: Option<CompositorToken>,
+    /// Permission to send paint messages to the compositor
+    paint_permission: bool,
     /// Cached copy of last layers rendered
     last_paint_msg: Option<(LayerBufferSet, Size2D<uint>)>,
 }
@@ -109,7 +109,7 @@ impl<C: RenderListener + Owned> RenderTask<C> {
                 render_layer: None,
 
                 constellation_chan: constellation_chan.take(),
-                compositor_token: None,
+                paint_permission: false,
                 last_paint_msg: None,
             };
 
@@ -129,8 +129,8 @@ impl<C: RenderListener + Owned> RenderTask<C> {
                 ReRenderMsg(scale) => {
                     self.render(scale);
                 }
-                TokenBestowMsg(token) => {
-                    self.compositor_token = Some(token);
+                PaintPermissionGranted => {
+                    self.paint_permission = true;
                     match self.last_paint_msg {
                         Some((ref layer_buffer_set, ref layer_size)) => {
                             self.compositor.paint(self.id, layer_buffer_set.clone(), *layer_size);
@@ -139,8 +139,8 @@ impl<C: RenderListener + Owned> RenderTask<C> {
                         None => {}
                     }
                 }
-                TokenInvalidateMsg => {
-                    self.compositor_token = None;
+                PaintPermissionRevoked => {
+                    self.paint_permission = false;
                 }
                 ExitMsg(response_ch) => {
                     response_ch.send(());
@@ -234,7 +234,7 @@ impl<C: RenderListener + Owned> RenderTask<C> {
             };
 
             debug!("render_task: returning surface");
-            if self.compositor_token.is_some() {
+            if self.paint_permission {
                 self.compositor.paint(self.id, layer_buffer_set.clone(), render_layer.size);
             }
             debug!("caching paint msg");
