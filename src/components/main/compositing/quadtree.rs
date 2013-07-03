@@ -8,6 +8,7 @@
 use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
+use std::uint::{div_ceil, next_power_of_two};
 
 /// Parent to all quadtree nodes. Stores variables needed at all levels. All method calls
 /// at this level are in pixel coordinates.
@@ -40,8 +41,8 @@ impl<T> Quadtree<T> {
     pub fn new(x: uint, y: uint, width: uint, height: uint, tile_size: uint) -> Quadtree<T> {        
         // Spaces must be squares and powers of 2, so expand the space until it is
         let longer = width.max(&height);
-        let num_tiles = uint::div_ceil(longer, tile_size);
-        let power_of_two = uint::next_power_of_two(num_tiles);
+        let num_tiles = div_ceil(longer, tile_size);
+        let power_of_two = next_power_of_two(num_tiles);
         let size = power_of_two * tile_size;
         
         Quadtree {
@@ -211,9 +212,9 @@ impl<T> QuadtreeNode<T> {
         let index = self.get_quadrant(x,y) as int;
         match self.quadrants[index] {
             None => {
-                // calculate where the new tile should go
+                // Calculate where the new tile should go
                 let factor = self.size / tile_size;
-                let divisor = uint::next_power_of_two(factor.ceil() as uint);
+                let divisor = next_power_of_two(factor.ceil() as uint);
                 let new_size_page = self.size / (divisor as f32);
                 let new_size_pixel = (new_size_page * scale).ceil() as uint;
 

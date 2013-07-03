@@ -74,7 +74,6 @@ impl RenderListener for CompositorChan {
         self.chan.send(Paint(id, layer_buffer_set, new_size))
     }
 
-    //eschweic
     fn new_layer(&self, page_size: Size2D<uint>, tile_size: uint) {
         self.chan.send(NewLayer(page_size, tile_size))
     }
@@ -229,7 +228,7 @@ impl CompositorTask {
 
         // Quadtree for this layer
         // FIXME: This should be one-per-layer
-        let quadtree: @mut Option<Quadtree<LayerBuffer>> = @mut None;
+        let quadtree: @mut Option<Quadtree<~LayerBuffer>> = @mut None;
         
 
         let ask_for_tiles: @fn() = || {
@@ -241,9 +240,11 @@ impl CompositorTask {
                     let mut tile_request = ~[]; //FIXME: try not to allocate if possible
                     
                     let mut y = world_offset.y as uint;
-                    while y < world_offset.y as uint + window_size.height + tile_size {
+                    while y < world_offset.y as uint + window_size.height &&
+                        y <= (page_size.height * *world_zoom) as uint {
                         let mut x = world_offset.x as uint;
-                        while x < world_offset.x as uint + window_size.width + tile_size {
+                        while x < world_offset.x as uint + window_size.width &&
+                            x <= (page_size.width * *world_zoom) as uint {
                             match *(quad.get_tile(x, y, *world_zoom)) {
                                 Some(ref current_tile) => {
                                     if current_tile.resolution == *world_zoom {
@@ -293,7 +294,7 @@ impl CompositorTask {
             let layout_chan_clone = layout_chan.clone();
             // Hook the windowing system's resize callback up to the resize rate limiter.
             do window.set_resize_callback |width, height| {
-                let new_size = Size2D(width as int, height as int);
+                let new_size = Size2D(width as uint, height as uint);
                 if *window_size != new_size {
                     debug!("osmain: window resized to %ux%u", width, height);
                     *window_size = new_size;
@@ -403,11 +404,11 @@ impl CompositorTask {
                         let mut current_layer_child = root_layer.first_child;
 
                         // Replace the image layer data with the buffer data.
-                        let buffers = util::replace(&mut new_layer_buffer_set.buffers, ~[]);
+//                        let buffers = util::replace(&mut new_layer_buffer_set.buffers, ~[]);
 
-                        do vec::consume(buffers) |_, buffer| {
+                        for new_layer_buffer_set.buffers.iter().advance |buffer| {
                             quad.add_tile(buffer.screen_pos.origin.x, buffer.screen_pos.origin.y,
-                                          *world_zoom, buffer);
+                                          *world_zoom, ~buffer.clone());
                         }
                         
                         for quad.get_all_tiles().each |buffer| {
