@@ -38,6 +38,7 @@ pub mod dom {
         pub mod clientrectlist;
         pub mod domparser;
         pub mod htmlcollection;
+        pub mod formdata;
         pub mod codegen {
             pub mod ClientRectBinding;
             pub mod ClientRectListBinding;
@@ -45,8 +46,10 @@ pub mod dom {
             pub mod EventBinding;
             pub mod EventTargetBinding;
             pub mod HTMLCollectionBinding;
+            pub mod FormDataBinding;
         }
     }
+    pub mod blob;
     pub mod characterdata;
     pub mod clientrect;
     pub mod clientrectlist;
@@ -55,6 +58,7 @@ pub mod dom {
     pub mod element;
     pub mod event;
     pub mod eventtarget;
+    pub mod formdata;
     pub mod htmlcollection;
     pub mod node;
     pub mod window;
