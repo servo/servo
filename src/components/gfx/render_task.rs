@@ -25,6 +25,8 @@ use std::uint;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 
+use extra::arc;
+
 pub struct RenderLayer {
     display_list: DisplayList<()>,
     size: Size2D<uint>
@@ -73,7 +75,7 @@ priv struct RenderTask<C> {
     /// Permission to send paint messages to the compositor
     paint_permission: bool,
     /// Cached copy of last layers rendered
-    last_paint_msg: Option<(LayerBufferSet, Size2D<uint>)>,
+    last_paint_msg: Option<(arc::ARC<LayerBufferSet>, Size2D<uint>)>,
 }
 
 impl<C: RenderListener + Owned> RenderTask<C> {
@@ -83,32 +85,33 @@ impl<C: RenderListener + Owned> RenderTask<C> {
                   opts: Opts,
                   constellation_chan: ConstellationChan,
                   profiler_chan: ProfilerChan) {
-        let compositor_cell = Cell::new(compositor);
-        let opts_cell = Cell::new(opts);
+        let compositor = Cell::new(compositor);
+        let opts = Cell::new(opts);
         let port = Cell::new(port);
         let constellation_chan = Cell::new(constellation_chan);
+        let profiler_chan = Cell::new(profiler_chan);
 
         do spawn {
-            let compositor = compositor_cell.take();
+            let compositor = compositor.take();
             let share_gl_context = compositor.get_gl_context();
-            let opts = opts_cell.with_ref(|o| copy *o);
-            let profiler_chan = profiler_chan.clone();
-            let profiler_chan_clone = profiler_chan.clone();
+            let opts = opts.take();
+            let constellation_chan = constellation_chan.take();
+            let profiler_chan = profiler_chan.take();
 
             // FIXME: rust/#5967
             let mut render_task = RenderTask {
                 id: id,
                 port: port.take(),
                 compositor: compositor,
-                font_ctx: @mut FontContext::new(opts.render_backend,
+                font_ctx: @mut FontContext::new(copy opts.render_backend,
                                                 false,
-                                                profiler_chan),
-                opts: opts_cell.take(),
-                profiler_chan: profiler_chan_clone,
+                                                profiler_chan.clone()),
+                opts: opts,
+                profiler_chan: profiler_chan,
                 share_gl_context: share_gl_context,
                 render_layer: None,
 
-                constellation_chan: constellation_chan.take(),
+                constellation_chan: constellation_chan,
                 paint_permission: false,
                 last_paint_msg: None,
             };
@@ -232,6 +235,7 @@ impl<C: RenderListener + Owned> RenderTask<C> {
             let layer_buffer_set = LayerBufferSet {
                 buffers: new_buffers,
             };
+            let layer_buffer_set = arc::ARC(layer_buffer_set);
 
             debug!("render_task: returning surface");
             if self.paint_permission {

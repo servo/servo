@@ -6,7 +6,8 @@ use azure::azure_hl::DrawTarget;
 use azure::azure::AzGLContext;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use std::util::NonCopyable;
+
+use extra::arc;
 
 #[deriving(Clone)]
 pub struct LayerBuffer {
@@ -24,7 +25,6 @@ pub struct LayerBuffer {
 
 /// A set of layer buffers. This is an atomic unit used to switch between the front and back
 /// buffers.
-#[deriving(Clone)]
 pub struct LayerBufferSet {
     buffers: ~[LayerBuffer]
 }
@@ -49,7 +49,7 @@ pub enum ReadyState {
 /// submit them to be drawn to the display.
 pub trait RenderListener {
     fn get_gl_context(&self) -> AzGLContext;
-    fn paint(&self, id: uint, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>);
+    fn paint(&self, id: uint, layer_buffer_set: arc::ARC<LayerBufferSet>, new_size: Size2D<uint>);
     fn set_render_state(&self, render_state: RenderState);
 }
 
