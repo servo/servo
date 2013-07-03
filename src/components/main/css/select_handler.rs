@@ -6,7 +6,6 @@
 /// Implementation of the callbacks that the CSS selector engine uses to query the DOM.
 ///
 
-use std::str;
 use std::str::eq_slice;
 use newcss::select::SelectHandler;
 use script::dom::node::{AbstractNode, LayoutView};

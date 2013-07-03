@@ -9,8 +9,6 @@ use dom::bindings::utils::{DOMString, ErrorResult, WrapperCache};
 
 use geom::point::Point2D;
 
-use std::comm;
-
 pub enum Event {
     ResizeEvent(uint, uint), 
     ReflowEvent,

@@ -367,7 +367,7 @@ impl<View> AbstractNode<View> {
     pub fn dump_indent(&self, indent: uint) {
         let mut s = ~"";
         for uint::range(0u, indent) |_i| {
-            s += ~"    ";
+            s += "    ";
         }
 
         s += self.debug_str();

@@ -8,7 +8,6 @@ use std::cell::Cell;
 use std::comm;
 use std::comm::Port;
 use std::task;
-use std::str;
 use newcss::stylesheet::Stylesheet;
 use newcss::util::DataStream;
 use servo_net::resource_task::{ResourceTask, ProgressMsg, Load, Payload, Done};

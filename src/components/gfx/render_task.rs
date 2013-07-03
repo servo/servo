@@ -7,8 +7,9 @@
 use azure::{AzFloat, AzGLContext};
 use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use display_list::DisplayList;
-use servo_msg::compositor::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer};
-use servo_msg::compositor::LayerBufferSet;
+use servo_msg::compositor_msg::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer};
+use servo_msg::compositor_msg::{CompositorToken, LayerBufferSet};
+use servo_msg::constellation_msg::{ConstellationChan};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -29,70 +30,33 @@ pub struct RenderLayer {
     size: Size2D<uint>
 }
 
-pub enum Msg<C> {
-    AttachCompositorMsg(C),
+pub enum Msg {
     RenderMsg(RenderLayer),
     ReRenderMsg(f32),
+    TokenBestowMsg(CompositorToken),
+    TokenInvalidateMsg,
     ExitMsg(Chan<()>),
 }
 
-pub struct RenderChan<C> {
-    chan: SharedChan<Msg<C>>,
+#[deriving(Clone)]
+pub struct RenderChan {
+    chan: SharedChan<Msg>,
 }
 
-impl<C: RenderListener + Owned> Clone for RenderChan<C> {
-    pub fn clone(&self) -> RenderChan<C> {
-        RenderChan {
-            chan: self.chan.clone(),
-        }
-    }
-}
-
-impl<C: RenderListener + Owned> RenderChan<C> {
-    pub fn new(chan: Chan<Msg<C>>) -> RenderChan<C> {
+impl RenderChan {
+    pub fn new(chan: Chan<Msg>) -> RenderChan {
         RenderChan {
             chan: SharedChan::new(chan),
         }
     }
-    pub fn send(&self, msg: Msg<C>) {
+    pub fn send(&self, msg: Msg) {
         self.chan.send(msg);
     }
 }
 
-pub fn create_render_task<C: RenderListener + Owned>(port: Port<Msg<C>>,
-                                                     compositor: C,
-                                                     opts: Opts,
-                                                     profiler_chan: ProfilerChan) {
-    let compositor_cell = Cell::new(compositor);
-    let opts_cell = Cell::new(opts);
-    let port = Cell::new(port);
-
-    do spawn {
-        let compositor = compositor_cell.take();
-        let share_gl_context = compositor.get_gl_context();
-        let opts = opts_cell.with_ref(|o| copy *o);
-        let profiler_chan = profiler_chan.clone();
-        let profiler_chan_copy = profiler_chan.clone();
-
-        // FIXME: rust/#5967
-        let mut renderer = Renderer {
-            port: port.take(),
-            compositor: compositor,
-            font_ctx: @mut FontContext::new(opts.render_backend,
-                                            false,
-                                            profiler_chan),
-            opts: opts_cell.take(),
-            profiler_chan: profiler_chan_copy,
-            share_gl_context: share_gl_context,
-            render_layer: None,
-        };
-
-        renderer.start();
-    }
-}
-
-priv struct Renderer<C> {
-    port: Port<Msg<C>>,
+priv struct RenderTask<C> {
+    id: uint,
+    port: Port<Msg>,
     compositor: C,
     font_ctx: @mut FontContext,
     opts: Opts,
@@ -104,21 +68,79 @@ priv struct Renderer<C> {
 
     /// The layer to be rendered
     render_layer: Option<RenderLayer>,
+    /// A channel to the constellation for surrendering token
+    constellation_chan: ConstellationChan,
+    /// A token that grants permission to send paint messages to compositor
+    compositor_token: Option<CompositorToken>,
+    /// Cached copy of last layers rendered
+    last_paint_msg: Option<(LayerBufferSet, Size2D<uint>)>,
 }
 
-impl<C: RenderListener + Owned> Renderer<C> {
+impl<C: RenderListener + Owned> RenderTask<C> {
+    pub fn create(id: uint,
+                  port: Port<Msg>,
+                  compositor: C,
+                  opts: Opts,
+                  constellation_chan: ConstellationChan,
+                  profiler_chan: ProfilerChan) {
+        let compositor_cell = Cell::new(compositor);
+        let opts_cell = Cell::new(opts);
+        let port = Cell::new(port);
+        let constellation_chan = Cell::new(constellation_chan);
+
+        do spawn {
+            let compositor = compositor_cell.take();
+            let share_gl_context = compositor.get_gl_context();
+            let opts = opts_cell.with_ref(|o| copy *o);
+            let profiler_chan = profiler_chan.clone();
+            let profiler_chan_clone = profiler_chan.clone();
+
+            // FIXME: rust/#5967
+            let mut render_task = RenderTask {
+                id: id,
+                port: port.take(),
+                compositor: compositor,
+                font_ctx: @mut FontContext::new(opts.render_backend,
+                                                false,
+                                                profiler_chan),
+                opts: opts_cell.take(),
+                profiler_chan: profiler_chan_clone,
+                share_gl_context: share_gl_context,
+                render_layer: None,
+
+                constellation_chan: constellation_chan.take(),
+                compositor_token: None,
+                last_paint_msg: None,
+            };
+
+            render_task.start();
+        }
+    }
+
     fn start(&mut self) {
-        debug!("renderer: beginning rendering loop");
+        debug!("render_task: beginning rendering loop");
 
         loop {
             match self.port.recv() {
-                AttachCompositorMsg(compositor) => self.compositor = compositor,
                 RenderMsg(render_layer) => {
                     self.render_layer = Some(render_layer);
                     self.render(1.0);
                 }
                 ReRenderMsg(scale) => {
                     self.render(scale);
+                }
+                TokenBestowMsg(token) => {
+                    self.compositor_token = Some(token);
+                    match self.last_paint_msg {
+                        Some((ref layer_buffer_set, ref layer_size)) => {
+                            self.compositor.paint(self.id, layer_buffer_set.clone(), *layer_size);
+                            self.compositor.set_render_state(IdleRenderState);
+                        }
+                        None => {}
+                    }
+                }
+                TokenInvalidateMsg => {
+                    self.compositor_token = None;
                 }
                 ExitMsg(response_ch) => {
                     response_ch.send(());
@@ -129,7 +151,7 @@ impl<C: RenderListener + Owned> Renderer<C> {
     }
 
     fn render(&mut self, scale: f32) {
-        debug!("renderer: rendering");
+        debug!("render_task: rendering");
         
         let render_layer;
         match (self.render_layer) {
@@ -140,7 +162,7 @@ impl<C: RenderListener + Owned> Renderer<C> {
         }
 
         self.compositor.set_render_state(RenderingRenderState);
-        do profile(time::RenderingCategory, self.profiler_chan.clone()) {
+        do time::profile(time::RenderingCategory, self.profiler_chan.clone()) {
             let tile_size = self.opts.tile_size;
 
             // FIXME: Try not to create a new array here.
@@ -164,7 +186,8 @@ impl<C: RenderListener + Owned> Renderer<C> {
                         let buffer = LayerBuffer {
                             draw_target: DrawTarget::new_with_fbo(self.opts.render_backend,
                                                                   self.share_gl_context,
-                                                                  Size2D(width as i32, height as i32),
+                                                                  Size2D(width as i32,
+                                                                         height as i32),
                                                                   B8G8R8A8),
                             rect: tile_rect,
                             screen_pos: screen_rect,
@@ -210,8 +233,12 @@ impl<C: RenderListener + Owned> Renderer<C> {
                 buffers: new_buffers,
             };
 
-            debug!("renderer: returning surface");
-            self.compositor.paint(layer_buffer_set, render_layer.size);
+            debug!("render_task: returning surface");
+            if self.compositor_token.is_some() {
+                self.compositor.paint(self.id, layer_buffer_set.clone(), render_layer.size);
+            }
+            debug!("caching paint msg");
+            self.last_paint_msg = Some((layer_buffer_set, render_layer.size));
             self.compositor.set_render_state(IdleRenderState);
         }
     }

@@ -5,7 +5,6 @@
 //! The layout task. Performs layout on the DOM, builds display lists and sends them to be
 /// rendered.
 
-use compositing::CompositorChan;
 use css::matching::MatchMethods;
 use css::select::new_css_select_ctx;
 use layout::aux::{LayoutData, LayoutAuxMethods};
@@ -17,7 +16,7 @@ use layout::flow::FlowContext;
 
 use std::cast::transmute;
 use std::cell::Cell;
-use std::comm::{Chan, Port};
+use std::comm::{Port};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -34,39 +33,21 @@ use script::dom::node::{AbstractNode, LayoutView};
 use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
 use script::layout_interface::{HitTestQuery, ContentBoxResponse, HitTestResponse};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitMsg, LayoutQuery};
-use script::layout_interface::{LayoutResponse, MatchSelectorsDocumentDamage, Msg};
+use script::layout_interface::{MatchSelectorsDocumentDamage, Msg};
 use script::layout_interface::{QueryMsg, RouteScriptMsg, Reflow, ReflowDocumentDamage};
 use script::layout_interface::{ReflowForDisplay, ReflowMsg};
 use script::script_task::{ReflowCompleteMsg, ScriptChan, ScriptMsg, SendEventMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
-use servo_util::time::{ProfilerChan, profile, time};
+use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 use extra::net::url::Url;
 
-pub fn create_layout_task(port: Port<Msg>,
-                          script_chan: ScriptChan,
-                          render_chan: RenderChan<CompositorChan>,
-                          img_cache_task: ImageCacheTask,
-                          opts: Opts,
-                          profiler_chan: ProfilerChan) {
-    let port = Cell::new(port);
-    do spawn {
-        let mut layout = Layout::new(port.take(),
-                                     script_chan.clone(),
-                                     render_chan.clone(),
-                                     img_cache_task.clone(),
-                                     &opts,
-                                     profiler_chan.clone());
-        layout.start();
-    };
-}
-
-struct Layout {
+struct LayoutTask {
     port: Port<Msg>,
     script_chan: ScriptChan,
-    render_chan: RenderChan<CompositorChan>,
+    render_chan: RenderChan,
     image_cache_task: ImageCacheTask,
     local_image_cache: @mut LocalImageCache,
     font_ctx: @mut FontContext,
@@ -80,17 +61,35 @@ struct Layout {
     profiler_chan: ProfilerChan,
 }
 
-impl Layout {
+impl LayoutTask {
+    pub fn create(port: Port<Msg>,
+                              script_chan: ScriptChan,
+                              render_chan: RenderChan,
+                              img_cache_task: ImageCacheTask,
+                              opts: Opts,
+                              profiler_chan: ProfilerChan) {
+        let port = Cell::new(port);
+        do spawn {
+            let mut layout = LayoutTask::new(port.take(),
+                                         script_chan.clone(),
+                                         render_chan.clone(),
+                                         img_cache_task.clone(),
+                                         &opts,
+                                         profiler_chan.clone());
+            layout.start();
+        };
+    }
+
     fn new(port: Port<Msg>,
            script_chan: ScriptChan,
-           render_chan: RenderChan<CompositorChan>, 
+           render_chan: RenderChan, 
            image_cache_task: ImageCacheTask,
            opts: &Opts,
            profiler_chan: ProfilerChan)
-           -> Layout {
+           -> LayoutTask {
         let fctx = @mut FontContext::new(opts.render_backend, true, profiler_chan.clone());
 
-        Layout {
+        LayoutTask {
             port: port,
             script_chan: script_chan,
             render_chan: render_chan,
@@ -135,13 +134,14 @@ impl Layout {
                     self.handle_reflow(data.take());
                 }
             }
-            QueryMsg(query, chan) => {
-                let chan = Cell::new(chan);
+            QueryMsg(query) => {
+                let query = Cell::new(query);
                 do profile(time::LayoutQueryCategory, self.profiler_chan.clone()) {
-                    self.handle_query(query, chan.take());
+                    self.handle_query(query.take());
                 }
             }
             RouteScriptMsg(script_msg) => {
+                debug!("layout: routing %? to script task", script_msg);
                 self.route_script_msg(script_msg);
             }
             ExitMsg => {
@@ -268,9 +268,9 @@ impl Layout {
 
     /// Handles a query from the script task. This is the main routine that DOM functions like
     /// `getClientRects()` or `getBoundingClientRect()` ultimately invoke.
-    fn handle_query(&self, query: LayoutQuery, reply_chan: Chan<Result<LayoutResponse,()>>) {
+    fn handle_query(&self, query: LayoutQuery) {
         match query {
-            ContentBoxQuery(node) => {
+            ContentBoxQuery(node, reply_chan) => {
                 // FIXME: Isolate this transmutation into a single "bridge" module.
                 let node: AbstractNode<LayoutView> = unsafe {
                     transmute(node)
@@ -302,7 +302,7 @@ impl Layout {
 
                 reply_chan.send(response)
             }
-            ContentBoxesQuery(node) => {
+            ContentBoxesQuery(node, reply_chan) => {
                 // FIXME: Isolate this transmutation into a single "bridge" module.
                 let node: AbstractNode<LayoutView> = unsafe {
                     transmute(node)
@@ -322,7 +322,7 @@ impl Layout {
 
                 reply_chan.send(response)
             }
-            HitTestQuery(node, point) => {
+            HitTestQuery(node, point, reply_chan) => {
                 // FIXME: Isolate this transmutation into a single "bridge" module.
                 let node: AbstractNode<LayoutView> = unsafe {
                     transmute(node)

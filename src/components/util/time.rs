@@ -152,7 +152,7 @@ impl Profiler {
 
     priv fn print_buckets(&mut self) {
         println(fmt!("%31s %15s %15s %15s %15s %15s",
-                         "_category (ms)_", "_mean (ms)_", "_median (ms)_",
+                         "_category_", "_mean (ms)_", "_median (ms)_",
                          "_min (ms)_", "_max (ms)_", "_bucket size_"));
         for self.buckets.mut_iter().advance |bucket| {
             match *bucket {

@@ -4,12 +4,16 @@
 
 use platform::{Application, Window};
 use script::dom::event::{Event, ClickEvent, MouseDownEvent, MouseUpEvent, ResizeEvent};
-use script::script_task::{LoadMsg, SendEventMsg};
+use script::script_task::{LoadMsg, NavigateMsg, SendEventMsg};
 use script::layout_interface::{LayoutChan, RouteScriptMsg};
 use windowing::{ApplicationMethods, WindowMethods, WindowMouseEvent, WindowClickEvent};
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent};
-use servo_msg::compositor::{RenderListener, LayerBufferSet, RenderState};
-use servo_msg::compositor::{ReadyState, ScriptListener};
+
+
+use servo_msg::compositor_msg::{RenderListener, LayerBufferSet, RenderState};
+use servo_msg::compositor_msg::{ReadyState, ScriptListener};
+use servo_msg::constellation_msg::{CompositorAck, ConstellationChan};
+use servo_msg::constellation_msg;
 use gfx::render_task::{RenderChan, ReRenderMsg};
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods, current_gl_context};
@@ -32,6 +36,7 @@ use servo_util::{time, url};
 use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
 
+pub use windowing;
 
 /// The implementation of the layers-based compositor.
 #[deriving(Clone)]
@@ -55,8 +60,8 @@ impl RenderListener for CompositorChan {
         self.chan.send(GetGLContext(chan));
         port.recv()
     }
-    fn paint(&self, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>) {
-        self.chan.send(Paint(layer_buffer_set, new_size))
+    fn paint(&self, id: uint, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>) {
+        self.chan.send(Paint(id, layer_buffer_set, new_size))
     }
     fn set_render_state(&self, render_state: RenderState) {
         self.chan.send(ChangeRenderState(render_state))
@@ -81,15 +86,13 @@ pub enum Msg {
     /// Requests the compositors GL context.
     GetGLContext(Chan<AzGLContext>),
     /// Requests that the compositor paint the given layer buffer set for the given page size.
-    Paint(LayerBufferSet, Size2D<uint>),
+    Paint(uint, LayerBufferSet, Size2D<uint>),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(ReadyState),
     /// Alerts the compositor to the current status of rendering.
     ChangeRenderState(RenderState),
-    /// Sets the channel to the current layout task
-    SetLayoutChan(LayoutChan),
-    /// Sets the channel to the current renderer
-    SetRenderChan(RenderChan<CompositorChan>),
+    /// Sets the channel to the current layout and render tasks, along with their id
+    SetLayoutRenderChans(LayoutChan, RenderChan , uint, ConstellationChan)
 }
 
 /// Azure surface wrapping to work with the layers infrastructure.
@@ -176,9 +179,19 @@ impl CompositorTask {
         let local_zoom = @mut 1f32;
         // Channel to the current renderer.
         // FIXME: This probably shouldn't be stored like this.
-        let render_chan: @mut Option<RenderChan<CompositorChan>> = @mut None;
+        let render_chan: @mut Option<RenderChan> = @mut None;
+        let pipeline_id: @mut Option<uint> = @mut None;
 
         let update_layout_callbacks: @fn(LayoutChan) = |layout_chan: LayoutChan| {
+            let layout_chan_clone = layout_chan.clone();
+            do window.set_navigation_callback |direction| {
+                let direction = match direction {
+                    windowing::Forward => constellation_msg::Forward,
+                    windowing::Back => constellation_msg::Back,
+                };
+                layout_chan_clone.send(RouteScriptMsg(NavigateMsg(direction)));
+            }
+
             let layout_chan_clone = layout_chan.clone();
             // Hook the windowing system's resize callback up to the resize rate limiter.
             do window.set_resize_callback |width, height| {
@@ -186,7 +199,7 @@ impl CompositorTask {
                 if *window_size != new_size {
                     debug!("osmain: window resized to %ux%u", width, height);
                     *window_size = new_size;
-                    layout_chan_clone.chan.send(RouteScriptMsg(SendEventMsg(ResizeEvent(width, height))));
+                    layout_chan_clone.send(RouteScriptMsg(SendEventMsg(ResizeEvent(width, height))));
                 } else {
                     debug!("osmain: dropping window resize since size is still %ux%u", width, height);
                 }
@@ -197,7 +210,7 @@ impl CompositorTask {
             // When the user enters a new URL, load it.
             do window.set_load_url_callback |url_string| {
                 debug!("osmain: loading URL `%s`", url_string);
-                layout_chan_clone.chan.send(RouteScriptMsg(LoadMsg(url::make_url(url_string.to_str(), None))));
+                layout_chan_clone.send(RouteScriptMsg(LoadMsg(url::make_url(url_string.to_str(), None))));
             }
 
             let layout_chan_clone = layout_chan.clone();
@@ -229,7 +242,7 @@ impl CompositorTask {
                         event = MouseUpEvent(button, world_mouse_point(layer_mouse_point));
                     }
                 }
-                layout_chan_clone.chan.send(RouteScriptMsg(SendEventMsg(event)));
+                layout_chan_clone.send(RouteScriptMsg(SendEventMsg(event)));
             }
         };
 
@@ -242,17 +255,24 @@ impl CompositorTask {
                     ChangeReadyState(ready_state) => window.set_ready_state(ready_state),
                     ChangeRenderState(render_state) => window.set_render_state(render_state),
 
-                    SetLayoutChan(layout_chan) => {
-                        update_layout_callbacks(layout_chan);
-                    }
-
-                    SetRenderChan(new_render_chan) => {
+                    SetLayoutRenderChans(new_layout_chan,
+                                         new_render_chan,
+                                         new_pipeline_id,
+                                         response_chan) => {
+                        update_layout_callbacks(new_layout_chan);
                         *render_chan = Some(new_render_chan);
+                        *pipeline_id = Some(new_pipeline_id);
+                        response_chan.send(CompositorAck(new_pipeline_id));
                     }
 
                     GetGLContext(chan) => chan.send(current_gl_context()),
 
-                    Paint(new_layer_buffer_set, new_size) => {
+                    Paint(id, new_layer_buffer_set, new_size) => {
+                        match *pipeline_id {
+                            Some(pipeline_id) => if id != pipeline_id { loop; },
+                            None => { loop; },
+                        }
+                            
                         debug!("osmain: received new frame");
 
                         *page_size = Size2D(new_size.width as f32, new_size.height as f32);
@@ -410,6 +430,7 @@ impl CompositorTask {
             
             window.set_needs_display()
         }
+
         // Enter the main event loop.
         while !*done {
             // Check for new messages coming from the rendering task.
@@ -432,3 +453,4 @@ fn on_osmain(f: ~fn()) {
         f();
     }
 }
+

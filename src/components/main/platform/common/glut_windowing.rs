@@ -9,15 +9,16 @@
 
 use windowing::{ApplicationMethods, CompositeCallback, LoadUrlCallback, MouseCallback};
 use windowing::{ResizeCallback, ScrollCallback, WindowMethods, WindowMouseEvent, WindowClickEvent};
-use windowing::{WindowMouseDownEvent, WindowMouseUpEvent, ZoomCallback};
+use windowing::{WindowMouseDownEvent, WindowMouseUpEvent, ZoomCallback, Forward, Back, NavigationCallback};
 
 use alert::{Alert, AlertMethods};
 use std::libc::c_int;
 use geom::point::Point2D;
 use geom::size::Size2D;
-use servo_msg::compositor::{IdleRenderState, RenderState, RenderingRenderState};
-use servo_msg::compositor::{FinishedLoading, Loading, PerformingLayout, ReadyState};
-use glut::glut::{ACTIVE_CTRL, DOUBLE, HAVE_PRECISE_MOUSE_WHEEL, WindowHeight, WindowWidth};
+use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
+use servo_msg::compositor_msg::{FinishedLoading, Loading, PerformingLayout, ReadyState};
+use glut::glut::{ACTIVE_CTRL, ACTIVE_SHIFT, DOUBLE, HAVE_PRECISE_MOUSE_WHEEL, WindowHeight};
+use glut::glut::WindowWidth;
 use glut::glut;
 use glut::machack;
 
@@ -44,6 +45,7 @@ pub struct Window {
     mouse_callback: Option<MouseCallback>,
     scroll_callback: Option<ScrollCallback>,
     zoom_callback: Option<ZoomCallback>,
+    navigation_callback: Option<NavigationCallback>,
 
     drag_origin: Point2D<c_int>,
 
@@ -72,6 +74,7 @@ impl WindowMethods<Application> for Window {
             mouse_callback: None,
             scroll_callback: None,
             zoom_callback: None,
+            navigation_callback: None,
 
             drag_origin: Point2D(0 as c_int, 0),
 
@@ -177,6 +180,11 @@ impl WindowMethods<Application> for Window {
         self.zoom_callback = Some(new_zoom_callback)
     }
 
+    /// Registers a callback to be run when backspace or shift-backspace is pressed.
+    pub fn set_navigation_callback(&mut self, new_navigation_callback: NavigationCallback) {
+        self.navigation_callback = Some(new_navigation_callback)
+    }
+
     /// Spins the event loop.
     pub fn check_loop(@mut self) {
         glut::check_loop()
@@ -226,20 +234,33 @@ impl Window {
 
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: u8) {
-        debug!("got key: %d", key as int);
+        debug!("got key: %?", key);
+        let modifiers = glut::get_modifiers();
         match key {
-            12 => self.load_url(),                                                      // Ctrl+L
-            k if k == ('=' as u8) && (glut::get_modifiers() & ACTIVE_CTRL) != 0 => {    // Ctrl++
-                for self.zoom_callback.iter().advance |&callback| {
-                    callback(0.1);
-                }
-            }
-            k if k == 31 && (glut::get_modifiers() & ACTIVE_CTRL) != 0 => {             // Ctrl+-
+            12 => self.load_url(),                                              // Ctrl+L
+            31 if (modifiers & ACTIVE_CTRL) != 0 => {                           // Ctrl+-
                 for self.zoom_callback.iter().advance |&callback| {
                     callback(-0.1);
                 }
             }
-            _ => {}
+            127 => {
+                for self.navigation_callback.iter().advance |&callback| {
+                    if (modifiers & ACTIVE_SHIFT) != 0 {                            // Shift+Backspace
+                        callback(Forward);
+                    }
+                    else {
+                        callback(Back);
+                    }
+                }
+            }
+            c => match c as char {
+                '=' if (modifiers & ACTIVE_CTRL) != 0 => {                      // Ctrl++
+                    for self.zoom_callback.iter().advance |&callback| {
+                        callback(0.1);
+                    }
+                }
+                _ => {}
+            }
         }
     }
 

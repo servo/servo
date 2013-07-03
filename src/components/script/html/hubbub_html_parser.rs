@@ -303,9 +303,9 @@ pub fn parse_html(url: Url,
                 // Handle CSS style sheets from <link> elements
                 ElementNodeTypeId(HTMLLinkElementTypeId) => {
                     do node.with_imm_element |element| {
-                        match (element.get_attr(~"rel"), element.get_attr(~"href")) {
+                        match (element.get_attr("rel"), element.get_attr("href")) {
                             (Some(rel), Some(href)) => {
-                                if rel == ~"stylesheet" {
+                                if rel == "stylesheet" {
                                     debug!("found CSS stylesheet: %s", href);
                                     let url = make_url(href.to_str(), Some(url2.clone()));
                                     css_chan2.send(CSSTaskNewFile(UrlProvenance(url)));
@@ -317,7 +317,7 @@ pub fn parse_html(url: Url,
                 },
                 ElementNodeTypeId(HTMLImageElementTypeId) => {
                     do node.with_mut_image_element |image_element| {
-                        let src_opt = image_element.parent.get_attr(~"src").map(|x| x.to_str());
+                        let src_opt = image_element.parent.get_attr("src").map(|x| x.to_str());
                         match src_opt {
                             None => {}
                             Some(src) => {
@@ -401,7 +401,7 @@ pub fn parse_html(url: Url,
                 unsafe {
                     let script: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(script);
                     do script.with_imm_element |script| {
-                        match script.get_attr(~"src") {
+                        match script.get_attr("src") {
                             Some(src) => {
                                 debug!("found script: %s", src);
                                 let new_url = make_url(src.to_str(), Some(url.clone()));

@@ -6,12 +6,17 @@
 
 use geom::point::Point2D;
 use geom::size::Size2D;
-use servo_msg::compositor::{ReadyState, RenderState};
+use servo_msg::compositor_msg::{ReadyState, RenderState};
 
 pub enum WindowMouseEvent {
     WindowClickEvent(uint, Point2D<f32>),
     WindowMouseDownEvent(uint, Point2D<f32>),
     WindowMouseUpEvent(uint, Point2D<f32>),
+}
+
+pub enum WindowNavigateMsg {
+    Forward,
+    Back,
 }
 
 /// Type of the function that is called when the screen is to be redisplayed.
@@ -29,8 +34,11 @@ pub type MouseCallback = @fn(WindowMouseEvent);
 /// Type of the function that is called when the user scrolls.
 pub type ScrollCallback = @fn(Point2D<f32>);
 
-///Type of the function that is called when the user zooms.
+/// Type of the function that is called when the user zooms.
 pub type ZoomCallback = @fn(f32);
+
+/// Type of the function that is called when the user clicks backspace or shift-backspace
+pub type NavigationCallback = @fn(WindowNavigateMsg);
 
 /// Methods for an abstract Application.
 pub trait ApplicationMethods {
@@ -57,6 +65,8 @@ pub trait WindowMethods<A> {
     pub fn set_scroll_callback(&mut self, new_scroll_callback: ScrollCallback);
     /// Registers a callback to run when the user zooms.
     pub fn set_zoom_callback(&mut self, new_zoom_callback: ZoomCallback);
+    /// Registers a callback to run when the user presses backspace or shift-backspace.
+    pub fn set_navigation_callback(&mut self, new_navigation_callback: NavigationCallback);
 
     /// Spins the event loop.
     pub fn check_loop(@mut self);
