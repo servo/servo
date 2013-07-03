@@ -8,7 +8,7 @@ use script::script_task::{LoadMsg, SendEventMsg};
 use script::layout_interface::{LayoutChan, RouteScriptMsg};
 use windowing::{ApplicationMethods, WindowMethods, WindowMouseEvent, WindowClickEvent};
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent};
-use servo_msg::compositor::{RenderListener, LayerBufferSet, RenderState};
+use servo_msg::compositor::{RenderListener, LayerBuffer, LayerBufferSet, RenderState};
 use servo_msg::compositor::{ReadyState, ScriptListener};
 use gfx::render_task::{RenderChan, ReRenderMsg};
 
@@ -32,6 +32,8 @@ use servo_util::{time, url};
 use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
 
+use compositing::quadtree::Quadtree;
+mod quadtree;
 
 /// The implementation of the layers-based compositor.
 #[deriving(Clone)]
@@ -55,6 +57,17 @@ impl RenderListener for CompositorChan {
         self.chan.send(GetGLContext(chan));
         port.recv()
     }
+
+    fn new_layer(&self, page_size: Size2D<uint>, tile_size: uint) {
+        self.chan.send(NewLayer(page_size, tile_size))
+    }
+    fn resize_layer(&self, page_size: Size2D<uint>) {
+        self.chan.send(ResizeLayer(page_size))
+    }
+    fn delete_layer(&self) {
+        self.chan.send(DeleteLayer)
+    }
+
     fn paint(&self, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>) {
         self.chan.send(Paint(layer_buffer_set, new_size))
     }
@@ -80,6 +93,15 @@ pub enum Msg {
     Exit,
     /// Requests the compositors GL context.
     GetGLContext(Chan<AzGLContext>),
+
+    // TODO: Attach layer ids and epochs to these messages
+    /// Alerts the compositor that there is a new layer to be rendered.
+    NewLayer(Size2D<uint>, uint),
+    /// Alerts the compositor that the current layer has changed size.
+    ResizeLayer(Size2D<uint>),
+    /// Alerts the compositor that the current layer has been deleted.
+    DeleteLayer,
+
     /// Requests that the compositor paint the given layer buffer set for the given page size.
     Paint(LayerBufferSet, Size2D<uint>),
     /// Alerts the compositor to the current status of page loading.
@@ -177,6 +199,59 @@ impl CompositorTask {
         // Channel to the current renderer.
         // FIXME: This probably shouldn't be stored like this.
         let render_chan: @mut Option<RenderChan<CompositorChan>> = @mut None;
+        // Quadtree for this layer
+        // FIXME: This should be one-per-layer
+        let quadtree: @mut Option<Quadtree<LayerBuffer>> = @mut None;
+        
+
+        let ask_for_tiles: @fn() = || {
+            match *quadtree {
+                Some(ref quad) => {
+                    // FIXME: find a better way to get the tile size
+                    // currently tiles that need to be updated can be missed
+                    let mut tile_size = quad.get_tile_size();
+                    let mut tile_request = ~[]; //FIXME: try not to allocate if possible
+                    
+                    let mut y = world_offset.y as uint;
+                    while y < world_offset.y as uint + window_size.height + tile_size {
+                        let mut x = world_offset.x as uint;
+                        while x < world_offset.x as uint + window_size.width + tile_size {
+                            match *(quad.get_tile(x, y, *world_zoom)) {
+                                Some(ref current_tile) => {
+                                    if current_tile.resolution == *world_zoom {
+                                        x += tile_size;
+                                        loop; // we already have this tile
+                                    }
+                                }
+                                None => {} // fall through
+                            }
+                            let (tile_screen_pos, tile_page_pos) = quad.get_tile_rect(x, y, *world_zoom);
+                            tile_size = tile_screen_pos.size.width;
+                            x = tile_screen_pos.origin.x;
+                            y = tile_screen_pos.origin.y;
+                            
+                            // TODO: clamp tiles to page bounds
+                            // TODO: add null buffer/checkerboard tile to stop a flood of requests
+                            debug!("requesting tile: (%?, %?): %?", x, y, tile_size);
+                            tile_request.push((tile_screen_pos, tile_page_pos));
+                            
+                            x += tile_size;
+                        }
+                        y += tile_size;
+                    }
+                    if !tile_request.is_empty() {
+                        match *render_chan {
+                            Some(ref chan) => {
+                                chan.send(ReRenderMsg(tile_request, *world_zoom));
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                _ => {}
+            }
+        };
+
 
         let update_layout_callbacks: @fn(LayoutChan) = |layout_chan: LayoutChan| {
             let layout_chan_clone = layout_chan.clone();
@@ -214,24 +289,21 @@ impl CompositorTask {
                     }
                     WindowMouseDownEvent(button, layer_mouse_point) => {
                         event = MouseDownEvent(button, world_mouse_point(layer_mouse_point));
+
                     }
                     WindowMouseUpEvent(button, layer_mouse_point) => {
                         
-                        // rerender layer at new zoom level
-                        // FIXME: this should happen when the user stops zooming, definitely not here
-                        match *render_chan {
-                            Some(ref r_chan) => {
-                                r_chan.send(ReRenderMsg(*world_zoom));
-                            }
-                            None => {} // Nothing to do
-                        }
-                        
+                        // FIXME: this should happen on a scroll/zoom event instead,
+                        // but is here temporarily to prevent request floods to the renderer
+                        ask_for_tiles();
+
                         event = MouseUpEvent(button, world_mouse_point(layer_mouse_point));
                     }
                 }
                 layout_chan_clone.chan.send(RouteScriptMsg(SendEventMsg(event)));
             }
         };
+
 
         let check_for_messages: @fn(&Port<Msg>) = |port: &Port<Msg>| {
             // Handle messages
@@ -251,9 +323,29 @@ impl CompositorTask {
                     }
 
                     GetGLContext(chan) => chan.send(current_gl_context()),
+                    
+                    NewLayer(new_size, tile_size) => {
+                        *page_size = Size2D(new_size.width as f32, new_size.height as f32);
+                        *quadtree = Some(Quadtree::new(0, 0, new_size.width, new_size.height, tile_size));
+                        ask_for_tiles();
+                        
+                    }
+                    ResizeLayer(new_size) => {
+                        *page_size = Size2D(new_size.width as f32, new_size.height as f32);
+                        // TODO: update quadtree, ask for tiles
+                    }
+                    DeleteLayer => {
+                        // TODO: create secondary layer tree, keep displaying until new tiles come in
+                    }
 
                     Paint(new_layer_buffer_set, new_size) => {
                         debug!("osmain: received new frame");
+
+                        let quad;
+                        match *quadtree {
+                            Some(ref mut q) => quad = q,
+                            None => fail!("Compositor: given paint command with no quadtree initialized"),
+                        }
 
                         *page_size = Size2D(new_size.width as f32, new_size.height as f32);
 
@@ -262,16 +354,20 @@ impl CompositorTask {
                         // Iterate over the children of the container layer.
                         let mut current_layer_child = root_layer.first_child;
 
-                        // Replace the image layer data with the buffer data. Also compute the page
-                        // size here.
+                        // Replace the image layer data with the buffer data.
                         let buffers = util::replace(&mut new_layer_buffer_set.buffers, ~[]);
 
-                        for buffers.each |buffer| {
-                            let width = buffer.rect.size.width as uint;
-                            let height = buffer.rect.size.height as uint;
+                        do vec::consume(buffers) |_, buffer| {
+                            quad.add_tile(buffer.screen_pos.origin.x, buffer.screen_pos.origin.y,
+                                          *world_zoom, buffer);
+                        }
+                        
+                        for quad.get_all_tiles().each |buffer| {
+                            let width = buffer.screen_pos.size.width as uint;
+                            let height = buffer.screen_pos.size.height as uint;
 
                             debug!("osmain: compositing buffer rect %?", &buffer.rect);
-
+                            
                             // Find or create a texture layer.
                             let texture_layer;
                             current_layer_child = match current_layer_child {
@@ -294,13 +390,14 @@ impl CompositorTask {
                                 Some(_) => fail!(~"found unexpected layer kind"),
                             };
 
-                            let origin = buffer.screen_pos.origin;
+                            let origin = buffer.rect.origin;
                             let origin = Point2D(origin.x as f32, origin.y as f32);
 
                             // Set the layer's transform.
-                            let transform = identity().translate(origin.x, origin.y, 0.0);
-                            let transform = transform.scale(width as f32, height as f32, 1.0);
+                            let transform = identity().translate(origin.x * *world_zoom, origin.y * *world_zoom, 0.0);
+                            let transform = transform.scale(width as f32 * *world_zoom / buffer.resolution, height as f32 * *world_zoom / buffer.resolution, 1.0);
                             texture_layer.common.set_transform(transform);
+                            
                         }
 
                         // Delete leftover layers
@@ -368,6 +465,8 @@ impl CompositorTask {
             
             root_layer.common.set_transform(scroll_transform);
             
+//            ask_for_tiles();
+
             window.set_needs_display()
         }
 
@@ -406,7 +505,8 @@ impl CompositorTask {
                                                       window_size.height as f32 / -2f32,
                                                       0.0);
             root_layer.common.set_transform(zoom_transform);
-            
+
+//            ask_for_tiles();
             
             window.set_needs_display()
         }
