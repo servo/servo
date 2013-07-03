@@ -9,7 +9,6 @@ use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use display_list::DisplayList;
 use servo_msg::compositor_msg::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer};
 use servo_msg::compositor_msg::{LayerBufferSet};
-use servo_msg::constellation_msg::{ConstellationChan};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -70,8 +69,6 @@ priv struct RenderTask<C> {
 
     /// The layer to be rendered
     render_layer: Option<RenderLayer>,
-    /// A channel to the constellation for -- just in case
-    constellation_chan: ConstellationChan,
     /// Permission to send paint messages to the compositor
     paint_permission: bool,
     /// Cached copy of last layers rendered
@@ -83,19 +80,16 @@ impl<C: RenderListener + Owned> RenderTask<C> {
                   port: Port<Msg>,
                   compositor: C,
                   opts: Opts,
-                  constellation_chan: ConstellationChan,
                   profiler_chan: ProfilerChan) {
         let compositor = Cell::new(compositor);
         let opts = Cell::new(opts);
         let port = Cell::new(port);
-        let constellation_chan = Cell::new(constellation_chan);
         let profiler_chan = Cell::new(profiler_chan);
 
         do spawn {
             let compositor = compositor.take();
             let share_gl_context = compositor.get_gl_context();
             let opts = opts.take();
-            let constellation_chan = constellation_chan.take();
             let profiler_chan = profiler_chan.take();
 
             // FIXME: rust/#5967
@@ -111,7 +105,6 @@ impl<C: RenderListener + Owned> RenderTask<C> {
                 share_gl_context: share_gl_context,
                 render_layer: None,
 
-                constellation_chan: constellation_chan,
                 paint_permission: false,
                 last_paint_msg: None,
             };

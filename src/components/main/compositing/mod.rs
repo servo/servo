@@ -23,7 +23,6 @@ use std::comm;
 use std::comm::{Chan, SharedChan, Port};
 use std::num::Orderable;
 use std::task;
-use std::util;
 use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::size::Size2D;
@@ -289,7 +288,7 @@ impl CompositorTask {
                         // Iterate over the children of the container layer.
                         let mut current_layer_child = root_layer.first_child;
 
-                        for new_layer_buffer_set.buffers.each |buffer| {
+                        for new_layer_buffer_set.buffers.iter().advance |buffer| {
                             let width = buffer.rect.size.width as uint;
                             let height = buffer.rect.size.height as uint;
 

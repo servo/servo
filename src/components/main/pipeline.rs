@@ -47,7 +47,6 @@ impl Pipeline {
                            render_port,
                            compositor_chan.clone(),
                            copy opts,
-                           constellation_chan.clone(),
                            profiler_chan.clone());
 
         LayoutTask::create(layout_port,
