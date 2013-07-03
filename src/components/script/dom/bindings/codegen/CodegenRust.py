@@ -122,6 +122,15 @@ class CastableObjectUnwrapper():
 #  }
 #}""").substitute(self.substitution)
 
+class FailureFatalCastableObjectUnwrapper(CastableObjectUnwrapper):
+    """
+    As CastableObjectUnwrapper, but defaulting to throwing if unwrapping fails
+    """
+    def __init__(self, descriptor, source, target):
+        CastableObjectUnwrapper.__init__(self, descriptor, source, target,
+                                         "return Throw<%s>(cx, rv);" %
+                                         toStringBool(not descriptor.workers))
+
 class CGThing():
     """
     Abstract base class for things that spit out code.
@@ -154,9 +163,10 @@ class CGMethodCall(CGThing):
                 requiredArgs -= 1
             return requiredArgs
 
-        def getPerSignatureCall(signature, argConversionStartsAt=0):
+        def getPerSignatureCall(signature, argConversionStartsAt=0, signatureIndex=0):
             return CGPerSignatureCall(signature[0], argsPre, signature[1],
-                                      nativeMethodName, static, descriptor,
+                                      nativeMethodName + '_'*signatureIndex,
+                                      static, descriptor,
                                       method, argConversionStartsAt)
             
 
@@ -201,15 +211,12 @@ class CGMethodCall(CGThing):
                     signature[1][argCount].optional and
                     (argCount+1) in allowedArgCounts and
                     len(method.signaturesForArgCount(argCount+1)) == 1):
-                    #XXXjdm unfinished
-                    pass
-                    #argCountCases.append(
-                    #    CGCase(str(argCount), None, True))
+                    argCountCases.append(
+                        CGCase(str(argCount), None, True))
                 else:
                     pass
-                    #XXXjdm unfinished
-                    #argCountCases.append(
-                    #    CGCase(str(argCount), getPerSignatureCall(signature)))
+                    argCountCases.append(
+                        CGCase(str(argCount), getPerSignatureCall(signature)))
                 continue
 
             distinguishingIndex = method.distinguishingIndexForArgCount(argCount)
@@ -225,14 +232,14 @@ class CGMethodCall(CGThing):
             # Doesn't matter which of the possible signatures we use, since
             # they all have the same types up to that point; just use
             # possibleSignatures[0]
-            caseBody = [CGGeneric("JS::Value* argv_start = JS_ARGV(cx, vp);")]
+            caseBody = [CGGeneric("let argv_start = JS_ARGV(cx, cast::transmute(vp));")]
             caseBody.extend([ CGArgumentConverter(possibleSignatures[0][1][i],
                                                   i, "argv_start", "argc",
                                                   descriptor) for i in
                               range(0, distinguishingIndex) ])
 
             # Select the right overload from our set.
-            distinguishingArg = "argv_start[%d]" % distinguishingIndex
+            distinguishingArg = "(*argv_start.offset(%d))" % distinguishingIndex
 
             def pickFirstSignature(condition, filterLambda):
                 sigs = filter(filterLambda, possibleSignatures)
@@ -240,11 +247,13 @@ class CGMethodCall(CGThing):
                 if len(sigs) > 0:
                     if condition is None:
                         caseBody.append(
-                            getPerSignatureCall(sigs[0], distinguishingIndex))
+                            getPerSignatureCall(sigs[0], distinguishingIndex,
+                                                possibleSignatures.index(sigs[0])))
                     else:
-                        caseBody.append(CGGeneric("if (" + condition + ") {"))
+                        caseBody.append(CGGeneric("if " + condition + " {"))
                         caseBody.append(CGIndenter(
-                                getPerSignatureCall(sigs[0], distinguishingIndex)))
+                                getPerSignatureCall(sigs[0], distinguishingIndex,
+                                                    possibleSignatures.index(sigs[0]))))
                         caseBody.append(CGGeneric("}"))
                     return True
                 return False
@@ -276,10 +285,10 @@ class CGMethodCall(CGThing):
                 # also allow the unwrapping test to skip having to do codegen
                 # for the null-or-undefined case, which we already handled
                 # above.
-                caseBody.append(CGGeneric("if (%s.isObject()) {" %
+                caseBody.append(CGGeneric("if JSVAL_IS_OBJECT(%s) {" %
                                           (distinguishingArg)))
                 for sig in interfacesSigs:
-                    caseBody.append(CGIndenter(CGGeneric("do {")));
+                    caseBody.append(CGIndenter(CGGeneric("loop {")));
                     type = sig[1][distinguishingIndex].type
 
                     # The argument at index distinguishingIndex can't possibly
@@ -303,7 +312,7 @@ class CGMethodCall(CGThing):
                     # distinguishingIndex.
                     caseBody.append(CGIndenter(
                             getPerSignatureCall(sig, distinguishingIndex + 1), 4))
-                    caseBody.append(CGIndenter(CGGeneric("} while (0);")))
+                    caseBody.append(CGIndenter(CGGeneric("}")))
 
                 caseBody.append(CGGeneric("}"))
 
@@ -354,22 +363,21 @@ class CGMethodCall(CGThing):
                 caseBody.append(CGGeneric("return Throw<%s>(cx, NS_ERROR_XPC_BAD_CONVERT_JS);" %
                                           toStringBool(not descriptor.workers)))
 
-            #XXXjdm unfinished
-            #argCountCases.append(CGCase(str(argCount),
-            #                            CGList(caseBody, "\n")))
+            argCountCases.append(CGCase(str(argCount),
+                                        CGList(caseBody, "\n")))
 
         overloadCGThings = []
         overloadCGThings.append(
-            CGGeneric("unsigned argcount = NS_MIN(argc, %du);" %
+            CGGeneric("let argcount = argc.min(&%d);" %
                       maxArgCount))
-        #XXXjdm unfinished
-        #overloadCGThings.append(
-        #    CGSwitch("argcount",
-        #             argCountCases,
-        #             CGGeneric("return ThrowErrorMessage(cx, MSG_MISSING_ARGUMENTS, %s);\n" % methodName)))
         overloadCGThings.append(
-            CGGeneric('MOZ_NOT_REACHED("We have an always-returning default case");\n'
-                      'return false;'))
+            CGSwitch("argcount",
+                     argCountCases,
+                     CGGeneric("return 0; //XXXjdm throw stuff\n//return ThrowErrorMessage(cx, MSG_MISSING_ARGUMENTS, %s);\n" % methodName)))
+        #XXXjdm Avoid unreachable statement warnings
+        #overloadCGThings.append(
+        #    CGGeneric('fail!("We have an always-returning default case");\n'
+        #              'return 0;'))
         self.cgRoot = CGWrapper(CGIndenter(CGList(overloadCGThings, "\n")),
                                 pre="\n")
 
@@ -492,11 +500,11 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     def onFailureNotAnObject(failureCode):
         return CGWrapper(CGGeneric(
                 failureCode or
-                'return ThrowErrorMessage(cx, MSG_NOT_OBJECT);'), post="\n")
+                'return 0; //XXXjdm return ThrowErrorMessage(cx, MSG_NOT_OBJECT);'), post="\n")
     def onFailureBadType(failureCode, typeName):
         return CGWrapper(CGGeneric(
                 failureCode or
-                'return ThrowErrorMessage(cx, MSG_DOES_NOT_IMPLEMENT_INTERFACE, "%s");' % typeName), post="\n")
+                'return 0; //XXXjdm return ThrowErrorMessage(cx, MSG_DOES_NOT_IMPLEMENT_INTERFACE, "%s");' % typeName), post="\n")
 
     # A helper function for handling default values.  Takes a template
     # body and the C++ code to set the default value and wraps the
@@ -529,7 +537,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             # Handle the non-object cases by wrapping up the whole
             # thing in an if cascade.
             templateBody = (
-                "if (${val}.isObject()) {\n" +
+                "if JSVAL_IS_OBJECT(${val}) {\n" +
                 CGIndenter(CGGeneric(templateBody)).define() + "\n")
             if type.nullable():
                 templateBody += (
@@ -580,7 +588,8 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                             str(type.location))
 
         (elementTemplate, elementDeclType,
-         elementHolderType, dealWithOptional) = getJSToNativeConversionTemplate(
+         elementHolderType, dealWithOptional,
+         initialValue) = getJSToNativeConversionTemplate(
             elementType, descriptorProvider, isMember=True)
         if dealWithOptional:
             raise TypeError("Shouldn't have optional things in sequences")
@@ -635,7 +644,7 @@ for (uint32_t i = 0; i < length; ++i) {
         templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
                                           type,
                                           "const_cast< %s & >(${declName}).SetNull()" % mutableTypeName.define())
-        return (templateBody, typeName, None, isOptional)
+        return (templateBody, typeName, None, isOptional, None)
 
     if type.isUnion():
         if isMember:
@@ -848,7 +857,7 @@ for (uint32_t i = 0; i < length; ++i) {
                                       extraConditionForNull=valueMissing)
         templateBody = CGList([constructDecl, templateBody], "\n")
 
-        return templateBody.define(), declType, holderType, False
+        return templateBody.define(), declType, holderType, False, None
 
     if type.isGeckoInterface():
         assert not isEnforceRange and not isClamp
@@ -886,7 +895,7 @@ for (uint32_t i = 0; i < length; ++i) {
             if forceOwningType:
                 declType = "OwningNonNull<" + typeName + ">"
             else:
-                declType = "NonNull<" + typeName + ">"
+                declType = descriptor.pointerType + typeName
 
         templateBody = ""
         if descriptor.castable:
@@ -902,16 +911,14 @@ for (uint32_t i = 0; i < length; ++i) {
             if failureCode is not None:
                 templateBody += str(CastableObjectUnwrapper(
                         descriptor,
-                        "&${val}.toObject()",
+                        "JSVAL_TO_OBJECT(${val})",
                         "${declName}",
                         failureCode))
             else:
-                pass
-                #XXXjdm unfinished
-                #templateBody += str(FailureFatalCastableObjectUnwrapper(
-                #        descriptor,
-                #        "&${val}.toObject()",
-                #        "${declName}"))
+                templateBody += str(FailureFatalCastableObjectUnwrapper(
+                        descriptor,
+                        "JSVAL_TO_OBJECT(${val})",
+                        "${declName}"))
         elif descriptor.interface.isCallback() and False:
             #XXXjdm unfinished
             templateBody += str(CallbackObjectUnwrapper(
@@ -962,7 +969,7 @@ for (uint32_t i = 0; i < length; ++i) {
         declType = CGGeneric(declType)
         if holderType is not None:
             holderType = CGGeneric(holderType)
-        return (templateBody, declType, holderType, isOptional)
+        return (templateBody, declType, holderType, isOptional, None)
 
     if type.isSpiderMonkeyInterface():
         assert not isEnforceRange and not isClamp
@@ -1018,7 +1025,7 @@ for (uint32_t i = 0; i < length; ++i) {
         if holderType is not None:
             holderType = CGGeneric(holderType)
         # We handle all the optional stuff ourselves; no need for caller to do it.
-        return (template, CGGeneric(declType), holderType, False)
+        return (template, CGGeneric(declType), holderType, False, None)
 
     if type.isString():
         assert not isEnforceRange and not isClamp
@@ -1040,17 +1047,21 @@ for (uint32_t i = 0; i < length; ++i) {
             raise TypeError("We don't support [TreatUndefinedAs=Missing]")
         undefinedBehavior = treatAs[treatUndefinedAs]
 
-        def getConversionCode(varName):
+        def getConversionCode(varName, isOptional=False):
+            #XXXjdm support nullBehavior and undefinedBehavior
             #conversionCode = (
             #    "if (!ConvertJSValueToString(cx, ${val}, ${valPtr}, %s, %s, %s)) {\n"
             #    "  return false;\n"
             #    "}" % (nullBehavior, undefinedBehavior, varName))
+            strval = "str(strval.get())"
+            if isOptional:
+                strval = "Some(%s)" % strval
             conversionCode = (
                 "let strval = jsval_to_str(cx, ${val});\n"
                 "if strval.is_err() {\n"
                 "  return 0;\n"
                 "}\n"
-                "%s = str(strval.get());" % varName)
+                "%s = %s;" % (varName, strval))
             if defaultValue is None:
                 return conversionCode
 
@@ -1075,20 +1086,22 @@ for (uint32_t i = 0; i < length; ++i) {
                 "%s\n"
                 "  ${declName} = str;\n"
                 "}\n" % CGIndenter(CGGeneric(getConversionCode("str"))).define(),
-                declType, None, isOptional)
+                declType, None, isOptional, None)
 
         if isOptional:
             declType = "Option<DOMString>"
+            initialValue = "None"
         else:
             declType = "DOMString"
+            initialValue = None
 
         return (
             "%s\n" %
             #"const_cast<%s&>(${declName}) = &${holderName};" %
-            (getConversionCode("${declName}")),
+            (getConversionCode("${declName}", isOptional)),
             CGGeneric(declType), None, #CGGeneric("FakeDependentString"),
-            # No need to deal with Optional here; we have handled it already
-            False)
+            False,
+            initialValue)
 
     if type.isEnum():
         assert not isEnforceRange and not isClamp
@@ -1123,7 +1136,7 @@ for (uint32_t i = 0; i < length; ++i) {
             #                         ("${declName} = %sValues::%s" %
             #                          (enum,
             #                           getEnumValueName(defaultValue.value))))
-        return (template, CGGeneric(enum), None, isOptional)
+        return (template, CGGeneric(enum), None, isOptional, None)
 
     if type.isCallback():
         assert not isEnforceRange and not isClamp
@@ -1143,7 +1156,7 @@ for (uint32_t i = 0; i < length; ++i) {
             "} else {\n"
             "  ${declName} = NULL;\n"
             "}" % haveCallable,
-            CGGeneric("JSObject*"), None, isOptional)
+            CGGeneric("JSObject*"), None, isOptional, None)
 
     if type.isAny():
         assert not isEnforceRange and not isClamp
@@ -1154,7 +1167,7 @@ for (uint32_t i = 0; i < length; ++i) {
         templateBody = "${declName} = ${val};"
         templateBody = handleDefaultNull(templateBody,
                                          "${declName} = JS::NullValue()")
-        return (templateBody, CGGeneric("JS::Value"), None, isOptional)
+        return (templateBody, CGGeneric("JS::Value"), None, isOptional, None)
 
     if type.isObject():
         assert not isEnforceRange and not isClamp
@@ -1170,7 +1183,7 @@ for (uint32_t i = 0; i < length; ++i) {
             declType = CGGeneric("JSObject*")
         else:
             declType = CGGeneric("NonNull<JSObject>")
-        return (template, declType, None, isOptional)
+        return (template, declType, None, isOptional, None)
 
     if type.isDictionary():
         if failureCode is not None:
@@ -1206,7 +1219,7 @@ for (uint32_t i = 0; i < length; ++i) {
                     "  return 0;\n"
                     "}" % (selfRef, actualTypeName, selfRef, val))
 
-        return (template, declType, None, False)
+        return (template, declType, None, False, None)
 
     if not type.isPrimitive():
         raise TypeError("Need conversion for argument type '%s'" % str(type))
@@ -1258,7 +1271,7 @@ for (uint32_t i = 0; i < length; ++i) {
                                    "  %s = %s;\n"
                                    "}" % (dataLoc, defaultStr))).define()
 
-    return (template, declType, None, isOptional)
+    return (template, declType, None, isOptional, None)
 
 def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
                                             argcAndIndex=None):
@@ -1271,7 +1284,7 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
     replace ${argc} and ${index}, where ${index} is the index of this
     argument (0-based) and ${argc} is the total number of arguments.
     """
-    (templateBody, declType, holderType, dealWithOptional) = templateTuple
+    (templateBody, declType, holderType, dealWithOptional, initialValue) = templateTuple
 
     if dealWithOptional and argcAndIndex is None:
         raise TypeError("Have to deal with optional things, but don't know how")
@@ -1303,12 +1316,14 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
                 (declType.define(), originalDeclName))
             mutableDeclType = CGWrapper(declType, pre="Optional< ", post=" >")
             declType = CGWrapper(mutableDeclType, pre="const ")
-        result.append(
-            CGList([CGGeneric("let mut "),
-                    CGGeneric(originalDeclName),
-                    CGGeneric(": "),
-                    declType,
-                    CGGeneric(";")]))
+        newDecl = [CGGeneric("let mut "),
+                   CGGeneric(originalDeclName),
+                   CGGeneric(": "),
+                   declType]
+        if initialValue:
+            newDecl.append(CGGeneric(" = " + initialValue))
+        newDecl.append(CGGeneric(";"))
+        result.append(CGList(newDecl))
 
     conversion = CGGeneric(
             string.Template(templateBody).substitute(replacements)
@@ -3020,6 +3035,51 @@ class CGPerSignatureCall(CGThing):
     def define(self):
         return (self.cgRoot.define() + "\n" + self.wrap_return_value())
 
+class CGSwitch(CGList):
+    """
+    A class to generate code for a switch statement.
+
+    Takes three constructor arguments: an expression, a list of cases,
+    and an optional default.
+
+    Each case is a CGCase.  The default is a CGThing for the body of
+    the default case, if any.
+    """
+    def __init__(self, expression, cases, default=None):
+        CGList.__init__(self, [CGIndenter(c) for c in cases], "\n")
+        self.prepend(CGWrapper(CGGeneric(expression),
+                               pre="match ", post=" {"));
+        if default is not None:
+            self.append(
+                CGIndenter(
+                    CGWrapper(
+                        CGIndenter(default),
+                        pre="_ => {\n",
+                        post="\n}"
+                        )
+                    )
+                )
+
+        self.append(CGGeneric("}"))
+
+class CGCase(CGList):
+    """
+    A class to generate code for a case statement.
+
+    Takes three constructor arguments: an expression, a CGThing for
+    the body (allowed to be None if there is no body), and an optional
+    argument (defaulting to False) for whether to fall through.
+    """
+    def __init__(self, expression, body, fallThrough=False):
+        CGList.__init__(self, [], "\n")
+        self.append(CGWrapper(CGGeneric(expression), post=" => {"))
+        bodyList = CGList([body], "\n")
+        if fallThrough:
+            raise TypeError("fall through required but unsupported")
+            #bodyList.append(CGGeneric('fail!("fall through unsupported"); /* Fall through */'))
+        self.append(CGIndenter(bodyList));
+        self.append(CGGeneric("}"))
+
 class CGGetterCall(CGPerSignatureCall):
     """
     A class to generate a native object getter call for a particular IDL
@@ -3976,7 +4036,7 @@ class CGDictionary(CGThing):
 
     def getMemberType(self, memberInfo):
         (member, (templateBody, declType,
-                  holderType, dealWithOptional)) = memberInfo
+                  holderType, dealWithOptional, initialValue)) = memberInfo
         # We can't handle having a holderType here
         assert holderType is None
         if dealWithOptional:
@@ -3985,7 +4045,7 @@ class CGDictionary(CGThing):
 
     def getMemberConversion(self, memberInfo):
         (member, (templateBody, declType,
-                  holderType, dealWithOptional)) = memberInfo
+                  holderType, dealWithOptional, initialValue)) = memberInfo
         replacements = { "val": "temp",
                          "valPtr": "&temp",
                          "declName": ("self.%s" % member.identifier.name),
@@ -4138,6 +4198,7 @@ class CGBindingRoot(CGThing):
                           'dom::document::Document', #XXXjdm
                           'dom::bindings::utils::*',
                           'dom::bindings::conversions::*',
+                          'dom::blob::*', #XXXjdm
                           'dom::clientrect::*', #XXXjdm
                           'dom::clientrectlist::*', #XXXjdm
                           'dom::htmlcollection::*', #XXXjdm
@@ -4145,6 +4206,7 @@ class CGBindingRoot(CGThing):
                           'dom::domparser::*', #XXXjdm
                           'dom::event::*', #XXXjdm
                           'dom::eventtarget::*', #XXXjdm
+                          'dom::formdata::*', #XXXjdm
                           'script_task::task_from_context',
                           'dom::bindings::utils::EnumEntry',
                           'dom::node::ScriptView',
@@ -4152,7 +4214,8 @@ class CGBindingRoot(CGThing):
                           'std::libc',
                           'std::ptr',
                           'std::vec',
-                          'std::str'
+                          'std::str',
+                          'std::num',
                          ], 
                          [],
                          curr)

@@ -380,6 +380,7 @@ pub mod prototypes {
             HTMLCollection,
             Event,
             EventTarget,
+            FormData,
             _ID_Count
         }
     }
@@ -582,7 +583,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: uint, _vp: *JSVal) -> 
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = @mut ([0 as *JSObject, ..6]); //XXXjdm prototypes::_ID_COUNT
+    let protoArray = @mut ([0 as *JSObject, ..7]); //XXXjdm prototypes::_ID_COUNT
     unsafe {
         //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);
