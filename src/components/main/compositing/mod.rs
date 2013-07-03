@@ -23,7 +23,6 @@ use std::comm;
 use std::comm::{Chan, SharedChan, Port};
 use std::num::Orderable;
 use std::task;
-use std::util;
 use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::size::Size2D;
@@ -36,6 +35,7 @@ use servo_util::{time, url};
 use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
 
+use extra::arc;
 pub use windowing;
 
 /// The implementation of the layers-based compositor.
@@ -47,28 +47,34 @@ pub struct CompositorChan {
 
 /// Implementation of the abstract `ScriptListener` interface.
 impl ScriptListener for CompositorChan {
+
     fn set_ready_state(&self, ready_state: ReadyState) {
         let msg = ChangeReadyState(ready_state);
         self.chan.send(msg);
     }
+
 }
 
 /// Implementation of the abstract `RenderListener` interface.
 impl RenderListener for CompositorChan {
+
     fn get_gl_context(&self) -> AzGLContext {
         let (port, chan) = comm::stream();
         self.chan.send(GetGLContext(chan));
         port.recv()
     }
-    fn paint(&self, id: uint, layer_buffer_set: LayerBufferSet, new_size: Size2D<uint>) {
+
+    fn paint(&self, id: uint, layer_buffer_set: arc::ARC<LayerBufferSet>, new_size: Size2D<uint>) {
         self.chan.send(Paint(id, layer_buffer_set, new_size))
     }
+
     fn set_render_state(&self, render_state: RenderState) {
         self.chan.send(ChangeRenderState(render_state))
     }
 }
 
 impl CompositorChan {
+
     pub fn new(chan: Chan<Msg>) -> CompositorChan {
         CompositorChan {
             chan: SharedChan::new(chan),
@@ -86,7 +92,7 @@ pub enum Msg {
     /// Requests the compositors GL context.
     GetGLContext(Chan<AzGLContext>),
     /// Requests that the compositor paint the given layer buffer set for the given page size.
-    Paint(uint, LayerBufferSet, Size2D<uint>),
+    Paint(uint, arc::ARC<LayerBufferSet>, Size2D<uint>),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(ReadyState),
     /// Alerts the compositor to the current status of rendering.
@@ -277,16 +283,12 @@ impl CompositorTask {
 
                         *page_size = Size2D(new_size.width as f32, new_size.height as f32);
 
-                        let mut new_layer_buffer_set = new_layer_buffer_set;
+                        let new_layer_buffer_set = new_layer_buffer_set.get();
 
                         // Iterate over the children of the container layer.
                         let mut current_layer_child = root_layer.first_child;
 
-                        // Replace the image layer data with the buffer data. Also compute the page
-                        // size here.
-                        let buffers = util::replace(&mut new_layer_buffer_set.buffers, ~[]);
-
-                        for buffers.each |buffer| {
+                        for new_layer_buffer_set.buffers.iter().advance |buffer| {
                             let width = buffer.rect.size.width as uint;
                             let height = buffer.rect.size.height as uint;
 
