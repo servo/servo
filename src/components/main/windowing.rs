@@ -70,8 +70,6 @@ pub trait WindowMethods<A> {
 
     /// Spins the event loop.
     pub fn check_loop(@mut self);
-    /// Schedules a redisplay at the next turn of the event loop.
-    pub fn set_needs_display(@mut self);
     /// Sets the ready state of the current page.
     pub fn set_ready_state(@mut self, ready_state: ReadyState);
     /// Sets the render state of the current page.

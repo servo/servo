@@ -183,7 +183,8 @@ impl ScriptTask {
                script_chan: ScriptChan,
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
-               img_cache_task: ImageCacheTask)
+               img_cache_task: ImageCacheTask,
+               initial_size: Size2D<int>)
                -> @mut ScriptTask {
         let js_runtime = js::rust::rt();
         let js_context = js_runtime.cx();
@@ -219,7 +220,7 @@ impl ScriptTask {
 
             root_frame: None,
 
-            window_size: Size2D(800u, 600),
+            window_size: Size2D(initial_size.width as uint, initial_size.height as uint),
             damage: None,
 
             last_loaded_url: None,
@@ -253,7 +254,8 @@ impl ScriptTask {
                   script_chan: ScriptChan,
                   constellation_chan: ConstellationChan,
                   resource_task: ResourceTask,
-                  image_cache_task: ImageCacheTask) {
+                  image_cache_task: ImageCacheTask,
+                  initial_size: Size2D<int>) {
         let compositor = Cell::new(compositor);
         let script_port = Cell::new(script_port);
         // FIXME: rust#6399
@@ -267,7 +269,8 @@ impl ScriptTask {
                                               script_chan.clone(),
                                               constellation_chan.clone(),
                                               resource_task.clone(),
-                                              image_cache_task.clone());
+                                              image_cache_task.clone(),
+                                              initial_size);
             script_task.start();
         }
     }
