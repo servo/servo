@@ -8,8 +8,7 @@ use azure::{AzFloat, AzGLContext};
 use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use display_list::DisplayList;
 use servo_msg::compositor_msg::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer};
-use servo_msg::compositor_msg::{CompositorToken, LayerBufferSet};
-use servo_msg::constellation_msg::{ConstellationChan};
+use servo_msg::compositor_msg::{LayerBufferSet};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -25,6 +24,8 @@ use std::uint;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 
+use extra::arc;
+
 pub struct RenderLayer {
     display_list: DisplayList<()>,
     size: Size2D<uint>
@@ -33,8 +34,8 @@ pub struct RenderLayer {
 pub enum Msg {
     RenderMsg(RenderLayer),
     ReRenderMsg(f32),
-    TokenBestowMsg(CompositorToken),
-    TokenInvalidateMsg,
+    PaintPermissionGranted,
+    PaintPermissionRevoked,
     ExitMsg(Chan<()>),
 }
 
@@ -68,12 +69,10 @@ priv struct RenderTask<C> {
 
     /// The layer to be rendered
     render_layer: Option<RenderLayer>,
-    /// A channel to the constellation for surrendering token
-    constellation_chan: ConstellationChan,
-    /// A token that grants permission to send paint messages to compositor
-    compositor_token: Option<CompositorToken>,
+    /// Permission to send paint messages to the compositor
+    paint_permission: bool,
     /// Cached copy of last layers rendered
-    last_paint_msg: Option<(LayerBufferSet, Size2D<uint>)>,
+    last_paint_msg: Option<(arc::ARC<LayerBufferSet>, Size2D<uint>)>,
 }
 
 impl<C: RenderListener + Owned> RenderTask<C> {
@@ -81,35 +80,32 @@ impl<C: RenderListener + Owned> RenderTask<C> {
                   port: Port<Msg>,
                   compositor: C,
                   opts: Opts,
-                  constellation_chan: ConstellationChan,
                   profiler_chan: ProfilerChan) {
-        let compositor_cell = Cell::new(compositor);
-        let opts_cell = Cell::new(opts);
+        let compositor = Cell::new(compositor);
+        let opts = Cell::new(opts);
         let port = Cell::new(port);
-        let constellation_chan = Cell::new(constellation_chan);
+        let profiler_chan = Cell::new(profiler_chan);
 
         do spawn {
-            let compositor = compositor_cell.take();
+            let compositor = compositor.take();
             let share_gl_context = compositor.get_gl_context();
-            let opts = opts_cell.with_ref(|o| copy *o);
-            let profiler_chan = profiler_chan.clone();
-            let profiler_chan_clone = profiler_chan.clone();
+            let opts = opts.take();
+            let profiler_chan = profiler_chan.take();
 
             // FIXME: rust/#5967
             let mut render_task = RenderTask {
                 id: id,
                 port: port.take(),
                 compositor: compositor,
-                font_ctx: @mut FontContext::new(opts.render_backend,
+                font_ctx: @mut FontContext::new(copy opts.render_backend,
                                                 false,
-                                                profiler_chan),
-                opts: opts_cell.take(),
-                profiler_chan: profiler_chan_clone,
+                                                profiler_chan.clone()),
+                opts: opts,
+                profiler_chan: profiler_chan,
                 share_gl_context: share_gl_context,
                 render_layer: None,
 
-                constellation_chan: constellation_chan.take(),
-                compositor_token: None,
+                paint_permission: false,
                 last_paint_msg: None,
             };
 
@@ -129,8 +125,8 @@ impl<C: RenderListener + Owned> RenderTask<C> {
                 ReRenderMsg(scale) => {
                     self.render(scale);
                 }
-                TokenBestowMsg(token) => {
-                    self.compositor_token = Some(token);
+                PaintPermissionGranted => {
+                    self.paint_permission = true;
                     match self.last_paint_msg {
                         Some((ref layer_buffer_set, ref layer_size)) => {
                             self.compositor.paint(self.id, layer_buffer_set.clone(), *layer_size);
@@ -139,8 +135,8 @@ impl<C: RenderListener + Owned> RenderTask<C> {
                         None => {}
                     }
                 }
-                TokenInvalidateMsg => {
-                    self.compositor_token = None;
+                PaintPermissionRevoked => {
+                    self.paint_permission = false;
                 }
                 ExitMsg(response_ch) => {
                     response_ch.send(());
@@ -232,9 +228,10 @@ impl<C: RenderListener + Owned> RenderTask<C> {
             let layer_buffer_set = LayerBufferSet {
                 buffers: new_buffers,
             };
+            let layer_buffer_set = arc::ARC(layer_buffer_set);
 
             debug!("render_task: returning surface");
-            if self.compositor_token.is_some() {
+            if self.paint_permission {
                 self.compositor.paint(self.id, layer_buffer_set.clone(), render_layer.size);
             }
             debug!("caching paint msg");

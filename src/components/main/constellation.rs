@@ -9,9 +9,8 @@ use std::comm;
 use std::comm::Port;
 use std::task;
 use gfx::opts::Opts;
-use gfx::render_task::{TokenBestowMsg, TokenInvalidateMsg};
+use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use pipeline::Pipeline;
-use servo_msg::compositor_msg::{CompositorToken};
 use servo_msg::constellation_msg::{CompositorAck, ConstellationChan, ExitMsg};
 use servo_msg::constellation_msg::{LoadUrlMsg, Msg, NavigateMsg, RendererReadyMsg};
 use servo_msg::constellation_msg;
@@ -33,8 +32,8 @@ pub struct Constellation {
     pipelines: HashMap<uint, Pipeline>,
     navigation_context: NavigationContext,
     next_id: uint,
-    current_token_bearer: Option<uint>,
-    next_token_bearer: Option<uint>,
+    current_painter: Option<uint>,
+    next_painter: Option<uint>,
     profiler_chan: ProfilerChan,
     opts: Opts,
 }
@@ -113,8 +112,8 @@ impl Constellation {
                 pipelines: HashMap::new(),
                 navigation_context: NavigationContext::new(),
                 next_id: 0,
-                current_token_bearer: None,
-                next_token_bearer: None,
+                current_painter: None,
+                next_painter: None,
                 profiler_chan: profiler_chan.take(),
                 opts: opts.take(),
             };
@@ -157,7 +156,7 @@ impl Constellation {
                 } else {
                     pipeline.load(url);
                     pipeline.navigation_type = Some(constellation_msg::Load);
-                    self.next_token_bearer = Some(pipeline_id);
+                    self.next_painter = Some(pipeline_id);
                 }
                 self.pipelines.insert(pipeline_id, pipeline);
             }
@@ -186,23 +185,23 @@ impl Constellation {
                 pipeline.navigation_type = Some(constellation_msg::Navigate);
                 pipeline.reload();
                 self.pipelines.insert(destination_id, pipeline);
-                self.next_token_bearer = Some(destination_id);
-                self.update_token_bearer();
+                self.next_painter = Some(destination_id);
+                self.update_painter();
             }
 
             // Notification that rendering has finished and is requesting permission to paint.
             RendererReadyMsg(pipeline_id) => {
-                let next_token_bearer = self.next_token_bearer;
-                for next_token_bearer.iter().advance |&id| {
+                let next_painter = self.next_painter;
+                for next_painter.iter().advance |&id| {
                     if pipeline_id == id {
-                        self.update_token_bearer();
+                        self.update_painter();
                     }
                 }
             }
 
             // Acknowledgement from the compositor that it has updated its active pipeline id
             CompositorAck(id) => {
-                self.bestow_compositor_token(id);
+                self.grant_paint_permission(id);
             }
 
             ExitMsg(sender) => {
@@ -219,12 +218,12 @@ impl Constellation {
         true
     }
     
-    fn update_token_bearer(&mut self) {
-        let current_token_bearer = replace(&mut self.current_token_bearer, None);
-        for current_token_bearer.iter().advance |id| {
-            self.pipelines.get(id).render_chan.send(TokenInvalidateMsg);
+    fn update_painter(&mut self) {
+        let current_painter = replace(&mut self.current_painter, None);
+        for current_painter.iter().advance |id| {
+            self.pipelines.get(id).render_chan.send(PaintPermissionRevoked);
         }
-        let id = self.next_token_bearer.get();
+        let id = self.next_painter.get();
         let pipeline = self.pipelines.get(&id);
         self.compositor_chan.send(SetLayoutRenderChans(pipeline.layout_chan.clone(),
                                                        pipeline.render_chan.clone(),
@@ -232,12 +231,12 @@ impl Constellation {
                                                        self.chan.clone()));
     }
 
-    // Sends a compositor token to a renderer; optionally updates navigation to reflect a new page
-    fn bestow_compositor_token(&mut self, id: uint) {
+    // Grants a renderer permission to paint; optionally updates navigation to reflect a new page
+    fn grant_paint_permission(&mut self, id: uint) {
         let pipeline = self.pipelines.get(&id);
-        pipeline.render_chan.send(TokenBestowMsg(CompositorToken::new()));
-        self.current_token_bearer = Some(id);
-        self.next_token_bearer = None;
+        pipeline.render_chan.send(PaintPermissionGranted);
+        self.current_painter = Some(id);
+        self.next_painter = None;
         // Don't navigate on Navigate type, because that is handled by forward/back
         match pipeline.navigation_type.get() {
             constellation_msg::Load => {
