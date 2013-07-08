@@ -14,7 +14,7 @@ use servo_msg::compositor_msg::{RenderListener, LayerBuffer, LayerBufferSet, Ren
 use servo_msg::compositor_msg::{ReadyState, ScriptListener};
 use servo_msg::constellation_msg::{CompositorAck, ConstellationChan};
 use servo_msg::constellation_msg;
-use gfx::render_task::{RenderChan, ReRenderMsg};
+use gfx::render_task::{RenderChan, ReRenderMsg, BufferRequest};
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods, current_gl_context};
 use azure::azure::AzGLContext;
@@ -261,7 +261,7 @@ impl CompositorTask {
                             // TODO: clamp tiles to page bounds
                             // TODO: add null buffer/checkerboard tile to stop a flood of requests
                             debug!("requesting tile: (%?, %?): %?", x, y, tile_size);
-                            tile_request.push((tile_screen_pos, tile_page_pos));
+                            tile_request.push(BufferRequest(tile_screen_pos, tile_page_pos));
                             
                             x += tile_size;
                         }
@@ -517,6 +517,9 @@ impl CompositorTask {
             
             root_layer.common.set_transform(scroll_transform);
             
+            // FIXME: ask_for_tiles() should be called here, but currently this sends a flood of requests
+            // to the renderer, which slows the application dramatically. Instead, ask_for_tiles() is only
+            // called on a click event.
 //            ask_for_tiles();
 
             *recomposite = true;
@@ -557,6 +560,10 @@ impl CompositorTask {
                                                       window_size.height as f32 / -2f32,
                                                       0.0);
             root_layer.common.set_transform(zoom_transform);
+
+            // FIXME: ask_for_tiles() should be called here, but currently this sends a flood of requests
+            // to the renderer, which slows the application dramatically. Instead, ask_for_tiles() is only
+            // called on a click event.
 //            ask_for_tiles();
             
             *recomposite = true;

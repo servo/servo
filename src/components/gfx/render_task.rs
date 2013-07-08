@@ -31,10 +31,26 @@ pub struct RenderLayer {
 
 pub enum Msg {
     RenderMsg(RenderLayer),
-    ReRenderMsg(~[(Rect<uint>, Rect<f32>)], f32),
+    ReRenderMsg(~[BufferRequest], f32),
     PaintPermissionGranted,
     PaintPermissionRevoked,
     ExitMsg(Chan<()>),
+}
+
+/// A request from the compositor to the renderer for tiles that need to be (re)displayed.
+pub struct BufferRequest {
+    // The rect in pixels that will be drawn to the screen
+    screen_rect: Rect<uint>,
+    
+    // The rect in page coordinates that this tile represents
+    page_rect: Rect<f32>,
+}
+
+pub fn BufferRequest(screen_rect: Rect<uint>, page_rect: Rect<f32>) -> BufferRequest {
+    BufferRequest {
+        screen_rect: screen_rect,
+        page_rect: page_rect,
+    }
 }
 
 #[deriving(Clone)]
@@ -145,7 +161,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
         }
     }
 
-    fn render(&mut self, tiles: ~[(Rect<uint>, Rect<f32>)], scale: f32) {
+    fn render(&mut self, tiles: ~[BufferRequest], scale: f32) {
         let render_layer;
         match self.render_layer {
             Some(ref r_layer) => {
@@ -162,18 +178,17 @@ impl<C: RenderListener + Send> RenderTask<C> {
 
             // Divide up the layer into tiles.
             do time::profile(time::RenderingPrepBuffCategory, self.profiler_chan.clone()) {
-                for tiles.each |tile_rects| {
-                    let (screen_rect, page_rect) = *tile_rects;
-                    let width = screen_rect.size.width;
-                    let height = screen_rect.size.height;
+                for tiles.each |tile| {
+                    let width = tile.screen_rect.size.width;
+                    let height = tile.screen_rect.size.height;
                     
                     let buffer = LayerBuffer {
                         draw_target: DrawTarget::new_with_fbo(self.opts.render_backend,
                                                               self.share_gl_context,
                                                               Size2D(width as i32, height as i32),
                                                               B8G8R8A8),
-                        rect: page_rect,
-                        screen_pos: screen_rect,
+                        rect: tile.page_rect,
+                        screen_pos: tile.screen_rect,
                         resolution: scale,
                         stride: (width * 4) as uint
                     };
