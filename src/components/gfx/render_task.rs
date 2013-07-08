@@ -18,7 +18,6 @@ use render_context::RenderContext;
 
 use std::cell::Cell;
 use std::comm::{Chan, Port, SharedChan};
-use std::uint;
 
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
@@ -118,7 +117,9 @@ impl<C: RenderListener + Send> RenderTask<C> {
         loop {
             match self.port.recv() {
                 RenderMsg(render_layer) => {
-                    self.compositor.new_layer(render_layer.size, self.opts.tile_size);
+                    if self.paint_permission {
+                        self.compositor.new_layer(render_layer.size, self.opts.tile_size);
+                    }
                     self.render_layer = Some(render_layer);
                 }
                 ReRenderMsg(tiles, scale) => {
@@ -126,10 +127,9 @@ impl<C: RenderListener + Send> RenderTask<C> {
                 }
                 PaintPermissionGranted => {
                     self.paint_permission = true;
-                    match self.last_paint_msg {
-                        Some((ref layer_buffer_set, layer_size)) => {
-                            self.compositor.paint(self.id, layer_buffer_set.clone(), layer_size);
-                            self.compositor.set_render_state(IdleRenderState);
+                    match self.render_layer {
+                        Some(ref render_layer) => {
+                            self.compositor.new_layer(render_layer.size, self.opts.tile_size);
                         }
                         None => {}
                     }
@@ -146,8 +146,6 @@ impl<C: RenderListener + Send> RenderTask<C> {
     }
 
     fn render(&mut self, tiles: ~[(Rect<uint>, Rect<f32>)], scale: f32) {
-        debug!("render_task: rendering");
-        
         let render_layer;
         match self.render_layer {
             Some(ref r_layer) => {
@@ -158,7 +156,6 @@ impl<C: RenderListener + Send> RenderTask<C> {
 
         self.compositor.set_render_state(RenderingRenderState);
         do time::profile(time::RenderingCategory, self.profiler_chan.clone()) {
-            let tile_size = self.opts.tile_size;
 
             // FIXME: Try not to create a new array here.
             let mut new_buffers = ~[];

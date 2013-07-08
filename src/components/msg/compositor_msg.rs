@@ -53,7 +53,7 @@ pub enum ReadyState {
 /// submit them to be drawn to the display.
 pub trait RenderListener {
     fn get_gl_context(&self) -> AzGLContext;
-    fn new_layer(&self, Size2D<uint>, uint); //eschweic
+    fn new_layer(&self, Size2D<uint>, uint);
     fn resize_layer(&self, Size2D<uint>);
     fn delete_layer(&self);
     fn paint(&self, id: uint, layer_buffer_set: arc::ARC<LayerBufferSet>, new_size: Size2D<uint>);

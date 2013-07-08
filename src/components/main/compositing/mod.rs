@@ -40,7 +40,6 @@ use servo_util::time::ProfilerChan;
 use extra::arc;
 pub use windowing;
 
-//eschweic
 use compositing::quadtree::Quadtree;
 mod quadtree;
 
@@ -273,11 +272,15 @@ impl CompositorTask {
                             Some(ref chan) => {
                                 chan.send(ReRenderMsg(tile_request, *world_zoom));
                             }
-                            _ => {}
+                            _ => {
+                                println("Warning: Compositor: Cannot send tile request, no render chan initialized");
+                            }
                         }
                     }
                 }
-                _ => {}
+                _ => {
+                    fail!("Compositor: Tried to ask for tiles without an initialized quadtree");
+                }
             }
         };
 
