@@ -6,7 +6,6 @@ use std::cast;
 use std::libc;
 use std::ptr;
 use std::result;
-use std::vec;
 use dom::bindings::utils::{DOMString, rust_box, squirrel_away, str};
 use dom::bindings::utils::{WrapperCache, DerivedWrapper};
 use dom::bindings::utils::{jsval_to_str, WrapNewBindingObject, CacheableWrapper};
@@ -102,11 +101,11 @@ pub fn init(compartment: @mut Compartment) {
          getter: JSPropertyOpWrapper {op: null(), info: null()},
          setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
     compartment.global_props.push(attrs);
-    vec::as_imm_buf(*attrs, |specs, _len| {
+    do attrs.as_imm_buf |specs, _len| {
         unsafe {
             assert!(JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs) == 1);
         }
-    });
+    }
 
     let methods = @~[JSFunctionSpec {name: compartment.add_name(~"getElementsByTagName"),
                                      call: JSNativeWrapper {op: getElementsByTagName, info: null()},
@@ -118,11 +117,11 @@ pub fn init(compartment: @mut Compartment) {
                                      nargs: 0,
                                      flags: 0,
                                      selfHostedName: null()}];
-    vec::as_imm_buf(*methods, |fns, _len| {
+    do methods.as_imm_buf |fns, _len| {
         unsafe {
             JS_DefineFunctions(compartment.cx.ptr, obj.ptr, fns);
         }
-    });
+    }
 
     compartment.register_class(utils::instance_jsclass(~"DocumentInstance",
                                                        finalize,

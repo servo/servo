@@ -90,7 +90,7 @@ impl ProfilerCategory {
     }
 
     priv fn check_order(vec: &[(ProfilerCategory, ~[f64])]) {
-        for vec.each |&(category, _)| {
+        for vec.iter().advance |&(category, _)| {
             if category != vec[category as uint].first() {
                 fail!("Enum category does not match bucket index. This is a bug.");
             }
@@ -161,7 +161,7 @@ impl Profiler {
                     let data_len = data.len();
                     if data_len > 0 {
                         let (mean, median, min, max) =
-                            (data.foldl(0f64, |a, b| a + *b) / (data_len as f64),
+                            (data.iter().fold(0f64, |a, b| a + *b) / (data_len as f64),
                              data[data_len / 2],
                              data.iter().min(),
                              data.iter().max());

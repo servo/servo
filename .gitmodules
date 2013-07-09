@@ -94,3 +94,9 @@
 [submodule "src/support/nss/nspr"]
 	path = src/support/nss/nspr
 	url = git://github.com/mozilla-servo/nspr.git
+[submodule "src/support/glfw/glfw"]
+	path = src/support/glfw/glfw
+	url = https://github.com/mozilla-servo/glfw.git
+[submodule "src/support/glfw/glfw-rs"]
+	path = src/support/glfw/glfw-rs
+	url = https://github.com/mozilla-servo/glfw-rs.git

@@ -164,15 +164,15 @@ impl FloatFlowData {
         for self.box.iter().advance |&box| {
             do box.with_model |model| {
                 top_offset = model.margin.top + model.border.top + model.padding.top;
-                cur_y += top_offset;
+                cur_y = cur_y + top_offset;
             }
         }
 
         for FloatFlow(self).each_child |kid| {
             do kid.with_mut_base |child_node| {
                 child_node.position.origin.y = cur_y;
-                cur_y += child_node.position.size.height;
-            }
+                cur_y = cur_y + child_node.position.size.height;
+            };
         }
 
         let mut height = cur_y - top_offset;
@@ -187,7 +187,7 @@ impl FloatFlowData {
                     base.model.border.top + base.model.border.bottom;
                 base.position.size.height = height + noncontent_height;
 
-                noncontent_height += base.model.margin.top + base.model.margin.bottom;
+                noncontent_height = noncontent_height + base.model.margin.top + base.model.margin.bottom;
             }
         });
 

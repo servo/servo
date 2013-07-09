@@ -28,7 +28,6 @@ use freetype::tt_os2::TT_OS2;
 use std::cast;
 use std::ptr;
 use std::str;
-use std::vec;
 
 fn float_to_fixed_ft(f: float) -> i32 {
     float_to_fixed(6, f)
@@ -63,7 +62,7 @@ pub struct FontHandle {
 
 #[unsafe_destructor]
 impl Drop for FontHandle {
-    fn finalize(&self) {
+    fn drop(&self) {
         assert!(self.face.is_not_null());
         unsafe {
             if !FT_Done_Face(self.face).succeeded() {
@@ -81,7 +80,7 @@ impl FontHandleMethods for FontHandle {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
 
-        let face_result = do vec::as_imm_buf(buf) |bytes: *u8, len: uint| {
+        let face_result = do buf.as_imm_buf |bytes: *u8, len: uint| {
             create_face_from_buffer(ft_ctx, bytes, len, style.pt_size)
         };
 

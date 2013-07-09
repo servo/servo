@@ -139,7 +139,7 @@ struct AutoPattern {
 }
 
 impl Drop for AutoPattern {
-    fn finalize(&self) {
+    fn drop(&self) {
         unsafe {
             FcPatternDestroy(self.pattern);
         }

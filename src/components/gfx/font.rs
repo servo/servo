@@ -389,7 +389,7 @@ impl Font {
 
         let mut origin = copy baseline_origin;
         let mut azglyphs = ~[];
-        vec::reserve(&mut azglyphs, range.length());
+        azglyphs.reserve(range.length());
 
         for run.iter_slices_for_range(range) |glyphs, _offset, slice_range| {
             for glyphs.iter_glyphs_for_char_range(slice_range) |_i, glyph| {
@@ -433,7 +433,7 @@ impl Font {
         let mut advance = Au(0);
         for run.iter_slices_for_range(range) |glyphs, _offset, slice_range| {
             for glyphs.iter_glyphs_for_char_range(slice_range) |_i, glyph| {
-                advance += glyph.advance_();
+                advance = advance + glyph.advance_();
             }
         }
         RunMetrics::new(advance, self.metrics.ascent, self.metrics.descent)
@@ -445,7 +445,7 @@ impl Font {
                                   -> RunMetrics {
         let mut advance = Au(0);
         for glyphs.iter_glyphs_for_char_range(slice_range) |_i, glyph| {
-            advance += glyph.advance_();
+            advance = advance + glyph.advance_();
         }
         RunMetrics::new(advance, self.metrics.ascent, self.metrics.descent)
     }

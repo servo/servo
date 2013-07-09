@@ -23,6 +23,8 @@ use std::comm;
 use std::comm::{Chan, SharedChan, Port};
 use std::num::Orderable;
 use std::task;
+use extra::uv_global_loop;
+use extra::timer;
 use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::size::Size2D;
@@ -80,8 +82,15 @@ impl CompositorChan {
             chan: SharedChan::new(chan),
         }
     }
+
     pub fn send(&self, msg: Msg) {
         self.chan.send(msg);
+    }
+
+    pub fn get_size(&self) -> Size2D<int> {
+        let (port, chan) = comm::stream();
+        self.chan.send(GetSize(chan));
+        port.recv()
     }
 }
 
@@ -89,6 +98,8 @@ impl CompositorChan {
 pub enum Msg {
     /// Requests that the compositor shut down.
     Exit,
+    /// Requests the window size
+    GetSize(Chan<Size2D<int>>),
     /// Requests the compositors GL context.
     GetGLContext(Chan<AzGLContext>),
     /// Requests that the compositor paint the given layer buffer set for the given page size.
@@ -169,15 +180,18 @@ impl CompositorTask {
         // list. This is only here because we don't have that logic in the renderer yet.
         let context = rendergl::init_render_context();
         let root_layer = @mut ContainerLayer();
-        let scene = @mut Scene(ContainerLayerKind(root_layer), Size2D(800.0f32, 600.0), identity());
+        let window_size = window.size();
+        let scene = @mut Scene(ContainerLayerKind(root_layer), window_size, identity());
         let done = @mut false;
+        let recomposite = @mut false;
 
         // FIXME: This should not be a separate offset applied after the fact but rather should be
         // applied to the layers themselves on a per-layer basis. However, this won't work until scroll
         // positions are sent to content.
         let world_offset = @mut Point2D(0f32, 0f32);
         let page_size = @mut Size2D(0f32, 0f32);
-        let window_size = @mut Size2D(800, 600);
+        let window_size = @mut Size2D(window_size.width as int,
+                                      window_size.height as int);
 
         // Keeps track of the current zoom factor
         let world_zoom = @mut 1f32;
@@ -271,6 +285,11 @@ impl CompositorTask {
                         response_chan.send(CompositorAck(new_pipeline_id));
                     }
 
+                    GetSize(chan) => {
+                        let size = window.size();
+                        chan.send(Size2D(size.width as int, size.height as int));
+                    }
+
                     GetGLContext(chan) => chan.send(current_gl_context()),
 
                     Paint(id, new_layer_buffer_set, new_size) => {
@@ -343,14 +362,14 @@ impl CompositorTask {
                         // TODO: Recycle the old buffers; send them back to the renderer to reuse if
                         // it wishes.
 
-                        window.set_needs_display();
+                        *recomposite = true;
                     }
                 }
             }
         };
 
         let profiler_chan = self.profiler_chan.clone();
-        do window.set_composite_callback {
+        let composite = || {
             do profile(time::CompositingCategory, profiler_chan.clone()) {
                 debug!("compositor: compositing");
                 // Adjust the layer dimensions as necessary to correspond to the size of the window.
@@ -361,7 +380,7 @@ impl CompositorTask {
             }
 
             window.present();
-        }
+        };
 
         // When the user scrolls, move the layer around.
         do window.set_scroll_callback |delta| {
@@ -390,7 +409,7 @@ impl CompositorTask {
             
             root_layer.common.set_transform(scroll_transform);
             
-            window.set_needs_display()
+            *recomposite = true;
         }
 
 
@@ -429,8 +448,7 @@ impl CompositorTask {
                                                       0.0);
             root_layer.common.set_transform(zoom_transform);
             
-            
-            window.set_needs_display()
+            *recomposite = true;
         }
 
         // Enter the main event loop.
@@ -440,6 +458,13 @@ impl CompositorTask {
 
             // Check for messages coming from the windowing system.
             window.check_loop();
+
+            if *recomposite {
+                *recomposite = false;
+                composite();
+            }
+
+            timer::sleep(&uv_global_loop::get(), 100);
         }
 
         self.shutdown_chan.send(())

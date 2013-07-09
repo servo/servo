@@ -29,6 +29,7 @@ NATIVE_BUILDS += \
 	skia \
 	nss \
 	nspr \
+	glfw \
 	$(NULL)
 
 # NOTE: the make magic can only compute transitive build dependencies,
@@ -40,9 +41,14 @@ NATIVE_BUILDS += \
 DEPS_rust-azure += \
 	rust-opengles \
 	rust-layers \
-	rust-glut \
 	rust-geom \
+	glfw-rs \
+	glfw \
 	skia \
+	$(NULL)
+
+DEPS_glfw-rs += \
+	glfw \
 	$(NULL)
 
 DEPS_rust-glut += \
@@ -51,7 +57,6 @@ DEPS_rust-glut += \
 
 DEPS_rust-layers += \
 	rust-geom \
-	rust-glut \
 	rust-opengles \
 	$(NULL)
 

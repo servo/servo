@@ -5,13 +5,13 @@
 //! Platform-specific functionality for Servo.
 
 #[cfg(not(shared_gl_windowing))]
-pub use platform::common::glut_windowing::{Application, Window};
+pub use platform::common::glfw_windowing::{Application, Window};
 #[cfg(shared_gl_windowing)]
 pub use platform::common::shared_gl_windowing::{Application, Window};
 
 pub mod common {
     #[cfg(not(shared_gl_windowing))]
-    pub mod glut_windowing;
+    pub mod glfw_windowing;
     #[cfg(shared_gl_windowing)]
     pub mod shared_gl_windowing;
 }

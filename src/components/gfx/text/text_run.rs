@@ -123,7 +123,7 @@ impl<'self> TextRun {
     }
 
     pub fn char_len(&self) -> uint {
-        do self.glyphs.foldl(0u) |len, slice_glyphs| {
+        do self.glyphs.iter().fold(0u) |len, slice_glyphs| {
             len + slice_glyphs.get().char_len()
         }
     }
@@ -161,7 +161,7 @@ impl<'self> TextRun {
                                  f: &fn(&GlyphStore, uint, &Range) -> bool)
                                  -> bool {
         let mut offset = 0;
-        for self.glyphs.each |slice_glyphs| {
+        for self.glyphs.iter().advance |slice_glyphs| {
             // Determine the range of this slice that we need.
             let slice_range = Range::new(offset, slice_glyphs.get().char_len());
             let mut char_range = range.intersect(&slice_range);

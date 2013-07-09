@@ -83,12 +83,17 @@ $(CFG_RUSTC):
 
 clean-rust:
 	$(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS="" clean
+
 else
 $(CFG_RUSTC):
 
 clean-rust:
 
 endif
+
+src/compiler/rust-auto-clean-stamp: $(S)src/compiler/rust-auto-clean-trigger
+	$(Q)$(MAKE) clean-rust
+	touch $@
 
 rust: $(CFG_RUSTC)
 
@@ -222,7 +227,7 @@ include $(S)mk/clean.mk
 
 .DEFAULT_GOAL := all
 .PHONY:	all
-all:    servo package
+all: src/compiler/rust-auto-clean-stamp servo package
 
 # Servo helper libraries
 

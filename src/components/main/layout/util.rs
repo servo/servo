@@ -31,7 +31,7 @@ impl ElementMapping {
     }
 
     pub fn each(&self, callback: &fn(nr: &NodeRange) -> bool) -> bool {
-        for self.entries.each |nr| {
+        for self.entries.iter().advance |nr| {
             if !callback(nr) {
                 break
             }
@@ -40,7 +40,7 @@ impl ElementMapping {
     }
 
     pub fn eachi(&self, callback: &fn(i: uint, nr: &NodeRange) -> bool) -> bool {
-        for self.entries.eachi |i, nr| {
+        for self.entries.iter().enumerate().advance |(i, nr)| {
             if !callback(i, nr) {
                 break
             }
@@ -49,7 +49,7 @@ impl ElementMapping {
     }
 
     pub fn eachi_mut(&self, callback: &fn(i: uint, nr: &NodeRange) -> bool) -> bool {
-        for self.entries.eachi |i, nr| {
+        for self.entries.iter().enumerate().advance |(i, nr)| {
             if !callback(i, nr) {
                 break
             }
@@ -61,19 +61,19 @@ impl ElementMapping {
         let entries = &mut self.entries;
 
         debug!("--- Old boxes: ---");
-        for old_boxes.eachi |i, box| {
+        for old_boxes.iter().enumerate().advance |(i, box)| {
             debug!("%u --> %s", i, box.debug_str());
         }
         debug!("------------------");
 
         debug!("--- New boxes: ---");
-        for new_boxes.eachi |i, box| {
+        for new_boxes.iter().enumerate().advance |(i, box)| {
             debug!("%u --> %s", i, box.debug_str());
         }
         debug!("------------------");
 
         debug!("--- Elem ranges before repair: ---");
-        for entries.eachi |i: uint, nr: &NodeRange| {
+        for entries.iter().enumerate().advance |(i, nr)| {
             debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str());
         }
         debug!("----------------------------------");
@@ -126,7 +126,7 @@ impl ElementMapping {
                 }
             }
         debug!("--- Elem ranges after repair: ---");
-        for entries.eachi |i: uint, nr: &NodeRange| {
+        for entries.iter().enumerate().advance |(i, nr)| {
             debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str());
         }
         debug!("----------------------------------");
