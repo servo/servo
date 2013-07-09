@@ -2,26 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#[deriving(Eq)]
 enum CompressionMode {
     CompressNone,
     CompressWhitespace,
     CompressWhitespaceNewline,
     DiscardNewline
-}
-
-impl Eq for CompressionMode {
-    fn eq(&self, other: &CompressionMode) -> bool {
-        match (*self, *other) {
-            (CompressNone, CompressNone) => true,
-            (CompressWhitespace, CompressWhitespace) => true,
-            (CompressWhitespaceNewline, CompressWhitespaceNewline) => true,
-            (DiscardNewline, DiscardNewline) => true,
-            _ => false
-        }
-    }
-    fn ne(&self, other: &CompressionMode) -> bool {
-        !(*self).eq(other)
-    }
 }
 
 // ported from Gecko's nsTextFrameUtils::TransformText. 

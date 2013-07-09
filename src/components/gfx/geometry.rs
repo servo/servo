@@ -8,7 +8,7 @@ use geom::size::Size2D;
 
 use std::num::{NumCast, One, Zero};
 
-#[deriving(Clone)]
+#[deriving(Clone,Eq)]
 pub struct Au(i32);
 
 impl Add<Au,Au> for Au {
@@ -40,11 +40,6 @@ impl Ord for Au {
     fn le(&self, other: &Au) -> bool { **self <= **other }
     fn ge(&self, other: &Au) -> bool { **self >= **other }
     fn gt(&self, other: &Au) -> bool { **self >  **other }
-}
-
-impl Eq for Au {
-    fn eq(&self, other: &Au) -> bool { **self == **other }
-    fn ne(&self, other: &Au) -> bool { **self != **other }
 }
 
 impl One for Au {
