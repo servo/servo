@@ -28,27 +28,23 @@ use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
 
 /// A phantom type representing the script task's view of this node. Script is able to mutate
 /// nodes but may not access layout data.
+#[deriving(Eq)]
 pub struct ScriptView;
 
 /// A phantom type representing the layout task's view of the node. Layout is not allowed to mutate
 /// nodes but may access layout data.
+#[deriving(Eq)]
 pub struct LayoutView;
+
+// We shouldn't need Eq for ScriptView and LayoutView; see Rust #7671.
 
 /// This is what a Node looks like if you do not know what kind of node it is. To unpack it, use
 /// downcast().
 ///
 /// FIXME: This should be replaced with a trait once they can inherit from structs.
+#[deriving(Eq)]
 pub struct AbstractNode<View> {
     priv obj: *mut Node<View>,
-}
-
-impl<View> Eq for AbstractNode<View> {
-    fn eq(&self, other: &AbstractNode<View>) -> bool {
-        self.obj == other.obj
-    }
-    fn ne(&self, other: &AbstractNode<View>) -> bool {
-        self.obj != other.obj
-    }
 }
 
 /// An HTML node.
