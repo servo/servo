@@ -143,14 +143,14 @@ impl<K: Clone + Eq, V: Clone> Cache<K,V> for LRUCache<K,V> {
     }
 
     fn find(&mut self, key: &K) -> Option<V> {
-        match self.entries.position(|&(k, _)| k == *key) {
+        match self.entries.iter().position(|&(ref k, _)| *k == *key) {
             Some(pos) => Some(self.touch(pos)),
             None      => None,
         }
     }
 
     fn find_or_create(&mut self, key: &K, blk: &fn(&K) -> V) -> V {
-        match self.entries.position(|&(k, _)| k == *key) {
+        match self.entries.iter().position(|&(ref k, _)| *k == *key) {
             Some(pos) => self.touch(pos),
             None => {
                 let val = blk(key);

@@ -47,9 +47,6 @@ impl WindowingMethods<Application> for Window {
         (*self).flush();
     }
 
-    /// Registers a callback to run when a composite event occurs.
-    pub fn set_composite_callback(&mut self, _: CompositeCallback) {}
-
     /// Registers a callback to run when a resize event occurs.
     pub fn set_resize_callback(&mut self, _: ResizeCallback) {}
 

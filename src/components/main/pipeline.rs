@@ -93,8 +93,8 @@ impl Pipeline {
     }
 
     pub fn reload(&self) {
-        for self.url.iter().advance |&url| {
-            self.script_chan.send(LoadMsg(url));
+        for self.url.iter().advance |url| {
+            self.script_chan.send(LoadMsg(url.clone()));
         }
     }
 

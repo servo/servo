@@ -4,7 +4,7 @@
 
 //! A windowing implementation using GLFW.
 
-use windowing::{ApplicationMethods, CompositeCallback, LoadUrlCallback, MouseCallback};
+use windowing::{ApplicationMethods, LoadUrlCallback, MouseCallback};
 use windowing::{ResizeCallback, ScrollCallback, WindowMethods, WindowMouseEvent, WindowClickEvent};
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent, ZoomCallback, Forward, Back, NavigationCallback};
 
@@ -24,15 +24,14 @@ pub struct Application;
 
 impl ApplicationMethods for Application {
     pub fn new() -> Application {
-        glfw::private::WindowDataMap::init();
-        unsafe { glfw::ll::glfwInit(); }
+        glfw::init();
         Application
     }
 }
 
 impl Drop for Application {
-    fn finalize(&self) {
-        unsafe { glfw::ll::glfwTerminate(); }
+    fn drop(&self) {
+        glfw::terminate();
     }
 }
 
@@ -40,7 +39,6 @@ impl Drop for Application {
 pub struct Window {
     glfw_window: glfw::Window,
 
-    composite_callback: Option<CompositeCallback>,
     resize_callback: Option<ResizeCallback>,
     load_url_callback: Option<LoadUrlCallback>,
     mouse_callback: Option<MouseCallback>,
@@ -69,7 +67,6 @@ impl WindowMethods<Application> for Window {
         let window = @mut Window {
             glfw_window: glfw_window,
 
-            composite_callback: None,
             resize_callback: None,
             load_url_callback: None,
             mouse_callback: None,
@@ -93,14 +90,6 @@ impl WindowMethods<Application> for Window {
                 None => {}
                 Some(callback) => callback(width as uint, height as uint),
             }
-        }
-        do window.glfw_window.set_refresh_callback |_win| {
-            // FIXME(pcwalton): This will not work with multiple windows.
-            match window.composite_callback {
-                None => {}
-                Some(callback) => callback(),
-            }
-            window.present();
         }
         do window.glfw_window.set_key_callback |_win, key, _scancode, action, mods| {
             if action == glfw::PRESS {
@@ -132,11 +121,6 @@ impl WindowMethods<Application> for Window {
     /// Presents the window to the screen (perhaps by page flipping).
     pub fn present(&mut self) {
         self.glfw_window.swap_buffers();
-    }
-
-    /// Registers a callback to run when a composite event occurs.
-    pub fn set_composite_callback(&mut self, new_composite_callback: CompositeCallback) {
-        self.composite_callback = Some(new_composite_callback)
     }
 
     /// Registers a callback to run when a resize event occurs.

@@ -29,7 +29,6 @@ use core_text::font_descriptor::{kCTFontDefaultOrientation};
 use core_text;
 
 use std::ptr;
-use std::vec;
 
 pub struct FontTable {
     data: CFData,
@@ -37,7 +36,7 @@ pub struct FontTable {
 
 // Noncopyable.
 impl Drop for FontTable {
-    fn finalize(&self) {}
+    fn drop(&self) {}
 }
 
 impl FontTable {
@@ -80,9 +79,9 @@ impl FontHandle {
 impl FontHandleMethods for FontHandle {
     fn new_from_buffer(_: &FontContextHandle, buf: ~[u8], style: &SpecifiedFontStyle)
                     -> Result<FontHandle, ()> {
-        let fontprov : CGDataProvider = vec::as_imm_buf(buf, |cbuf, len| {
+        let fontprov : CGDataProvider = do buf.as_imm_buf |cbuf, len| {
             core_graphics::data_provider::new_from_buffer(cbuf, len)
-        });
+        };
 
         let cgfont = core_graphics::font::create_with_data_provider(&fontprov);
         let ctfont = core_text::font::new_from_CGFont(&cgfont, style.pt_size);

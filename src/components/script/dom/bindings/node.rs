@@ -13,7 +13,6 @@ use std::cast;
 use std::libc::c_uint;
 use std::ptr;
 use std::ptr::null;
-use std::vec;
 use js::jsapi::*;
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSPropertySpec};
 use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper};
@@ -54,12 +53,12 @@ pub fn init(compartment: @mut Compartment) {
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: JSPropertyOpWrapper {op: null(), info: null()},
          setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
-    vec::push(&mut compartment.global_props, attrs);
-    vec::as_imm_buf(*attrs, |specs, _len| {
+    compartment.global_props.push(attrs);
+    do attrs.as_imm_buf |specs, _len| {
         unsafe {
             JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
         }
-    });
+    }
 }
 
 #[allow(non_implicitly_copyable_typarams)]
@@ -120,35 +119,6 @@ extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBoo
     }
     return 1;
 }
-
-impl Node<ScriptView> {
-    fn getNodeType(&self) -> i32 {
-        match self.type_id {
-            ElementNodeTypeId(_) => 1,
-            TextNodeTypeId       => 3,
-            CommentNodeTypeId    => 8,
-            DoctypeNodeTypeId    => 10
-        }
-    }
-
-    fn getNextSibling(&mut self) -> Option<&mut AbstractNode<ScriptView>> {
-        match self.next_sibling {
-            // transmute because the compiler can't deduce that the reference
-            // is safe outside of with_mut_base blocks.
-            Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
-            None => None
-        }
-    }
-
-    fn getFirstChild(&mut self) -> Option<&mut AbstractNode<ScriptView>> {
-        match self.first_child {
-            // transmute because the compiler can't deduce that the reference
-            // is safe outside of with_mut_base blocks.
-            Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
-            None => None
-        }
-    }
- }
 
 extern fn getNodeType(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {

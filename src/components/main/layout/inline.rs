@@ -169,8 +169,8 @@ impl LineboxScanner {
                 for line_range.eachi |i| {
                     do self.new_boxes[i].with_mut_base |base| {
                         base.position.origin.x = offset_x;
-                        offset_x += base.position.size.width;
-                    }
+                        offset_x = offset_x + base.position.size.width;
+                    };
                 }
             },
             CSSTextAlignCenter => {
@@ -178,8 +178,8 @@ impl LineboxScanner {
                 for line_range.eachi |i| {
                     do self.new_boxes[i].with_mut_base |base| {
                         base.position.origin.x = offset_x;
-                        offset_x += base.position.size.width;
-                    }
+                        offset_x = offset_x + base.position.size.width;
+                    };
                 }
             },
             CSSTextAlignRight => {
@@ -187,8 +187,8 @@ impl LineboxScanner {
                 for line_range.eachi |i| {
                     do self.new_boxes[i].with_mut_base |base| {
                         base.position.origin.x = offset_x;
-                        offset_x += base.position.size.width;
-                    }
+                        offset_x = offset_x + base.position.size.width;
+                    };
                 }
             },
         }
@@ -292,7 +292,7 @@ impl LineboxScanner {
             self.pending_line.range.reset(self.new_boxes.len(), 0);
         }
         self.pending_line.range.extend_by(1);
-        self.pending_line.bounds.size.width += box.position().size.width;
+        self.pending_line.bounds.size.width = self.pending_line.bounds.size.width + box.position().size.width;
         self.new_boxes.push(box);
     }
 }
@@ -325,7 +325,7 @@ impl InlineFlowData {
 
     pub fn teardown(&mut self) {
         self.common.teardown();
-        for self.boxes.each |box| {
+        for self.boxes.iter().advance |box| {
             box.teardown();
         }
         self.boxes = ~[];
@@ -362,7 +362,7 @@ impl InlineFlowData {
             let mut min_width = Au(0);
             let mut pref_width = Au(0);
 
-            for this.boxes.each |box| {
+            for this.boxes.iter().advance |box| {
                 debug!("FlowContext[%d]: measuring %s", self.common.id, box.debug_str());
                 min_width = Au::max(min_width, box.get_min_width(ctx));
                 pref_width = Au::max(pref_width, box.get_pref_width(ctx));
@@ -383,7 +383,7 @@ impl InlineFlowData {
         // `RenderBox`.
         {
             let this = &mut *self;
-            for this.boxes.each |&box| {
+            for this.boxes.iter().advance |&box| {
                 match box {
                     ImageRenderBoxClass(image_box) => {
                         let size = image_box.image.get_size();
@@ -439,7 +439,7 @@ impl InlineFlowData {
 
         let mut cur_y = Au(0);
 
-        for self.lines.eachi |i, line_span| {
+        for self.lines.iter().enumerate().advance |(i, line_span)| {
             debug!("assign_height_inline: processing line %u with box span: %?", i, line_span);
 
             // These coordinates are relative to the left baseline.
@@ -537,7 +537,7 @@ impl InlineFlowData {
                 }
             }
 
-            cur_y += linebox_height;
+            cur_y = cur_y + linebox_height;
         } // End of `lines.each` loop.
 
         self.common.position.size.height = cur_y;
@@ -554,7 +554,7 @@ impl InlineFlowData {
                self.common.id,
                self.boxes.len());
 
-        for self.boxes.each |box| {
+        for self.boxes.iter().advance |box| {
             box.build_display_list(builder, dirty, offset, list)
         }
 

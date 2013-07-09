@@ -115,7 +115,7 @@ impl FloatContextBase{
     }
 
     fn translate(&mut self, trans: Point2D<Au>) {
-        self.offset += trans;
+        self.offset = self.offset + trans;
     }
 
     fn last_float_pos(&self) -> Point2D<Au> {
@@ -144,12 +144,16 @@ impl FloatContextBase{
         let top = top - self.offset.y;
 
         // Relevant dimensions for the right-most left float
-        let mut (max_left, l_top, l_bottom) = (Au(0) - self.offset.x, None, None);
+        let mut max_left = Au(0) - self.offset.x;
+        let mut l_top = None;
+        let mut l_bottom = None;
         // Relevant dimensions for the left-most right float
-        let mut (min_right, r_top, r_bottom) = (max_x - self.offset.x, None, None);
+        let mut min_right = max_x - self.offset.x;
+        let mut r_top = None;
+        let mut r_bottom = None;
 
         // Find the float collisions for the given vertical range.
-        for self.float_data.each |float| {
+        for self.float_data.iter().advance |float| {
             match *float{
                 None => (),
                 Some(data) => {

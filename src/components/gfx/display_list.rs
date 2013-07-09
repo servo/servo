@@ -48,7 +48,7 @@ impl<E> DisplayList<E> {
     /// Draws the display list into the given render context.
     pub fn draw_into_context(&self, render_context: &RenderContext) {
         debug!("Beginning display list.");
-        for self.list.each |item| {
+        for self.list.iter().advance |item| {
             // FIXME(Issue #150): crashes
             //debug!("drawing %?", *item);
             item.draw_into_context(render_context)

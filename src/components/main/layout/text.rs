@@ -249,13 +249,13 @@ impl TextRunScanner {
         } // End of match.
 
         debug!("--- In boxes: ---");
-        for in_boxes.eachi |i, box| {
+        for in_boxes.iter().enumerate().advance |(i, box)| {
             debug!("%u --> %s", i, box.debug_str());
         }
         debug!("------------------");
 
         debug!("--- Out boxes: ---");
-        for out_boxes.eachi |i, box| {
+        for out_boxes.iter().enumerate().advance |(i, box)| {
             debug!("%u --> %s", i, box.debug_str());
         }
         debug!("------------------");

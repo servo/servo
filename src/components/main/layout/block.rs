@@ -254,9 +254,9 @@ impl BlockFlowData {
         for self.box.iter().advance |&box| {
             do box.with_model |model| {
                 top_offset = model.margin.top + model.border.top + model.padding.top;
-                cur_y += top_offset;
+                cur_y = cur_y + top_offset;
                 left_offset = model.offset();
-            }
+            };
         }
 
         // TODO(eatkinson): the translation here is probably
@@ -284,8 +284,8 @@ impl BlockFlowData {
         for BlockFlow(self).each_child |kid| {
             do kid.with_mut_base |child_node| {
                 child_node.position.origin.y = cur_y;
-                cur_y += child_node.position.size.height;
-            }
+                cur_y = cur_y + child_node.position.size.height;
+            };
         }
 
         let height = if self.is_root {
@@ -304,7 +304,7 @@ impl BlockFlowData {
                     base.model.border.top + base.model.border.bottom;
                 base.position.size.height = height + noncontent_height;
 
-                noncontent_height += base.model.margin.top + base.model.margin.bottom;
+                noncontent_height = noncontent_height + base.model.margin.top + base.model.margin.bottom;
             }
         });
 

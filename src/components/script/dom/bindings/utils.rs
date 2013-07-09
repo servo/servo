@@ -13,8 +13,8 @@ use std::ptr;
 use std::ptr::{null, to_unsafe_ptr};
 use std::result;
 use std::str;
-use std::sys;
 use std::uint;
+use std::unstable::intrinsics;
 use js::glue::*;
 use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB, RESOLVE_STUB};
@@ -105,7 +105,7 @@ impl DOMString {
 
 pub struct rust_box<T> {
     rc: uint,
-    td: *sys::TypeDesc,
+    td: *intrinsics::TyDesc,
     next: *(),
     prev: *(),
     payload: T
@@ -179,12 +179,12 @@ pub fn get_compartment(cx: *JSContext) -> @mut Compartment {
 extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *JSVal, bp: *mut JSBool) -> JSBool {
     //XXXjdm this is totally broken for non-object values
     unsafe {
-        let mut o = RUST_JSVAL_TO_OBJECT(unsafe {*v});
-        let obj = unsafe {*obj};
-        unsafe { *bp = 0; }
+        let mut o = RUST_JSVAL_TO_OBJECT(*v);
+        let obj = *obj;
+        *bp = 0;
         while o.is_not_null() {
             if o == obj {
-                unsafe { *bp = 1; }
+                *bp = 1;
                 break;
             }
             o = JS_GetPrototype(o);
@@ -718,7 +718,7 @@ pub fn XrayResolveProperty(cx: *JSContext,
   unsafe {
     match attributes {
         Some(attrs) => {
-            for attrs.each |&elem| {
+            for attrs.iter().advance |&elem| {
                 let (attr, attr_id) = elem;
                 if attr_id == JSID_VOID || attr_id != id {
                     loop;
@@ -769,7 +769,7 @@ fn InternJSString(cx: *JSContext, chars: *libc::c_char) -> Option<jsid> {
 
 pub fn InitIds(cx: *JSContext, specs: &[JSPropertySpec], ids: &mut [jsid]) -> bool {
     let mut rval = true;
-    for specs.eachi |i, spec| {
+    for specs.iter().enumerate().advance |(i, spec)| {
         if spec.name.is_null() == true {
             break;
         }
@@ -830,7 +830,7 @@ pub fn FindEnumStringIndex(cx: *JSContext,
         if chars.is_null() {
             return Err(());
         }
-        for values.eachi |i, value| {
+        for values.iter().enumerate().advance |(i, value)| {
             if value.length != length as uint {
                 loop;
             }

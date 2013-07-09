@@ -179,7 +179,7 @@ impl ImageCache {
         loop {
             let msg = self.port.recv();
 
-            for msg_handlers.each |handler| {
+            for msg_handlers.iter().advance |handler| {
                 (*handler)(&msg)
             }
 
@@ -375,7 +375,7 @@ impl ImageCache {
     priv fn purge_waiters(&self, url: Url, f: &fn() -> ImageResponseMsg) {
         match self.wait_map.pop(&url) {
             Some(waiters) => {
-                for waiters.each |response| {
+                for waiters.iter().advance |response| {
                     response.send(f());
                 }
             }
@@ -444,7 +444,7 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
     loop {
         match response_port.recv() {
             resource_task::Payload(data) => {
-                image_data += data;
+                image_data.push_all(data);
             }
             resource_task::Done(result::Ok(*)) => {
                 return Ok(image_data);

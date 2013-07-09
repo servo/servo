@@ -105,7 +105,7 @@ fn css_link_listener(to_parent: Chan<Option<Stylesheet>>,
 
     // Send the sheets back in order
     // FIXME: Shouldn't wait until after we've recieved CSSTaskExit to start sending these
-    do result_vec.consume |_i, port| {
+    for result_vec.iter().advance |port| {
         to_parent.send(Some(port.recv()));
     }
     to_parent.send(None);
@@ -130,7 +130,7 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
                     loop {
                         match input_port.recv() {
                             Payload(data) => {
-                                buf += data;
+                                buf.push_all(data);
                             }
                             Done(Ok(*)) => {
                                 result_chan.send(Some(buf));
@@ -292,9 +292,8 @@ pub fn parse_html(url: Url,
 
             debug!("-- attach attrs");
             do node.as_mut_element |element| {
-                for tag.attributes.each |attr| {
-                    let &hubbub::Attribute {name: name, value: value, _} = attr;
-                    element.attrs.push(Attr::new(name, value));
+                for tag.attributes.iter().advance |attr| {
+                    element.attrs.push(Attr::new(attr.name.clone(), attr.value.clone()));
                 }
             }
 

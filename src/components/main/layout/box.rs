@@ -57,6 +57,7 @@ use extra::net::url::Url;
 /// A box's type influences how its styles are interpreted during layout. For example, replaced
 /// content such as images are resized differently from tables, text, or other content. Different
 /// types of boxes may also contain custom data; for example, text boxes contain text.
+#[deriving(Clone)]
 pub enum RenderBox {
     GenericRenderBoxClass(@mut RenderBoxBase),
     ImageRenderBoxClass(@mut ImageRenderBox),
@@ -308,7 +309,7 @@ impl RenderBox {
                             left_range.shift_by(slice_range.length() as int);
                         } else {
                             debug!("split_to_width: case=enlarging span");
-                            remaining_width -= advance;
+                            remaining_width = remaining_width - advance;
                             left_range.extend_by(slice_range.length() as int);
                         }
                     } else {    // The advance is more than the remaining width.
@@ -840,10 +841,10 @@ impl RenderBox {
     pub fn dump_indent(&self, indent: uint) {
         let mut string = ~"";
         for uint::range(0u, indent) |_i| {
-            string += "    ";
+            string.push_str("    ");
         }
 
-        string += self.debug_str();
+        string.push_str(self.debug_str());
         debug!("%s", string);
     }
 
@@ -863,4 +864,61 @@ impl RenderBox {
 
         fmt!("box b%?: %s", self.id(), representation)
     }
+
+    //
+    // Painting
+    //
+
+    /// Adds the display items necessary to paint the borders of this render box to a display list
+    /// if necessary.
+    pub fn paint_borders_if_applicable<E:ExtraDisplayListData>(&self,
+                                                               list: &Cell<DisplayList<E>>,
+                                                               abs_bounds: &Rect<Au>) {
+        // Fast path.
+        let border = do self.with_base |base| {
+            base.model.border
+        };
+        if border.is_zero() {
+            return
+        }
+
+        // Are all the widths equal?
+        //
+        // FIXME(pcwalton): Obviously this is wrong.
+        let borders = [ border.top, border.right, border.bottom ];
+        if borders.iter().all(|a| *a == border.left) {
+            let border_width = border.top;
+            let bounds = Rect {
+                origin: Point2D {
+                    x: abs_bounds.origin.x + border_width.scale_by(0.5),
+                    y: abs_bounds.origin.y + border_width.scale_by(0.5),
+                },
+                size: Size2D {
+                    width: abs_bounds.size.width - border_width,
+                    height: abs_bounds.size.height - border_width
+                }
+            };
+
+            let top_color = self.style().border_top_color();
+            let color = top_color.to_gfx_color(); // FIXME
+
+            // Append the border to the display list.
+            do list.with_mut_ref |list| {
+                let border_display_item = ~BorderDisplayItem {
+                    base: BaseDisplayItem {
+                        bounds: bounds,
+                        extra: ExtraDisplayListData::new(*self),
+                    },
+                    width: border_width,
+                    color: color,
+                };
+
+                list.append_item(BorderDisplayItemClass(border_display_item))
+            }
+        } else {
+            warn!("ignoring unimplemented border widths");
+        }
+    }
+
 }
+
