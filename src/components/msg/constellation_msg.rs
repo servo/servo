@@ -7,6 +7,7 @@
 
 use std::comm::{Chan, SharedChan};
 use extra::net::url::Url;
+use geom::size::Size2D;
 
 #[deriving(Clone)]
 pub struct ConstellationChan {
@@ -30,6 +31,7 @@ pub enum Msg {
     ExitMsg(Chan<()>),
     RendererReadyMsg(uint),
     CompositorAck(uint),
+    ResizedWindowBroadcast(Size2D<uint>),
 }
 
 /// Represents the two different ways to which a page can be navigated
