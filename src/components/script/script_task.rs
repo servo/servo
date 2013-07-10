@@ -595,7 +595,7 @@ impl ScriptTask {
                 match self.query_layout(HitTestQuery(root, point, chan), port) {
                     Ok(node) => match node {
                         HitTestResponse(node) => {
-                            debug!("clicked on %?", node.debug_str());
+                            debug!("clicked on %s", node.debug_str());
                             let mut node = node;
                             // traverse node generations until a node that is an element is found
                             while !node.is_element() {
@@ -608,9 +608,8 @@ impl ScriptTask {
                             }
                             if node.is_element() {
                                 do node.with_imm_element |element| {
-                                    match element.tag_name {
-                                        ~"a" => self.load_url_from_element(element),
-                                        _ => {}
+                                    if "a" == element.tag_name {
+                                        self.load_url_from_element(element)
                                     }
                                 }
                             }
@@ -628,16 +627,14 @@ impl ScriptTask {
 
     priv fn load_url_from_element(&self, element: &Element) {
         // if the node's element is "a," load url from href attr
-        for element.attrs.iter().advance |attr| {
-            if attr.name == ~"href" {
-                debug!("clicked on link to %?", attr.value); 
-                let current_url = match self.root_frame {
-                    Some(ref frame) => Some(frame.url.clone()),
-                    None => None
-                };
-                let url = make_url(attr.value.clone(), current_url);
-                self.constellation_chan.send(LoadUrlMsg(url));
-            }
+        let href = element.get_attr("href");
+        for href.iter().advance |href| {
+            debug!("clicked on link to %s", *href);
+            let current_url = do self.root_frame.map |frame| {
+                frame.url.clone()
+            };
+            let url = make_url(href.to_owned(), current_url);
+            self.constellation_chan.send(LoadUrlMsg(url));
         }
     }
 }
