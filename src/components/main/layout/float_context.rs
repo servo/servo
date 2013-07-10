@@ -250,7 +250,7 @@ impl FloatContextBase{
 
     /// Returns true if the given rect overlaps with any floats.
     fn collides_with_float(&self, bounds: &Rect<Au>) -> bool {
-        for self.float_data.each |float| {
+        for self.float_data.iter().advance |float| {
             match *float{
                 None => (),
                 Some(data) => {

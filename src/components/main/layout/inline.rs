@@ -350,7 +350,7 @@ impl LineboxScanner {
         }
         self.pending_line.range.extend_by(1);
         self.pending_line.bounds.size.width = self.pending_line.bounds.size.width + box.position().size.width;
-        self.pending_line.available_width -= box.position().size.width;
+        self.pending_line.available_width = self.pending_line.available_width - box.position().size.width;
         self.pending_line.bounds.size.height = Au::max(self.pending_line.bounds.size.height, 
                                                              box.position().size.height);
         self.new_boxes.push(box);
@@ -497,7 +497,7 @@ impl InlineFlowData {
         self.common.floats_out = scanner.floats_out();
 
         // Now, go through each line and lay out the boxes inside
-        for self.lines.eachi |i, line| {
+        for self.lines.iter().advance |line| {
             // We need to distribute extra width based on text-align.
             let mut slack_width = line.available_width;
             if slack_width < Au(0) {
@@ -526,25 +526,25 @@ impl InlineFlowData {
                     for line.range.eachi |i| {
                         do self.boxes[i].with_mut_base |base| {
                             base.position.origin.x = offset_x;
-                            offset_x += base.position.size.width;
+                            offset_x = offset_x + base.position.size.width;
                         }
                     }
                 }
                 CSSTextAlignCenter => {
-                    offset_x += slack_width.scale_by(0.5f);
+                    offset_x = offset_x + slack_width.scale_by(0.5f);
                     for line.range.eachi |i| {
                         do self.boxes[i].with_mut_base |base| {
                             base.position.origin.x = offset_x;
-                            offset_x += base.position.size.width;
+                            offset_x = offset_x + base.position.size.width;
                         }
                     }
                 }
                 CSSTextAlignRight => {
-                    offset_x += slack_width;
+                    offset_x = offset_x + slack_width;
                     for line.range.eachi |i| {
                         do self.boxes[i].with_mut_base |base| {
                             base.position.origin.x = offset_x;
-                            offset_x += base.position.size.width;
+                            offset_x = offset_x + base.position.size.width;
                         }
                     }
                 }
