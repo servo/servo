@@ -9,6 +9,8 @@ use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
 use std::uint::{div_ceil, next_power_of_two};
+use std::vec::build_sized;
+use gfx::render_task::BufferRequest;
 
 /// Parent to all quadtree nodes. Stores variables needed at all levels. All method calls
 /// at this level are in pixel coordinates.
@@ -69,13 +71,31 @@ impl<T> Quadtree<T> {
         self.root.add_tile(x as f32 / scale, y as f32 / scale, tile, self.max_tile_size as f32 / scale);
     }
     /// Get the tile rect in screen and page coordinates for a given pixel position
-    pub fn get_tile_rect(&self, x: uint, y: uint, scale: f32) -> (Rect<uint>, Rect<f32>) {
+    pub fn get_tile_rect(&self, x: uint, y: uint, scale: f32) -> BufferRequest {
         self.root.get_tile_rect(x as f32 / scale, y as f32 / scale, scale, self.max_tile_size as f32 / scale)
     }
     /// Get all the tiles in the tree
     pub fn get_all_tiles<'r>(&'r self) -> ~[&'r T] {
         self.root.get_all_tiles()
     }
+    /// Ask a tile to be deleted from the quadtree. This tries to delete a tile that is far from the
+    /// given point in pixel coordinates.
+    pub fn remove_tile(&mut self, x: uint, y: uint, scale: f32) {
+        self.root.remove_tile(x as f32 / scale, y as f32 / scale);
+    }
+    /// Given a window rect in page coordinates and a function to check if an existing tile is "valid"
+    /// (i.e. is the correct resolution), this function returns a list of BufferRequests for tiles that
+    /// need to be rendered. It also returns a boolean if the window needs to be redisplayed, i.e. if
+    /// no tiles need to be rendered, but the display tree needs to be rebuilt. This can occur when the
+    /// user zooms out and cached tiles need to be displayed on top of higher resolution tiles.
+    pub fn get_tile_rects(&mut self, window: Rect<int>, valid: &fn(&T) -> bool, scale: f32) ->
+        (~[BufferRequest], bool) {
+        
+        self.root.get_tile_rects(Rect(Point2D(window.origin.x as f32 / scale, window.origin.y as f32 / scale),
+                                      Size2D(window.size.width as f32 / scale, window.size.height as f32 / scale)),
+                                 valid, scale, self.max_tile_size as f32 / scale)
+    }
+
     /// Generate html to visualize the tree
     pub fn get_html(&self) -> ~str {
         let header = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\">";
@@ -125,7 +145,6 @@ impl<T> QuadtreeNode<T> {
     }
 
     /// Get all tiles in the tree, parents first.
-    /// FIXME: this could probably be more efficient
     fn get_all_tiles<'r>(&'r self) -> ~[&'r T] {
         let mut ret = ~[];
         
@@ -134,7 +153,7 @@ impl<T> QuadtreeNode<T> {
             None => {}
         }
 
-        for self.quadrants.each |quad| {
+        for self.quadrants.iter().advance |quad| {
             match *quad {
                 Some(ref child) => ret = ret + child.get_all_tiles(),
                 None => {}
@@ -154,9 +173,11 @@ impl<T> QuadtreeNode<T> {
             fail!("Quadtree: Tried to add tile to invalid region");
         }
         
-         if self.size <= tile_size { // We are the child
+        if self.size <= tile_size { // We are the child
             self.tile = Some(tile);
-            for [TL, TR, BL, BR].each |quad| {
+            // FIXME: This should be inline, but currently won't compile
+            let quads = [TL, TR, BL, BR];
+            for quads.iter().advance |quad| {
                 self.quadrants[*quad as int] = None;
             }
         } else { // Send tile to children            
@@ -195,7 +216,7 @@ impl<T> QuadtreeNode<T> {
     }
 
     /// Get a tile rect in screen and page coords for a given position in page coords
-    fn get_tile_rect(&self, x: f32, y: f32, scale: f32, tile_size: f32) -> (Rect<uint>, Rect<f32>) {    
+    fn get_tile_rect(&self, x: f32, y: f32, scale: f32, tile_size: f32) -> BufferRequest {    
         if x >= self.origin.x + self.size || x < self.origin.x
             || y >= self.origin.y + self.size || y < self.origin.y {
             fail!("Quadtree: Tried to query a tile rect outside of range");
@@ -205,8 +226,8 @@ impl<T> QuadtreeNode<T> {
             let self_x = (self.origin.x * scale).ceil() as uint;
             let self_y = (self.origin.y * scale).ceil() as uint;
             let self_size = (self.size * scale).ceil() as uint;
-            return (Rect(Point2D(self_x, self_y), Size2D(self_size, self_size)),
-                    Rect(Point2D(self.origin.x, self.origin.y), Size2D(self.size, self.size)));
+            return BufferRequest(Rect(Point2D(self_x, self_y), Size2D(self_size, self_size)),
+                                 Rect(Point2D(self.origin.x, self.origin.y), Size2D(self.size, self.size)));
         }
         
         let index = self.get_quadrant(x,y) as int;
@@ -223,12 +244,223 @@ impl<T> QuadtreeNode<T> {
                 let new_x_pixel = (new_x_page * scale).ceil() as uint;
                 let new_y_pixel = (new_y_page * scale).ceil() as uint;
                 
-                (Rect(Point2D(new_x_pixel, new_y_pixel), Size2D(new_size_pixel, new_size_pixel)),
-                 Rect(Point2D(new_x_page, new_y_page), Size2D(new_size_page, new_size_page)))
+                BufferRequest(Rect(Point2D(new_x_pixel, new_y_pixel), Size2D(new_size_pixel, new_size_pixel)),
+                              Rect(Point2D(new_x_page, new_y_page), Size2D(new_size_page, new_size_page)))
             }
             Some(ref child) => child.get_tile_rect(x, y, scale, tile_size),
         }
     }
+
+    /// Removes a tile that is far from the given input point in page coords. Returns true if the child
+    /// has no tiles and needs to be deleted.
+    fn remove_tile(&mut self, x: f32, y: f32) -> bool {
+        match (&self.tile, &self.quadrants) {
+            (&Some(_), &[None, None, None, None]) => {
+                self.tile = None;
+                return true;
+            }
+            (&Some(_), _) => {
+                self.tile = None;
+                return false;
+            }
+            _ => {}
+        }
+        
+        // This is a hacky heuristic to find a tile that is "far away". There are better methods.
+        let quad = self.get_quadrant(x, y);
+        let my_child = match quad {
+            TL => {
+                match (&self.quadrants[BR as int], &self.quadrants[BL as int], &self.quadrants[TR as int]) {
+                    (&Some(_), _, _) => BR,
+                    (&None, &Some(_), _) => BL,
+                    (&None, &None, &Some(_)) => TR,
+                    _ => TL,
+                }
+            }
+            TR => {
+                match (&self.quadrants[BL as int], &self.quadrants[BR as int], &self.quadrants[TL as int]) {
+                    (&Some(_), _, _) => BL,
+                    (&None, &Some(_), _) => BR,
+                    (&None, &None, &Some(_)) => TL,
+                    _ => TR,
+                }
+            }
+            BL => {
+                match (&self.quadrants[TR as int], &self.quadrants[TL as int], &self.quadrants[BR as int]) {
+                    (&Some(_), _, _) => TR,
+                    (&None, &Some(_), _) => TL,
+                    (&None, &None, &Some(_)) => BR,
+                    _ => BL,
+                }
+            }
+            BR => {
+                match (&self.quadrants[TL as int], &self.quadrants[TR as int], &self.quadrants[BL as int]) {
+                    (&Some(_), _, _) => TL,
+                    (&None, &Some(_), _) => TR,
+                    (&None, &None, &Some(_)) => BL,
+                    _ => BR,
+                }
+            }
+        };
+
+        match self.quadrants[my_child as int] {
+            Some(ref mut child) if !child.remove_tile(x, y) => {
+                return false;
+            }
+            Some(_) => {} // fall through
+            None => fail!("Quadtree: child query failure"),
+        }
+
+        // child.remove_tile() returned true
+        self.quadrants[my_child as int] = None;
+        match self.quadrants {
+            [None, None, None, None] => true,
+            _ => false,
+        }
+    }
+    
+    /// Given a window rect in page coordinates and a tile validation function, returns a BufferRequest array
+    /// and a redisplay boolean. See QuadTree function description for more details.
+    fn get_tile_rects(&mut self, window: Rect<f32>, valid: &fn(&T) -> bool, scale: f32, tile_size: f32) ->
+        (~[BufferRequest], bool) {
+        
+        let w_x = window.origin.x;
+        let w_y = window.origin.y;
+        let w_width = window.size.width;
+        let w_height = window.size.height;
+        let s_x = self.origin.x;
+        let s_y = self.origin.y;
+        let s_size = self.size;
+        
+        if w_x < s_x || w_x + w_width > s_x + s_size
+            || w_y < s_y || w_y + w_height > s_y + s_size {
+            println(fmt!("window: %?, %?, %?, %?; self: %?, %?, %?", w_x, w_y, w_width, w_height, s_x, s_y, s_size));
+            fail!("Quadtree: tried to query an invalid tile rect");
+        }
+        
+        if s_size <= tile_size { // We are the child
+            match self.tile {
+                Some(ref tile) if valid(tile) => {
+                    let redisplay = match self.quadrants {
+                        [None, None, None, None] => false,
+                        _ => true,
+                    };
+                    if redisplay {
+                        // FIXME: This should be inline, but currently won't compile
+                        let quads = [TL, TR, BL, BR];
+                        for quads.iter().advance |quad| {
+                            self.quadrants[*quad as int] = None;
+                        }
+                    }
+                    return (~[], redisplay);
+                }
+                _ => {
+                    return (~[self.get_tile_rect(s_x, s_y, scale, tile_size)], false);
+                }
+            }
+        }
+        
+        // Otherwise, we either have children or will have children
+        let w_tl_quad = self.get_quadrant(w_x, w_y);
+        let w_br_quad = self.get_quadrant(w_x + w_width, w_y + w_height);
+        
+        // Figure out which quadrants the window is in
+        let builder = |push: &fn(Quadrant)| {
+            match (w_tl_quad, w_br_quad) {
+                (tl, br) if tl as int == br as int =>  {
+                    push(tl);
+                }
+                (TL, br) => {
+                    push(TL);
+                    push(br);
+                    match br {
+                        BR => {
+                            push(TR);
+                            push(BL);
+                        }
+                        _ => {}
+                    }
+                }
+                (tl, br) => {
+                    push(tl);
+                    push(br);
+                }
+            }
+        };
+        
+        let quads_to_check = build_sized(4, builder);
+        
+        let mut ret = ~[];
+        let mut redisplay = false;
+        
+        for quads_to_check.iter().advance |quad| {
+            match self.quadrants[*quad as int] {
+                Some(ref mut child) => {
+                    // Recurse into child
+                    let new_window = match *quad {
+                        TL => Rect(window.origin,
+                                   Size2D(w_width.min(&(s_x + s_size / 2.0 - w_x)),
+                                          w_height.min(&(s_y + s_size / 2.0 - w_y)))),
+                        TR => Rect(Point2D(w_x.max(&(s_x + s_size / 2.0)),
+                                           w_y),
+                                   Size2D(w_width.min(&(w_x + w_width - (s_x + s_size / 2.0))),
+                                          w_height.min(&(s_y + s_size / 2.0 - w_y)))),
+                        BL => Rect(Point2D(w_x,
+                                           w_y.max(&(s_y + s_size / 2.0))),
+                                   Size2D(w_width.min(&(s_x + s_size / 2.0 - w_x)),
+                                          w_height.min(&(w_y + w_height - (s_y + s_size / 2.0))))),
+                        BR => Rect(Point2D(w_x.max(&(s_x + s_size / 2.0)),
+                                           w_y.max(&(s_y + s_size / 2.0))),
+                                   Size2D(w_width.min(&(w_x + w_width - (s_x + s_size / 2.0))),
+                                          w_height.min(&(w_y + w_height - (s_y + s_size / 2.0))))), 
+                    
+                    };
+                    let (c_ret, c_redisplay) = child.get_tile_rects(new_window, |x| valid(x), scale, tile_size); 
+                    ret = ret + c_ret;
+                    redisplay = redisplay || c_redisplay;
+                }
+                None => {
+                    // Figure out locations of future children
+                    let (x_start, y_start, x_end, y_end) = match *quad {
+                        TL => (w_x,
+                               w_y,
+                               (w_x + w_width).min(&(s_x + s_size / 2.0)),
+                               (w_y + w_height).min(&(s_y + s_size / 2.0))),
+                        TR => (w_x.max(&(s_x + s_size / 2.0)),
+                               w_y,
+                               (w_x + w_width + tile_size).min(&(s_x + s_size)),
+                               (w_y + w_height).min(&(s_y + s_size / 2.0))),
+                        BL => (w_x,
+                               w_y.max(&(s_y + s_size / 2.0)),
+                               (w_x + w_width).min(&(s_x + s_size / 2.0)),
+                               (w_y + w_height + tile_size).min(&(s_y + s_size))),
+                        BR => (w_x.max(&(s_x + s_size / 2.0)),
+                               w_y.max(&(s_y + s_size / 2.0)),
+                               (w_x + w_width + tile_size).min(&(s_x + s_size)),
+                               (w_y + w_height + tile_size).min(&(s_y + s_size))),
+                    };
+                    let size = (((x_end - x_start) / tile_size).ceil() *
+                                ((y_end - y_start) / tile_size).ceil()) as uint;
+
+                    let builder = |push: &fn(BufferRequest)| {
+                        let mut y = y_start;
+                        while y < y_end {
+                            let mut x = x_start;
+                            while x < x_end {
+                                push(self.get_tile_rect(x, y, scale, tile_size));
+                                x = x + tile_size;
+                            }
+                            y = y + tile_size;
+                        }
+                    };
+                    ret = ret + build_sized(size, builder);
+                }
+            }
+        }
+        
+        (ret, redisplay)
+    }
+
 
     /// Generate html to visualize the tree.
     /// This is really inefficient, but it's for testing only.
@@ -246,7 +478,9 @@ impl<T> QuadtreeNode<T> {
             [None, None, None, None] => {}
             _ => {
                 ret = fmt!("%s<table border=1><tr>", ret);
-                for [TL, TR, BL, BR].each |quad| {
+                // FIXME: This should be inline, but currently won't compile
+                let quads = [TL, TR, BL, BR];
+                for quads.iter().advance |quad| {
                     match self.quadrants[*quad as int] {
                         Some(ref child) => {
                             ret = fmt!("%s<td>%s</td>", ret, child.get_html());
@@ -267,6 +501,7 @@ impl<T> QuadtreeNode<T> {
     }
 
 }
+
 
 #[test]
 fn test_add_tile() {

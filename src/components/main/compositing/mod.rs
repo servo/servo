@@ -14,7 +14,7 @@ use servo_msg::compositor_msg::{RenderListener, LayerBuffer, LayerBufferSet, Ren
 use servo_msg::compositor_msg::{ReadyState, ScriptListener};
 use servo_msg::constellation_msg::{CompositorAck, ConstellationChan};
 use servo_msg::constellation_msg;
-use gfx::render_task::{RenderChan, ReRenderMsg, BufferRequest};
+use gfx::render_task::{RenderChan, ReRenderMsg};
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods, current_gl_context};
 use azure::azure::AzGLContext;
@@ -28,6 +28,7 @@ use extra::timer;
 use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::size::Size2D;
+use geom::rect::Rect;
 use layers::layers::{ARGB32Format, ContainerLayer, ContainerLayerKind, Format};
 use layers::layers::{ImageData, WithDataFn};
 use layers::layers::{TextureLayerKind, TextureLayer, TextureManager};
@@ -40,6 +41,7 @@ use servo_util::time::ProfilerChan;
 use extra::arc;
 pub use windowing;
 
+use extra::time::precise_time_s;
 use compositing::quadtree::Quadtree;
 mod quadtree;
 
@@ -229,44 +231,21 @@ impl CompositorTask {
         // FIXME: This should be one-per-layer
         let quadtree: @mut Option<Quadtree<~LayerBuffer>> = @mut None;
         
+        // Keeps track of if we have performed a zoom event and how recently.
+        let zoom_action = @mut false;
+        let zoom_time = @mut 0f;
+
 
         let ask_for_tiles: @fn() = || {
             match *quadtree {
-                Some(ref quad) => {
-                    // FIXME: find a better way to get the tile size
-                    // currently tiles that need to be updated can be missed
-                    let mut tile_size = quad.get_tile_size();
-                    let mut tile_request = ~[]; //FIXME: try not to allocate if possible
-                    
-                    let mut y = world_offset.y as uint;
-                    while y < world_offset.y as uint + window_size.height &&
-                        y <= (page_size.height * *world_zoom) as uint {
-                        let mut x = world_offset.x as uint;
-                        while x < world_offset.x as uint + window_size.width &&
-                            x <= (page_size.width * *world_zoom) as uint {
-                            match *(quad.get_tile(x, y, *world_zoom)) {
-                                Some(ref current_tile) => {
-                                    if current_tile.resolution == *world_zoom {
-                                        x += tile_size;
-                                        loop; // we already have this tile
-                                    }
-                                }
-                                None => {} // fall through
-                            }
-                            let (tile_screen_pos, tile_page_pos) = quad.get_tile_rect(x, y, *world_zoom);
-                            tile_size = tile_screen_pos.size.width;
-                            x = tile_screen_pos.origin.x;
-                            y = tile_screen_pos.origin.y;
-                            
-                            // TODO: clamp tiles to page bounds
-                            // TODO: add null buffer/checkerboard tile to stop a flood of requests
-                            debug!("requesting tile: (%?, %?): %?", x, y, tile_size);
-                            tile_request.push(BufferRequest(tile_screen_pos, tile_page_pos));
-                            
-                            x += tile_size;
-                        }
-                        y += tile_size;
-                    }
+                Some(ref mut quad) => {
+                    let valid = |tile: &~LayerBuffer| -> bool {
+                        tile.resolution == *world_zoom
+                    };
+                    let (tile_request, redisplay) = quad.get_tile_rects(Rect(Point2D(world_offset.x as int,
+                                                                                     world_offset.y as int),
+                                                                             *window_size), valid, *world_zoom);
+
                     if !tile_request.is_empty() {
                         match *render_chan {
                             Some(ref chan) => {
@@ -276,6 +255,8 @@ impl CompositorTask {
                                 println("Warning: Compositor: Cannot send tile request, no render chan initialized");
                             }
                         }
+                    } else if redisplay {
+                        // TODO: move display code to its own closure and call that here
                     }
                 }
                 _ => {
@@ -297,7 +278,7 @@ impl CompositorTask {
             let layout_chan_clone = layout_chan.clone();
             // Hook the windowing system's resize callback up to the resize rate limiter.
             do window.set_resize_callback |width, height| {
-                let new_size = Size2D(width as uint, height as uint);
+                let new_size = Size2D(width as int, height as int);
                 if *window_size != new_size {
                     debug!("osmain: window resized to %ux%u", width, height);
                     *window_size = new_size;
@@ -402,22 +383,20 @@ impl CompositorTask {
                         *page_size = Size2D(new_size.width as f32, new_size.height as f32);
 
                         let new_layer_buffer_set = new_layer_buffer_set.get();
-
-                        // Iterate over the children of the container layer.
-                        let mut current_layer_child = root_layer.first_child;
-
-                        // Replace the image layer data with the buffer data.
-//                        let buffers = util::replace(&mut new_layer_buffer_set.buffers, ~[]);
-
                         for new_layer_buffer_set.buffers.iter().advance |buffer| {
+                            // FIXME: Don't copy the buffers here
                             quad.add_tile(buffer.screen_pos.origin.x, buffer.screen_pos.origin.y,
                                           *world_zoom, ~buffer.clone());
                         }
                         
-                        for quad.get_all_tiles().each |buffer| {
+
+                        // Iterate over the children of the container layer.
+                        let mut current_layer_child = root_layer.first_child;
+                        
+                        let all_tiles = quad.get_all_tiles();
+                        for all_tiles.iter().advance |buffer| {
                             let width = buffer.screen_pos.size.width as uint;
                             let height = buffer.screen_pos.size.height as uint;
-
                             debug!("osmain: compositing buffer rect %?", &buffer.rect);
                             
                             // Find or create a texture layer.
@@ -529,6 +508,8 @@ impl CompositorTask {
 
         // When the user pinch-zooms, scale the layer
         do window.set_zoom_callback |magnification| {
+            *zoom_action = true;
+            *zoom_time = precise_time_s();
             let old_world_zoom = *world_zoom;
 
             // Determine zoom amount
@@ -560,11 +541,6 @@ impl CompositorTask {
                                                       window_size.height as f32 / -2f32,
                                                       0.0);
             root_layer.common.set_transform(zoom_transform);
-
-            // FIXME: ask_for_tiles() should be called here, but currently this sends a flood of requests
-            // to the renderer, which slows the application dramatically. Instead, ask_for_tiles() is only
-            // called on a click event.
-//            ask_for_tiles();
             
             *recomposite = true;
         }
@@ -583,6 +559,13 @@ impl CompositorTask {
             }
 
             timer::sleep(&uv_global_loop::get(), 100);
+
+            // If a pinch-zoom happened recently, ask for tiles at the new resolution
+            if *zoom_action && precise_time_s() - *zoom_time > 0.3 {
+                *zoom_action = false;
+                ask_for_tiles();
+            }
+
         }
 
         self.shutdown_chan.send(())
