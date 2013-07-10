@@ -109,7 +109,7 @@ fn run(opts: &Opts) {
         do spawn {
             loop {
                 extra::timer::sleep(&uv_global_loop::get(),
-                                  (period * 1000f64) as uint);
+                                  (period * 1000f) as uint);
                 profiler_chan.send(PrintMsg);
             }
         }

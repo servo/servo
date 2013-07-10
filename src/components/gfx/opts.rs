@@ -8,7 +8,7 @@
 use azure::azure_hl::{BackendType, CairoBackend, CoreGraphicsBackend};
 use azure::azure_hl::{CoreGraphicsAcceleratedBackend, Direct2DBackend, SkiaBackend};
 
-use std::f64;
+use std::float;
 use std::result;
 use std::uint;
 
@@ -17,7 +17,7 @@ pub struct Opts {
     render_backend: BackendType,
     n_render_threads: uint,
     tile_size: uint,
-    profiler_period: Option<f64>,
+    profiler_period: Option<float>,
 
     /// A scale factor to apply to tiles, to allow rendering tiles at higher resolutions for
     /// testing pan and zoom code.
@@ -40,9 +40,10 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
     ];
 
     let opt_match = match getopts::getopts(args, opts) {
-      result::Ok(m) => { copy m }
-      result::Err(f) => { fail!(getopts::fail_str(copy f)) }
+      result::Ok(m) => m,
+      result::Err(f) => fail!(getopts::fail_str(copy f)),
     };
+
     let urls = if opt_match.free.is_empty() {
         fail!(~"servo asks that you provide 1 or more URLs")
     } else {
@@ -82,10 +83,10 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         None => 1,      // FIXME: Number of cores.
     };
 
-    let profiler_period: Option<f64> =
+    let profiler_period: Option<float> =
         // if only flag is present, default to 5 second period
         match getopts::opt_default(&opt_match, "p", "5") {
-        Some(period) => Some(f64::from_str(period).get()),
+        Some(period) => Some(float::from_str(period).get()),
         None => None,
     };
 
