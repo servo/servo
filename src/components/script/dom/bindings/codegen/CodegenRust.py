@@ -3110,6 +3110,25 @@ class FakeArgument():
         self.enforceRange = False
         self.clamp = False
 
+class CGSetterCall(CGPerSignatureCall):
+    """
+    A class to generate a native object setter call for a particular IDL
+    setter.
+    """
+    def __init__(self, argType, nativeMethodName, descriptor, attr):
+        CGPerSignatureCall.__init__(self, None, [],
+                                    [FakeArgument(argType, attr)],
+                                    nativeMethodName, False, descriptor, attr,
+                                    setter=True)
+    def wrap_return_value(self):
+        # We have no return value
+        return "\nreturn 1;"
+    def getArgc(self):
+        return "1"
+    def getArgvDecl(self):
+        # We just get our stuff from our last arg no matter what
+        return ""
+
 class CGAbstractBindingMethod(CGAbstractExternMethod):
     """
     Common class to generate the JSNatives for all our methods, getters, and
@@ -3141,7 +3160,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
 
     def getThis(self):
         return CGIndenter(
-            CGGeneric("let obj: *JSObject = JS_THIS_OBJECT(cx, vp);\n"
+            CGGeneric("let obj: *JSObject = JS_THIS_OBJECT(cx, cast::transmute(vp));\n"
                       "if obj.is_null() {\n"
                       "  return false as JSBool;\n"
                       "}\n"
@@ -3248,6 +3267,56 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         if resultOutParam or self.attr.type.nullable() or not infallible:
             nativeName = "Get" + nativeName
         return CGWrapper(CGIndenter(CGGetterCall(self.attr.type, nativeName,
+                                                 self.descriptor, self.attr)),
+                         pre="  let obj = (*obj.unnamed);\n").define()
+
+class CGGenericSetter(CGAbstractBindingMethod):
+    """
+    A class for generating the Rust code for an IDL attribute setter.
+    """
+    def __init__(self, descriptor, lenientThis=False):
+        args = [Argument('*JSContext', 'cx'), Argument('uint', 'argc'),
+                Argument('*mut JSVal', 'vp')]
+        if lenientThis:
+            name = "genericLenientSetter"
+            unwrapFailureCode = (
+                "MOZ_ASSERT(!JS_IsExceptionPending(cx));\n"
+                "return true;")
+        else:
+            name = "genericSetter"
+            unwrapFailureCode = None
+        CGAbstractBindingMethod.__init__(self, descriptor, name, args,
+                                         unwrapFailureCode)
+
+    def generate_code(self):
+        return CGIndenter(CGGeneric(
+                "let undef = JSVAL_VOID;\n"
+                "let argv: *JSVal = if argc != 0 { JS_ARGV(cx, cast::transmute(vp)) } else { &undef as *JSVal };\n"
+                "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, cast::transmute(vp)));\n"
+                "if CallJitPropertyOp(info, cx, obj, ptr::to_unsafe_ptr(&(*this).payload) as *libc::c_void, cast::transmute(vp)) == 0 {"
+                "  return 0;\n"
+                "}\n"
+                "*vp = JSVAL_VOID;\n"
+                "return 1;"))
+
+class CGSpecializedSetter(CGAbstractExternMethod):
+    """
+    A class for generating the code for a specialized attribute setter
+    that the JIT can call with lower overhead.
+    """
+    def __init__(self, descriptor, attr):
+        self.attr = attr
+        name = 'set_' + attr.identifier.name
+        args = [ Argument('*JSContext', 'cx'),
+                 Argument('JSHandleObject', 'obj'),
+                 Argument('*mut %s' % descriptor.nativeType, 'this'),
+                 Argument('*mut JSVal', 'argv')]
+        CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
+
+    def definition_body(self):
+        name = self.attr.identifier.name
+        nativeName = "Set" + MakeNativeName(self.descriptor.binaryNames.get(name, name))
+        return CGWrapper(CGIndenter(CGSetterCall(self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
                          pre="  let obj = (*obj.unnamed);\n").define()
 
@@ -3789,7 +3858,7 @@ class CGDescriptor(CGThing):
                     else:
                         hasGetter = True
                     if not m.readonly:
-                        #cgThings.append(CGSpecializedSetter(descriptor, m))
+                        cgThings.append(CGSpecializedSetter(descriptor, m))
                         if m.hasLenientThis():
                             hasLenientSetter = True
                         else:
@@ -3799,7 +3868,7 @@ class CGDescriptor(CGThing):
             if hasGetter: cgThings.append(CGGenericGetter(descriptor))
             #if hasLenientGetter: cgThings.append(CGGenericGetter(descriptor,
             #                                                     lenientThis=True))
-            #if hasSetter: cgThings.append(CGGenericSetter(descriptor))
+            if hasSetter: cgThings.append(CGGenericSetter(descriptor))
             #if hasLenientSetter: cgThings.append(CGGenericSetter(descriptor,
             #                                                     lenientThis=True))
 
