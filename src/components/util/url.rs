@@ -44,9 +44,10 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
                 for current_url.path.split_iter('/').advance |p| {
                     path.push(p.to_str());
                 }
-                let path = path; // FIXME: borrow checker workaround
                 let path = path.init();
-                let path = (path.map(|x| copy *x) + [str_url]).connect("/");
+                let mut path = path.iter().transform(|x| copy *x).collect::<~[~str]>();
+                path.push(str_url);
+                let path = path.connect("/");
 
                 current_url.scheme + "://" + current_url.host + path
             }

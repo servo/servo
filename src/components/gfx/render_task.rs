@@ -75,7 +75,7 @@ priv struct RenderTask<C> {
     last_paint_msg: Option<(arc::ARC<LayerBufferSet>, Size2D<uint>)>,
 }
 
-impl<C: RenderListener + Owned> RenderTask<C> {
+impl<C: RenderListener + Send> RenderTask<C> {
     pub fn create(id: uint,
                   port: Port<Msg>,
                   compositor: C,

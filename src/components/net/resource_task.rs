@@ -105,7 +105,7 @@ impl ResourceManager {
     }
 
     fn get_loader_factory(&self, url: &Url) -> Option<LoaderTask> {
-        for self.loaders.each |scheme_loader| {
+        for self.loaders.iter().advance |scheme_loader| {
             match *scheme_loader {
                 (ref scheme, ref loader_factory) => {
 	            if (*scheme) == url.scheme {

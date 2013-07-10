@@ -314,25 +314,25 @@ impl<'self> FlowContext {
     }
 
     // Actual methods that do not require much flow-specific logic
-    pub fn foldl_all_boxes<B:Copy>(&self, seed: B, cb: &fn(a: B, b: RenderBox) -> B) -> B {
+    pub fn foldl_all_boxes<B:Clone>(&self, seed: B, cb: &fn(a: B, b: RenderBox) -> B) -> B {
         match *self {
             BlockFlow(block) => {
                 let block = &mut *block;
-                do block.box.map_default(copy seed) |box| {
-                    cb(copy seed, *box)
+                do block.box.map_default(seed.clone()) |box| {
+                    cb(seed.clone(), *box)
                 }
             }
             InlineFlow(inline) => {
                 let inline = &mut *inline;
-                do inline.boxes.foldl(seed) |acc, box| {
-                    cb(copy *acc, *box)
+                do inline.boxes.iter().fold(seed) |acc, box| {
+                    cb(acc.clone(), *box)
                 }
             }
             _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self)),
         }
     }
 
-    pub fn foldl_boxes_for_node<B:Copy>(&self,
+    pub fn foldl_boxes_for_node<B:Clone>(&self,
                                         node: AbstractNode<LayoutView>,
                                         seed: B,
                                         callback: &fn(a: B, RenderBox) -> B)
@@ -394,10 +394,10 @@ impl<'self> FlowContext {
     pub fn dump_indent(&self, indent: uint) {
         let mut s = ~"|";
         for uint::range(0, indent) |_i| {
-            s += "---- ";
+            s.push_str("---- ");
         }
 
-        s += self.debug_str();
+        s.push_str(self.debug_str());
         debug!("%s", s);
 
         // FIXME: this should have a pure/const version?
@@ -409,10 +409,10 @@ impl<'self> FlowContext {
     pub fn debug_str(&self) -> ~str {
         let repr = match *self {
             InlineFlow(inline) => {
-                let mut s = inline.boxes.foldl(~"InlineFlow(children=", |s, box| {
-                    fmt!("%s b%d", *s, box.id())
+                let mut s = inline.boxes.iter().fold(~"InlineFlow(children=", |s, box| {
+                    fmt!("%s b%d", s, box.id())
                 });
-                s += ")";
+                s.push_str(")");
                 s
             },
             BlockFlow(block) => {

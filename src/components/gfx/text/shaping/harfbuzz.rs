@@ -118,7 +118,7 @@ impl ShapedGlyphData {
             } else {
                 // adjust the pen..
                 if y_advance > Au(0) {
-                    *y_pos -= y_advance;
+                    *y_pos = *y_pos - y_advance;
                 }
 
                 Some(Point2D(x_offset, *y_pos - y_offset))
@@ -143,7 +143,7 @@ pub struct Shaper {
 
 #[unsafe_destructor]
 impl Drop for Shaper {
-    fn finalize(&self) {
+    fn drop(&self) {
         unsafe {
             assert!(self.hb_face.is_not_null());
             hb_face_destroy(self.hb_face);

@@ -363,10 +363,10 @@ impl<View> AbstractNode<View> {
     pub fn dump_indent(&self, indent: uint) {
         let mut s = ~"";
         for uint::range(0u, indent) |_i| {
-            s += "    ";
+            s.push_str("    ");
         }
 
-        s += self.debug_str();
+        s.push_str(self.debug_str());
         debug!("%s", s);
 
         // FIXME: this should have a pure version?
@@ -423,7 +423,35 @@ impl Node<ScriptView> {
             layout_data: None,
         }
     }
-}
+
+    pub fn getNodeType(&self) -> i32 {
+        match self.type_id {
+            ElementNodeTypeId(_) => 1,
+            TextNodeTypeId       => 3,
+            CommentNodeTypeId    => 8,
+            DoctypeNodeTypeId    => 10
+        }
+    }
+
+    pub fn getNextSibling(&mut self) -> Option<&mut AbstractNode<ScriptView>> {
+        match self.next_sibling {
+            // transmute because the compiler can't deduce that the reference
+            // is safe outside of with_mut_base blocks.
+            Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
+            None => None
+        }
+    }
+
+    pub fn getFirstChild(&mut self) -> Option<&mut AbstractNode<ScriptView>> {
+        match self.first_child {
+            // transmute because the compiler can't deduce that the reference
+            // is safe outside of with_mut_base blocks.
+            Some(ref mut n) => Some(unsafe { cast::transmute(n) }),
+            None => None
+        }
+    }
+ }
+
 
 /// The CSS library requires that DOM nodes be convertible to `*c_void` via the `VoidPtrLike`
 /// trait.

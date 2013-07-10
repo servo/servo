@@ -26,19 +26,13 @@ pub mod dom {
     pub mod bindings {
         pub mod document;
         pub mod element;
-        pub mod event;
-        pub mod eventtarget;
         pub mod node;
         pub mod text;
         pub mod utils;
         pub mod conversions;
         pub mod window;
         pub mod proxyhandler;
-        pub mod clientrect;
-        pub mod clientrectlist;
         pub mod domparser;
-        pub mod htmlcollection;
-        pub mod formdata;
         pub mod codegen {
             pub mod ClientRectBinding;
             pub mod ClientRectListBinding;

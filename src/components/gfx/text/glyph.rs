@@ -347,7 +347,7 @@ impl<'self> DetailedGlyphStore {
         // FIXME: Is this right? --pcwalton
         // TODO: should fix this somewhere else
         if count == 0 {
-            return vec::slice(self.detail_buffer, 0, 0);
+            return self.detail_buffer.slice(0, 0);
         }
 
         assert!((count as uint) <= self.detail_buffer.len());
@@ -365,7 +365,7 @@ impl<'self> DetailedGlyphStore {
             Some(i) => {
                 assert!(i + (count as uint) <= self.detail_buffer.len());
                 // return a slice into the buffer
-                vec::slice(self.detail_buffer, i, i + count as uint)
+                self.detail_buffer.slice(i, i + count as uint)
             }
         }
     }
@@ -635,7 +635,8 @@ impl<'self> GlyphStore {
         }
 
         for range.eachi |i| {
-            if !self.iter_glyphs_for_char_index(i, callback) {
+            // FIXME: Work around rust#2202. We should be able to pass the callback directly.
+            if !self.iter_glyphs_for_char_index(i, |a, b| callback(a, b)) {
                 break
             }
         }
@@ -643,9 +644,10 @@ impl<'self> GlyphStore {
         true
     }
 
-    pub fn iter_all_glyphs(&'self self, cb: &fn(uint, &GlyphInfo<'self>) -> bool) -> bool {
+    pub fn iter_all_glyphs(&'self self, callback: &fn(uint, &GlyphInfo<'self>) -> bool) -> bool {
         for uint::range(0, self.entry_buffer.len()) |i| {
-            if !self.iter_glyphs_for_char_index(i, cb) {
+            // FIXME: Work around rust#2202. We should be able to pass the callback directly.
+            if !self.iter_glyphs_for_char_index(i, |a, b| callback(a, b)) {
                 break;
             }
         }

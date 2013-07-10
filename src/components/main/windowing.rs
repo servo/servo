@@ -19,9 +19,6 @@ pub enum WindowNavigateMsg {
     Back,
 }
 
-/// Type of the function that is called when the screen is to be redisplayed.
-pub type CompositeCallback = @fn();
-
 /// Type of the function that is called when the window is resized.
 pub type ResizeCallback = @fn(uint, uint);
 
@@ -53,8 +50,6 @@ pub trait WindowMethods<A> {
     /// Presents the window to the screen (perhaps by page flipping).
     pub fn present(&mut self);
 
-    /// Registers a callback to run when a composite event occurs.
-    pub fn set_composite_callback(&mut self, new_composite_callback: CompositeCallback);
     /// Registers a callback to run when a resize event occurs.
     pub fn set_resize_callback(&mut self, new_resize_callback: ResizeCallback);
     /// Registers a callback to run when a new URL is to be loaded.
@@ -70,8 +65,6 @@ pub trait WindowMethods<A> {
 
     /// Spins the event loop.
     pub fn check_loop(@mut self);
-    /// Schedules a redisplay at the next turn of the event loop.
-    pub fn set_needs_display(@mut self);
     /// Sets the ready state of the current page.
     pub fn set_ready_state(@mut self, ready_state: ReadyState);
     /// Sets the render state of the current page.

@@ -17,7 +17,7 @@ struct FreeTypeLibraryHandle {
 }
 
 impl Drop for FreeTypeLibraryHandle {
-    fn finalize(&self) {
+    fn drop(&self) {
         assert!(self.ctx.is_not_null());
         unsafe {
             FT_Done_FreeType(self.ctx);

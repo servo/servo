@@ -34,7 +34,7 @@ pub struct Window {
 }
 
 impl Drop for Window {
-    fn finalize(&self) {
+    fn drop(&self) {
         self.timer_chan.send(TimerMessage_Close);
     }
 }

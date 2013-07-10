@@ -15,7 +15,7 @@ extern mod alert;
 extern mod azure;
 extern mod geom;
 extern mod gfx (name = "gfx");
-extern mod glut;
+extern mod glfw;
 extern mod http_client;
 extern mod js;
 extern mod layers;
@@ -131,7 +131,7 @@ fn run(opts: &Opts) {
                                     profiler_chan.clone());
 
     // Send the URL command to the constellation.
-    for opts.urls.each |filename| {
+    for opts.urls.iter().advance |filename| {
         constellation_chan.send(LoadUrlMsg(make_url(copy *filename, None)))
     }
 

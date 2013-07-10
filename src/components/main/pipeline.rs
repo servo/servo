@@ -57,13 +57,14 @@ impl Pipeline {
                            profiler_chan);
 
         ScriptTask::create(id,
-                           compositor_chan,
+                           compositor_chan.clone(),
                            layout_chan.clone(),
                            script_port,
                            script_chan.clone(),
                            constellation_chan,
                            resource_task,
-                           image_cache_task);
+                           image_cache_task,
+                           compositor_chan.get_size());
 
         Pipeline::new(id,
                       script_chan,
@@ -92,8 +93,8 @@ impl Pipeline {
     }
 
     pub fn reload(&self) {
-        for self.url.iter().advance |&url| {
-            self.script_chan.send(LoadMsg(url));
+        for self.url.iter().advance |url| {
+            self.script_chan.send(LoadMsg(url.clone()));
         }
     }
 

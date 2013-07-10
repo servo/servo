@@ -21,7 +21,6 @@ use std::ptr;
 use std::ptr::null;
 use std::result;
 use std::str;
-use std::vec;
 use js::glue::*;
 use js::jsapi::*;
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp, JSPropertySpec};
@@ -84,12 +83,12 @@ pub fn init(compartment: @mut Compartment) {
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: JSPropertyOpWrapper {op: null(), info: null()},
          setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
-    vec::push(&mut compartment.global_props, attrs);
-    vec::as_imm_buf(*attrs, |specs, _len| {
+    compartment.global_props.push(attrs);
+    do attrs.as_imm_buf |specs, _len| {
         unsafe {
             JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
         }
-    });
+    }
 
     let methods = @~[JSFunctionSpec {name: compartment.add_name(~"getClientRects"),
                                      call: JSNativeWrapper {op: getClientRects, info: null()},
@@ -111,11 +110,11 @@ pub fn init(compartment: @mut Compartment) {
                                      nargs: 0,
                                      flags: 0,
                                      selfHostedName: null()}];
-    vec::as_imm_buf(*methods, |fns, _len| {
+    do methods.as_imm_buf |fns, _len| {
         unsafe {
             JS_DefineFunctions(compartment.cx.ptr, obj.ptr, fns);
         }
-    });
+    }
 
     compartment.register_class(utils::instance_jsclass(~"GenericElementInstance",
                                                        finalize, trace));
@@ -137,12 +136,12 @@ pub fn init(compartment: @mut Compartment) {
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: JSPropertyOpWrapper {op: null(), info: null()},
          setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
-    vec::push(&mut compartment.global_props, attrs);
-    vec::as_imm_buf(*attrs, |specs, _len| {
+    compartment.global_props.push(attrs);
+    do attrs.as_imm_buf |specs, _len| {
         unsafe {
             JS_DefineProperties(compartment.cx.ptr, obj.ptr, specs);
         }
-    });
+    }
 }
 
 extern fn getClientRects(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {

@@ -167,7 +167,7 @@ pub fn task_from_context(js_context: *JSContext) -> *mut ScriptTask {
 
 #[unsafe_destructor]
 impl Drop for ScriptTask {
-    fn finalize(&self) {
+    fn drop(&self) {
         unsafe {
             let _ = local_data::local_data_pop(global_script_context_key);
         }
@@ -183,7 +183,8 @@ impl ScriptTask {
                script_chan: ScriptChan,
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
-               img_cache_task: ImageCacheTask)
+               img_cache_task: ImageCacheTask,
+               initial_size: Size2D<int>)
                -> @mut ScriptTask {
         let js_runtime = js::rust::rt();
         let js_context = js_runtime.cx();
@@ -219,7 +220,7 @@ impl ScriptTask {
 
             root_frame: None,
 
-            window_size: Size2D(800u, 600),
+            window_size: Size2D(initial_size.width as uint, initial_size.height as uint),
             damage: None,
 
             last_loaded_url: None,
@@ -246,14 +247,15 @@ impl ScriptTask {
         }
     }
 
-    pub fn create<C: ScriptListener + Owned>(id: uint,
+    pub fn create<C: ScriptListener + Send>(id: uint,
                   compositor: C,
                   layout_chan: LayoutChan,
                   script_port: Port<ScriptMsg>,
                   script_chan: ScriptChan,
                   constellation_chan: ConstellationChan,
                   resource_task: ResourceTask,
-                  image_cache_task: ImageCacheTask) {
+                  image_cache_task: ImageCacheTask,
+                  initial_size: Size2D<int>) {
         let compositor = Cell::new(compositor);
         let script_port = Cell::new(script_port);
         // FIXME: rust#6399
@@ -267,7 +269,8 @@ impl ScriptTask {
                                               script_chan.clone(),
                                               constellation_chan.clone(),
                                               resource_task.clone(),
-                                              image_cache_task.clone());
+                                              image_cache_task.clone(),
+                                              initial_size);
             script_task.start();
         }
     }
@@ -353,8 +356,8 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&mut self, url: Url) {
-        for self.last_loaded_url.iter().advance |&last_loaded_url| {
-            if url == last_loaded_url { return; }
+        for self.last_loaded_url.iter().advance |last_loaded_url| {
+            if url == *last_loaded_url { return; }
         }
         // Define the script DOM bindings.
         //
@@ -416,9 +419,9 @@ impl ScriptTask {
         self.js_compartment.define_functions(debug_fns);
 
         // Evaluate every script in the document.
-        do js_scripts.consume |_, bytes| {
+        for js_scripts.iter().advance |bytes| {
             let _ = self.js_context.evaluate_script(self.js_compartment.global_obj,
-                                                    bytes,
+                                                    bytes.clone(),
                                                     ~"???",
                                                     1);
         }
@@ -498,7 +501,7 @@ impl ScriptTask {
     }
 
     /// Sends the given query to layout.
-    pub fn query_layout<T: Owned>(&mut self, query: LayoutQuery, response_port: Port<Result<T, ()>>) -> Result<T,()> {
+    pub fn query_layout<T: Send>(&mut self, query: LayoutQuery, response_port: Port<Result<T, ()>>) -> Result<T,()> {
         self.join_layout();
         self.layout_chan.send(QueryMsg(query));
         response_port.recv()
