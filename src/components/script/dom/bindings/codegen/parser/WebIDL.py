@@ -429,23 +429,31 @@ class IDLExternalInterface(IDLObjectWithIdentifier):
         pass
 
 class IDLInterface(IDLObjectWithScope):
-    def __init__(self, location, parentScope, name, parent, members):
+    def __init__(self, location, parentScope, name, parent, members,
+                 isPartial):
         assert isinstance(parentScope, IDLScope)
         assert isinstance(name, IDLUnresolvedIdentifier)
-        assert not parent or isinstance(parent, IDLIdentifierPlaceholder)
+        assert not isPartial or not parent
 
-        self.parent = parent
+        self.parent = None
         self._callback = False
         self._finished = False
-        self.members = list(members) # clone the list
+        self.members = []
         self.implementedInterfaces = set()
         self._consequential = False
+        self._isPartial = True
         # self.interfacesBasedOnSelf is the set of interfaces that inherit from
         # self or have self as a consequential interface, including self itself.
         # Used for distinguishability checking.
         self.interfacesBasedOnSelf = set([self])
 
         IDLObjectWithScope.__init__(self, location, parentScope, name)
+
+        if not isPartial:
+            self.setNonPartial(location, parent, members)
+        else:
+            # Just remember our members for now
+            self.members = list(members) # clone the list
 
     def __str__(self):
         return "Interface '%s'" % self.identifier.name
@@ -481,6 +489,11 @@ class IDLInterface(IDLObjectWithScope):
             return
 
         self._finished = True
+
+        if self._isPartial:
+            raise WebIDLError("Interface %s does not have a non-partial "
+                              "declaration" % self.identifier.name,
+                              [self.location])
 
         assert not self.parent or isinstance(self.parent, IDLIdentifierPlaceholder)
         parent = self.parent.finish(scope) if self.parent else None
@@ -748,6 +761,21 @@ class IDLInterface(IDLObjectWithScope):
 
     def getExtendedAttribute(self, name):
         return self._extendedAttrDict.get(name, None)
+
+    def setNonPartial(self, location, parent, members):
+        assert not parent or isinstance(parent, IDLIdentifierPlaceholder)
+        if not self._isPartial:
+            raise WebIDLError("Two non-partial definitions for the "
+                              "same interface",
+                              [location, self.location])
+        self._isPartial = False
+        # Now make it look like we were parsed at this new location, since
+        # that's the place where the interface is "really" defined
+        self.location = location
+        assert not self.parent
+        self.parent = parent
+        # Put the new members at the beginning
+        self.members = members + self.members
 
 class IDLDictionary(IDLObjectWithScope):
     def __init__(self, location, parentScope, name, parent, members):
@@ -2742,9 +2770,25 @@ class Parser(Tokenizer):
         """
         location = self.getLocation(p, 1)
         identifier = IDLUnresolvedIdentifier(self.getLocation(p, 2), p[2])
-
         members = p[5]
-        p[0] = IDLInterface(location, self.globalScope(), identifier, p[3], members)
+        parent = p[3]
+
+        try:
+            if self.globalScope()._lookupIdentifier(identifier):
+                p[0] = self.globalScope()._lookupIdentifier(identifier)
+                if not isinstance(p[0], IDLInterface):
+                    raise WebIDLError("Partial interface has the same name as "
+                                      "non-interface object",
+                                      [location, p[0].location])
+                p[0].setNonPartial(location, parent, members)
+                return
+        except Exception, ex:
+            if isinstance(ex, WebIDLError):
+                raise ex
+            pass
+
+        p[0] = IDLInterface(location, self.globalScope(), identifier, parent,
+                            members, isPartial=False)
 
     def p_InterfaceForwardDecl(self, p):
         """
@@ -2766,6 +2810,29 @@ class Parser(Tokenizer):
         """
             PartialInterface : PARTIAL INTERFACE IDENTIFIER LBRACE InterfaceMembers RBRACE SEMICOLON
         """
+        location = self.getLocation(p, 2)
+        identifier = IDLUnresolvedIdentifier(self.getLocation(p, 3), p[3])
+        members = p[5]
+
+        try:
+            if self.globalScope()._lookupIdentifier(identifier):
+                p[0] = self.globalScope()._lookupIdentifier(identifier)
+                if not isinstance(p[0], IDLInterface):
+                    raise WebIDLError("Partial interface has the same name as "
+                                      "non-interface object",
+                                      [location, p[0].location])
+                # Just throw our members into the existing IDLInterface.  If we
+                # have extended attributes, those will get added to it
+                # automatically.
+                p[0].members.extend(members)
+                return
+        except Exception, ex:
+            if isinstance(ex, WebIDLError):
+                raise ex
+            pass
+
+        p[0] = IDLInterface(location, self.globalScope(), identifier, None,
+                            members, isPartial=True)
         pass
 
     def p_Inheritance(self, p):
