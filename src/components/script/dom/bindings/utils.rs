@@ -400,7 +400,7 @@ pub struct ConstantSpec {
 pub struct DOMClass {
     // A list of interfaces that this object implements, in order of decreasing
     // derivedness.
-    interface_chain: [prototypes::id::Prototype, ..2 /*max prototype chain length*/],
+    interface_chain: [prototypes::id::Prototype, ..3 /*max prototype chain length*/],
 
     unused: bool, // DOMObjectIsISupports (always false)
     native_hooks: *NativePropertyHooks
@@ -430,6 +430,9 @@ pub mod prototypes {
             Event,
             EventTarget,
             FormData,
+            UIEvent,
+            MouseEvent,
+            WindowProxy,
             _ID_Count
         }
     }
@@ -632,7 +635,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: uint, _vp: *JSVal) -> 
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = @mut ([0 as *JSObject, ..7]); //XXXjdm prototypes::_ID_COUNT
+    let protoArray = @mut ([0 as *JSObject, ..10]); //XXXjdm prototypes::_ID_COUNT
     unsafe {
         //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);

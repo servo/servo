@@ -496,4 +496,13 @@ pub fn define_bindings(compartment: @mut Compartment) {
     assert!(codegen::EventTargetBinding::DefineDOMInterface(compartment.cx.ptr,
                                                             compartment.global_obj.ptr,
                                                             &mut unused));
+    assert!(codegen::FormDataBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                         compartment.global_obj.ptr,
+                                                         &mut unused));
+    assert!(codegen::MouseEventBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                           compartment.global_obj.ptr,
+                                                           &mut unused));
+    assert!(codegen::UIEventBinding::DefineDOMInterface(compartment.cx.ptr,
+                                                        compartment.global_obj.ptr,
+                                                        &mut unused));
 }

@@ -558,7 +558,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                 CGIndenter(CGGeneric(templateBody)).define() + "\n")
             if type.nullable():
                 templateBody += (
-                    "} else if (${val}.isNullOrUndefined()) {\n"
+                    "} else if RUST_JSVAL_IS_NULL(${val}) != 0 || RUST_JSVAL_IS_VOID(${val}) != 0 {\n"
                     "  %s;\n" % codeToSetNull)
             templateBody += (
                 "} else {\n" +
@@ -893,7 +893,7 @@ for (uint32_t i = 0; i < length; ++i) {
                            not descriptor.workers) or isMember
 
         typeName = descriptor.nativeType
-        typePtr = typeName + "*"
+        typePtr = descriptor.pointerType + typeName
 
         # Compute a few things:
         #  - declType is the type we want to return as the first element of our
@@ -904,15 +904,9 @@ for (uint32_t i = 0; i < length; ++i) {
         # Set up some sensible defaults for these things insofar as we can.
         holderType = None
         if argIsPointer:
-            if forceOwningType:
-                declType = "nsRefPtr<" + typeName + ">"
-            else:
-                declType = typePtr
+            declType = "Option<" + typePtr + ">"
         else:
-            if forceOwningType:
-                declType = "OwningNonNull<" + typeName + ">"
-            else:
-                declType = descriptor.pointerType + typeName
+            declType = typePtr
 
         templateBody = ""
         if descriptor.castable:
@@ -1298,10 +1292,15 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
                 (holderType.define(), originalHolderName))
             mutableHolderType = CGWrapper(holderType, pre="Optional< ", post=" >")
             holderType = CGWrapper(mutableHolderType, pre="const ")
-        result.append(
-            CGList([holderType, CGGeneric(" "),
-                    CGGeneric(originalHolderName),
-                    CGGeneric(";")]))
+        tmpresult = [CGGeneric("let "),
+                     CGGeneric(originalHolderName),
+                     CGGeneric(": "),
+                     holderType]
+        if initialValue:
+            tmpresult += [CGGeneric(" = "),
+                          initialValue]
+        tmpresult += [CGGeneric(";")]
+        result.append(CGList(tmpresult))
 
     originalDeclName = replacements["declName"]
     if declType is not None:
@@ -4034,11 +4033,11 @@ class CGDictionary(CGThing):
         def defaultValue(ty):
             if ty is "bool":
                 return "false"
-            elif ty in ["i32", "u32"]:
+            elif ty in ["i32", "u32", "i16", "u16"]:
                 return "0"
             elif ty is "nsString":
                 return "\"\""
-            elif ty.startswith("Optional"):
+            elif ty.startswith("Option"):
                 return "None"
             else:
                 return "/* uh oh: %s */" % ty
@@ -4283,6 +4282,10 @@ class CGBindingRoot(CGThing):
                           'dom::event::*', #XXXjdm
                           'dom::eventtarget::*', #XXXjdm
                           'dom::formdata::*', #XXXjdm
+                          'dom::mouseevent::*', #XXXjdm
+                          'dom::uievent::*', #XXXjdm
+                          'dom::windowproxy::*', #XXXjdm
+                          'dom::bindings::codegen::*', #XXXjdm
                           'script_task::task_from_context',
                           'dom::bindings::utils::EnumEntry',
                           'dom::node::ScriptView',
