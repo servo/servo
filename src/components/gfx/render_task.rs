@@ -128,8 +128,8 @@ impl<C: RenderListener + Send> RenderTask<C> {
                 PaintPermissionGranted => {
                     self.paint_permission = true;
                     match self.last_paint_msg {
-                        Some((ref layer_buffer_set, ref layer_size)) => {
-                            self.compositor.paint(self.id, layer_buffer_set.clone(), *layer_size);
+                        Some((ref layer_buffer_set, layer_size)) => {
+                            self.compositor.paint(self.id, layer_buffer_set.clone(), layer_size);
                             self.compositor.set_render_state(IdleRenderState);
                         }
                         None => {}

@@ -11,10 +11,10 @@ use std::task;
 use gfx::opts::Opts;
 use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use pipeline::Pipeline;
-use servo_msg::constellation_msg::{CompositorAck, ConstellationChan, ExitMsg};
-use servo_msg::constellation_msg::{LoadUrlMsg, Msg, NavigateMsg, RendererReadyMsg};
+use servo_msg::constellation_msg::{CompositorAck, ConstellationChan, ExitMsg, LoadUrlMsg};
+use servo_msg::constellation_msg::{Msg, NavigateMsg, RendererReadyMsg, ResizedWindowBroadcast};
 use servo_msg::constellation_msg;
-use script::script_task::ExecuteMsg;
+use script::script_task::{ResizeInactiveMsg, ExecuteMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
@@ -198,6 +198,17 @@ impl Constellation {
                     }
                 }
             }
+
+            ResizedWindowBroadcast(new_size) => match self.current_painter {
+                Some(current_painter_id) => for self.pipelines.iter().advance |(&id, pipeline)| {
+                    if current_painter_id != id {
+                        pipeline.script_chan.send(ResizeInactiveMsg(new_size));
+                    }
+                },
+                None => for self.pipelines.iter().advance |(_, pipeline)| {
+                    pipeline.script_chan.send(ResizeInactiveMsg(new_size));
+                },
+            },
 
             // Acknowledgement from the compositor that it has updated its active pipeline id
             CompositorAck(id) => {

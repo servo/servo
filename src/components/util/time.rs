@@ -45,10 +45,11 @@ pub enum ProfilerCategory {
 }
 // FIXME(#5873) this should be initialized by a NUM_BUCKETS cast,
 static BUCKETS: uint = 13;
+type ProfilerBuckets = [(ProfilerCategory, ~[float]), ..BUCKETS];
 
 pub enum ProfilerMsg {
     // Normal message used for reporting time
-    TimeMsg(ProfilerCategory, f64),
+    TimeMsg(ProfilerCategory, float),
     // Message used to force print the profiling metrics
     PrintMsg,
 }
@@ -56,7 +57,7 @@ pub enum ProfilerMsg {
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct Profiler {
     port: Port<ProfilerMsg>,
-    buckets: ~[(ProfilerCategory, ~[f64])],
+    buckets: ProfilerBuckets,
     last_msg: Option<ProfilerMsg>,
 }
 
@@ -67,29 +68,30 @@ impl ProfilerCategory {
     }
 
     // enumeration of all ProfilerCategory types
-    // FIXME(tkuehn): this is ugly and error-prone,
-    // but currently we lack better alternatives without an enum enumeration
-    priv fn empty_buckets() -> ~[(ProfilerCategory, ~[f64])] {
-        let mut vec = ~[];
-        vec.push((CompositingCategory, ~[]));
-        vec.push((LayoutQueryCategory, ~[]));
-        vec.push((LayoutPerformCategory, ~[]));
-        vec.push((LayoutAuxInitCategory, ~[]));
-        vec.push((LayoutSelectorMatchCategory, ~[]));
-        vec.push((LayoutTreeBuilderCategory, ~[]));
-        vec.push((LayoutMainCategory, ~[]));
-        vec.push((LayoutShapingCategory, ~[]));
-        vec.push((LayoutDispListBuildCategory, ~[]));
-        vec.push((GfxRegenAvailableFontsCategory, ~[]));
-        vec.push((RenderingDrawingCategory, ~[]));
-        vec.push((RenderingPrepBuffCategory, ~[]));
-        vec.push((RenderingCategory, ~[]));
+    // TODO(tkuehn): is there a better way to ensure proper order of categories?
+    priv fn empty_buckets() -> ProfilerBuckets {
+        let buckets = [
+            (CompositingCategory, ~[]),
+            (LayoutQueryCategory, ~[]),
+            (LayoutPerformCategory, ~[]),
+            (LayoutAuxInitCategory, ~[]),
+            (LayoutSelectorMatchCategory, ~[]),
+            (LayoutTreeBuilderCategory, ~[]),
+            (LayoutMainCategory, ~[]),
+            (LayoutShapingCategory, ~[]),
+            (LayoutDispListBuildCategory, ~[]),
+            (GfxRegenAvailableFontsCategory, ~[]),
+            (RenderingDrawingCategory, ~[]),
+            (RenderingPrepBuffCategory, ~[]),
+            (RenderingCategory, ~[]),
+        ];
 
-        ProfilerCategory::check_order(vec);
-        vec
+        ProfilerCategory::check_order(&buckets);
+        buckets
     }
 
-    priv fn check_order(vec: &[(ProfilerCategory, ~[f64])]) {
+    // ensure that the order of the buckets matches the order of the enum categories
+    priv fn check_order(vec: &ProfilerBuckets) {
         for vec.iter().advance |&(category, _)| {
             if category != vec[category as uint].first() {
                 fail!("Enum category does not match bucket index. This is a bug.");
@@ -136,13 +138,11 @@ impl Profiler {
     priv fn handle_msg(&mut self, msg: ProfilerMsg) {
         match msg {
             TimeMsg(category, t) => match self.buckets[category as uint] {
-                // FIXME(#3874): this should be a let (cat, ref mut bucket) = ...,
-                // not a match
-                (_, ref mut data) => {
-                    data.push(t);
-                }
+                //TODO(tkuehn): would be nice to have tuple.second_mut()
+                (_, ref mut data) => data.push(t),
             },
             PrintMsg => match self.last_msg {
+                // only print if more data has arrived since the last printout
                 Some(TimeMsg(*)) => self.print_buckets(),
                 _ => {}
             },
@@ -155,20 +155,19 @@ impl Profiler {
                          "_category_", "_mean (ms)_", "_median (ms)_",
                          "_min (ms)_", "_max (ms)_", "_bucket size_"));
         for self.buckets.mut_iter().advance |bucket| {
-            match *bucket {
-                (category, ref mut data) => {
-                    tim_sort(*data);
-                    let data_len = data.len();
-                    if data_len > 0 {
-                        let (mean, median, min, max) =
-                            (data.iter().fold(0f64, |a, b| a + *b) / (data_len as f64),
-                             data[data_len / 2],
-                             data.iter().min(),
-                             data.iter().max());
-                        println(fmt!("%-30s: %15.4? %15.4? %15.4? %15.4? %15u",
-                                     category.format(), mean, median, min, max, data_len));
-                    }
-                }
+            let (category, data) = match *bucket {
+                (category, ref mut data) => (category, data),
+            };
+            tim_sort(*data);
+            let data_len = data.len();
+            if data_len > 0 {
+                let (mean, median, &min, &max) =
+                    (data.iter().fold(0f, |a, b| a + *b) / (data_len as float),
+                     data[data_len / 2],
+                     data.iter().min().unwrap(),
+                     data.iter().max().unwrap());
+                println(fmt!("%-30s: %15.4f %15.4f %15.4f %15.4f %15u",
+                             category.format(), mean, median, min, max, data_len));
             }
         }
         println("");
@@ -183,7 +182,7 @@ pub fn profile<T>(category: ProfilerCategory,
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
-    let ms = ((end_time - start_time) as f64 / 1000000f64);
+    let ms = ((end_time - start_time) as float / 1000000f);
     profiler_chan.send(TimeMsg(category, ms));
     return val;
 }
@@ -192,8 +191,8 @@ pub fn time<T>(msg: &str, callback: &fn() -> T) -> T{
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
-    let ms = ((end_time - start_time) as f64 / 1000000f64);
-    if ms >= 5f64 {
+    let ms = ((end_time - start_time) as float / 1000000f);
+    if ms >= 5f {
         debug!("%s took %? ms", msg, ms);
     }
     return val;

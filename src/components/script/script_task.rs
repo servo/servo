@@ -20,7 +20,7 @@ use layout_interface::{ReflowDocumentDamage, ReflowForDisplay, ReflowForScriptQu
 use layout_interface::ReflowMsg;
 use layout_interface;
 use servo_msg::constellation_msg::{ConstellationChan, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::RendererReadyMsg;
+use servo_msg::constellation_msg::{RendererReadyMsg, ResizedWindowBroadcast};
 use servo_msg::constellation_msg;
 
 use std::cast::transmute;
@@ -63,6 +63,8 @@ pub enum ScriptMsg {
     FireTimerMsg(~TimerData),
     /// Notifies script that reflow is finished.
     ReflowCompleteMsg,
+    /// Notifies script that window has been resized but to not take immediate action.
+    ResizeInactiveMsg(Size2D<uint>),
     /// Exits the constellation.
     ExitMsg,
 }
@@ -143,8 +145,8 @@ pub struct ScriptTask {
 
     /// Cached copy of the most recent url loaded by the script
     /// TODO(tkuehn): this currently does not follow any particular caching policy
-    /// and simply caches pages forever (!).
-    last_loaded_url: Option<Url>,
+    /// and simply caches pages forever (!). The bool indicates if reflow is required
+    last_loaded_url: Option<(Url, bool)>,
 }
 
 fn global_script_context_key(_: @ScriptTask) {}
@@ -284,6 +286,7 @@ impl ScriptTask {
             FireTimerMsg(timer_data) => self.handle_fire_timer_msg(timer_data),
             NavigateMsg(direction) => self.handle_navigate_msg(direction),
             ReflowCompleteMsg => self.handle_reflow_complete_msg(),
+            ResizeInactiveMsg(new_size) => self.handle_resize_inactive_msg(new_size),
             ExitMsg => {
                 self.handle_exit_msg();
                 return false
@@ -343,6 +346,15 @@ impl ScriptTask {
         self.constellation_chan.send(constellation_msg::NavigateMsg(direction));
     }
 
+    /// Window was resized, but this script was not active, so don't reflow yet
+    fn handle_resize_inactive_msg(&mut self, new_size: Size2D<uint>) {
+        self.window_size = new_size;
+        let last_loaded_url = replace(&mut self.last_loaded_url, None);
+        for last_loaded_url.iter().advance |last_loaded_url| {
+            self.last_loaded_url = Some((last_loaded_url.first(), true));
+        }
+    }
+
     /// Handles a request to exit the script task and shut down layout.
     fn handle_exit_msg(&mut self) {
         self.join_layout();
@@ -356,9 +368,18 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&mut self, url: Url) {
-        for self.last_loaded_url.iter().advance |last_loaded_url| {
-            if url == *last_loaded_url { return; }
+        let last_loaded_url = replace(&mut self.last_loaded_url, None);
+        for last_loaded_url.iter().advance |last_loaded_url| {
+            let (ref last_loaded_url, needs_reflow) = *last_loaded_url;
+            if *last_loaded_url == url {
+                if needs_reflow {
+                    self.reflow_all(ReflowForDisplay);
+                    self.last_loaded_url = Some((last_loaded_url.clone(), false));
+                }
+                return;
+            }
         }
+        
         // Define the script DOM bindings.
         //
         // FIXME: Can this be done earlier, to save the flag?
@@ -425,7 +446,7 @@ impl ScriptTask {
                                                     ~"???",
                                                     1);
         }
-        self.last_loaded_url = Some(url);
+        self.last_loaded_url = Some((url, false));
     }
 
     /// Sends a ping to layout and waits for the response. The response will arrive when the
@@ -493,8 +514,8 @@ impl ScriptTask {
     pub fn reflow_all(&mut self, goal: ReflowGoal) {
         for self.root_frame.iter().advance |root_frame| {
             ScriptTask::damage(&mut self.damage,
-                                  root_frame.document.root,
-                                  MatchSelectorsDocumentDamage)
+                               root_frame.document.root,
+                               MatchSelectorsDocumentDamage)
         }
 
         self.reflow(goal)
@@ -539,13 +560,14 @@ impl ScriptTask {
 
                 for self.root_frame.iter().advance |root_frame| {
                     ScriptTask::damage(&mut self.damage,
-                                          root_frame.document.root,
-                                          ReflowDocumentDamage);
+                                       root_frame.document.root,
+                                       ReflowDocumentDamage);
                 }
 
                 if self.root_frame.is_some() {
                     self.reflow(ReflowForDisplay)
                 }
+                self.constellation_chan.send(ResizedWindowBroadcast(self.window_size));
             }
 
             // FIXME(pcwalton): This reflows the entire document and is not incremental-y.
@@ -554,8 +576,8 @@ impl ScriptTask {
 
                 for self.root_frame.iter().advance |root_frame| {
                     ScriptTask::damage(&mut self.damage,
-                                          root_frame.document.root,
-                                          MatchSelectorsDocumentDamage);
+                                       root_frame.document.root,
+                                       MatchSelectorsDocumentDamage);
                 }
 
                 if self.root_frame.is_some() {
