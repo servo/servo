@@ -94,6 +94,8 @@ class CastableObjectUnwrapper():
         assert descriptor.castable
 
         self.substitution = { "type" : descriptor.nativeType,
+                              "depth": descriptor.interface.inheritanceDepth(),
+                              "prototype": "prototypes::id::" + descriptor.name,
                               "protoID" : "prototypes::id::" + descriptor.name + " as uint",
                               "source" : source,
                               "target" : target,
@@ -118,8 +120,14 @@ class CastableObjectUnwrapper():
 
     def __str__(self):
         return string.Template(
-"""${target} = unwrap(${source});
+"""match unwrap_object(${source}, ${prototype}, ${depth}) {
+  Ok(val) => ${target} = val,
+  Err(()) => {
+    ${codeOnFailure}
+  }
+}
 """).substitute(self.substitution)
+
 #"""{
 #  nsresult rv = UnwrapObject<${protoID}, ${type}>(cx, ${source}, ${target});
 #  if (NS_FAILED(rv)) {
@@ -133,7 +141,7 @@ class FailureFatalCastableObjectUnwrapper(CastableObjectUnwrapper):
     """
     def __init__(self, descriptor, source, target):
         CastableObjectUnwrapper.__init__(self, descriptor, source, target,
-                                         "return Throw<%s>(cx, rv);" %
+                                         "return 0; //XXXjdm return Throw<%s>(cx, rv);" %
                                          toStringBool(not descriptor.workers))
 
 class CGThing():
@@ -397,6 +405,10 @@ class FakeCastableDescriptor():
         self.pointerType = descriptor.pointerType
         self.name = descriptor.name
         self.hasXPConnectImpls = descriptor.hasXPConnectImpls
+        class FakeInterface:
+            def inheritanceDepth(self):
+                return descriptor.interface.inheritanceDepth()
+        self.interface = FakeInterface()
 
 def dictionaryHasSequenceMember(dictionary):
     return (any(typeIsSequenceOrHasSequenceMember(m.type) for m in
@@ -934,41 +946,19 @@ for (uint32_t i = 0; i < length; ++i) {
         elif descriptor.workers:
             templateBody += "${declName} = &${val}.toObject();"
         else:
-            # Either external, or new-binding non-castable.  We always have a
-            # holder for these, because we don't actually know whether we have
-            # to addref when unwrapping or not.  So we just pass an
-            # getter_AddRefs(nsRefPtr) to XPConnect and if we'll need a release
-            # it'll put a non-null pointer in there.
-            if forceOwningType:
-                # Don't return a holderType in this case; our declName
-                # will just own stuff.
-                templateBody += "nsRefPtr<" + typeName + "> ${holderName};\n"
-            else:
-                holderType = "nsRefPtr<" + typeName + ">"
             templateBody += (
-                "jsval tmpVal = ${val};\n" +
-                typePtr + " tmp;\n"
-                "if (NS_FAILED(xpc_qsUnwrapArg<" + typeName + ">(cx, ${val}, &tmp, static_cast<" + typeName + "**>(getter_AddRefs(${holderName})), &tmpVal))) {\n")
+                "match unwrap_value::<" + typePtr + ">(&${val} as *JSVal, "
+                "prototypes::id::%s, %d) {\n" % (descriptor.name, descriptor.interface.inheritanceDepth() if descriptor.concrete else 0) +
+                "  Err(()) => {")
             templateBody += CGIndenter(onFailureBadType(failureCode,
                                                         descriptor.interface.identifier.name)).define()
-            templateBody += ("}\n"
-                "MOZ_ASSERT(tmp);\n")
-
-            if not isDefinitelyObject:
-                # Our tmpVal will go out of scope, so we can't rely on it
-                # for rooting
-                templateBody += (
-                    "if (tmpVal != ${val} && !${holderName}) {\n"
-                    "  // We have to have a strong ref, because we got this off\n"
-                    "  // some random object that might get GCed\n"
-                    "  ${holderName} = tmp;\n"
-                    "}\n")
-
-            # And store our tmp, before it goes out of scope.
-            templateBody += "${declName} = tmp;"
+            templateBody += (
+                "  }\n"
+                "  Ok(unwrapped) => ${declName} = Some(unwrapped)\n"
+                "}\n")
 
         templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
-                                          type, "${declName} = NULL",
+                                          type, "${declName} = None",
                                           failureCode)
 
         declType = CGGeneric(declType)
@@ -2849,7 +2839,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     getPrototypeOf: ptr::null()
   };
   (*script_context).dom_static.proxy_handlers.insert(prototypes::id::%s as uint,
-                                              CreateProxyHandler(ptr::to_unsafe_ptr(&traps)));
+                                              CreateProxyHandler(ptr::to_unsafe_ptr(&traps), ptr::to_unsafe_ptr(&Class) as *libc::c_void));
 
 """ % self.descriptor.name
         else:
@@ -3141,7 +3131,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
         if unwrapFailureCode is None:
-            self.unwrapFailureCode = ("return Throw<%s>(cx, rv);" %
+            self.unwrapFailureCode = ("return 0; //XXXjdm return Throw<%s>(cx, rv);" %
                                       toStringBool(not descriptor.workers))
         else:
             self.unwrapFailureCode = unwrapFailureCode
