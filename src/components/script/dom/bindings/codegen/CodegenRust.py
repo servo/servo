@@ -2066,7 +2066,7 @@ class CGNativePropertyHooks(CGThing):
         parentHooks = ("&" + toBindingNamespace(parent.identifier.name) + "::NativeHooks"
                        if parent else '0 as *NativePropertyHooks')
         return """
-static NativeHooks: NativePropertyHooks = NativePropertyHooks { resolve_own_property: /*%s*/ 0 as *u8, resolve_property: ResolveProperty, enumerate_own_properties: /*%s*/ 0 as *u8, enumerate_properties: /*EnumerateProperties*/ 0 as *u8, proto_hooks: %s };
+static NativeHooks: NativePropertyHooks = NativePropertyHooks { resolve_own_property: /*%s*/ 0 as *u8, resolve_property: ResolveProperty, enumerate_own_properties: /*%s*/ 0 as *u8, enumerate_properties: /*EnumerateProperties*/ 0 as *u8, proto_hooks: /*%s*/ 0 as *NativePropertyHooks };
 """ % (resolveOwnProperty, enumerateOwnProperties, parentHooks)
 
 # We'll want to insert the indent at the beginnings of lines, but we
@@ -2722,11 +2722,11 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
     A method for getting a per-interface object (a prototype object or interface
     constructor object).
     """
-    def __init__(self, descriptor, name, idPrefix=""):
+    def __init__(self, descriptor, name, idPrefix="", pub=False):
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aGlobal'),
                 Argument('*JSObject', 'aReceiver')]
         CGAbstractMethod.__init__(self, descriptor, name,
-                                  '*JSObject', args, inline=True)
+                                  '*JSObject', args, inline=True, pub=pub)
         self.id = idPrefix + "id::" + self.descriptor.name
     def definition_body(self):
         return """
@@ -2758,7 +2758,7 @@ class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
     """
     def __init__(self, descriptor):
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetProtoObject",
-                                         "prototypes::")
+                                         "prototypes::", pub=True)
     def definition_body(self):
         return """
   /* Get the interface prototype object for this class.  This will create the
@@ -3988,7 +3988,8 @@ class CGDictionary(CGThing):
             return ""
         d = self.dictionary
         if d.parent:
-            inheritance = ": public %s " % self.makeClassName(d.parent) #XXXjdm
+            inheritance = "  parent: %s::%s,\n" % (self.makeModuleName(d.parent),
+                                                   self.makeClassName(d.parent))
         else:
             inheritance = ""
         memberDecls = ["  %s: %s," %
@@ -3996,7 +3997,8 @@ class CGDictionary(CGThing):
                        for m in self.memberInfo]
 
         return (string.Template(
-                "pub struct ${selfName} {\n" + #XXXjdm deal with inheritance
+                "pub struct ${selfName} {\n" +
+                "${inheritance}" +
                 "\n".join(memberDecls) + "\n" +
                 # NOTE: jsids are per-runtime, so don't use them in workers
                 "\n".join("  //static jsid " +
@@ -4011,13 +4013,13 @@ class CGDictionary(CGThing):
         d = self.dictionary
         if d.parent:
             initParent = ("// Per spec, we init the parent's members first\n"
-                          "if (!%s::Init(cx, val)) {\n"
-                          "  return false;\n"
-                          "}\n" % self.makeClassName(d.parent))
+                          "if self.parent.Init(cx, val) == 0 {\n"
+                          "  return 0;\n"
+                          "}\n")
         else:
             initParent = ""
 
-        memberInits = [CGIndenter(self.getMemberConversion(m)).define()
+        memberInits = [CGIndenter(self.getMemberConversion(m), indentLevel=6).define()
                        for m in self.memberInfo]
         idinit = [CGGeneric('!InternJSString(cx, %s, "%s")' %
                             (m.identifier.name + "_id", m.identifier.name))
@@ -4049,42 +4051,43 @@ class CGDictionary(CGThing):
                        for m in d.members) + "\n"
              "\n"
              "impl ${selfName} {\n"
-             "fn new() -> ${selfName} {\n"
-             "  ${selfName} {\n" +
-             "\n".join("    %s: %s," % (m[0].identifier.name, defaultValue(self.getMemberType(m))) for m in self.memberInfo) + "\n"
+             "  pub fn new() -> ${selfName} {\n"
+             "    ${selfName} {\n" +
+             (("      parent: %s::%s::new(),\n" % (self.makeModuleName(d.parent),
+                                                   self.makeClassName(d.parent))) if d.parent else "") +
+             "\n".join("      %s: %s," % (m[0].identifier.name, defaultValue(self.getMemberType(m))) for m in self.memberInfo) + "\n"
+             "    }\n"
              "  }\n"
-             "}\n"
              "\n"
-             "fn InitIds(cx: *JSContext) -> bool {\n"
-             "  //MOZ_ASSERT(!initedIds);\n"
-             "/*${idInit}\n"
-             "  initedIds = true;*/ //XXXjdm\n"
-             "  return true;\n"
-             "}\n"
+             "  pub fn InitIds(&mut self, cx: *JSContext) -> bool {\n"
+             "    //MOZ_ASSERT(!initedIds);\n"
+             "  /*${idInit}\n"
+             "    initedIds = true;*/ //XXXjdm\n"
+             "    return true;\n"
+             "  }\n"
              "\n" if not self.workers else "") +
-            "fn Init(&mut self, cx: *JSContext, val: JSVal) -> JSBool\n"
-            "{\n"
-            "  unsafe {\n" +
+            "  pub fn Init(&mut self, cx: *JSContext, val: JSVal) -> JSBool {\n"
+            "    unsafe {\n" +
             # NOTE: jsids are per-runtime, so don't use them in workers
-            ("  if (!initedIds && !${selfName}::InitIds(cx)) {\n"
-             "    return 0;\n"
-             "  }\n" if not self.workers else "") +
+            ("      if (!initedIds && !self.InitIds(cx)) {\n"
+             "        return 0;\n"
+             "      }\n" if not self.workers else "") +
             "${initParent}"
-            "  let mut found: JSBool = 0;\n"
-            "  let temp: JSVal = JSVAL_NULL;\n"
-            "  let isNull = RUST_JSVAL_IS_NULL(val) != 0 || RUST_JSVAL_IS_VOID(val) != 0;\n"
-            "  if !isNull && RUST_JSVAL_IS_PRIMITIVE(val) != 0 {\n"
-            "    return 0; //XXXjdm throw properly here\n"
-            "    //return Throw<${isMainThread}>(cx, NS_ERROR_XPC_BAD_CONVERT_JS);\n"
-            "  }\n"
+            "      let mut found: JSBool = 0;\n"
+            "      let temp: JSVal = JSVAL_NULL;\n"
+            "      let isNull = RUST_JSVAL_IS_NULL(val) != 0 || RUST_JSVAL_IS_VOID(val) != 0;\n"
+            "      if !isNull && RUST_JSVAL_IS_PRIMITIVE(val) != 0 {\n"
+            "        return 0; //XXXjdm throw properly here\n"
+            "        //return Throw<${isMainThread}>(cx, NS_ERROR_XPC_BAD_CONVERT_JS);\n"
+            "      }\n"
             "\n"
             "${initMembers}\n"
-            "  return 1;\n"
+            "      return 1;\n"
+            "    }\n"
             "  }\n"
-            "}\n"
             "}").substitute({
                 "selfName": self.makeClassName(d),
-                "initParent": CGIndenter(CGGeneric(initParent)).define(),
+                "initParent": CGIndenter(CGGeneric(initParent), indentLevel=6).define(),
                 "initMembers": "\n\n".join(memberInits),
                 "idInit": CGIndenter(idinit).define(),
                 "isMainThread": toStringBool(not self.workers)
@@ -4097,6 +4100,15 @@ class CGDictionary(CGThing):
 
     def makeClassName(self, dictionary):
         return self.makeDictionaryName(dictionary, self.workers)
+
+    @staticmethod
+    def makeModuleName(dictionary):
+        name = dictionary.identifier.name
+        if name.endswith('Init'):
+            return toBindingNamespace(name.replace('Init', ''))
+        #XXXjdm This breaks on the test webidl files, sigh.
+        #raise TypeError("No idea how to find this dictionary's definition: " + name)
+        return "/* uh oh */ %s" % name
 
     def getMemberType(self, memberInfo):
         (member, (templateBody, declType,
