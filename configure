@@ -401,6 +401,7 @@ CFG_SUBMODULES="\
     support/alert/rust-alert \
     support/azure/rust-azure \
     support/css/rust-css \
+    support/css/rust-cssparser \
     support/geom/rust-geom \
     support/glut/rust-glut \
     support/glfw/glfw \
