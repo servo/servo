@@ -100,3 +100,6 @@
 [submodule "src/support/glfw/glfw-rs"]
 	path = src/support/glfw/glfw-rs
 	url = https://github.com/mozilla-servo/glfw-rs.git
+[submodule "src/support/css/rust-cssparser"]
+	path = src/support/css/rust-cssparser
+	url = https://github.com/mozilla-servo/rust-cssparser.git
