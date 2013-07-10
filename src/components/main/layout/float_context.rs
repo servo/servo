@@ -95,6 +95,13 @@ impl FloatContext {
     }
 
     #[inline(always)]
+    pub fn place_between_floats(&self, info: &PlacementInfo) -> Rect<Au> {
+        do self.with_base |base| {
+            base.place_between_floats(info)
+        }
+    }
+
+    #[inline(always)]
     pub fn last_float_pos(&mut self) -> Point2D<Au> {
         do self.with_base |base| {
             base.last_float_pos()
@@ -154,6 +161,7 @@ impl FloatContextBase{
 
         // Find the float collisions for the given vertical range.
         for self.float_data.iter().advance |float| {
+            debug!("available_rect: Checking for collision against float");
             match *float{
                 None => (),
                 Some(data) => {
@@ -167,6 +175,9 @@ impl FloatContextBase{
                             
                                 l_top = Some(float_pos.y);
                                 l_bottom = Some(float_pos.y + float_size.height);
+
+                                debug!("available_rect: collision with left float: new max_left is %?",
+                                        max_left);
                             }
                         }
                         FloatRight => {
@@ -176,6 +187,8 @@ impl FloatContextBase{
 
                                 r_top = Some(float_pos.y);
                                 r_bottom = Some(float_pos.y + float_size.height);
+                                debug!("available_rect: collision with right float: new max_left is %?",
+                                        max_left);
                             }
                         }
                     }
@@ -215,9 +228,17 @@ impl FloatContextBase{
         assert!(self.floats_used < self.float_data.len() && 
                 self.float_data[self.floats_used].is_none());
 
+        let new_info = PlacementInfo {
+            width: info.width,
+            height: info.height,
+            ceiling: max(info.ceiling, self.max_y + self.offset.y),
+            max_width: info.max_width,
+            f_type: info.f_type
+        };
+
         let new_float = FloatData {    
             bounds: Rect {
-                origin: self.place_float(info) - self.offset,
+                origin: self.place_between_floats(&new_info).origin - self.offset,
                 size: Size2D(info.width, info.height)
             },
             f_type: info.f_type
@@ -227,14 +248,29 @@ impl FloatContextBase{
         self.floats_used += 1;
     }
 
-    /// Given necessary info, finds the position of the float in
-    /// LOCAL COORDINATES. i.e. must be translated before placed
-    /// in the float list
-    fn place_float(&self, info: &PlacementInfo) -> Point2D<Au>{
+    /// Returns true if the given rect overlaps with any floats.
+    fn collides_with_float(&self, bounds: &Rect<Au>) -> bool {
+        for self.float_data.each |float| {
+            match *float{
+                None => (),
+                Some(data) => {
+                    if data.bounds.translate(&self.offset).intersects(bounds) {
+                        return true;
+                    }
+                }
+            };
+        }
+
+        return false;
+    }
+
+    /// Given necessary info, finds the closest place a box can be positioned
+    /// without colliding with any floats.
+    fn place_between_floats(&self, info: &PlacementInfo) -> Rect<Au>{
         debug!("place_float: Placing float with width %? and height %?", info.width, info.height);
         // Can't go any higher than previous floats or
         // previous elements in the document.
-        let mut float_y = max(info.ceiling, self.max_y + self.offset.y);
+        let mut float_y = info.ceiling;
         loop {
             let maybe_location = self.available_rect(float_y, info.height, info.max_width);
             debug!("place_float: Got available rect: %? for y-pos: %?", maybe_location, float_y);
@@ -243,8 +279,11 @@ impl FloatContextBase{
                 // If there are no floats blocking us, return the current location
                 // TODO(eatknson): integrate with overflow
                 None => return match info.f_type { 
-                    FloatLeft => Point2D(Au(0), float_y),
-                    FloatRight => Point2D(info.max_width - info.width, float_y)
+                    FloatLeft => Rect(Point2D(Au(0), float_y), 
+                                      Size2D(info.max_width, info.height)),
+
+                    FloatRight => Rect(Point2D(info.max_width - info.width, float_y), 
+                                       Size2D(info.max_width, info.height))
                 },
 
                 Some(rect) => {
@@ -254,9 +293,11 @@ impl FloatContextBase{
                     // Place here if there is enough room
                     if (rect.size.width >= info.width) {
                         return match info.f_type {
-                            FloatLeft => Point2D(rect.origin.x, float_y),
+                            FloatLeft => Rect(Point2D(rect.origin.x, float_y),
+                                              Size2D(rect.size.width, info.height)),
                             FloatRight => {
-                                Point2D(rect.origin.x + rect.size.width - info.width, float_y)
+                                Rect(Point2D(rect.origin.x + rect.size.width - info.width, float_y),
+                                     Size2D(rect.size.width, info.height))
                             }
                         };
                     }
