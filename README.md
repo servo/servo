@@ -68,6 +68,7 @@ There are lots of make targets you can use:
 - `make clean-rust` - cleans Rust
 - `make clean-servo` - only cleans Servo itself (code in `src/components`
 - `make clean-DEP` - cleans the dependency `DEP`. e.g. `make clean-rust-opengles`
+- `make bindings` - generate the Rust WebIDL bindings
 - `make DEP` - builds only the specified dependency. e.g. `make rust-opengles`
 - `make check-DEP` - build and run tests for specified dependency
 
