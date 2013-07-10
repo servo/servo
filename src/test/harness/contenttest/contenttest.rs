@@ -12,7 +12,7 @@ extern mod extra;
 
 use extra::test::{TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynTestFn, DynTestName};
 use extra::getopts::{getopts, reqopt, opt_str, fail_str};
-use std::{os, run, io, str, vec};
+use std::{os, run, io, str};
 use std::cell::Cell;
 use std::os::list_dir_path;
 
@@ -61,9 +61,9 @@ fn test_options(config: Config) -> TestOpts {
 }
 
 fn find_tests(config: Config) -> ~[TestDescAndFn] {
-    let all_files = list_dir_path(&Path(config.source_dir));
-    let html_files = vec::filter(all_files, |file| file.to_str().ends_with(".html") );
-    return html_files.map(|file| make_test((*file).to_str()) );
+    let mut files = list_dir_path(&Path(config.source_dir));
+    files.retain( |file| file.to_str().ends_with(".html") );
+    return files.map(|file| make_test((*file).to_str()) );
 }
 
 fn make_test(file: ~str) -> TestDescAndFn {
