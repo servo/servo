@@ -254,11 +254,13 @@ bindinggen_dependencies := $(addprefix $(BINDINGS_SRC)/, BindingGen.py Bindings.
 
 $(AUTOGEN_SRC_script): %Binding.rs: $(bindinggen_dependencies) \
                                    %.webidl
-	PYTHONDONTWRITEBYTECODE=1 $(CFG_PYTHON2) $(BINDINGS_SRC)/pythonpath.py \
+	@echo "Maybe generating $(shell basename $@)..."
+	$(Q)PYTHONDONTWRITEBYTECODE=1 $(CFG_PYTHON2) $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
 	  $(BINDINGS_SRC)/BindingGen.py rs \
 	  $(BINDINGS_SRC)/Bindings.conf $*Binding $*.webidl
+	$(Q)touch $@
 
 globalgen_dependencies := $(addprefix $(BINDINGS_SRC)/, GlobalGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py) $(CACHE_DIR)/.done
 
@@ -268,7 +270,7 @@ $(CACHE_DIR)/.done:
 
 $(BINDINGS_SRC)/ParserResults.pkl: $(globalgen_dependencies) \
                                    $(WEBIDL_script)
-	PYTHONDONTWRITEBYTECODE=1 $(CFG_PYTHON2) $(BINDINGS_SRC)/pythonpath.py \
+	$(Q)PYTHONDONTWRITEBYTECODE=1 $(CFG_PYTHON2) $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
 	  $(BINDINGS_SRC)/GlobalGen.py $(BINDINGS_SRC)/Bindings.conf . \
