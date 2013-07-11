@@ -15,6 +15,7 @@ use servo_msg::compositor_msg::{ReadyState, ScriptListener};
 use servo_msg::constellation_msg::{CompositorAck, ConstellationChan};
 use servo_msg::constellation_msg;
 use gfx::render_task::{RenderChan, ReRenderMsg};
+use gfx::opts::Opts;
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods, current_gl_context};
 use azure::azure::AzGLContext;
@@ -162,17 +163,20 @@ impl ImageData for AzureDrawTargetImageData {
 }
 
 pub struct CompositorTask {
+    opts: Opts,
     port: Port<Msg>,
     profiler_chan: ProfilerChan,
     shutdown_chan: SharedChan<()>,
 }
 
 impl CompositorTask {
-    pub fn new(port: Port<Msg>,
+    pub fn new(opts: Opts,
+               port: Port<Msg>,
                profiler_chan: ProfilerChan,
                shutdown_chan: Chan<()>)
                -> CompositorTask {
         CompositorTask {
+            opts: opts,
             port: port,
             profiler_chan: profiler_chan,
             shutdown_chan: SharedChan::new(shutdown_chan),
@@ -180,13 +184,16 @@ impl CompositorTask {
     }
 
     /// Starts the compositor, which listens for messages on the specified port. 
-    pub fn create(port: Port<Msg>,
-                                  profiler_chan: ProfilerChan,
-                                  shutdown_chan: Chan<()>) {
+    pub fn create(opts: Opts,
+                  port: Port<Msg>,
+                  profiler_chan: ProfilerChan,
+                  shutdown_chan: Chan<()>) {
         let port = Cell::new(port);
         let shutdown_chan = Cell::new(shutdown_chan);
+        let opts = Cell::new(opts);
         do on_osmain {
-            let compositor_task = CompositorTask::new(port.take(),
+            let compositor_task = CompositorTask::new(opts.take(),
+                                                      port.take(),
                                                       profiler_chan.clone(),
                                                       shutdown_chan.take());
             debug!("preparing to enter main loop");
@@ -501,8 +508,6 @@ impl CompositorTask {
             *recomposite = true;
         }
 
-
-
         // When the user pinch-zooms, scale the layer
         do window.set_zoom_callback |magnification| {
             *zoom_action = true;
@@ -540,6 +545,12 @@ impl CompositorTask {
             root_layer.common.set_transform(zoom_transform);
             
             *recomposite = true;
+        }
+
+        if self.opts.exit_after_load {
+            do window.set_finished_callback || {
+                *done = true;
+            }
         }
 
         // Enter the main event loop.

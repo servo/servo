@@ -4,7 +4,7 @@
 
 //! A windowing implementation using GLFW.
 
-use windowing::{ApplicationMethods, LoadUrlCallback, MouseCallback};
+use windowing::{ApplicationMethods, LoadUrlCallback, MouseCallback, FinishedCallback};
 use windowing::{ResizeCallback, ScrollCallback, WindowMethods, WindowMouseEvent, WindowClickEvent};
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent, ZoomCallback, Forward, Back, NavigationCallback};
 
@@ -45,6 +45,7 @@ pub struct Window {
     scroll_callback: Option<ScrollCallback>,
     zoom_callback: Option<ZoomCallback>,
     navigation_callback: Option<NavigationCallback>,
+    finished_callback: Option<FinishedCallback>,
 
     drag_origin: Point2D<c_int>,
 
@@ -73,6 +74,7 @@ impl WindowMethods<Application> for Window {
             scroll_callback: None,
             zoom_callback: None,
             navigation_callback: None,
+            finished_callback: None,
 
             drag_origin: Point2D(0 as c_int, 0),
 
@@ -153,6 +155,10 @@ impl WindowMethods<Application> for Window {
         self.navigation_callback = Some(new_navigation_callback)
     }
 
+    pub fn set_finished_callback(&mut self, new_finished_callback: FinishedCallback) {
+        self.finished_callback = Some(new_finished_callback)
+    }
+
     /// Spins the event loop.
     pub fn check_loop(@mut self) {
         glfw::poll_events();
@@ -171,7 +177,11 @@ impl WindowMethods<Application> for Window {
         if self.ready_state == FinishedLoading &&
             self.render_state == RenderingRenderState &&
             render_state == IdleRenderState {
+
             // page loaded
+            for self.finished_callback.iter().advance |&callback| {
+                callback();
+            }
         }
 
         self.render_state = render_state;
