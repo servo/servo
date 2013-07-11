@@ -18,10 +18,6 @@ pub struct Opts {
     n_render_threads: uint,
     tile_size: uint,
     profiler_period: Option<float>,
-
-    /// A scale factor to apply to tiles, to allow rendering tiles at higher resolutions for
-    /// testing pan and zoom code.
-    zoom: uint,
 }
 
 #[allow(non_implicitly_copyable_typarams)]
@@ -36,7 +32,6 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         getopts::optopt("s"),  // size of tiles
         getopts::optopt("t"),  // threads to render with
         getopts::optflagopt("p"),  // profiler flag and output interval
-        getopts::optopt("z"),  // zoom level
     ];
 
     let opt_match = match getopts::getopts(args, opts) {
@@ -90,17 +85,11 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         None => None,
     };
 
-    let zoom: uint = match getopts::opt_maybe_str(&opt_match, "z") {
-        Some(zoom_str) => uint::from_str(zoom_str).get(),
-        None => 1,
-    };
-
     Opts {
         urls: urls,
         render_backend: render_backend,
         n_render_threads: n_render_threads,
         tile_size: tile_size,
         profiler_period: profiler_period,
-        zoom: zoom,
     }
 }
