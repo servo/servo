@@ -13,7 +13,7 @@ import cStringIO
 import WebIDL
 import cPickle
 from Configuration import *
-from Codegen import GlobalGenRoots, replaceFileIfChanged
+from CodegenRust import GlobalGenRoots, replaceFileIfChanged
 # import Codegen in general, so we can set a variable on it
 import Codegen
 
@@ -21,11 +21,16 @@ def generate_file(config, name, action):
 
     root = getattr(GlobalGenRoots, name)(config)
     if action is 'declare':
-        filename = name + '.h'
+        filename = name + '.rs'
         code = root.declare()
+    elif action == 'declare+define':
+        filename = name + '.rs'
+        code = root.declare()
+        root2 = getattr(GlobalGenRoots, name)(config)
+        code += root2.define()
     else:
         assert action is 'define'
-        filename = name + '.cpp'
+        filename = name + '.rs'
         code = root.define()
 
     if replaceFileIfChanged(filename, code):
@@ -70,14 +75,14 @@ def main():
     config = Configuration(configFile, parserResults)
 
     # Generate the prototype list.
-    generate_file(config, 'PrototypeList', 'declare')
+    generate_file(config, 'PrototypeList', 'declare+define')
 
     # Generate the common code.
-    generate_file(config, 'RegisterBindings', 'declare')
-    generate_file(config, 'RegisterBindings', 'define')
+    generate_file(config, 'RegisterBindings', 'declare+define')
 
-    generate_file(config, 'UnionTypes', 'declare')
-    generate_file(config, 'UnionConversions', 'declare')
+    #XXXjdm No union support yet
+    #generate_file(config, 'UnionTypes', 'declare')
+    #generate_file(config, 'UnionConversions', 'declare')
 
 if __name__ == '__main__':
     main()

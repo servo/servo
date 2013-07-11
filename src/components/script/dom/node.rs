@@ -4,7 +4,6 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
-use dom::bindings::codegen;
 use dom::bindings::node;
 use dom::bindings::utils::WrapperCache;
 use dom::bindings;
@@ -477,32 +476,5 @@ pub fn define_bindings(compartment: @mut Compartment) {
     bindings::element::init(compartment);
     bindings::text::init(compartment);
     bindings::utils::initialize_global(compartment.global_obj.ptr);
-    let mut unused = false;
-    assert!(codegen::ClientRectBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                           compartment.global_obj.ptr,
-                                                           &mut unused));
-    assert!(codegen::ClientRectListBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                               compartment.global_obj.ptr,
-                                                               &mut unused));
-    assert!(codegen::HTMLCollectionBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                               compartment.global_obj.ptr,
-                                                               &mut unused));
-    assert!(codegen::DOMParserBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                          compartment.global_obj.ptr,
-                                                          &mut unused));
-    assert!(codegen::EventBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                      compartment.global_obj.ptr,
-                                                      &mut unused));
-    assert!(codegen::EventTargetBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                            compartment.global_obj.ptr,
-                                                            &mut unused));
-    assert!(codegen::FormDataBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                         compartment.global_obj.ptr,
-                                                         &mut unused));
-    assert!(codegen::MouseEventBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                           compartment.global_obj.ptr,
-                                                           &mut unused));
-    assert!(codegen::UIEventBinding::DefineDOMInterface(compartment.cx.ptr,
-                                                        compartment.global_obj.ptr,
-                                                        &mut unused));
+    bindings::codegen::RegisterBindings::Register(compartment);
 }

@@ -95,8 +95,8 @@ class CastableObjectUnwrapper():
 
         self.substitution = { "type" : descriptor.nativeType,
                               "depth": descriptor.interface.inheritanceDepth(),
-                              "prototype": "prototypes::id::" + descriptor.name,
-                              "protoID" : "prototypes::id::" + descriptor.name + " as uint",
+                              "prototype": "PrototypeList::id::" + descriptor.name,
+                              "protoID" : "PrototypeList::id::" + descriptor.name + " as uint",
                               "source" : source,
                               "target" : target,
                               "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define() }
@@ -942,7 +942,7 @@ for (uint32_t i = 0; i < length; ++i) {
         else:
             templateBody += (
                 "match unwrap_value::<" + typePtr + ">(&${val} as *JSVal, "
-                "prototypes::id::%s, %d) {\n" % (descriptor.name, descriptor.interface.inheritanceDepth() if descriptor.concrete else 0) +
+                "PrototypeList::id::%s, %d) {\n" % (descriptor.name, descriptor.interface.inheritanceDepth() if descriptor.concrete else 0) +
                 "  Err(()) => {")
             templateBody += CGIndenter(onFailureBadType(failureCode,
                                                         descriptor.interface.identifier.name)).define()
@@ -2151,6 +2151,13 @@ class CGImports(CGWrapper):
         CGWrapper.__init__(self, child,
                            declarePre=_useString(sorted(declareImports)))
 
+    @staticmethod
+    def getDeclarationFilename(decl):
+        # Use our local version of the header, not the exported one, so that
+        # test bindings, which don't export, will work correctly.
+        basename = os.path.basename(decl.filename())
+        return basename.replace('.webidl', 'Binding.rs')
+
 class CGIfWrapper(CGWrapper):
     def __init__(self, child, condition):
         pre = CGWrapper(CGGeneric(condition), pre="if ", post=" {\n",
@@ -2178,12 +2185,12 @@ class CGNamespace(CGWrapper):
         return ""
 
 def DOMClass(descriptor):
-        protoList = ['prototypes::id::' + proto for proto in descriptor.prototypeChain]
+        protoList = ['PrototypeList::id::' + proto for proto in descriptor.prototypeChain]
         # Pad out the list to the right length with _ID_Count so we
         # guarantee that all the lists are the same length.  _ID_Count
         # is never the ID of any prototype, so it's safe to use as
         # padding.
-        protoList.extend(['prototypes::id::_ID_Count'] * (descriptor.config.maxProtoChainLength - len(protoList)))
+        protoList.extend(['PrototypeList::id::_ID_Count'] * (descriptor.config.maxProtoChainLength - len(protoList)))
         prototypeChainString = ', '.join(protoList)
         nativeHooks = "0 as *NativePropertyHooks" if descriptor.workers else "&NativeHooks as *NativePropertyHooks"
         return """DOMClass {
@@ -2382,7 +2389,7 @@ class CGAbstractMethod(CGThing):
     template arguments, and the function will be templatized using those
     arguments.
     """
-    def __init__(self, descriptor, name, returnType, args, inline=False, alwaysInline=False, static=False, extern=False, pub=False, templateArgs=None):
+    def __init__(self, descriptor, name, returnType, args, inline=False, alwaysInline=False, static=False, extern=False, pub=False, templateArgs=None, unsafe=True):
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.name = name
@@ -2394,6 +2401,7 @@ class CGAbstractMethod(CGThing):
         self.extern = extern
         self.templateArgs = templateArgs
         self.pub = pub;
+        self.unsafe = unsafe
     def _argstring(self):
         return ', '.join([str(a) for a in self.args])
     def _template(self):
@@ -2421,6 +2429,10 @@ class CGAbstractMethod(CGThing):
         return ' '.join(decorators) + maybeNewline
     def _returnType(self):
         return (" -> %s" % self.returnType) if self.returnType != "void" else ""
+    def _unsafe_open(self):
+        return "\n  unsafe {" if self.unsafe else ""
+    def _unsafe_close(self):
+        return "\n  }\n" if self.unsafe else ""
     def declare(self):
         if self.inline:
             return self._define()
@@ -2433,10 +2445,10 @@ class CGAbstractMethod(CGThing):
     def define(self):
         return "" if self.inline else self._define()
     def definition_prologue(self):
-        return "%sfn %s%s(%s)%s {\n  unsafe {" % (self._decorators(), self.name, self._template(), 
-                                                  self._argstring(), self._returnType())
+        return "%sfn %s%s(%s)%s {%s" % (self._decorators(), self.name, self._template(),
+                                        self._argstring(), self._returnType(), self._unsafe_open())
     def definition_epilogue(self):
-        return "\n  }\n}\n"
+        return "%s}\n" % self._unsafe_close()
     def definition_body(self):
         assert(False) # Override me!
 
@@ -2445,7 +2457,7 @@ def CreateBindingJSObject(descriptor, parent):
         handler = """  //let cache = ptr::to_unsafe_ptr(aObject.get_wrappercache());
 
   let script_context = task_from_context(aCx);
-  let handler = (*script_context).dom_static.proxy_handlers.get(&(prototypes::id::%s as uint));
+  let handler = (*script_context).dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
 """ % descriptor.name
         create = handler + """  let obj = NewProxyObject(aCx, *handler,
                            ptr::to_unsafe_ptr(&RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void)),
@@ -2616,7 +2628,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                     idsToInit.append(props.variableName(False))
         if len(idsToInit) > 0:
             setup = CGList([CGGeneric("let script_context = task_from_context(aCx);"),
-                            CGList([CGGeneric("let %s_ids_mut = (*script_context).dom_static.attribute_ids.get(&(prototypes::id::%s as uint));" % (varname, self.descriptor.name)) for varname in idsToInit], '\n')], '\n')
+                            CGList([CGGeneric("let %s_ids_mut = (*script_context).dom_static.attribute_ids.get(&(PrototypeList::id::%s as uint));" % (varname, self.descriptor.name)) for varname in idsToInit], '\n')], '\n')
             initIds = CGList(
                 [CGGeneric("!InitIds(aCx, %s, *%s_ids_mut)" % (varname, varname)) for
                  varname in idsToInit], ' ||\n')
@@ -2757,7 +2769,7 @@ class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
     """
     def __init__(self, descriptor):
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetProtoObject",
-                                         "prototypes::", pub=True)
+                                         "PrototypeList::", pub=True)
     def definition_body(self):
         return """
   /* Get the interface prototype object for this class.  This will create the
@@ -2837,12 +2849,12 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     getElementIfPresent: ptr::null(),
     getPrototypeOf: ptr::null()
   };
-  (*script_context).dom_static.proxy_handlers.insert(prototypes::id::%s as uint,
+  (*script_context).dom_static.proxy_handlers.insert(PrototypeList::id::%s as uint,
                                               CreateProxyHandler(ptr::to_unsafe_ptr(&traps), ptr::to_unsafe_ptr(&Class) as *libc::c_void));
 
 """ % self.descriptor.name
         else:
-            body += """  (*script_context).dom_static.attribute_ids.insert(prototypes::id::%s as uint,
+            body += """  (*script_context).dom_static.attribute_ids.insert(PrototypeList::id::%s as uint,
                                              vec::cast_to_mut(vec::from_slice(sAttributes_ids)));
 """ % self.descriptor.name
             body = "" #XXXjdm xray stuff isn't necessary yet
@@ -3336,7 +3348,7 @@ class CGMemberJITInfo(CGThing):
         return ""
 
     def defineJitInfo(self, infoName, opName, infallible):
-        protoID =  "prototypes::id::%s as u32" % self.descriptor.name
+        protoID =  "PrototypeList::id::%s as u32" % self.descriptor.name
         depth = self.descriptor.interface.inheritanceDepth()
         failstr = "true" if infallible else "false"
         return ("\n"
@@ -3436,7 +3448,7 @@ class CGXrayHelper(CGAbstractExternMethod):
         methods = self.properties.methods
         if methods.hasNonChromeOnly() or methods.hasChromeOnly():
             methodArgs = "Some(vec::zip_slice(%(methods)s, *method_ids))" % varNames
-            setup += "let method_ids = (*script_context).dom_static.method_ids.get(&(prototypes::id::ClientRect as uint));\n"
+            setup += "let method_ids = (*script_context).dom_static.method_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
         else:
             methodArgs = "None"
         methodArgs = CGGeneric(methodArgs)
@@ -3444,7 +3456,7 @@ class CGXrayHelper(CGAbstractExternMethod):
         attrs = self.properties.attrs
         if attrs.hasNonChromeOnly() or attrs.hasChromeOnly():
             attrArgs = "Some(vec::zip_slice(%(attrs)s, *attr_ids))" % varNames
-            setup += "let attr_ids = (*script_context).dom_static.attribute_ids.get(&(prototypes::id::ClientRect as uint));\n"
+            setup += "let attr_ids = (*script_context).dom_static.attribute_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
         else:
             attrArgs = "None"
         attrArgs = CGGeneric(attrArgs)
@@ -3452,7 +3464,7 @@ class CGXrayHelper(CGAbstractExternMethod):
         consts = self.properties.consts
         if consts.hasNonChromeOnly() or consts.hasChromeOnly():
             constArgs = "Some(vec::zip_slice(%(consts)s, *const_ids))" % varNames
-            setup += "let const_ids = (*script_context).dom_static.constant_ids.get(&(prototypes::id::ClientRect as uint));\n"
+            setup += "let const_ids = (*script_context).dom_static.constant_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
         else:
             constArgs = "None"
         constArgs = CGGeneric(constArgs)
@@ -3953,6 +3965,51 @@ class CGDescriptor(CGThing):
     def define(self):
         return self.cgRoot.define()
 
+class CGNamespacedEnum(CGThing):
+    def __init__(self, namespace, enumName, names, values, comment="", deriving=""):
+
+        if not values:
+            values = []
+
+        # Account for explicit enum values.
+        entries = []
+        for i in range(0, len(names)):
+            if len(values) > i and values[i] is not None:
+                entry = "%s = %s" % (names[i], values[i])
+            else:
+                entry = names[i]
+            entries.append(entry)
+
+        # Append a Count.
+        entries.append('_' + enumName + '_Count')
+
+        # Indent.
+        entries = ['  ' + e for e in entries]
+
+        # Build the enum body.
+        enumstr = comment + 'pub enum %s {\n%s\n}\n' % (enumName, ',\n'.join(entries))
+        if deriving:
+            enumstr = ('#[deriving(%s)]\n' % deriving) + enumstr
+        curr = CGGeneric(enumstr)
+
+        # Add some whitespace padding.
+        curr = CGWrapper(curr, pre='\n',post='\n')
+
+        # Add the namespace.
+        curr = CGNamespace(namespace, curr, public=True)
+
+        # Add the typedef
+        #typedef = '\ntypedef %s::%s %s;\n\n' % (namespace, enumName, enumName)
+        #curr = CGList([curr, CGGeneric(typedef)])
+
+        # Save the result.
+        self.node = curr
+
+    def declare(self):
+        return self.node.declare()
+    def define(self):
+        return self.node.define()
+
 class CGDictionary(CGThing):
     def __init__(self, dictionary, descriptorProvider):
         self.dictionary = dictionary;
@@ -4198,6 +4255,26 @@ class CGDictionary(CGThing):
                 deps.add(member.type.unroll().inner)
         return deps
 
+class CGRegisterProtos(CGAbstractMethod):
+    def __init__(self, config):
+        CGAbstractMethod.__init__(self, None, 'Register', 'void',
+                                  [Argument('@mut Compartment', 'compartment')],
+                                  unsafe=False, pub=True)
+        self.config = config
+
+    def _registerProtos(self):
+        lines = ["  assert!(codegen::%sBinding::DefineDOMInterface(\n"
+                 "      compartment.cx.ptr,\n"
+                 "      compartment.global_obj.ptr,\n"
+                 "      &mut unused));" % (desc.name)
+                 for desc in self.config.getDescriptors(hasInterfaceObject=True,
+                                                        isExternal=False,
+                                                        workers=False,
+                                                        register=True)]
+        return '\n'.join(lines) + '\n'
+    def definition_body(self):
+        return "  let mut unused = false;\n" + self._registerProtos()
+
 class CGBindingRoot(CGThing):
     """
     Root codegen class for binding generation. Instantiate the class, and call
@@ -4308,3 +4385,84 @@ class CGBindingRoot(CGThing):
         return stripTrailingWhitespace(self.root.declare())
     def define(self):
         return stripTrailingWhitespace(self.root.define())
+
+class GlobalGenRoots():
+    """
+    Roots for global codegen.
+
+    To generate code, call the method associated with the target, and then
+    call the appropriate define/declare method.
+    """
+
+    @staticmethod
+    def PrototypeList(config):
+
+        # Prototype ID enum.
+        protos = [d.name for d in config.getDescriptors(hasInterfacePrototypeObject=True)]
+
+        idEnum = CGNamespacedEnum('id', 'ID', protos, [0], deriving="Eq")
+        idEnum = CGList([idEnum])
+        idEnum.append(CGGeneric(declare="pub static MAX_PROTO_CHAIN_LENGTH: uint = " +
+                                str(config.maxProtoChainLength) + ";\n\n"))
+
+        # Wrap all of that in our namespaces.
+        #idEnum = CGNamespace.build(['mozilla', 'dom', 'prototypes'],
+        #                           CGWrapper(idEnum, pre='\n'))
+        #idEnum = CGWrapper(idEnum, post='\n')
+
+        curr = CGList([idEnum])
+
+        # Constructor ID enum.
+        constructors = [d.name for d in config.getDescriptors(hasInterfaceObject=True,
+                                                              hasInterfacePrototypeObject=False)]
+        idEnum = CGNamespacedEnum('id', 'ID', constructors, [0])
+
+        # Wrap all of that in our namespaces.
+        idEnum = CGNamespace.build(['mozilla', 'dom', 'constructors'],
+                                   CGWrapper(idEnum, pre='\n'))
+        idEnum = CGWrapper(idEnum, post='\n')
+
+        #XXXjdm Not sure what to do with the constructors right now
+        #curr.append(idEnum)
+
+        #traitsDecl = CGGeneric(declare="""
+#template <prototypes::ID PrototypeID>
+#struct PrototypeTraits;
+#
+#template <class ConcreteClass>
+#struct PrototypeIDMap;
+#""")
+
+        #traitsDecl = CGNamespace.build(['mozilla', 'dom'],
+        #                                CGWrapper(traitsDecl, post='\n'))
+
+        #curr.append(traitsDecl)
+
+        # Add the auto-generated comment.
+        curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
+
+        # Done.
+        return curr
+
+    @staticmethod
+    def RegisterBindings(config):
+
+        # TODO - Generate the methods we want
+        curr = CGRegisterProtos(config)
+
+        # Wrap all of that in our namespaces.
+        #curr = CGNamespace.build(['mozilla', 'dom'],
+        #                         CGWrapper(curr, post='\n'))
+        #curr = CGWrapper(curr, post='\n')
+
+        # Add the includes
+        defineIncludes = [CGImports.getDeclarationFilename(desc.interface)
+                          for desc in config.getDescriptors(hasInterfaceObject=True,
+                                                            workers=False,
+                                                            register=True)]
+        curr = CGImports([], [], ['dom::bindings::codegen',
+                                  'js::rust::Compartment'], defineIncludes, curr)
+
+        # Done.
+        return curr
+
