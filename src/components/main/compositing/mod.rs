@@ -240,12 +240,21 @@ impl CompositorTask {
             // Iterate over the children of the container layer.
             let mut current_layer_child = root_layer.first_child;
             
+            // Delete old layer
+            while current_layer_child.is_some() {
+                let trash = current_layer_child.get();
+                do current_layer_child.get().with_common |common| {
+                    current_layer_child = common.next_sibling;
+                }
+                root_layer.remove_child(trash);
+            }
+
             let all_tiles = quad.get_all_tiles();
             for all_tiles.iter().advance |buffer| {
                 let width = buffer.screen_pos.size.width as uint;
                 let height = buffer.screen_pos.size.height as uint;
                 debug!("osmain: compositing buffer rect %?", &buffer.rect);
-                
+
                 // Find or create a texture layer.
                 let texture_layer;
                 current_layer_child = match current_layer_child {
@@ -275,17 +284,9 @@ impl CompositorTask {
                 let transform = identity().translate(origin.x * *world_zoom, origin.y * *world_zoom, 0.0);
                 let transform = transform.scale(width as f32 * *world_zoom / buffer.resolution, height as f32 * *world_zoom / buffer.resolution, 1.0);
                 texture_layer.common.set_transform(transform);
-                
+
             }
             
-            // Delete leftover layers
-            while current_layer_child.is_some() {
-                let trash = current_layer_child.get();
-                do current_layer_child.get().with_common |common| {
-                    current_layer_child = common.next_sibling;
-                }
-                root_layer.remove_child(trash);
-            }
             // Reset zoom
             *local_zoom = 1f32;
             root_layer.common.set_transform(identity().translate(-world_offset.x,
@@ -438,7 +439,7 @@ impl CompositorTask {
                         for new_layer_buffer_set.buffers.iter().advance |buffer| {
                             // FIXME: Don't copy the buffers here
                             quad.add_tile(buffer.screen_pos.origin.x, buffer.screen_pos.origin.y,
-                                          *world_zoom, ~buffer.clone());
+                                          buffer.resolution, ~buffer.clone());
                         }
                         
                         *page_size = Size2D(new_size.width as f32, new_size.height as f32);
@@ -493,9 +494,6 @@ impl CompositorTask {
             
             root_layer.common.set_transform(scroll_transform);
             
-            // FIXME: ask_for_tiles() should be called here, but currently this sends a flood of requests
-            // to the renderer, which slows the application dramatically. Instead, ask_for_tiles() is only
-            // called on a click event.
             ask_for_tiles();
 
             *recomposite = true;
