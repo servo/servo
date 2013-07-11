@@ -10,7 +10,7 @@ use windowing::{ApplicationMethods, WindowMethods, WindowMouseEvent, WindowClick
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent};
 
 
-use servo_msg::compositor_msg::{RenderListener, LayerBufferSet, RenderState};
+use servo_msg::compositor_msg::{RenderListener, LayerBuffer, LayerBufferSet, RenderState};
 use servo_msg::compositor_msg::{ReadyState, ScriptListener};
 use servo_msg::constellation_msg::{CompositorAck, ConstellationChan};
 use servo_msg::constellation_msg;
@@ -28,6 +28,7 @@ use extra::timer;
 use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::size::Size2D;
+use geom::rect::Rect;
 use layers::layers::{ARGB32Format, ContainerLayer, ContainerLayerKind, Format};
 use layers::layers::{ImageData, WithDataFn};
 use layers::layers::{TextureLayerKind, TextureLayer, TextureManager};
@@ -39,6 +40,10 @@ use servo_util::time::ProfilerChan;
 
 use extra::arc;
 pub use windowing;
+
+use extra::time::precise_time_s;
+use compositing::quadtree::Quadtree;
+mod quadtree;
 
 /// The implementation of the layers-based compositor.
 #[deriving(Clone)]
@@ -68,6 +73,16 @@ impl RenderListener for CompositorChan {
 
     fn paint(&self, id: uint, layer_buffer_set: arc::ARC<LayerBufferSet>, new_size: Size2D<uint>) {
         self.chan.send(Paint(id, layer_buffer_set, new_size))
+    }
+
+    fn new_layer(&self, page_size: Size2D<uint>, tile_size: uint) {
+        self.chan.send(NewLayer(page_size, tile_size))
+    }
+    fn resize_layer(&self, page_size: Size2D<uint>) {
+        self.chan.send(ResizeLayer(page_size))
+    }
+    fn delete_layer(&self) {
+        self.chan.send(DeleteLayer)
     }
 
     fn set_render_state(&self, render_state: RenderState) {
@@ -102,6 +117,15 @@ pub enum Msg {
     GetSize(Chan<Size2D<int>>),
     /// Requests the compositors GL context.
     GetGLContext(Chan<AzGLContext>),
+
+    // TODO: Attach layer ids and epochs to these messages
+    /// Alerts the compositor that there is a new layer to be rendered.
+    NewLayer(Size2D<uint>, uint),
+    /// Alerts the compositor that the current layer has changed size.
+    ResizeLayer(Size2D<uint>),
+    /// Alerts the compositor that the current layer has been deleted.
+    DeleteLayer,
+
     /// Requests that the compositor paint the given layer buffer set for the given page size.
     Paint(uint, arc::ARC<LayerBufferSet>, Size2D<uint>),
     /// Alerts the compositor to the current status of page loading.
@@ -199,8 +223,105 @@ impl CompositorTask {
         let local_zoom = @mut 1f32;
         // Channel to the current renderer.
         // FIXME: This probably shouldn't be stored like this.
+
         let render_chan: @mut Option<RenderChan> = @mut None;
         let pipeline_id: @mut Option<uint> = @mut None;
+
+        // Quadtree for this layer
+        // FIXME: This should be one-per-layer
+        let quadtree: @mut Option<Quadtree<~LayerBuffer>> = @mut None;
+        
+        // Keeps track of if we have performed a zoom event and how recently.
+        let zoom_action = @mut false;
+        let zoom_time = @mut 0f;
+
+        // Extract tiles from the given quadtree and build and display the render tree.
+        let build_layer_tree: @fn(&Quadtree<~LayerBuffer>) = |quad: &Quadtree<~LayerBuffer>| {
+            // Iterate over the children of the container layer.
+            let mut current_layer_child = root_layer.first_child;
+            
+            let all_tiles = quad.get_all_tiles();
+            for all_tiles.iter().advance |buffer| {
+                let width = buffer.screen_pos.size.width as uint;
+                let height = buffer.screen_pos.size.height as uint;
+                debug!("osmain: compositing buffer rect %?", &buffer.rect);
+                
+                // Find or create a texture layer.
+                let texture_layer;
+                current_layer_child = match current_layer_child {
+                    None => {
+                        debug!("osmain: adding new texture layer");
+                        texture_layer = @mut TextureLayer::new(@buffer.draw_target.clone() as @TextureManager,
+                                                               buffer.screen_pos.size);
+                        root_layer.add_child(TextureLayerKind(texture_layer));
+                        None
+                    }
+                    Some(TextureLayerKind(existing_texture_layer)) => {
+                        texture_layer = existing_texture_layer;
+                        texture_layer.manager = @buffer.draw_target.clone() as @TextureManager;
+                        
+                        // Move on to the next sibling.
+                        do current_layer_child.get().with_common |common| {
+                            common.next_sibling
+                        }
+                    }
+                    Some(_) => fail!(~"found unexpected layer kind"),
+                };
+
+                let origin = buffer.rect.origin;
+                let origin = Point2D(origin.x as f32, origin.y as f32);
+                
+                // Set the layer's transform.
+                let transform = identity().translate(origin.x * *world_zoom, origin.y * *world_zoom, 0.0);
+                let transform = transform.scale(width as f32 * *world_zoom / buffer.resolution, height as f32 * *world_zoom / buffer.resolution, 1.0);
+                texture_layer.common.set_transform(transform);
+                
+            }
+            
+            // Delete leftover layers
+            while current_layer_child.is_some() {
+                let trash = current_layer_child.get();
+                do current_layer_child.get().with_common |common| {
+                    current_layer_child = common.next_sibling;
+                }
+                root_layer.remove_child(trash);
+            }
+            // Reset zoom
+            *local_zoom = 1f32;
+            root_layer.common.set_transform(identity().translate(-world_offset.x,
+                                                                 -world_offset.y,
+                                                                 0.0));
+            *recomposite = true;
+        };
+
+        let ask_for_tiles: @fn() = || {
+            match *quadtree {
+                Some(ref mut quad) => {
+                    let valid = |tile: &~LayerBuffer| -> bool {
+                        tile.resolution == *world_zoom
+                    };
+                    let (tile_request, redisplay) = quad.get_tile_rects(Rect(Point2D(world_offset.x as int,
+                                                                                     world_offset.y as int),
+                                                                             *window_size), valid, *world_zoom);
+
+                    if !tile_request.is_empty() {
+                        match *render_chan {
+                            Some(ref chan) => {
+                                chan.send(ReRenderMsg(tile_request, *world_zoom));
+                            }
+                            _ => {
+                                println("Warning: Compositor: Cannot send tile request, no render chan initialized");
+                            }
+                        }
+                    } else if redisplay {
+                        build_layer_tree(quad);
+                    }
+                }
+                _ => {
+                    fail!("Compositor: Tried to ask for tiles without an initialized quadtree");
+                }
+            }
+        };
 
         let update_layout_callbacks: @fn(LayoutChan) = |layout_chan: LayoutChan| {
             let layout_chan_clone = layout_chan.clone();
@@ -247,24 +368,16 @@ impl CompositorTask {
                     }
                     WindowMouseDownEvent(button, layer_mouse_point) => {
                         event = MouseDownEvent(button, world_mouse_point(layer_mouse_point));
+
                     }
                     WindowMouseUpEvent(button, layer_mouse_point) => {
-                        
-                        // rerender layer at new zoom level
-                        // FIXME: this should happen when the user stops zooming, definitely not here
-                        match *render_chan {
-                            Some(ref r_chan) => {
-                                r_chan.send(ReRenderMsg(*world_zoom));
-                            }
-                            None => {} // Nothing to do
-                        }
-                        
                         event = MouseUpEvent(button, world_mouse_point(layer_mouse_point));
                     }
                 }
                 layout_chan_clone.send(RouteScriptMsg(SendEventMsg(event)));
             }
         };
+
 
         let check_for_messages: @fn(&Port<Msg>) = |port: &Port<Msg>| {
             // Handle messages
@@ -291,78 +404,49 @@ impl CompositorTask {
                     }
 
                     GetGLContext(chan) => chan.send(current_gl_context()),
+                    
+                    NewLayer(new_size, tile_size) => {
+                        *page_size = Size2D(new_size.width as f32, new_size.height as f32);
+                        *quadtree = Some(Quadtree::new(0, 0, new_size.width, new_size.height, tile_size));
+                        ask_for_tiles();
+                        
+                    }
+                    ResizeLayer(new_size) => {
+                        *page_size = Size2D(new_size.width as f32, new_size.height as f32);
+                        // TODO: update quadtree, ask for tiles
+                    }
+                    DeleteLayer => {
+                        // TODO: create secondary layer tree, keep displaying until new tiles come in
+                    }
 
                     Paint(id, new_layer_buffer_set, new_size) => {
                         match *pipeline_id {
                             Some(pipeline_id) => if id != pipeline_id { loop; },
                             None => { loop; },
                         }
-                            
-                        debug!("osmain: received new frame");
+                        
+                        debug!("osmain: received new frame"); 
 
-                        *page_size = Size2D(new_size.width as f32, new_size.height as f32);
-
+                       
+                        let quad;
+                        match *quadtree {
+                            Some(ref mut q) => quad = q,
+                            None => fail!("Compositor: given paint command with no quadtree initialized"),
+                        }
+                        
                         let new_layer_buffer_set = new_layer_buffer_set.get();
-
-                        // Iterate over the children of the container layer.
-                        let mut current_layer_child = root_layer.first_child;
-
                         for new_layer_buffer_set.buffers.iter().advance |buffer| {
-                            let width = buffer.rect.size.width as uint;
-                            let height = buffer.rect.size.height as uint;
-
-                            debug!("osmain: compositing buffer rect %?", &buffer.rect);
-
-                            // Find or create a texture layer.
-                            let texture_layer;
-                            current_layer_child = match current_layer_child {
-                                None => {
-                                    debug!("osmain: adding new texture layer");
-                                    texture_layer = @mut TextureLayer::new(@buffer.draw_target.clone() as @TextureManager,
-                                                                           buffer.screen_pos.size);
-                                    root_layer.add_child(TextureLayerKind(texture_layer));
-                                    None
-                                }
-                                Some(TextureLayerKind(existing_texture_layer)) => {
-                                    texture_layer = existing_texture_layer;
-                                    texture_layer.manager = @buffer.draw_target.clone() as @TextureManager;
-
-                                    // Move on to the next sibling.
-                                    do current_layer_child.get().with_common |common| {
-                                        common.next_sibling
-                                    }
-                                }
-                                Some(_) => fail!(~"found unexpected layer kind"),
-                            };
-
-                            let origin = buffer.screen_pos.origin;
-                            let origin = Point2D(origin.x as f32, origin.y as f32);
-
-                            // Set the layer's transform.
-                            let transform = identity().translate(origin.x, origin.y, 0.0);
-                            let transform = transform.scale(width as f32, height as f32, 1.0);
-                            texture_layer.common.set_transform(transform);
+                            // FIXME: Don't copy the buffers here
+                            quad.add_tile(buffer.screen_pos.origin.x, buffer.screen_pos.origin.y,
+                                          *world_zoom, ~buffer.clone());
                         }
-
-                        // Delete leftover layers
-                        while current_layer_child.is_some() {
-                            let trash = current_layer_child.get();
-                            do current_layer_child.get().with_common |common| {
-                                current_layer_child = common.next_sibling;
-                            }
-                            root_layer.remove_child(trash);
-                        }
-
-                        // Reset zoom
-                        *local_zoom = 1f32;
-                        root_layer.common.set_transform(identity().translate(-world_offset.x,
-                                                                             -world_offset.y,
-                                                                             0.0));
+                        
+                        *page_size = Size2D(new_size.width as f32, new_size.height as f32);
+                        
+                        build_layer_tree(quad);
 
                         // TODO: Recycle the old buffers; send them back to the renderer to reuse if
                         // it wishes.
-
-                        *recomposite = true;
                     }
                 }
             }
@@ -409,6 +493,11 @@ impl CompositorTask {
             
             root_layer.common.set_transform(scroll_transform);
             
+            // FIXME: ask_for_tiles() should be called here, but currently this sends a flood of requests
+            // to the renderer, which slows the application dramatically. Instead, ask_for_tiles() is only
+            // called on a click event.
+            ask_for_tiles();
+
             *recomposite = true;
         }
 
@@ -416,6 +505,8 @@ impl CompositorTask {
 
         // When the user pinch-zooms, scale the layer
         do window.set_zoom_callback |magnification| {
+            *zoom_action = true;
+            *zoom_time = precise_time_s();
             let old_world_zoom = *world_zoom;
 
             // Determine zoom amount
@@ -465,6 +556,13 @@ impl CompositorTask {
             }
 
             timer::sleep(&uv_global_loop::get(), 100);
+
+            // If a pinch-zoom happened recently, ask for tiles at the new resolution
+            if *zoom_action && precise_time_s() - *zoom_time > 0.3 {
+                *zoom_action = false;
+                ask_for_tiles();
+            }
+
         }
 
         self.shutdown_chan.send(())

@@ -19,8 +19,12 @@ pub struct LayerBuffer {
     // The rect in pixels that will be drawn to the screen.
     screen_pos: Rect<uint>,
 
+    // The scale at which this tile is rendered
+    resolution: f32,
+
     // NB: stride is in pixels, like OpenGL GL_UNPACK_ROW_LENGTH.
-    stride: uint
+    stride: uint,
+        
 }
 
 /// A set of layer buffers. This is an atomic unit used to switch between the front and back
@@ -49,6 +53,9 @@ pub enum ReadyState {
 /// submit them to be drawn to the display.
 pub trait RenderListener {
     fn get_gl_context(&self) -> AzGLContext;
+    fn new_layer(&self, Size2D<uint>, uint);
+    fn resize_layer(&self, Size2D<uint>);
+    fn delete_layer(&self);
     fn paint(&self, id: uint, layer_buffer_set: arc::ARC<LayerBufferSet>, new_size: Size2D<uint>);
     fn set_render_state(&self, render_state: RenderState);
 }
