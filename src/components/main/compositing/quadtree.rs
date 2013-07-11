@@ -86,7 +86,7 @@ impl<T> Quadtree<T> {
     pub fn remove_tile(&mut self, x: uint, y: uint, scale: f32) {
         self.root.remove_tile(x as f32 / scale, y as f32 / scale);
     }
-    /// Given a window rect in page coordinates and a function to check if an existing tile is "valid"
+    /// Given a window rect in pixel coordinates and a function to check if an existing tile is "valid"
     /// (i.e. is the correct resolution), this function returns a list of BufferRequests for tiles that
     /// need to be rendered. It also returns a boolean if the window needs to be redisplayed, i.e. if
     /// no tiles need to be rendered, but the display tree needs to be rebuilt. This can occur when the
@@ -97,6 +97,7 @@ impl<T> Quadtree<T> {
         self.root.get_tile_rects(Rect(Point2D(window.origin.x as f32 / scale, window.origin.y as f32 / scale),
                                       Size2D(window.size.width as f32 / scale, window.size.height as f32 / scale)),
                                  valid, scale, self.max_tile_size as f32 / scale)
+            
     }
 
     /// Generate html to visualize the tree. For debugging purposes only.
@@ -148,14 +149,9 @@ impl<T> QuadtreeNode<T> {
         }
     }
 
-    /// Get all tiles in the tree, parents first.
+    /// Get all tiles in the tree, parents last.
     fn get_all_tiles<'r>(&'r self) -> ~[&'r T] {
         let mut ret = ~[];
-        
-        match self.tile {
-            Some(ref tile) => ret = ~[tile],
-            None => {}
-        }
 
         for self.quadrants.iter().advance |quad| {
             match *quad {
@@ -163,6 +159,12 @@ impl<T> QuadtreeNode<T> {
                 None => {}
             }
         }
+        
+        match self.tile {
+            Some(ref tile) => ret = ret + ~[tile],
+            None => {}
+        }
+
 
         return ret;
     }
@@ -231,6 +233,7 @@ impl<T> QuadtreeNode<T> {
             let self_x = (self.origin.x * scale).ceil() as uint;
             let self_y = (self.origin.y * scale).ceil() as uint;
             let self_size = (self.size * scale).ceil() as uint;
+            self.render_flag = true;
             return BufferRequest(Rect(Point2D(self_x, self_y), Size2D(self_size, self_size)),
                                  Rect(Point2D(self.origin.x, self.origin.y), Size2D(self.size, self.size)));
         }
@@ -248,7 +251,6 @@ impl<T> QuadtreeNode<T> {
                     BL | BR => self.origin.y + new_size,
                 };
                 let mut c = ~QuadtreeNode::new_child(new_x, new_y, new_size);
-                c.render_flag = true;
                 let result = c.get_tile_rect(x, y, scale, tile_size);
                 self.quadrants[quad as int] = Some(c);
                 result
@@ -340,12 +342,14 @@ impl<T> QuadtreeNode<T> {
         
         if w_x < s_x || w_x + w_width > s_x + s_size
             || w_y < s_y || w_y + w_height > s_y + s_size {
-            println(fmt!("window: %?, %?, %?, %?; self: %?, %?, %?", w_x, w_y, w_width, w_height, s_x, s_y, s_size));
+            println(fmt!("window: %?, %?, %?, %?; self: %?, %?, %?",
+                         w_x, w_y, w_width, w_height, s_x, s_y, s_size));
             fail!("Quadtree: tried to query an invalid tile rect");
         }
         
         if s_size <= tile_size { // We are the child
-            match self.tile {
+            return match self.tile {
+                _ if self.render_flag => (~[], false),
                 Some(ref tile) if valid(tile) => {
                     let redisplay = match self.quadrants {
                         [None, None, None, None] => false,
@@ -358,14 +362,9 @@ impl<T> QuadtreeNode<T> {
                             self.quadrants[*quad as int] = None;
                         }
                     }
-                    return (~[], redisplay);
+                    (~[], redisplay)
                 }
-                None if self.render_flag => {
-                    return(~[], false);
-                }
-                _ => {
-                    return (~[self.get_tile_rect(s_x, s_y, scale, tile_size)], false);
-                }
+                _ => (~[self.get_tile_rect(s_x, s_y, scale, tile_size)], false),
             }
         }
         
@@ -403,68 +402,48 @@ impl<T> QuadtreeNode<T> {
         let mut redisplay = false;
         
         for quads_to_check.iter().advance |quad| {
-            match self.quadrants[*quad as int] {
-                Some(ref mut child) => {
-                    // Recurse into child
-                    let new_window = match *quad {
-                        TL => Rect(window.origin,
-                                   Size2D(w_width.min(&(s_x + s_size / 2.0 - w_x)),
-                                          w_height.min(&(s_y + s_size / 2.0 - w_y)))),
-                        TR => Rect(Point2D(w_x.max(&(s_x + s_size / 2.0)),
-                                           w_y),
-                                   Size2D(w_width.min(&(w_x + w_width - (s_x + s_size / 2.0))),
-                                          w_height.min(&(s_y + s_size / 2.0 - w_y)))),
-                        BL => Rect(Point2D(w_x,
-                                           w_y.max(&(s_y + s_size / 2.0))),
-                                   Size2D(w_width.min(&(s_x + s_size / 2.0 - w_x)),
-                                          w_height.min(&(w_y + w_height - (s_y + s_size / 2.0))))),
-                        BR => Rect(Point2D(w_x.max(&(s_x + s_size / 2.0)),
-                                           w_y.max(&(s_y + s_size / 2.0))),
-                                   Size2D(w_width.min(&(w_x + w_width - (s_x + s_size / 2.0))),
-                                          w_height.min(&(w_y + w_height - (s_y + s_size / 2.0))))), 
-                    
-                    };
-                    let (c_ret, c_redisplay) = child.get_tile_rects(new_window, |x| valid(x), scale, tile_size); 
-                    ret = ret + c_ret;
-                    redisplay = redisplay || c_redisplay;
-                }
-                None => {
-                    // Figure out locations of future children
-                    let (x_start, y_start, x_end, y_end) = match *quad {
-                        TL => (w_x,
-                               w_y,
-                               (w_x + w_width).min(&(s_x + s_size / 2.0)),
-                               (w_y + w_height).min(&(s_y + s_size / 2.0))),
-                        TR => (w_x.max(&(s_x + s_size / 2.0)),
-                               w_y,
-                               (w_x + w_width + tile_size).min(&(s_x + s_size)),
-                               (w_y + w_height).min(&(s_y + s_size / 2.0))),
-                        BL => (w_x,
-                               w_y.max(&(s_y + s_size / 2.0)),
-                               (w_x + w_width).min(&(s_x + s_size / 2.0)),
-                               (w_y + w_height + tile_size).min(&(s_y + s_size))),
-                        BR => (w_x.max(&(s_x + s_size / 2.0)),
-                               w_y.max(&(s_y + s_size / 2.0)),
-                               (w_x + w_width + tile_size).min(&(s_x + s_size)),
-                               (w_y + w_height + tile_size).min(&(s_y + s_size))),
-                    };
-                    let size = (((x_end - x_start) / tile_size).ceil() *
-                                ((y_end - y_start) / tile_size).ceil()) as uint;
+            // Recurse into child
+            let new_window = match *quad {
+                TL => Rect(window.origin,
+                           Size2D(w_width.min(&(s_x + s_size / 2.0 - w_x)),
+                                  w_height.min(&(s_y + s_size / 2.0 - w_y)))),
+                TR => Rect(Point2D(w_x.max(&(s_x + s_size / 2.0)),
+                                   w_y),
+                           Size2D(w_width.min(&(w_x + w_width - (s_x + s_size / 2.0))),
+                                  w_height.min(&(s_y + s_size / 2.0 - w_y)))),
+                BL => Rect(Point2D(w_x,
+                                   w_y.max(&(s_y + s_size / 2.0))),
+                           Size2D(w_width.min(&(s_x + s_size / 2.0 - w_x)),
+                                  w_height.min(&(w_y + w_height - (s_y + s_size / 2.0))))),
+                BR => Rect(Point2D(w_x.max(&(s_x + s_size / 2.0)),
+                                   w_y.max(&(s_y + s_size / 2.0))),
+                           Size2D(w_width.min(&(w_x + w_width - (s_x + s_size / 2.0))),
+                                  w_height.min(&(w_y + w_height - (s_y + s_size / 2.0))))), 
+                
+            };
 
-                    let builder = |push: &fn(BufferRequest)| {
-                        let mut y = y_start;
-                        while y < y_end {
-                            let mut x = x_start;
-                            while x < x_end {
-                                push(self.get_tile_rect(x, y, scale, tile_size));
-                                x = x + tile_size;
-                            }
-                            y = y + tile_size;
-                        }
+            let (c_ret, c_redisplay) = match self.quadrants[*quad as int] {
+                Some(ref mut child) => child.get_tile_rects(new_window, |x| valid(x), scale, tile_size),
+                None => {
+                    // Create new child
+                    let new_size = self.size / 2.0;
+                    let new_x = match *quad {
+                        TL | BL => self.origin.x,
+                        TR | BR => self.origin.x + new_size,
                     };
-                    ret = ret + build_sized(size, builder);
+                    let new_y = match *quad {
+                        TL | TR => self.origin.y,
+                        BL | BR => self.origin.y + new_size,
+                    };
+                    let mut child = ~QuadtreeNode::new_child(new_x, new_y, new_size);
+                    let (a, b) = child.get_tile_rects(new_window, |x| valid(x), scale, tile_size);
+                    self.quadrants[*quad as int] = Some(child);
+                    (a, b)
                 }
-            }
+            };
+            
+            ret = ret + c_ret;
+            redisplay = redisplay || c_redisplay;
         }
         
         (ret, redisplay)
