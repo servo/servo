@@ -235,6 +235,64 @@ impl CompositorTask {
         let zoom_action = @mut false;
         let zoom_time = @mut 0f;
 
+        // Extract tiles from the given quadtree and build and display the render tree.
+        let build_layer_tree: @fn(&Quadtree<~LayerBuffer>) = |quad: &Quadtree<~LayerBuffer>| {
+            // Iterate over the children of the container layer.
+            let mut current_layer_child = root_layer.first_child;
+            
+            let all_tiles = quad.get_all_tiles();
+            for all_tiles.iter().advance |buffer| {
+                let width = buffer.screen_pos.size.width as uint;
+                let height = buffer.screen_pos.size.height as uint;
+                debug!("osmain: compositing buffer rect %?", &buffer.rect);
+                
+                // Find or create a texture layer.
+                let texture_layer;
+                current_layer_child = match current_layer_child {
+                    None => {
+                        debug!("osmain: adding new texture layer");
+                        texture_layer = @mut TextureLayer::new(@buffer.draw_target.clone() as @TextureManager,
+                                                               buffer.screen_pos.size);
+                        root_layer.add_child(TextureLayerKind(texture_layer));
+                        None
+                    }
+                    Some(TextureLayerKind(existing_texture_layer)) => {
+                        texture_layer = existing_texture_layer;
+                        texture_layer.manager = @buffer.draw_target.clone() as @TextureManager;
+                        
+                        // Move on to the next sibling.
+                        do current_layer_child.get().with_common |common| {
+                            common.next_sibling
+                        }
+                    }
+                    Some(_) => fail!(~"found unexpected layer kind"),
+                };
+
+                let origin = buffer.rect.origin;
+                let origin = Point2D(origin.x as f32, origin.y as f32);
+                
+                // Set the layer's transform.
+                let transform = identity().translate(origin.x * *world_zoom, origin.y * *world_zoom, 0.0);
+                let transform = transform.scale(width as f32 * *world_zoom / buffer.resolution, height as f32 * *world_zoom / buffer.resolution, 1.0);
+                texture_layer.common.set_transform(transform);
+                
+            }
+            
+            // Delete leftover layers
+            while current_layer_child.is_some() {
+                let trash = current_layer_child.get();
+                do current_layer_child.get().with_common |common| {
+                    current_layer_child = common.next_sibling;
+                }
+                root_layer.remove_child(trash);
+            }
+            // Reset zoom
+            *local_zoom = 1f32;
+            root_layer.common.set_transform(identity().translate(-world_offset.x,
+                                                                 -world_offset.y,
+                                                                 0.0));
+            *recomposite = true;
+        };
 
         let ask_for_tiles: @fn() = || {
             match *quadtree {
@@ -256,7 +314,7 @@ impl CompositorTask {
                             }
                         }
                     } else if redisplay {
-                        // TODO: move display code to its own closure and call that here
+                        build_layer_tree(quad);
                     }
                 }
                 _ => {
@@ -313,11 +371,6 @@ impl CompositorTask {
 
                     }
                     WindowMouseUpEvent(button, layer_mouse_point) => {
-                        
-                        // FIXME: this should happen on a scroll/zoom event instead,
-                        // but is here temporarily to prevent request floods to the renderer
-                        ask_for_tiles();
-
                         event = MouseUpEvent(button, world_mouse_point(layer_mouse_point));
                     }
                 }
@@ -371,17 +424,16 @@ impl CompositorTask {
                             Some(pipeline_id) => if id != pipeline_id { loop; },
                             None => { loop; },
                         }
-                            
-                        debug!("osmain: received new frame");
+                        
+                        debug!("osmain: received new frame"); 
 
+                       
                         let quad;
                         match *quadtree {
                             Some(ref mut q) => quad = q,
                             None => fail!("Compositor: given paint command with no quadtree initialized"),
                         }
-
-                        *page_size = Size2D(new_size.width as f32, new_size.height as f32);
-
+                        
                         let new_layer_buffer_set = new_layer_buffer_set.get();
                         for new_layer_buffer_set.buffers.iter().advance |buffer| {
                             // FIXME: Don't copy the buffers here
@@ -389,67 +441,12 @@ impl CompositorTask {
                                           *world_zoom, ~buffer.clone());
                         }
                         
-
-                        // Iterate over the children of the container layer.
-                        let mut current_layer_child = root_layer.first_child;
+                        *page_size = Size2D(new_size.width as f32, new_size.height as f32);
                         
-                        let all_tiles = quad.get_all_tiles();
-                        for all_tiles.iter().advance |buffer| {
-                            let width = buffer.screen_pos.size.width as uint;
-                            let height = buffer.screen_pos.size.height as uint;
-                            debug!("osmain: compositing buffer rect %?", &buffer.rect);
-                            
-                            // Find or create a texture layer.
-                            let texture_layer;
-                            current_layer_child = match current_layer_child {
-                                None => {
-                                    debug!("osmain: adding new texture layer");
-                                    texture_layer = @mut TextureLayer::new(@buffer.draw_target.clone() as @TextureManager,
-                                                                           buffer.screen_pos.size);
-                                    root_layer.add_child(TextureLayerKind(texture_layer));
-                                    None
-                                }
-                                Some(TextureLayerKind(existing_texture_layer)) => {
-                                    texture_layer = existing_texture_layer;
-                                    texture_layer.manager = @buffer.draw_target.clone() as @TextureManager;
-
-                                    // Move on to the next sibling.
-                                    do current_layer_child.get().with_common |common| {
-                                        common.next_sibling
-                                    }
-                                }
-                                Some(_) => fail!(~"found unexpected layer kind"),
-                            };
-
-                            let origin = buffer.rect.origin;
-                            let origin = Point2D(origin.x as f32, origin.y as f32);
-
-                            // Set the layer's transform.
-                            let transform = identity().translate(origin.x * *world_zoom, origin.y * *world_zoom, 0.0);
-                            let transform = transform.scale(width as f32 * *world_zoom / buffer.resolution, height as f32 * *world_zoom / buffer.resolution, 1.0);
-                            texture_layer.common.set_transform(transform);
-                            
-                        }
-
-                        // Delete leftover layers
-                        while current_layer_child.is_some() {
-                            let trash = current_layer_child.get();
-                            do current_layer_child.get().with_common |common| {
-                                current_layer_child = common.next_sibling;
-                            }
-                            root_layer.remove_child(trash);
-                        }
-
-                        // Reset zoom
-                        *local_zoom = 1f32;
-                        root_layer.common.set_transform(identity().translate(-world_offset.x,
-                                                                             -world_offset.y,
-                                                                             0.0));
+                        build_layer_tree(quad);
 
                         // TODO: Recycle the old buffers; send them back to the renderer to reuse if
                         // it wishes.
-
-                        *recomposite = true;
                     }
                 }
             }
@@ -499,7 +496,7 @@ impl CompositorTask {
             // FIXME: ask_for_tiles() should be called here, but currently this sends a flood of requests
             // to the renderer, which slows the application dramatically. Instead, ask_for_tiles() is only
             // called on a click event.
-//            ask_for_tiles();
+            ask_for_tiles();
 
             *recomposite = true;
         }
