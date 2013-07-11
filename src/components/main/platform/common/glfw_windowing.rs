@@ -4,7 +4,7 @@
 
 //! A windowing implementation using GLFW.
 
-use windowing::{ApplicationMethods, LoadUrlCallback, MouseCallback};
+use windowing::{ApplicationMethods, LoadUrlCallback, MouseCallback, FinishedCallback};
 use windowing::{ResizeCallback, ScrollCallback, WindowMethods, WindowMouseEvent, WindowClickEvent};
 use windowing::{WindowMouseDownEvent, WindowMouseUpEvent, ZoomCallback, Forward, Back, NavigationCallback};
 
@@ -13,7 +13,7 @@ use std::libc::c_int;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
-use servo_msg::compositor_msg::{FinishedLoading, Loading, PerformingLayout, ReadyState};
+use servo_msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
 
 use glfw;
 
@@ -45,6 +45,7 @@ pub struct Window {
     scroll_callback: Option<ScrollCallback>,
     zoom_callback: Option<ZoomCallback>,
     navigation_callback: Option<NavigationCallback>,
+    finished_callback: Option<FinishedCallback>,
 
     drag_origin: Point2D<c_int>,
 
@@ -73,13 +74,14 @@ impl WindowMethods<Application> for Window {
             scroll_callback: None,
             zoom_callback: None,
             navigation_callback: None,
+            finished_callback: None,
 
             drag_origin: Point2D(0 as c_int, 0),
 
             mouse_down_button: @mut 0,
             mouse_down_point: @mut Point2D(0 as c_int, 0),
 
-            ready_state: FinishedLoading,
+            ready_state: Blank,
             render_state: IdleRenderState,
             throbber_frame: 0,
         };
@@ -153,6 +155,10 @@ impl WindowMethods<Application> for Window {
         self.navigation_callback = Some(new_navigation_callback)
     }
 
+    pub fn set_finished_callback(&mut self, new_finished_callback: FinishedCallback) {
+        self.finished_callback = Some(new_finished_callback)
+    }
+
     /// Spins the event loop.
     pub fn check_loop(@mut self) -> bool {
         glfw::poll_events();
@@ -169,6 +175,16 @@ impl WindowMethods<Application> for Window {
 
     /// Sets the render state.
     pub fn set_render_state(@mut self, render_state: RenderState) {
+        if self.ready_state == FinishedLoading &&
+            self.render_state == RenderingRenderState &&
+            render_state == IdleRenderState {
+
+            // page loaded
+            for self.finished_callback.iter().advance |&callback| {
+                callback();
+            }
+        }
+
         self.render_state = render_state;
         self.update_window_title()
     }
@@ -179,6 +195,9 @@ impl Window {
     fn update_window_title(&self) {
         let throbber = THROBBER[self.throbber_frame];
         match self.ready_state {
+            Blank => {
+                self.glfw_window.set_title(fmt!("blank — Servo"));
+            }
             Loading => {
                 self.glfw_window.set_title(fmt!("%c Loading — Servo", throbber))
             }

@@ -118,7 +118,7 @@ fn run(opts: &Opts) {
     // Create the compositor.
     let (compositor_port, compositor_chan) = comm::stream();
     let compositor_chan = CompositorChan::new(compositor_chan);
-    CompositorTask::create(compositor_port, profiler_chan.clone(), shutdown_chan);
+    CompositorTask::create(opts.clone(), compositor_port, profiler_chan.clone(), shutdown_chan);
 
     // Create a Servo instance.
 
