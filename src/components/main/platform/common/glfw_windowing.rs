@@ -154,10 +154,11 @@ impl WindowMethods<Application> for Window {
     }
 
     /// Spins the event loop.
-    pub fn check_loop(@mut self) {
+    pub fn check_loop(@mut self) -> bool {
         glfw::poll_events();
         self.throbber_frame = (self.throbber_frame + 1) % (THROBBER.len() as u8);
         self.update_window_title();
+        self.glfw_window.should_close()
     }
 
     /// Sets the ready state.
@@ -198,6 +199,7 @@ impl Window {
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: c_int, mods: c_int) {
         match key {
+            glfw::KEY_ESCAPE => self.glfw_window.set_should_close(true),
             glfw::KEY_L if mods & glfw::MOD_CONTROL != 0 => self.load_url(), // Ctrl+L
             glfw::KEY_EQUAL if mods & glfw::MOD_CONTROL != 0 => { // Ctrl-+
                 for self.zoom_callback.iter().advance |&callback| {

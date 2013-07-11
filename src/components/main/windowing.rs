@@ -63,8 +63,8 @@ pub trait WindowMethods<A> {
     /// Registers a callback to run when the user presses backspace or shift-backspace.
     pub fn set_navigation_callback(&mut self, new_navigation_callback: NavigationCallback);
 
-    /// Spins the event loop.
-    pub fn check_loop(@mut self);
+    /// Spins the event loop. Returns whether the window should close.
+    pub fn check_loop(@mut self) -> bool;
     /// Sets the ready state of the current page.
     pub fn set_ready_state(@mut self, ready_state: ReadyState);
     /// Sets the render state of the current page.
