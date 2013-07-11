@@ -12,12 +12,14 @@ use std::float;
 use std::result;
 use std::uint;
 
+#[deriving(Clone)]
 pub struct Opts {
     urls: ~[~str],
     render_backend: BackendType,
     n_render_threads: uint,
     tile_size: uint,
     profiler_period: Option<float>,
+    exit_after_load: bool,
 }
 
 #[allow(non_implicitly_copyable_typarams)]
@@ -32,6 +34,7 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         getopts::optopt("s"),  // size of tiles
         getopts::optopt("t"),  // threads to render with
         getopts::optflagopt("p"),  // profiler flag and output interval
+        getopts::optflag("x"), // exit after load flag
     ];
 
     let opt_match = match getopts::getopts(args, opts) {
@@ -85,11 +88,14 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         None => None,
     };
 
+    let exit_after_load = getopts::opt_present(&opt_match, "x");
+
     Opts {
         urls: urls,
         render_backend: render_backend,
         n_render_threads: n_render_threads,
         tile_size: tile_size,
         profiler_period: profiler_period,
+        exit_after_load: exit_after_load,
     }
 }
