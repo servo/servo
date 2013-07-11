@@ -40,7 +40,10 @@ pub enum RenderState {
     RenderingRenderState,
 }
 
+#[deriving(Eq)]
 pub enum ReadyState {
+    /// Informs the compositor that nothing has been done yet. Used for setting status
+    Blank,
     /// Informs the compositor that a page is loading. Used for setting status
     Loading,
     /// Informs the compositor that a page is performing layout. Used for setting status

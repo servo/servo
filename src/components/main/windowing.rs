@@ -37,6 +37,9 @@ pub type ZoomCallback = @fn(f32);
 /// Type of the function that is called when the user clicks backspace or shift-backspace
 pub type NavigationCallback = @fn(WindowNavigateMsg);
 
+/// Type of the function that is called when the rendering is finished
+pub type FinishedCallback = @fn();
+
 /// Methods for an abstract Application.
 pub trait ApplicationMethods {
     fn new() -> Self;
@@ -62,6 +65,8 @@ pub trait WindowMethods<A> {
     pub fn set_zoom_callback(&mut self, new_zoom_callback: ZoomCallback);
     /// Registers a callback to run when the user presses backspace or shift-backspace.
     pub fn set_navigation_callback(&mut self, new_navigation_callback: NavigationCallback);
+    /// Registers a callback to run when rendering is finished.
+    pub fn set_finished_callback(&mut self, new_finish_callback: FinishedCallback);
 
     /// Spins the event loop. Returns whether the window should close.
     pub fn check_loop(@mut self) -> bool;
