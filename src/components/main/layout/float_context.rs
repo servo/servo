@@ -8,6 +8,7 @@ use geom::rect::Rect;
 use gfx::geometry::{Au, max, min};
 use std::util::replace;
 use std::vec;
+use std::i32::max_value;
 
 pub enum FloatType{
     FloatLeft,
@@ -146,9 +147,9 @@ impl FloatContextBase{
             (max(top_1, top_2), min(bottom_1, bottom_2))
         }
 
-        debug!("available_rect: trying to find space at %?", top);
-
         let top = top - self.offset.y;
+
+        debug!("available_rect: trying to find space at %?", top);
 
         // Relevant dimensions for the right-most left float
         let mut max_left = Au(0) - self.offset.x;
@@ -167,6 +168,7 @@ impl FloatContextBase{
                 Some(data) => {
                     let float_pos = data.bounds.origin;
                     let float_size = data.bounds.size;
+                    debug!("float_pos: %?, float_size: %?", float_pos, float_size);
                     match data.f_type {
                         FloatLeft => {
                             if(float_pos.x + float_size.width > max_left && 
@@ -187,8 +189,8 @@ impl FloatContextBase{
 
                                 r_top = Some(float_pos.y);
                                 r_bottom = Some(float_pos.y + float_size.height);
-                                debug!("available_rect: collision with right float: new max_left is %?",
-                                        max_left);
+                                debug!("available_rect: collision with right float: new min_right is %?",
+                                        min_right);
                             }
                         }
                     }
@@ -198,13 +200,14 @@ impl FloatContextBase{
 
         // Extend the vertical range of the rectangle to the closest floats.
         // If there are floats on both sides, take the intersection of the
-        // two areas.
+        // two areas. Also make sure we never return a top smaller than the
+        // given upper bound.
         let (top, bottom) = match (r_top, r_bottom, l_top, l_bottom) {
             (Some(r_top), Some(r_bottom), Some(l_top), Some(l_bottom)) => 
-                range_intersect(r_top, r_bottom, l_top, l_bottom),
+                range_intersect(max(top, r_top), r_bottom, max(top, l_top), l_bottom),
 
-            (None, None, Some(l_top), Some(l_bottom)) => (l_top, l_bottom),
-            (Some(r_top), Some(r_bottom), None, None) => (r_top, r_bottom),
+            (None, None, Some(l_top), Some(l_bottom)) => (max(top, l_top), l_bottom),
+            (Some(r_top), Some(r_bottom), None, None) => (max(top, r_top), r_bottom),
             (None, None, None, None) => return None,
             _ => fail!("Reached unreachable state when computing float area")
         };
@@ -215,7 +218,7 @@ impl FloatContextBase{
         // assertion here.
         //assert!(max_left < min_right); 
         
-        assert!(top < bottom, "Float position error");
+        assert!(top <= bottom, "Float position error");
 
         Some(Rect{
             origin: Point2D(max_left, top) + self.offset,
@@ -235,6 +238,8 @@ impl FloatContextBase{
             max_width: info.max_width,
             f_type: info.f_type
         };
+
+        debug!("add_float: added float with info %?", new_info);
 
         let new_float = FloatData {    
             bounds: Rect {
@@ -264,6 +269,34 @@ impl FloatContextBase{
         return false;
     }
 
+    /// Given the top 3 sides of the rectange, finds the largest height that
+    /// will result in the rectange not colliding with any floats. Returns
+    /// None if that height is infinite.
+    fn max_height_for_bounds(&self, left: Au, top: Au, width: Au) -> Option<Au> {
+        let top = top - self.offset.y;
+        let left = left - self.offset.x;
+        let mut max_height = None;
+
+        for self.float_data.iter().advance |float| {
+            match *float {
+                None => (),
+                Some(f_data) => {
+                    if f_data.bounds.origin.y + f_data.bounds.size.height > top &&
+                       f_data.bounds.origin.x + f_data.bounds.size.width > left &&
+                       f_data.bounds.origin.x < left + width {
+                           let new_y = f_data.bounds.origin.y;
+                           max_height = Some(min(max_height.get_or_default(new_y), new_y));
+                       }
+                }
+            }
+        }
+
+        match max_height {
+            None => None,
+            Some(h) => Some(h + self.offset.y)
+        }
+    }
+
     /// Given necessary info, finds the closest place a box can be positioned
     /// without colliding with any floats.
     fn place_between_floats(&self, info: &PlacementInfo) -> Rect<Au>{
@@ -280,10 +313,10 @@ impl FloatContextBase{
                 // TODO(eatknson): integrate with overflow
                 None => return match info.f_type { 
                     FloatLeft => Rect(Point2D(Au(0), float_y), 
-                                      Size2D(info.max_width, info.height)),
+                                      Size2D(info.max_width, Au(max_value))),
 
                     FloatRight => Rect(Point2D(info.max_width - info.width, float_y), 
-                                       Size2D(info.max_width, info.height))
+                                       Size2D(info.max_width, Au(max_value)))
                 },
 
                 Some(rect) => {
@@ -292,12 +325,16 @@ impl FloatContextBase{
                     
                     // Place here if there is enough room
                     if (rect.size.width >= info.width) {
+                        let height = self.max_height_for_bounds(rect.origin.x, 
+                                                                rect.origin.y, 
+                                                                rect.size.width);
+                        let height = height.get_or_default(Au(max_value));
                         return match info.f_type {
                             FloatLeft => Rect(Point2D(rect.origin.x, float_y),
-                                              Size2D(rect.size.width, info.height)),
+                                              Size2D(rect.size.width, height)),
                             FloatRight => {
                                 Rect(Point2D(rect.origin.x + rect.size.width - info.width, float_y),
-                                     Size2D(rect.size.width, info.height))
+                                     Size2D(rect.size.width, height))
                             }
                         };
                     }
