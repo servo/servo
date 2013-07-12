@@ -6,8 +6,10 @@ use dom::bindings::node::unwrap;
 use dom::bindings::utils::jsval_to_str;
 use dom::bindings::utils::{domstring_to_jsval, WrapNewBindingObject};
 use dom::bindings::utils::{str, CacheableWrapper, DOM_OBJECT_SLOT, DOMString};
-use dom::element::*;
-use dom::node::{AbstractNode, Element, ElementNodeTypeId, ScriptView};
+use dom::element::Element;
+use dom::element::{HTMLImageElementTypeId, HTMLHeadElementTypeId, HTMLScriptElementTypeId,
+                   HTMLDivElementTypeId};
+use dom::node::{AbstractNode, ScriptView, ElementNodeTypeId};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use script_task::task_from_context;
 use super::utils;
