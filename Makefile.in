@@ -91,7 +91,7 @@ clean-rust:
 
 endif
 
-src/compiler/rust-auto-clean-stamp: $(S)src/compiler/rust-auto-clean-trigger
+src/compiler/rust/rust-auto-clean-stamp: $(S)src/compiler/rust-auto-clean-trigger
 	$(Q)$(MAKE) clean-rust
 	touch $@
 
@@ -227,7 +227,7 @@ include $(S)mk/clean.mk
 
 .DEFAULT_GOAL := all
 .PHONY:	all
-all: src/compiler/rust-auto-clean-stamp servo package
+all: src/compiler/rust/rust-auto-clean-stamp servo package
 
 # Servo helper libraries
 
