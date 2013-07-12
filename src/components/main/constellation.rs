@@ -4,6 +4,8 @@
 
 use compositing::{CompositorChan, SetLayoutRenderChans};
 
+use extra::net::url;
+
 use std::cell::Cell;
 use std::comm;
 use std::comm::Port;
@@ -60,19 +62,20 @@ impl NavigationContext {
     pub fn back(&mut self) -> uint {
         self.next.push(self.current.get());
         self.current = Some(self.previous.pop());
-        debug!("previous: %? next: %? current: %?", self.previous, self.next, self.current);
+        debug!("previous: %? next: %? current: %u", self.previous, self.next, self.current.get());
         self.current.get()
     }
 
     pub fn forward(&mut self) -> uint {
         self.previous.push(self.current.get());
         self.current = Some(self.next.pop());
-        debug!("previous: %? next: %? current: %?", self.previous, self.next, self.current);
+        debug!("previous: %? next: %? current: %u", self.previous, self.next, self.current.get());
         self.current.get()
     }
 
     /// Navigates to a new id, returning all id's evicted from next
     pub fn navigate(&mut self, id: uint) -> ~[uint] {
+        debug!("navigating to %u", id);
         let evicted = replace(&mut self.next, ~[]);
         do self.current.mutate_default(id) |cur_id| {
             self.previous.push(cur_id);
@@ -143,6 +146,7 @@ impl Constellation {
         match request {
             // Load a new page, usually either from a mouse click or typed url
             LoadUrlMsg(url) => {
+                debug!("received message to load %s", url::to_str(&url));
                 let pipeline_id = self.get_next_id();
                 let mut pipeline = Pipeline::create(pipeline_id,
                                                 self.chan.clone(),
@@ -180,7 +184,6 @@ impl Constellation {
                         self.navigation_context.back()
                     }
                 };
-                debug!("navigating to pipeline %u", destination_id);
                 let mut pipeline = self.pipelines.pop(&destination_id).unwrap();
                 pipeline.navigation_type = Some(constellation_msg::Navigate);
                 pipeline.reload();
@@ -234,7 +237,8 @@ impl Constellation {
         for current_painter.iter().advance |id| {
             self.pipelines.get(id).render_chan.send(PaintPermissionRevoked);
         }
-        let id = self.next_painter.get();
+        let id = replace(&mut self.next_painter, None);
+        let id = id.expect("constellation: called update painter when there was no next painter");
         let pipeline = self.pipelines.get(&id);
         self.compositor_chan.send(SetLayoutRenderChans(pipeline.layout_chan.clone(),
                                                        pipeline.render_chan.clone(),
@@ -247,7 +251,6 @@ impl Constellation {
         let pipeline = self.pipelines.get(&id);
         pipeline.render_chan.send(PaintPermissionGranted);
         self.current_painter = Some(id);
-        self.next_painter = None;
         // Don't navigate on Navigate type, because that is handled by forward/back
         match pipeline.navigation_type.get() {
             constellation_msg::Load => {

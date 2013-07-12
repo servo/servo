@@ -2,8 +2,33 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::element::*;
-use dom::node::{AbstractNode, Comment, Doctype, Element, ElementNodeTypeId, Node, ScriptView};
+use dom::element::{HTMLAnchorElementTypeId, HTMLAsideElementTypeId, HTMLBRElementTypeId,
+                   HTMLBodyElementTypeId, HTMLBoldElementTypeId, HTMLDivElementTypeId,
+                   HTMLFontElementTypeId, HTMLFormElementTypeId, HTMLHRElementTypeId,
+                   HTMLHeadElementTypeId, HTMLHtmlElementTypeId,
+                   HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLInputElementTypeId,
+                   HTMLItalicElementTypeId, HTMLLinkElementTypeId, HTMLListItemElementTypeId,
+                   HTMLMetaElementTypeId, HTMLOListElementTypeId, HTMLOptionElementTypeId,
+                   HTMLParagraphElementTypeId, HTMLScriptElementTypeId,
+                   HTMLSectionElementTypeId, HTMLSelectElementTypeId, HTMLSmallElementTypeId,
+                   HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTableBodyElementTypeId,
+                   HTMLTableCellElementTypeId, HTMLTableElementTypeId,
+                   HTMLTableRowElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId,
+                   UnknownElementTypeId};
+use dom::element::{HTMLAnchorElement, HTMLAsideElement, HTMLBRElement, HTMLBodyElement,
+                   HTMLBoldElement, HTMLDivElement, HTMLFontElement, HTMLFormElement,
+                   HTMLHRElement, HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
+                   HTMLInputElement, HTMLImageElement, HTMLIframeElement,
+                   HTMLItalicElement, HTMLLinkElement, HTMLListItemElement, HTMLMetaElement,
+                   HTMLOListElement, HTMLOptionElement, HTMLParagraphElement,
+                   HTMLScriptElement, HTMLSectionElement, HTMLSelectElement, HTMLSmallElement,
+                   HTMLSpanElement, HTMLStyleElement, HTMLTableBodyElement,
+                   HTMLTableCellElement, HTMLTableElement, HTMLTableRowElement,
+                   HTMLTitleElement, HTMLUListElement};
+use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Heading4, Heading5,
+                   Heading6};
+use dom::element::{Element, Attr};
+use dom::node::{AbstractNode, Comment, Doctype, ElementNodeTypeId, Node, ScriptView};
 use dom::node::{Text};
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use newcss::stylesheet::Stylesheet;
@@ -52,7 +77,7 @@ enum JSMessage {
     JSTaskExit
 }
 
-struct HtmlParserResult {
+pub struct HtmlParserResult {
     root: AbstractNode<ScriptView>,
     style_port: Port<Option<Stylesheet>>,
     js_port: Port<JSResult>,
@@ -194,6 +219,8 @@ fn build_element_from_tag(tag: &str) -> AbstractNode<ScriptView> {
     handle_element!(tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
 
     handle_element!(tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
+    handle_element!(tag, "iframe",  HTMLIframeElementTypeId, HTMLIframeElement,
+                    [(frame: None), (parse_result: None)]);
 
     handle_element!(tag, "h1", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading1)]);
     handle_element!(tag, "h2", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading2)]);
@@ -213,6 +240,7 @@ pub fn parse_html(url: Url,
                   image_cache_task: ImageCacheTask) -> HtmlParserResult {
     // Spawn a CSS parser to receive links to CSS style sheets.
     let resource_task2 = resource_task.clone();
+    let resource_task3 = resource_task.clone();
 
     let (stylesheet_port, stylesheet_chan) = comm::stream();
     let stylesheet_chan = Cell::new(stylesheet_chan);
@@ -314,6 +342,29 @@ pub fn parse_html(url: Url,
                         }
                     }
                 },
+                ElementNodeTypeId(HTMLIframeElementTypeId) => {
+                    do node.with_mut_iframe_element |iframe_element| {
+                        let src_opt = iframe_element.parent.get_attr("src").map(|x| x.to_str());
+                        match src_opt {
+                            None => {}
+                            Some(src) => {
+                                let iframe_url = make_url(src, Some(url2.clone()));
+                                iframe_element.frame = Some(iframe_url.clone());
+                                let (parse_port, parse_chan) = comm::stream();
+                                iframe_element.parse_result = Some(parse_port);
+                                let image_cache_task2 = Cell::new(image_cache_task.clone());
+                                let resource_task3 = Cell::new(resource_task3.clone());
+                                let iframe_url = Cell::new(iframe_url);
+                                do task::spawn {
+                                    let result = parse_html(iframe_url.take(),
+                                                            resource_task3.take(),
+                                                            image_cache_task2.take());
+                                    parse_chan.send(result);
+                                }
+                            }
+                        }
+                    }
+                }
                 ElementNodeTypeId(HTMLImageElementTypeId) => {
                     do node.with_mut_image_element |image_element| {
                         let src_opt = image_element.parent.get_attr("src").map(|x| x.to_str());
