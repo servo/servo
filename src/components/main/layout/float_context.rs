@@ -8,6 +8,7 @@ use geom::rect::Rect;
 use gfx::geometry::{Au, max, min};
 use std::util::replace;
 use std::vec;
+use std::i32::max_value;
 
 pub enum FloatType{
     FloatLeft,
@@ -95,6 +96,13 @@ impl FloatContext {
     }
 
     #[inline(always)]
+    pub fn place_between_floats(&self, info: &PlacementInfo) -> Rect<Au> {
+        do self.with_base |base| {
+            base.place_between_floats(info)
+        }
+    }
+
+    #[inline(always)]
     pub fn last_float_pos(&mut self) -> Point2D<Au> {
         do self.with_base |base| {
             base.last_float_pos()
@@ -139,9 +147,9 @@ impl FloatContextBase{
             (max(top_1, top_2), min(bottom_1, bottom_2))
         }
 
-        debug!("available_rect: trying to find space at %?", top);
-
         let top = top - self.offset.y;
+
+        debug!("available_rect: trying to find space at %?", top);
 
         // Relevant dimensions for the right-most left float
         let mut max_left = Au(0) - self.offset.x;
@@ -154,11 +162,13 @@ impl FloatContextBase{
 
         // Find the float collisions for the given vertical range.
         for self.float_data.iter().advance |float| {
+            debug!("available_rect: Checking for collision against float");
             match *float{
                 None => (),
                 Some(data) => {
                     let float_pos = data.bounds.origin;
                     let float_size = data.bounds.size;
+                    debug!("float_pos: %?, float_size: %?", float_pos, float_size);
                     match data.f_type {
                         FloatLeft => {
                             if(float_pos.x + float_size.width > max_left && 
@@ -167,6 +177,9 @@ impl FloatContextBase{
                             
                                 l_top = Some(float_pos.y);
                                 l_bottom = Some(float_pos.y + float_size.height);
+
+                                debug!("available_rect: collision with left float: new max_left is %?",
+                                        max_left);
                             }
                         }
                         FloatRight => {
@@ -176,6 +189,8 @@ impl FloatContextBase{
 
                                 r_top = Some(float_pos.y);
                                 r_bottom = Some(float_pos.y + float_size.height);
+                                debug!("available_rect: collision with right float: new min_right is %?",
+                                        min_right);
                             }
                         }
                     }
@@ -185,26 +200,25 @@ impl FloatContextBase{
 
         // Extend the vertical range of the rectangle to the closest floats.
         // If there are floats on both sides, take the intersection of the
-        // two areas.
+        // two areas. Also make sure we never return a top smaller than the
+        // given upper bound.
         let (top, bottom) = match (r_top, r_bottom, l_top, l_bottom) {
             (Some(r_top), Some(r_bottom), Some(l_top), Some(l_bottom)) => 
-                range_intersect(r_top, r_bottom, l_top, l_bottom),
+                range_intersect(max(top, r_top), r_bottom, max(top, l_top), l_bottom),
 
-            (None, None, Some(l_top), Some(l_bottom)) => (l_top, l_bottom),
-            (Some(r_top), Some(r_bottom), None, None) => (r_top, r_bottom),
+            (None, None, Some(l_top), Some(l_bottom)) => (max(top, l_top), l_bottom),
+            (Some(r_top), Some(r_bottom), None, None) => (max(top, r_top), r_bottom),
             (None, None, None, None) => return None,
             _ => fail!("Reached unreachable state when computing float area")
         };
 
-        // When the window is smaller than the float, we will return a rect
-        // with negative width.
-        assert!(max_left < min_right 
-                || max_left > max_x - self.offset.x
-                || min_right < Au(0) - self.offset.x
-                ,"Float position error");
-
-        //TODO(eatkinson): do we need to do something similar for heights?
-        assert!(top < bottom, "Float position error");
+        // This assertion is too strong and fails in some cases. It is OK to
+        // return negative widths since we check against that right away, but
+        // we should still undersrtand why they occur and add a stronger
+        // assertion here.
+        //assert!(max_left < min_right); 
+        
+        assert!(top <= bottom, "Float position error");
 
         Some(Rect{
             origin: Point2D(max_left, top) + self.offset,
@@ -217,39 +231,112 @@ impl FloatContextBase{
         assert!(self.floats_used < self.float_data.len() && 
                 self.float_data[self.floats_used].is_none());
 
+        let new_info = PlacementInfo {
+            width: info.width,
+            height: info.height,
+            ceiling: max(info.ceiling, self.max_y + self.offset.y),
+            max_width: info.max_width,
+            f_type: info.f_type
+        };
+
+        debug!("add_float: added float with info %?", new_info);
+
         let new_float = FloatData {    
             bounds: Rect {
-                origin: self.place_float(info) - self.offset,
+                origin: self.place_between_floats(&new_info).origin - self.offset,
                 size: Size2D(info.width, info.height)
             },
             f_type: info.f_type
         };
         self.float_data[self.floats_used] = Some(new_float);
+        self.max_y = max(self.max_y, new_float.bounds.origin.y);
         self.floats_used += 1;
     }
 
-    /// Given necessary info, finds the position of the float in
-    /// LOCAL COORDINATES. i.e. must be translated before placed
-    /// in the float list
-    fn place_float(&self, info: &PlacementInfo) -> Point2D<Au>{
+    /// Returns true if the given rect overlaps with any floats.
+    fn collides_with_float(&self, bounds: &Rect<Au>) -> bool {
+        for self.float_data.iter().advance |float| {
+            match *float{
+                None => (),
+                Some(data) => {
+                    if data.bounds.translate(&self.offset).intersects(bounds) {
+                        return true;
+                    }
+                }
+            };
+        }
+
+        return false;
+    }
+
+    /// Given the top 3 sides of the rectange, finds the largest height that
+    /// will result in the rectange not colliding with any floats. Returns
+    /// None if that height is infinite.
+    fn max_height_for_bounds(&self, left: Au, top: Au, width: Au) -> Option<Au> {
+        let top = top - self.offset.y;
+        let left = left - self.offset.x;
+        let mut max_height = None;
+
+        for self.float_data.iter().advance |float| {
+            match *float {
+                None => (),
+                Some(f_data) => {
+                    if f_data.bounds.origin.y + f_data.bounds.size.height > top &&
+                       f_data.bounds.origin.x + f_data.bounds.size.width > left &&
+                       f_data.bounds.origin.x < left + width {
+                           let new_y = f_data.bounds.origin.y;
+                           max_height = Some(min(max_height.get_or_default(new_y), new_y));
+                       }
+                }
+            }
+        }
+
+        match max_height {
+            None => None,
+            Some(h) => Some(h + self.offset.y)
+        }
+    }
+
+    /// Given necessary info, finds the closest place a box can be positioned
+    /// without colliding with any floats.
+    fn place_between_floats(&self, info: &PlacementInfo) -> Rect<Au>{
         debug!("place_float: Placing float with width %? and height %?", info.width, info.height);
         // Can't go any higher than previous floats or
         // previous elements in the document.
-        let mut float_y = max(info.ceiling, self.max_y + self.offset.y);
+        let mut float_y = info.ceiling;
         loop {
             let maybe_location = self.available_rect(float_y, info.height, info.max_width);
             debug!("place_float: Got available rect: %? for y-pos: %?", maybe_location, float_y);
             match maybe_location {
+
                 // If there are no floats blocking us, return the current location
                 // TODO(eatknson): integrate with overflow
-                None => return Point2D(Au(0), float_y),
+                None => return match info.f_type { 
+                    FloatLeft => Rect(Point2D(Au(0), float_y), 
+                                      Size2D(info.max_width, Au(max_value))),
+
+                    FloatRight => Rect(Point2D(info.max_width - info.width, float_y), 
+                                       Size2D(info.max_width, Au(max_value)))
+                },
+
                 Some(rect) => {
                     assert!(rect.origin.y + rect.size.height != float_y, 
                             "Non-terminating float placement");
                     
                     // Place here if there is enough room
                     if (rect.size.width >= info.width) {
-                        return Point2D(rect.origin.x, float_y);
+                        let height = self.max_height_for_bounds(rect.origin.x, 
+                                                                rect.origin.y, 
+                                                                rect.size.width);
+                        let height = height.get_or_default(Au(max_value));
+                        return match info.f_type {
+                            FloatLeft => Rect(Point2D(rect.origin.x, float_y),
+                                              Size2D(rect.size.width, height)),
+                            FloatRight => {
+                                Rect(Point2D(rect.origin.x + rect.size.width - info.width, float_y),
+                                     Size2D(rect.size.width, height))
+                            }
+                        };
                     }
 
                     // Try to place at the next-lowest location.

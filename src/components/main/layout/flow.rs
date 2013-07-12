@@ -31,7 +31,7 @@ use layout::box::RenderBox;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::inline::{InlineFlowData};
-use layout::float_context::{FloatContext, Invalid};
+use layout::float_context::{FloatContext, Invalid, FloatType};
 
 use std::cell::Cell;
 use std::uint;
@@ -56,7 +56,7 @@ pub enum FlowContext {
 pub enum FlowContextType {
     Flow_Absolute, 
     Flow_Block,
-    Flow_Float,
+    Flow_Float(FloatType),
     Flow_InlineBlock,
     Flow_Inline,
     Flow_Root,
