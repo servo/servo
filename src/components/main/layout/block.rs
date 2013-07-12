@@ -249,12 +249,14 @@ impl BlockFlowData {
     pub fn assign_height_block(@mut self, ctx: &mut LayoutContext) {
         let mut cur_y = Au(0);
         let mut top_offset = Au(0);
+        let mut bottom_offset = Au(0);
         let mut left_offset = Au(0);
 
         for self.box.iter().advance |&box| {
             do box.with_model |model| {
                 top_offset = model.margin.top + model.border.top + model.padding.top;
                 cur_y = cur_y + top_offset;
+                bottom_offset = model.margin.bottom + model.border.bottom + model.padding.bottom;
                 left_offset = model.offset();
             };
         }
@@ -277,7 +279,7 @@ impl BlockFlowData {
             }
             kid.assign_height(ctx);
             do kid.with_mut_base |child_node| {
-                float_ctx = child_node.floats_out.translate(Point2D(Au(0), -child_node.position.size.height));
+                float_ctx = child_node.floats_out.clone();
             }
 
         }
@@ -288,12 +290,19 @@ impl BlockFlowData {
             };
         }
 
-        let height = if self.is_root {
+        let mut height = if self.is_root {
             Au::max(ctx.screen_size.size.height, cur_y)
         } else {
-            cur_y - top_offset
+                cur_y - top_offset
         };
-        
+
+        for self.box.iter().advance |&box| {
+            let style = box.style();
+            let maybe_height = MaybeAuto::from_height(style.height(), Au(0));
+            let maybe_height = maybe_height.spec_or_default(Au(0));
+            height = geometry::max(height, maybe_height);
+        }
+
         let mut noncontent_height = Au(0);
         self.box.map(|&box| {
             do box.with_mut_base |base| {
@@ -311,8 +320,8 @@ impl BlockFlowData {
         //TODO(eatkinson): compute heights using the 'height' property.
         self.common.position.size.height = height + noncontent_height;
 
-    
-        self.common.floats_out = float_ctx.translate(Point2D(left_offset, self.common.position.size.height));
+        let extra_height = height - (cur_y - top_offset) + bottom_offset; 
+        self.common.floats_out = float_ctx.translate(Point2D(left_offset, -extra_height));
     }
 
     pub fn build_display_list_block<E:ExtraDisplayListData>(@mut self,
