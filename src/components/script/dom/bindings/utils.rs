@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::PrototypeList;
 use dom::bindings::node;
 use dom::node::{AbstractNode, ScriptView};
 use script_task::task_from_context;
@@ -153,7 +154,7 @@ pub unsafe fn get_dom_class(obj: *JSObject) -> Result<DOMClass, ()> {
     return Err(());
 }
 
-pub fn unwrap_object<T>(obj: *JSObject, proto_id: prototypes::id::Prototype, proto_depth: uint) -> Result<T, ()> {
+pub fn unwrap_object<T>(obj: *JSObject, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<T, ()> {
     unsafe {
         do get_dom_class(obj).chain |dom_class| {
             if dom_class.interface_chain[proto_depth] == proto_id {
@@ -167,7 +168,7 @@ pub fn unwrap_object<T>(obj: *JSObject, proto_id: prototypes::id::Prototype, pro
     }
 }
 
-pub fn unwrap_value<T>(val: *JSVal, proto_id: prototypes::id::Prototype, proto_depth: uint) -> Result<T, ()> {
+pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth: uint) -> Result<T, ()> {
     unsafe {
         let obj = RUST_JSVAL_TO_OBJECT(*val);
         unwrap_object(obj, proto_id, proto_depth)
@@ -400,7 +401,7 @@ pub struct ConstantSpec {
 pub struct DOMClass {
     // A list of interfaces that this object implements, in order of decreasing
     // derivedness.
-    interface_chain: [prototypes::id::Prototype, ..3 /*max prototype chain length*/],
+    interface_chain: [PrototypeList::id::ID, ..3 /*max prototype chain length*/],
 
     unused: bool, // DOMObjectIsISupports (always false)
     native_hooks: *NativePropertyHooks
@@ -415,26 +416,6 @@ pub fn GetProtoOrIfaceArray(global: *JSObject) -> **JSObject {
     unsafe {
         /*assert ((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0;*/
         cast::transmute(RUST_JSVAL_TO_PRIVATE(JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT)))
-    }
-}
-
-pub mod prototypes {
-    pub mod id {
-        #[deriving(Eq)]
-        pub enum Prototype {
-            Blob,
-            ClientRect,
-            ClientRectList,
-            DOMParser,
-            HTMLCollection,
-            Event,
-            EventTarget,
-            FormData,
-            UIEvent,
-            MouseEvent,
-            WindowProxy,
-            _ID_Count
-        }
     }
 }
 
@@ -635,7 +616,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: uint, _vp: *JSVal) -> 
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = @mut ([0 as *JSObject, ..10]); //XXXjdm prototypes::_ID_COUNT
+    let protoArray = @mut ([0 as *JSObject, ..21]); //XXXjdm PrototyepList::id::_ID_Count
     unsafe {
         //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);

@@ -10,7 +10,6 @@
  * liability, trademark and document use rules apply.
  */
 
-interface WindowProxy;
 interface Node;
 
 [Constructor(DOMString type, optional UIEventInit eventInitDict)]
