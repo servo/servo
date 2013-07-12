@@ -415,7 +415,10 @@ impl CompositorTask {
                     
                     NewLayer(new_size, tile_size) => {
                         *page_size = Size2D(new_size.width as f32, new_size.height as f32);
-                        *quadtree = Some(Quadtree::new(0, 0, new_size.width, new_size.height, tile_size));
+                        *quadtree = Some(Quadtree::new(0, 0,
+                                                       new_size.width.max(&(window_size.width as uint)),
+                                                       new_size.height.max(&(window_size.height as uint)),
+                                                       tile_size));
                         ask_for_tiles();
                         
                     }
