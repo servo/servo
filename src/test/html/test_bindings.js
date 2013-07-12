@@ -57,3 +57,22 @@ window.alert(ev.type);
 window.alert(ev.defaultPrevented);
 ev.preventDefault();
 window.alert(ev.defaultPrevented);
+
+window.alert("MouseEvent:");
+window.alert(MouseEvent);
+let ev2 = new MouseEvent("press", {bubbles: true, screenX: 150, detail: 100});
+window.alert(ev2);
+window.alert(ev2.screenX);
+window.alert(ev2.detail);
+window.alert(ev2.getModifierState("ctrl"));
+window.alert(ev2 instanceof Event);
+window.alert(ev2 instanceof UIEvent);
+
+//TODO: Doesn't work until we throw proper exceptions instead of returning 0 on
+//      unwrap failure.
+/*try {
+  Object.getOwnPropertyDescriptor(Object.getPrototypeOf(rects), "length").get.call(window);
+  window.alert("hmm?");
+} catch (x) {
+  window.alert("ok");
+}*/

@@ -17,6 +17,7 @@ use std::uint;
 use std::unstable::intrinsics;
 use js::glue::*;
 use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
+use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB, RESOLVE_STUB};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
@@ -117,14 +118,60 @@ fn is_dom_class(clasp: *JSClass) -> bool {
     }
 }
 
+fn is_dom_proxy(obj: *JSObject) -> bool {
+    unsafe {
+        (js_IsObjectProxyClass(obj) || js_IsFunctionProxyClass(obj)) &&
+            IsProxyHandlerFamily(obj)
+    }
+}
+
 pub unsafe fn unwrap<T>(obj: *JSObject) -> T {
-    let slot = if is_dom_class(JS_GetClass(obj)) {
+    let clasp = JS_GetClass(obj);
+    let slot = if is_dom_class(clasp) {
         DOM_OBJECT_SLOT
     } else {
+        assert!(is_dom_proxy(obj));
         DOM_PROXY_OBJECT_SLOT
     } as u32;
     let val = JS_GetReservedSlot(obj, slot);
     cast::transmute(RUST_JSVAL_TO_PRIVATE(val))
+}
+
+pub unsafe fn get_dom_class(obj: *JSObject) -> Result<DOMClass, ()> {
+    let clasp = JS_GetClass(obj);
+    if is_dom_class(clasp) {
+        debug!("plain old dom object");
+        let domjsclass: *DOMJSClass = cast::transmute(clasp);
+        return Ok((*domjsclass).dom_class);
+    }
+    if is_dom_proxy(obj) {
+        debug!("proxy dom object");
+        let dom_class: *DOMClass = cast::transmute(GetProxyHandlerExtra(obj));
+        return Ok(*dom_class);
+    }
+    debug!("not a dom object");
+    return Err(());
+}
+
+pub fn unwrap_object<T>(obj: *JSObject, proto_id: prototypes::id::Prototype, proto_depth: uint) -> Result<T, ()> {
+    unsafe {
+        do get_dom_class(obj).chain |dom_class| {
+            if dom_class.interface_chain[proto_depth] == proto_id {
+                debug!("good prototype");
+                Ok(unwrap(obj))
+            } else {
+                debug!("bad prototype");
+                Err(())
+            }
+        }
+    }
+}
+
+pub fn unwrap_value<T>(val: *JSVal, proto_id: prototypes::id::Prototype, proto_depth: uint) -> Result<T, ()> {
+    unsafe {
+        let obj = RUST_JSVAL_TO_OBJECT(*val);
+        unwrap_object(obj, proto_id, proto_depth)
+    }
 }
 
 pub unsafe fn squirrel_away<T>(x: @mut T) -> *rust_box<T> {
@@ -353,7 +400,7 @@ pub struct ConstantSpec {
 pub struct DOMClass {
     // A list of interfaces that this object implements, in order of decreasing
     // derivedness.
-    interface_chain: [prototypes::id::Prototype, ..2 /*max prototype chain length*/],
+    interface_chain: [prototypes::id::Prototype, ..3 /*max prototype chain length*/],
 
     unused: bool, // DOMObjectIsISupports (always false)
     native_hooks: *NativePropertyHooks
@@ -373,7 +420,9 @@ pub fn GetProtoOrIfaceArray(global: *JSObject) -> **JSObject {
 
 pub mod prototypes {
     pub mod id {
+        #[deriving(Eq)]
         pub enum Prototype {
+            Blob,
             ClientRect,
             ClientRectList,
             DOMParser,
@@ -381,6 +430,9 @@ pub mod prototypes {
             Event,
             EventTarget,
             FormData,
+            UIEvent,
+            MouseEvent,
+            WindowProxy,
             _ID_Count
         }
     }
@@ -583,7 +635,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: uint, _vp: *JSVal) -> 
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = @mut ([0 as *JSObject, ..7]); //XXXjdm prototypes::_ID_COUNT
+    let protoArray = @mut ([0 as *JSObject, ..10]); //XXXjdm prototypes::_ID_COUNT
     unsafe {
         //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);

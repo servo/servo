@@ -25,6 +25,34 @@ impl JSValConvertible for u32 {
     }
 }
 
+impl JSValConvertible for i32 {
+    fn to_jsval(&self) -> JSVal {
+        unsafe {
+            RUST_UINT_TO_JSVAL(*self as u32)
+        }
+    }
+
+    fn from_jsval(val: JSVal) -> Option<i32> {
+        unsafe {
+            Some(RUST_JSVAL_TO_INT(val) as i32)
+        }
+    }
+}
+
+impl JSValConvertible for u16 {
+    fn to_jsval(&self) -> JSVal {
+        unsafe {
+            RUST_UINT_TO_JSVAL(*self as u32)
+        }
+    }
+
+    fn from_jsval(val: JSVal) -> Option<u16> {
+        unsafe {
+            Some(RUST_JSVAL_TO_INT(val) as u16)
+        }
+    }
+}
+
 impl JSValConvertible for bool {
     fn to_jsval(&self) -> JSVal {
         if *self {
