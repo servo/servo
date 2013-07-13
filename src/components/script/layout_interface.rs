@@ -7,8 +7,7 @@
 /// from layout.
 
 use dom::node::{AbstractNode, ScriptView, LayoutView};
-use script_task::{ScriptMsg, ScriptChan};
-
+use script_task::{ScriptChan};
 use std::comm::{Chan, SharedChan};
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -31,9 +30,6 @@ pub enum Msg {
     ///
     /// FIXME(pcwalton): As noted below, this isn't very type safe.
     QueryMsg(LayoutQuery),
-
-    /// Routes a message (usually from the compositor) to the appropriate script task
-    RouteScriptMsg(ScriptMsg),
 
     /// Requests that the layout task shut down and exit.
     ExitMsg,

@@ -7,6 +7,7 @@ use extra::time::precise_time_ns;
 use std::cell::Cell;
 use std::comm::{Port, SharedChan};
 use extra::sort::tim_sort;
+use std::iterator::AdditiveIterator;
 
 // front-end representation of the profiler used to communicate with the profiler
 #[deriving(Clone)]
@@ -162,7 +163,7 @@ impl Profiler {
             let data_len = data.len();
             if data_len > 0 {
                 let (mean, median, &min, &max) =
-                    (data.iter().fold(0f, |a, b| a + *b) / (data_len as float),
+                    (data.iter().transform(|&x|x).sum() / (data_len as float),
                      data[data_len / 2],
                      data.iter().min().unwrap(),
                      data.iter().max().unwrap());

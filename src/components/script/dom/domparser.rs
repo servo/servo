@@ -8,7 +8,6 @@ use dom::document::Document;
 use dom::element::{Element, HTMLHtmlElement, HTMLHtmlElementTypeId};
 use dom::node::Node;
 use dom::window::Window;
-use script_task::global_script_context;
 
 pub struct DOMParser {
     owner: @mut Window, //XXXjdm Document instead?
@@ -22,7 +21,8 @@ impl DOMParser {
             wrapper: WrapperCache::new()
         };
 
-        let cx = global_script_context().js_compartment.cx.ptr;
+        // TODO(tkuehn): This just handles the top-level page. Need to handle subframes.
+        let cx = unsafe {(*owner.page).js_info.get_ref().js_compartment.cx.ptr};
         let cache = owner.get_wrappercache();
         let scope = cache.get_wrapper();
         parser.wrap_object_shared(cx, scope);
@@ -43,7 +43,7 @@ impl DOMParser {
                 parent: Element::new(HTMLHtmlElementTypeId, ~"html")
             };
 
-            let root = Node::as_abstract_node(root);
+            let root = Node::as_abstract_node((*self.owner.page).js_info.get_ref().js_compartment.cx.ptr, root);
             Document(root, None)
         }
     }

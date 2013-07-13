@@ -34,9 +34,10 @@ use script::layout_interface::{AddStylesheetMsg, ContentBoxQuery};
 use script::layout_interface::{HitTestQuery, ContentBoxResponse, HitTestResponse};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxesResponse, ExitMsg, LayoutQuery};
 use script::layout_interface::{MatchSelectorsDocumentDamage, Msg};
-use script::layout_interface::{QueryMsg, RouteScriptMsg, Reflow, ReflowDocumentDamage};
+use script::layout_interface::{QueryMsg, Reflow, ReflowDocumentDamage};
 use script::layout_interface::{ReflowForDisplay, ReflowMsg};
-use script::script_task::{ReflowCompleteMsg, ScriptChan, ScriptMsg, SendEventMsg};
+use script::script_task::{ReflowCompleteMsg, ScriptChan, SendEventMsg};
+use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
@@ -45,7 +46,9 @@ use servo_util::time;
 use extra::net::url::Url;
 
 struct LayoutTask {
+    id: PipelineId,
     port: Port<Msg>,
+    constellation_chan: ConstellationChan,
     script_chan: ScriptChan,
     render_chan: RenderChan,
     image_cache_task: ImageCacheTask,
@@ -62,25 +65,38 @@ struct LayoutTask {
 }
 
 impl LayoutTask {
-    pub fn create(port: Port<Msg>,
-                              script_chan: ScriptChan,
-                              render_chan: RenderChan,
-                              img_cache_task: ImageCacheTask,
-                              opts: Opts,
-                              profiler_chan: ProfilerChan) {
+    pub fn create(id: PipelineId,
+                  port: Port<Msg>,
+                  constellation_chan: ConstellationChan,
+                  script_chan: ScriptChan,
+                  render_chan: RenderChan,
+                  img_cache_task: ImageCacheTask,
+                  opts: Opts,
+                  profiler_chan: ProfilerChan) {
+
         let port = Cell::new(port);
+        let constellation_chan = Cell::new(constellation_chan);
+        let script_chan = Cell::new(script_chan);
+        let render_chan = Cell::new(render_chan);
+        let img_cache_task = Cell::new(img_cache_task);
+        let profiler_chan = Cell::new(profiler_chan);
+
         do spawn {
-            let mut layout = LayoutTask::new(port.take(),
-                                         script_chan.clone(),
-                                         render_chan.clone(),
-                                         img_cache_task.clone(),
-                                         &opts,
-                                         profiler_chan.clone());
+            let mut layout = LayoutTask::new(id,
+                                             port.take(),
+                                             constellation_chan.take(),
+                                             script_chan.take(),
+                                             render_chan.take(),
+                                             img_cache_task.take(),
+                                             &opts,
+                                             profiler_chan.take());
             layout.start();
         };
     }
 
-    fn new(port: Port<Msg>,
+    fn new(id: PipelineId,
+           port: Port<Msg>,
+           constellation_chan: ConstellationChan,
            script_chan: ScriptChan,
            render_chan: RenderChan, 
            image_cache_task: ImageCacheTask,
@@ -90,7 +106,9 @@ impl LayoutTask {
         let fctx = @mut FontContext::new(opts.render_backend, true, profiler_chan.clone());
 
         LayoutTask {
+            id: id,
             port: port,
+            constellation_chan: constellation_chan,
             script_chan: script_chan,
             render_chan: render_chan,
             image_cache_task: image_cache_task.clone(),
@@ -139,10 +157,6 @@ impl LayoutTask {
                 do profile(time::LayoutQueryCategory, self.profiler_chan.clone()) {
                     self.handle_query(query.take());
                 }
-            }
-            RouteScriptMsg(script_msg) => {
-                debug!("layout: routing %? to script task", script_msg);
-                self.route_script_msg(script_msg);
             }
             ExitMsg => {
                 debug!("layout: ExitMsg received");
@@ -265,7 +279,7 @@ impl LayoutTask {
         // FIXME(pcwalton): This should probably be *one* channel, but we can't fix this without
         // either select or a filtered recv() that only looks for messages of a given type.
         data.script_join_chan.send(());
-        data.script_chan.send(ReflowCompleteMsg);
+        data.script_chan.send(ReflowCompleteMsg(self.id));
     }
 
     /// Handles a query from the script task. This is the main routine that DOM functions like
@@ -381,12 +395,6 @@ impl LayoutTask {
         }
     }
 
-    // TODO(tkuehn): once there are multiple script tasks, this is where the layout task will
-    // determine which script task should receive the message. The prototype will need to change
-    fn route_script_msg(&self, script_msg: ScriptMsg) {
-        self.script_chan.send(script_msg);
-    }
-
     // When images can't be loaded in time to display they trigger
     // this callback in some task somewhere. This will send a message
     // to the script task, and ultimately cause the image to be
@@ -398,10 +406,11 @@ impl LayoutTask {
         // make multiple copies of the callback, and the dom event
         // channel is not a copyable type, so this is actually a
         // little factory to produce callbacks
+        let id = self.id.clone();
         let f: @fn() -> ~fn(ImageResponseMsg) = || {
             let script_chan = script_chan.clone();
             let f: ~fn(ImageResponseMsg) = |_| {
-                script_chan.send(SendEventMsg(ReflowEvent))
+                script_chan.send(SendEventMsg(id.clone(), ReflowEvent))
             };
             f
         };
