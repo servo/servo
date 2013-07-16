@@ -1,5 +1,6 @@
 define DEF_SUBMODULE_TEST_RULES
 # check target
+.PHONY: check-$(1)
 check-$(1) : $$(DONE_$(1))
 	@$$(call E, make check: $(1))
 
@@ -31,20 +32,28 @@ DEPS_CHECK_TESTABLE = $(filter-out $(NO_TESTS),$(DEPS_CHECK_ALL))
 DEPS_CHECK_TARGETS_ALL = $(addprefix check-,$(DEPS_CHECK_TESTABLE))
 DEPS_CHECK_TARGETS_FAST = $(addprefix check-,$(filter-out $(SLOW_TESTS),$(DEPS_CHECK_TESTABLE)))
 
-.PHONY: check $(DEPS_CHECK_TARGETS_ALL)
+.PHONY: check-test
+check-test:
+	echo $(DEPS_CHECK_TARGETS_ALL)
 
+.PHONY: check
 check: $(DEPS_CHECK_TARGETS_FAST) check-servo tidy
 
+.PHONY: check-all
 check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo tidy
 
+.PHONY: check-servo
 check-servo: servo-test
 	./servo-test $(TESTNAME)
 
+.PHONY: check-ref
 check-ref: reftest
 	./reftest --source-dir=$(S)/src/test/html/ref --work-dir=src/test/html/ref $(TESTNAME)
 
+.PHONY: check-content
 check-content: contenttest
 	./contenttest --source-dir=$(S)/src/test/html/content $(TESTNAME)
 
+.PHONY: tidy
 tidy: 
 	python $(S)src/etc/tidy.py $(S)src

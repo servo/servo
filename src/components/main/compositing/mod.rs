@@ -24,6 +24,8 @@ use std::comm;
 use std::comm::{Chan, SharedChan, Port};
 use std::num::Orderable;
 use std::task;
+use std::uint;
+use std::vec;
 use extra::uv_global_loop;
 use extra::timer;
 use geom::matrix::identity;
@@ -35,6 +37,8 @@ use layers::layers::{ImageData, WithDataFn};
 use layers::layers::{TextureLayerKind, TextureLayer, TextureManager};
 use layers::rendergl;
 use layers::scene::Scene;
+use opengles::gl2;
+use png;
 use servo_util::{time, url};
 use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
@@ -464,6 +468,8 @@ impl CompositorTask {
         };
 
         let profiler_chan = self.profiler_chan.clone();
+        let write_png = self.opts.output_file.is_some();
+        let exit = self.opts.exit_after_load;
         let composite = || {
             do profile(time::CompositingCategory, profiler_chan.clone()) {
                 debug!("compositor: compositing");
@@ -474,7 +480,40 @@ impl CompositorTask {
                 rendergl::render_scene(context, scene);
             }
 
+            // Render to PNG. We must read from the back buffer (ie, before
+            // window.present()) as OpenGL ES 2 does not have glReadBuffer().
+            if write_png {
+                let (width, height) = (window_size.width as uint, window_size.height as uint);
+                let path = Path(*self.opts.output_file.get_ref());
+                let mut pixels = gl2::read_pixels(0, 0,
+                                                  width as gl2::GLsizei,
+                                                  height as gl2::GLsizei,
+                                                  gl2::RGB, gl2::UNSIGNED_BYTE);
+                // flip image vertically (texture is upside down)
+                let orig_pixels = pixels.clone();
+                let stride = width * 3;
+                for uint::range(0, height) |y| {
+                    let dst_start = y * stride;
+                    let src_start = (height - y - 1) * stride;
+                    vec::bytes::copy_memory(pixels.mut_slice(dst_start, dst_start + stride),
+                                            orig_pixels.slice(src_start, src_start + stride),
+                                            stride);
+                }
+                let img = png::Image {
+                    width: width as u32,
+                    height: height as u32,
+                    color_type: png::RGB8,
+                    pixels: pixels,
+                };
+                let res = png::store_png(&img, &path);
+                assert!(res.is_ok());
+
+                *done = true;
+            }
+
             window.present();
+
+            if exit { *done = true; }
         };
 
         // When the user scrolls, move the layer around.
@@ -546,12 +585,6 @@ impl CompositorTask {
             root_layer.common.set_transform(zoom_transform);
             
             *recomposite = true;
-        }
-
-        if self.opts.exit_after_load {
-            do window.set_finished_callback || {
-                *done = true;
-            }
         }
 
         // Enter the main event loop.
