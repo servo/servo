@@ -9,8 +9,7 @@ On OS X (homebrew):
 
 ``` sh
 brew install https://raw.github.com/Homebrew/homebrew-versions/master/autoconf213.rb
-brew install automake libtool
-brew install pkg-config
+brew install automake libtool pkg-config libpng
 ```
 
 On OS X (MacPorts):
@@ -24,7 +23,7 @@ On Debian-based Linuxes:
 ``` sh
 sudo apt-get install autoconf2.13 curl freeglut3-dev libtool \
     libfreetype6-dev libfontconfig1-dev libgl1-mesa-dri libglib2.0-dev \
-    xorg-dev
+    xorg-dev libpng-dev
 ```
 
 Servo builds its own copy of Rust, so there is no need to provide a Rust
@@ -59,6 +58,7 @@ make && make check
 - `Ctrl-=` zooms in
 - `Backspace` goes backwards in the history
 - `Shift-Backspace` goes forwards in the history
+- `Esc` exits servo
 
 ## Developing
 
