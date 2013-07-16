@@ -7,7 +7,6 @@
 use layout::box::{RenderBox};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::display_list_builder::{FlowDisplayListBuilderMethods};
 use layout::flow::{BlockFlow, FlowContext, FlowData, InlineBlockFlow, FloatFlow};
 use layout::inline::InlineLayout;
 use layout::model::{MaybeAuto, Specified, Auto};
@@ -327,11 +326,17 @@ impl BlockFlowData {
     pub fn build_display_list_block<E:ExtraDisplayListData>(@mut self,
                                                             builder: &DisplayListBuilder,
                                                             dirty: &Rect<Au>, 
-                                                            offset: &Point2D<Au>,
-                                                            list: &Cell<DisplayList<E>>) {
+                                                            list: &Cell<DisplayList<E>>) 
+                                                            -> bool {
+
+        let abs_rect = Rect(self.common.abs_position, self.common.position.size);
+        if !abs_rect.intersects(dirty) {
+            return false;
+        }
+
         // add box that starts block context
         self.box.map(|&box| {
-            box.build_display_list(builder, dirty, offset, list)
+            box.build_display_list(builder, dirty, &self.common.abs_position, list)
         });
 
 
@@ -340,8 +345,12 @@ impl BlockFlowData {
         // go deeper into the flow tree
         let flow = BlockFlow(self);
         for flow.each_child |child| {
-            flow.build_display_list_for_child(builder, child, dirty, offset, list)
+            do child.with_mut_base |base| {
+                base.abs_position = self.common.abs_position + base.position.origin;
+            }
         }
+
+        true
     }
 }
 
