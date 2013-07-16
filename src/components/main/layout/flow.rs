@@ -80,6 +80,19 @@ impl FlowContext {
           InlineFlow(data) => data.teardown()
         }
     }
+
+    /// Like traverse_preorder, but don't end the whole traversal if the callback
+    /// returns false.
+    fn partially_traverse_preorder(&self, callback: &fn(FlowContext) -> bool) {
+        if !callback((*self).clone()) {
+            return;
+        }
+
+        for self.each_child |kid| {
+            // FIXME: Work around rust#2202. We should be able to pass the callback directly.
+            kid.partially_traverse_preorder(|a| callback(a));
+        }
+    }
 }
 
 impl FlowData {
@@ -162,6 +175,7 @@ pub struct FlowData {
     floats_in: FloatContext,
     floats_out: FloatContext,
     num_floats: uint,
+    abs_position: Point2D<Au>
 }
 
 impl TreeNode<FlowContext> for FlowData {
@@ -225,6 +239,7 @@ impl FlowData {
             floats_in: Invalid,
             floats_out: Invalid,
             num_floats: 0,
+            abs_position: Point2D(Au(0), Au(0))
         }
     }
 }
@@ -296,21 +311,22 @@ impl<'self> FlowContext {
         }
     }
 
-    pub fn build_display_list_recurse<E:ExtraDisplayListData>(&self,
-                                                              builder: &DisplayListBuilder,
-                                                              dirty: &Rect<Au>,
-                                                              offset: &Point2D<Au>,
-                                                              list: &Cell<DisplayList<E>>) {
-        do self.with_base |info| {
-            debug!("FlowContext::build_display_list at %?: %s", info.position, self.debug_str());
+    pub fn build_display_list<E:ExtraDisplayListData>(&self,
+                                                     builder: &DisplayListBuilder,
+                                                     dirty: &Rect<Au>,
+                                                     list: &Cell<DisplayList<E>>)
+                                                     -> bool {
+
+        
+        match *self {
+            BlockFlow(info)  => info.build_display_list_block(builder, dirty, list),
+            InlineFlow(info) => info.build_display_list_inline(builder, dirty, list),
+            FloatFlow(info)  => info.build_display_list_float(builder, dirty, list),
+            _ => {
+                fail!("Tried to build_display_list_recurse of flow: %?", self)
+            }
         }
 
-        match *self {
-            BlockFlow(info)  => info.build_display_list_block(builder, dirty, offset, list),
-            InlineFlow(info) => info.build_display_list_inline(builder, dirty, offset, list),
-            FloatFlow(info)  => info.build_display_list_float(builder, dirty, offset, list),
-            _ => fail!(fmt!("Tried to build_display_list_recurse of flow: %?", self))
-        }
     }
 
     // Actual methods that do not require much flow-specific logic

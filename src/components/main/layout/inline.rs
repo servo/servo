@@ -745,8 +745,14 @@ impl InlineFlowData {
     pub fn build_display_list_inline<E:ExtraDisplayListData>(&self,
                                                              builder: &DisplayListBuilder,
                                                              dirty: &Rect<Au>,
-                                                             offset: &Point2D<Au>,
-                                                             list: &Cell<DisplayList<E>>) {
+                                                             list: &Cell<DisplayList<E>>)
+                                                             -> bool {
+
+        let abs_rect = Rect(self.common.abs_position, self.common.position.size);
+        if !abs_rect.intersects(dirty) {
+            return false;
+        }
+
         // TODO(#228): Once we form line boxes and have their cached bounds, we can be smarter and
         // not recurse on a line if nothing in it can intersect the dirty region.
         debug!("FlowContext[%d]: building display list for %u inline boxes",
@@ -754,11 +760,12 @@ impl InlineFlowData {
                self.boxes.len());
 
         for self.boxes.iter().advance |box| {
-            box.build_display_list(builder, dirty, offset, list)
+            box.build_display_list(builder, dirty, &self.common.abs_position, list)
         }
 
         // TODO(#225): Should `inline-block` elements have flows as children of the inline flow or
         // should the flow be nested inside the box somehow?
+        true
     }
 }
 
