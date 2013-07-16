@@ -11,7 +11,7 @@ use layout::aux::{LayoutData, LayoutAuxMethods};
 use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, FlowDisplayListBuilderMethods};
+use layout::display_list_builder::{DisplayListBuilder};
 use layout::flow::FlowContext;
 
 use std::cast::transmute;
@@ -241,7 +241,9 @@ impl LayoutTask {
 
                 // TODO: Set options on the builder before building.
                 // TODO: Be smarter about what needs painting.
-                layout_root.build_display_list(&builder, &layout_root.position(), display_list);
+                for layout_root.traverse_preorder |flow| {
+                    flow.build_display_list(&builder, &layout_root.position(), display_list);
+                }
 
                 let root_size = do layout_root.with_base |base| {
                     base.position.size
