@@ -20,6 +20,7 @@ pub struct Opts {
     tile_size: uint,
     profiler_period: Option<float>,
     exit_after_load: bool,
+    output_file: Option<~str>,
 }
 
 #[allow(non_implicitly_copyable_typarams)]
@@ -47,10 +48,6 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
     } else {
         copy opt_match.free
     };
-
-    if getopts::opt_present(&opt_match, "o") {
-        fail!(~"servo cannot treat 'o' option now.")
-    }
 
     let render_backend = match getopts::opt_maybe_str(&opt_match, "r") {
         Some(backend_str) => {
@@ -90,6 +87,8 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
 
     let exit_after_load = getopts::opt_present(&opt_match, "x");
 
+    let output_file = getopts::opt_maybe_str(&opt_match, "o");
+
     Opts {
         urls: urls,
         render_backend: render_backend,
@@ -97,5 +96,6 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         tile_size: tile_size,
         profiler_period: profiler_period,
         exit_after_load: exit_after_load,
+        output_file: output_file,
     }
 }

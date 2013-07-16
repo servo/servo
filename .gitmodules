@@ -103,3 +103,6 @@
 [submodule "src/support/css/rust-cssparser"]
 	path = src/support/css/rust-cssparser
 	url = https://github.com/mozilla-servo/rust-cssparser.git
+[submodule "src/support/png/rust-png"]
+	path = src/support/png/rust-png
+	url = https://github.com/mozilla-servo/rust-png.git

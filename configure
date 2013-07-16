@@ -422,6 +422,7 @@ CFG_SUBMODULES="\
     support/spidermonkey/mozjs \
     support/spidermonkey/rust-mozjs \
     support/stb-image/rust-stb-image \
+    support/png/rust-png \
     support/wapcaplet/libwapcaplet \
     support/wapcaplet/rust-wapcaplet"
 
