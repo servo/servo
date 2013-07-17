@@ -271,7 +271,7 @@ impl RenderBox {
 
     /// Attempts to split this box so that its width is no more than `max_width`. Fails if this box
     /// is an unscanned text box.
-    pub fn split_to_width(&self, _: &LayoutContext, max_width: Au, starts_line: bool)
+    pub fn split_to_width(&self, max_width: Au, starts_line: bool)
                       -> SplitBoxResult {
         match *self {
             GenericRenderBoxClass(*) | ImageRenderBoxClass(*) => CannotSplit(*self),

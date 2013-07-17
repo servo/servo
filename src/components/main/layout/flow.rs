@@ -94,6 +94,21 @@ impl FlowContext {
             kid.partially_traverse_preorder(|a| callback(a));
         }
     }
+
+    fn traverse_bu_sub_inorder (&self, callback: &fn(FlowContext) -> bool) -> bool {
+        for self.each_child |kid| {
+            // FIXME: Work around rust#2202. We should be able to pass the callback directly.
+            if !kid.traverse_bu_sub_inorder(|a| callback(a)) {
+                return false;
+            }
+        }
+
+        if !self.is_inorder() {
+            callback((*self).clone())
+        } else {
+            true
+        }
+    }
 }
 
 impl FlowData {
@@ -177,7 +192,8 @@ pub struct FlowData {
     floats_in: FloatContext,
     floats_out: FloatContext,
     num_floats: uint,
-    abs_position: Point2D<Au>
+    abs_position: Point2D<Au>,
+    is_inorder: bool,
 }
 
 impl TreeNode<FlowContext> for FlowData {
@@ -242,7 +258,8 @@ impl FlowData {
             floats_in: Invalid,
             floats_out: Invalid,
             num_floats: 0,
-            abs_position: Point2D(Au(0), Au(0))
+            abs_position: Point2D(Au(0), Au(0)),
+            is_inorder: false
         }
     }
 }
@@ -257,6 +274,13 @@ impl<'self> FlowContext {
         }
     }
 
+    #[inline(always)]
+    pub fn is_inorder(&self) -> bool {
+        do self.with_base |common_info| {
+            common_info.is_inorder
+        }
+    }
+
     /// A convenience method to return the ID of this flow. Fails if the flow is currently being
     /// borrowed mutably.
     #[inline(always)]
@@ -266,14 +290,6 @@ impl<'self> FlowContext {
         }
     }
 
-    /// A convenience method to return the restyle damage of this flow. Fails if the flow is
-    /// currently being borrowed mutably.
-    #[inline(always)]
-    pub fn restyle_damage(&self) -> RestyleDamage {
-        do self.with_base |info| {
-            info.restyle_damage
-        }
-    }
 
     pub fn inline(&self) -> @mut InlineFlowData {
         match *self {
@@ -309,7 +325,7 @@ impl<'self> FlowContext {
         match *self {
             BlockFlow(info)  => info.assign_widths_block(ctx),
             InlineFlow(info) => info.assign_widths_inline(ctx),
-            FloatFlow(info)  => info.assign_widths_float(ctx),
+            FloatFlow(info)  => info.assign_widths_float(),
             _ => fail!(fmt!("Tried to assign_widths of flow: f%d", self.id()))
         }
     }
@@ -319,6 +335,15 @@ impl<'self> FlowContext {
             BlockFlow(info)  => info.assign_height_block(ctx),
             InlineFlow(info) => info.assign_height_inline(ctx),
             FloatFlow(info)  => info.assign_height_float(ctx),
+            _ => fail!(fmt!("Tried to assign_height of flow: f%d", self.id()))
+        }
+    }
+
+    pub fn assign_height_inorder(&self, ctx: &mut LayoutContext) {
+        match *self {
+            BlockFlow(info)  => info.assign_height_inorder_block(ctx),
+            InlineFlow(info) => info.assign_height_inorder_inline(ctx),
+            FloatFlow(info)  => info.assign_height_inorder_float(),
             _ => fail!(fmt!("Tried to assign_height of flow: f%d", self.id()))
         }
     }
@@ -340,6 +365,15 @@ impl<'self> FlowContext {
         }
 
     }
+    /// A convenience method to return the restyle damage of this flow. Fails if the flow is
+    /// currently being borrowed mutably.
+    #[inline(always)]
+    pub fn restyle_damage(&self) -> RestyleDamage {
+        do self.with_base |info| {
+            info.restyle_damage
+        }
+    }
+
 
     // Actual methods that do not require much flow-specific logic
     pub fn foldl_all_boxes<B:Clone>(&self, seed: B, cb: &fn(a: B, b: RenderBox) -> B) -> B {
