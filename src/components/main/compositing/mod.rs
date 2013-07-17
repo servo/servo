@@ -309,12 +309,9 @@ impl CompositorTask {
         let ask_for_tiles: @fn() = || {
             match *quadtree {
                 Some(ref mut quad) => {
-                    let valid = |tile: &~LayerBuffer| -> bool {
-                        tile.resolution == *world_zoom
-                    };
                     let (tile_request, redisplay) = quad.get_tile_rects(Rect(Point2D(world_offset.x as int,
                                                                                      world_offset.y as int),
-                                                                             *window_size), valid, *world_zoom);
+                                                                             *window_size), *world_zoom);
 
                     if !tile_request.is_empty() {
                         match *render_chan {
@@ -419,10 +416,9 @@ impl CompositorTask {
                     
                     NewLayer(new_size, tile_size) => {
                         *page_size = Size2D(new_size.width as f32, new_size.height as f32);
-                        *quadtree = Some(Quadtree::new(0, 0,
-                                                       new_size.width.max(&(window_size.width as uint)),
+                        *quadtree = Some(Quadtree::new(new_size.width.max(&(window_size.width as uint)),
                                                        new_size.height.max(&(window_size.height as uint)),
-                                                       tile_size));
+                                                       tile_size, Some(10000000u)));
                         ask_for_tiles();
                         
                     }
@@ -602,7 +598,7 @@ impl CompositorTask {
                 composite();
             }
 
-            timer::sleep(&uv_global_loop::get(), 100);
+            timer::sleep(&uv_global_loop::get(), 10);
 
             // If a pinch-zoom happened recently, ask for tiles at the new resolution
             if *zoom_action && precise_time_s() - *zoom_time > 0.3 {

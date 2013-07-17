@@ -9,6 +9,7 @@ use geom::size::Size2D;
 
 use extra::arc;
 
+
 #[deriving(Clone)]
 pub struct LayerBuffer {
     draw_target: DrawTarget,
@@ -67,4 +68,22 @@ pub trait RenderListener {
 /// which is used in displaying the appropriate message in the window's title.
 pub trait ScriptListener : Clone {
     fn set_ready_state(&self, ReadyState);
+}
+
+/// The interface used by the quadtree to get info about LayerBuffers
+pub trait Tile {
+    /// Returns the amount of memory used by the tile
+    fn get_mem(&self) -> uint;
+    /// Returns true if the tile is displayable at the given scale
+    fn is_valid(&self, f32) -> bool;
+}
+
+impl Tile for ~LayerBuffer {
+    fn get_mem(&self) -> uint {
+        // This works for now, but in the future we may want a better heuristic
+        self.screen_pos.size.width * self.screen_pos.size.height
+    }
+    fn is_valid(&self, scale: f32) -> bool {
+        self.resolution.approx_eq(&scale)
+    }    
 }
