@@ -6,9 +6,11 @@ use platform::{Application, Window};
 use script::dom::event::{Event, ClickEvent, MouseDownEvent, MouseUpEvent, ResizeEvent};
 use script::script_task::{LoadMsg, NavigateMsg, SendEventMsg};
 use script::layout_interface::{LayoutChan, RouteScriptMsg};
-use windowing::{ApplicationMethods, WindowMethods, WindowMouseEvent, WindowClickEvent};
-use windowing::{WindowMouseDownEvent, WindowMouseUpEvent};
 
+use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
+use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
+use windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
+use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 
 use servo_msg::compositor_msg::{RenderListener, LayerBuffer, LayerBufferSet, RenderState};
 use servo_msg::compositor_msg::{ReadyState, ScriptListener};
@@ -216,38 +218,39 @@ impl CompositorTask {
         let context = rendergl::init_render_context();
         let root_layer = @mut ContainerLayer();
         let window_size = window.size();
-        let scene = @mut Scene(ContainerLayerKind(root_layer), window_size, identity());
-        let done = @mut false;
-        let recomposite = @mut false;
+        let mut scene = Scene(ContainerLayerKind(root_layer), window_size, identity());
+        let mut done = false;
+        let mut recomposite = false;
 
         // FIXME: This should not be a separate offset applied after the fact but rather should be
         // applied to the layers themselves on a per-layer basis. However, this won't work until scroll
         // positions are sent to content.
-        let world_offset = @mut Point2D(0f32, 0f32);
-        let page_size = @mut Size2D(0f32, 0f32);
-        let window_size = @mut Size2D(window_size.width as int,
-                                      window_size.height as int);
+        let mut world_offset = Point2D(0f32, 0f32);
+        let mut page_size = Size2D(0f32, 0f32);
+        let mut window_size = Size2D(window_size.width as int,
+                                     window_size.height as int);
 
         // Keeps track of the current zoom factor
-        let world_zoom = @mut 1f32;
+        let mut world_zoom = 1f32;
         // Keeps track of local zoom factor. Reset to 1 after a rerender event.
-        let local_zoom = @mut 1f32;
+        let mut local_zoom = 1f32;
         // Channel to the current renderer.
         // FIXME: This probably shouldn't be stored like this.
 
-        let render_chan: @mut Option<RenderChan> = @mut None;
-        let pipeline_id: @mut Option<uint> = @mut None;
+        let mut render_chan: Option<RenderChan> = None;
+        let mut pipeline_id: Option<uint> = None;
+        let mut layout_chan: Option<LayoutChan> = None;
 
         // Quadtree for this layer
         // FIXME: This should be one-per-layer
-        let quadtree: @mut Option<Quadtree<~LayerBuffer>> = @mut None;
+        let mut quadtree: Option<Quadtree<~LayerBuffer>> = None;
         
         // Keeps track of if we have performed a zoom event and how recently.
-        let zoom_action = @mut false;
-        let zoom_time = @mut 0f;
+        let mut zoom_action = false;
+        let mut zoom_time = 0f;
 
         // Extract tiles from the given quadtree and build and display the render tree.
-        let build_layer_tree: @fn(&Quadtree<~LayerBuffer>) = |quad: &Quadtree<~LayerBuffer>| {
+        let build_layer_tree: &fn(&Quadtree<~LayerBuffer>) = |quad: &Quadtree<~LayerBuffer>| {
             // Iterate over the children of the container layer.
             let mut current_layer_child = root_layer.first_child;
             
@@ -292,31 +295,31 @@ impl CompositorTask {
                 let origin = Point2D(origin.x as f32, origin.y as f32);
                 
                 // Set the layer's transform.
-                let transform = identity().translate(origin.x * *world_zoom, origin.y * *world_zoom, 0.0);
-                let transform = transform.scale(width as f32 * *world_zoom / buffer.resolution, height as f32 * *world_zoom / buffer.resolution, 1.0);
+                let transform = identity().translate(origin.x * world_zoom, origin.y * world_zoom, 0.0);
+                let transform = transform.scale(width as f32 * world_zoom / buffer.resolution, height as f32 * world_zoom / buffer.resolution, 1.0);
                 texture_layer.common.set_transform(transform);
 
             }
             
             // Reset zoom
-            *local_zoom = 1f32;
+            local_zoom = 1f32;
             root_layer.common.set_transform(identity().translate(-world_offset.x,
                                                                  -world_offset.y,
                                                                  0.0));
-            *recomposite = true;
+            recomposite = true;
         };
 
-        let ask_for_tiles: @fn() = || {
-            match *quadtree {
+        let ask_for_tiles = || {
+            match quadtree {
                 Some(ref mut quad) => {
                     let (tile_request, redisplay) = quad.get_tile_rects(Rect(Point2D(world_offset.x as int,
                                                                                      world_offset.y as int),
-                                                                             *window_size), *world_zoom);
+                                                                             window_size), world_zoom);
 
                     if !tile_request.is_empty() {
-                        match *render_chan {
+                        match render_chan {
                             Some(ref chan) => {
-                                chan.send(ReRenderMsg(tile_request, *world_zoom));
+                                chan.send(ReRenderMsg(tile_request, world_zoom));
                             }
                             _ => {
                                 println("Warning: Compositor: Cannot send tile request, no render chan initialized");
@@ -331,68 +334,12 @@ impl CompositorTask {
                 }
             }
         };
-
-        let update_layout_callbacks: @fn(LayoutChan) = |layout_chan: LayoutChan| {
-            let layout_chan_clone = layout_chan.clone();
-            do window.set_navigation_callback |direction| {
-                let direction = match direction {
-                    windowing::Forward => constellation_msg::Forward,
-                    windowing::Back => constellation_msg::Back,
-                };
-                layout_chan_clone.send(RouteScriptMsg(NavigateMsg(direction)));
-            }
-
-            let layout_chan_clone = layout_chan.clone();
-            // Hook the windowing system's resize callback up to the resize rate limiter.
-            do window.set_resize_callback |width, height| {
-                let new_size = Size2D(width as int, height as int);
-                if *window_size != new_size {
-                    debug!("osmain: window resized to %ux%u", width, height);
-                    *window_size = new_size;
-                    layout_chan_clone.send(RouteScriptMsg(SendEventMsg(ResizeEvent(width, height))));
-                } else {
-                    debug!("osmain: dropping window resize since size is still %ux%u", width, height);
-                }
-            }
-
-            let layout_chan_clone = layout_chan.clone();
-
-            // When the user enters a new URL, load it.
-            do window.set_load_url_callback |url_string| {
-                debug!("osmain: loading URL `%s`", url_string);
-                layout_chan_clone.send(RouteScriptMsg(LoadMsg(url::make_url(url_string.to_str(), None))));
-            }
-
-            let layout_chan_clone = layout_chan.clone();
-
-            // When the user triggers a mouse event, perform appropriate hit testing
-            do window.set_mouse_callback |window_mouse_event: WindowMouseEvent| {
-                let event: Event;
-                let world_mouse_point = |layer_mouse_point: Point2D<f32>| {
-                    layer_mouse_point + *world_offset
-                };
-                match window_mouse_event {
-                    WindowClickEvent(button, layer_mouse_point) => {
-                        event = ClickEvent(button, world_mouse_point(layer_mouse_point));
-                    }
-                    WindowMouseDownEvent(button, layer_mouse_point) => {
-                        event = MouseDownEvent(button, world_mouse_point(layer_mouse_point));
-
-                    }
-                    WindowMouseUpEvent(button, layer_mouse_point) => {
-                        event = MouseUpEvent(button, world_mouse_point(layer_mouse_point));
-                    }
-                }
-                layout_chan_clone.send(RouteScriptMsg(SendEventMsg(event)));
-            }
-        };
-
-
-        let check_for_messages: @fn(&Port<Msg>) = |port: &Port<Msg>| {
+        
+        let check_for_messages: &fn(&Port<Msg>) = |port: &Port<Msg>| {
             // Handle messages
             while port.peek() {
                 match port.recv() {
-                    Exit => *done = true,
+                    Exit => done = true,
 
                     ChangeReadyState(ready_state) => window.set_ready_state(ready_state),
                     ChangeRenderState(render_state) => window.set_render_state(render_state),
@@ -401,9 +348,9 @@ impl CompositorTask {
                                          new_render_chan,
                                          new_pipeline_id,
                                          response_chan) => {
-                        update_layout_callbacks(new_layout_chan);
-                        *render_chan = Some(new_render_chan);
-                        *pipeline_id = Some(new_pipeline_id);
+                        layout_chan = Some(new_layout_chan);
+                        render_chan = Some(new_render_chan);
+                        pipeline_id = Some(new_pipeline_id);
                         response_chan.send(CompositorAck(new_pipeline_id));
                     }
 
@@ -413,17 +360,17 @@ impl CompositorTask {
                     }
 
                     GetGLContext(chan) => chan.send(current_gl_context()),
-                    
+
                     NewLayer(new_size, tile_size) => {
-                        *page_size = Size2D(new_size.width as f32, new_size.height as f32);
-                        *quadtree = Some(Quadtree::new(new_size.width.max(&(window_size.width as uint)),
+                        page_size = Size2D(new_size.width as f32, new_size.height as f32);
+                        quadtree = Some(Quadtree::new(new_size.width.max(&(window_size.width as uint)),
                                                        new_size.height.max(&(window_size.height as uint)),
                                                        tile_size, Some(10000000u)));
                         ask_for_tiles();
                         
                     }
                     ResizeLayer(new_size) => {
-                        *page_size = Size2D(new_size.width as f32, new_size.height as f32);
+                        page_size = Size2D(new_size.width as f32, new_size.height as f32);
                         // TODO: update quadtree, ask for tiles
                     }
                     DeleteLayer => {
@@ -431,16 +378,15 @@ impl CompositorTask {
                     }
 
                     Paint(id, new_layer_buffer_set, new_size) => {
-                        match *pipeline_id {
+                        match pipeline_id {
                             Some(pipeline_id) => if id != pipeline_id { loop; },
                             None => { loop; },
                         }
                         
                         debug!("osmain: received new frame"); 
 
-                       
                         let quad;
-                        match *quadtree {
+                        match quadtree {
                             Some(ref mut q) => quad = q,
                             None => fail!("Compositor: given paint command with no quadtree initialized"),
                         }
@@ -452,10 +398,9 @@ impl CompositorTask {
                                           buffer.resolution, ~buffer.clone());
                         }
                         
-                        *page_size = Size2D(new_size.width as f32, new_size.height as f32);
+                        page_size = Size2D(new_size.width as f32, new_size.height as f32);
                         
                         build_layer_tree(quad);
-
                         // TODO: Recycle the old buffers; send them back to the renderer to reuse if
                         // it wishes.
                     }
@@ -463,6 +408,147 @@ impl CompositorTask {
             }
         };
 
+        let check_for_window_messages: &fn(WindowEvent) = |event| {
+            match event {
+                IdleWindowEvent => {}
+
+                ResizeWindowEvent(width, height) => {
+                    let new_size = Size2D(width as int, height as int);
+                    if window_size != new_size {
+                        debug!("osmain: window resized to %ux%u", width, height);
+                        window_size = new_size;
+                        match layout_chan {
+                            Some(ref chan) => chan.send(RouteScriptMsg(SendEventMsg(ResizeEvent(width, height)))),
+                            None => error!("Compositor: Recieved resize event without initialized layout chan"),
+                        }
+                    } else {
+                        debug!("osmain: dropping window resize since size is still %ux%u", width, height);
+                    }
+                }
+                
+                LoadUrlWindowEvent(url_string) => {
+                    debug!("osmain: loading URL `%s`", url_string);
+                    match layout_chan {
+                        Some(ref chan) => chan.send(RouteScriptMsg(LoadMsg(url::make_url(url_string.to_str(), None)))),
+                        None => error!("Compositor: Recieved loadurl event without initialized layout chan"),
+                    }
+                }
+                
+                MouseWindowEventClass(mouse_window_event) => {
+                    let event: Event;
+                    let world_mouse_point = |layer_mouse_point: Point2D<f32>| {
+                        layer_mouse_point + world_offset
+                    };
+                    match mouse_window_event {
+                        MouseWindowClickEvent(button, layer_mouse_point) => {
+                            event = ClickEvent(button, world_mouse_point(layer_mouse_point));
+                        }
+                        MouseWindowMouseDownEvent(button, layer_mouse_point) => {
+                            event = MouseDownEvent(button, world_mouse_point(layer_mouse_point));
+                        }
+                        MouseWindowMouseUpEvent(button, layer_mouse_point) => {
+                            event = MouseUpEvent(button, world_mouse_point(layer_mouse_point));
+                        }
+                    }
+                    match layout_chan {
+                        Some(ref chan) => chan.send(RouteScriptMsg(SendEventMsg(event))),
+                        None => error!("Compositor: Recieved mouse event without initialized layout chan"),
+                    }
+                }
+                
+                ScrollWindowEvent(delta) => {
+                    // FIXME (Rust #2528): Can't use `-=`.
+                    let world_offset_copy = world_offset;
+                    world_offset = world_offset_copy - delta;
+                    
+                    // Clamp the world offset to the screen size.
+                    let max_x = (page_size.width * world_zoom - window_size.width as f32).max(&0.0);
+                    world_offset.x = world_offset.x.clamp(&0.0, &max_x).round();
+                    let max_y = (page_size.height * world_zoom - window_size.height as f32).max(&0.0);
+                    world_offset.y = world_offset.y.clamp(&0.0, &max_y).round();
+                    
+                    debug!("compositor: scrolled to %?", world_offset);
+                    
+                    
+                    let mut scroll_transform = identity();
+                    
+                    scroll_transform = scroll_transform.translate(window_size.width as f32 / 2f32 * local_zoom - world_offset.x,
+                                                                  window_size.height as f32 / 2f32 * local_zoom - world_offset.y,
+                                                                  0.0);
+                    scroll_transform = scroll_transform.scale(local_zoom, local_zoom, 1f32);
+                    scroll_transform = scroll_transform.translate(window_size.width as f32 / -2f32,
+                                                                  window_size.height as f32 / -2f32,
+                                                                  0.0);
+                    
+                    root_layer.common.set_transform(scroll_transform);
+                    
+                    ask_for_tiles();
+                    
+                    recomposite = true;
+                }
+                
+                ZoomWindowEvent(magnification) => {
+                    zoom_action = true;
+                    zoom_time = precise_time_s();
+                    let old_world_zoom = world_zoom;
+
+                    // Determine zoom amount
+                    world_zoom = (world_zoom * magnification).max(&1.0);            
+                    local_zoom = local_zoom * world_zoom/old_world_zoom;
+                    
+                    // Update world offset
+                    let corner_to_center_x = world_offset.x + window_size.width as f32 / 2f32;
+                    let new_corner_to_center_x = corner_to_center_x * world_zoom / old_world_zoom;
+                    world_offset.x = world_offset.x + new_corner_to_center_x - corner_to_center_x;
+                    
+                    let corner_to_center_y = world_offset.y + window_size.height as f32 / 2f32;
+                    let new_corner_to_center_y = corner_to_center_y * world_zoom / old_world_zoom;
+                    world_offset.y = world_offset.y + new_corner_to_center_y - corner_to_center_y;        
+                    
+                    // Clamp to page bounds when zooming out
+                    let max_x = (page_size.width * world_zoom - window_size.width as f32).max(&0.0);
+                    world_offset.x = world_offset.x.clamp(&0.0, &max_x).round();
+                    let max_y = (page_size.height * world_zoom - window_size.height as f32).max(&0.0);
+                    world_offset.y = world_offset.y.clamp(&0.0, &max_y).round();
+                    
+                    // Apply transformations
+                    let mut zoom_transform = identity();
+                    zoom_transform = zoom_transform.translate(window_size.width as f32 / 2f32 * local_zoom - world_offset.x,
+                                                              window_size.height as f32 / 2f32 * local_zoom - world_offset.y,
+                                                              0.0);
+                    zoom_transform = zoom_transform.scale(local_zoom, local_zoom, 1f32);
+                    zoom_transform = zoom_transform.translate(window_size.width as f32 / -2f32,
+                                                              window_size.height as f32 / -2f32,
+                                                              0.0);
+                    root_layer.common.set_transform(zoom_transform);
+                    
+                    recomposite = true;
+                }
+
+                NavigationWindowEvent(direction) => {
+                    let direction = match direction {
+                        windowing::Forward => constellation_msg::Forward,
+                        windowing::Back => constellation_msg::Back,
+                    };
+                    match layout_chan {
+                        Some(ref chan) => chan.send(RouteScriptMsg(NavigateMsg(direction))),
+                        None => error!("Compositor: Recieved navigation event without initialized layout chan"),
+                    }
+                }
+                
+                FinishedWindowEvent => {
+                    if self.opts.exit_after_load {
+                        done = true;
+                    }
+                }
+                
+                QuitWindowEvent => {
+                    done = true;
+                }
+            }
+        };
+        
+        
         let profiler_chan = self.profiler_chan.clone();
         let write_png = self.opts.output_file.is_some();
         let exit = self.opts.exit_after_load;
@@ -473,7 +559,7 @@ impl CompositorTask {
                 scene.size = window.size();
 
                 // Render the scene.
-                rendergl::render_scene(context, scene);
+                rendergl::render_scene(context, &scene);
             }
 
             // Render to PNG. We must read from the back buffer (ie, before
@@ -504,105 +590,32 @@ impl CompositorTask {
                 let res = png::store_png(&img, &path);
                 assert!(res.is_ok());
 
-                *done = true;
+                done = true;
             }
 
             window.present();
 
-            if exit { *done = true; }
+            if exit { done = true; }
         };
 
-        // When the user scrolls, move the layer around.
-        do window.set_scroll_callback |delta| {
-            // FIXME (Rust #2528): Can't use `-=`.
-            let world_offset_copy = *world_offset;
-            *world_offset = world_offset_copy - delta;
-
-            // Clamp the world offset to the screen size.
-            let max_x = (page_size.width * *world_zoom - window_size.width as f32).max(&0.0);
-            world_offset.x = world_offset.x.clamp(&0.0, &max_x).round();
-            let max_y = (page_size.height * *world_zoom - window_size.height as f32).max(&0.0);
-            world_offset.y = world_offset.y.clamp(&0.0, &max_y).round();
-            
-            debug!("compositor: scrolled to %?", *world_offset);
-            
-            
-            let mut scroll_transform = identity();
-            
-            scroll_transform = scroll_transform.translate(window_size.width as f32 / 2f32 * *local_zoom - world_offset.x,
-                                                          window_size.height as f32 / 2f32 * *local_zoom - world_offset.y,
-                                                          0.0);
-            scroll_transform = scroll_transform.scale(*local_zoom, *local_zoom, 1f32);
-            scroll_transform = scroll_transform.translate(window_size.width as f32 / -2f32,
-                                                          window_size.height as f32 / -2f32,
-                                                          0.0);
-            
-            root_layer.common.set_transform(scroll_transform);
-            
-            ask_for_tiles();
-
-            *recomposite = true;
-        }
-
-        // When the user pinch-zooms, scale the layer
-        do window.set_zoom_callback |magnification| {
-            *zoom_action = true;
-            *zoom_time = precise_time_s();
-            let old_world_zoom = *world_zoom;
-
-            // Determine zoom amount
-            *world_zoom = (*world_zoom * magnification).max(&1.0);            
-            *local_zoom = *local_zoom * *world_zoom/old_world_zoom;
-
-            // Update world offset
-            let corner_to_center_x = world_offset.x + window_size.width as f32 / 2f32;
-            let new_corner_to_center_x = corner_to_center_x * *world_zoom / old_world_zoom;
-            world_offset.x = world_offset.x + new_corner_to_center_x - corner_to_center_x;
-
-            let corner_to_center_y = world_offset.y + window_size.height as f32 / 2f32;
-            let new_corner_to_center_y = corner_to_center_y * *world_zoom / old_world_zoom;
-            world_offset.y = world_offset.y + new_corner_to_center_y - corner_to_center_y;        
-
-            // Clamp to page bounds when zooming out
-            let max_x = (page_size.width * *world_zoom - window_size.width as f32).max(&0.0);
-            world_offset.x = world_offset.x.clamp(&0.0, &max_x).round();
-            let max_y = (page_size.height * *world_zoom - window_size.height as f32).max(&0.0);
-            world_offset.y = world_offset.y.clamp(&0.0, &max_y).round();
-            
-            // Apply transformations
-            let mut zoom_transform = identity();
-            zoom_transform = zoom_transform.translate(window_size.width as f32 / 2f32 * *local_zoom - world_offset.x,
-                                                      window_size.height as f32 / 2f32 * *local_zoom - world_offset.y,
-                                                      0.0);
-            zoom_transform = zoom_transform.scale(*local_zoom, *local_zoom, 1f32);
-            zoom_transform = zoom_transform.translate(window_size.width as f32 / -2f32,
-                                                      window_size.height as f32 / -2f32,
-                                                      0.0);
-            root_layer.common.set_transform(zoom_transform);
-            
-            *recomposite = true;
-        }
-
         // Enter the main event loop.
-        while !*done {
+        while !done {
             // Check for new messages coming from the rendering task.
             check_for_messages(&self.port);
 
             // Check for messages coming from the windowing system.
-            if window.check_loop() {
-                *done = true;
-            }
+            check_for_window_messages(window.recv());
 
-            if *recomposite {
-                *recomposite = false;
+            if recomposite {
+                recomposite = false;
                 composite();
             }
 
             timer::sleep(&uv_global_loop::get(), 10);
 
             // If a pinch-zoom happened recently, ask for tiles at the new resolution
-            if *zoom_action && precise_time_s() - *zoom_time > 0.3 {
-                *zoom_action = false;
+            if zoom_action && precise_time_s() - zoom_time > 0.3 {
+                zoom_action = false;
                 ask_for_tiles();
             }
 
