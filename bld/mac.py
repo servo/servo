@@ -1,0 +1,3 @@
+config = {
+    'concurrency': 6,
+}
