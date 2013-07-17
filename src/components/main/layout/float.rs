@@ -35,6 +35,9 @@ pub struct FloatFlowData {
     /// Index into the box list for inline floats
     index: Option<uint>,
 
+    /// Number of floated children
+    floated_children: uint,
+
 }
 
 impl FloatFlowData {
@@ -63,7 +66,7 @@ impl FloatFlowData {
     pub fn bubble_widths_float(@mut self, ctx: &LayoutContext) {
         let mut min_width = Au(0);
         let mut pref_width = Au(0);
-        let mut num_floats = 1;
+        let mut num_floats = 0;
 
         for FloatFlow(self).each_child |child_ctx| {
             //assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
@@ -71,12 +74,12 @@ impl FloatFlowData {
             do child_ctx.with_mut_base |child_node| {
                 min_width = geometry::max(min_width, child_node.min_width);
                 pref_width = geometry::max(pref_width, child_node.pref_width);
-
                 num_floats = num_floats + child_node.num_floats;
             }
         }
 
-        self.common.num_floats = num_floats;
+        self.common.num_floats = 1;
+        self.floated_children = num_floats;
 
 
         self.box.map(|&box| {
@@ -100,6 +103,9 @@ impl FloatFlowData {
         let mut remaining_width = self.common.position.size.width;
         self.containing_width = remaining_width;
         let mut x_offset = Au(0);
+        
+        // Parent usually sets this, but floats are never inorder
+        self.common.is_inorder = false;
 
         for self.box.iter().advance |&box| {
             let style = box.style();
@@ -154,25 +160,61 @@ impl FloatFlowData {
 
         self.common.position.size.width = remaining_width;
 
+        let has_inorder_children = self.common.num_floats > 0;
         for FloatFlow(self).each_child |kid| {
             //assert!(kid.starts_block_flow() || kid.starts_inline_flow());
 
             do kid.with_mut_base |child_node| {
                 child_node.position.origin.x = x_offset;
                 child_node.position.size.width = remaining_width;
+                child_node.is_inorder = has_inorder_children;
+
+                if !child_node.is_inorder {
+                    child_node.floats_in = FloatContext::new(0);
+                }
             }
         }
     }
 
+    pub fn assign_height_inorder_float(@mut self, ctx: &mut LayoutContext) {
+        debug!("assign_height_inorder_float: assigning height for float %?", self.common.id);
+        // assign_height_float was already called by the traversal function
+        // so this is well-defined
+
+        let mut height = Au(0);
+        self.box.map(|&box| {
+            height = do box.with_base |base| {
+                base.position.size.height
+            };
+        });
+
+        let info = PlacementInfo {
+            width: self.common.position.size.width,
+            height: height,
+            ceiling: Au(0),
+            max_width: self.containing_width,
+            f_type: self.float_type,
+        };
+
+        // Place the float and return the FloatContext back to the parent flow.
+        // After, grab the position and use that to set our position.
+        self.common.floats_out = self.common.floats_in.add_float(&info);
+        self.rel_pos = self.common.floats_out.last_float_pos();
+    }
+
     pub fn assign_height_float(@mut self, ctx: &mut LayoutContext) {
-        let mut float_ctx = FloatContext::new(self.common.num_floats);
-        for FloatFlow(self).each_child |kid| {
-            do kid.with_mut_base |child_node| {
-                child_node.floats_in = float_ctx.clone();
-            }
-            kid.assign_height(ctx);
-            do kid.with_mut_base |child_node| {
-                float_ctx = child_node.floats_out.clone();
+        debug!("assign_height_float: assigning height for float %?", self.common.id);
+        let has_inorder_children = self.common.num_floats > 0;
+        if has_inorder_children {
+            let mut float_ctx = FloatContext::new(self.floated_children);
+            for FloatFlow(self).each_child |kid| {
+                do kid.with_mut_base |child_node| {
+                    child_node.floats_in = float_ctx.clone();
+                }
+                kid.assign_height_inorder(ctx);
+                do kid.with_mut_base |child_node| {
+                    float_ctx = child_node.floats_out.clone();
+                }
             }
         }
 
@@ -229,19 +271,8 @@ impl FloatFlowData {
                 base.position.size.height = height;
             }
         }
-
-        let info = PlacementInfo {
             width: self.common.position.size.width + full_noncontent_width,
             height: height + full_noncontent_height,
-            ceiling: Au(0),
-            max_width: self.containing_width,
-            f_type: self.float_type,
-        };
-
-        // Place the float and return the FloatContext back to the parent flow.
-        // After, grab the position and use that to set our position.
-        self.common.floats_out = self.common.floats_in.add_float(&info);
-        self.rel_pos = self.common.floats_out.last_float_pos();
     }
 
     pub fn build_display_list_float<E:ExtraDisplayListData>(@mut self,

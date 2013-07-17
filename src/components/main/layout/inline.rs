@@ -574,6 +574,7 @@ impl InlineFlowData {
         for InlineFlow(self).each_child |kid| {
             do kid.with_mut_base |base| {
                 base.position.size.width = self.common.position.size.width;
+                base.is_inorder = self.common.is_inorder;
             }
         }
         // There are no child contexts, so stop here.
@@ -585,11 +586,16 @@ impl InlineFlowData {
         // 'inline-block' box that created this flow before recursing.
     }
 
+    pub fn assign_height_inorder_inline(@mut self, ctx: &mut LayoutContext) {
+        for InlineFlow(self).each_child |kid| {
+            kid.assign_height_inorder(ctx);
+        }
+        self.assign_height_inline(ctx);
+    }
+
     pub fn assign_height_inline(@mut self, ctx: &mut LayoutContext) {
 
-        for InlineFlow(self).each_child |kid| {
-            kid.assign_height(ctx);
-        }
+        debug!("assign_height_inline: assigning height for flow %?", self.common.id);
 
         // Divide the boxes into lines
         // TODO(#226): Get the CSS `line-height` property from the containing block's style to
@@ -765,7 +771,9 @@ impl InlineFlowData {
 
         // TODO(#225): Should `inline-block` elements have flows as children of the inline flow or
         // should the flow be nested inside the box somehow?
-        true
+        
+        // For now, don't traverse the subtree rooted here
+        false
     }
 }
 

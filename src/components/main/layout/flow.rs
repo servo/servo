@@ -94,6 +94,21 @@ impl FlowContext {
             kid.partially_traverse_preorder(|a| callback(a));
         }
     }
+
+    fn traverse_bu_sub_inorder (&self, callback: &fn(FlowContext) -> bool) -> bool {
+        for self.each_child |kid| {
+            // FIXME: Work around rust#2202. We should be able to pass the callback directly.
+            if !kid.traverse_bu_sub_inorder(|a| callback(a)) {
+                return false;
+            }
+        }
+
+        if !self.is_inorder() {
+            callback((*self).clone())
+        } else {
+            true
+        }
+    }
 }
 
 impl FlowData {
@@ -177,7 +192,8 @@ pub struct FlowData {
     floats_in: FloatContext,
     floats_out: FloatContext,
     num_floats: uint,
-    abs_position: Point2D<Au>
+    abs_position: Point2D<Au>,
+    is_inorder: bool
 }
 
 impl TreeNode<FlowContext> for FlowData {
@@ -242,7 +258,8 @@ impl FlowData {
             floats_in: Invalid,
             floats_out: Invalid,
             num_floats: 0,
-            abs_position: Point2D(Au(0), Au(0))
+            abs_position: Point2D(Au(0), Au(0)),
+            is_inorder: false
         }
     }
 }
@@ -254,6 +271,13 @@ impl<'self> FlowContext {
     pub fn position(&self) -> Rect<Au> {
         do self.with_base |common_info| {
             common_info.position
+        }
+    }
+
+    #[inline(always)]
+    pub fn is_inorder(&self) -> bool {
+        do self.with_base |common_info| {
+            common_info.is_inorder
         }
     }
 
@@ -319,6 +343,15 @@ impl<'self> FlowContext {
             BlockFlow(info)  => info.assign_height_block(ctx),
             InlineFlow(info) => info.assign_height_inline(ctx),
             FloatFlow(info)  => info.assign_height_float(ctx),
+            _ => fail!(fmt!("Tried to assign_height of flow: f%d", self.id()))
+        }
+    }
+
+    pub fn assign_height_inorder(&self, ctx: &mut LayoutContext) {
+        match *self {
+            BlockFlow(info)  => info.assign_height_inorder_block(ctx),
+            InlineFlow(info) => info.assign_height_inorder_inline(ctx),
+            FloatFlow(info)  => info.assign_height_inorder_float(ctx),
             _ => fail!(fmt!("Tried to assign_height of flow: f%d", self.id()))
         }
     }
