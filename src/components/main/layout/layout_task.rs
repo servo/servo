@@ -241,8 +241,8 @@ impl LayoutTask {
 
                 // TODO: Set options on the builder before building.
                 // TODO: Be smarter about what needs painting.
-                for layout_root.traverse_preorder |flow| {
-                    flow.build_display_list(&builder, &layout_root.position(), display_list);
+                do layout_root.partially_traverse_preorder |flow| {
+                    flow.build_display_list(&builder, &layout_root.position(), display_list)
                 }
 
                 let root_size = do layout_root.with_base |base| {
@@ -349,9 +349,13 @@ impl LayoutTask {
                         };
                         let display_list: @Cell<DisplayList<RenderBox>> =
                             @Cell::new(DisplayList::new());
-                        flow.build_display_list(&builder,
-                                                &flow.position(),
-                                                display_list);
+                        
+                        do flow.partially_traverse_preorder |this_flow| {
+                            this_flow.build_display_list(&builder,
+                                                    &flow.position(),
+                                                    display_list)
+                            
+                        }
                         let (x, y) = (Au::from_frac_px(point.x as float),
                                       Au::from_frac_px(point.y as float));
                         let mut resp = Err(());
