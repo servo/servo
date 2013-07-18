@@ -22,7 +22,7 @@ servo-test: $(DEPS_servo)
 	$(RUSTC) $(RFLAGS_servo) --test -o $@ $<
 
 reftest: $(S)src/test/harness/reftest/reftest.rs servo
-	$(RUSTC) $(RFLAGS_servo) -o $@ $< -L .
+	$(RUSTC) -o $@ $<
 
 contenttest: $(S)src/test/harness/contenttest/contenttest.rs servo
 	$(RUSTC) $(RFLAGS_servo) -o $@ $< -L .
@@ -44,15 +44,15 @@ check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo tidy
 
 .PHONY: check-servo
 check-servo: servo-test
-	./servo-test $(TESTNAME)
+	./servo-test
 
 .PHONY: check-ref
 check-ref: reftest
-	./reftest --source-dir=$(S)/src/test/html/ref --work-dir=src/test/html/ref $(TESTNAME)
+	./reftest $(S)src/test/ref/*.list
 
 .PHONY: check-content
 check-content: contenttest
-	./contenttest --source-dir=$(S)/src/test/html/content $(TESTNAME)
+	./contenttest --source-dir=$(S)src/test/html/content $(TESTNAME)
 
 .PHONY: tidy
 tidy: 
