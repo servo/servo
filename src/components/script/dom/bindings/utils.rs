@@ -616,7 +616,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: uint, _vp: *JSVal) -> 
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = @mut ([0 as *JSObject, ..21]); //XXXjdm PrototyepList::id::_ID_Count
+    let protoArray = @mut ([0 as *JSObject, ..22]); //XXXjdm PrototyepList::id::_ID_Count
     unsafe {
         //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);
