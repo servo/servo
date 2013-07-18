@@ -8,7 +8,7 @@
 use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
-use std::uint::{div_ceil, next_power_of_two};
+use std::uint::{div_ceil, next_power_of_two, range};
 use std::vec::build_sized;
 use std::util::replace;
 use gfx::render_task::BufferRequest;
@@ -17,7 +17,7 @@ use servo_msg::compositor_msg::Tile;
 /// Parent to all quadtree nodes. Stores variables needed at all levels. All method calls
 /// at this level are in pixel coordinates.
 pub struct Quadtree<T> {
-    root: QuadtreeNode<T>,
+    root: ~QuadtreeNode<T>,
     max_tile_size: uint,
     max_mem: Option<uint>,
 }
@@ -58,7 +58,7 @@ impl<T: Tile> Quadtree<T> {
         let size = power_of_two * tile_size;
         
         Quadtree {
-            root: QuadtreeNode {
+            root: ~QuadtreeNode {
                 tile: None,
                 origin: Point2D(0f32, 0f32),
                 size: size as f32,
@@ -125,6 +125,48 @@ impl<T: Tile> Quadtree<T> {
                  Size2D(window.size.width as f32 / scale, window.size.height as f32 / scale)),
             scale, self.max_tile_size as f32 / scale);
         (ret, redisplay)
+    }
+    /// Resize the quadtree. This can add more space, changing the root node, or it can shrink, making
+    /// an internal node the new root.
+    /// TODO: return tiles after shrinking
+    pub fn resize(&mut self, height: uint, width: uint) {
+        let longer = width.max(&height);
+        let new_num_tiles = div_ceil(longer, self.max_tile_size);
+        let new_size = next_power_of_two(new_num_tiles);
+        let difference = (new_size as f32 / self.root.size as f32).log2() as int;
+        if difference > 0 {
+            let difference = difference as uint;
+            for range(0, difference) |i| {
+                let new_root = ~QuadtreeNode {
+                    tile: None,
+                    origin: Point2D(0f32, 0f32),
+                    size: new_size as f32 / ((difference - i - 1) as f32).exp2(),
+                    quadrants: [None, None, None, None],
+                    render_flag: false,
+                    tile_mem: self.root.tile_mem,
+                };
+                self.root.quadrants[TL as int] = Some(replace(&mut self.root, new_root));
+            }
+        } else if difference < 0 {
+            let difference = difference.abs() as uint;
+            for difference.times {
+                let remove = replace(&mut self.root.quadrants[TL as int], None);
+                match remove {
+                    Some(child) => self.root = child,
+                    None => {
+                        self.root = ~QuadtreeNode {
+                            tile: None,
+                            origin: Point2D(0f32, 0f32),
+                            size: new_size as f32,
+                            quadrants: [None, None, None, None],
+                            render_flag: false,
+                            tile_mem: 0,
+                        };
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     /// Generate html to visualize the tree. For debugging purposes only.
@@ -470,9 +512,9 @@ impl<T: Tile> QuadtreeNode<T> {
                         BL | BR => self.origin.y + new_size,
                     };
                     let mut child = ~QuadtreeNode::new_child(new_x, new_y, new_size);
-                    let (a, b, c) = child.get_tile_rects(new_window, scale, tile_size);
+                    let ret = child.get_tile_rects(new_window, scale, tile_size);
                     self.quadrants[*quad as int] = Some(child);
-                    (a, b, c)
+                    ret
                 }
             };
             
@@ -483,7 +525,6 @@ impl<T: Tile> QuadtreeNode<T> {
         self.tile_mem = (self.tile_mem as int + delta) as uint;
         (ret, redisplay, delta)
     }
-
 
     /// Generate html to visualize the tree.
     /// This is really inefficient, but it's for testing only.
@@ -525,6 +566,35 @@ impl<T: Tile> QuadtreeNode<T> {
 
 }
 
+#[test]
+pub fn test_resize() {
+    struct T {
+        a: int,
+    }
+    
+    impl Tile for T {
+        fn get_mem(&self) -> uint {
+            1
+        }
+        
+        fn is_valid(&self, _: f32) -> bool {
+            true
+        }
+    }
+    
+    let mut q = Quadtree::new(6, 6, 1, None);
+    q.add_tile(0, 0, 1f32, T{a: 0});
+    q.add_tile(5, 5, 1f32, T{a: 1});
+    q.resize(8, 1);
+    assert!(q.root.size == 8.0);
+    q.resize(18, 1);
+    assert!(q.root.size == 32.0);
+    q.resize(8, 1);
+    assert!(q.root.size == 8.0);
+    q.resize(3, 1);
+    assert!(q.root.size == 4.0);
+    assert!(q.get_all_tiles().len() == 1);
+}
 
 #[test]
 pub fn test() {
