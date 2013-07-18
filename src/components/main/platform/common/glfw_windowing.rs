@@ -4,9 +4,11 @@
 
 //! A windowing implementation using GLFW.
 
-use windowing::{ApplicationMethods, LoadUrlCallback, MouseCallback, FinishedCallback};
-use windowing::{ResizeCallback, ScrollCallback, WindowMethods, WindowMouseEvent, WindowClickEvent};
-use windowing::{WindowMouseDownEvent, WindowMouseUpEvent, ZoomCallback, Forward, Back, NavigationCallback};
+use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
+use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
+use windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
+use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
+use windowing::{Forward, Back};
 
 use alert::{Alert, AlertMethods};
 use std::libc::c_int;
@@ -39,13 +41,7 @@ impl Drop for Application {
 pub struct Window {
     glfw_window: glfw::Window,
 
-    resize_callback: Option<ResizeCallback>,
-    load_url_callback: Option<LoadUrlCallback>,
-    mouse_callback: Option<MouseCallback>,
-    scroll_callback: Option<ScrollCallback>,
-    zoom_callback: Option<ZoomCallback>,
-    navigation_callback: Option<NavigationCallback>,
-    finished_callback: Option<FinishedCallback>,
+    event_queue: @mut ~[WindowEvent],
 
     drag_origin: Point2D<c_int>,
 
@@ -59,7 +55,7 @@ pub struct Window {
 
 impl WindowMethods<Application> for Window {
     /// Creates a new window.
-    pub fn new(_: &Application) -> @mut Window {
+    fn new(_: &Application) -> @mut Window {
         // Create the GLFW window.
         let glfw_window = glfw::Window::create(800, 600, "Servo", glfw::Windowed).unwrap();
         glfw_window.make_context_current();
@@ -68,13 +64,7 @@ impl WindowMethods<Application> for Window {
         let window = @mut Window {
             glfw_window: glfw_window,
 
-            resize_callback: None,
-            load_url_callback: None,
-            mouse_callback: None,
-            scroll_callback: None,
-            zoom_callback: None,
-            navigation_callback: None,
-            finished_callback: None,
+            event_queue: @mut ~[],
 
             drag_origin: Point2D(0 as c_int, 0),
 
@@ -86,12 +76,11 @@ impl WindowMethods<Application> for Window {
             throbber_frame: 0,
         };
 
+        let event_queue = window.event_queue;
+
         // Register event handlers.
         do window.glfw_window.set_framebuffer_size_callback |_win, width, height| {
-            match window.resize_callback {
-                None => {}
-                Some(callback) => callback(width as uint, height as uint),
-            }
+            event_queue.push(ResizeWindowEvent(width as uint, height as uint))
         }
         do window.glfw_window.set_key_callback |_win, key, _scancode, action, mods| {
             if action == glfw::PRESS {
@@ -108,81 +97,52 @@ impl WindowMethods<Application> for Window {
             let dx = (x_offset as f32) * 30.0;
             let dy = (y_offset as f32) * 30.0;
             
-            window.handle_scroll(Point2D(dx, dy));
+            event_queue.push(ScrollWindowEvent(Point2D(dx, dy)));
         }
 
         window
     }
 
     /// Returns the size of the window.
-    pub fn size(&self) -> Size2D<f32> {
+    fn size(&self) -> Size2D<f32> {
         let (width, height) = self.glfw_window.get_framebuffer_size();
         Size2D(width as f32, height as f32)
     }
 
     /// Presents the window to the screen (perhaps by page flipping).
-    pub fn present(&mut self) {
+    fn present(&mut self) {
         self.glfw_window.swap_buffers();
     }
-
-    /// Registers a callback to run when a resize event occurs.
-    pub fn set_resize_callback(&mut self, new_resize_callback: ResizeCallback) {
-        self.resize_callback = Some(new_resize_callback)
-    }
-
-    /// Registers a callback to be run when a new URL is to be loaded.
-    pub fn set_load_url_callback(&mut self, new_load_url_callback: LoadUrlCallback) {
-        self.load_url_callback = Some(new_load_url_callback)
-    }
-
-    /// Registers a callback to be run when a mouse event occurs.
-    pub fn set_mouse_callback(&mut self, new_mouse_callback: MouseCallback) {
-        self.mouse_callback = Some(new_mouse_callback)
-    }
-
-    /// Registers a callback to be run when the user scrolls.
-    pub fn set_scroll_callback(&mut self, new_scroll_callback: ScrollCallback) {
-        self.scroll_callback = Some(new_scroll_callback)
-    }
-
-    /// Registers a zoom to be run when the user zooms.
-    pub fn set_zoom_callback(&mut self, new_zoom_callback: ZoomCallback) {
-        self.zoom_callback = Some(new_zoom_callback)
-    }
-
-    /// Registers a callback to be run when backspace or shift-backspace is pressed.
-    pub fn set_navigation_callback(&mut self, new_navigation_callback: NavigationCallback) {
-        self.navigation_callback = Some(new_navigation_callback)
-    }
-
-    pub fn set_finished_callback(&mut self, new_finished_callback: FinishedCallback) {
-        self.finished_callback = Some(new_finished_callback)
-    }
-
-    /// Spins the event loop.
-    pub fn check_loop(@mut self) -> bool {
+    
+    fn recv(@mut self) -> WindowEvent {
+        if !self.event_queue.is_empty() {
+            return self.event_queue.shift()
+        }
         glfw::poll_events();
         self.throbber_frame = (self.throbber_frame + 1) % (THROBBER.len() as u8);
         self.update_window_title();
-        self.glfw_window.should_close()
+        if self.glfw_window.should_close() {
+            QuitWindowEvent
+        } else if !self.event_queue.is_empty() {
+            self.event_queue.shift()
+        } else {
+            IdleWindowEvent
+        }
     }
 
     /// Sets the ready state.
-    pub fn set_ready_state(@mut self, ready_state: ReadyState) {
+    fn set_ready_state(@mut self, ready_state: ReadyState) {
         self.ready_state = ready_state;
         self.update_window_title()
     }
 
     /// Sets the render state.
-    pub fn set_render_state(@mut self, render_state: RenderState) {
+    fn set_render_state(@mut self, render_state: RenderState) {
         if self.ready_state == FinishedLoading &&
             self.render_state == RenderingRenderState &&
             render_state == IdleRenderState {
-
             // page loaded
-            for self.finished_callback.iter().advance |&callback| {
-                callback();
-            }
+            self.event_queue.push(FinishedWindowEvent);
         }
 
         self.render_state = render_state;
@@ -221,24 +181,16 @@ impl Window {
             glfw::KEY_ESCAPE => self.glfw_window.set_should_close(true),
             glfw::KEY_L if mods & glfw::MOD_CONTROL != 0 => self.load_url(), // Ctrl+L
             glfw::KEY_EQUAL if mods & glfw::MOD_CONTROL != 0 => { // Ctrl-+
-                for self.zoom_callback.iter().advance |&callback| {
-                    callback(1.1);
-                }
+                self.event_queue.push(ZoomWindowEvent(1.1));
             }
             glfw::KEY_MINUS if mods & glfw::MOD_CONTROL != 0 => { // Ctrl--
-                for self.zoom_callback.iter().advance |&callback| {
-                    callback(0.90909090909);
-                }
+                self.event_queue.push(ZoomWindowEvent(0.90909090909));
             }
             glfw::KEY_BACKSPACE if mods & glfw::MOD_SHIFT != 0 => { // Shift-Backspace
-                for self.navigation_callback.iter().advance |&callback| {
-                    callback(Forward);
-                }
+                self.event_queue.push(NavigationWindowEvent(Forward));
             }
             glfw::KEY_BACKSPACE => { // Backspace
-                for self.navigation_callback.iter().advance |&callback| {
-                    callback(Back);
-                }
+                self.event_queue.push(NavigationWindowEvent(Back));
             }
             _ => {}
         }
@@ -248,67 +200,40 @@ impl Window {
     fn handle_mouse(&self, button: c_int, action: c_int, x: c_int, y: c_int) {
         // FIXME(tkuehn): max pixel dist should be based on pixel density
         let max_pixel_dist = 10f;
-        match self.mouse_callback {
-            None => {}
-            Some(callback) => {
-                let event: WindowMouseEvent;
-                match action {
-                    glfw::PRESS => {
-                        event = WindowMouseDownEvent(button as uint, Point2D(x as f32, y as f32));
-                        *self.mouse_down_point = Point2D(x, y);
-                        *self.mouse_down_button = button;
-                    }
-                    glfw::RELEASE => {
-                        event = WindowMouseUpEvent(button as uint, Point2D(x as f32, y as f32));
-                        if *self.mouse_down_button == button {
-                            let pixel_dist = *self.mouse_down_point - Point2D(x, y);
-                            let pixel_dist = ((pixel_dist.x * pixel_dist.x +
-                                              pixel_dist.y * pixel_dist.y) as float).sqrt();
-                            if pixel_dist < max_pixel_dist {
-                                let click_event = WindowClickEvent(button as uint,
-                                                                   Point2D(x as f32, y as f32));
-                                callback(click_event);
-                            }
-                        }
-                    }
-                    _ => fail!("I cannot recognize the type of mouse action that occured. :-(")
-                };
-                callback(event);
+        let event = match action {
+            glfw::PRESS => {
+                *self.mouse_down_point = Point2D(x, y);
+                *self.mouse_down_button = button;
+                MouseWindowMouseDownEvent(button as uint, Point2D(x as f32, y as f32))
             }
-        }
-    }
-
-    /// Helper function to handle a scroll.
-    fn handle_scroll(&mut self, delta: Point2D<f32>) {
-        match self.scroll_callback {
-            None => {}
-            Some(callback) => callback(delta),
-        }
-    }
-
-    /// Helper function to handle a zoom.
-    fn handle_zoom(&mut self, magnification: f32) {
-        match self.zoom_callback {
-            None => {}
-            Some(callback) => callback(magnification),
-        }
+            glfw::RELEASE => {
+                if *self.mouse_down_button == button {
+                    let pixel_dist = *self.mouse_down_point - Point2D(x, y);
+                    let pixel_dist = ((pixel_dist.x * pixel_dist.x +
+                                       pixel_dist.y * pixel_dist.y) as float).sqrt();
+                    if pixel_dist < max_pixel_dist {
+                        let click_event = MouseWindowClickEvent(button as uint,
+                                                           Point2D(x as f32, y as f32));
+                        self.event_queue.push(MouseWindowEventClass(click_event));
+                    }
+                }
+                MouseWindowMouseUpEvent(button as uint, Point2D(x as f32, y as f32))
+            }
+            _ => fail!("I cannot recognize the type of mouse action that occured. :-(")
+        };
+        self.event_queue.push(MouseWindowEventClass(event));
     }
 
     /// Helper function to pop up an alert box prompting the user to load a URL.
     fn load_url(&self) {
-        match self.load_url_callback {
-            None => error!("no URL callback registered, doing nothing"),
-            Some(callback) => {
-                let mut alert: Alert = AlertMethods::new("Navigate to:");
-                alert.add_prompt();
-                alert.run();
-                let value = alert.prompt_value();
-                if "" == value {    // To avoid crashing on Linux.
-                    callback("http://purple.com/")
-                } else {
-                    callback(value)
-                }
-            }
+        let mut alert: Alert = AlertMethods::new("Navigate to:");
+        alert.add_prompt();
+        alert.run();
+        let value = alert.prompt_value();
+        if "" == value {    // To avoid crashing on Linux.
+            self.event_queue.push(LoadUrlWindowEvent(~"http://purple.com/"))
+        } else {
+            self.event_queue.push(LoadUrlWindowEvent(value))
         }
     }
 }
