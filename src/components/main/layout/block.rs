@@ -134,8 +134,8 @@ impl BlockFlowData {
         let (left_margin, right_margin) = match width{
             Auto => (left_margin, right_margin),
             Specified(width) => {
-                let left = left_margin.spec_or_default(Au(0));
-                let right = right_margin.spec_or_default(Au(0));
+                let left = left_margin.specified_or_zero();
+                let right = right_margin.specified_or_zero();
                 
                 if((left + right + width) > available_width) {
                     (Specified(left), Specified(right))
@@ -202,14 +202,16 @@ impl BlockFlowData {
 
                 // Top and bottom margins for blocks are 0 if auto.
                 let margin_top = MaybeAuto::from_margin(style.margin_top(),
-                                                        remaining_width).spec_or_default(Au(0));
+                                                        remaining_width,
+                                                        style.font_size()).specified_or_zero();
                 let margin_bottom = MaybeAuto::from_margin(style.margin_bottom(),
-                                                           remaining_width).spec_or_default(Au(0));
+                                                           remaining_width,
+                                                           style.font_size()).specified_or_zero();
 
                 let (width, margin_left, margin_right) =
-                    (MaybeAuto::from_width(style.width(), remaining_width),
-                     MaybeAuto::from_margin(style.margin_left(), remaining_width),
-                     MaybeAuto::from_margin(style.margin_right(), remaining_width));
+                    (MaybeAuto::from_width(style.width(), remaining_width, style.font_size()),
+                     MaybeAuto::from_margin(style.margin_left(), remaining_width, style.font_size()),
+                     MaybeAuto::from_margin(style.margin_right(), remaining_width, style.font_size()));
 
                 let (width, margin_left, margin_right) = self.compute_horiz(width,
                                                                             margin_left,
@@ -297,8 +299,8 @@ impl BlockFlowData {
 
         for self.box.iter().advance |&box| {
             let style = box.style();
-            let maybe_height = MaybeAuto::from_height(style.height(), Au(0));
-            let maybe_height = maybe_height.spec_or_default(Au(0));
+            let maybe_height = MaybeAuto::from_height(style.height(), Au(0), style.font_size());
+            let maybe_height = maybe_height.specified_or_zero();
             height = geometry::max(height, maybe_height);
         }
 

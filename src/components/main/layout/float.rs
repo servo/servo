@@ -106,13 +106,17 @@ impl FloatFlowData {
 
                 // Margins for floats are 0 if auto.
                 let margin_top = MaybeAuto::from_margin(style.margin_top(),
-                                                        remaining_width).spec_or_default(Au(0));
+                                                        remaining_width,
+                                                        style.font_size()).specified_or_zero();
                 let margin_bottom = MaybeAuto::from_margin(style.margin_bottom(),
-                                                           remaining_width).spec_or_default(Au(0));
+                                                           remaining_width,
+                                                           style.font_size()).specified_or_zero();
                 let margin_left = MaybeAuto::from_margin(style.margin_left(),
-                                                        remaining_width).spec_or_default(Au(0));
+                                                         remaining_width,
+                                                         style.font_size()).specified_or_zero();
                 let margin_right = MaybeAuto::from_margin(style.margin_right(),
-                                                           remaining_width).spec_or_default(Au(0));
+                                                          remaining_width,
+                                                          style.font_size()).specified_or_zero();
 
 
 
@@ -122,7 +126,8 @@ impl FloatFlowData {
 
 
                 let width = MaybeAuto::from_width(style.width(), 
-                                                  remaining_width).spec_or_default(shrink_to_fit);
+                                                  remaining_width,
+                                                  style.font_size()).specified_or_default(shrink_to_fit);
                 debug!("assign_widths_float -- width: %?", width);
 
                 model.margin.top = margin_top;
@@ -197,9 +202,10 @@ impl FloatFlowData {
         
         //TODO(eatkinson): compute heights properly using the 'height' property.
         for self.box.iter().advance |&box| {
-
             let height_prop = 
-                MaybeAuto::from_height(box.style().height(), Au(0)).spec_or_default(Au(0));
+                MaybeAuto::from_height(box.style().height(),
+                                       Au(0),
+                                       box.style().font_size()).specified_or_zero();
 
             height = geometry::max(height, height_prop) + noncontent_height;
             debug!("assign_height_float -- height: %?", height);

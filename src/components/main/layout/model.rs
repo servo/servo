@@ -10,7 +10,7 @@ use gfx::geometry::Au;
 use newcss::complete::CompleteStyle;
 use newcss::units::{Em, Pt, Px};
 use newcss::values::{CSSBorderWidth, CSSBorderWidthLength, CSSBorderWidthMedium};
-use newcss::values::{CSSBorderWidthThick, CSSBorderWidthThin};
+use newcss::values::{CSSBorderWidthThick, CSSBorderWidthThin, CSSFontSize, CSSFontSizeLength};
 use newcss::values::{CSSWidth, CSSWidthLength, CSSWidthPercentage, CSSWidthAuto};
 use newcss::values::{CSSHeight, CSSHeightLength, CSSHeightPercentage, CSSHeightAuto};
 use newcss::values::{CSSMargin, CSSMarginLength, CSSMarginPercentage, CSSMarginAuto};
@@ -30,46 +30,65 @@ pub enum MaybeAuto {
     Specified(Au),
 }
 
-impl MaybeAuto{
-    pub fn from_margin(margin: CSSMargin, cb_width: Au) -> MaybeAuto{
+impl MaybeAuto {
+    pub fn from_margin(margin: CSSMargin, containing_width: Au, font_size: CSSFontSize) -> MaybeAuto {
         match margin {
             CSSMarginAuto => Auto,
-            //FIXME(eatkinson): Compute percents properly
-            CSSMarginPercentage(percent) => Specified(cb_width.scale_by(percent/100.0)),
-            //FIXME(eatkinson): Compute pt and em values properly
-            CSSMarginLength(Px(v)) | 
-            CSSMarginLength(Pt(v)) | 
-            CSSMarginLength(Em(v)) => Specified(Au::from_frac_px(v)),
+            CSSMarginPercentage(percent) => Specified(containing_width.scale_by(percent/100.0)),
+            CSSMarginLength(Px(v)) => Specified(Au::from_frac_px(v)),
+            CSSMarginLength(Pt(v)) => Specified(Au::from_pt(v)),
+            CSSMarginLength(Em(em)) => {
+                match font_size {
+                    CSSFontSizeLength(Px(v)) => Specified(Au::from_frac_px(em * v)),
+                    CSSFontSizeLength(Pt(v)) => Specified(Au::from_pt(em * v)),
+                    _ => fail!(~"expected non-relative font size"),
+                }
+            }
         }
     }
 
-    pub fn from_width(width: CSSWidth, cb_width: Au) -> MaybeAuto{
-        match width{
+    pub fn from_width(width: CSSWidth, containing_width: Au, font_size: CSSFontSize) -> MaybeAuto {
+        match width {
             CSSWidthAuto => Auto,
-            CSSWidthPercentage(percent) => Specified(cb_width.scale_by(percent/100.0)),
-            //FIXME(eatkinson): Compute pt and em values properly
-            CSSWidthLength(Px(v)) | 
-            CSSWidthLength(Pt(v)) | 
-            CSSWidthLength(Em(v)) => Specified(Au::from_frac_px(v)),
+            CSSWidthPercentage(percent) => Specified(containing_width.scale_by(percent/100.0)),
+            CSSWidthLength(Px(v)) => Specified(Au::from_frac_px(v)),
+            CSSWidthLength(Pt(v)) => Specified(Au::from_pt(v)),
+            CSSWidthLength(Em(em)) => {
+                match font_size {
+                    CSSFontSizeLength(Px(v)) => Specified(Au::from_frac_px(em * v)),
+                    CSSFontSizeLength(Pt(v)) => Specified(Au::from_pt(em * v)),
+                    _ => fail!(~"expected non-relative font size"),
+                }
+            }
         }
     }
 
-    pub fn from_height(height: CSSHeight, cb_height: Au) -> MaybeAuto{
+    pub fn from_height(height: CSSHeight, cb_height: Au, font_size: CSSFontSize) -> MaybeAuto {
         match height {
             CSSHeightAuto => Auto,
             CSSHeightPercentage(percent) => Specified(cb_height.scale_by(percent/100.0)),
-            //FIXME(eatkinson): Compute pt and em values properly
-            CSSHeightLength(Px(v)) | 
-            CSSHeightLength(Pt(v)) | 
-            CSSHeightLength(Em(v)) => Specified(Au::from_frac_px(v)),
+            CSSHeightLength(Px(v)) => Specified(Au::from_frac_px(v)),
+            CSSHeightLength(Pt(v)) => Specified(Au::from_pt(v)),
+            CSSHeightLength(Em(em)) => {
+                match font_size {
+                    CSSFontSizeLength(Px(v)) => Specified(Au::from_frac_px(em * v)),
+                    CSSFontSizeLength(Pt(v)) => Specified(Au::from_pt(em * v)),
+                    _ => fail!(~"expected non-relative font size"),
+                }
+            }
+
         }
     }
 
-    pub fn spec_or_default(&self, default: Au) -> Au{
-        match *self{
+    pub fn specified_or_default(&self, default: Au) -> Au {
+        match *self {
             Auto => default,
-            Specified(value) => value
+            Specified(value) => value,
         }
+    }
+
+    pub fn specified_or_zero(&self) -> Au {
+        self.specified_or_default(Au(0))
     }
 }
 
@@ -92,17 +111,17 @@ impl BoxModel {
     /// Populates the box model parameters from the given computed style.
     pub fn compute_borders(&mut self, style: CompleteStyle) {
         // Compute the borders.
-        self.border.top = self.compute_border_width(style.border_top_width());
-        self.border.right = self.compute_border_width(style.border_right_width());
-        self.border.bottom = self.compute_border_width(style.border_bottom_width());
-        self.border.left = self.compute_border_width(style.border_left_width());
+        self.border.top = self.compute_border_width(style.border_top_width(), style.font_size());
+        self.border.right = self.compute_border_width(style.border_right_width(), style.font_size());
+        self.border.bottom = self.compute_border_width(style.border_bottom_width(), style.font_size());
+        self.border.left = self.compute_border_width(style.border_left_width(), style.font_size());
     }
 
-    pub fn compute_padding(&mut self, style: CompleteStyle, cb_width: Au){
-        self.padding.top = self.compute_padding_length(style.padding_top(), cb_width);
-        self.padding.right = self.compute_padding_length(style.padding_right(), cb_width);
-        self.padding.bottom = self.compute_padding_length(style.padding_bottom(), cb_width);
-        self.padding.left = self.compute_padding_length(style.padding_left(), cb_width);
+    pub fn compute_padding(&mut self, style: CompleteStyle, containing_width: Au) {
+        self.padding.top = self.compute_padding_length(style.padding_top(), containing_width, style.font_size());
+        self.padding.right = self.compute_padding_length(style.padding_right(), containing_width, style.font_size());
+        self.padding.bottom = self.compute_padding_length(style.padding_bottom(), containing_width, style.font_size());
+        self.padding.left = self.compute_padding_length(style.padding_left(), containing_width, style.font_size());
     }
 
     pub fn noncontent_width(&self) -> Au {
@@ -116,28 +135,34 @@ impl BoxModel {
     }
 
     /// Helper function to compute the border width in app units from the CSS border width.
-    pub fn compute_border_width(&self, width: CSSBorderWidth) -> Au {
+    pub fn compute_border_width(&self, width: CSSBorderWidth, font_size: CSSFontSize) -> Au {
         match width {
-            CSSBorderWidthLength(Px(v)) |
-            CSSBorderWidthLength(Em(v)) |
-            CSSBorderWidthLength(Pt(v)) => {
-                // FIXME(pcwalton): Handle `em` and `pt` correctly.
-                Au::from_frac_px(v)
-            }
+            CSSBorderWidthLength(Px(v)) => Au::from_frac_px(v),
+            CSSBorderWidthLength(Pt(v)) => Au::from_pt(v),
+            CSSBorderWidthLength(Em(em)) => {
+                match font_size {
+                    CSSFontSizeLength(Px(v)) => Au::from_frac_px(em * v),
+                    CSSFontSizeLength(Pt(v)) => Au::from_pt(em * v),
+                    _ => fail!(~"expected non-relative font size"),
+                }
+            },
             CSSBorderWidthThin => Au::from_px(1),
             CSSBorderWidthMedium => Au::from_px(5),
             CSSBorderWidthThick => Au::from_px(10),
         }
     }
 
-    pub fn compute_padding_length(&self, padding: CSSPadding, content_box_width: Au) -> Au {
+    pub fn compute_padding_length(&self, padding: CSSPadding, content_box_width: Au, font_size: CSSFontSize) -> Au {
         match padding {
-            CSSPaddingLength(Px(v)) |
-            CSSPaddingLength(Pt(v)) |
-            CSSPaddingLength(Em(v)) => {
-                // FIXME(eatkinson): Handle 'em' and 'pt' correctly
-                Au::from_frac_px(v)
-            }
+            CSSPaddingLength(Px(v)) => Au::from_frac_px(v),
+            CSSPaddingLength(Pt(v)) => Au::from_pt(v),
+            CSSPaddingLength(Em(em)) => {
+                match font_size {
+                    CSSFontSizeLength(Px(v)) => Au::from_frac_px(em * v),
+                    CSSFontSizeLength(Pt(v)) => Au::from_pt(em * v),
+                    _ => fail!(~"expected non-relative font size"),
+                }
+            },
             CSSPaddingPercentage(p) => content_box_width.scale_by(p/100.0)
         }
     }
