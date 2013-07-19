@@ -80,11 +80,15 @@ impl MaybeAuto {
         }
     }
 
-    pub fn spec_or_default(&self, default: Au) -> Au {
+    pub fn specified_or_default(&self, default: Au) -> Au {
         match *self {
             Auto => default,
             Specified(value) => value,
         }
+    }
+
+    pub fn specified_or_zero(&self) -> Au {
+        self.specified_or_default(Au(0))
     }
 }
 

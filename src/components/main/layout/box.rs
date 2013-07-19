@@ -392,13 +392,13 @@ impl RenderBox {
                 let font_size = style.font_size();
                 let w = MaybeAuto::from_width(style.width(),
                                               Au(0),
-                                              font_size).spec_or_default(Au(0));
+                                              font_size).specified_or_zero();
                 let ml = MaybeAuto::from_margin(style.margin_left(),
                                                 Au(0),
-                                                font_size).spec_or_default(Au(0));
+                                                font_size).specified_or_zero();
                 let mr = MaybeAuto::from_margin(style.margin_right(),
                                                 Au(0),
-                                                font_size).spec_or_default(Au(0));
+                                                font_size).specified_or_zero();
                 let pl = base.model.compute_padding_length(style.padding_left(),
                                                            Au(0),
                                                            font_size);
