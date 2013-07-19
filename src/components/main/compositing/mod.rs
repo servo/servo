@@ -51,7 +51,9 @@ use extra::time::precise_time_s;
 use compositing::quadtree::Quadtree;
 use constellation::SendableFrameTree;
 use pipeline::Pipeline;
+use compositing::compositor_layer::CompositorLayer;
 mod quadtree;
+mod compositor_layer;
 
 /// The implementation of the layers-based compositor.
 #[deriving(Clone)]
