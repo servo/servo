@@ -394,8 +394,6 @@ pub fn parse_html(url: Url,
                     let provenance = InlineProvenance(result::unwrap(url_cell.take()), data.concat());
                     css_chan3.send(CSSTaskNewFile(provenance));
                 }
-
-
             }
         },
         append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
