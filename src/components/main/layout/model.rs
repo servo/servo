@@ -37,12 +37,12 @@ impl MaybeAuto {
             CSSMarginPercentage(percent) => Specified(cb_width.scale_by(percent/100.0)),
             CSSMarginLength(Px(v)) => Specified(Au::from_frac_px(v)),
             CSSMarginLength(Pt(v)) => Specified(Au::from_pt(v)),
-            CSSMarginLength(Em(em)) => match font_size {
-                CSSFontSizeLength(Px(v)) =>
-                    Specified(Au::from_frac_px(em * v)),
-                CSSFontSizeLength(Pt(v)) =>
-                    Specified(Au::from_pt(em * v)),
-                _ => fail!(~"expected non-relative font size"),
+            CSSMarginLength(Em(em)) => {
+                match font_size {
+                    CSSFontSizeLength(Px(v)) => Specified(Au::from_frac_px(em * v)),
+                    CSSFontSizeLength(Pt(v)) => Specified(Au::from_pt(em * v)),
+                    _ => fail!(~"expected non-relative font size"),
+                }
             }
         }
     }
@@ -53,12 +53,12 @@ impl MaybeAuto {
             CSSWidthPercentage(percent) => Specified(cb_width.scale_by(percent/100.0)),
             CSSWidthLength(Px(v)) => Specified(Au::from_frac_px(v)),
             CSSWidthLength(Pt(v)) => Specified(Au::from_pt(v)),
-            CSSWidthLength(Em(em)) => match font_size {
-                CSSFontSizeLength(Px(v)) => 
-                    Specified(Au::from_frac_px(em * v)),
-                CSSFontSizeLength(Pt(v)) =>
-                    Specified(Au::from_pt(em * v)),
-                _ => fail!(~"expected non-relative font size"),
+            CSSWidthLength(Em(em)) => {
+                match font_size {
+                    CSSFontSizeLength(Px(v)) => Specified(Au::from_frac_px(em * v)),
+                    CSSFontSizeLength(Pt(v)) => Specified(Au::from_pt(em * v)),
+                    _ => fail!(~"expected non-relative font size"),
+                }
             }
         }
     }
@@ -69,12 +69,12 @@ impl MaybeAuto {
             CSSHeightPercentage(percent) => Specified(cb_height.scale_by(percent/100.0)),
             CSSHeightLength(Px(v)) => Specified(Au::from_frac_px(v)),
             CSSHeightLength(Pt(v)) => Specified(Au::from_pt(v)),
-            CSSHeightLength(Em(em)) => match font_size {
-                CSSFontSizeLength(Px(v)) =>
-                    Specified(Au::from_frac_px(em * v)),
-                CSSFontSizeLength(Pt(v)) =>
-                    Specified(Au::from_pt(em * v)),
-                _ => fail!(~"expected non-relative font size"),
+            CSSHeightLength(Em(em)) => {
+                match font_size {
+                    CSSFontSizeLength(Px(v)) => Specified(Au::from_frac_px(em * v)),
+                    CSSFontSizeLength(Pt(v)) => Specified(Au::from_pt(em * v)),
+                    _ => fail!(~"expected non-relative font size"),
+                }
             }
 
         }
@@ -139,10 +139,12 @@ impl BoxModel {
         match width {
             CSSBorderWidthLength(Px(v)) => Au::from_frac_px(v),
             CSSBorderWidthLength(Pt(v)) => Au::from_pt(v),
-            CSSBorderWidthLength(Em(em)) => match font_size {
-                CSSFontSizeLength(Px(v)) => Au::from_frac_px(em * v),
-                CSSFontSizeLength(Pt(v)) => Au::from_pt(em * v),
-                _ => fail!(~"expected non-relative font size"),
+            CSSBorderWidthLength(Em(em)) => {
+                match font_size {
+                    CSSFontSizeLength(Px(v)) => Au::from_frac_px(em * v),
+                    CSSFontSizeLength(Pt(v)) => Au::from_pt(em * v),
+                    _ => fail!(~"expected non-relative font size"),
+                }
             },
             CSSBorderWidthThin => Au::from_px(1),
             CSSBorderWidthMedium => Au::from_px(5),
@@ -154,10 +156,12 @@ impl BoxModel {
         match padding {
             CSSPaddingLength(Px(v)) => Au::from_frac_px(v),
             CSSPaddingLength(Pt(v)) => Au::from_pt(v),
-            CSSPaddingLength(Em(em)) => match font_size {
-                CSSFontSizeLength(Px(v)) => Au::from_frac_px(em * v),
-                CSSFontSizeLength(Pt(v)) => Au::from_pt(em * v),
-                _ => fail!(~"expected non-relative font size"),
+            CSSPaddingLength(Em(em)) => {
+                match font_size {
+                    CSSFontSizeLength(Px(v)) => Au::from_frac_px(em * v),
+                    CSSFontSizeLength(Pt(v)) => Au::from_pt(em * v),
+                    _ => fail!(~"expected non-relative font size"),
+                }
             },
             CSSPaddingPercentage(p) => content_box_width.scale_by(p/100.0)
         }
