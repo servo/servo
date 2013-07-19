@@ -35,7 +35,7 @@ Servo cannot be built in-tree; you must create a directory in which to run
 configure and make and place the build artifacts.
 
 ``` sh
-git clone git://github.com/mozilla/servo.git
+git clone https://github.com/mozilla/servo.git
 cd servo
 mkdir -p build && cd build
 ../configure
