@@ -390,25 +390,28 @@ impl RenderBox {
             } else {
                 let style = self.style();
                 let font_size = style.font_size();
-                let w = MaybeAuto::from_width(style.width(),
-                                              Au(0),
-                                              font_size).specified_or_zero();
-                let ml = MaybeAuto::from_margin(style.margin_left(),
-                                                Au(0),
-                                                font_size).specified_or_zero();
-                let mr = MaybeAuto::from_margin(style.margin_right(),
-                                                Au(0),
-                                                font_size).specified_or_zero();
-                let pl = base.model.compute_padding_length(style.padding_left(),
-                                                           Au(0),
-                                                           font_size);
-                let pr = base.model.compute_padding_length(style.padding_right(),
-                                                           Au(0),
-                                                           font_size);
-                let bl = base.model.compute_border_width(style.border_left_width(), font_size);
-                let br = base.model.compute_border_width(style.border_right_width(), font_size);
+                let width = MaybeAuto::from_width(style.width(),
+                                                  Au(0),
+                                                  font_size).specified_or_zero();
+                let margin_left = MaybeAuto::from_margin(style.margin_left(),
+                                                         Au(0),
+                                                         font_size).specified_or_zero();
+                let margin_right = MaybeAuto::from_margin(style.margin_right(),
+                                                          Au(0),
+                                                          font_size).specified_or_zero();
+                let padding_left = base.model.compute_padding_length(style.padding_left(),
+                                                                     Au(0),
+                                                                     font_size);
+                let padding_right = base.model.compute_padding_length(style.padding_right(),
+                                                                      Au(0),
+                                                                      font_size);
+                let border_left = base.model.compute_border_width(style.border_left_width(),
+                                                                  font_size);
+                let border_right = base.model.compute_border_width(style.border_right_width(),
+                                                                   font_size);
 
-                w + ml + mr + pl + pr + bl + br
+                width + margin_left + margin_right + padding_left + padding_right + 
+                    border_left + border_right
             }
         }
     }
