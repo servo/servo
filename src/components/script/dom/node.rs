@@ -46,6 +46,10 @@ pub struct AbstractNode<View> {
     priv obj: *mut Node<View>,
 }
 
+pub struct AbstractNodeChildrenIterator<View> {
+    priv current_node: Option<AbstractNode<View>>,
+}
+
 /// An HTML node.
 ///
 /// `View` describes extra data associated with this node that this task has access to. For
@@ -200,7 +204,7 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
     }
 }
 
-impl<View> AbstractNode<View> {
+impl<'self, View> AbstractNode<View> {
     // Unsafe accessors
 
     /// Returns the layout data, unsafely cast to whatever type layout wishes. Only layout is
@@ -395,6 +399,22 @@ impl<View> AbstractNode<View> {
     /// Returns a string that describes this node.
     pub fn debug_str(&self) -> ~str {
         fmt!("%?", self.type_id())
+    }
+
+    pub fn children(&self) -> AbstractNodeChildrenIterator<View> {
+        AbstractNodeChildrenIterator {
+            current_node: self.first_child(),
+        }
+    }
+}
+
+impl<View> Iterator<AbstractNode<View>> for AbstractNodeChildrenIterator<View> {
+    pub fn next(&mut self) -> Option<AbstractNode<View>> {
+        self.current_node = match self.current_node {
+            None => None,
+            Some(node) => node.next_sibling(),
+        };
+        self.current_node
     }
 }
 
