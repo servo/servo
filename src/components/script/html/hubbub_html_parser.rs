@@ -275,24 +275,7 @@ pub fn parse_html(url: Url,
     parser.set_document_node(unsafe { root.to_hubbub_node() });
     parser.enable_scripting(true);
 
-    // Performs various actions necessary after appending has taken place. Currently, this
-    // consists of processing inline stylesheets, but in the future it might perform
-    // prefetching, etc.
-    let css_chan2 = css_chan.clone();
-    let append_hook: ~fn(AbstractNode<ScriptView>, AbstractNode<ScriptView>) = |parent_node, child_node| {
-        if parent_node.is_style_element() && child_node.is_text() {
-            debug!("found inline CSS stylesheet");
-            let url = url::from_str("http://example.com/"); // FIXME
-            let url_cell = Cell::new(url);
-            do child_node.with_imm_text |text_node| {
-                let data = text_node.parent.data.to_str();  // FIXME: Bad copy.
-                let provenance = InlineProvenance(result::unwrap(url_cell.take()), data);
-                css_chan2.send(CSSTaskNewFile(provenance));
-            }
-        }
-    };
-
-    let (css_chan2, js_chan2) = (css_chan.clone(), js_chan.clone());
+    let (css_chan2, css_chan3, js_chan2) = (css_chan.clone(), css_chan.clone(), js_chan.clone());
     parser.set_tree_handler(~hubbub::TreeHandler {
         create_comment: |data: ~str| {
             debug!("create comment");
@@ -393,15 +376,32 @@ pub fn parse_html(url: Url,
                 Node::as_abstract_node(~Text::new(data)).to_hubbub_node()
             }
         },
-        ref_node: |_| {},
-        unref_node: |_| {},
+        ref_node: |_| { debug!("ref node"); },
+        unref_node: |node| {
+            // check for the end of a <style> so we can submit all the text to the parser.
+            unsafe {
+                let node: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(node);
+                if node.is_style_element() {
+                    let url = url::from_str("http://example.com/"); // FIXME
+                    let url_cell = Cell::new(url);
+
+                    let mut data = ~[];
+                    for node.children().advance |child| {
+                        do child.with_imm_text() |text| {
+                            data.push(text.parent.data.to_str());  // FIXME: Bad copy.
+                        }
+                    }
+                    let provenance = InlineProvenance(result::unwrap(url_cell.take()), data.concat());
+                    css_chan3.send(CSSTaskNewFile(provenance));
+                }
+            }
+        },
         append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
             unsafe {
                 debug!("append child %x %x", cast::transmute(parent), cast::transmute(child));
                 let parent: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(parent);
                 let child: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(child);
                 parent.add_child(child);
-                append_hook(parent, child);
             }
             child
         },
