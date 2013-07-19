@@ -223,6 +223,10 @@ impl<'self, View> AbstractNode<View> {
     /// Sets the layout data, unsafely casting the type as layout wishes. Only layout is allowed
     /// to call this. This is wildly unsafe and is therefore marked as such.
     pub unsafe fn unsafe_set_layout_data<T>(self, data: @mut T) {
+        // Don't decrement the refcount on data, since we're giving it to the
+        // base structure.
+        cast::forget(data);
+
         do self.with_mut_base |base| {
             base.layout_data = Some(transmute(data))
         }
