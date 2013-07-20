@@ -110,26 +110,47 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
 }
 
 fn check_reftest(reftest: Reftest) {
+    let id = gen_id(&reftest);
+    let left_filename = fmt!("/tmp/%s-left.png", id);
+    let right_filename = fmt!("/tmp/%s-right.png", id);
+    let left_path = Path(left_filename);
+    let right_path = Path(right_filename);
+
     let options = run::ProcessOptions::new();
-    let args = ~[~"-o", ~"/tmp/reftest-left.png", reftest.left.clone()];
+    let args = ~[~"-o", left_filename.clone(), reftest.left.clone()];
     let mut process = run::Process::new("./servo", args, options);
     let _retval = process.finish();
     // assert!(retval == 0);
 
-    let args = ~[~"-o", ~"/tmp/reftest-right.png", reftest.right.clone()];
+    let args = ~[~"-o", right_filename.clone(), reftest.right.clone()];
     let mut process = run::Process::new("./servo", args, options);
     let _retval = process.finish();
     // assert!(retval == 0);
 
     // check the pngs are bit equal
-    let left_sha = calc_hash(&Path("/tmp/reftest-left.png"));
-    let right_sha = calc_hash(&Path("/tmp/reftest-right.png"));
+    let left_sha = calc_hash(&left_path);
+    os::remove_file(&left_path);
+
+    let right_sha = calc_hash(&right_path);
+    os::remove_file(&right_path);
+
     assert!(left_sha.is_some());
     assert!(right_sha.is_some());
     match reftest.kind {
         Same => assert!(left_sha == right_sha),
         Different => assert!(left_sha != right_sha),
     }
+}
+
+fn gen_id(reftest: &Reftest) -> ~str {
+    let mut sha = Sha1::new();
+    match reftest.kind {
+        Same => sha.input_str("=="),
+        Different => sha.input_str("!="),
+    }
+    sha.input_str(reftest.left);
+    sha.input_str(reftest.right);
+    sha.result_str()
 }
 
 fn calc_hash(path: &Path) -> Option<~str> {
