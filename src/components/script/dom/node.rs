@@ -410,11 +410,12 @@ impl<'self, View> AbstractNode<View> {
 
 impl<View> Iterator<AbstractNode<View>> for AbstractNodeChildrenIterator<View> {
     pub fn next(&mut self) -> Option<AbstractNode<View>> {
+        let node = self.current_node;
         self.current_node = match self.current_node {
             None => None,
             Some(node) => node.next_sibling(),
         };
-        self.current_node
+        node
     }
 }
 
