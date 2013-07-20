@@ -274,6 +274,7 @@ pub fn parse_html(url: Url,
     debug!("created parser");
     parser.set_document_node(unsafe { root.to_hubbub_node() });
     parser.enable_scripting(true);
+    parser.enable_styling(true);
 
     let (css_chan2, css_chan3, js_chan2) = (css_chan.clone(), css_chan.clone(), js_chan.clone());
     parser.set_tree_handler(~hubbub::TreeHandler {
@@ -376,26 +377,8 @@ pub fn parse_html(url: Url,
                 Node::as_abstract_node(~Text::new(data)).to_hubbub_node()
             }
         },
-        ref_node: |_| { debug!("ref node"); },
-        unref_node: |node| {
-            // check for the end of a <style> so we can submit all the text to the parser.
-            unsafe {
-                let node: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(node);
-                if node.is_style_element() {
-                    let url = url::from_str("http://example.com/"); // FIXME
-                    let url_cell = Cell::new(url);
-
-                    let mut data = ~[];
-                    for node.children().advance |child| {
-                        do child.with_imm_text() |text| {
-                            data.push(text.parent.data.to_str());  // FIXME: Bad copy.
-                        }
-                    }
-                    let provenance = InlineProvenance(result::unwrap(url_cell.take()), data.concat());
-                    css_chan3.send(CSSTaskNewFile(provenance));
-                }
-            }
-        },
+        ref_node: |_| {},
+        unref_node: |_| {},
         append_child: |parent: hubbub::NodeDataPtr, child: hubbub::NodeDataPtr| {
             unsafe {
                 debug!("append child %x %x", cast::transmute(parent), cast::transmute(child));
@@ -464,7 +447,28 @@ pub fn parse_html(url: Url,
             }
             complete_script(script, url3.clone(), js_chan2.clone());
             debug!("complete script");
-        }
+        },
+        complete_style: |style| {
+            // We've reached the end of a <style> so we can submit all the text to the parser.
+            unsafe {
+                let style: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(style);
+                let url = url::from_str("http://example.com/"); // FIXME
+                let url_cell = Cell::new(url);
+
+                let mut data = ~[];
+                debug!("iterating over children %?", style.first_child());
+                for style.children().advance |child| {
+                    debug!("child = %?", child);
+                    do child.with_imm_text() |text| {
+                        data.push(text.parent.data.to_str());  // FIXME: Bad copy.
+                    }
+                }
+
+                debug!("data = %?", data);
+                let provenance = InlineProvenance(result::unwrap(url_cell.take()), data.concat());
+                css_chan3.send(CSSTaskNewFile(provenance));
+            }
+        },
     });
     debug!("set tree handler");
 
