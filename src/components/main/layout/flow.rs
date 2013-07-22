@@ -45,6 +45,7 @@ use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
 
 /// The type of the formatting context and data specific to each context, such as line box
 /// structures or float lists.
+#[deriving(Clone)]
 pub enum FlowContext {
     AbsoluteFlow(@mut FlowData), 
     BlockFlow(@mut BlockFlowData),
@@ -62,12 +63,6 @@ pub enum FlowContextType {
     Flow_Inline,
     Flow_Root,
     Flow_Table
-}
-
-impl Clone for FlowContext {
-    fn clone(&self) -> FlowContext {
-        *self
-    }
 }
 
 impl FlowContext {
