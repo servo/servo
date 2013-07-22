@@ -253,7 +253,7 @@ impl FloatFlowData {
         let flow = FloatFlow(self);
         for flow.each_child |child| {
             do child.with_mut_base |base| {
-                base.abs_position = offset;
+                base.abs_position = offset + base.position.origin;
             }
         }
 
