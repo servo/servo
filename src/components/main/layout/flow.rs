@@ -414,7 +414,7 @@ impl<'self> FlowContext {
         }
 
         s.push_str(self.debug_str());
-        debug!("%s", s);
+        println(s);
 
         // FIXME: this should have a pure/const version?
         for self.each_child |child| {

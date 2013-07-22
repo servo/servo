@@ -210,11 +210,11 @@ impl LayoutTask {
                 Err(*) => fail!(~"Root flow should always exist")
             };
 
-            debug!("layout: constructed Flow tree");
-            debug!("%?", layout_root.dump());
-
             layout_root
         };
+
+        debug!("layout: constructed Flow tree");
+        debug!("", layout_root.dump());
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
