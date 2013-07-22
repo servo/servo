@@ -254,12 +254,10 @@ impl Constellation {
         // Don't navigate on Navigate type, because that is handled by forward/back
         match pipeline.navigation_type.get() {
             constellation_msg::Load => {
-                let _evicted = self.navigation_context.navigate(id);
-                /* FIXME(tkuehn): the following code causes a segfault
+                let evicted = self.navigation_context.navigate(id);
                 for evicted.iter().advance |id| {
                     self.pipelines.get(id).exit();
                 }
-                */
             }
             _ => {}
         }

@@ -167,15 +167,6 @@ pub fn task_from_context(js_context: *JSContext) -> *mut ScriptTask {
     }
 }
 
-#[unsafe_destructor]
-impl Drop for ScriptTask {
-    fn drop(&self) {
-        unsafe {
-            let _ = local_data::local_data_pop(global_script_context_key);
-        }
-    }
-}
-
 impl ScriptTask {
     /// Creates a new script task.
     pub fn new(id: uint,
@@ -362,7 +353,11 @@ impl ScriptTask {
             frame.document.teardown();
         }
 
-        self.layout_chan.send(layout_interface::ExitMsg)
+        self.layout_chan.send(layout_interface::ExitMsg);
+
+        unsafe {
+            let _ = local_data::local_data_pop(global_script_context_key);
+        }
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
