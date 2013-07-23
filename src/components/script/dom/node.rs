@@ -264,6 +264,11 @@ impl<'self, View> AbstractNode<View> {
         self.with_base(|b| b.next_sibling)
     }
 
+    /// Is this node a root?
+    pub fn is_root(self) -> bool {
+        self.parent_node().is_none()
+    }
+
     //
     // Downcasting borrows
     //

@@ -356,14 +356,8 @@ impl LayoutTreeBuilder {
                               sibling_generator: Option<@mut BoxGenerator>)
                               -> Option<(@mut BoxGenerator, @mut BoxGenerator)> {
 
-        fn is_root(node: AbstractNode<LayoutView>) -> bool {
-            match node.parent_node() {
-                None => true,
-                Some(_) => false
-            }
-        }
         let display = if node.is_element() {
-            match node.style().display(is_root(node)) {
+            match node.style().display(node.is_root()) {
                 CSSDisplayNone => return None, // tree ends here if 'display: none'
                 // TODO(eatkinson) these are hacks so that the code doesn't crash
                 // when unsupported display values are used. They should be deleted
