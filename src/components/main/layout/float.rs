@@ -184,18 +184,24 @@ impl FloatFlowData {
         }
 
         let mut height = cur_y - top_offset;
-        
+
+        let mut noncontent_width = Au(0);
         let mut noncontent_height = Au(0);
+        let mut full_noncontent_width = Au(0);
+        let mut full_noncontent_height = Au(0);
         self.box.map(|&box| {
             do box.with_mut_base |base| {
                 //The associated box is the border box of this flow
                 base.position.origin.y = base.model.margin.top;
 
+                noncontent_width = base.model.padding.left + base.model.padding.right +
+                    base.model.border.left + base.model.border.right;
                 noncontent_height = base.model.padding.top + base.model.padding.bottom +
                     base.model.border.top + base.model.border.bottom;
                 base.position.size.height = height + noncontent_height;
 
-                noncontent_height = noncontent_height + base.model.margin.top + base.model.margin.bottom;
+                full_noncontent_width = noncontent_width + base.model.margin.left + base.model.margin.right;
+                full_noncontent_height = noncontent_height + base.model.margin.top + base.model.margin.bottom;
             }
         });
 
@@ -215,8 +221,8 @@ impl FloatFlowData {
         }
 
         let info = PlacementInfo {
-            width: self.common.position.size.width,
-            height: height,
+            width: self.common.position.size.width + full_noncontent_width,
+            height: height + full_noncontent_height,
             ceiling: Au(0),
             max_width: self.containing_width,
             f_type: self.float_type,
