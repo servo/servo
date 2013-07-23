@@ -245,7 +245,7 @@ pub fn prototype_jsclass(name: ~str) -> @fn(compartment: @mut Compartment) -> JS
     let f: @fn(@mut Compartment) -> JSClass = |compartment: @mut Compartment| {
         unsafe {
             JSClass {
-                name: compartment.add_name(copy name),
+                name: compartment.add_name(name.to_owned()),
                 flags: 0,
                 addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
                 delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -279,7 +279,7 @@ pub fn instance_jsclass(name: ~str, finalize: *u8, trace: *u8)
     let f: @fn(@mut Compartment) -> JSClass = |compartment: @mut Compartment| {
         unsafe {
             JSClass {
-                name: compartment.add_name(copy name),
+                name: compartment.add_name(name.to_owned()),
                 flags: JSCLASS_HAS_RESERVED_SLOTS(1) | js::JSCLASS_IS_DOMJSCLASS,
                 addProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
                 delProperty: GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
@@ -308,22 +308,21 @@ pub fn instance_jsclass(name: ~str, finalize: *u8, trace: *u8)
     return f;
 }
 
-// FIXME: A lot of string copies here
 pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: @mut Compartment)
     -> js::rust::jsobj {
-    compartment.register_class(prototype_jsclass(copy name));
+    compartment.register_class(prototype_jsclass(name.to_owned()));
 
     //TODO error checking
     let obj = result::unwrap(
         match proto {
-            Some(s) => compartment.new_object_with_proto(copy name,
+            Some(s) => compartment.new_object_with_proto(name.to_owned(),
                                                          s, 
                                                          compartment.global_obj.ptr),
-            None => compartment.new_object(copy name, null(), compartment.global_obj.ptr)
+            None => compartment.new_object(name.to_owned(), null(), compartment.global_obj.ptr)
         });
 
     unsafe {
-        compartment.define_property(copy name, RUST_OBJECT_TO_JSVAL(obj.ptr),
+        compartment.define_property(name.to_owned(), RUST_OBJECT_TO_JSVAL(obj.ptr),
                                     GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
                                     GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
                                     JSPROP_ENUMERATE);
