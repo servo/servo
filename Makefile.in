@@ -79,10 +79,12 @@ $(S)config.stamp : $(S)configure $(S)Makefile.in
 # Build the compiler
 ifneq ($(CFG_LOCAL_RUSTC),1)
 $(CFG_RUSTC):
-	$(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS=""
+	@$(call E, building rustc)
+	$(Q)$(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS=""
 
 clean-rust:
-	$(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS="" clean
+	@$(call E, cleaning rustc)
+	$(Q)$(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS="" clean
 
 else
 $(CFG_RUSTC):
@@ -232,19 +234,24 @@ all: src/compiler/rust/rust-auto-clean-stamp servo package
 # Servo helper libraries
 
 $(DONE_util):	$(DEPS_util)
-	$(RUSTC) $(RFLAGS_util) -o $@ $< && touch $@
+	@$(call E, compile: $@)
+	$(Q)$(RUSTC) $(RFLAGS_util) -o $@ $< && touch $@
 
 $(DONE_net):	$(DEPS_net)
-	$(RUSTC) $(RFLAGS_net) -o $@ $< && touch $@
+	@$(call E, compile: $@)
+	$(Q)$(RUSTC) $(RFLAGS_net) -o $@ $< && touch $@
 
 $(DONE_msg):	$(DEPS_msg)
-	$(RUSTC) $(RFLAGS_msg) -o $@ $< && touch $@
+	@$(call E, compile: $@)
+	$(Q)$(RUSTC) $(RFLAGS_msg) -o $@ $< && touch $@
 
 $(DONE_gfx):	$(DEPS_gfx)
-	$(RUSTC) $(RFLAGS_gfx) -o $@ $< && touch $@
+	@$(call E, compile: $@)
+	$(Q)$(RUSTC) $(RFLAGS_gfx) -o $@ $< && touch $@
 
 $(DONE_script):	$(DEPS_script)
-	$(RUSTC) $(RFLAGS_script) -o $@ $< && touch $@
+	@$(call E, compile: $@)
+	$(Q)$(RUSTC) $(RFLAGS_script) -o $@ $< && touch $@
 
 BINDINGS_SRC = $(S)/src/components/script/dom/bindings/codegen
 
@@ -254,7 +261,7 @@ bindinggen_dependencies := $(addprefix $(BINDINGS_SRC)/, BindingGen.py Bindings.
 
 $(AUTOGEN_SRC_script): %Binding.rs: $(bindinggen_dependencies) \
                                    %.webidl
-	@echo "Maybe generating $(shell basename $@)..."
+	@$(call E, "Maybe generating $(shell basename $@)...")
 	$(Q)PYTHONDONTWRITEBYTECODE=1 $(CFG_PYTHON2) $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
@@ -280,7 +287,8 @@ $(BINDINGS_SRC)/ParserResults.pkl: $(globalgen_dependencies) \
 # Servo binaries
 
 servo:	$(DEPS_servo)
-	$(RUSTC) $(RFLAGS_servo) -o $@ $< --bin
+	@$(call E, compile: $@)
+	$(Q)$(RUSTC) $(RFLAGS_servo) -o $@ $< --bin
 
 # Darwin app packaging
 

@@ -2,7 +2,7 @@ define DEF_SUBMODULE_TEST_RULES
 # check target
 .PHONY: check-$(1)
 check-$(1) : $$(DONE_$(1))
-	@$$(call E, make check: $(1))
+	@$$(call E, check: $(1))
 
 	$$(Q) \
 	$$(ENV_CFLAGS_$(1)) \
@@ -19,13 +19,16 @@ $(eval $(call DEF_SUBMODULE_TEST_RULES,$(submodule))))
 # Testing targets
 
 servo-test: $(DEPS_servo)
-	$(RUSTC) $(RFLAGS_servo) --test -o $@ $<
+	@$(call E, check: servo)
+	$(Q)$(RUSTC) $(RFLAGS_servo) --test -o $@ $<
 
 reftest: $(S)src/test/harness/reftest/reftest.rs servo
-	$(RUSTC) -o $@ $<
+	@$(call E, compile: $@)
+	$(Q)$(RUSTC) -o $@ $<
 
 contenttest: $(S)src/test/harness/contenttest/contenttest.rs servo
-	$(RUSTC) $(RFLAGS_servo) -o $@ $< -L .
+	@$(call E, compile: $@)
+	$(Q)$(RUSTC) $(RFLAGS_servo) -o $@ $< -L .
 
 
 DEPS_CHECK_TESTABLE = $(filter-out $(NO_TESTS),$(DEPS_CHECK_ALL))
@@ -34,26 +37,33 @@ DEPS_CHECK_TARGETS_FAST = $(addprefix check-,$(filter-out $(SLOW_TESTS),$(DEPS_C
 
 .PHONY: check-test
 check-test:
-	echo $(DEPS_CHECK_TARGETS_ALL)
+	@$(call E, check:)
+	@$(call E, "    $(DEPS_CHECK_TARGETS_ALL)")
 
 .PHONY: check
 check: $(DEPS_CHECK_TARGETS_FAST) check-servo tidy
+	@$(call E, check: all)
 
 .PHONY: check-all
 check-all: $(DEPS_CHECK_TARGETS_ALL) check-servo tidy
+	@$(call E, check: all)
 
 .PHONY: check-servo
 check-servo: servo-test
-	./servo-test
+	@$(call E, check: servo)
+	$(Q)./servo-test
 
 .PHONY: check-ref
 check-ref: reftest
-	./reftest $(S)src/test/ref/*.list
+	@$(call E, check: reftests)
+	$(Q)./reftest $(S)src/test/ref/*.list
 
 .PHONY: check-content
 check-content: contenttest
-	./contenttest --source-dir=$(S)src/test/html/content $(TESTNAME)
+	@$(call E, check: contenttests)
+	$(Q)./contenttest --source-dir=$(S)src/test/html/content $(TESTNAME)
 
 .PHONY: tidy
-tidy: 
-	python $(S)src/etc/tidy.py $(S)src
+tidy:
+	@$(call E, check: tidy)
+	$(Q)python $(S)src/etc/tidy.py $(S)src
