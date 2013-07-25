@@ -70,6 +70,35 @@ extern fn getElementsByTagName(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSB
     }
 }
 
+extern fn getElementsByName(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
+    unsafe {
+        let obj = JS_THIS_OBJECT(cx, vp);
+
+        let argv = JS_ARGV(cx, cast::transmute(vp));
+
+        let arg0: DOMString;
+        let strval = jsval_to_str(cx, (*argv.offset(0)));
+        if strval.is_err() {
+            return 0;
+        }
+        arg0 = str(strval.get());
+
+        let doc = &mut (*unwrap(obj)).payload;
+        let rval: Option<@mut HTMLCollection>;
+        rval = doc.getElementsByName(arg0);
+        if rval.is_none() {
+            JS_SET_RVAL(cx, vp, JSVAL_NULL);
+        } else {
+            let cache = doc.get_wrappercache();
+            let rval = rval.get() as @mut CacheableWrapper;
+            assert!(WrapNewBindingObject(cx, cache.get_wrapper(),
+                                         rval,
+                                         cast::transmute(vp)));
+        }
+        return 1;
+    }
+}
+
 unsafe fn unwrap(obj: *JSObject) -> *mut rust_box<Document> {
     //TODO: some kind of check if this is a Document object
     let val = JS_GetReservedSlot(obj, 0);
@@ -109,6 +138,11 @@ pub fn init(compartment: @mut Compartment) {
 
     let methods = @~[JSFunctionSpec {name: compartment.add_name(~"getElementsByTagName"),
                                      call: JSNativeWrapper {op: getElementsByTagName, info: null()},
+                                     nargs: 0,
+                                     flags: 0,
+                                     selfHostedName: null()},
+                     JSFunctionSpec {name: compartment.add_name(~"getElementsByName"),
+                                     call: JSNativeWrapper {op: getElementsByName, info: null()},
                                      nargs: 0,
                                      flags: 0,
                                      selfHostedName: null()},
