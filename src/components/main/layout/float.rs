@@ -5,9 +5,11 @@
 use layout::box::{RenderBox};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::flow::{FloatFlow, FlowData};
+use layout::flow::FlowData;
+use layout::flow::{VisitOrChildView,VisitChildView};
 use layout::model::{MaybeAuto};
 use layout::float_context::{FloatContext, PlacementInfo, FloatType};
+use layout::flow_interface::{Visitor, FlowDataMethods};
 
 use std::cell::Cell;
 use geom::point::Point2D;
@@ -15,11 +17,10 @@ use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
 use gfx::geometry;
-use servo_util::tree::{TreeNodeRef, TreeUtils};
 
-pub struct FloatFlowData {
+pub struct FloatFlowData<View,ChildView> {
     /// Data common to all flows.
-    common: FlowData,
+    common: FlowData<View,ChildView>,
 
     /// The associated render box.
     box: Option<RenderBox>,
@@ -40,8 +41,8 @@ pub struct FloatFlowData {
 
 }
 
-impl FloatFlowData {
-    pub fn new(common: FlowData, float_type: FloatType) -> FloatFlowData {
+impl<V,CV> FloatFlowData<V,CV> {
+    pub fn new(common: FlowData<V,CV>, float_type: FloatType) -> FloatFlowData<V,CV> {
         FloatFlowData {
             common: common,
             containing_width: Au(0),
@@ -62,13 +63,13 @@ impl FloatFlowData {
     }
 }
 
-impl FloatFlowData {
+impl<V:VisitOrChildView> FloatFlowData<V,VisitChildView> {
     pub fn bubble_widths_float(@mut self, ctx: &LayoutContext) {
         let mut min_width = Au(0);
         let mut pref_width = Au(0);
         let mut num_floats = 0;
 
-        for FloatFlow(self).each_child |child_ctx| {
+        for self.flow().each_child |child_ctx| {
             //assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
 
             do child_ctx.with_mut_base |child_node| {
@@ -161,7 +162,7 @@ impl FloatFlowData {
         self.common.position.size.width = remaining_width;
 
         let has_inorder_children = self.common.num_floats > 0;
-        for FloatFlow(self).each_child |kid| {
+        for self.flow().each_child |kid| {
             //assert!(kid.starts_block_flow() || kid.starts_inline_flow());
 
             do kid.with_mut_base |child_node| {
@@ -176,7 +177,7 @@ impl FloatFlowData {
         }
     }
 
-    pub fn assign_height_inorder_float(@mut self, ctx: &mut LayoutContext) {
+    pub fn assign_height_inorder_float(@mut self, _: &mut LayoutContext) {
         debug!("assign_height_inorder_float: assigning height for float %?", self.common.id);
         // assign_height_float was already called by the traversal function
         // so this is well-defined
@@ -207,7 +208,7 @@ impl FloatFlowData {
         let has_inorder_children = self.common.num_floats > 0;
         if has_inorder_children {
             let mut float_ctx = FloatContext::new(self.floated_children);
-            for FloatFlow(self).each_child |kid| {
+            for self.flow().each_child |kid| {
                 do kid.with_mut_base |child_node| {
                     child_node.floats_in = float_ctx.clone();
                 }
@@ -228,7 +229,7 @@ impl FloatFlowData {
             }
         }
 
-        for FloatFlow(self).each_child |kid| {
+        for self.flow().each_child |kid| {
             do kid.with_mut_base |child_node| {
                 child_node.position.origin.y = cur_y;
                 cur_y = cur_y + child_node.position.size.height;
@@ -297,8 +298,7 @@ impl FloatFlowData {
         // TODO: handle any out-of-flow elements
 
         // go deeper into the flow tree
-        let flow = FloatFlow(self);
-        for flow.each_child |child| {
+        for self.flow().each_child |child| {
             do child.with_mut_base |base| {
                 base.abs_position = offset + base.position.origin;
             }

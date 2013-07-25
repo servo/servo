@@ -4,7 +4,7 @@
 
 //! Code for managing the layout data in the DOM.
 
-use layout::flow::FlowContext;
+use layout::flow::{FlowContext,SequentialView};
 use layout::incremental::RestyleDamage;
 
 use newcss::complete::CompleteSelectResults;
@@ -20,7 +20,7 @@ pub struct LayoutData {
     restyle_damage: Option<RestyleDamage>,
 
     /// The CSS flow that this node is associated with.
-    flow: Option<FlowContext>,
+    flow: Option<FlowContext<SequentialView,SequentialView>>,
 }
 
 impl LayoutData {

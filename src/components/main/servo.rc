@@ -77,9 +77,11 @@ pub mod layout {
     pub mod float_context;
     pub mod float;
     pub mod flow;
+    pub mod flow_interface;
     pub mod layout_task;
     pub mod inline;
     pub mod model;
+    pub mod parallel_traversal;
     pub mod text;
     pub mod util;
     pub mod incremental;

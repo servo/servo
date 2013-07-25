@@ -104,7 +104,7 @@ impl ElementMapping {
                 while new_j < new_boxes.len() {
                     let should_leave = do old_boxes[old_i].with_base |old_box_base| {
                         do new_boxes[new_j].with_base |new_box_base| {
-                            old_box_base.node != new_box_base.node
+                            old_box_base.different_node(new_box_base)
                         }
                     };
                     if should_leave {
