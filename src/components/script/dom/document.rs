@@ -12,6 +12,8 @@ use script_task::global_script_context;
 use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot};
 use servo_util::tree::{TreeNodeRef, TreeUtils};
 
+use std::str::eq_slice;
+
 pub struct Document {
     root: AbstractNode<ScriptView>,
     wrapper: WrapperCache,
@@ -45,6 +47,22 @@ impl Document {
                 do child.with_imm_element |elem| {
                     if elem.tag_name == tag {
                         elements.push(child);
+                    }
+                }
+            }
+        };
+        Some(HTMLCollection::new(elements))
+    }
+
+    pub fn getElementsByName(&self, name: DOMString) -> Option<@mut HTMLCollection> {
+        let mut elements = ~[];
+        let name = name.to_str();
+        let _ = for self.root.traverse_preorder |child| {
+            if child.is_element() {
+                do child.with_imm_element |elem| {
+                    match elem.get_attr("name") {
+                        Some(val) => if eq_slice(val, name) { elements.push(child) },
+                        None() => ()
                     }
                 }
             }

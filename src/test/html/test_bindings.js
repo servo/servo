@@ -43,6 +43,14 @@ window.alert(tags[0].getClientRects());
 window.alert(tags[1]);
 window.alert(tags[2]);
 window.alert(tags[3]);
+let tags = document.getElementsByName("test");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0]);
+window.alert(tags[0].tagName);
+window.alert(tags[1]);
+window.alert(tags[1].tagName);
+window.alert(tags[2]);
 
 window.alert("DOMParser:");
 window.alert(DOMParser);
