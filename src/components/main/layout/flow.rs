@@ -35,6 +35,7 @@ use layout::float_context::{FloatContext, Invalid, FloatType};
 
 use std::cell::Cell;
 use std::uint;
+use std::io::stderr;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
@@ -414,7 +415,7 @@ impl<'self> FlowContext {
         }
 
         s.push_str(self.debug_str());
-        println(s);
+        stderr().write_line(s);
 
         // FIXME: this should have a pure/const version?
         for self.each_child |child| {

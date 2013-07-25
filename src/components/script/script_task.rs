@@ -16,7 +16,7 @@ use dom::window::Window;
 use layout_interface::{AddStylesheetMsg, DocumentDamage};
 use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery};
 use layout_interface::{LayoutChan, MatchSelectorsDocumentDamage, QueryMsg, Reflow};
-use layout_interface::{ReflowDocumentDamage, ReflowForDisplay, ReflowForScriptQuery, ReflowGoal};
+use layout_interface::{ReflowDocumentDamage, ReflowForDisplay, ReflowGoal};
 use layout_interface::ReflowMsg;
 use layout_interface;
 use servo_msg::constellation_msg::{ConstellationChan, LoadUrlMsg, NavigationDirection};
@@ -321,7 +321,8 @@ impl ScriptTask {
                                  null(),
                                  &rval);
 
-            self.reflow(ReflowForScriptQuery)
+            // We don't know what the script changed, so for now we will do a total redisplay.
+            self.reflow_all(ReflowForDisplay)
         }
     }
 

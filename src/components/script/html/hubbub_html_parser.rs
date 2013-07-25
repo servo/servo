@@ -481,6 +481,9 @@ pub fn parse_html(url: Url,
                 debug!("received data");
                 parser.parse_chunk(data);
             }
+            Done(Err(*)) => {
+                fail!("Failed to load page URL %s", url.to_str());
+            }
             Done(*) => {
                 break;
             }
