@@ -390,11 +390,8 @@ impl LayoutTreeBuilder {
             }
         };
 
-        let sibling_flow: Option<FlowContext> = match sibling_generator {
-            None => None,
-            Some(gen) => Some(gen.flow)
-        };
-        
+        let sibling_flow: Option<FlowContext> = sibling_generator.map(|gen| gen.flow);
+
         // TODO(eatkinson): use the value of the float property to
         // determine whether to float left or right.
         let is_float = if (node.is_element()) {

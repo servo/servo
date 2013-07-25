@@ -57,14 +57,11 @@ impl ImageHolder {
     /// Query and update the current image size.
     pub fn get_size(&mut self) -> Option<Size2D<int>> {
         debug!("get_size() %?", self.url);
-        match self.get_image() {
-            Some(img) => { 
-                let img_ref = img.get();
-                self.cached_size = Size2D(img_ref.width as int,
-                                          img_ref.height as int);
-                Some(copy self.cached_size)
-            },
-            None => None
+        do self.get_image().map |img| {
+            let img_ref = img.get();
+            self.cached_size = Size2D(img_ref.width as int,
+                                      img_ref.height as int);
+            self.cached_size.clone()
         }
     }
 
@@ -89,12 +86,7 @@ impl ImageHolder {
 
         // Clone isn't pure so we have to swap out the mutable image option
         let image = replace(&mut self.image, None);
-
-        let result = match image {
-            Some(ref image) => Some(image.clone()),
-            None => None
-        };
-
+        let result = image.clone();
         replace(&mut self.image, image);
 
         return result;
