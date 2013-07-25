@@ -80,6 +80,12 @@ pub fn init(compartment: @mut Compartment) {
          getter: JSPropertyOpWrapper {op: getTagName, info: null()},
          setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
         JSPropertySpec {
+         name: compartment.add_name(~"id"),
+         tinyid: 0,
+         flags: (JSPROP_ENUMERATE | JSPROP_SHARED | JSPROP_NATIVE_ACCESSORS) as u8,
+         getter: JSPropertyOpWrapper {op: getId, info: null()},
+         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
+        JSPropertySpec {
          name: null(),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
@@ -283,6 +289,26 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
         let node = unwrap(obj);
         do node.with_imm_element |elem| {
             let s = str(copy elem.tag_name);
+            *vp = domstring_to_jsval(cx, &s);            
+        }
+    }
+    return 1;
+}
+
+extern fn getId(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
+    unsafe {
+        let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));
+        if obj.is_null() {
+            return 0;
+        }
+
+        let node = unwrap(obj);
+        do node.with_imm_element |elem| {
+            
+            let s = match elem.get_attr("id"){
+                Some(val)=>str(val.to_owned()),
+                None=>str(~"")
+            };
             *vp = domstring_to_jsval(cx, &s);            
         }
     }
