@@ -52,6 +52,11 @@ window.alert(tags[1]);
 window.alert(tags[1].tagName);
 window.alert(tags[2]);
 
+window.alert("HTMLElement:");
+let head = document.head;
+window.alert(head);
+window.alert(head.tagName);
+
 window.alert("DOMParser:");
 window.alert(DOMParser);
 let parser = new DOMParser();
