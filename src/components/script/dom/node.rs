@@ -514,7 +514,6 @@ impl VoidPtrLike for AbstractNode<LayoutView> {
 
 pub fn define_bindings(compartment: @mut Compartment) {
     bindings::window::init(compartment);
-    bindings::document::init(compartment);
     bindings::node::init(compartment);
     bindings::element::init(compartment);
     bindings::text::init(compartment);

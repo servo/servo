@@ -4,7 +4,7 @@
 
 use js::jsapi::JSVal;
 use js::{JSVAL_FALSE, JSVAL_TRUE};
-use js::glue::{RUST_UINT_TO_JSVAL, RUST_JSVAL_TO_INT};
+use js::glue::{RUST_UINT_TO_JSVAL, RUST_JSVAL_TO_INT, RUST_DOUBLE_TO_JSVAL, RUST_JSVAL_TO_DOUBLE};
 
 pub trait JSValConvertible {
     fn to_jsval(&self) -> JSVal;
@@ -69,6 +69,20 @@ impl JSValConvertible for bool {
             Some(false)
         } else {
             None
+        }
+    }
+}
+
+impl JSValConvertible for f32 {
+    fn to_jsval(&self) -> JSVal {
+        unsafe {
+            RUST_DOUBLE_TO_JSVAL(*self as f64)
+        }
+    }
+
+    fn from_jsval(val: JSVal) -> Option<f32> {
+        unsafe {
+            Some(RUST_JSVAL_TO_DOUBLE(val) as f32)
         }
     }
 }
