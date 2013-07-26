@@ -39,6 +39,7 @@ window.alert(tags);
 window.alert(tags.length);
 window.alert(tags[0]);
 window.alert(tags[0].tagName);
+window.alert(tags[0].id);
 window.alert(tags[0].getClientRects());
 window.alert(tags[1]);
 window.alert(tags[2]);
