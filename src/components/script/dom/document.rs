@@ -39,6 +39,19 @@ pub fn Document(root: AbstractNode<ScriptView>, window: Option<@mut Window>) -> 
 }
 
 impl Document {
+    pub fn getHead(&self) -> Option<AbstractNode<ScriptView>> {
+        let mut headNode:Option<AbstractNode<ScriptView>> = None;
+        let _ = for self.root.traverse_preorder |child| {
+            if child.is_head_element() {
+                match headNode {
+                   Some(_val) => {},
+                   None() => headNode = Some(child)
+                }
+            }
+        };
+        headNode
+    }
+
     pub fn getElementsByTagName(&self, tag: DOMString) -> Option<@mut HTMLCollection> {
         let mut elements = ~[];
         let tag = tag.to_str();

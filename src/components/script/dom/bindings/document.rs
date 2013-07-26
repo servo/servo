@@ -12,6 +12,7 @@ use dom::bindings::utils::{jsval_to_str, WrapNewBindingObject, CacheableWrapper}
 use dom::bindings::utils;
 use dom::document::Document;
 use dom::htmlcollection::HTMLCollection;
+use dom::node::{AbstractNode, ScriptView};
 use js::glue::*;
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB};
 use js::jsapi::{JS_DefineProperties};
@@ -38,6 +39,25 @@ extern fn getDocumentElement(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> J
         assert!(root.is_element());
         root.wrap(cx, ptr::null(), vp); //XXXjdm proper scope at some point
         return 1;
+    }
+}
+
+extern fn getHead(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
+    unsafe {
+        let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));
+        if obj.is_null() {
+            return 0;
+        }
+        let doc = &mut (*unwrap(obj)).payload;
+        let result: Option<AbstractNode<ScriptView>>;
+        result = doc.getHead();
+        if result.is_none() {
+          *vp = JSVAL_NULL;
+          return 1;
+        }
+        let mut result = result.get();
+        result.wrap(cx, obj, vp);
+        return if (*vp).v != 0 { 1 } else { 0 };
     }
 }
 
@@ -122,6 +142,12 @@ pub fn init(compartment: @mut Compartment) {
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
          getter: JSPropertyOpWrapper {op: getDocumentElement, info: null()},
+         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
+        JSPropertySpec {
+         name: compartment.add_name(~"head"),
+         tinyid: 0,
+         flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
+         getter: JSPropertyOpWrapper {op: getHead, info: null()},
          setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
         JSPropertySpec {
          name: null(),
