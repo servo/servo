@@ -228,7 +228,7 @@ impl LayoutTask {
         };
 
         debug!("layout: constructed Flow tree");
-        debug!("", layout_root.dump());
+        debug!("%?", layout_root.dump());
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
@@ -271,8 +271,6 @@ impl LayoutTask {
                 self.render_chan.send(RenderMsg(render_layer));
             } // time(layout: display list building)
         }
-
-        debug!("%?", layout_root.dump());
 
         // Tell script that we're done.
         //
