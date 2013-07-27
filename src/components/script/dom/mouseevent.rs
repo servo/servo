@@ -28,7 +28,7 @@ pub struct MouseEvent {
 }
 
 impl MouseEvent {
-    pub fn new(type_: DOMString, can_bubble: bool, cancelable: bool,
+    pub fn new(type_: &DOMString, can_bubble: bool, cancelable: bool,
                view: Option<@mut WindowProxy>, detail: i32, screen_x: i32,
                screen_y: i32, client_x: i32, client_y: i32, ctrl_key: bool,
                shift_key: bool, alt_key: bool, meta_key: bool, button: u16,
@@ -53,7 +53,7 @@ impl MouseEvent {
     }
 
     pub fn Constructor(_owner: @mut Window,
-                       type_: DOMString,
+                       type_: &DOMString,
                        init: &MouseEventBinding::MouseEventInit,
                        _rv: &mut ErrorResult) -> @mut MouseEvent {
         @mut MouseEvent::new(type_, init.bubbles, init.cancelable, init.view, init.detail,
@@ -107,13 +107,13 @@ impl MouseEvent {
         self.related_target
     }
 
-    pub fn GetModifierState(&self, _keyArg: DOMString) -> bool {
+    pub fn GetModifierState(&self, _keyArg: &DOMString) -> bool {
         //TODO
         false
     }
 
     pub fn InitMouseEvent(&mut self,
-                          typeArg: DOMString,
+                          typeArg: &DOMString,
                           canBubbleArg: bool,
                           cancelableArg: bool,
                           viewArg: Option<@mut WindowProxy>,

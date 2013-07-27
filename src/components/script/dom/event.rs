@@ -17,7 +17,7 @@ use script_task::page_from_context;
 use std::cast;
 
 
-pub enum Event {
+pub enum Event_ {
     ResizeEvent(uint, uint), 
     ReflowEvent,
     ClickEvent(uint, Point2D<f32>),
@@ -25,7 +25,7 @@ pub enum Event {
     MouseUpEvent(uint, Point2D<f32>),
 }
 
-pub struct Event_ {
+pub struct Event {
     wrapper: WrapperCache,
     type_: DOMString,
     default_prevented: bool,
@@ -34,11 +34,11 @@ pub struct Event_ {
     trusted: bool,
 }
 
-impl Event_ {
-    pub fn new(type_: DOMString) -> Event_ {
-        Event_ {
+impl Event {
+    pub fn new(type_: &DOMString) -> Event {
+        Event {
             wrapper: WrapperCache::new(),
-            type_: type_,
+            type_: (*type_).clone(),
             default_prevented: false,
             cancelable: true,
             bubbles: true,
@@ -93,11 +93,11 @@ impl Event_ {
     }
 
     pub fn InitEvent(&mut self,
-                     type_: DOMString,
+                     type_: &DOMString,
                      bubbles: bool,
                      cancelable: bool,
                      _rv: &mut ErrorResult) {
-        self.type_ = type_;
+        self.type_ = (*type_).clone();
         self.cancelable = cancelable;
         self.bubbles = bubbles;
     }
@@ -107,14 +107,14 @@ impl Event_ {
     }
 
     pub fn Constructor(_global: @mut Window,
-                   type_: DOMString,
+                   type_: &DOMString,
                    _init: &EventBinding::EventInit,
-                   _rv: &mut ErrorResult) -> @mut Event_ {
-        @mut Event_::new(type_)
+                   _rv: &mut ErrorResult) -> @mut Event {
+        @mut Event::new(type_)
     }
 }
 
-impl CacheableWrapper for Event_ {
+impl CacheableWrapper for Event {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe { cast::transmute(&self.wrapper) }
     }
@@ -125,7 +125,7 @@ impl CacheableWrapper for Event_ {
     }
 }
 
-impl BindingObject for Event_ {
+impl BindingObject for Event {
     fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
         let page = page_from_context(cx);
         unsafe {
@@ -134,7 +134,7 @@ impl BindingObject for Event_ {
     }
 }
 
-impl DerivedWrapper for Event_ {
+impl DerivedWrapper for Event {
     fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, _vp: *mut JSVal) -> i32 {
         fail!(~"nyi")
     }

@@ -91,6 +91,7 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: uint, vp: *mut JSVal) -
   }
 }
 
+#[deriving(Clone)]
 pub enum DOMString {
     str(~str),
     null_string
@@ -615,7 +616,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: uint, _vp: *JSVal) -> 
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = @mut ([0 as *JSObject, ..23]); //XXXjdm PrototyepList::id::_ID_Count
+    let protoArray = @mut ([0 as *JSObject, ..24]); //XXXjdm PrototyepList::id::_ID_Count
     unsafe {
         //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);

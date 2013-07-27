@@ -1,7 +1,14 @@
 //window.alert(ClientRect);
 //window.alert(ClientRectList);
 window.alert("==1==");
-let elem = document.getElementsByTagName('div')[0];
+window.alert(document.documentElement);
+window.alert(document.documentElement.firstChild);
+window.alert(document.documentElement.nextSibling);
+window.alert(document instanceof HTMLDocument);
+window.alert(document instanceof Document);
+var elems = document.getElementsByTagName('div');
+window.alert(elems.length);
+let elem = elems[0];
 window.alert(elem.nodeType);
 window.alert(elem);
 window.alert("==1.5==");

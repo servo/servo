@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use platform::{Application, Window};
-use script::dom::event::{Event, ClickEvent, MouseDownEvent, MouseUpEvent, ResizeEvent};
+use script::dom::event::{Event_, ClickEvent, MouseDownEvent, MouseUpEvent, ResizeEvent};
 use script::script_task::{LoadMsg, NavigateMsg, SendEventMsg};
 
 use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
@@ -431,7 +431,7 @@ impl CompositorTask {
                 }
                 
                 MouseWindowEventClass(mouse_window_event) => {
-                    let event: Event;
+                    let event: Event_;
                     let world_mouse_point = |layer_mouse_point: Point2D<f32>| {
                         layer_mouse_point + world_offset
                     };

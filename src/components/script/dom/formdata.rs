@@ -36,7 +36,7 @@ impl FormData {
         self.wrap_object_shared(cx, scope);
     }
 
-    pub fn Append(&mut self, name: DOMString, value: @mut Blob, filename: Option<DOMString>) {
+    pub fn Append(&mut self, name: &DOMString, value: @mut Blob, filename: Option<DOMString>) {
         let blob = BlobData {
             blob: value,
             name: filename.get_or_default(str(~"default"))
@@ -44,8 +44,8 @@ impl FormData {
         self.data.insert(name.to_str(), blob);
     }
 
-    pub fn Append_(&mut self, name: DOMString, value: DOMString) {
-        self.data.insert(name.to_str(), StringData(value));
+    pub fn Append_(&mut self, name: &DOMString, value: &DOMString) {
+        self.data.insert(name.to_str(), StringData((*value).clone()));
     }
 }
 

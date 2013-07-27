@@ -44,7 +44,7 @@ impl HTMLCollection {
         }
     }
 
-    pub fn NamedItem(&self, _cx: *JSContext, _name: DOMString, rv: &mut ErrorResult) -> *JSObject {
+    pub fn NamedItem(&self, _cx: *JSContext, _name: &DOMString, rv: &mut ErrorResult) -> *JSObject {
         *rv = Ok(());
         ptr::null()
     }

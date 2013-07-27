@@ -3,9 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DOMParserBinding;
+use dom::bindings::codegen::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
 use dom::bindings::utils::{DOMString, ErrorResult, WrapperCache, CacheableWrapper};
-use dom::document::Document;
+use dom::document::{AbstractDocument, Document, XML};
 use dom::element::{Element, HTMLHtmlElement, HTMLHtmlElementTypeId};
+use dom::htmldocument::HTMLDocument;
 use dom::node::Node;
 use dom::window::Window;
 
@@ -34,17 +36,29 @@ impl DOMParser {
     }
 
     pub fn ParseFromString(&self,
-                           _s: DOMString,
-                           _type: DOMParserBinding::SupportedType,
+                           _s: &DOMString,
+                           ty: DOMParserBinding::SupportedType,
                            _rv: &mut ErrorResult)
-                           -> @mut Document {
+                           -> AbstractDocument {
         unsafe {
             let root = ~HTMLHtmlElement {
                 parent: Element::new(HTMLHtmlElementTypeId, ~"html")
             };
 
             let root = Node::as_abstract_node((*self.owner.page).js_info.get_ref().js_compartment.cx.ptr, root);
-            Document(root, None)
+            let cx = (*self.owner.page).js_info.get_ref().js_compartment.cx.ptr;
+
+            match ty {
+                Text_html => {
+                    HTMLDocument::new(root, None)
+                }
+                Text_xml => {
+                    AbstractDocument::as_abstract(cx, @mut Document::new(root, None, XML))
+                }
+                _ => {
+                    fail!("unsupported document type")
+                }
+            }
         }
     }
 }
