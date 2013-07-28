@@ -24,7 +24,6 @@ extern mod extra;
 
 pub mod dom {
     pub mod bindings {
-        pub mod document;
         pub mod element;
         pub mod node;
         pub mod text;
@@ -37,6 +36,7 @@ pub mod dom {
             pub mod BlobBinding;
             pub mod ClientRectBinding;
             pub mod ClientRectListBinding;
+            pub mod DocumentBinding;
             pub mod DOMParserBinding;
             pub mod EventBinding;
             pub mod EventTargetBinding;
