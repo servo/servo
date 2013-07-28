@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::TextBinding;
 use dom::bindings::element;
 use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
-use dom::node::{DoctypeNodeTypeId, ScriptView};
+use dom::node::{DoctypeNodeTypeId, ScriptView, Text};
 
 use std::cast;
 use std::libc::c_uint;
@@ -17,7 +18,7 @@ use js::jsapi::*;
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSPropertySpec};
 use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper};
 use js::jsval::{INT_TO_JSVAL};
-use js::rust::{Compartment, jsobj};
+use js::rust::{Compartment};
 use js::{JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
 use js::{JS_THIS_OBJECT, JSPROP_NATIVE_ACCESSORS};
 use servo_util::tree::TreeNodeRef;
@@ -62,12 +63,16 @@ pub fn init(compartment: @mut Compartment) {
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
+pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject {
     match node.type_id() {
-        ElementNodeTypeId(_) => element::create(cx, node),
-        TextNodeTypeId |
+        ElementNodeTypeId(_) => element::create(cx, node).ptr,
         CommentNodeTypeId |
-        DoctypeNodeTypeId => text::create(cx, node),
+        DoctypeNodeTypeId => text::create(cx, node).ptr,
+        TextNodeTypeId => {
+            let mut unused = false;
+            let node: @mut Text = unsafe { cast::transmute(node.raw_object()) };
+            TextBinding::Wrap(cx, ptr::null(), node, &mut unused)
+        }
      }
 }
 

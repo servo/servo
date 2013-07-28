@@ -1,0 +1,107 @@
+/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * The origin of this IDL file is
+ * http://www.w3.org/TR/2012/WD-dom-20120105/
+ *
+ * Copyright © 2012 W3C® (MIT, ERCIM, Keio), All Rights Reserved. W3C
+ * liability, trademark and document use rules apply.
+ */
+
+/*interface Principal;
+interface URI;
+interface UserDataHandler;*/
+
+interface Node /*: EventTarget*/ {
+  const unsigned short ELEMENT_NODE = 1;
+  const unsigned short ATTRIBUTE_NODE = 2; // historical
+  const unsigned short TEXT_NODE = 3;
+  const unsigned short CDATA_SECTION_NODE = 4; // historical
+  const unsigned short ENTITY_REFERENCE_NODE = 5; // historical
+  const unsigned short ENTITY_NODE = 6; // historical
+  const unsigned short PROCESSING_INSTRUCTION_NODE = 7;
+  const unsigned short COMMENT_NODE = 8;
+  const unsigned short DOCUMENT_NODE = 9;
+  const unsigned short DOCUMENT_TYPE_NODE = 10;
+  const unsigned short DOCUMENT_FRAGMENT_NODE = 11;
+  const unsigned short NOTATION_NODE = 12; // historical
+  [Constant]
+  readonly attribute unsigned short nodeType;
+  [Pure]
+  readonly attribute DOMString nodeName;
+
+  [Pure]
+  readonly attribute DOMString? baseURI;
+
+  [Pure]
+  readonly attribute Document? ownerDocument;
+  [Pure]
+  readonly attribute Node? parentNode;
+  [Pure]
+  readonly attribute Element? parentElement;
+  boolean hasChildNodes();
+  /*[Constant]
+    readonly attribute NodeList childNodes;*/
+  [Pure]
+  readonly attribute Node? firstChild;
+  [Pure]
+  readonly attribute Node? lastChild;
+  [Pure]
+  readonly attribute Node? previousSibling;
+  [Pure]
+  readonly attribute Node? nextSibling;
+
+  [SetterThrows, Pure]
+           attribute DOMString? nodeValue;
+  [SetterThrows, Pure]
+           attribute DOMString? textContent;
+  /*[Throws]
+    Node insertBefore(Node node, Node? child);*/ //XXXjdm we don't deal well with Node? parameters
+  [Throws]
+  Node appendChild(Node node);
+  [Throws]
+  Node replaceChild(Node node, Node child);
+  [Throws]
+  Node removeChild(Node child);
+  void normalize();
+
+  [Throws]
+  Node cloneNode(optional boolean deep = true);
+  // boolean isEqualNode(Node? node); //XXXjdm we don't deal well with Node? parameters
+
+  const unsigned short DOCUMENT_POSITION_DISCONNECTED = 0x01;
+  const unsigned short DOCUMENT_POSITION_PRECEDING = 0x02;
+  const unsigned short DOCUMENT_POSITION_FOLLOWING = 0x04;
+  const unsigned short DOCUMENT_POSITION_CONTAINS = 0x08;
+  const unsigned short DOCUMENT_POSITION_CONTAINED_BY = 0x10;
+  const unsigned short DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC = 0x20; // historical
+  unsigned short compareDocumentPosition(Node other);
+  //boolean contains(Node? other); //XXXjdm we don't deal well with Node? parameters
+
+  DOMString? lookupPrefix(DOMString? namespace);
+  DOMString? lookupNamespaceURI(DOMString? prefix);
+  boolean isDefaultNamespace(DOMString? namespace);
+
+  // Mozilla-specific stuff
+  // These have been moved to Element in the spec.
+  // If we move namespaceURI, prefix and localName to Element they should return
+  // a non-nullable type.
+  [Constant]
+  readonly attribute DOMString? namespaceURI;
+  [Constant]
+  readonly attribute DOMString? prefix;
+  [Constant]
+  readonly attribute DOMString? localName;
+
+  boolean hasAttributes();
+  /*[Throws, Func="nsINode::IsChromeOrXBL"]
+  any setUserData(DOMString key, any data, UserDataHandler? handler);
+  [Throws, Func="nsINode::IsChromeOrXBL"]
+  any getUserData(DOMString key);*/
+  /*[ChromeOnly]
+  readonly attribute Principal nodePrincipal;
+  [ChromeOnly]
+  readonly attribute URI? baseURIObject;*/
+};

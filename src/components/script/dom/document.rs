@@ -37,18 +37,6 @@ impl AbstractDocument {
         }
     }
 
-    pub unsafe fn as_cacheable_wrapper(&self) -> @mut CacheableWrapper {
-        match self.with_base(|doc| doc.doctype) {
-            HTML => {
-                let doc: @mut HTMLDocument = cast::transmute(self.document);
-                doc as @mut CacheableWrapper
-            }
-            SVG | XML => {
-                fail!("no SVG or XML documents yet")
-            }
-        }
-    }
-
     unsafe fn transmute<T, R>(&self, f: &fn(&T) -> R) -> R {
         let box: *rust_box<T> = cast::transmute(self.document);
         f(&(*box).payload)
@@ -113,7 +101,7 @@ impl Document {
     }
 
     pub fn Constructor(owner: @mut Window, _rv: &mut ErrorResult) -> AbstractDocument {
-        let root = ~HTMLHtmlElement {
+        let root = @HTMLHtmlElement {
             parent: Element::new(HTMLHtmlElementTypeId, ~"html")
         };
 

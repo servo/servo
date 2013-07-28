@@ -4,12 +4,16 @@
 
 //! Element nodes.
 
-use dom::bindings::utils::{DOMString, CacheableWrapper};
+use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
-use dom::node::{ElementNodeTypeId, Node, ScriptView};
+use dom::htmlcollection::HTMLCollection;
+use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
+
+use js::jsapi::{JSContext, JSObject};
 
 use std::cell::Cell;
 use std::comm::ChanOne;
@@ -257,6 +261,160 @@ impl<'self> Element {
             }
         }
     }
+
+    fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
+        let doc = self.parent.owner_doc.get();
+        let win = doc.with_base(|doc| doc.window.get());
+        let cx = unsafe {(*win.page).js_info.get_ref().js_compartment.cx.ptr};
+        let cache = win.get_wrappercache();
+        let scope = cache.get_wrapper();
+        (scope, cx)
+    }
+}
+
+impl Element {
+    pub fn TagName(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn Id(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn SetId(&self, _id: &DOMString) {
+    }
+
+    pub fn GetAttribute(&self, _name: &DOMString) -> DOMString {
+        null_string
+    }
+
+    pub fn GetAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString) -> DOMString {
+        null_string
+    }
+
+    pub fn SetAttribute(&self, _name: &DOMString, _value: &DOMString, _rv: &mut ErrorResult) {
+    }
+
+    pub fn SetAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString, _value: &DOMString, _rv: &mut ErrorResult) {
+    }
+
+    pub fn RemoveAttribute(&self, _name: &DOMString, _rv: &mut ErrorResult) -> bool {
+        false
+    }
+
+    pub fn RemoveAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString, _rv: &mut ErrorResult) -> bool {
+        false
+    }
+
+    pub fn HasAttribute(&self, _name: &DOMString) -> bool {
+        false
+    }
+
+    pub fn HasAttributeNS(&self, _nameapce: &DOMString, _localname: &DOMString) -> bool {
+        false
+    }
+
+    pub fn GetElementsByTagName(&self, _localname: &DOMString) -> @mut HTMLCollection {
+        let (scope, cx) = self.get_scope_and_cx();
+        HTMLCollection::new(~[], cx, scope)
+    }
+
+    pub fn GetElementsByTagNameNS(&self, _namespace: &DOMString, _localname: &DOMString, _rv: &mut ErrorResult) -> @mut HTMLCollection {
+        let (scope, cx) = self.get_scope_and_cx();
+        HTMLCollection::new(~[], cx, scope)
+    }
+
+    pub fn GetElementsByClassName(&self, _names: &DOMString) -> @mut HTMLCollection {
+        let (scope, cx) = self.get_scope_and_cx();
+        HTMLCollection::new(~[], cx, scope)
+    }
+
+    pub fn MozMatchesSelector(&self, _selector: &DOMString, _rv: &mut ErrorResult) -> bool {
+        false
+    }
+
+    pub fn SetCapture(&self, _retargetToElement: bool) {
+    }
+
+    pub fn ReleaseCapture(&self) {
+    }
+
+    pub fn MozRequestFullScreen(&self) {
+    }
+
+    pub fn MozRequestPointerLock(&self) {
+    }
+
+    pub fn GetClientRects(&self) -> @mut ClientRectList {
+        let (scope, cx) = self.get_scope_and_cx();
+        ClientRectList::new(~[], cx, scope)
+    }
+
+    pub fn GetBoundingClientRect(&self) -> @mut ClientRect {
+        fail!("stub")
+    }
+
+    pub fn ScrollIntoView(&self, _top: bool) {
+    }
+
+    pub fn ScrollTop(&self) -> i32 {
+        0
+    }
+
+    pub fn SetScrollTop(&mut self, _scroll_top: i32) {
+    }
+
+    pub fn ScrollLeft(&self) -> i32 {
+        0
+    }
+
+    pub fn SetScrollLeft(&mut self, _scroll_left: i32) {
+    }
+
+    pub fn ScrollWidth(&self) -> i32 {
+        0
+    }
+
+    pub fn ScrollHeight(&self) -> i32 {
+        0
+    }
+
+    pub fn ClientTop(&self) -> i32 {
+        0
+    }
+
+    pub fn ClientLeft(&self) -> i32 {
+        0
+    }
+
+    pub fn ClientWidth(&self) -> i32 {
+        0
+    }
+
+    pub fn ClientHeight(&self) -> i32 {
+        0
+    }
+
+    pub fn GetInnerHTML(&self, _rv: &mut ErrorResult) -> DOMString {
+        null_string
+    }
+
+    pub fn SetInnerHTML(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
+    }
+
+    pub fn GetOuterHTML(&self, _rv: &mut ErrorResult) -> DOMString {
+        null_string
+    }
+
+    pub fn SetOuterHTML(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
+    }
+
+    pub fn InsertAdjacentHTML(&mut self, _position: &DOMString, _text: &DOMString, _rv: &mut ErrorResult) {
+    }
+
+    pub fn QuerySelector(&self, _selectors: &DOMString, _rv: &mut ErrorResult) -> Option<AbstractNode<ScriptView>> {
+        None
+    }
 }
 
 pub struct Attr {
@@ -282,3 +440,18 @@ pub enum HeadingLevel {
     Heading6,
 }
 
+impl CacheableWrapper for Element {
+    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+        self.parent.get_wrappercache()
+    }
+
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        fail!(~"need to implement wrapping");
+    }
+}
+
+impl BindingObject for Element {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+        self.parent.GetParentObject(cx)
+    }
+}

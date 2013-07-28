@@ -41,7 +41,7 @@ impl DOMParser {
                            _rv: &mut ErrorResult)
                            -> AbstractDocument {
         unsafe {
-            let root = ~HTMLHtmlElement {
+            let root = @HTMLHtmlElement {
                 parent: Element::new(HTMLHtmlElementTypeId, ~"html")
             };
 
