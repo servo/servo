@@ -9,7 +9,6 @@
 /*interface Principal;
 interface URI;
 interface InputStream;*/
-interface Document;
 
 enum SupportedType {
   "text/html",

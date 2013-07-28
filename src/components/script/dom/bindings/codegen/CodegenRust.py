@@ -1573,15 +1573,15 @@ for (uint32_t i = 0; i < length; ++i) {
         if type.nullable():
             raise TypeError("We don't support nullable enumerated return types "
                             "yet")
-        return ("""MOZ_ASSERT(uint32_t(%(result)s) < ArrayLength(%(strings)s));
-JSString* %(resultStr)s = JS_NewStringCopyN(cx, %(strings)s[uint32_t(%(result)s)].value, %(strings)s[uint32_t(%(result)s)].length);
-if (!%(resultStr)s) {
-  return false;
+        return ("""assert!((%(result)s as uint) < %(strings)s.len());
+let %(resultStr)s: *JSString = JS_NewStringCopyN(cx, ptr::to_unsafe_ptr(&%(strings)s[%(result)s as u32].value[0]) as *i8, %(strings)s[%(result)s as u32].length as u64);
+if %(resultStr)s.is_null() {
+  return 0;
 }
 """ % { "result" : result,
         "resultStr" : result + "_str",
         "strings" : type.inner.identifier.name + "Values::strings" } +
-        setValue("JS::StringValue(%s_str)" % result), False)
+        setValue("RUST_STRING_TO_JSVAL(%s_str)" % result), False)
 
     if type.isCallback():
         assert not type.isInterface()
@@ -2924,7 +2924,7 @@ class CGCallGenerator(CGThing):
         call = CGList([call, CGWrapper(args, pre="(", post=");")])
         if result is not None:
             if declareResult:
-                result = CGWrapper(result, pre="let result: ", post=";")
+                result = CGWrapper(result, pre="let mut result: ", post=";")
                 self.cgRoot.prepend(result)
             if not resultOutParam:
                 call = CGWrapper(call, pre="result = ")
