@@ -56,7 +56,7 @@ use geom::size::Size2D;
 macro_rules! handle_element(
     ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident, [ $(($field:ident : $field_init:expr)),* ]) => (
         if eq_slice($tag, $string) {
-            let _element = ~$ctor {
+            let _element = @$ctor {
                 parent: Element::new($type_id, ($tag).to_str()),
                 $(
                     $field: $field_init,
@@ -233,7 +233,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "h6", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading6)]);
 
     unsafe {
-        Node::as_abstract_node(cx, ~Element::new(UnknownElementTypeId, tag.to_str()))
+        Node::as_abstract_node(cx, @Element::new(UnknownElementTypeId, tag.to_str()))
     }
 }
 
@@ -272,7 +272,7 @@ pub fn parse_html(cx: *JSContext,
     let url3 = url.clone();
 
     // Build the root node.
-    let root = ~HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
+    let root = @HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
     let root = unsafe { Node::as_abstract_node(cx, root) };
     debug!("created new node");
     let mut parser = hubbub::Parser("UTF-8", false);
@@ -289,7 +289,7 @@ pub fn parse_html(cx: *JSContext,
         create_comment: |data: ~str| {
             debug!("create comment");
             unsafe {
-                Node::as_abstract_node(cx, ~Comment::new(data)).to_hubbub_node()
+                Node::as_abstract_node(cx, @Comment::new(data)).to_hubbub_node()
             }
         },
         create_doctype: |doctype: ~hubbub::Doctype| {
@@ -298,7 +298,7 @@ pub fn parse_html(cx: *JSContext,
                                 public_id: public_id,
                                 system_id: system_id,
                                 force_quirks: force_quirks } = doctype;
-            let node = ~Doctype::new(name,
+            let node = @Doctype::new(name,
                                      public_id,
                                      system_id,
                                      force_quirks);
@@ -383,7 +383,7 @@ pub fn parse_html(cx: *JSContext,
         create_text: |data: ~str| {
             debug!("create text");
             unsafe {
-                Node::as_abstract_node(cx, ~Text::new(data)).to_hubbub_node()
+                Node::as_abstract_node(cx, @Text::new(data)).to_hubbub_node()
             }
         },
         ref_node: |_| {},
