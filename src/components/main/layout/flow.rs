@@ -79,6 +79,9 @@ impl FlowContext {
 
     /// Like traverse_preorder, but don't end the whole traversal if the callback
     /// returns false.
+    //
+    // FIXME: Unify this with traverse_preorder_prune, which takes a separate
+    // 'prune' function.
     fn partially_traverse_preorder(&self, callback: &fn(FlowContext) -> bool) {
         if !callback((*self).clone()) {
             return;
