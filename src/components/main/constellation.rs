@@ -177,8 +177,8 @@ impl NavigationContext {
         self.current.get()
     }
 
-    /// Navigates to a new set of page frames, returning all evicted frame trees
-    pub fn navigate(&mut self, frame_tree: @mut FrameTree) -> ~[@mut FrameTree] {
+    /// Loads a new set of page frames, returning all evicted frame trees
+    pub fn load(&mut self, frame_tree: @mut FrameTree) -> ~[@mut FrameTree] {
         debug!("navigating to %?", frame_tree);
         let evicted = replace(&mut self.next, ~[]);
         if self.current.is_some() {
@@ -627,11 +627,11 @@ impl Constellation {
             frame.pipeline.grant_paint_permission();
         }
 
-        // Don't navigate on Navigate type (or None, as in the case of parsed iframes that finish
-        // loading)
+        // Don't call navigation_context.load() on a Navigate type (or None, as in the case of
+        // parsed iframes that finish loading)
         match frame_tree.pipeline.navigation_type {
             Some(constellation_msg::Load) => {
-                let evicted = self.navigation_context.navigate(frame_tree);
+                let evicted = self.navigation_context.load(frame_tree);
                 for evicted.iter().advance |frame_tree| {
                     // exit any pipelines that don't exist outside the evicted frame trees
                     for frame_tree.iter().advance |frame| {
