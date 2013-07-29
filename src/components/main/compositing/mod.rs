@@ -527,7 +527,7 @@ impl CompositorTask {
                         windowing::Back => constellation_msg::Back,
                     };
                     match pipeline {
-                        Some(ref pipeline) => pipeline.script_chan.send(NavigateMsg(pipeline.id.clone(), direction)),
+                        Some(ref pipeline) => pipeline.script_chan.send(NavigateMsg(direction)),
                         None => error!("Compositor: Recieved navigation event without initialized layout chan"),
                     }
                 }

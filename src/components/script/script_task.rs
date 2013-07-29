@@ -61,7 +61,7 @@ pub enum ScriptMsg {
     /// Executes a standalone script.
     ExecuteMsg(PipelineId, Url),
     /// Instructs the script task to send a navigate message to the constellation.
-    NavigateMsg(PipelineId, NavigationDirection),
+    NavigateMsg(NavigationDirection),
     /// Sends a DOM event.
     SendEventMsg(PipelineId, Event),
     /// Fires a JavaScript timeout.
@@ -450,7 +450,7 @@ impl ScriptTask {
             ExecuteMsg(id, url) => self.handle_execute_msg(id, url),
             SendEventMsg(id, event) => self.handle_event(id, event),
             FireTimerMsg(id, timer_data) => self.handle_fire_timer_msg(id, timer_data),
-            NavigateMsg(id, direction) => self.handle_navigate_msg(id, direction),
+            NavigateMsg(direction) => self.handle_navigate_msg(direction),
             ReflowCompleteMsg(id) => self.handle_reflow_complete_msg(id),
             ResizeInactiveMsg(new_size) => self.handle_resize_inactive_msg(new_size),
             ExitMsg => {
@@ -535,7 +535,8 @@ impl ScriptTask {
     }
 
     /// Handles a navigate forward or backward message.
-    fn handle_navigate_msg(&self, pipeline_id: PipelineId, direction: NavigationDirection) {
+    /// TODO(tkuehn): is it ever possible to navigate only on a subframe?
+    fn handle_navigate_msg(&self, direction: NavigationDirection) {
         self.constellation_chan.send(constellation_msg::NavigateMsg(direction));
     }
 
@@ -582,7 +583,6 @@ impl ScriptTask {
             // Define the script DOM bindings.
             //
             // FIXME: Can this be done earlier, to save the flag?
-            //let js_info = page.js_info.get_ref();
             if !js_info.bindings_initialized {
                 define_bindings(js_info.js_compartment);
                 js_info.bindings_initialized = true;
@@ -718,7 +718,7 @@ impl ScriptTask {
                 }
             }
 
-            ClickEvent(page_button, point) => {
+            ClickEvent(_button, point) => {
                 debug!("ClickEvent: clicked at %?", point);
 
                 let root = page.frame.expect("root frame is None").document.root;
