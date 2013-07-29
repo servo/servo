@@ -58,10 +58,10 @@ pub enum ReadyState {
 /// submit them to be drawn to the display.
 pub trait RenderListener {
     fn get_gl_context(&self) -> AzGLContext;
-    fn new_layer(&self, Size2D<uint>, uint);
-    fn resize_layer(&self, Size2D<uint>);
-    fn delete_layer(&self);
-    fn paint(&self, id: PipelineId, layer_buffer_set: arc::ARC<LayerBufferSet>, new_size: Size2D<uint>);
+    fn new_layer(&self, PipelineId, Size2D<uint>);
+    fn resize_layer(&self, PipelineId, Size2D<uint>);
+    fn delete_layer(&self, PipelineId);
+    fn paint(&self, id: PipelineId, layer_buffer_set: arc::ARC<LayerBufferSet>);
     fn set_render_state(&self, render_state: RenderState);
 }
 

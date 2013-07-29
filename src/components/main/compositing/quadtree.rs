@@ -85,13 +85,19 @@ impl<T: Tile> Quadtree<T> {
         self.max_tile_size
     }
     /// Get a tile at a given pixel position and scale.
-    pub fn get_tile<'r>(&'r self, x: uint, y: uint, scale: f32) -> &'r Option<T> {
+    pub fn get_tile_pixel<'r>(&'r self, x: uint, y: uint, scale: f32) -> &'r Option<T> {
         self.root.get_tile(x as f32 / scale, y as f32 / scale)
     }
+    
+    /// Get a tile at a given page position.
+    pub fn get_tile_page<'r>(&'r self, x: f32, y: f32) -> &'r Option<T> {
+        self.root.get_tile(x, y)
+    }
+
     /// Add a tile associtated with a given pixel position and scale.
     /// If the tile pushes the total memory over its maximum, tiles will be removed
     /// until total memory is below the maximum again.
-    pub fn add_tile(&mut self, x: uint, y: uint, scale: f32, tile: T) {
+    pub fn add_tile_pixel(&mut self, x: uint, y: uint, scale: f32, tile: T) {
         self.root.add_tile(x as f32 / scale, y as f32 / scale, tile, self.max_tile_size as f32 / scale);
         match self.max_mem {
             Some(max) => {
@@ -106,32 +112,73 @@ impl<T: Tile> Quadtree<T> {
             None => {}
         }
     }
+
+    /// Add a tile associtated with a given page position.
+    /// If the tile pushes the total memory over its maximum, tiles will be removed
+    /// until total memory is below the maximum again.
+    pub fn add_tile_page(&mut self, x: f32, y: f32, scale: f32, tile: T) {
+        self.root.add_tile(x, y, tile, self.max_tile_size as f32 / scale);
+        match self.max_mem {
+            Some(max) => {
+                while self.root.tile_mem > max {
+                    let r = self.root.remove_tile(x, y);
+                    match r {
+                        (Some(_), _, _) => {}
+                        _ => fail!("Quadtree: No valid tiles to remove"),
+                    }
+                }
+            }
+            None => {}
+        }
+    }
+
     /// Get the tile rect in screen and page coordinates for a given pixel position
-    pub fn get_tile_rect(&mut self, x: uint, y: uint, scale: f32) -> BufferRequest {
+    pub fn get_tile_rect_pixel(&mut self, x: uint, y: uint, scale: f32) -> BufferRequest {
         self.root.get_tile_rect(x as f32 / scale, y as f32 / scale, 
                                 self.clip_size.width as f32,
                                 self.clip_size.height as f32,
                                 scale, self.max_tile_size as f32 / scale)
     }
+
+    /// Get the tile rect in screen and page coordinates for a given page position
+    pub fn get_tile_rect_page(&mut self, x: f32, y: f32, scale: f32) -> BufferRequest {
+        self.root.get_tile_rect(x, y, 
+                                self.clip_size.width as f32,
+                                self.clip_size.height as f32,
+                                scale, self.max_tile_size as f32 / scale)
+    }
+
     /// Get all the tiles in the tree
     pub fn get_all_tiles<'r>(&'r self) -> ~[&'r T] {
         self.root.get_all_tiles()
     }
+
     /// Ask a tile to be deleted from the quadtree. This tries to delete a tile that is far from the
     /// given point in pixel coordinates.
-    pub fn remove_tile(&mut self, x: uint, y: uint, scale: f32) -> T {
+    pub fn remove_tile_pixel(&mut self, x: uint, y: uint, scale: f32) -> T {
         let r = self.root.remove_tile(x as f32 / scale, y as f32 / scale);
         match r {
             (Some(tile), _, _) => tile,
             _ => fail!("Quadtree: No valid tiles to remove"),
         }
     }
+
+    /// Ask a tile to be deleted from the quadtree. This tries to delete a tile that is far from the
+    /// given point in page coordinates.
+    pub fn remove_tile_page(&mut self, x: f32, y: f32) -> T {
+        let r = self.root.remove_tile(x, y);
+        match r {
+            (Some(tile), _, _) => tile,
+            _ => fail!("Quadtree: No valid tiles to remove"),
+        }
+    }
+
     /// Given a window rect in pixel coordinates, this function returns a list of BufferRequests for tiles that
     /// need to be rendered. It also returns a boolean if the window needs to be redisplayed, i.e. if
     /// no tiles need to be rendered, but the display tree needs to be rebuilt. This can occur when the
     /// user zooms out and cached tiles need to be displayed on top of higher resolution tiles.
     /// When this happens, higher resolution tiles will be removed from the quadtree.
-    pub fn get_tile_rects(&mut self, window: Rect<int>, scale: f32) -> (~[BufferRequest], bool) {
+    pub fn get_tile_rects_pixel(&mut self, window: Rect<int>, scale: f32) -> (~[BufferRequest], bool) {
         let (ret, redisplay, _) = self.root.get_tile_rects(
             Rect(Point2D(window.origin.x as f32 / scale, window.origin.y as f32 / scale),
                  Size2D(window.size.width as f32 / scale, window.size.height as f32 / scale)),
@@ -139,6 +186,17 @@ impl<T: Tile> Quadtree<T> {
             scale, self.max_tile_size as f32 / scale);
         (ret, redisplay)
     }
+
+    /// Same function as above, using page coordinates for the window
+    pub fn get_tile_rects_page(&mut self, window: Rect<f32>, scale: f32) -> (~[BufferRequest], bool) {
+        let (ret, redisplay, _) = self.root.get_tile_rects(
+            window,
+            Size2D(self.clip_size.width as f32, self.clip_size.height as f32),
+            scale, self.max_tile_size as f32 / scale);
+        (ret, redisplay)
+    }
+
+
     /// Resize the quadtree. This can add more space, changing the root node, or it can shrink, making
     /// an internal node the new root.
     /// TODO: return tiles after shrinking
