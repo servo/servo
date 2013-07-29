@@ -32,6 +32,8 @@ use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::inline::{InlineFlowData};
 use layout::float_context::{FloatContext, Invalid, FloatType};
+use layout::incremental::RestyleDamage;
+use css::node_style::StyledNode;
 
 use std::cell::Cell;
 use std::uint;
@@ -155,6 +157,7 @@ impl TreeNodeRef<FlowData> for FlowContext {
 /// `CommonFlowInfo`?
 pub struct FlowData {
     node: AbstractNode<LayoutView>,
+    restyle_damage: RestyleDamage,
 
     parent: Option<FlowContext>,
     first_child: Option<FlowContext>,
@@ -223,6 +226,7 @@ impl FlowData {
     pub fn new(id: int, node: AbstractNode<LayoutView>) -> FlowData {
         FlowData {
             node: node,
+            restyle_damage: node.restyle_damage(),
 
             parent: None,
             first_child: None,
@@ -259,6 +263,15 @@ impl<'self> FlowContext {
     pub fn id(&self) -> int {
         do self.with_base |info| {
             info.id
+        }
+    }
+
+    /// A convenience method to return the restyle damage of this flow. Fails if the flow is
+    /// currently being borrowed mutably.
+    #[inline(always)]
+    pub fn restyle_damage(&self) -> RestyleDamage {
+        do self.with_base |info| {
+            info.restyle_damage
         }
     }
 
@@ -446,7 +459,8 @@ impl<'self> FlowContext {
         };
 
         do self.with_base |base| {
-            fmt!("f%? %? floats %? size %?", base.id, repr, base.num_floats, base.position)
+            fmt!("f%? %? floats %? size %? damage %?", base.id, repr, base.num_floats,
+                 base.position, base.restyle_damage)
         }
     }
 }
