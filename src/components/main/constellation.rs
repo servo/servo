@@ -636,7 +636,13 @@ impl Constellation {
             Some(constellation_msg::Load) => {
                 let evicted = self.navigation_context.navigate(frame_tree);
                 for evicted.iter().advance |frame_tree| {
-                    frame_tree.pipeline.exit();
+                    // exit any pipelines that don't exist outside the evicted frame trees
+                    for frame_tree.iter().advance |frame| {
+                        if self.navigation_context.find(frame.pipeline.id).is_none() {
+                            frame_tree.pipeline.exit();
+                            self.pipelines.remove(&frame_tree.pipeline.id);
+                        }
+                    }
                 }
             }
             _ => {}
