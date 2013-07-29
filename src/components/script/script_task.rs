@@ -569,10 +569,10 @@ impl ScriptTask {
         for last_loaded_url.iter().advance |last_loaded_url| {
             let (ref last_loaded_url, needs_reflow) = *last_loaded_url;
             if *last_loaded_url == url {
+                page.url = Some((last_loaded_url.clone(), false));
                 if needs_reflow {
                     page.reflow_all(ReflowForDisplay, self.chan.clone(), self.compositor);
                 }
-                page.url = Some((last_loaded_url.clone(), false));
                 return;
             }
         }
@@ -601,7 +601,7 @@ impl ScriptTask {
         let HtmlParserResult {root, js_port, style_port, iframe_port} = html_parsing_result;
 
         // Create the window and document objects.
-        let window = Window::new(&mut *page, self.chan.clone(), self.compositor);
+        let window = Window::new(page, self.chan.clone(), self.compositor);
         let document = Document(root, Some(window));
 
         // Tie the root into the document.

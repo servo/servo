@@ -88,7 +88,7 @@ impl Document {
             parent: Element::new(HTMLHtmlElementTypeId, ~"html")
         };
 
-        let cx = unsafe {(*_owner.page).js_info.get_ref().js_compartment.cx.ptr};
+        let cx = _owner.page.js_info.get_ref().js_compartment.cx.ptr;
         let root = unsafe { Node::as_abstract_node(cx, root) };
         Document(root, None)
     }
@@ -130,7 +130,7 @@ impl Document {
             }
         };
         let win = self.window.get_ref();
-        let cx = unsafe {(*win.page).js_info.get_ref().js_compartment.cx.ptr};
+        let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
         let cache = win.get_wrappercache();
         let scope = cache.get_wrapper();
         HTMLCollection::new(elements, cx, scope)
@@ -138,7 +138,7 @@ impl Document {
 
     pub fn GetElementsByTagNameNS(&self, _ns: DOMString, _tag: DOMString) -> @mut HTMLCollection {
         let win = self.window.get_ref();
-        let cx = unsafe {(*win.page).js_info.get_ref().js_compartment.cx.ptr};
+        let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
         let cache = win.get_wrappercache();
         let scope = cache.get_wrapper();
         HTMLCollection::new(~[], cx, scope)
@@ -146,7 +146,7 @@ impl Document {
 
     pub fn GetElementsByClassName(&self, _class: DOMString) -> @mut HTMLCollection {
         let win = self.window.get_ref();
-        let cx = unsafe {(*win.page).js_info.get_ref().js_compartment.cx.ptr};
+        let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
         let cache = win.get_wrappercache();
         let scope = cache.get_wrapper();
         HTMLCollection::new(~[], cx, scope)
@@ -289,7 +289,7 @@ impl Document {
             }
         };
         let win = self.window.get_ref();
-        let cx = unsafe {(*win.page).js_info.get_ref().js_compartment.cx.ptr};
+        let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
         let cache = win.get_wrappercache();
         let scope = cache.get_wrapper();
         HTMLCollection::new(elements, cx, scope)

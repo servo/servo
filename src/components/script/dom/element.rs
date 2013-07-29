@@ -175,9 +175,7 @@ impl<'self> Element {
                     Some(win) => {
                         let node = self.parent.abstract.get();
                         assert!(node.is_element());
-                        let page = unsafe {
-                            &mut *win.page
-                        };
+                        let page = win.page;
                         let (port, chan) = comm::stream();
                         // TODO(tkuehn): currently just queries top-level page layout. Needs to query
                         // subframe layout if this element is in a subframe. Probably need an ID field.
@@ -223,9 +221,7 @@ impl<'self> Element {
             Some(doc) => {
                 match doc.window {
                     Some(win) => {
-                        let page = unsafe {
-                            &mut *win.page
-                        };
+                        let page = win.page;
                         let node = self.parent.abstract.get();
                         assert!(node.is_element());
                         let (port, chan) = comm::stream();
