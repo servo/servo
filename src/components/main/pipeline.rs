@@ -137,8 +137,9 @@ impl Pipeline {
         }
     }
 
-    pub fn load(&mut self, url: Url) {
+    pub fn load(&mut self, url: Url, navigation_type: Option<NavigationType>) {
         self.url = Some(url.clone());
+        self.navigation_type = navigation_type;
         self.script_chan.send(LoadMsg(self.id, url));
     }
 
@@ -155,9 +156,10 @@ impl Pipeline {
         self.render_chan.send(PaintPermissionRevoked);
     }
 
-    pub fn reload(&self) {
-        for self.url.iter().advance |url| {
-            self.script_chan.send(LoadMsg(self.id, url.clone()));
+    pub fn reload(&mut self, navigation_type: Option<NavigationType>) {
+        if self.url.is_some() {
+            let url = self.url.get_ref().clone();
+            self.load(url, navigation_type);
         }
     }
 

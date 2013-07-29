@@ -241,6 +241,7 @@ pub fn parse_html(cx: *JSContext,
                   url: Url,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask) -> HtmlParserResult {
+    debug!("Hubbub: parsing %?", url);
     // Spawn a CSS parser to receive links to CSS style sheets.
     let resource_task2 = resource_task.clone();
 

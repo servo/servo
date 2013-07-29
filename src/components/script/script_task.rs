@@ -560,6 +560,8 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&mut self, pipeline_id: PipelineId, url: Url) {
+        debug!("ScriptTask: loading %?", url);
+
         let page = self.page_tree.find(pipeline_id).expect("ScriptTask: received a load
             message for a layout channel that is not associated with this script task. This
             is a bug.").page;
@@ -569,8 +571,8 @@ impl ScriptTask {
             if *last_loaded_url == url {
                 if needs_reflow {
                     page.reflow_all(ReflowForDisplay, self.chan.clone(), self.compositor);
-                    page.url = Some((last_loaded_url.clone(), false));
                 }
+                page.url = Some((last_loaded_url.clone(), false));
                 return;
             }
         }
@@ -758,10 +760,11 @@ impl ScriptTask {
         // if the node's element is "a," load url from href attr
         let href = element.get_attr("href");
         for href.iter().advance |href| {
-            debug!("clicked on link to %s", *href);
+            debug!("ScriptTask: clicked on link to %s", *href);
             let current_url = do page.url.map |&(ref url, _)| {
                 url.clone()
             };
+            debug!("ScriptTask: current url is %?", current_url);
             let url = make_url(href.to_owned(), current_url);
             self.constellation_chan.send(LoadUrlMsg(page.id, url, from_value(page.window_size.get())));
         }

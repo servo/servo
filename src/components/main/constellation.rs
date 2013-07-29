@@ -320,8 +320,7 @@ impl Constellation {
                 if url.path.ends_with(".js") {
                     pipeline.script_chan.send(ExecuteMsg(pipeline.id, url));
                 } else {
-                    pipeline.load(url);
-                    pipeline.navigation_type = Some(constellation_msg::Load);
+                    pipeline.load(url, Some(constellation_msg::Load));
 
                     self.pending_frames.push(FrameChange{
                         before: None,
@@ -374,6 +373,7 @@ impl Constellation {
                 source's Url is None. There should never be a LoadUrlIframeMsg from a pipeline
                 that was never given a url to load.");
 
+                // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
                 let pipeline = @mut if (source_url.host == url.host &&
                                        source_url.port == url.port) {
                     // Reuse the script task if same-origin url's
@@ -400,8 +400,7 @@ impl Constellation {
                 if url.path.ends_with(".js") {
                     pipeline.execute(url);
                 } else {
-                    pipeline.load(url);
-                    pipeline.navigation_type = None;
+                    pipeline.load(url, None);
                 }
                 frame_tree.children.push(@mut FrameTree {
                     pipeline: pipeline,
@@ -445,8 +444,7 @@ impl Constellation {
                 if url.path.ends_with(".js") {
                     pipeline.script_chan.send(ExecuteMsg(pipeline.id, url));
                 } else {
-                    pipeline.load(url);
-                    pipeline.navigation_type = Some(constellation_msg::Load);
+                    pipeline.load(url, Some(constellation_msg::Load));
 
                     let parent = if self.current_frame().get_ref().pipeline.id == source_id {
                         // source_id is the root of the current frame tree; replace whole tree
@@ -494,8 +492,7 @@ impl Constellation {
 
                 for destination_frame.iter().advance |frame| {
                     let pipeline = &frame.pipeline;
-                    pipeline.navigation_type = Some(constellation_msg::Navigate);
-                    pipeline.reload();
+                    pipeline.reload(Some(constellation_msg::Navigate));
                 }
                 self.compositor_chan.send(SetIds(destination_frame.to_sendable(), self.chan.clone()));
 
