@@ -24,8 +24,8 @@ impl CacheableWrapper for DOMParser {
 }
 
 impl BindingObject for DOMParser {
-    fn GetParentObject(&self, _cx: *JSContext) -> @mut CacheableWrapper {
-        return self.owner as @mut CacheableWrapper;
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut CacheableWrapper> {
+        Some(self.owner as @mut CacheableWrapper)
     }
 }
 

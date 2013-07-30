@@ -2,16 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::WrapperCache;
-use dom::bindings::window;
+use dom::bindings::codegen::WindowBinding;
+use dom::bindings::utils::{WrapperCache, DOMString, null_string};
+use dom::bindings::utils::{CacheableWrapper, BindingObject};
+use dom::document::AbstractDocument;
+use dom::node::{AbstractNode, ScriptView};
 
 use layout_interface::ReflowForScriptQuery;
 use script_task::{ExitMsg, FireTimerMsg, Page, ScriptChan};
 use servo_msg::compositor_msg::ScriptListener;
 
+use js::glue::*;
+use js::jsapi::{JSObject, JSContext};
+use js::{JSVAL_NULL, JSPROP_ENUMERATE};
+
+use std::cast;
 use std::comm;
 use std::comm::Chan;
-use std::libc;
 use std::int;
 use std::io;
 use std::ptr;
@@ -49,44 +56,101 @@ pub struct TimerData {
     args: ~[JSVal],
 }
 
-pub fn TimerData(argc: libc::c_uint, argv: *JSVal) -> TimerData {
-    unsafe {
-        let mut args = ~[];
-
-        let mut i = 2;
-        while i < argc as uint {
-            args.push(*ptr::offset(argv, i));
-            i += 1;
-        };
-
-        TimerData {
-            funval : *argv,
-            args : args,
-        }
-    }
-}
-
-// FIXME: delayed_send shouldn't require Copy
-#[allow(non_implicitly_copyable_typarams)]
 impl Window {
-    pub fn alert(&self, s: &str) {
+    pub fn Alert(&self, s: &DOMString) {
         // Right now, just print to the console
-        io::println(fmt!("ALERT: %s", s));
+        io::println(fmt!("ALERT: %s", s.to_str()));
     }
 
-    pub fn close(&self) {
+    pub fn Close(&self) {
         self.timer_chan.send(TimerMessage_TriggerExit);
     }
 
-    pub fn setTimeout(&self, timeout: int, argc: libc::c_uint, argv: *JSVal) {
+    pub fn Document(&self) -> AbstractDocument {
+        unsafe {
+            (*self.page).frame.get().document
+        }
+    }
+
+    pub fn Name(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn SetName(&self, _name: &DOMString) {
+    }
+
+    pub fn Status(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn SetStatus(&self, _status: &DOMString) {
+    }
+
+    pub fn Closed(&self) -> bool {
+        false
+    }
+
+    pub fn Stop(&self) {
+    }
+
+    pub fn Focus(&self) {
+    }
+
+    pub fn Blur(&self) {
+    }
+
+    pub fn GetFrameElement(&self) -> Option<AbstractNode<ScriptView>> {
+        None
+    }
+
+    pub fn Confirm(&self, _message: &DOMString) -> bool {
+        false
+    }
+
+    pub fn Prompt(&self, _message: &DOMString, _default: &DOMString) -> DOMString {
+        null_string
+    }
+
+    pub fn Print(&self) {
+    }
+
+    pub fn ShowModalDialog(&self, _cx: *JSContext, _url: &DOMString, _argument: JSVal) -> JSVal {
+        JSVAL_NULL
+    }
+}
+
+impl CacheableWrapper for Window {
+    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+        unsafe { cast::transmute(&self.wrapper) }
+    }
+
+    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+        let mut unused = false;
+        WindowBinding::Wrap(cx, scope, self, &mut unused)
+    }
+}
+
+impl BindingObject for Window {
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut CacheableWrapper> {
+        None
+    }
+}
+
+impl Window {
+    pub fn SetTimeout(&self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
         let timeout = int::max(0, timeout) as uint;
 
         // Post a delayed message to the per-window timer task; it will dispatch it
         // to the relevant script handler that will deal with it.
+        let data = ~TimerData {
+            funval: callback,
+            args: ~[]
+        };
         timer::delayed_send(&uv_global_loop::get(),
                             timeout,
                             &self.timer_chan,
-                            TimerMessage_Fire(~TimerData(argc, argv)));
+                            TimerMessage_Fire(data));
+        return 0; //TODO return handle into list of active timers
     }
 
     pub fn content_changed(&self) {
@@ -121,7 +185,13 @@ impl Window {
         unsafe {
             // TODO(tkuehn): This just grabs the top-level page. Need to handle subframes.
             let compartment = (*page).js_info.get_ref().js_compartment;
-            window::create(compartment, win);
+            let cache = ptr::to_unsafe_ptr(win.get_wrappercache());
+            win.wrap_object_shared(compartment.cx.ptr, ptr::null()); //XXXjdm proper scope
+            compartment.define_property(~"window",
+                                        RUST_OBJECT_TO_JSVAL((*cache).wrapper),
+                                        GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
+                                        GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
+                                        JSPROP_ENUMERATE);
         }
         win
     }

@@ -155,7 +155,7 @@ impl CacheableWrapper for MouseEvent {
 }
 
 impl BindingObject for MouseEvent {
-    fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
         self.parent.GetParentObject(cx)
     }
 }
