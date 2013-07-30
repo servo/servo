@@ -8,7 +8,7 @@ use dom::bindings::node;
 use dom::bindings::utils::WrapperCache;
 use dom::bindings;
 use dom::characterdata::CharacterData;
-use dom::document::Document;
+use dom::document::AbstractDocument;
 use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLIframeElement};
 use dom::element::{HTMLStyleElementTypeId};
 
@@ -80,7 +80,7 @@ pub struct Node<View> {
     prev_sibling: Option<AbstractNode<View>>,
 
     /// The document that this node belongs to.
-    owner_doc: Option<@mut Document>,
+    owner_doc: Option<AbstractDocument>,
 
     /// Layout information. Only the layout task may touch this data.
     priv layout_data: Option<@mut ()>
@@ -433,7 +433,7 @@ impl Node<ScriptView> {
         node
     }
 
-    pub fn add_to_doc(&mut self, doc: @mut Document) {
+    pub fn add_to_doc(&mut self, doc: AbstractDocument) {
         self.owner_doc = Some(doc);
         let mut node = self.first_child;
         while node.is_some() {
