@@ -14,7 +14,6 @@ use layout_interface::{ContentBoxesResponse};
 use std::cell::Cell;
 use std::comm::ChanOne;
 use std::comm;
-use std::uint;
 use std::str::eq_slice;
 use extra::net::url::Url;
 use geom::size::Size2D;
@@ -136,9 +135,9 @@ impl<'self> Element {
 
     pub fn get_attr(&'self self, name: &str) -> Option<&'self str> {
         // FIXME: Need an each() that links lifetimes in Rust.
-        for uint::range(0, self.attrs.len()) |i| {
-            if eq_slice(self.attrs[i].name, name) {
-                let val: &str = self.attrs[i].value;
+        for self.attrs.iter().advance |attr| {
+            if eq_slice(attr.name, name) {
+                let val: &str = attr.value;
                 return Some(val);
             }
         }
@@ -148,12 +147,11 @@ impl<'self> Element {
     pub fn set_attr(&mut self, name: &DOMString, value: &DOMString) {
         let name = name.to_str();
         let value = value.to_str();
-        // FIXME: We need a better each_mut in Rust; this is ugly.
         let value_cell = Cell::new(value);
         let mut found = false;
-        for uint::range(0, self.attrs.len()) |i| {
-            if eq_slice(self.attrs[i].name, name) {
-                self.attrs[i].value = value_cell.take().clone();
+        for self.attrs.mut_iter().advance |attr| {
+            if eq_slice(attr.name, name) {
+                attr.value = value_cell.take().clone();
                 found = true;
                 break;
             }
