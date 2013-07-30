@@ -1158,8 +1158,8 @@ for (uint32_t i = 0; i < length; ++i) {
                             "rooting issues")
         templateBody = "${declName} = ${val};"
         templateBody = handleDefaultNull(templateBody,
-                                         "${declName} = JS::NullValue()")
-        return (templateBody, CGGeneric("JS::Value"), None, isOptional, None)
+                                         "${declName} = JSVAL_NULL")
+        return (templateBody, CGGeneric("JSVal"), None, isOptional, "JSVAL_NULL")
 
     if type.isObject():
         assert not isEnforceRange and not isClamp
@@ -1263,7 +1263,7 @@ for (uint32_t i = 0; i < length; ++i) {
                                    "  %s = %s;\n"
                                    "}" % (dataLoc, defaultStr))).define()
 
-    return (template, declType, None, isOptional, None)
+    return (template, declType, None, isOptional, "0 as %s" % typeName)
 
 def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
                                             argcAndIndex=None):
@@ -1308,11 +1308,7 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
     originalDeclName = replacements["declName"]
     if declType is not None:
         if dealWithOptional:
-            replacements["declName"] = (
-                "const_cast< %s & >(%s.Value())" %
-                (declType.define(), originalDeclName))
-            mutableDeclType = CGWrapper(declType, pre="Optional< ", post=" >")
-            declType = CGWrapper(mutableDeclType, pre="const ")
+            mutableDeclType = CGWrapper(declType, pre="Option< ", post=" >")
         newDecl = [CGGeneric("let mut "),
                    CGGeneric(originalDeclName),
                    CGGeneric(": "),
@@ -1327,19 +1323,8 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
             )
 
     if argcAndIndex is not None:
-        if dealWithOptional:
-            declConstruct = CGIndenter(
-                CGGeneric("const_cast< %s &>(%s).Construct();" %
-                          (mutableDeclType.define(), originalDeclName)))
-            if holderType is not None:
-                holderConstruct = CGIndenter(
-                    CGGeneric("const_cast< %s &>(%s).Construct();" %
-                              (mutableHolderType.define(), originalHolderName)))
-            else:
-                holderConstruct = None
-        else:
-            declConstruct = None
-            holderConstruct = None
+        declConstruct = None
+        holderConstruct = None
 
         conversion = CGList(
             [CGGeneric(
@@ -2155,7 +2140,7 @@ class CGImports(CGWrapper):
         # TODO imports to cover descriptors, etc.
 
         def _useString(imports):
-            return '#[allow(non_uppercase_statics,unused_imports,unused_variable,unused_unsafe,unused_mut)];' + ''.join(['use %s;\n' % i for i in imports]) + '\n'
+            return '#[allow(non_uppercase_statics,unused_imports,unused_variable,unused_unsafe,unused_mut,dead_assignment)];\n' + ''.join(['use %s;\n' % i for i in imports]) + '\n'
         CGWrapper.__init__(self, child,
                            declarePre=_useString(sorted(declareImports)))
 
@@ -4373,6 +4358,7 @@ class CGBindingRoot(CGThing):
                           'dom::mouseevent::*', #XXXjdm
                           'dom::uievent::*', #XXXjdm
                           'dom::windowproxy::*', #XXXjdm
+                          'dom::window::Window', #XXXjdm
                           'dom::bindings::codegen::*', #XXXjdm
                           'script_task::{JSPageInfo, page_from_context}',
                           'dom::bindings::utils::EnumEntry',

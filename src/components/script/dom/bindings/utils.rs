@@ -20,7 +20,7 @@ use js::glue::*;
 use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
 use js::glue::{PROPERTY_STUB, STRICT_PROPERTY_STUB, ENUMERATE_STUB, CONVERT_STUB, RESOLVE_STUB};
-use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction};
+use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction, JS_GetGlobalObject};
 use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_EncodeString, JS_free, JS_GetStringCharsAndLength};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype};
@@ -616,7 +616,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: uint, _vp: *JSVal) -> 
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = @mut ([0 as *JSObject, ..24]); //XXXjdm PrototyepList::id::_ID_Count
+    let protoArray = @mut ([0 as *JSObject, ..25]); //XXXjdm PrototyepList::id::_ID_Count
     unsafe {
         //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);
@@ -679,19 +679,24 @@ pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
   }
 }
 
-pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, mut p: @mut CacheableWrapper) -> *JSObject {
-    let cache = p.get_wrappercache();
-    let wrapper = cache.get_wrapper();
-    if wrapper.is_not_null() {
-        return wrapper;
+pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, mut p: Option<@mut CacheableWrapper>) -> *JSObject {
+    match p {
+        Some(ref mut p) => {
+            let cache = p.get_wrappercache();
+            let wrapper = cache.get_wrapper();
+            if wrapper.is_not_null() {
+                return wrapper;
+            }
+            let wrapper = p.wrap_object_shared(cx, scope);
+            cache.set_wrapper(wrapper);
+            wrapper
+        }
+        None => unsafe { JS_GetGlobalObject(cx) }
     }
-    let wrapper = p.wrap_object_shared(cx, scope);
-    cache.set_wrapper(wrapper);
-    wrapper
 }
 
 pub trait BindingObject {
-    fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper;
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper>;
 }
 
 pub fn GetPropertyOnPrototype(cx: *JSContext, proxy: *JSObject, id: jsid, found: *mut bool,

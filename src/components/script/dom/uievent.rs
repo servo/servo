@@ -129,7 +129,7 @@ impl CacheableWrapper for UIEvent {
 }
 
 impl BindingObject for UIEvent {
-    fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
         self.parent.GetParentObject(cx)
     }
 }

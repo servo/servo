@@ -1,5 +1,7 @@
 //window.alert(ClientRect);
 //window.alert(ClientRectList);
+window.alert(window);
+var document = window.document;
 window.alert("==1==");
 window.alert(document.documentElement);
 window.alert(document.documentElement.firstChild);
