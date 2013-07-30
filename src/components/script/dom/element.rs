@@ -161,7 +161,7 @@ impl<'self> Element {
         }
 
         match self.parent.owner_doc {
-            Some(owner) => owner.content_changed(),
+            Some(owner) => do owner.with_base |owner| { owner.content_changed() },
             None => {}
         }
     }
@@ -169,7 +169,7 @@ impl<'self> Element {
     pub fn getClientRects(&self) -> Option<@mut ClientRectList> {
         let (rects, cx, scope) = match self.parent.owner_doc {
             Some(doc) => {
-                match doc.window {
+                match doc.with_base(|doc| doc.window) {
                     Some(win) => {
                         let node = self.parent.abstract.get();
                         assert!(node.is_element());
@@ -217,7 +217,7 @@ impl<'self> Element {
     pub fn getBoundingClientRect(&self) -> Option<@mut ClientRect> {
         match self.parent.owner_doc {
             Some(doc) => {
-                match doc.window {
+                match doc.with_base(|doc| doc.window) {
                     Some(win) => {
                         let page = win.page;
                         let node = self.parent.abstract.get();

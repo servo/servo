@@ -6,7 +6,7 @@ use dom::bindings::codegen::UIEventBinding;
 use dom::bindings::utils::{ErrorResult, DOMString};
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
 use dom::node::{AbstractNode, ScriptView};
-use dom::event::Event_;
+use dom::event::Event;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 
@@ -14,7 +14,7 @@ use js::glue::RUST_OBJECT_TO_JSVAL;
 use js::jsapi::{JSObject, JSContext, JSVal};
 
 pub struct UIEvent {
-    parent: Event_,
+    parent: Event,
     can_bubble: bool,
     cancelable: bool,
     view: Option<@mut WindowProxy>,
@@ -22,10 +22,10 @@ pub struct UIEvent {
 }
 
 impl UIEvent {
-    pub fn new(type_: DOMString, can_bubble: bool, cancelable: bool,
+    pub fn new(type_: &DOMString, can_bubble: bool, cancelable: bool,
                view: Option<@mut WindowProxy>, detail: i32) -> UIEvent {
         UIEvent {
-            parent: Event_::new(type_),
+            parent: Event::new(type_),
             can_bubble: can_bubble,
             cancelable: cancelable,
             view: view,
@@ -38,7 +38,7 @@ impl UIEvent {
     }
 
     pub fn Constructor(_owner: @mut Window,
-                       type_: DOMString,
+                       type_: &DOMString,
                        init: &UIEventBinding::UIEventInit,
                        _rv: &mut ErrorResult) -> @mut UIEvent {
         @mut UIEvent::new(type_, init.parent.bubbles, init.parent.cancelable,
@@ -54,7 +54,7 @@ impl UIEvent {
     }
 
     pub fn InitUIEvent(&mut self,
-                       type_: DOMString,
+                       type_: &DOMString,
                        can_bubble: bool,
                        cancelable: bool,
                        view: Option<@mut WindowProxy>,

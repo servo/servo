@@ -8,10 +8,11 @@
 use servo_msg::compositor_msg::{ScriptListener, Loading, PerformingLayout};
 use servo_msg::compositor_msg::FinishedLoading;
 use dom::bindings::utils::GlobalStaticData;
-use dom::document::Document;
+use dom::document::AbstractDocument;
 use dom::element::Element;
-use dom::event::{Event, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent};
-use dom::node::define_bindings;
+use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent};
+use dom::htmldocument::HTMLDocument;
+use dom::node::{define_bindings};
 use dom::window::Window;
 use layout_interface::{AddStylesheetMsg, DocumentDamage};
 use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery};
@@ -63,7 +64,7 @@ pub enum ScriptMsg {
     /// Instructs the script task to send a navigate message to the constellation.
     NavigateMsg(NavigationDirection),
     /// Sends a DOM event.
-    SendEventMsg(PipelineId, Event),
+    SendEventMsg(PipelineId, Event_),
     /// Fires a JavaScript timeout.
     FireTimerMsg(PipelineId, ~TimerData),
     /// Notifies script that reflow is finished.
@@ -194,14 +195,14 @@ impl Page {
             None => {}
             Some(ref mut damage) => {
                 // FIXME(pcwalton): This is wrong. We should trace up to the nearest ancestor.
-                damage.root = self.frame.get_ref().document.root;
+                damage.root = do self.frame.get_ref().document.with_base |doc| { doc.root };
                 damage.level.add(level);
                 return
             }
         }
 
         self.damage = Some(DocumentDamage {
-            root: self.frame.get_ref().document.root,
+            root: do self.frame.get_ref().document.with_base |doc| { doc.root },
             level: level,
         })
     }
@@ -260,7 +261,7 @@ impl Page {
             Some(ref frame) => {
                 // Send new document and relevant styles to layout.
                 let reflow = ~Reflow {
-                    document_root: frame.document.root,
+                    document_root: do frame.document.with_base |doc| { doc.root },
                     url: copy self.url.get_ref().first(),
                     goal: goal,
                     window_size: self.window_size.get(),
@@ -321,7 +322,7 @@ impl Page {
 
 /// Information for one frame in the browsing context.
 pub struct Frame {
-    document: @mut Document,
+    document: AbstractDocument,
     window: @mut Window,
 
 }
@@ -553,7 +554,9 @@ impl ScriptTask {
     fn handle_exit_msg(&mut self) {
         for self.page_tree.iter().advance |page| {
             page.join_layout();
-            page.frame.get().document.teardown();
+            do page.frame.get().document.with_mut_base |doc| {
+                doc.teardown();
+            }
             page.layout_chan.send(layout_interface::ExitMsg);
         }
     }
@@ -602,7 +605,7 @@ impl ScriptTask {
 
         // Create the window and document objects.
         let window = Window::new(&mut *page, self.chan.clone(), self.compositor);
-        let document = Document(root, Some(window));
+        let document = HTMLDocument::new(root, Some(window));
 
         // Tie the root into the document.
         do root.with_mut_base |base| {
@@ -689,7 +692,7 @@ impl ScriptTask {
     /// This is the main entry point for receiving and dispatching DOM events.
     ///
     /// TODO: Actually perform DOM event dispatch.
-    fn handle_event(&mut self, pipeline_id: PipelineId, event: Event) {
+    fn handle_event(&mut self, pipeline_id: PipelineId, event: Event_) {
         let page = self.page_tree.find(pipeline_id).expect("ScriptTask: received an event
             message for a layout channel that is not associated with this script task. This
             is a bug.").page;
@@ -721,7 +724,9 @@ impl ScriptTask {
             ClickEvent(_button, point) => {
                 debug!("ClickEvent: clicked at %?", point);
 
-                let root = page.frame.expect("root frame is None").document.root;
+                let root = do page.frame.expect("root frame is None").document.with_base |doc| {
+                    doc.root
+                };
                 let (port, chan) = comm::stream();
                 match page.query_layout(HitTestQuery(root, point, chan), port) {
                     Ok(node) => match node {

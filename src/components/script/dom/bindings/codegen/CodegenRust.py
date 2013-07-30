@@ -533,7 +533,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             return template
         return CGWrapper(
             CGIndenter(CGGeneric(template)),
-            pre="if ${haveValue} != 0 {\n",
+            pre="if ${haveValue} {\n",
             post=("\n"
                   "} else {\n"
                   "%s;\n"
@@ -1062,9 +1062,10 @@ for (uint32_t i = 0; i < length; ++i) {
                                      "%s.SetNull()" % varName)
             return handleDefault(
                 conversionCode,
-                ("static const PRUnichar data[] = { %s };\n"
-                 "%s.SetData(data, ArrayLength(data) - 1)" %
-                 (", ".join(["'" + char + "'" for char in defaultValue.value] + ["0"]),
+                ("static data: [u8, ..%s] = [ %s ];\n"
+                 "%s = str(str::from_bytes(data));" %
+                 (len(defaultValue.value) + 1,
+                  ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
                   varName)))
 
         if isMember:
@@ -1256,7 +1257,7 @@ for (uint32_t i = 0; i < length; ++i) {
             assert(tag == IDLType.Tags.bool)
             defaultStr = toStringBool(defaultValue.value)
         template = CGWrapper(CGIndenter(CGGeneric(template)),
-                             pre="if ${haveValue} != 0 {\n",
+                             pre="if ${haveValue} {\n",
                              post=("\n"
                                    "} else {\n"
                                    "  %s = %s;\n"
@@ -1536,7 +1537,12 @@ for (uint32_t i = 0; i < length; ++i) {
                 if not isCreator:
                     raise MethodNotCreatorError(descriptor.interface.identifier.name)
                 wrapMethod = "WrapNewBindingNonWrapperCachedObject"
-            wrap = "%s(cx, ${obj}, %s as @mut CacheableWrapper, ${jsvalPtr})" % (wrapMethod, result)
+            properResult = result
+            if descriptor.pointerType == '':
+                properResult = result + ".as_cacheable_wrapper()"
+            else:
+                properResult += " as @mut CacheableWrapper"
+            wrap = "%s(cx, ${obj}, %s, ${jsvalPtr})" % (wrapMethod, properResult)
             # We don't support prefable stuff in workers.
             assert(not descriptor.prefable or not descriptor.workers)
             if not descriptor.prefable:
@@ -1604,7 +1610,7 @@ if %(resultStr)s.is_null() {
         if type.nullable():
             toValue = "RUST_OBJECT_TO_JSVAL(%s)"
         else:
-            toValue = "JS::ObjectValue(*%s)"
+            toValue = "RUST_OBJECT_TO_JSVAL(%s)"
         # NB: setValue(..., True) calls JS_WrapValue(), so is fallible
         return (setValue(toValue % result, True), False)
 
@@ -2485,7 +2491,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('@mut ' + descriptor.nativeType, 'aObject'),
+                Argument('@mut ' + descriptor.name, 'aObject'),
                 Argument('*mut bool', 'aTriedToWrap')]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap_', '*JSObject', args)
 
@@ -2522,7 +2528,7 @@ class CGWrapMethod(CGAbstractMethod):
         # XXX can we wrap if we don't have an interface prototype object?
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument(descriptor.pointerType + descriptor.nativeType, 'aObject'), Argument('*mut bool', 'aTriedToWrap')]
+                Argument('@mut ' + descriptor.name, 'aObject'), Argument('*mut bool', 'aTriedToWrap')]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', '*JSObject', args, inline=True, pub=True)
 
     def definition_body(self):
@@ -2896,7 +2902,9 @@ class CGCallGenerator(CGThing):
             if a.type.isObject() and not a.type.nullable() and not a.optional:
                 name = "(JSObject&)" + name
             #XXXjdm Perhaps we should pass all nontrivial types by borrowed pointer
-            if a.type.isDictionary():
+            # Aoid passing Option<DOMString> by reference. If only one of optional or
+            # defaultValue are truthy we pass an Option, otherwise it's a concrete DOMString.
+            if a.type.isDictionary() or (a.type.isString() and not (bool(a.defaultValue) ^ a.optional)):
                 name = "&" + name
             args.append(CGGeneric(name))
 
@@ -2918,7 +2926,7 @@ class CGCallGenerator(CGThing):
 
         call = CGGeneric(nativeMethodName)
         if static:
-            call = CGWrapper(call, pre="%s::" % descriptorProvider.nativeType)
+            call = CGWrapper(call, pre="%s::" % descriptorProvider.interface.identifier.name)
         else: 
             call = CGWrapper(call, pre="(*%s)." % object)
         call = CGList([call, CGWrapper(args, pre="(", post=");")])
@@ -3168,7 +3176,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
                       "  return false as JSBool;\n"
                       "}\n"
                       "\n"
-                      "let this: *rust_box<%s>;" % self.descriptor.nativeType))
+                      "let this: *rust_box<%s>;" % self.descriptor.name))
 
     def generate_code(self):
         assert(False) # Override me
@@ -3208,7 +3216,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         self.method = method
         name = method.identifier.name
         args = [Argument('*JSContext', 'cx'), Argument('JSHandleObject', 'obj'),
-                Argument('*mut %s' % descriptor.nativeType, 'this'),
+                Argument('*mut %s' % descriptor.name, 'this'),
                 Argument('libc::c_uint', 'argc'), Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'JSBool', args)
 
@@ -3253,7 +3261,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         name = 'get_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
                  Argument('JSHandleObject', 'obj'),
-                 Argument('*%s' % descriptor.nativeType, 'this'),
+                 Argument('*%s' % descriptor.name, 'this'),
                  Argument('*mut JSVal', 'vp') ]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -3312,7 +3320,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         name = 'set_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
                  Argument('JSHandleObject', 'obj'),
-                 Argument('*mut %s' % descriptor.nativeType, 'this'),
+                 Argument('*mut %s' % descriptor.name, 'this'),
                  Argument('*mut JSVal', 'argv')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -3717,8 +3725,8 @@ def finalizeHook(descriptor, hookName, context):
     else:
         assert descriptor.nativeIsISupports
         release = """let val = JS_GetReservedSlot(obj, 0);
-let _: %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
-""" % (descriptor.pointerType + descriptor.nativeType)
+let _: @mut %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
+""" % descriptor.name
     #return clearWrapper + release
     return release
 
@@ -4192,7 +4200,7 @@ class CGDictionary(CGThing):
         if dealWithOptional:
             replacements["declName"] = "(" + replacements["declName"] + ".Value())"
         if member.defaultValue:
-            replacements["haveValue"] = "found"
+            replacements["haveValue"] = "found as bool"
 
         # NOTE: jsids are per-runtime, so don't use them in workers
         if True or self.workers: #XXXjdm hack until 'static mut' exists for global jsids
@@ -4349,7 +4357,8 @@ class CGBindingRoot(CGThing):
                           'js::jsfriendapi::bindgen::*',
                           'js::glue::*',
                           'dom::node::AbstractNode', #XXXjdm
-                          'dom::document::Document', #XXXjdm
+                          'dom::document::{Document, AbstractDocument}', #XXXjdm
+                          'dom::htmldocument::HTMLDocument', #XXXjdm
                           'dom::bindings::utils::*',
                           'dom::bindings::conversions::*',
                           'dom::blob::*', #XXXjdm
