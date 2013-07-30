@@ -18,6 +18,8 @@ use std::str::eq_slice;
 use extra::net::url::Url;
 use geom::size::Size2D;
 
+use servo_msg::constellation_msg::SubpageId;
+
 pub struct Element {
     parent: Node<ScriptView>,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
@@ -112,6 +114,7 @@ pub struct HTMLHeadingElement {
 pub struct HTMLIframeElement {
     parent: Element,
     frame: Option<Url>,
+    subpage_id: Option<SubpageId>,
     size_future_chan: Option<ChanOne<Size2D<uint>>>,
 }
 

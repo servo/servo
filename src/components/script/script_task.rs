@@ -21,7 +21,7 @@ use layout_interface::{ReflowDocumentDamage, ReflowForDisplay, ReflowGoal};
 use layout_interface::ReflowMsg;
 use layout_interface;
 use servo_msg::constellation_msg::{ConstellationChan, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{PipelineId, RendererReadyMsg, ResizedWindowBroadcast};
+use servo_msg::constellation_msg::{PipelineId, SubpageId, RendererReadyMsg, ResizedWindowBroadcast};
 use servo_msg::constellation_msg::{LoadIframeUrlMsg};
 use servo_msg::constellation_msg;
 
@@ -624,12 +624,13 @@ impl ScriptTask {
         // FIXME: These should be streamed to layout as they're parsed. We don't need to stop here
         // in the script task.
 
-        let get_iframes = |iframe_port: &Port<(Url, Future<Size2D<uint>>)>| loop {
+        let get_iframes = |iframe_port: &Port<(Url, SubpageId, Future<Size2D<uint>>)>| loop {
             match iframe_port.try_recv() {
                 None => break,
-                Some((iframe_url, size_future)) => {
+                Some((iframe_url, subpage_id, size_future)) => {
                     self.constellation_chan.send(LoadIframeUrlMsg(iframe_url,
                                                                   pipeline_id,
+                                                                  subpage_id,
                                                                   size_future));
                 }
             }
@@ -652,9 +653,10 @@ impl ScriptTask {
                 Left(Some(sheet)) => {
                     page.layout_chan.send(AddStylesheetMsg(sheet));
                 }
-                Right(Some((iframe_url, size_future))) => {
+                Right(Some((iframe_url, subpage_id, size_future))) => {
                     self.constellation_chan.send(LoadIframeUrlMsg(iframe_url,
                                                                   pipeline_id,
+                                                                  subpage_id,
                                                                   size_future));
                 }
                 Right(None) => {

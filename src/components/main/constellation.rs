@@ -269,7 +269,7 @@ impl Constellation {
     /// Helper function for getting a unique pipeline Id
     fn get_next_pipeline_id(&mut self) -> PipelineId {
         let id = self.next_pipeline_id;
-        self.next_pipeline_id = PipelineId(*id + 1);
+        *self.next_pipeline_id += 1;
         id
     }
     
@@ -297,16 +297,17 @@ impl Constellation {
             // This should only be called once per constellation, and only by the browser
             InitLoadUrlMsg(url) => {
                 let pipeline = @mut Pipeline::create(self.get_next_pipeline_id(),
-                                                    self.chan.clone(),
-                                                    self.compositor_chan.clone(),
-                                                    self.image_cache_task.clone(),
-                                                    self.resource_task.clone(),
-                                                    self.profiler_chan.clone(),
-                                                    copy self.opts,
-                                                    {
-                                                        let size = self.compositor_chan.get_size();
-                                                        from_value(Size2D(size.width as uint, size.height as uint))
-                                                    });
+                                                     None,
+                                                     self.chan.clone(),
+                                                     self.compositor_chan.clone(),
+                                                     self.image_cache_task.clone(),
+                                                     self.resource_task.clone(),
+                                                     self.profiler_chan.clone(),
+                                                     copy self.opts,
+                                                     {
+                                                         let size = self.compositor_chan.get_size();
+                                                         from_value(Size2D(size.width as uint, size.height as uint))
+                                                     });
                 if url.path.ends_with(".js") {
                     pipeline.script_chan.send(ExecuteMsg(pipeline.id, url));
                 } else {
@@ -324,7 +325,7 @@ impl Constellation {
                 self.pipelines.insert(pipeline.id, pipeline);
             }
 
-            LoadIframeUrlMsg(url, source_pipeline_id, size_future) => {
+            LoadIframeUrlMsg(url, source_pipeline_id, subpage_id, size_future) => {
                 // A message from the script associated with pipeline_id that it has
                 // parsed an iframe during html parsing. This iframe will result in a
                 // new pipeline being spawned and a frame tree being added to pipeline_id's
@@ -368,6 +369,7 @@ impl Constellation {
                                        source_url.port == url.port) {
                     // Reuse the script task if same-origin url's
                     Pipeline::with_script(next_pipeline_id,
+                                          Some(subpage_id),
                                           self.chan.clone(),
                                           self.compositor_chan.clone(),
                                           self.image_cache_task.clone(),
@@ -378,6 +380,7 @@ impl Constellation {
                 } else {
                     // Create a new script task if not same-origin url's
                     Pipeline::create(next_pipeline_id,
+                                     Some(subpage_id),
                                      self.chan.clone(),
                                      self.compositor_chan.clone(),
                                      self.image_cache_task.clone(),
@@ -421,33 +424,29 @@ impl Constellation {
                 // Being here means either there are no pending frames, or none of the pending
                 // changes would be overriden by changing the subframe associated with source_id.
 
+                let source_frame = self.current_frame().get_ref().find_mut(source_id).expect(
+                    "Constellation: received a LoadUrlMsg from a pipeline_id associated
+                    with a pipeline not in the active frame tree. This should be
+                    impossible.");
+                let parent = source_frame.parent.clone();
+                let subpage_id = source_frame.pipeline.subpage_id.clone();
                 let next_pipeline_id = self.get_next_pipeline_id();
+
                 let pipeline = @mut Pipeline::create(next_pipeline_id,
-                                                    self.chan.clone(),
-                                                    self.compositor_chan.clone(),
-                                                    self.image_cache_task.clone(),
-                                                    self.resource_task.clone(),
-                                                    self.profiler_chan.clone(),
-                                                    copy self.opts,
-                                                    size_future);
+                                                     subpage_id,
+                                                     self.chan.clone(),
+                                                     self.compositor_chan.clone(),
+                                                     self.image_cache_task.clone(),
+                                                     self.resource_task.clone(),
+                                                     self.profiler_chan.clone(),
+                                                     copy self.opts,
+                                                     size_future);
 
                 if url.path.ends_with(".js") {
                     pipeline.script_chan.send(ExecuteMsg(pipeline.id, url));
                 } else {
                     pipeline.load(url, Some(constellation_msg::Load));
 
-                    let parent = if self.current_frame().get_ref().pipeline.id == source_id {
-                        // source_id is the root of the current frame tree; replace whole tree
-                        None
-                    } else {
-                        // id is not the root of the current frame tree, but is in the frame tree;
-                        // replace only the subtree
-                        let source_frame = self.current_frame().get_ref().find_mut(source_id).expect(
-                            "Constellation: received a LoadUrlMsg from a pipeline_id associated
-                            with a pipeline not in the active frame tree. This should be
-                            impossible.");
-                        source_frame.parent
-                    };
                     self.pending_frames.push(FrameChange{
                         before: Some(source_id),
                         after: @mut FrameTree {
