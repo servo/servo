@@ -148,7 +148,7 @@ impl CacheableWrapper for AbstractDocument {
 }
 
 impl BindingObject for AbstractDocument {
-    fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
         do self.with_mut_base |doc| {
             doc.GetParentObject(cx)
         }
@@ -183,10 +183,10 @@ impl CacheableWrapper for Document {
 }
 
 impl BindingObject for Document {
-    fn GetParentObject(&self, _cx: *JSContext) -> @mut CacheableWrapper {
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut CacheableWrapper> {
         match self.window {
-            Some(win) => win as @mut CacheableWrapper,
-            None => fail!("whoops")
+            Some(win) => Some(win as @mut CacheableWrapper),
+            None => None
         }
     }
 }

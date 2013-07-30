@@ -7,7 +7,7 @@ function setWidth(w, i) {
   window.setTimeout(function() { setWidth(w, i); }, 50);
 }
 
-var elem = document.documentElement.firstChild.firstChild.nextSibling.firstChild;
+var elem = window.document.documentElement.firstChild.firstChild.nextSibling.firstChild;
 window.alert(elem.tagName);
 window.alert(elem instanceof HTMLImageElement);
 window.alert(elem instanceof HTMLElement);

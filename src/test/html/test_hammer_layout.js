@@ -1,4 +1,4 @@
-var divs = document.getElementsByTagName("div");
+var divs = window.document.getElementsByTagName("div");
 var div = divs[0];
 
 var count = 1000000;

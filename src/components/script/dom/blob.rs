@@ -34,10 +34,10 @@ impl CacheableWrapper for Blob {
 }
 
 impl BindingObject for Blob {
-    fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
         let page = page_from_context(cx);
         unsafe {
-            (*page).frame.get_ref().window as @mut CacheableWrapper
+            Some((*page).frame.get_ref().window as @mut CacheableWrapper)
         }
     }
 }
