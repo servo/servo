@@ -4,19 +4,20 @@
 
 //! Element nodes.
 
-use dom::bindings::utils::DOMString;
+use dom::bindings::utils::{DOMString, CacheableWrapper};
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::node::{ElementNodeTypeId, Node, ScriptView};
-use html::hubbub_html_parser::HtmlParserResult;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
 
 use std::cell::Cell;
+use std::comm::ChanOne;
 use std::comm;
 use std::uint;
 use std::str::eq_slice;
 use extra::net::url::Url;
+use geom::size::Size2D;
 
 pub struct Element {
     parent: Node<ScriptView>,
@@ -112,7 +113,7 @@ pub struct HTMLHeadingElement {
 pub struct HTMLIframeElement {
     parent: Element,
     frame: Option<Url>,
-    parse_result: Option<Port<HtmlParserResult>>
+    size_future_chan: Option<ChanOne<Size2D<uint>>>,
 }
 
 pub struct HTMLImageElement {
@@ -168,44 +169,51 @@ impl<'self> Element {
     }
 
     pub fn getClientRects(&self) -> Option<@mut ClientRectList> {
-        let rects = match self.parent.owner_doc {
+        let (rects, cx, scope) = match self.parent.owner_doc {
             Some(doc) => {
                 match doc.window {
                     Some(win) => {
                         let node = self.parent.abstract.get();
                         assert!(node.is_element());
-                        let script_task = unsafe {
-                            &mut *win.script_task
-                        };
+                        let page = win.page;
                         let (port, chan) = comm::stream();
-                        match script_task.query_layout(ContentBoxesQuery(node, chan), port) {
+                        // TODO(tkuehn): currently just queries top-level page layout. Needs to query
+                        // subframe layout if this element is in a subframe. Probably need an ID field.
+                        match unsafe {(*page).query_layout(ContentBoxesQuery(node, chan), port)} {
                             Ok(ContentBoxesResponse(rects)) => {
-                                do rects.map |r| {
+                                let cx = unsafe {(*page).js_info.get_ref().js_compartment.cx.ptr};
+                                let cache = win.get_wrappercache();
+                                let scope = cache.get_wrapper();
+                                let rects = do rects.map |r| {
                                     ClientRect::new(
                                          r.origin.y.to_f32(),
                                          (r.origin.y + r.size.height).to_f32(),
                                          r.origin.x.to_f32(),
-                                         (r.origin.x + r.size.width).to_f32())
-                                }
+                                         (r.origin.x + r.size.width).to_f32(),
+                                         cx,
+                                         scope)
+                                };
+                                Some((rects, cx, scope))
                             },
                             Err(()) => {
                                 debug!("layout query error");
-                                ~[]
+                                None
                             }
                         }
                     }
                     None => {
                         debug!("no window");
-                        ~[]
+                        None
                     }
                 }
             }
             None => {
                 debug!("no document");
-                ~[]
+                None
             }
-        };
-        Some(ClientRectList::new(rects))
+        }.get();
+        
+        Some(ClientRectList::new(rects, cx, scope))
     }
 
     pub fn getBoundingClientRect(&self) -> Option<@mut ClientRect> {
@@ -213,17 +221,22 @@ impl<'self> Element {
             Some(doc) => {
                 match doc.window {
                     Some(win) => {
+                        let page = win.page;
                         let node = self.parent.abstract.get();
                         assert!(node.is_element());
-                        let script_task = unsafe { &mut *win.script_task };
                         let (port, chan) = comm::stream();
-                        match script_task.query_layout(ContentBoxQuery(node, chan), port) {
+                        match unsafe{(*page).query_layout(ContentBoxQuery(node, chan), port)} {
                             Ok(ContentBoxResponse(rect)) => {
+                                let cx = unsafe {(*page).js_info.get_ref().js_compartment.cx.ptr};
+                                let cache = win.get_wrappercache();
+                                let scope = cache.get_wrapper();
                                 Some(ClientRect::new(
                                          rect.origin.y.to_f32(),
                                          (rect.origin.y + rect.size.height).to_f32(),
                                          rect.origin.x.to_f32(),
-                                         (rect.origin.x + rect.size.width).to_f32()))
+                                         (rect.origin.x + rect.size.width).to_f32(),
+                                         cx,
+                                         scope))
                             },
                             Err(()) => {
                                 debug!("error querying layout");

@@ -7,6 +7,7 @@
 
 use std::comm::{Chan, SharedChan};
 use extra::net::url::Url;
+use extra::future::Future;
 use geom::size::Size2D;
 
 #[deriving(Clone)]
@@ -26,21 +27,27 @@ impl ConstellationChan {
 }
 
 pub enum Msg {
-    LoadUrlMsg(Url),
-    NavigateMsg(NavigationDirection),
     ExitMsg(Chan<()>),
-    RendererReadyMsg(uint),
-    CompositorAck(uint),
+    InitLoadUrlMsg(Url),
+    LoadUrlMsg(PipelineId, Url, Future<Size2D<uint>>),
+    LoadIframeUrlMsg(Url, PipelineId, Future<Size2D<uint>>),
+    NavigateMsg(NavigationDirection),
+    RendererReadyMsg(PipelineId),
     ResizedWindowBroadcast(Size2D<uint>),
 }
 
 /// Represents the two different ways to which a page can be navigated
+#[deriving(Clone, Eq, IterBytes)]
 enum NavigationType {
     Load,               // entered or clicked on a url
     Navigate,           // browser forward/back buttons
 }
 
+#[deriving(Clone, Eq, IterBytes)]
 pub enum NavigationDirection {
     Forward,
     Back,
 }
+
+#[deriving(Clone, Eq, IterBytes)]
+pub struct PipelineId(uint);

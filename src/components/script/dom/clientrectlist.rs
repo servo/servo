@@ -5,7 +5,7 @@
 use dom::bindings::codegen::ClientRectListBinding;
 use dom::bindings::utils::{WrapperCache, CacheableWrapper, BindingObject};
 use dom::clientrect::ClientRect;
-use script_task::{task_from_context, global_script_context};
+use script_task::page_from_context;
 
 use js::jsapi::{JSObject, JSContext};
 
@@ -17,21 +17,16 @@ pub struct ClientRectList {
 }
 
 impl ClientRectList {
-    pub fn new(rects: ~[@mut ClientRect]) -> @mut ClientRectList {
+    pub fn new(rects: ~[@mut ClientRect], cx: *JSContext, scope: *JSObject) -> @mut ClientRectList {
         let list = @mut ClientRectList {
             wrapper: WrapperCache::new(),
             rects: rects
         };
-        list.init_wrapper();
+        list.init_wrapper(cx, scope);
         list
     }
 
-    pub fn init_wrapper(@mut self) {
-        let script_context = global_script_context();
-        let cx = script_context.js_compartment.cx.ptr;
-        let owner = script_context.root_frame.get_ref().window;
-        let cache = owner.get_wrappercache();
-        let scope = cache.get_wrapper();
+    pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
         self.wrap_object_shared(cx, scope);
     }
 
@@ -68,9 +63,9 @@ impl CacheableWrapper for ClientRectList {
 
 impl BindingObject for ClientRectList {
     fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
-        let script_context = task_from_context(cx);
+        let page = page_from_context(cx);
         unsafe {
-            (*script_context).root_frame.get_ref().window as @mut CacheableWrapper
+            (*page).frame.get_ref().window as @mut CacheableWrapper
         }
     }
 }

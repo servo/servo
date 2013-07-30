@@ -5,7 +5,7 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::node;
 use dom::node::{AbstractNode, ScriptView};
-use script_task::task_from_context;
+use script_task::page_from_context;
 
 use std::cast;
 use std::hashmap::HashMap;
@@ -217,8 +217,8 @@ pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
 
 pub fn get_compartment(cx: *JSContext) -> @mut Compartment {
     unsafe {
-        let script_context = task_from_context(cx);
-        let compartment = (*script_context).js_compartment;
+        let page = page_from_context(cx);
+        let compartment = (*page).js_info.get_ref().js_compartment;
         assert!(cx == compartment.cx.ptr);
         compartment
     }
