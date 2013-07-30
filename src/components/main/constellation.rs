@@ -514,10 +514,12 @@ impl Constellation {
                     // TODO(tkuehn): In fact, this kind of message might be provably
                     // impossible to occur.
                     if current_frame.contains(pipeline_id) {
+                        let (port, chan) = comm::stream();
+                        self.compositor_chan.send(SetIds(current_frame.to_sendable(), chan));
+                        port.recv();
                         for current_frame.iter().advance |frame| {
                             frame.pipeline.grant_paint_permission();
                         }
-                        self.compositor_chan.send(SetIds(current_frame.to_sendable()));
                         return true;
                     }
                 }
@@ -606,7 +608,9 @@ impl Constellation {
     // Grants a frame tree permission to paint; optionally updates navigation to reflect a new page
     fn grant_paint_permission(&mut self, frame_tree: @mut FrameTree) {
         // Give permission to paint to the new frame and all child frames
-        self.compositor_chan.send(SetIds(frame_tree.to_sendable()));
+        let (port, chan) = comm::stream();
+        self.compositor_chan.send(SetIds(frame_tree.to_sendable(), chan));
+        port.recv();
         for frame_tree.iter().advance |frame| {
             frame.pipeline.grant_paint_permission();
         }
