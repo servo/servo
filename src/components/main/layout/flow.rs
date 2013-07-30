@@ -98,17 +98,46 @@ impl<V,CV> FlowContext<V,CV> {
     // 'prune' function.
 }
 
-impl FlowContext<VisitView,VisitChildView> {
-    pub unsafe fn decode(compressed_ptr: uint) -> FlowContext<VisitView,VisitChildView> {
-        let new_ptr: *FlowContext<VisitView,VisitChildView> = transmute(compressed_ptr);
+impl FlowContext<SequentialView,SequentialView> {
+    pub unsafe fn decode(compressed_ptr: uint) -> Self {
+        let new_ptr: *FlowContext<SequentialView,SequentialView> = transmute(compressed_ptr);
         *new_ptr
     }
-}
 
-impl FlowContext<SequentialView, SequentialView> {
     pub unsafe fn encode(&self) -> uint {
         let new_ptr: *FlowContext<SequentialView,SequentialView> = self;
         transmute(new_ptr)
+    }
+
+    pub unsafe fn restrict_view(&self) -> FlowContext<VisitView,VisitChildView> {
+        transmute(*self)
+    }
+
+    pub unsafe fn get_traversal(&self) -> uint {
+        self.with_base |base| {
+            base.cur_traversal
+        }
+    }
+
+    pub unsafe fn set_traversal(&self, traversal: uint) {
+        self.with_mut_base |base| {
+            base.cur_traversal = traversal;
+        }
+    }
+
+    pub unsafe fn update_child_counter(&mut self) {
+        do self.with_mut_base |base| {
+            // increment count
+            base.count.fetch_add(1);
+
+            // TODO(eatkinson): num_children is slow, we should fix
+            // this.
+            let children = self.num_children();
+
+            // if the count is num_children, replace it with 0 and return true
+            base.count.compare_and_swap(children, 0) == children
+        }
+
     }
 }
 
@@ -216,6 +245,8 @@ pub struct FlowData<View,ChildView> {
 
     /* TODO (Issue #87): debug only */
     id: int,
+    priv current_traversal: uint,
+    priv child_counter: AtomicUint,
 
     /* layout computations */
     // TODO: min/pref and position are used during disjoint phases of
@@ -327,6 +358,8 @@ impl<V,CV> FlowData<V,CV> {
             next_sibling: None,
 
             id: id,
+            current_traversal: 0,
+            child_counter: AtomicUint(0),
 
             min_width: Au(0),
             pref_width: Au(0),
