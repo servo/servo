@@ -601,7 +601,7 @@ impl ScriptTask {
         let HtmlParserResult {root, js_port, style_port, iframe_port} = html_parsing_result;
 
         // Create the window and document objects.
-        let window = Window::new(page, self.chan.clone(), self.compositor);
+        let window = Window::new(&mut *page, self.chan.clone(), self.compositor);
         let document = Document(root, Some(window));
 
         // Tie the root into the document.

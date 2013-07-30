@@ -13,7 +13,7 @@ use std::task;
 use geom::size::Size2D;
 use gfx::opts::Opts;
 use pipeline::Pipeline;
-use servo_msg::constellation_msg::{CompositorAck, ConstellationChan, ExitMsg};
+use servo_msg::constellation_msg::{ConstellationChan, ExitMsg};
 use servo_msg::constellation_msg::{InitLoadUrlMsg, LoadIframeUrlMsg, LoadUrlMsg};
 use servo_msg::constellation_msg::{Msg, NavigateMsg};
 use servo_msg::constellation_msg::{PipelineId, RendererReadyMsg, ResizedWindowBroadcast};
@@ -283,16 +283,6 @@ impl Constellation {
     fn handle_request(&mut self, request: Msg) -> bool {
         match request {
 
-            // Acknowledgement from the compositor that it has updated its active pipeline id
-            CompositorAck(id) => {
-                let pending_index = do self.pending_frames.rposition |frame_change| {
-                    frame_change.after.pipeline.id == id
-                }.expect("Constellation: received compositor ack for frame tree not currently
-                    pending compositor ack. This is a bug.");
-                let frame_tree = self.pending_frames.swap_remove(pending_index).after;
-                self.grant_paint_permission(frame_tree);
-            }
-
             ExitMsg(sender) => {
                 for self.pipelines.iter().advance |(_id, ref pipeline)| {
                     pipeline.exit();
@@ -473,11 +463,21 @@ impl Constellation {
             // Handle a forward or back request
             NavigateMsg(direction) => {
                 debug!("received message to navigate %?", direction);
+
+                // TODO(tkuehn): what is the "critical point" beyond which pending frames
+                // should not be cleared? Currently, the behavior is that forward/back
+                // navigation always has navigation priority, and after that new page loading is
+                // first come, first served.
                 let destination_frame = match direction {
                     constellation_msg::Forward => {
                         if self.navigation_context.next.is_empty() {
                             debug!("no next page to navigate to");
                             return true
+                        } else {
+                            let old = self.current_frame().get_ref();
+                            for old.iter().advance |frame| {
+                                frame.pipeline.revoke_paint_permission();
+                            }
                         }
                         self.navigation_context.forward()
                     }
@@ -485,6 +485,11 @@ impl Constellation {
                         if self.navigation_context.previous.is_empty() {
                             debug!("no previous page to navigate to");
                             return true
+                        } else {
+                            let old = self.current_frame().get_ref();
+                            for old.iter().advance |frame| {
+                                frame.pipeline.revoke_paint_permission();
+                            }
                         }
                         self.navigation_context.back()
                     }
@@ -494,23 +499,8 @@ impl Constellation {
                     let pipeline = &frame.pipeline;
                     pipeline.reload(Some(constellation_msg::Navigate));
                 }
-                self.compositor_chan.send(SetIds(destination_frame.to_sendable(), self.chan.clone()));
+                self.grant_paint_permission(destination_frame);
 
-                let before_id = self.current_frame().get_ref().pipeline.id.clone();
-                self.pending_frames.clear();
-                self.pending_frames.push(FrameChange {
-                    before: Some(before_id),
-                    after: destination_frame,
-                });
-
-                // TODO(tkuehn): what is the "critical point" beyond which pending frames
-                // should not be cleared? Currently, the behavior is that forward/back
-                // navigation always has navigation priority, and after that new page loading is
-                // first come, first served.
-                let old = self.current_frame().get_ref();
-                for old.iter().advance |frame| {
-                    frame.pipeline.revoke_paint_permission();
-                }
             }
 
             // Notification that rendering has finished and is requesting permission to paint.
@@ -527,6 +517,7 @@ impl Constellation {
                         for current_frame.iter().advance |frame| {
                             frame.pipeline.grant_paint_permission();
                         }
+                        self.compositor_chan.send(SetIds(current_frame.to_sendable()));
                         return true;
                     }
                 }
@@ -564,10 +555,6 @@ impl Constellation {
                             if to_add.parent.is_some() {
                                 next_frame_tree.replace_child(revoke_id, to_add);
                             }
-                            self.pending_frames.push(FrameChange {
-                                before: Some(revoke_id),
-                                after: next_frame_tree
-                            });
                         }
 
                         None => {
@@ -580,13 +567,9 @@ impl Constellation {
                                     active. This is a bug.");
                                 parent.children.push(to_add.take());
                             }
-                            self.pending_frames.push(FrameChange {
-                                before: None,
-                                after: next_frame_tree
-                            });
                         }
                     }
-                self.compositor_chan.send(SetIds(next_frame_tree.to_sendable(), self.chan.clone()));
+                self.grant_paint_permission(next_frame_tree);
                 }
             }
 
@@ -623,6 +606,7 @@ impl Constellation {
     // Grants a frame tree permission to paint; optionally updates navigation to reflect a new page
     fn grant_paint_permission(&mut self, frame_tree: @mut FrameTree) {
         // Give permission to paint to the new frame and all child frames
+        self.compositor_chan.send(SetIds(frame_tree.to_sendable()));
         for frame_tree.iter().advance |frame| {
             frame.pipeline.grant_paint_permission();
         }

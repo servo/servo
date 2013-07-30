@@ -13,7 +13,7 @@ use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEven
 
 use servo_msg::compositor_msg::{RenderListener, LayerBuffer, LayerBufferSet, RenderState};
 use servo_msg::compositor_msg::{ReadyState, ScriptListener};
-use servo_msg::constellation_msg::{CompositorAck, ConstellationChan, PipelineId};
+use servo_msg::constellation_msg::PipelineId;
 use servo_msg::constellation_msg;
 use gfx::render_task::ReRenderMsg;
 use gfx::opts::Opts;
@@ -141,7 +141,7 @@ pub enum Msg {
     /// Alerts the compositor to the current status of rendering.
     ChangeRenderState(RenderState),
     /// Sets the channel to the current layout and render tasks, along with their id
-    SetIds(SendableFrameTree, ConstellationChan)
+    SetIds(SendableFrameTree),
 }
 
 /// Azure surface wrapping to work with the layers infrastructure.
@@ -345,9 +345,8 @@ impl CompositorTask {
                     ChangeReadyState(ready_state) => window.set_ready_state(ready_state),
                     ChangeRenderState(render_state) => window.set_render_state(render_state),
 
-                    SetIds(frame_tree, response_chan) => {
+                    SetIds(frame_tree) => {
                         pipeline = Some(frame_tree.pipeline);
-                        response_chan.send(CompositorAck(pipeline.get_ref().id.clone()));
                     }
 
                     GetSize(chan) => {

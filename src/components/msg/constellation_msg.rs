@@ -27,7 +27,6 @@ impl ConstellationChan {
 }
 
 pub enum Msg {
-    CompositorAck(PipelineId),
     ExitMsg(Chan<()>),
     InitLoadUrlMsg(Url),
     LoadUrlMsg(PipelineId, Url, Future<Size2D<uint>>),

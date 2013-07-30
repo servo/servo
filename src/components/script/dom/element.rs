@@ -179,9 +179,9 @@ impl<'self> Element {
                         let (port, chan) = comm::stream();
                         // TODO(tkuehn): currently just queries top-level page layout. Needs to query
                         // subframe layout if this element is in a subframe. Probably need an ID field.
-                        match page.query_layout(ContentBoxesQuery(node, chan), port) {
+                        match unsafe {(*page).query_layout(ContentBoxesQuery(node, chan), port)} {
                             Ok(ContentBoxesResponse(rects)) => {
-                                let cx = (*page).js_info.get_ref().js_compartment.cx.ptr;
+                                let cx = unsafe {(*page).js_info.get_ref().js_compartment.cx.ptr};
                                 let cache = win.get_wrappercache();
                                 let scope = cache.get_wrapper();
                                 let rects = do rects.map |r| {
@@ -225,11 +225,9 @@ impl<'self> Element {
                         let node = self.parent.abstract.get();
                         assert!(node.is_element());
                         let (port, chan) = comm::stream();
-                        // TODO(tkuehn): currently just queries top-level page layout. Needs to query
-                        // subframe layout if this element is in a subframe. Probably need an ID field.
-                        match page.query_layout(ContentBoxQuery(node, chan), port) {
+                        match unsafe{(*page).query_layout(ContentBoxQuery(node, chan), port)} {
                             Ok(ContentBoxResponse(rect)) => {
-                                let cx = (*page).js_info.get_ref().js_compartment.cx.ptr;
+                                let cx = unsafe {(*page).js_info.get_ref().js_compartment.cx.ptr};
                                 let cache = win.get_wrappercache();
                                 let scope = cache.get_wrapper();
                                 Some(ClientRect::new(

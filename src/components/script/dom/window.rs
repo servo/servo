@@ -25,10 +25,9 @@ pub enum TimerControlMsg {
     TimerMessage_TriggerExit //XXXjdm this is just a quick hack to talk to the script task
 }
 
-//FIXME If we're going to store the script task, find a way to do so safely. Currently it's
-//      only used for querying layout from arbitrary script.
+//FIXME If we're going to store the page, find a way to do so safely.
 pub struct Window {
-    page: @mut Page,
+    page: *mut Page,
     script_chan: ScriptChan,
     compositor: @ScriptListener,
     wrapper: WrapperCache,
@@ -91,13 +90,14 @@ impl Window {
     }
 
     pub fn content_changed(&self) {
-        self.page.reflow_all(ReflowForScriptQuery, self.script_chan.clone(), self.compositor);
+        unsafe {
+            (*self.page).reflow_all(ReflowForScriptQuery, self.script_chan.clone(), self.compositor);
+        }
     }
 
-    pub fn new(page: @mut Page, script_chan: ScriptChan, compositor: @ScriptListener)
+    pub fn new(page: *mut Page, script_chan: ScriptChan, compositor: @ScriptListener)
                -> @mut Window {
         let script_chan_clone = script_chan.clone();
-        let page_id = page.id.clone();
         let win = @mut Window {
             page: page,
             script_chan: script_chan,
@@ -109,7 +109,7 @@ impl Window {
                     loop {
                         match timer_port.recv() {
                             TimerMessage_Close => break,
-                            TimerMessage_Fire(td) => script_chan_clone.chan.send(FireTimerMsg(page_id.clone(), td)),
+                            TimerMessage_Fire(td) => unsafe {script_chan_clone.chan.send(FireTimerMsg((*page).id.clone(), td))},
                             TimerMessage_TriggerExit => script_chan_clone.chan.send(ExitMsg),
                         }
                     }
@@ -118,8 +118,11 @@ impl Window {
             },
         };
 
-        let compartment = page.js_info.get_ref().js_compartment;
-        window::create(compartment, win);
+        unsafe {
+            // TODO(tkuehn): This just grabs the top-level page. Need to handle subframes.
+            let compartment = (*page).js_info.get_ref().js_compartment;
+            window::create(compartment, win);
+        }
         win
     }
 }
