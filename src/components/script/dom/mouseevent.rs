@@ -9,7 +9,6 @@ use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
-use script_task::{global_script_context};
 
 use js::glue::RUST_OBJECT_TO_JSVAL;
 use js::jsapi::{JSObject, JSContext, JSVal};
@@ -49,12 +48,7 @@ impl MouseEvent {
         }
     }
 
-    pub fn init_wrapper(@mut self) {
-        let script_context = global_script_context();
-        let cx = script_context.js_compartment.cx.ptr;
-        let owner = script_context.root_frame.get_ref().window;
-        let cache = owner.get_wrappercache();
-        let scope = cache.get_wrapper();
+    pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
         self.wrap_object_shared(cx, scope);
     }
 

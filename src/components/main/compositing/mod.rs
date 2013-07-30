@@ -5,7 +5,6 @@
 use platform::{Application, Window};
 use script::dom::event::{Event, ClickEvent, MouseDownEvent, MouseUpEvent, ResizeEvent};
 use script::script_task::{LoadMsg, NavigateMsg, SendEventMsg};
-use script::layout_interface::{LayoutChan, RouteScriptMsg};
 
 use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
 use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
@@ -14,9 +13,9 @@ use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEven
 
 use servo_msg::compositor_msg::{RenderListener, LayerBuffer, LayerBufferSet, RenderState};
 use servo_msg::compositor_msg::{ReadyState, ScriptListener};
-use servo_msg::constellation_msg::{CompositorAck, ConstellationChan};
+use servo_msg::constellation_msg::PipelineId;
 use servo_msg::constellation_msg;
-use gfx::render_task::{RenderChan, ReRenderMsg};
+use gfx::render_task::ReRenderMsg;
 use gfx::opts::Opts;
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods, current_gl_context};
@@ -50,6 +49,8 @@ pub use windowing;
 
 use extra::time::precise_time_s;
 use compositing::quadtree::Quadtree;
+use constellation::SendableFrameTree;
+use pipeline::Pipeline;
 mod quadtree;
 
 /// The implementation of the layers-based compositor.
@@ -78,7 +79,7 @@ impl RenderListener for CompositorChan {
         port.recv()
     }
 
-    fn paint(&self, id: uint, layer_buffer_set: arc::ARC<LayerBufferSet>, new_size: Size2D<uint>) {
+    fn paint(&self, id: PipelineId, layer_buffer_set: arc::ARC<LayerBufferSet>, new_size: Size2D<uint>) {
         self.chan.send(Paint(id, layer_buffer_set, new_size))
     }
 
@@ -134,13 +135,13 @@ pub enum Msg {
     DeleteLayer,
 
     /// Requests that the compositor paint the given layer buffer set for the given page size.
-    Paint(uint, arc::ARC<LayerBufferSet>, Size2D<uint>),
+    Paint(PipelineId, arc::ARC<LayerBufferSet>, Size2D<uint>),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(ReadyState),
     /// Alerts the compositor to the current status of rendering.
     ChangeRenderState(RenderState),
     /// Sets the channel to the current layout and render tasks, along with their id
-    SetLayoutRenderChans(LayoutChan, RenderChan , uint, ConstellationChan)
+    SetIds(SendableFrameTree),
 }
 
 /// Azure surface wrapping to work with the layers infrastructure.
@@ -234,12 +235,12 @@ impl CompositorTask {
         let mut world_zoom = 1f32;
         // Keeps track of local zoom factor. Reset to 1 after a rerender event.
         let mut local_zoom = 1f32;
-        // Channel to the current renderer.
-        // FIXME: This probably shouldn't be stored like this.
-
-        let mut render_chan: Option<RenderChan> = None;
-        let mut pipeline_id: Option<uint> = None;
-        let mut layout_chan: Option<LayoutChan> = None;
+        // Channel to the outermost frame's pipeline.
+        // FIXME: Compositor currently only asks for tiles to composite from this pipeline,
+        // Subframes need to be handled, as well. Additionally, events are only forwarded
+        // to this pipeline, but they should be routed to the appropriate pipeline via
+        // the constellation.
+        let mut pipeline: Option<Pipeline> = None;
 
         // Quadtree for this layer
         // FIXME: This should be one-per-layer
@@ -317,9 +318,9 @@ impl CompositorTask {
                                                                              window_size), world_zoom);
 
                     if !tile_request.is_empty() {
-                        match render_chan {
-                            Some(ref chan) => {
-                                chan.send(ReRenderMsg(tile_request, world_zoom));
+                        match pipeline {
+                            Some(ref pipeline) => {
+                                pipeline.render_chan.send(ReRenderMsg(tile_request, world_zoom));
                             }
                             _ => {
                                 println("Warning: Compositor: Cannot send tile request, no render chan initialized");
@@ -344,14 +345,8 @@ impl CompositorTask {
                     ChangeReadyState(ready_state) => window.set_ready_state(ready_state),
                     ChangeRenderState(render_state) => window.set_render_state(render_state),
 
-                    SetLayoutRenderChans(new_layout_chan,
-                                         new_render_chan,
-                                         new_pipeline_id,
-                                         response_chan) => {
-                        layout_chan = Some(new_layout_chan);
-                        render_chan = Some(new_render_chan);
-                        pipeline_id = Some(new_pipeline_id);
-                        response_chan.send(CompositorAck(new_pipeline_id));
+                    SetIds(frame_tree) => {
+                        pipeline = Some(frame_tree.pipeline);
                     }
 
                     GetSize(chan) => {
@@ -378,8 +373,8 @@ impl CompositorTask {
                     }
 
                     Paint(id, new_layer_buffer_set, new_size) => {
-                        match pipeline_id {
-                            Some(pipeline_id) => if id != pipeline_id { loop; },
+                        match pipeline {
+                            Some(ref pipeline) => if id != pipeline.id { loop; },
                             None => { loop; },
                         }
                         
@@ -417,8 +412,8 @@ impl CompositorTask {
                     if window_size != new_size {
                         debug!("osmain: window resized to %ux%u", width, height);
                         window_size = new_size;
-                        match layout_chan {
-                            Some(ref chan) => chan.send(RouteScriptMsg(SendEventMsg(ResizeEvent(width, height)))),
+                        match pipeline {
+                            Some(ref pipeline) => pipeline.script_chan.send(SendEventMsg(pipeline.id.clone(), ResizeEvent(width, height))),
                             None => error!("Compositor: Recieved resize event without initialized layout chan"),
                         }
                     } else {
@@ -428,8 +423,8 @@ impl CompositorTask {
                 
                 LoadUrlWindowEvent(url_string) => {
                     debug!("osmain: loading URL `%s`", url_string);
-                    match layout_chan {
-                        Some(ref chan) => chan.send(RouteScriptMsg(LoadMsg(url::make_url(url_string.to_str(), None)))),
+                    match pipeline {
+                        Some(ref pipeline) => pipeline.script_chan.send(LoadMsg(pipeline.id.clone(), url::make_url(url_string.to_str(), None))),
                         None => error!("Compositor: Recieved loadurl event without initialized layout chan"),
                     }
                 }
@@ -450,8 +445,8 @@ impl CompositorTask {
                             event = MouseUpEvent(button, world_mouse_point(layer_mouse_point));
                         }
                     }
-                    match layout_chan {
-                        Some(ref chan) => chan.send(RouteScriptMsg(SendEventMsg(event))),
+                    match pipeline {
+                        Some(ref pipeline) => pipeline.script_chan.send(SendEventMsg(pipeline.id.clone(), event)),
                         None => error!("Compositor: Recieved mouse event without initialized layout chan"),
                     }
                 }
@@ -530,8 +525,8 @@ impl CompositorTask {
                         windowing::Forward => constellation_msg::Forward,
                         windowing::Back => constellation_msg::Back,
                     };
-                    match layout_chan {
-                        Some(ref chan) => chan.send(RouteScriptMsg(NavigateMsg(direction))),
+                    match pipeline {
+                        Some(ref pipeline) => pipeline.script_chan.send(NavigateMsg(direction)),
                         None => error!("Compositor: Recieved navigation event without initialized layout chan"),
                     }
                 }

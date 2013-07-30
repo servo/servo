@@ -11,13 +11,13 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLIframeElement};
 use dom::element::{HTMLStyleElementTypeId};
-use script_task::global_script_context;
 
 use std::cast;
 use std::cast::transmute;
 use std::libc::c_void;
 use std::uint;
 use js::rust::Compartment;
+use js::jsapi::{JSContext};
 use netsurfcss::util::VoidPtrLike;
 use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
 
@@ -424,12 +424,11 @@ impl<View> Iterator<AbstractNode<View>> for AbstractNodeChildrenIterator<View> {
 }
 
 impl Node<ScriptView> {
-    pub unsafe fn as_abstract_node<N>(node: ~N) -> AbstractNode<ScriptView> {
+    pub unsafe fn as_abstract_node<N>(cx: *JSContext, node: ~N) -> AbstractNode<ScriptView> {
         // This surrenders memory management of the node!
         let mut node = AbstractNode {
             obj: transmute(node),
         };
-        let cx = global_script_context().js_compartment.cx.ptr;
         node::create(cx, &mut node);
         node
     }

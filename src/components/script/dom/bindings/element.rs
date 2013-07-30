@@ -11,7 +11,7 @@ use dom::element::{HTMLImageElementTypeId, HTMLHeadElementTypeId, HTMLScriptElem
                    HTMLDivElementTypeId};
 use dom::node::{AbstractNode, ScriptView, ElementNodeTypeId};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
-use script_task::task_from_context;
+use script_task::page_from_context;
 use super::utils;
 
 use std::cast;
@@ -230,9 +230,10 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
         let node = unwrap(obj);
         let width = match node.type_id() {
             ElementNodeTypeId(HTMLImageElementTypeId) => {
-                let script_context = task_from_context(cx);
+                let page = page_from_context(cx);
                 let (port, chan) = comm::stream();
-                match (*script_context).query_layout(ContentBoxQuery(node, chan), port) {
+                // TODO(tkuehn): currently this just queries top-level page's layout. Need to handle subframes.
+                match (*page).query_layout(ContentBoxQuery(node, chan), port) {
                     Ok(ContentBoxResponse(rect)) => rect.size.width.to_px(),
                     Err(()) => 0
                 }

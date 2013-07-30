@@ -6,7 +6,8 @@ use dom::bindings::utils::WrapperCache;
 use dom::bindings::window;
 
 use layout_interface::ReflowForScriptQuery;
-use script_task::{ExitMsg, FireTimerMsg, ScriptChan, ScriptTask};
+use script_task::{ExitMsg, FireTimerMsg, Page, ScriptChan};
+use servo_msg::compositor_msg::ScriptListener;
 
 use std::comm;
 use std::comm::Chan;
@@ -24,15 +25,16 @@ pub enum TimerControlMsg {
     TimerMessage_TriggerExit //XXXjdm this is just a quick hack to talk to the script task
 }
 
-//FIXME If we're going to store the script task, find a way to do so safely. Currently it's
-//      only used for querying layout from arbitrary script.
+//FIXME If we're going to store the page, find a way to do so safely.
 pub struct Window {
-    timer_chan: Chan<TimerControlMsg>,
+    page: *mut Page,
     script_chan: ScriptChan,
-    script_task: *mut ScriptTask,
-    wrapper: WrapperCache
+    compositor: @ScriptListener,
+    wrapper: WrapperCache,
+    timer_chan: Chan<TimerControlMsg>,
 }
 
+#[unsafe_destructor]
 impl Drop for Window {
     fn drop(&self) {
         self.timer_chan.send(TimerMessage_Close);
@@ -89,34 +91,36 @@ impl Window {
 
     pub fn content_changed(&self) {
         unsafe {
-            (*self.script_task).reflow_all(ReflowForScriptQuery)
+            (*self.page).reflow_all(ReflowForScriptQuery, self.script_chan.clone(), self.compositor);
         }
     }
 
-    pub fn new(script_chan: ScriptChan, script_task: *mut ScriptTask)
+    pub fn new(page: *mut Page, script_chan: ScriptChan, compositor: @ScriptListener)
                -> @mut Window {
         let script_chan_clone = script_chan.clone();
         let win = @mut Window {
-            wrapper: WrapperCache::new(),
+            page: page,
             script_chan: script_chan,
+            compositor: compositor,
+            wrapper: WrapperCache::new(),
             timer_chan: {
                 let (timer_port, timer_chan) = comm::stream::<TimerControlMsg>();
                 do spawn {
                     loop {
                         match timer_port.recv() {
                             TimerMessage_Close => break,
-                            TimerMessage_Fire(td) => script_chan_clone.chan.send(FireTimerMsg(td)),
+                            TimerMessage_Fire(td) => unsafe {script_chan_clone.chan.send(FireTimerMsg((*page).id.clone(), td))},
                             TimerMessage_TriggerExit => script_chan_clone.chan.send(ExitMsg),
                         }
                     }
                 }
                 timer_chan
             },
-            script_task: script_task,
         };
 
         unsafe {
-            let compartment = (*script_task).js_compartment;
+            // TODO(tkuehn): This just grabs the top-level page. Need to handle subframes.
+            let compartment = (*page).js_info.get_ref().js_compartment;
             window::create(compartment, win);
         }
         win

@@ -7,6 +7,7 @@ use azure::azure::AzGLContext;
 use geom::rect::Rect;
 use geom::size::Size2D;
 
+use constellation_msg::PipelineId;
 use extra::arc;
 
 
@@ -60,7 +61,7 @@ pub trait RenderListener {
     fn new_layer(&self, Size2D<uint>, uint);
     fn resize_layer(&self, Size2D<uint>);
     fn delete_layer(&self);
-    fn paint(&self, id: uint, layer_buffer_set: arc::ARC<LayerBufferSet>, new_size: Size2D<uint>);
+    fn paint(&self, id: PipelineId, layer_buffer_set: arc::ARC<LayerBufferSet>, new_size: Size2D<uint>);
     fn set_render_state(&self, render_state: RenderState);
 }
 

@@ -9,6 +9,7 @@ use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use display_list::DisplayList;
 use servo_msg::compositor_msg::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer};
 use servo_msg::compositor_msg::{LayerBufferSet};
+use servo_msg::constellation_msg::PipelineId;
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::size::Size2D;
@@ -70,7 +71,7 @@ impl RenderChan {
 }
 
 priv struct RenderTask<C> {
-    id: uint,
+    id: PipelineId,
     port: Port<Msg>,
     compositor: C,
     font_ctx: @mut FontContext,
@@ -90,7 +91,7 @@ priv struct RenderTask<C> {
 }
 
 impl<C: RenderListener + Send> RenderTask<C> {
-    pub fn create(id: uint,
+    pub fn create(id: PipelineId,
                   port: Port<Msg>,
                   compositor: C,
                   opts: Opts,

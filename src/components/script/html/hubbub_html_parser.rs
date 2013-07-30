@@ -31,6 +31,7 @@ use dom::element::{Element, Attr};
 use dom::node::{AbstractNode, Comment, Doctype, ElementNodeTypeId, Node, ScriptView};
 use dom::node::{Text};
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
+use js::jsapi::JSContext;
 use newcss::stylesheet::Stylesheet;
 
 use std::cast;
@@ -48,9 +49,11 @@ use servo_util::tree::TreeUtils;
 use servo_util::url::make_url;
 use extra::net::url::Url;
 use extra::net::url;
+use extra::future::{Future, from_port};
+use geom::size::Size2D;
 
 macro_rules! handle_element(
-    ($tag:expr, $string:expr, $type_id:expr, $ctor:ident, [ $(($field:ident : $field_init:expr)),* ]) => (
+    ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident, [ $(($field:ident : $field_init:expr)),* ]) => (
         if eq_slice($tag, $string) {
             let _element = ~$ctor {
                 parent: Element::new($type_id, ($tag).to_str()),
@@ -59,7 +62,7 @@ macro_rules! handle_element(
                 )*
             };
             unsafe {
-                return Node::as_abstract_node(_element);
+                return Node::as_abstract_node(cx, _element);
             }
         }
     )
@@ -79,7 +82,8 @@ enum JSMessage {
 
 pub struct HtmlParserResult {
     root: AbstractNode<ScriptView>,
-    style_port: Port<Option<Stylesheet>>,
+    style_port: Port<Stylesheet>,
+    iframe_port: Port<(Url, Future<Size2D<uint>>)>,
     js_port: Port<JSResult>,
 }
 
@@ -112,7 +116,7 @@ spawned, collates them, and sends them to the given result channel.
 * `from_parent` - A port on which to receive new links.
 
 */
-fn css_link_listener(to_parent: Chan<Option<Stylesheet>>,
+fn css_link_listener(to_parent: Chan<Stylesheet>,
                      from_parent: Port<CSSMessage>,
                      resource_task: ResourceTask) {
     let mut result_vec = ~[];
@@ -131,9 +135,8 @@ fn css_link_listener(to_parent: Chan<Option<Stylesheet>>,
     // Send the sheets back in order
     // FIXME: Shouldn't wait until after we've recieved CSSTaskExit to start sending these
     for result_vec.iter().advance |port| {
-        to_parent.send(Some(port.recv()));
+        to_parent.send(port.recv());
     }
-    to_parent.send(None);
 }
 
 fn js_script_listener(to_parent: Chan<~[~[u8]]>,
@@ -184,63 +187,63 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
 // Silly macros to handle constructing DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-fn build_element_from_tag(tag: &str) -> AbstractNode<ScriptView> {
+fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView> {
     // TODO (Issue #85): use atoms
-    handle_element!(tag, "a",        HTMLAnchorElementTypeId, HTMLAnchorElement, []);
-    handle_element!(tag, "aside",   HTMLAsideElementTypeId, HTMLAsideElement, []);
-    handle_element!(tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
-    handle_element!(tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
-    handle_element!(tag, "bold",    HTMLBoldElementTypeId, HTMLBoldElement, []);
-    handle_element!(tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
-    handle_element!(tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
-    handle_element!(tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);
-    handle_element!(tag, "hr",      HTMLHRElementTypeId, HTMLHRElement, []);
-    handle_element!(tag, "head",    HTMLHeadElementTypeId, HTMLHeadElement, []);
-    handle_element!(tag, "html",    HTMLHtmlElementTypeId, HTMLHtmlElement, []);
-    handle_element!(tag, "input",   HTMLInputElementTypeId, HTMLInputElement, []);
-    handle_element!(tag, "i",       HTMLItalicElementTypeId, HTMLItalicElement, []);
-    handle_element!(tag, "link",    HTMLLinkElementTypeId, HTMLLinkElement, []);
-    handle_element!(tag, "li",      HTMLListItemElementTypeId, HTMLListItemElement, []);
-    handle_element!(tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
-    handle_element!(tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
-    handle_element!(tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);
-    handle_element!(tag, "p",       HTMLParagraphElementTypeId, HTMLParagraphElement, []);
-    handle_element!(tag, "script",  HTMLScriptElementTypeId, HTMLScriptElement, []);
-    handle_element!(tag, "section", HTMLSectionElementTypeId, HTMLSectionElement, []);
-    handle_element!(tag, "select",  HTMLSelectElementTypeId, HTMLSelectElement, []);
-    handle_element!(tag, "small",   HTMLSmallElementTypeId, HTMLSmallElement, []);
-    handle_element!(tag, "span",    HTMLSpanElementTypeId, HTMLSpanElement, []);
-    handle_element!(tag, "style",   HTMLStyleElementTypeId, HTMLStyleElement, []);
-    handle_element!(tag, "tbody",   HTMLTableBodyElementTypeId, HTMLTableBodyElement, []);
-    handle_element!(tag, "td",      HTMLTableCellElementTypeId, HTMLTableCellElement, []);
-    handle_element!(tag, "table",   HTMLTableElementTypeId, HTMLTableElement, []);
-    handle_element!(tag, "tr",      HTMLTableRowElementTypeId, HTMLTableRowElement, []);
-    handle_element!(tag, "title",   HTMLTitleElementTypeId, HTMLTitleElement, []);
-    handle_element!(tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
+    handle_element!(cx, tag, "a",        HTMLAnchorElementTypeId, HTMLAnchorElement, []);
+    handle_element!(cx, tag, "aside",   HTMLAsideElementTypeId, HTMLAsideElement, []);
+    handle_element!(cx, tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
+    handle_element!(cx, tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
+    handle_element!(cx, tag, "bold",    HTMLBoldElementTypeId, HTMLBoldElement, []);
+    handle_element!(cx, tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
+    handle_element!(cx, tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
+    handle_element!(cx, tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);
+    handle_element!(cx, tag, "hr",      HTMLHRElementTypeId, HTMLHRElement, []);
+    handle_element!(cx, tag, "head",    HTMLHeadElementTypeId, HTMLHeadElement, []);
+    handle_element!(cx, tag, "html",    HTMLHtmlElementTypeId, HTMLHtmlElement, []);
+    handle_element!(cx, tag, "input",   HTMLInputElementTypeId, HTMLInputElement, []);
+    handle_element!(cx, tag, "i",       HTMLItalicElementTypeId, HTMLItalicElement, []);
+    handle_element!(cx, tag, "link",    HTMLLinkElementTypeId, HTMLLinkElement, []);
+    handle_element!(cx, tag, "li",      HTMLListItemElementTypeId, HTMLListItemElement, []);
+    handle_element!(cx, tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
+    handle_element!(cx, tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
+    handle_element!(cx, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);
+    handle_element!(cx, tag, "p",       HTMLParagraphElementTypeId, HTMLParagraphElement, []);
+    handle_element!(cx, tag, "script",  HTMLScriptElementTypeId, HTMLScriptElement, []);
+    handle_element!(cx, tag, "section", HTMLSectionElementTypeId, HTMLSectionElement, []);
+    handle_element!(cx, tag, "select",  HTMLSelectElementTypeId, HTMLSelectElement, []);
+    handle_element!(cx, tag, "small",   HTMLSmallElementTypeId, HTMLSmallElement, []);
+    handle_element!(cx, tag, "span",    HTMLSpanElementTypeId, HTMLSpanElement, []);
+    handle_element!(cx, tag, "style",   HTMLStyleElementTypeId, HTMLStyleElement, []);
+    handle_element!(cx, tag, "tbody",   HTMLTableBodyElementTypeId, HTMLTableBodyElement, []);
+    handle_element!(cx, tag, "td",      HTMLTableCellElementTypeId, HTMLTableCellElement, []);
+    handle_element!(cx, tag, "table",   HTMLTableElementTypeId, HTMLTableElement, []);
+    handle_element!(cx, tag, "tr",      HTMLTableRowElementTypeId, HTMLTableRowElement, []);
+    handle_element!(cx, tag, "title",   HTMLTitleElementTypeId, HTMLTitleElement, []);
+    handle_element!(cx, tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
 
-    handle_element!(tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
-    handle_element!(tag, "iframe",  HTMLIframeElementTypeId, HTMLIframeElement,
-                    [(frame: None), (parse_result: None)]);
+    handle_element!(cx, tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
+    handle_element!(cx, tag, "iframe",  HTMLIframeElementTypeId, HTMLIframeElement, [(frame: None), (size_future_chan: None)]);
 
-    handle_element!(tag, "h1", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading1)]);
-    handle_element!(tag, "h2", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading2)]);
-    handle_element!(tag, "h3", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading3)]);
-    handle_element!(tag, "h4", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading4)]);
-    handle_element!(tag, "h5", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading5)]);
-    handle_element!(tag, "h6", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading6)]);
+    handle_element!(cx, tag, "h1", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading1)]);
+    handle_element!(cx, tag, "h2", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading2)]);
+    handle_element!(cx, tag, "h3", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading3)]);
+    handle_element!(cx, tag, "h4", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading4)]);
+    handle_element!(cx, tag, "h5", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading5)]);
+    handle_element!(cx, tag, "h6", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading6)]);
 
     unsafe {
-        Node::as_abstract_node(~Element::new(UnknownElementTypeId, tag.to_str()))
+        Node::as_abstract_node(cx, ~Element::new(UnknownElementTypeId, tag.to_str()))
     }
 }
 
 #[allow(non_implicitly_copyable_typarams)]
-pub fn parse_html(url: Url,
+pub fn parse_html(cx: *JSContext,
+                  url: Url,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask) -> HtmlParserResult {
+    debug!("Hubbub: parsing %?", url);
     // Spawn a CSS parser to receive links to CSS style sheets.
     let resource_task2 = resource_task.clone();
-    let resource_task3 = resource_task.clone();
 
     let (stylesheet_port, stylesheet_chan) = comm::stream();
     let stylesheet_chan = Cell::new(stylesheet_chan);
@@ -268,7 +271,7 @@ pub fn parse_html(url: Url,
 
     // Build the root node.
     let root = ~HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
-    let root = unsafe { Node::as_abstract_node(root) };
+    let root = unsafe { Node::as_abstract_node(cx, root) };
     debug!("created new node");
     let mut parser = hubbub::Parser("UTF-8", false);
     debug!("created parser");
@@ -277,11 +280,12 @@ pub fn parse_html(url: Url,
     parser.enable_styling(true);
 
     let (css_chan2, css_chan3, js_chan2) = (css_chan.clone(), css_chan.clone(), js_chan.clone());
+    let (iframe_port, iframe_chan) = comm::stream();
     parser.set_tree_handler(~hubbub::TreeHandler {
         create_comment: |data: ~str| {
             debug!("create comment");
             unsafe {
-                Node::as_abstract_node(~Comment::new(data)).to_hubbub_node()
+                Node::as_abstract_node(cx, ~Comment::new(data)).to_hubbub_node()
             }
         },
         create_doctype: |doctype: ~hubbub::Doctype| {
@@ -295,12 +299,12 @@ pub fn parse_html(url: Url,
                                      system_id,
                                      force_quirks);
             unsafe {
-                Node::as_abstract_node(node).to_hubbub_node()
+                Node::as_abstract_node(cx, node).to_hubbub_node()
             }
         },
         create_element: |tag: ~hubbub::Tag| {
             debug!("create element");
-            let node = build_element_from_tag(tag.name);
+            let node = build_element_from_tag(cx, tag.name);
 
             debug!("-- attach attrs");
             do node.as_mut_element |element| {
@@ -325,30 +329,22 @@ pub fn parse_html(url: Url,
                             _ => {}
                         }
                     }
-                },
+                }
+
                 ElementNodeTypeId(HTMLIframeElementTypeId) => {
                     do node.with_mut_iframe_element |iframe_element| {
                         let src_opt = iframe_element.parent.get_attr("src").map(|x| x.to_str());
-                        match src_opt {
-                            None => {}
-                            Some(src) => {
-                                let iframe_url = make_url(src, Some(url2.clone()));
-                                iframe_element.frame = Some(iframe_url.clone());
-                                let (parse_port, parse_chan) = comm::stream();
-                                iframe_element.parse_result = Some(parse_port);
-                                let image_cache_task2 = Cell::new(image_cache_task.clone());
-                                let resource_task3 = Cell::new(resource_task3.clone());
-                                let iframe_url = Cell::new(iframe_url);
-                                do task::spawn {
-                                    let result = parse_html(iframe_url.take(),
-                                                            resource_task3.take(),
-                                                            image_cache_task2.take());
-                                    parse_chan.send(result);
-                                }
-                            }
+                        for src_opt.iter().advance |src| {
+                            let iframe_url = make_url(src.clone(), Some(url2.clone()));
+                            iframe_element.frame = Some(iframe_url.clone());
+                            let (port, chan) = comm::oneshot();
+                            iframe_element.size_future_chan = Some(chan);
+                            let size_future = from_port(port);
+                            iframe_chan.send((iframe_url, size_future));
                         }
                     }
                 }
+
                 ElementNodeTypeId(HTMLImageElementTypeId) => {
                     do node.with_mut_image_element |image_element| {
                         let src_opt = image_element.parent.get_attr("src").map(|x| x.to_str());
@@ -365,6 +361,7 @@ pub fn parse_html(url: Url,
                         }
                     }
                 }
+
                 //TODO (Issue #86): handle inline styles ('style' attr)
                 _ => {}
             }
@@ -374,7 +371,7 @@ pub fn parse_html(url: Url,
         create_text: |data: ~str| {
             debug!("create text");
             unsafe {
-                Node::as_abstract_node(~Text::new(data)).to_hubbub_node()
+                Node::as_abstract_node(cx, ~Text::new(data)).to_hubbub_node()
             }
         },
         ref_node: |_| {},
@@ -496,6 +493,7 @@ pub fn parse_html(url: Url,
     HtmlParserResult {
         root: root,
         style_port: stylesheet_port,
+        iframe_port: iframe_port,
         js_port: js_result_port,
     }
 }

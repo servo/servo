@@ -4,7 +4,7 @@
 
 use dom::bindings::utils::{WrapperCache, BindingObject, CacheableWrapper};
 use dom::bindings::codegen::BlobBinding;
-use script_task::{task_from_context};
+use script_task::{page_from_context};
 
 use js::jsapi::{JSContext, JSObject};
 
@@ -35,9 +35,9 @@ impl CacheableWrapper for Blob {
 
 impl BindingObject for Blob {
     fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
-        let script_context = task_from_context(cx);
+        let page = page_from_context(cx);
         unsafe {
-            (*script_context).root_frame.get_ref().window as @mut CacheableWrapper
+            (*page).frame.get_ref().window as @mut CacheableWrapper
         }
     }
 }

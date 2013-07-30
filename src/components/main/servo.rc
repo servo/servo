@@ -37,7 +37,7 @@ extern mod core_text;
 
 use compositing::{CompositorChan, CompositorTask};
 use constellation::Constellation;
-use servo_msg::constellation_msg::{ExitMsg, LoadUrlMsg};
+use servo_msg::constellation_msg::{ExitMsg, InitLoadUrlMsg};
 
 use gfx::opts;
 use servo_net::image_cache_task::ImageCacheTask;
@@ -133,7 +133,7 @@ fn run(opts: &Opts) {
 
     // Send the URL command to the constellation.
     for opts.urls.iter().advance |filename| {
-        constellation_chan.send(LoadUrlMsg(make_url(copy *filename, None)))
+        constellation_chan.send(InitLoadUrlMsg(make_url(filename.clone(), None)))
     }
 
     // Wait for the compositor to shut down.

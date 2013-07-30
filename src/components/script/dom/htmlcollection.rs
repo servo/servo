@@ -6,7 +6,7 @@ use dom::bindings::codegen::HTMLCollectionBinding;
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::node::{AbstractNode, ScriptView};
-use script_task::{task_from_context, global_script_context};
+use script_task::page_from_context;
 
 use js::jsapi::{JSObject, JSContext};
 
@@ -19,21 +19,16 @@ pub struct HTMLCollection {
 }
 
 impl HTMLCollection {
-    pub fn new(elements: ~[AbstractNode<ScriptView>]) -> @mut HTMLCollection {
+    pub fn new(elements: ~[AbstractNode<ScriptView>], cx: *JSContext, scope: *JSObject) -> @mut HTMLCollection {
         let collection = @mut HTMLCollection {
             elements: elements,
             wrapper: WrapperCache::new()
         };
-        collection.init_wrapper();
+        collection.init_wrapper(cx, scope);
         collection
     }
 
-    pub fn init_wrapper(@mut self) {
-        let script_context = global_script_context();
-        let cx = script_context.js_compartment.cx.ptr;
-        let owner = script_context.root_frame.get_ref().window;
-        let cache = owner.get_wrappercache();
-        let scope = cache.get_wrapper();
+    pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
         self.wrap_object_shared(cx, scope);
     }
     
@@ -62,9 +57,10 @@ impl HTMLCollection {
 
 impl BindingObject for HTMLCollection {
     fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
-        let script_context = task_from_context(cx);
+        let page = page_from_context(cx);
+        // TODO(tkuehn): This only handles the top-level frame. Need to grab subframes.
         unsafe {
-            (*script_context).root_frame.get_ref().window as @mut CacheableWrapper
+            (*page).frame.get_ref().window as @mut CacheableWrapper
         }
     }
 }

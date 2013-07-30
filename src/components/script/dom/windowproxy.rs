@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject};
-use script_task::{global_script_context, task_from_context};
+use script_task::page_from_context;
 
 use js::jsapi::{JSContext, JSObject};
 
@@ -18,21 +18,16 @@ impl WindowProxy {
         }
     }
 
-    pub fn init_wrapper(@mut self) {
-        let script_context = global_script_context();
-        let cx = script_context.js_compartment.cx.ptr;
-        let owner = script_context.root_frame.get_ref().window;
-        let cache = owner.get_wrappercache();
-        let scope = cache.get_wrapper();
+    pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
         self.wrap_object_shared(cx, scope);
     }
 }
 
 impl BindingObject for WindowProxy {
     fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
-        let script_context = task_from_context(cx);
+        let page = page_from_context(cx);
         unsafe {
-            (*script_context).root_frame.get_ref().window as @mut CacheableWrapper
+            (*page).frame.get_ref().window as @mut CacheableWrapper
         }
     }
 }

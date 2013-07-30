@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::EventTargetBinding;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
-use script_task::{task_from_context, global_script_context};
+use script_task::page_from_context;
 
 use js::glue::RUST_OBJECT_TO_JSVAL;
 use js::jsapi::{JSObject, JSContext, JSVal};
@@ -22,12 +22,7 @@ impl EventTarget {
         }
     }
 
-    pub fn init_wrapper(@mut self) {
-        let script_context = global_script_context();
-        let cx = script_context.js_compartment.cx.ptr;
-        let owner = script_context.root_frame.get_ref().window;
-        let cache = owner.get_wrappercache();
-        let scope = cache.get_wrapper();
+    pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
         self.wrap_object_shared(cx, scope);
     }
 }
@@ -45,9 +40,10 @@ impl CacheableWrapper for EventTarget {
 
 impl BindingObject for EventTarget {
     fn GetParentObject(&self, cx: *JSContext) -> @mut CacheableWrapper {
-        let script_context = task_from_context(cx);
+        let page = page_from_context(cx);
+        // TODO(tkuehn): This only handles top-level pages. Needs to handle subframes.
         unsafe {
-            (*script_context).root_frame.get_ref().window as @mut CacheableWrapper
+            (*page).frame.get_ref().window as @mut CacheableWrapper
         }
     }
 }
