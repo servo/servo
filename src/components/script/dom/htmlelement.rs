@@ -2,15 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::HTMLElementBinding;
 use dom::bindings::utils::{DOMString, null_string, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
-use dom::element::Element;
+use dom::element::{Element, ElementTypeId};
 use dom::node::{AbstractNode, ScriptView};
 use js::jsapi::{JSObject, JSContext, JSVal};
 use js::JSVAL_NULL;
 
 pub struct HTMLElement {
     parent: Element
+}
+
+impl HTMLElement {
+    pub fn new(type_id: ElementTypeId, tag_name: ~str) -> HTMLElement {
+        HTMLElement {
+            parent: Element::new(type_id, tag_name)
+        }
+    }
 }
 
 impl HTMLElement {
@@ -134,8 +143,9 @@ impl CacheableWrapper for HTMLElement {
         self.parent.get_wrappercache()
     }
 
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"need to implement wrapping");
+    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+        let mut unused = false;
+        HTMLElementBinding::Wrap(cx, scope, self, &mut unused)
     }
 }
 

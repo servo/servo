@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::PrototypeList;
+use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::node;
 use dom::node::{AbstractNode, ScriptView};
 use script_task::page_from_context;
@@ -401,7 +402,7 @@ pub struct ConstantSpec {
 pub struct DOMClass {
     // A list of interfaces that this object implements, in order of decreasing
     // derivedness.
-    interface_chain: [PrototypeList::id::ID, ..3 /*max prototype chain length*/],
+    interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH],
 
     unused: bool, // DOMObjectIsISupports (always false)
     native_hooks: *NativePropertyHooks

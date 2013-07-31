@@ -4,6 +4,7 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
+use dom::bindings::codegen::TextBinding;
 use dom::bindings::node;
 use dom::bindings::utils::{WrapperCache, DOMString, null_string, ErrorResult};
 use dom::bindings::utils::{BindingObject, CacheableWrapper};
@@ -694,8 +695,9 @@ impl CacheableWrapper for Text {
         self.parent.get_wrappercache()
     }
 
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"need to implement wrapping");
+    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+        let mut unused = false;
+        TextBinding::Wrap(cx, scope, self, &mut unused)
     }
 }
 
