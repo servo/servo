@@ -347,7 +347,7 @@ impl Constellation {
                     let matching_pending_frames = do self.pending_frames.iter().filter_map |frame_change| {
                         frame_change.after.find_mut(source_pipeline_id)
                     };
-                    matching_navi_frames.iter().transform(|&x| x).chain_(matching_pending_frames).collect()
+                    matching_navi_frames.consume_iter().chain_(matching_pending_frames).collect()
                 };
 
                 if frame_trees.is_empty() {
