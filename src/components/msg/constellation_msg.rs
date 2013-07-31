@@ -30,7 +30,7 @@ pub enum Msg {
     ExitMsg(Chan<()>),
     InitLoadUrlMsg(Url),
     LoadUrlMsg(PipelineId, Url, Future<Size2D<uint>>),
-    LoadIframeUrlMsg(Url, PipelineId, Future<Size2D<uint>>),
+    LoadIframeUrlMsg(Url, PipelineId, SubpageId, Future<Size2D<uint>>),
     NavigateMsg(NavigationDirection),
     RendererReadyMsg(PipelineId),
     ResizedWindowBroadcast(Size2D<uint>),
@@ -51,3 +51,5 @@ pub enum NavigationDirection {
 
 #[deriving(Clone, Eq, IterBytes)]
 pub struct PipelineId(uint);
+#[deriving(Clone, Eq, IterBytes)]
+pub struct SubpageId(uint);

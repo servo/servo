@@ -11,7 +11,7 @@ use gfx::opts::Opts;
 use layout::layout_task::LayoutTask;
 use script::layout_interface::LayoutChan;
 use script::script_task::{ExecuteMsg, LoadMsg};
-use servo_msg::constellation_msg::{ConstellationChan, NavigationType, PipelineId};
+use servo_msg::constellation_msg::{ConstellationChan, NavigationType, PipelineId, SubpageId};
 use script::script_task::{AttachLayoutMsg, NewLayoutInfo, ScriptTask, ScriptChan};
 use script::script_task;
 use servo_net::image_cache_task::ImageCacheTask;
@@ -25,6 +25,7 @@ use std::comm;
 #[deriving(Clone)]
 pub struct Pipeline {
     id: PipelineId,
+    subpage_id: Option<SubpageId>,
     script_chan: ScriptChan,
     layout_chan: LayoutChan,
     render_chan: RenderChan,
@@ -36,13 +37,14 @@ pub struct Pipeline {
 impl Pipeline {
     /// Starts a render task, layout task, and script task. Returns the channels wrapped in a struct.
     pub fn with_script(id: PipelineId,
-                            constellation_chan: ConstellationChan,
-                            compositor_chan: CompositorChan,
-                            image_cache_task: ImageCacheTask,
-                            profiler_chan: ProfilerChan,
-                            opts: Opts,
-                            script_pipeline: &Pipeline,
-                            size_future: Future<Size2D<uint>>) -> Pipeline {
+                       subpage_id: Option<SubpageId>,
+                       constellation_chan: ConstellationChan,
+                       compositor_chan: CompositorChan,
+                       image_cache_task: ImageCacheTask,
+                       profiler_chan: ProfilerChan,
+                       opts: Opts,
+                       script_pipeline: &Pipeline,
+                       size_future: Future<Size2D<uint>>) -> Pipeline {
         
         let (layout_port, layout_chan) = special_stream!(LayoutChan);
         let (render_port, render_chan) = special_stream!(RenderChan);
@@ -72,6 +74,7 @@ impl Pipeline {
         script_pipeline.script_chan.send(AttachLayoutMsg(new_layout_info));
 
         Pipeline::new(id,
+                      subpage_id,
                       script_pipeline.script_chan.clone(),
                       layout_chan,
                       render_chan)
@@ -79,6 +82,7 @@ impl Pipeline {
     }
 
     pub fn create(id: PipelineId,
+                  subpage_id: Option<SubpageId>,
                   constellation_chan: ConstellationChan,
                   compositor_chan: CompositorChan,
                   image_cache_task: ImageCacheTask,
@@ -117,18 +121,21 @@ impl Pipeline {
                            copy opts,
                            profiler_chan);
         Pipeline::new(id,
+                      subpage_id,
                       script_chan,
                       layout_chan,
                       render_chan)
     }
 
     pub fn new(id: PipelineId,
+               subpage_id: Option<SubpageId>,
                script_chan: ScriptChan,
                layout_chan: LayoutChan,
                render_chan: RenderChan)
                -> Pipeline {
         Pipeline {
             id: id,
+            subpage_id: subpage_id,
             script_chan: script_chan,
             layout_chan: layout_chan,
             render_chan: render_chan,

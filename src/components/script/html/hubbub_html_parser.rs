@@ -42,6 +42,7 @@ use std::str::eq_slice;
 use std::result;
 use std::task;
 use hubbub::hubbub;
+use servo_msg::constellation_msg::SubpageId;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::image_cache_task;
 use servo_net::resource_task::{Done, Load, Payload, ResourceTask};
@@ -83,7 +84,7 @@ enum JSMessage {
 pub struct HtmlParserResult {
     root: AbstractNode<ScriptView>,
     style_port: Port<Stylesheet>,
-    iframe_port: Port<(Url, Future<Size2D<uint>>)>,
+    iframe_port: Port<(Url, SubpageId, Future<Size2D<uint>>)>,
     js_port: Port<JSResult>,
 }
 
@@ -222,7 +223,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
 
     handle_element!(cx, tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
-    handle_element!(cx, tag, "iframe",  HTMLIframeElementTypeId, HTMLIframeElement, [(frame: None), (size_future_chan: None)]);
+    handle_element!(cx, tag, "iframe",  HTMLIframeElementTypeId, HTMLIframeElement, [(frame: None), (size_future_chan: None), (subpage_id: None)]);
 
     handle_element!(cx, tag, "h1", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading1)]);
     handle_element!(cx, tag, "h2", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading2)]);
@@ -240,7 +241,8 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
 pub fn parse_html(cx: *JSContext,
                   url: Url,
                   resource_task: ResourceTask,
-                  image_cache_task: ImageCacheTask) -> HtmlParserResult {
+                  image_cache_task: ImageCacheTask,
+                  next_subpage_id: SubpageId) -> HtmlParserResult {
     debug!("Hubbub: parsing %?", url);
     // Spawn a CSS parser to receive links to CSS style sheets.
     let resource_task2 = resource_task.clone();
@@ -281,6 +283,8 @@ pub fn parse_html(cx: *JSContext,
 
     let (css_chan2, css_chan3, js_chan2) = (css_chan.clone(), css_chan.clone(), js_chan.clone());
     let (iframe_port, iframe_chan) = comm::stream();
+    let next_subpage_id = Cell::new(next_subpage_id);
+    
     parser.set_tree_handler(~hubbub::TreeHandler {
         create_comment: |data: ~str| {
             debug!("create comment");
@@ -337,10 +341,18 @@ pub fn parse_html(cx: *JSContext,
                         for src_opt.iter().advance |src| {
                             let iframe_url = make_url(src.clone(), Some(url2.clone()));
                             iframe_element.frame = Some(iframe_url.clone());
+                            
+                            // Size future
                             let (port, chan) = comm::oneshot();
                             iframe_element.size_future_chan = Some(chan);
                             let size_future = from_port(port);
-                            iframe_chan.send((iframe_url, size_future));
+
+                            // Subpage Id
+                            let subpage_id = next_subpage_id.take();
+                            iframe_element.subpage_id = Some(subpage_id);
+                            next_subpage_id.put_back(SubpageId(*subpage_id + 1));
+
+                            iframe_chan.send((iframe_url, subpage_id, size_future));
                         }
                     }
                 }

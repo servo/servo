@@ -21,7 +21,7 @@ use layout_interface::{ReflowDocumentDamage, ReflowForDisplay, ReflowGoal};
 use layout_interface::ReflowMsg;
 use layout_interface;
 use servo_msg::constellation_msg::{ConstellationChan, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{PipelineId, RendererReadyMsg, ResizedWindowBroadcast};
+use servo_msg::constellation_msg::{PipelineId, SubpageId, RendererReadyMsg, ResizedWindowBroadcast};
 use servo_msg::constellation_msg::{LoadIframeUrlMsg};
 use servo_msg::constellation_msg;
 
@@ -128,6 +128,8 @@ pub struct Page {
     /// and simply caches pages forever (!). The bool indicates if reflow is required
     /// when reloading.
     url: Option<(Url, bool)>,
+
+    next_subpage_id: SubpageId,
 }
 
 pub struct PageTree {
@@ -151,6 +153,7 @@ impl PageTree {
                 window_size: size_future,
                 js_info: None,
                 url: None,
+                next_subpage_id: SubpageId(0),
             },
             inner: ~[],
         }
@@ -599,7 +602,8 @@ impl ScriptTask {
         let html_parsing_result = hubbub_html_parser::parse_html(page.js_info.get_ref().js_compartment.cx.ptr,
                                                                  url.clone(),
                                                                  self.resource_task.clone(),
-                                                                 self.image_cache_task.clone());
+                                                                 self.image_cache_task.clone(),
+                                                                 page.next_subpage_id.clone());
 
         let HtmlParserResult {root, js_port, style_port, iframe_port} = html_parsing_result;
 
@@ -624,12 +628,14 @@ impl ScriptTask {
         // FIXME: These should be streamed to layout as they're parsed. We don't need to stop here
         // in the script task.
 
-        let get_iframes = |iframe_port: &Port<(Url, Future<Size2D<uint>>)>| loop {
+        let get_iframes = |iframe_port: &Port<(Url, SubpageId, Future<Size2D<uint>>)>| loop {
             match iframe_port.try_recv() {
                 None => break,
-                Some((iframe_url, size_future)) => {
+                Some((iframe_url, subpage_id, size_future)) => {
+                    page.next_subpage_id = SubpageId(*subpage_id + 1);
                     self.constellation_chan.send(LoadIframeUrlMsg(iframe_url,
                                                                   pipeline_id,
+                                                                  subpage_id,
                                                                   size_future));
                 }
             }
@@ -652,9 +658,11 @@ impl ScriptTask {
                 Left(Some(sheet)) => {
                     page.layout_chan.send(AddStylesheetMsg(sheet));
                 }
-                Right(Some((iframe_url, size_future))) => {
+                Right(Some((iframe_url, subpage_id, size_future))) => {
+                    page.next_subpage_id = SubpageId(*subpage_id + 1);
                     self.constellation_chan.send(LoadIframeUrlMsg(iframe_url,
                                                                   pipeline_id,
+                                                                  subpage_id,
                                                                   size_future));
                 }
                 Right(None) => {
