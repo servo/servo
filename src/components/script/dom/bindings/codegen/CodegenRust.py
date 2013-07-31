@@ -4605,7 +4605,7 @@ class CGBindingRoot(CGThing):
                           'dom::characterdata::CharacterData', #XXXjdm
                           'dom::node::{AbstractNode, Node, Text}', #XXXjdm
                           'dom::document::{Document, AbstractDocument}', #XXXjdm
-                          'dom::element::{Element, HTMLHeadElement}', #XXXjdm
+                          'dom::element::{Element, HTMLHeadElement, HTMLHtmlElement}', #XXXjdm
                           'dom::htmlelement::HTMLElement', #XXXjdm
                           'dom::htmldocument::HTMLDocument', #XXXjdm
                           'dom::bindings::utils::*',
