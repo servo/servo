@@ -241,7 +241,8 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
 pub fn parse_html(cx: *JSContext,
                   url: Url,
                   resource_task: ResourceTask,
-                  image_cache_task: ImageCacheTask) -> HtmlParserResult {
+                  image_cache_task: ImageCacheTask,
+                  next_subpage_id: SubpageId) -> HtmlParserResult {
     debug!("Hubbub: parsing %?", url);
     // Spawn a CSS parser to receive links to CSS style sheets.
     let resource_task2 = resource_task.clone();
@@ -282,7 +283,7 @@ pub fn parse_html(cx: *JSContext,
 
     let (css_chan2, css_chan3, js_chan2) = (css_chan.clone(), css_chan.clone(), js_chan.clone());
     let (iframe_port, iframe_chan) = comm::stream();
-    let next_subpage_id = Cell::new(SubpageId(0));
+    let next_subpage_id = Cell::new(next_subpage_id);
     
     parser.set_tree_handler(~hubbub::TreeHandler {
         create_comment: |data: ~str| {

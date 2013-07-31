@@ -128,6 +128,8 @@ pub struct Page {
     /// and simply caches pages forever (!). The bool indicates if reflow is required
     /// when reloading.
     url: Option<(Url, bool)>,
+
+    next_subpage_id: SubpageId,
 }
 
 pub struct PageTree {
@@ -151,6 +153,7 @@ impl PageTree {
                 window_size: size_future,
                 js_info: None,
                 url: None,
+                next_subpage_id: SubpageId(0),
             },
             inner: ~[],
         }
@@ -599,7 +602,8 @@ impl ScriptTask {
         let html_parsing_result = hubbub_html_parser::parse_html(page.js_info.get_ref().js_compartment.cx.ptr,
                                                                  url.clone(),
                                                                  self.resource_task.clone(),
-                                                                 self.image_cache_task.clone());
+                                                                 self.image_cache_task.clone(),
+                                                                 page.next_subpage_id.clone());
 
         let HtmlParserResult {root, js_port, style_port, iframe_port} = html_parsing_result;
 
@@ -628,6 +632,7 @@ impl ScriptTask {
             match iframe_port.try_recv() {
                 None => break,
                 Some((iframe_url, subpage_id, size_future)) => {
+                    page.next_subpage_id = SubpageId(*subpage_id + 1);
                     self.constellation_chan.send(LoadIframeUrlMsg(iframe_url,
                                                                   pipeline_id,
                                                                   subpage_id,
@@ -654,6 +659,7 @@ impl ScriptTask {
                     page.layout_chan.send(AddStylesheetMsg(sheet));
                 }
                 Right(Some((iframe_url, subpage_id, size_future))) => {
+                    page.next_subpage_id = SubpageId(*subpage_id + 1);
                     self.constellation_chan.send(LoadIframeUrlMsg(iframe_url,
                                                                   pipeline_id,
                                                                   subpage_id,
