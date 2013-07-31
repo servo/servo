@@ -188,29 +188,64 @@ impl NavigationContext {
         evicted
     }
 
-    /// Returns the frame tree whose key is pipeline_id.
-    pub fn find(&mut self, pipeline_id: PipelineId) -> Option<@mut FrameTree> {
+    /// Returns the frame trees whose keys are pipeline_id.
+    pub fn find_all(&mut self, pipeline_id: PipelineId) -> ~[@mut FrameTree] {
+        let mut to_return = ~[];
+
         for self.current.mut_iter().advance |frame_tree| {
             let found = frame_tree.find_mut(pipeline_id);
-            if found.is_some() { return found; }
+            for found.iter().advance |&found| {
+                to_return.push(found);
+            }
         }
+
         let mut forward =  self.next.mut_rev_iter();
         let mut backward = self.previous.mut_rev_iter();
         loop {
             match (forward.next(), backward.next()) {
                 (None, None) => {
-                    return None;
+                    return to_return;
                 }
                 (next_forward, next_backward) => {
                     let mut next_forward = next_forward;
                     let mut next_backward = next_backward;
                     for next_forward.mut_iter().advance |frame_tree| {
                         let found = frame_tree.find_mut(pipeline_id);
-                        if found.is_some() { return found; }
+                        for found.iter().advance |&found| {
+                            to_return.push(found);
+                        }
                     }
                     for next_backward.mut_iter().advance |frame_tree| {
                         let found = frame_tree.find_mut(pipeline_id);
-                        if found.is_some() { return found; }
+                        for found.iter().advance |&found| {
+                            to_return.push(found);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn contains(&mut self, pipeline_id: PipelineId) -> bool {
+        for self.current.iter().advance |frame_tree| {
+            if frame_tree.contains(pipeline_id) { return true; }
+        }
+
+        let mut forward =  self.next.mut_rev_iter();
+        let mut backward = self.previous.mut_rev_iter();
+        loop {
+            match (forward.next(), backward.next()) {
+                (None, None) => {
+                    return false;
+                }
+                (next_forward, next_backward) => {
+                    let mut next_forward = next_forward;
+                    let mut next_backward = next_backward;
+                    for next_forward.mut_iter().advance |frame_tree| {
+                        if frame_tree.contains(pipeline_id) { return true; }
+                    }
+                    for next_backward.mut_iter().advance |frame_tree| {
+                        if frame_tree.contains(pipeline_id) { return true; }
                     }
                 }
             }
@@ -331,28 +366,21 @@ impl Constellation {
                 // new pipeline being spawned and a frame tree being added to pipeline_id's
                 // frame tree's children. This message is never the result of a link clicked
                 // or a new url entered.
-                //     Start by finding the frame tree matching the pipeline id,
-                // and add the new pipeline to its sub frames. The frame tree
-                // could already be in the navigation context, or it could still
-                // be loading, in which case it is a new id in a constellation.pending_frames
-                // frame change, because pages aren't added to the navi context until they finish
-                // loading (excluding iframes). Which is checked first is seemingly arbitrary
+                //     Start by finding the frame trees matching the pipeline id,
+                // and add the new pipeline to their sub frames.
                 let next_pipeline_id = self.get_next_pipeline_id();
-                let frame_tree = {
-                    let frame_tree = self.navigation_context.find(source_pipeline_id);
-                    match frame_tree {
-                        Some(frame_tree) => frame_tree,
-                        None => {
-                            let frame_change = do self.pending_frames.mut_iter().find_ |frame_change| {
-                                frame_change.after.pipeline.id == source_pipeline_id
-                            };
-                            let frame_change = frame_change.expect("Constellation: source pipeline id
-                                of LoadIframeUrlMsg is not in navigation context nor a pending painter.
-                                This should be impossible.");
-                            frame_change.after
-                        }
+                let mut frame_trees = self.navigation_context.find_all(source_pipeline_id);
+                for self.pending_frames.iter().advance |frame_change| {
+                    let found = frame_change.after.find_mut(source_pipeline_id);
+                    for found.iter().advance |&found| {
+                        frame_trees.push(found);
                     }
-                };
+                }
+                if frame_trees.is_empty() {
+                    fail!("Constellation: source pipeline id of LoadIframeUrlMsg is not in
+                           navigation context, nor is it in a pending frame. This should be
+                           impossible.");
+                }
 
                 // Compare the pipeline's url to the new url. If the origin is the same,
                 // then reuse the script task in creating the new pipeline
@@ -395,11 +423,13 @@ impl Constellation {
                 } else {
                     pipeline.load(url, None);
                 }
-                frame_tree.children.push(@mut FrameTree {
-                    pipeline: pipeline,
-                    parent: Some(source_pipeline),
-                    children: ~[],
-                });
+                for frame_trees.iter().advance |frame_tree| {
+                    frame_tree.children.push(@mut FrameTree {
+                        pipeline: pipeline,
+                        parent: Some(source_pipeline),
+                        children: ~[],
+                    });
+                }
                 self.pipelines.insert(pipeline.id, pipeline);
             }
 
@@ -613,7 +643,7 @@ impl Constellation {
                 for evicted.iter().advance |frame_tree| {
                     // exit any pipelines that don't exist outside the evicted frame trees
                     for frame_tree.iter().advance |frame| {
-                        if self.navigation_context.find(frame.pipeline.id).is_none() {
+                        if !self.navigation_context.contains(frame.pipeline.id) {
                             frame_tree.pipeline.exit();
                             self.pipelines.remove(&frame_tree.pipeline.id);
                         }
