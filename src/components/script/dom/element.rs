@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::bindings::codegen::HTMLHeadElementBinding;
+use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
 use dom::bindings::utils::{DOMString, null_string, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::clientrect::ClientRect;
@@ -124,22 +124,44 @@ pub struct HTMLTitleElement     { parent: HTMLElement }
 pub struct HTMLUListElement     { parent: HTMLElement }
 pub struct UnknownElement       { parent: HTMLElement }
 
-impl CacheableWrapper for HTMLHeadElement {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        self.parent.get_wrappercache()
+impl HTMLHtmlElement {
+    pub fn Version(&self) -> DOMString {
+        null_string
     }
 
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        HTMLHeadElementBinding::Wrap(cx, scope, self, &mut unused)
+    pub fn SetVersion(&mut self, _version: &DOMString, _rv: &mut ErrorResult) {
     }
 }
 
-impl BindingObject for HTMLHeadElement {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
-        self.parent.GetParentObject(cx)
-    }
-}
+macro_rules! generate_cacheable_wrapper(
+    ($name: ident, $wrap: path) => (
+        impl CacheableWrapper for $name {
+            fn get_wrappercache(&mut self) -> &mut WrapperCache {
+                self.parent.get_wrappercache()
+            }
+
+            fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+                let mut unused = false;
+                $wrap(cx, scope, self, &mut unused)
+            }
+        }
+    )
+)
+
+macro_rules! generate_binding_object(
+    ($name: ident) => (
+        impl BindingObject for $name {
+            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+                self.parent.GetParentObject(cx)
+            }
+        }
+    )
+)
+
+generate_cacheable_wrapper!(HTMLHeadElement, HTMLHeadElementBinding::Wrap)
+generate_binding_object!(HTMLHeadElement)
+generate_cacheable_wrapper!(HTMLHtmlElement, HTMLHtmlElementBinding::Wrap)
+generate_binding_object!(HTMLHtmlElement)
 
 //
 // Fancier elements

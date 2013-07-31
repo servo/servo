@@ -6,7 +6,8 @@ use dom::bindings::element;
 use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
-use dom::element::{HTMLHeadElementTypeId, HTMLHeadElement};
+use dom::element::{HTMLHeadElementTypeId, HTMLHtmlElementTypeId};
+use dom::element::{HTMLHeadElement, HTMLHtmlElement};
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId, ScriptView, Text};
 
@@ -62,13 +63,18 @@ pub fn init(compartment: @mut Compartment) {
     }
 }
 
+macro_rules! generate_element(
+    ($name: ident) => ({
+        let node: @mut $name = unsafe { cast::transmute(node.raw_object()) };
+        node.wrap_object_shared(cx, ptr::null())
+    })
+)
+
 #[allow(non_implicitly_copyable_typarams)]
 pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject {
     match node.type_id() {
-        ElementNodeTypeId(HTMLHeadElementTypeId) => {
-            let node: @mut HTMLHeadElement = unsafe { cast::transmute(node.raw_object()) };
-            node.wrap_object_shared(cx, ptr::null())
-        }
+        ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
+        ElementNodeTypeId(HTMLHtmlElementTypeId) => generate_element!(HTMLHtmlElement),
         ElementNodeTypeId(_) => element::create(cx, node).ptr,
         CommentNodeTypeId |
         DoctypeNodeTypeId => text::create(cx, node).ptr,
