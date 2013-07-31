@@ -43,11 +43,24 @@ pub struct Constellation {
 }
 
 /// Stores the Id of the outermost frame's pipeline, along with a vector of children frames
-#[deriving(Clone)]
 struct FrameTree {
     pipeline: @mut Pipeline,
     parent: Option<@mut Pipeline>,
     children: ~[@mut FrameTree],
+}
+// Need to clone the FrameTrees, but _not_ the Pipelines
+impl Clone for FrameTree {
+    fn clone(&self) -> FrameTree {
+        let mut children = ~[];
+        for self.children.iter().advance |&frame_tree| {
+            children.push(@mut (*frame_tree).clone());
+        }
+        FrameTree {
+            pipeline: self.pipeline,
+            parent: self.parent.clone(),
+            children: children,
+        }
+    }
 }
 
 pub struct SendableFrameTree {
@@ -562,7 +575,7 @@ impl Constellation {
                     // Create the next frame tree that will be given to the compositor
                     let next_frame_tree = match to_add.parent {
                         None => to_add, // to_add is the root
-                        Some(_parent) => self.current_frame().get_ref().clone(),
+                        Some(_parent) => @mut (*self.current_frame().get()).clone(),
                     };
 
                     // If there are frames to revoke permission from, do so now.
