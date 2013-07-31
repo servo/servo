@@ -6,9 +6,9 @@ use dom::bindings::codegen::HTMLDocumentBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, null_string};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::document::{AbstractDocument, Document, WrappableDocument, HTML};
-use dom::element::Element;
+use dom::element::{Element, HTMLHeadElementTypeId};
 use dom::htmlcollection::HTMLCollection;
-use dom::node::{AbstractNode, ScriptView};
+use dom::node::{AbstractNode, ScriptView, ElementNodeTypeId};
 use dom::window::Window;
 
 use js::jsapi::{JSObject, JSContext};
@@ -68,7 +68,14 @@ impl HTMLDocument {
     }
 
     pub fn GetHead(&self) -> Option<AbstractNode<ScriptView>> {
-        None
+        let mut headNode: Option<AbstractNode<ScriptView>> = None;
+        let _ = for self.parent.root.traverse_preorder |child| {
+            if child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId) {
+                headNode = Some(child);
+                break;
+            }
+        };
+        headNode 
     }
 
     pub fn Images(&self) -> @mut HTMLCollection {
