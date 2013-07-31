@@ -409,6 +409,11 @@ impl Constellation {
             LoadUrlMsg(source_id, url, size_future) => {
                 debug!("received message to load %s", url::to_str(&url));
                 // Make sure no pending page would be overridden.
+                let source_frame = self.current_frame().get_ref().find_mut(source_id).expect(
+                    "Constellation: received a LoadUrlMsg from a pipeline_id associated
+                    with a pipeline not in the active frame tree. This should be
+                    impossible.");
+
                 for self.pending_frames.iter().advance |frame_change| {
                     let old_id = frame_change.before.expect("Constellation: Received load msg
                         from pipeline, but there is no currently active page. This should
@@ -416,7 +421,7 @@ impl Constellation {
                     let changing_frame = self.current_frame().get_ref().find_mut(old_id).expect("Constellation:
                         Pending change has non-active source pipeline. This should be
                         impossible.");
-                    if changing_frame.contains(source_id) {
+                    if changing_frame.contains(source_id) || source_frame.contains(old_id) {
                         // id that sent load msg is being changed already; abort
                         return true;
                     }
@@ -424,10 +429,6 @@ impl Constellation {
                 // Being here means either there are no pending frames, or none of the pending
                 // changes would be overriden by changing the subframe associated with source_id.
 
-                let source_frame = self.current_frame().get_ref().find_mut(source_id).expect(
-                    "Constellation: received a LoadUrlMsg from a pipeline_id associated
-                    with a pipeline not in the active frame tree. This should be
-                    impossible.");
                 let parent = source_frame.parent.clone();
                 let subpage_id = source_frame.pipeline.subpage_id.clone();
                 let next_pipeline_id = self.get_next_pipeline_id();
@@ -531,7 +532,7 @@ impl Constellation {
                     // Create the next frame tree that will be given to the compositor
                     let next_frame_tree = match to_add.parent {
                         None => to_add, // to_add is the root
-                        Some(_parent) => self.current_frame().get(),
+                        Some(_parent) => self.current_frame().get_ref().clone(),
                     };
 
                     // If there are frames to revoke permission from, do so now.
