@@ -28,6 +28,7 @@ use dom::element::{HTMLAnchorElement, HTMLAsideElement, HTMLBRElement, HTMLBodyE
 use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Heading4, Heading5,
                    Heading6};
 use dom::element::{Element, Attr};
+use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Comment, Doctype, ElementNodeTypeId, Node, ScriptView};
 use dom::node::{Text};
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
@@ -57,7 +58,7 @@ macro_rules! handle_element(
     ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident, [ $(($field:ident : $field_init:expr)),* ]) => (
         if eq_slice($tag, $string) {
             let _element = @$ctor {
-                parent: Element::new($type_id, ($tag).to_str()),
+                parent: HTMLElement::new($type_id, ($tag).to_str()),
                 $(
                     $field: $field_init,
                 )*
@@ -272,7 +273,7 @@ pub fn parse_html(cx: *JSContext,
     let url3 = url.clone();
 
     // Build the root node.
-    let root = @HTMLHtmlElement { parent: Element::new(HTMLHtmlElementTypeId, ~"html") };
+    let root = @HTMLHtmlElement { parent: HTMLElement::new(HTMLHtmlElementTypeId, ~"html") };
     let root = unsafe { Node::as_abstract_node(cx, root) };
     debug!("created new node");
     let mut parser = hubbub::Parser("UTF-8", false);
@@ -337,7 +338,8 @@ pub fn parse_html(cx: *JSContext,
 
                 ElementNodeTypeId(HTMLIframeElementTypeId) => {
                     do node.with_mut_iframe_element |iframe_element| {
-                        let src_opt = iframe_element.parent.get_attr("src").map(|x| x.to_str());
+                        let elem = &mut iframe_element.parent.parent;
+                        let src_opt = elem.get_attr("src").map(|x| x.to_str());
                         for src_opt.iter().advance |src| {
                             let iframe_url = make_url(src.clone(), Some(url2.clone()));
                             iframe_element.frame = Some(iframe_url.clone());
@@ -359,7 +361,8 @@ pub fn parse_html(cx: *JSContext,
 
                 ElementNodeTypeId(HTMLImageElementTypeId) => {
                     do node.with_mut_image_element |image_element| {
-                        let src_opt = image_element.parent.get_attr("src").map(|x| x.to_str());
+                        let elem = &mut image_element.parent.parent;
+                        let src_opt = elem.get_attr("src").map(|x| x.to_str());
                         match src_opt {
                             None => {}
                             Some(src) => {

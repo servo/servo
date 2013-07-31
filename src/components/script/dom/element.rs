@@ -4,11 +4,13 @@
 
 //! Element nodes.
 
+use dom::bindings::codegen::HTMLHeadElementBinding;
 use dom::bindings::utils::{DOMString, null_string, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::htmlcollection::HTMLCollection;
+use dom::htmlelement::HTMLElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
@@ -28,6 +30,22 @@ pub struct Element {
     parent: Node<ScriptView>,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
     attrs: ~[Attr],
+}
+
+impl CacheableWrapper for Element {
+    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+        self.parent.get_wrappercache()
+    }
+
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        fail!("no wrapping")
+    }
+}
+
+impl BindingObject for Element {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+        self.parent.GetParentObject(cx)
+    }
 }
 
 #[deriving(Eq)]
@@ -73,57 +91,74 @@ pub enum ElementTypeId {
 // Regular old elements
 //
 
-pub struct HTMLAnchorElement    { parent: Element }
-pub struct HTMLAsideElement     { parent: Element }
-pub struct HTMLBRElement        { parent: Element }
-pub struct HTMLBodyElement      { parent: Element }
-pub struct HTMLBoldElement      { parent: Element }
-pub struct HTMLDivElement       { parent: Element }
-pub struct HTMLFontElement      { parent: Element }
-pub struct HTMLFormElement      { parent: Element }
-pub struct HTMLHRElement        { parent: Element }
-pub struct HTMLHeadElement      { parent: Element }
-pub struct HTMLHtmlElement      { parent: Element }
-pub struct HTMLInputElement     { parent: Element }
-pub struct HTMLItalicElement    { parent: Element }
-pub struct HTMLLinkElement      { parent: Element }
-pub struct HTMLListItemElement  { parent: Element }
-pub struct HTMLMetaElement      { parent: Element }
-pub struct HTMLOListElement     { parent: Element }
-pub struct HTMLOptionElement    { parent: Element }
-pub struct HTMLParagraphElement { parent: Element }
-pub struct HTMLScriptElement    { parent: Element }
-pub struct HTMLSectionElement   { parent: Element }
-pub struct HTMLSelectElement    { parent: Element }
-pub struct HTMLSmallElement     { parent: Element }
-pub struct HTMLSpanElement      { parent: Element }
-pub struct HTMLStyleElement     { parent: Element }
-pub struct HTMLTableBodyElement { parent: Element }
-pub struct HTMLTableCellElement { parent: Element }
-pub struct HTMLTableElement     { parent: Element }
-pub struct HTMLTableRowElement  { parent: Element }
-pub struct HTMLTitleElement     { parent: Element }
-pub struct HTMLUListElement     { parent: Element }
-pub struct UnknownElement       { parent: Element }
+pub struct HTMLAnchorElement    { parent: HTMLElement }
+pub struct HTMLAsideElement     { parent: HTMLElement }
+pub struct HTMLBRElement        { parent: HTMLElement }
+pub struct HTMLBodyElement      { parent: HTMLElement }
+pub struct HTMLBoldElement      { parent: HTMLElement }
+pub struct HTMLDivElement       { parent: HTMLElement }
+pub struct HTMLFontElement      { parent: HTMLElement }
+pub struct HTMLFormElement      { parent: HTMLElement }
+pub struct HTMLHRElement        { parent: HTMLElement }
+pub struct HTMLHeadElement      { parent: HTMLElement }
+pub struct HTMLHtmlElement      { parent: HTMLElement }
+pub struct HTMLInputElement     { parent: HTMLElement }
+pub struct HTMLItalicElement    { parent: HTMLElement }
+pub struct HTMLLinkElement      { parent: HTMLElement }
+pub struct HTMLListItemElement  { parent: HTMLElement }
+pub struct HTMLMetaElement      { parent: HTMLElement }
+pub struct HTMLOListElement     { parent: HTMLElement }
+pub struct HTMLOptionElement    { parent: HTMLElement }
+pub struct HTMLParagraphElement { parent: HTMLElement }
+pub struct HTMLScriptElement    { parent: HTMLElement }
+pub struct HTMLSectionElement   { parent: HTMLElement }
+pub struct HTMLSelectElement    { parent: HTMLElement }
+pub struct HTMLSmallElement     { parent: HTMLElement }
+pub struct HTMLSpanElement      { parent: HTMLElement }
+pub struct HTMLStyleElement     { parent: HTMLElement }
+pub struct HTMLTableBodyElement { parent: HTMLElement }
+pub struct HTMLTableCellElement { parent: HTMLElement }
+pub struct HTMLTableElement     { parent: HTMLElement }
+pub struct HTMLTableRowElement  { parent: HTMLElement }
+pub struct HTMLTitleElement     { parent: HTMLElement }
+pub struct HTMLUListElement     { parent: HTMLElement }
+pub struct UnknownElement       { parent: HTMLElement }
+
+impl CacheableWrapper for HTMLHeadElement {
+    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+        self.parent.get_wrappercache()
+    }
+
+    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+        let mut unused = false;
+        HTMLHeadElementBinding::Wrap(cx, scope, self, &mut unused)
+    }
+}
+
+impl BindingObject for HTMLHeadElement {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+        self.parent.GetParentObject(cx)
+    }
+}
 
 //
 // Fancier elements
 //
 
 pub struct HTMLHeadingElement {
-    parent: Element,
+    parent: HTMLElement,
     level: HeadingLevel,
 }
 
 pub struct HTMLIframeElement {
-    parent: Element,
+    parent: HTMLElement,
     frame: Option<Url>,
     subpage_id: Option<SubpageId>,
     size_future_chan: Option<ChanOne<Size2D<uint>>>,
 }
 
 pub struct HTMLImageElement {
-    parent: Element,
+    parent: HTMLElement,
     image: Option<Url>,
 }
 
@@ -438,20 +473,4 @@ pub enum HeadingLevel {
     Heading4,
     Heading5,
     Heading6,
-}
-
-impl CacheableWrapper for Element {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        self.parent.get_wrappercache()
-    }
-
-    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
-        fail!(~"need to implement wrapping");
-    }
-}
-
-impl BindingObject for Element {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
-        self.parent.GetParentObject(cx)
-    }
 }
