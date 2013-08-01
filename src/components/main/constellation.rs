@@ -51,14 +51,13 @@ struct FrameTree {
 // Need to clone the FrameTrees, but _not_ the Pipelines
 impl Clone for FrameTree {
     fn clone(&self) -> FrameTree {
-        let mut children = ~[];
-        for self.children.iter().advance |&frame_tree| {
-            children.push(@mut (*frame_tree).clone());
-        }
+        let mut children = do self.children.iter().transform |&frame_tree| {
+            @mut (*frame_tree).clone()
+        };
         FrameTree {
             pipeline: self.pipeline,
             parent: self.parent.clone(),
-            children: children,
+            children: children.collect(),
         }
     }
 }
@@ -88,11 +87,10 @@ impl FrameTree {
     /// Returns the frame tree whose key is id
     fn find_mut(@mut self, id: PipelineId) -> Option<@mut FrameTree> {
         if self.pipeline.id == id { return Some(self); }
-        for self.children.iter().advance |frame_tree| {
-            let found = frame_tree.find_mut(id);
-            if found.is_some() { return found; }
-        }
-        None
+        let mut finder = do self.children.iter().filter_map |frame_tree| {
+            frame_tree.find_mut(id)
+        };
+        finder.next()
     }
 
     /// Replaces a node of the frame tree in place. Returns the node that was removed or the original node
@@ -115,14 +113,10 @@ impl FrameTree {
     }
 
     fn to_sendable(&self) -> SendableFrameTree {
-        let mut sendable_frame_tree = SendableFrameTree {
+        let sendable_frame_tree = SendableFrameTree {
             pipeline: (*self.pipeline).clone(),
-            children: ~[],
+            children: self.children.iter().transform(|frame_tree| frame_tree.to_sendable()).collect(),
         };
-
-        for self.children.iter().advance |frame_tree| {
-            sendable_frame_tree.children.push(frame_tree.to_sendable());
-        }
         sendable_frame_tree
     }
 
@@ -141,9 +135,7 @@ impl Iterator<@mut FrameTree> for FrameTreeIterator {
     fn next(&mut self) -> Option<@mut FrameTree> {
         if !self.stack.is_empty() {
             let next = self.stack.pop();
-            for next.children.iter().advance |&child| {
-                self.stack.push(child);
-            }
+            self.stack.push_all(next.children);
             Some(next)
         } else {
             None
