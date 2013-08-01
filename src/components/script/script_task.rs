@@ -608,7 +608,16 @@ impl ScriptTask {
         let HtmlParserResult {root, js_port, style_port, iframe_port} = html_parsing_result;
 
         // Create the window and document objects.
-        let window = Window::new(&mut *page, self.chan.clone(), self.compositor);
+        let window = {
+            // Need an extra block here due to Rust #6248
+            //
+            // FIXME(Servo #655): Unrelated to the Rust #6248 warning, this is fundamentally
+            // unsafe because the box could go away or get moved while we're holding this raw
+            // pointer.  We think it's safe here because the main task will hold onto the box,
+            // and because the current refcounting implementation of @ doesn't move.
+            let page = &mut *page;
+            Window::new(page, self.chan.clone(), self.compositor)
+        };
         let document = HTMLDocument::new(root, Some(window));
 
         // Tie the root into the document.
