@@ -30,17 +30,14 @@ impl SelectHandler<AbstractNode<LayoutView>> for NodeSelectHandler {
 
     fn named_parent_node(&self, node: &AbstractNode<LayoutView>, name: &str)
                          -> Option<AbstractNode<LayoutView>> {
-        match node.parent_node() {
-            Some(parent) => {
-                do with_node_name(parent) |node_name| {
-                    if eq_slice(name, node_name) {
-                        Some(parent)
-                    } else {
-                        None
-                    }
+        do node.parent_node().chain |parent| {
+            do with_node_name(parent) |node_name| {
+                if eq_slice(name, node_name) {
+                    Some(parent)
+                } else {
+                    None
                 }
             }
-            None => None
         }
     }
 

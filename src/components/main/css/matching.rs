@@ -6,6 +6,7 @@
 
 use css::node_util::NodeUtil;
 use css::select_handler::NodeSelectHandler;
+use layout::incremental;
 
 use script::dom::node::{AbstractNode, LayoutView};
 use newcss::complete::CompleteSelectResults;
@@ -31,6 +32,13 @@ impl MatchMethods for AbstractNode<LayoutView> {
             let incomplete_results = select_ctx.select_style(self, &select_handler);
             // Combine this node's results with its parent's to resolve all inherited values
             let complete_results = compose_results(*self, incomplete_results);
+
+            // If there was an existing style, compute the damage that
+            // incremental layout will need to fix.
+            if self.have_css_select_results() {
+                let damage = incremental::compute_damage(self, self.get_css_select_results(), &complete_results);
+                self.set_restyle_damage(damage);
+            }
             self.set_css_select_results(complete_results);
         }
 

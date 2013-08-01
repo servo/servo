@@ -78,11 +78,9 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
         None => 1,      // FIXME: Number of cores.
     };
 
-    let profiler_period: Option<float> =
-        // if only flag is present, default to 5 second period
-        match getopts::opt_default(&opt_match, "p", "5") {
-        Some(period) => Some(float::from_str(period).get()),
-        None => None,
+    // if only flag is present, default to 5 second period
+    let profiler_period = do getopts::opt_default(&opt_match, "p", "5").map |period| {
+        float::from_str(*period).get()
     };
 
     let exit_after_load = getopts::opt_present(&opt_match, "x");

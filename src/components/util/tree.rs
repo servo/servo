@@ -69,6 +69,20 @@ pub trait TreeUtils {
 
     /// Iterates over this node and all its descendants, in postorder.
     fn traverse_postorder(&self, callback: &fn(Self) -> bool) -> bool;
+
+    /// Like traverse_preorder but calls 'prune' first on each node.  If it returns true then we
+    /// skip the whole subtree but continue iterating.
+    ///
+    /// 'prune' is a separate function a) for compatibility with the 'for' protocol,
+    /// b) so that the postorder version can still prune before traversing.
+    fn traverse_preorder_prune(&self, prune: &fn(&Self) -> bool, callback: &fn(Self) -> bool) -> bool;
+
+    /// Like traverse_postorder but calls 'prune' first on each node.  If it returns true then we
+    /// skip the whole subtree but continue iterating.
+    ///
+    /// NB: 'prune' is called *before* traversing children, even though this is a
+    /// postorder traversal.
+    fn traverse_postorder_prune(&self, prune: &fn(&Self) -> bool, callback: &fn(Self) -> bool) -> bool;
 }
 
 impl<NR:TreeNodeRef<N>,N:TreeNode<NR>> TreeUtils for NR {
@@ -146,14 +160,19 @@ impl<NR:TreeNodeRef<N>,N:TreeNode<NR>> TreeUtils for NR {
         true
     }
 
-    fn traverse_preorder(&self, callback: &fn(NR) -> bool) -> bool {
+    fn traverse_preorder_prune(&self, prune: &fn(&NR) -> bool, callback: &fn(NR) -> bool) -> bool {
+        // prune shouldn't mutate, so don't clone
+        if prune(self) {
+            return true;
+        }
+
         if !callback((*self).clone()) {
             return false;
         }
 
         for self.each_child |kid| {
             // FIXME: Work around rust#2202. We should be able to pass the callback directly.
-            if !kid.traverse_preorder(|a| callback(a)) {
+            if !kid.traverse_preorder_prune(|a| prune(a), |a| callback(a)) {
                 return false;
             }
         }
@@ -161,15 +180,28 @@ impl<NR:TreeNodeRef<N>,N:TreeNode<NR>> TreeUtils for NR {
         true
     }
 
-    fn traverse_postorder(&self, callback: &fn(NR) -> bool) -> bool {
+    fn traverse_postorder_prune(&self, prune: &fn(&NR) -> bool, callback: &fn(NR) -> bool) -> bool {
+        // prune shouldn't mutate, so don't clone
+        if prune(self) {
+            return true;
+        }
+
         for self.each_child |kid| {
             // FIXME: Work around rust#2202. We should be able to pass the callback directly.
-            if !kid.traverse_postorder(|a| callback(a)) {
+            if !kid.traverse_postorder_prune(|a| prune(a), |a| callback(a)) {
                 return false;
             }
         }
 
         callback((*self).clone())
+    }
+
+    fn traverse_preorder(&self, callback: &fn(NR) -> bool) -> bool {
+        self.traverse_preorder_prune(|_| false, callback)
+    }
+
+    fn traverse_postorder(&self, callback: &fn(NR) -> bool) -> bool {
+        self.traverse_postorder_prune(|_| false, callback)
     }
 }
 

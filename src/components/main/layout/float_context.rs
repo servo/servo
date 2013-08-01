@@ -291,10 +291,7 @@ impl FloatContextBase{
             }
         }
 
-        match max_height {
-            None => None,
-            Some(h) => Some(h + self.offset.y)
-        }
+        max_height.map(|h| h + self.offset.y)
     }
 
     /// Given necessary info, finds the closest place a box can be positioned

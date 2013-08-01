@@ -5,6 +5,7 @@
 //! Code for managing the layout data in the DOM.
 
 use layout::flow::FlowContext;
+use layout::incremental::RestyleDamage;
 
 use newcss::complete::CompleteSelectResults;
 use script::dom::node::{AbstractNode, LayoutView};
@@ -15,6 +16,9 @@ pub struct LayoutData {
     /// The results of CSS styling for this node.
     style: Option<CompleteSelectResults>,
 
+    /// Description of how to account for recent style changes.
+    restyle_damage: Option<RestyleDamage>,
+
     /// The CSS flow that this node is associated with.
     flow: Option<FlowContext>,
 }
@@ -24,6 +28,7 @@ impl LayoutData {
     pub fn new() -> LayoutData {
         LayoutData {
             style: None,
+            restyle_damage: None,
             flow: None,
         }
     }
