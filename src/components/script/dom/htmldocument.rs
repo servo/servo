@@ -12,6 +12,8 @@ use dom::window::Window;
 
 use js::jsapi::{JSObject, JSContext};
 
+use servo_util::tree::TreeUtils;
+
 use std::libc;
 use std::ptr;
 
@@ -64,33 +66,27 @@ impl HTMLDocument {
     }
 
     pub fn Images(&self) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        self.createHTMLCollection(~"img")
     }
 
     pub fn Embeds(&self) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        self.createHTMLCollection(~"embed")
     }
 
     pub fn Plugins(&self) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        self.Embeds()
     }
 
     pub fn Links(&self) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        self.createHTMLCollection(~"link")
     }
 
     pub fn Forms(&self) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        self.createHTMLCollection(~"form")
     }
 
     pub fn Scripts(&self) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        self.createHTMLCollection(~"script")
     }
 
     pub fn Close(&self, _rv: &mut ErrorResult) {
@@ -163,13 +159,11 @@ impl HTMLDocument {
     }
 
     pub fn Anchors(&self) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        self.createHTMLCollection(~"a")
     }
 
     pub fn Applets(&self) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        self.createHTMLCollection(~"applet")
     }
 
     pub fn Clear(&self) {
@@ -177,6 +171,33 @@ impl HTMLDocument {
 
     pub fn GetAll(&self, _cx: *JSContext, _rv: &mut ErrorResult) -> *libc::c_void {
         ptr::null()
+    }
+
+    fn createHTMLCollection(&self, elem_name: ~str) -> @mut HTMLCollection {
+        let (scope, cx) = self.get_scope_and_cx();
+        let mut elements = ~[];
+        let _ = for self.parent.root.traverse_preorder |child| {
+            if child.is_element() {
+                do child.with_imm_element |elem| {
+                    match elem_name {
+                        ~"link" => {
+                            if elem.tag_name == ~"a" || elem.tag_name == ~"area" {
+                                match elem.get_attr("href") {
+                                    Some(_val) => elements.push(child),
+                                    None() => ()
+                                }
+                            }                          
+                        }
+                        _ => {
+                            if elem.tag_name == elem_name {
+                                elements.push(child);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        HTMLCollection::new(elements, cx, scope)
     }
 }
 
@@ -196,3 +217,4 @@ impl BindingObject for HTMLDocument {
         self.parent.GetParentObject(cx)
     }
 }
+
