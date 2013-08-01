@@ -134,11 +134,8 @@ impl<'self> FontContext {
             let transformed_family_name = self.transform_family(family_name);
             debug!("(create font group) transformed family is `%s`", transformed_family_name);
 
-            let result = match self.font_list {
-                Some(ref fl) => {
-                    fl.find_font_in_family(transformed_family_name, style)
-                },
-                None => None,
+            let result = do self.font_list.chain_ref |fl| {
+                fl.find_font_in_family(transformed_family_name, style)
             };
 
             let mut found = false;
@@ -162,11 +159,8 @@ impl<'self> FontContext {
         let last_resort = FontList::get_last_resort_font_families();
 
         for last_resort.iter().advance |family| {
-            let result = match self.font_list {
-                Some(ref fl) => {
-                    fl.find_font_in_family(*family, style)
-                },
-                None => None,
+            let result = do self.font_list.chain_ref |fl| {
+                fl.find_font_in_family(*family, style)
             };
 
             for result.iter().advance |font_entry| {

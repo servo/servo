@@ -5,6 +5,7 @@
 // Style retrieval from DOM elements.
 
 use css::node_util::NodeUtil;
+use layout::incremental::RestyleDamage;
 
 use newcss::complete::CompleteStyle;
 use script::dom::node::{AbstractNode, LayoutView};
@@ -12,6 +13,7 @@ use script::dom::node::{AbstractNode, LayoutView};
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {
     fn style(&self) -> CompleteStyle;
+    fn restyle_damage(&self) -> RestyleDamage;
 }
 
 impl StyledNode for AbstractNode<LayoutView> {
@@ -19,5 +21,9 @@ impl StyledNode for AbstractNode<LayoutView> {
         assert!(self.is_element()); // Only elements can have styles
         let results = self.get_css_select_results();
         results.computed_style()
+    }
+
+    fn restyle_damage(&self) -> RestyleDamage {
+        self.get_restyle_damage()
     }
 }

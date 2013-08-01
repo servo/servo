@@ -13,6 +13,7 @@ use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder};
 use layout::flow::FlowContext;
+use layout::incremental::{RestyleDamage, BubbleWidths};
 
 use std::cast::transmute;
 use std::cell::Cell;
@@ -193,6 +194,8 @@ impl LayoutTask {
         self.doc_url = Some(doc_url);
         let screen_size = Size2D(Au::from_px(data.window_size.width as int),
                                  Au::from_px(data.window_size.height as int));
+        let resized = self.screen_size != Some(screen_size);
+        debug!("resized: %?", resized);
         self.screen_size = Some(screen_size);
 
         // Create a layout context for use throughout the following passes.
@@ -227,20 +230,59 @@ impl LayoutTask {
             layout_root
         };
 
+        // Propagate restyle damage up and down the tree, as appropriate.
+        // FIXME: Merge this with flow tree building and/or the other traversals.
+        for layout_root.traverse_preorder |flow| {
+            // Also set any damage implied by resize.
+            if resized {
+                do flow.with_mut_base |base| {
+                    base.restyle_damage.union_in_place(RestyleDamage::for_resize());
+                }
+            }
+
+            let prop = flow.with_base(|base| base.restyle_damage.propagate_down());
+            if prop.is_nonempty() {
+                for flow.each_child |kid_ctx| {
+                    do kid_ctx.with_mut_base |kid| {
+                        kid.restyle_damage.union_in_place(prop);
+                    }
+                }
+            }
+        }
+
+        for layout_root.traverse_postorder |flow| {
+            do flow.with_base |base| {
+                match base.parent {
+                    None => {},
+                    Some(parent_ctx) => {
+                        let prop = base.restyle_damage.propagate_up();
+                        do parent_ctx.with_mut_base |parent| {
+                            parent.restyle_damage.union_in_place(prop);
+                        }
+                    }
+                }
+            }
+        }
+
         debug!("layout: constructed Flow tree");
-        debug!("", layout_root.dump());
+        debug!("%?", layout_root.dump());
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
         do profile(time::LayoutMainCategory, self.profiler_chan.clone()) {
-            for layout_root.traverse_postorder |flow| {
+            for layout_root.traverse_postorder_prune(|f| f.restyle_damage().lacks(BubbleWidths)) |flow| {
                 flow.bubble_widths(&mut layout_ctx);
             };
+
+            // FIXME: We want to do
+            //     for layout_root.traverse_preorder_prune(|f| f.restyle_damage().lacks(Reflow)) |flow| {
+            // but FloatContext values can't be reused, so we need to recompute them every time.
             for layout_root.traverse_preorder |flow| {
                 flow.assign_widths(&mut layout_ctx);
             };
 
             // For now, this is an inorder traversal
+            // FIXME: prune this traversal as well
             layout_root.assign_height(&mut layout_ctx);
         }
 
@@ -271,8 +313,6 @@ impl LayoutTask {
                 self.render_chan.send(RenderMsg(render_layer));
             } // time(layout: display list building)
         }
-
-        debug!("%?", layout_root.dump());
 
         // Tell script that we're done.
         //
