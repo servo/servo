@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::document::{AbstractDocument, Document, WrappableDocument, HTML};
 use dom::bindings::codegen::HTMLDocumentBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, null_string};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
+use dom::document::{AbstractDocument, Document, WrappableDocument, HTML};
+use dom::element::Element;
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{AbstractNode, ScriptView};
 use dom::window::Window;
@@ -16,6 +17,7 @@ use servo_util::tree::TreeUtils;
 
 use std::libc;
 use std::ptr;
+use std::str::eq_slice;
 
 pub struct HTMLDocument {
     parent: Document
@@ -66,11 +68,11 @@ impl HTMLDocument {
     }
 
     pub fn Images(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(~"img")
+        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, "img"))
     }
 
     pub fn Embeds(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(~"embed")
+        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, "embed"))
     }
 
     pub fn Plugins(&self) -> @mut HTMLCollection {
@@ -78,15 +80,23 @@ impl HTMLDocument {
     }
 
     pub fn Links(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(~"link")
+        self.createHTMLCollection(|elem| {
+            if eq_slice(elem.tag_name, "a") || eq_slice(elem.tag_name, "area") {
+                match elem.get_attr("href") {
+                    Some(_val) => true,
+                    None() => false
+                }
+            }
+            else { false }
+        })
     }
 
     pub fn Forms(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(~"form")
+        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, "form"))
     }
 
     pub fn Scripts(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(~"script")
+        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, "script"))
     }
 
     pub fn Close(&self, _rv: &mut ErrorResult) {
@@ -159,11 +169,20 @@ impl HTMLDocument {
     }
 
     pub fn Anchors(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(~"a")
+        self.createHTMLCollection(|elem| {
+            if eq_slice(elem.tag_name, "a") {
+                match elem.get_attr("name") {
+                    Some(_val) => true,
+                    None() => false
+                }
+            }
+            else { false }
+        })
     }
 
     pub fn Applets(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(~"applet")
+        // FIXME: This should be return OBJECT elements containing applets.
+        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, "applet"))
     }
 
     pub fn Clear(&self) {
@@ -173,26 +192,14 @@ impl HTMLDocument {
         ptr::null()
     }
 
-    fn createHTMLCollection(&self, elem_name: ~str) -> @mut HTMLCollection {
+    fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {
         let (scope, cx) = self.get_scope_and_cx();
         let mut elements = ~[];
         let _ = for self.parent.root.traverse_preorder |child| {
             if child.is_element() {
                 do child.with_imm_element |elem| {
-                    match elem_name {
-                        ~"link" => {
-                            if elem.tag_name == ~"a" || elem.tag_name == ~"area" {
-                                match elem.get_attr("href") {
-                                    Some(_val) => elements.push(child),
-                                    None() => ()
-                                }
-                            }                          
-                        }
-                        _ => {
-                            if elem.tag_name == elem_name {
-                                elements.push(child);
-                            }
-                        }
+                    if callback(elem) {
+                        elements.push(child);
                     }
                 }
             }
