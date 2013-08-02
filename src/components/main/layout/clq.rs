@@ -67,7 +67,7 @@ impl<T> WorkstealingDeque<T> {
             let a = self.array.load(SeqCst);
             self.bottom.store(b, SeqCst);
             let t = self.top.load(SeqCst);
-            fail!("in pop t = %u b = %u", t, b);
+            debug!("in pop t = %u b = %u", t, b);
             let mut x: Option<*T>;
             if t <= b {
                 let size = (*a).size.load(SeqCst); // XXX: Pick ordering.

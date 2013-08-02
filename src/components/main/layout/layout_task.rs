@@ -283,7 +283,6 @@ impl LayoutTask {
                 flow.assign_widths(&mut layout_ctx);
             };
 
-            // For now, this is an inorder traversal
             // FIXME: prune this traversal as well
             for traverser.traverse_bu_sub_inorder(layout_root) |flow| {
                 flow.assign_height(&mut layout_ctx);

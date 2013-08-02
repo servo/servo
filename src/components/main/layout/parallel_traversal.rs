@@ -103,13 +103,13 @@ impl SequentialTraverser {
 /// Similar to a task pool, this allows farming out work to a number of tasks to
 /// improve parallelism. However, tasks here are not actually swapped, so there
 /// is no context switching overhead.
-priv struct WorkPool<Work,Shared> {
+priv struct WorkPool<Work> {
     queues: ~[WorkstealingDeque<Work>]
 }
 
 
-impl<W,S:Freeze+Send> WorkPool<W,S> {
-    fn new(num_tasks: uint, max_work: uint) -> WorkPool<W,S> {
+impl<W> WorkPool<W> {
+    fn new(num_tasks: uint, max_work: uint) -> WorkPool<W> {
         unsafe {
             WorkPool {
                 queues: (vec::from_fn(num_tasks, |_| { WorkstealingDeque::new(max_work) }))
@@ -127,15 +127,12 @@ impl<W,S:Freeze+Send> WorkPool<W,S> {
     /// And can add work to the queue by calling the push function.
     /// Work stops when the callback returns false.
     fn execute(&mut self, 
-               shared_data: ARC<S>,
-               cb_factory: &fn() -> ~fn(shared: &ARC<S>, 
-                                        push: &fn(work: *W), 
+               cb_factory: &fn() -> ~fn(push: &fn(work: *W), 
                                         pop: &fn() -> Option<*W>) 
                                         -> bool) {
         unsafe {
             let unsafe_queues: *mut ~[WorkstealingDeque<W>] = &mut self.queues;
             for uint::range(0,self.queues.len()) |i| {
-                let data = shared_data.clone();
                 let callback = cb_factory();
                 do spawn {
                     let mut this_q = (*unsafe_queues)[i];
@@ -144,7 +141,7 @@ impl<W,S:Freeze+Send> WorkPool<W,S> {
                         // The pop function tries to pull work from the current
                         // queue, but steals from a random queue if this is not
                         // possible.
-                        if !callback(&data, |w| { this_q.push(w) }, || {
+                        if !callback(|w| { this_q.push(w) }, || {
                             match this_q.pop() {
                                 None => {
                                     (*unsafe_queues)[random::<uint>() % (*unsafe_queues).len()].steal()
@@ -274,11 +271,13 @@ impl ParallelTraverser {
         }
 
 
-        unsafe {
-            do work_pool.execute(shared_traversals) { 
-                let this_last_nodes = last_nodes.clone();
-                |traversals, push, pop| {
+        do work_pool.execute { 
+            let this_last_nodes = last_nodes.clone();
+            let this_traversals = shared_traversals.clone();
+            |push, pop| {
+                unsafe {
                     let mut last_nodes = *this_last_nodes.get();
+                    let traversals = this_traversals.get();
                     let node = match pop() {
                         None => {
                             None
@@ -287,8 +286,6 @@ impl ParallelTraverser {
                             Some(FlowContext::decode(work))
                         }
                     };
-
-                    let traversals = traversals.get();
 
                     match node {
                         None => {
@@ -303,9 +300,7 @@ impl ParallelTraverser {
                                 (TopDown, ref callback) => {
                                     // simple case: visit the node then add its children
                                     // to the work queue
-                                    unsafe {
-                                        (*callback)(node.restrict_view());
-                                    }
+                                    (*callback)(node.restrict_view());
                                     node.set_traversal(node.get_traversal() + 1);
 
                                     let mut has_children = false;
@@ -313,9 +308,7 @@ impl ParallelTraverser {
                                         has_children = true;
                                         child.set_traversal(node.get_traversal() - 1);
 
-                                        unsafe {
-                                            push(child.encode());
-                                        }
+                                        push(child.encode());
                                     }
 
                                     // if the node is a leaf, try and start the next traversal
@@ -324,9 +317,7 @@ impl ParallelTraverser {
                                         match traversals.get_or_none(node.get_traversal()) {
                                             None => { last_nodes.fetch_sub(1, SeqCst); }
                                             Some(BottomUp(_)) => {
-                                                unsafe{
-                                                    push(node.encode());
-                                                }
+                                                push(node.encode());
                                             }
                                             _ => fail!("Unsupported traversal sequence")
                                         }
@@ -335,13 +326,11 @@ impl ParallelTraverser {
 
                                 (BottomUp(subtype), ref callback) => {
 
-                                    unsafe {
-                                        match subtype {
-                                            Normal => { (*callback)(node.restrict_view()); }
-                                            Inorder => {
-                                                if !node.is_inorder() {
-                                                    (*callback)(node.restrict_view());
-                                                }
+                                    match subtype {
+                                        Normal => { (*callback)(node.restrict_view()); }
+                                        Inorder => {
+                                            if !node.is_inorder() {
+                                                (*callback)(node.restrict_view());
                                             }
                                         }
                                     }
@@ -356,9 +345,7 @@ impl ParallelTraverser {
                                                 match traversals.get_or_none(node.get_traversal()) {
                                                     None => { last_nodes.fetch_sub(1, SeqCst); }
                                                     Some(TopDown) => {
-                                                        unsafe {
-                                                            push(node.encode());
-                                                        }
+                                                        push(node.encode());
                                                     }
                                                     _ => fail!("Unsupported traversal sequence")
                                                 }
@@ -370,9 +357,7 @@ impl ParallelTraverser {
                                                 if parent.update_child_counter() {
                                                     parent.set_traversal(node.get_traversal() - 1);
 
-                                                    unsafe {
-                                                        push(base.parent_node().get().encode());
-                                                    }
+                                                    push(base.parent_node().get().encode());
                                                 }
                                             }
                                         }
