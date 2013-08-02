@@ -8,7 +8,7 @@ use std::num::Zero;
 use geom::side_offsets::SideOffsets2D;
 use gfx::geometry::Au;
 use newcss::complete::CompleteStyle;
-use newcss::units::{Em, Pt, Px};
+use newcss::units::{Length, Em, Pt, Px};
 use newcss::values::{CSSBorderWidth, CSSBorderWidthLength, CSSBorderWidthMedium};
 use newcss::values::{CSSBorderWidthThick, CSSBorderWidthThin, CSSFontSize, CSSFontSizeLength};
 use newcss::values::{CSSWidth, CSSWidthLength, CSSWidthPercentage, CSSWidthAuto};
@@ -24,6 +24,20 @@ pub struct BoxModel {
     content_box_width: Au,
 }
 
+fn from_length(length: Length, font_size: CSSFontSize) -> Au {
+    match length {
+        Px(v) => Au::from_frac_px(v),
+        Pt(v) => Au::from_pt(v),
+        Em(em) => {
+            match font_size {
+                CSSFontSizeLength(Px(v)) => Au::from_frac_px(em * v),
+                CSSFontSizeLength(Pt(v)) => Au::from_pt(em * v),
+                _ => fail!("expected non-relative font size")
+            }
+        }
+    }
+}
+
 /// Useful helper data type when computing values for blocks and positioned elements.
 pub enum MaybeAuto {
     Auto,
@@ -35,15 +49,7 @@ impl MaybeAuto {
         match margin {
             CSSMarginAuto => Auto,
             CSSMarginPercentage(percent) => Specified(containing_width.scale_by(percent/100.0)),
-            CSSMarginLength(Px(v)) => Specified(Au::from_frac_px(v)),
-            CSSMarginLength(Pt(v)) => Specified(Au::from_pt(v)),
-            CSSMarginLength(Em(em)) => {
-                match font_size {
-                    CSSFontSizeLength(Px(v)) => Specified(Au::from_frac_px(em * v)),
-                    CSSFontSizeLength(Pt(v)) => Specified(Au::from_pt(em * v)),
-                    _ => fail!(~"expected non-relative font size"),
-                }
-            }
+            CSSMarginLength(length) => Specified(from_length(length, font_size))
         }
     }
 
@@ -51,15 +57,7 @@ impl MaybeAuto {
         match width {
             CSSWidthAuto => Auto,
             CSSWidthPercentage(percent) => Specified(containing_width.scale_by(percent/100.0)),
-            CSSWidthLength(Px(v)) => Specified(Au::from_frac_px(v)),
-            CSSWidthLength(Pt(v)) => Specified(Au::from_pt(v)),
-            CSSWidthLength(Em(em)) => {
-                match font_size {
-                    CSSFontSizeLength(Px(v)) => Specified(Au::from_frac_px(em * v)),
-                    CSSFontSizeLength(Pt(v)) => Specified(Au::from_pt(em * v)),
-                    _ => fail!(~"expected non-relative font size"),
-                }
-            }
+            CSSWidthLength(length) => Specified(from_length(length, font_size))
         }
     }
 
@@ -67,16 +65,7 @@ impl MaybeAuto {
         match height {
             CSSHeightAuto => Auto,
             CSSHeightPercentage(percent) => Specified(cb_height.scale_by(percent/100.0)),
-            CSSHeightLength(Px(v)) => Specified(Au::from_frac_px(v)),
-            CSSHeightLength(Pt(v)) => Specified(Au::from_pt(v)),
-            CSSHeightLength(Em(em)) => {
-                match font_size {
-                    CSSFontSizeLength(Px(v)) => Specified(Au::from_frac_px(em * v)),
-                    CSSFontSizeLength(Pt(v)) => Specified(Au::from_pt(em * v)),
-                    _ => fail!(~"expected non-relative font size"),
-                }
-            }
-
+            CSSHeightLength(length) => Specified(from_length(length, font_size))
         }
     }
 
@@ -137,15 +126,7 @@ impl BoxModel {
     /// Helper function to compute the border width in app units from the CSS border width.
     pub fn compute_border_width(&self, width: CSSBorderWidth, font_size: CSSFontSize) -> Au {
         match width {
-            CSSBorderWidthLength(Px(v)) => Au::from_frac_px(v),
-            CSSBorderWidthLength(Pt(v)) => Au::from_pt(v),
-            CSSBorderWidthLength(Em(em)) => {
-                match font_size {
-                    CSSFontSizeLength(Px(v)) => Au::from_frac_px(em * v),
-                    CSSFontSizeLength(Pt(v)) => Au::from_pt(em * v),
-                    _ => fail!(~"expected non-relative font size"),
-                }
-            },
+            CSSBorderWidthLength(length) => from_length(length, font_size),
             CSSBorderWidthThin => Au::from_px(1),
             CSSBorderWidthMedium => Au::from_px(5),
             CSSBorderWidthThick => Au::from_px(10),
@@ -154,15 +135,7 @@ impl BoxModel {
 
     pub fn compute_padding_length(&self, padding: CSSPadding, content_box_width: Au, font_size: CSSFontSize) -> Au {
         match padding {
-            CSSPaddingLength(Px(v)) => Au::from_frac_px(v),
-            CSSPaddingLength(Pt(v)) => Au::from_pt(v),
-            CSSPaddingLength(Em(em)) => {
-                match font_size {
-                    CSSFontSizeLength(Px(v)) => Au::from_frac_px(em * v),
-                    CSSFontSizeLength(Pt(v)) => Au::from_pt(em * v),
-                    _ => fail!(~"expected non-relative font size"),
-                }
-            },
+            CSSPaddingLength(length) => from_length(length, font_size),
             CSSPaddingPercentage(p) => content_box_width.scale_by(p/100.0)
         }
     }
