@@ -80,15 +80,9 @@ impl HTMLDocument {
     }
 
     pub fn Links(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem| {
-            if eq_slice(elem.tag_name, "a") || eq_slice(elem.tag_name, "area") {
-                match elem.get_attr("href") {
-                    Some(_val) => true,
-                    None() => false
-                }
-            }
-            else { false }
-        })
+        self.createHTMLCollection(|elem|
+            (eq_slice(elem.tag_name, "a") || eq_slice(elem.tag_name, "area"))
+            && elem.get_attr("href").is_some())
     }
 
     pub fn Forms(&self) -> @mut HTMLCollection {
@@ -169,15 +163,8 @@ impl HTMLDocument {
     }
 
     pub fn Anchors(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem| {
-            if eq_slice(elem.tag_name, "a") {
-                match elem.get_attr("name") {
-                    Some(_val) => true,
-                    None() => false
-                }
-            }
-            else { false }
-        })
+        self.createHTMLCollection(|elem|
+            eq_slice(elem.tag_name, "a") && elem.get_attr("name").is_some())
     }
 
     pub fn Applets(&self) -> @mut HTMLCollection {
