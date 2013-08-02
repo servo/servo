@@ -38,6 +38,7 @@ use css::node_style::StyledNode;
 use std::cell::Cell;
 use std::uint;
 use std::io::stderr;
+use std::unstable::atomics::{AtomicUint, SeqCst};
 use std::cast::transmute;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -99,14 +100,14 @@ impl<V,CV> FlowContext<V,CV> {
 }
 
 impl FlowContext<SequentialView,SequentialView> {
-    pub unsafe fn decode(compressed_ptr: uint) -> Self {
-        let new_ptr: *FlowContext<SequentialView,SequentialView> = transmute(compressed_ptr);
-        *new_ptr
+    pub unsafe fn decode(compressed_ptr: *FlowContext<SequentialView,SequentialView>) 
+                         -> FlowContext<SequentialView,SequentialView> {
+        *compressed_ptr
     }
 
-    pub unsafe fn encode(&self) -> uint {
+    pub unsafe fn encode(&self) -> *FlowContext<SequentialView,SequentialView> {
         let new_ptr: *FlowContext<SequentialView,SequentialView> = self;
-        transmute(new_ptr)
+        new_ptr
     }
 
     pub unsafe fn restrict_view(&self) -> FlowContext<VisitView,VisitChildView> {
@@ -114,28 +115,28 @@ impl FlowContext<SequentialView,SequentialView> {
     }
 
     pub unsafe fn get_traversal(&self) -> uint {
-        self.with_base |base| {
-            base.cur_traversal
+        do self.with_base |base| {
+            base.current_traversal
         }
     }
 
     pub unsafe fn set_traversal(&self, traversal: uint) {
-        self.with_mut_base |base| {
-            base.cur_traversal = traversal;
+        do self.with_mut_base |base| {
+            base.current_traversal = traversal;
         }
     }
 
-    pub unsafe fn update_child_counter(&mut self) {
+    pub unsafe fn update_child_counter(&mut self) -> bool {
         do self.with_mut_base |base| {
             // increment count
-            base.count.fetch_add(1);
+            base.child_counter.fetch_add(1,SeqCst);
 
             // TODO(eatkinson): num_children is slow, we should fix
             // this.
-            let children = self.num_children();
+            let children = (*self).num_children();
 
             // if the count is num_children, replace it with 0 and return true
-            base.count.compare_and_swap(children, 0) == children
+            base.child_counter.compare_and_swap(children, 0, SeqCst) == children
         }
 
     }
@@ -359,7 +360,7 @@ impl<V,CV> FlowData<V,CV> {
 
             id: id,
             current_traversal: 0,
-            child_counter: AtomicUint(0),
+            child_counter: AtomicUint::new(0),
 
             min_width: Au(0),
             pref_width: Au(0),
@@ -420,15 +421,14 @@ impl<V:VisitOrChildView> FlowContext<V,VisitChildView> {
     }
 
     pub fn build_display_list<E:ExtraDisplayListData>(&self,
-                                                     builder: &DisplayListBuilder,
                                                      dirty: &Rect<Au>,
                                                      list: &Cell<DisplayList<E>>)
                                                      -> bool {
 
         match *self {
-            BlockFlow(info)  => info.build_display_list_block(builder, dirty, list),
-            InlineFlow(info) => info.build_display_list_inline(builder, dirty, list),
-            FloatFlow(info)  => info.build_display_list_float(builder, dirty, list),
+            BlockFlow(info)  => info.build_display_list_block(dirty, list),
+            InlineFlow(info) => info.build_display_list_inline(dirty, list),
+            FloatFlow(info)  => info.build_display_list_float(dirty, list),
             _ => {
                 fail!("Tried to build_display_list_recurse of flow: %?", self)
             }

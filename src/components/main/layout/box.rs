@@ -6,7 +6,7 @@
 
 use css::node_style::StyledNode;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
+use layout::display_list_builder::{ExtraDisplayListData, ToGfxColor};
 use layout::model::{BoxModel, MaybeAuto};
 use layout::text;
 
@@ -583,7 +583,6 @@ impl RenderBox {
     /// items, each box puts its display items into the correct stack layer according to CSS 2.1
     /// Appendix E. Finally, the builder flattens the list.
     pub fn build_display_list<E:ExtraDisplayListData>(&self,
-                                                  _: &DisplayListBuilder,
                                                   dirty: &Rect<Au>,
                                                   offset: &Point2D<Au>,
                                                   list: &Cell<DisplayList<E>>) {

@@ -302,7 +302,7 @@ impl LayoutTask {
                 // TODO: Set options on the builder before building.
                 // TODO: Be smarter about what needs painting.
                 do traverser.partially_traverse_preorder(layout_root) |flow| {
-                    flow.build_display_list(&builder, &layout_root.position(), display_list)
+                    flow.build_display_list(&layout_root.position(), display_list)
                 }
 
                 let root_size = do layout_root.with_base |base| {
@@ -409,8 +409,7 @@ impl LayoutTask {
                             @Cell::new(DisplayList::new());
                         let traverser = SequentialTraverser::new();
                         do traverser.partially_traverse_preorder(flow) |this_flow| {
-                            this_flow.build_display_list(&builder,
-                                                         &flow.position(),
+                            this_flow.build_display_list(&flow.position(),
                                                          display_list)
                         }
                         let (x, y) = (Au::from_frac_px(point.x as float),

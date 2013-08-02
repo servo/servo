@@ -750,7 +750,6 @@ impl<V:VisitOrChildView> InlineFlowData<V,VisitChildView> {
     }
 
     pub fn build_display_list_inline<E:ExtraDisplayListData>(@mut self,
-                                                             builder: &DisplayListBuilder,
                                                              dirty: &Rect<Au>,
                                                              list: &Cell<DisplayList<E>>)
                                                              -> bool {
@@ -767,7 +766,7 @@ impl<V:VisitOrChildView> InlineFlowData<V,VisitChildView> {
                self.boxes.len());
 
         for self.boxes.iter().advance |box| {
-            box.build_display_list(builder, dirty, &self.common.abs_position, list)
+            box.build_display_list(dirty, &self.common.abs_position, list)
         }
 
         // TODO(#225): Should `inline-block` elements have flows as children of the inline flow or

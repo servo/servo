@@ -277,7 +277,6 @@ impl<V:VisitOrChildView> FloatFlowData<V,VisitChildView> {
     }
 
     pub fn build_display_list_float<E:ExtraDisplayListData>(@mut self,
-                                                            builder: &DisplayListBuilder,
                                                             dirty: &Rect<Au>, 
                                                             list: &Cell<DisplayList<E>>) 
                                                             -> bool {
@@ -291,7 +290,7 @@ impl<V:VisitOrChildView> FloatFlowData<V,VisitChildView> {
         let offset = self.common.abs_position + self.rel_pos;
         // add box that starts block context
         self.box.map(|&box| {
-            box.build_display_list(builder, dirty, &offset, list)
+            box.build_display_list(dirty, &offset, list)
         });
 
 

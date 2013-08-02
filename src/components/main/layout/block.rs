@@ -416,7 +416,6 @@ impl<V:VisitOrChildView> BlockFlowData<V,VisitChildView> {
     }
 
     pub fn build_display_list_block<E:ExtraDisplayListData>(@mut self,
-                                                            builder: &DisplayListBuilder,
                                                             dirty: &Rect<Au>, 
                                                             list: &Cell<DisplayList<E>>) 
                                                             -> bool {
@@ -428,7 +427,7 @@ impl<V:VisitOrChildView> BlockFlowData<V,VisitChildView> {
 
         // add box that starts block context
         self.box.map(|&box| {
-            box.build_display_list(builder, dirty, &self.common.abs_position, list)
+            box.build_display_list(dirty, &self.common.abs_position, list)
         });
 
 
