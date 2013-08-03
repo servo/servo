@@ -1435,8 +1435,8 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
         if not callWrapValue:
             tail = successCode
         elif haveSuccessCode:
-            tail = ("if (!JS_WrapValue(cx, ${jsvalPtr})) {\n" +
-                    "  return false;\n" +
+            tail = ("if JS_WrapValue(cx, ${jsvalPtr}) == 0 {\n" +
+                    "  return 0;\n" +
                     "}\n" +
                     successCode)
         else:
@@ -1527,7 +1527,7 @@ for (uint32_t i = 0; i < length; ++i) {
                 properResult = result + ".as_cacheable_wrapper()"
             else:
                 properResult += " as @mut CacheableWrapper"
-            wrap = "%s(cx, ${obj}, %s, ${jsvalPtr})" % (wrapMethod, properResult)
+            wrap = "%s(cx, ${obj}, %s, ${jsvalPtr} as *mut JSVal)" % (wrapMethod, properResult)
             # We don't support prefable stuff in workers.
             assert(not descriptor.prefable or not descriptor.workers)
             if not descriptor.prefable:
@@ -1547,7 +1547,7 @@ for (uint32_t i = 0; i < length; ++i) {
         else:
             #wrap = "WrapObject(cx, ${obj}, %s, %s${jsvalPtr})" % (result, getIID)
             if descriptor.pointerType == '':
-                wrap = "%s.wrap(cx, ${obj}, ${jsvalPtr})" % result
+                wrap = "(%s.wrap(cx, ${obj}, ${jsvalPtr}) as bool)" % result
             else:
                 wrap = "if WrapNewBindingObject(cx, ${obj}, %s as @mut CacheableWrapper, ${jsvalPtr}) { 1 } else { 0 };" % result
             wrappingCode += wrapAndSetPtr(wrap)
@@ -2815,13 +2815,13 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
             body += """  let traps = ProxyTraps {
     getPropertyDescriptor: getPropertyDescriptor,
     getOwnPropertyDescriptor: getOwnPropertyDescriptor,
-    defineProperty: ptr::null(),
+    defineProperty: defineProperty,
     getOwnPropertyNames: ptr::null(),
     delete_: ptr::null(),
     enumerate: ptr::null(),
 
     has: ptr::null(),
-    hasOwn: ptr::null(),
+    hasOwn: hasOwn,
     get: get,
     set: ptr::null(),
     keys: ptr::null(),
@@ -3233,8 +3233,8 @@ class CGGenericGetter(CGAbstractBindingMethod):
 
     def generate_code(self):
         return CGIndenter(CGGeneric(
-            "let _info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitPropertyOp(_info, cx, obj, ptr::to_unsafe_ptr(&(*this).payload) as *libc::c_void, vp);"))
+            "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
+            "return CallJitPropertyOp(info, cx, obj, ptr::to_unsafe_ptr(&(*this).payload) as *libc::c_void, vp);"))
 
 class CGSpecializedGetter(CGAbstractExternMethod):
     """
@@ -3289,7 +3289,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
                 "let undef = JSVAL_VOID;\n"
                 "let argv: *JSVal = if argc != 0 { JS_ARGV(cx, cast::transmute(vp)) } else { &undef as *JSVal };\n"
                 "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, cast::transmute(vp)));\n"
-                "if CallJitPropertyOp(info, cx, obj, ptr::to_unsafe_ptr(&(*this).payload) as *libc::c_void, cast::transmute(vp)) == 0 {"
+                "if CallJitPropertyOp(info, cx, obj, ptr::to_unsafe_ptr(&(*this).payload) as *libc::c_void, argv) == 0 {"
                 "  return 0;\n"
                 "}\n"
                 "*vp = JSVAL_VOID;\n"
@@ -3555,10 +3555,33 @@ class CGProxyIndexedGetter(CGProxySpecialOperation):
         self.templateValues = templateValues
         CGProxySpecialOperation.__init__(self, descriptor, 'IndexedGetter')
 
+class CGProxyIndexedSetter(CGProxySpecialOperation):
+    """
+    Class to generate a call to an indexed setter.
+    """
+    def __init__(self, descriptor):
+        CGProxySpecialOperation.__init__(self, descriptor, 'IndexedSetter')
+
+class CGProxyNamedGetter(CGProxySpecialOperation):
+    """
+    Class to generate a call to an named getter. If templateValues is not None
+    the returned value will be wrapped with wrapForType using templateValues.
+    """
+    def __init__(self, descriptor, templateValues=None):
+        self.templateValues = templateValues
+        CGProxySpecialOperation.__init__(self, descriptor, 'NamedGetter')
+
+class CGProxyNamedSetter(CGProxySpecialOperation):
+    """
+    Class to generate a call to a named setter.
+    """
+    def __init__(self, descriptor):
+        CGProxySpecialOperation.__init__(self, descriptor, 'NamedSetter')
+
 class CGProxyUnwrap(CGAbstractMethod):
     def __init__(self, descriptor):
         args = [Argument('*JSObject', 'obj')]
-        CGAbstractMethod.__init__(self, descriptor, "UnwrapProxy", '*' + descriptor.nativeType, args, alwaysInline=True)
+        CGAbstractMethod.__init__(self, descriptor, "UnwrapProxy", '*' + descriptor.concreteType, args, alwaysInline=True)
     def declare(self):
         return ""
     def definition_body(self):
@@ -3567,7 +3590,241 @@ class CGProxyUnwrap(CGAbstractMethod):
   }*/
   //MOZ_ASSERT(IsProxy(obj));
   let box: *rust_box<%s> = cast::transmute(RUST_JSVAL_TO_PRIVATE(GetProxyPrivate(obj)));
-  return ptr::to_unsafe_ptr(&(*box).payload);""" % (self.descriptor.nativeType)
+  return ptr::to_unsafe_ptr(&(*box).payload);""" % (self.descriptor.concreteType)
+
+class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
+    def __init__(self, descriptor):
+        args = [Argument('*JSContext', 'cx'), Argument('*JSObject', 'proxy'),
+                Argument('jsid', 'id'), Argument('JSBool', 'set'),
+                Argument('*mut JSPropertyDescriptor', 'desc')]
+        CGAbstractExternMethod.__init__(self, descriptor, "getOwnPropertyDescriptor",
+                                        "JSBool", args)
+        self.descriptor = descriptor
+    def getBody(self):
+        indexedGetter = self.descriptor.operations['IndexedGetter']
+        indexedSetter = self.descriptor.operations['IndexedSetter']
+
+        setOrIndexedGet = ""
+        if indexedGetter or indexedSetter:
+            setOrIndexedGet += "let index = GetArrayIndexFromId(cx, id);\n"
+
+        if indexedGetter:
+            readonly = toStringBool(self.descriptor.operations['IndexedSetter'] is None)
+            fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn 1;" % readonly
+            templateValues = {'jsvalRef': '(*desc).value', 'jsvalPtr': 'ptr::to_mut_unsafe_ptr(&mut (*desc).value)',
+                              'obj': 'proxy', 'successCode': fillDescriptor}
+            get = ("if index.is_some() {\n" +
+                   "  let index = index.get();\n" +
+                   "  let this: *%s = UnwrapProxy(proxy);\n" +
+                   CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define() + "\n" +
+                   "}\n") % (self.descriptor.concreteType)
+
+        if indexedSetter or self.descriptor.operations['NamedSetter']:
+            setOrIndexedGet += "if set != 0 {\n"
+            if indexedSetter:
+                setOrIndexedGet += ("  if index.is_some() {\n" +
+                                    "    let index = index.get();\n")
+                if not 'IndexedCreator' in self.descriptor.operations:
+                    # FIXME need to check that this is a 'supported property index'
+                    assert False
+                setOrIndexedGet += ("    FillPropertyDescriptor(&mut *desc, proxy, JSVAL_VOID, false);\n" +
+                                    "    return 1;\n" +
+                                    "  }\n")
+            if self.descriptor.operations['NamedSetter']:
+                setOrIndexedGet += "  if RUST_JSID_IS_STRING(id) {\n"
+                if not 'NamedCreator' in self.descriptor.operations:
+                    # FIXME need to check that this is a 'supported property name'
+                    assert False
+                setOrIndexedGet += ("    FillPropertyDescriptor(&mut *desc, proxy, JSVAL_VOID, false);\n" +
+                                    "    return 1;\n" +
+                                    "  }\n")
+            setOrIndexedGet += "}"
+            if indexedGetter:
+                setOrIndexedGet += (" else {\n" +
+                                    CGIndenter(CGGeneric(get)).define() +
+                                    "}")
+            setOrIndexedGet += "\n\n"
+        elif indexedGetter:
+            setOrIndexedGet += ("if set == 0 {\n" +
+                                CGIndenter(CGGeneric(get)).define() +
+                                "}\n\n")
+
+        namedGetter = self.descriptor.operations['NamedGetter']
+        if namedGetter:
+            readonly = toStringBool(self.descriptor.operations['NamedSetter'] is None)
+            fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn 1;" % readonly
+            templateValues = {'jsvalRef': '(*desc).value', 'jsvalPtr': 'ptr::to_unsafe_ptr(&(*desc).value)',
+                              'obj': 'proxy', 'successCode': fillDescriptor}
+            # Once we start supporting OverrideBuiltins we need to make
+            # ResolveOwnProperty or EnumerateOwnProperties filter out named
+            # properties that shadow prototype properties.
+            namedGet = ("\n" +
+                        "if set == 0 && RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
+                        "  let nameVal = RUST_STRING_TO_JSVAL(RUST_JSID_TO_STRING(id));\n" +
+                        "  //FakeDependentString name;\n"
+                        "  //if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
+                        "  //                            eStringify, eStringify, name)) {\n" +
+                        "  let strval = jsval_to_str(cx, nameVal);\n" +
+                        "  if strval.is_err() {\n" +
+                        "    return 0;\n" +
+                        "  }\n" +
+                        "  let name = str(strval.get());\n" +
+                        "\n" +
+                        "  let this: *%s = UnwrapProxy(proxy);\n" +
+                        CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() + "\n" +
+                        "}\n") % (self.descriptor.concreteType)
+        else:
+            namedGet = ""
+
+        return setOrIndexedGet + """let expando: *JSObject = GetExpandoObject(proxy);
+//if (!xpc::WrapperFactory::IsXrayWrapper(proxy) && (expando = GetExpandoObject(proxy))) {
+if expando.is_not_null() {
+  let flags = if set != 0 { JSRESOLVE_ASSIGNING } else { 0 } | JSRESOLVE_QUALIFIED;
+  if JS_GetPropertyDescriptorById(cx, expando, id, flags, desc as *JSPropertyDescriptor) == 0 {
+    return 0;
+  }
+  if (*desc).obj.is_not_null() {
+    // Pretend the property lives on the wrapper.
+    (*desc).obj = proxy;
+    return 1;
+  }
+}
+""" + namedGet + """
+(*desc).obj = ptr::null();
+return 1;"""
+
+    def definition_body(self):
+        return self.getBody()
+
+class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
+    def __init__(self, descriptor):
+        args = [Argument('*JSContext', 'cx'), Argument('*JSObject', 'proxy'),
+                Argument('jsid', 'id'),
+                Argument('*JSPropertyDescriptor', 'desc')]
+        CGAbstractExternMethod.__init__(self, descriptor, "defineProperty", "bool", args)
+        self.descriptor = descriptor
+    def getBody(self):
+        set = ""
+
+        indexedSetter = self.descriptor.operations['IndexedSetter']
+        if indexedSetter:
+            if not (self.descriptor.operations['IndexedCreator'] is indexedSetter):
+                raise TypeError("Can't handle creator that's different from the setter")
+            set += ("let index = GetArrayIndexFromId(cx, id);\n" +
+                    "if index.is_some() {\n" +
+                    "  let index = index.get();\n" +
+                    "  let this: *%s = UnwrapProxy(proxy);\n" +
+                    CGIndenter(CGProxyIndexedSetter(self.descriptor)).define() +
+                    "  return 1;\n" +
+                    "}\n") % (self.descriptor.concreteType)
+        elif self.descriptor.operations['IndexedGetter']:
+            set += ("if GetArrayIndexFromId(cx, id).is_some() {\n" +
+                    "  return 0;\n" +
+                    "  //return ThrowErrorMessage(cx, MSG_NO_PROPERTY_SETTER, \"%s\");\n" +
+                    "}\n") % self.descriptor.name
+
+        namedSetter = self.descriptor.operations['NamedSetter']
+        if namedSetter:
+            if not self.descriptor.operations['NamedCreator'] is namedSetter:
+                raise TypeError("Can't handle creator that's different from the setter")
+            #XXXjdm need to properly support eStringify
+            set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
+                    "  let nameVal: JSVal = RUST_STRING_TO_JSVAL(RUST_JSID_TO_STRING(id));\n" +
+                    "  let strval = jsval_to_str(cx, nameVal);\n" +
+                    "  //FakeDependentString name;\n" +
+                    "  //if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
+                    "  //                            eStringify, eStringify, name)) {\n" +
+                    "  if strval.is_err() {\n" +
+                    "    return 0;\n" +
+                    "  }\n" +
+                    "  let name = str(strval.get());\n" +
+                    "\n" +
+                    "  let this: *%s = UnwrapProxy(proxy);\n" +
+                    CGIndenter(CGProxyNamedSetter(self.descriptor)).define() + "\n" +
+                    "}\n") % (self.descriptor.concreteType)
+        elif self.descriptor.operations['NamedGetter']:
+            set += ("if RUST_JSID_IS_STRING(id) {\n" +
+                    "  let nameVal: JSVal = RUST_STRING_TO_JSVAL(RUST_JSID_TO_STRING(id));\n" +
+                    "  let strval = jsval_to_str(cx, nameVal);\n" +
+                    "  //FakeDependentString name;\n"
+                    "  //if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
+                    "  //                            eStringify, eStringify, name)) {\n" +
+                    "  let strval = jsval_to_str(cx, nameVal);\n" +
+                    "  if strval.is_err() {\n" +
+                    "    return 0;\n" +
+                    "  }\n" +
+                    "  let name = str(strval.get());\n" +
+                    "  let this: %%s = UnwrapProxy(proxy);\n" +
+                    CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
+                    "  if (found) {\n"
+                    "    return 0;\n" +
+                    "    //return ThrowErrorMessage(cx, MSG_NO_PROPERTY_SETTER, \"%s\");\n" +
+                    "  }\n" +
+                    "  return 1;\n"
+                    "}\n") % (self.descriptor.concreteType, self.descriptor.name)
+        return set + """return proxyhandler::defineProperty(%s);""" % ", ".join(a.name for a in self.args)
+
+    def definition_body(self):
+        return self.getBody()
+
+class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
+    def __init__(self, descriptor):
+        args = [Argument('*JSContext', 'cx'), Argument('*JSObject', 'proxy'),
+                Argument('jsid', 'id'), Argument('*mut JSBool', 'bp')]
+        CGAbstractExternMethod.__init__(self, descriptor, "hasOwn", "JSBool", args)
+        self.descriptor = descriptor
+    def getBody(self):
+        indexedGetter = self.descriptor.operations['IndexedGetter']
+        if indexedGetter:
+            indexed = ("let index = GetArrayIndexFromId(cx, id);\n" +
+                       "if index.is_some() {\n" +
+                       "  let index = index.get();\n" +
+                       "  let this: *%s = UnwrapProxy(proxy);\n" +
+                       CGIndenter(CGProxyIndexedGetter(self.descriptor)).define() + "\n" +
+                       "  *bp = found as JSBool;\n" +
+                       "  return 1;\n" +
+                       "}\n\n") % (self.descriptor.concreteType)
+        else:
+            indexed = ""
+
+        namedGetter = self.descriptor.operations['NamedGetter']
+        if namedGetter:
+            #XXXjdm support eStringify
+            named = ("if RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
+                     "  let nameVal: JSVal = RUST_STRING_TO_JSVAL(RUST_JSID_TO_STRING(id));\n" +
+                     "  let strval = jsval_to_str(cx, nameVal);\n" +
+                     "  //FakeDependentString name;\n"
+                     "  //if (!ConvertJSValueToString(cx, nameVal, &nameVal,\n" +
+                     "  //                            eStringify, eStringify, name)) {\n" +
+                     "  if strval.is_err() {\n" +
+                     "    return 0;\n" +
+                     "  }\n" +
+                     "  let name = str(strval.get());\n" +
+                     "\n" +
+                     "  let this: *%s = UnwrapProxy(proxy);\n" +
+                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() + "\n" +
+                     "  *bp = found as JSBool;\n"
+                     "  return 1;\n"
+                     "}\n" +
+                     "\n") % (self.descriptor.concreteType)
+        else:
+            named = ""
+
+        return indexed + """let expando: *JSObject = GetExpandoObject(proxy);
+if expando.is_not_null() {
+  let b: JSBool = 1;
+  let ok: JSBool = JS_HasPropertyById(cx, expando, id, &b);
+  *bp = !!b;
+  if ok == 0 || *bp != 0 {
+    return ok;
+  }
+}
+
+""" + named + """*bp = 0;
+return 1;"""
+
+    def definition_body(self):
+        return self.getBody()
 
 class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
     def __init__(self, descriptor):
@@ -3620,7 +3877,7 @@ if expando.is_not_null() {
                         "\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
-                        "}\n") % (self.descriptor.nativeType)
+                        "}\n") % (self.descriptor.concreteType)
         else:
             getNamed = ""
 
@@ -3773,8 +4030,8 @@ class CGClassHasInstanceHook(CGAbstractStaticMethod):
 
     def generate_code(self):
         return """  if (!vp.isObject()) {
-    *bp = false;
-    return true;
+    *bp = 0;
+    return 1;
   }
 
   jsval protov;
@@ -3931,8 +4188,13 @@ class CGDescriptor(CGThing):
                 #cgThings.append(CGProxyIsProxy(descriptor))
                 cgThings.append(CGProxyUnwrap(descriptor))
                 cgThings.append(CGDOMJSProxyHandlerDOMClass(descriptor))
+                cgThings.append(CGDOMJSProxyHandler_getOwnPropertyDescriptor(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_obj_toString(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_get(descriptor))
+                cgThings.append(CGDOMJSProxyHandler_hasOwn(descriptor))
+                if descriptor.operations['IndexedSetter'] or descriptor.operations['NamedSetter']:
+                    cgThings.append(CGDOMJSProxyHandler_defineProperty(descriptor))
+
                 #cgThings.append(CGDOMJSProxyHandler(descriptor))
                 #cgThings.append(CGIsMethod(descriptor))
                 pass

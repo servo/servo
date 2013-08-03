@@ -117,6 +117,10 @@ impl Window {
     pub fn ShowModalDialog(&self, _cx: *JSContext, _url: &DOMString, _argument: JSVal) -> JSVal {
         JSVAL_NULL
     }
+
+    pub fn NamedGetter(&self, _cx: *JSContext, _name: &DOMString, _found: &mut bool) -> *JSObject {
+        ptr::null()
+    }
 }
 
 impl CacheableWrapper for Window {
