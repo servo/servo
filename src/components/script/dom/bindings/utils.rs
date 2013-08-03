@@ -120,7 +120,7 @@ fn is_dom_class(clasp: *JSClass) -> bool {
     }
 }
 
-fn is_dom_proxy(obj: *JSObject) -> bool {
+pub fn is_dom_proxy(obj: *JSObject) -> bool {
     unsafe {
         (js_IsObjectProxyClass(obj) || js_IsFunctionProxyClass(obj)) &&
             IsProxyHandlerFamily(obj)
@@ -887,4 +887,10 @@ pub fn FindEnumStringIndex(cx: *JSContext,
 
         return Err(()); //XXX pass in behaviour for value not found
     }
+}
+
+pub fn HasPropertyOnPrototype(cx: *JSContext, proxy: *JSObject, id: jsid) -> bool {
+    //  MOZ_ASSERT(js::IsProxy(proxy) && js::GetProxyHandler(proxy) == handler);
+    let mut found = false;
+    return !GetPropertyOnPrototype(cx, proxy, id, &mut found, ptr::null()) || found;
 }

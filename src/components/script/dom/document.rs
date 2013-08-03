@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DocumentBinding;
-use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, null_string};
+use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, DerivedWrapper};
 use dom::element::{HTMLHtmlElement, HTMLHtmlElementTypeId, Element};
 use dom::event::Event;
@@ -89,7 +89,8 @@ pub struct Document {
     root: AbstractNode<ScriptView>,
     wrapper: WrapperCache,
     window: Option<@mut Window>,
-    doctype: DocumentType
+    doctype: DocumentType,
+    title: ~str
 }
 
 impl Document {
@@ -106,7 +107,8 @@ impl Document {
             root: root,
             wrapper: WrapperCache::new(),
             window: window,
-            doctype: doctype
+            doctype: doctype,
+            title: ~""
         }
     }
 
@@ -283,10 +285,14 @@ impl Document {
     }
 
     pub fn Title(&self) -> DOMString {
-        null_string
+        str(self.title.clone())
     }
 
-    pub fn SetTitle(&self, _title: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetTitle(&mut self, title: &DOMString, _rv: &mut ErrorResult) {
+        self.title = match title {
+            &str(ref s) => s.clone(),
+            &null_string => ~""
+        };
     }
 
     pub fn Dir(&self) -> DOMString {

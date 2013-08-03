@@ -49,6 +49,10 @@ impl WrappableDocument for HTMLDocument {
 }
 
 impl HTMLDocument {
+    pub fn NamedGetter(&self, _cx: *JSContext, _name: &DOMString, _found: &mut bool, _rv: &mut ErrorResult) -> *JSObject {
+        ptr::null()
+    }
+
     pub fn GetDomain(&self, _rv: &mut ErrorResult) -> DOMString {
         null_string
     }

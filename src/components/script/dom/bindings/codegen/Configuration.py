@@ -140,6 +140,7 @@ class Descriptor(DescriptorProvider):
 
         self.nativeType = desc.get('nativeType', nativeTypeDefault)
         self.pointerType = desc.get('pointerType', '@mut ')
+        self.concreteType = desc.get('concreteType', ifaceName)
         self.hasInstanceInterface = desc.get('hasInstanceInterface', None)
 
         # Do something sane for JSObject
