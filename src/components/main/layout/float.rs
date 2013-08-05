@@ -63,8 +63,7 @@ impl FloatFlowData {
     pub fn bubble_widths_float(@mut self, ctx: &LayoutContext) {
         let mut min_width = Au(0);
         let mut pref_width = Au(0);
-
-        self.common.num_floats = 1;
+        let mut num_floats = 1;
 
         for FloatFlow(self).each_child |child_ctx| {
             //assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
@@ -72,9 +71,13 @@ impl FloatFlowData {
             do child_ctx.with_mut_base |child_node| {
                 min_width = geometry::max(min_width, child_node.min_width);
                 pref_width = geometry::max(pref_width, child_node.pref_width);
-                child_node.floats_in = FloatContext::new(child_node.num_floats);
+
+                num_floats = num_floats + child_node.num_floats;
             }
         }
+
+        self.common.num_floats = num_floats;
+
 
         self.box.map(|&box| {
             let style = box.style();
@@ -162,8 +165,15 @@ impl FloatFlowData {
     }
 
     pub fn assign_height_float(@mut self, ctx: &mut LayoutContext) {
+        let mut float_ctx = FloatContext::new(self.common.num_floats);
         for FloatFlow(self).each_child |kid| {
+            do kid.with_mut_base |child_node| {
+                child_node.floats_in = float_ctx.clone();
+            }
             kid.assign_height(ctx);
+            do kid.with_mut_base |child_node| {
+                float_ctx = child_node.floats_out.clone();
+            }
         }
 
         let mut cur_y = Au(0);
