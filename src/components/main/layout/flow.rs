@@ -63,7 +63,6 @@ impl VisitOrChildView for VisitChildView {}
 /// The type of the formatting context and data specific to each context, such as line box
 /// structures or float lists. The first type parameter is the view of this node, and the
 /// second parameter is the view of all child nodes.
-#[deriving(Clone)]
 pub enum FlowContext<View,ChildView> {
     AbsoluteFlow(@mut FlowData<View, ChildView>), 
     BlockFlow(@mut BlockFlowData<View, ChildView>),
@@ -71,6 +70,12 @@ pub enum FlowContext<View,ChildView> {
     InlineBlockFlow(@mut FlowData<View, ChildView>),
     InlineFlow(@mut InlineFlowData<View, ChildView>),
     TableFlow(@mut FlowData<View, ChildView>),
+}
+
+impl<V,CV> Clone for FlowContext<V,CV> {
+    fn clone(&self) -> FlowContext<V,CV> {
+        *self
+    }
 }
 
 pub enum FlowContextType {
@@ -259,7 +264,7 @@ pub struct FlowData<View,ChildView> {
     floats_out: FloatContext,
     num_floats: uint,
     abs_position: Point2D<Au>,
-    is_inorder: bool
+    is_inorder: bool,
 }
 
 // SequentialView flows can perform arbitrary tree operations.
@@ -375,14 +380,7 @@ impl<V,CV> FlowData<V,CV> {
 }
 
 impl<V:VisitOrChildView> FlowContext<V,VisitChildView> {
-    /// A convenience method to return the restyle damage of this flow. Fails if the flow is
-    /// currently being borrowed mutably.
-    #[inline(always)]
-    pub fn restyle_damage(&self) -> RestyleDamage {
-        do self.with_base |info| {
-            info.restyle_damage
-        }
-    }
+
 
     pub fn bubble_widths(&self, ctx: &mut LayoutContext) {
         match *self {
@@ -397,7 +395,7 @@ impl<V:VisitOrChildView> FlowContext<V,VisitChildView> {
         match *self {
             BlockFlow(info)  => info.assign_widths_block(ctx),
             InlineFlow(info) => info.assign_widths_inline(ctx),
-            FloatFlow(info)  => info.assign_widths_float(ctx),
+            FloatFlow(info)  => info.assign_widths_float(),
             _ => fail!(fmt!("Tried to assign_widths of flow: f%d", self.id()))
         }
     }
@@ -406,7 +404,7 @@ impl<V:VisitOrChildView> FlowContext<V,VisitChildView> {
         match *self {
             BlockFlow(info)  => info.assign_height_inorder_block(ctx),
             InlineFlow(info) => info.assign_height_inorder_inline(ctx),
-            FloatFlow(info)  => info.assign_height_inorder_float(ctx),
+            FloatFlow(info)  => info.assign_height_inorder_float(),
             _ => fail!(fmt!("Tried to assign_height of flow: f%d", self.id()))
         }
     }
@@ -438,6 +436,15 @@ impl<V:VisitOrChildView> FlowContext<V,VisitChildView> {
 }
 
 impl<V,CV> FlowContext<V,CV> {
+    /// A convenience method to return the restyle damage of this flow. Fails if the flow is
+    /// currently being borrowed mutably.
+    #[inline(always)]
+    pub fn restyle_damage(&self) -> RestyleDamage {
+        do self.with_base |info| {
+            info.restyle_damage
+        }
+    }
+
     /// A convenience method to return the position of this flow. Fails if the flow is currently
     /// being borrowed mutably.
     #[inline(always)]

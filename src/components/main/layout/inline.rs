@@ -106,7 +106,7 @@ impl<V,CV> LineboxScanner<V,CV> {
         self.pending_line.green_zone = Size2D(Au(0), Au(0))     
     }
 
-    pub fn scan_for_lines(&mut self, ctx: &LayoutContext) {
+    pub fn scan_for_lines(&mut self) {
         self.reset_scanner();
 
         { // FIXME: manually control borrow length
@@ -128,7 +128,7 @@ impl<V,CV> LineboxScanner<V,CV> {
                     box
                 };
 
-                let box_was_appended = self.try_append_to_line(ctx, cur_box);
+                let box_was_appended = self.try_append_to_line(cur_box);
                 if !box_was_appended {
                     debug!("LineboxScanner: Box wasn't appended, because line %u was full.",
                            self.lines.len());
@@ -223,7 +223,7 @@ impl<V,CV> LineboxScanner<V,CV> {
     /// Computes the position of a line that has only the provided RenderBox.
     /// Returns: the bounding rect of the line's green zone (whose origin coincides
     /// with the line's origin) and the actual width of the first box after splitting.
-    fn initial_line_placement (&self, ctx: &LayoutContext, first_box: RenderBox, ceiling: Au) -> (Rect<Au>, Au) {
+    fn initial_line_placement (&self, first_box: RenderBox, ceiling: Au) -> (Rect<Au>, Au) {
         debug!("LineboxScanner: Trying to place first box of line %?", self.lines.len());
         debug!("LineboxScanner: box size: %?", first_box.position().size);
         let splitable = first_box.can_split();
@@ -267,7 +267,7 @@ impl<V,CV> LineboxScanner<V,CV> {
         // FIXME(eatkinson): calling split_to_width here seems excessive and expensive.
         // We should find a better abstraction or merge it with the call in
         // try_append_to_line.
-        match first_box.split_to_width(ctx, line_bounds.size.width, line_is_empty) {
+        match first_box.split_to_width(line_bounds.size.width, line_is_empty) {
             CannotSplit(_) => {
                 error!("LineboxScanner: Tried to split unsplittable render box! %s",
                         first_box.debug_str());
@@ -280,7 +280,7 @@ impl<V,CV> LineboxScanner<V,CV> {
                     (Some(l_box), Some(_))  => l_box.position().size.width,
                     (Some(l_box), None)     => l_box.position().size.width,
                     (None, Some(r_box))     => r_box.position().size.width,
-                    (None, None)            => fail!("This cas makes no sense.")
+                    (None, None)            => fail!("This case makes no sense.")
                 };
                 return (line_bounds, actual_box_width);
             }
@@ -294,7 +294,7 @@ impl<V,CV> LineboxScanner<V,CV> {
                     (Some(l_box), Some(_))  => l_box.position().size.width,
                     (Some(l_box), None)     => l_box.position().size.width,
                     (None, Some(r_box))     => r_box.position().size.width,
-                    (None, None)            => fail!("This cas makes no sense.")
+                    (None, None)            => fail!("This case makes no sense.")
                 };
 
                 info.width = actual_box_width;
@@ -308,11 +308,11 @@ impl<V,CV> LineboxScanner<V,CV> {
     }
 
     /// Returns false only if we should break the line.
-    fn try_append_to_line(&mut self, ctx: &LayoutContext, in_box: RenderBox) -> bool {
+    fn try_append_to_line(&mut self, in_box: RenderBox) -> bool {
         let line_is_empty: bool = self.pending_line.range.length() == 0;
 
         if line_is_empty {
-            let (line_bounds, _) = self.initial_line_placement(ctx, in_box, self.cur_y);
+            let (line_bounds, _) = self.initial_line_placement(in_box, self.cur_y);
             self.pending_line.bounds.origin = line_bounds.origin;
             self.pending_line.green_zone = line_bounds.size;
         }
@@ -349,7 +349,7 @@ impl<V,CV> LineboxScanner<V,CV> {
 
             // First predict where the next line is going to be
             let this_line_y = self.pending_line.bounds.origin.y;
-            let (next_line, first_box_width) = self.initial_line_placement(ctx, in_box, this_line_y);
+            let (next_line, first_box_width) = self.initial_line_placement(in_box, this_line_y);
             let next_green_zone = next_line.size;
 
             let new_width = self.pending_line.bounds.size.width + first_box_width;
@@ -397,7 +397,7 @@ impl<V,CV> LineboxScanner<V,CV> {
         } else {
             let available_width = green_zone.width - self.pending_line.bounds.size.width;
 
-            match in_box.split_to_width(ctx, available_width, line_is_empty) {
+            match in_box.split_to_width(available_width, line_is_empty) {
                 CannotSplit(_) => {
                     error!("LineboxScanner: Tried to split unsplittable render box! %s",
                             in_box.debug_str());
@@ -543,7 +543,7 @@ impl<V:VisitOrChildView> InlineFlowData<V,VisitChildView> {
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
     /// on this context, the context has had its width set by the parent context.
-    pub fn assign_widths_inline(@mut self, _: &mut LayoutContext) {
+    pub fn assign_widths_inline(@mut self, _: &LayoutContext) {
         // Initialize content box widths if they haven't been initialized already.
         //
         // TODO: Combine this with `LineboxScanner`'s walk in the box list, or put this into
@@ -594,7 +594,7 @@ impl<V:VisitOrChildView> InlineFlowData<V,VisitChildView> {
         self.assign_height_inline(ctx);
     }
 
-    pub fn assign_height_inline(@mut self, ctx: &mut LayoutContext) {
+    pub fn assign_height_inline(@mut self, _: &LayoutContext) {
 
         debug!("assign_height_inline: assigning height for flow %?", self.common.id);
 
@@ -605,7 +605,7 @@ impl<V:VisitOrChildView> InlineFlowData<V,VisitChildView> {
         // TODO(#226): Get the CSS `line-height` property from each non-replaced inline element to
         // determine its height for computing linebox height.
         let mut scanner = LineboxScanner::new(InlineFlow(self), self.common.floats_in.clone());
-        scanner.scan_for_lines(ctx);
+        scanner.scan_for_lines();
 
         // Now, go through each line and lay out the boxes inside
         for self.lines.iter().advance |line| {

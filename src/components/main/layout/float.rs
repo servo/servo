@@ -97,7 +97,7 @@ impl<V:VisitOrChildView> FloatFlowData<V,VisitChildView> {
         self.common.pref_width = pref_width;
     }
 
-    pub fn assign_widths_float(@mut self, _: &LayoutContext) { 
+    pub fn assign_widths_float(@mut self) { 
         debug!("assign_widths_float: assigning width for flow %?",  self.common.id);
         // position.size.width is set by parent even though we don't know
         // position.origin yet.
@@ -177,21 +177,37 @@ impl<V:VisitOrChildView> FloatFlowData<V,VisitChildView> {
         }
     }
 
-    pub fn assign_height_inorder_float(@mut self, _: &mut LayoutContext) {
+    pub fn assign_height_inorder_float(@mut self) {
         debug!("assign_height_inorder_float: assigning height for float %?", self.common.id);
         // assign_height_float was already called by the traversal function
         // so this is well-defined
 
         let mut height = Au(0);
+        let mut full_noncontent_width = Au(0);
+        let mut full_noncontent_height = Au(0);
+
         self.box.map(|&box| {
             height = do box.with_base |base| {
                 base.position.size.height
             };
+
+            do box.with_base |base| {
+
+            let noncontent_width = base.model.padding.left + base.model.padding.right +
+                base.model.border.left + base.model.border.right;
+            let noncontent_height = base.model.padding.top + base.model.padding.bottom +
+                base.model.border.top + base.model.border.bottom;
+
+            full_noncontent_width = noncontent_width + base.model.margin.left + base.model.margin.right;
+            full_noncontent_height = noncontent_height + base.model.margin.top + base.model.margin.bottom;
+
+            }
+
         });
 
         let info = PlacementInfo {
-            width: self.common.position.size.width,
-            height: height,
+            width: self.common.position.size.width + full_noncontent_width,
+            height: height + full_noncontent_height,
             ceiling: Au(0),
             max_width: self.containing_width,
             f_type: self.float_type,
@@ -240,8 +256,6 @@ impl<V:VisitOrChildView> FloatFlowData<V,VisitChildView> {
 
         let mut noncontent_width = Au(0);
         let mut noncontent_height = Au(0);
-        let mut full_noncontent_width = Au(0);
-        let mut full_noncontent_height = Au(0);
         self.box.map(|&box| {
             do box.with_mut_base |base| {
                 //The associated box is the border box of this flow
@@ -253,8 +267,6 @@ impl<V:VisitOrChildView> FloatFlowData<V,VisitChildView> {
                     base.model.border.top + base.model.border.bottom;
                 base.position.size.height = height + noncontent_height;
 
-                full_noncontent_width = noncontent_width + base.model.margin.left + base.model.margin.right;
-                full_noncontent_height = noncontent_height + base.model.margin.top + base.model.margin.bottom;
             }
         });
 
@@ -272,8 +284,6 @@ impl<V:VisitOrChildView> FloatFlowData<V,VisitChildView> {
                 base.position.size.height = height;
             }
         }
-            width: self.common.position.size.width + full_noncontent_width,
-            height: height + full_noncontent_height,
     }
 
     pub fn build_display_list_float<E:ExtraDisplayListData>(@mut self,

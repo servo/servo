@@ -252,14 +252,10 @@ impl LayoutTask {
         }
 
         for layout_root.traverse_postorder |flow| {
-            do flow.with_base |base| {
-                match base.parent {
-                    None => {},
-                    Some(parent_ctx) => {
-                        let prop = base.restyle_damage.propagate_up();
-                        do parent_ctx.with_mut_base |parent| {
-                            parent.restyle_damage.union_in_place(prop);
-                        }
+            for flow.each_child |child| {
+                do child.with_base |child_base| {
+                    do flow.with_mut_base |base| {
+                        base.restyle_damage.union_in_place(child_base.restyle_damage);
                     }
                 }
             }
@@ -274,7 +270,9 @@ impl LayoutTask {
 
         do profile(time::LayoutMainCategory, self.profiler_chan.clone()) {
             for layout_root.traverse_postorder_prune(|f| f.restyle_damage().lacks(BubbleWidths)) |flow| {
-                flow.bubble_widths(&mut layout_ctx);
+                unsafe {
+                    flow.restrict_view().bubble_widths(&mut layout_ctx);
+                }
             };
             for traverser.traverse_preorder(layout_root) |flow| {
             // FIXME: We want to do
