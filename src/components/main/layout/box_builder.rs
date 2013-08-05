@@ -401,7 +401,8 @@ impl LayoutTreeBuilder {
 
         let new_generator = match (display, parent_generator.flow, sibling_flow) { 
             // Floats
-            (CSSDisplayBlock, BlockFlow(_), _) if !is_float.is_none() => {
+            (CSSDisplayBlock, BlockFlow(_), _) |
+            (CSSDisplayBlock, FloatFlow(_), _) if !is_float.is_none() => {
                 self.create_child_generator(node, parent_generator, Flow_Float(is_float.get()))
             }
             // If we're placing a float after an inline, append the float to the inline flow,
