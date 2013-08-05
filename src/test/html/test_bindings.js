@@ -120,6 +120,10 @@ window.alert(ev2.getModifierState("ctrl"));
 window.alert(ev2 instanceof Event);
 window.alert(ev2 instanceof UIEvent);
 
+window.alert(document.title);
+document.title = "foo";
+window.alert(document.title);
+
 //TODO: Doesn't work until we throw proper exceptions instead of returning 0 on
 //      unwrap failure.
 /*try {

@@ -53,6 +53,10 @@ impl HTMLCollection {
         *found = true;
         self.Item(index)
     }
+
+    pub fn NamedGetter(&self, _cx: *JSContext, _name: &DOMString, _found: &mut bool, _rv: &mut ErrorResult) -> *JSObject {
+        ptr::null()
+    }
 }
 
 impl BindingObject for HTMLCollection {
