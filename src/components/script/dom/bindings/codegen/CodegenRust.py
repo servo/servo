@@ -4237,7 +4237,7 @@ class CGNamespacedEnum(CGThing):
             entries.append(entry)
 
         # Append a Count.
-        entries.append('_' + enumName + '_Count')
+        entries.append('_' + enumName + '_Count = ' + str(len(entries)))
 
         # Indent.
         entries = ['  ' + e for e in entries]
@@ -4606,6 +4606,7 @@ class CGBindingRoot(CGThing):
                           'dom::node::{AbstractNode, Node, Text}', #XXXjdm
                           'dom::document::{Document, AbstractDocument}', #XXXjdm
                           'dom::element::{Element, HTMLHeadElement, HTMLHtmlElement}', #XXXjdm
+                          'dom::htmlanchorelement::HTMLAnchorElement', #XXXjdm
                           'dom::htmlelement::HTMLElement', #XXXjdm
                           'dom::htmldocument::HTMLDocument', #XXXjdm
                           'dom::bindings::utils::*',

@@ -5,10 +5,12 @@
 //! Element nodes.
 
 use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
+use dom::bindings::codegen::{HTMLAnchorElementBinding};
 use dom::bindings::utils::{DOMString, null_string, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
+use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
@@ -91,7 +93,6 @@ pub enum ElementTypeId {
 // Regular old elements
 //
 
-pub struct HTMLAnchorElement    { parent: HTMLElement }
 pub struct HTMLAsideElement     { parent: HTMLElement }
 pub struct HTMLBRElement        { parent: HTMLElement }
 pub struct HTMLBodyElement      { parent: HTMLElement }
@@ -133,7 +134,7 @@ impl HTMLHtmlElement {
     }
 }
 
-macro_rules! generate_cacheable_wrapper(
+pub macro_rules! generate_cacheable_wrapper(
     ($name: ident, $wrap: path) => (
         impl CacheableWrapper for $name {
             fn get_wrappercache(&mut self) -> &mut WrapperCache {
@@ -148,7 +149,7 @@ macro_rules! generate_cacheable_wrapper(
     )
 )
 
-macro_rules! generate_binding_object(
+pub macro_rules! generate_binding_object(
     ($name: ident) => (
         impl BindingObject for $name {
             fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
@@ -162,6 +163,8 @@ generate_cacheable_wrapper!(HTMLHeadElement, HTMLHeadElementBinding::Wrap)
 generate_binding_object!(HTMLHeadElement)
 generate_cacheable_wrapper!(HTMLHtmlElement, HTMLHtmlElementBinding::Wrap)
 generate_binding_object!(HTMLHtmlElement)
+generate_cacheable_wrapper!(HTMLAnchorElement, HTMLAnchorElementBinding::Wrap)
+generate_binding_object!(HTMLAnchorElement)
 
 //
 // Fancier elements

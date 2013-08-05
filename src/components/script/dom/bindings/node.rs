@@ -6,8 +6,9 @@ use dom::bindings::element;
 use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
-use dom::element::{HTMLHeadElementTypeId, HTMLHtmlElementTypeId};
+use dom::element::{HTMLHeadElementTypeId, HTMLHtmlElementTypeId, HTMLAnchorElementTypeId};
 use dom::element::{HTMLHeadElement, HTMLHtmlElement};
+use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId, ScriptView, Text};
 
@@ -73,6 +74,7 @@ macro_rules! generate_element(
 #[allow(non_implicitly_copyable_typarams)]
 pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject {
     match node.type_id() {
+        ElementNodeTypeId(HTMLAnchorElementTypeId) => generate_element!(HTMLAnchorElement),
         ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
         ElementNodeTypeId(HTMLHtmlElementTypeId) => generate_element!(HTMLHtmlElement),
         ElementNodeTypeId(_) => element::create(cx, node).ptr,
