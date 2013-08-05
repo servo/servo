@@ -359,6 +359,11 @@ impl Constellation {
                 self.pipelines.insert(pipeline.id, pipeline);
             }
 
+/* 
+            FrameRectMsg(pipeline_id, subpage_id, rect, rect_type) => {
+            }
+
+*/
             LoadIframeUrlMsg(url, source_pipeline_id, subpage_id, size_future) => {
                 // A message from the script associated with pipeline_id that it has
                 // parsed an iframe during html parsing. This iframe will result in a

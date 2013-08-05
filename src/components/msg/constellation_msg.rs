@@ -29,6 +29,7 @@ impl ConstellationChan {
 pub enum Msg {
     ExitMsg(Chan<()>),
     InitLoadUrlMsg(Url),
+    //FrameRectMsg(PipelineId, SubpageId, Rect<?>),
     LoadUrlMsg(PipelineId, Url, Future<Size2D<uint>>),
     LoadIframeUrlMsg(Url, PipelineId, SubpageId, Future<Size2D<uint>>),
     NavigateMsg(NavigationDirection),
