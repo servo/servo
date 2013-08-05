@@ -42,6 +42,7 @@ pub mod dom {
             pub mod EventBinding;
             pub mod EventTargetBinding;
             pub mod FormDataBinding;
+            pub mod HTMLAnchorElementBinding;
             pub mod HTMLCollectionBinding;
             pub mod HTMLDocumentBinding;
             pub mod HTMLElementBinding;
@@ -67,6 +68,7 @@ pub mod dom {
     pub mod event;
     pub mod eventtarget;
     pub mod formdata;
+    pub mod htmlanchorelement;
     pub mod htmlcollection;
     pub mod htmldocument;
     pub mod htmlelement;
