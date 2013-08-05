@@ -15,6 +15,12 @@ pub enum FloatType{
     FloatRight
 }
 
+pub enum ClearType {
+    ClearLeft,
+    ClearRight,
+    ClearBoth
+}
+
 struct FloatContextBase{
     float_data: ~[Option<FloatData>],
     floats_used: uint,
@@ -106,6 +112,13 @@ impl FloatContext {
     pub fn last_float_pos(&mut self) -> Point2D<Au> {
         do self.with_base |base| {
             base.last_float_pos()
+        }
+    }
+
+    #[inline(always)]
+    pub fn clearance(&self, clear: ClearType) -> Au {
+        do self.with_base |base| {
+            base.clearance(clear)
         }
     }
 }
@@ -342,6 +355,28 @@ impl FloatContextBase{
                 }
             }
         }
+    }
+
+    fn clearance(&self, clear: ClearType) -> Au {
+        let mut clearance = Au(0);
+        for self.float_data.iter().advance |float| {
+            match *float {
+                None => (),
+                Some(f_data) => {
+                    match (clear, f_data.f_type) {
+                        (ClearLeft, FloatLeft) |
+                        (ClearRight, FloatRight) |
+                        (ClearBoth, _) => {
+                            clearance = max(
+                                clearance,
+                                self.offset.y + f_data.bounds.origin.y + f_data.bounds.size.height);
+                        }
+                        _ => ()
+                    }
+                }
+            }
+        }
+        clearance
     }
 }
 

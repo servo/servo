@@ -12,6 +12,8 @@ use layout::inline::InlineLayout;
 use layout::model::{MaybeAuto, Specified, Auto};
 use layout::float_context::FloatContext;
 
+use newcss::values::{CSSClearNone, CSSClearLeft, CSSClearRight, CSSClearBoth};
+use layout::float_context::{ClearLeft, ClearRight, ClearBoth};
 use std::cell::Cell;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -249,13 +251,28 @@ impl BlockFlowData {
 
     pub fn assign_height_block(@mut self, ctx: &mut LayoutContext) {
         let mut cur_y = Au(0);
+        let mut clearance = Au(0);
         let mut top_offset = Au(0);
         let mut bottom_offset = Au(0);
         let mut left_offset = Au(0);
 
         for self.box.iter().advance |&box| {
+            let style = box.style();
+            let clear = match style.clear() {
+                CSSClearNone => None,
+                CSSClearLeft => Some(ClearLeft),
+                CSSClearRight => Some(ClearRight),
+                CSSClearBoth => Some(ClearBoth)
+            };
+            clearance = match clear {
+                None => Au(0),
+                Some(clear) => {
+                    self.common.floats_in.clearance(clear)
+                }
+            };
+
             do box.with_model |model| {
-                top_offset = model.margin.top + model.border.top + model.padding.top;
+                top_offset = clearance + model.margin.top + model.border.top + model.padding.top;
                 cur_y = cur_y + top_offset;
                 bottom_offset = model.margin.bottom + model.border.bottom + model.padding.bottom;
                 left_offset = model.offset();
@@ -308,13 +325,13 @@ impl BlockFlowData {
         self.box.map(|&box| {
             do box.with_mut_base |base| {
                 //The associated box is the border box of this flow
-                base.position.origin.y = base.model.margin.top;
+                base.position.origin.y = clearance + base.model.margin.top;
 
                 noncontent_height = base.model.padding.top + base.model.padding.bottom +
                     base.model.border.top + base.model.border.bottom;
                 base.position.size.height = height + noncontent_height;
 
-                noncontent_height = noncontent_height + base.model.margin.top + base.model.margin.bottom;
+                noncontent_height = noncontent_height + clearance + base.model.margin.top + base.model.margin.bottom;
             }
         });
 
