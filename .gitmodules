@@ -22,9 +22,6 @@
 [submodule "src/support/opengles/rust-opengles"]
 	path = src/support/opengles/rust-opengles
 	url = https://github.com/mozilla-servo/rust-opengles.git
-[submodule "src/support/glut/rust-glut"]
-	path = src/support/glut/rust-glut
-	url = https://github.com/mozilla-servo/rust-glut.git
 [submodule "src/support/layers/rust-layers"]
 	path = src/support/layers/rust-layers
 	url = https://github.com/mozilla-servo/rust-layers.git

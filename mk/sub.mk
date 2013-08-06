@@ -51,10 +51,6 @@ DEPS_glfw-rs += \
 	glfw \
 	$(NULL)
 
-DEPS_rust-glut += \
-	rust-opengles \
-	$(NULL)
-
 DEPS_rust-layers += \
 	rust-geom \
 	rust-opengles \
@@ -142,10 +138,6 @@ DEPS_rust-layers += \
 	rust-core-text \
 	rust-cocoa \
 	$(NULL)
-
-DEPS_rust-glut += \
-    rust-cocoa \
-    $(NULL)
 
 endif
 
