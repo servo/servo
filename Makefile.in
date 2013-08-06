@@ -266,7 +266,7 @@ $(AUTOGEN_SRC_script): %Binding.rs: $(bindinggen_dependencies) \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
 	  $(BINDINGS_SRC)/BindingGen.py rs \
-	  $(BINDINGS_SRC)/Bindings.conf $*Binding $*.webidl
+	  $(BINDINGS_SRC)/Bindings.conf $*Binding $*.webidl $(BINDINGS_SRC)
 	$(Q)touch $@
 
 globalgen_dependencies := $(addprefix $(BINDINGS_SRC)/, GlobalGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py) $(CACHE_DIR)/.done
