@@ -64,6 +64,8 @@ impl Clone for FrameTree {
 
 struct ChildFrameTree {
     frame_tree: @mut FrameTree,
+    /// Clipping rect representing the size and position, in page coordinates, of the visible
+    /// region of the child frame relative to the parent.
     rect: Option<Rect<f32>>,
 }
 
