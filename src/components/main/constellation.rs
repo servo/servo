@@ -22,7 +22,7 @@ use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
 use servo_util::time::ProfilerChan;
-use std::hashmap::{HashMap, HashSet};
+use std::hashmap::HashMap;
 use std::util::replace;
 use extra::future::from_value;
 
@@ -361,26 +361,6 @@ impl Constellation {
                 self.pipelines.insert(pipeline.id, pipeline);
             }
 
-/* 
-            FrameRectMsg(pipeline_id, subpage_id, rect) => {
-                let frame_trees: ~[@mut FrameTree] = {
-                    let matching_navi_frames = self.navigation_context.find_all(pipeline_id);
-                    let matching_pending_frames = do self.pending_frames.iter().filter_map |frame_change| {
-                        frame_change.after.find_mut(pipeline_id)
-                    };
-                    matching_navi_frames.consume_iter().chain_(matching_pending_frames).collect()
-                };
-                let mut subframes = HashSet::new();
-                for self.current_frame().find(pipeline_id).iter().advance |subframe| {
-                    self.compositor_chan.send(ResizeLayerMsg(
-                }
-                if self.current_frame().contains(pipeline_id) {
-                    self.compositor_chan.send(ResizeLayerMsg(pipeline_
-                }
-                let frame_trees = self.navigation_context.find_all(pipeline_id);
-            }
-
-*/
             LoadIframeUrlMsg(url, source_pipeline_id, subpage_id, size_future) => {
                 // A message from the script associated with pipeline_id that it has
                 // parsed an iframe during html parsing. This iframe will result in a
@@ -446,7 +426,7 @@ impl Constellation {
                 } else {
                     pipeline.load(url, None);
                 }
-                let rect = self.pending_sizes.pop((source_pipeline_id, subpage_id));
+                let rect = self.pending_sizes.pop(&(source_pipeline_id, subpage_id));
                 for frame_tree in frame_trees.iter() {
                     frame_tree.children.push(ChildFrameTree {
                         frame_tree: @mut FrameTree {

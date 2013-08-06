@@ -15,6 +15,7 @@ use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEve
 use compositing::quadtree::{Quadtree, Invalid};
 use layers::layers::{ContainerLayerKind, ContainerLayer, TextureLayerKind, TextureLayer, TextureManager};
 use pipeline::Pipeline;
+use constellation::{SendableChildFrameTree, SendableFrameTree};
 
 /// The CompositorLayer represents an element on a page that has a unique scroll
 /// or animation behavior. This can include absolute positioned elements, iframes, etc.
@@ -81,6 +82,27 @@ impl CompositorLayer {
         }
     }
     
+    pub fn from_frame_tree(frame_tree: SendableFrameTree, tile_size: uint, max_mem: Option<uint>) -> CompositorLayer {
+        let SendableFrameTree { pipeline, children } = frame_tree;
+        CompositorLayer {
+            pipeline: pipeline,
+            page_size: None,
+            scroll_offset: Point2D(0f32, 0f32),
+            children: (do children.consume_iter().transform |child| {
+                let SendableChildFrameTree { frame_tree, rect } = child;
+                let container = @mut ContainerLayer();
+                container.scissor = rect;
+                CompositorLayerChild {
+                    child: ~CompositorLayer::from_frame_tree(frame_tree, tile_size, max_mem),
+                    container: container,
+                }
+            }).collect(),
+            quadtree: NoTree(tile_size, max_mem),
+            root_layer: @mut ContainerLayer(),
+            hidden: true,
+        }
+    }
+
     // Move the layer by as relative specified amount in page coordinates. Does not change
     // the position of the layer relative to its parent. This also takes in a cursor position
     // to see if the mouse is over child layers first. If a layer successfully scrolled, returns
