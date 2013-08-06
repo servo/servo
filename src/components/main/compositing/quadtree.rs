@@ -20,7 +20,8 @@ pub struct Quadtree<T> {
     // The root node of the quadtree
     root: ~QuadtreeNode<T>,
     // The size of the layer in pixels. Tiles will be clipped to this size.
-    // Note that the underlying quadtree has a larger size.
+    // Note that the underlying quadtree has a potentailly larger size, since it is rounded
+    // to the next highest power of two.
     clip_size: Size2D<uint>,
     // The maximum size of the tiles requested in pixels. Tiles requested will be
     // of a size anywhere between half this value and this value.
@@ -205,8 +206,11 @@ impl<T: Tile> Quadtree<T> {
         let longer = width.max(&height);
         let new_num_tiles = div_ceil(longer, self.max_tile_size);
         let new_size = next_power_of_two(new_num_tiles);
+        // difference here indicates the number of times the underlying size of the quadtree needs
+        // to be doubled or halved. It will recursively add a new root if it is positive, or
+        // recursivly make a child the new root if it is negative.
         let difference = (new_size as f32 / self.root.size as f32).log2() as int;
-        if difference > 0 {
+        if difference > 0 { // doubling
             let difference = difference as uint;
             for range(0, difference) |i| {
                 let new_root = ~QuadtreeNode {
@@ -219,7 +223,7 @@ impl<T: Tile> Quadtree<T> {
                 };
                 self.root.quadrants[TL as int] = Some(replace(&mut self.root, new_root));
             }
-        } else if difference < 0 {
+        } else if difference < 0 { // halving
             let difference = difference.abs() as uint;
             for difference.times {
                 let remove = replace(&mut self.root.quadrants[TL as int], None);
@@ -663,8 +667,8 @@ pub fn test_resize() {
     }
     
     let mut q = Quadtree::new(6, 6, 1, None);
-    q.add_tile(0, 0, 1f32, T{a: 0});
-    q.add_tile(5, 5, 1f32, T{a: 1});
+    q.add_tile_pixel(0, 0, 1f32, T{a: 0});
+    q.add_tile_pixel(5, 5, 1f32, T{a: 1});
     q.resize(8, 1);
     assert!(q.root.size == 8.0);
     q.resize(18, 1);
@@ -693,26 +697,26 @@ pub fn test() {
     }
     
     let mut q = Quadtree::new(8, 8, 2, Some(4));
-    q.add_tile(0, 0, 1f32, T{a: 0});  
-    q.add_tile(0, 0, 2f32, T{a: 1});
-    q.add_tile(0, 0, 2f32, T{a: 2});
-    q.add_tile(2, 0, 2f32, T{a: 3});
+    q.add_tile_pixel(0, 0, 1f32, T{a: 0});  
+    q.add_tile_pixel(0, 0, 2f32, T{a: 1});
+    q.add_tile_pixel(0, 0, 2f32, T{a: 2});
+    q.add_tile_pixel(2, 0, 2f32, T{a: 3});
     assert!(q.root.tile_mem == 3);
     assert!(q.get_all_tiles().len() == 3);
-    q.add_tile(0, 2, 2f32, T{a: 4});
-    q.add_tile(2, 2, 2f32, T{a: 5});
+    q.add_tile_pixel(0, 2, 2f32, T{a: 4});
+    q.add_tile_pixel(2, 2, 2f32, T{a: 5});
     assert!(q.root.tile_mem == 4);
 
-    let (request, _) = q.get_tile_rects(Rect(Point2D(0, 0), Size2D(2, 2)), 2f32);
+    let (request, _) = q.get_tile_rects_pixel(Rect(Point2D(0, 0), Size2D(2, 2)), 2f32);
     assert!(request.is_empty());
-    let (request, _) = q.get_tile_rects(Rect(Point2D(0, 0), Size2D(2, 2)), 1.9);
+    let (request, _) = q.get_tile_rects_pixel(Rect(Point2D(0, 0), Size2D(2, 2)), 1.9);
     assert!(request.is_empty());
-    let (request, _) = q.get_tile_rects(Rect(Point2D(0, 0), Size2D(2, 2)), 1f32);
+    let (request, _) = q.get_tile_rects_pixel(Rect(Point2D(0, 0), Size2D(2, 2)), 1f32);
     assert!(request.len() == 4);
 
-    q.add_tile(0, 0, 0.5, T{a: 6});
-    q.add_tile(0, 0, 1f32, T{a: 7});
-    let (_, redisplay) = q.get_tile_rects(Rect(Point2D(0, 0), Size2D(2, 2)), 0.5);
+    q.add_tile_pixel(0, 0, 0.5, T{a: 6});
+    q.add_tile_pixel(0, 0, 1f32, T{a: 7});
+    let (_, redisplay) = q.get_tile_rects_pixel(Rect(Point2D(0, 0), Size2D(2, 2)), 0.5);
     assert!(redisplay);
     assert!(q.root.tile_mem == 1);
 }

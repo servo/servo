@@ -278,9 +278,9 @@ impl CompositorTask {
                             None => fail!("Compositor: Received new layer without initialized pipeline"),
                         };
                         let page_size = Size2D(new_size.width as f32, new_size.height as f32);
-                        let new_layer = CompositorLayer(p.clone(), page_size,
-                                                        self.opts.tile_size, Some(10000000u));
-
+                        let new_layer = CompositorLayer::new(p.clone(), Some(page_size),
+                                                             self.opts.tile_size, Some(10000000u));
+                        
                         let current_child = root_layer.first_child;
                         // This assumes there is at most one child, which should be the case.
                         match current_child {
