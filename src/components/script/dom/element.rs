@@ -10,6 +10,7 @@ use dom::clientrectlist::ClientRectList;
 use dom::node::{ElementNodeTypeId, Node, ScriptView};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
+use newcss::stylesheet::Stylesheet;
 
 use std::cell::Cell;
 use std::comm::ChanOne;
@@ -24,6 +25,7 @@ pub struct Element {
     parent: Node<ScriptView>,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
     attrs: ~[Attr],
+    style_attribute: Option<Stylesheet>,
 }
 
 #[deriving(Eq)]
@@ -132,7 +134,8 @@ impl<'self> Element {
         Element {
             parent: Node::new(ElementNodeTypeId(type_id)),
             tag_name: tag_name,
-            attrs: ~[]
+            attrs: ~[],
+            style_attribute: None,
         }
     }
 
