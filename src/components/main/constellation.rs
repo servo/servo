@@ -15,14 +15,14 @@ use pipeline::Pipeline;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg};
 use servo_msg::constellation_msg::{InitLoadUrlMsg, LoadIframeUrlMsg, LoadUrlMsg};
 use servo_msg::constellation_msg::{Msg, NavigateMsg};
-use servo_msg::constellation_msg::{PipelineId, RendererReadyMsg, ResizedWindowBroadcast};
+use servo_msg::constellation_msg::{PipelineId, RendererReadyMsg, ResizedWindowBroadcast, SubpageId};
 use servo_msg::constellation_msg;
 use script::script_task::{ResizeInactiveMsg, ExecuteMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
 use servo_util::time::ProfilerChan;
-use std::hashmap::HashMap;
+use std::hashmap::{HashMap, HashSet};
 use std::util::replace;
 use extra::future::from_value;
 
@@ -37,6 +37,7 @@ pub struct Constellation {
     navigation_context: NavigationContext,
     priv next_pipeline_id: PipelineId,
     pending_frames: ~[FrameChange],
+    pending_sizes: HashMap<(PipelineId, SubpageId), Rect<f32>>,
     profiler_chan: ProfilerChan,
     opts: Opts,
 }
@@ -283,6 +284,7 @@ impl Constellation {
                 navigation_context: NavigationContext::new(),
                 next_pipeline_id: PipelineId(0),
                 pending_frames: ~[],
+                pending_sizes: HashMap::new(),
                 profiler_chan: profiler_chan.take(),
                 opts: opts.take(),
             };
@@ -360,7 +362,22 @@ impl Constellation {
             }
 
 /* 
-            FrameRectMsg(pipeline_id, subpage_id, rect, rect_type) => {
+            FrameRectMsg(pipeline_id, subpage_id, rect) => {
+                let frame_trees: ~[@mut FrameTree] = {
+                    let matching_navi_frames = self.navigation_context.find_all(pipeline_id);
+                    let matching_pending_frames = do self.pending_frames.iter().filter_map |frame_change| {
+                        frame_change.after.find_mut(pipeline_id)
+                    };
+                    matching_navi_frames.consume_iter().chain_(matching_pending_frames).collect()
+                };
+                let mut subframes = HashSet::new();
+                for self.current_frame().find(pipeline_id).iter().advance |subframe| {
+                    self.compositor_chan.send(ResizeLayerMsg(
+                }
+                if self.current_frame().contains(pipeline_id) {
+                    self.compositor_chan.send(ResizeLayerMsg(pipeline_
+                }
+                let frame_trees = self.navigation_context.find_all(pipeline_id);
             }
 
 */
@@ -429,6 +446,7 @@ impl Constellation {
                 } else {
                     pipeline.load(url, None);
                 }
+                let rect = self.pending_sizes.pop((source_pipeline_id, subpage_id));
                 for frame_tree in frame_trees.iter() {
                     frame_tree.children.push(ChildFrameTree {
                         frame_tree: @mut FrameTree {
@@ -436,7 +454,7 @@ impl Constellation {
                             parent: Some(source_pipeline),
                             children: ~[],
                         },
-                        rect: None
+                        rect: rect,
                     });
                 }
                 self.pipelines.insert(pipeline.id, pipeline);
