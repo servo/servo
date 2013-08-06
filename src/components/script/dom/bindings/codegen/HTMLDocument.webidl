@@ -5,7 +5,6 @@
  */
 
 interface Selection;
-interface HTMLHeadElement;
 
 [OverrideBuiltins]
 interface HTMLDocument : Document {
