@@ -11,8 +11,9 @@ use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box};
 use dom::bindings;
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
-use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLIframeElement};
+use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLIframeElement};
 use dom::element::{HTMLStyleElementTypeId};
+use dom::htmlimageelement::HTMLImageElement;
 use dom::window::Window;
 
 use std::cast;

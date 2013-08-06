@@ -49,6 +49,7 @@ pub mod dom {
             pub mod HTMLElementBinding;
             pub mod HTMLHeadElementBinding;
             pub mod HTMLHtmlElementBinding;
+            pub mod HTMLImageElementBinding;
             pub mod MouseEventBinding;
             pub mod NodeBinding;
             pub mod PrototypeList;
@@ -73,6 +74,7 @@ pub mod dom {
     pub mod htmlcollection;
     pub mod htmldocument;
     pub mod htmlelement;
+    pub mod htmlimageelement;
     pub mod mouseevent;
     pub mod node;
     pub mod uievent;

@@ -4620,6 +4620,7 @@ class CGBindingRoot(CGThing):
                           'dom::htmlanchorelement::HTMLAnchorElement', #XXXjdm
                           'dom::htmlelement::HTMLElement', #XXXjdm
                           'dom::htmldocument::HTMLDocument', #XXXjdm
+                          'dom::htmlimageelement::HTMLImageElement', #XXXjdm
                           'dom::bindings::utils::*',
                           'dom::bindings::conversions::*',
                           'dom::blob::*', #XXXjdm
