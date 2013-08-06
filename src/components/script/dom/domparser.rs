@@ -6,8 +6,9 @@ use dom::bindings::codegen::DOMParserBinding;
 use dom::bindings::codegen::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
 use dom::bindings::utils::{DOMString, ErrorResult, WrapperCache, CacheableWrapper};
 use dom::document::{AbstractDocument, Document, XML};
-use dom::element::{Element, HTMLHtmlElement, HTMLHtmlElementTypeId};
+use dom::element::{HTMLHtmlElement, HTMLHtmlElementTypeId};
 use dom::htmldocument::HTMLDocument;
+use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::window::Window;
 
@@ -41,8 +42,8 @@ impl DOMParser {
                            _rv: &mut ErrorResult)
                            -> AbstractDocument {
         unsafe {
-            let root = ~HTMLHtmlElement {
-                parent: Element::new(HTMLHtmlElementTypeId, ~"html")
+            let root = @HTMLHtmlElement {
+                parent: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
             };
 
             let root = Node::as_abstract_node((*self.owner.page).js_info.get_ref().js_compartment.cx.ptr, root);

@@ -5,10 +5,11 @@
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, DerivedWrapper};
-use dom::element::{HTMLHtmlElement, HTMLHtmlElementTypeId, Element};
+use dom::element::{HTMLHtmlElement, HTMLHtmlElementTypeId};
 use dom::event::Event;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
+use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, ScriptView, Node};
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
@@ -34,18 +35,6 @@ impl AbstractDocument {
         doc.init_wrapper(cx);
         AbstractDocument {
             document: unsafe { cast::transmute(doc) }
-        }
-    }
-
-    pub unsafe fn as_cacheable_wrapper(&self) -> @mut CacheableWrapper {
-        match self.with_base(|doc| doc.doctype) {
-            HTML => {
-                let doc: @mut HTMLDocument = cast::transmute(self.document);
-                doc as @mut CacheableWrapper
-            }
-            SVG | XML => {
-                fail!("no SVG or XML documents yet")
-            }
         }
     }
 
@@ -113,8 +102,8 @@ impl Document {
     }
 
     pub fn Constructor(owner: @mut Window, _rv: &mut ErrorResult) -> AbstractDocument {
-        let root = ~HTMLHtmlElement {
-            parent: Element::new(HTMLHtmlElementTypeId, ~"html")
+        let root = @HTMLHtmlElement {
+            parent: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
         };
 
         let cx = unsafe {(*owner.page).js_info.get_ref().js_compartment.cx.ptr};

@@ -10,8 +10,6 @@
  * liability, trademark and document use rules apply.
  */
 
-interface Node;
-
 [Constructor(DOMString type, optional UIEventInit eventInitDict)]
 interface UIEvent : Event
 {

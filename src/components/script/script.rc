@@ -33,18 +33,26 @@ pub mod dom {
         pub mod domparser;
         pub mod codegen {
             pub mod BlobBinding;
+            pub mod CharacterDataBinding;
             pub mod ClientRectBinding;
             pub mod ClientRectListBinding;
             pub mod DocumentBinding;
             pub mod DOMParserBinding;
+            pub mod ElementBinding;
             pub mod EventBinding;
             pub mod EventTargetBinding;
             pub mod FormDataBinding;
+            pub mod HTMLAnchorElementBinding;
             pub mod HTMLCollectionBinding;
             pub mod HTMLDocumentBinding;
+            pub mod HTMLElementBinding;
+            pub mod HTMLHeadElementBinding;
+            pub mod HTMLHtmlElementBinding;
             pub mod MouseEventBinding;
+            pub mod NodeBinding;
             pub mod PrototypeList;
             pub mod RegisterBindings;
+            pub mod TextBinding;
             pub mod UIEventBinding;
             pub mod WindowBinding;
             pub mod WindowProxyBinding;
@@ -60,8 +68,10 @@ pub mod dom {
     pub mod event;
     pub mod eventtarget;
     pub mod formdata;
+    pub mod htmlanchorelement;
     pub mod htmlcollection;
     pub mod htmldocument;
+    pub mod htmlelement;
     pub mod mouseevent;
     pub mod node;
     pub mod uievent;

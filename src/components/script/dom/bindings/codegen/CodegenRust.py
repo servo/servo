@@ -1453,7 +1453,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
             if not haveSuccessCode:
                 return wrapCall + ";\n" + "return if (*vp).v != 0 { 1 } else { 0 };"
             failureCode = "return 0;"
-        str = ("if !%s {\n" +
+        str = ("if !(%s as bool) {\n" +
                CGIndenter(CGGeneric(failureCode)).define() + "\n" +
                "}\n" +
                successCode) % (wrapCall)
@@ -1522,12 +1522,10 @@ for (uint32_t i = 0; i < length; ++i) {
                 if not isCreator:
                     raise MethodNotCreatorError(descriptor.interface.identifier.name)
                 wrapMethod = "WrapNewBindingNonWrapperCachedObject"
-            properResult = result
             if descriptor.pointerType == '':
-                properResult = result + ".as_cacheable_wrapper()"
+                wrap = "%s.wrap(cx, ${obj}, ${jsvalPtr} as *mut JSVal)" % result
             else:
-                properResult += " as @mut CacheableWrapper"
-            wrap = "%s(cx, ${obj}, %s, ${jsvalPtr} as *mut JSVal)" % (wrapMethod, properResult)
+                wrap = "%s(cx, ${obj}, %s as @mut CacheableWrapper, ${jsvalPtr} as *mut JSVal)" % (wrapMethod, result)
             # We don't support prefable stuff in workers.
             assert(not descriptor.prefable or not descriptor.workers)
             if not descriptor.prefable:
@@ -2476,7 +2474,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('@mut ' + descriptor.name, 'aObject'),
+                Argument('@mut ' + descriptor.concreteType, 'aObject'),
                 Argument('*mut bool', 'aTriedToWrap')]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap_', '*JSObject', args)
 
@@ -2513,7 +2511,8 @@ class CGWrapMethod(CGAbstractMethod):
         # XXX can we wrap if we don't have an interface prototype object?
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [Argument('*JSContext', 'aCx'), Argument('*JSObject', 'aScope'),
-                Argument('@mut ' + descriptor.name, 'aObject'), Argument('*mut bool', 'aTriedToWrap')]
+                Argument('@mut ' + descriptor.concreteType, 'aObject'),
+                Argument('*mut bool', 'aTriedToWrap')]
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', '*JSObject', args, inline=True, pub=True)
 
     def definition_body(self):
@@ -3161,7 +3160,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
                       "  return false as JSBool;\n"
                       "}\n"
                       "\n"
-                      "let this: *rust_box<%s>;" % self.descriptor.name))
+                      "let this: *rust_box<%s>;" % self.descriptor.concreteType))
 
     def generate_code(self):
         assert(False) # Override me
@@ -3201,7 +3200,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         self.method = method
         name = method.identifier.name
         args = [Argument('*JSContext', 'cx'), Argument('JSHandleObject', 'obj'),
-                Argument('*mut %s' % descriptor.name, 'this'),
+                Argument('*mut %s' % descriptor.concreteType, 'this'),
                 Argument('libc::c_uint', 'argc'), Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'JSBool', args)
 
@@ -3246,7 +3245,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         name = 'get_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
                  Argument('JSHandleObject', 'obj'),
-                 Argument('*%s' % descriptor.name, 'this'),
+                 Argument('*%s' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'vp') ]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -3305,7 +3304,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         name = 'set_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
                  Argument('JSHandleObject', 'obj'),
-                 Argument('*mut %s' % descriptor.name, 'this'),
+                 Argument('*mut %s' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'argv')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -3968,7 +3967,7 @@ def finalizeHook(descriptor, hookName, context):
         assert descriptor.nativeIsISupports
         release = """let val = JS_GetReservedSlot(obj, 0);
 let _: @mut %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
-""" % descriptor.name
+""" % descriptor.concreteType
     #return clearWrapper + release
     return release
 
@@ -4238,7 +4237,7 @@ class CGNamespacedEnum(CGThing):
             entries.append(entry)
 
         # Append a Count.
-        entries.append('_' + enumName + '_Count')
+        entries.append('_' + enumName + '_Count = ' + str(len(entries)))
 
         # Indent.
         entries = ['  ' + e for e in entries]
@@ -4603,8 +4602,12 @@ class CGBindingRoot(CGThing):
                           'js::jsapi::*',
                           'js::jsfriendapi::bindgen::*',
                           'js::glue::*',
-                          'dom::node::AbstractNode', #XXXjdm
+                          'dom::characterdata::CharacterData', #XXXjdm
+                          'dom::node::{AbstractNode, Node, Text}', #XXXjdm
                           'dom::document::{Document, AbstractDocument}', #XXXjdm
+                          'dom::element::{Element, HTMLHeadElement, HTMLHtmlElement}', #XXXjdm
+                          'dom::htmlanchorelement::HTMLAnchorElement', #XXXjdm
+                          'dom::htmlelement::HTMLElement', #XXXjdm
                           'dom::htmldocument::HTMLDocument', #XXXjdm
                           'dom::bindings::utils::*',
                           'dom::bindings::conversions::*',

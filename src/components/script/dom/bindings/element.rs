@@ -37,7 +37,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     unsafe {
         let node: AbstractNode<ScriptView> = unwrap(obj);
         //XXXjdm We need separate finalizers for each specialty element type like headings
-        let _elem: ~Element = cast::transmute(node.raw_object());
+        let _elem: @Element = cast::transmute(node.raw_object());
     }
 }
 
