@@ -4,12 +4,20 @@
 
 //! Element nodes.
 
-use dom::bindings::utils::{DOMString, CacheableWrapper};
+use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
+use dom::bindings::codegen::{HTMLAnchorElementBinding};
+use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
-use dom::node::{ElementNodeTypeId, Node, ScriptView};
+use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlcollection::HTMLCollection;
+use dom::htmlelement::HTMLElement;
+use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
+
+use js::jsapi::{JSContext, JSObject};
 
 use std::cell::Cell;
 use std::comm::ChanOne;
@@ -24,6 +32,22 @@ pub struct Element {
     parent: Node<ScriptView>,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
     attrs: ~[Attr],
+}
+
+impl CacheableWrapper for Element {
+    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+        self.parent.get_wrappercache()
+    }
+
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        fail!("no wrapping")
+    }
+}
+
+impl BindingObject for Element {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+        self.parent.GetParentObject(cx)
+    }
 }
 
 #[deriving(Eq)]
@@ -69,57 +93,97 @@ pub enum ElementTypeId {
 // Regular old elements
 //
 
-pub struct HTMLAnchorElement    { parent: Element }
-pub struct HTMLAsideElement     { parent: Element }
-pub struct HTMLBRElement        { parent: Element }
-pub struct HTMLBodyElement      { parent: Element }
-pub struct HTMLBoldElement      { parent: Element }
-pub struct HTMLDivElement       { parent: Element }
-pub struct HTMLFontElement      { parent: Element }
-pub struct HTMLFormElement      { parent: Element }
-pub struct HTMLHRElement        { parent: Element }
-pub struct HTMLHeadElement      { parent: Element }
-pub struct HTMLHtmlElement      { parent: Element }
-pub struct HTMLInputElement     { parent: Element }
-pub struct HTMLItalicElement    { parent: Element }
-pub struct HTMLLinkElement      { parent: Element }
-pub struct HTMLListItemElement  { parent: Element }
-pub struct HTMLMetaElement      { parent: Element }
-pub struct HTMLOListElement     { parent: Element }
-pub struct HTMLOptionElement    { parent: Element }
-pub struct HTMLParagraphElement { parent: Element }
-pub struct HTMLScriptElement    { parent: Element }
-pub struct HTMLSectionElement   { parent: Element }
-pub struct HTMLSelectElement    { parent: Element }
-pub struct HTMLSmallElement     { parent: Element }
-pub struct HTMLSpanElement      { parent: Element }
-pub struct HTMLStyleElement     { parent: Element }
-pub struct HTMLTableBodyElement { parent: Element }
-pub struct HTMLTableCellElement { parent: Element }
-pub struct HTMLTableElement     { parent: Element }
-pub struct HTMLTableRowElement  { parent: Element }
-pub struct HTMLTitleElement     { parent: Element }
-pub struct HTMLUListElement     { parent: Element }
-pub struct UnknownElement       { parent: Element }
+pub struct HTMLAsideElement     { parent: HTMLElement }
+pub struct HTMLBRElement        { parent: HTMLElement }
+pub struct HTMLBodyElement      { parent: HTMLElement }
+pub struct HTMLBoldElement      { parent: HTMLElement }
+pub struct HTMLDivElement       { parent: HTMLElement }
+pub struct HTMLFontElement      { parent: HTMLElement }
+pub struct HTMLFormElement      { parent: HTMLElement }
+pub struct HTMLHRElement        { parent: HTMLElement }
+pub struct HTMLHeadElement      { parent: HTMLElement }
+pub struct HTMLHtmlElement      { parent: HTMLElement }
+pub struct HTMLInputElement     { parent: HTMLElement }
+pub struct HTMLItalicElement    { parent: HTMLElement }
+pub struct HTMLLinkElement      { parent: HTMLElement }
+pub struct HTMLListItemElement  { parent: HTMLElement }
+pub struct HTMLMetaElement      { parent: HTMLElement }
+pub struct HTMLOListElement     { parent: HTMLElement }
+pub struct HTMLOptionElement    { parent: HTMLElement }
+pub struct HTMLParagraphElement { parent: HTMLElement }
+pub struct HTMLScriptElement    { parent: HTMLElement }
+pub struct HTMLSectionElement   { parent: HTMLElement }
+pub struct HTMLSelectElement    { parent: HTMLElement }
+pub struct HTMLSmallElement     { parent: HTMLElement }
+pub struct HTMLSpanElement      { parent: HTMLElement }
+pub struct HTMLStyleElement     { parent: HTMLElement }
+pub struct HTMLTableBodyElement { parent: HTMLElement }
+pub struct HTMLTableCellElement { parent: HTMLElement }
+pub struct HTMLTableElement     { parent: HTMLElement }
+pub struct HTMLTableRowElement  { parent: HTMLElement }
+pub struct HTMLTitleElement     { parent: HTMLElement }
+pub struct HTMLUListElement     { parent: HTMLElement }
+pub struct UnknownElement       { parent: HTMLElement }
+
+impl HTMLHtmlElement {
+    pub fn Version(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn SetVersion(&mut self, _version: &DOMString, _rv: &mut ErrorResult) {
+    }
+}
+
+pub macro_rules! generate_cacheable_wrapper(
+    ($name: ident, $wrap: path) => (
+        impl CacheableWrapper for $name {
+            fn get_wrappercache(&mut self) -> &mut WrapperCache {
+                self.parent.get_wrappercache()
+            }
+
+            fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+                let mut unused = false;
+                $wrap(cx, scope, self, &mut unused)
+            }
+        }
+    )
+)
+
+pub macro_rules! generate_binding_object(
+    ($name: ident) => (
+        impl BindingObject for $name {
+            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+                self.parent.GetParentObject(cx)
+            }
+        }
+    )
+)
+
+generate_cacheable_wrapper!(HTMLHeadElement, HTMLHeadElementBinding::Wrap)
+generate_binding_object!(HTMLHeadElement)
+generate_cacheable_wrapper!(HTMLHtmlElement, HTMLHtmlElementBinding::Wrap)
+generate_binding_object!(HTMLHtmlElement)
+generate_cacheable_wrapper!(HTMLAnchorElement, HTMLAnchorElementBinding::Wrap)
+generate_binding_object!(HTMLAnchorElement)
 
 //
 // Fancier elements
 //
 
 pub struct HTMLHeadingElement {
-    parent: Element,
+    parent: HTMLElement,
     level: HeadingLevel,
 }
 
 pub struct HTMLIframeElement {
-    parent: Element,
+    parent: HTMLElement,
     frame: Option<Url>,
     subpage_id: Option<SubpageId>,
     size_future_chan: Option<ChanOne<Size2D<uint>>>,
 }
 
 pub struct HTMLImageElement {
-    parent: Element,
+    parent: HTMLElement,
     image: Option<Url>,
 }
 
@@ -257,6 +321,160 @@ impl<'self> Element {
             }
         }
     }
+
+    fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
+        let doc = self.parent.owner_doc.get();
+        let win = doc.with_base(|doc| doc.window.get());
+        let cx = unsafe {(*win.page).js_info.get_ref().js_compartment.cx.ptr};
+        let cache = win.get_wrappercache();
+        let scope = cache.get_wrapper();
+        (scope, cx)
+    }
+}
+
+impl Element {
+    pub fn TagName(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn Id(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn SetId(&self, _id: &DOMString) {
+    }
+
+    pub fn GetAttribute(&self, _name: &DOMString) -> DOMString {
+        null_string
+    }
+
+    pub fn GetAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString) -> DOMString {
+        null_string
+    }
+
+    pub fn SetAttribute(&self, _name: &DOMString, _value: &DOMString, _rv: &mut ErrorResult) {
+    }
+
+    pub fn SetAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString, _value: &DOMString, _rv: &mut ErrorResult) {
+    }
+
+    pub fn RemoveAttribute(&self, _name: &DOMString, _rv: &mut ErrorResult) -> bool {
+        false
+    }
+
+    pub fn RemoveAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString, _rv: &mut ErrorResult) -> bool {
+        false
+    }
+
+    pub fn HasAttribute(&self, _name: &DOMString) -> bool {
+        false
+    }
+
+    pub fn HasAttributeNS(&self, _nameapce: &DOMString, _localname: &DOMString) -> bool {
+        false
+    }
+
+    pub fn GetElementsByTagName(&self, _localname: &DOMString) -> @mut HTMLCollection {
+        let (scope, cx) = self.get_scope_and_cx();
+        HTMLCollection::new(~[], cx, scope)
+    }
+
+    pub fn GetElementsByTagNameNS(&self, _namespace: &DOMString, _localname: &DOMString, _rv: &mut ErrorResult) -> @mut HTMLCollection {
+        let (scope, cx) = self.get_scope_and_cx();
+        HTMLCollection::new(~[], cx, scope)
+    }
+
+    pub fn GetElementsByClassName(&self, _names: &DOMString) -> @mut HTMLCollection {
+        let (scope, cx) = self.get_scope_and_cx();
+        HTMLCollection::new(~[], cx, scope)
+    }
+
+    pub fn MozMatchesSelector(&self, _selector: &DOMString, _rv: &mut ErrorResult) -> bool {
+        false
+    }
+
+    pub fn SetCapture(&self, _retargetToElement: bool) {
+    }
+
+    pub fn ReleaseCapture(&self) {
+    }
+
+    pub fn MozRequestFullScreen(&self) {
+    }
+
+    pub fn MozRequestPointerLock(&self) {
+    }
+
+    pub fn GetClientRects(&self) -> @mut ClientRectList {
+        let (scope, cx) = self.get_scope_and_cx();
+        ClientRectList::new(~[], cx, scope)
+    }
+
+    pub fn GetBoundingClientRect(&self) -> @mut ClientRect {
+        fail!("stub")
+    }
+
+    pub fn ScrollIntoView(&self, _top: bool) {
+    }
+
+    pub fn ScrollTop(&self) -> i32 {
+        0
+    }
+
+    pub fn SetScrollTop(&mut self, _scroll_top: i32) {
+    }
+
+    pub fn ScrollLeft(&self) -> i32 {
+        0
+    }
+
+    pub fn SetScrollLeft(&mut self, _scroll_left: i32) {
+    }
+
+    pub fn ScrollWidth(&self) -> i32 {
+        0
+    }
+
+    pub fn ScrollHeight(&self) -> i32 {
+        0
+    }
+
+    pub fn ClientTop(&self) -> i32 {
+        0
+    }
+
+    pub fn ClientLeft(&self) -> i32 {
+        0
+    }
+
+    pub fn ClientWidth(&self) -> i32 {
+        0
+    }
+
+    pub fn ClientHeight(&self) -> i32 {
+        0
+    }
+
+    pub fn GetInnerHTML(&self, _rv: &mut ErrorResult) -> DOMString {
+        null_string
+    }
+
+    pub fn SetInnerHTML(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
+    }
+
+    pub fn GetOuterHTML(&self, _rv: &mut ErrorResult) -> DOMString {
+        null_string
+    }
+
+    pub fn SetOuterHTML(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
+    }
+
+    pub fn InsertAdjacentHTML(&mut self, _position: &DOMString, _text: &DOMString, _rv: &mut ErrorResult) {
+    }
+
+    pub fn QuerySelector(&self, _selectors: &DOMString, _rv: &mut ErrorResult) -> Option<AbstractNode<ScriptView>> {
+        None
+    }
 }
 
 pub struct Attr {
@@ -281,4 +499,3 @@ pub enum HeadingLevel {
     Heading5,
     Heading6,
 }
-

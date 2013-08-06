@@ -6,8 +6,11 @@ use dom::bindings::element;
 use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
+use dom::element::{HTMLHeadElementTypeId, HTMLHtmlElementTypeId, HTMLAnchorElementTypeId};
+use dom::element::{HTMLHeadElement, HTMLHtmlElement};
+use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
-use dom::node::{DoctypeNodeTypeId, ScriptView};
+use dom::node::{DoctypeNodeTypeId, ScriptView, Text};
 
 use std::cast;
 use std::libc::c_uint;
@@ -17,7 +20,7 @@ use js::jsapi::*;
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSPropertySpec};
 use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper};
 use js::jsval::{INT_TO_JSVAL};
-use js::rust::{Compartment, jsobj};
+use js::rust::{Compartment};
 use js::{JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
 use js::{JS_THIS_OBJECT, JSPROP_NATIVE_ACCESSORS};
 use servo_util::tree::TreeNodeRef;
@@ -61,13 +64,26 @@ pub fn init(compartment: @mut Compartment) {
     }
 }
 
+macro_rules! generate_element(
+    ($name: ident) => ({
+        let node: @mut $name = unsafe { cast::transmute(node.raw_object()) };
+        node.wrap_object_shared(cx, ptr::null())
+    })
+)
+
 #[allow(non_implicitly_copyable_typarams)]
-pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
+pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject {
     match node.type_id() {
-        ElementNodeTypeId(_) => element::create(cx, node),
-        TextNodeTypeId |
+        ElementNodeTypeId(HTMLAnchorElementTypeId) => generate_element!(HTMLAnchorElement),
+        ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
+        ElementNodeTypeId(HTMLHtmlElementTypeId) => generate_element!(HTMLHtmlElement),
+        ElementNodeTypeId(_) => element::create(cx, node).ptr,
         CommentNodeTypeId |
-        DoctypeNodeTypeId => text::create(cx, node),
+        DoctypeNodeTypeId => text::create(cx, node).ptr,
+        TextNodeTypeId => {
+            let node: @mut Text = unsafe { cast::transmute(node.raw_object()) };
+            node.wrap_object_shared(cx, ptr::null())
+        }
      }
 }
 

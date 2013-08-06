@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::PrototypeList;
+use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::node;
 use dom::node::{AbstractNode, ScriptView};
 use script_task::page_from_context;
@@ -401,7 +402,7 @@ pub struct ConstantSpec {
 pub struct DOMClass {
     // A list of interfaces that this object implements, in order of decreasing
     // derivedness.
-    interface_chain: [PrototypeList::id::ID, ..3 /*max prototype chain length*/],
+    interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH],
 
     unused: bool, // DOMObjectIsISupports (always false)
     native_hooks: *NativePropertyHooks
@@ -616,7 +617,7 @@ pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: uint, _vp: *JSVal) -> 
 }
 
 pub fn initialize_global(global: *JSObject) {
-    let protoArray = @mut ([0 as *JSObject, ..25]); //XXXjdm PrototyepList::id::_ID_Count
+    let protoArray = @mut ([0 as *JSObject, ..33]); //XXXjdm PrototyepList::id::_ID_Count
     unsafe {
         //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);
@@ -835,7 +836,7 @@ impl DerivedWrapper for AbstractNode<ScriptView> {
             unsafe { *vp = RUST_OBJECT_TO_JSVAL(wrapper) };
             return 1;
         }
-        unsafe { *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, self).ptr) };
+        unsafe { *vp = RUST_OBJECT_TO_JSVAL(node::create(cx, self)) };
         return 1;
     }
 

@@ -124,6 +124,8 @@ window.alert(document.title);
 document.title = "foo";
 window.alert(document.title);
 
+window.alert(document.links[0]);
+
 //TODO: Doesn't work until we throw proper exceptions instead of returning 0 on
 //      unwrap failure.
 /*try {

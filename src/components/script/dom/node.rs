@@ -4,20 +4,23 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
+use dom::bindings::codegen::TextBinding;
 use dom::bindings::node;
-use dom::bindings::utils::WrapperCache;
+use dom::bindings::utils::{WrapperCache, DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{BindingObject, CacheableWrapper};
 use dom::bindings;
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
 use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLIframeElement};
 use dom::element::{HTMLStyleElementTypeId};
+use dom::window::Window;
 
 use std::cast;
 use std::cast::transmute;
 use std::libc::c_void;
 use std::uint;
+use js::jsapi::{JSObject, JSContext};
 use js::rust::Compartment;
-use js::jsapi::{JSContext};
 use netsurfcss::util::VoidPtrLike;
 use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
 
@@ -151,6 +154,19 @@ impl Text {
             parent: CharacterData::new(TextNodeTypeId, text)
         }
     }
+
+    pub fn Constructor(owner: @mut Window, text: &DOMString, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+        let cx = unsafe {(*owner.page).js_info.get_ref().js_compartment.cx.ptr};
+        unsafe { Node::as_abstract_node(cx, @Text::new(text.to_str())) }
+    }
+
+    pub fn SplitText(&self, _offset: u32, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+        fail!("unimplemented")
+    }
+
+    pub fn GetWholeText(&self, _rv: &mut ErrorResult) -> DOMString {
+        null_string
+    }
 }
 
 impl<View> Clone for AbstractNode<View> {
@@ -206,6 +222,18 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
 
 impl<'self, View> AbstractNode<View> {
     // Unsafe accessors
+
+    pub unsafe fn as_cacheable_wrapper(&self) -> @mut CacheableWrapper {
+        match self.type_id() {
+            TextNodeTypeId => {
+                let node: @mut Text = cast::transmute(self.obj);
+                node as @mut CacheableWrapper
+            }
+            _ => {
+                fail!("unsupported node type")
+            }
+        }
+    }
 
     /// Returns the layout data, unsafely cast to whatever type layout wishes. Only layout is
     /// allowed to call this. This is wildly unsafe and is therefore marked as such.
@@ -426,7 +454,7 @@ impl<View> Iterator<AbstractNode<View>> for AbstractNodeChildrenIterator<View> {
 }
 
 impl Node<ScriptView> {
-    pub unsafe fn as_abstract_node<N>(cx: *JSContext, node: ~N) -> AbstractNode<ScriptView> {
+    pub unsafe fn as_abstract_node<N>(cx: *JSContext, node: @N) -> AbstractNode<ScriptView> {
         // This surrenders memory management of the node!
         let mut node = AbstractNode {
             obj: transmute(node),
@@ -495,6 +523,128 @@ impl Node<ScriptView> {
     }
  }
 
+impl Node<ScriptView> {
+    pub fn NodeType(&self) -> u16 {
+        0
+    }
+
+    pub fn NodeName(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn GetBaseURI(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn GetOwnerDocument(&self) -> Option<AbstractDocument> {
+        None
+    }
+
+    pub fn GetParentNode(&self) -> Option<AbstractNode<ScriptView>> {
+        None
+    }
+
+    pub fn GetParentElement(&self) -> Option<AbstractNode<ScriptView>> {
+        None
+    }
+
+    pub fn HasChildNodes(&self) -> bool {
+        false
+    }
+
+    pub fn GetFirstChild(&self) -> Option<AbstractNode<ScriptView>> {
+        None
+    }
+
+    pub fn GetLastChild(&self) -> Option<AbstractNode<ScriptView>> {
+        None
+    }
+
+    pub fn GetPreviousSibling(&self) -> Option<AbstractNode<ScriptView>> {
+        None
+    }
+
+    pub fn GetNextSibling(&self) -> Option<AbstractNode<ScriptView>> {
+        None
+    }
+
+    pub fn GetNodeValue(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn SetNodeValue(&mut self, _val: &DOMString, _rv: &mut ErrorResult) {
+    }
+
+    pub fn GetTextContent(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn SetTextContent(&mut self, _val: &DOMString, _rv: &mut ErrorResult) {
+    }
+
+    pub fn InsertBefore(&mut self, _node: AbstractNode<ScriptView>, _child: Option<AbstractNode<ScriptView>>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+        fail!("stub")
+    }
+
+    pub fn AppendChild(&mut self, _node: AbstractNode<ScriptView>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+        fail!("stub")
+    }
+
+    pub fn ReplaceChild(&mut self, _node: AbstractNode<ScriptView>, _child: AbstractNode<ScriptView>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+        fail!("stub")
+    }
+
+    pub fn RemoveChild(&mut self, _node: AbstractNode<ScriptView>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+        fail!("stub")
+    }
+
+    pub fn Normalize(&mut self) {
+    }
+
+    pub fn CloneNode(&self, _deep: bool, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+        fail!("stub")
+    }
+
+    pub fn IsEqualNode(&self, _node: Option<AbstractNode<ScriptView>>) -> bool {
+        false
+    }
+
+    pub fn CompareDocumentPosition(&self, _other: AbstractNode<ScriptView>) -> u16 {
+        0
+    }
+
+    pub fn Contains(&self, _other: Option<AbstractNode<ScriptView>>) -> bool {
+        false
+    }
+
+    pub fn LookupPrefix(&self, _prefix: &DOMString) -> DOMString {
+        null_string
+    }
+
+    pub fn LookupNamespaceURI(&self, _namespace: &DOMString) -> DOMString {
+        null_string
+    }
+
+    pub fn IsDefaultNamespace(&self, _namespace: &DOMString) -> bool {
+        false
+    }
+
+    pub fn GetNamespaceURI(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn GetPrefix(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn GetLocalName(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn HasAttributes(&self) -> bool {
+        false
+    }
+}
 
 /// The CSS library requires that DOM nodes be convertible to `*c_void` via the `VoidPtrLike`
 /// trait.
@@ -519,4 +669,40 @@ pub fn define_bindings(compartment: @mut Compartment) {
     bindings::text::init(compartment);
     bindings::utils::initialize_global(compartment.global_obj.ptr);
     bindings::codegen::RegisterBindings::Register(compartment);
+}
+
+impl CacheableWrapper for Node<ScriptView> {
+    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+        unsafe { cast::transmute(&mut self.wrapper) }
+    }
+
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        fail!(~"need to implement wrapping");
+    }
+}
+
+impl BindingObject for Node<ScriptView> {
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut CacheableWrapper> {
+        match self.parent_node {
+            Some(node) => Some(unsafe {node.as_cacheable_wrapper()}),
+            None => None
+        }
+    }
+}
+
+impl CacheableWrapper for Text {
+    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+        self.parent.get_wrappercache()
+    }
+
+    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+        let mut unused = false;
+        TextBinding::Wrap(cx, scope, self, &mut unused)
+    }
+}
+
+impl BindingObject for Text {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+        self.parent.GetParentObject(cx)
+    }
 }
