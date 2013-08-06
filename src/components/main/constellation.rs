@@ -9,6 +9,7 @@ use std::comm;
 use std::comm::Port;
 use std::task;
 use geom::size::Size2D;
+use geom::rect::Rect;
 use gfx::opts::Opts;
 use pipeline::Pipeline;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg};
@@ -44,13 +45,14 @@ pub struct Constellation {
 struct FrameTree {
     pipeline: @mut Pipeline,
     parent: Option<@mut Pipeline>,
-    children: ~[@mut FrameTree],
+    children: ~[ChildFrameTree],
 }
+
 // Need to clone the FrameTrees, but _not_ the Pipelines
 impl Clone for FrameTree {
     fn clone(&self) -> FrameTree {
-        let mut children = do self.children.iter().map |&frame_tree| {
-            @mut (*frame_tree).clone()
+        let mut children = do self.children.iter().map |child_frame_tree| {
+            child_frame_tree.clone()
         };
         FrameTree {
             pipeline: self.pipeline,
@@ -60,15 +62,34 @@ impl Clone for FrameTree {
     }
 }
 
+struct ChildFrameTree {
+    frame_tree: @mut FrameTree,
+    rect: Option<Rect<f32>>,
+}
+
+impl Clone for ChildFrameTree {
+    fn clone(&self) -> ChildFrameTree {
+        ChildFrameTree {
+            frame_tree: @mut (*self.frame_tree).clone(),
+            rect: self.rect.clone(),
+        }
+    }
+}
+
 pub struct SendableFrameTree {
     pipeline: Pipeline,
-    children: ~[SendableFrameTree],
+    children: ~[SendableChildFrameTree],
+}
+
+pub struct SendableChildFrameTree {
+    frame_tree: SendableFrameTree,
+    rect: Option<Rect<f32>>,
 }
 
 impl SendableFrameTree {
     fn contains(&self, id: PipelineId) -> bool {
         self.pipeline.id == id ||
-        do self.children.iter().any |frame_tree| {
+        do self.children.iter().any |&SendableChildFrameTree { frame_tree: ref frame_tree, _ }| {
             frame_tree.contains(id)
         }
     }
@@ -77,7 +98,7 @@ impl SendableFrameTree {
 impl FrameTree {
     fn contains(&self, id: PipelineId) -> bool {
         self.pipeline.id == id ||
-        do self.children.iter().any |frame_tree| {
+        do self.children.iter().any |&ChildFrameTree { frame_tree: ref frame_tree, _ }| {
             frame_tree.contains(id)
         }
     }
@@ -85,7 +106,8 @@ impl FrameTree {
     /// Returns the frame tree whose key is id
     fn find_mut(@mut self, id: PipelineId) -> Option<@mut FrameTree> {
         if self.pipeline.id == id { return Some(self); }
-        let mut finder = do self.children.iter().filter_map |frame_tree| {
+        let mut finder = do self.children.iter()
+            .filter_map |&ChildFrameTree { frame_tree: ref frame_tree, _ }| {
             frame_tree.find_mut(id)
         };
         finder.next()
@@ -95,7 +117,7 @@ impl FrameTree {
     /// if the node to replace could not be found.
     fn replace_child(&mut self, id: PipelineId, new_child: @mut FrameTree) -> Either<@mut FrameTree, @mut FrameTree> {
         let new_child_cell = Cell::new(new_child);
-        for child in self.children.mut_iter() {
+        for &ChildFrameTree { frame_tree: ref mut child, _ } in self.children.mut_iter() {
             let new_child = new_child_cell.take();
             if child.pipeline.id == id {
                 new_child.parent = child.parent;
@@ -125,6 +147,15 @@ impl FrameTree {
     }
 }
 
+impl ChildFrameTree {
+    fn to_sendable(&self) -> SendableChildFrameTree {
+        SendableChildFrameTree {
+            frame_tree: self.frame_tree.to_sendable(),
+            rect: self.rect,
+        }
+    }
+}
+
 pub struct FrameTreeIterator {
     priv stack: ~[@mut FrameTree],
 }
@@ -133,7 +164,9 @@ impl Iterator<@mut FrameTree> for FrameTreeIterator {
     fn next(&mut self) -> Option<@mut FrameTree> {
         if !self.stack.is_empty() {
             let next = self.stack.pop();
-            self.stack.push_all(next.children);
+            for next.children.iter().advance |&ChildFrameTree { frame_tree, _ }| {
+                self.stack.push(frame_tree);
+            }
             Some(next)
         } else {
             None
@@ -390,10 +423,13 @@ impl Constellation {
                     pipeline.load(url, None);
                 }
                 for frame_tree in frame_trees.iter() {
-                    frame_tree.children.push(@mut FrameTree {
-                        pipeline: pipeline,
-                        parent: Some(source_pipeline),
-                        children: ~[],
+                    frame_tree.children.push(ChildFrameTree {
+                        frame_tree: @mut FrameTree {
+                            pipeline: pipeline,
+                            parent: Some(source_pipeline),
+                            children: ~[],
+                        },
+                        rect: None
                     });
                 }
                 self.pipelines.insert(pipeline.id, pipeline);
@@ -558,7 +594,10 @@ impl Constellation {
                                 let parent = next_frame_tree.find_mut(parent.id).expect(
                                     "Constellation: pending frame has a parent frame that is not
                                     active. This is a bug.");
-                                parent.children.push(to_add.take());
+                                parent.children.push(ChildFrameTree {
+                                    frame_tree: to_add.take(),
+                                    rect: None,
+                                });
                             }
                         }
                     }
