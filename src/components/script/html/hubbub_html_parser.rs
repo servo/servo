@@ -317,6 +317,13 @@ pub fn parse_html(cx: *JSContext,
             do node.as_mut_element |element| {
                 for tag.attributes.iter().advance |attr| {
                     element.attrs.push(Attr::new(attr.name.clone(), attr.value.clone()));
+
+                    if "style" == attr.name {
+                        element.style_attribute = Some(
+                            Stylesheet::from_attribute(
+                                url::from_str("http://www.example.com/").unwrap(),
+                                attr.value));
+                    }
                 }
             }
 
@@ -379,7 +386,6 @@ pub fn parse_html(cx: *JSContext,
                     }
                 }
 
-                //TODO (Issue #86): handle inline styles ('style' attr)
                 _ => {}
             }
 
