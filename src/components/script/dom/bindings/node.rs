@@ -7,9 +7,10 @@ use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::element::{HTMLHeadElementTypeId, HTMLHtmlElementTypeId, HTMLAnchorElementTypeId};
-use dom::element::{HTMLDivElementTypeId};
+use dom::element::{HTMLDivElementTypeId, HTMLImageElementTypeId};
 use dom::element::{HTMLHeadElement, HTMLHtmlElement, HTMLDivElement};
 use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlimageelement::HTMLImageElement;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId, ScriptView, Text};
 
@@ -79,6 +80,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLDivElementTypeId) => generate_element!(HTMLDivElement),
         ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
         ElementNodeTypeId(HTMLHtmlElementTypeId) => generate_element!(HTMLHtmlElement),
+        ElementNodeTypeId(HTMLImageElementTypeId) => generate_element!(HTMLImageElement),
         ElementNodeTypeId(_) => element::create(cx, node).ptr,
         CommentNodeTypeId |
         DoctypeNodeTypeId => text::create(cx, node).ptr,

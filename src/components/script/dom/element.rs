@@ -6,6 +6,7 @@
 
 use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
 use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLDivElementBinding};
+use dom::bindings::codegen::{HTMLImageElementBinding};
 use dom::bindings::utils::{DOMString, null_string, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::clientrect::ClientRect;
@@ -13,6 +14,7 @@ use dom::clientrectlist::ClientRectList;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
+use dom::htmlimageelement::HTMLImageElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
@@ -176,6 +178,8 @@ generate_cacheable_wrapper!(HTMLAnchorElement, HTMLAnchorElementBinding::Wrap)
 generate_binding_object!(HTMLAnchorElement)
 generate_cacheable_wrapper!(HTMLDivElement, HTMLDivElementBinding::Wrap)
 generate_binding_object!(HTMLDivElement)
+generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
+generate_binding_object!(HTMLImageElement)
 
 //
 // Fancier elements
@@ -191,11 +195,6 @@ pub struct HTMLIframeElement {
     frame: Option<Url>,
     subpage_id: Option<SubpageId>,
     size_future_chan: Option<ChanOne<Size2D<uint>>>,
-}
-
-pub struct HTMLImageElement {
-    parent: HTMLElement,
-    image: Option<Url>,
 }
 
 //
