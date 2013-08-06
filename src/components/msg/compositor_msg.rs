@@ -8,8 +8,6 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 
 use constellation_msg::PipelineId;
-use extra::arc;
-
 
 #[deriving(Clone)]
 pub struct LayerBuffer {
@@ -31,8 +29,9 @@ pub struct LayerBuffer {
 
 /// A set of layer buffers. This is an atomic unit used to switch between the front and back
 /// buffers.
+#[deriving(Clone)]
 pub struct LayerBufferSet {
-    buffers: ~[LayerBuffer]
+    buffers: ~[~LayerBuffer]
 }
 
 /// The status of the renderer.
@@ -72,7 +71,7 @@ pub trait RenderListener {
     fn set_layer_page_size(&self, PipelineId, Size2D<uint>, Epoch);
     fn set_layer_clip_rect(&self, PipelineId, Rect<uint>);
     fn delete_layer(&self, PipelineId);
-    fn paint(&self, id: PipelineId, layer_buffer_set: arc::Arc<LayerBufferSet>, Epoch);
+    fn paint(&self, id: PipelineId, layer_buffer_set: ~LayerBufferSet, Epoch);
     fn set_render_state(&self, render_state: RenderState);
 }
 

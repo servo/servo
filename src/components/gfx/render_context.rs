@@ -19,7 +19,7 @@ use servo_net::image::base::Image;
 use extra::arc::Arc;
 
 pub struct RenderContext<'self> {
-    canvas: &'self LayerBuffer,
+    canvas: &'self ~LayerBuffer,
     font_ctx: @mut FontContext,
     opts: &'self Opts
 }

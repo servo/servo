@@ -35,7 +35,7 @@ pub struct RenderLayer<T> {
 
 pub enum Msg<T> {
     RenderMsg(RenderLayer<T>),
-    ReRenderMsg(~[BufferRequest], f32, PipelineId, Epoch),
+    ReRenderMsg(~[BufferRequest], f32, Epoch),
     PaintPermissionGranted,
     PaintPermissionRevoked,
     ExitMsg(Chan<()>),
@@ -91,7 +91,7 @@ struct RenderTask<C,T> {
     /// Permission to send paint messages to the compositor
     paint_permission: bool,
     /// Cached copy of last layers rendered
-    last_paint_msg: Option<(arc::Arc<LayerBufferSet>, Size2D<uint>)>,
+    last_paint_msg: Option<~LayerBufferSet>,
     /// A counter for epoch messages
     epoch: Epoch,
 }
@@ -147,9 +147,9 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                     }
                     self.render_layer = Some(render_layer);
                 }
-                ReRenderMsg(tiles, scale, id, epoch) => {
+                ReRenderMsg(tiles, scale, epoch) => {
                     if self.epoch == epoch {
-                        self.render(tiles, scale, id);
+                        self.render(tiles, scale);
                     } else {
                         debug!("renderer epoch mismatch: %? != %?", self.epoch, epoch);
                     }
@@ -163,6 +163,16 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                         }
                         None => {}
                     }
+                    // FIXME: This sends the last paint request, anticipating what
+                    // the compositor will ask for. However, even if it sends the right
+                    // tiles, the compositor still asks for them, and they will be
+                    // re-rendered redundantly.
+                    match self.last_paint_msg {
+                        Some(ref layer_buffer_set) => {
+                            self.compositor.paint(self.id, layer_buffer_set.clone());                            
+                        }
+                        None => {} // Nothing to do
+                    }
                 }
                 PaintPermissionRevoked => {
                     self.paint_permission = false;
@@ -175,7 +185,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
         }
     }
 
-    fn render(&mut self, tiles: ~[BufferRequest], scale: f32, id: PipelineId) {
+    fn render(&mut self, tiles: ~[BufferRequest], scale: f32) {
         let render_layer;
         match self.render_layer {
             Some(ref r_layer) => {
@@ -196,7 +206,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                     let width = tile.screen_rect.size.width;
                     let height = tile.screen_rect.size.height;
                     
-                    let buffer = LayerBuffer {
+                    let buffer = ~LayerBuffer {
                         draw_target: DrawTarget::new_with_fbo(self.opts.render_backend,
                                                               self.share_gl_context,
                                                               Size2D(width as i32, height as i32),
@@ -240,17 +250,16 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
 
             }
 
-            let layer_buffer_set = LayerBufferSet {
+            let layer_buffer_set = ~LayerBufferSet {
                 buffers: new_buffers,
             };
-            let layer_buffer_set = arc::Arc::new(layer_buffer_set);
 
             debug!("render_task: returning surface");
             if self.paint_permission {
-                self.compositor.paint(id, layer_buffer_set.clone(), self.epoch);
+                self.compositor.paint(self.id, layer_buffer_set.clone(), self.epoch);
             }
             debug!("caching paint msg");
-            self.last_paint_msg = Some((layer_buffer_set, render_layer.size));
+            self.last_paint_msg = Some(layer_buffer_set);
             self.compositor.set_render_state(IdleRenderState);
         }
     }

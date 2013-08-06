@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
@@ -210,7 +211,7 @@ impl CompositorLayer {
             let (request, r) = quadtree.get_tile_rects_page(rect, scale);
             redisplay = r; // workaround to make redisplay visible outside block
             if !request.is_empty() {
-                self.pipeline.render_chan.send(ReRenderMsg(request, scale, self.pipeline.id.clone(), self.epoch));
+                self.pipeline.render_chan.send(ReRenderMsg(request, scale, self.epoch));
             }
         }
         if redisplay {
@@ -399,7 +400,8 @@ impl CompositorLayer {
     
     // Add LayerBuffers to the specified layer. Returns false if the layer is not found.
     // If the epoch of the message does not match the layer's epoch, the message is ignored.
-    pub fn add_buffers(&mut self, pipeline_id: PipelineId, new_buffers: &LayerBufferSet, epoch: Epoch) -> bool {
+    pub fn add_buffers(&mut self, pipeline_id: PipelineId, new_buffers: ~LayerBufferSet, epoch: Epoch) -> bool {
+        let cell = Cell::new(new_buffers);
         if self.pipeline.id == pipeline_id {
             if self.epoch != epoch {
                 debug!("compositor epoch mismatch: %? != %?, id: %?", self.epoch, epoch, self.pipeline.id);
@@ -408,22 +410,21 @@ impl CompositorLayer {
             }
             { // block here to prevent double mutable borrow of self
                 let quadtree = match self.quadtree {
-                    NoTree(_, _) => fail!("CompositorLayer: cannot get buffer request for %?,
-                                           no quadtree initialized", self.pipeline.id),
+                    NoTree(_, _) => fail!("CompositorLayer: cannot add buffers, no quadtree initialized"),
                     Tree(ref mut quadtree) => quadtree,
                 };
                 
-                for buffer in new_buffers.buffers.iter() {
+                for buffer in cell.take().buffers.consume_rev_iter() {
                     // TODO: This may return old buffers, which should be sent back to the renderer.
                     quadtree.add_tile_pixel(buffer.screen_pos.origin.x, buffer.screen_pos.origin.y,
-                                            buffer.resolution, ~buffer.clone());
+                                            buffer.resolution, buffer);
                 }
             }
             self.build_layer_tree();
             return true;
         }
         // ID does not match ours, so recurse on descendents (including hidden children).
-        self.children.mut_iter().map(|x| &mut x.child).any(|x| x.add_buffers(pipeline_id, new_buffers, epoch))
+        self.children.mut_iter().map(|x| &mut x.child).any(|x| x.add_buffers(pipeline_id, cell.take(), epoch))
     }
 
     // Deletes a specified sublayer, including hidden children. Returns false if the layer is not found.
