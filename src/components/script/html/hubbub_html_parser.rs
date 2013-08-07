@@ -21,7 +21,7 @@ use dom::element::{HTMLAsideElement, HTMLBRElement, HTMLBodyElement,
                    HTMLInputElement, HTMLIframeElement,
                    HTMLItalicElement, HTMLLinkElement, HTMLListItemElement, HTMLMetaElement,
                    HTMLOListElement, HTMLOptionElement, HTMLParagraphElement,
-                   HTMLScriptElement, HTMLSectionElement, HTMLSelectElement, HTMLSmallElement,
+                   HTMLSectionElement, HTMLSelectElement, HTMLSmallElement,
                    HTMLSpanElement, HTMLStyleElement, HTMLTableBodyElement,
                    HTMLTableCellElement, HTMLTableElement, HTMLTableRowElement,
                    HTMLTitleElement, HTMLUListElement};
@@ -29,6 +29,7 @@ use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Headi
                    Heading6};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlscriptelement::HTMLScriptElement;
 use dom::element::{Element, Attr};
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Comment, Doctype, ElementNodeTypeId, Node, ScriptView};

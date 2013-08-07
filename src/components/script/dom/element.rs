@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
 use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLDivElementBinding, HTMLSpanElementBinding};
-use dom::bindings::codegen::{HTMLParagraphElementBinding};
+use dom::bindings::codegen::{HTMLParagraphElementBinding, HTMLScriptElementBinding};
 use dom::bindings::codegen::{HTMLImageElementBinding};
 use dom::bindings::utils::{DOMString, null_string, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
@@ -16,6 +16,7 @@ use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
@@ -116,7 +117,6 @@ pub struct HTMLMetaElement      { parent: HTMLElement }
 pub struct HTMLOListElement     { parent: HTMLElement }
 pub struct HTMLOptionElement    { parent: HTMLElement }
 pub struct HTMLParagraphElement { parent: HTMLElement }
-pub struct HTMLScriptElement    { parent: HTMLElement }
 pub struct HTMLSectionElement   { parent: HTMLElement }
 pub struct HTMLSelectElement    { parent: HTMLElement }
 pub struct HTMLSmallElement     { parent: HTMLElement }
@@ -194,6 +194,8 @@ generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
 generate_binding_object!(HTMLImageElement)
 generate_cacheable_wrapper!(HTMLParagraphElement, HTMLParagraphElementBinding::Wrap)
 generate_binding_object!(HTMLParagraphElement)
+generate_cacheable_wrapper!(HTMLScriptElement, HTMLScriptElementBinding::Wrap)
+generate_binding_object!(HTMLScriptElement)
 generate_cacheable_wrapper!(HTMLSpanElement, HTMLSpanElementBinding::Wrap)
 generate_binding_object!(HTMLSpanElement)
 

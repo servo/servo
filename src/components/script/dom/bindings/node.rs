@@ -8,11 +8,12 @@ use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::element::{HTMLHeadElementTypeId, HTMLHtmlElementTypeId, HTMLAnchorElementTypeId};
 use dom::element::{HTMLDivElementTypeId, HTMLImageElementTypeId, HTMLSpanElementTypeId};
-use dom::element::{HTMLParagraphElementTypeId};
+use dom::element::{HTMLParagraphElementTypeId, HTMLScriptElementTypeId};
 use dom::element::{HTMLHeadElement, HTMLHtmlElement, HTMLDivElement, HTMLSpanElement};
 use dom::element::{HTMLParagraphElement};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId, ScriptView, Text};
 
@@ -84,6 +85,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLHtmlElementTypeId) => generate_element!(HTMLHtmlElement),
         ElementNodeTypeId(HTMLImageElementTypeId) => generate_element!(HTMLImageElement),
         ElementNodeTypeId(HTMLParagraphElementTypeId) => generate_element!(HTMLParagraphElement),
+        ElementNodeTypeId(HTMLScriptElementTypeId) => generate_element!(HTMLScriptElement),
         ElementNodeTypeId(HTMLSpanElementTypeId) => generate_element!(HTMLSpanElement),
         ElementNodeTypeId(_) => element::create(cx, node).ptr,
         CommentNodeTypeId |
