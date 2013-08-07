@@ -19,8 +19,7 @@ use dom::element::{HTMLAsideElement, HTMLBRElement,
                    HTMLBoldElement, HTMLDivElement, HTMLFontElement, HTMLFormElement,
                    HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
                    HTMLInputElement, HTMLItalicElement, HTMLLinkElement,
-                   HTMLListItemElement, HTMLMetaElement,
-                   HTMLOptionElement, HTMLParagraphElement,
+                   HTMLOptionElement, HTMLParagraphElement, HTMLListItemElement,
                    HTMLSectionElement, HTMLSelectElement, HTMLSmallElement,
                    HTMLSpanElement, HTMLStyleElement, HTMLTableBodyElement,
                    HTMLTableCellElement, HTMLTableElement, HTMLTableRowElement,
@@ -32,6 +31,7 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::element::{Element, Attr};

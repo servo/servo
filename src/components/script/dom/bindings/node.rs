@@ -9,8 +9,12 @@ use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::element::{HTMLHeadElementTypeId, HTMLHtmlElementTypeId, HTMLAnchorElementTypeId};
 use dom::element::{HTMLDivElementTypeId, HTMLImageElementTypeId, HTMLSpanElementTypeId};
 use dom::element::{HTMLBodyElementTypeId, HTMLHRElementTypeId, HTMLIframeElementTypeId};
+<<<<<<< HEAD
 use dom::element::{HTMLParagraphElementTypeId, HTMLScriptElementTypeId};
 use dom::element::{HTMLOListElementTypeId};
+=======
+use dom::element::{HTMLParagraphElementTypeId, HTMLScriptElementTypeId, HTMLMetaElementTypeId};
+>>>>>>> Generate bindings for HTMLMetaElement.
 use dom::element::{HTMLHeadElement, HTMLHtmlElement, HTMLDivElement, HTMLSpanElement};
 use dom::element::{HTMLParagraphElement};
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -18,7 +22,11 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+<<<<<<< HEAD
 use dom::htmlolistelement::HTMLOListElement;
+=======
+use dom::htmlmetaelement::HTMLMetaElement;
+>>>>>>> Generate bindings for HTMLMetaElement.
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId, ScriptView, Text};
@@ -93,7 +101,11 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLHtmlElementTypeId) => generate_element!(HTMLHtmlElement),
         ElementNodeTypeId(HTMLIframeElementTypeId) => generate_element!(HTMLIFrameElement),
         ElementNodeTypeId(HTMLImageElementTypeId) => generate_element!(HTMLImageElement),
+<<<<<<< HEAD
         ElementNodeTypeId(HTMLOListElementTypeId) => generate_element!(HTMLOListElement),
+=======
+        ElementNodeTypeId(HTMLMetaElementTypeId) => generate_element!(HTMLMetaElement),
+>>>>>>> Generate bindings for HTMLMetaElement.
         ElementNodeTypeId(HTMLParagraphElementTypeId) => generate_element!(HTMLParagraphElement),
         ElementNodeTypeId(HTMLScriptElementTypeId) => generate_element!(HTMLScriptElement),
         ElementNodeTypeId(HTMLSpanElementTypeId) => generate_element!(HTMLSpanElement),
