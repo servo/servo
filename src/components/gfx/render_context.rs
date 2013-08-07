@@ -14,6 +14,7 @@ use std::libc::types::common::c99::uint16_t;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use geom::side_offsets::SideOffsets2D;
 use servo_net::image::base::Image;
 use extra::arc::ARC;
 
@@ -33,21 +34,47 @@ impl<'self> RenderContext<'self>  {
         self.canvas.draw_target.fill_rect(&bounds.to_azure_rect(), &ColorPattern(color));
     }
 
-    pub fn draw_border(&self, bounds: &Rect<Au>, width: Au, color: Color) {
+    pub fn draw_border(&self,
+                       bounds: &Rect<Au>,
+                       border: SideOffsets2D<Au>,
+                       color: Color) {
         let pattern = ColorPattern(color);
-        let stroke_fields = 2; // CAP_SQUARE
-        let width_px = width.to_px();
-        let rect = if width_px % 2 == 0 {
-            bounds.to_azure_rect()
-        } else {
-            bounds.to_azure_snapped_rect()
-        };
-            
-        let stroke_opts = StrokeOptions(width_px as AzFloat, 10 as AzFloat, stroke_fields);
         let draw_opts = DrawOptions(1 as AzFloat, 0 as uint16_t);
+        let stroke_fields = 2; // CAP_SQUARE
+        let mut stroke_opts = StrokeOptions(0 as AzFloat, 10 as AzFloat, stroke_fields);
+
+        let rect = bounds.to_azure_rect();
+        let border = border.to_float_px();
 
         self.canvas.draw_target.make_current();
-        self.canvas.draw_target.stroke_rect(&rect, &pattern, &stroke_opts, &draw_opts);
+
+        // draw top border
+        stroke_opts.line_width = border.top;
+        let y = rect.origin.y + border.top * 0.5;
+        let start = Point2D(rect.origin.x, y);
+        let end = Point2D(rect.origin.x + rect.size.width, y);
+        self.canvas.draw_target.stroke_line(start, end, &pattern, &stroke_opts, &draw_opts);
+
+        // draw bottom border
+        stroke_opts.line_width = border.bottom;
+        let y = rect.origin.y + rect.size.height - border.bottom * 0.5;
+        let start = Point2D(rect.origin.x, y);
+        let end = Point2D(rect.origin.x + rect.size.width, y);
+        self.canvas.draw_target.stroke_line(start, end, &pattern, &stroke_opts, &draw_opts);
+
+        // draw left border
+        stroke_opts.line_width = border.left;
+        let x = rect.origin.x + border.left * 0.5;
+        let start = Point2D(x, rect.origin.y);
+        let end = Point2D(x, rect.origin.y + rect.size.height);
+        self.canvas.draw_target.stroke_line(start, end, &pattern, &stroke_opts, &draw_opts);
+
+        // draw right border
+        stroke_opts.line_width = border.right;
+        let x = rect.origin.x + rect.size.width - border.right * 0.5;
+        let start = Point2D(x, rect.origin.y);
+        let end = Point2D(x, rect.origin.y + rect.size.height);
+        self.canvas.draw_target.stroke_line(start, end, &pattern, &stroke_opts, &draw_opts);
     }
 
     pub fn draw_image(&self, bounds: Rect<Au>, image: ARC<~Image>) {
@@ -94,7 +121,6 @@ impl to_float for u8 {
 
 trait ToAzureRect {
     fn to_azure_rect(&self) -> Rect<AzFloat>;
-    fn to_azure_snapped_rect(&self) -> Rect<AzFloat>;
 }
 
 impl ToAzureRect for Rect<Au> {
@@ -102,11 +128,17 @@ impl ToAzureRect for Rect<Au> {
         Rect(Point2D(self.origin.x.to_px() as AzFloat, self.origin.y.to_px() as AzFloat),
              Size2D(self.size.width.to_px() as AzFloat, self.size.height.to_px() as AzFloat))
     }
+}
 
-    fn to_azure_snapped_rect(&self) -> Rect<AzFloat> {
-        Rect(Point2D(self.origin.x.to_px() as AzFloat + 0.5f as AzFloat,
-					 self.origin.y.to_px() as AzFloat + 0.5f as AzFloat),
-             Size2D(self.size.width.to_px() as AzFloat,
-			 		self.size.height.to_px() as AzFloat))
+trait ToSideOffsetsPx {
+    fn to_float_px(&self) -> SideOffsets2D<AzFloat>;
+}
+
+impl ToSideOffsetsPx for SideOffsets2D<Au> {
+    fn to_float_px(&self) -> SideOffsets2D<AzFloat> {
+        SideOffsets2D::new(self.top.to_px() as AzFloat,
+                           self.right.to_px() as AzFloat,
+                           self.bottom.to_px() as AzFloat,
+                           self.left.to_px() as AzFloat)
     }
 }
