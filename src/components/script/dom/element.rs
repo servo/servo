@@ -5,7 +5,8 @@
 //! Element nodes.
 
 use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
-use dom::bindings::codegen::{HTMLAnchorElementBinding};
+use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLDivElementBinding};
+use dom::bindings::codegen::{HTMLImageElementBinding};
 use dom::bindings::utils::{DOMString, null_string, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::clientrect::ClientRect;
@@ -13,6 +14,7 @@ use dom::clientrectlist::ClientRectList;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
+use dom::htmlimageelement::HTMLImageElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
@@ -134,6 +136,15 @@ impl HTMLHtmlElement {
     }
 }
 
+impl HTMLDivElement {
+    pub fn Align(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn SetAlign(&mut self, _align: &DOMString, _rv: &mut ErrorResult) {
+    }
+}
+
 pub macro_rules! generate_cacheable_wrapper(
     ($name: ident, $wrap: path) => (
         impl CacheableWrapper for $name {
@@ -165,6 +176,10 @@ generate_cacheable_wrapper!(HTMLHtmlElement, HTMLHtmlElementBinding::Wrap)
 generate_binding_object!(HTMLHtmlElement)
 generate_cacheable_wrapper!(HTMLAnchorElement, HTMLAnchorElementBinding::Wrap)
 generate_binding_object!(HTMLAnchorElement)
+generate_cacheable_wrapper!(HTMLDivElement, HTMLDivElementBinding::Wrap)
+generate_binding_object!(HTMLDivElement)
+generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
+generate_binding_object!(HTMLImageElement)
 
 //
 // Fancier elements
@@ -180,11 +195,6 @@ pub struct HTMLIframeElement {
     frame: Option<Url>,
     subpage_id: Option<SubpageId>,
     size_future_chan: Option<ChanOne<Size2D<uint>>>,
-}
-
-pub struct HTMLImageElement {
-    parent: HTMLElement,
-    image: Option<Url>,
 }
 
 //
@@ -230,95 +240,6 @@ impl<'self> Element {
         match self.parent.owner_doc {
             Some(owner) => do owner.with_base |owner| { owner.content_changed() },
             None => {}
-        }
-    }
-
-    pub fn getClientRects(&self) -> Option<@mut ClientRectList> {
-        let (rects, cx, scope) = match self.parent.owner_doc {
-            Some(doc) => {
-                match doc.with_base(|doc| doc.window) {
-                    Some(win) => {
-                        let node = self.parent.abstract.get();
-                        assert!(node.is_element());
-                        let page = win.page;
-                        let (port, chan) = comm::stream();
-                        // TODO(tkuehn): currently just queries top-level page layout. Needs to query
-                        // subframe layout if this element is in a subframe. Probably need an ID field.
-                        match unsafe {(*page).query_layout(ContentBoxesQuery(node, chan), port)} {
-                            Ok(ContentBoxesResponse(rects)) => {
-                                let cx = unsafe {(*page).js_info.get_ref().js_compartment.cx.ptr};
-                                let cache = win.get_wrappercache();
-                                let scope = cache.get_wrapper();
-                                let rects = do rects.map |r| {
-                                    ClientRect::new(
-                                         r.origin.y.to_f32(),
-                                         (r.origin.y + r.size.height).to_f32(),
-                                         r.origin.x.to_f32(),
-                                         (r.origin.x + r.size.width).to_f32(),
-                                         cx,
-                                         scope)
-                                };
-                                Some((rects, cx, scope))
-                            },
-                            Err(()) => {
-                                debug!("layout query error");
-                                None
-                            }
-                        }
-                    }
-                    None => {
-                        debug!("no window");
-                        None
-                    }
-                }
-            }
-            None => {
-                debug!("no document");
-                None
-            }
-        }.get();
-        
-        Some(ClientRectList::new(rects, cx, scope))
-    }
-
-    pub fn getBoundingClientRect(&self) -> Option<@mut ClientRect> {
-        match self.parent.owner_doc {
-            Some(doc) => {
-                match doc.with_base(|doc| doc.window) {
-                    Some(win) => {
-                        let page = win.page;
-                        let node = self.parent.abstract.get();
-                        assert!(node.is_element());
-                        let (port, chan) = comm::stream();
-                        match unsafe{(*page).query_layout(ContentBoxQuery(node, chan), port)} {
-                            Ok(ContentBoxResponse(rect)) => {
-                                let cx = unsafe {(*page).js_info.get_ref().js_compartment.cx.ptr};
-                                let cache = win.get_wrappercache();
-                                let scope = cache.get_wrapper();
-                                Some(ClientRect::new(
-                                         rect.origin.y.to_f32(),
-                                         (rect.origin.y + rect.size.height).to_f32(),
-                                         rect.origin.x.to_f32(),
-                                         (rect.origin.x + rect.size.width).to_f32(),
-                                         cx,
-                                         scope))
-                            },
-                            Err(()) => {
-                                debug!("error querying layout");
-                                None
-                            }
-                        }
-                    }
-                    None => {
-                        debug!("no window");
-                        None
-                    }
-                }
-            }
-            None => {
-                debug!("no document");
-                None
-            }
         }
     }
 
@@ -405,13 +326,84 @@ impl Element {
     pub fn MozRequestPointerLock(&self) {
     }
 
-    pub fn GetClientRects(&self) -> @mut ClientRectList {
-        let (scope, cx) = self.get_scope_and_cx();
-        ClientRectList::new(~[], cx, scope)
+    pub fn GetClientRects(&self, abstract_self: AbstractNode<ScriptView>) -> @mut ClientRectList {
+        let (rects, cx, scope) = match self.parent.owner_doc {
+            Some(doc) => {
+                match doc.with_base(|doc| doc.window) {
+                    Some(win) => {
+                        let node = abstract_self;
+                        assert!(node.is_element());
+                        let page = win.page;
+                        let (port, chan) = comm::stream();
+                        // TODO(tkuehn): currently just queries top-level page layout. Needs to query
+                        // subframe layout if this element is in a subframe. Probably need an ID field.
+                        match unsafe {(*page).query_layout(ContentBoxesQuery(node, chan), port)} {
+                            Ok(ContentBoxesResponse(rects)) => {
+                                let cx = unsafe {(*page).js_info.get_ref().js_compartment.cx.ptr};
+                                let cache = win.get_wrappercache();
+                                let scope = cache.get_wrapper();
+                                let rects = do rects.map |r| {
+                                    ClientRect::new(
+                                         r.origin.y.to_f32(),
+                                         (r.origin.y + r.size.height).to_f32(),
+                                         r.origin.x.to_f32(),
+                                         (r.origin.x + r.size.width).to_f32(),
+                                         cx,
+                                         scope)
+                                };
+                                Some((rects, cx, scope))
+                            },
+                            Err(()) => {
+                                debug!("layout query error");
+                                None
+                            }
+                        }
+                    }
+                    None => {
+                        debug!("no window");
+                        None
+                    }
+                }
+            }
+            None => {
+                debug!("no document");
+                None
+            }
+        }.get();
+
+        ClientRectList::new(rects, cx, scope)
     }
 
-    pub fn GetBoundingClientRect(&self) -> @mut ClientRect {
-        fail!("stub")
+    pub fn GetBoundingClientRect(&self, abstract_self: AbstractNode<ScriptView>) -> @mut ClientRect {
+        match self.parent.owner_doc {
+            Some(doc) => {
+                match doc.with_base(|doc| doc.window) {
+                    Some(win) => {
+                        let page = win.page;
+                        let node = abstract_self;
+                        assert!(node.is_element());
+                        let (port, chan) = comm::stream();
+                        match unsafe{(*page).query_layout(ContentBoxQuery(node, chan), port)} {
+                            Ok(ContentBoxResponse(rect)) => {
+                                let cx = unsafe {(*page).js_info.get_ref().js_compartment.cx.ptr};
+                                let cache = win.get_wrappercache();
+                                let scope = cache.get_wrapper();
+                                ClientRect::new(
+                                    rect.origin.y.to_f32(),
+                                    (rect.origin.y + rect.size.height).to_f32(),
+                                    rect.origin.x.to_f32(),
+                                    (rect.origin.x + rect.size.width).to_f32(),
+                                    cx,
+                                    scope)
+                            },
+                            Err(()) => fail!("error querying layout")
+                        }
+                    }
+                    None => fail!("no window")
+                }
+            }
+            None => fail!("no document")
+        }
     }
 
     pub fn ScrollIntoView(&self, _top: bool) {

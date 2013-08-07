@@ -7,12 +7,13 @@
 use dom::bindings::codegen::TextBinding;
 use dom::bindings::node;
 use dom::bindings::utils::{WrapperCache, DOMString, null_string, ErrorResult};
-use dom::bindings::utils::{BindingObject, CacheableWrapper};
+use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box};
 use dom::bindings;
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
-use dom::element::{Element, ElementTypeId, HTMLImageElement, HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLIframeElement};
+use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLIframeElement};
 use dom::element::{HTMLStyleElementTypeId};
+use dom::htmlimageelement::HTMLImageElement;
 use dom::window::Window;
 
 use std::cast;
@@ -232,6 +233,15 @@ impl<'self, View> AbstractNode<View> {
             _ => {
                 fail!("unsupported node type")
             }
+        }
+    }
+
+    /// Allow consumers to recreate an AbstractNode from the raw boxed type.
+    /// Must only be used in situations where the boxed type is in the inheritance
+    /// chain for nodes.
+    pub fn from_box<T>(ptr: *mut rust_box<T>) -> AbstractNode<View> {
+        AbstractNode {
+            obj: ptr as *mut Node<View>
         }
     }
 

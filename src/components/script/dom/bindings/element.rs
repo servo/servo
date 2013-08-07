@@ -29,8 +29,8 @@ use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp, JSPropertySpec};
 use js::jsapi::{JSNativeWrapper, JSTracer, JSTRACE_OBJECT};
 use js::jsapi::{JSPropertyOpWrapper, JSStrictPropertyOpWrapper, JSFunctionSpec};
 use js::rust::{Compartment, jsobj};
-use js::{JS_ARGV, JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
-use js::{JS_THIS_OBJECT, JS_SET_RVAL, JSPROP_NATIVE_ACCESSORS};
+use js::{JS_ARGV, JSPROP_ENUMERATE, JSPROP_SHARED};
+use js::{JS_THIS_OBJECT, JSPROP_NATIVE_ACCESSORS};
 
 extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("element finalize: %x!", obj as uint);
@@ -151,17 +151,13 @@ extern fn getClientRects(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
       let obj = JS_THIS_OBJECT(cx, vp);
       let mut node = unwrap(obj);
       let rval = do node.with_imm_element |elem| {
-          elem.getClientRects()
+          elem.GetClientRects(node)
       };
-      if rval.is_none() {
-          JS_SET_RVAL(cx, vp, JSVAL_NULL);
-      } else {
-          let cache = node.get_wrappercache();
-          let rval = rval.get() as @mut CacheableWrapper;
-          assert!(WrapNewBindingObject(cx, cache.get_wrapper(),
-                                       rval,
-                                       cast::transmute(vp)));
-      }
+      let cache = node.get_wrappercache();
+      let rval = rval as @mut CacheableWrapper;
+      assert!(WrapNewBindingObject(cx, cache.get_wrapper(),
+                                   rval,
+                                   cast::transmute(vp)));
       return 1;
   }
 }
@@ -171,17 +167,13 @@ extern fn getBoundingClientRect(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JS
       let obj = JS_THIS_OBJECT(cx, vp);
       let mut node = unwrap(obj);
       let rval = do node.with_imm_element |elem| {
-          elem.getBoundingClientRect()
+          elem.GetBoundingClientRect(node)
       };
-      if rval.is_none() {
-          JS_SET_RVAL(cx, vp, JSVAL_NULL);
-      } else {
-          let cache = node.get_wrappercache();
-          let rval = rval.get() as @mut CacheableWrapper;
-          assert!(WrapNewBindingObject(cx, cache.get_wrapper(),
-                                       rval,
-                                       cast::transmute(vp)));
-      }
+      let cache = node.get_wrappercache();
+      let rval = rval as @mut CacheableWrapper;
+      assert!(WrapNewBindingObject(cx, cache.get_wrapper(),
+                                   rval,
+                                   cast::transmute(vp)));
       return 1;
   }
 }
