@@ -5,7 +5,7 @@
 //! Element nodes.
 
 use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
-use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLDivElementBinding};
+use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLDivElementBinding, HTMLSpanElementBinding};
 use dom::bindings::codegen::{HTMLImageElementBinding};
 use dom::bindings::utils::{DOMString, null_string, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
@@ -182,6 +182,8 @@ generate_cacheable_wrapper!(HTMLDivElement, HTMLDivElementBinding::Wrap)
 generate_binding_object!(HTMLDivElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
 generate_binding_object!(HTMLImageElement)
+generate_cacheable_wrapper!(HTMLSpanElement, HTMLSpanElementBinding::Wrap)
+generate_binding_object!(HTMLSpanElement)
 
 //
 // Fancier elements
