@@ -20,7 +20,7 @@ use render_context::RenderContext;
 use text::SendableTextRun;
 
 use std::cast::transmute_region;
-use geom::{Point2D, Rect, Size2D};
+use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use servo_net::image::base::Image;
 use servo_util::range::Range;
 use extra::arc::ARC;
@@ -99,8 +99,10 @@ pub struct ImageDisplayItem<E> {
 /// Renders a border.
 pub struct BorderDisplayItem<E> {
     base: BaseDisplayItem<E>,
-    /// The width of the border.
-    width: Au,
+
+    /// The border widths
+    border: SideOffsets2D<Au>,
+
     /// The color of the border.
     color: Color,
 }
@@ -147,7 +149,9 @@ impl<E> DisplayItem<E> {
             }
 
             BorderDisplayItemClass(ref border) => {
-                render_context.draw_border(&border.base.bounds, border.width, border.color)
+                render_context.draw_border(&border.base.bounds,
+                                           border.border,
+                                           border.color)
             }
         }
     }
