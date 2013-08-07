@@ -18,6 +18,7 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
+use newcss::stylesheet::Stylesheet;
 
 use js::jsapi::{JSContext, JSObject};
 
@@ -34,6 +35,7 @@ pub struct Element {
     parent: Node<ScriptView>,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
     attrs: ~[Attr],
+    style_attribute: Option<Stylesheet>,
 }
 
 impl CacheableWrapper for Element {
@@ -206,7 +208,8 @@ impl<'self> Element {
         Element {
             parent: Node::new(ElementNodeTypeId(type_id)),
             tag_name: tag_name,
-            attrs: ~[]
+            attrs: ~[],
+            style_attribute: None,
         }
     }
 
