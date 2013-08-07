@@ -136,7 +136,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
             match self.port.recv() {
                 RenderMsg(render_layer) => {
                     if self.paint_permission {
-                        self.compositor.new_layer(self.id, render_layer.size);
+                        self.compositor.resize_layer(self.id, render_layer.size);
                     }
                     self.render_layer = Some(render_layer);
                 }
@@ -147,7 +147,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                     self.paint_permission = true;
                     match self.render_layer {
                         Some(ref render_layer) => {
-                            self.compositor.new_layer(self.id, render_layer.size);
+                            self.compositor.resize_layer(self.id, render_layer.size);
                         }
                         None => {}
                     }

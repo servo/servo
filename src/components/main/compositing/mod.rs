@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use platform::{Application, Window};
-use script::dom::event::ResizeEvent;
-use script::script_task::{LoadMsg, NavigateMsg, SendEventMsg};
 
 pub use windowing;
 use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
@@ -14,7 +12,7 @@ use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEven
 
 use servo_msg::compositor_msg::{RenderListener, LayerBufferSet, RenderState};
 use servo_msg::compositor_msg::{ReadyState, ScriptListener};
-use servo_msg::constellation_msg::PipelineId;
+use servo_msg::constellation_msg::{ConstellationChan, NavigateMsg, PipelineId, ResizedWindowMsg, LoadUrlMsg};
 use servo_msg::constellation_msg;
 use gfx::opts::Opts;
 
@@ -40,11 +38,11 @@ use servo_util::{time, url};
 use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
 
+use extra::future::from_value;
 use extra::time::precise_time_s;
 use extra::arc;
 
 use constellation::SendableFrameTree;
-use pipeline::Pipeline;
 use compositing::compositor_layer::CompositorLayer;
 
 mod quadtree;
@@ -86,10 +84,12 @@ impl RenderListener for CompositorChan {
     }
 
     fn new_layer(&self, id: PipelineId, page_size: Size2D<uint>) {
-        self.chan.send(NewLayer(id, page_size))
+        let Size2D { width, height } = page_size;
+        self.chan.send(NewLayer(id, Size2D(width as f32, height as f32)))
     }
     fn resize_layer(&self, id: PipelineId, page_size: Size2D<uint>) {
-        self.chan.send(ResizeLayer(id, page_size))
+        let Size2D { width, height } = page_size;
+        self.chan.send(ResizeLayer(id, Size2D(width as f32, height as f32)))
     }
     fn delete_layer(&self, id: PipelineId) {
         self.chan.send(DeleteLayer(id))
@@ -130,9 +130,9 @@ pub enum Msg {
 
     // TODO: Attach epochs to these messages
     /// Alerts the compositor that there is a new layer to be rendered.
-    NewLayer(PipelineId, Size2D<uint>),
+    NewLayer(PipelineId, Size2D<f32>),
     /// Alerts the compositor that the specified layer has changed size.
-    ResizeLayer(PipelineId, Size2D<uint>),
+    ResizeLayer(PipelineId, Size2D<f32>),
     /// Alerts the compositor that the specified layer has been deleted.
     DeleteLayer(PipelineId),
     /// Invalidate a rect for a given layer
@@ -145,7 +145,7 @@ pub enum Msg {
     /// Alerts the compositor to the current status of rendering.
     ChangeRenderState(RenderState),
     /// Sets the channel to the current layout and render tasks, along with their id
-    SetIds(SendableFrameTree, Chan<()>),
+    SetIds(SendableFrameTree, Chan<()>, ConstellationChan),
 }
 
 /// Azure surface wrapping to work with the layers infrastructure.
@@ -207,7 +207,7 @@ impl CompositorTask {
         let root_layer = @mut ContainerLayer();
         let window_size = window.size();
         let mut scene = Scene(ContainerLayerKind(root_layer), window_size, identity());
-        let mut window_size = Size2D(window_size.width as int, window_size.height as int);
+        let mut window_size = Size2D(window_size.width as uint, window_size.height as uint);
         let mut done = false;
         let mut recomposite = false;
 
@@ -216,13 +216,9 @@ impl CompositorTask {
         let mut zoom_action = false;
         let mut zoom_time = 0f;
 
-        // Channel to the outermost frame's pipeline.
-        // FIXME: Events are only forwarded to this pipeline, but they should be
-        // routed to the appropriate pipeline via the constellation.
-        let mut pipeline: Option<Pipeline> = None;
-
         // The root CompositorLayer
         let mut compositor_layer: Option<CompositorLayer> = None;
+        let mut constellation_chan: Option<ConstellationChan> = None;
 
         // Get BufferRequests from each layer.
         let ask_for_tiles = || {
@@ -243,9 +239,22 @@ impl CompositorTask {
                     ChangeReadyState(ready_state) => window.set_ready_state(ready_state),
                     ChangeRenderState(render_state) => window.set_render_state(render_state),
 
-                    SetIds(frame_tree, response_chan) => {
-                        pipeline = Some(frame_tree.pipeline);
+                    SetIds(frame_tree, response_chan, new_constellation_chan) => {
                         response_chan.send(());
+
+                        // This assumes there is at most one child, which should be the case.
+                        match root_layer.first_child {
+                            Some(old_layer) => root_layer.remove_child(old_layer),
+                            None => {}
+                        }
+
+                        let layer = CompositorLayer::from_frame_tree(frame_tree,
+                                                                     self.opts.tile_size,
+                                                                     Some(10000000u));
+                        root_layer.add_child(ContainerLayerKind(layer.root_layer));
+                        compositor_layer = Some(layer);
+
+                        constellation_chan = Some(new_constellation_chan);
                     }
 
                     GetSize(chan) => {
@@ -259,12 +268,12 @@ impl CompositorTask {
                         // FIXME: This should create an additional layer instead of replacing the current one.
                         // Once ResizeLayer messages are set up, we can switch to the new functionality.
 
-                        let p = match pipeline {
-                            Some(ref pipeline) => pipeline,
+                        let p = match compositor_layer {
+                            Some(ref compositor_layer) => compositor_layer.pipeline.clone(),
                             None => fail!("Compositor: Received new layer without initialized pipeline"),
                         };
                         let page_size = Size2D(new_size.width as f32, new_size.height as f32);
-                        let new_layer = CompositorLayer::new(p.clone(), Some(page_size),
+                        let new_layer = CompositorLayer::new(p, Some(page_size),
                                                              self.opts.tile_size, Some(10000000u));
                         
                         let current_child = root_layer.first_child;
@@ -284,8 +293,9 @@ impl CompositorTask {
                             Some(ref mut layer) => {
                                 let page_window = Size2D(window_size.width as f32 / world_zoom,
                                                          window_size.height as f32 / world_zoom);
-                                assert!(layer.resize(id, Size2D(new_size.width as f32,
-                                                                new_size.height as f32),
+                                assert!(layer.resize(id,
+                                                     Size2D(new_size.width as f32,
+                                                            new_size.height as f32),
                                                      page_window));
                                 ask_for_tiles();
                             }
@@ -340,12 +350,12 @@ impl CompositorTask {
                 IdleWindowEvent => {}
 
                 ResizeWindowEvent(width, height) => {
-                    let new_size = Size2D(width as int, height as int);
+                    let new_size = Size2D(width, height);
                     if window_size != new_size {
                         debug!("osmain: window resized to %ux%u", width, height);
                         window_size = new_size;
-                        match pipeline {
-                            Some(ref pipeline) => pipeline.script_chan.send(SendEventMsg(pipeline.id.clone(), ResizeEvent(width, height))),
+                        match constellation_chan {
+                            Some(ref chan) => chan.send(ResizedWindowMsg(new_size)),
                             None => error!("Compositor: Recieved resize event without initialized layout chan"),
                         }
                     } else {
@@ -355,8 +365,14 @@ impl CompositorTask {
                 
                 LoadUrlWindowEvent(url_string) => {
                     debug!("osmain: loading URL `%s`", url_string);
-                    match pipeline {
-                        Some(ref pipeline) => pipeline.script_chan.send(LoadMsg(pipeline.id.clone(), url::make_url(url_string.to_str(), None))),
+                    let root_pipeline_id = match compositor_layer {
+                        Some(ref layer) => layer.pipeline.id.clone(),
+                        None => fail!("Compositor: Received LoadUrlWindowEvent without initialized compositor layers"),
+                    };
+                    match constellation_chan {
+                        Some(ref chan) => chan.send(LoadUrlMsg(root_pipeline_id,
+                                                               url::make_url(url_string.to_str(), None),
+                                                               from_value(window_size))),
                         None => error!("Compositor: Recieved loadurl event without initialized layout chan"),
                     }
                 }
@@ -413,8 +429,8 @@ impl CompositorTask {
                         windowing::Forward => constellation_msg::Forward,
                         windowing::Back => constellation_msg::Back,
                     };
-                    match pipeline {
-                        Some(ref pipeline) => pipeline.script_chan.send(NavigateMsg(direction)),
+                    match constellation_chan {
+                        Some(ref chan) => chan.send(NavigateMsg(direction)),
                         None => error!("Compositor: Recieved navigation event without initialized layout chan"),
                     }
                 }
