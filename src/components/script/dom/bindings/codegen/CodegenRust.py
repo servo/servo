@@ -4616,11 +4616,13 @@ class CGBindingRoot(CGThing):
                           'dom::node::{AbstractNode, Node, Text}', #XXXjdm
                           'dom::document::{Document, AbstractDocument}', #XXXjdm
                           'dom::element::{Element, HTMLHeadElement, HTMLHtmlElement}', #XXXjdm
-                          'dom::element::{HTMLDivElement, HTMLSpanElement}', #XXXjdm
+                          'dom::element::{HTMLDivElement, HTMLSpanElement, HTMLParagraphElement}', #XXXjdm
                           'dom::htmlanchorelement::HTMLAnchorElement', #XXXjdm
                           'dom::htmlelement::HTMLElement', #XXXjdm
                           'dom::htmldocument::HTMLDocument', #XXXjdm
+                          'dom::htmlhrelement::HTMLHRElement',
                           'dom::htmlimageelement::HTMLImageElement', #XXXjdm
+                          'dom::htmlscriptelement::HTMLScriptElement',
                           'dom::bindings::utils::*',
                           'dom::bindings::conversions::*',
                           'dom::blob::*', #XXXjdm

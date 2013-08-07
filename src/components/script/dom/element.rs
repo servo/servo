@@ -6,6 +6,8 @@
 
 use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
 use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLDivElementBinding, HTMLSpanElementBinding};
+use dom::bindings::codegen::{HTMLHRElementBinding};
+use dom::bindings::codegen::{HTMLParagraphElementBinding, HTMLScriptElementBinding};
 use dom::bindings::codegen::{HTMLImageElementBinding};
 use dom::bindings::utils::{DOMString, null_string, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
@@ -14,7 +16,9 @@ use dom::clientrectlist::ClientRectList;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
+use dom::htmlhrelement::HTMLHRElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
@@ -104,7 +108,6 @@ pub struct HTMLBoldElement      { parent: HTMLElement }
 pub struct HTMLDivElement       { parent: HTMLElement }
 pub struct HTMLFontElement      { parent: HTMLElement }
 pub struct HTMLFormElement      { parent: HTMLElement }
-pub struct HTMLHRElement        { parent: HTMLElement }
 pub struct HTMLHeadElement      { parent: HTMLElement }
 pub struct HTMLHtmlElement      { parent: HTMLElement }
 pub struct HTMLInputElement     { parent: HTMLElement }
@@ -115,7 +118,6 @@ pub struct HTMLMetaElement      { parent: HTMLElement }
 pub struct HTMLOListElement     { parent: HTMLElement }
 pub struct HTMLOptionElement    { parent: HTMLElement }
 pub struct HTMLParagraphElement { parent: HTMLElement }
-pub struct HTMLScriptElement    { parent: HTMLElement }
 pub struct HTMLSectionElement   { parent: HTMLElement }
 pub struct HTMLSelectElement    { parent: HTMLElement }
 pub struct HTMLSmallElement     { parent: HTMLElement }
@@ -139,6 +141,15 @@ impl HTMLHtmlElement {
 }
 
 impl HTMLDivElement {
+    pub fn Align(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn SetAlign(&mut self, _align: &DOMString, _rv: &mut ErrorResult) {
+    }
+}
+
+impl HTMLParagraphElement {
     pub fn Align(&self) -> DOMString {
         null_string
     }
@@ -174,6 +185,8 @@ pub macro_rules! generate_binding_object(
 
 generate_cacheable_wrapper!(HTMLHeadElement, HTMLHeadElementBinding::Wrap)
 generate_binding_object!(HTMLHeadElement)
+generate_cacheable_wrapper!(HTMLHRElement, HTMLHRElementBinding::Wrap)
+generate_binding_object!(HTMLHRElement)
 generate_cacheable_wrapper!(HTMLHtmlElement, HTMLHtmlElementBinding::Wrap)
 generate_binding_object!(HTMLHtmlElement)
 generate_cacheable_wrapper!(HTMLAnchorElement, HTMLAnchorElementBinding::Wrap)
@@ -182,8 +195,13 @@ generate_cacheable_wrapper!(HTMLDivElement, HTMLDivElementBinding::Wrap)
 generate_binding_object!(HTMLDivElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
 generate_binding_object!(HTMLImageElement)
+generate_cacheable_wrapper!(HTMLParagraphElement, HTMLParagraphElementBinding::Wrap)
+generate_binding_object!(HTMLParagraphElement)
+generate_cacheable_wrapper!(HTMLScriptElement, HTMLScriptElementBinding::Wrap)
+generate_binding_object!(HTMLScriptElement)
 generate_cacheable_wrapper!(HTMLSpanElement, HTMLSpanElementBinding::Wrap)
 generate_binding_object!(HTMLSpanElement)
+
 
 //
 // Fancier elements
