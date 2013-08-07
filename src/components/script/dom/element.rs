@@ -5,9 +5,10 @@
 //! Element nodes.
 
 use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
-use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBodyElementBinding, HTMLDivElementBinding, HTMLSpanElementBinding};
-use dom::bindings::codegen::{HTMLHRElementBinding};
+use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBodyElementBinding};
+use dom::bindings::codegen::{HTMLHRElementBinding, HTMLIFrameElementBinding};
 use dom::bindings::codegen::{HTMLParagraphElementBinding, HTMLScriptElementBinding};
+use dom::bindings::codegen::{HTMLDivElementBinding, HTMLSpanElementBinding};
 use dom::bindings::codegen::{HTMLImageElementBinding};
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
@@ -18,6 +19,7 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmlhrelement::HTMLHRElement;
+use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
@@ -28,13 +30,8 @@ use newcss::stylesheet::Stylesheet;
 use js::jsapi::{JSContext, JSObject};
 
 use std::cell::Cell;
-use std::comm::ChanOne;
 use std::comm;
 use std::str::eq_slice;
-use extra::net::url::Url;
-use geom::size::Size2D;
-
-use servo_msg::constellation_msg::SubpageId;
 
 pub struct Element {
     parent: Node<ScriptView>,
@@ -195,6 +192,8 @@ generate_cacheable_wrapper!(HTMLBodyElement, HTMLBodyElementBinding::Wrap)
 generate_binding_object!(HTMLBodyElement)
 generate_cacheable_wrapper!(HTMLDivElement, HTMLDivElementBinding::Wrap)
 generate_binding_object!(HTMLDivElement)
+generate_cacheable_wrapper!(HTMLIFrameElement, HTMLIFrameElementBinding::Wrap)
+generate_binding_object!(HTMLIFrameElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
 generate_binding_object!(HTMLImageElement)
 generate_cacheable_wrapper!(HTMLParagraphElement, HTMLParagraphElementBinding::Wrap)
@@ -212,13 +211,6 @@ generate_binding_object!(HTMLSpanElement)
 pub struct HTMLHeadingElement {
     parent: HTMLElement,
     level: HeadingLevel,
-}
-
-pub struct HTMLIframeElement {
-    parent: HTMLElement,
-    frame: Option<Url>,
-    subpage_id: Option<SubpageId>,
-    size_future_chan: Option<ChanOne<Size2D<uint>>>,
 }
 
 //

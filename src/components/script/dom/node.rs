@@ -11,9 +11,10 @@ use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box};
 use dom::bindings;
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
-use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLIframeElement};
+use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmliframeelement::HTMLIFrameElement;
 use dom::window::Window;
 
 use std::cast;
@@ -401,14 +402,14 @@ impl<'self, View> AbstractNode<View> {
         self.type_id() == ElementNodeTypeId(HTMLIframeElementTypeId)
     }
 
-    pub fn with_imm_iframe_element<R>(self, f: &fn(&HTMLIframeElement) -> R) -> R {
+    pub fn with_imm_iframe_element<R>(self, f: &fn(&HTMLIFrameElement) -> R) -> R {
         if !self.is_iframe_element() {
             fail!(~"node is not an iframe element");
         }
         self.transmute(f)
     }
 
-    pub fn with_mut_iframe_element<R>(self, f: &fn(&mut HTMLIframeElement) -> R) -> R {
+    pub fn with_mut_iframe_element<R>(self, f: &fn(&mut HTMLIFrameElement) -> R) -> R {
         if !self.is_iframe_element() {
             fail!(~"node is not an iframe element");
         }

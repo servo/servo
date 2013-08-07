@@ -51,6 +51,7 @@ pub mod dom {
             pub mod HTMLHeadElementBinding;
             pub mod HTMLHRElementBinding;
             pub mod HTMLHtmlElementBinding;
+            pub mod HTMLIFrameElementBinding;
             pub mod HTMLImageElementBinding;
             pub mod HTMLParagraphElementBinding;
             pub mod HTMLScriptElementBinding;
@@ -81,6 +82,7 @@ pub mod dom {
     pub mod htmldocument;
     pub mod htmlelement;
     pub mod htmlhrelement;
+    pub mod htmliframeelement;
     pub mod htmlimageelement;
     pub mod htmlscriptelement;
     pub mod mouseevent;
