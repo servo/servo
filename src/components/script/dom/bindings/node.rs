@@ -17,6 +17,8 @@ use dom::element::{HTMLTableSectionElementTypeId};
 use dom::element::{HTMLHeadElement, HTMLHtmlElement, HTMLDivElement, HTMLSpanElement};
 use dom::element::{HTMLParagraphElement};
 use dom::htmlelement::HTMLElement;
+use dom::element::{HTMLDivElementTypeId, HTMLImageElementTypeId, HTMLTitleElementTypeId};
+use dom::element::{HTMLHeadElement, HTMLHtmlElement, HTMLDivElement};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlhrelement::HTMLHRElement;
@@ -29,6 +31,7 @@ use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
+use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId, ScriptView, Text};
 
@@ -112,6 +115,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLStyleElementTypeId) => generate_element!(HTMLStyleElement),
         ElementNodeTypeId(HTMLTableElementTypeId) => generate_element!(HTMLTableElement),
         ElementNodeTypeId(HTMLTableSectionElementTypeId) => generate_element!(HTMLTableSectionElement),
+        ElementNodeTypeId(HTMLTitleElementTypeId) => generate_element!(HTMLTitleElement),
         ElementNodeTypeId(_) => element::create(cx, node).ptr,
         CommentNodeTypeId |
         DoctypeNodeTypeId => text::create(cx, node).ptr,
