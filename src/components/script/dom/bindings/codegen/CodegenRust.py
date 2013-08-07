@@ -3177,7 +3177,7 @@ class CGGenericMethod(CGAbstractBindingMethod):
     def generate_code(self):
         return CGIndenter(CGGeneric(
             "let _info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitMethodOp(_info, cx, obj, ptr::to_unsafe_ptr(&(*this).payload) as *libc::c_void, argc, vp);"))
+            "return CallJitMethodOp(_info, cx, obj, this as *libc::c_void, argc, vp);"))
 
 class CGAbstractStaticMethod(CGAbstractMethod):
     """
@@ -3200,16 +3200,24 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         self.method = method
         name = method.identifier.name
         args = [Argument('*JSContext', 'cx'), Argument('JSHandleObject', 'obj'),
-                Argument('*mut %s' % descriptor.concreteType, 'this'),
+                Argument('*mut rust_box<%s>' % descriptor.concreteType, 'this'),
                 Argument('libc::c_uint', 'argc'), Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'JSBool', args)
 
     def definition_body(self):
         name = self.method.identifier.name
         nativeName = MakeNativeName(self.descriptor.binaryNames.get(name, name))
-        return CGWrapper(CGMethodCall([], nativeName, self.method.isStatic(),
+        extraPre = ''
+        argsPre = []
+        if name in self.descriptor.needsAbstract:
+            abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
+            extraPre = '  let abstract_this = %s::from_box(this);\n' % abstractName
+            argsPre = ['abstract_this']
+        return CGWrapper(CGMethodCall(argsPre, nativeName, self.method.isStatic(),
                                       self.descriptor, self.method),
-                         pre="  let obj = (*obj.unnamed);\n").define()
+                         pre=extraPre +
+                             "  let obj = (*obj.unnamed);\n" +
+                             "  let this = &mut (*this).payload;\n").define()
 
 class CGGenericGetter(CGAbstractBindingMethod):
     """
@@ -3233,7 +3241,7 @@ class CGGenericGetter(CGAbstractBindingMethod):
     def generate_code(self):
         return CGIndenter(CGGeneric(
             "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitPropertyOp(info, cx, obj, ptr::to_unsafe_ptr(&(*this).payload) as *libc::c_void, vp);"))
+            "return CallJitPropertyOp(info, cx, obj, this as *libc::c_void, vp);"))
 
 class CGSpecializedGetter(CGAbstractExternMethod):
     """
@@ -3245,7 +3253,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         name = 'get_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
                  Argument('JSHandleObject', 'obj'),
-                 Argument('*%s' % descriptor.concreteType, 'this'),
+                 Argument('*mut rust_box<%s>' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'vp') ]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -3263,7 +3271,8 @@ class CGSpecializedGetter(CGAbstractExternMethod):
             nativeName = "Get" + nativeName
         return CGWrapper(CGIndenter(CGGetterCall(self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
-                         pre="  let obj = (*obj.unnamed);\n").define()
+                         pre="  let obj = (*obj.unnamed);\n" +
+                             "  let this = &mut (*this).payload;\n").define()
 
 class CGGenericSetter(CGAbstractBindingMethod):
     """
@@ -3288,7 +3297,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
                 "let undef = JSVAL_VOID;\n"
                 "let argv: *JSVal = if argc != 0 { JS_ARGV(cx, cast::transmute(vp)) } else { &undef as *JSVal };\n"
                 "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, cast::transmute(vp)));\n"
-                "if CallJitPropertyOp(info, cx, obj, ptr::to_unsafe_ptr(&(*this).payload) as *libc::c_void, argv) == 0 {"
+                "if CallJitPropertyOp(info, cx, obj, this as *libc::c_void, argv) == 0 {"
                 "  return 0;\n"
                 "}\n"
                 "*vp = JSVAL_VOID;\n"
@@ -3304,7 +3313,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         name = 'set_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
                  Argument('JSHandleObject', 'obj'),
-                 Argument('*mut %s' % descriptor.concreteType, 'this'),
+                 Argument('*mut rust_box<%s>' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'argv')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -3313,7 +3322,8 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         nativeName = "Set" + MakeNativeName(self.descriptor.binaryNames.get(name, name))
         return CGWrapper(CGIndenter(CGSetterCall(self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
-                         pre="  let obj = (*obj.unnamed);\n").define()
+                         pre="  let obj = (*obj.unnamed);\n" +
+                             "  let this = &mut (*this).payload;\n").define()
 
 def infallibleForMember(member, type, descriptorProvider):
     """
@@ -4606,9 +4616,11 @@ class CGBindingRoot(CGThing):
                           'dom::node::{AbstractNode, Node, Text}', #XXXjdm
                           'dom::document::{Document, AbstractDocument}', #XXXjdm
                           'dom::element::{Element, HTMLHeadElement, HTMLHtmlElement}', #XXXjdm
+                          'dom::element::{HTMLDivElement}', #XXXjdm
                           'dom::htmlanchorelement::HTMLAnchorElement', #XXXjdm
                           'dom::htmlelement::HTMLElement', #XXXjdm
                           'dom::htmldocument::HTMLDocument', #XXXjdm
+                          'dom::htmlimageelement::HTMLImageElement', #XXXjdm
                           'dom::bindings::utils::*',
                           'dom::bindings::conversions::*',
                           'dom::blob::*', #XXXjdm
