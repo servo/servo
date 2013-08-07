@@ -6,6 +6,7 @@
 
 use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
 use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLDivElementBinding, HTMLSpanElementBinding};
+use dom::bindings::codegen::{HTMLParagraphElementBinding};
 use dom::bindings::codegen::{HTMLImageElementBinding};
 use dom::bindings::utils::{DOMString, null_string, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
@@ -147,6 +148,15 @@ impl HTMLDivElement {
     }
 }
 
+impl HTMLParagraphElement {
+    pub fn Align(&self) -> DOMString {
+        null_string
+    }
+
+    pub fn SetAlign(&mut self, _align: &DOMString, _rv: &mut ErrorResult) {
+    }
+}
+
 pub macro_rules! generate_cacheable_wrapper(
     ($name: ident, $wrap: path) => (
         impl CacheableWrapper for $name {
@@ -182,8 +192,11 @@ generate_cacheable_wrapper!(HTMLDivElement, HTMLDivElementBinding::Wrap)
 generate_binding_object!(HTMLDivElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
 generate_binding_object!(HTMLImageElement)
+generate_cacheable_wrapper!(HTMLParagraphElement, HTMLParagraphElementBinding::Wrap)
+generate_binding_object!(HTMLParagraphElement)
 generate_cacheable_wrapper!(HTMLSpanElement, HTMLSpanElementBinding::Wrap)
 generate_binding_object!(HTMLSpanElement)
+
 
 //
 // Fancier elements
