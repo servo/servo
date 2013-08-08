@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::{CompositorChan, SetIds, ResizeLayer};
+use compositing::{CompositorChan, SetIds, SetLayerClipRect};
 use script::dom::event::ResizeEvent;
 
 use std::cell::Cell;
@@ -412,7 +412,7 @@ impl Constellation {
                         pipeline.script_chan.send(SendEventMsg(pipeline.id.clone(),
                                                                ResizeEvent(width as uint,
                                                                            height as uint))); 
-                        self.compositor_chan.send(ResizeLayer(pipeline.id, rect.size));
+                        self.compositor_chan.send(SetLayerClipRect(pipeline.id, rect));
                         already_sent.insert(pipeline.id.clone());
                         break;
                     }

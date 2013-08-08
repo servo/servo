@@ -62,7 +62,8 @@ enum MaybeQuadtree {
 }
 
 impl CompositorLayer {
-    /// Creates a new CompositorLayer without a page size that is initially hidden.
+    /// Creates a new CompositorLayer with an optional page size. If no page size is given,
+    /// the layer is initially hidden and initialized without a quadtree.
     pub fn new(pipeline: Pipeline, page_size: Option<Size2D<f32>>, tile_size: uint, max_mem: Option<uint>)
         -> CompositorLayer {
         CompositorLayer {
@@ -82,6 +83,7 @@ impl CompositorLayer {
         }
     }
     
+    /// Constructs a CompositorLayer tree from a frame tree.
     pub fn from_frame_tree(frame_tree: SendableFrameTree,
                            tile_size: uint,
                            max_mem: Option<uint>) -> CompositorLayer {
@@ -225,6 +227,7 @@ impl CompositorLayer {
 
     // Move the sublayer to an absolute position in page coordinates relative to its parent,
     // and clip the layer to the specified size in page coordinates.
+    // If the layer is hidden and has a defined page size, unhide it.
     // This method returns false if the specified layer is not found.
     pub fn set_clipping_rect(&mut self, pipeline_id: PipelineId, new_rect: Rect<f32>) -> bool {
         for child_node in self.children.iter() {
@@ -236,6 +239,10 @@ impl CompositorLayer {
                                                           new_rect.origin.y,
                                                           0.0));
             con.scissor = Some(new_rect);
+            // If possible, unhide child
+            if child_node.child.hidden && child_node.child.page_size.is_some() {
+                child_node.child.hidden = false;
+            }
             return true;
         }
         
@@ -244,7 +251,8 @@ impl CompositorLayer {
     }
 
 
-    // Called when the layer changes size (NOT as a result of a zoom event).
+    // Set the layer's page size. This signals that the renderer is ready for BufferRequests.
+    // If the layer is hidden and has a defined clipping rect, unhide it.
     // This method returns false if the specified layer is not found.
     pub fn resize(&mut self, pipeline_id: PipelineId, new_size: Size2D<f32>, window_size: Size2D<f32>) -> bool {
         if self.pipeline.id == pipeline_id {
@@ -257,27 +265,47 @@ impl CompositorLayer {
                                                                                  tile_size,
                                                                                  max_mem)),
             }
-            // Call scroll for bounds checking of the page shrunk. Use (-1, -1) as the cursor position
+            // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the cursor position
             // to make sure the scroll isn't propagated downwards.
             self.scroll(Point2D(0f32, 0f32), Point2D(-1f32, -1f32), window_size);
+            self.hidden = false;
+            return true;
+        }
+        self.resize_helper(pipeline_id, new_size)
+    }
+    
+    // A helper method to resize sublayers.
+    fn resize_helper(&mut self, pipeline_id: PipelineId, new_size: Size2D<f32>) -> bool {
+        for self.children.mut_iter().advance |child_node| {
+            if pipeline_id != child_node.child.pipeline.id {
+                loop;
+            }
+            let child = &mut child_node.child;
+            child.page_size = Some(new_size);
+            // TODO: might get buffers back here
+            match child.quadtree {
+                Tree(ref mut quadtree) => quadtree.resize(new_size.width as uint, new_size.height as uint),
+                NoTree(tile_size, max_mem) => child.quadtree = Tree(Quadtree::new(new_size.width as uint,
+                                                                                  new_size.height as uint,
+                                                                                  tile_size,
+                                                                                  max_mem)),
+            }
+            match child_node.container.scissor {
+                Some(scissor) => {
+                    // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the cursor position
+                    // to make sure the scroll isn't propagated downwards.
+                    child.scroll(Point2D(0f32, 0f32), Point2D(-1f32, -1f32), scissor.size);
+                    child.hidden = false;
+                }
+                None => {} // Nothing to do
+            }
             return true;
         }
 
         // ID does not match ours, so recurse on descendents (including hidden children)
-        let transform = |x: &mut CompositorLayerChild| -> bool {
-            match x.container.scissor {
-                Some(scissor) => {
-                    x.child.resize(pipeline_id, new_size, scissor.size)
-                }
-                None => {
-                    fail!("CompositorLayer: Child layer not clipped");
-                }
-            }
-        };
-
-        self.children.mut_iter().any(transform)
+        self.children.mut_iter().transform(|x| &mut x.child).any(|x| x.resize_helper(pipeline_id, new_size))
     }
-    
+
     // Collect buffers from the quadtree. This method IS NOT recursive, so child CompositorLayers
     // are not rebuilt directly from this method.
     pub fn build_layer_tree(&mut self) {

@@ -87,10 +87,18 @@ impl RenderListener for CompositorChan {
         let Size2D { width, height } = page_size;
         self.chan.send(NewLayer(id, Size2D(width as f32, height as f32)))
     }
-    fn resize_layer(&self, id: PipelineId, page_size: Size2D<uint>) {
+    fn set_layer_page_size(&self, id: PipelineId, page_size: Size2D<uint>) {
         let Size2D { width, height } = page_size;
-        self.chan.send(ResizeLayer(id, Size2D(width as f32, height as f32)))
+        self.chan.send(SetLayerPageSize(id, Size2D(width as f32, height as f32)))
     }
+    fn set_layer_clip_rect(&self, id: PipelineId, new_rect: Rect<uint>) {
+        let new_rect = Rect(Point2D(new_rect.origin.x as f32,
+                                    new_rect.origin.y as f32),
+                            Size2D(new_rect.size.width as f32,
+                                   new_rect.size.height as f32));
+        self.chan.send(SetLayerClipRect(id, new_rect))
+    }
+
     fn delete_layer(&self, id: PipelineId) {
         self.chan.send(DeleteLayer(id))
     }
@@ -131,8 +139,10 @@ pub enum Msg {
     // TODO: Attach epochs to these messages
     /// Alerts the compositor that there is a new layer to be rendered.
     NewLayer(PipelineId, Size2D<f32>),
-    /// Alerts the compositor that the specified layer has changed size.
-    ResizeLayer(PipelineId, Size2D<f32>),
+    /// Alerts the compositor that the specified layer's page has changed size.
+    SetLayerPageSize(PipelineId, Size2D<f32>),
+    /// Alerts the compositor that the specified layer's clipping rect has changed.
+    SetLayerClipRect(PipelineId, Rect<f32>),
     /// Alerts the compositor that the specified layer has been deleted.
     DeleteLayer(PipelineId),
     /// Invalidate a rect for a given layer
@@ -288,15 +298,22 @@ impl CompositorTask {
                         ask_for_tiles();
                     }
 
-                    ResizeLayer(id, new_size) => {
+                    SetLayerPageSize(id, new_size) => {
                         match compositor_layer {
                             Some(ref mut layer) => {
                                 let page_window = Size2D(window_size.width as f32 / world_zoom,
                                                          window_size.height as f32 / world_zoom);
-                                assert!(layer.resize(id,
-                                                     Size2D(new_size.width as f32,
-                                                            new_size.height as f32),
-                                                     page_window));
+                                assert!(layer.resize(id, new_size, page_window));
+                                ask_for_tiles();
+                            }
+                            None => {}
+                        }
+                    }
+
+                    SetLayerClipRect(id, new_rect) => {
+                        match compositor_layer {
+                            Some(ref mut layer) => {
+                                assert!(layer.set_clipping_rect(id, new_rect));
                                 ask_for_tiles();
                             }
                             None => {}
