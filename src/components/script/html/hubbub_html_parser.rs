@@ -15,7 +15,7 @@ use dom::element::{HTMLAnchorElementTypeId, HTMLAsideElementTypeId, HTMLBRElemen
                    HTMLTableCellElementTypeId, HTMLTableElementTypeId,
                    HTMLTableRowElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId,
                    UnknownElementTypeId};
-use dom::element::{HTMLAsideElement, HTMLBRElement, HTMLBodyElement,
+use dom::element::{HTMLAsideElement, HTMLBRElement,
                    HTMLBoldElement, HTMLDivElement, HTMLFontElement, HTMLFormElement,
                    HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
                    HTMLInputElement, HTMLIframeElement,
@@ -28,6 +28,7 @@ use dom::element::{HTMLAsideElement, HTMLBRElement, HTMLBodyElement,
 use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Heading4, Heading5,
                    Heading6};
 use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::HTMLScriptElement;
