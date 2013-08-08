@@ -6,6 +6,7 @@ use dom::bindings::element;
 use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
+use dom::element::{HTMLElementTypeId};
 use dom::element::{HTMLHeadElementTypeId, HTMLHtmlElementTypeId, HTMLAnchorElementTypeId};
 use dom::element::{HTMLDivElementTypeId, HTMLImageElementTypeId, HTMLSpanElementTypeId};
 use dom::element::{HTMLBodyElementTypeId, HTMLHRElementTypeId, HTMLIframeElementTypeId};
@@ -13,6 +14,7 @@ use dom::element::{HTMLParagraphElementTypeId, HTMLScriptElementTypeId, HTMLMeta
 use dom::element::{HTMLOListElementTypeId, HTMLStyleElementTypeId, HTMLTableElementTypeId};
 use dom::element::{HTMLHeadElement, HTMLHtmlElement, HTMLDivElement, HTMLSpanElement};
 use dom::element::{HTMLParagraphElement};
+use dom::htmlelement::HTMLElement;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlhrelement::HTMLHRElement;
@@ -88,6 +90,7 @@ macro_rules! generate_element(
 #[allow(non_implicitly_copyable_typarams)]
 pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject {
     match node.type_id() {
+        ElementNodeTypeId(HTMLElementTypeId) => generate_element!(HTMLElement),
         ElementNodeTypeId(HTMLAnchorElementTypeId) => generate_element!(HTMLAnchorElement),
         ElementNodeTypeId(HTMLBodyElementTypeId) => generate_element!(HTMLBodyElement),
         ElementNodeTypeId(HTMLDivElementTypeId) => generate_element!(HTMLDivElement),

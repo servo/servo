@@ -141,6 +141,16 @@ window.alert(tags.length);
 window.alert(tags[0]);
 window.alert(tags[0].tagName);
 
+window.alert("HTMLElement:");
+let tagList = ["section", "aside", "b", "i"];
+for (let i = 0, l = tagList.length; i < l; ++i) {
+  let tags = document.getElementsByTagName(tagList[i]);
+  window.alert(tags);
+  window.alert(tags.length);
+  window.alert(tags[0].tagName);
+  window.alert(tags[0] instanceof HTMLElement);
+}
+
 //TODO: Doesn't work until we throw proper exceptions instead of returning 0 on
 //      unwrap failure.
 /*try {
