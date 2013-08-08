@@ -32,8 +32,8 @@ pub enum WindowEvent {
     LoadUrlWindowEvent(~str),
     /// Sent when a mouse hit test is to be performed.
     MouseWindowEventClass(MouseWindowEvent),
-    /// Sent when the user scrolls.
-    ScrollWindowEvent(Point2D<f32>),
+    /// Sent when the user scrolls. Includes the current cursor position.
+    ScrollWindowEvent(Point2D<f32>, Point2D<i32>),
     /// Sent when the user zooms.
     ZoomWindowEvent(f32),
     /// Sent when the user uses chrome navigation (i.e. backspace or shift-backspace).
@@ -64,5 +64,8 @@ pub trait WindowMethods<A> {
     pub fn set_ready_state(@mut self, ready_state: ReadyState);
     /// Sets the render state of the current page.
     pub fn set_render_state(@mut self, render_state: RenderState);
+
+    /// Returns the hidpi factor of the monitor.
+    pub fn hidpi_factor(@mut self) -> f32;
 }
 
