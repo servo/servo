@@ -88,6 +88,8 @@ pub trait Tile {
     fn get_mem(&self) -> uint;
     /// Returns true if the tile is displayable at the given scale
     fn is_valid(&self, f32) -> bool;
+    /// Returns the Size2D of the tile
+    fn get_size_2d(&self) -> Size2D<uint>;
 }
 
 impl Tile for ~LayerBuffer {
@@ -97,5 +99,8 @@ impl Tile for ~LayerBuffer {
     }
     fn is_valid(&self, scale: f32) -> bool {
         self.resolution.approx_eq(&scale)
-    }    
+    }
+    fn get_size_2d(&self) -> Size2D<uint> {
+        self.screen_pos.size
+    }
 }

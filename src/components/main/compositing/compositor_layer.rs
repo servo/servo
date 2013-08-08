@@ -7,7 +7,7 @@ use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
 use geom::matrix::identity;
-use gfx::render_task::ReRenderMsg;
+use gfx::render_task::{ReRenderMsg, UnusedBufferMsg};
 use servo_msg::compositor_msg::{LayerBuffer, LayerBufferSet, Epoch};
 use servo_msg::constellation_msg::PipelineId;
 use script::dom::event::{ClickEvent, MouseDownEvent, MouseUpEvent};
@@ -208,9 +208,12 @@ impl CompositorLayer {
                                        no quadtree initialized", self.pipeline.id),
                 Tree(ref mut quadtree) => quadtree,
             };
-            let (request, r) = quadtree.get_tile_rects_page(rect, scale);
-            redisplay = r; // workaround to make redisplay visible outside block
-            if !request.is_empty() {
+            let (request, unused) = quadtree.get_tile_rects_page(rect, scale);
+            redisplay = !unused.is_empty(); // workaround to make redisplay visible outside block
+            if redisplay { // send back unused tiles
+                self.pipeline.render_chan.send(UnusedBufferMsg(unused));
+            }
+            if !request.is_empty() { // ask for tiles
                 self.pipeline.render_chan.send(ReRenderMsg(request, scale, self.epoch));
             }
         }
@@ -414,10 +417,15 @@ impl CompositorLayer {
                     Tree(ref mut quadtree) => quadtree,
                 };
                 
-                for buffer in cell.take().buffers.consume_rev_iter() {
-                    // TODO: This may return old buffers, which should be sent back to the renderer.
-                    quadtree.add_tile_pixel(buffer.screen_pos.origin.x, buffer.screen_pos.origin.y,
-                                            buffer.resolution, buffer);
+                let mut unused_tiles = ~[];
+                // move_rev_iter is more efficient
+                for buffer in cell.take().buffers.move_rev_iter() {
+                    unused_tiles.push_all_move(quadtree.add_tile_pixel(buffer.screen_pos.origin.x,
+                                                                       buffer.screen_pos.origin.y,
+                                                                       buffer.resolution, buffer));
+                }
+                if !unused_tiles.is_empty() { // send back unused buffers
+                    self.pipeline.render_chan.send(UnusedBufferMsg(unused_tiles));
                 }
             }
             self.build_layer_tree();

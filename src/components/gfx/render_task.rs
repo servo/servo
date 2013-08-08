@@ -25,7 +25,7 @@ use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 
 use extra::arc;
-
+use buffer_map::BufferMap;
 
 
 pub struct RenderLayer<T> {
@@ -36,6 +36,7 @@ pub struct RenderLayer<T> {
 pub enum Msg<T> {
     RenderMsg(RenderLayer<T>),
     ReRenderMsg(~[BufferRequest], f32, Epoch),
+    UnusedBufferMsg(~[~LayerBuffer]),
     PaintPermissionGranted,
     PaintPermissionRevoked,
     ExitMsg(Chan<()>),
@@ -94,6 +95,8 @@ struct RenderTask<C,T> {
     last_paint_msg: Option<~LayerBufferSet>,
     /// A counter for epoch messages
     epoch: Epoch,
+    /// A data structure to store unused LayerBuffers
+    buffer_map: BufferMap<~LayerBuffer>,
 }
 
 impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
@@ -129,6 +132,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                 paint_permission: false,
                 last_paint_msg: None,
                 epoch: Epoch(0),
+                buffer_map: BufferMap::new(10000000),
             };
 
             render_task.start();
@@ -154,6 +158,12 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                         debug!("renderer epoch mismatch: %? != %?", self.epoch, epoch);
                     }
                 }
+                UnusedBufferMsg(unused_buffers) => {
+                    // move_rev_iter is more efficient
+                    for buffer in unused_buffers.move_rev_iter() {
+                        self.buffer_map.insert(buffer);
+                    }
+                }
                 PaintPermissionGranted => {
                     self.paint_permission = true;
                     match self.render_layer {
@@ -169,7 +179,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                     // re-rendered redundantly.
                     match self.last_paint_msg {
                         Some(ref layer_buffer_set) => {
-                            self.compositor.paint(self.id, layer_buffer_set.clone());                            
+                            self.compositor.paint(self.id, layer_buffer_set.clone(), self.epoch);                            
                         }
                         None => {} // Nothing to do
                     }
@@ -206,15 +216,24 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                     let width = tile.screen_rect.size.width;
                     let height = tile.screen_rect.size.height;
                     
-                    let buffer = ~LayerBuffer {
-                        draw_target: DrawTarget::new_with_fbo(self.opts.render_backend,
-                                                              self.share_gl_context,
-                                                              Size2D(width as i32, height as i32),
-                                                              B8G8R8A8),
-                        rect: tile.page_rect,
-                        screen_pos: tile.screen_rect,
-                        resolution: scale,
-                        stride: (width * 4) as uint
+                    let buffer = match self.buffer_map.find(tile.screen_rect.size) {
+                        Some(buffer) => {
+                            let mut buffer = buffer;
+                            buffer.rect = tile.page_rect;
+                            buffer.screen_pos = tile.screen_rect;
+                            buffer.resolution = scale;
+                            buffer
+                        }
+                        None => ~LayerBuffer {
+                            draw_target: DrawTarget::new_with_fbo(self.opts.render_backend,
+                                                                  self.share_gl_context,
+                                                                  Size2D(width as i32, height as i32),
+                                                                  B8G8R8A8),
+                            rect: tile.page_rect,
+                            screen_pos: tile.screen_rect,
+                            resolution: scale,
+                            stride: (width * 4) as uint
+                        }
                     };
                     
                     
