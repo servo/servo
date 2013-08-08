@@ -12,6 +12,7 @@ use dom::bindings::codegen::{HTMLDivElementBinding, HTMLSpanElementBinding};
 use dom::bindings::codegen::{HTMLImageElementBinding, HTMLOListElementBinding};
 use dom::bindings::codegen::{HTMLMetaElementBinding, HTMLStyleElementBinding};
 use dom::bindings::codegen::{HTMLTableElementBinding};
+use dom::bindings::codegen::{HTMLTableSectionElementBinding};
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
 use dom::clientrect::ClientRect;
@@ -28,6 +29,7 @@ use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltableelement::HTMLTableElement;
+use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
@@ -89,7 +91,7 @@ pub enum ElementTypeId {
     HTMLSmallElementTypeId,
     HTMLSpanElementTypeId,
     HTMLStyleElementTypeId,
-    HTMLTableBodyElementTypeId,
+    HTMLTableSectionElementTypeId,
     HTMLTableCellElementTypeId,
     HTMLTableElementTypeId,
     HTMLTableRowElementTypeId,
@@ -116,7 +118,6 @@ pub struct HTMLParagraphElement { parent: HTMLElement }
 pub struct HTMLSelectElement    { parent: HTMLElement }
 pub struct HTMLSmallElement     { parent: HTMLElement }
 pub struct HTMLSpanElement      { parent: HTMLElement }
-pub struct HTMLTableBodyElement { parent: HTMLElement }
 pub struct HTMLTableCellElement { parent: HTMLElement }
 pub struct HTMLTableRowElement  { parent: HTMLElement }
 pub struct HTMLTitleElement     { parent: HTMLElement }
@@ -205,6 +206,8 @@ generate_cacheable_wrapper!(HTMLStyleElement, HTMLStyleElementBinding::Wrap)
 generate_binding_object!(HTMLStyleElement)
 generate_cacheable_wrapper!(HTMLTableElement, HTMLTableElementBinding::Wrap)
 generate_binding_object!(HTMLTableElement)
+generate_cacheable_wrapper!(HTMLTableSectionElement, HTMLTableSectionElementBinding::Wrap)
+generate_binding_object!(HTMLTableSectionElement)
 
 //
 // Fancier elements
