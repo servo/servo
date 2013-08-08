@@ -9,7 +9,7 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBodyElementBinding};
 use dom::bindings::codegen::{HTMLHRElementBinding, HTMLIFrameElementBinding};
 use dom::bindings::codegen::{HTMLParagraphElementBinding, HTMLScriptElementBinding};
 use dom::bindings::codegen::{HTMLDivElementBinding, HTMLSpanElementBinding};
-use dom::bindings::codegen::{HTMLImageElementBinding};
+use dom::bindings::codegen::{HTMLImageElementBinding, HTMLOListElementBinding};
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
 use dom::clientrect::ClientRect;
@@ -21,6 +21,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
@@ -112,7 +113,6 @@ pub struct HTMLItalicElement    { parent: HTMLElement }
 pub struct HTMLLinkElement      { parent: HTMLElement }
 pub struct HTMLListItemElement  { parent: HTMLElement }
 pub struct HTMLMetaElement      { parent: HTMLElement }
-pub struct HTMLOListElement     { parent: HTMLElement }
 pub struct HTMLOptionElement    { parent: HTMLElement }
 pub struct HTMLParagraphElement { parent: HTMLElement }
 pub struct HTMLSectionElement   { parent: HTMLElement }
@@ -196,13 +196,14 @@ generate_cacheable_wrapper!(HTMLIFrameElement, HTMLIFrameElementBinding::Wrap)
 generate_binding_object!(HTMLIFrameElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
 generate_binding_object!(HTMLImageElement)
+generate_cacheable_wrapper!(HTMLOListElement, HTMLOListElementBinding::Wrap)
+generate_binding_object!(HTMLOListElement)
 generate_cacheable_wrapper!(HTMLParagraphElement, HTMLParagraphElementBinding::Wrap)
 generate_binding_object!(HTMLParagraphElement)
 generate_cacheable_wrapper!(HTMLScriptElement, HTMLScriptElementBinding::Wrap)
 generate_binding_object!(HTMLScriptElement)
 generate_cacheable_wrapper!(HTMLSpanElement, HTMLSpanElementBinding::Wrap)
 generate_binding_object!(HTMLSpanElement)
-
 
 //
 // Fancier elements
