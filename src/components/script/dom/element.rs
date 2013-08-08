@@ -10,7 +10,7 @@ use dom::bindings::codegen::{HTMLHRElementBinding, HTMLIFrameElementBinding};
 use dom::bindings::codegen::{HTMLParagraphElementBinding, HTMLScriptElementBinding};
 use dom::bindings::codegen::{HTMLDivElementBinding, HTMLSpanElementBinding};
 use dom::bindings::codegen::{HTMLImageElementBinding, HTMLOListElementBinding};
-use dom::bindings::codegen::{HTMLMetaElementBinding};
+use dom::bindings::codegen::{HTMLMetaElementBinding, HTMLStyleElementBinding};
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
 use dom::clientrect::ClientRect;
@@ -25,6 +25,7 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlstyleelement::HTMLStyleElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
@@ -120,7 +121,6 @@ pub struct HTMLSectionElement   { parent: HTMLElement }
 pub struct HTMLSelectElement    { parent: HTMLElement }
 pub struct HTMLSmallElement     { parent: HTMLElement }
 pub struct HTMLSpanElement      { parent: HTMLElement }
-pub struct HTMLStyleElement     { parent: HTMLElement }
 pub struct HTMLTableBodyElement { parent: HTMLElement }
 pub struct HTMLTableCellElement { parent: HTMLElement }
 pub struct HTMLTableElement     { parent: HTMLElement }
@@ -207,6 +207,8 @@ generate_cacheable_wrapper!(HTMLScriptElement, HTMLScriptElementBinding::Wrap)
 generate_binding_object!(HTMLScriptElement)
 generate_cacheable_wrapper!(HTMLSpanElement, HTMLSpanElementBinding::Wrap)
 generate_binding_object!(HTMLSpanElement)
+generate_cacheable_wrapper!(HTMLStyleElement, HTMLStyleElementBinding::Wrap)
+generate_binding_object!(HTMLStyleElement)
 
 //
 // Fancier elements
