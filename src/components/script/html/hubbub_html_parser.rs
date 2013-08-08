@@ -50,6 +50,7 @@ use dom::bindings::utils::str;
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use js::jsapi::JSContext;
 use newcss::stylesheet::Stylesheet;
+use script_task::page_from_context;
 
 use std::cast;
 use std::cell::Cell;
@@ -59,7 +60,7 @@ use std::str::eq_slice;
 use std::task;
 use std::from_str::FromStr;
 use hubbub::hubbub;
-use servo_msg::constellation_msg::SubpageId;
+use servo_msg::constellation_msg::{ConstellationChan, SubpageId};
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::image_cache_task;
 use servo_net::resource_task::{Done, Load, Payload, ResourceTask};
@@ -252,7 +253,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
 
     handle_element!(cx, tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
-    handle_element!(cx, tag, "iframe",  HTMLIframeElementTypeId, HTMLIFrameElement, [(frame: None), (size_future_chan: None), (subpage_id: None)]);
+    handle_element!(cx, tag, "iframe",  HTMLIframeElementTypeId, HTMLIframeElement, [(frame: None), (size: None)]);
 
     handle_element!(cx, tag, "h1", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading1)]);
     handle_element!(cx, tag, "h2", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading2)]);
@@ -276,7 +277,8 @@ pub fn parse_html(cx: *JSContext,
                   url: Url,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
-                  next_subpage_id: SubpageId) -> HtmlParserResult {
+                  next_subpage_id: SubpageId,
+                  constellation_chan: ConstellationChan) -> HtmlParserResult {
     debug!("Hubbub: parsing %?", url);
     // Spawn a CSS parser to receive links to CSS style sheets.
     let resource_task2 = resource_task.clone();
@@ -381,15 +383,25 @@ pub fn parse_html(cx: *JSContext,
                             
                             // Size future
                             let (port, chan) = comm::oneshot();
-                            iframe_element.size_future_chan = Some(chan);
                             let size_future = from_port(port);
 
                             // Subpage Id
                             let subpage_id = next_subpage_id.take();
-                            iframe_element.subpage_id = Some(subpage_id);
                             next_subpage_id.put_back(SubpageId(*subpage_id + 1));
 
-                            iframe_chan.send(HtmlDiscoveredIFrame((iframe_url, subpage_id, size_future)));
+                            // Pipeline Id
+                            let pipeline_id = {
+                                let page = page_from_context(cx);
+                                unsafe { (*page).id }
+                            };
+
+                            iframe_element.size = Some(IframeSize {
+                                pipeline_id: pipeline_id,
+                                subpage_id: subpage_id,
+                                future_chan: Some(chan),
+                                constellation_chan: constellation_chan.clone(),
+                            });
+                            iframe_chan.send(HtmlDiscoveredIFrame(iframe_url, subpage_id, size_future));
                         }
                     }
                 }

@@ -44,6 +44,7 @@ use newcss::stylesheet::Stylesheet;
 
 use js::jsapi::{JSContext, JSObject};
 
+use std::util::replace;
 use std::cell::Cell;
 use std::comm;
 use std::str::eq_slice;
