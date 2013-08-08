@@ -67,14 +67,14 @@ fn parse_stylesheet(css: &str) -> Stylesheet {
                 state = STATE_BODY;
                 log_css_error(rule.location, fmt!("Unsupported at-rule: @%s", name))
             },
-            QualifiedRule(rule) => {
+            QualifiedRule(QualifiedRule{location: location, prelude: prelude, block: block}) => {
                 state = STATE_BODY;
-                match selectors::parse_selector_list(rule.prelude, &namespaces) {
+                match selectors::parse_selector_list(prelude, &namespaces) {
                     Some(selectors) => rules.push(StyleRule{
                         selectors: selectors,
-                        declarations: properties::parse_property_declaration_list(rule.block)
+                        declarations: properties::parse_property_declaration_list(block)
                     }),
-                    None => log_css_error(rule.location, "Unsupported CSS selector."),
+                    None => log_css_error(location, "Unsupported CSS selector."),
                 }
             },
         }
