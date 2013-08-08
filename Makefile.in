@@ -237,8 +237,14 @@ DONE_gfx = $(B)src/components/gfx/libgfx.dummy
 DEPS_gfx = $(CRATE_gfx) $(SRC_gfx) $(DONE_SUBMODULES) $(DONE_util) $(DONE_style) $(DONE_net) $(DONE_msg)
 
 RFLAGS_script = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/style -L $(B)src/components/net -L $(B)src/components/msg
-WEBIDL_script = $(call rwildcard,$(S)src/components/script/,*.webidl)
-AUTOGEN_SRC_script = $(patsubst %.webidl, %Binding.rs, $(WEBIDL_script))
+
+BINDINGS_SRC = $(S)src/components/script/dom/bindings/codegen
+WEBIDLS_SRC = $(S)src/components/script/dom/webidls
+
+WEBIDLS_script = $(call rwildcard, $(WEBIDLS_SRC), *.webidl)
+BINDINGS_script = $(patsubst %.webidl, %Binding.rs, $(WEBIDLS_script))
+AUTOGEN_SRC_script = $(foreach var, $(BINDINGS_script), $(subst $(WEBIDLS_SRC), $(BINDINGS_SRC), $(var)))
+
 SRC_script = $(call rwildcard,$(S)src/components/script/,*.rs) $(AUTOGEN_SRC_script)
 CRATE_script = $(S)src/components/script/script.rc
 DONE_script = $(B)src/components/script/libscript.dummy
@@ -284,20 +290,18 @@ endef
 $(foreach lib_crate,$(SERVO_LIB_CRATES),\
 $(eval $(call DEF_LIB_CRATE_RULES,$(lib_crate))))
 
-BINDINGS_SRC = $(S)/src/components/script/dom/bindings/codegen
-
 CACHE_DIR = $(BINDINGS_SRC)/_cache
 
 bindinggen_dependencies := $(addprefix $(BINDINGS_SRC)/, BindingGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py ParserResults.pkl)
 
 $(AUTOGEN_SRC_script): %Binding.rs: $(bindinggen_dependencies) \
-                                   %.webidl
+                                    $(WEBIDLS_script)
 	@$(call E, "Maybe generating $(shell basename $@)...")
 	$(Q)PYTHONDONTWRITEBYTECODE=1 $(CFG_PYTHON2) $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
 	  $(BINDINGS_SRC)/BindingGen.py rs \
-	  $(BINDINGS_SRC)/Bindings.conf $*Binding $*.webidl
+	  $(BINDINGS_SRC)/Bindings.conf $*Binding $(subst $(BINDINGS_SRC), $(WEBIDLS_SRC), $*.webidl)
 	$(Q)touch $@
 
 globalgen_dependencies := $(addprefix $(BINDINGS_SRC)/, GlobalGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py) $(CACHE_DIR)/.done
@@ -311,13 +315,13 @@ $(CACHE_DIR)/.done:
 	@touch $@
 
 $(BINDINGS_SRC)/ParserResults.pkl: $(globalgen_dependencies) \
-                                   $(WEBIDL_script)
+                                   $(WEBIDLS_script)
 	$(Q)PYTHONDONTWRITEBYTECODE=1 $(CFG_PYTHON2) $(BINDINGS_SRC)/pythonpath.py \
 	  -I$(BINDINGS_SRC)/parser -I$(BINDINGS_SRC)/ply \
 	  -D$(BINDINGS_SRC) \
 	  $(BINDINGS_SRC)/GlobalGen.py $(BINDINGS_SRC)/Bindings.conf . \
 	  --cachedir=$(CACHE_DIR) \
-	  $(WEBIDL_script)
+	  $(WEBIDLS_script)
 
 # Servo binaries
 
