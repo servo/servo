@@ -1,4 +1,5 @@
 use cssparser::*;
+use stylesheets::NamespaceMap;
 
 
 pub struct Selector {
@@ -63,9 +64,10 @@ pub struct AttrSelector {
 }
 
 
-pub fn parse_selector_list(input: &[ComponentValue]) -> Option<~[Selector]> {
+pub fn parse_selector_list(input: &[ComponentValue], namespaces: &NamespaceMap)
+                           -> Option<~[Selector]> {
     let len = input.len();
-    let (first, pos) = match parse_selector(input, 0) {
+    let (first, pos) = match parse_selector(input, 0, namespaces) {
         None => return None,
         Some(result) => result
     };
@@ -77,7 +79,7 @@ pub fn parse_selector_list(input: &[ComponentValue]) -> Option<~[Selector]> {
         if pos >= len { break }  // EOF
         if input[pos] != Comma { return None }
         pos = skip_whitespace(input, pos);
-        match parse_selector(input, pos) {
+        match parse_selector(input, pos, namespaces) {
             None => return None,
             Some((selector, next_pos)) => {
                 results.push(selector);
@@ -89,9 +91,10 @@ pub fn parse_selector_list(input: &[ComponentValue]) -> Option<~[Selector]> {
 }
 
 
-fn parse_selector(input: &[ComponentValue], pos: uint) -> Option<(Selector, uint)> {
+fn parse_selector(input: &[ComponentValue], pos: uint, namespaces: &NamespaceMap)
+                  -> Option<(Selector, uint)> {
     let len = input.len();
-    let (first, pos) = match parse_simple_selectors(input, pos) {
+    let (first, pos) = match parse_simple_selectors(input, pos, namespaces) {
         None => return None,
         Some(result) => result
     };
@@ -112,7 +115,7 @@ fn parse_selector(input: &[ComponentValue], pos: uint) -> Option<(Selector, uint
             }
         };
         pos = skip_whitespace(input, pos);
-        match parse_simple_selectors(input, pos) {
+        match parse_simple_selectors(input, pos, namespaces) {
             None => return None,
             Some((simple_selectors, next_pos)) => {
                 compound = CompoundSelector {
@@ -132,10 +135,11 @@ fn parse_selector(input: &[ComponentValue], pos: uint) -> Option<(Selector, uint
 }
 
 
-fn parse_simple_selectors(input: &[ComponentValue], pos: uint)
+fn parse_simple_selectors(input: &[ComponentValue], pos: uint, namespaces: &NamespaceMap)
                            -> Option<(~[SimpleSelector], uint)> {
     let _ = input;
     let _ = pos;
+    let _ = namespaces;
     None  // TODO
 }
 
