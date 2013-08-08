@@ -19,11 +19,10 @@ use dom::element::{HTMLAsideElement, HTMLBRElement,
                    HTMLBoldElement, HTMLDivElement, HTMLFontElement, HTMLFormElement,
                    HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
                    HTMLInputElement, HTMLItalicElement, HTMLLinkElement,
-                   HTMLListItemElement, HTMLMetaElement,
-                   HTMLOptionElement, HTMLParagraphElement,
+                   HTMLOptionElement, HTMLParagraphElement, HTMLListItemElement,
                    HTMLSectionElement, HTMLSelectElement, HTMLSmallElement,
-                   HTMLSpanElement, HTMLStyleElement, HTMLTableBodyElement,
-                   HTMLTableCellElement, HTMLTableElement, HTMLTableRowElement,
+                   HTMLSpanElement, HTMLTableBodyElement,
+                   HTMLTableCellElement, HTMLTableRowElement,
                    HTMLTitleElement, HTMLUListElement};
 use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Heading4, Heading5,
                    Heading6};
@@ -32,8 +31,11 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltableelement::HTMLTableElement;
 use dom::element::{Element, Attr};
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Comment, Doctype, ElementNodeTypeId, Node, ScriptView};
