@@ -1,0 +1,8 @@
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.dummy
+*-test
+Makefile

@@ -1,0 +1,32 @@
+VPATH=%VPATH%
+
+CC ?= gcc
+CXX ?= g++
+CXXFLAGS ?=
+AR ?= ar
+RUSTC ?= rustc
+RUSTFLAGS ?=
+
+RUST_SRC=$(shell find $(VPATH)/. -type f -name '*.rs')
+
+.PHONY: all
+all:    libservo-style.dummy
+
+libservo-style.dummy: servo-style.rc $(RUST_SRC)
+	$(RUSTC) $(RUSTFLAGS) $<
+	touch $@
+
+servo-style-test: servo-style.rc $(RUST_SRC)
+	$(RUSTC) $(RUSTFLAGS) $< -o $@ --test
+
+.PHONY: check
+check: servo-style-test
+	./servo-style-test
+
+.PHONY: check-debug
+check-debug: servo-style-tests
+	echo -e "start\n break upcall_fail\n continue\n where\n continue" | gdb -q ./servo-style-tests
+
+.PHONY: clean
+clean:
+	rm -f *.o *.a *.so *.dylib *.dll *.dummy *-test
