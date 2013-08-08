@@ -5,12 +5,12 @@
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, DerivedWrapper};
-use dom::element::{HTMLHtmlElement, HTMLHtmlElementTypeId};
+use dom::element::{HTMLHtmlElement, HTMLTitleElement, HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::event::Event;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, ScriptView, Node};
+use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId, Text};
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 
@@ -274,14 +274,77 @@ impl Document {
     }
 
     pub fn Title(&self) -> DOMString {
-        str(self.title.clone())
+        let mut title = ~"";
+        match self.doctype {
+            SVG => {
+                fail!("no SVG document yet")
+            },
+            _ => {
+                let _ = for self.root.traverse_preorder |node| {
+                    if node.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
+                        loop;
+                    }
+                    for node.children().advance |child| {
+                        if child.is_text() {
+                            do child.with_imm_text() |text| {
+                                let s = text.parent.Data();
+                                title = title + s.to_str();
+                            }
+                        }
+                    }
+                    break;
+                };
+            }
+        }
+        let v: ~[&str] = title.word_iter().collect();
+        title = v.connect(" ");
+        title = title.trim().to_owned();
+        str(title)
     }
 
-    pub fn SetTitle(&mut self, title: &DOMString, _rv: &mut ErrorResult) {
-        self.title = match title {
-            &str(ref s) => s.clone(),
-            &null_string => ~""
-        };
+    pub fn SetTitle(&self, title: &DOMString, _rv: &mut ErrorResult) {
+        match self.doctype {
+            SVG => {
+                fail!("no SVG document yet")
+            },
+            _ => {
+                let (_scope, cx) = self.get_scope_and_cx();
+                let _ = for self.root.traverse_preorder |node| {
+                    if node.type_id() != ElementNodeTypeId(HTMLHeadElementTypeId) {
+                        loop;
+                    }
+                    let mut has_title = false;
+                    for node.children().advance |child| {
+                        if child.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
+                            loop;
+                        }
+                        has_title = true;
+                        for child.children().advance |title_child| {
+                            child.remove_child(title_child);
+                        }
+                        let new_text = unsafe { 
+                            Node::as_abstract_node(cx, @Text::new(title.to_str())) 
+                        };
+                        child.add_child(new_text);
+                        break;
+                    }
+                    if !has_title {
+                        let new_title = @HTMLTitleElement {
+                            parent: HTMLElement::new(HTMLTitleElementTypeId, ~"title")
+                        };
+                        let new_title = unsafe { 
+                            Node::as_abstract_node(cx, new_title) 
+                        };
+                        let new_text = unsafe {
+                            Node::as_abstract_node(cx, @Text::new(title.to_str()))
+                        };
+                        new_title.add_child(new_text);
+                        node.add_child(new_title);
+                    }
+                    break;
+                };
+            }
+        }
     }
 
     pub fn Dir(&self) -> DOMString {

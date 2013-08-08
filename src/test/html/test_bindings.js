@@ -96,6 +96,11 @@ window.alert(tags.length);
 window.alert(tags[0]);
 window.alert(tags[0].tagName);
 
+window.alert("Document:");
+let head = document.head;
+window.alert(head);
+window.alert(head.tagName);
+
 window.alert("DOMParser:");
 window.alert(DOMParser);
 let parser = new DOMParser();
