@@ -9,8 +9,8 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLDivElementBinding, HT
 use dom::bindings::codegen::{HTMLHRElementBinding};
 use dom::bindings::codegen::{HTMLParagraphElementBinding, HTMLScriptElementBinding};
 use dom::bindings::codegen::{HTMLImageElementBinding};
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
-use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
+use dom::bindings::utils::{null_string, str};
+use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -278,7 +278,7 @@ impl<'self> Element {
 
 impl Element {
     pub fn TagName(&self) -> DOMString {
-        null_string
+        str(self.tag_name.to_owned())
     }
 
     pub fn Id(&self) -> DOMString {
