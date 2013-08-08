@@ -100,40 +100,37 @@ impl SendableFrameTree {
 }
 
 impl FrameTree {
-    fn contains(&self, id: PipelineId) -> bool {
-        self.pipeline.id == id ||
-        do self.children.iter().any |&ChildFrameTree { frame_tree: ref frame_tree, _ }| {
-            frame_tree.contains(id)
+    fn contains(@mut self, id: PipelineId) -> bool {
+        do self.iter().any |frame_tree| {
+            id == frame_tree.pipeline.id
         }
     }
 
     /// Returns the frame tree whose key is id
     fn find_mut(@mut self, id: PipelineId) -> Option<@mut FrameTree> {
-        if self.pipeline.id == id { return Some(self); }
-        let mut finder = do self.children.iter()
-            .filter_map |&ChildFrameTree { frame_tree: ref frame_tree, _ }| {
-            frame_tree.find_mut(id)
-        };
-        finder.next()
+        do self.iter().find_ |frame_tree| {
+            id == frame_tree.pipeline.id
+        }
     }
 
     /// Replaces a node of the frame tree in place. Returns the node that was removed or the original node
     /// if the node to replace could not be found.
-    fn replace_child(&mut self, id: PipelineId, new_child: @mut FrameTree) -> Either<@mut FrameTree, @mut FrameTree> {
-        let new_child_cell = Cell::new(new_child);
-        for &ChildFrameTree { frame_tree: ref mut child, _ } in self.children.mut_iter() {
-            let new_child = new_child_cell.take();
-            if child.pipeline.id == id {
-                new_child.parent = child.parent;
-                return Left(replace(child, new_child));
-            } 
-            let replaced = child.replace_child(id, new_child);
-            if replaced.is_left() {
-                return replaced;
+    fn replace_child(@mut self,
+                     id: PipelineId,
+                     new_child: @mut FrameTree)
+                     -> Result<@mut FrameTree, @mut FrameTree> {
+        let mut child = (do self.iter().filter_map |frame_tree| {
+            (do frame_tree.children.iter().find |child| {
+                child.frame_tree.pipeline.id == id
+            }).map(|& &child| child)
+        }).next();
+        match child {
+            Some(ref mut child) => {
+                new_child.parent = child.frame_tree.parent;
+                Left(replace(&mut child.frame_tree, new_child))
             }
-            new_child_cell.put_back(replaced.unwrap_right());
+            None => Right(new_child)
         }
-        Right(new_child_cell.take())
     }
 
     fn to_sendable(&self) -> SendableFrameTree {
