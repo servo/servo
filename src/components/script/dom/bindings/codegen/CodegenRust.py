@@ -4628,6 +4628,7 @@ class CGBindingRoot(CGThing):
                           'dom::htmlolistelement::HTMLOListElement',
                           'dom::htmlscriptelement::HTMLScriptElement',
                           'dom::htmlstyleelement::HTMLStyleElement',
+                          'dom::htmltableelement::HTMLTableElement',
                           'dom::bindings::utils::*',
                           'dom::bindings::conversions::*',
                           'dom::blob::*', #XXXjdm
