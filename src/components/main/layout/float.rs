@@ -4,7 +4,7 @@
 
 use layout::box::{RenderBox};
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::display_list_builder::ExtraDisplayListData;
 use layout::flow::FlowData;
 use layout::flow::{VisitOrChildView,VisitChildView};
 use layout::model::{MaybeAuto};
@@ -50,6 +50,7 @@ impl<V,CV> FloatFlowData<V,CV> {
             index: None,
             float_type: float_type,
             rel_pos: Point2D(Au(0), Au(0)),
+            floated_children: 0,
         }
     }
 

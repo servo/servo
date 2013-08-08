@@ -6,7 +6,7 @@
 
 use layout::box::{RenderBox};
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::display_list_builder::ExtraDisplayListData;
 use layout::flow::{BlockFlow, FlowContext, FlowData, InlineBlockFlow, FloatFlow};
 use layout::flow::{VisitChildView, VisitOrChildView};
 use layout::inline::InlineLayout;

@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::option::*;
 use std::unstable::intrinsics;
 use std::unstable::atomics::{AtomicPtr, SeqCst, AtomicUint};
-use std::cast::{transmute, forget};
+use std::cast::{transmute};
 use std::vec;
  
 pub struct WorkstealingDeque<T> {

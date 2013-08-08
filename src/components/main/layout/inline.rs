@@ -6,7 +6,7 @@ use std::cell::Cell;
 use layout::box::{CannotSplit, GenericRenderBoxClass, ImageRenderBoxClass, RenderBox};
 use layout::box::{SplitDidFit, SplitDidNotFit, TextRenderBoxClass};
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::display_list_builder::ExtraDisplayListData;
 use layout::flow::{FlowContext, FlowData, InlineFlow};
 use layout::flow::{VisitChildView, VisitOrChildView};
 use layout::float_context::FloatContext;

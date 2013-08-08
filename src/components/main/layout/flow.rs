@@ -29,7 +29,7 @@ use layout::block::BlockFlowData;
 use layout::float::FloatFlowData;
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::display_list_builder::ExtraDisplayListData;
 use layout::inline::{InlineFlowData};
 use layout::float_context::{FloatContext, Invalid, FloatType};
 use layout::incremental::RestyleDamage;

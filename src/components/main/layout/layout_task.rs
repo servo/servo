@@ -11,7 +11,6 @@ use layout::aux::{LayoutData, LayoutAuxMethods};
 use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder};
 use layout::flow::{FlowContext,SequentialView};
 use layout::parallel_traversal::SequentialTraverser;
 use layout::incremental::{RestyleDamage, BubbleWidths};
@@ -290,10 +289,6 @@ impl LayoutTask {
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
             do profile(time::LayoutDispListBuildCategory, self.profiler_chan.clone()) {
-                let builder = DisplayListBuilder {
-                    ctx: &layout_ctx,
-                };
-
                 let display_list = @Cell::new(DisplayList::new());
 
                 // TODO: Set options on the builder before building.
@@ -398,10 +393,6 @@ impl LayoutTask {
                         Err(())
                     }
                     Some(flow) => {
-                        let layout_ctx = self.build_layout_context();
-                        let builder = DisplayListBuilder {
-                            ctx: &layout_ctx,
-                        };
                         let display_list: @Cell<DisplayList<RenderBox>> =
                             @Cell::new(DisplayList::new());
                         let traverser = SequentialTraverser::new();
