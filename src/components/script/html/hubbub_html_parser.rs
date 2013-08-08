@@ -18,8 +18,8 @@ use dom::element::{HTMLAnchorElementTypeId, HTMLAsideElementTypeId, HTMLBRElemen
 use dom::element::{HTMLAsideElement, HTMLBRElement,
                    HTMLBoldElement, HTMLDivElement, HTMLFontElement, HTMLFormElement,
                    HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
-                   HTMLInputElement, HTMLIframeElement,
-                   HTMLItalicElement, HTMLLinkElement, HTMLListItemElement, HTMLMetaElement,
+                   HTMLInputElement, HTMLItalicElement, HTMLLinkElement,
+                   HTMLListItemElement, HTMLMetaElement,
                    HTMLOListElement, HTMLOptionElement, HTMLParagraphElement,
                    HTMLSectionElement, HTMLSelectElement, HTMLSmallElement,
                    HTMLSpanElement, HTMLStyleElement, HTMLTableBodyElement,
@@ -30,6 +30,7 @@ use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Headi
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlhrelement::HTMLHRElement;
+use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::element::{Element, Attr};
@@ -229,7 +230,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
 
     handle_element!(cx, tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
-    handle_element!(cx, tag, "iframe",  HTMLIframeElementTypeId, HTMLIframeElement, [(frame: None), (size_future_chan: None), (subpage_id: None)]);
+    handle_element!(cx, tag, "iframe",  HTMLIframeElementTypeId, HTMLIFrameElement, [(frame: None), (size_future_chan: None), (subpage_id: None)]);
 
     handle_element!(cx, tag, "h1", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading1)]);
     handle_element!(cx, tag, "h2", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading2)]);
