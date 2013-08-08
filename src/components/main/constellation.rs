@@ -402,24 +402,27 @@ impl Constellation {
         let mut already_sent = HashSet::new();
 
         // If the subframe is in the current frame tree, the compositor needs the new size
-        let source_frame = self.current_frame().unwrap().find_mut(pipeline_id);
-        for source_frame in source_frame.iter() {
-            for child_frame_tree in source_frame.children.mut_iter() {
-                let pipeline = &child_frame_tree.frame_tree.pipeline;
-                if pipeline.subpage_id.expect("Constellation: child frame does not have a
-                    subpage id. This should not be possible.") == subpage_id {
-                    child_frame_tree.rect = Some(rect.clone());
-                    let Rect { size: Size2D { width, height }, _ } = rect;
-                    pipeline.script_chan.send(SendEventMsg(pipeline.id.clone(),
-                                                           ResizeEvent(width as uint,
-                                                                       height as uint))); 
-                    self.compositor_chan.send(ResizeLayer(pipeline.id, rect.size));
-                    already_sent.insert(pipeline.id.clone());
-                    break;
-                }
-            } 
+        for current_frame in self.current_frame().iter() {
+            debug!("Constellation: Sending size for frame in current frame tree.");
+            let source_frame = current_frame.find_mut(pipeline_id);
+            for source_frame.iter().advance |source_frame| {
+                for child_frame_tree in source_frame.children.mut_iter() {
+                    let pipeline = &child_frame_tree.frame_tree.pipeline;
+                    if pipeline.subpage_id.expect("Constellation: child frame does not have a
+                        subpage id. This should not be possible.") == subpage_id {
+                        child_frame_tree.rect = Some(rect.clone());
+                        let Rect { size: Size2D { width, height }, _ } = rect;
+                        pipeline.script_chan.send(SendEventMsg(pipeline.id.clone(),
+                                                               ResizeEvent(width as uint,
+                                                                           height as uint))); 
+                        self.compositor_chan.send(ResizeLayer(pipeline.id, rect.size));
+                        already_sent.insert(pipeline.id.clone());
+                        break;
+                    }
+                } 
+            }
         }
-        // Go through the navigation context and tell each associated pipeline to resize.
+        // Traverse the navigation context and pending frames and tell each associated pipeline to resize.
         let frame_trees: ~[@mut FrameTree] = {
             let matching_navi_frames = self.navigation_context.find_all(pipeline_id);
             let matching_pending_frames = do self.pending_frames.iter().filter_map |frame_change| {

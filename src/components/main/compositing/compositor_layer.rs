@@ -82,25 +82,23 @@ impl CompositorLayer {
         }
     }
     
-    pub fn from_frame_tree(frame_tree: SendableFrameTree, tile_size: uint, max_mem: Option<uint>) -> CompositorLayer {
+    pub fn from_frame_tree(frame_tree: SendableFrameTree,
+                           tile_size: uint,
+                           max_mem: Option<uint>) -> CompositorLayer {
         let SendableFrameTree { pipeline, children } = frame_tree;
-        CompositorLayer {
-            pipeline: pipeline,
-            page_size: None,
-            scroll_offset: Point2D(0f32, 0f32),
-            children: (do children.consume_iter().transform |child| {
-                let SendableChildFrameTree { frame_tree, rect } = child;
-                let container = @mut ContainerLayer();
-                container.scissor = rect;
-                CompositorLayerChild {
-                    child: ~CompositorLayer::from_frame_tree(frame_tree, tile_size, max_mem),
-                    container: container,
-                }
-            }).collect(),
-            quadtree: NoTree(tile_size, max_mem),
-            root_layer: @mut ContainerLayer(),
-            hidden: true,
-        }
+        let mut layer = CompositorLayer::new(pipeline, None, tile_size, max_mem);
+        layer.children = (do children.consume_iter().transform |child| {
+            let SendableChildFrameTree { frame_tree, rect } = child;
+            let container = @mut ContainerLayer();
+            container.scissor = rect;
+            CompositorLayerChild {
+                child: ~CompositorLayer::from_frame_tree(frame_tree,
+                                                         tile_size,
+                                                         max_mem),
+                container: container,
+            }
+        }).collect();
+        layer
     }
 
     // Move the layer by as relative specified amount in page coordinates. Does not change
@@ -188,7 +186,8 @@ impl CompositorLayer {
         let mut redisplay: bool;
         { // block here to prevent double mutable borrow of self
             let quadtree = match self.quadtree {
-                NoTree(_, _) => fail!("CompositorLayer: cannot get buffer request, no quadtree initialized"),
+                NoTree(_, _) => fail!("CompositorLayer: cannot get buffer request for %?,
+                                       no quadtree initialized", self.pipeline.id),
                 Tree(ref mut quadtree) => quadtree,
             };
             let (request, r) = quadtree.get_tile_rects_page(rect, scale);

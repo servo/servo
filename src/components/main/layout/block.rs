@@ -17,7 +17,7 @@ use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
-use gfx::geometry::Au;
+use gfx::geometry::{Au, to_frac_px};
 use gfx::geometry;
 use servo_util::tree::TreeNodeRef;
 
@@ -379,8 +379,10 @@ impl BlockFlowData {
                 box.with_model(|model| model.noncontent_height())
             };
             do self.common.node.with_mut_iframe_element |iframe_element| {
-                iframe_element.size.get_mut_ref().set_rect(Rect(Point2D(x.to_f32(), y.to_f32()),
-                                                        Size2D(w.to_f32(), h.to_f32())));
+                iframe_element.size.get_mut_ref().set_rect(Rect(Point2D(to_frac_px(x) as f32,
+                                                                        to_frac_px(y) as f32),
+                                                                Size2D(to_frac_px(w) as f32,
+                                                                       to_frac_px(h) as f32)));
             }
         }
 

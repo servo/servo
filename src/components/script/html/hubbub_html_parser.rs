@@ -30,7 +30,7 @@ use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlhrelement::HTMLHRElement;
-use dom::htmliframeelement::HTMLIFrameElement;
+use dom::htmliframeelement::{IFrameSize, HTMLIFrameElement};
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
@@ -253,7 +253,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
 
     handle_element!(cx, tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
-    handle_element!(cx, tag, "iframe",  HTMLIframeElementTypeId, HTMLIframeElement, [(frame: None), (size: None)]);
+    handle_element!(cx, tag, "iframe",  HTMLIframeElementTypeId, HTMLIFrameElement, [(frame: None), (size: None)]);
 
     handle_element!(cx, tag, "h1", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading1)]);
     handle_element!(cx, tag, "h2", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading2)]);
@@ -395,7 +395,7 @@ pub fn parse_html(cx: *JSContext,
                                 unsafe { (*page).id }
                             };
 
-                            iframe_element.size = Some(IframeSize {
+                            iframe_element.size = Some(IFrameSize {
                                 pipeline_id: pipeline_id,
                                 subpage_id: subpage_id,
                                 future_chan: Some(chan),

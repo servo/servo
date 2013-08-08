@@ -295,6 +295,9 @@ impl FloatFlowData {
                                                             list: &Cell<DisplayList<E>>) 
                                                             -> bool {
 
+        if self.common.node.is_iframe_element() {
+            println("float iframe");
+        }
         let abs_rect = Rect(self.common.abs_position, self.common.position.size);
         if !abs_rect.intersects(dirty) {
             return false;
