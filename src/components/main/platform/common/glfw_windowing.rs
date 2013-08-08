@@ -89,15 +89,29 @@ impl WindowMethods<Application> for Window {
         }
         do window.glfw_window.set_mouse_button_callback |win, button, action, _mods| {
             let (x, y) = win.get_cursor_pos();
+            //handle hidpi displays, since GLFW returns non-hi-def coordinates.
+            let (backing_size, _) = win.get_framebuffer_size();
+            let (window_size, _) = win.get_size();
+            let hidpi = (backing_size as f32) / (window_size as f32);
+            let x = x as f32 * hidpi;
+            let y = y as f32 * hidpi;
             if button < 3 {
                 window.handle_mouse(button, action, x as i32, y as i32);
             }
         }
-        do window.glfw_window.set_scroll_callback |_win, x_offset, y_offset| {
+        do window.glfw_window.set_scroll_callback |win, x_offset, y_offset| {
             let dx = (x_offset as f32) * 30.0;
             let dy = (y_offset as f32) * 30.0;
             
-            event_queue.push(ScrollWindowEvent(Point2D(dx, dy)));
+            let (x, y) = win.get_cursor_pos();
+            //handle hidpi displays, since GLFW returns non-hi-def coordinates.
+            let (backing_size, _) = win.get_framebuffer_size();
+            let (window_size, _) = win.get_size();
+            let hidpi = (backing_size as f32) / (window_size as f32);
+            let x = x as f32 * hidpi;
+            let y = y as f32 * hidpi;
+
+            event_queue.push(ScrollWindowEvent(Point2D(dx, dy), Point2D(x as i32, y as i32)));
         }
 
         window
@@ -147,6 +161,12 @@ impl WindowMethods<Application> for Window {
 
         self.render_state = render_state;
         self.update_window_title()
+    }
+
+    fn hidpi_factor(@mut self) -> f32 {
+        let (backing_size, _) = self.glfw_window.get_framebuffer_size();
+        let (window_size, _) = self.glfw_window.get_size();
+        (backing_size as f32) / (window_size as f32)
     }
 }
 

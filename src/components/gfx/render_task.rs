@@ -32,7 +32,7 @@ pub struct RenderLayer {
 
 pub enum Msg {
     RenderMsg(RenderLayer),
-    ReRenderMsg(~[BufferRequest], f32),
+    ReRenderMsg(~[BufferRequest], f32, PipelineId),
     PaintPermissionGranted,
     PaintPermissionRevoked,
     ExitMsg(Chan<()>),
@@ -135,18 +135,18 @@ impl<C: RenderListener + Send> RenderTask<C> {
             match self.port.recv() {
                 RenderMsg(render_layer) => {
                     if self.paint_permission {
-                        self.compositor.new_layer(render_layer.size, self.opts.tile_size);
+                        self.compositor.new_layer(self.id, render_layer.size);
                     }
                     self.render_layer = Some(render_layer);
                 }
-                ReRenderMsg(tiles, scale) => {
-                    self.render(tiles, scale);
+                ReRenderMsg(tiles, scale, id) => {
+                    self.render(tiles, scale, id);
                 }
                 PaintPermissionGranted => {
                     self.paint_permission = true;
                     match self.render_layer {
                         Some(ref render_layer) => {
-                            self.compositor.new_layer(render_layer.size, self.opts.tile_size);
+                            self.compositor.new_layer(self.id, render_layer.size);
                         }
                         None => {}
                     }
@@ -162,7 +162,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
         }
     }
 
-    fn render(&mut self, tiles: ~[BufferRequest], scale: f32) {
+    fn render(&mut self, tiles: ~[BufferRequest], scale: f32, id: PipelineId) {
         let render_layer;
         match self.render_layer {
             Some(ref r_layer) => {
@@ -202,7 +202,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                             font_ctx: self.font_ctx,
                             opts: &self.opts
                         };
-                        
+
                         // Apply the translation to render the tile we want.
                         let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
                         let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
@@ -234,7 +234,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
 
             debug!("render_task: returning surface");
             if self.paint_permission {
-                self.compositor.paint(self.id, layer_buffer_set.clone(), render_layer.size);
+                self.compositor.paint(id, layer_buffer_set.clone());
             }
             debug!("caching paint msg");
             self.last_paint_msg = Some((layer_buffer_set, render_layer.size));

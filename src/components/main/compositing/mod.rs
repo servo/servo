@@ -3,19 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use platform::{Application, Window};
-use script::dom::event::{Event_, ClickEvent, MouseDownEvent, MouseUpEvent, ResizeEvent};
+use script::dom::event::ResizeEvent;
 use script::script_task::{LoadMsg, NavigateMsg, SendEventMsg};
 
+pub use windowing;
 use windowing::{ApplicationMethods, WindowEvent, WindowMethods};
 use windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
 use windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
 use windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 
-use servo_msg::compositor_msg::{RenderListener, LayerBuffer, LayerBufferSet, RenderState};
+use servo_msg::compositor_msg::{RenderListener, LayerBufferSet, RenderState};
 use servo_msg::compositor_msg::{ReadyState, ScriptListener};
 use servo_msg::constellation_msg::PipelineId;
 use servo_msg::constellation_msg;
-use gfx::render_task::ReRenderMsg;
 use gfx::opts::Opts;
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods, current_gl_context};
@@ -35,7 +35,6 @@ use geom::size::Size2D;
 use geom::rect::Rect;
 use layers::layers::{ARGB32Format, ContainerLayer, ContainerLayerKind, Format};
 use layers::layers::{ImageData, WithDataFn};
-use layers::layers::{TextureLayerKind, TextureLayer, TextureManager};
 use layers::rendergl;
 use layers::scene::Scene;
 use opengles::gl2;
@@ -44,14 +43,16 @@ use servo_util::{time, url};
 use servo_util::time::profile;
 use servo_util::time::ProfilerChan;
 
-use extra::arc;
-pub use windowing;
-
 use extra::time::precise_time_s;
-use compositing::quadtree::Quadtree;
+use extra::arc;
+
 use constellation::SendableFrameTree;
 use pipeline::Pipeline;
+use compositing::compositor_layer::CompositorLayer;
+
 mod quadtree;
+mod compositor_layer;
+
 
 /// The implementation of the layers-based compositor.
 #[deriving(Clone)]
@@ -79,18 +80,18 @@ impl RenderListener for CompositorChan {
         port.recv()
     }
 
-    fn paint(&self, id: PipelineId, layer_buffer_set: arc::ARC<LayerBufferSet>, new_size: Size2D<uint>) {
-        self.chan.send(Paint(id, layer_buffer_set, new_size))
+    fn paint(&self, id: PipelineId, layer_buffer_set: arc::ARC<LayerBufferSet>) {
+        self.chan.send(Paint(id, layer_buffer_set))
     }
 
-    fn new_layer(&self, page_size: Size2D<uint>, tile_size: uint) {
-        self.chan.send(NewLayer(page_size, tile_size))
+    fn new_layer(&self, id: PipelineId, page_size: Size2D<uint>) {
+        self.chan.send(NewLayer(id, page_size))
     }
-    fn resize_layer(&self, page_size: Size2D<uint>) {
-        self.chan.send(ResizeLayer(page_size))
+    fn resize_layer(&self, id: PipelineId, page_size: Size2D<uint>) {
+        self.chan.send(ResizeLayer(id, page_size))
     }
-    fn delete_layer(&self) {
-        self.chan.send(DeleteLayer)
+    fn delete_layer(&self, id: PipelineId) {
+        self.chan.send(DeleteLayer(id))
     }
 
     fn set_render_state(&self, render_state: RenderState) {
@@ -126,16 +127,16 @@ pub enum Msg {
     /// Requests the compositors GL context.
     GetGLContext(Chan<AzGLContext>),
 
-    // TODO: Attach layer ids and epochs to these messages
+    // TODO: Attach epochs to these messages
     /// Alerts the compositor that there is a new layer to be rendered.
-    NewLayer(Size2D<uint>, uint),
-    /// Alerts the compositor that the current layer has changed size.
-    ResizeLayer(Size2D<uint>),
-    /// Alerts the compositor that the current layer has been deleted.
-    DeleteLayer,
+    NewLayer(PipelineId, Size2D<uint>),
+    /// Alerts the compositor that the specified layer has changed size.
+    ResizeLayer(PipelineId, Size2D<uint>),
+    /// Alerts the compositor that the specified layer has been deleted.
+    DeleteLayer(PipelineId),
 
     /// Requests that the compositor paint the given layer buffer set for the given page size.
-    Paint(PipelineId, arc::ARC<LayerBufferSet>, Size2D<uint>),
+    Paint(PipelineId, arc::ARC<LayerBufferSet>),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(ReadyState),
     /// Alerts the compositor to the current status of rendering.
@@ -220,119 +221,30 @@ impl CompositorTask {
         let root_layer = @mut ContainerLayer();
         let window_size = window.size();
         let mut scene = Scene(ContainerLayerKind(root_layer), window_size, identity());
+        let mut window_size = Size2D(window_size.width as int, window_size.height as int);
         let mut done = false;
         let mut recomposite = false;
 
-        // FIXME: This should not be a separate offset applied after the fact but rather should be
-        // applied to the layers themselves on a per-layer basis. However, this won't work until scroll
-        // positions are sent to content.
-        let mut world_offset = Point2D(0f32, 0f32);
-        let mut page_size = Size2D(0f32, 0f32);
-        let mut window_size = Size2D(window_size.width as int,
-                                     window_size.height as int);
-
         // Keeps track of the current zoom factor
         let mut world_zoom = 1f32;
-        // Keeps track of local zoom factor. Reset to 1 after a rerender event.
-        let mut local_zoom = 1f32;
-        // Channel to the outermost frame's pipeline.
-        // FIXME: Compositor currently only asks for tiles to composite from this pipeline,
-        // Subframes need to be handled, as well. Additionally, events are only forwarded
-        // to this pipeline, but they should be routed to the appropriate pipeline via
-        // the constellation.
-        let mut pipeline: Option<Pipeline> = None;
-
-        // Quadtree for this layer
-        // FIXME: This should be one-per-layer
-        let mut quadtree: Option<Quadtree<~LayerBuffer>> = None;
-        
-        // Keeps track of if we have performed a zoom event and how recently.
         let mut zoom_action = false;
         let mut zoom_time = 0f;
 
-        // Extract tiles from the given quadtree and build and display the render tree.
-        let build_layer_tree: &fn(&Quadtree<~LayerBuffer>) = |quad: &Quadtree<~LayerBuffer>| {
-            // Iterate over the children of the container layer.
-            let mut current_layer_child = root_layer.first_child;
-            
-            // Delete old layer
-            while current_layer_child.is_some() {
-                let trash = current_layer_child.get();
-                do current_layer_child.get().with_common |common| {
-                    current_layer_child = common.next_sibling;
-                }
-                root_layer.remove_child(trash);
-            }
+        // Channel to the outermost frame's pipeline.
+        // FIXME: Events are only forwarded to this pipeline, but they should be
+        // routed to the appropriate pipeline via the constellation.
+        let mut pipeline: Option<Pipeline> = None;
 
-            let all_tiles = quad.get_all_tiles();
-            for all_tiles.iter().advance |buffer| {
-                let width = buffer.screen_pos.size.width as uint;
-                let height = buffer.screen_pos.size.height as uint;
-                debug!("osmain: compositing buffer rect %?", &buffer.rect);
+        // The root CompositorLayer
+        let mut compositor_layer: Option<CompositorLayer> = None;
 
-                // Find or create a texture layer.
-                let texture_layer;
-                current_layer_child = match current_layer_child {
-                    None => {
-                        debug!("osmain: adding new texture layer");
-                        texture_layer = @mut TextureLayer::new(@buffer.draw_target.clone() as @TextureManager,
-                                                               buffer.screen_pos.size);
-                        root_layer.add_child(TextureLayerKind(texture_layer));
-                        None
-                    }
-                    Some(TextureLayerKind(existing_texture_layer)) => {
-                        texture_layer = existing_texture_layer;
-                        texture_layer.manager = @buffer.draw_target.clone() as @TextureManager;
-                        
-                        // Move on to the next sibling.
-                        do current_layer_child.get().with_common |common| {
-                            common.next_sibling
-                        }
-                    }
-                    Some(_) => fail!(~"found unexpected layer kind"),
-                };
-
-                let origin = buffer.rect.origin;
-                let origin = Point2D(origin.x as f32, origin.y as f32);
-                
-                // Set the layer's transform.
-                let transform = identity().translate(origin.x * world_zoom, origin.y * world_zoom, 0.0);
-                let transform = transform.scale(width as f32 * world_zoom / buffer.resolution, height as f32 * world_zoom / buffer.resolution, 1.0);
-                texture_layer.common.set_transform(transform);
-
-            }
-            
-            // Reset zoom
-            local_zoom = 1f32;
-            root_layer.common.set_transform(identity().translate(-world_offset.x,
-                                                                 -world_offset.y,
-                                                                 0.0));
-            recomposite = true;
-        };
-
+        // Get BufferRequests from each layer.
         let ask_for_tiles = || {
-            match quadtree {
-                Some(ref mut quad) => {
-                    let (tile_request, redisplay) = quad.get_tile_rects(Rect(Point2D(world_offset.x as int,
-                                                                                     world_offset.y as int),
-                                                                             window_size), world_zoom);
-
-                    if !tile_request.is_empty() {
-                        match pipeline {
-                            Some(ref pipeline) => {
-                                pipeline.render_chan.send(ReRenderMsg(tile_request, world_zoom));
-                            }
-                            _ => {
-                                println("Warning: Compositor: Cannot send tile request, no render chan initialized");
-                            }
-                        }
-                    } else if redisplay {
-                        build_layer_tree(quad);
-                    }
-                }
-                _ => {
-                    fail!("Compositor: Tried to ask for tiles without an initialized quadtree");
-                }
+            let window_size_page = Size2D(window_size.width as f32 / world_zoom,
+                                          window_size.height as f32 / world_zoom);
+            for compositor_layer.mut_iter().advance |layer| {
+                recomposite = layer.get_buffer_request(Rect(Point2D(0f32, 0f32), window_size_page),
+                                                       world_zoom) || recomposite;
             }
         };
         
@@ -357,46 +269,66 @@ impl CompositorTask {
 
                     GetGLContext(chan) => chan.send(current_gl_context()),
 
-                    NewLayer(new_size, tile_size) => {
-                        page_size = Size2D(new_size.width as f32, new_size.height as f32);
-                        quadtree = Some(Quadtree::new(new_size.width.max(&(window_size.width as uint)),
-                                                       new_size.height.max(&(window_size.height as uint)),
-                                                       tile_size, Some(10000000u)));
-                        ask_for_tiles();
+                    NewLayer(_id, new_size) => {
+                        // FIXME: This should create an additional layer instead of replacing the current one.
+                        // Once ResizeLayer messages are set up, we can switch to the new functionality.
+
+                        let p = match pipeline {
+                            Some(ref pipeline) => pipeline,
+                            None => fail!("Compositor: Received new layer without initialized pipeline"),
+                        };
+                        let page_size = Size2D(new_size.width as f32, new_size.height as f32);
+                        let new_layer = CompositorLayer::new(p.clone(), Some(page_size),
+                                                             self.opts.tile_size, Some(10000000u));
                         
-                    }
-                    ResizeLayer(new_size) => {
-                        page_size = Size2D(new_size.width as f32, new_size.height as f32);
-                        // TODO: update quadtree, ask for tiles
-                    }
-                    DeleteLayer => {
-                        // TODO: create secondary layer tree, keep displaying until new tiles come in
+                        let current_child = root_layer.first_child;
+                        // This assumes there is at most one child, which should be the case.
+                        match current_child {
+                            Some(old_layer) => root_layer.remove_child(old_layer),
+                            None => {}
+                        }
+                        root_layer.add_child(ContainerLayerKind(new_layer.root_layer));
+                        compositor_layer = Some(new_layer);
+
+                        ask_for_tiles();
                     }
 
-                    Paint(id, new_layer_buffer_set, new_size) => {
-                        match pipeline {
-                            Some(ref pipeline) => if id != pipeline.id { loop; },
-                            None => { loop; },
+                    ResizeLayer(id, new_size) => {
+                        match compositor_layer {
+                            Some(ref mut layer) => {
+                                let page_window = Size2D(window_size.width as f32 / world_zoom,
+                                                         window_size.height as f32 / world_zoom);
+                                assert!(layer.resize(id, Size2D(new_size.width as f32,
+                                                                new_size.height as f32),
+                                                     page_window));
+                                ask_for_tiles();
+                            }
+                            None => {}
                         }
-                        
+                    }
+
+                    DeleteLayer(id) => {
+                        match compositor_layer {
+                            Some(ref mut layer) => {
+                                assert!(layer.delete(id));
+                                ask_for_tiles();
+                            }
+                            None => {}
+                        }
+                    }
+
+                    Paint(id, new_layer_buffer_set) => {
                         debug!("osmain: received new frame"); 
 
-                        let quad;
-                        match quadtree {
-                            Some(ref mut q) => quad = q,
-                            None => fail!("Compositor: given paint command with no quadtree initialized"),
+                        match compositor_layer {
+                            Some(ref mut layer) => {
+                                assert!(layer.add_buffers(id, new_layer_buffer_set.get()));
+                                recomposite = true;
+                            }
+                            None => {
+                                fail!("Compositor: given paint command with no CompositorLayer initialized");
+                            }
                         }
-                        
-                        let new_layer_buffer_set = new_layer_buffer_set.get();
-                        for new_layer_buffer_set.buffers.iter().advance |buffer| {
-                            // FIXME: Don't copy the buffers here
-                            quad.add_tile(buffer.screen_pos.origin.x, buffer.screen_pos.origin.y,
-                                          buffer.resolution, ~buffer.clone());
-                        }
-                        
-                        page_size = Size2D(new_size.width as f32, new_size.height as f32);
-                        
-                        build_layer_tree(quad);
                         // TODO: Recycle the old buffers; send them back to the renderer to reuse if
                         // it wishes.
                     }
@@ -431,56 +363,27 @@ impl CompositorTask {
                 }
                 
                 MouseWindowEventClass(mouse_window_event) => {
-                    let event: Event_;
-                    let world_mouse_point = |layer_mouse_point: Point2D<f32>| {
-                        layer_mouse_point + world_offset
+                    let point = match mouse_window_event {
+                        MouseWindowClickEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
+                        MouseWindowMouseDownEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
+                        MouseWindowMouseUpEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
                     };
-                    match mouse_window_event {
-                        MouseWindowClickEvent(button, layer_mouse_point) => {
-                            event = ClickEvent(button, world_mouse_point(layer_mouse_point));
-                        }
-                        MouseWindowMouseDownEvent(button, layer_mouse_point) => {
-                            event = MouseDownEvent(button, world_mouse_point(layer_mouse_point));
-                        }
-                        MouseWindowMouseUpEvent(button, layer_mouse_point) => {
-                            event = MouseUpEvent(button, world_mouse_point(layer_mouse_point));
-                        }
-                    }
-                    match pipeline {
-                        Some(ref pipeline) => pipeline.script_chan.send(SendEventMsg(pipeline.id.clone(), event)),
-                        None => error!("Compositor: Recieved mouse event without initialized layout chan"),
+                    for compositor_layer.iter().advance |layer| {
+                        layer.send_mouse_event(mouse_window_event, point);
                     }
                 }
                 
-                ScrollWindowEvent(delta) => {
-                    // FIXME (Rust #2528): Can't use `-=`.
-                    let world_offset_copy = world_offset;
-                    world_offset = world_offset_copy - delta;
-                    
-                    // Clamp the world offset to the screen size.
-                    let max_x = (page_size.width * world_zoom - window_size.width as f32).max(&0.0);
-                    world_offset.x = world_offset.x.clamp(&0.0, &max_x).round();
-                    let max_y = (page_size.height * world_zoom - window_size.height as f32).max(&0.0);
-                    world_offset.y = world_offset.y.clamp(&0.0, &max_y).round();
-                    
-                    debug!("compositor: scrolled to %?", world_offset);
-                    
-                    
-                    let mut scroll_transform = identity();
-                    
-                    scroll_transform = scroll_transform.translate(window_size.width as f32 / 2f32 * local_zoom - world_offset.x,
-                                                                  window_size.height as f32 / 2f32 * local_zoom - world_offset.y,
-                                                                  0.0);
-                    scroll_transform = scroll_transform.scale(local_zoom, local_zoom, 1f32);
-                    scroll_transform = scroll_transform.translate(window_size.width as f32 / -2f32,
-                                                                  window_size.height as f32 / -2f32,
-                                                                  0.0);
-                    
-                    root_layer.common.set_transform(scroll_transform);
-                    
+                ScrollWindowEvent(delta, cursor) => {
+                    // TODO: modify delta to snap scroll to pixels.
+                    let page_delta = Point2D(delta.x as f32 / world_zoom, delta.y as f32 / world_zoom);
+                    let page_cursor: Point2D<f32> = Point2D(cursor.x as f32 / world_zoom,
+                                                            cursor.y as f32 / world_zoom);
+                    let page_window = Size2D(window_size.width as f32 / world_zoom,
+                                             window_size.height as f32 / world_zoom);
+                    for compositor_layer.mut_iter().advance |layer| {
+                        recomposite = layer.scroll(page_delta, page_cursor, page_window) || recomposite;
+                    }
                     ask_for_tiles();
-                    
-                    recomposite = true;
                 }
                 
                 ZoomWindowEvent(magnification) => {
@@ -490,34 +393,19 @@ impl CompositorTask {
 
                     // Determine zoom amount
                     world_zoom = (world_zoom * magnification).max(&1.0);            
-                    local_zoom = local_zoom * world_zoom/old_world_zoom;
+                    root_layer.common.set_transform(identity().scale(world_zoom, world_zoom, 1f32));
                     
-                    // Update world offset
-                    let corner_to_center_x = world_offset.x + window_size.width as f32 / 2f32;
-                    let new_corner_to_center_x = corner_to_center_x * world_zoom / old_world_zoom;
-                    world_offset.x = world_offset.x + new_corner_to_center_x - corner_to_center_x;
-                    
-                    let corner_to_center_y = world_offset.y + window_size.height as f32 / 2f32;
-                    let new_corner_to_center_y = corner_to_center_y * world_zoom / old_world_zoom;
-                    world_offset.y = world_offset.y + new_corner_to_center_y - corner_to_center_y;        
-                    
-                    // Clamp to page bounds when zooming out
-                    let max_x = (page_size.width * world_zoom - window_size.width as f32).max(&0.0);
-                    world_offset.x = world_offset.x.clamp(&0.0, &max_x).round();
-                    let max_y = (page_size.height * world_zoom - window_size.height as f32).max(&0.0);
-                    world_offset.y = world_offset.y.clamp(&0.0, &max_y).round();
-                    
-                    // Apply transformations
-                    let mut zoom_transform = identity();
-                    zoom_transform = zoom_transform.translate(window_size.width as f32 / 2f32 * local_zoom - world_offset.x,
-                                                              window_size.height as f32 / 2f32 * local_zoom - world_offset.y,
-                                                              0.0);
-                    zoom_transform = zoom_transform.scale(local_zoom, local_zoom, 1f32);
-                    zoom_transform = zoom_transform.translate(window_size.width as f32 / -2f32,
-                                                              window_size.height as f32 / -2f32,
-                                                              0.0);
-                    root_layer.common.set_transform(zoom_transform);
-                    
+                    // Scroll as needed
+                    let page_delta = Point2D(window_size.width as f32 * (1.0 / world_zoom - 1.0 / old_world_zoom) * 0.5,
+                                             window_size.height as f32 * (1.0 / world_zoom - 1.0 / old_world_zoom) * 0.5);
+                    // TODO: modify delta to snap scroll to pixels.
+                    let page_cursor = Point2D(-1f32, -1f32); // Make sure this hits the base layer
+                    let page_window = Size2D(window_size.width as f32 / world_zoom,
+                                             window_size.height as f32 / world_zoom);
+                    for compositor_layer.mut_iter().advance |layer| {
+                        layer.scroll(page_delta, page_cursor, page_window);
+                    }
+
                     recomposite = true;
                 }
 
