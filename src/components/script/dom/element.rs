@@ -5,7 +5,7 @@
 //! Element nodes.
 
 use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
-use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLDivElementBinding, HTMLSpanElementBinding};
+use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBodyElementBinding, HTMLDivElementBinding, HTMLSpanElementBinding};
 use dom::bindings::codegen::{HTMLHRElementBinding};
 use dom::bindings::codegen::{HTMLParagraphElementBinding, HTMLScriptElementBinding};
 use dom::bindings::codegen::{HTMLImageElementBinding};
@@ -14,6 +14,7 @@ use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResu
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmlhrelement::HTMLHRElement;
@@ -103,7 +104,6 @@ pub enum ElementTypeId {
 
 pub struct HTMLAsideElement     { parent: HTMLElement }
 pub struct HTMLBRElement        { parent: HTMLElement }
-pub struct HTMLBodyElement      { parent: HTMLElement }
 pub struct HTMLBoldElement      { parent: HTMLElement }
 pub struct HTMLDivElement       { parent: HTMLElement }
 pub struct HTMLFontElement      { parent: HTMLElement }
@@ -191,6 +191,8 @@ generate_cacheable_wrapper!(HTMLHtmlElement, HTMLHtmlElementBinding::Wrap)
 generate_binding_object!(HTMLHtmlElement)
 generate_cacheable_wrapper!(HTMLAnchorElement, HTMLAnchorElementBinding::Wrap)
 generate_binding_object!(HTMLAnchorElement)
+generate_cacheable_wrapper!(HTMLBodyElement, HTMLBodyElementBinding::Wrap)
+generate_binding_object!(HTMLBodyElement)
 generate_cacheable_wrapper!(HTMLDivElement, HTMLDivElementBinding::Wrap)
 generate_binding_object!(HTMLDivElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
