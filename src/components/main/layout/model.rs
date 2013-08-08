@@ -119,6 +119,12 @@ impl BoxModel {
         left + right
     }
 
+    pub fn noncontent_height(&self) -> Au {
+        let top = self.margin.top + self.border.top + self.padding.top;
+        let bottom = self.margin.bottom + self.border.bottom + self.padding.bottom;
+        top + bottom
+    }
+
     pub fn offset(&self) -> Au {
         self.margin.left + self.border.left + self.padding.left
     }

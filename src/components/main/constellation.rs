@@ -398,6 +398,7 @@ impl Constellation {
     }
     
     fn handle_frame_rect_msg(&mut self, pipeline_id: PipelineId, subpage_id: SubpageId, rect: Rect<f32>) {
+        debug!("Received frame rect %? from %?, %?", rect, pipeline_id, subpage_id);
         let mut already_sent = HashSet::new();
 
         // If the subframe is in the current frame tree, the compositor needs the new size
@@ -639,6 +640,7 @@ impl Constellation {
             // TODO(tkuehn): In fact, this kind of message might be provably
             // impossible to occur.
             if current_frame.contains(pipeline_id) {
+                debug!("updating compositor frame tree with %?", current_frame);
                 self.set_ids(current_frame);
                 return;
             }
