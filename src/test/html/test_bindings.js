@@ -133,6 +133,14 @@ window.alert(document.links[0]);
 window.alert(document.getElementsByTagName('iframe')[0]);
 
 window.alert(document.getElementsByTagName("body")[0]);
+
+window.alert("OList:");
+let tags = document.getElementsByTagName("ol");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0]);
+window.alert(tags[0].tagName);
+
 //TODO: Doesn't work until we throw proper exceptions instead of returning 0 on
 //      unwrap failure.
 /*try {
