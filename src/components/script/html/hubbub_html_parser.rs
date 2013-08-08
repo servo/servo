@@ -20,7 +20,7 @@ use dom::element::{HTMLAsideElement, HTMLBRElement, HTMLBodyElement,
                    HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
                    HTMLInputElement, HTMLIframeElement,
                    HTMLItalicElement, HTMLLinkElement, HTMLListItemElement, HTMLMetaElement,
-                   HTMLOListElement, HTMLOptionElement, HTMLParagraphElement,
+                   HTMLOptionElement, HTMLParagraphElement,
                    HTMLSectionElement, HTMLSelectElement, HTMLSmallElement,
                    HTMLSpanElement, HTMLStyleElement, HTMLTableBodyElement,
                    HTMLTableCellElement, HTMLTableElement, HTMLTableRowElement,
@@ -30,6 +30,7 @@ use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Headi
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::element::{Element, Attr};
 use dom::htmlelement::HTMLElement;
