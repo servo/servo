@@ -2,25 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::element::{HTMLAnchorElementTypeId, HTMLAsideElementTypeId, HTMLBRElementTypeId,
-                   HTMLBodyElementTypeId, HTMLBoldElementTypeId, HTMLDivElementTypeId,
+use dom::element::{HTMLElementTypeId,
+                   HTMLAnchorElementTypeId, HTMLBRElementTypeId,
+                   HTMLBodyElementTypeId, HTMLDivElementTypeId,
                    HTMLFontElementTypeId, HTMLFormElementTypeId, HTMLHRElementTypeId,
                    HTMLHeadElementTypeId, HTMLHtmlElementTypeId,
                    HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLInputElementTypeId,
-                   HTMLItalicElementTypeId, HTMLLinkElementTypeId, HTMLListItemElementTypeId,
+                   HTMLLinkElementTypeId, HTMLListItemElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId, HTMLOptionElementTypeId,
                    HTMLParagraphElementTypeId, HTMLScriptElementTypeId,
-                   HTMLSectionElementTypeId, HTMLSelectElementTypeId, HTMLSmallElementTypeId,
+                   HTMLSelectElementTypeId, HTMLSmallElementTypeId,
                    HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTableBodyElementTypeId,
                    HTMLTableCellElementTypeId, HTMLTableElementTypeId,
                    HTMLTableRowElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId,
                    UnknownElementTypeId};
-use dom::element::{HTMLAsideElement, HTMLBRElement,
-                   HTMLBoldElement, HTMLDivElement, HTMLFontElement, HTMLFormElement,
+use dom::element::{HTMLBRElement,
+                   HTMLDivElement, HTMLFontElement, HTMLFormElement,
                    HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
-                   HTMLInputElement, HTMLItalicElement, HTMLLinkElement,
+                   HTMLInputElement, HTMLLinkElement,
                    HTMLOptionElement, HTMLParagraphElement, HTMLListItemElement,
-                   HTMLSectionElement, HTMLSelectElement, HTMLSmallElement,
+                   HTMLSelectElement, HTMLSmallElement,
                    HTMLSpanElement, HTMLTableBodyElement,
                    HTMLTableCellElement, HTMLTableRowElement,
                    HTMLTitleElement, HTMLUListElement};
@@ -72,6 +73,16 @@ macro_rules! handle_element(
                     $field: $field_init,
                 )*
             };
+            unsafe {
+                return Node::as_abstract_node(cx, _element);
+            }
+        }
+    )
+)
+macro_rules! handle_htmlelement(
+    ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident) => (
+        if eq_slice($tag, $string) {
+            let _element = @HTMLElement::new($type_id, ($tag).to_str());
             unsafe {
                 return Node::as_abstract_node(cx, _element);
             }
@@ -200,11 +211,9 @@ fn js_script_listener(to_parent: Chan<~[~[u8]]>,
 
 fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView> {
     // TODO (Issue #85): use atoms
-    handle_element!(cx, tag, "a",        HTMLAnchorElementTypeId, HTMLAnchorElement, []);
-    handle_element!(cx, tag, "aside",   HTMLAsideElementTypeId, HTMLAsideElement, []);
+    handle_element!(cx, tag, "a",       HTMLAnchorElementTypeId, HTMLAnchorElement, []);
     handle_element!(cx, tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
     handle_element!(cx, tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
-    handle_element!(cx, tag, "bold",    HTMLBoldElementTypeId, HTMLBoldElement, []);
     handle_element!(cx, tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
     handle_element!(cx, tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
     handle_element!(cx, tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);
@@ -212,7 +221,6 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "head",    HTMLHeadElementTypeId, HTMLHeadElement, []);
     handle_element!(cx, tag, "html",    HTMLHtmlElementTypeId, HTMLHtmlElement, []);
     handle_element!(cx, tag, "input",   HTMLInputElementTypeId, HTMLInputElement, []);
-    handle_element!(cx, tag, "i",       HTMLItalicElementTypeId, HTMLItalicElement, []);
     handle_element!(cx, tag, "link",    HTMLLinkElementTypeId, HTMLLinkElement, []);
     handle_element!(cx, tag, "li",      HTMLListItemElementTypeId, HTMLListItemElement, []);
     handle_element!(cx, tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
@@ -220,7 +228,6 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);
     handle_element!(cx, tag, "p",       HTMLParagraphElementTypeId, HTMLParagraphElement, []);
     handle_element!(cx, tag, "script",  HTMLScriptElementTypeId, HTMLScriptElement, []);
-    handle_element!(cx, tag, "section", HTMLSectionElementTypeId, HTMLSectionElement, []);
     handle_element!(cx, tag, "select",  HTMLSelectElementTypeId, HTMLSelectElement, []);
     handle_element!(cx, tag, "small",   HTMLSmallElementTypeId, HTMLSmallElement, []);
     handle_element!(cx, tag, "span",    HTMLSpanElementTypeId, HTMLSpanElement, []);
@@ -241,6 +248,12 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "h4", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading4)]);
     handle_element!(cx, tag, "h5", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading5)]);
     handle_element!(cx, tag, "h6", HTMLHeadingElementTypeId, HTMLHeadingElement, [(level: Heading6)]);
+
+
+    handle_htmlelement!(cx, tag, "aside",   HTMLElementTypeId, HTMLElement);
+    handle_htmlelement!(cx, tag, "b",       HTMLElementTypeId, HTMLElement);
+    handle_htmlelement!(cx, tag, "i",       HTMLElementTypeId, HTMLElement);
+    handle_htmlelement!(cx, tag, "section", HTMLElementTypeId, HTMLElement);
 
     unsafe {
         Node::as_abstract_node(cx, @Element::new(UnknownElementTypeId, tag.to_str()))

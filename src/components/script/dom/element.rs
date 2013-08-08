@@ -64,11 +64,10 @@ impl BindingObject for Element {
 
 #[deriving(Eq)]
 pub enum ElementTypeId {
+    HTMLElementTypeId,
     HTMLAnchorElementTypeId,
-    HTMLAsideElementTypeId,
     HTMLBRElementTypeId,
     HTMLBodyElementTypeId,
-    HTMLBoldElementTypeId,
     HTMLDivElementTypeId,
     HTMLFontElementTypeId,
     HTMLFormElementTypeId,
@@ -79,7 +78,6 @@ pub enum ElementTypeId {
     HTMLIframeElementTypeId,
     HTMLImageElementTypeId,
     HTMLInputElementTypeId,
-    HTMLItalicElementTypeId,
     HTMLLinkElementTypeId,
     HTMLListItemElementTypeId,
     HTMLMetaElementTypeId,
@@ -87,7 +85,6 @@ pub enum ElementTypeId {
     HTMLOptionElementTypeId,
     HTMLParagraphElementTypeId,
     HTMLScriptElementTypeId,
-    HTMLSectionElementTypeId,
     HTMLSelectElementTypeId,
     HTMLSmallElementTypeId,
     HTMLSpanElementTypeId,
@@ -105,21 +102,17 @@ pub enum ElementTypeId {
 // Regular old elements
 //
 
-pub struct HTMLAsideElement     { parent: HTMLElement }
 pub struct HTMLBRElement        { parent: HTMLElement }
-pub struct HTMLBoldElement      { parent: HTMLElement }
 pub struct HTMLDivElement       { parent: HTMLElement }
 pub struct HTMLFontElement      { parent: HTMLElement }
 pub struct HTMLFormElement      { parent: HTMLElement }
 pub struct HTMLHeadElement      { parent: HTMLElement }
 pub struct HTMLHtmlElement      { parent: HTMLElement }
 pub struct HTMLInputElement     { parent: HTMLElement }
-pub struct HTMLItalicElement    { parent: HTMLElement }
 pub struct HTMLLinkElement      { parent: HTMLElement }
 pub struct HTMLListItemElement  { parent: HTMLElement }
 pub struct HTMLOptionElement    { parent: HTMLElement }
 pub struct HTMLParagraphElement { parent: HTMLElement }
-pub struct HTMLSectionElement   { parent: HTMLElement }
 pub struct HTMLSelectElement    { parent: HTMLElement }
 pub struct HTMLSmallElement     { parent: HTMLElement }
 pub struct HTMLSpanElement      { parent: HTMLElement }
