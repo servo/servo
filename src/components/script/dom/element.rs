@@ -6,9 +6,10 @@
 
 use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
 use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLDivElementBinding, HTMLSpanElementBinding};
-use dom::bindings::codegen::{HTMLHRElementBinding};
-use dom::bindings::codegen::{HTMLParagraphElementBinding, HTMLScriptElementBinding};
+use dom::bindings::codegen::{HTMLHRElementBinding, HTMLMetaElementBinding};
+use dom::bindings::codegen::{HTMLParagraphElementBinding, HTMLScriptElementBinding, HTMLStyleElementBinding};
 use dom::bindings::codegen::{HTMLImageElementBinding};
+use dom::bindings::codegen::{HTMLTableElementBinding};
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
 use dom::clientrect::ClientRect;
@@ -18,7 +19,10 @@ use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltableelement::HTMLTableElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
@@ -114,7 +118,6 @@ pub struct HTMLInputElement     { parent: HTMLElement }
 pub struct HTMLItalicElement    { parent: HTMLElement }
 pub struct HTMLLinkElement      { parent: HTMLElement }
 pub struct HTMLListItemElement  { parent: HTMLElement }
-pub struct HTMLMetaElement      { parent: HTMLElement }
 pub struct HTMLOListElement     { parent: HTMLElement }
 pub struct HTMLOptionElement    { parent: HTMLElement }
 pub struct HTMLParagraphElement { parent: HTMLElement }
@@ -122,10 +125,8 @@ pub struct HTMLSectionElement   { parent: HTMLElement }
 pub struct HTMLSelectElement    { parent: HTMLElement }
 pub struct HTMLSmallElement     { parent: HTMLElement }
 pub struct HTMLSpanElement      { parent: HTMLElement }
-pub struct HTMLStyleElement     { parent: HTMLElement }
 pub struct HTMLTableBodyElement { parent: HTMLElement }
 pub struct HTMLTableCellElement { parent: HTMLElement }
-pub struct HTMLTableElement     { parent: HTMLElement }
 pub struct HTMLTableRowElement  { parent: HTMLElement }
 pub struct HTMLTitleElement     { parent: HTMLElement }
 pub struct HTMLUListElement     { parent: HTMLElement }
@@ -195,13 +196,18 @@ generate_cacheable_wrapper!(HTMLDivElement, HTMLDivElementBinding::Wrap)
 generate_binding_object!(HTMLDivElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
 generate_binding_object!(HTMLImageElement)
+generate_cacheable_wrapper!(HTMLMetaElement, HTMLMetaElementBinding::Wrap)
+generate_binding_object!(HTMLMetaElement)
 generate_cacheable_wrapper!(HTMLParagraphElement, HTMLParagraphElementBinding::Wrap)
 generate_binding_object!(HTMLParagraphElement)
 generate_cacheable_wrapper!(HTMLScriptElement, HTMLScriptElementBinding::Wrap)
 generate_binding_object!(HTMLScriptElement)
 generate_cacheable_wrapper!(HTMLSpanElement, HTMLSpanElementBinding::Wrap)
 generate_binding_object!(HTMLSpanElement)
-
+generate_cacheable_wrapper!(HTMLStyleElement, HTMLStyleElementBinding::Wrap)
+generate_binding_object!(HTMLStyleElement)
+generate_cacheable_wrapper!(HTMLTableElement, HTMLTableElementBinding::Wrap)
+generate_binding_object!(HTMLTableElement)
 
 //
 // Fancier elements
