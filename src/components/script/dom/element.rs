@@ -89,7 +89,7 @@ pub enum ElementTypeId {
     HTMLSmallElementTypeId,
     HTMLSpanElementTypeId,
     HTMLStyleElementTypeId,
-    HTMLTableBodyElementTypeId,
+    HTMLTableSectionElementTypeId,
     HTMLTableCellElementTypeId,
     HTMLTableElementTypeId,
     HTMLTableRowElementTypeId,
@@ -116,7 +116,7 @@ pub struct HTMLParagraphElement { parent: HTMLElement }
 pub struct HTMLSelectElement    { parent: HTMLElement }
 pub struct HTMLSmallElement     { parent: HTMLElement }
 pub struct HTMLSpanElement      { parent: HTMLElement }
-pub struct HTMLTableBodyElement { parent: HTMLElement }
+pub struct HTMLTableSectionElement { parent: HTMLElement }
 pub struct HTMLTableCellElement { parent: HTMLElement }
 pub struct HTMLTableRowElement  { parent: HTMLElement }
 pub struct HTMLTitleElement     { parent: HTMLElement }

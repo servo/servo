@@ -12,7 +12,7 @@ use dom::element::{HTMLElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId, HTMLOptionElementTypeId,
                    HTMLParagraphElementTypeId, HTMLScriptElementTypeId,
                    HTMLSelectElementTypeId, HTMLSmallElementTypeId,
-                   HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTableBodyElementTypeId,
+                   HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTableSectionElementTypeId,
                    HTMLTableCellElementTypeId, HTMLTableElementTypeId,
                    HTMLTableRowElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId,
                    UnknownElementTypeId};
@@ -22,7 +22,7 @@ use dom::element::{HTMLBRElement,
                    HTMLInputElement, HTMLLinkElement,
                    HTMLOptionElement, HTMLParagraphElement, HTMLListItemElement,
                    HTMLSelectElement, HTMLSmallElement,
-                   HTMLSpanElement, HTMLTableBodyElement,
+                   HTMLSpanElement, HTMLTableSectionElement,
                    HTMLTableCellElement, HTMLTableRowElement,
                    HTMLTitleElement, HTMLUListElement};
 use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Heading4, Heading5,
@@ -232,7 +232,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "small",   HTMLSmallElementTypeId, HTMLSmallElement, []);
     handle_element!(cx, tag, "span",    HTMLSpanElementTypeId, HTMLSpanElement, []);
     handle_element!(cx, tag, "style",   HTMLStyleElementTypeId, HTMLStyleElement, []);
-    handle_element!(cx, tag, "tbody",   HTMLTableBodyElementTypeId, HTMLTableBodyElement, []);
+    handle_element!(cx, tag, "tbody",   HTMLTableSectionElementTypeId, HTMLTableSectionElement, []);
     handle_element!(cx, tag, "td",      HTMLTableCellElementTypeId, HTMLTableCellElement, []);
     handle_element!(cx, tag, "table",   HTMLTableElementTypeId, HTMLTableElement, []);
     handle_element!(cx, tag, "tr",      HTMLTableRowElementTypeId, HTMLTableRowElement, []);
