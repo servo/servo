@@ -238,6 +238,23 @@ impl TreeNode<FlowContext> for FlowData {
     }
 }
 
+pub struct BoxIterator {
+    priv boxes: ~[RenderBox],
+    priv index: uint,
+}
+
+impl Iterator<RenderBox> for BoxIterator {
+    fn next(&mut self) -> Option<RenderBox> {
+        if self.index >= self.boxes.len() {
+            None
+        } else {
+            let v = self.boxes[self.index].clone();
+            self.index += 1;
+            Some(v)
+        }
+    }
+}
+
 impl FlowData {
     pub fn new(id: int, node: AbstractNode<LayoutView>) -> FlowData {
         FlowData {
@@ -408,43 +425,15 @@ impl<'self> FlowContext {
         }
     }
 
-    pub fn iter_all_boxes(&self, cb: &fn(RenderBox) -> bool) -> bool {
-        match *self {
-            BlockFlow(block) => {
-                let block = &mut *block;
-                for block.box.iter().advance |box| {
-                    if !cb(*box) {
-                        break;
-                    }
-                }
-            }
-            InlineFlow(inline) => {
-                let inline = &mut *inline;
-                for inline.boxes.iter().advance |box| {
-                    if !cb(*box) {
-                        break;
-                    }
-                }
-            }
-            _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self))
+    pub fn iter_all_boxes(&self) -> BoxIterator {
+        BoxIterator {
+            boxes: match *self {
+                BlockFlow (block)  => block.box.map_default(~[], |&x| ~[x]),
+                InlineFlow(inline) => inline.boxes.clone(),
+                _ => fail!(fmt!("Don't know how to iterate node's RenderBoxes for %?", self))
+            },
+            index: 0,
         }
-
-        true
-    }
-
-    pub fn iter_boxes_for_node(&self,
-                               node: AbstractNode<LayoutView>,
-                               callback: &fn(RenderBox) -> bool)
-                               -> bool {
-        for self.iter_all_boxes |box| {
-            if box.node() == node {
-                if !callback(box) {
-                    break;
-                }
-            }
-        }
-
-        true
     }
 
     /// Dumps the flow tree for debugging.

@@ -6,6 +6,9 @@ use layout::box::{RenderBox};
 use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::range::Range;
 
+use std::iterator::Enumerate;
+use std::vec::VecIterator;
+
 pub struct NodeRange {
     node: AbstractNode<LayoutView>,
     range: Range,
@@ -39,22 +42,8 @@ impl ElementMapping {
         true
     }
 
-    pub fn eachi(&self, callback: &fn(i: uint, nr: &NodeRange) -> bool) -> bool {
-        for self.entries.iter().enumerate().advance |(i, nr)| {
-            if !callback(i, nr) {
-                break
-            }
-        }
-        true
-    }
-
-    pub fn eachi_mut(&self, callback: &fn(i: uint, nr: &NodeRange) -> bool) -> bool {
-        for self.entries.iter().enumerate().advance |(i, nr)| {
-            if !callback(i, nr) {
-                break
-            }
-        }
-        true
+    pub fn eachi<'a>(&'a self) -> Enumerate<VecIterator<'a, NodeRange>> {
+        self.entries.iter().enumerate()
     }
 
     pub fn repair_for_box_changes(&mut self, old_boxes: &[RenderBox], new_boxes: &[RenderBox]) {

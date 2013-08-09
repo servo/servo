@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::vec::VecIterator;
+
 use font_context::FontContext;
 use geometry::Au;
 use text::glyph::GlyphStore;
@@ -37,6 +39,78 @@ impl SendableTextRun {
             font: font,
             underline: self.underline,
             glyphs: self.glyphs.clone(),
+        }
+    }
+}
+
+pub struct SliceIterator<'self> {
+    priv glyph_iter: VecIterator<'self, Arc<GlyphStore>>,
+    priv range:      Range,
+    priv offset:     uint,
+}
+
+impl<'self> Iterator<(&'self GlyphStore, uint, Range)> for SliceIterator<'self> {
+    fn next(&mut self) -> Option<(&'self GlyphStore, uint, Range)> {
+        loop {
+            let slice_glyphs = self.glyph_iter.next();
+            if slice_glyphs.is_none() {
+                return None;
+            }
+            let slice_glyphs = slice_glyphs.unwrap().get();
+
+            let slice_range = Range::new(self.offset, slice_glyphs.char_len());
+            let mut char_range = self.range.intersect(&slice_range);
+            char_range.shift_by(-(self.offset.to_int()));
+
+            let old_offset = self.offset;
+            self.offset += slice_glyphs.char_len();
+            if !char_range.is_empty() {
+                return Some((slice_glyphs, old_offset, char_range))
+            }
+        }
+    }
+}
+
+pub struct LineIterator<'self> {
+    priv range:  Range,
+    priv clump:  Option<Range>,
+    priv slices: SliceIterator<'self>,
+}
+
+impl<'self> Iterator<Range> for LineIterator<'self> {
+    fn next(&mut self) -> Option<Range> {
+        // Loop until we hit whitespace and are in a clump.
+        loop {
+            match self.slices.next() {
+                Some((glyphs, offset, slice_range)) => {
+                    match (glyphs.is_whitespace(), self.clump) {
+                        (false, Some(ref mut c))  => {
+                            c.extend_by(slice_range.length().to_int());
+                        }
+                        (false, None) => {
+                            let mut c = slice_range;
+                            c.shift_by(offset.to_int());
+                            self.clump = Some(c);
+                        }
+                        (true, None)    => { /* chomp whitespace */ }
+                        (true, Some(c)) => {
+                            self.clump = None;
+                            // The final whitespace clump is not included.
+                            return Some(c);
+                        }
+                    }
+                },
+                None => {
+                    // flush any remaining chars as a line
+                    if self.clump.is_some() {
+                        let mut c = self.clump.take_unwrap();
+                        c.extend_to(self.range.end());
+                        return Some(c);
+                    } else {
+                        return None;
+                    }
+                }
+            }
         }
     }
 }
@@ -156,53 +230,19 @@ impl<'self> TextRun {
         max_piece_width
     }
 
-    pub fn iter_slices_for_range(&self,
-                                 range: &Range,
-                                 f: &fn(&GlyphStore, uint, &Range) -> bool)
-                                 -> bool {
-        let mut offset = 0;
-        for self.glyphs.iter().advance |slice_glyphs| {
-            // Determine the range of this slice that we need.
-            let slice_range = Range::new(offset, slice_glyphs.get().char_len());
-            let mut char_range = range.intersect(&slice_range);
-            char_range.shift_by(-(offset.to_int()));
-
-            let unwrapped_glyphs = slice_glyphs.get();
-            if !char_range.is_empty() {
-                if !f(unwrapped_glyphs, offset, &char_range) { break }
-            }
-            offset += unwrapped_glyphs.char_len();
+    pub fn iter_slices_for_range(&'self self, range: &Range) -> SliceIterator<'self> {
+        SliceIterator {
+            glyph_iter: self.glyphs.iter(),
+            range:      *range,
+            offset:     0,
         }
-        true
     }
 
-    pub fn iter_natural_lines_for_range(&self, range: &Range, f: &fn(&Range) -> bool) -> bool {
-        let mut clump = Range::new(range.begin(), 0);
-        let mut in_clump = false;
-
-        for self.iter_slices_for_range(range) |glyphs, offset, slice_range| {
-            match (glyphs.is_whitespace(), in_clump) {
-                (false, true)  => { clump.extend_by(slice_range.length().to_int()); }
-                (false, false) => {
-                    in_clump = true;
-                    clump = *slice_range;
-                    clump.shift_by(offset.to_int());
-                }
-                (true, false)  => { /* chomp whitespace */ }
-                (true, true)   => {
-                    in_clump = false;
-                    // The final whitespace clump is not included.
-                    if !f(&clump) { break }
-                }
-            }
+    pub fn iter_natural_lines_for_range(&'self self, range: &Range) -> LineIterator<'self> {
+        LineIterator {
+            range:  *range,
+            clump:  None,
+            slices: self.iter_slices_for_range(range),
         }
-        
-        // flush any remaining chars as a line
-        if in_clump {
-            clump.extend_to(range.end());
-            f(&clump);
-        }
-
-        true
     }
 }
