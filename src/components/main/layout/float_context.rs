@@ -176,7 +176,7 @@ impl FloatContextBase{
         let mut r_bottom = None;
 
         // Find the float collisions for the given vertical range.
-        for self.float_data.iter().advance |float| {
+        for float in self.float_data.iter() {
             debug!("available_rect: Checking for collision against float");
             match *float{
                 None => (),
@@ -270,7 +270,7 @@ impl FloatContextBase{
 
     /// Returns true if the given rect overlaps with any floats.
     fn collides_with_float(&self, bounds: &Rect<Au>) -> bool {
-        for self.float_data.iter().advance |float| {
+        for float in self.float_data.iter() {
             match *float{
                 None => (),
                 Some(data) => {
@@ -292,7 +292,7 @@ impl FloatContextBase{
         let left = left - self.offset.x;
         let mut max_height = None;
 
-        for self.float_data.iter().advance |float| {
+        for float in self.float_data.iter() {
             match *float {
                 None => (),
                 Some(f_data) => {
@@ -361,7 +361,7 @@ impl FloatContextBase{
 
     fn clearance(&self, clear: ClearType) -> Au {
         let mut clearance = Au(0);
-        for self.float_data.iter().advance |float| {
+        for float in self.float_data.iter() {
             match *float {
                 None => (),
                 Some(f_data) => {

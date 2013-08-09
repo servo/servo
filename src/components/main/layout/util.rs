@@ -34,7 +34,7 @@ impl ElementMapping {
     }
 
     pub fn each(&self, callback: &fn(nr: &NodeRange) -> bool) -> bool {
-        for self.entries.iter().advance |nr| {
+        for nr in self.entries.iter() {
             if !callback(nr) {
                 break
             }
@@ -50,19 +50,19 @@ impl ElementMapping {
         let entries = &mut self.entries;
 
         debug!("--- Old boxes: ---");
-        for old_boxes.iter().enumerate().advance |(i, box)| {
+        for (i, box) in old_boxes.iter().enumerate() {
             debug!("%u --> %s", i, box.debug_str());
         }
         debug!("------------------");
 
         debug!("--- New boxes: ---");
-        for new_boxes.iter().enumerate().advance |(i, box)| {
+        for (i, box) in new_boxes.iter().enumerate() {
             debug!("%u --> %s", i, box.debug_str());
         }
         debug!("------------------");
 
         debug!("--- Elem ranges before repair: ---");
-        for entries.iter().enumerate().advance |(i, nr)| {
+        for (i, nr) in entries.iter().enumerate() {
             debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str());
         }
         debug!("----------------------------------");
@@ -115,7 +115,7 @@ impl ElementMapping {
                 }
             }
         debug!("--- Elem ranges after repair: ---");
-        for entries.iter().enumerate().advance |(i, nr)| {
+        for (i, nr) in entries.iter().enumerate() {
             debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str());
         }
         debug!("----------------------------------");

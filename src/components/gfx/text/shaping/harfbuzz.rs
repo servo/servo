@@ -271,7 +271,7 @@ impl Shaper {
         }
 
         debug!("(glyph idx) -> (text byte offset)");
-        for uint::range(0, glyph_data.len()) |i| {
+        for i in range(0, glyph_data.len()) {
             // loc refers to a *byte* offset within the utf8 string.
             let loc = glyph_data.byte_offset_of_glyph(i);
             if loc < byte_max {
@@ -334,7 +334,7 @@ impl Shaper {
                 // extend glyph range to max glyph index covered by char_span,
                 // in cases where one char made several glyphs and left some unassociated chars.
                 let mut max_glyph_idx = glyph_span.end();
-                for char_byte_span.eachi |i| {
+                for i in char_byte_span.eachi() {
                     if byteToGlyph[i] > NO_GLYPH {
                         max_glyph_idx = uint::max(byteToGlyph[i] as uint, max_glyph_idx);
                     }
@@ -358,7 +358,7 @@ impl Shaper {
                         probably doesn't work.");
 
                 let mut all_glyphs_are_within_cluster: bool = true;
-                for glyph_span.eachi |j| {
+                for j in glyph_span.eachi() {
                     let loc = glyph_data.byte_offset_of_glyph(j);
                     if !char_byte_span.contains(loc) {
                         all_glyphs_are_within_cluster = false;
@@ -437,7 +437,7 @@ impl Shaper {
                 // collect all glyphs to be assigned to the first character.
                 let mut datas = ~[];
 
-                for glyph_span.eachi |glyph_i| {
+                for glyph_i in glyph_span.eachi() {
                     let shape = glyph_data.get_entry_for_glyph(glyph_i, &mut y_pos);
                     datas.push(GlyphData::new(shape.codepoint,
                                               shape.advance,

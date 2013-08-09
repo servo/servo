@@ -84,7 +84,7 @@ impl LayoutAuxMethods for AbstractNode<LayoutView> {
     /// Initializes layout data and styles for a Node tree, if any nodes do not have
     /// this data already. Append created layout data to the task's GC roots.
     fn initialize_style_for_subtree(self, refs: &mut ~[@mut LayoutData]) {
-        let _ = for self.traverse_preorder |n| {
+        let _ = for n in self.traverse_preorder() {
             match n.initialize_layout_data() {
                 Some(r) => refs.push(r),
                 None => {}

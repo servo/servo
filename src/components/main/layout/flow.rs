@@ -36,7 +36,6 @@ use layout::incremental::RestyleDamage;
 use css::node_style::StyledNode;
 
 use std::cell::Cell;
-use std::uint;
 use std::io::stderr;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -89,24 +88,20 @@ impl FlowContext {
             return;
         }
 
-        for self.each_child |kid| {
+        for kid in self.children() {
             // FIXME: Work around rust#2202. We should be able to pass the callback directly.
             kid.partially_traverse_preorder(|a| callback(a));
         }
     }
 
-    fn traverse_bu_sub_inorder (&self, callback: &fn(FlowContext) -> bool) -> bool {
-        for self.each_child |kid| {
+    fn traverse_bu_sub_inorder (&self, callback: &fn(FlowContext)) {
+        for kid in self.children() {
             // FIXME: Work around rust#2202. We should be able to pass the callback directly.
-            if !kid.traverse_bu_sub_inorder(|a| callback(a)) {
-                return false;
-            }
+            kid.traverse_bu_sub_inorder(|a| callback(a));
         }
 
         if !self.is_inorder() {
             callback((*self).clone())
-        } else {
-            true
         }
     }
 }
@@ -119,14 +114,14 @@ impl FlowData {
         // or we risk dynamic borrow failures.
         self.parent = None;
 
-        for self.first_child.iter().advance |flow| {
+        for flow in self.first_child.iter() {
             flow.teardown();
         }
         self.first_child = None;
 
         self.last_child = None;
 
-        for self.next_sibling.iter().advance |flow| {
+        for flow in self.next_sibling.iter() {
             flow.teardown();
         }
         self.next_sibling = None;
@@ -444,7 +439,7 @@ impl<'self> FlowContext {
     /// Dumps the flow tree, for debugging, with indentation.
     pub fn dump_indent(&self, indent: uint) {
         let mut s = ~"|";
-        for uint::range(0, indent) |_i| {
+        for _ in range(0, indent) {
             s.push_str("---- ");
         }
 
@@ -452,7 +447,7 @@ impl<'self> FlowContext {
         stderr().write_line(s);
 
         // FIXME: this should have a pure/const version?
-        for self.each_child |child| {
+        for child in self.children() {
             child.dump_indent(indent + 1)
         }
     }

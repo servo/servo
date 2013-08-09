@@ -76,10 +76,10 @@ pub fn _obj_toString(cx: *JSContext, className: *libc::c_char) -> *JSString {
     }
 
     let result = ~"[object " + name + "]";
-    for result.iter().enumerate().advance |(i, c)| {
-      *chars.offset(i) = c as jschar;
+    for (i, c) in result.iter().enumerate() {
+      *chars.offset(i as int) = c as jschar;
     }
-    *chars.offset(nchars) = 0;
+    *chars.offset(nchars as int) = 0;
     let jsstr = JS_NewUCString(cx, cast::transmute(chars), nchars as u64);
     if jsstr.is_null() {
         JS_free(cx, cast::transmute(chars));

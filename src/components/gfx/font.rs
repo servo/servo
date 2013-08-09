@@ -390,8 +390,8 @@ impl Font {
         let mut azglyphs = ~[];
         azglyphs.reserve(range.length());
 
-        for run.iter_slices_for_range(range) |glyphs, _offset, slice_range| {
-            for glyphs.iter_glyphs_for_char_range(slice_range) |_i, glyph| {
+        for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {
+            for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
                 let glyph_advance = glyph.advance_();
                 let glyph_offset = glyph.offset().unwrap_or_default(Au::zero_point());
 
@@ -430,8 +430,8 @@ impl Font {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
-        for run.iter_slices_for_range(range) |glyphs, _offset, slice_range| {
-            for glyphs.iter_glyphs_for_char_range(slice_range) |_i, glyph| {
+        for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {
+            for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
                 advance = advance + glyph.advance_();
             }
         }
@@ -443,7 +443,7 @@ impl Font {
                                   slice_range: &Range)
                                   -> RunMetrics {
         let mut advance = Au(0);
-        for glyphs.iter_glyphs_for_char_range(slice_range) |_i, glyph| {
+        for (_i, glyph) in glyphs.iter_glyphs_for_char_range(slice_range) {
             advance = advance + glyph.advance_();
         }
         RunMetrics::new(advance, self.metrics.ascent, self.metrics.descent)

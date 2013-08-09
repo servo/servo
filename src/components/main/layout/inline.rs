@@ -492,7 +492,7 @@ impl InlineFlowData {
 
     pub fn teardown(&mut self) {
         self.common.teardown();
-        for self.boxes.iter().advance |box| {
+        for box in self.boxes.iter() {
             box.teardown();
         }
         self.boxes = ~[];
@@ -516,7 +516,7 @@ impl InlineFlowData {
     pub fn bubble_widths_inline(@mut self, ctx: &mut LayoutContext) {
         let mut num_floats = 0;
 
-        for InlineFlow(self).each_child |kid| {
+        for kid in InlineFlow(self).children() {
             do kid.with_mut_base |base| {
                 num_floats += base.num_floats;
                 base.floats_in = FloatContext::new(base.num_floats);
@@ -529,7 +529,7 @@ impl InlineFlowData {
             let mut min_width = Au(0);
             let mut pref_width = Au(0);
 
-            for this.boxes.iter().advance |box| {
+            for box in this.boxes.iter() {
                 debug!("FlowContext[%d]: measuring %s", self.common.id, box.debug_str());
                 min_width = Au::max(min_width, box.get_min_width(ctx));
                 pref_width = Au::max(pref_width, box.get_pref_width(ctx));
@@ -550,7 +550,7 @@ impl InlineFlowData {
         // `RenderBox`.
         {
             let this = &mut *self;
-            for this.boxes.iter().advance |&box| {
+            for &box in this.boxes.iter() {
                 match box {
                     ImageRenderBoxClass(image_box) => {
                         let size = image_box.image.get_size();
@@ -572,7 +572,7 @@ impl InlineFlowData {
             } // End of for loop.
         }
 
-        for InlineFlow(self).each_child |kid| {
+        for kid in InlineFlow(self).children() {
             do kid.with_mut_base |base| {
                 base.position.size.width = self.common.position.size.width;
                 base.is_inorder = self.common.is_inorder;
@@ -588,7 +588,7 @@ impl InlineFlowData {
     }
 
     pub fn assign_height_inorder_inline(@mut self, ctx: &mut LayoutContext) {
-        for InlineFlow(self).each_child |kid| {
+        for kid in InlineFlow(self).children() {
             kid.assign_height_inorder(ctx);
         }
         self.assign_height_inline(ctx);
@@ -608,7 +608,7 @@ impl InlineFlowData {
         scanner.scan_for_lines();
 
         // Now, go through each line and lay out the boxes inside
-        for self.lines.iter().advance |line| {
+        for line in self.lines.iter() {
             // We need to distribute extra width based on text-align.
             let mut slack_width = line.green_zone.width - line.bounds.size.width;
             if slack_width < Au(0) {
@@ -634,7 +634,7 @@ impl InlineFlowData {
                 // So sorry, but justified text is more complicated than shuffling linebox coordinates.
                 // TODO(Issue #213): implement `text-align: justify`
                 CSSTextAlignLeft | CSSTextAlignJustify => {
-                    for line.range.eachi |i| {
+                    for i in line.range.eachi() {
                         do self.boxes[i].with_mut_base |base| {
                             base.position.origin.x = offset_x;
                             offset_x = offset_x + base.position.size.width;
@@ -643,7 +643,7 @@ impl InlineFlowData {
                 }
                 CSSTextAlignCenter => {
                     offset_x = offset_x + slack_width.scale_by(0.5f);
-                    for line.range.eachi |i| {
+                    for i in line.range.eachi() {
                         do self.boxes[i].with_mut_base |base| {
                             base.position.origin.x = offset_x;
                             offset_x = offset_x + base.position.size.width;
@@ -652,7 +652,7 @@ impl InlineFlowData {
                 }
                 CSSTextAlignRight => {
                     offset_x = offset_x + slack_width;
-                    for line.range.eachi |i| {
+                    for i in line.range.eachi() {
                         do self.boxes[i].with_mut_base |base| {
                             base.position.origin.x = offset_x;
                             offset_x = offset_x + base.position.size.width;
@@ -666,7 +666,7 @@ impl InlineFlowData {
             // the baseline.
             let mut baseline_offset = Au(0);
             let mut max_height = Au(0);
-            for line.range.eachi |box_i| {
+            for box_i in line.range.eachi() {
                 let cur_box = self.boxes[box_i];
 
                 match cur_box {
@@ -719,7 +719,7 @@ impl InlineFlowData {
             }
 
             // Now go back and adjust the Y coordinates to match the baseline we determined.
-            for line.range.eachi |box_i| {
+            for box_i in line.range.eachi() {
                 let cur_box = self.boxes[box_i];
 
                 // TODO(#226): This is completely wrong. We need to use the element's `line-height`
@@ -766,7 +766,7 @@ impl InlineFlowData {
                self.common.id,
                self.boxes.len());
 
-        for self.boxes.iter().advance |box| {
+        for box in self.boxes.iter() {
             box.build_display_list(builder, dirty, &self.common.abs_position, list)
         }
 

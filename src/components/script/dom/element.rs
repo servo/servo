@@ -252,7 +252,7 @@ impl<'self> Element {
 
     pub fn get_attr(&'self self, name: &str) -> Option<&'self str> {
         // FIXME: Need an each() that links lifetimes in Rust.
-        for self.attrs.iter().advance |attr| {
+        for attr in self.attrs.iter() {
             if eq_slice(attr.name, name) {
                 let val: &str = attr.value;
                 return Some(val);
@@ -265,7 +265,7 @@ impl<'self> Element {
         let name = name.to_str();
         let value_cell = Cell::new(value.to_str());
         let mut found = false;
-        for self.attrs.mut_iter().advance |attr| {
+        for attr in self.attrs.mut_iter() {
             if eq_slice(attr.name, name) {
                 attr.value = value_cell.take().clone();
                 found = true;

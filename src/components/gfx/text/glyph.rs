@@ -12,7 +12,6 @@ use std::cmp::{Ord, Eq};
 use std::num::NumCast;
 use std::u16;
 use std::vec;
-use std::uint;
 use std::util;
 use std::iterator;
 use geom::point::Point2D;

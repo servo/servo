@@ -180,7 +180,7 @@ impl ImageCache {
         loop {
             let msg = self.port.recv();
 
-            for msg_handlers.iter().advance |handler| {
+            for handler in msg_handlers.iter() {
                 (*handler)(&msg)
             }
 
@@ -211,7 +211,7 @@ impl ImageCache {
                 // Wait until we have no outstanding requests and subtasks
                 // before exiting
                 let mut can_exit = true;
-                for self.state_map.each_value |state| {
+                for (_, state) in self.state_map.iter() {
                     match *state {
                         Prefetching(*) => can_exit = false,
                         Decoding => can_exit = false,
@@ -376,7 +376,7 @@ impl ImageCache {
     priv fn purge_waiters(&self, url: Url, f: &fn() -> ImageResponseMsg) {
         match self.wait_map.pop(&url) {
             Some(waiters) => {
-                for waiters.iter().advance |response| {
+                for response in waiters.iter() {
                     response.send(f());
                 }
             }
@@ -661,7 +661,7 @@ fn should_return_decoded_image_data_for_multiple_requests() {
     // Wait until our mock resource task has sent the image to the image cache
     wait_for_image.recv();
 
-    for iter::repeat(2) {
+    for _ in iter::repeat(2) {
         let (response_chan, response_port) = stream();
         image_cache_task.send(GetImage(url.clone(), response_chan));
         match response_port.recv() {

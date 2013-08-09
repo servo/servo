@@ -25,7 +25,6 @@ use std::comm;
 use std::comm::{Chan, SharedChan, Port};
 use std::num::Orderable;
 use std::task;
-use std::uint;
 use std::vec;
 use extra::uv_global_loop;
 use extra::timer;
@@ -242,7 +241,7 @@ impl CompositorTask {
         let ask_for_tiles = || {
             let window_size_page = Size2D(window_size.width as f32 / world_zoom,
                                           window_size.height as f32 / world_zoom);
-            for compositor_layer.mut_iter().advance |layer| {
+            for layer in compositor_layer.mut_iter() {
                 recomposite = layer.get_buffer_request(Rect(Point2D(0f32, 0f32), window_size_page),
                                                        world_zoom) || recomposite;
             }
@@ -368,7 +367,7 @@ impl CompositorTask {
                         MouseWindowMouseDownEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
                         MouseWindowMouseUpEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
                     };
-                    for compositor_layer.iter().advance |layer| {
+                    for layer in compositor_layer.iter() {
                         layer.send_mouse_event(mouse_window_event, point);
                     }
                 }
@@ -380,7 +379,7 @@ impl CompositorTask {
                                                             cursor.y as f32 / world_zoom);
                     let page_window = Size2D(window_size.width as f32 / world_zoom,
                                              window_size.height as f32 / world_zoom);
-                    for compositor_layer.mut_iter().advance |layer| {
+                    for layer in compositor_layer.mut_iter() {
                         recomposite = layer.scroll(page_delta, page_cursor, page_window) || recomposite;
                     }
                     ask_for_tiles();
@@ -402,7 +401,7 @@ impl CompositorTask {
                     let page_cursor = Point2D(-1f32, -1f32); // Make sure this hits the base layer
                     let page_window = Size2D(window_size.width as f32 / world_zoom,
                                              window_size.height as f32 / world_zoom);
-                    for compositor_layer.mut_iter().advance |layer| {
+                    for layer in compositor_layer.mut_iter() {
                         layer.scroll(page_delta, page_cursor, page_window);
                     }
 
@@ -458,7 +457,7 @@ impl CompositorTask {
                 // flip image vertically (texture is upside down)
                 let orig_pixels = pixels.clone();
                 let stride = width * 3;
-                for uint::range(0, height) |y| {
+                for y in range(0, height) {
                     let dst_start = y * stride;
                     let src_start = (height - y - 1) * stride;
                     vec::bytes::copy_memory(pixels.mut_slice(dst_start, dst_start + stride),

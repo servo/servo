@@ -44,7 +44,7 @@ impl FontListHandle {
         unsafe {
             let config = FcConfigGetCurrent();
             let fontSet = FcConfigGetFonts(config, FcSetSystem);
-            for uint::range(0, (*fontSet).nfont as uint) |i| {
+            for i in range(0, (*fontSet).nfont as int) {
                 let font = (*fontSet).fonts.offset(i);
                 let family: *FcChar8 = ptr::null();
                 let mut v: c_int = 0;
@@ -91,7 +91,7 @@ impl FontListHandle {
 
             debug!("found %? variations", (*matches).nfont);
 
-            for uint::range(0, (*matches).nfont as uint) |i| {
+            for i in range(0, (*matches).nfont as int) {
                 let font = (*matches).fonts.offset(i);
                 let file = do "file".as_c_str |FC_FILE| {
                     let file: *FcChar8 = ptr::null();

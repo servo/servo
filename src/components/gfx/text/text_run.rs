@@ -205,7 +205,7 @@ impl<'self> TextRun {
     pub fn glyphs(&'self self) -> &'self ~[Arc<GlyphStore>] { &self.glyphs }
 
     pub fn range_is_trimmable_whitespace(&self, range: &Range) -> bool {
-        for self.iter_slices_for_range(range) |slice_glyphs, _, _| {
+        for (slice_glyphs, _, _) in self.iter_slices_for_range(range) {
             if !slice_glyphs.is_whitespace() { return false; }
         }
         true
@@ -222,9 +222,9 @@ impl<'self> TextRun {
     pub fn min_width_for_range(&self, range: &Range) -> Au {
         let mut max_piece_width = Au(0);
         debug!("iterating outer range %?", range);
-        for self.iter_slices_for_range(range) |glyphs, offset, slice_range| {
+        for (glyphs, offset, slice_range) in self.iter_slices_for_range(range) {
             debug!("iterated on %?[%?]", offset, slice_range);
-            let metrics = self.font.measure_text_for_slice(glyphs, slice_range);
+            let metrics = self.font.measure_text_for_slice(glyphs, &slice_range);
             max_piece_width = Au::max(max_piece_width, metrics.advance_width);
         }
         max_piece_width

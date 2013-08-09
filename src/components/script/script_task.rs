@@ -161,7 +161,7 @@ impl PageTree {
 
     pub fn find<'a> (&'a mut self, id: PipelineId) -> Option<&'a mut PageTree> {
         if self.page.id == id { return Some(self); }
-        for self.inner.mut_iter().advance |page_tree| {
+        for page_tree in self.inner.mut_iter() {
             let found = page_tree.find(id);
             if found.is_some() { return found; }
         }
@@ -180,7 +180,7 @@ impl<'self> Iterator<@mut Page> for PageTreeIterator<'self> {
         if !self.stack.is_empty() {
             let next = self.stack.pop();
             {
-                for next.inner.mut_iter().advance |child| {
+                for child in next.inner.mut_iter() {
                     self.stack.push(child);
                 }
             }
@@ -548,14 +548,14 @@ impl ScriptTask {
     fn handle_resize_inactive_msg(&mut self, new_size: Size2D<uint>) {
         self.page_tree.page.window_size = from_value(new_size);
         let last_loaded_url = replace(&mut self.page_tree.page.url, None);
-        for last_loaded_url.iter().advance |last_loaded_url| {
-            self.page_tree.page.url = Some((last_loaded_url.first(), true));
+        for url in last_loaded_url.iter() {
+            self.page_tree.page.url = Some((url.first(), true));
         }
     }
 
     /// Handles a request to exit the script task and shut down layout.
     fn handle_exit_msg(&mut self) {
-        for self.page_tree.iter().advance |page| {
+        for page in self.page_tree.iter() {
             page.join_layout();
             do page.frame.unwrap().document.with_mut_base |doc| {
                 doc.teardown();
@@ -573,10 +573,10 @@ impl ScriptTask {
             message for a layout channel that is not associated with this script task. This
             is a bug.").page;
         let last_loaded_url = replace(&mut page.url, None);
-        for last_loaded_url.iter().advance |last_loaded_url| {
-            let (ref last_loaded_url, needs_reflow) = *last_loaded_url;
-            if *last_loaded_url == url {
-                page.url = Some((last_loaded_url.clone(), false));
+        for loaded in last_loaded_url.iter() {
+            let (ref loaded, needs_reflow) = *loaded;
+            if *loaded == url {
+                page.url = Some((loaded.clone(), false));
                 if needs_reflow {
                     page.reflow_all(ReflowForDisplay, self.chan.clone(), self.compositor);
                 }
@@ -676,7 +676,7 @@ impl ScriptTask {
         js_info.js_compartment.define_functions(debug_fns);
 
         // Evaluate every script in the document.
-        for js_scripts.iter().advance |bytes| {
+        for bytes in js_scripts.iter() {
             let _ = js_info.js_context.evaluate_script(js_info.js_compartment.global_obj,
                                                        bytes.clone(),
                                                        ~"???",
@@ -758,8 +758,8 @@ impl ScriptTask {
 
     priv fn load_url_from_element(&self, page: @mut Page, element: &Element) {
         // if the node's element is "a," load url from href attr
-        let href = element.get_attr("href");
-        for href.iter().advance |href| {
+        let attr = element.get_attr("href");
+        for href in attr.iter() {
             debug!("ScriptTask: clicked on link to %s", *href);
             let current_url = do page.url.map |&(ref url, _)| {
                 url.clone()

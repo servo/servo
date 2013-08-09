@@ -39,7 +39,7 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
                 str_url.trim_left_chars(&'/')
             } else {
                 let mut path = ~[];
-                for current_url.path.split_iter('/').advance |p| {
+                for p in current_url.path.split_iter('/') {
                     path.push(p.to_str());
                 }
                 let path = path.init();

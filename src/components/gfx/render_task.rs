@@ -180,7 +180,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
 
             // Divide up the layer into tiles.
             do time::profile(time::RenderingPrepBuffCategory, self.profiler_chan.clone()) {
-                for tiles.iter().advance |tile| {
+                for tile in tiles.iter() {
                     let width = tile.screen_rect.size.width;
                     let height = tile.screen_rect.size.height;
                     

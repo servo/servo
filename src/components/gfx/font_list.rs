@@ -61,7 +61,7 @@ impl FontList {
 
         // if such family exists, try to match style to a font
         let mut result: Option<@FontEntry> = None;
-        for family.iter().advance |fam| {
+        for fam in family.iter() {
             result = fam.find_font_for_style(&self.handle, style);
         }
 
@@ -126,7 +126,7 @@ impl FontFamily {
         // TODO(Issue #190): if not in the fast path above, do
         // expensive matching of weights, etc.
         let this: &mut FontFamily = self; // FIXME: borrow checker workaround
-        for this.entries.iter().advance |entry| {
+        for entry in this.entries.iter() {
             if (style.weight.is_bold() == entry.is_bold()) && 
                (style.italic == entry.is_italic()) {
 

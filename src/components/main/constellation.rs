@@ -93,21 +93,21 @@ impl FrameTree {
 
     /// Replaces a node of the frame tree in place. Returns the node that was removed or the original node
     /// if the node to replace could not be found.
-    fn replace_child(&mut self, id: PipelineId, new_child: @mut FrameTree) -> Result<@mut FrameTree, @mut FrameTree> {
+    fn replace_child(&mut self, id: PipelineId, new_child: @mut FrameTree) -> Either<@mut FrameTree, @mut FrameTree> {
         let new_child_cell = Cell::new(new_child);
-        for self.children.mut_iter().advance |child| {
+        for child in self.children.mut_iter() {
             let new_child = new_child_cell.take();
             if child.pipeline.id == id {
                 new_child.parent = child.parent;
-                return Ok(replace(child, new_child));
+                return Left(replace(child, new_child));
             } 
             let replaced = child.replace_child(id, new_child);
-            if replaced.is_ok() {
+            if replaced.is_left() {
                 return replaced;
             }
-            new_child_cell.put_back(replaced.get_err());
+            new_child_cell.put_back(replaced.unwrap_right());
         }
-        Err(new_child_cell.take())
+        Right(new_child_cell.take())
     }
 
     fn to_sendable(&self) -> SendableFrameTree {
@@ -283,7 +283,7 @@ impl Constellation {
         match request {
 
             ExitMsg(sender) => {
-                for self.pipelines.iter().advance |(_id, ref pipeline)| {
+                for (_id, ref pipeline) in self.pipelines.iter() {
                     pipeline.exit();
                 }
                 self.image_cache_task.exit();
@@ -389,7 +389,7 @@ impl Constellation {
                 } else {
                     pipeline.load(url, None);
                 }
-                for frame_trees.iter().advance |frame_tree| {
+                for frame_tree in frame_trees.iter() {
                     frame_tree.children.push(@mut FrameTree {
                         pipeline: pipeline,
                         parent: Some(source_pipeline),
@@ -410,7 +410,7 @@ impl Constellation {
                     with a pipeline not in the active frame tree. This should be
                     impossible.");
 
-                for self.pending_frames.iter().advance |frame_change| {
+                for frame_change in self.pending_frames.iter() {
                     let old_id = frame_change.before.expect("Constellation: Received load msg
                         from pipeline, but there is no currently active page. This should
                         be impossible.");
@@ -471,7 +471,7 @@ impl Constellation {
                             return true
                         } else {
                             let old = self.current_frame().get_ref();
-                            for old.iter().advance |frame| {
+                            for frame in old.iter() {
                                 frame.pipeline.revoke_paint_permission();
                             }
                         }
@@ -483,7 +483,7 @@ impl Constellation {
                             return true
                         } else {
                             let old = self.current_frame().get_ref();
-                            for old.iter().advance |frame| {
+                            for frame in old.iter() {
                                 frame.pipeline.revoke_paint_permission();
                             }
                         }
@@ -491,7 +491,7 @@ impl Constellation {
                     }
                 };
 
-                for destination_frame.iter().advance |frame| {
+                for frame in destination_frame.iter() {
                     let pipeline = &frame.pipeline;
                     pipeline.reload(Some(constellation_msg::Navigate));
                 }
@@ -505,7 +505,7 @@ impl Constellation {
                 // from a pending frame. The only time that we will grant paint permission is
                 // when the message originates from a pending frame or the current frame.
 
-                for self.current_frame().iter().advance |&current_frame| {
+                for &current_frame in self.current_frame().iter() {
                     // Messages originating in the current frame are not navigations;
                     // TODO(tkuehn): In fact, this kind of message might be provably
                     // impossible to occur.
@@ -521,7 +521,7 @@ impl Constellation {
                 let pending_index = do self.pending_frames.rposition |frame_change| {
                     frame_change.after.pipeline.id == pipeline_id
                 };
-                for pending_index.iter().advance |&pending_index| {
+                for &pending_index in pending_index.iter() {
                     let frame_change = self.pending_frames.swap_remove(pending_index);
                     let to_add = frame_change.after;
 
@@ -540,7 +540,7 @@ impl Constellation {
                                 "Constellation: pending frame change refers to an old
                                 frame not contained in the current frame. This is a bug");
 
-                            for to_revoke.iter().advance |frame| {
+                            for frame in to_revoke.iter() {
                                 frame.pipeline.revoke_paint_permission();
                             }
 
@@ -554,7 +554,7 @@ impl Constellation {
                             // Add to_add to parent's children, if it is not the root
                             let parent = &to_add.parent;
                             let to_add = Cell::new(to_add);
-                            for parent.iter().advance |parent| {
+                            for parent in parent.iter() {
                                 let parent = next_frame_tree.find_mut(parent.id).expect(
                                     "Constellation: pending frame has a parent frame that is not
                                     active. This is a bug.");
@@ -569,13 +569,13 @@ impl Constellation {
             ResizedWindowBroadcast(new_size) => match *self.current_frame() {
                 Some(ref current_frame) => {
                     let current_frame_id = current_frame.pipeline.id.clone();
-                    for self.navigation_context.previous.iter().advance |frame_tree| {
+                    for frame_tree in self.navigation_context.previous.iter() {
                         let pipeline = &frame_tree.pipeline;
                         if current_frame_id != pipeline.id {
                             pipeline.script_chan.send(ResizeInactiveMsg(new_size));
                         }
                     }
-                    for self.navigation_context.next.iter().advance |frame_tree| {
+                    for frame_tree in self.navigation_context.next.iter() {
                         let pipeline = &frame_tree.pipeline;
                         if current_frame_id != pipeline.id {
                             pipeline.script_chan.send(ResizeInactiveMsg(new_size));
@@ -583,10 +583,10 @@ impl Constellation {
                     }
                 }
                 None => {
-                    for self.navigation_context.previous.iter().advance |frame_tree| {
+                    for frame_tree in self.navigation_context.previous.iter() {
                         frame_tree.pipeline.script_chan.send(ResizeInactiveMsg(new_size));
                     }
-                    for self.navigation_context.next.iter().advance |frame_tree| {
+                    for frame_tree in self.navigation_context.next.iter() {
                         frame_tree.pipeline.script_chan.send(ResizeInactiveMsg(new_size));
                     }
                 }
@@ -606,9 +606,9 @@ impl Constellation {
         match frame_tree.pipeline.navigation_type {
             Some(constellation_msg::Load) => {
                 let evicted = self.navigation_context.load(frame_tree);
-                for evicted.iter().advance |frame_tree| {
+                for frame_tree in evicted.iter() {
                     // exit any pipelines that don't exist outside the evicted frame trees
-                    for frame_tree.iter().advance |frame| {
+                    for frame in frame_tree.iter() {
                         if !self.navigation_context.contains(frame.pipeline.id) {
                             frame_tree.pipeline.exit();
                             self.pipelines.remove(&frame_tree.pipeline.id);
@@ -624,7 +624,7 @@ impl Constellation {
         let (port, chan) = comm::stream();
         self.compositor_chan.send(SetIds(frame_tree.to_sendable(), chan));
         port.recv();
-        for frame_tree.iter().advance |frame| {
+        for frame in frame_tree.iter() {
             frame.pipeline.grant_paint_permission();
         }
     }

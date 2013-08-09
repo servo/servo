@@ -126,7 +126,7 @@ impl<'self> FontContext {
         debug!("(create font group) --- starting ---");
 
         // TODO(Issue #193): make iteration over 'font-family' more robust.
-        for style.families.split_iter(',').advance |family| {
+        for family in style.families.split_iter(',') {
             let family_name = family.trim();
             let transformed_family_name = self.transform_family(family_name);
             debug!("(create font group) transformed family is `%s`", transformed_family_name);
@@ -136,7 +136,7 @@ impl<'self> FontContext {
             };
 
             let mut found = false;
-            for result.iter().advance |font_entry| {
+            for font_entry in result.iter() {
                 found = true;
 
                 let font_id =
@@ -145,7 +145,7 @@ impl<'self> FontContext {
 
                 let instance = self.get_font_by_descriptor(&font_desc);
 
-                do result::iter(&instance) |font: &@mut Font| { fonts.push(*font); }
+                for font in instance.iter() { fonts.push(*font); }
             };
 
             if !found {
@@ -155,19 +155,19 @@ impl<'self> FontContext {
 
         let last_resort = FontList::get_last_resort_font_families();
 
-        for last_resort.iter().advance |family| {
+        for family in last_resort.iter() {
             let result = do self.font_list.chain_ref |fl| {
                 fl.find_font_in_family(*family, style)
             };
 
-            for result.iter().advance |font_entry| {
+            for font_entry in result.iter() {
                 let font_id =
                   SelectorPlatformIdentifier(font_entry.handle.face_identifier());
                 let font_desc = FontDescriptor::new((*style).clone(), font_id);
 
                 let instance = self.get_font_by_descriptor(&font_desc);
 
-                do result::iter(&instance) |font: &@mut Font| {
+                for font in instance.iter() {
                     fonts.push(*font);
                 }
             }

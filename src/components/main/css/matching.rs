@@ -48,7 +48,7 @@ impl MatchMethods for AbstractNode<LayoutView> {
             };
         }
 
-        for self.each_child |kid| {
+        for kid in self.children() {
             kid.restyle_subtree(select_ctx); 
         }
     }

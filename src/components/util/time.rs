@@ -93,7 +93,7 @@ impl ProfilerCategory {
 
     // ensure that the order of the buckets matches the order of the enum categories
     priv fn check_order(vec: &ProfilerBuckets) {
-        for vec.iter().advance |&(category, _)| {
+        for &(category, _) in vec.iter() {
             if category != vec[category as uint].first() {
                 fail!("Enum category does not match bucket index. This is a bug.");
             }
@@ -155,7 +155,7 @@ impl Profiler {
         println(fmt!("%31s %15s %15s %15s %15s %15s",
                          "_category_", "_mean (ms)_", "_median (ms)_",
                          "_min (ms)_", "_max (ms)_", "_bucket size_"));
-        for self.buckets.mut_iter().advance |bucket| {
+        for bucket in self.buckets.mut_iter() {
             let (category, data) = match *bucket {
                 (category, ref mut data) => (category, data),
             };

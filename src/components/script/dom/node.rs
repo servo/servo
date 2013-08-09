@@ -20,7 +20,6 @@ use dom::window::Window;
 use std::cast;
 use std::cast::transmute;
 use std::libc::c_void;
-use std::uint;
 use js::jsapi::{JSObject, JSContext};
 use js::rust::Compartment;
 use netsurfcss::util::VoidPtrLike;
@@ -438,7 +437,7 @@ impl<'self, View> AbstractNode<View> {
     /// Dumps the node tree, for debugging, with indentation.
     pub fn dump_indent(&self, indent: uint) {
         let mut s = ~"";
-        for uint::range(0u, indent) |_i| {
+        for _ in range(0, indent) {
             s.push_str("    ");
         }
 
@@ -446,7 +445,7 @@ impl<'self, View> AbstractNode<View> {
         debug!("%s", s);
 
         // FIXME: this should have a pure version?
-        for self.each_child() |kid| {
+        for kid in self.children() {
             kid.dump_indent(indent + 1u)
         }
     }
@@ -483,14 +482,14 @@ impl Node<ScriptView> {
 
     pub fn add_to_doc(&mut self, doc: AbstractDocument) {
         self.owner_doc = Some(doc);
-        let mut node = self.first_child;
-        while node.is_some() {
-            for node.get().traverse_preorder |node| {
+        let mut cur_node = self.first_child;
+        while cur_node.is_some() {
+            for node in cur_node.unwrap().traverse_preorder() {
                 do node.with_mut_base |node_base| {
                     node_base.owner_doc = Some(doc);
                 }
             };
-            node = node.get().next_sibling();
+            cur_node = cur_node.unwrap().next_sibling();
         }
     }
 

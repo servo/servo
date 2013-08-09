@@ -16,7 +16,6 @@ use std::cell::Cell;
 use std::cmp::ApproxEq;
 use std::managed;
 use std::num::Zero;
-use std::uint;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
 use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass};
@@ -292,14 +291,13 @@ impl RenderBox {
                        text_box.range,
                        max_width);
 
-                for text_box.run.iter_slices_for_range(&text_box.range)
-                                                        |glyphs, offset, slice_range| {
+                for (glyphs, offset, slice_range) in text_box.run.iter_slices_for_range(&text_box.range) {
                     debug!("split_to_width: considering slice (offset=%?, range=%?, remain_width=%?)",
                            offset,
                            slice_range,
                            remaining_width);
 
-                    let metrics = text_box.run.metrics_for_slice(glyphs, slice_range);
+                    let metrics = text_box.run.metrics_for_slice(glyphs, &slice_range);
                     let advance = metrics.advance_width;
                     let should_continue: bool;
 
@@ -465,9 +463,8 @@ impl RenderBox {
                 // report nothing and the parent flow can factor in minimum/preferred widths of any
                 // text runs that it owns.
                 let mut max_line_width = Au(0);
-                for text_box.run.iter_natural_lines_for_range(&text_box.range)
-                        |line_range| {
-                    let line_metrics = text_box.run.metrics_for_range(line_range);
+                for line_range in text_box.run.iter_natural_lines_for_range(&text_box.range) {
+                    let line_metrics = text_box.run.metrics_for_range(&line_range);
                     max_line_width = Au::max(max_line_width, line_metrics.advance_width);
                 }
 
@@ -875,7 +872,7 @@ impl RenderBox {
     /// Dumps a render box for debugging, with indentation.
     pub fn dump_indent(&self, indent: uint) {
         let mut string = ~"";
-        for uint::range(0u, indent) |_i| {
+        for _ in range(0u, indent) {
             string.push_str("    ");
         }
 

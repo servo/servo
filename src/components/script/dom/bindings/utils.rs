@@ -14,7 +14,6 @@ use std::libc;
 use std::ptr;
 use std::ptr::{null, to_unsafe_ptr};
 use std::str;
-use std::uint;
 use std::unstable::intrinsics;
 use js::glue::*;
 use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
@@ -766,7 +765,7 @@ pub fn XrayResolveProperty(cx: *JSContext,
   unsafe {
     match attributes {
         Some(attrs) => {
-            for attrs.iter().advance |&elem| {
+            for &elem in attrs.iter() {
                 let (attr, attr_id) = elem;
                 if attr_id == JSID_VOID || attr_id != id {
                     loop;
@@ -816,20 +815,18 @@ fn InternJSString(cx: *JSContext, chars: *libc::c_char) -> Option<jsid> {
 }
 
 pub fn InitIds(cx: *JSContext, specs: &[JSPropertySpec], ids: &mut [jsid]) -> bool {
-    let mut rval = true;
-    for specs.iter().enumerate().advance |(i, spec)| {
+    for (i, spec) in specs.iter().enumerate() {
         if spec.name.is_null() == true {
-            break;
+            return true;
         }
         match InternJSString(cx, spec.name) {
             Some(id) => ids[i] = id,
             None => {
-                rval = false;
                 return false;
             }
         }
     }
-    rval
+    true
 }
 
 pub trait DerivedWrapper {
@@ -879,12 +876,12 @@ pub fn FindEnumStringIndex(cx: *JSContext,
         if chars.is_null() {
             return Err(());
         }
-        for values.iter().enumerate().advance |(i, value)| {
+        for (i, value) in values.iter().enumerate() {
             if value.length != length as uint {
                 loop;
             }
             let mut equal = true;
-            for uint::iterate(0, length as uint) |j| {
+            for j in range(0, length as int) {
                 if value.value[j] as u16 != *chars.offset(j) {
                     equal = false;
                     break;

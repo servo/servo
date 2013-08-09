@@ -69,7 +69,7 @@ impl HTMLDocument {
 
     pub fn GetHead(&self) -> Option<AbstractNode<ScriptView>> {
         let mut headNode: Option<AbstractNode<ScriptView>> = None;
-        let _ = for self.parent.root.traverse_preorder |child| {
+        let _ = for child in self.parent.root.traverse_preorder() {
             if child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId) {
                 headNode = Some(child);
                 break;
