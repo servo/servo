@@ -9,7 +9,7 @@ use http_loader;
 
 use std::cell::Cell;
 use std::comm::{Chan, Port, SharedChan};
-use extra::net::url::{Url, to_str};
+use extra::url::Url;
 use util::spawn_listener;
 
 pub enum ControlMsg {
@@ -94,7 +94,7 @@ impl ResourceManager {
 
         match self.get_loader_factory(&url) {
             Some(loader_factory) => {
-                debug!("resource_task: loading url: %s", to_str(&url));
+                debug!("resource_task: loading url: %s", url.to_str());
                 loader_factory(url, progress_chan);
             }
             None => {

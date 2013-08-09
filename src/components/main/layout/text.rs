@@ -241,7 +241,7 @@ impl TextRunScanner {
                     }
 
                     do in_boxes[i].with_base |base| {
-                        let new_box = @mut adapt_textbox_with_range(*base, run.get(), range);
+                        let new_box = @mut adapt_textbox_with_range(*base, run.unwrap(), range);
                         out_boxes.push(TextRenderBoxClass(new_box));
                     }
                 }

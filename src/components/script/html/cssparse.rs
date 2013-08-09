@@ -11,7 +11,7 @@ use std::task;
 use newcss::stylesheet::Stylesheet;
 use newcss::util::DataStream;
 use servo_net::resource_task::{ResourceTask, ProgressMsg, Load, Payload, Done};
-use extra::net::url::Url;
+use extra::url::Url;
 
 /// Where a style sheet comes from.
 pub enum StylesheetProvenance {

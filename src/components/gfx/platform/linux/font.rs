@@ -262,7 +262,7 @@ impl<'self> FontHandle {
 
             let mut face: FT_Face = ptr::null();
             let face_index = 0 as FT_Long;
-            do str::as_c_str(file) |file_str| {
+            do file.as_c_str |file_str| {
                 FT_New_Face(ft_ctx, file_str,
                             face_index, ptr::to_mut_unsafe_ptr(&mut face));
             }
@@ -289,7 +289,7 @@ impl<'self> FontHandle {
 
             let mut face: FT_Face = ptr::null();
             let face_index = 0 as FT_Long;
-            do str::as_c_str(file) |file_str| {
+            do file.as_c_str |file_str| {
                 FT_New_Face(ft_ctx, file_str,
                             face_index, ptr::to_mut_unsafe_ptr(&mut face));
             }

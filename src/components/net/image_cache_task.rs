@@ -13,8 +13,8 @@ use std::task::spawn;
 use std::to_str::ToStr;
 use std::util::replace;
 use std::result;
-use extra::arc::ARC;
-use extra::net::url::Url;
+use extra::arc::Arc;
+use extra::url::Url;
 
 pub enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted
@@ -29,7 +29,7 @@ pub enum Msg {
     Decode(Url),
 
     /// Used by the decoder tasks to post decoded images back to the cache
-    priv StoreImage(Url, Option<ARC<~Image>>),
+    priv StoreImage(Url, Option<Arc<~Image>>),
 
     /// Request an Image object for a URL. If the image is not is not immediately
     /// available then ImageNotReady is returned.
@@ -46,7 +46,7 @@ pub enum Msg {
 }
 
 pub enum ImageResponseMsg {
-    ImageReady(ARC<~Image>),
+    ImageReady(Arc<~Image>),
     ImageNotReady,
     ImageFailed
 }
@@ -163,7 +163,7 @@ enum ImageState {
     Prefetching(AfterPrefetch),
     Prefetched(@Cell<~[u8]>),
     Decoding,
-    Decoded(@ARC<~Image>),
+    Decoded(@Arc<~Image>),
     Failed
 }
 
@@ -257,7 +257,7 @@ impl ImageCache {
                     let image = load_image_data(url.clone(), resource_task.clone());
 
                     let result = if image.is_ok() {
-                        Ok(Cell::new(result::unwrap(image)))
+                        Ok(Cell::new(image.unwrap()))
                     } else {
                         Err(())
                     };
@@ -329,7 +329,7 @@ impl ImageCache {
                     debug!("image_cache_task: started image decode for %s", url.to_str());
                     let image = decode(data);
                     let image = if image.is_some() {
-                        Some(ARC(~image.unwrap()))
+                        Some(Arc::new(~image.unwrap()))
                     } else {
                         None
                     };
@@ -346,7 +346,7 @@ impl ImageCache {
         }
     }
 
-    priv fn store_image(&self, url: Url, image: Option<ARC<~Image>>) {
+    priv fn store_image(&self, url: Url, image: Option<Arc<~Image>>) {
 
         match self.get_state(url.clone()) {
           Decoding => {

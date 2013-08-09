@@ -19,7 +19,6 @@ use js::{JSVAL_NULL, JSPROP_ENUMERATE};
 use std::cast;
 use std::comm;
 use std::comm::Chan;
-use std::int;
 use std::io;
 use std::ptr;
 use js::jsapi::JSVal;
@@ -68,7 +67,7 @@ impl Window {
 
     pub fn Document(&self) -> AbstractDocument {
         unsafe {
-            (*self.page).frame.get().document
+            (*self.page).frame.unwrap().document
         }
     }
 

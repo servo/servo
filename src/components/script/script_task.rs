@@ -29,7 +29,7 @@ use newcss::stylesheet::Stylesheet;
 
 use std::cell::Cell;
 use std::comm;
-use std::comm::{Port, SharedChan, Select2};
+use std::comm::{Port, SharedChan};
 use std::io::read_whole_file;
 use std::ptr::null;
 use std::task::{SingleThreaded, task};
@@ -50,8 +50,7 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::tree::TreeNodeRef;
 use servo_util::url::make_url;
-use extra::net::url::Url;
-use extra::net::url;
+use extra::url::Url;
 use extra::future::{from_value, Future};
 
 /// Messages used to control the script task.
@@ -485,14 +484,14 @@ impl ScriptTask {
 
     /// Handles a request to execute a script.
     fn handle_execute_msg(&mut self, id: PipelineId, url: Url) {
-        debug!("script: Received url `%s` to execute", url::to_str(&url));
+        debug!("script: Received url `%s` to execute", url.to_str());
 
         let page_tree = self.page_tree.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.");
         let js_info = page_tree.page.js_info.get_ref();
 
         match read_whole_file(&Path(url.path)) {
-            Err(msg) => println(fmt!("Error opening %s: %s", url::to_str(&url), msg)),
+            Err(msg) => println(fmt!("Error opening %s: %s", url.to_str(), msg)),
 
             Ok(bytes) => {
                 js_info.js_compartment.define_functions(debug_fns);
@@ -558,7 +557,7 @@ impl ScriptTask {
     fn handle_exit_msg(&mut self) {
         for self.page_tree.iter().advance |page| {
             page.join_layout();
-            do page.frame.get().document.with_mut_base |doc| {
+            do page.frame.unwrap().document.with_mut_base |doc| {
                 doc.teardown();
             }
             page.layout_chan.send(layout_interface::ExitMsg);
@@ -661,7 +660,7 @@ impl ScriptTask {
 
         // Receive the JavaScript scripts.
         assert!(js_scripts.is_some());
-        let js_scripts = js_scripts.swap_unwrap();
+        let js_scripts = js_scripts.take_unwrap();
         debug!("js_scripts: %?", js_scripts);
 
         // Perform the initial reflow.

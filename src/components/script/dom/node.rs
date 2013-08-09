@@ -250,7 +250,7 @@ impl<'self, View> AbstractNode<View> {
     /// allowed to call this. This is wildly unsafe and is therefore marked as such.
     pub unsafe fn unsafe_layout_data<T>(self) -> @mut T {
         do self.with_base |base| {
-            transmute(base.layout_data.get())
+            transmute(base.layout_data.unwrap())
         }
     }
     /// Returns true if this node has layout data and false otherwise.

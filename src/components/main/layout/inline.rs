@@ -22,7 +22,8 @@ use newcss::units::{Em, Px, Pt};
 use newcss::values::{CSSLineHeightNormal, CSSLineHeightNumber, CSSLineHeightLength, CSSLineHeightPercentage};
 use servo_util::range::Range;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
-use extra::deque::Deque;
+use extra::container::Deque;
+use extra::ringbuf::RingBuf;
 
 /*
 Lineboxes are represented as offsets into the child list, rather than
@@ -62,7 +63,7 @@ struct LineboxScanner {
     flow: FlowContext,
     floats: FloatContext,
     new_boxes: ~[RenderBox],
-    work_list: @mut Deque<RenderBox>,
+    work_list: @mut RingBuf<RenderBox>,
     pending_line: LineBox,
     lines: ~[LineBox],
     cur_y: Au,
@@ -76,7 +77,7 @@ impl LineboxScanner {
             flow: inline,
             floats: float_ctx,
             new_boxes: ~[],
-            work_list: @mut Deque::new(),
+            work_list: @mut RingBuf::new(),
             pending_line: LineBox {
                 range: Range::empty(), 
                 bounds: Rect(Point2D(Au(0), Au(0)), Size2D(Au(0), Au(0))), 
@@ -122,7 +123,7 @@ impl LineboxScanner {
                     debug!("LineboxScanner: Working with box from box list: b%d", box.id());
                     box
                 } else {
-                    let box = self.work_list.pop_front();
+                    let box = self.work_list.pop_front().unwrap();
                     debug!("LineboxScanner: Working with box from work list: b%d", box.id());
                     box
                 };
@@ -176,7 +177,7 @@ impl LineboxScanner {
         match box {
             ImageRenderBoxClass(image_box) => {
                 let size = image_box.image.get_size();
-                let height = Au::from_px(size.get_or_default(Size2D(0, 0)).height);
+                let height = Au::from_px(size.unwrap_or_default(Size2D(0, 0)).height);
                 image_box.base.position.size.height = height;
                 debug!("box_height: found image height: %?", height);
                 height
@@ -360,11 +361,11 @@ impl LineboxScanner {
                 self.pending_line.green_zone = next_green_zone;
 
                 assert!(!line_is_empty, "Non-terminating line breaking");
-                self.work_list.add_front(in_box);
+                self.work_list.push_front(in_box);
                 return true;
             } else {
                 debug!("LineboxScanner: case=adding box collides vertically with floats: breaking line");
-                self.work_list.add_front(in_box);
+                self.work_list.push_front(in_box);
                 return false;
             }
         }
@@ -407,7 +408,7 @@ impl LineboxScanner {
                     match (left, right) {
                         (Some(left_box), Some(right_box)) => {
                             self.push_box_to_line(left_box);
-                            self.work_list.add_front(right_box);
+                            self.work_list.push_front(right_box);
                         }
                         (Some(left_box), None) => self.push_box_to_line(left_box),
                         (None, Some(right_box)) => self.push_box_to_line(right_box),
@@ -423,7 +424,7 @@ impl LineboxScanner {
                         match (left, right) {
                             (Some(left_box), Some(right_box)) => {
                                 self.push_box_to_line(left_box);
-                                self.work_list.add_front(right_box);
+                                self.work_list.push_front(right_box);
                             }
                             (Some(left_box), None) => {
                                 self.push_box_to_line(left_box);
@@ -438,7 +439,7 @@ impl LineboxScanner {
                         return true;
                     } else {
                         debug!("LineboxScanner: case=split box didn't fit, not appending and deferring original box.");
-                        self.work_list.add_front(in_box);
+                        self.work_list.push_front(in_box);
                         return false;
                     }
                 }
@@ -553,7 +554,7 @@ impl InlineFlowData {
                 match box {
                     ImageRenderBoxClass(image_box) => {
                         let size = image_box.image.get_size();
-                        let width = Au::from_px(size.get_or_default(Size2D(0, 0)).width);
+                        let width = Au::from_px(size.unwrap_or_default(Size2D(0, 0)).width);
                         image_box.base.position.size.width = width;
                     }
                     TextRenderBoxClass(_) => {
@@ -671,7 +672,7 @@ impl InlineFlowData {
                 match cur_box {
                     ImageRenderBoxClass(image_box) => {
                         let size = image_box.image.get_size();
-                        let height = Au::from_px(size.get_or_default(Size2D(0, 0)).height);
+                        let height = Au::from_px(size.unwrap_or_default(Size2D(0, 0)).height);
                         image_box.base.position.size.height = height;
 
                         image_box.base.position.translate(&Point2D(Au(0), -height))

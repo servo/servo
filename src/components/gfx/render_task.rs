@@ -88,7 +88,7 @@ priv struct RenderTask<C> {
     /// Permission to send paint messages to the compositor
     paint_permission: bool,
     /// Cached copy of last layers rendered
-    last_paint_msg: Option<(arc::ARC<LayerBufferSet>, Size2D<uint>)>,
+    last_paint_msg: Option<(arc::Arc<LayerBufferSet>, Size2D<uint>)>,
 }
 
 impl<C: RenderListener + Send> RenderTask<C> {
@@ -231,7 +231,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
             let layer_buffer_set = LayerBufferSet {
                 buffers: new_buffers,
             };
-            let layer_buffer_set = arc::ARC(layer_buffer_set);
+            let layer_buffer_set = arc::Arc::new(layer_buffer_set);
 
             debug!("render_task: returning surface");
             if self.paint_permission {

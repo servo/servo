@@ -14,7 +14,7 @@ use geom::size::Size2D;
 use geom::point::Point2D;
 use gfx::geometry::Au;
 use newcss::stylesheet::Stylesheet;
-use extra::net::url::Url;
+use extra::url::Url;
 
 /// Asynchronous messages that script can send to layout.
 ///

@@ -13,7 +13,6 @@ use std::hashmap::HashMap;
 use std::libc;
 use std::ptr;
 use std::ptr::{null, to_unsafe_ptr};
-use std::result;
 use std::str;
 use std::uint;
 use std::unstable::intrinsics;
@@ -85,7 +84,7 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: uint, vp: *mut JSVal) -
         return 0;
     }
 
-    let name = jsval_to_str(cx, *v).get();
+    let name = jsval_to_str(cx, *v).unwrap();
     let retval = str(~"function " + name + "() {\n    [native code]\n}");
     *vp = domstring_to_jsval(cx, &retval);
     return 1;
@@ -216,10 +215,10 @@ pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
         JSVAL_NULL
       }
       &str(ref s) => {
-        str::as_buf(*s, |buf, len| {
+        do s.as_imm_buf |buf, len| {
             let cbuf = cast::transmute(buf);
             RUST_STRING_TO_JSVAL(JS_NewStringCopyN(cx, cbuf, len as libc::size_t))
-        })
+        }
       }
     }
 }
@@ -322,13 +321,13 @@ pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: @mut
     compartment.register_class(prototype_jsclass(name.to_owned()));
 
     //TODO error checking
-    let obj = result::unwrap(
+    let obj = (
         match proto {
             Some(s) => compartment.new_object_with_proto(name.to_owned(),
                                                          s, 
                                                          compartment.global_obj.ptr),
             None => compartment.new_object(name.to_owned(), null(), compartment.global_obj.ptr)
-        });
+        }).unwrap();
 
     unsafe {
         compartment.define_property(name.to_owned(), RUST_OBJECT_TO_JSVAL(obj.ptr),
@@ -456,7 +455,7 @@ pub fn CreateInterfaceObjects2(cx: *JSContext, global: *JSObject, receiver: *JSO
 
     let mut interface = ptr::null();
     if constructorClass.is_not_null() || constructor.is_not_null() {
-        interface = do str::as_c_str(name) |s| {
+        interface = do name.as_c_str |s| {
             CreateInterfaceObject(cx, global, receiver, constructorClass,
                                   constructor, ctorNargs, proto,
                                   staticMethods, constants, s)
@@ -508,7 +507,7 @@ fn CreateInterfaceObject(cx: *JSContext, global: *JSObject, receiver: *JSObject,
         }
 
         if constructorClass.is_not_null() {
-            let toString = do str::as_c_str("toString") |s| {
+            let toString = do "toString".as_c_str |s| {
                 DefineFunctionWithReserved(cx, constructor, s,
                                            InterfaceObjectToString,
                                            0, 0)

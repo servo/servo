@@ -38,7 +38,7 @@ use script::dom::node::{AbstractNode, LayoutView};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::range::*;
-use extra::net::url::Url;
+use extra::url::Url;
 
 /// Render boxes (`struct RenderBox`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, render boxes do not have a simple correspondence with CSS boxes as in
@@ -433,7 +433,7 @@ impl RenderBox {
             ImageRenderBoxClass(image_box) => {
                 // TODO: Consult the CSS `width` property as well as margins and borders.
                 // TODO: If the image isn't available, consult `width`.
-                Au::from_px(image_box.image.get_size().get_or_default(Size2D(0, 0)).width)
+                Au::from_px(image_box.image.get_size().unwrap_or_default(Size2D(0, 0)).width)
             }
 
             TextRenderBoxClass(text_box) => {
@@ -454,7 +454,7 @@ impl RenderBox {
             GenericRenderBoxClass(*) => Au(0),
 
             ImageRenderBoxClass(image_box) => {
-                Au::from_px(image_box.image.get_size().get_or_default(Size2D(0, 0)).width)
+                Au::from_px(image_box.image.get_size().unwrap_or_default(Size2D(0, 0)).width)
             }
 
             TextRenderBoxClass(text_box) => {

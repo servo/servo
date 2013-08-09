@@ -16,7 +16,6 @@ use std::cast::transmute;
 use std::libc::{c_uint, c_int, c_void, c_char};
 use std::ptr;
 use std::ptr::null;
-use std::str;
 use std::uint;
 use std::util::ignore;
 use std::vec;
@@ -86,7 +85,7 @@ impl ShapedGlyphData {
     fn byte_offset_of_glyph(&self, i: uint) -> uint {
         assert!(i < self.count);
 
-        let glyph_info_i = ptr::offset(self.glyph_infos, i);
+        let glyph_info_i = ptr::offset(self.glyph_infos, i as int);
         unsafe {
             (*glyph_info_i).cluster as uint
         }
@@ -101,8 +100,8 @@ impl ShapedGlyphData {
         assert!(i < self.count);
 
         unsafe {
-            let glyph_info_i = ptr::offset(self.glyph_infos, i);
-            let pos_info_i = ptr::offset(self.pos_infos, i);
+            let glyph_info_i = ptr::offset(self.glyph_infos, i as int);
+            let pos_info_i = ptr::offset(self.pos_infos, i as int);
             let x_offset = Shaper::fixed_to_float((*pos_info_i).x_offset);
             let y_offset = Shaper::fixed_to_float((*pos_info_i).y_offset);
             let x_advance = Shaper::fixed_to_float((*pos_info_i).x_advance);
@@ -216,8 +215,8 @@ impl ShaperMethods for Shaper {
             let hb_buffer: *hb_buffer_t = hb_buffer_create();
             hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
 
-            // Using as_buf because it never does a copy - we don't need the trailing null
-            do str::as_buf(text) |ctext: *u8, _: uint| {
+            // Using as_imm_buf because it never does a copy - we don't need the trailing null
+            do text.as_imm_buf |ctext: *u8, _: uint| {
                 hb_buffer_add_utf8(hb_buffer,
                                    ctext as *c_char,
                                    text.len() as c_int,

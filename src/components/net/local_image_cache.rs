@@ -15,7 +15,7 @@ use std::comm;
 use std::comm::Port;
 use std::task;
 use servo_util::url::{UrlMap, url_map};
-use extra::net::url::Url;
+use extra::url::Url;
 
 pub fn LocalImageCache(image_cache_task: ImageCacheTask) -> LocalImageCache {
     LocalImageCache {
@@ -109,7 +109,7 @@ impl LocalImageCache {
                 // on the image to load and triggering layout
                 let image_cache_task = self.image_cache_task.clone();
                 assert!(self.on_image_available.is_some());
-                let on_image_available = self.on_image_available.get()();
+                let on_image_available = self.on_image_available.unwrap()();
                 let url = (*url).clone();
                 do task::spawn {
                     let (response_port, response_chan) = comm::stream();

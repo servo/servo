@@ -23,7 +23,7 @@ use std::cast::transmute_region;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use servo_net::image::base::Image;
 use servo_util::range::Range;
-use extra::arc::ARC;
+use extra::arc::Arc;
 
 /// A list of rendering operations to be performed.
 pub struct DisplayList<E> {
@@ -93,7 +93,7 @@ pub struct TextDisplayItem<E> {
 /// Renders an image.
 pub struct ImageDisplayItem<E> {
     base: BaseDisplayItem<E>,
-    image: ARC<~Image>,
+    image: Arc<~Image>,
 }
 
 /// Renders a border.

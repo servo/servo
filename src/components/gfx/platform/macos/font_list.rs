@@ -16,7 +16,6 @@ use core_text::font_descriptor::CTFontDescriptorRef;
 use core_text;
 
 use std::hashmap::HashMap;
-use std::result;
 
 pub struct FontListHandle {
     fctx: FontContextHandle,
@@ -49,7 +48,7 @@ impl FontListHandle {
         for family_collection.get_descriptors().each |descref: &CTFontDescriptorRef| {
             let desc = CFWrapper::wrap_shared(*descref);
             let font = core_text::font::new_from_descriptor(&desc, 0.0);
-            let handle = result::unwrap(FontHandle::new_from_CTFont(&self.fctx, font));
+            let handle = FontHandle::new_from_CTFont(&self.fctx, font).unwrap();
 
             debug!("Creating new FontEntry for face: %s", handle.face_name());
             let entry = @FontEntry::new(handle);

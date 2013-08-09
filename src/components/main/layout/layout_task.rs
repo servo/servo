@@ -44,7 +44,7 @@ use servo_net::local_image_cache::LocalImageCache;
 use servo_util::tree::{TreeNodeRef, TreeUtils};
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
-use extra::net::url::Url;
+use extra::url::Url;
 
 struct LayoutTask {
     id: PipelineId,

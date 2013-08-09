@@ -7,22 +7,22 @@ use geometry::Au;
 use text::glyph::GlyphStore;
 use font::{Font, FontDescriptor, RunMetrics};
 use servo_util::range::Range;
-use extra::arc::ARC;
+use extra::arc::Arc;
 
 /// A text run.
 pub struct TextRun {
     text: ~str,
     font: @mut Font,
     underline: bool,
-    glyphs: ~[ARC<GlyphStore>],
+    glyphs: ~[Arc<GlyphStore>],
 }
 
-/// This is a hack until TextRuns are normally sendable, or we instead use ARC<TextRun> everywhere.
+/// This is a hack until TextRuns are normally sendable, or we instead use Arc<TextRun> everywhere.
 pub struct SendableTextRun {
     text: ~str,
     font: FontDescriptor,
     underline: bool,
-    priv glyphs: ~[ARC<GlyphStore>],
+    priv glyphs: ~[Arc<GlyphStore>],
 }
 
 impl SendableTextRun {
@@ -58,7 +58,7 @@ impl<'self> TextRun {
         self.font.teardown();
     }
 
-    pub fn break_and_shape(font: @mut Font, text: &str) -> ~[ARC<GlyphStore>] {
+    pub fn break_and_shape(font: @mut Font, text: &str) -> ~[Arc<GlyphStore>] {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
 
         let mut glyphs = ~[];
@@ -128,7 +128,7 @@ impl<'self> TextRun {
         }
     }
 
-    pub fn glyphs(&'self self) -> &'self ~[ARC<GlyphStore>] { &self.glyphs }
+    pub fn glyphs(&'self self) -> &'self ~[Arc<GlyphStore>] { &self.glyphs }
 
     pub fn range_is_trimmable_whitespace(&self, range: &Range) -> bool {
         for self.iter_slices_for_range(range) |slice_glyphs, _, _| {

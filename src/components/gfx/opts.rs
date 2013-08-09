@@ -68,18 +68,18 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
     };
 
     let tile_size: uint = match getopts::opt_maybe_str(&opt_match, "s") {
-        Some(tile_size_str) => uint::from_str(tile_size_str).get(),
+        Some(tile_size_str) => uint::from_str(tile_size_str).unwrap(),
         None => 512,
     };
 
     let n_render_threads: uint = match getopts::opt_maybe_str(&opt_match, "t") {
-        Some(n_render_threads_str) => uint::from_str(n_render_threads_str).get(),
+        Some(n_render_threads_str) => uint::from_str(n_render_threads_str).unwrap(),
         None => 1,      // FIXME: Number of cores.
     };
 
     // if only flag is present, default to 5 second period
     let profiler_period = do getopts::opt_default(&opt_match, "p", "5").map |period| {
-        float::from_str(*period).get()
+        float::from_str(*period).unwrap()
     };
 
     let exit_after_load = getopts::opt_present(&opt_match, "x");

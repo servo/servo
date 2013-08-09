@@ -56,8 +56,8 @@ use std::cell::Cell;
 use std::comm;
 use std::comm::{Chan, Port, SharedChan};
 use std::str::eq_slice;
-use std::result;
 use std::task;
+use std::from_str::FromStr;
 use hubbub::hubbub;
 use servo_msg::constellation_msg::SubpageId;
 use servo_net::image_cache_task::ImageCacheTask;
@@ -65,8 +65,7 @@ use servo_net::image_cache_task;
 use servo_net::resource_task::{Done, Load, Payload, ResourceTask};
 use servo_util::tree::TreeUtils;
 use servo_util::url::make_url;
-use extra::net::url::Url;
-use extra::net::url;
+use extra::url::Url;
 use extra::future::{Future, from_port};
 use geom::size::Size2D;
 
@@ -498,7 +497,7 @@ pub fn parse_html(cx: *JSContext,
             // We've reached the end of a <style> so we can submit all the text to the parser.
             unsafe {
                 let style: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(style);
-                let url = url::from_str("http://example.com/"); // FIXME
+                let url = FromStr::from_str("http://example.com/"); // FIXME
                 let url_cell = Cell::new(url);
 
                 let mut data = ~[];
@@ -511,7 +510,7 @@ pub fn parse_html(cx: *JSContext,
                 }
 
                 debug!("data = %?", data);
-                let provenance = InlineProvenance(result::unwrap(url_cell.take()), data.concat());
+                let provenance = InlineProvenance(url_cell.take().unwrap(), data.concat());
                 css_chan3.send(CSSTaskNewFile(provenance));
             }
         },

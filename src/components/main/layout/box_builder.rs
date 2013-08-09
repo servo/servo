@@ -403,22 +403,22 @@ impl LayoutTreeBuilder {
             // Floats
             (CSSDisplayBlock, BlockFlow(_), _) |
             (CSSDisplayBlock, FloatFlow(_), _) if !is_float.is_none() => {
-                self.create_child_generator(node, parent_generator, Flow_Float(is_float.get()))
+                self.create_child_generator(node, parent_generator, Flow_Float(is_float.unwrap()))
             }
             // If we're placing a float after an inline, append the float to the inline flow,
             // then continue building from the inline flow in case there are more inlines
             // afterward.
             (CSSDisplayBlock, _, Some(InlineFlow(_))) if !is_float.is_none() => {
                 let float_generator = self.create_child_generator(node, 
-                                                                  sibling_generator.get(), 
-                                                                  Flow_Float(is_float.get()));
-                return Some((float_generator, sibling_generator.get()));
+                                                                  sibling_generator.unwrap(),
+                                                                  Flow_Float(is_float.unwrap()));
+                return Some((float_generator, sibling_generator.unwrap()));
             }
             // This is a catch-all case for when:
             // a) sibling_flow is None
             // b) sibling_flow is a BlockFlow
             (CSSDisplayBlock, InlineFlow(_), _) if !is_float.is_none() => {
-                self.create_child_generator(node, parent_generator, Flow_Float(is_float.get()))
+                self.create_child_generator(node, parent_generator, Flow_Float(is_float.unwrap()))
             }
 
             (CSSDisplayBlock, BlockFlow(info), _) => match (info.is_root, node.parent_node()) {

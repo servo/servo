@@ -14,7 +14,6 @@ use platform::font_context::FontContextHandle;
 
 use azure::azure_hl::BackendType;
 use std::hashmap::HashMap;
-use std::result;
 
 // TODO(Rust #3934): creating lots of new dummy styles is a workaround
 // for not being able to store symbolic enums in top-level constants.
@@ -189,13 +188,13 @@ impl<'self> FontContext {
             &SelectorPlatformIdentifier(ref identifier) => { 
                 let result_handle = self.handle.create_font_from_identifier((*identifier).clone(),
                                                                             desc.style.clone());
-                result::chain(result_handle, |handle| {
+                do result_handle.chain |handle| {
                     Ok(Font::new_from_adopted_handle(self,
                                                      handle,
                                                      &desc.style,
                                                      self.backend,
                                                      self.profiler_chan.clone()))
-                })
+                }
             }
         };
     }

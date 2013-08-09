@@ -10,7 +10,6 @@ use platform::font::{FontHandle, FontTable};
 use render_context::RenderContext;
 use servo_util::range::Range;
 use std::cast;
-use std::result;
 use std::ptr;
 use std::str;
 use std::vec;
@@ -18,7 +17,7 @@ use servo_util::cache::{Cache, HashCache};
 use text::glyph::{GlyphStore, GlyphIndex};
 use text::shaping::ShaperMethods;
 use text::{Shaper, TextRun};
-use extra::arc::ARC;
+use extra::arc::Arc;
 
 use azure::{AzFloat, AzScaledFontRef};
 use azure::scaled_font::ScaledFont;
@@ -240,7 +239,7 @@ pub struct Font {
     metrics: FontMetrics,
     backend: BackendType,
     profiler_chan: ProfilerChan,
-    shape_cache: HashCache<~str, ARC<GlyphStore>>,
+    shape_cache: HashCache<~str, Arc<GlyphStore>>,
 }
 
 impl Font {
@@ -252,9 +251,9 @@ impl Font {
             -> Result<@mut Font, ()> {
         let handle = FontHandleMethods::new_from_buffer(&ctx.handle, buffer, style);
         let handle: FontHandle = if handle.is_ok() {
-            result::unwrap(handle)
+            handle.unwrap()
         } else {
-            return Err(handle.get_err());
+            return Err(handle.unwrap_err());
         };
         
         let metrics = handle.get_metrics();
@@ -394,7 +393,7 @@ impl Font {
         for run.iter_slices_for_range(range) |glyphs, _offset, slice_range| {
             for glyphs.iter_glyphs_for_char_range(slice_range) |_i, glyph| {
                 let glyph_advance = glyph.advance_();
-                let glyph_offset = glyph.offset().get_or_default(Au::zero_point());
+                let glyph_offset = glyph.offset().unwrap_or_default(Au::zero_point());
 
                 let azglyph = struct__AzGlyph {
                     mIndex: glyph.index() as uint32_t,
@@ -450,13 +449,13 @@ impl Font {
         RunMetrics::new(advance, self.metrics.ascent, self.metrics.descent)
     }
 
-    pub fn shape_text(@mut self, text: ~str, is_whitespace: bool) -> ARC<GlyphStore> {
+    pub fn shape_text(@mut self, text: ~str, is_whitespace: bool) -> Arc<GlyphStore> {
         do profile(time::LayoutShapingCategory, self.profiler_chan.clone()) {
             let shaper = self.get_shaper();
             do self.shape_cache.find_or_create(&text) |txt| {
                 let mut glyphs = GlyphStore::new(text.char_len(), is_whitespace);
                 shaper.shape_text(*txt, &mut glyphs);
-                ARC(glyphs)
+                Arc::new(glyphs)
             }
         }
     }

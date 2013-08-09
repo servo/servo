@@ -4,8 +4,6 @@
 
 use compositing::{CompositorChan, SetIds};
 
-use extra::net::url;
-
 use std::cell::Cell;
 use std::comm;
 use std::comm::Port;
@@ -169,17 +167,17 @@ impl NavigationContext {
      * when it is known that there exists either a previous page or a next page. */
 
     pub fn back(&mut self) -> @mut FrameTree {
-        self.next.push(self.current.swap_unwrap());
+        self.next.push(self.current.take_unwrap());
         self.current = Some(self.previous.pop());
         debug!("previous: %? next: %? current: %?", self.previous, self.next, *self.current.get_ref());
-        self.current.get()
+        self.current.unwrap()
     }
 
     pub fn forward(&mut self) -> @mut FrameTree {
-        self.previous.push(self.current.swap_unwrap());
+        self.previous.push(self.current.take_unwrap());
         self.current = Some(self.next.pop());
         debug!("previous: %? next: %? current: %?", self.previous, self.next, *self.current.get_ref());
-        self.current.get()
+        self.current.unwrap()
     }
 
     /// Loads a new set of page frames, returning all evicted frame trees
@@ -187,7 +185,7 @@ impl NavigationContext {
         debug!("navigating to %?", frame_tree);
         let evicted = replace(&mut self.next, ~[]);
         if self.current.is_some() {
-            self.previous.push(self.current.swap_unwrap());
+            self.previous.push(self.current.take_unwrap());
         }
         self.current = Some(frame_tree);
         evicted
@@ -405,7 +403,7 @@ impl Constellation {
             // If there is already a pending page (self.pending_frames), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
             LoadUrlMsg(source_id, url, size_future) => {
-                debug!("received message to load %s", url::to_str(&url));
+                debug!("received message to load %s", url.to_str());
                 // Make sure no pending page would be overridden.
                 let source_frame = self.current_frame().get_ref().find_mut(source_id).expect(
                     "Constellation: received a LoadUrlMsg from a pipeline_id associated
@@ -530,13 +528,13 @@ impl Constellation {
                     // Create the next frame tree that will be given to the compositor
                     let next_frame_tree = match to_add.parent {
                         None => to_add, // to_add is the root
-                        Some(_parent) => @mut (*self.current_frame().get()).clone(),
+                        Some(_parent) => @mut (*self.current_frame().unwrap()).clone(),
                     };
 
                     // If there are frames to revoke permission from, do so now.
                     match frame_change.before {
                         Some(revoke_id) => {
-                            let current_frame = self.current_frame().get();
+                            let current_frame = self.current_frame().unwrap();
 
                             let to_revoke = current_frame.find_mut(revoke_id).expect(
                                 "Constellation: pending frame change refers to an old

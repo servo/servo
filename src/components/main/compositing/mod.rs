@@ -80,7 +80,7 @@ impl RenderListener for CompositorChan {
         port.recv()
     }
 
-    fn paint(&self, id: PipelineId, layer_buffer_set: arc::ARC<LayerBufferSet>) {
+    fn paint(&self, id: PipelineId, layer_buffer_set: arc::Arc<LayerBufferSet>) {
         self.chan.send(Paint(id, layer_buffer_set))
     }
 
@@ -136,7 +136,7 @@ pub enum Msg {
     DeleteLayer(PipelineId),
 
     /// Requests that the compositor paint the given layer buffer set for the given page size.
-    Paint(PipelineId, arc::ARC<LayerBufferSet>),
+    Paint(PipelineId, arc::Arc<LayerBufferSet>),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(ReadyState),
     /// Alerts the compositor to the current status of rendering.

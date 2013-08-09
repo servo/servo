@@ -313,7 +313,7 @@ impl CompositorLayer {
                     texture_layer.manager = @buffer.draw_target.clone() as @TextureManager;
                     
                     // Move on to the next sibling.
-                    do current_layer_child.get().with_common |common| {
+                    do current_layer_child.unwrap().with_common |common| {
                         common.next_sibling
                     }
                 }
