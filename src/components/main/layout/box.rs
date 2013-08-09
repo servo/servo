@@ -6,8 +6,7 @@
 
 use css::node_style::StyledNode;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
-use layout::flow::FlowContext;
+use layout::display_list_builder::{ExtraDisplayListData, ToGfxColor};
 use layout::model::{BoxModel, MaybeAuto};
 use layout::text;
 
@@ -149,10 +148,7 @@ pub enum SplitBoxResult {
 /// Data common to all render boxes.
 pub struct RenderBoxBase {
     /// The DOM node that this `RenderBox` originates from.
-    node: AbstractNode<LayoutView>,
-
-    /// The reference to the containing flow context which this box participates in.
-    ctx: FlowContext,
+    priv node: AbstractNode<LayoutView>,
 
     /// The position of this box relative to its owning flow.
     position: Rect<Au>,
@@ -168,15 +164,18 @@ pub struct RenderBoxBase {
 
 impl RenderBoxBase {
     /// Constructs a new `RenderBoxBase` instance.
-    pub fn new(node: AbstractNode<LayoutView>, flow_context: FlowContext, id: int)
+    pub fn new(node: AbstractNode<LayoutView>, id: int)
                -> RenderBoxBase {
         RenderBoxBase {
             node: node,
-            ctx: flow_context,
             position: Au::zero_rect(),
             model: Zero::zero(),
             id: id,
         }
+    }
+
+    pub fn different_node(&self, other: &RenderBoxBase) -> bool {
+        self.node != other.node
     }
 }
 
@@ -271,7 +270,7 @@ impl RenderBox {
 
     /// Attempts to split this box so that its width is no more than `max_width`. Fails if this box
     /// is an unscanned text box.
-    pub fn split_to_width(&self, _: &LayoutContext, max_width: Au, starts_line: bool)
+    pub fn split_to_width(&self, max_width: Au, starts_line: bool)
                       -> SplitBoxResult {
         match *self {
             GenericRenderBoxClass(*) | ImageRenderBoxClass(*) => CannotSplit(*self),
@@ -544,7 +543,7 @@ impl RenderBox {
     }
 
     /// A convenience function to access the DOM node that this render box represents.
-    pub fn node(&self) -> AbstractNode<LayoutView> {
+    priv fn node(&self) -> AbstractNode<LayoutView> {
         self.with_base(|base| base.node)
     }
 
@@ -552,7 +551,7 @@ impl RenderBox {
     /// represents.
     ///
     /// If there is no ancestor-or-self `Element` node, fails.
-    pub fn nearest_ancestor_element(&self) -> AbstractNode<LayoutView> {
+    priv fn nearest_ancestor_element(&self) -> AbstractNode<LayoutView> {
         do self.with_base |base| {
             let mut node = base.node;
             while !node.is_element() {
@@ -584,7 +583,6 @@ impl RenderBox {
     /// items, each box puts its display items into the correct stack layer according to CSS 2.1
     /// Appendix E. Finally, the builder flattens the list.
     pub fn build_display_list<E:ExtraDisplayListData>(&self,
-                                                  _: &DisplayListBuilder,
                                                   dirty: &Rect<Au>,
                                                   offset: &Point2D<Au>,
                                                   list: &Cell<DisplayList<E>>) {

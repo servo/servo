@@ -51,6 +51,9 @@ pub trait TreeUtils {
     /// Returns true if this node is disconnected from the tree or has no children.
     fn is_leaf(&self) -> bool;
 
+    /// Returns the number of children the given node has.
+    fn num_children(&self) -> uint;
+
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
@@ -90,6 +93,15 @@ impl<NR:TreeNodeRef<N>,N:TreeNode<NR>> TreeUtils for NR {
         do self.with_base |this_node| {
             this_node.first_child().is_none()
         }
+    }
+
+    //TODO: make this O(1)
+    fn num_children(&self) -> uint {
+        let mut result = 0;
+        for self.each_child |_| {
+            result += 1;
+        }
+        result
     }
 
     fn add_child(&self, new_child: NR) {

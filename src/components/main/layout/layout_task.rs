@@ -11,8 +11,8 @@ use layout::aux::{LayoutData, LayoutAuxMethods};
 use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder};
-use layout::flow::FlowContext;
+use layout::flow::{FlowContext,SequentialView};
+use layout::parallel_traversal::SequentialTraverser;
 use layout::incremental::{RestyleDamage, BubbleWidths};
 
 use std::cast::transmute;
@@ -219,10 +219,10 @@ impl LayoutTask {
         }
 
         // Construct the flow tree.
-        let layout_root: FlowContext = do profile(time::LayoutTreeBuilderCategory,
-                                                  self.profiler_chan.clone()) {
+        let layout_root: FlowContext<SequentialView,SequentialView> 
+            = do profile(time::LayoutTreeBuilderCategory, self.profiler_chan.clone()) {
             let mut builder = LayoutTreeBuilder::new();
-            let layout_root: FlowContext = match builder.construct_trees(&layout_ctx, *node) {
+            let layout_root = match builder.construct_trees(&layout_ctx, *node) {
                 Ok(root) => root,
                 Err(*) => fail!(~"Root flow should always exist")
             };
@@ -251,14 +251,10 @@ impl LayoutTask {
         }
 
         for layout_root.traverse_postorder |flow| {
-            do flow.with_base |base| {
-                match base.parent {
-                    None => {},
-                    Some(parent_ctx) => {
-                        let prop = base.restyle_damage.propagate_up();
-                        do parent_ctx.with_mut_base |parent| {
-                            parent.restyle_damage.union_in_place(prop);
-                        }
+            for flow.each_child |child| {
+                do child.with_base |child_base| {
+                    do flow.with_mut_base |base| {
+                        base.restyle_damage.union_in_place(child_base.restyle_damage);
                     }
                 }
             }
@@ -269,36 +265,36 @@ impl LayoutTask {
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
+        let traverser = SequentialTraverser::new();
+
         do profile(time::LayoutMainCategory, self.profiler_chan.clone()) {
             for layout_root.traverse_postorder_prune(|f| f.restyle_damage().lacks(BubbleWidths)) |flow| {
-                flow.bubble_widths(&mut layout_ctx);
+                unsafe {
+                    flow.restrict_view().bubble_widths(&mut layout_ctx);
+                }
             };
-
+            for traverser.traverse_preorder(layout_root) |flow| {
             // FIXME: We want to do
             //     for layout_root.traverse_preorder_prune(|f| f.restyle_damage().lacks(Reflow)) |flow| {
             // but FloatContext values can't be reused, so we need to recompute them every time.
-            for layout_root.traverse_preorder |flow| {
                 flow.assign_widths(&mut layout_ctx);
             };
 
-            // For now, this is an inorder traversal
             // FIXME: prune this traversal as well
-            layout_root.assign_height(&mut layout_ctx);
+            for traverser.traverse_bu_sub_inorder(layout_root) |flow| {
+                flow.assign_height(&mut layout_ctx);
+            }
         }
 
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
             do profile(time::LayoutDispListBuildCategory, self.profiler_chan.clone()) {
-                let builder = DisplayListBuilder {
-                    ctx: &layout_ctx,
-                };
-
                 let display_list = @Cell::new(DisplayList::new());
 
                 // TODO: Set options on the builder before building.
                 // TODO: Be smarter about what needs painting.
-                do layout_root.partially_traverse_preorder |flow| {
-                    flow.build_display_list(&builder, &layout_root.position(), display_list)
+                do traverser.partially_traverse_preorder(layout_root) |flow| {
+                    flow.build_display_list(&layout_root.position(), display_list)
                 }
 
                 let root_size = do layout_root.with_base |base| {
@@ -397,18 +393,12 @@ impl LayoutTask {
                         Err(())
                     }
                     Some(flow) => {
-                        let layout_ctx = self.build_layout_context();
-                        let builder = DisplayListBuilder {
-                            ctx: &layout_ctx,
-                        };
                         let display_list: @Cell<DisplayList<RenderBox>> =
                             @Cell::new(DisplayList::new());
-                        
-                        do flow.partially_traverse_preorder |this_flow| {
-                            this_flow.build_display_list(&builder,
-                                                    &flow.position(),
-                                                    display_list)
-                            
+                        let traverser = SequentialTraverser::new();
+                        do traverser.partially_traverse_preorder(flow) |this_flow| {
+                            this_flow.build_display_list(&flow.position(),
+                                                         display_list)
                         }
                         let (x, y) = (Au::from_frac_px(point.x as float),
                                       Au::from_frac_px(point.y as float));

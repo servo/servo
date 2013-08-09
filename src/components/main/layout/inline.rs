@@ -6,11 +6,13 @@ use std::cell::Cell;
 use layout::box::{CannotSplit, GenericRenderBoxClass, ImageRenderBoxClass, RenderBox};
 use layout::box::{SplitDidFit, SplitDidNotFit, TextRenderBoxClass};
 use layout::context::LayoutContext;
-use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
+use layout::display_list_builder::ExtraDisplayListData;
 use layout::flow::{FlowContext, FlowData, InlineFlow};
+use layout::flow::{VisitChildView, VisitOrChildView};
 use layout::float_context::FloatContext;
 use layout::util::{ElementMapping};
 use layout::float_context::{PlacementInfo, FloatLeft};
+use layout::flow_interface::{FlowDataMethods,Visitor};
 
 use std::u16;
 use std::util;
@@ -21,7 +23,6 @@ use newcss::values::{CSSTextAlignLeft, CSSTextAlignCenter, CSSTextAlignRight, CS
 use newcss::units::{Em, Px, Pt};
 use newcss::values::{CSSLineHeightNormal, CSSLineHeightNumber, CSSLineHeightLength, CSSLineHeightPercentage};
 use servo_util::range::Range;
-use servo_util::tree::{TreeNodeRef, TreeUtils};
 use extra::deque::Deque;
 
 /*
@@ -58,8 +59,8 @@ struct LineBox {
     green_zone: Size2D<Au>
 }
 
-struct LineboxScanner {
-    flow: FlowContext,
+struct LineboxScanner<V,CV> {
+    flow: FlowContext<V,CV>,
     floats: FloatContext,
     new_boxes: ~[RenderBox],
     work_list: @mut Deque<RenderBox>,
@@ -68,8 +69,8 @@ struct LineboxScanner {
     cur_y: Au,
 }
 
-impl LineboxScanner {
-    pub fn new(inline: FlowContext, float_ctx: FloatContext) -> LineboxScanner {
+impl<V,CV> LineboxScanner<V,CV> {
+    pub fn new(inline: FlowContext<V,CV>, float_ctx: FloatContext) -> LineboxScanner<V,CV> {
         assert!(inline.starts_inline_flow());
 
         LineboxScanner {
@@ -105,11 +106,11 @@ impl LineboxScanner {
         self.pending_line.green_zone = Size2D(Au(0), Au(0))     
     }
 
-    pub fn scan_for_lines(&mut self, ctx: &LayoutContext) {
+    pub fn scan_for_lines(&mut self) {
         self.reset_scanner();
 
         { // FIXME: manually control borrow length
-            let inline: &InlineFlowData = self.flow.inline();
+            let inline: &InlineFlowData<V,CV> = self.flow.inline();
             let mut i = 0u;
 
             loop {
@@ -127,7 +128,7 @@ impl LineboxScanner {
                     box
                 };
 
-                let box_was_appended = self.try_append_to_line(ctx, cur_box);
+                let box_was_appended = self.try_append_to_line(cur_box);
                 if !box_was_appended {
                     debug!("LineboxScanner: Box wasn't appended, because line %u was full.",
                            self.lines.len());
@@ -145,7 +146,7 @@ impl LineboxScanner {
         }
 
         { // FIXME: scope the borrow
-            let inline: &mut InlineFlowData = self.flow.inline();
+            let inline: &mut InlineFlowData<V,CV> = self.flow.inline();
             inline.elems.repair_for_box_changes(inline.boxes, self.new_boxes);
         }
         self.swap_out_results();
@@ -156,7 +157,7 @@ impl LineboxScanner {
                self.lines.len(),
                self.flow.id());
 
-        let inline: &mut InlineFlowData = self.flow.inline();
+        let inline: &mut InlineFlowData<V,CV> = self.flow.inline();
         util::swap(&mut inline.boxes, &mut self.new_boxes);
         util::swap(&mut inline.lines, &mut self.lines);
     }
@@ -222,7 +223,7 @@ impl LineboxScanner {
     /// Computes the position of a line that has only the provided RenderBox.
     /// Returns: the bounding rect of the line's green zone (whose origin coincides
     /// with the line's origin) and the actual width of the first box after splitting.
-    fn initial_line_placement (&self, ctx: &LayoutContext, first_box: RenderBox, ceiling: Au) -> (Rect<Au>, Au) {
+    fn initial_line_placement (&self, first_box: RenderBox, ceiling: Au) -> (Rect<Au>, Au) {
         debug!("LineboxScanner: Trying to place first box of line %?", self.lines.len());
         debug!("LineboxScanner: box size: %?", first_box.position().size);
         let splitable = first_box.can_split();
@@ -266,7 +267,7 @@ impl LineboxScanner {
         // FIXME(eatkinson): calling split_to_width here seems excessive and expensive.
         // We should find a better abstraction or merge it with the call in
         // try_append_to_line.
-        match first_box.split_to_width(ctx, line_bounds.size.width, line_is_empty) {
+        match first_box.split_to_width(line_bounds.size.width, line_is_empty) {
             CannotSplit(_) => {
                 error!("LineboxScanner: Tried to split unsplittable render box! %s",
                         first_box.debug_str());
@@ -279,7 +280,7 @@ impl LineboxScanner {
                     (Some(l_box), Some(_))  => l_box.position().size.width,
                     (Some(l_box), None)     => l_box.position().size.width,
                     (None, Some(r_box))     => r_box.position().size.width,
-                    (None, None)            => fail!("This cas makes no sense.")
+                    (None, None)            => fail!("This case makes no sense.")
                 };
                 return (line_bounds, actual_box_width);
             }
@@ -293,7 +294,7 @@ impl LineboxScanner {
                     (Some(l_box), Some(_))  => l_box.position().size.width,
                     (Some(l_box), None)     => l_box.position().size.width,
                     (None, Some(r_box))     => r_box.position().size.width,
-                    (None, None)            => fail!("This cas makes no sense.")
+                    (None, None)            => fail!("This case makes no sense.")
                 };
 
                 info.width = actual_box_width;
@@ -307,11 +308,11 @@ impl LineboxScanner {
     }
 
     /// Returns false only if we should break the line.
-    fn try_append_to_line(&mut self, ctx: &LayoutContext, in_box: RenderBox) -> bool {
+    fn try_append_to_line(&mut self, in_box: RenderBox) -> bool {
         let line_is_empty: bool = self.pending_line.range.length() == 0;
 
         if line_is_empty {
-            let (line_bounds, _) = self.initial_line_placement(ctx, in_box, self.cur_y);
+            let (line_bounds, _) = self.initial_line_placement(in_box, self.cur_y);
             self.pending_line.bounds.origin = line_bounds.origin;
             self.pending_line.green_zone = line_bounds.size;
         }
@@ -348,7 +349,7 @@ impl LineboxScanner {
 
             // First predict where the next line is going to be
             let this_line_y = self.pending_line.bounds.origin.y;
-            let (next_line, first_box_width) = self.initial_line_placement(ctx, in_box, this_line_y);
+            let (next_line, first_box_width) = self.initial_line_placement(in_box, this_line_y);
             let next_green_zone = next_line.size;
 
             let new_width = self.pending_line.bounds.size.width + first_box_width;
@@ -396,7 +397,7 @@ impl LineboxScanner {
         } else {
             let available_width = green_zone.width - self.pending_line.bounds.size.width;
 
-            match in_box.split_to_width(ctx, available_width, line_is_empty) {
+            match in_box.split_to_width(available_width, line_is_empty) {
                 CannotSplit(_) => {
                     error!("LineboxScanner: Tried to split unsplittable render box! %s",
                             in_box.debug_str());
@@ -462,9 +463,9 @@ impl LineboxScanner {
     }
 }
 
-pub struct InlineFlowData {
+pub struct InlineFlowData<View,ChildView> {
     /// Data common to all flows.
-    common: FlowData,
+    common: FlowData<View,ChildView>,
 
     // A vec of all inline render boxes. Several boxes may
     // correspond to one Node/Element.
@@ -479,8 +480,8 @@ pub struct InlineFlowData {
     elems: ElementMapping
 }
 
-impl InlineFlowData {
-    pub fn new(common: FlowData) -> InlineFlowData {
+impl<V,CV> InlineFlowData<V,CV> {
+    pub fn new(common: FlowData<V,CV>) -> InlineFlowData<V,CV> {
         InlineFlowData {
             common: common,
             boxes: ~[],
@@ -502,7 +503,7 @@ pub trait InlineLayout {
     fn starts_inline_flow(&self) -> bool;
 }
 
-impl InlineLayout for FlowContext {
+impl<V,CV> InlineLayout for FlowContext<V,CV> {
     fn starts_inline_flow(&self) -> bool {
         match *self {
             InlineFlow(*) => true,
@@ -511,11 +512,11 @@ impl InlineLayout for FlowContext {
     }
 }
 
-impl InlineFlowData {
+impl<V:VisitOrChildView> InlineFlowData<V,VisitChildView> {
     pub fn bubble_widths_inline(@mut self, ctx: &mut LayoutContext) {
         let mut num_floats = 0;
 
-        for InlineFlow(self).each_child |kid| {
+        for self.flow().each_child |kid| {
             do kid.with_mut_base |base| {
                 num_floats += base.num_floats;
                 base.floats_in = FloatContext::new(base.num_floats);
@@ -542,7 +543,7 @@ impl InlineFlowData {
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
     /// on this context, the context has had its width set by the parent context.
-    pub fn assign_widths_inline(@mut self, _: &mut LayoutContext) {
+    pub fn assign_widths_inline(@mut self, _: &LayoutContext) {
         // Initialize content box widths if they haven't been initialized already.
         //
         // TODO: Combine this with `LineboxScanner`'s walk in the box list, or put this into
@@ -571,9 +572,10 @@ impl InlineFlowData {
             } // End of for loop.
         }
 
-        for InlineFlow(self).each_child |kid| {
+        for self.flow().each_child |kid| {
             do kid.with_mut_base |base| {
                 base.position.size.width = self.common.position.size.width;
+                base.is_inorder = self.common.is_inorder;
             }
         }
         // There are no child contexts, so stop here.
@@ -585,11 +587,16 @@ impl InlineFlowData {
         // 'inline-block' box that created this flow before recursing.
     }
 
-    pub fn assign_height_inline(@mut self, ctx: &mut LayoutContext) {
-
-        for InlineFlow(self).each_child |kid| {
-            kid.assign_height(ctx);
+    pub fn assign_height_inorder_inline(@mut self, ctx: &mut LayoutContext) {
+        for self.flow().each_child |kid| {
+            kid.assign_height_inorder(ctx);
         }
+        self.assign_height_inline(ctx);
+    }
+
+    pub fn assign_height_inline(@mut self, _: &LayoutContext) {
+
+        debug!("assign_height_inline: assigning height for flow %?", self.common.id);
 
         // Divide the boxes into lines
         // TODO(#226): Get the CSS `line-height` property from the containing block's style to
@@ -598,7 +605,7 @@ impl InlineFlowData {
         // TODO(#226): Get the CSS `line-height` property from each non-replaced inline element to
         // determine its height for computing linebox height.
         let mut scanner = LineboxScanner::new(InlineFlow(self), self.common.floats_in.clone());
-        scanner.scan_for_lines(ctx);
+        scanner.scan_for_lines();
 
         // Now, go through each line and lay out the boxes inside
         for self.lines.iter().advance |line| {
@@ -742,8 +749,7 @@ impl InlineFlowData {
                                                                 -self.common.position.size.height));
     }
 
-    pub fn build_display_list_inline<E:ExtraDisplayListData>(&self,
-                                                             builder: &DisplayListBuilder,
+    pub fn build_display_list_inline<E:ExtraDisplayListData>(@mut self,
                                                              dirty: &Rect<Au>,
                                                              list: &Cell<DisplayList<E>>)
                                                              -> bool {
@@ -760,12 +766,14 @@ impl InlineFlowData {
                self.boxes.len());
 
         for self.boxes.iter().advance |box| {
-            box.build_display_list(builder, dirty, &self.common.abs_position, list)
+            box.build_display_list(dirty, &self.common.abs_position, list)
         }
 
         // TODO(#225): Should `inline-block` elements have flows as children of the inline flow or
         // should the flow be nested inside the box somehow?
-        true
+        
+        // For now, don't traverse the subtree rooted here
+        false
     }
 }
 

@@ -12,7 +12,7 @@ use gfx::text::util::{CompressWhitespaceNewline, transform_text};
 use layout::box::{RenderBox, RenderBoxBase, TextRenderBox};
 use layout::box::{TextRenderBoxClass, UnscannedTextRenderBoxClass};
 use layout::context::LayoutContext;
-use layout::flow::FlowContext;
+use layout::flow::{FlowContext,SequentialView};
 use layout::util::{NodeRange};
 use newcss::values::{CSSTextDecoration, CSSTextDecorationUnderline};
 use servo_util::range::Range;
@@ -68,7 +68,9 @@ impl TextRunScanner {
         }
     }
 
-    pub fn scan_for_runs(&mut self, ctx: &LayoutContext, flow: FlowContext) {
+    pub fn scan_for_runs(&mut self, 
+                         ctx: &LayoutContext, 
+                         flow: FlowContext<SequentialView,SequentialView>) {
         let inline = flow.inline();
         assert!(inline.boxes.len() > 0);
         debug!("TextRunScanner: scanning %u boxes for text runs...", inline.boxes.len());
@@ -120,7 +122,7 @@ impl TextRunScanner {
     /// necessary.
     pub fn flush_clump_to_list(&mut self,
                                ctx: &LayoutContext,
-                               flow: FlowContext,
+                               flow: FlowContext<SequentialView,SequentialView>,
                                last_whitespace: bool,
                                out_boxes: &mut ~[RenderBox]) -> bool {
         let inline = &mut *flow.inline();
