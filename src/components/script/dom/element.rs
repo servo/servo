@@ -13,6 +13,7 @@ use dom::bindings::codegen::{HTMLImageElementBinding, HTMLOListElementBinding};
 use dom::bindings::codegen::{HTMLMetaElementBinding, HTMLStyleElementBinding};
 use dom::bindings::codegen::{HTMLTableElementBinding};
 use dom::bindings::codegen::{HTMLTableSectionElementBinding};
+use dom::bindings::codegen::{HTMLUListElementBinding};
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
 use dom::clientrect::ClientRect;
@@ -30,6 +31,7 @@ use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltableelement::HTMLTableElement;
+use dom::htmlulistelement::HTMLUListElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
@@ -121,7 +123,6 @@ pub struct HTMLSpanElement      { parent: HTMLElement }
 pub struct HTMLTableCellElement { parent: HTMLElement }
 pub struct HTMLTableRowElement  { parent: HTMLElement }
 pub struct HTMLTitleElement     { parent: HTMLElement }
-pub struct HTMLUListElement     { parent: HTMLElement }
 pub struct UnknownElement       { parent: HTMLElement }
 
 impl HTMLHtmlElement {
@@ -210,6 +211,8 @@ generate_cacheable_wrapper!(HTMLTableElement, HTMLTableElementBinding::Wrap)
 generate_binding_object!(HTMLTableElement)
 generate_cacheable_wrapper!(HTMLTableSectionElement, HTMLTableSectionElementBinding::Wrap)
 generate_binding_object!(HTMLTableSectionElement)
+generate_cacheable_wrapper!(HTMLUListElement, HTMLUListElementBinding::Wrap)
+generate_binding_object!(HTMLUListElement)
 
 //
 // Fancier elements
