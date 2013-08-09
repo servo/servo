@@ -5,7 +5,7 @@
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, DerivedWrapper};
-use dom::element::{Element, HTMLHtmlElement, HTMLTitleElement};
+use dom::element::{Element, HTMLHtmlElement};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::event::Event;
 use dom::htmlcollection::HTMLCollection;
@@ -14,6 +14,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId, Text};
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
+use dom::htmltitleelement::HTMLTitleElement;
 
 use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSObject, JSContext, JSVal};
 use js::glue::RUST_OBJECT_TO_JSVAL;
