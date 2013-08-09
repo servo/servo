@@ -14,7 +14,8 @@ use dom::element::{HTMLElementTypeId,
                    HTMLSelectElementTypeId, HTMLSmallElementTypeId,
                    HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTableSectionElementTypeId,
                    HTMLTableCellElementTypeId, HTMLTableElementTypeId,
-                   HTMLTableRowElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId,
+                   HTMLTableRowElementTypeId, HTMLTextAreaElementTypeId,
+                   HTMLTitleElementTypeId, HTMLUListElementTypeId,
                    UnknownElementTypeId};
 use dom::element::{HTMLDivElement, HTMLFontElement, HTMLFormElement,
                    HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
@@ -22,7 +23,7 @@ use dom::element::{HTMLDivElement, HTMLFontElement, HTMLFormElement,
                    HTMLOptionElement, HTMLParagraphElement, HTMLListItemElement,
                    HTMLSelectElement, HTMLSmallElement,
                    HTMLSpanElement,
-                   HTMLTableCellElement, HTMLTableRowElement,
+                   HTMLTableCellElement,
                    HTMLTitleElement, HTMLUListElement};
 use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Heading4, Heading5,
                    Heading6};
@@ -37,7 +38,9 @@ use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltableelement::HTMLTableElement;
+use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
+use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::element::{Element, Attr};
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Comment, Doctype, ElementNodeTypeId, Node, ScriptView};
@@ -236,6 +239,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "tbody",   HTMLTableSectionElementTypeId, HTMLTableSectionElement, []);
     handle_element!(cx, tag, "td",      HTMLTableCellElementTypeId, HTMLTableCellElement, []);
     handle_element!(cx, tag, "table",   HTMLTableElementTypeId, HTMLTableElement, []);
+    handle_element!(cx, tag, "textarea",HTMLTextAreaElementTypeId, HTMLTextAreaElement, []);
     handle_element!(cx, tag, "tr",      HTMLTableRowElementTypeId, HTMLTableRowElement, []);
     handle_element!(cx, tag, "title",   HTMLTitleElementTypeId, HTMLTitleElement, []);
     handle_element!(cx, tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
