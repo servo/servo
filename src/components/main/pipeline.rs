@@ -11,7 +11,7 @@ use gfx::opts::Opts;
 use layout::layout_task::LayoutTask;
 use script::layout_interface::LayoutChan;
 use script::script_task::{ExecuteMsg, LoadMsg};
-use servo_msg::constellation_msg::{ConstellationChan, NavigationType, PipelineId, SubpageId};
+use servo_msg::constellation_msg::{ConstellationChan, PipelineId, SubpageId};
 use script::script_task::{AttachLayoutMsg, NewLayoutInfo, ScriptTask, ScriptChan};
 use script::script_task;
 use servo_net::image_cache_task::ImageCacheTask;
@@ -31,7 +31,6 @@ pub struct Pipeline {
     render_chan: RenderChan,
     /// The most recently loaded url
     url: Option<Url>,
-    navigation_type: Option<NavigationType>,
 }
 
 impl Pipeline {
@@ -140,13 +139,11 @@ impl Pipeline {
             layout_chan: layout_chan,
             render_chan: render_chan,
             url: None,
-            navigation_type: None,
         }
     }
 
-    pub fn load(&mut self, url: Url, navigation_type: Option<NavigationType>) {
+    pub fn load(&mut self, url: Url) {
         self.url = Some(url.clone());
-        self.navigation_type = navigation_type;
         self.script_chan.send(LoadMsg(self.id, url));
     }
 
@@ -163,11 +160,10 @@ impl Pipeline {
         self.render_chan.send(PaintPermissionRevoked);
     }
 
-    pub fn reload(&mut self, navigation_type: Option<NavigationType>) {
-        if self.url.is_some() {
-            let url = self.url.get_ref().clone();
-            self.load(url, navigation_type);
-        }
+    pub fn reload(&mut self) {
+        do self.url.clone().map_consume() |url| {
+            self.load(url);
+        };
     }
 
     pub fn exit(&self) {

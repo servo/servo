@@ -299,6 +299,7 @@ impl CompositorTask {
                     }
 
                     SetLayerPageSize(id, new_size) => {
+                        println(fmt!("Compositor: id %? sent new layer of size %?", id, new_size));
                         match compositor_layer {
                             Some(ref mut layer) => {
                                 let page_window = Size2D(window_size.width as f32 / world_zoom,

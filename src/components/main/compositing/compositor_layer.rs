@@ -339,7 +339,8 @@ impl CompositorLayer {
         
         // Add new tiles.
         let quadtree = match self.quadtree {
-            NoTree(_, _) => fail!("CompositorLayer: cannot get buffer request, no quadtree initialized"),
+            NoTree(_, _) => fail!("CompositorLayer: cannot get buffer request for %?,
+                                   no quadtree initialized", self.pipeline.id),
             Tree(ref mut quadtree) => quadtree,
         };
 
@@ -384,7 +385,8 @@ impl CompositorLayer {
         if self.pipeline.id == pipeline_id {
             { // block here to prevent double mutable borrow of self
                 let quadtree = match self.quadtree {
-                    NoTree(_, _) => fail!("CompositorLayer: cannot get buffer request, no quadtree initialized"),
+                    NoTree(_, _) => fail!("CompositorLayer: cannot get buffer request for %?,
+                                           no quadtree initialized", self.pipeline.id),
                     Tree(ref mut quadtree) => quadtree,
                 };
                 
