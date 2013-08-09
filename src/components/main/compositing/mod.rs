@@ -26,8 +26,6 @@ use std::comm::{Chan, SharedChan, Port};
 use std::num::Orderable;
 use std::task;
 use std::vec;
-use extra::uv_global_loop;
-use extra::timer;
 use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::size::Size2D;
@@ -494,7 +492,10 @@ impl CompositorTask {
                 composite();
             }
 
+            /*
             timer::sleep(&uv_global_loop::get(), 10);
+            */
+            fail!("stubbed out!");
 
             // If a pinch-zoom happened recently, ask for tiles at the new resolution
             if zoom_action && precise_time_s() - zoom_time > 0.3 {
@@ -512,7 +513,10 @@ impl CompositorTask {
 fn on_osmain(f: ~fn()) {
     // FIXME: rust#6399
     let mut main_task = task::task();
+    /*
     main_task.sched_mode(task::PlatformThread);
+    */
+    fail!("stubbed out!");
     do main_task.spawn {
         f();
     }

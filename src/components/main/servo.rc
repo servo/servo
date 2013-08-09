@@ -43,7 +43,6 @@ use gfx::opts;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::time::{Profiler, ProfilerChan, PrintMsg};
-use extra::uv_global_loop;
 
 pub use gfx::opts::Opts;
 pub use gfx::text;
@@ -105,6 +104,7 @@ fn run(opts: &Opts) {
     let (profiler_port, profiler_chan) = comm::stream();
     let profiler_chan = ProfilerChan::new(profiler_chan);
     Profiler::create(profiler_port);
+    /*
     do opts.profiler_period.map |period| {
         let profiler_chan = profiler_chan.clone();
         let period = *period;
@@ -116,6 +116,8 @@ fn run(opts: &Opts) {
             }
         }
     };
+    */
+    fail!("stubbed out!");
 
     // Create the compositor.
     let (compositor_port, compositor_chan) = comm::stream();

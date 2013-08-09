@@ -22,8 +22,6 @@ use std::comm::Chan;
 use std::io;
 use std::ptr;
 use js::jsapi::JSVal;
-use extra::timer;
-use extra::uv_global_loop;
 
 pub enum TimerControlMsg {
     TimerMessage_Fire(~TimerData),
@@ -141,6 +139,7 @@ impl BindingObject for Window {
 
 impl Window {
     pub fn SetTimeout(&self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
+        /*
         let timeout = int::max(0, timeout) as uint;
 
         // Post a delayed message to the per-window timer task; it will dispatch it
@@ -153,6 +152,8 @@ impl Window {
                             timeout,
                             &self.timer_chan,
                             TimerMessage_Fire(data));
+        */
+        fail!("stubbed out!");
         return 0; //TODO return handle into list of active timers
     }
 
