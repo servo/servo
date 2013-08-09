@@ -1,13 +1,15 @@
 VPATH=%VPATH%
+CSSPARSER_DIR ?= ../rust-cssparser
 
 CC ?= gcc
 CXX ?= g++
 CXXFLAGS ?=
 AR ?= ar
 RUSTC ?= rustc
-RUSTFLAGS ?=
+RUSTFLAGS ?= -L $(CSSPARSER_DIR)
 
-RUST_SRC=$(shell find $(VPATH)/. -type f -name '*.rs')
+
+RUST_SRC=$(shell find $(VPATH)/. -type f -name '*.rs') $(CSSPARSER_DIR)/libcssparser.dummy
 
 .PHONY: all
 all:    libservo-style.dummy
