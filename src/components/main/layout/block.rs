@@ -10,7 +10,7 @@ use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{BlockFlow, FlowContext, FlowData, InlineBlockFlow, FloatFlow};
 use layout::inline::InlineLayout;
 use layout::model::{MaybeAuto, Specified, Auto};
-use layout::float_context::FloatContext;
+use layout::float_context::{FloatContext, Invalid};
 
 use newcss::values::{CSSClearNone, CSSClearLeft, CSSClearRight, CSSClearBoth};
 use layout::float_context::{ClearLeft, ClearRight, ClearBoth};
@@ -187,6 +187,7 @@ impl BlockFlowData {
             self.common.position.origin = Au::zero_point();
             self.common.position.size.width = ctx.screen_size.size.width;
             self.common.floats_in = FloatContext::new(self.common.num_floats);
+            self.common.is_inorder = false;
         }
 
         //position was set to the containing block by the flow's parent
@@ -239,22 +240,45 @@ impl BlockFlowData {
             }
         }
 
+        let has_inorder_children = self.common.is_inorder || self.common.num_floats > 0;
         for BlockFlow(self).each_child |kid| {
             assert!(kid.starts_block_flow() || kid.starts_inline_flow());
 
             do kid.with_mut_base |child_node| {
                 child_node.position.origin.x = x_offset;
                 child_node.position.size.width = remaining_width;
+                child_node.is_inorder = has_inorder_children;
+
+                if !child_node.is_inorder {
+                    child_node.floats_in = FloatContext::new(0);
+                }
             }
         }
     }
 
+    pub fn assign_height_inorder_block(@mut self, ctx: &mut LayoutContext) {
+        debug!("assign_height_inorder_block: assigning height for block %?", self.common.id);
+        self.assign_height_block_base(ctx, true);
+    }
+
     pub fn assign_height_block(@mut self, ctx: &mut LayoutContext) {
+        debug!("assign_height_block: assigning height for block %?", self.common.id);
+        // This is the only case in which a block flow can start an inorder
+        // subtraversal.
+        if self.is_root && self.common.num_floats > 0 {
+            self.assign_height_inorder_block(ctx);
+            return;
+        }
+        self.assign_height_block_base(ctx, false);
+    }
+
+    fn assign_height_block_base(@mut self, ctx: &mut LayoutContext, inorder: bool) {
         let mut cur_y = Au(0);
         let mut clearance = Au(0);
         let mut top_offset = Au(0);
         let mut bottom_offset = Au(0);
         let mut left_offset = Au(0);
+        let mut float_ctx = Invalid;
 
         for self.box.iter().advance |&box| {
             let style = box.style();
@@ -279,27 +303,25 @@ impl BlockFlowData {
             };
         }
 
-        // TODO(eatkinson): the translation here is probably
-        // totally wrong. We need to do it right or pages
-        // with floats will look very strange.
+        if inorder {
+            // Floats for blocks work like this:
+            // self.floats_in -> child[0].floats_in
+            // visit child[0]
+            // child[i-1].floats_out -> child[i].floats_in
+            // visit child[i]
+            // repeat until all children are visited.
+            // last_child.floats_out -> self.floats_out (done at the end of this method)
+            float_ctx = self.common.floats_in.translate(Point2D(-left_offset, -top_offset));
+            for BlockFlow(self).each_child |kid| {
+                do kid.with_mut_base |child_node| {
+                    child_node.floats_in = float_ctx.clone();
+                }
+                kid.assign_height_inorder(ctx);
+                do kid.with_mut_base |child_node| {
+                    float_ctx = child_node.floats_out.clone();
+                }
 
-        // Floats for blocks work like this:
-        // self.floats_in -> child[0].floats_in
-        // visit child[0]
-        // child[i-1].floats_out -> child[i].floats_in
-        // visit child[i]
-        // repeat until all children are visited.
-        // last_child.floats_out -> self.floats_out (done at the end of this method)
-        let mut float_ctx = self.common.floats_in.translate(Point2D(-left_offset, -top_offset));
-        for BlockFlow(self).each_child |kid| {
-            do kid.with_mut_base |child_node| {
-                child_node.floats_in = float_ctx.clone();
             }
-            kid.assign_height(ctx);
-            do kid.with_mut_base |child_node| {
-                float_ctx = child_node.floats_out.clone();
-            }
-
         }
         for BlockFlow(self).each_child |kid| {
             do kid.with_mut_base |child_node| {
@@ -311,7 +333,7 @@ impl BlockFlowData {
         let mut height = if self.is_root {
             Au::max(ctx.screen_size.size.height, cur_y)
         } else {
-                cur_y - top_offset
+            cur_y - top_offset
         };
 
         for self.box.iter().advance |&box| {
@@ -338,8 +360,12 @@ impl BlockFlowData {
         //TODO(eatkinson): compute heights using the 'height' property.
         self.common.position.size.height = height + noncontent_height;
 
-        let extra_height = height - (cur_y - top_offset) + bottom_offset; 
-        self.common.floats_out = float_ctx.translate(Point2D(left_offset, -extra_height));
+        if inorder {
+            let extra_height = height - (cur_y - top_offset) + bottom_offset; 
+            self.common.floats_out = float_ctx.translate(Point2D(left_offset, -extra_height));
+        } else {
+            self.common.floats_out = self.common.floats_in.clone();
+        }
     }
 
     pub fn build_display_list_block<E:ExtraDisplayListData>(@mut self,

@@ -251,14 +251,10 @@ impl LayoutTask {
         }
 
         for layout_root.traverse_postorder |flow| {
-            do flow.with_base |base| {
-                match base.parent {
-                    None => {},
-                    Some(parent_ctx) => {
-                        let prop = base.restyle_damage.propagate_up();
-                        do parent_ctx.with_mut_base |parent| {
-                            parent.restyle_damage.union_in_place(prop);
-                        }
+            for flow.each_child |child| {
+                do child.with_base |child_base| {
+                    do flow.with_mut_base |base| {
+                        base.restyle_damage.union_in_place(child_base.restyle_damage);
                     }
                 }
             }
@@ -283,7 +279,9 @@ impl LayoutTask {
 
             // For now, this is an inorder traversal
             // FIXME: prune this traversal as well
-            layout_root.assign_height(&mut layout_ctx);
+            for layout_root.traverse_bu_sub_inorder |flow| {
+                flow.assign_height(&mut layout_ctx);
+            }
         }
 
         // Build the display list if necessary, and send it to the renderer.
