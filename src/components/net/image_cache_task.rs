@@ -171,7 +171,6 @@ enum AfterPrefetch {
     DoNotDecode
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 impl ImageCache {
     pub fn run(&mut self) {
         let mut msg_handlers: ~[~fn(msg: &Msg)] = ~[];

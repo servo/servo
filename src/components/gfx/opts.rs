@@ -23,7 +23,6 @@ pub struct Opts {
     output_file: Option<~str>,
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 pub fn from_cmdline_args(args: &[~str]) -> Opts {
     use extra::getopts;
 

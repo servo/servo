@@ -34,7 +34,6 @@ pub trait FontContextHandleMethods {
     fn create_font_from_identifier(&self, ~str, UsedFontStyle) -> Result<FontHandle, ()>;
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 pub struct FontContext {
     instance_cache: LRUCache<FontDescriptor, @mut Font>,
     font_list: Option<FontList>, // only needed by layout
@@ -45,7 +44,6 @@ pub struct FontContext {
     profiler_chan: ProfilerChan,
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 impl<'self> FontContext {
     pub fn new(backend: BackendType,
            needs_font_list: bool,

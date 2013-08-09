@@ -40,7 +40,6 @@ priv struct ImageState {
     last_response: ImageResponseMsg
 }
 
-#[allow(non_implicitly_copyable_typarams)] // Using maps of Urls
 impl LocalImageCache {
     /// The local cache will only do a single remote request for a given
     /// URL in each 'round'. Layout should call this each time it begins

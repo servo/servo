@@ -211,7 +211,6 @@ extern fn setAttribute(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
     }
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));
@@ -241,7 +240,6 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
     }
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));

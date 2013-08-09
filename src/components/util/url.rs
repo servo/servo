@@ -17,7 +17,6 @@ Create a URL object from a string. Does various helpful browsery things like
   is based off the current url
 
 */
-#[allow(non_implicitly_copyable_typarams)]
 pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
     let schm = url::get_scheme(str_url);
     let str_url = if result::is_err(&schm) {
