@@ -4630,6 +4630,7 @@ class CGBindingRoot(CGThing):
                           'dom::htmlscriptelement::HTMLScriptElement',
                           'dom::htmlstyleelement::HTMLStyleElement',
                           'dom::htmltableelement::HTMLTableElement',
+                          'dom::htmltablerowelement::HTMLTableRowElement',
                           'dom::htmltablesectionelement::HTMLTableSectionElement',
                           'dom::bindings::utils::*',
                           'dom::bindings::conversions::*',
