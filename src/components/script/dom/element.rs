@@ -12,7 +12,7 @@ use dom::bindings::codegen::{HTMLParagraphElementBinding, HTMLScriptElementBindi
 use dom::bindings::codegen::{HTMLImageElementBinding, HTMLOListElementBinding};
 use dom::bindings::codegen::{HTMLMetaElementBinding, HTMLStyleElementBinding};
 use dom::bindings::codegen::{HTMLTableElementBinding, HTMLTableRowElementBinding};
-use dom::bindings::codegen::{HTMLTableSectionElementBinding};
+use dom::bindings::codegen::{HTMLTableSectionElementBinding, HTMLTextAreaElementBinding};
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
 use dom::clientrect::ClientRect;
@@ -32,6 +32,7 @@ use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
+use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
@@ -97,6 +98,7 @@ pub enum ElementTypeId {
     HTMLTableCellElementTypeId,
     HTMLTableElementTypeId,
     HTMLTableRowElementTypeId,
+    HTMLTextAreaElementTypeId,
     HTMLTitleElementTypeId,
     HTMLUListElementTypeId,
     UnknownElementTypeId,
@@ -212,6 +214,8 @@ generate_cacheable_wrapper!(HTMLTableRowElement, HTMLTableRowElementBinding::Wra
 generate_binding_object!(HTMLTableRowElement)
 generate_cacheable_wrapper!(HTMLTableSectionElement, HTMLTableSectionElementBinding::Wrap)
 generate_binding_object!(HTMLTableSectionElement)
+generate_cacheable_wrapper!(HTMLTextAreaElement, HTMLTextAreaElementBinding::Wrap)
+generate_binding_object!(HTMLTextAreaElement)
 
 //
 // Fancier elements

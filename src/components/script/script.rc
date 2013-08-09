@@ -63,6 +63,7 @@ pub mod dom {
             pub mod HTMLTableElementBinding;
             pub mod HTMLTableRowElementBinding;
             pub mod HTMLTableSectionElementBinding;
+            pub mod HTMLTextAreaElementBinding;
             pub mod MouseEventBinding;
             pub mod NodeBinding;
             pub mod PrototypeList;
@@ -99,6 +100,7 @@ pub mod dom {
     pub mod htmltableelement;
     pub mod htmltablerowelement;
     pub mod htmltablesectionelement;
+    pub mod htmltextareaelement;
     pub mod mouseevent;
     pub mod node;
     pub mod uievent;
