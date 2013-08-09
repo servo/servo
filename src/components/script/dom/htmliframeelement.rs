@@ -31,7 +31,7 @@ struct IFrameSize {
 impl IFrameSize {
     pub fn set_rect(&mut self, rect: Rect<f32>) {
         let future_chan = replace(&mut self.future_chan, None);
-        do future_chan.map_consume |future_chan| {
+        do future_chan.map_move |future_chan| {
             let Size2D { width, height } = rect.size;
             future_chan.send(Size2D(width as uint, height as uint));
         };

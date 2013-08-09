@@ -79,17 +79,17 @@ impl RenderListener for CompositorChan {
         port.recv()
     }
 
-    fn paint(&self, id: PipelineId, layer_buffer_set: arc::Arc<LayerBufferSet>) {
-        self.chan.send(Paint(id, layer_buffer_set))
+    fn paint(&self, id: PipelineId, layer_buffer_set: arc::Arc<LayerBufferSet>, epoch: uint) {
+        self.chan.send(Paint(id, layer_buffer_set, epoch))
     }
 
     fn new_layer(&self, id: PipelineId, page_size: Size2D<uint>) {
         let Size2D { width, height } = page_size;
         self.chan.send(NewLayer(id, Size2D(width as f32, height as f32)))
     }
-    fn set_layer_page_size(&self, id: PipelineId, page_size: Size2D<uint>) {
+    fn set_layer_page_size(&self, id: PipelineId, page_size: Size2D<uint>, epoch: uint) {
         let Size2D { width, height } = page_size;
-        self.chan.send(SetLayerPageSize(id, Size2D(width as f32, height as f32)))
+        self.chan.send(SetLayerPageSize(id, Size2D(width as f32, height as f32), epoch))
     }
     fn set_layer_clip_rect(&self, id: PipelineId, new_rect: Rect<uint>) {
         let new_rect = Rect(Point2D(new_rect.origin.x as f32,
@@ -136,11 +136,10 @@ pub enum Msg {
     /// Requests the compositors GL context.
     GetGLContext(Chan<AzGLContext>),
 
-    // TODO: Attach epochs to these messages
     /// Alerts the compositor that there is a new layer to be rendered.
     NewLayer(PipelineId, Size2D<f32>),
     /// Alerts the compositor that the specified layer's page has changed size.
-    SetLayerPageSize(PipelineId, Size2D<f32>),
+    SetLayerPageSize(PipelineId, Size2D<f32>, uint),
     /// Alerts the compositor that the specified layer's clipping rect has changed.
     SetLayerClipRect(PipelineId, Rect<f32>),
     /// Alerts the compositor that the specified layer has been deleted.
@@ -149,7 +148,7 @@ pub enum Msg {
     InvalidateRect(PipelineId, Rect<uint>),
 
     /// Requests that the compositor paint the given layer buffer set for the given page size.
-    Paint(PipelineId, arc::Arc<LayerBufferSet>),
+    Paint(PipelineId, arc::Arc<LayerBufferSet>, uint),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(ReadyState),
     /// Alerts the compositor to the current status of rendering.
@@ -235,8 +234,12 @@ impl CompositorTask {
             let window_size_page = Size2D(window_size.width as f32 / world_zoom,
                                           window_size.height as f32 / world_zoom);
             for layer in compositor_layer.mut_iter() {
-                recomposite = layer.get_buffer_request(Rect(Point2D(0f32, 0f32), window_size_page),
-                                                       world_zoom) || recomposite;
+                if !layer.hidden {
+                    recomposite = layer.get_buffer_request(Rect(Point2D(0f32, 0f32), window_size_page),
+                                                           world_zoom) || recomposite;
+                } else { 
+                    debug!("layer is hidden!"); //eschweic
+                }
             }
         };
         
@@ -298,13 +301,12 @@ impl CompositorTask {
                         ask_for_tiles();
                     }
 
-                    SetLayerPageSize(id, new_size) => {
-                        println(fmt!("Compositor: id %? sent new layer of size %?", id, new_size));
+                    SetLayerPageSize(id, new_size, epoch) => {
                         match compositor_layer {
                             Some(ref mut layer) => {
                                 let page_window = Size2D(window_size.width as f32 / world_zoom,
                                                          window_size.height as f32 / world_zoom);
-                                assert!(layer.resize(id, new_size, page_window));
+                                assert!(layer.resize(id, new_size, page_window, epoch));
                                 ask_for_tiles();
                             }
                             None => {}
@@ -331,12 +333,12 @@ impl CompositorTask {
                         }
                     }
 
-                    Paint(id, new_layer_buffer_set) => {
+                    Paint(id, new_layer_buffer_set, epoch) => {
                         debug!("osmain: received new frame"); 
 
                         match compositor_layer {
                             Some(ref mut layer) => {
-                                assert!(layer.add_buffers(id, new_layer_buffer_set.get()));
+                                assert!(layer.add_buffers(id, new_layer_buffer_set.get(), epoch));
                                 recomposite = true;
                             }
                             None => {

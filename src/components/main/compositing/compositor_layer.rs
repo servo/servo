@@ -43,6 +43,9 @@ pub struct CompositorLayer {
     /// When set to true, this layer is ignored by its parents. This is useful for
     /// soft deletion or when waiting on a page size.
     hidden: bool,
+    /// A monotonically increasing counter that keeps track of the current epoch.
+    /// add_buffer() calls that don't match the current epoch will be ignored.
+    epoch: uint,
 }
 
 /// Helper struct for keeping CompositorLayer children organized.
@@ -79,7 +82,8 @@ impl CompositorLayer {
                                                       max_mem)),
             },
             root_layer: @mut ContainerLayer(),
-            hidden: true,
+            hidden: page_size.is_none(),
+            epoch: 0,
         }
     }
     
@@ -89,19 +93,37 @@ impl CompositorLayer {
                            max_mem: Option<uint>) -> CompositorLayer {
         let SendableFrameTree { pipeline, children } = frame_tree;
         let mut layer = CompositorLayer::new(pipeline, None, tile_size, max_mem);
-        layer.children = (do children.consume_iter().transform |child| {
+        layer.children = (do children.move_iter().map |child| {
             let SendableChildFrameTree { frame_tree, rect } = child;
             let container = @mut ContainerLayer();
-            container.scissor = rect;
+            match rect {
+                Some(rect) => {
+                    container.scissor = Some(Rect(Point2D(100f32, 200f32), Size2D(700f32, 800f32)));
+                    container.common.transform = identity().translate(100f32, 200f32, 0f32);
+
+                    // FIXME: The top two lines are temporary until layout window sizes are fixed.
+                    // When they are, uncomment the next 2 lines:
+
+                    // container.scissor = Some(rect);
+                    // container.common.transform = identity().translate(rect.origin.x,
+                    //                                                   rect.origin.y,
+                    //                                                   0f32);
+                    
+                }
+                None => {}
+            };
+            
+            let child_layer = ~CompositorLayer::from_frame_tree(frame_tree, tile_size, max_mem);
+            container.add_child(ContainerLayerKind(child_layer.root_layer));
+            
             CompositorLayerChild {
-                child: ~CompositorLayer::from_frame_tree(frame_tree,
-                                                         tile_size,
-                                                         max_mem),
+                child: child_layer,
                 container: container,
             }
         }).collect();
         layer
     }
+
 
     // Move the layer by as relative specified amount in page coordinates. Does not change
     // the position of the layer relative to its parent. This also takes in a cursor position
@@ -195,7 +217,7 @@ impl CompositorLayer {
             let (request, r) = quadtree.get_tile_rects_page(rect, scale);
             redisplay = r; // workaround to make redisplay visible outside block
             if !request.is_empty() {
-                self.pipeline.render_chan.send(ReRenderMsg(request, scale, self.pipeline.id.clone()));
+                self.pipeline.render_chan.send(ReRenderMsg(request, scale, self.pipeline.id.clone(), self.epoch));
             }
         }
         if redisplay {
@@ -230,7 +252,7 @@ impl CompositorLayer {
     // If the layer is hidden and has a defined page size, unhide it.
     // This method returns false if the specified layer is not found.
     pub fn set_clipping_rect(&mut self, pipeline_id: PipelineId, new_rect: Rect<f32>) -> bool {
-        for child_node in self.children.iter() {
+        for child_node in self.children.mut_iter() {
             if pipeline_id != child_node.child.pipeline.id {
                 loop;
             }
@@ -254,8 +276,9 @@ impl CompositorLayer {
     // Set the layer's page size. This signals that the renderer is ready for BufferRequests.
     // If the layer is hidden and has a defined clipping rect, unhide it.
     // This method returns false if the specified layer is not found.
-    pub fn resize(&mut self, pipeline_id: PipelineId, new_size: Size2D<f32>, window_size: Size2D<f32>) -> bool {
+    pub fn resize(&mut self, pipeline_id: PipelineId, new_size: Size2D<f32>, window_size: Size2D<f32>, epoch: uint) -> bool {
         if self.pipeline.id == pipeline_id {
+            self.epoch = epoch;
             self.page_size = Some(new_size);
             // TODO: might get buffers back here
             match self.quadtree {
@@ -271,16 +294,17 @@ impl CompositorLayer {
             self.hidden = false;
             return true;
         }
-        self.resize_helper(pipeline_id, new_size)
+        self.resize_helper(pipeline_id, new_size, epoch)
     }
     
     // A helper method to resize sublayers.
-    fn resize_helper(&mut self, pipeline_id: PipelineId, new_size: Size2D<f32>) -> bool {
-        for self.children.mut_iter().advance |child_node| {
+    fn resize_helper(&mut self, pipeline_id: PipelineId, new_size: Size2D<f32>, epoch: uint) -> bool {
+        for child_node in self.children.mut_iter() {
             if pipeline_id != child_node.child.pipeline.id {
                 loop;
             }
             let child = &mut child_node.child;
+            child.epoch = epoch;
             child.page_size = Some(new_size);
             // TODO: might get buffers back here
             match child.quadtree {
@@ -303,7 +327,7 @@ impl CompositorLayer {
         }
 
         // ID does not match ours, so recurse on descendents (including hidden children)
-        self.children.mut_iter().transform(|x| &mut x.child).any(|x| x.resize_helper(pipeline_id, new_size))
+        self.children.mut_iter().map(|x| &mut x.child).any(|x| x.resize_helper(pipeline_id, new_size, epoch))
     }
 
     // Collect buffers from the quadtree. This method IS NOT recursive, so child CompositorLayers
@@ -336,7 +360,7 @@ impl CompositorLayer {
                 }
             };
         }
-        
+
         // Add new tiles.
         let quadtree = match self.quadtree {
             NoTree(_, _) => fail!("CompositorLayer: cannot get buffer request for %?,
@@ -381,8 +405,14 @@ impl CompositorLayer {
     }
     
     // Add LayerBuffers to the specified layer. Returns false if the layer is not found.
-    pub fn add_buffers(&mut self, pipeline_id: PipelineId, new_buffers: &LayerBufferSet) -> bool {
+    // If the epoch of the message does not match the layer's epoch, the message is ignored.
+    pub fn add_buffers(&mut self, pipeline_id: PipelineId, new_buffers: &LayerBufferSet, epoch: uint) -> bool {
         if self.pipeline.id == pipeline_id {
+            if self.epoch != epoch {
+                debug!("compositor epoch mismatch: %? != %?, id: %?", self.epoch, epoch, self.pipeline.id);
+                // TODO: send buffers back
+                return true;
+            }
             { // block here to prevent double mutable borrow of self
                 let quadtree = match self.quadtree {
                     NoTree(_, _) => fail!("CompositorLayer: cannot get buffer request for %?,
@@ -400,7 +430,7 @@ impl CompositorLayer {
             return true;
         }
         // ID does not match ours, so recurse on descendents (including hidden children).
-        self.children.mut_iter().map(|x| &mut x.child).any(|x| x.add_buffers(pipeline_id, new_buffers))
+        self.children.mut_iter().map(|x| &mut x.child).any(|x| x.add_buffers(pipeline_id, new_buffers, epoch))
     }
 
     // Deletes a specified sublayer, including hidden children. Returns false if the layer is not found.

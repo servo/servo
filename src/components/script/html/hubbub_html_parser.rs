@@ -401,7 +401,7 @@ pub fn parse_html(cx: *JSContext,
                                 future_chan: Some(chan),
                                 constellation_chan: constellation_chan.clone(),
                             });
-                            iframe_chan.send(HtmlDiscoveredIFrame(iframe_url, subpage_id, size_future));
+                            iframe_chan.send(HtmlDiscoveredIFrame((iframe_url, subpage_id, size_future)));
                         }
                     }
                 }

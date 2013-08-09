@@ -26,6 +26,7 @@ use servo_util::time::ProfilerChan;
 use std::hashmap::{HashMap, HashSet};
 use std::util::replace;
 use extra::future::{Future, from_value};
+use extra::url::Url;
 
 /// Maintains the pipelines and navigation context and grants permission to composite
 pub struct Constellation {
@@ -108,7 +109,7 @@ impl FrameTree {
 
     /// Returns the frame tree whose key is id
     fn find_mut(@mut self, id: PipelineId) -> Option<@mut FrameTree> {
-        do self.iter().find_ |frame_tree| {
+        do self.iter().find |frame_tree| {
             id == frame_tree.pipeline.id
         }
     }
@@ -118,7 +119,7 @@ impl FrameTree {
     fn replace_child(@mut self,
                      id: PipelineId,
                      new_child: @mut FrameTree)
-                     -> Result<@mut FrameTree, @mut FrameTree> {
+                     -> Either<@mut FrameTree, @mut FrameTree> {
         let mut child = (do self.iter().filter_map |frame_tree| {
             (do frame_tree.children.iter().find |child| {
                 child.frame_tree.pipeline.id == id
@@ -407,7 +408,7 @@ impl Constellation {
         for current_frame in self.current_frame().iter() {
             debug!("Constellation: Sending size for frame in current frame tree.");
             let source_frame = current_frame.find_mut(pipeline_id);
-            for source_frame.iter().advance |source_frame| {
+            for source_frame in source_frame.iter() {
                 for child_frame_tree in source_frame.children.mut_iter() {
                     let pipeline = &child_frame_tree.frame_tree.pipeline;
                     if pipeline.subpage_id.expect("Constellation: child frame does not have a
@@ -646,6 +647,11 @@ impl Constellation {
             // TODO(tkuehn): In fact, this kind of message might be provably
             // impossible to occur.
             if current_frame.contains(pipeline_id) {
+                //debug!("updating compositor frame tree with %?", current_frame);
+                //self.set_ids(current_frame);
+                for frame in current_frame.iter() {
+                    frame.pipeline.grant_paint_permission();
+                }
                 return;
             }
         }

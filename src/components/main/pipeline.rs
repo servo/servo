@@ -161,7 +161,7 @@ impl Pipeline {
     }
 
     pub fn reload(&mut self) {
-        do self.url.clone().map_consume() |url| {
+        do self.url.clone().map_move() |url| {
             self.load(url);
         };
     }
