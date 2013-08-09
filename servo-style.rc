@@ -2,23 +2,7 @@
 #[crate_type = "lib"];
 
 extern mod extra;
-
-#[path = "../rust-cssparser/ast.rs"]
-mod ast;
-#[path = "../rust-cssparser/tokenizer.rs"]
-mod tokenizer;
-#[path = "../rust-cssparser/parser.rs"]
-mod syntax;
-#[path = "../rust-cssparser/color.rs"]
-mod color;
-
-
-mod cssparser {
-    pub use super::ast::*;
-    pub use super::tokenizer::*;
-    pub use super::syntax::*;
-}
-
+extern mod cssparser;
 
 pub mod stylesheets;
 pub mod selectors;
