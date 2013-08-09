@@ -19,7 +19,7 @@ use dom::element::{HTMLElementTypeId,
                    UnknownElementTypeId};
 use dom::element::{HTMLDivElement, HTMLFontElement, HTMLFormElement,
                    HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
-                   HTMLInputElement, HTMLLinkElement,
+                   HTMLInputElement,
                    HTMLOptionElement, HTMLParagraphElement, HTMLListItemElement,
                    HTMLSelectElement, HTMLSmallElement,
                    HTMLSpanElement, HTMLTableCellElement};
@@ -32,6 +32,7 @@ use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
