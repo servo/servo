@@ -23,7 +23,7 @@ use dom::element::{HTMLBRElement,
                    HTMLOptionElement, HTMLParagraphElement, HTMLListItemElement,
                    HTMLSelectElement, HTMLSmallElement,
                    HTMLSpanElement,
-                   HTMLTableCellElement, HTMLTableRowElement,
+                   HTMLTableCellElement,
                    HTMLTitleElement, HTMLUListElement};
 use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Heading4, Heading5,
                    Heading6};
@@ -37,6 +37,7 @@ use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltableelement::HTMLTableElement;
+use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::element::{Element, Attr};
 use dom::htmlelement::HTMLElement;
