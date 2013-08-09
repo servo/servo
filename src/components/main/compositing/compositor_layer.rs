@@ -7,7 +7,7 @@ use geom::size::Size2D;
 use geom::rect::Rect;
 use geom::matrix::identity;
 use gfx::render_task::ReRenderMsg;
-use servo_msg::compositor_msg::{LayerBuffer, LayerBufferSet};
+use servo_msg::compositor_msg::{LayerBuffer, LayerBufferSet, Epoch};
 use servo_msg::constellation_msg::PipelineId;
 use script::dom::event::{ClickEvent, MouseDownEvent, MouseUpEvent};
 use script::script_task::SendEventMsg;
@@ -45,7 +45,7 @@ pub struct CompositorLayer {
     hidden: bool,
     /// A monotonically increasing counter that keeps track of the current epoch.
     /// add_buffer() calls that don't match the current epoch will be ignored.
-    epoch: uint,
+    epoch: Epoch,
 }
 
 /// Helper struct for keeping CompositorLayer children organized.
@@ -82,8 +82,8 @@ impl CompositorLayer {
                                                       max_mem)),
             },
             root_layer: @mut ContainerLayer(),
-            hidden: page_size.is_none(),
-            epoch: 0,
+            hidden: true,
+            epoch: Epoch(0),
         }
     }
     
@@ -98,20 +98,20 @@ impl CompositorLayer {
             let container = @mut ContainerLayer();
             match rect {
                 Some(rect) => {
-                    container.scissor = Some(Rect(Point2D(100f32, 200f32), Size2D(700f32, 800f32)));
-                    container.common.transform = identity().translate(100f32, 200f32, 0f32);
+                    //container.scissor = Some(Rect(Point2D(100f32, 200f32), Size2D(700f32, 800f32)));
+                    //container.common.transform = identity().translate(100f32, 200f32, 0f32);
 
                     // FIXME: The top two lines are temporary until layout window sizes are fixed.
                     // When they are, uncomment the next 2 lines:
 
-                    // container.scissor = Some(rect);
-                    // container.common.transform = identity().translate(rect.origin.x,
-                    //                                                   rect.origin.y,
-                    //                                                   0f32);
+                     container.scissor = Some(rect);
+                     container.common.transform = identity().translate(rect.origin.x,
+                                                                       rect.origin.y,
+                                                                       0f32);
                     
                 }
                 None => {}
-            };
+            }
             
             let child_layer = ~CompositorLayer::from_frame_tree(frame_tree, tile_size, max_mem);
             container.add_child(ContainerLayerKind(child_layer.root_layer));
@@ -123,7 +123,6 @@ impl CompositorLayer {
         }).collect();
         layer
     }
-
 
     // Move the layer by as relative specified amount in page coordinates. Does not change
     // the position of the layer relative to its parent. This also takes in a cursor position
@@ -276,7 +275,7 @@ impl CompositorLayer {
     // Set the layer's page size. This signals that the renderer is ready for BufferRequests.
     // If the layer is hidden and has a defined clipping rect, unhide it.
     // This method returns false if the specified layer is not found.
-    pub fn resize(&mut self, pipeline_id: PipelineId, new_size: Size2D<f32>, window_size: Size2D<f32>, epoch: uint) -> bool {
+    pub fn resize(&mut self, pipeline_id: PipelineId, new_size: Size2D<f32>, window_size: Size2D<f32>, epoch: Epoch) -> bool {
         if self.pipeline.id == pipeline_id {
             self.epoch = epoch;
             self.page_size = Some(new_size);
@@ -298,8 +297,13 @@ impl CompositorLayer {
     }
     
     // A helper method to resize sublayers.
+<<<<<<< HEAD
     fn resize_helper(&mut self, pipeline_id: PipelineId, new_size: Size2D<f32>, epoch: uint) -> bool {
         for child_node in self.children.mut_iter() {
+=======
+    fn resize_helper(&mut self, pipeline_id: PipelineId, new_size: Size2D<f32>, epoch: Epoch) -> bool {
+        for self.children.mut_iter().advance |child_node| {
+>>>>>>> 2ad7d8e... Add Epoch newtype; address review comments
             if pipeline_id != child_node.child.pipeline.id {
                 loop;
             }
@@ -406,7 +410,7 @@ impl CompositorLayer {
     
     // Add LayerBuffers to the specified layer. Returns false if the layer is not found.
     // If the epoch of the message does not match the layer's epoch, the message is ignored.
-    pub fn add_buffers(&mut self, pipeline_id: PipelineId, new_buffers: &LayerBufferSet, epoch: uint) -> bool {
+    pub fn add_buffers(&mut self, pipeline_id: PipelineId, new_buffers: &LayerBufferSet, epoch: Epoch) -> bool {
         if self.pipeline.id == pipeline_id {
             if self.epoch != epoch {
                 debug!("compositor epoch mismatch: %? != %?, id: %?", self.epoch, epoch, self.pipeline.id);

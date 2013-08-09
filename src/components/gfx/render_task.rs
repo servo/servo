@@ -8,7 +8,7 @@ use azure::{AzFloat, AzGLContext};
 use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use display_list::DisplayList;
 use servo_msg::compositor_msg::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer};
-use servo_msg::compositor_msg::{LayerBufferSet};
+use servo_msg::compositor_msg::{LayerBufferSet, Epoch};
 use servo_msg::constellation_msg::PipelineId;
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
@@ -32,7 +32,7 @@ pub struct RenderLayer {
 
 pub enum Msg {
     RenderMsg(RenderLayer),
-    ReRenderMsg(~[BufferRequest], f32, PipelineId, uint),
+    ReRenderMsg(~[BufferRequest], f32, PipelineId, Epoch),
     PaintPermissionGranted,
     PaintPermissionRevoked,
     ExitMsg(Chan<()>),
@@ -90,7 +90,7 @@ struct RenderTask<C> {
     /// Cached copy of last layers rendered
     last_paint_msg: Option<(arc::Arc<LayerBufferSet>, Size2D<uint>)>,
     /// A counter for epoch messages
-    epoch_counter: uint,
+    epoch: Epoch,
 }
 
 impl<C: RenderListener + Send> RenderTask<C> {
@@ -125,7 +125,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
 
                 paint_permission: false,
                 last_paint_msg: None,
-                epoch_counter: 0,
+                epoch: Epoch(0),
             };
 
             render_task.start();
@@ -139,24 +139,24 @@ impl<C: RenderListener + Send> RenderTask<C> {
             match self.port.recv() {
                 RenderMsg(render_layer) => {
                     if self.paint_permission {
-                        self.epoch_counter += 1;
-                        self.compositor.set_layer_page_size(self.id, render_layer.size, self.epoch_counter);
+                        self.epoch.next();
+                        self.compositor.set_layer_page_size(self.id, render_layer.size, self.epoch);
                     }
                     self.render_layer = Some(render_layer);
                 }
                 ReRenderMsg(tiles, scale, id, epoch) => {
-                    if self.epoch_counter == epoch {
+                    if self.epoch == epoch {
                         self.render(tiles, scale, id);
                     } else {
-                        debug!("renderer epoch mismatch: %? != %?", self.epoch_counter, epoch);
+                        debug!("renderer epoch mismatch: %? != %?", self.epoch, epoch);
                     }
                 }
                 PaintPermissionGranted => {
                     self.paint_permission = true;
                     match self.render_layer {
                         Some(ref render_layer) => {
-                            self.epoch_counter += 1;
-                            self.compositor.set_layer_page_size(self.id, render_layer.size, self.epoch_counter);
+                            self.epoch.next();
+                            self.compositor.set_layer_page_size(self.id, render_layer.size, self.epoch);
                         }
                         None => {}
                     }
@@ -244,7 +244,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
 
             debug!("render_task: returning surface");
             if self.paint_permission {
-                self.compositor.paint(id, layer_buffer_set.clone(), self.epoch_counter);
+                self.compositor.paint(id, layer_buffer_set.clone(), self.epoch);
             }
             debug!("caching paint msg");
             self.last_paint_msg = Some((layer_buffer_set, render_layer.size));
