@@ -52,10 +52,7 @@ pub enum SimpleSelector {
     Empty,
     Root,
     Lang(~str),
-//    NthChild(u32, u32),
-//    NthLastChild(u32, u32),
-//    NthOfType(u32, u32),
-//    NthLastOfType(u32, u32),
+    NthChild(i32, i32),
     Negation(~[SimpleSelector]),
     // ...
 }
@@ -168,13 +165,13 @@ fn compute_specificity(mut selector: &CompoundSelector,
         for simple_selector in simple_selectors.iter() {
             match simple_selector {
                 &LocalNameSelector{_} => specificity.element_selectors += 1,
-                &IDSelector(_) => specificity.id_selectors += 1,
-                &ClassSelector(_)
-                | &AttrExists(_) | &AttrEqual(_, _) | &AttrIncludes(_, _) | &AttrDashMatch(_, _)
-                | &AttrPrefixMatch(_, _) | &AttrSubstringMatch(_, _) | &AttrSuffixMatch(_, _)
-                | &Empty | &Root | &Lang(_)
+                &IDSelector(*) => specificity.id_selectors += 1,
+                &ClassSelector(*)
+                | &AttrExists(*) | &AttrEqual(*) | &AttrIncludes(*) | &AttrDashMatch(*)
+                | &AttrPrefixMatch(*) | &AttrSubstringMatch(*) | &AttrSuffixMatch(*)
+                | &Empty | &Root | &Lang(*) | &NthChild(*)
                 => specificity.class_like_selectors += 1,
-                &NamespaceSelector(_) => (),
+                &NamespaceSelector(*) => (),
                 &Negation(ref negated)
                 => simple_selectors_specificity(negated.as_slice(), specificity),
             }
@@ -414,6 +411,7 @@ fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
     let lower_name: &str = to_ascii_lower(name);
     match lower_name {
         "lang" => parse_lang(arguments),
+        "nth-child" => parse_nth(arguments).map(|&(a, b)| NthChild(a, b)),
         "not" => if inside_negation { None } else { parse_negation(arguments, namespaces) },
         _ => None
     }
