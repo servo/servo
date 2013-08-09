@@ -5,7 +5,8 @@
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, DerivedWrapper};
-use dom::element::{HTMLHtmlElement, HTMLTitleElement, HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
+use dom::element::{Element, HTMLHtmlElement, HTMLTitleElement};
+use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::event::Event;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
@@ -216,19 +217,7 @@ impl Document {
     }
 
     pub fn GetElementsByTagName(&self, tag: &DOMString) -> @mut HTMLCollection {
-        let mut elements = ~[];
-        let tag = tag.to_str();
-        let _ = for self.root.traverse_preorder |child| {
-            if child.is_element() {
-                do child.with_imm_element |elem| {
-                    if elem.tag_name == tag {
-                        elements.push(child);
-                    }
-                }
-            }
-        };
-        let (scope, cx) = self.get_scope_and_cx();
-        HTMLCollection::new(elements, cx, scope)
+        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, tag.to_str()))
     }
 
     pub fn GetElementsByTagNameNS(&self, _ns: &DOMString, _tag: &DOMString) -> @mut HTMLCollection {
@@ -431,14 +420,17 @@ impl Document {
     }
 
     pub fn GetElementsByName(&self, name: &DOMString) -> @mut HTMLCollection {
+        self.createHTMLCollection(|elem|
+            elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), name.to_str()))
+    }
+    
+    pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {
         let mut elements = ~[];
-        let name = name.to_str();
         let _ = for self.root.traverse_preorder |child| {
             if child.is_element() {
                 do child.with_imm_element |elem| {
-                    match elem.get_attr("name") {
-                        Some(val) => if eq_slice(val, name) { elements.push(child) },
-                        None() => ()
+                    if callback(elem) {
+                        elements.push(child);
                     }
                 }
             }
