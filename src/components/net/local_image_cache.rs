@@ -51,7 +51,7 @@ impl LocalImageCache {
     pub fn prefetch(&self, url: &Url) {
         let state = self.get_state(url);
         if !state.prefetched {
-            self.image_cache_task.send(Prefetch(copy *url));
+            self.image_cache_task.send(Prefetch((*url).clone()));
             state.prefetched = true;
         }
     }
@@ -59,7 +59,7 @@ impl LocalImageCache {
     pub fn decode(&self, url: &Url) {
         let state = self.get_state(url);
         if !state.decoded {
-            self.image_cache_task.send(Decode(copy *url));
+            self.image_cache_task.send(Decode((*url).clone()));
             state.decoded = true;
         }
     }
@@ -97,7 +97,7 @@ impl LocalImageCache {
         }
 
         let (response_port, response_chan) = comm::stream();
-        self.image_cache_task.send(GetImage(copy *url, response_chan));
+        self.image_cache_task.send(GetImage((*url).clone(), response_chan));
 
         let response = response_port.recv();
         match response {
@@ -110,10 +110,10 @@ impl LocalImageCache {
                 let image_cache_task = self.image_cache_task.clone();
                 assert!(self.on_image_available.is_some());
                 let on_image_available = self.on_image_available.get()();
-                let url = copy *url;
+                let url = (*url).clone();
                 do task::spawn {
                     let (response_port, response_chan) = comm::stream();
-                    image_cache_task.send(WaitForImage(copy url, response_chan));
+                    image_cache_task.send(WaitForImage(url.clone(), response_chan));
                     on_image_available(response_port.recv());
                 }
             }

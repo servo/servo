@@ -15,6 +15,7 @@ enum RangeRelation {
     EntirelyAfter
 }
 
+#[deriving(Clone)]
 pub struct Range {
     priv off: uint,
     priv len: uint

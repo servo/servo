@@ -782,7 +782,7 @@ impl RenderBox {
         // FIXME: Too much allocation here.
         let font_families = do my_style.font_family().map |family| {
             match *family {
-                CSSFontFamilyFamilyName(ref family_str) => copy *family_str,
+                CSSFontFamilyFamilyName(ref family_str) => (*family_str).clone(),
                 CSSFontFamilyGenericFamily(Serif)       => ~"serif",
                 CSSFontFamilyGenericFamily(SansSerif)   => ~"sans-serif",
                 CSSFontFamilyGenericFamily(Cursive)     => ~"cursive",

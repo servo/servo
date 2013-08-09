@@ -273,7 +273,7 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
 
         let node = unwrap(obj);
         do node.with_imm_element |elem| {
-            let s = str(copy elem.tag_name);
+            let s = str(elem.tag_name.clone());
             *vp = domstring_to_jsval(cx, &s);            
         }
     }

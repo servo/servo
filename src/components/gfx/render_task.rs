@@ -39,6 +39,7 @@ pub enum Msg {
 }
 
 /// A request from the compositor to the renderer for tiles that need to be (re)displayed.
+#[deriving(Clone)]
 pub struct BufferRequest {
     // The rect in pixels that will be drawn to the screen
     screen_rect: Rect<uint>,
@@ -112,7 +113,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                 id: id,
                 port: port.take(),
                 compositor: compositor,
-                font_ctx: @mut FontContext::new(copy opts.render_backend,
+                font_ctx: @mut FontContext::new(opts.render_backend.clone(),
                                                 false,
                                                 profiler_chan.clone()),
                 opts: opts,

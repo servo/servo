@@ -142,7 +142,7 @@ fn test_bad_scheme() {
 fn should_delegate_to_scheme_loader() {
     let payload = ~[1, 2, 3];
     let loader_factory = |_url: Url, progress_chan: Chan<ProgressMsg>| {
-        progress_chan.send(Payload(copy payload));
+        progress_chan.send(Payload(payload.clone()));
         progress_chan.send(Done(Ok(())));
     };
     let loader_factories = ~[(~"snicklefritz", loader_factory)];

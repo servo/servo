@@ -26,7 +26,7 @@ impl ProfilerChan {
     }
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Clone)]
 pub enum ProfilerCategory {
     CompositingCategory,
     LayoutQueryCategory,

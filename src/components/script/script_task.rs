@@ -266,7 +266,7 @@ impl Page {
                 // Send new document and relevant styles to layout.
                 let reflow = ~Reflow {
                     document_root: do frame.document.with_base |doc| { doc.root },
-                    url: copy self.url.get_ref().first(),
+                    url: self.url.get_ref().first().clone(),
                     goal: goal,
                     window_size: self.window_size.get(),
                     script_chan: script_chan,
@@ -498,7 +498,7 @@ impl ScriptTask {
                 js_info.js_compartment.define_functions(debug_fns);
                 js_info.js_context.evaluate_script(js_info.js_compartment.global_obj,
                                                    bytes,
-                                                   copy url.path,
+                                                   url.path.clone(),
                                                    1);
             }
         }

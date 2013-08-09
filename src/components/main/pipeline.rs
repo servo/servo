@@ -52,7 +52,7 @@ impl Pipeline {
         RenderTask::create(id,
                            render_port,
                            compositor_chan.clone(),
-                           copy opts,
+                           opts.clone(),
                            profiler_chan.clone());
 
         LayoutTask::create(id,
@@ -61,7 +61,7 @@ impl Pipeline {
                            script_pipeline.script_chan.clone(),
                            render_chan.clone(),
                            image_cache_task.clone(),
-                           copy opts,
+                           opts.clone(),
                            profiler_chan);
 
         let new_layout_info = NewLayoutInfo {
@@ -109,7 +109,7 @@ impl Pipeline {
         RenderTask::create(id,
                            render_port,
                            compositor_chan.clone(),
-                           copy opts,
+                           opts.clone(),
                            profiler_chan.clone());
 
         LayoutTask::create(id,
@@ -118,7 +118,7 @@ impl Pipeline {
                            script_chan.clone(),
                            render_chan.clone(),
                            image_cache_task,
-                           copy opts,
+                           opts.clone(),
                            profiler_chan);
         Pipeline::new(id,
                       subpage_id,

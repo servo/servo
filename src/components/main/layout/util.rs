@@ -13,7 +13,7 @@ pub struct NodeRange {
 
 impl NodeRange {
     pub fn new(node: AbstractNode<LayoutView>, range: &Range) -> NodeRange {
-        NodeRange { node: node, range: copy *range }
+        NodeRange { node: node, range: (*range).clone() }
     }
 }
 

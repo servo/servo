@@ -44,7 +44,7 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
                     path.push(p.to_str());
                 }
                 let path = path.init();
-                let mut path = path.iter().transform(|x| copy *x).collect::<~[~str]>();
+                let mut path = path.iter().transform(|x| (*x).clone()).collect::<~[~str]>();
                 path.push(str_url);
                 let path = path.connect("/");
 
@@ -118,6 +118,6 @@ mod make_url_tests {
 
 pub type UrlMap<T> = @mut HashMap<Url, T>;
 
-pub fn url_map<T: Copy>() -> UrlMap<T> {
+pub fn url_map<T: Clone + 'static>() -> UrlMap<T> {
     @mut HashMap::new()
 }

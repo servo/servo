@@ -33,7 +33,7 @@ impl SendableTextRun {
         };
 
         TextRun {
-            text: copy self.text,
+            text: self.text.clone(),
             font: font,
             underline: self.underline,
             glyphs: self.glyphs.clone(),
@@ -115,7 +115,7 @@ impl<'self> TextRun {
 
     pub fn serialize(&self) -> SendableTextRun {
         SendableTextRun {
-            text: copy self.text,
+            text: self.text.clone(),
             font: self.font.get_descriptor(),
             underline: self.underline,
             glyphs: self.glyphs.clone(),

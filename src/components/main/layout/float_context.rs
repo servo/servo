@@ -10,6 +10,7 @@ use std::util::replace;
 use std::vec;
 use std::i32::max_value;
 
+#[deriving(Clone)]
 pub enum FloatType{
     FloatLeft,
     FloatRight
@@ -28,6 +29,7 @@ struct FloatContextBase{
     offset: Point2D<Au>
 }
 
+#[deriving(Clone)]
 struct FloatData{
     bounds: Rect<Au>,
     f_type: FloatType

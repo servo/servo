@@ -55,7 +55,7 @@ impl Event {
     }
 
     pub fn Type(&self) -> DOMString {
-        copy self.type_
+        self.type_.clone()
     }
 
     pub fn GetTarget(&self) -> Option<@mut EventTarget> {

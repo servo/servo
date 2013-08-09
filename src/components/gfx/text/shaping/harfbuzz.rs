@@ -398,7 +398,7 @@ impl Shaper {
             // cspan:  [-]
             // covsp:  [---------------]
 
-            let mut covered_byte_span = copy char_byte_span;
+            let mut covered_byte_span = char_byte_span.clone();
             // extend, clipping at end of text range.
             while covered_byte_span.end() < byte_max
                     && byteToGlyph[covered_byte_span.end()] == NO_GLYPH {

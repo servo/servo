@@ -269,7 +269,7 @@ impl BoxGenerator {
         do node.with_imm_image_element |image_element| {
             if image_element.image.is_some() {
                 // FIXME(pcwalton): Don't copy URLs.
-                let url = copy *image_element.image.get_ref();
+                let url = (*image_element.image.get_ref()).clone();
                 ImageRenderBoxClass(@mut ImageRenderBox::new(base, url, layout_ctx.image_cache))
             } else {
                 info!("Tried to make image box, but couldn't find image. Made generic box \

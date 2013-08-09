@@ -50,7 +50,7 @@ pub trait UnscannedMethods {
 impl UnscannedMethods for RenderBox {
     fn raw_text(&self) -> ~str {
         match *self {
-            UnscannedTextRenderBoxClass(text_box) => copy text_box.text,
+            UnscannedTextRenderBoxClass(text_box) => text_box.text.clone(),
             _ => fail!(~"unsupported operation: box.raw_text() on non-unscanned text box."),
         }
     }

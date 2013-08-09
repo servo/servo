@@ -117,7 +117,7 @@ impl<'self> FontContext {
         debug!("(transform family) searching for `%s`", family);
         match self.generic_fonts.find(&family) {
             None => family,
-            Some(mapped_family) => copy *mapped_family
+            Some(mapped_family) => (*mapped_family).clone()
         }
     }
 
@@ -142,7 +142,7 @@ impl<'self> FontContext {
 
                 let font_id =
                   SelectorPlatformIdentifier(font_entry.handle.face_identifier());
-                let font_desc = FontDescriptor::new(copy *style, font_id);
+                let font_desc = FontDescriptor::new((*style).clone(), font_id);
 
                 let instance = self.get_font_by_descriptor(&font_desc);
 
@@ -164,7 +164,7 @@ impl<'self> FontContext {
             for result.iter().advance |font_entry| {
                 let font_id =
                   SelectorPlatformIdentifier(font_entry.handle.face_identifier());
-                let font_desc = FontDescriptor::new(copy *style, font_id);
+                let font_desc = FontDescriptor::new((*style).clone(), font_id);
 
                 let instance = self.get_font_by_descriptor(&font_desc);
 
@@ -176,7 +176,7 @@ impl<'self> FontContext {
 
         assert!(fonts.len() > 0);
         // TODO(Issue #179): Split FontStyle into specified and used styles
-        let used_style = copy *style;
+        let used_style = (*style).clone();
 
         debug!("(create font group) --- finished ---");
 
@@ -187,8 +187,8 @@ impl<'self> FontContext {
         return match &desc.selector {
             // TODO(Issue #174): implement by-platform-name font selectors.
             &SelectorPlatformIdentifier(ref identifier) => { 
-                let result_handle = self.handle.create_font_from_identifier(copy *identifier,
-                                                                            copy desc.style);
+                let result_handle = self.handle.create_font_from_identifier((*identifier).clone(),
+                                                                            desc.style.clone());
                 result::chain(result_handle, |handle| {
                     Ok(Font::new_from_adopted_handle(self,
                                                      handle,

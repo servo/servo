@@ -157,6 +157,7 @@ struct ImageCache {
     need_exit: Option<Chan<()>>,
 }
 
+#[deriving(Clone)]
 enum ImageState {
     Init,
     Prefetching(AfterPrefetch),
@@ -166,6 +167,7 @@ enum ImageState {
     Failed
 }
 
+#[deriving(Clone)]
 enum AfterPrefetch {
     DoDecode,
     DoNotDecode
@@ -242,25 +244,25 @@ impl ImageCache {
     }
 
     priv fn prefetch(&self, url: Url) {
-        match self.get_state(copy url) {
+        match self.get_state(url.clone()) {
             Init => {
                 let to_cache = self.chan.clone();
                 let resource_task = self.resource_task.clone();
-                let url_cell = Cell::new(copy url);
+                let url_cell = Cell::new(url.clone());
 
                 do spawn {
                     let url = url_cell.take();
                     debug!("image_cache_task: started fetch for %s", url.to_str());
 
-                    let image = load_image_data(copy url, resource_task.clone());
+                    let image = load_image_data(url.clone(), resource_task.clone());
 
                     let result = if image.is_ok() {
                         Ok(Cell::new(result::unwrap(image)))
                     } else {
                         Err(())
                     };
-                    to_cache.send(StorePrefetchedImageData(copy url, result));
-                    debug!("image_cache_task: ended fetch for %s", (copy url).to_str());
+                    to_cache.send(StorePrefetchedImageData(url.clone(), result));
+                    debug!("image_cache_task: ended fetch for %s", (url.clone()).to_str());
                 }
 
                 self.set_state(url, Prefetching(DoNotDecode));
@@ -273,19 +275,19 @@ impl ImageCache {
     }
 
     priv fn store_prefetched_image_data(&self, url: Url, data: Result<Cell<~[u8]>, ()>) {
-        match self.get_state(copy url) {
+        match self.get_state(url.clone()) {
           Prefetching(next_step) => {
             match data {
               Ok(data_cell) => {
                 let data = data_cell.take();
-                self.set_state(copy url, Prefetched(@Cell::new(data)));
+                self.set_state(url.clone(), Prefetched(@Cell::new(data)));
                 match next_step {
                   DoDecode => self.decode(url),
                   _ => ()
                 }
               }
               Err(*) => {
-                self.set_state(copy url, Failed);
+                self.set_state(url.clone(), Failed);
                 self.purge_waiters(url, || ImageFailed);
               }
             }
@@ -302,7 +304,7 @@ impl ImageCache {
     }
 
     priv fn decode(&self, url: Url) {
-        match self.get_state(copy url) {
+        match self.get_state(url.clone()) {
             Init => fail!(~"decoding image before prefetch"),
 
             Prefetching(DoNotDecode) => {
@@ -319,7 +321,7 @@ impl ImageCache {
 
                 let data = data_cell.take();
                 let to_cache = self.chan.clone();
-                let url_cell = Cell::new(copy url);
+                let url_cell = Cell::new(url.clone());
                 let decode = (self.decoder_factory)();
 
                 do spawn {
@@ -331,7 +333,7 @@ impl ImageCache {
                     } else {
                         None
                     };
-                    to_cache.send(StoreImage(copy url, image));
+                    to_cache.send(StoreImage(url.clone(), image));
                     debug!("image_cache_task: ended image decode for %s", url.to_str());
                 }
 
@@ -346,15 +348,15 @@ impl ImageCache {
 
     priv fn store_image(&self, url: Url, image: Option<ARC<~Image>>) {
 
-        match self.get_state(copy url) {
+        match self.get_state(url.clone()) {
           Decoding => {
             match image {
               Some(image) => {
-                self.set_state(copy url, Decoded(@image.clone()));
+                self.set_state(url.clone(), Decoded(@image.clone()));
                 self.purge_waiters(url, || ImageReady(image.clone()) );
               }
               None => {
-                self.set_state(copy url, Failed);
+                self.set_state(url.clone(), Failed);
                 self.purge_waiters(url, || ImageFailed );
               }
             }
@@ -383,7 +385,7 @@ impl ImageCache {
     }
 
     priv fn get_image(&self, url: Url, response: Chan<ImageResponseMsg>) {
-        match self.get_state(copy url) {
+        match self.get_state(url.clone()) {
             Init => fail!(~"request for image before prefetch"),
             Prefetching(DoDecode) => response.send(ImageNotReady),
             Prefetching(DoNotDecode) | Prefetched(*) => fail!(~"request for image before decode"),
@@ -394,7 +396,7 @@ impl ImageCache {
     }
 
     priv fn wait_for_image(&self, url: Url, response: Chan<ImageResponseMsg>) {
-        match self.get_state(copy url) {
+        match self.get_state(url.clone()) {
             Init => fail!(~"request for image before prefetch"),
 
             Prefetching(DoNotDecode) | Prefetched(*) => fail!(~"request for image before decode"),
@@ -540,7 +542,7 @@ fn should_fail_if_requesting_image_before_requesting_decode() {
     let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", None);
 
-    image_cache_task.send(Prefetch(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
     // no decode message
 
     let (chan, _port) = stream();
@@ -563,7 +565,7 @@ fn should_not_request_url_from_resource_task_on_multiple_prefetches() {
     let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", None);
 
-    image_cache_task.send(Prefetch(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
     image_cache_task.send(Prefetch(url));
     url_requested.recv();
     image_cache_task.exit();
@@ -586,8 +588,8 @@ fn should_return_image_not_ready_if_data_has_not_arrived() {
     let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", None);
 
-    image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
+    image_cache_task.send(Decode(url.clone()));
     let (response_chan, response_port) = stream();
     image_cache_task.send(GetImage(url, response_chan));
     assert!(response_port.recv() == ImageNotReady);
@@ -616,8 +618,8 @@ fn should_return_decoded_image_data_if_data_has_arrived() {
         }
     }));
 
-    image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
+    image_cache_task.send(Decode(url.clone()));
 
     // Wait until our mock resource task has sent the image to the image cache
     wait_for_image_chan.recv();
@@ -653,15 +655,15 @@ fn should_return_decoded_image_data_for_multiple_requests() {
         }
     }));
 
-    image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
+    image_cache_task.send(Decode(url.clone()));
 
     // Wait until our mock resource task has sent the image to the image cache
     wait_for_image.recv();
 
     for iter::repeat(2) {
         let (response_chan, response_port) = stream();
-        image_cache_task.send(GetImage(copy url, response_chan));
+        image_cache_task.send(GetImage(url.clone(), response_chan));
         match response_port.recv() {
           ImageReady(_) => (),
           _ => fail
@@ -699,12 +701,12 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
     let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", None);
 
-    image_cache_task.send(Prefetch(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
 
     // Wait until our mock resource task has sent the image to the image cache
     image_bin_sent.recv();
 
-    image_cache_task.send(Prefetch(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
 
     image_cache_task.exit();
     mock_resource_task.send(resource_task::Exit);
@@ -743,14 +745,14 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
     let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", None);
 
-    image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
+    image_cache_task.send(Decode(url.clone()));
 
     // Wait until our mock resource task has sent the image to the image cache
     image_bin_sent.recv();
 
-    image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
+    image_cache_task.send(Decode(url.clone()));
 
     image_cache_task.exit();
     mock_resource_task.send(resource_task::Exit);
@@ -783,8 +785,8 @@ fn should_return_failed_if_image_bin_cannot_be_fetched() {
         }
     }));
 
-    image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
+    image_cache_task.send(Decode(url.clone()));
 
     // Wait until our mock resource task has sent the image to the image cache
     wait_for_prefetech.recv();
@@ -821,14 +823,14 @@ fn should_return_failed_for_multiple_get_image_requests_if_image_bin_cannot_be_f
         }
     }));
 
-    image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
+    image_cache_task.send(Decode(url.clone()));
 
     // Wait until our mock resource task has sent the image to the image cache
     wait_for_prefetech.recv();
 
     let (response_chan, response_port) = stream();
-    image_cache_task.send(GetImage(copy url, response_chan));
+    image_cache_task.send(GetImage(url.clone(), response_chan));
     match response_port.recv() {
       ImageFailed => (),
       _ => fail
@@ -878,8 +880,8 @@ fn should_return_not_ready_if_image_is_still_decoding() {
         }
     }));
 
-    image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
+    image_cache_task.send(Decode(url.clone()));
 
     // Wait until our mock resource task has sent the image to the image cache
     wait_for_prefetech.recv();
@@ -921,8 +923,8 @@ fn should_return_failed_if_image_decode_fails() {
         }
     }));
 
-    image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
+    image_cache_task.send(Decode(url.clone()));
 
     // Wait until our mock resource task has sent the image to the image cache
     wait_for_decode.recv();
@@ -960,8 +962,8 @@ fn should_return_image_on_wait_if_image_is_already_loaded() {
         }
     }));
 
-    image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
+    image_cache_task.send(Decode(url.clone()));
 
     // Wait until our mock resource task has sent the image to the image cache
     wait_for_decode.recv();
@@ -990,8 +992,8 @@ fn should_return_image_on_wait_if_image_is_not_yet_loaded() {
     let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", None);
 
-    image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
+    image_cache_task.send(Decode(url.clone()));
 
     let (response_chan, response_port) = stream();
     image_cache_task.send(WaitForImage(url, response_chan));
@@ -1020,8 +1022,8 @@ fn should_return_image_failed_on_wait_if_image_fails_to_load() {
     let image_cache_task = ImageCacheTask(mock_resource_task);
     let url = make_url(~"file", None);
 
-    image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
+    image_cache_task.send(Decode(url.clone()));
 
     let (response_chan, response_port) = stream();
     image_cache_task.send(WaitForImage(url, response_chan));
@@ -1047,8 +1049,8 @@ fn sync_cache_should_wait_for_images() {
     let image_cache_task = SyncImageCacheTask(mock_resource_task);
     let url = make_url(~"file", None);
 
-    image_cache_task.send(Prefetch(copy url));
-    image_cache_task.send(Decode(copy url));
+    image_cache_task.send(Prefetch(url.clone()));
+    image_cache_task.send(Decode(url.clone()));
 
     let (response_chan, response_port) = stream();
     image_cache_task.send(GetImage(url, response_chan));

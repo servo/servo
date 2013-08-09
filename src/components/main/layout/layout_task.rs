@@ -181,7 +181,7 @@ impl LayoutTask {
         };
 
         // FIXME: Bad copy!
-        let doc_url = copy data.url;
+        let doc_url = data.url.clone();
         let script_chan = data.script_chan.clone();
 
         debug!("layout: received layout request for: %s", doc_url.to_str());

@@ -173,7 +173,7 @@ impl FontHandleMethods for FontHandle {
                 FontHandleMethods::new_from_buffer(fctx, buf.clone(), style)
             }
             FontSourceFile(ref file) => {
-                FontHandle::new_from_file(fctx, copy *file, style)
+                FontHandle::new_from_file(fctx, (*file).clone(), style)
             }
         }
     }

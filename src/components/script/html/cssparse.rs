@@ -28,8 +28,8 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
     do task::spawn {
         let url = do provenance_cell.with_ref |p| {
             match *p {
-                UrlProvenance(ref the_url) => copy *the_url,
-                InlineProvenance(ref the_url, _) => copy *the_url
+                UrlProvenance(ref the_url) => (*the_url).clone(),
+                InlineProvenance(ref the_url, _) => (*the_url).clone()
             }
         };
 

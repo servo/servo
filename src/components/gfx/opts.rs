@@ -39,13 +39,13 @@ pub fn from_cmdline_args(args: &[~str]) -> Opts {
 
     let opt_match = match getopts::getopts(args, opts) {
       result::Ok(m) => m,
-      result::Err(f) => fail!(getopts::fail_str(copy f)),
+      result::Err(f) => fail!(getopts::fail_str(f.clone())),
     };
 
     let urls = if opt_match.free.is_empty() {
         fail!(~"servo asks that you provide 1 or more URLs")
     } else {
-        copy opt_match.free
+        opt_match.free.clone()
     };
 
     let render_backend = match getopts::opt_maybe_str(&opt_match, "r") {

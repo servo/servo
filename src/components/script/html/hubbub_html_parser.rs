@@ -185,7 +185,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
                 do task::spawn {
                     let (input_port, input_chan) = comm::stream();
                     // TODO: change copy to move once we can move into closures
-                    resource_task.send(Load(copy url, input_chan));
+                    resource_task.send(Load(url.clone(), input_chan));
 
                     let mut buf = ~[];
                     loop {
@@ -403,7 +403,7 @@ pub fn parse_html(cx: *JSContext,
                             None => {}
                             Some(src) => {
                                 let img_url = make_url(src, Some(url2.clone()));
-                                image_element.image = Some(copy img_url);
+                                image_element.image = Some(img_url.clone());
                                 // inform the image cache to load this, but don't store a handle.
                                 // TODO (Issue #84): don't prefetch if we are within a <noscript>
                                 // tag.

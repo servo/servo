@@ -227,7 +227,7 @@ impl Constellation {
                  profiler_chan: ProfilerChan)
                  -> ConstellationChan {
             
-        let opts = Cell::new(copy *opts);
+        let opts = Cell::new((*opts).clone());
 
         let (constellation_port, constellation_chan) = special_stream!(ConstellationChan);
         let constellation_port = Cell::new(constellation_port);
@@ -304,7 +304,7 @@ impl Constellation {
                                                      self.image_cache_task.clone(),
                                                      self.resource_task.clone(),
                                                      self.profiler_chan.clone(),
-                                                     copy self.opts,
+                                                     self.opts.clone(),
                                                      {
                                                          let size = self.compositor_chan.get_size();
                                                          from_value(Size2D(size.width as uint, size.height as uint))
@@ -370,7 +370,7 @@ impl Constellation {
                                           self.compositor_chan.clone(),
                                           self.image_cache_task.clone(),
                                           self.profiler_chan.clone(),
-                                          copy self.opts,
+                                          self.opts.clone(),
                                           source_pipeline,
                                           size_future)
                 } else {
@@ -382,7 +382,7 @@ impl Constellation {
                                      self.image_cache_task.clone(),
                                      self.resource_task.clone(),
                                      self.profiler_chan.clone(),
-                                     copy self.opts,
+                                     self.opts.clone(),
                                      size_future)
                 };
 
@@ -438,7 +438,7 @@ impl Constellation {
                                                      self.image_cache_task.clone(),
                                                      self.resource_task.clone(),
                                                      self.profiler_chan.clone(),
-                                                     copy self.opts,
+                                                     self.opts.clone(),
                                                      size_future);
 
                 if url.path.ends_with(".js") {

@@ -183,7 +183,7 @@ impl FontGroup {
     pub fn new(families: @str, style: &UsedFontStyle, fonts: ~[@mut Font]) -> FontGroup {
         FontGroup {
             families: families,
-            style: copy *style,
+            style: (*style).clone(),
             fonts: fonts,
         }
     }
@@ -264,7 +264,7 @@ impl Font {
             handle: handle,
             azure_font: None,
             shaper: None,
-            style: copy *style,
+            style: (*style).clone(),
             metrics: metrics,
             backend: backend,
             profiler_chan: profiler_chan,
@@ -281,7 +281,7 @@ impl Font {
             handle: handle,
             azure_font: None,
             shaper: None,
-            style: copy *style,
+            style: (*style).clone(),
             metrics: metrics,
             backend: backend,
             profiler_chan: profiler_chan,
@@ -387,7 +387,7 @@ impl Font {
             fields: 0x0200 as uint16_t
         };
 
-        let mut origin = copy baseline_origin;
+        let mut origin = baseline_origin.clone();
         let mut azglyphs = ~[];
         azglyphs.reserve(range.length());
 
@@ -462,7 +462,7 @@ impl Font {
     }
 
     pub fn get_descriptor(&self) -> FontDescriptor {
-        FontDescriptor::new(copy self.style, SelectorPlatformIdentifier(self.handle.face_identifier()))
+        FontDescriptor::new(self.style.clone(), SelectorPlatformIdentifier(self.handle.face_identifier()))
     }
 
     pub fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex> {

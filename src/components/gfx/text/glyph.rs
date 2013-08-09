@@ -25,6 +25,7 @@ use extra::sort;
 /// In the uncommon case (multiple glyphs per unicode character, large glyph index/advance, or
 /// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
 /// in DetailedGlyphStore.
+#[deriving(Clone)]
 struct GlyphEntry {
     value: u32
 }
@@ -256,6 +257,7 @@ impl GlyphEntry {
 
 // Stores data for a detailed glyph, in the case that several glyphs
 // correspond to one character, or the glyph's data couldn't be packed.
+#[deriving(Clone)]
 struct DetailedGlyph {
     index: GlyphIndex,
     // glyph's advance, in the text's direction (RTL or RTL)
@@ -274,7 +276,7 @@ impl DetailedGlyph {
     }
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Clone)]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: uint,
