@@ -7,8 +7,11 @@ use stylesheets::NamespaceMap;
 pub struct Selector {
     compound_selectors: CompoundSelector,
     pseudo_element: Option<PseudoElement>,
-//    specificity: u32,
+    specificity: u32,
 }
+
+pub static STYLE_ATTRIBUTE_SPECIFICITY: u32 = 1 << 31;
+
 
 pub enum PseudoElement {
     Before,
@@ -127,10 +130,61 @@ fn parse_selector(iter: &mut Iter, namespaces: &NamespaceMap)
         }
     }
     let selector = Selector{
+        specificity: compute_specificity(&compound, &pseudo_element),
         compound_selectors: compound,
         pseudo_element: pseudo_element,
     };
     Some(selector)
+}
+
+
+fn compute_specificity(mut selector: &CompoundSelector,
+                       pseudo_element: &Option<PseudoElement>) -> u32 {
+    struct Specificity {
+        id_selectors: u32,
+        class_like_selectors: u32,
+        element_selectors: u32,
+    }
+    let mut specificity = Specificity {
+        id_selectors: 0,
+        class_like_selectors: 0,
+        element_selectors: 0,
+    };
+    if pseudo_element.is_some() { specificity.element_selectors += 1 }
+
+    simple_selectors_specificity(selector.simple_selectors, &mut specificity);
+    loop {
+        match selector.next {
+            None => break,
+            Some((ref next_selector, _)) => {
+                selector = &**next_selector;
+                simple_selectors_specificity(selector.simple_selectors, &mut specificity)
+            }
+        }
+    }
+
+    fn simple_selectors_specificity(simple_selectors: &[SimpleSelector],
+                                    specificity: &mut Specificity) {
+        for simple_selector in simple_selectors.iter() {
+            match simple_selector {
+                &LocalNameSelector{_} => specificity.element_selectors += 1,
+                &IDSelector(_) => specificity.id_selectors += 1,
+                &ClassSelector(_)
+                | &AttrExists(_) | &AttrEqual(_, _) | &AttrIncludes(_, _) | &AttrDashMatch(_, _)
+                | &AttrPrefixMatch(_, _) | &AttrSubstringMatch(_, _) | &AttrSuffixMatch(_, _)
+                | &Empty | &Root | &Lang(_)
+                => specificity.class_like_selectors += 1,
+                &NamespaceSelector(_) => (),
+                &Negation(ref negated)
+                => simple_selectors_specificity(negated.as_slice(), specificity),
+            }
+        }
+    }
+
+    static MAX_10BIT: u32 = (1u32 << 10) - 1;
+    specificity.id_selectors.min(&MAX_10BIT) << 20
+    | specificity.class_like_selectors.min(&MAX_10BIT) << 10
+    | specificity.id_selectors.min(&MAX_10BIT)
 }
 
 
