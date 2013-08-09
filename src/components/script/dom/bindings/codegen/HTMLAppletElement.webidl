@@ -41,4 +41,3 @@ interface HTMLAppletElement : HTMLElement {
 //HTMLAppletElement implements MozImageLoadingContent;
 //HTMLAppletElement implements MozFrameLoaderOwner;
 //HTMLAppletElement implements MozObjectLoadingContent;
-
