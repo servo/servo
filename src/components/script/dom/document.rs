@@ -18,7 +18,7 @@ use dom::htmltitleelement::HTMLTitleElement;
 
 use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSObject, JSContext, JSVal};
 use js::glue::RUST_OBJECT_TO_JSVAL;
-use servo_util::tree::{TreeNodeRef, TreeUtils};
+use servo_util::tree::TreeNodeRef;
 
 use std::cast;
 use std::ptr;

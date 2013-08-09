@@ -13,7 +13,7 @@ use dom::window::Window;
 
 use js::jsapi::{JSObject, JSContext};
 
-use servo_util::tree::TreeUtils;
+use servo_util::tree::TreeNodeRef;
 
 use std::libc;
 use std::ptr;

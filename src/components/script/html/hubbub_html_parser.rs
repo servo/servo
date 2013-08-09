@@ -63,7 +63,7 @@ use servo_msg::constellation_msg::SubpageId;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::image_cache_task;
 use servo_net::resource_task::{Done, Load, Payload, ResourceTask};
-use servo_util::tree::TreeUtils;
+use servo_util::tree::TreeNodeRef;
 use servo_util::url::make_url;
 use extra::url::Url;
 use extra::future::{Future, from_port};

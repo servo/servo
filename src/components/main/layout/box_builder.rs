@@ -30,7 +30,7 @@ use script::dom::element::*;
 use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
 use servo_util::range::Range;
-use servo_util::tree::{TreeNodeRef, TreeNode, TreeUtils};
+use servo_util::tree::{TreeNodeRef, TreeNode};
 
 pub struct LayoutTreeBuilder {
     root_flow: Option<FlowContext>,

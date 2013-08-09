@@ -11,7 +11,7 @@ use layout::incremental;
 use script::dom::node::{AbstractNode, LayoutView};
 use newcss::complete::CompleteSelectResults;
 use newcss::select::{SelectCtx, SelectResults};
-use servo_util::tree::TreeUtils;
+use servo_util::tree::TreeNodeRef;
 
 pub trait MatchMethods {
     fn restyle_subtree(&self, select_ctx: &SelectCtx);

@@ -43,7 +43,7 @@ use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
 use script::dom::node::{AbstractNode, LayoutView};
-use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
+use servo_util::tree::{TreeNode, TreeNodeRef};
 
 /// The type of the formatting context and data specific to each context, such as line box
 /// structures or float lists.
@@ -164,7 +164,49 @@ impl TreeNodeRef<FlowData> for FlowContext {
             TableFlow(info) => callback(info),
         }
     }
+
+    fn parent_node(node: &FlowData) -> Option<FlowContext> {
+        node.parent
+    }
+
+    fn first_child(node: &FlowData) -> Option<FlowContext> {
+        node.first_child
+    }
+
+    fn last_child(node: &FlowData) -> Option<FlowContext> {
+        node.last_child
+    }
+
+    fn prev_sibling(node: &FlowData) -> Option<FlowContext> {
+        node.prev_sibling
+    }
+
+    fn next_sibling(node: &FlowData) -> Option<FlowContext> {
+        node.next_sibling
+    }
+
+    fn set_parent_node(node: &mut FlowData, new_parent_node: Option<FlowContext>) {
+        node.parent = new_parent_node
+    }
+
+    fn set_first_child(node: &mut FlowData, new_first_child: Option<FlowContext>) {
+        node.first_child = new_first_child
+    }
+
+    fn set_last_child(node: &mut FlowData, new_last_child: Option<FlowContext>) {
+        node.last_child = new_last_child
+    }
+
+    fn set_prev_sibling(node: &mut FlowData, new_prev_sibling: Option<FlowContext>) {
+        node.prev_sibling = new_prev_sibling
+    }
+
+    fn set_next_sibling(node: &mut FlowData, new_next_sibling: Option<FlowContext>) {
+        node.next_sibling = new_next_sibling
+    }
 }
+
+impl TreeNode<FlowContext> for FlowData { }
 
 /// Data common to all flows.
 ///
@@ -194,48 +236,6 @@ pub struct FlowData {
     num_floats: uint,
     abs_position: Point2D<Au>,
     is_inorder: bool,
-}
-
-impl TreeNode<FlowContext> for FlowData {
-    fn parent_node(&self) -> Option<FlowContext> {
-        self.parent
-    }
-
-    fn first_child(&self) -> Option<FlowContext> {
-        self.first_child
-    }
-
-    fn last_child(&self) -> Option<FlowContext> {
-        self.last_child
-    }
-
-    fn prev_sibling(&self) -> Option<FlowContext> {
-        self.prev_sibling
-    }
-
-    fn next_sibling(&self) -> Option<FlowContext> {
-        self.next_sibling
-    }
-
-    fn set_parent_node(&mut self, new_parent_node: Option<FlowContext>) {
-        self.parent = new_parent_node
-    }
-
-    fn set_first_child(&mut self, new_first_child: Option<FlowContext>) {
-        self.first_child = new_first_child
-    }
-
-    fn set_last_child(&mut self, new_last_child: Option<FlowContext>) {
-        self.last_child = new_last_child
-    }
-
-    fn set_prev_sibling(&mut self, new_prev_sibling: Option<FlowContext>) {
-        self.prev_sibling = new_prev_sibling
-    }
-
-    fn set_next_sibling(&mut self, new_next_sibling: Option<FlowContext>) {
-        self.next_sibling = new_next_sibling
-    }
 }
 
 pub struct BoxIterator {

@@ -21,7 +21,7 @@ use newcss::values::{CSSTextAlignLeft, CSSTextAlignCenter, CSSTextAlignRight, CS
 use newcss::units::{Em, Px, Pt};
 use newcss::values::{CSSLineHeightNormal, CSSLineHeightNumber, CSSLineHeightLength, CSSLineHeightPercentage};
 use servo_util::range::Range;
-use servo_util::tree::{TreeNodeRef, TreeUtils};
+use servo_util::tree::TreeNodeRef;
 use extra::container::Deque;
 use extra::ringbuf::RingBuf;
 

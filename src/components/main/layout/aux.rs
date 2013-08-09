@@ -9,7 +9,7 @@ use layout::incremental::RestyleDamage;
 
 use newcss::complete::CompleteSelectResults;
 use script::dom::node::{AbstractNode, LayoutView};
-use servo_util::tree::TreeUtils;
+use servo_util::tree::TreeNodeRef;
 
 /// Data that layout associates with a node.
 pub struct LayoutData {

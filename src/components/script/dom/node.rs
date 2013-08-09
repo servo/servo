@@ -24,7 +24,7 @@ use std::uint;
 use js::jsapi::{JSObject, JSContext};
 use js::rust::Compartment;
 use netsurfcss::util::VoidPtrLike;
-use servo_util::tree::{TreeNode, TreeNodeRef, TreeUtils};
+use servo_util::tree::{TreeNode, TreeNodeRef};
 
 //
 // The basic Node structure
@@ -177,41 +177,39 @@ impl<View> Clone for AbstractNode<View> {
     }
 }
 
-impl<View> TreeNode<AbstractNode<View>> for Node<View> {
-    fn parent_node(&self) -> Option<AbstractNode<View>> {
-        self.parent_node
-    }
-    fn first_child(&self) -> Option<AbstractNode<View>> {
-        self.first_child
-    }
-    fn last_child(&self) -> Option<AbstractNode<View>> {
-        self.last_child
-    }
-    fn prev_sibling(&self) -> Option<AbstractNode<View>> {
-        self.prev_sibling
-    }
-    fn next_sibling(&self) -> Option<AbstractNode<View>> {
-        self.next_sibling
-    }
-
-    fn set_parent_node(&mut self, new_parent_node: Option<AbstractNode<View>>) {
-        self.parent_node = new_parent_node
-    }
-    fn set_first_child(&mut self, new_first_child: Option<AbstractNode<View>>) {
-        self.first_child = new_first_child
-    }
-    fn set_last_child(&mut self, new_last_child: Option<AbstractNode<View>>) {
-        self.last_child = new_last_child
-    }
-    fn set_prev_sibling(&mut self, new_prev_sibling: Option<AbstractNode<View>>) {
-        self.prev_sibling = new_prev_sibling
-    }
-    fn set_next_sibling(&mut self, new_next_sibling: Option<AbstractNode<View>>) {
-        self.next_sibling = new_next_sibling
-    }
-}
-
 impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
+    fn parent_node(node: &Node<View>) -> Option<AbstractNode<View>> {
+        node.parent_node
+    }
+    fn first_child(node: &Node<View>) -> Option<AbstractNode<View>> {
+        node.first_child
+    }
+    fn last_child(node: &Node<View>) -> Option<AbstractNode<View>> {
+        node.last_child
+    }
+    fn prev_sibling(node: &Node<View>) -> Option<AbstractNode<View>> {
+        node.prev_sibling
+    }
+    fn next_sibling(node: &Node<View>) -> Option<AbstractNode<View>> {
+        node.next_sibling
+    }
+
+    fn set_parent_node(node: &mut Node<View>, new_parent_node: Option<AbstractNode<View>>) {
+        node.parent_node = new_parent_node
+    }
+    fn set_first_child(node: &mut Node<View>, new_first_child: Option<AbstractNode<View>>) {
+        node.first_child = new_first_child
+    }
+    fn set_last_child(node: &mut Node<View>, new_last_child: Option<AbstractNode<View>>) {
+        node.last_child = new_last_child
+    }
+    fn set_prev_sibling(node: &mut Node<View>, new_prev_sibling: Option<AbstractNode<View>>) {
+        node.prev_sibling = new_prev_sibling
+    }
+    fn set_next_sibling(node: &mut Node<View>, new_next_sibling: Option<AbstractNode<View>>) {
+        node.next_sibling = new_next_sibling
+    }
+
     // FIXME: The duplication between `with_base` and `with_mut_base` is ugly.
     fn with_base<R>(&self, callback: &fn(&Node<View>) -> R) -> R {
         self.transmute(callback)
@@ -221,6 +219,8 @@ impl<View> TreeNodeRef<Node<View>> for AbstractNode<View> {
         self.transmute_mut(callback)
     }
 }
+
+impl<View> TreeNode<AbstractNode<View>> for Node<View> { }
 
 impl<'self, View> AbstractNode<View> {
     // Unsafe accessors
