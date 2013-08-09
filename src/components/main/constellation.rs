@@ -116,22 +116,16 @@ impl FrameTree {
 
     /// Replaces a node of the frame tree in place. Returns the node that was removed or the original node
     /// if the node to replace could not be found.
-    fn replace_child(@mut self,
-                     id: PipelineId,
-                     new_child: @mut FrameTree)
-                     -> Either<@mut FrameTree, @mut FrameTree> {
-        let mut child = (do self.iter().filter_map |frame_tree| {
-            (do frame_tree.children.iter().find |child| {
-                child.frame_tree.pipeline.id == id
-            }).map(|& &child| child)
-        }).next();
-        match child {
-            Some(ref mut child) => {
+    fn replace_child(@mut self, id: PipelineId, new_child: @mut FrameTree) -> Either<@mut FrameTree, @mut FrameTree> {
+        for frame_tree in self.iter() {
+            let mut child = frame_tree.children.mut_iter()
+                .find(|child| child.frame_tree.pipeline.id == id);
+            for child in child.mut_iter() {
                 new_child.parent = child.frame_tree.parent;
-                Left(replace(&mut child.frame_tree, new_child))
+                return Left(replace(&mut child.frame_tree, new_child));
             }
-            None => Right(new_child)
         }
+        Right(new_child)
     }
 
     fn to_sendable(&self) -> SendableFrameTree {
@@ -541,7 +535,7 @@ impl Constellation {
     }
 
     fn handle_load_url_msg(&mut self, source_id: PipelineId, url: Url, size_future: Future<Size2D<uint>>) {
-        debug!("received message to load %s", url.to_str());
+        debug!("Constellation: received message to load %s", url.to_str());
         // Make sure no pending page would be overridden.
         let source_frame = self.current_frame().get_ref().find_mut(source_id).expect(
             "Constellation: received a LoadUrlMsg from a pipeline_id associated
@@ -675,6 +669,7 @@ impl Constellation {
             // If there are frames to revoke permission from, do so now.
             match frame_change.before {
                 Some(revoke_id) => {
+                    debug!("Constellation: revoking permission from %?", revoke_id);
                     let current_frame = self.current_frame().unwrap();
 
                     let to_revoke = current_frame.find_mut(revoke_id).expect(
@@ -687,9 +682,12 @@ impl Constellation {
 
                     // If to_add is not the root frame, then replace revoked_frame with it.
                     // This conveniently keeps scissor rect size intact.
+                    debug!("Constellation: replacing %? with %? in %?", revoke_id, to_add, next_frame_tree);
                     if to_add.parent.is_some() {
-                        next_frame_tree.replace_child(revoke_id, to_add);
+                        let replaced = next_frame_tree.replace_child(revoke_id, to_add);
+                        debug!("Replaced child: %?", replaced);
                     }
+                    debug!("Constellation: frame tree after replacing: %?", next_frame_tree);
                 }
 
                 None => {
