@@ -6,7 +6,7 @@ use dom::bindings::codegen::HTMLDocumentBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, null_string};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::document::{AbstractDocument, Document, WrappableDocument, HTML};
-use dom::element::{Element, HTMLHeadElementTypeId};
+use dom::element::HTMLHeadElementTypeId;
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{AbstractNode, ScriptView, ElementNodeTypeId};
 use dom::window::Window;
@@ -79,11 +79,11 @@ impl HTMLDocument {
     }
 
     pub fn Images(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, "img"))
+        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "img"))
     }
 
     pub fn Embeds(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, "embed"))
+        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "embed"))
     }
 
     pub fn Plugins(&self) -> @mut HTMLCollection {
@@ -91,17 +91,17 @@ impl HTMLDocument {
     }
 
     pub fn Links(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem|
+        self.parent.createHTMLCollection(|elem|
             (eq_slice(elem.tag_name, "a") || eq_slice(elem.tag_name, "area"))
             && elem.get_attr("href").is_some())
     }
 
     pub fn Forms(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, "form"))
+        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "form"))
     }
 
     pub fn Scripts(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, "script"))
+        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "script"))
     }
 
     pub fn Close(&self, _rv: &mut ErrorResult) {
@@ -174,13 +174,13 @@ impl HTMLDocument {
     }
 
     pub fn Anchors(&self) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem|
+        self.parent.createHTMLCollection(|elem|
             eq_slice(elem.tag_name, "a") && elem.get_attr("name").is_some())
     }
 
     pub fn Applets(&self) -> @mut HTMLCollection {
         // FIXME: This should be return OBJECT elements containing applets.
-        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, "applet"))
+        self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "applet"))
     }
 
     pub fn Clear(&self) {
@@ -188,21 +188,6 @@ impl HTMLDocument {
 
     pub fn GetAll(&self, _cx: *JSContext, _rv: &mut ErrorResult) -> *libc::c_void {
         ptr::null()
-    }
-
-    fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
-        let mut elements = ~[];
-        let _ = for self.parent.root.traverse_preorder |child| {
-            if child.is_element() {
-                do child.with_imm_element |elem| {
-                    if callback(elem) {
-                        elements.push(child);
-                    }
-                }
-            }
-        };
-        HTMLCollection::new(elements, cx, scope)
     }
 }
 
