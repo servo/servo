@@ -15,6 +15,10 @@ use dom::bindings::codegen::{HTMLTableElementBinding};
 use dom::bindings::codegen::{HTMLTableSectionElementBinding};
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
+use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLDivElementBinding};
+use dom::bindings::codegen::{HTMLImageElementBinding, HTMLTitleElementBinding};
+use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -31,6 +35,7 @@ use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
+use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
@@ -120,7 +125,6 @@ pub struct HTMLSmallElement     { parent: HTMLElement }
 pub struct HTMLSpanElement      { parent: HTMLElement }
 pub struct HTMLTableCellElement { parent: HTMLElement }
 pub struct HTMLTableRowElement  { parent: HTMLElement }
-pub struct HTMLTitleElement     { parent: HTMLElement }
 pub struct HTMLUListElement     { parent: HTMLElement }
 pub struct UnknownElement       { parent: HTMLElement }
 
@@ -210,6 +214,8 @@ generate_cacheable_wrapper!(HTMLTableElement, HTMLTableElementBinding::Wrap)
 generate_binding_object!(HTMLTableElement)
 generate_cacheable_wrapper!(HTMLTableSectionElement, HTMLTableSectionElementBinding::Wrap)
 generate_binding_object!(HTMLTableSectionElement)
+generate_cacheable_wrapper!(HTMLTitleElement, HTMLTitleElementBinding::Wrap)
+generate_binding_object!(HTMLTitleElement)
 
 //
 // Fancier elements
