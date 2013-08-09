@@ -37,8 +37,7 @@ impl<'self> RenderContext<'self>  {
     pub fn draw_border(&self,
                        bounds: &Rect<Au>,
                        border: SideOffsets2D<Au>,
-                       color: Color) {
-        let pattern = ColorPattern(color);
+                       color: SideOffsets2D<Color>) {
         let draw_opts = DrawOptions(1 as AzFloat, 0 as uint16_t);
         let stroke_fields = 2; // CAP_SQUARE
         let mut stroke_opts = StrokeOptions(0 as AzFloat, 10 as AzFloat, stroke_fields);
@@ -53,28 +52,28 @@ impl<'self> RenderContext<'self>  {
         let y = rect.origin.y + border.top * 0.5;
         let start = Point2D(rect.origin.x, y);
         let end = Point2D(rect.origin.x + rect.size.width, y);
-        self.canvas.draw_target.stroke_line(start, end, &pattern, &stroke_opts, &draw_opts);
+        self.canvas.draw_target.stroke_line(start, end, &ColorPattern(color.top), &stroke_opts, &draw_opts);
 
         // draw bottom border
         stroke_opts.line_width = border.bottom;
         let y = rect.origin.y + rect.size.height - border.bottom * 0.5;
         let start = Point2D(rect.origin.x, y);
         let end = Point2D(rect.origin.x + rect.size.width, y);
-        self.canvas.draw_target.stroke_line(start, end, &pattern, &stroke_opts, &draw_opts);
+        self.canvas.draw_target.stroke_line(start, end, &ColorPattern(color.bottom), &stroke_opts, &draw_opts);
 
         // draw left border
         stroke_opts.line_width = border.left;
         let x = rect.origin.x + border.left * 0.5;
         let start = Point2D(x, rect.origin.y);
         let end = Point2D(x, rect.origin.y + rect.size.height);
-        self.canvas.draw_target.stroke_line(start, end, &pattern, &stroke_opts, &draw_opts);
+        self.canvas.draw_target.stroke_line(start, end, &ColorPattern(color.left), &stroke_opts, &draw_opts);
 
         // draw right border
         stroke_opts.line_width = border.right;
         let x = rect.origin.x + rect.size.width - border.right * 0.5;
         let start = Point2D(x, rect.origin.y);
         let end = Point2D(x, rect.origin.y + rect.size.height);
-        self.canvas.draw_target.stroke_line(start, end, &pattern, &stroke_opts, &draw_opts);
+        self.canvas.draw_target.stroke_line(start, end, &ColorPattern(color.right), &stroke_opts, &draw_opts);
     }
 
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<~Image>) {

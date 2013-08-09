@@ -104,7 +104,7 @@ pub struct BorderDisplayItem<E> {
     border: SideOffsets2D<Au>,
 
     /// The color of the border.
-    color: Color,
+    color: SideOffsets2D<Color>,
 }
 
 impl<E> DisplayItem<E> {
