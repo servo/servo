@@ -4,7 +4,9 @@
 
 //! Element nodes.
 
-use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding, HTMLBodyElementBinding, HTMLBRElementBinding,
+use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding, 
+                             HTMLAreaElementBinding,
+                             HTMLBodyElementBinding, HTMLBRElementBinding,
                              HTMLCanvasElementBinding, HTMLDivElementBinding,
                              HTMLHeadElementBinding, HTMLHRElementBinding,
                              HTMLHtmlElementBinding, HTMLIFrameElementBinding,
@@ -20,6 +22,7 @@ use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlappletelement::HTMLAppletElement;
+use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
@@ -77,6 +80,7 @@ pub enum ElementTypeId {
     HTMLElementTypeId,
     HTMLAnchorElementTypeId,
     HTMLAppletElementTypeId,
+    HTMLAreaElementTypeId,
     HTMLBRElementTypeId,
     HTMLBodyElementTypeId,
     HTMLCanvasElementTypeId,
@@ -189,6 +193,8 @@ generate_cacheable_wrapper!(HTMLAnchorElement, HTMLAnchorElementBinding::Wrap)
 generate_binding_object!(HTMLAnchorElement)
 generate_cacheable_wrapper!(HTMLAppletElement, HTMLAppletElementBinding::Wrap)
 generate_binding_object!(HTMLAppletElement)
+generate_cacheable_wrapper!(HTMLAreaElement, HTMLAreaElementBinding::Wrap)
+generate_binding_object!(HTMLAreaElement)
 generate_cacheable_wrapper!(HTMLBodyElement, HTMLBodyElementBinding::Wrap)
 generate_binding_object!(HTMLBodyElement)
 generate_cacheable_wrapper!(HTMLCanvasElement, HTMLCanvasElementBinding::Wrap)

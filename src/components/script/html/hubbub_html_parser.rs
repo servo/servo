@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::element::{HTMLElementTypeId,
-                   HTMLAnchorElementTypeId, HTMLAppletElementTypeId, HTMLBRElementTypeId,
+                   HTMLAnchorElementTypeId, HTMLAppletElementTypeId, 
+                   HTMLAreaElementTypeId,  HTMLBRElementTypeId,
                    HTMLBodyElementTypeId, HTMLCanvasElementTypeId, HTMLDivElementTypeId,
                    HTMLFontElementTypeId, HTMLFormElementTypeId, HTMLHRElementTypeId,
                    HTMLHeadElementTypeId, HTMLHtmlElementTypeId,
@@ -28,6 +29,7 @@ use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Headi
 use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlappletelement::HTMLAppletElement;
+use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlhrelement::HTMLHRElement;
@@ -219,6 +221,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     // TODO (Issue #85): use atoms
     handle_element!(cx, tag, "a",       HTMLAnchorElementTypeId, HTMLAnchorElement, []);
     handle_element!(cx, tag, "applet",  HTMLAppletElementTypeId, HTMLAppletElement, []);
+    handle_element!(cx, tag, "area",    HTMLAreaElementTypeId, HTMLAreaElement, []);
     handle_element!(cx, tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
     handle_element!(cx, tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
     handle_element!(cx, tag, "canvas",  HTMLCanvasElementTypeId, HTMLCanvasElement, []);
