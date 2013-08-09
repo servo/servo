@@ -24,7 +24,7 @@ use dom::element::{HTMLDivElement, HTMLFontElement, HTMLFormElement,
                    HTMLSelectElement, HTMLSmallElement,
                    HTMLSpanElement,
                    HTMLTableCellElement,
-                   HTMLTitleElement, HTMLUListElement};
+                   HTMLTitleElement};
 use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Heading4, Heading5,
                    Heading6};
 use dom::htmlbrelement::HTMLBRElement;
@@ -41,6 +41,7 @@ use dom::htmltableelement::HTMLTableElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::htmlulistelement::HTMLUListElement;
 use dom::element::{Element, Attr};
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Comment, Doctype, ElementNodeTypeId, Node, ScriptView};
