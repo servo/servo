@@ -44,6 +44,7 @@ pub mod dom {
             pub mod FormDataBinding;
             pub mod HTMLAnchorElementBinding;
             pub mod HTMLBodyElementBinding;
+            pub mod HTMLBRElementBinding;
             pub mod HTMLCollectionBinding;
             pub mod HTMLDivElementBinding;
             pub mod HTMLDocumentBinding;
@@ -83,6 +84,7 @@ pub mod dom {
     pub mod formdata;
     pub mod htmlanchorelement;
     pub mod htmlbodyelement;
+    pub mod htmlbrelement;
     pub mod htmlcollection;
     pub mod htmldocument;
     pub mod htmlelement;

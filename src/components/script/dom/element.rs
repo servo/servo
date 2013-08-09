@@ -5,10 +5,10 @@
 //! Element nodes.
 
 use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
-use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBodyElementBinding};
+use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBRElementBinding};
+use dom::bindings::codegen::{HTMLBodyElementBinding, HTMLDivElementBinding, HTMLSpanElementBinding};
 use dom::bindings::codegen::{HTMLHRElementBinding, HTMLIFrameElementBinding};
 use dom::bindings::codegen::{HTMLParagraphElementBinding, HTMLScriptElementBinding};
-use dom::bindings::codegen::{HTMLDivElementBinding, HTMLSpanElementBinding};
 use dom::bindings::codegen::{HTMLImageElementBinding, HTMLOListElementBinding};
 use dom::bindings::codegen::{HTMLMetaElementBinding, HTMLStyleElementBinding};
 use dom::bindings::codegen::{HTMLTableElementBinding};
@@ -19,6 +19,7 @@ use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmlhrelement::HTMLHRElement;
@@ -104,7 +105,6 @@ pub enum ElementTypeId {
 // Regular old elements
 //
 
-pub struct HTMLBRElement        { parent: HTMLElement }
 pub struct HTMLDivElement       { parent: HTMLElement }
 pub struct HTMLFontElement      { parent: HTMLElement }
 pub struct HTMLFormElement      { parent: HTMLElement }
@@ -178,14 +178,16 @@ pub macro_rules! generate_binding_object(
 
 generate_cacheable_wrapper!(HTMLHeadElement, HTMLHeadElementBinding::Wrap)
 generate_binding_object!(HTMLHeadElement)
-generate_cacheable_wrapper!(HTMLHRElement, HTMLHRElementBinding::Wrap)
-generate_binding_object!(HTMLHRElement)
-generate_cacheable_wrapper!(HTMLHtmlElement, HTMLHtmlElementBinding::Wrap)
-generate_binding_object!(HTMLHtmlElement)
 generate_cacheable_wrapper!(HTMLAnchorElement, HTMLAnchorElementBinding::Wrap)
 generate_binding_object!(HTMLAnchorElement)
 generate_cacheable_wrapper!(HTMLBodyElement, HTMLBodyElementBinding::Wrap)
 generate_binding_object!(HTMLBodyElement)
+generate_cacheable_wrapper!(HTMLBRElement, HTMLBRElementBinding::Wrap)
+generate_binding_object!(HTMLBRElement)
+generate_cacheable_wrapper!(HTMLHRElement, HTMLHRElementBinding::Wrap)
+generate_binding_object!(HTMLHRElement)
+generate_cacheable_wrapper!(HTMLHtmlElement, HTMLHtmlElementBinding::Wrap)
+generate_binding_object!(HTMLHtmlElement)
 generate_cacheable_wrapper!(HTMLDivElement, HTMLDivElementBinding::Wrap)
 generate_binding_object!(HTMLDivElement)
 generate_cacheable_wrapper!(HTMLIFrameElement, HTMLIFrameElementBinding::Wrap)
