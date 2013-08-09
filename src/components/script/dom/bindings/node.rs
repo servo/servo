@@ -8,7 +8,7 @@ use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::element::{HTMLElementTypeId,
                    HTMLAnchorElementTypeId, HTMLAppletElementTypeId,
-                   HTMLAreaElementTypeId,
+                   HTMLAreaElementTypeId, HTMLBaseElementTypeId,
                    HTMLBodyElementTypeId, HTMLBRElementTypeId,
                    HTMLCanvasElementTypeId,
                    HTMLDivElementTypeId, HTMLHeadElementTypeId, HTMLHRElementTypeId,
@@ -23,6 +23,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlappletelement::HTMLAppletElement;
 use dom::htmlareaelement::HTMLAreaElement;
+use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmlbrelement::HTMLBRElement;
@@ -108,6 +109,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLAnchorElementTypeId) => generate_element!(HTMLAnchorElement),
         ElementNodeTypeId(HTMLAppletElementTypeId) => generate_element!(HTMLAppletElement),
         ElementNodeTypeId(HTMLAreaElementTypeId) => generate_element!(HTMLAreaElement),
+        ElementNodeTypeId(HTMLBaseElementTypeId) => generate_element!(HTMLBaseElement),
         ElementNodeTypeId(HTMLBodyElementTypeId) => generate_element!(HTMLBodyElement),
         ElementNodeTypeId(HTMLBRElementTypeId) => generate_element!(HTMLBRElement),
         ElementNodeTypeId(HTMLCanvasElementTypeId) => generate_element!(HTMLCanvasElement),
