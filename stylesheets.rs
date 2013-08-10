@@ -117,13 +117,13 @@ pub fn parse_nested_at_rule(lower_name: &str, rule: AtRule,
 
 
 impl Stylesheet {
-    fn iter_style_rules<'a>(&'a self, device: media_queries::Device) -> StyleRuleIterator<'a> {
+    fn iter_style_rules<'a>(&'a self, device: &'a media_queries::Device) -> StyleRuleIterator<'a> {
         StyleRuleIterator { device: device, stack: ~[(self.rules.as_slice(), 0)] }
     }
 }
 
 struct StyleRuleIterator<'self> {
-    device: media_queries::Device,
+    device: &'self media_queries::Device,
     // FIXME: I couldn’t get this to borrow-check with a stack of VecIterator
     stack: ~[(&'self [CSSRule], uint)],
 }
@@ -140,7 +140,7 @@ impl<'self> Iterator<&'self StyleRule> for StyleRuleIterator<'self> {
                     match rule_list[i] {
                         CSSStyleRule(ref rule) => return Some(rule),
                         CSSMediaRule(ref rule) => {
-                            if rule.media_queries.evaluate(&self.device) {
+                            if rule.media_queries.evaluate(self.device) {
                                 self.stack.push((rule.rules.as_slice(), 0))
                             }
                         }
