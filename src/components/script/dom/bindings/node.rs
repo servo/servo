@@ -6,17 +6,17 @@ use dom::bindings::element;
 use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
-use dom::element::{HTMLElementTypeId};
-use dom::element::{HTMLHeadElementTypeId, HTMLHtmlElementTypeId, HTMLAnchorElementTypeId, HTMLCanvasElementTypeId};
-use dom::element::{HTMLDivElementTypeId, HTMLImageElementTypeId, HTMLSpanElementTypeId};
-use dom::element::{HTMLBodyElementTypeId, HTMLHRElementTypeId, HTMLIframeElementTypeId};
-use dom::element::{HTMLBRElementTypeId, HTMLTitleElementTypeId};
-use dom::element::{HTMLParagraphElementTypeId, HTMLScriptElementTypeId, HTMLMetaElementTypeId};
-use dom::element::{HTMLOListElementTypeId, HTMLStyleElementTypeId, HTMLTableElementTypeId};
-use dom::element::{HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId};
-use dom::element::{HTMLTextAreaElementTypeId, HTMLUListElementTypeId};
-use dom::element::{HTMLHeadElement, HTMLHtmlElement, HTMLDivElement, HTMLSpanElement};
-use dom::element::{HTMLParagraphElement};
+use dom::element::{HTMLElementTypeId,
+                   HTMLAnchorElementTypeId, HTMLBodyElementTypeId, HTMLBRElementTypeId,
+                   HTMLCanvasElementTypeId,
+                   HTMLDivElementTypeId, HTMLHeadElementTypeId, HTMLHRElementTypeId,
+                   HTMLHtmlElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId,
+                   HTMLMetaElementTypeId, HTMLOListElementTypeId,
+                   HTMLParagraphElementTypeId, HTMLScriptElementTypeId,
+                   HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
+                   HTMLTableElementTypeId, HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId,
+                   HTMLTitleElementTypeId, HTMLUListElementTypeId};
+use dom::element::{HTMLHeadElement,HTMLHtmlElement, HTMLDivElement, HTMLParagraphElement, HTMLSpanElement};
 use dom::htmlelement::HTMLElement;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::HTMLBodyElement;

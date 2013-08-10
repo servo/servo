@@ -4,16 +4,16 @@
 
 //! Element nodes.
 
-use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
-use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBRElementBinding};
-use dom::bindings::codegen::{HTMLBodyElementBinding, HTMLCanvasElementBinding, HTMLDivElementBinding, HTMLSpanElementBinding};
-use dom::bindings::codegen::{HTMLHRElementBinding, HTMLIFrameElementBinding};
-use dom::bindings::codegen::{HTMLParagraphElementBinding, HTMLScriptElementBinding};
-use dom::bindings::codegen::{HTMLImageElementBinding, HTMLOListElementBinding};
-use dom::bindings::codegen::{HTMLMetaElementBinding, HTMLStyleElementBinding};
-use dom::bindings::codegen::{HTMLTableElementBinding, HTMLTableRowElementBinding};
-use dom::bindings::codegen::{HTMLTableSectionElementBinding, HTMLTextAreaElementBinding};
-use dom::bindings::codegen::{HTMLTitleElementBinding, HTMLUListElementBinding};
+use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBodyElementBinding, HTMLBRElementBinding,
+                             HTMLCanvasElementBinding, HTMLDivElementBinding,
+                             HTMLHeadElementBinding, HTMLHRElementBinding,
+                             HTMLHtmlElementBinding, HTMLIFrameElementBinding,
+                             HTMLImageElementBinding, HTMLMetaElementBinding,
+                             HTMLOListElementBinding, HTMLParagraphElementBinding,
+                             HTMLScriptElementBinding, HTMLSpanElementBinding, HTMLStyleElementBinding,
+                             HTMLTableElementBinding, HTMLTableRowElementBinding,
+                             HTMLTableSectionElementBinding, HTMLTextAreaElementBinding,
+                             HTMLTitleElementBinding, HTMLUListElementBinding};
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
 use dom::clientrect::ClientRect;
