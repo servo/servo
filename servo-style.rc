@@ -9,5 +9,7 @@ extern mod extra;
 extern mod cssparser;
 
 pub mod stylesheets;
+pub mod errors;
 pub mod selectors;
 pub mod properties;
+pub mod namespaces;

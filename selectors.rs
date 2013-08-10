@@ -5,7 +5,7 @@
 use std::{vec, iterator};
 use std::ascii::to_ascii_lower;
 use cssparser::*;
-use stylesheets::NamespaceMap;
+use namespaces::NamespaceMap;
 
 
 pub struct Selector {
@@ -68,7 +68,7 @@ pub struct AttrSelector {
 }
 
 
-type Iter = iterator::PeekableIterator<ComponentValue, vec::ConsumeIterator<ComponentValue>>;
+type Iter = iterator::Peekable<ComponentValue, vec::ConsumeIterator<ComponentValue>>;
 
 
 // None means invalid selector
