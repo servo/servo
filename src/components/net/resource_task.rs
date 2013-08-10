@@ -5,7 +5,7 @@
 //! A task that takes a URL and streams back the binary data.
 
 use file_loader;
-use http_loader;
+//use http_loader;
 
 use std::cell::Cell;
 use std::comm::{Chan, Port, SharedChan};
@@ -43,10 +43,10 @@ pub type LoaderTask = ~fn(url: Url, Chan<ProgressMsg>);
 /// Create a ResourceTask with the default loaders
 pub fn ResourceTask() -> ResourceTask {
     let file_loader_factory: LoaderTaskFactory = file_loader::factory;
-    let http_loader_factory: LoaderTaskFactory = http_loader::factory;
+    //let http_loader_factory: LoaderTaskFactory = http_loader::factory;
     let loaders = ~[
         (~"file", file_loader_factory),
-        (~"http", http_loader_factory)
+        //(~"http", http_loader_factory)
     ];
     create_resource_task_with_loaders(loaders)
 }
