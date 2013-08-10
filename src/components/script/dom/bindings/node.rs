@@ -7,7 +7,7 @@ use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::element::{HTMLElementTypeId};
-use dom::element::{HTMLHeadElementTypeId, HTMLHtmlElementTypeId, HTMLAnchorElementTypeId};
+use dom::element::{HTMLHeadElementTypeId, HTMLHtmlElementTypeId, HTMLAnchorElementTypeId, HTMLCanvasElementTypeId};
 use dom::element::{HTMLDivElementTypeId, HTMLImageElementTypeId, HTMLSpanElementTypeId};
 use dom::element::{HTMLBodyElementTypeId, HTMLHRElementTypeId, HTMLIframeElementTypeId};
 use dom::element::{HTMLBRElementTypeId, HTMLTitleElementTypeId};
@@ -22,6 +22,7 @@ use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmlbrelement::HTMLBRElement;
+use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmetaelement::HTMLMetaElement;
@@ -103,6 +104,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLAnchorElementTypeId) => generate_element!(HTMLAnchorElement),
         ElementNodeTypeId(HTMLBodyElementTypeId) => generate_element!(HTMLBodyElement),
         ElementNodeTypeId(HTMLBRElementTypeId) => generate_element!(HTMLBRElement),
+        ElementNodeTypeId(HTMLCanvasElementTypeId) => generate_element!(HTMLCanvasElement),
         ElementNodeTypeId(HTMLDivElementTypeId) => generate_element!(HTMLDivElement),
         ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
         ElementNodeTypeId(HTMLHRElementTypeId) => generate_element!(HTMLHRElement),

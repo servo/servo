@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::{HTMLHeadElementBinding, HTMLHtmlElementBinding};
 use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBRElementBinding};
-use dom::bindings::codegen::{HTMLBodyElementBinding, HTMLDivElementBinding, HTMLSpanElementBinding};
+use dom::bindings::codegen::{HTMLBodyElementBinding, HTMLCanvasElementBinding, HTMLDivElementBinding, HTMLSpanElementBinding};
 use dom::bindings::codegen::{HTMLHRElementBinding, HTMLIFrameElementBinding};
 use dom::bindings::codegen::{HTMLParagraphElementBinding, HTMLScriptElementBinding};
 use dom::bindings::codegen::{HTMLImageElementBinding, HTMLOListElementBinding};
@@ -21,6 +21,7 @@ use dom::clientrectlist::ClientRectList;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlbrelement::HTMLBRElement;
+use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmlhrelement::HTMLHRElement;
@@ -76,6 +77,7 @@ pub enum ElementTypeId {
     HTMLAnchorElementTypeId,
     HTMLBRElementTypeId,
     HTMLBodyElementTypeId,
+    HTMLCanvasElementTypeId,
     HTMLDivElementTypeId,
     HTMLFontElementTypeId,
     HTMLFormElementTypeId,
@@ -185,6 +187,8 @@ generate_cacheable_wrapper!(HTMLAnchorElement, HTMLAnchorElementBinding::Wrap)
 generate_binding_object!(HTMLAnchorElement)
 generate_cacheable_wrapper!(HTMLBodyElement, HTMLBodyElementBinding::Wrap)
 generate_binding_object!(HTMLBodyElement)
+generate_cacheable_wrapper!(HTMLCanvasElement, HTMLCanvasElementBinding::Wrap)
+generate_binding_object!(HTMLCanvasElement)
 generate_cacheable_wrapper!(HTMLBRElement, HTMLBRElementBinding::Wrap)
 generate_binding_object!(HTMLBRElement)
 generate_cacheable_wrapper!(HTMLHRElement, HTMLHRElementBinding::Wrap)
