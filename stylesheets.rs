@@ -9,6 +9,7 @@ use selectors;
 use properties;
 use errors::{ErrorLoggerIterator, log_css_error};
 use namespaces::{NamespaceMap, parse_namespace_rule};
+use media_queries::{MediaRule, parse_media_rule};
 
 
 pub struct Stylesheet {
@@ -19,7 +20,7 @@ pub struct Stylesheet {
 
 pub enum CSSRule {
     CSSStyleRule(StyleRule),
-//    CSSMediaRule(MediaRule),
+    CSSMediaRule(MediaRule),
 }
 
 
@@ -42,9 +43,13 @@ fn parse_stylesheet(css: &str) -> Stylesheet {
     for rule in ErrorLoggerIterator(parse_stylesheet_rules(tokenize(css))) {
         let next_state;  // Unitialized to force each branch to set it.
         match rule {
+            QualifiedRule(rule) => {
+                next_state = STATE_BODY;
+                parse_style_rule(rule, &mut rules, &namespaces)
+            },
             AtRule(rule) => {
-                let name: &str = to_ascii_lower(rule.name);
-                match name {
+                let lower_name: &str = to_ascii_lower(rule.name);
+                match lower_name {
                     "charset" => {
                         if state > STATE_CHARSET {
                             log_css_error(rule.location, "@charset must be the first rule")
@@ -76,13 +81,9 @@ fn parse_stylesheet(css: &str) -> Stylesheet {
                     },
                     _ => {
                         next_state = STATE_BODY;
-                        log_css_error(rule.location, fmt!("Unsupported at-rule: @%s", name))
+                        parse_nested_at_rule(lower_name, rule, &mut rules, &namespaces)
                     },
                 }
-            },
-            QualifiedRule(rule) => {
-                next_state = STATE_BODY;
-                parse_style_rule(rule, &mut rules, &namespaces)
             },
         }
         state = next_state;
@@ -91,14 +92,24 @@ fn parse_stylesheet(css: &str) -> Stylesheet {
 }
 
 
-fn parse_style_rule(rule: QualifiedRule, rule_list: &mut ~[CSSRule],
-                    namespaces: &NamespaceMap) {
+pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut ~[CSSRule],
+                        namespaces: &NamespaceMap) {
     let QualifiedRule{location: location, prelude: prelude, block: block} = rule;
     match selectors::parse_selector_list(prelude, namespaces) {
-        Some(selectors) => rule_list.push(CSSStyleRule(StyleRule{
+        Some(selectors) => parent_rules.push(CSSStyleRule(StyleRule{
             selectors: selectors,
             declarations: properties::parse_property_declaration_list(block)
         })),
         None => log_css_error(location, "Unsupported CSS selector."),
+    }
+}
+
+
+// lower_name is passed explicitly to avoid computing it twice.
+pub fn parse_nested_at_rule(lower_name: &str, rule: AtRule,
+                            parent_rules: &mut ~[CSSRule], namespaces: &NamespaceMap) {
+    match lower_name {
+        "media" => parse_media_rule(rule, parent_rules, namespaces),
+        _ => log_css_error(rule.location, fmt!("Unsupported at-rule: @%s", lower_name))
     }
 }
