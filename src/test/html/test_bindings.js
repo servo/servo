@@ -151,6 +151,13 @@ for (let i = 0, l = tagList.length; i < l; ++i) {
   window.alert(tags[0] instanceof HTMLElement);
 }
 
+window.alert("HTMLCanvasElement:");
+let tags = document.getElementsByTagName("canvas");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLCanvasElement);
+
 window.alert("HTMLTextAreaElement:");
 let tags = document.getElementsByTagName("textarea");
 window.alert(tags);

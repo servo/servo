@@ -4,7 +4,7 @@
 
 use dom::element::{HTMLElementTypeId,
                    HTMLAnchorElementTypeId, HTMLBRElementTypeId,
-                   HTMLBodyElementTypeId, HTMLDivElementTypeId,
+                   HTMLBodyElementTypeId, HTMLCanvasElementTypeId, HTMLDivElementTypeId,
                    HTMLFontElementTypeId, HTMLFormElementTypeId, HTMLHRElementTypeId,
                    HTMLHeadElementTypeId, HTMLHtmlElementTypeId,
                    HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLInputElementTypeId,
@@ -28,6 +28,7 @@ use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Headi
 use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
@@ -218,6 +219,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "a",       HTMLAnchorElementTypeId, HTMLAnchorElement, []);
     handle_element!(cx, tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
     handle_element!(cx, tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
+    handle_element!(cx, tag, "canvas",  HTMLCanvasElementTypeId, HTMLCanvasElement, []);
     handle_element!(cx, tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
     handle_element!(cx, tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
     handle_element!(cx, tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);
