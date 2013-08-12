@@ -14,7 +14,8 @@ use dom::element::{HTMLElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId,
                    HTMLParagraphElementTypeId, HTMLScriptElementTypeId,
                    HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
-                   HTMLTableElementTypeId, HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId,
+                   HTMLTableCaptionElementTypeId, HTMLTableElementTypeId,
+                   HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId,
                    HTMLTitleElementTypeId, HTMLUListElementTypeId};
 use dom::element::{HTMLHeadElement,HTMLHtmlElement, HTMLDivElement, HTMLParagraphElement, HTMLSpanElement};
 use dom::htmlelement::HTMLElement;
@@ -29,6 +30,7 @@ use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
@@ -117,6 +119,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLScriptElementTypeId) => generate_element!(HTMLScriptElement),
         ElementNodeTypeId(HTMLSpanElementTypeId) => generate_element!(HTMLSpanElement),
         ElementNodeTypeId(HTMLStyleElementTypeId) => generate_element!(HTMLStyleElement),
+        ElementNodeTypeId(HTMLTableCaptionElementTypeId) => generate_element!(HTMLTableCaptionElement),
         ElementNodeTypeId(HTMLTableElementTypeId) => generate_element!(HTMLTableElement),
         ElementNodeTypeId(HTMLTableRowElementTypeId) => generate_element!(HTMLTableRowElement),
         ElementNodeTypeId(HTMLTableSectionElementTypeId) => generate_element!(HTMLTableSectionElement),

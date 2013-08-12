@@ -10,7 +10,8 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBodyElementBinding, H
                              HTMLHtmlElementBinding, HTMLIFrameElementBinding,
                              HTMLImageElementBinding, HTMLMetaElementBinding,
                              HTMLOListElementBinding, HTMLParagraphElementBinding,
-                             HTMLScriptElementBinding, HTMLSpanElementBinding, HTMLStyleElementBinding,
+                             HTMLScriptElementBinding, HTMLSpanElementBinding,
+                             HTMLStyleElementBinding, HTMLTableCaptionElementBinding,
                              HTMLTableElementBinding, HTMLTableRowElementBinding,
                              HTMLTableSectionElementBinding, HTMLTextAreaElementBinding,
                              HTMLTitleElementBinding, HTMLUListElementBinding};
@@ -31,6 +32,7 @@ use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmlulistelement::HTMLUListElement;
@@ -99,10 +101,11 @@ pub enum ElementTypeId {
     HTMLSmallElementTypeId,
     HTMLSpanElementTypeId,
     HTMLStyleElementTypeId,
-    HTMLTableSectionElementTypeId,
+    HTMLTableCaptionElementTypeId,
     HTMLTableCellElementTypeId,
     HTMLTableElementTypeId,
     HTMLTableRowElementTypeId,
+    HTMLTableSectionElementTypeId,
     HTMLTextAreaElementTypeId,
     HTMLTitleElementTypeId,
     HTMLUListElementTypeId,
@@ -214,6 +217,8 @@ generate_binding_object!(HTMLSpanElement)
 generate_cacheable_wrapper!(HTMLStyleElement, HTMLStyleElementBinding::Wrap)
 generate_binding_object!(HTMLStyleElement)
 generate_cacheable_wrapper!(HTMLTableElement, HTMLTableElementBinding::Wrap)
+generate_binding_object!(HTMLTableCaptionElement)
+generate_cacheable_wrapper!(HTMLTableCaptionElement, HTMLTableCaptionElementBinding::Wrap)
 generate_binding_object!(HTMLTableElement)
 generate_cacheable_wrapper!(HTMLTableRowElement, HTMLTableRowElementBinding::Wrap)
 generate_binding_object!(HTMLTableRowElement)

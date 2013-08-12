@@ -61,6 +61,7 @@ pub mod dom {
             pub mod HTMLScriptElementBinding;
             pub mod HTMLSpanElementBinding;
             pub mod HTMLStyleElementBinding;
+            pub mod HTMLTableCaptionElementBinding;
             pub mod HTMLTableElementBinding;
             pub mod HTMLTableRowElementBinding;
             pub mod HTMLTableSectionElementBinding;
@@ -101,6 +102,7 @@ pub mod dom {
     pub mod htmlolistelement;
     pub mod htmlscriptelement;
     pub mod htmlstyleelement;
+    pub mod htmltablecaptionelement;
     pub mod htmltableelement;
     pub mod htmltablerowelement;
     pub mod htmltablesectionelement;
