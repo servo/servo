@@ -14,7 +14,7 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBodyElementBinding, H
                              HTMLStyleElementBinding, HTMLTableCaptionElementBinding,
                              HTMLTableElementBinding, HTMLTableRowElementBinding,
                              HTMLTableSectionElementBinding, HTMLTextAreaElementBinding,
-                             HTMLTitleElementBinding, HTMLUListElementBinding};
+                             HTMLTimeElementBinding, HTMLTitleElementBinding, HTMLUListElementBinding};
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
 use dom::clientrect::ClientRect;
@@ -36,10 +36,11 @@ use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
-use dom::htmlulistelement::HTMLUListElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::htmltimeelement::HTMLTimeElement;
 use dom::htmltitleelement::HTMLTitleElement;
+use dom::htmlulistelement::HTMLUListElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
@@ -110,6 +111,7 @@ pub enum ElementTypeId {
     HTMLTableRowElementTypeId,
     HTMLTableSectionElementTypeId,
     HTMLTextAreaElementTypeId,
+    HTMLTimeElementTypeId,
     HTMLTitleElementTypeId,
     HTMLUListElementTypeId,
     UnknownElementTypeId,
@@ -233,6 +235,8 @@ generate_cacheable_wrapper!(HTMLTextAreaElement, HTMLTextAreaElementBinding::Wra
 generate_binding_object!(HTMLTextAreaElement)
 generate_cacheable_wrapper!(HTMLTitleElement, HTMLTitleElementBinding::Wrap)
 generate_binding_object!(HTMLTitleElement)
+generate_cacheable_wrapper!(HTMLTimeElement, HTMLTimeElementBinding::Wrap)
+generate_binding_object!(HTMLTimeElement)
 generate_cacheable_wrapper!(HTMLUListElement, HTMLUListElementBinding::Wrap)
 generate_binding_object!(HTMLUListElement)
 
