@@ -231,8 +231,22 @@ impl Document {
         HTMLCollection::new(~[], cx, scope)
     }
 
-    pub fn GetElementById(&self, _id: &DOMString) -> Option<AbstractNode<ScriptView>> {
-        None
+    pub fn GetElementById(&self, id: &DOMString) -> Option<AbstractNode<ScriptView>> {
+        let name = str(~"id");
+        let mut ret = None;
+        for self.root.traverse_preorder |child| {
+            if child.is_element() {
+                do child.with_imm_element |elem| {
+                    if *id == elem.GetAttribute(&name) {
+                        ret = Some(child);
+                    }
+                }
+                if ret.is_some() {
+                    break;
+                }
+            }
+        }
+        ret
     }
 
     pub fn CreateElement(&self, _local_name: &DOMString, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
