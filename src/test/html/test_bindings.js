@@ -158,6 +158,13 @@ window.alert(tags.length);
 window.alert(tags[0].tagName);
 window.alert(tags[0] instanceof HTMLCanvasElement);
 
+window.alert("HTMLTableCaptionElement:");
+let tags = document.getElementsByTagName("caption");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLTableCaptionElement);
+
 window.alert("HTMLTextAreaElement:");
 let tags = document.getElementsByTagName("textarea");
 window.alert(tags);
