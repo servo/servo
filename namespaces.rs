@@ -30,7 +30,7 @@ pub fn parse_namespace_rule(rule: AtRule, namespaces: &mut NamespaceMap) {
     if rule.block.is_some() { syntax_error!() }
     let mut prefix: Option<~str> = None;
     let mut url: Option<~str> = None;
-    let mut iter = rule.prelude.consume_skip_whitespace();
+    let mut iter = rule.prelude.move_skip_whitespace();
     for component_value in iter {
         match component_value {
             Ident(value) => {

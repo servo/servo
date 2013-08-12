@@ -27,7 +27,7 @@ pub enum CSSRule {
 
 pub struct StyleRule {
     selectors: ~[selectors::Selector],
-    declarations: ~[properties::PropertyDeclaration],
+    declarations: properties::PropertyDeclarationBlock,
 }
 
 

@@ -68,13 +68,13 @@ pub struct AttrSelector {
 }
 
 
-type Iter = iterator::Peekable<ComponentValue, vec::ConsumeIterator<ComponentValue>>;
+type Iter = iterator::Peekable<ComponentValue, vec::MoveIterator<ComponentValue>>;
 
 
 // None means invalid selector
 pub fn parse_selector_list(input: ~[ComponentValue], namespaces: &NamespaceMap)
                            -> Option<~[Selector]> {
-    let iter = &mut input.consume_iter().peekable();
+    let iter = &mut input.move_iter().peekable();
     let first = match parse_selector(iter, namespaces) {
         None => return None,
         Some(result) => result
@@ -359,7 +359,7 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
 
 fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMap)
                             -> Option<SimpleSelector> {
-    let iter = &mut content.consume_iter().peekable();
+    let iter = &mut content.move_iter().peekable();
     let attr = match parse_qualified_name(iter, /* allow_universal = */ false, namespaces) {
         None => return None,  // invalid selector
         Some(None) => return None,
@@ -436,7 +436,7 @@ fn parse_pseudo_element(name: ~str) -> Option<PseudoElement> {
 
 
 fn parse_lang(arguments: ~[ComponentValue]) -> Option<SimpleSelector> {
-    let mut iter = arguments.consume_skip_whitespace();
+    let mut iter = arguments.move_skip_whitespace();
     match iter.next() {
         Some(Ident(value)) => {
             if "" == value || iter.next().is_some() { None }
@@ -450,7 +450,7 @@ fn parse_lang(arguments: ~[ComponentValue]) -> Option<SimpleSelector> {
 // Level 3: Parse ONE simple_selector
 fn parse_negation(arguments: ~[ComponentValue], namespaces: &NamespaceMap)
                   -> Option<SimpleSelector> {
-    let iter = &mut arguments.consume_iter().peekable();
+    let iter = &mut arguments.move_iter().peekable();
     Some(Negation(match parse_type_selector(iter, namespaces) {
         None => return None,  // invalid selector
         Some(Some(s)) => s,

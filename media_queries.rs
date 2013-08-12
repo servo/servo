@@ -56,7 +56,7 @@ pub fn parse_media_rule(rule: AtRule, parent_rules: &mut ~[CSSRule],
         }
     };
     let mut rules = ~[];
-    for rule in ErrorLoggerIterator(parse_rule_list(block.consume_iter())) {
+    for rule in ErrorLoggerIterator(parse_rule_list(block.move_iter())) {
         match rule {
             QualifiedRule(rule) => parse_style_rule(rule, &mut rules, namespaces),
             AtRule(rule) => parse_nested_at_rule(
