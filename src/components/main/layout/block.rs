@@ -124,7 +124,7 @@ impl BlockFlowData {
  
     /// Computes left and right margins and width based on CSS 2.1 secion 10.3.3.
     /// Requires borders and padding to already be computed
-    priv fn compute_horiz( &self, 
+    fn compute_horiz( &self,
                             width: MaybeAuto, 
                             left_margin: MaybeAuto, 
                             right_margin: MaybeAuto, 

@@ -57,12 +57,12 @@ pub type FractionalPixel = float;
 
 pub type FontTableTag = u32;
 
-trait FontTableTagConversions {
-    pub fn tag_to_str(&self) -> ~str;
+pub trait FontTableTagConversions {
+    fn tag_to_str(&self) -> ~str;
 }
 
 impl FontTableTagConversions for FontTableTag {
-    pub fn tag_to_str(&self) -> ~str {
+    fn tag_to_str(&self) -> ~str {
         unsafe {
             let reversed = str::raw::from_buf_len(cast::transmute(self), 4);
             return str::from_chars([reversed.char_at(3),
@@ -301,7 +301,7 @@ impl Font {
         return Ok(Font::new_from_adopted_handle(fctx, styled_handle, style, backend, profiler_chan));
     }
 
-    priv fn get_shaper(@mut self) -> @Shaper {
+    fn get_shaper(@mut self) -> @Shaper {
         // fast path: already created a shaper
         match self.shaper {
             Some(shaper) => { return shaper; },
@@ -332,7 +332,7 @@ impl Font {
     // TODO: this should return a borrowed pointer, but I can't figure
     // out why borrowck doesn't like my implementation.
 
-    priv fn get_azure_font(&mut self) -> AzScaledFontRef {
+    fn get_azure_font(&mut self) -> AzScaledFontRef {
         // fast path: we've already created the azure font resource
         match self.azure_font {
             Some(ref azfont) => return azfont.get_ref(),
@@ -346,14 +346,14 @@ impl Font {
     }
 
     #[cfg(target_os="macos")]
-    priv fn create_azure_font(&mut self) -> ScaledFont {
+    fn create_azure_font(&mut self) -> ScaledFont {
         let cg_font = self.handle.get_CGFont();
         let size = self.style.pt_size as AzFloat;
         ScaledFont::new(self.backend, &cg_font, size)
     }
 
     #[cfg(target_os="linux")]
-    priv fn create_azure_font(&self) -> ScaledFont {
+    fn create_azure_font(&self) -> ScaledFont {
         let freetype_font = self.handle.face;
         let size = self.style.pt_size as AzFloat;
         ScaledFont::new(self.backend, freetype_font, size)
@@ -392,7 +392,7 @@ impl Font {
 
         for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {
             for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
-                let glyph_advance = glyph.advance_();
+                let glyph_advance = glyph.advance();
                 let glyph_offset = glyph.offset().unwrap_or_default(Au::zero_point());
 
                 let azglyph = struct__AzGlyph {
@@ -432,7 +432,7 @@ impl Font {
         let mut advance = Au(0);
         for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {
             for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
-                advance = advance + glyph.advance_();
+                advance = advance + glyph.advance();
             }
         }
         RunMetrics::new(advance, self.metrics.ascent, self.metrics.descent)
@@ -444,7 +444,7 @@ impl Font {
                                   -> RunMetrics {
         let mut advance = Au(0);
         for (_i, glyph) in glyphs.iter_glyphs_for_char_range(slice_range) {
-            advance = advance + glyph.advance_();
+            advance = advance + glyph.advance();
         }
         RunMetrics::new(advance, self.metrics.ascent, self.metrics.descent)
     }

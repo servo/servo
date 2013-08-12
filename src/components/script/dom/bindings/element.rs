@@ -54,7 +54,7 @@ pub extern fn trace(tracer: *mut JSTracer, obj: *JSObject) {
         unsafe {
             (*tracer).debugPrinter = ptr::null();
             (*tracer).debugPrintIndex = -1;
-            do name.as_c_str |name| {
+            do name.to_c_str().with_ref |name| {
                 (*tracer).debugPrintArg = name as *libc::c_void;
                 JS_CallTracer(cast::transmute(tracer), wrapper, JSTRACE_OBJECT as u32);
             }

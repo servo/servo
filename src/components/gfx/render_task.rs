@@ -71,7 +71,7 @@ impl RenderChan {
     }
 }
 
-priv struct RenderTask<C> {
+struct RenderTask<C> {
     id: PipelineId,
     port: Port<Msg>,
     compositor: C,

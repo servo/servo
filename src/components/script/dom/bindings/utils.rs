@@ -202,7 +202,7 @@ pub fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
         }
 
         let strbuf = JS_EncodeString(cx, jsstr);
-        let buf = str::raw::from_buf(strbuf as *u8);
+        let buf = str::raw::from_c_str(strbuf);
         JS_free(cx, strbuf as *libc::c_void);
         Ok(buf)
     }
@@ -454,7 +454,7 @@ pub fn CreateInterfaceObjects2(cx: *JSContext, global: *JSObject, receiver: *JSO
 
     let mut interface = ptr::null();
     if constructorClass.is_not_null() || constructor.is_not_null() {
-        interface = do name.as_c_str |s| {
+        interface = do name.to_c_str().with_ref |s| {
             CreateInterfaceObject(cx, global, receiver, constructorClass,
                                   constructor, ctorNargs, proto,
                                   staticMethods, constants, s)
@@ -506,7 +506,7 @@ fn CreateInterfaceObject(cx: *JSContext, global: *JSObject, receiver: *JSObject,
         }
 
         if constructorClass.is_not_null() {
-            let toString = do "toString".as_c_str |s| {
+            let toString = do "toString".to_c_str().with_ref |s| {
                 DefineFunctionWithReserved(cx, constructor, s,
                                            InterfaceObjectToString,
                                            0, 0)

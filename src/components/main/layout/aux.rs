@@ -37,7 +37,7 @@ impl LayoutData {
 /// Functionality useful for querying the layout-specific data on DOM nodes.
 pub trait LayoutAuxMethods {
     fn layout_data(self) -> @mut LayoutData;
-    pub fn has_layout_data(self) -> bool;
+    fn has_layout_data(self) -> bool;
     fn set_layout_data(self, data: @mut LayoutData);
 
     fn initialize_layout_data(self) -> Option<@mut LayoutData>;
@@ -45,17 +45,17 @@ pub trait LayoutAuxMethods {
 }
 
 impl LayoutAuxMethods for AbstractNode<LayoutView> {
-    pub fn layout_data(self) -> @mut LayoutData {
+    fn layout_data(self) -> @mut LayoutData {
         unsafe {
             self.unsafe_layout_data()
         }
     }
-    pub fn has_layout_data(self) -> bool {
+    fn has_layout_data(self) -> bool {
        unsafe {
             self.unsafe_has_layout_data()
         }
     }
-    pub fn set_layout_data(self, data: @mut LayoutData) {
+    fn set_layout_data(self, data: @mut LayoutData) {
         unsafe {
             self.unsafe_set_layout_data(data)
         }

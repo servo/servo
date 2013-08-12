@@ -115,7 +115,7 @@ impl Document {
 }
 
 impl WrappableDocument for Document {
-    pub fn init_wrapper(@mut self, cx: *JSContext) {
+    fn init_wrapper(@mut self, cx: *JSContext) {
         self.wrap_object_shared(cx, ptr::null()); //XXXjdm a proper scope would be nice
     }
 }

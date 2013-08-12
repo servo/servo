@@ -47,7 +47,7 @@ struct QuadtreeNode<T> {
     tile_mem: uint,
 }
 
-priv enum Quadrant {
+enum Quadrant {
     TL = 0,
     TR = 1,
     BL = 2,

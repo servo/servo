@@ -383,7 +383,7 @@ impl RenderBox {
     //
     // TODO(eatkinson): integrate with
     // get_min_width and get_pref_width?
-    priv fn guess_width (&self) -> Au {
+    fn guess_width (&self) -> Au {
         do self.with_base |base| {
             if(!base.node.is_element()) {
                 Au(0)
@@ -820,7 +820,7 @@ impl RenderBox {
         self.nearest_ancestor_element().style().text_align()
     }
 
-    fn line_height(&self) -> CSSLineHeight {
+    pub fn line_height(&self) -> CSSLineHeight {
         self.nearest_ancestor_element().style().line_height()
     }
 

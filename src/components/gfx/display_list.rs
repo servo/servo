@@ -156,7 +156,7 @@ impl<E> DisplayItem<E> {
         }
     }
 
-    fn base<'a>(&'a self) -> &'a BaseDisplayItem<E> {
+    pub fn base<'a>(&'a self) -> &'a BaseDisplayItem<E> {
         // FIXME(tkuehn): Workaround for Rust region bug.
         unsafe {
             match *self {
@@ -168,7 +168,7 @@ impl<E> DisplayItem<E> {
         }
     }
 
-    fn bounds(&self) -> Rect<Au> {
+    pub fn bounds(&self) -> Rect<Au> {
         self.base().bounds
     }
 }

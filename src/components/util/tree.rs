@@ -7,13 +7,13 @@
 // Macros to make add_child etc. less painful to write.
 // Code outside this module should instead implement TreeNode
 // and use its default methods.
-priv macro_rules! get(
+macro_rules! get(
     ($node:expr, $fun:ident) => (
         TreeNodeRef::$fun::<Node,Self>($node)
     )
 )
 
-priv macro_rules! set(
+macro_rules! set(
     ($node:expr, $fun:ident, $val:expr) => (
         TreeNodeRef::$fun::<Node,Self>($node, $val)
     )
@@ -44,7 +44,7 @@ pub struct TreeIterator<Ref> {
 }
 
 impl<Ref> TreeIterator<Ref> {
-    priv fn new(nodes: ~[Ref]) -> TreeIterator<Ref> {
+    fn new(nodes: ~[Ref]) -> TreeIterator<Ref> {
         TreeIterator {
             nodes: nodes,
             index: 0,
@@ -220,8 +220,8 @@ pub trait TreeNodeRef<Node>: Clone {
     }
 }
 
-priv fn gather<Node, Ref: TreeNodeRef<Node>>(cur: &Ref, refs: &mut ~[Ref],
-                                             postorder: bool, prune: &fn(&Ref) -> bool) {
+fn gather<Node, Ref: TreeNodeRef<Node>>(cur: &Ref, refs: &mut ~[Ref],
+                                        postorder: bool, prune: &fn(&Ref) -> bool) {
     // prune shouldn't mutate, so don't clone
     if prune(cur) {
         return;

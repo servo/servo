@@ -83,7 +83,7 @@ impl FlowContext {
     //
     // FIXME: Unify this with traverse_preorder_prune, which takes a separate
     // 'prune' function.
-    fn partially_traverse_preorder(&self, callback: &fn(FlowContext) -> bool) {
+    pub fn partially_traverse_preorder(&self, callback: &fn(FlowContext) -> bool) {
         if !callback((*self).clone()) {
             return;
         }
@@ -94,7 +94,7 @@ impl FlowContext {
         }
     }
 
-    fn traverse_bu_sub_inorder (&self, callback: &fn(FlowContext)) {
+    pub fn traverse_bu_sub_inorder (&self, callback: &fn(FlowContext)) {
         for kid in self.children() {
             // FIXME: Work around rust#2202. We should be able to pass the callback directly.
             kid.traverse_bu_sub_inorder(|a| callback(a));

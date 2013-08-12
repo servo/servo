@@ -49,7 +49,7 @@ struct FrameTree {
 // Need to clone the FrameTrees, but _not_ the Pipelines
 impl Clone for FrameTree {
     fn clone(&self) -> FrameTree {
-        let mut children = do self.children.iter().transform |&frame_tree| {
+        let mut children = do self.children.iter().map |&frame_tree| {
             @mut (*frame_tree).clone()
         };
         FrameTree {
@@ -113,7 +113,7 @@ impl FrameTree {
     fn to_sendable(&self) -> SendableFrameTree {
         let sendable_frame_tree = SendableFrameTree {
             pipeline: (*self.pipeline).clone(),
-            children: self.children.iter().transform(|frame_tree| frame_tree.to_sendable()).collect(),
+            children: self.children.iter().map(|frame_tree| frame_tree.to_sendable()).collect(),
         };
         sendable_frame_tree
     }
@@ -202,7 +202,7 @@ impl NavigationContext {
         let from_prev = do self.previous.iter().filter_map |frame_tree| {
             frame_tree.find_mut(pipeline_id)
         };
-        from_prev.chain_(from_current).chain_(from_next).collect()
+        from_prev.chain(from_current).chain(from_next).collect()
     }
 
     pub fn contains(&mut self, pipeline_id: PipelineId) -> bool {
@@ -210,7 +210,7 @@ impl NavigationContext {
         let from_next = self.next.iter();
         let from_prev = self.previous.iter();
 
-        let mut all_contained = from_prev.chain_(from_current).chain_(from_next);
+        let mut all_contained = from_prev.chain(from_current).chain(from_next);
         do all_contained.any |frame_tree| {
             frame_tree.contains(pipeline_id)
         }
@@ -337,7 +337,7 @@ impl Constellation {
                     let matching_pending_frames = do self.pending_frames.iter().filter_map |frame_change| {
                         frame_change.after.find_mut(source_pipeline_id)
                     };
-                    matching_navi_frames.consume_iter().chain_(matching_pending_frames).collect()
+                    matching_navi_frames.move_iter().chain(matching_pending_frames).collect()
                 };
 
                 if frame_trees.is_empty() {

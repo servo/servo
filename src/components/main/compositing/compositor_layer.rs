@@ -197,7 +197,7 @@ impl CompositorLayer {
             }
         };
         self.children.mut_iter().filter(|x| !x.child.hidden)
-            .transform(transform)
+            .map(transform)
             .fold(false, |a, b| a || b) || redisplay
     }
 
@@ -219,7 +219,7 @@ impl CompositorLayer {
         }
         
         // ID does not match any of our immediate children, so recurse on descendents (including hidden children)
-        self.children.mut_iter().transform(|x| &mut x.child).any(|x| x.set_clipping_rect(pipeline_id, new_rect))
+        self.children.mut_iter().map(|x| &mut x.child).any(|x| x.set_clipping_rect(pipeline_id, new_rect))
     }
 
 
@@ -349,7 +349,7 @@ impl CompositorLayer {
             return true;
         }
         // ID does not match ours, so recurse on descendents (including hidden children).
-        self.children.mut_iter().transform(|x| &mut x.child).any(|x| x.add_buffers(pipeline_id, new_buffers))
+        self.children.mut_iter().map(|x| &mut x.child).any(|x| x.add_buffers(pipeline_id, new_buffers))
     }
 
     // Deletes a specified sublayer, including hidden children. Returns false if the layer is not found.
@@ -362,7 +362,7 @@ impl CompositorLayer {
                 true
             }
             None => {
-                self.children.mut_iter().transform(|x| &mut x.child).any(|x| x.delete(pipeline_id))
+                self.children.mut_iter().map(|x| &mut x.child).any(|x| x.delete(pipeline_id))
             }
         }
     }

@@ -62,7 +62,7 @@ impl DocumentDamageLevel {
     ///
     /// FIXME(pcwalton): This could be refactored to use `max` and the `Ord` trait, and this
     /// function removed.
-    fn add(&mut self, new_damage: DocumentDamageLevel) {
+    pub fn add(&mut self, new_damage: DocumentDamageLevel) {
         match (*self, new_damage) {
             (ReflowDocumentDamage, new_damage) => *self = new_damage,
             (MatchSelectorsDocumentDamage, _) => *self = MatchSelectorsDocumentDamage,

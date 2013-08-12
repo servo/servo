@@ -42,7 +42,7 @@ impl FontList {
         list
     }
 
-    priv fn refresh(&mut self, _: &FontContextHandle) {
+    fn refresh(&mut self, _: &FontContextHandle) {
         // TODO(Issue #186): don't refresh unless something actually
         // changed.  Does OSX have a notification for this event?
         //
@@ -76,7 +76,7 @@ impl FontList {
         result
     }
 
-    priv fn find_family(&self, family_name: &str) -> Option<@mut FontFamily> {
+    fn find_family(&self, family_name: &str) -> Option<@mut FontFamily> {
         // look up canonical name
         let family = self.family_map.find_equiv(&family_name);
 

@@ -72,7 +72,7 @@ impl<'self> FontContext {
         }
     }
 
-    priv fn get_font_list(&'self self) -> &'self FontList {
+    fn get_font_list(&'self self) -> &'self FontList {
         self.font_list.get_ref()
     }
 
@@ -110,7 +110,7 @@ impl<'self> FontContext {
         }
     }
 
-    priv fn transform_family(&self, family: &str) -> ~str {
+    fn transform_family(&self, family: &str) -> ~str {
         // FIXME: Need a find_like() in HashMap.
         let family = family.to_str();
         debug!("(transform family) searching for `%s`", family);
@@ -120,7 +120,7 @@ impl<'self> FontContext {
         }
     }
 
-    priv fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
+    fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
         let mut fonts = ~[];
 
         debug!("(create font group) --- starting ---");
@@ -182,7 +182,7 @@ impl<'self> FontContext {
         @FontGroup::new(style.families.to_managed(), &used_style, fonts)
     }
 
-    priv fn create_font_instance(&self, desc: &FontDescriptor) -> Result<@mut Font, ()> {
+    fn create_font_instance(&self, desc: &FontDescriptor) -> Result<@mut Font, ()> {
         return match &desc.selector {
             // TODO(Issue #174): implement by-platform-name font selectors.
             &SelectorPlatformIdentifier(ref identifier) => { 

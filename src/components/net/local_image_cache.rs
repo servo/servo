@@ -33,7 +33,7 @@ pub struct LocalImageCache {
     priv state_map: UrlMap<@mut ImageState>
 }
 
-priv struct ImageState {
+struct ImageState {
     prefetched: bool,
     decoded: bool,
     last_request_round: uint,
@@ -133,7 +133,7 @@ impl LocalImageCache {
         return port;
     }
 
-    priv fn get_state(&self, url: &Url) -> @mut ImageState {
+    fn get_state(&self, url: &Url) -> @mut ImageState {
         let state = do self.state_map.find_or_insert_with(url.clone()) |_| {
             let new_state = @mut ImageState {
                 prefetched: false,

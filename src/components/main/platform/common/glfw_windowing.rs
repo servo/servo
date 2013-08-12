@@ -25,7 +25,7 @@ static THROBBER: [char, ..8] = [ '⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯'
 pub struct Application;
 
 impl ApplicationMethods for Application {
-    pub fn new() -> Application {
+    fn new() -> Application {
         glfw::init();
         Application
     }

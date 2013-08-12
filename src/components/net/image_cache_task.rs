@@ -232,18 +232,18 @@ impl ImageCache {
         }
     }
 
-    priv fn get_state(&self, url: Url) -> ImageState {
+    fn get_state(&self, url: Url) -> ImageState {
         match self.state_map.find(&url) {
             Some(state) => *state,
             None => Init
         }
     }
 
-    priv fn set_state(&self, url: Url, state: ImageState) {
+    fn set_state(&self, url: Url, state: ImageState) {
         self.state_map.insert(url, state);
     }
 
-    priv fn prefetch(&self, url: Url) {
+    fn prefetch(&self, url: Url) {
         match self.get_state(url.clone()) {
             Init => {
                 let to_cache = self.chan.clone();
@@ -274,7 +274,7 @@ impl ImageCache {
         }
     }
 
-    priv fn store_prefetched_image_data(&self, url: Url, data: Result<Cell<~[u8]>, ()>) {
+    fn store_prefetched_image_data(&self, url: Url, data: Result<Cell<~[u8]>, ()>) {
         match self.get_state(url.clone()) {
           Prefetching(next_step) => {
             match data {
@@ -303,7 +303,7 @@ impl ImageCache {
         }
     }
 
-    priv fn decode(&self, url: Url) {
+    fn decode(&self, url: Url) {
         match self.get_state(url.clone()) {
             Init => fail!(~"decoding image before prefetch"),
 
@@ -346,7 +346,7 @@ impl ImageCache {
         }
     }
 
-    priv fn store_image(&self, url: Url, image: Option<Arc<~Image>>) {
+    fn store_image(&self, url: Url, image: Option<Arc<~Image>>) {
 
         match self.get_state(url.clone()) {
           Decoding => {
@@ -373,7 +373,7 @@ impl ImageCache {
 
     }
 
-    priv fn purge_waiters(&self, url: Url, f: &fn() -> ImageResponseMsg) {
+    fn purge_waiters(&self, url: Url, f: &fn() -> ImageResponseMsg) {
         match self.wait_map.pop(&url) {
             Some(waiters) => {
                 for response in waiters.iter() {
@@ -384,7 +384,7 @@ impl ImageCache {
         }
     }
 
-    priv fn get_image(&self, url: Url, response: Chan<ImageResponseMsg>) {
+    fn get_image(&self, url: Url, response: Chan<ImageResponseMsg>) {
         match self.get_state(url.clone()) {
             Init => fail!(~"request for image before prefetch"),
             Prefetching(DoDecode) => response.send(ImageNotReady),
@@ -395,7 +395,7 @@ impl ImageCache {
         }
     }
 
-    priv fn wait_for_image(&self, url: Url, response: Chan<ImageResponseMsg>) {
+    fn wait_for_image(&self, url: Url, response: Chan<ImageResponseMsg>) {
         match self.get_state(url.clone()) {
             Init => fail!(~"request for image before prefetch"),
 

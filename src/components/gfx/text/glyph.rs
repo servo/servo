@@ -461,7 +461,7 @@ enum GlyphInfo<'self> {
 }
 
 impl<'self> GlyphInfo<'self> {
-    fn index(self) -> GlyphIndex {
+    pub fn index(self) -> GlyphIndex {
         match self {
             SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i].index(),
             DetailGlyphInfo(store, entry_i, detail_j) => {
@@ -472,7 +472,7 @@ impl<'self> GlyphInfo<'self> {
 
     #[inline(always)]
     // FIXME: Resolution conflicts with IteratorUtil trait so adding trailing _
-    fn advance_(self) -> Au {
+    pub fn advance(self) -> Au {
         match self {
             SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i].advance(),
             DetailGlyphInfo(store, entry_i, detail_j) => {
@@ -481,7 +481,7 @@ impl<'self> GlyphInfo<'self> {
         }
     }
 
-    fn offset(self) -> Option<Point2D<Au>> {
+    pub fn offset(self) -> Option<Point2D<Au>> {
         match self {
             SimpleGlyphInfo(_, _) => None,
             DetailGlyphInfo(store, entry_i, detail_j) => {
@@ -490,14 +490,14 @@ impl<'self> GlyphInfo<'self> {
         }
     }
 
-    fn is_ligature_start(self) -> bool {
+    pub fn is_ligature_start(self) -> bool {
         match self {
             SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i].is_ligature_start(),
             DetailGlyphInfo(store, entry_i, _) => store.entry_buffer[entry_i].is_ligature_start()
         }
     }
 
-    fn is_cluster_start(self) -> bool {
+    pub fn is_cluster_start(self) -> bool {
         match self {
             SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i].is_cluster_start(),
             DetailGlyphInfo(store, entry_i, _) => store.entry_buffer[entry_i].is_cluster_start()

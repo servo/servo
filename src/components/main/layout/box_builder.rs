@@ -60,7 +60,7 @@ enum InlineSpacerSide {
     LogicalAfter,
 }
 
-priv fn simulate_UA_display_rules(node: AbstractNode<LayoutView>) -> CSSDisplay {
+fn simulate_UA_display_rules(node: AbstractNode<LayoutView>) -> CSSDisplay {
     // FIXME
     /*let resolved = do node.aux |nd| {
         match nd.style.display_type {
