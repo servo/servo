@@ -8,7 +8,6 @@
 use css::matching::MatchMethods;
 use css::select::new_css_select_ctx;
 use layout::aux::{LayoutData, LayoutAuxMethods};
-use layout::box::RenderBox;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder};
@@ -17,7 +16,9 @@ use layout::incremental::{RestyleDamage, BubbleWidths};
 
 use std::cast::transmute;
 use std::cell::Cell;
+use std::uint;
 use std::comm::{Port};
+use extra::arc::Arc;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
@@ -44,6 +45,7 @@ use servo_net::local_image_cache::LocalImageCache;
 use servo_util::tree::TreeNodeRef;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
+use servo_util::range::Range;
 use extra::url::Url;
 
 struct LayoutTask {
@@ -51,7 +53,7 @@ struct LayoutTask {
     port: Port<Msg>,
     constellation_chan: ConstellationChan,
     script_chan: ScriptChan,
-    render_chan: RenderChan,
+    render_chan: RenderChan<AbstractNode<()>>,
     image_cache_task: ImageCacheTask,
     local_image_cache: @mut LocalImageCache,
     font_ctx: @mut FontContext,
@@ -60,6 +62,8 @@ struct LayoutTask {
 
     /// This is used to root reader data.
     layout_refs: ~[@mut LayoutData],
+
+    display_list: Option<Arc<DisplayList<AbstractNode<()>>>>,
 
     css_select_ctx: @mut SelectCtx,
     profiler_chan: ProfilerChan,
@@ -70,7 +74,7 @@ impl LayoutTask {
                   port: Port<Msg>,
                   constellation_chan: ConstellationChan,
                   script_chan: ScriptChan,
-                  render_chan: RenderChan,
+                  render_chan: RenderChan<AbstractNode<()>>,
                   img_cache_task: ImageCacheTask,
                   opts: Opts,
                   profiler_chan: ProfilerChan) {
@@ -99,7 +103,7 @@ impl LayoutTask {
            port: Port<Msg>,
            constellation_chan: ConstellationChan,
            script_chan: ScriptChan,
-           render_chan: RenderChan, 
+           render_chan: RenderChan<AbstractNode<()>>, 
            image_cache_task: ImageCacheTask,
            opts: &Opts,
            profiler_chan: ProfilerChan)
@@ -117,6 +121,8 @@ impl LayoutTask {
             font_ctx: fctx,
             doc_url: None,
             screen_size: None,
+
+            display_list: None,
             
             layout_refs: ~[],
             css_select_ctx: @mut new_css_select_ctx(),
@@ -271,7 +277,7 @@ impl LayoutTask {
             };
 
             // FIXME: We want to do
-            //     for flow in layout_root.traverse_preorder_prune(|f| f.restyle_damage().lacks(Reflow)) {
+            //     for flow in layout_root.traverse_preorder_prune(|f| f.restyle_damage().lacks(Reflow)) 
             // but FloatContext values can't be reused, so we need to recompute them every time.
             for flow in layout_root.traverse_preorder() {
                 flow.assign_widths(&mut layout_ctx);
@@ -291,7 +297,7 @@ impl LayoutTask {
                     ctx: &layout_ctx,
                 };
 
-                let display_list = @Cell::new(DisplayList::new());
+                let display_list = ~Cell::new(DisplayList::new::<AbstractNode<()>>());
 
                 // TODO: Set options on the builder before building.
                 // TODO: Be smarter about what needs painting.
@@ -303,10 +309,38 @@ impl LayoutTask {
                     base.position.size
                 };
 
+                let display_list = Arc::new(display_list.take());
+
+                for i in range(0,display_list.get().list.len()) {
+                    let node: AbstractNode<LayoutView> = unsafe {
+                        transmute(display_list.get().list[i].base().extra)
+                    };
+                    assert!(node.has_layout_data(), "Node has display item but no layout data");
+
+                    let layout_data = node.layout_data();
+                    layout_data.boxes.display_list = Some(display_list.clone());
+
+                    if layout_data.boxes.range.is_none() {
+                        debug!("Creating initial range for node");
+                        layout_data.boxes.range = Some(Range::new(i,1)); 
+                    } else {
+                            debug!("Appending item to range");
+                            unsafe {
+                                let old_node: AbstractNode<()> = transmute(node);
+                                assert!(old_node == display_list.get().list[i-1].base().extra,
+                                "Non-contiguous arrangement of display items");
+                            }
+
+                            layout_data.boxes.range.unwrap().extend_by(1);
+                    }
+                }
+
                 let render_layer = RenderLayer {
-                    display_list: display_list.take(),
+                    display_list: display_list.clone(),
                     size: Size2D(root_size.width.to_px() as uint, root_size.height.to_px() as uint)
                 };
+
+                self.display_list = Some(display_list.clone());
 
                 self.render_chan.send(RenderMsg(render_layer));
             } // time(layout: display list building)
@@ -330,19 +364,15 @@ impl LayoutTask {
                     transmute(node)
                 };
 
-                let response = match node.layout_data().flow {
-                    None => {
-                        error!("no flow present");
-                        Err(())
-                    }
-                    Some(flow) => {
-                        let start_val: Option<Rect<Au>> = None;
-                        let rect = do flow.foldl_boxes_for_node(node, start_val) |acc, box| {
-                            match acc {
-                                Some(acc) => Some(acc.union(&box.content_box())),
-                                None => Some(box.content_box())
+                let response = match (node.layout_data().boxes.display_list.clone(), node.layout_data().boxes.range) {
+                    (Some(display_list), Some(range)) => {
+                        let mut rect: Option<Rect<Au>> = None;
+                        for i in range.eachi() {
+                            rect = match rect {
+                                Some(acc) => Some(acc.union(&display_list.get().list[i].bounds())),
+                                None => Some(display_list.get().list[i].bounds())
                             }
-                        };
+                        }
                         
                         match rect {
                             None => {
@@ -351,6 +381,10 @@ impl LayoutTask {
                             }
                             Some(rect) => Ok(ContentBoxResponse(rect))
                         }
+                    }
+                    _ => {
+                        error!("no display list present");
+                        Err(())
                     }
                 };
 
@@ -362,71 +396,49 @@ impl LayoutTask {
                     transmute(node)
                 };
 
-                let response = match node.layout_data().flow {
-                    None => Err(()),
-                    Some(flow) => {
+                let response = match (node.layout_data().boxes.display_list.clone(), node.layout_data().boxes.range) {
+                    (Some(display_list), Some(range)) => {
                         let mut boxes = ~[];
-                        for box in flow.iter_all_boxes() {
-                            if box.node() == node {
-                                boxes.push(box.content_box());
-                            }
+                        for i in range.eachi() {
+                            boxes.push(display_list.get().list[i].bounds());
                         }
 
                         Ok(ContentBoxesResponse(boxes))
                     }
+                    _ => Err(()),
                 };
 
                 reply_chan.send(response)
             }
-            HitTestQuery(node, point, reply_chan) => {
-                // FIXME: Isolate this transmutation into a single "bridge" module.
-                let node: AbstractNode<LayoutView> = unsafe {
-                    transmute(node)
-                };
-                let mut flow_node: AbstractNode<LayoutView> = node;
-                for node in node.traverse_preorder() {
-                    if node.layout_data().flow.is_some() {
-                        flow_node = node;
-                        break;
-                    }
-                };
-
-                let response = match flow_node.layout_data().flow {
-                    None => {
-                        debug!("HitTestQuery: flow is None");
-                        Err(())
-                    }
-                    Some(flow) => {
-                        let layout_ctx = self.build_layout_context();
-                        let builder = DisplayListBuilder {
-                            ctx: &layout_ctx,
-                        };
-                        let display_list: @Cell<DisplayList<RenderBox>> =
-                            @Cell::new(DisplayList::new());
-                        
-                        do flow.partially_traverse_preorder |this_flow| {
-                            this_flow.build_display_list(&builder,
-                                                    &flow.position(),
-                                                    display_list)
-                            
-                        }
-                        let (x, y) = (Au::from_frac_px(point.x as float),
-                                      Au::from_frac_px(point.y as float));
-                        let mut resp = Err(());
-                        let display_list = &display_list.take().list;
-                        // iterate in reverse to ensure we have the most recently painted render box
-                        for display_item in display_list.rev_iter() {
-                            let bounds = display_item.bounds();
-                            // TODO this check should really be performed by a method of DisplayItem
-                            if x <= bounds.origin.x + bounds.size.width &&
-                               bounds.origin.x <= x &&
-                               y < bounds.origin.y + bounds.size.height &&
-                               bounds.origin.y <  y {
-                                resp = Ok(HitTestResponse(display_item.base().extra.node()));
-                                break;
+            HitTestQuery(_, point, reply_chan) => {
+                let response = {
+                    match self.display_list {
+                        Some(ref list) => {
+                            let display_list = list.get();
+                            let (x, y) = (Au::from_frac_px(point.x as float),
+                                    Au::from_frac_px(point.y as float));
+                            let mut resp = Err(());
+                            // iterate in reverse to ensure we have the most recently painted render box
+                            for display_item in display_list.list.rev_iter() {
+                                let bounds = display_item.bounds();
+                                // TODO this check should really be performed by a method of DisplayItem
+                                if x <= bounds.origin.x + bounds.size.width &&
+                                    bounds.origin.x <= x &&
+                                        y < bounds.origin.y + bounds.size.height &&
+                                        bounds.origin.y <  y {
+                                            let node: AbstractNode<LayoutView> = unsafe {
+                                                transmute(display_item.base().extra)
+                                            };
+                                            resp = Ok(HitTestResponse(node));
+                                            break;
+                                        }
                             }
+                            resp
                         }
-                        resp
+                        None => {
+                            error!("Can't hit test: no display list");
+                            Err(())
+                        },
                     }
                 };
 

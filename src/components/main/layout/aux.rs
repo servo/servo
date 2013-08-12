@@ -4,12 +4,19 @@
 
 //! Code for managing the layout data in the DOM.
 
-use layout::flow::FlowContext;
 use layout::incremental::RestyleDamage;
+use gfx::display_list::DisplayList;
+use servo_util::range::Range;
 
+use extra::arc::Arc;
 use newcss::complete::CompleteSelectResults;
 use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::tree::TreeNodeRef;
+
+pub struct DisplayBoxes {
+    display_list: Option<Arc<DisplayList<AbstractNode<()>>>>,
+    range: Option<Range>,
+}
 
 /// Data that layout associates with a node.
 pub struct LayoutData {
@@ -19,8 +26,9 @@ pub struct LayoutData {
     /// Description of how to account for recent style changes.
     restyle_damage: Option<RestyleDamage>,
 
-    /// The CSS flow that this node is associated with.
-    flow: Option<FlowContext>,
+    /// The boxes assosiated with this flow.
+    /// Used for getBoundingClientRect and friends.
+    boxes: DisplayBoxes,
 }
 
 impl LayoutData {
@@ -29,7 +37,7 @@ impl LayoutData {
         LayoutData {
             style: None,
             restyle_damage: None,
-            flow: None,
+            boxes: DisplayBoxes{ display_list: None, range: None },
         }
     }
 }
@@ -65,14 +73,8 @@ impl LayoutAuxMethods for AbstractNode<LayoutView> {
     /// box in the COW model) and populates it with an empty style object.
     fn initialize_layout_data(self) -> Option<@mut LayoutData> {
         if self.has_layout_data() {
-            {
-                let layout_data = &mut self.layout_data().flow;
-                match *layout_data {
-                  Some(ref flow) => flow.teardown(),
-                  None => ()
-                }
-            }
-            self.layout_data().flow = None;
+            self.layout_data().boxes.display_list = None;
+            self.layout_data().boxes.range = None;
             None
         } else {
             let data = @mut LayoutData::new();

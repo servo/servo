@@ -19,19 +19,22 @@ use render_context::RenderContext;
 
 use std::cell::Cell;
 use std::comm::{Chan, Port, SharedChan};
+use extra::arc::Arc;
 
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 
 use extra::arc;
 
-pub struct RenderLayer {
-    display_list: DisplayList<()>,
+
+
+pub struct RenderLayer<T> {
+    display_list: Arc<DisplayList<T>>,
     size: Size2D<uint>
 }
 
-pub enum Msg {
-    RenderMsg(RenderLayer),
+pub enum Msg<T> {
+    RenderMsg(RenderLayer<T>),
     ReRenderMsg(~[BufferRequest], f32, PipelineId, Epoch),
     PaintPermissionGranted,
     PaintPermissionRevoked,
@@ -56,24 +59,24 @@ pub fn BufferRequest(screen_rect: Rect<uint>, page_rect: Rect<f32>) -> BufferReq
 }
 
 #[deriving(Clone)]
-pub struct RenderChan {
-    chan: SharedChan<Msg>,
+pub struct RenderChan<T> {
+    chan: SharedChan<Msg<T>>,
 }
 
-impl RenderChan {
-    pub fn new(chan: Chan<Msg>) -> RenderChan {
+impl<T> RenderChan<T> {
+    pub fn new(chan: Chan<Msg<T>>) -> RenderChan<T> {
         RenderChan {
             chan: SharedChan::new(chan),
         }
     }
-    pub fn send(&self, msg: Msg) {
+    pub fn send(&self, msg: Msg<T>) {
         self.chan.send(msg);
     }
 }
 
-struct RenderTask<C> {
+struct RenderTask<C,T> {
     id: PipelineId,
-    port: Port<Msg>,
+    port: Port<Msg<T>>,
     compositor: C,
     font_ctx: @mut FontContext,
     opts: Opts,
@@ -84,7 +87,7 @@ struct RenderTask<C> {
     share_gl_context: AzGLContext,
 
     /// The layer to be rendered
-    render_layer: Option<RenderLayer>,
+    render_layer: Option<RenderLayer<T>>,
     /// Permission to send paint messages to the compositor
     paint_permission: bool,
     /// Cached copy of last layers rendered
@@ -93,9 +96,9 @@ struct RenderTask<C> {
     epoch: Epoch,
 }
 
-impl<C: RenderListener + Send> RenderTask<C> {
+impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
     pub fn create(id: PipelineId,
-                  port: Port<Msg>,
+                  port: Port<Msg<T>>,
                   compositor: C,
                   opts: Opts,
                   profiler_chan: ProfilerChan) {
@@ -226,7 +229,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                         
                         // Draw the display list.
                         do profile(time::RenderingDrawingCategory, self.profiler_chan.clone()) {
-                            render_layer.display_list.draw_into_context(&ctx);
+                            render_layer.display_list.get().draw_into_context(&ctx);
                             ctx.canvas.draw_target.flush();
                         }
                     }

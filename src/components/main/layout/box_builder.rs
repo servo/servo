@@ -4,7 +4,6 @@
 
 //! Creates CSS boxes from a DOM tree.
 
-use layout::aux::LayoutAuxMethods;
 use layout::block::BlockFlowData;
 use layout::float::FloatFlowData;
 use layout::box::{GenericRenderBoxClass, ImageRenderBox, ImageRenderBoxClass, RenderBox};
@@ -334,18 +333,6 @@ impl LayoutTreeBuilder {
         this_generator.pop_node(layout_ctx, cur_node);
         self.simplify_children_of_flow(layout_ctx, &mut this_generator.flow);
 
-        // store reference to the flow context which contains any
-        // boxes that correspond to child_flow.node. These boxes may
-        // eventually be elided or split, but the mapping between
-        // nodes and FlowContexts should not change during layout.
-        let flow: &FlowContext = &this_generator.flow;
-        for child_flow in flow.children() {
-            do child_flow.with_base |child_node| {
-                let dom_node = child_node.node;
-                assert!(dom_node.has_layout_data());
-                dom_node.layout_data().flow = Some(child_flow);
-            }
-        }
         Some(next_generator)
     }
 

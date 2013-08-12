@@ -6,19 +6,28 @@
 
 use layout::box::RenderBox;
 use layout::context::LayoutContext;
+use std::cast::transmute;
+use script::dom::node::AbstractNode;
 
 use gfx;
 use newcss;
 
-/// Extra display list data is either nothing (if the display list is to be rendered) or the
-/// originating render box (if the display list is generated for hit testing).
+/// Display list data is usually an AbstractNode with view () to indicate
+/// that nodes in this view shoud not really be touched. The idea is to
+/// store the nodes in the display list and have layout transmute them.
 pub trait ExtraDisplayListData {
     fn new(box: RenderBox) -> Self;
 }
 
-/// The type representing the lack of extra display list data. This is used when sending display
-/// list data off to be rendered.
 pub type Nothing = ();
+
+impl ExtraDisplayListData for AbstractNode<()> {
+    fn new (box: RenderBox) -> AbstractNode<()> {
+        unsafe { 
+            transmute(box.node())
+        }
+    }
+}
 
 impl ExtraDisplayListData for Nothing {
     fn new(_: RenderBox) -> Nothing {
