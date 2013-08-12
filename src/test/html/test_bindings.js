@@ -158,6 +158,13 @@ window.alert(tags.length);
 window.alert(tags[0].tagName);
 window.alert(tags[0] instanceof HTMLCanvasElement);
 
+window.alert("HTMLSourceElement:");
+let tags = document.getElementsByTagName("source");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLSourceElement);
+
 window.alert("HTMLTimeElement:");
 let tags = document.getElementsByTagName("time");
 window.alert(tags);
