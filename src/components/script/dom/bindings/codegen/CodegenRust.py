@@ -4635,6 +4635,7 @@ class CGBindingRoot(CGThing):
                           'dom::htmltablerowelement::HTMLTableRowElement',
                           'dom::htmltablesectionelement::HTMLTableSectionElement',
                           'dom::htmltextareaelement::HTMLTextAreaElement',
+                          'dom::htmltimeelement::HTMLTimeElement',
                           'dom::htmltitleelement::HTMLTitleElement', #XXXyusukesuzuki
                           'dom::htmlulistelement::HTMLUListElement',
                           'dom::bindings::utils::*',

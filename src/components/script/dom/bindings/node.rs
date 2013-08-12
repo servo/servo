@@ -16,7 +16,7 @@ use dom::element::{HTMLElementTypeId,
                    HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
                    HTMLTableCaptionElementTypeId, HTMLTableElementTypeId,
                    HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId,
-                   HTMLTitleElementTypeId, HTMLUListElementTypeId};
+                   HTMLTimeElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId};
 use dom::element::{HTMLHeadElement,HTMLHtmlElement, HTMLDivElement, HTMLParagraphElement, HTMLSpanElement};
 use dom::htmlelement::HTMLElement;
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -35,6 +35,7 @@ use dom::htmltableelement::HTMLTableElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::htmltimeelement::HTMLTimeElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::htmlulistelement::HTMLUListElement;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
@@ -124,6 +125,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLTableRowElementTypeId) => generate_element!(HTMLTableRowElement),
         ElementNodeTypeId(HTMLTableSectionElementTypeId) => generate_element!(HTMLTableSectionElement),
         ElementNodeTypeId(HTMLTextAreaElementTypeId) => generate_element!(HTMLTextAreaElement),
+        ElementNodeTypeId(HTMLTimeElementTypeId) => generate_element!(HTMLTimeElement),
         ElementNodeTypeId(HTMLTitleElementTypeId) => generate_element!(HTMLTitleElement),
         ElementNodeTypeId(HTMLUListElementTypeId) => generate_element!(HTMLUListElement),
         ElementNodeTypeId(_) => element::create(cx, node).ptr,
