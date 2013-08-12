@@ -135,6 +135,7 @@ window.alert(document.getElementsByTagName('iframe')[0]);
 window.alert(document.getElementsByTagName("body")[0]);
 window.alert(document.getElementsByTagName("area")[0]);
 window.alert(document.getElementsByTagName("base")[0]);
+window.alert(document.getElementsByTagName("data")[0]);
 
 window.alert("OList:");
 let tags = document.getElementsByTagName("ol");

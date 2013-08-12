@@ -5,8 +5,8 @@
 use dom::element::{HTMLElementTypeId,
                    HTMLAnchorElementTypeId, HTMLAppletElementTypeId, 
                    HTMLAreaElementTypeId,  HTMLBaseElementTypeId, HTMLBodyElementTypeId,
-                   HTMLBRElementTypeId, HTMLCanvasElementTypeId, HTMLDivElementTypeId,
-                   HTMLDListElementTypeId,
+                   HTMLBRElementTypeId, HTMLCanvasElementTypeId, HTMLDataElementTypeId,
+                   HTMLDivElementTypeId, HTMLDListElementTypeId,
                    HTMLFontElementTypeId, HTMLFormElementTypeId, HTMLHRElementTypeId,
                    HTMLHeadElementTypeId, HTMLHtmlElementTypeId,
                    HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLInputElementTypeId,
@@ -34,6 +34,7 @@ use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmldataelement::HTMLDataElement;
 use dom::htmldlistelement::HTMLDListElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::{IFrameSize, HTMLIFrameElement};
@@ -238,6 +239,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
     handle_element!(cx, tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
     handle_element!(cx, tag, "canvas",  HTMLCanvasElementTypeId, HTMLCanvasElement, []);
+    handle_element!(cx, tag, "data",    HTMLDataElementTypeId, HTMLDataElement, []);
     handle_element!(cx, tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
     handle_element!(cx, tag, "dl",      HTMLDListElementTypeId, HTMLDListElement, []);
     handle_element!(cx, tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
