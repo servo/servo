@@ -17,4 +17,4 @@ interface HTMLBaseElement : HTMLElement {
         attribute DOMString href;
     [SetterThrows, Pure]
         attribute DOMString target;
-}
+};

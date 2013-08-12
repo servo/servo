@@ -10,7 +10,7 @@ use dom::element::{HTMLElementTypeId,
                    HTMLAnchorElementTypeId, HTMLAppletElementTypeId,
                    HTMLAreaElementTypeId, HTMLBaseElementTypeId,
                    HTMLBodyElementTypeId, HTMLBRElementTypeId,
-                   HTMLCanvasElementTypeId,
+                   HTMLCanvasElementTypeId, HTMLDataElementTypeId,
                    HTMLDivElementTypeId, HTMLHeadElementTypeId, HTMLHRElementTypeId,
                    HTMLHtmlElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId,
@@ -28,6 +28,7 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmldataelement::HTMLDataElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmetaelement::HTMLMetaElement;
@@ -113,6 +114,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLBodyElementTypeId) => generate_element!(HTMLBodyElement),
         ElementNodeTypeId(HTMLBRElementTypeId) => generate_element!(HTMLBRElement),
         ElementNodeTypeId(HTMLCanvasElementTypeId) => generate_element!(HTMLCanvasElement),
+        ElementNodeTypeId(HTMLDataElementTypeId) => generate_element!(HTMLDataElement),
         ElementNodeTypeId(HTMLDivElementTypeId) => generate_element!(HTMLDivElement),
         ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
         ElementNodeTypeId(HTMLHRElementTypeId) => generate_element!(HTMLHRElement),

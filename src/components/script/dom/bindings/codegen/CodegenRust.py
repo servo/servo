@@ -4618,12 +4618,13 @@ class CGBindingRoot(CGThing):
                           'dom::element::{Element, HTMLHeadElement, HTMLHtmlElement}', #XXXjdm
                           'dom::element::{HTMLDivElement, HTMLSpanElement, HTMLParagraphElement}', #XXXjdm
                           'dom::htmlanchorelement::HTMLAnchorElement', #XXXjdm
-                          'dom::htmlappletelement::HTMLAppletElement',
-                          'dom::htmlareaelement::HTMLAreaElement',
-                          'dom::htmlbaseelement::HTMLBaseElement', 
-                          'dom::htmlbodyelement::HTMLBodyElement', 
+                          'dom::htmlappletelement::HTMLAppletElement', #XXXjune0cho
+                          'dom::htmlareaelement::HTMLAreaElement', #XXXjune0cho
+                          'dom::htmlbaseelement::HTMLBaseElement', #XXXjune0cho
+                          'dom::htmlbodyelement::HTMLBodyElement', #XXXjune0cho
                           'dom::htmlbrelement::HTMLBRElement', #XXXrecrack
                           'dom::htmlcanvaselement::HTMLCanvasElement',
+                          'dom::htmldataelement::HTMLDataElement', #XXXjune0cho
                           'dom::htmlelement::HTMLElement', #XXXjdm
                           'dom::htmldocument::HTMLDocument', #XXXjdm
                           'dom::htmlhrelement::HTMLHRElement',

@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::element::{HTMLElementTypeId,
-<<<<<<< HEAD
                    HTMLAnchorElementTypeId, HTMLAppletElementTypeId, 
                    HTMLAreaElementTypeId, HTMLBaseElementTypeId, HTMLBodyElementTypeId,
-                   HTMLBRElementTypeId, HTMLCanvasElementTypeId, HTMLDivElementTypeId,
+                   HTMLBRElementTypeId, HTMLCanvasElementTypeId, 
+                   HTMLDataElementTypeId, HTMLDivElementTypeId,
                    HTMLFontElementTypeId, HTMLFormElementTypeId, HTMLHRElementTypeId,
                    HTMLHeadElementTypeId, HTMLHtmlElementTypeId,
                    HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLInputElementTypeId,
@@ -34,6 +34,7 @@ use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmldataelement::HTMLDataElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
@@ -228,6 +229,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
     handle_element!(cx, tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
     handle_element!(cx, tag, "canvas",  HTMLCanvasElementTypeId, HTMLCanvasElement, []);
+    handle_element!(cx, tag, "data",    HTMLDataElementTypeId, HTMLDataElement, []);
     handle_element!(cx, tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
     handle_element!(cx, tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
     handle_element!(cx, tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);
