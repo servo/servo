@@ -311,15 +311,19 @@ impl Element {
     pub fn SetId(&self, _id: &DOMString) {
     }
 
-    pub fn GetAttribute(&self, _name: &DOMString) -> DOMString {
-        null_string
+    pub fn GetAttribute(&self, name: &DOMString) -> DOMString {
+        match self.get_attr(name.get_ref()) {
+            Some(val) => str(val.to_owned()),
+            None => null_string
+        }
     }
 
     pub fn GetAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString) -> DOMString {
         null_string
     }
 
-    pub fn SetAttribute(&mut self, _name: &DOMString, _value: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAttribute(&mut self, name: &DOMString, value: &DOMString, _rv: &mut ErrorResult) {
+        self.set_attr(name, value);
     }
 
     pub fn SetAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString, _value: &DOMString, _rv: &mut ErrorResult) {
