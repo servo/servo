@@ -183,12 +183,19 @@ impl FloatFlowData {
         // so this is well-defined
 
         let mut height = Au(0);
+        let mut clearance = Au(0);
         let mut full_noncontent_width = Au(0);
         let mut full_noncontent_height = Au(0);
 
         self.box.map(|&box| {
             height = do box.with_base |base| {
                 base.position.size.height
+            };
+            clearance = match box.clear() {
+                None => Au(0),
+                Some(clear) => {
+                    self.common.floats_in.clearance(clear)
+                }
             };
 
             do box.with_base |base| {
@@ -208,7 +215,7 @@ impl FloatFlowData {
         let info = PlacementInfo {
             width: self.common.position.size.width + full_noncontent_width,
             height: height + full_noncontent_height,
-            ceiling: Au(0),
+            ceiling: clearance,
             max_width: self.containing_width,
             f_type: self.float_type,
         };
