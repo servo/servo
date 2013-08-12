@@ -105,6 +105,13 @@ impl DOMString {
           null_string => ~""
         }
     }
+
+    pub fn get_ref<'a>(&'a self) -> &'a str {
+        match *self {
+            str(ref s) => s.as_slice(),
+            null_string => &'a "",
+        }
+    }
 }
 
 pub struct rust_box<T> {
