@@ -26,6 +26,8 @@ use std::comm::{Chan, SharedChan, Port};
 use std::num::Orderable;
 use std::task;
 use std::vec;
+use std::rt::rtio::RtioTimer;
+use std::rt::io::timer::Timer;
 use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::size::Size2D;
@@ -480,6 +482,7 @@ impl CompositorTask {
         };
 
         // Enter the main event loop.
+        let tm = Timer::new().unwrap();
         while !done {
             // Check for new messages coming from the rendering task.
             check_for_messages(&self.port);
@@ -492,10 +495,7 @@ impl CompositorTask {
                 composite();
             }
 
-            /*
-            timer::sleep(&uv_global_loop::get(), 10);
-            */
-            fail!("stubbed out!");
+            tm.sleep(10);
 
             // If a pinch-zoom happened recently, ask for tiles at the new resolution
             if zoom_action && precise_time_s() - zoom_time > 0.3 {

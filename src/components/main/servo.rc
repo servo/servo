@@ -49,6 +49,8 @@ pub use gfx::text;
 pub use servo_util::url::make_url;
 use std::comm;
 use std::os;
+use std::rt::rtio::RtioTimer;
+use std::rt::io::timer::Timer;
 
 #[path="compositing/mod.rs"]
 pub mod compositing;
@@ -104,20 +106,17 @@ fn run(opts: &Opts) {
     let (profiler_port, profiler_chan) = comm::stream();
     let profiler_chan = ProfilerChan::new(profiler_chan);
     Profiler::create(profiler_port);
-    /*
-    do opts.profiler_period.map |period| {
+    do opts.profiler_period.map |&period| {
         let profiler_chan = profiler_chan.clone();
-        let period = *period;
+        let period = (period * 1000f) as u64;
         do spawn {
+            let tm = Timer::new().unwrap();
             loop {
-                extra::timer::sleep(&uv_global_loop::get(),
-                                  (period * 1000f) as uint);
+                tm.sleep(period);
                 profiler_chan.send(PrintMsg);
             }
         }
     };
-    */
-    fail!("stubbed out!");
 
     // Create the compositor.
     let (compositor_port, compositor_chan) = comm::stream();
