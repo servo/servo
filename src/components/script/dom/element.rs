@@ -14,6 +14,7 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding,
                              HTMLImageElementBinding, HTMLMetaElementBinding,
                              HTMLLinkElementBinding,
                              HTMLOListElementBinding, HTMLParagraphElementBinding,
+                             HTMLQuoteElementBinding,
                              HTMLScriptElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
                              HTMLStyleElementBinding, HTMLTableCaptionElementBinding,
                              HTMLTableElementBinding, HTMLTableRowElementBinding,
@@ -40,6 +41,7 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
+use dom::htmlquoteelement::HTMLQuoteElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::htmlstyleelement::HTMLStyleElement;
@@ -114,6 +116,7 @@ pub enum ElementTypeId {
     HTMLOListElementTypeId,
     HTMLOptionElementTypeId,
     HTMLParagraphElementTypeId,
+    HTMLQuoteElementTypeId,
     HTMLScriptElementTypeId,
     HTMLSelectElementTypeId,
     HTMLSmallElementTypeId,
@@ -241,6 +244,8 @@ generate_cacheable_wrapper!(HTMLOListElement, HTMLOListElementBinding::Wrap)
 generate_binding_object!(HTMLOListElement)
 generate_cacheable_wrapper!(HTMLParagraphElement, HTMLParagraphElementBinding::Wrap)
 generate_binding_object!(HTMLParagraphElement)
+generate_cacheable_wrapper!(HTMLQuoteElement, HTMLQuoteElementBinding::Wrap)
+generate_binding_object!(HTMLQuoteElement)
 generate_cacheable_wrapper!(HTMLScriptElement, HTMLScriptElementBinding::Wrap)
 generate_binding_object!(HTMLScriptElement)
 generate_cacheable_wrapper!(HTMLSourceElement, HTMLSourceElementBinding::Wrap)

@@ -4634,6 +4634,7 @@ class CGBindingRoot(CGThing):
                           'dom::htmllinkelement::HTMLLinkElement', #XXXrecrack
                           'dom::htmlmetaelement::HTMLMetaElement',
                           'dom::htmlolistelement::HTMLOListElement',
+                          'dom::htmlquoteelement::HTMLQuoteElement',
                           'dom::htmlscriptelement::HTMLScriptElement',
                           'dom::htmlsourceelement::HTMLSourceElement',
                           'dom::htmlstyleelement::HTMLStyleElement',
