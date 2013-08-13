@@ -4632,6 +4632,7 @@ class CGBindingRoot(CGThing):
                           'dom::htmliframeelement::HTMLIFrameElement', #XXXjdm
                           'dom::htmlimageelement::HTMLImageElement', #XXXjdm
                           'dom::htmlinputelement::HTMLInputElement',
+                          'dom::htmllielement::HTMLLIElement',
                           'dom::htmllinkelement::HTMLLinkElement', #XXXrecrack
                           'dom::htmlmetaelement::HTMLMetaElement',
                           'dom::htmlolistelement::HTMLOListElement',
