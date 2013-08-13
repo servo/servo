@@ -15,7 +15,7 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding,
                              HTMLLIElementBinding,
                              HTMLLinkElementBinding, HTMLMetaElementBinding,
                              HTMLOListElementBinding, HTMLParagraphElementBinding,
-                             HTMLQuoteElementBinding,
+                             HTMLProgressElementBinding, HTMLQuoteElementBinding,
                              HTMLScriptElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
                              HTMLStyleElementBinding, HTMLTableElementBinding,
                              HTMLTableCaptionElementBinding, HTMLTableCellElementBinding,
@@ -45,6 +45,7 @@ use dom::htmllielement::HTMLLIElement;
 use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
+use dom::htmlprogresselement::HTMLProgressElement;
 use dom::htmlquoteelement::HTMLQuoteElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlsourceelement::HTMLSourceElement;
@@ -122,6 +123,7 @@ pub enum ElementTypeId {
     HTMLOListElementTypeId,
     HTMLOptionElementTypeId,
     HTMLParagraphElementTypeId,
+    HTMLProgressElementTypeId,
     HTMLQuoteElementTypeId,
     HTMLScriptElementTypeId,
     HTMLSelectElementTypeId,
@@ -252,6 +254,8 @@ generate_cacheable_wrapper!(HTMLOListElement, HTMLOListElementBinding::Wrap)
 generate_binding_object!(HTMLOListElement)
 generate_cacheable_wrapper!(HTMLParagraphElement, HTMLParagraphElementBinding::Wrap)
 generate_binding_object!(HTMLParagraphElement)
+generate_cacheable_wrapper!(HTMLProgressElement, HTMLProgressElementBinding::Wrap)
+generate_binding_object!(HTMLProgressElement)
 generate_cacheable_wrapper!(HTMLQuoteElement, HTMLQuoteElementBinding::Wrap)
 generate_binding_object!(HTMLQuoteElement)
 generate_cacheable_wrapper!(HTMLScriptElement, HTMLScriptElementBinding::Wrap)

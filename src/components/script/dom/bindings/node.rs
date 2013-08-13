@@ -15,7 +15,8 @@ use dom::element::{HTMLElementTypeId,
                    HTMLHtmlElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId,
                    HTMLInputElementTypeId, HTMLLIElementTypeId, HTMLLinkElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId,
-                   HTMLParagraphElementTypeId, HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
+                   HTMLParagraphElementTypeId, HTMLProgressElementTypeId,
+                   HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
                    HTMLSpanElementTypeId, HTMLSourceElementTypeId,
                    HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
                    HTMLTableElementTypeId, HTMLTableCaptionElementTypeId, HTMLTableCellElementTypeId,
@@ -41,6 +42,7 @@ use dom::htmllielement::HTMLLIElement;
 use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
+use dom::htmlprogresselement::HTMLProgressElement;
 use dom::htmlquoteelement::HTMLQuoteElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlsourceelement::HTMLSourceElement;
@@ -141,6 +143,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLMetaElementTypeId) => generate_element!(HTMLMetaElement),
         ElementNodeTypeId(HTMLOListElementTypeId) => generate_element!(HTMLOListElement),
         ElementNodeTypeId(HTMLParagraphElementTypeId) => generate_element!(HTMLParagraphElement),
+        ElementNodeTypeId(HTMLProgressElementTypeId) => generate_element!(HTMLProgressElement),
         ElementNodeTypeId(HTMLQuoteElementTypeId) => generate_element!(HTMLQuoteElement),
         ElementNodeTypeId(HTMLScriptElementTypeId) => generate_element!(HTMLScriptElement),
         ElementNodeTypeId(HTMLSourceElementTypeId) => generate_element!(HTMLSourceElement),

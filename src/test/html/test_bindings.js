@@ -234,6 +234,13 @@ window.alert(tags.length);
 window.alert(tags[0].tagName);
 window.alert(tags[0] instanceof HTMLLLIElement);
 
+window.alert("HTMLProgressElement:");
+let tags = document.getElementsByTagName("progress");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLProgressElement);
+
 //TODO: Doesn't work until we throw proper exceptions instead of returning 0 on
 //      unwrap failure.
 /*try {

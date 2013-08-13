@@ -12,7 +12,8 @@ use dom::element::{HTMLElementTypeId,
                    HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLInputElementTypeId,
                    HTMLLinkElementTypeId, HTMLLIElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId, HTMLOptionElementTypeId,
-                   HTMLParagraphElementTypeId, HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
+                   HTMLParagraphElementTypeId, HTMLProgressElementTypeId,
+                   HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
                    HTMLSelectElementTypeId, HTMLSmallElementTypeId, HTMLSourceElementTypeId,
                    HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTableSectionElementTypeId,
                    HTMLTableCellElementTypeId, HTMLTableElementTypeId,
@@ -44,6 +45,7 @@ use dom::htmllielement::HTMLLIElement;
 use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
+use dom::htmlprogresselement::HTMLProgressElement;
 use dom::htmlquoteelement::HTMLQuoteElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlsourceelement::HTMLSourceElement;
@@ -260,6 +262,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
     handle_element!(cx, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);
     handle_element!(cx, tag, "p",       HTMLParagraphElementTypeId, HTMLParagraphElement, []);
+    handle_element!(cx, tag, "progress",HTMLProgressElementTypeId, HTMLProgressElement, []);
     handle_element!(cx, tag, "q",       HTMLQuoteElementTypeId, HTMLQuoteElement, []);
     handle_element!(cx, tag, "script",  HTMLScriptElementTypeId, HTMLScriptElement, []);
     handle_element!(cx, tag, "select",  HTMLSelectElementTypeId, HTMLSelectElement, []);

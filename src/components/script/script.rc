@@ -66,6 +66,7 @@ pub mod dom {
             pub mod HTMLMetaElementBinding;
             pub mod HTMLOListElementBinding;
             pub mod HTMLParagraphElementBinding;
+            pub mod HTMLProgressElementBinding;
             pub mod HTMLQuoteElementBinding;
             pub mod HTMLScriptElementBinding;
             pub mod HTMLSourceElementBinding;
@@ -121,6 +122,7 @@ pub mod dom {
     pub mod htmllinkelement;
     pub mod htmlmetaelement;
     pub mod htmlolistelement;
+    pub mod htmlprogresselement;
     pub mod htmlquoteelement;
     pub mod htmlscriptelement;
     pub mod htmlsourceelement;
