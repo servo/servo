@@ -210,6 +210,16 @@ window.alert(tags.length);
 window.alert(tags[0].tagName);
 window.alert(tags[0] instanceof HTMLTableCellElement);
 
+window.alert("HTMLTableColElement");
+let tagList = ["col", "colgroup"];
+for (let i = 0, l = tagList.length; i < l; ++i) {
+  let tags = document.getElementsByTagName(tagList[i]);
+  window.alert(tags);
+  window.alert(tags.length);
+  window.alert(tags[0].tagName);
+  window.alert(tags[0] instanceof HTMLTableColElement);
+}
+
 //TODO: Doesn't work until we throw proper exceptions instead of returning 0 on
 //      unwrap failure.
 /*try {

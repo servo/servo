@@ -18,7 +18,7 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding,
                              HTMLScriptElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
                              HTMLStyleElementBinding, HTMLTableElementBinding,
                              HTMLTableCaptionElementBinding, HTMLTableCellElementBinding,
-                             HTMLTableRowElementBinding,
+                             HTMLTableColElementBinding, HTMLTableRowElementBinding,
                              HTMLTableSectionElementBinding, HTMLTextAreaElementBinding,
                              HTMLTimeElementBinding, HTMLTitleElementBinding, HTMLUListElementBinding};
 use dom::bindings::utils::{null_string, str};
@@ -49,6 +49,7 @@ use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltablecellelement::HTMLTableCellElement;
+use dom::htmltablecolelement::HTMLTableColElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
@@ -125,9 +126,10 @@ pub enum ElementTypeId {
     HTMLSourceElementTypeId,
     HTMLSpanElementTypeId,
     HTMLStyleElementTypeId,
+    HTMLTableElementTypeId,
     HTMLTableCaptionElementTypeId,
     HTMLTableCellElementTypeId,
-    HTMLTableElementTypeId,
+    HTMLTableColElementTypeId,
     HTMLTableRowElementTypeId,
     HTMLTableSectionElementTypeId,
     HTMLTextAreaElementTypeId,
@@ -261,6 +263,8 @@ generate_cacheable_wrapper!(HTMLTableCaptionElement, HTMLTableCaptionElementBind
 generate_binding_object!(HTMLTableCaptionElement)
 generate_cacheable_wrapper!(HTMLTableCellElement, HTMLTableCellElementBinding::Wrap)
 generate_binding_object!(HTMLTableCellElement)
+generate_cacheable_wrapper!(HTMLTableColElement, HTMLTableColElementBinding::Wrap)
+generate_binding_object!(HTMLTableColElement)
 generate_cacheable_wrapper!(HTMLTableRowElement, HTMLTableRowElementBinding::Wrap)
 generate_binding_object!(HTMLTableRowElement)
 generate_cacheable_wrapper!(HTMLTableSectionElement, HTMLTableSectionElementBinding::Wrap)
