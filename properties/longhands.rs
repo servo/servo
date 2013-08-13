@@ -191,11 +191,9 @@ pub mod font_family {
     /// <familiy-name> = <string> | [ <ident>+ ]
     /// TODO: <generic-familiy>
     pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
-        // XXX Using peekable() for compat with parsing of the 'font' shorthand.
-        from_iter(input.skip_whitespace().peekable())
+        from_iter(input.skip_whitespace())
     }
-    type Iter<'self> = iterator::Peekable<&'self ComponentValue, SkipWhitespaceIterator<'self>>;
-    pub fn from_iter(mut iter: Iter) -> Option<SpecifiedValue> {
+    pub fn from_iter<'a>(mut iter: SkipWhitespaceIterator<'a>) -> Option<SpecifiedValue> {
         let mut result = ~[];
         macro_rules! add(
             ($value: expr) => {

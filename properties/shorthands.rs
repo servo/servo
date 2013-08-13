@@ -245,10 +245,10 @@ shorthand!(font [
     if size.is_none() || (count(&style) + count(&weight) + count(&variant) + nb_normals) > 3 {
         return None
     }
-    let mut iter = iter.peekable();
-    match iter.peek() {
-        Some(& &Delim('/')) => {
-            iter.next();
+    let mut copied_iter = iter.clone();
+    match copied_iter.next() {
+        Some(&Delim('/')) => {
+            iter = copied_iter;
             line_height = match iter.next() {
                 Some(v) => line_height::from_component_value(v),
                 _ => return None,
