@@ -6,6 +6,9 @@ use std::ascii::to_ascii_lower;
 use cssparser::*;
 use errors::{ErrorLoggerIterator, log_css_error};
 
+pub mod longhands;
+pub mod common_types;
+
 
 pub struct PropertyDeclarationBlock {
     important: ~[PropertyDeclaration],
@@ -36,5 +39,9 @@ pub fn parse_property_declaration_list(input: ~[Node]) -> PropertyDeclarationBlo
 
 fn parse_one_property_declaration(name: &str, value: ~[ComponentValue],
                                   result_list: &mut ~[PropertyDeclaration]) -> bool {
+
+    let _ = name;
+    let _ = value;
+    let _ = result_list;
     false
 }
