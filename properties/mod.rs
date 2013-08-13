@@ -6,8 +6,9 @@ use std::ascii::to_ascii_lower;
 use cssparser::*;
 use errors::{ErrorLoggerIterator, log_css_error};
 
-pub mod longhands;
 pub mod common_types;
+pub mod longhands;
+pub mod shorthands;
 
 
 pub struct PropertyDeclarationBlock {
