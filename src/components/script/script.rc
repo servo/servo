@@ -69,8 +69,9 @@ pub mod dom {
             pub mod HTMLSourceElementBinding;
             pub mod HTMLSpanElementBinding;
             pub mod HTMLStyleElementBinding;
-            pub mod HTMLTableCaptionElementBinding;
             pub mod HTMLTableElementBinding;
+            pub mod HTMLTableCellElementBinding;
+            pub mod HTMLTableCaptionElementBinding;
             pub mod HTMLTableRowElementBinding;
             pub mod HTMLTableSectionElementBinding;
             pub mod HTMLTextAreaElementBinding;
@@ -119,8 +120,9 @@ pub mod dom {
     pub mod htmlscriptelement;
     pub mod htmlsourceelement;
     pub mod htmlstyleelement;
-    pub mod htmltablecaptionelement;
     pub mod htmltableelement;
+    pub mod htmltablecaptionelement;
+    pub mod htmltablecellelement;
     pub mod htmltablerowelement;
     pub mod htmltablesectionelement;
     pub mod htmltextareaelement;

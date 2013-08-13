@@ -16,8 +16,9 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding,
                              HTMLOListElementBinding, HTMLParagraphElementBinding,
                              HTMLQuoteElementBinding,
                              HTMLScriptElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
-                             HTMLStyleElementBinding, HTMLTableCaptionElementBinding,
-                             HTMLTableElementBinding, HTMLTableRowElementBinding,
+                             HTMLStyleElementBinding, HTMLTableElementBinding,
+                             HTMLTableCaptionElementBinding, HTMLTableCellElementBinding,
+                             HTMLTableRowElementBinding,
                              HTMLTableSectionElementBinding, HTMLTextAreaElementBinding,
                              HTMLTimeElementBinding, HTMLTitleElementBinding, HTMLUListElementBinding};
 use dom::bindings::utils::{null_string, str};
@@ -45,8 +46,9 @@ use dom::htmlquoteelement::HTMLQuoteElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::htmlstyleelement::HTMLStyleElement;
-use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltableelement::HTMLTableElement;
+use dom::htmltablecaptionelement::HTMLTableCaptionElement;
+use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
@@ -151,7 +153,6 @@ pub struct HTMLParagraphElement { parent: HTMLElement }
 pub struct HTMLSelectElement    { parent: HTMLElement }
 pub struct HTMLSmallElement     { parent: HTMLElement }
 pub struct HTMLSpanElement      { parent: HTMLElement }
-pub struct HTMLTableCellElement { parent: HTMLElement }
 pub struct UnknownElement       { parent: HTMLElement }
 
 impl HTMLHtmlElement {
@@ -258,6 +259,8 @@ generate_cacheable_wrapper!(HTMLTableElement, HTMLTableElementBinding::Wrap)
 generate_binding_object!(HTMLTableCaptionElement)
 generate_cacheable_wrapper!(HTMLTableCaptionElement, HTMLTableCaptionElementBinding::Wrap)
 generate_binding_object!(HTMLTableElement)
+generate_cacheable_wrapper!(HTMLTableCellElement, HTMLTableCellElementBinding::Wrap)
+generate_binding_object!(HTMLTableCellElement)
 generate_cacheable_wrapper!(HTMLTableRowElement, HTMLTableRowElementBinding::Wrap)
 generate_binding_object!(HTMLTableRowElement)
 generate_cacheable_wrapper!(HTMLTableSectionElement, HTMLTableSectionElementBinding::Wrap)

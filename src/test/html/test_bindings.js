@@ -196,6 +196,20 @@ window.alert(tags.length);
 window.alert(tags[0].tagName);
 window.alert(tags[0] instanceof HTMLQuoteElement);
 
+window.alert("HTMLTableCellElement:");
+let tags = document.getElementsByTagName("th");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLTableCellElement);
+
+window.alert("HTMLTableCellElement:");
+let tags = document.getElementsByTagName("td");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLTableCellElement);
+
 //TODO: Doesn't work until we throw proper exceptions instead of returning 0 on
 //      unwrap failure.
 /*try {

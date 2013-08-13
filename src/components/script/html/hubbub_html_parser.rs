@@ -24,7 +24,7 @@ use dom::element::{HTMLDivElement, HTMLFontElement, HTMLFormElement,
                    HTMLInputElement,
                    HTMLOptionElement, HTMLParagraphElement, HTMLListItemElement,
                    HTMLSelectElement, HTMLSmallElement,
-                   HTMLSpanElement, HTMLTableCellElement};
+                   HTMLSpanElement};
 use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Heading4, Heading5,
                    Heading6};
 use dom::htmlbrelement::HTMLBRElement;
@@ -46,8 +46,9 @@ use dom::htmlquoteelement::HTMLQuoteElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::htmlstyleelement::HTMLStyleElement;
-use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltableelement::HTMLTableElement;
+use dom::htmltablecaptionelement::HTMLTableCaptionElement;
+use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;

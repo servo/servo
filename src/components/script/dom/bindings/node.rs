@@ -18,7 +18,7 @@ use dom::element::{HTMLElementTypeId,
                    HTMLParagraphElementTypeId, HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
                    HTMLSpanElementTypeId, HTMLSourceElementTypeId,
                    HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
-                   HTMLTableCaptionElementTypeId, HTMLTableElementTypeId,
+                   HTMLTableElementTypeId, HTMLTableCaptionElementTypeId, HTMLTableCellElementTypeId,
                    HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId, HTMLTimeElementTypeId,
                    HTMLTitleElementTypeId, HTMLUListElementTypeId, HTMLDListElementTypeId};
 use dom::element::{HTMLHeadElement,HTMLHtmlElement, HTMLDivElement, HTMLParagraphElement, HTMLSpanElement};
@@ -42,8 +42,9 @@ use dom::htmlquoteelement::HTMLQuoteElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::htmlstyleelement::HTMLStyleElement;
-use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltableelement::HTMLTableElement;
+use dom::htmltablecaptionelement::HTMLTableCaptionElement;
+use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
@@ -139,8 +140,9 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLSourceElementTypeId) => generate_element!(HTMLSourceElement),
         ElementNodeTypeId(HTMLSpanElementTypeId) => generate_element!(HTMLSpanElement),
         ElementNodeTypeId(HTMLStyleElementTypeId) => generate_element!(HTMLStyleElement),
-        ElementNodeTypeId(HTMLTableCaptionElementTypeId) => generate_element!(HTMLTableCaptionElement),
         ElementNodeTypeId(HTMLTableElementTypeId) => generate_element!(HTMLTableElement),
+        ElementNodeTypeId(HTMLTableCellElementTypeId) => generate_element!(HTMLTableCellElement),
+        ElementNodeTypeId(HTMLTableCaptionElementTypeId) => generate_element!(HTMLTableCaptionElement),
         ElementNodeTypeId(HTMLTableRowElementTypeId) => generate_element!(HTMLTableRowElement),
         ElementNodeTypeId(HTMLTableSectionElementTypeId) => generate_element!(HTMLTableSectionElement),
         ElementNodeTypeId(HTMLTextAreaElementTypeId) => generate_element!(HTMLTextAreaElement),
