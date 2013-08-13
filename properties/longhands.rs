@@ -52,13 +52,13 @@ macro_rules! single_type(
 // CSS 2.1, Section 8 - Box model
 
 single_type!(margin_top, specified::LengthOrPercentageOrAuto,
-                         specified::LengthOrPercentageOrAuto::parse_non_negative)
+                         specified::LengthOrPercentageOrAuto::parse)
 single_type!(margin_right, specified::LengthOrPercentageOrAuto,
-                           specified::LengthOrPercentageOrAuto::parse_non_negative)
+                           specified::LengthOrPercentageOrAuto::parse)
 single_type!(margin_bottom, specified::LengthOrPercentageOrAuto,
-                            specified::LengthOrPercentageOrAuto::parse_non_negative)
+                            specified::LengthOrPercentageOrAuto::parse)
 single_type!(margin_left, specified::LengthOrPercentageOrAuto,
-                          specified::LengthOrPercentageOrAuto::parse_non_negative)
+                          specified::LengthOrPercentageOrAuto::parse)
 
 single_type!(padding_top, specified::LengthOrPercentage,
                           specified::LengthOrPercentage::parse_non_negative)
@@ -120,8 +120,10 @@ single_keyword!(clear, "left" => Left, "right" => Right, "none" => None, "both" 
 
 // CSS 2.1, Section 10 - Visual formatting model details
 
-single_type!(width, specified::Length, specified::Length::parse_non_negative)
-single_type!(height, specified::Length, specified::Length::parse_non_negative)
+single_type!(width, specified::LengthOrPercentageOrAuto,
+                    specified::LengthOrPercentageOrAuto::parse_non_negative)
+single_type!(height, specified::LengthOrPercentageOrAuto,
+                     specified::LengthOrPercentageOrAuto::parse_non_negative)
 
 mod line_height {
     use super::*;
@@ -266,7 +268,7 @@ mod font_weight {
                 Some(600) => Some(Weight600),
                 Some(700) => Some(Weight700),
                 Some(800) => Some(Weight800),
-                Some(900) => Some(Weight800),
+                Some(900) => Some(Weight900),
                 _ => None,
             },
             _ => None
@@ -311,15 +313,6 @@ mod text_decoration {
         };
         let mut blink = false;
         let mut empty = true;
-        macro_rules! found(
-            ($flag: expr) => (
-                {
-                    if $flag { return None }
-                    empty = false;
-                    $flag = true;
-                }
-            );
-        )
         for component_value in input.skip_whitespace() {
             match get_ident_lower(component_value) {
                 None => return None,
