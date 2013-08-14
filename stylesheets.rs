@@ -56,7 +56,7 @@ fn parse_stylesheet(css: &str) -> Stylesheet {
                             log_css_error(rule.location, "@charset must be the first rule")
                         }
                         // Valid @charset rules are just ignored
-                        next_state = state;
+                        next_state = STATE_IMPORTS;
                     },
                     "import" => {
                         if state > STATE_IMPORTS {
