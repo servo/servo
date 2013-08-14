@@ -7,6 +7,7 @@
 use css::node_style::StyledNode;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
+use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
 use layout::flow::FlowContext;
 use layout::model::{BoxModel, MaybeAuto};
 use layout::text;
@@ -27,6 +28,7 @@ use gfx::text::text_run::TextRun;
 use newcss::color::rgb;
 use newcss::complete::CompleteStyle;
 use newcss::units::{Cursive, Em, Fantasy, Monospace, Pt, Px, SansSerif, Serif};
+use newcss::values::{CSSClearNone, CSSClearLeft, CSSClearRight, CSSClearBoth};
 use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily};
 use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
 use newcss::values::{CSSFontStyleOblique, CSSTextAlign, CSSTextDecoration, CSSLineHeight};
@@ -758,6 +760,16 @@ impl RenderBox {
 
                 list.append_item(SolidColorDisplayItemClass(solid_color_display_item))
             }
+        }
+    }
+
+    pub fn clear(&self) -> Option<ClearType> {
+        let style = self.style();
+        match style.clear() {
+            CSSClearNone => None,
+            CSSClearLeft => Some(ClearLeft),
+            CSSClearRight => Some(ClearRight),
+            CSSClearBoth => Some(ClearBoth)
         }
     }
 
