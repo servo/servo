@@ -220,6 +220,13 @@ for (let i = 0, l = tagList.length; i < l; ++i) {
   window.alert(tags[0] instanceof HTMLTableColElement);
 }
 
+window.alert("HTMLInputElement:");
+let tags = document.getElementsByTagName("input");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLInputElement);
+
 //TODO: Doesn't work until we throw proper exceptions instead of returning 0 on
 //      unwrap failure.
 /*try {

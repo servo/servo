@@ -11,8 +11,8 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding,
                              HTMLDListElementBinding, HTMLDivElementBinding,
                              HTMLHeadElementBinding, HTMLHRElementBinding,
                              HTMLHtmlElementBinding, HTMLIFrameElementBinding,
-                             HTMLImageElementBinding, HTMLMetaElementBinding,
-                             HTMLLinkElementBinding,
+                             HTMLImageElementBinding, HTMLInputElementBinding,
+                             HTMLLinkElementBinding, HTMLMetaElementBinding,
                              HTMLOListElementBinding, HTMLParagraphElementBinding,
                              HTMLQuoteElementBinding,
                              HTMLScriptElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
@@ -39,6 +39,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlinputelement::HTMLInputElement;
 use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
@@ -148,7 +149,6 @@ pub struct HTMLFontElement      { parent: HTMLElement }
 pub struct HTMLFormElement      { parent: HTMLElement }
 pub struct HTMLHeadElement      { parent: HTMLElement }
 pub struct HTMLHtmlElement      { parent: HTMLElement }
-pub struct HTMLInputElement     { parent: HTMLElement }
 pub struct HTMLListItemElement  { parent: HTMLElement }
 pub struct HTMLOptionElement    { parent: HTMLElement }
 pub struct HTMLParagraphElement { parent: HTMLElement }
@@ -239,6 +239,8 @@ generate_cacheable_wrapper!(HTMLIFrameElement, HTMLIFrameElementBinding::Wrap)
 generate_binding_object!(HTMLIFrameElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
 generate_binding_object!(HTMLImageElement)
+generate_cacheable_wrapper!(HTMLInputElement, HTMLInputElementBinding::Wrap)
+generate_binding_object!(HTMLInputElement)
 generate_cacheable_wrapper!(HTMLLinkElement, HTMLLinkElementBinding::Wrap)
 generate_binding_object!(HTMLLinkElement)
 generate_cacheable_wrapper!(HTMLMetaElement, HTMLMetaElementBinding::Wrap)

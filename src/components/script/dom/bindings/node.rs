@@ -13,7 +13,7 @@ use dom::element::{HTMLElementTypeId,
                    HTMLCanvasElementTypeId, HTMLDataElementTypeId,
                    HTMLDivElementTypeId, HTMLHeadElementTypeId, HTMLHRElementTypeId,
                    HTMLHtmlElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId,
-                   HTMLLinkElementTypeId,
+                   HTMLInputElementTypeId, HTMLLinkElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId,
                    HTMLParagraphElementTypeId, HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
                    HTMLSpanElementTypeId, HTMLSourceElementTypeId,
@@ -36,6 +36,7 @@ use dom::htmldataelement::HTMLDataElement;
 use dom::htmldlistelement::HTMLDListElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlinputelement::HTMLInputElement;
 use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
@@ -133,6 +134,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLHtmlElementTypeId) => generate_element!(HTMLHtmlElement),
         ElementNodeTypeId(HTMLIframeElementTypeId) => generate_element!(HTMLIFrameElement),
         ElementNodeTypeId(HTMLImageElementTypeId) => generate_element!(HTMLImageElement),
+        ElementNodeTypeId(HTMLInputElementTypeId) => generate_element!(HTMLInputElement),
         ElementNodeTypeId(HTMLLinkElementTypeId) => generate_element!(HTMLLinkElement),
         ElementNodeTypeId(HTMLMetaElementTypeId) => generate_element!(HTMLMetaElement),
         ElementNodeTypeId(HTMLOListElementTypeId) => generate_element!(HTMLOListElement),
