@@ -60,7 +60,6 @@ struct LineBox {
 }
 
 struct LineboxScanner {
-    flow: FlowContext,
     floats: FloatContext,
     new_boxes: ~[RenderBox],
     work_list: @mut RingBuf<RenderBox>,
@@ -70,11 +69,8 @@ struct LineboxScanner {
 }
 
 impl LineboxScanner {
-    pub fn new(inline: FlowContext, float_ctx: FloatContext) -> LineboxScanner {
-        assert!(inline.starts_inline_flow());
-
+    pub fn new(float_ctx: FloatContext) -> LineboxScanner {
         LineboxScanner {
-            flow: inline,
             floats: float_ctx,
             new_boxes: ~[],
             work_list: @mut RingBuf::new(),
@@ -92,8 +88,8 @@ impl LineboxScanner {
         self.floats.clone()
     }
 
-    fn reset_scanner(&mut self) {
-        debug!("Resetting line box scanner's state for flow f%d.", self.flow.id());
+    fn reset_scanner(&mut self, flow: &mut InlineFlowData) {
+        debug!("Resetting line box scanner's state for flow f%d.", flow.common.id);
         self.lines = ~[];
         self.new_boxes = ~[];
         self.cur_y = Au(0);
@@ -106,60 +102,55 @@ impl LineboxScanner {
         self.pending_line.green_zone = Size2D(Au(0), Au(0))     
     }
 
-    pub fn scan_for_lines(&mut self) {
-        self.reset_scanner();
+    pub fn scan_for_lines(&mut self, flow: &mut InlineFlowData) {
+        self.reset_scanner(flow);
 
-        { // FIXME: manually control borrow length
-            let inline: &InlineFlowData = self.flow.inline();
-            let mut i = 0u;
+        let mut i = 0u;
 
-            loop {
-                // acquire the next box to lay out from work list or box list
-                let cur_box = if self.work_list.is_empty() {
-                    if i == inline.boxes.len() {
-                        break
-                    }
-                    let box = inline.boxes[i]; i += 1;
-                    debug!("LineboxScanner: Working with box from box list: b%d", box.id());
-                    box
-                } else {
-                    let box = self.work_list.pop_front().unwrap();
-                    debug!("LineboxScanner: Working with box from work list: b%d", box.id());
-                    box
-                };
-
-                let box_was_appended = self.try_append_to_line(cur_box);
-                if !box_was_appended {
-                    debug!("LineboxScanner: Box wasn't appended, because line %u was full.",
-                           self.lines.len());
-                    self.flush_current_line();
-                } else {
-                    debug!("LineboxScanner: appended a box to line %u", self.lines.len());
+        loop {
+            // acquire the next box to lay out from work list or box list
+            let cur_box = if self.work_list.is_empty() {
+                if i == flow.boxes.len() {
+                    break
                 }
-            }
+                let box = flow.boxes[i]; i += 1;
+                debug!("LineboxScanner: Working with box from box list: b%d", box.id());
+                box
+            } else {
+                    let box = self.work_list.pop_front().unwrap();
+                debug!("LineboxScanner: Working with box from work list: b%d", box.id());
+                box
+            };
 
-            if self.pending_line.range.length() > 0 {
-                debug!("LineboxScanner: Partially full linebox %u left at end of scanning.",
-                       self.lines.len());
+            let box_was_appended = self.try_append_to_line(cur_box, flow);
+            if !box_was_appended {
+                debug!("LineboxScanner: Box wasn't appended, because line %u was full.",
+                        self.lines.len());
                 self.flush_current_line();
+            } else {
+                debug!("LineboxScanner: appended a box to line %u", self.lines.len());
             }
         }
 
-        { // FIXME: scope the borrow
-            let inline: &mut InlineFlowData = self.flow.inline();
-            inline.elems.repair_for_box_changes(inline.boxes, self.new_boxes);
+        if self.pending_line.range.length() > 0 {
+            debug!("LineboxScanner: Partially full linebox %u left at end of scanning.",
+                    self.lines.len());
+            self.flush_current_line();
         }
-        self.swap_out_results();
+
+
+        flow.elems.repair_for_box_changes(flow.boxes, self.new_boxes);
+
+        self.swap_out_results(flow);
     }
 
-    fn swap_out_results(&mut self) {
+    fn swap_out_results(&mut self, flow: &mut InlineFlowData) {
         debug!("LineboxScanner: Propagating scanned lines[n=%u] to inline flow f%d",
                self.lines.len(),
-               self.flow.id());
+               flow.common.id);
 
-        let inline: &mut InlineFlowData = self.flow.inline();
-        util::swap(&mut inline.boxes, &mut self.new_boxes);
-        util::swap(&mut inline.lines, &mut self.lines);
+        util::swap(&mut flow.boxes, &mut self.new_boxes);
+        util::swap(&mut flow.lines, &mut self.lines);
     }
 
     fn flush_current_line(&mut self) {
@@ -222,7 +213,7 @@ impl LineboxScanner {
     /// Computes the position of a line that has only the provided RenderBox.
     /// Returns: the bounding rect of the line's green zone (whose origin coincides
     /// with the line's origin) and the actual width of the first box after splitting.
-    fn initial_line_placement (&self, first_box: RenderBox, ceiling: Au) -> (Rect<Au>, Au) {
+    fn initial_line_placement (&self, first_box: RenderBox, ceiling: Au, flow: &mut InlineFlowData) -> (Rect<Au>, Au) {
         debug!("LineboxScanner: Trying to place first box of line %?", self.lines.len());
         debug!("LineboxScanner: box size: %?", first_box.position().size);
         let splitable = first_box.can_split();
@@ -241,7 +232,7 @@ impl LineboxScanner {
             width: placement_width,
             height: first_box.position().size.height,
             ceiling: ceiling,
-            max_width: self.flow.position().size.width,
+            max_width: flow.common.position.size.width,
             f_type: FloatLeft
         };
 
@@ -307,11 +298,11 @@ impl LineboxScanner {
     }
 
     /// Returns false only if we should break the line.
-    fn try_append_to_line(&mut self, in_box: RenderBox) -> bool {
+    fn try_append_to_line(&mut self, in_box: RenderBox, flow: &mut InlineFlowData) -> bool {
         let line_is_empty: bool = self.pending_line.range.length() == 0;
 
         if line_is_empty {
-            let (line_bounds, _) = self.initial_line_placement(in_box, self.cur_y);
+            let (line_bounds, _) = self.initial_line_placement(in_box, self.cur_y, flow);
             self.pending_line.bounds.origin = line_bounds.origin;
             self.pending_line.green_zone = line_bounds.size;
         }
@@ -348,7 +339,7 @@ impl LineboxScanner {
 
             // First predict where the next line is going to be
             let this_line_y = self.pending_line.bounds.origin.y;
-            let (next_line, first_box_width) = self.initial_line_placement(in_box, this_line_y);
+            let (next_line, first_box_width) = self.initial_line_placement(in_box, this_line_y, flow);
             let next_green_zone = next_line.size;
 
             let new_width = self.pending_line.bounds.size.width + first_box_width;
@@ -490,7 +481,6 @@ impl InlineFlowData {
     }
 
     pub fn teardown(&mut self) {
-        self.common.teardown();
         for box in self.boxes.iter() {
             box.teardown();
         }
@@ -512,10 +502,10 @@ impl InlineLayout for FlowContext {
 }
 
 impl InlineFlowData {
-    pub fn bubble_widths_inline(@mut self, ctx: &mut LayoutContext) {
+    pub fn bubble_widths_inline(&mut self, ctx: &mut LayoutContext) {
         let mut num_floats = 0;
 
-        for kid in InlineFlow(self).children() {
+        for kid in self.common.child_iter() {
             do kid.with_mut_base |base| {
                 num_floats += base.num_floats;
                 base.floats_in = FloatContext::new(base.num_floats);
@@ -542,11 +532,13 @@ impl InlineFlowData {
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
     /// on this context, the context has had its width set by the parent context.
-    pub fn assign_widths_inline(@mut self, _: &LayoutContext) {
+    pub fn assign_widths_inline(&mut self, _: &LayoutContext) {
         // Initialize content box widths if they haven't been initialized already.
         //
         // TODO: Combine this with `LineboxScanner`'s walk in the box list, or put this into
         // `RenderBox`.
+
+        debug!("assign_widths_inline: floats_in: %?", self.common.floats_in);
         {
             let this = &mut *self;
             for &box in this.boxes.iter() {
@@ -571,7 +563,7 @@ impl InlineFlowData {
             } // End of for loop.
         }
 
-        for kid in InlineFlow(self).children() {
+        for kid in self.common.child_iter() {
             do kid.with_mut_base |base| {
                 base.position.size.width = self.common.position.size.width;
                 base.is_inorder = self.common.is_inorder;
@@ -586,14 +578,14 @@ impl InlineFlowData {
         // 'inline-block' box that created this flow before recursing.
     }
 
-    pub fn assign_height_inorder_inline(@mut self, ctx: &mut LayoutContext) {
-        for kid in InlineFlow(self).children() {
+    pub fn assign_height_inorder_inline(&mut self, ctx: &mut LayoutContext) {
+        for kid in self.common.child_iter() {
             kid.assign_height_inorder(ctx);
         }
         self.assign_height_inline(ctx);
     }
 
-    pub fn assign_height_inline(@mut self, _: &LayoutContext) {
+    pub fn assign_height_inline(&mut self, _: &LayoutContext) {
 
         debug!("assign_height_inline: assigning height for flow %?", self.common.id);
 
@@ -603,8 +595,10 @@ impl InlineFlowData {
         //
         // TODO(#226): Get the CSS `line-height` property from each non-replaced inline element to
         // determine its height for computing linebox height.
-        let mut scanner = LineboxScanner::new(InlineFlow(self), self.common.floats_in.clone());
-        scanner.scan_for_lines();
+        debug!("assign_height_inline: floats_in: %?", self.common.floats_in);
+        let scanner_floats = self.common.floats_in.clone();
+        let mut scanner = LineboxScanner::new(scanner_floats);
+        scanner.scan_for_lines(self);
 
         // Now, go through each line and lay out the boxes inside
         for line in self.lines.iter() {
@@ -760,7 +754,7 @@ impl InlineFlowData {
 
         let abs_rect = Rect(self.common.abs_position, self.common.position.size);
         if !abs_rect.intersects(dirty) {
-            return false;
+            return true;
         }
 
         // TODO(#228): Once we form line boxes and have their cached bounds, we can be smarter and
@@ -777,7 +771,7 @@ impl InlineFlowData {
         // should the flow be nested inside the box somehow?
         
         // For now, don't traverse the subtree rooted here
-        false
+        true
     }
 }
 

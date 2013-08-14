@@ -225,7 +225,7 @@ impl LayoutTask {
         }
 
         // Construct the flow tree.
-        let layout_root: FlowContext = do profile(time::LayoutTreeBuilderCategory,
+        let mut layout_root: FlowContext = do profile(time::LayoutTreeBuilderCategory,
                                                   self.profiler_chan.clone()) {
             let mut builder = LayoutTreeBuilder::new();
             let layout_root: FlowContext = match builder.construct_trees(&layout_ctx, *node) {
@@ -238,7 +238,7 @@ impl LayoutTask {
 
         // Propagate restyle damage up and down the tree, as appropriate.
         // FIXME: Merge this with flow tree building and/or the other traversals.
-        for flow in layout_root.traverse_preorder() {
+        do layout_root.each_preorder |flow| {
             // Also set any damage implied by resize.
             if resized {
                 do flow.with_mut_base |base| {
@@ -248,23 +248,29 @@ impl LayoutTask {
 
             let prop = flow.with_base(|base| base.restyle_damage.propagate_down());
             if prop.is_nonempty() {
-                for kid_ctx in flow.children() {
+                for kid_ctx in flow.child_iter() {
                     do kid_ctx.with_mut_base |kid| {
                         kid.restyle_damage.union_in_place(prop);
                     }
                 }
             }
-        }
+            true
+        };
 
-        for flow in layout_root.traverse_postorder() {
-            for child in flow.children() {
+        do layout_root.each_postorder |flow| {
+            let mut damage = do flow.with_base |base| {
+                base.restyle_damage
+            };
+            for child in flow.child_iter() {
                 do child.with_base |child_base| {
-                    do flow.with_mut_base |base| {
-                        base.restyle_damage.union_in_place(child_base.restyle_damage);
-                    }
+                    damage.union_in_place(child_base.restyle_damage);
                 }
             }
-        }
+            do flow.with_mut_base |base| {
+                base.restyle_damage = damage;
+            }
+            true
+        };
 
         debug!("layout: constructed Flow tree");
         debug!("%?", layout_root.dump());
@@ -272,22 +278,27 @@ impl LayoutTask {
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
         do profile(time::LayoutMainCategory, self.profiler_chan.clone()) {
-            for flow in layout_root.traverse_postorder_prune(|f| f.restyle_damage().lacks(BubbleWidths)) {
+            do layout_root.each_postorder_prune(|f| f.restyle_damage().lacks(BubbleWidths)) |flow| {
                 flow.bubble_widths(&mut layout_ctx);
+                true
             };
 
             // FIXME: We want to do
             //     for flow in layout_root.traverse_preorder_prune(|f| f.restyle_damage().lacks(Reflow)) 
             // but FloatContext values can't be reused, so we need to recompute them every time.
-            for flow in layout_root.traverse_preorder() {
+            debug!("assigning widths");
+            do layout_root.each_preorder |flow| {
                 flow.assign_widths(&mut layout_ctx);
+                true
             };
 
             // For now, this is an inorder traversal
             // FIXME: prune this traversal as well
-            do layout_root.traverse_bu_sub_inorder |flow| {
+            debug!("assigning height");
+            do layout_root.each_bu_sub_inorder |flow| {
                 flow.assign_height(&mut layout_ctx);
-            }
+                true
+            };
         }
 
         // Build the display list if necessary, and send it to the renderer.
@@ -301,9 +312,10 @@ impl LayoutTask {
 
                 // TODO: Set options on the builder before building.
                 // TODO: Be smarter about what needs painting.
-                do layout_root.partially_traverse_preorder |flow| {
-                    flow.build_display_list(&builder, &layout_root.position(), display_list)
-                }
+                let root_pos = &layout_root.position().clone();
+                layout_root.each_preorder_prune(|flow| {  
+                    flow.build_display_list(&builder, root_pos, display_list) 
+                }, |_| { true } );
 
                 let root_size = do layout_root.with_base |base| {
                     base.position.size

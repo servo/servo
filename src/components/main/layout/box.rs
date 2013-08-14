@@ -153,9 +153,6 @@ pub struct RenderBoxBase {
     /// The DOM node that this `RenderBox` originates from.
     node: AbstractNode<LayoutView>,
 
-    /// The reference to the containing flow context which this box participates in.
-    ctx: FlowContext,
-
     /// The position of this box relative to its owning flow.
     position: Rect<Au>,
 
@@ -170,11 +167,10 @@ pub struct RenderBoxBase {
 
 impl RenderBoxBase {
     /// Constructs a new `RenderBoxBase` instance.
-    pub fn new(node: AbstractNode<LayoutView>, flow_context: FlowContext, id: int)
+    pub fn new(node: AbstractNode<LayoutView>, id: int)
                -> RenderBoxBase {
         RenderBoxBase {
             node: node,
-            ctx: flow_context,
             position: Au::zero_rect(),
             model: Zero::zero(),
             id: id,

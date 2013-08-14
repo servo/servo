@@ -15,7 +15,6 @@ use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
 use gfx::geometry;
-use servo_util::tree::TreeNodeRef;
 
 pub struct FloatFlowData {
     /// Data common to all flows.
@@ -54,7 +53,6 @@ impl FloatFlowData {
     }
 
     pub fn teardown(&mut self) {
-        self.common.teardown();
         for box in self.box.iter() {
             box.teardown();
         }
@@ -64,12 +62,12 @@ impl FloatFlowData {
 }
 
 impl FloatFlowData {
-    pub fn bubble_widths_float(@mut self, ctx: &LayoutContext) {
+    pub fn bubble_widths_float(&mut self, ctx: &LayoutContext) {
         let mut min_width = Au(0);
         let mut pref_width = Au(0);
         let mut num_floats = 0;
 
-        for child_ctx in FloatFlow(self).children() {
+        for child_ctx in self.common.child_iter() {
             //assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
 
             do child_ctx.with_mut_base |child_node| {
@@ -97,7 +95,7 @@ impl FloatFlowData {
         self.common.pref_width = pref_width;
     }
 
-    pub fn assign_widths_float(@mut self) { 
+    pub fn assign_widths_float(&mut self) { 
         debug!("assign_widths_float: assigning width for flow %?",  self.common.id);
         // position.size.width is set by parent even though we don't know
         // position.origin yet.
@@ -162,7 +160,7 @@ impl FloatFlowData {
         self.common.position.size.width = remaining_width;
 
         let has_inorder_children = self.common.num_floats > 0;
-        for kid in FloatFlow(self).children() {
+        for kid in self.common.child_iter() {
             //assert!(kid.starts_block_flow() || kid.starts_inline_flow());
 
             do kid.with_mut_base |child_node| {
@@ -177,7 +175,7 @@ impl FloatFlowData {
         }
     }
 
-    pub fn assign_height_inorder_float(@mut self) {
+    pub fn assign_height_inorder_float(&mut self) {
         debug!("assign_height_inorder_float: assigning height for float %?", self.common.id);
         // assign_height_float was already called by the traversal function
         // so this is well-defined
@@ -222,12 +220,12 @@ impl FloatFlowData {
         self.rel_pos = self.common.floats_out.last_float_pos();
     }
 
-    pub fn assign_height_float(@mut self, ctx: &mut LayoutContext) {
+    pub fn assign_height_float(&mut self, ctx: &mut LayoutContext) {
         debug!("assign_height_float: assigning height for float %?", self.common.id);
         let has_inorder_children = self.common.num_floats > 0;
         if has_inorder_children {
             let mut float_ctx = FloatContext::new(self.floated_children);
-            for kid in FloatFlow(self).children() {
+            for kid in self.common.child_iter() {
                 do kid.with_mut_base |child_node| {
                     child_node.floats_in = float_ctx.clone();
                 }
@@ -248,7 +246,7 @@ impl FloatFlowData {
             }
         }
 
-        for kid in FloatFlow(self).children() {
+        for kid in self.common.child_iter() {
             do kid.with_mut_base |child_node| {
                 child_node.position.origin.y = cur_y;
                 cur_y = cur_y + child_node.position.size.height;
@@ -289,7 +287,7 @@ impl FloatFlowData {
         }
     }
 
-    pub fn build_display_list_float<E:ExtraDisplayListData>(@mut self,
+    pub fn build_display_list_float<E:ExtraDisplayListData>(&mut self,
                                                             builder: &DisplayListBuilder,
                                                             dirty: &Rect<Au>, 
                                                             list: &Cell<DisplayList<E>>) 
@@ -301,7 +299,7 @@ impl FloatFlowData {
         }
         let abs_rect = Rect(self.common.abs_position, self.common.position.size);
         if !abs_rect.intersects(dirty) {
-            return false;
+            return true;
         }
 
 
@@ -315,14 +313,13 @@ impl FloatFlowData {
         // TODO: handle any out-of-flow elements
 
         // go deeper into the flow tree
-        let flow = FloatFlow(self);
-        for child in flow.children() {
+        for child in self.common.child_iter() {
             do child.with_mut_base |base| {
                 base.abs_position = offset + base.position.origin;
             }
         }
 
-        true
+        false
     }
 }
 
