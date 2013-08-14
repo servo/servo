@@ -42,10 +42,11 @@ use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::htmlulistelement::HTMLUListElement;
-use dom::element::{Element, Attr};
+use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Comment, Doctype, ElementNodeTypeId, Node, ScriptView};
 use dom::node::{Text};
+use dom::bindings::utils::str;
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use js::jsapi::JSContext;
 use newcss::stylesheet::Stylesheet;
@@ -343,14 +344,7 @@ pub fn parse_html(cx: *JSContext,
             debug!("-- attach attrs");
             do node.as_mut_element |element| {
                 for tag.attributes.iter().advance |attr| {
-                    element.attrs.push(Attr::new(attr.name.clone(), attr.value.clone()));
-
-                    if "style" == attr.name {
-                        element.style_attribute = Some(
-                            Stylesheet::from_attribute(
-                                url::from_str("http://www.example.com/").unwrap(),
-                                attr.value));
-                    }
+                    element.set_attr(&str(attr.name.clone()), &str(attr.value.clone()));
                 }
             }
 
