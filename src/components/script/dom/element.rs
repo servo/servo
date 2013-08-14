@@ -5,7 +5,7 @@
 //! Element nodes.
 
 use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBodyElementBinding, HTMLBRElementBinding,
-                             HTMLCanvasElementBinding, HTMLDivElementBinding,
+                             HTMLCanvasElementBinding, HTMLDListElementBinding, HTMLDivElementBinding,
                              HTMLHeadElementBinding, HTMLHRElementBinding,
                              HTMLHtmlElementBinding, HTMLIFrameElementBinding,
                              HTMLImageElementBinding, HTMLMetaElementBinding,
@@ -23,6 +23,7 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcollection::HTMLCollection;
+use dom::htmldlistelement::HTMLDListElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
@@ -78,6 +79,7 @@ pub enum ElementTypeId {
     HTMLBRElementTypeId,
     HTMLBodyElementTypeId,
     HTMLCanvasElementTypeId,
+    HTMLDListElementTypeId,
     HTMLDivElementTypeId,
     HTMLFontElementTypeId,
     HTMLFormElementTypeId,
@@ -189,6 +191,8 @@ generate_cacheable_wrapper!(HTMLBodyElement, HTMLBodyElementBinding::Wrap)
 generate_binding_object!(HTMLBodyElement)
 generate_cacheable_wrapper!(HTMLCanvasElement, HTMLCanvasElementBinding::Wrap)
 generate_binding_object!(HTMLCanvasElement)
+generate_cacheable_wrapper!(HTMLDListElement, HTMLDListElementBinding::Wrap)
+generate_binding_object!(HTMLDListElement)
 generate_cacheable_wrapper!(HTMLBRElement, HTMLBRElementBinding::Wrap)
 generate_binding_object!(HTMLBRElement)
 generate_cacheable_wrapper!(HTMLHRElement, HTMLHRElementBinding::Wrap)
