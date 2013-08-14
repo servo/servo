@@ -191,24 +191,7 @@ impl CompositorTask {
     }
 
     /// Starts the compositor, which listens for messages on the specified port. 
-    pub fn create(opts: Opts,
-                  port: Port<Msg>,
-                  profiler_chan: ProfilerChan,
-                  shutdown_chan: Chan<()>) {
-        let port = Cell::new(port);
-        let shutdown_chan = Cell::new(shutdown_chan);
-        let opts = Cell::new(opts);
-        do on_osmain {
-            let compositor_task = CompositorTask::new(opts.take(),
-                                                      port.take(),
-                                                      profiler_chan.clone(),
-                                                      shutdown_chan.take());
-            debug!("preparing to enter main loop");
-            compositor_task.run_main_loop();
-        };
-    }
-
-    fn run_main_loop(&self) {
+    pub fn run(&self) {
         let app: Application = ApplicationMethods::new();
         let window: @mut Window = WindowMethods::new(&app);
 
@@ -508,17 +491,3 @@ impl CompositorTask {
         self.shutdown_chan.send(())
     }
 }
-
-/// A function for spawning into the platform's main thread.
-fn on_osmain(f: ~fn()) {
-    // FIXME: rust#6399
-    let mut main_task = task::task();
-    /*
-    main_task.sched_mode(task::PlatformThread);
-    */
-    fail!("stubbed out!");
-    do main_task.spawn {
-        f();
-    }
-}
-
