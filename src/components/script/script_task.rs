@@ -464,6 +464,7 @@ impl ScriptTask {
     }
 
     fn handle_new_layout(&mut self, new_layout_info: NewLayoutInfo) {
+        debug!("Script: new layout: %?", new_layout_info);
         let NewLayoutInfo {
             old_id,
             new_id,
@@ -529,6 +530,7 @@ impl ScriptTask {
 
     /// Handles a notification that reflow completed.
     fn handle_reflow_complete_msg(&mut self, pipeline_id: PipelineId) {
+        debug!("Script: Reflow complete for %?", pipeline_id);
         self.page_tree.find(pipeline_id).expect("ScriptTask: received a load
             message for a layout channel that is not associated with this script task. This
             is a bug.").page.layout_join_port = None;
@@ -567,7 +569,7 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&mut self, pipeline_id: PipelineId, url: Url) {
-        debug!("ScriptTask: loading %?", url);
+        debug!("ScriptTask: loading %? on page %?", url, pipeline_id);
 
         let page = self.page_tree.find(pipeline_id).expect("ScriptTask: received a load
             message for a layout channel that is not associated with this script task. This

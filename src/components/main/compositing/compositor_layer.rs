@@ -98,12 +98,6 @@ impl CompositorLayer {
             let container = @mut ContainerLayer();
             match rect {
                 Some(rect) => {
-                    //container.scissor = Some(Rect(Point2D(100f32, 200f32), Size2D(700f32, 800f32)));
-                    //container.common.transform = identity().translate(100f32, 200f32, 0f32);
-
-                    // FIXME: The top two lines are temporary until layout window sizes are fixed.
-                    // When they are, uncomment the next 2 lines:
-
                      container.scissor = Some(rect);
                      container.common.transform = identity().translate(rect.origin.x,
                                                                        rect.origin.y,
@@ -297,13 +291,8 @@ impl CompositorLayer {
     }
     
     // A helper method to resize sublayers.
-<<<<<<< HEAD
-    fn resize_helper(&mut self, pipeline_id: PipelineId, new_size: Size2D<f32>, epoch: uint) -> bool {
-        for child_node in self.children.mut_iter() {
-=======
     fn resize_helper(&mut self, pipeline_id: PipelineId, new_size: Size2D<f32>, epoch: Epoch) -> bool {
-        for self.children.mut_iter().advance |child_node| {
->>>>>>> 2ad7d8e... Add Epoch newtype; address review comments
+        for child_node in self.children.mut_iter() {
             if pipeline_id != child_node.child.pipeline.id {
                 loop;
             }

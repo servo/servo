@@ -25,6 +25,7 @@ use servo_net::resource_task;
 use servo_util::time::ProfilerChan;
 use std::hashmap::{HashMap, HashSet};
 use std::util::replace;
+use extra::url::Url;
 use extra::future::{Future, from_value};
 use extra::url::Url;
 
@@ -492,6 +493,7 @@ impl Constellation {
         // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
         let pipeline = @mut if (source_url.host == url.host &&
                                source_url.port == url.port) {
+            debug!("Constellation: loading same-origin iframe at %?", url);
             // Reuse the script task if same-origin url's
             Pipeline::with_script(next_pipeline_id,
                                   Some(subpage_id),
@@ -503,6 +505,7 @@ impl Constellation {
                                   source_pipeline,
                                   size_future)
         } else {
+            debug!("Constellation: loading cross-origin iframe at %?", url);
             // Create a new script task if not same-origin url's
             Pipeline::create(next_pipeline_id,
                              Some(subpage_id),
@@ -518,6 +521,7 @@ impl Constellation {
         if url.path.ends_with(".js") {
             pipeline.execute(url);
         } else {
+            debug!("Constellation: sending load msg to %?", pipeline);
             pipeline.load(url);
         }
         let rect = self.pending_sizes.pop(&(source_pipeline_id, subpage_id));
@@ -632,6 +636,7 @@ impl Constellation {
     }
     
     fn handle_renderer_ready_msg(&mut self, pipeline_id: PipelineId) {
+        debug!("Renderer %? ready to send paint msg", pipeline_id);
         // This message could originate from a pipeline in the navigation context or
         // from a pending frame. The only time that we will grant paint permission is
         // when the message originates from a pending frame or the current frame.
@@ -641,8 +646,6 @@ impl Constellation {
             // TODO(tkuehn): In fact, this kind of message might be provably
             // impossible to occur.
             if current_frame.contains(pipeline_id) {
-                //debug!("updating compositor frame tree with %?", current_frame);
-                //self.set_ids(current_frame);
                 for frame in current_frame.iter() {
                     frame.pipeline.grant_paint_permission();
                 }
