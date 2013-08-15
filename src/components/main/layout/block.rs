@@ -12,8 +12,6 @@ use layout::inline::InlineLayout;
 use layout::model::{MaybeAuto, Specified, Auto};
 use layout::float_context::{FloatContext, Invalid};
 
-use newcss::values::{CSSClearNone, CSSClearLeft, CSSClearRight, CSSClearBoth};
-use layout::float_context::{ClearLeft, ClearRight, ClearBoth};
 use std::cell::Cell;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -281,14 +279,7 @@ impl BlockFlowData {
         let mut float_ctx = Invalid;
 
         for self.box.iter().advance |&box| {
-            let style = box.style();
-            let clear = match style.clear() {
-                CSSClearNone => None,
-                CSSClearLeft => Some(ClearLeft),
-                CSSClearRight => Some(ClearRight),
-                CSSClearBoth => Some(ClearBoth)
-            };
-            clearance = match clear {
+            clearance = match box.clear() {
                 None => Au(0),
                 Some(clear) => {
                     self.common.floats_in.clearance(clear)
