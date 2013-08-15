@@ -37,6 +37,7 @@ use std::util::replace;
 use dom::window::TimerData;
 use geom::size::Size2D;
 use html::hubbub_html_parser::HtmlParserResult;
+use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
 use js::JSVAL_NULL;
 use js::global::{global_class, debug_fns};
@@ -605,7 +606,7 @@ impl ScriptTask {
                                                                  self.image_cache_task.clone(),
                                                                  page.next_subpage_id.clone());
 
-        let HtmlParserResult {root, js_port, style_port, iframe_port} = html_parsing_result;
+        let HtmlParserResult {root, discovery_port} = html_parsing_result;
 
         // Create the window and document objects.
         let window = {
@@ -637,52 +638,30 @@ impl ScriptTask {
         // FIXME: These should be streamed to layout as they're parsed. We don't need to stop here
         // in the script task.
 
-        let get_iframes = |iframe_port: &Port<(Url, SubpageId, Future<Size2D<uint>>)>| loop {
-            match iframe_port.try_recv() {
-                None => break,
-                Some((iframe_url, subpage_id, size_future)) => {
-                    page.next_subpage_id = SubpageId(*subpage_id + 1);
-                    self.constellation_chan.send(LoadIframeUrlMsg(iframe_url,
-                                                                  pipeline_id,
-                                                                  subpage_id,
-                                                                  size_future));
-                }
-            }
-        };
-
-        let get_stylesheets = |style_port: &Port<Stylesheet>| loop {
-            match style_port.try_recv() {
-                None => break,
-                Some(sheet) => page.layout_chan.send(AddStylesheetMsg(sheet)),
-            }
-        };
-        
-        let mut select_ports = (style_port, iframe_port);
+        let mut js_scripts = None;
         loop {
-            match select_ports.try_select() {
-                Left(None) => {
-                    get_iframes(select_ports.second_ref());
-                    break;
+            match discovery_port.try_recv() {
+                Some(HtmlDiscoveredScript(scripts)) => {
+                    assert!(js_scripts.is_none());
+                    js_scripts = Some(scripts);
                 }
-                Left(Some(sheet)) => {
+                Some(HtmlDiscoveredStyle(sheet)) => {
                     page.layout_chan.send(AddStylesheetMsg(sheet));
                 }
-                Right(Some((iframe_url, subpage_id, size_future))) => {
+                Some(HtmlDiscoveredIFrame((iframe_url, subpage_id, size_future))) => {
                     page.next_subpage_id = SubpageId(*subpage_id + 1);
                     self.constellation_chan.send(LoadIframeUrlMsg(iframe_url,
                                                                   pipeline_id,
                                                                   subpage_id,
                                                                   size_future));
                 }
-                Right(None) => {
-                    get_stylesheets(select_ports.first_ref());
-                    break;
-                }
+                None => break
             }
         }
 
         // Receive the JavaScript scripts.
-        let js_scripts = js_port.recv();
+        assert!(js_scripts.is_some());
+        let js_scripts = js_scripts.swap_unwrap();
         debug!("js_scripts: %?", js_scripts);
 
         // Perform the initial reflow.
