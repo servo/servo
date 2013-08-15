@@ -4,7 +4,6 @@
 
 //! Text layout.
 
-use std::uint;
 use std::vec;
 
 use gfx::text::text_run::TextRun;
@@ -13,7 +12,6 @@ use layout::box::{RenderBox, RenderBoxBase, TextRenderBox};
 use layout::box::{TextRenderBoxClass, UnscannedTextRenderBoxClass};
 use layout::context::LayoutContext;
 use layout::flow::FlowContext;
-use layout::util::{NodeRange};
 use newcss::values::{CSSTextDecoration, CSSTextDecorationUnderline};
 use servo_util::range::Range;
 
@@ -50,7 +48,7 @@ pub trait UnscannedMethods {
 impl UnscannedMethods for RenderBox {
     fn raw_text(&self) -> ~str {
         match *self {
-            UnscannedTextRenderBoxClass(text_box) => copy text_box.text,
+            UnscannedTextRenderBoxClass(text_box) => text_box.text.clone(),
             _ => fail!(~"unsupported operation: box.raw_text() on non-unscanned text box."),
         }
     }
@@ -75,7 +73,7 @@ impl TextRunScanner {
 
         let mut last_whitespace = true;
         let mut out_boxes = ~[];
-        for uint::range(0, flow.inline().boxes.len()) |box_i| {
+        for box_i in range(0, flow.inline().boxes.len()) {
             debug!("TextRunScanner: considering box: %?", flow.inline().boxes[box_i].debug_str());
             if box_i > 0 && !can_coalesce_text_nodes(flow.inline().boxes, box_i-1, box_i) {
                 last_whitespace = self.flush_clump_to_list(ctx, flow, last_whitespace, &mut out_boxes);
@@ -204,7 +202,7 @@ impl TextRunScanner {
                 let mut run_str: ~str = ~"";
                 let mut new_ranges: ~[Range] = ~[];
                 let mut char_total = 0;
-                for uint::range(0, transformed_strs.len()) |i| {
+                for i in range(0, transformed_strs.len()) {
                     let added_chars = transformed_strs[i].char_len();
                     new_ranges.push(Range::new(char_total, added_chars));
                     run_str.push_str(transformed_strs[i]);
@@ -231,7 +229,7 @@ impl TextRunScanner {
 
                 // Make new boxes with the run and adjusted text indices.
                 debug!("TextRunScanner: pushing box(es) in range: %?", self.clump);
-                for clump.eachi |i| {
+                for i in clump.eachi() {
                     let range = new_ranges[i - self.clump.begin()];
                     if range.length() == 0 {
                         debug!("Elided an `UnscannedTextbox` because it was zero-length after \
@@ -241,7 +239,7 @@ impl TextRunScanner {
                     }
 
                     do in_boxes[i].with_base |base| {
-                        let new_box = @mut adapt_textbox_with_range(*base, run.get(), range);
+                        let new_box = @mut adapt_textbox_with_range(*base, run.unwrap(), range);
                         out_boxes.push(TextRenderBoxClass(new_box));
                     }
                 }
@@ -249,19 +247,19 @@ impl TextRunScanner {
         } // End of match.
 
         debug!("--- In boxes: ---");
-        for in_boxes.iter().enumerate().advance |(i, box)| {
+        for (i, box) in in_boxes.iter().enumerate() {
             debug!("%u --> %s", i, box.debug_str());
         }
         debug!("------------------");
 
         debug!("--- Out boxes: ---");
-        for out_boxes.iter().enumerate().advance |(i, box)| {
+        for (i, box) in out_boxes.iter().enumerate() {
             debug!("%u --> %s", i, box.debug_str());
         }
         debug!("------------------");
 
         debug!("--- Elem ranges: ---");
-        for inline.elems.eachi_mut |i: uint, nr: &NodeRange| {
+        for (i, nr) in inline.elems.eachi() {
             debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str()); ()
         }
         debug!("--------------------");

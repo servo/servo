@@ -51,21 +51,21 @@ pub trait ApplicationMethods {
 
 pub trait WindowMethods<A> {
     /// Creates a new window.
-    pub fn new(app: &A) -> @mut Self;
+    fn new(app: &A) -> @mut Self;
     /// Returns the size of the window.
-    pub fn size(&self) -> Size2D<f32>;
+    fn size(&self) -> Size2D<f32>;
     /// Presents the window to the screen (perhaps by page flipping).
-    pub fn present(&mut self);
+    fn present(&mut self);
  
     /// Spins the event loop and returns the next event.
-    pub fn recv(@mut self) -> WindowEvent;
+    fn recv(@mut self) -> WindowEvent;
 
     /// Sets the ready state of the current page.
-    pub fn set_ready_state(@mut self, ready_state: ReadyState);
+    fn set_ready_state(@mut self, ready_state: ReadyState);
     /// Sets the render state of the current page.
-    pub fn set_render_state(@mut self, render_state: RenderState);
+    fn set_render_state(@mut self, render_state: RenderState);
 
     /// Returns the hidpi factor of the monitor.
-    pub fn hidpi_factor(@mut self) -> f32;
+    fn hidpi_factor(@mut self) -> f32;
 }
 

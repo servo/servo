@@ -14,7 +14,6 @@ use platform::font_context::FontContextHandle;
 
 use azure::azure_hl::BackendType;
 use std::hashmap::HashMap;
-use std::result;
 
 // TODO(Rust #3934): creating lots of new dummy styles is a workaround
 // for not being able to store symbolic enums in top-level constants.
@@ -34,7 +33,6 @@ pub trait FontContextHandleMethods {
     fn create_font_from_identifier(&self, ~str, UsedFontStyle) -> Result<FontHandle, ()>;
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 pub struct FontContext {
     instance_cache: LRUCache<FontDescriptor, @mut Font>,
     font_list: Option<FontList>, // only needed by layout
@@ -45,7 +43,6 @@ pub struct FontContext {
     profiler_chan: ProfilerChan,
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 impl<'self> FontContext {
     pub fn new(backend: BackendType,
            needs_font_list: bool,
@@ -75,7 +72,7 @@ impl<'self> FontContext {
         }
     }
 
-    priv fn get_font_list(&'self self) -> &'self FontList {
+    fn get_font_list(&'self self) -> &'self FontList {
         self.font_list.get_ref()
     }
 
@@ -113,23 +110,23 @@ impl<'self> FontContext {
         }
     }
 
-    priv fn transform_family(&self, family: &str) -> ~str {
+    fn transform_family(&self, family: &str) -> ~str {
         // FIXME: Need a find_like() in HashMap.
         let family = family.to_str();
         debug!("(transform family) searching for `%s`", family);
         match self.generic_fonts.find(&family) {
             None => family,
-            Some(mapped_family) => copy *mapped_family
+            Some(mapped_family) => (*mapped_family).clone()
         }
     }
 
-    priv fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
+    fn create_font_group(&mut self, style: &SpecifiedFontStyle) -> @FontGroup {
         let mut fonts = ~[];
 
         debug!("(create font group) --- starting ---");
 
         // TODO(Issue #193): make iteration over 'font-family' more robust.
-        for style.families.split_iter(',').advance |family| {
+        for family in style.families.split_iter(',') {
             let family_name = family.trim();
             let transformed_family_name = self.transform_family(family_name);
             debug!("(create font group) transformed family is `%s`", transformed_family_name);
@@ -139,16 +136,16 @@ impl<'self> FontContext {
             };
 
             let mut found = false;
-            for result.iter().advance |font_entry| {
+            for font_entry in result.iter() {
                 found = true;
 
                 let font_id =
                   SelectorPlatformIdentifier(font_entry.handle.face_identifier());
-                let font_desc = FontDescriptor::new(copy *style, font_id);
+                let font_desc = FontDescriptor::new((*style).clone(), font_id);
 
                 let instance = self.get_font_by_descriptor(&font_desc);
 
-                do result::iter(&instance) |font: &@mut Font| { fonts.push(*font); }
+                for font in instance.iter() { fonts.push(*font); }
             };
 
             if !found {
@@ -158,19 +155,19 @@ impl<'self> FontContext {
 
         let last_resort = FontList::get_last_resort_font_families();
 
-        for last_resort.iter().advance |family| {
+        for family in last_resort.iter() {
             let result = do self.font_list.chain_ref |fl| {
                 fl.find_font_in_family(*family, style)
             };
 
-            for result.iter().advance |font_entry| {
+            for font_entry in result.iter() {
                 let font_id =
                   SelectorPlatformIdentifier(font_entry.handle.face_identifier());
-                let font_desc = FontDescriptor::new(copy *style, font_id);
+                let font_desc = FontDescriptor::new((*style).clone(), font_id);
 
                 let instance = self.get_font_by_descriptor(&font_desc);
 
-                do result::iter(&instance) |font: &@mut Font| {
+                for font in instance.iter() {
                     fonts.push(*font);
                 }
             }
@@ -178,26 +175,26 @@ impl<'self> FontContext {
 
         assert!(fonts.len() > 0);
         // TODO(Issue #179): Split FontStyle into specified and used styles
-        let used_style = copy *style;
+        let used_style = (*style).clone();
 
         debug!("(create font group) --- finished ---");
 
         @FontGroup::new(style.families.to_managed(), &used_style, fonts)
     }
 
-    priv fn create_font_instance(&self, desc: &FontDescriptor) -> Result<@mut Font, ()> {
+    fn create_font_instance(&self, desc: &FontDescriptor) -> Result<@mut Font, ()> {
         return match &desc.selector {
             // TODO(Issue #174): implement by-platform-name font selectors.
             &SelectorPlatformIdentifier(ref identifier) => { 
-                let result_handle = self.handle.create_font_from_identifier(copy *identifier,
-                                                                            copy desc.style);
-                result::chain(result_handle, |handle| {
+                let result_handle = self.handle.create_font_from_identifier((*identifier).clone(),
+                                                                            desc.style.clone());
+                do result_handle.chain |handle| {
                     Ok(Font::new_from_adopted_handle(self,
                                                      handle,
                                                      &desc.style,
                                                      self.backend,
                                                      self.profiler_chan.clone()))
-                })
+                }
             }
         };
     }

@@ -23,7 +23,7 @@ use std::cast::transmute_region;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use servo_net::image::base::Image;
 use servo_util::range::Range;
-use extra::arc::ARC;
+use extra::arc::Arc;
 
 /// A list of rendering operations to be performed.
 pub struct DisplayList<E> {
@@ -48,7 +48,7 @@ impl<E> DisplayList<E> {
     /// Draws the display list into the given render context.
     pub fn draw_into_context(&self, render_context: &RenderContext) {
         debug!("Beginning display list.");
-        for self.list.iter().advance |item| {
+        for item in self.list.iter() {
             // FIXME(Issue #150): crashes
             //debug!("drawing %?", *item);
             item.draw_into_context(render_context)
@@ -93,7 +93,7 @@ pub struct TextDisplayItem<E> {
 /// Renders an image.
 pub struct ImageDisplayItem<E> {
     base: BaseDisplayItem<E>,
-    image: ARC<~Image>,
+    image: Arc<~Image>,
 }
 
 /// Renders a border.
@@ -156,7 +156,7 @@ impl<E> DisplayItem<E> {
         }
     }
 
-    fn base<'a>(&'a self) -> &'a BaseDisplayItem<E> {
+    pub fn base<'a>(&'a self) -> &'a BaseDisplayItem<E> {
         // FIXME(tkuehn): Workaround for Rust region bug.
         unsafe {
             match *self {
@@ -168,7 +168,7 @@ impl<E> DisplayItem<E> {
         }
     }
 
-    fn bounds(&self) -> Rect<Au> {
+    pub fn bounds(&self) -> Rect<Au> {
         self.base().bounds
     }
 }

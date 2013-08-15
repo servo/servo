@@ -61,7 +61,7 @@ pub trait RenderListener {
     fn new_layer(&self, PipelineId, Size2D<uint>);
     fn resize_layer(&self, PipelineId, Size2D<uint>);
     fn delete_layer(&self, PipelineId);
-    fn paint(&self, id: PipelineId, layer_buffer_set: arc::ARC<LayerBufferSet>);
+    fn paint(&self, id: PipelineId, layer_buffer_set: arc::Arc<LayerBufferSet>);
     fn set_render_state(&self, render_state: RenderState);
 }
 

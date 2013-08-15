@@ -16,7 +16,6 @@ use core_text::font_descriptor::CTFontDescriptorRef;
 use core_text;
 
 use std::hashmap::HashMap;
-use std::result;
 
 pub struct FontListHandle {
     fctx: FontContextHandle,
@@ -32,7 +31,7 @@ impl FontListHandle {
     pub fn get_available_families(&self) -> FontFamilyMap {
         let family_names: CFArray<CFStringRef> = core_text::font_collection::get_family_names();
         let mut family_map: FontFamilyMap = HashMap::new();
-        for family_names.each |&strref: &CFStringRef| {
+        for &strref in family_names.each() {
             let family_name = CFString::wrap_shared(strref).to_str();
             debug!("Creating new FontFamily for family: %s", family_name);
 
@@ -46,10 +45,10 @@ impl FontListHandle {
         debug!("Looking for faces of family: %s", family.family_name);
 
         let family_collection = core_text::font_collection::create_for_family(family.family_name);
-        for family_collection.get_descriptors().each |descref: &CTFontDescriptorRef| {
+        for &CTFontDescriptorRef in family_collection.get_descriptors().each() {
             let desc = CFWrapper::wrap_shared(*descref);
             let font = core_text::font::new_from_descriptor(&desc, 0.0);
-            let handle = result::unwrap(FontHandle::new_from_CTFont(&self.fctx, font));
+            let handle = FontHandle::new_from_CTFont(&self.fctx, font).unwrap();
 
             debug!("Creating new FontEntry for face: %s", handle.face_name());
             let entry = @FontEntry::new(handle);

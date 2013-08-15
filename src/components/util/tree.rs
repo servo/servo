@@ -4,204 +4,293 @@
 
 //! Helper functions for garbage collected doubly-linked trees.
 
-/// The basic trait. This function is meant to encapsulate a clonable reference to a tree node.
-pub trait TreeNodeRef<N> : Clone {
+// Macros to make add_child etc. less painful to write.
+// Code outside this module should instead implement TreeNode
+// and use its default methods.
+macro_rules! get(
+    ($node:expr, $fun:ident) => (
+        TreeNodeRef::$fun::<Node,Self>($node)
+    )
+)
+
+macro_rules! set(
+    ($node:expr, $fun:ident, $val:expr) => (
+        TreeNodeRef::$fun::<Node,Self>($node, $val)
+    )
+)
+
+pub struct ChildIterator<Ref> {
+    priv current: Option<Ref>,
+}
+
+impl<Node, Ref: TreeNodeRef<Node>> Iterator<Ref> for ChildIterator<Ref> {
+    fn next(&mut self) -> Option<Ref> {
+        if self.current.is_none() {
+            return None;
+        }
+
+        // FIXME: Do we need two clones here?
+        let x = self.current.get_ref().clone();
+        self.current = x.with_base(|n| TreeNodeRef::next_sibling::<Node, Ref>(n));
+        Some(x.clone())
+    }
+}
+
+// FIXME: Do this without precomputing a vector of refs.
+// Easy for preorder; harder for postorder.
+pub struct TreeIterator<Ref> {
+    priv nodes: ~[Ref],
+    priv index: uint,
+}
+
+impl<Ref> TreeIterator<Ref> {
+    fn new(nodes: ~[Ref]) -> TreeIterator<Ref> {
+        TreeIterator {
+            nodes: nodes,
+            index: 0,
+        }
+    }
+}
+
+impl<Ref: Clone> Iterator<Ref> for TreeIterator<Ref> {
+    fn next(&mut self) -> Option<Ref> {
+        if self.index >= self.nodes.len() {
+            None
+        } else {
+            let v = self.nodes[self.index].clone();
+            self.index += 1;
+            Some(v)
+        }
+    }
+}
+
+/// A type implementing TreeNodeRef<Node> is a clonable reference to an underlying
+/// node type Node.
+///
+/// We have to define both ref and node operations in the same trait, which makes
+/// the latter more annoying to call (as static methods).  But we provide non-static
+/// proxies in trait TreeNode below.
+pub trait TreeNodeRef<Node>: Clone {
+
+    // Fundamental operations on refs.
+
     /// Borrows this node as immutable.
-    fn with_base<R>(&self, callback: &fn(&N) -> R) -> R;
+    fn with_base<R>(&self, callback: &fn(&Node) -> R) -> R;
 
     /// Borrows this node as mutable.
-    fn with_mut_base<R>(&self, callback: &fn(&mut N) -> R) -> R;
-}
+    fn with_mut_base<R>(&self, callback: &fn(&mut Node) -> R) -> R;
 
-/// The contents of a tree node.
-pub trait TreeNode<NR> {
+
+    // Fundamental operations on nodes.
+
     /// Returns the parent of this node.
-    fn parent_node(&self) -> Option<NR>;
+    fn parent_node(node: &Node) -> Option<Self>;
 
     /// Returns the first child of this node.
-    fn first_child(&self) -> Option<NR>;
+    fn first_child(node: &Node) -> Option<Self>;
 
     /// Returns the last child of this node.
-    fn last_child(&self) -> Option<NR>;
+    fn last_child(node: &Node) -> Option<Self>;
 
     /// Returns the previous sibling of this node.
-    fn prev_sibling(&self) -> Option<NR>;
+    fn prev_sibling(node: &Node) -> Option<Self>;
 
     /// Returns the next sibling of this node.
-    fn next_sibling(&self) -> Option<NR>;
+    fn next_sibling(node: &Node) -> Option<Self>;
 
     /// Sets the parent of this node.
-    fn set_parent_node(&mut self, new_parent: Option<NR>);
+    fn set_parent_node(node: &mut Node, new_parent: Option<Self>);
 
     /// Sets the first child of this node.
-    fn set_first_child(&mut self, new_first_child: Option<NR>);
+    fn set_first_child(node: &mut Node, new_first_child: Option<Self>);
 
     /// Sets the last child of this node.
-    fn set_last_child(&mut self, new_last_child: Option<NR>);
+    fn set_last_child(node: &mut Node, new_last_child: Option<Self>);
 
     /// Sets the previous sibling of this node.
-    fn set_prev_sibling(&mut self, new_prev_sibling: Option<NR>);
+    fn set_prev_sibling(node: &mut Node, new_prev_sibling: Option<Self>);
 
     /// Sets the next sibling of this node.
-    fn set_next_sibling(&mut self, new_next_sibling: Option<NR>);
-}
+    fn set_next_sibling(node: &mut Node, new_next_sibling: Option<Self>);
 
-/// A set of helper functions useful for operating on trees.
-pub trait TreeUtils {
+
+    // The tree utilities, operating on refs mostly.
+
     /// Returns true if this node is disconnected from the tree or has no children.
-    fn is_leaf(&self) -> bool;
+    fn is_leaf(&self) -> bool {
+        do self.with_base |this_node| {
+            (get!(this_node, first_child)).is_none()
+        }
+    }
 
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
-    fn add_child(&self, new_child: Self);
+    fn add_child(&self, new_child: Self) {
+        do self.with_mut_base |this_node| {
+            do new_child.with_mut_base |new_child_node| {
+                assert!((get!(new_child_node, parent_node)).is_none());
+                assert!((get!(new_child_node, prev_sibling)).is_none());
+                assert!((get!(new_child_node, next_sibling)).is_none());
+
+                match get!(this_node, last_child) {
+                    None => set!(this_node, set_first_child, Some(new_child.clone())),
+                    Some(last_child) => {
+                        do last_child.with_mut_base |last_child_node| {
+                            assert!((get!(last_child_node, next_sibling)).is_none());
+                            set!(last_child_node, set_next_sibling, Some(new_child.clone()));
+                            set!(new_child_node, set_prev_sibling, Some(last_child.clone()));
+                        }
+                    }
+                }
+
+                set!(this_node, set_last_child, Some(new_child.clone()));
+                set!(new_child_node, set_parent_node, Some((*self).clone()));
+            }
+        }
+    }
 
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node. (FIXME: This is not yet checked.)
-    fn remove_child(&self, child: Self);
+    fn remove_child(&self, child: Self) {
+        do self.with_mut_base |this_node| {
+            do child.with_mut_base |child_node| {
+                assert!((get!(child_node, parent_node)).is_some());
+
+                match get!(child_node, prev_sibling) {
+                    None => set!(this_node, set_first_child, get!(child_node, next_sibling)),
+                    Some(prev_sibling) => {
+                        do prev_sibling.with_mut_base |prev_sibling_node| {
+                            set!(prev_sibling_node, set_next_sibling, get!(child_node, next_sibling));
+                        }
+                    }
+                }
+
+                match get!(child_node, next_sibling) {
+                    None => set!(this_node, set_last_child, get!(child_node, prev_sibling)),
+                    Some(next_sibling) => {
+                        do next_sibling.with_mut_base |next_sibling_node| {
+                            set!(next_sibling_node, set_prev_sibling, get!(child_node, prev_sibling));
+                        }
+                    }
+                }
+
+                set!(child_node, set_prev_sibling, None);
+                set!(child_node, set_next_sibling, None);
+                set!(child_node, set_parent_node,  None);
+            }
+        }
+    }
 
     /// Iterates over all children of this node.
-    fn each_child(&self, callback: &fn(Self) -> bool) -> bool;
+    fn children(&self) -> ChildIterator<Self> {
+        ChildIterator {
+            current: self.with_base(|n| get!(n, first_child)),
+        }
+    }
 
     /// Iterates over this node and all its descendants, in preorder.
-    fn traverse_preorder(&self, callback: &fn(Self) -> bool) -> bool;
+    fn traverse_preorder(&self) -> TreeIterator<Self> {
+        self.traverse_preorder_prune(|_| false)
+    }
 
     /// Iterates over this node and all its descendants, in postorder.
-    fn traverse_postorder(&self, callback: &fn(Self) -> bool) -> bool;
+    fn traverse_postorder(&self) -> TreeIterator<Self> {
+        self.traverse_postorder_prune(|_| false)
+    }
 
     /// Like traverse_preorder but calls 'prune' first on each node.  If it returns true then we
     /// skip the whole subtree but continue iterating.
-    ///
-    /// 'prune' is a separate function a) for compatibility with the 'for' protocol,
-    /// b) so that the postorder version can still prune before traversing.
-    fn traverse_preorder_prune(&self, prune: &fn(&Self) -> bool, callback: &fn(Self) -> bool) -> bool;
+    fn traverse_preorder_prune(&self, prune: &fn(&Self) -> bool) -> TreeIterator<Self> {
+        let mut nodes = ~[];
+        gather(self, &mut nodes, false, prune);
+        TreeIterator::new(nodes)
+    }
 
     /// Like traverse_postorder but calls 'prune' first on each node.  If it returns true then we
     /// skip the whole subtree but continue iterating.
     ///
     /// NB: 'prune' is called *before* traversing children, even though this is a
     /// postorder traversal.
-    fn traverse_postorder_prune(&self, prune: &fn(&Self) -> bool, callback: &fn(Self) -> bool) -> bool;
-}
-
-impl<NR:TreeNodeRef<N>,N:TreeNode<NR>> TreeUtils for NR {
-    fn is_leaf(&self) -> bool {
-        do self.with_base |this_node| {
-            this_node.first_child().is_none()
-        }
-    }
-
-    fn add_child(&self, new_child: NR) {
-        do self.with_mut_base |this_node| {
-            do new_child.with_mut_base |new_child_node| {
-                assert!(new_child_node.parent_node().is_none());
-                assert!(new_child_node.prev_sibling().is_none());
-                assert!(new_child_node.next_sibling().is_none());
-
-                match this_node.last_child() {
-                    None => this_node.set_first_child(Some(new_child.clone())),
-                    Some(last_child) => {
-                        do last_child.with_mut_base |last_child_node| {
-                            assert!(last_child_node.next_sibling().is_none());
-                            last_child_node.set_next_sibling(Some(new_child.clone()));
-                            new_child_node.set_prev_sibling(Some(last_child.clone()));
-                        }
-                    }
-                }
-
-                this_node.set_last_child(Some(new_child.clone()));
-                new_child_node.set_parent_node(Some((*self).clone()));
-            }
-        }
-    }
-
-    fn remove_child(&self, child: NR) {
-        do self.with_mut_base |this_node| {
-            do child.with_mut_base |child_node| {
-                assert!(child_node.parent_node().is_some());
-
-                match child_node.prev_sibling() {
-                    None => this_node.set_first_child(child_node.next_sibling()),
-                    Some(prev_sibling) => {
-                        do prev_sibling.with_mut_base |prev_sibling_node| {
-                            prev_sibling_node.set_next_sibling(child_node.next_sibling());
-                        }
-                    }
-                }
-
-                match child_node.next_sibling() {
-                    None => this_node.set_last_child(child_node.prev_sibling()),
-                    Some(next_sibling) => {
-                        do next_sibling.with_mut_base |next_sibling_node| {
-                            next_sibling_node.set_prev_sibling(child_node.prev_sibling());
-                        }
-                    }
-                }
-
-                child_node.set_prev_sibling(None);
-                child_node.set_next_sibling(None);
-                child_node.set_parent_node(None);
-            }
-        }
-    }
-
-    fn each_child(&self, callback: &fn(NR) -> bool) -> bool {
-        let mut maybe_current = self.with_base(|n| n.first_child());
-        while !maybe_current.is_none() {
-            let current = maybe_current.get_ref().clone();
-            if !callback(current.clone()) {
-                break;
-            }
-
-            maybe_current = current.with_base(|n| n.next_sibling());
-        }
-
-        true
-    }
-
-    fn traverse_preorder_prune(&self, prune: &fn(&NR) -> bool, callback: &fn(NR) -> bool) -> bool {
-        // prune shouldn't mutate, so don't clone
-        if prune(self) {
-            return true;
-        }
-
-        if !callback((*self).clone()) {
-            return false;
-        }
-
-        for self.each_child |kid| {
-            // FIXME: Work around rust#2202. We should be able to pass the callback directly.
-            if !kid.traverse_preorder_prune(|a| prune(a), |a| callback(a)) {
-                return false;
-            }
-        }
-
-        true
-    }
-
-    fn traverse_postorder_prune(&self, prune: &fn(&NR) -> bool, callback: &fn(NR) -> bool) -> bool {
-        // prune shouldn't mutate, so don't clone
-        if prune(self) {
-            return true;
-        }
-
-        for self.each_child |kid| {
-            // FIXME: Work around rust#2202. We should be able to pass the callback directly.
-            if !kid.traverse_postorder_prune(|a| prune(a), |a| callback(a)) {
-                return false;
-            }
-        }
-
-        callback((*self).clone())
-    }
-
-    fn traverse_preorder(&self, callback: &fn(NR) -> bool) -> bool {
-        self.traverse_preorder_prune(|_| false, callback)
-    }
-
-    fn traverse_postorder(&self, callback: &fn(NR) -> bool) -> bool {
-        self.traverse_postorder_prune(|_| false, callback)
+    fn traverse_postorder_prune(&self, prune: &fn(&Self) -> bool) -> TreeIterator<Self> {
+        let mut nodes = ~[];
+        gather(self, &mut nodes, true, prune);
+        TreeIterator::new(nodes)
     }
 }
 
+fn gather<Node, Ref: TreeNodeRef<Node>>(cur: &Ref, refs: &mut ~[Ref],
+                                        postorder: bool, prune: &fn(&Ref) -> bool) {
+    // prune shouldn't mutate, so don't clone
+    if prune(cur) {
+        return;
+    }
+
+    if !postorder {
+        refs.push(cur.clone());
+    }
+    for kid in cur.children() {
+        // FIXME: Work around rust#2202. We should be able to pass the callback directly.
+        gather(&kid, refs, postorder, |a| prune(a))
+    }
+    if postorder {
+        refs.push(cur.clone());
+    }
+}
+
+
+/// Access the fields of a node without a static TreeNodeRef method call.
+/// If you make an impl TreeNodeRef<Node> for Ref then you should also make
+/// impl TreeNode<Ref> for Node with an empty body.
+pub trait TreeNode<Ref: TreeNodeRef<Self>> {
+    /// Returns the parent of this node.
+    fn parent_node(&self) -> Option<Ref> {
+        TreeNodeRef::parent_node::<Self,Ref>(self)
+    }
+
+    /// Returns the first child of this node.
+    fn first_child(&self) -> Option<Ref> {
+        TreeNodeRef::first_child::<Self,Ref>(self)
+    }
+
+    /// Returns the last child of this node.
+    fn last_child(&self) -> Option<Ref> {
+        TreeNodeRef::last_child::<Self,Ref>(self)
+    }
+
+    /// Returns the previous sibling of this node.
+    fn prev_sibling(&self) -> Option<Ref> {
+        TreeNodeRef::prev_sibling::<Self,Ref>(self)
+    }
+
+    /// Returns the next sibling of this node.
+    fn next_sibling(&self) -> Option<Ref> {
+        TreeNodeRef::next_sibling::<Self,Ref>(self)
+    }
+
+    /// Sets the parent of this node.
+    fn set_parent_node(&mut self, new_parent: Option<Ref>) {
+        TreeNodeRef::set_parent_node::<Self,Ref>(self, new_parent)
+    }
+
+    /// Sets the first child of this node.
+    fn set_first_child(&mut self, new_first_child: Option<Ref>) {
+        TreeNodeRef::set_first_child::<Self,Ref>(self, new_first_child)
+    }
+
+    /// Sets the last child of this node.
+    fn set_last_child(&mut self, new_last_child: Option<Ref>) {
+        TreeNodeRef::set_last_child::<Self,Ref>(self, new_last_child)
+    }
+
+    /// Sets the previous sibling of this node.
+    fn set_prev_sibling(&mut self, new_prev_sibling: Option<Ref>) {
+        TreeNodeRef::set_prev_sibling::<Self,Ref>(self, new_prev_sibling)
+    }
+
+    /// Sets the next sibling of this node.
+    fn set_next_sibling(&mut self, new_next_sibling: Option<Ref>) {
+        TreeNodeRef::set_next_sibling::<Self,Ref>(self, new_next_sibling)
+    }
+}

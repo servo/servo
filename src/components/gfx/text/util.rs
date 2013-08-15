@@ -24,7 +24,7 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
     let mut out_str: ~str = ~"";
     let out_whitespace = match mode {
         CompressNone | DiscardNewline => {
-            for text.iter().advance |ch: char| {
+            for ch in text.iter() {
                 if is_discardable_char(ch, mode) {
                     // TODO: record skipped char
                 } else {
@@ -40,7 +40,7 @@ pub fn transform_text(text: &str, mode: CompressionMode, incoming_whitespace: bo
 
         CompressWhitespace | CompressWhitespaceNewline => {
             let mut in_whitespace: bool = incoming_whitespace;
-            for text.iter().advance |ch: char| {
+            for ch in text.iter() {
                 // TODO: discard newlines between CJK chars
                 let mut next_in_whitespace: bool = is_in_whitespace(ch, mode);
                 
@@ -134,7 +134,7 @@ fn test_transform_compress_none() {
                                  ~"foobarbaz\n\n"];
     let mode = CompressNone;
 
-    for uint::range(0, test_strs.len()) |i| {
+    for i in range(0, test_strs.len()) {
         (trimmed_str, _out) = transform_text(test_strs[i], mode, true);
         assert!(trimmed_str == test_strs[i])
     }
@@ -162,7 +162,7 @@ fn test_transform_discard_newline() {
     assert!(test_strs.len() == oracle_strs.len());
     let mode = DiscardNewline;
 
-    for uint::range(0, test_strs.len()) |i| {
+    for i in range(0, test_strs.len()) {
         (trimmed_str, _out) = transform_text(test_strs[i], mode, true);
         assert!(trimmed_str == oracle_strs[i])
     }
@@ -189,7 +189,7 @@ fn test_transform_compress_whitespace() {
     assert!(test_strs.len() == oracle_strs.len());
     let mode = CompressWhitespace;
 
-    for uint::range(0, test_strs.len()) |i| {
+    for i in range(0, test_strs.len()) {
         (trimmed_str, _out) = transform_text(test_strs[i], mode, true);
         assert!(trimmed_str == oracle_strs[i])
     }
@@ -216,7 +216,7 @@ fn test_transform_compress_whitespace_newline() {
     assert!(test_strs.len() == oracle_strs.len());
     let mode = CompressWhitespaceNewline;
 
-    for uint::range(0, test_strs.len()) |i| {
+    for i in range(0, test_strs.len()) {
         (trimmed_str, _out) = transform_text(test_strs[i], mode, true);
         assert!(trimmed_str == oracle_strs[i])
     }
@@ -245,7 +245,7 @@ fn test_transform_compress_whitespace_newline() {
     assert!(test_strs.len() == oracle_strs.len());
     let mode = CompressWhitespaceNewline;
 
-    for uint::range(0, test_strs.len()) |i| {
+    for i in range(0, test_strs.len()) {
         (trimmed_str, _out) = transform_text(test_strs[i], mode, false);
         assert!(trimmed_str == oracle_strs[i])
     }

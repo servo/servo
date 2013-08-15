@@ -15,7 +15,7 @@ use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
 use gfx::geometry;
-use servo_util::tree::{TreeNodeRef, TreeUtils};
+use servo_util::tree::TreeNodeRef;
 
 pub struct FloatFlowData {
     /// Data common to all flows.
@@ -55,7 +55,7 @@ impl FloatFlowData {
 
     pub fn teardown(&mut self) {
         self.common.teardown();
-        for self.box.iter().advance |box| {
+        for box in self.box.iter() {
             box.teardown();
         }
         self.box = None;
@@ -69,7 +69,7 @@ impl FloatFlowData {
         let mut pref_width = Au(0);
         let mut num_floats = 0;
 
-        for FloatFlow(self).each_child |child_ctx| {
+        for child_ctx in FloatFlow(self).children() {
             //assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
 
             do child_ctx.with_mut_base |child_node| {
@@ -108,7 +108,7 @@ impl FloatFlowData {
         // Parent usually sets this, but floats are never inorder
         self.common.is_inorder = false;
 
-        for self.box.iter().advance |&box| {
+        for &box in self.box.iter() {
             let style = box.style();
             do box.with_model |model| {
                 // Can compute padding here since we know containing block width.
@@ -162,7 +162,7 @@ impl FloatFlowData {
         self.common.position.size.width = remaining_width;
 
         let has_inorder_children = self.common.num_floats > 0;
-        for FloatFlow(self).each_child |kid| {
+        for kid in FloatFlow(self).children() {
             //assert!(kid.starts_block_flow() || kid.starts_inline_flow());
 
             do kid.with_mut_base |child_node| {
@@ -199,15 +199,13 @@ impl FloatFlowData {
             };
 
             do box.with_base |base| {
+                let noncontent_width = base.model.padding.left + base.model.padding.right +
+                    base.model.border.left + base.model.border.right;
+                let noncontent_height = base.model.padding.top + base.model.padding.bottom +
+                    base.model.border.top + base.model.border.bottom;
 
-            let noncontent_width = base.model.padding.left + base.model.padding.right +
-                base.model.border.left + base.model.border.right;
-            let noncontent_height = base.model.padding.top + base.model.padding.bottom +
-                base.model.border.top + base.model.border.bottom;
-
-            full_noncontent_width = noncontent_width + base.model.margin.left + base.model.margin.right;
-            full_noncontent_height = noncontent_height + base.model.margin.top + base.model.margin.bottom;
-
+                full_noncontent_width = noncontent_width + base.model.margin.left + base.model.margin.right;
+                full_noncontent_height = noncontent_height + base.model.margin.top + base.model.margin.bottom;
             }
 
         });
@@ -231,7 +229,7 @@ impl FloatFlowData {
         let has_inorder_children = self.common.num_floats > 0;
         if has_inorder_children {
             let mut float_ctx = FloatContext::new(self.floated_children);
-            for FloatFlow(self).each_child |kid| {
+            for kid in FloatFlow(self).children() {
                 do kid.with_mut_base |child_node| {
                     child_node.floats_in = float_ctx.clone();
                 }
@@ -245,14 +243,14 @@ impl FloatFlowData {
         let mut cur_y = Au(0);
         let mut top_offset = Au(0);
 
-        for self.box.iter().advance |&box| {
+        for &box in self.box.iter() {
             do box.with_model |model| {
                 top_offset = model.margin.top + model.border.top + model.padding.top;
                 cur_y = cur_y + top_offset;
             }
         }
 
-        for FloatFlow(self).each_child |kid| {
+        for kid in FloatFlow(self).children() {
             do kid.with_mut_base |child_node| {
                 child_node.position.origin.y = cur_y;
                 cur_y = cur_y + child_node.position.size.height;
@@ -279,7 +277,7 @@ impl FloatFlowData {
 
         
         //TODO(eatkinson): compute heights properly using the 'height' property.
-        for self.box.iter().advance |&box| {
+        for &box in self.box.iter() {
             let height_prop = 
                 MaybeAuto::from_height(box.style().height(),
                                        Au(0),
@@ -316,7 +314,7 @@ impl FloatFlowData {
 
         // go deeper into the flow tree
         let flow = FloatFlow(self);
-        for flow.each_child |child| {
+        for child in flow.children() {
             do child.with_mut_base |base| {
                 base.abs_position = offset + base.position.origin;
             }

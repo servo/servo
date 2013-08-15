@@ -13,7 +13,7 @@ use dom::window::Window;
 
 use js::jsapi::{JSObject, JSContext};
 
-use servo_util::tree::TreeUtils;
+use servo_util::tree::TreeNodeRef;
 
 use std::libc;
 use std::ptr;
@@ -43,7 +43,7 @@ impl HTMLDocument {
 }
 
 impl WrappableDocument for HTMLDocument {
-    pub fn init_wrapper(@mut self, cx: *JSContext) {
+    fn init_wrapper(@mut self, cx: *JSContext) {
         self.wrap_object_shared(cx, ptr::null()); //XXXjdm a proper scope would be nice
     }
 }
@@ -69,7 +69,7 @@ impl HTMLDocument {
 
     pub fn GetHead(&self) -> Option<AbstractNode<ScriptView>> {
         let mut headNode: Option<AbstractNode<ScriptView>> = None;
-        let _ = for self.parent.root.traverse_preorder |child| {
+        let _ = for child in self.parent.root.traverse_preorder() {
             if child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId) {
                 headNode = Some(child);
                 break;
