@@ -47,6 +47,7 @@ use js::jsapi::{JSContext, JSObject};
 use std::cell::Cell;
 use std::comm;
 use std::str::eq_slice;
+use extra::net::url;
 
 pub struct Element {
     parent: Node<ScriptView>,
@@ -262,8 +263,7 @@ impl<'self> Element {
 
     pub fn set_attr(&mut self, name: &DOMString, value: &DOMString) {
         let name = name.to_str();
-        let value = value.to_str();
-        let value_cell = Cell::new(value);
+        let value_cell = Cell::new(value.to_str());
         let mut found = false;
         for self.attrs.mut_iter().advance |attr| {
             if eq_slice(attr.name, name) {
@@ -274,6 +274,13 @@ impl<'self> Element {
         }
         if !found {
             self.attrs.push(Attr::new(name.to_str(), value_cell.take().clone()));
+        }
+
+        if "style" == name {
+            self.style_attribute = Some(
+                Stylesheet::from_attribute(
+                    url::from_str("http://www.example.com/").unwrap(),
+                    value.get_ref()));
         }
 
         match self.parent.owner_doc {
@@ -304,15 +311,19 @@ impl Element {
     pub fn SetId(&self, _id: &DOMString) {
     }
 
-    pub fn GetAttribute(&self, _name: &DOMString) -> DOMString {
-        null_string
+    pub fn GetAttribute(&self, name: &DOMString) -> DOMString {
+        match self.get_attr(name.get_ref()) {
+            Some(val) => str(val.to_owned()),
+            None => null_string
+        }
     }
 
     pub fn GetAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString) -> DOMString {
         null_string
     }
 
-    pub fn SetAttribute(&self, _name: &DOMString, _value: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAttribute(&mut self, name: &DOMString, value: &DOMString, _rv: &mut ErrorResult) {
+        self.set_attr(name, value);
     }
 
     pub fn SetAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString, _value: &DOMString, _rv: &mut ErrorResult) {
