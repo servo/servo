@@ -102,8 +102,8 @@ impl<'self> RenderContext<'self>  {
         let pattern = ColorPattern(Color(1.0, 1.0, 1.0, 1.0));
         let rect = Rect(Point2D(self.canvas.rect.origin.x as AzFloat,
                                 self.canvas.rect.origin.y as AzFloat),
-                        Size2D(self.canvas.rect.size.width as AzFloat,
-                               self.canvas.rect.size.height as AzFloat));
+                        Size2D(self.canvas.screen_pos.size.width as AzFloat,
+                               self.canvas.screen_pos.size.height as AzFloat));
         self.canvas.draw_target.make_current();
         self.canvas.draw_target.fill_rect(&rect, &pattern);
     }
