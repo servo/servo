@@ -26,7 +26,7 @@ impl ProfilerChan {
     }
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Clone)]
 pub enum ProfilerCategory {
     CompositingCategory,
     LayoutQueryCategory,
@@ -70,7 +70,7 @@ impl ProfilerCategory {
 
     // enumeration of all ProfilerCategory types
     // TODO(tkuehn): is there a better way to ensure proper order of categories?
-    priv fn empty_buckets() -> ProfilerBuckets {
+    fn empty_buckets() -> ProfilerBuckets {
         let buckets = [
             (CompositingCategory, ~[]),
             (LayoutQueryCategory, ~[]),
@@ -92,8 +92,8 @@ impl ProfilerCategory {
     }
 
     // ensure that the order of the buckets matches the order of the enum categories
-    priv fn check_order(vec: &ProfilerBuckets) {
-        for vec.iter().advance |&(category, _)| {
+    fn check_order(vec: &ProfilerBuckets) {
+        for &(category, _) in vec.iter() {
             if category != vec[category as uint].first() {
                 fail!("Enum category does not match bucket index. This is a bug.");
             }
@@ -136,7 +136,7 @@ impl Profiler {
         }
     }
 
-    priv fn handle_msg(&mut self, msg: ProfilerMsg) {
+    fn handle_msg(&mut self, msg: ProfilerMsg) {
         match msg {
             TimeMsg(category, t) => match self.buckets[category as uint] {
                 //TODO(tkuehn): would be nice to have tuple.second_mut()
@@ -151,11 +151,11 @@ impl Profiler {
         self.last_msg = Some(msg);
     }
 
-    priv fn print_buckets(&mut self) {
+    fn print_buckets(&mut self) {
         println(fmt!("%31s %15s %15s %15s %15s %15s",
                          "_category_", "_mean (ms)_", "_median (ms)_",
                          "_min (ms)_", "_max (ms)_", "_bucket size_"));
-        for self.buckets.mut_iter().advance |bucket| {
+        for bucket in self.buckets.mut_iter() {
             let (category, data) = match *bucket {
                 (category, ref mut data) => (category, data),
             };
@@ -163,7 +163,7 @@ impl Profiler {
             let data_len = data.len();
             if data_len > 0 {
                 let (mean, median, &min, &max) =
-                    (data.iter().transform(|&x|x).sum() / (data_len as float),
+                    (data.iter().map(|&x|x).sum() / (data_len as float),
                      data[data_len / 2],
                      data.iter().min().unwrap(),
                      data.iter().max().unwrap());

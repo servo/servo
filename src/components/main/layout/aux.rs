@@ -9,7 +9,7 @@ use layout::incremental::RestyleDamage;
 
 use newcss::complete::CompleteSelectResults;
 use script::dom::node::{AbstractNode, LayoutView};
-use servo_util::tree::TreeUtils;
+use servo_util::tree::TreeNodeRef;
 
 /// Data that layout associates with a node.
 pub struct LayoutData {
@@ -37,7 +37,7 @@ impl LayoutData {
 /// Functionality useful for querying the layout-specific data on DOM nodes.
 pub trait LayoutAuxMethods {
     fn layout_data(self) -> @mut LayoutData;
-    pub fn has_layout_data(self) -> bool;
+    fn has_layout_data(self) -> bool;
     fn set_layout_data(self, data: @mut LayoutData);
 
     fn initialize_layout_data(self) -> Option<@mut LayoutData>;
@@ -45,17 +45,17 @@ pub trait LayoutAuxMethods {
 }
 
 impl LayoutAuxMethods for AbstractNode<LayoutView> {
-    pub fn layout_data(self) -> @mut LayoutData {
+    fn layout_data(self) -> @mut LayoutData {
         unsafe {
             self.unsafe_layout_data()
         }
     }
-    pub fn has_layout_data(self) -> bool {
+    fn has_layout_data(self) -> bool {
        unsafe {
             self.unsafe_has_layout_data()
         }
     }
-    pub fn set_layout_data(self, data: @mut LayoutData) {
+    fn set_layout_data(self, data: @mut LayoutData) {
         unsafe {
             self.unsafe_set_layout_data(data)
         }
@@ -84,7 +84,7 @@ impl LayoutAuxMethods for AbstractNode<LayoutView> {
     /// Initializes layout data and styles for a Node tree, if any nodes do not have
     /// this data already. Append created layout data to the task's GC roots.
     fn initialize_style_for_subtree(self, refs: &mut ~[@mut LayoutData]) {
-        let _ = for self.traverse_preorder |n| {
+        let _ = for n in self.traverse_preorder() {
             match n.initialize_layout_data() {
                 Some(r) => refs.push(r),
                 None => {}

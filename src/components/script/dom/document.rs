@@ -18,7 +18,7 @@ use dom::htmltitleelement::HTMLTitleElement;
 
 use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSObject, JSContext, JSVal};
 use js::glue::RUST_OBJECT_TO_JSVAL;
-use servo_util::tree::{TreeNodeRef, TreeUtils};
+use servo_util::tree::TreeNodeRef;
 
 use std::cast;
 use std::ptr;
@@ -115,7 +115,7 @@ impl Document {
 }
 
 impl WrappableDocument for Document {
-    pub fn init_wrapper(@mut self, cx: *JSContext) {
+    fn init_wrapper(@mut self, cx: *JSContext) {
         self.wrap_object_shared(cx, ptr::null()); //XXXjdm a proper scope would be nice
     }
 }
@@ -270,11 +270,11 @@ impl Document {
                 fail!("no SVG document yet")
             },
             _ => {
-                let _ = for self.root.traverse_preorder |node| {
+                let _ = for node in self.root.traverse_preorder() {
                     if node.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
                         loop;
                     }
-                    for node.children().advance |child| {
+                    for child in node.children() {
                         if child.is_text() {
                             do child.with_imm_text() |text| {
                                 let s = text.parent.Data();
@@ -299,17 +299,17 @@ impl Document {
             },
             _ => {
                 let (_scope, cx) = self.get_scope_and_cx();
-                let _ = for self.root.traverse_preorder |node| {
+                let _ = for node in self.root.traverse_preorder() {
                     if node.type_id() != ElementNodeTypeId(HTMLHeadElementTypeId) {
                         loop;
                     }
                     let mut has_title = false;
-                    for node.children().advance |child| {
+                    for child in node.children() {
                         if child.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
                             loop;
                         }
                         has_title = true;
-                        for child.children().advance |title_child| {
+                        for title_child in child.children() {
                             child.remove_child(title_child);
                         }
                         let new_text = unsafe { 
@@ -427,7 +427,7 @@ impl Document {
     
     pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {
         let mut elements = ~[];
-        let _ = for self.root.traverse_preorder |child| {
+        let _ = for child in self.root.traverse_preorder() {
             if child.is_element() {
                 do child.with_imm_element |elem| {
                     if callback(elem) {
@@ -441,7 +441,7 @@ impl Document {
     }
 
     pub fn content_changed(&self) {
-        for self.window.iter().advance |window| {
+        for window in self.window.iter() {
             window.content_changed()
         }
     }

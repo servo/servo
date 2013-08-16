@@ -47,7 +47,7 @@ use js::jsapi::{JSContext, JSObject};
 use std::cell::Cell;
 use std::comm;
 use std::str::eq_slice;
-use extra::net::url;
+use std::FromStr;
 
 pub struct Element {
     parent: Node<ScriptView>,
@@ -252,7 +252,7 @@ impl<'self> Element {
 
     pub fn get_attr(&'self self, name: &str) -> Option<&'self str> {
         // FIXME: Need an each() that links lifetimes in Rust.
-        for self.attrs.iter().advance |attr| {
+        for attr in self.attrs.iter() {
             if eq_slice(attr.name, name) {
                 let val: &str = attr.value;
                 return Some(val);
@@ -265,7 +265,7 @@ impl<'self> Element {
         let name = name.to_str();
         let value_cell = Cell::new(value.to_str());
         let mut found = false;
-        for self.attrs.mut_iter().advance |attr| {
+        for attr in self.attrs.mut_iter() {
             if eq_slice(attr.name, name) {
                 attr.value = value_cell.take().clone();
                 found = true;
@@ -279,7 +279,7 @@ impl<'self> Element {
         if "style" == name {
             self.style_attribute = Some(
                 Stylesheet::from_attribute(
-                    url::from_str("http://www.example.com/").unwrap(),
+                    FromStr::from_str("http://www.example.com/").unwrap(),
                     value.get_ref()));
         }
 
@@ -290,8 +290,8 @@ impl<'self> Element {
     }
 
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let doc = self.parent.owner_doc.get();
-        let win = doc.with_base(|doc| doc.window.get());
+        let doc = self.parent.owner_doc.unwrap();
+        let win = doc.with_base(|doc| doc.window.unwrap());
         let cx = unsafe {(*win.page).js_info.get_ref().js_compartment.cx.ptr};
         let cache = win.get_wrappercache();
         let scope = cache.get_wrapper();
@@ -419,7 +419,7 @@ impl Element {
                 debug!("no document");
                 None
             }
-        }.get();
+        }.unwrap();
 
         ClientRectList::new(rects, cx, scope)
     }

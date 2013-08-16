@@ -11,7 +11,7 @@ use std::task;
 use newcss::stylesheet::Stylesheet;
 use newcss::util::DataStream;
 use servo_net::resource_task::{ResourceTask, ProgressMsg, Load, Payload, Done};
-use extra::net::url::Url;
+use extra::url::Url;
 
 /// Where a style sheet comes from.
 pub enum StylesheetProvenance {
@@ -28,8 +28,8 @@ pub fn spawn_css_parser(provenance: StylesheetProvenance,
     do task::spawn {
         let url = do provenance_cell.with_ref |p| {
             match *p {
-                UrlProvenance(ref the_url) => copy *the_url,
-                InlineProvenance(ref the_url, _) => copy *the_url
+                UrlProvenance(ref the_url) => (*the_url).clone(),
+                InlineProvenance(ref the_url, _) => (*the_url).clone()
             }
         };
 

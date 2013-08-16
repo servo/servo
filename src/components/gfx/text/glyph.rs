@@ -12,8 +12,8 @@ use std::cmp::{Ord, Eq};
 use std::num::NumCast;
 use std::u16;
 use std::vec;
-use std::uint;
 use std::util;
+use std::iterator;
 use geom::point::Point2D;
 use extra::sort;
 
@@ -25,6 +25,7 @@ use extra::sort;
 /// In the uncommon case (multiple glyphs per unicode character, large glyph index/advance, or
 /// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
 /// in DetailedGlyphStore.
+#[deriving(Clone)]
 struct GlyphEntry {
     value: u32
 }
@@ -256,6 +257,7 @@ impl GlyphEntry {
 
 // Stores data for a detailed glyph, in the case that several glyphs
 // correspond to one character, or the glyph's data couldn't be packed.
+#[deriving(Clone)]
 struct DetailedGlyph {
     index: GlyphIndex,
     // glyph's advance, in the text's direction (RTL or RTL)
@@ -274,7 +276,7 @@ impl DetailedGlyph {
     }
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Clone)]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: uint,
@@ -459,7 +461,7 @@ enum GlyphInfo<'self> {
 }
 
 impl<'self> GlyphInfo<'self> {
-    fn index(self) -> GlyphIndex {
+    pub fn index(self) -> GlyphIndex {
         match self {
             SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i].index(),
             DetailGlyphInfo(store, entry_i, detail_j) => {
@@ -470,7 +472,7 @@ impl<'self> GlyphInfo<'self> {
 
     #[inline(always)]
     // FIXME: Resolution conflicts with IteratorUtil trait so adding trailing _
-    fn advance_(self) -> Au {
+    pub fn advance(self) -> Au {
         match self {
             SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i].advance(),
             DetailGlyphInfo(store, entry_i, detail_j) => {
@@ -479,7 +481,7 @@ impl<'self> GlyphInfo<'self> {
         }
     }
 
-    fn offset(self) -> Option<Point2D<Au>> {
+    pub fn offset(self) -> Option<Point2D<Au>> {
         match self {
             SimpleGlyphInfo(_, _) => None,
             DetailGlyphInfo(store, entry_i, detail_j) => {
@@ -488,14 +490,14 @@ impl<'self> GlyphInfo<'self> {
         }
     }
 
-    fn is_ligature_start(self) -> bool {
+    pub fn is_ligature_start(self) -> bool {
         match self {
             SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i].is_ligature_start(),
             DetailGlyphInfo(store, entry_i, _) => store.entry_buffer[entry_i].is_ligature_start()
         }
     }
 
-    fn is_cluster_start(self) -> bool {
+    pub fn is_cluster_start(self) -> bool {
         match self {
             SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i].is_cluster_start(),
             DetailGlyphInfo(store, entry_i, _) => store.entry_buffer[entry_i].is_cluster_start()
@@ -597,62 +599,24 @@ impl<'self> GlyphStore {
         self.entry_buffer[i] = entry;
     }
 
-    pub fn iter_glyphs_for_char_index(&'self self,
-                                  i: uint,
-                                  cb: &fn(uint, &GlyphInfo<'self>) -> bool)
-                                  -> bool {
-        assert!(i < self.entry_buffer.len());
-
-        let entry = &self.entry_buffer[i];
-        match entry.is_simple() {
-            true => { 
-                let proxy = &SimpleGlyphInfo(self, i);
-                cb(i, proxy);
-            },
-            false => {
-                let glyphs = self.detail_store.get_detailed_glyphs_for_entry(i,
-                                                                             entry.glyph_count());
-                for uint::range(0, glyphs.len()) |j| {
-                    let proxy = &DetailGlyphInfo(self, i, j as u16);
-                    cb(i, proxy);
-                }
-            }
-        }
-        true
+    pub fn iter_glyphs_for_char_index(&'self self, i: uint) -> GlyphIterator<'self> {
+        self.iter_glyphs_for_char_range(&Range::new(i, 1))
     }
 
-    pub fn iter_glyphs_for_char_range(&'self self,
-                                  range: &Range,
-                                  callback: &fn(uint, &GlyphInfo<'self>) -> bool)
-                                  -> bool {
-        if range.begin() >= self.entry_buffer.len() {
-            error!("iter_glyphs_for_range: range.begin beyond length!");
-            return false
+    pub fn iter_glyphs_for_char_range(&'self self, rang: &Range) -> GlyphIterator<'self> {
+        if rang.begin() >= self.entry_buffer.len() {
+            fail!("iter_glyphs_for_range: range.begin beyond length!");
         }
-        if range.end() > self.entry_buffer.len() {
-            error!("iter_glyphs_for_range: range.end beyond length!");
-            return false
+        if rang.end() > self.entry_buffer.len() {
+            fail!("iter_glyphs_for_range: range.end beyond length!");
         }
 
-        for range.eachi |i| {
-            // FIXME: Work around rust#2202. We should be able to pass the callback directly.
-            if !self.iter_glyphs_for_char_index(i, |a, b| callback(a, b)) {
-                break
-            }
+        GlyphIterator {
+            store:       self,
+            char_index:  rang.begin(),
+            char_range:  rang.eachi(),
+            glyph_range: None
         }
-
-        true
-    }
-
-    pub fn iter_all_glyphs(&'self self, callback: &fn(uint, &GlyphInfo<'self>) -> bool) -> bool {
-        for uint::range(0, self.entry_buffer.len()) |i| {
-            // FIXME: Work around rust#2202. We should be able to pass the callback directly.
-            if !self.iter_glyphs_for_char_index(i, |a, b| callback(a, b)) {
-                break;
-            }
-        }
-
-        true
     }
 
     // getter methods
@@ -709,5 +673,51 @@ impl<'self> GlyphStore {
         assert!(i < self.entry_buffer.len());
         let entry = self.entry_buffer[i];
         self.entry_buffer[i] = entry.set_can_break_before(t);
+    }
+}
+
+pub struct GlyphIterator<'self> {
+    priv store:       &'self GlyphStore,
+    priv char_index:  uint,
+    priv char_range:  iterator::Range<uint>,
+    priv glyph_range: Option<iterator::Range<uint>>,
+}
+
+impl<'self> Iterator<(uint, GlyphInfo<'self>)> for GlyphIterator<'self> {
+    // I tried to start with something simpler and apply FlatMap, but the
+    // inability to store free variables in the FlatMap struct was problematic.
+
+    fn next(&mut self) -> Option<(uint, GlyphInfo<'self>)> {
+        // Would use 'match' here but it borrows contents in a way that
+        // interferes with mutation.
+        if self.glyph_range.is_some() {
+            match self.glyph_range.unwrap().next() {
+                Some(j) => Some((self.char_index,
+                    DetailGlyphInfo(self.store, self.char_index, j as u16))),
+                None => {
+                    // No more glyphs for current character.  Try to get another.
+                    self.glyph_range = None;
+                    self.next()
+                }
+            }
+        } else {
+            // No glyph range.  Look at next character.
+            match self.char_range.next() {
+                Some(i) => {
+                    self.char_index = i;
+                    assert!(i < self.store.entry_buffer.len());
+                    let entry = &self.store.entry_buffer[i];
+                    if entry.is_simple() {
+                        Some((self.char_index, SimpleGlyphInfo(self.store, i)))
+                    } else {
+                        let glyphs = self.store.detail_store
+                                     .get_detailed_glyphs_for_entry(i, entry.glyph_count());
+                        self.glyph_range = Some(range(0, glyphs.len()));
+                        self.next()
+                    }
+                },
+                None => None
+            }
+        }
     }
 }

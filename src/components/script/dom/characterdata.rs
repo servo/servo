@@ -23,7 +23,7 @@ impl CharacterData {
     }
     
     pub fn Data(&self) -> DOMString {
-        copy self.data
+        self.data.clone()
     }
 
     pub fn SetData(&mut self, arg: &DOMString, _rv: &mut ErrorResult) {

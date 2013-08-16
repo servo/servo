@@ -9,7 +9,7 @@
 #[crate_type = "lib"];
 
 extern mod geom;
-extern mod http_client;
+//extern mod http_client;
 extern mod servo_util (name = "util");
 extern mod stb_image;
 extern mod extra;
@@ -25,7 +25,7 @@ pub mod image {
 }
 
 pub mod file_loader;
-pub mod http_loader;
+//pub mod http_loader;
 pub mod image_cache_task;
 pub mod local_image_cache;
 pub mod resource_task;

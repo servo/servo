@@ -18,7 +18,7 @@ use geom::rect::Rect;
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
 use gfx::geometry;
-use servo_util::tree::{TreeNodeRef, TreeUtils};
+use servo_util::tree::TreeNodeRef;
 
 pub struct BlockFlowData {
     /// Data common to all flows.
@@ -50,7 +50,7 @@ impl BlockFlowData {
 
     pub fn teardown(&mut self) {
         self.common.teardown();
-        for self.box.iter().advance |box| {
+        for box in self.box.iter() {
             box.teardown();
         }
         self.box = None;
@@ -94,7 +94,7 @@ impl BlockFlowData {
         let mut num_floats = 0;
 
         /* find max width from child block contexts */
-        for BlockFlow(self).each_child |child_ctx| {
+        for child_ctx in BlockFlow(self).children() {
             assert!(child_ctx.starts_block_flow() || child_ctx.starts_inline_flow());
 
             do child_ctx.with_mut_base |child_node| {
@@ -124,7 +124,7 @@ impl BlockFlowData {
  
     /// Computes left and right margins and width based on CSS 2.1 secion 10.3.3.
     /// Requires borders and padding to already be computed
-    priv fn compute_horiz( &self, 
+    fn compute_horiz( &self,
                             width: MaybeAuto, 
                             left_margin: MaybeAuto, 
                             right_margin: MaybeAuto, 
@@ -192,7 +192,7 @@ impl BlockFlowData {
         let mut remaining_width = self.common.position.size.width;
         let mut x_offset = Au(0);
 
-        for self.box.iter().advance |&box| {
+        for &box in self.box.iter() {
             let style = box.style();
             do box.with_model |model| {
                 // Can compute padding here since we know containing block width.
@@ -239,7 +239,7 @@ impl BlockFlowData {
         }
 
         let has_inorder_children = self.common.is_inorder || self.common.num_floats > 0;
-        for BlockFlow(self).each_child |kid| {
+        for kid in BlockFlow(self).children() {
             assert!(kid.starts_block_flow() || kid.starts_inline_flow());
 
             do kid.with_mut_base |child_node| {
@@ -278,7 +278,7 @@ impl BlockFlowData {
         let mut left_offset = Au(0);
         let mut float_ctx = Invalid;
 
-        for self.box.iter().advance |&box| {
+        for &box in self.box.iter() {
             clearance = match box.clear() {
                 None => Au(0),
                 Some(clear) => {
@@ -303,7 +303,7 @@ impl BlockFlowData {
             // repeat until all children are visited.
             // last_child.floats_out -> self.floats_out (done at the end of this method)
             float_ctx = self.common.floats_in.translate(Point2D(-left_offset, -top_offset));
-            for BlockFlow(self).each_child |kid| {
+            for kid in BlockFlow(self).children() {
                 do kid.with_mut_base |child_node| {
                     child_node.floats_in = float_ctx.clone();
                 }
@@ -311,10 +311,9 @@ impl BlockFlowData {
                 do kid.with_mut_base |child_node| {
                     float_ctx = child_node.floats_out.clone();
                 }
-
             }
         }
-        for BlockFlow(self).each_child |kid| {
+        for kid in BlockFlow(self).children() {
             do kid.with_mut_base |child_node| {
                 child_node.position.origin.y = cur_y;
                 cur_y = cur_y + child_node.position.size.height;
@@ -327,7 +326,7 @@ impl BlockFlowData {
             cur_y - top_offset
         };
 
-        for self.box.iter().advance |&box| {
+        for &box in self.box.iter() {
             let style = box.style();
             let maybe_height = MaybeAuto::from_height(style.height(), Au(0), style.font_size());
             let maybe_height = maybe_height.specified_or_zero();
@@ -380,7 +379,7 @@ impl BlockFlowData {
 
         // go deeper into the flow tree
         let flow = BlockFlow(self);
-        for flow.each_child |child| {
+        for child in flow.children() {
             do child.with_mut_base |base| {
                 base.abs_position = self.common.abs_position + base.position.origin;
             }

@@ -403,11 +403,9 @@ CFG_SUBMODULES="\
     support/css/rust-css \
     support/css/rust-cssparser \
     support/geom/rust-geom \
-    support/glut/rust-glut \
     support/glfw/glfw \
     support/glfw/glfw-rs \
     support/harfbuzz/rust-harfbuzz \
-    support/http-client/rust-http-client \
     support/hubbub/libhubbub \
     support/hubbub/rust-hubbub \
     support/layers/rust-layers \

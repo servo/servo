@@ -29,7 +29,7 @@ B := $(CFG_BUILD_DIR)
 
 MKFILE_DEPS := config.stamp $(call rwildcard,$(S)mk/,*)
 
-CFG_RUSTC_FLAGS := $(RUSTFLAGS) -A default_methods
+CFG_RUSTC_FLAGS := $(RUSTFLAGS)
 
 ifdef CFG_DISABLE_OPTIMIZE
   $(info cfg: disabling rustc optimization (CFG_DISABLE_OPTIMIZE))
@@ -235,23 +235,23 @@ all: src/compiler/rust/rust-auto-clean-stamp servo package
 
 $(DONE_util):	$(DEPS_util)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_util) -o $@ $< && touch $@
+	$(Q)$(RUSTC) $(RFLAGS_util) --out-dir src/components/util $< && touch $@
 
 $(DONE_net):	$(DEPS_net)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_net) -o $@ $< && touch $@
+	$(Q)$(RUSTC) $(RFLAGS_net) --out-dir src/components/net $< && touch $@
 
 $(DONE_msg):	$(DEPS_msg)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_msg) -o $@ $< && touch $@
+	$(Q)$(RUSTC) $(RFLAGS_msg) --out-dir src/components/msg $< && touch $@
 
 $(DONE_gfx):	$(DEPS_gfx)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_gfx) -o $@ $< && touch $@
+	$(Q)$(RUSTC) $(RFLAGS_gfx) --out-dir src/components/gfx $< && touch $@
 
 $(DONE_script):	$(DEPS_script)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_script) -o $@ $< && touch $@
+	$(Q)$(RUSTC) $(RFLAGS_script) --out-dir src/components/script $< && touch $@
 
 BINDINGS_SRC = $(S)/src/components/script/dom/bindings/codegen
 

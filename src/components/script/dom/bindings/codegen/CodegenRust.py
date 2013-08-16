@@ -1044,7 +1044,7 @@ for (uint32_t i = 0; i < length; ++i) {
             #    "if (!ConvertJSValueToString(cx, ${val}, ${valPtr}, %s, %s, %s)) {\n"
             #    "  return false;\n"
             #    "}" % (nullBehavior, undefinedBehavior, varName))
-            strval = "str(strval.get())"
+            strval = "str(strval.unwrap())"
             if isOptional:
                 strval = "Some(%s)" % strval
             conversionCode = (
@@ -1114,7 +1114,7 @@ for (uint32_t i = 0; i < length; ++i) {
             "  if result.is_err() {\n"
             "%(handleInvalidEnumValueCode)s"
             "  }\n"
-            "  let index = result.get();\n"
+            "  let index = result.unwrap();\n"
             "  ${declName} = cast::transmute(index); //XXXjdm need some range checks up in here\n"
             "}" % { "enumtype" : enum,
                       "values" : enum + "Values::strings",
@@ -1511,7 +1511,7 @@ for (uint32_t i = 0; i < length; ++i) {
             wrappingCode = ("if %s.is_none() {\n" % (result) +
                             CGIndenter(CGGeneric(setValue("JSVAL_NULL"))).define() + "\n" +
                             "}\n" +
-                            "let mut %s = %s.get();\n" % (result, result))
+                            "let mut %s = %s.unwrap();\n" % (result, result))
         else:
             wrappingCode = ""
         if (not descriptor.interface.isExternal() and
@@ -2746,10 +2746,10 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
   }*/
   /* Check to see whether the interface objects are already installed */
   let protoOrIfaceArray: *mut *JSObject = cast::transmute(GetProtoOrIfaceArray(aGlobal));
-  let cachedObject: *JSObject = *protoOrIfaceArray.offset(%s as uint);
+  let cachedObject: *JSObject = *protoOrIfaceArray.offset(%s as int);
   if cachedObject.is_null() {
     let tmp: *JSObject = CreateInterfaceObjects(aCx, aGlobal, aReceiver);
-    *protoOrIfaceArray.offset(%s as uint) = tmp;
+    *protoOrIfaceArray.offset(%s as int) = tmp;
     tmp
   } else {
     cachedObject
@@ -3623,7 +3623,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             templateValues = {'jsvalRef': '(*desc).value', 'jsvalPtr': 'ptr::to_mut_unsafe_ptr(&mut (*desc).value)',
                               'obj': 'proxy', 'successCode': fillDescriptor}
             get = ("if index.is_some() {\n" +
-                   "  let index = index.get();\n" +
+                   "  let index = index.unwrap();\n" +
                    "  let this: *%s = UnwrapProxy(proxy);\n" +
                    CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define() + "\n" +
                    "}\n") % (self.descriptor.concreteType)
@@ -3632,7 +3632,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             setOrIndexedGet += "if set != 0 {\n"
             if indexedSetter:
                 setOrIndexedGet += ("  if index.is_some() {\n" +
-                                    "    let index = index.get();\n")
+                                    "    let index = index.unwrap();\n")
                 if not 'IndexedCreator' in self.descriptor.operations:
                     # FIXME need to check that this is a 'supported property index'
                     assert False
@@ -3677,7 +3677,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                         "  if strval.is_err() {\n" +
                         "    return 0;\n" +
                         "  }\n" +
-                        "  let name = str(strval.get());\n" +
+                        "  let name = str(strval.unwrap());\n" +
                         "\n" +
                         "  let this: *%s = UnwrapProxy(proxy);\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() + "\n" +
@@ -3721,7 +3721,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                 raise TypeError("Can't handle creator that's different from the setter")
             set += ("let index = GetArrayIndexFromId(cx, id);\n" +
                     "if index.is_some() {\n" +
-                    "  let index = index.get();\n" +
+                    "  let index = index.unwrap();\n" +
                     "  let this: *%s = UnwrapProxy(proxy);\n" +
                     CGIndenter(CGProxyIndexedSetter(self.descriptor)).define() +
                     "  return 1;\n" +
@@ -3746,7 +3746,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "  if strval.is_err() {\n" +
                     "    return 0;\n" +
                     "  }\n" +
-                    "  let name = str(strval.get());\n" +
+                    "  let name = str(strval.unwrap());\n" +
                     "\n" +
                     "  let this: *%s = UnwrapProxy(proxy);\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() + "\n" +
@@ -3762,7 +3762,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "  if strval.is_err() {\n" +
                     "    return 0;\n" +
                     "  }\n" +
-                    "  let name = str(strval.get());\n" +
+                    "  let name = str(strval.unwrap());\n" +
                     "  let this: %%s = UnwrapProxy(proxy);\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
                     "  if (found) {\n"
@@ -3787,7 +3787,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
         if indexedGetter:
             indexed = ("let index = GetArrayIndexFromId(cx, id);\n" +
                        "if index.is_some() {\n" +
-                       "  let index = index.get();\n" +
+                       "  let index = index.unwrap();\n" +
                        "  let this: *%s = UnwrapProxy(proxy);\n" +
                        CGIndenter(CGProxyIndexedGetter(self.descriptor)).define() + "\n" +
                        "  *bp = found as JSBool;\n" +
@@ -3808,7 +3808,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                      "  if strval.is_err() {\n" +
                      "    return 0;\n" +
                      "  }\n" +
-                     "  let name = str(strval.get());\n" +
+                     "  let name = str(strval.unwrap());\n" +
                      "\n" +
                      "  let this: *%s = UnwrapProxy(proxy);\n" +
                      CGIndenter(CGProxyNamedGetter(self.descriptor)).define() + "\n" +
@@ -3861,7 +3861,7 @@ if expando.is_not_null() {
         if indexedGetter:
             getIndexedOrExpando = ("let index = GetArrayIndexFromId(cx, id);\n" +
                                    "if index.is_some() {\n" +
-                                   "  let index = index.get();\n" +
+                                   "  let index = index.unwrap();\n" +
                                    "  let this = UnwrapProxy(proxy);\n" +
                                    CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define())
             getIndexedOrExpando += """
@@ -3935,7 +3935,7 @@ class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
 JSString* jsresult;
 return xpc_qsStringToJsstring(cx, result, &jsresult) ? jsresult : NULL;""" 
 
-        return """    do str::as_c_str("%s") |s| {
+        return """    do "%s".to_c_str().with_ref |s| {
       _obj_toString(cx, s)
     }""" % self.descriptor.name
 
@@ -4461,9 +4461,9 @@ class CGDictionary(CGThing):
         # NOTE: jsids are per-runtime, so don't use them in workers
         if True or self.workers: #XXXjdm hack until 'static mut' exists for global jsids
             propName = member.identifier.name
-            propCheck = ('str::as_c_str("%s", |s| { JS_HasProperty(cx, RUST_JSVAL_TO_OBJECT(val), s, ptr::to_unsafe_ptr(&found)) })' %
+            propCheck = ('"%s".to_c_str().with_ref(|s| { JS_HasProperty(cx, RUST_JSVAL_TO_OBJECT(val), s, ptr::to_unsafe_ptr(&found)) })' %
                          propName)
-            propGet = ('str::as_c_str("%s", |s| { JS_GetProperty(cx, RUST_JSVAL_TO_OBJECT(val), s, ptr::to_unsafe_ptr(&temp)) })' %
+            propGet = ('"%s".to_c_str().with_ref(|s| { JS_GetProperty(cx, RUST_JSVAL_TO_OBJECT(val), s, ptr::to_unsafe_ptr(&temp)) })' %
                        propName)
         else:
             propId = self.makeIdName(member.identifier.name);
