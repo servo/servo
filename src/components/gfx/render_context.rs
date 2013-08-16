@@ -16,7 +16,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::side_offsets::SideOffsets2D;
 use servo_net::image::base::Image;
-use extra::arc::ARC;
+use extra::arc::Arc;
 
 pub struct RenderContext<'self> {
     canvas: &'self LayerBuffer,
@@ -77,7 +77,7 @@ impl<'self> RenderContext<'self>  {
         self.canvas.draw_target.stroke_line(start, end, &pattern, &stroke_opts, &draw_opts);
     }
 
-    pub fn draw_image(&self, bounds: Rect<Au>, image: ARC<~Image>) {
+    pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<~Image>) {
         let image = image.get();
         let size = Size2D(image.width as i32, image.height as i32);
         let stride = image.width * 4;

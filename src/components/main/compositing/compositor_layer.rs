@@ -87,7 +87,7 @@ impl CompositorLayer {
     // true; otherwise returns false, so a parent layer can scroll instead.
     pub fn scroll(&mut self, delta: Point2D<f32>, cursor: Point2D<f32>, window_size: Size2D<f32>) -> bool {
         let cursor = cursor - self.scroll_offset;
-        for self.children.mut_iter().filter(|x| !x.child.hidden).advance |child| {
+        for child in self.children.mut_iter().filter(|x| !x.child.hidden) {
             match child.container.scissor {
                 None => {
                     error!("CompositorLayer: unable to perform cursor hit test for layer");
@@ -131,7 +131,7 @@ impl CompositorLayer {
     // page coordinates.
     pub fn send_mouse_event(&self, event: MouseWindowEvent, cursor: Point2D<f32>) {
         let cursor = cursor - self.scroll_offset;
-        for self.children.iter().filter(|&x| !x.child.hidden).advance |child| {
+        for child in self.children.iter().filter(|&x| !x.child.hidden) {
             match child.container.scissor {
                 None => {
                     error!("CompositorLayer: unable to perform cursor hit test for layer");
@@ -197,7 +197,7 @@ impl CompositorLayer {
             }
         };
         self.children.mut_iter().filter(|x| !x.child.hidden)
-            .transform(transform)
+            .map(transform)
             .fold(false, |a, b| a || b) || redisplay
     }
 
@@ -206,7 +206,7 @@ impl CompositorLayer {
     // and clip the layer to the specified size in page coordinates.
     // This method returns false if the specified layer is not found.
     pub fn set_clipping_rect(&mut self, pipeline_id: PipelineId, new_rect: Rect<f32>) -> bool {
-            for self.children.iter().advance |child_node| {
+        for child_node in self.children.iter() {
             if pipeline_id != child_node.child.pipeline.id {
                 loop;
             }
@@ -219,7 +219,7 @@ impl CompositorLayer {
         }
         
         // ID does not match any of our immediate children, so recurse on descendents (including hidden children)
-        self.children.mut_iter().transform(|x| &mut x.child).any(|x| x.set_clipping_rect(pipeline_id, new_rect))
+        self.children.mut_iter().map(|x| &mut x.child).any(|x| x.set_clipping_rect(pipeline_id, new_rect))
     }
 
 
@@ -265,15 +265,15 @@ impl CompositorLayer {
         
         // Delete old layer.
         while current_layer_child.is_some() {
-            let trash = current_layer_child.get();
-            do current_layer_child.get().with_common |common| {
+            let trash = current_layer_child.unwrap();
+            do current_layer_child.unwrap().with_common |common| {
                 current_layer_child = common.next_sibling;
             }
             self.root_layer.remove_child(trash);
         }
 
         // Add child layers.
-        for self.children.mut_iter().filter(|x| !x.child.hidden).advance |child| {
+        for child in self.children.mut_iter().filter(|x| !x.child.hidden) {
             current_layer_child = match current_layer_child {
                 None => {
                     child.container.common.parent = None;
@@ -295,7 +295,7 @@ impl CompositorLayer {
         };
 
         let all_tiles = quadtree.get_all_tiles();
-        for all_tiles.iter().advance |buffer| {
+        for buffer in all_tiles.iter() {
             debug!("osmain: compositing buffer rect %?", &buffer.rect);
             
             // Find or create a texture layer.
@@ -313,7 +313,7 @@ impl CompositorLayer {
                     texture_layer.manager = @buffer.draw_target.clone() as @TextureManager;
                     
                     // Move on to the next sibling.
-                    do current_layer_child.get().with_common |common| {
+                    do current_layer_child.unwrap().with_common |common| {
                         common.next_sibling
                     }
                 }
@@ -339,7 +339,7 @@ impl CompositorLayer {
                     Tree(ref mut quadtree) => quadtree,
                 };
                 
-                for new_buffers.buffers.iter().advance |buffer| {
+                for buffer in new_buffers.buffers.iter() {
                     // TODO: This may return old buffers, which should be sent back to the renderer.
                     quadtree.add_tile_pixel(buffer.screen_pos.origin.x, buffer.screen_pos.origin.y,
                                             buffer.resolution, ~buffer.clone());
@@ -349,7 +349,7 @@ impl CompositorLayer {
             return true;
         }
         // ID does not match ours, so recurse on descendents (including hidden children).
-        self.children.mut_iter().transform(|x| &mut x.child).any(|x| x.add_buffers(pipeline_id, new_buffers))
+        self.children.mut_iter().map(|x| &mut x.child).any(|x| x.add_buffers(pipeline_id, new_buffers))
     }
 
     // Deletes a specified sublayer, including hidden children. Returns false if the layer is not found.
@@ -362,7 +362,7 @@ impl CompositorLayer {
                 true
             }
             None => {
-                self.children.mut_iter().transform(|x| &mut x.child).any(|x| x.delete(pipeline_id))
+                self.children.mut_iter().map(|x| &mut x.child).any(|x| x.delete(pipeline_id))
             }
         }
     }

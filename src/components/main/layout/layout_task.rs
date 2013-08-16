@@ -41,10 +41,10 @@ use script::script_task::{ReflowCompleteMsg, ScriptChan, SendEventMsg};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::LocalImageCache;
-use servo_util::tree::{TreeNodeRef, TreeUtils};
+use servo_util::tree::TreeNodeRef;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
-use extra::net::url::Url;
+use extra::url::Url;
 
 struct LayoutTask {
     id: PipelineId,
@@ -181,7 +181,7 @@ impl LayoutTask {
         };
 
         // FIXME: Bad copy!
-        let doc_url = copy data.url;
+        let doc_url = data.url.clone();
         let script_chan = data.script_chan.clone();
 
         debug!("layout: received layout request for: %s", doc_url.to_str());
@@ -232,7 +232,7 @@ impl LayoutTask {
 
         // Propagate restyle damage up and down the tree, as appropriate.
         // FIXME: Merge this with flow tree building and/or the other traversals.
-        for layout_root.traverse_preorder |flow| {
+        for flow in layout_root.traverse_preorder() {
             // Also set any damage implied by resize.
             if resized {
                 do flow.with_mut_base |base| {
@@ -242,7 +242,7 @@ impl LayoutTask {
 
             let prop = flow.with_base(|base| base.restyle_damage.propagate_down());
             if prop.is_nonempty() {
-                for flow.each_child |kid_ctx| {
+                for kid_ctx in flow.children() {
                     do kid_ctx.with_mut_base |kid| {
                         kid.restyle_damage.union_in_place(prop);
                     }
@@ -250,8 +250,8 @@ impl LayoutTask {
             }
         }
 
-        for layout_root.traverse_postorder |flow| {
-            for flow.each_child |child| {
+        for flow in layout_root.traverse_postorder() {
+            for child in flow.children() {
                 do child.with_base |child_base| {
                     do flow.with_mut_base |base| {
                         base.restyle_damage.union_in_place(child_base.restyle_damage);
@@ -266,20 +266,20 @@ impl LayoutTask {
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
         do profile(time::LayoutMainCategory, self.profiler_chan.clone()) {
-            for layout_root.traverse_postorder_prune(|f| f.restyle_damage().lacks(BubbleWidths)) |flow| {
+            for flow in layout_root.traverse_postorder_prune(|f| f.restyle_damage().lacks(BubbleWidths)) {
                 flow.bubble_widths(&mut layout_ctx);
             };
 
             // FIXME: We want to do
-            //     for layout_root.traverse_preorder_prune(|f| f.restyle_damage().lacks(Reflow)) |flow| {
+            //     for flow in layout_root.traverse_preorder_prune(|f| f.restyle_damage().lacks(Reflow)) {
             // but FloatContext values can't be reused, so we need to recompute them every time.
-            for layout_root.traverse_preorder |flow| {
+            for flow in layout_root.traverse_preorder() {
                 flow.assign_widths(&mut layout_ctx);
             };
 
             // For now, this is an inorder traversal
             // FIXME: prune this traversal as well
-            for layout_root.traverse_bu_sub_inorder |flow| {
+            do layout_root.traverse_bu_sub_inorder |flow| {
                 flow.assign_height(&mut layout_ctx);
             }
         }
@@ -366,8 +366,10 @@ impl LayoutTask {
                     None => Err(()),
                     Some(flow) => {
                         let mut boxes = ~[];
-                        for flow.iter_boxes_for_node(node) |box| {
-                            boxes.push(box.content_box());
+                        for box in flow.iter_all_boxes() {
+                            if box.node() == node {
+                                boxes.push(box.content_box());
+                            }
                         }
 
                         Ok(ContentBoxesResponse(boxes))
@@ -382,7 +384,7 @@ impl LayoutTask {
                     transmute(node)
                 };
                 let mut flow_node: AbstractNode<LayoutView> = node;
-                for node.traverse_preorder |node| {
+                for node in node.traverse_preorder() {
                     if node.layout_data().flow.is_some() {
                         flow_node = node;
                         break;
@@ -413,7 +415,7 @@ impl LayoutTask {
                         let mut resp = Err(());
                         let display_list = &display_list.take().list;
                         // iterate in reverse to ensure we have the most recently painted render box
-                        for display_list.rev_iter().advance |display_item| {
+                        for display_item in display_list.rev_iter() {
                             let bounds = display_item.bounds();
                             // TODO this check should really be performed by a method of DisplayItem
                             if x <= bounds.origin.x + bounds.size.width &&

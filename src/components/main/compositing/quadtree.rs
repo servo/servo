@@ -47,7 +47,7 @@ struct QuadtreeNode<T> {
     tile_mem: uint,
 }
 
-priv enum Quadrant {
+enum Quadrant {
     TL = 0,
     TR = 1,
     BL = 2,
@@ -212,7 +212,7 @@ impl<T: Tile> Quadtree<T> {
         let difference = (new_size as f32 / self.root.size as f32).log2() as int;
         if difference > 0 { // doubling
             let difference = difference as uint;
-            for range(0, difference) |i| {
+            for i in range(0, difference) {
                 let new_root = ~QuadtreeNode {
                     tile: None,
                     origin: Point2D(0f32, 0f32),
@@ -225,7 +225,7 @@ impl<T: Tile> Quadtree<T> {
             }
         } else if difference < 0 { // halving
             let difference = difference.abs() as uint;
-            for difference.times {
+            for _ in range(0, difference) {
                 let remove = replace(&mut self.root.quadrants[TL as int], None);
                 match remove {
                     Some(child) => self.root = child,
@@ -299,7 +299,7 @@ impl<T: Tile> QuadtreeNode<T> {
     fn get_all_tiles<'r>(&'r self) -> ~[&'r T] {
         let mut ret = ~[];
 
-        for self.quadrants.iter().advance |quad| {
+        for quad in self.quadrants.iter() {
             match *quad {
                 Some(ref child) => ret = ret + child.get_all_tiles(),
                 None => {}
@@ -332,7 +332,7 @@ impl<T: Tile> QuadtreeNode<T> {
             self.tile = Some(tile);
             // FIXME: This should be inline, but currently won't compile
             let quads = [TL, TR, BL, BR];
-            for quads.iter().advance |quad| {
+            for quad in quads.iter() {
                 self.quadrants[*quad as int] = None;
             }
             self.render_flag = false;
@@ -439,7 +439,7 @@ impl<T: Tile> QuadtreeNode<T> {
         let mut del_quad: Option<Quadrant> = None;
         let mut ret = (None, false, 0);
         
-        for queue.iter().advance |quad| {
+        for quad in queue.iter() {
             match self.quadrants[*quad as int] {
                 Some(ref mut child) => {
                     let (tile, flag, delta) = child.remove_tile(x, y);
@@ -514,7 +514,7 @@ impl<T: Tile> QuadtreeNode<T> {
                         let old_mem = self.tile_mem;
                         // FIXME: This should be inline, but currently won't compile
                         let quads = [TL, TR, BL, BR];
-                        for quads.iter().advance |quad| {
+                        for quad in quads.iter() {
                             self.quadrants[*quad as int] = None;
                         }
                         self.tile_mem = tile.get_mem();
@@ -561,7 +561,7 @@ impl<T: Tile> QuadtreeNode<T> {
         let mut redisplay = false;
         let mut delta = 0;
         
-        for quads_to_check.iter().advance |quad| {
+        for quad in quads_to_check.iter() {
             // Recurse into child
             let new_window = match *quad {
                 TL => Rect(window.origin,
@@ -628,7 +628,7 @@ impl<T: Tile> QuadtreeNode<T> {
                 ret = fmt!("%s<table border=1><tr>", ret);
                 // FIXME: This should be inline, but currently won't compile
                 let quads = [TL, TR, BL, BR];
-                for quads.iter().advance |quad| {
+                for quad in quads.iter() {
                     match self.quadrants[*quad as int] {
                         Some(ref child) => {
                             ret = fmt!("%s<td>%s</td>", ret, child.get_html());

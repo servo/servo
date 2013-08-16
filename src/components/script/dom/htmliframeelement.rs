@@ -11,7 +11,7 @@ use geom::size::Size2D;
 use servo_msg::constellation_msg::SubpageId;
 
 use std::comm::ChanOne;
-use extra::net::url::Url;
+use extra::url::Url;
 
 pub struct HTMLIFrameElement {
     parent: HTMLElement,

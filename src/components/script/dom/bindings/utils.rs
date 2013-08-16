@@ -13,9 +13,7 @@ use std::hashmap::HashMap;
 use std::libc;
 use std::ptr;
 use std::ptr::{null, to_unsafe_ptr};
-use std::result;
 use std::str;
-use std::uint;
 use std::unstable::intrinsics;
 use js::glue::*;
 use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
@@ -85,7 +83,7 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: uint, vp: *mut JSVal) -
         return 0;
     }
 
-    let name = jsval_to_str(cx, *v).get();
+    let name = jsval_to_str(cx, *v).unwrap();
     let retval = str(~"function " + name + "() {\n    [native code]\n}");
     *vp = domstring_to_jsval(cx, &retval);
     return 1;
@@ -204,7 +202,7 @@ pub fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
         }
 
         let strbuf = JS_EncodeString(cx, jsstr);
-        let buf = str::raw::from_buf(strbuf as *u8);
+        let buf = str::raw::from_c_str(strbuf);
         JS_free(cx, strbuf as *libc::c_void);
         Ok(buf)
     }
@@ -216,10 +214,10 @@ pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
         JSVAL_NULL
       }
       &str(ref s) => {
-        str::as_buf(*s, |buf, len| {
+        do s.as_imm_buf |buf, len| {
             let cbuf = cast::transmute(buf);
             RUST_STRING_TO_JSVAL(JS_NewStringCopyN(cx, cbuf, len as libc::size_t))
-        })
+        }
       }
     }
 }
@@ -322,13 +320,13 @@ pub fn define_empty_prototype(name: ~str, proto: Option<~str>, compartment: @mut
     compartment.register_class(prototype_jsclass(name.to_owned()));
 
     //TODO error checking
-    let obj = result::unwrap(
+    let obj = (
         match proto {
             Some(s) => compartment.new_object_with_proto(name.to_owned(),
                                                          s, 
                                                          compartment.global_obj.ptr),
             None => compartment.new_object(name.to_owned(), null(), compartment.global_obj.ptr)
-        });
+        }).unwrap();
 
     unsafe {
         compartment.define_property(name.to_owned(), RUST_OBJECT_TO_JSVAL(obj.ptr),
@@ -392,6 +390,7 @@ pub struct JSNativeHolder {
     propertyHooks: *NativePropertyHooks
 }
 
+#[deriving(Clone)]
 pub enum ConstantVal {
     IntVal(i32),
     UintVal(u32),
@@ -401,6 +400,7 @@ pub enum ConstantVal {
     VoidVal
 }
 
+#[deriving(Clone)]
 pub struct ConstantSpec {
     name: *libc::c_char,
     value: ConstantVal
@@ -454,7 +454,7 @@ pub fn CreateInterfaceObjects2(cx: *JSContext, global: *JSObject, receiver: *JSO
 
     let mut interface = ptr::null();
     if constructorClass.is_not_null() || constructor.is_not_null() {
-        interface = do str::as_c_str(name) |s| {
+        interface = do name.to_c_str().with_ref |s| {
             CreateInterfaceObject(cx, global, receiver, constructorClass,
                                   constructor, ctorNargs, proto,
                                   staticMethods, constants, s)
@@ -506,7 +506,7 @@ fn CreateInterfaceObject(cx: *JSContext, global: *JSObject, receiver: *JSObject,
         }
 
         if constructorClass.is_not_null() {
-            let toString = do str::as_c_str("toString") |s| {
+            let toString = do "toString".to_c_str().with_ref |s| {
                 DefineFunctionWithReserved(cx, constructor, s,
                                            InterfaceObjectToString,
                                            0, 0)
@@ -666,7 +666,7 @@ impl WrapperCache {
 }
 
 pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
-                            mut value: @mut CacheableWrapper,
+                            value: @mut CacheableWrapper,
                             vp: *mut JSVal) -> bool {
   unsafe {
     let cache = value.get_wrappercache();
@@ -765,7 +765,7 @@ pub fn XrayResolveProperty(cx: *JSContext,
   unsafe {
     match attributes {
         Some(attrs) => {
-            for attrs.iter().advance |&elem| {
+            for &elem in attrs.iter() {
                 let (attr, attr_id) = elem;
                 if attr_id == JSID_VOID || attr_id != id {
                     loop;
@@ -815,20 +815,18 @@ fn InternJSString(cx: *JSContext, chars: *libc::c_char) -> Option<jsid> {
 }
 
 pub fn InitIds(cx: *JSContext, specs: &[JSPropertySpec], ids: &mut [jsid]) -> bool {
-    let mut rval = true;
-    for specs.iter().enumerate().advance |(i, spec)| {
+    for (i, spec) in specs.iter().enumerate() {
         if spec.name.is_null() == true {
-            break;
+            return true;
         }
         match InternJSString(cx, spec.name) {
             Some(id) => ids[i] = id,
             None => {
-                rval = false;
                 return false;
             }
         }
     }
-    rval
+    true
 }
 
 pub trait DerivedWrapper {
@@ -853,6 +851,7 @@ impl DerivedWrapper for AbstractNode<ScriptView> {
     }
 }
 
+#[deriving(ToStr)]
 pub enum Error {
     FailureUnknown
 }
@@ -877,12 +876,12 @@ pub fn FindEnumStringIndex(cx: *JSContext,
         if chars.is_null() {
             return Err(());
         }
-        for values.iter().enumerate().advance |(i, value)| {
+        for (i, value) in values.iter().enumerate() {
             if value.length != length as uint {
                 loop;
             }
             let mut equal = true;
-            for uint::iterate(0, length as uint) |j| {
+            for j in range(0, length as int) {
                 if value.value[j] as u16 != *chars.offset(j) {
                     equal = false;
                     break;

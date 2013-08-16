@@ -16,7 +16,6 @@ use js::rust::{Compartment, jsobj};
 
 use std::cast;
 use std::libc;
-use std::result;
 
 extern fn finalize_text(_fop: *JSFreeOp, obj: *JSObject) {
     debug!("text finalize: %?!", obj as uint);
@@ -79,9 +78,9 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
     //XXXjdm the parent should probably be the node parent instead of the global
     //TODO error checking
     let compartment = utils::get_compartment(cx);
-    let obj = result::unwrap(compartment.new_object_with_proto(instance,
-                                                               proto,
-                                                               compartment.global_obj.ptr));
+    let obj = compartment.new_object_with_proto(instance,
+                                                proto,
+                                                compartment.global_obj.ptr).unwrap();
 
     let cache = node.get_wrappercache();
     assert!(cache.get_wrapper().is_null());

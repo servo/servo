@@ -8,18 +8,18 @@ use local_image_cache::LocalImageCache;
 
 use std::util::replace;
 use geom::size::Size2D;
-use extra::net::url::Url;
-use extra::arc::ARC;
+use extra::url::Url;
+use extra::arc::Arc;
 
 // FIXME: Nasty coupling here This will be a problem if we want to factor out image handling from
 // the network stack. This should probably be factored out into an interface and use dependency
 // injection.
 
 /// A struct to store image data. The image will be loaded once the first time it is requested,
-/// and an ARC will be stored.  Clones of this ARC are given out on demand.
+/// and an Arc will be stored.  Clones of this Arc are given out on demand.
 pub struct ImageHolder {
     url: Url,
-    image: Option<ARC<~Image>>,
+    image: Option<Arc<~Image>>,
     cached_size: Size2D<int>,
     local_image_cache: @mut LocalImageCache,
 }
@@ -65,7 +65,7 @@ impl ImageHolder {
         }
     }
 
-    pub fn get_image(&mut self) -> Option<ARC<~Image>> {
+    pub fn get_image(&mut self) -> Option<Arc<~Image>> {
         debug!("get_image() %?", self.url);
 
         // If this is the first time we've called this function, load

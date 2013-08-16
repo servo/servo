@@ -73,7 +73,7 @@ impl Drop for FontHandle {
 }
 
 impl FontHandleMethods for FontHandle {
-    pub fn new_from_buffer(fctx: &FontContextHandle,
+    fn new_from_buffer(fctx: &FontContextHandle,
                            buf: ~[u8],
                            style: &SpecifiedFontStyle)
                         -> Result<FontHandle, ()> {
@@ -173,12 +173,12 @@ impl FontHandleMethods for FontHandle {
                 FontHandleMethods::new_from_buffer(fctx, buf.clone(), style)
             }
             FontSourceFile(ref file) => {
-                FontHandle::new_from_file(fctx, copy *file, style)
+                FontHandle::new_from_file(fctx, (*file).clone(), style)
             }
         }
     }
 
-    pub fn glyph_index(&self,
+    fn glyph_index(&self,
                        codepoint: char) -> Option<GlyphIndex> {
         assert!(self.face.is_not_null());
         unsafe {
@@ -192,7 +192,7 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    pub fn glyph_h_advance(&self,
+    fn glyph_h_advance(&self,
                            glyph: GlyphIndex) -> Option<FractionalPixel> {
         assert!(self.face.is_not_null());
         unsafe {
@@ -213,7 +213,7 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    pub fn get_metrics(&self) -> FontMetrics {
+    fn get_metrics(&self) -> FontMetrics {
         /* TODO(Issue #76): complete me */
         let face = self.get_face_rec();
 
@@ -242,7 +242,7 @@ impl FontHandleMethods for FontHandle {
 }
 
 impl<'self> FontHandle {
-    priv fn set_char_size(face: FT_Face, pt_size: float) -> Result<(), ()>{
+    fn set_char_size(face: FT_Face, pt_size: float) -> Result<(), ()>{
         let char_width = float_to_fixed_ft(pt_size) as FT_F26Dot6;
         let char_height = float_to_fixed_ft(pt_size) as FT_F26Dot6;
         let h_dpi = 72;
@@ -262,7 +262,7 @@ impl<'self> FontHandle {
 
             let mut face: FT_Face = ptr::null();
             let face_index = 0 as FT_Long;
-            do str::as_c_str(file) |file_str| {
+            do file.to_c_str().with_ref |file_str| {
                 FT_New_Face(ft_ctx, file_str,
                             face_index, ptr::to_mut_unsafe_ptr(&mut face));
             }
@@ -289,7 +289,7 @@ impl<'self> FontHandle {
 
             let mut face: FT_Face = ptr::null();
             let face_index = 0 as FT_Long;
-            do str::as_c_str(file) |file_str| {
+            do file.to_c_str().with_ref |file_str| {
                 FT_New_Face(ft_ctx, file_str,
                             face_index, ptr::to_mut_unsafe_ptr(&mut face));
             }
@@ -305,13 +305,13 @@ impl<'self> FontHandle {
         }
     }
 
-    priv fn get_face_rec(&'self self) -> &'self FT_FaceRec {
+    fn get_face_rec(&'self self) -> &'self FT_FaceRec {
         unsafe {
             &(*self.face)
         }
     }
 
-    priv fn font_units_to_au(&self, value: float) -> Au {
+    fn font_units_to_au(&self, value: float) -> Au {
         let face = self.get_face_rec();
 
         // face.size is a *c_void in the bindings, presumably to avoid

@@ -10,7 +10,6 @@
 
 extern mod azure;
 extern mod geom;
-extern mod http_client;
 extern mod stb_image;
 extern mod extra;
 extern mod servo_net (name = "net");
@@ -36,7 +35,7 @@ pub use gfx_font_list = font_list;
 pub use servo_gfx_font = font;
 pub use servo_gfx_font_list = font_list;
 
-priv mod render_context;
+mod render_context;
 
 // Rendering
 pub mod color;

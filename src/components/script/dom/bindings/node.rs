@@ -97,7 +97,6 @@ macro_rules! generate_element(
     })
 )
 
-#[allow(non_implicitly_copyable_typarams)]
 pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject {
     match node.type_id() {
         ElementNodeTypeId(HTMLElementTypeId) => generate_element!(HTMLElement),
@@ -138,7 +137,6 @@ pub unsafe fn unwrap(obj: *JSObject) -> AbstractNode<ScriptView> {
     AbstractNode::from_raw(raw)
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));
@@ -160,7 +158,6 @@ extern fn getFirstChild(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool
     return 1;
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 extern fn getNextSibling(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));

@@ -65,7 +65,7 @@ impl<'self> NodeUtil<'self> for AbstractNode<LayoutView> {
         if !self.has_layout_data() {
             return default;
         }
-        self.layout_data().restyle_damage.get_or_default(default)
+        self.layout_data().restyle_damage.unwrap_or_default(default)
     }
 
     /// Set the restyle damage field.

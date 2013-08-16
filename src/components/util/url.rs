@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use extra::net::url;
-use extra::net::url::Url;
+use extra::url;
+use extra::url::Url;
 use std::hashmap::HashMap;
 use std::os;
-use std::result;
 
 /**
 Create a URL object from a string. Does various helpful browsery things like
@@ -17,10 +16,9 @@ Create a URL object from a string. Does various helpful browsery things like
   is based off the current url
 
 */
-#[allow(non_implicitly_copyable_typarams)]
 pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
     let schm = url::get_scheme(str_url);
-    let str_url = if result::is_err(&schm) {
+    let str_url = if schm.is_err() {
         if current_url.is_none() {
             // Assume we've been given a file path. If it's absolute just return
             // it, otherwise make it absolute with the cwd.
@@ -30,7 +28,7 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
                 ~"file://" + os::getcwd().push(str_url).to_str()
             }
         } else {
-            let current_url = current_url.get();
+            let current_url = current_url.unwrap();
             debug!("make_url: current_url: %?", current_url);
             if str_url.starts_with("//") {
                 current_url.scheme + ":" + str_url
@@ -41,11 +39,11 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
                 str_url.trim_left_chars(&'/')
             } else {
                 let mut path = ~[];
-                for current_url.path.split_iter('/').advance |p| {
+                for p in current_url.path.split_iter('/') {
                     path.push(p.to_str());
                 }
                 let path = path.init();
-                let mut path = path.iter().transform(|x| copy *x).collect::<~[~str]>();
+                let mut path = path.iter().map(|x| (*x).clone()).collect::<~[~str]>();
                 path.push(str_url);
                 let path = path.connect("/");
 
@@ -57,7 +55,7 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
     };
 
     // FIXME: Need to handle errors
-    url::from_str(str_url).get()
+    url::from_str(str_url).unwrap()
 }
 
 mod make_url_tests {
@@ -119,6 +117,6 @@ mod make_url_tests {
 
 pub type UrlMap<T> = @mut HashMap<Url, T>;
 
-pub fn url_map<T: Copy>() -> UrlMap<T> {
+pub fn url_map<T: Clone + 'static>() -> UrlMap<T> {
     @mut HashMap::new()
 }

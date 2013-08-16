@@ -20,15 +20,12 @@ use gfx::opts::Opts;
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods, current_gl_context};
 use azure::azure::AzGLContext;
-use std::cell::Cell;
 use std::comm;
 use std::comm::{Chan, SharedChan, Port};
 use std::num::Orderable;
-use std::task;
-use std::uint;
 use std::vec;
-use extra::uv_global_loop;
-use extra::timer;
+use std::rt::rtio::RtioTimer;
+use std::rt::io::timer::Timer;
 use geom::matrix::identity;
 use geom::point::Point2D;
 use geom::size::Size2D;
@@ -80,7 +77,7 @@ impl RenderListener for CompositorChan {
         port.recv()
     }
 
-    fn paint(&self, id: PipelineId, layer_buffer_set: arc::ARC<LayerBufferSet>) {
+    fn paint(&self, id: PipelineId, layer_buffer_set: arc::Arc<LayerBufferSet>) {
         self.chan.send(Paint(id, layer_buffer_set))
     }
 
@@ -136,7 +133,7 @@ pub enum Msg {
     DeleteLayer(PipelineId),
 
     /// Requests that the compositor paint the given layer buffer set for the given page size.
-    Paint(PipelineId, arc::ARC<LayerBufferSet>),
+    Paint(PipelineId, arc::Arc<LayerBufferSet>),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(ReadyState),
     /// Alerts the compositor to the current status of rendering.
@@ -192,24 +189,7 @@ impl CompositorTask {
     }
 
     /// Starts the compositor, which listens for messages on the specified port. 
-    pub fn create(opts: Opts,
-                  port: Port<Msg>,
-                  profiler_chan: ProfilerChan,
-                  shutdown_chan: Chan<()>) {
-        let port = Cell::new(port);
-        let shutdown_chan = Cell::new(shutdown_chan);
-        let opts = Cell::new(opts);
-        do on_osmain {
-            let compositor_task = CompositorTask::new(opts.take(),
-                                                      port.take(),
-                                                      profiler_chan.clone(),
-                                                      shutdown_chan.take());
-            debug!("preparing to enter main loop");
-            compositor_task.run_main_loop();
-        };
-    }
-
-    fn run_main_loop(&self) {
+    pub fn run(&self) {
         let app: Application = ApplicationMethods::new();
         let window: @mut Window = WindowMethods::new(&app);
 
@@ -242,7 +222,7 @@ impl CompositorTask {
         let ask_for_tiles = || {
             let window_size_page = Size2D(window_size.width as f32 / world_zoom,
                                           window_size.height as f32 / world_zoom);
-            for compositor_layer.mut_iter().advance |layer| {
+            for layer in compositor_layer.mut_iter() {
                 recomposite = layer.get_buffer_request(Rect(Point2D(0f32, 0f32), window_size_page),
                                                        world_zoom) || recomposite;
             }
@@ -368,7 +348,7 @@ impl CompositorTask {
                         MouseWindowMouseDownEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
                         MouseWindowMouseUpEvent(_, p) => Point2D(p.x / world_zoom, p.y / world_zoom),
                     };
-                    for compositor_layer.iter().advance |layer| {
+                    for layer in compositor_layer.iter() {
                         layer.send_mouse_event(mouse_window_event, point);
                     }
                 }
@@ -380,7 +360,7 @@ impl CompositorTask {
                                                             cursor.y as f32 / world_zoom);
                     let page_window = Size2D(window_size.width as f32 / world_zoom,
                                              window_size.height as f32 / world_zoom);
-                    for compositor_layer.mut_iter().advance |layer| {
+                    for layer in compositor_layer.mut_iter() {
                         recomposite = layer.scroll(page_delta, page_cursor, page_window) || recomposite;
                     }
                     ask_for_tiles();
@@ -402,7 +382,7 @@ impl CompositorTask {
                     let page_cursor = Point2D(-1f32, -1f32); // Make sure this hits the base layer
                     let page_window = Size2D(window_size.width as f32 / world_zoom,
                                              window_size.height as f32 / world_zoom);
-                    for compositor_layer.mut_iter().advance |layer| {
+                    for layer in compositor_layer.mut_iter() {
                         layer.scroll(page_delta, page_cursor, page_window);
                     }
 
@@ -458,7 +438,7 @@ impl CompositorTask {
                 // flip image vertically (texture is upside down)
                 let orig_pixels = pixels.clone();
                 let stride = width * 3;
-                for uint::range(0, height) |y| {
+                for y in range(0, height) {
                     let dst_start = y * stride;
                     let src_start = (height - y - 1) * stride;
                     vec::bytes::copy_memory(pixels.mut_slice(dst_start, dst_start + stride),
@@ -483,6 +463,7 @@ impl CompositorTask {
         };
 
         // Enter the main event loop.
+        let tm = Timer::new().unwrap();
         while !done {
             // Check for new messages coming from the rendering task.
             check_for_messages(&self.port);
@@ -495,7 +476,7 @@ impl CompositorTask {
                 composite();
             }
 
-            timer::sleep(&uv_global_loop::get(), 10);
+            tm.sleep(10);
 
             // If a pinch-zoom happened recently, ask for tiles at the new resolution
             if zoom_action && precise_time_s() - zoom_time > 0.3 {
@@ -508,14 +489,3 @@ impl CompositorTask {
         self.shutdown_chan.send(())
     }
 }
-
-/// A function for spawning into the platform's main thread.
-fn on_osmain(f: ~fn()) {
-    // FIXME: rust#6399
-    let mut main_task = task::task();
-    main_task.sched_mode(task::PlatformThread);
-    do main_task.spawn {
-        f();
-    }
-}
-

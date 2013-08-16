@@ -54,19 +54,18 @@ use newcss::stylesheet::Stylesheet;
 use std::cast;
 use std::cell::Cell;
 use std::comm;
-use std::comm::{Chan, Port, SharedChan};
+use std::comm::{Port, SharedChan};
 use std::str::eq_slice;
-use std::result;
 use std::task;
+use std::from_str::FromStr;
 use hubbub::hubbub;
 use servo_msg::constellation_msg::SubpageId;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::image_cache_task;
 use servo_net::resource_task::{Done, Load, Payload, ResourceTask};
-use servo_util::tree::TreeUtils;
+use servo_util::tree::TreeNodeRef;
 use servo_util::url::make_url;
-use extra::net::url::Url;
-use extra::net::url;
+use extra::url::Url;
 use extra::future::{Future, from_port};
 use geom::size::Size2D;
 
@@ -167,7 +166,7 @@ fn css_link_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
 
     // Send the sheets back in order
     // FIXME: Shouldn't wait until after we've recieved CSSTaskExit to start sending these
-    for result_vec.iter().advance |port| {
+    for port in result_vec.iter() {
         to_parent.send(HtmlDiscoveredStyle(port.recv()));
     }
 }
@@ -185,7 +184,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
                 do task::spawn {
                     let (input_port, input_chan) = comm::stream();
                     // TODO: change copy to move once we can move into closures
-                    resource_task.send(Load(copy url, input_chan));
+                    resource_task.send(Load(url.clone(), input_chan));
 
                     let mut buf = ~[];
                     loop {
@@ -273,7 +272,6 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     }
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 pub fn parse_html(cx: *JSContext,
                   url: Url,
                   resource_task: ResourceTask,
@@ -348,7 +346,7 @@ pub fn parse_html(cx: *JSContext,
 
             debug!("-- attach attrs");
             do node.as_mut_element |element| {
-                for tag.attributes.iter().advance |attr| {
+                for attr in tag.attributes.iter() {
                     element.set_attr(&str(attr.name.clone()), &str(attr.value.clone()));
                 }
             }
@@ -377,7 +375,7 @@ pub fn parse_html(cx: *JSContext,
                         let iframe_chan = iframe_chan.take();
                         let elem = &mut iframe_element.parent.parent;
                         let src_opt = elem.get_attr("src").map(|x| x.to_str());
-                        for src_opt.iter().advance |src| {
+                        for src in src_opt.iter() {
                             let iframe_url = make_url(src.clone(), Some(url2.clone()));
                             iframe_element.frame = Some(iframe_url.clone());
                             
@@ -404,7 +402,7 @@ pub fn parse_html(cx: *JSContext,
                             None => {}
                             Some(src) => {
                                 let img_url = make_url(src, Some(url2.clone()));
-                                image_element.image = Some(copy img_url);
+                                image_element.image = Some(img_url.clone());
                                 // inform the image cache to load this, but don't store a handle.
                                 // TODO (Issue #84): don't prefetch if we are within a <noscript>
                                 // tag.
@@ -475,7 +473,6 @@ pub fn parse_html(cx: *JSContext,
         },
         complete_script: |script| {
             // A little function for holding this lint attr
-            #[allow(non_implicitly_copyable_typarams)]
             fn complete_script(script: hubbub::NodeDataPtr,
                                url: Url,
                                js_chan: SharedChan<JSMessage>) {
@@ -500,12 +497,12 @@ pub fn parse_html(cx: *JSContext,
             // We've reached the end of a <style> so we can submit all the text to the parser.
             unsafe {
                 let style: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(style);
-                let url = url::from_str("http://example.com/"); // FIXME
+                let url = FromStr::from_str("http://example.com/"); // FIXME
                 let url_cell = Cell::new(url);
 
                 let mut data = ~[];
                 debug!("iterating over children %?", style.first_child());
-                for style.children().advance |child| {
+                for child in style.children() {
                     debug!("child = %?", child);
                     do child.with_imm_text() |text| {
                         data.push(text.parent.data.to_str());  // FIXME: Bad copy.
@@ -513,7 +510,7 @@ pub fn parse_html(cx: *JSContext,
                 }
 
                 debug!("data = %?", data);
-                let provenance = InlineProvenance(result::unwrap(url_cell.take()), data.concat());
+                let provenance = InlineProvenance(url_cell.take().unwrap(), data.concat());
                 css_chan3.send(CSSTaskNewFile(provenance));
             }
         },
