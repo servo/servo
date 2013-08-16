@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-use std::ascii::to_ascii_lower;
+use std::ascii::StrAsciiExt;
 use cssparser::*;
 
 
@@ -15,7 +15,7 @@ pub fn one_component_value<'a>(input: &'a [ComponentValue]) -> Option<&'a Compon
 
 pub fn get_ident_lower(component_value: &ComponentValue) -> Option<~str> {
     match component_value {
-        &Ident(ref value) => Some(to_ascii_lower(value.as_slice())),
+        &Ident(ref value) => Some(value.to_ascii_lower()),
         _ => None,
     }
 }

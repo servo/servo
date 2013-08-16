@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::iterator::Iterator;
-use std::ascii::to_ascii_lower;
+use std::ascii::StrAsciiExt;
 use cssparser::*;
 use selectors;
 use properties;
@@ -49,8 +49,8 @@ fn parse_stylesheet(css: &str) -> Stylesheet {
                 parse_style_rule(rule, &mut rules, &namespaces)
             },
             AtRule(rule) => {
-                let lower_name: &str = to_ascii_lower(rule.name);
-                match lower_name {
+                let lower_name = rule.name.to_ascii_lower();
+                match lower_name.as_slice() {
                     "charset" => {
                         if state > STATE_CHARSET {
                             log_css_error(rule.location, "@charset must be the first rule")

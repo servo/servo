@@ -8,7 +8,7 @@ use cssparser::{SyntaxError, SourceLocation};
 pub struct ErrorLoggerIterator<I>(I);
 
 impl<T, I: Iterator<Result<T, SyntaxError>>> Iterator<T> for ErrorLoggerIterator<I> {
-    pub fn next(&mut self) -> Option<T> {
+    fn next(&mut self) -> Option<T> {
         for result in **self {
             match result {
                 Ok(v) => return Some(v),

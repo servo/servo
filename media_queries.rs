@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::ascii::to_ascii_lower;
+use std::ascii::StrAsciiExt;
 use cssparser::*;
 use errors::{ErrorLoggerIterator, log_css_error};
 use stylesheets::{CSSRule, CSSMediaRule, parse_style_rule, parse_nested_at_rule};
@@ -60,7 +60,7 @@ pub fn parse_media_rule(rule: AtRule, parent_rules: &mut ~[CSSRule],
         match rule {
             QualifiedRule(rule) => parse_style_rule(rule, &mut rules, namespaces),
             AtRule(rule) => parse_nested_at_rule(
-                to_ascii_lower(rule.name), rule, &mut rules, namespaces),
+                rule.name.to_ascii_lower(), rule, &mut rules, namespaces),
         }
     }
     parent_rules.push(CSSMediaRule(MediaRule {
@@ -80,8 +80,7 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
     loop {
         let mq = match next {
             Some(&Ident(ref value)) => {
-                let media_type: &str = to_ascii_lower(value.as_slice());
-                match media_type {
+                match value.to_ascii_lower().as_slice() {
                     "screen" => Some(MediaQuery{ media_type: MediaType(Screen) }),
                     "print" => Some(MediaQuery{ media_type: MediaType(Print) }),
                     "all" => Some(MediaQuery{ media_type: All }),

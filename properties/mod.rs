@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::ascii::to_ascii_lower;
+use std::ascii::StrAsciiExt;
 use cssparser::*;
 use errors::{ErrorLoggerIterator, log_css_error};
 
@@ -28,7 +28,7 @@ pub fn parse_property_declaration_list(input: ~[Node]) -> PropertyDeclarationBlo
                 rule.location, fmt!("Unsupported at-rule in declaration list: @%s", rule.name)),
             Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
                 let list = if i { &mut important } else { &mut normal };
-                if !parse_one_property_declaration(to_ascii_lower(n), v, list) {
+                if !parse_one_property_declaration(n.to_ascii_lower(), v, list) {
                     log_css_error(l, "Invalid property declaration")
                 }
             }

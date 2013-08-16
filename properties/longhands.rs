@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-pub use std::ascii::{to_ascii_lower, eq_ignore_ascii_case};
+use std::ascii::StrAsciiExt;
 pub use std::iterator;
 pub use std::option;
 pub use cssparser::*;
@@ -84,7 +84,7 @@ single_type!(border_left_style, BorderStyle)
 
 pub fn parse_border_width(component_value: &ComponentValue) -> Option<specified::Length> {
     match component_value {
-        &Ident(ref value) => match to_ascii_lower(value.as_slice()).as_slice() {
+        &Ident(ref value) => match value.to_ascii_lower().as_slice() {
             "thin" => Some(specified::Length::from_px(1.)),
             "medium" => Some(specified::Length::from_px(3.)),
             "thick" => Some(specified::Length::from_px(5.)),
@@ -154,7 +154,7 @@ pub mod line_height {
             => Some(Percentage(value.value)),
             &Dimension(ref value, ref unit) if value.value >= 0.
             => specified::Length::parse_dimension(value.value, unit.as_slice()).map_move(Length),
-            &Ident(ref value) if eq_ignore_ascii_case(value.as_slice(), "auto")
+            &Ident(ref value) if value.eq_ignore_ascii_case("auto")
             => Some(Normal),
             _ => None,
         }
@@ -213,7 +213,7 @@ pub mod font_family {
                 Some(&String(ref value)) => add!(FamilyName(value.to_owned())),
                 Some(&Ident(ref value)) => {
                     let value = value.as_slice();
-                    match to_ascii_lower(value).as_slice() {
+                    match value.to_ascii_lower().as_slice() {
                         "serif" => add!(Serif),
                         "sans-serif" => add!(SansSerif),
                         "cursive" => add!(Cursive),
@@ -273,7 +273,7 @@ pub mod font_weight {
     }
     pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
         match input {
-            &Ident(ref value) => match to_ascii_lower(value.as_slice()).as_slice() {
+            &Ident(ref value) => match value.to_ascii_lower().as_slice() {
                 "bold" => Some(Weight700),
                 "normal" => Some(Weight400),
                 "bolder" => Some(Bolder),

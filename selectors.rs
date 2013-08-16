@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::{vec, iterator};
-use std::ascii::to_ascii_lower;
+use std::ascii::StrAsciiExt;
 use cssparser::*;
 use namespaces::NamespaceMap;
 
@@ -230,7 +230,7 @@ fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
             }
             match local_name {
                 Some(name) => simple_selectors.push(LocalNameSelector{
-                    lowercase_name: to_ascii_lower(name),
+                    lowercase_name: name.to_ascii_lower(),
                     cased_name: name,
                 }),
                 None => (),
@@ -366,7 +366,7 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
         Some(Some((_, None))) => fail!("Implementation error, this should not happen."),
         Some(Some((namespace, Some(local_name)))) => AttrSelector {
             namespace: namespace,
-            lowercase_name: to_ascii_lower(local_name),
+            lowercase_name: local_name.to_ascii_lower(),
             cased_name: local_name,
         },
     };
@@ -394,8 +394,7 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
 
 
 fn parse_simple_pseudo_class(name: ~str) -> Option<Either<SimpleSelector, PseudoElement>> {
-    let lower_name: &str = to_ascii_lower(name);
-    match lower_name {
+    match name.to_ascii_lower().as_slice() {
         "root" => Some(Left(Root)),
         "empty" => Some(Left(Empty)),
 
@@ -412,8 +411,7 @@ fn parse_simple_pseudo_class(name: ~str) -> Option<Either<SimpleSelector, Pseudo
 fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
                                  namespaces: &NamespaceMap, inside_negation: bool)
                                  -> Option<SimpleSelector> {
-    let lower_name: &str = to_ascii_lower(name);
-    match lower_name {
+    match name.to_ascii_lower().as_slice() {
         "lang" => parse_lang(arguments),
         "nth-child" => parse_nth(arguments).map(|&(a, b)| NthChild(a, b)),
         "not" => if inside_negation { None } else { parse_negation(arguments, namespaces) },
@@ -423,8 +421,7 @@ fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
 
 
 fn parse_pseudo_element(name: ~str) -> Option<PseudoElement> {
-    let lower_name: &str = to_ascii_lower(name);
-    match lower_name {
+    match name.to_ascii_lower().as_slice() {
         // All supported pseudo-elements
         "before" => Some(Before),
         "after" => Some(After),

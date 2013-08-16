@@ -11,7 +11,7 @@ pub type Integer = i64;
 
 
 pub mod specified {
-    use std::ascii::{to_ascii_lower, eq_ignore_ascii_case};
+    use std::ascii::StrAsciiExt;
     use cssparser::*;
     use super::{Integer, Float};
 
@@ -50,7 +50,7 @@ pub mod specified {
             Length::parse_internal(input, /* negative_ok = */ false)
         }
         pub fn parse_dimension(value: Float, unit: &str) -> Option<Length> {
-            match to_ascii_lower(unit).as_slice() {
+            match unit.to_ascii_lower().as_slice() {
                 "px" => Some(Length::from_px(value)),
                 "in" => Some(Au((value * AU_PER_IN) as Integer)),
                 "cm" => Some(Au((value * AU_PER_CM) as Integer)),
@@ -106,8 +106,8 @@ pub mod specified {
                 => Length::parse_dimension(value.value, unit.as_slice()).map_move(Length_),
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0.
                 => Some(Percentage_(value.value)),
-                &Number(ref value) if value.value == 0. =>  Some(Length_(Au(0))),
-                &Ident(ref value) if eq_ignore_ascii_case(value.as_slice(), "auto") => Some(Auto),
+                &Number(ref value) if value.value == 0. => Some(Length_(Au(0))),
+                &Ident(ref value) if value.eq_ignore_ascii_case("auto") => Some(Auto),
                 _ => None
             }
         }

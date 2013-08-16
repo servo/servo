@@ -208,7 +208,7 @@ shorthand!(font [
         // font-style, font-weight and font-variant.
         // Leaves the values to None, 'normal' is the initial value for each of them.
         if get_ident_lower(component_value).filtered(
-                |v| eq_ignore_ascii_case(v.as_slice(), "normal")).is_some() {
+                |v| v.eq_ignore_ascii_case("normal")).is_some() {
             nb_normals += 1;
             loop;
         }
