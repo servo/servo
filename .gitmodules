@@ -118,3 +118,6 @@
 [submodule "src/support/glut/rust-glut"]
 	path = src/support/glut/rust-glut
 	url = http://github.com/mozilla-servo/rust-glut.git
+[submodule "src/support/http/rust-http"]
+	path = src/support/http/rust-http
+	url = git://github.com/mozilla-servo/rust-http
