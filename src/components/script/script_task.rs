@@ -25,8 +25,6 @@ use servo_msg::constellation_msg::{PipelineId, SubpageId, RendererReadyMsg, Resi
 use servo_msg::constellation_msg::{LoadIframeUrlMsg};
 use servo_msg::constellation_msg;
 
-use newcss::stylesheet::Stylesheet;
-
 use std::cell::Cell;
 use std::comm;
 use std::comm::{Port, SharedChan};

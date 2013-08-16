@@ -125,8 +125,7 @@ impl FontFamily {
 
         // TODO(Issue #190): if not in the fast path above, do
         // expensive matching of weights, etc.
-        let this: &mut FontFamily = self; // FIXME: borrow checker workaround
-        for entry in this.entries.iter() {
+        for entry in self.entries.iter() {
             if (style.weight.is_bold() == entry.is_bold()) && 
                (style.italic == entry.is_italic()) {
 

@@ -666,7 +666,7 @@ impl WrapperCache {
 }
 
 pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
-                            mut value: @mut CacheableWrapper,
+                            value: @mut CacheableWrapper,
                             vp: *mut JSVal) -> bool {
   unsafe {
     let cache = value.get_wrappercache();

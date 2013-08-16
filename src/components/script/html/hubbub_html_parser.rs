@@ -54,7 +54,7 @@ use newcss::stylesheet::Stylesheet;
 use std::cast;
 use std::cell::Cell;
 use std::comm;
-use std::comm::{Chan, Port, SharedChan};
+use std::comm::{Port, SharedChan};
 use std::str::eq_slice;
 use std::task;
 use std::from_str::FromStr;

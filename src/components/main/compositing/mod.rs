@@ -20,11 +20,9 @@ use gfx::opts::Opts;
 
 use azure::azure_hl::{DataSourceSurface, DrawTarget, SourceSurfaceMethods, current_gl_context};
 use azure::azure::AzGLContext;
-use std::cell::Cell;
 use std::comm;
 use std::comm::{Chan, SharedChan, Port};
 use std::num::Orderable;
-use std::task;
 use std::vec;
 use std::rt::rtio::RtioTimer;
 use std::rt::io::timer::Timer;

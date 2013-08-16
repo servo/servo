@@ -39,7 +39,9 @@ use compositing::{CompositorChan, CompositorTask};
 use constellation::Constellation;
 use servo_msg::constellation_msg::{ExitMsg, InitLoadUrlMsg};
 
+#[cfg(not(test))]
 use gfx::opts;
+
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::time::{Profiler, ProfilerChan, PrintMsg};
@@ -47,8 +49,8 @@ use servo_util::time::{Profiler, ProfilerChan, PrintMsg};
 pub use gfx::opts::Opts;
 pub use gfx::text;
 pub use servo_util::url::make_url;
-use std::cell::Cell;
 use std::comm;
+#[cfg(not(test))]
 use std::os;
 use std::rt::rtio::RtioTimer;
 use std::rt::io::timer::Timer;
