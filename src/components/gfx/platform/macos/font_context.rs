@@ -8,8 +8,6 @@ use platform::macos::font::FontHandle;
 
 use core_text;
 
-use std::result;
-
 pub struct FontContextHandle {
     ctx: ()
 }
@@ -33,7 +31,7 @@ impl FontContextHandleMethods for FontContextHandle {
                                    style: UsedFontStyle)
                                 -> Result<FontHandle, ()> {
         let ctfont_result = core_text::font::new_from_name(name, style.pt_size);
-        do result::chain(ctfont_result) |ctfont| {
+        do ctfont_result.chain |ctfont| {
             FontHandle::new_from_CTFont(self, ctfont)
         }
     }

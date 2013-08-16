@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::uint;
 use std::cmp::{max, min};
+use std::iterator;
 
 enum RangeRelation {
     OverlapsBegin(/* overlap */ uint),
@@ -15,6 +15,7 @@ enum RangeRelation {
     EntirelyAfter
 }
 
+#[deriving(Clone)]
 pub struct Range {
     priv off: uint,
     priv len: uint
@@ -35,13 +36,8 @@ impl Range {
     pub fn length(&self) -> uint { self.len }
     pub fn end(&self) -> uint { self.off + self.len }
 
-    pub fn eachi(&self, callback: &fn(uint) -> bool) -> bool {
-        for uint::range(self.off, self.off + self.len) |i| {
-            if !callback(i) {
-                break
-            }
-        }
-        true
+    pub fn eachi(&self) -> iterator::Range<uint> {
+        range(self.off, self.off + self.len)
     }
 
     pub fn contains(&self, i: uint) -> bool {

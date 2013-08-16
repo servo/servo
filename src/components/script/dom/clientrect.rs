@@ -10,7 +10,6 @@ use js::jsapi::{JSObject, JSContext, JSVal};
 use js::glue::RUST_OBJECT_TO_JSVAL;
 
 use std::cast;
-use std::f32;
 
 pub struct ClientRect {
     wrapper: WrapperCache,
@@ -54,11 +53,11 @@ impl ClientRect {
     }
 
     pub fn Width(&self) -> f32 {
-        f32::abs(self.right - self.left)
+        (self.right - self.left).abs()
     }
 
     pub fn Height(&self) -> f32 {
-        f32::abs(self.bottom - self.top)
+        (self.bottom - self.top).abs()
     }
 }
 

@@ -6,6 +6,9 @@ use layout::box::{RenderBox};
 use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::range::Range;
 
+use std::iterator::Enumerate;
+use std::vec::VecIterator;
+
 pub struct NodeRange {
     node: AbstractNode<LayoutView>,
     range: Range,
@@ -13,7 +16,7 @@ pub struct NodeRange {
 
 impl NodeRange {
     pub fn new(node: AbstractNode<LayoutView>, range: &Range) -> NodeRange {
-        NodeRange { node: node, range: copy *range }
+        NodeRange { node: node, range: (*range).clone() }
     }
 }
 
@@ -31,7 +34,7 @@ impl ElementMapping {
     }
 
     pub fn each(&self, callback: &fn(nr: &NodeRange) -> bool) -> bool {
-        for self.entries.iter().advance |nr| {
+        for nr in self.entries.iter() {
             if !callback(nr) {
                 break
             }
@@ -39,41 +42,27 @@ impl ElementMapping {
         true
     }
 
-    pub fn eachi(&self, callback: &fn(i: uint, nr: &NodeRange) -> bool) -> bool {
-        for self.entries.iter().enumerate().advance |(i, nr)| {
-            if !callback(i, nr) {
-                break
-            }
-        }
-        true
-    }
-
-    pub fn eachi_mut(&self, callback: &fn(i: uint, nr: &NodeRange) -> bool) -> bool {
-        for self.entries.iter().enumerate().advance |(i, nr)| {
-            if !callback(i, nr) {
-                break
-            }
-        }
-        true
+    pub fn eachi<'a>(&'a self) -> Enumerate<VecIterator<'a, NodeRange>> {
+        self.entries.iter().enumerate()
     }
 
     pub fn repair_for_box_changes(&mut self, old_boxes: &[RenderBox], new_boxes: &[RenderBox]) {
         let entries = &mut self.entries;
 
         debug!("--- Old boxes: ---");
-        for old_boxes.iter().enumerate().advance |(i, box)| {
+        for (i, box) in old_boxes.iter().enumerate() {
             debug!("%u --> %s", i, box.debug_str());
         }
         debug!("------------------");
 
         debug!("--- New boxes: ---");
-        for new_boxes.iter().enumerate().advance |(i, box)| {
+        for (i, box) in new_boxes.iter().enumerate() {
             debug!("%u --> %s", i, box.debug_str());
         }
         debug!("------------------");
 
         debug!("--- Elem ranges before repair: ---");
-        for entries.iter().enumerate().advance |(i, nr)| {
+        for (i, nr) in entries.iter().enumerate() {
             debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str());
         }
         debug!("----------------------------------");
@@ -126,7 +115,7 @@ impl ElementMapping {
                 }
             }
         debug!("--- Elem ranges after repair: ---");
-        for entries.iter().enumerate().advance |(i, nr)| {
+        for (i, nr) in entries.iter().enumerate() {
             debug!("%u: %? --> %s", i, nr.range, nr.node.debug_str());
         }
         debug!("----------------------------------");

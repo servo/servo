@@ -18,13 +18,13 @@ use js::{JSVAL_NULL, JSPROP_ENUMERATE};
 
 use std::cast;
 use std::comm;
-use std::comm::Chan;
-use std::int;
+use std::comm::SharedChan;
 use std::io;
 use std::ptr;
+use std::int;
+use std::rt::rtio::RtioTimer;
+use std::rt::io::timer::Timer;
 use js::jsapi::JSVal;
-use extra::timer;
-use extra::uv_global_loop;
 
 pub enum TimerControlMsg {
     TimerMessage_Fire(~TimerData),
@@ -38,7 +38,7 @@ pub struct Window {
     script_chan: ScriptChan,
     compositor: @ScriptListener,
     wrapper: WrapperCache,
-    timer_chan: Chan<TimerControlMsg>,
+    timer_chan: SharedChan<TimerControlMsg>,
 }
 
 #[unsafe_destructor]
@@ -68,7 +68,7 @@ impl Window {
 
     pub fn Document(&self) -> AbstractDocument {
         unsafe {
-            (*self.page).frame.get().document
+            (*self.page).frame.unwrap().document
         }
     }
 
@@ -142,18 +142,19 @@ impl BindingObject for Window {
 
 impl Window {
     pub fn SetTimeout(&self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
-        let timeout = int::max(0, timeout) as uint;
+        let timeout = int::max(0, timeout) as u64;
 
         // Post a delayed message to the per-window timer task; it will dispatch it
         // to the relevant script handler that will deal with it.
-        let data = ~TimerData {
-            funval: callback,
-            args: ~[]
-        };
-        timer::delayed_send(&uv_global_loop::get(),
-                            timeout,
-                            &self.timer_chan,
-                            TimerMessage_Fire(data));
+        let tm = Timer::new().unwrap();
+        let chan = self.timer_chan.clone();
+        do spawn {
+            tm.sleep(timeout);
+            chan.send(TimerMessage_Fire(~TimerData {
+                funval: callback,
+                args: ~[]
+            }));
+        }
         return 0; //TODO return handle into list of active timers
     }
 
@@ -182,7 +183,7 @@ impl Window {
                         }
                     }
                 }
-                timer_chan
+                SharedChan::new(timer_chan)
             },
         };
 

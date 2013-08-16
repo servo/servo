@@ -16,7 +16,7 @@ extern mod azure;
 extern mod geom;
 extern mod gfx (name = "gfx");
 extern mod glfw;
-extern mod http_client;
+//extern mod http_client;
 extern mod js;
 extern mod layers;
 extern mod newcss (name = "css");
@@ -39,17 +39,21 @@ use compositing::{CompositorChan, CompositorTask};
 use constellation::Constellation;
 use servo_msg::constellation_msg::{ExitMsg, InitLoadUrlMsg};
 
+#[cfg(not(test))]
 use gfx::opts;
+
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::time::{Profiler, ProfilerChan, PrintMsg};
-use extra::uv_global_loop;
 
 pub use gfx::opts::Opts;
 pub use gfx::text;
 pub use servo_util::url::make_url;
 use std::comm;
+#[cfg(not(test))]
 use std::os;
+use std::rt::rtio::RtioTimer;
+use std::rt::io::timer::Timer;
 
 #[path="compositing/mod.rs"]
 pub mod compositing;
@@ -57,8 +61,8 @@ pub mod compositing;
 pub mod macros;
 
 pub mod css {
-    priv mod select_handler;
-    priv mod node_util;
+    mod select_handler;
+    mod node_util;
 
     pub mod select;
     pub mod matching;
@@ -94,56 +98,75 @@ pub mod platform;
 #[path = "util/mod.rs"]
 pub mod util;
 
-fn main() {
-    run(&opts::from_cmdline_args(os::args()))
+#[cfg(not(test))]
+#[start]
+fn start(argc: int, argv: **u8, crate_map: *u8) -> int {
+    do std::rt::start_on_main_thread(argc, argv, crate_map) {
+        let opts = opts::from_cmdline_args(os::args());
+        run(opts)
+    }
 }
 
-fn run(opts: &Opts) {
+fn run(opts: Opts) {
     let (shutdown_port, shutdown_chan) = comm::stream();
-
-    // Create the profiler channel.
     let (profiler_port, profiler_chan) = comm::stream();
+    let (compositor_port, compositor_chan) = comm::stream();
+
     let profiler_chan = ProfilerChan::new(profiler_chan);
     Profiler::create(profiler_port);
-    do opts.profiler_period.map |period| {
+    do opts.profiler_period.map |&period| {
         let profiler_chan = profiler_chan.clone();
-        let period = *period;
+        let period = (period * 1000f) as u64;
         do spawn {
+            let tm = Timer::new().unwrap();
             loop {
-                extra::timer::sleep(&uv_global_loop::get(),
-                                  (period * 1000f) as uint);
+                tm.sleep(period);
                 profiler_chan.send(PrintMsg);
             }
         }
     };
-
-    // Create the compositor.
-    let (compositor_port, compositor_chan) = comm::stream();
     let compositor_chan = CompositorChan::new(compositor_chan);
-    CompositorTask::create(opts.clone(), compositor_port, profiler_chan.clone(), shutdown_chan);
+    let profiler_chan_clone = profiler_chan.clone();
 
-    // Create a Servo instance.
+    let opts_clone = opts.clone();
 
-    let resource_task = ResourceTask();
-    let image_cache_task = ImageCacheTask(resource_task.clone());
-    let constellation_chan = Constellation::start(compositor_chan.clone(),
-                                    opts,
-                                    resource_task,
-                                    image_cache_task,
-                                    profiler_chan.clone());
+    do spawn {
+        let profiler_chan = profiler_chan_clone.clone();
+        let compositor_chan = compositor_chan.clone();
 
-    // Send the URL command to the constellation.
-    for opts.urls.iter().advance |filename| {
-        constellation_chan.send(InitLoadUrlMsg(make_url(filename.clone(), None)))
+        let opts = &opts_clone.clone();
+
+        // Create a Servo instance.
+
+        let resource_task = ResourceTask();
+        let image_cache_task = ImageCacheTask(resource_task.clone());
+        let constellation_chan = Constellation::start(compositor_chan.clone(),
+                                                      opts,
+                                                      resource_task,
+                                                      image_cache_task,
+                                                      profiler_chan.clone());
+
+        // Send the URL command to the constellation.
+        for filename in opts.urls.iter() {
+            constellation_chan.send(InitLoadUrlMsg(make_url(filename.clone(), None)))
+        }
+
+        // Wait for the compositor to shut down.
+        shutdown_port.recv();
+
+        // Shut the constellation down.
+        debug!("master: Shut down");
+        let (exit_response_from_constellation, exit_chan) = comm::stream();
+        constellation_chan.send(ExitMsg(exit_chan));
+        exit_response_from_constellation.recv();
     }
 
-    // Wait for the compositor to shut down.
-    shutdown_port.recv();
 
-    // Shut the constellation down.
-    debug!("master: Shut down");
-    let (exit_response_from_constellation, exit_chan) = comm::stream();
-    constellation_chan.send(ExitMsg(exit_chan));
-    exit_response_from_constellation.recv();
+    let compositor_task = CompositorTask::new(opts,
+                                              compositor_port,
+                                              profiler_chan,
+                                              shutdown_chan);
+    debug!("preparing to enter main loop");
+    compositor_task.run();
 }
 

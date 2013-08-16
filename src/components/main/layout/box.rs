@@ -16,7 +16,6 @@ use std::cell::Cell;
 use std::cmp::ApproxEq;
 use std::managed;
 use std::num::Zero;
-use std::uint;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass};
 use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass};
@@ -38,7 +37,7 @@ use script::dom::node::{AbstractNode, LayoutView};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::range::*;
-use extra::net::url::Url;
+use extra::url::Url;
 
 /// Render boxes (`struct RenderBox`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, render boxes do not have a simple correspondence with CSS boxes as in
@@ -292,14 +291,13 @@ impl RenderBox {
                        text_box.range,
                        max_width);
 
-                for text_box.run.iter_slices_for_range(&text_box.range)
-                                                        |glyphs, offset, slice_range| {
+                for (glyphs, offset, slice_range) in text_box.run.iter_slices_for_range(&text_box.range) {
                     debug!("split_to_width: considering slice (offset=%?, range=%?, remain_width=%?)",
                            offset,
                            slice_range,
                            remaining_width);
 
-                    let metrics = text_box.run.metrics_for_slice(glyphs, slice_range);
+                    let metrics = text_box.run.metrics_for_slice(glyphs, &slice_range);
                     let advance = metrics.advance_width;
                     let should_continue: bool;
 
@@ -385,7 +383,7 @@ impl RenderBox {
     //
     // TODO(eatkinson): integrate with
     // get_min_width and get_pref_width?
-    priv fn guess_width (&self) -> Au {
+    fn guess_width (&self) -> Au {
         do self.with_base |base| {
             if(!base.node.is_element()) {
                 Au(0)
@@ -433,7 +431,7 @@ impl RenderBox {
             ImageRenderBoxClass(image_box) => {
                 // TODO: Consult the CSS `width` property as well as margins and borders.
                 // TODO: If the image isn't available, consult `width`.
-                Au::from_px(image_box.image.get_size().get_or_default(Size2D(0, 0)).width)
+                Au::from_px(image_box.image.get_size().unwrap_or_default(Size2D(0, 0)).width)
             }
 
             TextRenderBoxClass(text_box) => {
@@ -454,7 +452,7 @@ impl RenderBox {
             GenericRenderBoxClass(*) => Au(0),
 
             ImageRenderBoxClass(image_box) => {
-                Au::from_px(image_box.image.get_size().get_or_default(Size2D(0, 0)).width)
+                Au::from_px(image_box.image.get_size().unwrap_or_default(Size2D(0, 0)).width)
             }
 
             TextRenderBoxClass(text_box) => {
@@ -465,9 +463,8 @@ impl RenderBox {
                 // report nothing and the parent flow can factor in minimum/preferred widths of any
                 // text runs that it owns.
                 let mut max_line_width = Au(0);
-                for text_box.run.iter_natural_lines_for_range(&text_box.range)
-                        |line_range| {
-                    let line_metrics = text_box.run.metrics_for_range(line_range);
+                for line_range in text_box.run.iter_natural_lines_for_range(&text_box.range) {
+                    let line_metrics = text_box.run.metrics_for_range(&line_range);
                     max_line_width = Au::max(max_line_width, line_metrics.advance_width);
                 }
 
@@ -782,7 +779,7 @@ impl RenderBox {
         // FIXME: Too much allocation here.
         let font_families = do my_style.font_family().map |family| {
             match *family {
-                CSSFontFamilyFamilyName(ref family_str) => copy *family_str,
+                CSSFontFamilyFamilyName(ref family_str) => (*family_str).clone(),
                 CSSFontFamilyGenericFamily(Serif)       => ~"serif",
                 CSSFontFamilyGenericFamily(SansSerif)   => ~"sans-serif",
                 CSSFontFamilyGenericFamily(Cursive)     => ~"cursive",
@@ -823,7 +820,7 @@ impl RenderBox {
         self.nearest_ancestor_element().style().text_align()
     }
 
-    fn line_height(&self) -> CSSLineHeight {
+    pub fn line_height(&self) -> CSSLineHeight {
         self.nearest_ancestor_element().style().line_height()
     }
 
@@ -875,7 +872,7 @@ impl RenderBox {
     /// Dumps a render box for debugging, with indentation.
     pub fn dump_indent(&self, indent: uint) {
         let mut string = ~"";
-        for uint::range(0u, indent) |_i| {
+        for _ in range(0u, indent) {
             string.push_str("    ");
         }
 

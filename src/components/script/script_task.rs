@@ -25,11 +25,9 @@ use servo_msg::constellation_msg::{PipelineId, SubpageId, RendererReadyMsg, Resi
 use servo_msg::constellation_msg::{LoadIframeUrlMsg};
 use servo_msg::constellation_msg;
 
-use newcss::stylesheet::Stylesheet;
-
 use std::cell::Cell;
 use std::comm;
-use std::comm::{Port, SharedChan, Select2};
+use std::comm::{Port, SharedChan};
 use std::io::read_whole_file;
 use std::ptr::null;
 use std::task::{SingleThreaded, task};
@@ -50,8 +48,7 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::tree::TreeNodeRef;
 use servo_util::url::make_url;
-use extra::net::url::Url;
-use extra::net::url;
+use extra::url::Url;
 use extra::future::{from_value, Future};
 
 /// Messages used to control the script task.
@@ -162,7 +159,7 @@ impl PageTree {
 
     pub fn find<'a> (&'a mut self, id: PipelineId) -> Option<&'a mut PageTree> {
         if self.page.id == id { return Some(self); }
-        for self.inner.mut_iter().advance |page_tree| {
+        for page_tree in self.inner.mut_iter() {
             let found = page_tree.find(id);
             if found.is_some() { return found; }
         }
@@ -181,7 +178,7 @@ impl<'self> Iterator<@mut Page> for PageTreeIterator<'self> {
         if !self.stack.is_empty() {
             let next = self.stack.pop();
             {
-                for next.inner.mut_iter().advance |child| {
+                for child in next.inner.mut_iter() {
                     self.stack.push(child);
                 }
             }
@@ -266,7 +263,7 @@ impl Page {
                 // Send new document and relevant styles to layout.
                 let reflow = ~Reflow {
                     document_root: do frame.document.with_base |doc| { doc.root },
-                    url: copy self.url.get_ref().first(),
+                    url: self.url.get_ref().first().clone(),
                     goal: goal,
                     window_size: self.window_size.get(),
                     script_chan: script_chan,
@@ -485,20 +482,20 @@ impl ScriptTask {
 
     /// Handles a request to execute a script.
     fn handle_execute_msg(&mut self, id: PipelineId, url: Url) {
-        debug!("script: Received url `%s` to execute", url::to_str(&url));
+        debug!("script: Received url `%s` to execute", url.to_str());
 
         let page_tree = self.page_tree.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.");
         let js_info = page_tree.page.js_info.get_ref();
 
         match read_whole_file(&Path(url.path)) {
-            Err(msg) => println(fmt!("Error opening %s: %s", url::to_str(&url), msg)),
+            Err(msg) => println(fmt!("Error opening %s: %s", url.to_str(), msg)),
 
             Ok(bytes) => {
                 js_info.js_compartment.define_functions(debug_fns);
                 js_info.js_context.evaluate_script(js_info.js_compartment.global_obj,
                                                    bytes,
-                                                   copy url.path,
+                                                   url.path.clone(),
                                                    1);
             }
         }
@@ -549,16 +546,16 @@ impl ScriptTask {
     fn handle_resize_inactive_msg(&mut self, new_size: Size2D<uint>) {
         self.page_tree.page.window_size = from_value(new_size);
         let last_loaded_url = replace(&mut self.page_tree.page.url, None);
-        for last_loaded_url.iter().advance |last_loaded_url| {
-            self.page_tree.page.url = Some((last_loaded_url.first(), true));
+        for url in last_loaded_url.iter() {
+            self.page_tree.page.url = Some((url.first(), true));
         }
     }
 
     /// Handles a request to exit the script task and shut down layout.
     fn handle_exit_msg(&mut self) {
-        for self.page_tree.iter().advance |page| {
+        for page in self.page_tree.iter() {
             page.join_layout();
-            do page.frame.get().document.with_mut_base |doc| {
+            do page.frame.unwrap().document.with_mut_base |doc| {
                 doc.teardown();
             }
             page.layout_chan.send(layout_interface::ExitMsg);
@@ -574,10 +571,10 @@ impl ScriptTask {
             message for a layout channel that is not associated with this script task. This
             is a bug.").page;
         let last_loaded_url = replace(&mut page.url, None);
-        for last_loaded_url.iter().advance |last_loaded_url| {
-            let (ref last_loaded_url, needs_reflow) = *last_loaded_url;
-            if *last_loaded_url == url {
-                page.url = Some((last_loaded_url.clone(), false));
+        for loaded in last_loaded_url.iter() {
+            let (ref loaded, needs_reflow) = *loaded;
+            if *loaded == url {
+                page.url = Some((loaded.clone(), false));
                 if needs_reflow {
                     page.reflow_all(ReflowForDisplay, self.chan.clone(), self.compositor);
                 }
@@ -661,7 +658,7 @@ impl ScriptTask {
 
         // Receive the JavaScript scripts.
         assert!(js_scripts.is_some());
-        let js_scripts = js_scripts.swap_unwrap();
+        let js_scripts = js_scripts.take_unwrap();
         debug!("js_scripts: %?", js_scripts);
 
         // Perform the initial reflow.
@@ -677,7 +674,7 @@ impl ScriptTask {
         js_info.js_compartment.define_functions(debug_fns);
 
         // Evaluate every script in the document.
-        for js_scripts.iter().advance |bytes| {
+        for bytes in js_scripts.iter() {
             let _ = js_info.js_context.evaluate_script(js_info.js_compartment.global_obj,
                                                        bytes.clone(),
                                                        ~"???",
@@ -757,10 +754,10 @@ impl ScriptTask {
         }
     }
 
-    priv fn load_url_from_element(&self, page: @mut Page, element: &Element) {
+    fn load_url_from_element(&self, page: @mut Page, element: &Element) {
         // if the node's element is "a," load url from href attr
-        let href = element.get_attr("href");
-        for href.iter().advance |href| {
+        let attr = element.get_attr("href");
+        for href in attr.iter() {
             debug!("ScriptTask: clicked on link to %s", *href);
             let current_url = do page.url.map |&(ref url, _)| {
                 url.clone()

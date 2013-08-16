@@ -21,8 +21,6 @@ use std::libc::c_uint;
 use std::comm;
 use std::ptr;
 use std::ptr::null;
-use std::result;
-use std::str;
 use js::glue::*;
 use js::jsapi::*;
 use js::jsapi::{JSContext, JSVal, JSObject, JSBool, JSFreeOp, JSPropertySpec};
@@ -49,14 +47,14 @@ pub extern fn trace(tracer: *mut JSTracer, obj: *JSObject) {
             return;
         }
         error!("tracing %s", name);
-        let mut node = node.get();
+        let mut node = node.unwrap();
         let cache = node.get_wrappercache();
         let wrapper = cache.get_wrapper();
         assert!(wrapper.is_not_null());
         unsafe {
             (*tracer).debugPrinter = ptr::null();
             (*tracer).debugPrintIndex = -1;
-            do str::as_c_str(name) |name| {
+            do name.to_c_str().with_ref |name| {
                 (*tracer).debugPrintArg = name as *libc::c_void;
                 JS_CallTracer(cast::transmute(tracer), wrapper, JSTRACE_OBJECT as u32);
             }
@@ -194,14 +192,14 @@ extern fn setAttribute(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
         if strval.is_err() {
             return 0;
         }
-        arg0 = str(strval.get());
+        arg0 = str(strval.unwrap());
 
         let arg1: DOMString;
         let strval = jsval_to_str(cx, (*argv.offset(1)));
         if strval.is_err() {
             return 0;
         }
-        arg1 = str(strval.get());
+        arg1 = str(strval.unwrap());
 
         do node.as_mut_element |elem| {
             elem.set_attr(&arg0, &arg1);
@@ -211,7 +209,6 @@ extern fn setAttribute(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
     }
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));
@@ -241,7 +238,6 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
     }
 }
 
-#[allow(non_implicitly_copyable_typarams)]
 extern fn HTMLImageElement_setWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
         let obj = JS_THIS_OBJECT(cx, cast::transmute(vp));
@@ -275,7 +271,7 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
 
         let node = unwrap(obj);
         do node.with_imm_element |elem| {
-            let s = str(copy elem.tag_name);
+            let s = str(elem.tag_name.clone());
             *vp = domstring_to_jsval(cx, &s);            
         }
     }
@@ -295,9 +291,9 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
     //XXXjdm the parent should probably be the node parent instead of the global
     //TODO error checking
     let compartment = utils::get_compartment(cx);
-    let obj = result::unwrap(compartment.new_object_with_proto(~"GenericElementInstance",
-                                                               proto,
-                                                               compartment.global_obj.ptr));
+    let obj = compartment.new_object_with_proto(~"GenericElementInstance",
+                                                proto,
+                                                compartment.global_obj.ptr).unwrap();
 
     let cache = node.get_wrappercache();
     assert!(cache.get_wrapper().is_null());

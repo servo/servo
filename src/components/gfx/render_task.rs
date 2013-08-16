@@ -39,6 +39,7 @@ pub enum Msg {
 }
 
 /// A request from the compositor to the renderer for tiles that need to be (re)displayed.
+#[deriving(Clone)]
 pub struct BufferRequest {
     // The rect in pixels that will be drawn to the screen
     screen_rect: Rect<uint>,
@@ -70,7 +71,7 @@ impl RenderChan {
     }
 }
 
-priv struct RenderTask<C> {
+struct RenderTask<C> {
     id: PipelineId,
     port: Port<Msg>,
     compositor: C,
@@ -87,7 +88,7 @@ priv struct RenderTask<C> {
     /// Permission to send paint messages to the compositor
     paint_permission: bool,
     /// Cached copy of last layers rendered
-    last_paint_msg: Option<(arc::ARC<LayerBufferSet>, Size2D<uint>)>,
+    last_paint_msg: Option<(arc::Arc<LayerBufferSet>, Size2D<uint>)>,
 }
 
 impl<C: RenderListener + Send> RenderTask<C> {
@@ -112,7 +113,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
                 id: id,
                 port: port.take(),
                 compositor: compositor,
-                font_ctx: @mut FontContext::new(copy opts.render_backend,
+                font_ctx: @mut FontContext::new(opts.render_backend.clone(),
                                                 false,
                                                 profiler_chan.clone()),
                 opts: opts,
@@ -179,7 +180,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
 
             // Divide up the layer into tiles.
             do time::profile(time::RenderingPrepBuffCategory, self.profiler_chan.clone()) {
-                for tiles.iter().advance |tile| {
+                for tile in tiles.iter() {
                     let width = tile.screen_rect.size.width;
                     let height = tile.screen_rect.size.height;
                     
@@ -230,7 +231,7 @@ impl<C: RenderListener + Send> RenderTask<C> {
             let layer_buffer_set = LayerBufferSet {
                 buffers: new_buffers,
             };
-            let layer_buffer_set = arc::ARC(layer_buffer_set);
+            let layer_buffer_set = arc::Arc::new(layer_buffer_set);
 
             debug!("render_task: returning surface");
             if self.paint_permission {

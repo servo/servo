@@ -4,7 +4,7 @@
 
 use dom::bindings::utils::{DOMString, null_string, ErrorResult};
 use dom::htmlelement::HTMLElement;
-use extra::net::url::Url;
+use extra::url::Url;
 
 pub struct HTMLImageElement {
     parent: HTMLElement,

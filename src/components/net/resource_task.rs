@@ -5,11 +5,11 @@
 //! A task that takes a URL and streams back the binary data.
 
 use file_loader;
-use http_loader;
+//use http_loader;
 
 use std::cell::Cell;
 use std::comm::{Chan, Port, SharedChan};
-use extra::net::url::{Url, to_str};
+use extra::url::Url;
 use util::spawn_listener;
 
 pub enum ControlMsg {
@@ -43,10 +43,10 @@ pub type LoaderTask = ~fn(url: Url, Chan<ProgressMsg>);
 /// Create a ResourceTask with the default loaders
 pub fn ResourceTask() -> ResourceTask {
     let file_loader_factory: LoaderTaskFactory = file_loader::factory;
-    let http_loader_factory: LoaderTaskFactory = http_loader::factory;
+    //let http_loader_factory: LoaderTaskFactory = http_loader::factory;
     let loaders = ~[
         (~"file", file_loader_factory),
-        (~"http", http_loader_factory)
+        //(~"http", http_loader_factory)
     ];
     create_resource_task_with_loaders(loaders)
 }
@@ -94,7 +94,7 @@ impl ResourceManager {
 
         match self.get_loader_factory(&url) {
             Some(loader_factory) => {
-                debug!("resource_task: loading url: %s", to_str(&url));
+                debug!("resource_task: loading url: %s", url.to_str());
                 loader_factory(url, progress_chan);
             }
             None => {
@@ -105,7 +105,7 @@ impl ResourceManager {
     }
 
     fn get_loader_factory(&self, url: &Url) -> Option<LoaderTask> {
-        for self.loaders.iter().advance |scheme_loader| {
+        for scheme_loader in self.loaders.iter() {
             match *scheme_loader {
                 (ref scheme, ref loader_factory) => {
 	            if (*scheme) == url.scheme {
@@ -142,7 +142,7 @@ fn test_bad_scheme() {
 fn should_delegate_to_scheme_loader() {
     let payload = ~[1, 2, 3];
     let loader_factory = |_url: Url, progress_chan: Chan<ProgressMsg>| {
-        progress_chan.send(Payload(copy payload));
+        progress_chan.send(Payload(payload.clone()));
         progress_chan.send(Done(Ok(())));
     };
     let loader_factories = ~[(~"snicklefritz", loader_factory)];

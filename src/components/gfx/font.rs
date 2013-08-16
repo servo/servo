@@ -10,7 +10,6 @@ use platform::font::{FontHandle, FontTable};
 use render_context::RenderContext;
 use servo_util::range::Range;
 use std::cast;
-use std::result;
 use std::ptr;
 use std::str;
 use std::vec;
@@ -18,7 +17,7 @@ use servo_util::cache::{Cache, HashCache};
 use text::glyph::{GlyphStore, GlyphIndex};
 use text::shaping::ShaperMethods;
 use text::{Shaper, TextRun};
-use extra::arc::ARC;
+use extra::arc::Arc;
 
 use azure::{AzFloat, AzScaledFontRef};
 use azure::scaled_font::ScaledFont;
@@ -58,12 +57,12 @@ pub type FractionalPixel = float;
 
 pub type FontTableTag = u32;
 
-trait FontTableTagConversions {
-    pub fn tag_to_str(&self) -> ~str;
+pub trait FontTableTagConversions {
+    fn tag_to_str(&self) -> ~str;
 }
 
 impl FontTableTagConversions for FontTableTag {
-    pub fn tag_to_str(&self) -> ~str {
+    fn tag_to_str(&self) -> ~str {
         unsafe {
             let reversed = str::raw::from_buf_len(cast::transmute(self), 4);
             return str::from_chars([reversed.char_at(3),
@@ -183,7 +182,7 @@ impl FontGroup {
     pub fn new(families: @str, style: &UsedFontStyle, fonts: ~[@mut Font]) -> FontGroup {
         FontGroup {
             families: families,
-            style: copy *style,
+            style: (*style).clone(),
             fonts: fonts,
         }
     }
@@ -240,7 +239,7 @@ pub struct Font {
     metrics: FontMetrics,
     backend: BackendType,
     profiler_chan: ProfilerChan,
-    shape_cache: HashCache<~str, ARC<GlyphStore>>,
+    shape_cache: HashCache<~str, Arc<GlyphStore>>,
 }
 
 impl Font {
@@ -252,9 +251,9 @@ impl Font {
             -> Result<@mut Font, ()> {
         let handle = FontHandleMethods::new_from_buffer(&ctx.handle, buffer, style);
         let handle: FontHandle = if handle.is_ok() {
-            result::unwrap(handle)
+            handle.unwrap()
         } else {
-            return Err(handle.get_err());
+            return Err(handle.unwrap_err());
         };
         
         let metrics = handle.get_metrics();
@@ -264,7 +263,7 @@ impl Font {
             handle: handle,
             azure_font: None,
             shaper: None,
-            style: copy *style,
+            style: (*style).clone(),
             metrics: metrics,
             backend: backend,
             profiler_chan: profiler_chan,
@@ -281,7 +280,7 @@ impl Font {
             handle: handle,
             azure_font: None,
             shaper: None,
-            style: copy *style,
+            style: (*style).clone(),
             metrics: metrics,
             backend: backend,
             profiler_chan: profiler_chan,
@@ -302,7 +301,7 @@ impl Font {
         return Ok(Font::new_from_adopted_handle(fctx, styled_handle, style, backend, profiler_chan));
     }
 
-    priv fn get_shaper(@mut self) -> @Shaper {
+    fn get_shaper(@mut self) -> @Shaper {
         // fast path: already created a shaper
         match self.shaper {
             Some(shaper) => { return shaper; },
@@ -333,7 +332,7 @@ impl Font {
     // TODO: this should return a borrowed pointer, but I can't figure
     // out why borrowck doesn't like my implementation.
 
-    priv fn get_azure_font(&mut self) -> AzScaledFontRef {
+    fn get_azure_font(&mut self) -> AzScaledFontRef {
         // fast path: we've already created the azure font resource
         match self.azure_font {
             Some(ref azfont) => return azfont.get_ref(),
@@ -347,14 +346,14 @@ impl Font {
     }
 
     #[cfg(target_os="macos")]
-    priv fn create_azure_font(&mut self) -> ScaledFont {
+    fn create_azure_font(&mut self) -> ScaledFont {
         let cg_font = self.handle.get_CGFont();
         let size = self.style.pt_size as AzFloat;
         ScaledFont::new(self.backend, &cg_font, size)
     }
 
     #[cfg(target_os="linux")]
-    priv fn create_azure_font(&self) -> ScaledFont {
+    fn create_azure_font(&self) -> ScaledFont {
         let freetype_font = self.handle.face;
         let size = self.style.pt_size as AzFloat;
         ScaledFont::new(self.backend, freetype_font, size)
@@ -387,14 +386,14 @@ impl Font {
             fields: 0x0200 as uint16_t
         };
 
-        let mut origin = copy baseline_origin;
+        let mut origin = baseline_origin.clone();
         let mut azglyphs = ~[];
         azglyphs.reserve(range.length());
 
-        for run.iter_slices_for_range(range) |glyphs, _offset, slice_range| {
-            for glyphs.iter_glyphs_for_char_range(slice_range) |_i, glyph| {
-                let glyph_advance = glyph.advance_();
-                let glyph_offset = glyph.offset().get_or_default(Au::zero_point());
+        for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {
+            for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
+                let glyph_advance = glyph.advance();
+                let glyph_offset = glyph.offset().unwrap_or_default(Au::zero_point());
 
                 let azglyph = struct__AzGlyph {
                     mIndex: glyph.index() as uint32_t,
@@ -431,9 +430,9 @@ impl Font {
         // TODO(Issue #199): alter advance direction for RTL
         // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
         let mut advance = Au(0);
-        for run.iter_slices_for_range(range) |glyphs, _offset, slice_range| {
-            for glyphs.iter_glyphs_for_char_range(slice_range) |_i, glyph| {
-                advance = advance + glyph.advance_();
+        for (glyphs, _offset, slice_range) in run.iter_slices_for_range(range) {
+            for (_i, glyph) in glyphs.iter_glyphs_for_char_range(&slice_range) {
+                advance = advance + glyph.advance();
             }
         }
         RunMetrics::new(advance, self.metrics.ascent, self.metrics.descent)
@@ -444,25 +443,25 @@ impl Font {
                                   slice_range: &Range)
                                   -> RunMetrics {
         let mut advance = Au(0);
-        for glyphs.iter_glyphs_for_char_range(slice_range) |_i, glyph| {
-            advance = advance + glyph.advance_();
+        for (_i, glyph) in glyphs.iter_glyphs_for_char_range(slice_range) {
+            advance = advance + glyph.advance();
         }
         RunMetrics::new(advance, self.metrics.ascent, self.metrics.descent)
     }
 
-    pub fn shape_text(@mut self, text: ~str, is_whitespace: bool) -> ARC<GlyphStore> {
+    pub fn shape_text(@mut self, text: ~str, is_whitespace: bool) -> Arc<GlyphStore> {
         do profile(time::LayoutShapingCategory, self.profiler_chan.clone()) {
             let shaper = self.get_shaper();
             do self.shape_cache.find_or_create(&text) |txt| {
                 let mut glyphs = GlyphStore::new(text.char_len(), is_whitespace);
                 shaper.shape_text(*txt, &mut glyphs);
-                ARC(glyphs)
+                Arc::new(glyphs)
             }
         }
     }
 
     pub fn get_descriptor(&self) -> FontDescriptor {
-        FontDescriptor::new(copy self.style, SelectorPlatformIdentifier(self.handle.face_identifier()))
+        FontDescriptor::new(self.style.clone(), SelectorPlatformIdentifier(self.handle.face_identifier()))
     }
 
     pub fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex> {

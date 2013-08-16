@@ -101,7 +101,7 @@ impl SelectHandler<AbstractNode<LayoutView>> for NodeSelectHandler {
                 None => false,
                 Some(existing_classes) => {
                     let mut ret = false;
-                    for existing_classes.split_iter(' ').advance |s| {
+                    for s in existing_classes.split_iter(' ') {
                         if s == class {
                             ret = true;
                             break;

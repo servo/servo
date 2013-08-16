@@ -16,7 +16,6 @@ use std::cast::transmute;
 use std::libc::{c_uint, c_int, c_void, c_char};
 use std::ptr;
 use std::ptr::null;
-use std::str;
 use std::uint;
 use std::util::ignore;
 use std::vec;
@@ -86,7 +85,7 @@ impl ShapedGlyphData {
     fn byte_offset_of_glyph(&self, i: uint) -> uint {
         assert!(i < self.count);
 
-        let glyph_info_i = ptr::offset(self.glyph_infos, i);
+        let glyph_info_i = ptr::offset(self.glyph_infos, i as int);
         unsafe {
             (*glyph_info_i).cluster as uint
         }
@@ -101,8 +100,8 @@ impl ShapedGlyphData {
         assert!(i < self.count);
 
         unsafe {
-            let glyph_info_i = ptr::offset(self.glyph_infos, i);
-            let pos_info_i = ptr::offset(self.pos_infos, i);
+            let glyph_info_i = ptr::offset(self.glyph_infos, i as int);
+            let pos_info_i = ptr::offset(self.pos_infos, i as int);
             let x_offset = Shaper::fixed_to_float((*pos_info_i).x_offset);
             let y_offset = Shaper::fixed_to_float((*pos_info_i).y_offset);
             let x_advance = Shaper::fixed_to_float((*pos_info_i).x_advance);
@@ -216,8 +215,8 @@ impl ShaperMethods for Shaper {
             let hb_buffer: *hb_buffer_t = hb_buffer_create();
             hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
 
-            // Using as_buf because it never does a copy - we don't need the trailing null
-            do str::as_buf(text) |ctext: *u8, _: uint| {
+            // Using as_imm_buf because it never does a copy - we don't need the trailing null
+            do text.as_imm_buf |ctext: *u8, _: uint| {
                 hb_buffer_add_utf8(hb_buffer,
                                    ctext as *c_char,
                                    text.len() as c_int,
@@ -272,7 +271,7 @@ impl Shaper {
         }
 
         debug!("(glyph idx) -> (text byte offset)");
-        for uint::range(0, glyph_data.len()) |i| {
+        for i in range(0, glyph_data.len()) {
             // loc refers to a *byte* offset within the utf8 string.
             let loc = glyph_data.byte_offset_of_glyph(i);
             if loc < byte_max {
@@ -335,7 +334,7 @@ impl Shaper {
                 // extend glyph range to max glyph index covered by char_span,
                 // in cases where one char made several glyphs and left some unassociated chars.
                 let mut max_glyph_idx = glyph_span.end();
-                for char_byte_span.eachi |i| {
+                for i in char_byte_span.eachi() {
                     if byteToGlyph[i] > NO_GLYPH {
                         max_glyph_idx = uint::max(byteToGlyph[i] as uint, max_glyph_idx);
                     }
@@ -359,7 +358,7 @@ impl Shaper {
                         probably doesn't work.");
 
                 let mut all_glyphs_are_within_cluster: bool = true;
-                for glyph_span.eachi |j| {
+                for j in glyph_span.eachi() {
                     let loc = glyph_data.byte_offset_of_glyph(j);
                     if !char_byte_span.contains(loc) {
                         all_glyphs_are_within_cluster = false;
@@ -398,7 +397,7 @@ impl Shaper {
             // cspan:  [-]
             // covsp:  [---------------]
 
-            let mut covered_byte_span = copy char_byte_span;
+            let mut covered_byte_span = char_byte_span.clone();
             // extend, clipping at end of text range.
             while covered_byte_span.end() < byte_max
                     && byteToGlyph[covered_byte_span.end()] == NO_GLYPH {
@@ -438,7 +437,7 @@ impl Shaper {
                 // collect all glyphs to be assigned to the first character.
                 let mut datas = ~[];
 
-                for glyph_span.eachi |glyph_i| {
+                for glyph_i in glyph_span.eachi() {
                     let shape = glyph_data.get_entry_for_glyph(glyph_i, &mut y_pos);
                     datas.push(GlyphData::new(shape.codepoint,
                                               shape.advance,
