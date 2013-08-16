@@ -628,10 +628,8 @@ impl RenderBox {
                 // should have a real `SERVO_DEBUG` system.
                 debug!("%?", { 
                     // Compute the text box bounds and draw a border surrounding them.
-                    let debug_border = SideOffsets2D::new(Au::from_px(1),
-                                                          Au::from_px(1),
-                                                          Au::from_px(1),
-                                                          Au::from_px(1));
+                    let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
+
                     do list.with_mut_ref |list| {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
@@ -639,10 +637,7 @@ impl RenderBox {
                                 extra: ExtraDisplayListData::new(*self),
                             },
                             border: debug_border,
-                            color: SideOffsets2D::new(rgb(0, 0, 200).to_gfx_color(),
-                                                    rgb(0, 0, 200).to_gfx_color(),
-                                                    rgb(0, 0, 200).to_gfx_color(),
-                                                    rgb(0, 0, 200).to_gfx_color())
+                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200).to_gfx_color())
 
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
@@ -663,10 +658,7 @@ impl RenderBox {
                                 extra: ExtraDisplayListData::new(*self),
                             },
                             border: debug_border,
-                            color: SideOffsets2D::new(rgb(0, 200, 0).to_gfx_color(),
-                                                    rgb(0, 200, 0).to_gfx_color(),
-                                                    rgb(0, 200, 0).to_gfx_color(),
-                                                    rgb(0, 200, 0).to_gfx_color())
+                            color: SideOffsets2D::new_all_same(rgb(0, 200, 0).to_gfx_color())
 
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
@@ -683,10 +675,7 @@ impl RenderBox {
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
                 debug!("%?", {
-                    let debug_border = SideOffsets2D::new(Au::from_px(1),
-                                                          Au::from_px(1),
-                                                          Au::from_px(1),
-                                                          Au::from_px(1));
+                    let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
 
                     do list.with_mut_ref |list| {
                         let border_display_item = ~BorderDisplayItem {
@@ -695,10 +684,7 @@ impl RenderBox {
                                 extra: ExtraDisplayListData::new(*self),
                             },
                             border: debug_border,
-                            color: SideOffsets2D::new(rgb(0, 0, 200).to_gfx_color(),
-                                                    rgb(0, 0, 200).to_gfx_color(),
-                                                    rgb(0, 0, 200).to_gfx_color(),
-                                                    rgb(0, 0, 200).to_gfx_color())
+                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200).to_gfx_color())
 
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
