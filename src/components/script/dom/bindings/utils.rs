@@ -90,7 +90,7 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: uint, vp: *mut JSVal) -
   }
 }
 
-#[deriving(Clone)]
+#[deriving(Clone,Eq)]
 pub enum DOMString {
     str(~str),
     null_string
