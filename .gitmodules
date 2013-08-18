@@ -103,3 +103,6 @@
 [submodule "src/support/png/rust-png"]
 	path = src/support/png/rust-png
 	url = https://github.com/mozilla-servo/rust-png.git
+[submodule "src/support/png/libpng"]
+	path = src/support/png/libpng
+	url = https://github.com/mozilla-servo/libpng.git
