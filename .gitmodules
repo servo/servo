@@ -102,7 +102,7 @@
 	url = https://github.com/mozilla-servo/rust-cssparser.git
 [submodule "src/support/png/png"]
         path = src/support/png/png
-        url = https://github.com/pliu6-servo/png.git
+        url = https://github.com/pliu6/png.git
 [submodule "src/support/png/rust-png"]
 	path = src/support/png/rust-png
-	url = https://github.com/mozilla-servo/rust-png.git
+	url = https://github.com/pliu6/rust-png.git
