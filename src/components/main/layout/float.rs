@@ -185,7 +185,7 @@ impl FloatFlowData {
         let mut height = Au(0);
         let mut clearance = Au(0);
         let mut full_noncontent_width = Au(0);
-        let mut full_noncontent_height = Au(0);
+        let mut margin_height = Au(0);
 
         self.box.map(|&box| {
             height = do box.with_base |base| {
@@ -201,18 +201,16 @@ impl FloatFlowData {
             do box.with_base |base| {
                 let noncontent_width = base.model.padding.left + base.model.padding.right +
                     base.model.border.left + base.model.border.right;
-                let noncontent_height = base.model.padding.top + base.model.padding.bottom +
-                    base.model.border.top + base.model.border.bottom;
 
                 full_noncontent_width = noncontent_width + base.model.margin.left + base.model.margin.right;
-                full_noncontent_height = noncontent_height + base.model.margin.top + base.model.margin.bottom;
+                margin_height = base.model.margin.top + base.model.margin.bottom;
             }
 
         });
 
         let info = PlacementInfo {
             width: self.common.position.size.width + full_noncontent_width,
-            height: height + full_noncontent_height,
+            height: height + margin_height,
             ceiling: clearance,
             max_width: self.containing_width,
             f_type: self.float_type,
