@@ -41,10 +41,24 @@ struct QuadtreeNode<T> {
     size: f32,
     /// The node's children.
     quadrants: [Option<~QuadtreeNode<T>>, ..4],
-    /// If this node is marked for rendering
-    render_flag: bool,
     /// Combined size of self.tile and tiles of all descendants
     tile_mem: uint,
+    /// The current status of this node. See below for details.
+    status: NodeStatus,
+}
+
+/// The status of a QuadtreeNode. This determines the behavior of the node
+/// when querying for tile requests.
+#[deriving(Eq)]
+pub enum NodeStatus {
+    /// If we have no valid tile, request one; otherwise, don't send a request.
+    Normal,
+    /// Render request has been sent; ignore this node until tile is inserted.
+    Rendering,
+    /// Do not send tile requests. Overrides Invalid.
+    Hidden,
+    /// Send tile requests, even if the node has (or child nodes have) a valid tile.
+    Invalid,
 }
 
 enum Quadrant {
@@ -72,8 +86,8 @@ impl<T: Tile> Quadtree<T> {
                 origin: Point2D(0f32, 0f32),
                 size: size as f32,
                 quadrants: [None, None, None, None],
-                render_flag: false,
                 tile_mem: 0,
+                status: Normal,
             },
             clip_size: Size2D(width, height),
             max_tile_size: tile_size,
@@ -184,7 +198,7 @@ impl<T: Tile> Quadtree<T> {
             Rect(Point2D(window.origin.x as f32 / scale, window.origin.y as f32 / scale),
                  Size2D(window.size.width as f32 / scale, window.size.height as f32 / scale)),
             Size2D(self.clip_size.width as f32, self.clip_size.height as f32),
-            scale, self.max_tile_size as f32 / scale);
+            scale, self.max_tile_size as f32 / scale, false);
         (ret, redisplay)
     }
 
@@ -193,7 +207,7 @@ impl<T: Tile> Quadtree<T> {
         let (ret, redisplay, _) = self.root.get_tile_rects(
             window,
             Size2D(self.clip_size.width as f32, self.clip_size.height as f32),
-            scale, self.max_tile_size as f32 / scale);
+            scale, self.max_tile_size as f32 / scale, false);
         (ret, redisplay)
     }
 
@@ -218,8 +232,8 @@ impl<T: Tile> Quadtree<T> {
                     origin: Point2D(0f32, 0f32),
                     size: new_size as f32 / ((difference - i - 1) as f32).exp2(),
                     quadrants: [None, None, None, None],
-                    render_flag: false,
                     tile_mem: self.root.tile_mem,
+                    status: Normal,
                 };
                 self.root.quadrants[TL as int] = Some(replace(&mut self.root, new_root));
             }
@@ -235,14 +249,21 @@ impl<T: Tile> Quadtree<T> {
                             origin: Point2D(0f32, 0f32),
                             size: new_size as f32,
                             quadrants: [None, None, None, None],
-                            render_flag: false,
                             tile_mem: 0,
+                            status: Normal,
                         };
                         break;
                     }
                 }
             }
         }
+    }
+
+    /// Set the status of all quadtree nodes within the given rect in page coordinates. If
+    /// include_border is true, then nodes on the edge of the rect will be included; otherwise,
+    /// only nodes completely occluded by the rect will be changed.
+    pub fn set_status_page(&mut self, rect: Rect<f32>, status: NodeStatus, include_border: bool) {
+        self.root.set_status(rect, status, include_border);
     }
 
     /// Generate html to visualize the tree. For debugging purposes only.
@@ -261,8 +282,8 @@ impl<T: Tile> QuadtreeNode<T> {
             origin: Point2D(x, y),
             size: size,
             quadrants: [None, None, None, None],
-            render_flag: false,
             tile_mem: 0,
+            status: Normal,
         }
     }
     
@@ -335,7 +356,7 @@ impl<T: Tile> QuadtreeNode<T> {
             for quad in quads.iter() {
                 self.quadrants[*quad as int] = None;
             }
-            self.render_flag = false;
+            self.status = Normal;
             self.tile_mem as int - old_size as int
         } else { // Send tile to children            
             let quad = self.get_quadrant(x, y);
@@ -380,7 +401,7 @@ impl<T: Tile> QuadtreeNode<T> {
             let page_height = (clip_y - self.origin.y).min(&self.size);
             let pix_width = (page_width * scale).ceil() as uint;
             let pix_height = (page_height * scale).ceil() as uint;
-            self.render_flag = true;
+            self.status = Rendering;
             return BufferRequest(Rect(Point2D(pix_x, pix_y), Size2D(pix_width, pix_height)),
                                  Rect(Point2D(self.origin.x, self.origin.y), Size2D(page_width, page_height)));
         }
@@ -477,9 +498,11 @@ impl<T: Tile> QuadtreeNode<T> {
     
     /// Given a window rect in page coordinates, returns a BufferRequest array,
     /// a redisplay boolean, and the difference in tile memory between the new and old quadtree nodes.
+    /// The override bool will be true if a parent node was marked as invalid; child nodes will be
+    /// treated as invalid as well.
     /// NOTE: this method will sometimes modify the tree by deleting tiles.
     /// See the QuadTree function description for more details.
-    fn get_tile_rects(&mut self, window: Rect<f32>, clip: Size2D<f32>, scale: f32, tile_size: f32) ->
+    fn get_tile_rects(&mut self, window: Rect<f32>, clip: Size2D<f32>, scale: f32, tile_size: f32, override: bool) ->
         (~[BufferRequest], bool, int) {
         
         let w_x = window.origin.x;
@@ -503,8 +526,9 @@ impl<T: Tile> QuadtreeNode<T> {
         
         if s_size <= tile_size { // We are the child
             return match self.tile {
-                _ if self.render_flag => (~[], false, 0),
-                Some(ref tile) if tile.is_valid(scale) => {
+                _ if self.status == Rendering || self.status == Hidden => (~[], false, 0),
+                Some(ref tile) if tile.is_valid(scale) && !override
+                && self.status != Invalid => {
                     let redisplay = match self.quadrants {
                         [None, None, None, None] => false,
                         _ => true,
@@ -582,8 +606,10 @@ impl<T: Tile> QuadtreeNode<T> {
                 
             };
 
+            let override = override || self.status == Invalid;
+            self.status = Normal;
             let (c_ret, c_redisplay, c_delta) = match self.quadrants[*quad as int] {
-                Some(ref mut child) => child.get_tile_rects(new_window, clip, scale, tile_size),
+                Some(ref mut child) => child.get_tile_rects(new_window, clip, scale, tile_size, override),
                 None => {
                     // Create new child
                     let new_size = self.size / 2.0;
@@ -596,7 +622,7 @@ impl<T: Tile> QuadtreeNode<T> {
                         BL | BR => self.origin.y + new_size,
                     };
                     let mut child = ~QuadtreeNode::new_child(new_x, new_y, new_size);
-                    let ret = child.get_tile_rects(new_window, clip, scale, tile_size);
+                    let ret = child.get_tile_rects(new_window, clip, scale, tile_size, override);
                     self.quadrants[*quad as int] = Some(child);
                     ret
                 }
@@ -608,6 +634,42 @@ impl<T: Tile> QuadtreeNode<T> {
         } 
         self.tile_mem = (self.tile_mem as int + delta) as uint;
         (ret, redisplay, delta)
+    }
+
+    /// Set the status of nodes contained within the rect. See the quadtree method for
+    /// more info.
+    fn set_status(&mut self, rect: Rect<f32>, status: NodeStatus, borders: bool) {
+        let self_rect = Rect(self.origin, Size2D(self.size, self.size));
+        let intersect = rect.intersection(&self_rect);
+        let intersect = match intersect {
+            None => return, // We do not intersect the rect, nothing to do
+            Some(rect) => rect,
+        };
+
+        if self_rect == intersect { // We are completely contained in the rect
+            if !(self.status == Hidden && status == Invalid) { // Hidden trumps Invalid
+                self.status = status;
+            }
+            return; // No need to recurse
+        }
+
+        match self.quadrants {
+            [None, None, None, None] => { // We are a leaf
+                if borders && !(self.status == Hidden && status == Invalid) {
+                    self.status = status;
+                }
+            }
+            _ => { // We are internal
+                for quad in self.quadrants.mut_iter() {
+                    match *quad {
+                        None => {} // Nothing to do
+                        Some(ref mut child) => {
+                            child.set_status(intersect, status, borders);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// Generate html to visualize the tree.

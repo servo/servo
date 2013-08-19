@@ -12,7 +12,7 @@ use servo_msg::constellation_msg::PipelineId;
 use script::dom::event::{ClickEvent, MouseDownEvent, MouseUpEvent};
 use script::script_task::SendEventMsg;
 use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
-use compositing::quadtree::Quadtree;
+use compositing::quadtree::{Quadtree, Invalid};
 use layers::layers::{ContainerLayerKind, ContainerLayer, TextureLayerKind, TextureLayer, TextureManager};
 use pipeline::Pipeline;
 
@@ -365,6 +365,19 @@ impl CompositorLayer {
                 self.children.mut_iter().map(|x| &mut x.child).any(|x| x.delete(pipeline_id))
             }
         }
+    }
+
+    pub fn invalidate_rect(&mut self, pipeline_id: PipelineId, rect: Rect<f32>) -> bool {
+        if self.pipeline.id == pipeline_id {
+            let quadtree = match self.quadtree {
+                NoTree(_, _) => return true, // Nothing to do
+                Tree(ref mut quadtree) => quadtree,
+            };
+            quadtree.set_status_page(rect, Invalid, true);
+            return true;
+        }
+        // ID does not match ours, so recurse on descendents (including hidden children).
+        self.children.mut_iter().map(|x| &mut x.child).any(|x| x.invalidate_rect(pipeline_id, rect))
     }
     
     // Adds a child.
