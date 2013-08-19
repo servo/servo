@@ -69,6 +69,7 @@ pub trait RenderListener {
 /// which is used in displaying the appropriate message in the window's title.
 pub trait ScriptListener : Clone {
     fn set_ready_state(&self, ReadyState);
+    fn invalidate_rect(&self, PipelineId, Rect<uint>);
 }
 
 /// The interface used by the quadtree to get info about LayerBuffers
