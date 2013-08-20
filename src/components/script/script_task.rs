@@ -21,7 +21,7 @@ use layout_interface::{ReflowDocumentDamage, ReflowForDisplay, ReflowGoal};
 use layout_interface::ReflowMsg;
 use layout_interface;
 use servo_msg::constellation_msg::{ConstellationChan, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{PipelineId, SubpageId, RendererReadyMsg, ResizedWindowBroadcast};
+use servo_msg::constellation_msg::{PipelineId, SubpageId, RendererReadyMsg};
 use servo_msg::constellation_msg::{LoadIframeUrlMsg};
 use servo_msg::constellation_msg;
 
@@ -68,7 +68,7 @@ pub enum ScriptMsg {
     /// Notifies script that reflow is finished.
     ReflowCompleteMsg(PipelineId),
     /// Notifies script that window has been resized but to not take immediate action.
-    ResizeInactiveMsg(Size2D<uint>),
+    ResizeInactiveMsg(PipelineId, Size2D<uint>),
     /// Exits the constellation.
     ExitMsg,
 }
@@ -454,7 +454,7 @@ impl ScriptTask {
             FireTimerMsg(id, timer_data) => self.handle_fire_timer_msg(id, timer_data),
             NavigateMsg(direction) => self.handle_navigate_msg(direction),
             ReflowCompleteMsg(id) => self.handle_reflow_complete_msg(id),
-            ResizeInactiveMsg(new_size) => self.handle_resize_inactive_msg(new_size),
+            ResizeInactiveMsg(id, new_size) => self.handle_resize_inactive_msg(id, new_size),
             ExitMsg => {
                 self.handle_exit_msg();
                 return false
@@ -464,6 +464,7 @@ impl ScriptTask {
     }
 
     fn handle_new_layout(&mut self, new_layout_info: NewLayoutInfo) {
+        debug!("Script: new layout: %?", new_layout_info);
         let NewLayoutInfo {
             old_id,
             new_id,
@@ -529,6 +530,7 @@ impl ScriptTask {
 
     /// Handles a notification that reflow completed.
     fn handle_reflow_complete_msg(&mut self, pipeline_id: PipelineId) {
+        debug!("Script: Reflow complete for %?", pipeline_id);
         self.page_tree.find(pipeline_id).expect("ScriptTask: received a load
             message for a layout channel that is not associated with this script task. This
             is a bug.").page.layout_join_port = None;
@@ -543,11 +545,13 @@ impl ScriptTask {
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
-    fn handle_resize_inactive_msg(&mut self, new_size: Size2D<uint>) {
-        self.page_tree.page.window_size = from_value(new_size);
-        let last_loaded_url = replace(&mut self.page_tree.page.url, None);
+    fn handle_resize_inactive_msg(&mut self, id: PipelineId, new_size: Size2D<uint>) {
+        let page = self.page_tree.find(id).expect("Received resize message for PipelineId not associated
+            with a page in the page tree. This is a bug.").page;
+        page.window_size = from_value(new_size);
+        let last_loaded_url = replace(&mut page.url, None);
         for url in last_loaded_url.iter() {
-            self.page_tree.page.url = Some((url.first(), true));
+            page.url = Some((url.first(), true));
         }
     }
 
@@ -565,7 +569,7 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&mut self, pipeline_id: PipelineId, url: Url) {
-        debug!("ScriptTask: loading %?", url);
+        debug!("ScriptTask: loading %? on page %?", url, pipeline_id);
 
         let page = self.page_tree.find(pipeline_id).expect("ScriptTask: received a load
             message for a layout channel that is not associated with this script task. This
@@ -601,7 +605,8 @@ impl ScriptTask {
                                                                  url.clone(),
                                                                  self.resource_task.clone(),
                                                                  self.image_cache_task.clone(),
-                                                                 page.next_subpage_id.clone());
+                                                                 page.next_subpage_id.clone(),
+                                                                 self.constellation_chan.clone());
 
         let HtmlParserResult {root, discovery_port} = html_parsing_result;
 
@@ -700,8 +705,6 @@ impl ScriptTask {
                     page.damage(ReflowDocumentDamage);
                     page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor)
                 }
-
-                self.constellation_chan.send(ResizedWindowBroadcast(page.window_size.get().clone()));
             }
 
             // FIXME(pcwalton): This reflows the entire document and is not incremental-y.

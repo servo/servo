@@ -753,6 +753,11 @@ impl InlineFlowData {
                                                              list: &Cell<DisplayList<E>>)
                                                              -> bool {
 
+        //TODO: implement inline iframe size messaging
+        if self.common.node.is_iframe_element() {
+            error!("inline iframe size messaging not implemented yet");
+        }
+
         let abs_rect = Rect(self.common.abs_position, self.common.position.size);
         if !abs_rect.intersects(dirty) {
             return false;

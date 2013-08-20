@@ -14,9 +14,10 @@ use layout::float_context::{FloatContext, Invalid};
 
 use std::cell::Cell;
 use geom::point::Point2D;
+use geom::size::Size2D;
 use geom::rect::Rect;
 use gfx::display_list::DisplayList;
-use gfx::geometry::Au;
+use gfx::geometry::{Au, to_frac_px};
 use gfx::geometry;
 use servo_util::tree::TreeNodeRef;
 
@@ -363,6 +364,27 @@ impl BlockFlowData {
                                                             dirty: &Rect<Au>, 
                                                             list: &Cell<DisplayList<E>>) 
                                                             -> bool {
+
+        if self.common.node.is_iframe_element() {
+            let x = self.common.abs_position.x + do self.box.map_default(Au(0)) |box| {
+                box.with_model(|model| model.margin.left + model.border.left + model.padding.left)
+            };
+            let y = self.common.abs_position.y + do self.box.map_default(Au(0)) |box| {
+                box.with_model(|model| model.margin.top + model.border.top + model.padding.top)
+            };
+            let w = self.common.position.size.width - do self.box.map_default(Au(0)) |box| {
+                box.with_model(|model| model.noncontent_width())
+            };
+            let h = self.common.position.size.height - do self.box.map_default(Au(0)) |box| {
+                box.with_model(|model| model.noncontent_height())
+            };
+            do self.common.node.with_mut_iframe_element |iframe_element| {
+                iframe_element.size.get_mut_ref().set_rect(Rect(Point2D(to_frac_px(x) as f32,
+                                                                        to_frac_px(y) as f32),
+                                                                Size2D(to_frac_px(w) as f32,
+                                                                       to_frac_px(h) as f32)));
+            }
+        }
 
         let abs_rect = Rect(self.common.abs_position, self.common.position.size);
         if !abs_rect.intersects(dirty) {
