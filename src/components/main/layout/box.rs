@@ -30,7 +30,7 @@ use newcss::units::{Cursive, Em, Fantasy, Monospace, Pt, Px, SansSerif, Serif};
 use newcss::values::{CSSClearNone, CSSClearLeft, CSSClearRight, CSSClearBoth};
 use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily};
 use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
-use newcss::values::{CSSFontStyleOblique, CSSTextAlign, CSSTextDecoration, CSSLineHeight};
+use newcss::values::{CSSFontStyleOblique, CSSTextAlign, CSSTextDecoration, CSSLineHeight, CSSVerticalAlign};
 use newcss::values::{CSSTextDecorationNone, CSSFloatNone, CSSPositionStatic};
 use newcss::values::{CSSDisplayInlineBlock, CSSDisplayInlineTable};
 use script::dom::node::{AbstractNode, LayoutView};
@@ -820,6 +820,10 @@ impl RenderBox {
 
     pub fn line_height(&self) -> CSSLineHeight {
         self.nearest_ancestor_element().style().line_height()
+    }
+
+    pub fn vertical_align(&self) -> CSSVerticalAlign {
+        self.nearest_ancestor_element().style().vertical_align()
     }
 
     /// Returns the text decoration of the computed style of the nearest `Element` node

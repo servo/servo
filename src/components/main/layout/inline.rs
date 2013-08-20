@@ -20,6 +20,7 @@ use gfx::geometry::Au;
 use newcss::values::{CSSTextAlignLeft, CSSTextAlignCenter, CSSTextAlignRight, CSSTextAlignJustify};
 use newcss::units::{Em, Px, Pt};
 use newcss::values::{CSSLineHeightNormal, CSSLineHeightNumber, CSSLineHeightLength, CSSLineHeightPercentage};
+use newcss::values::{CSSVerticalAlignBaseline, CSSVerticalAlignMiddle, CSSVerticalAlignSub, CSSVerticalAlignSuper, CSSVerticalAlignTextTop, CSSVerticalAlignTextBottom, CSSVerticalAlignTop, CSSVerticalAlignBottom, CSSVerticalAlignLength, CSSVerticalAlignPercentage};
 use servo_util::range::Range;
 use servo_util::tree::TreeNodeRef;
 use extra::container::Deque;
@@ -661,20 +662,35 @@ impl InlineFlowData {
                 }
             };
 
-
-            // Get the baseline offset, assuming that the tallest text box will determine
-            // the baseline.
-            let mut baseline_offset = Au(0);
             let mut max_height = Au(0);
+            let mut top_offset = Au(0);
+            let mut bottom_offset = Au(0);
+            let mut text_top_offset = Au(0);
+            let mut text_bottom_offset = Au(0);
+
             for box_i in line.range.eachi() {
                 let cur_box = self.boxes[box_i];
 
                 match cur_box {
                     ImageRenderBoxClass(image_box) => {
                         let size = image_box.image.get_size();
-                        let height = Au::from_px(size.unwrap_or_default(Size2D(0, 0)).height);
+                        let mut height = Au::from_px(size.unwrap_or_default(Size2D(0, 0)).height);
+                        let mut noncontent_height = Au(0);
+
+                        // TODO: margin, border, padding's top and bottom should be calculated in advance,
+                        // since baseline of image is bottom margin edge.
+                        do cur_box.with_model |model| {
+                            noncontent_height = model.border.top + model.border.bottom +
+                                model.padding.top + model.padding.bottom +
+                                model.margin.top + model.margin.bottom;
+                        }
+                        height = height + noncontent_height;
                         image_box.base.position.size.height = height;
 
+                        let img_offset = height;
+                        if top_offset < img_offset {
+                            top_offset = img_offset;
+                        }
                         image_box.base.position.translate(&Point2D(Au(0), -height))
                     }
                     TextRenderBoxClass(text_box) => {
@@ -700,10 +716,27 @@ impl InlineFlowData {
                         // and the vertical-align value.
                         if line_height > max_height {
                             max_height = line_height;
-                            let linebox_height = line.bounds.size.height;
-                            // Offset from the top of the linebox is 1/2 of the leading + ascent
-                            baseline_offset = text_box.run.font.metrics.ascent +
-                                    (linebox_height - em_size).scale_by(0.5f);
+                        }
+
+                        // Find the top and bottom of the content area.
+                        // Those are used in text-top and text-bottom value of 'vertex-align'
+                        let text_ascent = text_box.run.font.metrics.ascent;
+                        let text_descent = text_box.run.font.metrics.descent;
+                        if text_top_offset < text_ascent {
+                            text_top_offset = text_ascent;
+                        }
+                        if text_bottom_offset < text_descent {
+                            text_bottom_offset = text_descent;
+                        }
+                       
+                        // Offset from the top of the box is 1/2 of the leading + ascent
+                        let text_offset = text_ascent + (line_height - em_size).scale_by(0.5f);
+                        // Find the top offset and bottom offset from the baseline.
+                        if top_offset < text_offset {
+                            top_offset = text_offset;
+                        }
+                        if bottom_offset < line_height - text_offset {
+                            bottom_offset = line_height - text_offset;
                         }
                         text_bounds.translate(&Point2D(text_box.base.position.origin.x, Au(0)))
                     }
@@ -718,22 +751,104 @@ impl InlineFlowData {
                 };
             }
 
+            let baseline_offset = top_offset;
+            let mut adjust = Au(0);
+            let mut adjust_flag = false;
             // Now go back and adjust the Y coordinates to match the baseline we determined.
             for box_i in line.range.eachi() {
                 let cur_box = self.boxes[box_i];
 
-                // TODO(#226): This is completely wrong. We need to use the element's `line-height`
-                // when calculating line box height. Then we should go back over and set Y offsets
-                // according to the `vertical-align` property of the containing block.
-                let offset = match cur_box {
-                    TextRenderBoxClass(text_box) => {
-                        baseline_offset - text_box.run.font.metrics.ascent
+                let ascent = match cur_box {
+                    ImageRenderBoxClass(image_box) => {
+                        let mut bottom = Au(0);
+                        do cur_box.with_model |model| {
+                            bottom = model.border.bottom + model.padding.bottom + model.margin.bottom;
+                        }
+                        image_box.base.position.size.height + bottom
                     },
-                    _ => Au(0),
+                    TextRenderBoxClass(text_box) => {
+                        text_box.run.font.metrics.ascent
+                    },
+                    GenericRenderBoxClass(generic_box) => {
+                        generic_box.position.size.height
+                    },
+                    _ => {
+                        fail!(fmt!("Tried to assign height to unknown Box variant: %s",
+                                   cur_box.debug_str()))
+                    }
                 };
+
+                let offset = match cur_box.vertical_align() {
+                    CSSVerticalAlignBaseline => {
+                        (baseline_offset - ascent)
+                    },
+                    CSSVerticalAlignMiddle => {
+                        // TODO: x-height value should be used from font info.
+                        let xheight = Au(0);
+                        (baseline_offset - (xheight + scanner.box_height(cur_box)).scale_by(0.5))
+                    },
+                    CSSVerticalAlignSub => {
+                        // TODO: The proper position for subscripts should be used.
+                        let sub_offset = Au(0);
+                        (baseline_offset + sub_offset - ascent)
+                    },
+                    CSSVerticalAlignSuper => {
+                        // TODO: The proper position for superscripts should be used.
+                        let super_offset = Au(0);
+                        (baseline_offset - super_offset - ascent)
+                    },
+                    CSSVerticalAlignTextTop => {
+                        (baseline_offset - text_top_offset)
+                    },
+                    CSSVerticalAlignTextBottom => {
+                        (baseline_offset + text_bottom_offset - scanner.box_height(cur_box))
+                    },
+                    CSSVerticalAlignTop => {
+                        // This value must be 0.
+                        (baseline_offset - top_offset)
+                    },
+                    CSSVerticalAlignBottom => {
+                        (baseline_offset + bottom_offset - scanner.box_height(cur_box))
+                    },
+                    CSSVerticalAlignLength(length) => {
+                        let length_offset = match length {
+                            Em(l) => Au::from_frac_px(cur_box.font_style().pt_size * l),
+                            Px(l) => Au::from_frac_px(l),
+                            Pt(l) => Au::from_pt(l),
+                        };
+                        (baseline_offset - length_offset - ascent)
+                    },
+                    CSSVerticalAlignPercentage(p) => {
+                        let percent_offset = max_height.scale_by(p / 100.0f);
+                        (baseline_offset - percent_offset - ascent)
+                    }
+                };
+                if !adjust_flag || offset < adjust {
+                    adjust_flag = true;
+                    adjust = offset;
+                }
 
                 do cur_box.with_mut_base |base| {
                     base.position.origin.y = offset + line.bounds.origin.y;
+                }
+            }
+
+            for box_i in line.range.eachi() {
+                let cur_box = self.boxes[box_i];
+                let adjust_offset = match cur_box.vertical_align() {
+                    CSSVerticalAlignTop => {
+                        adjust
+                    },
+                    CSSVerticalAlignBottom => {
+                        adjust
+                    },
+                    _ => {
+                        -adjust
+                    }
+                };
+
+                do cur_box.with_mut_base |base| {
+                    base.position.origin.y = base.position.origin.y + adjust_offset;
                 }
             }
         } // End of `lines.each` loop.
