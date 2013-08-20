@@ -7,18 +7,38 @@ use dom::document::AbstractDocument;
 use dom::htmlelement::HTMLElement;
 use dom::windowproxy::WindowProxy;
 use geom::size::Size2D;
+use geom::rect::Rect;
 
-use servo_msg::constellation_msg::SubpageId;
+use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg, PipelineId, SubpageId};
 
 use std::comm::ChanOne;
 use extra::url::Url;
+use std::util::replace;
 
 pub struct HTMLIFrameElement {
     parent: HTMLElement,
     frame: Option<Url>,
-    subpage_id: Option<SubpageId>,
-    size_future_chan: Option<ChanOne<Size2D<uint>>>,
+    size: Option<IFrameSize>,
 }
+
+struct IFrameSize {
+    pipeline_id: PipelineId,
+    subpage_id: SubpageId,
+    future_chan: Option<ChanOne<Size2D<uint>>>,
+    constellation_chan: ConstellationChan,
+}
+
+impl IFrameSize {
+    pub fn set_rect(&mut self, rect: Rect<f32>) {
+        let future_chan = replace(&mut self.future_chan, None);
+        do future_chan.map_move |future_chan| {
+            let Size2D { width, height } = rect.size;
+            future_chan.send(Size2D(width as uint, height as uint));
+        };
+        self.constellation_chan.send(FrameRectMsg(self.pipeline_id, self.subpage_id, rect));
+    }
+}
+
 
 impl HTMLIFrameElement {
     pub fn Src(&self) -> DOMString {

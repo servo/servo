@@ -385,8 +385,6 @@ impl Element {
                         assert!(node.is_element());
                         let page = win.page;
                         let (port, chan) = comm::stream();
-                        // TODO(tkuehn): currently just queries top-level page layout. Needs to query
-                        // subframe layout if this element is in a subframe. Probably need an ID field.
                         match unsafe {(*page).query_layout(ContentBoxesQuery(node, chan), port)} {
                             Ok(ContentBoxesResponse(rects)) => {
                                 let cx = unsafe {(*page).js_info.get_ref().js_compartment.cx.ptr};

@@ -54,14 +54,25 @@ pub enum ReadyState {
     FinishedLoading,
 }
 
+/// A newtype struct for denoting the age of messages; prevents race conditions.
+#[deriving(Eq)]
+pub struct Epoch(uint);
+
+impl Epoch {
+    pub fn next(&mut self) {
+        **self += 1;
+    }
+}
+
 /// The interface used by the renderer to acquire draw targets for each render frame and
 /// submit them to be drawn to the display.
 pub trait RenderListener {
     fn get_gl_context(&self) -> AzGLContext;
     fn new_layer(&self, PipelineId, Size2D<uint>);
-    fn resize_layer(&self, PipelineId, Size2D<uint>);
+    fn set_layer_page_size(&self, PipelineId, Size2D<uint>, Epoch);
+    fn set_layer_clip_rect(&self, PipelineId, Rect<uint>);
     fn delete_layer(&self, PipelineId);
-    fn paint(&self, id: PipelineId, layer_buffer_set: arc::Arc<LayerBufferSet>);
+    fn paint(&self, id: PipelineId, layer_buffer_set: arc::Arc<LayerBufferSet>, Epoch);
     fn set_render_state(&self, render_state: RenderState);
 }
 
