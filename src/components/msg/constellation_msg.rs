@@ -9,6 +9,7 @@ use std::comm::{Chan, SharedChan};
 use extra::url::Url;
 use extra::future::Future;
 use geom::size::Size2D;
+use geom::rect::Rect;
 
 #[deriving(Clone)]
 pub struct ConstellationChan {
@@ -29,11 +30,12 @@ impl ConstellationChan {
 pub enum Msg {
     ExitMsg(Chan<()>),
     InitLoadUrlMsg(Url),
+    FrameRectMsg(PipelineId, SubpageId, Rect<f32>),
     LoadUrlMsg(PipelineId, Url, Future<Size2D<uint>>),
     LoadIframeUrlMsg(Url, PipelineId, SubpageId, Future<Size2D<uint>>),
     NavigateMsg(NavigationDirection),
     RendererReadyMsg(PipelineId),
-    ResizedWindowBroadcast(Size2D<uint>),
+    ResizedWindowMsg(Size2D<uint>),
 }
 
 /// Represents the two different ways to which a page can be navigated

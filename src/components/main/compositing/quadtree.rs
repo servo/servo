@@ -211,11 +211,30 @@ impl<T: Tile> Quadtree<T> {
         (ret, redisplay)
     }
 
-
-    /// Resize the quadtree. This can add more space, changing the root node, or it can shrink, making
-    /// an internal node the new root.
-    /// TODO: return tiles after shrinking
+    /// Creates a new quadtree at the specified size. This should be called when the window changes size.
+    /// TODO: return old tiles.
     pub fn resize(&mut self, width: uint, height: uint) {
+        // Spaces must be squares and powers of 2, so expand the space until it is
+        let longer = width.max(&height);
+        let num_tiles = div_ceil(longer, self.max_tile_size);
+        let power_of_two = next_power_of_two(num_tiles);
+        let size = power_of_two * self.max_tile_size;
+        
+        self.root = ~QuadtreeNode {
+            tile: None,
+            origin: Point2D(0f32, 0f32),
+            size: size as f32,
+            quadrants: [None, None, None, None],
+            status: Normal,
+            tile_mem: 0,
+        };
+        self.clip_size = Size2D(width, height);
+    }
+
+    /// Resize the underlying quadtree without removing tiles already in place.
+    /// Might be useful later on, but resize() should be used for now.
+    /// TODO: return tiles after shrinking
+    pub fn bad_resize(&mut self, width: uint, height: uint) {
         self.clip_size = Size2D(width, height);
         let longer = width.max(&height);
         let new_num_tiles = div_ceil(longer, self.max_tile_size);
