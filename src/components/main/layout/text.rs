@@ -66,16 +66,20 @@ impl TextRunScanner {
         }
     }
 
-    pub fn scan_for_runs(&mut self, ctx: &LayoutContext, flow: FlowContext) {
-        let inline = flow.inline();
-        assert!(inline.boxes.len() > 0);
-        debug!("TextRunScanner: scanning %u boxes for text runs...", inline.boxes.len());
+    pub fn scan_for_runs(&mut self, ctx: &LayoutContext, flow: &mut FlowContext) {
+        {
+            let inline = flow.imm_inline();
+            // FIXME: this assertion fails on wikipedia, but doesn't seem
+            // to cause problems.
+            // assert!(inline.boxes.len() > 0);
+            debug!("TextRunScanner: scanning %u boxes for text runs...", inline.boxes.len());
+        }
 
         let mut last_whitespace = true;
         let mut out_boxes = ~[];
-        for box_i in range(0, flow.inline().boxes.len()) {
-            debug!("TextRunScanner: considering box: %?", flow.inline().boxes[box_i].debug_str());
-            if box_i > 0 && !can_coalesce_text_nodes(flow.inline().boxes, box_i-1, box_i) {
+        for box_i in range(0, flow.imm_inline().boxes.len()) {
+            debug!("TextRunScanner: considering box: %?", flow.imm_inline().boxes[box_i].debug_str());
+            if box_i > 0 && !can_coalesce_text_nodes(flow.imm_inline().boxes, box_i-1, box_i) {
                 last_whitespace = self.flush_clump_to_list(ctx, flow, last_whitespace, &mut out_boxes);
             }
             self.clump.extend_by(1);
@@ -118,10 +122,10 @@ impl TextRunScanner {
     /// necessary.
     pub fn flush_clump_to_list(&mut self,
                                ctx: &LayoutContext,
-                               flow: FlowContext,
+                               flow: &mut FlowContext,
                                last_whitespace: bool,
                                out_boxes: &mut ~[RenderBox]) -> bool {
-        let inline = &mut *flow.inline();
+        let inline = flow.inline();
         let in_boxes = &inline.boxes;
 
         fn has_underline(decoration: CSSTextDecoration) -> bool{

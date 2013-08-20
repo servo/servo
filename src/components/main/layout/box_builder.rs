@@ -4,7 +4,6 @@
 
 //! Creates CSS boxes from a DOM tree.
 
-use layout::aux::LayoutAuxMethods;
 use layout::block::BlockFlowData;
 use layout::float::FloatFlowData;
 use layout::box::{GenericRenderBoxClass, ImageRenderBox, ImageRenderBoxClass, RenderBox};
@@ -31,9 +30,9 @@ use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
 use servo_util::range::Range;
 use servo_util::tree::{TreeNodeRef, TreeNode};
+use std::cell::Cell;
 
 pub struct LayoutTreeBuilder {
-    root_flow: Option<FlowContext>,
     next_cid: int,
     next_bid: int,
 }
@@ -41,7 +40,6 @@ pub struct LayoutTreeBuilder {
 impl LayoutTreeBuilder {
     pub fn new() -> LayoutTreeBuilder {
         LayoutTreeBuilder {
-            root_flow: None,
             next_cid: -1,
             next_bid: -1,
         }
@@ -50,9 +48,9 @@ impl LayoutTreeBuilder {
 
 // helper object for building the initial box list and making the
 // mapping between DOM nodes and boxes.
-struct BoxGenerator {
-    flow: FlowContext,
-    range_stack: ~[uint],
+struct BoxGenerator<'self> {
+    flow: &'self mut FlowContext,
+    range_stack: @mut ~[uint],
 }
 
 enum InlineSpacerSide {
@@ -94,25 +92,32 @@ fn simulate_UA_display_rules(node: AbstractNode<LayoutView>) -> CSSDisplay {
     }
 }
 
-impl BoxGenerator {
+impl<'self> BoxGenerator<'self> {
     /* Debug ids only */
 
-    fn new(flow: FlowContext) -> BoxGenerator {
+    fn new(flow: &'self mut FlowContext) -> BoxGenerator<'self> {
         debug!("Creating box generator for flow: %s", flow.debug_str());
         BoxGenerator {
             flow: flow,
-            range_stack: ~[]
+            range_stack: @mut ~[]
         }
     }
 
+    fn with_clone<R> (&mut self, cb: &fn(BoxGenerator<'self>) -> R) -> R {
+        let gen = BoxGenerator {
+            flow: &mut *self.flow,
+            range_stack: self.range_stack
+        };
+        cb(gen)
+    }
+
     /* Whether "spacer" boxes are needed to stand in for this DOM node */
-    fn inline_spacers_needed_for_node(&self, _: AbstractNode<LayoutView>) -> bool {
+    fn inline_spacers_needed_for_node(_: AbstractNode<LayoutView>) -> bool {
         return false;
     }
 
     // TODO: implement this, generating spacer 
-    fn make_inline_spacer_for_node_side(&self,
-                                        _: &LayoutContext,
+    fn make_inline_spacer_for_node_side(_: &LayoutContext,
                                         _: AbstractNode<LayoutView>,
                                         _: InlineSpacerSide)
                                         -> Option<RenderBox> {
@@ -132,28 +137,29 @@ impl BoxGenerator {
 
         debug!("BoxGenerator[f%d]: point a", self.flow.id());
 
+        let range_stack = &mut self.range_stack;
         // depending on flow, make a box for this node.
-        match self.flow {
-            InlineFlow(inline) => {
+        match *self.flow {
+            InlineFlow(ref mut inline) => {
                 let node_range_start = inline.boxes.len();
-                self.range_stack.push(node_range_start);
+                range_stack.push(node_range_start);
 
                 // if a leaf, make a box.
                 if node.is_leaf() {
-                    let new_box = self.make_box(ctx, box_type, node, self.flow, builder);
+                    let new_box = BoxGenerator::make_box(ctx, box_type, node, builder);
                     inline.boxes.push(new_box);
-                } else if self.inline_spacers_needed_for_node(node) {
+                } else if BoxGenerator::inline_spacers_needed_for_node(node) {
                     // else, maybe make a spacer for "left" margin, border, padding
-                    let inline_spacer = self.make_inline_spacer_for_node_side(ctx, node, LogicalBefore);
+                    let inline_spacer = BoxGenerator::make_inline_spacer_for_node_side(ctx, node, LogicalBefore);
                     for spacer in inline_spacer.iter() {
                         inline.boxes.push(*spacer);
                     }
                 }
                 // TODO: cases for inline-block, etc.
             },
-            BlockFlow(block) => {
+            BlockFlow(ref mut block) => {
                 debug!("BoxGenerator[f%d]: point b", block.common.id);
-                let new_box = self.make_box(ctx, box_type, node, self.flow, builder);
+                let new_box = BoxGenerator::make_box(ctx, box_type, node, builder);
 
                 debug!("BoxGenerator[f%d]: attaching box[b%d] to block flow (node: %s)",
                        block.common.id,
@@ -162,46 +168,20 @@ impl BoxGenerator {
 
                 assert!(block.box.is_none());
                 block.box = Some(new_box);
-            },
-            FloatFlow(float) => {
+            }
+            FloatFlow(ref mut float) => {
                 debug!("BoxGenerator[f%d]: point b", float.common.id);
 
-                let mut parent_flow = None;
+                let new_box = BoxGenerator::make_box(ctx, box_type, node, builder);
 
-                do self.flow.with_base |base| {
-                    parent_flow = base.parent_node();
-                }
+                debug!("BoxGenerator[f%d]: attaching box[b%d] to float flow (node: %s)",
+                        float.common.id,
+                        new_box.id(),
+                        node.debug_str());
 
-                match parent_flow {
-                    None => fail!("Float flow as root node"),
-                    Some(BlockFlow(*)) |
-                    Some(FloatFlow(*)) => {
-                        let new_box = self.make_box(ctx, box_type, node, self.flow, builder);
-
-                        debug!("BoxGenerator[f%d]: attaching box[b%d] to float flow (node: %s)",
-                                float.common.id,
-                                new_box.id(),
-                                node.debug_str());
-
-                        assert!(float.box.is_none() && float.index.is_none());
-                        float.box = Some(new_box);
-                    }
-                    Some(InlineFlow(inline)) => {
-                        let new_box = self.make_box(ctx, box_type, node, self.flow, builder);
-
-                        debug!("BoxGenerator[f%d]: attaching box[b%d] to float flow (node: %s)",
-                                float.common.id,
-                                new_box.id(),
-                                node.debug_str());
-
-                            
-                        assert!(float.box.is_none() && float.index.is_none());
-                        inline.boxes.push(new_box);
-                        float.index = Some(inline.boxes.len() - 1);
-                    }
-                    _ => warn!("push_node() not implemented for flow f%d", self.flow.id())
-                }
-            },
+                assert!(float.box.is_none() && float.index.is_none());
+                float.box = Some(new_box);
+            }
             _ => warn!("push_node() not implemented for flow f%d", self.flow.id()),
         }
     }
@@ -211,16 +191,16 @@ impl BoxGenerator {
                     node: AbstractNode<LayoutView>) {
         debug!("BoxGenerator[f%d]: popping node: %s", self.flow.id(), node.debug_str());
 
-        match self.flow {
-            InlineFlow(inline) => {
+        match *self.flow {
+            InlineFlow(ref mut inline) => {
                 let inline = &mut *inline;
 
-                if self.inline_spacers_needed_for_node(node) {
+                if BoxGenerator::inline_spacers_needed_for_node(node) {
                     // If this non-leaf box generates extra horizontal spacing, add a SpacerBox for
                     // it.
-                    let result = self.make_inline_spacer_for_node_side(ctx, node, LogicalAfter);
+                    let result = BoxGenerator::make_inline_spacer_for_node_side(ctx, node, LogicalAfter);
                     for spacer in result.iter() {
-                        let boxes = &mut self.flow.inline().boxes;
+                        let boxes = &mut inline.boxes;
                         boxes.push(*spacer);
                     }
                 }
@@ -235,31 +215,29 @@ impl BoxGenerator {
                 inline.elems.add_mapping(node, &node_range);
             },
             BlockFlow(*) => assert!(self.range_stack.len() == 0),
+            FloatFlow(*) => assert!(self.range_stack.len() == 0),
             _ => warn!("pop_node() not implemented for flow %?", self.flow.id()),
         }
     }
 
     /// Disambiguate between different methods here instead of inlining, since each case has very
     /// different complexity.
-    fn make_box(&self,
-                layout_ctx: &LayoutContext,
+    fn make_box(layout_ctx: &LayoutContext,
                 ty: RenderBoxType,
                 node: AbstractNode<LayoutView>,
-                flow_context: FlowContext,
                 builder: &mut LayoutTreeBuilder)
                 -> RenderBox {
-        let base = RenderBoxBase::new(node, flow_context, builder.next_box_id());
+        let base = RenderBoxBase::new(node, builder.next_box_id());
         let result = match ty {
             RenderBox_Generic => GenericRenderBoxClass(@mut base),
             RenderBox_Text => UnscannedTextRenderBoxClass(@mut UnscannedTextRenderBox::new(base)),
-            RenderBox_Image => self.make_image_box(layout_ctx, node, base),
+            RenderBox_Image => BoxGenerator::make_image_box(layout_ctx, node, base),
         };
         debug!("BoxGenerator: created box: %s", result.debug_str());
         result
     }
 
-    fn make_image_box(&self,
-                      layout_ctx: &LayoutContext,
+    fn make_image_box(layout_ctx: &LayoutContext,
                       node: AbstractNode<LayoutView>,
                       base: RenderBoxBase)
                       -> RenderBox {
@@ -297,6 +275,13 @@ impl BoxGenerator {
 
 }
 
+enum BoxGenResult<'self> {
+        NoGenerator,
+        ParentGenerator,
+        SiblingGenerator,
+        NewGenerator(BoxGenerator<'self>),
+        Mixed(BoxGenerator<'self>, ~BoxGenResult<'self>),
+}
 
 impl LayoutTreeBuilder {
     /* Debug-only ids */
@@ -305,59 +290,74 @@ impl LayoutTreeBuilder {
 
     /// Creates necessary box(es) and flow context(s) for the current DOM node,
     /// and recurses on its children.
-    pub fn construct_recursively(&mut self,
+    pub fn construct_recursively<'a>(&mut self,
                              layout_ctx: &LayoutContext,
                              cur_node: AbstractNode<LayoutView>,
-                             parent_generator: @mut BoxGenerator,
-                             prev_sibling_generator: Option<@mut BoxGenerator>)
-                             -> Option<@mut BoxGenerator> {
+                             mut parent_generator: BoxGenerator<'a>,
+                             mut prev_sibling_generator: Option<BoxGenerator<'a>>)
+                             -> Option<BoxGenerator<'a>> {
         debug!("Considering node: %s", cur_node.debug_str());
+        let box_gen_result = {
+            let sibling_gen_ref = match prev_sibling_generator {
+                Some(ref mut generator) => Some(generator),
+                None => None,
+            };
+            self.box_generator_for_node(cur_node, &mut parent_generator, sibling_gen_ref)
+        };
 
+        debug!("result from generator_for_node: %?", &box_gen_result);
         // Skip over nodes that don't belong in the flow tree
         let (this_generator, next_generator) = 
-            match self.box_generator_for_node(cur_node, parent_generator, prev_sibling_generator) {
-
-            Some((gen, n_gen)) => (gen, n_gen),
-            None => { return prev_sibling_generator; }
+            match  box_gen_result {
+                NoGenerator => return prev_sibling_generator,
+                ParentGenerator => (parent_generator, None),
+                SiblingGenerator => (prev_sibling_generator.take_unwrap(), None),
+                NewGenerator(gen) => (gen, None),
+                Mixed(gen, next_gen) => (gen, Some(match *next_gen {
+                    ParentGenerator => parent_generator,
+                    SiblingGenerator => prev_sibling_generator.take_unwrap(),
+                    _ => fail!("Unexpect BoxGenResult")
+                }))
         };
+
+
+
+        let mut this_generator = this_generator;
 
         debug!("point a: %s", cur_node.debug_str());
         this_generator.push_node(layout_ctx, cur_node, self);
         debug!("point b: %s", cur_node.debug_str());
 
         // recurse on child nodes.
-        let mut prev_generator: Option<@mut BoxGenerator> = None;
+        let prev_gen_cell = Cell::new(None);
         for child_node in cur_node.children() {
-            prev_generator = self.construct_recursively(layout_ctx, child_node, this_generator, prev_generator);
+            do this_generator.with_clone |clone| {
+                let mut prev_generator = prev_gen_cell.take();
+                prev_generator = self.construct_recursively(layout_ctx, child_node, clone, prev_generator);
+                prev_gen_cell.put_back(prev_generator);
+            }
         }
 
         this_generator.pop_node(layout_ctx, cur_node);
-        self.simplify_children_of_flow(layout_ctx, &mut this_generator.flow);
+        self.simplify_children_of_flow(layout_ctx, this_generator.flow);
 
-        // store reference to the flow context which contains any
-        // boxes that correspond to child_flow.node. These boxes may
-        // eventually be elided or split, but the mapping between
-        // nodes and FlowContexts should not change during layout.
-        let flow: &FlowContext = &this_generator.flow;
-        for child_flow in flow.children() {
-            do child_flow.with_base |child_node| {
-                let dom_node = child_node.node;
-                assert!(dom_node.has_layout_data());
-                dom_node.layout_data().flow = Some(child_flow);
-            }
+        match next_generator {
+            Some(n_gen) => Some(n_gen),
+            None => Some(this_generator),
         }
-        Some(next_generator)
     }
 
-    pub fn box_generator_for_node(&mut self, 
+    
+
+    pub fn box_generator_for_node<'a>(&mut self, 
                               node: AbstractNode<LayoutView>, 
-                              parent_generator: @mut BoxGenerator,
-                              sibling_generator: Option<@mut BoxGenerator>)
-                              -> Option<(@mut BoxGenerator, @mut BoxGenerator)> {
+                              parent_generator: &mut BoxGenerator<'a>,
+                              mut sibling_generator: Option<&mut BoxGenerator<'a>>)
+                              -> BoxGenResult<'a> {
 
         let display = if node.is_element() {
             match node.style().display(node.is_root()) {
-                CSSDisplayNone => return None, // tree ends here if 'display: none'
+                CSSDisplayNone => return NoGenerator, // tree ends here if 'display: none'
                 // TODO(eatkinson) these are hacks so that the code doesn't crash
                 // when unsupported display values are used. They should be deleted
                 // as they are implemented.
@@ -368,8 +368,8 @@ impl LayoutTreeBuilder {
                 CSSDisplayTableHeaderGroup => CSSDisplayBlock,
                 CSSDisplayTableFooterGroup => CSSDisplayBlock,
                 CSSDisplayTableRow => CSSDisplayBlock,
-                CSSDisplayTableColumnGroup => return None,
-                CSSDisplayTableColumn => return None,
+                CSSDisplayTableColumnGroup => return NoGenerator,
+                CSSDisplayTableColumn => return NoGenerator,
                 CSSDisplayTableCell => CSSDisplayBlock,
                 CSSDisplayTableCaption => CSSDisplayBlock,
                 v => v
@@ -379,11 +379,11 @@ impl LayoutTreeBuilder {
 
                 ElementNodeTypeId(_) => CSSDisplayInline,
                 TextNodeTypeId => CSSDisplayInline,
-                DoctypeNodeTypeId | CommentNodeTypeId => return None,
+                DoctypeNodeTypeId | CommentNodeTypeId => return NoGenerator,
             }
         };
 
-        let sibling_flow: Option<FlowContext> = sibling_generator.map(|gen| gen.flow);
+        let sibling_flow: Option<&mut FlowContext> = sibling_generator.map_mut(|gen| &mut *gen.flow);
 
         // TODO(eatkinson): use the value of the float property to
         // determine whether to float left or right.
@@ -398,105 +398,91 @@ impl LayoutTreeBuilder {
         };
         
 
-        let new_generator = match (display, parent_generator.flow, sibling_flow) { 
+        let new_generator = match (display, &mut parent_generator.flow, sibling_flow) { 
             // Floats
-            (CSSDisplayBlock, BlockFlow(_), _) |
-            (CSSDisplayBlock, FloatFlow(_), _) if !is_float.is_none() => {
+            (CSSDisplayBlock, & &BlockFlow(_), _) |
+            (CSSDisplayBlock, & &FloatFlow(_), _) if !is_float.is_none() => {
                 self.create_child_generator(node, parent_generator, Flow_Float(is_float.unwrap()))
             }
             // If we're placing a float after an inline, append the float to the inline flow,
             // then continue building from the inline flow in case there are more inlines
             // afterward.
-            (CSSDisplayBlock, _, Some(InlineFlow(_))) if !is_float.is_none() => {
+            (CSSDisplayBlock, _, Some(&InlineFlow(_))) if !is_float.is_none() => {
                 let float_generator = self.create_child_generator(node, 
-                                                                  sibling_generator.unwrap(),
+                                                                  sibling_generator.unwrap(), 
                                                                   Flow_Float(is_float.unwrap()));
-                return Some((float_generator, sibling_generator.unwrap()));
+                return Mixed(float_generator, ~SiblingGenerator);
             }
             // This is a catch-all case for when:
             // a) sibling_flow is None
             // b) sibling_flow is a BlockFlow
-            (CSSDisplayBlock, InlineFlow(_), _) if !is_float.is_none() => {
+            (CSSDisplayBlock, & &InlineFlow(_), _) if !is_float.is_none() => {
                 self.create_child_generator(node, parent_generator, Flow_Float(is_float.unwrap()))
             }
 
-            (CSSDisplayBlock, BlockFlow(info), _) => match (info.is_root, node.parent_node()) {
+            (CSSDisplayBlock, & &BlockFlow(ref info), _) => match (info.is_root, node.parent_node().is_some()) {
                 // If this is the root node, then use the root flow's
                 // context. Otherwise, make a child block context.
-                (true, Some(_)) => { self.create_child_generator(node, parent_generator, Flow_Block) }
-                (true, None)    => { parent_generator }
-                (false, _)      => {
+                (true, true) => self.create_child_generator(node, parent_generator, Flow_Block),
+                (true, false) => { return ParentGenerator }
+                (false, _)   => {
                     self.create_child_generator(node, parent_generator, Flow_Block)
                 }
             },
 
-            (CSSDisplayBlock, FloatFlow(*), _) => {
+            (CSSDisplayBlock, & &FloatFlow(*), _) => {
                 self.create_child_generator(node, parent_generator, Flow_Block)
             }
 
             // Inlines that are children of inlines are part of the same flow
-            (CSSDisplayInline, InlineFlow(*), _) => parent_generator,
-            (CSSDisplayInlineBlock, InlineFlow(*), _) => parent_generator,
+            (CSSDisplayInline, & &InlineFlow(*), _) => return ParentGenerator,
+            (CSSDisplayInlineBlock, & &InlineFlow(*), _) => return ParentGenerator,
 
             // Inlines that are children of blocks create new flows if their
             // previous sibling was a block.
-            (CSSDisplayInline, BlockFlow(*), Some(BlockFlow(*))) |
-            (CSSDisplayInlineBlock, BlockFlow(*), Some(BlockFlow(*))) => {
+            (CSSDisplayInline, & &BlockFlow(*), Some(&BlockFlow(*))) |
+            (CSSDisplayInlineBlock, & &BlockFlow(*), Some(&BlockFlow(*))) => {
                 self.create_child_generator(node, parent_generator, Flow_Inline)
             }
 
             // The first two cases should only be hit when a FloatFlow
             // is the first child of a BlockFlow. Other times, we will
-            (CSSDisplayInline, _, Some(FloatFlow(*))) |
-            (CSSDisplayInlineBlock, _, Some(FloatFlow(*))) |
-            (CSSDisplayInline, FloatFlow(*), _) |
-            (CSSDisplayInlineBlock, FloatFlow(*), _) => {
+            (CSSDisplayInline, _, Some(&FloatFlow(*))) |
+            (CSSDisplayInlineBlock, _, Some(&FloatFlow(*))) |
+            (CSSDisplayInline, & &FloatFlow(*), _) |
+            (CSSDisplayInlineBlock, & &FloatFlow(*), _) => {
                 self.create_child_generator(node, parent_generator, Flow_Inline)
             }
 
             // Inlines whose previous sibling was not a block try to use their
             // sibling's flow context.
-            (CSSDisplayInline, BlockFlow(*), _) |
-            (CSSDisplayInlineBlock, BlockFlow(*), _) => {
-                self.create_child_generator_if_needed(node, 
-                                                      parent_generator, 
-                                                      sibling_generator, 
-                                                      Flow_Inline)
+            (CSSDisplayInline, & &BlockFlow(*), _) |
+            (CSSDisplayInlineBlock, & &BlockFlow(*), _) => {
+                return match sibling_generator {
+                    None => NewGenerator(self.create_child_generator(node, 
+                                                                     parent_generator, 
+                                                                     Flow_Inline)),
+                    Some(*) => SiblingGenerator
+                }
             }
 
             // TODO(eatkinson): blocks that are children of inlines need
             // to split their parent flows.
-            _ => parent_generator
+            _ => return ParentGenerator
         };
 
-        // Usually, the node we add boxes to will be prev_sibling on the
-        // next call to this function.
-        Some((new_generator, new_generator))
+        NewGenerator(new_generator)
     }
 
-    pub fn create_child_generator(&mut self,
+    pub fn create_child_generator<'a>(&mut self,
                               node: AbstractNode<LayoutView>,
-                              parent_generator: @mut BoxGenerator,
+                              parent_generator: &mut BoxGenerator<'a>,
                               ty: FlowContextType)
-                              -> @mut BoxGenerator {
+                              -> BoxGenerator<'a> {
 
         let new_flow = self.make_flow(ty, node);
-        parent_generator.flow.add_child(new_flow);
-
-        @mut BoxGenerator::new(new_flow)
-    }
-
-    pub fn create_child_generator_if_needed(&mut self,
-                                        node: AbstractNode<LayoutView>,
-                                        parent_generator: @mut BoxGenerator,
-                                        maybe_generator: Option<@mut BoxGenerator>,
-                                        ty: FlowContextType)
-                                        -> @mut BoxGenerator {
-
-        match maybe_generator {
-            None => self.create_child_generator(node, parent_generator, ty),
-            Some(gen) => gen
-        }
+        parent_generator.flow.add_new_child(new_flow);
+        BoxGenerator::new(parent_generator.flow.last_child().unwrap())
     }
 
     /// Fix up any irregularities such as:
@@ -513,74 +499,71 @@ impl LayoutTreeBuilder {
                 let mut found_child_inline = false;
                 let mut found_child_block = false;
 
-                let flow = *parent_flow;
-                for child_ctx in flow.children() {
+                for child_ctx in parent_flow.child_iter() {
                     match child_ctx {
-                        InlineFlow(*) | InlineBlockFlow(*) => found_child_inline = true,
-                        BlockFlow(*) => found_child_block = true,
+                        &InlineFlow(*) | &InlineBlockFlow(*) => found_child_inline = true,
+                        &BlockFlow(*) => found_child_block = true,
                         _ => {}
                     }
                 }
 
                 if found_child_block && found_child_inline {
-                    self.fixup_split_inline(*parent_flow)
+                    self.fixup_split_inline(parent_flow)
                 }
             },
             BlockFlow(*) | FloatFlow(*) => {
-                // FIXME: this will create refcounted cycles between the removed flow and any
-                // of its RenderBox or FlowContext children, and possibly keep alive other junk
-
                 // check first/last child for whitespace-ness
-                let first_child = do parent_flow.with_base |parent_node| {
-                    parent_node.first_child
-                };
-                for &first_flow in first_child.iter() {
-                    if first_flow.starts_inline_flow() {
-                        // FIXME: workaround for rust#6393
-                        let mut do_remove = false;
-                        {
-                            let boxes = &first_flow.inline().boxes;
-                            if boxes.len() == 1 && boxes[0].is_whitespace_only() {
-                                debug!("LayoutTreeBuilder: pruning whitespace-only first child \
-                                        flow f%d from parent f%d", 
-                                       first_flow.id(),
-                                       parent_flow.id());
-                                do_remove = true;
+                let mut do_remove = false;
+                let p_id = parent_flow.id();
+                do parent_flow.with_first_child |mut first_child| {
+                    for first_flow in first_child.mut_iter() {
+                        if first_flow.starts_inline_flow() {
+                            // FIXME: workaround for rust#6393
+                            {
+                                let boxes = &first_flow.imm_inline().boxes;
+                                if boxes.len() == 1 && boxes[0].is_whitespace_only() {
+                                    debug!("LayoutTreeBuilder: pruning whitespace-only first child \
+                                            flow f%d from parent f%d", 
+                                            first_flow.id(),
+                                            p_id);
+                                    do_remove = true;
+                                }
                             }
-                        }
-                        if (do_remove) { 
-                            (*parent_flow).remove_child(first_flow);
                         }
                     }
                 }
+                if (do_remove) { 
+                    parent_flow.remove_first();
+                }
 
-                let last_child = do parent_flow.with_base |parent_node| {
-                    parent_node.last_child
-                };
-                for &last_flow in last_child.iter() {
-                    if last_flow.starts_inline_flow() {
-                        // FIXME: workaround for rust#6393
-                        let mut do_remove = false;
-                        {
-                            let boxes = &last_flow.inline().boxes;
-                            if boxes.len() == 1 && boxes.last().is_whitespace_only() {
-                                debug!("LayoutTreeBuilder: pruning whitespace-only last child \
-                                        flow f%d from parent f%d", 
-                                       last_flow.id(),
-                                       parent_flow.id());
-                                do_remove = true;
+
+                do_remove = false;
+                let p_id = parent_flow.id();
+                do parent_flow.with_last_child |mut last_child| {
+                    for last_flow in last_child.mut_iter() {
+                        if last_flow.starts_inline_flow() {
+                            // FIXME: workaround for rust#6393
+                            {
+                                let boxes = &last_flow.imm_inline().boxes;
+                                if boxes.len() == 1 && boxes.last().is_whitespace_only() {
+                                    debug!("LayoutTreeBuilder: pruning whitespace-only last child \
+                                            flow f%d from parent f%d", 
+                                            last_flow.id(),
+                                            p_id);
+                                    do_remove = true;
+                                }
                             }
                         }
-                        if (do_remove) {
-                            (*parent_flow).remove_child(last_flow);
-                        }
                     }
+                }
+                if (do_remove) {
+                    parent_flow.remove_last();
                 }
 
                 // Issue 543: We only need to do this if there are inline child
                 // flows, but there's not a quick way to check at the moment.
-                for child_flow in (*parent_flow).children() {
-                    match child_flow {
+                for child_flow in (*parent_flow).child_iter() {
+                    match *child_flow {
                         InlineFlow(*) | InlineBlockFlow(*) => {
                             let mut scanner = TextRunScanner::new();
                             scanner.scan_for_runs(ctx, child_flow);
@@ -593,7 +576,7 @@ impl LayoutTreeBuilder {
         }
     }
 
-    pub fn fixup_split_inline(&self, _: FlowContext) {
+    pub fn fixup_split_inline(&self, _: &mut FlowContext) {
         // TODO: finish me. 
         fail!(~"TODO: handle case where an inline is split by a block")
     }
@@ -601,11 +584,14 @@ impl LayoutTreeBuilder {
     /// Entry point for box creation. Should only be called on the root DOM element.
     pub fn construct_trees(&mut self, layout_ctx: &LayoutContext, root: AbstractNode<LayoutView>)
                        -> Result<FlowContext, ()> {
-        let new_flow = self.make_flow(Flow_Root, root);
-        let new_generator = @mut BoxGenerator::new(new_flow);
+        debug!("Constructing flow tree for DOM: ");
+        root.dump();
 
-        self.root_flow = Some(new_flow);
-        self.construct_recursively(layout_ctx, root, new_generator, None);
+        let mut new_flow = self.make_flow(Flow_Root, root);
+        {
+            let new_generator = BoxGenerator::new(&mut new_flow);
+            self.construct_recursively(layout_ctx, root, new_generator, None);
+        }
         return Ok(new_flow)
     }
 
@@ -613,13 +599,13 @@ impl LayoutTreeBuilder {
     pub fn make_flow(&mut self, ty: FlowContextType, node: AbstractNode<LayoutView>) -> FlowContext {
         let info = FlowData::new(self.next_flow_id(), node);
         let result = match ty {
-            Flow_Absolute       => AbsoluteFlow(@mut info),
-            Flow_Block          => BlockFlow(@mut BlockFlowData::new(info)),
-            Flow_Float(f_type)  => FloatFlow(@mut FloatFlowData::new(info, f_type)),
-            Flow_InlineBlock    => InlineBlockFlow(@mut info),
-            Flow_Inline         => InlineFlow(@mut InlineFlowData::new(info)),
-            Flow_Root           => BlockFlow(@mut BlockFlowData::new_root(info)),
-            Flow_Table          => TableFlow(@mut info),
+            Flow_Absolute       => AbsoluteFlow(~info),
+            Flow_Block          => BlockFlow(~BlockFlowData::new(info)),
+            Flow_Float(f_type)  => FloatFlow(~FloatFlowData::new(info, f_type)),
+            Flow_InlineBlock    => InlineBlockFlow(~info),
+            Flow_Inline         => InlineFlow(~InlineFlowData::new(info)),
+            Flow_Root           => BlockFlow(~BlockFlowData::new_root(info)),
+            Flow_Table          => TableFlow(~info),
         };
         debug!("LayoutTreeBuilder: created flow: %s", result.debug_str());
         result
