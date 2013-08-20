@@ -16,7 +16,6 @@ use layout::incremental::{RestyleDamage, BubbleWidths};
 
 use std::cast::transmute;
 use std::cell::Cell;
-use std::uint;
 use std::comm::{Port};
 use extra::arc::Arc;
 use geom::point::Point2D;

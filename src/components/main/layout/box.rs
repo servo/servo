@@ -8,7 +8,6 @@ use css::node_style::StyledNode;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData, ToGfxColor};
 use layout::float_context::{ClearType, ClearLeft, ClearRight, ClearBoth};
-use layout::flow::FlowContext;
 use layout::model::{BoxModel, MaybeAuto};
 use layout::text;
 

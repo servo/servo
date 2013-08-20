@@ -5,7 +5,7 @@
 use layout::box::{RenderBox};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::flow::{FloatFlow, FlowData};
+use layout::flow::{FlowData};
 use layout::model::{MaybeAuto};
 use layout::float_context::{FloatContext, PlacementInfo, FloatType};
 

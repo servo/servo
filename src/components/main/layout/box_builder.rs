@@ -30,7 +30,6 @@ use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
 use servo_util::range::Range;
 use servo_util::tree::{TreeNodeRef, TreeNode};
-use std::util;
 use std::cell::Cell;
 
 pub struct LayoutTreeBuilder {
@@ -481,7 +480,7 @@ impl LayoutTreeBuilder {
                               ty: FlowContextType)
                               -> BoxGenerator<'a> {
 
-        let mut new_flow = self.make_flow(ty, node);
+        let new_flow = self.make_flow(ty, node);
         parent_generator.flow.add_new_child(new_flow);
         BoxGenerator::new(parent_generator.flow.last_child().unwrap())
     }
@@ -590,7 +589,7 @@ impl LayoutTreeBuilder {
 
         let mut new_flow = self.make_flow(Flow_Root, root);
         {
-            let mut new_generator = BoxGenerator::new(&mut new_flow);
+            let new_generator = BoxGenerator::new(&mut new_flow);
             self.construct_recursively(layout_ctx, root, new_generator, None);
         }
         return Ok(new_flow)

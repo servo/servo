@@ -37,7 +37,7 @@ impl LayoutData {
         LayoutData {
             style: None,
             restyle_damage: None,
-            boxes: DisplayBoxes{ display_list: None, range: None },
+            boxes: DisplayBoxes { display_list: None, range: None },
         }
     }
 }
