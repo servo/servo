@@ -27,7 +27,6 @@ use std::hashmap::{HashMap, HashSet};
 use std::util::replace;
 use extra::url::Url;
 use extra::future::{Future, from_value};
-use extra::url::Url;
 
 /// Maintains the pipelines and navigation context and grants permission to composite
 pub struct Constellation {

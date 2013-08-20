@@ -750,13 +750,13 @@ pub fn test_resize() {
     let mut q = Quadtree::new(6, 6, 1, None);
     q.add_tile_pixel(0, 0, 1f32, T{a: 0});
     q.add_tile_pixel(5, 5, 1f32, T{a: 1});
-    q.resize(8, 1);
+    q.bad_resize(8, 1);
     assert!(q.root.size == 8.0);
-    q.resize(18, 1);
+    q.bad_resize(18, 1);
     assert!(q.root.size == 32.0);
-    q.resize(8, 1);
+    q.bad_resize(8, 1);
     assert!(q.root.size == 8.0);
-    q.resize(3, 1);
+    q.bad_resize(3, 1);
     assert!(q.root.size == 4.0);
     assert!(q.get_all_tiles().len() == 1);
 }
