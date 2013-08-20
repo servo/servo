@@ -51,6 +51,7 @@ pub mod font_list;
 
 // Misc.
 pub mod opts;
+mod buffer_map;
 
 // Platform-specific implementations.
 #[path="platform/mod.rs"]
