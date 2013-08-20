@@ -24,7 +24,6 @@ use extra::arc::Arc;
 use servo_util::time::{ProfilerChan, profile};
 use servo_util::time;
 
-use extra::arc;
 use buffer_map::BufferMap;
 
 

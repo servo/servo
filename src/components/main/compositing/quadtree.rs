@@ -310,7 +310,7 @@ impl<T: Tile> QuadtreeNode<T> {
             status: Normal,
         }
     }
-    
+
     /// Determine which child contains a given point in page coords.
     fn get_quadrant(&self, x: f32, y: f32) -> Quadrant {
         if x < self.origin.x + self.size / 2.0 {
@@ -379,14 +379,14 @@ impl<T: Tile> QuadtreeNode<T> {
                 Some(old_tile) => ~[old_tile],
                 None => ~[],
             };
-            // FIXME: This should be inline, but currently won't compile
-            let quads = [TL, TR, BL, BR];
-            for &quad in quads.iter() {
-                match self.quadrants[quad as int] {
-                    Some(ref mut child) => unused_tiles.push_all_move(child.collect_tiles()),
+            for child in self.quadrants.mut_iter() {
+                match *child {
+                    Some(ref mut node) => {
+                        unused_tiles.push_all_move(node.collect_tiles());
+                    }
                     None => {} // Nothing to do
                 }
-                self.quadrants[quad as int] = None;
+                *child = None;
             }
             self.status = Normal;
             (self.tile_mem as int - old_size as int, unused_tiles)
@@ -569,14 +569,14 @@ impl<T: Tile> QuadtreeNode<T> {
                     let mut unused_tiles = ~[];
                     if redisplay {
                         let old_mem = self.tile_mem;
-                        // FIXME: This should be inline, but currently won't compile
-                        let quads = [TL, TR, BL, BR];
-                        for &quad in quads.iter() {
-                            match self.quadrants[quad as int] {
-                                Some(ref mut child) => unused_tiles.push_all_move(child.collect_tiles()),
+                        for child in self.quadrants.mut_iter() {
+                            match *child {
+                                Some(ref mut node) => {
+                                    unused_tiles.push_all_move(node.collect_tiles());
+                                }
                                 None => {} // Nothing to do
                             }
-                            self.quadrants[quad as int] = None;
+                            *child = None;
                         }
                         self.tile_mem = tile.get_mem();
                         delta = self.tile_mem as int - old_mem as int;
@@ -679,11 +679,11 @@ impl<T: Tile> QuadtreeNode<T> {
             Some(tile) => ~[tile],
             None => ~[],
         };
-
-        let quadrants = [TL, TR, BL, BR];
-        for &quad in quadrants.iter() {
-            match self.quadrants[quad as int] {
-                Some(ref mut child) => ret.push_all_move(child.collect_tiles()),
+        for child in self.quadrants.mut_iter() {
+            match *child {
+                Some(ref mut node) => {
+                    ret.push_all_move(node.collect_tiles());
+                }
                 None => {} // Nothing to do
             }
         }
