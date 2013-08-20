@@ -14,7 +14,7 @@ use std::cell::Cell;
 use std::io;
 use std::os;
 use std::run;
-use extra::digest::{Digest, DigestUtil};
+use extra::digest::Digest;
 use extra::sha1::Sha1;
 use extra::test::{DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn};
 use extra::test::run_tests_console;
@@ -34,8 +34,9 @@ fn main() {
         logfile: None,
         run_tests: true,
         run_benchmarks: false,
-        save_results: None,
-        compare_results: None,
+        ratchet_noise_percent: None,
+        ratchet_metrics: None,
+        save_metrics: None,
     };
 
     if !run_tests_console(&test_opts, tests) {
@@ -57,14 +58,14 @@ struct Reftest {
 
 fn parse_lists(filenames: &[~str]) -> ~[TestDescAndFn] {
     let mut tests: ~[TestDescAndFn] = ~[];
-    for filenames.iter().advance |file| {
+    for file in filenames.iter() {
         let file_path = Path(*file);
         let contents = match io::read_whole_file_str(&file_path) {
             Ok(x) => x,
             Err(s) => fail!(s)
         };
 
-        for contents.line_iter().advance |line| {
+        for line in contents.line_iter() {
             let parts: ~[&str] = line.split_iter(' ').filter(|p| !p.is_empty()).collect();
 
             if parts.len() != 3 {
