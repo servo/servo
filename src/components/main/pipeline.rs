@@ -12,6 +12,7 @@ use layout::layout_task::LayoutTask;
 use script::layout_interface::LayoutChan;
 use script::script_task::{ExecuteMsg, LoadMsg};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, SubpageId};
+use script::dom::node::AbstractNode;
 use script::script_task::{AttachLayoutMsg, NewLayoutInfo, ScriptTask, ScriptChan};
 use script::script_task;
 use servo_net::image_cache_task::ImageCacheTask;
@@ -28,7 +29,7 @@ pub struct Pipeline {
     subpage_id: Option<SubpageId>,
     script_chan: ScriptChan,
     layout_chan: LayoutChan,
-    render_chan: RenderChan,
+    render_chan: RenderChan<AbstractNode<()>>,
     /// The most recently loaded url
     url: Option<Url>,
 }
@@ -130,7 +131,7 @@ impl Pipeline {
                subpage_id: Option<SubpageId>,
                script_chan: ScriptChan,
                layout_chan: LayoutChan,
-               render_chan: RenderChan)
+               render_chan: RenderChan<AbstractNode<()>>)
                -> Pipeline {
         Pipeline {
             id: id,

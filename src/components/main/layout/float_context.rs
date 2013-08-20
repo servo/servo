@@ -48,12 +48,12 @@ pub struct PlacementInfo{
 /// destroy the context on modification.
 pub enum FloatContext {
     Invalid,
-    Valid(FloatContextBase)
+    Valid(~FloatContextBase)
 }
 
 impl FloatContext {
     pub fn new(num_floats: uint) -> FloatContext {
-        Valid(FloatContextBase::new(num_floats))
+        Valid(~FloatContextBase::new(num_floats))
     }
 
     #[inline(always)]
@@ -68,7 +68,7 @@ impl FloatContext {
     fn with_mut_base<R>(&mut self, callback: &fn(&mut FloatContextBase) -> R) -> R {
         match *self {
             Invalid => fail!("Float context no longer available"),
-            Valid(ref mut base) => callback(base)
+            Valid(ref mut base) => callback(&mut **base)
         }
     }
 
@@ -76,7 +76,7 @@ impl FloatContext {
     pub fn with_base<R>(&self, callback: &fn(&FloatContextBase) -> R) -> R {
         match *self {
             Invalid => fail!("Float context no longer available"),
-            Valid(ref base) => callback(base)
+            Valid(ref base) => callback(& **base)
         }
     }
 
