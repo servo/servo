@@ -109,7 +109,7 @@ impl CompositorLayer {
             }
             
             let child_layer = ~CompositorLayer::from_frame_tree(frame_tree, tile_size, max_mem);
-            container.add_child(ContainerLayerKind(child_layer.root_layer));
+            container.add_child_start(ContainerLayerKind(child_layer.root_layer));
             
             CompositorLayerChild {
                 child: child_layer,
@@ -342,25 +342,9 @@ impl CompositorLayer {
             self.root_layer.remove_child(trash);
         }
 
-        // Add child layers.
-        for child in self.children.mut_iter().filter(|x| !x.child.hidden) {
-            current_layer_child = match current_layer_child {
-                None => {
-                    child.container.common.parent = None;
-                    child.container.common.prev_sibling = None;
-                    child.container.common.next_sibling = None;
-                    self.root_layer.add_child(ContainerLayerKind(child.container));
-                    None
-                }
-                Some(_) => {
-                    fail!("CompositorLayer: Layer tree failed to delete");
-                }
-            };
-        }
-
         // Add new tiles.
         let quadtree = match self.quadtree {
-            NoTree(_, _) => fail!("CompositorLayer: cannot get buffer request for %?,
+            NoTree(_, _) => fail!("CompositorLayer: cannot get build layer tree for %?,
                                    no quadtree initialized", self.pipeline.id),
             Tree(ref mut quadtree) => quadtree,
         };
@@ -376,7 +360,7 @@ impl CompositorLayer {
                     debug!("osmain: adding new texture layer");
                     texture_layer = @mut TextureLayer::new(@buffer.draw_target.clone() as @TextureManager,
                                                            buffer.screen_pos.size);
-                    self.root_layer.add_child(TextureLayerKind(texture_layer));
+                    self.root_layer.add_child_end(TextureLayerKind(texture_layer));
                     None
                 }
                 Some(TextureLayerKind(existing_texture_layer)) => {
@@ -398,6 +382,23 @@ impl CompositorLayer {
             let transform = transform.scale(rect.size.width, rect.size.height, 1.0);
             texture_layer.common.set_transform(transform);
         }
+
+        // Add child layers.
+        for child in self.children.mut_iter().filter(|x| !x.child.hidden) {
+            current_layer_child = match current_layer_child {
+                None => {
+                    child.container.common.parent = None;
+                    child.container.common.prev_sibling = None;
+                    child.container.common.next_sibling = None;
+                    self.root_layer.add_child_end(ContainerLayerKind(child.container));
+                    None
+                }
+                Some(_) => {
+                    fail!("CompositorLayer: Layer tree failed to delete");
+                }
+            };
+        }
+
 
     }
     
@@ -472,7 +473,7 @@ impl CompositorLayer {
                                                             clipping_rect.origin.y,
                                                             0.0));
         let child = ~CompositorLayer::new(pipeline, page_size, tile_size, max_mem);
-        container.add_child(ContainerLayerKind(child.root_layer));
+        container.add_child_start(ContainerLayerKind(child.root_layer));
         self.children.push(CompositorLayerChild {
             child: child,
             container: container,

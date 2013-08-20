@@ -340,9 +340,14 @@ impl<T: Tile> QuadtreeNode<T> {
         }
     }
 
-    /// Get all tiles in the tree, parents last.
+    /// Get all tiles in the tree, parents first.
     fn get_all_tiles<'r>(&'r self) -> ~[&'r T] {
         let mut ret = ~[];
+
+        match self.tile {
+            Some(ref tile) => ret = ret + ~[tile],
+            None => {}
+        }
 
         for quad in self.quadrants.iter() {
             match *quad {
@@ -351,12 +356,6 @@ impl<T: Tile> QuadtreeNode<T> {
             }
         }
         
-        match self.tile {
-            Some(ref tile) => ret = ret + ~[tile],
-            None => {}
-        }
-
-
         return ret;
     }
 

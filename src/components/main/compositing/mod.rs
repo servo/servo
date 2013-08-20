@@ -263,7 +263,7 @@ impl CompositorTask {
                         let layer = CompositorLayer::from_frame_tree(frame_tree,
                                                                      self.opts.tile_size,
                                                                      Some(10000000u));
-                        root_layer.add_child(ContainerLayerKind(layer.root_layer));
+                        root_layer.add_child_start(ContainerLayerKind(layer.root_layer));
                         compositor_layer = Some(layer);
 
                         constellation_chan = Some(new_constellation_chan);
@@ -294,7 +294,7 @@ impl CompositorTask {
                             Some(old_layer) => root_layer.remove_child(old_layer),
                             None => {}
                         }
-                        root_layer.add_child(ContainerLayerKind(new_layer.root_layer));
+                        root_layer.add_child_start(ContainerLayerKind(new_layer.root_layer));
                         compositor_layer = Some(new_layer);
 
                         ask_for_tiles();
