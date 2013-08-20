@@ -85,8 +85,8 @@ impl Au {
         Au(((*self as float) * factor) as i32)
     }
 
-    pub fn from_px(i: int) -> Au {
-        NumCast::from(i * 60)
+    pub fn from_px(px: int) -> Au {
+        NumCast::from(px * 60)
     }
 
     pub fn to_px(&self) -> int {
@@ -108,12 +108,12 @@ impl Au {
         Rect(Point2D(z, z), Size2D(z, z))
     }
 
-    pub fn from_pt(f: float) -> Au {
-        from_px(pt_to_px(f) as int)
+    pub fn from_pt(pt: float) -> Au {
+        from_px(pt_to_px(pt) as int)
     }
 
-    pub fn from_frac_px(f: float) -> Au {
-        Au((f * 60f) as i32)
+    pub fn from_frac_px(px: float) -> Au {
+        Au((px * 60f) as i32)
     }
 
     pub fn min(x: Au, y: Au) -> Au { if *x < *y { x } else { y } }
@@ -121,13 +121,13 @@ impl Au {
 }
 
 // assumes 72 points per inch, and 96 px per inch
-pub fn pt_to_px(f: float) -> float {
-    f / 72f * 96f
+pub fn pt_to_px(pt: float) -> float {
+    pt / 72f * 96f
 }
 
 // assumes 72 points per inch, and 96 px per inch
-pub fn px_to_pt(f: float) -> float {
-    f / 96f * 72f
+pub fn px_to_pt(px: float) -> float {
+    px / 96f * 72f
 }
 
 pub fn zero_rect() -> Rect<Au> {
@@ -143,12 +143,12 @@ pub fn zero_size() -> Size2D<Au> {
     Size2D(Au(0), Au(0))
 }
 
-pub fn from_frac_px(f: float) -> Au {
-    Au((f * 60f) as i32)
+pub fn from_frac_px(px: float) -> Au {
+    Au((px * 60f) as i32)
 }
 
-pub fn from_px(i: int) -> Au {
-    NumCast::from(i * 60)
+pub fn from_px(px: int) -> Au {
+    NumCast::from(px * 60)
 }
 
 pub fn to_px(au: Au) -> int {
@@ -160,6 +160,6 @@ pub fn to_frac_px(au: Au) -> float {
 }
 
 // assumes 72 points per inch, and 96 px per inch
-pub fn from_pt(f: float) -> Au {
-    from_px((f / 72f * 96f) as int)
+pub fn from_pt(pt: float) -> Au {
+    from_px((pt / 72f * 96f) as int)
 }

@@ -8,7 +8,7 @@ use std::num::Zero;
 use geom::side_offsets::SideOffsets2D;
 use gfx::geometry::Au;
 use newcss::complete::CompleteStyle;
-use newcss::units::{Length, Em, Pt, Px};
+use newcss::units::{Length, Em, Px};
 use newcss::values::{CSSBorderWidth, CSSBorderWidthLength, CSSBorderWidthMedium};
 use newcss::values::{CSSBorderWidthThick, CSSBorderWidthThin, CSSFontSize, CSSFontSizeLength};
 use newcss::values::{CSSWidth, CSSWidthLength, CSSWidthPercentage, CSSWidthAuto};
@@ -27,11 +27,9 @@ pub struct BoxModel {
 fn from_length(length: Length, font_size: CSSFontSize) -> Au {
     match length {
         Px(v) => Au::from_frac_px(v),
-        Pt(v) => Au::from_pt(v),
         Em(em) => {
             match font_size {
                 CSSFontSizeLength(Px(v)) => Au::from_frac_px(em * v),
-                CSSFontSizeLength(Pt(v)) => Au::from_pt(em * v),
                 _ => fail!("expected non-relative font size")
             }
         }

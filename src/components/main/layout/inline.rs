@@ -18,7 +18,7 @@ use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
 use newcss::values::{CSSTextAlignLeft, CSSTextAlignCenter, CSSTextAlignRight, CSSTextAlignJustify};
-use newcss::units::{Em, Px, Pt};
+use newcss::units::{Em, Px};
 use newcss::values::{CSSLineHeightNormal, CSSLineHeightNumber, CSSLineHeightLength, CSSLineHeightPercentage};
 use servo_util::range::Range;
 use servo_util::tree::TreeNodeRef;
@@ -194,7 +194,6 @@ impl LineboxScanner {
                     CSSLineHeightNumber(l) => em_size.scale_by(l),
                     CSSLineHeightLength(Em(l)) => em_size.scale_by(l),
                     CSSLineHeightLength(Px(l)) => Au::from_frac_px(l),
-                    CSSLineHeightLength(Pt(l)) => Au::from_pt(l),
                     CSSLineHeightPercentage(p) => em_size.scale_by(p / 100.0f)
                 };
 
@@ -690,7 +689,6 @@ impl InlineFlowData {
                             CSSLineHeightNumber(l) => em_size.scale_by(l),
                             CSSLineHeightLength(Em(l)) => em_size.scale_by(l),
                             CSSLineHeightLength(Px(l)) => Au::from_frac_px(l),
-                            CSSLineHeightLength(Pt(l)) => Au::from_pt(l),
                             CSSLineHeightPercentage(p) => em_size.scale_by(p / 100.0f)
                         };
 

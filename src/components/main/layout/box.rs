@@ -22,11 +22,12 @@ use gfx::display_list::{DisplayList, ImageDisplayItem, ImageDisplayItemClass};
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, TextDisplayItem};
 use gfx::display_list::{TextDisplayItemClass};
 use gfx::font::{FontStyle, FontWeight300};
-use gfx::geometry::{Au, pt_to_px};
+use gfx::geometry::Au;
 use gfx::text::text_run::TextRun;
 use newcss::color::rgb;
 use newcss::complete::CompleteStyle;
-use newcss::units::{Cursive, Em, Fantasy, Monospace, Pt, Px, SansSerif, Serif};
+use newcss::units::{Em, Px};
+use newcss::units::{Cursive, Fantasy, Monospace, SansSerif, Serif};
 use newcss::values::{CSSClearNone, CSSClearLeft, CSSClearRight, CSSClearBoth};
 use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily};
 use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
@@ -790,7 +791,6 @@ impl RenderBox {
 
         let font_size = match my_style.font_size() {
             CSSFontSizeLength(Px(length)) => length,
-            CSSFontSizeLength(Pt(length)) => pt_to_px(length),
             // todo: this is based on a hard coded font size, should be the parent element's font size
             CSSFontSizeLength(Em(length)) => length * 16f, 
             _ => 16f // px units
