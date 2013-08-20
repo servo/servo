@@ -628,10 +628,8 @@ impl RenderBox {
                 // should have a real `SERVO_DEBUG` system.
                 debug!("%?", { 
                     // Compute the text box bounds and draw a border surrounding them.
-                    let debug_border = SideOffsets2D::new(Au::from_px(1),
-                                                          Au::from_px(1),
-                                                          Au::from_px(1),
-                                                          Au::from_px(1));
+                    let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
+
                     do list.with_mut_ref |list| {
                         let border_display_item = ~BorderDisplayItem {
                             base: BaseDisplayItem {
@@ -639,7 +637,8 @@ impl RenderBox {
                                 extra: ExtraDisplayListData::new(*self),
                             },
                             border: debug_border,
-                            color: rgb(0, 0, 200).to_gfx_color(),
+                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200).to_gfx_color())
+
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
                     }
@@ -659,7 +658,8 @@ impl RenderBox {
                                 extra: ExtraDisplayListData::new(*self),
                             },
                             border: debug_border,
-                            color: rgb(0, 200, 0).to_gfx_color(),
+                            color: SideOffsets2D::new_all_same(rgb(0, 200, 0).to_gfx_color())
+
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
                     }
@@ -675,10 +675,7 @@ impl RenderBox {
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
                 debug!("%?", {
-                    let debug_border = SideOffsets2D::new(Au::from_px(1),
-                                                          Au::from_px(1),
-                                                          Au::from_px(1),
-                                                          Au::from_px(1));
+                    let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
 
                     do list.with_mut_ref |list| {
                         let border_display_item = ~BorderDisplayItem {
@@ -687,7 +684,8 @@ impl RenderBox {
                                 extra: ExtraDisplayListData::new(*self),
                             },
                             border: debug_border,
-                            color: rgb(0, 0, 200).to_gfx_color(),
+                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200).to_gfx_color())
+
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
                     }
@@ -914,9 +912,10 @@ impl RenderBox {
             return
         }
 
-        // FIXME: all colors set to top color. this is obviously not right.
         let top_color = self.style().border_top_color();
-        let color = top_color.to_gfx_color();
+        let right_color = self.style().border_right_color();
+        let bottom_color = self.style().border_bottom_color();
+        let left_color = self.style().border_left_color();
 
         // Append the border to the display list.
         do list.with_mut_ref |list| {
@@ -929,7 +928,10 @@ impl RenderBox {
                                            border.right,
                                            border.bottom,
                                            border.left),
-                color: color,
+                color: SideOffsets2D::new(top_color.to_gfx_color(),
+                                        right_color.to_gfx_color(),
+                                        bottom_color.to_gfx_color(),
+                                        left_color.to_gfx_color())
             };
 
             list.append_item(BorderDisplayItemClass(border_display_item))
