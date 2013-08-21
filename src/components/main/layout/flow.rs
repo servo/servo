@@ -130,7 +130,14 @@ impl FlowContext {
 }
 
 impl<'self> FlowContext {
-    pub fn leaf(&self) -> bool {
+    pub fn is_block_like(&self) -> bool {
+        match *self {
+            BlockFlow(*) | FloatFlow(*) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_leaf(&self) -> bool {
         do self.with_base |base| {
             base.children.len() == 0
         }
