@@ -7,8 +7,10 @@ use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::element::{HTMLElementTypeId,
-                   HTMLAnchorElementTypeId, HTMLBodyElementTypeId, HTMLBRElementTypeId,
-                   HTMLCanvasElementTypeId,
+                   HTMLAnchorElementTypeId, HTMLAppletElementTypeId,
+                   HTMLAreaElementTypeId, HTMLBaseElementTypeId,
+                   HTMLBodyElementTypeId, HTMLBRElementTypeId,
+                   HTMLCanvasElementTypeId, HTMLDataElementTypeId,
                    HTMLDivElementTypeId, HTMLHeadElementTypeId, HTMLHRElementTypeId,
                    HTMLHtmlElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId,
@@ -19,10 +21,14 @@ use dom::element::{HTMLElementTypeId,
 use dom::element::{HTMLHeadElement,HTMLHtmlElement, HTMLDivElement, HTMLParagraphElement, HTMLSpanElement};
 use dom::htmlelement::HTMLElement;
 use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlappletelement::HTMLAppletElement;
+use dom::htmlareaelement::HTMLAreaElement;
+use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmldataelement::HTMLDataElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmetaelement::HTMLMetaElement;
@@ -101,9 +107,13 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
     match node.type_id() {
         ElementNodeTypeId(HTMLElementTypeId) => generate_element!(HTMLElement),
         ElementNodeTypeId(HTMLAnchorElementTypeId) => generate_element!(HTMLAnchorElement),
+        ElementNodeTypeId(HTMLAppletElementTypeId) => generate_element!(HTMLAppletElement),
+        ElementNodeTypeId(HTMLAreaElementTypeId) => generate_element!(HTMLAreaElement),
+        ElementNodeTypeId(HTMLBaseElementTypeId) => generate_element!(HTMLBaseElement),
         ElementNodeTypeId(HTMLBodyElementTypeId) => generate_element!(HTMLBodyElement),
         ElementNodeTypeId(HTMLBRElementTypeId) => generate_element!(HTMLBRElement),
         ElementNodeTypeId(HTMLCanvasElementTypeId) => generate_element!(HTMLCanvasElement),
+        ElementNodeTypeId(HTMLDataElementTypeId) => generate_element!(HTMLDataElement),
         ElementNodeTypeId(HTMLDivElementTypeId) => generate_element!(HTMLDivElement),
         ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
         ElementNodeTypeId(HTMLHRElementTypeId) => generate_element!(HTMLHRElement),

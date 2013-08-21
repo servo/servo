@@ -3,8 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::element::{HTMLElementTypeId,
-                   HTMLAnchorElementTypeId, HTMLBRElementTypeId,
-                   HTMLBodyElementTypeId, HTMLCanvasElementTypeId, HTMLDivElementTypeId,
+                   HTMLAnchorElementTypeId, HTMLAppletElementTypeId, 
+                   HTMLAreaElementTypeId, HTMLBaseElementTypeId, HTMLBodyElementTypeId,
+                   HTMLBRElementTypeId, HTMLCanvasElementTypeId, 
+                   HTMLDataElementTypeId, HTMLDivElementTypeId,
                    HTMLFontElementTypeId, HTMLFormElementTypeId, HTMLHRElementTypeId,
                    HTMLHeadElementTypeId, HTMLHtmlElementTypeId,
                    HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLInputElementTypeId,
@@ -27,8 +29,12 @@ use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Headi
                    Heading6};
 use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlappletelement::HTMLAppletElement;
+use dom::htmlareaelement::HTMLAreaElement;
+use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmldataelement::HTMLDataElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::{IFrameSize, HTMLIFrameElement};
 use dom::htmlimageelement::HTMLImageElement;
@@ -223,9 +229,13 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
 fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView> {
     // TODO (Issue #85): use atoms
     handle_element!(cx, tag, "a",       HTMLAnchorElementTypeId, HTMLAnchorElement, []);
+    handle_element!(cx, tag, "applet",  HTMLAppletElementTypeId, HTMLAppletElement, []);
+    handle_element!(cx, tag, "area",    HTMLAreaElementTypeId, HTMLAreaElement, []);
+    handle_element!(cx, tag, "base",    HTMLBaseElementTypeId, HTMLBaseElement, []);
     handle_element!(cx, tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
     handle_element!(cx, tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
     handle_element!(cx, tag, "canvas",  HTMLCanvasElementTypeId, HTMLCanvasElement, []);
+    handle_element!(cx, tag, "data",    HTMLDataElementTypeId, HTMLDataElement, []);
     handle_element!(cx, tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
     handle_element!(cx, tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
     handle_element!(cx, tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);

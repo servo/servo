@@ -4,8 +4,10 @@
 
 //! Element nodes.
 
-use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBodyElementBinding, HTMLBRElementBinding,
-                             HTMLCanvasElementBinding, HTMLDivElementBinding,
+use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding, 
+                             HTMLAreaElementBinding, HTMLBaseElementBinding,
+                             HTMLBodyElementBinding, HTMLBRElementBinding,
+                             HTMLCanvasElementBinding, HTMLDataElementBinding, HTMLDivElementBinding,
                              HTMLHeadElementBinding, HTMLHRElementBinding,
                              HTMLHtmlElementBinding, HTMLIFrameElementBinding,
                              HTMLImageElementBinding, HTMLMetaElementBinding,
@@ -19,10 +21,14 @@ use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResu
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
 use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlappletelement::HTMLAppletElement;
+use dom::htmlareaelement::HTMLAreaElement;
+use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcollection::HTMLCollection;
+use dom::htmldataelement::HTMLDataElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
@@ -76,9 +82,13 @@ impl BindingObject for Element {
 pub enum ElementTypeId {
     HTMLElementTypeId,
     HTMLAnchorElementTypeId,
+    HTMLAppletElementTypeId,
+    HTMLAreaElementTypeId,
+    HTMLBaseElementTypeId,
     HTMLBRElementTypeId,
     HTMLBodyElementTypeId,
     HTMLCanvasElementTypeId,
+    HTMLDataElementTypeId,
     HTMLDivElementTypeId,
     HTMLFontElementTypeId,
     HTMLFormElementTypeId,
@@ -186,6 +196,12 @@ generate_cacheable_wrapper!(HTMLHeadElement, HTMLHeadElementBinding::Wrap)
 generate_binding_object!(HTMLHeadElement)
 generate_cacheable_wrapper!(HTMLAnchorElement, HTMLAnchorElementBinding::Wrap)
 generate_binding_object!(HTMLAnchorElement)
+generate_cacheable_wrapper!(HTMLAppletElement, HTMLAppletElementBinding::Wrap)
+generate_binding_object!(HTMLAppletElement)
+generate_cacheable_wrapper!(HTMLAreaElement, HTMLAreaElementBinding::Wrap)
+generate_binding_object!(HTMLAreaElement)
+generate_cacheable_wrapper!(HTMLBaseElement, HTMLBaseElementBinding::Wrap)
+generate_binding_object!(HTMLBaseElement)
 generate_cacheable_wrapper!(HTMLBodyElement, HTMLBodyElementBinding::Wrap)
 generate_binding_object!(HTMLBodyElement)
 generate_cacheable_wrapper!(HTMLCanvasElement, HTMLCanvasElementBinding::Wrap)
@@ -196,6 +212,8 @@ generate_cacheable_wrapper!(HTMLHRElement, HTMLHRElementBinding::Wrap)
 generate_binding_object!(HTMLHRElement)
 generate_cacheable_wrapper!(HTMLHtmlElement, HTMLHtmlElementBinding::Wrap)
 generate_binding_object!(HTMLHtmlElement)
+generate_cacheable_wrapper!(HTMLDataElement, HTMLDataElementBinding::Wrap)
+generate_binding_object!(HTMLDataElement)
 generate_cacheable_wrapper!(HTMLDivElement, HTMLDivElementBinding::Wrap)
 generate_binding_object!(HTMLDivElement)
 generate_cacheable_wrapper!(HTMLIFrameElement, HTMLIFrameElementBinding::Wrap)
