@@ -717,7 +717,7 @@ impl Constellation {
 
     fn handle_resized_window_msg(&mut self, new_size: Size2D<uint>) {
         let mut already_seen = HashSet::new();
-        for &@FrameTree { pipeline: ref pipeline, _ } in self.current_frame().iter() {
+        for &@FrameTree { pipeline: pipeline, _ } in self.current_frame().iter() {
             let Size2D { width, height } = new_size;
             pipeline.script_chan.send(SendEventMsg(pipeline.id.clone(),
                                                    ResizeEvent(width, height)));
