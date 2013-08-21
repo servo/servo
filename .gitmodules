@@ -115,3 +115,6 @@
 [submodule "src/platform/android/libfreetype2"]
 	path = src/platform/android/libfreetype2
 	url = http://github.com/webconvforge/libfreetype2.git
+[submodule "src/support/glut/rust-glut"]
+	path = src/support/glut/rust-glut
+	url = http://github.com/mozilla-servo/rust-glut.git
