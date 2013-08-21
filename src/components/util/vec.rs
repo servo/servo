@@ -64,6 +64,12 @@ fn test_match<T: Eq>(b: &T, a: Option<&T>) -> bool {
     }
 } 
 
+pub fn zip_copies<A: Clone, B: Clone>(avec: &[A], bvec: &[B]) -> ~[(A,B)] {
+    avec.iter().map(|x| x.clone())
+        .zip(bvec.iter().map(|x| x.clone()))
+        .collect()
+}
+
 fn should_find_all_elements() {
     #[test];
 
