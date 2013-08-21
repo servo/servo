@@ -276,11 +276,23 @@ impl<'self> BoxGenerator<'self> {
 }
 
 enum BoxGenResult<'self> {
-        NoGenerator,
-        ParentGenerator,
-        SiblingGenerator,
-        NewGenerator(BoxGenerator<'self>),
-        Mixed(BoxGenerator<'self>, ~BoxGenResult<'self>),
+    NoGenerator,
+    ParentGenerator,
+    SiblingGenerator,
+    NewGenerator(BoxGenerator<'self>),
+    /// Start a new generator, but also switch the parent out for the
+    /// grandparent, ending the parent generator.
+    ReparentingGenerator(BoxGenerator<'self>),
+    Mixed(BoxGenerator<'self>, ~BoxGenResult<'self>),
+}
+
+/// Determines whether the result of child box construction needs to reparent
+/// or not. Reparenting is needed when a block flow is a child of an inline;
+/// in that case, we need to let the level up the stack no to end the parent
+/// genertor and continue with the grandparent.
+enum BoxConstructResult<'self> {
+    Normal(Option<BoxGenerator<'self>>),
+    Reparent(BoxGenerator<'self>),
 }
 
 impl LayoutTreeBuilder {
@@ -296,7 +308,7 @@ impl LayoutTreeBuilder {
                                      mut grandparent_generator: Option<BoxGenerator<'a>>,
                                      mut parent_generator: BoxGenerator<'a>,
                                      mut prev_sibling_generator: Option<BoxGenerator<'a>>)
-                                     -> Option<BoxGenerator<'a>> {
+                                     -> BoxConstructResult<'a> {
         debug!("Considering node: %s", cur_node.debug_str());
         let box_gen_result = {
             let grandparent_gen_ref = match grandparent_generator {
@@ -310,11 +322,13 @@ impl LayoutTreeBuilder {
             self.box_generator_for_node(cur_node, grandparent_gen_ref, &mut parent_generator, sibling_gen_ref)
         };
 
+        let mut reparent = false;
+
         debug!("result from generator_for_node: %?", &box_gen_result);
         // Skip over nodes that don't belong in the flow tree
         let (this_generator, next_generator) = 
             match box_gen_result {
-                NoGenerator => return prev_sibling_generator,
+                NoGenerator => return Normal(prev_sibling_generator),
                 ParentGenerator => {
                     do parent_generator.with_clone |clone| {
                         (clone, None)
@@ -322,6 +336,10 @@ impl LayoutTreeBuilder {
                 }
                 SiblingGenerator => (prev_sibling_generator.take_unwrap(), None),
                 NewGenerator(gen) => (gen, None),
+                ReparentingGenerator(gen) => {
+                    reparent = true;
+                    (gen, None)
+                }
                 Mixed(gen, next_gen) => (gen, Some(match *next_gen {
                     ParentGenerator => {
                         do parent_generator.with_clone |clone| {
@@ -342,18 +360,29 @@ impl LayoutTreeBuilder {
         debug!("point b: %s", cur_node.debug_str());
 
         // recurse on child nodes.
-        let prev_gen_cell = Cell::new(None);
+        let prev_gen_cell = Cell::new(Normal(None));
         for child_node in cur_node.children() {
             do parent_generator.with_clone |grandparent_clone| {
                 let grandparent_clone_cell = Cell::new(Some(grandparent_clone));
                 do this_generator.with_clone |parent_clone| {
-                    let mut prev_generator = prev_gen_cell.take();
-                    prev_generator = self.construct_recursively(layout_ctx,
-                                                                child_node,
-                                                                grandparent_clone_cell.take(),
-                                                                parent_clone,
-                                                                prev_generator);
-                    prev_gen_cell.put_back(prev_generator);
+                    match prev_gen_cell.take() {
+                        Normal(prev_gen) => {
+                            let prev_generator = self.construct_recursively(layout_ctx,
+                                                                            child_node,
+                                                                            grandparent_clone_cell.take(),
+                                                                            parent_clone,
+                                                                            prev_gen);
+                            prev_gen_cell.put_back(prev_generator);
+                        }
+                        Reparent(prev_gen) => {
+                            let prev_generator = self.construct_recursively(layout_ctx,
+                                                                            child_node,
+                                                                            None,
+                                                                            grandparent_clone_cell.take().unwrap(),
+                                                                            Some(prev_gen));
+                            prev_gen_cell.put_back(prev_generator);
+                        } 
+                    }
                 }
             }
         }
@@ -362,8 +391,14 @@ impl LayoutTreeBuilder {
         self.simplify_children_of_flow(layout_ctx, this_generator.flow);
 
         match next_generator {
-            Some(n_gen) => Some(n_gen),
-            None => Some(this_generator),
+            Some(n_gen) => Normal(Some(n_gen)),
+            None => {
+                if reparent {
+                    Reparent(this_generator)
+                } else {
+                    Normal(Some(this_generator))
+                }
+            }
         }
     }
 
@@ -487,15 +522,16 @@ impl LayoutTreeBuilder {
                 }
             }
 
-            // TODO(eatkinson): blocks that are children of inlines need
-            // to split their parent flows.
+            // blocks that are children of inlines need to split their parent
+            // flows.
             (CSSDisplayBlock, & &InlineFlow(*), _) => {
                 match grandparent_generator {
                     None => fail!("expected to have a grandparent block flow"),
                     Some(grandparent_gen) => {
                         assert!(grandparent_gen.flow.is_block_like());
 
-                        self.create_child_generator(node, grandparent_gen, Flow_Block)
+                        let block_gen = self.create_child_generator(node, grandparent_gen, Flow_Block);
+                        return ReparentingGenerator(block_gen);
                     }
                 }
             }
