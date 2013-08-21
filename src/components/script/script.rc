@@ -47,6 +47,7 @@ pub mod dom {
             pub mod HTMLBRElementBinding;
             pub mod HTMLCanvasElementBinding;
             pub mod HTMLCollectionBinding;
+            pub mod HTMLDListElementBinding;
             pub mod HTMLDivElementBinding;
             pub mod HTMLDocumentBinding;
             pub mod HTMLElementBinding;
@@ -92,6 +93,7 @@ pub mod dom {
     pub mod htmlbrelement;
     pub mod htmlcanvaselement;
     pub mod htmlcollection;
+    pub mod htmldlistelement;
     pub mod htmldocument;
     pub mod htmlelement;
     pub mod htmlhrelement;
