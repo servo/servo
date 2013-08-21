@@ -9,7 +9,7 @@ On OS X (homebrew):
 
 ``` sh
 brew install https://raw.github.com/Homebrew/homebrew-versions/master/autoconf213.rb
-brew install automake libtool pkg-config libpng
+brew install automake libtool pkg-config
 ```
 
 On OS X (MacPorts):
@@ -23,7 +23,7 @@ On Debian-based Linuxes:
 ``` sh
 sudo apt-get install autoconf2.13 curl freeglut3-dev libtool \
     libfreetype6-dev libfontconfig1-dev libgl1-mesa-dri libglib2.0-dev \
-    xorg-dev libpng-dev msttcorefonts
+    xorg-dev msttcorefonts
 ```
 
 Servo builds its own copy of Rust, so there is no need to provide a Rust

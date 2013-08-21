@@ -35,6 +35,7 @@ they are designed to be useful in other Rust projects.
 * `support/netsurfcss`: The CSS library from the NetSurf project. This is a temporary stopgap for
   CSS parsing until a pure-Rust solution is available.
 * `support/opengles`: Bindings to OpenGL ES 2.0.
+* `support/png`: Bindings to libpng.
 * `support/sharegl`: A library for sharing OpenGL or Direct3D textures between processes.
 * `support/skia`: Google's accelerated 2D rendering library.
 * `support/spidermonkey`: Mozilla's JavaScript engine.
