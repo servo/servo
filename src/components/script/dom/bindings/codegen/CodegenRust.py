@@ -3451,7 +3451,7 @@ class CGXrayHelper(CGAbstractExternMethod):
 
         methods = self.properties.methods
         if methods.hasNonChromeOnly() or methods.hasChromeOnly():
-            methodArgs = "Some(vec::zip_slice(%(methods)s, *method_ids))" % varNames
+            methodArgs = "Some(zip_copies(%(methods)s, *method_ids))" % varNames
             setup += "let method_ids = (*page).js_info.get_ref().dom_static.method_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
         else:
             methodArgs = "None"
@@ -3459,7 +3459,7 @@ class CGXrayHelper(CGAbstractExternMethod):
 
         attrs = self.properties.attrs
         if attrs.hasNonChromeOnly() or attrs.hasChromeOnly():
-            attrArgs = "Some(vec::zip_slice(%(attrs)s, *attr_ids))" % varNames
+            attrArgs = "Some(zip_copies(%(attrs)s, *attr_ids))" % varNames
             setup += "let attr_ids = (*page).js_info.get_ref().dom_static.attribute_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
         else:
             attrArgs = "None"
@@ -3467,7 +3467,7 @@ class CGXrayHelper(CGAbstractExternMethod):
 
         consts = self.properties.consts
         if consts.hasNonChromeOnly() or consts.hasChromeOnly():
-            constArgs = "Some(vec::zip_slice(%(consts)s, *const_ids))" % varNames
+            constArgs = "Some(zip_copies(%(consts)s, *const_ids))" % varNames
             setup += "let const_ids = (*page).js_info.get_ref().dom_static.constant_ids.get(&(PrototypeList::id::ClientRect as uint));\n"
         else:
             constArgs = "None"
@@ -4656,6 +4656,7 @@ class CGBindingRoot(CGThing):
                           'script_task::{JSPageInfo, page_from_context}',
                           'dom::bindings::utils::EnumEntry',
                           'dom::node::ScriptView',
+                          'servo_util::vec::zip_copies',
                           'std::cast',
                           'std::libc',
                           'std::ptr',
