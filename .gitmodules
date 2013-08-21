@@ -113,3 +113,6 @@
 [submodule "src/support/egl/rust-egl"]
 	path = src/support/egl/rust-egl
 	url = http://github.com/webconvforge/rust-egl.git
+[submodule "src/platform/android/servo-android-glue"]
+	path = src/platform/android/servo-android-glue
+	url = http://github.com/webconvforge/servo-android-glue.git

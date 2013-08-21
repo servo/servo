@@ -343,6 +343,16 @@ package: servo
 	cp $(B)src/platform/macos/rust-cocoa/lib*.dylib Servo.app/Contents/MacOS/src/platform/macos/rust-cocoa/
 	cp $(B)src/support/azure/rust-azure/lib*.dylib Servo.app/Contents/MacOS/src/support/azure/rust-azure/
 
+else ifeq ($(CFG_OSTYPE),linux-androideabi)
+package: servo
+	mkdir -p sofile
+	-exec cp -f {} $(CFG_BUILD_HOME)sofile \;
+	find . ! \( \( -type d -path './sofile' -o -path './$(CFG_TARGET_TRIPLES)/src/compiler/rust' \) -prune \) -name '*.so' -type f | xargs cp -f -t $(CFG_BUILD_HOME)sofile
+	find $(CFG_RUST_HOME)/lib/rustc/$(CFG_TARGET_TRIPLES)/lib/ -name '*.so' -type f -size +1c | xargs cp -f -t $(CFG_BUILD_HOME)sofile
+	cd $(S)src/platform/android/servo-android-glue && make with-libs
+	cd $(CFG_BUILD_HOME)
+	cp $(S)src/platform/android/servo-android-glue/bin/ServoAndroid-debug.apk -t $(CFG_BUILD_HOME)
+
 else
 
 bindings: $(AUTOGEN_SRC_script)
