@@ -11,11 +11,11 @@ use dom::element::{HTMLElementTypeId,
                    HTMLLinkElementTypeId, HTMLListItemElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId, HTMLOptionElementTypeId,
                    HTMLParagraphElementTypeId, HTMLScriptElementTypeId,
-                   HTMLSelectElementTypeId, HTMLSmallElementTypeId,
+                   HTMLSelectElementTypeId, HTMLSmallElementTypeId, HTMLSourceElementTypeId,
                    HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTableSectionElementTypeId,
                    HTMLTableCellElementTypeId, HTMLTableElementTypeId,
-                   HTMLTableRowElementTypeId, HTMLTextAreaElementTypeId,
-                   HTMLTitleElementTypeId, HTMLUListElementTypeId,
+                   HTMLTableCaptionElementTypeId, HTMLTableRowElementTypeId, HTMLTextAreaElementTypeId,
+                   HTMLTimeElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId,
                    UnknownElementTypeId};
 use dom::element::{HTMLDivElement, HTMLFontElement, HTMLFormElement,
                    HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
@@ -35,11 +35,14 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlsourceelement::HTMLSourceElement;
 use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::htmltimeelement::HTMLTimeElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::htmlulistelement::HTMLUListElement;
 use dom::element::Element;
@@ -242,14 +245,17 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "script",  HTMLScriptElementTypeId, HTMLScriptElement, []);
     handle_element!(cx, tag, "select",  HTMLSelectElementTypeId, HTMLSelectElement, []);
     handle_element!(cx, tag, "small",   HTMLSmallElementTypeId, HTMLSmallElement, []);
+    handle_element!(cx, tag, "source",  HTMLSourceElementTypeId, HTMLSourceElement, []);
     handle_element!(cx, tag, "span",    HTMLSpanElementTypeId, HTMLSpanElement, []);
     handle_element!(cx, tag, "style",   HTMLStyleElementTypeId, HTMLStyleElement, []);
-    handle_element!(cx, tag, "tbody",   HTMLTableSectionElementTypeId, HTMLTableSectionElement, []);
+    handle_element!(cx, tag, "caption", HTMLTableCaptionElementTypeId, HTMLTableCaptionElement, []);
     handle_element!(cx, tag, "td",      HTMLTableCellElementTypeId, HTMLTableCellElement, []);
     handle_element!(cx, tag, "table",   HTMLTableElementTypeId, HTMLTableElement, []);
+    handle_element!(cx, tag, "tbody",   HTMLTableSectionElementTypeId, HTMLTableSectionElement, []);
     handle_element!(cx, tag, "textarea",HTMLTextAreaElementTypeId, HTMLTextAreaElement, []);
-    handle_element!(cx, tag, "tr",      HTMLTableRowElementTypeId, HTMLTableRowElement, []);
+    handle_element!(cx, tag, "time",    HTMLTimeElementTypeId, HTMLTimeElement, []);
     handle_element!(cx, tag, "title",   HTMLTitleElementTypeId, HTMLTitleElement, []);
+    handle_element!(cx, tag, "tr",      HTMLTableRowElementTypeId, HTMLTableRowElement, []);
     handle_element!(cx, tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
 
     handle_element!(cx, tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);

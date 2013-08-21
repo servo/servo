@@ -10,10 +10,11 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBodyElementBinding, H
                              HTMLHtmlElementBinding, HTMLIFrameElementBinding,
                              HTMLImageElementBinding, HTMLMetaElementBinding,
                              HTMLOListElementBinding, HTMLParagraphElementBinding,
-                             HTMLScriptElementBinding, HTMLSpanElementBinding, HTMLStyleElementBinding,
+                             HTMLScriptElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
+                             HTMLStyleElementBinding, HTMLTableCaptionElementBinding,
                              HTMLTableElementBinding, HTMLTableRowElementBinding,
                              HTMLTableSectionElementBinding, HTMLTextAreaElementBinding,
-                             HTMLTitleElementBinding, HTMLUListElementBinding};
+                             HTMLTimeElementBinding, HTMLTitleElementBinding, HTMLUListElementBinding};
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
 use dom::clientrect::ClientRect;
@@ -30,13 +31,16 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlsourceelement::HTMLSourceElement;
 use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
-use dom::htmlulistelement::HTMLUListElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::htmltimeelement::HTMLTimeElement;
 use dom::htmltitleelement::HTMLTitleElement;
+use dom::htmlulistelement::HTMLUListElement;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
@@ -98,13 +102,16 @@ pub enum ElementTypeId {
     HTMLScriptElementTypeId,
     HTMLSelectElementTypeId,
     HTMLSmallElementTypeId,
+    HTMLSourceElementTypeId,
     HTMLSpanElementTypeId,
     HTMLStyleElementTypeId,
-    HTMLTableSectionElementTypeId,
+    HTMLTableCaptionElementTypeId,
     HTMLTableCellElementTypeId,
     HTMLTableElementTypeId,
     HTMLTableRowElementTypeId,
+    HTMLTableSectionElementTypeId,
     HTMLTextAreaElementTypeId,
+    HTMLTimeElementTypeId,
     HTMLTitleElementTypeId,
     HTMLUListElementTypeId,
     UnknownElementTypeId,
@@ -210,11 +217,15 @@ generate_cacheable_wrapper!(HTMLParagraphElement, HTMLParagraphElementBinding::W
 generate_binding_object!(HTMLParagraphElement)
 generate_cacheable_wrapper!(HTMLScriptElement, HTMLScriptElementBinding::Wrap)
 generate_binding_object!(HTMLScriptElement)
+generate_cacheable_wrapper!(HTMLSourceElement, HTMLSourceElementBinding::Wrap)
+generate_binding_object!(HTMLSourceElement)
 generate_cacheable_wrapper!(HTMLSpanElement, HTMLSpanElementBinding::Wrap)
 generate_binding_object!(HTMLSpanElement)
 generate_cacheable_wrapper!(HTMLStyleElement, HTMLStyleElementBinding::Wrap)
 generate_binding_object!(HTMLStyleElement)
 generate_cacheable_wrapper!(HTMLTableElement, HTMLTableElementBinding::Wrap)
+generate_binding_object!(HTMLTableCaptionElement)
+generate_cacheable_wrapper!(HTMLTableCaptionElement, HTMLTableCaptionElementBinding::Wrap)
 generate_binding_object!(HTMLTableElement)
 generate_cacheable_wrapper!(HTMLTableRowElement, HTMLTableRowElementBinding::Wrap)
 generate_binding_object!(HTMLTableRowElement)
@@ -224,6 +235,8 @@ generate_cacheable_wrapper!(HTMLTextAreaElement, HTMLTextAreaElementBinding::Wra
 generate_binding_object!(HTMLTextAreaElement)
 generate_cacheable_wrapper!(HTMLTitleElement, HTMLTitleElementBinding::Wrap)
 generate_binding_object!(HTMLTitleElement)
+generate_cacheable_wrapper!(HTMLTimeElement, HTMLTimeElementBinding::Wrap)
+generate_binding_object!(HTMLTimeElement)
 generate_cacheable_wrapper!(HTMLUListElement, HTMLUListElementBinding::Wrap)
 generate_binding_object!(HTMLUListElement)
 

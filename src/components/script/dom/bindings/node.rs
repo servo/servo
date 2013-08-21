@@ -13,9 +13,11 @@ use dom::element::{HTMLElementTypeId,
                    HTMLHtmlElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId,
                    HTMLParagraphElementTypeId, HTMLScriptElementTypeId,
-                   HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
-                   HTMLTableElementTypeId, HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId,
-                   HTMLTitleElementTypeId, HTMLUListElementTypeId};
+                   HTMLSpanElementTypeId, HTMLSourceElementTypeId,
+                   HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
+                   HTMLTableCaptionElementTypeId, HTMLTableElementTypeId,
+                   HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId,
+                   HTMLTimeElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId};
 use dom::element::{HTMLHeadElement,HTMLHtmlElement, HTMLDivElement, HTMLParagraphElement, HTMLSpanElement};
 use dom::htmlelement::HTMLElement;
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -28,11 +30,14 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlsourceelement::HTMLSourceElement;
 use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::htmltimeelement::HTMLTimeElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::htmlulistelement::HTMLUListElement;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
@@ -114,12 +119,15 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLOListElementTypeId) => generate_element!(HTMLOListElement),
         ElementNodeTypeId(HTMLParagraphElementTypeId) => generate_element!(HTMLParagraphElement),
         ElementNodeTypeId(HTMLScriptElementTypeId) => generate_element!(HTMLScriptElement),
+        ElementNodeTypeId(HTMLSourceElementTypeId) => generate_element!(HTMLSourceElement),
         ElementNodeTypeId(HTMLSpanElementTypeId) => generate_element!(HTMLSpanElement),
         ElementNodeTypeId(HTMLStyleElementTypeId) => generate_element!(HTMLStyleElement),
+        ElementNodeTypeId(HTMLTableCaptionElementTypeId) => generate_element!(HTMLTableCaptionElement),
         ElementNodeTypeId(HTMLTableElementTypeId) => generate_element!(HTMLTableElement),
         ElementNodeTypeId(HTMLTableRowElementTypeId) => generate_element!(HTMLTableRowElement),
         ElementNodeTypeId(HTMLTableSectionElementTypeId) => generate_element!(HTMLTableSectionElement),
         ElementNodeTypeId(HTMLTextAreaElementTypeId) => generate_element!(HTMLTextAreaElement),
+        ElementNodeTypeId(HTMLTimeElementTypeId) => generate_element!(HTMLTimeElement),
         ElementNodeTypeId(HTMLTitleElementTypeId) => generate_element!(HTMLTitleElement),
         ElementNodeTypeId(HTMLUListElementTypeId) => generate_element!(HTMLUListElement),
         ElementNodeTypeId(_) => element::create(cx, node).ptr,
