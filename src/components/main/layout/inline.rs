@@ -609,8 +609,10 @@ impl InlineFlowData {
         let mut scanner = LineboxScanner::new(scanner_floats);
         scanner.scan_for_lines(self);
 
+        let mut line_height_offset = Au(0);
+
         // Now, go through each line and lay out the boxes inside
-        for line in self.lines.iter() {
+        for line in self.lines.mut_iter() {
             // We need to distribute extra width based on text-align.
             let mut slack_width = line.green_zone.width - line.bounds.size.width;
             if slack_width < Au(0) {
@@ -662,6 +664,10 @@ impl InlineFlowData {
                     }
                 }
             };
+
+            // Update the line's y position before setting the box's y position
+            // since the previous line's height can be modified.
+            line.bounds.origin.y = line.bounds.origin.y + line_height_offset;
 
             let mut topmost = Au(0);
             let mut bottommost = Au(0);
@@ -857,6 +863,8 @@ impl InlineFlowData {
                     base.position.origin.y = base.position.origin.y + adjust_offset;
                 }
             }
+            line_height_offset = topmost + bottommost - line.bounds.size.height;
+            line.bounds.size.height = topmost + bottommost;
         } // End of `lines.each` loop.
 
         self.common.position.size.height = 
