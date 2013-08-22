@@ -9,7 +9,8 @@ RUSTC ?= rustc
 RUSTFLAGS ?= -L $(CSSPARSER_DIR)
 
 
-RUST_SRC=$(shell find $(VPATH)/. -type f -name '*.rs') $(CSSPARSER_DIR)/libcssparser.dummy
+PROPERTIES_RS=$(VPATH)/properties/mod.rs
+RUST_SRC=$(shell find $(VPATH)/. -type f -name '*.rs') $(CSSPARSER_DIR)/libcssparser.dummy $(PROPERTIES_RS)
 
 .PHONY: all
 all:    libservo-style.dummy
@@ -32,3 +33,7 @@ check-debug: servo-style-tests
 .PHONY: clean
 clean:
 	rm -f *.o *.a *.so *.dylib *.dll *.dummy *-test
+
+
+$(PROPERTIES_RS): $(PROPERTIES_RS).mako
+	PYTHONPATH=$(VPATH)/Mako-0.8.1.zip python -c "from mako.template import Template; print(Template(filename='$<').render())" > $@

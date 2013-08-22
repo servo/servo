@@ -3,9 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-use cssparser::*;
-use parsing_utils::*;
-
 pub type Float = f64;
 pub type Integer = i64;
 
@@ -140,30 +137,3 @@ pub mod computed {
         }
     }
 }
-
-
-pub enum BorderStyle {
-    BorderStyleSolid,
-    // Uncomment when supported
-//    BorderStyleDotted,
-//    BorderStyleDashed,
-//    BorderStyleDouble,
-//    BorderStyleGroove,
-//    BorderStyleRidge,
-//    BorderStyleInset,
-//    BorderStyleOutset,
-//    BorderStyleHidden,
-    BorderStyleNone,
-}
-impl BorderStyle {
-    pub fn parse(input: &ComponentValue) -> Option<BorderStyle> {
-        do get_ident_lower(input).chain |keyword| {
-            match keyword.as_slice() {
-                "solid" => Some(BorderStyleSolid),
-                "none" => Some(BorderStyleNone),
-                _ => None,
-            }
-        }
-    }
-}
-
