@@ -312,17 +312,64 @@ impl BlockFlowData {
                 }
             }
         }
+
+        let mut collapsible = Au(0);
+        let mut collapsing = Au(0);
+        let mut first_collapsing = true;
+        for &box in self.box.iter() {
+            do box.with_model |model| {
+                if !self.is_root && model.border.top == Au(0) && model.padding.top == Au(0) {
+                    collapsible = model.margin.top;
+                }
+            }
+        }
         for kid in self.common.child_iter() {
+            match *kid {
+                BlockFlow(ref info) => {
+                    for &box in info.box.iter() {
+                        do box.with_model |model| {
+                            collapsing = if first_collapsing && collapsible != Au(0) {
+                                // The top margin collapses with its first in-flow block-level child's
+                                // top margin if the parent has no top boder, no top padding.
+                                model.margin.top
+                            } else {
+                                // The bottom margin of an in-flow block-level element collapses 
+                                // with the top margin of its next in-flow block-level sibling.
+                                geometry::min(model.margin.top, collapsible)
+                            };
+                            collapsible = model.margin.bottom;
+                        }
+                    }
+                    first_collapsing = false;
+                }
+                // Margins between a floated box and any other box do not collapse.
+                _ => {
+                    collapsing = Au(0);
+                }
+            }
+
             do kid.with_mut_base |child_node| {
+                cur_y = cur_y - collapsing;
                 child_node.position.origin.y = cur_y;
                 cur_y = cur_y + child_node.position.size.height;
+            };
+        }
+        // The bottom margin collapses with its first in-flow block-level child's bottom margin
+        // if the parent has no bottom boder, no bottom padding.
+        for &box in self.box.iter() {
+            collapsing = do box.with_model |model| {
+                if !self.is_root && model.border.bottom == Au(0) && model.padding.bottom == Au(0) {
+                    collapsible
+                } else {
+                    Au(0)
+                }
             };
         }
 
         let mut height = if self.is_root {
             Au::max(ctx.screen_size.size.height, cur_y)
         } else {
-            cur_y - top_offset
+            cur_y - top_offset - collapsing
         };
 
         for &box in self.box.iter() {
@@ -342,7 +389,8 @@ impl BlockFlowData {
                     base.model.border.top + base.model.border.bottom;
                 base.position.size.height = height + noncontent_height;
 
-                noncontent_height = noncontent_height + clearance + base.model.margin.top + base.model.margin.bottom;
+                noncontent_height = noncontent_height + clearance +
+                    base.model.margin.top + base.model.margin.bottom;
             }
         });
 
