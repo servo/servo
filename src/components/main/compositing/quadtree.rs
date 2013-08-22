@@ -217,14 +217,13 @@ impl<T: Tile> Quadtree<T> {
     }
 
     /// Creates a new quadtree at the specified size. This should be called when the window changes size.
-    /// TODO: return old tiles.
-    pub fn resize(&mut self, width: uint, height: uint) {
+    pub fn resize(&mut self, width: uint, height: uint) -> ~[T] {
         // Spaces must be squares and powers of 2, so expand the space until it is
         let longer = width.max(&height);
         let num_tiles = div_ceil(longer, self.max_tile_size);
         let power_of_two = next_power_of_two(num_tiles);
         let size = power_of_two * self.max_tile_size;
-        
+        let ret = self.root.collect_tiles();
         self.root = ~QuadtreeNode {
             tile: None,
             origin: Point2D(0f32, 0f32),
@@ -234,6 +233,7 @@ impl<T: Tile> Quadtree<T> {
             tile_mem: 0,
         };
         self.clip_size = Size2D(width, height);
+        ret
     }
 
     /// Resize the underlying quadtree without removing tiles already in place.
@@ -290,6 +290,12 @@ impl<T: Tile> Quadtree<T> {
         self.root.set_status(rect, status, include_border);
     }
 
+    /// Remove and return all tiles in the tree. Use this before deleting the quadtree to prevent
+    /// a GC pause.
+    pub fn collect_tiles(&mut self) -> ~[T] {
+        self.root.collect_tiles()
+    }
+
     /// Generate html to visualize the tree. For debugging purposes only.
     pub fn get_html(&self) -> ~str {
         static HEADER: &'static str = "<!DOCTYPE html><html>";
@@ -340,9 +346,14 @@ impl<T: Tile> QuadtreeNode<T> {
         }
     }
 
-    /// Get all tiles in the tree, parents last.
+    /// Get all tiles in the tree, parents first.
     fn get_all_tiles<'r>(&'r self) -> ~[&'r T] {
         let mut ret = ~[];
+
+        match self.tile {
+            Some(ref tile) => ret = ret + ~[tile],
+            None => {}
+        }
 
         for quad in self.quadrants.iter() {
             match *quad {
@@ -351,12 +362,6 @@ impl<T: Tile> QuadtreeNode<T> {
             }
         }
         
-        match self.tile {
-            Some(ref tile) => ret = ret + ~[tile],
-            None => {}
-        }
-
-
         return ret;
     }
 
