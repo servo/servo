@@ -9,6 +9,7 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLBodyElementBinding, H
                              HTMLHeadElementBinding, HTMLHRElementBinding,
                              HTMLHtmlElementBinding, HTMLIFrameElementBinding,
                              HTMLImageElementBinding, HTMLMetaElementBinding,
+                             HTMLLinkElementBinding,
                              HTMLOListElementBinding, HTMLParagraphElementBinding,
                              HTMLScriptElementBinding, HTMLSpanElementBinding, HTMLStyleElementBinding,
                              HTMLTableElementBinding, HTMLTableRowElementBinding,
@@ -28,6 +29,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
@@ -122,7 +124,6 @@ pub struct HTMLFormElement      { parent: HTMLElement }
 pub struct HTMLHeadElement      { parent: HTMLElement }
 pub struct HTMLHtmlElement      { parent: HTMLElement }
 pub struct HTMLInputElement     { parent: HTMLElement }
-pub struct HTMLLinkElement      { parent: HTMLElement }
 pub struct HTMLListItemElement  { parent: HTMLElement }
 pub struct HTMLOptionElement    { parent: HTMLElement }
 pub struct HTMLParagraphElement { parent: HTMLElement }
@@ -206,6 +207,8 @@ generate_cacheable_wrapper!(HTMLIFrameElement, HTMLIFrameElementBinding::Wrap)
 generate_binding_object!(HTMLIFrameElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
 generate_binding_object!(HTMLImageElement)
+generate_cacheable_wrapper!(HTMLLinkElement, HTMLLinkElementBinding::Wrap)
+generate_binding_object!(HTMLLinkElement)
 generate_cacheable_wrapper!(HTMLMetaElement, HTMLMetaElementBinding::Wrap)
 generate_binding_object!(HTMLMetaElement)
 generate_cacheable_wrapper!(HTMLOListElement, HTMLOListElementBinding::Wrap)
