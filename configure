@@ -351,7 +351,7 @@ case ${TARGET_OSTYPE} in
         probe CFG_CXX              arm-linux-androideabi-g++
         probe CFG_LD               arm-linux-androideabi-ld
         probe CFG_AR               arm-linux-androideabi-ar
-        probe CFG_RANLIB	   arm-linux-androideabi-ranlib
+        probe CFG_RANLIB	       arm-linux-androideabi-ranlib
         CFG_RUSTC_FLAGS="--target=${CFG_TARGET_TRIPLES} --android-cross-path=${CFG_ANDROID_CROSS_PATH}"
         ;;
     *)
@@ -622,12 +622,7 @@ export CFLAGS="${CFLAGS} -fPIC"
 export LDFLAGS="${CFLAGS} -fPIC"
 
 # cross compile configurations
-
-export CC="${CFG_CC}"
-export CXX="${CFG_CXX}"
-export LD="${CFG_LD}"
-export AR="${CFG_AR}"
-export RANLIB="${CFG_RANLIB}"
+EXTRA_CONFIGURE_ARGS="CC=${CFG_CC} CXX=${CFG_CXX} LD=${CFG_LD} AR=${CFG_AR} RANLIB=${CFG_RANLIB}"
 
 for i in ${CFG_SUBMODULES}
 do
@@ -658,16 +653,19 @@ do
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --android-ndk-path=${CFG_ANDROID_NDK_PATH}"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --android-api-version=14"
             fi
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
             ;;
         platform/android/libexpat)
             CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/expat/configure"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux-androideabi"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-sysroot=${CFG_ANDROID_CROSS_PATH}/sysroot"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
             ;;
         platform/android/libfreetype2)
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-sysroot=${CFG_ANDROID_CROSS_PATH}/sysroot"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --without-zlib"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
             ;;
         platform/android/fontconfig)
             CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/autogen.sh"
@@ -679,6 +677,7 @@ do
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-cache-dir=${CFG_ANDROID_RESOURCE_PATH}/.fccache"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-confdir=${CFG_ANDROID_RESOURCE_PATH}/.fcconfig"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-default-fonts=${CFG_ANDROID_FONT_PATH}"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
             ;;
         support/spidermonkey/mozjs)
             # needed because Spidermonkey configure is in non-standard location
