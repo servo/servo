@@ -480,6 +480,7 @@ CFG_SUBMODULES="\
     support/css/rust-cssparser \
     support/geom/rust-geom \
     support/harfbuzz/rust-harfbuzz \
+    support/http/rust-http \
     support/hubbub/libhubbub \
     support/hubbub/rust-hubbub \
     support/layers/rust-layers \
