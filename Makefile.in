@@ -318,10 +318,14 @@ endif
 # Because Rust takes a very long time to build and changes infrequently,
 # the bots want to reuse it between builds. They can do so by running
 # `make backup-rust` and `make restore-rust`.
+#
+# backup-rust is run before the build directory is cleaned. if it fails, that's ok.
+#
+# restore-rust is run after configure and before invoking make. if it fails, we must abort.
 
 .PHONY: backup-rust restore-rust
 backup-rust:
-	mv src/compiler/rust ..
+	-mv src/compiler/rust ..
 
 restore-rust:
 	if [ -d ../rust ]; then rm -rf src/compiler/rust; mv ../rust src/compiler/; fi
