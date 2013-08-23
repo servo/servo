@@ -32,7 +32,7 @@ MKFILE_DEPS := config.stamp $(call rwildcard,$(S)mk/,*)
 # Enable debug!() etc even without configure --enable-debug
 # The evaluation of these prints & their arguments is controlled
 # at runtime by the environment variable RUST_LOG.
-CFG_RUSTC_FLAGS := $(RUSTFLAGS) --cfg debug
+CFG_RUSTC_FLAGS += --cfg debug
 
 ifdef CFG_DISABLE_OPTIMIZE
   $(info cfg: disabling rustc optimization (CFG_DISABLE_OPTIMIZE))
@@ -55,6 +55,15 @@ export CFG_LOCAL_RUSTC
 export CFG_ENABLE_DEBUG
 export RUSTC=$(CFG_RUSTC)
 export RUSTFLAGS=$(CFG_RUSTC_FLAGS)
+export CC=$(CFG_CC)
+export CXX=$(CFG_CXX)
+export LD=$(CFG_LD)
+export AR=$(CFG_AR)
+export RANLIB=$(CFG_RANLIB)
+export PATH=$(CFG_PATH)
+export CFG_ANDROID_SDK_PATH
+export CFG_OSTYPE
+export CFG_CPUTYPE
 
 ######################################################################
 # Re-configuration
@@ -83,7 +92,7 @@ $(S)config.stamp : $(S)configure $(S)Makefile.in
 ifneq ($(CFG_LOCAL_RUSTC),1)
 $(CFG_RUSTC):
 	@$(call E, building rustc)
-	$(Q)$(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS=""
+	$(Q)$(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS="" CC=gcc CXX=g++ LD=ld AR=ar
 
 clean-rust:
 	@$(call E, cleaning rustc)
@@ -96,7 +105,7 @@ clean-rust:
 
 endif
 
-src/compiler/rust/rust-auto-clean-stamp: $(S)src/compiler/rust-auto-clean-trigger
+$(B)/src/compiler/rust/rust-auto-clean-stamp: $(S)src/compiler/rust-auto-clean-trigger
 	$(Q)$(MAKE) clean-rust
 	touch $@
 
@@ -126,6 +135,8 @@ endif
 # their name already, while others don't.
 DONE_$(1) = $$(B)src/$$(PATH_$(1))/lib*.dummy
 DEPS_SUBMODULES += $$(PATH_$(1))
+DEPS_SUBMODULES += $$(PATH_$(1))/.libs
+DEPS_SUBMODULES += $$(PATH_$(1))/src/.libs
 endef
 
 # these will get populated.
@@ -140,7 +151,7 @@ include $(S)mk/sub.mk
 # Define how to make submodule targets
 define DEF_SUBMODULE_RULES
 
-ENV_RLDFLAGS_$(1) = $$(foreach dep,$$(DEPS_$(1)),-L $$(B)src/$$(PATH_$$(dep)))
+ENV_RLDFLAGS_$(1) = $$(foreach dep,$$(DEPS_$(1)),-L $$(B)src/$$(PATH_$$(dep)) -L $$(B)src/$$(PATH_$$(dep))/.libs -L $$(B)src/$$(PATH_$$(dep))/src/.libs)
 
 # variables that depend on dependency definitions from sub.mk!
 ENV_CFLAGS_$(1) = CFLAGS="$$(CFLAGS_$(1))"
@@ -164,10 +175,12 @@ $$(DONE_$(1)) : $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1)) $$(RUSTC_DEP_$(1))
 #	@$$(call E, $(1) deps= $$(DEPS_$(1)))
 #	@$$(call E, $(1) done_deps= $$(DONE_DEPS_$(1)))
 #	@$$(call E, $(1) cflags= $$(ENV_CFLAGS_$(1)))
+#	@$$(call E, $(1) cxxflags= $$(ENV_CXXFLAGS_$(1)))
 #	@$$(call E, $(1) rflags= $$(ENV_RFLAGS_$(1)))
 
 	$$(Q) \
 	$$(ENV_CFLAGS_$(1)) \
+	$$(ENV_CXXFLAGS_$(1)) \
 	$$(ENV_RFLAGS_$(1)) \
 	$$(MAKE) -C $$(B)src/$$(PATH_$(1)) && touch $$(DONE_$(1))
 
@@ -232,29 +245,29 @@ include $(S)mk/clean.mk
 
 .DEFAULT_GOAL := all
 .PHONY:	all
-all: src/compiler/rust/rust-auto-clean-stamp servo package
+all: $(B)/src/compiler/rust/rust-auto-clean-stamp servo package
 
 # Servo helper libraries
 
 $(DONE_util):	$(DEPS_util)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_util) --out-dir src/components/util $< && touch $@
+	$(Q)$(RUSTC) $(RFLAGS_util) --out-dir $(B)src/components/util $< && touch $@
 
 $(DONE_net):	$(DEPS_net)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_net) --out-dir src/components/net $< && touch $@
+	$(Q)$(RUSTC) $(RFLAGS_net) --out-dir $(B)src/components/net $< && touch $@
 
 $(DONE_msg):	$(DEPS_msg)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_msg) --out-dir src/components/msg $< && touch $@
+	$(Q)$(RUSTC) $(RFLAGS_msg) --out-dir $(B)src/components/msg $< && touch $@
 
 $(DONE_gfx):	$(DEPS_gfx)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_gfx) --out-dir src/components/gfx $< && touch $@
+	$(Q)$(RUSTC) $(RFLAGS_gfx) --out-dir $(B)src/components/gfx $< && touch $@
 
 $(DONE_script):	$(DEPS_script)
 	@$(call E, compile: $@)
-	$(Q)$(RUSTC) $(RFLAGS_script) --out-dir src/components/script $< && touch $@
+	$(Q)$(RUSTC) $(RFLAGS_script) --out-dir $(B)src/components/script $< && touch $@
 
 BINDINGS_SRC = $(S)/src/components/script/dom/bindings/codegen
 
@@ -289,21 +302,27 @@ $(BINDINGS_SRC)/ParserResults.pkl: $(globalgen_dependencies) \
 
 # Servo binaries
 
+ifneq ($(CFG_OSTYPE),linux-androideabi)
 servo:	$(DEPS_servo)
 	@$(call E, compile: $@)
 	$(Q)$(RUSTC) $(RFLAGS_servo) -o $@ $< --bin
+else
+servo:  $(DEPS_servo)
+	@$(call E, compile: $@)
+	$(Q)$(RUSTC) $(RFLAGS_servo) -o $@ $< --lib
+endif
 
 # Darwin app packaging
 
-ifeq ($(OSTYPE),apple-darwin)
+ifeq ($(CFG_OSTYPE),apple-darwin)
 
 package: servo
 	mkdir -p Servo.app/Contents/MacOS/src/platform/macos/rust-cocoa
-	mkdir -p Servo.app/Contents/MacOS/src/platform/macos/rust-azure
-	cp $(S)/Info.plist Servo.app/Contents/
+	mkdir -p Servo.app/Contents/MacOS/src/support/azure/rust-azure
+	cp $(S)Info.plist Servo.app/Contents/
 	cp servo Servo.app/Contents/MacOS/
-	cp src/platform/macos/rust-cocoa/lib*.dylib Servo.app/Contents/MacOS/src/platform/macos/rust-cocoa/
-	cp src/platform/macos/rust-azure/lib*.dylib Servo.app/Contents/MacOS/src/platform/macos/rust-azure/
+	cp $(B)src/platform/macos/rust-cocoa/lib*.dylib Servo.app/Contents/MacOS/src/platform/macos/rust-cocoa/
+	cp $(B)src/support/azure/rust-azure/lib*.dylib Servo.app/Contents/MacOS/src/support/azure/rust-azure/
 
 else
 

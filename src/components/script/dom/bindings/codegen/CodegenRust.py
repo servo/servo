@@ -1563,7 +1563,7 @@ for (uint32_t i = 0; i < length; ++i) {
             raise TypeError("We don't support nullable enumerated return types "
                             "yet")
         return ("""assert!((%(result)s as uint) < %(strings)s.len());
-let %(resultStr)s: *JSString = JS_NewStringCopyN(cx, ptr::to_unsafe_ptr(&%(strings)s[%(result)s as u32].value[0]) as *i8, %(strings)s[%(result)s as u32].length as u64);
+let %(resultStr)s: *JSString = JS_NewStringCopyN(cx, ptr::to_unsafe_ptr(&%(strings)s[%(result)s as u32].value[0]) as *i8, %(strings)s[%(result)s as u32].length as libc::size_t);
 if %(resultStr)s.is_null() {
   return 0;
 }
