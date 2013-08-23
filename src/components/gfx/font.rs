@@ -399,8 +399,8 @@ impl Font {
                 let azglyph = struct__AzGlyph {
                     mIndex: glyph.index() as uint32_t,
                     mPosition: struct__AzPoint {
-                        x: (origin.x + glyph_offset.x).to_px() as AzFloat,
-                        y: (origin.y + glyph_offset.y).to_px() as AzFloat
+                        x: (origin.x + glyph_offset.x).to_nearest_px() as AzFloat,
+                        y: (origin.y + glyph_offset.y).to_nearest_px() as AzFloat
                     }
                 };
                 origin = Point2D(origin.x + glyph_advance, origin.y);

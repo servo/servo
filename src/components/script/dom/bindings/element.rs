@@ -223,7 +223,7 @@ extern fn HTMLImageElement_getWidth(cx: *JSContext, _argc: c_uint, vp: *mut JSVa
                 let (port, chan) = comm::stream();
                 // TODO(tkuehn): currently this just queries top-level page's layout. Need to handle subframes.
                 match (*page).query_layout(ContentBoxQuery(node, chan), port) {
-                    Ok(ContentBoxResponse(rect)) => rect.size.width.to_px(),
+                    Ok(ContentBoxResponse(rect)) => rect.size.width.to_nearest_px(),
                     Err(()) => 0
                 }
                 // TODO: if nothing is being rendered(?), return zero dimensions

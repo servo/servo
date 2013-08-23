@@ -348,7 +348,8 @@ impl LayoutTask {
 
                 let render_layer = RenderLayer {
                     display_list: display_list.clone(),
-                    size: Size2D(root_size.width.to_px() as uint, root_size.height.to_px() as uint)
+                    size: Size2D(root_size.width.to_nearest_px() as uint,
+                                 root_size.height.to_nearest_px() as uint)
                 };
 
                 self.display_list = Some(display_list.clone());

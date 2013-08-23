@@ -82,15 +82,15 @@ pub fn box<T:Clone + Ord + Add<T,T> + Sub<T,T>>(x: T, y: T, w: T, h: T) -> Rect<
 
 impl Au {
     pub fn scale_by(self, factor: float) -> Au {
-        Au(((*self as float) * factor) as i32)
+        Au(((*self as float) * factor).round() as i32)
     }
 
     pub fn from_px(px: int) -> Au {
         NumCast::from(px * 60)
     }
 
-    pub fn to_px(&self) -> int {
-        (**self / 60) as int
+    pub fn to_nearest_px(&self) -> int {
+        ((**self as float) / 60f).round() as int
     }
 
     pub fn to_snapped(&self) -> Au {
