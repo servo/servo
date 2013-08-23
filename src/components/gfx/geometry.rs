@@ -89,7 +89,7 @@ impl Au {
         NumCast::from(px * 60)
     }
 
-    pub fn to_px(&self) -> int {
+    pub fn to_nearest_px(&self) -> int {
         ((**self as float) / 60f).round() as int
     }
 
