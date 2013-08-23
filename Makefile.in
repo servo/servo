@@ -344,7 +344,7 @@ endif
 
 .PHONY: backup-rust restore-rust
 backup-rust:
-	-mv src/compiler/rust ..
+	-mv $(B)src/compiler/rust ../$(CFG_TARGET_TRIPLES)
 
 restore-rust:
-	if [ -d ../rust ]; then rm -rf src/compiler/rust; mv ../rust src/compiler/; fi
+	if [ -d ../$(CFG_TARGET_TRIPLES) ]; then rm -rf $(B)src/compiler/rust; mv ../$(CFG_TARGET_TRIPLES) $(B)src/compiler/rust; fi
