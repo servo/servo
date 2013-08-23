@@ -10,7 +10,7 @@ use dom::element::{HTMLElementTypeId,
                    HTMLFontElementTypeId, HTMLFormElementTypeId, HTMLHRElementTypeId,
                    HTMLHeadElementTypeId, HTMLHtmlElementTypeId,
                    HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLInputElementTypeId,
-                   HTMLLinkElementTypeId, HTMLListItemElementTypeId,
+                   HTMLLinkElementTypeId, HTMLLIElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId, HTMLOptionElementTypeId,
                    HTMLParagraphElementTypeId, HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
                    HTMLSelectElementTypeId, HTMLSmallElementTypeId, HTMLSourceElementTypeId,
@@ -22,7 +22,7 @@ use dom::element::{HTMLElementTypeId,
                    UnknownElementTypeId};
 use dom::element::{HTMLDivElement, HTMLFontElement, HTMLFormElement,
                    HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
-                   HTMLOptionElement, HTMLParagraphElement, HTMLListItemElement,
+                   HTMLOptionElement, HTMLParagraphElement, HTMLLIElement,
                    HTMLSelectElement, HTMLSmallElement,
                    HTMLSpanElement};
 use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Heading4, Heading5,
@@ -232,7 +232,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
     to_parent.send(HtmlDiscoveredScript(js_scripts));
 }
 
-// Silly macros to handle constructing DOM nodes. This produces bad code and should be optimized
+// Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
 fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView> {
@@ -254,7 +254,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "html",    HTMLHtmlElementTypeId, HTMLHtmlElement, []);
     handle_element!(cx, tag, "input",   HTMLInputElementTypeId, HTMLInputElement, []);
     handle_element!(cx, tag, "link",    HTMLLinkElementTypeId, HTMLLinkElement, []);
-    handle_element!(cx, tag, "li",      HTMLListItemElementTypeId, HTMLListItemElement, []);
+    handle_element!(cx, tag, "li",      HTMLLIElementTypeId, HTMLLIElement, []);
     handle_element!(cx, tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
     handle_element!(cx, tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
     handle_element!(cx, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);

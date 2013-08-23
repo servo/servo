@@ -115,7 +115,7 @@ pub enum ElementTypeId {
     HTMLImageElementTypeId,
     HTMLInputElementTypeId,
     HTMLLinkElementTypeId,
-    HTMLListItemElementTypeId,
+    HTMLLIElementTypeId,
     HTMLMetaElementTypeId,
     HTMLOListElementTypeId,
     HTMLOptionElementTypeId,
@@ -149,7 +149,7 @@ pub struct HTMLFontElement      { parent: HTMLElement }
 pub struct HTMLFormElement      { parent: HTMLElement }
 pub struct HTMLHeadElement      { parent: HTMLElement }
 pub struct HTMLHtmlElement      { parent: HTMLElement }
-pub struct HTMLListItemElement  { parent: HTMLElement }
+pub struct HTMLLIElement        { parent: HTMLElement }
 pub struct HTMLOptionElement    { parent: HTMLElement }
 pub struct HTMLParagraphElement { parent: HTMLElement }
 pub struct HTMLSelectElement    { parent: HTMLElement }
