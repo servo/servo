@@ -86,3 +86,17 @@ impl JSValConvertible for f32 {
         }
     }
 }
+
+impl JSValConvertible for f64 {
+    fn to_jsval(&self) -> JSVal {
+        unsafe {
+            RUST_DOUBLE_TO_JSVAL(*self as f64)
+        }
+    }
+
+    fn from_jsval(val: JSVal) -> Option<f64> {
+        unsafe {
+            Some(RUST_JSVAL_TO_DOUBLE(val) as f64)
+        }
+    }
+}
