@@ -149,6 +149,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                         self.compositor.set_layer_page_size(self.id, render_layer.size, self.epoch);
                     }
                     self.render_layer = Some(render_layer);
+                    self.last_paint_msg = None;
                 }
                 ReRenderMsg(tiles, scale, epoch) => {
                     if self.epoch == epoch {
@@ -178,7 +179,7 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                     // re-rendered redundantly.
                     match self.last_paint_msg {
                         Some(ref layer_buffer_set) => {
-                            self.compositor.paint(self.id, layer_buffer_set.clone(), self.epoch);                            
+                            self.compositor.paint(self.id, layer_buffer_set.clone(), self.epoch);
                         }
                         None => {} // Nothing to do
                     }
