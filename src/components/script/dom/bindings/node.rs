@@ -7,33 +7,46 @@ use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::element::{HTMLElementTypeId,
-                   HTMLAnchorElementTypeId, HTMLBodyElementTypeId, HTMLBRElementTypeId,
-                   HTMLCanvasElementTypeId,
+                   HTMLAnchorElementTypeId, HTMLAppletElementTypeId,
+                   HTMLAreaElementTypeId, HTMLBaseElementTypeId,
+                   HTMLBodyElementTypeId, HTMLBRElementTypeId,
+                   HTMLCanvasElementTypeId, HTMLDataElementTypeId,
                    HTMLDivElementTypeId, HTMLHeadElementTypeId, HTMLHRElementTypeId,
                    HTMLHtmlElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId,
+                   HTMLLinkElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId,
                    HTMLParagraphElementTypeId, HTMLScriptElementTypeId,
-                   HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
-                   HTMLTableElementTypeId, HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId,
+                   HTMLSpanElementTypeId, HTMLSourceElementTypeId,
+                   HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
+                   HTMLTableCaptionElementTypeId, HTMLTableElementTypeId,
+                   HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId, HTMLTimeElementTypeId,
                    HTMLTitleElementTypeId, HTMLUListElementTypeId, HTMLDListElementTypeId};
 use dom::element::{HTMLHeadElement,HTMLHtmlElement, HTMLDivElement, HTMLParagraphElement, HTMLSpanElement};
 use dom::htmlelement::HTMLElement;
 use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlappletelement::HTMLAppletElement;
+use dom::htmlareaelement::HTMLAreaElement;
+use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmldataelement::HTMLDataElement;
 use dom::htmldlistelement::HTMLDListElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlsourceelement::HTMLSourceElement;
 use dom::htmlstyleelement::HTMLStyleElement;
+use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::htmltimeelement::HTMLTimeElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::htmlulistelement::HTMLUListElement;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
@@ -102,9 +115,13 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
     match node.type_id() {
         ElementNodeTypeId(HTMLElementTypeId) => generate_element!(HTMLElement),
         ElementNodeTypeId(HTMLAnchorElementTypeId) => generate_element!(HTMLAnchorElement),
+        ElementNodeTypeId(HTMLAppletElementTypeId) => generate_element!(HTMLAppletElement),
+        ElementNodeTypeId(HTMLAreaElementTypeId) => generate_element!(HTMLAreaElement),
+        ElementNodeTypeId(HTMLBaseElementTypeId) => generate_element!(HTMLBaseElement),
         ElementNodeTypeId(HTMLBodyElementTypeId) => generate_element!(HTMLBodyElement),
         ElementNodeTypeId(HTMLBRElementTypeId) => generate_element!(HTMLBRElement),
         ElementNodeTypeId(HTMLCanvasElementTypeId) => generate_element!(HTMLCanvasElement),
+        ElementNodeTypeId(HTMLDataElementTypeId) => generate_element!(HTMLDataElement),
         ElementNodeTypeId(HTMLDListElementTypeId) => generate_element!(HTMLDListElement),
         ElementNodeTypeId(HTMLDivElementTypeId) => generate_element!(HTMLDivElement),
         ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
@@ -112,16 +129,20 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLHtmlElementTypeId) => generate_element!(HTMLHtmlElement),
         ElementNodeTypeId(HTMLIframeElementTypeId) => generate_element!(HTMLIFrameElement),
         ElementNodeTypeId(HTMLImageElementTypeId) => generate_element!(HTMLImageElement),
+        ElementNodeTypeId(HTMLLinkElementTypeId) => generate_element!(HTMLLinkElement),
         ElementNodeTypeId(HTMLMetaElementTypeId) => generate_element!(HTMLMetaElement),
         ElementNodeTypeId(HTMLOListElementTypeId) => generate_element!(HTMLOListElement),
         ElementNodeTypeId(HTMLParagraphElementTypeId) => generate_element!(HTMLParagraphElement),
         ElementNodeTypeId(HTMLScriptElementTypeId) => generate_element!(HTMLScriptElement),
+        ElementNodeTypeId(HTMLSourceElementTypeId) => generate_element!(HTMLSourceElement),
         ElementNodeTypeId(HTMLSpanElementTypeId) => generate_element!(HTMLSpanElement),
         ElementNodeTypeId(HTMLStyleElementTypeId) => generate_element!(HTMLStyleElement),
+        ElementNodeTypeId(HTMLTableCaptionElementTypeId) => generate_element!(HTMLTableCaptionElement),
         ElementNodeTypeId(HTMLTableElementTypeId) => generate_element!(HTMLTableElement),
         ElementNodeTypeId(HTMLTableRowElementTypeId) => generate_element!(HTMLTableRowElement),
         ElementNodeTypeId(HTMLTableSectionElementTypeId) => generate_element!(HTMLTableSectionElement),
         ElementNodeTypeId(HTMLTextAreaElementTypeId) => generate_element!(HTMLTextAreaElement),
+        ElementNodeTypeId(HTMLTimeElementTypeId) => generate_element!(HTMLTimeElement),
         ElementNodeTypeId(HTMLTitleElementTypeId) => generate_element!(HTMLTitleElement),
         ElementNodeTypeId(HTMLUListElementTypeId) => generate_element!(HTMLUListElement),
         ElementNodeTypeId(_) => element::create(cx, node).ptr,
