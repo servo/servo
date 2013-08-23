@@ -110,6 +110,7 @@ pub mod dom {
     pub mod htmltablecolelement;
     pub mod htmltablerowelement;
     pub mod htmltablesectionelement;
+    pub mod htmltemplateelement;
     pub mod htmltextareaelement;
     pub mod htmltimeelement;
     pub mod htmltitleelement;

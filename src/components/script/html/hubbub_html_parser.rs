@@ -234,6 +234,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "col",     HTMLTableColElementTypeId, HTMLTableColElement, []);
     handle_element!(cx, tag, "colgroup",HTMLTableColElementTypeId, HTMLTableColElement, []);
     handle_element!(cx, tag, "tbody",   HTMLTableSectionElementTypeId, HTMLTableSectionElement, []);
+    handle_element!(cx, tag, "template",HTMLTemplateElementTypeId, HTMLTemplateElement, []);
     handle_element!(cx, tag, "textarea",HTMLTextAreaElementTypeId, HTMLTextAreaElement, []);
     handle_element!(cx, tag, "time",    HTMLTimeElementTypeId, HTMLTimeElement, []);
     handle_element!(cx, tag, "title",   HTMLTitleElementTypeId, HTMLTitleElement, []);

@@ -144,6 +144,8 @@ generate_cacheable_wrapper!(HTMLTableRowElement, HTMLTableRowElementBinding::Wra
 generate_binding_object!(HTMLTableRowElement)
 generate_cacheable_wrapper!(HTMLTableSectionElement, HTMLTableSectionElementBinding::Wrap)
 generate_binding_object!(HTMLTableSectionElement)
+generate_cacheable_wrapper!(HTMLTemplateElement, HTMLTemplateElementBinding::Wrap)
+generate_binding_object!(HTMLTemplateElement)
 generate_cacheable_wrapper!(HTMLTextAreaElement, HTMLTextAreaElementBinding::Wrap)
 generate_binding_object!(HTMLTextAreaElement)
 generate_cacheable_wrapper!(HTMLTitleElement, HTMLTitleElementBinding::Wrap)

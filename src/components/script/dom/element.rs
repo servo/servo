@@ -99,6 +99,7 @@ pub enum ElementTypeId {
     HTMLTableColElementTypeId,
     HTMLTableRowElementTypeId,
     HTMLTableSectionElementTypeId,
+    HTMLTemplateElementTypeId,
     HTMLTextAreaElementTypeId,
     HTMLTimeElementTypeId,
     HTMLTitleElementTypeId,
