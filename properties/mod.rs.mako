@@ -102,61 +102,27 @@ pub mod longhands {
 
     // CSS 2.1, Section 8 - Box model
 
-    ${predefined_function("margin-top", "specified::LengthOrPercentageOrAuto",
-                                        "specified::LengthOrPercentageOrAuto::parse")}
-    ${predefined_function("margin-right", "specified::LengthOrPercentageOrAuto",
-                                          "specified::LengthOrPercentageOrAuto::parse")}
-    ${predefined_function("margin-bottom", "specified::LengthOrPercentageOrAuto",
-                                           "specified::LengthOrPercentageOrAuto::parse")}
-    ${predefined_function("margin-left", "specified::LengthOrPercentageOrAuto",
-                                         "specified::LengthOrPercentageOrAuto::parse")}
+    % for side in ["top", "right", "bottom", "left"]:
+        ${predefined_type("margin-" + side, "specified::LengthOrPercentageOrAuto")}
+    % endfor
 
-    ${predefined_function("padding-top",
-        "specified::LengthOrPercentage",
-        "specified::LengthOrPercentage::parse_non_negative")}
-    ${predefined_function("padding-right",
-        "specified::LengthOrPercentage",
-        "specified::LengthOrPercentage::parse_non_negative")}
-    ${predefined_function("padding-bottom",
-        "specified::LengthOrPercentage",
-        "specified::LengthOrPercentage::parse_non_negative")}
-    ${predefined_function("padding-left",
-        "specified::LengthOrPercentage",
-        "specified::LengthOrPercentage::parse_non_negative")}
+    % for side in ["top", "right", "bottom", "left"]:
+        ${predefined_function("padding-" + side,
+            "specified::LengthOrPercentage",
+            "specified::LengthOrPercentage::parse_non_negative")}
+    % endfor
 
-    ${predefined_type("border-top-color", "CSSColor")}
-    ${predefined_type("border-right-color", "CSSColor")}
-    ${predefined_type("border-bottom-color", "CSSColor")}
-    ${predefined_type("border-left-color", "CSSColor")}
+    % for side in ["top", "right", "bottom", "left"]:
+        ${predefined_type("border-%s-color" % side, "CSSColor")}
+    % endfor
 
-    pub enum BorderStyle {
-        BorderStyleSolid,
-        // Uncomment when supported
-//        BorderStyleDotted,
-//        BorderStyleDashed,
-//        BorderStyleDouble,
-//        BorderStyleGroove,
-//        BorderStyleRidge,
-//        BorderStyleInset,
-//        BorderStyleOutset,
-//        BorderStyleHidden,
-        BorderStyleNone,
-    }
-    impl BorderStyle {
-        pub fn parse(input: &ComponentValue) -> Option<BorderStyle> {
-            do get_ident_lower(input).chain |keyword| {
-                match keyword.as_slice() {
-                    "solid" => Some(BorderStyleSolid),
-                    "none" => Some(BorderStyleNone),
-                    _ => None,
-                }
-            }
-        }
-    }
-    ${predefined_type("border-top-style", "BorderStyle")}
-    ${predefined_type("border-right-style", "BorderStyle")}
-    ${predefined_type("border-bottom-style", "BorderStyle")}
-    ${predefined_type("border-left-style", "BorderStyle")}
+    // dotted dashed double groove ridge insed outset hidden
+    ${single_keyword("border-top-style", "none solid")}
+    % for side in ["right", "bottom", "left"]:
+        ${predefined_function("border-%s-style" % side,
+            "border_top_style::SpecifiedValue",
+            "border_top_style::from_component_value")}
+    % endfor
 
     pub fn parse_border_width(component_value: &ComponentValue) -> Option<specified::Length> {
         match component_value {
@@ -169,10 +135,9 @@ pub mod longhands {
             _ => specified::Length::parse_non_negative(component_value)
         }
     }
-    ${predefined_function("border-top-width", "specified::Length", "parse_border_width")}
-    ${predefined_function("border-right-width", "specified::Length", "parse_border_width")}
-    ${predefined_function("border-bottom-width", "specified::Length", "parse_border_width")}
-    ${predefined_function("border-left-width", "specified::Length", "parse_border_width")}
+    % for side in ["top", "right", "bottom", "left"]:
+        ${predefined_function("border-%s-width" % side, "specified::Length", "parse_border_width")}
+    % endfor
 
     // CSS 2.1, Section 9 - Visual formatting model
 
@@ -465,11 +430,14 @@ pub mod shorthands {
     </%self:shorthand>
 
     ${four_sides_shorthand("border-color", "border-%s-color", "CSSColor::parse")}
-    ${four_sides_shorthand("border-style", "border-%s-style", "BorderStyle::parse")}
+    ${four_sides_shorthand("border-style", "border-%s-style",
+                           "border_top_style::from_component_value")}
     ${four_sides_shorthand("border-width", "border-%s-width", "parse_border_width")}
 
-    pub fn parse_border(input: &[ComponentValue]) -> Option<(Option<CSSColor>, Option<BorderStyle>,
-                                                             Option<specified::Length>)> {
+    pub fn parse_border(input: &[ComponentValue])
+                     -> Option<(Option<CSSColor>,
+                                Option<border_top_style::SpecifiedValue>,
+                                Option<specified::Length>)> {
         let mut color = None;
         let mut style = None;
         let mut width = None;
@@ -482,7 +450,7 @@ pub mod shorthands {
                 }
             }
             if style.is_none() {
-                match BorderStyle::parse(component_value) {
+                match border_top_style::from_component_value(component_value) {
                     Some(s) => { style = Some(s); any = true; loop },
                     None => ()
                 }
@@ -498,42 +466,34 @@ pub mod shorthands {
         if any { Some((color, style, width)) } else { None }
     }
 
-    <%def name="border_side(side)">
-        <%self:shorthand name="border-${side}" sub_properties="border-${side}-color
-                                                               border-${side}-style
-                                                               border-${side}-width">
+
+    % for side in ["top", "right", "bottom", "left"]:
+        <%self:shorthand name="border-${side}" sub_properties="${' '.join(
+            'border-%s-%s' % (side, prop)
+            for prop in ['color', 'style', 'width']
+        )}">
             do parse_border(input).map_move |(color, style, width)| {
-                Longhands { border_${side}_color: color, border_${side}_style: style,
-                            border_${side}_width: width }
+                Longhands {
+                    % for prop in ["color", "style", "width"]:
+                        ${"border_%s_%s: %s," % (side, prop, prop)}
+                    % endfor
+                }
             }
-         </%self:shorthand>
-    </%def>
+        </%self:shorthand>
+    % endfor
 
-    ${border_side("top")}
-    ${border_side("right")}
-    ${border_side("bottom")}
-    ${border_side("left")}
-
-    <%self:shorthand name="border" sub_properties="
-        border-top-color
-        border-top-width
-        border-top-style
-        border-right-color
-        border-right-width
-        border-right-style
-        border-bottom-color
-        border-bottom-width
-        border-bottom-style
-        border-left-color
-        border-left-width
-        border-left-style
-    ">
+    <%self:shorthand name="border" sub_properties="${' '.join(
+        'border-%s-%s' % (side, prop)
+        for side in ['top', 'right', 'bottom', 'left']
+        for prop in ['color', 'style', 'width']
+    )}">
         do parse_border(input).map_move |(color, style, width)| {
             Longhands {
-                border_top_color: color, border_top_style: style, border_top_width: width,
-                border_right_color: color, border_right_style: style, border_right_width: width,
-                border_bottom_color: color, border_bottom_style: style, border_bottom_width: width,
-                border_left_color: color, border_left_style: style, border_left_width: width,
+                % for side in ["top", "right", "bottom", "left"]:
+                    % for prop in ["color", "style", "width"]:
+                        ${"border_%s_%s: %s," % (side, prop, prop)}
+                    % endfor
+                % endfor
             }
         }
     </%self:shorthand>
