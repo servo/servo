@@ -35,18 +35,21 @@ class Shorthand(object):
         self.ident = to_rust_ident(name)
         self.sub_properties = [Longhand(s) for s in sub_properties]
 
-longhands = []
-shorthands = []
+LONGHANDS = []
+SHORTHANDS = []
+INHERITED = set()
 
 %>
 
 pub mod longhands {
     pub use super::*;
 
-    <%def name="longhand(name)">
+    <%def name="longhand(name, inherited=False)">
     <%
         property = Longhand(name)
-        longhands.append(property)
+        LONGHANDS.append(property)
+        if inherited:
+            INHERITED.add(name)
     %>
         pub mod ${property.ident} {
             use super::*;
@@ -54,8 +57,8 @@ pub mod longhands {
         }
     </%def>
 
-    <%def name="single_component_value(name)">
-        <%self:longhand name="${name}">
+    <%def name="single_component_value(name, inherited=False)">
+        <%self:longhand name="${name}" inherited="${inherited}">
             ${caller.body()}
             pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
                 one_component_value(input).chain(from_component_value)
@@ -63,8 +66,8 @@ pub mod longhands {
         </%self:longhand>
     </%def>
 
-    <%def name="single_keyword(name, values)">
-        <%self:single_component_value name="${name}">
+    <%def name="single_keyword(name, values, inherited=False)">
+        <%self:single_component_value name="${name}" inherited="${inherited}">
             pub enum SpecifiedValue {
                 % for value in values.split():
                     ${to_rust_ident(value)},
@@ -83,8 +86,8 @@ pub mod longhands {
         </%self:single_component_value>
     </%def>
 
-    <%def name="predefined_function(name, result_type, function)">
-        <%self:longhand name="${name}">
+    <%def name="predefined_function(name, result_type, function, inherited=False)">
+        <%self:longhand name="${name}" inherited="${inherited}">
             pub type SpecifiedValue = ${result_type};
             pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
                 one_component_value(input).chain(${function})
@@ -92,8 +95,8 @@ pub mod longhands {
         </%self:longhand>
     </%def>
 
-    <%def name="predefined_type(name, type)">
-        ${predefined_function(name, type, type + "::parse")}
+    <%def name="predefined_type(name, type, inherited=False)">
+        ${predefined_function(name, type, type + "::parse", inherited)}
     </%def>
 
 
@@ -226,11 +229,11 @@ pub mod longhands {
     // CSS 2.1, Section 14 - Colors and Backgrounds
 
     ${predefined_type("background-color", "CSSColor")}
-    ${predefined_type("color", "CSSColor")}
+    ${predefined_type("color", "CSSColor", inherited=True)}
 
     // CSS 2.1, Section 15 - Fonts
 
-    <%self:longhand name="font-family">
+    <%self:longhand name="font-family" inherited="True">
         enum FontFamily {
             FamilyName(~str),
             // Generic
@@ -300,10 +303,10 @@ pub mod longhands {
     </%self:longhand>
 
 
-    ${single_keyword("font-style", "normal italic oblique")}
-    ${single_keyword("font-variant", "normal")}  // Add small-caps when supported
+    ${single_keyword("font-style", "normal italic oblique", inherited=True)}
+    ${single_keyword("font-variant", "normal", inherited=True)}  // Add small-caps when supported
 
-    <%self:single_component_value name="font-weight">
+    <%self:single_component_value name="font-weight" inherited="True">
         pub enum SpecifiedValue {
             Bolder,
             Lighther,
@@ -344,7 +347,7 @@ pub mod longhands {
         }
     </%self:single_component_value>
 
-    <%self:single_component_value name="font-size">
+    <%self:single_component_value name="font-size" inherited="True">
         pub type SpecifiedValue = specified::Length;  // Percentages are the same as em.
         /// <length> | <percentage>
         /// TODO: support <absolute-size> and <relative-size>
@@ -360,7 +363,7 @@ pub mod longhands {
 
     // CSS 2.1, Section 16 - Text
 
-    ${single_keyword("text-align", "left right center justify")}
+    ${single_keyword("text-align", "left right center justify", inherited=True)}
 
     <%self:longhand name="text-decoration">
         pub struct SpecifiedValue {
@@ -411,7 +414,7 @@ pub mod shorthands {
     <%def name="shorthand(name, sub_properties)">
     <%
         shorthand = Shorthand(name, sub_properties.split())
-        shorthands.append(shorthand)
+        SHORTHANDS.append(shorthand)
     %>
         pub mod ${shorthand.ident} {
             use super::*;
@@ -588,7 +591,7 @@ pub enum DeclaredValue<T> {
 }
 
 pub enum PropertyDeclaration {
-    % for property in longhands:
+    % for property in LONGHANDS:
         ${property.ident}_declaration(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
     % endfor
 }
@@ -597,7 +600,7 @@ impl PropertyDeclaration {
     pub fn parse(name: &str, value: &[ComponentValue],
                  result_list: &mut ~[PropertyDeclaration]) -> bool {
         match name.to_ascii_lower().as_slice() {
-            % for property in longhands:
+            % for property in LONGHANDS:
                 "${property.name}" => result_list.push(${property.ident}_declaration(
                     match CSSWideKeyword::parse(value) {
                         Some(keyword) => CSSWideKeyword(keyword),
@@ -608,7 +611,7 @@ impl PropertyDeclaration {
                     }
                 )),
             % endfor
-            % for shorthand in shorthands:
+            % for shorthand in SHORTHANDS:
                 "${shorthand.name}" => match CSSWideKeyword::parse(value) {
                     Some(keyword) => {
                         % for sub_property in shorthand.sub_properties:
