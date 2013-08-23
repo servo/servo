@@ -37,8 +37,8 @@ use js::{JSPROP_SETTER, JSVAL_VOID, JSVAL_TRUE, JSVAL_FALSE};
 use js::{JS_THIS_OBJECT, JSFUN_CONSTRUCTOR, JS_CALLEE, JSPROP_READONLY};
 use js;
 
-static TOSTRING_CLASS_RESERVED_SLOT: u64 = 0;
-static TOSTRING_NAME_RESERVED_SLOT: u64 = 1;
+static TOSTRING_CLASS_RESERVED_SLOT: libc::size_t = 0;
+static TOSTRING_NAME_RESERVED_SLOT: libc::size_t = 1;
 
 struct GlobalStaticData {
     proxy_handlers: HashMap<uint, *libc::c_void>,

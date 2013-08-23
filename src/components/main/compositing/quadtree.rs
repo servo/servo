@@ -14,6 +14,8 @@ use std::util::replace;
 use gfx::render_task::BufferRequest;
 use servo_msg::compositor_msg::Tile;
 
+static HEADER: &'static str = "<!DOCTYPE html><html>";
+
 /// Parent to all quadtree nodes. Stores variables needed at all levels. All method calls
 /// at this level are in pixel coordinates.
 pub struct Quadtree<T> {
@@ -298,7 +300,6 @@ impl<T: Tile> Quadtree<T> {
 
     /// Generate html to visualize the tree. For debugging purposes only.
     pub fn get_html(&self) -> ~str {
-        static HEADER: &'static str = "<!DOCTYPE html><html>";
         fmt!("%s<body>%s</body></html>", HEADER, self.root.get_html())
     }
 

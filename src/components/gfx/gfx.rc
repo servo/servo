@@ -20,9 +20,9 @@ extern mod servo_msg (name = "msg");
 // shapers. For now, however, this is a hard dependency.
 extern mod harfbuzz;
 
-// Linux-specific library dependencies
-#[cfg(target_os="linux")] extern mod fontconfig;
-#[cfg(target_os="linux")] extern mod freetype;
+// Linux and Android-specific library dependencies
+#[cfg(target_os="linux")] #[cfg(target_os="android")] extern mod fontconfig;
+#[cfg(target_os="linux")] #[cfg(target_os="android")] extern mod freetype;
 
 // Mac OS-specific library dependencies
 #[cfg(target_os="macos")] extern mod core_foundation;
