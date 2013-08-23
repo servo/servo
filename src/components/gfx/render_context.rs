@@ -54,6 +54,13 @@ impl<'self> RenderContext<'self>  {
         let end = Point2D(rect.origin.x + rect.size.width, y);
         self.canvas.draw_target.stroke_line(start, end, &ColorPattern(color.top), &stroke_opts, &draw_opts);
 
+        // draw right border
+        stroke_opts.line_width = border.right;
+        let x = rect.origin.x + rect.size.width - border.right * 0.5;
+        let start = Point2D(x, rect.origin.y);
+        let end = Point2D(x, rect.origin.y + rect.size.height);
+        self.canvas.draw_target.stroke_line(start, end, &ColorPattern(color.right), &stroke_opts, &draw_opts);
+
         // draw bottom border
         stroke_opts.line_width = border.bottom;
         let y = rect.origin.y + rect.size.height - border.bottom * 0.5;
@@ -67,13 +74,6 @@ impl<'self> RenderContext<'self>  {
         let start = Point2D(x, rect.origin.y);
         let end = Point2D(x, rect.origin.y + rect.size.height);
         self.canvas.draw_target.stroke_line(start, end, &ColorPattern(color.left), &stroke_opts, &draw_opts);
-
-        // draw right border
-        stroke_opts.line_width = border.right;
-        let x = rect.origin.x + rect.size.width - border.right * 0.5;
-        let start = Point2D(x, rect.origin.y);
-        let end = Point2D(x, rect.origin.y + rect.size.height);
-        self.canvas.draw_target.stroke_line(start, end, &ColorPattern(color.right), &stroke_opts, &draw_opts);
     }
 
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<~Image>) {
