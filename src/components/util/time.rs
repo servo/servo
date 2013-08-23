@@ -131,8 +131,11 @@ impl Profiler {
 
     pub fn start(&mut self) {
         loop {
-            let msg = self.port.recv();
-            self.handle_msg(msg);
+            let msg = self.port.try_recv();
+            match msg {
+               Some (msg) => self.handle_msg(msg),
+               None => break
+            }
         }
     }
 
