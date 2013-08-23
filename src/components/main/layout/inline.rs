@@ -863,7 +863,7 @@ impl InlineFlowData {
                     base.position.origin.y = base.position.origin.y + adjust_offset;
                 }
             }
-            line_height_offset = topmost + bottommost - line.bounds.size.height;
+            line_height_offset = line_height_offset + topmost + bottommost - line.bounds.size.height;
             line.bounds.size.height = topmost + bottommost;
         } // End of `lines.each` loop.
 
