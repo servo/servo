@@ -4618,23 +4618,31 @@ class CGBindingRoot(CGThing):
                           'dom::element::{Element, HTMLHeadElement, HTMLHtmlElement}', #XXXjdm
                           'dom::element::{HTMLDivElement, HTMLSpanElement, HTMLParagraphElement}', #XXXjdm
                           'dom::htmlanchorelement::HTMLAnchorElement', #XXXjdm
-                          'dom::htmlbodyelement::HTMLBodyElement', 
+                          'dom::htmlappletelement::HTMLAppletElement', #XXXjune0cho
+                          'dom::htmlareaelement::HTMLAreaElement', #XXXjune0cho
+                          'dom::htmlbaseelement::HTMLBaseElement', #XXXjune0cho
+                          'dom::htmlbodyelement::HTMLBodyElement', #XXXjune0cho
                           'dom::htmlbrelement::HTMLBRElement', #XXXrecrack
                           'dom::htmlcanvaselement::HTMLCanvasElement',
+                          'dom::htmldataelement::HTMLDataElement', #XXXjune0cho
                           'dom::htmldlistelement::HTMLDListElement',
                           'dom::htmlelement::HTMLElement', #XXXjdm
                           'dom::htmldocument::HTMLDocument', #XXXjdm
                           'dom::htmlhrelement::HTMLHRElement',
                           'dom::htmliframeelement::HTMLIFrameElement', #XXXjdm
                           'dom::htmlimageelement::HTMLImageElement', #XXXjdm
+                          'dom::htmllinkelement::HTMLLinkElement', #XXXrecrack
                           'dom::htmlmetaelement::HTMLMetaElement',
                           'dom::htmlolistelement::HTMLOListElement',
                           'dom::htmlscriptelement::HTMLScriptElement',
+                          'dom::htmlsourceelement::HTMLSourceElement',
                           'dom::htmlstyleelement::HTMLStyleElement',
+                          'dom::htmltablecaptionelement::HTMLTableCaptionElement',
                           'dom::htmltableelement::HTMLTableElement',
                           'dom::htmltablerowelement::HTMLTableRowElement',
                           'dom::htmltablesectionelement::HTMLTableSectionElement',
                           'dom::htmltextareaelement::HTMLTextAreaElement',
+                          'dom::htmltimeelement::HTMLTimeElement',
                           'dom::htmltitleelement::HTMLTitleElement', #XXXyusukesuzuki
                           'dom::htmlulistelement::HTMLUListElement',
                           'dom::bindings::utils::*',

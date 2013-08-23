@@ -133,6 +133,9 @@ window.alert(document.links[0]);
 window.alert(document.getElementsByTagName('iframe')[0]);
 
 window.alert(document.getElementsByTagName("body")[0]);
+window.alert(document.getElementsByTagName("area")[0]);
+window.alert(document.getElementsByTagName("base")[0]);
+window.alert(document.getElementsByTagName("data")[0]);
 
 window.alert("OList:");
 let tags = document.getElementsByTagName("ol");
@@ -157,6 +160,27 @@ window.alert(tags);
 window.alert(tags.length);
 window.alert(tags[0].tagName);
 window.alert(tags[0] instanceof HTMLCanvasElement);
+
+window.alert("HTMLSourceElement:");
+let tags = document.getElementsByTagName("source");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLSourceElement);
+
+window.alert("HTMLTimeElement:");
+let tags = document.getElementsByTagName("time");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLTimeElement);
+
+window.alert("HTMLTableCaptionElement:");
+let tags = document.getElementsByTagName("caption");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLTableCaptionElement);
 
 window.alert("HTMLTextAreaElement:");
 let tags = document.getElementsByTagName("textarea");
