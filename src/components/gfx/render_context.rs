@@ -124,8 +124,10 @@ trait ToAzureRect {
 
 impl ToAzureRect for Rect<Au> {
     fn to_azure_rect(&self) -> Rect<AzFloat> {
-        Rect(Point2D(self.origin.x.to_px() as AzFloat, self.origin.y.to_px() as AzFloat),
-             Size2D(self.size.width.to_px() as AzFloat, self.size.height.to_px() as AzFloat))
+        Rect(Point2D(self.origin.x.to_nearest_px() as AzFloat,
+                     self.origin.y.to_nearest_px() as AzFloat),
+             Size2D(self.size.width.to_nearest_px() as AzFloat,
+                    self.size.height.to_nearest_px() as AzFloat))
     }
 }
 
@@ -135,9 +137,9 @@ trait ToSideOffsetsPx {
 
 impl ToSideOffsetsPx for SideOffsets2D<Au> {
     fn to_float_px(&self) -> SideOffsets2D<AzFloat> {
-        SideOffsets2D::new(self.top.to_px() as AzFloat,
-                           self.right.to_px() as AzFloat,
-                           self.bottom.to_px() as AzFloat,
-                           self.left.to_px() as AzFloat)
+        SideOffsets2D::new(self.top.to_nearest_px() as AzFloat,
+                           self.right.to_nearest_px() as AzFloat,
+                           self.bottom.to_nearest_px() as AzFloat,
+                           self.left.to_nearest_px() as AzFloat)
     }
 }
