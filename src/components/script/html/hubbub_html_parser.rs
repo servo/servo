@@ -10,21 +10,22 @@ use dom::element::{HTMLElementTypeId,
                    HTMLFontElementTypeId, HTMLFormElementTypeId, HTMLHRElementTypeId,
                    HTMLHeadElementTypeId, HTMLHtmlElementTypeId,
                    HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLInputElementTypeId,
-                   HTMLLinkElementTypeId, HTMLListItemElementTypeId,
+                   HTMLLinkElementTypeId, HTMLLIElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId, HTMLOptionElementTypeId,
-                   HTMLParagraphElementTypeId, HTMLScriptElementTypeId,
+                   HTMLParagraphElementTypeId, HTMLProgressElementTypeId,
+                   HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
                    HTMLSelectElementTypeId, HTMLSmallElementTypeId, HTMLSourceElementTypeId,
                    HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTableSectionElementTypeId,
                    HTMLTableCellElementTypeId, HTMLTableElementTypeId,
-                   HTMLTableCaptionElementTypeId, HTMLTableRowElementTypeId, HTMLTextAreaElementTypeId,
+                   HTMLTableCaptionElementTypeId, HTMLTableColElementTypeId,
+                   HTMLTableRowElementTypeId, HTMLTextAreaElementTypeId,
                    HTMLTimeElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId,
                    UnknownElementTypeId};
 use dom::element::{HTMLDivElement, HTMLFontElement, HTMLFormElement,
                    HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
-                   HTMLInputElement,
-                   HTMLOptionElement, HTMLParagraphElement, HTMLListItemElement,
+                   HTMLOptionElement, HTMLParagraphElement,
                    HTMLSelectElement, HTMLSmallElement,
-                   HTMLSpanElement, HTMLTableCellElement};
+                   HTMLSpanElement};
 use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Heading4, Heading5,
                    Heading6};
 use dom::htmlbrelement::HTMLBRElement;
@@ -39,14 +40,20 @@ use dom::htmldlistelement::HTMLDListElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::{IFrameSize, HTMLIFrameElement};
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlinputelement::HTMLInputElement;
+use dom::htmllielement::HTMLLIElement;
 use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
+use dom::htmlprogresselement::HTMLProgressElement;
+use dom::htmlquoteelement::HTMLQuoteElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::htmlstyleelement::HTMLStyleElement;
-use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltableelement::HTMLTableElement;
+use dom::htmltablecaptionelement::HTMLTableCaptionElement;
+use dom::htmltablecellelement::HTMLTableCellElement;
+use dom::htmltablecolelement::HTMLTableColElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
@@ -228,7 +235,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
     to_parent.send(HtmlDiscoveredScript(js_scripts));
 }
 
-// Silly macros to handle constructing DOM nodes. This produces bad code and should be optimized
+// Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
 fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView> {
@@ -250,20 +257,24 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "html",    HTMLHtmlElementTypeId, HTMLHtmlElement, []);
     handle_element!(cx, tag, "input",   HTMLInputElementTypeId, HTMLInputElement, []);
     handle_element!(cx, tag, "link",    HTMLLinkElementTypeId, HTMLLinkElement, []);
-    handle_element!(cx, tag, "li",      HTMLListItemElementTypeId, HTMLListItemElement, []);
+    handle_element!(cx, tag, "li",      HTMLLIElementTypeId, HTMLLIElement, []);
     handle_element!(cx, tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
     handle_element!(cx, tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
     handle_element!(cx, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);
     handle_element!(cx, tag, "p",       HTMLParagraphElementTypeId, HTMLParagraphElement, []);
+    handle_element!(cx, tag, "progress",HTMLProgressElementTypeId, HTMLProgressElement, []);
+    handle_element!(cx, tag, "q",       HTMLQuoteElementTypeId, HTMLQuoteElement, []);
     handle_element!(cx, tag, "script",  HTMLScriptElementTypeId, HTMLScriptElement, []);
     handle_element!(cx, tag, "select",  HTMLSelectElementTypeId, HTMLSelectElement, []);
     handle_element!(cx, tag, "small",   HTMLSmallElementTypeId, HTMLSmallElement, []);
     handle_element!(cx, tag, "source",  HTMLSourceElementTypeId, HTMLSourceElement, []);
     handle_element!(cx, tag, "span",    HTMLSpanElementTypeId, HTMLSpanElement, []);
     handle_element!(cx, tag, "style",   HTMLStyleElementTypeId, HTMLStyleElement, []);
+    handle_element!(cx, tag, "table",   HTMLTableElementTypeId, HTMLTableElement, []);
     handle_element!(cx, tag, "caption", HTMLTableCaptionElementTypeId, HTMLTableCaptionElement, []);
     handle_element!(cx, tag, "td",      HTMLTableCellElementTypeId, HTMLTableCellElement, []);
-    handle_element!(cx, tag, "table",   HTMLTableElementTypeId, HTMLTableElement, []);
+    handle_element!(cx, tag, "col",     HTMLTableColElementTypeId, HTMLTableColElement, []);
+    handle_element!(cx, tag, "colgroup",HTMLTableColElementTypeId, HTMLTableColElement, []);
     handle_element!(cx, tag, "tbody",   HTMLTableSectionElementTypeId, HTMLTableSectionElement, []);
     handle_element!(cx, tag, "textarea",HTMLTextAreaElementTypeId, HTMLTextAreaElement, []);
     handle_element!(cx, tag, "time",    HTMLTimeElementTypeId, HTMLTimeElement, []);

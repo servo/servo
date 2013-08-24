@@ -4631,14 +4631,20 @@ class CGBindingRoot(CGThing):
                           'dom::htmlhrelement::HTMLHRElement',
                           'dom::htmliframeelement::HTMLIFrameElement', #XXXjdm
                           'dom::htmlimageelement::HTMLImageElement', #XXXjdm
+                          'dom::htmlinputelement::HTMLInputElement',
+                          'dom::htmllielement::HTMLLIElement',
                           'dom::htmllinkelement::HTMLLinkElement', #XXXrecrack
                           'dom::htmlmetaelement::HTMLMetaElement',
                           'dom::htmlolistelement::HTMLOListElement',
+                          'dom::htmlprogresselement::HTMLProgressElement',
+                          'dom::htmlquoteelement::HTMLQuoteElement',
                           'dom::htmlscriptelement::HTMLScriptElement',
                           'dom::htmlsourceelement::HTMLSourceElement',
                           'dom::htmlstyleelement::HTMLStyleElement',
                           'dom::htmltablecaptionelement::HTMLTableCaptionElement',
                           'dom::htmltableelement::HTMLTableElement',
+                          'dom::htmltablecellelement::HTMLTableCellElement',
+                          'dom::htmltablecolelement::HTMLTableColElement',
                           'dom::htmltablerowelement::HTMLTableRowElement',
                           'dom::htmltablesectionelement::HTMLTableSectionElement',
                           'dom::htmltextareaelement::HTMLTextAreaElement',
