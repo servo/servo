@@ -11,12 +11,15 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding,
                              HTMLDListElementBinding, HTMLDivElementBinding,
                              HTMLHeadElementBinding, HTMLHRElementBinding,
                              HTMLHtmlElementBinding, HTMLIFrameElementBinding,
-                             HTMLImageElementBinding, HTMLMetaElementBinding,
-                             HTMLLinkElementBinding,
+                             HTMLImageElementBinding, HTMLInputElementBinding,
+                             HTMLLIElementBinding,
+                             HTMLLinkElementBinding, HTMLMetaElementBinding,
                              HTMLOListElementBinding, HTMLParagraphElementBinding,
+                             HTMLProgressElementBinding, HTMLQuoteElementBinding,
                              HTMLScriptElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
-                             HTMLStyleElementBinding, HTMLTableCaptionElementBinding,
-                             HTMLTableElementBinding, HTMLTableRowElementBinding,
+                             HTMLStyleElementBinding, HTMLTableElementBinding,
+                             HTMLTableCaptionElementBinding, HTMLTableCellElementBinding,
+                             HTMLTableColElementBinding, HTMLTableRowElementBinding,
                              HTMLTableSectionElementBinding, HTMLTextAreaElementBinding,
                              HTMLTimeElementBinding, HTMLTitleElementBinding, HTMLUListElementBinding};
 use dom::bindings::utils::{null_string, str};
@@ -37,14 +40,20 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlinputelement::HTMLInputElement;
+use dom::htmllielement::HTMLLIElement;
 use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
+use dom::htmlprogresselement::HTMLProgressElement;
+use dom::htmlquoteelement::HTMLQuoteElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::htmlstyleelement::HTMLStyleElement;
-use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltableelement::HTMLTableElement;
+use dom::htmltablecaptionelement::HTMLTableCaptionElement;
+use dom::htmltablecellelement::HTMLTableCellElement;
+use dom::htmltablecolelement::HTMLTableColElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
@@ -109,20 +118,23 @@ pub enum ElementTypeId {
     HTMLImageElementTypeId,
     HTMLInputElementTypeId,
     HTMLLinkElementTypeId,
-    HTMLListItemElementTypeId,
+    HTMLLIElementTypeId,
     HTMLMetaElementTypeId,
     HTMLOListElementTypeId,
     HTMLOptionElementTypeId,
     HTMLParagraphElementTypeId,
+    HTMLProgressElementTypeId,
+    HTMLQuoteElementTypeId,
     HTMLScriptElementTypeId,
     HTMLSelectElementTypeId,
     HTMLSmallElementTypeId,
     HTMLSourceElementTypeId,
     HTMLSpanElementTypeId,
     HTMLStyleElementTypeId,
+    HTMLTableElementTypeId,
     HTMLTableCaptionElementTypeId,
     HTMLTableCellElementTypeId,
-    HTMLTableElementTypeId,
+    HTMLTableColElementTypeId,
     HTMLTableRowElementTypeId,
     HTMLTableSectionElementTypeId,
     HTMLTextAreaElementTypeId,
@@ -141,14 +153,11 @@ pub struct HTMLFontElement      { parent: HTMLElement }
 pub struct HTMLFormElement      { parent: HTMLElement }
 pub struct HTMLHeadElement      { parent: HTMLElement }
 pub struct HTMLHtmlElement      { parent: HTMLElement }
-pub struct HTMLInputElement     { parent: HTMLElement }
-pub struct HTMLListItemElement  { parent: HTMLElement }
 pub struct HTMLOptionElement    { parent: HTMLElement }
 pub struct HTMLParagraphElement { parent: HTMLElement }
 pub struct HTMLSelectElement    { parent: HTMLElement }
 pub struct HTMLSmallElement     { parent: HTMLElement }
 pub struct HTMLSpanElement      { parent: HTMLElement }
-pub struct HTMLTableCellElement { parent: HTMLElement }
 pub struct UnknownElement       { parent: HTMLElement }
 
 impl HTMLHtmlElement {
@@ -233,6 +242,10 @@ generate_cacheable_wrapper!(HTMLIFrameElement, HTMLIFrameElementBinding::Wrap)
 generate_binding_object!(HTMLIFrameElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
 generate_binding_object!(HTMLImageElement)
+generate_cacheable_wrapper!(HTMLInputElement, HTMLInputElementBinding::Wrap)
+generate_binding_object!(HTMLInputElement)
+generate_cacheable_wrapper!(HTMLLIElement, HTMLLIElementBinding::Wrap)
+generate_binding_object!(HTMLLIElement)
 generate_cacheable_wrapper!(HTMLLinkElement, HTMLLinkElementBinding::Wrap)
 generate_binding_object!(HTMLLinkElement)
 generate_cacheable_wrapper!(HTMLMetaElement, HTMLMetaElementBinding::Wrap)
@@ -241,6 +254,10 @@ generate_cacheable_wrapper!(HTMLOListElement, HTMLOListElementBinding::Wrap)
 generate_binding_object!(HTMLOListElement)
 generate_cacheable_wrapper!(HTMLParagraphElement, HTMLParagraphElementBinding::Wrap)
 generate_binding_object!(HTMLParagraphElement)
+generate_cacheable_wrapper!(HTMLProgressElement, HTMLProgressElementBinding::Wrap)
+generate_binding_object!(HTMLProgressElement)
+generate_cacheable_wrapper!(HTMLQuoteElement, HTMLQuoteElementBinding::Wrap)
+generate_binding_object!(HTMLQuoteElement)
 generate_cacheable_wrapper!(HTMLScriptElement, HTMLScriptElementBinding::Wrap)
 generate_binding_object!(HTMLScriptElement)
 generate_cacheable_wrapper!(HTMLSourceElement, HTMLSourceElementBinding::Wrap)
@@ -250,9 +267,13 @@ generate_binding_object!(HTMLSpanElement)
 generate_cacheable_wrapper!(HTMLStyleElement, HTMLStyleElementBinding::Wrap)
 generate_binding_object!(HTMLStyleElement)
 generate_cacheable_wrapper!(HTMLTableElement, HTMLTableElementBinding::Wrap)
-generate_binding_object!(HTMLTableCaptionElement)
-generate_cacheable_wrapper!(HTMLTableCaptionElement, HTMLTableCaptionElementBinding::Wrap)
 generate_binding_object!(HTMLTableElement)
+generate_cacheable_wrapper!(HTMLTableCaptionElement, HTMLTableCaptionElementBinding::Wrap)
+generate_binding_object!(HTMLTableCaptionElement)
+generate_cacheable_wrapper!(HTMLTableCellElement, HTMLTableCellElementBinding::Wrap)
+generate_binding_object!(HTMLTableCellElement)
+generate_cacheable_wrapper!(HTMLTableColElement, HTMLTableColElementBinding::Wrap)
+generate_binding_object!(HTMLTableColElement)
 generate_cacheable_wrapper!(HTMLTableRowElement, HTMLTableRowElementBinding::Wrap)
 generate_binding_object!(HTMLTableRowElement)
 generate_cacheable_wrapper!(HTMLTableSectionElement, HTMLTableSectionElementBinding::Wrap)

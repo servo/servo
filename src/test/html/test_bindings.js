@@ -189,6 +189,58 @@ window.alert(tags.length);
 window.alert(tags[0].tagName);
 window.alert(tags[0] instanceof HTMLTextAreaElement);
 
+window.alert("HTMLQuoteElement:");
+let tags = document.getElementsByTagName("q");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLQuoteElement);
+
+window.alert("HTMLTableCellElement:");
+let tags = document.getElementsByTagName("th");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLTableCellElement);
+
+window.alert("HTMLTableCellElement:");
+let tags = document.getElementsByTagName("td");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLTableCellElement);
+
+window.alert("HTMLTableColElement");
+let tagList = ["col", "colgroup"];
+for (let i = 0, l = tagList.length; i < l; ++i) {
+  let tags = document.getElementsByTagName(tagList[i]);
+  window.alert(tags);
+  window.alert(tags.length);
+  window.alert(tags[0].tagName);
+  window.alert(tags[0] instanceof HTMLTableColElement);
+}
+
+window.alert("HTMLInputElement:");
+let tags = document.getElementsByTagName("input");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLInputElement);
+
+window.alert("HTMLLIElement:");
+let tags = document.getElementsByTagName("li");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLLLIElement);
+
+window.alert("HTMLProgressElement:");
+let tags = document.getElementsByTagName("progress");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLProgressElement);
+
 //TODO: Doesn't work until we throw proper exceptions instead of returning 0 on
 //      unwrap failure.
 /*try {
