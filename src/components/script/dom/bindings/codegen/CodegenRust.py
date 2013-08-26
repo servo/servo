@@ -4623,6 +4623,7 @@ class CGBindingRoot(CGThing):
                           'dom::htmlbaseelement::HTMLBaseElement', #XXXjune0cho
                           'dom::htmlbodyelement::HTMLBodyElement', #XXXjune0cho
                           'dom::htmlbrelement::HTMLBRElement', #XXXrecrack
+                          'dom::htmlbuttonelement::HTMLButtonElement', #XXXjdm
                           'dom::htmlcanvaselement::HTMLCanvasElement',
                           'dom::htmldataelement::HTMLDataElement', #XXXjune0cho
                           'dom::htmldlistelement::HTMLDListElement',
@@ -4664,6 +4665,7 @@ class CGBindingRoot(CGThing):
                           'dom::formdata::*', #XXXjdm
                           'dom::mouseevent::*', #XXXjdm
                           'dom::uievent::*', #XXXjdm
+                          'dom::validitystate::*', #XXXjdm
                           'dom::windowproxy::*', #XXXjdm
                           'dom::window::Window', #XXXjdm
                           'dom::bindings::codegen::*', #XXXjdm

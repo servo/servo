@@ -48,6 +48,7 @@ pub mod dom {
             pub mod HTMLBaseElementBinding;
             pub mod HTMLBodyElementBinding;
             pub mod HTMLBRElementBinding;
+            pub mod HTMLButtonElementBinding;
             pub mod HTMLCanvasElementBinding;
             pub mod HTMLCollectionBinding;
             pub mod HTMLDataElementBinding;
@@ -88,6 +89,7 @@ pub mod dom {
             pub mod RegisterBindings;
             pub mod TextBinding;
             pub mod UIEventBinding;
+            pub mod ValidityStateBinding;
             pub mod WindowBinding;
             pub mod WindowProxyBinding;
         }
@@ -108,6 +110,7 @@ pub mod dom {
     pub mod htmlbaseelement;
     pub mod htmlbodyelement;
     pub mod htmlbrelement;
+    pub mod htmlbuttonelement;
     pub mod htmlcanvaselement;
     pub mod htmlcollection;
     pub mod htmldataelement;
@@ -140,6 +143,7 @@ pub mod dom {
     pub mod mouseevent;
     pub mod node;
     pub mod uievent;
+    pub mod validitystate;
     pub mod window;
     pub mod windowproxy;
 }

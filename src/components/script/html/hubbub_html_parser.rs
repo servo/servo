@@ -5,8 +5,8 @@
 use dom::element::{HTMLElementTypeId,
                    HTMLAnchorElementTypeId, HTMLAppletElementTypeId, 
                    HTMLAreaElementTypeId,  HTMLBaseElementTypeId, HTMLBodyElementTypeId,
-                   HTMLBRElementTypeId, HTMLCanvasElementTypeId, HTMLDataElementTypeId,
-                   HTMLDivElementTypeId, HTMLDListElementTypeId,
+                   HTMLBRElementTypeId, HTMLButtonElementTypeId, HTMLCanvasElementTypeId,
+                   HTMLDataElementTypeId, HTMLDivElementTypeId, HTMLDListElementTypeId,
                    HTMLFontElementTypeId, HTMLFormElementTypeId, HTMLHRElementTypeId,
                    HTMLHeadElementTypeId, HTMLHtmlElementTypeId,
                    HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLInputElementTypeId,
@@ -34,6 +34,7 @@ use dom::htmlappletelement::HTMLAppletElement;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmldataelement::HTMLDataElement;
 use dom::htmldlistelement::HTMLDListElement;
@@ -246,6 +247,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "base",    HTMLBaseElementTypeId, HTMLBaseElement, []);
     handle_element!(cx, tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
     handle_element!(cx, tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
+    handle_element!(cx, tag, "button",  HTMLButtonElementTypeId, HTMLButtonElement, []);
     handle_element!(cx, tag, "canvas",  HTMLCanvasElementTypeId, HTMLCanvasElement, []);
     handle_element!(cx, tag, "data",    HTMLDataElementTypeId, HTMLDataElement, []);
     handle_element!(cx, tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
