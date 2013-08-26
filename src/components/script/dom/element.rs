@@ -17,7 +17,8 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding,
                              HTMLHRElementBinding, HTMLHtmlElementBinding,
                              HTMLIFrameElementBinding, HTMLImageElementBinding,
                              HTMLInputElementBinding, HTMLLIElementBinding,
-                             HTMLLinkElementBinding, HTMLMetaElementBinding,
+                             HTMLLinkElementBinding, HTMLMapElementBinding,
+                             HTMLMetaElementBinding,
                              HTMLOListElementBinding, HTMLParagraphElementBinding,
                              HTMLProgressElementBinding, HTMLQuoteElementBinding,
                              HTMLScriptElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
@@ -56,6 +57,7 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmllielement::HTMLLIElement;
 use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlmapelement::HTMLMapElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlprogresselement::HTMLProgressElement;
@@ -139,6 +141,7 @@ pub enum ElementTypeId {
     HTMLInputElementTypeId,
     HTMLLinkElementTypeId,
     HTMLLIElementTypeId,
+    HTMLMapElementTypeId,
     HTMLMetaElementTypeId,
     HTMLOListElementTypeId,
     HTMLOptionElementTypeId,
@@ -285,6 +288,8 @@ generate_cacheable_wrapper!(HTMLLIElement, HTMLLIElementBinding::Wrap)
 generate_binding_object!(HTMLLIElement)
 generate_cacheable_wrapper!(HTMLLinkElement, HTMLLinkElementBinding::Wrap)
 generate_binding_object!(HTMLLinkElement)
+generate_cacheable_wrapper!(HTMLMapElement, HTMLMapElementBinding::Wrap)
+generate_binding_object!(HTMLMapElement)
 generate_cacheable_wrapper!(HTMLMetaElement, HTMLMetaElementBinding::Wrap)
 generate_binding_object!(HTMLMetaElement)
 generate_cacheable_wrapper!(HTMLOListElement, HTMLOListElementBinding::Wrap)

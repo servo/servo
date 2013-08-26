@@ -16,9 +16,9 @@ use dom::element::{HTMLElementTypeId,
                    HTMLFrameSetElementTypeId, HTMLHeadElementTypeId, HTMLHeadingElementTypeId,
                    HTMLHRElementTypeId, HTMLHtmlElementTypeId, HTMLIframeElementTypeId,
                    HTMLImageElementTypeId, HTMLInputElementTypeId, HTMLLIElementTypeId,
-                   HTMLLinkElementTypeId, HTMLMetaElementTypeId, HTMLOListElementTypeId,
-                   HTMLParagraphElementTypeId, HTMLProgressElementTypeId,
-                   HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
+                   HTMLLinkElementTypeId, HTMLMapElementTypeId, HTMLMetaElementTypeId,
+                   HTMLOListElementTypeId, HTMLParagraphElementTypeId,
+                   HTMLProgressElementTypeId, HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
                    HTMLSpanElementTypeId, HTMLSourceElementTypeId,
                    HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
                    HTMLTableElementTypeId, HTMLTableCaptionElementTypeId, HTMLTableCellElementTypeId,
@@ -51,6 +51,7 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmllielement::HTMLLIElement;
 use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlmapelement::HTMLMapElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlprogresselement::HTMLProgressElement;
@@ -160,6 +161,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLInputElementTypeId) => generate_element!(HTMLInputElement),
         ElementNodeTypeId(HTMLLIElementTypeId) => generate_element!(HTMLLIElement),
         ElementNodeTypeId(HTMLLinkElementTypeId) => generate_element!(HTMLLinkElement),
+        ElementNodeTypeId(HTMLMapElementTypeId) => generate_element!(HTMLMapElement),
         ElementNodeTypeId(HTMLMetaElementTypeId) => generate_element!(HTMLMetaElement),
         ElementNodeTypeId(HTMLOListElementTypeId) => generate_element!(HTMLOListElement),
         ElementNodeTypeId(HTMLParagraphElementTypeId) => generate_element!(HTMLParagraphElement),

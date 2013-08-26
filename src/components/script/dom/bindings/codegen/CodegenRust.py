@@ -4643,6 +4643,7 @@ class CGBindingRoot(CGThing):
                           'dom::htmlinputelement::HTMLInputElement',
                           'dom::htmllielement::HTMLLIElement',
                           'dom::htmllinkelement::HTMLLinkElement', #XXXrecrack
+                          'dom::htmlmapelement::HTMLMapElement',
                           'dom::htmlmetaelement::HTMLMetaElement',
                           'dom::htmlolistelement::HTMLOListElement',
                           'dom::htmlprogresselement::HTMLProgressElement',

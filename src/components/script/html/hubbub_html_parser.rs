@@ -10,10 +10,10 @@ use dom::element::{HTMLElementTypeId,
                    HTMLDirectoryElementTypeId, HTMLDListElementTypeId, HTMLEmbedElementTypeId,
                    HTMLFieldSetElementTypeId, HTMLFontElementTypeId, HTMLFormElementTypeId,
                    HTMLFrameElementTypeId, HTMLFrameSetElementTypeId, HTMLHRElementTypeId,
-                   HTMLHeadElementTypeId,
-                   HTMLHtmlElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId,
-                   HTMLInputElementTypeId, HTMLLinkElementTypeId, HTMLLIElementTypeId,
-                   HTMLMetaElementTypeId, HTMLOListElementTypeId, HTMLOptionElementTypeId,
+                   HTMLHeadElementTypeId, HTMLHtmlElementTypeId, HTMLImageElementTypeId,
+                   HTMLIframeElementTypeId, HTMLInputElementTypeId, HTMLLinkElementTypeId,
+                   HTMLLIElementTypeId, HTMLMapElementTypeId, HTMLMetaElementTypeId,
+                   HTMLOListElementTypeId, HTMLOptionElementTypeId,
                    HTMLParagraphElementTypeId, HTMLProgressElementTypeId,
                    HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
                    HTMLSelectElementTypeId, HTMLSmallElementTypeId, HTMLSourceElementTypeId,
@@ -54,6 +54,7 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmllielement::HTMLLIElement;
 use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlmapelement::HTMLMapElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlprogresselement::HTMLProgressElement;
@@ -276,6 +277,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "input",   HTMLInputElementTypeId, HTMLInputElement, []);
     handle_element!(cx, tag, "link",    HTMLLinkElementTypeId, HTMLLinkElement, []);
     handle_element!(cx, tag, "li",      HTMLLIElementTypeId, HTMLLIElement, []);
+    handle_element!(cx, tag, "map",     HTMLMapElementTypeId, HTMLMapElement, []);
     handle_element!(cx, tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
     handle_element!(cx, tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
     handle_element!(cx, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);

@@ -72,6 +72,7 @@ pub mod dom {
             pub mod HTMLInputElementBinding;
             pub mod HTMLLIElementBinding;
             pub mod HTMLLinkElementBinding;
+            pub mod HTMLMapElementBinding;
             pub mod HTMLMetaElementBinding;
             pub mod HTMLOListElementBinding;
             pub mod HTMLParagraphElementBinding;
@@ -139,6 +140,7 @@ pub mod dom {
     pub mod htmlinputelement;
     pub mod htmllielement;
     pub mod htmllinkelement;
+    pub mod htmlmapelement;
     pub mod htmlmetaelement;
     pub mod htmlolistelement;
     pub mod htmlprogresselement;
