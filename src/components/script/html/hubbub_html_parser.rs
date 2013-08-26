@@ -9,7 +9,8 @@ use dom::element::{HTMLElementTypeId,
                    HTMLDataElementTypeId, HTMLDataListElementTypeId, HTMLDivElementTypeId,
                    HTMLDirectoryElementTypeId, HTMLDListElementTypeId, HTMLEmbedElementTypeId,
                    HTMLFieldSetElementTypeId, HTMLFontElementTypeId, HTMLFormElementTypeId,
-                   HTMLFrameElementTypeId, HTMLHRElementTypeId, HTMLHeadElementTypeId,
+                   HTMLFrameElementTypeId, HTMLFrameSetElementTypeId, HTMLHRElementTypeId,
+                   HTMLHeadElementTypeId,
                    HTMLHtmlElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId,
                    HTMLInputElementTypeId, HTMLLinkElementTypeId, HTMLLIElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId, HTMLOptionElementTypeId,
@@ -45,6 +46,7 @@ use dom::htmlembedelement::HTMLEmbedElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::HTMLFontElement;
 use dom::htmlframeelement::HTMLFrameElement;
+use dom::htmlframesetelement::HTMLFrameSetElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::{IFrameSize, HTMLIFrameElement};
 use dom::htmlimageelement::HTMLImageElement;
@@ -265,7 +267,8 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "fieldset",HTMLFieldSetElementTypeId, HTMLFieldSetElement, []);
     handle_element!(cx, tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
     handle_element!(cx, tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);
-    handle_element!(cx, tag, "frame",    HTMLFrameElementTypeId, HTMLFrameElement, []);
+    handle_element!(cx, tag, "frame",   HTMLFrameElementTypeId, HTMLFrameElement, []);
+    handle_element!(cx, tag, "frameset",HTMLFrameSetElementTypeId, HTMLFrameSetElement, []);
     handle_element!(cx, tag, "hr",      HTMLHRElementTypeId, HTMLHRElement, []);
     handle_element!(cx, tag, "head",    HTMLHeadElementTypeId, HTMLHeadElement, []);
     handle_element!(cx, tag, "html",    HTMLHtmlElementTypeId, HTMLHtmlElement, []);
