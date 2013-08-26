@@ -9,11 +9,12 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding,
                              HTMLBodyElementBinding, HTMLBRElementBinding,
                              HTMLButtonElementBinding, HTMLCanvasElementBinding,
                              HTMLDataElementBinding, HTMLDataListElementBinding,
-                             HTMLDListElementBinding, HTMLDivElementBinding,
-                             HTMLHeadElementBinding, HTMLHRElementBinding,
-                             HTMLHtmlElementBinding, HTMLIFrameElementBinding,
-                             HTMLImageElementBinding, HTMLInputElementBinding,
-                             HTMLLIElementBinding,
+                             HTMLDirectoryElementBinding, HTMLDListElementBinding,
+                             HTMLDivElementBinding, HTMLEmbedElementBinding,
+                             HTMLHeadElementBinding,
+                             HTMLHRElementBinding, HTMLHtmlElementBinding,
+                             HTMLIFrameElementBinding, HTMLImageElementBinding,
+                             HTMLInputElementBinding, HTMLLIElementBinding,
                              HTMLLinkElementBinding, HTMLMetaElementBinding,
                              HTMLOListElementBinding, HTMLParagraphElementBinding,
                              HTMLProgressElementBinding, HTMLQuoteElementBinding,
@@ -38,8 +39,10 @@ use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldataelement::HTMLDataElement;
 use dom::htmldatalistelement::HTMLDataListElement;
+use dom::htmldirectoryelement::HTMLDirectoryElement;
 use dom::htmldlistelement::HTMLDListElement;
 use dom::htmlelement::HTMLElement;
+use dom::htmlembedelement::HTMLEmbedElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
@@ -111,8 +114,10 @@ pub enum ElementTypeId {
     HTMLCanvasElementTypeId,
     HTMLDataElementTypeId,
     HTMLDataListElementTypeId,
+    HTMLDirectoryElementTypeId,
     HTMLDListElementTypeId,
     HTMLDivElementTypeId,
+    HTMLEmbedElementTypeId,
     HTMLFontElementTypeId,
     HTMLFormElementTypeId,
     HTMLHRElementTypeId,
@@ -245,8 +250,12 @@ generate_cacheable_wrapper!(HTMLHtmlElement, HTMLHtmlElementBinding::Wrap)
 generate_binding_object!(HTMLHtmlElement)
 generate_cacheable_wrapper!(HTMLDataElement, HTMLDataElementBinding::Wrap)
 generate_binding_object!(HTMLDataElement)
+generate_cacheable_wrapper!(HTMLDirectoryElement, HTMLDirectoryElementBinding::Wrap)
+generate_binding_object!(HTMLDirectoryElement)
 generate_cacheable_wrapper!(HTMLDivElement, HTMLDivElementBinding::Wrap)
 generate_binding_object!(HTMLDivElement)
+generate_cacheable_wrapper!(HTMLEmbedElement, HTMLEmbedElementBinding::Wrap)
+generate_binding_object!(HTMLEmbedElement)
 generate_cacheable_wrapper!(HTMLIFrameElement, HTMLIFrameElementBinding::Wrap)
 generate_binding_object!(HTMLIFrameElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)

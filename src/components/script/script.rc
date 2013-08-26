@@ -53,10 +53,12 @@ pub mod dom {
             pub mod HTMLCollectionBinding;
             pub mod HTMLDataElementBinding;
             pub mod HTMLDataListElementBinding;
+            pub mod HTMLDirectoryElementBinding;
             pub mod HTMLDListElementBinding;
             pub mod HTMLDivElementBinding;
             pub mod HTMLDocumentBinding;
             pub mod HTMLElementBinding;
+            pub mod HTMLEmbedElementBinding;
             pub mod HTMLHeadElementBinding;
             pub mod HTMLHRElementBinding;
             pub mod HTMLHtmlElementBinding;
@@ -116,9 +118,11 @@ pub mod dom {
     pub mod htmlcollection;
     pub mod htmldataelement;
     pub mod htmldatalistelement;
+    pub mod htmldirectoryelement;
     pub mod htmldlistelement;
     pub mod htmldocument;
     pub mod htmlelement;
+    pub mod htmlembedelement;
     pub mod htmlhrelement;
     pub mod htmliframeelement;
     pub mod htmlimageelement;

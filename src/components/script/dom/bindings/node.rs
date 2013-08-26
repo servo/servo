@@ -11,10 +11,11 @@ use dom::element::{HTMLElementTypeId,
                    HTMLAreaElementTypeId, HTMLBaseElementTypeId,
                    HTMLBodyElementTypeId, HTMLBRElementTypeId, HTMLButtonElementTypeId,
                    HTMLCanvasElementTypeId, HTMLDataElementTypeId, HTMLDataListElementTypeId,
-                   HTMLDivElementTypeId, HTMLHeadElementTypeId, HTMLHRElementTypeId,
-                   HTMLHtmlElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId,
-                   HTMLInputElementTypeId, HTMLLIElementTypeId, HTMLLinkElementTypeId,
-                   HTMLMetaElementTypeId, HTMLOListElementTypeId,
+                   HTMLDirectoryElementTypeId, HTMLDivElementTypeId, HTMLEmbedElementTypeId,
+                   HTMLHeadElementTypeId,
+                   HTMLHRElementTypeId, HTMLHtmlElementTypeId, HTMLIframeElementTypeId,
+                   HTMLImageElementTypeId, HTMLInputElementTypeId, HTMLLIElementTypeId,
+                   HTMLLinkElementTypeId, HTMLMetaElementTypeId, HTMLOListElementTypeId,
                    HTMLParagraphElementTypeId, HTMLProgressElementTypeId,
                    HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
                    HTMLSpanElementTypeId, HTMLSourceElementTypeId,
@@ -36,7 +37,9 @@ use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmldataelement::HTMLDataElement;
 use dom::htmldatalistelement::HTMLDataListElement;
+use dom::htmldirectoryelement::HTMLDirectoryElement;
 use dom::htmldlistelement::HTMLDListElement;
+use dom::htmlembedelement::HTMLEmbedElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
@@ -134,8 +137,10 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLCanvasElementTypeId) => generate_element!(HTMLCanvasElement),
         ElementNodeTypeId(HTMLDataElementTypeId) => generate_element!(HTMLDataElement),
         ElementNodeTypeId(HTMLDataListElementTypeId) => generate_element!(HTMLDataListElement),
+        ElementNodeTypeId(HTMLDirectoryElementTypeId) => generate_element!(HTMLDirectoryElement),
         ElementNodeTypeId(HTMLDListElementTypeId) => generate_element!(HTMLDListElement),
         ElementNodeTypeId(HTMLDivElementTypeId) => generate_element!(HTMLDivElement),
+        ElementNodeTypeId(HTMLEmbedElementTypeId) => generate_element!(HTMLEmbedElement),
         ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
         ElementNodeTypeId(HTMLHRElementTypeId) => generate_element!(HTMLHRElement),
         ElementNodeTypeId(HTMLHtmlElementTypeId) => generate_element!(HTMLHtmlElement),
