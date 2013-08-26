@@ -11,7 +11,8 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding,
                              HTMLDataElementBinding, HTMLDataListElementBinding,
                              HTMLDirectoryElementBinding, HTMLDListElementBinding,
                              HTMLDivElementBinding, HTMLEmbedElementBinding,
-                             HTMLFieldSetElementBinding, HTMLHeadElementBinding,
+                             HTMLFieldSetElementBinding, HTMLFontElementBinding,
+                             HTMLFrameElementBinding, HTMLHeadElementBinding,
                              HTMLHRElementBinding, HTMLHtmlElementBinding,
                              HTMLIFrameElementBinding, HTMLImageElementBinding,
                              HTMLInputElementBinding, HTMLLIElementBinding,
@@ -44,6 +45,8 @@ use dom::htmldlistelement::HTMLDListElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlembedelement::HTMLEmbedElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlfontelement::HTMLFontElement;
+use dom::htmlframeelement::HTMLFrameElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
@@ -122,6 +125,7 @@ pub enum ElementTypeId {
     HTMLFieldSetElementTypeId,
     HTMLFontElementTypeId,
     HTMLFormElementTypeId,
+    HTMLFrameElementTypeId,
     HTMLHRElementTypeId,
     HTMLHeadElementTypeId,
     HTMLHeadingElementTypeId,
@@ -161,7 +165,6 @@ pub enum ElementTypeId {
 //
 
 pub struct HTMLDivElement       { parent: HTMLElement }
-pub struct HTMLFontElement      { parent: HTMLElement }
 pub struct HTMLFormElement      { parent: HTMLElement }
 pub struct HTMLHeadElement      { parent: HTMLElement }
 pub struct HTMLHtmlElement      { parent: HTMLElement }
@@ -244,6 +247,8 @@ generate_cacheable_wrapper!(HTMLDataListElement, HTMLDataListElementBinding::Wra
 generate_binding_object!(HTMLDataListElement)
 generate_cacheable_wrapper!(HTMLDListElement, HTMLDListElementBinding::Wrap)
 generate_binding_object!(HTMLDListElement)
+generate_cacheable_wrapper!(HTMLFrameElement, HTMLFrameElementBinding::Wrap)
+generate_binding_object!(HTMLFrameElement)
 generate_cacheable_wrapper!(HTMLBRElement, HTMLBRElementBinding::Wrap)
 generate_binding_object!(HTMLBRElement)
 generate_cacheable_wrapper!(HTMLHRElement, HTMLHRElementBinding::Wrap)
@@ -260,6 +265,8 @@ generate_cacheable_wrapper!(HTMLEmbedElement, HTMLEmbedElementBinding::Wrap)
 generate_binding_object!(HTMLEmbedElement)
 generate_cacheable_wrapper!(HTMLFieldSetElement, HTMLFieldSetElementBinding::Wrap)
 generate_binding_object!(HTMLFieldSetElement)
+generate_cacheable_wrapper!(HTMLFontElement, HTMLFontElementBinding::Wrap)
+generate_binding_object!(HTMLFontElement)
 generate_cacheable_wrapper!(HTMLIFrameElement, HTMLIFrameElementBinding::Wrap)
 generate_binding_object!(HTMLIFrameElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)

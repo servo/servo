@@ -8,8 +8,8 @@ use dom::element::{HTMLElementTypeId,
                    HTMLBRElementTypeId, HTMLButtonElementTypeId, HTMLCanvasElementTypeId,
                    HTMLDataElementTypeId, HTMLDataListElementTypeId, HTMLDivElementTypeId,
                    HTMLDirectoryElementTypeId, HTMLDListElementTypeId, HTMLEmbedElementTypeId,
-                   HTMLFieldSetElementTypeId, HTMLFontElementTypeId,
-                   HTMLFormElementTypeId, HTMLHRElementTypeId, HTMLHeadElementTypeId,
+                   HTMLFieldSetElementTypeId, HTMLFontElementTypeId, HTMLFormElementTypeId,
+                   HTMLFrameElementTypeId, HTMLHRElementTypeId, HTMLHeadElementTypeId,
                    HTMLHtmlElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId,
                    HTMLInputElementTypeId, HTMLLinkElementTypeId, HTMLLIElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId, HTMLOptionElementTypeId,
@@ -22,7 +22,7 @@ use dom::element::{HTMLElementTypeId,
                    HTMLTableRowElementTypeId, HTMLTextAreaElementTypeId,
                    HTMLTimeElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId,
                    UnknownElementTypeId};
-use dom::element::{HTMLDivElement, HTMLFontElement, HTMLFormElement,
+use dom::element::{HTMLDivElement, HTMLFormElement,
                    HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
                    HTMLOptionElement, HTMLParagraphElement,
                    HTMLSelectElement, HTMLSmallElement,
@@ -43,6 +43,8 @@ use dom::htmldirectoryelement::HTMLDirectoryElement;
 use dom::htmldlistelement::HTMLDListElement;
 use dom::htmlembedelement::HTMLEmbedElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlfontelement::HTMLFontElement;
+use dom::htmlframeelement::HTMLFrameElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::{IFrameSize, HTMLIFrameElement};
 use dom::htmlimageelement::HTMLImageElement;
@@ -263,6 +265,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "fieldset",HTMLFieldSetElementTypeId, HTMLFieldSetElement, []);
     handle_element!(cx, tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
     handle_element!(cx, tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);
+    handle_element!(cx, tag, "frame",    HTMLFrameElementTypeId, HTMLFrameElement, []);
     handle_element!(cx, tag, "hr",      HTMLHRElementTypeId, HTMLHRElement, []);
     handle_element!(cx, tag, "head",    HTMLHeadElementTypeId, HTMLHeadElement, []);
     handle_element!(cx, tag, "html",    HTMLHtmlElementTypeId, HTMLHtmlElement, []);

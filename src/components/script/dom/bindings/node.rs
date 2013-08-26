@@ -12,7 +12,8 @@ use dom::element::{HTMLElementTypeId,
                    HTMLBodyElementTypeId, HTMLBRElementTypeId, HTMLButtonElementTypeId,
                    HTMLCanvasElementTypeId, HTMLDataElementTypeId, HTMLDataListElementTypeId,
                    HTMLDirectoryElementTypeId, HTMLDivElementTypeId, HTMLEmbedElementTypeId,
-                   HTMLFieldSetElementTypeId, HTMLHeadElementTypeId,
+                   HTMLFieldSetElementTypeId, HTMLFontElementTypeId, HTMLFrameElementTypeId,
+                   HTMLHeadElementTypeId,
                    HTMLHRElementTypeId, HTMLHtmlElementTypeId, HTMLIframeElementTypeId,
                    HTMLImageElementTypeId, HTMLInputElementTypeId, HTMLLIElementTypeId,
                    HTMLLinkElementTypeId, HTMLMetaElementTypeId, HTMLOListElementTypeId,
@@ -41,6 +42,8 @@ use dom::htmldirectoryelement::HTMLDirectoryElement;
 use dom::htmldlistelement::HTMLDListElement;
 use dom::htmlembedelement::HTMLEmbedElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlfontelement::HTMLFontElement;
+use dom::htmlframeelement::HTMLFrameElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
@@ -143,6 +146,8 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLDivElementTypeId) => generate_element!(HTMLDivElement),
         ElementNodeTypeId(HTMLEmbedElementTypeId) => generate_element!(HTMLEmbedElement),
         ElementNodeTypeId(HTMLFieldSetElementTypeId) => generate_element!(HTMLFieldSetElement),
+        ElementNodeTypeId(HTMLFontElementTypeId) => generate_element!(HTMLFontElement),
+        ElementNodeTypeId(HTMLFrameElementTypeId) => generate_element!(HTMLFrameElement),
         ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
         ElementNodeTypeId(HTMLHRElementTypeId) => generate_element!(HTMLHRElement),
         ElementNodeTypeId(HTMLHtmlElementTypeId) => generate_element!(HTMLHtmlElement),
