@@ -7,13 +7,18 @@
 use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding,
                              HTMLAreaElementBinding, HTMLBaseElementBinding,
                              HTMLBodyElementBinding, HTMLBRElementBinding,
-                             HTMLCanvasElementBinding, HTMLDataElementBinding,
-                             HTMLDListElementBinding, HTMLDivElementBinding,
-                             HTMLHeadElementBinding, HTMLHRElementBinding,
-                             HTMLHtmlElementBinding, HTMLIFrameElementBinding,
-                             HTMLImageElementBinding, HTMLInputElementBinding,
-                             HTMLLIElementBinding,
-                             HTMLLinkElementBinding, HTMLMetaElementBinding,
+                             HTMLButtonElementBinding, HTMLCanvasElementBinding,
+                             HTMLDataElementBinding, HTMLDataListElementBinding,
+                             HTMLDirectoryElementBinding, HTMLDListElementBinding,
+                             HTMLDivElementBinding, HTMLEmbedElementBinding,
+                             HTMLFieldSetElementBinding, HTMLFontElementBinding,
+                             HTMLFrameElementBinding, HTMLFrameSetElementBinding,
+                             HTMLHeadElementBinding, HTMLHeadingElementBinding,
+                             HTMLHRElementBinding, HTMLHtmlElementBinding,
+                             HTMLIFrameElementBinding, HTMLImageElementBinding,
+                             HTMLInputElementBinding, HTMLLIElementBinding,
+                             HTMLLinkElementBinding, HTMLMapElementBinding,
+                             HTMLMetaElementBinding,
                              HTMLOListElementBinding, HTMLParagraphElementBinding,
                              HTMLProgressElementBinding, HTMLQuoteElementBinding,
                              HTMLScriptElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
@@ -32,17 +37,27 @@ use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlbrelement::HTMLBRElement;
+use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldataelement::HTMLDataElement;
+use dom::htmldatalistelement::HTMLDataListElement;
+use dom::htmldirectoryelement::HTMLDirectoryElement;
 use dom::htmldlistelement::HTMLDListElement;
 use dom::htmlelement::HTMLElement;
+use dom::htmlembedelement::HTMLEmbedElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlfontelement::HTMLFontElement;
+use dom::htmlframeelement::HTMLFrameElement;
+use dom::htmlframesetelement::HTMLFrameSetElement;
+use dom::htmlheadingelement::HTMLHeadingElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmllielement::HTMLLIElement;
 use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlmapelement::HTMLMapElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlprogresselement::HTMLProgressElement;
@@ -104,12 +119,19 @@ pub enum ElementTypeId {
     HTMLBaseElementTypeId,
     HTMLBRElementTypeId,
     HTMLBodyElementTypeId,
+    HTMLButtonElementTypeId,
     HTMLCanvasElementTypeId,
     HTMLDataElementTypeId,
+    HTMLDataListElementTypeId,
+    HTMLDirectoryElementTypeId,
     HTMLDListElementTypeId,
     HTMLDivElementTypeId,
+    HTMLEmbedElementTypeId,
+    HTMLFieldSetElementTypeId,
     HTMLFontElementTypeId,
     HTMLFormElementTypeId,
+    HTMLFrameElementTypeId,
+    HTMLFrameSetElementTypeId,
     HTMLHRElementTypeId,
     HTMLHeadElementTypeId,
     HTMLHeadingElementTypeId,
@@ -119,6 +141,7 @@ pub enum ElementTypeId {
     HTMLInputElementTypeId,
     HTMLLinkElementTypeId,
     HTMLLIElementTypeId,
+    HTMLMapElementTypeId,
     HTMLMetaElementTypeId,
     HTMLOListElementTypeId,
     HTMLOptionElementTypeId,
@@ -149,7 +172,6 @@ pub enum ElementTypeId {
 //
 
 pub struct HTMLDivElement       { parent: HTMLElement }
-pub struct HTMLFontElement      { parent: HTMLElement }
 pub struct HTMLFormElement      { parent: HTMLElement }
 pub struct HTMLHeadElement      { parent: HTMLElement }
 pub struct HTMLHtmlElement      { parent: HTMLElement }
@@ -224,10 +246,18 @@ generate_cacheable_wrapper!(HTMLBaseElement, HTMLBaseElementBinding::Wrap)
 generate_binding_object!(HTMLBaseElement)
 generate_cacheable_wrapper!(HTMLBodyElement, HTMLBodyElementBinding::Wrap)
 generate_binding_object!(HTMLBodyElement)
+generate_cacheable_wrapper!(HTMLButtonElement, HTMLButtonElementBinding::Wrap)
+generate_binding_object!(HTMLButtonElement)
 generate_cacheable_wrapper!(HTMLCanvasElement, HTMLCanvasElementBinding::Wrap)
 generate_binding_object!(HTMLCanvasElement)
+generate_cacheable_wrapper!(HTMLDataListElement, HTMLDataListElementBinding::Wrap)
+generate_binding_object!(HTMLDataListElement)
 generate_cacheable_wrapper!(HTMLDListElement, HTMLDListElementBinding::Wrap)
 generate_binding_object!(HTMLDListElement)
+generate_cacheable_wrapper!(HTMLFrameElement, HTMLFrameElementBinding::Wrap)
+generate_binding_object!(HTMLFrameElement)
+generate_cacheable_wrapper!(HTMLFrameSetElement, HTMLFrameSetElementBinding::Wrap)
+generate_binding_object!(HTMLFrameSetElement)
 generate_cacheable_wrapper!(HTMLBRElement, HTMLBRElementBinding::Wrap)
 generate_binding_object!(HTMLBRElement)
 generate_cacheable_wrapper!(HTMLHRElement, HTMLHRElementBinding::Wrap)
@@ -236,8 +266,18 @@ generate_cacheable_wrapper!(HTMLHtmlElement, HTMLHtmlElementBinding::Wrap)
 generate_binding_object!(HTMLHtmlElement)
 generate_cacheable_wrapper!(HTMLDataElement, HTMLDataElementBinding::Wrap)
 generate_binding_object!(HTMLDataElement)
+generate_cacheable_wrapper!(HTMLDirectoryElement, HTMLDirectoryElementBinding::Wrap)
+generate_binding_object!(HTMLDirectoryElement)
 generate_cacheable_wrapper!(HTMLDivElement, HTMLDivElementBinding::Wrap)
 generate_binding_object!(HTMLDivElement)
+generate_cacheable_wrapper!(HTMLEmbedElement, HTMLEmbedElementBinding::Wrap)
+generate_binding_object!(HTMLEmbedElement)
+generate_cacheable_wrapper!(HTMLFieldSetElement, HTMLFieldSetElementBinding::Wrap)
+generate_binding_object!(HTMLFieldSetElement)
+generate_cacheable_wrapper!(HTMLFontElement, HTMLFontElementBinding::Wrap)
+generate_binding_object!(HTMLFontElement)
+generate_cacheable_wrapper!(HTMLHeadingElement, HTMLHeadingElementBinding::Wrap)
+generate_binding_object!(HTMLHeadingElement)
 generate_cacheable_wrapper!(HTMLIFrameElement, HTMLIFrameElementBinding::Wrap)
 generate_binding_object!(HTMLIFrameElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
@@ -248,6 +288,8 @@ generate_cacheable_wrapper!(HTMLLIElement, HTMLLIElementBinding::Wrap)
 generate_binding_object!(HTMLLIElement)
 generate_cacheable_wrapper!(HTMLLinkElement, HTMLLinkElementBinding::Wrap)
 generate_binding_object!(HTMLLinkElement)
+generate_cacheable_wrapper!(HTMLMapElement, HTMLMapElementBinding::Wrap)
+generate_binding_object!(HTMLMapElement)
 generate_cacheable_wrapper!(HTMLMetaElement, HTMLMetaElementBinding::Wrap)
 generate_binding_object!(HTMLMetaElement)
 generate_cacheable_wrapper!(HTMLOListElement, HTMLOListElementBinding::Wrap)
@@ -286,15 +328,6 @@ generate_cacheable_wrapper!(HTMLTimeElement, HTMLTimeElementBinding::Wrap)
 generate_binding_object!(HTMLTimeElement)
 generate_cacheable_wrapper!(HTMLUListElement, HTMLUListElementBinding::Wrap)
 generate_binding_object!(HTMLUListElement)
-
-//
-// Fancier elements
-//
-
-pub struct HTMLHeadingElement {
-    parent: HTMLElement,
-    level: HeadingLevel,
-}
 
 //
 // Element methods
@@ -589,13 +622,4 @@ impl Attr {
             value: value
         }
     }
-}
-
-pub enum HeadingLevel {
-    Heading1,
-    Heading2,
-    Heading3,
-    Heading4,
-    Heading5,
-    Heading6,
 }

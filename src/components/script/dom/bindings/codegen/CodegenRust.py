@@ -4623,17 +4623,27 @@ class CGBindingRoot(CGThing):
                           'dom::htmlbaseelement::HTMLBaseElement', #XXXjune0cho
                           'dom::htmlbodyelement::HTMLBodyElement', #XXXjune0cho
                           'dom::htmlbrelement::HTMLBRElement', #XXXrecrack
+                          'dom::htmlbuttonelement::HTMLButtonElement', #XXXjdm
                           'dom::htmlcanvaselement::HTMLCanvasElement',
                           'dom::htmldataelement::HTMLDataElement', #XXXjune0cho
+                          'dom::htmldatalistelement::HTMLDataListElement',
                           'dom::htmldlistelement::HTMLDListElement',
+                          'dom::htmldirectoryelement::HTMLDirectoryElement',
                           'dom::htmlelement::HTMLElement', #XXXjdm
+                          'dom::htmlembedelement::HTMLEmbedElement', #XXXjdm
+                          'dom::htmlfieldsetelement::HTMLFieldSetElement', #XXXjdm
+                          'dom::htmlfontelement::HTMLFontElement', #XXXjdm
+                          'dom::htmlframeelement::HTMLFrameElement', #XXXjdm
+                          'dom::htmlframesetelement::HTMLFrameSetElement', #XXXjdm
                           'dom::htmldocument::HTMLDocument', #XXXjdm
+                          'dom::htmlheadingelement::HTMLHeadingElement',
                           'dom::htmlhrelement::HTMLHRElement',
                           'dom::htmliframeelement::HTMLIFrameElement', #XXXjdm
                           'dom::htmlimageelement::HTMLImageElement', #XXXjdm
                           'dom::htmlinputelement::HTMLInputElement',
                           'dom::htmllielement::HTMLLIElement',
                           'dom::htmllinkelement::HTMLLinkElement', #XXXrecrack
+                          'dom::htmlmapelement::HTMLMapElement',
                           'dom::htmlmetaelement::HTMLMetaElement',
                           'dom::htmlolistelement::HTMLOListElement',
                           'dom::htmlprogresselement::HTMLProgressElement',
@@ -4664,6 +4674,7 @@ class CGBindingRoot(CGThing):
                           'dom::formdata::*', #XXXjdm
                           'dom::mouseevent::*', #XXXjdm
                           'dom::uievent::*', #XXXjdm
+                          'dom::validitystate::*', #XXXjdm
                           'dom::windowproxy::*', #XXXjdm
                           'dom::window::Window', #XXXjdm
                           'dom::bindings::codegen::*', #XXXjdm
