@@ -4626,6 +4626,7 @@ class CGBindingRoot(CGThing):
                           'dom::htmlbuttonelement::HTMLButtonElement', #XXXjdm
                           'dom::htmlcanvaselement::HTMLCanvasElement',
                           'dom::htmldataelement::HTMLDataElement', #XXXjune0cho
+                          'dom::htmldatalistelement::HTMLDataListElement',
                           'dom::htmldlistelement::HTMLDListElement',
                           'dom::htmlelement::HTMLElement', #XXXjdm
                           'dom::htmldocument::HTMLDocument', #XXXjdm

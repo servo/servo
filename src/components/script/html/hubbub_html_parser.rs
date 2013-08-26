@@ -6,9 +6,9 @@ use dom::element::{HTMLElementTypeId,
                    HTMLAnchorElementTypeId, HTMLAppletElementTypeId, 
                    HTMLAreaElementTypeId,  HTMLBaseElementTypeId, HTMLBodyElementTypeId,
                    HTMLBRElementTypeId, HTMLButtonElementTypeId, HTMLCanvasElementTypeId,
-                   HTMLDataElementTypeId, HTMLDivElementTypeId, HTMLDListElementTypeId,
-                   HTMLFontElementTypeId, HTMLFormElementTypeId, HTMLHRElementTypeId,
-                   HTMLHeadElementTypeId, HTMLHtmlElementTypeId,
+                   HTMLDataElementTypeId, HTMLDataListElementTypeId, HTMLDivElementTypeId,
+                   HTMLDListElementTypeId, HTMLFontElementTypeId, HTMLFormElementTypeId,
+                   HTMLHRElementTypeId, HTMLHeadElementTypeId, HTMLHtmlElementTypeId,
                    HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLInputElementTypeId,
                    HTMLLinkElementTypeId, HTMLLIElementTypeId,
                    HTMLMetaElementTypeId, HTMLOListElementTypeId, HTMLOptionElementTypeId,
@@ -37,6 +37,7 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmldataelement::HTMLDataElement;
+use dom::htmldatalistelement::HTMLDataListElement;
 use dom::htmldlistelement::HTMLDListElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::{IFrameSize, HTMLIFrameElement};
@@ -250,6 +251,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "button",  HTMLButtonElementTypeId, HTMLButtonElement, []);
     handle_element!(cx, tag, "canvas",  HTMLCanvasElementTypeId, HTMLCanvasElement, []);
     handle_element!(cx, tag, "data",    HTMLDataElementTypeId, HTMLDataElement, []);
+    handle_element!(cx, tag, "datalist",HTMLDataListElementTypeId, HTMLDataListElement, []);
     handle_element!(cx, tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
     handle_element!(cx, tag, "dl",      HTMLDListElementTypeId, HTMLDListElement, []);
     handle_element!(cx, tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);

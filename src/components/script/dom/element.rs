@@ -7,8 +7,8 @@
 use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding,
                              HTMLAreaElementBinding, HTMLBaseElementBinding,
                              HTMLBodyElementBinding, HTMLBRElementBinding,
-                             HTMLButtonElementBinding,
-                             HTMLCanvasElementBinding, HTMLDataElementBinding,
+                             HTMLButtonElementBinding, HTMLCanvasElementBinding,
+                             HTMLDataElementBinding, HTMLDataListElementBinding,
                              HTMLDListElementBinding, HTMLDivElementBinding,
                              HTMLHeadElementBinding, HTMLHRElementBinding,
                              HTMLHtmlElementBinding, HTMLIFrameElementBinding,
@@ -37,6 +37,7 @@ use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldataelement::HTMLDataElement;
+use dom::htmldatalistelement::HTMLDataListElement;
 use dom::htmldlistelement::HTMLDListElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlhrelement::HTMLHRElement;
@@ -109,6 +110,7 @@ pub enum ElementTypeId {
     HTMLButtonElementTypeId,
     HTMLCanvasElementTypeId,
     HTMLDataElementTypeId,
+    HTMLDataListElementTypeId,
     HTMLDListElementTypeId,
     HTMLDivElementTypeId,
     HTMLFontElementTypeId,
@@ -231,6 +233,8 @@ generate_cacheable_wrapper!(HTMLButtonElement, HTMLButtonElementBinding::Wrap)
 generate_binding_object!(HTMLButtonElement)
 generate_cacheable_wrapper!(HTMLCanvasElement, HTMLCanvasElementBinding::Wrap)
 generate_binding_object!(HTMLCanvasElement)
+generate_cacheable_wrapper!(HTMLDataListElement, HTMLDataListElementBinding::Wrap)
+generate_binding_object!(HTMLDataListElement)
 generate_cacheable_wrapper!(HTMLDListElement, HTMLDListElementBinding::Wrap)
 generate_binding_object!(HTMLDListElement)
 generate_cacheable_wrapper!(HTMLBRElement, HTMLBRElementBinding::Wrap)
