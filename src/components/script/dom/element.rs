@@ -13,7 +13,7 @@ use dom::bindings::codegen::{HTMLAnchorElementBinding, HTMLAppletElementBinding,
                              HTMLDivElementBinding, HTMLEmbedElementBinding,
                              HTMLFieldSetElementBinding, HTMLFontElementBinding,
                              HTMLFrameElementBinding, HTMLFrameSetElementBinding,
-                             HTMLHeadElementBinding,
+                             HTMLHeadElementBinding, HTMLHeadingElementBinding,
                              HTMLHRElementBinding, HTMLHtmlElementBinding,
                              HTMLIFrameElementBinding, HTMLImageElementBinding,
                              HTMLInputElementBinding, HTMLLIElementBinding,
@@ -49,6 +49,7 @@ use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::HTMLFontElement;
 use dom::htmlframeelement::HTMLFrameElement;
 use dom::htmlframesetelement::HTMLFrameSetElement;
+use dom::htmlheadingelement::HTMLHeadingElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
@@ -272,6 +273,8 @@ generate_cacheable_wrapper!(HTMLFieldSetElement, HTMLFieldSetElementBinding::Wra
 generate_binding_object!(HTMLFieldSetElement)
 generate_cacheable_wrapper!(HTMLFontElement, HTMLFontElementBinding::Wrap)
 generate_binding_object!(HTMLFontElement)
+generate_cacheable_wrapper!(HTMLHeadingElement, HTMLHeadingElementBinding::Wrap)
+generate_binding_object!(HTMLHeadingElement)
 generate_cacheable_wrapper!(HTMLIFrameElement, HTMLIFrameElementBinding::Wrap)
 generate_binding_object!(HTMLIFrameElement)
 generate_cacheable_wrapper!(HTMLImageElement, HTMLImageElementBinding::Wrap)
@@ -320,15 +323,6 @@ generate_cacheable_wrapper!(HTMLTimeElement, HTMLTimeElementBinding::Wrap)
 generate_binding_object!(HTMLTimeElement)
 generate_cacheable_wrapper!(HTMLUListElement, HTMLUListElementBinding::Wrap)
 generate_binding_object!(HTMLUListElement)
-
-//
-// Fancier elements
-//
-
-pub struct HTMLHeadingElement {
-    parent: HTMLElement,
-    level: HeadingLevel,
-}
 
 //
 // Element methods
@@ -623,13 +617,4 @@ impl Attr {
             value: value
         }
     }
-}
-
-pub enum HeadingLevel {
-    Heading1,
-    Heading2,
-    Heading3,
-    Heading4,
-    Heading5,
-    Heading6,
 }

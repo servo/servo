@@ -24,12 +24,11 @@ use dom::element::{HTMLElementTypeId,
                    HTMLTimeElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId,
                    UnknownElementTypeId};
 use dom::element::{HTMLDivElement, HTMLFormElement,
-                   HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
+                   HTMLHeadElement, HTMLHtmlElement,
                    HTMLOptionElement, HTMLParagraphElement,
                    HTMLSelectElement, HTMLSmallElement,
                    HTMLSpanElement};
-use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Heading4, Heading5,
-                   Heading6};
+use dom::element::{HTMLHeadingElementTypeId};
 use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlappletelement::HTMLAppletElement;
@@ -47,6 +46,8 @@ use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::HTMLFontElement;
 use dom::htmlframeelement::HTMLFrameElement;
 use dom::htmlframesetelement::HTMLFrameSetElement;
+use dom::htmlheadingelement::{HTMLHeadingElement, Heading1, Heading2, Heading3, Heading4,
+                              Heading5, Heading6};
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::{IFrameSize, HTMLIFrameElement};
 use dom::htmlimageelement::HTMLImageElement;
