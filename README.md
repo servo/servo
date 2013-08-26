@@ -26,6 +26,15 @@ sudo apt-get install autoconf2.13 curl freeglut3-dev libtool \
     xorg-dev msttcorefonts
 ```
 
+On Debian-based Linuxes (cross-compilation for Android):
+
+``` sh
+sudo apt-get install autoconf2.13 curl libtool ia32-libs
+```
+And it needs pre-installed Android tools.
+See wiki for [details](https://github.com/mozilla/servo/wiki/Doc-building-for-android)
+
+
 Servo builds its own copy of Rust, so there is no need to provide a Rust
 compiler.
 
@@ -41,6 +50,16 @@ mkdir -p build && cd build
 ../configure
 make && make check
 ./servo ../src/test/html/about-mozilla.html
+```
+
+###Building for Android target
+
+``` sh
+git clone https://github.com/mozilla/servo.git
+cd servo
+mkdir -p build && cd build
+../configure --target-triples=arm-linux-androideabi --android-cross-path=<Android toolchain path> --android-ndk-path=<Android NDK path> --android-sdk-path=<Android SDK path>
+make
 ```
 
 ## Running
