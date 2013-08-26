@@ -12,7 +12,7 @@ use dom::element::{HTMLElementTypeId,
                    HTMLBodyElementTypeId, HTMLBRElementTypeId, HTMLButtonElementTypeId,
                    HTMLCanvasElementTypeId, HTMLDataElementTypeId, HTMLDataListElementTypeId,
                    HTMLDirectoryElementTypeId, HTMLDivElementTypeId, HTMLEmbedElementTypeId,
-                   HTMLHeadElementTypeId,
+                   HTMLFieldSetElementTypeId, HTMLHeadElementTypeId,
                    HTMLHRElementTypeId, HTMLHtmlElementTypeId, HTMLIframeElementTypeId,
                    HTMLImageElementTypeId, HTMLInputElementTypeId, HTMLLIElementTypeId,
                    HTMLLinkElementTypeId, HTMLMetaElementTypeId, HTMLOListElementTypeId,
@@ -40,6 +40,7 @@ use dom::htmldatalistelement::HTMLDataListElement;
 use dom::htmldirectoryelement::HTMLDirectoryElement;
 use dom::htmldlistelement::HTMLDListElement;
 use dom::htmlembedelement::HTMLEmbedElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
@@ -141,6 +142,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLDListElementTypeId) => generate_element!(HTMLDListElement),
         ElementNodeTypeId(HTMLDivElementTypeId) => generate_element!(HTMLDivElement),
         ElementNodeTypeId(HTMLEmbedElementTypeId) => generate_element!(HTMLEmbedElement),
+        ElementNodeTypeId(HTMLFieldSetElementTypeId) => generate_element!(HTMLFieldSetElement),
         ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
         ElementNodeTypeId(HTMLHRElementTypeId) => generate_element!(HTMLHRElement),
         ElementNodeTypeId(HTMLHtmlElementTypeId) => generate_element!(HTMLHtmlElement),

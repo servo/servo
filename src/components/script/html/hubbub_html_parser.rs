@@ -7,7 +7,8 @@ use dom::element::{HTMLElementTypeId,
                    HTMLAreaElementTypeId,  HTMLBaseElementTypeId, HTMLBodyElementTypeId,
                    HTMLBRElementTypeId, HTMLButtonElementTypeId, HTMLCanvasElementTypeId,
                    HTMLDataElementTypeId, HTMLDataListElementTypeId, HTMLDivElementTypeId,
-                   HTMLDirectoryElementTypeId, HTMLDListElementTypeId, HTMLFontElementTypeId,
+                   HTMLDirectoryElementTypeId, HTMLDListElementTypeId, HTMLEmbedElementTypeId,
+                   HTMLFieldSetElementTypeId, HTMLFontElementTypeId,
                    HTMLFormElementTypeId, HTMLHRElementTypeId, HTMLHeadElementTypeId,
                    HTMLHtmlElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId,
                    HTMLInputElementTypeId, HTMLLinkElementTypeId, HTMLLIElementTypeId,
@@ -40,6 +41,8 @@ use dom::htmldataelement::HTMLDataElement;
 use dom::htmldatalistelement::HTMLDataListElement;
 use dom::htmldirectoryelement::HTMLDirectoryElement;
 use dom::htmldlistelement::HTMLDListElement;
+use dom::htmlembedelement::HTMLEmbedElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::{IFrameSize, HTMLIFrameElement};
 use dom::htmlimageelement::HTMLImageElement;
@@ -256,6 +259,8 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "directory",HTMLDirectoryElementTypeId, HTMLDirectoryElement, []);
     handle_element!(cx, tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
     handle_element!(cx, tag, "dl",      HTMLDListElementTypeId, HTMLDListElement, []);
+    handle_element!(cx, tag, "embed",   HTMLEmbedElementTypeId, HTMLEmbedElement, []);
+    handle_element!(cx, tag, "fieldset",HTMLFieldSetElementTypeId, HTMLFieldSetElement, []);
     handle_element!(cx, tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
     handle_element!(cx, tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);
     handle_element!(cx, tag, "hr",      HTMLHRElementTypeId, HTMLHRElement, []);

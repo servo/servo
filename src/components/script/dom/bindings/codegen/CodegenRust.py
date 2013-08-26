@@ -4631,6 +4631,7 @@ class CGBindingRoot(CGThing):
                           'dom::htmldirectoryelement::HTMLDirectoryElement',
                           'dom::htmlelement::HTMLElement', #XXXjdm
                           'dom::htmlembedelement::HTMLEmbedElement', #XXXjdm
+                          'dom::htmlfieldsetelement::HTMLFieldSetElement', #XXXjdm
                           'dom::htmldocument::HTMLDocument', #XXXjdm
                           'dom::htmlhrelement::HTMLHRElement',
                           'dom::htmliframeelement::HTMLIFrameElement', #XXXjdm
