@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use css::node_style::StyledNode;
 use std::cell::Cell;
 use layout::box::{CannotSplit, GenericRenderBoxClass, ImageRenderBoxClass, RenderBox};
 use layout::box::{SplitDidFit, SplitDidNotFit, TextRenderBoxClass};
@@ -17,9 +18,13 @@ use std::util;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayList;
 use gfx::geometry::Au;
-use newcss::values::{CSSTextAlignLeft, CSSTextAlignCenter, CSSTextAlignRight, CSSTextAlignJustify};
 use newcss::units::{Em, Px};
+use newcss::values::{CSSFontSizeLength};
+use newcss::values::{CSSTextAlignLeft, CSSTextAlignCenter, CSSTextAlignRight, CSSTextAlignJustify};
 use newcss::values::{CSSLineHeightNormal, CSSLineHeightNumber, CSSLineHeightLength, CSSLineHeightPercentage};
+use newcss::values::{CSSVerticalAlignBaseline, CSSVerticalAlignMiddle, CSSVerticalAlignSub, CSSVerticalAlignSuper, 
+                     CSSVerticalAlignTextTop, CSSVerticalAlignTextBottom, CSSVerticalAlignTop, CSSVerticalAlignBottom, 
+                     CSSVerticalAlignLength, CSSVerticalAlignPercentage};
 use servo_util::range::Range;
 use servo_util::tree::TreeNodeRef;
 use extra::container::Deque;
@@ -164,6 +169,16 @@ impl LineboxScanner {
         self.reset_linebox();
     }
 
+    fn calculate_line_height(&self, box: RenderBox, font_size: Au) -> Au { 
+        match box.line_height() {
+            CSSLineHeightNormal => font_size.scale_by(1.14f),
+            CSSLineHeightNumber(l) => font_size.scale_by(l),
+            CSSLineHeightLength(Em(l)) => font_size.scale_by(l),
+            CSSLineHeightLength(Px(l)) => Au::from_frac_px(l),
+            CSSLineHeightPercentage(p) => font_size.scale_by(p / 100.0f)
+        }
+    }
+
     fn box_height(&self, box: RenderBox) -> Au {
         match box {
             ImageRenderBoxClass(image_box) => {
@@ -180,13 +195,7 @@ impl LineboxScanner {
                 // Compute the height based on the line-height and font size
                 let text_bounds = run.metrics_for_range(range).bounding_box;
                 let em_size = text_bounds.size.height;
-                let line_height = match box.line_height() {
-                    CSSLineHeightNormal => em_size.scale_by(1.14f),
-                    CSSLineHeightNumber(l) => em_size.scale_by(l),
-                    CSSLineHeightLength(Em(l)) => em_size.scale_by(l),
-                    CSSLineHeightLength(Px(l)) => Au::from_frac_px(l),
-                    CSSLineHeightPercentage(p) => em_size.scale_by(p / 100.0f)
-                };
+                let line_height = self.calculate_line_height(box, em_size);
 
                 line_height
             }
@@ -600,8 +609,10 @@ impl InlineFlowData {
         let mut scanner = LineboxScanner::new(scanner_floats);
         scanner.scan_for_lines(self);
 
+        let mut line_height_offset = Au(0);
+
         // Now, go through each line and lay out the boxes inside
-        for line in self.lines.iter() {
+        for line in self.lines.mut_iter() {
             // We need to distribute extra width based on text-align.
             let mut slack_width = line.green_zone.width - line.bounds.size.width;
             if slack_width < Au(0) {
@@ -654,80 +665,224 @@ impl InlineFlowData {
                 }
             };
 
+            // Set the top y position of the current linebox.
+            // `line_height_offset` is updated at the end of the previous loop.
+            line.bounds.origin.y = line.bounds.origin.y + line_height_offset;
 
-            // Get the baseline offset, assuming that the tallest text box will determine
-            // the baseline.
-            let mut baseline_offset = Au(0);
-            let mut max_height = Au(0);
+            // Calculate the distance from baseline to the top of the linebox.
+            let mut topmost = Au(0);
+            // Calculate the distance from baseline to the bottom of the linebox.
+            let mut bottommost = Au(0);
+
+            // Calculate the biggest height among boxes with 'top' value.
+            let mut biggest_top = Au(0);
+            // Calculate the biggest height among boxes with 'bottom' value.
+            let mut biggest_bottom = Au(0);
+
             for box_i in line.range.eachi() {
                 let cur_box = self.boxes[box_i];
 
-                match cur_box {
+                let (top_from_base, bottom_from_base, ascent) = match cur_box {
                     ImageRenderBoxClass(image_box) => {
                         let size = image_box.image.get_size();
-                        let height = Au::from_px(size.unwrap_or_default(Size2D(0, 0)).height);
+                        let mut height = Au::from_px(size.unwrap_or_default(Size2D(0, 0)).height);
+
+                        // TODO: margin, border, padding's top and bottom should be calculated in advance,
+                        // since baseline of image is bottom margin edge.
+                        let mut top = Au(0);
+                        let mut bottom = Au(0);
+                        do cur_box.with_model |model| {
+                            top = model.border.top + model.padding.top + model.margin.top;
+                            bottom = model.border.bottom + model.padding.bottom + model.margin.bottom;
+                        }
+                        let noncontent_height = top + bottom;
+                        height = height + noncontent_height;
                         image_box.base.position.size.height = height;
+                        image_box.base.position.translate(&Point2D(Au(0), -height));
 
-                        image_box.base.position.translate(&Point2D(Au(0), -height))
-                    }
+                        let ascent = height + bottom;
+                        (height, Au(0), ascent)
+                    },
                     TextRenderBoxClass(text_box) => {
-
                         let range = &text_box.range;
                         let run = &text_box.run;
                         
                         // Compute the height based on the line-height and font size
                         let text_bounds = run.metrics_for_range(range).bounding_box;
                         let em_size = text_bounds.size.height;
-                        let line_height = match cur_box.line_height() {
-                            CSSLineHeightNormal => em_size.scale_by(1.14f),
-                            CSSLineHeightNumber(l) => em_size.scale_by(l),
-                            CSSLineHeightLength(Em(l)) => em_size.scale_by(l),
-                            CSSLineHeightLength(Px(l)) => Au::from_frac_px(l),
-                            CSSLineHeightPercentage(p) => em_size.scale_by(p / 100.0f)
-                        };
+                        let line_height = scanner.calculate_line_height(cur_box, em_size);
 
-                        // If this is the current tallest box then use it for baseline
-                        // calculations.
-                        // TODO: this will need to take into account type of line-height
-                        // and the vertical-align value.
-                        if line_height > max_height {
-                            max_height = line_height;
-                            let linebox_height = line.bounds.size.height;
-                            // Offset from the top of the linebox is 1/2 of the leading + ascent
-                            baseline_offset = text_box.run.font.metrics.ascent +
-                                    (linebox_height - em_size).scale_by(0.5f);
-                        }
-                        text_bounds.translate(&Point2D(text_box.base.position.origin.x, Au(0)))
-                    }
+                        // Find the top and bottom of the content area.
+                        // Those are used in text-top and text-bottom value of 'vertex-align'
+                        let text_ascent = text_box.run.font.metrics.ascent;
+                       
+                        // Offset from the top of the box is 1/2 of the leading + ascent
+                        let text_offset = text_ascent + (line_height - em_size).scale_by(0.5f);
+                        text_bounds.translate(&Point2D(text_box.base.position.origin.x, Au(0)));
+
+                        (text_offset, line_height - text_offset, text_ascent)
+                    },
                     GenericRenderBoxClass(generic_box) => {
-                        generic_box.position
-                    }
+                        (generic_box.position.size.height, Au(0), generic_box.position.size.height)
+                    },
                     // FIXME(pcwalton): This isn't very type safe!
                     _ => {
                         fail!(fmt!("Tried to assign height to unknown Box variant: %s",
                                    cur_box.debug_str()))
                     }
                 };
+                let mut top_from_base = top_from_base;
+                let mut bottom_from_base = bottom_from_base;
+
+                // To calculate text-top and text-bottom value of 'vertex-align',
+                //  we should find the top and bottom of the content area of parent box.
+                // The content area is defined in "http://www.w3.org/TR/CSS2/visudet.html#inline-non-replaced". 
+                // TODO: We should extract em-box info from font size of parent
+                //  and calcuate the distances from baseline to the top and the bottom of parent's content area.
+
+                // It should calculate the distance from baseline to the top of parent's content area.
+                // But, it is assumed now as font size of parent.
+                let mut parent_text_top = Au(0);
+                // It should calculate the distance from baseline to the bottom of parent's content area.
+                // But, it is assumed now as 0.
+                let parent_text_bottom  = Au(0);
+                do cur_box.with_mut_base |base| {
+                    // Get parent node
+                    let parent = base.node.parent_node().map_default(base.node, |parent| *parent);
+                    // TODO: When the calculation of font-size style is supported, it should be updated.
+                    let font_size = match parent.style().font_size() {
+                        CSSFontSizeLength(Px(length)) => length,
+                        // todo: this is based on a hard coded font size, should be the parent element's font size
+                        CSSFontSizeLength(Em(length)) => length * 16f, 
+                        _ => 16f // px units
+                    };
+                    parent_text_top = Au::from_frac_px(font_size);
+                }
+
+                // This flag decides whether topmost and bottommost are updated or not.
+                // That is, if the box has top or bottom value, no_update_flag becomes true.
+                let mut no_update_flag = false;
+                // Calculate a relative offset from baseline.
+                let offset = match cur_box.vertical_align() {
+                    CSSVerticalAlignBaseline => {
+                        -ascent
+                    },
+                    CSSVerticalAlignMiddle => {
+                        // TODO: x-height value should be used from font info.
+                        let xheight = Au(0);
+                        -(xheight + scanner.box_height(cur_box)).scale_by(0.5)
+                    },
+                    CSSVerticalAlignSub => {
+                        // TODO: The proper position for subscripts should be used.
+                        // Lower the baseline to the proper position for subscripts
+                        let sub_offset = Au(0);
+                        (sub_offset - ascent)
+                    },
+                    CSSVerticalAlignSuper => {
+                        // TODO: The proper position for superscripts should be used.
+                        // Raise the baseline to the proper position for superscripts
+                        let super_offset = Au(0);
+                        (-super_offset - ascent)
+                    },
+                    CSSVerticalAlignTextTop => {
+                        let box_height = top_from_base + bottom_from_base;
+                        let prev_bottom_from_base = bottom_from_base;
+                        top_from_base = parent_text_top;
+                        bottom_from_base = box_height - top_from_base;
+                        (bottom_from_base - prev_bottom_from_base - ascent)
+                    },
+                    CSSVerticalAlignTextBottom => {
+                        let box_height = top_from_base + bottom_from_base;
+                        let prev_bottom_from_base = bottom_from_base;
+                        bottom_from_base = parent_text_bottom;
+                        top_from_base = box_height - bottom_from_base;
+                        (bottom_from_base - prev_bottom_from_base - ascent)
+                    },
+                    CSSVerticalAlignTop => {
+                        if biggest_top < (top_from_base + bottom_from_base) {
+                            biggest_top = top_from_base + bottom_from_base;
+                        }
+                        let offset_top = top_from_base - ascent;
+                        no_update_flag = true;
+                        offset_top
+                    },
+                    CSSVerticalAlignBottom => {
+                        if biggest_bottom < (top_from_base + bottom_from_base) {
+                            biggest_bottom = top_from_base + bottom_from_base;
+                        }
+                        let offset_bottom = -(bottom_from_base + ascent);
+                        no_update_flag = true;
+                        offset_bottom
+                    },
+                    CSSVerticalAlignLength(length) => {
+                        let length_offset = match length {
+                            Em(l) => Au::from_frac_px(cur_box.font_style().pt_size * l),
+                            Px(l) => Au::from_frac_px(l),
+                        };
+                        -(length_offset + ascent)
+                    },
+                    CSSVerticalAlignPercentage(p) => {
+                        let pt_size = cur_box.font_style().pt_size; 
+                        let line_height = scanner.calculate_line_height(cur_box, Au::from_pt(pt_size));
+                        let percent_offset = line_height.scale_by(p / 100.0f);
+                        -(percent_offset + ascent)
+                    }
+                };
+
+                // If the current box has 'top' or 'bottom' value, no_update_flag is true.
+                // Otherwise, topmost and bottomost are updated.
+                if !no_update_flag && top_from_base > topmost {
+                    topmost = top_from_base;
+                }
+                if !no_update_flag && bottom_from_base > bottommost {
+                    bottommost = bottom_from_base;
+                }
+
+                do cur_box.with_mut_base |base| {
+                    base.position.origin.y = line.bounds.origin.y + offset;
+                }
             }
 
-            // Now go back and adjust the Y coordinates to match the baseline we determined.
+            // Calculate the distance from baseline to the top of the biggest box with 'bottom' value.
+            // Then, if necessary, update the topmost.
+            let topmost_of_bottom = biggest_bottom - bottommost;
+            if topmost_of_bottom > topmost {
+                topmost = topmost_of_bottom;
+            }
+
+            // Calculate the distance from baseline to the bottom of the biggest box with 'top' value.
+            // Then, if necessary, update the bottommost.
+            let bottommost_of_top = biggest_top - topmost;
+            if bottommost_of_top > bottommost {
+                bottommost = bottommost_of_top;
+            }
+
+            // Now, the baseline offset from the top of linebox is set as topmost.
+            let baseline_offset = topmost;
+
+            // All boxes' y position is updated following the new baseline offset.
             for box_i in line.range.eachi() {
                 let cur_box = self.boxes[box_i];
-
-                // TODO(#226): This is completely wrong. We need to use the element's `line-height`
-                // when calculating line box height. Then we should go back over and set Y offsets
-                // according to the `vertical-align` property of the containing block.
-                let offset = match cur_box {
-                    TextRenderBoxClass(text_box) => {
-                        baseline_offset - text_box.run.font.metrics.ascent
+                let adjust_offset = match cur_box.vertical_align() {
+                    CSSVerticalAlignTop => {
+                        Au(0)
                     },
-                    _ => Au(0),
+                    CSSVerticalAlignBottom => {
+                        baseline_offset + bottommost
+                    },
+                    _ => {
+                        baseline_offset
+                    }
                 };
 
                 do cur_box.with_mut_base |base| {
-                    base.position.origin.y = offset + line.bounds.origin.y;
+                    base.position.origin.y = base.position.origin.y + adjust_offset;
                 }
             }
+
+            // This is used to set the top y position of the next linebox in the next loop.
+            line_height_offset = line_height_offset + topmost + bottommost - line.bounds.size.height;
+            line.bounds.size.height = topmost + bottommost;
         } // End of `lines.each` loop.
 
         self.common.position.size.height = 
