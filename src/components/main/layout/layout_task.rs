@@ -7,7 +7,7 @@
 
 use css::matching::MatchMethods;
 use css::select::new_css_select_ctx;
-use layout::aux::{LayoutData, LayoutAuxMethods};
+use layout::aux::LayoutAuxMethods;
 use layout::box_builder::LayoutTreeBuilder;
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder};
@@ -58,9 +58,6 @@ struct LayoutTask {
     font_ctx: @mut FontContext,
     doc_url: Option<Url>,
     screen_size: Option<Size2D<Au>>,
-
-    /// This is used to root reader data.
-    layout_refs: ~[@mut LayoutData],
 
     display_list: Option<Arc<DisplayList<AbstractNode<()>>>>,
 
@@ -123,7 +120,6 @@ impl LayoutTask {
 
             display_list: None,
             
-            layout_refs: ~[],
             css_select_ctx: @mut new_css_select_ctx(),
             profiler_chan: profiler_chan,
         }
@@ -210,7 +206,7 @@ impl LayoutTask {
         //
         // FIXME: This is inefficient. We don't need an entire traversal to do this!
         do profile(time::LayoutAuxInitCategory, self.profiler_chan.clone()) {
-            node.initialize_style_for_subtree(&mut self.layout_refs);
+            node.initialize_style_for_subtree();
         }
 
         // Perform CSS selector matching if necessary.
@@ -328,13 +324,13 @@ impl LayoutTask {
                     };
                     assert!(node.has_layout_data(), "Node has display item but no layout data");
 
-                    let layout_data = node.layout_data();
-                    layout_data.boxes.display_list = Some(display_list.clone());
+                    do node.write_layout_data |layout_data| {
+                        layout_data.boxes.display_list = Some(display_list.clone());
 
-                    if layout_data.boxes.range.is_none() {
-                        debug!("Creating initial range for node");
-                        layout_data.boxes.range = Some(Range::new(i,1)); 
-                    } else {
+                        if layout_data.boxes.range.is_none() {
+                            debug!("Creating initial range for node");
+                            layout_data.boxes.range = Some(Range::new(i,1));
+                        } else {
                             debug!("Appending item to range");
                             unsafe {
                                 let old_node: AbstractNode<()> = transmute(node);
@@ -343,6 +339,7 @@ impl LayoutTask {
                             }
 
                             layout_data.boxes.range.unwrap().extend_by(1);
+                        }
                     }
                 }
 
@@ -376,27 +373,29 @@ impl LayoutTask {
                     transmute(node)
                 };
 
-                let response = match (node.layout_data().boxes.display_list.clone(), node.layout_data().boxes.range) {
-                    (Some(display_list), Some(range)) => {
-                        let mut rect: Option<Rect<Au>> = None;
-                        for i in range.eachi() {
-                            rect = match rect {
-                                Some(acc) => Some(acc.union(&display_list.get().list[i].bounds())),
-                                None => Some(display_list.get().list[i].bounds())
+                let response = do node.read_layout_data |layout_data| {
+                    match (layout_data.boxes.display_list.clone(), layout_data.boxes.range) {
+                        (Some(display_list), Some(range)) => {
+                            let mut rect: Option<Rect<Au>> = None;
+                            for i in range.eachi() {
+                                rect = match rect {
+                                    Some(acc) => Some(acc.union(&display_list.get().list[i].bounds())),
+                                    None => Some(display_list.get().list[i].bounds())
+                                }
+                            }
+
+                            match rect {
+                                None => {
+                                    error!("no boxes for node");
+                                    Err(())
+                                }
+                                Some(rect) => Ok(ContentBoxResponse(rect))
                             }
                         }
-                        
-                        match rect {
-                            None => {
-                                error!("no boxes for node");
-                                Err(())
-                            }
-                            Some(rect) => Ok(ContentBoxResponse(rect))
+                        _ => {
+                            error!("no display list present");
+                            Err(())
                         }
-                    }
-                    _ => {
-                        error!("no display list present");
-                        Err(())
                     }
                 };
 
@@ -408,16 +407,18 @@ impl LayoutTask {
                     transmute(node)
                 };
 
-                let response = match (node.layout_data().boxes.display_list.clone(), node.layout_data().boxes.range) {
-                    (Some(display_list), Some(range)) => {
-                        let mut boxes = ~[];
-                        for i in range.eachi() {
-                            boxes.push(display_list.get().list[i].bounds());
-                        }
+                let response = do node.read_layout_data |layout_data| {
+                    match (layout_data.boxes.display_list.clone(), layout_data.boxes.range) {
+                        (Some(display_list), Some(range)) => {
+                            let mut boxes = ~[];
+                            for i in range.eachi() {
+                                boxes.push(display_list.get().list[i].bounds());
+                            }
 
-                        Ok(ContentBoxesResponse(boxes))
+                            Ok(ContentBoxesResponse(boxes))
+                        }
+                        _ => Err(()),
                     }
-                    _ => Err(()),
                 };
 
                 reply_chan.send(response)
