@@ -665,16 +665,19 @@ impl InlineFlowData {
                 }
             };
 
-            // Update the line's y position before setting the box's y position
-            // since the previous line's height can be modified.
+            // Set the top y position of the current linebox.
+            // `line_height_offset` is updated at the end of the previous loop.
             line.bounds.origin.y = line.bounds.origin.y + line_height_offset;
 
+            // Calculate the distance from baseline to the top of the linebox.
             let mut topmost = Au(0);
+            // Calculate the distance from baseline to the bottom of the linebox.
             let mut bottommost = Au(0);
-            // bottommost of boxes with 'top' value
-            let mut bottommost_of_top = Au(0);
-            // topmost of boxes with 'bottom' value
-            let mut topmost_of_bottom = Au(0);
+
+            // Calculate the biggest height among boxes with 'top' value.
+            let mut biggest_top = Au(0);
+            // Calculate the biggest height among boxes with 'bottom' value.
+            let mut biggest_bottom = Au(0);
 
             for box_i in line.range.eachi() {
                 let cur_box = self.boxes[box_i];
@@ -731,18 +734,22 @@ impl InlineFlowData {
                 let mut top_from_base = top_from_base;
                 let mut bottom_from_base = bottom_from_base;
 
-                // TODO: We should find the top and bottom of the content area of parent box.
-                // Those are used in text-top and text-bottom value of 'vertex-align'.
-                // Assume that top is font_size of parent and bottom is 0.
+                // To calculate text-top and text-bottom value of 'vertex-align',
+                //  we should find the top and bottom of the content area of parent box.
+                // The content area is defined in "http://www.w3.org/TR/CSS2/visudet.html#inline-non-replaced". 
+                // TODO: We should extract em-box info from font size of parent
+                //  and calcuate the distances from baseline to the top and the bottom of parent's content area.
+
+                // It should calculate the distance from baseline to the top of parent's content area.
+                // But, it is assumed now as font size of parent.
                 let mut parent_text_top = Au(0);
+                // It should calculate the distance from baseline to the bottom of parent's content area.
+                // But, it is assumed now as 0.
                 let parent_text_bottom  = Au(0);
                 do cur_box.with_mut_base |base| {
-                    //get parent node
-                    let mut parent = base.node;
-                    match base.node.parent_node() {
-                        None => {},
-                        Some(parent_node) => parent = parent_node
-                    }
+                    // Get parent node
+                    let parent = base.node.parent_node().map_default(base.node, |parent| *parent);
+                    // TODO: When the calculation of font-size style is supported, it should be updated.
                     let font_size = match parent.style().font_size() {
                         CSSFontSizeLength(Px(length)) => length,
                         // todo: this is based on a hard coded font size, should be the parent element's font size
@@ -752,7 +759,10 @@ impl InlineFlowData {
                     parent_text_top = Au::from_frac_px(font_size);
                 }
 
+                // This flag decides whether topmost and bottommost are updated or not.
+                // That is, if the box has top or bottom value, no_update_flag becomes true.
                 let mut no_update_flag = false;
+                // Calculate a relative offset from baseline.
                 let offset = match cur_box.vertical_align() {
                     CSSVerticalAlignBaseline => {
                         -ascent
@@ -789,16 +799,16 @@ impl InlineFlowData {
                         (bottom_from_base - prev_bottom_from_base - ascent)
                     },
                     CSSVerticalAlignTop => {
-                        if bottommost_of_top < (top_from_base + bottom_from_base) {
-                            bottommost_of_top = top_from_base + bottom_from_base;
+                        if biggest_top < (top_from_base + bottom_from_base) {
+                            biggest_top = top_from_base + bottom_from_base;
                         }
                         let offset_top = top_from_base - ascent;
                         no_update_flag = true;
                         offset_top
                     },
                     CSSVerticalAlignBottom => {
-                        if topmost_of_bottom < (top_from_base + bottom_from_base) {
-                            topmost_of_bottom = top_from_base + bottom_from_base;
+                        if biggest_bottom < (top_from_base + bottom_from_base) {
+                            biggest_bottom = top_from_base + bottom_from_base;
                         }
                         let offset_bottom = -(bottom_from_base + ascent);
                         no_update_flag = true;
@@ -819,6 +829,8 @@ impl InlineFlowData {
                     }
                 };
 
+                // If the current box has 'top' or 'bottom' value, no_update_flag is true.
+                // Otherwise, topmost and bottomost are updated.
                 if !no_update_flag && top_from_base > topmost {
                     topmost = top_from_base;
                 }
@@ -831,20 +843,24 @@ impl InlineFlowData {
                 }
             }
 
-            //Offset of boxes with 'bottom' value.
-            topmost_of_bottom = topmost_of_bottom - bottommost;
+            // Calculate the distance from baseline to the top of the biggest box with 'bottom' value.
+            // Then, if necessary, update the topmost.
+            let topmost_of_bottom = biggest_bottom - bottommost;
             if topmost_of_bottom > topmost {
                 topmost = topmost_of_bottom;
             }
 
-            //Offset of boxes with 'top' value.
-            bottommost_of_top = bottommost_of_top - topmost;
+            // Calculate the distance from baseline to the bottom of the biggest box with 'top' value.
+            // Then, if necessary, update the bottommost.
+            let bottommost_of_top = biggest_top - topmost;
             if bottommost_of_top > bottommost {
-                //topmost_of_bottom = topmost_of_bottom - (bottommost_of_top - bottommost);
                 bottommost = bottommost_of_top;
             }
 
+            // Now, the baseline offset from the top of linebox is set as topmost.
             let baseline_offset = topmost;
+
+            // All boxes' y position is updated following the new baseline offset.
             for box_i in line.range.eachi() {
                 let cur_box = self.boxes[box_i];
                 let adjust_offset = match cur_box.vertical_align() {
@@ -863,6 +879,8 @@ impl InlineFlowData {
                     base.position.origin.y = base.position.origin.y + adjust_offset;
                 }
             }
+
+            // This is used to set the top y position of the next linebox in the next loop.
             line_height_offset = line_height_offset + topmost + bottommost - line.bounds.size.height;
             line.bounds.size.height = topmost + bottommost;
         } // End of `lines.each` loop.
