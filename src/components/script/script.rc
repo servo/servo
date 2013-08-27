@@ -48,14 +48,23 @@ pub mod dom {
             pub mod HTMLBaseElementBinding;
             pub mod HTMLBodyElementBinding;
             pub mod HTMLBRElementBinding;
+            pub mod HTMLButtonElementBinding;
             pub mod HTMLCanvasElementBinding;
             pub mod HTMLCollectionBinding;
             pub mod HTMLDataElementBinding;
+            pub mod HTMLDataListElementBinding;
+            pub mod HTMLDirectoryElementBinding;
             pub mod HTMLDListElementBinding;
             pub mod HTMLDivElementBinding;
             pub mod HTMLDocumentBinding;
             pub mod HTMLElementBinding;
+            pub mod HTMLEmbedElementBinding;
+            pub mod HTMLFieldSetElementBinding;
+            pub mod HTMLFontElementBinding;
+            pub mod HTMLFrameElementBinding;
+            pub mod HTMLFrameSetElementBinding;
             pub mod HTMLHeadElementBinding;
+            pub mod HTMLHeadingElementBinding;
             pub mod HTMLHRElementBinding;
             pub mod HTMLHtmlElementBinding;
             pub mod HTMLIFrameElementBinding;
@@ -63,6 +72,7 @@ pub mod dom {
             pub mod HTMLInputElementBinding;
             pub mod HTMLLIElementBinding;
             pub mod HTMLLinkElementBinding;
+            pub mod HTMLMapElementBinding;
             pub mod HTMLMetaElementBinding;
             pub mod HTMLOListElementBinding;
             pub mod HTMLParagraphElementBinding;
@@ -88,6 +98,7 @@ pub mod dom {
             pub mod RegisterBindings;
             pub mod TextBinding;
             pub mod UIEventBinding;
+            pub mod ValidityStateBinding;
             pub mod WindowBinding;
             pub mod WindowProxyBinding;
         }
@@ -108,18 +119,28 @@ pub mod dom {
     pub mod htmlbaseelement;
     pub mod htmlbodyelement;
     pub mod htmlbrelement;
+    pub mod htmlbuttonelement;
     pub mod htmlcanvaselement;
     pub mod htmlcollection;
     pub mod htmldataelement;
+    pub mod htmldatalistelement;
+    pub mod htmldirectoryelement;
     pub mod htmldlistelement;
     pub mod htmldocument;
     pub mod htmlelement;
+    pub mod htmlembedelement;
+    pub mod htmlfieldsetelement;
+    pub mod htmlfontelement;
+    pub mod htmlframeelement;
+    pub mod htmlframesetelement;
+    pub mod htmlheadingelement;
     pub mod htmlhrelement;
     pub mod htmliframeelement;
     pub mod htmlimageelement;
     pub mod htmlinputelement;
     pub mod htmllielement;
     pub mod htmllinkelement;
+    pub mod htmlmapelement;
     pub mod htmlmetaelement;
     pub mod htmlolistelement;
     pub mod htmlprogresselement;
@@ -140,6 +161,7 @@ pub mod dom {
     pub mod mouseevent;
     pub mod node;
     pub mod uievent;
+    pub mod validitystate;
     pub mod window;
     pub mod windowproxy;
 }

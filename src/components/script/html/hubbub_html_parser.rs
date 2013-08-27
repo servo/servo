@@ -5,13 +5,15 @@
 use dom::element::{HTMLElementTypeId,
                    HTMLAnchorElementTypeId, HTMLAppletElementTypeId, 
                    HTMLAreaElementTypeId,  HTMLBaseElementTypeId, HTMLBodyElementTypeId,
-                   HTMLBRElementTypeId, HTMLCanvasElementTypeId, HTMLDataElementTypeId,
-                   HTMLDivElementTypeId, HTMLDListElementTypeId,
-                   HTMLFontElementTypeId, HTMLFormElementTypeId, HTMLHRElementTypeId,
-                   HTMLHeadElementTypeId, HTMLHtmlElementTypeId,
-                   HTMLImageElementTypeId, HTMLIframeElementTypeId, HTMLInputElementTypeId,
-                   HTMLLinkElementTypeId, HTMLLIElementTypeId,
-                   HTMLMetaElementTypeId, HTMLOListElementTypeId, HTMLOptionElementTypeId,
+                   HTMLBRElementTypeId, HTMLButtonElementTypeId, HTMLCanvasElementTypeId,
+                   HTMLDataElementTypeId, HTMLDataListElementTypeId, HTMLDivElementTypeId,
+                   HTMLDirectoryElementTypeId, HTMLDListElementTypeId, HTMLEmbedElementTypeId,
+                   HTMLFieldSetElementTypeId, HTMLFontElementTypeId, HTMLFormElementTypeId,
+                   HTMLFrameElementTypeId, HTMLFrameSetElementTypeId, HTMLHRElementTypeId,
+                   HTMLHeadElementTypeId, HTMLHtmlElementTypeId, HTMLImageElementTypeId,
+                   HTMLIframeElementTypeId, HTMLInputElementTypeId, HTMLLinkElementTypeId,
+                   HTMLLIElementTypeId, HTMLMapElementTypeId, HTMLMetaElementTypeId,
+                   HTMLOListElementTypeId, HTMLOptionElementTypeId,
                    HTMLParagraphElementTypeId, HTMLProgressElementTypeId,
                    HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
                    HTMLSelectElementTypeId, HTMLSmallElementTypeId, HTMLSourceElementTypeId,
@@ -21,28 +23,38 @@ use dom::element::{HTMLElementTypeId,
                    HTMLTableRowElementTypeId, HTMLTextAreaElementTypeId,
                    HTMLTimeElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId,
                    UnknownElementTypeId};
-use dom::element::{HTMLDivElement, HTMLFontElement, HTMLFormElement,
-                   HTMLHeadElement, HTMLHeadingElement, HTMLHtmlElement,
+use dom::element::{HTMLDivElement, HTMLFormElement,
+                   HTMLHeadElement, HTMLHtmlElement,
                    HTMLOptionElement, HTMLParagraphElement,
                    HTMLSelectElement, HTMLSmallElement,
                    HTMLSpanElement};
-use dom::element::{HTMLHeadingElementTypeId, Heading1, Heading2, Heading3, Heading4, Heading5,
-                   Heading6};
+use dom::element::{HTMLHeadingElementTypeId};
 use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlappletelement::HTMLAppletElement;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmldataelement::HTMLDataElement;
+use dom::htmldatalistelement::HTMLDataListElement;
+use dom::htmldirectoryelement::HTMLDirectoryElement;
 use dom::htmldlistelement::HTMLDListElement;
+use dom::htmlembedelement::HTMLEmbedElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlfontelement::HTMLFontElement;
+use dom::htmlframeelement::HTMLFrameElement;
+use dom::htmlframesetelement::HTMLFrameSetElement;
+use dom::htmlheadingelement::{HTMLHeadingElement, Heading1, Heading2, Heading3, Heading4,
+                              Heading5, Heading6};
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmliframeelement::{IFrameSize, HTMLIFrameElement};
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmllielement::HTMLLIElement;
 use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlmapelement::HTMLMapElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlprogresselement::HTMLProgressElement;
@@ -246,18 +258,26 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "base",    HTMLBaseElementTypeId, HTMLBaseElement, []);
     handle_element!(cx, tag, "br",      HTMLBRElementTypeId, HTMLBRElement, []);
     handle_element!(cx, tag, "body",    HTMLBodyElementTypeId, HTMLBodyElement, []);
+    handle_element!(cx, tag, "button",  HTMLButtonElementTypeId, HTMLButtonElement, []);
     handle_element!(cx, tag, "canvas",  HTMLCanvasElementTypeId, HTMLCanvasElement, []);
     handle_element!(cx, tag, "data",    HTMLDataElementTypeId, HTMLDataElement, []);
+    handle_element!(cx, tag, "datalist",HTMLDataListElementTypeId, HTMLDataListElement, []);
+    handle_element!(cx, tag, "directory",HTMLDirectoryElementTypeId, HTMLDirectoryElement, []);
     handle_element!(cx, tag, "div",     HTMLDivElementTypeId, HTMLDivElement, []);
     handle_element!(cx, tag, "dl",      HTMLDListElementTypeId, HTMLDListElement, []);
+    handle_element!(cx, tag, "embed",   HTMLEmbedElementTypeId, HTMLEmbedElement, []);
+    handle_element!(cx, tag, "fieldset",HTMLFieldSetElementTypeId, HTMLFieldSetElement, []);
     handle_element!(cx, tag, "font",    HTMLFontElementTypeId, HTMLFontElement, []);
     handle_element!(cx, tag, "form",    HTMLFormElementTypeId, HTMLFormElement, []);
+    handle_element!(cx, tag, "frame",   HTMLFrameElementTypeId, HTMLFrameElement, []);
+    handle_element!(cx, tag, "frameset",HTMLFrameSetElementTypeId, HTMLFrameSetElement, []);
     handle_element!(cx, tag, "hr",      HTMLHRElementTypeId, HTMLHRElement, []);
     handle_element!(cx, tag, "head",    HTMLHeadElementTypeId, HTMLHeadElement, []);
     handle_element!(cx, tag, "html",    HTMLHtmlElementTypeId, HTMLHtmlElement, []);
     handle_element!(cx, tag, "input",   HTMLInputElementTypeId, HTMLInputElement, []);
     handle_element!(cx, tag, "link",    HTMLLinkElementTypeId, HTMLLinkElement, []);
     handle_element!(cx, tag, "li",      HTMLLIElementTypeId, HTMLLIElement, []);
+    handle_element!(cx, tag, "map",     HTMLMapElementTypeId, HTMLMapElement, []);
     handle_element!(cx, tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
     handle_element!(cx, tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
     handle_element!(cx, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);

@@ -9,14 +9,16 @@ use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::element::{HTMLElementTypeId,
                    HTMLAnchorElementTypeId, HTMLAppletElementTypeId,
                    HTMLAreaElementTypeId, HTMLBaseElementTypeId,
-                   HTMLBodyElementTypeId, HTMLBRElementTypeId,
-                   HTMLCanvasElementTypeId, HTMLDataElementTypeId,
-                   HTMLDivElementTypeId, HTMLHeadElementTypeId, HTMLHRElementTypeId,
-                   HTMLHtmlElementTypeId, HTMLIframeElementTypeId, HTMLImageElementTypeId,
-                   HTMLInputElementTypeId, HTMLLIElementTypeId, HTMLLinkElementTypeId,
-                   HTMLMetaElementTypeId, HTMLOListElementTypeId,
-                   HTMLParagraphElementTypeId, HTMLProgressElementTypeId,
-                   HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
+                   HTMLBodyElementTypeId, HTMLBRElementTypeId, HTMLButtonElementTypeId,
+                   HTMLCanvasElementTypeId, HTMLDataElementTypeId, HTMLDataListElementTypeId,
+                   HTMLDirectoryElementTypeId, HTMLDivElementTypeId, HTMLEmbedElementTypeId,
+                   HTMLFieldSetElementTypeId, HTMLFontElementTypeId, HTMLFrameElementTypeId,
+                   HTMLFrameSetElementTypeId, HTMLHeadElementTypeId, HTMLHeadingElementTypeId,
+                   HTMLHRElementTypeId, HTMLHtmlElementTypeId, HTMLIframeElementTypeId,
+                   HTMLImageElementTypeId, HTMLInputElementTypeId, HTMLLIElementTypeId,
+                   HTMLLinkElementTypeId, HTMLMapElementTypeId, HTMLMetaElementTypeId,
+                   HTMLOListElementTypeId, HTMLParagraphElementTypeId,
+                   HTMLProgressElementTypeId, HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
                    HTMLSpanElementTypeId, HTMLSourceElementTypeId,
                    HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
                    HTMLTableElementTypeId, HTMLTableCaptionElementTypeId, HTMLTableCellElementTypeId,
@@ -30,16 +32,26 @@ use dom::htmlappletelement::HTMLAppletElement;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmldataelement::HTMLDataElement;
+use dom::htmldatalistelement::HTMLDataListElement;
+use dom::htmldirectoryelement::HTMLDirectoryElement;
 use dom::htmldlistelement::HTMLDListElement;
+use dom::htmlembedelement::HTMLEmbedElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlfontelement::HTMLFontElement;
+use dom::htmlframeelement::HTMLFrameElement;
+use dom::htmlframesetelement::HTMLFrameSetElement;
+use dom::htmlheadingelement::HTMLHeadingElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmllielement::HTMLLIElement;
 use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlmapelement::HTMLMapElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlolistelement::HTMLOListElement;
 use dom::htmlprogresselement::HTMLProgressElement;
@@ -128,11 +140,20 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLBaseElementTypeId) => generate_element!(HTMLBaseElement),
         ElementNodeTypeId(HTMLBodyElementTypeId) => generate_element!(HTMLBodyElement),
         ElementNodeTypeId(HTMLBRElementTypeId) => generate_element!(HTMLBRElement),
+        ElementNodeTypeId(HTMLButtonElementTypeId) => generate_element!(HTMLButtonElement),
         ElementNodeTypeId(HTMLCanvasElementTypeId) => generate_element!(HTMLCanvasElement),
         ElementNodeTypeId(HTMLDataElementTypeId) => generate_element!(HTMLDataElement),
+        ElementNodeTypeId(HTMLDataListElementTypeId) => generate_element!(HTMLDataListElement),
+        ElementNodeTypeId(HTMLDirectoryElementTypeId) => generate_element!(HTMLDirectoryElement),
         ElementNodeTypeId(HTMLDListElementTypeId) => generate_element!(HTMLDListElement),
         ElementNodeTypeId(HTMLDivElementTypeId) => generate_element!(HTMLDivElement),
+        ElementNodeTypeId(HTMLEmbedElementTypeId) => generate_element!(HTMLEmbedElement),
+        ElementNodeTypeId(HTMLFieldSetElementTypeId) => generate_element!(HTMLFieldSetElement),
+        ElementNodeTypeId(HTMLFontElementTypeId) => generate_element!(HTMLFontElement),
+        ElementNodeTypeId(HTMLFrameElementTypeId) => generate_element!(HTMLFrameElement),
+        ElementNodeTypeId(HTMLFrameSetElementTypeId) => generate_element!(HTMLFrameSetElement),
         ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
+        ElementNodeTypeId(HTMLHeadingElementTypeId) => generate_element!(HTMLHeadingElement),
         ElementNodeTypeId(HTMLHRElementTypeId) => generate_element!(HTMLHRElement),
         ElementNodeTypeId(HTMLHtmlElementTypeId) => generate_element!(HTMLHtmlElement),
         ElementNodeTypeId(HTMLIframeElementTypeId) => generate_element!(HTMLIFrameElement),
@@ -140,6 +161,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLInputElementTypeId) => generate_element!(HTMLInputElement),
         ElementNodeTypeId(HTMLLIElementTypeId) => generate_element!(HTMLLIElement),
         ElementNodeTypeId(HTMLLinkElementTypeId) => generate_element!(HTMLLinkElement),
+        ElementNodeTypeId(HTMLMapElementTypeId) => generate_element!(HTMLMapElement),
         ElementNodeTypeId(HTMLMetaElementTypeId) => generate_element!(HTMLMetaElement),
         ElementNodeTypeId(HTMLOListElementTypeId) => generate_element!(HTMLOListElement),
         ElementNodeTypeId(HTMLParagraphElementTypeId) => generate_element!(HTMLParagraphElement),
