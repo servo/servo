@@ -80,6 +80,12 @@ def main():
     # Generate the common code.
     generate_file(config, 'RegisterBindings', 'declare+define')
 
+    # Generate the type list.
+    generate_file(config, 'InterfaceTypes', 'declare+define')
+
+    # Generate the module declarations.
+    generate_file(config, 'BindingDeclarations', 'declare+define')
+
     #XXXjdm No union support yet
     #generate_file(config, 'UnionTypes', 'declare')
     #generate_file(config, 'UnionConversions', 'declare')
