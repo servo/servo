@@ -4,7 +4,6 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
-use dom::bindings::codegen::TextBinding;
 use dom::bindings::node;
 use dom::bindings::utils::{WrapperCache, DOMString, null_string, ErrorResult};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box};
@@ -15,7 +14,7 @@ use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeEle
 use dom::element::{HTMLStyleElementTypeId};
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmliframeelement::HTMLIFrameElement;
-use dom::window::Window;
+use dom::text::Text;
 
 use std::cast;
 use std::cast::transmute;
@@ -140,33 +139,6 @@ impl Comment {
         Comment {
             parent: CharacterData::new(CommentNodeTypeId, text)
         }
-    }
-}
-
-/// An HTML text node.
-pub struct Text {
-    parent: CharacterData,
-}
-
-impl Text {
-    /// Creates a new HTML text node.
-    pub fn new(text: ~str) -> Text {
-        Text {
-            parent: CharacterData::new(TextNodeTypeId, text)
-        }
-    }
-
-    pub fn Constructor(owner: @mut Window, text: &DOMString, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
-        let cx = unsafe {(*owner.page).js_info.get_ref().js_compartment.cx.ptr};
-        unsafe { Node::as_abstract_node(cx, @Text::new(text.to_str())) }
-    }
-
-    pub fn SplitText(&self, _offset: u32, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
-        fail!("unimplemented")
-    }
-
-    pub fn GetWholeText(&self, _rv: &mut ErrorResult) -> DOMString {
-        null_string
     }
 }
 
@@ -707,19 +679,3 @@ impl BindingObject for Node<ScriptView> {
     }
 }
 
-impl CacheableWrapper for Text {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        self.parent.get_wrappercache()
-    }
-
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        TextBinding::Wrap(cx, scope, self, &mut unused)
-    }
-}
-
-impl BindingObject for Text {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
-        self.parent.GetParentObject(cx)
-    }
-}

@@ -6,8 +6,9 @@ use dom::bindings::element;
 use dom::bindings::node::unwrap;
 use dom::bindings::utils;
 use dom::bindings::utils::{DOM_OBJECT_SLOT, CacheableWrapper};
-use dom::node::{AbstractNode, Text, Comment, Doctype, TextNodeTypeId, CommentNodeTypeId};
+use dom::node::{AbstractNode, Comment, Doctype, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId, ScriptView};
+use dom::text::Text;
 
 use js::jsapi::{JSFreeOp, JSObject, JSContext};
 use js::jsapi::{JS_SetReservedSlot};

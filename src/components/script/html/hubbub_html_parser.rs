@@ -23,59 +23,15 @@ use dom::element::{HTMLElementTypeId,
                    HTMLTableRowElementTypeId, HTMLTextAreaElementTypeId,
                    HTMLTimeElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId,
                    UnknownElementTypeId};
-use dom::element::{HTMLDivElement, HTMLFormElement,
-                   HTMLHeadElement, HTMLHtmlElement,
-                   HTMLOptionElement, HTMLParagraphElement,
-                   HTMLSelectElement, HTMLSmallElement,
-                   HTMLSpanElement};
+use dom::element::{HTMLOptionElement, HTMLSelectElement, HTMLSmallElement};
 use dom::element::{HTMLHeadingElementTypeId};
-use dom::htmlbrelement::HTMLBRElement;
-use dom::htmlanchorelement::HTMLAnchorElement;
-use dom::htmlappletelement::HTMLAppletElement;
-use dom::htmlareaelement::HTMLAreaElement;
-use dom::htmlbaseelement::HTMLBaseElement;
-use dom::htmlbodyelement::HTMLBodyElement;
-use dom::htmlbuttonelement::HTMLButtonElement;
-use dom::htmlcanvaselement::HTMLCanvasElement;
-use dom::htmldataelement::HTMLDataElement;
-use dom::htmldatalistelement::HTMLDataListElement;
-use dom::htmldirectoryelement::HTMLDirectoryElement;
-use dom::htmldlistelement::HTMLDListElement;
-use dom::htmlembedelement::HTMLEmbedElement;
-use dom::htmlfieldsetelement::HTMLFieldSetElement;
-use dom::htmlfontelement::HTMLFontElement;
-use dom::htmlframeelement::HTMLFrameElement;
-use dom::htmlframesetelement::HTMLFrameSetElement;
-use dom::htmlheadingelement::{HTMLHeadingElement, Heading1, Heading2, Heading3, Heading4,
-                              Heading5, Heading6};
-use dom::htmlhrelement::HTMLHRElement;
-use dom::htmliframeelement::{IFrameSize, HTMLIFrameElement};
-use dom::htmlimageelement::HTMLImageElement;
-use dom::htmlinputelement::HTMLInputElement;
-use dom::htmllielement::HTMLLIElement;
-use dom::htmllinkelement::HTMLLinkElement;
-use dom::htmlmapelement::HTMLMapElement;
-use dom::htmlmetaelement::HTMLMetaElement;
-use dom::htmlolistelement::HTMLOListElement;
-use dom::htmlprogresselement::HTMLProgressElement;
-use dom::htmlquoteelement::HTMLQuoteElement;
-use dom::htmlscriptelement::HTMLScriptElement;
-use dom::htmlsourceelement::HTMLSourceElement;
-use dom::htmlstyleelement::HTMLStyleElement;
-use dom::htmltableelement::HTMLTableElement;
-use dom::htmltablecaptionelement::HTMLTableCaptionElement;
-use dom::htmltablecellelement::HTMLTableCellElement;
-use dom::htmltablecolelement::HTMLTableColElement;
-use dom::htmltablerowelement::HTMLTableRowElement;
-use dom::htmltablesectionelement::HTMLTableSectionElement;
-use dom::htmltextareaelement::HTMLTextAreaElement;
-use dom::htmltimeelement::HTMLTimeElement;
-use dom::htmltitleelement::HTMLTitleElement;
-use dom::htmlulistelement::HTMLUListElement;
+use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
+use dom::htmliframeelement::IFrameSize;
+use dom::htmlformelement::HTMLFormElement;
+use dom::types::*;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Comment, Doctype, ElementNodeTypeId, Node, ScriptView};
-use dom::node::{Text};
 use dom::bindings::utils::str;
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use js::jsapi::JSContext;

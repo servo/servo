@@ -4612,75 +4612,15 @@ class CGBindingRoot(CGThing):
                           'js::jsapi::*',
                           'js::jsfriendapi::bindgen::*',
                           'js::glue::*',
-                          'dom::characterdata::CharacterData', #XXXjdm
-                          'dom::node::{AbstractNode, Node, Text}', #XXXjdm
-                          'dom::document::{Document, AbstractDocument}', #XXXjdm
-                          'dom::element::{Element, HTMLHeadElement, HTMLHtmlElement}', #XXXjdm
-                          'dom::element::{HTMLDivElement, HTMLSpanElement, HTMLParagraphElement}', #XXXjdm
-                          'dom::htmlanchorelement::HTMLAnchorElement', #XXXjdm
-                          'dom::htmlappletelement::HTMLAppletElement', #XXXjune0cho
-                          'dom::htmlareaelement::HTMLAreaElement', #XXXjune0cho
-                          'dom::htmlbaseelement::HTMLBaseElement', #XXXjune0cho
-                          'dom::htmlbodyelement::HTMLBodyElement', #XXXjune0cho
-                          'dom::htmlbrelement::HTMLBRElement', #XXXrecrack
-                          'dom::htmlbuttonelement::HTMLButtonElement', #XXXjdm
-                          'dom::htmlcanvaselement::HTMLCanvasElement',
-                          'dom::htmldataelement::HTMLDataElement', #XXXjune0cho
-                          'dom::htmldatalistelement::HTMLDataListElement',
-                          'dom::htmldlistelement::HTMLDListElement',
-                          'dom::htmldirectoryelement::HTMLDirectoryElement',
-                          'dom::htmlelement::HTMLElement', #XXXjdm
-                          'dom::htmlembedelement::HTMLEmbedElement', #XXXjdm
-                          'dom::htmlfieldsetelement::HTMLFieldSetElement', #XXXjdm
-                          'dom::htmlfontelement::HTMLFontElement', #XXXjdm
-                          'dom::htmlframeelement::HTMLFrameElement', #XXXjdm
-                          'dom::htmlframesetelement::HTMLFrameSetElement', #XXXjdm
-                          'dom::htmldocument::HTMLDocument', #XXXjdm
-                          'dom::htmlheadingelement::HTMLHeadingElement',
-                          'dom::htmlhrelement::HTMLHRElement',
-                          'dom::htmliframeelement::HTMLIFrameElement', #XXXjdm
-                          'dom::htmlimageelement::HTMLImageElement', #XXXjdm
-                          'dom::htmlinputelement::HTMLInputElement',
-                          'dom::htmllielement::HTMLLIElement',
-                          'dom::htmllinkelement::HTMLLinkElement', #XXXrecrack
-                          'dom::htmlmapelement::HTMLMapElement',
-                          'dom::htmlmetaelement::HTMLMetaElement',
-                          'dom::htmlolistelement::HTMLOListElement',
-                          'dom::htmlprogresselement::HTMLProgressElement',
-                          'dom::htmlquoteelement::HTMLQuoteElement',
-                          'dom::htmlscriptelement::HTMLScriptElement',
-                          'dom::htmlsourceelement::HTMLSourceElement',
-                          'dom::htmlstyleelement::HTMLStyleElement',
-                          'dom::htmltablecaptionelement::HTMLTableCaptionElement',
-                          'dom::htmltableelement::HTMLTableElement',
-                          'dom::htmltablecellelement::HTMLTableCellElement',
-                          'dom::htmltablecolelement::HTMLTableColElement',
-                          'dom::htmltablerowelement::HTMLTableRowElement',
-                          'dom::htmltablesectionelement::HTMLTableSectionElement',
-                          'dom::htmltextareaelement::HTMLTextAreaElement',
-                          'dom::htmltimeelement::HTMLTimeElement',
-                          'dom::htmltitleelement::HTMLTitleElement', #XXXyusukesuzuki
-                          'dom::htmlulistelement::HTMLUListElement',
+                          'dom::types::*',
                           'dom::bindings::utils::*',
                           'dom::bindings::conversions::*',
-                          'dom::blob::*', #XXXjdm
-                          'dom::clientrect::*', #XXXjdm
-                          'dom::clientrectlist::*', #XXXjdm
-                          'dom::htmlcollection::*', #XXXjdm
-                          'dom::bindings::proxyhandler::*',
-                          'dom::domparser::*', #XXXjdm
-                          'dom::event::*', #XXXjdm
-                          'dom::eventtarget::*', #XXXjdm
-                          'dom::formdata::*', #XXXjdm
-                          'dom::mouseevent::*', #XXXjdm
-                          'dom::uievent::*', #XXXjdm
-                          'dom::validitystate::*', #XXXjdm
-                          'dom::windowproxy::*', #XXXjdm
-                          'dom::window::Window', #XXXjdm
                           'dom::bindings::codegen::*', #XXXjdm
                           'script_task::{JSPageInfo, page_from_context}',
                           'dom::bindings::utils::EnumEntry',
-                          'dom::node::ScriptView',
+                          'dom::bindings::proxyhandler::*',
+                          'dom::document::AbstractDocument',
+                          'dom::node::{AbstractNode, ScriptView}',
                           'servo_util::vec::zip_copies',
                           'std::cast',
                           'std::libc',
@@ -4782,3 +4722,18 @@ class GlobalGenRoots():
         # Done.
         return curr
 
+    @staticmethod
+    def InterfaceTypes(config):
+
+        descriptors = [d.name for d in config.getDescriptors(register=True)]
+        curr = CGList([CGGeneric(declare="pub use dom::%s::%s;\n" % (name.lower(), name)) for name in descriptors])
+        curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
+        return curr
+
+    @staticmethod
+    def BindingDeclarations(config):
+
+        descriptors = [d.name for d in config.getDescriptors(register=True)]
+        curr = CGList([CGGeneric(declare="pub mod %sBinding;\n" % name) for name in descriptors])
+        curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
+        return curr
