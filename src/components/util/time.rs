@@ -80,9 +80,8 @@ impl ProfilerCategory {
     }
 
     // enumeration of all ProfilerCategory types
-    // TODO(tkuehn): is there a better way to ensure proper order of categories?
     fn empty_buckets() -> ProfilerBuckets {
-        let buckets = [
+        [
             ProfilerBucket::new(CompositingCategory),
             ProfilerBucket::new(LayoutQueryCategory),
             ProfilerBucket::new(LayoutPerformCategory),
@@ -96,19 +95,7 @@ impl ProfilerCategory {
             ProfilerBucket::new(RenderingDrawingCategory),
             ProfilerBucket::new(RenderingPrepBuffCategory),
             ProfilerBucket::new(RenderingCategory),
-        ];
-
-        ProfilerCategory::check_order(&buckets);
-        buckets
-    }
-
-    // ensure that the order of the buckets matches the order of the enum categories
-    fn check_order(vec: &ProfilerBuckets) {
-        for (i, bucket) in vec.iter().enumerate() {
-            if bucket.category as uint != i {
-                fail!("Enum category does not match bucket index. This is a bug.");
-            }
-        }
+        ]
     }
 
     // some categories are subcategories of LayoutPerformCategory
@@ -207,4 +194,14 @@ pub fn time<T>(msg: &str, callback: &fn() -> T) -> T{
     return val;
 }
 
-
+#[cfg(test)]
+mod test {
+    // ensure that the order of the buckets matches the order of the enum categories
+    #[test]
+    fn check_order() {
+        let buckets = ProfilerCategory::empty_buckets();
+        for (i, bucket) in buckets.iter().enumerate() {
+            assert!(bucket.category as uint == i);
+        }
+    }
+}
