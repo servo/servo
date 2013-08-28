@@ -41,7 +41,7 @@ pub enum ProfilerCategory {
     RenderingDrawingCategory,
     RenderingPrepBuffCategory,
     RenderingCategory,
-    // hackish but helps prevent errors when adding new categories
+    // FIXME(rust#8803): workaround for lack of CTFE function on enum types to return length
     NumBuckets,
 }
 struct ProfilerBucket {
@@ -56,7 +56,7 @@ impl ProfilerBucket {
         }
     }
 }
-// FIXME(rust#5873) this should be initialized by a NumBuckets cast,
+// FIXME(rust#5873) this should be initialized by a NumBuckets cast
 type ProfilerBuckets = [ProfilerBucket, ..13];
 
 pub enum ProfilerMsg {
