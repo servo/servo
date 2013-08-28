@@ -85,6 +85,7 @@ use js::{JSPROP_ENUMERATE, JSPROP_SHARED, JSVAL_NULL};
 use js::{JS_THIS_OBJECT, JSPROP_NATIVE_ACCESSORS};
 use servo_util::tree::TreeNodeRef;
 
+#[fixed_stack_segment]
 pub fn init(compartment: @mut Compartment) {
     let obj = utils::define_empty_prototype(~"Node", None, compartment);
 
@@ -93,29 +94,29 @@ pub fn init(compartment: @mut Compartment) {
          name: compartment.add_name(~"firstChild"),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: JSPropertyOpWrapper {op: getFirstChild, info: null()},
-         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
+         getter: JSPropertyOpWrapper {op: Some(getFirstChild), info: null()},
+         setter: JSStrictPropertyOpWrapper {op: None, info: null()}},
 
         JSPropertySpec {
          name: compartment.add_name(~"nextSibling"),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: JSPropertyOpWrapper {op: getNextSibling, info: null()},
-         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
+         getter: JSPropertyOpWrapper {op: Some(getNextSibling), info: null()},
+         setter: JSStrictPropertyOpWrapper {op: None, info: null()}},
 
         JSPropertySpec {
          name: compartment.add_name(~"nodeType"),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: JSPropertyOpWrapper {op: getNodeType, info: null()},
-         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
+         getter: JSPropertyOpWrapper {op: Some(getNodeType), info: null()},
+         setter: JSStrictPropertyOpWrapper {op: None, info: null()}},
         
         JSPropertySpec {
          name: null(),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: JSPropertyOpWrapper {op: null(), info: null()},
-         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
+         getter: JSPropertyOpWrapper {op: None, info: null()},
+         setter: JSStrictPropertyOpWrapper {op: None, info: null()}}];
     compartment.global_props.push(attrs);
     do attrs.as_imm_buf |specs, _len| {
         unsafe {

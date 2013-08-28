@@ -368,6 +368,7 @@ pub struct ScriptTask {
 }
 
 /// Returns the relevant page from the associated JS Context.
+#[fixed_stack_segment]
 pub fn page_from_context(js_context: *JSContext) -> *mut Page {
     unsafe {
         JS_GetContextPrivate(js_context) as *mut Page
@@ -503,6 +504,7 @@ impl ScriptTask {
     }
 
     /// Handles a timer that fired.
+    #[fixed_stack_segment]
     fn handle_fire_timer_msg(&mut self, id: PipelineId, timer_data: ~TimerData) {
         let page = self.page_tree.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.").page;

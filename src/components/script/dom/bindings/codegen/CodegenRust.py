@@ -1947,8 +1947,8 @@ class MethodDefiner(PropertyDefiner):
         decls = ''.join([stringDecl(m) for m in array])
         return decls + self.generatePrefableArray(
             array, name,
-            '  JSFunctionSpec {name: &%s_name as *u8 as *libc::c_char, call: JSNativeWrapper {op: %s, info: %s}, nargs: %s, flags: %s as u16, selfHostedName: 0 as *libc::c_char }',
-            '  JSFunctionSpec {name: 0 as *libc::c_char, call: JSNativeWrapper {op: 0 as *u8, info: 0 as *JSJitInfo}, nargs: 0, flags: 0, selfHostedName: 0 as *libc::c_char }',
+            '  JSFunctionSpec {name: &%s_name as *u8 as *libc::c_char, call: JSNativeWrapper {op: Some(%s), info: %s}, nargs: %s, flags: %s as u16, selfHostedName: 0 as *libc::c_char }',
+            '  JSFunctionSpec {name: 0 as *libc::c_char, call: JSNativeWrapper {op: None, info: 0 as *JSJitInfo}, nargs: 0, flags: 0, selfHostedName: 0 as *libc::c_char }',
             'JSFunctionSpec',
             pref, specData, doIdArrays)
 
@@ -1969,16 +1969,16 @@ class AttrDefiner(PropertyDefiner):
         def getter(attr):
             native = ("genericLenientGetter" if attr.hasLenientThis()
                       else "genericGetter")
-            return ("JSPropertyOpWrapper {op: %(native)s, info: &%(name)s_getterinfo as *JSJitInfo}"
+            return ("JSPropertyOpWrapper {op: Some(%(native)s), info: &%(name)s_getterinfo as *JSJitInfo}"
                     % {"name" : attr.identifier.name,
                        "native" : native})
 
         def setter(attr):
             if attr.readonly:
-                return "JSStrictPropertyOpWrapper {op: 0 as *u8, info: 0 as *JSJitInfo}"
+                return "JSStrictPropertyOpWrapper {op: None, info: 0 as *JSJitInfo}"
             native = ("genericLenientSetter" if attr.hasLenientThis()
                       else "genericSetter")
-            return ("JSStrictPropertyOpWrapper {op: %(native)s, info: &%(name)s_setterinfo as *JSJitInfo}"
+            return ("JSStrictPropertyOpWrapper {op: Some(%(native)s), info: &%(name)s_setterinfo as *JSJitInfo}"
                     % {"name" : attr.identifier.name,
                        "native" : native})
 
@@ -1996,7 +1996,7 @@ class AttrDefiner(PropertyDefiner):
         return decls + self.generatePrefableArray(
             array, name,
             '  JSPropertySpec { name: &%s_name as *u8 as *libc::c_char, tinyid: 0, flags: ((%s) & 0xFF) as u8, getter: %s, setter: %s }',
-            '  JSPropertySpec { name: 0 as *libc::c_char, tinyid: 0, flags: 0, getter: JSPropertyOpWrapper {op: 0 as *u8, info: 0 as *JSJitInfo}, setter: JSStrictPropertyOpWrapper {op: 0 as *u8, info: 0 as *JSJitInfo} }',
+            '  JSPropertySpec { name: 0 as *libc::c_char, tinyid: 0, flags: 0, getter: JSPropertyOpWrapper {op: None, info: 0 as *JSJitInfo}, setter: JSStrictPropertyOpWrapper {op: None, info: 0 as *JSJitInfo} }',
             'JSPropertySpec',
             PropertyDefiner.getControllingPref, specData, doIdArrays)
 
@@ -2201,7 +2201,7 @@ class CGDOMJSClass(CGThing):
         #return "extern DOMJSClass Class;\n"
         return ""
     def define(self):
-        traceHook = TRACE_HOOK_NAME if self.descriptor.customTrace else '0 as *u8'
+        traceHook = "Some(%s)" % TRACE_HOOK_NAME if self.descriptor.customTrace else 'None'
         return """
 static Class_name: [u8, ..%i] = %s;
 static Class: DOMJSClass = DOMJSClass {
@@ -2214,11 +2214,11 @@ static Class: DOMJSClass = DOMJSClass {
     enumerate: crust::JS_EnumerateStub,
     resolve: crust::JS_ResolveStub,
     convert: crust::JS_ConvertStub,
-    finalize: %s, /* finalize */
-    checkAccess: 0 as *u8,                  /* checkAccess */
-    call: 0 as *u8,                  /* call */
-    hasInstance: 0 as *u8,                  /* hasInstance */
-    construct: 0 as *u8,                  /* construct */
+    finalize: Some(%s), /* finalize */
+    checkAccess: None,                  /* checkAccess */
+    call: None,                  /* call */
+    hasInstance: None,                  /* hasInstance */
+    construct: None,                  /* construct */
     trace: %s, /* trace */
     reserved: (0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 05
                     0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 10
@@ -2261,12 +2261,12 @@ static PrototypeClass: JSClass = JSClass {
   enumerate: crust::JS_EnumerateStub,
   resolve: crust::JS_ResolveStub,
   convert: crust::JS_ConvertStub,
-  finalize: 0 as *u8,                  /* finalize */
-  checkAccess: 0 as *u8,                  /* checkAccess */
-  call: 0 as *u8,                  /* call */
-  hasInstance: 0 as *u8,                  /* hasInstance */
-  construct: 0 as *u8,                  /* construct */
-  trace: 0 as *u8,                  /* trace */
+  finalize: None,                  /* finalize */
+  checkAccess: None,                  /* checkAccess */
+  call: None,                  /* call */
+  hasInstance: None,                  /* hasInstance */
+  construct: None,                  /* construct */
+  trace: None,                  /* trace */
   reserved: (0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 05
                     0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 10
                     0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void, 0 as *libc::c_void,  // 15
@@ -2402,12 +2402,16 @@ class CGAbstractMethod(CGThing):
     def _decorators(self):
         decorators = []
         if self.alwaysInline:
-            decorators.append('#[inline(always)]')
+            # FIXME Rust #8801 #[inline(always)] and #[fixed_stack_segment] not compatible
+            # decorators.append('#[inline(always)]')
+            pass
         elif self.inline:
             #decorators.append('inline')
             pass
         if self.extern:
             decorators.append('extern')
+        if not self.extern:
+            decorators.append('#[fixed_stack_segment]')
         if self.static:
             #decorators.append('static')
             pass
@@ -2696,7 +2700,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                                %s);""" % (
             "&PrototypeClass" if needInterfacePrototypeObject else "ptr::null()",
             "&InterfaceObjectClass" if needInterfaceObjectClass else "ptr::null()",
-            constructHook if needConstructor else "ptr::null()",
+            "Some(%s)" % constructHook if needConstructor else "None",
             constructArgs,
             domClass,
             arrayPtr("methods"), arrayPtr("attrs"),
@@ -3171,13 +3175,13 @@ class CGGenericMethod(CGAbstractBindingMethod):
     """
     def __init__(self, descriptor):
         args = [Argument('*JSContext', 'cx'), Argument('libc::c_uint', 'argc'),
-                Argument('*JSVal', 'vp')]
+                Argument('*mut JSVal', 'vp')]
         CGAbstractBindingMethod.__init__(self, descriptor, 'genericMethod', args)
 
     def generate_code(self):
         return CGIndenter(CGGeneric(
-            "let _info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitMethodOp(_info, cx, obj, this as *libc::c_void, argc, vp);"))
+            "let _info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, &*vp));\n"
+            "return CallJitMethodOp(_info, cx, obj, this as *libc::c_void, argc, &*vp);"))
 
 class CGAbstractStaticMethod(CGAbstractMethod):
     """
@@ -3224,8 +3228,8 @@ class CGGenericGetter(CGAbstractBindingMethod):
     A class for generating the C++ code for an IDL attribute getter.
     """
     def __init__(self, descriptor, lenientThis=False):
-        args = [Argument('*JSContext', 'cx'), Argument('uint', 'argc'),
-                Argument('*JSVal', 'vp')]
+        args = [Argument('*JSContext', 'cx'), Argument('libc::c_uint', 'argc'),
+                Argument('*mut JSVal', 'vp')]
         if lenientThis:
             name = "genericLenientGetter"
             unwrapFailureCode = (
@@ -3240,8 +3244,8 @@ class CGGenericGetter(CGAbstractBindingMethod):
 
     def generate_code(self):
         return CGIndenter(CGGeneric(
-            "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitPropertyOp(info, cx, obj, this as *libc::c_void, vp);"))
+            "let info: *JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, &*vp));\n"
+            "return CallJitPropertyOp(info, cx, obj, this as *libc::c_void, &*vp);"))
 
 class CGSpecializedGetter(CGAbstractExternMethod):
     """
@@ -3279,7 +3283,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
     A class for generating the Rust code for an IDL attribute setter.
     """
     def __init__(self, descriptor, lenientThis=False):
-        args = [Argument('*JSContext', 'cx'), Argument('uint', 'argc'),
+        args = [Argument('*JSContext', 'cx'), Argument('libc::c_uint', 'argc'),
                 Argument('*mut JSVal', 'vp')]
         if lenientThis:
             name = "genericLenientSetter"
@@ -3357,7 +3361,7 @@ class CGMemberJITInfo(CGThing):
         failstr = "true" if infallible else "false"
         return ("\n"
                 "static %s: JSJitInfo = JSJitInfo {\n"
-                "  op: %s,\n"
+                "  op: %s as *u8,\n"
                 "  protoID: %s,\n"
                 "  depth: %s,\n"
                 "  isInfallible: %s,  /* False in setters. */\n"
@@ -4388,6 +4392,7 @@ class CGDictionary(CGThing):
              "    return true;\n"
              "  }\n"
              "\n" if not self.workers else "") +
+            "  #[fixed_stack_segment]\n" +
             "  pub fn Init(&mut self, cx: *JSContext, val: JSVal) -> JSBool {\n"
             "    unsafe {\n" +
             # NOTE: jsids are per-runtime, so don't use them in workers

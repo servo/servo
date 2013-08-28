@@ -62,6 +62,7 @@ pub struct FontHandle {
 
 #[unsafe_destructor]
 impl Drop for FontHandle {
+    #[fixed_stack_segment]
     fn drop(&self) {
         assert!(self.face.is_not_null());
         unsafe {
@@ -99,6 +100,7 @@ impl FontHandleMethods for FontHandle {
             Err(()) => Err(())
         };
 
+        #[fixed_stack_segment]
          fn create_face_from_buffer(lib: FT_Library,
                                     cbuf: *u8, cbuflen: uint, pt_size: float) 
              -> Result<FT_Face, ()> {
@@ -130,12 +132,14 @@ impl FontHandleMethods for FontHandle {
     fn family_name(&self) -> ~str {
         unsafe { str::raw::from_c_str((*self.face).family_name) }
     }
+    #[fixed_stack_segment]
     fn face_name(&self) -> ~str {
         unsafe { str::raw::from_c_str(FT_Get_Postscript_Name(self.face)) }
     }
     fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC != 0 }
     }
+    #[fixed_stack_segment]
     fn boldness(&self) -> CSSFontWeight {
         let default_weight = FontWeight400;
         if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD == 0 } {
@@ -178,6 +182,7 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
+    #[fixed_stack_segment]
     fn glyph_index(&self,
                        codepoint: char) -> Option<GlyphIndex> {
         assert!(self.face.is_not_null());
@@ -192,6 +197,7 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
+    #[fixed_stack_segment]
     fn glyph_h_advance(&self,
                            glyph: GlyphIndex) -> Option<FractionalPixel> {
         assert!(self.face.is_not_null());
@@ -242,6 +248,7 @@ impl FontHandleMethods for FontHandle {
 }
 
 impl<'self> FontHandle {
+    #[fixed_stack_segment]
     fn set_char_size(face: FT_Face, pt_size: float) -> Result<(), ()>{
         let char_width = float_to_fixed_ft(pt_size) as FT_F26Dot6;
         let char_height = float_to_fixed_ft(pt_size) as FT_F26Dot6;
@@ -254,6 +261,7 @@ impl<'self> FontHandle {
         }
     }
 
+    #[fixed_stack_segment]
     pub fn new_from_file(fctx: &FontContextHandle, file: ~str,
                          style: &SpecifiedFontStyle) -> Result<FontHandle, ()> {
         unsafe {
@@ -281,6 +289,7 @@ impl<'self> FontHandle {
         }
     }
 
+    #[fixed_stack_segment]
     pub fn new_from_file_unstyled(fctx: &FontContextHandle, file: ~str)
                                -> Result<FontHandle, ()> {
         unsafe {

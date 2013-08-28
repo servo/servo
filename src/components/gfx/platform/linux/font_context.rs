@@ -17,6 +17,7 @@ struct FreeTypeLibraryHandle {
 }
 
 impl Drop for FreeTypeLibraryHandle {
+    #[fixed_stack_segment]
     fn drop(&self) {
         assert!(self.ctx.is_not_null());
         unsafe {
@@ -30,6 +31,7 @@ pub struct FontContextHandle {
 }
 
 impl FontContextHandle {
+    #[fixed_stack_segment]
     pub fn new() -> FontContextHandle {
         unsafe {
             let ctx: FT_Library = ptr::null();

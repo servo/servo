@@ -42,6 +42,7 @@ extern fn finalize(_fop: *JSFreeOp, obj: *JSObject) {
 pub extern fn trace(tracer: *mut JSTracer, obj: *JSObject) {
     let node = unsafe { unwrap(obj) };
 
+    #[fixed_stack_segment]
     fn trace_node(tracer: *mut JSTracer, node: Option<AbstractNode<ScriptView>>, name: &str) {
         if node.is_none() {
             return;
@@ -68,6 +69,7 @@ pub extern fn trace(tracer: *mut JSTracer, obj: *JSObject) {
     trace_node(tracer, node.prev_sibling(), "prev sibling");
 }
 
+#[fixed_stack_segment]
 pub fn init(compartment: @mut Compartment) {
     let obj = utils::define_empty_prototype(~"Element", Some(~"Node"), compartment);
     let attrs = @~[
@@ -75,14 +77,14 @@ pub fn init(compartment: @mut Compartment) {
          name: compartment.add_name(~"tagName"),
          tinyid: 0,
          flags: (JSPROP_ENUMERATE | JSPROP_SHARED | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: JSPropertyOpWrapper {op: getTagName, info: null()},
-         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}},
+         getter: JSPropertyOpWrapper {op: Some(getTagName), info: null()},
+         setter: JSStrictPropertyOpWrapper {op: None, info: null()}},
         JSPropertySpec {
          name: null(),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: JSPropertyOpWrapper {op: null(), info: null()},
-         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
+         getter: JSPropertyOpWrapper {op: None, info: null()},
+         setter: JSStrictPropertyOpWrapper {op: None, info: null()}}];
     compartment.global_props.push(attrs);
     do attrs.as_imm_buf |specs, _len| {
         unsafe {
@@ -91,22 +93,22 @@ pub fn init(compartment: @mut Compartment) {
     }
 
     let methods = @~[JSFunctionSpec {name: compartment.add_name(~"getClientRects"),
-                                     call: JSNativeWrapper {op: getClientRects, info: null()},
+                                     call: JSNativeWrapper {op: Some(getClientRects), info: null()},
                                      nargs: 0,
                                      flags: 0,
                                      selfHostedName: null()},
                      JSFunctionSpec {name: compartment.add_name(~"getBoundingClientRect"),
-                                     call: JSNativeWrapper {op: getBoundingClientRect, info: null()},
+                                     call: JSNativeWrapper {op: Some(getBoundingClientRect), info: null()},
                                      nargs: 0,
                                      flags: 0,
                                      selfHostedName: null()},
                      JSFunctionSpec {name: compartment.add_name(~"setAttribute"),
-                                     call: JSNativeWrapper {op: setAttribute, info: null()},
+                                     call: JSNativeWrapper {op: Some(setAttribute), info: null()},
                                      nargs: 0,
                                      flags: 0,
                                      selfHostedName: null()},
                      JSFunctionSpec {name: null(),
-                                     call: JSNativeWrapper {op: null(), info: null()},
+                                     call: JSNativeWrapper {op: None, info: null()},
                                      nargs: 0,
                                      flags: 0,
                                      selfHostedName: null()}];
@@ -129,13 +131,13 @@ pub fn init(compartment: @mut Compartment) {
         JSPropertySpec {name: compartment.add_name(~"width"),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: JSPropertyOpWrapper {op: HTMLImageElement_getWidth, info: null()},
-         setter: JSStrictPropertyOpWrapper {op: HTMLImageElement_setWidth, info: null()}},
+         getter: JSPropertyOpWrapper {op: Some(HTMLImageElement_getWidth), info: null()},
+         setter: JSStrictPropertyOpWrapper {op: Some(HTMLImageElement_setWidth), info: null()}},
         JSPropertySpec {name: null(),
          tinyid: 0,
          flags: (JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS) as u8,
-         getter: JSPropertyOpWrapper {op: null(), info: null()},
-         setter: JSStrictPropertyOpWrapper {op: null(), info: null()}}];
+         getter: JSPropertyOpWrapper {op: None, info: null()},
+         setter: JSStrictPropertyOpWrapper {op: None, info: null()}}];
     compartment.global_props.push(attrs);
     do attrs.as_imm_buf |specs, _len| {
         unsafe {
@@ -144,7 +146,7 @@ pub fn init(compartment: @mut Compartment) {
     }
 }
 
-extern fn getClientRects(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
+extern fn getClientRects(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
   unsafe {
       let obj = JS_THIS_OBJECT(cx, vp);
       let mut node = unwrap(obj);
@@ -160,7 +162,7 @@ extern fn getClientRects(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
   }
 }
 
-extern fn getBoundingClientRect(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JSBool {
+extern fn getBoundingClientRect(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
   unsafe {
       let obj = JS_THIS_OBJECT(cx, vp);
       let mut node = unwrap(obj);
@@ -176,7 +178,7 @@ extern fn getBoundingClientRect(cx: *JSContext, _argc: c_uint, vp: *JSVal) -> JS
   }
 }
 
-extern fn setAttribute(cx: *JSContext, argc: c_uint, vp: *JSVal) -> JSBool {
+extern fn setAttribute(cx: *JSContext, argc: c_uint, vp: *mut JSVal) -> JSBool {
     unsafe {
         let obj = JS_THIS_OBJECT(cx, vp);
         let node = unwrap(obj);
@@ -278,6 +280,7 @@ extern fn getTagName(cx: *JSContext, _argc: c_uint, vp: *mut JSVal) -> JSBool {
     return 1;
 }
 
+#[fixed_stack_segment]
 pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
     let proto = match node.type_id() {
         ElementNodeTypeId(HTMLDivElementTypeId) => ~"HTMLDivElement",

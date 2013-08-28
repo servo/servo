@@ -67,6 +67,7 @@ pub fn init(compartment: @mut Compartment) {
     
 }
 
+#[fixed_stack_segment]
 pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
     let (proto, instance) = match node.type_id() {
       TextNodeTypeId => (~"TextPrototype", ~"Text"),
