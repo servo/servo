@@ -218,6 +218,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
     handle_element!(cx, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);
     handle_element!(cx, tag, "optgroup",HTMLOptGroupElementTypeId, HTMLOptGroupElement, []);
+    handle_element!(cx, tag, "output",  HTMLOutputElementTypeId, HTMLOutputElement, []);
     handle_element!(cx, tag, "p",       HTMLParagraphElementTypeId, HTMLParagraphElement, []);
     handle_element!(cx, tag, "progress",HTMLProgressElementTypeId, HTMLProgressElement, []);
     handle_element!(cx, tag, "q",       HTMLQuoteElementTypeId, HTMLQuoteElement, []);

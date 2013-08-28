@@ -405,6 +405,8 @@ generate_cacheable_wrapper!(HTMLOptGroupElement, HTMLOptGroupElementBinding::Wra
 generate_binding_object!(HTMLOptGroupElement)
 generate_cacheable_wrapper!(HTMLOptionElement, HTMLOptionElementBinding::Wrap)
 generate_binding_object!(HTMLOptionElement)
+generate_cacheable_wrapper!(HTMLOutputElement, HTMLOutputElementBinding::Wrap)
+generate_binding_object!(HTMLOutputElement)
 generate_cacheable_wrapper!(HTMLParagraphElement, HTMLParagraphElementBinding::Wrap)
 generate_binding_object!(HTMLParagraphElement)
 generate_cacheable_wrapper!(HTMLProgressElement, HTMLProgressElementBinding::Wrap)
