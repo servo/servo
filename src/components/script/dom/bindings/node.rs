@@ -6,25 +6,7 @@ use dom::bindings::element;
 use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
-use dom::element::{HTMLElementTypeId,
-                   HTMLAnchorElementTypeId, HTMLAppletElementTypeId,
-                   HTMLAreaElementTypeId, HTMLBaseElementTypeId,
-                   HTMLBodyElementTypeId, HTMLBRElementTypeId, HTMLButtonElementTypeId,
-                   HTMLCanvasElementTypeId, HTMLDataElementTypeId, HTMLDataListElementTypeId,
-                   HTMLDirectoryElementTypeId, HTMLDivElementTypeId, HTMLEmbedElementTypeId,
-                   HTMLFieldSetElementTypeId, HTMLFontElementTypeId, HTMLFrameElementTypeId,
-                   HTMLFrameSetElementTypeId, HTMLHeadElementTypeId, HTMLHeadingElementTypeId,
-                   HTMLHRElementTypeId, HTMLHtmlElementTypeId, HTMLIframeElementTypeId,
-                   HTMLImageElementTypeId, HTMLInputElementTypeId, HTMLLIElementTypeId,
-                   HTMLLinkElementTypeId, HTMLMapElementTypeId, HTMLMetaElementTypeId,
-                   HTMLOListElementTypeId, HTMLParagraphElementTypeId,
-                   HTMLProgressElementTypeId, HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
-                   HTMLSpanElementTypeId, HTMLSourceElementTypeId,
-                   HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
-                   HTMLTableElementTypeId, HTMLTableCaptionElementTypeId, HTMLTableCellElementTypeId,
-                   HTMLTableColElementTypeId,
-                   HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId, HTMLTimeElementTypeId,
-                   HTMLTitleElementTypeId, HTMLUListElementTypeId, HTMLDListElementTypeId};
+use dom::element::*;
 use dom::types::*;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId, ScriptView};
@@ -120,6 +102,9 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLLinkElementTypeId) => generate_element!(HTMLLinkElement),
         ElementNodeTypeId(HTMLMapElementTypeId) => generate_element!(HTMLMapElement),
         ElementNodeTypeId(HTMLMetaElementTypeId) => generate_element!(HTMLMetaElement),
+        ElementNodeTypeId(HTMLMeterElementTypeId) => generate_element!(HTMLMeterElement),
+        ElementNodeTypeId(HTMLModElementTypeId) => generate_element!(HTMLModElement),
+        ElementNodeTypeId(HTMLObjectElementTypeId) => generate_element!(HTMLObjectElement),
         ElementNodeTypeId(HTMLOListElementTypeId) => generate_element!(HTMLOListElement),
         ElementNodeTypeId(HTMLParagraphElementTypeId) => generate_element!(HTMLParagraphElement),
         ElementNodeTypeId(HTMLProgressElementTypeId) => generate_element!(HTMLProgressElement),
