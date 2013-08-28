@@ -104,6 +104,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLMetaElementTypeId) => generate_element!(HTMLMetaElement),
         ElementNodeTypeId(HTMLMeterElementTypeId) => generate_element!(HTMLMeterElement),
         ElementNodeTypeId(HTMLModElementTypeId) => generate_element!(HTMLModElement),
+        ElementNodeTypeId(HTMLObjectElementTypeId) => generate_element!(HTMLObjectElement),
         ElementNodeTypeId(HTMLOListElementTypeId) => generate_element!(HTMLOListElement),
         ElementNodeTypeId(HTMLParagraphElementTypeId) => generate_element!(HTMLParagraphElement),
         ElementNodeTypeId(HTMLProgressElementTypeId) => generate_element!(HTMLProgressElement),

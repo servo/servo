@@ -80,6 +80,7 @@ pub enum ElementTypeId {
     HTMLMetaElementTypeId,
     HTMLMeterElementTypeId,
     HTMLModElementTypeId,
+    HTMLObjectElementTypeId,
     HTMLOListElementTypeId,
     HTMLOptionElementTypeId,
     HTMLParagraphElementTypeId,
