@@ -16,4 +16,4 @@ pub mod time;
 pub mod tree;
 pub mod url;
 pub mod vec;
-
+pub mod debug;
