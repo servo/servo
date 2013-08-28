@@ -6,25 +6,7 @@ use dom::bindings::element;
 use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
-use dom::element::{HTMLElementTypeId,
-                   HTMLAnchorElementTypeId, HTMLAppletElementTypeId,
-                   HTMLAreaElementTypeId, HTMLBaseElementTypeId,
-                   HTMLBodyElementTypeId, HTMLBRElementTypeId, HTMLButtonElementTypeId,
-                   HTMLCanvasElementTypeId, HTMLDataElementTypeId, HTMLDataListElementTypeId,
-                   HTMLDirectoryElementTypeId, HTMLDivElementTypeId, HTMLEmbedElementTypeId,
-                   HTMLFieldSetElementTypeId, HTMLFontElementTypeId, HTMLFrameElementTypeId,
-                   HTMLFrameSetElementTypeId, HTMLHeadElementTypeId, HTMLHeadingElementTypeId,
-                   HTMLHRElementTypeId, HTMLHtmlElementTypeId, HTMLIframeElementTypeId,
-                   HTMLImageElementTypeId, HTMLInputElementTypeId, HTMLLIElementTypeId,
-                   HTMLLinkElementTypeId, HTMLMapElementTypeId, HTMLMetaElementTypeId,
-                   HTMLMeterElementTypeId, HTMLOListElementTypeId, HTMLParagraphElementTypeId,
-                   HTMLProgressElementTypeId, HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
-                   HTMLSpanElementTypeId, HTMLSourceElementTypeId,
-                   HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
-                   HTMLTableElementTypeId, HTMLTableCaptionElementTypeId, HTMLTableCellElementTypeId,
-                   HTMLTableColElementTypeId,
-                   HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId, HTMLTimeElementTypeId,
-                   HTMLTitleElementTypeId, HTMLUListElementTypeId, HTMLDListElementTypeId};
+use dom::element::*;
 use dom::types::*;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId, ScriptView};

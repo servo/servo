@@ -2,37 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::element::{HTMLElementTypeId,
-                   HTMLAnchorElementTypeId, HTMLAppletElementTypeId, 
-                   HTMLAreaElementTypeId,  HTMLBaseElementTypeId, HTMLBodyElementTypeId,
-                   HTMLBRElementTypeId, HTMLButtonElementTypeId, HTMLCanvasElementTypeId,
-                   HTMLDataElementTypeId, HTMLDataListElementTypeId, HTMLDivElementTypeId,
-                   HTMLDirectoryElementTypeId, HTMLDListElementTypeId, HTMLEmbedElementTypeId,
-                   HTMLFieldSetElementTypeId, HTMLFontElementTypeId, HTMLFormElementTypeId,
-                   HTMLFrameElementTypeId, HTMLFrameSetElementTypeId, HTMLHRElementTypeId,
-                   HTMLHeadElementTypeId, HTMLHtmlElementTypeId, HTMLImageElementTypeId,
-                   HTMLIframeElementTypeId, HTMLInputElementTypeId, HTMLLinkElementTypeId,
-                   HTMLLIElementTypeId, HTMLMapElementTypeId, HTMLMetaElementTypeId,
-                   HTMLMeterElementTypeId, HTMLOListElementTypeId, HTMLOptionElementTypeId,
-                   HTMLParagraphElementTypeId, HTMLProgressElementTypeId,
-                   HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
-                   HTMLSelectElementTypeId, HTMLSmallElementTypeId, HTMLSourceElementTypeId,
-                   HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTableSectionElementTypeId,
-                   HTMLTableCellElementTypeId, HTMLTableElementTypeId,
-                   HTMLTableCaptionElementTypeId, HTMLTableColElementTypeId,
-                   HTMLTableRowElementTypeId, HTMLTextAreaElementTypeId,
-                   HTMLTimeElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId,
-                   UnknownElementTypeId};
-use dom::element::{HTMLOptionElement, HTMLSelectElement, HTMLSmallElement};
-use dom::element::{HTMLHeadingElementTypeId};
+use dom::bindings::utils::str;
+use dom::element::*;
+use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
 use dom::htmliframeelement::IFrameSize;
 use dom::htmlformelement::HTMLFormElement;
-use dom::types::*;
-use dom::element::Element;
-use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, Comment, Doctype, ElementNodeTypeId, Node, ScriptView};
-use dom::bindings::utils::str;
+use dom::types::*;
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use js::jsapi::JSContext;
 use newcss::stylesheet::Stylesheet;
