@@ -86,6 +86,7 @@ pub enum ElementTypeId {
     HTMLOptionElementTypeId,
     HTMLOutputElementTypeId,
     HTMLParagraphElementTypeId,
+    HTMLParamElementTypeId,
     HTMLProgressElementTypeId,
     HTMLQuoteElementTypeId,
     HTMLScriptElementTypeId,
