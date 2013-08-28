@@ -87,6 +87,7 @@ pub mod dom {
     pub mod htmllinkelement;
     pub mod htmlmapelement;
     pub mod htmlmetaelement;
+    pub mod htmlmeterelement;
     pub mod htmlolistelement;
     pub mod htmlparagraphelement;
     pub mod htmlprogresselement;
