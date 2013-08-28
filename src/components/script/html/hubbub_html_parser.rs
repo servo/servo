@@ -213,6 +213,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "map",     HTMLMapElementTypeId, HTMLMapElement, []);
     handle_element!(cx, tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
     handle_element!(cx, tag, "meter",   HTMLMeterElementTypeId, HTMLMeterElement, []);
+    handle_element!(cx, tag, "mod",     HTMLModElementTypeId, HTMLModElement, []);
     handle_element!(cx, tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
     handle_element!(cx, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);
     handle_element!(cx, tag, "p",       HTMLParagraphElementTypeId, HTMLParagraphElement, []);
