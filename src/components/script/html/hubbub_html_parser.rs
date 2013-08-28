@@ -258,7 +258,10 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_htmlelement!(cx, tag, "section", HTMLElementTypeId, HTMLElement);
 
     unsafe {
-        Node::as_abstract_node(cx, @Element::new(UnknownElementTypeId, tag.to_str()))
+        let element = @HTMLUnknownElement {
+            parent: HTMLElement::new(HTMLUnknownElementTypeId, tag.to_str())
+        };
+        Node::as_abstract_node(cx, element)
     }
 }
 

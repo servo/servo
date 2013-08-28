@@ -105,7 +105,7 @@ pub enum ElementTypeId {
     HTMLTimeElementTypeId,
     HTMLTitleElementTypeId,
     HTMLUListElementTypeId,
-    UnknownElementTypeId,
+    HTMLUnknownElementTypeId,
 }
 
 //
@@ -113,7 +113,6 @@ pub enum ElementTypeId {
 //
 
 pub struct HTMLSmallElement     { parent: HTMLElement }
-pub struct UnknownElement       { parent: HTMLElement }
 
 //
 // Element methods

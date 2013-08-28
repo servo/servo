@@ -128,6 +128,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLTimeElementTypeId) => generate_element!(HTMLTimeElement),
         ElementNodeTypeId(HTMLTitleElementTypeId) => generate_element!(HTMLTitleElement),
         ElementNodeTypeId(HTMLUListElementTypeId) => generate_element!(HTMLUListElement),
+        ElementNodeTypeId(HTMLUnknownElementTypeId) => generate_element!(HTMLUnknownElement),
         ElementNodeTypeId(_) => element::create(cx, node).ptr,
         CommentNodeTypeId |
         DoctypeNodeTypeId => text::create(cx, node).ptr,
