@@ -713,7 +713,7 @@ impl InlineFlowData {
                         let line_height = scanner.calculate_line_height(cur_box, em_size);
 
                         // Find the top and bottom of the content area.
-                        // Those are used in text-top and text-bottom value of 'vertex-align'
+                        // Those are used in text-top and text-bottom value of 'vertical-align'
                         let text_ascent = text_box.run.font.metrics.ascent;
                        
                         // Offset from the top of the box is 1/2 of the leading + ascent
@@ -734,7 +734,7 @@ impl InlineFlowData {
                 let mut top_from_base = top_from_base;
                 let mut bottom_from_base = bottom_from_base;
 
-                // To calculate text-top and text-bottom value of 'vertex-align',
+                // To calculate text-top and text-bottom value of 'vertical-align',
                 //  we should find the top and bottom of the content area of parent box.
                 // The content area is defined in "http://www.w3.org/TR/CSS2/visudet.html#inline-non-replaced". 
                 // TODO: We should extract em-box info from font size of parent
