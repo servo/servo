@@ -91,6 +91,7 @@ pub mod dom {
     pub mod htmlmodelement;
     pub mod htmlobjectelement;
     pub mod htmlolistelement;
+    pub mod htmloptgroupelement;
     pub mod htmlparagraphelement;
     pub mod htmlprogresselement;
     pub mod htmlquoteelement;
