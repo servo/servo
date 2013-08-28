@@ -8,6 +8,7 @@ use std::cell::Cell;
 use std::comm::{Port, SharedChan};
 use extra::sort::tim_sort;
 use std::iterator::AdditiveIterator;
+use std::hashmap::HashMap;
 
 // front-end representation of the profiler used to communicate with the profiler
 #[deriving(Clone)]
@@ -26,7 +27,14 @@ impl ProfilerChan {
     }
 }
 
-#[deriving(Eq, Clone)]
+pub enum ProfilerMsg {
+    // Normal message used for reporting time
+    TimeMsg(ProfilerCategory, float),
+    // Message used to force print the profiling metrics
+    PrintMsg,
+}
+
+#[deriving(Eq, Clone, IterBytes)]
 pub enum ProfilerCategory {
     CompositingCategory,
     LayoutQueryCategory,
@@ -44,27 +52,7 @@ pub enum ProfilerCategory {
     // FIXME(rust#8803): workaround for lack of CTFE function on enum types to return length
     NumBuckets,
 }
-struct ProfilerBucket {
-    category: ProfilerCategory,
-    data: ~[float],
-}
-impl ProfilerBucket {
-    fn new(category: ProfilerCategory) -> ProfilerBucket {
-        ProfilerBucket {
-            category: category,
-            data: ~[],
-        }
-    }
-}
-// FIXME(rust#5873) this should be initialized by a NumBuckets cast
-type ProfilerBuckets = [ProfilerBucket, ..13];
-
-pub enum ProfilerMsg {
-    // Normal message used for reporting time
-    TimeMsg(ProfilerCategory, float),
-    // Message used to force print the profiling metrics
-    PrintMsg,
-}
+type ProfilerBuckets = HashMap<ProfilerCategory, ~[float]>;
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct Profiler {
@@ -81,21 +69,22 @@ impl ProfilerCategory {
 
     // enumeration of all ProfilerCategory types
     fn empty_buckets() -> ProfilerBuckets {
-        [
-            ProfilerBucket::new(CompositingCategory),
-            ProfilerBucket::new(LayoutQueryCategory),
-            ProfilerBucket::new(LayoutPerformCategory),
-            ProfilerBucket::new(LayoutAuxInitCategory),
-            ProfilerBucket::new(LayoutSelectorMatchCategory),
-            ProfilerBucket::new(LayoutTreeBuilderCategory),
-            ProfilerBucket::new(LayoutMainCategory),
-            ProfilerBucket::new(LayoutShapingCategory),
-            ProfilerBucket::new(LayoutDispListBuildCategory),
-            ProfilerBucket::new(GfxRegenAvailableFontsCategory),
-            ProfilerBucket::new(RenderingDrawingCategory),
-            ProfilerBucket::new(RenderingPrepBuffCategory),
-            ProfilerBucket::new(RenderingCategory),
-        ]
+        let mut buckets = HashMap::with_capacity(NumBuckets as uint);
+        buckets.insert(CompositingCategory, ~[]);
+        buckets.insert(LayoutQueryCategory, ~[]);
+        buckets.insert(LayoutPerformCategory, ~[]);
+        buckets.insert(LayoutAuxInitCategory, ~[]);
+        buckets.insert(LayoutSelectorMatchCategory, ~[]);
+        buckets.insert(LayoutTreeBuilderCategory, ~[]);
+        buckets.insert(LayoutMainCategory, ~[]);
+        buckets.insert(LayoutShapingCategory, ~[]);
+        buckets.insert(LayoutDispListBuildCategory, ~[]);
+        buckets.insert(GfxRegenAvailableFontsCategory, ~[]);
+        buckets.insert(RenderingDrawingCategory, ~[]);
+        buckets.insert(RenderingPrepBuffCategory, ~[]);
+        buckets.insert(RenderingCategory, ~[]);
+
+        buckets
     }
 
     // some categories are subcategories of LayoutPerformCategory
@@ -139,7 +128,7 @@ impl Profiler {
 
     fn handle_msg(&mut self, msg: ProfilerMsg) {
         match msg {
-            TimeMsg(category, t) => self.buckets[category as uint].data.push(t),
+            TimeMsg(category, t) => self.buckets.get_mut(&category).push(t),
             PrintMsg => match self.last_msg {
                 // only print if more data has arrived since the last printout
                 Some(TimeMsg(*)) => self.print_buckets(),
@@ -153,7 +142,7 @@ impl Profiler {
         println(fmt!("%31s %15s %15s %15s %15s %15s",
                          "_category_", "_mean (ms)_", "_median (ms)_",
                          "_min (ms)_", "_max (ms)_", "_bucket size_"));
-        for &ProfilerBucket { category: ref category, data: ref mut data } in self.buckets.mut_iter() {
+        for (category, data) in self.buckets.mut_iter() {
             tim_sort(*data);
             let data_len = data.len();
             if data_len > 0 {
@@ -200,8 +189,6 @@ mod test {
     #[test]
     fn check_order() {
         let buckets = ProfilerCategory::empty_buckets();
-        for (i, bucket) in buckets.iter().enumerate() {
-            assert!(bucket.category as uint == i);
-        }
+        assert!(buckets.len() == NumBuckets as uint);
     }
 }
