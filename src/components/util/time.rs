@@ -42,11 +42,22 @@ pub enum ProfilerCategory {
     RenderingPrepBuffCategory,
     RenderingCategory,
     // hackish but helps prevent errors when adding new categories
-    NUM_BUCKETS,
+    NumBuckets,
 }
-// FIXME(#5873) this should be initialized by a NUM_BUCKETS cast,
-static BUCKETS: uint = 13;
-type ProfilerBuckets = [(ProfilerCategory, ~[float]), ..BUCKETS];
+struct ProfilerBucket {
+    category: ProfilerCategory,
+    data: ~[float],
+}
+impl ProfilerBucket {
+    fn new(category: ProfilerCategory) -> ProfilerBucket {
+        ProfilerBucket {
+            category: category,
+            data: ~[],
+        }
+    }
+}
+// FIXME(rust#5873) this should be initialized by a NumBuckets cast,
+type ProfilerBuckets = [ProfilerBucket, ..13];
 
 pub enum ProfilerMsg {
     // Normal message used for reporting time
@@ -65,26 +76,26 @@ pub struct Profiler {
 impl ProfilerCategory {
     // convenience function to not have to cast every time
     pub fn num_buckets() -> uint {
-        NUM_BUCKETS as uint
+        NumBuckets as uint
     }
 
     // enumeration of all ProfilerCategory types
     // TODO(tkuehn): is there a better way to ensure proper order of categories?
     fn empty_buckets() -> ProfilerBuckets {
         let buckets = [
-            (CompositingCategory, ~[]),
-            (LayoutQueryCategory, ~[]),
-            (LayoutPerformCategory, ~[]),
-            (LayoutAuxInitCategory, ~[]),
-            (LayoutSelectorMatchCategory, ~[]),
-            (LayoutTreeBuilderCategory, ~[]),
-            (LayoutMainCategory, ~[]),
-            (LayoutShapingCategory, ~[]),
-            (LayoutDispListBuildCategory, ~[]),
-            (GfxRegenAvailableFontsCategory, ~[]),
-            (RenderingDrawingCategory, ~[]),
-            (RenderingPrepBuffCategory, ~[]),
-            (RenderingCategory, ~[]),
+            ProfilerBucket::new(CompositingCategory),
+            ProfilerBucket::new(LayoutQueryCategory),
+            ProfilerBucket::new(LayoutPerformCategory),
+            ProfilerBucket::new(LayoutAuxInitCategory),
+            ProfilerBucket::new(LayoutSelectorMatchCategory),
+            ProfilerBucket::new(LayoutTreeBuilderCategory),
+            ProfilerBucket::new(LayoutMainCategory),
+            ProfilerBucket::new(LayoutShapingCategory),
+            ProfilerBucket::new(LayoutDispListBuildCategory),
+            ProfilerBucket::new(GfxRegenAvailableFontsCategory),
+            ProfilerBucket::new(RenderingDrawingCategory),
+            ProfilerBucket::new(RenderingPrepBuffCategory),
+            ProfilerBucket::new(RenderingCategory),
         ];
 
         ProfilerCategory::check_order(&buckets);
@@ -93,8 +104,8 @@ impl ProfilerCategory {
 
     // ensure that the order of the buckets matches the order of the enum categories
     fn check_order(vec: &ProfilerBuckets) {
-        for &(category, _) in vec.iter() {
-            if category != vec[category as uint].first() {
+        for (i, bucket) in vec.iter().enumerate() {
+            if bucket.category as uint != i {
                 fail!("Enum category does not match bucket index. This is a bug.");
             }
         }
@@ -141,14 +152,11 @@ impl Profiler {
 
     fn handle_msg(&mut self, msg: ProfilerMsg) {
         match msg {
-            TimeMsg(category, t) => match self.buckets[category as uint] {
-                //TODO(tkuehn): would be nice to have tuple.second_mut()
-                (_, ref mut data) => data.push(t),
-            },
+            TimeMsg(category, t) => self.buckets[category as uint].data.push(t),
             PrintMsg => match self.last_msg {
                 // only print if more data has arrived since the last printout
                 Some(TimeMsg(*)) => self.print_buckets(),
-                _ => {}
+                _ => ()
             },
         };
         self.last_msg = Some(msg);
@@ -158,10 +166,7 @@ impl Profiler {
         println(fmt!("%31s %15s %15s %15s %15s %15s",
                          "_category_", "_mean (ms)_", "_median (ms)_",
                          "_min (ms)_", "_max (ms)_", "_bucket size_"));
-        for bucket in self.buckets.mut_iter() {
-            let (category, data) = match *bucket {
-                (category, ref mut data) => (category, data),
-            };
+        for &ProfilerBucket { category: ref category, data: ref mut data } in self.buckets.mut_iter() {
             tim_sort(*data);
             let data_len = data.len();
             if data_len > 0 {
