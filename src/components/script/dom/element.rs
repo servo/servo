@@ -110,7 +110,6 @@ pub enum ElementTypeId {
 // Regular old elements
 //
 
-pub struct HTMLOptionElement    { parent: HTMLElement }
 pub struct HTMLSelectElement    { parent: HTMLElement }
 pub struct HTMLSmallElement     { parent: HTMLElement }
 pub struct UnknownElement       { parent: HTMLElement }
