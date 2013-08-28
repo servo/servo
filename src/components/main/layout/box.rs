@@ -599,6 +599,10 @@ impl RenderBox {
         match *self {
             UnscannedTextRenderBoxClass(*) => fail!(~"Shouldn't see unscanned boxes here."),
             TextRenderBoxClass(text_box) => {
+
+                // Add the background to the list, if applicable.
+                self.paint_background_if_applicable(list, &absolute_box_bounds);
+
                 let nearest_ancestor_element = self.nearest_ancestor_element();
                 let color = nearest_ancestor_element.style().color().to_gfx_color();
 
