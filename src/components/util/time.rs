@@ -8,7 +8,7 @@ use std::cell::Cell;
 use std::comm::{Port, SharedChan};
 use extra::sort::tim_sort;
 use std::iterator::AdditiveIterator;
-use std::hashmap::HashMap;
+use extra::treemap::TreeMap;
 
 // front-end representation of the profiler used to communicate with the profiler
 #[deriving(Clone)]
@@ -34,7 +34,7 @@ pub enum ProfilerMsg {
     PrintMsg,
 }
 
-#[deriving(Eq, Clone, IterBytes)]
+#[deriving(Eq, Clone, TotalEq, TotalOrd)]
 pub enum ProfilerCategory {
     CompositingCategory,
     LayoutQueryCategory,
@@ -52,7 +52,7 @@ pub enum ProfilerCategory {
     // FIXME(rust#8803): workaround for lack of CTFE function on enum types to return length
     NumBuckets,
 }
-type ProfilerBuckets = HashMap<ProfilerCategory, ~[float]>;
+type ProfilerBuckets = TreeMap<ProfilerCategory, ~[float]>;
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct Profiler {
@@ -69,7 +69,7 @@ impl ProfilerCategory {
 
     // enumeration of all ProfilerCategory types
     fn empty_buckets() -> ProfilerBuckets {
-        let mut buckets = HashMap::with_capacity(NumBuckets as uint);
+        let mut buckets = TreeMap::new();
         buckets.insert(CompositingCategory, ~[]);
         buckets.insert(LayoutQueryCategory, ~[]);
         buckets.insert(LayoutPerformCategory, ~[]);
@@ -128,7 +128,7 @@ impl Profiler {
 
     fn handle_msg(&mut self, msg: ProfilerMsg) {
         match msg {
-            TimeMsg(category, t) => self.buckets.get_mut(&category).push(t),
+            TimeMsg(category, t) => self.buckets.find_mut(&category).unwrap().push(t),
             PrintMsg => match self.last_msg {
                 // only print if more data has arrived since the last printout
                 Some(TimeMsg(*)) => self.print_buckets(),
@@ -142,8 +142,10 @@ impl Profiler {
         println(fmt!("%31s %15s %15s %15s %15s %15s",
                          "_category_", "_mean (ms)_", "_median (ms)_",
                          "_min (ms)_", "_max (ms)_", "_bucket size_"));
-        for (category, data) in self.buckets.mut_iter() {
-            tim_sort(*data);
+        for (category, data) in self.buckets.iter() {
+            // FIXME(XXX): TreeMap currently lacks mut_iter()
+            let mut data = data.clone();
+            tim_sort(data);
             let data_len = data.len();
             if data_len > 0 {
                 let (mean, median, &min, &max) =
