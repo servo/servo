@@ -10,7 +10,8 @@
  * and create derivative works of this document.
  */
 
-interface HTMLFormElement;
+// FIXME: servo#707
+//interface HTMLFormElement;
 
 // http://www.whatwg.org/specs/web-apps/current-work/#the-button-element
 interface HTMLButtonElement : HTMLElement {

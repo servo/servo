@@ -361,6 +361,8 @@ generate_cacheable_wrapper!(HTMLDataListElement, HTMLDataListElementBinding::Wra
 generate_binding_object!(HTMLDataListElement)
 generate_cacheable_wrapper!(HTMLDListElement, HTMLDListElementBinding::Wrap)
 generate_binding_object!(HTMLDListElement)
+generate_cacheable_wrapper!(HTMLFormElement, HTMLFormElementBinding::Wrap)
+generate_binding_object!(HTMLFormElement)
 generate_cacheable_wrapper!(HTMLFrameElement, HTMLFrameElementBinding::Wrap)
 generate_binding_object!(HTMLFrameElement)
 generate_cacheable_wrapper!(HTMLFrameSetElement, HTMLFrameSetElementBinding::Wrap)
