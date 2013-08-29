@@ -8,7 +8,6 @@ use std::ascii::StrAsciiExt;
 use errors::{ErrorLoggerIterator, log_css_error};
 pub use std::iterator;
 pub use cssparser::*;
-pub use CSSColor = cssparser::Color;
 pub use parsing_utils::*;
 pub use self::common_types::*;
 
@@ -43,8 +42,9 @@ INHERITED = set()
 
 pub mod longhands {
     pub use super::*;
+    pub use std;
 
-    <%def name="longhand(name, inherited=False)">
+    <%def name="longhand(name, inherited=False, no_super=False)">
     <%
         property = Longhand(name)
         LONGHANDS.append(property)
@@ -52,7 +52,9 @@ pub mod longhands {
             INHERITED.add(name)
     %>
         pub mod ${property.ident} {
-            use super::*;
+            % if not no_super:
+                use super::*;
+            % endif
             ${caller.body()}
         }
     </%def>
@@ -68,11 +70,14 @@ pub mod longhands {
 
     <%def name="single_keyword(name, values, inherited=False)">
         <%self:single_component_value name="${name}" inherited="${inherited}">
+            // The computed value is the same as the specified value.
+            pub use to_computed_value = std::util::id;
             pub enum SpecifiedValue {
                 % for value in values.split():
                     ${to_rust_ident(value)},
                 % endfor
             }
+            pub type ComputedValue = SpecifiedValue;
             pub fn from_component_value(v: &ComponentValue) -> Option<SpecifiedValue> {
                 do get_ident_lower(v).chain |keyword| {
                     match keyword.as_slice() {
@@ -86,30 +91,26 @@ pub mod longhands {
         </%self:single_component_value>
     </%def>
 
-    <%def name="predefined_function(name, result_type, function, inherited=False)">
+    <%def name="predefined_type(name, type, parse_method='parse', inherited=False)">
         <%self:longhand name="${name}" inherited="${inherited}">
-            pub type SpecifiedValue = ${result_type};
+            pub use to_computed_value = super::super::common_types::computed::compute_${type};
+            pub type SpecifiedValue = specified::${type};
+            pub type ComputedValue = computed::${type};
             pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
-                one_component_value(input).chain(${function})
+                one_component_value(input).chain(specified::${type}::${parse_method})
             }
         </%self:longhand>
-    </%def>
-
-    <%def name="predefined_type(name, type, inherited=False)">
-        ${predefined_function(name, type, type + "::parse", inherited)}
     </%def>
 
 
     // CSS 2.1, Section 8 - Box model
 
     % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_type("margin-" + side, "specified::LengthOrPercentageOrAuto")}
+        ${predefined_type("margin-" + side, "LengthOrPercentageOrAuto")}
     % endfor
 
     % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_function("padding-" + side,
-            "specified::LengthOrPercentage",
-            "specified::LengthOrPercentage::parse_non_negative")}
+        ${predefined_type("padding-" + side, "LengthOrPercentage", "parse_non_negative")}
     % endfor
 
     % for side in ["top", "right", "bottom", "left"]:
@@ -119,9 +120,11 @@ pub mod longhands {
     // dotted dashed double groove ridge insed outset hidden
     ${single_keyword("border-top-style", "none solid")}
     % for side in ["right", "bottom", "left"]:
-        ${predefined_function("border-%s-style" % side,
-            "border_top_style::SpecifiedValue",
-            "border_top_style::from_component_value")}
+        <%self:longhand name="border-${side}-style", no_super="True">
+            pub use super::border_top_style::*;
+            pub type SpecifiedValue = super::border_top_style::SpecifiedValue;
+            pub type ComputedValue = super::border_top_style::ComputedValue;
+        </%self:longhand>
     % endfor
 
     pub fn parse_border_width(component_value: &ComponentValue) -> Option<specified::Length> {
@@ -136,7 +139,18 @@ pub mod longhands {
         }
     }
     % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_function("border-%s-width" % side, "specified::Length", "parse_border_width")}
+        <%self:longhand name="border-${side}-width">
+            pub type SpecifiedValue = specified::Length;
+            pub type ComputedValue = computed::Length;
+            pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
+                one_component_value(input).chain(parse_border_width)
+            }
+            pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                                  -> ComputedValue {
+                if context.has_border_${side} { computed::compute_Length(value, context) }
+                else { computed::Length(0) }
+            }
+        </%self:longhand>
     % endfor
 
     // CSS 2.1, Section 9 - Visual formatting model
@@ -154,33 +168,42 @@ pub mod longhands {
 
     // CSS 2.1, Section 10 - Visual formatting model details
 
-    ${predefined_function("width",
-        "specified::LengthOrPercentageOrAuto",
-        "specified::LengthOrPercentageOrAuto::parse_non_negative")}
-    ${predefined_function("height",
-        "specified::LengthOrPercentageOrAuto",
-        "specified::LengthOrPercentageOrAuto::parse_non_negative")}
+    ${predefined_type("width", "LengthOrPercentageOrAuto", "parse_non_negative")}
+    ${predefined_type("height", "LengthOrPercentageOrAuto", "parse_non_negative")}
 
     <%self:single_component_value name="line-height">
         pub enum SpecifiedValue {
-            Normal,
-            Length(specified::Length),
-            Percentage(Float),
-            Number(Float),
+            SpecifiedNormal,
+            SpecifiedLength(specified::Length),
+            SpecifiedNumber(Float),
+            // percentage are the same as em.
         }
         /// normal | <number> | <length> | <percentage>
         pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
             match input {
                 &ast::Number(ref value) if value.value >= 0.
-                => Some(Number(value.value)),
+                => Some(SpecifiedNumber(value.value)),
                 &ast::Percentage(ref value) if value.value >= 0.
-                => Some(Percentage(value.value)),
+                => Some(SpecifiedLength(specified::Em(value.value))),
                 &Dimension(ref value, ref unit) if value.value >= 0.
                 => specified::Length::parse_dimension(value.value, unit.as_slice())
-                    .map_move(Length),
-                &Ident(ref value) if value.eq_ignore_ascii_case("auto")
-                => Some(Normal),
+                    .map_move(SpecifiedLength),
+                &Ident(ref value) if value.eq_ignore_ascii_case("normal")
+                => Some(SpecifiedNormal),
                 _ => None,
+            }
+        }
+        pub enum ComputedValue {
+            Normal,
+            Length(computed::Length),
+            Number(Float),
+        }
+        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                              -> ComputedValue {
+            match value {
+                SpecifiedNormal => Normal,
+                SpecifiedLength(value) => Length(computed::compute_Length(value, context)),
+                SpecifiedNumber(value) => Number(value),
             }
         }
     </%self:single_component_value>
@@ -199,6 +222,7 @@ pub mod longhands {
     // CSS 2.1, Section 15 - Fonts
 
     <%self:longhand name="font-family" inherited="True">
+        pub use to_computed_value = std::util::id;
         enum FontFamily {
             FamilyName(~str),
             // Generic
@@ -209,6 +233,7 @@ pub mod longhands {
 //            Monospace,
         }
         pub type SpecifiedValue = ~[FontFamily];
+        pub type ComputedValue = SpecifiedValue;
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
         /// TODO: <generic-familiy>
@@ -275,52 +300,83 @@ pub mod longhands {
         pub enum SpecifiedValue {
             Bolder,
             Lighther,
-            Weight100,
-            Weight200,
-            Weight300,
-            Weight400,
-            Weight500,
-            Weight600,
-            Weight700,
-            Weight800,
-            Weight900,
+            % for weight in range(100, 901, 100):
+                SpecifiedWeight${weight},
+            % endfor
         }
         /// normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
         pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
             match input {
                 &Ident(ref value) => match value.to_ascii_lower().as_slice() {
-                    "bold" => Some(Weight700),
-                    "normal" => Some(Weight400),
+                    "bold" => Some(SpecifiedWeight700),
+                    "normal" => Some(SpecifiedWeight400),
                     "bolder" => Some(Bolder),
                     "lighter" => Some(Lighther),
                     _ => None,
                 },
                 &Number(ref value) => match value.int_value {
-                    Some(100) => Some(Weight100),
-                    Some(200) => Some(Weight200),
-                    Some(300) => Some(Weight300),
-                    Some(400) => Some(Weight400),
-                    Some(500) => Some(Weight500),
-                    Some(600) => Some(Weight600),
-                    Some(700) => Some(Weight700),
-                    Some(800) => Some(Weight800),
-                    Some(900) => Some(Weight900),
+                    Some(100) => Some(SpecifiedWeight100),
+                    Some(200) => Some(SpecifiedWeight200),
+                    Some(300) => Some(SpecifiedWeight300),
+                    Some(400) => Some(SpecifiedWeight400),
+                    Some(500) => Some(SpecifiedWeight500),
+                    Some(600) => Some(SpecifiedWeight600),
+                    Some(700) => Some(SpecifiedWeight700),
+                    Some(800) => Some(SpecifiedWeight800),
+                    Some(900) => Some(SpecifiedWeight900),
                     _ => None,
                 },
                 _ => None
             }
         }
+        pub enum ComputedValue {
+            % for weight in range(100, 901, 100):
+                Weight${weight},
+            % endfor
+        }
+        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                              -> ComputedValue {
+            match value {
+                % for weight in range(100, 901, 100):
+                    SpecifiedWeight${weight} => Weight${weight},
+                % endfor
+                Bolder => match context.font_weight {
+                    Weight100 => Weight400,
+                    Weight200 => Weight400,
+                    Weight300 => Weight400,
+                    Weight400 => Weight700,
+                    Weight500 => Weight700,
+                    Weight600 => Weight900,
+                    Weight700 => Weight900,
+                    Weight800 => Weight900,
+                    Weight900 => Weight900,
+                },
+                Lighther => match context.font_weight {
+                    Weight100 => Weight100,
+                    Weight200 => Weight100,
+                    Weight300 => Weight100,
+                    Weight400 => Weight100,
+                    Weight500 => Weight100,
+                    Weight600 => Weight400,
+                    Weight700 => Weight400,
+                    Weight800 => Weight700,
+                    Weight900 => Weight700,
+                },
+            }
+        }
     </%self:single_component_value>
 
     <%self:single_component_value name="font-size" inherited="True">
+        pub use to_computed_value = super::super::common_types::computed::compute_Length;
         pub type SpecifiedValue = specified::Length;  // Percentages are the same as em.
+        pub type ComputedValue = computed::Length;
         /// <length> | <percentage>
         /// TODO: support <absolute-size> and <relative-size>
         pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
             do specified::LengthOrPercentage::parse_non_negative(input).map_move |value| {
                 match value {
-                    specified::Length(value) => value,
-                    specified::Percentage(value) => specified::Em(value),
+                    specified::LP_Length(value) => value,
+                    specified::LP_Percentage(value) => specified::Em(value),
                 }
             }
         }
@@ -331,6 +387,7 @@ pub mod longhands {
     ${single_keyword("text-align", "left right center justify", inherited=True)}
 
     <%self:longhand name="text-decoration">
+        pub use to_computed_value = std::util::id;
         pub struct SpecifiedValue {
             underline: bool,
             overline: bool,
@@ -338,6 +395,7 @@ pub mod longhands {
             // 'blink' is accepted in the parser but ignored.
             // Just not blinking the text is a conforming implementation per CSS 2.1.
         }
+        pub type ComputedValue = SpecifiedValue;
         /// none | [ underline || overline || line-through || blink ]
         pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
             let mut result = SpecifiedValue {
@@ -424,18 +482,18 @@ pub mod shorthands {
 
     // TODO: other background-* properties
     <%self:shorthand name="background" sub_properties="background-color">
-        do one_component_value(input).chain(CSSColor::parse).map_move |color| {
+        do one_component_value(input).chain(specified::CSSColor::parse).map_move |color| {
             Longhands { background_color: Some(color) }
         }
     </%self:shorthand>
 
-    ${four_sides_shorthand("border-color", "border-%s-color", "CSSColor::parse")}
+    ${four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse")}
     ${four_sides_shorthand("border-style", "border-%s-style",
                            "border_top_style::from_component_value")}
     ${four_sides_shorthand("border-width", "border-%s-width", "parse_border_width")}
 
     pub fn parse_border(input: &[ComponentValue])
-                     -> Option<(Option<CSSColor>,
+                     -> Option<(Option<specified::CSSColor>,
                                 Option<border_top_style::SpecifiedValue>,
                                 Option<specified::Length>)> {
         let mut color = None;
@@ -444,7 +502,7 @@ pub mod shorthands {
         let mut any = false;
         for component_value in input.skip_whitespace() {
             if color.is_none() {
-                match CSSColor::parse(component_value) {
+                match specified::CSSColor::parse(component_value) {
                     Some(c) => { color = Some(c); any = true; loop },
                     None => ()
                 }

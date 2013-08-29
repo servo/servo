@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 pub type Float = f64;
 pub type Integer = i64;
 
@@ -11,6 +10,7 @@ pub mod specified {
     use std::ascii::StrAsciiExt;
     use cssparser::*;
     use super::{Integer, Float};
+    pub use CSSColor = cssparser::Color;
 
     pub enum Length {
         Au(Integer),  // application units
@@ -66,51 +66,54 @@ pub mod specified {
     }
 
     pub enum LengthOrPercentage {
-        Length(Length),
-        Percentage(Float),
+        LP_Length(Length),
+        LP_Percentage(Float),
     }
     impl LengthOrPercentage {
         fn parse_internal(input: &ComponentValue, negative_ok: bool)
                               -> Option<LengthOrPercentage> {
             match input {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
-                => Length::parse_dimension(value.value, unit.as_slice()).map_move(Length),
+                => Length::parse_dimension(value.value, unit.as_slice()).map_move(LP_Length),
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0.
-                => Some(Percentage(value.value)),
-                &Number(ref value) if value.value == 0. =>  Some(Length(Au(0))),
+                => Some(LP_Percentage(value.value)),
+                &Number(ref value) if value.value == 0. =>  Some(LP_Length(Au(0))),
                 _ => None
             }
         }
+        #[inline]
         pub fn parse(input: &ComponentValue) -> Option<LengthOrPercentage> {
             LengthOrPercentage::parse_internal(input, /* negative_ok = */ true)
         }
+        #[inline]
         pub fn parse_non_negative(input: &ComponentValue) -> Option<LengthOrPercentage> {
             LengthOrPercentage::parse_internal(input, /* negative_ok = */ false)
         }
     }
 
     pub enum LengthOrPercentageOrAuto {
-        Length_(Length),
-        Percentage_(Float),
-        Auto,
+        LPA_Length(Length),
+        LPA_Percentage(Float),
+        LPA_Auto,
     }
     impl LengthOrPercentageOrAuto {
-        #[inline]
         fn parse_internal(input: &ComponentValue, negative_ok: bool)
                      -> Option<LengthOrPercentageOrAuto> {
             match input {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
-                => Length::parse_dimension(value.value, unit.as_slice()).map_move(Length_),
+                => Length::parse_dimension(value.value, unit.as_slice()).map_move(LPA_Length),
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0.
-                => Some(Percentage_(value.value)),
-                &Number(ref value) if value.value == 0. => Some(Length_(Au(0))),
-                &Ident(ref value) if value.eq_ignore_ascii_case("auto") => Some(Auto),
+                => Some(LPA_Percentage(value.value)),
+                &Number(ref value) if value.value == 0. => Some(LPA_Length(Au(0))),
+                &Ident(ref value) if value.eq_ignore_ascii_case("auto") => Some(LPA_Auto),
                 _ => None
             }
         }
+        #[inline]
         pub fn parse(input: &ComponentValue) -> Option<LengthOrPercentageOrAuto> {
             LengthOrPercentageOrAuto::parse_internal(input, /* negative_ok = */ true)
         }
+        #[inline]
         pub fn parse_non_negative(input: &ComponentValue) -> Option<LengthOrPercentageOrAuto> {
             LengthOrPercentageOrAuto::parse_internal(input, /* negative_ok = */ false)
         }
@@ -118,22 +121,72 @@ pub mod specified {
 }
 
 pub mod computed {
+    use cssparser;
     use super::*;
-    struct Length(Integer);  // in application units
+    use super::super::longhands::font_weight;
+    pub struct Context {
+        current_color: cssparser::RGBA,
+        has_border_top: bool,
+        has_border_right: bool,
+        has_border_bottom: bool,
+        has_border_left: bool,
+        font_size: Length,
+        font_weight: font_weight::ComputedValue,
+        // TODO, as needed: root font size, viewport size, etc.
+    }
+    pub struct Length(Integer);  // in application units
     impl Length {
-        fn times(self, factor: Float) -> Length {
+        pub fn times(self, factor: Float) -> Length {
             Length(((*self as Float) * factor) as Integer)
         }
+    }
 
-        pub fn compute(parent_font_size: Length, value: specified::Length) -> Length {
-            match value {
-                specified::Au(value) => Length(value),
-                specified::Em(value) => parent_font_size.times(value),
-                specified::Ex(value) => {
-                    let x_height = 0.5;  // TODO: find that form the font
-                    parent_font_size.times(value * x_height)
-                },
-            }
+    pub fn compute_Length(value: specified::Length, context: &Context) -> Length {
+        match value {
+            specified::Au(value) => Length(value),
+            specified::Em(value) => context.font_size.times(value),
+            specified::Ex(value) => {
+                let x_height = 0.5;  // TODO: find that from the font
+                context.font_size.times(value * x_height)
+            },
+        }
+    }
+
+    pub enum LengthOrPercentage {
+        LP_Length(Length),
+        LP_Percentage(Float),
+    }
+    pub fn compute_LengthOrPercentage(value: specified::LengthOrPercentage, context: &Context)
+                                   -> LengthOrPercentage {
+        match value {
+            specified::LP_Length(value) => LP_Length(compute_Length(value, context)),
+            specified::LP_Percentage(value) => LP_Percentage(value),
+        }
+    }
+
+    pub enum LengthOrPercentageOrAuto {
+        LPA_Length(Length),
+        LPA_Percentage(Float),
+        LPA_Auto,
+    }
+    pub fn compute_LengthOrPercentageOrAuto(value: specified::LengthOrPercentageOrAuto,
+                                            context: &Context) -> LengthOrPercentageOrAuto {
+        match value {
+            specified::LPA_Length(value) => LPA_Length(compute_Length(value, context)),
+            specified::LPA_Percentage(value) => LPA_Percentage(value),
+            specified::LPA_Auto => LPA_Auto,
+        }
+    }
+
+    pub struct CSSColor {
+        rgba: cssparser::RGBA,
+        is_current_color: bool,  // For inheritance
+    }
+    pub fn compute_CSSColor(color: specified::CSSColor, context: &Context) -> CSSColor {
+        match color {
+            cssparser::RGBA(rgba) => CSSColor { rgba: rgba, is_current_color: false },
+            cssparser::CurrentColor => CSSColor { rgba: context.current_color,
+                                                  is_current_color: true },
         }
     }
 }
