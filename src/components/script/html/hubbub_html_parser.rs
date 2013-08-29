@@ -8,7 +8,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
 use dom::htmliframeelement::IFrameSize;
 use dom::htmlformelement::HTMLFormElement;
-use dom::node::{AbstractNode, Comment, Doctype, ElementNodeTypeId, Node, ScriptView};
+use dom::node::{AbstractNode, ElementNodeTypeId, Node, ScriptView};
 use dom::types::*;
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use js::jsapi::JSContext;
@@ -326,10 +326,10 @@ pub fn parse_html(cx: *JSContext,
                                 public_id: public_id,
                                 system_id: system_id,
                                 force_quirks: force_quirks } = doctype;
-            let node = @Doctype::new(name,
-                                     public_id,
-                                     system_id,
-                                     force_quirks);
+            let node = @DocumentType::new(name,
+                                          public_id,
+                                          system_id,
+                                          force_quirks);
             unsafe {
                 Node::as_abstract_node(cx, node).to_hubbub_node()
             }

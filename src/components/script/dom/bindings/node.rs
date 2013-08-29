@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::element;
-use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
 use dom::element::*;
@@ -64,7 +63,7 @@ pub fn init(compartment: @mut Compartment) {
 }
 
 macro_rules! generate_element(
-    ($name: ident) => ({
+    ($name: path) => ({
         let node: @mut $name = unsafe { cast::transmute(node.raw_object()) };
         node.wrap_object_shared(cx, ptr::null())
     })
@@ -130,12 +129,9 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLUListElementTypeId) => generate_element!(HTMLUListElement),
         ElementNodeTypeId(HTMLUnknownElementTypeId) => generate_element!(HTMLUnknownElement),
         ElementNodeTypeId(_) => element::create(cx, node).ptr,
-        CommentNodeTypeId |
-        DoctypeNodeTypeId => text::create(cx, node).ptr,
-        TextNodeTypeId => {
-            let node: @mut Text = unsafe { cast::transmute(node.raw_object()) };
-            node.wrap_object_shared(cx, ptr::null())
-        }
+        CommentNodeTypeId => generate_element!(Comment),
+        DoctypeNodeTypeId => generate_element!(DocumentType<ScriptView>),
+        TextNodeTypeId => generate_element!(Text)
      }
 }
 

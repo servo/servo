@@ -311,7 +311,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
 }
 
 pub macro_rules! generate_cacheable_wrapper(
-    ($name: ident, $wrap: path) => (
+    ($name: path, $wrap: path) => (
         impl CacheableWrapper for $name {
             fn get_wrappercache(&mut self) -> &mut WrapperCache {
                 self.parent.get_wrappercache()
@@ -326,7 +326,7 @@ pub macro_rules! generate_cacheable_wrapper(
 )
 
 pub macro_rules! generate_binding_object(
-    ($name: ident) => (
+    ($name: path) => (
         impl BindingObject for $name {
             fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
                 self.parent.GetParentObject(cx)
@@ -335,6 +335,12 @@ pub macro_rules! generate_binding_object(
     )
 )
 
+generate_cacheable_wrapper!(Comment, CommentBinding::Wrap)
+generate_binding_object!(Comment)
+generate_cacheable_wrapper!(DocumentType<ScriptView>, DocumentTypeBinding::Wrap)
+generate_binding_object!(DocumentType<ScriptView>)
+generate_cacheable_wrapper!(Text, TextBinding::Wrap)
+generate_binding_object!(Text)
 generate_cacheable_wrapper!(HTMLHeadElement, HTMLHeadElementBinding::Wrap)
 generate_binding_object!(HTMLHeadElement)
 generate_cacheable_wrapper!(HTMLAnchorElement, HTMLAnchorElementBinding::Wrap)
