@@ -2,13 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, ErrorResult, null_string, CacheableWrapper};
-use dom::bindings::utils::{BindingObject, WrapperCache};
-use dom::bindings::codegen::TextBinding;
+use dom::bindings::utils::{DOMString, ErrorResult, null_string};
 use dom::characterdata::CharacterData;
 use dom::node::{AbstractNode, ScriptView, Node, TextNodeTypeId};
 use dom::window::Window;
-use js::jsapi::{JSContext, JSObject};
 
 /// An HTML text node.
 pub struct Text {
@@ -34,22 +31,5 @@ impl Text {
 
     pub fn GetWholeText(&self, _rv: &mut ErrorResult) -> DOMString {
         null_string
-    }
-}
-
-impl CacheableWrapper for Text {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        self.parent.get_wrappercache()
-    }
-
-    fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
-        let mut unused = false;
-        TextBinding::Wrap(cx, scope, self, &mut unused)
-    }
-}
-
-impl BindingObject for Text {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
-        self.parent.GetParentObject(cx)
     }
 }

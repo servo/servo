@@ -26,7 +26,6 @@ pub mod dom {
     pub mod bindings {
         pub mod element;
         pub mod node;
-        pub mod text;
         pub mod utils;
         pub mod conversions;
         pub mod proxyhandler;
@@ -48,7 +47,9 @@ pub mod dom {
     pub mod characterdata;
     pub mod clientrect;
     pub mod clientrectlist;
+    pub mod comment;
     pub mod document;
+    pub mod documenttype;
     pub mod domparser;
     pub mod element;
     pub mod event;
@@ -87,11 +88,19 @@ pub mod dom {
     pub mod htmllinkelement;
     pub mod htmlmapelement;
     pub mod htmlmetaelement;
+    pub mod htmlmeterelement;
+    pub mod htmlmodelement;
+    pub mod htmlobjectelement;
     pub mod htmlolistelement;
+    pub mod htmloptgroupelement;
+    pub mod htmloptionelement;
+    pub mod htmloutputelement;
     pub mod htmlparagraphelement;
+    pub mod htmlparamelement;
     pub mod htmlprogresselement;
     pub mod htmlquoteelement;
     pub mod htmlscriptelement;
+    pub mod htmlselectelement;
     pub mod htmlspanelement;
     pub mod htmlsourceelement;
     pub mod htmlstyleelement;
@@ -105,6 +114,7 @@ pub mod dom {
     pub mod htmltimeelement;
     pub mod htmltitleelement;
     pub mod htmlulistelement;
+    pub mod htmlunknownelement;
     pub mod mouseevent;
     pub mod node;
     pub mod uievent;

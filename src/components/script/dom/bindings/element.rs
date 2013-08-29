@@ -311,7 +311,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> jsobj {
 }
 
 pub macro_rules! generate_cacheable_wrapper(
-    ($name: ident, $wrap: path) => (
+    ($name: path, $wrap: path) => (
         impl CacheableWrapper for $name {
             fn get_wrappercache(&mut self) -> &mut WrapperCache {
                 self.parent.get_wrappercache()
@@ -326,7 +326,7 @@ pub macro_rules! generate_cacheable_wrapper(
 )
 
 pub macro_rules! generate_binding_object(
-    ($name: ident) => (
+    ($name: path) => (
         impl BindingObject for $name {
             fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
                 self.parent.GetParentObject(cx)
@@ -335,6 +335,12 @@ pub macro_rules! generate_binding_object(
     )
 )
 
+generate_cacheable_wrapper!(Comment, CommentBinding::Wrap)
+generate_binding_object!(Comment)
+generate_cacheable_wrapper!(DocumentType<ScriptView>, DocumentTypeBinding::Wrap)
+generate_binding_object!(DocumentType<ScriptView>)
+generate_cacheable_wrapper!(Text, TextBinding::Wrap)
+generate_binding_object!(Text)
 generate_cacheable_wrapper!(HTMLHeadElement, HTMLHeadElementBinding::Wrap)
 generate_binding_object!(HTMLHeadElement)
 generate_cacheable_wrapper!(HTMLAnchorElement, HTMLAnchorElementBinding::Wrap)
@@ -393,16 +399,32 @@ generate_cacheable_wrapper!(HTMLMapElement, HTMLMapElementBinding::Wrap)
 generate_binding_object!(HTMLMapElement)
 generate_cacheable_wrapper!(HTMLMetaElement, HTMLMetaElementBinding::Wrap)
 generate_binding_object!(HTMLMetaElement)
+generate_cacheable_wrapper!(HTMLMeterElement, HTMLMeterElementBinding::Wrap)
+generate_binding_object!(HTMLMeterElement)
+generate_cacheable_wrapper!(HTMLModElement, HTMLModElementBinding::Wrap)
+generate_binding_object!(HTMLModElement)
+generate_cacheable_wrapper!(HTMLObjectElement, HTMLObjectElementBinding::Wrap)
+generate_binding_object!(HTMLObjectElement)
 generate_cacheable_wrapper!(HTMLOListElement, HTMLOListElementBinding::Wrap)
 generate_binding_object!(HTMLOListElement)
+generate_cacheable_wrapper!(HTMLOptGroupElement, HTMLOptGroupElementBinding::Wrap)
+generate_binding_object!(HTMLOptGroupElement)
+generate_cacheable_wrapper!(HTMLOptionElement, HTMLOptionElementBinding::Wrap)
+generate_binding_object!(HTMLOptionElement)
+generate_cacheable_wrapper!(HTMLOutputElement, HTMLOutputElementBinding::Wrap)
+generate_binding_object!(HTMLOutputElement)
 generate_cacheable_wrapper!(HTMLParagraphElement, HTMLParagraphElementBinding::Wrap)
 generate_binding_object!(HTMLParagraphElement)
+generate_cacheable_wrapper!(HTMLParamElement, HTMLParamElementBinding::Wrap)
+generate_binding_object!(HTMLParamElement)
 generate_cacheable_wrapper!(HTMLProgressElement, HTMLProgressElementBinding::Wrap)
 generate_binding_object!(HTMLProgressElement)
 generate_cacheable_wrapper!(HTMLQuoteElement, HTMLQuoteElementBinding::Wrap)
 generate_binding_object!(HTMLQuoteElement)
 generate_cacheable_wrapper!(HTMLScriptElement, HTMLScriptElementBinding::Wrap)
 generate_binding_object!(HTMLScriptElement)
+generate_cacheable_wrapper!(HTMLSelectElement, HTMLSelectElementBinding::Wrap)
+generate_binding_object!(HTMLSelectElement)
 generate_cacheable_wrapper!(HTMLSourceElement, HTMLSourceElementBinding::Wrap)
 generate_binding_object!(HTMLSourceElement)
 generate_cacheable_wrapper!(HTMLSpanElement, HTMLSpanElementBinding::Wrap)
@@ -429,3 +451,5 @@ generate_cacheable_wrapper!(HTMLTimeElement, HTMLTimeElementBinding::Wrap)
 generate_binding_object!(HTMLTimeElement)
 generate_cacheable_wrapper!(HTMLUListElement, HTMLUListElementBinding::Wrap)
 generate_binding_object!(HTMLUListElement)
+generate_cacheable_wrapper!(HTMLUnknownElement, HTMLUnknownElementBinding::Wrap)
+generate_binding_object!(HTMLUnknownElement)

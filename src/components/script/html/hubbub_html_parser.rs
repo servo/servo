@@ -2,37 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::element::{HTMLElementTypeId,
-                   HTMLAnchorElementTypeId, HTMLAppletElementTypeId, 
-                   HTMLAreaElementTypeId,  HTMLBaseElementTypeId, HTMLBodyElementTypeId,
-                   HTMLBRElementTypeId, HTMLButtonElementTypeId, HTMLCanvasElementTypeId,
-                   HTMLDataElementTypeId, HTMLDataListElementTypeId, HTMLDivElementTypeId,
-                   HTMLDirectoryElementTypeId, HTMLDListElementTypeId, HTMLEmbedElementTypeId,
-                   HTMLFieldSetElementTypeId, HTMLFontElementTypeId, HTMLFormElementTypeId,
-                   HTMLFrameElementTypeId, HTMLFrameSetElementTypeId, HTMLHRElementTypeId,
-                   HTMLHeadElementTypeId, HTMLHtmlElementTypeId, HTMLImageElementTypeId,
-                   HTMLIframeElementTypeId, HTMLInputElementTypeId, HTMLLinkElementTypeId,
-                   HTMLLIElementTypeId, HTMLMapElementTypeId, HTMLMetaElementTypeId,
-                   HTMLOListElementTypeId, HTMLOptionElementTypeId,
-                   HTMLParagraphElementTypeId, HTMLProgressElementTypeId,
-                   HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
-                   HTMLSelectElementTypeId, HTMLSmallElementTypeId, HTMLSourceElementTypeId,
-                   HTMLSpanElementTypeId, HTMLStyleElementTypeId, HTMLTableSectionElementTypeId,
-                   HTMLTableCellElementTypeId, HTMLTableElementTypeId,
-                   HTMLTableCaptionElementTypeId, HTMLTableColElementTypeId,
-                   HTMLTableRowElementTypeId, HTMLTextAreaElementTypeId,
-                   HTMLTimeElementTypeId, HTMLTitleElementTypeId, HTMLUListElementTypeId,
-                   UnknownElementTypeId};
-use dom::element::{HTMLOptionElement, HTMLSelectElement, HTMLSmallElement};
-use dom::element::{HTMLHeadingElementTypeId};
+use dom::bindings::utils::str;
+use dom::element::*;
+use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
 use dom::htmliframeelement::IFrameSize;
 use dom::htmlformelement::HTMLFormElement;
+use dom::node::{AbstractNode, ElementNodeTypeId, Node, ScriptView};
 use dom::types::*;
-use dom::element::Element;
-use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, Comment, Doctype, ElementNodeTypeId, Node, ScriptView};
-use dom::bindings::utils::str;
 use html::cssparse::{InlineProvenance, StylesheetProvenance, UrlProvenance, spawn_css_parser};
 use js::jsapi::JSContext;
 use newcss::stylesheet::Stylesheet;
@@ -235,9 +212,15 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "li",      HTMLLIElementTypeId, HTMLLIElement, []);
     handle_element!(cx, tag, "map",     HTMLMapElementTypeId, HTMLMapElement, []);
     handle_element!(cx, tag, "meta",    HTMLMetaElementTypeId, HTMLMetaElement, []);
+    handle_element!(cx, tag, "meter",   HTMLMeterElementTypeId, HTMLMeterElement, []);
+    handle_element!(cx, tag, "mod",     HTMLModElementTypeId, HTMLModElement, []);
+    handle_element!(cx, tag, "object",  HTMLObjectElementTypeId, HTMLObjectElement, []);
     handle_element!(cx, tag, "ol",      HTMLOListElementTypeId, HTMLOListElement, []);
     handle_element!(cx, tag, "option",  HTMLOptionElementTypeId, HTMLOptionElement, []);
+    handle_element!(cx, tag, "optgroup",HTMLOptGroupElementTypeId, HTMLOptGroupElement, []);
+    handle_element!(cx, tag, "output",  HTMLOutputElementTypeId, HTMLOutputElement, []);
     handle_element!(cx, tag, "p",       HTMLParagraphElementTypeId, HTMLParagraphElement, []);
+    handle_element!(cx, tag, "param",   HTMLParamElementTypeId, HTMLParamElement, []);
     handle_element!(cx, tag, "progress",HTMLProgressElementTypeId, HTMLProgressElement, []);
     handle_element!(cx, tag, "q",       HTMLQuoteElementTypeId, HTMLQuoteElement, []);
     handle_element!(cx, tag, "script",  HTMLScriptElementTypeId, HTMLScriptElement, []);
@@ -275,7 +258,10 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_htmlelement!(cx, tag, "section", HTMLElementTypeId, HTMLElement);
 
     unsafe {
-        Node::as_abstract_node(cx, @Element::new(UnknownElementTypeId, tag.to_str()))
+        let element = @HTMLUnknownElement {
+            parent: HTMLElement::new(HTMLUnknownElementTypeId, tag.to_str())
+        };
+        Node::as_abstract_node(cx, element)
     }
 }
 
@@ -340,10 +326,10 @@ pub fn parse_html(cx: *JSContext,
                                 public_id: public_id,
                                 system_id: system_id,
                                 force_quirks: force_quirks } = doctype;
-            let node = @Doctype::new(name,
-                                     public_id,
-                                     system_id,
-                                     force_quirks);
+            let node = @DocumentType::new(name,
+                                          public_id,
+                                          system_id,
+                                          force_quirks);
             unsafe {
                 Node::as_abstract_node(cx, node).to_hubbub_node()
             }

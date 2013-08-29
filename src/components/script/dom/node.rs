@@ -8,7 +8,6 @@ use dom::bindings::node;
 use dom::bindings::utils::{WrapperCache, DOMString, null_string, ErrorResult};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box};
 use dom::bindings;
-use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
@@ -96,50 +95,6 @@ pub enum NodeTypeId {
     CommentNodeTypeId,
     ElementNodeTypeId(ElementTypeId),
     TextNodeTypeId,
-}
-
-//
-// Basic node types
-//
-
-/// The `DOCTYPE` tag.
-pub struct Doctype<View> {
-    parent: Node<View>,
-    name: ~str,
-    public_id: Option<~str>,
-    system_id: Option<~str>,
-    force_quirks: bool
-}
-
-impl Doctype<ScriptView> {
-    /// Creates a new `DOCTYPE` tag.
-    pub fn new(name: ~str,
-               public_id: Option<~str>,
-               system_id: Option<~str>,
-               force_quirks: bool)
-            -> Doctype<ScriptView> {
-        Doctype {
-            parent: Node::new(DoctypeNodeTypeId),
-            name: name,
-            public_id: public_id,
-            system_id: system_id,
-            force_quirks: force_quirks,
-        }
-    }
-}
-
-/// An HTML comment.
-pub struct Comment {
-    parent: CharacterData,
-}
-
-impl Comment {
-    /// Creates a new HTML comment.
-    pub fn new(text: ~str) -> Comment {
-        Comment {
-            parent: CharacterData::new(CommentNodeTypeId, text)
-        }
-    }
 }
 
 impl<View> Clone for AbstractNode<View> {
@@ -655,7 +610,6 @@ impl VoidPtrLike for AbstractNode<LayoutView> {
 pub fn define_bindings(compartment: @mut Compartment) {
     bindings::node::init(compartment);
     bindings::element::init(compartment);
-    bindings::text::init(compartment);
     bindings::utils::initialize_global(compartment.global_obj.ptr);
     bindings::codegen::RegisterBindings::Register(compartment);
 }

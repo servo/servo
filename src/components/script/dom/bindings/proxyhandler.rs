@@ -44,8 +44,8 @@ pub extern fn getPropertyDescriptor(cx: *JSContext, proxy: *JSObject, id: jsid,
   }
 }
 
-pub extern fn defineProperty(cx: *JSContext, proxy: *JSObject, id: jsid,
-                          desc: *JSPropertyDescriptor) -> JSBool {
+pub fn defineProperty_(cx: *JSContext, proxy: *JSObject, id: jsid,
+                       desc: *JSPropertyDescriptor) -> JSBool {
     unsafe {
         if ((*desc).attrs & JSPROP_GETTER) != 0 && (*desc).setter == JS_StrictPropertyStub {
             /*return JS_ReportErrorFlagsAndNumber(cx,
@@ -64,6 +64,11 @@ pub extern fn defineProperty(cx: *JSContext, proxy: *JSObject, id: jsid,
         return JS_DefinePropertyById(cx, expando, id, (*desc).value, (*desc).getter,
                                      (*desc).setter, (*desc).attrs);
     }
+}
+
+pub extern fn defineProperty(cx: *JSContext, proxy: *JSObject, id: jsid,
+                             desc: *JSPropertyDescriptor) -> JSBool {
+    defineProperty_(cx, proxy, id, desc)
 }
 
 pub fn _obj_toString(cx: *JSContext, className: *libc::c_char) -> *JSString {
