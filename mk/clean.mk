@@ -48,3 +48,4 @@ clean-script:
 clean-servo: clean-gfx clean-util clean-net clean-script clean-msg
 	@$(call E, "cleaning servo")
 	$(Q)rm -f servo servo-test libservo*.so
+	$(Q)cd $(BINDINGS_SRC) && rm -f *.pkl
