@@ -92,7 +92,7 @@ class CastableObjectUnwrapper():
 
     codeOnFailure is the code to run if unwrapping fails.
     """
-    def __init__(self, descriptor, source, target, codeOnFailure):
+    def __init__(self, descriptor, source, target, codeOnFailure, isOptional=False):
         assert descriptor.castable
 
         self.substitution = { "type" : descriptor.nativeType,
@@ -101,7 +101,8 @@ class CastableObjectUnwrapper():
                               "protoID" : "PrototypeList::id::" + descriptor.name + " as uint",
                               "source" : source,
                               "target" : target,
-                              "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define() }
+                              "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define(),
+                              "unwrapped_val" : "Some(val)" if isOptional else "val" }
         if descriptor.hasXPConnectImpls:
             # We don't use xpc_qsUnwrapThis because it will always throw on
             # unwrap failure, whereas we want to control whether we throw or
@@ -123,7 +124,7 @@ class CastableObjectUnwrapper():
     def __str__(self):
         return string.Template(
 """match unwrap_object(${source}, ${prototype}, ${depth}) {
-  Ok(val) => ${target} = val,
+  Ok(val) => ${target} = ${unwrapped_val},
   Err(()) => {
     ${codeOnFailure}
   }
@@ -141,10 +142,11 @@ class FailureFatalCastableObjectUnwrapper(CastableObjectUnwrapper):
     """
     As CastableObjectUnwrapper, but defaulting to throwing if unwrapping fails
     """
-    def __init__(self, descriptor, source, target):
+    def __init__(self, descriptor, source, target, isOptional):
         CastableObjectUnwrapper.__init__(self, descriptor, source, target,
                                          "return 0; //XXXjdm return Throw<%s>(cx, rv);" %
-                                         toStringBool(not descriptor.workers))
+                                         toStringBool(not descriptor.workers),
+                                         isOptional)
 
 class CGThing():
     """
@@ -229,9 +231,10 @@ class CGMethodCall(CGThing):
                     argCountCases.append(
                         CGCase(str(argCount), None, True))
                 else:
-                    pass
+                    sigIndex = signatures.index(signature)
                     argCountCases.append(
-                        CGCase(str(argCount), getPerSignatureCall(signature)))
+                        CGCase(str(argCount), getPerSignatureCall(signature,
+                                                                  signatureIndex=sigIndex)))
                 continue
 
             distinguishingIndex = method.distinguishingIndexForArgCount(argCount)
@@ -302,7 +305,7 @@ class CGMethodCall(CGThing):
                 # above.
                 caseBody.append(CGGeneric("if JSVAL_IS_OBJECT(%s) {" %
                                           (distinguishingArg)))
-                for sig in interfacesSigs:
+                for idx, sig in enumerate(interfacesSigs):
                     caseBody.append(CGIndenter(CGGeneric("loop {")));
                     type = sig[1][distinguishingIndex].type
 
@@ -326,7 +329,7 @@ class CGMethodCall(CGThing):
                     # distinguishingIndex + 1, since we already converted
                     # distinguishingIndex.
                     caseBody.append(CGIndenter(
-                            getPerSignatureCall(sig, distinguishingIndex + 1), 4))
+                            getPerSignatureCall(sig, distinguishingIndex + 1, idx), 4))
                     caseBody.append(CGIndenter(CGGeneric("}")))
 
                 caseBody.append(CGGeneric("}"))
@@ -926,12 +929,14 @@ for (uint32_t i = 0; i < length; ++i) {
                         descriptor,
                         "JSVAL_TO_OBJECT(${val})",
                         "${declName}",
-                        failureCode))
+                        failureCode,
+                        isOptional or argIsPointer or type.nullable()))
             else:
                 templateBody += str(FailureFatalCastableObjectUnwrapper(
                         descriptor,
                         "JSVAL_TO_OBJECT(${val})",
-                        "${declName}"))
+                        "${declName}",
+                        isOptional or argIsPointer or type.nullable()))
         elif descriptor.interface.isCallback() and False:
             #XXXjdm unfinished
             templateBody += str(CallbackObjectUnwrapper(
@@ -3532,8 +3537,8 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             templateValues = {
                 "declName": argument.identifier.name,
                 "holderName": argument.identifier.name + "_holder",
-                "val": "desc->value",
-                "valPtr": "&desc->value"
+                "val": "(*desc).value",
+                "valPtr": "&(*desc).value"
             }
             self.cgRoot.prepend(instantiateJSToNativeConversionTemplate(template, templateValues))
         elif operation.isGetter():
@@ -3636,7 +3641,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 if not 'IndexedCreator' in self.descriptor.operations:
                     # FIXME need to check that this is a 'supported property index'
                     assert False
-                setOrIndexedGet += ("    FillPropertyDescriptor(&mut *desc, proxy, JSVAL_VOID, false);\n" +
+                setOrIndexedGet += ("    FillPropertyDescriptor(&mut *desc, proxy, false);\n" +
                                     "    return 1;\n" +
                                     "  }\n")
             if self.descriptor.operations['NamedSetter']:
@@ -3644,7 +3649,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 if not 'NamedCreator' in self.descriptor.operations:
                     # FIXME need to check that this is a 'supported property name'
                     assert False
-                setOrIndexedGet += ("    FillPropertyDescriptor(&mut *desc, proxy, JSVAL_VOID, false);\n" +
+                setOrIndexedGet += ("    FillPropertyDescriptor(&mut *desc, proxy, false);\n" +
                                     "    return 1;\n" +
                                     "  }\n")
             setOrIndexedGet += "}"
@@ -3710,7 +3715,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         args = [Argument('*JSContext', 'cx'), Argument('*JSObject', 'proxy'),
                 Argument('jsid', 'id'),
                 Argument('*JSPropertyDescriptor', 'desc')]
-        CGAbstractExternMethod.__init__(self, descriptor, "defineProperty", "bool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, "defineProperty", "JSBool", args)
         self.descriptor = descriptor
     def getBody(self):
         set = ""
@@ -3722,10 +3727,10 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
             set += ("let index = GetArrayIndexFromId(cx, id);\n" +
                     "if index.is_some() {\n" +
                     "  let index = index.unwrap();\n" +
-                    "  let this: *%s = UnwrapProxy(proxy);\n" +
+                    "  let this: *mut %s = UnwrapProxy(proxy) as *mut %s;\n" +
                     CGIndenter(CGProxyIndexedSetter(self.descriptor)).define() +
                     "  return 1;\n" +
-                    "}\n") % (self.descriptor.concreteType)
+                    "}\n") % (self.descriptor.concreteType, self.descriptor.concreteType)
         elif self.descriptor.operations['IndexedGetter']:
             set += ("if GetArrayIndexFromId(cx, id).is_some() {\n" +
                     "  return 0;\n" +
@@ -3771,7 +3776,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "  }\n" +
                     "  return 1;\n"
                     "}\n") % (self.descriptor.concreteType, self.descriptor.name)
-        return set + """return proxyhandler::defineProperty(%s);""" % ", ".join(a.name for a in self.args)
+        return set + """return proxyhandler::defineProperty_(%s);""" % ", ".join(a.name for a in self.args)
 
     def definition_body(self):
         return self.getBody()
@@ -4618,6 +4623,7 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::codegen::*', #XXXjdm
                           'script_task::{JSPageInfo, page_from_context}',
                           'dom::bindings::utils::EnumEntry',
+                          'dom::bindings::proxyhandler',
                           'dom::bindings::proxyhandler::*',
                           'dom::document::AbstractDocument',
                           'dom::node::{AbstractNode, ScriptView}',

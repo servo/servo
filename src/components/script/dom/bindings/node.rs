@@ -3,28 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::element;
-use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
-use dom::element::{HTMLElementTypeId,
-                   HTMLAnchorElementTypeId, HTMLAppletElementTypeId,
-                   HTMLAreaElementTypeId, HTMLBaseElementTypeId,
-                   HTMLBodyElementTypeId, HTMLBRElementTypeId, HTMLButtonElementTypeId,
-                   HTMLCanvasElementTypeId, HTMLDataElementTypeId, HTMLDataListElementTypeId,
-                   HTMLDirectoryElementTypeId, HTMLDivElementTypeId, HTMLEmbedElementTypeId,
-                   HTMLFieldSetElementTypeId, HTMLFontElementTypeId, HTMLFrameElementTypeId,
-                   HTMLFrameSetElementTypeId, HTMLHeadElementTypeId, HTMLHeadingElementTypeId,
-                   HTMLHRElementTypeId, HTMLHtmlElementTypeId, HTMLIframeElementTypeId,
-                   HTMLImageElementTypeId, HTMLInputElementTypeId, HTMLLIElementTypeId,
-                   HTMLLinkElementTypeId, HTMLMapElementTypeId, HTMLMetaElementTypeId,
-                   HTMLOListElementTypeId, HTMLParagraphElementTypeId,
-                   HTMLProgressElementTypeId, HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
-                   HTMLSpanElementTypeId, HTMLSourceElementTypeId,
-                   HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
-                   HTMLTableElementTypeId, HTMLTableCaptionElementTypeId, HTMLTableCellElementTypeId,
-                   HTMLTableColElementTypeId,
-                   HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId, HTMLTimeElementTypeId,
-                   HTMLTitleElementTypeId, HTMLUListElementTypeId, HTMLDListElementTypeId};
+use dom::element::*;
 use dom::types::*;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId, ScriptView};
@@ -82,7 +63,7 @@ pub fn init(compartment: @mut Compartment) {
 }
 
 macro_rules! generate_element(
-    ($name: ident) => ({
+    ($name: path) => ({
         let node: @mut $name = unsafe { cast::transmute(node.raw_object()) };
         node.wrap_object_shared(cx, ptr::null())
     })
@@ -120,11 +101,19 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLLinkElementTypeId) => generate_element!(HTMLLinkElement),
         ElementNodeTypeId(HTMLMapElementTypeId) => generate_element!(HTMLMapElement),
         ElementNodeTypeId(HTMLMetaElementTypeId) => generate_element!(HTMLMetaElement),
+        ElementNodeTypeId(HTMLMeterElementTypeId) => generate_element!(HTMLMeterElement),
+        ElementNodeTypeId(HTMLModElementTypeId) => generate_element!(HTMLModElement),
+        ElementNodeTypeId(HTMLObjectElementTypeId) => generate_element!(HTMLObjectElement),
         ElementNodeTypeId(HTMLOListElementTypeId) => generate_element!(HTMLOListElement),
+        ElementNodeTypeId(HTMLOptGroupElementTypeId) => generate_element!(HTMLOptGroupElement),
+        ElementNodeTypeId(HTMLOptionElementTypeId) => generate_element!(HTMLOptionElement),
+        ElementNodeTypeId(HTMLOutputElementTypeId) => generate_element!(HTMLOutputElement),
         ElementNodeTypeId(HTMLParagraphElementTypeId) => generate_element!(HTMLParagraphElement),
+        ElementNodeTypeId(HTMLParamElementTypeId) => generate_element!(HTMLParamElement),
         ElementNodeTypeId(HTMLProgressElementTypeId) => generate_element!(HTMLProgressElement),
         ElementNodeTypeId(HTMLQuoteElementTypeId) => generate_element!(HTMLQuoteElement),
         ElementNodeTypeId(HTMLScriptElementTypeId) => generate_element!(HTMLScriptElement),
+        ElementNodeTypeId(HTMLSelectElementTypeId) => generate_element!(HTMLSelectElement),
         ElementNodeTypeId(HTMLSourceElementTypeId) => generate_element!(HTMLSourceElement),
         ElementNodeTypeId(HTMLSpanElementTypeId) => generate_element!(HTMLSpanElement),
         ElementNodeTypeId(HTMLStyleElementTypeId) => generate_element!(HTMLStyleElement),
@@ -138,13 +127,11 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLTimeElementTypeId) => generate_element!(HTMLTimeElement),
         ElementNodeTypeId(HTMLTitleElementTypeId) => generate_element!(HTMLTitleElement),
         ElementNodeTypeId(HTMLUListElementTypeId) => generate_element!(HTMLUListElement),
+        ElementNodeTypeId(HTMLUnknownElementTypeId) => generate_element!(HTMLUnknownElement),
         ElementNodeTypeId(_) => element::create(cx, node).ptr,
-        CommentNodeTypeId |
-        DoctypeNodeTypeId => text::create(cx, node).ptr,
-        TextNodeTypeId => {
-            let node: @mut Text = unsafe { cast::transmute(node.raw_object()) };
-            node.wrap_object_shared(cx, ptr::null())
-        }
+        CommentNodeTypeId => generate_element!(Comment),
+        DoctypeNodeTypeId => generate_element!(DocumentType<ScriptView>),
+        TextNodeTypeId => generate_element!(Text)
      }
 }
 
