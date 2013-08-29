@@ -88,6 +88,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLEmbedElementTypeId) => generate_element!(HTMLEmbedElement),
         ElementNodeTypeId(HTMLFieldSetElementTypeId) => generate_element!(HTMLFieldSetElement),
         ElementNodeTypeId(HTMLFontElementTypeId) => generate_element!(HTMLFontElement),
+        ElementNodeTypeId(HTMLFormElementTypeId) => generate_element!(HTMLFormElement),
         ElementNodeTypeId(HTMLFrameElementTypeId) => generate_element!(HTMLFrameElement),
         ElementNodeTypeId(HTMLFrameSetElementTypeId) => generate_element!(HTMLFrameSetElement),
         ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
