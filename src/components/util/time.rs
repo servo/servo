@@ -52,14 +52,6 @@ pub enum ProfilerCategory {
     // FIXME(rust#8803): workaround for lack of CTFE function on enum types to return length
     NumBuckets,
 }
-type ProfilerBuckets = TreeMap<ProfilerCategory, ~[float]>;
-
-// back end of the profiler that handles data aggregation and performance metrics
-pub struct Profiler {
-    port: Port<ProfilerMsg>,
-    buckets: ProfilerBuckets,
-    last_msg: Option<ProfilerMsg>,
-}
 
 impl ProfilerCategory {
     // convenience function to not have to cast every time
@@ -97,6 +89,15 @@ impl ProfilerCategory {
         };
         fmt!("%s%?", padding, self)
     }
+}
+
+type ProfilerBuckets = TreeMap<ProfilerCategory, ~[float]>;
+
+// back end of the profiler that handles data aggregation and performance metrics
+pub struct Profiler {
+    port: Port<ProfilerMsg>,
+    buckets: ProfilerBuckets,
+    last_msg: Option<ProfilerMsg>,
 }
 
 impl Profiler {
