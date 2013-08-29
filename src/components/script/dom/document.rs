@@ -5,13 +5,15 @@
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, DerivedWrapper};
-use dom::element::{Element, HTMLHtmlElement};
+use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::event::Event;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId, Text};
+use dom::htmlhtmlelement::HTMLHtmlElement;
+use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId};
+use dom::text::Text;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 use dom::htmltitleelement::HTMLTitleElement;

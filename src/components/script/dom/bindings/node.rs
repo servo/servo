@@ -3,74 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::element;
-use dom::bindings::text;
 use dom::bindings::utils;
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, DerivedWrapper};
-use dom::element::{HTMLElementTypeId,
-                   HTMLAnchorElementTypeId, HTMLAppletElementTypeId,
-                   HTMLAreaElementTypeId, HTMLBaseElementTypeId,
-                   HTMLBodyElementTypeId, HTMLBRElementTypeId, HTMLButtonElementTypeId,
-                   HTMLCanvasElementTypeId, HTMLDataElementTypeId, HTMLDataListElementTypeId,
-                   HTMLDirectoryElementTypeId, HTMLDivElementTypeId, HTMLEmbedElementTypeId,
-                   HTMLFieldSetElementTypeId, HTMLFontElementTypeId, HTMLFrameElementTypeId,
-                   HTMLFrameSetElementTypeId, HTMLHeadElementTypeId, HTMLHeadingElementTypeId,
-                   HTMLHRElementTypeId, HTMLHtmlElementTypeId, HTMLIframeElementTypeId,
-                   HTMLImageElementTypeId, HTMLInputElementTypeId, HTMLLIElementTypeId,
-                   HTMLLinkElementTypeId, HTMLMapElementTypeId, HTMLMetaElementTypeId,
-                   HTMLOListElementTypeId, HTMLParagraphElementTypeId,
-                   HTMLProgressElementTypeId, HTMLQuoteElementTypeId, HTMLScriptElementTypeId,
-                   HTMLSpanElementTypeId, HTMLSourceElementTypeId,
-                   HTMLStyleElementTypeId, HTMLTextAreaElementTypeId,
-                   HTMLTableElementTypeId, HTMLTableCaptionElementTypeId, HTMLTableCellElementTypeId,
-                   HTMLTableColElementTypeId,
-                   HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId, HTMLTimeElementTypeId,
-                   HTMLTitleElementTypeId, HTMLUListElementTypeId, HTMLDListElementTypeId};
-use dom::element::{HTMLHeadElement,HTMLHtmlElement, HTMLDivElement, HTMLParagraphElement, HTMLSpanElement};
-use dom::htmlelement::HTMLElement;
-use dom::htmlanchorelement::HTMLAnchorElement;
-use dom::htmlappletelement::HTMLAppletElement;
-use dom::htmlareaelement::HTMLAreaElement;
-use dom::htmlbaseelement::HTMLBaseElement;
-use dom::htmlbodyelement::HTMLBodyElement;
-use dom::htmlbuttonelement::HTMLButtonElement;
-use dom::htmlhrelement::HTMLHRElement;
-use dom::htmlbrelement::HTMLBRElement;
-use dom::htmlcanvaselement::HTMLCanvasElement;
-use dom::htmldataelement::HTMLDataElement;
-use dom::htmldatalistelement::HTMLDataListElement;
-use dom::htmldirectoryelement::HTMLDirectoryElement;
-use dom::htmldlistelement::HTMLDListElement;
-use dom::htmlembedelement::HTMLEmbedElement;
-use dom::htmlfieldsetelement::HTMLFieldSetElement;
-use dom::htmlfontelement::HTMLFontElement;
-use dom::htmlframeelement::HTMLFrameElement;
-use dom::htmlframesetelement::HTMLFrameSetElement;
-use dom::htmlheadingelement::HTMLHeadingElement;
-use dom::htmliframeelement::HTMLIFrameElement;
-use dom::htmlimageelement::HTMLImageElement;
-use dom::htmlinputelement::HTMLInputElement;
-use dom::htmllielement::HTMLLIElement;
-use dom::htmllinkelement::HTMLLinkElement;
-use dom::htmlmapelement::HTMLMapElement;
-use dom::htmlmetaelement::HTMLMetaElement;
-use dom::htmlolistelement::HTMLOListElement;
-use dom::htmlprogresselement::HTMLProgressElement;
-use dom::htmlquoteelement::HTMLQuoteElement;
-use dom::htmlscriptelement::HTMLScriptElement;
-use dom::htmlsourceelement::HTMLSourceElement;
-use dom::htmlstyleelement::HTMLStyleElement;
-use dom::htmltableelement::HTMLTableElement;
-use dom::htmltablecaptionelement::HTMLTableCaptionElement;
-use dom::htmltablecellelement::HTMLTableCellElement;
-use dom::htmltablecolelement::HTMLTableColElement;
-use dom::htmltablerowelement::HTMLTableRowElement;
-use dom::htmltablesectionelement::HTMLTableSectionElement;
-use dom::htmltextareaelement::HTMLTextAreaElement;
-use dom::htmltimeelement::HTMLTimeElement;
-use dom::htmltitleelement::HTMLTitleElement;
-use dom::htmlulistelement::HTMLUListElement;
+use dom::element::*;
+use dom::types::*;
 use dom::node::{AbstractNode, Node, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
-use dom::node::{DoctypeNodeTypeId, ScriptView, Text};
+use dom::node::{DoctypeNodeTypeId, ScriptView};
 
 use std::cast;
 use std::libc::c_uint;
@@ -126,7 +64,7 @@ pub fn init(compartment: @mut Compartment) {
 }
 
 macro_rules! generate_element(
-    ($name: ident) => ({
+    ($name: path) => ({
         let node: @mut $name = unsafe { cast::transmute(node.raw_object()) };
         node.wrap_object_shared(cx, ptr::null())
     })
@@ -151,6 +89,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLEmbedElementTypeId) => generate_element!(HTMLEmbedElement),
         ElementNodeTypeId(HTMLFieldSetElementTypeId) => generate_element!(HTMLFieldSetElement),
         ElementNodeTypeId(HTMLFontElementTypeId) => generate_element!(HTMLFontElement),
+        ElementNodeTypeId(HTMLFormElementTypeId) => generate_element!(HTMLFormElement),
         ElementNodeTypeId(HTMLFrameElementTypeId) => generate_element!(HTMLFrameElement),
         ElementNodeTypeId(HTMLFrameSetElementTypeId) => generate_element!(HTMLFrameSetElement),
         ElementNodeTypeId(HTMLHeadElementTypeId) => generate_element!(HTMLHeadElement),
@@ -164,11 +103,19 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLLinkElementTypeId) => generate_element!(HTMLLinkElement),
         ElementNodeTypeId(HTMLMapElementTypeId) => generate_element!(HTMLMapElement),
         ElementNodeTypeId(HTMLMetaElementTypeId) => generate_element!(HTMLMetaElement),
+        ElementNodeTypeId(HTMLMeterElementTypeId) => generate_element!(HTMLMeterElement),
+        ElementNodeTypeId(HTMLModElementTypeId) => generate_element!(HTMLModElement),
+        ElementNodeTypeId(HTMLObjectElementTypeId) => generate_element!(HTMLObjectElement),
         ElementNodeTypeId(HTMLOListElementTypeId) => generate_element!(HTMLOListElement),
+        ElementNodeTypeId(HTMLOptGroupElementTypeId) => generate_element!(HTMLOptGroupElement),
+        ElementNodeTypeId(HTMLOptionElementTypeId) => generate_element!(HTMLOptionElement),
+        ElementNodeTypeId(HTMLOutputElementTypeId) => generate_element!(HTMLOutputElement),
         ElementNodeTypeId(HTMLParagraphElementTypeId) => generate_element!(HTMLParagraphElement),
+        ElementNodeTypeId(HTMLParamElementTypeId) => generate_element!(HTMLParamElement),
         ElementNodeTypeId(HTMLProgressElementTypeId) => generate_element!(HTMLProgressElement),
         ElementNodeTypeId(HTMLQuoteElementTypeId) => generate_element!(HTMLQuoteElement),
         ElementNodeTypeId(HTMLScriptElementTypeId) => generate_element!(HTMLScriptElement),
+        ElementNodeTypeId(HTMLSelectElementTypeId) => generate_element!(HTMLSelectElement),
         ElementNodeTypeId(HTMLSourceElementTypeId) => generate_element!(HTMLSourceElement),
         ElementNodeTypeId(HTMLSpanElementTypeId) => generate_element!(HTMLSpanElement),
         ElementNodeTypeId(HTMLStyleElementTypeId) => generate_element!(HTMLStyleElement),
@@ -182,13 +129,11 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLTimeElementTypeId) => generate_element!(HTMLTimeElement),
         ElementNodeTypeId(HTMLTitleElementTypeId) => generate_element!(HTMLTitleElement),
         ElementNodeTypeId(HTMLUListElementTypeId) => generate_element!(HTMLUListElement),
+        ElementNodeTypeId(HTMLUnknownElementTypeId) => generate_element!(HTMLUnknownElement),
         ElementNodeTypeId(_) => element::create(cx, node).ptr,
-        CommentNodeTypeId |
-        DoctypeNodeTypeId => text::create(cx, node).ptr,
-        TextNodeTypeId => {
-            let node: @mut Text = unsafe { cast::transmute(node.raw_object()) };
-            node.wrap_object_shared(cx, ptr::null())
-        }
+        CommentNodeTypeId => generate_element!(Comment),
+        DoctypeNodeTypeId => generate_element!(DocumentType<ScriptView>),
+        TextNodeTypeId => generate_element!(Text)
      }
 }
 

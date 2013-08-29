@@ -566,6 +566,7 @@ impl ScriptTask {
             }
             page.layout_chan.send(layout_interface::ExitMsg);
         }
+        self.compositor.close();
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document

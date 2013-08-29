@@ -67,6 +67,10 @@ impl ScriptListener for CompositorChan {
         self.chan.send(InvalidateRect(id, rect));
     }
 
+    fn close(&self) {
+        self.chan.send(Exit);
+    }
+
 }
 
 /// Implementation of the abstract `RenderListener` interface.

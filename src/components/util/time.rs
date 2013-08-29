@@ -8,6 +8,7 @@ use std::cell::Cell;
 use std::comm::{Port, SharedChan};
 use extra::sort::tim_sort;
 use std::iterator::AdditiveIterator;
+use extra::treemap::TreeMap;
 
 // front-end representation of the profiler used to communicate with the profiler
 #[deriving(Clone)]
@@ -26,7 +27,14 @@ impl ProfilerChan {
     }
 }
 
-#[deriving(Eq, Clone)]
+pub enum ProfilerMsg {
+    // Normal message used for reporting time
+    TimeMsg(ProfilerCategory, float),
+    // Message used to force print the profiling metrics
+    PrintMsg,
+}
+
+#[deriving(Eq, Clone, TotalEq, TotalOrd)]
 pub enum ProfilerCategory {
     CompositingCategory,
     LayoutQueryCategory,
@@ -41,63 +49,34 @@ pub enum ProfilerCategory {
     RenderingDrawingCategory,
     RenderingPrepBuffCategory,
     RenderingCategory,
-    // hackish but helps prevent errors when adding new categories
-    NUM_BUCKETS,
-}
-// FIXME(#5873) this should be initialized by a NUM_BUCKETS cast,
-static BUCKETS: uint = 13;
-type ProfilerBuckets = [(ProfilerCategory, ~[float]), ..BUCKETS];
-
-pub enum ProfilerMsg {
-    // Normal message used for reporting time
-    TimeMsg(ProfilerCategory, float),
-    // Message used to force print the profiling metrics
-    PrintMsg,
-}
-
-// back end of the profiler that handles data aggregation and performance metrics
-pub struct Profiler {
-    port: Port<ProfilerMsg>,
-    buckets: ProfilerBuckets,
-    last_msg: Option<ProfilerMsg>,
+    // FIXME(rust#8803): workaround for lack of CTFE function on enum types to return length
+    NumBuckets,
 }
 
 impl ProfilerCategory {
     // convenience function to not have to cast every time
     pub fn num_buckets() -> uint {
-        NUM_BUCKETS as uint
+        NumBuckets as uint
     }
 
     // enumeration of all ProfilerCategory types
-    // TODO(tkuehn): is there a better way to ensure proper order of categories?
     fn empty_buckets() -> ProfilerBuckets {
-        let buckets = [
-            (CompositingCategory, ~[]),
-            (LayoutQueryCategory, ~[]),
-            (LayoutPerformCategory, ~[]),
-            (LayoutAuxInitCategory, ~[]),
-            (LayoutSelectorMatchCategory, ~[]),
-            (LayoutTreeBuilderCategory, ~[]),
-            (LayoutMainCategory, ~[]),
-            (LayoutShapingCategory, ~[]),
-            (LayoutDispListBuildCategory, ~[]),
-            (GfxRegenAvailableFontsCategory, ~[]),
-            (RenderingDrawingCategory, ~[]),
-            (RenderingPrepBuffCategory, ~[]),
-            (RenderingCategory, ~[]),
-        ];
+        let mut buckets = TreeMap::new();
+        buckets.insert(CompositingCategory, ~[]);
+        buckets.insert(LayoutQueryCategory, ~[]);
+        buckets.insert(LayoutPerformCategory, ~[]);
+        buckets.insert(LayoutAuxInitCategory, ~[]);
+        buckets.insert(LayoutSelectorMatchCategory, ~[]);
+        buckets.insert(LayoutTreeBuilderCategory, ~[]);
+        buckets.insert(LayoutMainCategory, ~[]);
+        buckets.insert(LayoutShapingCategory, ~[]);
+        buckets.insert(LayoutDispListBuildCategory, ~[]);
+        buckets.insert(GfxRegenAvailableFontsCategory, ~[]);
+        buckets.insert(RenderingDrawingCategory, ~[]);
+        buckets.insert(RenderingPrepBuffCategory, ~[]);
+        buckets.insert(RenderingCategory, ~[]);
 
-        ProfilerCategory::check_order(&buckets);
         buckets
-    }
-
-    // ensure that the order of the buckets matches the order of the enum categories
-    fn check_order(vec: &ProfilerBuckets) {
-        for &(category, _) in vec.iter() {
-            if category != vec[category as uint].first() {
-                fail!("Enum category does not match bucket index. This is a bug.");
-            }
-        }
     }
 
     // some categories are subcategories of LayoutPerformCategory
@@ -110,6 +89,15 @@ impl ProfilerCategory {
         };
         fmt!("%s%?", padding, self)
     }
+}
+
+type ProfilerBuckets = TreeMap<ProfilerCategory, ~[float]>;
+
+// back end of the profiler that handles data aggregation and performance metrics
+pub struct Profiler {
+    port: Port<ProfilerMsg>,
+    buckets: ProfilerBuckets,
+    last_msg: Option<ProfilerMsg>,
 }
 
 impl Profiler {
@@ -141,14 +129,11 @@ impl Profiler {
 
     fn handle_msg(&mut self, msg: ProfilerMsg) {
         match msg {
-            TimeMsg(category, t) => match self.buckets[category as uint] {
-                //TODO(tkuehn): would be nice to have tuple.second_mut()
-                (_, ref mut data) => data.push(t),
-            },
+            TimeMsg(category, t) => self.buckets.find_mut(&category).unwrap().push(t),
             PrintMsg => match self.last_msg {
                 // only print if more data has arrived since the last printout
                 Some(TimeMsg(*)) => self.print_buckets(),
-                _ => {}
+                _ => ()
             },
         };
         self.last_msg = Some(msg);
@@ -158,11 +143,10 @@ impl Profiler {
         println(fmt!("%31s %15s %15s %15s %15s %15s",
                          "_category_", "_mean (ms)_", "_median (ms)_",
                          "_min (ms)_", "_max (ms)_", "_bucket size_"));
-        for bucket in self.buckets.mut_iter() {
-            let (category, data) = match *bucket {
-                (category, ref mut data) => (category, data),
-            };
-            tim_sort(*data);
+        for (category, data) in self.buckets.iter() {
+            // FIXME(XXX): TreeMap currently lacks mut_iter()
+            let mut data = data.clone();
+            tim_sort(data);
             let data_len = data.len();
             if data_len > 0 {
                 let (mean, median, &min, &max) =
@@ -202,4 +186,12 @@ pub fn time<T>(msg: &str, callback: &fn() -> T) -> T{
     return val;
 }
 
-
+#[cfg(test)]
+mod test {
+    // ensure that the order of the buckets matches the order of the enum categories
+    #[test]
+    fn check_order() {
+        let buckets = ProfilerCategory::empty_buckets();
+        assert!(buckets.len() == NumBuckets as uint);
+    }
+}

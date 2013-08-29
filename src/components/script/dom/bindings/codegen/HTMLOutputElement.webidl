@@ -4,41 +4,27 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://www.whatwg.org/specs/web-apps/current-work/#the-button-element
+ * http://www.whatwg.org/specs/web-apps/current-work/#the-output-element
+ *
  * © Copyright 2004-2011 Apple Computer, Inc., Mozilla Foundation, and
  * Opera Software ASA. You are granted a license to use, reproduce
  * and create derivative works of this document.
  */
 
-// FIXME: servo#707
-//interface HTMLFormElement;
-
-// http://www.whatwg.org/specs/web-apps/current-work/#the-button-element
-interface HTMLButtonElement : HTMLElement {
-  [SetterThrows, Pure]
-           attribute boolean autofocus;
-  [SetterThrows, Pure]
-           attribute boolean disabled;
-  [Pure]
+// http://www.whatwg.org/specs/web-apps/current-work/#the-output-element
+interface HTMLOutputElement : HTMLElement {
+  /*[PutForwards=value, Constant]
+    readonly attribute DOMSettableTokenList htmlFor;*/
   readonly attribute HTMLFormElement? form;
   [SetterThrows, Pure]
-           attribute DOMString formAction;
-  [SetterThrows, Pure]
-           attribute DOMString formEnctype;
-  [SetterThrows, Pure]
-           attribute DOMString formMethod;
-  [SetterThrows, Pure]
-           attribute boolean formNoValidate;
-  [SetterThrows, Pure]
-           attribute DOMString formTarget;
-  [SetterThrows, Pure]
            attribute DOMString name;
+
+  [Constant]
+  readonly attribute DOMString type;
   [SetterThrows, Pure]
-           attribute DOMString type;
+           attribute DOMString defaultValue;
   [SetterThrows, Pure]
            attribute DOMString value;
-// Not yet implemented:
-//           attribute HTMLMenuElement? menu;
 
   readonly attribute boolean willValidate;
   readonly attribute ValidityState validity;
@@ -46,6 +32,6 @@ interface HTMLButtonElement : HTMLElement {
   boolean checkValidity();
   void setCustomValidity(DOMString error);
 
-// Not yet implemented:
+// Not yet implemented (bug 556743).
 //  readonly attribute NodeList labels;
 };
