@@ -84,6 +84,7 @@ pub mod dom {
     pub mod htmliframeelement;
     pub mod htmlimageelement;
     pub mod htmlinputelement;
+    pub mod htmllabelelement;
     pub mod htmllegendelement;
     pub mod htmllielement;
     pub mod htmllinkelement;
