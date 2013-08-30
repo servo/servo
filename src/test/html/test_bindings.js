@@ -145,7 +145,7 @@ window.alert(tags[0]);
 window.alert(tags[0].tagName);
 
 window.alert("HTMLElement:");
-let tagList = ["section", "aside", "b", "i"];
+let tagList = ["section", "aside", "b", "i", "small"];
 for (let i = 0, l = tagList.length; i < l; ++i) {
   let tags = document.getElementsByTagName(tagList[i]);
   window.alert(tags);
