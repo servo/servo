@@ -4,9 +4,9 @@
 
 use std::ascii::StrAsciiExt;
 use cssparser::*;
-use errors::{ErrorLoggerIterator, log_css_error};
-use stylesheets::{CSSRule, CSSMediaRule, parse_style_rule, parse_nested_at_rule};
-use namespaces::NamespaceMap;
+use style::errors::{ErrorLoggerIterator, log_css_error};
+use style::stylesheets::{CSSRule, CSSMediaRule, parse_style_rule, parse_nested_at_rule};
+use style::namespaces::NamespaceMap;
 
 
 pub struct MediaRule {

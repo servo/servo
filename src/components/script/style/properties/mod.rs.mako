@@ -5,10 +5,10 @@
 // This file is a Mako template: http://www.makotemplates.org/
 
 use std::ascii::StrAsciiExt;
-use errors::{ErrorLoggerIterator, log_css_error};
 pub use std::iterator;
 pub use cssparser::*;
-pub use parsing_utils::*;
+pub use style::errors::{ErrorLoggerIterator, log_css_error};
+pub use style::parsing_utils::*;
 pub use self::common_types::*;
 
 pub mod common_types;
