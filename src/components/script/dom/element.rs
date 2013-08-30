@@ -6,7 +6,6 @@
 
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
-use dom::htmlelement::HTMLElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
@@ -91,7 +90,6 @@ pub enum ElementTypeId {
     HTMLQuoteElementTypeId,
     HTMLScriptElementTypeId,
     HTMLSelectElementTypeId,
-    HTMLSmallElementTypeId,
     HTMLSourceElementTypeId,
     HTMLSpanElementTypeId,
     HTMLStyleElementTypeId,
@@ -107,12 +105,6 @@ pub enum ElementTypeId {
     HTMLUListElementTypeId,
     HTMLUnknownElementTypeId,
 }
-
-//
-// Regular old elements
-//
-
-pub struct HTMLSmallElement     { parent: HTMLElement }
 
 //
 // Element methods
