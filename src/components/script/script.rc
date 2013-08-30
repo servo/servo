@@ -117,6 +117,7 @@ pub mod dom {
     pub mod htmltextareaelement;
     pub mod htmltimeelement;
     pub mod htmltitleelement;
+    pub mod htmltrackelement;
     pub mod htmlulistelement;
     pub mod htmlunknownelement;
     pub mod mouseevent;

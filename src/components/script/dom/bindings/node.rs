@@ -82,6 +82,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
         ElementNodeTypeId(HTMLTextAreaElementTypeId) => generate_element!(HTMLTextAreaElement),
         ElementNodeTypeId(HTMLTimeElementTypeId) => generate_element!(HTMLTimeElement),
         ElementNodeTypeId(HTMLTitleElementTypeId) => generate_element!(HTMLTitleElement),
+        ElementNodeTypeId(HTMLTrackElementTypeId) => generate_element!(HTMLTrackElement),
         ElementNodeTypeId(HTMLUListElementTypeId) => generate_element!(HTMLUListElement),
         ElementNodeTypeId(HTMLUnknownElementTypeId) => generate_element!(HTMLUnknownElement),
         CommentNodeTypeId => generate_element!(Comment),

@@ -106,6 +106,7 @@ pub enum ElementTypeId {
     HTMLTextAreaElementTypeId,
     HTMLTimeElementTypeId,
     HTMLTitleElementTypeId,
+    HTMLTrackElementTypeId,
     HTMLUListElementTypeId,
     HTMLUnknownElementTypeId,
 }

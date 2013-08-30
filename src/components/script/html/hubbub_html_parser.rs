@@ -242,6 +242,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "time",    HTMLTimeElementTypeId, HTMLTimeElement, []);
     handle_element!(cx, tag, "title",   HTMLTitleElementTypeId, HTMLTitleElement, []);
     handle_element!(cx, tag, "tr",      HTMLTableRowElementTypeId, HTMLTableRowElement, []);
+    handle_element!(cx, tag, "track",   HTMLTrackElementTypeId, HTMLTrackElement, []);
     handle_element!(cx, tag, "ul",      HTMLUListElementTypeId, HTMLUListElement, []);
 
     handle_element!(cx, tag, "img", HTMLImageElementTypeId, HTMLImageElement, [(image: None)]);
