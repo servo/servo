@@ -91,7 +91,6 @@ pub enum ElementTypeId {
     HTMLQuoteElementTypeId,
     HTMLScriptElementTypeId,
     HTMLSelectElementTypeId,
-    HTMLSmallElementTypeId,
     HTMLSourceElementTypeId,
     HTMLSpanElementTypeId,
     HTMLStyleElementTypeId,
@@ -107,12 +106,6 @@ pub enum ElementTypeId {
     HTMLUListElementTypeId,
     HTMLUnknownElementTypeId,
 }
-
-//
-// Regular old elements
-//
-
-pub struct HTMLSmallElement     { parent: HTMLElement }
 
 //
 // Element methods

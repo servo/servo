@@ -225,7 +225,6 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "q",       HTMLQuoteElementTypeId, HTMLQuoteElement, []);
     handle_element!(cx, tag, "script",  HTMLScriptElementTypeId, HTMLScriptElement, []);
     handle_element!(cx, tag, "select",  HTMLSelectElementTypeId, HTMLSelectElement, []);
-    handle_element!(cx, tag, "small",   HTMLSmallElementTypeId, HTMLSmallElement, []);
     handle_element!(cx, tag, "source",  HTMLSourceElementTypeId, HTMLSourceElement, []);
     handle_element!(cx, tag, "span",    HTMLSpanElementTypeId, HTMLSpanElement, []);
     handle_element!(cx, tag, "style",   HTMLStyleElementTypeId, HTMLStyleElement, []);
@@ -256,6 +255,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_htmlelement!(cx, tag, "b",       HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, tag, "i",       HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, tag, "section", HTMLElementTypeId, HTMLElement);
+    handle_htmlelement!(cx, tag, "small",   HTMLElementTypeId, HTMLElement);
 
     unsafe {
         let element = @HTMLUnknownElement {
