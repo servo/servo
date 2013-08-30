@@ -122,6 +122,8 @@ pub mod specified {
 
 pub mod computed {
     use cssparser;
+    pub use CSSColor = cssparser::Color;
+    pub use compute_CSSColor = std::util::id;
     use super::*;
     use super::super::longhands::font_weight;
     pub struct Context {
@@ -175,18 +177,6 @@ pub mod computed {
             specified::LPA_Length(value) => LPA_Length(compute_Length(value, context)),
             specified::LPA_Percentage(value) => LPA_Percentage(value),
             specified::LPA_Auto => LPA_Auto,
-        }
-    }
-
-    pub struct CSSColor {
-        rgba: cssparser::RGBA,
-        is_current_color: bool,  // For inheritance
-    }
-    pub fn compute_CSSColor(color: specified::CSSColor, context: &Context) -> CSSColor {
-        match color {
-            cssparser::RGBA(rgba) => CSSColor { rgba: rgba, is_current_color: false },
-            cssparser::CurrentColor => CSSColor { rgba: context.current_color,
-                                                  is_current_color: true },
         }
     }
 }
