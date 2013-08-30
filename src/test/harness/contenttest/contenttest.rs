@@ -54,8 +54,9 @@ fn test_options(config: Config) -> TestOpts {
         run_ignored: false,
         run_tests: true,
         run_benchmarks: false,
-        save_results: None,
-        compare_results: None,
+        ratchet_metrics: None,
+        ratchet_noise_percent: None,
+        save_metrics: None,
         logfile: None
     }
 }
@@ -84,7 +85,7 @@ fn run_test(file: ~str) {
     let out = str::from_bytes(res.output);
     io::print(out);
     let lines: ~[&str] = out.split_iter('\n').collect();
-    for lines.iter().advance |&line| {
+    for &line in lines.iter() {
         if line.contains("TEST-UNEXPECTED-FAIL") {
             fail!(line);
         }
