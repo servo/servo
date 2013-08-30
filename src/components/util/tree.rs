@@ -9,13 +9,19 @@
 // and use its default methods.
 macro_rules! get(
     ($node:expr, $fun:ident) => (
-        TreeNodeRef::$fun::<Node,Self>($node)
+        {
+            let val: Option<Self> = TreeNodeRef::<Node>::$fun($node);
+            val
+        }
     )
 )
 
 macro_rules! set(
     ($node:expr, $fun:ident, $val:expr) => (
-        TreeNodeRef::$fun::<Node,Self>($node, $val)
+        {
+            let val: Option<Self> = $val;
+            TreeNodeRef::<Node>::$fun($node, val)
+        }
     )
 )
 
@@ -31,7 +37,7 @@ impl<Node, Ref: TreeNodeRef<Node>> Iterator<Ref> for ChildIterator<Ref> {
 
         // FIXME: Do we need two clones here?
         let x = self.current.get_ref().clone();
-        self.current = x.with_base(|n| TreeNodeRef::next_sibling::<Node, Ref>(n));
+        self.current = x.with_base(|n| TreeNodeRef::<Node>::next_sibling(n));
         Some(x.clone())
     }
 }
@@ -246,51 +252,51 @@ fn gather<Node, Ref: TreeNodeRef<Node>>(cur: &Ref, refs: &mut ~[Ref],
 pub trait TreeNode<Ref: TreeNodeRef<Self>> {
     /// Returns the parent of this node.
     fn parent_node(&self) -> Option<Ref> {
-        TreeNodeRef::parent_node::<Self,Ref>(self)
+        TreeNodeRef::<Self>::parent_node(self)
     }
 
     /// Returns the first child of this node.
     fn first_child(&self) -> Option<Ref> {
-        TreeNodeRef::first_child::<Self,Ref>(self)
+        TreeNodeRef::<Self>::first_child(self)
     }
 
     /// Returns the last child of this node.
     fn last_child(&self) -> Option<Ref> {
-        TreeNodeRef::last_child::<Self,Ref>(self)
+        TreeNodeRef::<Self>::last_child(self)
     }
 
     /// Returns the previous sibling of this node.
     fn prev_sibling(&self) -> Option<Ref> {
-        TreeNodeRef::prev_sibling::<Self,Ref>(self)
+        TreeNodeRef::<Self>::prev_sibling(self)
     }
 
     /// Returns the next sibling of this node.
     fn next_sibling(&self) -> Option<Ref> {
-        TreeNodeRef::next_sibling::<Self,Ref>(self)
+        TreeNodeRef::<Self>::next_sibling(self)
     }
 
     /// Sets the parent of this node.
     fn set_parent_node(&mut self, new_parent: Option<Ref>) {
-        TreeNodeRef::set_parent_node::<Self,Ref>(self, new_parent)
+        TreeNodeRef::<Self>::set_parent_node(self, new_parent)
     }
 
     /// Sets the first child of this node.
     fn set_first_child(&mut self, new_first_child: Option<Ref>) {
-        TreeNodeRef::set_first_child::<Self,Ref>(self, new_first_child)
+        TreeNodeRef::<Self>::set_first_child(self, new_first_child)
     }
 
     /// Sets the last child of this node.
     fn set_last_child(&mut self, new_last_child: Option<Ref>) {
-        TreeNodeRef::set_last_child::<Self,Ref>(self, new_last_child)
+        TreeNodeRef::<Self>::set_last_child(self, new_last_child)
     }
 
     /// Sets the previous sibling of this node.
     fn set_prev_sibling(&mut self, new_prev_sibling: Option<Ref>) {
-        TreeNodeRef::set_prev_sibling::<Self,Ref>(self, new_prev_sibling)
+        TreeNodeRef::<Self>::set_prev_sibling(self, new_prev_sibling)
     }
 
     /// Sets the next sibling of this node.
     fn set_next_sibling(&mut self, new_next_sibling: Option<Ref>) {
-        TreeNodeRef::set_next_sibling::<Self,Ref>(self, new_next_sibling)
+        TreeNodeRef::<Self>::set_next_sibling(self, new_next_sibling)
     }
 }
