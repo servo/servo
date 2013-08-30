@@ -337,14 +337,26 @@ fi
 
 # Split target triple
 split_triple "${CFG_TARGET_TRIPLES}" TARGET_CPUTYPE TARGET_VENDOR TARGET_OSTYPE
+
 # Set target os and cpu type
 os_type CFG_OSTYPE ${TARGET_OSTYPE}
 cpu_type CFG_CPUTYPE ${TARGET_CPUTYPE}
+
+# probe before updating PATH so we don't get ndk-toolchain stuff
+probe_need CFG_GIT         git
+probe_need CFG_PYTHON2     python2 python2.7 python
+export PYTHON=${CFG_PYTHON2}
+echo "exporting python = ${CFG_PYTHON2}"
+# Spidermonkey requires autoconf 2.13 exactly
+probe_need CFG_AUTOCONF213 autoconf213  \
+                           autoconf2.13 \
+                           autoconf-2.13
 
 step_msg "looking for build programs"
 case ${TARGET_OSTYPE} in
     android)
         CFG_PATH="${CFG_ANDROID_CROSS_PATH}/bin":$PATH
+        OLD_PATH=$PATH
         export PATH=${CFG_PATH}
 
         probe CFG_CC               arm-linux-androideabi-gcc
@@ -352,6 +364,8 @@ case ${TARGET_OSTYPE} in
         probe CFG_LD               arm-linux-androideabi-ld
         probe CFG_AR               arm-linux-androideabi-ar
         probe CFG_RANLIB	       arm-linux-androideabi-ranlib
+
+        export PATH=${OLD_PATH}
         CFG_RUSTC_FLAGS="--target=${CFG_TARGET_TRIPLES} --android-cross-path=${CFG_ANDROID_CROSS_PATH}"
         ;;
     *)
@@ -365,13 +379,7 @@ case ${TARGET_OSTYPE} in
         ;;
 esac
 
-probe_need CFG_GIT         git
-probe_need CFG_PYTHON2     python2 python2.7 python
 probe CFG_CLANG            clang++
-# Spidermonkey requires autoconf 2.13 exactly
-probe_need CFG_AUTOCONF213 autoconf213  \
-                           autoconf2.13 \
-                           autoconf-2.13
 
 CFG_BUILD_DIR="${CFG_BUILD_HOME}${CFG_TARGET_TRIPLES}/"
 make_dir "${CFG_BUILD_DIR}"
@@ -442,36 +450,21 @@ step_msg "running submodule autoconf scripts"
 msg "configuring src/mozjs"
 
 AUTOCONF213_M4_MACROS="$(dirname ${CFG_AUTOCONF213})/../share/$(basename ${CFG_AUTOCONF213})/"
+
 # Run the SpiderMonkey autoconf using autoconf 2.13
 (cd ${CFG_SRC_DIR}src/support/spidermonkey/mozjs/js/src && "${CFG_AUTOCONF213}" -l "${AUTOCONF213_M4_MACROS}") || exit $?
+
 if [ $CFG_OSTYPE = "linux-androideabi" ]
 then
     msg "configuring src/libexpat"
     (cd ${CFG_SRC_DIR}src/platform/android/libexpat/expat && sh "buildconf.sh") || exit $?
+    ## expat is missing install-sh and other tools and doesn't use automake
+    ## which is what creates it. use the ones from spidermonkey
+    for name in install-sh config.sub config.guess
+    do
+        cp ${CFG_SRC_DIR}src/support/spidermonkey/mozjs/js/src/build/autoconf/${name} ${CFG_SRC_DIR}src/platform/android/libexpat/expat/conftools/
+    done
 fi
-# Pixman and cairo require some care to autoconf correctly for our in-tree build.
-# The normal autogen.sh files mostly just run autoreconfig but we need more fine control
-
-if [ $CFG_OSTYPE = "apple-darwin" ]
-then
-    # pkg-config is installed in a different place on mac (via homebrew? not sure)
-    # and the way to set this seems to be calling aclocal by hand (instead of via autoreconf)
-    if [ -d "/usr/local/share/aclocal" ]
-    then
-        OSX_PKG_CONFIG_M4_MACROS="-I/usr/local/share/aclocal"
-    fi
-    if [ -d "/usr/share/aclocal" ]
-    then
-        OSX_PKG_CONFIG_M4_MACROS="-I/usr/share/aclocal"
-    fi
-    LIBTOOLIZE=glibtoolize
-else
-    OSX_PKG_CONFIG_M4_MACROS=""
-    LIBTOOLIZE=libtoolize
-fi
-
-AUTOCMD="${LIBTOOLIZE} && autoconf && autoheader && automake --add-missing --copy --force"
-# Copied from cairo's autogen.sh. Build fails without
 
 CFG_SUBMODULES="\
     support/alert/rust-alert \
@@ -621,6 +614,11 @@ fi
 export CFLAGS="${CFLAGS} -fPIC"
 export LDFLAGS="${CFLAGS} -fPIC"
 
+if [ $CFG_BUILD_OSTYPE = "apple-darwin" ]
+then
+  export LIBTOOLIZE=glibtoolize
+fi
+
 # cross compile configurations
 EXTRA_CONFIGURE_ARGS="CC=${CFG_CC} CXX=${CFG_CXX} LD=${CFG_LD} AR=${CFG_AR} RANLIB=${CFG_RANLIB}"
 
@@ -643,6 +641,7 @@ do
             if [ ${CFG_OSTYPE} = "linux-androideabi" ]; then
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --target=arm-linux-androideabi"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-ndk=${CFG_ANDROID_NDK_PATH}"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-toolchain=${CFG_ANDROID_CROSS_PATH}"
             else
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-64bit"
             fi
@@ -650,7 +649,7 @@ do
         support/nss/nss)
             if [ ${CFG_OSTYPE} = "linux-androideabi" ]; then
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --host=arm-linux-androideabi"
-            CONFIGURE_ARGS="${CONFIGURE_ARGS} --android-ndk-path=${CFG_ANDROID_NDK_PATH}"
+            CONFIGURE_ARGS="${CONFIGURE_ARGS} --android-toolchain=${CFG_ANDROID_CROSS_PATH}"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --android-api-version=14"
             fi
             CONFIGURE_ARGS="${CONFIGURE_ARGS} ${EXTRA_CONFIGURE_ARGS}"
@@ -685,6 +684,7 @@ do
             if [ ${CFG_OSTYPE} = "linux-androideabi" ]; then
                 CONFIGURE_ARGS="${CONFIGURE_ARGS} --target=arm-linux-androideabi"
                 CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-ndk=${CFG_ANDROID_NDK_PATH}"
+                CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-toolchain=${CFG_ANDROID_CROSS_PATH}"
             fi
             ;;
         support/azure/rust-azure)

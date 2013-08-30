@@ -60,10 +60,13 @@ export CXX=$(CFG_CXX)
 export LD=$(CFG_LD)
 export AR=$(CFG_AR)
 export RANLIB=$(CFG_RANLIB)
+export PYTHON=$(CFG_PYTHON2)
 export PATH=$(CFG_PATH)
 export CFG_ANDROID_SDK_PATH
+export CFG_ANDROID_NDK_PATH
 export CFG_OSTYPE
 export CFG_CPUTYPE
+export CFG_BUILD_HOME
 
 ######################################################################
 # Re-configuration
