@@ -62,6 +62,7 @@ pub struct ShapedGlyphEntry {
 }
 
 impl ShapedGlyphData {
+    #[fixed_stack_segment]
     pub fn new(buffer: *hb_buffer_t) -> ShapedGlyphData {
         unsafe {
             let glyph_count = 0;
@@ -142,6 +143,7 @@ pub struct Shaper {
 
 #[unsafe_destructor]
 impl Drop for Shaper {
+    #[fixed_stack_segment]
     fn drop(&self) {
         unsafe {
             assert!(self.hb_face.is_not_null());
@@ -157,6 +159,7 @@ impl Drop for Shaper {
 }
 
 impl Shaper {
+    #[fixed_stack_segment]
     pub fn new(font: @mut Font) -> Shaper {
         unsafe {
             // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
@@ -166,7 +169,7 @@ impl Shaper {
             };
             let hb_face: *hb_face_t = hb_face_create_for_tables(get_font_table_func,
                                                                 font_ptr as *c_void,
-                                                                null());
+                                                                None);
             let hb_font: *hb_font_t = hb_font_create(hb_face);
 
             // Set points-per-em. if zero, performs no hinting in that direction.
@@ -181,9 +184,9 @@ impl Shaper {
             // configure static function callbacks.
             // NB. This funcs structure could be reused globally, as it never changes.
             let hb_funcs: *hb_font_funcs_t = hb_font_funcs_create();
-            hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, null(), null());
-            hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, null(), null());
-            hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *c_void, null());
+            hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, null(), None);
+            hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, null(), None);
+            hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *c_void, None);
 
             Shaper {
                 font: font,
@@ -210,6 +213,7 @@ impl Shaper {
 impl ShaperMethods for Shaper {
     /// Calculate the layout metrics associated with the given text when rendered in a specific
     /// font.
+    #[fixed_stack_segment]
     fn shape_text(&self, text: &str, glyphs: &mut GlyphStore) {
         unsafe {
             let hb_buffer: *hb_buffer_t = hb_buffer_create();

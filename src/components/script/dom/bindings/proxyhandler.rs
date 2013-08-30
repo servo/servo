@@ -44,10 +44,11 @@ pub extern fn getPropertyDescriptor(cx: *JSContext, proxy: *JSObject, id: jsid,
   }
 }
 
+#[fixed_stack_segment]
 pub fn defineProperty_(cx: *JSContext, proxy: *JSObject, id: jsid,
                        desc: *JSPropertyDescriptor) -> JSBool {
     unsafe {
-        if ((*desc).attrs & JSPROP_GETTER) != 0 && (*desc).setter == JS_StrictPropertyStub {
+        if ((*desc).attrs & JSPROP_GETTER) != 0 && (*desc).setter == Some(JS_StrictPropertyStub) {
             /*return JS_ReportErrorFlagsAndNumber(cx,
             JSREPORT_WARNING | JSREPORT_STRICT |
             JSREPORT_STRICT_MODE_ERROR,
@@ -71,6 +72,7 @@ pub extern fn defineProperty(cx: *JSContext, proxy: *JSObject, id: jsid,
     defineProperty_(cx, proxy, id, desc)
 }
 
+#[fixed_stack_segment]
 pub fn _obj_toString(cx: *JSContext, className: *libc::c_char) -> *JSString {
   unsafe {
     let name = str::raw::from_c_str(className);
@@ -93,6 +95,7 @@ pub fn _obj_toString(cx: *JSContext, className: *libc::c_char) -> *JSString {
   }
 }
 
+#[fixed_stack_segment]
 pub fn GetExpandoObject(obj: *JSObject) -> *JSObject {
     unsafe {
         assert!(is_dom_proxy(obj));
@@ -105,6 +108,7 @@ pub fn GetExpandoObject(obj: *JSObject) -> *JSObject {
     }
 }
 
+#[fixed_stack_segment]
 pub fn EnsureExpandoObject(cx: *JSContext, obj: *JSObject) -> *JSObject {
     unsafe {
         assert!(is_dom_proxy(obj));
@@ -125,7 +129,7 @@ pub fn EnsureExpandoObject(cx: *JSContext, obj: *JSObject) -> *JSObject {
 pub fn FillPropertyDescriptor(desc: &mut JSPropertyDescriptor, obj: *JSObject, readonly: bool) {
     desc.obj = obj;
     desc.attrs = if readonly { JSPROP_READONLY } else { 0 } | JSPROP_ENUMERATE;
-    desc.getter = ptr::null();
-    desc.setter = ptr::null();
+    desc.getter = None;
+    desc.setter = None;
     desc.shortid = 0;
 }

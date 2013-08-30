@@ -136,7 +136,7 @@ fn run(opts: Opts) {
         let profiler_chan = profiler_chan.clone();
         let period = (period * 1000f) as u64;
         do spawn {
-            let tm = Timer::new().unwrap();
+            let mut tm = Timer::new().unwrap();
             loop {
                 tm.sleep(period);
                 profiler_chan.send(PrintMsg);

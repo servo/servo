@@ -521,7 +521,7 @@ impl CompositorTask {
         };
 
         // Enter the main event loop.
-        let tm = Timer::new().unwrap();
+        let mut tm = Timer::new().unwrap();
         while !done {
             // Check for new messages coming from the rendering task.
             check_for_messages(&self.port);

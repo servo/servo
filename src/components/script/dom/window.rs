@@ -14,9 +14,11 @@ use servo_msg::compositor_msg::ScriptListener;
 
 use js::glue::*;
 use js::jsapi::{JSObject, JSContext};
+use js::jsapi::{JSPropertyOp, JSStrictPropertyOp};
 use js::{JSVAL_NULL, JSPROP_ENUMERATE};
 
 use std::cast;
+use std::cell::Cell;
 use std::comm;
 use std::comm::SharedChan;
 use std::io;
@@ -146,9 +148,10 @@ impl Window {
 
         // Post a delayed message to the per-window timer task; it will dispatch it
         // to the relevant script handler that will deal with it.
-        let tm = Timer::new().unwrap();
+        let tm = Cell::new(Timer::new().unwrap());
         let chan = self.timer_chan.clone();
         do spawn {
+            let mut tm = tm.take();
             tm.sleep(timeout);
             chan.send(TimerMessage_Fire(~TimerData {
                 funval: callback,
@@ -164,6 +167,7 @@ impl Window {
         }
     }
 
+    #[fixed_stack_segment]
     pub fn new(page: *mut Page, script_chan: ScriptChan, compositor: @ScriptListener)
                -> @mut Window {
         let script_chan_clone = script_chan.clone();
@@ -194,8 +198,8 @@ impl Window {
             win.wrap_object_shared(compartment.cx.ptr, ptr::null()); //XXXjdm proper scope
             compartment.define_property(~"window",
                                         RUST_OBJECT_TO_JSVAL((*cache).wrapper),
-                                        GetJSClassHookStubPointer(PROPERTY_STUB) as *u8,
-                                        GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as *u8,
+                                        GetJSClassHookStubPointer(PROPERTY_STUB) as JSPropertyOp,
+                                        GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as JSStrictPropertyOp,
                                         JSPROP_ENUMERATE);
         }
         win
