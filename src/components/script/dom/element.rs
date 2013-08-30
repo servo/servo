@@ -6,7 +6,6 @@
 
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
-use dom::htmlelement::HTMLElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;

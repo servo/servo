@@ -608,8 +608,6 @@ impl VoidPtrLike for AbstractNode<LayoutView> {
 }
 
 pub fn define_bindings(compartment: @mut Compartment) {
-    bindings::node::init(compartment);
-    bindings::element::init(compartment);
     bindings::utils::initialize_global(compartment.global_obj.ptr);
     bindings::codegen::RegisterBindings::Register(compartment);
 }
