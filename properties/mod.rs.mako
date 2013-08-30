@@ -78,6 +78,9 @@ pub mod longhands {
                 % endfor
             }
             pub type ComputedValue = SpecifiedValue;
+            #[inline] pub fn get_initial_value() -> ComputedValue {
+                ${to_rust_ident(values.split()[0])}
+            }
             pub fn from_component_value(v: &ComponentValue) -> Option<SpecifiedValue> {
                 do get_ident_lower(v).chain |keyword| {
                     match keyword.as_slice() {
@@ -91,11 +94,12 @@ pub mod longhands {
         </%self:single_component_value>
     </%def>
 
-    <%def name="predefined_type(name, type, parse_method='parse', inherited=False)">
+    <%def name="predefined_type(name, type, initial_value, parse_method='parse', inherited=False)">
         <%self:longhand name="${name}" inherited="${inherited}">
             pub use to_computed_value = super::super::common_types::computed::compute_${type};
             pub type SpecifiedValue = specified::${type};
             pub type ComputedValue = computed::${type};
+            #[inline] pub fn get_initial_value() -> ComputedValue { ${initial_value} }
             pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
                 one_component_value(input).chain(specified::${type}::${parse_method})
             }
@@ -106,15 +110,18 @@ pub mod longhands {
     // CSS 2.1, Section 8 - Box model
 
     % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_type("margin-" + side, "LengthOrPercentageOrAuto")}
+        ${predefined_type("margin-" + side, "LengthOrPercentageOrAuto",
+                          "computed::LPA_Length(computed::Length(0))")}
     % endfor
 
     % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_type("padding-" + side, "LengthOrPercentage", "parse_non_negative")}
+        ${predefined_type("padding-" + side, "LengthOrPercentage",
+                          "computed::LP_Length(computed::Length(0))",
+                          "parse_non_negative")}
     % endfor
 
     % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_type("border-%s-color" % side, "CSSColor")}
+        ${predefined_type("border-%s-color" % side, "CSSColor", "CurrentColor")}
     % endfor
 
     // dotted dashed double groove ridge insed outset hidden
@@ -142,6 +149,9 @@ pub mod longhands {
         <%self:longhand name="border-${side}-width">
             pub type SpecifiedValue = specified::Length;
             pub type ComputedValue = computed::Length;
+            #[inline] pub fn get_initial_value() -> ComputedValue {
+                computed::Length(3 * 60)  // medium
+            }
             pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
                 one_component_value(input).chain(parse_border_width)
             }
@@ -163,13 +173,17 @@ pub mod longhands {
 //        "table-row table-column-group table-column table-cell table-caption"
 
     ${single_keyword("position", "static absolute relative fixed")}
-    ${single_keyword("float", "left right none")}
-    ${single_keyword("clear", "left right none both")}
+    ${single_keyword("float", "none left right")}
+    ${single_keyword("clear", "none left right both")}
 
     // CSS 2.1, Section 10 - Visual formatting model details
 
-    ${predefined_type("width", "LengthOrPercentageOrAuto", "parse_non_negative")}
-    ${predefined_type("height", "LengthOrPercentageOrAuto", "parse_non_negative")}
+    ${predefined_type("width", "LengthOrPercentageOrAuto",
+                      "computed::LPA_Auto",
+                      "parse_non_negative")}
+    ${predefined_type("height", "LengthOrPercentageOrAuto",
+                      "computed::LPA_Auto",
+                      "parse_non_negative")}
 
     <%self:single_component_value name="line-height">
         pub enum SpecifiedValue {
@@ -198,6 +212,7 @@ pub mod longhands {
             Length(computed::Length),
             Number(Float),
         }
+        #[inline] pub fn get_initial_value() -> ComputedValue { Normal }
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                               -> ComputedValue {
             match value {
@@ -216,8 +231,11 @@ pub mod longhands {
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
 
-    ${predefined_type("background-color", "CSSColor")}
-    ${predefined_type("color", "CSSColor", inherited=True)}
+    ${predefined_type("background-color", "CSSColor",
+                      "RGBA(RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
+    ${predefined_type("color", "CSSColor",
+                      "RGBA(RGBA { red: 0., green: 0., blue: 0., alpha: 1. }) /* black */",
+                      inherited=True)}
 
     // CSS 2.1, Section 15 - Fonts
 
@@ -234,6 +252,7 @@ pub mod longhands {
         }
         pub type SpecifiedValue = ~[FontFamily];
         pub type ComputedValue = SpecifiedValue;
+        #[inline] pub fn get_initial_value() -> ComputedValue { ~[FamilyName(~"serif")] }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
         /// TODO: <generic-familiy>
@@ -334,6 +353,7 @@ pub mod longhands {
                 Weight${weight},
             % endfor
         }
+        #[inline] pub fn get_initial_value() -> ComputedValue { Weight400 }  // normal
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                               -> ComputedValue {
             match value {
@@ -370,6 +390,9 @@ pub mod longhands {
         pub use to_computed_value = super::super::common_types::computed::compute_Length;
         pub type SpecifiedValue = specified::Length;  // Percentages are the same as em.
         pub type ComputedValue = computed::Length;
+        #[inline] pub fn get_initial_value() -> ComputedValue {
+            computed::Length(16 * 60)  // medium
+        }
         /// <length> | <percentage>
         /// TODO: support <absolute-size> and <relative-size>
         pub fn from_component_value(input: &ComponentValue) -> Option<SpecifiedValue> {
@@ -384,6 +407,7 @@ pub mod longhands {
 
     // CSS 2.1, Section 16 - Text
 
+    // TODO: initial value should be 'start' (CSS Text Level 3, direction-dependent.)
     ${single_keyword("text-align", "left right center justify", inherited=True)}
 
     <%self:longhand name="text-decoration">
@@ -396,6 +420,9 @@ pub mod longhands {
             // Just not blinking the text is a conforming implementation per CSS 2.1.
         }
         pub type ComputedValue = SpecifiedValue;
+        #[inline] pub fn get_initial_value() -> ComputedValue {
+            SpecifiedValue { underline: false, overline: false, line_through: false }  // none
+        }
         /// none | [ underline || overline || line-through || blink ]
         pub fn parse(input: &[ComponentValue]) -> Option<SpecifiedValue> {
             let mut result = SpecifiedValue {
