@@ -118,6 +118,8 @@ generate_cacheable_wrapper!(HTMLParagraphElement, HTMLParagraphElementBinding::W
 generate_binding_object!(HTMLParagraphElement)
 generate_cacheable_wrapper!(HTMLParamElement, HTMLParamElementBinding::Wrap)
 generate_binding_object!(HTMLParamElement)
+generate_cacheable_wrapper!(HTMLPreElement, HTMLPreElementBinding::Wrap)
+generate_binding_object!(HTMLPreElement)
 generate_cacheable_wrapper!(HTMLProgressElement, HTMLProgressElementBinding::Wrap)
 generate_binding_object!(HTMLProgressElement)
 generate_cacheable_wrapper!(HTMLQuoteElement, HTMLQuoteElementBinding::Wrap)

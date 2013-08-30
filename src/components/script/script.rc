@@ -97,6 +97,7 @@ pub mod dom {
     pub mod htmloutputelement;
     pub mod htmlparagraphelement;
     pub mod htmlparamelement;
+    pub mod htmlpreelement;
     pub mod htmlprogresselement;
     pub mod htmlquoteelement;
     pub mod htmlscriptelement;
