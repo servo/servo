@@ -208,6 +208,7 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_element!(cx, tag, "head",    HTMLHeadElementTypeId, HTMLHeadElement, []);
     handle_element!(cx, tag, "html",    HTMLHtmlElementTypeId, HTMLHtmlElement, []);
     handle_element!(cx, tag, "input",   HTMLInputElementTypeId, HTMLInputElement, []);
+    handle_element!(cx, tag, "legend",  HTMLLegendElementTypeId, HTMLLegendElement, []);
     handle_element!(cx, tag, "link",    HTMLLinkElementTypeId, HTMLLinkElement, []);
     handle_element!(cx, tag, "li",      HTMLLIElementTypeId, HTMLLIElement, []);
     handle_element!(cx, tag, "map",     HTMLMapElementTypeId, HTMLMapElement, []);
