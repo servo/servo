@@ -76,6 +76,7 @@ impl DerivedWrapper for FormData {
         fail!(~"nyi")
     }
 
+    #[fixed_stack_segment]
     fn wrap_shared(@mut self, cx: *JSContext, scope: *JSObject, vp: *mut JSVal) -> i32 {
         let obj = self.wrap_object_shared(cx, scope);
         if obj.is_null() {

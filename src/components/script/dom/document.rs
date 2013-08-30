@@ -87,6 +87,7 @@ pub struct Document {
 }
 
 impl Document {
+    #[fixed_stack_segment]
     pub fn new(root: AbstractNode<ScriptView>, window: Option<@mut Window>, doctype: DocumentType) -> Document {
         let compartment = unsafe {(*window.get_ref().page).js_info.get_ref().js_compartment };
         do root.with_base |base| {
@@ -151,6 +152,7 @@ impl BindingObject for AbstractDocument {
 }
 
 impl DerivedWrapper for AbstractDocument {
+    #[fixed_stack_segment]
     fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
         let cache = self.get_wrappercache();
         let wrapper = cache.get_wrapper();
@@ -448,6 +450,7 @@ impl Document {
         }
     }
 
+    #[fixed_stack_segment]
     pub fn teardown(&self) {
         unsafe {
             let compartment = (*self.window.get_ref().page).js_info.get_ref().js_compartment;
