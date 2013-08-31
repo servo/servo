@@ -58,6 +58,7 @@ pub mod dom {
     pub mod htmlanchorelement;
     pub mod htmlappletelement;
     pub mod htmlareaelement;
+    pub mod htmlaudioelement;
     pub mod htmlbaseelement;
     pub mod htmlbodyelement;
     pub mod htmlbrelement;
@@ -120,6 +121,7 @@ pub mod dom {
     pub mod htmltitleelement;
     pub mod htmltrackelement;
     pub mod htmlulistelement;
+    pub mod htmlvideoelement;
     pub mod htmlunknownelement;
     pub mod mouseevent;
     pub mod node;

@@ -50,6 +50,7 @@ pub enum ElementTypeId {
     HTMLAnchorElementTypeId,
     HTMLAppletElementTypeId,
     HTMLAreaElementTypeId,
+    HTMLAudioElementTypeId,
     HTMLBaseElementTypeId,
     HTMLBRElementTypeId,
     HTMLBodyElementTypeId,
@@ -109,6 +110,7 @@ pub enum ElementTypeId {
     HTMLTitleElementTypeId,
     HTMLTrackElementTypeId,
     HTMLUListElementTypeId,
+    HTMLVideoElementTypeId,
     HTMLUnknownElementTypeId,
 }
 

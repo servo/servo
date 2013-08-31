@@ -58,6 +58,19 @@ macro_rules! handle_htmlelement(
         }
     )
 )
+macro_rules! handle_htmlmediaelement(
+    ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident) => (
+        if eq_slice($tag, $string) {
+            let _element = @$ctor {
+                parent: HTMLMediaElement::new($type_id, ($tag).to_str())
+            };
+            unsafe {
+                return Node::as_abstract_node(cx, _element);
+            }
+        }
+    )
+)
+
 
 type JSResult = ~[~[u8]];
 
@@ -261,6 +274,9 @@ fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView>
     handle_htmlelement!(cx, tag, "i",       HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, tag, "section", HTMLElementTypeId, HTMLElement);
     handle_htmlelement!(cx, tag, "small",   HTMLElementTypeId, HTMLElement);
+
+    handle_htmlmediaelement!(cx, tag, "audio", HTMLAudioElementTypeId, HTMLAudioElement);
+    handle_htmlmediaelement!(cx, tag, "video", HTMLVideoElementTypeId, HTMLVideoElement);
 
     unsafe {
         let element = @HTMLUnknownElement {
