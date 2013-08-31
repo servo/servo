@@ -14,7 +14,7 @@
 interface URI;
 interface UserDataHandler;*/
 
-interface Node /*: EventTarget*/ {
+interface Node : EventTarget {
   const unsigned short ELEMENT_NODE = 1;
   const unsigned short ATTRIBUTE_NODE = 2; // historical
   const unsigned short TEXT_NODE = 3;

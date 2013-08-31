@@ -5,8 +5,8 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::node;
-use dom::window;
 use dom::node::{AbstractNode, ScriptView};
+use dom::window;
 
 use std::libc::c_uint;
 use std::cast;
@@ -23,6 +23,7 @@ use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFam
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewObject, JS_NewFunction, JS_GetGlobalObject};
 use js::jsapi::{JS_DefineProperties, JS_WrapValue, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
+use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate};
 use js::jsapi::{JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject};
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
 use js::jsapi::{JS_NewUCStringCopyN, JS_DefineFunctions, JS_DefineProperty};
@@ -31,7 +32,7 @@ use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative, JSTracer};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
-use js::{JSPROP_ENUMERATE, JSVAL_NULL};
+use js::{JSPROP_ENUMERATE, JSVAL_NULL, JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
 use js::{JSPROP_SETTER, JSVAL_VOID, JSVAL_TRUE, JSVAL_FALSE};
 use js::{JS_THIS_OBJECT, JSFUN_CONSTRUCTOR, JS_CALLEE, JSPROP_READONLY};
@@ -824,6 +825,13 @@ pub fn HasPropertyOnPrototype(cx: *JSContext, proxy: *JSObject, id: jsid) -> boo
 }
 
 #[fixed_stack_segment]
+pub fn IsConvertibleToCallbackInterface(cx: *JSContext, obj: *JSObject) -> bool {
+    unsafe {
+        JS_ObjectIsDate(cx, obj) == 0 && JS_ObjectIsRegExp(cx, obj) == 0
+    }
+}
+
+#[fixed_stack_segment]
 pub fn CreateDOMGlobal(cx: *JSContext, class: *JSClass) -> *JSObject {
     unsafe {
         let obj = JS_NewGlobalObject(cx, class, ptr::null());
@@ -834,6 +842,30 @@ pub fn CreateDOMGlobal(cx: *JSContext, class: *JSClass) -> *JSObject {
         initialize_global(obj);
         obj
     }
+}
+
+#[fixed_stack_segment]
+fn cx_for_dom_wrapper(obj: *JSObject) -> *JSContext {
+    unsafe {
+        let global = GetGlobalForObjectCrossCompartment(obj);
+        let clasp = JS_GetClass(global);
+        assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
+        //XXXjdm either don't hardcode or sanity assert prototype stuff
+        let win = unwrap_object::<*Box<window::Window>>(global, PrototypeList::id::Window, 1);
+        match win {
+            Ok(win) => {
+                match (*win).data.page.js_info {
+                    Some(ref info) => info.js_context.ptr,
+                    None => fail!("no JS context for DOM global")
+                }
+            }
+            Err(_) => fail!("found DOM global that doesn't unwrap to Window")
+        }
+    }
+}
+
+pub fn cx_for_dom_object<T: Reflectable>(obj: @mut T) -> *JSContext {
+    cx_for_dom_wrapper(obj.reflector().get_jsobject())
 }
 
 /// Check if an element name is valid. See http://www.w3.org/TR/xml/#NT-Name

@@ -10,14 +10,6 @@
  * liability, trademark and document use rules apply.
  */
 
-
-interface EventTarget {
-  void addEventListener(DOMString type,
-                        EventListener? listener,
-                        optional boolean capture = false);
-  void removeEventListener(DOMString type,
-                           EventListener? listener,
-                           optional boolean capture = false);
-  [Throws]
-  boolean dispatchEvent(Event event);
+callback interface EventListener {
+  void handleEvent(Event event);
 };

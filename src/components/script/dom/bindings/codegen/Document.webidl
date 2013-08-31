@@ -58,8 +58,8 @@ interface Document /*: Node*/ { //XXXjdm Requires servo/#623
   [Throws]
   Node adoptNode(Node node);*/
 
-  // [Creator, Throws]
-  // Event createEvent(DOMString interface_);
+  [Creator, Throws]
+  Event createEvent(DOMString interface_);
 
   /*[Creator, Throws]
     Range createRange();*/

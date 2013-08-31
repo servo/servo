@@ -13,6 +13,7 @@ use dom::document::AbstractDocument;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
+use dom::eventtarget::EventTarget;
 use dom::nodelist::{NodeList};
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmliframeelement::HTMLIFrameElement;
@@ -64,8 +65,7 @@ pub struct AbstractNodeChildrenIterator<View> {
 /// the script task, this is the unit type `()`. For the layout task, this is
 /// `LayoutData`.
 pub struct Node<View> {
-    /// The JavaScript reflector for this node.
-    reflector_: Reflector,
+    eventtarget: EventTarget,
 
     /// The type of node that this is.
     type_id: NodeTypeId,
@@ -509,7 +509,7 @@ impl Node<ScriptView> {
 
     pub fn new(type_id: NodeTypeId, doc: AbstractDocument) -> Node<ScriptView> {
         Node {
-            reflector_: Reflector::new(),
+            eventtarget: EventTarget::new(),
             type_id: type_id,
 
             abstract: None,
@@ -857,11 +857,11 @@ impl Node<ScriptView> {
 
 impl Reflectable for Node<ScriptView> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
+        self.eventtarget.reflector()
     }
 
     fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
-        &mut self.reflector_
+        self.eventtarget.mut_reflector()
     }
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {

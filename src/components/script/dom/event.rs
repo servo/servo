@@ -6,7 +6,7 @@ use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
+use dom::bindings::utils::{DOMString, ErrorResult, Fallible, null_str_as_word_null};
 
 use geom::point::Point2D;
 use js::jsapi::{JSObject, JSContext};
@@ -23,7 +23,7 @@ pub enum Event_ {
 
 pub struct Event {
     reflector_: Reflector,
-    type_: DOMString,
+    type_: ~str,
     default_prevented: bool,
     cancelable: bool,
     bubbles: bool,
@@ -34,7 +34,7 @@ impl Event {
     pub fn new_inherited(type_: &DOMString) -> Event {
         Event {
             reflector_: Reflector::new(),
-            type_: (*type_).clone(),
+            type_: null_str_as_word_null(type_),
             default_prevented: false,
             cancelable: true,
             bubbles: true,
@@ -51,7 +51,7 @@ impl Event {
     }
 
     pub fn Type(&self) -> DOMString {
-        self.type_.clone()
+        Some(self.type_.clone())
     }
 
     pub fn GetTarget(&self) -> Option<@mut EventTarget> {
@@ -92,7 +92,7 @@ impl Event {
                      type_: &DOMString,
                      bubbles: bool,
                      cancelable: bool) -> ErrorResult {
-        self.type_ = (*type_).clone();
+        self.type_ = type_.to_str();
         self.cancelable = cancelable;
         self.bubbles = bubbles;
         Ok(())

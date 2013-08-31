@@ -10,6 +10,7 @@ use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, n
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
+use dom::event::Event;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::htmlelement::HTMLElement;
@@ -262,6 +263,11 @@ impl Document {
         let cx = self.get_cx();
         let comment = @Comment::new(null_str_as_word_null(data), abstract_self);
         unsafe { Node::as_abstract_node(cx, comment) }
+    }
+
+    pub fn CreateEvent(&self, interface: &DOMString) -> Fallible<@mut Event> {
+        //FIXME: We need to do a proper Event inheritance simulation
+        Ok(Event::new(self.window, interface))
     }
 
     pub fn Title(&self, _: AbstractDocument) -> DOMString {
