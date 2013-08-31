@@ -7,6 +7,7 @@ use dom::bindings::utils::{WrapperCache, DOMString, null_string};
 use dom::bindings::utils::{CacheableWrapper, BindingObject};
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ScriptView};
+use dom::navigator::Navigator;
 
 use layout_interface::ReflowForScriptQuery;
 use script_task::{ExitMsg, FireTimerMsg, Page, ScriptChan};
@@ -103,6 +104,10 @@ impl Window {
 
     pub fn GetFrameElement(&self) -> Option<AbstractNode<ScriptView>> {
         None
+    }
+
+    pub fn Navigator(&self) -> @mut Navigator {
+        Navigator::new()
     }
 
     pub fn Confirm(&self, _message: &DOMString) -> bool {
