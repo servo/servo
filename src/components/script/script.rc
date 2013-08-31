@@ -116,6 +116,7 @@ pub mod dom {
     pub mod htmlulistelement;
     pub mod htmlunknownelement;
     pub mod mouseevent;
+    pub mod navigator;
     pub mod node;
     pub mod uievent;
     pub mod text;
