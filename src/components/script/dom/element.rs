@@ -19,6 +19,7 @@ use js::jsapi::{JSContext, JSObject};
 use std::cell::Cell;
 use std::comm;
 use std::str::eq_slice;
+use std::ascii::StrAsciiExt;
 use std::FromStr;
 
 pub struct Element {
@@ -171,7 +172,7 @@ impl<'self> Element {
 
 impl Element {
     pub fn TagName(&self) -> DOMString {
-        str(self.tag_name.to_owned())
+        str(self.tag_name.to_owned().to_ascii_upper())
     }
 
     pub fn Id(&self) -> DOMString {
