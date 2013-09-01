@@ -3,9 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{CacheableWrapper, BindingObject, DerivedWrapper};
-use dom::bindings::utils::{WrapperCache, DOMString, str};
+use dom::bindings::utils::{WrapperCache, ErrorResult, DOMString, str};
 use dom::bindings::codegen::FormDataBinding;
 use dom::blob::Blob;
+use dom::node::{AbstractNode, ScriptView};
+use dom::window::Window;
 use script_task::{page_from_context};
 
 use js::jsapi::{JSObject, JSContext, JSVal};
@@ -46,6 +48,13 @@ impl FormData {
 
     pub fn Append_(&mut self, name: &DOMString, value: &DOMString) {
         self.data.insert(name.to_str(), StringData((*value).clone()));
+    }
+
+    pub fn Constructor(_global: @mut Window,
+                       _form: Option<AbstractNode<ScriptView>>,
+                       _rv: &mut ErrorResult) -> @mut FormData {
+        FormData::new()
+        // Todo: Add elements from form.
     }
 }
 
