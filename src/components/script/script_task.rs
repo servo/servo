@@ -682,10 +682,10 @@ impl ScriptTask {
         js_info.js_compartment.define_functions(debug_fns);
 
         // Evaluate every script in the document.
-        for bytes in js_scripts.iter() {
+        for file in js_scripts.iter() {
             let _ = js_info.js_context.evaluate_script(js_info.js_compartment.global_obj,
-                                                       bytes.clone(),
-                                                       ~"???",
+                                                       file.data.clone(),
+                                                       file.url.to_str(),
                                                        1);
         }
     }

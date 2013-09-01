@@ -59,7 +59,12 @@ macro_rules! handle_htmlelement(
     )
 )
 
-type JSResult = ~[~[u8]];
+pub struct JSFile {
+    data: ~[u8],
+    url: Url
+}
+
+type JSResult = ~[JSFile];
 
 enum CSSMessage {
     CSSTaskNewFile(StylesheetProvenance),
@@ -145,6 +150,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
             JSTaskNewFile(url) => {
                 let (result_port, result_chan) = comm::stream();
                 let resource_task = resource_task.clone();
+                let url_clone = url.clone();
                 do task::spawn {
                     let (input_port, input_chan) = comm::stream();
                     // TODO: change copy to move once we can move into closures
@@ -168,7 +174,11 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
                         }
                     }
                 }
-                result_vec.push(result_port);
+
+                let bytes = result_port.recv();
+                if bytes.is_some() {
+                    result_vec.push(JSFile { data: bytes.unwrap(), url: url_clone });
+                }
             }
             JSTaskExit => {
                 break;
@@ -176,8 +186,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
         }
     }
 
-    let js_scripts = result_vec.iter().filter_map(|result_port| result_port.recv()).collect();
-    to_parent.send(HtmlDiscoveredScript(js_scripts));
+    to_parent.send(HtmlDiscoveredScript(result_vec));
 }
 
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
