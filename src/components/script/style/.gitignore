@@ -1,0 +1,10 @@
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.dummy
+*.pyc
+*-test
+Makefile
+properties/mod.rs
