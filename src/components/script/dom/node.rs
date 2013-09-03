@@ -18,10 +18,14 @@ use dom::text::Text;
 use std::cast;
 use std::cast::transmute;
 use std::libc::c_void;
+use extra::arc::Arc;
 use js::jsapi::{JSObject, JSContext};
 use js::rust::Compartment;
 use netsurfcss::util::VoidPtrLike;
+use newcss::complete::CompleteSelectResults;
 use servo_util::tree::{TreeNode, TreeNodeRef};
+use servo_util::range::Range;
+use gfx::display_list::DisplayList;
 
 //
 // The basic Node structure
@@ -56,7 +60,7 @@ pub struct AbstractNodeChildrenIterator<View> {
 ///
 /// `View` describes extra data associated with this node that this task has access to. For
 /// the script task, this is the unit type `()`. For the layout task, this is
-/// `layout::aux::LayoutData`.
+/// `LayoutData`.
 pub struct Node<View> {
     /// The JavaScript wrapper for this node.
     wrapper: WrapperCache,
@@ -85,7 +89,7 @@ pub struct Node<View> {
     owner_doc: Option<AbstractDocument>,
 
     /// Layout information. Only the layout task may touch this data.
-    priv layout_data: Option<@mut ()>
+    priv layout_data: LayoutData,
 }
 
 /// The different types of nodes.
@@ -169,31 +173,6 @@ impl<'self, View> AbstractNode<View> {
     pub fn from_box<T>(ptr: *mut rust_box<T>) -> AbstractNode<View> {
         AbstractNode {
             obj: ptr as *mut Node<View>
-        }
-    }
-
-    /// Returns the layout data, unsafely cast to whatever type layout wishes. Only layout is
-    /// allowed to call this. This is wildly unsafe and is therefore marked as such.
-    pub unsafe fn unsafe_layout_data<T>(self) -> @mut T {
-        do self.with_base |base| {
-            transmute(base.layout_data.unwrap())
-        }
-    }
-    /// Returns true if this node has layout data and false otherwise.
-    pub unsafe fn unsafe_has_layout_data(self) -> bool {
-        do self.with_base |base| {
-            base.layout_data.is_some()
-        }
-    }
-    /// Sets the layout data, unsafely casting the type as layout wishes. Only layout is allowed
-    /// to call this. This is wildly unsafe and is therefore marked as such.
-    pub unsafe fn unsafe_set_layout_data<T>(self, data: @mut T) {
-        // Don't decrement the refcount on data, since we're giving it to the
-        // base structure.
-        cast::forget(data);
-
-        do self.with_mut_base |base| {
-            base.layout_data = Some(transmute(data))
         }
     }
 
@@ -435,7 +414,7 @@ impl Node<ScriptView> {
 
             owner_doc: None,
 
-            layout_data: None,
+            layout_data: LayoutData::new(),
         }
     }
 
@@ -631,3 +610,52 @@ impl BindingObject for Node<ScriptView> {
     }
 }
 
+// This stuff is notionally private to layout, but we put it here because it needs
+// to be stored in a Node, and we can't have cross-crate cyclic dependencies.
+
+pub struct DisplayBoxes {
+    display_list: Option<Arc<DisplayList<AbstractNode<()>>>>,
+    range: Option<Range>,
+}
+
+/// Data that layout associates with a node.
+pub struct LayoutData {
+    /// The results of CSS styling for this node.
+    style: Option<CompleteSelectResults>,
+
+    /// Description of how to account for recent style changes.
+    restyle_damage: Option<int>,
+
+    /// The boxes assosiated with this flow.
+    /// Used for getBoundingClientRect and friends.
+    boxes: DisplayBoxes,
+}
+
+impl LayoutData {
+    /// Creates new layout data.
+    pub fn new() -> LayoutData {
+        LayoutData {
+            style: None,
+            restyle_damage: None,
+            boxes: DisplayBoxes { display_list: None, range: None },
+        }
+    }
+}
+
+impl AbstractNode<LayoutView> {
+    // These accessors take a continuation rather than returning a reference, because
+    // an AbstractNode doesn't have a lifetime parameter relating to the underlying
+    // Node.  Also this makes it easier to switch to RWArc if we decide that is
+    // necessary.
+    pub fn read_layout_data<R>(self, blk: &fn(data: &LayoutData) -> R) -> R {
+        do self.with_base |b| {
+            blk(&b.layout_data)
+        }
+    }
+
+    pub fn write_layout_data<R>(self, blk: &fn(data: &mut LayoutData) -> R) -> R {
+        do self.with_mut_base |b| {
+            blk(&mut b.layout_data)
+        }
+    }
+}

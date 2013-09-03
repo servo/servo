@@ -54,6 +54,17 @@ impl RestyleDamage {
         RestyleDamage::all()
     }
 
+    /// Create a RestyleDamage from the underlying bit field.
+    /// We would rather not allow this, but some types in script
+    /// need to store RestyleDamage without depending on this crate.
+    pub fn from_int(n: int) -> RestyleDamage {
+        RestyleDamage { bits: n }
+    }
+
+    pub fn to_int(self) -> int {
+        self.bits
+    }
+
     pub fn is_empty(self) -> bool {
         self.bits == 0
     }
