@@ -1,0 +1,12 @@
+var rect = window.document.head.getBoundingClientRect();
+var rects = window.document.head.getClientRects();
+is(rect instanceof ClientRect, true);
+is(rect.top, 0);
+is(rect.bottom, 0);
+is(rect.left, 0);
+is(rect.right, 0);
+is(rect.width, 0);
+is(rect.height, 0);
+is(rects instanceof ClientRectList, true);
+is(rects.length, 0);
+finish();
