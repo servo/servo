@@ -23,22 +23,23 @@ def to_rust_ident(name):
     return name
 
 class Longhand(object):
-    def __init__(self, name):
+    def __init__(self, name, is_inherited):
         self.name = name
         self.ident = to_rust_ident(name)
+        self.is_inherited = is_inherited
 
 
 class Shorthand(object):
     def __init__(self, name, sub_properties):
         self.name = name
         self.ident = to_rust_ident(name)
-        self.sub_properties = [Longhand(s) for s in sub_properties]
+        self.sub_properties = [LONGHANDS_BY_NAME[s] for s in sub_properties]
 
 LONGHANDS_PER_STYLE_STRUCT = []
 THIS_STYLE_STRUCT_LONGHANDS = None
 LONGHANDS = []
+LONGHANDS_BY_NAME = {}
 SHORTHANDS = []
-INHERITED = set()
 
 def new_style_struct(name):
     longhands = []
@@ -55,32 +56,34 @@ pub mod longhands {
 
     <%def name="raw_longhand(name, inherited=False, no_super=False)">
     <%
-        property = Longhand(name)
+        property = Longhand(name, inherited)
         THIS_STYLE_STRUCT_LONGHANDS.append(property)
         LONGHANDS.append(property)
-        if inherited:
-            INHERITED.add(name)
+        LONGHANDS_BY_NAME[name] = property
     %>
         pub mod ${property.ident} {
             % if not no_super:
                 use super::*;
             % endif
             ${caller.body()}
+            pub fn parse_declared(input: &[ComponentValue])
+                               -> Option<DeclaredValue<SpecifiedValue>> {
+                match CSSWideKeyword::parse(input) {
+                    Some(Left(keyword)) => Some(CSSWideKeyword(keyword)),
+                    Some(Right(Unset)) => Some(CSSWideKeyword(${
+                        "Inherit" if inherited else "Initial"})),
+                    None => parse_specified(input),
+                }
+            }
         }
     </%def>
 
     <%def name="longhand(name, inherited=False, no_super=False)">
         <%self:raw_longhand name="${name}" inherited="${inherited}">
             ${caller.body()}
-            pub fn parse_declared(input: &[ComponentValue])
+            pub fn parse_specified(input: &[ComponentValue])
                                -> Option<DeclaredValue<SpecifiedValue>> {
-                match CSSWideKeyword::parse(input) {
-                    Some(keyword) => Some(CSSWideKeyword(keyword)),
-                    None => match parse(input) {
-                        Some(value) => Some(SpecifiedValue(value)),
-                        None => None,
-                    }
-                }
+                parse(input).map_move(super::SpecifiedValue)
             }
         </%self:raw_longhand>
     </%def>
@@ -280,14 +283,11 @@ pub mod longhands {
         #[inline] pub fn get_initial_value() -> ComputedValue {
             RGBA { red: 0., green: 0., blue: 0., alpha: 1. }  /* black */
         }
-        pub fn parse_declared(input: &[ComponentValue]) -> Option<DeclaredValue<SpecifiedValue>> {
-            match CSSWideKeyword::parse(input) {
-                Some(keyword) => Some(CSSWideKeyword(keyword)),
-                None => match one_component_value(input).chain(Color::parse) {
-                    Some(RGBA(rgba)) => Some(SpecifiedValue(rgba)),
-                    Some(CurrentColor) => Some(CSSWideKeyword(Inherit)),
-                    None => None,
-                }
+        pub fn parse_specified(input: &[ComponentValue]) -> Option<DeclaredValue<SpecifiedValue>> {
+            match one_component_value(input).chain(Color::parse) {
+                Some(RGBA(rgba)) => Some(SpecifiedValue(rgba)),
+                Some(CurrentColor) => Some(CSSWideKeyword(Inherit)),
+                None => None,
             }
         }
     </%self:raw_longhand>
@@ -673,16 +673,17 @@ pub fn parse_property_declaration_list(input: ~[Node]) -> PropertyDeclarationBlo
 pub enum CSSWideKeyword {
     Initial,
     Inherit,
-    Unset,
 }
 
+struct Unset;
+
 impl CSSWideKeyword {
-    pub fn parse(input: &[ComponentValue]) -> Option<CSSWideKeyword> {
+    pub fn parse(input: &[ComponentValue]) -> Option<Either<CSSWideKeyword, Unset>> {
         do one_component_value(input).chain(get_ident_lower).chain |keyword| {
             match keyword.as_slice() {
-                "initial" => Some(Initial),
-                "inherit" => Some(Inherit),
-                "unset" => Some(Unset),
+                "initial" => Some(Left(Initial)),
+                "inherit" => Some(Left(Inherit)),
+                "unset" => Some(Right(Unset)),
                 _ => None
             }
         }
@@ -714,10 +715,18 @@ impl PropertyDeclaration {
             % endfor
             % for shorthand in SHORTHANDS:
                 "${shorthand.name}" => match CSSWideKeyword::parse(value) {
-                    Some(keyword) => {
+                    Some(Left(keyword)) => {
                         % for sub_property in shorthand.sub_properties:
                             result_list.push(${sub_property.ident}_declaration(
                                 CSSWideKeyword(keyword)
+                            ));
+                        % endfor
+                    },
+                    Some(Right(Unset)) => {
+                        % for sub_property in shorthand.sub_properties:
+                            result_list.push(${sub_property.ident}_declaration(
+                                CSSWideKeyword(${
+                                    "Inherit" if sub_property.is_inherited else "Initial"})
                             ));
                         % endfor
                     },
