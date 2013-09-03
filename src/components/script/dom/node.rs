@@ -16,7 +16,6 @@ use dom::htmliframeelement::HTMLIFrameElement;
 use dom::text::Text;
 
 use std::cast;
-use std::cell::Cell;
 use std::cast::transmute;
 use std::libc::c_void;
 use extra::arc::Arc;
@@ -90,7 +89,7 @@ pub struct Node<View> {
     owner_doc: Option<AbstractDocument>,
 
     /// Layout information. Only the layout task may touch this data.
-    priv layout_data: Option<LayoutData>,
+    priv layout_data: LayoutData,
 }
 
 /// The different types of nodes.
@@ -415,7 +414,7 @@ impl Node<ScriptView> {
 
             owner_doc: None,
 
-            layout_data: None,
+            layout_data: LayoutData::new(),
         }
     }
 
@@ -644,32 +643,19 @@ impl LayoutData {
 }
 
 impl AbstractNode<LayoutView> {
-    pub fn set_layout_data(self, data: LayoutData) {
-        let cell = Cell::new(data);
-        do self.with_mut_base |b| {
-            b.layout_data = Some(cell.take());
-        }
-    }
-
-    pub fn has_layout_data(self) -> bool {
-        do self.with_base |b| {
-            b.layout_data.is_some()
-        }
-    }
-
     // These accessors take a continuation rather than returning a reference, because
     // an AbstractNode doesn't have a lifetime parameter relating to the underlying
     // Node.  Also this makes it easier to switch to RWArc if we decide that is
     // necessary.
     pub fn read_layout_data<R>(self, blk: &fn(data: &LayoutData) -> R) -> R {
         do self.with_base |b| {
-            blk(b.layout_data.get_ref())
+            blk(&b.layout_data)
         }
     }
 
     pub fn write_layout_data<R>(self, blk: &fn(data: &mut LayoutData) -> R) -> R {
         do self.with_mut_base |b| {
-            blk(b.layout_data.get_mut_ref())
+            blk(&mut b.layout_data)
         }
     }
 }

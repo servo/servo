@@ -322,7 +322,6 @@ impl LayoutTask {
                     let node: AbstractNode<LayoutView> = unsafe {
                         transmute(display_list.get().list[i].base().extra)
                     };
-                    assert!(node.has_layout_data(), "Node has display item but no layout data");
 
                     do node.write_layout_data |layout_data| {
                         layout_data.boxes.display_list = Some(display_list.clone());

@@ -4,7 +4,7 @@
 
 //! Code for managing the layout data in the DOM.
 
-use script::dom::node::{AbstractNode, LayoutView, LayoutData};
+use script::dom::node::{AbstractNode, LayoutView};
 use servo_util::tree::TreeNodeRef;
 
 /// Functionality useful for querying the layout-specific data on DOM nodes.
@@ -14,21 +14,15 @@ pub trait LayoutAuxMethods {
 }
 
 impl LayoutAuxMethods for AbstractNode<LayoutView> {
-    /// If none exists, creates empty layout data for the node (the reader-auxiliary
-    /// box in the COW model) and populates it with an empty style object.
+    /// Resets layout data and styles for the node.
     fn initialize_layout_data(self) {
-        if self.has_layout_data() {
-            do self.write_layout_data |data| {
-                data.boxes.display_list = None;
-                data.boxes.range = None;
-            }
-        } else {
-            self.set_layout_data(LayoutData::new());
+        do self.write_layout_data |data| {
+            data.boxes.display_list = None;
+            data.boxes.range = None;
         }
     }
 
-    /// Initializes layout data and styles for a Node tree, if any nodes do not have
-    /// this data already.
+    /// Resets layout data and styles for a Node tree.
     fn initialize_style_for_subtree(self) {
         for n in self.traverse_preorder() {
             n.initialize_layout_data();

@@ -27,10 +27,6 @@ impl<'self> NodeUtil<'self> for AbstractNode<LayoutView> {
      * stored in a box that can be overwritten
      */
     fn get_css_select_results(self) -> &'self CompleteSelectResults {
-        if !self.has_layout_data() {
-            fail!(~"style() called on a node without aux data!");
-        }
-
         do self.read_layout_data |layout_data| {
             match layout_data.style {
                 None => fail!(~"style() called on node without a style!"),
@@ -41,18 +37,11 @@ impl<'self> NodeUtil<'self> for AbstractNode<LayoutView> {
 
     /// Does this node have a computed style yet?
     fn have_css_select_results(self) -> bool {
-        if !self.has_layout_data() {
-            return false;
-        }
         self.read_layout_data(|data| data.style.is_some())
     }
 
     /// Update the computed style of an HTML element with a style specified by CSS.
     fn set_css_select_results(self, decl: CompleteSelectResults) {
-        if !self.has_layout_data() {
-            fail!(~"set_css_select_results() called on a node without aux data!");
-        }
-
         let cell = Cell::new(decl);
         self.write_layout_data(|data| data.style = Some(cell.take()));
     }
@@ -68,9 +57,6 @@ impl<'self> NodeUtil<'self> for AbstractNode<LayoutView> {
             RestyleDamage::none()
         };
 
-        if !self.has_layout_data() {
-            return default;
-        }
         do self.read_layout_data |layout_data| {
             layout_data.restyle_damage
                 .map(|&x| RestyleDamage::from_int(x))
@@ -80,10 +66,6 @@ impl<'self> NodeUtil<'self> for AbstractNode<LayoutView> {
 
     /// Set the restyle damage field.
     fn set_restyle_damage(self, damage: RestyleDamage) {
-        if !self.has_layout_data() {
-            fail!(~"set_restyle_damage() called on a node without aux data!");
-        }
-
         self.write_layout_data(|data| data.restyle_damage = Some(damage.to_int()));
     }
 }
