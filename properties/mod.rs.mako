@@ -53,7 +53,7 @@ pub mod longhands {
     pub use super::*;
     pub use std;
 
-    <%def name="longhand(name, inherited=False, no_super=False)">
+    <%def name="raw_longhand(name, inherited=False, no_super=False)">
     <%
         property = Longhand(name)
         THIS_STYLE_STRUCT_LONGHANDS.append(property)
@@ -67,6 +67,22 @@ pub mod longhands {
             % endif
             ${caller.body()}
         }
+    </%def>
+
+    <%def name="longhand(name, inherited=False, no_super=False)">
+        <%self:raw_longhand name="${name}" inherited="${inherited}">
+            ${caller.body()}
+            pub fn parse_declared(input: &[ComponentValue])
+                               -> Option<DeclaredValue<SpecifiedValue>> {
+                match CSSWideKeyword::parse(input) {
+                    Some(keyword) => Some(CSSWideKeyword(keyword)),
+                    None => match parse(input) {
+                        Some(value) => Some(SpecifiedValue(value)),
+                        None => None,
+                    }
+                }
+            }
+        </%self:raw_longhand>
     </%def>
 
     <%def name="single_component_value(name, inherited=False)">
@@ -257,9 +273,24 @@ pub mod longhands {
 
     ${new_style_struct("Color")}
 
-    ${predefined_type("color", "CSSColor",
-                      "RGBA(RGBA { red: 0., green: 0., blue: 0., alpha: 1. }) /* black */",
-                      inherited=True)}
+    <%self:raw_longhand name="color" inherited="True">
+        pub use to_computed_value = std::util::id;
+        pub type SpecifiedValue = RGBA;
+        pub type ComputedValue = SpecifiedValue;
+        #[inline] pub fn get_initial_value() -> ComputedValue {
+            RGBA { red: 0., green: 0., blue: 0., alpha: 1. }  /* black */
+        }
+        pub fn parse_declared(input: &[ComponentValue]) -> Option<DeclaredValue<SpecifiedValue>> {
+            match CSSWideKeyword::parse(input) {
+                Some(keyword) => Some(CSSWideKeyword(keyword)),
+                None => match one_component_value(input).chain(Color::parse) {
+                    Some(RGBA(rgba)) => Some(SpecifiedValue(rgba)),
+                    Some(CurrentColor) => Some(CSSWideKeyword(Inherit)),
+                    None => None,
+                }
+            }
+        }
+    </%self:raw_longhand>
 
     // CSS 2.1, Section 15 - Fonts
 
@@ -675,12 +706,9 @@ impl PropertyDeclaration {
         match name.to_ascii_lower().as_slice() {
             % for property in LONGHANDS:
                 "${property.name}" => result_list.push(${property.ident}_declaration(
-                    match CSSWideKeyword::parse(value) {
-                        Some(keyword) => CSSWideKeyword(keyword),
-                        None => match longhands::${property.ident}::parse(value) {
-                            Some(value) => SpecifiedValue(value),
-                            None => return false,
-                        }
+                    match longhands::${property.ident}::parse_declared(value) {
+                        Some(value) => value,
+                        None => return false,
                     }
                 )),
             % endfor
