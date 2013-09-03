@@ -58,6 +58,7 @@ pub mod dom {
     pub mod htmlanchorelement;
     pub mod htmlappletelement;
     pub mod htmlareaelement;
+    pub mod htmlaudioelement;
     pub mod htmlbaseelement;
     pub mod htmlbodyelement;
     pub mod htmlbrelement;
@@ -84,9 +85,12 @@ pub mod dom {
     pub mod htmliframeelement;
     pub mod htmlimageelement;
     pub mod htmlinputelement;
+    pub mod htmllabelelement;
+    pub mod htmllegendelement;
     pub mod htmllielement;
     pub mod htmllinkelement;
     pub mod htmlmapelement;
+    pub mod htmlmediaelement;
     pub mod htmlmetaelement;
     pub mod htmlmeterelement;
     pub mod htmlmodelement;
@@ -97,6 +101,7 @@ pub mod dom {
     pub mod htmloutputelement;
     pub mod htmlparagraphelement;
     pub mod htmlparamelement;
+    pub mod htmlpreelement;
     pub mod htmlprogresselement;
     pub mod htmlquoteelement;
     pub mod htmlscriptelement;
@@ -110,10 +115,13 @@ pub mod dom {
     pub mod htmltablecolelement;
     pub mod htmltablerowelement;
     pub mod htmltablesectionelement;
+    pub mod htmltemplateelement;
     pub mod htmltextareaelement;
     pub mod htmltimeelement;
     pub mod htmltitleelement;
+    pub mod htmltrackelement;
     pub mod htmlulistelement;
+    pub mod htmlvideoelement;
     pub mod htmlunknownelement;
     pub mod mouseevent;
     pub mod node;

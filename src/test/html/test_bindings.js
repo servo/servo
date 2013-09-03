@@ -241,6 +241,57 @@ window.alert(tags.length);
 window.alert(tags[0].tagName);
 window.alert(tags[0] instanceof HTMLProgressElement);
 
+window.alert("HTMLTemplateElement:");
+let tags = document.getElementsByTagName("template");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLTemplateElement);
+
+window.alert("HTMLPreElement:");
+let tags = document.getElementsByTagName("pre");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLPreElement);
+
+window.alert("HTMLLegendElement:");
+let tags = document.getElementsByTagName("legend");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLLegendElement);
+
+window.alert("HTMLLabelElement:");
+let tags = document.getElementsByTagName("label");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLLabelElement);
+
+window.alert("HTMLTrackElement:");
+let tags = document.getElementsByTagName("track");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLTrackElement);
+
+window.alert("HTMLAudioElement:");
+let tags = document.getElementsByTagName("audio");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLMediaElement);
+window.alert(tags[0] instanceof HTMLAudioElement);
+
+window.alert("HTMLVideoElement:");
+let tags = document.getElementsByTagName("video");
+window.alert(tags);
+window.alert(tags.length);
+window.alert(tags[0].tagName);
+window.alert(tags[0] instanceof HTMLMediaElement);
+window.alert(tags[0] instanceof HTMLVideoElement);
+
 //TODO: Doesn't work until we throw proper exceptions instead of returning 0 on
 //      unwrap failure.
 /*try {
