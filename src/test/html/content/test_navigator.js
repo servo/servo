@@ -1,13 +1,7 @@
-<<<<<<< HEAD
-// Todo: cache Navigator object
-//is(window.navigator, window.navigator);
+// Todo: Cache navigator.
+// is(window.navigator, window.navigator);
+// todo should be 
 is(String(window.navigator), '[object Navigator]');
-=======
-// Sanity checks
-is(window.navigator, window.navigator);
-// todo should be [object Navigator]
-is(String(window.navigator), 'Navigator');
->>>>>>> 416352bb2e0c6eb7fe9280d22d0cb6a03f195e6e
 
 var nav = window.navigator;
 is(nav.doNotTrack, "unspecified");
