@@ -34,9 +34,18 @@ class Shorthand(object):
         self.ident = to_rust_ident(name)
         self.sub_properties = [Longhand(s) for s in sub_properties]
 
+LONGHANDS_PER_STYLE_STRUCT = []
+THIS_STYLE_STRUCT_LONGHANDS = None
 LONGHANDS = []
 SHORTHANDS = []
 INHERITED = set()
+
+def new_style_struct(name):
+    longhands = []
+    LONGHANDS_PER_STYLE_STRUCT.append((name, longhands))
+    global THIS_STYLE_STRUCT_LONGHANDS
+    THIS_STYLE_STRUCT_LONGHANDS = longhands
+    return ""
 
 %>
 
@@ -47,6 +56,7 @@ pub mod longhands {
     <%def name="longhand(name, inherited=False, no_super=False)">
     <%
         property = Longhand(name)
+        THIS_STYLE_STRUCT_LONGHANDS.append(property)
         LONGHANDS.append(property)
         if inherited:
             INHERITED.add(name)
@@ -109,10 +119,14 @@ pub mod longhands {
 
     // CSS 2.1, Section 8 - Box model
 
+    ${new_style_struct("Margin")}
+
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("margin-" + side, "LengthOrPercentageOrAuto",
                           "computed::LPA_Length(computed::Length(0))")}
     % endfor
+
+    ${new_style_struct("Padding")}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("padding-" + side, "LengthOrPercentage",
@@ -123,6 +137,8 @@ pub mod longhands {
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("border-%s-color" % side, "CSSColor", "CurrentColor")}
     % endfor
+
+    ${new_style_struct("Border")}
 
     // dotted dashed double groove ridge insed outset hidden
     ${single_keyword("border-top-style", "none solid")}
@@ -164,6 +180,8 @@ pub mod longhands {
     % endfor
 
     // CSS 2.1, Section 9 - Visual formatting model
+
+    ${new_style_struct("Box")}
 
     // TODO: don't parse values we don't support
     ${single_keyword("display",
@@ -231,13 +249,21 @@ pub mod longhands {
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
 
+    ${new_style_struct("Background")}
+
     ${predefined_type("background-color", "CSSColor",
                       "RGBA(RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
+
+
+    ${new_style_struct("Color")}
+
     ${predefined_type("color", "CSSColor",
                       "RGBA(RGBA { red: 0., green: 0., blue: 0., alpha: 1. }) /* black */",
                       inherited=True)}
 
     // CSS 2.1, Section 15 - Fonts
+
+    ${new_style_struct("Font")}
 
     <%self:longhand name="font-family" inherited="True">
         pub use to_computed_value = std::util::id;
@@ -406,6 +432,8 @@ pub mod longhands {
     </%self:single_component_value>
 
     // CSS 2.1, Section 16 - Text
+
+    ${new_style_struct("Text")}
 
     // TODO: initial value should be 'start' (CSS Text Level 3, direction-dependent.)
     ${single_keyword("text-align", "left right center justify", inherited=True)}
@@ -684,4 +712,42 @@ impl PropertyDeclaration {
         }
         true
     }
+}
+
+pub mod style_structs {
+    use super::longhands;
+    % for name, longhands in LONGHANDS_PER_STYLE_STRUCT:
+        pub struct ${name} {
+            % for longhand in longhands:
+                ${longhand.ident}: longhands::${longhand.ident}::ComputedValue,
+            % endfor
+        }
+    % endfor
+}
+
+pub struct ComputedValues {
+    % for name, longhands in LONGHANDS_PER_STYLE_STRUCT:
+        ${name}: style_structs::${name},
+    % endfor
+}
+
+#[inline]
+pub fn get_initial_values() -> ComputedValues {
+    ComputedValues {
+        % for name, longhands in LONGHANDS_PER_STYLE_STRUCT:
+            ${name}: style_structs::${name} {
+                % for longhand in longhands:
+                    ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
+                % endfor
+            },
+        % endfor
+    }
+}
+
+pub fn cascade(applicable_declarations: &[PropertyDeclaration], parent_style: &ComputedValues)
+            -> ComputedValues {
+    // TODO
+    let _ = applicable_declarations;
+    let _ = parent_style;
+    get_initial_values()
 }
