@@ -120,4 +120,4 @@
 	url = http://github.com/mozilla-servo/rust-glut.git
 [submodule "src/support/http/rust-http"]
 	path = src/support/http/rust-http
-	url = git://github.com/mozilla-servo/rust-http
+	url = https://github.com/mozilla-servo/rust-http
