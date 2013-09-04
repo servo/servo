@@ -86,8 +86,8 @@ impl ShapedGlyphData {
     fn byte_offset_of_glyph(&self, i: uint) -> uint {
         assert!(i < self.count);
 
-        let glyph_info_i = ptr::offset(self.glyph_infos, i as int);
         unsafe {
+            let glyph_info_i = ptr::offset(self.glyph_infos, i as int);
             (*glyph_info_i).cluster as uint
         }
     }

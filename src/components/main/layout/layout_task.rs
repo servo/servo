@@ -303,7 +303,7 @@ impl LayoutTask {
                     ctx: &layout_ctx,
                 };
 
-                let display_list = ~Cell::new(DisplayList::new::<AbstractNode<()>>());
+                let display_list = ~Cell::new(DisplayList::<AbstractNode<()>>::new());
 
                 // TODO: Set options on the builder before building.
                 // TODO: Be smarter about what needs painting.
