@@ -2,47 +2,63 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{Payload, Done, LoaderTask};
+use resource_task::{ProgressMsg, Payload, Done, LoaderTask};
 
-use std::comm::SharedChan;
-use std::task;
-use http_client::uv_http_request;
-use http_client;
+use std::cell::Cell;
+use std::vec;
+use extra::url::Url;
+use http::client::RequestWriter;
+use http::method::Get;
+use http::headers::HeaderEnum;
+use std::rt::io::Reader;
+use std::rt::io::net::ip::SocketAddr;
 
 pub fn factory() -> LoaderTask {
 	let f: LoaderTask = |url, progress_chan| {
-		assert!(url.scheme == ~"http");
-
-		let progress_chan = SharedChan::new(progress_chan);
-		do task::spawn {
-			debug!("http_loader: requesting via http: %?", url.clone());
-			let mut request = uv_http_request(url.clone());
-			let errored = @mut false;
-			let url = url.clone();
-			{
-				let progress_chan = progress_chan.clone();
-				do request.begin |event| {
-					let url = url.clone();
-					match event {
-						http_client::Status(*) => { }
-						http_client::Payload(data) => {
-							debug!("http_loader: got data from %?", url);
-							let data = data.take();
-							progress_chan.send(Payload(data));
-						}
-						http_client::Error(*) => {
-							debug!("http_loader: error loading %?", url);
-							*errored = true;
-							progress_chan.send(Done(Err(())));
-						}
-					}
-				}
-			}
-
-			if !*errored {
-				progress_chan.send(Done(Ok(())));
-			}
-		}
+        let url = Cell::new(url);
+        let progress_chan = Cell::new(progress_chan);
+        spawn(|| load(url.take(), progress_chan.take()))
 	};
 	f
+}
+
+fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
+	assert!(url.scheme == ~"http");
+
+    info!("requesting %s", url.to_str());
+
+    let mut request = ~RequestWriter::new(Get, url.clone());
+    request.remote_addr = Some(url_to_socket_addr(&url));
+    let mut response = match request.read_response() {
+        Ok(r) => r,
+        Err(_) => {
+            progress_chan.send(Done(Err(())));
+            return;
+        }
+    };
+
+    loop {
+        for header in response.headers.iter() {
+            info!(" - %s: %s", header.header_name(), header.header_value());
+        }
+
+        let mut buf = vec::with_capacity(1024);
+        unsafe { vec::raw::set_len(&mut buf, 1024) };
+        match response.read(buf) {
+            Some(len) => {
+                unsafe { vec::raw::set_len(&mut buf, len) };
+            }
+            None => {
+                progress_chan.send(Done(Ok(())));
+                return;
+            }
+        }
+        progress_chan.send(Payload(buf));
+    }
+}
+
+// FIXME: Quick hack to convert ip addresses to SocketAddr
+fn url_to_socket_addr(url: &Url) -> SocketAddr {
+    let host_and_port = fmt!("%s:%s", url.host, url.port.clone().unwrap_or_default(~"80"));
+    FromStr::from_str(host_and_port).expect("couldn't parse host as IP address")
 }
