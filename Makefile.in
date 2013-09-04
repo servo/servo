@@ -226,7 +226,10 @@ DEPS_gfx = $(CRATE_gfx) $(SRC_gfx) $(DONE_SUBMODULES) $(DONE_util) $(DONE_net) $
 RFLAGS_script = $(strip $(CFG_RUSTC_FLAGS)) $(addprefix -L $(B)src/,$(DEPS_SUBMODULES)) -L $(B)src/components/util -L $(B)src/components/net -L $(B)src/components/gfx -L $(B)src/components/msg
 WEBIDL_script = $(call rwildcard,$(S)src/components/script/,*.webidl)
 AUTOGEN_SRC_script = $(patsubst %.webidl, %Binding.rs, $(WEBIDL_script))
-SRC_script = $(call rwildcard,$(S)src/components/script/,*.rs) $(AUTOGEN_SRC_script)
+MAKO_ZIP = $(S)src/components/script/style/properties/Mako-0.8.1.zip
+MAKO_script = $(S)src/components/script/style/properties/mod.rs
+MAKO_SRC_script = $(MAKO_script).mako
+SRC_script = $(call rwildcard,$(S)src/components/script/,*.rs) $(AUTOGEN_SRC_script) $(MAKO_script)
 CRATE_script = $(S)src/components/script/script.rc
 DONE_script = $(B)src/components/script/libscript.dummy
 
@@ -286,6 +289,10 @@ $(AUTOGEN_SRC_script): %Binding.rs: $(bindinggen_dependencies) \
 	$(Q)touch $@
 
 globalgen_dependencies := $(addprefix $(BINDINGS_SRC)/, GlobalGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py) $(CACHE_DIR)/.done
+
+$(MAKO_script): $(MAKO_SRC_script)
+	PYTHONPATH=$(MAKO_ZIP) python -c "from mako.template import Template; print(Template(filename='$<').render())" > $@
+
 
 $(CACHE_DIR)/.done:
 	mkdir -p $(CACHE_DIR)

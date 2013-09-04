@@ -17,6 +17,7 @@ extern mod hubbub;
 extern mod js;
 extern mod netsurfcss;
 extern mod newcss (name = "css");
+extern mod cssparser;
 extern mod servo_net (name = "net");
 extern mod servo_util (name = "util");
 extern mod servo_msg (name = "msg");
@@ -140,3 +141,6 @@ pub mod html {
 pub mod layout_interface;
 pub mod script_task;
 
+
+// "New" (as of 2013-08) style system, not used yet but included to avoid bitrot.
+mod style;
