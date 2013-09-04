@@ -38,9 +38,9 @@ pub enum Msg {
 /// Synchronous messages that script can send to layout.
 pub enum LayoutQuery {
     /// Requests the dimensions of the content box, as in the `getBoundingClientRect()` call.
-    ContentBoxQuery(AbstractNode<ScriptView>, Chan<Result<ContentBoxResponse, ()>>),
+    ContentBoxQuery(AbstractNode<ScriptView>, Chan<ContentBoxResponse>),
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
-    ContentBoxesQuery(AbstractNode<ScriptView>, Chan<Result<ContentBoxesResponse, ()>>),
+    ContentBoxesQuery(AbstractNode<ScriptView>, Chan<ContentBoxesResponse>),
     /// Requests the node containing the point of interest
     HitTestQuery(AbstractNode<ScriptView>, Point2D<f32>, Chan<Result<HitTestResponse, ()>>),
 }
