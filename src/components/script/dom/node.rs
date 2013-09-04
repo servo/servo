@@ -5,9 +5,10 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use dom::bindings::node;
-use dom::bindings::utils::{WrapperCache, DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{WrapperCache, DOMString, null_string, str, ErrorResult};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box};
 use dom::bindings;
+use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
@@ -243,11 +244,34 @@ impl<'self, View> AbstractNode<View> {
         }
     }
 
+    // FIXME: This should be doing dynamic borrow checking for safety.
+    pub fn is_characterdata(self) -> bool {
+        // FIXME: ProcessingInstruction
+        self.is_text() || self.is_comment()
+    }
+
+    pub fn with_imm_characterdata<R>(self, f: &fn(&CharacterData) -> R) -> R {
+        if !self.is_characterdata() {
+            fail!(~"node is not characterdata");
+        }
+        self.transmute(f)
+    }
+
+    pub fn with_mut_characterdata<R>(self, f: &fn(&mut CharacterData) -> R) -> R {
+        if !self.is_characterdata() {
+            fail!(~"node is not characterdata");
+        }
+        self.transmute_mut(f)
+    }
+
+    pub fn is_comment(self) -> bool {
+        self.type_id() == CommentNodeTypeId
+    }
+
     pub fn is_text(self) -> bool {
         self.type_id() == TextNodeTypeId
     }
 
-    // FIXME: This should be doing dynamic borrow checking for safety.
     pub fn with_imm_text<R>(self, f: &fn(&Text) -> R) -> R {
         if !self.is_text() {
             fail!(~"node is not text");
@@ -499,7 +523,25 @@ impl Node<ScriptView> {
     }
 
     pub fn GetTextContent(&self) -> DOMString {
-        null_string
+        match self.type_id {
+          DoctypeNodeTypeId | ElementNodeTypeId(*) => {
+            let mut content = ~"";
+            for node in self.abstract.unwrap().traverse_preorder() {
+                if node.is_text() {
+                    do node.with_imm_text() |text| {
+                        let s = text.parent.Data();
+                        content = content + s.to_str();
+                    }
+                }
+            }
+            str(content)
+          }
+          CommentNodeTypeId | TextNodeTypeId => {
+            do self.abstract.unwrap().with_imm_characterdata() |characterdata| {
+                characterdata.Data()
+            }
+          }
+        }
     }
 
     pub fn SetTextContent(&mut self, _val: &DOMString, _rv: &mut ErrorResult) {
