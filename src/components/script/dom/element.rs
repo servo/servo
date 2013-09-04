@@ -265,7 +265,7 @@ impl Element {
                         let page = win.page;
                         let (port, chan) = comm::stream();
                         match unsafe {(*page).query_layout(ContentBoxesQuery(node, chan), port)} {
-                            Ok(ContentBoxesResponse(rects)) => {
+                            ContentBoxesResponse(rects) => {
                                 let cx = unsafe {(*page).js_info.get_ref().js_compartment.cx.ptr};
                                 let cache = win.get_wrappercache();
                                 let scope = cache.get_wrapper();
@@ -280,10 +280,6 @@ impl Element {
                                 };
                                 Some((rects, cx, scope))
                             },
-                            Err(()) => {
-                                debug!("layout query error");
-                                None
-                            }
                         }
                     }
                     None => {
@@ -311,7 +307,7 @@ impl Element {
                         assert!(node.is_element());
                         let (port, chan) = comm::stream();
                         match unsafe{(*page).query_layout(ContentBoxQuery(node, chan), port)} {
-                            Ok(ContentBoxResponse(rect)) => {
+                            ContentBoxResponse(rect) => {
                                 let cx = unsafe {(*page).js_info.get_ref().js_compartment.cx.ptr};
                                 let cache = win.get_wrappercache();
                                 let scope = cache.get_wrapper();
@@ -322,8 +318,7 @@ impl Element {
                                     (rect.origin.x + rect.size.width).to_f32(),
                                     cx,
                                     scope)
-                            },
-                            Err(()) => fail!("error querying layout")
+                            }
                         }
                     }
                     None => fail!("no window")

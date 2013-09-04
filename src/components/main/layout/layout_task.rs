@@ -372,33 +372,42 @@ impl LayoutTask {
                     transmute(node)
                 };
 
-                let response = do node.read_layout_data |layout_data| {
-                    match (layout_data.boxes.display_list.clone(), layout_data.boxes.range) {
-                        (Some(display_list), Some(range)) => {
-                            let mut rect: Option<Rect<Au>> = None;
-                            for i in range.eachi() {
-                                rect = match rect {
-                                    Some(acc) => Some(acc.union(&display_list.get().list[i].bounds())),
-                                    None => Some(display_list.get().list[i].bounds())
+                fn box_for_node(node: AbstractNode<LayoutView>) -> Option<Rect<Au>> {
+                    do node.read_layout_data |layout_data| {
+                        match (layout_data.boxes.display_list.clone(), layout_data.boxes.range) {
+                            (Some(display_list), Some(range)) => {
+                                let mut rect: Option<Rect<Au>> = None;
+                                for i in range.eachi() {
+                                    rect = match rect {
+                                        Some(acc) => {
+                                            Some(acc.union(&display_list.get().list[i].bounds()))
+                                        }
+                                        None => Some(display_list.get().list[i].bounds())
+                                    }
                                 }
+                                rect
                             }
-
-                            match rect {
-                                None => {
-                                    error!("no boxes for node");
-                                    Err(())
+                            _ => {
+                                let mut acc: Option<Rect<Au>> = None;
+                                for child in node.children() {
+                                    let rect = box_for_node(child);
+                                    match rect {
+                                        None => loop,
+                                        Some(rect) => acc = match acc {
+                                            Some(acc) =>  Some(acc.union(&rect)),
+                                            None => Some(rect)
+                                        }
+                                    }
                                 }
-                                Some(rect) => Ok(ContentBoxResponse(rect))
+                                acc
                             }
-                        }
-                        _ => {
-                            error!("no display list present");
-                            Err(())
                         }
                     }
-                };
+                }
 
-                reply_chan.send(response)
+                let rect = box_for_node(node).unwrap_or_default(Rect(Point2D(Au(0), Au(0)),
+                                                                     Size2D(Au(0), Au(0))));
+                reply_chan.send(ContentBoxResponse(rect))
             }
             ContentBoxesQuery(node, reply_chan) => {
                 // FIXME: Isolate this transmutation into a single "bridge" module.
@@ -406,21 +415,30 @@ impl LayoutTask {
                     transmute(node)
                 };
 
-                let response = do node.read_layout_data |layout_data| {
-                    match (layout_data.boxes.display_list.clone(), layout_data.boxes.range) {
-                        (Some(display_list), Some(range)) => {
-                            let mut boxes = ~[];
-                            for i in range.eachi() {
-                                boxes.push(display_list.get().list[i].bounds());
+                fn boxes_for_node(node: AbstractNode<LayoutView>,
+                                  boxes: ~[Rect<Au>]) -> ~[Rect<Au>] {
+                    let boxes = Cell::new(boxes);
+                    do node.read_layout_data |layout_data| {
+                        let mut boxes = boxes.take();
+                        match (layout_data.boxes.display_list.clone(), layout_data.boxes.range) {
+                            (Some(display_list), Some(range)) => {
+                                for i in range.eachi() {
+                                    boxes.push(display_list.get().list[i].bounds());
+                                }
                             }
-
-                            Ok(ContentBoxesResponse(boxes))
+                            _ => {
+                                for child in node.children() {
+                                    boxes = boxes_for_node(child, boxes);
+                                }
+                            }
                         }
-                        _ => Err(()),
+                        boxes
                     }
-                };
+                }
 
-                reply_chan.send(response)
+                let mut boxes = ~[];
+                boxes = boxes_for_node(node, boxes);
+                reply_chan.send(ContentBoxesResponse(boxes))
             }
             HitTestQuery(_, point, reply_chan) => {
                 let response = {

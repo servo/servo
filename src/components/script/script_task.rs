@@ -231,8 +231,8 @@ impl Page {
     /// Sends the given query to layout.
     pub fn query_layout<T: Send>(&mut self,
                                  query: LayoutQuery,
-                                 response_port: Port<Result<T, ()>>)
-                                 -> Result<T,()> {
+                                 response_port: Port<T>)
+                                 -> T {
         self.join_layout();
         self.layout_chan.send(QueryMsg(query));
         response_port.recv()
