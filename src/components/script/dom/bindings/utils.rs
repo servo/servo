@@ -27,7 +27,7 @@ use js::jsapi::{JS_GetFunctionPrototype, JS_InternString, JS_GetFunctionObject};
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype, JS_GetGlobalForObject};
 use js::jsapi::{JS_NewStringCopyN, JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
-use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative};
+use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative, JSTracer};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsapi::{JSPropertyOp, JSStrictPropertyOp};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
@@ -544,6 +544,10 @@ fn CreateInterfacePrototypeObject(cx: *JSContext, global: *JSObject,
 pub extern fn ThrowingConstructor(_cx: *JSContext, _argc: c_uint, _vp: *mut JSVal) -> JSBool {
     //XXX should trigger exception here
     return 0;
+}
+
+pub trait Traceable {
+    fn trace(&self, trc: *mut JSTracer);
 }
 
 #[fixed_stack_segment]

@@ -3961,10 +3961,9 @@ class CGAbstractClassHook(CGAbstractExternMethod):
                                         args)
 
     def definition_body_prologue(self):
-        return "" #XXXjdm we may want to do a proper unwrap here
         return """
-  let this: *%s = &(unwrap::<*rust_box<%s>>(obj).payload);
-""" % (self.descriptor.nativeType, self.descriptor.nativeType)
+  let this: *%s = &(*unwrap::<*rust_box<%s>>(obj)).payload;
+""" % (self.descriptor.concreteType, self.descriptor.concreteType)
 
     def definition_body(self):
         return self.definition_body_prologue() + self.generate_code()
@@ -3989,6 +3988,18 @@ let _: @mut %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
 """ % descriptor.concreteType
     #return clearWrapper + release
     return release
+
+class CGClassTraceHook(CGAbstractClassHook):
+    """
+    A hook to trace through our native object; used for GC and CC
+    """
+    def __init__(self, descriptor):
+        args = [Argument('*mut JSTracer', 'trc'), Argument('*JSObject', 'obj')]
+        CGAbstractClassHook.__init__(self, descriptor, TRACE_HOOK_NAME, 'void',
+                                     args)
+
+    def generate_code(self):
+        return "  (*this).trace(%s);" % self.args[0].name
 
 class CGClassConstructHook(CGAbstractExternMethod):
     """
@@ -4154,7 +4165,7 @@ class CGDescriptor(CGThing):
 
             # Only generate a trace hook if the class wants a custom hook.
             if (descriptor.customTrace):
-                #cgThings.append(CGClassTraceHook(descriptor))
+                cgThings.append(CGClassTraceHook(descriptor))
                 pass
 
         if descriptor.interface.hasInterfaceObject():

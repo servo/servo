@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{CacheableWrapper, WrapperCache};
+use dom::bindings::utils::{CacheableWrapper, WrapperCache, Traceable};
 use dom::element::*;
 use dom::types::*;
 use dom::node::{AbstractNode, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
 use dom::node::{DoctypeNodeTypeId, ScriptView};
 
 use std::cast;
+use std::libc;
 use std::ptr;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::{JSContext, JSObject, JSTracer, JSTRACE_OBJECT, JS_CallTracer};
 use servo_util::tree::TreeNodeRef;
 
 macro_rules! generate_element(
@@ -105,5 +106,35 @@ impl CacheableWrapper for AbstractNode<ScriptView> {
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
         fail!(~"need to implement wrapping");
+    }
+}
+
+impl Traceable for Node<ScriptView> {
+    fn trace(&self, tracer: *mut JSTracer) {
+        #[fixed_stack_segment]
+        fn trace_node(tracer: *mut JSTracer, node: Option<AbstractNode<ScriptView>>, name: &str) {
+            if node.is_none() {
+                return;
+            }
+            debug!("tracing %s", name);
+            let mut node = node.unwrap();
+            let cache = node.get_wrappercache();
+            let wrapper = cache.get_wrapper();
+            assert!(wrapper.is_not_null());
+            unsafe {
+                (*tracer).debugPrinter = ptr::null();
+                (*tracer).debugPrintIndex = -1;
+                do name.to_c_str().with_ref |name| {
+                    (*tracer).debugPrintArg = name as *libc::c_void;
+                    JS_CallTracer(cast::transmute(tracer), wrapper, JSTRACE_OBJECT as u32);
+                }
+            }
+        }
+        error!("tracing %p?:", self.wrapper.get_wrapper());
+        trace_node(tracer, self.parent_node, "parent");
+        trace_node(tracer, self.first_child, "first child");
+        trace_node(tracer, self.last_child, "last child");
+        trace_node(tracer, self.next_sibling, "next sibling");
+        trace_node(tracer, self.prev_sibling, "prev sibling");
     }
 }
