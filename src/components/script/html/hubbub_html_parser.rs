@@ -86,6 +86,7 @@ enum CSSMessage {
 
 enum JSMessage {
     JSTaskNewFile(Url),
+    JSTaskNewInlineScript(~str, Url),
     JSTaskExit
 }
 
@@ -192,6 +193,9 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
                 if bytes.is_some() {
                     result_vec.push(JSFile { data: bytes.unwrap(), url: url_clone });
                 }
+            }
+            JSTaskNewInlineScript(data, url) => {
+                result_vec.push(JSFile { data: data.into_bytes(), url: url });
             }
             JSTaskExit => {
                 break;
@@ -511,15 +515,27 @@ pub fn parse_html(cx: *JSContext,
                                url: Url,
                                js_chan: SharedChan<JSMessage>) {
                 unsafe {
-                    let script: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(script);
-                    do script.with_imm_element |script| {
+                    let scriptnode: AbstractNode<ScriptView> = NodeWrapping::from_hubbub_node(script);
+                    do scriptnode.with_imm_element |script| {
                         match script.get_attr("src") {
                             Some(src) => {
                                 debug!("found script: %s", src);
                                 let new_url = make_url(src.to_str(), Some(url.clone()));
                                 js_chan.send(JSTaskNewFile(new_url));
                             }
-                            None => {}
+                            None => {
+                                let mut data = ~[];
+                                debug!("iterating over children %?", scriptnode.first_child());
+                                for child in scriptnode.children() {
+                                    debug!("child = %?", child);
+                                    do child.with_imm_text() |text| {
+                                        data.push(text.parent.data.to_str());  // FIXME: Bad copy.
+                                    }
+                                }
+
+                                debug!("data = %?", data);
+                                js_chan.send(JSTaskNewInlineScript(data.concat(), url.clone()));
+                            }
                         }
                     }
                 }
