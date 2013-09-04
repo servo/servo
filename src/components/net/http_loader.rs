@@ -37,12 +37,13 @@ fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
         }
     };
 
-    loop {
-        for header in response.headers.iter() {
-            info!(" - %s: %s", header.header_name(), header.header_value());
-        }
+    for header in response.headers.iter() {
+        info!(" - %s: %s", header.header_name(), header.header_value());
+    }
 
+    loop {
         let mut buf = vec::with_capacity(1024);
+
         unsafe { vec::raw::set_len(&mut buf, 1024) };
         match response.read(buf) {
             Some(len) => {
@@ -55,6 +56,7 @@ fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
         }
         progress_chan.send(Payload(buf));
     }
+    progress_chan.send(Done(Ok(())));
 }
 
 // FIXME: Quick hack to convert ip addresses to SocketAddr
