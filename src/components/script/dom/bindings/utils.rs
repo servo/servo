@@ -10,7 +10,6 @@ use script_task::page_from_context;
 
 use std::libc::c_uint;
 use std::cast;
-use std::cell::Cell;
 use std::hashmap::HashMap;
 use std::libc;
 use std::ptr;
@@ -30,8 +29,7 @@ use js::jsapi::{JS_NewStringCopyN, JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
-use js::jsapi::{JSFreeOp, JSTracer};
-use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JSEnumerateOp, JSResolveOp, JSConvertOp};
+use js::jsapi::{JSPropertyOp, JSStrictPropertyOp};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::rust::Compartment;
 use js::{JSPROP_ENUMERATE, JSVAL_NULL};
