@@ -83,10 +83,6 @@ DEPS_rust-css += \
 	rust-wapcaplet \
 	$(NULL)
 
-CFLAGS_mozjs += \
-	"-I../mozjs/dist/include" \
-	$(NULL)
-
 DEPS_rust-mozjs += \
 	mozjs \
 	$(NULL)
