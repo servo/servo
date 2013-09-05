@@ -7,6 +7,7 @@ use dom::bindings::utils::{WrapperCache, DOMString, null_string};
 use dom::bindings::utils::{CacheableWrapper, BindingObject};
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ScriptView};
+use dom::navigator::Navigator;
 
 use layout_interface::ReflowForScriptQuery;
 use script_task::{ExitMsg, FireTimerMsg, Page, ScriptChan};
@@ -41,6 +42,7 @@ pub struct Window {
     compositor: @ScriptListener,
     wrapper: WrapperCache,
     timer_chan: SharedChan<TimerControlMsg>,
+    navigator: Option<@mut Navigator>,
 }
 
 #[unsafe_destructor]
@@ -103,6 +105,13 @@ impl Window {
 
     pub fn GetFrameElement(&self) -> Option<AbstractNode<ScriptView>> {
         None
+    }
+
+    pub fn Navigator(&mut self) -> @mut Navigator {
+        if self.navigator.is_none() {
+            self.navigator = Some(Navigator::new());
+        }
+        self.navigator.unwrap()
     }
 
     pub fn Confirm(&self, _message: &DOMString) -> bool {
@@ -189,6 +198,7 @@ impl Window {
                 }
                 SharedChan::new(timer_chan)
             },
+            navigator: None,
         };
 
         unsafe {
