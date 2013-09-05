@@ -111,6 +111,14 @@ impl DOMString {
             null_string => &'a "",
         }
     }
+
+    // XXX This is temporary until issue #875 is fixed.
+    pub fn unwrap(&self) -> ~str {
+        match self {
+          &str(ref s) => s.clone(),
+          &null_string => fail!("Cannot unwrap a null string.")
+        }
+    }
 }
 
 pub struct rust_box<T> {
