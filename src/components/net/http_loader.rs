@@ -56,7 +56,6 @@ fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
         }
         progress_chan.send(Payload(buf));
     }
-    progress_chan.send(Done(Ok(())));
 }
 
 // FIXME: Quick hack to convert ip addresses to SocketAddr
