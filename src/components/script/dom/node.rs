@@ -499,19 +499,19 @@ impl Node<ScriptView> {
     }
 
     pub fn GetFirstChild(&self) -> Option<AbstractNode<ScriptView>> {
-        None
+        self.first_child
     }
 
     pub fn GetLastChild(&self) -> Option<AbstractNode<ScriptView>> {
-        None
+        self.last_child
     }
 
     pub fn GetPreviousSibling(&self) -> Option<AbstractNode<ScriptView>> {
-        None
+        self.prev_sibling 
     }
 
     pub fn GetNextSibling(&self) -> Option<AbstractNode<ScriptView>> {
-        None
+        self.next_sibling
     }
 
     pub fn GetNodeValue(&self) -> DOMString {
