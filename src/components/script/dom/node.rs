@@ -5,7 +5,7 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use dom::bindings::node;
-use dom::bindings::utils::{WrapperCache, DOMString, null_string, str, ErrorResult};
+use dom::bindings::utils::{WrapperCache, DOMString, null_string, str, ErrorResult, NotFound};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box};
 use dom::bindings;
 use dom::characterdata::CharacterData;
@@ -561,8 +561,25 @@ impl Node<ScriptView> {
         fail!("stub")
     }
 
-    pub fn RemoveChild(&mut self, _node: AbstractNode<ScriptView>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
-        fail!("stub")
+    pub fn RemoveChild(&mut self,
+                       abstract_self: AbstractNode<ScriptView>,
+                       node: AbstractNode<ScriptView>,
+                       rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+        fn is_not_found_err(this_node: AbstractNode<ScriptView>,
+                            old_child: AbstractNode<ScriptView>) -> bool {
+            match old_child.parent_node() {
+                Some(parent) if parent == this_node => false,
+                _ => true
+            }
+        }
+
+        if is_not_found_err(abstract_self, node) {
+            *rv = Err(NotFound);
+        }
+        if rv.is_ok() {
+            abstract_self.remove_child(node);
+        }
+        node
     }
 
     pub fn Normalize(&mut self) {

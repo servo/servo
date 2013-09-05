@@ -795,7 +795,8 @@ impl DerivedWrapper for AbstractNode<ScriptView> {
 
 #[deriving(ToStr)]
 pub enum Error {
-    FailureUnknown
+    FailureUnknown,
+    NotFound,
 }
 
 pub type ErrorResult = Result<(), Error>;
