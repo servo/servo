@@ -1068,7 +1068,7 @@ for (uint32_t i = 0; i < length; ++i) {
             return handleDefault(
                 conversionCode,
                 ("static data: [u8, ..%s] = [ %s ];\n"
-                 "%s = str(str::from_bytes(data));" %
+                 "%s = str(str::from_utf8(data));" %
                  (len(defaultValue.value) + 1,
                   ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
                   varName)))
@@ -1268,7 +1268,10 @@ for (uint32_t i = 0; i < length; ++i) {
                                    "  %s = %s;\n"
                                    "}" % (dataLoc, defaultStr))).define()
 
-    return (template, declType, None, isOptional, "0 as %s" % typeName)
+    if typeName != "bool":
+        return (template, declType, None, isOptional, "0 as %s" % typeName)
+    else:
+        return (template, declType, None, isOptional, "false")
 
 def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
                                             argcAndIndex=None):
@@ -1458,7 +1461,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
             if not haveSuccessCode:
                 return wrapCall + ";\n" + "return if (*vp).v != 0 { 1 } else { 0 };"
             failureCode = "return 0;"
-        str = ("if !(%s as bool) {\n" +
+        str = ("if !(%s != 0) {\n" +
                CGIndenter(CGGeneric(failureCode)).define() + "\n" +
                "}\n" +
                successCode) % (wrapCall)
@@ -1550,7 +1553,7 @@ for (uint32_t i = 0; i < length; ++i) {
         else:
             #wrap = "WrapObject(cx, ${obj}, %s, %s${jsvalPtr})" % (result, getIID)
             if descriptor.pointerType == '':
-                wrap = "(%s.wrap(cx, ${obj}, ${jsvalPtr}) as bool)" % result
+                wrap = "(%s.wrap(cx, ${obj}, ${jsvalPtr}) != 0)" % result
             else:
                 wrap = "if WrapNewBindingObject(cx, ${obj}, %s as @mut CacheableWrapper, ${jsvalPtr}) { 1 } else { 0 };" % result
             wrappingCode += wrapAndSetPtr(wrap)
@@ -4477,7 +4480,7 @@ class CGDictionary(CGThing):
         if dealWithOptional:
             replacements["declName"] = "(" + replacements["declName"] + ".Value())"
         if member.defaultValue:
-            replacements["haveValue"] = "found as bool"
+            replacements["haveValue"] = "found != 0"
 
         # NOTE: jsids are per-runtime, so don't use them in workers
         if True or self.workers: #XXXjdm hack until 'static mut' exists for global jsids

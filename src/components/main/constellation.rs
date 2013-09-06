@@ -655,7 +655,7 @@ impl Constellation {
         // Find the pending frame change whose new pipeline id is pipeline_id.
         // If it is not found, it simply means that this pipeline will not receive
         // permission to paint.
-        let pending_index = do self.pending_frames.rposition |frame_change| {
+        let pending_index = do self.pending_frames.iter().rposition |frame_change| {
             frame_change.after.pipeline.id == pipeline_id
         };
         for &pending_index in pending_index.iter() {

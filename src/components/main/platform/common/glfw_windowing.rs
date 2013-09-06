@@ -12,6 +12,7 @@ use windowing::{Forward, Back};
 
 use alert::{Alert, AlertMethods};
 use std::libc::c_int;
+use std::local_data;
 use geom::point::Point2D;
 use geom::size::Size2D;
 use servo_msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
@@ -34,6 +35,7 @@ impl ApplicationMethods for Application {
 impl Drop for Application {
     fn drop(&self) {
         glfw::terminate();
+        drop_local_window();
     }
 }
 
@@ -76,15 +78,15 @@ impl WindowMethods<Application> for Window {
             throbber_frame: 0,
         };
 
-        let event_queue = window.event_queue;
+        install_local_window(window);
 
         // Register event handlers.
         do window.glfw_window.set_framebuffer_size_callback |_win, width, height| {
-            event_queue.push(ResizeWindowEvent(width as uint, height as uint))
+            local_window().event_queue.push(ResizeWindowEvent(width as uint, height as uint))
         }
         do window.glfw_window.set_key_callback |_win, key, _scancode, action, mods| {
             if action == glfw::PRESS {
-                window.handle_key(key, mods)
+                local_window().handle_key(key, mods)
             }
         }
         do window.glfw_window.set_mouse_button_callback |win, button, action, _mods| {
@@ -96,7 +98,7 @@ impl WindowMethods<Application> for Window {
             let x = x as f32 * hidpi;
             let y = y as f32 * hidpi;
             if button < 3 {
-                window.handle_mouse(button, action, x as i32, y as i32);
+                local_window().handle_mouse(button, action, x as i32, y as i32);
             }
         }
         do window.glfw_window.set_scroll_callback |win, x_offset, y_offset| {
@@ -111,7 +113,7 @@ impl WindowMethods<Application> for Window {
             let x = x as f32 * hidpi;
             let y = y as f32 * hidpi;
 
-            event_queue.push(ScrollWindowEvent(Point2D(dx, dy), Point2D(x as i32, y as i32)));
+            local_window().event_queue.push(ScrollWindowEvent(Point2D(dx, dy), Point2D(x as i32, y as i32)));
         }
 
         window
@@ -196,7 +198,8 @@ impl Window {
     }
 
     /// Helper function to handle keyboard events.
-    fn handle_key(&self, key: c_int, mods: c_int) {
+    fn handle_key(&self, key: c_int, mods: glfw::KeyMods) {
+        let mods = *mods;
         match key {
             glfw::KEY_ESCAPE => self.glfw_window.set_should_close(true),
             glfw::KEY_L if mods & glfw::MOD_CONTROL != 0 => self.load_url(), // Ctrl+L
@@ -258,3 +261,16 @@ impl Window {
     }
 }
 
+static TLS_KEY: local_data::Key<@mut Window> = &local_data::Key;
+
+fn install_local_window(window: @mut Window) {
+    local_data::set(TLS_KEY, window);
+}
+
+fn drop_local_window() {
+    local_data::pop(TLS_KEY);
+}
+
+fn local_window() -> @mut Window {
+    local_data::get(TLS_KEY, |v| *v.unwrap())
+}
