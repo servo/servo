@@ -14,7 +14,7 @@ use script_task::{ExitMsg, FireTimerMsg, Page, ScriptChan};
 use servo_msg::compositor_msg::ScriptListener;
 
 use js::glue::*;
-use js::jsapi::{JSObject, JSContext};
+use js::jsapi::{JSObject, JSContext, JS_DefineProperty};
 use js::jsapi::{JSPropertyOp, JSStrictPropertyOp};
 use js::{JSVAL_NULL, JSPROP_ENUMERATE};
 
@@ -128,10 +128,6 @@ impl Window {
     pub fn ShowModalDialog(&self, _cx: *JSContext, _url: &DOMString, _argument: JSVal) -> JSVal {
         JSVAL_NULL
     }
-
-    pub fn NamedGetter(&self, _cx: *JSContext, _name: &DOMString, _found: &mut bool) -> *JSObject {
-        ptr::null()
-    }
 }
 
 impl CacheableWrapper for Window {
@@ -177,7 +173,7 @@ impl Window {
     }
 
     #[fixed_stack_segment]
-    pub fn new(page: *mut Page, script_chan: ScriptChan, compositor: @ScriptListener)
+    pub fn new(cx: *JSContext, page: *mut Page, script_chan: ScriptChan, compositor: @ScriptListener)
                -> @mut Window {
         let script_chan_clone = script_chan.clone();
         let win = @mut Window {
@@ -203,14 +199,16 @@ impl Window {
 
         unsafe {
             // TODO(tkuehn): This just grabs the top-level page. Need to handle subframes.
-            let compartment = (*page).js_info.get_ref().js_compartment;
             let cache = ptr::to_unsafe_ptr(win.get_wrappercache());
-            win.wrap_object_shared(compartment.cx.ptr, ptr::null()); //XXXjdm proper scope
-            compartment.define_property(~"window",
-                                        RUST_OBJECT_TO_JSVAL((*cache).wrapper),
-                                        GetJSClassHookStubPointer(PROPERTY_STUB) as JSPropertyOp,
-                                        GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as JSStrictPropertyOp,
-                                        JSPROP_ENUMERATE);
+            win.wrap_object_shared(cx, ptr::null()); //XXXjdm proper scope
+            let global = (*cache).wrapper;
+            do "window".to_c_str().with_ref |name| {
+                JS_DefineProperty(cx, global,  name,
+                                  RUST_OBJECT_TO_JSVAL(global),
+                                  Some(GetJSClassHookStubPointer(PROPERTY_STUB) as JSPropertyOp),
+                                  Some(GetJSClassHookStubPointer(STRICT_PROPERTY_STUB) as JSStrictPropertyOp),
+                                  JSPROP_ENUMERATE);
+            }
         }
         win
     }

@@ -143,6 +143,7 @@ class Descriptor(DescriptorProvider):
         self.concreteType = desc.get('concreteType', ifaceName)
         self.needsAbstract = desc.get('needsAbstract', [])
         self.hasInstanceInterface = desc.get('hasInstanceInterface', None)
+        self.createGlobal = desc.get('createGlobal', False)
 
         # Do something sane for JSObject
         if self.nativeType == "JSObject":
