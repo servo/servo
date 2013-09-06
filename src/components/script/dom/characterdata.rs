@@ -4,49 +4,42 @@
 
 //! DOM bindings for `CharacterData`.
 
-use dom::bindings::utils::{DOMString, null_string, str, ErrorResult};
+use dom::bindings::utils::{DOMString, str, ErrorResult};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, WrapperCache};
 use dom::node::{Node, NodeTypeId, ScriptView};
 use js::jsapi::{JSObject, JSContext};
 
 pub struct CharacterData {
     parent: Node<ScriptView>,
-    data: DOMString
+    data: ~str
 }
 
 impl CharacterData {
     pub fn new(id: NodeTypeId, data: ~str) -> CharacterData {
         CharacterData {
             parent: Node::new(id),
-            data: str(data)
+            data: data
         }
     }
     
     pub fn Data(&self) -> DOMString {
-        self.data.clone()
+        str(self.data.clone())
     }
 
     pub fn SetData(&mut self, arg: &DOMString, _rv: &mut ErrorResult) {
-        self.data = (*arg).clone();
+        self.data = arg.unwrap();
     }
 
     pub fn Length(&self) -> u32 {
-        match self.data {
-            str(ref s) => s.len() as u32,
-            null_string => 0
-        }
+        self.data.len() as u32
     }
 
     pub fn SubstringData(&self, offset: u32, count: u32, _rv: &mut ErrorResult) -> DOMString {
-        match self.data {
-            str(ref s) => str(s.slice(offset as uint, count as uint).to_str()),
-            null_string => null_string
-        }
+        str(self.data.slice(offset as uint, count as uint).to_str())
     }
 
     pub fn AppendData(&mut self, arg: &DOMString, _rv: &mut ErrorResult) {
-        let s = self.data.to_str();
-        self.data = str(s.append(arg.to_str()));
+        self.data.push_str(arg.unwrap());
     }
 
     pub fn InsertData(&mut self, _offset: u32, _arg: &DOMString, _rv: &mut ErrorResult) {
