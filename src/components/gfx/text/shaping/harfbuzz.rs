@@ -13,6 +13,7 @@ use servo_util::range::Range;
 use text::util::{float_to_fixed, fixed_to_float, fixed_to_rounded_int};
 
 use std::cast::transmute;
+use std::char;
 use std::libc::{c_uint, c_int, c_void, c_char};
 use std::ptr;
 use std::ptr::null;
@@ -493,7 +494,7 @@ extern fn glyph_func(_: *hb_font_t,
     assert!(font.is_not_null());
 
     unsafe {
-        match (*font).glyph_index(unicode as char) {
+        match (*font).glyph_index(char::from_u32(unicode).unwrap()) {
             Some(g) => {
                 *glyph = g as hb_codepoint_t;
                 true as hb_bool_t
