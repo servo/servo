@@ -16,3 +16,4 @@ is(nav.platform, null);
 is(nav.userAgent, null);
 is(nav.language, null);
 is(nav.onLine, true);
+finish();
