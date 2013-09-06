@@ -2824,7 +2824,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     getPropertyDescriptor: getPropertyDescriptor,
     getOwnPropertyDescriptor: getOwnPropertyDescriptor,
     defineProperty: defineProperty,
-    getOwnPropertyNames: ptr::null(),
+    getOwnPropertyNames: getOwnPropertyNames,
     delete_: ptr::null(),
     enumerate: ptr::null(),
 
@@ -3844,6 +3844,44 @@ return 1;"""
     def definition_body(self):
         return self.getBody()
 
+class CGDOMJSProxyHandler_getOwnPropertyNames(CGAbstractExternMethod):
+    def __init__(self, descriptor):
+        args = [Argument('*JSContext', 'cx'), Argument('*JSObject', 'proxy'),
+                Argument('*IdVector', 'props')]
+        CGAbstractExternMethod.__init__(self, descriptor, "getOwnPropertyNames", "JSBool", args)
+        self.descriptor = descriptor
+    def getBody(self):
+        indexedGetter = self.descriptor.operations['IndexedGetter']
+        if indexedGetter:
+            addIndices = """let this: *%s = UnwrapProxy(proxy);
+let length = (*this).Length();
+let mut index = 0;
+while index < length {
+  if JS_IdVectorAppend(props, INT_TO_JSID(index as i32)) == 0 {
+    return 0;
+  }
+  index += 1;
+}
+""" % self.descriptor.concreteType
+
+        else:
+            addIndices = ""
+
+        return addIndices + """let expando = GetExpandoObject(proxy);
+if expando.is_not_null() {
+    let result = JS_GetPropertyNames(cx, expando, ((JSITER_OWNONLY | JSITER_HIDDEN) as uint), props);
+    if !result {
+        return 0;
+    }
+}
+
+// FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=772869 Add named items
+return 1;"""
+
+
+    def definition_body(self):
+        return self.getBody()
+
 class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*JSContext', 'cx'), Argument('*JSObject', 'proxy'),
@@ -4221,6 +4259,7 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGDOMJSProxyHandler_obj_toString(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_get(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_hasOwn(descriptor))
+                cgThings.append(CGDOMJSProxyHandler_getOwnPropertyNames(descriptor))
                 if descriptor.operations['IndexedSetter'] or descriptor.operations['NamedSetter']:
                     cgThings.append(CGDOMJSProxyHandler_defineProperty(descriptor))
 
