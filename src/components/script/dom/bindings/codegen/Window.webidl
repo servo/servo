@@ -41,7 +41,8 @@
   getter object (DOMString name);
 
   // the user agent
-  /*readonly attribute Navigator navigator; 
+  readonly attribute Navigator navigator;
+  /*
   readonly attribute External external;
   readonly attribute ApplicationCache applicationCache;*/
 
