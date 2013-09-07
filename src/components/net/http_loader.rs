@@ -11,7 +11,6 @@ use http::client::RequestWriter;
 use http::method::Get;
 use http::headers::HeaderEnum;
 use std::rt::io::Reader;
-use std::rt::io::net::ip::SocketAddr;
 
 pub fn factory() -> LoaderTask {
 	let f: LoaderTask = |url, progress_chan| {
@@ -27,8 +26,7 @@ fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
 
     info!("requesting %s", url.to_str());
 
-    let mut request = ~RequestWriter::new(Get, url.clone());
-    request.remote_addr = Some(url_to_socket_addr(&url));
+    let request = ~RequestWriter::new(Get, url.clone());
     let mut response = match request.read_response() {
         Ok(r) => r,
         Err(_) => {
@@ -56,10 +54,4 @@ fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
         }
         progress_chan.send(Payload(buf));
     }
-}
-
-// FIXME: Quick hack to convert ip addresses to SocketAddr
-fn url_to_socket_addr(url: &Url) -> SocketAddr {
-    let host_and_port = fmt!("%s:%s", url.host, url.port.clone().unwrap_or_default(~"80"));
-    FromStr::from_str(host_and_port).expect("couldn't parse host as IP address")
 }
