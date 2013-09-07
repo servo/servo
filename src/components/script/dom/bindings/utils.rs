@@ -603,24 +603,24 @@ impl WrapperCache {
 #[fixed_stack_segment]
 pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
                             value: @mut CacheableWrapper,
-                            vp: *mut JSVal) -> bool {
+                            vp: *mut JSVal) -> JSBool {
   unsafe {
     let cache = value.get_wrappercache();
     let obj = cache.get_wrapper();
     if obj.is_not_null() /*&& js::GetObjectCompartment(obj) == js::GetObjectCompartment(scope)*/ {
         *vp = RUST_OBJECT_TO_JSVAL(obj);
-        return true;
+        return 1; // JS_TRUE
     }
 
     let obj = value.wrap_object_shared(cx, scope);
     if obj.is_null() {
-        return false;
+        return 0; // JS_FALSE
     }
 
     //  MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
       cache.set_wrapper(obj);
     *vp = RUST_OBJECT_TO_JSVAL(obj);
-    return JS_WrapValue(cx, cast::transmute(vp)) != 0;
+    return JS_WrapValue(cx, cast::transmute(vp));
   }
 }
 

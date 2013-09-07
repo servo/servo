@@ -83,7 +83,7 @@ fn make_test(file: ~str) -> TestDescAndFn {
 fn run_test(file: ~str) {
     let infile = ~"file://" + os::make_absolute(&Path(file)).to_str();
     let res = run::process_output("./servo", [infile]);
-    let out = str::from_bytes(res.output);
+    let out = str::from_utf8(res.output);
     io::print(out);
     let lines: ~[&str] = out.split_iter('\n').collect();
     for &line in lines.iter() {
