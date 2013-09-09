@@ -8,7 +8,7 @@
 use geom::point::Point2D;
 use geom::size::Size2D;
 use geom::rect::Rect;
-use std::uint::{div_ceil, next_power_of_two, range};
+use std::uint::{div_ceil, next_power_of_two};
 use std::vec::build_sized;
 use std::util::replace;
 use gfx::render_task::BufferRequest;
