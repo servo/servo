@@ -20,7 +20,6 @@ use std::cell::Cell;
 use std::comm;
 use std::str::eq_slice;
 use std::ascii::StrAsciiExt;
-use std::FromStr;
 
 pub struct Element {
     parent: Node<ScriptView>,

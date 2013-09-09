@@ -4,7 +4,6 @@
 
 use extra::url::Url;
 use std::cell::Cell;
-use std::FromStr;
 use newcss::stylesheet::Stylesheet;
 use newcss::select::SelectCtx;
 use newcss::types::OriginUA;
