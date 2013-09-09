@@ -38,7 +38,7 @@
   readonly attribute Element? frameElement;
   /*WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank", optional DOMString features = "", optional boolean replace = false);
     getter WindowProxy (unsigned long index);*/
-  getter object (DOMString name);
+  //getter object (DOMString name);
 
   // the user agent
   readonly attribute Navigator navigator;

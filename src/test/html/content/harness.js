@@ -1,5 +1,6 @@
 function _fail(s) {
-  window.alert("TEST-UNEXPECTED-FAIL | " + s);
+  // string split to avoid problems with tests that end up printing the value of window._fail.
+  window.alert("TEST-UNEXPECTED" + "-FAIL | " + s);
 }
 
 function _pass(s) {

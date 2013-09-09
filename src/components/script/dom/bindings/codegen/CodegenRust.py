@@ -2210,11 +2210,17 @@ class CGDOMJSClass(CGThing):
         return ""
     def define(self):
         traceHook = "Some(%s)" % TRACE_HOOK_NAME if self.descriptor.customTrace else 'None'
+        if self.descriptor.createGlobal:
+            flags = "JSCLASS_IS_GLOBAL"
+            slots = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
+        else:
+            flags = "0"
+            slots = "1"
         return """
 static Class_name: [u8, ..%i] = %s;
 static Class: DOMJSClass = DOMJSClass {
   base: JSClass { name: &Class_name as *u8 as *libc::c_char,
-    flags: JSCLASS_IS_DOMJSCLASS | ((1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT), //JSCLASS_HAS_RESERVED_SLOTS(1),
+    flags: JSCLASS_IS_DOMJSCLASS | %s | (((%s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT), //JSCLASS_HAS_RESERVED_SLOTS(%s),
     addProperty: %s, /* addProperty */
     delProperty: crust::JS_PropertyStub,       /* delProperty */
     getProperty: crust::JS_PropertyStub,       /* getProperty */
@@ -2241,6 +2247,7 @@ static Class: DOMJSClass = DOMJSClass {
 };
 """ % (len(self.descriptor.interface.identifier.name) + 1,
        str_to_const_array(self.descriptor.interface.identifier.name),
+       flags, slots, slots,
        #ADDPROPERTY_HOOK_NAME if self.descriptor.concrete and not self.descriptor.workers and self.descriptor.wrapperCache else 'crust::JS_PropertyStub',
        'crust::JS_PropertyStub',
        FINALIZE_HOOK_NAME, traceHook,
@@ -2455,7 +2462,7 @@ class CGAbstractMethod(CGThing):
     def definition_body(self):
         assert(False) # Override me!
 
-def CreateBindingJSObject(descriptor, parent):
+def CreateBindingJSObject(descriptor, parent=None):
     if descriptor.proxy:
         handler = """  //let cache = ptr::to_unsafe_ptr(aObject.get_wrappercache());
 
@@ -2470,17 +2477,20 @@ def CreateBindingJSObject(descriptor, parent):
     return ptr::null();
   }
 
-"""
+""" % parent
     else:
-        create = """  let obj = JS_NewObject(aCx, &Class.base, proto, %s);
-  if obj.is_null() {
+        if descriptor.createGlobal:
+            create = "  let obj = CreateDOMGlobal(aCx, &Class.base);\n"
+        else:
+            create = "  let obj = JS_NewObject(aCx, &Class.base, proto, %s);\n" % parent
+        create += """  if obj.is_null() {
     return ptr::null();
   }
 
   JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
                      RUST_PRIVATE_TO_JSVAL(squirrel_away(aObject) as *libc::c_void));
 """
-    return create % parent
+    return create
 
 class CGWrapWithCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
@@ -2495,7 +2505,8 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
             return """  *aTriedToWrap = true;
   return aObject->GetJSObject();"""
 
-        return """  *aTriedToWrap = true;
+        if not self.descriptor.createGlobal:
+            return """  *aTriedToWrap = true;
   let mut parent = aObject.GetParentObject(aCx);
   let parent = WrapNativeParent(aCx, aScope, parent);
   if parent.is_null() {
@@ -2517,6 +2528,13 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
   (*cache).set_wrapper(obj);
 
   return obj;""" % (CreateBindingJSObject(self.descriptor, "parent"))
+        else:
+            return """    let cache = ptr::to_mut_unsafe_ptr(aObject.get_wrappercache());
+%s
+  let proto = GetProtoObject(aCx, obj, obj);
+  JS_SetPrototype(aCx, obj, proto);
+  (*cache).set_wrapper(obj);
+  return obj;""" % CreateBindingJSObject(self.descriptor)
 
 class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):

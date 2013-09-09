@@ -7,12 +7,12 @@
 
 use servo_msg::compositor_msg::{ScriptListener, Loading, PerformingLayout};
 use servo_msg::compositor_msg::FinishedLoading;
-use dom::bindings::utils::GlobalStaticData;
+use dom::bindings::codegen::RegisterBindings;
+use dom::bindings::utils::{CacheableWrapper, GlobalStaticData};
 use dom::document::AbstractDocument;
 use dom::element::Element;
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent};
 use dom::htmldocument::HTMLDocument;
-use dom::node::{define_bindings};
 use dom::window::Window;
 use layout_interface::{AddStylesheetMsg, DocumentDamage};
 use layout_interface::{DocumentDamageLevel, HitTestQuery, HitTestResponse, LayoutQuery};
@@ -29,7 +29,7 @@ use std::cell::Cell;
 use std::comm;
 use std::comm::{Port, SharedChan};
 use std::io::read_whole_file;
-use std::ptr::null;
+use std::ptr;
 use std::task::{SingleThreaded, task};
 use std::util::replace;
 use dom::window::TimerData;
@@ -38,9 +38,9 @@ use html::hubbub_html_parser::HtmlParserResult;
 use html::hubbub_html_parser::{HtmlDiscoveredStyle, HtmlDiscoveredIFrame, HtmlDiscoveredScript};
 use html::hubbub_html_parser;
 use js::JSVAL_NULL;
-use js::global::{global_class, debug_fns};
+use js::global::debug_fns;
 use js::glue::RUST_JSVAL_TO_OBJECT;
-use js::jsapi::JSContext;
+use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_CallFunctionValue, JS_GetContextPrivate};
 use js::rust::{Compartment, Cx};
 use js;
@@ -289,14 +289,14 @@ impl Page {
         self.reflow(goal, script_chan, compositor)
     }
 
-    pub fn initialize_js_info(&mut self, js_context: @Cx) {
+    pub fn initialize_js_info(&mut self, js_context: @Cx, global: *JSObject) {
         // Note that the order that these variables are initialized is _not_ arbitrary. Switching them around
         // can -- and likely will -- lead to things breaking.
 
         js_context.set_default_options_and_version();
         js_context.set_logging_error_reporter();
 
-        let compartment = match js_context.new_compartment(global_class) {
+        let compartment = match js_context.new_compartment_with_global(global) {
               Ok(c) => c,
               Err(()) => fail!("Failed to create a compartment"),
         };
@@ -313,7 +313,6 @@ impl Page {
 
         self.js_info = Some(JSPageInfo {
             dom_static: GlobalStaticData(),
-            bindings_initialized: false,
             js_compartment: compartment,
             js_context: js_context,
         });
@@ -332,8 +331,6 @@ pub struct Frame {
 pub struct JSPageInfo {
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
-    /// Flag indicating if the JS bindings have been initialized.
-    bindings_initialized: bool,
     /// The JavaScript compartment for the origin associated with the script task.
     js_compartment: @mut Compartment,
     /// The JavaScript context.
@@ -403,7 +400,6 @@ impl ScriptTask {
             js_runtime: js_runtime,
         };
 
-        script_task.page_tree.page.initialize_js_info(script_task.js_runtime.cx());
         script_task
     }
 
@@ -477,8 +473,6 @@ impl ScriptTask {
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             task's page tree. This is a bug.");
         let new_page_tree = PageTree::new(new_id, layout_chan, size_future);
-        new_page_tree.page.initialize_js_info(self.js_runtime.cx());
-
         parent_page_tree.inner.push(new_page_tree);
     }
 
@@ -522,7 +516,7 @@ impl ScriptTask {
                                  this_value,
                                  timer_data.funval,
                                  0,
-                                 null(),
+                                 ptr::null(),
                                  &rval);
 
         }
@@ -588,31 +582,8 @@ impl ScriptTask {
                 return;
             }
         }
-        
-        {
-            let js_info = page.js_info.get_mut_ref();
-            // Define the script DOM bindings.
-            //
-            // FIXME: Can this be done earlier, to save the flag?
-            if !js_info.bindings_initialized {
-                define_bindings(js_info.js_compartment);
-                js_info.bindings_initialized = true;
-            }
-        }
 
-        self.compositor.set_ready_state(Loading);
-        // Parse HTML.
-        //
-        // Note: We can parse the next document in parallel with any previous documents.
-        let html_parsing_result = hubbub_html_parser::parse_html(page.js_info.get_ref().js_compartment.cx.ptr,
-                                                                 url.clone(),
-                                                                 self.resource_task.clone(),
-                                                                 self.image_cache_task.clone(),
-                                                                 page.next_subpage_id.clone(),
-                                                                 self.constellation_chan.clone());
-
-        let HtmlParserResult {root, discovery_port} = html_parsing_result;
-
+        let cx = self.js_runtime.cx();
         // Create the window and document objects.
         let window = {
             // Need an extra block here due to Rust #6248
@@ -622,8 +593,25 @@ impl ScriptTask {
             // pointer.  We think it's safe here because the main task will hold onto the box,
             // and because the current refcounting implementation of @ doesn't move.
             let page = &mut *page;
-            Window::new(page, self.chan.clone(), self.compositor)
+            Window::new(cx.ptr, page, self.chan.clone(), self.compositor)
         };
+        page.initialize_js_info(cx, window.get_wrappercache().get_wrapper());
+
+        RegisterBindings::Register(page.js_info.get_ref().js_compartment);
+
+        self.compositor.set_ready_state(Loading);
+        // Parse HTML.
+        //
+        // Note: We can parse the next document in parallel with any previous documents.
+        let html_parsing_result = hubbub_html_parser::parse_html(cx.ptr,
+                                                                 url.clone(),
+                                                                 self.resource_task.clone(),
+                                                                 self.image_cache_task.clone(),
+                                                                 page.next_subpage_id.clone(),
+                                                                 self.constellation_chan.clone());
+
+        let HtmlParserResult {root, discovery_port} = html_parsing_result;
+
         let document = HTMLDocument::new(root, Some(window));
 
         // Tie the root into the document.
