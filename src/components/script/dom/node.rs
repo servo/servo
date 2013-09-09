@@ -524,7 +524,7 @@ impl Node<ScriptView> {
 
     pub fn GetTextContent(&self) -> DOMString {
         match self.type_id {
-          DoctypeNodeTypeId | ElementNodeTypeId(*) => {
+          ElementNodeTypeId(*) => {
             let mut content = ~"";
             for node in self.abstract.unwrap().traverse_preorder() {
                 if node.is_text() {
@@ -540,6 +540,9 @@ impl Node<ScriptView> {
             do self.abstract.unwrap().with_imm_characterdata() |characterdata| {
                 characterdata.Data()
             }
+          }
+          DoctypeNodeTypeId => {
+            null_string
           }
         }
     }
