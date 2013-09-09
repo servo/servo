@@ -544,7 +544,43 @@ impl Node<ScriptView> {
         }
     }
 
-    pub fn SetTextContent(&mut self, _val: &DOMString, _rv: &mut ErrorResult) {
+    // http://dom.spec.whatwg.org/#concept-node-replace-all
+    pub fn replace_all(&mut self, node: Option<AbstractNode<ScriptView>>) {
+        let this = self.abstract.unwrap();
+        for child in this.children() {
+            this.remove_child(child);
+        }
+        match node {
+          None => {},
+          Some(node) => this.add_child(node)
+        }
+    }
+
+    pub fn SetTextContent(&mut self, value: &DOMString, _rv: &mut ErrorResult) {
+        let text_content = match value {
+          &str(ref s) => s.as_slice(),
+          &null_string => &""
+        };
+        match self.type_id {
+          ElementNodeTypeId(*) => {
+            let node = match text_content {
+              "" => None,
+              s => {
+                let text_node = do self.owner_doc.unwrap().with_base |document| {
+                    document.createText(s.to_str())
+                };
+                Some(text_node)
+              }
+            };
+            self.replace_all(node);
+          }
+          CommentNodeTypeId | TextNodeTypeId => {
+            do self.abstract.unwrap().with_mut_characterdata() |characterdata| {
+                characterdata.data = text_content.to_str();
+            }
+          }
+          DoctypeNodeTypeId => {}
+        }
     }
 
     pub fn InsertBefore(&mut self, _node: AbstractNode<ScriptView>, _child: Option<AbstractNode<ScriptView>>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
