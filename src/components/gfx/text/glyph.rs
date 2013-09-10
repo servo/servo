@@ -691,7 +691,7 @@ impl<'self> Iterator<(uint, GlyphInfo<'self>)> for GlyphIterator<'self> {
         // Would use 'match' here but it borrows contents in a way that
         // interferes with mutation.
         if self.glyph_range.is_some() {
-            match self.glyph_range.unwrap().next() {
+            match self.glyph_range.get_mut_ref().next() {
                 Some(j) => Some((self.char_index,
                     DetailGlyphInfo(self.store, self.char_index, j as u16))),
                 None => {
