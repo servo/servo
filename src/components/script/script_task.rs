@@ -797,7 +797,7 @@ impl ScriptTask {
 
     fn load_url_from_element(&self, page: @mut Page, element: &Element) {
         // if the node's element is "a," load url from href attr
-        let attr = element.get_attr("href");
+        let attr = element.get_attribute(None, "href");
         for href in attr.iter() {
             debug!("ScriptTask: clicked on link to %s", *href);
             let current_url = do page.url.map |&(ref url, _)| {

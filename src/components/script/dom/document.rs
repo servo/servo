@@ -13,13 +13,14 @@ use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::htmlelement::HTMLElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
+use dom::namespace;
 use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId};
 use dom::text::Text;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 use dom::htmltitleelement::HTMLTitleElement;
 use html::hubbub_html_parser::build_element_from_tag;
-use js::jsapi::{JSObject, JSContext, JSVal};
+use js::jsapi::{JS_AddObjectRoot, JSObject, JSContext, JSVal};
 use js::jsapi::{JSTRACE_OBJECT, JSTracer, JS_CallTracer};
 use js::glue::RUST_OBJECT_TO_JSVAL;
 use servo_util::tree::TreeNodeRef;
@@ -77,6 +78,7 @@ impl AbstractDocument {
     }
 }
 
+#[deriving(Eq)]
 pub enum DocumentType {
     HTML,
     SVG,
@@ -94,6 +96,14 @@ pub struct Document {
 impl Document {
     #[fixed_stack_segment]
     pub fn new(root: AbstractNode<ScriptView>, window: Option<@mut Window>, doctype: DocumentType) -> Document {
+        let compartment = unsafe {(*window.get_ref().page).js_info.get_ref().js_compartment };
+        do root.with_base |base| {
+            assert!(base.wrapper.get_wrapper().is_not_null());
+            let rootable = base.wrapper.get_rootable();
+            unsafe {
+                JS_AddObjectRoot(compartment.cx.ptr, rootable);
+            }
+        }
         Document {
             root: root,
             wrapper: WrapperCache::new(),
@@ -440,7 +450,7 @@ impl Document {
     }
 
     pub fn GetElementsByName(&self, name: &DOMString) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem|
+        self.createHTMLCollection(|elem|                                  
             elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), name.to_str()))
     }
     
