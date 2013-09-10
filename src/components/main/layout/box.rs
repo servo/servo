@@ -27,6 +27,7 @@ use newcss::color::rgb;
 use newcss::complete::CompleteStyle;
 use newcss::units::{Em, Px};
 use newcss::units::{Cursive, Fantasy, Monospace, SansSerif, Serif};
+use newcss::values::{CSSBorderStyleDashed, CSSBorderStyleSolid};
 use newcss::values::{CSSClearNone, CSSClearLeft, CSSClearRight, CSSClearBoth};
 use newcss::values::{CSSFontFamilyFamilyName, CSSFontFamilyGenericFamily};
 use newcss::values::{CSSFontSizeLength, CSSFontStyleItalic, CSSFontStyleNormal};
@@ -637,7 +638,8 @@ impl RenderBox {
                                 extra: ExtraDisplayListData::new(*self),
                             },
                             border: debug_border,
-                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200).to_gfx_color())
+                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200).to_gfx_color()),
+                            style: SideOffsets2D::new_all_same(CSSBorderStyleSolid)
 
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
@@ -658,7 +660,8 @@ impl RenderBox {
                                 extra: ExtraDisplayListData::new(*self),
                             },
                             border: debug_border,
-                            color: SideOffsets2D::new_all_same(rgb(0, 200, 0).to_gfx_color())
+                            color: SideOffsets2D::new_all_same(rgb(0, 200, 0).to_gfx_color()),
+                            style: SideOffsets2D::new_all_same(CSSBorderStyleDashed)
 
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
@@ -684,7 +687,8 @@ impl RenderBox {
                                 extra: ExtraDisplayListData::new(*self),
                             },
                             border: debug_border,
-                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200).to_gfx_color())
+                            color: SideOffsets2D::new_all_same(rgb(0, 0, 200).to_gfx_color()),
+                            style: SideOffsets2D::new_all_same(CSSBorderStyleSolid)
 
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
@@ -915,11 +919,8 @@ impl RenderBox {
             return
         }
 
-        let top_color = self.style().border_top_color();
-        let right_color = self.style().border_right_color();
-        let bottom_color = self.style().border_bottom_color();
-        let left_color = self.style().border_left_color();
-
+        let (top_color, right_color, bottom_color, left_color) = (self.style().border_top_color(), self.style().border_right_color(), self.style().border_bottom_color(), self.style().border_left_color());
+        let (top_style, right_style, bottom_style, left_style) = (self.style().border_top_style(), self.style().border_right_style(), self.style().border_bottom_style(), self.style().border_left_style());
         // Append the border to the display list.
         do list.with_mut_ref |list| {
             let border_display_item = ~BorderDisplayItem {
@@ -932,9 +933,13 @@ impl RenderBox {
                                            border.bottom,
                                            border.left),
                 color: SideOffsets2D::new(top_color.to_gfx_color(),
-                                        right_color.to_gfx_color(),
-                                        bottom_color.to_gfx_color(),
-                                        left_color.to_gfx_color())
+                                          right_color.to_gfx_color(),
+                                          bottom_color.to_gfx_color(),
+                                          left_color.to_gfx_color()),
+                style: SideOffsets2D::new(top_style,
+                                          right_style,
+                                          bottom_style,
+                                          left_style)
             };
 
             list.append_item(BorderDisplayItemClass(border_display_item))

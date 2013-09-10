@@ -16,6 +16,7 @@
 
 use color::Color;
 use geometry::Au;
+use newcss::values::CSSBorderStyle;
 use render_context::RenderContext;
 use text::SendableTextRun;
 
@@ -103,8 +104,11 @@ pub struct BorderDisplayItem<E> {
     /// The border widths
     border: SideOffsets2D<Au>,
 
-    /// The color of the border.
+    /// The border colors.
     color: SideOffsets2D<Color>,
+
+    /// The border styles.
+    style: SideOffsets2D<CSSBorderStyle>
 }
 
 impl<E> DisplayItem<E> {
@@ -151,7 +155,8 @@ impl<E> DisplayItem<E> {
             BorderDisplayItemClass(ref border) => {
                 render_context.draw_border(&border.base.bounds,
                                            border.border,
-                                           border.color)
+                                           border.color,
+                                           border.style)
             }
         }
     }
