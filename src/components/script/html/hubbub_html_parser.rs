@@ -209,7 +209,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView> {
+pub fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView> {
     // TODO (Issue #85): use atoms
     handle_element!(cx, tag, "a",       HTMLAnchorElementTypeId, HTMLAnchorElement, []);
     handle_element!(cx, tag, "applet",  HTMLAppletElementTypeId, HTMLAppletElement, []);

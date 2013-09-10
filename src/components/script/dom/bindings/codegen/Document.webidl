@@ -45,10 +45,10 @@ interface Document /*: Node*/ { //XXXjdm Requires servo/#623
   [Creator, Throws]
   Element createElementNS(DOMString? namespace, DOMString qualifiedName);
   /*[Creator]
-    DocumentFragment createDocumentFragment();
+  DocumentFragment createDocumentFragment();*/
   [Creator]
   Text createTextNode(DOMString data);
-  [Creator]
+  /*[Creator]
   Comment createComment(DOMString data);
   [Creator, Throws]
   ProcessingInstruction createProcessingInstruction(DOMString target, DOMString data);*/
