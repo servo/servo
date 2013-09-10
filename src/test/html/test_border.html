@@ -1,0 +1,41 @@
+<html>
+<head>
+<style>
+#none{
+    border-style: none;
+    border-width: 10px;
+    border-color: green red yellow black;
+}
+#hidden{
+    border-style: hidden;
+    border-width: 10px;
+    border-color: green red yellow black;
+}
+#solid{
+    border-style: solid;
+    border-width: 10px;
+    border-color: yellow green red black;
+}
+#dashed{
+    border-style: dashed;
+    border-width: 10px;
+    border-color: green yellow black red;
+}
+#dotted{
+    border-style: dotted;
+    border-width: 10px;
+    border-color: green red yellow black;
+}
+</style>
+</head>
+<body>
+<div id="none"> none test.</div>
+<div id="hidden"> hidden test.</div>
+<!-- It doesn't work well yet. -->
+<div id="solid"> solid test</div>
+<!-- It shows almost same result with firefox. -->
+<div id="dashed"> dashed test</div>
+<!-- It doesn't show anything yet. -->
+<div id="dotted"> dotted test. (dotted isn't supported yet)</div>
+</body>
+</HTML>
