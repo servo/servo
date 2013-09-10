@@ -21,7 +21,6 @@ use std::cast::transmute;
 use std::libc::c_void;
 use extra::arc::Arc;
 use js::jsapi::{JSObject, JSContext};
-use js::rust::Compartment;
 use netsurfcss::util::VoidPtrLike;
 use newcss::complete::CompleteSelectResults;
 use servo_util::tree::{TreeNode, TreeNodeRef};
@@ -629,11 +628,6 @@ impl VoidPtrLike for AbstractNode<LayoutView> {
             cast::transmute(*self)
         }
     }
-}
-
-pub fn define_bindings(compartment: @mut Compartment) {
-    bindings::utils::initialize_global(compartment.global_obj.ptr);
-    bindings::codegen::RegisterBindings::Register(compartment);
 }
 
 impl CacheableWrapper for Node<ScriptView> {

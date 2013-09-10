@@ -29,7 +29,7 @@ use js::jsapi::{JS_NewStringCopyN, JS_DefineFunctions, JS_DefineProperty};
 use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative, JSTracer};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
-use js::jsapi::{JSPropertyOp, JSStrictPropertyOp};
+use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
 use js::rust::Compartment;
 use js::{JSPROP_ENUMERATE, JSVAL_NULL};
@@ -844,4 +844,17 @@ pub fn HasPropertyOnPrototype(cx: *JSContext, proxy: *JSObject, id: jsid) -> boo
     //  MOZ_ASSERT(js::IsProxy(proxy) && js::GetProxyHandler(proxy) == handler);
     let mut found = false;
     return !GetPropertyOnPrototype(cx, proxy, id, &mut found, ptr::null()) || found;
+}
+
+#[fixed_stack_segment]
+pub fn CreateDOMGlobal(cx: *JSContext, class: *JSClass) -> *JSObject {
+    unsafe {
+        let obj = JS_NewGlobalObject(cx, class, ptr::null());
+        if obj.is_null() {
+            return ptr::null();
+        }
+        JS_InitStandardClasses(cx, obj);
+        initialize_global(obj);
+        obj
+    }
 }
