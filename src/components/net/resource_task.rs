@@ -125,7 +125,6 @@ fn test_exit() {
 }
 
 #[test]
-#[allow(non_implicitly_copyable_typarams)]
 fn test_bad_scheme() {
     let resource_task = ResourceTask();
     let progress = Port();
@@ -138,7 +137,6 @@ fn test_bad_scheme() {
 }
 
 #[test]
-#[allow(non_implicitly_copyable_typarams)]
 fn should_delegate_to_scheme_loader() {
     let payload = ~[1, 2, 3];
     let loader_factory = |_url: Url, progress_chan: Chan<ProgressMsg>| {
