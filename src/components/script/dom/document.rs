@@ -17,7 +17,7 @@ use dom::text::Text;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 use dom::htmltitleelement::HTMLTitleElement;
-
+use html::hubbub_html_parser::build_element_from_tag;
 use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSObject, JSContext, JSVal};
 use js::glue::RUST_OBJECT_TO_JSVAL;
 use servo_util::tree::TreeNodeRef;
@@ -213,6 +213,11 @@ impl Document {
         Some(self.root)
     }
 
+    fn get_cx(&self) -> *JSContext {
+        let win = self.window.get_ref();
+        unsafe {(*win.page).js_info.get_ref().js_compartment.cx.ptr}
+    }
+
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
         let win = self.window.get_ref();
         let cx = unsafe {(*win.page).js_info.get_ref().js_compartment.cx.ptr};
@@ -239,12 +244,18 @@ impl Document {
         None
     }
 
-    pub fn CreateElement(&self, _local_name: &DOMString, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
-        fail!("stub")
+    pub fn CreateElement(&self, local_name: &DOMString, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+        let cx = self.get_cx();
+        build_element_from_tag(cx, local_name.to_str())
     }
 
     pub fn CreateElementNS(&self, _namespace: &DOMString, _qualified_name: &DOMString, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
         fail!("stub")
+    }
+
+    pub fn CreateTextNode(&self, data: &DOMString) -> AbstractNode<ScriptView> {
+        let cx = self.get_cx();
+        unsafe { Node::as_abstract_node(cx, @Text::new(data.to_str())) }
     }
 
     pub fn CreateEvent(&self, _interface: &DOMString, _rv: &mut ErrorResult) -> @mut Event {
