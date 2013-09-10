@@ -7,7 +7,7 @@ use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{Reflectable, Reflector, Traceable, reflect_dom_object};
 use dom::bindings::utils::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
 use dom::bindings::utils::{DOMString, null_str_as_empty_ref, null_str_as_empty, null_str_as_word_null};
-use dom::bindings::utils::is_valid_element_name;
+use dom::bindings::utils::{xml_name_type, InvalidXMLName};
 use dom::documentfragment::DocumentFragment;
 use dom::element::{Element};
 use dom::element::{HTMLHeadElementTypeId, HTMLTitleElementTypeId};
@@ -90,6 +90,7 @@ impl AbstractDocument {
     }
 }
 
+#[deriving(Eq)]
 pub enum DocumentType {
     HTML,
     SVG,
@@ -203,7 +204,7 @@ impl Document {
 
     pub fn CreateElement(&self, abstract_self: AbstractDocument, local_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
         let local_name = null_str_as_empty(local_name);
-        if !is_valid_element_name(local_name) {
+        if xml_name_type(local_name) == InvalidXMLName {
             return Err(InvalidCharacter);
         }
         let local_name = local_name.to_ascii_lower();
