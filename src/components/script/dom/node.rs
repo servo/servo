@@ -5,7 +5,7 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use dom::bindings::node;
-use dom::bindings::utils::{WrapperCache, DOMString, null_string, str, ErrorResult};
+use dom::bindings::utils::{WrapperCache, DOMString, null_string, str, ErrorResult, NotFound, HierarchyRequest};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box};
 use dom::bindings;
 use dom::characterdata::CharacterData;
@@ -263,6 +263,10 @@ impl<'self, View> AbstractNode<View> {
         self.transmute_mut(f)
     }
 
+    pub fn is_doctype(self) -> bool {
+        self.type_id() == DoctypeNodeTypeId
+    }
+
     pub fn is_comment(self) -> bool {
         self.type_id() == CommentNodeTypeId
     }
@@ -499,19 +503,19 @@ impl Node<ScriptView> {
     }
 
     pub fn GetFirstChild(&self) -> Option<AbstractNode<ScriptView>> {
-        None
+        self.first_child
     }
 
     pub fn GetLastChild(&self) -> Option<AbstractNode<ScriptView>> {
-        None
+        self.last_child
     }
 
     pub fn GetPreviousSibling(&self) -> Option<AbstractNode<ScriptView>> {
-        None
+        self.prev_sibling 
     }
 
     pub fn GetNextSibling(&self) -> Option<AbstractNode<ScriptView>> {
-        None
+        self.next_sibling
     }
 
     pub fn GetNodeValue(&self) -> DOMString {
@@ -553,16 +557,68 @@ impl Node<ScriptView> {
         fail!("stub")
     }
 
-    pub fn AppendChild(&mut self, _node: AbstractNode<ScriptView>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
-        fail!("stub")
+    pub fn AppendChild(&mut self,
+                       abstract_self: AbstractNode<ScriptView>,
+                       node: AbstractNode<ScriptView>,
+                       rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+        fn is_hierarchy_request_err(this_node: AbstractNode<ScriptView>,
+                                   new_child: AbstractNode<ScriptView>) -> bool {
+            if new_child.is_doctype() {
+                return true;
+            }
+            if !this_node.is_element() {
+                // FIXME: This should also work for Document and DocumentFragments when they inherit from node.
+                // per jgraham
+                return true;
+            }
+            if this_node == new_child {
+                return true;
+            }
+            for ancestor in this_node.ancestors() {
+                if ancestor == new_child {
+                    return true;
+                }
+            }
+            false
+        }
+
+        if is_hierarchy_request_err(abstract_self, node) {
+            *rv = Err(HierarchyRequest);
+        }
+
+        // TODO: Should we handle WRONG_DOCUMENT_ERR here?
+
+        if rv.is_ok() {
+            // If the node already exists it is removed from current parent node.
+            node.parent_node().map(|parent| parent.remove_child(node));
+            abstract_self.add_child(node);
+        }
+        node
     }
 
     pub fn ReplaceChild(&mut self, _node: AbstractNode<ScriptView>, _child: AbstractNode<ScriptView>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
         fail!("stub")
     }
 
-    pub fn RemoveChild(&mut self, _node: AbstractNode<ScriptView>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
-        fail!("stub")
+    pub fn RemoveChild(&mut self,
+                       abstract_self: AbstractNode<ScriptView>,
+                       node: AbstractNode<ScriptView>,
+                       rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+        fn is_not_found_err(this_node: AbstractNode<ScriptView>,
+                            old_child: AbstractNode<ScriptView>) -> bool {
+            match old_child.parent_node() {
+                Some(parent) if parent == this_node => false,
+                _ => true
+            }
+        }
+
+        if is_not_found_err(abstract_self, node) {
+            *rv = Err(NotFound);
+        }
+        if rv.is_ok() {
+            abstract_self.remove_child(node);
+        }
+        node
     }
 
     pub fn Normalize(&mut self) {
