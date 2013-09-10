@@ -12,6 +12,7 @@ use media_queries::{Device, Screen};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use servo_util::tree::{TreeNodeRefAsElement, TreeNode, ElementLike};
 
+use std::str;
 
 pub enum StylesheetOrigin {
     UserAgentOrigin,
@@ -207,7 +208,8 @@ fn matches_simple_selector<N: TreeNode<T>, T: TreeNodeRefAsElement<N, E>, E: Ele
         // TODO: cache and intern IDs on elements.
         IDSelector(ref id) => {
             do element.with_imm_element_like |element: &E| {
-                element.get_attr("id") == Some(id.as_slice())
+                let id_value = element.get_attr("id");
+                id_value.is_some() && str::eq_slice(id_value.unwrap(), *id)
             }
         }
         // TODO: cache and intern classe names on elements.
