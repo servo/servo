@@ -13,9 +13,9 @@ use geom::size::Size2D;
 use geom::rect::Rect;
 use gfx::opts::Opts;
 use pipeline::Pipeline;
-use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FrameRectMsg};
+use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FrameRectMsg, IFrameSandboxState};
 use servo_msg::constellation_msg::{InitLoadUrlMsg, LoadIframeUrlMsg, LoadUrlMsg};
-use servo_msg::constellation_msg::{Msg, NavigateMsg, NavigationType};
+use servo_msg::constellation_msg::{Msg, NavigateMsg, NavigationType, IFrameUnsandboxed};
 use servo_msg::constellation_msg::{PipelineId, RendererReadyMsg, ResizedWindowMsg, SubpageId};
 use servo_msg::constellation_msg;
 use script::script_task::{SendEventMsg, ResizeInactiveMsg, ExecuteMsg};
@@ -328,8 +328,8 @@ impl Constellation {
             FrameRectMsg(pipeline_id, subpage_id, rect) => {
                 self.handle_frame_rect_msg(pipeline_id, subpage_id, rect);
             }
-            LoadIframeUrlMsg(url, source_pipeline_id, subpage_id, size_future) => {
-                self.handle_load_iframe_url_msg(url, source_pipeline_id, subpage_id, size_future);
+            LoadIframeUrlMsg(url, source_pipeline_id, subpage_id, size_future, sandbox) => {
+                self.handle_load_iframe_url_msg(url, source_pipeline_id, subpage_id, size_future, sandbox);
             }
             // Load a new page, usually -- but not always -- from a mouse click or typed url
             // If there is already a pending page (self.pending_frames), it will not be overridden;
@@ -455,7 +455,8 @@ impl Constellation {
                                   url: Url,
                                   source_pipeline_id: PipelineId,
                                   subpage_id: SubpageId,
-                                  size_future: Future<Size2D<uint>>) {
+                                  size_future: Future<Size2D<uint>>,
+                                  sandbox: IFrameSandboxState) {
         // A message from the script associated with pipeline_id that it has
         // parsed an iframe during html parsing. This iframe will result in a
         // new pipeline being spawned and a frame tree being added to pipeline_id's
@@ -489,9 +490,10 @@ impl Constellation {
         source's Url is None. There should never be a LoadUrlIframeMsg from a pipeline
         that was never given a url to load.");
 
+        let same_script = (source_url.host == url.host &&
+                           source_url.port == url.port) && sandbox == IFrameUnsandboxed;
         // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
-        let pipeline = @mut if (source_url.host == url.host &&
-                               source_url.port == url.port) {
+        let pipeline = @mut if same_script {
             debug!("Constellation: loading same-origin iframe at %?", url);
             // Reuse the script task if same-origin url's
             Pipeline::with_script(next_pipeline_id,
