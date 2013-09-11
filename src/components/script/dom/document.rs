@@ -5,6 +5,7 @@
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, DerivedWrapper};
+use dom::bindings::utils::Traceable;
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::event::Event;
@@ -18,13 +19,15 @@ use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 use dom::htmltitleelement::HTMLTitleElement;
 use html::hubbub_html_parser::build_element_from_tag;
-use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSObject, JSContext, JSVal};
+use js::jsapi::{JSObject, JSContext, JSVal};
+use js::jsapi::{JSTRACE_OBJECT, JSTracer, JS_CallTracer};
 use js::glue::RUST_OBJECT_TO_JSVAL;
 use servo_util::tree::TreeNodeRef;
 
 use std::cast;
 use std::ptr;
 use std::str::eq_slice;
+use std::libc;
 
 pub trait WrappableDocument {
     fn init_wrapper(@mut self, cx: *JSContext);
@@ -89,14 +92,6 @@ pub struct Document {
 impl Document {
     #[fixed_stack_segment]
     pub fn new(root: AbstractNode<ScriptView>, window: Option<@mut Window>, doctype: DocumentType) -> Document {
-        let compartment = unsafe {(*window.get_ref().page).js_info.get_ref().js_compartment };
-        do root.with_base |base| {
-            assert!(base.wrapper.get_wrapper().is_not_null());
-            let rootable = base.wrapper.get_rootable();
-            unsafe {
-                JS_AddObjectRoot(compartment.cx.ptr, rootable);
-            }
-        }
         Document {
             root: root,
             wrapper: WrapperCache::new(),
@@ -460,17 +455,23 @@ impl Document {
             window.content_changed()
         }
     }
+}
 
+impl Traceable for Document {
     #[fixed_stack_segment]
-    pub fn teardown(&self) {
+    fn trace(&self, tracer: *mut JSTracer) {
         unsafe {
-            let compartment = (*self.window.get_ref().page).js_info.get_ref().js_compartment;
-            do self.root.with_base |node| {
-                assert!(node.wrapper.get_wrapper().is_not_null());
-                let rootable = node.wrapper.get_rootable();
-                JS_RemoveObjectRoot(compartment.cx.ptr, rootable);
+            (*tracer).debugPrinter = ptr::null();
+            (*tracer).debugPrintIndex = -1;
+            do "root".to_c_str().with_ref |name| {
+                (*tracer).debugPrintArg = name as *libc::c_void;
+                debug!("tracing root node");
+                do self.root.with_base |node| {
+                    JS_CallTracer(tracer as *JSTracer,
+                                  node.wrapper.wrapper,
+                                  JSTRACE_OBJECT as u32);
+                }
             }
         }
     }
 }
-
