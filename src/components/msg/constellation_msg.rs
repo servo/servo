@@ -27,12 +27,18 @@ impl ConstellationChan {
     }
 }
 
+#[deriving(Eq)]
+pub enum IFrameSandboxState {
+    IFrameSandboxed,
+    IFrameUnsandboxed
+}
+
 pub enum Msg {
     ExitMsg(Chan<()>),
     InitLoadUrlMsg(Url),
     FrameRectMsg(PipelineId, SubpageId, Rect<f32>),
     LoadUrlMsg(PipelineId, Url, Future<Size2D<uint>>),
-    LoadIframeUrlMsg(Url, PipelineId, SubpageId, Future<Size2D<uint>>),
+    LoadIframeUrlMsg(Url, PipelineId, SubpageId, Future<Size2D<uint>>, IFrameSandboxState),
     NavigateMsg(NavigationDirection),
     RendererReadyMsg(PipelineId),
     ResizedWindowMsg(Size2D<uint>),

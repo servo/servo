@@ -139,9 +139,9 @@ impl<'self> Element {
         return None;
     }
 
-    pub fn set_attr(&mut self, name: &DOMString, value: &DOMString) {
-        let name = name.to_str();
-        let value_cell = Cell::new(value.to_str());
+    pub fn set_attr(&mut self, raw_name: &DOMString, raw_value: &DOMString) {
+        let name = raw_name.to_str();
+        let value_cell = Cell::new(raw_value.to_str());
         let mut found = false;
         for attr in self.attrs.mut_iter() {
             if eq_slice(attr.name, name) {
@@ -158,7 +158,15 @@ impl<'self> Element {
             self.style_attribute = Some(
                 Stylesheet::from_attribute(
                     FromStr::from_str("http://www.example.com/").unwrap(),
-                    value.get_ref()));
+                    raw_value.get_ref()));
+        }
+
+        //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
+        //       This hardcoding is awful.
+        if self.parent.abstract.unwrap().is_iframe_element() {
+            do self.parent.abstract.unwrap().with_mut_iframe_element |iframe| {
+                iframe.AfterSetAttr(raw_name, raw_value);
+            }
         }
 
         match self.parent.owner_doc {

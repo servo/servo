@@ -22,7 +22,7 @@ use layout_interface::ReflowMsg;
 use layout_interface;
 use servo_msg::constellation_msg::{ConstellationChan, LoadUrlMsg, NavigationDirection};
 use servo_msg::constellation_msg::{PipelineId, SubpageId, RendererReadyMsg};
-use servo_msg::constellation_msg::{LoadIframeUrlMsg};
+use servo_msg::constellation_msg::{LoadIframeUrlMsg, IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg;
 
 use std::cell::Cell;
@@ -641,12 +641,18 @@ impl ScriptTask {
                 Some(HtmlDiscoveredStyle(sheet)) => {
                     page.layout_chan.send(AddStylesheetMsg(sheet));
                 }
-                Some(HtmlDiscoveredIFrame((iframe_url, subpage_id, size_future))) => {
+                Some(HtmlDiscoveredIFrame((iframe_url, subpage_id, size_future, sandboxed))) => {
                     page.next_subpage_id = SubpageId(*subpage_id + 1);
+                    let sandboxed = if sandboxed {
+                        IFrameSandboxed
+                    } else {
+                        IFrameUnsandboxed
+                    };
                     self.constellation_chan.send(LoadIframeUrlMsg(iframe_url,
                                                                   pipeline_id,
                                                                   subpage_id,
-                                                                  size_future));
+                                                                  size_future,
+                                                                  sandboxed));
                 }
                 None => break
             }
