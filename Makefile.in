@@ -187,7 +187,6 @@ $$(DONE_$(1)) : $$(DONE_DEPS_$(1)) $$(ROUGH_DEPS_$(1)) $$(RUSTC_DEP_$(1))
 # main submodule target
 $(1) : $$(DONE_$(1))
 .PHONY : $(1)
-.NOTPARALLEL : $(1)
 endef
 
 $(foreach submodule,$(SUBMODULES),\
