@@ -5,7 +5,7 @@
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, DerivedWrapper};
-use dom::bindings::utils::Traceable;
+use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable};
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::event::Event;
@@ -28,6 +28,7 @@ use std::cast;
 use std::ptr;
 use std::str::eq_slice;
 use std::libc;
+use std::ascii::StrAsciiExt;
 
 pub trait WrappableDocument {
     fn init_wrapper(@mut self, cx: *JSContext);
@@ -240,9 +241,16 @@ impl Document {
         None
     }
 
-    pub fn CreateElement(&self, local_name: &DOMString, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+    pub fn CreateElement(&self, local_name: &DOMString, rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
         let cx = self.get_cx();
-        build_element_from_tag(cx, local_name.to_str())
+        let local_name = local_name.to_str();
+        if !is_valid_element_name(local_name) {
+            *rv = Err(InvalidCharacter);
+            // FIXME #909: what to return here?
+            fail!("invalid character");
+        }
+        let local_name = local_name.to_ascii_lower();
+        build_element_from_tag(cx, local_name)
     }
 
     pub fn CreateElementNS(&self, _namespace: &DOMString, _qualified_name: &DOMString, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
