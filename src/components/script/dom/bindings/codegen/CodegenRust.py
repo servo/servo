@@ -2221,13 +2221,13 @@ static Class_name: [u8, ..%i] = %s;
 static Class: DOMJSClass = DOMJSClass {
   base: JSClass { name: &Class_name as *u8 as *libc::c_char,
     flags: JSCLASS_IS_DOMJSCLASS | %s | (((%s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT), //JSCLASS_HAS_RESERVED_SLOTS(%s),
-    addProperty: %s, /* addProperty */
-    delProperty: crust::JS_PropertyStub,       /* delProperty */
-    getProperty: crust::JS_PropertyStub,       /* getProperty */
-    setProperty: crust::JS_StrictPropertyStub, /* setProperty */
-    enumerate: crust::JS_EnumerateStub,
-    resolve: crust::JS_ResolveStub,
-    convert: crust::JS_ConvertStub,
+    addProperty: Some(%s), /* addProperty */
+    delProperty: Some(crust::JS_PropertyStub),       /* delProperty */
+    getProperty: Some(crust::JS_PropertyStub),       /* getProperty */
+    setProperty: Some(crust::JS_StrictPropertyStub), /* setProperty */
+    enumerate: Some(crust::JS_EnumerateStub),
+    resolve: Some(crust::JS_ResolveStub),
+    convert: Some(crust::JS_ConvertStub),
     finalize: Some(%s), /* finalize */
     checkAccess: None,                  /* checkAccess */
     call: None,                  /* call */
@@ -2269,13 +2269,13 @@ static PrototypeClassName__: [u8, ..%s] = %s;
 static PrototypeClass: JSClass = JSClass {
   name: &PrototypeClassName__ as *u8 as *libc::c_char,
   flags: (1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT, //JSCLASS_HAS_RESERVED_SLOTS(1)
-  addProperty: crust::JS_PropertyStub,       /* addProperty */
-  delProperty: crust::JS_PropertyStub,       /* delProperty */
-  getProperty: crust::JS_PropertyStub,       /* getProperty */
-  setProperty: crust::JS_StrictPropertyStub, /* setProperty */
-  enumerate: crust::JS_EnumerateStub,
-  resolve: crust::JS_ResolveStub,
-  convert: crust::JS_ConvertStub,
+  addProperty: Some(crust::JS_PropertyStub),       /* addProperty */
+  delProperty: Some(crust::JS_PropertyStub),       /* delProperty */
+  getProperty: Some(crust::JS_PropertyStub),       /* getProperty */
+  setProperty: Some(crust::JS_StrictPropertyStub), /* setProperty */
+  enumerate: Some(crust::JS_EnumerateStub),
+  resolve: Some(crust::JS_ResolveStub),
+  convert: Some(crust::JS_ConvertStub),
   finalize: None,                  /* finalize */
   checkAccess: None,                  /* checkAccess */
   call: None,                  /* call */
