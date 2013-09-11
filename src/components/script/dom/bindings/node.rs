@@ -130,7 +130,7 @@ impl Traceable for Node<ScriptView> {
                 }
             }
         }
-        error!("tracing %p?:", self.wrapper.get_wrapper());
+        debug!("tracing %p?:", self.wrapper.get_wrapper());
         trace_node(tracer, self.parent_node, "parent");
         trace_node(tracer, self.first_child, "first child");
         trace_node(tracer, self.last_child, "last child");

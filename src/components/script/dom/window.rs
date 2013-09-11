@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::WindowBinding;
-use dom::bindings::utils::{WrapperCache, DOMString, null_string};
+use dom::bindings::utils::{WrapperCache, DOMString, null_string, Traceable};
 use dom::bindings::utils::{CacheableWrapper, BindingObject};
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ScriptView};
@@ -14,8 +14,8 @@ use script_task::{ExitMsg, FireTimerMsg, Page, ScriptChan};
 use servo_msg::compositor_msg::ScriptListener;
 
 use js::glue::*;
-use js::jsapi::{JSObject, JSContext, JS_DefineProperty};
-use js::jsapi::{JSPropertyOp, JSStrictPropertyOp};
+use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JS_CallTracer};
+use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JSTracer, JSTRACE_OBJECT};
 use js::{JSVAL_NULL, JSPROP_ENUMERATE};
 
 use std::cast;
@@ -25,6 +25,7 @@ use std::comm::SharedChan;
 use std::io;
 use std::ptr;
 use std::int;
+use std::libc;
 use std::rt::rtio::RtioTimer;
 use std::rt::io::timer::Timer;
 use js::jsapi::JSVal;
@@ -211,6 +212,31 @@ impl Window {
             }
         }
         win
+    }
+}
+
+impl Traceable for Window {
+    #[fixed_stack_segment]
+    fn trace(&self, tracer: *mut JSTracer) {
+        debug!("tracing window");
+        unsafe {
+            match (*self.page).frame {
+                Some(frame) => {
+                    do frame.document.with_base |doc| {
+                        (*tracer).debugPrinter = ptr::null();
+                        (*tracer).debugPrintIndex = -1;
+                        do "document".to_c_str().with_ref |name| {
+                            (*tracer).debugPrintArg = name as *libc::c_void;
+                            debug!("tracing document");
+                            JS_CallTracer(tracer as *JSTracer,
+                                          doc.wrapper.wrapper,
+                                          JSTRACE_OBJECT as u32);
+                        }
+                    }
+                }
+                None => ()
+            }
+        }
     }
 }
 

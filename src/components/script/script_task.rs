@@ -555,9 +555,6 @@ impl ScriptTask {
     fn handle_exit_msg(&mut self) {
         for page in self.page_tree.iter() {
             page.join_layout();
-            do page.frame.unwrap().document.with_mut_base |doc| {
-                doc.teardown();
-            }
             page.layout_chan.send(layout_interface::ExitMsg);
         }
         self.compositor.close();
