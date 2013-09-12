@@ -553,8 +553,7 @@ impl InlineFlowData {
             for &box in this.boxes.iter() {
                 match box {
                     ImageRenderBoxClass(image_box) => {
-                        let size = image_box.image.get_size();
-                        let width = Au::from_px(size.unwrap_or_default(Size2D(0, 0)).width);
+                        let width = box.image_width(image_box);
                         image_box.base.position.size.width = width;
                     }
                     TextRenderBoxClass(_) => {
@@ -684,8 +683,7 @@ impl InlineFlowData {
 
                 let (top_from_base, bottom_from_base, ascent) = match cur_box {
                     ImageRenderBoxClass(image_box) => {
-                        let size = image_box.image.get_size();
-                        let mut height = Au::from_px(size.unwrap_or_default(Size2D(0, 0)).height);
+                        let mut height = cur_box.image_height(image_box);
 
                         // TODO: margin, border, padding's top and bottom should be calculated in advance,
                         // since baseline of image is bottom margin edge.

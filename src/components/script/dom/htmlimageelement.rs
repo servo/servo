@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, str, null_string, ErrorResult};
 use dom::htmlelement::HTMLElement;
+use dom::node::{ScriptView, AbstractNode};
 use extra::url::Url;
+use layout_interface::{ContentBoxQuery, ContentBoxResponse};
+use gfx::geometry::to_px;
 
 pub struct HTMLImageElement {
     parent: HTMLElement,
@@ -47,18 +50,74 @@ impl HTMLImageElement {
     pub fn SetIsMap(&self, _is_map: bool, _rv: &mut ErrorResult) {
     }
 
-    pub fn Width(&self) -> u32 {
-        0
+    pub fn Width(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
+        let node = &self.parent.parent.parent;
+        match node.owner_doc {
+            Some(doc) => {
+                match doc.with_base(|doc| doc.window) {
+                    Some(win) => {
+                        unsafe {
+                            let page = win.page;
+                            let (port, chan) = stream();
+                            match (*page).query_layout(ContentBoxQuery(abstract_self, chan), port) {
+                                ContentBoxResponse(rect) => {
+                                    to_px(rect.size.width) as u32
+                                }
+                            }
+                        }
+                    }
+                    None => {
+                        debug!("no window");
+                        0
+                    }
+                }
+            }
+            None => {
+                debug!("no document");
+                0
+            }
+        }
     }
 
-    pub fn SetWidth(&mut self, _width: u32, _rv: &mut ErrorResult) {
+    pub fn SetWidth(&mut self, width: u32, _rv: &mut ErrorResult) {
+        let node = &mut self.parent.parent;
+        node.set_attr(&str(~"width"),
+                      &str(width.to_str()));
     }
 
-    pub fn Height(&self) -> u32 {
-        0
+    pub fn Height(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
+        let node = &self.parent.parent.parent;
+        match node.owner_doc {
+            Some(doc) => {
+                match doc.with_base(|doc| doc.window) {
+                    Some(win) => {
+                        unsafe {
+                            let page = win.page;
+                            let (port, chan) = stream();
+                            match (*page).query_layout(ContentBoxQuery(abstract_self, chan), port) {
+                                ContentBoxResponse(rect) => {
+                                    to_px(rect.size.height) as u32
+                                }
+                            }
+                        }
+                    }
+                    None => {
+                        debug!("no window");
+                        0
+                    }
+                }
+            }
+            None => {
+                debug!("no document");
+                0
+            }
+        }
     }
 
-    pub fn SetHeight(&mut self, _height: u32, _rv: &mut ErrorResult) {
+    pub fn SetHeight(&mut self, height: u32, _rv: &mut ErrorResult) {
+        let node = &mut self.parent.parent;
+        node.set_attr(&str(~"height"),
+                      &str(height.to_str()));
     }
 
     pub fn NaturalWidth(&self) -> u32 {
