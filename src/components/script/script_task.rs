@@ -504,16 +504,15 @@ impl ScriptTask {
         let page = self.page_tree.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.").page;
         unsafe {
-            let js_info = page.js_info.get_ref();
             let this_value = if timer_data.args.len() > 0 {
                 RUST_JSVAL_TO_OBJECT(timer_data.args[0])
             } else {
-                js_info.js_compartment.global_obj.ptr
+                page.js_info.get_ref().js_compartment.global_obj.ptr
             };
 
             // TODO: Support extra arguments. This requires passing a `*JSVal` array as `argv`.
             let rval = JSVAL_NULL;
-            JS_CallFunctionValue(js_info.js_context.ptr,
+            JS_CallFunctionValue(page.js_info.get_ref().js_context.ptr,
                                  this_value,
                                  timer_data.funval,
                                  0,
