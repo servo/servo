@@ -381,8 +381,7 @@ impl Constellation {
                                                 let size = self.compositor_chan.get_size();
                                                 from_value(Size2D(size.width as uint, size.height as uint))
                                              });
-        // FIXME(lbergstrom): this should be in/relative-to the servo binary
-        let failure = ~"../src/test/html/failure.html";
+        let failure = ~"about:failure";
         let url = make_url(failure, None);
         pipeline.load(url);
 
