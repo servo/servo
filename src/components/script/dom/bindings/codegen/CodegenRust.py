@@ -3115,8 +3115,8 @@ class CGGetterCall(CGPerSignatureCall):
     A class to generate a native object getter call for a particular IDL
     getter.
     """
-    def __init__(self, returnType, nativeMethodName, descriptor, attr):
-        CGPerSignatureCall.__init__(self, returnType, [], [],
+    def __init__(self, argsPre, returnType, nativeMethodName, descriptor, attr):
+        CGPerSignatureCall.__init__(self, returnType, argsPre, [],
                                     nativeMethodName, False, descriptor,
                                     attr, getter=True)
 
@@ -3290,6 +3290,8 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     def definition_body(self):
         name = self.attr.identifier.name
         nativeName = MakeNativeName(self.descriptor.binaryNames.get(name, name))
+        extraPre = ''
+        argsPre = []
         # resultOutParam does not depend on whether resultAlreadyAddRefed is set
         (_, resultOutParam) = getRetvalDeclarationForType(self.attr.type,
                                                           self.descriptor,
@@ -3297,11 +3299,16 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         infallible = ('infallible' in
                       self.descriptor.getExtendedAttributes(self.attr,
                                                             getter=True))
+        if name in self.descriptor.needsAbstract:
+            abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
+            extraPre = '  let abstract_this = %s::from_box(this);\n' % abstractName
+            argsPre = ['abstract_this']
         if resultOutParam or self.attr.type.nullable() or not infallible:
             nativeName = "Get" + nativeName
-        return CGWrapper(CGIndenter(CGGetterCall(self.attr.type, nativeName,
+        return CGWrapper(CGIndenter(CGGetterCall(argsPre, self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
-                         pre="  let obj = (*obj.unnamed);\n" +
+                         pre=extraPre +
+                             "  let obj = (*obj.unnamed);\n" +
                              "  let this = &mut (*this).payload;\n").define()
 
 class CGGenericSetter(CGAbstractBindingMethod):
