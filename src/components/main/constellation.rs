@@ -13,8 +13,8 @@ use geom::size::Size2D;
 use geom::rect::Rect;
 use gfx::opts::Opts;
 use pipeline::Pipeline;
-use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FrameRectMsg, IFrameSandboxState};
-use servo_msg::constellation_msg::{InitLoadUrlMsg, LoadIframeUrlMsg, LoadUrlMsg};
+use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, FrameRectMsg};
+use servo_msg::constellation_msg::{IFrameSandboxState, InitLoadUrlMsg, LoadIframeUrlMsg, LoadUrlMsg};
 use servo_msg::constellation_msg::{Msg, NavigateMsg, NavigationType, IFrameUnsandboxed};
 use servo_msg::constellation_msg::{PipelineId, RendererReadyMsg, ResizedWindowMsg, SubpageId};
 use servo_msg::constellation_msg;
@@ -23,6 +23,7 @@ use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
 use servo_util::time::ProfilerChan;
+use servo_util::url::make_url;
 use std::hashmap::{HashMap, HashSet};
 use std::util::replace;
 use extra::url::Url;
@@ -319,6 +320,9 @@ impl Constellation {
                 self.handle_exit(sender);
                 return false;
             }
+            FailureMsg(pipeline_id, subpage_id) => {
+                self.handle_failure_msg(pipeline_id, subpage_id);
+            }
             // This should only be called once per constellation, and only by the browser
             InitLoadUrlMsg(url) => {
                 self.handle_init_load(url);
@@ -361,6 +365,39 @@ impl Constellation {
         self.resource_task.send(resource_task::Exit);
 
         sender.send(());
+    }
+
+    fn handle_failure_msg(&mut self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>) {
+        let new_id = self.get_next_pipeline_id();
+        let pipeline = @mut Pipeline::create(new_id,
+                                             subpage_id,
+                                             self.chan.clone(),
+                                             self.compositor_chan.clone(),
+                                             self.image_cache_task.clone(),
+                                             self.resource_task.clone(),
+                                             self.profiler_chan.clone(),
+                                             self.opts.clone(),
+                                             {
+                                                let size = self.compositor_chan.get_size();
+                                                from_value(Size2D(size.width as uint, size.height as uint))
+                                             });
+        // FIXME(lbergstrom): this should be in/relative-to the servo binary
+        let failure = ~"../src/test/html/failure.html";
+        let url = make_url(failure, None);
+        pipeline.load(url);
+
+        let frame_trees: ~[@mut FrameTree] = {
+            let matching_navi_frames = self.navigation_context.find_all(pipeline_id);
+            let matching_pending_frames = do self.pending_frames.iter().filter_map |frame_change| {
+                frame_change.after.find_mut(pipeline_id)
+            };
+            matching_navi_frames.move_iter().chain(matching_pending_frames).collect()
+        };
+        for frame_tree in frame_trees.iter() {
+            frame_tree.pipeline = pipeline;
+        };
+
+        self.pipelines.insert(pipeline_id, pipeline);
     }
 
     fn handle_init_load(&mut self, url: Url) {
