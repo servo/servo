@@ -426,9 +426,7 @@ impl RenderBox {
             GenericRenderBoxClass(*) => Au(0),
 
             ImageRenderBoxClass(image_box) => {
-                // TODO: Consult the CSS `width` property as well as margins and borders.
-                // TODO: If the image isn't available, consult `width`.
-                Au::from_px(image_box.image.get_size().unwrap_or_default(Size2D(0, 0)).width)
+                self.image_width(image_box)
             }
 
             TextRenderBoxClass(text_box) => {
@@ -449,7 +447,7 @@ impl RenderBox {
             GenericRenderBoxClass(*) => Au(0),
 
             ImageRenderBoxClass(image_box) => {
-                Au::from_px(image_box.image.get_size().unwrap_or_default(Size2D(0, 0)).width)
+                self.image_width(image_box)
             }
 
             TextRenderBoxClass(text_box) => {
@@ -470,6 +468,58 @@ impl RenderBox {
 
             UnscannedTextRenderBoxClass(*) => fail!(~"Shouldn't see unscanned boxes here."),
         }
+    }
+
+    // Calculate the width of an image, accounting for the width attribute
+    // TODO: This could probably go somewhere else
+    pub fn image_width(&self, image_box: @mut ImageRenderBox) -> Au {
+        let attr_width: Option<int> = do self.with_base |base| {
+            do base.node.with_imm_element |elt| {
+                match elt.get_attr("width") {
+                    Some(width) => {
+                        FromStr::from_str(width)
+                    }
+                    None => {
+                        None
+                    }
+                }
+            }
+        };
+
+        // TODO: Consult margins and borders?
+        let px_width = if attr_width.is_some() {
+            attr_width.unwrap()
+        } else {
+            image_box.image.get_size().unwrap_or_default(Size2D(0, 0)).width
+        };
+
+        Au::from_px(px_width)
+    }
+
+    // Calculate the height of an image, accounting for the height attribute
+    // TODO: This could probably go somewhere else
+    pub fn image_height(&self, image_box: @mut ImageRenderBox) -> Au {
+        let attr_height: Option<int> = do self.with_base |base| {
+            do base.node.with_imm_element |elt| {
+                match elt.get_attr("height") {
+                    Some(height) => {
+                        FromStr::from_str(height)
+                    }
+                    None => {
+                        None
+                    }
+                }
+            }
+        };
+
+        // TODO: Consult margins and borders?
+        let px_height = if attr_height.is_some() {
+            attr_height.unwrap()
+        } else {
+            image_box.image.get_size().unwrap_or_default(Size2D(0, 0)).height
+        };
+
+        Au::from_px(px_height)
     }
 
     /// Returns the amount of left and right "fringe" used by this box. This is based on margins,

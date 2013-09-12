@@ -9,7 +9,7 @@ use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ScriptView};
 use dom::navigator::Navigator;
 
-use layout_interface::ReflowForScriptQuery;
+use layout_interface::ReflowForDisplay;
 use script_task::{ExitMsg, FireTimerMsg, Page, ScriptChan};
 use servo_msg::compositor_msg::ScriptListener;
 
@@ -169,7 +169,10 @@ impl Window {
 
     pub fn content_changed(&self) {
         unsafe {
-            (*self.page).reflow_all(ReflowForScriptQuery, self.script_chan.clone(), self.compositor);
+            // FIXME This should probably be ReflowForQuery, not Display. All queries currently
+            // currently rely on the display list, which means we can't destroy it by
+            // doing a query reflow.
+            (*self.page).reflow_all(ReflowForDisplay, self.script_chan.clone(), self.compositor);
         }
     }
 
