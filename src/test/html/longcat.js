@@ -14,10 +14,11 @@ function wait_for_img_load(f) {
 wait_for_img_load(function() {
 	var count = 0;
 	function elongate() {
-		let height = Math.round((Math.sin(count) + 1) * 70 + 20);
+		var height = Math.round((Math.cos(count + Math.PI) + 1) * 100 + 20);
 		count += 0.2;
 		longcat_mid.height = height;
-		window.setTimeout(function() { elongate() }, 100);
+		longcat_mid.width = 600;
+		window.setTimeout(function() { elongate() }, 50);
 	}
 	elongate();
 });
