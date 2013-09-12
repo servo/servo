@@ -21,7 +21,7 @@ impl Text {
     }
 
     pub fn Constructor(owner: @mut Window, text: &DOMString, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
-        let cx = unsafe {(*owner.page).js_info.get_ref().js_compartment.cx.ptr};
+        let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
         unsafe { Node::as_abstract_node(cx, @Text::new(text.to_str())) }
     }
 

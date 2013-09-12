@@ -56,13 +56,11 @@ impl HTMLImageElement {
             Some(doc) => {
                 match doc.with_base(|doc| doc.window) {
                     Some(win) => {
-                        unsafe {
-                            let page = win.page;
-                            let (port, chan) = stream();
-                            match (*page).query_layout(ContentBoxQuery(abstract_self, chan), port) {
-                                ContentBoxResponse(rect) => {
-                                    to_px(rect.size.width) as u32
-                                }
+                        let page = win.page;
+                        let (port, chan) = stream();
+                        match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
+                            ContentBoxResponse(rect) => {
+                                to_px(rect.size.width) as u32
                             }
                         }
                     }
@@ -91,13 +89,11 @@ impl HTMLImageElement {
             Some(doc) => {
                 match doc.with_base(|doc| doc.window) {
                     Some(win) => {
-                        unsafe {
-                            let page = win.page;
-                            let (port, chan) = stream();
-                            match (*page).query_layout(ContentBoxQuery(abstract_self, chan), port) {
-                                ContentBoxResponse(rect) => {
-                                    to_px(rect.size.height) as u32
-                                }
+                        let page = win.page;
+                        let (port, chan) = stream();
+                        match page.query_layout(ContentBoxQuery(abstract_self, chan), port) {
+                            ContentBoxResponse(rect) => {
+                                to_px(rect.size.height) as u32
                             }
                         }
                     }

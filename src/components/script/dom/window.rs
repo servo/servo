@@ -36,9 +36,8 @@ pub enum TimerControlMsg {
     TimerMessage_TriggerExit //XXXjdm this is just a quick hack to talk to the script task
 }
 
-//FIXME If we're going to store the page, find a way to do so safely.
 pub struct Window {
-    page: *mut Page,
+    page: @mut Page,
     script_chan: ScriptChan,
     compositor: @ScriptListener,
     wrapper: WrapperCache,
@@ -72,9 +71,7 @@ impl Window {
     }
 
     pub fn Document(&self) -> AbstractDocument {
-        unsafe {
-            (*self.page).frame.unwrap().document
-        }
+        self.page.frame.unwrap().document
     }
 
     pub fn Name(&self) -> DOMString {
@@ -168,16 +165,14 @@ impl Window {
     }
 
     pub fn content_changed(&self) {
-        unsafe {
-            // FIXME This should probably be ReflowForQuery, not Display. All queries currently
-            // currently rely on the display list, which means we can't destroy it by
-            // doing a query reflow.
-            (*self.page).reflow_all(ReflowForDisplay, self.script_chan.clone(), self.compositor);
-        }
+        // FIXME This should probably be ReflowForQuery, not Display. All queries currently
+        // currently rely on the display list, which means we can't destroy it by
+        // doing a query reflow.
+        self.page.reflow_all(ReflowForDisplay, self.script_chan.clone(), self.compositor);
     }
 
     #[fixed_stack_segment]
-    pub fn new(cx: *JSContext, page: *mut Page, script_chan: ScriptChan, compositor: @ScriptListener)
+    pub fn new(cx: *JSContext, page: @mut Page, script_chan: ScriptChan, compositor: @ScriptListener)
                -> @mut Window {
         let script_chan_clone = script_chan.clone();
         let win = @mut Window {
@@ -187,11 +182,12 @@ impl Window {
             wrapper: WrapperCache::new(),
             timer_chan: {
                 let (timer_port, timer_chan) = comm::stream::<TimerControlMsg>();
+                let id = page.id.clone();
                 do spawn {
                     loop {
                         match timer_port.recv() {
                             TimerMessage_Close => break,
-                            TimerMessage_Fire(td) => unsafe {script_chan_clone.chan.send(FireTimerMsg((*page).id.clone(), td))},
+                            TimerMessage_Fire(td) => script_chan_clone.chan.send(FireTimerMsg(id, td)),
                             TimerMessage_TriggerExit => script_chan_clone.chan.send(ExitMsg),
                         }
                     }
@@ -223,7 +219,7 @@ impl Traceable for Window {
     fn trace(&self, tracer: *mut JSTracer) {
         debug!("tracing window");
         unsafe {
-            match (*self.page).frame {
+            match self.page.frame {
                 Some(frame) => {
                     do frame.document.with_base |doc| {
                         (*tracer).debugPrinter = ptr::null();

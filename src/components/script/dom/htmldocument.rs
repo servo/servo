@@ -29,13 +29,13 @@ impl HTMLDocument {
             parent: Document::new(root, window, HTML)
         };
 
-        let compartment = unsafe { (*window.get_ref().page).js_info.get_ref().js_compartment };
+        let compartment = window.get_ref().page.js_info.get_ref().js_compartment;
         AbstractDocument::as_abstract(compartment.cx.ptr, doc)
     }
 
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
         let win = self.parent.window.get_ref();
-        let cx = unsafe {(*win.page).js_info.get_ref().js_compartment.cx.ptr};
+        let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
         let cache = win.get_wrappercache();
         let scope = cache.get_wrapper();
         (scope, cx)

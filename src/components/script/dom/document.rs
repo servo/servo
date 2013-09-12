@@ -107,7 +107,7 @@ impl Document {
             parent: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
         };
 
-        let cx = unsafe {(*owner.page).js_info.get_ref().js_compartment.cx.ptr};
+        let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
         let root = unsafe { Node::as_abstract_node(cx, root) };
         AbstractDocument::as_abstract(cx, @mut Document::new(root, None, XML))
     }
@@ -211,12 +211,12 @@ impl Document {
 
     fn get_cx(&self) -> *JSContext {
         let win = self.window.get_ref();
-        unsafe {(*win.page).js_info.get_ref().js_compartment.cx.ptr}
+        win.page.js_info.get_ref().js_compartment.cx.ptr
     }
 
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
         let win = self.window.get_ref();
-        let cx = unsafe {(*win.page).js_info.get_ref().js_compartment.cx.ptr};
+        let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
         let cache = win.get_wrappercache();
         let scope = cache.get_wrapper();
         (scope, cx)

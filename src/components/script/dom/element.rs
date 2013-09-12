@@ -178,7 +178,7 @@ impl<'self> Element {
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
         let doc = self.parent.owner_doc.unwrap();
         let win = doc.with_base(|doc| doc.window.unwrap());
-        let cx = unsafe {(*win.page).js_info.get_ref().js_compartment.cx.ptr};
+        let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
         let cache = win.get_wrappercache();
         let scope = cache.get_wrapper();
         (scope, cx)
@@ -271,9 +271,9 @@ impl Element {
                         assert!(node.is_element());
                         let page = win.page;
                         let (port, chan) = comm::stream();
-                        match unsafe {(*page).query_layout(ContentBoxesQuery(node, chan), port)} {
+                        match page.query_layout(ContentBoxesQuery(node, chan), port) {
                             ContentBoxesResponse(rects) => {
-                                let cx = unsafe {(*page).js_info.get_ref().js_compartment.cx.ptr};
+                                let cx = page.js_info.get_ref().js_compartment.cx.ptr;
                                 let cache = win.get_wrappercache();
                                 let scope = cache.get_wrapper();
                                 let rects = do rects.map |r| {
@@ -313,9 +313,9 @@ impl Element {
                         let node = abstract_self;
                         assert!(node.is_element());
                         let (port, chan) = comm::stream();
-                        match unsafe{(*page).query_layout(ContentBoxQuery(node, chan), port)} {
+                        match page.query_layout(ContentBoxQuery(node, chan), port) {
                             ContentBoxResponse(rect) => {
-                                let cx = unsafe {(*page).js_info.get_ref().js_compartment.cx.ptr};
+                                let cx = page.js_info.get_ref().js_compartment.cx.ptr;
                                 let cache = win.get_wrappercache();
                                 let scope = cache.get_wrapper();
                                 ClientRect::new(
