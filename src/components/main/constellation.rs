@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use compositing::{CompositorChan, SetIds, SetLayerClipRect};
-use script::dom::event::ResizeEvent;
 
 use std::cell::Cell;
 use std::comm;
@@ -18,7 +17,7 @@ use servo_msg::constellation_msg::{InitLoadUrlMsg, LoadIframeUrlMsg, LoadUrlMsg}
 use servo_msg::constellation_msg::{Msg, NavigateMsg, NavigationType, IFrameUnsandboxed};
 use servo_msg::constellation_msg::{PipelineId, RendererReadyMsg, ResizedWindowMsg, SubpageId};
 use servo_msg::constellation_msg;
-use script::script_task::{SendEventMsg, ResizeInactiveMsg, ExecuteMsg};
+use script::script_task::{ResizeMsg, ResizeInactiveMsg, ExecuteMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
@@ -409,9 +408,10 @@ impl Constellation {
                         subpage id. This should not be possible.") == subpage_id {
                         child_frame_tree.rect = Some(rect.clone());
                         let Rect { size: Size2D { width, height }, _ } = rect;
-                        pipeline.script_chan.send(SendEventMsg(pipeline.id.clone(),
-                                                               ResizeEvent(width as uint,
-                                                                           height as uint))); 
+                        pipeline.script_chan.send(ResizeMsg(pipeline.id.clone(), Size2D {
+                            width:  width  as uint,
+                            height: height as uint
+                        }));
                         self.compositor_chan.send(SetLayerClipRect(pipeline.id, rect));
                         already_sent.insert(pipeline.id.clone());
                         break;
@@ -720,9 +720,7 @@ impl Constellation {
     fn handle_resized_window_msg(&mut self, new_size: Size2D<uint>) {
         let mut already_seen = HashSet::new();
         for &@FrameTree { pipeline: pipeline, _ } in self.current_frame().iter() {
-            let Size2D { width, height } = new_size;
-            pipeline.script_chan.send(SendEventMsg(pipeline.id.clone(),
-                                                   ResizeEvent(width, height)));
+            pipeline.script_chan.send(ResizeMsg(pipeline.id.clone(), new_size));
             already_seen.insert(pipeline.id.clone());
         }
         for frame_tree in self.navigation_context.previous.iter()

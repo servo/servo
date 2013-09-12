@@ -63,6 +63,8 @@ pub enum ScriptMsg {
     NavigateMsg(NavigationDirection),
     /// Sends a DOM event.
     SendEventMsg(PipelineId, Event_),
+    /// Window resized.  Sends a DOM event eventually, but first we combine events.
+    ResizeMsg(PipelineId, Size2D<uint>),
     /// Fires a JavaScript timeout.
     FireTimerMsg(PipelineId, ~TimerData),
     /// Notifies script that reflow is finished.
@@ -128,6 +130,9 @@ pub struct Page {
     url: Option<(Url, bool)>,
 
     next_subpage_id: SubpageId,
+
+    /// Pending resize event, if any.
+    resize_event: Option<Size2D<uint>>
 }
 
 pub struct PageTree {
@@ -152,6 +157,7 @@ impl PageTree {
                 js_info: None,
                 url: None,
                 next_subpage_id: SubpageId(0),
+                resize_event: None,
             },
             inner: ~[],
         }
@@ -406,7 +412,7 @@ impl ScriptTask {
     /// Starts the script task. After calling this method, the script task will loop receiving
     /// messages on its port.
     pub fn start(&mut self) {
-        while self.handle_msg() {
+        while self.handle_msgs() {
             // Go on...
         }
     }
@@ -440,23 +446,66 @@ impl ScriptTask {
         }
     }
 
-    /// Handles an incoming control message.
-    fn handle_msg(&mut self) -> bool {
-        match self.port.recv() {
-            // TODO(tkuehn) need to handle auxiliary layouts for iframes
-            AttachLayoutMsg(new_layout_info) => self.handle_new_layout(new_layout_info),
-            LoadMsg(id, url) => self.load(id, url),
-            ExecuteMsg(id, url) => self.handle_execute_msg(id, url),
-            SendEventMsg(id, event) => self.handle_event(id, event),
-            FireTimerMsg(id, timer_data) => self.handle_fire_timer_msg(id, timer_data),
-            NavigateMsg(direction) => self.handle_navigate_msg(direction),
-            ReflowCompleteMsg(id) => self.handle_reflow_complete_msg(id),
-            ResizeInactiveMsg(id, new_size) => self.handle_resize_inactive_msg(id, new_size),
-            ExitMsg => {
-                self.handle_exit_msg();
-                return false
+    /// Handle incoming control messages.
+    fn handle_msgs(&mut self) -> bool {
+        // Handle pending resize events.
+        // Gather them first to avoid a double mut borrow on self.
+        let mut resizes = ~[];
+        for page in self.page_tree.iter() {
+            // Only process a resize if layout is idle.
+            if page.layout_join_port.is_none() {
+                match page.resize_event.take() {
+                    Some(size) => resizes.push((page.id, size)),
+                    None => ()
+                }
             }
         }
+
+        for (id, Size2D { width, height }) in resizes.move_iter() {
+            self.handle_event(id, ResizeEvent(width, height));
+        }
+
+        // Store new resizes, and gather all other events.
+        let mut sequential = ~[];
+        loop {
+            // Receive at least one message so we don't spinloop.
+            let event = self.port.recv();
+            match event {
+                ResizeMsg(id, size) => {
+                    let page = self.page_tree.find(id).expect("resize sent to nonexistent pipeline").page;
+                    page.resize_event = Some(size);
+                }
+                _ => {
+                    sequential.push(event);
+                }
+            }
+
+            // Break if there are no more messages.
+            if !self.port.peek() {
+                break;
+            }
+        }
+
+        // Process the gathered events.
+        for msg in sequential.move_iter() {
+            match msg {
+                // TODO(tkuehn) need to handle auxiliary layouts for iframes
+                AttachLayoutMsg(new_layout_info) => self.handle_new_layout(new_layout_info),
+                LoadMsg(id, url) => self.load(id, url),
+                ExecuteMsg(id, url) => self.handle_execute_msg(id, url),
+                SendEventMsg(id, event) => self.handle_event(id, event),
+                FireTimerMsg(id, timer_data) => self.handle_fire_timer_msg(id, timer_data),
+                NavigateMsg(direction) => self.handle_navigate_msg(direction),
+                ReflowCompleteMsg(id) => self.handle_reflow_complete_msg(id),
+                ResizeInactiveMsg(id, new_size) => self.handle_resize_inactive_msg(id, new_size),
+                ExitMsg => {
+                    self.handle_exit_msg();
+                    return false
+                },
+                ResizeMsg(*) => fail!("should have handled ResizeMsg already"),
+            }
+        }
+
         true
     }
 
