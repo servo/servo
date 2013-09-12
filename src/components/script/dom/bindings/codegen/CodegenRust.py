@@ -3140,8 +3140,8 @@ class CGSetterCall(CGPerSignatureCall):
     A class to generate a native object setter call for a particular IDL
     setter.
     """
-    def __init__(self, argType, nativeMethodName, descriptor, attr):
-        CGPerSignatureCall.__init__(self, None, [],
+    def __init__(self, argsPre, argType, nativeMethodName, descriptor, attr):
+        CGPerSignatureCall.__init__(self, None, argsPre,
                                     [FakeArgument(argType, attr)],
                                     nativeMethodName, False, descriptor, attr,
                                     setter=True)
@@ -3357,9 +3357,16 @@ class CGSpecializedSetter(CGAbstractExternMethod):
     def definition_body(self):
         name = self.attr.identifier.name
         nativeName = "Set" + MakeNativeName(self.descriptor.binaryNames.get(name, name))
-        return CGWrapper(CGIndenter(CGSetterCall(self.attr.type, nativeName,
+        argsPre = []
+        extraPre = ''
+        if name in self.descriptor.needsAbstract:
+            abstractName = re.sub(r'<\w+>', '', self.descriptor.nativeType)
+            extraPre = '  let abstract_this = %s::from_box(this);\n' % abstractName
+            argsPre = ['abstract_this']
+        return CGWrapper(CGIndenter(CGSetterCall(argsPre, self.attr.type, nativeName,
                                                  self.descriptor, self.attr)),
-                         pre="  let obj = (*obj.unnamed);\n" +
+                         pre=extraPre +
+                             "  let obj = (*obj.unnamed);\n" +
                              "  let this = &mut (*this).payload;\n").define()
 
 def infallibleForMember(member, type, descriptorProvider):

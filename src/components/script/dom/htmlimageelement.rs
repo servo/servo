@@ -79,9 +79,13 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn SetWidth(&mut self, width: u32, _rv: &mut ErrorResult) {
+    pub fn SetWidth(&mut self,
+                    abstract_self: AbstractNode<ScriptView>,
+                    width: u32,
+                    _rv: &mut ErrorResult) {
         let node = &mut self.parent.parent;
-        node.set_attr(&str(~"width"),
+        node.set_attr(abstract_self,
+                      &str(~"width"),
                       &str(width.to_str()));
     }
 
@@ -114,9 +118,13 @@ impl HTMLImageElement {
         }
     }
 
-    pub fn SetHeight(&mut self, height: u32, _rv: &mut ErrorResult) {
+    pub fn SetHeight(&mut self,
+                     abstract_self: AbstractNode<ScriptView>,
+                     height: u32,
+                     _rv: &mut ErrorResult) {
         let node = &mut self.parent.parent;
-        node.set_attr(&str(~"height"),
+        node.set_attr(abstract_self,
+                      &str(~"height"),
                       &str(height.to_str()));
     }
 
