@@ -171,6 +171,8 @@ impl FontHandleMethods for FontHandle {
             // see also: https://bugs.webkit.org/show_bug.cgi?id=16768
             // see also: https://bugreports.qt-project.org/browse/QTBUG-13364
             underline_offset: Au::from_pt(self.ctfont.underline_position() as float),
+            strikeout_size:   geometry::from_pt(0.0), //FIXME
+            strikeout_offset: geometry::from_pt(0.0), //FIXME
             leading:          Au::from_pt(self.ctfont.leading() as float),
             x_height:         Au::from_pt(self.ctfont.x_height() as float),
             em_size:          em_size,

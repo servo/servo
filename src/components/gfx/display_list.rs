@@ -26,6 +26,8 @@ use servo_net::image::base::Image;
 use servo_util::range::Range;
 use extra::arc::Arc;
 
+use newcss::values::{CSSTextDecorationUnderline, CSSTextDecorationOverline, CSSTextDecorationLineThrough};
+
 /// A list of rendering operations to be performed.
 pub struct DisplayList<E> {
     list: ~[DisplayItem<E>]
@@ -135,14 +137,31 @@ impl<E> DisplayItem<E> {
                                             baseline_origin,
                                             text.color);
 
-                if new_run.underline {
-                    // TODO(eatkinson): Use the font metrics to properly position the underline
-                    // bar.
-                    let width = text.base.bounds.size.width;
-                    let underline_size = font.metrics.underline_size;
-                    let underline_bounds = Rect(Point2D(baseline_origin.x, baseline_origin.y),
-                                                Size2D(width, underline_size));
-                    render_context.draw_solid_color(&underline_bounds, text.color);
+                let width = text.base.bounds.size.width;
+                let underline_size = font.metrics.underline_size;
+                let underline_offset = font.metrics.underline_offset;
+                let strikeout_size = font.metrics.strikeout_size;
+                let strikeout_offset = font.metrics.strikeout_offset;
+
+                match new_run.decoration {
+                    CSSTextDecorationUnderline => {
+                        let underline_y = baseline_origin.y - underline_offset;
+                        let underline_bounds = Rect(Point2D(baseline_origin.x, underline_y),
+                                                    Size2D(width, underline_size));
+                        render_context.draw_solid_color(&underline_bounds, text.color);
+                    },
+                    CSSTextDecorationOverline => {
+                        let overline_bounds = Rect(Point2D(baseline_origin.x, origin.y),
+                                                   Size2D(width, underline_size));
+                        render_context.draw_solid_color(&overline_bounds, text.color);
+                    },
+                    CSSTextDecorationLineThrough => {
+                        let strikeout_y = baseline_origin.y - strikeout_offset;
+                        let strikeout_bounds = Rect(Point2D(baseline_origin.x, strikeout_y),
+                                                    Size2D(width, strikeout_size));
+                        render_context.draw_solid_color(&strikeout_bounds, text.color);
+                    },
+                    _ => ()
                 }
             }
 

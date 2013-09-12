@@ -219,6 +219,7 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
+    #[fixed_stack_segment]
     fn get_metrics(&self) -> FontMetrics {
         /* TODO(Issue #76): complete me */
         let face = self.get_face_rec();
@@ -230,11 +231,26 @@ impl FontHandleMethods for FontHandle {
         let descent = self.font_units_to_au(face.descender as float);
         let max_advance = self.font_units_to_au(face.max_advance_width as float);
 
+        let mut strikeout_size = geometry::from_pt(0.0);
+        let mut strikeout_offset = geometry::from_pt(0.0);
+        let mut x_height = geometry::from_pt(0.0);
+        unsafe {
+            let os2 = FT_Get_Sfnt_Table(face, ft_sfnt_os2) as *TT_OS2;
+            let valid = os2.is_not_null() && (*os2).version != 0xffff;
+            if valid {
+               strikeout_size = self.font_units_to_au((*os2).yStrikeoutSize as float);
+               strikeout_offset = self.font_units_to_au((*os2).yStrikeoutPosition as float);
+               x_height = self.font_units_to_au((*os2).sxHeight as float);
+            }
+        }
+
         return FontMetrics {
             underline_size:   underline_size,
             underline_offset: underline_offset,
+            strikeout_size:   strikeout_size,
+            strikeout_offset: strikeout_offset,
             leading:          geometry::from_pt(0.0), //FIXME
-            x_height:         geometry::from_pt(0.0), //FIXME
+            x_height:         x_height,
             em_size:          em_size,
             ascent:           ascent,
             descent:          -descent, // linux font's seem to use the opposite sign from mac
