@@ -33,6 +33,7 @@ pub trait WrappableDocument {
     fn init_wrapper(@mut self, cx: *JSContext);
 }
 
+#[deriving(Eq)]
 pub struct AbstractDocument {
     document: *Document
 }
