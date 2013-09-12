@@ -6,7 +6,6 @@ use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::node;
 use dom::node::{AbstractNode, ScriptView};
-use script_task::page_from_context;
 
 use std::libc::c_uint;
 use std::cast;
@@ -31,7 +30,6 @@ use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative, JSTracer};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
-use js::rust::Compartment;
 use js::{JSPROP_ENUMERATE, JSVAL_NULL};
 use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
 use js::{JSPROP_SETTER, JSVAL_VOID, JSVAL_TRUE, JSVAL_FALSE};

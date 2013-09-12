@@ -482,17 +482,18 @@ impl ScriptTask {
 
         let page_tree = self.page_tree.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.");
-        let js_info = page_tree.page.js_info.get_ref();
+        let compartment = page_tree.page.js_info.get_ref().js_compartment;
+        let cx = page_tree.page.js_info.get_ref().js_context;
 
         match read_whole_file(&Path(url.path)) {
             Err(msg) => println(fmt!("Error opening %s: %s", url.to_str(), msg)),
 
             Ok(bytes) => {
-                js_info.js_compartment.define_functions(debug_fns);
-                js_info.js_context.evaluate_script(js_info.js_compartment.global_obj,
-                                                   bytes,
-                                                   url.path.clone(),
-                                                   1);
+                compartment.define_functions(debug_fns);
+                cx.evaluate_script(compartment.global_obj,
+                                   bytes,
+                                   url.path.clone(),
+                                   1);
             }
         }
     }
@@ -582,16 +583,7 @@ impl ScriptTask {
 
         let cx = self.js_runtime.cx();
         // Create the window and document objects.
-        let window = {
-            // Need an extra block here due to Rust #6248
-            //
-            // FIXME(Servo #655): Unrelated to the Rust #6248 warning, this is fundamentally
-            // unsafe because the box could go away or get moved while we're holding this raw
-            // pointer.  We think it's safe here because the main task will hold onto the box,
-            // and because the current refcounting implementation of @ doesn't move.
-            let page = &mut *page;
-            Window::new(cx.ptr, page, self.chan.clone(), self.compositor)
-        };
+        let window = Window::new(cx.ptr, page, self.chan.clone(), self.compositor);
         page.initialize_js_info(cx, window.get_wrappercache().get_wrapper());
 
         RegisterBindings::Register(page.js_info.get_ref().js_compartment);
@@ -669,15 +661,16 @@ impl ScriptTask {
         page.url = Some((url, false));
 
         // Define debug functions.
-        let js_info = page.js_info.get_ref();
-        js_info.js_compartment.define_functions(debug_fns);
+        let compartment = page.js_info.get_ref().js_compartment;
+        let cx = page.js_info.get_ref().js_context;
+        compartment.define_functions(debug_fns);
 
         // Evaluate every script in the document.
         for file in js_scripts.iter() {
-            let _ = js_info.js_context.evaluate_script(js_info.js_compartment.global_obj,
-                                                       file.data.clone(),
-                                                       file.url.to_str(),
-                                                       1);
+            let _ = cx.evaluate_script(compartment.global_obj,
+                                       file.data.clone(),
+                                       file.url.to_str(),
+                                       1);
         }
     }
 
