@@ -39,6 +39,7 @@ impl FontListHandle {
         FontListHandle { fctx: fctx.clone() }
     }
 
+    #[fixed_stack_segment]
     pub fn get_available_families(&self) -> FontFamilyMap {
         let mut family_map : FontFamilyMap = HashMap::new();
         unsafe {
@@ -62,6 +63,7 @@ impl FontListHandle {
         return family_map;
     }
 
+    #[fixed_stack_segment]
     pub fn load_variations_for_family(&self, family: @mut FontFamily) {
         debug!("getting variations for %?", family);
         unsafe {
@@ -138,6 +140,7 @@ struct AutoPattern {
 }
 
 impl Drop for AutoPattern {
+    #[fixed_stack_segment]
     fn drop(&self) {
         unsafe {
             FcPatternDestroy(self.pattern);
@@ -145,6 +148,7 @@ impl Drop for AutoPattern {
     }
 }
 
+#[fixed_stack_segment]
 pub fn path_from_identifier(name: ~str, style: &UsedFontStyle) -> Result<~str, ()> {
     unsafe {
         let config = FcConfigGetCurrent();
