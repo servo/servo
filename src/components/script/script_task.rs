@@ -611,17 +611,17 @@ impl ScriptTask {
 
         let document = HTMLDocument::new(root, Some(window));
 
-        // Tie the root into the document.
-        do root.with_mut_base |base| {
-            base.add_to_doc(document)
-        }
-
         // Create the root frame.
         page.frame = Some(Frame {
             document: document,
             window: window,
         });
         page.url = Some((url.clone(), true));
+
+        // Tie the root into the document.
+        do root.with_mut_base |base| {
+            base.add_to_doc(document)
+        }
 
         // Send style sheets over to layout.
         //

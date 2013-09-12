@@ -414,6 +414,7 @@ impl Node<ScriptView> {
     }
 
     pub fn add_to_doc(&mut self, doc: AbstractDocument) {
+        let old_doc = self.owner_doc;
         self.owner_doc = Some(doc);
         let mut cur_node = self.first_child;
         while cur_node.is_some() {
@@ -423,6 +424,42 @@ impl Node<ScriptView> {
                 }
             };
             cur_node = cur_node.unwrap().next_sibling();
+        }
+
+        // Signal the old document that it needs to update its display
+        match old_doc {
+            Some(old_doc) if old_doc != doc => do old_doc.with_base |old_doc| {
+                old_doc.content_changed();
+            },
+            _ => ()
+        }
+
+        // Signal the new document that it needs to update its display
+        do doc.with_base |doc| {
+            doc.content_changed();
+        }
+    }
+
+    pub fn remove_from_doc(&mut self) {
+        let old_doc = self.owner_doc;
+        self.owner_doc = None;
+
+        let mut cur_node = self.first_child;
+        while cur_node.is_some() {
+            for node in cur_node.unwrap().traverse_preorder() {
+                do node.with_mut_base |node_base| {
+                    node_base.owner_doc = None;
+                }
+            };
+            cur_node = cur_node.unwrap().next_sibling();
+        }
+
+        // Signal the old document that it needs to update its display
+        match old_doc {
+            Some(doc) => do doc.with_base |doc| {
+                doc.content_changed();
+            },
+            None => ()
         }
     }
 
@@ -592,6 +629,12 @@ impl Node<ScriptView> {
             // If the node already exists it is removed from current parent node.
             node.parent_node().map(|parent| parent.remove_child(node));
             abstract_self.add_child(node);
+            match self.owner_doc {
+                Some(doc) => do node.with_mut_base |node| {
+                    node.add_to_doc(doc);
+                },
+                None => ()
+            }
         }
         node
     }
@@ -617,6 +660,7 @@ impl Node<ScriptView> {
         }
         if rv.is_ok() {
             abstract_self.remove_child(node);
+            self.remove_from_doc();
         }
         node
     }
