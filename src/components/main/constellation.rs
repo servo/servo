@@ -313,6 +313,15 @@ impl Constellation {
         &self.navigation_context.current
     }
 
+    /// Returns both the navigation context and pending frame trees whose keys are pipeline_id.
+    pub fn find_all(&mut self, pipeline_id: PipelineId) -> ~[@mut FrameTree] {
+        let matching_navi_frames = self.navigation_context.find_all(pipeline_id);
+        let matching_pending_frames = do self.pending_frames.iter().filter_map |frame_change| {
+            frame_change.after.find_mut(pipeline_id)
+        };
+        matching_navi_frames.move_iter().chain(matching_pending_frames).collect()
+    }
+
     /// Handles loading pages, navigation, and granting access to the compositor
     fn handle_request(&mut self, request: Msg) -> bool {
         match request {
@@ -385,14 +394,8 @@ impl Constellation {
         let url = make_url(failure, None);
         pipeline.load(url);
 
-        let frame_trees: ~[@mut FrameTree] = {
-            let matching_navi_frames = self.navigation_context.find_all(pipeline_id);
-            let matching_pending_frames = do self.pending_frames.iter().filter_map |frame_change| {
-                frame_change.after.find_mut(pipeline_id)
-            };
-            matching_navi_frames.move_iter().chain(matching_pending_frames).collect()
-        };
-        for frame_tree in frame_trees.iter() {
+        let frames = self.find_all(pipeline_id);
+        for frame_tree in frames.iter() {
             frame_tree.pipeline = pipeline;
         };
 
@@ -456,14 +459,8 @@ impl Constellation {
             }
         }
         // Traverse the navigation context and pending frames and tell each associated pipeline to resize.
-        let frame_trees: ~[@mut FrameTree] = {
-            let matching_navi_frames = self.navigation_context.find_all(pipeline_id);
-            let matching_pending_frames = do self.pending_frames.iter().filter_map |frame_change| {
-                frame_change.after.find_mut(pipeline_id)
-            };
-            matching_navi_frames.move_iter().chain(matching_pending_frames).collect()
-        };
-        for frame_tree in frame_trees.iter() {
+        let frames = self.find_all(pipeline_id);
+        for frame_tree in frames.iter() {
             for child_frame_tree in frame_tree.children.mut_iter() {
                 let pipeline = &child_frame_tree.frame_tree.pipeline;
                 if pipeline.subpage_id.expect("Constellation: child frame does not have a
