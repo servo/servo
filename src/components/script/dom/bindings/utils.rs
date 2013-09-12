@@ -6,7 +6,6 @@ use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::node;
 use dom::node::{AbstractNode, ScriptView};
-use script_task::page_from_context;
 
 use std::libc::c_uint;
 use std::cast;
@@ -31,7 +30,6 @@ use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass, JSNative, JSTracer};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec, JSVal, JSPropertyDescriptor};
 use js::jsapi::{JSPropertyOp, JSStrictPropertyOp, JS_NewGlobalObject, JS_InitStandardClasses};
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
-use js::rust::Compartment;
 use js::{JSPROP_ENUMERATE, JSVAL_NULL};
 use js::{JSPROP_PERMANENT, JSID_VOID, JSPROP_NATIVE_ACCESSORS, JSPROP_GETTER};
 use js::{JSPROP_SETTER, JSVAL_VOID, JSVAL_TRUE, JSVAL_FALSE};
@@ -234,32 +232,6 @@ pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
             RUST_STRING_TO_JSVAL(JS_NewStringCopyN(cx, cbuf, len as libc::size_t))
         }
       }
-    }
-}
-
-pub fn get_compartment(cx: *JSContext) -> @mut Compartment {
-    unsafe {
-        let page = page_from_context(cx);
-        let compartment = (*page).js_info.get_ref().js_compartment;
-        assert!(cx == compartment.cx.ptr);
-        compartment
-    }
-}
-
-extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *JSVal, bp: *mut JSBool) -> JSBool {
-    //XXXjdm this is totally broken for non-object values
-    unsafe {
-        let mut o = RUST_JSVAL_TO_OBJECT(*v);
-        let obj = *obj;
-        *bp = 0;
-        while o.is_not_null() {
-            if o == obj {
-                *bp = 1;
-                break;
-            }
-            o = JS_GetPrototype(o);
-        }
-        return 1;
     }
 }
 
