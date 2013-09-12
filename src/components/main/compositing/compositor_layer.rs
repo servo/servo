@@ -486,14 +486,15 @@ impl CompositorLayer {
         } else { 
                 // ID does not match ours, so recurse on descendents (including hidden children).
                 self.children.mut_iter().map(|x| &mut x.child)
-                    .any(|x| { let buffers = cell.take();
-                               let result = x.add_buffers(pipeline_id, buffers.clone(), epoch);
-                               if result {
-                                   result
-                               } else {
-                                   cell.put_back(buffers);
-                                   result
-                               }})
+                    .any(|x| {
+                                let buffers = cell.take();
+                                let result = x.add_buffers(pipeline_id, buffers.clone(), epoch);
+                                if result {
+                                    result
+                                } else {
+                                    cell.put_back(buffers);
+                                    result
+                                }})
         }
     }
 

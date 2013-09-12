@@ -164,7 +164,7 @@ impl Pipeline {
 
     /// This function wraps the task creation within a supervised task
     /// so that failure will only tear down those tasks instead of ours.
-    pub fn spawn(chan:Chan<task::TaskResult>, f:~fn()) {
+    pub fn spawn(chan: Chan<task::TaskResult>, f: ~fn()) {
         let mut task = task::task();
         task.opts.notify_chan = Some(chan);
         task.supervised();
