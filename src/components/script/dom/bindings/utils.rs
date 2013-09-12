@@ -237,32 +237,6 @@ pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
     }
 }
 
-pub fn get_compartment(cx: *JSContext) -> @mut Compartment {
-    unsafe {
-        let page = page_from_context(cx);
-        let compartment = (*page).js_info.get_ref().js_compartment;
-        assert!(cx == compartment.cx.ptr);
-        compartment
-    }
-}
-
-extern fn has_instance(_cx: *JSContext, obj: **JSObject, v: *JSVal, bp: *mut JSBool) -> JSBool {
-    //XXXjdm this is totally broken for non-object values
-    unsafe {
-        let mut o = RUST_JSVAL_TO_OBJECT(*v);
-        let obj = *obj;
-        *bp = 0;
-        while o.is_not_null() {
-            if o == obj {
-                *bp = 1;
-                break;
-            }
-            o = JS_GetPrototype(o);
-        }
-        return 1;
-    }
-}
-
 // We use slot 0 for holding the raw object.  This is safe for both
 // globals and non-globals.
 pub static DOM_OBJECT_SLOT: uint = 0;
