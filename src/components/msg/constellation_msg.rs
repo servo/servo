@@ -35,6 +35,7 @@ pub enum IFrameSandboxState {
 
 pub enum Msg {
     ExitMsg(Chan<()>),
+    FailureMsg(PipelineId, Option<SubpageId>),
     InitLoadUrlMsg(Url),
     FrameRectMsg(PipelineId, SubpageId, Rect<f32>),
     LoadUrlMsg(PipelineId, Url, Future<Size2D<uint>>),
