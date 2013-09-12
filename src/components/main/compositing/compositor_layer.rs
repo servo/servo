@@ -489,12 +489,9 @@ impl CompositorLayer {
                     .any(|x| {
                                 let buffers = cell.take();
                                 let result = x.add_buffers(pipeline_id, buffers.clone(), epoch);
-                                if result {
-                                    result
-                                } else {
-                                    cell.put_back(buffers);
-                                    result
-                                }})
+                                cell.put_back(buffers);
+                                result
+                                })
         }
     }
 
