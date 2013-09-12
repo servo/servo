@@ -5,6 +5,7 @@
 use dom::bindings::utils::{DOMString, null_string, ErrorResult, str};
 use dom::document::AbstractDocument;
 use dom::htmlelement::HTMLElement;
+use dom::node::{AbstractNode, ScriptView};
 use dom::windowproxy::WindowProxy;
 use geom::size::Size2D;
 use geom::rect::Rect;
@@ -79,13 +80,13 @@ impl HTMLIFrameElement {
     pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
     }
 
-    pub fn Sandbox(&self) -> DOMString {
+    pub fn Sandbox(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
         self.parent.parent.GetAttribute(&str(~"sandbox"))
     }
 
-    pub fn SetSandbox(&mut self, sandbox: &DOMString) {
+    pub fn SetSandbox(&mut self, abstract_self: AbstractNode<ScriptView>, sandbox: &DOMString) {
         let mut rv = Ok(());
-        self.parent.parent.SetAttribute(&str(~"sandbox"), sandbox, &mut rv);
+        self.parent.parent.SetAttribute(abstract_self, &str(~"sandbox"), sandbox, &mut rv);
     }
 
     pub fn AfterSetAttr(&mut self, name: &DOMString, value: &DOMString) {
