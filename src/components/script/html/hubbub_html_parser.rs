@@ -375,7 +375,7 @@ pub fn parse_html(cx: *JSContext,
             debug!("-- attach attrs");
             do node.as_mut_element |element| {
                 for attr in tag.attributes.iter() {
-                    element.set_attr(&str(attr.name.clone()), &str(attr.value.clone()));
+                    element.set_attr(node, &str(attr.name.clone()), &str(attr.value.clone()));
                 }
             }
 

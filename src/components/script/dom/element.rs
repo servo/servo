@@ -139,7 +139,10 @@ impl<'self> Element {
         return None;
     }
 
-    pub fn set_attr(&mut self, raw_name: &DOMString, raw_value: &DOMString) {
+    pub fn set_attr(&mut self,
+                    abstract_self: AbstractNode<ScriptView>,
+                    raw_name: &DOMString,
+                    raw_value: &DOMString) {
         let name = raw_name.to_str();
         let value_cell = Cell::new(raw_value.to_str());
         let mut found = false;
@@ -163,8 +166,8 @@ impl<'self> Element {
 
         //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
         //       This hardcoding is awful.
-        if self.parent.abstract.unwrap().is_iframe_element() {
-            do self.parent.abstract.unwrap().with_mut_iframe_element |iframe| {
+        if abstract_self.is_iframe_element() {
+            do abstract_self.with_mut_iframe_element |iframe| {
                 iframe.AfterSetAttr(raw_name, raw_value);
             }
         }
@@ -208,8 +211,12 @@ impl Element {
         null_string
     }
 
-    pub fn SetAttribute(&mut self, name: &DOMString, value: &DOMString, _rv: &mut ErrorResult) {
-        self.set_attr(name, value);
+    pub fn SetAttribute(&mut self,
+                        abstract_self: AbstractNode<ScriptView>,
+                        name: &DOMString,
+                        value: &DOMString,
+                        _rv: &mut ErrorResult) {
+        self.set_attr(abstract_self, name, value);
     }
 
     pub fn SetAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString, _value: &DOMString, _rv: &mut ErrorResult) {
