@@ -281,6 +281,7 @@ impl LayoutTask {
             // FIXME: We want to do
             //     for flow in layout_root.traverse_preorder_prune(|f| f.restyle_damage().lacks(Reflow)) 
             // but FloatContext values can't be reused, so we need to recompute them every time.
+            // NOTE: this currently computes borders, so any pruning should separate that operation out.
             debug!("assigning widths");
             do layout_root.each_preorder |flow| {
                 flow.assign_widths(&mut layout_ctx);
