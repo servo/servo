@@ -6,8 +6,10 @@ use dom::bindings::utils::{DOMString, str, null_string, ErrorResult};
 use dom::htmlelement::HTMLElement;
 use dom::node::{ScriptView, AbstractNode};
 use extra::url::Url;
-use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use gfx::geometry::to_px;
+use layout_interface::{ContentBoxQuery, ContentBoxResponse};
+use servo_net::image_cache_task;
+use servo_util::url::make_url;
 
 pub struct HTMLImageElement {
     parent: HTMLElement,
@@ -15,6 +17,41 @@ pub struct HTMLImageElement {
 }
 
 impl HTMLImageElement {
+    /// Makes the local `image` member match the status of the `src` attribute and starts
+    /// prefetching the image. This method must be called after `src` is changed.
+    pub fn update_image(&mut self) {
+        let elem = &mut self.parent.parent;
+        let src_opt = elem.get_attr("src").map(|x| x.to_str());
+        let node = &mut elem.parent;
+        match node.owner_doc {
+            Some(doc) => {
+                match doc.with_base(|doc| doc.window) {
+                    Some(window) => {
+                        match src_opt {
+                            None => {}
+                            Some(src) => {
+                                let page = window.page;
+                                let img_url = make_url(src,
+                                                       (*page).url
+                                                              .map(|&(ref url, _)| url.clone()));
+                                self.image = Some(img_url.clone());
+
+                                // inform the image cache to load this, but don't store a
+                                // handle.
+                                //
+                                // TODO (Issue #84): don't prefetch if we are within a
+                                // <noscript> tag.
+                                window.image_cache_task.send(image_cache_task::Prefetch(img_url));
+                            }
+                        }
+                    }
+                    None => {}
+                }
+            }
+            None => {}
+        }
+    }
+
     pub fn Alt(&self) -> DOMString {
         null_string
     }
@@ -22,11 +59,21 @@ impl HTMLImageElement {
     pub fn SetAlt(&mut self, _alt: &DOMString, _rv: &mut ErrorResult) {
     }
 
-    pub fn Src(&self) -> DOMString {
+    pub fn Src(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
         null_string
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSrc(&mut self,
+                  abstract_self: AbstractNode<ScriptView>,
+                  src: &DOMString,
+                  _rv: &mut ErrorResult) {
+        {
+            let node = &mut self.parent.parent;
+            node.set_attr(abstract_self,
+                          &str(~"src"),
+                          &str(src.to_str()));
+        }
+        self.update_image();
     }
 
     pub fn CrossOrigin(&self) -> DOMString {
