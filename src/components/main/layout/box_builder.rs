@@ -17,7 +17,7 @@ use layout::inline::{InlineFlowData, InlineLayout};
 use layout::text::TextRunScanner;
 use css::node_style::StyledNode;
 
-use newcss::values::{CSSDisplay, CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
+use newcss::values::{CSSDisplayBlock, CSSDisplayInline, CSSDisplayInlineBlock};
 use newcss::values::{CSSDisplayTable, CSSDisplayInlineTable, CSSDisplayListItem};
 use newcss::values::{CSSDisplayTableRowGroup, CSSDisplayTableHeaderGroup, CSSDisplayTableFooterGroup};
 use newcss::values::{CSSDisplayTableRow, CSSDisplayTableColumnGroup, CSSDisplayTableColumn};
@@ -25,7 +25,6 @@ use newcss::values::{CSSDisplayTableCell, CSSDisplayTableCaption};
 use newcss::values::{CSSDisplayNone};
 use newcss::values::{CSSFloatNone, CSSFloatLeft, CSSFloatRight};
 use layout::float_context::{FloatLeft, FloatRight};
-use script::dom::element::*;
 use script::dom::node::{AbstractNode, CommentNodeTypeId, DoctypeNodeTypeId};
 use script::dom::node::{ElementNodeTypeId, LayoutView, TextNodeTypeId};
 use servo_util::range::Range;
@@ -56,40 +55,6 @@ struct BoxGenerator<'self> {
 enum InlineSpacerSide {
     LogicalBefore,
     LogicalAfter,
-}
-
-fn simulate_UA_display_rules(node: AbstractNode<LayoutView>) -> CSSDisplay {
-    // FIXME
-    /*let resolved = do node.aux |nd| {
-        match nd.style.display_type {
-            Inherit | Initial => DisplayInline, // TODO: remove once resolve works
-            Specified(v) => v
-        }
-    };*/
-
-    let resolved = CSSDisplayInline;
-    if resolved == CSSDisplayNone {
-        return resolved;
-    }
-
-    match node.type_id() {
-        DoctypeNodeTypeId | CommentNodeTypeId => CSSDisplayNone,
-        TextNodeTypeId => CSSDisplayInline,
-        ElementNodeTypeId(element_type_id) => {
-            match element_type_id {
-                HTMLHeadElementTypeId |
-                HTMLScriptElementTypeId => CSSDisplayNone,
-                HTMLParagraphElementTypeId |
-                HTMLDivElementTypeId |
-                HTMLBodyElementTypeId |
-                HTMLHeadingElementTypeId |
-                HTMLHtmlElementTypeId |
-                HTMLUListElementTypeId |
-                HTMLOListElementTypeId => CSSDisplayBlock,
-                _ => resolved
-            }
-        }
-    }
 }
 
 impl<'self> BoxGenerator<'self> {
@@ -130,10 +95,8 @@ impl<'self> BoxGenerator<'self> {
                      builder: &mut LayoutTreeBuilder) {
         debug!("BoxGenerator[f%d]: pushing node: %s", self.flow.id(), node.debug_str());
 
-        // first, determine the box type, based on node characteristics
-        let simulated_display = simulate_UA_display_rules(node);
         // TODO: remove this once UA styles work
-        let box_type = self.decide_box_type(node, simulated_display);
+        let box_type = self.decide_box_type(node);
 
         debug!("BoxGenerator[f%d]: point a", self.flow.id());
 
@@ -256,7 +219,7 @@ impl<'self> BoxGenerator<'self> {
         }
     }
 
-    fn decide_box_type(&self, node: AbstractNode<LayoutView>, _: CSSDisplay) -> RenderBoxType {
+    fn decide_box_type(&self, node: AbstractNode<LayoutView>) -> RenderBoxType {
         if node.is_text() {
             RenderBox_Text
         } else if node.is_image_element() {
