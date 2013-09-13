@@ -292,6 +292,8 @@ impl Page {
             self.damage(MatchSelectorsDocumentDamage);
         }
 
+        //FIXME: In the case where an initial reflow is required, we should always
+        //       ReflowForDisplay, regardless of the original goal.
         self.reflow(goal, script_chan, compositor)
     }
 
@@ -661,11 +663,6 @@ impl ScriptTask {
         });
         page.url = Some((url.clone(), true));
 
-        // Tie the root into the document.
-        do root.with_mut_base |base| {
-            base.add_to_doc(document)
-        }
-
         // Send style sheets over to layout.
         //
         // FIXME: These should be streamed to layout as they're parsed. We don't need to stop here
@@ -698,18 +695,20 @@ impl ScriptTask {
             }
         }
 
+        // Tie the root into the document. This will kick off the initial reflow
+        // of the page.
+        // FIXME: We have no way to ensure that the first reflow performed is a
+        //        ReflowForDisplay operation.
+        do root.with_mut_base |base| {
+            base.add_to_doc(document)
+        }
+        // No more reflow required
+        page.url = Some((url, false));
+
         // Receive the JavaScript scripts.
         assert!(js_scripts.is_some());
         let js_scripts = js_scripts.take_unwrap();
         debug!("js_scripts: %?", js_scripts);
-
-        // Perform the initial reflow.
-        page.damage = Some(DocumentDamage {
-            root: root,
-            level: MatchSelectorsDocumentDamage,
-        });
-        page.reflow(ReflowForDisplay, self.chan.clone(), self.compositor);
-        page.url = Some((url, false));
 
         // Define debug functions.
         let compartment = page.js_info.get_ref().js_compartment;
