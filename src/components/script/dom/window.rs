@@ -12,6 +12,7 @@ use dom::navigator::Navigator;
 use layout_interface::ReflowForDisplay;
 use script_task::{ExitMsg, FireTimerMsg, Page, ScriptChan};
 use servo_msg::compositor_msg::ScriptListener;
+use servo_net::image_cache_task::ImageCacheTask;
 
 use js::glue::*;
 use js::jsapi::{JSObject, JSContext, JS_DefineProperty, JS_CallTracer};
@@ -43,6 +44,7 @@ pub struct Window {
     wrapper: WrapperCache,
     timer_chan: SharedChan<TimerControlMsg>,
     navigator: Option<@mut Navigator>,
+    image_cache_task: ImageCacheTask,
 }
 
 #[unsafe_destructor]
@@ -172,7 +174,11 @@ impl Window {
     }
 
     #[fixed_stack_segment]
-    pub fn new(cx: *JSContext, page: @mut Page, script_chan: ScriptChan, compositor: @ScriptListener)
+    pub fn new(cx: *JSContext,
+               page: @mut Page,
+               script_chan: ScriptChan,
+               compositor: @ScriptListener,
+               image_cache_task: ImageCacheTask)
                -> @mut Window {
         let script_chan_clone = script_chan.clone();
         let win = @mut Window {
@@ -195,6 +201,7 @@ impl Window {
                 SharedChan::new(timer_chan)
             },
             navigator: None,
+            image_cache_task: image_cache_task,
         };
 
         unsafe {
