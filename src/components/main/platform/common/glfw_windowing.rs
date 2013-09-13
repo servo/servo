@@ -115,6 +115,10 @@ impl WindowMethods<Application> for Window {
 
             local_window().event_queue.push(ScrollWindowEvent(Point2D(dx, dy), Point2D(x as i32, y as i32)));
         }
+        do window.glfw_window.set_zoom_callback |_, factor| {
+            let factor = factor + 1.0;
+            local_window().event_queue.push(ZoomWindowEvent(factor as f32))
+        }
 
         window
     }
