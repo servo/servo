@@ -631,7 +631,11 @@ impl ScriptTask {
 
         let cx = self.js_runtime.cx();
         // Create the window and document objects.
-        let window = Window::new(cx.ptr, page, self.chan.clone(), self.compositor);
+        let window = Window::new(cx.ptr,
+                                 page,
+                                 self.chan.clone(),
+                                 self.compositor,
+                                 self.image_cache_task.clone());
         page.initialize_js_info(cx, window.get_wrappercache().get_wrapper());
 
         RegisterBindings::Register(page.js_info.get_ref().js_compartment);
@@ -643,7 +647,6 @@ impl ScriptTask {
         let html_parsing_result = hubbub_html_parser::parse_html(cx.ptr,
                                                                  url.clone(),
                                                                  self.resource_task.clone(),
-                                                                 self.image_cache_task.clone(),
                                                                  page.next_subpage_id.clone(),
                                                                  self.constellation_chan.clone());
 

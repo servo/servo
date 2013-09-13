@@ -24,8 +24,6 @@ use std::task;
 use std::from_str::FromStr;
 use hubbub::hubbub;
 use servo_msg::constellation_msg::{ConstellationChan, SubpageId};
-use servo_net::image_cache_task::ImageCacheTask;
-use servo_net::image_cache_task;
 use servo_net::resource_task::{Done, Load, Payload, ResourceTask};
 use servo_util::tree::TreeNodeRef;
 use servo_util::url::make_url;
@@ -302,7 +300,6 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptV
 pub fn parse_html(cx: *JSContext,
                   url: Url,
                   resource_task: ResourceTask,
-                  image_cache_task: ImageCacheTask,
                   next_subpage_id: SubpageId,
                   constellation_chan: ConstellationChan) -> HtmlParserResult {
     debug!("Hubbub: parsing %?", url);
@@ -436,19 +433,7 @@ pub fn parse_html(cx: *JSContext,
 
                 ElementNodeTypeId(HTMLImageElementTypeId) => {
                     do node.with_mut_image_element |image_element| {
-                        let elem = &mut image_element.parent.parent;
-                        let src_opt = elem.get_attr("src").map(|x| x.to_str());
-                        match src_opt {
-                            None => {}
-                            Some(src) => {
-                                let img_url = make_url(src, Some(url2.clone()));
-                                image_element.image = Some(img_url.clone());
-                                // inform the image cache to load this, but don't store a handle.
-                                // TODO (Issue #84): don't prefetch if we are within a <noscript>
-                                // tag.
-                                image_cache_task.send(image_cache_task::Prefetch(img_url));
-                            }
-                        }
+                        image_element.update_image();
                     }
                 }
 
