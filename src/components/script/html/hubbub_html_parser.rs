@@ -24,6 +24,7 @@ use std::task;
 use std::from_str::FromStr;
 use hubbub::hubbub;
 use servo_msg::constellation_msg::{ConstellationChan, SubpageId};
+use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{Done, Load, Payload, ResourceTask};
 use servo_util::tree::TreeNodeRef;
 use servo_util::url::make_url;
@@ -300,6 +301,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptV
 pub fn parse_html(cx: *JSContext,
                   url: Url,
                   resource_task: ResourceTask,
+                  image_cache_task: ImageCacheTask,
                   next_subpage_id: SubpageId,
                   constellation_chan: ConstellationChan) -> HtmlParserResult {
     debug!("Hubbub: parsing %?", url);
@@ -431,9 +433,11 @@ pub fn parse_html(cx: *JSContext,
                     }
                 }
 
+                //FIXME: This should be taken care of by set_attr, but we don't have
+                //       access to a window so HTMLImageElement::AfterSetAttr bails.
                 ElementNodeTypeId(HTMLImageElementTypeId) => {
                     do node.with_mut_image_element |image_element| {
-                        image_element.update_image();
+                        image_element.update_image(image_cache_task.clone(), Some(url2.clone()));
                     }
                 }
 

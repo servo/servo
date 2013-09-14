@@ -12,6 +12,18 @@ function is(a, b) {
   f(a + " == " + b);
 }
 
+var _test_complete = false;
+var _test_timeout = 10000; //10 seconds
 function finish() {
+  _test_complete = true;
   window.close();
 }
+
+function _test_timed_out() {
+  if (!_test_complete) {
+    _fail('test timed out (' + _test_timeout/1000 + 's)');
+    finish();
+  }
+}
+
+setTimeout(_test_timed_out, _test_timeout);

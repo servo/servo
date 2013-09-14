@@ -166,10 +166,18 @@ impl<'self> Element {
 
         //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
         //       This hardcoding is awful.
-        if abstract_self.is_iframe_element() {
-            do abstract_self.with_mut_iframe_element |iframe| {
-                iframe.AfterSetAttr(raw_name, raw_value);
+        match abstract_self.type_id() {
+            ElementNodeTypeId(HTMLImageElementTypeId) => {
+                do abstract_self.with_mut_image_element |image| {
+                    image.AfterSetAttr(raw_name, raw_value);
+                }
             }
+            ElementNodeTypeId(HTMLIframeElementTypeId) => {
+                do abstract_self.with_mut_iframe_element |iframe| {
+                    iframe.AfterSetAttr(raw_name, raw_value);
+                }
+            }
+            _ => ()
         }
 
         match self.parent.owner_doc {
