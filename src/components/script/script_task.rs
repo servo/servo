@@ -649,6 +649,7 @@ impl ScriptTask {
         let html_parsing_result = hubbub_html_parser::parse_html(cx.ptr,
                                                                  url.clone(),
                                                                  self.resource_task.clone(),
+                                                                 self.image_cache_task.clone(),
                                                                  page.next_subpage_id.clone(),
                                                                  self.constellation_chan.clone());
 

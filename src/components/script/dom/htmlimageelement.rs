@@ -9,6 +9,7 @@ use extra::url::Url;
 use gfx::geometry::to_px;
 use layout_interface::{ContentBoxQuery, ContentBoxResponse};
 use servo_net::image_cache_task;
+use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::url::make_url;
 
 pub struct HTMLImageElement {
@@ -19,36 +20,37 @@ pub struct HTMLImageElement {
 impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
-    pub fn update_image(&mut self) {
+    pub fn update_image(&mut self, image_cache: ImageCacheTask, url: Option<Url>) {
         let elem = &mut self.parent.parent;
         let src_opt = elem.get_attr("src").map(|x| x.to_str());
-        let node = &mut elem.parent;
-        match node.owner_doc {
-            Some(doc) => {
-                match doc.with_base(|doc| doc.window) {
-                    Some(window) => {
-                        match src_opt {
-                            None => {}
-                            Some(src) => {
-                                let page = window.page;
-                                let img_url = make_url(src,
-                                                       (*page).url
-                                                              .map(|&(ref url, _)| url.clone()));
-                                self.image = Some(img_url.clone());
+        match src_opt {
+            None => {}
+            Some(src) => {
+                let img_url = make_url(src, url);
+                self.image = Some(img_url.clone());
 
-                                // inform the image cache to load this, but don't store a
-                                // handle.
-                                //
-                                // TODO (Issue #84): don't prefetch if we are within a
-                                // <noscript> tag.
-                                window.image_cache_task.send(image_cache_task::Prefetch(img_url));
-                            }
-                        }
+                // inform the image cache to load this, but don't store a
+                // handle.
+                //
+                // TODO (Issue #84): don't prefetch if we are within a
+                // <noscript> tag.
+                image_cache.send(image_cache_task::Prefetch(img_url));
+            }
+        }
+    }
+
+    pub fn AfterSetAttr(&mut self, name: &DOMString, _value: &DOMString) {
+        let name = name.to_str();
+        if "src" == name {
+            let doc = self.parent.parent.parent.owner_doc;
+            for doc in doc.iter() {
+                do doc.with_base |doc| {
+                    for window in doc.window.iter() {
+                        let url = window.page.url.map(|&(ref url, _)| url.clone());
+                        self.update_image(window.image_cache_task.clone(), url);
                     }
-                    None => {}
                 }
             }
-            None => {}
         }
     }
 
@@ -67,13 +69,10 @@ impl HTMLImageElement {
                   abstract_self: AbstractNode<ScriptView>,
                   src: &DOMString,
                   _rv: &mut ErrorResult) {
-        {
-            let node = &mut self.parent.parent;
-            node.set_attr(abstract_self,
-                          &str(~"src"),
-                          &str(src.to_str()));
-        }
-        self.update_image();
+        let node = &mut self.parent.parent;
+        node.set_attr(abstract_self,
+                      &str(~"src"),
+                      &str(src.to_str()));
     }
 
     pub fn CrossOrigin(&self) -> DOMString {
