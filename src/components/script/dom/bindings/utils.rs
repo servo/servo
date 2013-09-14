@@ -770,6 +770,7 @@ pub enum Error {
     FailureUnknown,
     NotFound,
     HierarchyRequest,
+    InvalidCharacter,
 }
 
 pub type ErrorResult = Result<(), Error>;
@@ -831,4 +832,60 @@ pub fn CreateDOMGlobal(cx: *JSContext, class: *JSClass) -> *JSObject {
         initialize_global(obj);
         obj
     }
+}
+
+/// Check if an element name is valid. See http://www.w3.org/TR/xml/#NT-Name
+/// for details.
+pub fn is_valid_element_name(name: &str) -> bool {
+    fn is_valid_start(c: char) -> bool {
+        match c {
+            ':' |
+            'A' .. 'Z' |
+            '_' |
+            'a' .. 'z' |
+            '\xC0' .. '\xD6' |
+            '\xD8' .. '\xF6' |
+            '\xF8' .. '\u02FF' |
+            '\u0370' .. '\u037D' |
+            '\u037F' .. '\u1FFF' |
+            '\u200C' .. '\u200D' |
+            '\u2070' .. '\u218F' |
+            '\u2C00' .. '\u2FEF' |
+            '\u3001' .. '\uD7FF' |
+            '\uF900' .. '\uFDCF' |
+            '\uFDF0' .. '\uFFFD' |
+            '\U00010000' .. '\U000EFFFF' => true,
+            _ => false,
+        }
+    }
+
+    fn is_valid_continuation(c: char) -> bool {
+        is_valid_start(c) || match c {
+            '-' |
+            '.' |
+            '0' .. '9' |
+            '\xB7' |
+            '\u0300' .. '\u036F' |
+            '\u203F' .. '\u2040' => true,
+            _ => false,
+        }
+    }
+
+    let mut iter = name.iter();
+    match iter.next() {
+        None => return false,
+        Some(c) => {
+            if !is_valid_start(c) {
+                return false;
+            }
+        }
+    }
+
+    for c in name.iter() {
+        if !is_valid_continuation(c) {
+            return false;
+        }
+    }
+
+    true
 }
