@@ -473,6 +473,16 @@ impl Node<ScriptView> {
             cur_node = cur_node.unwrap().next_sibling();
         }
 
+        // Unregister elements having "id' from the old doc.
+        do old_doc.with_mut_base |old_doc| {
+            old_doc.unregister_nodes_with_id(&abstract_self);
+        }
+
+        // Register elements having "id" attribute to the owner doc.
+        do doc.with_mut_base |doc| {
+            doc.register_nodes_with_id(&abstract_self);
+        }
+
         // Signal the old document that it needs to update its display
         if old_doc != doc {
             do old_doc.with_base |old_doc| {
@@ -778,6 +788,12 @@ impl Node<ScriptView> {
         }
 
         self.wait_until_safe_to_modify_dom();
+
+        // Unregister elements having "id' from the owner doc.
+        // This need be called before target nodes are removed from tree.
+        do self.owner_doc.with_mut_base |doc| {
+            doc.unregister_nodes_with_id(&abstract_self);
+        }
 
         abstract_self.remove_child(node);
         // Signal the document that it needs to update its display.
