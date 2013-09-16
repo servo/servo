@@ -13,6 +13,7 @@ use font::{FontTableTag, FontWeight100, FontWeight200, FontWeight300, FontWeight
 use font::{FontWeight500, FontWeight600, FontWeight700, FontWeight800, FontWeight900};
 use font::{FractionalPixel, SpecifiedFontStyle};
 use geometry::{Au, px_to_pt};
+use geometry;
 use platform::macos::font_context::FontContextHandle;
 use text::glyph::GlyphIndex;
 
@@ -171,6 +172,8 @@ impl FontHandleMethods for FontHandle {
             // see also: https://bugs.webkit.org/show_bug.cgi?id=16768
             // see also: https://bugreports.qt-project.org/browse/QTBUG-13364
             underline_offset: Au::from_pt(self.ctfont.underline_position() as float),
+            strikeout_size:   geometry::from_pt(0.0), // FIXME(Issue #942)
+            strikeout_offset: geometry::from_pt(0.0), // FIXME(Issue #942)
             leading:          Au::from_pt(self.ctfont.leading() as float),
             x_height:         Au::from_pt(self.ctfont.x_height() as float),
             em_size:          em_size,
