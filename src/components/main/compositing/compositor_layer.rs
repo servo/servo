@@ -244,10 +244,15 @@ impl CompositorLayer {
         let transform = |x: &mut CompositorLayerChild| -> bool {
             match x.container.scissor {
                 Some(scissor) => {
-                    let new_rect = window_rect.intersection(&scissor);
+                    let new_rect = rect.intersection(&scissor);
                     match new_rect {
                         Some(new_rect) => {
-                            x.child.get_buffer_request(new_rect, scale)
+                            // Child layers act as if they are rendered at (0,0), so we
+                            // subtract the layer's (x,y) coords in its containing page
+                            // to make the child_rect appear in coordinates local to it.
+                            let child_rect = Rect(new_rect.origin.sub(&scissor.origin),
+                                                  new_rect.size);
+                            x.child.get_buffer_request(child_rect, scale)
                         }
                         None => {
                             false //Layer is offscreen
