@@ -105,6 +105,8 @@ pub struct Reflow {
     window_size: Size2D<uint>,
     /// The channel that we send a notification to.
     script_join_chan: Chan<()>,
+    /// Unique identifier
+    id: uint
 }
 
 /// Encapsulates a channel to the layout task.

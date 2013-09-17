@@ -331,10 +331,7 @@ impl Document {
                         for title_child in child.children() {
                             child.remove_child(title_child);
                         }
-                        let new_text = unsafe { 
-                            Node::as_abstract_node(cx, @Text::new(title.to_str())) 
-                        };
-                        child.add_child(new_text);
+                        child.add_child(self.CreateTextNode(title));
                         break;
                     }
                     if !has_title {
@@ -344,10 +341,7 @@ impl Document {
                         let new_title = unsafe { 
                             Node::as_abstract_node(cx, new_title) 
                         };
-                        let new_text = unsafe {
-                            Node::as_abstract_node(cx, @Text::new(title.to_str()))
-                        };
-                        new_title.add_child(new_text);
+                        new_title.add_child(self.CreateTextNode(title));
                         node.add_child(new_title);
                     }
                     break;
@@ -443,7 +437,7 @@ impl Document {
         self.createHTMLCollection(|elem|
             elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), name.to_str()))
     }
-    
+
     pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {
         let mut elements = ~[];
         let _ = for child in self.root.traverse_preorder() {
@@ -462,6 +456,12 @@ impl Document {
     pub fn content_changed(&self) {
         for window in self.window.iter() {
             window.content_changed()
+        }
+    }
+
+    pub fn wait_until_safe_to_modify_dom(&self) {
+        for window in self.window.iter() {
+            window.wait_until_safe_to_modify_dom();
         }
     }
 }

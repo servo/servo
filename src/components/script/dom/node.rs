@@ -562,11 +562,11 @@ impl Node<ScriptView> {
     pub fn SetNodeValue(&mut self, _val: &DOMString, _rv: &mut ErrorResult) {
     }
 
-    pub fn GetTextContent(&self) -> DOMString {
+    pub fn GetTextContent(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
         match self.type_id {
           ElementNodeTypeId(*) => {
             let mut content = ~"";
-            for node in self.abstract.unwrap().traverse_preorder() {
+            for node in abstract_self.traverse_preorder() {
                 if node.is_text() {
                     do node.with_imm_text() |text| {
                         let s = text.parent.Data();
@@ -577,7 +577,7 @@ impl Node<ScriptView> {
             str(content)
           }
           CommentNodeTypeId | TextNodeTypeId => {
-            do self.abstract.unwrap().with_imm_characterdata() |characterdata| {
+            do abstract_self.with_imm_characterdata() |characterdata| {
                 characterdata.Data()
             }
           }
@@ -587,11 +587,71 @@ impl Node<ScriptView> {
         }
     }
 
-    pub fn SetTextContent(&mut self, _val: &DOMString, _rv: &mut ErrorResult) {
+    // http://dom.spec.whatwg.org/#concept-node-replace-all
+    pub fn replace_all(&mut self,
+                       abstract_self: AbstractNode<ScriptView>,
+                       node: Option<AbstractNode<ScriptView>>) {
+        //FIXME: We should batch document notifications that occur here
+        let mut rv = Ok(());
+        for child in abstract_self.children() {
+            self.RemoveChild(abstract_self, child, &mut rv);
+        }
+        match node {
+            None => {},
+            Some(node) => {
+                self.AppendChild(abstract_self, node, &mut rv);
+            }
+        }
+    }
+
+    pub fn SetTextContent(&mut self,
+                          abstract_self: AbstractNode<ScriptView>,
+                          value: &DOMString,
+                          _rv: &mut ErrorResult) {
+        let is_empty = match value {
+            &str(~"") | &null_string => true,
+            _ => false
+        };
+        match self.type_id {
+          ElementNodeTypeId(*) => {
+            let node = if is_empty {
+                None
+            } else {
+                let text_node = do self.owner_doc.unwrap().with_base |document| {
+                    document.CreateTextNode(value)
+                };
+                Some(text_node)
+            };
+            self.replace_all(abstract_self, node);
+          }
+          CommentNodeTypeId | TextNodeTypeId => {
+            self.wait_until_safe_to_modify_dom();
+
+            do abstract_self.with_mut_characterdata() |characterdata| {
+                characterdata.data = value.to_str();
+
+                // Notify the document that the content of this node is different
+                for doc in self.owner_doc.iter() {
+                    do doc.with_base |doc| {
+                        doc.content_changed();
+                    }
+                }
+            }
+          }
+          DoctypeNodeTypeId => {}
+        }
     }
 
     pub fn InsertBefore(&mut self, _node: AbstractNode<ScriptView>, _child: Option<AbstractNode<ScriptView>>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
         fail!("stub")
+    }
+
+    fn wait_until_safe_to_modify_dom(&self) {
+        for doc in self.owner_doc.iter() {
+            do doc.with_base |doc| {
+                doc.wait_until_safe_to_modify_dom();
+            }
+        }
     }
 
     pub fn AppendChild(&mut self,
@@ -626,6 +686,8 @@ impl Node<ScriptView> {
         // TODO: Should we handle WRONG_DOCUMENT_ERR here?
 
         if rv.is_ok() {
+            self.wait_until_safe_to_modify_dom();
+
             // If the node already exists it is removed from current parent node.
             node.parent_node().map(|parent| parent.remove_child(node));
             abstract_self.add_child(node);
@@ -659,6 +721,8 @@ impl Node<ScriptView> {
             *rv = Err(NotFound);
         }
         if rv.is_ok() {
+            self.wait_until_safe_to_modify_dom();
+
             abstract_self.remove_child(node);
             self.remove_from_doc();
         }
