@@ -173,6 +173,12 @@ impl Window {
         self.page.reflow_all(ReflowForDisplay, self.script_chan.clone(), self.compositor);
     }
 
+    pub fn wait_until_safe_to_modify_dom(&self) {
+        // FIXME: This disables concurrent layout while we are modifying the DOM, since
+        //        our current architecture is entirely unsafe in the presence of races.
+        self.page.join_layout();
+    }
+
     #[fixed_stack_segment]
     pub fn new(cx: *JSContext,
                page: @mut Page,

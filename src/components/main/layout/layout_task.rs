@@ -360,7 +360,7 @@ impl LayoutTask {
         // FIXME(pcwalton): This should probably be *one* channel, but we can't fix this without
         // either select or a filtered recv() that only looks for messages of a given type.
         data.script_join_chan.send(());
-        data.script_chan.send(ReflowCompleteMsg(self.id));
+        data.script_chan.send(ReflowCompleteMsg(self.id, data.id));
     }
 
     /// Handles a query from the script task. This is the main routine that DOM functions like
