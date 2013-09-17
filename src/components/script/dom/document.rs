@@ -458,6 +458,12 @@ impl Document {
             window.content_changed()
         }
     }
+
+    pub fn wait_until_safe_to_modify_dom(&self) {
+        for window in self.window.iter() {
+            window.wait_until_safe_to_modify_dom();
+        }
+    }
 }
 
 impl Traceable for Document {

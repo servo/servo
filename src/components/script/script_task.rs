@@ -68,7 +68,7 @@ pub enum ScriptMsg {
     /// Fires a JavaScript timeout.
     FireTimerMsg(PipelineId, ~TimerData),
     /// Notifies script that reflow is finished.
-    ReflowCompleteMsg(PipelineId),
+    ReflowCompleteMsg(PipelineId, uint),
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactiveMsg(PipelineId, Size2D<uint>),
     /// Exits the constellation.
@@ -105,6 +105,9 @@ impl ScriptChan {
 pub struct Page {
     /// Pipeline id associated with this page.
     id: PipelineId,
+
+    /// Unique id for last reflow request; used for confirming completion reply.
+    last_reflow_id: uint,
 
     /// The outermost frame containing the document, window, and page URL.
     frame: Option<Frame>,
@@ -158,6 +161,7 @@ impl PageTree {
                 url: None,
                 next_subpage_id: SubpageId(0),
                 resize_event: None,
+                last_reflow_id: 0
             },
             inner: ~[],
         }
@@ -216,7 +220,7 @@ impl Page {
 
     /// Sends a ping to layout and waits for the response. The response will arrive when the
     /// layout task has finished any pending request messages.
-    fn join_layout(&mut self) {
+    pub fn join_layout(&mut self) {
         if self.layout_join_port.is_some() {
             let join_port = replace(&mut self.layout_join_port, None);
             match join_port {
@@ -263,6 +267,8 @@ impl Page {
         let (join_port, join_chan) = comm::stream();
         self.layout_join_port = Some(join_port);
 
+        self.last_reflow_id += 1;
+
         match self.frame {
             None => fail!(~"Tried to relayout with no root frame!"),
             Some(ref frame) => {
@@ -275,6 +281,7 @@ impl Page {
                     script_chan: script_chan,
                     script_join_chan: join_chan,
                     damage: replace(&mut self.damage, None).unwrap(),
+                    id: self.last_reflow_id,
                 };
 
                 self.layout_chan.send(ReflowMsg(reflow))
@@ -498,7 +505,7 @@ impl ScriptTask {
                 SendEventMsg(id, event) => self.handle_event(id, event),
                 FireTimerMsg(id, timer_data) => self.handle_fire_timer_msg(id, timer_data),
                 NavigateMsg(direction) => self.handle_navigate_msg(direction),
-                ReflowCompleteMsg(id) => self.handle_reflow_complete_msg(id),
+                ReflowCompleteMsg(id, reflow_id) => self.handle_reflow_complete_msg(id, reflow_id),
                 ResizeInactiveMsg(id, new_size) => self.handle_resize_inactive_msg(id, new_size),
                 ExitMsg => {
                     self.handle_exit_msg();
@@ -576,11 +583,14 @@ impl ScriptTask {
     }
 
     /// Handles a notification that reflow completed.
-    fn handle_reflow_complete_msg(&mut self, pipeline_id: PipelineId) {
-        debug!("Script: Reflow complete for %?", pipeline_id);
-        self.page_tree.find(pipeline_id).expect("ScriptTask: received a load
-            message for a layout channel that is not associated with this script task. This
-            is a bug.").page.layout_join_port = None;
+    fn handle_reflow_complete_msg(&mut self, pipeline_id: PipelineId, reflow_id: uint) {
+        debug!("Script: Reflow %? complete for %?", reflow_id, pipeline_id);
+        let page_tree = self.page_tree.find(pipeline_id).expect(
+            "ScriptTask: received a load message for a layout channel that is not associated \
+             with this script task. This is a bug.");
+        if page_tree.page.last_reflow_id == reflow_id {
+            page_tree.page.layout_join_port = None;
+        }
         self.constellation_chan.send(RendererReadyMsg(pipeline_id));
         self.compositor.set_ready_state(FinishedLoading);
     }

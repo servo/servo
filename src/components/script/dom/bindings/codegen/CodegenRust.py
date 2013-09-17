@@ -4020,7 +4020,8 @@ def finalizeHook(descriptor, hookName, context):
         assert descriptor.nativeIsISupports
         release = """let val = JS_GetReservedSlot(obj, 0);
 let _: @mut %s = cast::transmute(RUST_JSVAL_TO_PRIVATE(val));
-""" % descriptor.concreteType
+debug!("%s finalize: %%p", this);
+""" % (descriptor.concreteType, descriptor.concreteType)
     #return clearWrapper + release
     return release
 

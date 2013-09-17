@@ -625,6 +625,8 @@ impl Node<ScriptView> {
             self.replace_all(abstract_self, node);
           }
           CommentNodeTypeId | TextNodeTypeId => {
+            self.wait_until_safe_to_modify_dom();
+
             do abstract_self.with_mut_characterdata() |characterdata| {
                 characterdata.data = value.to_str();
 
@@ -642,6 +644,14 @@ impl Node<ScriptView> {
 
     pub fn InsertBefore(&mut self, _node: AbstractNode<ScriptView>, _child: Option<AbstractNode<ScriptView>>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
         fail!("stub")
+    }
+
+    fn wait_until_safe_to_modify_dom(&self) {
+        for doc in self.owner_doc.iter() {
+            do doc.with_base |doc| {
+                doc.wait_until_safe_to_modify_dom();
+            }
+        }
     }
 
     pub fn AppendChild(&mut self,
@@ -676,6 +686,8 @@ impl Node<ScriptView> {
         // TODO: Should we handle WRONG_DOCUMENT_ERR here?
 
         if rv.is_ok() {
+            self.wait_until_safe_to_modify_dom();
+
             // If the node already exists it is removed from current parent node.
             node.parent_node().map(|parent| parent.remove_child(node));
             abstract_self.add_child(node);
@@ -709,6 +721,8 @@ impl Node<ScriptView> {
             *rv = Err(NotFound);
         }
         if rv.is_ok() {
+            self.wait_until_safe_to_modify_dom();
+
             abstract_self.remove_child(node);
             self.remove_from_doc();
         }
