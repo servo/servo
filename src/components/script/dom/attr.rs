@@ -1,9 +1,12 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use dom::bindings::codegen::AttrBinding;
 use dom::bindings::utils::{null_string, str};
-use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
+use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, WrapperCache};
 use dom::namespace;
 use dom::namespace::Namespace;
-use dom::node::Node;
 use script_task::{page_from_context};
 
 use js::jsapi::{JSObject, JSContext};

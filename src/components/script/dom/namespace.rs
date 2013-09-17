@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use dom::bindings::utils::{null_string, str, DOMString};
 
 #[deriving(Eq, Clone)]
@@ -21,7 +25,7 @@ impl Namespace {
             "http://www.w3.org/1999/xlink" => XLink,
             "http://www.w3.org/2000/svg" => SVG,
             "http://www.w3.org/1998/Math/MathML" => MathML,
-            _ => Other(url.to_owned()) 
+            _ => Other(url.to_owned())
         }
     }
     pub fn to_str(&self) -> DOMString {

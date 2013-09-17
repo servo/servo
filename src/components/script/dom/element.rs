@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Element nodes.
+use dom::bindings::utils::{InvalidCharacter, Namespace};
+use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
 use dom::htmlcollection::HTMLCollection;
@@ -133,16 +135,11 @@ impl<'self> Element {
 
     pub fn normalise_attr_name(&self, name: &DOMString) -> ~str {
         //FIXME: Throw for XML-invalid names
-        let owner = self.parent.owner_doc;
-        match owner {
-            Some(document) => {
-                if document.with_base(|doc| doc.doctype) == document::HTML { // && self.namespace == Namespace::HTML
-                        name.to_str().to_ascii_lower()
-                } else {
-                    name.to_str()
-                }
-            },
-            None => fail!("Elements should always have an owner")
+        let owner = self.parent.owner_doc.expect("Elements should always have an owner");
+        if owner.with_base(|doc| doc.doctype) == document::HTML { // && self.namespace == Namespace::HTML
+            name.to_str().to_ascii_lower()
+        } else {
+            name.to_str()
         }
     }
 
@@ -153,19 +150,17 @@ impl<'self> Element {
     pub fn get_attribute(&'self self,
                          namespace_url: Option<&DOMString>,
                          name: &str) -> Option<&'self str> {
-        let namespace = match (namespace_url) {
+        let namespace = match namespace_url {
             Some(x) => Namespace::from_str(x.get_ref()),
             None => namespace::Null
         };
         for attr in self.attrs.iter() {
-            if (eq_slice(attr.local_name(), name) &&
-                attr.namespace == namespace)
-                {
+            if eq_slice(attr.local_name(), name) && attr.namespace == namespace {
                 let val: &str = attr.value.get_ref();
                 return Some(val);
             }
         }
-        return None;    
+        return None;
     }
 
     pub fn set_attr(&mut self,
@@ -180,9 +175,8 @@ impl<'self> Element {
                          namespace: Namespace,
                          raw_name: &DOMString,
                          raw_value: &DOMString) {
-        //FIXME: Throw for XML-invalid names
-        //FIXME: Throw for XMLNS-invalid names
         let name = raw_name.to_str();
+
         let (prefix, local_name) = if name.contains(":")  {
             let parts: ~[&str] = name.splitn_iter(':', 1).collect();
             (Some(parts[0].to_owned()), parts[1].to_owned())
@@ -271,7 +265,7 @@ impl Element {
 
     pub fn Id(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
         let id = self.get_attr(&"id");
-        match (id) {
+        match id {
             Some(x) => str(x.to_owned()),
             None => str(~"")
         }
@@ -308,13 +302,13 @@ impl Element {
 
         let mut found = false;
         for attr in self.attrs.mut_iter() {
-            if (eq_slice(attr.name, new_name)) {
+            if eq_slice(attr.name, new_name) {
                 attr.value = str(value_cell.take().clone());
                 found = true;
                 break;
             }
         }
-        if (!found) {
+        if !found {
             self.attrs.push(Attr::new(new_name.clone(), value_cell.take().clone()));
         }
 
@@ -326,7 +320,21 @@ impl Element {
                           namespace_url: &DOMString,
                           name: &DOMString,
                           value: &DOMString,
-                          _rv: &mut ErrorResult) {
+                          rv: &mut ErrorResult) {
+
+        let name_type = xml_name_type(name.to_str());
+        match name_type {
+            InvalidXMLName => {
+                *rv = Err(InvalidCharacter);
+                return;
+            },
+            Name => {
+                *rv = Err(Namespace);
+                return;
+            },
+            QName => {}
+        }
+
         let namespace = match namespace_url.get_ref() {
             "" => namespace::Null,
             x => Namespace::from_str(x)

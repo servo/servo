@@ -5,7 +5,8 @@
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, DerivedWrapper};
-use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable};
+use dom::bindings::utils::{xml_name_type, InvalidXMLName};
+use dom::bindings::utils::{InvalidCharacter, Traceable};
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::event::Event;
@@ -13,14 +14,13 @@ use dom::htmlcollection::HTMLCollection;
 use dom::htmldocument::HTMLDocument;
 use dom::htmlelement::HTMLElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
-use dom::namespace;
 use dom::node::{AbstractNode, ScriptView, Node, ElementNodeTypeId};
 use dom::text::Text;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
 use dom::htmltitleelement::HTMLTitleElement;
 use html::hubbub_html_parser::build_element_from_tag;
-use js::jsapi::{JS_AddObjectRoot, JSObject, JSContext, JSVal};
+use js::jsapi::{JSObject, JSContext, JSVal};
 use js::jsapi::{JSTRACE_OBJECT, JSTracer, JS_CallTracer};
 use js::glue::RUST_OBJECT_TO_JSVAL;
 use servo_util::tree::TreeNodeRef;
@@ -96,14 +96,6 @@ pub struct Document {
 impl Document {
     #[fixed_stack_segment]
     pub fn new(root: AbstractNode<ScriptView>, window: Option<@mut Window>, doctype: DocumentType) -> Document {
-        let compartment = unsafe {(*window.get_ref().page).js_info.get_ref().js_compartment };
-        do root.with_base |base| {
-            assert!(base.wrapper.get_wrapper().is_not_null());
-            let rootable = base.wrapper.get_rootable();
-            unsafe {
-                JS_AddObjectRoot(compartment.cx.ptr, rootable);
-            }
-        }
         Document {
             root: root,
             wrapper: WrapperCache::new(),
@@ -254,7 +246,7 @@ impl Document {
     pub fn CreateElement(&self, local_name: &DOMString, rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
         let cx = self.get_cx();
         let local_name = local_name.to_str();
-        if !is_valid_element_name(local_name) {
+        if xml_name_type(local_name) == InvalidXMLName {
             *rv = Err(InvalidCharacter);
             // FIXME #909: what to return here?
             fail!("invalid character");
@@ -450,10 +442,10 @@ impl Document {
     }
 
     pub fn GetElementsByName(&self, name: &DOMString) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem|                                  
+        self.createHTMLCollection(|elem|
             elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), name.to_str()))
     }
-    
+
     pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {
         let mut elements = ~[];
         let _ = for child in self.root.traverse_preorder() {
