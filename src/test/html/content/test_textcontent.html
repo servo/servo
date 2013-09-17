@@ -1,0 +1,17 @@
+<html>
+<head>
+<script src="harness.js"></script>
+<script>
+  var div = document.getElementsByTagName('div')[0];
+  is(div.textContent, "this is\n text content");
+  var newContent = "new text con\ntent";
+  div.textContent = newContent;
+  is(div.textContent, newContent);
+  finish();
+</script>
+</head>
+<body>
+<div>this is
+ text content</div>
+</body>
+</html>
