@@ -331,7 +331,7 @@ impl Document {
                         for title_child in child.children() {
                             child.remove_child(title_child);
                         }
-                        child.add_child(self.createText(title.to_str()));
+                        child.add_child(self.CreateTextNode(title));
                         break;
                     }
                     if !has_title {
@@ -341,7 +341,7 @@ impl Document {
                         let new_title = unsafe { 
                             Node::as_abstract_node(cx, new_title) 
                         };
-                        new_title.add_child(self.createText(title.to_str()));
+                        new_title.add_child(self.CreateTextNode(title));
                         node.add_child(new_title);
                     }
                     break;
@@ -438,13 +438,6 @@ impl Document {
             elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), name.to_str()))
     }
 
-    pub fn createText(&self, data: ~str) -> AbstractNode<ScriptView> {
-        let (_scope, cx) = self.get_scope_and_cx();
-        unsafe { 
-            Node::as_abstract_node(cx, @Text::new(data)) 
-        }
-    }
-    
     pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {
         let mut elements = ~[];
         let _ = for child in self.root.traverse_preorder() {

@@ -562,11 +562,11 @@ impl Node<ScriptView> {
     pub fn SetNodeValue(&mut self, _val: &DOMString, _rv: &mut ErrorResult) {
     }
 
-    pub fn GetTextContent(&self) -> DOMString {
+    pub fn GetTextContent(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
         match self.type_id {
           ElementNodeTypeId(*) => {
             let mut content = ~"";
-            for node in self.abstract.unwrap().traverse_preorder() {
+            for node in abstract_self.traverse_preorder() {
                 if node.is_text() {
                     do node.with_imm_text() |text| {
                         let s = text.parent.Data();
@@ -577,7 +577,7 @@ impl Node<ScriptView> {
             str(content)
           }
           CommentNodeTypeId | TextNodeTypeId => {
-            do self.abstract.unwrap().with_imm_characterdata() |characterdata| {
+            do abstract_self.with_imm_characterdata() |characterdata| {
                 characterdata.Data()
             }
           }
@@ -588,38 +588,52 @@ impl Node<ScriptView> {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace-all
-    pub fn replace_all(&mut self, node: Option<AbstractNode<ScriptView>>) {
-        let this = self.abstract.unwrap();
-        for child in this.children() {
-            this.remove_child(child);
+    pub fn replace_all(&mut self,
+                       abstract_self: AbstractNode<ScriptView>,
+                       node: Option<AbstractNode<ScriptView>>) {
+        //FIXME: We should batch document notifications that occur here
+        let mut rv = Ok(());
+        for child in abstract_self.children() {
+            self.RemoveChild(abstract_self, child, &mut rv);
         }
         match node {
-          None => {},
-          Some(node) => this.add_child(node)
+            None => {},
+            Some(node) => {
+                self.AppendChild(abstract_self, node, &mut rv);
+            }
         }
     }
 
-    pub fn SetTextContent(&mut self, value: &DOMString, _rv: &mut ErrorResult) {
-        let text_content = match value {
-          &str(ref s) => s.as_slice(),
-          &null_string => &""
+    pub fn SetTextContent(&mut self,
+                          abstract_self: AbstractNode<ScriptView>,
+                          value: &DOMString,
+                          _rv: &mut ErrorResult) {
+        let is_empty = match value {
+            &str(~"") | &null_string => true,
+            _ => false
         };
         match self.type_id {
           ElementNodeTypeId(*) => {
-            let node = match text_content {
-              "" => None,
-              s => {
+            let node = if is_empty {
+                None
+            } else {
                 let text_node = do self.owner_doc.unwrap().with_base |document| {
-                    document.createText(s.to_str())
+                    document.CreateTextNode(value)
                 };
                 Some(text_node)
-              }
             };
-            self.replace_all(node);
+            self.replace_all(abstract_self, node);
           }
           CommentNodeTypeId | TextNodeTypeId => {
-            do self.abstract.unwrap().with_mut_characterdata() |characterdata| {
-                characterdata.data = text_content.to_str();
+            do abstract_self.with_mut_characterdata() |characterdata| {
+                characterdata.data = value.to_str();
+
+                // Notify the document that the content of this node is different
+                for doc in self.owner_doc.iter() {
+                    do doc.with_base |doc| {
+                        doc.content_changed();
+                    }
+                }
             }
           }
           DoctypeNodeTypeId => {}
