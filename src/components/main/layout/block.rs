@@ -7,7 +7,7 @@
 use layout::box::{RenderBox};
 use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
-use layout::flow::{BlockFlow, FlowContext, FlowData, InlineBlockFlow, FloatFlow};
+use layout::flow::{BlockFlow, FlowContext, FlowData, InlineBlockFlow, FloatFlow, InlineFlow};
 use layout::inline::InlineLayout;
 use layout::model::{MaybeAuto, Specified, Auto};
 use layout::float_context::{FloatContext, Invalid};
@@ -331,6 +331,7 @@ impl BlockFlowData {
                 margin_bottom = model.margin.bottom;
             }
         }
+
         for kid in self.common.child_iter() {
             match *kid {
                 BlockFlow(ref info) => {
@@ -357,10 +358,18 @@ impl BlockFlowData {
                     }
                     first_inflow = false;
                 }
+                InlineFlow(ref info) => {
+                    collapsing = Au(0);
+                    // Non-empty inline flows prevent collapsing between the previous margion and the next.
+                    if info.common.position.size.height > Au(0) {
+                        collapsible = Au(0);
+                    }
+                }
                 // Margins between a floated box and any other box do not collapse.
                 _ => {
                     collapsing = Au(0);
                 }
+                // TODO: Handling for AbsoluteFlow, InlineBlockFlow and TableFlow?
             }
 
             do kid.with_mut_base |child_node| {
