@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult, CacheableWrapper};
+use dom::bindings::utils::{DOMString, ErrorResult, CacheableWrapper};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use js::jsapi::{JSObject, JSContext};
@@ -13,7 +13,7 @@ pub struct HTMLMapElement {
 
 impl HTMLMapElement {
     pub fn Name(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {

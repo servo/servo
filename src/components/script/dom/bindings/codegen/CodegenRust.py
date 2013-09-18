@@ -1049,7 +1049,7 @@ for (uint32_t i = 0; i < length; ++i) {
             #    "if (!ConvertJSValueToString(cx, ${val}, ${valPtr}, %s, %s, %s)) {\n"
             #    "  return false;\n"
             #    "}" % (nullBehavior, undefinedBehavior, varName))
-            strval = "str(strval.unwrap())"
+            strval = "Some(strval.unwrap())"
             if isOptional:
                 strval = "Some(%s)" % strval
             conversionCode = (
@@ -1068,7 +1068,7 @@ for (uint32_t i = 0; i < length; ++i) {
             return handleDefault(
                 conversionCode,
                 ("static data: [u8, ..%s] = [ %s ];\n"
-                 "%s = str(str::from_utf8(data));" %
+                 "%s = Some(str::from_utf8(data));" %
                  (len(defaultValue.value) + 1,
                   ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
                   varName)))
@@ -3721,7 +3721,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                         "  if strval.is_err() {\n" +
                         "    return 0;\n" +
                         "  }\n" +
-                        "  let name = str(strval.unwrap());\n" +
+                        "  let name = Some(strval.unwrap());\n" +
                         "\n" +
                         "  let this: *%s = UnwrapProxy(proxy);\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() + "\n" +
@@ -3790,7 +3790,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "  if strval.is_err() {\n" +
                     "    return 0;\n" +
                     "  }\n" +
-                    "  let name = str(strval.unwrap());\n" +
+                    "  let name = Some(strval.unwrap());\n" +
                     "\n" +
                     "  let this: *%s = UnwrapProxy(proxy);\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() + "\n" +
@@ -3806,7 +3806,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "  if strval.is_err() {\n" +
                     "    return 0;\n" +
                     "  }\n" +
-                    "  let name = str(strval.unwrap());\n" +
+                    "  let name = Some(strval.unwrap());\n" +
                     "  let this: %%s = UnwrapProxy(proxy);\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
                     "  if (found) {\n"
@@ -3852,7 +3852,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                      "  if strval.is_err() {\n" +
                      "    return 0;\n" +
                      "  }\n" +
-                     "  let name = str(strval.unwrap());\n" +
+                     "  let name = Some(strval.unwrap());\n" +
                      "\n" +
                      "  let this: *%s = UnwrapProxy(proxy);\n" +
                      CGIndenter(CGProxyNamedGetter(self.descriptor)).define() + "\n" +

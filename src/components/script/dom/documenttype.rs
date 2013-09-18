@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, str, null_string};
+use dom::bindings::utils::DOMString;
 use dom::node::{ScriptView, Node, DoctypeNodeTypeId};
 
 /// The `DOCTYPE` tag.
@@ -31,20 +31,14 @@ impl DocumentType<ScriptView> {
     }
 
     pub fn Name(&self) -> DOMString {
-        str(self.name.clone())
+        Some(self.name.clone())
     }
 
     pub fn PublicId(&self) -> DOMString {
-        match self.public_id {
-            Some(ref s) => str(s.clone()),
-            None => null_string
-        }
+        self.public_id.clone()
     }
 
     pub fn SystemId(&self) -> DOMString {
-        match self.system_id {
-            Some(ref s) => str(s.clone()),
-            None => null_string
-        }
+        self.system_id.clone()
     }
 }

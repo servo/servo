@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, ErrorResult, null_string};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, ScriptView};
 
@@ -23,7 +23,7 @@ impl HTMLOptionElement {
     }
 
     pub fn Label(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetLabel(&mut self, _label: &DOMString, _rv: &mut ErrorResult) {
@@ -44,14 +44,14 @@ impl HTMLOptionElement {
     }
 
     pub fn Value(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetValue(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Text(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetText(&mut self, _text: &DOMString, _rv: &mut ErrorResult) {

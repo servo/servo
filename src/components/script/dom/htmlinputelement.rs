@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLInputElement {
@@ -11,21 +11,21 @@ pub struct HTMLInputElement {
 
 impl HTMLInputElement {
     pub fn Accept(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetAccept(&mut self, _accept: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Alt(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetAlt(&mut self, _alt: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Autocomplete(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetAutocomplete(&mut self, _autocomple: &DOMString, _rv: &mut ErrorResult) {
@@ -60,21 +60,21 @@ impl HTMLInputElement {
     }
 
     pub fn FormAction(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetFormAction(&mut self, _form_action: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn FormEnctype(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetFormEnctype(&mut self, _form_enctype: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn FormMethod(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetFormMethod(&mut self, _form_method: &DOMString, _rv: &mut ErrorResult) {
@@ -88,7 +88,7 @@ impl HTMLInputElement {
     }
 
     pub fn FormTarget(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetFormTarget(&mut self, _form_target: &DOMString, _rv: &mut ErrorResult) {
@@ -109,14 +109,14 @@ impl HTMLInputElement {
     }
 
     pub fn InputMode(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetInputMode(&mut self, _input_mode: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Max(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetMax(&mut self, _max: &DOMString, _rv: &mut ErrorResult) {
@@ -130,7 +130,7 @@ impl HTMLInputElement {
     }
 
     pub fn Min(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetMin(&mut self, _min: &DOMString, _rv: &mut ErrorResult) {
@@ -144,21 +144,21 @@ impl HTMLInputElement {
     }
 
     pub fn Name(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Pattern(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetPattern(&mut self, _pattern: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Placeholder(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetPlaceholder(&mut self, _placeholder: &DOMString, _rv: &mut ErrorResult) {
@@ -186,35 +186,35 @@ impl HTMLInputElement {
     }
 
     pub fn Src(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetSrc(&mut self, _src: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Step(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetStep(&mut self, _step: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Type(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn DefaultValue(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetDefaultValue(&mut self, _default_value: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Value(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetValue(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
@@ -235,7 +235,7 @@ impl HTMLInputElement {
     }
 
     pub fn GetValidationMessage(&self, _rv: &mut ErrorResult) -> DOMString {
-        null_string
+        None
     }
 
     pub fn CheckValidity(&self) -> bool {
@@ -263,21 +263,21 @@ impl HTMLInputElement {
     }
 
     pub fn GetSelectionDirection(&self, _rv: &mut ErrorResult) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetSelectionDirection(&mut self, _selection_direction: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Align(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetAlign(&mut self, _align: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn UseMap(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetUseMap(&mut self, _align: &DOMString, _rv: &mut ErrorResult) {

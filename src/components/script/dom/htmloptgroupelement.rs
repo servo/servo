@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, ErrorResult, null_string};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLOptGroupElement {
@@ -18,7 +18,7 @@ impl HTMLOptGroupElement {
     }
 
     pub fn Label(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetLabel(&mut self, _label: &DOMString, _rv: &mut ErrorResult) {

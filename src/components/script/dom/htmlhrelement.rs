@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLHRElement {
@@ -11,14 +11,14 @@ pub struct HTMLHRElement {
 
 impl HTMLHRElement {
     pub fn Align(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetAlign(&mut self, _align: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Color(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetColor(&mut self, _color: &DOMString, _rv: &mut ErrorResult) {
@@ -32,14 +32,14 @@ impl HTMLHRElement {
     }
 
     pub fn Size(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetSize(&mut self, _size: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Width(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetWidth(&mut self, _width: &DOMString, _rv: &mut ErrorResult) {

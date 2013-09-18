@@ -5,8 +5,8 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use dom::bindings::node;
-use dom::bindings::utils::{WrapperCache, DOMString, null_string, str, ErrorResult, NotFound, HierarchyRequest};
-use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box};
+use dom::bindings::utils::{WrapperCache, DOMString, ErrorResult, NotFound, HierarchyRequest};
+use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, null_str_as_empty};
 use dom::bindings;
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
@@ -516,11 +516,11 @@ impl Node<ScriptView> {
     }
 
     pub fn NodeName(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn GetBaseURI(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn GetOwnerDocument(&self) -> Option<AbstractDocument> {
@@ -556,7 +556,7 @@ impl Node<ScriptView> {
     }
 
     pub fn GetNodeValue(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetNodeValue(&mut self, _val: &DOMString, _rv: &mut ErrorResult) {
@@ -570,11 +570,11 @@ impl Node<ScriptView> {
                 if node.is_text() {
                     do node.with_imm_text() |text| {
                         let s = text.parent.Data();
-                        content = content + s.to_str();
+                        content = content + null_str_as_empty(&s);
                     }
                 }
             }
-            str(content)
+            Some(content)
           }
           CommentNodeTypeId | TextNodeTypeId => {
             do abstract_self.with_imm_characterdata() |characterdata| {
@@ -582,7 +582,7 @@ impl Node<ScriptView> {
             }
           }
           DoctypeNodeTypeId => {
-            null_string
+            None
           }
         }
     }
@@ -609,7 +609,7 @@ impl Node<ScriptView> {
                           value: &DOMString,
                           _rv: &mut ErrorResult) {
         let is_empty = match value {
-            &str(~"") | &null_string => true,
+            &Some(~"") | &None => true,
             _ => false
         };
         match self.type_id {
@@ -628,7 +628,7 @@ impl Node<ScriptView> {
             self.wait_until_safe_to_modify_dom();
 
             do abstract_self.with_mut_characterdata() |characterdata| {
-                characterdata.data = value.to_str();
+                characterdata.data = null_str_as_empty(value);
 
                 // Notify the document that the content of this node is different
                 for doc in self.owner_doc.iter() {
@@ -749,11 +749,11 @@ impl Node<ScriptView> {
     }
 
     pub fn LookupPrefix(&self, _prefix: &DOMString) -> DOMString {
-        null_string
+        None
     }
 
     pub fn LookupNamespaceURI(&self, _namespace: &DOMString) -> DOMString {
-        null_string
+        None
     }
 
     pub fn IsDefaultNamespace(&self, _namespace: &DOMString) -> bool {
@@ -761,15 +761,15 @@ impl Node<ScriptView> {
     }
 
     pub fn GetNamespaceURI(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn GetPrefix(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn GetLocalName(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn HasAttributes(&self) -> bool {

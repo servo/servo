@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLElementBinding;
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::element::{Element, ElementTypeId};
 use dom::node::{AbstractNode, ScriptView};
@@ -24,21 +24,21 @@ impl HTMLElement {
 
 impl HTMLElement {
     pub fn Title(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetTitle(&mut self, _title: &DOMString) {
     }
 
     pub fn Lang(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetLang(&mut self, _lang: &DOMString) {
     }
 
     pub fn Dir(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetDir(&mut self, _dir: &DOMString, _rv: &mut ErrorResult) {
@@ -75,14 +75,14 @@ impl HTMLElement {
     }
 
     pub fn AccessKey(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetAccessKey(&self, _key: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn AccessKeyLabel(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn Draggable(&self) -> bool {
@@ -93,7 +93,7 @@ impl HTMLElement {
     }
 
     pub fn ContentEditable(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetContentEditable(&mut self, _val: &DOMString, _rv: &mut ErrorResult) {
@@ -111,7 +111,7 @@ impl HTMLElement {
     }
 
     pub fn ClassName(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetClassName(&self, _class: &DOMString) {

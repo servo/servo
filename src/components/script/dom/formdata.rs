@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{CacheableWrapper, BindingObject, DerivedWrapper};
-use dom::bindings::utils::{WrapperCache, DOMString, str};
+use dom::bindings::utils::{WrapperCache, DOMString, null_str_as_empty};
 use dom::bindings::codegen::FormDataBinding;
 use dom::blob::Blob;
 use script_task::{page_from_context};
@@ -39,13 +39,13 @@ impl FormData {
     pub fn Append(&mut self, name: &DOMString, value: @mut Blob, filename: Option<DOMString>) {
         let blob = BlobData {
             blob: value,
-            name: filename.unwrap_or_default(str(~"default"))
+            name: filename.unwrap_or_default(Some(~"default"))
         };
-        self.data.insert(name.to_str(), blob);
+        self.data.insert(null_str_as_empty(name), blob);
     }
 
     pub fn Append_(&mut self, name: &DOMString, value: &DOMString) {
-        self.data.insert(name.to_str(), StringData((*value).clone()));
+        self.data.insert(null_str_as_empty(name), StringData((*value).clone()));
     }
 }
 

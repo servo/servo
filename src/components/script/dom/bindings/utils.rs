@@ -83,39 +83,26 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
     }
 
     let name = jsval_to_str(cx, *v).unwrap();
-    let retval = str(~"function " + name + "() {\n    [native code]\n}");
+    let retval = Some(~"function " + name + "() {\n    [native code]\n}");
     *vp = domstring_to_jsval(cx, &retval);
     return 1;
   }
 }
 
-#[deriving(Clone)]
-pub enum DOMString {
-    str(~str),
-    null_string
+pub type DOMString = Option<~str>;
+
+pub fn null_str_as_empty(s: &DOMString) -> ~str {
+    // We don't use map_default because it would allocate ~"" even for Some.
+    match *s {
+        Some(ref s) => s.clone(),
+        None => ~""
+    }
 }
 
-impl DOMString {
-    pub fn to_str(&self) -> ~str {
-        match *self {
-          str(ref s) => s.clone(),
-          null_string => ~""
-        }
-    }
-
-    pub fn get_ref<'a>(&'a self) -> &'a str {
-        match *self {
-            str(ref s) => s.as_slice(),
-            null_string => &'a "",
-        }
-    }
-
-    // XXX This is temporary until issue #875 is fixed.
-    pub fn unwrap(&self) -> ~str {
-        match self {
-          &str(ref s) => s.clone(),
-          &null_string => fail!("Cannot unwrap a null string.")
-        }
+pub fn null_str_as_empty_ref<'a>(s: &'a DOMString) -> &'a str {
+    match *s {
+        Some(ref s) => s.as_slice(),
+        None => &'a ""
     }
 }
 
@@ -223,10 +210,10 @@ pub fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
 #[fixed_stack_segment]
 pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
     match string {
-      &null_string => {
+      &None => {
         JSVAL_NULL
       }
-      &str(ref s) => {
+      &Some(ref s) => {
         do s.as_imm_buf |buf, len| {
             let cbuf = cast::transmute(buf);
             RUST_STRING_TO_JSVAL(JS_NewStringCopyN(cx, cbuf, len as libc::size_t))

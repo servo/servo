@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DocumentBinding;
-use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, null_string, str};
+use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, DerivedWrapper};
-use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable};
+use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, null_str_as_empty};
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::event::Event;
@@ -187,23 +187,23 @@ impl BindingObject for Document {
 
 impl Document {
     pub fn URL(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn DocumentURI(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn CompatMode(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn CharacterSet(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn ContentType(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn GetDocumentElement(&self) -> Option<AbstractNode<ScriptView>> {
@@ -224,7 +224,7 @@ impl Document {
     }
 
     pub fn GetElementsByTagName(&self, tag: &DOMString) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, tag.to_str()))
+        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, null_str_as_empty(tag)))
     }
 
     pub fn GetElementsByTagNameNS(&self, _ns: &DOMString, _tag: &DOMString) -> @mut HTMLCollection {
@@ -243,7 +243,7 @@ impl Document {
 
     pub fn CreateElement(&self, local_name: &DOMString, rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
         let cx = self.get_cx();
-        let local_name = local_name.to_str();
+        let local_name = null_str_as_empty(local_name);
         if !is_valid_element_name(local_name) {
             *rv = Err(InvalidCharacter);
             // FIXME #909: what to return here?
@@ -259,7 +259,7 @@ impl Document {
 
     pub fn CreateTextNode(&self, data: &DOMString) -> AbstractNode<ScriptView> {
         let cx = self.get_cx();
-        unsafe { Node::as_abstract_node(cx, @Text::new(data.to_str())) }
+        unsafe { Node::as_abstract_node(cx, @Text::new(null_str_as_empty(data))) }
     }
 
     pub fn CreateEvent(&self, _interface: &DOMString, _rv: &mut ErrorResult) -> @mut Event {
@@ -267,19 +267,19 @@ impl Document {
     }
 
     pub fn GetInputEncoding(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn Referrer(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn LastModified(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn ReadyState(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn Title(&self) -> DOMString {
@@ -297,7 +297,7 @@ impl Document {
                         if child.is_text() {
                             do child.with_imm_text() |text| {
                                 let s = text.parent.Data();
-                                title = title + s.to_str();
+                                title = title + null_str_as_empty(&s);
                             }
                         }
                     }
@@ -308,7 +308,7 @@ impl Document {
         let v: ~[&str] = title.word_iter().collect();
         title = v.connect(" ");
         title = title.trim().to_owned();
-        str(title)
+        Some(title)
     }
 
     pub fn SetTitle(&self, title: &DOMString, _rv: &mut ErrorResult) {
@@ -351,7 +351,7 @@ impl Document {
     }
 
     pub fn Dir(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetDir(&self, _dir: &DOMString) {
@@ -408,18 +408,18 @@ impl Document {
     }
 
     pub fn GetSelectedStyleSheetSet(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetSelectedStyleSheetSet(&self, _sheet: &DOMString) {
     }
 
     pub fn GetLastStyleSheetSet(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn GetPreferredStyleSheetSet(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn EnableStyleSheetsForSet(&self, _name: &DOMString) {
@@ -435,7 +435,7 @@ impl Document {
 
     pub fn GetElementsByName(&self, name: &DOMString) -> @mut HTMLCollection {
         self.createHTMLCollection(|elem|
-            elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), name.to_str()))
+            elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), null_str_as_empty(name)))
     }
 
     pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {

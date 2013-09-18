@@ -4,8 +4,8 @@
 
 //! Element nodes.
 
-use dom::bindings::utils::{null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
+use dom::bindings::utils::{null_str_as_empty, null_str_as_empty_ref};
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
@@ -143,8 +143,8 @@ impl<'self> Element {
                     abstract_self: AbstractNode<ScriptView>,
                     raw_name: &DOMString,
                     raw_value: &DOMString) {
-        let name = raw_name.to_str();
-        let value_cell = Cell::new(raw_value.to_str());
+        let name = null_str_as_empty(raw_name);
+        let value_cell = Cell::new(null_str_as_empty(raw_value));
         let mut found = false;
         for attr in self.attrs.mut_iter() {
             if eq_slice(attr.name, name) {
@@ -161,7 +161,7 @@ impl<'self> Element {
             self.style_attribute = Some(
                 Stylesheet::from_attribute(
                     FromStr::from_str("http://www.example.com/").unwrap(),
-                    raw_value.get_ref()));
+                    null_str_as_empty_ref(raw_value)));
         }
 
         //XXXjdm We really need something like a vtable so we can call AfterSetAttr.
@@ -198,25 +198,22 @@ impl<'self> Element {
 
 impl Element {
     pub fn TagName(&self) -> DOMString {
-        str(self.tag_name.to_owned().to_ascii_upper())
+        Some(self.tag_name.to_owned().to_ascii_upper())
     }
 
     pub fn Id(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetId(&self, _id: &DOMString) {
     }
 
     pub fn GetAttribute(&self, name: &DOMString) -> DOMString {
-        match self.get_attr(name.get_ref()) {
-            Some(val) => str(val.to_owned()),
-            None => null_string
-        }
+        self.get_attr(null_str_as_empty_ref(name)).map(|s| s.to_owned())
     }
 
     pub fn GetAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetAttribute(&mut self,
@@ -392,14 +389,14 @@ impl Element {
     }
 
     pub fn GetInnerHTML(&self, _rv: &mut ErrorResult) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetInnerHTML(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn GetOuterHTML(&self, _rv: &mut ErrorResult) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetOuterHTML(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {

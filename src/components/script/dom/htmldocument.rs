@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLDocumentBinding;
-use dom::bindings::utils::{DOMString, ErrorResult, null_string};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::document::{AbstractDocument, Document, WrappableDocument, HTML};
 use dom::element::HTMLHeadElementTypeId;
@@ -54,14 +54,14 @@ impl HTMLDocument {
     }
 
     pub fn GetDomain(&self, _rv: &mut ErrorResult) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetDomain(&self, _domain: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn GetCookie(&self, _rv: &mut ErrorResult) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetCookie(&self, _cookie: &DOMString, _rv: &mut ErrorResult) {
@@ -108,7 +108,7 @@ impl HTMLDocument {
     }
 
     pub fn DesignMode(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetDesignMode(&self, _mode: &DOMString, _rv: &mut ErrorResult) {
@@ -135,39 +135,39 @@ impl HTMLDocument {
     }
 
     pub fn QueryCommandValue(&self, _command_id: &DOMString, _rv: &mut ErrorResult) -> DOMString {
-        null_string
+        None
     }
 
     pub fn FgColor(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetFgColor(&self, _color: &DOMString) {
     }
 
     pub fn LinkColor(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetLinkColor(&self, _color: &DOMString) {
     }
 
     pub fn VlinkColor(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetVlinkColor(&self, _color: &DOMString) {
     }
 
     pub fn AlinkColor(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetAlinkColor(&self, _color: &DOMString) {
     }
 
     pub fn BgColor(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetBgColor(&self, _color: &DOMString) {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::htmlelement::HTMLElement;
 
@@ -12,42 +12,42 @@ pub struct HTMLEmbedElement {
 
 impl HTMLEmbedElement {
     pub fn Src(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetSrc(&mut self, _src: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Type(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Width(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetWidth(&mut self, _width: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Height(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetHeight(&mut self, _height: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Align(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetAlign(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Name(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetName(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLAppletElement {
@@ -11,42 +11,42 @@ pub struct HTMLAppletElement {
 
 impl HTMLAppletElement {
     pub fn Align(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetAlign(&mut self, _align: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Alt(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetAlt(&self, _alt: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Archive(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetArchive(&self, _archive: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Code(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetCode(&self, _code: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn CodeBase(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetCodeBase(&self, _code_base: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Height(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetHeight(&self, _height: &DOMString, _rv: &mut ErrorResult) {
@@ -60,14 +60,14 @@ impl HTMLAppletElement {
     }
 
     pub fn Name(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Object(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetObject(&mut self, _object: &DOMString, _rv: &mut ErrorResult) {
@@ -81,7 +81,7 @@ impl HTMLAppletElement {
     }
 
     pub fn Width(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetWidth(&mut self, _width: &DOMString, _rv: &mut ErrorResult) {

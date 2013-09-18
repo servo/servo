@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLTextAreaElement {
@@ -39,14 +39,14 @@ impl HTMLTextAreaElement {
     }
 
     pub fn Name(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Placeholder(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetPlaceholder(&mut self, _placeholder: &DOMString, _rv: &mut ErrorResult) {
@@ -74,28 +74,28 @@ impl HTMLTextAreaElement {
     }
 
     pub fn Wrap(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetWrap(&mut self, _wrap: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Type(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetType(&mut self, _type: &DOMString) {
     }
 
     pub fn DefaultValue(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetDefaultValue(&mut self, _default_value: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Value(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetValue(&mut self, _value: &DOMString) {
@@ -116,7 +116,7 @@ impl HTMLTextAreaElement {
     }
 
     pub fn ValidationMessage(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn CheckValidity(&self) -> bool {
@@ -144,7 +144,7 @@ impl HTMLTextAreaElement {
     }
 
     pub fn GetSelectionDirection(&self, _rv: &mut ErrorResult) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetSelectionDirection(&self, _selection_direction: &DOMString, _rv: &mut ErrorResult) {

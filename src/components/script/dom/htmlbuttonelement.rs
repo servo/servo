@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, ScriptView};
 use dom::validitystate::ValidityState;
@@ -31,21 +31,21 @@ impl HTMLButtonElement {
     }
 
     pub fn FormAction(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetFormAction(&mut self, _formaction: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn FormEnctype(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetFormEnctype(&mut self, _formenctype: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn FormMethod(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetFormMethod(&mut self, _formmethod: &DOMString, _rv: &mut ErrorResult) {
@@ -59,28 +59,28 @@ impl HTMLButtonElement {
     }
 
     pub fn FormTarget(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetFormTarget(&mut self, _formtarget: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Name(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
     }
     
     pub fn Type(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Value(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetValue(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
@@ -101,7 +101,7 @@ impl HTMLButtonElement {
     }
 
     pub fn ValidationMessage(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetValidationMessage(&mut self, _message: &DOMString, _rv: &mut ErrorResult) {

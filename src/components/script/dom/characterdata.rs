@@ -4,7 +4,7 @@
 
 //! DOM bindings for `CharacterData`.
 
-use dom::bindings::utils::{DOMString, str, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, WrapperCache};
 use dom::node::{Node, NodeTypeId, ScriptView};
 use js::jsapi::{JSObject, JSContext};
@@ -23,11 +23,11 @@ impl CharacterData {
     }
     
     pub fn Data(&self) -> DOMString {
-        str(self.data.clone())
+        Some(self.data.clone())
     }
 
     pub fn SetData(&mut self, arg: &DOMString, _rv: &mut ErrorResult) {
-        self.data = arg.unwrap();
+        self.data = arg.get_ref().clone();
     }
 
     pub fn Length(&self) -> u32 {
@@ -35,11 +35,11 @@ impl CharacterData {
     }
 
     pub fn SubstringData(&self, offset: u32, count: u32, _rv: &mut ErrorResult) -> DOMString {
-        str(self.data.slice(offset as uint, count as uint).to_str())
+        Some(self.data.slice(offset as uint, count as uint).to_str())
     }
 
     pub fn AppendData(&mut self, arg: &DOMString, _rv: &mut ErrorResult) {
-        self.data.push_str(arg.unwrap());
+        self.data.push_str(arg.get_ref().clone());
     }
 
     pub fn InsertData(&mut self, _offset: u32, _arg: &DOMString, _rv: &mut ErrorResult) {

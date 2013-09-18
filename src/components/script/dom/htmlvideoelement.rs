@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlmediaelement::HTMLMediaElement;
 
 pub struct HTMLVideoElement {
@@ -33,7 +33,7 @@ impl HTMLVideoElement {
     }
 
     pub fn Poster(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetPoster(&mut self, _poster: &DOMString, _rv: &ErrorResult) {

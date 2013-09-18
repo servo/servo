@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLOListElement {
@@ -25,7 +25,7 @@ impl HTMLOListElement {
     }
 
     pub fn Type(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {

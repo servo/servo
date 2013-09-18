@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::str;
 use dom::element::*;
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
@@ -374,7 +373,7 @@ pub fn parse_html(cx: *JSContext,
             debug!("-- attach attrs");
             do node.as_mut_element |element| {
                 for attr in tag.attributes.iter() {
-                    element.set_attr(node, &str(attr.name.clone()), &str(attr.value.clone()));
+                    element.set_attr(node, &Some(attr.name.clone()), &Some(attr.value.clone()));
                 }
             }
 

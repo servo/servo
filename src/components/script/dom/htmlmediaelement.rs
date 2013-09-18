@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::element::ElementTypeId;
 use dom::htmlelement::HTMLElement;
 
@@ -20,25 +20,25 @@ impl HTMLMediaElement {
 
 impl HTMLMediaElement {
     pub fn Src(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetSrc(&mut self, _src: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn CurrentSrc(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn CrossOrigin(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString, _rv: &mut ErrorResult) {
     }
 
     pub fn Preload(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetPreload(&mut self, _preload: &DOMString, _rv: &mut ErrorResult) {
@@ -48,7 +48,7 @@ impl HTMLMediaElement {
     }
 
     pub fn CanPlayType(&self, _type: &DOMString) -> DOMString {
-        null_string
+        None
     }
 
     pub fn ReadyState(&self) -> u16 {
