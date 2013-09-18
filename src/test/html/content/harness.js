@@ -1,15 +1,15 @@
-function _fail(s) {
+function _fail(s, m="") {
   // string split to avoid problems with tests that end up printing the value of window._fail.
-  window.alert("TEST-UNEXPECTED" + "-FAIL | " + s);
+  window.alert("TEST-UNEXPECTED" + "-FAIL | " + s + ": " + m);
 }
 
-function _pass(s) {
-  window.alert("TEST-PASS | " + s);
+function _pass(s, m="") {
+  window.alert("TEST-PASS | " + s + ": " + m);
 }
 
-function is(a, b) {
+function is(a, b, c="") {
   let f = a != b ? _fail : _pass;
-  f(a + " == " + b);
+  f(a + " == " + b, c);
 }
 
 var _test_complete = false;
