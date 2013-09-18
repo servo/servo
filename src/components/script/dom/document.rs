@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult};
-use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, DerivedWrapper};
+use dom::bindings::utils::{BindingObject, CacheableWrapper, DerivedWrapper};
 use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, null_str_as_empty};
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
@@ -29,6 +29,7 @@ use std::ptr;
 use std::str::eq_slice;
 use std::libc;
 use std::ascii::StrAsciiExt;
+use std::unstable::raw::Box;
 
 pub trait WrappableDocument {
     fn init_wrapper(@mut self, cx: *JSContext);
@@ -48,13 +49,13 @@ impl AbstractDocument {
     }
 
     unsafe fn transmute<T, R>(&self, f: &fn(&T) -> R) -> R {
-        let box: *rust_box<T> = cast::transmute(self.document);
-        f(&(*box).payload)
+        let box: *Box<T> = cast::transmute(self.document);
+        f(&(*box).data)
     }
 
     unsafe fn transmute_mut<T, R>(&self, f: &fn(&mut T) -> R) -> R {
-        let box: *mut rust_box<T> = cast::transmute(self.document);
-        f(&mut (*box).payload)
+        let box: *mut Box<T> = cast::transmute(self.document);
+        f(&mut (*box).data)
     }
 
     pub fn with_base<R>(&self, callback: &fn(&Document) -> R) -> R {

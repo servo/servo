@@ -6,8 +6,7 @@
 
 use dom::bindings::node;
 use dom::bindings::utils::{WrapperCache, DOMString, ErrorResult, NotFound, HierarchyRequest};
-use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, null_str_as_empty};
-use dom::bindings;
+use dom::bindings::utils::{BindingObject, CacheableWrapper, null_str_as_empty};
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
@@ -19,6 +18,7 @@ use dom::text::Text;
 use std::cast;
 use std::cast::transmute;
 use std::libc::c_void;
+use std::unstable::raw::Box;
 use extra::arc::Arc;
 use js::jsapi::{JSObject, JSContext};
 use netsurfcss::util::VoidPtrLike;
@@ -170,7 +170,7 @@ impl<'self, View> AbstractNode<View> {
     /// Allow consumers to recreate an AbstractNode from the raw boxed type.
     /// Must only be used in situations where the boxed type is in the inheritance
     /// chain for nodes.
-    pub fn from_box<T>(ptr: *mut rust_box<T>) -> AbstractNode<View> {
+    pub fn from_box<T>(ptr: *mut Box<T>) -> AbstractNode<View> {
         AbstractNode {
             obj: ptr as *mut Node<View>
         }
@@ -219,12 +219,12 @@ impl<'self, View> AbstractNode<View> {
 
     pub fn transmute<T, R>(self, f: &fn(&T) -> R) -> R {
         unsafe {
-            let node_box: *mut bindings::utils::rust_box<Node<View>> = transmute(self.obj);
-            let node = &mut (*node_box).payload;
+            let node_box: *mut Box<Node<View>> = transmute(self.obj);
+            let node = &mut (*node_box).data;
             let old = node.abstract;
             node.abstract = Some(self);
-            let box: *bindings::utils::rust_box<T> = transmute(self.obj);
-            let rv = f(&(*box).payload);
+            let box: *Box<T> = transmute(self.obj);
+            let rv = f(&(*box).data);
             node.abstract = old;
             rv
         }
@@ -232,12 +232,12 @@ impl<'self, View> AbstractNode<View> {
 
     pub fn transmute_mut<T, R>(self, f: &fn(&mut T) -> R) -> R {
         unsafe {
-            let node_box: *mut bindings::utils::rust_box<Node<View>> = transmute(self.obj);
-            let node = &mut (*node_box).payload;
+            let node_box: *mut Box<Node<View>> = transmute(self.obj);
+            let node = &mut (*node_box).data;
             let old = node.abstract;
             node.abstract = Some(self);
-            let box: *bindings::utils::rust_box<T> = transmute(self.obj);
-            let rv = f(cast::transmute(&(*box).payload));
+            let box: *Box<T> = transmute(self.obj);
+            let rv = f(cast::transmute(&(*box).data));
             node.abstract = old;
             rv
         }

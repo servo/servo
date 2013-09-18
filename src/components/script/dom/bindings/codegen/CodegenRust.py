@@ -3190,7 +3190,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
                       "  return false as JSBool;\n"
                       "}\n"
                       "\n"
-                      "let this: *rust_box<%s>;" % self.descriptor.concreteType))
+                      "let this: *Box<%s>;" % self.descriptor.concreteType))
 
     def generate_code(self):
         assert(False) # Override me
@@ -3230,7 +3230,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         self.method = method
         name = method.identifier.name
         args = [Argument('*JSContext', 'cx'), Argument('JSHandleObject', 'obj'),
-                Argument('*mut rust_box<%s>' % descriptor.concreteType, 'this'),
+                Argument('*mut Box<%s>' % descriptor.concreteType, 'this'),
                 Argument('libc::c_uint', 'argc'), Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'JSBool', args)
 
@@ -3247,7 +3247,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
                                       self.descriptor, self.method),
                          pre=extraPre +
                              "  let obj = (*obj.unnamed);\n" +
-                             "  let this = &mut (*this).payload;\n").define()
+                             "  let this = &mut (*this).data;\n").define()
 
 class CGGenericGetter(CGAbstractBindingMethod):
     """
@@ -3283,7 +3283,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         name = 'get_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
                  Argument('JSHandleObject', 'obj'),
-                 Argument('*mut rust_box<%s>' % descriptor.concreteType, 'this'),
+                 Argument('*mut Box<%s>' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'vp') ]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -3309,7 +3309,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
                                                  self.descriptor, self.attr)),
                          pre=extraPre +
                              "  let obj = (*obj.unnamed);\n" +
-                             "  let this = &mut (*this).payload;\n").define()
+                             "  let this = &mut (*this).data;\n").define()
 
 class CGGenericSetter(CGAbstractBindingMethod):
     """
@@ -3350,7 +3350,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         name = 'set_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
                  Argument('JSHandleObject', 'obj'),
-                 Argument('*mut rust_box<%s>' % descriptor.concreteType, 'this'),
+                 Argument('*mut Box<%s>' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'argv')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -3367,7 +3367,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
                                                  self.descriptor, self.attr)),
                          pre=extraPre +
                              "  let obj = (*obj.unnamed);\n" +
-                             "  let this = &mut (*this).payload;\n").define()
+                             "  let this = &mut (*this).data;\n").define()
 
 def infallibleForMember(member, type, descriptorProvider):
     """
@@ -3642,8 +3642,8 @@ class CGProxyUnwrap(CGAbstractMethod):
     obj = js::UnwrapObject(obj);
   }*/
   //MOZ_ASSERT(IsProxy(obj));
-  let box: *rust_box<%s> = cast::transmute(RUST_JSVAL_TO_PRIVATE(GetProxyPrivate(obj)));
-  return ptr::to_unsafe_ptr(&(*box).payload);""" % (self.descriptor.concreteType)
+  let box: *Box<%s> = cast::transmute(RUST_JSVAL_TO_PRIVATE(GetProxyPrivate(obj)));
+  return ptr::to_unsafe_ptr(&(*box).data);""" % (self.descriptor.concreteType)
 
 class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
@@ -3997,7 +3997,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
     def definition_body_prologue(self):
         return """
-  let this: *%s = &(*unwrap::<*rust_box<%s>>(obj)).payload;
+  let this: *%s = &(*unwrap::<*Box<%s>>(obj)).data;
 """ % (self.descriptor.concreteType, self.descriptor.concreteType)
 
     def definition_body(self):
@@ -4686,6 +4686,7 @@ class CGBindingRoot(CGThing):
                           'std::vec',
                           'std::str',
                           'std::num',
+                          'std::unstable::raw::Box',
                          ], 
                          [],
                          curr)

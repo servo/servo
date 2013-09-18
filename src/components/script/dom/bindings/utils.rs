@@ -14,7 +14,7 @@ use std::libc;
 use std::ptr;
 use std::ptr::{null, to_unsafe_ptr};
 use std::str;
-use std::unstable::intrinsics;
+use std::unstable::raw::Box;
 use js::glue::*;
 use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
@@ -106,14 +106,6 @@ pub fn null_str_as_empty_ref<'a>(s: &'a DOMString) -> &'a str {
     }
 }
 
-pub struct rust_box<T> {
-    rc: uint,
-    td: *intrinsics::TyDesc,
-    next: *(),
-    prev: *(),
-    payload: T
-}
-
 fn is_dom_class(clasp: *JSClass) -> bool {
     unsafe {
         ((*clasp).flags & js::JSCLASS_IS_DOMJSCLASS) != 0
@@ -180,8 +172,8 @@ pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth
     }
 }
 
-pub unsafe fn squirrel_away<T>(x: @mut T) -> *rust_box<T> {
-    let y: *rust_box<T> = cast::transmute(x);
+pub unsafe fn squirrel_away<T>(x: @mut T) -> *Box<T> {
+    let y: *Box<T> = cast::transmute(x);
     cast::forget(x);
     y
 }
@@ -523,7 +515,7 @@ pub fn initialize_global(global: *JSObject) {
     unsafe {
         //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);
-        let inner = ptr::to_unsafe_ptr(&(*box).payload);
+        let inner = ptr::to_unsafe_ptr(&(*box).data);
         JS_SetReservedSlot(global,
                            DOM_PROTOTYPE_SLOT,
                            RUST_PRIVATE_TO_JSVAL(inner as *libc::c_void));
