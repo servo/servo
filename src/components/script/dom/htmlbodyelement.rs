@@ -14,41 +14,47 @@ impl HTMLBodyElement {
         None
     }
 
-    pub fn SetText(&mut self, _text: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetText(&mut self, _text: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Link(&self) -> DOMString {
         None
     }
 
-    pub fn SetLink(&self, _link: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetLink(&self, _link: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn VLink(&self) -> DOMString {
         None
     }
 
-    pub fn SetVLink(&self, _v_link: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetVLink(&self, _v_link: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn ALink(&self) -> DOMString {
         None
     }
 
-    pub fn SetALink(&self, _a_link: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetALink(&self, _a_link: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn BgColor(&self) -> DOMString {
         None
     }
 
-    pub fn SetBgColor(&self, _bg_color: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetBgColor(&self, _bg_color: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Background(&self) -> DOMString {
         None
     }
 
-    pub fn SetBackground(&self, _background: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetBackground(&self, _background: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

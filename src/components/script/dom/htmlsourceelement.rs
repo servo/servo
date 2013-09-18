@@ -14,20 +14,23 @@ impl HTMLSourceElement {
         None
     }
     
-    pub fn SetSrc(&mut self, _src: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {
         None
     }
     
-    pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Media(&self) -> DOMString {
         None
     }
     
-    pub fn SetMedia(&mut self, _media: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetMedia(&mut self, _media: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

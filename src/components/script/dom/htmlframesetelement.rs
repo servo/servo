@@ -14,13 +14,15 @@ impl HTMLFrameSetElement {
         None
     }
 
-    pub fn SetCols(&mut self, _cols: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCols(&mut self, _cols: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Rows(&self) -> DOMString {
         None
     }
 
-    pub fn SetRows(&mut self, _rows: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetRows(&mut self, _rows: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

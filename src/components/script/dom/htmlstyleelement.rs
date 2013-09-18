@@ -21,20 +21,23 @@ impl HTMLStyleElement {
         None
     }
 
-    pub fn SetMedia(&mut self, _media: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetMedia(&mut self, _media: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Scoped(&self) -> bool {
         false
     }
 
-    pub fn SetScoped(&self, _scoped: bool, _rv: &mut ErrorResult) {
+    pub fn SetScoped(&self, _scoped: bool) -> ErrorResult {
+        Ok(())
     }
 }

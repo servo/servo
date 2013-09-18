@@ -14,13 +14,15 @@ impl HTMLOptGroupElement {
         false
     }
 
-    pub fn SetDisabled(&mut self, _disabled: bool, _rv: &mut ErrorResult) {
+    pub fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Label(&self) -> DOMString {
         None
     }
 
-    pub fn SetLabel(&mut self, _label: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetLabel(&mut self, _label: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

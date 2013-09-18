@@ -15,7 +15,8 @@ impl HTMLOptionElement {
         false
     }
 
-    pub fn SetDisabled(&mut self, _disabled: bool, _rv: &mut ErrorResult) {
+    pub fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetForm(&self) -> Option<AbstractNode<ScriptView>> {
@@ -26,35 +27,40 @@ impl HTMLOptionElement {
         None
     }
 
-    pub fn SetLabel(&mut self, _label: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetLabel(&mut self, _label: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn DefaultSelected(&self) -> bool {
         false
     }
 
-    pub fn SetDefaultSelected(&mut self, _default_selected: bool, _rv: &mut ErrorResult) {
+    pub fn SetDefaultSelected(&mut self, _default_selected: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Selected(&self) -> bool {
         false
     }
 
-    pub fn SetSelected(&mut self, _selected: bool, _rv: &mut ErrorResult) {
+    pub fn SetSelected(&mut self, _selected: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Value(&self) -> DOMString {
         None
     }
 
-    pub fn SetValue(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Text(&self) -> DOMString {
         None
     }
 
-    pub fn SetText(&mut self, _text: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetText(&mut self, _text: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Index(&self) -> i32 {

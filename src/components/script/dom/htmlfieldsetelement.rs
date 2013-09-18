@@ -19,7 +19,8 @@ impl HTMLFieldSetElement {
         false
     }
 
-    pub fn SetDisabled(&mut self, _disabled: bool, _rv: &mut ErrorResult) {
+    pub fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetForm(&self) -> Option<AbstractNode<ScriptView>> {
@@ -30,7 +31,8 @@ impl HTMLFieldSetElement {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {

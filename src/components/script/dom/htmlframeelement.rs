@@ -16,42 +16,48 @@ impl HTMLFrameElement {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Scrolling(&self) -> DOMString {
         None
     }
 
-    pub fn SetScrolling(&mut self, _scrolling: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetScrolling(&mut self, _scrolling: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Src(&self) -> DOMString {
         None
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn FrameBorder(&self) -> DOMString {
         None
     }
 
-    pub fn SetFrameBorder(&mut self, _frameborder: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetFrameBorder(&mut self, _frameborder: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn LongDesc(&self) -> DOMString {
         None
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn NoResize(&self) -> bool {
         false
     }
 
-    pub fn SetNoResize(&mut self, _no_resize: bool, _rv: &mut ErrorResult) {
+    pub fn SetNoResize(&mut self, _no_resize: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetContentDocument(&self) -> Option<AbstractDocument> {
@@ -66,13 +72,15 @@ impl HTMLFrameElement {
         None
     }
 
-    pub fn SetMarginHeight(&mut self, _height: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetMarginHeight(&mut self, _height: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn MarginWidth(&self) -> DOMString {
         None
     }
 
-    pub fn SetMarginWidth(&mut self, _height: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetMarginWidth(&mut self, _height: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

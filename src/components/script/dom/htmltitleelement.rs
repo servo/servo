@@ -14,6 +14,7 @@ impl HTMLTitleElement {
         None
     }
 
-    pub fn SetText(&mut self, _text: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetText(&mut self, _text: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

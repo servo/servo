@@ -14,34 +14,39 @@ impl HTMLHRElement {
         None
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Color(&self) -> DOMString {
         None
     }
 
-    pub fn SetColor(&mut self, _color: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetColor(&mut self, _color: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn NoShade(&self) -> bool {
         false
     }
 
-    pub fn SetNoShade(&self, _no_shade: bool, _rv: &mut ErrorResult) {
+    pub fn SetNoShade(&self, _no_shade: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Size(&self) -> DOMString {
         None
     }
 
-    pub fn SetSize(&mut self, _size: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSize(&mut self, _size: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Width(&self) -> DOMString {
         None
     }
 
-    pub fn SetWidth(&mut self, _width: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

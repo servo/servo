@@ -63,21 +63,24 @@ impl HTMLIFrameElement {
         None
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Srcdoc(&self) -> DOMString {
         None
     }
 
-    pub fn SetSrcdoc(&mut self, _srcdoc: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSrcdoc(&mut self, _srcdoc: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Name(&self) -> DOMString {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Sandbox(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
@@ -85,8 +88,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn SetSandbox(&mut self, abstract_self: AbstractNode<ScriptView>, sandbox: &DOMString) {
-        let mut rv = Ok(());
-        self.parent.parent.SetAttribute(abstract_self, &Some(~"sandbox"), sandbox, &mut rv);
+        self.parent.parent.SetAttribute(abstract_self, &Some(~"sandbox"), sandbox);
     }
 
     pub fn AfterSetAttr(&mut self, name: &DOMString, value: &DOMString) {
@@ -113,21 +115,24 @@ impl HTMLIFrameElement {
         false
     }
 
-    pub fn SetAllowFullscreen(&mut self, _allow: bool, _rv: &mut ErrorResult) {
+    pub fn SetAllowFullscreen(&mut self, _allow: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Width(&self) -> DOMString {
         None
     }
 
-    pub fn SetWidth(&mut self, _width: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Height(&self) -> DOMString {
         None
     }
 
-    pub fn SetHeight(&mut self, _height: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetHeight(&mut self, _height: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetContentDocument(&self) -> Option<AbstractDocument> {
@@ -142,42 +147,48 @@ impl HTMLIFrameElement {
         None
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Scrolling(&self) -> DOMString {
         None
     }
 
-    pub fn SetScrolling(&mut self, _scrolling: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetScrolling(&mut self, _scrolling: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn FrameBorder(&self) -> DOMString {
         None
     }
 
-    pub fn SetFrameBorder(&mut self, _frameborder: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetFrameBorder(&mut self, _frameborder: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn LongDesc(&self) -> DOMString {
         None
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn MarginHeight(&self) -> DOMString {
         None
     }
 
-    pub fn SetMarginHeight(&mut self, _marginheight: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetMarginHeight(&mut self, _marginheight: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn MarginWidth(&self) -> DOMString {
         None
     }
 
-    pub fn SetMarginWidth(&mut self, _marginwidth: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetMarginWidth(&mut self, _marginwidth: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetSVGDocument(&self) -> Option<AbstractDocument> {

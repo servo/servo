@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, WrapperCache};
+use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, Fallible, WrapperCache};
 use dom::bindings::utils::{null_str_as_empty, null_str_as_empty_ref};
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
@@ -219,20 +219,21 @@ impl Element {
     pub fn SetAttribute(&mut self,
                         abstract_self: AbstractNode<ScriptView>,
                         name: &DOMString,
-                        value: &DOMString,
-                        _rv: &mut ErrorResult) {
+                        value: &DOMString) -> ErrorResult {
         self.set_attr(abstract_self, name, value);
+        Ok(())
     }
 
-    pub fn SetAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString, _value: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString, _value: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
-    pub fn RemoveAttribute(&self, _name: &DOMString, _rv: &mut ErrorResult) -> bool {
-        false
+    pub fn RemoveAttribute(&self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
-    pub fn RemoveAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString, _rv: &mut ErrorResult) -> bool {
-        false
+    pub fn RemoveAttributeNS(&self, _namespace: &DOMString, _localname: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn HasAttribute(&self, _name: &DOMString) -> bool {
@@ -248,9 +249,9 @@ impl Element {
         HTMLCollection::new(~[], cx, scope)
     }
 
-    pub fn GetElementsByTagNameNS(&self, _namespace: &DOMString, _localname: &DOMString, _rv: &mut ErrorResult) -> @mut HTMLCollection {
+    pub fn GetElementsByTagNameNS(&self, _namespace: &DOMString, _localname: &DOMString) -> Fallible<@mut HTMLCollection> {
         let (scope, cx) = self.get_scope_and_cx();
-        HTMLCollection::new(~[], cx, scope)
+        Ok(HTMLCollection::new(~[], cx, scope))
     }
 
     pub fn GetElementsByClassName(&self, _names: &DOMString) -> @mut HTMLCollection {
@@ -258,8 +259,8 @@ impl Element {
         HTMLCollection::new(~[], cx, scope)
     }
 
-    pub fn MozMatchesSelector(&self, _selector: &DOMString, _rv: &mut ErrorResult) -> bool {
-        false
+    pub fn MozMatchesSelector(&self, _selector: &DOMString) -> Fallible<bool> {
+        Ok(false)
     }
 
     pub fn SetCapture(&self, _retargetToElement: bool) {
@@ -388,25 +389,28 @@ impl Element {
         0
     }
 
-    pub fn GetInnerHTML(&self, _rv: &mut ErrorResult) -> DOMString {
-        None
+    pub fn GetInnerHTML(&self) -> Fallible<DOMString> {
+        Ok(None)
     }
 
-    pub fn SetInnerHTML(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetInnerHTML(&mut self, _value: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
-    pub fn GetOuterHTML(&self, _rv: &mut ErrorResult) -> DOMString {
-        None
+    pub fn GetOuterHTML(&self) -> Fallible<DOMString> {
+        Ok(None)
     }
 
-    pub fn SetOuterHTML(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetOuterHTML(&mut self, _value: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
-    pub fn InsertAdjacentHTML(&mut self, _position: &DOMString, _text: &DOMString, _rv: &mut ErrorResult) {
+    pub fn InsertAdjacentHTML(&mut self, _position: &DOMString, _text: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
-    pub fn QuerySelector(&self, _selectors: &DOMString, _rv: &mut ErrorResult) -> Option<AbstractNode<ScriptView>> {
-        None
+    pub fn QuerySelector(&self, _selectors: &DOMString) -> Fallible<Option<AbstractNode<ScriptView>>> {
+        Ok(None)
     }
 }
 

@@ -14,20 +14,23 @@ impl HTMLFontElement {
         None
     }
 
-    pub fn SetColor(&mut self, _color: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetColor(&mut self, _color: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Face(&self) -> DOMString {
         None
     }
 
-    pub fn SetFace(&mut self, _face: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetFace(&mut self, _face: &DOMString) -> ErrorResult {
+        Ok(())
     }
     
     pub fn Size(&self) -> DOMString {
         None
     }
 
-    pub fn SetSize(&mut self, _size: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSize(&mut self, _size: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

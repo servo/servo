@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DocumentBinding;
-use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult};
+use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, Fallible};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, DerivedWrapper};
 use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, null_str_as_empty};
 use dom::element::{Element};
@@ -104,14 +104,14 @@ impl Document {
         }
     }
 
-    pub fn Constructor(owner: @mut Window, _rv: &mut ErrorResult) -> AbstractDocument {
+    pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
         let root = @HTMLHtmlElement {
             parent: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
         };
 
         let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
         let root = unsafe { Node::as_abstract_node(cx, root) };
-        AbstractDocument::as_abstract(cx, @mut Document::new(root, None, XML))
+        Ok(AbstractDocument::as_abstract(cx, @mut Document::new(root, None, XML)))
     }
 }
 
@@ -242,19 +242,17 @@ impl Document {
         None
     }
 
-    pub fn CreateElement(&self, local_name: &DOMString, rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+    pub fn CreateElement(&self, local_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
         let cx = self.get_cx();
         let local_name = null_str_as_empty(local_name);
         if !is_valid_element_name(local_name) {
-            *rv = Err(InvalidCharacter);
-            // FIXME #909: what to return here?
-            fail!("invalid character");
+            return Err(InvalidCharacter);
         }
         let local_name = local_name.to_ascii_lower();
-        build_element_from_tag(cx, local_name)
+        Ok(build_element_from_tag(cx, local_name))
     }
 
-    pub fn CreateElementNS(&self, _namespace: &DOMString, _qualified_name: &DOMString, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+    pub fn CreateElementNS(&self, _namespace: &DOMString, _qualified_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
         fail!("stub")
     }
 
@@ -263,7 +261,7 @@ impl Document {
         unsafe { Node::as_abstract_node(cx, @Text::new(null_str_as_empty(data))) }
     }
 
-    pub fn CreateEvent(&self, _interface: &DOMString, _rv: &mut ErrorResult) -> @mut Event {
+    pub fn CreateEvent(&self, _interface: &DOMString) -> Fallible<@mut Event> {
         fail!("stub")
     }
 
@@ -312,7 +310,7 @@ impl Document {
         Some(title)
     }
 
-    pub fn SetTitle(&self, title: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetTitle(&self, title: &DOMString) -> ErrorResult {
         match self.doctype {
             SVG => {
                 fail!("no SVG document yet")
@@ -349,6 +347,7 @@ impl Document {
                 };
             }
         }
+        Ok(())
     }
 
     pub fn Dir(&self) -> DOMString {
@@ -366,8 +365,8 @@ impl Document {
         None
     }
 
-    pub fn HasFocus(&self, _rv: &mut ErrorResult) -> bool {
-        false
+    pub fn HasFocus(&self) -> Fallible<bool> {
+        Ok(false)
     }
 
     pub fn GetCurrentScript(&self) -> Option<AbstractNode<ScriptView>> {
@@ -381,8 +380,8 @@ impl Document {
         false
     }
 
-    pub fn GetMozFullScreenElement(&self, _rv: &mut ErrorResult) -> Option<AbstractNode<ScriptView>> {
-        None
+    pub fn GetMozFullScreenElement(&self) -> Fallible<Option<AbstractNode<ScriptView>>> {
+        Ok(None)
     }
 
     pub fn GetMozPointerLockElement(&self) -> Option<AbstractNode<ScriptView>> {
@@ -430,8 +429,8 @@ impl Document {
         None
     }
 
-    pub fn QuerySelector(&self, _selectors: &DOMString, _rv: &mut ErrorResult) -> Option<AbstractNode<ScriptView>> {
-        None
+    pub fn QuerySelector(&self, _selectors: &DOMString) -> Fallible<Option<AbstractNode<ScriptView>>> {
+        Ok(None)
     }
 
     pub fn GetElementsByName(&self, name: &DOMString) -> @mut HTMLCollection {

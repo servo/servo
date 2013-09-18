@@ -14,13 +14,15 @@ impl HTMLLIElement {
         0
     }
 
-    pub fn SetValue(&mut self, _value: i32, _rv: &mut ErrorResult) {
+    pub fn SetValue(&mut self, _value: i32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

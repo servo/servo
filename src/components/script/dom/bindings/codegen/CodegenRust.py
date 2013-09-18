@@ -2925,8 +2925,6 @@ class CGCallGenerator(CGThing):
         # Return values that go in outparams go here
         if resultOutParam:
             args.append(CGGeneric("result"))
-        if isFallible:
-            args.append(CGGeneric("&mut rv"))
 
         needsCx = (typeNeedsCx(returnType, True) or
                    any(typeNeedsCx(a.type) for (a, _) in arguments) or
@@ -2944,21 +2942,29 @@ class CGCallGenerator(CGThing):
         else: 
             call = CGWrapper(call, pre="(*%s)." % object)
         call = CGList([call, CGWrapper(args, pre="(", post=");")])
-        if result is not None:
-            if declareResult:
-                result = CGWrapper(result, pre="let mut result: ", post=";")
-                self.cgRoot.prepend(result)
-            if not resultOutParam:
-                call = CGWrapper(call, pre="result = ")
+
+        if isFallible:
+            self.cgRoot.prepend(CGWrapper(result if result is not None else CGGeneric("()"),
+                pre="let mut result_fallible: Result<", post=",Error>;"))
+
+        if result is not None and declareResult:
+            result = CGWrapper(result, pre="let mut result: ", post=";")
+            self.cgRoot.prepend(result)
+
+        if isFallible:
+            call = CGWrapper(call, pre="result_fallible = ")
+        elif result is not None and not resultOutParam:
+            call = CGWrapper(call, pre="result = ")
 
         call = CGWrapper(call)
         self.cgRoot.append(call)
 
         if isFallible:
-            self.cgRoot.prepend(CGGeneric("let mut rv: ErrorResult = Ok(());"))
-            self.cgRoot.append(CGGeneric("if (rv.is_err()) {"))
+            self.cgRoot.append(CGGeneric("if (result_fallible.is_err()) {"))
             self.cgRoot.append(CGIndenter(errorReport))
             self.cgRoot.append(CGGeneric("}"))
+            if result is not None and not resultOutParam:
+                self.cgRoot.append(CGGeneric("result = result_fallible.unwrap();"))
 
     def define(self):
         return self.cgRoot.define()

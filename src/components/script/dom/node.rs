@@ -5,7 +5,7 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use dom::bindings::node;
-use dom::bindings::utils::{WrapperCache, DOMString, ErrorResult, NotFound, HierarchyRequest};
+use dom::bindings::utils::{WrapperCache, DOMString, ErrorResult, Fallible, NotFound, HierarchyRequest};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, null_str_as_empty};
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
@@ -559,7 +559,8 @@ impl Node<ScriptView> {
         None
     }
 
-    pub fn SetNodeValue(&mut self, _val: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetNodeValue(&mut self, _val: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetTextContent(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
@@ -592,22 +593,20 @@ impl Node<ScriptView> {
                        abstract_self: AbstractNode<ScriptView>,
                        node: Option<AbstractNode<ScriptView>>) {
         //FIXME: We should batch document notifications that occur here
-        let mut rv = Ok(());
         for child in abstract_self.children() {
-            self.RemoveChild(abstract_self, child, &mut rv);
+            self.RemoveChild(abstract_self, child);
         }
         match node {
             None => {},
             Some(node) => {
-                self.AppendChild(abstract_self, node, &mut rv);
+                self.AppendChild(abstract_self, node);
             }
         }
     }
 
     pub fn SetTextContent(&mut self,
                           abstract_self: AbstractNode<ScriptView>,
-                          value: &DOMString,
-                          _rv: &mut ErrorResult) {
+                          value: &DOMString) -> ErrorResult {
         let is_empty = match value {
             &Some(~"") | &None => true,
             _ => false
@@ -640,9 +639,10 @@ impl Node<ScriptView> {
           }
           DoctypeNodeTypeId => {}
         }
+        Ok(())
     }
 
-    pub fn InsertBefore(&mut self, _node: AbstractNode<ScriptView>, _child: Option<AbstractNode<ScriptView>>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+    pub fn InsertBefore(&mut self, _node: AbstractNode<ScriptView>, _child: Option<AbstractNode<ScriptView>>) -> Fallible<AbstractNode<ScriptView>> {
         fail!("stub")
     }
 
@@ -656,8 +656,7 @@ impl Node<ScriptView> {
 
     pub fn AppendChild(&mut self,
                        abstract_self: AbstractNode<ScriptView>,
-                       node: AbstractNode<ScriptView>,
-                       rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+                       node: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
         fn is_hierarchy_request_err(this_node: AbstractNode<ScriptView>,
                                    new_child: AbstractNode<ScriptView>) -> bool {
             if new_child.is_doctype() {
@@ -680,35 +679,32 @@ impl Node<ScriptView> {
         }
 
         if is_hierarchy_request_err(abstract_self, node) {
-            *rv = Err(HierarchyRequest);
+            return Err(HierarchyRequest);
         }
 
         // TODO: Should we handle WRONG_DOCUMENT_ERR here?
 
-        if rv.is_ok() {
-            self.wait_until_safe_to_modify_dom();
+        self.wait_until_safe_to_modify_dom();
 
-            // If the node already exists it is removed from current parent node.
-            node.parent_node().map(|parent| parent.remove_child(node));
-            abstract_self.add_child(node);
-            match self.owner_doc {
-                Some(doc) => do node.with_mut_base |node| {
-                    node.add_to_doc(doc);
-                },
-                None => ()
-            }
+        // If the node already exists it is removed from current parent node.
+        node.parent_node().map(|parent| parent.remove_child(node));
+        abstract_self.add_child(node);
+        match self.owner_doc {
+            Some(doc) => do node.with_mut_base |node| {
+                node.add_to_doc(doc);
+            },
+            None => ()
         }
-        node
+        Ok(node)
     }
 
-    pub fn ReplaceChild(&mut self, _node: AbstractNode<ScriptView>, _child: AbstractNode<ScriptView>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+    pub fn ReplaceChild(&mut self, _node: AbstractNode<ScriptView>, _child: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
         fail!("stub")
     }
 
     pub fn RemoveChild(&mut self,
                        abstract_self: AbstractNode<ScriptView>,
-                       node: AbstractNode<ScriptView>,
-                       rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+                       node: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
         fn is_not_found_err(this_node: AbstractNode<ScriptView>,
                             old_child: AbstractNode<ScriptView>) -> bool {
             match old_child.parent_node() {
@@ -718,21 +714,20 @@ impl Node<ScriptView> {
         }
 
         if is_not_found_err(abstract_self, node) {
-            *rv = Err(NotFound);
+            return Err(NotFound);
         }
-        if rv.is_ok() {
-            self.wait_until_safe_to_modify_dom();
 
-            abstract_self.remove_child(node);
-            self.remove_from_doc();
-        }
-        node
+        self.wait_until_safe_to_modify_dom();
+
+        abstract_self.remove_child(node);
+        self.remove_from_doc();
+        Ok(node)
     }
 
     pub fn Normalize(&mut self) {
     }
 
-    pub fn CloneNode(&self, _deep: bool, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+    pub fn CloneNode(&self, _deep: bool) -> Fallible<AbstractNode<ScriptView>> {
         fail!("stub")
     }
 

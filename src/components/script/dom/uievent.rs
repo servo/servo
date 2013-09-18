@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::UIEventBinding;
-use dom::bindings::utils::{ErrorResult, DOMString};
+use dom::bindings::utils::{DOMString, Fallible};
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
 use dom::node::{AbstractNode, ScriptView};
 use dom::event::Event;
@@ -39,10 +39,9 @@ impl UIEvent {
 
     pub fn Constructor(_owner: @mut Window,
                        type_: &DOMString,
-                       init: &UIEventBinding::UIEventInit,
-                       _rv: &mut ErrorResult) -> @mut UIEvent {
-        @mut UIEvent::new(type_, init.parent.bubbles, init.parent.cancelable,
-                          init.view, init.detail)
+                       init: &UIEventBinding::UIEventInit) -> Fallible<@mut UIEvent> {
+        Ok(@mut UIEvent::new(type_, init.parent.bubbles, init.parent.cancelable,
+                             init.view, init.detail))
     }
 
     pub fn GetView(&self) -> Option<@mut WindowProxy> {
@@ -59,8 +58,7 @@ impl UIEvent {
                        cancelable: bool,
                        view: Option<@mut WindowProxy>,
                        detail: i32) {
-        let mut rv = Ok(());
-        self.parent.InitEvent(type_, can_bubble, cancelable, &mut rv);
+        self.parent.InitEvent(type_, can_bubble, cancelable);
         self.can_bubble = can_bubble;
         self.cancelable = cancelable;
         self.view = view;

@@ -14,6 +14,7 @@ impl HTMLQuoteElement {
         None
     }
 
-    pub fn SetCite(&self, _cite: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCite(&self, _cite: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

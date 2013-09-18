@@ -16,14 +16,16 @@ impl HTMLSelectElement {
         false
     }
 
-    pub fn SetAutofocus(&mut self, _autofocus: bool, _rv: &mut ErrorResult) {
+    pub fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Disabled(&self) -> bool {
         false
     }
 
-    pub fn SetDisabled(&mut self, _disabled: bool, _rv: &mut ErrorResult) {
+    pub fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetForm(&self) -> Option<AbstractNode<ScriptView>> {
@@ -34,28 +36,32 @@ impl HTMLSelectElement {
         false
     }
 
-    pub fn SetMultiple(&mut self, _multiple: bool, _rv: &mut ErrorResult) {
+    pub fn SetMultiple(&mut self, _multiple: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Name(&self) -> DOMString {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Required(&self) -> bool {
         false
     }
 
-    pub fn SetRequired(&mut self, _multiple: bool, _rv: &mut ErrorResult) {
+    pub fn SetRequired(&mut self, _multiple: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Size(&self) -> u32 {
         0
     }
 
-    pub fn SetSize(&mut self, _size: u32, _rv: &mut ErrorResult) {
+    pub fn SetSize(&mut self, _size: u32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {
@@ -66,7 +72,8 @@ impl HTMLSelectElement {
         0
     }
 
-    pub fn SetLength(&mut self, _length: u32, _rv: &mut ErrorResult) {
+    pub fn SetLength(&mut self, _length: u32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Item(&self, _index: u32) -> Option<AbstractNode<ScriptView>> {
@@ -81,7 +88,8 @@ impl HTMLSelectElement {
         None
     }
 
-    pub fn IndexedSetter(&mut self, _index: u32, _option: Option<AbstractNode<ScriptView>>, _rv: &mut ErrorResult) {
+    pub fn IndexedSetter(&mut self, _index: u32, _option: Option<AbstractNode<ScriptView>>) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Remove_(&self) {
@@ -94,7 +102,8 @@ impl HTMLSelectElement {
         0
     }
 
-    pub fn SetSelectedIndex(&mut self, _index: i32, _rv: &mut ErrorResult) {
+    pub fn SetSelectedIndex(&mut self, _index: i32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Value(&self) -> DOMString {
@@ -122,7 +131,8 @@ impl HTMLSelectElement {
         None
     }
 
-    pub fn SetValidationMessage(&mut self, _message: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetValidationMessage(&mut self, _message: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn CheckValidity(&self) -> bool {

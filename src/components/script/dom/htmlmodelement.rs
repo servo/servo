@@ -14,13 +14,15 @@ impl HTMLModElement {
         None
     }
 
-    pub fn SetCite(&mut self, _cite: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCite(&mut self, _cite: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn DateTime(&self) -> DOMString {
         None
     }
 
-    pub fn SetDateTime(&mut self, _datetime: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetDateTime(&mut self, _datetime: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

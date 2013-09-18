@@ -20,7 +20,8 @@ impl HTMLOutputElement {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {
@@ -31,14 +32,16 @@ impl HTMLOutputElement {
         None
     }
 
-    pub fn SetDefaultValue(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetDefaultValue(&mut self, _value: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Value(&self) -> DOMString {
         None
     }
 
-    pub fn SetValue(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn WillValidate(&self) -> bool {
@@ -59,7 +62,8 @@ impl HTMLOutputElement {
         None
     }
 
-    pub fn SetValidationMessage(&mut self, _message: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetValidationMessage(&mut self, _message: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn CheckValidity(&self) -> bool {

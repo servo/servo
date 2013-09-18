@@ -16,14 +16,16 @@ impl HTMLButtonElement {
         false
     }
 
-    pub fn SetAutofocus(&mut self, _autofocus: bool, _rv: &mut ErrorResult) {
+    pub fn SetAutofocus(&mut self, _autofocus: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Disabled(&self) -> bool {
         false
     }
 
-    pub fn SetDisabled(&mut self, _disabled: bool, _rv: &mut ErrorResult) {
+    pub fn SetDisabled(&mut self, _disabled: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetForm(&self) -> Option<AbstractNode<ScriptView>> {
@@ -34,56 +36,64 @@ impl HTMLButtonElement {
         None
     }
 
-    pub fn SetFormAction(&mut self, _formaction: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetFormAction(&mut self, _formaction: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn FormEnctype(&self) -> DOMString {
         None
     }
 
-    pub fn SetFormEnctype(&mut self, _formenctype: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetFormEnctype(&mut self, _formenctype: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn FormMethod(&self) -> DOMString {
         None
     }
 
-    pub fn SetFormMethod(&mut self, _formmethod: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetFormMethod(&mut self, _formmethod: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn FormNoValidate(&self) -> bool {
         false
     }
 
-    pub fn SetFormNoValidate(&mut self, _novalidate: bool, _rv: &mut ErrorResult) {
+    pub fn SetFormNoValidate(&mut self, _novalidate: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn FormTarget(&self) -> DOMString {
         None
     }
 
-    pub fn SetFormTarget(&mut self, _formtarget: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetFormTarget(&mut self, _formtarget: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Name(&self) -> DOMString {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
     
     pub fn Type(&self) -> DOMString {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Value(&self) -> DOMString {
         None
     }
 
-    pub fn SetValue(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn WillValidate(&self) -> bool {
@@ -104,7 +114,8 @@ impl HTMLButtonElement {
         None
     }
 
-    pub fn SetValidationMessage(&mut self, _message: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetValidationMessage(&mut self, _message: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn CheckValidity(&self) -> bool {

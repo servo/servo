@@ -20,7 +20,8 @@ impl HTMLTableElement {
     pub fn DeleteTFoot(&self) {
     }
 
-    pub fn DeleteRow(&mut self, _index: i32, _rv: &mut ErrorResult) {
+    pub fn DeleteRow(&mut self, _index: i32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Sortable(&self) -> bool {
@@ -37,62 +38,71 @@ impl HTMLTableElement {
         None
     }
 
-    pub fn SetAlign(&self, _align: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAlign(&self, _align: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Border(&self) -> DOMString {
         None
     }
 
-    pub fn SetBorder(&self, _border: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetBorder(&self, _border: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Frame(&self) -> DOMString {
         None
     }
 
-    pub fn SetFrame(&self, _frame: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetFrame(&self, _frame: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Rules(&self) -> DOMString {
         None
     }
 
-    pub fn SetRules(&self, _rules: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetRules(&self, _rules: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Summary(&self) -> DOMString {
         None
     }
 
-    pub fn SetSummary(&self, _summary: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSummary(&self, _summary: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Width(&self) -> DOMString {
         None
     }
 
-    pub fn SetWidth(&self, _width: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetWidth(&self, _width: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn BgColor(&self) -> DOMString {
         None
     }
 
-    pub fn SetBgColor(&self, _bg_color: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetBgColor(&self, _bg_color: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn CellPadding(&self) -> DOMString {
         None
     }
 
-    pub fn SetCellPadding(&self, _cell_padding: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCellPadding(&self, _cell_padding: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn CellSpacing(&self) -> DOMString {
         None
     }
 
-    pub fn SetCellSpacing(&self, _cell_spacing: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCellSpacing(&self, _cell_spacing: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

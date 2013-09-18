@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{WrapperCache, BindingObject, CacheableWrapper};
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::{DOMString, Fallible};
 use dom::bindings::codegen::NavigatorBinding;
 use script_task::{page_from_context};
 
@@ -46,12 +46,12 @@ impl Navigator {
         false
     }
 
-    pub fn GetBuildID(&self, _rv: &mut ErrorResult) -> DOMString {
-        None
+    pub fn GetBuildID(&self) -> Fallible<DOMString> {
+        Ok(None)
     }
 
-    pub fn JavaEnabled(&self, _rv: &mut ErrorResult) -> bool {
-        false
+    pub fn JavaEnabled(&self) -> Fallible<bool> {
+        Ok(false)
     }
 
     pub fn TaintEnabled(&self) -> bool {
@@ -62,20 +62,20 @@ impl Navigator {
         Some(~"Netscape") // Like Gecko/Webkit
     }
 
-    pub fn GetAppCodeName(&self, _rv: &mut ErrorResult) -> DOMString {
-        Some(~"Mozilla") // Like Gecko/Webkit
+    pub fn GetAppCodeName(&self) -> Fallible<DOMString> {
+        Ok(Some(~"Mozilla")) // Like Gecko/Webkit
     }
 
-    pub fn GetAppVersion(&self, _rv: &mut ErrorResult) -> DOMString {
-        None
+    pub fn GetAppVersion(&self) -> Fallible<DOMString> {
+        Ok(None)
     }
 
-    pub fn GetPlatform(&self, _rv: &mut ErrorResult) -> DOMString {
-        None
+    pub fn GetPlatform(&self) -> Fallible<DOMString> {
+        Ok(None)
     }
 
-    pub fn GetUserAgent(&self, _rv: &mut ErrorResult) -> DOMString {
-        None
+    pub fn GetUserAgent(&self) -> Fallible<DOMString> {
+        Ok(None)
     }
 
     pub fn GetLanguage(&self) -> DOMString {

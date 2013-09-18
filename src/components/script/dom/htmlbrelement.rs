@@ -14,6 +14,7 @@ impl HTMLBRElement {
         None
     }
 
-    pub fn SetClear(&mut self, _text: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetClear(&mut self, _text: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

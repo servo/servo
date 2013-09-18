@@ -26,41 +26,47 @@ impl HTMLTableRowElement {
         0
     }
 
-    pub fn DeleteCell(&mut self, _index: i32, _rv: &mut ErrorResult) {
+    pub fn DeleteCell(&mut self, _index: i32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Align(&self) -> DOMString {
         None
     }
 
-    pub fn SetAlign(&self, _align: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAlign(&self, _align: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Ch(&self) -> DOMString {
         None
     }
 
-    pub fn SetCh(&self, _ch: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCh(&self, _ch: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn ChOff(&self) -> DOMString {
         None
     }
 
-    pub fn SetChOff(&self, _ch_off: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetChOff(&self, _ch_off: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn VAlign(&self) -> DOMString {
         None
     }
 
-    pub fn SetVAlign(&self, _v_align: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetVAlign(&self, _v_align: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn BgColor(&self) -> DOMString {
         None
     }
 
-    pub fn SetBgColor(&self, _bg_color: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetBgColor(&self, _bg_color: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

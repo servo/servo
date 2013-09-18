@@ -14,35 +14,40 @@ impl HTMLTrackElement {
         None
     }
 
-    pub fn SetKind(&mut self, _kind: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetKind(&mut self, _kind: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Src(&self) -> DOMString {
         None
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Srclang(&self) -> DOMString {
         None
     }
 
-    pub fn SetSrclang(&mut self, _srclang: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSrclang(&mut self, _srclang: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Label(&self) -> DOMString {
         None
     }
 
-    pub fn SetLabel(&mut self, _label: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetLabel(&mut self, _label: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Default(&self) -> bool {
         false
     }
 
-    pub fn SetDefault(&mut self, _default: bool, _rv: &mut ErrorResult) {
+    pub fn SetDefault(&mut self, _default: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn ReadyState(&self) -> u16 {

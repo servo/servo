@@ -14,13 +14,15 @@ impl HTMLDListElement {
         false
     }
 
-    pub fn SetCompact(&mut self, _compact: bool, _rv: &mut ErrorResult) {
+    pub fn SetCompact(&mut self, _compact: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

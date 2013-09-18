@@ -14,27 +14,31 @@ impl HTMLMetaElement {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn HttpEquiv(&self) -> DOMString {
         None
     }
 
-    pub fn SetHttpEquiv(&mut self, _http_equiv: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetHttpEquiv(&mut self, _http_equiv: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Content(&self) -> DOMString {
         None
     }
 
-    pub fn SetContent(&mut self, _content: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetContent(&mut self, _content: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Scheme(&self) -> DOMString {
         None
     }
 
-    pub fn SetScheme(&mut self, _scheme: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetScheme(&mut self, _scheme: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

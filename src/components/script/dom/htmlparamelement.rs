@@ -14,27 +14,31 @@ impl HTMLParamElement {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Value(&self) -> DOMString {
         None
     }
 
-    pub fn SetValue(&mut self, _value: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetValue(&mut self, _value: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn ValueType(&self) -> DOMString {
         None
     }
 
-    pub fn SetValueType(&mut self, _value_type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetValueType(&mut self, _value_type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

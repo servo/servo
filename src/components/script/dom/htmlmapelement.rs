@@ -16,7 +16,8 @@ impl HTMLMapElement {
         None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {

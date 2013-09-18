@@ -14,62 +14,71 @@ impl HTMLScriptElement {
         None
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Charset(&self) -> DOMString {
         None
     }
 
-    pub fn SetCharset(&mut self, _charset: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCharset(&mut self, _charset: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Async(&self) -> bool {
         false
     }
 
-    pub fn SetAsync(&self, _async: bool, _rv: &mut ErrorResult) {
+    pub fn SetAsync(&self, _async: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Defer(&self) -> bool {
         false
     }
 
-    pub fn SetDefer(&self, _defer: bool, _rv: &mut ErrorResult) {
+    pub fn SetDefer(&self, _defer: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn CrossOrigin(&self) -> DOMString {
         None
     }
 
-    pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Text(&self) -> DOMString {
         None
     }
 
-    pub fn SetText(&mut self, _text: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetText(&mut self, _text: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Event(&self) -> DOMString {
         None
     }
 
-    pub fn SetEvent(&mut self, _event: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetEvent(&mut self, _event: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn HtmlFor(&self) -> DOMString {
         None
     }
 
-    pub fn SetHtmlFor(&mut self, _html_for: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetHtmlFor(&mut self, _html_for: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

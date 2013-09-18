@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::HTMLCollectionBinding;
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::{DOMString, Fallible};
 use dom::node::{AbstractNode, ScriptView};
 use script_task::page_from_context;
 
@@ -44,9 +44,8 @@ impl HTMLCollection {
         }
     }
 
-    pub fn NamedItem(&self, _cx: *JSContext, _name: &DOMString, rv: &mut ErrorResult) -> *JSObject {
-        *rv = Ok(());
-        ptr::null()
+    pub fn NamedItem(&self, _cx: *JSContext, _name: &DOMString) -> Fallible<*JSObject> {
+        Ok(ptr::null())
     }
 
     pub fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<AbstractNode<ScriptView>> {
@@ -54,8 +53,8 @@ impl HTMLCollection {
         self.Item(index)
     }
 
-    pub fn NamedGetter(&self, _cx: *JSContext, _name: &DOMString, _found: &mut bool, _rv: &mut ErrorResult) -> *JSObject {
-        ptr::null()
+    pub fn NamedGetter(&self, _cx: *JSContext, _name: &DOMString, _found: &mut bool) -> Fallible<*JSObject> {
+        Ok(ptr::null())
     }
 }
 

@@ -14,6 +14,7 @@ impl HTMLHtmlElement {
         None
     }
 
-    pub fn SetVersion(&mut self, _version: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetVersion(&mut self, _version: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

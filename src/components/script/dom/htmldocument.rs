@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLDocumentBinding;
-use dom::bindings::utils::{DOMString, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::document::{AbstractDocument, Document, WrappableDocument, HTML};
 use dom::element::HTMLHeadElementTypeId;
@@ -49,22 +49,24 @@ impl WrappableDocument for HTMLDocument {
 }
 
 impl HTMLDocument {
-    pub fn NamedGetter(&self, _cx: *JSContext, _name: &DOMString, _found: &mut bool, _rv: &mut ErrorResult) -> *JSObject {
-        ptr::null()
+    pub fn NamedGetter(&self, _cx: *JSContext, _name: &DOMString, _found: &mut bool) -> Fallible<*JSObject> {
+        Ok(ptr::null())
     }
 
-    pub fn GetDomain(&self, _rv: &mut ErrorResult) -> DOMString {
-        None
+    pub fn GetDomain(&self) -> Fallible<DOMString> {
+        Ok(None)
     }
 
-    pub fn SetDomain(&self, _domain: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetDomain(&self, _domain: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
-    pub fn GetCookie(&self, _rv: &mut ErrorResult) -> DOMString {
-        None
+    pub fn GetCookie(&self) -> Fallible<DOMString> {
+        Ok(None)
     }
 
-    pub fn SetCookie(&self, _cookie: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCookie(&self, _cookie: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetHead(&self) -> Option<AbstractNode<ScriptView>> {
@@ -104,38 +106,40 @@ impl HTMLDocument {
         self.parent.createHTMLCollection(|elem| eq_slice(elem.tag_name, "script"))
     }
 
-    pub fn Close(&self, _rv: &mut ErrorResult) {
+    pub fn Close(&self) -> ErrorResult {
+        Ok(())
     }
 
     pub fn DesignMode(&self) -> DOMString {
         None
     }
 
-    pub fn SetDesignMode(&self, _mode: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetDesignMode(&self, _mode: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
-    pub fn ExecCommand(&self, _command_id: &DOMString, _show_ui: bool, _value: &DOMString, _rv: &mut ErrorResult) -> bool {
-        false
+    pub fn ExecCommand(&self, _command_id: &DOMString, _show_ui: bool, _value: &DOMString) -> Fallible<bool> {
+        Ok(false)
     }
 
-    pub fn QueryCommandEnabled(&self, _command_id: &DOMString, _rv: &mut ErrorResult) -> bool {
-        false
+    pub fn QueryCommandEnabled(&self, _command_id: &DOMString) -> Fallible<bool> {
+        Ok(false)
     }
 
-    pub fn QueryCommandIndeterm(&self, _command_id: &DOMString, _rv: &mut ErrorResult) -> bool {
-        false
+    pub fn QueryCommandIndeterm(&self, _command_id: &DOMString) -> Fallible<bool> {
+        Ok(false)
     }
 
-    pub fn QueryCommandState(&self, _command_id: &DOMString, _rv: &mut ErrorResult) -> bool {
-        false
+    pub fn QueryCommandState(&self, _command_id: &DOMString) -> Fallible<bool> {
+        Ok(false)
     }
 
     pub fn QueryCommandSupported(&self, _command_id: &DOMString) -> bool {
         false
     }
 
-    pub fn QueryCommandValue(&self, _command_id: &DOMString, _rv: &mut ErrorResult) -> DOMString {
-        None
+    pub fn QueryCommandValue(&self, _command_id: &DOMString) -> Fallible<DOMString> {
+        Ok(None)
     }
 
     pub fn FgColor(&self) -> DOMString {
@@ -186,8 +190,8 @@ impl HTMLDocument {
     pub fn Clear(&self) {
     }
 
-    pub fn GetAll(&self, _cx: *JSContext, _rv: &mut ErrorResult) -> *libc::c_void {
-        ptr::null()
+    pub fn GetAll(&self, _cx: *JSContext) -> Fallible<*libc::c_void> {
+        Ok(ptr::null())
     }
 }
 

@@ -752,7 +752,9 @@ pub enum Error {
     InvalidCharacter,
 }
 
-pub type ErrorResult = Result<(), Error>;
+pub type Fallible<T> = Result<T, Error>;
+
+pub type ErrorResult = Fallible<()>;
 
 pub struct EnumEntry {
     value: &'static str,

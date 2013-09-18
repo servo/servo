@@ -14,14 +14,16 @@ impl HTMLVideoElement {
         0
     }
 
-    pub fn SetWidth(&mut self, _width: u32, _rv: &ErrorResult) {
+    pub fn SetWidth(&mut self, _width: u32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Height(&self) -> u32 {
         0
     }
 
-    pub fn SetHeight(&mut self, _height: u32, _rv: &ErrorResult) {
+    pub fn SetHeight(&mut self, _height: u32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn VideoWidth(&self) -> u32 {
@@ -36,6 +38,7 @@ impl HTMLVideoElement {
         None
     }
 
-    pub fn SetPoster(&mut self, _poster: &DOMString, _rv: &ErrorResult) {
+    pub fn SetPoster(&mut self, _poster: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

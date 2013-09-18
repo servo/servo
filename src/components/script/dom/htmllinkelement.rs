@@ -21,62 +21,71 @@ impl HTMLLinkElement {
         None
     }
 
-    pub fn SetHref(&mut self, _href: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetHref(&mut self, _href: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn CrossOrigin(&self) -> DOMString {
         None
     }
 
-    pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Rel(&self) -> DOMString {
         None
     }
 
-    pub fn SetRel(&mut self, _rel: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetRel(&mut self, _rel: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Media(&self) -> DOMString {
         None
     }
 
-    pub fn SetMedia(&mut self, _media: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetMedia(&mut self, _media: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Hreflang(&self) -> DOMString {
         None
     }
 
-    pub fn SetHreflang(&mut self, _href: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetHreflang(&mut self, _href: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Charset(&self) -> DOMString {
         None
     }
 
-    pub fn SetCharset(&mut self, _charset: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCharset(&mut self, _charset: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Rev(&self) -> DOMString {
         None
     }
 
-    pub fn SetRev(&mut self, _rev: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetRev(&mut self, _rev: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Target(&self) -> DOMString {
         None
     }
 
-    pub fn SetTarget(&mut self, _target: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetTarget(&mut self, _target: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

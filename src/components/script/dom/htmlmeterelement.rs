@@ -14,41 +14,47 @@ impl HTMLMeterElement {
         0.0
     }
 
-    pub fn SetValue(&mut self, _value: f64, _rv: &mut ErrorResult) {
+    pub fn SetValue(&mut self, _value: f64) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Min(&self) -> f64 {
         0.0
     }
 
-    pub fn SetMin(&mut self, _min: f64, _rv: &mut ErrorResult) {
+    pub fn SetMin(&mut self, _min: f64) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Max(&self) -> f64 {
         0.0
     }
 
-    pub fn SetMax(&mut self, _max: f64, _rv: &mut ErrorResult) {
+    pub fn SetMax(&mut self, _max: f64) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Low(&self) -> f64 {
         0.0
     }
 
-    pub fn SetLow(&mut self, _low: f64, _rv: &mut ErrorResult) {
+    pub fn SetLow(&mut self, _low: f64) -> ErrorResult {
+        Ok(())
     }
 
     pub fn High(&self) -> f64 {
         0.0
     }
 
-    pub fn SetHigh(&mut self, _high: f64, _rv: &mut ErrorResult) {
+    pub fn SetHigh(&mut self, _high: f64) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Optimum(&self) -> f64 {
         0.0
     }
 
-    pub fn SetOptimum(&mut self, _optimum: f64, _rv: &mut ErrorResult) {
+    pub fn SetOptimum(&mut self, _optimum: f64) -> ErrorResult {
+        Ok(())
     }
 }

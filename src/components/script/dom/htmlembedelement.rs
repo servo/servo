@@ -15,42 +15,48 @@ impl HTMLEmbedElement {
         None
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {
         None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Width(&self) -> DOMString {
         None
     }
 
-    pub fn SetWidth(&mut self, _width: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Height(&self) -> DOMString {
         None
     }
 
-    pub fn SetHeight(&mut self, _height: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetHeight(&mut self, _height: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Align(&self) -> DOMString {
         None
     }
 
-    pub fn SetAlign(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAlign(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Name(&self) -> DOMString {
         None
     }
 
-    pub fn SetName(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetSVGDocument(&self) -> Option<AbstractDocument> {

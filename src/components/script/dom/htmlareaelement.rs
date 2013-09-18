@@ -14,55 +14,63 @@ impl HTMLAreaElement {
         None
     }
 
-    pub fn SetAlt(&self, _alt: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAlt(&self, _alt: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Coords(&self) -> DOMString {
         None
     }
 
-    pub fn SetCoords(&self, _coords: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCoords(&self, _coords: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Shape(&self) -> DOMString {
         None
     }
 
-    pub fn SetShape(&self, _shape: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetShape(&self, _shape: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Href(&self) -> DOMString {
         None
     }
 
-    pub fn SetHref(&self, _href: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetHref(&self, _href: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Target(&self) -> DOMString {
         None
     }
 
-    pub fn SetTarget(&self, _target: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetTarget(&self, _target: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Download(&self) -> DOMString {
         None
     }
 
-    pub fn SetDownload(&self, _download: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetDownload(&self, _download: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Ping(&self) -> DOMString {
         None
     }
 
-    pub fn SetPing(&self, _ping: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetPing(&self, _ping: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn NoHref(&self) -> bool {
         false
     }
 
-    pub fn SetNoHref(&mut self, _no_href: bool, _rv: &mut ErrorResult) {
+    pub fn SetNoHref(&mut self, _no_href: bool) -> ErrorResult {
+        Ok(())
     }
 }

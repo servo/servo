@@ -10,34 +10,39 @@ pub struct HTMLTableSectionElement {
 }
 
 impl HTMLTableSectionElement {
-    pub fn DeleteRow(&mut self, _index: i32, _rv: &mut ErrorResult) {
+    pub fn DeleteRow(&mut self, _index: i32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Align(&self) -> DOMString {
         None
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Ch(&self) -> DOMString {
         None
     }
 
-    pub fn SetCh(&mut self, _ch: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCh(&mut self, _ch: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn ChOff(&self) -> DOMString {
         None
     }
 
-    pub fn SetChOff(&mut self, _ch_off: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetChOff(&mut self, _ch_off: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn VAlign(&self) -> DOMString {
         None
     }
 
-    pub fn SetVAlign(&mut self, _v_align: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetVAlign(&mut self, _v_align: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }
