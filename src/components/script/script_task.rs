@@ -254,7 +254,7 @@ impl Page {
     ///
     /// This function fails if there is no root frame.
     fn reflow(&mut self, goal: ReflowGoal, script_chan: ScriptChan, compositor: @ScriptListener) {
-    
+
         debug!("script: performing reflow for goal %?", goal);
 
         // Now, join the layout so that they will see the latest changes we have made.
@@ -561,6 +561,10 @@ impl ScriptTask {
     fn handle_fire_timer_msg(&mut self, id: PipelineId, timer_data: ~TimerData) {
         let page = self.page_tree.find(id).expect("ScriptTask: received fire timer msg for a
             pipeline ID not associated with this script task. This is a bug.").page;
+        let window = page.frame.expect("ScriptTask: Expect a timeout to have a document").window;
+        if !window.active_timers.contains(&timer_data.handle) {
+            return;
+        }
         unsafe {
             let this_value = if timer_data.args.len() > 0 {
                 RUST_JSVAL_TO_OBJECT(timer_data.args[0])
