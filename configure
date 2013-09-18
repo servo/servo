@@ -320,7 +320,8 @@ opt optimize 1 "build optimized rust code"
 opt optimize-cxx 1 "build optimized C++ code"
 opt manage-submodules 1 "let the build manage the git submodules"
 opt fast-make 0 "use .gitmodules as timestamp for submodule deps"
-opt debug 0 "use debugging symbols"
+opt debug 0 "build with debugging code and symbols"
+opt debug-skia 0 "build Skia and Azure for debugging (significant performance hit)"
 valopt local-rust-root "" "set prefix for local rust binary"
 valopt target-triples "${DEFAULT_TARGET_TRIPLE}" "target triple to be compiled"
 valopt android-cross-path "/opt/ndk_standalone" "Android NDK cross compiler path"
@@ -554,6 +555,7 @@ putvar CFG_PATH
 putvar CFG_LOCAL_RUSTC
 putvar CFG_LOCAL_RUST_ROOT
 putvar CFG_ENABLE_DEBUG
+putvar CFG_ENABLE_DEBUG_SKIA
 
 msg
 copy_if_changed ${CFG_SRC_DIR}Makefile.in ${CFG_BUILD_HOME}Makefile
@@ -634,10 +636,7 @@ do
     CONFIGURE_SCRIPT="${CFG_SRC_DIR}src/${i}/configure"
     CONFIGURE_ARGS=""
     ENV_VARS=""
-
-    if [ ! -z $CFG_ENABLE_DEBUG ]; then
-        CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-debug"
-    fi
+    ENABLE_DEBUG="$CFG_ENABLE_DEBUG"
 
     case $i in
         support/nss/nspr)
@@ -688,13 +687,28 @@ do
                 CONFIGURE_ARGS="${CONFIGURE_ARGS} --with-android-ndk=${CFG_ANDROID_NDK_PATH}"
             fi
             ;;
+        support/skia/skia)
+            # Right now the skia configure script actually ignores --enable-debug and the
+            # build looks only at CFG_ENABLE_DEBUG_SKIA exported from our Makefile.  But we
+            # still refrain from passing --enable-debug if we didn't get --enable-debug-skia,
+            # in order to be more future-proof.
+            #
+            # The same applies to rust-azure below.  Also note that the two libraries won't
+            # link if one is built with debugging and the other isn't.
+            ENABLE_DEBUG="$CFG_ENABLE_DEBUG_SKIA"
+            ;;
         support/azure/rust-azure)
-                # needed because Azure's configure wants "--enable-skia"
+            # needed because Azure's configure wants "--enable-skia"
             CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-skia"
+            ENABLE_DEBUG="$CFG_ENABLE_DEBUG_SKIA"
             ;;
         *)
             ;;
     esac
+
+    if [ -n "$ENABLE_DEBUG" ]; then
+        CONFIGURE_ARGS="${CONFIGURE_ARGS} --enable-debug"
+    fi
 
     if [ -f ${CONFIGURE_SCRIPT} ]
     then
