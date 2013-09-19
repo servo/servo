@@ -9,14 +9,14 @@ use dom::window::Window;
 
 /// An HTML comment.
 pub struct Comment {
-    parent: CharacterData,
+    element: CharacterData,
 }
 
 impl Comment {
     /// Creates a new HTML comment.
     pub fn new(text: ~str) -> Comment {
         Comment {
-            parent: CharacterData::new(CommentNodeTypeId, text)
+            element: CharacterData::new(CommentNodeTypeId, text)
         }
     }
 

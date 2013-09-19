@@ -7,7 +7,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, ScriptView};
 
 pub struct HTMLOptionElement {
-    parent: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLOptionElement {

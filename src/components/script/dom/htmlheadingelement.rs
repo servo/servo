@@ -15,7 +15,7 @@ pub enum HeadingLevel {
 }
 
 pub struct HTMLHeadingElement {
-    parent: HTMLElement,
+    htmlelement: HTMLElement,
     level: HeadingLevel,
 }
 

@@ -6,7 +6,7 @@ use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLInputElement {
-    parent: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLInputElement {

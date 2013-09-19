@@ -11,13 +11,13 @@ use js::jsapi::{JSObject, JSContext, JSVal};
 use js::JSVAL_NULL;
 
 pub struct HTMLElement {
-    parent: Element
+    element: Element
 }
 
 impl HTMLElement {
     pub fn new(type_id: ElementTypeId, tag_name: ~str) -> HTMLElement {
         HTMLElement {
-            parent: Element::new(type_id, tag_name)
+            element: Element::new(type_id, tag_name)
         }
     }
 }
@@ -150,7 +150,7 @@ impl HTMLElement {
 
 impl CacheableWrapper for HTMLElement {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        self.parent.get_wrappercache()
+        self.element.get_wrappercache()
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -161,6 +161,6 @@ impl CacheableWrapper for HTMLElement {
 
 impl BindingObject for HTMLElement {
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
-        self.parent.GetParentObject(cx)
+        self.element.GetParentObject(cx)
     }
 }

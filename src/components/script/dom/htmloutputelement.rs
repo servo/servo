@@ -8,7 +8,7 @@ use dom::node::{AbstractNode, ScriptView};
 use dom::validitystate::ValidityState;
 
 pub struct HTMLOutputElement {
-    parent: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLOutputElement {

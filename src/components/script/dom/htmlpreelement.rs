@@ -6,7 +6,7 @@ use dom::bindings::utils::{ErrorResult};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLPreElement {
-    parent: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLPreElement {

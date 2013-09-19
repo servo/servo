@@ -7,7 +7,7 @@ use dom::document::AbstractDocument;
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLEmbedElement {
-    parent: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLEmbedElement {

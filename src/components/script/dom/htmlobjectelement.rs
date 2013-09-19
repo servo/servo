@@ -10,7 +10,7 @@ use dom::validitystate::ValidityState;
 use dom::windowproxy::WindowProxy;
 
 pub struct HTMLObjectElement {
-    parent: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLObjectElement {
