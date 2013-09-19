@@ -9,12 +9,12 @@ use dom::htmlelement::HTMLElement;
 use js::jsapi::{JSObject, JSContext};
 
 pub struct HTMLDataListElement {
-    parent: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLDataListElement {
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let doc = self.parent.parent.parent.owner_doc.unwrap();
+        let doc = self.htmlelement.element.node.owner_doc.unwrap();
         let win = doc.with_base(|doc| doc.window.unwrap());
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
         let cache = win.get_wrappercache();

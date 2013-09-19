@@ -5,7 +5,7 @@
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLTemplateElement {
-    parent: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLTemplateElement {

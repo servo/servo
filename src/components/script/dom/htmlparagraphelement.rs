@@ -6,7 +6,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLParagraphElement {
-    parent: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLParagraphElement {

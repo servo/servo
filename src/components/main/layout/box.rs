@@ -127,7 +127,7 @@ impl UnscannedTextRenderBox {
             // a text node?
             UnscannedTextRenderBox {
                 base: base,
-                text: text_node.parent.data.to_str(),
+                text: text_node.element.data.to_str(),
             }
         }
     }

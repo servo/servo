@@ -28,7 +28,7 @@ enum SandboxAllowance {
 }
 
 pub struct HTMLIFrameElement {
-    parent: HTMLElement,
+    htmlelement: HTMLElement,
     frame: Option<Url>,
     size: Option<IFrameSize>,
     sandbox: Option<u8>
@@ -84,11 +84,11 @@ impl HTMLIFrameElement {
     }
 
     pub fn Sandbox(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
-        self.parent.parent.GetAttribute(&Some(~"sandbox"))
+        self.htmlelement.element.GetAttribute(&Some(~"sandbox"))
     }
 
     pub fn SetSandbox(&mut self, abstract_self: AbstractNode<ScriptView>, sandbox: &DOMString) {
-        self.parent.parent.SetAttribute(abstract_self, &Some(~"sandbox"), sandbox);
+        self.htmlelement.element.SetAttribute(abstract_self, &Some(~"sandbox"), sandbox);
     }
 
     pub fn AfterSetAttr(&mut self, name: &DOMString, value: &DOMString) {

@@ -7,13 +7,13 @@ use dom::element::ElementTypeId;
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLMediaElement {
-    parent: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLMediaElement {
     pub fn new(type_id: ElementTypeId, tag_name: ~str) -> HTMLMediaElement {
         HTMLMediaElement {
-            parent: HTMLElement::new(type_id, tag_name)
+            htmlelement: HTMLElement::new(type_id, tag_name)
         }
     }
 }

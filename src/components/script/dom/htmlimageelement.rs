@@ -13,7 +13,7 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::url::make_url;
 
 pub struct HTMLImageElement {
-    parent: HTMLElement,
+    htmlelement: HTMLElement,
     image: Option<Url>,
 }
 
@@ -21,7 +21,7 @@ impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
     pub fn update_image(&mut self, image_cache: ImageCacheTask, url: Option<Url>) {
-        let elem = &mut self.parent.parent;
+        let elem = &mut self.htmlelement.element;
         let src_opt = elem.get_attr("src").map(|x| x.to_str());
         match src_opt {
             None => {}
@@ -42,7 +42,7 @@ impl HTMLImageElement {
     pub fn AfterSetAttr(&mut self, name: &DOMString, _value: &DOMString) {
         let name = null_str_as_empty(name);
         if "src" == name {
-            let doc = self.parent.parent.parent.owner_doc;
+            let doc = self.htmlelement.element.node.owner_doc;
             for doc in doc.iter() {
                 do doc.with_base |doc| {
                     for window in doc.window.iter() {
@@ -69,7 +69,7 @@ impl HTMLImageElement {
     pub fn SetSrc(&mut self,
                   abstract_self: AbstractNode<ScriptView>,
                   src: &DOMString) -> ErrorResult {
-        let node = &mut self.parent.parent;
+        let node = &mut self.htmlelement.element;
         node.set_attr(abstract_self,
                       &Some(~"src"),
                       &Some(null_str_as_empty(src)));
@@ -101,7 +101,7 @@ impl HTMLImageElement {
     }
 
     pub fn Width(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
-        let node = &self.parent.parent.parent;
+        let node = &self.htmlelement.element.node;
         match node.owner_doc {
             Some(doc) => {
                 match doc.with_base(|doc| doc.window) {
@@ -130,7 +130,7 @@ impl HTMLImageElement {
     pub fn SetWidth(&mut self,
                     abstract_self: AbstractNode<ScriptView>,
                     width: u32) -> ErrorResult {
-        let node = &mut self.parent.parent;
+        let node = &mut self.htmlelement.element;
         node.set_attr(abstract_self,
                       &Some(~"width"),
                       &Some(width.to_str()));
@@ -138,7 +138,7 @@ impl HTMLImageElement {
     }
 
     pub fn Height(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
-        let node = &self.parent.parent.parent;
+        let node = &self.htmlelement.element.node;
         match node.owner_doc {
             Some(doc) => {
                 match doc.with_base(|doc| doc.window) {
@@ -167,7 +167,7 @@ impl HTMLImageElement {
     pub fn SetHeight(&mut self,
                      abstract_self: AbstractNode<ScriptView>,
                      height: u32) -> ErrorResult {
-        let node = &mut self.parent.parent;
+        let node = &mut self.htmlelement.element;
         node.set_attr(abstract_self,
                       &Some(~"height"),
                       &Some(height.to_str()));

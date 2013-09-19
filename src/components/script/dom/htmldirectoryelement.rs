@@ -6,7 +6,7 @@ use dom::bindings::utils::ErrorResult;
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLDirectoryElement {
-    parent: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLDirectoryElement {

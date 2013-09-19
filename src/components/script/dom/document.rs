@@ -106,7 +106,7 @@ impl Document {
 
     pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
         let root = @HTMLHtmlElement {
-            parent: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
+            htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
         };
 
         let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
@@ -295,7 +295,7 @@ impl Document {
                     for child in node.children() {
                         if child.is_text() {
                             do child.with_imm_text() |text| {
-                                let s = text.parent.Data();
+                                let s = text.element.Data();
                                 title = title + null_str_as_empty(&s);
                             }
                         }
@@ -335,7 +335,7 @@ impl Document {
                     }
                     if !has_title {
                         let new_title = @HTMLTitleElement {
-                            parent: HTMLElement::new(HTMLTitleElementTypeId, ~"title")
+                            htmlelement: HTMLElement::new(HTMLTitleElementTypeId, ~"title")
                         };
                         let new_title = unsafe { 
                             Node::as_abstract_node(cx, new_title) 

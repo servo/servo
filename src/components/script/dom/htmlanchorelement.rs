@@ -6,7 +6,7 @@ use dom::htmlelement::HTMLElement;
 use dom::bindings::utils::{DOMString, ErrorResult};
 
 pub struct HTMLAnchorElement {
-    parent: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLAnchorElement {

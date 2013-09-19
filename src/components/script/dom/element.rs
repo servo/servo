@@ -22,7 +22,7 @@ use std::str::eq_slice;
 use std::ascii::StrAsciiExt;
 
 pub struct Element {
-    parent: Node<ScriptView>,
+    node: Node<ScriptView>,
     tag_name: ~str,     // TODO: This should be an atom, not a ~str.
     attrs: ~[Attr],
     style_attribute: Option<Stylesheet>,
@@ -30,7 +30,7 @@ pub struct Element {
 
 impl CacheableWrapper for Element {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        self.parent.get_wrappercache()
+        self.node.get_wrappercache()
     }
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
@@ -40,7 +40,7 @@ impl CacheableWrapper for Element {
 
 impl BindingObject for Element {
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
-        self.parent.GetParentObject(cx)
+        self.node.GetParentObject(cx)
     }
 }
 
@@ -121,7 +121,7 @@ pub enum ElementTypeId {
 impl<'self> Element {
     pub fn new(type_id: ElementTypeId, tag_name: ~str) -> Element {
         Element {
-            parent: Node::new(ElementNodeTypeId(type_id)),
+            node: Node::new(ElementNodeTypeId(type_id)),
             tag_name: tag_name,
             attrs: ~[],
             style_attribute: None,
@@ -180,14 +180,14 @@ impl<'self> Element {
             _ => ()
         }
 
-        match self.parent.owner_doc {
+        match self.node.owner_doc {
             Some(owner) => do owner.with_base |owner| { owner.content_changed() },
             None => {}
         }
     }
 
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let doc = self.parent.owner_doc.unwrap();
+        let doc = self.node.owner_doc.unwrap();
         let win = doc.with_base(|doc| doc.window.unwrap());
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
         let cache = win.get_wrappercache();
@@ -276,7 +276,7 @@ impl Element {
     }
 
     pub fn GetClientRects(&self, abstract_self: AbstractNode<ScriptView>) -> @mut ClientRectList {
-        let (rects, cx, scope) = match self.parent.owner_doc {
+        let (rects, cx, scope) = match self.node.owner_doc {
             Some(doc) => {
                 match doc.with_base(|doc| doc.window) {
                     Some(win) => {
@@ -318,7 +318,7 @@ impl Element {
     }
 
     pub fn GetBoundingClientRect(&self, abstract_self: AbstractNode<ScriptView>) -> @mut ClientRect {
-        match self.parent.owner_doc {
+        match self.node.owner_doc {
             Some(doc) => {
                 match doc.with_base(|doc| doc.window) {
                     Some(win) => {

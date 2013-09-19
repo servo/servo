@@ -6,7 +6,7 @@ use dom::bindings::utils::{ErrorResult};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLCanvasElement {
-    parent: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLCanvasElement {
