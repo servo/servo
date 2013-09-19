@@ -4,6 +4,11 @@
   <script src="harness.js"></script>
 </head>
 <body>
-  <script src="test_proxy_setter.js"></script>
+<script>
+is(window.document.title, '');
+window.document.title = 'foo';
+is(window.document.title, 'foo');
+finish();
+</script>
 </body>
 </html>
