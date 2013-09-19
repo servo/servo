@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult, str};
+use dom::bindings::utils::{DOMString, ErrorResult, null_str_as_empty};
 use dom::document::AbstractDocument;
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, ScriptView};
@@ -60,40 +60,42 @@ impl HTMLIFrameElement {
 
 impl HTMLIFrameElement {
     pub fn Src(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Srcdoc(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetSrcdoc(&mut self, _srcdoc: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSrcdoc(&mut self, _srcdoc: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Name(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Sandbox(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
-        self.parent.parent.GetAttribute(&str(~"sandbox"))
+        self.parent.parent.GetAttribute(&Some(~"sandbox"))
     }
 
     pub fn SetSandbox(&mut self, abstract_self: AbstractNode<ScriptView>, sandbox: &DOMString) {
-        let mut rv = Ok(());
-        self.parent.parent.SetAttribute(abstract_self, &str(~"sandbox"), sandbox, &mut rv);
+        self.parent.parent.SetAttribute(abstract_self, &Some(~"sandbox"), sandbox);
     }
 
     pub fn AfterSetAttr(&mut self, name: &DOMString, value: &DOMString) {
-        let name = name.to_str();
+        let name = null_str_as_empty(name);
         if "sandbox" == name {
             let mut modes = AllowNothing as u8;
-            let words = value.to_str();
+            let words = null_str_as_empty(value);
             for word in words.split_iter(' ') {
                 modes |= match word.to_ascii_lower().as_slice() {
                     "allow-same-origin" => AllowSameOrigin,
@@ -113,21 +115,24 @@ impl HTMLIFrameElement {
         false
     }
 
-    pub fn SetAllowFullscreen(&mut self, _allow: bool, _rv: &mut ErrorResult) {
+    pub fn SetAllowFullscreen(&mut self, _allow: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Width(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetWidth(&mut self, _width: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Height(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetHeight(&mut self, _height: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetHeight(&mut self, _height: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetContentDocument(&self) -> Option<AbstractDocument> {
@@ -139,45 +144,51 @@ impl HTMLIFrameElement {
     }
 
     pub fn Align(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Scrolling(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetScrolling(&mut self, _scrolling: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetScrolling(&mut self, _scrolling: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn FrameBorder(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetFrameBorder(&mut self, _frameborder: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetFrameBorder(&mut self, _frameborder: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn LongDesc(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn MarginHeight(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetMarginHeight(&mut self, _marginheight: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetMarginHeight(&mut self, _marginheight: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn MarginWidth(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetMarginWidth(&mut self, _marginwidth: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetMarginWidth(&mut self, _marginwidth: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetSVGDocument(&self) -> Option<AbstractDocument> {

@@ -14,6 +14,7 @@ impl HTMLDirectoryElement {
         false
     }
 
-    pub fn SetCompact(&mut self, _compact: bool, _rv: &mut ErrorResult) {
+    pub fn SetCompact(&mut self, _compact: bool) -> ErrorResult {
+        Ok(())
     }
 }

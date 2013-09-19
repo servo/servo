@@ -4,7 +4,7 @@
 
 //! DOM bindings for `CharacterData`.
 
-use dom::bindings::utils::{DOMString, str, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, WrapperCache};
 use dom::node::{Node, NodeTypeId, ScriptView};
 use js::jsapi::{JSObject, JSContext};
@@ -23,34 +23,36 @@ impl CharacterData {
     }
     
     pub fn Data(&self) -> DOMString {
-        str(self.data.clone())
+        Some(self.data.clone())
     }
 
-    pub fn SetData(&mut self, arg: &DOMString, _rv: &mut ErrorResult) {
-        self.data = arg.unwrap();
+    pub fn SetData(&mut self, arg: &DOMString) -> ErrorResult {
+        self.data = arg.get_ref().clone();
+        Ok(())
     }
 
     pub fn Length(&self) -> u32 {
         self.data.len() as u32
     }
 
-    pub fn SubstringData(&self, offset: u32, count: u32, _rv: &mut ErrorResult) -> DOMString {
-        str(self.data.slice(offset as uint, count as uint).to_str())
+    pub fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
+        Ok(Some(self.data.slice(offset as uint, count as uint).to_str()))
     }
 
-    pub fn AppendData(&mut self, arg: &DOMString, _rv: &mut ErrorResult) {
-        self.data.push_str(arg.unwrap());
+    pub fn AppendData(&mut self, arg: &DOMString) -> ErrorResult {
+        self.data.push_str(arg.get_ref().clone());
+        Ok(())
     }
 
-    pub fn InsertData(&mut self, _offset: u32, _arg: &DOMString, _rv: &mut ErrorResult) {
+    pub fn InsertData(&mut self, _offset: u32, _arg: &DOMString) -> ErrorResult {
         fail!("CharacterData::InsertData() is unimplemented")
     }
 
-    pub fn DeleteData(&mut self, _offset: u32, _count: u32, _rv: &mut ErrorResult) {
+    pub fn DeleteData(&mut self, _offset: u32, _count: u32) -> ErrorResult {
         fail!("CharacterData::DeleteData() is unimplemented")
     }
 
-    pub fn ReplaceData(&mut self, _offset: u32, _count: u32, _arg: &DOMString, _rv: &mut ErrorResult) {
+    pub fn ReplaceData(&mut self, _offset: u32, _count: u32, _arg: &DOMString) -> ErrorResult {
         fail!("CharacterData::ReplaceData() is unimplemented")
     }
 }

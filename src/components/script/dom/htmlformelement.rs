@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{CacheableWrapper, DOMString, ErrorResult, null_string};
+use dom::bindings::utils::{CacheableWrapper, DOMString, ErrorResult};
 use dom::element::HTMLFormElementTypeId;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
@@ -25,66 +25,75 @@ impl HTMLFormElement {
     }
 
     pub fn AcceptCharset(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetAcceptCharset(&mut self, _accept_charset: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAcceptCharset(&mut self, _accept_charset: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Action(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetAction(&mut self, _action: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAction(&mut self, _action: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Autocomplete(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetAutocomplete(&mut self, _autocomplete: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAutocomplete(&mut self, _autocomplete: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Enctype(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetEnctype(&mut self, _enctype: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetEnctype(&mut self, _enctype: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Encoding(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetEncoding(&mut self, _encoding: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetEncoding(&mut self, _encoding: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Method(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetMethod(&mut self, _method: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetMethod(&mut self, _method: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Name(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn NoValidate(&self) -> bool {
         false
     }
 
-    pub fn SetNoValidate(&mut self, _no_validate: bool, _rv: &mut ErrorResult) {
+    pub fn SetNoValidate(&mut self, _no_validate: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Target(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetTarget(&mut self, _target: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetTarget(&mut self, _target: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Elements(&self) -> @mut HTMLCollection {
@@ -96,7 +105,8 @@ impl HTMLFormElement {
         0
     }
     
-    pub fn Submit(&self, _rv: &mut ErrorResult) {
+    pub fn Submit(&self) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Reset(&self) {

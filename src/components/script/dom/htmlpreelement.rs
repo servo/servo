@@ -14,6 +14,7 @@ impl HTMLPreElement {
         0
     }
 
-    pub fn SetWidth(&mut self, _width: i32, _rv: &mut ErrorResult) {
+    pub fn SetWidth(&mut self, _width: i32) -> ErrorResult {
+        Ok(())
     }
 }

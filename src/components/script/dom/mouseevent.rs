@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::MouseEventBinding;
-use dom::bindings::utils::{ErrorResult, DOMString};
+use dom::bindings::utils::{ErrorResult, Fallible, DOMString};
 use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
@@ -54,12 +54,11 @@ impl MouseEvent {
 
     pub fn Constructor(_owner: @mut Window,
                        type_: &DOMString,
-                       init: &MouseEventBinding::MouseEventInit,
-                       _rv: &mut ErrorResult) -> @mut MouseEvent {
-        @mut MouseEvent::new(type_, init.bubbles, init.cancelable, init.view, init.detail,
-                             init.screenX, init.screenY, init.clientX, init.clientY,
-                             init.ctrlKey, init.shiftKey, init.altKey, init.metaKey,
-                             init.button, init.buttons, init.relatedTarget)
+                       init: &MouseEventBinding::MouseEventInit) -> Fallible<@mut MouseEvent> {
+        Ok(@mut MouseEvent::new(type_, init.bubbles, init.cancelable, init.view, init.detail,
+                                init.screenX, init.screenY, init.clientX, init.clientY,
+                                init.ctrlKey, init.shiftKey, init.altKey, init.metaKey,
+                                init.button, init.buttons, init.relatedTarget))
     }
 
     pub fn ScreenX(&self) -> i32 {
@@ -127,8 +126,7 @@ impl MouseEvent {
                           shiftKeyArg: bool,
                           metaKeyArg: bool,
                           buttonArg: u16,
-                          relatedTargetArg: Option<@mut EventTarget>,
-                          _rv: &mut ErrorResult) {
+                          relatedTargetArg: Option<@mut EventTarget>) -> ErrorResult {
         self.parent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x = screenXArg;
         self.screen_y = screenYArg;
@@ -140,6 +138,7 @@ impl MouseEvent {
         self.meta_key = metaKeyArg;
         self.button = buttonArg;
         self.related_target = relatedTargetArg;
+        Ok(())
     }
 }
 

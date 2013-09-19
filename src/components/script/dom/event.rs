@@ -6,7 +6,7 @@ use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
 use dom::bindings::utils::{CacheableWrapper, BindingObject, DerivedWrapper};
-use dom::bindings::utils::{DOMString, ErrorResult, WrapperCache};
+use dom::bindings::utils::{DOMString, ErrorResult, Fallible, WrapperCache};
 
 use geom::point::Point2D;
 use js::glue::RUST_OBJECT_TO_JSVAL;
@@ -95,11 +95,11 @@ impl Event {
     pub fn InitEvent(&mut self,
                      type_: &DOMString,
                      bubbles: bool,
-                     cancelable: bool,
-                     _rv: &mut ErrorResult) {
+                     cancelable: bool) -> ErrorResult {
         self.type_ = (*type_).clone();
         self.cancelable = cancelable;
         self.bubbles = bubbles;
+        Ok(())
     }
 
     pub fn IsTrusted(&self) -> bool {
@@ -108,9 +108,8 @@ impl Event {
 
     pub fn Constructor(_global: @mut Window,
                    type_: &DOMString,
-                   _init: &EventBinding::EventInit,
-                   _rv: &mut ErrorResult) -> @mut Event {
-        @mut Event::new(type_)
+                   _init: &EventBinding::EventInit) -> Fallible<@mut Event> {
+        Ok(@mut Event::new(type_))
     }
 }
 

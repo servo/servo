@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLTableRowElement {
@@ -26,41 +26,47 @@ impl HTMLTableRowElement {
         0
     }
 
-    pub fn DeleteCell(&mut self, _index: i32, _rv: &mut ErrorResult) {
+    pub fn DeleteCell(&mut self, _index: i32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Align(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetAlign(&self, _align: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAlign(&self, _align: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Ch(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetCh(&self, _ch: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCh(&self, _ch: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn ChOff(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetChOff(&self, _ch_off: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetChOff(&self, _ch_off: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn VAlign(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetVAlign(&self, _v_align: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetVAlign(&self, _v_align: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn BgColor(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetBgColor(&self, _bg_color: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetBgColor(&self, _bg_color: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

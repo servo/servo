@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::htmlelement::HTMLElement;
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 
 pub struct HTMLAnchorElement {
     parent: HTMLElement
@@ -11,93 +11,106 @@ pub struct HTMLAnchorElement {
 
 impl HTMLAnchorElement {
     pub fn Href(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetHref(&mut self, _href: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetHref(&mut self, _href: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Target(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetTarget(&self, _target: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetTarget(&self, _target: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Download(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetDownload(&self, _download: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetDownload(&self, _download: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Ping(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetPing(&self, _ping: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetPing(&self, _ping: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Rel(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetRel(&self, _rel: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetRel(&self, _rel: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Hreflang(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetHreflang(&self, _href_lang: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetHreflang(&self, _href_lang: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Text(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetText(&mut self, _text: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetText(&mut self, _text: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Coords(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetCoords(&mut self, _coords: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCoords(&mut self, _coords: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Charset(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetCharset(&mut self, _charset: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCharset(&mut self, _charset: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Name(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Rev(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetRev(&mut self, _rev: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetRev(&mut self, _rev: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Shape(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetShape(&mut self, _shape: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetShape(&mut self, _shape: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

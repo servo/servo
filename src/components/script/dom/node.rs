@@ -5,9 +5,8 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use dom::bindings::node;
-use dom::bindings::utils::{WrapperCache, DOMString, null_string, str, ErrorResult, NotFound, HierarchyRequest};
-use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box};
-use dom::bindings;
+use dom::bindings::utils::{WrapperCache, DOMString, ErrorResult, Fallible, NotFound, HierarchyRequest};
+use dom::bindings::utils::{BindingObject, CacheableWrapper, null_str_as_empty};
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
@@ -19,6 +18,7 @@ use dom::text::Text;
 use std::cast;
 use std::cast::transmute;
 use std::libc::c_void;
+use std::unstable::raw::Box;
 use extra::arc::Arc;
 use js::jsapi::{JSObject, JSContext};
 use netsurfcss::util::VoidPtrLike;
@@ -170,7 +170,7 @@ impl<'self, View> AbstractNode<View> {
     /// Allow consumers to recreate an AbstractNode from the raw boxed type.
     /// Must only be used in situations where the boxed type is in the inheritance
     /// chain for nodes.
-    pub fn from_box<T>(ptr: *mut rust_box<T>) -> AbstractNode<View> {
+    pub fn from_box<T>(ptr: *mut Box<T>) -> AbstractNode<View> {
         AbstractNode {
             obj: ptr as *mut Node<View>
         }
@@ -219,12 +219,12 @@ impl<'self, View> AbstractNode<View> {
 
     pub fn transmute<T, R>(self, f: &fn(&T) -> R) -> R {
         unsafe {
-            let node_box: *mut bindings::utils::rust_box<Node<View>> = transmute(self.obj);
-            let node = &mut (*node_box).payload;
+            let node_box: *mut Box<Node<View>> = transmute(self.obj);
+            let node = &mut (*node_box).data;
             let old = node.abstract;
             node.abstract = Some(self);
-            let box: *bindings::utils::rust_box<T> = transmute(self.obj);
-            let rv = f(&(*box).payload);
+            let box: *Box<T> = transmute(self.obj);
+            let rv = f(&(*box).data);
             node.abstract = old;
             rv
         }
@@ -232,12 +232,12 @@ impl<'self, View> AbstractNode<View> {
 
     pub fn transmute_mut<T, R>(self, f: &fn(&mut T) -> R) -> R {
         unsafe {
-            let node_box: *mut bindings::utils::rust_box<Node<View>> = transmute(self.obj);
-            let node = &mut (*node_box).payload;
+            let node_box: *mut Box<Node<View>> = transmute(self.obj);
+            let node = &mut (*node_box).data;
             let old = node.abstract;
             node.abstract = Some(self);
-            let box: *bindings::utils::rust_box<T> = transmute(self.obj);
-            let rv = f(cast::transmute(&(*box).payload));
+            let box: *Box<T> = transmute(self.obj);
+            let rv = f(cast::transmute(&(*box).data));
             node.abstract = old;
             rv
         }
@@ -516,11 +516,11 @@ impl Node<ScriptView> {
     }
 
     pub fn NodeName(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn GetBaseURI(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn GetOwnerDocument(&self) -> Option<AbstractDocument> {
@@ -556,10 +556,11 @@ impl Node<ScriptView> {
     }
 
     pub fn GetNodeValue(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetNodeValue(&mut self, _val: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetNodeValue(&mut self, _val: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetTextContent(&self, abstract_self: AbstractNode<ScriptView>) -> DOMString {
@@ -570,11 +571,11 @@ impl Node<ScriptView> {
                 if node.is_text() {
                     do node.with_imm_text() |text| {
                         let s = text.parent.Data();
-                        content = content + s.to_str();
+                        content = content + null_str_as_empty(&s);
                     }
                 }
             }
-            str(content)
+            Some(content)
           }
           CommentNodeTypeId | TextNodeTypeId => {
             do abstract_self.with_imm_characterdata() |characterdata| {
@@ -582,7 +583,7 @@ impl Node<ScriptView> {
             }
           }
           DoctypeNodeTypeId => {
-            null_string
+            None
           }
         }
     }
@@ -592,24 +593,22 @@ impl Node<ScriptView> {
                        abstract_self: AbstractNode<ScriptView>,
                        node: Option<AbstractNode<ScriptView>>) {
         //FIXME: We should batch document notifications that occur here
-        let mut rv = Ok(());
         for child in abstract_self.children() {
-            self.RemoveChild(abstract_self, child, &mut rv);
+            self.RemoveChild(abstract_self, child);
         }
         match node {
             None => {},
             Some(node) => {
-                self.AppendChild(abstract_self, node, &mut rv);
+                self.AppendChild(abstract_self, node);
             }
         }
     }
 
     pub fn SetTextContent(&mut self,
                           abstract_self: AbstractNode<ScriptView>,
-                          value: &DOMString,
-                          _rv: &mut ErrorResult) {
+                          value: &DOMString) -> ErrorResult {
         let is_empty = match value {
-            &str(~"") | &null_string => true,
+            &Some(~"") | &None => true,
             _ => false
         };
         match self.type_id {
@@ -628,7 +627,7 @@ impl Node<ScriptView> {
             self.wait_until_safe_to_modify_dom();
 
             do abstract_self.with_mut_characterdata() |characterdata| {
-                characterdata.data = value.to_str();
+                characterdata.data = null_str_as_empty(value);
 
                 // Notify the document that the content of this node is different
                 for doc in self.owner_doc.iter() {
@@ -640,9 +639,10 @@ impl Node<ScriptView> {
           }
           DoctypeNodeTypeId => {}
         }
+        Ok(())
     }
 
-    pub fn InsertBefore(&mut self, _node: AbstractNode<ScriptView>, _child: Option<AbstractNode<ScriptView>>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+    pub fn InsertBefore(&mut self, _node: AbstractNode<ScriptView>, _child: Option<AbstractNode<ScriptView>>) -> Fallible<AbstractNode<ScriptView>> {
         fail!("stub")
     }
 
@@ -656,8 +656,7 @@ impl Node<ScriptView> {
 
     pub fn AppendChild(&mut self,
                        abstract_self: AbstractNode<ScriptView>,
-                       node: AbstractNode<ScriptView>,
-                       rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+                       node: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
         fn is_hierarchy_request_err(this_node: AbstractNode<ScriptView>,
                                    new_child: AbstractNode<ScriptView>) -> bool {
             if new_child.is_doctype() {
@@ -680,35 +679,32 @@ impl Node<ScriptView> {
         }
 
         if is_hierarchy_request_err(abstract_self, node) {
-            *rv = Err(HierarchyRequest);
+            return Err(HierarchyRequest);
         }
 
         // TODO: Should we handle WRONG_DOCUMENT_ERR here?
 
-        if rv.is_ok() {
-            self.wait_until_safe_to_modify_dom();
+        self.wait_until_safe_to_modify_dom();
 
-            // If the node already exists it is removed from current parent node.
-            node.parent_node().map(|parent| parent.remove_child(node));
-            abstract_self.add_child(node);
-            match self.owner_doc {
-                Some(doc) => do node.with_mut_base |node| {
-                    node.add_to_doc(doc);
-                },
-                None => ()
-            }
+        // If the node already exists it is removed from current parent node.
+        node.parent_node().map(|parent| parent.remove_child(node));
+        abstract_self.add_child(node);
+        match self.owner_doc {
+            Some(doc) => do node.with_mut_base |node| {
+                node.add_to_doc(doc);
+            },
+            None => ()
         }
-        node
+        Ok(node)
     }
 
-    pub fn ReplaceChild(&mut self, _node: AbstractNode<ScriptView>, _child: AbstractNode<ScriptView>, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+    pub fn ReplaceChild(&mut self, _node: AbstractNode<ScriptView>, _child: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
         fail!("stub")
     }
 
     pub fn RemoveChild(&mut self,
                        abstract_self: AbstractNode<ScriptView>,
-                       node: AbstractNode<ScriptView>,
-                       rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+                       node: AbstractNode<ScriptView>) -> Fallible<AbstractNode<ScriptView>> {
         fn is_not_found_err(this_node: AbstractNode<ScriptView>,
                             old_child: AbstractNode<ScriptView>) -> bool {
             match old_child.parent_node() {
@@ -718,21 +714,20 @@ impl Node<ScriptView> {
         }
 
         if is_not_found_err(abstract_self, node) {
-            *rv = Err(NotFound);
+            return Err(NotFound);
         }
-        if rv.is_ok() {
-            self.wait_until_safe_to_modify_dom();
 
-            abstract_self.remove_child(node);
-            self.remove_from_doc();
-        }
-        node
+        self.wait_until_safe_to_modify_dom();
+
+        abstract_self.remove_child(node);
+        self.remove_from_doc();
+        Ok(node)
     }
 
     pub fn Normalize(&mut self) {
     }
 
-    pub fn CloneNode(&self, _deep: bool, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+    pub fn CloneNode(&self, _deep: bool) -> Fallible<AbstractNode<ScriptView>> {
         fail!("stub")
     }
 
@@ -749,11 +744,11 @@ impl Node<ScriptView> {
     }
 
     pub fn LookupPrefix(&self, _prefix: &DOMString) -> DOMString {
-        null_string
+        None
     }
 
     pub fn LookupNamespaceURI(&self, _namespace: &DOMString) -> DOMString {
-        null_string
+        None
     }
 
     pub fn IsDefaultNamespace(&self, _namespace: &DOMString) -> bool {
@@ -761,15 +756,15 @@ impl Node<ScriptView> {
     }
 
     pub fn GetNamespaceURI(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn GetPrefix(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn GetLocalName(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn HasAttributes(&self) -> bool {

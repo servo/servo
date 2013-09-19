@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::DOMParserBinding;
 use dom::bindings::codegen::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
-use dom::bindings::utils::{DOMString, ErrorResult, WrapperCache, CacheableWrapper};
+use dom::bindings::utils::{DOMString, Fallible, WrapperCache, CacheableWrapper};
 use dom::document::{AbstractDocument, Document, XML};
 use dom::element::HTMLHtmlElementTypeId;
 use dom::htmldocument::HTMLDocument;
@@ -33,15 +33,14 @@ impl DOMParser {
         parser
     }
 
-    pub fn Constructor(owner: @mut Window, _rv: &mut ErrorResult) -> @mut DOMParser {
-        DOMParser::new(owner)
+    pub fn Constructor(owner: @mut Window) -> Fallible<@mut DOMParser> {
+        Ok(DOMParser::new(owner))
     }
 
     pub fn ParseFromString(&self,
                            _s: &DOMString,
-                           ty: DOMParserBinding::SupportedType,
-                           _rv: &mut ErrorResult)
-                           -> AbstractDocument {
+                           ty: DOMParserBinding::SupportedType)
+                           -> Fallible<AbstractDocument> {
         unsafe {
             let root = @HTMLHtmlElement {
                 parent: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
@@ -52,10 +51,10 @@ impl DOMParser {
 
             match ty {
                 Text_html => {
-                    HTMLDocument::new(root, None)
+                    Ok(HTMLDocument::new(root, None))
                 }
                 Text_xml => {
-                    AbstractDocument::as_abstract(cx, @mut Document::new(root, None, XML))
+                    Ok(AbstractDocument::as_abstract(cx, @mut Document::new(root, None, XML)))
                 }
                 _ => {
                     fail!("unsupported document type")
