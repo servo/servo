@@ -63,8 +63,8 @@ interface WindowTimers {
   //long setTimeout(Function handler, optional long timeout, any... arguments);
   //XXXjdm No support for Function or variadic arguments yet
   long setTimeout(any handler, optional long timeout/*, any... arguments*/);
-  /*long setTimeout(DOMString handler, optional long timeout, any... arguments);
   void clearTimeout(long handle);
+  /*long setTimeout(DOMString handler, optional long timeout, any... arguments);
   long setInterval(Function handler, optional long timeout, any... arguments);
   long setInterval(DOMString handler, optional long timeout, any... arguments);
   void clearInterval(long handle);*/

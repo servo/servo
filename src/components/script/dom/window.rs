@@ -23,6 +23,7 @@ use std::cast;
 use std::cell::Cell;
 use std::comm;
 use std::comm::SharedChan;
+use std::hashmap::HashSet;
 use std::io;
 use std::ptr;
 use std::int;
@@ -45,6 +46,8 @@ pub struct Window {
     timer_chan: SharedChan<TimerControlMsg>,
     navigator: Option<@mut Navigator>,
     image_cache_task: ImageCacheTask,
+    active_timers: ~HashSet<i32>,
+    next_timer_handle: i32,
 }
 
 #[unsafe_destructor]
@@ -58,6 +61,7 @@ impl Drop for Window {
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
 pub struct TimerData {
+    handle: i32,
     funval: JSVal,
     args: ~[JSVal],
 }
@@ -148,8 +152,10 @@ impl BindingObject for Window {
 }
 
 impl Window {
-    pub fn SetTimeout(&self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
+    pub fn SetTimeout(&mut self, _cx: *JSContext, callback: JSVal, timeout: i32) -> i32 {
         let timeout = int::max(0, timeout) as u64;
+        let handle = self.next_timer_handle;
+        self.next_timer_handle += 1;
 
         // Post a delayed message to the per-window timer task; it will dispatch it
         // to the relevant script handler that will deal with it.
@@ -159,11 +165,17 @@ impl Window {
             let mut tm = tm.take();
             tm.sleep(timeout);
             chan.send(TimerMessage_Fire(~TimerData {
+                handle: handle,
                 funval: callback,
                 args: ~[]
             }));
         }
-        return 0; //TODO return handle into list of active timers
+        self.active_timers.insert(handle);
+        handle
+    }
+
+    pub fn ClearTimeout(&mut self, handle: i32) {
+        self.active_timers.remove(&handle);
     }
 
     pub fn content_changed(&self) {
@@ -208,6 +220,8 @@ impl Window {
             },
             navigator: None,
             image_cache_task: image_cache_task,
+            active_timers: ~HashSet::new(),
+            next_timer_handle: 0
         };
 
         unsafe {
@@ -251,4 +265,3 @@ impl Traceable for Window {
         }
     }
 }
-
