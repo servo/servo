@@ -25,12 +25,11 @@ use servo_msg::constellation_msg::{PipelineId, SubpageId, RendererReadyMsg};
 use servo_msg::constellation_msg::{LoadIframeUrlMsg, IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg;
 
-use std::cell::Cell;
 use std::comm;
 use std::comm::{Port, SharedChan};
 use std::io::read_whole_file;
 use std::ptr;
-use std::task::{SingleThreaded, task};
+use std::task::spawn_with;
 use std::util::replace;
 use dom::window::TimerData;
 use geom::size::Size2D;
@@ -435,22 +434,19 @@ impl ScriptTask {
                                             resource_task: ResourceTask,
                                             image_cache_task: ImageCacheTask,
                                             initial_size: Future<Size2D<uint>>) {
-        let compositor = Cell::new(compositor);
-        let port = Cell::new(port);
-        let initial_size = Cell::new(initial_size);
-        // FIXME: rust#6399
-        let mut the_task = task();
-        the_task.sched_mode(SingleThreaded);
-        do spawn {
+        do spawn_with((compositor, layout_chan, port, chan, constellation_chan,
+                       resource_task, image_cache_task, initial_size))
+            |(compositor, layout_chan, port, chan, constellation_chan,
+                       resource_task, image_cache_task, initial_size)| {
             let script_task = ScriptTask::new(id,
-                                              @compositor.take() as @ScriptListener,
-                                              layout_chan.clone(),
-                                              port.take(),
-                                              chan.clone(),
-                                              constellation_chan.clone(),
-                                              resource_task.clone(),
-                                              image_cache_task.clone(),
-                                              initial_size.take());
+                @compositor as @ScriptListener,
+                layout_chan,
+                port,
+                chan,
+                constellation_chan,
+                resource_task,
+                image_cache_task,
+                initial_size);
             script_task.start();
         }
     }
