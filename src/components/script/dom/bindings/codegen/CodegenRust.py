@@ -1315,14 +1315,17 @@ def instantiateJSToNativeConversionTemplate(templateTuple, replacements,
 
     originalDeclName = replacements["declName"]
     if declType is not None:
-        if dealWithOptional:
-            mutableDeclType = CGWrapper(declType, pre="Option< ", post=" >")
+        if dealWithOptional and not initialValue:
+            declType = CGWrapper(declType, pre="Option< ", post=" >")
         newDecl = [CGGeneric("let mut "),
                    CGGeneric(originalDeclName),
                    CGGeneric(": "),
                    declType]
         if initialValue:
             newDecl.append(CGGeneric(" = " + initialValue))
+        else:
+            if dealWithOptional:
+                newDecl.append(CGGeneric(" = None"))
         newDecl.append(CGGeneric(";"))
         result.append(CGList(newDecl))
 
