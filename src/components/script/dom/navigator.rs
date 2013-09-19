@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{WrapperCache, BindingObject, CacheableWrapper};
-use dom::bindings::utils::{DOMString, ErrorResult, str, null_string};
+use dom::bindings::utils::{DOMString, Fallible};
 use dom::bindings::codegen::NavigatorBinding;
 use script_task::{page_from_context};
 
@@ -23,35 +23,35 @@ impl Navigator {
     }
 
     pub fn DoNotTrack(&self) -> DOMString {
-        str(~"unspecified")
+        Some(~"unspecified")
     }
 
     pub fn Vendor(&self) -> DOMString {
-        str(~"") // Like Gecko
+        Some(~"") // Like Gecko
     }
 
     pub fn VendorSub(&self) -> DOMString {
-        str(~"") // Like Gecko
+        Some(~"") // Like Gecko
     }
 
     pub fn Product(&self) -> DOMString {
-        str(~"Gecko") // This is supposed to be constant, see webidl.
+        Some(~"Gecko") // This is supposed to be constant, see webidl.
     }
 
     pub fn ProductSub(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn CookieEnabled(&self) -> bool {
         false
     }
 
-    pub fn GetBuildID(&self, _rv: &mut ErrorResult) -> DOMString {
-        null_string
+    pub fn GetBuildID(&self) -> Fallible<DOMString> {
+        Ok(None)
     }
 
-    pub fn JavaEnabled(&self, _rv: &mut ErrorResult) -> bool {
-        false
+    pub fn JavaEnabled(&self) -> Fallible<bool> {
+        Ok(false)
     }
 
     pub fn TaintEnabled(&self) -> bool {
@@ -59,27 +59,27 @@ impl Navigator {
     }
 
     pub fn AppName(&self) -> DOMString {
-        str(~"Netscape") // Like Gecko/Webkit
+        Some(~"Netscape") // Like Gecko/Webkit
     }
 
-    pub fn GetAppCodeName(&self, _rv: &mut ErrorResult) -> DOMString {
-        str(~"Mozilla") // Like Gecko/Webkit
+    pub fn GetAppCodeName(&self) -> Fallible<DOMString> {
+        Ok(Some(~"Mozilla")) // Like Gecko/Webkit
     }
 
-    pub fn GetAppVersion(&self, _rv: &mut ErrorResult) -> DOMString {
-        null_string
+    pub fn GetAppVersion(&self) -> Fallible<DOMString> {
+        Ok(None)
     }
 
-    pub fn GetPlatform(&self, _rv: &mut ErrorResult) -> DOMString {
-        null_string
+    pub fn GetPlatform(&self) -> Fallible<DOMString> {
+        Ok(None)
     }
 
-    pub fn GetUserAgent(&self, _rv: &mut ErrorResult) -> DOMString {
-        null_string
+    pub fn GetUserAgent(&self) -> Fallible<DOMString> {
+        Ok(None)
     }
 
     pub fn GetLanguage(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn OnLine(&self) -> bool {

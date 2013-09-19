@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::WindowBinding;
-use dom::bindings::utils::{WrapperCache, DOMString, null_string, Traceable};
-use dom::bindings::utils::{CacheableWrapper, BindingObject};
+use dom::bindings::utils::{WrapperCache, DOMString, Traceable};
+use dom::bindings::utils::{CacheableWrapper, BindingObject, null_str_as_empty};
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ScriptView};
 use dom::navigator::Navigator;
@@ -69,7 +69,7 @@ pub struct TimerData {
 impl Window {
     pub fn Alert(&self, s: &DOMString) {
         // Right now, just print to the console
-        io::println(fmt!("ALERT: %s", s.to_str()));
+        io::println(fmt!("ALERT: %s", null_str_as_empty(s)));
     }
 
     pub fn Close(&self) {
@@ -81,14 +81,14 @@ impl Window {
     }
 
     pub fn Name(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetName(&self, _name: &DOMString) {
     }
 
     pub fn Status(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetStatus(&self, _status: &DOMString) {
@@ -123,7 +123,7 @@ impl Window {
     }
 
     pub fn Prompt(&self, _message: &DOMString, _default: &DOMString) -> DOMString {
-        null_string
+        None
     }
 
     pub fn Print(&self) {

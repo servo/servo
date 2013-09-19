@@ -1049,7 +1049,7 @@ for (uint32_t i = 0; i < length; ++i) {
             #    "if (!ConvertJSValueToString(cx, ${val}, ${valPtr}, %s, %s, %s)) {\n"
             #    "  return false;\n"
             #    "}" % (nullBehavior, undefinedBehavior, varName))
-            strval = "str(strval.unwrap())"
+            strval = "Some(strval.unwrap())"
             if isOptional:
                 strval = "Some(%s)" % strval
             conversionCode = (
@@ -1068,7 +1068,7 @@ for (uint32_t i = 0; i < length; ++i) {
             return handleDefault(
                 conversionCode,
                 ("static data: [u8, ..%s] = [ %s ];\n"
-                 "%s = str(str::from_utf8(data));" %
+                 "%s = Some(str::from_utf8(data));" %
                  (len(defaultValue.value) + 1,
                   ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
                   varName)))
@@ -2925,8 +2925,6 @@ class CGCallGenerator(CGThing):
         # Return values that go in outparams go here
         if resultOutParam:
             args.append(CGGeneric("result"))
-        if isFallible:
-            args.append(CGGeneric("&mut rv"))
 
         needsCx = (typeNeedsCx(returnType, True) or
                    any(typeNeedsCx(a.type) for (a, _) in arguments) or
@@ -2944,21 +2942,29 @@ class CGCallGenerator(CGThing):
         else: 
             call = CGWrapper(call, pre="(*%s)." % object)
         call = CGList([call, CGWrapper(args, pre="(", post=");")])
-        if result is not None:
-            if declareResult:
-                result = CGWrapper(result, pre="let mut result: ", post=";")
-                self.cgRoot.prepend(result)
-            if not resultOutParam:
-                call = CGWrapper(call, pre="result = ")
+
+        if isFallible:
+            self.cgRoot.prepend(CGWrapper(result if result is not None else CGGeneric("()"),
+                pre="let mut result_fallible: Result<", post=",Error>;"))
+
+        if result is not None and declareResult:
+            result = CGWrapper(result, pre="let mut result: ", post=";")
+            self.cgRoot.prepend(result)
+
+        if isFallible:
+            call = CGWrapper(call, pre="result_fallible = ")
+        elif result is not None and not resultOutParam:
+            call = CGWrapper(call, pre="result = ")
 
         call = CGWrapper(call)
         self.cgRoot.append(call)
 
         if isFallible:
-            self.cgRoot.prepend(CGGeneric("let mut rv: ErrorResult = Ok(());"))
-            self.cgRoot.append(CGGeneric("if (rv.is_err()) {"))
+            self.cgRoot.append(CGGeneric("if (result_fallible.is_err()) {"))
             self.cgRoot.append(CGIndenter(errorReport))
             self.cgRoot.append(CGGeneric("}"))
+            if result is not None and not resultOutParam:
+                self.cgRoot.append(CGGeneric("result = result_fallible.unwrap();"))
 
     def define(self):
         return self.cgRoot.define()
@@ -3190,7 +3196,7 @@ class CGAbstractBindingMethod(CGAbstractExternMethod):
                       "  return false as JSBool;\n"
                       "}\n"
                       "\n"
-                      "let this: *rust_box<%s>;" % self.descriptor.concreteType))
+                      "let this: *Box<%s>;" % self.descriptor.concreteType))
 
     def generate_code(self):
         assert(False) # Override me
@@ -3230,7 +3236,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         self.method = method
         name = method.identifier.name
         args = [Argument('*JSContext', 'cx'), Argument('JSHandleObject', 'obj'),
-                Argument('*mut rust_box<%s>' % descriptor.concreteType, 'this'),
+                Argument('*mut Box<%s>' % descriptor.concreteType, 'this'),
                 Argument('libc::c_uint', 'argc'), Argument('*mut JSVal', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'JSBool', args)
 
@@ -3247,7 +3253,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
                                       self.descriptor, self.method),
                          pre=extraPre +
                              "  let obj = (*obj.unnamed);\n" +
-                             "  let this = &mut (*this).payload;\n").define()
+                             "  let this = &mut (*this).data;\n").define()
 
 class CGGenericGetter(CGAbstractBindingMethod):
     """
@@ -3283,7 +3289,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         name = 'get_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
                  Argument('JSHandleObject', 'obj'),
-                 Argument('*mut rust_box<%s>' % descriptor.concreteType, 'this'),
+                 Argument('*mut Box<%s>' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'vp') ]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -3309,7 +3315,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
                                                  self.descriptor, self.attr)),
                          pre=extraPre +
                              "  let obj = (*obj.unnamed);\n" +
-                             "  let this = &mut (*this).payload;\n").define()
+                             "  let this = &mut (*this).data;\n").define()
 
 class CGGenericSetter(CGAbstractBindingMethod):
     """
@@ -3350,7 +3356,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         name = 'set_' + attr.identifier.name
         args = [ Argument('*JSContext', 'cx'),
                  Argument('JSHandleObject', 'obj'),
-                 Argument('*mut rust_box<%s>' % descriptor.concreteType, 'this'),
+                 Argument('*mut Box<%s>' % descriptor.concreteType, 'this'),
                  Argument('*mut JSVal', 'argv')]
         CGAbstractExternMethod.__init__(self, descriptor, name, "JSBool", args)
 
@@ -3367,7 +3373,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
                                                  self.descriptor, self.attr)),
                          pre=extraPre +
                              "  let obj = (*obj.unnamed);\n" +
-                             "  let this = &mut (*this).payload;\n").define()
+                             "  let this = &mut (*this).data;\n").define()
 
 def infallibleForMember(member, type, descriptorProvider):
     """
@@ -3642,8 +3648,8 @@ class CGProxyUnwrap(CGAbstractMethod):
     obj = js::UnwrapObject(obj);
   }*/
   //MOZ_ASSERT(IsProxy(obj));
-  let box: *rust_box<%s> = cast::transmute(RUST_JSVAL_TO_PRIVATE(GetProxyPrivate(obj)));
-  return ptr::to_unsafe_ptr(&(*box).payload);""" % (self.descriptor.concreteType)
+  let box: *Box<%s> = cast::transmute(RUST_JSVAL_TO_PRIVATE(GetProxyPrivate(obj)));
+  return ptr::to_unsafe_ptr(&(*box).data);""" % (self.descriptor.concreteType)
 
 class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
@@ -3721,7 +3727,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                         "  if strval.is_err() {\n" +
                         "    return 0;\n" +
                         "  }\n" +
-                        "  let name = str(strval.unwrap());\n" +
+                        "  let name = Some(strval.unwrap());\n" +
                         "\n" +
                         "  let this: *%s = UnwrapProxy(proxy);\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() + "\n" +
@@ -3790,7 +3796,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "  if strval.is_err() {\n" +
                     "    return 0;\n" +
                     "  }\n" +
-                    "  let name = str(strval.unwrap());\n" +
+                    "  let name = Some(strval.unwrap());\n" +
                     "\n" +
                     "  let this: *%s = UnwrapProxy(proxy);\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() + "\n" +
@@ -3806,7 +3812,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "  if strval.is_err() {\n" +
                     "    return 0;\n" +
                     "  }\n" +
-                    "  let name = str(strval.unwrap());\n" +
+                    "  let name = Some(strval.unwrap());\n" +
                     "  let this: %%s = UnwrapProxy(proxy);\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
                     "  if (found) {\n"
@@ -3852,7 +3858,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                      "  if strval.is_err() {\n" +
                      "    return 0;\n" +
                      "  }\n" +
-                     "  let name = str(strval.unwrap());\n" +
+                     "  let name = Some(strval.unwrap());\n" +
                      "\n" +
                      "  let this: *%s = UnwrapProxy(proxy);\n" +
                      CGIndenter(CGProxyNamedGetter(self.descriptor)).define() + "\n" +
@@ -3997,7 +4003,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
     def definition_body_prologue(self):
         return """
-  let this: *%s = &(*unwrap::<*rust_box<%s>>(obj)).payload;
+  let this: *%s = &(*unwrap::<*Box<%s>>(obj)).data;
 """ % (self.descriptor.concreteType, self.descriptor.concreteType)
 
     def definition_body(self):
@@ -4686,6 +4692,7 @@ class CGBindingRoot(CGThing):
                           'std::vec',
                           'std::str',
                           'std::num',
+                          'std::unstable::raw::Box',
                          ], 
                          [],
                          curr)

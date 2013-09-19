@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DocumentBinding;
-use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, null_string, str};
-use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, DerivedWrapper};
-use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable};
+use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, Fallible};
+use dom::bindings::utils::{BindingObject, CacheableWrapper, DerivedWrapper};
+use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, null_str_as_empty};
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::event::Event;
@@ -29,6 +29,7 @@ use std::ptr;
 use std::str::eq_slice;
 use std::libc;
 use std::ascii::StrAsciiExt;
+use std::unstable::raw::Box;
 
 pub trait WrappableDocument {
     fn init_wrapper(@mut self, cx: *JSContext);
@@ -48,13 +49,13 @@ impl AbstractDocument {
     }
 
     unsafe fn transmute<T, R>(&self, f: &fn(&T) -> R) -> R {
-        let box: *rust_box<T> = cast::transmute(self.document);
-        f(&(*box).payload)
+        let box: *Box<T> = cast::transmute(self.document);
+        f(&(*box).data)
     }
 
     unsafe fn transmute_mut<T, R>(&self, f: &fn(&mut T) -> R) -> R {
-        let box: *mut rust_box<T> = cast::transmute(self.document);
-        f(&mut (*box).payload)
+        let box: *mut Box<T> = cast::transmute(self.document);
+        f(&mut (*box).data)
     }
 
     pub fn with_base<R>(&self, callback: &fn(&Document) -> R) -> R {
@@ -103,14 +104,14 @@ impl Document {
         }
     }
 
-    pub fn Constructor(owner: @mut Window, _rv: &mut ErrorResult) -> AbstractDocument {
+    pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
         let root = @HTMLHtmlElement {
             parent: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
         };
 
         let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
         let root = unsafe { Node::as_abstract_node(cx, root) };
-        AbstractDocument::as_abstract(cx, @mut Document::new(root, None, XML))
+        Ok(AbstractDocument::as_abstract(cx, @mut Document::new(root, None, XML)))
     }
 }
 
@@ -187,23 +188,23 @@ impl BindingObject for Document {
 
 impl Document {
     pub fn URL(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn DocumentURI(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn CompatMode(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn CharacterSet(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn ContentType(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn GetDocumentElement(&self) -> Option<AbstractNode<ScriptView>> {
@@ -224,7 +225,7 @@ impl Document {
     }
 
     pub fn GetElementsByTagName(&self, tag: &DOMString) -> @mut HTMLCollection {
-        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, tag.to_str()))
+        self.createHTMLCollection(|elem| eq_slice(elem.tag_name, null_str_as_empty(tag)))
     }
 
     pub fn GetElementsByTagNameNS(&self, _ns: &DOMString, _tag: &DOMString) -> @mut HTMLCollection {
@@ -241,45 +242,43 @@ impl Document {
         None
     }
 
-    pub fn CreateElement(&self, local_name: &DOMString, rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+    pub fn CreateElement(&self, local_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
         let cx = self.get_cx();
-        let local_name = local_name.to_str();
+        let local_name = null_str_as_empty(local_name);
         if !is_valid_element_name(local_name) {
-            *rv = Err(InvalidCharacter);
-            // FIXME #909: what to return here?
-            fail!("invalid character");
+            return Err(InvalidCharacter);
         }
         let local_name = local_name.to_ascii_lower();
-        build_element_from_tag(cx, local_name)
+        Ok(build_element_from_tag(cx, local_name))
     }
 
-    pub fn CreateElementNS(&self, _namespace: &DOMString, _qualified_name: &DOMString, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+    pub fn CreateElementNS(&self, _namespace: &DOMString, _qualified_name: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
         fail!("stub")
     }
 
     pub fn CreateTextNode(&self, data: &DOMString) -> AbstractNode<ScriptView> {
         let cx = self.get_cx();
-        unsafe { Node::as_abstract_node(cx, @Text::new(data.to_str())) }
+        unsafe { Node::as_abstract_node(cx, @Text::new(null_str_as_empty(data))) }
     }
 
-    pub fn CreateEvent(&self, _interface: &DOMString, _rv: &mut ErrorResult) -> @mut Event {
+    pub fn CreateEvent(&self, _interface: &DOMString) -> Fallible<@mut Event> {
         fail!("stub")
     }
 
     pub fn GetInputEncoding(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn Referrer(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn LastModified(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn ReadyState(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn Title(&self) -> DOMString {
@@ -297,7 +296,7 @@ impl Document {
                         if child.is_text() {
                             do child.with_imm_text() |text| {
                                 let s = text.parent.Data();
-                                title = title + s.to_str();
+                                title = title + null_str_as_empty(&s);
                             }
                         }
                     }
@@ -308,10 +307,10 @@ impl Document {
         let v: ~[&str] = title.word_iter().collect();
         title = v.connect(" ");
         title = title.trim().to_owned();
-        str(title)
+        Some(title)
     }
 
-    pub fn SetTitle(&self, title: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetTitle(&self, title: &DOMString) -> ErrorResult {
         match self.doctype {
             SVG => {
                 fail!("no SVG document yet")
@@ -348,10 +347,11 @@ impl Document {
                 };
             }
         }
+        Ok(())
     }
 
     pub fn Dir(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetDir(&self, _dir: &DOMString) {
@@ -365,8 +365,8 @@ impl Document {
         None
     }
 
-    pub fn HasFocus(&self, _rv: &mut ErrorResult) -> bool {
-        false
+    pub fn HasFocus(&self) -> Fallible<bool> {
+        Ok(false)
     }
 
     pub fn GetCurrentScript(&self) -> Option<AbstractNode<ScriptView>> {
@@ -380,8 +380,8 @@ impl Document {
         false
     }
 
-    pub fn GetMozFullScreenElement(&self, _rv: &mut ErrorResult) -> Option<AbstractNode<ScriptView>> {
-        None
+    pub fn GetMozFullScreenElement(&self) -> Fallible<Option<AbstractNode<ScriptView>>> {
+        Ok(None)
     }
 
     pub fn GetMozPointerLockElement(&self) -> Option<AbstractNode<ScriptView>> {
@@ -408,18 +408,18 @@ impl Document {
     }
 
     pub fn GetSelectedStyleSheetSet(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetSelectedStyleSheetSet(&self, _sheet: &DOMString) {
     }
 
     pub fn GetLastStyleSheetSet(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn GetPreferredStyleSheetSet(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn EnableStyleSheetsForSet(&self, _name: &DOMString) {
@@ -429,13 +429,13 @@ impl Document {
         None
     }
 
-    pub fn QuerySelector(&self, _selectors: &DOMString, _rv: &mut ErrorResult) -> Option<AbstractNode<ScriptView>> {
-        None
+    pub fn QuerySelector(&self, _selectors: &DOMString) -> Fallible<Option<AbstractNode<ScriptView>>> {
+        Ok(None)
     }
 
     pub fn GetElementsByName(&self, name: &DOMString) -> @mut HTMLCollection {
         self.createHTMLCollection(|elem|
-            elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), name.to_str()))
+            elem.get_attr("name").is_some() && eq_slice(elem.get_attr("name").unwrap(), null_str_as_empty(name)))
     }
 
     pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {

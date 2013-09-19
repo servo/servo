@@ -14,13 +14,15 @@ impl HTMLCanvasElement {
         0
     }
 
-    pub fn SetWidth(&mut self, _width: u32, _rv: &mut ErrorResult) {
+    pub fn SetWidth(&mut self, _width: u32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Height(&self) -> u32 {
         0
     }
 
-    pub fn SetHeight(&mut self, _height: u32, _rv: &mut ErrorResult) {
+    pub fn SetHeight(&mut self, _height: u32) -> ErrorResult {
+        Ok(())
     }
 }

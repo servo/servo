@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, ErrorResult, null_string};
+use dom::bindings::utils::{DOMString, Fallible, null_str_as_empty};
 use dom::characterdata::CharacterData;
 use dom::node::{AbstractNode, ScriptView, Node, TextNodeTypeId};
 use dom::window::Window;
@@ -20,16 +20,16 @@ impl Text {
         }
     }
 
-    pub fn Constructor(owner: @mut Window, text: &DOMString, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+    pub fn Constructor(owner: @mut Window, text: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
         let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
-        unsafe { Node::as_abstract_node(cx, @Text::new(text.to_str())) }
+        unsafe { Ok(Node::as_abstract_node(cx, @Text::new(null_str_as_empty(text)))) }
     }
 
-    pub fn SplitText(&self, _offset: u32, _rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
+    pub fn SplitText(&self, _offset: u32) -> Fallible<AbstractNode<ScriptView>> {
         fail!("unimplemented")
     }
 
-    pub fn GetWholeText(&self, _rv: &mut ErrorResult) -> DOMString {
-        null_string
+    pub fn GetWholeText(&self) -> Fallible<DOMString> {
+        Ok(None)
     }
 }

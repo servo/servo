@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::htmlelement::HTMLElement;
 use dom::node::{AbstractNode, ScriptView};
@@ -15,31 +15,35 @@ pub struct HTMLObjectElement {
 
 impl HTMLObjectElement {
     pub fn Data(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetData(&mut self, _data: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetData(&mut self, _data: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Name(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn UseMap(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetUseMap(&mut self, _use_map: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetUseMap(&mut self, _use_map: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetForm(&self) -> Option<AbstractNode<ScriptView>> {
@@ -47,17 +51,19 @@ impl HTMLObjectElement {
     }
 
     pub fn Width(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetWidth(&mut self, _width: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetWidth(&mut self, _width: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Height(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetHeight(&mut self, _height: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetHeight(&mut self, _height: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetContentDocument(&self) -> Option<AbstractDocument> {
@@ -77,7 +83,7 @@ impl HTMLObjectElement {
     }
 
     pub fn ValidationMessage(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn CheckValidity(&self) -> bool {
@@ -88,73 +94,83 @@ impl HTMLObjectElement {
     }
 
     pub fn Align(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
-        pub fn Archive(&self) -> DOMString {
-        null_string
+    pub fn Archive(&self) -> DOMString {
+        None
     }
 
-    pub fn SetArchive(&mut self, _archive: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetArchive(&mut self, _archive: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Code(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetCode(&mut self, _code: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCode(&mut self, _code: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Declare(&self) -> bool {
         false
     }
 
-    pub fn SetDeclare(&mut self, _declare: bool, _rv: &mut ErrorResult) {
+    pub fn SetDeclare(&mut self, _declare: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Hspace(&self) -> u32 {
         0
     }
 
-    pub fn SetHspace(&mut self, _hspace: u32, _rv: &mut ErrorResult) {
+    pub fn SetHspace(&mut self, _hspace: u32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Standby(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetStandby(&mut self, _standby: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetStandby(&mut self, _standby: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Vspace(&self) -> u32 {
         0
     }
 
-    pub fn SetVspace(&mut self, _vspace: u32, _rv: &mut ErrorResult) {
+    pub fn SetVspace(&mut self, _vspace: u32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn CodeBase(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetCodeBase(&mut self, _codebase: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCodeBase(&mut self, _codebase: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn CodeType(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetCodeType(&mut self, _codetype: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCodeType(&mut self, _codetype: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Border(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetBorder(&mut self, _border: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetBorder(&mut self, _border: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetSVGDocument(&self) -> Option<AbstractDocument> {

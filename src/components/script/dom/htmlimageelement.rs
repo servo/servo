@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, str, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult, null_str_as_empty};
 use dom::htmlelement::HTMLElement;
 use dom::node::{ScriptView, AbstractNode};
 use extra::url::Url;
@@ -40,7 +40,7 @@ impl HTMLImageElement {
     }
 
     pub fn AfterSetAttr(&mut self, name: &DOMString, _value: &DOMString) {
-        let name = name.to_str();
+        let name = null_str_as_empty(name);
         if "src" == name {
             let doc = self.parent.parent.parent.owner_doc;
             for doc in doc.iter() {
@@ -55,45 +55,49 @@ impl HTMLImageElement {
     }
 
     pub fn Alt(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetAlt(&mut self, _alt: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAlt(&mut self, _alt: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Src(&self, _abstract_self: AbstractNode<ScriptView>) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetSrc(&mut self,
                   abstract_self: AbstractNode<ScriptView>,
-                  src: &DOMString,
-                  _rv: &mut ErrorResult) {
+                  src: &DOMString) -> ErrorResult {
         let node = &mut self.parent.parent;
         node.set_attr(abstract_self,
-                      &str(~"src"),
-                      &str(src.to_str()));
+                      &Some(~"src"),
+                      &Some(null_str_as_empty(src)));
+        Ok(())
     }
 
     pub fn CrossOrigin(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetCrossOrigin(&mut self, _cross_origin: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn UseMap(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetUseMap(&mut self, _use_map: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetUseMap(&mut self, _use_map: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn IsMap(&self) -> bool {
         false
     }
 
-    pub fn SetIsMap(&self, _is_map: bool, _rv: &mut ErrorResult) {
+    pub fn SetIsMap(&self, _is_map: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Width(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
@@ -125,12 +129,12 @@ impl HTMLImageElement {
 
     pub fn SetWidth(&mut self,
                     abstract_self: AbstractNode<ScriptView>,
-                    width: u32,
-                    _rv: &mut ErrorResult) {
+                    width: u32) -> ErrorResult {
         let node = &mut self.parent.parent;
         node.set_attr(abstract_self,
-                      &str(~"width"),
-                      &str(width.to_str()));
+                      &Some(~"width"),
+                      &Some(width.to_str()));
+        Ok(())
     }
 
     pub fn Height(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
@@ -162,12 +166,12 @@ impl HTMLImageElement {
 
     pub fn SetHeight(&mut self,
                      abstract_self: AbstractNode<ScriptView>,
-                     height: u32,
-                     _rv: &mut ErrorResult) {
+                     height: u32) -> ErrorResult {
         let node = &mut self.parent.parent;
         node.set_attr(abstract_self,
-                      &str(~"height"),
-                      &str(height.to_str()));
+                      &Some(~"height"),
+                      &Some(height.to_str()));
+        Ok(())
     }
 
     pub fn NaturalWidth(&self) -> u32 {
@@ -183,44 +187,50 @@ impl HTMLImageElement {
     }
 
     pub fn Name(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Align(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetAlign(&mut self, _align: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAlign(&mut self, _align: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Hspace(&self) -> u32 {
         0
     }
 
-    pub fn SetHspace(&mut self, _hspace: u32, _rv: &mut ErrorResult) {
+    pub fn SetHspace(&mut self, _hspace: u32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Vspace(&self) -> u32 {
         0
     }
 
-    pub fn SetVspace(&mut self, _vspace: u32, _rv: &mut ErrorResult) {
+    pub fn SetVspace(&mut self, _vspace: u32) -> ErrorResult {
+        Ok(())
     }
 
     pub fn LongDesc(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Border(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetBorder(&mut self, _border: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetBorder(&mut self, _border: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

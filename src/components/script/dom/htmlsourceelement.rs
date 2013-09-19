@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLSourceElement {
@@ -11,23 +11,26 @@ pub struct HTMLSourceElement {
 
 impl HTMLSourceElement {
     pub fn Src(&self) -> DOMString {
-        null_string
+        None
     }
     
-    pub fn SetSrc(&mut self, _src: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Type(&self) -> DOMString {
-        null_string
+        None
     }
     
-    pub fn SetType(&mut self, _type: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetType(&mut self, _type: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Media(&self) -> DOMString {
-        null_string
+        None
     }
     
-    pub fn SetMedia(&mut self, _media: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetMedia(&mut self, _media: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }

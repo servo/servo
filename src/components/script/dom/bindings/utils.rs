@@ -14,7 +14,7 @@ use std::libc;
 use std::ptr;
 use std::ptr::{null, to_unsafe_ptr};
 use std::str;
-use std::unstable::intrinsics;
+use std::unstable::raw::Box;
 use js::glue::*;
 use js::glue::{DefineFunctionWithReserved, GetObjectJSClass, RUST_OBJECT_TO_JSVAL};
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
@@ -83,48 +83,27 @@ extern fn InterfaceObjectToString(cx: *JSContext, _argc: c_uint, vp: *mut JSVal)
     }
 
     let name = jsval_to_str(cx, *v).unwrap();
-    let retval = str(~"function " + name + "() {\n    [native code]\n}");
+    let retval = Some(~"function " + name + "() {\n    [native code]\n}");
     *vp = domstring_to_jsval(cx, &retval);
     return 1;
   }
 }
 
-#[deriving(Clone)]
-pub enum DOMString {
-    str(~str),
-    null_string
-}
+pub type DOMString = Option<~str>;
 
-impl DOMString {
-    pub fn to_str(&self) -> ~str {
-        match *self {
-          str(ref s) => s.clone(),
-          null_string => ~""
-        }
-    }
-
-    pub fn get_ref<'a>(&'a self) -> &'a str {
-        match *self {
-            str(ref s) => s.as_slice(),
-            null_string => &'a "",
-        }
-    }
-
-    // XXX This is temporary until issue #875 is fixed.
-    pub fn unwrap(&self) -> ~str {
-        match self {
-          &str(ref s) => s.clone(),
-          &null_string => fail!("Cannot unwrap a null string.")
-        }
+pub fn null_str_as_empty(s: &DOMString) -> ~str {
+    // We don't use map_default because it would allocate ~"" even for Some.
+    match *s {
+        Some(ref s) => s.clone(),
+        None => ~""
     }
 }
 
-pub struct rust_box<T> {
-    rc: uint,
-    td: *intrinsics::TyDesc,
-    next: *(),
-    prev: *(),
-    payload: T
+pub fn null_str_as_empty_ref<'a>(s: &'a DOMString) -> &'a str {
+    match *s {
+        Some(ref s) => s.as_slice(),
+        None => &'a ""
+    }
 }
 
 fn is_dom_class(clasp: *JSClass) -> bool {
@@ -193,8 +172,8 @@ pub fn unwrap_value<T>(val: *JSVal, proto_id: PrototypeList::id::ID, proto_depth
     }
 }
 
-pub unsafe fn squirrel_away<T>(x: @mut T) -> *rust_box<T> {
-    let y: *rust_box<T> = cast::transmute(x);
+pub unsafe fn squirrel_away<T>(x: @mut T) -> *Box<T> {
+    let y: *Box<T> = cast::transmute(x);
     cast::forget(x);
     y
 }
@@ -223,10 +202,10 @@ pub fn jsval_to_str(cx: *JSContext, v: JSVal) -> Result<~str, ()> {
 #[fixed_stack_segment]
 pub unsafe fn domstring_to_jsval(cx: *JSContext, string: &DOMString) -> JSVal {
     match string {
-      &null_string => {
+      &None => {
         JSVAL_NULL
       }
-      &str(ref s) => {
+      &Some(ref s) => {
         do s.as_imm_buf |buf, len| {
             let cbuf = cast::transmute(buf);
             RUST_STRING_TO_JSVAL(JS_NewStringCopyN(cx, cbuf, len as libc::size_t))
@@ -536,7 +515,7 @@ pub fn initialize_global(global: *JSObject) {
     unsafe {
         //XXXjdm we should be storing the box pointer instead of the inner
         let box = squirrel_away(protoArray);
-        let inner = ptr::to_unsafe_ptr(&(*box).payload);
+        let inner = ptr::to_unsafe_ptr(&(*box).data);
         JS_SetReservedSlot(global,
                            DOM_PROTOTYPE_SLOT,
                            RUST_PRIVATE_TO_JSVAL(inner as *libc::c_void));
@@ -773,7 +752,9 @@ pub enum Error {
     InvalidCharacter,
 }
 
-pub type ErrorResult = Result<(), Error>;
+pub type Fallible<T> = Result<T, Error>;
+
+pub type ErrorResult = Fallible<()>;
 
 pub struct EnumEntry {
     value: &'static str,

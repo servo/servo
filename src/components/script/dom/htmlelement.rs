@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLElementBinding;
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::element::{Element, ElementTypeId};
 use dom::node::{AbstractNode, ScriptView};
@@ -24,38 +24,41 @@ impl HTMLElement {
 
 impl HTMLElement {
     pub fn Title(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetTitle(&mut self, _title: &DOMString) {
     }
 
     pub fn Lang(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetLang(&mut self, _lang: &DOMString) {
     }
 
     pub fn Dir(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetDir(&mut self, _dir: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetDir(&mut self, _dir: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
-    pub fn GetItemValue(&self, _cx: *JSContext, _rv: &mut ErrorResult) -> JSVal {
-        JSVAL_NULL
+    pub fn GetItemValue(&self, _cx: *JSContext) -> Fallible<JSVal> {
+        Ok(JSVAL_NULL)
     }
 
-    pub fn SetItemValue(&mut self, _cx: *JSContext, _val: JSVal, _rv: &mut ErrorResult) {
+    pub fn SetItemValue(&mut self, _cx: *JSContext, _val: JSVal) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Hidden(&self) -> bool {
         false
     }
 
-    pub fn SetHidden(&mut self, _hidden: bool, _rv: &mut ErrorResult) {
+    pub fn SetHidden(&mut self, _hidden: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Click(&self) {
@@ -65,38 +68,44 @@ impl HTMLElement {
         0
     }
 
-    pub fn SetTabIndex(&mut self, _index: i32, _rv: &mut ErrorResult) {
+    pub fn SetTabIndex(&mut self, _index: i32) -> ErrorResult {
+        Ok(())
     }
 
-    pub fn Focus(&self, _rv: &mut ErrorResult) {
+    pub fn Focus(&self) -> ErrorResult {
+        Ok(())
     }
 
-    pub fn Blur(&self, _rv: &mut ErrorResult) {
+    pub fn Blur(&self) -> ErrorResult {
+        Ok(())
     }
 
     pub fn AccessKey(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetAccessKey(&self, _key: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetAccessKey(&self, _key: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn AccessKeyLabel(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn Draggable(&self) -> bool {
         false
     }
 
-    pub fn SetDraggable(&mut self, _draggable: bool, _rv: &mut ErrorResult) {
+    pub fn SetDraggable(&mut self, _draggable: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn ContentEditable(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetContentEditable(&mut self, _val: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetContentEditable(&mut self, _val: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn IsContentEditable(&self) -> bool {
@@ -107,11 +116,12 @@ impl HTMLElement {
         false
     }
 
-    pub fn SetSpellcheck(&self, _val: bool, _rv: &mut ErrorResult) {
+    pub fn SetSpellcheck(&self, _val: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn ClassName(&self) -> DOMString {
-        null_string
+        None
     }
 
     pub fn SetClassName(&self, _class: &DOMString) {

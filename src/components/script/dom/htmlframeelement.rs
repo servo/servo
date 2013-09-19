@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{DOMString, null_string, ErrorResult};
+use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::document::AbstractDocument;
 use dom::htmlelement::HTMLElement;
 use dom::windowproxy::WindowProxy;
@@ -13,45 +13,51 @@ pub struct HTMLFrameElement {
 
 impl HTMLFrameElement {
     pub fn Name(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetName(&mut self, _name: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetName(&mut self, _name: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Scrolling(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetScrolling(&mut self, _scrolling: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetScrolling(&mut self, _scrolling: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn Src(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetSrc(&mut self, _src: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetSrc(&mut self, _src: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn FrameBorder(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetFrameBorder(&mut self, _frameborder: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetFrameBorder(&mut self, _frameborder: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn LongDesc(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetLongDesc(&mut self, _longdesc: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetLongDesc(&mut self, _longdesc: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn NoResize(&self) -> bool {
         false
     }
 
-    pub fn SetNoResize(&mut self, _no_resize: bool, _rv: &mut ErrorResult) {
+    pub fn SetNoResize(&mut self, _no_resize: bool) -> ErrorResult {
+        Ok(())
     }
 
     pub fn GetContentDocument(&self) -> Option<AbstractDocument> {
@@ -63,16 +69,18 @@ impl HTMLFrameElement {
     }
 
     pub fn MarginHeight(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetMarginHeight(&mut self, _height: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetMarginHeight(&mut self, _height: &DOMString) -> ErrorResult {
+        Ok(())
     }
 
     pub fn MarginWidth(&self) -> DOMString {
-        null_string
+        None
     }
 
-    pub fn SetMarginWidth(&mut self, _height: &DOMString, _rv: &mut ErrorResult) {
+    pub fn SetMarginWidth(&mut self, _height: &DOMString) -> ErrorResult {
+        Ok(())
     }
 }
