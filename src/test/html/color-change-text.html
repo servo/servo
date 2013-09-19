@@ -6,7 +6,12 @@
 .red  { color: red;  }
 .blue { color: blue; }
 </style>
-<script src="color-change-text.js"></script>
+<script>
+window.setTimeout(function () {
+    window.document.getElementsByTagName('div')[0].setAttribute('class', 'blue');
+    window.document.getElementsByTagName('div')[1].setAttribute('style', 'color:red;');
+}, 1000);
+</script>
 </head>
 <body>
     <div id="change" class="red">Hello, World!</div>
