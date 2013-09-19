@@ -7,7 +7,7 @@ use dom::node::{ScriptView, Node, DoctypeNodeTypeId};
 
 /// The `DOCTYPE` tag.
 pub struct DocumentType<View> {
-    element: Node<View>,
+    node: Node<View>,
     name: ~str,
     public_id: Option<~str>,
     system_id: Option<~str>,
@@ -22,7 +22,7 @@ impl DocumentType<ScriptView> {
                force_quirks: bool)
             -> DocumentType<ScriptView> {
         DocumentType {
-            element: Node::new(DoctypeNodeTypeId),
+            node: Node::new(DoctypeNodeTypeId),
             name: name,
             public_id: public_id,
             system_id: system_id,

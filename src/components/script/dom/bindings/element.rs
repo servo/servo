@@ -39,6 +39,21 @@ macro_rules! generate_cacheable_wrapper_htmlelement(
     )
 )
 
+macro_rules! generate_cacheable_wrapper_node(
+    ($name: path, $wrap: path) => (
+        impl CacheableWrapper for $name {
+            fn get_wrappercache(&mut self) -> &mut WrapperCache {
+                self.node.get_wrappercache()
+            }
+
+            fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
+                let mut unused = false;
+                $wrap(cx, scope, self, &mut unused)
+            }
+        }
+    )
+)
+
 macro_rules! generate_binding_object(
     ($name: path) => (
         impl BindingObject for $name {
@@ -54,6 +69,16 @@ macro_rules! generate_binding_object_htmlelement(
         impl BindingObject for $name {
             fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
                 self.htmlelement.GetParentObject(cx)
+            }
+        }
+    )
+)
+
+macro_rules! generate_binding_object_node(
+    ($name: path) => (
+        impl BindingObject for $name {
+            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+                self.node.GetParentObject(cx)
             }
         }
     )
@@ -79,12 +104,22 @@ macro_rules! generate_traceable_htmlelement(
     )
 )
 
+macro_rules! generate_traceable_node(
+    ($name: path) => (
+        impl Traceable for $name {
+            fn trace(&self, trc: *mut JSTracer) {
+                self.node.trace(trc);
+            }
+        }
+    )
+)
+
 generate_cacheable_wrapper!(Comment, CommentBinding::Wrap)
 generate_binding_object!(Comment)
 generate_traceable!(Comment)
-generate_cacheable_wrapper!(DocumentType<ScriptView>, DocumentTypeBinding::Wrap)
-generate_binding_object!(DocumentType<ScriptView>)
-generate_traceable!(DocumentType<ScriptView>)
+generate_cacheable_wrapper_node!(DocumentType<ScriptView>, DocumentTypeBinding::Wrap)
+generate_binding_object_node!(DocumentType<ScriptView>)
+generate_traceable_node!(DocumentType<ScriptView>)
 generate_cacheable_wrapper!(Text, TextBinding::Wrap)
 generate_binding_object!(Text)
 generate_traceable!(Text)
@@ -285,5 +320,5 @@ generate_binding_object_htmlelement!(HTMLVideoElement)
 generate_traceable_htmlelement!(HTMLVideoElement)
 
 generate_traceable!(HTMLElement)
-generate_traceable!(Element)
-generate_traceable!(CharacterData)
+generate_traceable_node!(Element)
+generate_traceable_node!(CharacterData)

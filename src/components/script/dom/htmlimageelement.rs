@@ -42,7 +42,7 @@ impl HTMLImageElement {
     pub fn AfterSetAttr(&mut self, name: &DOMString, _value: &DOMString) {
         let name = null_str_as_empty(name);
         if "src" == name {
-            let doc = self.htmlelement.element.element.owner_doc;
+            let doc = self.htmlelement.element.node.owner_doc;
             for doc in doc.iter() {
                 do doc.with_base |doc| {
                     for window in doc.window.iter() {
@@ -101,7 +101,7 @@ impl HTMLImageElement {
     }
 
     pub fn Width(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
-        let node = &self.htmlelement.element.element;
+        let node = &self.htmlelement.element.node;
         match node.owner_doc {
             Some(doc) => {
                 match doc.with_base(|doc| doc.window) {
@@ -138,7 +138,7 @@ impl HTMLImageElement {
     }
 
     pub fn Height(&self, abstract_self: AbstractNode<ScriptView>) -> u32 {
-        let node = &self.htmlelement.element.element;
+        let node = &self.htmlelement.element.node;
         match node.owner_doc {
             Some(doc) => {
                 match doc.with_base(|doc| doc.window) {

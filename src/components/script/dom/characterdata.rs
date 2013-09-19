@@ -10,14 +10,14 @@ use dom::node::{Node, NodeTypeId, ScriptView};
 use js::jsapi::{JSObject, JSContext};
 
 pub struct CharacterData {
-    element: Node<ScriptView>,
+    node: Node<ScriptView>,
     data: ~str
 }
 
 impl CharacterData {
     pub fn new(id: NodeTypeId, data: ~str) -> CharacterData {
         CharacterData {
-            element: Node::new(id),
+            node: Node::new(id),
             data: data
         }
     }
@@ -59,7 +59,7 @@ impl CharacterData {
 
 impl CacheableWrapper for CharacterData {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        self.element.get_wrappercache()
+        self.node.get_wrappercache()
     }
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
@@ -69,6 +69,6 @@ impl CacheableWrapper for CharacterData {
 
 impl BindingObject for CharacterData {
     fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
-        self.element.GetParentObject(cx)
+        self.node.GetParentObject(cx)
     }
 }
