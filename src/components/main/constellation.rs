@@ -4,10 +4,9 @@
 
 use compositing::{CompositorChan, SetIds, SetLayerClipRect};
 
-use std::cell::Cell;
 use std::comm;
 use std::comm::Port;
-use std::task;
+use std::task::spawn_with;
 use geom::size::Size2D;
 use geom::rect::Rect;
 use gfx::opts::Opts;
@@ -258,32 +257,25 @@ impl Constellation {
                  profiler_chan: ProfilerChan)
                  -> ConstellationChan {
             
-        let opts = Cell::new((*opts).clone());
-
         let (constellation_port, constellation_chan) = special_stream!(ConstellationChan);
-        let constellation_port = Cell::new(constellation_port);
-
-        let compositor_chan = Cell::new(compositor_chan);
-        let constellation_chan_clone = Cell::new(constellation_chan.clone());
-
-        let resource_task = Cell::new(resource_task);
-        let image_cache_task = Cell::new(image_cache_task);
-        let profiler_chan = Cell::new(profiler_chan);
-
-        do task::spawn {
+        do spawn_with((constellation_port, constellation_chan.clone(),
+                       compositor_chan, resource_task, image_cache_task,
+                       profiler_chan, opts.clone()))
+            |(constellation_port, constellation_chan, compositor_chan, resource_task,
+              image_cache_task, profiler_chan, opts)| {
             let mut constellation = Constellation {
-                chan: constellation_chan_clone.take(),
-                request_port: constellation_port.take(),
-                compositor_chan: compositor_chan.take(),
-                resource_task: resource_task.take(),
-                image_cache_task: image_cache_task.take(),
+                chan: constellation_chan,
+                request_port: constellation_port,
+                compositor_chan: compositor_chan,
+                resource_task: resource_task,
+                image_cache_task: image_cache_task,
                 pipelines: HashMap::new(),
                 navigation_context: NavigationContext::new(),
                 next_pipeline_id: PipelineId(0),
                 pending_frames: ~[],
                 pending_sizes: HashMap::new(),
-                profiler_chan: profiler_chan.take(),
-                opts: opts.take(),
+                profiler_chan: profiler_chan,
+                opts: opts
             };
             constellation.run();
         }
@@ -730,9 +722,7 @@ impl Constellation {
                 None => {
                     // Add to_add to parent's children, if it is not the root
                     let parent = &to_add.parent;
-                    let to_add = Cell::new(to_add);
                     for parent in parent.iter() {
-                        let to_add = to_add.take();
                         let subpage_id = to_add.pipeline.subpage_id.expect("Constellation:
                             Child frame's subpage id is None. This should be impossible.");
                         let rect = self.pending_sizes.pop(&(parent.id, subpage_id));
