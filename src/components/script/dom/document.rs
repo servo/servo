@@ -5,7 +5,8 @@
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, null_string, str};
 use dom::bindings::utils::{BindingObject, CacheableWrapper, rust_box, DerivedWrapper};
-use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable};
+use dom::bindings::utils::{xml_name_type, InvalidXMLName};
+use dom::bindings::utils::{InvalidCharacter, Traceable};
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::event::Event;
@@ -77,6 +78,7 @@ impl AbstractDocument {
     }
 }
 
+#[deriving(Eq)]
 pub enum DocumentType {
     HTML,
     SVG,
@@ -244,7 +246,7 @@ impl Document {
     pub fn CreateElement(&self, local_name: &DOMString, rv: &mut ErrorResult) -> AbstractNode<ScriptView> {
         let cx = self.get_cx();
         let local_name = local_name.to_str();
-        if !is_valid_element_name(local_name) {
+        if xml_name_type(local_name) == InvalidXMLName {
             *rv = Err(InvalidCharacter);
             // FIXME #909: what to return here?
             fail!("invalid character");
