@@ -58,13 +58,28 @@ pub fn BufferRequest(screen_rect: Rect<uint>, page_rect: Rect<f32>) -> BufferReq
     }
 }
 
+// FIXME(rust#9155): this should be a newtype struct, but
+// generic newtypes ICE when compiled cross-crate
 #[deriving(Clone)]
-pub struct RenderChan<T>{chan:SharedChan<Msg<T>>}
-impl<T> RenderChan<T> {
+pub struct RenderChan<T> {
+    chan: SharedChan<Msg<T>>,
+}
+impl<T: Send> RenderChan<T> {
     pub fn new(chan: Chan<Msg<T>>) -> RenderChan<T> {
-        RenderChan{chan:SharedChan::new(chan)}
+        RenderChan {
+            chan: SharedChan::new(chan),
+        }
     }
-    pub fn send(&self, msg: Msg<T>) { self.chan.send(msg) }
+}
+impl<T: Send> GenericChan<Msg<T>> for RenderChan<T> {
+    fn send(&self, msg: Msg<T>) {
+        assert!(self.try_send(msg), "RenderChan.send: render port closed")
+    }
+}
+impl<T: Send> GenericSmartChan<Msg<T>> for RenderChan<T> {
+    fn try_send(&self, msg: Msg<T>) -> bool {
+        self.chan.try_send(msg)
+    }
 }
 
 struct RenderTask<C,T> {

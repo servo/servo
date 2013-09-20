@@ -438,7 +438,7 @@ impl Constellation {
                     if pipeline.subpage_id.expect("Constellation: child frame does not have a
                         subpage id. This should not be possible.") == subpage_id {
                         child_frame_tree.rect = Some(rect.clone());
-                        let Rect { size: Size2D { width, height }, _ } = rect;
+                        let Size2D { width, height } = rect.size;
                         pipeline.script_chan.send(ResizeMsg(pipeline.id.clone(), Size2D {
                             width:  width  as uint,
                             height: height as uint
