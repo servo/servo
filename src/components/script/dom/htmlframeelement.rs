@@ -8,7 +8,7 @@ use dom::htmlelement::HTMLElement;
 use dom::windowproxy::WindowProxy;
 
 pub struct HTMLFrameElement {
-    parent: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLFrameElement {

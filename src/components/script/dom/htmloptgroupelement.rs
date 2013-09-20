@@ -6,7 +6,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLOptGroupElement {
-    parent: HTMLElement
+    htmlelement: HTMLElement
 }
 
 impl HTMLOptGroupElement {

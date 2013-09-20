@@ -6,7 +6,7 @@ use dom::bindings::utils::{ErrorResult, Fallible};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLProgressElement {
-    parent: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLProgressElement {

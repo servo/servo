@@ -6,7 +6,7 @@ use dom::bindings::utils::{DOMString, ErrorResult};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLMetaElement {
-    parent: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLMetaElement {

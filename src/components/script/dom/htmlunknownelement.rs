@@ -5,5 +5,5 @@
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLUnknownElement {
-    parent: HTMLElement
+    htmlelement: HTMLElement
 }

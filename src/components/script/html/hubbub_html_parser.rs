@@ -35,7 +35,7 @@ macro_rules! handle_element(
     ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident, [ $(($field:ident : $field_init:expr)),* ]) => (
         if eq_slice($tag, $string) {
             let _element = @$ctor {
-                parent: HTMLElement::new($type_id, ($tag).to_str()),
+                htmlelement: HTMLElement::new($type_id, ($tag).to_str()),
                 $(
                     $field: $field_init,
                 )*
@@ -60,7 +60,7 @@ macro_rules! handle_htmlmediaelement(
     ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident) => (
         if eq_slice($tag, $string) {
             let _element = @$ctor {
-                parent: HTMLMediaElement::new($type_id, ($tag).to_str())
+                htmlelement: HTMLMediaElement::new($type_id, ($tag).to_str())
             };
             unsafe {
                 return Node::as_abstract_node(cx, _element);
@@ -291,7 +291,7 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptV
 
     unsafe {
         let element = @HTMLUnknownElement {
-            parent: HTMLElement::new(HTMLUnknownElementTypeId, tag.to_str())
+           htmlelement: HTMLElement::new(HTMLUnknownElementTypeId, tag.to_str())
         };
         Node::as_abstract_node(cx, element)
     }
@@ -333,7 +333,7 @@ pub fn parse_html(cx: *JSContext,
     let url3 = url.clone();
 
     // Build the root node.
-    let root = @HTMLHtmlElement { parent: HTMLElement::new(HTMLHtmlElementTypeId, ~"html") };
+    let root = @HTMLHtmlElement { htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html") };
     let root = unsafe { Node::as_abstract_node(cx, root) };
     debug!("created new node");
     let mut parser = hubbub::Parser("UTF-8", false);
@@ -400,7 +400,7 @@ pub fn parse_html(cx: *JSContext,
                     do node.with_mut_iframe_element |iframe_element| {
                         let iframe_chan = iframe_chan.take();
                         let sandboxed = iframe_element.is_sandboxed();
-                        let elem = &mut iframe_element.parent.parent;
+                        let elem = &mut iframe_element.htmlelement.element;
                         let src_opt = elem.get_attr("src").map(|x| x.to_str());
                         for src in src_opt.iter() {
                             let iframe_url = make_url(src.clone(), Some(url2.clone()));
@@ -519,7 +519,7 @@ pub fn parse_html(cx: *JSContext,
                                 for child in scriptnode.children() {
                                     debug!("child = %?", child);
                                     do child.with_imm_text() |text| {
-                                        data.push(text.parent.data.to_str());  // FIXME: Bad copy.
+                                        data.push(text.element.data.to_str());  // FIXME: Bad copy.
                                     }
                                 }
 
@@ -545,7 +545,7 @@ pub fn parse_html(cx: *JSContext,
                 for child in style.children() {
                     debug!("child = %?", child);
                     do child.with_imm_text() |text| {
-                        data.push(text.parent.data.to_str());  // FIXME: Bad copy.
+                        data.push(text.element.data.to_str());  // FIXME: Bad copy.
                     }
                 }
 

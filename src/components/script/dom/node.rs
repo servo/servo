@@ -570,7 +570,7 @@ impl Node<ScriptView> {
             for node in abstract_self.traverse_preorder() {
                 if node.is_text() {
                     do node.with_imm_text() |text| {
-                        let s = text.parent.Data();
+                        let s = text.element.Data();
                         content = content + null_str_as_empty(&s);
                     }
                 }

@@ -6,7 +6,7 @@ use dom::bindings::utils::DOMString;
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLLabelElement {
-    parent: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLLabelElement {

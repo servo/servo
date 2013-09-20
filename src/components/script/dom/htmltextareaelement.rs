@@ -6,7 +6,7 @@ use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLTextAreaElement {
-    parent: HTMLElement,
+    htmlelement: HTMLElement,
 }
 
 impl HTMLTextAreaElement {

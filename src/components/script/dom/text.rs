@@ -9,14 +9,14 @@ use dom::window::Window;
 
 /// An HTML text node.
 pub struct Text {
-    parent: CharacterData,
+    element: CharacterData,
 }
 
 impl Text {
     /// Creates a new HTML text node.
     pub fn new(text: ~str) -> Text {
         Text {
-            parent: CharacterData::new(TextNodeTypeId, text)
+            element: CharacterData::new(TextNodeTypeId, text)
         }
     }
 

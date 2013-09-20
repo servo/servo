@@ -5,5 +5,5 @@
 use dom::htmlelement::HTMLElement;
 
 pub struct HTMLHeadElement {
-    parent: HTMLElement
+    htmlelement: HTMLElement
 }

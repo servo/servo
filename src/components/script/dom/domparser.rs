@@ -43,7 +43,7 @@ impl DOMParser {
                            -> Fallible<AbstractDocument> {
         unsafe {
             let root = @HTMLHtmlElement {
-                parent: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
+                htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
             };
 
             let root = Node::as_abstract_node((*self.owner.page).js_info.get_ref().js_compartment.cx.ptr, root);
