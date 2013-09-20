@@ -428,45 +428,52 @@ impl Constellation {
         debug!("Received frame rect %? from %?, %?", rect, pipeline_id, subpage_id);
         let mut already_sent = HashSet::new();
 
+        // Returns true if a child frame tree's subpage id matches the given subpage id
+        let subpage_eq = |child_frame_tree: & &mut ChildFrameTree| {
+            child_frame_tree.frame_tree.pipeline.subpage_id.expect("Constellation:
+                child frame does not have a subpage id. This should not be possible.")
+                == subpage_id
+        };
+
+        // Update a child's frame rect and inform its script task of the change,
+        // if it hasn't been already. Optionally inform the compositor if 
+        // resize happens immediately.
+        let update_child_rect = |child_frame_tree: &mut ChildFrameTree, is_active: bool| {
+            child_frame_tree.rect = Some(rect.clone());
+            let pipeline = &child_frame_tree.frame_tree.pipeline;
+            if !already_sent.contains(&pipeline.id) {
+                let Size2D { width, height } = rect.size;
+                if is_active {
+                    pipeline.script_chan.send(ResizeMsg(pipeline.id, Size2D {
+                        width:  width  as uint,
+                        height: height as uint
+                    }));
+                    self.compositor_chan.send(SetLayerClipRect(pipeline.id, rect));
+                } else {
+                    pipeline.script_chan.send(ResizeInactiveMsg(pipeline.id,
+                                                                Size2D(width as uint, height as uint)));
+                }
+                already_sent.insert(pipeline.id);
+            }
+        };
+
         // If the subframe is in the current frame tree, the compositor needs the new size
         for current_frame in self.current_frame().iter() {
             debug!("Constellation: Sending size for frame in current frame tree.");
             let source_frame = current_frame.find_mut(pipeline_id);
             for source_frame in source_frame.iter() {
-                for child_frame_tree in source_frame.children.mut_iter() {
-                    let pipeline = &child_frame_tree.frame_tree.pipeline;
-                    if pipeline.subpage_id.expect("Constellation: child frame does not have a
-                        subpage id. This should not be possible.") == subpage_id {
-                        child_frame_tree.rect = Some(rect.clone());
-                        let Size2D { width, height } = rect.size;
-                        pipeline.script_chan.send(ResizeMsg(pipeline.id.clone(), Size2D {
-                            width:  width  as uint,
-                            height: height as uint
-                        }));
-                        self.compositor_chan.send(SetLayerClipRect(pipeline.id, rect));
-                        already_sent.insert(pipeline.id.clone());
-                        break;
-                    }
-                } 
+                let found_child = source_frame.children.mut_iter()
+                    .find(|child| subpage_eq(child));
+                found_child.map_move(|child| update_child_rect(child, true));
             }
         }
-        // Traverse the navigation context and pending frames and tell each associated pipeline to resize.
+
+        // Update all frames with matching pipeline- and subpage-ids
         let frames = self.find_all(pipeline_id);
         for frame_tree in frames.iter() {
-            for child_frame_tree in frame_tree.children.mut_iter() {
-                let pipeline = &child_frame_tree.frame_tree.pipeline;
-                if pipeline.subpage_id.expect("Constellation: child frame does not have a
-                    subpage id. This should not be possible.") == subpage_id {
-                    child_frame_tree.rect = Some(rect.clone());
-                    if !already_sent.contains(&pipeline.id) {
-                        let Size2D { width, height } = rect.size;
-                        pipeline.script_chan.send(ResizeInactiveMsg(pipeline.id.clone(),
-                                                                    Size2D(width as uint, height as uint)));
-                        already_sent.insert(pipeline.id.clone());
-                    }
-                    break;
-                }
-            }
+            let found_child = frame_tree.children.mut_iter()
+                .find(|child| subpage_eq(child));
+            found_child.map_move(|child| update_child_rect(child, false));
         }
 
         // At this point, if no pipelines were sent a resize msg, then this subpage id
@@ -588,7 +595,7 @@ impl Constellation {
         // changes would be overriden by changing the subframe associated with source_id.
 
         let parent = source_frame.parent.clone();
-        let subpage_id = source_frame.pipeline.subpage_id.clone();
+        let subpage_id = source_frame.pipeline.subpage_id;
         let next_pipeline_id = self.get_next_pipeline_id();
 
         let pipeline = @mut Pipeline::create(next_pipeline_id,
@@ -743,15 +750,15 @@ impl Constellation {
     fn handle_resized_window_msg(&mut self, new_size: Size2D<uint>) {
         let mut already_seen = HashSet::new();
         for &@FrameTree { pipeline: pipeline, _ } in self.current_frame().iter() {
-            pipeline.script_chan.send(ResizeMsg(pipeline.id.clone(), new_size));
-            already_seen.insert(pipeline.id.clone());
+            pipeline.script_chan.send(ResizeMsg(pipeline.id, new_size));
+            already_seen.insert(pipeline.id);
         }
         for frame_tree in self.navigation_context.previous.iter()
             .chain(self.navigation_context.next.iter()) {
             let pipeline = &frame_tree.pipeline;
             if !already_seen.contains(&pipeline.id) {
-                pipeline.script_chan.send(ResizeInactiveMsg(pipeline.id.clone(), new_size));
-                already_seen.insert(pipeline.id.clone());
+                pipeline.script_chan.send(ResizeInactiveMsg(pipeline.id, new_size));
+                already_seen.insert(pipeline.id);
             }
         }
     }
