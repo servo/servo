@@ -12,18 +12,10 @@ use geom::size::Size2D;
 use geom::rect::Rect;
 
 #[deriving(Clone)]
-pub struct ConstellationChan {
-    chan: SharedChan<Msg>,
-}
-
+pub struct ConstellationChan(SharedChan<Msg>);
 impl ConstellationChan {
     pub fn new(chan: Chan<Msg>) -> ConstellationChan {
-        ConstellationChan {
-            chan: SharedChan::new(chan),
-        }
-    }
-    pub fn send(&self, msg: Msg) {
-        self.chan.send(msg);
+        ConstellationChan(SharedChan::new(chan))
     }
 }
 

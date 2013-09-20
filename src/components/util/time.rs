@@ -3,27 +3,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // Timing functions.
-use extra::time::precise_time_ns;
-use std::cell::Cell;
 use std::comm::{Port, SharedChan};
-use extra::sort::tim_sort;
 use std::iterator::AdditiveIterator;
+use std::rt::io::timer::Timer;
+use std::task::spawn_with;
+
+use extra::sort::tim_sort;
+use extra::time::precise_time_ns;
 use extra::treemap::TreeMap;
 
 // front-end representation of the profiler used to communicate with the profiler
 #[deriving(Clone)]
-pub struct ProfilerChan {
-    chan: SharedChan<ProfilerMsg>,
-}
-
+pub struct ProfilerChan(SharedChan<ProfilerMsg>);
 impl ProfilerChan {
     pub fn new(chan: Chan<ProfilerMsg>) -> ProfilerChan {
-        ProfilerChan {
-            chan: SharedChan::new(chan),
-        }
-    }
-    pub fn send(&self, msg: ProfilerMsg) {
-        self.chan.send(msg);
+        ProfilerChan(SharedChan::new(chan))
     }
 }
 
@@ -101,11 +95,31 @@ pub struct Profiler {
 }
 
 impl Profiler {
-    pub fn create(port: Port<ProfilerMsg>) {
-        let port = Cell::new(port);
-        do spawn {
-            let mut profiler = Profiler::new(port.take());
-            profiler.start();
+    pub fn create(port: Port<ProfilerMsg>, chan: ProfilerChan, period: Option<float>) {
+        match period {
+            Some(period) => {
+                let period = (period * 1000f) as u64;
+                do spawn {
+                    let mut timer = Timer::new().unwrap();
+                    loop {
+                        timer.sleep(period);
+                        if !chan.try_send(PrintMsg) {
+                            break;
+                        }
+                    }
+                }
+                // Spawn the profiler
+                do spawn_with(port) |port| {
+                    let mut profiler = Profiler::new(port);
+                    profiler.start();
+                }
+            }
+            None => {
+                // no-op to handle profiler messages when the profiler is inactive
+                do spawn_with(port) |port| {
+                    while port.try_recv().is_some() {}
+                }
+            }
         }
     }
 

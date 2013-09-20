@@ -83,20 +83,11 @@ pub struct NewLayoutInfo {
 
 /// Encapsulates external communication with the script task.
 #[deriving(Clone)]
-pub struct ScriptChan {
-    /// The channel used to send messages to the script task.
-    chan: SharedChan<ScriptMsg>,
-}
-
+pub struct ScriptChan(SharedChan<ScriptMsg>);
 impl ScriptChan {
     /// Creates a new script chan.
     pub fn new(chan: Chan<ScriptMsg>) -> ScriptChan {
-        ScriptChan {
-            chan: SharedChan::new(chan)
-        }
-    }
-    pub fn send(&self, msg: ScriptMsg) {
-        self.chan.send(msg);
+        ScriptChan(SharedChan::new(chan))
     }
 }
 

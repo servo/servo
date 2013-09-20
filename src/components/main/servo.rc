@@ -47,7 +47,7 @@ use gfx::opts;
 
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
-use servo_util::time::{Profiler, ProfilerChan, PrintMsg};
+use servo_util::time::{Profiler, ProfilerChan};
 
 pub use gfx::opts::Opts;
 pub use gfx::text;
@@ -56,7 +56,7 @@ use std::comm;
 #[cfg(not(test))]
 use std::os;
 use std::rt::rtio::RtioTimer;
-use std::rt::io::timer::Timer;
+use std::task::spawn_with;
 
 #[path="compositing/mod.rs"]
 pub mod compositing;
@@ -127,38 +127,19 @@ fn start(argc: int, argv: **u8, crate_map: *u8) -> int {
 
 fn run(opts: Opts) {
     let (shutdown_port, shutdown_chan) = comm::stream();
-    let (profiler_port, profiler_chan) = comm::stream();
-    let (compositor_port, compositor_chan) = comm::stream();
+    let (profiler_port, profiler_chan) = special_stream!(ProfilerChan);
+    let (compositor_port, compositor_chan) = special_stream!(CompositorChan);
 
-    let profiler_chan = ProfilerChan::new(profiler_chan);
-    Profiler::create(profiler_port);
-    do opts.profiler_period.map |&period| {
-        let profiler_chan = profiler_chan.clone();
-        let period = (period * 1000f) as u64;
-        do spawn {
-            let mut tm = Timer::new().unwrap();
-            loop {
-                tm.sleep(period);
-                profiler_chan.send(PrintMsg);
-            }
-        }
-    };
-    let compositor_chan = CompositorChan::new(compositor_chan);
-    let profiler_chan_clone = profiler_chan.clone();
+    Profiler::create(profiler_port, profiler_chan.clone(), opts.profiler_period);
 
-    let opts_clone = opts.clone();
+    do spawn_with((profiler_chan.clone(), compositor_chan, opts.clone()))
+        |(profiler_chan, compositor_chan, opts)| {
 
-    do spawn {
-        let profiler_chan = profiler_chan_clone.clone();
-        let compositor_chan = compositor_chan.clone();
-
-        let opts = &opts_clone.clone();
-
+        let opts = &opts;
         // Create a Servo instance.
-
         let resource_task = ResourceTask();
         let image_cache_task = ImageCacheTask(resource_task.clone());
-        let constellation_chan = Constellation::start(compositor_chan.clone(),
+        let constellation_chan = Constellation::start(compositor_chan,
                                                       opts,
                                                       resource_task,
                                                       image_cache_task,

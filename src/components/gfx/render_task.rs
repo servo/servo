@@ -59,19 +59,12 @@ pub fn BufferRequest(screen_rect: Rect<uint>, page_rect: Rect<f32>) -> BufferReq
 }
 
 #[deriving(Clone)]
-pub struct RenderChan<T> {
-    chan: SharedChan<Msg<T>>,
-}
-
+pub struct RenderChan<T>{chan:SharedChan<Msg<T>>}
 impl<T> RenderChan<T> {
     pub fn new(chan: Chan<Msg<T>>) -> RenderChan<T> {
-        RenderChan {
-            chan: SharedChan::new(chan),
-        }
+        RenderChan{chan:SharedChan::new(chan)}
     }
-    pub fn send(&self, msg: Msg<T>) {
-        self.chan.send(msg);
-    }
+    pub fn send(&self, msg: Msg<T>) { self.chan.send(msg) }
 }
 
 struct RenderTask<C,T> {
