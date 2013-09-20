@@ -201,20 +201,18 @@ impl NavigationContext {
     pub fn back(&mut self) -> @mut FrameTree {
         self.next.push(self.current.take_unwrap());
         self.current = Some(self.previous.pop());
-        debug!("previous: %? next: %? current: %?", self.previous, self.next, *self.current.get_ref());
         self.current.unwrap()
     }
 
     pub fn forward(&mut self) -> @mut FrameTree {
         self.previous.push(self.current.take_unwrap());
         self.current = Some(self.next.pop());
-        debug!("previous: %? next: %? current: %?", self.previous, self.next, *self.current.get_ref());
         self.current.unwrap()
     }
 
     /// Loads a new set of page frames, returning all evicted frame trees
     pub fn load(&mut self, frame_tree: @mut FrameTree) -> ~[@mut FrameTree] {
-        debug!("navigating to %?", frame_tree);
+        debug!("navigating to %?", frame_tree.pipeline.id);
         let evicted = replace(&mut self.next, ~[]);
         if self.current.is_some() {
             self.previous.push(self.current.take_unwrap());
@@ -554,7 +552,7 @@ impl Constellation {
         if url.path.ends_with(".js") {
             pipeline.execute(url);
         } else {
-            debug!("Constellation: sending load msg to %?", pipeline);
+            debug!("Constellation: sending load msg to pipeline %?", pipeline.id);
             pipeline.load(url);
         }
         let rect = self.pending_sizes.pop(&(source_pipeline_id, subpage_id));
@@ -718,12 +716,11 @@ impl Constellation {
 
                     // If to_add is not the root frame, then replace revoked_frame with it.
                     // This conveniently keeps scissor rect size intact.
-                    debug!("Constellation: replacing %? with %? in %?", revoke_id, to_add, next_frame_tree);
+                    debug!("Constellation: replacing %? with %? in %?",
+                        revoke_id, to_add.pipeline.id, next_frame_tree.pipeline.id);
                     if to_add.parent.is_some() {
-                        let replaced = next_frame_tree.replace_child(revoke_id, to_add);
-                        debug!("Replaced child: %?", replaced);
+                        next_frame_tree.replace_child(revoke_id, to_add);
                     }
-                    debug!("Constellation: frame tree after replacing: %?", next_frame_tree);
                 }
 
                 None => {

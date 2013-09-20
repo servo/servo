@@ -9,7 +9,7 @@ use azure::azure_hl::{B8G8R8A8, DrawTarget};
 use display_list::DisplayList;
 use servo_msg::compositor_msg::{RenderListener, IdleRenderState, RenderingRenderState, LayerBuffer};
 use servo_msg::compositor_msg::{LayerBufferSet, Epoch};
-use servo_msg::constellation_msg::PipelineId;
+use servo_msg::constellation_msg::{ConstellationChan, PipelineId, RendererReadyMsg};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::size::Size2D;
@@ -17,8 +17,8 @@ use geom::rect::Rect;
 use opts::Opts;
 use render_context::RenderContext;
 
-use std::cell::Cell;
 use std::comm::{Chan, Port, SharedChan};
+use std::task::spawn_with;
 use extra::arc::Arc;
 
 use servo_util::time::{ProfilerChan, profile};
@@ -86,6 +86,7 @@ struct RenderTask<C,T> {
     id: PipelineId,
     port: Port<Msg<T>>,
     compositor: C,
+    constellation_chan: ConstellationChan,
     font_ctx: @mut FontContext,
     opts: Opts,
 
@@ -110,24 +111,21 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
     pub fn create(id: PipelineId,
                   port: Port<Msg<T>>,
                   compositor: C,
+                  constellation_chan: ConstellationChan,
                   opts: Opts,
                   profiler_chan: ProfilerChan) {
-        let compositor = Cell::new(compositor);
-        let opts = Cell::new(opts);
-        let port = Cell::new(port);
-        let profiler_chan = Cell::new(profiler_chan);
 
-        do spawn {
-            let compositor = compositor.take();
+        do spawn_with((port, compositor, constellation_chan, opts, profiler_chan))
+            |(port, compositor, constellation_chan, opts, profiler_chan)| {
+
             let share_gl_context = compositor.get_gl_context();
-            let opts = opts.take();
-            let profiler_chan = profiler_chan.take();
 
             // FIXME: rust/#5967
             let mut render_task = RenderTask {
                 id: id,
-                port: port.take(),
+                port: port,
                 compositor: compositor,
+                constellation_chan: constellation_chan,
                 font_ctx: @mut FontContext::new(opts.render_backend.clone(),
                                                 false,
                                                 profiler_chan.clone()),
@@ -155,6 +153,8 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
                     if self.paint_permission {
                         self.epoch.next();
                         self.compositor.set_layer_page_size(self.id, render_layer.size, self.epoch);
+                    } else {
+                        self.constellation_chan.send(RendererReadyMsg(self.id));
                     }
                     self.render_layer = Some(render_layer);
                     self.last_paint_msg = None;
@@ -284,6 +284,8 @@ impl<C: RenderListener + Send,T:Send+Freeze> RenderTask<C,T> {
             debug!("render_task: returning surface");
             if self.paint_permission {
                 self.compositor.paint(self.id, layer_buffer_set.clone(), self.epoch);
+            } else {
+                self.constellation_chan.send(RendererReadyMsg(self.id));
             }
             debug!("caching paint msg");
             self.last_paint_msg = Some(layer_buffer_set);

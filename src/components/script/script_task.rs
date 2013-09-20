@@ -21,7 +21,7 @@ use layout_interface::{ReflowDocumentDamage, ReflowForDisplay, ReflowGoal};
 use layout_interface::ReflowMsg;
 use layout_interface;
 use servo_msg::constellation_msg::{ConstellationChan, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{PipelineId, SubpageId, RendererReadyMsg};
+use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_msg::constellation_msg::{LoadIframeUrlMsg, IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg;
 
@@ -582,7 +582,6 @@ impl ScriptTask {
         if page_tree.page.last_reflow_id == reflow_id {
             page_tree.page.layout_join_port = None;
         }
-        self.constellation_chan.send(RendererReadyMsg(pipeline_id));
         self.compositor.set_ready_state(FinishedLoading);
     }
 
