@@ -111,17 +111,9 @@ pub struct Reflow {
 
 /// Encapsulates a channel to the layout task.
 #[deriving(Clone)]
-pub struct LayoutChan {
-    chan: SharedChan<Msg>,
-}
-
+pub struct LayoutChan(SharedChan<Msg>);
 impl LayoutChan {
     pub fn new(chan: Chan<Msg>) -> LayoutChan {
-        LayoutChan {
-            chan: SharedChan::new(chan),
-        }
-    }
-    pub fn send(&self, msg: Msg) {
-        self.chan.send(msg);
+        LayoutChan(SharedChan::new(chan))
     }
 }
