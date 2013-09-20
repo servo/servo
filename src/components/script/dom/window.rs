@@ -30,6 +30,7 @@ use std::int;
 use std::libc;
 use std::rt::rtio::RtioTimer;
 use std::rt::io::timer::Timer;
+use std::task::spawn_with;
 use js::jsapi::JSVal;
 
 pub enum TimerControlMsg {
@@ -198,21 +199,20 @@ impl Window {
                compositor: @ScriptListener,
                image_cache_task: ImageCacheTask)
                -> @mut Window {
-        let script_chan_clone = script_chan.clone();
         let win = @mut Window {
             page: page,
-            script_chan: script_chan,
+            script_chan: script_chan.clone(),
             compositor: compositor,
             wrapper: WrapperCache::new(),
             timer_chan: {
                 let (timer_port, timer_chan) = comm::stream::<TimerControlMsg>();
                 let id = page.id.clone();
-                do spawn {
+                do spawn_with(script_chan) |script_chan| {
                     loop {
                         match timer_port.recv() {
                             TimerMessage_Close => break,
-                            TimerMessage_Fire(td) => script_chan_clone.chan.send(FireTimerMsg(id, td)),
-                            TimerMessage_TriggerExit => script_chan_clone.chan.send(ExitMsg),
+                            TimerMessage_Fire(td) => script_chan.send(FireTimerMsg(id, td)),
+                            TimerMessage_TriggerExit => script_chan.send(ExitMsg),
                         }
                     }
                 }

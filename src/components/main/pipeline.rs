@@ -54,6 +54,7 @@ impl Pipeline {
         RenderTask::create(id,
                            render_port,
                            compositor_chan.clone(),
+                           constellation_chan.clone(),
                            opts.clone(),
                            profiler_chan.clone());
 
@@ -136,6 +137,7 @@ impl Pipeline {
             RenderTask::create(id,
                                render_port,
                                compositor_chan.clone(),
+                               constellation_chan.clone(),
                                opts.clone(),
                                profiler_chan.clone());
 

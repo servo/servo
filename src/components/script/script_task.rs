@@ -21,7 +21,7 @@ use layout_interface::{ReflowDocumentDamage, ReflowForDisplay, ReflowGoal};
 use layout_interface::ReflowMsg;
 use layout_interface;
 use servo_msg::constellation_msg::{ConstellationChan, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{PipelineId, SubpageId, RendererReadyMsg};
+use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_msg::constellation_msg::{LoadIframeUrlMsg, IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg;
 
@@ -83,20 +83,11 @@ pub struct NewLayoutInfo {
 
 /// Encapsulates external communication with the script task.
 #[deriving(Clone)]
-pub struct ScriptChan {
-    /// The channel used to send messages to the script task.
-    chan: SharedChan<ScriptMsg>,
-}
-
+pub struct ScriptChan(SharedChan<ScriptMsg>);
 impl ScriptChan {
     /// Creates a new script chan.
     pub fn new(chan: Chan<ScriptMsg>) -> ScriptChan {
-        ScriptChan {
-            chan: SharedChan::new(chan)
-        }
-    }
-    pub fn send(&self, msg: ScriptMsg) {
-        self.chan.send(msg);
+        ScriptChan(SharedChan::new(chan))
     }
 }
 
@@ -591,7 +582,6 @@ impl ScriptTask {
         if page_tree.page.last_reflow_id == reflow_id {
             page_tree.page.layout_join_port = None;
         }
-        self.constellation_chan.send(RendererReadyMsg(pipeline_id));
         self.compositor.set_ready_state(FinishedLoading);
     }
 
