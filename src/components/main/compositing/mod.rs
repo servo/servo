@@ -522,7 +522,7 @@ impl CompositorTask {
 
         // Enter the main event loop.
         let mut tm = Timer::new().unwrap();
-        while !done {
+        loop {
             // Check for new messages coming from the rendering task.
             check_for_messages(&self.port);
 
@@ -542,6 +542,7 @@ impl CompositorTask {
                 ask_for_tiles();
             }
 
+            if done { break; }
         }
 
         self.shutdown_chan.send(())
