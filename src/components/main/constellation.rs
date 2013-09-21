@@ -770,12 +770,13 @@ impl Constellation {
         match navigation_type {
             constellation_msg::Load => {
                 let evicted = self.navigation_context.load(frame_tree);
+                let mut exited = HashSet::new();
+                // exit any pipelines that don't exist outside the evicted frame trees
                 for frame_tree in evicted.iter() {
-                    // exit any pipelines that don't exist outside the evicted frame trees
-                    for frame in frame_tree.iter() {
-                        if !self.navigation_context.contains(frame.pipeline.id) {
-                            frame_tree.pipeline.exit();
-                            self.pipelines.remove(&frame_tree.pipeline.id);
+                    for @FrameTree { pipeline, _ } in frame_tree.iter() {
+                        if !self.navigation_context.contains(pipeline.id) {
+                            pipeline.exit();
+                            self.pipelines.remove(&pipeline.id);
                         }
                     }
                 }
