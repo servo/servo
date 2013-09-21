@@ -71,7 +71,7 @@ pub enum ScriptMsg {
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactiveMsg(PipelineId, Size2D<uint>),
     /// Exits the constellation.
-    ExitMsg,
+    ExitMsg(PipelineId),
 }
 
 pub struct NewLayoutInfo {
@@ -170,6 +170,28 @@ impl PageTree {
         PageTreeIterator {
             stack: ~[self],
         }
+    }
+
+    // must handle root case separately
+    pub fn remove(&mut self, id: PipelineId) -> Option<PageTree> {
+        let remove_idx = {
+            self.inner.mut_iter()
+                .enumerate()
+                .find(|&(_idx, ref page_tree)| page_tree.page.id == id)
+                .map(|&(idx, _)| idx)
+        };
+        match remove_idx {
+            Some(idx) => return Some(self.inner.remove(idx)),
+            None => {
+                for page_tree in self.inner.mut_iter() {
+                    match page_tree.remove(id) {
+                        found @ Some(_) => return found,
+                        None => (), // keep going...
+                    }
+                }
+            }
+        }
+        None
     }
 }
 
@@ -494,9 +516,8 @@ impl ScriptTask {
                 NavigateMsg(direction) => self.handle_navigate_msg(direction),
                 ReflowCompleteMsg(id, reflow_id) => self.handle_reflow_complete_msg(id, reflow_id),
                 ResizeInactiveMsg(id, new_size) => self.handle_resize_inactive_msg(id, new_size),
-                ExitMsg => {
-                    self.handle_exit_msg();
-                    return false
+                ExitMsg(id) => {
+                    if self.handle_exit_msg(id) { return false }
                 },
                 ResizeMsg(*) => fail!("should have handled ResizeMsg already"),
             }
@@ -603,12 +624,29 @@ impl ScriptTask {
     }
 
     /// Handles a request to exit the script task and shut down layout.
-    fn handle_exit_msg(&mut self) {
-        for page in self.page_tree.iter() {
-            page.join_layout();
-            page.layout_chan.send(layout_interface::ExitMsg);
+    /// Returns true if the script task should shut down and false otherwise.
+    fn handle_exit_msg(&mut self, id: PipelineId) -> bool {
+        // If root is being exited, shut down all pages
+        if self.page_tree.page.id == id {
+            for page in self.page_tree.iter() {
+                page.join_layout();
+                page.layout_chan.send(layout_interface::ExitMsg);
+            }
+            return true
         }
-        self.compositor.close();
+        // otherwise find just the matching page and exit all sub-pages
+        match self.page_tree.remove(id) {
+            Some(ref mut page_tree) => {
+                for page in page_tree.iter() {
+                    page.join_layout();
+                    page.layout_chan.send(layout_interface::ExitMsg);
+                }
+                return false
+            }
+            None => fail!("ScriptTask: Received exit message from
+                           pipeline whose id is not in page tree"),
+        }
+        
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document

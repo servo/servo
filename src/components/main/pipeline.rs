@@ -217,7 +217,7 @@ impl Pipeline {
 
     pub fn exit(&self) {
         // Script task handles shutting down layout, as well
-        self.script_chan.send(script_task::ExitMsg);
+        self.script_chan.send(script_task::ExitMsg(self.id));
 
         let (response_port, response_chan) = comm::stream();
         self.render_chan.send(render_task::ExitMsg(response_chan));
