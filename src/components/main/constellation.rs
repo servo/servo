@@ -107,7 +107,7 @@ impl FrameTree {
     }
 
     /// Returns the frame tree whose key is id
-    fn find_mut(@mut self, id: PipelineId) -> Option<@mut FrameTree> {
+    fn find(@mut self, id: PipelineId) -> Option<@mut FrameTree> {
         do self.iter().find |frame_tree| {
             id == frame_tree.pipeline.id
         }
@@ -224,13 +224,13 @@ impl NavigationContext {
     /// Returns the frame trees whose keys are pipeline_id.
     pub fn find_all(&mut self, pipeline_id: PipelineId) -> ~[@mut FrameTree] {
         let from_current = do self.current.iter().filter_map |frame_tree| {
-            frame_tree.find_mut(pipeline_id)
+            frame_tree.find(pipeline_id)
         };
         let from_next =  do self.next.iter().filter_map |frame_tree| {
-            frame_tree.find_mut(pipeline_id)
+            frame_tree.find(pipeline_id)
         };
         let from_prev = do self.previous.iter().filter_map |frame_tree| {
-            frame_tree.find_mut(pipeline_id)
+            frame_tree.find(pipeline_id)
         };
         from_prev.chain(from_current).chain(from_next).collect()
     }
@@ -306,7 +306,7 @@ impl Constellation {
     pub fn find_all(&mut self, pipeline_id: PipelineId) -> ~[@mut FrameTree] {
         let matching_navi_frames = self.navigation_context.find_all(pipeline_id);
         let matching_pending_frames = do self.pending_frames.iter().filter_map |frame_change| {
-            frame_change.after.find_mut(pipeline_id)
+            frame_change.after.find(pipeline_id)
         };
         matching_navi_frames.move_iter().chain(matching_pending_frames).collect()
     }
@@ -458,7 +458,7 @@ impl Constellation {
         // If the subframe is in the current frame tree, the compositor needs the new size
         for current_frame in self.current_frame().iter() {
             debug!("Constellation: Sending size for frame in current frame tree.");
-            let source_frame = current_frame.find_mut(pipeline_id);
+            let source_frame = current_frame.find(pipeline_id);
             for source_frame in source_frame.iter() {
                 let found_child = source_frame.children.mut_iter()
                     .find(|child| subpage_eq(child));
@@ -497,7 +497,7 @@ impl Constellation {
         let frame_trees: ~[@mut FrameTree] = {
             let matching_navi_frames = self.navigation_context.find_all(source_pipeline_id);
             let matching_pending_frames = do self.pending_frames.iter().filter_map |frame_change| {
-                frame_change.after.find_mut(source_pipeline_id)
+                frame_change.after.find(source_pipeline_id)
             };
             matching_navi_frames.move_iter().chain(matching_pending_frames).collect()
         };
@@ -572,7 +572,7 @@ impl Constellation {
     fn handle_load_url_msg(&mut self, source_id: PipelineId, url: Url, size_future: Future<Size2D<uint>>) {
         debug!("Constellation: received message to load %s", url.to_str());
         // Make sure no pending page would be overridden.
-        let source_frame = self.current_frame().get_ref().find_mut(source_id).expect(
+        let source_frame = self.current_frame().get_ref().find(source_id).expect(
             "Constellation: received a LoadUrlMsg from a pipeline_id associated
             with a pipeline not in the active frame tree. This should be
             impossible.");
@@ -581,7 +581,7 @@ impl Constellation {
             let old_id = frame_change.before.expect("Constellation: Received load msg
                 from pipeline, but there is no currently active page. This should
                 be impossible.");
-            let changing_frame = self.current_frame().get_ref().find_mut(old_id).expect("Constellation:
+            let changing_frame = self.current_frame().get_ref().find(old_id).expect("Constellation:
                 Pending change has non-active source pipeline. This should be
                 impossible.");
             if changing_frame.contains(source_id) || source_frame.contains(old_id) {
@@ -706,7 +706,7 @@ impl Constellation {
                     debug!("Constellation: revoking permission from %?", revoke_id);
                     let current_frame = self.current_frame().unwrap();
 
-                    let to_revoke = current_frame.find_mut(revoke_id).expect(
+                    let to_revoke = current_frame.find(revoke_id).expect(
                         "Constellation: pending frame change refers to an old
                         frame not contained in the current frame. This is a bug");
 
@@ -716,9 +716,9 @@ impl Constellation {
 
                     // If to_add is not the root frame, then replace revoked_frame with it.
                     // This conveniently keeps scissor rect size intact.
-                    debug!("Constellation: replacing %? with %? in %?",
-                        revoke_id, to_add.pipeline.id, next_frame_tree.pipeline.id);
                     if to_add.parent.is_some() {
+                        debug!("Constellation: replacing %? with %? in %?",
+                            revoke_id, to_add.pipeline.id, next_frame_tree.pipeline.id);
                         next_frame_tree.replace_child(revoke_id, to_add);
                     }
                 }
@@ -730,7 +730,7 @@ impl Constellation {
                         let subpage_id = to_add.pipeline.subpage_id.expect("Constellation:
                             Child frame's subpage id is None. This should be impossible.");
                         let rect = self.pending_sizes.pop(&(parent.id, subpage_id));
-                        let parent = next_frame_tree.find_mut(parent.id).expect(
+                        let parent = next_frame_tree.find(parent.id).expect(
                             "Constellation: pending frame has a parent frame that is not
                             active. This is a bug.");
                         parent.children.push(ChildFrameTree {
@@ -774,9 +774,13 @@ impl Constellation {
                 // exit any pipelines that don't exist outside the evicted frame trees
                 for frame_tree in evicted.iter() {
                     for @FrameTree { pipeline, _ } in frame_tree.iter() {
-                        if !self.navigation_context.contains(pipeline.id) {
+                        if !self.navigation_context.contains(pipeline.id) &&
+                            !exited.contains(&pipeline.id) {
+                            debug!("Constellation: shutting down pipeline %?", pipeline.id);
                             pipeline.exit();
                             self.pipelines.remove(&pipeline.id);
+
+                            exited.insert(pipeline.id);
                         }
                     }
                 }
