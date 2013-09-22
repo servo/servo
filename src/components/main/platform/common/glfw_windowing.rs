@@ -136,7 +136,7 @@ impl WindowMethods<Application> for Window {
         }
         glfw::poll_events();
         self.throbber_frame = (self.throbber_frame + 1) % (THROBBER.len() as u8);
-        self.update_window_title();
+        self.update_window_title(false);
         if self.glfw_window.should_close() {
             QuitWindowEvent
         } else if !self.event_queue.is_empty() {
@@ -149,7 +149,7 @@ impl WindowMethods<Application> for Window {
     /// Sets the ready state.
     fn set_ready_state(@mut self, ready_state: ReadyState) {
         self.ready_state = ready_state;
-        self.update_window_title()
+        self.update_window_title(true)
     }
 
     /// Sets the render state.
@@ -162,7 +162,7 @@ impl WindowMethods<Application> for Window {
         }
 
         self.render_state = render_state;
-        self.update_window_title()
+        self.update_window_title(true)
     }
 
     fn hidpi_factor(@mut self) -> f32 {
@@ -174,11 +174,11 @@ impl WindowMethods<Application> for Window {
 
 impl Window {
     /// Helper function to set the window title in accordance with the ready state.
-    fn update_window_title(&self) {
+    fn update_window_title(&self, state_change: bool) {
         let throbber = THROBBER[self.throbber_frame];
         match self.ready_state {
             Blank => {
-                self.glfw_window.set_title(fmt!("blank — Servo"));
+                if state_change { self.glfw_window.set_title(fmt!("blank — Servo")) }
             }
             Loading => {
                 self.glfw_window.set_title(fmt!("%c Loading — Servo", throbber))
@@ -191,7 +191,9 @@ impl Window {
                     RenderingRenderState => {
                         self.glfw_window.set_title(fmt!("%c Rendering — Servo", throbber))
                     }
-                    IdleRenderState => self.glfw_window.set_title("Servo"),
+                    IdleRenderState => {
+                        if state_change { self.glfw_window.set_title("Servo") }
+                    }
                 }
             }
         }
