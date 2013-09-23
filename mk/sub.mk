@@ -137,6 +137,10 @@ DEPS_rust-layers += \
 
 endif
 
+DEPS_nss += \
+	nspr \
+	$(NULL)
+
 ifeq ($(CFG_OSTYPE),unknown-linux-gnu)
 
 DEPS_rust-azure += \
