@@ -45,33 +45,40 @@ DEPS_rust-azure += \
 	glfw-rs \
 	glfw \
 	skia \
+	rust \
 	$(NULL)
 
 DEPS_glfw-rs += \
 	glfw \
+	rust \
 	$(NULL)
 
 DEPS_rust-layers += \
 	rust-geom \
 	rust-opengles \
+	rust \
 	$(NULL)
 
 DEPS_sharegl += \
 	rust-geom \
 	rust-opengles \
+	rust \
 	$(NULL)
 
 DEPS_rust-hubbub += \
 	libhubbub \
+	rust \
 	$(NULL)
 
 DEPS_rust-netsurfcss += \
 	libcss \
 	rust-wapcaplet \
+	rust \
 	$(NULL)
 
 DEPS_rust-wapcaplet += \
 	libwapcaplet \
+	rust \
 	$(NULL)
 
 CFLAGS_rust-wapcaplet += \
@@ -81,10 +88,12 @@ CFLAGS_rust-wapcaplet += \
 DEPS_rust-css += \
 	rust-netsurfcss \
 	rust-wapcaplet \
+	rust \
 	$(NULL)
 
 DEPS_rust-mozjs += \
 	mozjs \
+	rust \
 	$(NULL)
 
 CFLAGS_rust-mozjs += \
@@ -103,29 +112,35 @@ DEPS_rust-azure += \
 	rust-core-text \
 	rust-core-foundation \
 	rust-cocoa \
+	rust \
 	$(NULL)
 
 DEPS_rust-io-surface += \
 	rust-core-foundation \
+	rust \
 	$(NULL)
 
 DEPS_rust-alert += \
 	rust-core-foundation \
 	rust-cocoa \
+	rust \
 	$(NULL)
 
 DEPS_sharegl += \
 	rust-core-foundation \
 	rust-io-surface \
+	rust \
 	$(NULL)
 
 DEPS_rust-core-graphics += \
 	rust-core-foundation \
+	rust \
 	$(NULL)
 
 DEPS_rust-core-text += \
 	rust-core-foundation \
 	rust-core-graphics \
+	rust \
 	$(NULL)
 
 DEPS_rust-layers += \
@@ -133,6 +148,7 @@ DEPS_rust-layers += \
 	rust-core-graphics \
 	rust-core-text \
 	rust-cocoa \
+	rust \
 	$(NULL)
 
 endif
@@ -147,6 +163,7 @@ DEPS_rust-azure += \
 	rust-freetype \
 	rust-fontconfig \
 	rust-xlib \
+	rust \
 	$(NULL)
 
 # See note at top of file
@@ -154,6 +171,7 @@ DEPS_rust-layers += \
 	rust-freetype \
 	rust-fontconfig \
 	rust-xlib \
+	rust \
 	$(NULL)
 endif
 
@@ -164,21 +182,25 @@ DEPS_rust-azure += \
 	fontconfig \
 	libfreetype2 \
 	libexpat \
+	rust \
 	$(NULL)
 
 # See note at top of file
 DEPS_rust-layers += \
 	rust-freetype \
 	rust-fontconfig \
+	rust \
 	$(NULL)
 
 DEPS_rust-fontconfig += \
 	fontconfig \
 	rust-freetype \
+	rust \
 	$(NULL)
 
 DEPS_rust-freetype += \
 	libfreetype2 \
+	rust \
 	$(NULL)
 
 DEPS_fontconfig += \
