@@ -605,7 +605,7 @@ done
 if [ ${do_reconfigure} -ne 0 ]
 then
     cd ${CFG_BUILD_DIR}src/compiler/rust
-    RUST_CONFIGURE_ARGS=""
+    RUST_CONFIGURE_ARGS="--enable-debug"
     if [ $CFG_OSTYPE = "linux-androideabi" ]; then
         RUST_CONFIGURE_ARGS="--target-triples=arm-linux-androideabi --android-cross-path=${CFG_ANDROID_CROSS_PATH}"
     fi
