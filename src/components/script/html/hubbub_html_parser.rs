@@ -523,7 +523,7 @@ pub fn parse_html(cx: *JSContext,
                                     }
                                 }
 
-                                debug!("data = %?", data);
+                                debug!("script data = %?", data);
                                 js_chan.send(JSTaskNewInlineScript(data.concat(), url.clone()));
                             }
                         }
@@ -549,7 +549,7 @@ pub fn parse_html(cx: *JSContext,
                     }
                 }
 
-                debug!("data = %?", data);
+                debug!("style data = %?", data);
                 let provenance = InlineProvenance(url_cell.take().unwrap(), data.concat());
                 css_chan3.send(CSSTaskNewFile(provenance));
             }
