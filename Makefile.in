@@ -93,11 +93,11 @@ $(S)config.stamp : $(S)configure $(S)Makefile.in
 ifneq ($(CFG_LOCAL_RUSTC),1)
 $(CFG_RUSTC):
 	@$(call E, building rustc)
-	$(Q)$(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS="" CC=gcc CXX=g++ LD=ld AR=ar
+	$(Q)CFG_RUSTC_FLAGS= CFG_ENABLE_DEBUG= RUSTFLAGS= $(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CC=gcc CXX=g++ LD=ld AR=ar
 
 clean-rust:
 	@$(call E, cleaning rustc)
-	$(Q)$(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" CFG_RUSTC_FLAGS="" RUSTFLAGS="" clean
+	$(Q)CFG_RUSTC_FLAGS= CFG_ENABLE_DEBUG= RUSTFLAGS= $(MAKE) -C "$(CFG_BUILD_DIR)src/compiler/rust" clean
 
 else
 $(CFG_RUSTC):
