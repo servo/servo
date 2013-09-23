@@ -653,7 +653,7 @@ impl ScriptTask {
                                                                  page.next_subpage_id.clone(),
                                                                  self.constellation_chan.clone());
 
-        let HtmlParserResult {root, discovery_port} = html_parsing_result;
+        let HtmlParserResult {root, discovery_port, url: final_url} = html_parsing_result;
 
         let document = HTMLDocument::new(root, Some(window));
 
@@ -662,7 +662,7 @@ impl ScriptTask {
             document: document,
             window: window,
         });
-        page.url = Some((url.clone(), true));
+        page.url = Some((final_url, true));
 
         // Send style sheets over to layout.
         //

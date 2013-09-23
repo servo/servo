@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{ProgressMsg, Payload, Done, LoaderTask};
+use resource_task::{ProgressMsg, Payload, Done, UrlChange, LoaderTask};
 
 use std::cell::Cell;
 use std::vec;
@@ -22,7 +22,7 @@ pub fn factory() -> LoaderTask {
 }
 
 fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
-	assert!(url.scheme == ~"http");
+    assert!("http" == url.scheme);
 
     info!("requesting %s", url.to_str());
 
@@ -35,8 +35,27 @@ fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
         }
     };
 
+    info!("got HTTP response %s, headers:", response.status.to_str())
+
+    let is_redirect = 3 == (response.status.code() / 100);
+    let mut redirect: Option<Url> = None;
     for header in response.headers.iter() {
-        info!(" - %s: %s", header.header_name(), header.header_value());
+        let name  = header.header_name();
+        let value = header.header_value();
+        info!(" - %s: %s", name, value);
+        if is_redirect && ("Location" == name) {
+            redirect = Some(FromStr::from_str(value).expect("Failed to parse redirect URL"));
+        }
+    }
+
+    // FIXME: detect redirect loops
+    match redirect {
+        Some(url) => {
+            info!("redirecting to %s", url.to_str());
+            progress_chan.send(UrlChange(url.clone()));
+            return load(url, progress_chan);
+        }
+        None => ()
     }
 
     loop {

@@ -24,7 +24,7 @@ use std::from_str::FromStr;
 use hubbub::hubbub;
 use servo_msg::constellation_msg::{ConstellationChan, SubpageId};
 use servo_net::image_cache_task::ImageCacheTask;
-use servo_net::resource_task::{Done, Load, Payload, ResourceTask};
+use servo_net::resource_task::{ProgressMsg, Done, Load, Payload, UrlChange, ResourceTask};
 use servo_util::tree::TreeNodeRef;
 use servo_util::url::make_url;
 use extra::url::Url;
@@ -98,6 +98,7 @@ pub enum HtmlDiscoveryMessage {
 pub struct HtmlParserResult {
     root: AbstractNode<ScriptView>,
     discovery_port: Port<HtmlDiscoveryMessage>,
+    url: Url,
 }
 
 trait NodeWrapping {
@@ -171,6 +172,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
                     let mut buf = ~[];
                     loop {
                         match input_port.recv() {
+                            UrlChange(*) => (),  // don't care that URL changed
                             Payload(data) => {
                                 buf.push_all(data);
                             }
@@ -329,8 +331,25 @@ pub fn parse_html(cx: *JSContext,
     }
     let js_chan = SharedChan::new(js_msg_chan);
 
-    let url2 = url.clone();
-    let url3 = url.clone();
+    // Process any UrlChange messages before we build the parser, because the
+    // tree handler functions need to know the final URL.
+    let mut final_url = url.clone();
+    let (input_port, input_chan) = comm::stream();
+    resource_task.send(Load(url.clone(), input_chan));
+    let mut progress_msg: ProgressMsg;
+    loop {
+        progress_msg = input_port.recv();
+        match progress_msg {
+            UrlChange(url) => {
+                debug!("page URL changed to %s", url.to_str());
+                final_url = url;
+            }
+            _ => break
+        }
+    }
+
+    let url2 = final_url.clone();
+    let url3 = final_url.clone();
 
     // Build the root node.
     let root = @HTMLHtmlElement { htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html") };
@@ -551,11 +570,13 @@ pub fn parse_html(cx: *JSContext,
     });
     debug!("set tree handler");
 
-    let (input_port, input_chan) = comm::stream();
-    resource_task.send(Load(url.clone(), input_chan));
     debug!("loaded page");
     loop {
-        match input_port.recv() {
+        // We already have a message from the earlier UrlChange processing.
+        match progress_msg {
+            UrlChange(*) => {
+                fail!("got UrlChange message after others");
+            }
             Payload(data) => {
                 debug!("received data");
                 parser.parse_chunk(data);
@@ -567,6 +588,7 @@ pub fn parse_html(cx: *JSContext,
                 break;
             }
         }
+        progress_msg = input_port.recv();
     }
 
     css_chan.send(CSSTaskExit);
@@ -575,6 +597,7 @@ pub fn parse_html(cx: *JSContext,
     HtmlParserResult {
         root: root,
         discovery_port: discovery_port,
+        url: final_url,
     }
 }
 
