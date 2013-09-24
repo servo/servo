@@ -70,8 +70,10 @@ pub enum ScriptMsg {
     ReflowCompleteMsg(PipelineId, uint),
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactiveMsg(PipelineId, Size2D<uint>),
-    /// Exits the constellation.
-    ExitMsg(PipelineId),
+    /// Notifies the script that a pipeline should be closed.
+    ExitPipelineMsg(PipelineId),
+    /// Notifies the script that a window associated with a particular pipeline should be closed.
+    ExitWindowMsg(PipelineId),
 }
 
 pub struct NewLayoutInfo {
@@ -516,9 +518,8 @@ impl ScriptTask {
                 NavigateMsg(direction) => self.handle_navigate_msg(direction),
                 ReflowCompleteMsg(id, reflow_id) => self.handle_reflow_complete_msg(id, reflow_id),
                 ResizeInactiveMsg(id, new_size) => self.handle_resize_inactive_msg(id, new_size),
-                ExitMsg(id) => {
-                    if self.handle_exit_msg(id) { return false }
-                },
+                ExitPipelineMsg(id) => if self.handle_exit_pipeline_msg(id) { return false },
+                ExitWindowMsg(id) => if self.handle_exit_window_msg(id) { return false },
                 ResizeMsg(*) => fail!("should have handled ResizeMsg already"),
             }
         }
@@ -623,9 +624,17 @@ impl ScriptTask {
         }
     }
 
+    fn handle_exit_window_msg(&mut self, _id: PipelineId) -> bool {
+        // TODO(tkuehn): currently there is only one window,
+        // so this can afford to be naive and just shut down the
+        // compositor. In the future it'll need to be smarter.
+        self.compositor.close();
+        true
+    }
+
     /// Handles a request to exit the script task and shut down layout.
     /// Returns true if the script task should shut down and false otherwise.
-    fn handle_exit_msg(&mut self, id: PipelineId) -> bool {
+    fn handle_exit_pipeline_msg(&mut self, id: PipelineId) -> bool {
         // If root is being exited, shut down all pages
         if self.page_tree.page.id == id {
             for page in self.page_tree.iter() {
@@ -641,10 +650,12 @@ impl ScriptTask {
                     page.join_layout();
                     page.layout_chan.send(layout_interface::ExitMsg);
                 }
-                return false
+                false
             }
-            None => fail!("ScriptTask: Received exit message from
-                           pipeline whose id is not in page tree"),
+            // TODO(tkuehn): pipeline closing is currently duplicated across
+            // script and constellation, which can cause this to happen. Constellation
+            // needs to be smarter about exiting pipelines.
+            None => false,
         }
         
     }

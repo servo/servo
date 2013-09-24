@@ -10,7 +10,7 @@ use dom::node::{AbstractNode, ScriptView};
 use dom::navigator::Navigator;
 
 use layout_interface::ReflowForDisplay;
-use script_task::{ExitMsg, FireTimerMsg, Page, ScriptChan};
+use script_task::{ExitWindowMsg, FireTimerMsg, Page, ScriptChan};
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 
@@ -212,7 +212,7 @@ impl Window {
                         match timer_port.recv() {
                             TimerMessage_Close => break,
                             TimerMessage_Fire(td) => script_chan.send(FireTimerMsg(id, td)),
-                            TimerMessage_TriggerExit => script_chan.send(ExitMsg(id)),
+                            TimerMessage_TriggerExit => script_chan.send(ExitWindowMsg(id)),
                         }
                     }
                 }

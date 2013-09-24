@@ -760,6 +760,28 @@ impl Constellation {
         }
     }
 
+    // Close all pipelines at and beneath a given frame
+    fn close_pipelines(&mut self, frame_tree: @mut FrameTree) {
+        // TODO(tkuehn): should only exit once per unique script task,
+        // and then that script task will handle sub-exits
+        for @FrameTree { pipeline, _ } in frame_tree.iter() {
+            pipeline.exit();
+            self.pipelines.remove(&pipeline.id);
+        }
+    }
+
+    fn handle_evicted_frames(&mut self, evicted: ~[@mut FrameTree]) {
+        for &frame_tree in evicted.iter() {
+            if !self.navigation_context.contains(frame_tree.pipeline.id) {
+                self.close_pipelines(frame_tree);
+            } else {
+                self.handle_evicted_frames(frame_tree.children.iter()
+                    .map(|child| child.frame_tree)
+                    .collect());
+            }
+        }
+    }
+
     // Grants a frame tree permission to paint; optionally updates navigation to reflect a new page
     fn grant_paint_permission(&mut self, frame_tree: @mut FrameTree, navigation_type: NavigationType) {
         // Give permission to paint to the new frame and all child frames
@@ -770,20 +792,7 @@ impl Constellation {
         match navigation_type {
             constellation_msg::Load => {
                 let evicted = self.navigation_context.load(frame_tree);
-                let mut exited = HashSet::new();
-                // exit any pipelines that don't exist outside the evicted frame trees
-                for frame_tree in evicted.iter() {
-                    for @FrameTree { pipeline, _ } in frame_tree.iter() {
-                        if !self.navigation_context.contains(pipeline.id) &&
-                            !exited.contains(&pipeline.id) {
-                            debug!("Constellation: shutting down pipeline %?", pipeline.id);
-                            pipeline.exit();
-                            self.pipelines.remove(&pipeline.id);
-
-                            exited.insert(pipeline.id);
-                        }
-                    }
-                }
+                self.handle_evicted_frames(evicted);
             }
             _ => {}
         }
