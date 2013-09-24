@@ -21,6 +21,9 @@ pub enum ControlMsg {
 /// Messages sent in response to a `Load` message
 #[deriving(Eq)]
 pub enum ProgressMsg {
+    /// URL changed due to a redirect.  There can be zero or more of these,
+    /// but they are guaranteed to arrive before messages of any other type.
+    UrlChange(Url),
     /// Binary data - there may be multiple of these
     Payload(~[u8]),
     /// Indicates loading is complete, either successfully or not

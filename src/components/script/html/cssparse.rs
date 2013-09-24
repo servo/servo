@@ -10,7 +10,7 @@ use std::comm::Port;
 use std::task;
 use newcss::stylesheet::Stylesheet;
 use newcss::util::DataStream;
-use servo_net::resource_task::{ResourceTask, ProgressMsg, Load, Payload, Done};
+use servo_net::resource_task::{ResourceTask, ProgressMsg, Load, Payload, Done, UrlChange};
 use extra::url::Url;
 
 /// Where a style sheet comes from.
@@ -57,10 +57,19 @@ fn data_stream(provenance: StylesheetProvenance, resource_task: ResourceTask) ->
 
 fn resource_port_to_data_stream(input_port: Port<ProgressMsg>) -> DataStream {
     return || {
-        match input_port.recv() {
-            Payload(data) => Some(data),
-            Done(*) => None
+        // Can't just 'return' the value since we're inside a lambda
+        let mut result = None;
+        loop {
+            match input_port.recv() {
+                UrlChange(*) => (),  // don't care that URL changed
+                Payload(data) => {
+                    result = Some(data);
+                    break;
+                }
+                Done(*) => break
+            }
         }
+        result
     }
 }
 
