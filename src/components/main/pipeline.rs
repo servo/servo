@@ -6,7 +6,6 @@ use extra::url::Url;
 use compositing::CompositorChan;
 use gfx::render_task::{RenderChan, RenderTask};
 use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
-use gfx::render_task;
 use gfx::opts::Opts;
 use layout::layout_task::LayoutTask;
 use script::layout_interface::LayoutChan;
@@ -21,7 +20,6 @@ use servo_util::time::ProfilerChan;
 use geom::size::Size2D;
 use extra::future::Future;
 use std::cell::Cell;
-use std::comm;
 use std::task;
 
 /// A uniquely-identifiable pipeline of script task, layout task, and render task. 
@@ -216,12 +214,9 @@ impl Pipeline {
     }
 
     pub fn exit(&self) {
-        // Script task handles shutting down layout, as well
-        self.script_chan.send(script_task::ExitMsg);
-
-        let (response_port, response_chan) = comm::stream();
-        self.render_chan.send(render_task::ExitMsg(response_chan));
-        response_port.recv();
+        // Script task handles shutting down layout, 
+        // and layout handles shutting down the renderer.
+        self.script_chan.try_send(script_task::ExitPipelineMsg(self.id));
     }
 }
 

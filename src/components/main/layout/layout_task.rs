@@ -26,6 +26,7 @@ use gfx::font_context::FontContext;
 use gfx::geometry::Au;
 use gfx::opts::Opts;
 use gfx::render_task::{RenderMsg, RenderChan, RenderLayer};
+use gfx::render_task;
 use newcss::select::SelectCtx;
 use newcss::stylesheet::Stylesheet;
 use newcss::types::OriginAuthor;
@@ -162,6 +163,9 @@ impl LayoutTask {
             }
             ExitMsg => {
                 debug!("layout: ExitMsg received");
+                let (response_port, response_chan) = stream();
+                self.render_chan.send(render_task::ExitMsg(response_chan));
+                response_port.recv();
                 return false
             }
         }
