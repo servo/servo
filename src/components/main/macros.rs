@@ -5,7 +5,7 @@
 macro_rules! special_stream(
     ($Chan:ident) => (
         {
-            let (port, chan) = comm::stream::();
+            let (port, chan) = stream::();
             (port, $Chan::new(chan))
         }
     );
