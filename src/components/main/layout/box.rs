@@ -114,6 +114,11 @@ impl TextRenderBox {
 pub struct UnscannedTextRenderBox {
     base: RenderBoxBase,
     text: ~str,
+
+    // Cache font-style and text-decoration to check whether
+    // this box can merge with another render box.
+    font_style: Option<FontStyle>,
+    text_decoration: Option<CSSTextDecoration>,
 }
 
 impl UnscannedTextRenderBox {
@@ -128,6 +133,8 @@ impl UnscannedTextRenderBox {
             UnscannedTextRenderBox {
                 base: base,
                 text: text_node.element.data.to_str(),
+                font_style: None,
+                text_decoration: None,
             }
         }
     }
@@ -407,7 +414,7 @@ impl RenderBox {
                 let border_right = base.model.compute_border_width(style.border_right_width(),
                                                                    font_size);
 
-                width + margin_left + margin_right + padding_left + padding_right + 
+                width + margin_left + margin_right + padding_left + padding_right +
                     border_left + border_right
             }
         }
@@ -563,7 +570,7 @@ impl RenderBox {
                                  base.model.border.left +
                                  base.model.padding.left,
                                  base.position.origin.y);
-            let size = Size2D(base.position.size.width - self.get_noncontent_width(), 
+            let size = Size2D(base.position.size.width - self.get_noncontent_width(),
                               base.position.size.height);
             Rect(origin, size)
         }
@@ -677,7 +684,7 @@ impl RenderBox {
                 //
                 // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
                 // should have a real `SERVO_DEBUG` system.
-                debug!("%?", { 
+                debug!("%?", {
                     // Compute the text box bounds and draw a border surrounding them.
                     let debug_border = SideOffsets2D::new_all_same(Au::from_px(1));
 
@@ -743,7 +750,7 @@ impl RenderBox {
                         };
                         list.append_item(BorderDisplayItemClass(border_display_item))
                     }
-                    
+
                     ()
                 });
 
@@ -824,44 +831,69 @@ impl RenderBox {
 
     /// Converts this node's computed style to a font style used for rendering.
     pub fn font_style(&self) -> FontStyle {
-        let my_style = self.nearest_ancestor_element().style();
+        fn get_font_style(element: AbstractNode<LayoutView>) -> FontStyle {
+            let my_style = element.style();
 
-        debug!("(font style) start: %?", self.nearest_ancestor_element().type_id());
+            debug!("(font style) start: %?", element.type_id());
 
-        // FIXME: Too much allocation here.
-        let font_families = do my_style.font_family().map |family| {
-            match *family {
-                CSSFontFamilyFamilyName(ref family_str) => (*family_str).clone(),
-                CSSFontFamilyGenericFamily(Serif)       => ~"serif",
-                CSSFontFamilyGenericFamily(SansSerif)   => ~"sans-serif",
-                CSSFontFamilyGenericFamily(Cursive)     => ~"cursive",
-                CSSFontFamilyGenericFamily(Fantasy)     => ~"fantasy",
-                CSSFontFamilyGenericFamily(Monospace)   => ~"monospace",
+            // FIXME: Too much allocation here.
+            let font_families = do my_style.font_family().map |family| {
+                match *family {
+                    CSSFontFamilyFamilyName(ref family_str) => (*family_str).clone(),
+                    CSSFontFamilyGenericFamily(Serif)       => ~"serif",
+                    CSSFontFamilyGenericFamily(SansSerif)   => ~"sans-serif",
+                    CSSFontFamilyGenericFamily(Cursive)     => ~"cursive",
+                    CSSFontFamilyGenericFamily(Fantasy)     => ~"fantasy",
+                    CSSFontFamilyGenericFamily(Monospace)   => ~"monospace",
+                }
+            };
+            let font_families = font_families.connect(", ");
+            debug!("(font style) font families: `%s`", font_families);
+
+            let font_size = match my_style.font_size() {
+                CSSFontSizeLength(Px(length)) => length,
+                // todo: this is based on a hard coded font size, should be the parent element's font size
+                CSSFontSizeLength(Em(length)) => length * 16f,
+                _ => 16f // px units
+            };
+            debug!("(font style) font size: `%fpx`", font_size);
+
+            let (italic, oblique) = match my_style.font_style() {
+                CSSFontStyleNormal => (false, false),
+                CSSFontStyleItalic => (true, false),
+                CSSFontStyleOblique => (false, true),
+            };
+
+            FontStyle {
+                pt_size: font_size,
+                weight: FontWeight300,
+                italic: italic,
+                oblique: oblique,
+                families: font_families,
             }
-        };
-        let font_families = font_families.connect(", ");
-        debug!("(font style) font families: `%s`", font_families);
+        }
 
-        let font_size = match my_style.font_size() {
-            CSSFontSizeLength(Px(length)) => length,
-            // todo: this is based on a hard coded font size, should be the parent element's font size
-            CSSFontSizeLength(Em(length)) => length * 16f, 
-            _ => 16f // px units
-        };
-        debug!("(font style) font size: `%fpx`", font_size);
-
-        let (italic, oblique) = match my_style.font_style() {
-            CSSFontStyleNormal => (false, false),
-            CSSFontStyleItalic => (true, false),
-            CSSFontStyleOblique => (false, true),
+        let font_style_cached = match *self {
+            UnscannedTextRenderBoxClass(ref box) => {
+                match box.font_style {
+                    Some(ref style) => Some(style.clone()),
+                    None => None
+                }
+            }
+            _ => None
         };
 
-        FontStyle {
-            pt_size: font_size,
-            weight: FontWeight300,
-            italic: italic,
-            oblique: oblique,
-            families: font_families,
+        if font_style_cached.is_some() {
+            return font_style_cached.unwrap();
+        } else {
+            let font_style = get_font_style(self.nearest_ancestor_element());
+            match *self {
+                UnscannedTextRenderBoxClass(ref box) => {
+                    box.font_style = Some(font_style.clone());
+                }
+                _ => ()
+            }
+            return font_style;
         }
     }
 
@@ -916,7 +948,29 @@ impl RenderBox {
                 text_decoration
             }
         }
-        get_propagated_text_decoration(self.nearest_ancestor_element())
+
+        let text_decoration_cached = match *self {
+            UnscannedTextRenderBoxClass(ref box) => {
+                match box.text_decoration {
+                    Some(ref decoration) => Some(decoration.clone()),
+                    None => None
+                }
+            }
+            _ => None
+        };
+
+        if text_decoration_cached.is_some() {
+            return text_decoration_cached.unwrap();
+        } else {
+            let text_decoration = get_propagated_text_decoration(self.nearest_ancestor_element());
+            match *self {
+                UnscannedTextRenderBoxClass(ref box) => {
+                    box.text_decoration = Some(text_decoration.clone());
+                }
+                _ => ()
+            }
+            return text_decoration;
+        }
     }
 
     /// Dumps this node, for debugging.
