@@ -10,6 +10,7 @@ use layout::context::LayoutContext;
 use layout::display_list_builder::{DisplayListBuilder, ExtraDisplayListData};
 use layout::flow::{FlowContext, FlowData, InlineFlow};
 use layout::float_context::FloatContext;
+use layout::model::{MaybeAuto, Auto, Specified};
 use layout::util::{ElementMapping};
 use layout::float_context::{PlacementInfo, FloatLeft};
 
@@ -17,7 +18,7 @@ use std::u16;
 use std::util;
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::DisplayList;
-use gfx::geometry::Au;
+use gfx::geometry::{Au,to_frac_px};
 use newcss::units::{Em, Px};
 use newcss::values::{CSSFontSizeLength};
 use newcss::values::{CSSTextAlignLeft, CSSTextAlignCenter, CSSTextAlignRight, CSSTextAlignJustify};
@@ -199,8 +200,17 @@ impl LineboxScanner {
 
                 line_height
             }
-            GenericRenderBoxClass(_) => {
-                Au(0)
+            GenericRenderBoxClass(generic_box) => {
+                let style = box.style();
+                let height = MaybeAuto::from_height(style.height(), Au(0), style.font_size());
+                debug!("Height: %?", height);
+                // TODO: add in the bordery stuff
+                let height = match height {
+                    Auto => Au(0),
+                    Specified(h) => h
+                };
+                generic_box.position.size.height = height;
+                height
             }
             _ => {
                 fail!(fmt!("Tried to get height of unknown Box variant: %s", box.debug_str()))
@@ -512,20 +522,22 @@ impl InlineLayout for FlowContext {
 
 impl InlineFlowData {
     pub fn bubble_widths_inline(&mut self, ctx: &mut LayoutContext) {
+        let mut min_width = Au(0);
+        let mut pref_width = Au(0);
         let mut num_floats = 0;
 
         for kid in self.common.child_iter() {
             do kid.with_mut_base |base| {
                 num_floats += base.num_floats;
                 base.floats_in = FloatContext::new(base.num_floats);
+
+                min_width = Au::max(min_width, base.min_width);
+                pref_width = Au::max(pref_width, base.pref_width);
             }
         }
 
         {
             let this = &mut *self;
-
-            let mut min_width = Au(0);
-            let mut pref_width = Au(0);
 
             for box in this.boxes.iter() {
                 debug!("FlowContext[%d]: measuring %s", self.common.id, box.debug_str());
@@ -541,7 +553,7 @@ impl InlineFlowData {
 
     /// Recursively (top-down) determines the actual width of child contexts and boxes. When called
     /// on this context, the context has had its width set by the parent context.
-    pub fn assign_widths_inline(&mut self, _: &LayoutContext) {
+    pub fn assign_widths_inline(&mut self, ctx: &LayoutContext) {
         // Initialize content box widths if they haven't been initialized already.
         //
         // TODO: Combine this with `LineboxScanner`'s walk in the box list, or put this into
@@ -562,8 +574,13 @@ impl InlineFlowData {
                     GenericRenderBoxClass(generic_box) => {
                         // TODO(#225): There will be different cases here for `inline-block` and
                         // other replaced content.
-                        // FIXME(pcwalton): This seems clownshoes; can we remove?
-                        generic_box.position.size.width = Au::from_px(45);
+                        if generic_box.node.is_iframe_element() {
+                            generic_box.position.size.width = box.get_pref_width(ctx);
+                        } else {
+                            // FIXME(pcwalton): This seems clownshoes; can we remove?
+                            generic_box.position.size.width = Au::from_px(45);
+                        }
+
                     }
                     // FIXME(pcwalton): This isn't very type safe!
                     _ => fail!(fmt!("Tried to assign width to unknown Box variant: %?", box)),
@@ -894,17 +911,11 @@ impl InlineFlowData {
                                                                 -self.common.position.size.height));
     }
 
-    pub fn build_display_list_inline<E:ExtraDisplayListData>(&self,
+    pub fn build_display_list_inline<E:ExtraDisplayListData>(&mut self,
                                                              builder: &DisplayListBuilder,
                                                              dirty: &Rect<Au>,
                                                              list: &Cell<DisplayList<E>>)
                                                              -> bool {
-
-        //TODO: implement inline iframe size messaging
-        if self.common.node.is_iframe_element() {
-            error!("inline iframe size messaging not implemented yet");
-        }
-
         let abs_rect = Rect(self.common.abs_position, self.common.position.size);
         if !abs_rect.intersects(dirty) {
             return true;
@@ -917,6 +928,28 @@ impl InlineFlowData {
                self.boxes.len());
 
         for box in self.boxes.iter() {
+            match *box {
+            GenericRenderBoxClass(render_box) => {
+                // TODO: more cases
+                if render_box.node.is_iframe_element() {
+                    let x = render_box.position.origin.x + 
+                        render_box.model.margin.left + render_box.model.border.left + render_box.model.padding.left;
+                    let y = render_box.position.origin.y +
+                        render_box.model.margin.top + render_box.model.border.top + render_box.model.padding.top;
+                    let w = render_box.position.size.width - render_box.model.noncontent_width();
+                    let h = render_box.position.size.height - render_box.model.noncontent_height();
+                    do render_box.node.with_mut_iframe_element |iframe_element| {
+                        iframe_element.size.get_mut_ref().set_rect(Rect(Point2D(to_frac_px(x) as f32,
+                                                                                to_frac_px(y) as f32),
+                                                                        Size2D(to_frac_px(w) as f32,
+                                                                               to_frac_px(h) as f32)));
+                    }
+                }
+            }
+            _ => {}
+            }
+
+            
             box.build_display_list(builder, dirty, &self.common.abs_position, list)
         }
 
