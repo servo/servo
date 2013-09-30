@@ -31,7 +31,7 @@ pub struct StyleRule {
 }
 
 
-fn parse_stylesheet(css: &str) -> Stylesheet {
+pub fn parse_stylesheet(css: &str) -> Stylesheet {
     static STATE_CHARSET: uint = 1;
     static STATE_IMPORTS: uint = 2;
     static STATE_NAMESPACES: uint = 3;

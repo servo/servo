@@ -214,8 +214,8 @@ fn parse_simple_selectors(iter: &mut Iter, namespaces: &NamespaceMap)
 
 
 // None means invalid selector
-// Some(None) means no type selector
-// Some(Some([...])) is a type selector. Might be empty for *|*
+// Some(None) means no type selector.
+// Some(Some(~[...])) is a type selector. Might be empty for *|*
 fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
                        -> Option<Option<~[SimpleSelector]>> {
     skip_whitespace(iter);
@@ -242,6 +242,10 @@ fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
 
 
 // Parse a simple selector other than a type selector
+// None means invalid selector
+// Some(None) means not a simple name
+// Some(Some(Left(s)) is a simple selector
+// Some(Some(Right(p)) is a pseudo-element
 fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_negation: bool)
                          -> Option<Option<Either<SimpleSelector, PseudoElement>>> {
     match iter.peek() {
@@ -292,6 +296,7 @@ fn parse_one_simple_selector(iter: &mut Iter, namespaces: &NamespaceMap, inside_
     }
 }
 
+
 // None means invalid selector
 // Some(None) means not a qualified name
 // Some(Some((None, None)) means *|*
@@ -304,16 +309,14 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
     #[inline]
     fn default_namespace(namespaces: &NamespaceMap, local_name: Option<~str>)
                          -> Option<Option<(Option<~str>, Option<~str>)>> {
-        match namespaces.default {
-            None => Some(Some((None, local_name))),
-            Some(ref url) => Some(Some((Some(url.to_owned()), local_name))),
-        }
+        Some(Some((namespaces.default.map(|url| url.to_owned()), local_name)))
     }
 
     #[inline]
     fn explicit_namespace(iter: &mut Iter, allow_universal: bool, namespace_url: Option<~str>)
                          -> Option<Option<(Option<~str>, Option<~str>)>> {
-        assert!(iter.next() == Some(Delim('|')));
+        assert!(iter.next() == Some(Delim('|')),
+                "Implementation error, this should not happen.");
         match iter.peek() {
             Some(&Delim('*')) if allow_universal => {
                 iter.next();
@@ -331,24 +334,24 @@ fn parse_qualified_name(iter: &mut Iter, allow_universal: bool, namespaces: &Nam
         Some(&Ident(_)) => {
             let value = get_next_ident(iter);
             match iter.peek() {
-                Some(&Delim('|')) => default_namespace(namespaces, Some(value)),
-                _ => {
+                Some(&Delim('|')) => {
                     let namespace_url = match namespaces.prefix_map.find(&value) {
                         None => return None,  // Undeclared namespace prefix: invalid selector
                         Some(ref url) => url.to_owned(),
                     };
                     explicit_namespace(iter, allow_universal, Some(namespace_url))
                 },
+                _ => default_namespace(namespaces, Some(value)),
             }
         },
         Some(&Delim('*')) => {
             iter.next();  // Consume '*'
             match iter.peek() {
-                Some(&Delim('|')) => {
+                Some(&Delim('|')) => explicit_namespace(iter, allow_universal, None),
+                _ => {
                     if allow_universal { default_namespace(namespaces, None) }
                     else { None }
                 },
-                _ => explicit_namespace(iter, allow_universal, None),
             }
         },
         Some(&Delim('|')) => explicit_namespace(iter, allow_universal, Some(~"")),
