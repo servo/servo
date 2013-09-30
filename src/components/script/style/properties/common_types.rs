@@ -12,6 +12,7 @@ pub mod specified {
     use super::{Integer, Float};
     pub use CSSColor = cssparser::Color;
 
+    #[deriving(Clone)]
     pub enum Length {
         Au(Integer),  // application units
         Em(Float),
@@ -65,6 +66,7 @@ pub mod specified {
         }
     }
 
+    #[deriving(Clone)]
     pub enum LengthOrPercentage {
         LP_Length(Length),
         LP_Percentage(Float),
@@ -91,6 +93,7 @@ pub mod specified {
         }
     }
 
+    #[deriving(Clone)]
     pub enum LengthOrPercentageOrAuto {
         LPA_Length(Length),
         LPA_Percentage(Float),
@@ -123,19 +126,23 @@ pub mod specified {
 pub mod computed {
     use cssparser;
     pub use CSSColor = cssparser::Color;
-    pub use compute_CSSColor = std::util::id;
+    pub use compute_CSSColor = super::super::longhands::computed_as_specified;
     use super::*;
-    use super::super::longhands::font_weight;
+    use super::super::longhands;
     pub struct Context {
         current_color: cssparser::RGBA,
+        font_size: Length,
+        font_weight: longhands::font_weight::ComputedValue,
+        position: longhands::position::SpecifiedValue,
+        float: longhands::float::SpecifiedValue,
+        is_root_element: bool,
         has_border_top: bool,
         has_border_right: bool,
         has_border_bottom: bool,
         has_border_left: bool,
-        font_size: Length,
-        font_weight: font_weight::ComputedValue,
         // TODO, as needed: root font size, viewport size, etc.
     }
+    #[deriving(Clone)]
     pub struct Length(Integer);  // in application units
     impl Length {
         pub fn times(self, factor: Float) -> Length {
@@ -154,6 +161,7 @@ pub mod computed {
         }
     }
 
+    #[deriving(Clone)]
     pub enum LengthOrPercentage {
         LP_Length(Length),
         LP_Percentage(Float),
@@ -166,6 +174,7 @@ pub mod computed {
         }
     }
 
+    #[deriving(Clone)]
     pub enum LengthOrPercentageOrAuto {
         LPA_Length(Length),
         LPA_Percentage(Float),

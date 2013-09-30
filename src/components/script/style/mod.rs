@@ -9,3 +9,6 @@ pub mod properties;
 pub mod namespaces;
 pub mod media_queries;
 pub mod parsing_utils;
+
+#[cfg(test)]
+mod tests;
