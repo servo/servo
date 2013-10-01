@@ -17,6 +17,7 @@ pub struct Selector {
 pub static STYLE_ATTRIBUTE_SPECIFICITY: u32 = 1 << 31;
 
 
+#[deriving(Eq)]
 pub enum PseudoElement {
     Before,
     After,
@@ -40,30 +41,29 @@ pub enum Combinator {
 pub enum SimpleSelector {
     IDSelector(~str),
     ClassSelector(~str),
-    LocalNameSelector{lowercase_name: ~str, cased_name: ~str},
+    LocalNameSelector(~str),
     NamespaceSelector(~str),
 
     // Attribute selectors
     AttrExists(AttrSelector),  // [foo]
     AttrEqual(AttrSelector, ~str),  // [foo=bar]
     AttrIncludes(AttrSelector, ~str),  // [foo~=bar]
-    AttrDashMatch(AttrSelector, ~str),  // [foo|=bar]
+    AttrDashMatch(AttrSelector, ~str, ~str),  // [foo|=bar]  Second string is the first + "-"
     AttrPrefixMatch(AttrSelector, ~str),  // [foo^=bar]
     AttrSubstringMatch(AttrSelector, ~str),  // [foo*=bar]
     AttrSuffixMatch(AttrSelector, ~str),  // [foo$=bar]
 
     // Pseudo-classes
-    Empty,
-    Root,
-    Lang(~str),
-    NthChild(i32, i32),
+//    Empty,
+//    Root,
+//    Lang(~str),
+//    NthChild(i32, i32),
     Negation(~[SimpleSelector]),
     // ...
 }
 
 pub struct AttrSelector {
-    lowercase_name: ~str,
-    cased_name: ~str,
+    name: ~str,
     namespace: Option<~str>,
 }
 
@@ -73,7 +73,7 @@ type Iter = iterator::Peekable<ComponentValue, vec::MoveIterator<ComponentValue>
 
 // None means invalid selector
 pub fn parse_selector_list(input: ~[ComponentValue], namespaces: &NamespaceMap)
-                           -> Option<~[Selector]> {
+                           -> Option<~[@Selector]> {
     let iter = &mut input.move_iter().peekable();
     let first = match parse_selector(iter, namespaces) {
         None => return None,
@@ -99,7 +99,7 @@ pub fn parse_selector_list(input: ~[ComponentValue], namespaces: &NamespaceMap)
 
 // None means invalid selector
 fn parse_selector(iter: &mut Iter, namespaces: &NamespaceMap)
-                  -> Option<Selector> {
+                  -> Option<@Selector> {
     let (first, pseudo_element) = match parse_simple_selectors(iter, namespaces) {
         None => return None,
         Some(result) => result
@@ -130,12 +130,11 @@ fn parse_selector(iter: &mut Iter, namespaces: &NamespaceMap)
             }
         }
     }
-    let selector = Selector{
+    Some(@Selector {
         specificity: compute_specificity(&compound, &pseudo_element),
         compound_selectors: compound,
         pseudo_element: pseudo_element,
-    };
-    Some(selector)
+    })
 }
 
 
@@ -168,12 +167,12 @@ fn compute_specificity(mut selector: &CompoundSelector,
                                     specificity: &mut Specificity) {
         for simple_selector in simple_selectors.iter() {
             match simple_selector {
-                &LocalNameSelector{_} => specificity.element_selectors += 1,
+                &LocalNameSelector(*) => specificity.element_selectors += 1,
                 &IDSelector(*) => specificity.id_selectors += 1,
                 &ClassSelector(*)
                 | &AttrExists(*) | &AttrEqual(*) | &AttrIncludes(*) | &AttrDashMatch(*)
                 | &AttrPrefixMatch(*) | &AttrSubstringMatch(*) | &AttrSuffixMatch(*)
-                | &Empty | &Root | &Lang(*) | &NthChild(*)
+//                | &Empty | &Root | &Lang(*) | &NthChild(*)
                 => specificity.class_like_selectors += 1,
                 &NamespaceSelector(*) => (),
                 &Negation(ref negated)
@@ -229,10 +228,7 @@ fn parse_type_selector(iter: &mut Iter, namespaces: &NamespaceMap)
                 None => (),
             }
             match local_name {
-                Some(name) => simple_selectors.push(LocalNameSelector{
-                    lowercase_name: name.to_ascii_lower(),
-                    cased_name: name,
-                }),
+                Some(name) => simple_selectors.push(LocalNameSelector(name)),
                 None => (),
             }
             Some(Some(simple_selectors))
@@ -369,11 +365,11 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
         Some(Some((_, None))) => fail!("Implementation error, this should not happen."),
         Some(Some((namespace, Some(local_name)))) => AttrSelector {
             namespace: namespace,
-            lowercase_name: local_name.to_ascii_lower(),
-            cased_name: local_name,
+            name: local_name,
         },
     };
     skip_whitespace(iter);
+    // TODO: deal with empty value or value containing whitespace (see spec)
     macro_rules! get_value( () => {{
         skip_whitespace(iter);
         match iter.next() {
@@ -385,7 +381,11 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
         None => AttrExists(attr),  // [foo]
         Some(Delim('=')) => AttrEqual(attr, get_value!()),  // [foo=bar]
         Some(IncludeMatch) => AttrIncludes(attr, get_value!()),  // [foo~=bar]
-        Some(DashMatch) => AttrDashMatch(attr, get_value!()),  // [foo|=bar]
+        Some(DashMatch) => {
+            let value = get_value!();
+            let dashing_value = value + "-";
+            AttrDashMatch(attr, value, dashing_value)  // [foo|=bar]
+        },
         Some(PrefixMatch) => AttrPrefixMatch(attr, get_value!()),  // [foo^=bar]
         Some(SubstringMatch) => AttrSubstringMatch(attr, get_value!()),  // [foo*=bar]
         Some(SuffixMatch) => AttrSuffixMatch(attr, get_value!()),  // [foo$=bar]
@@ -398,8 +398,8 @@ fn parse_attribute_selector(content: ~[ComponentValue], namespaces: &NamespaceMa
 
 fn parse_simple_pseudo_class(name: ~str) -> Option<Either<SimpleSelector, PseudoElement>> {
     match name.to_ascii_lower().as_slice() {
-        "root" => Some(Left(Root)),
-        "empty" => Some(Left(Empty)),
+//        "root" => Some(Left(Root)),
+//        "empty" => Some(Left(Empty)),
 
         // Supported CSS 2.1 pseudo-elements only.
         "before" => Some(Right(Before)),
@@ -415,8 +415,8 @@ fn parse_functional_pseudo_class(name: ~str, arguments: ~[ComponentValue],
                                  namespaces: &NamespaceMap, inside_negation: bool)
                                  -> Option<SimpleSelector> {
     match name.to_ascii_lower().as_slice() {
-        "lang" => parse_lang(arguments),
-        "nth-child" => parse_nth(arguments).map(|&(a, b)| NthChild(a, b)),
+//        "lang" => parse_lang(arguments),
+//        "nth-child" => parse_nth(arguments).map(|&(a, b)| NthChild(a, b)),
         "not" => if inside_negation { None } else { parse_negation(arguments, namespaces) },
         _ => None
     }
@@ -435,16 +435,16 @@ fn parse_pseudo_element(name: ~str) -> Option<PseudoElement> {
 }
 
 
-fn parse_lang(arguments: ~[ComponentValue]) -> Option<SimpleSelector> {
-    let mut iter = arguments.move_skip_whitespace();
-    match iter.next() {
-        Some(Ident(value)) => {
-            if "" == value || iter.next().is_some() { None }
-            else { Some(Lang(value)) }
-        },
-        _ => None,
-    }
-}
+//fn parse_lang(arguments: ~[ComponentValue]) -> Option<SimpleSelector> {
+//    let mut iter = arguments.move_skip_whitespace();
+//    match iter.next() {
+//        Some(Ident(value)) => {
+//            if "" == value || iter.next().is_some() { None }
+//            else { Some(Lang(value)) }
+//        },
+//        _ => None,
+//    }
+//}
 
 
 // Level 3: Parse ONE simple_selector

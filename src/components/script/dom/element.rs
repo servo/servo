@@ -131,7 +131,8 @@ impl<'self> Element {
     pub fn get_attr(&'self self, name: &str) -> Option<&'self str> {
         // FIXME: Need an each() that links lifetimes in Rust.
         for attr in self.attrs.iter() {
-            if eq_slice(attr.name, name) {
+            // FIXME: only case-insensitive in the HTML namespace (as opposed to SVG, etc.)
+            if attr.name.eq_ignore_ascii_case(name) {
                 let val: &str = attr.value;
                 return Some(val);
             }

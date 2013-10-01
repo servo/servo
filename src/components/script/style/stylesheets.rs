@@ -26,7 +26,7 @@ pub enum CSSRule {
 
 
 pub struct StyleRule {
-    selectors: ~[selectors::Selector],
+    selectors: ~[@selectors::Selector],
     declarations: properties::PropertyDeclarationBlock,
 }
 
@@ -117,7 +117,8 @@ pub fn parse_nested_at_rule(lower_name: &str, rule: AtRule,
 
 
 impl Stylesheet {
-    fn iter_style_rules<'a>(&'a self, device: &'a media_queries::Device) -> StyleRuleIterator<'a> {
+    pub fn iter_style_rules<'a>(&'a self, device: &'a media_queries::Device)
+                                -> StyleRuleIterator<'a> {
         StyleRuleIterator { device: device, stack: ~[(self.rules.as_slice(), 0)] }
     }
 }

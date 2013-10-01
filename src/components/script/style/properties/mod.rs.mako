@@ -5,6 +5,7 @@
 // This file is a Mako template: http://www.makotemplates.org/
 
 use std::ascii::StrAsciiExt;
+use std::at_vec;
 pub use std::iterator;
 pub use cssparser::*;
 pub use style::errors::{ErrorLoggerIterator, log_css_error};
@@ -655,8 +656,8 @@ pub mod shorthands {
 
 
 pub struct PropertyDeclarationBlock {
-    important: ~[PropertyDeclaration],
-    normal: ~[PropertyDeclaration],
+    important: @[PropertyDeclaration],
+    normal: @[PropertyDeclaration],
 }
 
 
@@ -668,6 +669,7 @@ pub fn parse_property_declaration_list(input: ~[Node]) -> PropertyDeclarationBlo
             Decl_AtRule(rule) => log_css_error(
                 rule.location, fmt!("Unsupported at-rule in declaration list: @%s", rule.name)),
             Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
+                // TODO: only keep the last valid declaration for a given name.
                 let list = if i { &mut important } else { &mut normal };
                 if !PropertyDeclaration::parse(n, v, list) {
                     log_css_error(l, "Invalid property declaration")
@@ -675,7 +677,11 @@ pub fn parse_property_declaration_list(input: ~[Node]) -> PropertyDeclarationBlo
             }
         }
     }
-    PropertyDeclarationBlock { important: important, normal: normal }
+    PropertyDeclarationBlock {
+        // TODO avoid copying?
+        important: at_vec::to_managed_move(important),
+        normal: at_vec::to_managed_move(normal),
+    }
 }
 
 
@@ -795,7 +801,8 @@ fn get_initial_values() -> ComputedValues {
 }
 
 
-pub fn cascade(applicable_declarations: &[PropertyDeclaration],
+// Most specific/important declarations last
+pub fn cascade(applicable_declarations: &[@[PropertyDeclaration]],
                parent_style: Option< &ComputedValues>)
             -> ComputedValues {
     let initial_keep_alive;
@@ -817,14 +824,17 @@ pub fn cascade(applicable_declarations: &[PropertyDeclaration],
                 "Inherit" if property.is_inherited else "Initial"}),
         % endfor
     };
-    for declaration in applicable_declarations.iter() {
-        match declaration {
-            % for property in LONGHANDS:
-                &${property.ident}_declaration(ref value) => {
-                    // Overwrite earlier declarations.
-                    specified.${property.ident} = (*value).clone()  // TODO: can we avoid a copy?
-                }
-            % endfor
+    for sub_list in applicable_declarations.iter() {
+        for declaration in sub_list.iter() {
+            match declaration {
+                % for property in LONGHANDS:
+                    &${property.ident}_declaration(ref value) => {
+                        // Overwrite earlier declarations.
+                        // TODO: can we avoid a copy?
+                        specified.${property.ident} = (*value).clone()
+                    }
+                % endfor
+            }
         }
     }
     // This assumes that the computed and specified values have the same Rust type.
