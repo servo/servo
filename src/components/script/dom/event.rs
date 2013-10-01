@@ -2,16 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::eventtarget::EventTarget;
+use dom::eventtarget::AbstractEventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object, DerivedWrapper};
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible, null_str_as_word_null};
+use dom::mouseevent::MouseEvent;
+use dom::uievent::UIEvent;
 
 use geom::point::Point2D;
-use js::jsapi::{JSObject, JSContext};
+use js::jsapi::{JSObject, JSContext, JSVal};
+use js::glue::RUST_OBJECT_TO_JSVAL;
 
 use script_task::page_from_context;
+
+use std::cast;
+use std::unstable::raw::Box;
 
 pub enum Event_ {
     ResizeEvent(uint, uint), 
@@ -21,7 +27,116 @@ pub enum Event_ {
     MouseUpEvent(uint, Point2D<f32>),
 }
 
+pub struct AbstractEvent {
+    event: *mut Box<Event>
+}
+
+impl AbstractEvent {
+    pub fn from_box(box: *mut Box<Event>) -> AbstractEvent {
+        AbstractEvent {
+            event: box
+        }
+    }
+
+    //
+    // Downcasting borrows
+    //
+
+    fn transmute<'a, T>(&'a self) -> &'a T {
+        unsafe {
+            let box: *Box<T> = self.event as *Box<T>;
+            &(*box).data
+        }
+    }
+
+    fn transmute_mut<'a, T>(&'a self) -> &'a mut T {
+        unsafe {
+            let box: *mut Box<T> = self.event as *mut Box<T>;
+            &mut (*box).data
+        }
+    }
+
+    pub fn type_id(&self) -> EventTypeId {
+        self.event().type_id
+    }
+
+    pub fn event<'a>(&'a self) -> &'a Event {
+        self.transmute()
+    }
+
+    pub fn mut_event<'a>(&'a self) -> &'a mut Event {
+        self.transmute_mut()
+    }
+
+    pub fn is_uievent(&self) -> bool {
+        self.type_id() == UIEventTypeId
+    }
+
+    pub fn uievent<'a>(&'a self) -> &'a UIEvent {
+        assert!(self.is_uievent());
+        self.transmute()
+    }
+
+    pub fn mut_uievent<'a>(&'a self) -> &'a mut UIEvent {
+        assert!(self.is_uievent());
+        self.transmute_mut()
+    }
+
+    pub fn is_mouseevent(&self) -> bool {
+        self.type_id() == MouseEventTypeId
+    }
+
+    pub fn mouseevent<'a>(&'a self) -> &'a MouseEvent {
+        assert!(self.is_mouseevent());
+        self.transmute()
+    }
+
+    pub fn mut_mouseevent<'a>(&'a self) -> &'a mut MouseEvent {
+        assert!(self.is_mouseevent());
+        self.transmute_mut()
+    }
+}
+
+impl DerivedWrapper for AbstractEvent {
+    #[fixed_stack_segment]
+    fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
+        let wrapper = self.reflector().get_jsobject();
+        if wrapper.is_not_null() {
+            unsafe { *vp = RUST_OBJECT_TO_JSVAL(wrapper) };
+            return 1;
+        }
+        unreachable!()
+    }
+}
+
+impl Reflectable for AbstractEvent {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.event().reflector()
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        self.mut_event().mut_reflector()
+    }
+
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        fail!(~"doesn't make any sense");
+    }
+
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
+        self.event().GetParentObject(cx)
+    }
+}
+
+#[deriving(Eq)]
+pub enum EventTypeId {
+    HTMLEventTypeId,
+    UIEventTypeId,
+    MouseEventTypeId,
+    KeyEventTypeId
+}
+
 pub struct Event {
+    type_id: EventTypeId,
     reflector_: Reflector,
     type_: ~str,
     default_prevented: bool,
@@ -31,10 +146,11 @@ pub struct Event {
 }
 
 impl Event {
-    pub fn new_inherited(type_: &DOMString) -> Event {
+    pub fn new_inherited(type_id: EventTypeId) -> Event {
         Event {
+            type_id: type_id,
             reflector_: Reflector::new(),
-            type_: null_str_as_word_null(type_),
+            type_: ~"",
             default_prevented: false,
             cancelable: true,
             bubbles: true,
@@ -42,8 +158,18 @@ impl Event {
         }
     }
 
-    pub fn new(window: @mut Window, type_: &DOMString) -> @mut Event {
-        reflect_dom_object(@mut Event::new_inherited(type_), window, EventBinding::Wrap)
+    //FIXME: E should be bounded by some trait that is only implemented for Event types
+    pub fn as_abstract<E>(event: @mut E) -> AbstractEvent {
+        // This surrenders memory management of the event!
+        AbstractEvent {
+            event: unsafe { cast::transmute(event) },
+        }
+    }
+
+    pub fn new(window: @mut Window, type_id: EventTypeId) -> AbstractEvent {
+        let ev = reflect_dom_object(@mut Event::new_inherited(type_id), window,
+                                    EventBinding::Wrap);
+        Event::as_abstract(ev)
     }
 
     pub fn EventPhase(&self) -> u16 {
@@ -54,11 +180,11 @@ impl Event {
         Some(self.type_.clone())
     }
 
-    pub fn GetTarget(&self) -> Option<@mut EventTarget> {
+    pub fn GetTarget(&self) -> Option<AbstractEventTarget> {
         None
     }
 
-    pub fn GetCurrentTarget(&self) -> Option<@mut EventTarget> {
+    pub fn GetCurrentTarget(&self) -> Option<AbstractEventTarget> {
         None
     }
 
@@ -92,7 +218,7 @@ impl Event {
                      type_: &DOMString,
                      bubbles: bool,
                      cancelable: bool) -> ErrorResult {
-        self.type_ = type_.to_str();
+        self.type_ = null_str_as_word_null(type_);
         self.cancelable = cancelable;
         self.bubbles = bubbles;
         Ok(())
@@ -103,9 +229,11 @@ impl Event {
     }
 
     pub fn Constructor(global: @mut Window,
-                   type_: &DOMString,
-                   _init: &EventBinding::EventInit) -> Fallible<@mut Event> {
-        Ok(Event::new(global, type_))
+                       type_: &DOMString,
+                       init: &EventBinding::EventInit) -> Fallible<AbstractEvent> {
+        let ev = Event::new(global, HTMLEventTypeId);
+        ev.mut_event().InitEvent(type_, init.bubbles, init.cancelable);
+        Ok(ev)
     }
 }
 

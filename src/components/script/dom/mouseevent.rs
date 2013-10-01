@@ -5,7 +5,8 @@
 use dom::bindings::codegen::MouseEventBinding;
 use dom::bindings::utils::{ErrorResult, Fallible, DOMString};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::eventtarget::EventTarget;
+use dom::event::{AbstractEvent, Event, MouseEventTypeId};
+use dom::eventtarget::AbstractEventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom::windowproxy::WindowProxy;
@@ -23,38 +24,42 @@ pub struct MouseEvent {
     alt_key: bool,
     meta_key: bool,
     button: u16,
-    related_target: Option<@mut EventTarget>
+    related_target: Option<AbstractEventTarget>
 }
 
 impl MouseEvent {
-    pub fn new(window: @mut Window, type_: &DOMString, can_bubble: bool, cancelable: bool,
-               view: Option<@mut WindowProxy>, detail: i32, screen_x: i32,
-               screen_y: i32, client_x: i32, client_y: i32, ctrl_key: bool,
-               shift_key: bool, alt_key: bool, meta_key: bool, button: u16,
-               _buttons: u16, related_target: Option<@mut EventTarget>) -> @mut MouseEvent {
-        let ev = @mut MouseEvent {
-            parent: UIEvent::new_inherited(type_, can_bubble, cancelable, view, detail),
-            screen_x: screen_x,
-            screen_y: screen_y,
-            client_x: client_x,
-            client_y: client_y,
-            ctrl_key: ctrl_key,
-            shift_key: shift_key,
-            alt_key: alt_key,
-            meta_key: meta_key,
-            button: button,
-            related_target: related_target
-        };
-        reflect_dom_object(ev, window, MouseEventBinding::Wrap)
+    pub fn new_inherited() -> MouseEvent {
+        MouseEvent {
+            parent: UIEvent::new_inherited(MouseEventTypeId),
+            screen_x: 0,
+            screen_y: 0,
+            client_x: 0,
+            client_y: 0,
+            ctrl_key: false,
+            shift_key: false,
+            alt_key: false,
+            meta_key: false,
+            button: 0,
+            related_target: None
+        }
+    }
+
+    pub fn new(window: @mut Window) -> AbstractEvent {
+        Event::as_abstract(reflect_dom_object(@mut MouseEvent::new_inherited(),
+                                              window,
+                                              MouseEventBinding::Wrap))
     }
 
     pub fn Constructor(owner: @mut Window,
                        type_: &DOMString,
-                       init: &MouseEventBinding::MouseEventInit) -> Fallible<@mut MouseEvent> {
-        Ok(MouseEvent::new(owner, type_, init.bubbles, init.cancelable, init.view, init.detail,
-                           init.screenX, init.screenY, init.clientX, init.clientY,
-                           init.ctrlKey, init.shiftKey, init.altKey, init.metaKey,
-                           init.button, init.buttons, init.relatedTarget))
+                       init: &MouseEventBinding::MouseEventInit) -> Fallible<AbstractEvent> {
+        let ev = MouseEvent::new(owner);
+        ev.mut_mouseevent().InitMouseEvent(type_, init.bubbles, init.cancelable, init.view,
+                                           init.detail, init.screenX, init.screenY,
+                                           init.clientX, init.clientY, init.ctrlKey,
+                                           init.altKey, init.shiftKey, init.metaKey,
+                                           init.button, init.relatedTarget);
+        Ok(ev)
     }
 
     pub fn ScreenX(&self) -> i32 {
@@ -98,7 +103,7 @@ impl MouseEvent {
         0
     }
 
-    pub fn GetRelatedTarget(&self) -> Option<@mut EventTarget> {
+    pub fn GetRelatedTarget(&self) -> Option<AbstractEventTarget> {
         self.related_target
     }
 
@@ -122,7 +127,7 @@ impl MouseEvent {
                           shiftKeyArg: bool,
                           metaKeyArg: bool,
                           buttonArg: u16,
-                          relatedTargetArg: Option<@mut EventTarget>) -> ErrorResult {
+                          relatedTargetArg: Option<AbstractEventTarget>) -> ErrorResult {
         self.parent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x = screenXArg;
         self.screen_y = screenYArg;

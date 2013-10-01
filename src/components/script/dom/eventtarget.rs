@@ -4,19 +4,98 @@
 
 use dom::bindings::callback::eReportExceptions;
 use dom::bindings::codegen::EventTargetBinding;
-use dom::bindings::utils::{Reflectable, Reflector, DOMString, Fallible};
+use dom::bindings::utils::{Reflectable, Reflector, DOMString, Fallible, DerivedWrapper};
+use dom::bindings::utils::null_str_as_word_null;
 use dom::bindings::codegen::EventListenerBinding::EventListener;
-use dom::event::Event;
+use dom::event::AbstractEvent;
+use dom::node::{AbstractNode, ScriptView};
 use script_task::page_from_context;
 
-use js::jsapi::{JSObject, JSContext};
+use js::jsapi::{JSObject, JSContext, JSVal};
+use js::glue::RUST_OBJECT_TO_JSVAL;
 
+use std::cast;
 use std::hashmap::HashMap;
+use std::unstable::raw::Box;
 
 pub struct EventTarget {
     reflector_: Reflector,
     capturing_handlers: HashMap<~str, ~[EventListener]>,
     bubbling_handlers: HashMap<~str, ~[EventListener]>
+}
+
+pub struct AbstractEventTarget {
+    eventtarget: *mut Box<EventTarget>
+}
+
+impl AbstractEventTarget {
+    pub fn from_box(box: *mut Box<EventTarget>) -> AbstractEventTarget {
+        AbstractEventTarget {
+            eventtarget: box
+        }
+    }
+
+    pub fn from_node(node: AbstractNode<ScriptView>) -> AbstractEventTarget {
+        unsafe {
+            cast::transmute(node)
+        }
+    }
+
+    //
+    // Downcasting borrows
+    //
+
+    fn transmute<'a, T>(&'a self) -> &'a T {
+        unsafe {
+            let box: *Box<T> = self.eventtarget as *Box<T>;
+            &(*box).data
+        }
+    }
+
+    fn transmute_mut<'a, T>(&'a mut self) -> &'a mut T {
+        unsafe {
+            let box: *mut Box<T> = self.eventtarget as *mut Box<T>;
+            &mut (*box).data
+        }
+    }
+
+    fn eventtarget<'a>(&'a self) -> &'a EventTarget {
+        self.transmute()
+    }
+
+    fn mut_eventtarget<'a>(&'a mut self) -> &'a mut EventTarget {
+        self.transmute_mut()
+    }
+}
+
+impl DerivedWrapper for AbstractEventTarget {
+    #[fixed_stack_segment]
+    fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
+        let wrapper = self.reflector().get_jsobject();
+        if wrapper.is_not_null() {
+            unsafe { *vp = RUST_OBJECT_TO_JSVAL(wrapper) };
+            return 1;
+        }
+        unreachable!()
+    }
+}
+
+impl Reflectable for AbstractEventTarget {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        self.eventtarget().reflector()
+    }
+
+    fn mut_reflector<'a>(&'a mut self) -> &'a mut Reflector {
+        self.mut_eventtarget().mut_reflector()
+    }
+
+    fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
+        unreachable!()
+    }
+
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
+        self.eventtarget().GetParentObject(cx)
+    }
 }
 
 impl EventTarget {
@@ -46,7 +125,7 @@ impl EventTarget {
             } else {
                 &mut self.bubbling_handlers
             };
-            let entry = handlers.find_or_insert_with(ty.to_str(), |_| ~[]);
+            let entry = handlers.find_or_insert_with(null_str_as_word_null(ty), |_| ~[]);
             if entry.position_elem(listener).is_none() {
                 entry.push((*listener).clone());
             }
@@ -63,7 +142,7 @@ impl EventTarget {
             } else {
                 &mut self.bubbling_handlers
             };
-            let mut entry = handlers.find_mut(&ty.to_str());
+            let mut entry = handlers.find_mut(&null_str_as_word_null(ty));
             for entry in entry.mut_iter() {
                 let position = entry.position_elem(listener);
                 for &position in position.iter() {
@@ -73,24 +152,25 @@ impl EventTarget {
         }
     }
 
-    pub fn DispatchEvent(&self, event: @mut Event) -> Fallible<bool> {
+    pub fn DispatchEvent(&self, _abstract_self: AbstractEventTarget, event: AbstractEvent) -> Fallible<bool> {
         //FIXME: get proper |this| object
 
-        let maybe_handlers = self.capturing_handlers.find(&event.type_);
+        let type_ = event.event().type_.clone();
+        let maybe_handlers = self.capturing_handlers.find(&type_);
         for handlers in maybe_handlers.iter() {
             for handler in handlers.iter() {
                 handler.HandleEvent__(event, eReportExceptions);
             }
         }
-        if event.bubbles {
-            let maybe_handlers = self.bubbling_handlers.find(&event.type_);
+        if event.event().bubbles {
+            let maybe_handlers = self.bubbling_handlers.find(&type_);
             for handlers in maybe_handlers.iter() {
                 for handler in handlers.iter() {
                     handler.HandleEvent__(event, eReportExceptions);
                 }
             }
         }
-        Ok(!event.DefaultPrevented())
+        Ok(!event.event().DefaultPrevented())
     }
 }
 
