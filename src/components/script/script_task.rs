@@ -25,11 +25,12 @@ use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_msg::constellation_msg::{LoadIframeUrlMsg, IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg;
 
+use std::cell::Cell;
 use std::comm;
 use std::comm::{Port, SharedChan};
 use std::io::read_whole_file;
 use std::ptr;
-use std::task::spawn_with;
+use std::task::{spawn_sched, SingleThreaded};
 use std::util::replace;
 use dom::window::TimerData;
 use geom::size::Size2D;
@@ -449,10 +450,14 @@ impl ScriptTask {
                                             resource_task: ResourceTask,
                                             image_cache_task: ImageCacheTask,
                                             initial_size: Future<Size2D<uint>>) {
-        do spawn_with((compositor, layout_chan, port, chan, constellation_chan,
-                       resource_task, image_cache_task, initial_size))
-            |(compositor, layout_chan, port, chan, constellation_chan,
-                       resource_task, image_cache_task, initial_size)| {
+        let parms = Cell::new((compositor, layout_chan, port, chan, constellation_chan,
+                               resource_task, image_cache_task, initial_size));
+        // Since SpiderMonkey is blocking it needs to run in its own thread.
+        // If we don't do this then we'll just end up with a bunch of SpiderMonkeys
+        // starving all the other tasks.
+        do spawn_sched(SingleThreaded) {
+            let (compositor, layout_chan, port, chan, constellation_chan,
+                 resource_task, image_cache_task, initial_size) = parms.take();
             let script_task = ScriptTask::new(id,
                 @compositor as @ScriptListener,
                 layout_chan,
