@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLDocumentBinding;
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
+use dom::bindings::utils::{DOMString, ErrorResult, Fallible, Traceable};
 use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
 use dom::document::{AbstractDocument, Document, WrappableDocument, HTML};
 use dom::element::HTMLHeadElementTypeId;
@@ -11,7 +11,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::node::{AbstractNode, ScriptView, ElementNodeTypeId};
 use dom::window::Window;
 
-use js::jsapi::{JSObject, JSContext};
+use js::jsapi::{JSObject, JSContext, JSTracer};
 
 use servo_util::tree::TreeNodeRef;
 
@@ -212,3 +212,8 @@ impl BindingObject for HTMLDocument {
     }
 }
 
+impl Traceable for HTMLDocument {
+    fn trace(&self, tracer: *mut JSTracer) {
+        self.parent.trace(tracer);
+    }
+}
