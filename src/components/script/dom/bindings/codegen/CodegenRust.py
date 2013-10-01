@@ -2867,14 +2867,17 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     //regexp_toShared: ptr::null(),
     defaultValue: ptr::null(),
     iteratorNext: ptr::null(),
-    finalize: ptr::null(),
+    finalize: %s,
     getElementIfPresent: ptr::null(),
-    getPrototypeOf: ptr::null()
+    getPrototypeOf: ptr::null(),
+    trace: %s
   };
   (*page).js_info.get_mut_ref().dom_static.proxy_handlers.insert(PrototypeList::id::%s as uint,
                                               CreateProxyHandler(ptr::to_unsafe_ptr(&traps), ptr::to_unsafe_ptr(&Class) as *libc::c_void));
 
-""" % self.descriptor.name
+""" % (FINALIZE_HOOK_NAME,
+       ('Some(%s)' % TRACE_HOOK_NAME) if self.descriptor.customTrace else 'None',
+       self.descriptor.name)
         else:
             body += """  (*page).js_info.get_ref().dom_static.attribute_ids.insert(PrototypeList::id::%s as uint,
                                              vec::cast_to_mut(vec::from_slice(sAttributes_ids)));
@@ -4196,7 +4199,7 @@ class CGDescriptor(CGThing):
             #if hasLenientSetter: cgThings.append(CGGenericSetter(descriptor,
             #                                                     lenientThis=True))
 
-        if descriptor.concrete and not descriptor.proxy:
+        if descriptor.concrete:
             if not descriptor.workers and descriptor.wrapperCache:
                 #cgThings.append(CGAddPropertyHook(descriptor))
                 pass
@@ -4208,7 +4211,6 @@ class CGDescriptor(CGThing):
             # Only generate a trace hook if the class wants a custom hook.
             if (descriptor.customTrace):
                 cgThings.append(CGClassTraceHook(descriptor))
-                pass
 
         if descriptor.interface.hasInterfaceObject():
             cgThings.append(CGClassConstructHook(descriptor))
