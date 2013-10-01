@@ -772,6 +772,7 @@ pub enum Error {
     NotFound,
     HierarchyRequest,
     InvalidCharacter,
+    NotSupported
 }
 
 pub type Fallible<T> = Result<T, Error>;
@@ -864,7 +865,7 @@ fn cx_for_dom_wrapper(obj: *JSObject) -> *JSContext {
     }
 }
 
-pub fn cx_for_dom_object<T: Reflectable>(obj: @mut T) -> *JSContext {
+pub fn cx_for_dom_object<T: Reflectable>(obj: &mut T) -> *JSContext {
     cx_for_dom_wrapper(obj.reflector().get_jsobject())
 }
 

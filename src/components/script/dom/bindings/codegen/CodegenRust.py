@@ -2425,12 +2425,13 @@ class Argument():
     """
     A class for outputting the type and name of an argument
     """
-    def __init__(self, argType, name, default=None):
+    def __init__(self, argType, name, default=None, mutable=False):
         self.argType = argType
         self.name = name
         self.default = default
+        self.mutable = mutable
     def declare(self):
-        string = self.name + ((': ' + self.argType) if self.argType else '')
+        string = ('mut ' if self.mutable else '') + self.name + ((': ' + self.argType) if self.argType else '')
         #XXXjdm Support default arguments somehow :/
         #if self.default is not None:
         #    string += " = " + self.default
@@ -5111,6 +5112,8 @@ class CGBindingRoot(CGThing):
                           'dom::bindings::proxyhandler::*',
                           'dom::document::AbstractDocument',
                           'dom::node::{AbstractNode, ScriptView}',
+                          'dom::eventtarget::AbstractEventTarget',
+                          'dom::event::AbstractEvent',
                           'servo_util::vec::zip_copies',
                           'std::cast',
                           'std::libc',
@@ -5541,6 +5544,11 @@ class CGCallback(CGClass):
         # CallSetup should re-throw exceptions on aRv.
         args.append(Argument("ExceptionHandling", "aExceptionHandling",
                              "eReportExceptions"))
+
+        # Ensure the first argument is mutable
+        args[0] = Argument(args[0].argType, args[0].name, args[0].default, mutable=True)
+        method.args[2] = args[0]
+
         # And now insert our template argument.
         argsWithoutThis = list(args)
         args.insert(0, Argument("@mut T",  "thisObj"))
@@ -5550,7 +5558,7 @@ class CGCallback(CGClass):
         args.insert(0, Argument(None, "&self"))
         argsWithoutThis.insert(0, Argument(None, "&self"))
 
-        setupCall = ("let s = CallSetup::new(cx_for_dom_object(${cxProvider}), aExceptionHandling);\n"
+        setupCall = ("let s = CallSetup::new(cx_for_dom_object(&mut ${cxProvider}), aExceptionHandling);\n"
                      "if s.GetContext().is_null() {\n"
                      "  return${errorReturn};\n"
                      "}\n")
@@ -5565,7 +5573,7 @@ class CGCallback(CGClass):
                 "errorReturn" : method.getDefaultRetval(),
                 "callArgs" : ", ".join(argnamesWithThis),
                 "methodName": 'self.' + method.name,
-                "cxProvider": 'thisObj'
+                "cxProvider": '*thisObj'
                 })
         bodyWithoutThis = string.Template(
             setupCall +

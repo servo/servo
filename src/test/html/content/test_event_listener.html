@@ -4,14 +4,17 @@
 </head>
 <body>
 <script>
+  var saw_event = false;
   function onFoopy() {
     window.removeEventListener('foopy', onFoopy);
-    finish();
+    saw_event = true;
   }
   window.addEventListener('foopy', onFoopy);
-  var ev = document.createEvent('Event');
+  var ev = document.createEvent('HTMLEvents');
   ev.initEvent('foopy', true, true);
   window.dispatchEvent(ev);
+  is(saw_event, true);
+  finish();
 </script>
 </body>
 </html>
