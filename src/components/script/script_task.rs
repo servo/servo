@@ -629,7 +629,9 @@ impl ScriptTask {
         }
     }
 
-    fn handle_exit_window_msg(&mut self, _id: PipelineId) -> bool {
+    fn handle_exit_window_msg(&mut self, id: PipelineId) -> bool {
+        self.handle_exit_pipeline_msg(id);
+
         // TODO(tkuehn): currently there is only one window,
         // so this can afford to be naive and just shut down the
         // compositor. In the future it'll need to be smarter.

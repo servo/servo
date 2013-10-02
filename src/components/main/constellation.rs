@@ -801,7 +801,7 @@ impl Constellation {
     fn set_ids(&self, frame_tree: @mut FrameTree) {
         let (port, chan) = comm::stream();
         self.compositor_chan.send(SetIds(frame_tree.to_sendable(), chan, self.chan.clone()));
-        port.recv();
+        port.try_recv();
         for frame in frame_tree.iter() {
             frame.pipeline.grant_paint_permission();
         }
