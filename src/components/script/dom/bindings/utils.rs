@@ -121,14 +121,19 @@ pub fn is_dom_proxy(obj: *JSObject) -> bool {
 }
 
 #[fixed_stack_segment]
-pub unsafe fn unwrap<T>(obj: *JSObject) -> T {
+pub unsafe fn dom_object_slot(obj: *JSObject) -> u32 {
     let clasp = JS_GetClass(obj);
-    let slot = if is_dom_class(clasp) {
-        DOM_OBJECT_SLOT
+    if is_dom_class(clasp) {
+        DOM_OBJECT_SLOT as u32
     } else {
         assert!(is_dom_proxy(obj));
-        DOM_PROXY_OBJECT_SLOT
-    } as u32;
+        DOM_PROXY_OBJECT_SLOT as u32
+    }
+}
+
+#[fixed_stack_segment]
+pub unsafe fn unwrap<T>(obj: *JSObject) -> T {
+    let slot = dom_object_slot(obj);
     let val = JS_GetReservedSlot(obj, slot);
     cast::transmute(RUST_JSVAL_TO_PRIVATE(val))
 }
