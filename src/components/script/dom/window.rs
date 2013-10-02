@@ -6,7 +6,7 @@ use dom::bindings::codegen::WindowBinding;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::{DOMString, null_str_as_empty, Traceable};
 use dom::document::AbstractDocument;
-use dom::eventtarget::EventTarget;
+use dom::eventtarget::{EventTarget, WindowTypeId};
 use dom::node::{AbstractNode, ScriptView};
 use dom::navigator::Navigator;
 
@@ -207,7 +207,7 @@ impl Window {
                image_cache_task: ImageCacheTask)
                -> @mut Window {
         let win = @mut Window {
-            eventtarget: EventTarget::new(),
+            eventtarget: EventTarget::new_inherited(WindowTypeId),
             page: page,
             script_chan: script_chan.clone(),
             compositor: compositor,

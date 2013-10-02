@@ -31,6 +31,13 @@ pub struct AbstractEvent {
     event: *mut Box<Event>
 }
 
+pub enum EventPhase {
+    Phase_None = 0,
+    Phase_Capturing,
+    Phase_At_Target,
+    Phase_Bubbling
+}
+
 impl AbstractEvent {
     pub fn from_box(box: *mut Box<Event>) -> AbstractEvent {
         AbstractEvent {
@@ -79,6 +86,14 @@ impl AbstractEvent {
     pub fn mut_mouseevent<'a>(&'a self) -> &'a mut MouseEvent {
         self.transmute_mut()
     }
+
+    pub fn propagation_stopped(&self) -> bool {
+        self.event().stop_propagation
+    }
+
+    pub fn bubbles(&self) -> bool {
+        self.event().bubbles
+    }
 }
 
 impl DerivedWrapper for AbstractEvent {
@@ -121,11 +136,18 @@ pub enum EventTypeId {
 pub struct Event {
     type_id: EventTypeId,
     reflector_: Reflector,
+    current_target: Option<AbstractEventTarget>,
+    target: Option<AbstractEventTarget>,
     type_: ~str,
+    phase: EventPhase,
     default_prevented: bool,
+    stop_propagation: bool,
+    stop_immediate: bool,
     cancelable: bool,
     bubbles: bool,
     trusted: bool,
+    dispatching: bool,
+    initialized: bool
 }
 
 impl Event {
@@ -133,11 +155,18 @@ impl Event {
         Event {
             type_id: type_id,
             reflector_: Reflector::new(),
+            current_target: None,
+            target: None,
+            phase: Phase_None,
             type_: ~"",
             default_prevented: false,
             cancelable: true,
             bubbles: true,
-            trusted: false
+            trusted: false,
+            dispatching: false,
+            stop_propagation: false,
+            stop_immediate: false,
+            initialized: false,
         }
     }
 
@@ -156,7 +185,7 @@ impl Event {
     }
 
     pub fn EventPhase(&self) -> u16 {
-        0
+        self.phase as u16
     }
 
     pub fn Type(&self) -> DOMString {
@@ -164,11 +193,11 @@ impl Event {
     }
 
     pub fn GetTarget(&self) -> Option<AbstractEventTarget> {
-        None
+        self.target
     }
 
     pub fn GetCurrentTarget(&self) -> Option<AbstractEventTarget> {
-        None
+        self.current_target
     }
 
     pub fn DefaultPrevented(&self) -> bool {
@@ -176,13 +205,18 @@ impl Event {
     }
 
     pub fn PreventDefault(&mut self) {
-        self.default_prevented = true
+        if self.cancelable {
+            self.default_prevented = true
+        }
     }
 
     pub fn StopPropagation(&mut self) {
+        self.stop_propagation = true;
     }
 
     pub fn StopImmediatePropagation(&mut self) {
+        self.stop_immediate = true;
+        self.stop_propagation = true;
     }
 
     pub fn Bubbles(&self) -> bool {
@@ -204,6 +238,7 @@ impl Event {
         self.type_ = null_str_as_word_null(type_);
         self.cancelable = cancelable;
         self.bubbles = bubbles;
+        self.initialized = true;
         Ok(())
     }
 

@@ -13,7 +13,7 @@ use dom::document::AbstractDocument;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
-use dom::eventtarget::EventTarget;
+use dom::eventtarget::{AbstractEventTarget, EventTarget, NodeTypeId};
 use dom::nodelist::{NodeList};
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmliframeelement::HTMLIFrameElement;
@@ -197,6 +197,13 @@ impl<'self, View> AbstractNode<View> {
     pub fn from_box<T>(ptr: *mut Box<T>) -> AbstractNode<View> {
         AbstractNode {
             obj: ptr as *mut Box<Node<View>>
+        }
+    }
+
+    pub fn from_eventtarget(target: AbstractEventTarget) -> AbstractNode<View> {
+        assert!(target.is_node());
+        unsafe {
+            cast::transmute(target)
         }
     }
 
@@ -509,7 +516,7 @@ impl Node<ScriptView> {
 
     pub fn new(type_id: NodeTypeId, doc: AbstractDocument) -> Node<ScriptView> {
         Node {
-            eventtarget: EventTarget::new(),
+            eventtarget: EventTarget::new_inherited(NodeTypeId),
             type_id: type_id,
 
             abstract: None,
