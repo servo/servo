@@ -200,7 +200,7 @@ impl Pipeline {
     }
 
     pub fn grant_paint_permission(&self) {
-        self.render_chan.send(PaintPermissionGranted);
+        self.render_chan.try_send(PaintPermissionGranted);
     }
 
     pub fn revoke_paint_permission(&self) {
