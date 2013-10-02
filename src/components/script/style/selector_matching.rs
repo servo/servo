@@ -67,6 +67,7 @@ impl Stylist {
             append!(important, has_important_declarations);
         }
 
+        // These sorts need to be stable
         if has_normal_declarations {
             tim_sort(rules.normal)
         }
