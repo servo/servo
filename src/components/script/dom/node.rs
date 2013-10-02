@@ -12,7 +12,7 @@ use dom::document::{AbstractDocument, DocumentTypeId};
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
 use dom::element::{HTMLStyleElementTypeId};
-use dom::eventtarget::EventTarget;
+use dom::eventtarget::{AbstractEventTarget, EventTarget, NodeTypeId};
 use dom::nodelist::{NodeList};
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmliframeelement::HTMLIFrameElement;
@@ -208,6 +208,13 @@ impl<'self, View> AbstractNode<View> {
     pub fn from_document(doc: AbstractDocument) -> AbstractNode<View> {
         unsafe {
             cast::transmute(doc)
+        }
+    }
+
+    pub fn from_eventtarget(target: AbstractEventTarget) -> AbstractNode<View> {
+        assert!(target.is_node());
+        unsafe {
+            cast::transmute(target)
         }
     }
 
@@ -522,7 +529,7 @@ impl Node<ScriptView> {
 
     fn new_(type_id: NodeTypeId, doc: Option<AbstractDocument>) -> Node<ScriptView> {
         Node {
-            eventtarget: EventTarget::new(),
+            eventtarget: EventTarget::new_inherited(NodeTypeId),
             type_id: type_id,
 
             abstract: None,

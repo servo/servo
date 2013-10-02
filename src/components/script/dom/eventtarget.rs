@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::callback::eReportExceptions;
 use dom::bindings::codegen::EventTargetBinding;
 use dom::bindings::utils::{Reflectable, Reflector, DOMString, Fallible, DerivedWrapper};
-use dom::bindings::utils::null_str_as_word_null;
+use dom::bindings::utils::{null_str_as_word_null, InvalidState};
 use dom::bindings::codegen::EventListenerBinding::EventListener;
 use dom::event::AbstractEvent;
+use dom::eventdispatcher::dispatch_event;
 use dom::node::{AbstractNode, ScriptView};
 use script_task::page_from_context;
 
@@ -18,10 +18,28 @@ use std::cast;
 use std::hashmap::HashMap;
 use std::unstable::raw::Box;
 
+#[deriving(Eq)]
+pub enum ListenerPhase {
+    Capturing,
+    Bubbling,
+}
+
+#[deriving(Eq)]
+pub enum EventTargetTypeId {
+    WindowTypeId,
+    NodeTypeId
+}
+
+#[deriving(Eq)]
+struct EventListenerEntry {
+    phase: ListenerPhase,
+    listener: EventListener
+}
+
 pub struct EventTarget {
+    type_id: EventTargetTypeId,
     reflector_: Reflector,
-    capturing_handlers: HashMap<~str, ~[EventListener]>,
-    bubbling_handlers: HashMap<~str, ~[EventListener]>
+    handlers: HashMap<~str, ~[EventListenerEntry]>,
 }
 
 pub struct AbstractEventTarget {
@@ -29,9 +47,9 @@ pub struct AbstractEventTarget {
 }
 
 impl AbstractEventTarget {
-    pub fn from_box(box: *mut Box<EventTarget>) -> AbstractEventTarget {
+    pub fn from_box<T>(box: *mut Box<T>) -> AbstractEventTarget {
         AbstractEventTarget {
-            eventtarget: box
+            eventtarget: box as *mut Box<EventTarget>
         }
     }
 
@@ -39,6 +57,18 @@ impl AbstractEventTarget {
         unsafe {
             cast::transmute(node)
         }
+    }
+
+    pub fn type_id(&self) -> EventTargetTypeId {
+        self.eventtarget().type_id
+    }
+
+    pub fn is_window(&self) -> bool {
+        self.type_id() == WindowTypeId
+    }
+
+    pub fn is_node(&self) -> bool {
+        self.type_id() == NodeTypeId
     }
 
     //
@@ -59,11 +89,11 @@ impl AbstractEventTarget {
         }
     }
 
-    fn eventtarget<'a>(&'a self) -> &'a EventTarget {
+    pub fn eventtarget<'a>(&'a self) -> &'a EventTarget {
         self.transmute()
     }
 
-    fn mut_eventtarget<'a>(&'a mut self) -> &'a mut EventTarget {
+    pub fn mut_eventtarget<'a>(&'a mut self) -> &'a mut EventTarget {
         self.transmute_mut()
     }
 }
@@ -99,35 +129,41 @@ impl Reflectable for AbstractEventTarget {
 }
 
 impl EventTarget {
-    pub fn new() -> EventTarget {
+    pub fn new_inherited(type_id: EventTargetTypeId) -> EventTarget {
         EventTarget {
+            type_id: type_id,
             reflector_: Reflector::new(),
-            capturing_handlers: HashMap::new(),
-            bubbling_handlers: HashMap::new(),
+            handlers: HashMap::new(),
         }
     }
 
-    pub fn init_wrapper(@mut self, cx: *JSContext, scope: *JSObject) {
-        self.wrap_object_shared(cx, scope);
+    pub fn get_listeners(&self, type_: ~str) -> Option<~[EventListener]> {
+        do self.handlers.find_equiv(&type_).map |listeners| {
+            listeners.iter().map(|entry| entry.listener).collect()
+        }
+    }
+
+    pub fn get_listeners_for(&self, type_: ~str, desired_phase: ListenerPhase)
+        -> Option<~[EventListener]> {
+        do self.handlers.find_equiv(&type_).map |listeners| {
+            let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
+            filtered.map(|entry| entry.listener).collect()
+        }
     }
 
     pub fn AddEventListener(&mut self,
                             ty: &DOMString,
                             listener: Option<EventListener>,
                             capture: bool) {
-        // TODO: Handle adding a listener during event dispatch: should not be invoked during
-        //       current phase.
-        // (https://developer.mozilla.org/en-US/docs/Web/API/EventTarget.addEventListener#Adding_a_listener_during_event_dispatch)
-
-        for listener in listener.iter() {
-            let handlers = if capture {
-                &mut self.capturing_handlers
-            } else {
-                &mut self.bubbling_handlers
+        for &listener in listener.iter() {
+            let entry = self.handlers.find_or_insert_with(null_str_as_word_null(ty), |_| ~[]);
+            let phase = if capture { Capturing } else { Bubbling };
+            let new_entry = EventListenerEntry {
+                phase: phase,
+                listener: listener
             };
-            let entry = handlers.find_or_insert_with(null_str_as_word_null(ty), |_| ~[]);
-            if entry.position_elem(listener).is_none() {
-                entry.push((*listener).clone());
+            if entry.position_elem(&new_entry).is_none() {
+                entry.push(new_entry);
             }
         }
     }
@@ -136,15 +172,15 @@ impl EventTarget {
                                ty: &DOMString,
                                listener: Option<EventListener>,
                                capture: bool) {
-        for listener in listener.iter() {
-            let handlers = if capture {
-                &mut self.capturing_handlers
-            } else {
-                &mut self.bubbling_handlers
-            };
-            let mut entry = handlers.find_mut(&null_str_as_word_null(ty));
+        for &listener in listener.iter() {
+            let mut entry = self.handlers.find_mut(&null_str_as_word_null(ty));
             for entry in entry.mut_iter() {
-                let position = entry.position_elem(listener);
+                let phase = if capture { Capturing } else { Bubbling };
+                let old_entry = EventListenerEntry {
+                    phase: phase,
+                    listener: listener
+                };
+                let position = entry.position_elem(&old_entry);
                 for &position in position.iter() {
                     entry.remove(position);
                 }
@@ -152,25 +188,11 @@ impl EventTarget {
         }
     }
 
-    pub fn DispatchEvent(&self, _abstract_self: AbstractEventTarget, event: AbstractEvent) -> Fallible<bool> {
-        //FIXME: get proper |this| object
-
-        let type_ = event.event().type_.clone();
-        let maybe_handlers = self.capturing_handlers.find(&type_);
-        for handlers in maybe_handlers.iter() {
-            for handler in handlers.iter() {
-                handler.HandleEvent__(event, eReportExceptions);
-            }
+    pub fn DispatchEvent(&self, abstract_self: AbstractEventTarget, event: AbstractEvent) -> Fallible<bool> {
+        if event.event().dispatching || !event.event().initialized {
+            return Err(InvalidState);
         }
-        if event.event().bubbles {
-            let maybe_handlers = self.bubbling_handlers.find(&type_);
-            for handlers in maybe_handlers.iter() {
-                for handler in handlers.iter() {
-                    handler.HandleEvent__(event, eReportExceptions);
-                }
-            }
-        }
-        Ok(!event.event().DefaultPrevented())
+        Ok(dispatch_event(abstract_self, event))
     }
 }
 

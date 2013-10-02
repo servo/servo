@@ -768,7 +768,8 @@ pub enum Error {
     NotFound,
     HierarchyRequest,
     InvalidCharacter,
-    NotSupported
+    NotSupported,
+    InvalidState
 }
 
 pub type Fallible<T> = Result<T, Error>;
