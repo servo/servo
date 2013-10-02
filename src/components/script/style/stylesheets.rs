@@ -26,12 +26,12 @@ pub enum CSSRule {
 
 
 pub struct StyleRule {
-    selectors: ~[selectors::Selector],
+    selectors: ~[@selectors::Selector],
     declarations: properties::PropertyDeclarationBlock,
 }
 
 
-fn parse_stylesheet(css: &str) -> Stylesheet {
+pub fn parse_stylesheet(css: &str) -> Stylesheet {
     static STATE_CHARSET: uint = 1;
     static STATE_IMPORTS: uint = 2;
     static STATE_NAMESPACES: uint = 3;
@@ -117,7 +117,8 @@ pub fn parse_nested_at_rule(lower_name: &str, rule: AtRule,
 
 
 impl Stylesheet {
-    fn iter_style_rules<'a>(&'a self, device: &'a media_queries::Device) -> StyleRuleIterator<'a> {
+    pub fn iter_style_rules<'a>(&'a self, device: &'a media_queries::Device)
+                                -> StyleRuleIterator<'a> {
         StyleRuleIterator { device: device, stack: ~[(self.rules.as_slice(), 0)] }
     }
 }
