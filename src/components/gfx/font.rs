@@ -49,7 +49,7 @@ pub trait FontHandleMethods {
     fn clone_with_style(&self, fctx: &FontContextHandle, style: &UsedFontStyle)
                      -> Result<FontHandle, ()>;
     fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex>;
-    fn glyph_h_advance(&self, GlyphIndex) -> Option<FractionalPixel>;
+    fn glyph_h_advance(&mut self, GlyphIndex) -> Option<FractionalPixel>;
     fn get_metrics(&self) -> FontMetrics;
     fn get_table_for_tag(&self, FontTableTag) -> Option<FontTable>;
 }
@@ -244,6 +244,7 @@ pub struct Font {
     backend: BackendType,
     profiler_chan: ProfilerChan,
     shape_cache: HashCache<~str, Arc<GlyphStore>>,
+    glyph_advance_cache: HashCache<u32, FractionalPixel>,
 }
 
 impl Font {
@@ -272,6 +273,7 @@ impl Font {
             backend: backend,
             profiler_chan: profiler_chan,
             shape_cache: HashCache::new(),
+            glyph_advance_cache: HashCache::new(),
         });
     }
 
@@ -289,6 +291,7 @@ impl Font {
             backend: backend,
             profiler_chan: profiler_chan,
             shape_cache: HashCache::new(),
+            glyph_advance_cache: HashCache::new(),
         }
     }
 
@@ -474,11 +477,13 @@ impl Font {
         self.handle.glyph_index(codepoint)
     }
 
-    pub fn glyph_h_advance(&self, glyph: GlyphIndex) -> FractionalPixel {
-        match self.handle.glyph_h_advance(glyph) {
-          Some(adv) => adv,
-          None => /* FIXME: Need fallback strategy */ 10f as FractionalPixel
-        }
+    pub fn glyph_h_advance(&mut self, glyph: GlyphIndex) -> FractionalPixel {
+	do self.glyph_advance_cache.find_or_create(&glyph) |glyph| {
+	    match self.handle.glyph_h_advance(*glyph) {
+	        Some(adv) => adv,
+		None => /* FIXME: Need fallback strategy */ 10f as FractionalPixel
+	    }
+	}
     }
 }
 

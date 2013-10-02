@@ -198,7 +198,7 @@ impl FontHandleMethods for FontHandle {
     }
 
     #[fixed_stack_segment]
-    fn glyph_h_advance(&self,
+    fn glyph_h_advance(&mut self,
                            glyph: GlyphIndex) -> Option<FractionalPixel> {
         assert!(self.face.is_not_null());
         unsafe {
