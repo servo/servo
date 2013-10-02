@@ -44,8 +44,8 @@ impl Stylist {
             AuthorOrigin => &mut self.author_rules,
             UserOrigin => &mut self.user_rules,
         };
-        let mut has_normal_declarations = false;
-        let mut has_important_declarations = false;
+        let mut added_normal_declarations = false;
+        let mut added_important_declarations = false;
 
         macro_rules! append(
             ($priority: ident, $flag: ident) => {
@@ -63,15 +63,16 @@ impl Stylist {
 
         let device = &Device { media_type: Screen };  // TODO, use Print when printing
         for style_rule in stylesheet.iter_style_rules(device) {
-            append!(normal, has_normal_declarations);
-            append!(important, has_important_declarations);
+            append!(normal, added_normal_declarations);
+            append!(important, added_important_declarations);
         }
 
         // These sorts need to be stable
-        if has_normal_declarations {
+        // Do not sort already-sorted unchanged vectors
+        if added_normal_declarations {
             tim_sort(rules.normal)
         }
-        if has_important_declarations {
+        if added_important_declarations {
             tim_sort(rules.important)
         }
     }
