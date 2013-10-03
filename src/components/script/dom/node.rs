@@ -460,7 +460,7 @@ impl Node<ScriptView> {
         node
     }
 
-    pub fn add_to_doc(&mut self, doc: AbstractDocument) {
+    pub fn add_to_doc(&mut self, abstract_self: AbstractNode<ScriptView>, doc: AbstractDocument) {
         let old_doc = self.owner_doc;
         self.owner_doc = doc;
         let mut cur_node = self.first_child;
@@ -753,7 +753,7 @@ impl Node<ScriptView> {
         node.parent_node().map(|parent| parent.remove_child(node));
         abstract_self.add_child(node);
         do node.with_mut_base |node| {
-            node.add_to_doc(self.owner_doc);
+            node.add_to_doc(abstract_self, self.owner_doc);
         }
         Ok(node)
     }
