@@ -13,6 +13,12 @@ function is(a, b, c) {
   f(a + " == " + b, m);
 }
 
+function isnot(a, b, c) {
+  let f = (a != b) ? _pass : _fail;
+  let m = !c ? "" : c;
+  f(a + " != " + b, m);
+}
+
 var _test_complete = false;
 var _test_timeout = 10000; //10 seconds
 function finish() {
