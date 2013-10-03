@@ -147,7 +147,7 @@ impl FontHandleMethods for FontHandle {
         return Some(glyphs[0] as GlyphIndex);
     }
 
-    fn glyph_h_advance(&self, glyph: GlyphIndex) -> Option<FractionalPixel> {
+    fn glyph_h_advance(&mut self, glyph: GlyphIndex) -> Option<FractionalPixel> {
         let glyphs = [glyph as CGGlyph];
         let advance = self.ctfont.get_advances_for_glyphs(kCTFontDefaultOrientation,
                                                           &glyphs[0],

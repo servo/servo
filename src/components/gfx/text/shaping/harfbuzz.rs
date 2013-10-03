@@ -509,7 +509,7 @@ extern fn glyph_h_advance_func(_: *hb_font_t,
                                glyph: hb_codepoint_t,
                                _: *c_void)
                             -> hb_position_t {
-    let font: *Font = font_data as *Font;
+    let font: *mut Font = font_data as *mut Font;
     assert!(font.is_not_null());
 
     unsafe {
