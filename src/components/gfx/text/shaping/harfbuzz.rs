@@ -13,7 +13,6 @@ use servo_util::range::Range;
 use text::util::{float_to_fixed, fixed_to_float, fixed_to_rounded_int};
 
 use std::cast::transmute;
-use std::cast;
 use std::char;
 use std::libc::{c_uint, c_int, c_void, c_char};
 use std::ptr;
@@ -510,7 +509,7 @@ extern fn glyph_h_advance_func(_: *hb_font_t,
                                glyph: hb_codepoint_t,
                                _: *c_void)
                             -> hb_position_t {
-    let font: *mut Font = unsafe { cast::transmute(font_data as *Font) };
+    let font: *mut Font = font_data as *mut Font;
     assert!(font.is_not_null());
 
     unsafe {
