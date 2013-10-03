@@ -478,12 +478,12 @@ impl Font {
     }
 
     pub fn glyph_h_advance(&mut self, glyph: GlyphIndex) -> FractionalPixel {
-	do self.glyph_advance_cache.find_or_create(&glyph) |glyph| {
-	    match self.handle.glyph_h_advance(*glyph) {
-	        Some(adv) => adv,
-		None => /* FIXME: Need fallback strategy */ 10f as FractionalPixel
-	    }
-	}
+        do self.glyph_advance_cache.find_or_create(&glyph) |glyph| {
+            match self.handle.glyph_h_advance(*glyph) {
+                Some(adv) => adv,
+                None => /* FIXME: Need fallback strategy */ 10f as FractionalPixel
+            }
+        }
     }
 }
 
