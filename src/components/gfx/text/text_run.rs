@@ -179,7 +179,7 @@ impl<'self> TextRun {
 
         // Create a glyph store for the final slice if it's nonempty.
         if byte_i > byte_last_boundary {
-            let slice = text.slice(byte_last_boundary, text.len()).to_owned();
+            let slice = text.slice_from(byte_last_boundary).to_owned();
             debug!("creating glyph store for final slice %? (ws? %?), %? - %? in run %?",
                 slice, cur_slice_is_whitespace, byte_last_boundary, text.len(), text);
             glyphs.push(font.shape_text(slice, cur_slice_is_whitespace));
