@@ -1,0 +1,29 @@
+<html>
+<head id="foo">
+  <title></title>
+  <script src="harness.js"></script>
+</head>
+<body>
+  <div id="test" foo="bar"></div>
+  <script>
+    let test = document.getElementById("test");
+
+    {
+      let r1 = test.getAttribute("id");
+      is(r1, "test", "test1-0, Element.getAttribute().");
+      let r2 = test.getAttribute("foo");
+      is(r2, "bar", "test1-1, Element.getAttribute().");
+    }
+
+    {
+      let NAME  = "hoge";
+      let VALUE = "fuga";
+      test.setAttribute(NAME, VALUE);
+      let r = test.getAttribute(NAME);
+      is(r, VALUE, "test2. Element.setAttribute().");
+    }
+
+    finish();
+  </script>
+</body>
+</html>
