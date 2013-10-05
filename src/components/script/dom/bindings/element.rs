@@ -331,6 +331,14 @@ generate_cacheable_wrapper_htmlelement!(HTMLVideoElement, HTMLVideoElementBindin
 generate_binding_object_htmlelement!(HTMLVideoElement)
 generate_traceable_htmlelement!(HTMLVideoElement)
 
+
+
+generate_cacheable_wrapper_htmlelement!(HTMLMainElement, HTMLMainElementBinding::Wrap)
+generate_binding_object_htmlelement!(HTMLMainElement)
+generate_traceable_htmlelement!(HTMLMainElement)
+
+
+
 generate_traceable!(HTMLElement)
 generate_traceable_node!(Element)
 generate_traceable_node!(CharacterData)
