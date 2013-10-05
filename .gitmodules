@@ -1,123 +1,164 @@
 [submodule "src/support/azure/rust-azure"]
+    ignore = dirty
 	path = src/support/azure/rust-azure
 	url = https://github.com/mozilla-servo/rust-azure.git
 [submodule "src/platform/macos/rust-cocoa"]
+    ignore = dirty
 	path = src/platform/macos/rust-cocoa
 	url = https://github.com/mozilla-servo/rust-cocoa.git
 [submodule "src/support/spidermonkey/mozjs"]
+    ignore = dirty
 	path = src/support/spidermonkey/mozjs
 	url = https://github.com/mozilla-servo/mozjs.git
 [submodule "src/support/spidermonkey/rust-mozjs"]
+    ignore = dirty
 	path = src/support/spidermonkey/rust-mozjs
 	url = https://github.com/mozilla-servo/rust-mozjs.git
 [submodule "src/support/harfbuzz/rust-harfbuzz"]
+    ignore = dirty
 	path = src/support/harfbuzz/rust-harfbuzz
 	url = https://github.com/mozilla-servo/rust-harfbuzz.git
 [submodule "src/support/stb-image/rust-stb-image"]
+    ignore = dirty
 	path = src/support/stb-image/rust-stb-image
 	url = https://github.com/mozilla-servo/rust-stb-image.git
 [submodule "src/support/geom/rust-geom"]
+    ignore = dirty
 	path = src/support/geom/rust-geom
 	url = https://github.com/mozilla-servo/rust-geom.git
 [submodule "src/support/opengles/rust-opengles"]
+    ignore = dirty
 	path = src/support/opengles/rust-opengles
 	url = https://github.com/mozilla-servo/rust-opengles.git
 [submodule "src/support/layers/rust-layers"]
+    ignore = dirty
 	path = src/support/layers/rust-layers
 	url = https://github.com/mozilla-servo/rust-layers.git
 [submodule "src/support/http-client/rust-http-client"]
+    ignore = dirty
 	path = src/support/http-client/rust-http-client
 	url = https://github.com/mozilla-servo/rust-http-client.git
 [submodule "src/support/hubbub/libhubbub"]
+    ignore = dirty
 	path = src/support/hubbub/libhubbub
 	url = https://github.com/mozilla-servo/libhubbub.git
 [submodule "src/support/libparserutils/libparserutils"]
+    ignore = dirty
 	path = src/support/libparserutils/libparserutils
 	url = https://github.com/mozilla-servo/libparserutils.git
 [submodule "src/support/hubbub/rust-hubbub"]
+    ignore = dirty
 	path = src/support/hubbub/rust-hubbub
 	url = https://github.com/mozilla-servo/rust-hubbub.git
 [submodule "src/platform/macos/rust-core-foundation"]
+    ignore = dirty
 	path = src/platform/macos/rust-core-foundation
 	url = https://github.com/mozilla-servo/rust-core-foundation.git
 [submodule "src/platform/macos/rust-io-surface"]
+    ignore = dirty
 	path = src/platform/macos/rust-io-surface
 	url = https://github.com/mozilla-servo/rust-io-surface.git
 [submodule "src/support/sharegl/sharegl"]
+    ignore = dirty
 	path = src/support/sharegl/sharegl
 	url = https://github.com/mozilla-servo/sharegl.git
 [submodule "src/support/wapcaplet/libwapcaplet"]
+    ignore = dirty
     path = src/support/wapcaplet/libwapcaplet
     url = https://github.com/mozilla-servo/libwapcaplet.git
 [submodule "src/support/netsurfcss/libcss"]
+    ignore = dirty
     path = src/support/netsurfcss/libcss
     url = https://github.com/mozilla-servo/libcss.git
 [submodule "src/support/netsurfcss/rust-netsurfcss"]
+    ignore = dirty
 	path = src/support/netsurfcss/rust-netsurfcss
 	url = https://github.com/mozilla-servo/rust-netsurfcss.git
 [submodule "src/support/wapcaplet/rust-wapcaplet"]
+    ignore = dirty
 	path = src/support/wapcaplet/rust-wapcaplet
 	url = https://github.com/mozilla-servo/rust-wapcaplet.git
 [submodule "src/platform/macos/rust-core-graphics"]
+    ignore = dirty
 	path = src/platform/macos/rust-core-graphics
 	url = https://github.com/mozilla-servo/rust-core-graphics.git
 [submodule "src/platform/macos/rust-core-text"]
+    ignore = dirty
 	path = src/platform/macos/rust-core-text
 	url = https://github.com/mozilla-servo/rust-core-text.git
 [submodule "src/platform/linux/rust-freetype"]
+    ignore = dirty
 	path = src/platform/linux/rust-freetype
 	url = https://github.com/mozilla-servo/rust-freetype.git
 [submodule "src/platform/linux/rust-fontconfig"]
+    ignore = dirty
 	path = src/platform/linux/rust-fontconfig
 	url = https://github.com/mozilla-servo/rust-fontconfig.git
 [submodule "src/platform/linux/rust-xlib"]
+    ignore = dirty
 	path = src/platform/linux/rust-xlib
 	url = https://github.com/mozilla-servo/rust-xlib.git
 [submodule "src/support/css/rust-css"]
+    ignore = dirty
 	path = src/support/css/rust-css
 	url = https://github.com/mozilla-servo/rust-css.git
 [submodule "src/support/skia/skia"]
+    ignore = dirty
 	path = src/support/skia/skia
 	url = https://github.com/mozilla-servo/skia.git
 [submodule "src/compiler/rust"]
+    ignore = dirty
 	path = src/compiler/rust
 	url = https://github.com/mozilla/rust.git
 [submodule "src/support/alert/rust-alert"]
+    ignore = dirty
 	path = src/support/alert/rust-alert
 	url = https://github.com/mozilla-servo/rust-alert.git
 [submodule "src/support/nss/nss"]
+    ignore = dirty
 	path = src/support/nss/nss
 	url = https://github.com/mozilla-servo/nss.git
 [submodule "src/support/nss/nspr"]
+    ignore = dirty
 	path = src/support/nss/nspr
 	url = https://github.com/mozilla-servo/nspr.git
 [submodule "src/support/glfw/glfw"]
+    ignore = dirty
 	path = src/support/glfw/glfw
 	url = https://github.com/mozilla-servo/glfw.git
 [submodule "src/support/glfw/glfw-rs"]
+    ignore = dirty
 	path = src/support/glfw/glfw-rs
 	url = https://github.com/mozilla-servo/glfw-rs.git
 [submodule "src/support/css/rust-cssparser"]
+    ignore = dirty
 	path = src/support/css/rust-cssparser
 	url = https://github.com/mozilla-servo/rust-cssparser.git
 [submodule "src/support/png/rust-png"]
+    ignore = dirty
 	path = src/support/png/rust-png
 	url = https://github.com/mozilla-servo/rust-png.git
 [submodule "src/support/png/libpng"]
+    ignore = dirty
 	path = src/support/png/libpng
 	url = https://github.com/mozilla-servo/libpng.git
 [submodule "src/platform/android/fontconfig"]
+    ignore = dirty
 	path = src/platform/android/fontconfig
 	url = http://github.com/webconvforge/fontconfig.git
 [submodule "src/platform/android/libexpat"]
+    ignore = dirty
 	path = src/platform/android/libexpat
 	url = http://github.com/webconvforge/libexpat.git
 [submodule "src/platform/android/libfreetype2"]
+    ignore = dirty
 	path = src/platform/android/libfreetype2
 	url = http://github.com/webconvforge/libfreetype2.git
 [submodule "src/support/glut/rust-glut"]
+    ignore = dirty
 	path = src/support/glut/rust-glut
 	url = http://github.com/mozilla-servo/rust-glut.git
 [submodule "src/support/http/rust-http"]
+    ignore = dirty
 	path = src/support/http/rust-http
 	url = https://github.com/mozilla-servo/rust-http
