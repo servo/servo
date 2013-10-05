@@ -23,6 +23,14 @@
       is(r, VALUE, "test2. Element.setAttribute().");
     }
 
+    {
+      let NAME = "foo";
+      let VALUE = "mozilla";
+      test.setAttribute(NAME, VALUE);
+      let r = test.getAttribute(NAME);
+      is(r, VALUE, "test3, attribute update by Element.setAttribute().")
+    }
+
     finish();
   </script>
 </body>
