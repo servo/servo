@@ -41,26 +41,26 @@ impl DOMParser {
                            _s: &DOMString,
                            ty: DOMParserBinding::SupportedType)
                            -> Fallible<AbstractDocument> {
-        unsafe {
-            let root = @HTMLHtmlElement {
-                htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
-            };
-
-            let root = Node::as_abstract_node((*self.owner.page).js_info.get_ref().js_compartment.cx.ptr, root);
-            let cx = (*self.owner.page).js_info.get_ref().js_compartment.cx.ptr;
-
-            match ty {
-                Text_html => {
-                    Ok(HTMLDocument::new(root, None))
-                }
-                Text_xml => {
-                    Ok(AbstractDocument::as_abstract(cx, @mut Document::new(root, None, XML)))
-                }
-                _ => {
-                    fail!("unsupported document type")
-                }
+        let cx = (*self.owner.page).js_info.get_ref().js_compartment.cx.ptr;
+        let mut document = match ty {
+            Text_html => {
+                HTMLDocument::new(None)
             }
-        }
+            Text_xml => {
+                AbstractDocument::as_abstract(cx, @mut Document::new(None, XML))
+            }
+            _ => {
+                fail!("unsupported document type")
+            }
+        };
+
+        let root = @HTMLHtmlElement {
+            htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
+        };
+        let root = unsafe { Node::as_abstract_node(cx, root) };
+        document.set_root(root);
+
+        Ok(document)
     }
 }
 

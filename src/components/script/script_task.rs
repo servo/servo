@@ -217,20 +217,26 @@ impl<'self> Iterator<@mut Page> for PageTreeIterator<'self> {
 impl Page {
     /// Adds the given damage.
     fn damage(&mut self, level: DocumentDamageLevel) {
-        match self.damage {
-            None => {}
-            Some(ref mut damage) => {
-                // FIXME(pcwalton): This is wrong. We should trace up to the nearest ancestor.
-                damage.root = do self.frame.get_ref().document.with_base |doc| { doc.root };
-                damage.level.add(level);
-                return
-            }
-        }
+        let root = do self.frame.get_ref().document.with_base |doc| { doc.root };
+        match root {
+            None => {},
+            Some(root) => {
+                match self.damage {
+                    None => {}
+                    Some(ref mut damage) => {
+                        // FIXME(pcwalton): This is wrong. We should trace up to the nearest ancestor.
+                        damage.root = root;
+                        damage.level.add(level);
+                        return
+                    }
+                }
 
-        self.damage = Some(DocumentDamage {
-            root: do self.frame.get_ref().document.with_base |doc| { doc.root },
-            level: level,
-        })
+                self.damage = Some(DocumentDamage {
+                    root: root,
+                    level: level,
+                })
+            }
+        };
     }
 
     /// Sends a ping to layout and waits for the response. The response will arrive when the
@@ -269,27 +275,34 @@ impl Page {
     ///
     /// This function fails if there is no root frame.
     fn reflow(&mut self, goal: ReflowGoal, script_chan: ScriptChan, compositor: @ScriptListener) {
-
-        debug!("script: performing reflow for goal %?", goal);
-
-        // Now, join the layout so that they will see the latest changes we have made.
-        self.join_layout();
-
-        // Tell the user that we're performing layout.
-        compositor.set_ready_state(PerformingLayout);
-
-        // Layout will let us know when it's done.
-        let (join_port, join_chan) = comm::stream();
-        self.layout_join_port = Some(join_port);
-
-        self.last_reflow_id += 1;
-
-        match self.frame {
+        let root = match self.frame {
             None => fail!(~"Tried to relayout with no root frame!"),
             Some(ref frame) => {
+                do frame.document.with_base |doc| {
+                    doc.root
+                }
+            }
+        };
+        match root {
+            None => {},
+            Some(root) => {
+                debug!("script: performing reflow for goal %?", goal);
+
+                // Now, join the layout so that they will see the latest changes we have made.
+                self.join_layout();
+
+                // Tell the user that we're performing layout.
+                compositor.set_ready_state(PerformingLayout);
+
+                // Layout will let us know when it's done.
+                let (join_port, join_chan) = comm::stream();
+                self.layout_join_port = Some(join_port);
+
+                self.last_reflow_id += 1;
+
                 // Send new document and relevant styles to layout.
                 let reflow = ~Reflow {
-                    document_root: do frame.document.with_base |doc| { doc.root },
+                    document_root: root,
                     url: self.url.get_ref().first().clone(),
                     goal: goal,
                     window_size: self.window_size.get(),
@@ -299,11 +312,11 @@ impl Page {
                     id: self.last_reflow_id,
                 };
 
-                self.layout_chan.send(ReflowMsg(reflow))
+                self.layout_chan.send(ReflowMsg(reflow));
+
+                debug!("script: layout forked")
             }
         }
-
-        debug!("script: layout forked")
     }
 
     /// Reflows the entire document.
@@ -709,9 +722,10 @@ impl ScriptTask {
                                                                  page.next_subpage_id.clone(),
                                                                  self.constellation_chan.clone());
 
-        let HtmlParserResult {root, discovery_port, url: final_url} = html_parsing_result;
+        let mut document = HTMLDocument::new(Some(window));
 
-        let document = HTMLDocument::new(root, Some(window));
+        let HtmlParserResult {root, discovery_port, url: final_url} = html_parsing_result;
+        document.set_root(root);
 
         // Create the root frame.
         page.frame = Some(Frame {
@@ -817,8 +831,11 @@ impl ScriptTask {
                 let root = do page.frame.expect("root frame is None").document.with_base |doc| {
                     doc.root
                 };
+                if root.is_none() {
+                    return;
+                }
                 let (port, chan) = comm::stream();
-                match page.query_layout(HitTestQuery(root, point, chan), port) {
+                match page.query_layout(HitTestQuery(root.unwrap(), point, chan), port) {
                     Ok(node) => match node {
                         HitTestResponse(node) => {
                             debug!("clicked on %s", node.debug_str());
