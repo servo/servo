@@ -32,13 +32,6 @@ impl HTMLDocument {
         let compartment = window.get_ref().page.js_info.get_ref().js_compartment;
         AbstractDocument::as_abstract(compartment.cx.ptr, doc)
     }
-
-    fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let win = self.parent.window.get_ref();
-        let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        let scope = win.reflector().get_jsobject();
-        (scope, cx)
-    }
 }
 
 impl ReflectableDocument for HTMLDocument {

@@ -192,14 +192,6 @@ impl<'self> Element {
             }
         }
     }
-
-    fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let doc = self.node.owner_doc;
-        let win = doc.with_base(|doc| doc.window.unwrap());
-        let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        let scope = win.reflector().get_jsobject();
-        (scope, cx)
-    }
 }
 
 impl Element {
@@ -251,17 +243,17 @@ impl Element {
     }
 
     pub fn GetElementsByTagName(&self, _localname: &DOMString) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
+        let (scope, cx) = self.node.get_scope_and_cx();
         HTMLCollection::new(~[], cx, scope)
     }
 
     pub fn GetElementsByTagNameNS(&self, _namespace: &DOMString, _localname: &DOMString) -> Fallible<@mut HTMLCollection> {
-        let (scope, cx) = self.get_scope_and_cx();
+        let (scope, cx) = self.node.get_scope_and_cx();
         Ok(HTMLCollection::new(~[], cx, scope))
     }
 
     pub fn GetElementsByClassName(&self, _names: &DOMString) -> @mut HTMLCollection {
-        let (scope, cx) = self.get_scope_and_cx();
+        let (scope, cx) = self.node.get_scope_and_cx();
         HTMLCollection::new(~[], cx, scope)
     }
 

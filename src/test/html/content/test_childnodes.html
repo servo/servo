@@ -1,0 +1,31 @@
+<html>
+<head>
+  <title></title>
+  <script src="harness.js"></script>
+</head>
+<body>
+  <script>
+    var elem = document.createElement("p");
+    is(elem.childNodes.length, 0);
+
+    var children = elem.childNodes;
+    var child = document.createElement("p");
+    elem.appendChild(child);
+
+    is(elem.childNodes.length, 1);
+    is(elem.childNodes[0], child);
+
+    var child2 = document.createElement("p");
+    elem.appendChild(child2);
+
+    is(1 in children, true);
+    is(children.length, 2);
+    is(children.item(1), child2);
+
+    is(!(2 in children), true);
+    is(children.item(2), null);
+
+    finish();
+  </script>
+</body>
+</html>
