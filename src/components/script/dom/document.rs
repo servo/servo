@@ -117,7 +117,7 @@ impl Document {
     pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
         let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
 
-        let mut document = AbstractDocument::as_abstract(cx, @mut Document::new(None, XML));
+        let document = AbstractDocument::as_abstract(cx, @mut Document::new(None, XML));
 
         let root = @HTMLHtmlElement {
             htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")

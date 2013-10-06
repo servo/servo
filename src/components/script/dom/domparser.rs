@@ -42,7 +42,7 @@ impl DOMParser {
                            ty: DOMParserBinding::SupportedType)
                            -> Fallible<AbstractDocument> {
         let cx = (*self.owner.page).js_info.get_ref().js_compartment.cx.ptr;
-        let mut document = match ty {
+        let document = match ty {
             Text_html => {
                 HTMLDocument::new(None)
             }

@@ -722,7 +722,7 @@ impl ScriptTask {
                                                                  page.next_subpage_id.clone(),
                                                                  self.constellation_chan.clone());
 
-        let mut document = HTMLDocument::new(Some(window));
+        let document = HTMLDocument::new(Some(window));
 
         let HtmlParserResult {root, discovery_port, url: final_url} = html_parsing_result;
         document.set_root(root);
