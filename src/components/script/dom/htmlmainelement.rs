@@ -7,5 +7,3 @@ use dom::htmlelement::HTMLElement;
 pub struct HTMLMainElement {
     htmlelement: HTMLElement
 }
-
-impl HTMLMainElement {}
