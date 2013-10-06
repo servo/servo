@@ -77,7 +77,7 @@ impl AbstractDocument {
         }
     }
 
-    pub fn set_root(&mut self, root: AbstractNode<ScriptView>) {
+    pub fn set_root(&self, root: AbstractNode<ScriptView>) {
         self.with_mut_base(|document| {
             document.set_root(root);
         });
@@ -305,7 +305,7 @@ impl Document {
                 match self.root {
                     None => {},
                     Some(root) => {
-                        let _ = for node in root.traverse_preorder() {
+                        for node in root.traverse_preorder() {
                             if node.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
                                 loop;
                             }
@@ -339,7 +339,7 @@ impl Document {
                 match self.root {
                     None => {},
                     Some(root) => {
-                        let _ = for node in root.traverse_preorder() {
+                        for node in root.traverse_preorder() {
                             if node.type_id() != ElementNodeTypeId(HTMLHeadElementTypeId) {
                                 loop;
                             }
@@ -467,7 +467,7 @@ impl Document {
         match self.root {
             None => {},
             Some(root) => {
-                let _ = for child in root.traverse_preorder() {
+                for child in root.traverse_preorder() {
                     if child.is_element() {
                         do child.with_imm_element |elem| {
                             if callback(elem) {
