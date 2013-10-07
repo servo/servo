@@ -79,7 +79,7 @@ impl AbstractDocument {
 
     pub fn set_root(&self, root: AbstractNode<ScriptView>) {
         self.with_mut_base(|document| {
-            document.set_root(root);
+            document.root = Some(root);
         });
     }
 }
@@ -108,10 +108,6 @@ impl Document {
             doctype: doctype,
             title: ~""
         }
-    }
-
-    pub fn set_root(&mut self, root: AbstractNode<ScriptView>) {
-        self.root = Some(root);
     }
 
     pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
