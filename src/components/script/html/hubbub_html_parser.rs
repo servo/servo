@@ -291,12 +291,10 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptV
     handle_htmlmediaelement!(cx, tag, "audio", HTMLAudioElementTypeId, HTMLAudioElement);
     handle_htmlmediaelement!(cx, tag, "video", HTMLVideoElementTypeId, HTMLVideoElement);
 
-    unsafe {
-        let element = @HTMLUnknownElement {
-           htmlelement: HTMLElement::new(HTMLUnknownElementTypeId, tag.to_str())
-        };
-        Node::as_abstract_node(cx, element)
-    }
+    let element = @HTMLUnknownElement {
+       htmlelement: HTMLElement::new(HTMLUnknownElementTypeId, tag.to_str())
+    };
+    unsafe { Node::as_abstract_node(cx, element) }
 }
 
 pub fn parse_html(cx: *JSContext,
@@ -367,8 +365,9 @@ pub fn parse_html(cx: *JSContext,
     parser.set_tree_handler(~hubbub::TreeHandler {
         create_comment: |data: ~str| {
             debug!("create comment");
+            let comment = @Comment::new(data);
             unsafe {
-                Node::as_abstract_node(cx, @Comment::new(data)).to_hubbub_node()
+                Node::as_abstract_node(cx, comment).to_hubbub_node()
             }
         },
         create_doctype: |doctype: ~hubbub::Doctype| {
@@ -466,9 +465,8 @@ pub fn parse_html(cx: *JSContext,
         },
         create_text: |data: ~str| {
             debug!("create text");
-            unsafe {
-                Node::as_abstract_node(cx, @Text::new(data)).to_hubbub_node()
-            }
+            let text = @Text::new(data);
+            unsafe { Node::as_abstract_node(cx, text).to_hubbub_node() }
         },
         ref_node: |_| {},
         unref_node: |_| {},

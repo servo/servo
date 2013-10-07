@@ -508,7 +508,7 @@ impl Node<ScriptView> {
             None => None
         }
     }
- }
+}
 
 impl Node<ScriptView> {
     pub fn NodeType(&self) -> u16 {
