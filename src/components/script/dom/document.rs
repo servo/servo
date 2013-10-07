@@ -258,7 +258,8 @@ impl Document {
 
     pub fn CreateTextNode(&self, data: &DOMString) -> AbstractNode<ScriptView> {
         let cx = self.get_cx();
-        unsafe { Node::as_abstract_node(cx, @Text::new(null_str_as_empty(data))) }
+        let text = @Text::new(null_str_as_empty(data));
+        unsafe { Node::as_abstract_node(cx, text) }
     }
 
     pub fn CreateEvent(&self, _interface: &DOMString) -> Fallible<@mut Event> {

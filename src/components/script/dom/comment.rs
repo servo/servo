@@ -22,9 +22,8 @@ impl Comment {
 
     pub fn Constructor(owner: @mut Window, data: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
         let s = null_str_as_empty(data);
-        unsafe {
-            let compartment = (*owner.page).js_info.get_ref().js_compartment;
-            Ok(Node::as_abstract_node(compartment.cx.ptr, @Comment::new(s)))
-        }
+        let cx = (*owner.page).js_info.get_ref().js_compartment.cx.ptr;
+        let comment = @Comment::new(s);
+        Ok(unsafe { Node::as_abstract_node(cx, comment) })
     }
 }
