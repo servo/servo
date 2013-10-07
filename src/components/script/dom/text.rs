@@ -22,7 +22,8 @@ impl Text {
 
     pub fn Constructor(owner: @mut Window, text: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
         let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
-        unsafe { Ok(Node::as_abstract_node(cx, @Text::new(null_str_as_empty(text)))) }
+        let text = @Text::new(null_str_as_empty(text));
+        Ok(unsafe { Node::as_abstract_node(cx, text) })
     }
 
     pub fn SplitText(&self, _offset: u32) -> Fallible<AbstractNode<ScriptView>> {
