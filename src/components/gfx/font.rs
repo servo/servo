@@ -49,7 +49,7 @@ pub trait FontHandleMethods {
     fn clone_with_style(&self, fctx: &FontContextHandle, style: &UsedFontStyle)
                      -> Result<FontHandle, ()>;
     fn glyph_index(&self, codepoint: char) -> Option<GlyphIndex>;
-    fn glyph_h_advance(&mut self, GlyphIndex) -> Option<FractionalPixel>;
+    fn glyph_h_advance(&self, GlyphIndex) -> Option<FractionalPixel>;
     fn get_metrics(&self) -> FontMetrics;
     fn get_table_for_tag(&self, FontTableTag) -> Option<FontTable>;
 }
