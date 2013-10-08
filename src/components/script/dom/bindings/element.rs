@@ -4,7 +4,7 @@
 
 use dom::types::*;
 use dom::bindings::codegen::*;
-use dom::bindings::utils::{BindingObject, WrapperCache, Reflectable, Traceable};
+use dom::bindings::utils::{BindingObject, Reflector, Reflectable, Traceable};
 use dom::node::ScriptView;
 
 use js::jsapi::{JSContext, JSObject, JSTracer};
@@ -12,7 +12,7 @@ use js::jsapi::{JSContext, JSObject, JSTracer};
 macro_rules! generate_cacheable_wrapper(
     ($name: path, $wrap: path) => (
         impl Reflectable for $name {
-            fn get_wrappercache(&mut self) -> &mut WrapperCache {
+            fn get_wrappercache(&mut self) -> &mut Reflector {
                 self.element.get_wrappercache()
             }
 
@@ -27,7 +27,7 @@ macro_rules! generate_cacheable_wrapper(
 macro_rules! generate_cacheable_wrapper_htmlelement(
     ($name: path, $wrap: path) => (
         impl Reflectable for $name {
-            fn get_wrappercache(&mut self) -> &mut WrapperCache {
+            fn get_wrappercache(&mut self) -> &mut Reflector {
                 self.htmlelement.get_wrappercache()
             }
 
@@ -42,7 +42,7 @@ macro_rules! generate_cacheable_wrapper_htmlelement(
 macro_rules! generate_cacheable_wrapper_node(
     ($name: path, $wrap: path) => (
         impl Reflectable for $name {
-            fn get_wrappercache(&mut self) -> &mut WrapperCache {
+            fn get_wrappercache(&mut self) -> &mut Reflector {
                 self.node.get_wrappercache()
             }
 

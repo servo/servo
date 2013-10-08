@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::bindings::utils::{BindingObject, Reflectable, DOMString, ErrorResult, Fallible, WrapperCache};
+use dom::bindings::utils::{BindingObject, Reflectable, DOMString, ErrorResult, Fallible, Reflector};
 use dom::bindings::utils::{null_str_as_empty, null_str_as_empty_ref};
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
@@ -29,7 +29,7 @@ pub struct Element {
 }
 
 impl Reflectable for Element {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         self.node.get_wrappercache()
     }
 

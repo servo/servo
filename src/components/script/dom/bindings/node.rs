@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, WrapperCache, Traceable};
+use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 use dom::element::*;
 use dom::types::*;
 use dom::node::{AbstractNode, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
@@ -96,7 +96,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
 }
 
 impl Reflectable for AbstractNode<ScriptView> {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         do self.with_mut_base |base| {
             unsafe {
                 cast::transmute(&base.wrapper)

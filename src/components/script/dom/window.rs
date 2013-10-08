@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::WindowBinding;
-use dom::bindings::utils::{WrapperCache, DOMString, Traceable};
+use dom::bindings::utils::{Reflector, DOMString, Traceable};
 use dom::bindings::utils::{Reflectable, BindingObject, null_str_as_empty};
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ScriptView};
@@ -43,7 +43,7 @@ pub struct Window {
     page: @mut Page,
     script_chan: ScriptChan,
     compositor: @ScriptListener,
-    wrapper: WrapperCache,
+    wrapper: Reflector,
     timer_chan: SharedChan<TimerControlMsg>,
     navigator: Option<@mut Navigator>,
     image_cache_task: ImageCacheTask,
@@ -136,7 +136,7 @@ impl Window {
 }
 
 impl Reflectable for Window {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         unsafe { cast::transmute(&self.wrapper) }
     }
 
@@ -203,7 +203,7 @@ impl Window {
             page: page,
             script_chan: script_chan.clone(),
             compositor: compositor,
-            wrapper: WrapperCache::new(),
+            wrapper: Reflector::new(),
             timer_chan: {
                 let (timer_port, timer_chan) = comm::stream::<TimerControlMsg>();
                 let id = page.id.clone();

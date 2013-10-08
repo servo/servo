@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable, WrapperCache, BindingObject};
+use dom::bindings::utils::{Reflectable, Reflector, BindingObject};
 use script_task::page_from_context;
 
 use js::jsapi::{JSContext, JSObject};
 
 pub struct WindowProxy {
-    wrapper: WrapperCache
+    wrapper: Reflector
 }
 
 impl WindowProxy {
     pub fn new() -> @mut WindowProxy {
         @mut WindowProxy {
-            wrapper: WrapperCache::new()
+            wrapper: Reflector::new()
         }
     }
 
@@ -33,7 +33,7 @@ impl BindingObject for WindowProxy {
 }
 
 impl Reflectable for WindowProxy {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         return self.get_wrappercache()
     }
 

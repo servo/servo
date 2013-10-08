@@ -5,7 +5,7 @@
 //! DOM bindings for `CharacterData`.
 
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
-use dom::bindings::utils::{BindingObject, Reflectable, WrapperCache};
+use dom::bindings::utils::{BindingObject, Reflectable, Reflector};
 use dom::node::{Node, NodeTypeId, ScriptView};
 use js::jsapi::{JSObject, JSContext};
 
@@ -58,7 +58,7 @@ impl CharacterData {
 }
 
 impl Reflectable for CharacterData {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         self.node.get_wrappercache()
     }
 

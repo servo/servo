@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{WrapperCache, BindingObject, Reflectable};
+use dom::bindings::utils::{Reflector, BindingObject, Reflectable};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::bindings::codegen::NavigatorBinding;
 use script_task::{page_from_context};
@@ -12,13 +12,13 @@ use js::jsapi::{JSContext, JSObject};
 use std::cast;
 
 pub struct Navigator {
-    wrapper: WrapperCache
+    wrapper: Reflector
 }
 
 impl Navigator {
     pub fn new() -> @mut Navigator {
         @mut Navigator {
-            wrapper: WrapperCache::new()
+            wrapper: Reflector::new()
         }
     }
 
@@ -88,7 +88,7 @@ impl Navigator {
 }
 
 impl Reflectable for Navigator {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         unsafe { cast::transmute(&self.wrapper) }
     }
 

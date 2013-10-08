@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DocumentBinding;
-use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, Fallible};
+use dom::bindings::utils::{DOMString, Reflector, ErrorResult, Fallible};
 use dom::bindings::utils::{BindingObject, Reflectable, DerivedWrapper};
 use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, null_str_as_empty};
 use dom::element::{Element};
@@ -92,7 +92,7 @@ pub enum DocumentType {
 
 pub struct Document {
     root: Option<AbstractNode<ScriptView>>,
-    wrapper: WrapperCache,
+    wrapper: Reflector,
     window: Option<@mut Window>,
     doctype: DocumentType,
     title: ~str
@@ -103,7 +103,7 @@ impl Document {
     pub fn new(window: Option<@mut Window>, doctype: DocumentType) -> Document {
         Document {
             root: None,
-            wrapper: WrapperCache::new(),
+            wrapper: Reflector::new(),
             window: window,
             doctype: doctype,
             title: ~""
@@ -132,7 +132,7 @@ impl WrappableDocument for Document {
 }
 
 impl Reflectable for AbstractDocument {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         do self.with_mut_base |doc| {
             doc.get_wrappercache()
         }
@@ -175,7 +175,7 @@ impl DerivedWrapper for AbstractDocument {
 
 
 impl Reflectable for Document {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         unsafe {
             cast::transmute(&self.wrapper)
         }

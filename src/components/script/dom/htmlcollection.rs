@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLCollectionBinding;
-use dom::bindings::utils::{Reflectable, BindingObject, WrapperCache};
+use dom::bindings::utils::{Reflectable, BindingObject, Reflector};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::node::{AbstractNode, ScriptView};
 use script_task::page_from_context;
@@ -15,14 +15,14 @@ use std::ptr;
 
 pub struct HTMLCollection {
     elements: ~[AbstractNode<ScriptView>],
-    wrapper: WrapperCache
+    wrapper: Reflector
 }
 
 impl HTMLCollection {
     pub fn new(elements: ~[AbstractNode<ScriptView>], cx: *JSContext, scope: *JSObject) -> @mut HTMLCollection {
         let collection = @mut HTMLCollection {
             elements: elements,
-            wrapper: WrapperCache::new()
+            wrapper: Reflector::new()
         };
         collection.init_wrapper(cx, scope);
         collection
@@ -69,7 +69,7 @@ impl BindingObject for HTMLCollection {
 }
 
 impl Reflectable for HTMLCollection {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         unsafe {
             cast::transmute(&self.wrapper)
         }

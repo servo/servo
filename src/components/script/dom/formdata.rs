@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{Reflectable, BindingObject, DerivedWrapper};
-use dom::bindings::utils::{WrapperCache, DOMString, null_str_as_empty};
+use dom::bindings::utils::{Reflector, DOMString, null_str_as_empty};
 use dom::bindings::codegen::FormDataBinding;
 use dom::blob::Blob;
 use script_task::{page_from_context};
@@ -21,14 +21,14 @@ enum FormDatum {
 
 pub struct FormData {
     data: HashMap<~str, FormDatum>,
-    wrapper: WrapperCache
+    wrapper: Reflector
 }
 
 impl FormData {
     pub fn new() -> @mut FormData {
         @mut FormData {
             data: HashMap::new(),
-            wrapper: WrapperCache::new()
+            wrapper: Reflector::new()
         }
     }
 
@@ -50,7 +50,7 @@ impl FormData {
 }
 
 impl Reflectable for FormData {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         unsafe {
             cast::transmute(&self.wrapper)
         }

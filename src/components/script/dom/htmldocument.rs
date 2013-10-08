@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::HTMLDocumentBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible, Traceable};
-use dom::bindings::utils::{Reflectable, BindingObject, WrapperCache};
+use dom::bindings::utils::{Reflectable, BindingObject, Reflector};
 use dom::document::{AbstractDocument, Document, WrappableDocument, HTML};
 use dom::element::HTMLHeadElementTypeId;
 use dom::htmlcollection::HTMLCollection;
@@ -201,7 +201,7 @@ impl HTMLDocument {
 }
 
 impl Reflectable for HTMLDocument {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         self.parent.get_wrappercache()
     }
 

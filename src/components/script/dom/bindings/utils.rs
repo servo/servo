@@ -528,15 +528,15 @@ pub fn initialize_global(global: *JSObject) {
 }
 
 pub trait Reflectable {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache;
+    fn get_wrappercache(&mut self) -> &mut Reflector;
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject;
 }
 
-pub struct WrapperCache {
+pub struct Reflector {
     wrapper: *JSObject
 }
 
-impl WrapperCache {
+impl Reflector {
     pub fn get_wrapper(&self) -> *JSObject {
         unsafe { cast::transmute(self.wrapper) }
     }
@@ -549,8 +549,8 @@ impl WrapperCache {
         return to_unsafe_ptr(&self.wrapper);
     }
 
-    pub fn new() -> WrapperCache {
-        WrapperCache {
+    pub fn new() -> Reflector {
+        Reflector {
             wrapper: ptr::null()
         }
     }

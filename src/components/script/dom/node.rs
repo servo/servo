@@ -5,7 +5,7 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use dom::bindings::node;
-use dom::bindings::utils::{WrapperCache, DOMString, ErrorResult, Fallible, NotFound, HierarchyRequest};
+use dom::bindings::utils::{Reflector, DOMString, ErrorResult, Fallible, NotFound, HierarchyRequest};
 use dom::bindings::utils::{BindingObject, Reflectable, null_str_as_empty};
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
@@ -63,7 +63,7 @@ pub struct AbstractNodeChildrenIterator<View> {
 /// `LayoutData`.
 pub struct Node<View> {
     /// The JavaScript wrapper for this node.
-    wrapper: WrapperCache,
+    wrapper: Reflector,
 
     /// The type of node that this is.
     type_id: NodeTypeId,
@@ -465,7 +465,7 @@ impl Node<ScriptView> {
 
     pub fn new(type_id: NodeTypeId) -> Node<ScriptView> {
         Node {
-            wrapper: WrapperCache::new(),
+            wrapper: Reflector::new(),
             type_id: type_id,
 
             abstract: None,
@@ -790,7 +790,7 @@ impl VoidPtrLike for AbstractNode<LayoutView> {
 }
 
 impl Reflectable for Node<ScriptView> {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         unsafe { cast::transmute(&mut self.wrapper) }
     }
 

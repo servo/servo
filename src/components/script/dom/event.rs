@@ -6,7 +6,7 @@ use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
 use dom::bindings::utils::{Reflectable, BindingObject, DerivedWrapper};
-use dom::bindings::utils::{DOMString, ErrorResult, Fallible, WrapperCache};
+use dom::bindings::utils::{DOMString, ErrorResult, Fallible, Reflector};
 
 use geom::point::Point2D;
 use js::glue::RUST_OBJECT_TO_JSVAL;
@@ -26,7 +26,7 @@ pub enum Event_ {
 }
 
 pub struct Event {
-    wrapper: WrapperCache,
+    wrapper: Reflector,
     type_: DOMString,
     default_prevented: bool,
     cancelable: bool,
@@ -37,7 +37,7 @@ pub struct Event {
 impl Event {
     pub fn new(type_: &DOMString) -> Event {
         Event {
-            wrapper: WrapperCache::new(),
+            wrapper: Reflector::new(),
             type_: (*type_).clone(),
             default_prevented: false,
             cancelable: true,
@@ -114,7 +114,7 @@ impl Event {
 }
 
 impl Reflectable for Event {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         unsafe { cast::transmute(&self.wrapper) }
     }
 

@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{WrapperCache, BindingObject, Reflectable};
+use dom::bindings::utils::{Reflector, BindingObject, Reflectable};
 use dom::bindings::codegen::ValidityStateBinding;
 use js::jsapi::{JSContext, JSObject};
 use std::cast;
 
 pub struct ValidityState {
-    wrapper: WrapperCache,
+    wrapper: Reflector,
     state: u8
 }
 
 impl ValidityState {
     pub fn valid() -> ValidityState {
         ValidityState {
-            wrapper: WrapperCache::new(),
+            wrapper: Reflector::new(),
             state: 0
         }
     }
@@ -60,7 +60,7 @@ impl ValidityState {
 }
 
 impl Reflectable for ValidityState {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         unsafe { cast::transmute(&self.wrapper) }
     }
 

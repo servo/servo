@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::EventTargetBinding;
-use dom::bindings::utils::{Reflectable, WrapperCache, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, Reflector, BindingObject, DerivedWrapper};
 use script_task::page_from_context;
 
 use js::glue::RUST_OBJECT_TO_JSVAL;
@@ -12,13 +12,13 @@ use js::jsapi::{JSObject, JSContext, JSVal};
 use std::cast;
 
 pub struct EventTarget {
-    wrapper: WrapperCache
+    wrapper: Reflector
 }
 
 impl EventTarget {
     pub fn new() -> ~EventTarget {
         ~EventTarget {
-            wrapper: WrapperCache::new()
+            wrapper: Reflector::new()
         }
     }
 
@@ -28,7 +28,7 @@ impl EventTarget {
 }
 
 impl Reflectable for EventTarget {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         unsafe { cast::transmute(&self.wrapper) }
     }
 

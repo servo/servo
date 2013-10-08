@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::ClientRectListBinding;
-use dom::bindings::utils::{WrapperCache, Reflectable, BindingObject};
+use dom::bindings::utils::{Reflector, Reflectable, BindingObject};
 use dom::clientrect::ClientRect;
 use script_task::page_from_context;
 
@@ -12,14 +12,14 @@ use js::jsapi::{JSObject, JSContext};
 use std::cast;
 
 pub struct ClientRectList {
-    wrapper: WrapperCache,
+    wrapper: Reflector,
     rects: ~[@mut ClientRect]
 }
 
 impl ClientRectList {
     pub fn new(rects: ~[@mut ClientRect], cx: *JSContext, scope: *JSObject) -> @mut ClientRectList {
         let list = @mut ClientRectList {
-            wrapper: WrapperCache::new(),
+            wrapper: Reflector::new(),
             rects: rects
         };
         list.init_wrapper(cx, scope);
@@ -49,7 +49,7 @@ impl ClientRectList {
 }
 
 impl Reflectable for ClientRectList {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         unsafe {
             cast::transmute(&self.wrapper)
         }

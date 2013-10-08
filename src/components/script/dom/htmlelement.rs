@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::HTMLElementBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
-use dom::bindings::utils::{Reflectable, BindingObject, WrapperCache};
+use dom::bindings::utils::{Reflectable, BindingObject, Reflector};
 use dom::element::{Element, ElementTypeId};
 use dom::node::{AbstractNode, ScriptView};
 use js::jsapi::{JSObject, JSContext, JSVal};
@@ -149,7 +149,7 @@ impl HTMLElement {
 }
 
 impl Reflectable for HTMLElement {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         self.element.get_wrappercache()
     }
 

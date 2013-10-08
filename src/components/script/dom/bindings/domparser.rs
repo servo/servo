@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DOMParserBinding;
-use dom::bindings::utils::{Reflectable, WrapperCache};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::{BindingObject, DerivedWrapper};
 use dom::domparser::DOMParser;
 
@@ -13,7 +13,7 @@ use js::glue::{RUST_OBJECT_TO_JSVAL};
 use std::cast;
 
 impl Reflectable for DOMParser {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         unsafe { cast::transmute(&self.wrapper) }
     }
 

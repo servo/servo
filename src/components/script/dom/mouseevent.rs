@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::MouseEventBinding;
 use dom::bindings::utils::{ErrorResult, Fallible, DOMString};
-use dom::bindings::utils::{Reflectable, WrapperCache, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, Reflector, BindingObject, DerivedWrapper};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
@@ -143,7 +143,7 @@ impl MouseEvent {
 }
 
 impl Reflectable for MouseEvent {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+    fn get_wrappercache(&mut self) -> &mut Reflector {
         return self.parent.get_wrappercache()
     }
 

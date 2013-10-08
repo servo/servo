@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::DOMParserBinding;
 use dom::bindings::codegen::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
-use dom::bindings::utils::{DOMString, Fallible, WrapperCache, Reflectable};
+use dom::bindings::utils::{DOMString, Fallible, Reflector, Reflectable};
 use dom::document::{AbstractDocument, Document, XML};
 use dom::element::HTMLHtmlElementTypeId;
 use dom::htmldocument::HTMLDocument;
@@ -15,14 +15,14 @@ use dom::window::Window;
 
 pub struct DOMParser {
     owner: @mut Window, //XXXjdm Document instead?
-    wrapper: WrapperCache
+    wrapper: Reflector
 }
 
 impl DOMParser {
     pub fn new(owner: @mut Window) -> @mut DOMParser {
         let parser = @mut DOMParser {
             owner: owner,
-            wrapper: WrapperCache::new()
+            wrapper: Reflector::new()
         };
 
         // TODO(tkuehn): This just handles the top-level page. Need to handle subframes.
