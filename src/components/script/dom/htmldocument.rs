@@ -37,7 +37,7 @@ impl HTMLDocument {
         let win = self.parent.window.get_ref();
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
         let cache = win.reflector();
-        let scope = cache.get_wrapper();
+        let scope = cache.get_jsobject();
         (scope, cx)
     }
 }

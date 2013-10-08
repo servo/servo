@@ -537,11 +537,11 @@ pub struct Reflector {
 }
 
 impl Reflector {
-    pub fn get_wrapper(&self) -> *JSObject {
+    pub fn get_jsobject(&self) -> *JSObject {
         unsafe { cast::transmute(self.wrapper) }
     }
 
-    pub fn set_wrapper(&mut self, wrapper: *JSObject) {
+    pub fn set_jsobject(&mut self, wrapper: *JSObject) {
         self.wrapper = wrapper;
     }
 
@@ -562,7 +562,7 @@ pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
                             vp: *mut JSVal) -> JSBool {
   unsafe {
     let cache = value.reflector();
-    let obj = cache.get_wrapper();
+    let obj = cache.get_jsobject();
     if obj.is_not_null() /*&& js::GetObjectCompartment(obj) == js::GetObjectCompartment(scope)*/ {
         *vp = RUST_OBJECT_TO_JSVAL(obj);
         return 1; // JS_TRUE
@@ -574,7 +574,7 @@ pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
     }
 
     //  MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
-      cache.set_wrapper(obj);
+      cache.set_jsobject(obj);
     *vp = RUST_OBJECT_TO_JSVAL(obj);
     return JS_WrapValue(cx, cast::transmute(vp));
   }
@@ -585,12 +585,12 @@ pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, mut p: Option<@mut Ref
     match p {
         Some(ref mut p) => {
             let cache = p.reflector();
-            let wrapper = cache.get_wrapper();
+            let wrapper = cache.get_jsobject();
             if wrapper.is_not_null() {
                 return wrapper;
             }
             let wrapper = p.wrap_object_shared(cx, scope);
-            cache.set_wrapper(wrapper);
+            cache.set_jsobject(wrapper);
             wrapper
         }
         None => unsafe { JS_GetGlobalObject(cx) }
@@ -735,7 +735,7 @@ impl DerivedWrapper for AbstractNode<ScriptView> {
     #[fixed_stack_segment]
     fn wrap(&mut self, cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
         let cache = self.reflector();
-        let wrapper = cache.get_wrapper();
+        let wrapper = cache.get_jsobject();
         if wrapper.is_not_null() {
             unsafe { *vp = RUST_OBJECT_TO_JSVAL(wrapper) };
             return 1;

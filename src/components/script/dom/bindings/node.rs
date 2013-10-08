@@ -119,7 +119,7 @@ impl Traceable for Node<ScriptView> {
             debug!("tracing %s", name);
             let mut node = node.unwrap();
             let cache = node.reflector();
-            let wrapper = cache.get_wrapper();
+            let wrapper = cache.get_jsobject();
             assert!(wrapper.is_not_null());
             unsafe {
                 (*tracer).debugPrinter = ptr::null();
@@ -130,7 +130,7 @@ impl Traceable for Node<ScriptView> {
                 }
             }
         }
-        debug!("tracing %p?:", self.wrapper.get_wrapper());
+        debug!("tracing %p?:", self.wrapper.get_jsobject());
         trace_node(tracer, self.parent_node, "parent");
         trace_node(tracer, self.first_child, "first child");
         trace_node(tracer, self.last_child, "last child");

@@ -2525,7 +2525,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
 
   //NS_ADDREF(aObject);
 
-  (*reflector).set_wrapper(obj);
+  (*reflector).set_jsobject(obj);
 
   return obj;""" % (CreateBindingJSObject(self.descriptor, "parent"))
         else:
@@ -2533,7 +2533,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
 %s
   let proto = GetProtoObject(aCx, obj, obj);
   JS_SetPrototype(aCx, obj, proto);
-  (*reflector).set_wrapper(obj);
+  (*reflector).set_jsobject(obj);
   return obj;""" % CreateBindingJSObject(self.descriptor)
 
 class CGWrapMethod(CGAbstractMethod):
@@ -4077,7 +4077,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
   //       from the context for now. 
   let page = page_from_context(cx);
   let global = (*page).frame.get_ref().window;
-  let obj = global.reflector().get_wrapper();
+  let obj = global.reflector().get_jsobject();
 """
             preArgs = ["global"]
 

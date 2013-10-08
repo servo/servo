@@ -28,7 +28,7 @@ impl DOMParser {
         // TODO(tkuehn): This just handles the top-level page. Need to handle subframes.
         let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
         let cache = owner.reflector();
-        let scope = cache.get_wrapper();
+        let scope = cache.get_jsobject();
         parser.wrap_object_shared(cx, scope);
         parser
     }

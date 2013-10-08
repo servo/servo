@@ -18,7 +18,7 @@ impl HTMLDataListElement {
         let win = doc.with_base(|doc| doc.window.unwrap());
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
         let cache = win.reflector();
-        let scope = cache.get_wrapper();
+        let scope = cache.get_jsobject();
         (scope, cx)
     }
 
