@@ -715,17 +715,18 @@ impl ScriptTask {
         // Parse HTML.
         //
         // Note: We can parse the next document in parallel with any previous documents.
+        let document = HTMLDocument::new(Some(window));
+
         let html_parsing_result = hubbub_html_parser::parse_html(cx.ptr,
+                                                                 document,
                                                                  url.clone(),
                                                                  self.resource_task.clone(),
                                                                  self.image_cache_task.clone(),
                                                                  page.next_subpage_id.clone(),
                                                                  self.constellation_chan.clone());
 
-        let document = HTMLDocument::new(Some(window));
 
         let HtmlParserResult {root, discovery_port, url: final_url} = html_parsing_result;
-        document.set_root(root);
 
         // Create the root frame.
         page.frame = Some(Frame {
@@ -770,9 +771,8 @@ impl ScriptTask {
         // of the page.
         // FIXME: We have no way to ensure that the first reflow performed is a
         //        ReflowForDisplay operation.
-        do root.with_mut_base |base| {
-            base.add_to_doc(document)
-        }
+        document.set_root(root);
+
         // No more reflow required
         page.url = Some((url, false));
 

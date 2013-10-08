@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::document::AbstractDocument;
 use dom::element::*;
 use dom::htmlelement::HTMLElement;
 use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
@@ -35,7 +36,7 @@ macro_rules! handle_element(
     ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident, [ $(($field:ident : $field_init:expr)),* ]) => (
         if eq_slice($tag, $string) {
             let _element = @$ctor {
-                htmlelement: HTMLElement::new($type_id, ($tag).to_str()),
+                htmlelement: HTMLElement::new($type_id, ($tag).to_str(), document),
                 $(
                     $field: $field_init,
                 )*
@@ -49,7 +50,7 @@ macro_rules! handle_element(
 macro_rules! handle_htmlelement(
     ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident) => (
         if eq_slice($tag, $string) {
-            let _element = @HTMLElement::new($type_id, ($tag).to_str());
+            let _element = @HTMLElement::new($type_id, ($tag).to_str(), document);
             unsafe {
                 return Node::as_abstract_node(cx, _element);
             }
@@ -60,7 +61,7 @@ macro_rules! handle_htmlmediaelement(
     ($cx: expr, $tag:expr, $string:expr, $type_id:expr, $ctor:ident) => (
         if eq_slice($tag, $string) {
             let _element = @$ctor {
-                htmlelement: HTMLMediaElement::new($type_id, ($tag).to_str())
+                htmlelement: HTMLMediaElement::new($type_id, ($tag).to_str(), document)
             };
             unsafe {
                 return Node::as_abstract_node(cx, _element);
@@ -209,7 +210,7 @@ fn js_script_listener(to_parent: SharedChan<HtmlDiscoveryMessage>,
 // Silly macros to handle constructing      DOM nodes. This produces bad code and should be optimized
 // via atomization (issue #85).
 
-pub fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptView> {
+pub fn build_element_from_tag(cx: *JSContext, tag: &str, document: AbstractDocument) -> AbstractNode<ScriptView> {
     // TODO (Issue #85): use atoms
     handle_element!(cx, tag, "a",       HTMLAnchorElementTypeId, HTMLAnchorElement, []);
     handle_element!(cx, tag, "applet",  HTMLAppletElementTypeId, HTMLAppletElement, []);
@@ -292,12 +293,13 @@ pub fn build_element_from_tag(cx: *JSContext, tag: &str) -> AbstractNode<ScriptV
     handle_htmlmediaelement!(cx, tag, "video", HTMLVideoElementTypeId, HTMLVideoElement);
 
     let element = @HTMLUnknownElement {
-       htmlelement: HTMLElement::new(HTMLUnknownElementTypeId, tag.to_str())
+       htmlelement: HTMLElement::new(HTMLUnknownElementTypeId, tag.to_str(), document)
     };
     unsafe { Node::as_abstract_node(cx, element) }
 }
 
 pub fn parse_html(cx: *JSContext,
+                  document: AbstractDocument,
                   url: Url,
                   resource_task: ResourceTask,
                   image_cache_task: ImageCacheTask,
@@ -350,7 +352,7 @@ pub fn parse_html(cx: *JSContext,
     let url3 = final_url.clone();
 
     // Build the root node.
-    let root = @HTMLHtmlElement { htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html") };
+    let root = @HTMLHtmlElement { htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html", document) };
     let root = unsafe { Node::as_abstract_node(cx, root) };
     debug!("created new node");
     let mut parser = hubbub::Parser("UTF-8", false);
@@ -365,7 +367,7 @@ pub fn parse_html(cx: *JSContext,
     parser.set_tree_handler(~hubbub::TreeHandler {
         create_comment: |data: ~str| {
             debug!("create comment");
-            let comment = @Comment::new(data);
+            let comment = @Comment::new(data, document);
             unsafe {
                 Node::as_abstract_node(cx, comment).to_hubbub_node()
             }
@@ -379,14 +381,15 @@ pub fn parse_html(cx: *JSContext,
             let node = @DocumentType::new(name,
                                           public_id,
                                           system_id,
-                                          force_quirks);
+                                          force_quirks,
+                                          document);
             unsafe {
                 Node::as_abstract_node(cx, node).to_hubbub_node()
             }
         },
         create_element: |tag: ~hubbub::Tag| {
             debug!("create element");
-            let node = build_element_from_tag(cx, tag.name);
+            let node = build_element_from_tag(cx, tag.name, document);
 
             debug!("-- attach attrs");
             do node.as_mut_element |element| {
@@ -465,7 +468,7 @@ pub fn parse_html(cx: *JSContext,
         },
         create_text: |data: ~str| {
             debug!("create text");
-            let text = @Text::new(data);
+            let text = @Text::new(data, document);
             unsafe { Node::as_abstract_node(cx, text).to_hubbub_node() }
         },
         ref_node: |_| {},

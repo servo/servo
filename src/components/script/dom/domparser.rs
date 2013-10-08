@@ -54,7 +54,7 @@ impl DOMParser {
         };
 
         let root = @HTMLHtmlElement {
-            htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
+            htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html", document)
         };
         let root = unsafe { Node::as_abstract_node(cx, root) };
         document.set_root(root);

@@ -4,6 +4,7 @@
 
 use dom::bindings::utils::{DOMString, Fallible, null_str_as_empty};
 use dom::characterdata::CharacterData;
+use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ScriptView, CommentNodeTypeId, Node};
 use dom::window::Window;
 
@@ -14,16 +15,16 @@ pub struct Comment {
 
 impl Comment {
     /// Creates a new HTML comment.
-    pub fn new(text: ~str) -> Comment {
+    pub fn new(text: ~str, document: AbstractDocument) -> Comment {
         Comment {
-            element: CharacterData::new(CommentNodeTypeId, text)
+            element: CharacterData::new(CommentNodeTypeId, text, document)
         }
     }
 
     pub fn Constructor(owner: @mut Window, data: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
         let s = null_str_as_empty(data);
         let cx = (*owner.page).js_info.get_ref().js_compartment.cx.ptr;
-        let comment = @Comment::new(s);
+        let comment = @Comment::new(s, owner.Document());
         Ok(unsafe { Node::as_abstract_node(cx, comment) })
     }
 }
