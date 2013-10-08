@@ -6,7 +6,7 @@
 
 use dom::bindings::node;
 use dom::bindings::utils::{WrapperCache, DOMString, ErrorResult, Fallible, NotFound, HierarchyRequest};
-use dom::bindings::utils::{BindingObject, CacheableWrapper, null_str_as_empty};
+use dom::bindings::utils::{BindingObject, Reflectable, null_str_as_empty};
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
@@ -155,11 +155,11 @@ impl<View> TreeNode<AbstractNode<View>> for Node<View> { }
 impl<'self, View> AbstractNode<View> {
     // Unsafe accessors
 
-    pub unsafe fn as_cacheable_wrapper(&self) -> @mut CacheableWrapper {
+    pub unsafe fn as_cacheable_wrapper(&self) -> @mut Reflectable {
         match self.type_id() {
             TextNodeTypeId => {
                 let node: @mut Text = cast::transmute(self.obj);
-                node as @mut CacheableWrapper
+                node as @mut Reflectable
             }
             _ => {
                 fail!("unsupported node type")
@@ -789,7 +789,7 @@ impl VoidPtrLike for AbstractNode<LayoutView> {
     }
 }
 
-impl CacheableWrapper for Node<ScriptView> {
+impl Reflectable for Node<ScriptView> {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe { cast::transmute(&mut self.wrapper) }
     }
@@ -800,7 +800,7 @@ impl CacheableWrapper for Node<ScriptView> {
 }
 
 impl BindingObject for Node<ScriptView> {
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         match self.parent_node {
             Some(node) => Some(unsafe {node.as_cacheable_wrapper()}),
             None => None

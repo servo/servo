@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject};
+use dom::bindings::utils::{Reflectable, WrapperCache, BindingObject};
 use script_task::page_from_context;
 
 use js::jsapi::{JSContext, JSObject};
@@ -24,15 +24,15 @@ impl WindowProxy {
 }
 
 impl BindingObject for WindowProxy {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         unsafe {
-            Some((*page).frame.get_ref().window as @mut CacheableWrapper)
+            Some((*page).frame.get_ref().window as @mut Reflectable)
         }
     }
 }
 
-impl CacheableWrapper for WindowProxy {
+impl Reflectable for WindowProxy {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         return self.get_wrappercache()
     }

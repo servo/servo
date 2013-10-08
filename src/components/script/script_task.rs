@@ -8,7 +8,7 @@
 use servo_msg::compositor_msg::{ScriptListener, Loading, PerformingLayout};
 use servo_msg::compositor_msg::FinishedLoading;
 use dom::bindings::codegen::RegisterBindings;
-use dom::bindings::utils::{CacheableWrapper, GlobalStaticData};
+use dom::bindings::utils::{Reflectable, GlobalStaticData};
 use dom::document::AbstractDocument;
 use dom::element::Element;
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent};

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, WrapperCache, BindingObject, DerivedWrapper};
 use dom::bindings::codegen::ClientRectBinding;
 use script_task::page_from_context;
 
@@ -61,7 +61,7 @@ impl ClientRect {
     }
 }
 
-impl CacheableWrapper for ClientRect {
+impl Reflectable for ClientRect {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe {
             cast::transmute(&self.wrapper)
@@ -75,10 +75,10 @@ impl CacheableWrapper for ClientRect {
 }
 
 impl BindingObject for ClientRect {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         unsafe {
-            Some((*page).frame.get_ref().window as @mut CacheableWrapper)
+            Some((*page).frame.get_ref().window as @mut Reflectable)
         }
     }
 }

@@ -1533,7 +1533,7 @@ for (uint32_t i = 0; i < length; ++i) {
             if descriptor.pointerType == '':
                 wrap = "%s.wrap(cx, ${obj}, ${jsvalPtr} as *mut JSVal)" % result
             else:
-                wrap = "%s(cx, ${obj}, %s as @mut CacheableWrapper, ${jsvalPtr} as *mut JSVal)" % (wrapMethod, result)
+                wrap = "%s(cx, ${obj}, %s as @mut Reflectable, ${jsvalPtr} as *mut JSVal)" % (wrapMethod, result)
             # We don't support prefable stuff in workers.
             assert(not descriptor.prefable or not descriptor.workers)
             if not descriptor.prefable:
@@ -1555,7 +1555,7 @@ for (uint32_t i = 0; i < length; ++i) {
             if descriptor.pointerType == '':
                 wrap = "(%s.wrap(cx, ${obj}, ${jsvalPtr}) != 0)" % result
             else:
-                wrap = "if WrapNewBindingObject(cx, ${obj}, %s as @mut CacheableWrapper, ${jsvalPtr}) { 1 } else { 0 };" % result
+                wrap = "if WrapNewBindingObject(cx, ${obj}, %s as @mut Reflectable, ${jsvalPtr}) { 1 } else { 0 };" % result
             wrappingCode += wrapAndSetPtr(wrap)
         return (wrappingCode, False)
 

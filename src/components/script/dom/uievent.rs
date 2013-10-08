@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::UIEventBinding;
 use dom::bindings::utils::{DOMString, Fallible};
-use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, WrapperCache, BindingObject, DerivedWrapper};
 use dom::node::{AbstractNode, ScriptView};
 use dom::event::Event;
 use dom::window::Window;
@@ -115,7 +115,7 @@ impl UIEvent {
     }
 }
 
-impl CacheableWrapper for UIEvent {
+impl Reflectable for UIEvent {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         return self.parent.get_wrappercache()
     }
@@ -127,7 +127,7 @@ impl CacheableWrapper for UIEvent {
 }
 
 impl BindingObject for UIEvent {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.parent.GetParentObject(cx)
     }
 }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::DocumentBinding;
 use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, Fallible};
-use dom::bindings::utils::{BindingObject, CacheableWrapper, DerivedWrapper};
+use dom::bindings::utils::{BindingObject, Reflectable, DerivedWrapper};
 use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, null_str_as_empty};
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
@@ -131,7 +131,7 @@ impl WrappableDocument for Document {
     }
 }
 
-impl CacheableWrapper for AbstractDocument {
+impl Reflectable for AbstractDocument {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         do self.with_mut_base |doc| {
             doc.get_wrappercache()
@@ -152,7 +152,7 @@ impl CacheableWrapper for AbstractDocument {
 }
 
 impl BindingObject for AbstractDocument {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         do self.with_mut_base |doc| {
             doc.GetParentObject(cx)
         }
@@ -174,7 +174,7 @@ impl DerivedWrapper for AbstractDocument {
 }
 
 
-impl CacheableWrapper for Document {
+impl Reflectable for Document {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe {
             cast::transmute(&self.wrapper)
@@ -188,9 +188,9 @@ impl CacheableWrapper for Document {
 }
 
 impl BindingObject for Document {
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         match self.window {
-            Some(win) => Some(win as @mut CacheableWrapper),
+            Some(win) => Some(win as @mut Reflectable),
             None => None
         }
     }

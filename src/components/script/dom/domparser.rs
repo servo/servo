@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::DOMParserBinding;
 use dom::bindings::codegen::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
-use dom::bindings::utils::{DOMString, Fallible, WrapperCache, CacheableWrapper};
+use dom::bindings::utils::{DOMString, Fallible, WrapperCache, Reflectable};
 use dom::document::{AbstractDocument, Document, XML};
 use dom::element::HTMLHtmlElementTypeId;
 use dom::htmldocument::HTMLDocument;

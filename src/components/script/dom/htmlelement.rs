@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::HTMLElementBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
-use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
+use dom::bindings::utils::{Reflectable, BindingObject, WrapperCache};
 use dom::element::{Element, ElementTypeId};
 use dom::node::{AbstractNode, ScriptView};
 use js::jsapi::{JSObject, JSContext, JSVal};
@@ -148,7 +148,7 @@ impl HTMLElement {
     }
 }
 
-impl CacheableWrapper for HTMLElement {
+impl Reflectable for HTMLElement {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         self.element.get_wrappercache()
     }
@@ -160,7 +160,7 @@ impl CacheableWrapper for HTMLElement {
 }
 
 impl BindingObject for HTMLElement {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.element.GetParentObject(cx)
     }
 }

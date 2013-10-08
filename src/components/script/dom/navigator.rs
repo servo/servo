@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{WrapperCache, BindingObject, CacheableWrapper};
+use dom::bindings::utils::{WrapperCache, BindingObject, Reflectable};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::bindings::codegen::NavigatorBinding;
 use script_task::{page_from_context};
@@ -87,7 +87,7 @@ impl Navigator {
     }
 }
 
-impl CacheableWrapper for Navigator {
+impl Reflectable for Navigator {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe { cast::transmute(&self.wrapper) }
     }
@@ -99,10 +99,10 @@ impl CacheableWrapper for Navigator {
 }
 
 impl BindingObject for Navigator {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         unsafe {
-            Some((*page).frame.get_ref().window as @mut CacheableWrapper)
+            Some((*page).frame.get_ref().window as @mut Reflectable)
         }
     }
 }

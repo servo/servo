@@ -527,7 +527,7 @@ pub fn initialize_global(global: *JSObject) {
     }
 }
 
-pub trait CacheableWrapper {
+pub trait Reflectable {
     fn get_wrappercache(&mut self) -> &mut WrapperCache;
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject;
 }
@@ -558,7 +558,7 @@ impl WrapperCache {
 
 #[fixed_stack_segment]
 pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
-                            value: @mut CacheableWrapper,
+                            value: @mut Reflectable,
                             vp: *mut JSVal) -> JSBool {
   unsafe {
     let cache = value.get_wrappercache();
@@ -581,7 +581,7 @@ pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
 }
 
 #[fixed_stack_segment]
-pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, mut p: Option<@mut CacheableWrapper>) -> *JSObject {
+pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, mut p: Option<@mut Reflectable>) -> *JSObject {
     match p {
         Some(ref mut p) => {
             let cache = p.get_wrappercache();
@@ -598,7 +598,7 @@ pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, mut p: Option<@mut Cac
 }
 
 pub trait BindingObject {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper>;
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable>;
 }
 
 #[fixed_stack_segment]

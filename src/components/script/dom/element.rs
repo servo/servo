@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, Fallible, WrapperCache};
+use dom::bindings::utils::{BindingObject, Reflectable, DOMString, ErrorResult, Fallible, WrapperCache};
 use dom::bindings::utils::{null_str_as_empty, null_str_as_empty_ref};
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
@@ -28,7 +28,7 @@ pub struct Element {
     style_attribute: Option<Stylesheet>,
 }
 
-impl CacheableWrapper for Element {
+impl Reflectable for Element {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         self.node.get_wrappercache()
     }
@@ -39,7 +39,7 @@ impl CacheableWrapper for Element {
 }
 
 impl BindingObject for Element {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.node.GetParentObject(cx)
     }
 }

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::EventTargetBinding;
-use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, WrapperCache, BindingObject, DerivedWrapper};
 use script_task::page_from_context;
 
 use js::glue::RUST_OBJECT_TO_JSVAL;
@@ -27,7 +27,7 @@ impl EventTarget {
     }
 }
 
-impl CacheableWrapper for EventTarget {
+impl Reflectable for EventTarget {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe { cast::transmute(&self.wrapper) }
     }
@@ -39,11 +39,11 @@ impl CacheableWrapper for EventTarget {
 }
 
 impl BindingObject for EventTarget {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         // TODO(tkuehn): This only handles top-level pages. Needs to handle subframes.
         unsafe {
-            Some((*page).frame.get_ref().window as @mut CacheableWrapper)
+            Some((*page).frame.get_ref().window as @mut Reflectable)
         }
     }
 }

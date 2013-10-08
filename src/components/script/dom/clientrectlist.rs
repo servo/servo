@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::ClientRectListBinding;
-use dom::bindings::utils::{WrapperCache, CacheableWrapper, BindingObject};
+use dom::bindings::utils::{WrapperCache, Reflectable, BindingObject};
 use dom::clientrect::ClientRect;
 use script_task::page_from_context;
 
@@ -48,7 +48,7 @@ impl ClientRectList {
     }
 }
 
-impl CacheableWrapper for ClientRectList {
+impl Reflectable for ClientRectList {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe {
             cast::transmute(&self.wrapper)
@@ -62,10 +62,10 @@ impl CacheableWrapper for ClientRectList {
 }
 
 impl BindingObject for ClientRectList {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         unsafe {
-            Some((*page).frame.get_ref().window as @mut CacheableWrapper)
+            Some((*page).frame.get_ref().window as @mut Reflectable)
         }
     }
 }

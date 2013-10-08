@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLCollectionBinding;
-use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
+use dom::bindings::utils::{Reflectable, BindingObject, WrapperCache};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::node::{AbstractNode, ScriptView};
 use script_task::page_from_context;
@@ -59,16 +59,16 @@ impl HTMLCollection {
 }
 
 impl BindingObject for HTMLCollection {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         // TODO(tkuehn): This only handles the top-level frame. Need to grab subframes.
         unsafe {
-            Some((*page).frame.get_ref().window as @mut CacheableWrapper)
+            Some((*page).frame.get_ref().window as @mut Reflectable)
         }
     }
 }
 
-impl CacheableWrapper for HTMLCollection {
+impl Reflectable for HTMLCollection {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe {
             cast::transmute(&self.wrapper)

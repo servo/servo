@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::WindowBinding;
 use dom::bindings::utils::{WrapperCache, DOMString, Traceable};
-use dom::bindings::utils::{CacheableWrapper, BindingObject, null_str_as_empty};
+use dom::bindings::utils::{Reflectable, BindingObject, null_str_as_empty};
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ScriptView};
 use dom::navigator::Navigator;
@@ -135,7 +135,7 @@ impl Window {
     }
 }
 
-impl CacheableWrapper for Window {
+impl Reflectable for Window {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe { cast::transmute(&self.wrapper) }
     }
@@ -147,7 +147,7 @@ impl CacheableWrapper for Window {
 }
 
 impl BindingObject for Window {
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         None
     }
 }

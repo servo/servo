@@ -5,7 +5,7 @@
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::bindings::codegen::EventBinding;
-use dom::bindings::utils::{CacheableWrapper, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, BindingObject, DerivedWrapper};
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible, WrapperCache};
 
 use geom::point::Point2D;
@@ -113,7 +113,7 @@ impl Event {
     }
 }
 
-impl CacheableWrapper for Event {
+impl Reflectable for Event {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         unsafe { cast::transmute(&self.wrapper) }
     }
@@ -125,10 +125,10 @@ impl CacheableWrapper for Event {
 }
 
 impl BindingObject for Event {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         unsafe {
-            Some((*page).frame.get_ref().window as @mut CacheableWrapper)
+            Some((*page).frame.get_ref().window as @mut Reflectable)
         }
     }
 }

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::HTMLDocumentBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible, Traceable};
-use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
+use dom::bindings::utils::{Reflectable, BindingObject, WrapperCache};
 use dom::document::{AbstractDocument, Document, WrappableDocument, HTML};
 use dom::element::HTMLHeadElementTypeId;
 use dom::htmlcollection::HTMLCollection;
@@ -200,7 +200,7 @@ impl HTMLDocument {
     }
 }
 
-impl CacheableWrapper for HTMLDocument {
+impl Reflectable for HTMLDocument {
     fn get_wrappercache(&mut self) -> &mut WrapperCache {
         self.parent.get_wrappercache()
     }
@@ -212,7 +212,7 @@ impl CacheableWrapper for HTMLDocument {
 }
 
 impl BindingObject for HTMLDocument {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.parent.GetParentObject(cx)
     }
 }
