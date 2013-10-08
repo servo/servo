@@ -24,9 +24,9 @@ pub struct HTMLDocument {
 }
 
 impl HTMLDocument {
-    pub fn new(root: AbstractNode<ScriptView>, window: Option<@mut Window>) -> AbstractDocument {
+    pub fn new(window: Option<@mut Window>) -> AbstractDocument {
         let doc = @mut HTMLDocument {
-            parent: Document::new(root, window, HTML)
+            parent: Document::new(window, HTML)
         };
 
         let compartment = window.get_ref().page.js_info.get_ref().js_compartment;
@@ -70,14 +70,19 @@ impl HTMLDocument {
     }
 
     pub fn GetHead(&self) -> Option<AbstractNode<ScriptView>> {
-        let mut headNode: Option<AbstractNode<ScriptView>> = None;
-        let _ = for child in self.parent.root.traverse_preorder() {
-            if child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId) {
-                headNode = Some(child);
-                break;
+        match self.parent.root {
+            None => None,
+            Some(root) => {
+                let mut headNode: Option<AbstractNode<ScriptView>> = None;
+                let _ = for child in root.traverse_preorder() {
+                    if child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId) {
+                        headNode = Some(child);
+                        break;
+                    }
+                };
+                headNode 
             }
-        };
-        headNode 
+        }
     }
 
     pub fn Images(&self) -> @mut HTMLCollection {

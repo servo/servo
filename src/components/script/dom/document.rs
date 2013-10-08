@@ -76,6 +76,12 @@ impl AbstractDocument {
             _ => fail!("attempt to downcast a non-HTMLDocument to HTMLDocument")
         }
     }
+
+    pub fn set_root(&self, root: AbstractNode<ScriptView>) {
+        self.with_mut_base(|document| {
+            document.root = Some(root);
+        });
+    }
 }
 
 pub enum DocumentType {
@@ -85,7 +91,7 @@ pub enum DocumentType {
 }
 
 pub struct Document {
-    root: AbstractNode<ScriptView>,
+    root: Option<AbstractNode<ScriptView>>,
     wrapper: WrapperCache,
     window: Option<@mut Window>,
     doctype: DocumentType,
@@ -94,9 +100,9 @@ pub struct Document {
 
 impl Document {
     #[fixed_stack_segment]
-    pub fn new(root: AbstractNode<ScriptView>, window: Option<@mut Window>, doctype: DocumentType) -> Document {
+    pub fn new(window: Option<@mut Window>, doctype: DocumentType) -> Document {
         Document {
-            root: root,
+            root: None,
             wrapper: WrapperCache::new(),
             window: window,
             doctype: doctype,
@@ -105,13 +111,17 @@ impl Document {
     }
 
     pub fn Constructor(owner: @mut Window) -> Fallible<AbstractDocument> {
+        let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
+
+        let document = AbstractDocument::as_abstract(cx, @mut Document::new(None, XML));
+
         let root = @HTMLHtmlElement {
             htmlelement: HTMLElement::new(HTMLHtmlElementTypeId, ~"html")
         };
-
-        let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
         let root = unsafe { Node::as_abstract_node(cx, root) };
-        Ok(AbstractDocument::as_abstract(cx, @mut Document::new(root, None, XML)))
+        document.set_root(root);
+
+        Ok(document)
     }
 }
 
@@ -208,7 +218,7 @@ impl Document {
     }
 
     pub fn GetDocumentElement(&self) -> Option<AbstractNode<ScriptView>> {
-        Some(self.root)
+        self.root
     }
 
     fn get_cx(&self) -> *JSContext {
@@ -289,20 +299,25 @@ impl Document {
                 fail!("no SVG document yet")
             },
             _ => {
-                let _ = for node in self.root.traverse_preorder() {
-                    if node.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
-                        loop;
-                    }
-                    for child in node.children() {
-                        if child.is_text() {
-                            do child.with_imm_text() |text| {
-                                let s = text.element.Data();
-                                title = title + null_str_as_empty(&s);
+                match self.root {
+                    None => {},
+                    Some(root) => {
+                        for node in root.traverse_preorder() {
+                            if node.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
+                                loop;
                             }
-                        }
+                            for child in node.children() {
+                                if child.is_text() {
+                                    do child.with_imm_text() |text| {
+                                        let s = text.element.Data();
+                                        title = title + null_str_as_empty(&s);
+                                    }
+                                }
+                            }
+                            break;
+                        };
                     }
-                    break;
-                };
+                }
             }
         }
         let v: ~[&str] = title.word_iter().collect();
@@ -318,34 +333,39 @@ impl Document {
             },
             _ => {
                 let (_scope, cx) = self.get_scope_and_cx();
-                let _ = for node in self.root.traverse_preorder() {
-                    if node.type_id() != ElementNodeTypeId(HTMLHeadElementTypeId) {
-                        loop;
-                    }
-                    let mut has_title = false;
-                    for child in node.children() {
-                        if child.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
-                            loop;
-                        }
-                        has_title = true;
-                        for title_child in child.children() {
-                            child.remove_child(title_child);
-                        }
-                        child.add_child(self.CreateTextNode(title));
-                        break;
-                    }
-                    if !has_title {
-                        let new_title = @HTMLTitleElement {
-                            htmlelement: HTMLElement::new(HTMLTitleElementTypeId, ~"title")
+                match self.root {
+                    None => {},
+                    Some(root) => {
+                        for node in root.traverse_preorder() {
+                            if node.type_id() != ElementNodeTypeId(HTMLHeadElementTypeId) {
+                                loop;
+                            }
+                            let mut has_title = false;
+                            for child in node.children() {
+                                if child.type_id() != ElementNodeTypeId(HTMLTitleElementTypeId) {
+                                    loop;
+                                }
+                                has_title = true;
+                                for title_child in child.children() {
+                                    child.remove_child(title_child);
+                                }
+                                child.add_child(self.CreateTextNode(title));
+                                break;
+                            }
+                            if !has_title {
+                                let new_title = @HTMLTitleElement {
+                                    htmlelement: HTMLElement::new(HTMLTitleElementTypeId, ~"title")
+                                };
+                                let new_title = unsafe { 
+                                    Node::as_abstract_node(cx, new_title) 
+                                };
+                                new_title.add_child(self.CreateTextNode(title));
+                                node.add_child(new_title);
+                            }
+                            break;
                         };
-                        let new_title = unsafe { 
-                            Node::as_abstract_node(cx, new_title) 
-                        };
-                        new_title.add_child(self.CreateTextNode(title));
-                        node.add_child(new_title);
                     }
-                    break;
-                };
+                }
             }
         }
         Ok(())
@@ -441,15 +461,20 @@ impl Document {
 
     pub fn createHTMLCollection(&self, callback: &fn(elem: &Element) -> bool) -> @mut HTMLCollection {
         let mut elements = ~[];
-        let _ = for child in self.root.traverse_preorder() {
-            if child.is_element() {
-                do child.with_imm_element |elem| {
-                    if callback(elem) {
-                        elements.push(child);
+        match self.root {
+            None => {},
+            Some(root) => {
+                for child in root.traverse_preorder() {
+                    if child.is_element() {
+                        do child.with_imm_element |elem| {
+                            if callback(elem) {
+                                elements.push(child);
+                            }
+                        }
                     }
-                }
+                };
             }
-        };
+        }
         let (scope, cx) = self.get_scope_and_cx();
         HTMLCollection::new(elements, cx, scope)
     }
@@ -470,16 +495,21 @@ impl Document {
 impl Traceable for Document {
     #[fixed_stack_segment]
     fn trace(&self, tracer: *mut JSTracer) {
-        unsafe {
-            (*tracer).debugPrinter = ptr::null();
-            (*tracer).debugPrintIndex = -1;
-            do "root".to_c_str().with_ref |name| {
-                (*tracer).debugPrintArg = name as *libc::c_void;
-                debug!("tracing root node");
-                do self.root.with_base |node| {
-                    JS_CallTracer(tracer as *JSTracer,
-                                  node.wrapper.wrapper,
-                                  JSTRACE_OBJECT as u32);
+        match self.root {
+            None => {},
+            Some(root) => {
+                unsafe {
+                    (*tracer).debugPrinter = ptr::null();
+                    (*tracer).debugPrintIndex = -1;
+                    do "root".to_c_str().with_ref |name| {
+                        (*tracer).debugPrintArg = name as *libc::c_void;
+                        debug!("tracing root node");
+                        do root.with_base |node| {
+                            JS_CallTracer(tracer as *JSTracer,
+                                          node.wrapper.wrapper,
+                                          JSTRACE_OBJECT as u32);
+                        }
+                    }
                 }
             }
         }
