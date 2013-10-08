@@ -31,8 +31,8 @@ use std::libc;
 use std::ascii::StrAsciiExt;
 use std::unstable::raw::Box;
 
-pub trait WrappableDocument {
-    fn init_wrapper(@mut self, cx: *JSContext);
+pub trait ReflectableDocument {
+    fn init_reflector(@mut self, cx: *JSContext);
 }
 
 #[deriving(Eq)]
@@ -41,8 +41,8 @@ pub struct AbstractDocument {
 }
 
 impl AbstractDocument {
-    pub fn as_abstract<T: WrappableDocument>(cx: *JSContext, doc: @mut T) -> AbstractDocument {
-        doc.init_wrapper(cx);
+    pub fn as_abstract<T: ReflectableDocument>(cx: *JSContext, doc: @mut T) -> AbstractDocument {
+        doc.init_reflector(cx);
         AbstractDocument {
             document: unsafe { cast::transmute(doc) }
         }
@@ -125,8 +125,8 @@ impl Document {
     }
 }
 
-impl WrappableDocument for Document {
-    fn init_wrapper(@mut self, cx: *JSContext) {
+impl ReflectableDocument for Document {
+    fn init_reflector(@mut self, cx: *JSContext) {
         self.wrap_object_shared(cx, ptr::null()); //XXXjdm a proper scope would be nice
     }
 }

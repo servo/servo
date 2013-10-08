@@ -5,7 +5,7 @@
 use dom::bindings::codegen::HTMLDocumentBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible, Traceable};
 use dom::bindings::utils::{Reflectable, BindingObject, Reflector};
-use dom::document::{AbstractDocument, Document, WrappableDocument, HTML};
+use dom::document::{AbstractDocument, Document, ReflectableDocument, HTML};
 use dom::element::HTMLHeadElementTypeId;
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{AbstractNode, ScriptView, ElementNodeTypeId};
@@ -42,8 +42,8 @@ impl HTMLDocument {
     }
 }
 
-impl WrappableDocument for HTMLDocument {
-    fn init_wrapper(@mut self, cx: *JSContext) {
+impl ReflectableDocument for HTMLDocument {
+    fn init_reflector(@mut self, cx: *JSContext) {
         self.wrap_object_shared(cx, ptr::null()); //XXXjdm a proper scope would be nice
     }
 }
