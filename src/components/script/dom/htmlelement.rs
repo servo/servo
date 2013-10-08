@@ -149,8 +149,8 @@ impl HTMLElement {
 }
 
 impl Reflectable for HTMLElement {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
-        self.element.get_wrappercache()
+    fn reflector(&mut self) -> &mut Reflector {
+        self.element.reflector()
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

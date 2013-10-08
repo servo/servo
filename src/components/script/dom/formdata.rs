@@ -50,7 +50,7 @@ impl FormData {
 }
 
 impl Reflectable for FormData {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
+    fn reflector(&mut self) -> &mut Reflector {
         unsafe {
             cast::transmute(&self.wrapper)
         }

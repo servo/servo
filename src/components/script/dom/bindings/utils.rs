@@ -528,7 +528,7 @@ pub fn initialize_global(global: *JSObject) {
 }
 
 pub trait Reflectable {
-    fn get_wrappercache(&mut self) -> &mut Reflector;
+    fn reflector(&mut self) -> &mut Reflector;
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject;
 }
 
@@ -561,7 +561,7 @@ pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
                             value: @mut Reflectable,
                             vp: *mut JSVal) -> JSBool {
   unsafe {
-    let cache = value.get_wrappercache();
+    let cache = value.reflector();
     let obj = cache.get_wrapper();
     if obj.is_not_null() /*&& js::GetObjectCompartment(obj) == js::GetObjectCompartment(scope)*/ {
         *vp = RUST_OBJECT_TO_JSVAL(obj);
@@ -584,7 +584,7 @@ pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
 pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, mut p: Option<@mut Reflectable>) -> *JSObject {
     match p {
         Some(ref mut p) => {
-            let cache = p.get_wrappercache();
+            let cache = p.reflector();
             let wrapper = cache.get_wrapper();
             if wrapper.is_not_null() {
                 return wrapper;
@@ -734,7 +734,7 @@ pub trait DerivedWrapper {
 impl DerivedWrapper for AbstractNode<ScriptView> {
     #[fixed_stack_segment]
     fn wrap(&mut self, cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
-        let cache = self.get_wrappercache();
+        let cache = self.reflector();
         let wrapper = cache.get_wrapper();
         if wrapper.is_not_null() {
             unsafe { *vp = RUST_OBJECT_TO_JSVAL(wrapper) };

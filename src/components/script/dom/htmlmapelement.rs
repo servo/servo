@@ -24,7 +24,7 @@ impl HTMLMapElement {
         let doc = self.htmlelement.element.node.owner_doc.unwrap();
         let win = doc.with_base(|doc| doc.window.unwrap());
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        let cache = win.get_wrappercache();
+        let cache = win.reflector();
         let scope = cache.get_wrapper();
         (scope, cx)
     }

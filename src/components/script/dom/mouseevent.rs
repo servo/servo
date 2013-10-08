@@ -143,8 +143,8 @@ impl MouseEvent {
 }
 
 impl Reflectable for MouseEvent {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
-        return self.parent.get_wrappercache()
+    fn reflector(&mut self) -> &mut Reflector {
+        return self.parent.reflector()
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

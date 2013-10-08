@@ -790,7 +790,7 @@ impl VoidPtrLike for AbstractNode<LayoutView> {
 }
 
 impl Reflectable for Node<ScriptView> {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
+    fn reflector(&mut self) -> &mut Reflector {
         unsafe { cast::transmute(&mut self.wrapper) }
     }
 

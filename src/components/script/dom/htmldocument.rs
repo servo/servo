@@ -36,7 +36,7 @@ impl HTMLDocument {
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
         let win = self.parent.window.get_ref();
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        let cache = win.get_wrappercache();
+        let cache = win.reflector();
         let scope = cache.get_wrapper();
         (scope, cx)
     }
@@ -201,8 +201,8 @@ impl HTMLDocument {
 }
 
 impl Reflectable for HTMLDocument {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
-        self.parent.get_wrappercache()
+    fn reflector(&mut self) -> &mut Reflector {
+        self.parent.reflector()
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

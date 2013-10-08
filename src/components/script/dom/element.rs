@@ -29,8 +29,8 @@ pub struct Element {
 }
 
 impl Reflectable for Element {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
-        self.node.get_wrappercache()
+    fn reflector(&mut self) -> &mut Reflector {
+        self.node.reflector()
     }
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
@@ -191,7 +191,7 @@ impl<'self> Element {
         let doc = self.node.owner_doc.unwrap();
         let win = doc.with_base(|doc| doc.window.unwrap());
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        let cache = win.get_wrappercache();
+        let cache = win.reflector();
         let scope = cache.get_wrapper();
         (scope, cx)
     }
@@ -287,7 +287,7 @@ impl Element {
             match page.query_layout(ContentBoxesQuery(node, chan), port) {
                 ContentBoxesResponse(rects) => {
                     let cx = page.js_info.get_ref().js_compartment.cx.ptr;
-                    let cache = win.get_wrappercache();
+                    let cache = win.reflector();
                     let scope = cache.get_wrapper();
                     let rects = do rects.map |r| {
                         ClientRect::new(
@@ -315,7 +315,7 @@ impl Element {
         match page.query_layout(ContentBoxQuery(node, chan), port) {
             ContentBoxResponse(rect) => {
                 let cx = page.js_info.get_ref().js_compartment.cx.ptr;
-                let cache = win.get_wrappercache();
+                let cache = win.reflector();
                 let scope = cache.get_wrapper();
                 ClientRect::new(
                     rect.origin.y.to_f32(),

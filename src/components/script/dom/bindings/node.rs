@@ -96,7 +96,7 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
 }
 
 impl Reflectable for AbstractNode<ScriptView> {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
+    fn reflector(&mut self) -> &mut Reflector {
         do self.with_mut_base |base| {
             unsafe {
                 cast::transmute(&base.wrapper)
@@ -118,7 +118,7 @@ impl Traceable for Node<ScriptView> {
             }
             debug!("tracing %s", name);
             let mut node = node.unwrap();
-            let cache = node.get_wrappercache();
+            let cache = node.reflector();
             let wrapper = cache.get_wrapper();
             assert!(wrapper.is_not_null());
             unsafe {

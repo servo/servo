@@ -58,8 +58,8 @@ impl CharacterData {
 }
 
 impl Reflectable for CharacterData {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
-        self.node.get_wrappercache()
+    fn reflector(&mut self) -> &mut Reflector {
+        self.node.reflector()
     }
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {

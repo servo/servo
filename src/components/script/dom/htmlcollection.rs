@@ -69,7 +69,7 @@ impl BindingObject for HTMLCollection {
 }
 
 impl Reflectable for HTMLCollection {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
+    fn reflector(&mut self) -> &mut Reflector {
         unsafe {
             cast::transmute(&self.wrapper)
         }

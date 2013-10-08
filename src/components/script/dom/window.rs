@@ -136,7 +136,7 @@ impl Window {
 }
 
 impl Reflectable for Window {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
+    fn reflector(&mut self) -> &mut Reflector {
         unsafe { cast::transmute(&self.wrapper) }
     }
 
@@ -225,7 +225,7 @@ impl Window {
         };
 
         unsafe {
-            let cache = ptr::to_unsafe_ptr(win.get_wrappercache());
+            let cache = ptr::to_unsafe_ptr(win.reflector());
             win.wrap_object_shared(cx, ptr::null()); //XXXjdm proper scope
             let global = (*cache).wrapper;
             do "window".to_c_str().with_ref |name| {

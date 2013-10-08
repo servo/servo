@@ -23,7 +23,7 @@ impl Blob {
 }
 
 impl Reflectable for Blob {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
+    fn reflector(&mut self) -> &mut Reflector {
         unsafe { cast::transmute(&self.wrapper) }
     }
 

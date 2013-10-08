@@ -132,9 +132,9 @@ impl WrappableDocument for Document {
 }
 
 impl Reflectable for AbstractDocument {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
+    fn reflector(&mut self) -> &mut Reflector {
         do self.with_mut_base |doc| {
-            doc.get_wrappercache()
+            doc.reflector()
         }
     }
 
@@ -162,7 +162,7 @@ impl BindingObject for AbstractDocument {
 impl DerivedWrapper for AbstractDocument {
     #[fixed_stack_segment]
     fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
-        let cache = self.get_wrappercache();
+        let cache = self.reflector();
         let wrapper = cache.get_wrapper();
         unsafe { *vp = RUST_OBJECT_TO_JSVAL(wrapper) };
         return 1;
@@ -175,7 +175,7 @@ impl DerivedWrapper for AbstractDocument {
 
 
 impl Reflectable for Document {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
+    fn reflector(&mut self) -> &mut Reflector {
         unsafe {
             cast::transmute(&self.wrapper)
         }
@@ -229,7 +229,7 @@ impl Document {
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
         let win = self.window.get_ref();
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        let cache = win.get_wrappercache();
+        let cache = win.reflector();
         let scope = cache.get_wrapper();
         (scope, cx)
     }

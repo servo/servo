@@ -12,8 +12,8 @@ use js::jsapi::{JSContext, JSObject, JSTracer};
 macro_rules! generate_cacheable_wrapper(
     ($name: path, $wrap: path) => (
         impl Reflectable for $name {
-            fn get_wrappercache(&mut self) -> &mut Reflector {
-                self.element.get_wrappercache()
+            fn reflector(&mut self) -> &mut Reflector {
+                self.element.reflector()
             }
 
             fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -27,8 +27,8 @@ macro_rules! generate_cacheable_wrapper(
 macro_rules! generate_cacheable_wrapper_htmlelement(
     ($name: path, $wrap: path) => (
         impl Reflectable for $name {
-            fn get_wrappercache(&mut self) -> &mut Reflector {
-                self.htmlelement.get_wrappercache()
+            fn reflector(&mut self) -> &mut Reflector {
+                self.htmlelement.reflector()
             }
 
             fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -42,8 +42,8 @@ macro_rules! generate_cacheable_wrapper_htmlelement(
 macro_rules! generate_cacheable_wrapper_node(
     ($name: path, $wrap: path) => (
         impl Reflectable for $name {
-            fn get_wrappercache(&mut self) -> &mut Reflector {
-                self.node.get_wrappercache()
+            fn reflector(&mut self) -> &mut Reflector {
+                self.node.reflector()
             }
 
             fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

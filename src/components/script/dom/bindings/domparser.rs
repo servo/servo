@@ -13,7 +13,7 @@ use js::glue::{RUST_OBJECT_TO_JSVAL};
 use std::cast;
 
 impl Reflectable for DOMParser {
-    fn get_wrappercache(&mut self) -> &mut Reflector {
+    fn reflector(&mut self) -> &mut Reflector {
         unsafe { cast::transmute(&self.wrapper) }
     }
 

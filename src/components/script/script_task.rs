@@ -707,7 +707,7 @@ impl ScriptTask {
                                  self.chan.clone(),
                                  self.compositor,
                                  self.image_cache_task.clone());
-        page.initialize_js_info(cx, window.get_wrappercache().get_wrapper());
+        page.initialize_js_info(cx, window.reflector().get_wrapper());
 
         RegisterBindings::Register(page.js_info.get_ref().js_compartment);
 
