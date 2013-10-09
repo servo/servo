@@ -502,7 +502,7 @@ impl Traceable for Document {
                         debug!("tracing root node");
                         do root.with_base |node| {
                             JS_CallTracer(tracer as *JSTracer,
-                                          node.wrapper.wrapper,
+                                          node.wrapper.object,
                                           JSTRACE_OBJECT as u32);
                         }
                     }

@@ -227,7 +227,7 @@ impl Window {
         unsafe {
             let reflector = ptr::to_unsafe_ptr(win.reflector());
             win.wrap_object_shared(cx, ptr::null()); //XXXjdm proper scope
-            let global = (*reflector).wrapper;
+            let global = (*reflector).object;
             do "window".to_c_str().with_ref |name| {
                 JS_DefineProperty(cx, global,  name,
                                   RUST_OBJECT_TO_JSVAL(global),
@@ -254,7 +254,7 @@ impl Traceable for Window {
                             (*tracer).debugPrintArg = name as *libc::c_void;
                             debug!("tracing document");
                             JS_CallTracer(tracer as *JSTracer,
-                                          doc.wrapper.wrapper,
+                                          doc.wrapper.object,
                                           JSTRACE_OBJECT as u32);
                         }
                     }

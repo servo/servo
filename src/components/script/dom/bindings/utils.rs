@@ -533,25 +533,25 @@ pub trait Reflectable {
 }
 
 pub struct Reflector {
-    wrapper: *JSObject
+    object: *JSObject
 }
 
 impl Reflector {
     pub fn get_jsobject(&self) -> *JSObject {
-        unsafe { cast::transmute(self.wrapper) }
+        unsafe { cast::transmute(self.object) }
     }
 
-    pub fn set_jsobject(&mut self, wrapper: *JSObject) {
-        self.wrapper = wrapper;
+    pub fn set_jsobject(&mut self, object: *JSObject) {
+        self.object = object;
     }
 
     pub fn get_rootable(&self) -> **JSObject {
-        return to_unsafe_ptr(&self.wrapper);
+        return to_unsafe_ptr(&self.object);
     }
 
     pub fn new() -> Reflector {
         Reflector {
-            wrapper: ptr::null()
+            object: ptr::null()
         }
     }
 }
