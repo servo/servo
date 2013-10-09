@@ -9,31 +9,69 @@ use http_loader;
 
 use std::cell::Cell;
 use std::comm::{Chan, Port, SharedChan};
+use std::comm;
 use extra::url::Url;
 use util::spawn_listener;
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
-    Load(Url, Chan<ProgressMsg>),
+    Load(Url, Chan<LoadResponse>),
     Exit
+}
+
+/// Metadata about a loaded resource, such as is obtained from HTTP headers.
+pub struct Metadata {
+    /// Final URL after redirects.
+    final_url: Url,
+
+    // Other fields (e.g. content type, charset) will go here.
+}
+
+impl Metadata {
+    /// Metadata with defaults for everything optional.
+    pub fn default(url: Url) -> Metadata {
+        Metadata {
+            final_url: url,
+        }
+    }
+}
+
+/// Message sent in response to `Load`.  Contains metadata, and a port
+/// for receiving the data.
+///
+/// Even if loading fails immediately, we send one of these and the
+/// progress_port will provide the error.
+pub struct LoadResponse {
+    /// Metadata, such as from HTTP headers.
+    metadata: Metadata,
+    /// Port for reading data.
+    progress_port: Port<ProgressMsg>,
 }
 
 /// Messages sent in response to a `Load` message
 #[deriving(Eq)]
 pub enum ProgressMsg {
-    /// URL changed due to a redirect.  There can be zero or more of these,
-    /// but they are guaranteed to arrive before messages of any other type.
-    UrlChange(Url),
     /// Binary data - there may be multiple of these
     Payload(~[u8]),
     /// Indicates loading is complete, either successfully or not
     Done(Result<(), ()>)
 }
 
+/// For use by loaders in responding to a Load message.
+pub fn start_sending(start_chan: Chan<LoadResponse>,
+                     metadata:   Metadata) -> Chan<ProgressMsg> {
+    let (progress_port, progress_chan) = comm::stream();
+    start_chan.send(LoadResponse {
+        metadata:      metadata,
+        progress_port: progress_port,
+    });
+    progress_chan
+}
+
 /// Handle to a resource task
 pub type ResourceTask = SharedChan<ControlMsg>;
 
-pub type LoaderTask = ~fn(url: Url, Chan<ProgressMsg>);
+pub type LoaderTask = ~fn(url: Url, Chan<LoadResponse>);
 
 /**
 Creates a task to load a specific resource
@@ -81,8 +119,8 @@ impl ResourceManager {
     fn start(&self) {
         loop {
             match self.from_client.recv() {
-              Load(url, progress_chan) => {
-                self.load(url.clone(), progress_chan)
+              Load(url, start_chan) => {
+                self.load(url.clone(), start_chan)
               }
               Exit => {
                 break
@@ -91,16 +129,15 @@ impl ResourceManager {
         }
     }
 
-    fn load(&self, url: Url, progress_chan: Chan<ProgressMsg>) {
-
+    fn load(&self, url: Url, start_chan: Chan<LoadResponse>) {
         match self.get_loader_factory(&url) {
             Some(loader_factory) => {
                 debug!("resource_task: loading url: %s", url.to_str());
-                loader_factory(url, progress_chan);
+                loader_factory(url, start_chan);
             }
             None => {
                 debug!("resource_task: no loader for scheme %s", url.scheme);
-                progress_chan.send(Done(Err(())));
+                start_sending(start_chan, Metadata::default(url)).send(Done(Err(())));
             }
         }
     }
@@ -140,7 +177,8 @@ fn test_bad_scheme() {
 #[test]
 fn should_delegate_to_scheme_loader() {
     let payload = ~[1, 2, 3];
-    let loader_factory = |_url: Url, progress_chan: Chan<ProgressMsg>| {
+    let loader_factory = |url: Url, start_chan: Chan<LoadResponse>| {
+        let progress_chan = start_sending(start_chan, Metadata::default(url));
         progress_chan.send(Payload(payload.clone()));
         progress_chan.send(Done(Ok(())));
     };

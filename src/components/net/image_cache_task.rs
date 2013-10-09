@@ -442,9 +442,9 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<~[u8], ()> {
 
     let mut image_data = ~[];
 
+    let progress_port = response_port.recv().progress_port;
     loop {
-        match response_port.recv() {
-            resource_task::UrlChange(*) => (),  // don't care that URL changed
+        match progress_port.recv() {
             resource_task::Payload(data) => {
                 image_data.push_all(data);
             }

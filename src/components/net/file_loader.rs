@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{Done, LoaderTask, Payload};
+use resource_task::{Metadata, Payload, Done, LoaderTask, start_sending};
 
 use std::io::{ReaderUtil, file_reader};
 use std::task;
@@ -10,10 +10,10 @@ use std::task;
 static READ_SIZE: uint = 1024;
 
 pub fn factory() -> LoaderTask {
-    let f: LoaderTask = |url, progress_chan| {
+    let f: LoaderTask = |url, start_chan| {
         assert!("file" == url.scheme);
+        let progress_chan = start_sending(start_chan, Metadata::default(url.clone()));
         do task::spawn {
-            // FIXME: Resolve bug prevents us from moving the path out of the URL.
             match file_reader(&Path(url.path)) {
                 Ok(reader) => {
                     while !reader.eof() {
