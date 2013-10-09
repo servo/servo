@@ -118,15 +118,14 @@ impl Traceable for Node<ScriptView> {
             }
             debug!("tracing %s", name);
             let mut node = node.unwrap();
-            let cache = node.reflector();
-            let wrapper = cache.get_jsobject();
-            assert!(wrapper.is_not_null());
+            let obj = node.reflector().get_jsobject();
+            assert!(obj.is_not_null());
             unsafe {
                 (*tracer).debugPrinter = ptr::null();
                 (*tracer).debugPrintIndex = -1;
                 do name.to_c_str().with_ref |name| {
                     (*tracer).debugPrintArg = name as *libc::c_void;
-                    JS_CallTracer(cast::transmute(tracer), wrapper, JSTRACE_OBJECT as u32);
+                    JS_CallTracer(cast::transmute(tracer), obj, JSTRACE_OBJECT as u32);
                 }
             }
         }

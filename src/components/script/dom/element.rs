@@ -191,8 +191,7 @@ impl<'self> Element {
         let doc = self.node.owner_doc.unwrap();
         let win = doc.with_base(|doc| doc.window.unwrap());
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        let cache = win.reflector();
-        let scope = cache.get_jsobject();
+        let scope = win.reflector().get_jsobject();
         (scope, cx)
     }
 }
@@ -287,8 +286,7 @@ impl Element {
             match page.query_layout(ContentBoxesQuery(node, chan), port) {
                 ContentBoxesResponse(rects) => {
                     let cx = page.js_info.get_ref().js_compartment.cx.ptr;
-                    let cache = win.reflector();
-                    let scope = cache.get_jsobject();
+                    let scope = win.reflector().get_jsobject();
                     let rects = do rects.map |r| {
                         ClientRect::new(
                              r.origin.y.to_f32(),
@@ -315,8 +313,7 @@ impl Element {
         match page.query_layout(ContentBoxQuery(node, chan), port) {
             ContentBoxResponse(rect) => {
                 let cx = page.js_info.get_ref().js_compartment.cx.ptr;
-                let cache = win.reflector();
-                let scope = cache.get_jsobject();
+                let scope = win.reflector().get_jsobject();
                 ClientRect::new(
                     rect.origin.y.to_f32(),
                     (rect.origin.y + rect.size.height).to_f32(),

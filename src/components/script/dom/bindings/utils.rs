@@ -561,8 +561,8 @@ pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
                             value: @mut Reflectable,
                             vp: *mut JSVal) -> JSBool {
   unsafe {
-    let cache = value.reflector();
-    let obj = cache.get_jsobject();
+    let reflector = value.reflector();
+    let obj = reflector.get_jsobject();
     if obj.is_not_null() /*&& js::GetObjectCompartment(obj) == js::GetObjectCompartment(scope)*/ {
         *vp = RUST_OBJECT_TO_JSVAL(obj);
         return 1; // JS_TRUE
@@ -574,7 +574,7 @@ pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
     }
 
     //  MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
-      cache.set_jsobject(obj);
+    reflector.set_jsobject(obj);
     *vp = RUST_OBJECT_TO_JSVAL(obj);
     return JS_WrapValue(cx, cast::transmute(vp));
   }
@@ -584,14 +584,13 @@ pub fn WrapNewBindingObject(cx: *JSContext, scope: *JSObject,
 pub fn WrapNativeParent(cx: *JSContext, scope: *JSObject, mut p: Option<@mut Reflectable>) -> *JSObject {
     match p {
         Some(ref mut p) => {
-            let cache = p.reflector();
-            let wrapper = cache.get_jsobject();
-            if wrapper.is_not_null() {
-                return wrapper;
+            let obj = p.reflector().get_jsobject();
+            if obj.is_not_null() {
+                return obj;
             }
-            let wrapper = p.wrap_object_shared(cx, scope);
-            cache.set_jsobject(wrapper);
-            wrapper
+            let obj = p.wrap_object_shared(cx, scope);
+            p.reflector().set_jsobject(obj);
+            obj
         }
         None => unsafe { JS_GetGlobalObject(cx) }
     }

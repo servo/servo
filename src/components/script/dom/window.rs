@@ -225,9 +225,9 @@ impl Window {
         };
 
         unsafe {
-            let cache = ptr::to_unsafe_ptr(win.reflector());
+            let reflector = ptr::to_unsafe_ptr(win.reflector());
             win.wrap_object_shared(cx, ptr::null()); //XXXjdm proper scope
-            let global = (*cache).wrapper;
+            let global = (*reflector).wrapper;
             do "window".to_c_str().with_ref |name| {
                 JS_DefineProperty(cx, global,  name,
                                   RUST_OBJECT_TO_JSVAL(global),
