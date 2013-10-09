@@ -775,7 +775,7 @@ pub fn FindEnumStringIndex(cx: *JSContext,
             return Err(());
         }
         let length = 0;
-        let chars = JS_GetStringCharsAndLength(cx, jsstr, ptr::to_unsafe_ptr(&length));
+        let chars = JS_GetStringCharsAndLength(cx, jsstr, &length);
         if chars.is_null() {
             return Err(());
         }

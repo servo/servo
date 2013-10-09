@@ -266,12 +266,8 @@ impl Shaper {
             byteToGlyph = vec::from_elem(byte_max, NO_GLYPH);
         } else {
             byteToGlyph = vec::from_elem(byte_max, CONTINUATION_BYTE);
-            let mut i = 0;
-            while i < byte_max {
+            for (i, _) in text.char_offset_iter() {
                 byteToGlyph[i] = NO_GLYPH;
-                let range = text.char_range_at(i);
-                ignore(range.ch);
-                i = range.next;
             }
         }
 
@@ -292,11 +288,8 @@ impl Shaper {
 
         debug!("text: %s", text);
         debug!("(char idx): char->(glyph index):");
-        let mut i = 0u;
-        while i < byte_max {
-            let range = text.char_range_at(i);
-            debug!("%u: %? --> %d", i, range.ch, byteToGlyph[i] as int);
-            i = range.next;
+        for (i, ch) in text.char_offset_iter() {
+            debug!("%u: %? --> %d", i, ch, byteToGlyph[i] as int);
         }
 
         // some helpers
@@ -367,11 +360,6 @@ impl Shaper {
                     let loc = glyph_data.byte_offset_of_glyph(j);
                     if !char_byte_span.contains(loc) {
                         all_glyphs_are_within_cluster = false;
-                        break
-                    }
-
-                    // If true, keep checking. Else, stop.
-                    if !all_glyphs_are_within_cluster {
                         break
                     }
                 }
@@ -554,4 +542,3 @@ extern fn get_font_table_func(_: *hb_face_t, tag: hb_tag_t, user_data: *c_void) 
 extern fn destroy_blob_func(_: *c_void) {
     // TODO: Previous code here was broken. Rewrite.
 }
-
