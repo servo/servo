@@ -33,23 +33,21 @@ pub enum ProgressMsg {
 /// Handle to a resource task
 pub type ResourceTask = SharedChan<ControlMsg>;
 
+pub type LoaderTask = ~fn(url: Url, Chan<ProgressMsg>);
+
 /**
 Creates a task to load a specific resource
 
 The ResourceManager delegates loading to a different type of loader task for
 each URL scheme
 */
-type LoaderTaskFactory = ~fn() -> ~fn(url: Url, Chan<ProgressMsg>);
-
-pub type LoaderTask = ~fn(url: Url, Chan<ProgressMsg>);
+type LoaderTaskFactory = extern "Rust" fn() -> LoaderTask;
 
 /// Create a ResourceTask with the default loaders
 pub fn ResourceTask() -> ResourceTask {
-    let file_loader_factory: LoaderTaskFactory = file_loader::factory;
-    let http_loader_factory: LoaderTaskFactory = http_loader::factory;
     let loaders = ~[
-        (~"file", file_loader_factory),
-        (~"http", http_loader_factory)
+        (~"file", file_loader::factory),
+        (~"http", http_loader::factory),
     ];
     create_resource_task_with_loaders(loaders)
 }
