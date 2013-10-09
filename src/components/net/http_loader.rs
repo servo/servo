@@ -13,12 +13,12 @@ use http::headers::HeaderEnum;
 use std::rt::io::Reader;
 
 pub fn factory() -> LoaderTask {
-	let f: LoaderTask = |url, progress_chan| {
+    let f: LoaderTask = |url, progress_chan| {
         let url = Cell::new(url);
         let progress_chan = Cell::new(progress_chan);
         spawn(|| load(url.take(), progress_chan.take()))
-	};
-	f
+    };
+    f
 }
 
 fn load(url: Url, progress_chan: Chan<ProgressMsg>) {
