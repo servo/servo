@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{CacheableWrapper, DOMString, ErrorResult};
+use dom::bindings::utils::{Reflectable, DOMString, ErrorResult};
 use dom::element::HTMLFormElementTypeId;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
@@ -19,8 +19,7 @@ impl HTMLFormElement {
         let doc = self.htmlelement.element.node.owner_doc.unwrap();
         let win = doc.with_base(|doc| doc.window.unwrap());
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        let cache = win.get_wrappercache();
-        let scope = cache.get_wrapper();
+        let scope = win.reflector().get_jsobject();
         (scope, cx)
     }
 

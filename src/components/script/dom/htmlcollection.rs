@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::HTMLCollectionBinding;
-use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
+use dom::bindings::utils::{Reflectable, BindingObject, Reflector};
 use dom::bindings::utils::{DOMString, Fallible};
 use dom::node::{AbstractNode, ScriptView};
 use script_task::page_from_context;
@@ -15,14 +15,14 @@ use std::ptr;
 
 pub struct HTMLCollection {
     elements: ~[AbstractNode<ScriptView>],
-    wrapper: WrapperCache
+    reflector_: Reflector
 }
 
 impl HTMLCollection {
     pub fn new(elements: ~[AbstractNode<ScriptView>], cx: *JSContext, scope: *JSObject) -> @mut HTMLCollection {
         let collection = @mut HTMLCollection {
             elements: elements,
-            wrapper: WrapperCache::new()
+            reflector_: Reflector::new()
         };
         collection.init_wrapper(cx, scope);
         collection
@@ -59,19 +59,19 @@ impl HTMLCollection {
 }
 
 impl BindingObject for HTMLCollection {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         // TODO(tkuehn): This only handles the top-level frame. Need to grab subframes.
         unsafe {
-            Some((*page).frame.get_ref().window as @mut CacheableWrapper)
+            Some((*page).frame.get_ref().window as @mut Reflectable)
         }
     }
 }
 
-impl CacheableWrapper for HTMLCollection {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+impl Reflectable for HTMLCollection {
+    fn reflector(&mut self) -> &mut Reflector {
         unsafe {
-            cast::transmute(&self.wrapper)
+            cast::transmute(&self.reflector_)
         }
     }
 

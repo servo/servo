@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::MouseEventBinding;
 use dom::bindings::utils::{ErrorResult, Fallible, DOMString};
-use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, Reflector, BindingObject, DerivedWrapper};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
@@ -142,9 +142,9 @@ impl MouseEvent {
     }
 }
 
-impl CacheableWrapper for MouseEvent {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        return self.parent.get_wrappercache()
+impl Reflectable for MouseEvent {
+    fn reflector(&mut self) -> &mut Reflector {
+        return self.parent.reflector()
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -154,7 +154,7 @@ impl CacheableWrapper for MouseEvent {
 }
 
 impl BindingObject for MouseEvent {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.parent.GetParentObject(cx)
     }
 }

@@ -5,8 +5,8 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use dom::bindings::node;
-use dom::bindings::utils::{WrapperCache, DOMString, ErrorResult, Fallible, NotFound, HierarchyRequest};
-use dom::bindings::utils::{BindingObject, CacheableWrapper, null_str_as_empty};
+use dom::bindings::utils::{Reflector, DOMString, ErrorResult, Fallible, NotFound, HierarchyRequest};
+use dom::bindings::utils::{BindingObject, Reflectable, null_str_as_empty};
 use dom::characterdata::CharacterData;
 use dom::document::AbstractDocument;
 use dom::element::{Element, ElementTypeId, HTMLImageElementTypeId, HTMLIframeElementTypeId};
@@ -62,8 +62,8 @@ pub struct AbstractNodeChildrenIterator<View> {
 /// the script task, this is the unit type `()`. For the layout task, this is
 /// `LayoutData`.
 pub struct Node<View> {
-    /// The JavaScript wrapper for this node.
-    wrapper: WrapperCache,
+    /// The JavaScript reflector for this node.
+    reflector_: Reflector,
 
     /// The type of node that this is.
     type_id: NodeTypeId,
@@ -155,11 +155,11 @@ impl<View> TreeNode<AbstractNode<View>> for Node<View> { }
 impl<'self, View> AbstractNode<View> {
     // Unsafe accessors
 
-    pub unsafe fn as_cacheable_wrapper(&self) -> @mut CacheableWrapper {
+    pub unsafe fn as_cacheable_wrapper(&self) -> @mut Reflectable {
         match self.type_id() {
             TextNodeTypeId => {
                 let node: @mut Text = cast::transmute(self.obj);
-                node as @mut CacheableWrapper
+                node as @mut Reflectable
             }
             _ => {
                 fail!("unsupported node type")
@@ -465,7 +465,7 @@ impl Node<ScriptView> {
 
     pub fn new(type_id: NodeTypeId) -> Node<ScriptView> {
         Node {
-            wrapper: WrapperCache::new(),
+            reflector_: Reflector::new(),
             type_id: type_id,
 
             abstract: None,
@@ -789,9 +789,9 @@ impl VoidPtrLike for AbstractNode<LayoutView> {
     }
 }
 
-impl CacheableWrapper for Node<ScriptView> {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        unsafe { cast::transmute(&mut self.wrapper) }
+impl Reflectable for Node<ScriptView> {
+    fn reflector(&mut self) -> &mut Reflector {
+        unsafe { cast::transmute(&mut self.reflector_) }
     }
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
@@ -800,7 +800,7 @@ impl CacheableWrapper for Node<ScriptView> {
 }
 
 impl BindingObject for Node<ScriptView> {
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         match self.parent_node {
             Some(node) => Some(unsafe {node.as_cacheable_wrapper()}),
             None => None

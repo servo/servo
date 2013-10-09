@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DocumentBinding;
-use dom::bindings::utils::{DOMString, WrapperCache, ErrorResult, Fallible};
-use dom::bindings::utils::{BindingObject, CacheableWrapper, DerivedWrapper};
+use dom::bindings::utils::{DOMString, Reflector, ErrorResult, Fallible};
+use dom::bindings::utils::{BindingObject, Reflectable, DerivedWrapper};
 use dom::bindings::utils::{is_valid_element_name, InvalidCharacter, Traceable, null_str_as_empty};
 use dom::element::{Element};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
@@ -31,8 +31,8 @@ use std::libc;
 use std::ascii::StrAsciiExt;
 use std::unstable::raw::Box;
 
-pub trait WrappableDocument {
-    fn init_wrapper(@mut self, cx: *JSContext);
+pub trait ReflectableDocument {
+    fn init_reflector(@mut self, cx: *JSContext);
 }
 
 #[deriving(Eq)]
@@ -41,8 +41,8 @@ pub struct AbstractDocument {
 }
 
 impl AbstractDocument {
-    pub fn as_abstract<T: WrappableDocument>(cx: *JSContext, doc: @mut T) -> AbstractDocument {
-        doc.init_wrapper(cx);
+    pub fn as_abstract<T: ReflectableDocument>(cx: *JSContext, doc: @mut T) -> AbstractDocument {
+        doc.init_reflector(cx);
         AbstractDocument {
             document: unsafe { cast::transmute(doc) }
         }
@@ -92,7 +92,7 @@ pub enum DocumentType {
 
 pub struct Document {
     root: Option<AbstractNode<ScriptView>>,
-    wrapper: WrapperCache,
+    reflector_: Reflector,
     window: Option<@mut Window>,
     doctype: DocumentType,
     title: ~str
@@ -103,7 +103,7 @@ impl Document {
     pub fn new(window: Option<@mut Window>, doctype: DocumentType) -> Document {
         Document {
             root: None,
-            wrapper: WrapperCache::new(),
+            reflector_: Reflector::new(),
             window: window,
             doctype: doctype,
             title: ~""
@@ -125,16 +125,16 @@ impl Document {
     }
 }
 
-impl WrappableDocument for Document {
-    fn init_wrapper(@mut self, cx: *JSContext) {
+impl ReflectableDocument for Document {
+    fn init_reflector(@mut self, cx: *JSContext) {
         self.wrap_object_shared(cx, ptr::null()); //XXXjdm a proper scope would be nice
     }
 }
 
-impl CacheableWrapper for AbstractDocument {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+impl Reflectable for AbstractDocument {
+    fn reflector(&mut self) -> &mut Reflector {
         do self.with_mut_base |doc| {
-            doc.get_wrappercache()
+            doc.reflector()
         }
     }
 
@@ -152,7 +152,7 @@ impl CacheableWrapper for AbstractDocument {
 }
 
 impl BindingObject for AbstractDocument {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         do self.with_mut_base |doc| {
             doc.GetParentObject(cx)
         }
@@ -162,9 +162,7 @@ impl BindingObject for AbstractDocument {
 impl DerivedWrapper for AbstractDocument {
     #[fixed_stack_segment]
     fn wrap(&mut self, _cx: *JSContext, _scope: *JSObject, vp: *mut JSVal) -> i32 {
-        let cache = self.get_wrappercache();
-        let wrapper = cache.get_wrapper();
-        unsafe { *vp = RUST_OBJECT_TO_JSVAL(wrapper) };
+        unsafe { *vp = RUST_OBJECT_TO_JSVAL(self.reflector().get_jsobject()) };
         return 1;
     }
 
@@ -174,10 +172,10 @@ impl DerivedWrapper for AbstractDocument {
 }
 
 
-impl CacheableWrapper for Document {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+impl Reflectable for Document {
+    fn reflector(&mut self) -> &mut Reflector {
         unsafe {
-            cast::transmute(&self.wrapper)
+            cast::transmute(&self.reflector_)
         }
     }
 
@@ -188,9 +186,9 @@ impl CacheableWrapper for Document {
 }
 
 impl BindingObject for Document {
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         match self.window {
-            Some(win) => Some(win as @mut CacheableWrapper),
+            Some(win) => Some(win as @mut Reflectable),
             None => None
         }
     }
@@ -229,9 +227,7 @@ impl Document {
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
         let win = self.window.get_ref();
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        let cache = win.get_wrappercache();
-        let scope = cache.get_wrapper();
-        (scope, cx)
+        (win.reflector().get_jsobject(), cx)
     }
 
     pub fn GetElementsByTagName(&self, tag: &DOMString) -> @mut HTMLCollection {
@@ -506,7 +502,7 @@ impl Traceable for Document {
                         debug!("tracing root node");
                         do root.with_base |node| {
                             JS_CallTracer(tracer as *JSTracer,
-                                          node.wrapper.wrapper,
+                                          node.reflector_.object,
                                           JSTRACE_OBJECT as u32);
                         }
                     }

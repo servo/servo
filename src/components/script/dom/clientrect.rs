@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{CacheableWrapper, WrapperCache, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflectable, Reflector, BindingObject, DerivedWrapper};
 use dom::bindings::codegen::ClientRectBinding;
 use script_task::page_from_context;
 
@@ -12,7 +12,7 @@ use js::glue::RUST_OBJECT_TO_JSVAL;
 use std::cast;
 
 pub struct ClientRect {
-    wrapper: WrapperCache,
+    reflector_: Reflector,
     top: f32,
     bottom: f32,
     left: f32,
@@ -26,7 +26,7 @@ impl ClientRect {
             bottom: bottom,
             left: left,
             right: right,
-            wrapper: WrapperCache::new()
+            reflector_: Reflector::new()
         };
         rect.init_wrapper(cx, scope);
         rect
@@ -61,10 +61,10 @@ impl ClientRect {
     }
 }
 
-impl CacheableWrapper for ClientRect {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+impl Reflectable for ClientRect {
+    fn reflector(&mut self) -> &mut Reflector {
         unsafe {
-            cast::transmute(&self.wrapper)
+            cast::transmute(&self.reflector_)
         }
     }
 
@@ -75,10 +75,10 @@ impl CacheableWrapper for ClientRect {
 }
 
 impl BindingObject for ClientRect {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         unsafe {
-            Some((*page).frame.get_ref().window as @mut CacheableWrapper)
+            Some((*page).frame.get_ref().window as @mut Reflectable)
         }
     }
 }
