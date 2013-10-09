@@ -43,7 +43,7 @@ pub struct Window {
     page: @mut Page,
     script_chan: ScriptChan,
     compositor: @ScriptListener,
-    wrapper: Reflector,
+    reflector_: Reflector,
     timer_chan: SharedChan<TimerControlMsg>,
     navigator: Option<@mut Navigator>,
     image_cache_task: ImageCacheTask,
@@ -137,7 +137,7 @@ impl Window {
 
 impl Reflectable for Window {
     fn reflector(&mut self) -> &mut Reflector {
-        unsafe { cast::transmute(&self.wrapper) }
+        unsafe { cast::transmute(&self.reflector_) }
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -203,7 +203,7 @@ impl Window {
             page: page,
             script_chan: script_chan.clone(),
             compositor: compositor,
-            wrapper: Reflector::new(),
+            reflector_: Reflector::new(),
             timer_chan: {
                 let (timer_port, timer_chan) = comm::stream::<TimerControlMsg>();
                 let id = page.id.clone();
@@ -254,7 +254,7 @@ impl Traceable for Window {
                             (*tracer).debugPrintArg = name as *libc::c_void;
                             debug!("tracing document");
                             JS_CallTracer(tracer as *JSTracer,
-                                          doc.wrapper.object,
+                                          doc.reflector_.object,
                                           JSTRACE_OBJECT as u32);
                         }
                     }

@@ -11,20 +11,20 @@ use js::jsapi::{JSContext, JSObject};
 use std::cast;
 
 pub struct Blob {
-    wrapper: Reflector
+    reflector_: Reflector
 }
 
 impl Blob {
     pub fn new() -> @mut Blob {
         @mut Blob {
-            wrapper: Reflector::new()
+            reflector_: Reflector::new()
         }
     }
 }
 
 impl Reflectable for Blob {
     fn reflector(&mut self) -> &mut Reflector {
-        unsafe { cast::transmute(&self.wrapper) }
+        unsafe { cast::transmute(&self.reflector_) }
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

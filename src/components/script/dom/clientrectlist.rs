@@ -12,14 +12,14 @@ use js::jsapi::{JSObject, JSContext};
 use std::cast;
 
 pub struct ClientRectList {
-    wrapper: Reflector,
+    reflector_: Reflector,
     rects: ~[@mut ClientRect]
 }
 
 impl ClientRectList {
     pub fn new(rects: ~[@mut ClientRect], cx: *JSContext, scope: *JSObject) -> @mut ClientRectList {
         let list = @mut ClientRectList {
-            wrapper: Reflector::new(),
+            reflector_: Reflector::new(),
             rects: rects
         };
         list.init_wrapper(cx, scope);
@@ -51,7 +51,7 @@ impl ClientRectList {
 impl Reflectable for ClientRectList {
     fn reflector(&mut self) -> &mut Reflector {
         unsafe {
-            cast::transmute(&self.wrapper)
+            cast::transmute(&self.reflector_)
         }
     }
 

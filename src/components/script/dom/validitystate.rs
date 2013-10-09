@@ -8,14 +8,14 @@ use js::jsapi::{JSContext, JSObject};
 use std::cast;
 
 pub struct ValidityState {
-    wrapper: Reflector,
+    reflector_: Reflector,
     state: u8
 }
 
 impl ValidityState {
     pub fn valid() -> ValidityState {
         ValidityState {
-            wrapper: Reflector::new(),
+            reflector_: Reflector::new(),
             state: 0
         }
     }
@@ -61,7 +61,7 @@ impl ValidityState {
 
 impl Reflectable for ValidityState {
     fn reflector(&mut self) -> &mut Reflector {
-        unsafe { cast::transmute(&self.wrapper) }
+        unsafe { cast::transmute(&self.reflector_) }
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

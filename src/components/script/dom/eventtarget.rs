@@ -12,13 +12,13 @@ use js::jsapi::{JSObject, JSContext, JSVal};
 use std::cast;
 
 pub struct EventTarget {
-    wrapper: Reflector
+    reflector_: Reflector
 }
 
 impl EventTarget {
     pub fn new() -> ~EventTarget {
         ~EventTarget {
-            wrapper: Reflector::new()
+            reflector_: Reflector::new()
         }
     }
 
@@ -29,7 +29,7 @@ impl EventTarget {
 
 impl Reflectable for EventTarget {
     fn reflector(&mut self) -> &mut Reflector {
-        unsafe { cast::transmute(&self.wrapper) }
+        unsafe { cast::transmute(&self.reflector_) }
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

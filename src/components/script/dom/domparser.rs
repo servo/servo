@@ -15,14 +15,14 @@ use dom::window::Window;
 
 pub struct DOMParser {
     owner: @mut Window, //XXXjdm Document instead?
-    wrapper: Reflector
+    reflector_: Reflector
 }
 
 impl DOMParser {
     pub fn new(owner: @mut Window) -> @mut DOMParser {
         let parser = @mut DOMParser {
             owner: owner,
-            wrapper: Reflector::new()
+            reflector_: Reflector::new()
         };
 
         // TODO(tkuehn): This just handles the top-level page. Need to handle subframes.

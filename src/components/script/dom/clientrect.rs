@@ -12,7 +12,7 @@ use js::glue::RUST_OBJECT_TO_JSVAL;
 use std::cast;
 
 pub struct ClientRect {
-    wrapper: Reflector,
+    reflector_: Reflector,
     top: f32,
     bottom: f32,
     left: f32,
@@ -26,7 +26,7 @@ impl ClientRect {
             bottom: bottom,
             left: left,
             right: right,
-            wrapper: Reflector::new()
+            reflector_: Reflector::new()
         };
         rect.init_wrapper(cx, scope);
         rect
@@ -64,7 +64,7 @@ impl ClientRect {
 impl Reflectable for ClientRect {
     fn reflector(&mut self) -> &mut Reflector {
         unsafe {
-            cast::transmute(&self.wrapper)
+            cast::transmute(&self.reflector_)
         }
     }
 

@@ -26,7 +26,7 @@ pub enum Event_ {
 }
 
 pub struct Event {
-    wrapper: Reflector,
+    reflector_: Reflector,
     type_: DOMString,
     default_prevented: bool,
     cancelable: bool,
@@ -37,7 +37,7 @@ pub struct Event {
 impl Event {
     pub fn new(type_: &DOMString) -> Event {
         Event {
-            wrapper: Reflector::new(),
+            reflector_: Reflector::new(),
             type_: (*type_).clone(),
             default_prevented: false,
             cancelable: true,
@@ -115,7 +115,7 @@ impl Event {
 
 impl Reflectable for Event {
     fn reflector(&mut self) -> &mut Reflector {
-        unsafe { cast::transmute(&self.wrapper) }
+        unsafe { cast::transmute(&self.reflector_) }
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

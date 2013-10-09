@@ -99,7 +99,7 @@ impl Reflectable for AbstractNode<ScriptView> {
     fn reflector(&mut self) -> &mut Reflector {
         do self.with_mut_base |base| {
             unsafe {
-                cast::transmute(&base.wrapper)
+                cast::transmute(&base.reflector_)
             }
         }
     }
@@ -129,7 +129,7 @@ impl Traceable for Node<ScriptView> {
                 }
             }
         }
-        debug!("tracing %p?:", self.wrapper.get_jsobject());
+        debug!("tracing %p?:", self.reflector_.get_jsobject());
         trace_node(tracer, self.parent_node, "parent");
         trace_node(tracer, self.first_child, "first child");
         trace_node(tracer, self.last_child, "last child");

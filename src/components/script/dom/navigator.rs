@@ -12,13 +12,13 @@ use js::jsapi::{JSContext, JSObject};
 use std::cast;
 
 pub struct Navigator {
-    wrapper: Reflector
+    reflector_: Reflector
 }
 
 impl Navigator {
     pub fn new() -> @mut Navigator {
         @mut Navigator {
-            wrapper: Reflector::new()
+            reflector_: Reflector::new()
         }
     }
 
@@ -89,7 +89,7 @@ impl Navigator {
 
 impl Reflectable for Navigator {
     fn reflector(&mut self) -> &mut Reflector {
-        unsafe { cast::transmute(&self.wrapper) }
+        unsafe { cast::transmute(&self.reflector_) }
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {

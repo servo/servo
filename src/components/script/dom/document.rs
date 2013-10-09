@@ -92,7 +92,7 @@ pub enum DocumentType {
 
 pub struct Document {
     root: Option<AbstractNode<ScriptView>>,
-    wrapper: Reflector,
+    reflector_: Reflector,
     window: Option<@mut Window>,
     doctype: DocumentType,
     title: ~str
@@ -103,7 +103,7 @@ impl Document {
     pub fn new(window: Option<@mut Window>, doctype: DocumentType) -> Document {
         Document {
             root: None,
-            wrapper: Reflector::new(),
+            reflector_: Reflector::new(),
             window: window,
             doctype: doctype,
             title: ~""
@@ -175,7 +175,7 @@ impl DerivedWrapper for AbstractDocument {
 impl Reflectable for Document {
     fn reflector(&mut self) -> &mut Reflector {
         unsafe {
-            cast::transmute(&self.wrapper)
+            cast::transmute(&self.reflector_)
         }
     }
 
@@ -502,7 +502,7 @@ impl Traceable for Document {
                         debug!("tracing root node");
                         do root.with_base |node| {
                             JS_CallTracer(tracer as *JSTracer,
-                                          node.wrapper.object,
+                                          node.reflector_.object,
                                           JSTRACE_OBJECT as u32);
                         }
                     }

@@ -21,14 +21,14 @@ enum FormDatum {
 
 pub struct FormData {
     data: HashMap<~str, FormDatum>,
-    wrapper: Reflector
+    reflector_: Reflector
 }
 
 impl FormData {
     pub fn new() -> @mut FormData {
         @mut FormData {
             data: HashMap::new(),
-            wrapper: Reflector::new()
+            reflector_: Reflector::new()
         }
     }
 
@@ -52,7 +52,7 @@ impl FormData {
 impl Reflectable for FormData {
     fn reflector(&mut self) -> &mut Reflector {
         unsafe {
-            cast::transmute(&self.wrapper)
+            cast::transmute(&self.reflector_)
         }
     }
 

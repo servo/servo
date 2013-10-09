@@ -8,13 +8,13 @@ use script_task::page_from_context;
 use js::jsapi::{JSContext, JSObject};
 
 pub struct WindowProxy {
-    wrapper: Reflector
+    reflector_: Reflector
 }
 
 impl WindowProxy {
     pub fn new() -> @mut WindowProxy {
         @mut WindowProxy {
-            wrapper: Reflector::new()
+            reflector_: Reflector::new()
         }
     }
 

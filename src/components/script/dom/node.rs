@@ -62,8 +62,8 @@ pub struct AbstractNodeChildrenIterator<View> {
 /// the script task, this is the unit type `()`. For the layout task, this is
 /// `LayoutData`.
 pub struct Node<View> {
-    /// The JavaScript wrapper for this node.
-    wrapper: Reflector,
+    /// The JavaScript reflector for this node.
+    reflector_: Reflector,
 
     /// The type of node that this is.
     type_id: NodeTypeId,
@@ -465,7 +465,7 @@ impl Node<ScriptView> {
 
     pub fn new(type_id: NodeTypeId) -> Node<ScriptView> {
         Node {
-            wrapper: Reflector::new(),
+            reflector_: Reflector::new(),
             type_id: type_id,
 
             abstract: None,
@@ -791,7 +791,7 @@ impl VoidPtrLike for AbstractNode<LayoutView> {
 
 impl Reflectable for Node<ScriptView> {
     fn reflector(&mut self) -> &mut Reflector {
-        unsafe { cast::transmute(&mut self.wrapper) }
+        unsafe { cast::transmute(&mut self.reflector_) }
     }
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {

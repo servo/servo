@@ -15,14 +15,14 @@ use std::ptr;
 
 pub struct HTMLCollection {
     elements: ~[AbstractNode<ScriptView>],
-    wrapper: Reflector
+    reflector_: Reflector
 }
 
 impl HTMLCollection {
     pub fn new(elements: ~[AbstractNode<ScriptView>], cx: *JSContext, scope: *JSObject) -> @mut HTMLCollection {
         let collection = @mut HTMLCollection {
             elements: elements,
-            wrapper: Reflector::new()
+            reflector_: Reflector::new()
         };
         collection.init_wrapper(cx, scope);
         collection
@@ -71,7 +71,7 @@ impl BindingObject for HTMLCollection {
 impl Reflectable for HTMLCollection {
     fn reflector(&mut self) -> &mut Reflector {
         unsafe {
-            cast::transmute(&self.wrapper)
+            cast::transmute(&self.reflector_)
         }
     }
 
