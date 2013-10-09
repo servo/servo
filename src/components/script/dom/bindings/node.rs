@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{CacheableWrapper, WrapperCache, Traceable};
+use dom::bindings::utils::{Reflectable, Reflector, Traceable};
 use dom::element::*;
 use dom::types::*;
 use dom::node::{AbstractNode, ElementNodeTypeId, TextNodeTypeId, CommentNodeTypeId};
@@ -95,11 +95,11 @@ pub fn create(cx: *JSContext, node: &mut AbstractNode<ScriptView>) -> *JSObject 
      }
 }
 
-impl CacheableWrapper for AbstractNode<ScriptView> {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+impl Reflectable for AbstractNode<ScriptView> {
+    fn reflector(&mut self) -> &mut Reflector {
         do self.with_mut_base |base| {
             unsafe {
-                cast::transmute(&base.wrapper)
+                cast::transmute(&base.reflector_)
             }
         }
     }
@@ -118,19 +118,18 @@ impl Traceable for Node<ScriptView> {
             }
             debug!("tracing %s", name);
             let mut node = node.unwrap();
-            let cache = node.get_wrappercache();
-            let wrapper = cache.get_wrapper();
-            assert!(wrapper.is_not_null());
+            let obj = node.reflector().get_jsobject();
+            assert!(obj.is_not_null());
             unsafe {
                 (*tracer).debugPrinter = ptr::null();
                 (*tracer).debugPrintIndex = -1;
                 do name.to_c_str().with_ref |name| {
                     (*tracer).debugPrintArg = name as *libc::c_void;
-                    JS_CallTracer(cast::transmute(tracer), wrapper, JSTRACE_OBJECT as u32);
+                    JS_CallTracer(cast::transmute(tracer), obj, JSTRACE_OBJECT as u32);
                 }
             }
         }
-        debug!("tracing %p?:", self.wrapper.get_wrapper());
+        debug!("tracing %p?:", self.reflector_.get_jsobject());
         trace_node(tracer, self.parent_node, "parent");
         trace_node(tracer, self.first_child, "first child");
         trace_node(tracer, self.last_child, "last child");

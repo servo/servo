@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{WrapperCache, BindingObject, CacheableWrapper};
+use dom::bindings::utils::{Reflector, BindingObject, Reflectable};
 use dom::bindings::codegen::ValidityStateBinding;
 use js::jsapi::{JSContext, JSObject};
 use std::cast;
 
 pub struct ValidityState {
-    wrapper: WrapperCache,
+    reflector_: Reflector,
     state: u8
 }
 
 impl ValidityState {
     pub fn valid() -> ValidityState {
         ValidityState {
-            wrapper: WrapperCache::new(),
+            reflector_: Reflector::new(),
             state: 0
         }
     }
@@ -59,9 +59,9 @@ impl ValidityState {
     }
 }
 
-impl CacheableWrapper for ValidityState {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        unsafe { cast::transmute(&self.wrapper) }
+impl Reflectable for ValidityState {
+    fn reflector(&mut self) -> &mut Reflector {
+        unsafe { cast::transmute(&self.reflector_) }
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -71,7 +71,7 @@ impl CacheableWrapper for ValidityState {
 }
 
 impl BindingObject for ValidityState {
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         None
     }
 }

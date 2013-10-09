@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{CacheableWrapper, BindingObject, DerivedWrapper};
-use dom::bindings::utils::{WrapperCache, DOMString, null_str_as_empty};
+use dom::bindings::utils::{Reflectable, BindingObject, DerivedWrapper};
+use dom::bindings::utils::{Reflector, DOMString, null_str_as_empty};
 use dom::bindings::codegen::FormDataBinding;
 use dom::blob::Blob;
 use script_task::{page_from_context};
@@ -21,14 +21,14 @@ enum FormDatum {
 
 pub struct FormData {
     data: HashMap<~str, FormDatum>,
-    wrapper: WrapperCache
+    reflector_: Reflector
 }
 
 impl FormData {
     pub fn new() -> @mut FormData {
         @mut FormData {
             data: HashMap::new(),
-            wrapper: WrapperCache::new()
+            reflector_: Reflector::new()
         }
     }
 
@@ -49,10 +49,10 @@ impl FormData {
     }
 }
 
-impl CacheableWrapper for FormData {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
+impl Reflectable for FormData {
+    fn reflector(&mut self) -> &mut Reflector {
         unsafe {
-            cast::transmute(&self.wrapper)
+            cast::transmute(&self.reflector_)
         }
     }
 
@@ -63,10 +63,10 @@ impl CacheableWrapper for FormData {
 }
 
 impl BindingObject for FormData {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         unsafe {
-            Some((*page).frame.get_ref().window as @mut CacheableWrapper)
+            Some((*page).frame.get_ref().window as @mut Reflectable)
         }
     }
 }

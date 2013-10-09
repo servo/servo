@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::WindowBinding;
-use dom::bindings::utils::{WrapperCache, DOMString, Traceable};
-use dom::bindings::utils::{CacheableWrapper, BindingObject, null_str_as_empty};
+use dom::bindings::utils::{Reflector, DOMString, Traceable};
+use dom::bindings::utils::{Reflectable, BindingObject, null_str_as_empty};
 use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ScriptView};
 use dom::navigator::Navigator;
@@ -43,7 +43,7 @@ pub struct Window {
     page: @mut Page,
     script_chan: ScriptChan,
     compositor: @ScriptListener,
-    wrapper: WrapperCache,
+    reflector_: Reflector,
     timer_chan: SharedChan<TimerControlMsg>,
     navigator: Option<@mut Navigator>,
     image_cache_task: ImageCacheTask,
@@ -135,9 +135,9 @@ impl Window {
     }
 }
 
-impl CacheableWrapper for Window {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        unsafe { cast::transmute(&self.wrapper) }
+impl Reflectable for Window {
+    fn reflector(&mut self) -> &mut Reflector {
+        unsafe { cast::transmute(&self.reflector_) }
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -147,7 +147,7 @@ impl CacheableWrapper for Window {
 }
 
 impl BindingObject for Window {
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
         None
     }
 }
@@ -203,7 +203,7 @@ impl Window {
             page: page,
             script_chan: script_chan.clone(),
             compositor: compositor,
-            wrapper: WrapperCache::new(),
+            reflector_: Reflector::new(),
             timer_chan: {
                 let (timer_port, timer_chan) = comm::stream::<TimerControlMsg>();
                 let id = page.id.clone();
@@ -225,9 +225,9 @@ impl Window {
         };
 
         unsafe {
-            let cache = ptr::to_unsafe_ptr(win.get_wrappercache());
+            let reflector = ptr::to_unsafe_ptr(win.reflector());
             win.wrap_object_shared(cx, ptr::null()); //XXXjdm proper scope
-            let global = (*cache).wrapper;
+            let global = (*reflector).object;
             do "window".to_c_str().with_ref |name| {
                 JS_DefineProperty(cx, global,  name,
                                   RUST_OBJECT_TO_JSVAL(global),
@@ -254,7 +254,7 @@ impl Traceable for Window {
                             (*tracer).debugPrintArg = name as *libc::c_void;
                             debug!("tracing document");
                             JS_CallTracer(tracer as *JSTracer,
-                                          doc.wrapper.wrapper,
+                                          doc.reflector_.object,
                                           JSTRACE_OBJECT as u32);
                         }
                     }

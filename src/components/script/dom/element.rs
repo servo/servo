@@ -4,7 +4,7 @@
 
 //! Element nodes.
 
-use dom::bindings::utils::{BindingObject, CacheableWrapper, DOMString, ErrorResult, Fallible, WrapperCache};
+use dom::bindings::utils::{BindingObject, Reflectable, DOMString, ErrorResult, Fallible, Reflector};
 use dom::bindings::utils::{null_str_as_empty, null_str_as_empty_ref};
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
@@ -28,9 +28,9 @@ pub struct Element {
     style_attribute: Option<Stylesheet>,
 }
 
-impl CacheableWrapper for Element {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        self.node.get_wrappercache()
+impl Reflectable for Element {
+    fn reflector(&mut self) -> &mut Reflector {
+        self.node.reflector()
     }
 
     fn wrap_object_shared(@mut self, _cx: *JSContext, _scope: *JSObject) -> *JSObject {
@@ -39,7 +39,7 @@ impl CacheableWrapper for Element {
 }
 
 impl BindingObject for Element {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.node.GetParentObject(cx)
     }
 }
@@ -191,8 +191,7 @@ impl<'self> Element {
         let doc = self.node.owner_doc.unwrap();
         let win = doc.with_base(|doc| doc.window.unwrap());
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        let cache = win.get_wrappercache();
-        let scope = cache.get_wrapper();
+        let scope = win.reflector().get_jsobject();
         (scope, cx)
     }
 }
@@ -287,8 +286,7 @@ impl Element {
             match page.query_layout(ContentBoxesQuery(node, chan), port) {
                 ContentBoxesResponse(rects) => {
                     let cx = page.js_info.get_ref().js_compartment.cx.ptr;
-                    let cache = win.get_wrappercache();
-                    let scope = cache.get_wrapper();
+                    let scope = win.reflector().get_jsobject();
                     let rects = do rects.map |r| {
                         ClientRect::new(
                              r.origin.y.to_f32(),
@@ -315,8 +313,7 @@ impl Element {
         match page.query_layout(ContentBoxQuery(node, chan), port) {
             ContentBoxResponse(rect) => {
                 let cx = page.js_info.get_ref().js_compartment.cx.ptr;
-                let cache = win.get_wrappercache();
-                let scope = cache.get_wrapper();
+                let scope = win.reflector().get_jsobject();
                 ClientRect::new(
                     rect.origin.y.to_f32(),
                     (rect.origin.y + rect.size.height).to_f32(),

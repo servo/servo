@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{WrapperCache, BindingObject, CacheableWrapper};
+use dom::bindings::utils::{Reflector, BindingObject, Reflectable};
 use dom::bindings::codegen::BlobBinding;
 use script_task::{page_from_context};
 
@@ -11,20 +11,20 @@ use js::jsapi::{JSContext, JSObject};
 use std::cast;
 
 pub struct Blob {
-    wrapper: WrapperCache
+    reflector_: Reflector
 }
 
 impl Blob {
     pub fn new() -> @mut Blob {
         @mut Blob {
-            wrapper: WrapperCache::new()
+            reflector_: Reflector::new()
         }
     }
 }
 
-impl CacheableWrapper for Blob {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        unsafe { cast::transmute(&self.wrapper) }
+impl Reflectable for Blob {
+    fn reflector(&mut self) -> &mut Reflector {
+        unsafe { cast::transmute(&self.reflector_) }
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -34,10 +34,10 @@ impl CacheableWrapper for Blob {
 }
 
 impl BindingObject for Blob {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         let page = page_from_context(cx);
         unsafe {
-            Some((*page).frame.get_ref().window as @mut CacheableWrapper)
+            Some((*page).frame.get_ref().window as @mut Reflectable)
         }
     }
 }

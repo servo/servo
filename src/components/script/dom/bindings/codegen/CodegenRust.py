@@ -1533,7 +1533,7 @@ for (uint32_t i = 0; i < length; ++i) {
             if descriptor.pointerType == '':
                 wrap = "%s.wrap(cx, ${obj}, ${jsvalPtr} as *mut JSVal)" % result
             else:
-                wrap = "%s(cx, ${obj}, %s as @mut CacheableWrapper, ${jsvalPtr} as *mut JSVal)" % (wrapMethod, result)
+                wrap = "%s(cx, ${obj}, %s as @mut Reflectable, ${jsvalPtr} as *mut JSVal)" % (wrapMethod, result)
             # We don't support prefable stuff in workers.
             assert(not descriptor.prefable or not descriptor.workers)
             if not descriptor.prefable:
@@ -1555,7 +1555,7 @@ for (uint32_t i = 0; i < length; ++i) {
             if descriptor.pointerType == '':
                 wrap = "(%s.wrap(cx, ${obj}, ${jsvalPtr}) != 0)" % result
             else:
-                wrap = "if WrapNewBindingObject(cx, ${obj}, %s as @mut CacheableWrapper, ${jsvalPtr}) { 1 } else { 0 };" % result
+                wrap = "if WrapNewBindingObject(cx, ${obj}, %s as @mut Reflectable, ${jsvalPtr}) { 1 } else { 0 };" % result
             wrappingCode += wrapAndSetPtr(wrap)
         return (wrappingCode, False)
 
@@ -2464,7 +2464,7 @@ class CGAbstractMethod(CGThing):
 
 def CreateBindingJSObject(descriptor, parent=None):
     if descriptor.proxy:
-        handler = """  //let cache = ptr::to_unsafe_ptr(aObject.get_wrappercache());
+        handler = """  //let reflector = ptr::to_unsafe_ptr(aObject.reflector());
 
   let page = page_from_context(aCx);
   let handler = (*page).js_info.get_ref().dom_static.proxy_handlers.get(&(PrototypeList::id::%s as uint));
@@ -2520,20 +2520,20 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
     return ptr::null();
   }
 
-  let cache = ptr::to_mut_unsafe_ptr(aObject.get_wrappercache());
+  let reflector = ptr::to_mut_unsafe_ptr(aObject.reflector());
 %s
 
   //NS_ADDREF(aObject);
 
-  (*cache).set_wrapper(obj);
+  (*reflector).set_jsobject(obj);
 
   return obj;""" % (CreateBindingJSObject(self.descriptor, "parent"))
         else:
-            return """    let cache = ptr::to_mut_unsafe_ptr(aObject.get_wrappercache());
+            return """    let reflector = ptr::to_mut_unsafe_ptr(aObject.reflector());
 %s
   let proto = GetProtoObject(aCx, obj, obj);
   JS_SetPrototype(aCx, obj, proto);
-  (*cache).set_wrapper(obj);
+  (*reflector).set_jsobject(obj);
   return obj;""" % CreateBindingJSObject(self.descriptor)
 
 class CGWrapMethod(CGAbstractMethod):
@@ -4077,7 +4077,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
   //       from the context for now. 
   let page = page_from_context(cx);
   let global = (*page).frame.get_ref().window;
-  let obj = global.get_wrappercache().get_wrapper();
+  let obj = global.reflector().get_jsobject();
 """
             preArgs = ["global"]
 

@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::HTMLDocumentBinding;
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible, Traceable};
-use dom::bindings::utils::{CacheableWrapper, BindingObject, WrapperCache};
-use dom::document::{AbstractDocument, Document, WrappableDocument, HTML};
+use dom::bindings::utils::{Reflectable, BindingObject, Reflector};
+use dom::document::{AbstractDocument, Document, ReflectableDocument, HTML};
 use dom::element::HTMLHeadElementTypeId;
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{AbstractNode, ScriptView, ElementNodeTypeId};
@@ -36,14 +36,13 @@ impl HTMLDocument {
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
         let win = self.parent.window.get_ref();
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
-        let cache = win.get_wrappercache();
-        let scope = cache.get_wrapper();
+        let scope = win.reflector().get_jsobject();
         (scope, cx)
     }
 }
 
-impl WrappableDocument for HTMLDocument {
-    fn init_wrapper(@mut self, cx: *JSContext) {
+impl ReflectableDocument for HTMLDocument {
+    fn init_reflector(@mut self, cx: *JSContext) {
         self.wrap_object_shared(cx, ptr::null()); //XXXjdm a proper scope would be nice
     }
 }
@@ -200,9 +199,9 @@ impl HTMLDocument {
     }
 }
 
-impl CacheableWrapper for HTMLDocument {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        self.parent.get_wrappercache()
+impl Reflectable for HTMLDocument {
+    fn reflector(&mut self) -> &mut Reflector {
+        self.parent.reflector()
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -212,7 +211,7 @@ impl CacheableWrapper for HTMLDocument {
 }
 
 impl BindingObject for HTMLDocument {
-    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+    fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
         self.parent.GetParentObject(cx)
     }
 }

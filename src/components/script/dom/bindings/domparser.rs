@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::DOMParserBinding;
-use dom::bindings::utils::{CacheableWrapper, WrapperCache};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::{BindingObject, DerivedWrapper};
 use dom::domparser::DOMParser;
 
@@ -12,9 +12,9 @@ use js::glue::{RUST_OBJECT_TO_JSVAL};
 
 use std::cast;
 
-impl CacheableWrapper for DOMParser {
-    fn get_wrappercache(&mut self) -> &mut WrapperCache {
-        unsafe { cast::transmute(&self.wrapper) }
+impl Reflectable for DOMParser {
+    fn reflector(&mut self) -> &mut Reflector {
+        unsafe { cast::transmute(&self.reflector_) }
     }
 
     fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -24,8 +24,8 @@ impl CacheableWrapper for DOMParser {
 }
 
 impl BindingObject for DOMParser {
-    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut CacheableWrapper> {
-        Some(self.owner as @mut CacheableWrapper)
+    fn GetParentObject(&self, _cx: *JSContext) -> Option<@mut Reflectable> {
+        Some(self.owner as @mut Reflectable)
     }
 }
 

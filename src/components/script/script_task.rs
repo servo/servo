@@ -8,7 +8,7 @@
 use servo_msg::compositor_msg::{ScriptListener, Loading, PerformingLayout};
 use servo_msg::compositor_msg::FinishedLoading;
 use dom::bindings::codegen::RegisterBindings;
-use dom::bindings::utils::{CacheableWrapper, GlobalStaticData};
+use dom::bindings::utils::{Reflectable, GlobalStaticData};
 use dom::document::AbstractDocument;
 use dom::element::Element;
 use dom::event::{Event_, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent, MouseUpEvent};
@@ -707,7 +707,7 @@ impl ScriptTask {
                                  self.chan.clone(),
                                  self.compositor,
                                  self.image_cache_task.clone());
-        page.initialize_js_info(cx, window.get_wrappercache().get_wrapper());
+        page.initialize_js_info(cx, window.reflector().get_jsobject());
 
         RegisterBindings::Register(page.js_info.get_ref().js_compartment);
 

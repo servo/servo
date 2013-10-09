@@ -4,16 +4,16 @@
 
 use dom::types::*;
 use dom::bindings::codegen::*;
-use dom::bindings::utils::{BindingObject, WrapperCache, CacheableWrapper, Traceable};
+use dom::bindings::utils::{BindingObject, Reflector, Reflectable, Traceable};
 use dom::node::ScriptView;
 
 use js::jsapi::{JSContext, JSObject, JSTracer};
 
 macro_rules! generate_cacheable_wrapper(
     ($name: path, $wrap: path) => (
-        impl CacheableWrapper for $name {
-            fn get_wrappercache(&mut self) -> &mut WrapperCache {
-                self.element.get_wrappercache()
+        impl Reflectable for $name {
+            fn reflector(&mut self) -> &mut Reflector {
+                self.element.reflector()
             }
 
             fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -26,9 +26,9 @@ macro_rules! generate_cacheable_wrapper(
 
 macro_rules! generate_cacheable_wrapper_htmlelement(
     ($name: path, $wrap: path) => (
-        impl CacheableWrapper for $name {
-            fn get_wrappercache(&mut self) -> &mut WrapperCache {
-                self.htmlelement.get_wrappercache()
+        impl Reflectable for $name {
+            fn reflector(&mut self) -> &mut Reflector {
+                self.htmlelement.reflector()
             }
 
             fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -41,9 +41,9 @@ macro_rules! generate_cacheable_wrapper_htmlelement(
 
 macro_rules! generate_cacheable_wrapper_node(
     ($name: path, $wrap: path) => (
-        impl CacheableWrapper for $name {
-            fn get_wrappercache(&mut self) -> &mut WrapperCache {
-                self.node.get_wrappercache()
+        impl Reflectable for $name {
+            fn reflector(&mut self) -> &mut Reflector {
+                self.node.reflector()
             }
 
             fn wrap_object_shared(@mut self, cx: *JSContext, scope: *JSObject) -> *JSObject {
@@ -57,7 +57,7 @@ macro_rules! generate_cacheable_wrapper_node(
 macro_rules! generate_binding_object(
     ($name: path) => (
         impl BindingObject for $name {
-            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
                 self.element.GetParentObject(cx)
             }
         }
@@ -67,7 +67,7 @@ macro_rules! generate_binding_object(
 macro_rules! generate_binding_object_htmlelement(
     ($name: path) => (
         impl BindingObject for $name {
-            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
                 self.htmlelement.GetParentObject(cx)
             }
         }
@@ -77,7 +77,7 @@ macro_rules! generate_binding_object_htmlelement(
 macro_rules! generate_binding_object_node(
     ($name: path) => (
         impl BindingObject for $name {
-            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut CacheableWrapper> {
+            fn GetParentObject(&self, cx: *JSContext) -> Option<@mut Reflectable> {
                 self.node.GetParentObject(cx)
             }
         }
