@@ -3,10 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::{Reflectable, DOMString, ErrorResult};
-use dom::element::HTMLFormElementTypeId;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
-use dom::node::{AbstractNode, ElementNodeTypeId, Node, ScriptView};
+use dom::node::{AbstractNode, ScriptView};
 
 use js::jsapi::{JSObject, JSContext};
 
