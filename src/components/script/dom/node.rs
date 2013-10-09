@@ -394,6 +394,7 @@ impl<'self, View> AbstractNode<View> {
         }
     }
 
+    // Issue #1030: should not walk the tree
     pub fn is_in_doc(&self) -> bool {
         do self.with_base |node| {
             do node.owner_doc.with_base |document| {
@@ -408,6 +409,7 @@ impl<'self, View> AbstractNode<View> {
                                     node = parent;
                                 },
                                 None => {
+                                    // Issue #1029: this is horrible.
                                     in_doc = unsafe { node.raw_object() as uint == root.raw_object() as uint };
                                     break;
                                 }
@@ -461,13 +463,6 @@ impl Node<ScriptView> {
 
         // Signal the new document that it needs to update its display
         do doc.with_base |doc| {
-            doc.content_changed();
-        }
-    }
-
-    pub fn remove_from_doc(&self) {
-        // Signal the document that it needs to update its display.
-        do self.owner_doc.with_base |doc| {
             doc.content_changed();
         }
     }
@@ -722,7 +717,10 @@ impl Node<ScriptView> {
         self.wait_until_safe_to_modify_dom();
 
         abstract_self.remove_child(node);
-        self.remove_from_doc();
+        // Signal the document that it needs to update its display.
+        do self.owner_doc.with_base |document| {
+            document.content_changed();
+        }
         Ok(node)
     }
 
