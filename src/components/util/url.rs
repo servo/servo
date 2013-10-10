@@ -62,6 +62,12 @@ pub fn make_url(str_url: ~str, current_url: Option<Url>) -> Url {
                         _ => str_url
                     }
                 },
+                ~"data" => {
+                    // Drop whitespace within data: URLs, e.g. newlines within a base64
+                    // src="..." block.  Whitespace intended as content should be
+                    // %-encoded or base64'd.
+                    str_url.iter().filter(|&c| !c.is_whitespace()).collect()
+                },
                 _ => str_url
             }
         }
