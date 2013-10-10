@@ -48,9 +48,9 @@ interface Document /*: Node*/ { //XXXjdm Requires servo/#623
   DocumentFragment createDocumentFragment();*/
   [Creator]
   Text createTextNode(DOMString data);
-  /*[Creator]
+  [Creator]
   Comment createComment(DOMString data);
-  [Creator, Throws]
+  /*[Creator, Throws]
   ProcessingInstruction createProcessingInstruction(DOMString target, DOMString data);*/
 
   /*[Throws]
