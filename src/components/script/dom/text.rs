@@ -4,6 +4,7 @@
 
 use dom::bindings::utils::{DOMString, Fallible, null_str_as_empty};
 use dom::characterdata::CharacterData;
+use dom::document::AbstractDocument;
 use dom::node::{AbstractNode, ScriptView, Node, TextNodeTypeId};
 use dom::window::Window;
 
@@ -14,15 +15,15 @@ pub struct Text {
 
 impl Text {
     /// Creates a new HTML text node.
-    pub fn new(text: ~str) -> Text {
+    pub fn new(text: ~str, document: AbstractDocument) -> Text {
         Text {
-            element: CharacterData::new(TextNodeTypeId, text)
+            element: CharacterData::new(TextNodeTypeId, text, document)
         }
     }
 
     pub fn Constructor(owner: @mut Window, text: &DOMString) -> Fallible<AbstractNode<ScriptView>> {
         let cx = owner.page.js_info.get_ref().js_compartment.cx.ptr;
-        let text = @Text::new(null_str_as_empty(text));
+        let text = @Text::new(null_str_as_empty(text), owner.Document());
         Ok(unsafe { Node::as_abstract_node(cx, text) })
     }
 

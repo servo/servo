@@ -6,6 +6,7 @@
 
 use dom::bindings::utils::{DOMString, ErrorResult, Fallible};
 use dom::bindings::utils::{BindingObject, Reflectable, Reflector};
+use dom::document::AbstractDocument;
 use dom::node::{Node, NodeTypeId, ScriptView};
 use js::jsapi::{JSObject, JSContext};
 
@@ -15,9 +16,9 @@ pub struct CharacterData {
 }
 
 impl CharacterData {
-    pub fn new(id: NodeTypeId, data: ~str) -> CharacterData {
+    pub fn new(id: NodeTypeId, data: ~str, document: AbstractDocument) -> CharacterData {
         CharacterData {
-            node: Node::new(id),
+            node: Node::new(id, document),
             data: data
         }
     }

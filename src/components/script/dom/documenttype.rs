@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::utils::DOMString;
+use dom::document::AbstractDocument;
 use dom::node::{ScriptView, Node, DoctypeNodeTypeId};
 
 /// The `DOCTYPE` tag.
@@ -19,10 +20,11 @@ impl DocumentType<ScriptView> {
     pub fn new(name: ~str,
                public_id: Option<~str>,
                system_id: Option<~str>,
-               force_quirks: bool)
+               force_quirks: bool,
+               document: AbstractDocument)
             -> DocumentType<ScriptView> {
         DocumentType {
-            node: Node::new(DoctypeNodeTypeId),
+            node: Node::new(DoctypeNodeTypeId, document),
             name: name,
             public_id: public_id,
             system_id: system_id,

@@ -9,6 +9,7 @@ use dom::bindings::utils::{null_str_as_empty, null_str_as_empty_ref};
 use dom::htmlcollection::HTMLCollection;
 use dom::clientrect::ClientRect;
 use dom::clientrectlist::ClientRectList;
+use dom::document::AbstractDocument;
 use dom::node::{ElementNodeTypeId, Node, ScriptView, AbstractNode};
 use layout_interface::{ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery};
 use layout_interface::{ContentBoxesResponse};
@@ -119,9 +120,9 @@ pub enum ElementTypeId {
 //
 
 impl<'self> Element {
-    pub fn new(type_id: ElementTypeId, tag_name: ~str) -> Element {
+    pub fn new(type_id: ElementTypeId, tag_name: ~str, document: AbstractDocument) -> Element {
         Element {
-            node: Node::new(ElementNodeTypeId(type_id)),
+            node: Node::new(ElementNodeTypeId(type_id), document),
             tag_name: tag_name,
             attrs: ~[],
             style_attribute: None,
@@ -181,14 +182,15 @@ impl<'self> Element {
             _ => ()
         }
 
-        match self.node.owner_doc {
-            Some(owner) => do owner.with_base |owner| { owner.content_changed() },
-            None => {}
+        if abstract_self.is_in_doc() {
+            do self.node.owner_doc.with_base |owner| {
+                owner.content_changed();
+            }
         }
     }
 
     fn get_scope_and_cx(&self) -> (*JSObject, *JSContext) {
-        let doc = self.node.owner_doc.unwrap();
+        let doc = self.node.owner_doc;
         let win = doc.with_base(|doc| doc.window.unwrap());
         let cx = win.page.js_info.get_ref().js_compartment.cx.ptr;
         let scope = win.reflector().get_jsobject();
@@ -276,7 +278,7 @@ impl Element {
     }
 
     pub fn GetClientRects(&self, abstract_self: AbstractNode<ScriptView>) -> @mut ClientRectList {
-        let document = self.node.owner_doc.expect("no document");
+        let document = self.node.owner_doc;
         let win = document.with_base(|doc| doc.window).expect("no window");
         let node = abstract_self;
         assert!(node.is_element());
@@ -304,7 +306,7 @@ impl Element {
     }
 
     pub fn GetBoundingClientRect(&self, abstract_self: AbstractNode<ScriptView>) -> @mut ClientRect {
-        let document = self.node.owner_doc.expect("no document");
+        let document = self.node.owner_doc;
         let win = document.with_base(|doc| doc.window).expect("no window");
         let page = win.page;
         let node = abstract_self;
