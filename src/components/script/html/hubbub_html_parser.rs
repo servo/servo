@@ -336,6 +336,8 @@ pub fn parse_html(cx: *JSContext,
     resource_task.send(Load(url.clone(), input_chan));
     let load_response = input_port.recv();
 
+    debug!("Fetched page; metadata is %?", load_response.metadata);
+
     let url2 = load_response.metadata.final_url.clone();
     let url3 = url2.clone();
 

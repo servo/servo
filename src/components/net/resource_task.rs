@@ -12,6 +12,7 @@ use std::comm::{Chan, Port, SharedChan};
 use std::comm;
 use extra::url::Url;
 use util::spawn_listener;
+use http::headers::content_type::MediaType;
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
@@ -24,14 +25,37 @@ pub struct Metadata {
     /// Final URL after redirects.
     final_url: Url,
 
-    // Other fields (e.g. content type, charset) will go here.
+    /// MIME type / subtype.
+    content_type: Option<(~str, ~str)>,
+
+    /// Character set.
+    charset: Option<~str>,
 }
 
 impl Metadata {
     /// Metadata with defaults for everything optional.
     pub fn default(url: Url) -> Metadata {
         Metadata {
-            final_url: url,
+            final_url:    url,
+            content_type: None,
+            charset:      None,
+        }
+    }
+
+    /// Extract the parts of a MediaType that we care about.
+    pub fn set_content_type(&mut self, content_type: &Option<MediaType>) {
+        match *content_type {
+            None => (),
+            Some(MediaType { type_:      ref type_,
+                             subtype:    ref subtype,
+                             parameters: ref parameters }) => {
+                self.content_type = Some((type_.clone(), subtype.clone()));
+                for &(ref k, ref v) in parameters.iter() {
+                    if "charset" == k.as_slice() {
+                        self.charset = Some(v.clone());
+                    }
+                }
+            }
         }
     }
 }

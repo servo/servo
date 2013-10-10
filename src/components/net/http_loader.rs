@@ -54,7 +54,7 @@ fn load(url: Url, start_chan: Chan<LoadResponse>) {
     }
 
     let mut metadata = Metadata::default(url);
-    // We will set other fields here.
+    metadata.set_content_type(&response.headers.content_type);
 
     let progress_chan = start_sending(start_chan, metadata);
     loop {
